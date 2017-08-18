@@ -210,7 +210,7 @@ BERR_Code BAPE_SpdifOutput_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
     
-    BDBG_MSG(("%s: Opening SPDIF Output: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening SPDIF Output: %u", BSTD_FUNCTION, index));
 
     *pHandle = NULL;
 
@@ -417,6 +417,24 @@ void BAPE_SpdifOutput_GetOutputPort(
     BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
     BDBG_ASSERT(NULL != pOutputPort);
     *pOutputPort = &handle->outputPort;
+}
+
+void BAPE_SpdifOutput_P_DeterminePauseBurstEnabled(
+    BAPE_SpdifOutputHandle handle,
+    bool *compressed,
+    bool *burstsEnabled)
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
+
+    if ( handle->outputPort.mixer )
+    {
+        const BAPE_FMT_Descriptor *pBfd = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        *compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
+    }
+    else {
+        *compressed = false;
+    }
+    *burstsEnabled = handle->settings.underflowBurst != BAPE_SpdifBurstType_eNone;
 }
 
 /***************************************************************************
@@ -1238,7 +1256,6 @@ static void BAPE_SpdifOutput_P_SetCbits_Legacy_isr(BAPE_SpdifOutputHandle handle
 {
     uint32_t regAddr, regVal;
     unsigned validity = 0;
-    BAPE_DataType dataType = BAPE_DataType_ePcmStereo;
     unsigned compressed = 0;
     unsigned dither = 0;
     bool compressedAsPcm = false;
@@ -1250,7 +1267,6 @@ static void BAPE_SpdifOutput_P_SetCbits_Legacy_isr(BAPE_SpdifOutputHandle handle
     {
         pFormat = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
 
-        dataType = pFormat->type;
         compressed = (unsigned)BAPE_FMT_P_IsCompressed_isrsafe(pFormat);
         compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pFormat);
     }
@@ -1321,7 +1337,7 @@ static void BAPE_SpdifOutput_P_SetCbits_Legacy_isr(BAPE_SpdifOutputHandle handle
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, Compressed_CP, (handle->settings.channelStatus.copyright)?0:1);
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, Compressed_CATEGORY, handle->settings.channelStatus.categoryCode);
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, Compressed_SOURCE, handle->settings.channelStatus.sourceNumber);
-        regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, Compressed_FREQ, BAPE_P_GetSampleRateCstatCode_isr(handle->sampleRate));
+        regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, Compressed_FREQ, BAPE_P_GetConsumerSampleRateCstatCode_isr(handle->sampleRate));
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, Compressed_ACCURACY, handle->settings.channelStatus.clockAccuracy);
         BREG_Write32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, regVal);
         BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0, 0);
@@ -1348,7 +1364,7 @@ static void BAPE_SpdifOutput_P_SetCbits_Legacy_isr(BAPE_SpdifOutputHandle handle
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_CP, (handle->settings.channelStatus.copyright)?0:1);
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_CATEGORY, handle->settings.channelStatus.categoryCode);
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_SOURCE, handle->settings.channelStatus.sourceNumber);
-        regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_FREQ, BAPE_P_GetSampleRateCstatCode_isr(handle->sampleRate));
+        regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_FREQ, BAPE_P_GetConsumerSampleRateCstatCode_isr(handle->sampleRate));
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_ACCURACY, handle->settings.channelStatus.clockAccuracy);
         BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, regVal);
         regVal = BREG_Read32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0);
@@ -1993,6 +2009,7 @@ static BERR_Code BAPE_SpdifOutput_P_ApplySettings_Legacy(
 
     return BERR_SUCCESS;
 }
+
 #endif
 
 #else
@@ -2087,6 +2104,17 @@ BERR_Code BAPE_SpdifOutput_PowerDown(
     return BERR_SUCCESS;
 }
 
+void BAPE_SpdifOutput_P_DeterminePauseBurstEnabled(
+    BAPE_SpdifOutputHandle handle,
+    bool *compressed,
+    bool *burstsEnabled)
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(compressed);
+    BSTD_UNUSED(burstsEnabled);
+    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
 #endif
 
 #if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0 || BAPE_CHIP_MAX_MAI_OUTPUTS > 0
@@ -2126,39 +2154,64 @@ void BAPE_P_MapSpdifChannelStatusToBits_isr(
         sampleRate = 48000;
     }
     
-    if ( pChannelStatus->professional )
-    {
-        pBits->bits[0] |= 0x01 <<  0;   /* PRO_CONS */
-    }
-    if ( compressed && !compressedAsPcm )
-    {
-        pBits->bits[0] |= 0x01 <<  1;   /* COMP_LIN */
-    }
-    if ( !pChannelStatus->copyright )
-    {
-        pBits->bits[0] |= 0x01 <<  2;   /* CP */
-    }
-    /* EMPH = 0 */
-    /* CMODE = 0 */
-    pBits->bits[0] |= ((uint32_t)pChannelStatus->categoryCode&0xff) <<  8;   /* CATEGORY */
-    pBits->bits[0] |= ((uint32_t)pChannelStatus->sourceNumber&0x0f) << 16;   /* SOURCE */
-    pBits->bits[0] |= ((uint32_t)BAPE_P_GetSampleRateCstatCode_isr(sampleRate)) << 24;   /* FREQ */
-    pBits->bits[0] |= ((uint32_t)pChannelStatus->clockAccuracy&0x03) << 28;   /* ACCURACY */
-    /* FREQ_EXTN = 0 */
+    if ( !pChannelStatus->professional ) { /* Consumer Mode */
+        /* Bit 0 is professional/consumer and consumer is 0 */
 
-    if ( compressed && !compressedAsPcm )  
-    {
-        /* Compressed leaves word1 at 0 */
-    }
-    else
-    {
-        pBits->bits[1] |= 0x01 << 0;   /* MAX_LEN = 24 bits */
-        /* LENGTH = 0 [not indicated] */
-        /* ORIG_FREQ = 0 [not indicated] */
-        pBits->bits[1] |= ((uint32_t)pChannelStatus->cgmsA&0x03) << 8;   /* CGMS_A */
-    }
+        if ( compressed && !compressedAsPcm ) {
+            pBits->bits[0] |= 0x01 <<  1;   /* COMP_LIN */
+        }
+        if ( !pChannelStatus->copyright ) {
+            pBits->bits[0] |= 0x01 <<  2;   /* CP */
+        }
+        /* EMPH = 0 */
+        /* CMODE = 0 */
+        pBits->bits[0] |= ((uint32_t)pChannelStatus->categoryCode&0xff) <<  8;   /* CATEGORY */
+        pBits->bits[0] |= ((uint32_t)pChannelStatus->sourceNumber&0x0f) << 16;   /* SOURCE */
+        pBits->bits[0] |= ((uint32_t)BAPE_P_GetConsumerSampleRateCstatCode_isr(sampleRate)) << 24;   /* FREQ */
+        pBits->bits[0] |= ((uint32_t)pChannelStatus->clockAccuracy&0x03) << 28;   /* ACCURACY */
+        /* FREQ_EXTN = 0 */
 
-    /* Done */
+        if ( compressed && !compressedAsPcm ) {
+            /* Compressed leaves word1 at 0 */
+        }
+        else {
+            pBits->bits[1] |= 0x01 << 0;   /* MAX_LEN = 24 bits */
+            /* LENGTH = 0 [not indicated] */
+            /* ORIG_FREQ = 0 [not indicated] */
+            pBits->bits[1] |= ((uint32_t)pChannelStatus->cgmsA&0x03) << 8;   /* CGMS_A */
+        }
+
+        /* Done */
+    }
+    else { /* Professional Mode */
+        pBits->bits[0] |= 0x01 <<  0;   /* Professional */
+        if ( compressed && !compressedAsPcm ) {
+            pBits->bits[0] |= 0x01 <<  1;   /* COMP_LIN */
+        }
+        /* EMPH = 0 */
+        /* Signal Locked = 0 ?*/
+        switch (sampleRate) {
+        case 48000:
+        case 44100:
+        case 32000:
+            pBits->bits[0] |= ((uint32_t)BAPE_P_GetProfessionalSampleRateCstatCode_isr(sampleRate)) << 6;   /* FREQ */
+            break;
+        default:
+            /* byte 0 bits 6/7 are 0 and set Byte 4 bits 3-6 */
+            pBits->bits[1] |= ((uint32_t)BAPE_P_GetProfessionalSampleRateCstatCode_isr(sampleRate)) << 3;   /* FREQ */
+            break;
+        }
+        /* Encoded CMODE = 0 */
+        /* Encoded User Bits = 0*/
+        if ( !compressed || compressedAsPcm ) {  /* Compressed leaves wordlength at 0 */
+            pBits->bits[0] |= 0x04 << 16;   /* MAX_LEN = 24 bits */
+            pBits->bits[0] |= 0x05 << 19;   /* Word Length = 24 bits */
+        }
+        /* Alignment level = 0*/
+        /* Channel number = 1 (value + 1) */
+        /* Digital reference signal = 0 */
+        /* sample rate already populated */
+    }
 }
 
 #endif

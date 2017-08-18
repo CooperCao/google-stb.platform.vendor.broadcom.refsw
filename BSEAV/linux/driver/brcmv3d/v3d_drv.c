@@ -27,6 +27,7 @@
  * Broadcom V3D graphics driver.
  */
 
+#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
@@ -53,11 +54,16 @@
  * while we are developing.
  */
 #define DRM_UT_ALLOC 0x100
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
 #define DRM_DEBUG_ALLOC(fmt, args...)                                   \
 	do {                                                            \
 		if (unlikely(drm_debug & DRM_UT_ALLOC))                 \
 			drm_ut_debug_printk(__func__, fmt, ##args);     \
 	} while (0)
+#else
+#define DRM_DEBUG_ALLOC(fmt, ...)					\
+	drm_printk(KERN_DEBUG, DRM_UT_ALLOC, fmt, ##__VA_ARGS__)
+#endif
 
 /*
  * General helpers
@@ -1004,7 +1010,12 @@ static int v3d_gem_map_offset(struct drm_file *file, struct drm_device *dev,
 	int ret = 0;
 
 	mutex_lock(&dev->struct_mutex);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
 	obj = drm_gem_object_lookup(dev, file, handle);
+#else
+	obj = drm_gem_object_lookup(file, handle);
+#endif
+
 	if (!obj) {
 		ret = -ENOENT;
 		goto unlock;
@@ -1019,11 +1030,15 @@ static int v3d_gem_map_offset(struct drm_file *file, struct drm_device *dev,
 		goto unref;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
 	if (!drm_vma_node_has_offset(&obj->vma_node)) {
+#endif
 		ret = drm_gem_create_mmap_offset(obj);
 		if (ret)
 			goto unref;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
 	}
+#endif
 
 	*offset = drm_vma_node_offset_addr(&obj->vma_node);
 
@@ -1540,6 +1555,8 @@ MODULE_DEVICE_TABLE(of, v3d_drm_of_table);
 static int v3d_drm_probe(struct platform_device *pdev)
 {
 	struct v3d_drm_config_data *config = NULL;
+	bool found_cma_dev = false;
+	int i;
 
 	DRM_DEBUG_DRIVER("Probed brcmv3d driver:\n");
 	DRM_DEBUG_DRIVER("\tHW Page Size: %zu\n", (size_t)V3D_HW_PAGE_SIZE);
@@ -1564,6 +1581,26 @@ static int v3d_drm_probe(struct platform_device *pdev)
 	if (!config) {
 		DRM_DEBUG_DRIVER("Invalid device configuration data\n");
 		return -ENODEV;
+	}
+
+	for (i = 0; i < MAX_CMA_AREAS; i++) {
+		struct cma_dev *dev = cma_dev_get_cma_dev(i);
+
+		if (dev) {
+			phys_addr_t base = dev->range.base;
+
+			DRM_DEBUG_DRIVER("Found CMA dev 0x%pK for MEMC%d (base %pa, size 0x%x)\n",
+					 dev, dev->memc, &base,
+					 dev->range.size);
+
+			if (v3d_drm_dev_is_cma_device_valid(dev))
+				found_cma_dev = true;
+		}
+	}
+
+	if (!found_cma_dev) {
+		DRM_DEBUG_DRIVER("No brcm_cma region defined\n");
+		return -ENOMEM;
 	}
 
 	pdev->dev.coherent_dma_mask = config->coherent_dma_mask;

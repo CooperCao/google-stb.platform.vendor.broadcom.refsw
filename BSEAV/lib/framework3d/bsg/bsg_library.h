@@ -198,10 +198,7 @@ class Handle
 
 public:
    // @cond
-   enum
-   {
-      BAD_INDEX = -1
-   };
+   static const uint32_t BAD_INDEX = ~0u;
    // @endcond
 
    //! Construct a "null" handle

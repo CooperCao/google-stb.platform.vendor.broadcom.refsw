@@ -20,8 +20,12 @@ typedef struct {
 #endif
 
    struct {
-      int type;
+      bool is_16;
+      bool is_int;
+      bool is_present;
+#if !V3D_VER_AT_LEAST(4,0,2,0)
       bool alpha_16_workaround;
+#endif
    } rt[V3D_MAX_RENDER_TARGETS];
 
    uint8_t  adv_blend;  /* 0=NONE, 1=MULTIPLY, ... */
@@ -33,5 +37,6 @@ void glsl_fragment_backend(
    const IRShader *sh,
    const LinkMap *link_map,
    const FragmentBackendState *s,
+   const bool *shader_outputs_used,
    bool *does_discard_out,
    bool *does_z_change_out);

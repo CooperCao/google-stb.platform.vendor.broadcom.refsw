@@ -120,14 +120,14 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
 {
     BIP_RtspServer::BIP_RtspClientSession *pClientSession = this;
 
-    BDBG_MSG(( "%s: session %p, bitmask 0x%08X", __FUNCTION__, (void *)pClientSession, bitmaskOptionsFound ));
+    BDBG_MSG(( "%s: session %p, bitmask 0x%08X", BSTD_FUNCTION, (void *)pClientSession, bitmaskOptionsFound ));
     BIP_CHECK_PTR_GOTO( pClientSession, "pClientSession is invalid", error, BIP_ERR_INVALID_PARAMETER );
 
     /* if client specifies just the session id (and not steam=xyz), this is a valid request ... as long as we can figure out the session -> process it */
     #if 0
     if (!( bitmaskOptionsFound & 0x00001 ))   // streamId
     {
-        BDBG_ERR(( "%s: ERROR ... stream ID is required to update existing stream", __FUNCTION__ ));
+        BDBG_ERR(( "%s: ERROR ... stream ID is required to update existing stream", BSTD_FUNCTION ));
         return( 0 );
     }
     #endif
@@ -135,55 +135,55 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
     if (bitmaskOptionsFound & 0x00002)   // satSettings->freq
     {
         pClientSession->satelliteSettings.freq = pSatelliteSettings->freq;
-        BDBG_MSG(( "%s: new freq %d", __FUNCTION__, pClientSession->satelliteSettings.freq ));
+        BDBG_MSG(( "%s: new freq %d", BSTD_FUNCTION, pClientSession->satelliteSettings.freq ));
     }
     if (bitmaskOptionsFound & 0x00004)   // satSettings->mtype
     {
         strncpy( pClientSession->satelliteSettings.mtype, pSatelliteSettings->mtype, sizeof( pClientSession->satelliteSettings.mtype )-1 );
-        BDBG_MSG(( "%s: new mtype %s", __FUNCTION__, pClientSession->satelliteSettings.mtype ));
+        BDBG_MSG(( "%s: new mtype %s", BSTD_FUNCTION, pClientSession->satelliteSettings.mtype ));
     }
     if (bitmaskOptionsFound & 0x00008)   // satSettings->msys
     {
         strncpy( pClientSession->satelliteSettings.msys, pSatelliteSettings->msys, sizeof( pClientSession->satelliteSettings.msys )-1 );
-        BDBG_MSG(( "%s: new msys %s", __FUNCTION__, pClientSession->satelliteSettings.msys ));
+        BDBG_MSG(( "%s: new msys %s", BSTD_FUNCTION, pClientSession->satelliteSettings.msys ));
     }
     if (bitmaskOptionsFound & 0x00010)   // satSettings->pilotTone
     {
         pClientSession->satelliteSettings.pilotTone = pSatelliteSettings->pilotTone;
-        BDBG_MSG(( "%s: new pilotTone %d", __FUNCTION__, pClientSession->satelliteSettings.pilotTone ));
+        BDBG_MSG(( "%s: new pilotTone %d", BSTD_FUNCTION, pClientSession->satelliteSettings.pilotTone ));
     }
     if (bitmaskOptionsFound & 0x00020)   // satSettings->sr
     {
         pClientSession->satelliteSettings.sr = pSatelliteSettings->sr;
-        BDBG_MSG(( "%s: new sr %d", __FUNCTION__, pClientSession->satelliteSettings.sr ));
+        BDBG_MSG(( "%s: new sr %d", BSTD_FUNCTION, pClientSession->satelliteSettings.sr ));
     }
     if (bitmaskOptionsFound & 0x00040)   // satSettings->fec
     {
         pClientSession->satelliteSettings.fec = pSatelliteSettings->fec;
-        BDBG_MSG(( "%s: new fec %d", __FUNCTION__, pClientSession->satelliteSettings.fec ));
+        BDBG_MSG(( "%s: new fec %d", BSTD_FUNCTION, pClientSession->satelliteSettings.fec ));
     }
     if (bitmaskOptionsFound & 0x00080)   // satSettings->ro
     {
         pClientSession->satelliteSettings.ro = pSatelliteSettings->ro;
-        BDBG_MSG(( "%s: new ro %f", __FUNCTION__, pClientSession->satelliteSettings.ro ));
+        BDBG_MSG(( "%s: new ro %f", BSTD_FUNCTION, pClientSession->satelliteSettings.ro ));
     }
     if (bitmaskOptionsFound & 0x00100)   // satSettings->pol_int
     {
         pClientSession->satelliteSettings.pol_int = pSatelliteSettings->pol_int;
         strncpy( pClientSession->satelliteSettings.pol, pSatelliteSettings->pol, sizeof( pClientSession->satelliteSettings.pol )-1 );
-        BDBG_MSG(( "%s: new pol_int %d", __FUNCTION__, pClientSession->satelliteSettings.pol_int ));
-        BDBG_MSG(( "%s: new pol %s", __FUNCTION__, pClientSession->satelliteSettings.pol ));
+        BDBG_MSG(( "%s: new pol_int %d", BSTD_FUNCTION, pClientSession->satelliteSettings.pol_int ));
+        BDBG_MSG(( "%s: new pol %s", BSTD_FUNCTION, pClientSession->satelliteSettings.pol ));
     }
     if (bitmaskOptionsFound & 0x00200)   // satSettings->pidListCount
     {
         int idx = 0;
         pClientSession->satelliteSettings.pidListCount = pSatelliteSettings->pidListCount;
 
-        BDBG_MSG(( "%s: new pidListCount %d", __FUNCTION__, pClientSession->satelliteSettings.pidListCount ));
+        BDBG_MSG(( "%s: new pidListCount %d", BSTD_FUNCTION, pClientSession->satelliteSettings.pidListCount ));
         BKNI_Memset( pClientSession->satelliteSettings.pidList, 0, sizeof( pClientSession->satelliteSettings.pidList ));
         for (idx = 0; idx<pSatelliteSettings->pidListCount; idx++) {
             pClientSession->satelliteSettings.pidList[idx] = pSatelliteSettings->pidList[idx];
-            BDBG_MSG(( "%s: new pidList[%d] = %d", __FUNCTION__, idx, pClientSession->satelliteSettings.pidList[idx] ));
+            BDBG_MSG(( "%s: new pidList[%d] = %d", BSTD_FUNCTION, idx, pClientSession->satelliteSettings.pidList[idx] ));
         }
     }
     if (bitmaskOptionsFound & 0x40000)   // satSettings->addPidListCount
@@ -219,21 +219,21 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
                 {
                     /* Add to pidList  to the end*/
 
-                    BDBG_MSG(( "%s: addPid param. %d to end of Pid List.", __FUNCTION__, curPid ));
+                    BDBG_MSG(( "%s: addPid param. %d to end of Pid List.", BSTD_FUNCTION, curPid ));
                     pClientSession->satelliteSettings.pidList[( pClientSession->satelliteSettings.pidListCount )++] = curPid;
                 }
                 else
                 {
-                    BDBG_WRN(( "%s: addPid param. %d already in list of pids.", __FUNCTION__, curPid ));
+                    BDBG_WRN(( "%s: addPid param. %d already in list of pids.", BSTD_FUNCTION, curPid ));
                 }
-                BDBG_MSG(( "%s: pidList[%d] %d", __FUNCTION__, ( pClientSession->satelliteSettings.pidListCount )-1, pClientSession->satelliteSettings.pidList[( pClientSession->satelliteSettings.pidListCount )-1] ));
+                BDBG_MSG(( "%s: pidList[%d] %d", BSTD_FUNCTION, ( pClientSession->satelliteSettings.pidListCount )-1, pClientSession->satelliteSettings.pidList[( pClientSession->satelliteSettings.pidListCount )-1] ));
 
                 alreadyInPidList = false; /* reset back for next pid*/
             }
 
             if (( pClientSession->satelliteSettings.pidListCount == BIP_MAX_PIDS_PER_PROGRAM ))
             {
-                BDBG_ERR(( "%s: pidList is not big enough to store all pids, current size %d", __FUNCTION__, BIP_MAX_PIDS_PER_PROGRAM ));
+                BDBG_ERR(( "%s: pidList is not big enough to store all pids, current size %d", BSTD_FUNCTION, BIP_MAX_PIDS_PER_PROGRAM ));
             }
 
             /* Testing */
@@ -268,7 +268,7 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
                         {
                             /* remove this pid */
 
-                            BDBG_MSG(( "%s: delPid param. Found and Removing %d from current  list of pids.", __FUNCTION__, curPid ));
+                            BDBG_MSG(( "%s: delPid param. Found and Removing %d from current  list of pids.", BSTD_FUNCTION, curPid ));
                             int j;
                             pClientSession->satelliteSettings.pidListCount--;                  /* shorten list by 1*/
                             for (j = i; j<BIP_MAX_PIDS_PER_PROGRAM-1; j++) /* move over remaing elements to left*/
@@ -280,7 +280,7 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
                             break;
                         }
 
-                        BDBG_WRN(( "%s: delPid param. %d pid not Found in current Pid list.", __FUNCTION__, curPid ));
+                        BDBG_WRN(( "%s: delPid param. %d pid not Found in current Pid list.", BSTD_FUNCTION, curPid ));
                     }
                 }
             }
@@ -298,22 +298,22 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
     if (bitmaskOptionsFound & 0x00400)   // satSettings->src
     {
         pClientSession->satelliteSettings.src = pSatelliteSettings->src;
-        BDBG_MSG(( "%s: new src %d", __FUNCTION__, pClientSession->satelliteSettings.src ));
+        BDBG_MSG(( "%s: new src %d", BSTD_FUNCTION, pClientSession->satelliteSettings.src ));
     }
     if (bitmaskOptionsFound & 0x00800)   // satSettings->fe
     {
         pClientSession->satelliteSettings.fe = pSatelliteSettings->fe;
-        BDBG_MSG(( "%s: new fe %d", __FUNCTION__, pClientSession->satelliteSettings.fe ));
+        BDBG_MSG(( "%s: new fe %d", BSTD_FUNCTION, pClientSession->satelliteSettings.fe ));
     }
     if (bitmaskOptionsFound & 0x01000)   // transport->streamingMode
     {
         pClientSession->transportStatus.streamingMode = pTransportStatus->streamingMode;
-        BDBG_MSG(( "%s: new streamingMode %d", __FUNCTION__, pClientSession->transportStatus.streamingMode ));
+        BDBG_MSG(( "%s: new streamingMode %d", BSTD_FUNCTION, pClientSession->transportStatus.streamingMode ));
     }
     if (bitmaskOptionsFound & 0x02000)   // transport->isMulticast
     {
         pClientSession->transportStatus.isMulticast = pTransportStatus->isMulticast;
-        BDBG_MSG(( "%s: new isMulticast %d", __FUNCTION__, pClientSession->transportStatus.isMulticast ));
+        BDBG_MSG(( "%s: new isMulticast %d", BSTD_FUNCTION, pClientSession->transportStatus.isMulticast ));
     }
     if (bitmaskOptionsFound & 0x04000)   // ???
     {
@@ -333,19 +333,19 @@ int BIP_RtspServer::BIP_RtspClientSession:: updateSettings(
         BKNI_Memset( pClientSession->transportStatus.clientAddressStr, 0, strlen( pTransportStatus->clientAddressStr ) + 1 );
         strncpy( pClientSession->transportStatus.clientAddressStr, pTransportStatus->clientAddressStr, strlen( pTransportStatus->clientAddressStr ));
 error_ipaddr:
-        BDBG_ERR(( "%s: new clientAddressStr (%p) (%s); len (%u); orig len (%u)", __FUNCTION__, pClientSession->transportStatus.clientAddressStr,
+        BDBG_ERR(( "%s: new clientAddressStr (%p) (%s); len (%u); orig len (%u)", BSTD_FUNCTION, pClientSession->transportStatus.clientAddressStr,
                    pClientSession->transportStatus.clientAddressStr, (unsigned)strlen( pClientSession->transportStatus.clientAddressStr ),
                    (unsigned)strlen( pTransportStatus->clientAddressStr )));
     }
     if (bitmaskOptionsFound & 0x10000)   // transport->destinationTTL
     {
         pClientSession->transportStatus.clientTTL = pTransportStatus->clientTTL;
-        BDBG_MSG(( "%s: new clientTTL %c", __FUNCTION__, pClientSession->transportStatus.clientTTL ));
+        BDBG_MSG(( "%s: new clientTTL %c", BSTD_FUNCTION, pClientSession->transportStatus.clientTTL ));
     }
     if (bitmaskOptionsFound & 0x20000)   // transport->clientRTPPortNum and clientRTCPPortNum
     {
         pClientSession->transportStatus.clientRTPPortNum = pTransportStatus->clientRTPPortNum;
-        BDBG_MSG(( "%s: new clientRTPPortNum %d-%d", __FUNCTION__, pClientSession->transportStatus.clientRTPPortNum, pClientSession->transportStatus.clientRTPPortNum+1 ));
+        BDBG_MSG(( "%s: new clientRTPPortNum %d-%d", BSTD_FUNCTION, pClientSession->transportStatus.clientRTPPortNum, pClientSession->transportStatus.clientRTPPortNum+1 ));
     }
 error:
     return( 0 );
@@ -366,7 +366,7 @@ void BIP_RtspServer::BIP_RtspClientSession::getRtpStatistics(
     BIP_CHECK_PTR_GOTO( pSession->fOurServer->fGetRtpStatisticsCallback.callback, "fGetRtpStatisticsCallback.callback is NULL", error, BIP_ERR_INVALID_PARAMETER );
 
 #if 0
-    BDBG_ERR(( "%s: calling fOurServer->callback: streamId (%d)", __FUNCTION__, pSession->satelliteSettings.streamId ));
+    BDBG_ERR(( "%s: calling fOurServer->callback: streamId (%d)", BSTD_FUNCTION, pSession->satelliteSettings.streamId ));
     pSession->fOurServer->fGetRtpStatisticsCallback.callback( pSession->fOurServer->fGetRtpStatisticsCallback.context,
         pSession->satelliteSettings.streamId );
 #endif
@@ -387,16 +387,16 @@ BIP_RtspServer::BIP_RtspClientSession *BIP_RtspServer::BIP_RtspClientSession::BI
     BIP_RtspClientSession *pSession = NULL;
 
     snprintf( streamIdStr, sizeof( streamIdStr ), STREAMID_FORMAT, streamId );
-    BDBG_MSG(( "%s: streamId %d; str (%s); fOurStreamId %d", __FUNCTION__, streamId, streamIdStr, fOurStreamId ));
+    BDBG_MSG(( "%s: streamId %d; str (%s); fOurStreamId %d", BSTD_FUNCTION, streamId, streamIdStr, fOurStreamId ));
     BIP_CHECK_PTR_GOTO( fOurServer, "fOurServer is null", no_streamids, BIP_ERR_INVALID_PARAMETER );
     /* if something has been added to the hashtable */
-    BDBG_MSG(( "%s: fOurServer %p", __FUNCTION__, (void *)fOurServer ));
+    BDBG_MSG(( "%s: fOurServer %p", BSTD_FUNCTION, (void *)fOurServer ));
     BIP_CHECK_PTR_GOTO( fOurServer->fOurStreamIds, "fOurStreamIds is null", no_streamids, BIP_ERR_INVALID_PARAMETER );
-    BDBG_MSG(( "%s: fOurServer->fOurStreamIds %p", __FUNCTION__, (void *)fOurServer->fOurStreamIds ));
+    BDBG_MSG(( "%s: fOurServer->fOurStreamIds %p", BSTD_FUNCTION, (void *)fOurServer->fOurStreamIds ));
     pSession = (BIP_RtspServer::BIP_RtspClientSession *)( fOurServer->fOurStreamIds->Lookup( streamIdStr ));
 no_streamids:
 
-    BDBG_MSG(( "%s: returning %p", __FUNCTION__, (void *)pSession ));
+    BDBG_MSG(( "%s: returning %p", BSTD_FUNCTION, (void *)pSession ));
     return( pSession );
 } // BIP_Rtsp_FindOwnerByStreamId
 
@@ -423,7 +423,7 @@ BIP_RtspServer::BIP_RtspClientSession *BIP_RtspServer::BIP_Rtsp_FindSessionBySes
 no_sessionid:
 
 error:
-    BDBG_MSG(( "%s: returning %p; (%08lX)", __FUNCTION__, (void *)pSession, ( pSession ) ? pSession->satelliteSettings.owner : 0 ));
+    BDBG_MSG(( "%s: returning %p; (%08lX)", BSTD_FUNCTION, (void *)pSession, ( pSession ) ? pSession->satelliteSettings.owner : 0 ));
     return( pSession );
 } // BIP_Rtsp_FindSessionBySessionId
 
@@ -442,7 +442,7 @@ BIP_RtspServer::BIP_RtspClientSession *BIP_RtspServer::BIP_RtspClientSession::BI
 
     /* if something has been added to the hashtable */
     BIP_CHECK_PTR_GOTO( fOurServer->fClientAddresses, "fClientSessions is invalid", no_addresses, BIP_ERR_INVALID_PARAMETER );
-    BDBG_MSG(( "%s: fOurServer->fClientAddresses %p", __FUNCTION__, (void *)fOurServer->fClientAddresses ));
+    BDBG_MSG(( "%s: fOurServer->fClientAddresses %p", BSTD_FUNCTION, (void *)fOurServer->fClientAddresses ));
     pSession = (BIP_RtspServer::BIP_RtspClientSession *)( fOurServer->fClientAddresses->Lookup( ipAddressStr ));
 no_addresses:
 
@@ -476,7 +476,7 @@ unsigned char BIP_RtspServer::BIP_RtspClientSession:: BIP_Rtsp_ComputeNextMultic
     } while (pSession != NULL && idx<32 /* safety check to catch infinite loop */);
     BKNI_LeaveCriticalSection();
 
-    BDBG_MSG(( "%s: returning %d; idx %d", __FUNCTION__, gMulticastNextOctet, idx ));
+    BDBG_MSG(( "%s: returning %d; idx %d", BSTD_FUNCTION, gMulticastNextOctet, idx ));
     return( gMulticastNextOctet );
 } // BIP_Rtsp_ComputeNextMulticastOctet
 
@@ -504,7 +504,7 @@ Boolean BIP_RtspServer::BIP_RtspClientConnection:: requestIsValid(
 
 error:
     rc = True;
-    BDBG_MSG(( "%s: returning %d", __FUNCTION__, rc ));
+    BDBG_MSG(( "%s: returning %d", BSTD_FUNCTION, rc ));
     return( rc );
 } // requestIsValid
 
@@ -527,7 +527,7 @@ Boolean BIP_RtspServer::BIP_RtspClientConnection:: requestIsFromNonOwner(
     }
 
 error:
-    BDBG_MSG(( "%s: returning %d", __FUNCTION__, rc ));
+    BDBG_MSG(( "%s: returning %d", BSTD_FUNCTION, rc ));
     return( rc );
 } // requestIsFromNonOwner
 
@@ -542,7 +542,6 @@ char *BIP_RtspServer::BIP_RtspClientSession:: GetIpAddressFromSocket(
     struct sockaddr_in peerIpAddress;
     socklen_t          peerAddrLen = sizeof( peerIpAddress );
     char              *ipstr       = (char *) BKNI_Malloc( INET6_ADDRSTRLEN );
-    int                port;
 
     BIP_CHECK_PTR_GOTO( ipstr, "ipstr is invalid", error, BIP_ERR_INVALID_PARAMETER );
     BKNI_Memset( ipstr, 0, INET6_ADDRSTRLEN );
@@ -554,13 +553,11 @@ char *BIP_RtspServer::BIP_RtspClientSession:: GetIpAddressFromSocket(
     if (peerIpAddress.sin_family == AF_INET)
     {
         struct sockaddr_in *s = (struct sockaddr_in *)&peerIpAddress;
-        port = ntohs( s->sin_port );
         inet_ntop( AF_INET, &s->sin_addr, ipstr, INET6_ADDRSTRLEN );
     }
     else   // AF_INET6
     {
         struct sockaddr_in6 *s = (struct sockaddr_in6 *)&peerIpAddress;
-        port = ntohs( s->sin6_port );
         inet_ntop( AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN );
     }
 
@@ -580,7 +577,7 @@ int BIP_RtspServer::BIP_RtspClientSession:: BIP_Rtsp_ComputeNextStreamId(
     unsigned char          idx      = 0;
     BIP_RtspClientSession *pSession = NULL;
 
-    BDBG_MSG(( "%s: top", __FUNCTION__ ));
+    BDBG_MSG(( "%s: top", BSTD_FUNCTION ));
     BKNI_EnterCriticalSection();
     do {
         idx++;
@@ -596,7 +593,7 @@ int BIP_RtspServer::BIP_RtspClientSession:: BIP_Rtsp_ComputeNextStreamId(
     } while (pSession != NULL && idx<32 /* safety check to catch infinite loop */);
     BKNI_LeaveCriticalSection();
 
-    BDBG_MSG(( "%s: returning new streamId %d; idx %d", __FUNCTION__, gStreamId, idx ));
+    BDBG_MSG(( "%s: returning new streamId %d; idx %d", BSTD_FUNCTION, gStreamId, idx ));
     return( gStreamId );
 } // BIP_Rtsp_ComputeNextStreamId
 
@@ -615,14 +612,14 @@ char *BIP_RtspServer::BIP_RtspClientSession:: BIP_Rtsp_CreateMulticastAddressStr
     BIP_CHECK_PTR_GOTO( addrTemplate, "addrTemplate is invalid", error, BIP_ERR_INVALID_PARAMETER );
 
     newAddressLen = strlen( addrTemplate ) + 5 /* space for .123 and null character */ +20 /* just to give added insurance */;
-    BDBG_MSG(( "%s: template (%s)", __FUNCTION__, addrTemplate ));
+    BDBG_MSG(( "%s: template (%s)", BSTD_FUNCTION, addrTemplate ));
     destMulticastAddrStr = (char *) BKNI_Malloc( newAddressLen );
     BIP_CHECK_PTR_GOTO( destMulticastAddrStr, "BKNI_Malloc() for destMulticastAddrStr failed", error, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
 
     BKNI_Memset( destMulticastAddrStr, 0, newAddressLen );
     snprintf( destMulticastAddrStr, newAddressLen-1, "%s%u", addrTemplate, lastOctet );
 
-    BDBG_MSG(( "%s: returning (%s)", __FUNCTION__, destMulticastAddrStr ));
+    BDBG_MSG(( "%s: returning (%s)", BSTD_FUNCTION, destMulticastAddrStr ));
 
 error:
     return( destMulticastAddrStr );
@@ -645,13 +642,13 @@ char *extractUrl(
     // make a temporary copy of the URL
     BKNI_Memset( urlTemp, 0, strlen( fullRequestStr ) + 1 );
     strncpy( urlTemp, fullRequestStr, strlen( fullRequestStr ));
-    BDBG_MSG(( "%s: urlTemp len %u; (%s)", __FUNCTION__, (unsigned)strlen( urlTemp ), urlTemp ));
+    BDBG_MSG(( "%s: urlTemp len %u; (%s)", BSTD_FUNCTION, (unsigned)strlen( urlTemp ), urlTemp ));
     if (( posRtsp = strstr( urlTemp, "rtsp://" ))) /* bypass the DESCRIBE or PLAY tag */
     {
-        BDBG_MSG(( "%s: posRtsp %p; (%s)", __FUNCTION__, posRtsp, posRtsp ));
+        BDBG_MSG(( "%s: posRtsp %p; (%s)", BSTD_FUNCTION, posRtsp, posRtsp ));
         if (( posSpace = strchr( posRtsp, ' ' ))) /* find the end of the URL */
         {
-            BDBG_MSG(( "%s: posSpace %p; (%s)", __FUNCTION__, posSpace, posSpace ));
+            BDBG_MSG(( "%s: posSpace %p; (%s)", BSTD_FUNCTION, posSpace, posSpace ));
             *posSpace  = '\0'; /* null-terminate the URL string */
             rtspReturn = (char *) BKNI_Malloc( strlen( posRtsp ) + 1 );
             BIP_CHECK_PTR_GOTO( rtspReturn, "rtspReturn is null", no_rtspreturn, BIP_ERR_INVALID_PARAMETER );
@@ -659,7 +656,7 @@ char *extractUrl(
             strncpy( rtspReturn, posRtsp, strlen( posRtsp ));
 no_rtspreturn:
 
-            BDBG_MSG(( "%s: rtspReturn %p; (%s); len %u", __FUNCTION__, rtspReturn, rtspReturn, (unsigned)strlen( posRtsp )));
+            BDBG_MSG(( "%s: rtspReturn %p; (%s); len %u", BSTD_FUNCTION, rtspReturn, rtspReturn, (unsigned)strlen( posRtsp )));
         }
     }
     BKNI_Free( urlTemp );
@@ -683,7 +680,7 @@ int setResponsePlay(
     BIP_CHECK_ERR_LEZ_GOTO( outputBufferLen,  "outputBufferLen is invalid", "", error, BIP_ERR_INVALID_PARAMETER );
     BIP_CHECK_PTR_GOTO( fRequestBuffer, "fRequestBuffer is invalid", error, BIP_ERR_INVALID_PARAMETER );
 
-    BDBG_MSG(( "%s: rtspStart (%s); fRequestBuffer (%s) ", __FUNCTION__, rtspStart, fRequestBuffer ));
+    BDBG_MSG(( "%s: rtspStart (%s); fRequestBuffer (%s) ", BSTD_FUNCTION, rtspStart, fRequestBuffer ));
     snprintf( outputBuffer, outputBufferLen - 1, "200 OK\r\nRTP-Info:url=%s", rtspStart );
 error:
 
@@ -721,7 +718,7 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
     void *context
     )
 {
-    BDBG_MSG(( "%s: ++++++++++++++++++++++++++++++ context %p", __FUNCTION__, context ));
+    BDBG_MSG(( "%s: ++++++++++++++++++++++++++++++ context %p", BSTD_FUNCTION, context ));
 
     BIP_RtspServer *pOurServer   = (BIP_RtspServer *) context;
     char           *sessionIdStr = NULL;
@@ -743,7 +740,7 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
         char    ipAddrBuf[INET_ADDRSTRLEN];
 
         inet_ntop(AF_INET, &temp, ipAddrBuf, sizeof(ipAddrBuf));
-        BDBG_MSG(( "%s: BIP_IgmpListener_GetMembershipReportStatus() returned ipAddr (%s)", __FUNCTION__, ipAddrBuf));
+        BDBG_MSG(( "%s: BIP_IgmpListener_GetMembershipReportStatus() returned ipAddr (%s)", BSTD_FUNCTION, ipAddrBuf));
 
         /* prepare to convert integer ipaddress to string */
         clientAddr.sin_addr.s_addr = htonl( memRepStatus.multicast_address );
@@ -756,7 +753,7 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
         }
 
         sessionIdStr = BIP_Rtsp_CreateSessionIdStr( pClientSession->satelliteSettings.owner );
-        BDBG_MSG(( "%s: report type %d; state is (%d);  sessionIdStr (%s); pClientSession %p", __FUNCTION__,
+        BDBG_MSG(( "%s: report type %d; state is (%d);  sessionIdStr (%s); pClientSession %p", BSTD_FUNCTION,
                    memRepStatus.memRepType, pClientSession->getState(), sessionIdStr, (void *)pClientSession ));
 
         if (memRepStatus.memRepType == BIP_IgmpListener_MembershipReportType_eJoin)
@@ -764,20 +761,20 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
             /* Find State and possibly send callback. */
             if (pClientSession->getState() == BIP_RtspLmSessionStreamState_MulticastPlay)
             {
-                BDBG_MSG(( "%s: JOIN Membership Report from IgmpListener.Ignore in Play", __FUNCTION__ ));
+                BDBG_MSG(( "%s: JOIN Membership Report from IgmpListener.Ignore in Play", BSTD_FUNCTION ));
             }
             else if (( pClientSession->getState() == BIP_RtspLmSessionStreamState_IgmpJoinStreaming ) ||
                      ( pClientSession->getState() == BIP_RtspLmSessionStreamState_IgmpJoinPending ) ||
                      ( pClientSession->getState() == BIP_RtspLmSessionStreamState_IgmpJoinChannelChangePending )
                      )
             {
-                BDBG_MSG(( "%s: JOIN Membership Report from IgmpListener. Ignore already in SETUP Streaming/StreamPending", __FUNCTION__ ));
+                BDBG_MSG(( "%s: JOIN Membership Report from IgmpListener. Ignore already in SETUP Streaming/StreamPending", BSTD_FUNCTION ));
             }
             else if (( pClientSession->getState() == BIP_RtspLmSessionStreamState_MulticastSetup ) ||
                      ( pClientSession->getState() == BIP_RtspLmSessionStreamState_IgmpLeavePending )
                      )
             {
-                BDBG_MSG(( "%s: JOIN Membership Report from IgmpListener. Start Streaming, in SETUP not streaming or was in LeavePending", __FUNCTION__ ));
+                BDBG_MSG(( "%s: JOIN Membership Report from IgmpListener. Start Streaming, in SETUP not streaming or was in LeavePending", BSTD_FUNCTION ));
                 /* we are SETUP, not streaming-> fire callback */
                 callbackDesc = pClientSession->getIgmpMembershipReportCallback();
             }
@@ -799,7 +796,7 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
             /* if callback is set, trigger it */
             if (callbackDesc.callback)
             {
-                BDBG_MSG(( "%s: eJoin calling sendResponse(); igmpStatus %d", __FUNCTION__, BIP_RtspIgmpMemRepStatus_eJoin ));
+                BDBG_MSG(( "%s: eJoin calling sendResponse(); igmpStatus %d", BSTD_FUNCTION, BIP_RtspIgmpMemRepStatus_eJoin ));
                 pClientSession->sendResponse( BIP_RtspResponseStatus_eSuccess ); /* set state to BIP_RtspLmSessionStreamState_IgmpJoinPending */
                 callbackDesc.callback( callbackDesc.context, BIP_RtspIgmpMemRepStatus_eJoin );
             }
@@ -809,7 +806,7 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
             /* Find State and possibly send callback. */
             if (pClientSession->getState() == BIP_RtspLmSessionStreamState_MulticastPlay)
             {
-                BDBG_MSG(( "%s: LEAVE Membership Report from IgmpListener. Ignore in MulitcastPlay", __FUNCTION__ ));
+                BDBG_MSG(( "%s: LEAVE Membership Report from IgmpListener. Ignore in MulitcastPlay", BSTD_FUNCTION ));
             }
             else if (( pClientSession->getState() == BIP_RtspLmSessionStreamState_IgmpJoinStreaming ) ||
                      ( pClientSession->getState() == BIP_RtspLmSessionStreamState_IgmpJoinPending ) ||
@@ -817,14 +814,14 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
                      )
             {
                 /* we are JOIN,streaming -> fire callback */
-                BDBG_MSG(( "%s: LEAVE Membership Report from IgmpListener. Stop.  In Setup Streaming/StreamPending", __FUNCTION__ ));
+                BDBG_MSG(( "%s: LEAVE Membership Report from IgmpListener. Stop.  In Setup Streaming/StreamPending", BSTD_FUNCTION ));
                 callbackDesc = pClientSession->getIgmpMembershipReportCallback();
             }
             else if (( pClientSession->getState() == BIP_RtspLmSessionStreamState_MulticastSetup ) ||
                      ( pClientSession->getState() == BIP_RtspLmSessionStreamState_IgmpLeavePending )
                      )
             {
-                BDBG_MSG(( "%s: LEAVE Membership Report from IgmpListener. Ignore in Setup Not Streaming or Leave Pending", __FUNCTION__ ));
+                BDBG_MSG(( "%s: LEAVE Membership Report from IgmpListener. Ignore in Setup Not Streaming or Leave Pending", BSTD_FUNCTION ));
             }
 
             /* ignore these states too
@@ -844,17 +841,17 @@ void BIP_RtspServer:: BIP_Rtsp_ProcessIgmpMembershipReport(
             /* if callback is set, trigger it */
             if (callbackDesc.callback)
             {
-                BDBG_MSG(( "%s: eLeave calling sendResponse(); igmpStatus(%d)", __FUNCTION__, BIP_RtspIgmpMemRepStatus_eLeave ));
+                BDBG_MSG(( "%s: eLeave calling sendResponse(); igmpStatus(%d)", BSTD_FUNCTION, BIP_RtspIgmpMemRepStatus_eLeave ));
                 pClientSession->sendResponse( BIP_RtspResponseStatus_eSuccess ); /* set state to BIP_RtspLmSessionStreamState_IgmpLeavePending */
                 callbackDesc.callback( callbackDesc.context, BIP_RtspIgmpMemRepStatus_eLeave );
             }
         }
         else
         {
-            BDBG_ERR(( "%s: Unknown MembershipType received from IgmpListener. Ignore", __FUNCTION__ ));
+            BDBG_ERR(( "%s: Unknown MembershipType received from IgmpListener. Ignore", BSTD_FUNCTION ));
         }
     }
-    BDBG_MSG(( "%s: Done processing IGMP Listener Report Statuses", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Done processing IGMP Listener Report Statuses", BSTD_FUNCTION ));
 
 error:
     if (sessionIdStr) {BKNI_Free( sessionIdStr ); }
@@ -928,14 +925,14 @@ BIP_RtspServer
     fGetRtpStatisticsCallback.context = NULL;
     fGetRtpStatisticsCallback.param = 0;
 
-    BDBG_MSG(( "%s: constructor top; BIP::fReclamationTestSeconds %d", __FUNCTION__, fReclamationTestSeconds ));
+    BDBG_MSG(( "%s: constructor top; BIP::fReclamationTestSeconds %d", BSTD_FUNCTION, fReclamationTestSeconds ));
     BIP_CHECK_PTR_GOTO( multicastAddressTemplate, "multicastAddressTemplate is NULL", error_template, BIP_ERR_INVALID_PARAMETER );
 
     fOurMulticastAddressTemplate = (char *) BKNI_Malloc( strlen( multicastAddressTemplate ) +1 );
     BIP_CHECK_PTR_GOTO( fOurMulticastAddressTemplate, "Memory Allocation Failed for fOurMulticastAddressTemplate", error_malloc, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
     BKNI_Memset( fOurMulticastAddressTemplate, 0, strlen( multicastAddressTemplate ) +1 );
     strncpy( fOurMulticastAddressTemplate, multicastAddressTemplate, strlen( multicastAddressTemplate ));
-    BDBG_MSG(( "%s; BKNI_Malloc(len(%s)); len %u; returned %p", __FUNCTION__, multicastAddressTemplate, (unsigned)strlen( multicastAddressTemplate ), fOurMulticastAddressTemplate ));
+    BDBG_MSG(( "%s; BKNI_Malloc(len(%s)); len %u; returned %p", BSTD_FUNCTION, multicastAddressTemplate, (unsigned)strlen( multicastAddressTemplate ), fOurMulticastAddressTemplate ));
 error_malloc:
 error_template:
 
@@ -943,7 +940,7 @@ error_template:
     {
         eventMembershipReportTriggerId = envir().taskScheduler().createEventTrigger( _BIP_Rtsp_ProcessIgmpMembershipReport );
     }
-    BDBG_MSG(( "%s: multicastAddressTemplate %s, this %p", __FUNCTION__, fOurMulticastAddressTemplate, (void *)this ));
+    BDBG_MSG(( "%s: multicastAddressTemplate %s, this %p", BSTD_FUNCTION, fOurMulticastAddressTemplate, (void *)this ));
 }
 
 /**
@@ -955,7 +952,7 @@ BIP_RtspServer::~BIP_RtspServer()
     BIP_RtspClientSession *pSession;
     char const            *key; // dummy
 
-    BDBG_MSG(( "%s: destructor %p", __FUNCTION__, (void *)this ));
+    BDBG_MSG(( "%s: destructor %p", BSTD_FUNCTION, (void *)this ));
     while (( pSession = (BIP_RtspServer::BIP_RtspClientSession *)( iter->next( key ))) != NULL) {
         delete pSession;
     }
@@ -976,10 +973,10 @@ BIP_RtspServer::BIP_RtspClientConnection *BIP_RtspServer::createNewClientConnect
 
     BKNI_Memset((void *) &clientAddr, 0, sizeof( clientAddr ));
 
-    BDBG_MSG(( "%s: clientSocket %d; calling new BIP_RtspClientConnection()", __FUNCTION__, clientSocket ));
+    BDBG_MSG(( "%s: clientSocket %d; calling new BIP_RtspClientConnection()", BSTD_FUNCTION, clientSocket ));
     clientConnection = new BIP_RtspClientConnection( *this, clientSocket, clientAddr );
-    BDBG_MSG(( "%s: clientSocket %d: IP addr %s, this %p", __FUNCTION__, clientSocket, inet_ntoa(clientConnection->fClientInputAddr.sin_addr), (void *)this ));
-    BDBG_MSG(( "%s: this %p, clientConnection %p", __FUNCTION__, (void *)this, (void *)clientConnection ));
+    BDBG_MSG(( "%s: clientSocket %d: IP addr %s, this %p", BSTD_FUNCTION, clientSocket, inet_ntoa(clientConnection->fClientInputAddr.sin_addr), (void *)this ));
+    BDBG_MSG(( "%s: this %p, clientConnection %p", BSTD_FUNCTION, (void *)this, (void *)clientConnection ));
     this->fClientConnection = (BIP_RtspServer::BIP_RtspClientConnection *)clientConnection;
     return( clientConnection );
 } // createNewClientConnectionFull
@@ -994,13 +991,13 @@ BIP_RtspServer::BIP_RtspClientConnection *BIP_RtspServer::createNewClientConnect
 {
     BSTD_UNUSED( clientAddr );
 
-    BDBG_MSG(( "%s: socket %d; clientAddr (%s); Server (%p)", __FUNCTION__, clientSocket, inet_ntoa( clientAddr.sin_addr ), (void *)this ));
+    BDBG_MSG(( "%s: socket %d; clientAddr (%s); Server (%p)", BSTD_FUNCTION, clientSocket, inet_ntoa( clientAddr.sin_addr ), (void *)this ));
     if (this->fConnectedCallback.callback)
     {
         this->fConnectedCallback.callback( this->fConnectedCallback.context, clientSocket );
     }
 
-    BDBG_MSG(( "%s: DONE for socket %d; clientAddr (%s)", __FUNCTION__, clientSocket, inet_ntoa( clientAddr.sin_addr )));
+    BDBG_MSG(( "%s: DONE for socket %d; clientAddr (%s)", BSTD_FUNCTION, clientSocket, inet_ntoa( clientAddr.sin_addr )));
     /* TODO: this is not ideal but works for now as the caller doesn't check the return code */
     return( NULL );
 }
@@ -1022,34 +1019,42 @@ BIP_RtspServer::BIP_RtspClientConnection
     fLivenessCheckTask( 0 ),
     fIsTimingOut( False )
 {
-    BDBG_MSG(( "%s: constructor top (%p)", __FUNCTION__, (void *)this ));
+    BDBG_MSG(( "%s: constructor top (%p)", BSTD_FUNCTION, (void *)this ));
     fIsActive = True;
     BKNI_Memset( &fClientInputAddr, 0, sizeof( fClientInputAddr ));
 
     noteLiveness();
 
-    BDBG_MSG(( "%s: clientSocket %d: IP addr %s, this %p; fOurServer %p", __FUNCTION__, clientSocket, inet_ntoa( clientAddr.sin_addr ), (void *)this, (void *)fOurServer ));
+    BDBG_MSG(( "%s: clientSocket %d: IP addr %s, this %p; fOurServer %p", BSTD_FUNCTION, clientSocket, inet_ntoa( clientAddr.sin_addr ), (void *)this, (void *)fOurServer ));
     resetRequestBuffer();
     if (fClientInputSocket > 0)
     {
-        BDBG_MSG(( "%s: fClientInputSocket setBackgroundHandling(%d)", __FUNCTION__, fClientInputSocket ));
+        BDBG_MSG(( "%s: fClientInputSocket setBackgroundHandling(%d)", BSTD_FUNCTION, fClientInputSocket ));
         // Arrange to handle incoming requests:
         envir().taskScheduler().setBackgroundHandling( fClientInputSocket, SOCKET_READABLE|SOCKET_EXCEPTION,
             (TaskScheduler::BackgroundHandlerProc *)&incomingRequestHandler, this );
     }
-    BDBG_MSG(( "%s: constructor done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: constructor done", BSTD_FUNCTION ));
 }
 
 /**
  *  Function: This function will reset the connection's request buffer back to empty state.
  **/
+
+#if __GNUC__ >= 6
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 void BIP_RtspServer::BIP_RtspClientConnection::resetRequestBuffer()
 {
     fRequestBytesAlreadySeen = 0;
     fRequestBufferBytesLeft  = sizeof fRequestBuffer;
     fLastCRLF                = &fRequestBuffer[-3]; // hack: Ensures that we don't think we have end-of-msg if the data starts with <CR><LF>
 }
-
+#if __GNUC__ >= 6
+#pragma GCC diagnostic pop
+#endif
 /**
  *  Function: This function will set the connection's request buffer to the specified string value.
  **/
@@ -1073,11 +1078,11 @@ void BIP_RtspServer::BIP_RtspClientConnection::incomingRequestHandler(
     //session->incomingRequestHandler1();
     struct sockaddr_in dummy; // 'from' address, meaningless in this case
 
-    BDBG_MSG(( "%s: socketFd %d, alreadySeen %d; buffer %p !!!!!!!!!!!!!!!!!!!!!!", __FUNCTION__, session->fClientInputSocket, session->fRequestBytesAlreadySeen, &session->fRequestBuffer[session->fRequestBytesAlreadySeen] ));
+    BDBG_MSG(( "%s: socketFd %d, alreadySeen %d; buffer %p !!!!!!!!!!!!!!!!!!!!!!", BSTD_FUNCTION, session->fClientInputSocket, session->fRequestBytesAlreadySeen, &session->fRequestBuffer[session->fRequestBytesAlreadySeen] ));
     int bytesRead = readSocket( session->envir(), session->fClientInputSocket, &session->fRequestBuffer[session->fRequestBytesAlreadySeen], session->fRequestBufferBytesLeft, dummy );
-    BDBG_MSG(( "%s: Derived RTSPServer:============================================================================", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Derived RTSPServer:============================================================================", BSTD_FUNCTION ));
     BDBG_MSG(( "BIP_RtspServer:%s: BIP_RtspClientSession; bytesRead (%d); fRequestBufferBytesLeft (%u)",
-               __FUNCTION__, bytesRead, session->fRequestBufferBytesLeft ));
+               BSTD_FUNCTION, bytesRead, session->fRequestBufferBytesLeft ));
     session->handleRequestBytes( bytesRead );
 } // incomingRequestHandler
 
@@ -1090,22 +1095,22 @@ BIP_RtspServer::BIP_RtspClientConnection::~BIP_RtspClientConnection()
     BIP_RtspClientSession *pSession = NULL;
     char const            *key; // dummy
 
-    BDBG_MSG(( "%s: destructor %p; fLivenessCheckTask %p; fIsTimingOut %d; fIsActive %d", __FUNCTION__, (void *)this, fLivenessCheckTask, fIsTimingOut, fIsActive ));
+    BDBG_MSG(( "%s: destructor %p; fLivenessCheckTask %p; fIsTimingOut %d; fIsActive %d", BSTD_FUNCTION, (void *)this, fLivenessCheckTask, fIsTimingOut, fIsActive ));
 
     if (fLivenessCheckTask)
     {
         // Turn off any liveness checking:
-        BDBG_MSG(( "%s: unscheduleDelayedTask(fLivenessCheckTask(%p)\n", __FUNCTION__, fLivenessCheckTask ));
+        BDBG_MSG(( "%s: unscheduleDelayedTask(fLivenessCheckTask(%p)\n", BSTD_FUNCTION, fLivenessCheckTask ));
         envir().taskScheduler().unscheduleDelayedTask( fLivenessCheckTask );
         fLivenessCheckTask = 0;
     }
 
-    BDBG_MSG(( "%s: inputSock %d; outSocket %d", __FUNCTION__, fClientInputSocket, fClientOutputSocket ));
+    BDBG_MSG(( "%s: inputSock %d; outSocket %d", BSTD_FUNCTION, fClientInputSocket, fClientOutputSocket ));
     if (fClientInputSocket>0) {::closeSocket( fClientInputSocket ); }
     if (fClientOutputSocket>0) {::closeSocket( fClientOutputSocket ); }
 
     while (( pSession = (BIP_RtspServer::BIP_RtspClientSession *)( iter->next( key ))) != NULL) {
-        BDBG_MSG(( "%s: this %p: for session %p: (%08X); connection (%p)", __FUNCTION__, (void *)this, (void *)pSession, pSession->fSessionId, (void *)pSession->fClientConnection ));
+        BDBG_MSG(( "%s: this %p: for session %p: (%08X); connection (%p)", BSTD_FUNCTION, (void *)this, (void *)pSession, pSession->fSessionId, (void *)pSession->fClientConnection ));
         // if this connection is associated with any active session, break the association
         if (pSession->fClientConnection == this)
         {
@@ -1129,7 +1134,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
     int     numBytesRemaining = 0;
     Boolean bSendResponse     = true;
 
-    BDBG_MSG(( "BIP_RtspClientConnection::%s: newBytesRead %d; fClientConnection %p; fIsTimingOut %d", __FUNCTION__, newBytesRead, (void *)this, fIsTimingOut ));
+    BDBG_MSG(( "BIP_RtspClientConnection::%s: newBytesRead %d; fClientConnection %p; fIsTimingOut %d", BSTD_FUNCTION, newBytesRead, (void *)this, fIsTimingOut ));
 
     ++fRecursionCount;
 
@@ -1145,7 +1150,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
             // to close the socket that got a read error on.
             if (fIsTimingOut)
             {
-                BDBG_MSG(( "%s: clientConnection %p: is timing out", __FUNCTION__, (void *)this ));
+                BDBG_MSG(( "%s: clientConnection %p: is timing out", BSTD_FUNCTION, (void *)this ));
                 fIsActive = True;
                 closeSockets();
                 break;
@@ -1154,7 +1159,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
             // Either the client socket has died, or the request was too big for us.
             // Terminate this connection:
             BDBG_MSG(( "%s: BIP_RtspClientConnection %p: read %d new bytes (of %d); terminating connection!",
-                       __FUNCTION__, (void *)this, newBytesRead, fRequestBufferBytesLeft ));
+                       BSTD_FUNCTION, (void *)this, newBytesRead, fRequestBufferBytesLeft ));
             fIsActive = False;
             if (this->fErrorCallback.callback)
             {
@@ -1166,8 +1171,8 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
         Boolean        endOfMsg = False;
         unsigned char *ptr      = &fRequestBuffer[fRequestBytesAlreadySeen];
         ptr[newBytesRead] = '\0';
-        BDBG_MSG(( "%s: BIP_RtspClientConnection %p: %s %d new bytes", __FUNCTION__, (void *)this, numBytesRemaining > 0 ? "processing" : "read", newBytesRead ));
-        BDBG_REQSEND(( "BIP_RtspClientConnection::%s: REQ (%s)", __FUNCTION__, ptr )); // uses printf because buffer can be longer than 256 chars
+        BDBG_MSG(( "%s: BIP_RtspClientConnection %p: %s %d new bytes", BSTD_FUNCTION, (void *)this, numBytesRemaining > 0 ? "processing" : "read", newBytesRead ));
+        BDBG_REQSEND(( "BIP_RtspClientConnection::%s: REQ (%s)", BSTD_FUNCTION, ptr )); // uses printf because buffer can be longer than 256 chars
 
         noteLiveness();
 
@@ -1223,8 +1228,8 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
         if (parseSucceeded)
         {
             BDBG_MSG(( "%s: parseRTSPRequestString() succeeded; got cmdName (%s), urlPreSuffix (%s), Length %u, with %d bytes following the message.",
-                       __FUNCTION__, cmdName, urlPreSuffix, contentLength, (int)(ptr + newBytesRead - ( tmpPtr + 2 ))));
-            BDBG_MSG(( "%s: urlSuffix (%s), CSeq (%s)", __FUNCTION__, urlSuffix, cseq ));
+                       BSTD_FUNCTION, cmdName, urlPreSuffix, contentLength, (int)(ptr + newBytesRead - ( tmpPtr + 2 ))));
+            BDBG_MSG(( "%s: urlSuffix (%s), CSeq (%s)", BSTD_FUNCTION, urlSuffix, cseq ));
             // If there was a "Content-Length:" header, then make sure we've received all of the data that it specified:
             if (ptr + newBytesRead < tmpPtr + 2 + contentLength)
             {
@@ -1240,7 +1245,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
                 sscanf( sessionIdStr, "%08lX", &sessionIdInt );
             }
 
-            BDBG_MSG(( "%s: switch (%s); socket %d", __FUNCTION__, cmdName, fClientInputSocket ));
+            BDBG_MSG(( "%s: switch (%s); socket %d", BSTD_FUNCTION, cmdName, fClientInputSocket ));
             if (strcmp( cmdName, "OPTIONS" ) == 0)
             {
                 /* TODO: if we have a need to expose OPTIONS command to user application, then we will need to change the logic here */
@@ -1275,7 +1280,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
             {
                 /* TODO: if we have a need to expose DESCRIBE command to user application, then we will need to change the logic here */
                 handleCmd_DESCRIBE( urlPreSuffix, urlSuffix, (char const *)fRequestBuffer );
-                BDBG_MSG(( "%s: after DESCRIBE, bSendResponse %u", __FUNCTION__, bSendResponse ));
+                BDBG_MSG(( "%s: after DESCRIBE, bSendResponse %u", BSTD_FUNCTION, bSendResponse ));
             }
             else if (strcmp( cmdName, "SETUP" ) == 0)
             {
@@ -1297,7 +1302,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
                     bitmaskOptionsFound = BIP_Rtsp_ParseUrlOptions( &satelliteSettings, &transportStatus, (char const *)fRequestBuffer );
                 }
 
-                BDBG_MSG(( "%s: case %s; sessionIdStr (%s);  streamId %d; urlSuffix %s", __FUNCTION__, cmdName, sessionIdStr,
+                BDBG_MSG(( "%s: case %s; sessionIdStr (%s);  streamId %d; urlSuffix %s", BSTD_FUNCTION, cmdName, sessionIdStr,
                             satelliteSettings.streamId, urlSuffix ));
 
                 /* if an error was detected while parsing the URL */
@@ -1318,7 +1323,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
                     /* This allows app to create a new BIP_RtspSession object */
                     if (this->fMessageReceivedCallback.callback)
                     {
-                        BDBG_MSG(( "%s: triggering CALLBACK ... this->fMessageReceivedCallback.context(%s)", __FUNCTION__, fRequestBuffer ));
+                        BDBG_MSG(( "%s: triggering CALLBACK ... this->fMessageReceivedCallback.context(%s)", BSTD_FUNCTION, fRequestBuffer ));
                         this->fMessageReceivedCallback.callback( this->fMessageReceivedCallback.context, fLastCRLF+2 - fRequestBuffer );
                         bSendResponse = false; /* the response will be sent after the APP has processed the request */
                     }
@@ -1333,17 +1338,17 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
                     clientSession = (BIP_RtspServer::BIP_RtspClientSession *)( fOurServer->fOurStreamIds->Lookup( streamIdStr ));
                     if (clientSession ==NULL)
                     {
-                        BDBG_WRN(( "%s: Non-owner can't match streamID with a clientSession(%p)", __FUNCTION__, (void *)clientSession ));
+                        BDBG_WRN(( "%s: Non-owner can't match streamID with a clientSession(%p)", BSTD_FUNCTION, (void *)clientSession ));
                         handleCmd_bad();
                     }
                     else if (!clientSession->transportStatus.isMulticast && transportStatus.isMulticast)
                     {
-                        BDBG_WRN(( "%s: Non-owner wants Multicast when Owner is Unicast. Not Allowed", __FUNCTION__ ));
+                        BDBG_WRN(( "%s: Non-owner wants Multicast when Owner is Unicast. Not Allowed", BSTD_FUNCTION ));
                         handleCmd_bad();
                     }
                     else if (this->fMessageReceivedCallback.callback)
                     {
-                        BDBG_MSG(( "%s: triggering CALLBACK ... this->fMessageReceivedCallback.context(%s)", __FUNCTION__, fRequestBuffer ));
+                        BDBG_MSG(( "%s: triggering CALLBACK ... this->fMessageReceivedCallback.context(%s)", BSTD_FUNCTION, fRequestBuffer ));
                         this->fMessageReceivedCallback.callback( this->fMessageReceivedCallback.context, fLastCRLF+2 - fRequestBuffer );
                         bSendResponse = false; /* the response will be sent after the APP has processed the request */
                     }
@@ -1366,14 +1371,14 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
 
                         stateOnEntry = clientSession->getState(); // used to determine if we got here after JOIN was received
 
-                        BDBG_MSG(( "%s: req multicast (%s); session multicast (%s); clientAddressStr (%s)", __FUNCTION__,
+                        BDBG_MSG(( "%s: req multicast (%s); session multicast (%s); clientAddressStr (%s)", BSTD_FUNCTION,
                                    ( transportStatus.isMulticast ) ? "true" : "false", ( clientSession->fIsMulticast ) ? "true" : "false",
                                    clientSession->transportStatus.clientAddressStr ));
                         if (transportStatus.isMulticast) // request is multicast
                         {
                             if (!clientSession->fIsMulticast)   // we are switching from unicast
                             {
-                                BDBG_MSG(( "%s: session %p (%08lX) switching from from unicast to multicast", __FUNCTION__, (void *)clientSession, clientSession->satelliteSettings.owner ));
+                                BDBG_MSG(( "%s: session %p (%08lX) switching from from unicast to multicast", BSTD_FUNCTION, (void *)clientSession, clientSession->satelliteSettings.owner ));
                                 clientSession->fIsMulticast = true;
 
                                 /* Transition state */
@@ -1390,7 +1395,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
                                     clientSession->setState( BIP_RtspLmSessionStreamState_MulticastSetupPending );
                                 }
                                 else
-                                {BDBG_ERR(("%s: switching from from unicast to multicast. NOT sure what state to go to", __FUNCTION__ ));}
+                                {BDBG_ERR(("%s: switching from from unicast to multicast. NOT sure what state to go to", BSTD_FUNCTION ));}
 
                                 /* Clear Existing client Address */
                                 if (clientSession->transportStatus.clientAddressStr)
@@ -1406,7 +1411,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
 
                                     clientSession->transportStatus.clientAddressStr =  clientSession->BIP_Rtsp_CreateMulticastAddressStr(
                                             fOurServer->fOurMulticastAddressTemplate, clientSession->transportStatus.multicastOctet );
-                                    BDBG_MSG(( "%s: MULTICAST computed destMulticastAddrStr (%s)", __FUNCTION__,
+                                    BDBG_MSG(( "%s: MULTICAST computed destMulticastAddrStr (%s)", BSTD_FUNCTION,
                                                clientSession->transportStatus.clientAddressStr ));
                                 }
                                 else   // client provided a multicast address
@@ -1426,17 +1431,17 @@ void BIP_RtspServer::BIP_RtspClientConnection::handleRequestBytes(
                                     destinationAddress = inet_addr( clientSession->transportStatus.clientAddressStr );
 
 #if ( USE_IGMP==1 )
-                                    BDBG_MSG(( "%s: BIP_IgmpListener_AddGroupAddress 0x%x/(%s)", __FUNCTION__, ntohl( destinationAddress ),
+                                    BDBG_MSG(( "%s: BIP_IgmpListener_AddGroupAddress 0x%x/(%s)", BSTD_FUNCTION, ntohl( destinationAddress ),
                                                clientSession->transportStatus.clientAddressStr ));
                                     BIP_IgmpListener_AddGroupAddress( fOurServer->fIgmpListener, ntohl( destinationAddress ), 0 );
 #else
-                                    BDBG_ERR(( "%s: AddGroupAddress(%s) commented out", __FUNCTION__, clientSession->transportStatus.clientAddressStr ));
+                                    BDBG_ERR(( "%s: AddGroupAddress(%s) commented out", BSTD_FUNCTION, clientSession->transportStatus.clientAddressStr ));
 #endif                              // if ( USE_IGMP==1 )
                                 }
                                 else
                                 {
 error_clientAddressStr1:
-                                    BDBG_ERR(( "%s: MULTICAST address is not valid", __FUNCTION__ ));
+                                    BDBG_ERR(( "%s: MULTICAST address is not valid", BSTD_FUNCTION ));
                                 }
 
                                 /* for Patterns 17, 18, 19, etc, was causing invalid state */
@@ -1465,7 +1470,7 @@ error_clientAddressStr1:
                         {
                             if (clientSession->fIsMulticast)   // we are switching to unicast from multicast; notify IGMP
                             {
-                                BDBG_MSG(( "%s: session %p (%08lX) switching from multicast to unicast", __FUNCTION__, (void *)clientSession, clientSession->satelliteSettings.owner ));
+                                BDBG_MSG(( "%s: session %p (%08lX) switching from multicast to unicast", BSTD_FUNCTION, (void *)clientSession, clientSession->satelliteSettings.owner ));
 
 
                                 /* Transition State */
@@ -1482,21 +1487,21 @@ error_clientAddressStr1:
                                     clientSession->setState( BIP_RtspLmSessionStreamState_UnicastSetupPending );
                                 }
                                 else
-                                {BDBG_ERR(("%s: switching from from mutlicat to unicast . NOT sure what state to go to", __FUNCTION__ ));}
+                                {BDBG_ERR(("%s: switching from from mutlicat to unicast . NOT sure what state to go to", BSTD_FUNCTION ));}
 
                                 /* Clear clientAddress */
                                 if (clientSession->transportStatus.clientAddressStr)
                                 {
 #if ( USE_IGMP==1 )
-                                    BDBG_MSG(( "%s: calling BIP_IgmpListener_DelGroupAddress; ipAddr %x; streamId %d", __FUNCTION__,
+                                    BDBG_MSG(( "%s: calling BIP_IgmpListener_DelGroupAddress; ipAddr %x; streamId %d", BSTD_FUNCTION,
                                                ntohl( clientSession->fDestinationAddress ), clientSession->fOurStreamId ));
                                     BIP_IgmpListener_DelGroupAddress( fOurServer->fIgmpListener, ntohl( clientSession->fDestinationAddress ));
 
                                     BKNI_Free( clientSession->transportStatus.clientAddressStr );
                                     clientSession->transportStatus.clientAddressStr = NULL;
-                                    BDBG_MSG(( "%s:%d: clientAddressStr is NULL", __FUNCTION__, __LINE__ ));
+                                    BDBG_MSG(( "%s:%d: clientAddressStr is NULL", BSTD_FUNCTION, __LINE__ ));
 #else                               // if ( USE_IGMP==1 )
-                                    BDBG_ERR(( "%s: DelGroupAddress(%x) commented out", __FUNCTION__, ntohl( clientSession->fDestinationAddress )));
+                                    BDBG_ERR(( "%s: DelGroupAddress(%x) commented out", BSTD_FUNCTION, ntohl( clientSession->fDestinationAddress )));
 #endif                              // if ( USE_IGMP==1 )
                                 }
 
@@ -1505,7 +1510,7 @@ error_clientAddressStr1:
                                 {
                                     transportStatus.clientAddressStr = clientSession->GetIpAddressFromSocket( fClientInputSocket );
                                     inet_aton( transportStatus.clientAddressStr, &fClientInputAddr.sin_addr );
-                                    BDBG_MSG(( "%s:%d: GetIpAddressFromSocket() returned clientAddressStr (%s) ", __FUNCTION__, __LINE__,
+                                    BDBG_MSG(( "%s:%d: GetIpAddressFromSocket() returned clientAddressStr (%s) ", BSTD_FUNCTION, __LINE__,
                                                transportStatus.clientAddressStr ));
                                 }
 
@@ -1525,14 +1530,14 @@ error_clientAddressStr1:
                                     strncpy( clientSession->transportStatus.clientAddressStr, transportStatus.clientAddressStr,
                                         strlen( transportStatus.clientAddressStr ));
 
-                                    BDBG_MSG(( "%s:%d: new clientAddressStr (%p) %s", __FUNCTION__, __LINE__,
+                                    BDBG_MSG(( "%s:%d: new clientAddressStr (%p) %s", BSTD_FUNCTION, __LINE__,
                                                clientSession->transportStatus.clientAddressStr, clientSession->transportStatus.clientAddressStr ));
                                 }
                                 else
                                 {
   error_clientAddressStr2:
-                                    BDBG_ERR(( "%s:%d ERROR ... new request clientAddressStr() is NULL", __FUNCTION__, __LINE__ ));
-                                     BDBG_MSG(( "%s:%d: new clientAddressStr (%p) %s", __FUNCTION__, __LINE__,
+                                    BDBG_ERR(( "%s:%d ERROR ... new request clientAddressStr() is NULL", BSTD_FUNCTION, __LINE__ ));
+                                     BDBG_MSG(( "%s:%d: new clientAddressStr (%p) %s", BSTD_FUNCTION, __LINE__,
                                                clientSession->transportStatus.clientAddressStr, clientSession->transportStatus.clientAddressStr ));
                                 }
 
@@ -1555,7 +1560,7 @@ error_clientAddressStr1:
 
                         if (strchr( urlSuffix, '?' ))
                         {
-                            BDBG_MSG(( "%s: detected optional settings for %s", __FUNCTION__, cmdName ));
+                            BDBG_MSG(( "%s: detected optional settings for %s", BSTD_FUNCTION, cmdName ));
                             clientSession->updateSettings( bitmaskOptionsFound, &satelliteSettings, &transportStatus );
                         }
 
@@ -1576,7 +1581,7 @@ error_clientAddressStr1:
                             setResponseSetup( clientSession,  responseBuffer, RESPONSE_BUFFER_SIZE );
                             if (responseBuffer) {BKNI_Free( responseBuffer ); }
 error_responseBuffer1:
-                            BDBG_MSG(( "%s: skipping App callback; fResponseBuffer (%s) ", __FUNCTION__, (char *) fResponseBuffer ));
+                            BDBG_MSG(( "%s: skipping App callback; fResponseBuffer (%s) ", BSTD_FUNCTION, (char *) fResponseBuffer ));
 
                             /* for Pattern 35 and 36 (channel change), move on the the proper state */
                             if ( clientSession->getState() == BIP_RtspLmSessionStreamState_MulticastSetupPending )
@@ -1593,10 +1598,10 @@ error_responseBuffer1:
                             /* we already have a BIP_RtspSession object for this sessionId; invoke messageReceived callback on this object */
                             if (clientSession->fMessageReceivedCallback.callback)
                             {
-                                BDBG_MSG(( "%s: connecton %p; fLastCRLF %p; fRequestBuffer %p", __FUNCTION__, (void *)this, fLastCRLF, fRequestBuffer ));
+                                BDBG_MSG(( "%s: connecton %p; fLastCRLF %p; fRequestBuffer %p", BSTD_FUNCTION, (void *)this, fLastCRLF, fRequestBuffer ));
                                 char *pos = strstr((char *)fRequestBuffer, " RTSP/1.0" );
                                 if (pos) {*pos = '\0'; }
-                                BDBG_MSG(( "%s: hSession %p; triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", __FUNCTION__, (void *)clientSession,
+                                BDBG_MSG(( "%s: hSession %p; triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", BSTD_FUNCTION, (void *)clientSession,
                                            fRequestBuffer ));
                                 if (pos) {*pos = ' '; }
                                 /* fClientConnection is used in callback from the session object; need to make sure the connection is the right one */
@@ -1613,7 +1618,7 @@ error_responseBuffer1:
                     BKNI_Free( transportStatus.clientAddressStr );
                     transportStatus.clientAddressStr = NULL;
                 }
-                BDBG_MSG(( "%s: after %s, bSendResponse %u", __FUNCTION__, cmdName, bSendResponse ));
+                BDBG_MSG(( "%s: after %s, bSendResponse %u", BSTD_FUNCTION, cmdName, bSendResponse ));
             }
             else if (strcmp( cmdName, "PLAY" ) == 0)
             {
@@ -1627,9 +1632,9 @@ error_responseBuffer1:
 
                 bitmaskOptionsFound = BIP_Rtsp_ParseUrlOptions( &satelliteSettings, &transportStatus, (char const *)fRequestBuffer );
 
-                BDBG_MSG(( "%s: case %s; sessionIdStr (%s); streamId %d; urlSuffix %s", __FUNCTION__, cmdName, sessionIdStr,
+                BDBG_MSG(( "%s: case %s; sessionIdStr (%s); streamId %d; urlSuffix %s", BSTD_FUNCTION, cmdName, sessionIdStr,
                           satelliteSettings.streamId, urlSuffix ));
-                BDBG_MSG(( "%s: from ip_client (%s)", __FUNCTION__, strstr((char *)fRequestBuffer, "Broadcom" )));
+                BDBG_MSG(( "%s: from ip_client (%s)", BSTD_FUNCTION, strstr((char *)fRequestBuffer, "Broadcom" )));
 
                 /* if an error was detected while parsing the URL */
                 if (( bitmaskOptionsFound == -1 ) || ( requestIsValid( sessionIdStr ) == False ))
@@ -1675,7 +1680,7 @@ error_responseBuffer1:
                         /* PLAY with URL Can change SatelliteSettings, but not Transport Status(done with SETUP) */
                         if (strchr( urlSuffix, '?' ))
                         {
-                            BDBG_MSG(( "%s: detected optional settings for %s", __FUNCTION__, cmdName ));
+                            BDBG_MSG(( "%s: detected optional settings for %s", BSTD_FUNCTION, cmdName ));
                             clientSession->updateSettings( bitmaskOptionsFound, &satelliteSettings, &transportStatus );
                         }
 
@@ -1700,7 +1705,7 @@ error_responseBuffer1:
                             setRTSPResponse( responseBuffer, clientSession->fOurSessionId ); /* add the RTSP/1.0 and CSeq and Session */
                             if (responseBuffer) {BKNI_Free( responseBuffer ); }
 error_responseBuffer2:
-                            BDBG_MSG(( "%s: skipping App callback; fResponseBuffer (%s) ", __FUNCTION__, (char *) fResponseBuffer ));
+                            BDBG_MSG(( "%s: skipping App callback; fResponseBuffer (%s) ", BSTD_FUNCTION, (char *) fResponseBuffer ));
 
                             /* for Pattern 35 and 36 (channel change), move on the the proper state */
                             if ( clientSession->getState() == BIP_RtspLmSessionStreamState_MulticastPlayPending )
@@ -1718,10 +1723,10 @@ error_responseBuffer2:
                             /* invoke messageReceived callback on this object */
                             if (clientSession->fMessageReceivedCallback.callback)
                             {
-                                BDBG_MSG(( "%s: connecton %p; fLastCRLF %p; fRequestBuffer %p", __FUNCTION__, (void *)this, fLastCRLF, fRequestBuffer ));
+                                BDBG_MSG(( "%s: connecton %p; fLastCRLF %p; fRequestBuffer %p", BSTD_FUNCTION, (void *)this, fLastCRLF, fRequestBuffer ));
                                 char *pos = strstr((char *)fRequestBuffer, " RTSP/1.0" );
                                 if (pos) {*pos = '\0'; }
-                                BDBG_MSG(( "%s: hSession %p; triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", __FUNCTION__, (void *)clientSession, fRequestBuffer ));
+                                BDBG_MSG(( "%s: hSession %p; triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", BSTD_FUNCTION, (void *)clientSession, fRequestBuffer ));
                                 if (pos) {*pos = ' '; }
                                 /* fClientConnection is used in callback from the session object; need to make sure the connection is the right one */
                                 clientSession->fClientConnection = this;
@@ -1736,7 +1741,7 @@ error_responseBuffer2:
                     BKNI_Free( transportStatus.clientAddressStr );
                     transportStatus.clientAddressStr = NULL;
                 }
-                BDBG_MSG(( "%s: after %s, bSendResponse %u", __FUNCTION__, cmdName, bSendResponse ));
+                BDBG_MSG(( "%s: after %s, bSendResponse %u", BSTD_FUNCTION, cmdName, bSendResponse ));
             }
             else if (strcmp( cmdName, "TEARDOWN" ) == 0)
             {
@@ -1751,7 +1756,7 @@ error_responseBuffer2:
 
                 bitmaskOptionsFound = BIP_Rtsp_ParseUrlOptions( &satelliteSettings, &transportStatus, (char const *)fRequestBuffer );
 
-                BDBG_MSG(( "%s: case %s; sessionIdStr (%s); streamId %d; urlSuffix %s", __FUNCTION__, cmdName, sessionIdStr,
+                BDBG_MSG(( "%s: case %s; sessionIdStr (%s); streamId %d; urlSuffix %s", BSTD_FUNCTION, cmdName, sessionIdStr,
                            satelliteSettings.streamId, urlSuffix ));
 
                 /* if an error was detected while parsing the URL */
@@ -1763,7 +1768,7 @@ error_responseBuffer2:
                 {
                     // The request included a session id.  Make sure it's one that we have already set up:
                     clientSession = (BIP_RtspServer::BIP_RtspClientSession *)( fOurServer->fClientSessions->Lookup( sessionIdStr ));
-                    BDBG_MSG(( "%s: after Lookup(%s); clientSession %p()", __FUNCTION__, sessionIdStr, (void *)clientSession ));
+                    BDBG_MSG(( "%s: after Lookup(%s); clientSession %p()", BSTD_FUNCTION, sessionIdStr, (void *)clientSession ));
                     if (clientSession == NULL)
                     {
                         handleCmd_sessionNotFound();
@@ -1771,9 +1776,9 @@ error_responseBuffer2:
                     else
                     {
                         clientSession->setState( BIP_RtspLmSessionStreamState_TeardownPending );
-                        BDBG_MSG(( "%s: calling handleCmd_TEARDOWN()", __FUNCTION__ ));
+                        BDBG_MSG(( "%s: calling handleCmd_TEARDOWN()", BSTD_FUNCTION ));
                         clientSession->handleCmd_TEARDOWN( this, NULL /*subsession*/, (char const *) fRequestBuffer );
-                        BDBG_MSG(( "%s: handleCmd_TEARDOWN done; response (%s)", __FUNCTION__, fResponseBuffer ));
+                        BDBG_MSG(( "%s: handleCmd_TEARDOWN done; response (%s)", BSTD_FUNCTION, fResponseBuffer ));
 
                         if (strlen((char *)fResponseBuffer ) == 0)
                         {
@@ -1783,27 +1788,27 @@ error_responseBuffer2:
                             /* for multicast session, inform IGMP we are tearing down */
                             if (clientSession->fIsMulticast && clientSession->transportStatus.clientAddressStr)
                             {
-                                BDBG_MSG(( "%s: calling BIP_IgmpListener_DelGroupAddress; ipAddr %x; streamId %d", __FUNCTION__,
+                                BDBG_MSG(( "%s: calling BIP_IgmpListener_DelGroupAddress; ipAddr %x; streamId %d", BSTD_FUNCTION,
                                            ntohl( clientSession->fDestinationAddress ), clientSession->fOurStreamId ));
                                 BIP_IgmpListener_DelGroupAddress( fOurServer->fIgmpListener, ntohl( clientSession->fDestinationAddress ));
                             }
                             else
                             {
-                                BDBG_MSG(( "%s: BIP_IgmpListener_DelGroupAddress() ignored; streamId %d is unicast OR clientAddressStr is null (%s)", __FUNCTION__,
+                                BDBG_MSG(( "%s: BIP_IgmpListener_DelGroupAddress() ignored; streamId %d is unicast OR clientAddressStr is null (%s)", BSTD_FUNCTION,
                                            clientSession->fOurStreamId, clientSession->transportStatus.clientAddressStr ));
                             }
 #else                       // if ( USE_IGMP==1 )
-                            BDBG_ERR(( "%s: DelGroupAddress(%x) commented out", __FUNCTION__, ntohl( clientSession->fDestinationAddress )));
+                            BDBG_ERR(( "%s: DelGroupAddress(%x) commented out", BSTD_FUNCTION, ntohl( clientSession->fDestinationAddress )));
 #endif                      // if ( USE_IGMP==1 )
 
                             /* we already have a BIP_RtspSession object for this sessionId */
                             /* invoke messageReceived callback on this object */
                             if (clientSession->fMessageReceivedCallback.callback)
                             {
-                                BDBG_MSG(( "%s: connecton %p; fLastCRLF %p; fRequestBuffer %p", __FUNCTION__, (void *)this, fLastCRLF, fRequestBuffer ));
+                                BDBG_MSG(( "%s: connecton %p; fLastCRLF %p; fRequestBuffer %p", BSTD_FUNCTION, (void *)this, fLastCRLF, fRequestBuffer ));
                                 char *pos = strstr((char *)fRequestBuffer, " RTSP/1.0" );
                                 if (pos) {*pos = '\0'; }
-                                BDBG_MSG(( "%s: hSession %p; triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", __FUNCTION__, (void *)clientSession, fRequestBuffer ));
+                                BDBG_MSG(( "%s: hSession %p; triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", BSTD_FUNCTION, (void *)clientSession, fRequestBuffer ));
                                 if (pos) {*pos = ' '; }
                                 /* fClientConnection is used in callback from the session object; need to make sure the connection is the right one */
                                 clientSession->fClientConnection = this;
@@ -1811,7 +1816,7 @@ error_responseBuffer2:
                             }
                             else
                             {
-                                BDBG_MSG(( "%s: hSession %p", __FUNCTION__, (void *)clientSession));
+                                BDBG_MSG(( "%s: hSession %p", BSTD_FUNCTION, (void *)clientSession));
                             }
                         }
                         else
@@ -1823,7 +1828,7 @@ error_responseBuffer2:
                 else
                 {
                     /* client provided sessionId==0 with streamId > 0 ... this is an unknown session */
-                    BDBG_ERR(( "%s: ERROR: streamId (%d) provided, but no sessionId (%s)", __FUNCTION__, satelliteSettings.streamId, sessionIdStr ));
+                    BDBG_ERR(( "%s: ERROR: streamId (%d) provided, but no sessionId (%s)", BSTD_FUNCTION, satelliteSettings.streamId, sessionIdStr ));
                     handleCmd_notFound();
                 }
 
@@ -1832,11 +1837,11 @@ error_responseBuffer2:
                     BKNI_Free( transportStatus.clientAddressStr );
                     transportStatus.clientAddressStr = NULL;
                 }
-                BDBG_MSG(( "%s: after %s, bSendResponse %u", __FUNCTION__, cmdName, bSendResponse ));
+                BDBG_MSG(( "%s: after %s, bSendResponse %u", BSTD_FUNCTION, cmdName, bSendResponse ));
             }
             else if (( strcmp( cmdName, "GET_PARAMETER" ) == 0 ))
             {
-                BDBG_MSG(( "%s: case %s: sessionIdStr (%s)", __FUNCTION__, cmdName, sessionIdStr));
+                BDBG_MSG(( "%s: case %s: sessionIdStr (%s)", BSTD_FUNCTION, cmdName, sessionIdStr));
                 /* Got a command in client session state */
 
                 clientSession = (BIP_RtspServer::BIP_RtspClientSession *)( fOurServer->fClientSessions->Lookup( sessionIdStr ));
@@ -1854,30 +1859,30 @@ error_responseBuffer2:
             }
             else
             {
-                BDBG_ERR(( "%s: case UNKNOWN", __FUNCTION__ ));
+                BDBG_ERR(( "%s: case UNKNOWN", BSTD_FUNCTION ));
                 // The command is one that we don't handle:
                 handleCmd_notSupported();
-                BDBG_MSG(( "%s: after UNKNOWN, bSendResponse %u", __FUNCTION__, bSendResponse ));
+                BDBG_MSG(( "%s: after UNKNOWN, bSendResponse %u", BSTD_FUNCTION, bSendResponse ));
             }
         }
         else
         {
-            BDBG_ERR(( "%s: parseRTSPRequestString() failed, Bad RTSP Command", __FUNCTION__ ));
+            BDBG_ERR(( "%s: parseRTSPRequestString() failed, Bad RTSP Command", BSTD_FUNCTION ));
             handleCmd_bad();
-            BDBG_MSG(( "%s: after parse failed, bSendResponse %u", __FUNCTION__, bSendResponse ));
+            BDBG_MSG(( "%s: after parse failed, bSendResponse %u", BSTD_FUNCTION, bSendResponse ));
         }
 
         /* we need to send a response now if an error was detected */
         if (bSendResponse)
         {
-            BDBG_MSG(( "%s: sending response1: sock (%d); len (%u); cseq (%s)", __FUNCTION__, fClientOutputSocket, (unsigned)strlen((char *)fResponseBuffer ), cseq ));
-            BDBG_REQSEND(( "%s: SENDING1 (%s)", __FUNCTION__, (char *)fResponseBuffer ));
+            BDBG_MSG(( "%s: sending response1: sock (%d); len (%u); cseq (%s)", BSTD_FUNCTION, fClientOutputSocket, (unsigned)strlen((char *)fResponseBuffer ), cseq ));
+            BDBG_REQSEND(( "%s: SENDING1 (%s)", BSTD_FUNCTION, (char *)fResponseBuffer ));
             send_rc = send( fClientOutputSocket, (char const *)fResponseBuffer, strlen((char *)fResponseBuffer ), 0 );
             BIP_CHECK_GOTO(( send_rc >= 0 ), ( "send failed ..." ), error_send, BIP_ERR_OS_CHECK_ERRNO, rc );
-                BDBG_MSG(( "BIP_RtspClientConnection::%s: send(%d) done; cseq (%s)", __FUNCTION__, fClientOutputSocket, cseq ));
+                BDBG_MSG(( "BIP_RtspClientConnection::%s: send(%d) done; cseq (%s)", BSTD_FUNCTION, fClientOutputSocket, cseq ));
 error_send:
             if(send_rc <0)
-            {   BDBG_ERR(( "BIP_RtspClientConnection::%s: Unable to send response. ", __FUNCTION__ ));}
+            {   BDBG_ERR(( "BIP_RtspClientConnection::%s: Unable to send response. ", BSTD_FUNCTION ));}
         }
 
 #if 0
@@ -1915,7 +1920,7 @@ error_send:
         }
         else
         {
-            BDBG_MSG(( "%s: delete myself (%p)", __FUNCTION__, (void *)this ));
+            BDBG_MSG(( "%s: delete myself (%p)", BSTD_FUNCTION, (void *)this ));
             delete this;
         }
     }
@@ -1934,7 +1939,7 @@ int BIP_RtspServer::BIP_RtspClientConnection::setResponseSetup(
 {
     int bytesWritten = 0;
 
-    BDBG_MSG(( "%s: fIsMulticast (%u); destinationAddr (%s/port %d); sourceAddr (%s/port %d)", __FUNCTION__, pClientSession->fIsMulticast,
+    BDBG_MSG(( "%s: fIsMulticast (%u); destinationAddr (%s/port %d); sourceAddr (%s/port %d)", BSTD_FUNCTION, pClientSession->fIsMulticast,
                pClientSession->transportStatus.clientAddressStr, pClientSession->transportStatus.clientRTPPortNum,
                pClientSession->transportStatus.serverAddressStr, pClientSession->transportStatus.serverRTPPortNum ));
 
@@ -1951,7 +1956,7 @@ int BIP_RtspServer::BIP_RtspClientConnection::setResponseSetup(
                 pClientSession->transportStatus.clientTTL,
                 pClientSession->fOurSessionId,
                 pClientSession->fOurStreamId );
-        BDBG_MSG(( "%s: created multicast response... len %d", __FUNCTION__, bytesWritten ));
+        BDBG_MSG(( "%s: created multicast response... len %d", BSTD_FUNCTION, bytesWritten ));
         setRTSPResponse( responseBuffer, pClientSession->fOurSessionId ); /* add the RTSP/1.0 and CSeq and Session */
     }
     else /* unicast */
@@ -1995,11 +2000,11 @@ int BIP_RtspServer::BIP_RtspClientConnection::setResponseSetup(
             setRTSPResponse( responseBuffer, pClientSession->fOurSessionId ); /* add the RTSP/1.0 and CSeq and Session */
         }
 
-        BDBG_MSG(( "%s: created unicast response... len %d", __FUNCTION__, bytesWritten ));
+        BDBG_MSG(( "%s: created unicast response... len %d", BSTD_FUNCTION, bytesWritten ));
     }
     responseBuffer[bytesWritten] = '\0';
 
-    BDBG_MSG(( "%s: response string:%s", __FUNCTION__, responseBuffer ));
+    BDBG_MSG(( "%s: response string:%s", BSTD_FUNCTION, responseBuffer ));
 
     return( 0 );
 } // setResponseSetup
@@ -2019,9 +2024,9 @@ void BIP_RtspServer::BIP_RtspClientConnection::sendResponse(
     BIP_RtspLmSessionStreamState stateNow       = BIP_RtspLmSessionStreamState_Idle;
     char responseBuffer[RESPONSE_BUFFER_SIZE];
 
-    BDBG_MSG(( "Connection::%s:%d: responseStatus %x; fClientSessionId %08X; socket %d", __FUNCTION__, __LINE__, responseStatus,
+    BDBG_MSG(( "Connection::%s:%d: responseStatus %x; fClientSessionId %08X; socket %d", BSTD_FUNCTION, __LINE__, responseStatus,
                fClientSessionId, fClientInputSocket ));
-    BDBG_MSG(( "%s:%d: fOurServer %p", __FUNCTION__, __LINE__, (void *)fOurServer ));
+    BDBG_MSG(( "%s:%d: fOurServer %p", BSTD_FUNCTION, __LINE__, (void *)fOurServer ));
     pClientSession =  fOurServer->BIP_Rtsp_FindSessionBySessionId( fClientSessionId );
     BIP_CHECK_PTR_GOTO( pClientSession, "pClientSession is null", error, BIP_ERR_INVALID_PARAMETER );
 
@@ -2043,7 +2048,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::sendResponse(
         }
         pClientSession->fIsIpClient = ( strstr((char *)fRequestBuffer, "Broadcom" )!= NULL );
         pClientSession->fIsVlc      = ( strstr((char *)fRequestBuffer, "VLC media player" )!= NULL );
-        BDBG_MSG(( "%s: isVlc (%d); isIpClient (%d)", __FUNCTION__, pClientSession->fIsVlc, pClientSession->fIsIpClient ));
+        BDBG_MSG(( "%s: isVlc (%d); isIpClient (%d)", BSTD_FUNCTION, pClientSession->fIsVlc, pClientSession->fIsIpClient ));
     }
 
     stateNow = pClientSession->getState();
@@ -2080,8 +2085,8 @@ void BIP_RtspServer::BIP_RtspClientConnection::sendResponse(
                 setResponsePlay( responseBuffer, sizeof( responseBuffer ), (char *) fRequestBuffer );
 
                 setRTSPResponse( responseBuffer, pClientSession->fOurSessionId ); /* add the RTSP/1.0 and CSeq and Session */
-                BDBG_MSG(( "%s: response string:%s", __FUNCTION__, responseBuffer ));
-                BDBG_MSG(( "%s: fResponseBuffer:%s", __FUNCTION__, fResponseBuffer ));
+                BDBG_MSG(( "%s: response string:%s", BSTD_FUNCTION, responseBuffer ));
+                BDBG_MSG(( "%s: fResponseBuffer:%s", BSTD_FUNCTION, fResponseBuffer ));
 
                 bSendResponse = true;
             }
@@ -2139,7 +2144,7 @@ void BIP_RtspServer::BIP_RtspClientConnection::sendResponse(
     {
         pClientSession->setState( BIP_RtspLmSessionStreamState_Idle );
 
-        BDBG_MSG(( "%s: state is TIMEOUT_PENDING", __FUNCTION__ ));
+        BDBG_MSG(( "%s: state is TIMEOUT_PENDING", BSTD_FUNCTION ));
         bSendResponse = false;
     }
     /* if we are processing an IGMP JOIN message ... it comes in during MulticastSetup state, move to JoinStreaming state */
@@ -2188,39 +2193,39 @@ void BIP_RtspServer::BIP_RtspClientConnection::sendResponse(
 
     if (pClientSession->fClientConnection)
     {
-        BDBG_MSG(( "%s: bSendResponse %d; fClientOutputSocket (%d); len fResponseBuffer (%u); responseBuffer (%u) ", __FUNCTION__,
+        BDBG_MSG(( "%s: bSendResponse %d; fClientOutputSocket (%d); len fResponseBuffer (%u); responseBuffer (%u) ", BSTD_FUNCTION,
                    bSendResponse, pClientSession->fClientConnection->fClientOutputSocket, (unsigned)strlen((char *)fResponseBuffer ), (unsigned)strlen( responseBuffer )));
 
         if (bIsIgmpResponse)
         {
-            BDBG_MSG(( "%s: bIsIgmpResponse %d; ", __FUNCTION__, bIsIgmpResponse ));
+            BDBG_MSG(( "%s: bIsIgmpResponse %d; ", BSTD_FUNCTION, bIsIgmpResponse ));
         }
 
         if (( bSendResponse ) && ( pClientSession->fClientConnection->fClientOutputSocket> 0 ) && ( strlen((char *)fResponseBuffer )>0 ))
         {
-            BDBG_MSG(( "%s: sending response2: sock (%d); len (%u); cseq (%s)", __FUNCTION__,
+            BDBG_MSG(( "%s: sending response2: sock (%d); len (%u); cseq (%s)", BSTD_FUNCTION,
                        pClientSession->fClientConnection->fClientOutputSocket, (unsigned)strlen((char *)fResponseBuffer ),
                        pClientSession->fClientConnection->fCurrentCSeq ));
-            BDBG_REQSEND(( "%s: SENDING2 (%s)", __FUNCTION__, (char *)fResponseBuffer ));
+            BDBG_REQSEND(( "%s: SENDING2 (%s)", BSTD_FUNCTION, (char *)fResponseBuffer ));
             rc = send( pClientSession->fClientConnection->fClientOutputSocket, (char const *)fResponseBuffer, strlen((char *)fResponseBuffer ), 0 );
             if (rc<=0)
             {
-                BDBG_ERR(( "%s: send(%d) failed; errno (%d); (%s)", __FUNCTION__, pClientSession->fClientConnection->fClientOutputSocket, errno, strerror( errno )));
+                BDBG_ERR(( "%s: send(%d) failed; errno (%d); (%s)", BSTD_FUNCTION, pClientSession->fClientConnection->fClientOutputSocket, errno, strerror( errno )));
             }
             BIP_CHECK_GOTO(( rc >= 0 ), ( "send failed ..." ), error, rc, rc );
 
-            BDBG_MSG(( "%s: send(%d) done", __FUNCTION__, pClientSession->fClientConnection->fClientOutputSocket ));
+            BDBG_MSG(( "%s: send(%d) done", BSTD_FUNCTION, pClientSession->fClientConnection->fClientOutputSocket ));
         }
         else
         {
-            BDBG_MSG(( "%s: send() skipped", __FUNCTION__ ));
+            BDBG_MSG(( "%s: send() skipped", BSTD_FUNCTION ));
         }
     }
 
     //BDBG_SetModuleLevel("bip_rtsp_lm_server", BDBG_eErr);
 
 error:
-    BDBG_MSG(( "%s: done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: done", BSTD_FUNCTION ));
     return;
 } // sendResponse
 
@@ -2232,13 +2237,13 @@ void BIP_RtspServer::BIP_RtspClientSession::sendResponse(
     BIP_RtspResponseStatus responseStatus
     )
 {
-    BDBG_MSG(( "Session::%s:%d status %x; fSessionId %x; fClientConnection %p; fRtspClientSession %p", __FUNCTION__, __LINE__,
+    BDBG_MSG(( "Session::%s:%d status %x; fSessionId %x; fClientConnection %p; fRtspClientSession %p", BSTD_FUNCTION, __LINE__,
                responseStatus, fSessionId, (void *)fClientConnection, (void *)fRtspClientSession ));
     BIP_CHECK_PTR_GOTO( fClientConnection, "fClientConnection is null", error, BIP_ERR_INVALID_PARAMETER );
     /* TODO: parse the request header to find what method this reponse corresponds to and take appropriate action */
     fClientConnection->fClientSessionId = fSessionId;
     /* for quick prototype, send a good response */
-    BDBG_MSG(( "%s: calling fClientConnection->sendResponse(%d)", __FUNCTION__, responseStatus ));
+    BDBG_MSG(( "%s: calling fClientConnection->sendResponse(%d)", BSTD_FUNCTION, responseStatus ));
     fClientConnection->sendResponse( responseStatus );
 
 error:
@@ -2262,9 +2267,9 @@ void BIP_RtspServer::BIP_RtspClientSession::sendResponseUsingRequest(
     strncpy( method, fullRequestStr, posSpace - fullRequestStr );
     if (strcmp( method, "PLAY" ) == 0)
     {
-        BDBG_MSG(( "%s: calling handleCmd_PLAY()", __FUNCTION__ ));
+        BDBG_MSG(( "%s: calling handleCmd_PLAY()", BSTD_FUNCTION ));
         handleCmd_PLAY( fClientConnection, NULL /*subsession*/, (char const *) fullRequestStr );
-        BDBG_MSG(( "%s: handleCmd_PLAY done; calling sendResponse()", __FUNCTION__ ));
+        BDBG_MSG(( "%s: handleCmd_PLAY done; calling sendResponse()", BSTD_FUNCTION ));
         fClientConnection->sendResponse( responseStatus );
     }
     else if (strcmp( method, "TEARDOWN" )==0)
@@ -2284,7 +2289,7 @@ void BIP_RtspServer::BIP_RtspClientSession::reportLockStatus(
     bool bLockStatus
     )
 {
-    BDBG_MSG(( "%s: bLockStatus %d", __FUNCTION__, bLockStatus ));
+    BDBG_MSG(( "%s: bLockStatus %d", BSTD_FUNCTION, bLockStatus ));
     satelliteSettings.lock = bLockStatus;
     return;
 } // reportLockStatus
@@ -2302,7 +2307,7 @@ char *BIP_Rtsp_CreatePidListString(
     char *pidListStr = (char *)BKNI_Malloc( BIP_MAX_PIDS_PER_PROGRAM*5 );
     char  pidStr[8]; /* string version for a single pid */
 
-    BDBG_MSG(( "%s: count %d", __FUNCTION__, pidListCount ));
+    BDBG_MSG(( "%s: count %d", BSTD_FUNCTION, pidListCount ));
     BIP_CHECK_PTR_GOTO( pidListStr, "pidListStr = malloc() failed", error, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
     BKNI_Memset( pidListStr, 0, BIP_MAX_PIDS_PER_PROGRAM*5 );
 
@@ -2314,7 +2319,7 @@ char *BIP_Rtsp_CreatePidListString(
         }
         /* convert the pid integer to string */
         snprintf( pidStr, sizeof( pidStr ), "%d", pidList[idx] );
-        BDBG_MSG(( "%s: idx %d: pid %d (str %s)", __FUNCTION__, idx, pidList[idx], pidStr ));
+        BDBG_MSG(( "%s: idx %d: pid %d (str %s)", BSTD_FUNCTION, idx, pidList[idx], pidStr ));
         /* append pid string to running string */
         strncat( pidListStr, pidStr, ( BIP_MAX_PIDS_PER_PROGRAM*5 )-1 );
         /* if there is another pid to process, add a comma */
@@ -2422,7 +2427,7 @@ char *BIP_Rtsp_GenerateSdpDescription(
     {
         signalQuality = pSatelliteSettings->quality;
     }
-    BDBG_MSG(( "%s: freq %d; state %d", __FUNCTION__, pSatelliteSettings->freq, state ));
+    BDBG_MSG(( "%s: freq %d; state %d", BSTD_FUNCTION, pSatelliteSettings->freq, state ));
     snprintf( sdpDescription, 256, sdpFormat, port, ipAddrStr, ttlStr, pSatelliteSettings->streamId,
         pSatelliteSettings->src, pSatelliteSettings->fe, signalLevel,
         pSatelliteSettings->lock, signalQuality, pSatelliteSettings->freq,
@@ -2431,8 +2436,8 @@ char *BIP_Rtsp_GenerateSdpDescription(
         ( state==BIP_RtspLmSessionStreamState_UnicastPlay || state==BIP_RtspLmSessionStreamState_MulticastPlay ) ?  "sendonly" : "inactive" );
 
     if (pidListStr) {BKNI_Free( pidListStr ); }
-    BDBG_MSG(( "%s: returning SDP len %u", __FUNCTION__, (unsigned)strlen( sdpDescription )));
-    BDBG_MSG(( "%s: returning SDP (%s)", __FUNCTION__, sdpDescription ));
+    BDBG_MSG(( "%s: returning SDP len %u", BSTD_FUNCTION, (unsigned)strlen( sdpDescription )));
+    BDBG_MSG(( "%s: returning SDP (%s)", BSTD_FUNCTION, sdpDescription ));
 error:
     return( sdpDescription );
 } // BIP_Rtsp_GenerateSdpDescription
@@ -2443,7 +2448,7 @@ static char const *sesSatIpCommandStr = "OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLA
  **/
 void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_OPTIONS()
 {
-    BDBG_MSG(( "%s: fClientSessionId %08X", __FUNCTION__, fClientSessionId ));
+    BDBG_MSG(( "%s: fClientSessionId %08X", BSTD_FUNCTION, fClientSessionId ));
     if (fClientSessionId > 0)
     {
         snprintf((char *)fResponseBuffer, sizeof fResponseBuffer, "RTSP/1.0 200 OK\r\nCSeq: %s\r\nSession: %08lX\r\n%sPublic: %s\r\n\r\n",
@@ -2480,7 +2485,7 @@ char *BIP_Rtsp_ConcatinateSdp(
     BIP_CHECK_PTR_GOTO( newSdp, "malloc() for newSdp returned null", error, BIP_ERR_INVALID_PARAMETER );
     BKNI_Memset( newSdp, 0, newlength );
 
-    BDBG_MSG(( "%s: newlength (%u) = prevlen (%u) + sdp %d (%u) + 1", __FUNCTION__, newlength, (unsigned)strlen( sdpDescriptionCombined ),
+    BDBG_MSG(( "%s: newlength (%u) = prevlen (%u) + sdp %d (%u) + 1", BSTD_FUNCTION, newlength, (unsigned)strlen( sdpDescriptionCombined ),
                idx, (unsigned)strlen( streamIdSdp )));
     // combine the accumulated SDP description with the one for the current streamId
     strncpy( newSdp, sdpDescriptionCombined, newlength-1 );
@@ -2528,7 +2533,7 @@ char *BIP_Rtsp_ConcatinateSdpVlc(
                           "c=IN IP4 0.0.0.0\r\n"
                           "b=AS:0\r\n"
                           "a=control:track1\r\n";
-    int          sdpVlcLen = strlen( sdpVlcFormat ) + ( 2*strlen( urlSuffix )) + ( 2*strlen( __FUNCTION__ ));
+    int          sdpVlcLen = strlen( sdpVlcFormat ) + ( 2*strlen( urlSuffix )) + ( 2*strlen( BSTD_FUNCTION ));
     unsigned int newlength = 0;
     char        *newSdp    = NULL;
 
@@ -2536,14 +2541,14 @@ char *BIP_Rtsp_ConcatinateSdpVlc(
 
     BIP_CHECK_PTR_GOTO( sdpVlcStr, "sdpVlcStr = malloc() failed", error, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
     BKNI_Memset( sdpVlcStr, 0, sdpVlcLen );
-    sdpVlcLen = snprintf( sdpVlcStr, sdpVlcLen, sdpVlcFormat, urlSuffix, __FUNCTION__, __FUNCTION__, urlSuffix );
+    sdpVlcLen = snprintf( sdpVlcStr, sdpVlcLen, sdpVlcFormat, urlSuffix, BSTD_FUNCTION, BSTD_FUNCTION, urlSuffix );
 
     newlength = strlen( sdpDescriptionCombined ) + sdpVlcLen + 1 /*null termination */;
     newSdp    = (char *) BKNI_Malloc( newlength );
     BIP_CHECK_PTR_GOTO( newSdp, "malloc() for newSdp returned null", error, BIP_ERR_INVALID_PARAMETER );
     BKNI_Memset( newSdp, 0, newlength );
 
-    BDBG_MSG(( "%s: newlength (%u) = prevlen (%u) + sdp %d + 1", __FUNCTION__, newlength, (unsigned)strlen( sdpDescriptionCombined ), sdpVlcLen ));
+    BDBG_MSG(( "%s: newlength (%u) = prevlen (%u) + sdp %d + 1", BSTD_FUNCTION, newlength, (unsigned)strlen( sdpDescriptionCombined ), sdpVlcLen ));
     // combine the accumulated SDP description with the one for the current streamId
     strncpy( newSdp, sdpDescriptionCombined, newlength-1 );
     strncat( newSdp, sdpVlcStr,              newlength-1 );
@@ -2575,7 +2580,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_DESCRIBE(
     BIP_CHECK_GOTO(( sdpDescriptionCombined ), ( "Memory Allocation Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
     sdpDescriptionCombined[0] = '\0'; // an empty string
 
-    BDBG_MSG(( "%s: GOT DESCRIBE Call at %s:  ", __FUNCTION__, __TIME__ ));
+    BDBG_MSG(( "%s: GOT DESCRIBE Call at %s:  ", BSTD_FUNCTION, __TIME__ ));
     BDBG_MSG(( "urlPreSuffix (%s)", urlPreSuffix ));
     BDBG_MSG(( "urlSuffix (%s)", urlSuffix ));
     BDBG_MSG(( "fullRequestStr (%s)", fullRequestStr ));
@@ -2608,7 +2613,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_DESCRIBE(
             BKNI_Memset( &transportStatus, 0, sizeof( transportStatus ));
             bitmaskOptionsFound = BIP_Rtsp_ParseUrlOptions( &satelliteSettings, &transportStatus, urlSuffix );
 
-            BDBG_MSG(( "%s: lstreamId %d; sdpLen (%u); sdp(%s)", __FUNCTION__, satelliteSettings.streamId, (unsigned)strlen( sdpDescriptionCombined ),
+            BDBG_MSG(( "%s: lstreamId %d; sdpLen (%u); sdp(%s)", BSTD_FUNCTION, satelliteSettings.streamId, (unsigned)strlen( sdpDescriptionCombined ),
                        sdpDescriptionCombined ));
 
             /* if an error was detected while parsing the URL */
@@ -2654,7 +2659,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_DESCRIBE(
                 char const            *key; // dummy
                 while (( pSession = (BIP_RtspServer::BIP_RtspClientSession *)( iter->next( key ))) != NULL) {
                     u_int32_t clientSessionId = pSession->fSessionId;
-                    BDBG_MSG(( "%s: iterator stream numStreamsFound %d; sessionId 0x%08X", __FUNCTION__, numStreamsFound, clientSessionId ));
+                    BDBG_MSG(( "%s: iterator stream numStreamsFound %d; sessionId 0x%08X", BSTD_FUNCTION, numStreamsFound, clientSessionId ));
                     // user did not specify a streamId OR they did specify a streamId and we found the one they specified
                     if (( satelliteSettings.streamId == 0 ) ||
                         (( pSession->satelliteSettings.streamId > 0 ) && ( pSession->satelliteSettings.streamId == satelliteSettings.streamId )))
@@ -2677,7 +2682,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_DESCRIBE(
     // if no streams were found
     if (numStreamsFound == 0)
     {
-        BDBG_MSG(( "%s: no streams were found; sending 404", __FUNCTION__ ));
+        BDBG_MSG(( "%s: no streams were found; sending 404", BSTD_FUNCTION ));
         handleCmd_notFound();
     }
     else
@@ -2695,8 +2700,8 @@ void BIP_RtspServer::BIP_RtspClientConnection:: handleCmd_DESCRIBE(
             rtspStart,
             sdpDescriptionSize-2,
             sdpDescriptionCombined );
-        BDBG_MSG(( "%s: len %u; ", __FUNCTION__, (unsigned)strlen((char *) fResponseBuffer )));
-        BDBG_REQSEND(( "%s: SENDING...(%s)", __FUNCTION__, (char *) fResponseBuffer ));
+        BDBG_MSG(( "%s: len %u; ", BSTD_FUNCTION, (unsigned)strlen((char *) fResponseBuffer )));
+        BDBG_REQSEND(( "%s: SENDING...(%s)", BSTD_FUNCTION, (char *) fResponseBuffer ));
     }
 
 error:
@@ -2714,15 +2719,12 @@ BIP_RtspServer::BIP_RtspClientSession *BIP_RtspServer:: createNewClientSession(
     )
 {
     BIP_RtspServer::BIP_RtspClientSession    *clientSession;
-    BIP_RtspServer::BIP_RtspClientConnection *rtspClientConnection;
 
-    BDBG_MSG(( "BIP_RtspServer::%s: top - sessionId %X", __FUNCTION__, sessionId ));
-    rtspClientConnection = (BIP_RtspServer::BIP_RtspClientConnection *)this;
-
-    BDBG_MSG(( "BIP_RtspServer:%s: new BIP_RtspClientSession 0x%08X", __FUNCTION__, sessionId ));
+    BDBG_MSG(( "BIP_RtspServer::%s: top - sessionId %X", BSTD_FUNCTION, sessionId ));
+    BDBG_MSG(( "BIP_RtspServer:%s: new BIP_RtspClientSession 0x%08X", BSTD_FUNCTION, sessionId ));
 
     clientSession = new BIP_RtspClientSession( *this, sessionId );
-    BDBG_MSG(( "BIP_RtspServer:%s: returning clientSession %p", __FUNCTION__, (void *)clientSession ));
+    BDBG_MSG(( "BIP_RtspServer:%s: returning clientSession %p", BSTD_FUNCTION, (void *)clientSession ));
     BIP_CHECK_PTR_GOTO( clientSession, "clientSession is null", error, BIP_ERR_INVALID_PARAMETER );
 
 error:
@@ -2740,14 +2742,14 @@ BIP_RtspClientSession(
     )
     : RTSPClientSession( ourServer, sessionId ), fLivenessCheckTask( NULL )
 {
-    BDBG_MSG(( "%s: constructor top", __FUNCTION__ ));
+    BDBG_MSG(( "%s: constructor top", BSTD_FUNCTION ));
     char    streamName[16];
     Boolean reuseFirstSource = false;
-    BDBG_MSG(( "%s: BIP_RtspServer::BIP_RtspClientSession:: top - sessionId 0x%08X", __FUNCTION__, sessionId ));
+    BDBG_MSG(( "%s: BIP_RtspServer::BIP_RtspClientSession:: top - sessionId 0x%08X", BSTD_FUNCTION, sessionId ));
     fOurServer = (BIP_RtspServer *)&ourServer;
-    BDBG_MSG(( "%s: fOurServer %p", __FUNCTION__, (void *)fOurServer ));
+    BDBG_MSG(( "%s: fOurServer %p", BSTD_FUNCTION, (void *)fOurServer ));
     if (fOurServer)
-    {BDBG_MSG(( "%s: fOurServer->fOurStreamIds %p", __FUNCTION__, (void *)fOurServer->fOurStreamIds )); }
+    {BDBG_MSG(( "%s: fOurServer->fOurStreamIds %p", BSTD_FUNCTION, (void *)fOurServer->fOurStreamIds )); }
     fOurStreamId = BIP_Rtsp_ComputeNextStreamId();
 
     BKNI_Memset( streamName, 0, sizeof( streamName ));
@@ -2756,10 +2758,10 @@ BIP_RtspClientSession(
 
     /* TODO: this needs further study to make sure we are creating the SubSession correctly */
     fOurMediaSession = ServerMediaSession::createNew( envir(), streamName, "BRCM SAT>IP Server version: ", "1.0" ); /* 1 */
-    BDBG_MSG(( "%s: fOurMediaSession    %p", __FUNCTION__, (void *)fOurMediaSession ));
+    BDBG_MSG(( "%s: fOurMediaSession    %p", BSTD_FUNCTION, (void *)fOurMediaSession ));
     fOurMediaSubsession = MPEG2TransportFileServerMediaSubsession ::createNew( envir(), "LiveStream",  NULL /*indexfile*/, reuseFirstSource ); /* 2 */
     fOurMediaSession->addSubsession( fOurMediaSubsession );                                                                                    /*3 */
-    BDBG_MSG(( "%s: addServerMediaSession(fOurMediaSubsession %p)", __FUNCTION__, (void *)fOurMediaSubsession ));
+    BDBG_MSG(( "%s: addServerMediaSession(fOurMediaSubsession %p)", BSTD_FUNCTION, (void *)fOurMediaSubsession ));
     ourServer.addServerMediaSession( fOurMediaSession ); /* 4 */
 
     // This is the first "SETUP" for this session.  Set up our array of states for all of this session's subsessions (tracks):
@@ -2806,7 +2808,7 @@ BIP_RtspClientSession(
 
     this->noteLiveness();
     BDBG_MSG(( "%s: client streamId %d, mediaSession %p, BIP::clientSession %p, clientConnection %p, ourServer %p",
-               __FUNCTION__, fOurStreamId, (void *)fOurMediaSession, (void *)this, (void *)this->fClientConnection, (void *)this->fOurServer ));
+               BSTD_FUNCTION, fOurStreamId, (void *)fOurMediaSession, (void *)this, (void *)this->fClientConnection, (void *)this->fOurServer ));
 }
 
 BIP_RtspServer::BIP_RtspClientSession::~BIP_RtspClientSession()
@@ -2814,10 +2816,10 @@ BIP_RtspServer::BIP_RtspClientSession::~BIP_RtspClientSession()
     char               keyString[16];
     struct sockaddr_in clientAddr;
 
-    BDBG_DESTRUCTOR(( "%s: destructor %p", __FUNCTION__, (void *)this ));
+    BDBG_DESTRUCTOR(( "%s: destructor %p", BSTD_FUNCTION, (void *)this ));
 
     BIP_CHECK_PTR_GOTO( fLivenessCheckTask, "fLivenessCheckTask is null", no_liveness, BIP_ERR_INVALID_PARAMETER );
-    BDBG_DESTRUCTOR(( "%s: unscheduleDelayedTask(fLivenessCheckTask(%p)\n", __FUNCTION__, fLivenessCheckTask ));
+    BDBG_DESTRUCTOR(( "%s: unscheduleDelayedTask(fLivenessCheckTask(%p)\n", BSTD_FUNCTION, fLivenessCheckTask ));
     envir().taskScheduler().unscheduleDelayedTask( fLivenessCheckTask );
     fLivenessCheckTask = 0;
 no_liveness:
@@ -2825,7 +2827,7 @@ no_liveness:
     // Turn off any periodic RTCPInstance processing
     if ( fGetRtpStatisticsId )
     {
-        BDBG_DESTRUCTOR(( "%s: destructor; unscheduleDelayedTask fGetRtpStatisticsId %p", __FUNCTION__, (void *)fGetRtpStatisticsId ));
+        BDBG_DESTRUCTOR(( "%s: destructor; unscheduleDelayedTask fGetRtpStatisticsId %p", BSTD_FUNCTION, (void *)fGetRtpStatisticsId ));
         envir().taskScheduler().unscheduleDelayedTask( fGetRtpStatisticsId );
 
         fGetRtpStatisticsId = 0;
@@ -2835,23 +2837,23 @@ no_liveness:
     stopRtcpReports();
 
     snprintf( keyString, sizeof( keyString ), "%08X", fOurSessionId );
-    BDBG_DESTRUCTOR(( "%s: Remove(%s)", __FUNCTION__, keyString ));
+    BDBG_DESTRUCTOR(( "%s: Remove(%s)", BSTD_FUNCTION, keyString ));
     fOurServer->fClientSessions->Remove( keyString );
-    BDBG_DESTRUCTOR(( "%s: destructor: fClientSessions->Remove (%s); Hashtable NumEntries(%d) ", __FUNCTION__, keyString, fOurServer->fClientSessions->numEntries()));
+    BDBG_DESTRUCTOR(( "%s: destructor: fClientSessions->Remove (%s); Hashtable NumEntries(%d) ", BSTD_FUNCTION, keyString, fOurServer->fClientSessions->numEntries()));
 
     clientAddr.sin_addr.s_addr = fDestinationAddress;
     snprintf( keyString, sizeof( keyString ), "%s", inet_ntoa( clientAddr.sin_addr ));
     fOurServer->fClientAddresses->Remove( keyString );
-    BDBG_DESTRUCTOR(( "%s: destructor: fClientAddresses->Remove (%s); Hashtable NumEntries(%d) ", __FUNCTION__, keyString, fOurServer->fClientAddresses->numEntries()));
+    BDBG_DESTRUCTOR(( "%s: destructor: fClientAddresses->Remove (%s); Hashtable NumEntries(%d) ", BSTD_FUNCTION, keyString, fOurServer->fClientAddresses->numEntries()));
 
     snprintf( keyString, sizeof( keyString ), STREAMID_FORMAT, fOurStreamId );
     fOurServer->fOurStreamIds->Remove( keyString );
-    BDBG_DESTRUCTOR(( "%s: destructor: fOurStreamIds->Remove (%s); Hashtable NumEntries(%d) ", __FUNCTION__, keyString, fOurServer->fOurStreamIds->numEntries()));
+    BDBG_DESTRUCTOR(( "%s: destructor: fOurStreamIds->Remove (%s); Hashtable NumEntries(%d) ", BSTD_FUNCTION, keyString, fOurServer->fOurStreamIds->numEntries()));
 #if 0
     /* TODO: CD check this. TEARDOWN of Session followed by exit of HandleRequest bytes causes double delete of Client Connection */
     if (fClientConnection)
     {
-        BDBG_MSG(( "%s: delete fClientConnection (%p)", __FUNCTION__, fClientConnection ));
+        BDBG_MSG(( "%s: delete fClientConnection (%p)", BSTD_FUNCTION, fClientConnection ));
         delete fClientConnection;
     fClientConnection = NULL;
     }
@@ -2882,16 +2884,16 @@ no_liveness:
 
     #if 1
     // TODO: how should this be destroyed???
-    BDBG_MSG(( "%s: fOurMediaSession (%p); fOurMediaSubsession (%p)", __FUNCTION__, (void *)fOurMediaSession, (void *)fOurMediaSubsession ));
+    BDBG_MSG(( "%s: fOurMediaSession (%p); fOurMediaSubsession (%p)", BSTD_FUNCTION, (void *)fOurMediaSession, (void *)fOurMediaSubsession ));
     if (fOurMediaSession)
     {
         #if 0 // causes crash
-        BDBG_ERR(( "%s: calling removeServerMediaSession(%p)", __FUNCTION__, fOurMediaSession ));
+        BDBG_ERR(( "%s: calling removeServerMediaSession(%p)", BSTD_FUNCTION, fOurMediaSession ));
         fOurServer->removeServerMediaSession( fOurMediaSession ); /* ~4 */
         #endif
 
         #if 0 // causes crash
-        BDBG_ERR(( "%s: calling deleteAllSubsessions (); fOurMediaSubsession (%p)", __FUNCTION__, fOurMediaSubsession ));
+        BDBG_ERR(( "%s: calling deleteAllSubsessions (); fOurMediaSubsession (%p)", BSTD_FUNCTION, fOurMediaSubsession ));
         fOurMediaSession->deleteAllSubsessions(); /* ~3 */
         #endif
 
@@ -2922,7 +2924,7 @@ no_liveness:
         requestUrl = NULL;
     }
 
-    BDBG_DESTRUCTOR(( "%s: done", __FUNCTION__ ));
+    BDBG_DESTRUCTOR(( "%s: done", BSTD_FUNCTION ));
 }
 
 BIP_RtspServer::BIP_RtspClientSession *BIP_RtspServer::BIP_RtspClientConnection:: createNewClientSession(
@@ -2933,7 +2935,7 @@ BIP_RtspServer::BIP_RtspClientSession *BIP_RtspServer::BIP_RtspClientConnection:
     char sessionIdStr[16];
     BIP_RtspServer::BIP_RtspClientSession *bipClientSession = NULL;
 
-    BDBG_MSG(( "BIP_RtspServer::BIP_RtspClientConnection::%s: top", __FUNCTION__ ));
+    BDBG_MSG(( "BIP_RtspServer::BIP_RtspClientConnection::%s: top", BSTD_FUNCTION ));
     BKNI_Memset( sessionIdStr, 0, sizeof( sessionIdStr ));
     // So create a new "RTSPClientSession" object for this request.
     // (We avoid choosing session id 0, because that has a special use (by "OnDemandServerMediaSubsession").)
@@ -2942,30 +2944,30 @@ BIP_RtspServer::BIP_RtspClientSession *BIP_RtspServer::BIP_RtspClientConnection:
     {
         /* create session-id using a random (unused) 32-bit integer id (it's encoded as a 8-digit hex number). */
         sessionId = (u_int32_t)our_random32();
-        BDBG_MSG(( "%s: new sessionId 0x%8X", __FUNCTION__, sessionId ));
+        BDBG_MSG(( "%s: new sessionId 0x%8X", BSTD_FUNCTION, sessionId ));
         snprintf( sessionIdStr,sizeof(sessionIdStr),"%08X", sessionId );
-        BDBG_MSG(( "%s: Creating BIP_RtspClientSession object: Session sessionIdStr (%s)", __FUNCTION__, sessionIdStr ));
+        BDBG_MSG(( "%s: Creating BIP_RtspClientSession object: Session sessionIdStr (%s)", BSTD_FUNCTION, sessionIdStr ));
     } while (sessionId == 0 || fOurServer->fClientSessions->Lookup( sessionIdStr ) != NULL);
 
-    BDBG_MSG(( "%s: calling fOurServer->createNewClientSession(0x%x);", __FUNCTION__, sessionId ));
+    BDBG_MSG(( "%s: calling fOurServer->createNewClientSession(0x%x);", BSTD_FUNCTION, sessionId ));
     /* now create the BIP_RtspClientSession object */
     bipClientSession = fOurServer->createNewClientSession( sessionId );
     BIP_CHECK_PTR_GOTO( bipClientSession, "Couldn't create new ClientSession", error, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
 
     /* and add it to a hash table */
-    BDBG_MSG(( "%s: Add(%s)->%p to fClientSessions %p", __FUNCTION__, sessionIdStr, (void *)bipClientSession, (void *)fOurServer->fClientSessions ));
+    BDBG_MSG(( "%s: Add(%s)->%p to fClientSessions %p", BSTD_FUNCTION, sessionIdStr, (void *)bipClientSession, (void *)fOurServer->fClientSessions ));
     fOurServer->fClientSessions->Add( sessionIdStr, bipClientSession );
     bipClientSession->fClientConnection = clientConnection;
 
     BDBG_MSG(( "%s: Created BIP_RtspClientSession object (%p), Client Connx %p, Session sessionIdStr %s",
-               __FUNCTION__, (void *)bipClientSession, (void *)clientConnection, sessionIdStr ));
+               BSTD_FUNCTION, (void *)bipClientSession, (void *)clientConnection, sessionIdStr ));
 
     /* now carry out the setup related work and get the response ready */
 
-    BDBG_MSG(( "%s: calling handleCmd_SETUP(); %d", __FUNCTION__, __LINE__ ));
+    BDBG_MSG(( "%s: calling handleCmd_SETUP(); %d", BSTD_FUNCTION, __LINE__ ));
     if(bipClientSession->handleCmd_SETUP( this, NULL /*urlPreSuffix*/, strstr( requestStr, "/?" ) /*urlSuffix*/, (char const *)requestStr ))
     {
-        BDBG_ERR(( "%s: ERROR calling handleCmd_SETUP(); %d", __FUNCTION__, __LINE__ ));
+        BDBG_ERR(( "%s: ERROR calling handleCmd_SETUP(); %d", BSTD_FUNCTION, __LINE__ ));
         delete(bipClientSession);
         bipClientSession=NULL;
     }
@@ -2998,12 +3000,11 @@ int parseToken(
 {
     char *p_begin = strstr((char *) input, begin );
     char *p_end   = NULL;
-    char  temp;
 
     BKNI_Memset( output, 0, output_len );
-    //printf("%s: top; in (%s); len %d; begin (%s); end (%s)\n", __FUNCTION__, input, output_len, begin, end );
-    //printf("%s: p_begin %p\n", __FUNCTION__, p_begin );
-    //printf("%s: p_end   %s\n", __FUNCTION__, p_end );
+    //printf("%s: top; in (%s); len %d; begin (%s); end (%s)\n", BSTD_FUNCTION, input, output_len, begin, end );
+    //printf("%s: p_begin %p\n", BSTD_FUNCTION, p_begin );
+    //printf("%s: p_end   %s\n", BSTD_FUNCTION, p_end );
     if (p_begin)
     {
         p_begin += strlen((char *) begin );
@@ -3012,12 +3013,11 @@ int parseToken(
         {
             return( -1 );
         }
-        temp = *p_end;
 
         //BDBG_MSG(( "TokenFound = [%s]; (%s)", p_begin, begin ));
 #ifndef DMS_CROSS_PLATFORMS
         strncpy((char *) output, p_begin, p_end - p_begin + 0 );
-        BDBG_MSG(( "%s: token found (%s) (%s) output_len %d", __FUNCTION__, begin, output, output_len ));
+        BDBG_MSG(( "%s: token found (%s) (%s) output_len %d", BSTD_FUNCTION, begin, output, output_len ));
 #else
         if (output_len > 1)
         {
@@ -3039,7 +3039,7 @@ void parsePidsFromCsvList(
     char *tmp1, *tmp2;
 
     *pidListCount = 0;
-    BDBG_MSG(( "%s: buffer (%s); count %d", __FUNCTION__, pidListBuffer, *pidListCount ));
+    BDBG_MSG(( "%s: buffer (%s); count %d", BSTD_FUNCTION, pidListBuffer, *pidListCount ));
     /* tmpBuf string point to <num>,<num2>,<num3>... 0*/
     if (pidListBuffer == NULL)
     {
@@ -3051,15 +3051,15 @@ void parsePidsFromCsvList(
          ) {
         *tmp2 = '\0'; /* replace , with null char, so as to null terminate the string */
         pidList[( *pidListCount )++] = strtol( tmp1, (char **)NULL, 10 );
-        BDBG_MSG(( "%s: pidList[%d] %d", __FUNCTION__, ( *pidListCount )-1, pidList[( *pidListCount )-1] ));
+        BDBG_MSG(( "%s: pidList[%d] %d", BSTD_FUNCTION, ( *pidListCount )-1, pidList[( *pidListCount )-1] ));
         *tmp2 = ','; /* replace back with , */
     }
     /* now get the last pid */
     pidList[( *pidListCount )++] = strtol( tmp1, (char **)NULL, 10 );
-    BDBG_MSG(( "%s: pidList[%d] %d", __FUNCTION__, ( *pidListCount )-1, pidList[( *pidListCount )-1] ));
+    BDBG_MSG(( "%s: pidList[%d] %d", BSTD_FUNCTION, ( *pidListCount )-1, pidList[( *pidListCount )-1] ));
     if (( *pidListCount == BIP_MAX_PIDS_PER_PROGRAM ) && ( tmp2 != NULL ) /*there was still an unprocessed pid in the list */)
     {
-        BDBG_ERR(( "%s: pidList is not big enough to store all pids, current size %d", __FUNCTION__, BIP_MAX_PIDS_PER_PROGRAM ));
+        BDBG_ERR(( "%s: pidList is not big enough to store all pids, current size %d", BSTD_FUNCTION, BIP_MAX_PIDS_PER_PROGRAM ));
         return;
     }
 
@@ -3097,111 +3097,111 @@ int BIP_Rtsp_ParseUrlOptions(
 #if 0
     satSettings->srcType = 1 /* CAD TODO IpStreamerSrc_eSat*/;
 #endif
-    BDBG_MSG(( "%s: URL (%s)", __FUNCTION__, url ));
+    BDBG_MSG(( "%s: URL (%s)", BSTD_FUNCTION, url ));
 
     /* stream=<int>&src=1   OR   stream=<int> RTSP/1.0 */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "stream=", "&" ) && parseToken( url, tmpBuf, sizeof( tmpBuf ), "stream=", " " ))
     {
-        BDBG_MSG(( "%s: No stream Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No stream Attribute found", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound  |= 0x0001;
         satSettings->streamId = strtof( tmpBuf, (char **)NULL );
-        BDBG_MSG(( "%s: streamId %u", __FUNCTION__, satSettings->streamId ));
+        BDBG_MSG(( "%s: streamId %u", BSTD_FUNCTION, satSettings->streamId ));
     }
 
     /* freq=units in MHz */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "freq=", "&" ))
     {
-        BDBG_MSG(( "%s: No Frequency Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No Frequency Attribute found", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound |= 0x0002;
         satSettings->freq    = strtof( tmpBuf, (char **)NULL );
-        BDBG_MSG(( "%s:  freq in Mhz %d", __FUNCTION__, satSettings->freq ));
+        BDBG_MSG(( "%s:  freq in Mhz %d", BSTD_FUNCTION, satSettings->freq ));
     }
 
     /* msys=dvbs | dvbs2 */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "msys=", "&" ))
     {
-        BDBG_MSG(( "%s: Sat sys is not set", __FUNCTION__ ));
+        BDBG_MSG(( "%s: Sat sys is not set", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound |= 0x0004;
         strncpy( satSettings->msys, tmpBuf, sizeof( satSettings->msys )-1 );
-        BDBG_MSG(( "%s: Sat sys is (%s)", __FUNCTION__, satSettings->msys ));
+        BDBG_MSG(( "%s: Sat sys is (%s)", BSTD_FUNCTION, satSettings->msys ));
     }
 
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "mtype=", "&" ))
     {
-        BDBG_MSG(( "%s: Sat Modulation type is not set", __FUNCTION__ ));
+        BDBG_MSG(( "%s: Sat Modulation type is not set", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound |= 0x0008;
         strncpy( satSettings->mtype, tmpBuf, sizeof( satSettings->mtype )-1 );
-        BDBG_MSG(( "%s: Sat Modulation type is (%s)", __FUNCTION__, satSettings->mtype ));
+        BDBG_MSG(( "%s: Sat Modulation type is (%s)", BSTD_FUNCTION, satSettings->mtype ));
     }
 
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "plts=", "&" ))
     {
-        BDBG_MSG(( "%s: Sat pilot tones is not set", __FUNCTION__ ));
+        BDBG_MSG(( "%s: Sat pilot tones is not set", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound   |= 0x0010;
         satSettings->pilotTone = ( strcmp( tmpBuf, "on" )==0 ) ? 1 : 0;
-        BDBG_MSG(( "%s: Sat pilotTone is set (%u), strlen tmpBuf %u", __FUNCTION__, satSettings->pilotTone, (unsigned)strlen( tmpBuf )));
+        BDBG_MSG(( "%s: Sat pilotTone is set (%u), strlen tmpBuf %u", BSTD_FUNCTION, satSettings->pilotTone, (unsigned)strlen( tmpBuf )));
     }
 
     /* sr=2000 in kSymb/s */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "sr=", "&" ))
     {
-        BDBG_MSG(( "%s: No SymbolRate Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No SymbolRate Attribute found", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound |= 0x0020;
         satSettings->sr      = strtof( tmpBuf, (char **)NULL );
-        BDBG_MSG(( "%s: Sat Symbol Rate %d in kSymb/s", __FUNCTION__, satSettings->sr ));
+        BDBG_MSG(( "%s: Sat Symbol Rate %d in kSymb/s", BSTD_FUNCTION, satSettings->sr ));
     }
 
     /* fec=12 | 23 | 34 | 56 | 78 | 35 | 45 | 910 */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "fec=", "&" ))
     {
-        BDBG_MSG(( "%s: No fec Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No fec Attribute found", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound |= 0x0040;
         satSettings->fec     = strtof( tmpBuf, (char **)NULL );
-        BDBG_MSG(( "%s: Sat FEC %d ", __FUNCTION__, satSettings->fec ));
+        BDBG_MSG(( "%s: Sat FEC %d ", BSTD_FUNCTION, satSettings->fec ));
     }
 
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "ro=", "&" ))
     {
-        BDBG_MSG(( "%s: No roll-off (ro) Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No roll-off (ro) Attribute found", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound |= 0x0080;
         satSettings->ro      = strtof( tmpBuf, (char **)NULL );
-        BDBG_MSG(( "%s: Sat roll-off %f ", __FUNCTION__, satSettings->ro ));
+        BDBG_MSG(( "%s: Sat roll-off %f ", BSTD_FUNCTION, satSettings->ro ));
     }
     /* pol=h | v | l | r polarization */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "pol=", "&" ))
     {
-        BDBG_MSG(( "%s: No Polarization Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No Polarization Attribute found", BSTD_FUNCTION ));
     }
     else
     {
         bitmaskOptionsFound |= 0x0100;
         satSettings->pol_int = ( strcmp( tmpBuf, "v" )==0 ) ? 0 : 1;
         strncpy( satSettings->pol, tmpBuf, sizeof( satSettings->pol )-1 );
-        BDBG_MSG(( "%s: Polarization is %s", __FUNCTION__, satSettings->pol ));
+        BDBG_MSG(( "%s: Polarization is %s", BSTD_FUNCTION, satSettings->pol ));
     }
 
     /* parse these pid fields */
@@ -3215,22 +3215,22 @@ int BIP_Rtsp_ParseUrlOptions(
         if (strcmp( tmpBuf, "all" ) == 0)
         {
             /* pids=all | none */
-            BDBG_MSG(( "%s: pids is set to all for MPTS streaming. TODO", __FUNCTION__ ));
+            BDBG_MSG(( "%s: pids is set to all for MPTS streaming. TODO", BSTD_FUNCTION ));
             /*cfg->enableAllpass = true; */
         }
         else if (strcmp( tmpBuf, "none" ) == 0)
         {
-            BDBG_MSG(( "%s: pids is set none", __FUNCTION__ ));
+            BDBG_MSG(( "%s: pids is set none", BSTD_FUNCTION ));
             /*cfg->noDemuxOutput = true; */
             satSettings->pidListCount = 0;
         }
         else
         {
-            BDBG_MSG(( "%s: parsePidsFromCsvList ", __FUNCTION__ ));
+            BDBG_MSG(( "%s: parsePidsFromCsvList ", BSTD_FUNCTION ));
             /* pids=<num>,<num2>,<num3>... */
             int idx;
             parsePidsFromCsvList( tmpBuf, satSettings->pidList, &satSettings->pidListCount );
-            BDBG_MSG(( "%s: pidListCount %d: ", __FUNCTION__, satSettings->pidListCount ));
+            BDBG_MSG(( "%s: pidListCount %d: ", BSTD_FUNCTION, satSettings->pidListCount ));
             for (idx = 0; idx<satSettings->pidListCount; idx++) {
                 BDBG_MSG(( "%d", satSettings->pidList[idx] ));
             }
@@ -3239,11 +3239,11 @@ int BIP_Rtsp_ParseUrlOptions(
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "addpids=", "&" ) == 0)
     {
         bitmaskOptionsFound |= 0x40000;
-        BDBG_MSG(( "%s: parseAddPids FromCsvList ", __FUNCTION__ ));
+        BDBG_MSG(( "%s: parseAddPids FromCsvList ", BSTD_FUNCTION ));
         /* pids=<num>,<num2>,<num3>... */
         int idx;
         parsePidsFromCsvList( tmpBuf, satSettings->addPidList, &satSettings->addPidListCount );
-        BDBG_MSG(( "%s: pidListCount %d: ", __FUNCTION__, satSettings->addPidListCount ));
+        BDBG_MSG(( "%s: pidListCount %d: ", BSTD_FUNCTION, satSettings->addPidListCount ));
         for (idx = 0; idx<satSettings->addPidListCount; idx++) {
             BDBG_MSG(( "%d", satSettings->addPidList[idx] ));
         }
@@ -3252,11 +3252,11 @@ int BIP_Rtsp_ParseUrlOptions(
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "delpids=", "&" ) == 0)
     {
         bitmaskOptionsFound |= 0x80000;
-        BDBG_MSG(( "%s: parseDelPids FromCsvList ", __FUNCTION__ ));
+        BDBG_MSG(( "%s: parseDelPids FromCsvList ", BSTD_FUNCTION ));
         /* pids=<num>,<num2>,<num3>... */
         int idx;
         parsePidsFromCsvList( tmpBuf, satSettings->delPidList, &satSettings->delPidListCount );
-        BDBG_MSG(( "%s: pidListCount %d: ", __FUNCTION__, satSettings->delPidListCount ));
+        BDBG_MSG(( "%s: pidListCount %d: ", BSTD_FUNCTION, satSettings->delPidListCount ));
         for (idx = 0; idx<satSettings->delPidListCount; idx++) {
             BDBG_MSG(( "%d", satSettings->delPidList[idx] ));
         }
@@ -3271,7 +3271,7 @@ int BIP_Rtsp_ParseUrlOptions(
     /* some sat farms have multiple sat dishes ... src=1 tells which of multiple dishes we are trying to access */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "src=", "&" ))
     {
-        BDBG_MSG(( "%s: No src Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No src Attribute found", BSTD_FUNCTION ));
         satSettings->src = 0;
     }
     else
@@ -3283,7 +3283,7 @@ int BIP_Rtsp_ParseUrlOptions(
     /* some sat dishes have multiple fe in the center of the disk ... up to 4 */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "fe=", "&" ))
     {
-        BDBG_MSG(( "%s: No fe Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No fe Attribute found", BSTD_FUNCTION ));
         satSettings->fe = 0;
     }
     else
@@ -3296,7 +3296,7 @@ int BIP_Rtsp_ParseUrlOptions(
     /* if url provided ip addr*/
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "addr=", "&" ))
     {
-        BDBG_MSG(( "%s: No ipaddr Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No ipaddr Attribute found", BSTD_FUNCTION ));
         cfg->streamingIpAddress = NULL;
     }
     else
@@ -3307,17 +3307,17 @@ int BIP_Rtsp_ParseUrlOptions(
             BKNI_Memset( cfg->streamingIpAddress, 0, tmpBuf + 1 );
             strncpy( cfg->streamingIpAddress, tmpBuf, sizeof( cfg->streamingIpAddress )-1 );
         }
-        BDBG_MSG(( "%s: IPaddr (%s)", __FUNCTION__, cfg->streamingIpAddress ));
+        BDBG_MSG(( "%s: IPaddr (%s)", BSTD_FUNCTION, cfg->streamingIpAddress ));
     }
     /* ir url provided ip port */
     if (parseToken( url, tmpBuf, sizeof( tmpBuf ), "port=", "&" ))
     {
-        BDBG_MSG(( "%s: No port Attribute found", __FUNCTION__ ));
+        BDBG_MSG(( "%s: No port Attribute found", BSTD_FUNCTION ));
     }
     else
     {
         cfg->srcPort = cfg->clientPort = strtol( tmpBuf, (char **)NULL, 10 );
-        BDBG_MSG(( "%s: IPport (%d)", __FUNCTION__, cfg->srcPort ));
+        BDBG_MSG(( "%s: IPport (%d)", BSTD_FUNCTION, cfg->srcPort ));
     }
 #endif // if 0
 
@@ -3333,10 +3333,10 @@ int BIP_Rtsp_ParseUrlOptions(
         unsigned short                 clientRTPPortNum             = 0, clientRTCPPortNum = 0;
         Boolean                        isUnicast = false, fIsMulticast = false;
 
-        BDBG_MSG(( "%s: processing TransportHeader", __FUNCTION__ ));
+        BDBG_MSG(( "%s: processing TransportHeader", BSTD_FUNCTION ));
         bitmaskOptionsFound |= parseTransportHeader( urlSuffix, streamingMode, clientsDestinationAddressStr, clientsDestinationTTL,
                 clientRTPPortNum, clientRTCPPortNum, fIsMulticast, isUnicast );
-        BDBG_MSG(( "%s: Client Requested Transport Parameters...", __FUNCTION__ ));
+        BDBG_MSG(( "%s: Client Requested Transport Parameters...", BSTD_FUNCTION ));
         BDBG_MSG(( "Client Requested Transport Parameters: streamingMode %s, dest addr %s, ttl %d, ports: RTP %d, RTCP %d, multicast %d, unicast %d",
                    streamingMode == BIP_StreamingMode_eRTP_UDP ? "RTP_UDP" : "Not Supported",
                    clientsDestinationAddressStr, clientsDestinationTTL,
@@ -3348,7 +3348,7 @@ int BIP_Rtsp_ParseUrlOptions(
             pTransportStatus->clientAddressStr = NULL;
         }
         pTransportStatus->clientAddressStr = clientsDestinationAddressStr;
-        BDBG_MSG(( "%s:%d: new clientAddressStr (%p) (%s); BKNI_Malloc() was in parseTransportHeader()", __FUNCTION__, __LINE__, pTransportStatus->clientAddressStr,
+        BDBG_MSG(( "%s:%d: new clientAddressStr (%p) (%s); BKNI_Malloc() was in parseTransportHeader()", BSTD_FUNCTION, __LINE__, pTransportStatus->clientAddressStr,
                    pTransportStatus->clientAddressStr ));
         pTransportStatus->streamingMode    = streamingMode;
         pTransportStatus->clientRTPPortNum = clientRTPPortNum;
@@ -3359,12 +3359,12 @@ int BIP_Rtsp_ParseUrlOptions(
         // validate various transport parameters, e.g.
         if (isUnicast && fIsMulticast)
         {
-            BDBG_ERR(( "%s: Incorrect Transport Parameters: Client specified both unicast & multicast fields!!", __FUNCTION__ ));
+            BDBG_ERR(( "%s: Incorrect Transport Parameters: Client specified both unicast & multicast fields!!", BSTD_FUNCTION ));
             bitmaskOptionsFound = -1;
         }
         else if (isUnicast && ( clientRTPPortNum == 0 ))
         {
-            BDBG_ERR(( "%s: Incorrect Transport Parameters: Client didn't provide client_port for unicast transport streaming request!!", __FUNCTION__ ));
+            BDBG_ERR(( "%s: Incorrect Transport Parameters: Client didn't provide client_port for unicast transport streaming request!!", BSTD_FUNCTION ));
             bitmaskOptionsFound = -1;
         }
     }
@@ -3373,7 +3373,7 @@ int BIP_Rtsp_ParseUrlOptions(
     BSTD_UNUSED( urlSuffix );
     BSTD_UNUSED( pTransportStatus );
 #endif /* NEXUS_HAS_FRONTEND  */
-    BDBG_MSG(( "%s: done; bitmask 0x%X", __FUNCTION__, bitmaskOptionsFound ));
+    BDBG_MSG(( "%s: done; bitmask 0x%X", BSTD_FUNCTION, bitmaskOptionsFound ));
     return( bitmaskOptionsFound );
 } // BIP_Rtsp_ParseUrlOptions
 
@@ -3404,7 +3404,7 @@ int parseTransportHeader(
 
     portNumBits p1, p2;
     unsigned    ttl;
-    BDBG_MSG(( "%s: buf %s", __FUNCTION__, buf ));
+    BDBG_MSG(( "%s: buf %s", BSTD_FUNCTION, buf ));
 
     // First, find "Transport:"
     while (1) {
@@ -3422,7 +3422,7 @@ int parseTransportHeader(
 
     // Then, run through each of the fields, looking for ones we handle:
     char const *fields = buf + 10;
-    BDBG_MSG(( "%s: fields %s", __FUNCTION__, fields ));
+    BDBG_MSG(( "%s: fields %s", BSTD_FUNCTION, fields ));
     while (*fields == ' ') {++fields; }
     char *field = (char *) BKNI_Malloc( strlen( fields ) + 1 );
     BIP_CHECK_PTR_GOTO( field, "BKNI_Malloc() for field failed", error, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
@@ -3430,7 +3430,7 @@ int parseTransportHeader(
 
     while (sscanf( fields, "%[^;\r\n]", field ) == 1)
     {
-        BDBG_MSG(( "%s: field %s", __FUNCTION__, field ));
+        BDBG_MSG(( "%s: field %s", BSTD_FUNCTION, field ));
         if (strcmp( field, "RTP/AVP/TCP" ) == 0)
         {
             bitmaskOptionsFound |= 0x1000;
@@ -3512,7 +3512,7 @@ int parseTransportHeader(
             clientRTPPortNum     = p1;
             clientRTCPPortNum    = streamingMode == BIP_StreamingMode_eRAW_UDP ? 0 : p2; // ignore the second port number if the client asked for raw UDP
 
-            BDBG_MSG(( "%s: Port Num %d - %d", __FUNCTION__, p1, p2 ));
+            BDBG_MSG(( "%s: Port Num %d - %d", BSTD_FUNCTION, p1, p2 ));
         }
 
         fields += strlen( field );
@@ -3528,7 +3528,7 @@ error:
         destinationTTL = 64; /* Default to 64 if unicast, destinationTTL should never be requested by client when in Unicast */
     }
 
-    BDBG_MSG(( "%s: done; bitmask 0x%X", __FUNCTION__, bitmaskOptionsFound ));
+    BDBG_MSG(( "%s: done; bitmask 0x%X", BSTD_FUNCTION, bitmaskOptionsFound ));
     return( bitmaskOptionsFound );
 } // parseTransportHeader
 
@@ -3580,7 +3580,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: startRtcpReports(
 
     fRtpGroupsock = new Groupsock( envir(), sessionAddress, ( transportStatus.clientRTPPortNum ), satelliteSettings.ttl );
     fRtpSink      = new BIP_RtpSink( envir(), (Groupsock *)fRtpGroupsock, 33, fTimestampFreq, "video/MP2T", 1 );
-    BDBG_MSG(( "%s: RTCP: addr (%s); ports %d-%d; CNAME (%s); fRtpSink (%p); ttl %d", __FUNCTION__, inet_ntoa( sessionAddress ),
+    BDBG_MSG(( "%s: RTCP: addr (%s); ports %d-%d; CNAME (%s); fRtpSink (%p); ttl %d", BSTD_FUNCTION, inet_ntoa( sessionAddress ),
                transportStatus.clientRTPPortNum, transportStatus.clientRTPPortNum+1, CNAME, (void *)fRtpSink, satelliteSettings.ttl ));
     fRtcpGroupsock = new Groupsock( envir(), sessionAddress, ( transportStatus.clientRTPPortNum+1 ), satelliteSettings.ttl );
     fRtcpInstance  = RTCPInstance::createNew( envir(), fRtcpGroupsock, B_LM_ESTIMATED_RTCP_BW, CNAME,
@@ -3603,7 +3603,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: stopRtcpReports(
 
     if (fRtcpInstance)
     {
-        BDBG_DESTRUCTOR(( "%s: Medium::close (%p) ", __FUNCTION__, (void *)fRtcpInstance ));
+        BDBG_DESTRUCTOR(( "%s: Medium::close (%p) ", BSTD_FUNCTION, (void *)fRtcpInstance ));
         Medium::close( fRtcpInstance ); // Note: Sends a RTCP BYE
         fRtcpInstance = NULL;
     }
@@ -3616,7 +3616,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: stopRtcpReports(
 
     if (fRtpSink) // was after fRtcpInstance Medium::close; moved to before fRtcpInstance to resolve crash in RTCPIntance destructor
     {
-        BDBG_DESTRUCTOR(( "%s: fRtpSink (%p)", __FUNCTION__, (void *)fRtpSink ));
+        BDBG_DESTRUCTOR(( "%s: fRtpSink (%p)", BSTD_FUNCTION, (void *)fRtpSink ));
         fRtpSink->destroy();
         fRtpSink = NULL;
     }
@@ -3645,7 +3645,7 @@ BIP_Status BIP_RtspServer::BIP_RtspClientSession:: handleCmd_SETUP(
     // Check if this SETUP Request came in on an existing session (where a client sends this request to modify some of the transport parameters)?
     if (fIsPlaying)
     {
-        BDBG_MSG(( "%s: Received SETUP on a RTSP Session where we have previously received PLAY request", __FUNCTION__ ));
+        BDBG_MSG(( "%s: Received SETUP on a RTSP Session where we have previously received PLAY request", BSTD_FUNCTION ));
         //TODO: determine if we need to cleanup anything from the previous streaming session. May be app needs to know this
     }
 
@@ -3656,8 +3656,8 @@ BIP_Status BIP_RtspServer::BIP_RtspClientSession:: handleCmd_SETUP(
     char const *uriQueryString;
     if (urlPreSuffix != NULL) {uriQueryString = urlPreSuffix; }
     else {uriQueryString = urlSuffix; }
-    BDBG_MSG(( "%s: Handle Setup Request: urlPreSuffix (%s) fullRequestStr (%s)", __FUNCTION__, urlPreSuffix, fullRequestStr ));
-    BDBG_MSG(( "%s: urlSuffix %s; uriQueryString %s", __FUNCTION__, urlSuffix, uriQueryString ));
+    BDBG_MSG(( "%s: Handle Setup Request: urlPreSuffix (%s) fullRequestStr (%s)", BSTD_FUNCTION, urlPreSuffix, fullRequestStr ));
+    BDBG_MSG(( "%s: urlSuffix %s; uriQueryString %s", BSTD_FUNCTION, urlSuffix, uriQueryString ));
 
     do {
         // If stream= header is present in the uriQueryString, then check if this client is the owner of the stream or not.
@@ -3698,7 +3698,7 @@ BIP_Status BIP_RtspServer::BIP_RtspClientSession:: handleCmd_SETUP(
             {
                 unsigned int lStreamId = 0;
                 sscanf( strstr( fullRequestStr, "stream=" ), "stream=%u", &lStreamId );
-                BDBG_MSG(( "%s: scanned streamID %d", __FUNCTION__, lStreamId ));
+                BDBG_MSG(( "%s: scanned streamID %d", BSTD_FUNCTION, lStreamId ));
                 if (lStreamId > 0)
                 {
                     BIP_RtspClientSession *pSession = NULL;
@@ -3707,7 +3707,7 @@ BIP_Status BIP_RtspServer::BIP_RtspClientSession:: handleCmd_SETUP(
                     if (pSession)
                     {
                         unsigned long int sessionId = this->satelliteSettings.owner;
-                        BDBG_MSG(( "%s: copying existing session %p to new session %p", __FUNCTION__, (void *)pSession, (void *)this ));
+                        BDBG_MSG(( "%s: copying existing session %p to new session %p", BSTD_FUNCTION, (void *)pSession, (void *)this ));
                         /* copy the parameters from existing session to new session */
                         this->satelliteSettings          = pSession->satelliteSettings;
                         this->satelliteSettings.streamId = 0; // force the logic to create a new session
@@ -3717,19 +3717,19 @@ BIP_Status BIP_RtspServer::BIP_RtspClientSession:: handleCmd_SETUP(
                 }
             }
             /* TODO  Rest of funtion needs to change to use satelliteSettings and transportStatus*/
-            BDBG_MSG(( "%s: streamId %d; freq %u ", __FUNCTION__, this->satelliteSettings.streamId, this->satelliteSettings.freq ));
-            BDBG_MSG(( "%s: pidListCount %d ", __FUNCTION__, this->satelliteSettings.pidListCount ));
+            BDBG_MSG(( "%s: streamId %d; freq %u ", BSTD_FUNCTION, this->satelliteSettings.streamId, this->satelliteSettings.freq ));
+            BDBG_MSG(( "%s: pidListCount %d ", BSTD_FUNCTION, this->satelliteSettings.pidListCount ));
 
             if (this->satelliteSettings.streamId == 0)   // streamId was not specified by the client ... this is a new request
             {
                 this->satelliteSettings.streamId = fOurStreamId;
-                BDBG_MSG(( "%s: PUSHING NEW streamId %u; freq %u; src %u; fe %u; sr %u", __FUNCTION__, fOurStreamId,
+                BDBG_MSG(( "%s: PUSHING NEW streamId %u; freq %u; src %u; fe %u; sr %u", BSTD_FUNCTION, fOurStreamId,
                            this->satelliteSettings.freq, this->satelliteSettings.src, this->satelliteSettings.fe, this->satelliteSettings.sr ));
 
                 // Look for a "Transport:" header in the request string, to extract client parameters:
                 parseTransportHeader( fullRequestStr, streamingMode, clientsDestinationAddressStr, clientsDestinationTTL,
                     clientRTPPortNum, clientRTCPPortNum, fIsMulticast, isUnicast );
-                BDBG_MSG(( "%s: Client Requested Transport Parameters...", __FUNCTION__ ));
+                BDBG_MSG(( "%s: Client Requested Transport Parameters...", BSTD_FUNCTION ));
                 BDBG_MSG(( "Client Transport Info: streamingMode %s, clientsDestinationAddressStr (%s), ttl %d, ports: RTP %d, RTCP %d, multicast %d, unicast %d",
                            streamingMode == BIP_StreamingMode_eRTP_UDP ? "RTP_UDP" : "Not Supported",
                            clientsDestinationAddressStr, clientsDestinationTTL,
@@ -3776,7 +3776,7 @@ error_requestUrl:
                     BKNI_Memset( this->transportStatus.clientAddressStr, 0, newAddressLength );
                     strncpy( this->transportStatus.clientAddressStr, clientsDestinationAddressStr, newAddressLength-1 );
 error_clientAddr:
-                    BDBG_MSG(( "%s:%d: new clientAddressStr (%p) %s", __FUNCTION__, __LINE__,
+                    BDBG_MSG(( "%s:%d: new clientAddressStr (%p) %s", BSTD_FUNCTION, __LINE__,
                                this->transportStatus.clientAddressStr, this->transportStatus.clientAddressStr ));
                 }
 
@@ -3790,40 +3790,40 @@ error_clientAddr:
 
                 char streamIdStr[16];
                 snprintf( streamIdStr, sizeof( streamIdStr ), STREAMID_FORMAT, this->satelliteSettings.streamId );
-                BDBG_MSG(( "%s: Add(%s)->%p to fOurStreamIds %p", __FUNCTION__, streamIdStr, (void *)this, (void *)fOurServer->fOurStreamIds ));
+                BDBG_MSG(( "%s: Add(%s)->%p to fOurStreamIds %p", BSTD_FUNCTION, streamIdStr, (void *)this, (void *)fOurServer->fOurStreamIds ));
                 fOurServer->fOurStreamIds->Add( streamIdStr, this );
 
-                BDBG_MSG(( "%s: Add(%s)->%p to fClientAddresses %p", __FUNCTION__, this->transportStatus.clientAddressStr, (void *)this, (void *)fOurServer->fClientAddresses ));
+                BDBG_MSG(( "%s: Add(%s)->%p to fClientAddresses %p", BSTD_FUNCTION, this->transportStatus.clientAddressStr, (void *)this, (void *)fOurServer->fClientAddresses ));
                 if (this->transportStatus.clientAddressStr) {fOurServer->fClientAddresses->Add( this->transportStatus.clientAddressStr, this ); }
 
-                BDBG_MSG(( "%s: SETUP: isUnicast %d; fIsMulticast %d", __FUNCTION__, isUnicast, fIsMulticast ));
+                BDBG_MSG(( "%s: SETUP: isUnicast %d; fIsMulticast %d", BSTD_FUNCTION, isUnicast, fIsMulticast ));
 
 #if 0
                 if (isUnicast)
                 {
                     // for unicast, get the Client's IP address from the one used for RTSP Session Request
                     // TODO: make this a public interface of SatIpClientConnection Class
-                    BDBG_MSG(( "%s: extracting destinationAddr", __FUNCTION__ ));
-                    BDBG_MSG(( "%s: fClientConnection (%p)", __FUNCTION__, (void *) this->fClientConnection ));
-                    BDBG_MSG(( "%s: fClientInputAddr (%p)", __FUNCTION__, (void *) &this->fClientConnection->fClientInputAddr ));
-                    BDBG_MSG(( "%s: ClientInputAddr (%s)", __FUNCTION__, inet_ntoa( this->fClientConnection->fClientInputAddr.sin_addr )));
+                    BDBG_MSG(( "%s: extracting destinationAddr", BSTD_FUNCTION ));
+                    BDBG_MSG(( "%s: fClientConnection (%p)", BSTD_FUNCTION, (void *) this->fClientConnection ));
+                    BDBG_MSG(( "%s: fClientInputAddr (%p)", BSTD_FUNCTION, (void *) &this->fClientConnection->fClientInputAddr ));
+                    BDBG_MSG(( "%s: ClientInputAddr (%s)", BSTD_FUNCTION, inet_ntoa( this->fClientConnection->fClientInputAddr.sin_addr )));
                     destinationAddress = this->fClientConnection->fClientInputAddr.sin_addr.s_addr;
-                    BDBG_MSG(( "%s: unicast: destinationAddr (%x)", __FUNCTION__, destinationAddress ));
+                    BDBG_MSG(( "%s: unicast: destinationAddr (%x)", BSTD_FUNCTION, destinationAddress ));
                 }
                 else
                 {
-                    BDBG_MSG(( "%s: INSIDE MULTICAST ****************** ClientInputAddr (%s); str (%s)", __FUNCTION__,
+                    BDBG_MSG(( "%s: INSIDE MULTICAST ****************** ClientInputAddr (%s); str (%s)", BSTD_FUNCTION,
                                inet_ntoa( this->fClientConnection->fClientInputAddr.sin_addr ), this->transportStatus.clientAddressStr ));
 
                     destinationAddress = inet_addr( this->transportStatus.clientAddressStr );
-                    BDBG_MSG(( "%s: MULTICAST computed destMulticastAddrStr (%s)", __FUNCTION__, this->transportStatus.clientAddressStr ));
+                    BDBG_MSG(( "%s: MULTICAST computed destMulticastAddrStr (%s)", BSTD_FUNCTION, this->transportStatus.clientAddressStr ));
 
 #if ( USE_IGMP==1 )
-                    BDBG_MSG(( "%s: BIP_IgmpListener_AddGroupAddress 0x%x/(%s)", __FUNCTION__, ntohl( destinationAddress ),
+                    BDBG_MSG(( "%s: BIP_IgmpListener_AddGroupAddress 0x%x/(%s)", BSTD_FUNCTION, ntohl( destinationAddress ),
                                this->transportStatus.clientAddressStr ));
                     BIP_IgmpListener_AddGroupAddress( fOurServer->fIgmpListener, ntohl( destinationAddress ), 0 );
 #else
-                    BDBG_ERR(( "%s: AddGroupAddress(%s) commented out", __FUNCTION__, this->transportStatus.clientAddressStr ));
+                    BDBG_ERR(( "%s: AddGroupAddress(%s) commented out", BSTD_FUNCTION, this->transportStatus.clientAddressStr ));
 #endif              // if ( USE_IGMP==1 )
 
 #if 0
@@ -3839,9 +3839,9 @@ error_clientAddr:
                                 fOurServer->fOurMulticastAddressTemplate, this->transportStatus.multicastOctet );
 
                         destinationAddress = inet_addr( this->transportStatus.clientAddressStr );
-                        BDBG_MSG(( "%s: MULTICAST computed destMulticastAddrStr (%s)", __FUNCTION__, this->transportStatus.clientAddressStr ));
+                        BDBG_MSG(( "%s: MULTICAST computed destMulticastAddrStr (%s)", BSTD_FUNCTION, this->transportStatus.clientAddressStr ));
 
-                        BDBG_MSG(( "%s: BIP_IgmpListener_AddGroupAddress 0x%x/(%s)", __FUNCTION__, ntohl( destinationAddress ),
+                        BDBG_MSG(( "%s: BIP_IgmpListener_AddGroupAddress 0x%x/(%s)", BSTD_FUNCTION, ntohl( destinationAddress ),
                                    this->transportStatus.clientAddressStr ));
                         BIP_IgmpListener_AddGroupAddress( fOurServer->fIgmpListener, ntohl( destinationAddress ), 0 );
                     }
@@ -3849,9 +3849,9 @@ error_clientAddr:
                     {
                         /* use the one provided by client */
                         destinationAddress = our_inet_addr( this->transportStatus.clientAddressStr );
-                        BDBG_MSG(( "%s: MULTICAST provided clientsAddressStr (%s)", __FUNCTION__, this->transportStatus.clientAddressStr ));
+                        BDBG_MSG(( "%s: MULTICAST provided clientsAddressStr (%s)", BSTD_FUNCTION, this->transportStatus.clientAddressStr ));
                     }
-                    BDBG_MSG(( "%s: multicast: destinationAddr (%x)", __FUNCTION__, destinationAddress ));
+                    BDBG_MSG(( "%s: multicast: destinationAddr (%x)", BSTD_FUNCTION, destinationAddress ));
 #endif              // if 0
                 }
 #endif
@@ -3872,21 +3872,21 @@ error_clientAddr:
                 BKNI_Memset( this->transportStatus.serverAddressStr, 0, strlen( sourceAddrStr.val()) + 1 );
                 strncpy( this->transportStatus.serverAddressStr, sourceAddrStr.val(), strlen( sourceAddrStr.val()));
 error_serverAddr:
-                BDBG_MSG(( "%s: socket %d; serverAddrStr (%s)", __FUNCTION__, this->fClientConnection->fClientInputSocket,
+                BDBG_MSG(( "%s: socket %d; serverAddrStr (%s)", BSTD_FUNCTION, this->fClientConnection->fClientInputSocket,
                            this->transportStatus.serverAddressStr ));
 
                 createRtpRtcpSockets( serverRTPPort, serverRTCPPort );
 
                 this->transportStatus.serverRTPPortNum = ntohs( serverRTPPort.num());
                 BDBG_MSG(( "%s: getStreamParameters done; clientAddr (%s); serverPort (%d), str ip addr (%s); streamToken (%p)",
-                           __FUNCTION__, this->transportStatus.clientAddressStr,
+                           BSTD_FUNCTION, this->transportStatus.clientAddressStr,
                            this->transportStatus.serverRTPPortNum,
                            this->transportStatus.clientAddressStr, fStreamStates[0].streamToken ));
 
                 #if 0
                 startRtcpReports();
                 #else
-                BDBG_MSG(("%s: startRtcpReports() commented out", __FUNCTION__ ));
+                BDBG_MSG(("%s: startRtcpReports() commented out", BSTD_FUNCTION ));
                 #endif
             }
             else // this->satelliteSettings.streamId > 0
@@ -3897,7 +3897,7 @@ error_serverAddr:
                 pSession = BIP_Rtsp_FindOwnerByStreamId( this->fOurStreamId );
                 if (pSession && fTeardownTaskToken)
                 {
-                    BDBG_MSG(( "%s: unscheduledDelayedTask for TEARDOWN; token %p", __FUNCTION__, fTeardownTaskToken ));
+                    BDBG_MSG(( "%s: unscheduledDelayedTask for TEARDOWN; token %p", BSTD_FUNCTION, fTeardownTaskToken ));
                     envir().taskScheduler().unscheduleDelayedTask( fTeardownTaskToken );
                     fTeardownTaskToken = NULL;
                 }
@@ -3943,7 +3943,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: createRtpRtcpSockets(
 
         break; // success
     }
-    BDBG_MSG(("%s:%d rtpGroupsock is %d; rtcpGroupsock is %d ", __FUNCTION__, __LINE__, rtpGroupsock->socketNum(), rtcpGroupsock->socketNum() ));
+    BDBG_MSG(("%s:%d rtpGroupsock is %d; rtcpGroupsock is %d ", BSTD_FUNCTION, __LINE__, rtpGroupsock->socketNum(), rtcpGroupsock->socketNum() ));
     delete rtpGroupsock;
     delete rtcpGroupsock;
     return;
@@ -3960,7 +3960,7 @@ void BIP_RtspServer::BIP_RtspClientSession::handleCmd_PLAY(
 {
     BIP_Status rc = BIP_SUCCESS;
     BSTD_UNUSED( fullRequestStr );
-    BDBG_MSG(( "%s: fOurServerMediaSession (%p); ourClientConnection->fClientInputSocket (%d); subsession %p", __FUNCTION__,
+    BDBG_MSG(( "%s: fOurServerMediaSession (%p); ourClientConnection->fClientInputSocket (%d); subsession %p", BSTD_FUNCTION,
                (void *)fOurServerMediaSession, ourClientConnection->fClientInputSocket, (void *)subsession ));
 
     if (this->satelliteSettings.streamId > 0)
@@ -3974,7 +3974,7 @@ void BIP_RtspServer::BIP_RtspClientSession::handleCmd_PLAY(
         pMine = fOurServer->BIP_Rtsp_FindSessionBySessionId( fOurSessionId );
         BIP_CHECK_GOTO( pMine, ("BIP_Rtsp_FindOwnerBySessionId returned null"), error, BIP_ERR_INVALID_PARAMETER, rc );
 
-        BDBG_MSG(( "%s: owner 0x%8lx; mine 0x%8lx; multicast %d", __FUNCTION__, pOwner->satelliteSettings.owner,
+        BDBG_MSG(( "%s: owner 0x%8lx; mine 0x%8lx; multicast %d", BSTD_FUNCTION, pOwner->satelliteSettings.owner,
                    satelliteSettings.owner, pOwner->transportStatus.isMulticast ));
         if (pOwner->satelliteSettings.owner == fOurSessionId) // I am stream owner
         {
@@ -3989,7 +3989,7 @@ void BIP_RtspServer::BIP_RtspClientSession::handleCmd_PLAY(
         }
         else   // not owner
         {
-            BDBG_MSG(( "%s: NOT owner multicast %d", __FUNCTION__, pOwner->transportStatus.isMulticast ));
+            BDBG_MSG(( "%s: NOT owner multicast %d", BSTD_FUNCTION, pOwner->transportStatus.isMulticast ));
             if (pOwner->transportStatus.isMulticast)   // request from non-owner
             {
                 if (( pOwner->getState() == BIP_RtspLmSessionStreamState_MulticastSetup ) ||
@@ -4028,7 +4028,7 @@ void BIP_RtspServer::BIP_RtspClientSession::handleCmd_PLAY(
     }
 
 error:
-    BDBG_MSG(( "%s: done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: done", BSTD_FUNCTION ));
     /*return rc; */
 } // handleCmd_PLAY
 
@@ -4044,7 +4044,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: handleCmd_TEARDOWN(
     BIP_Status              rc       = BIP_SUCCESS;
     BIP_RtspClientSession *pSession = NULL;
 
-    BDBG_MSG(( "%s: top: clientConnection %p; session %p; url (%s)", __FUNCTION__, (void *)ourClientConnection, (void *)subsession, fullRequestStr ));
+    BDBG_MSG(( "%s: top: clientConnection %p; session %p; url (%s)", BSTD_FUNCTION, (void *)ourClientConnection, (void *)subsession, fullRequestStr ));
     BSTD_UNUSED( subsession );
     BIP_CHECK_GOTO( ourClientConnection, ("ourClientConnection is NULL"), error, BIP_ERR_INVALID_PARAMETER,rc );
 
@@ -4063,7 +4063,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: handleCmd_TEARDOWN(
 
         if (pSession)
         {
-            BDBG_MSG(( "%s: isMulticast %d; owner (%08lX); req session (%08X)", __FUNCTION__, pSession->transportStatus.isMulticast,
+            BDBG_MSG(( "%s: isMulticast %d; owner (%08lX); req session (%08X)", BSTD_FUNCTION, pSession->transportStatus.isMulticast,
                        pSession->satelliteSettings.owner, fOurSessionId ));
             // if (stream is multicast && I own this stream) OR (the stream is unicast ... always honor teardown of unicast )
             if (( pSession->transportStatus.isMulticast &&  ( pSession->satelliteSettings.owner == fOurSessionId )) ||
@@ -4085,7 +4085,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: handleCmd_TEARDOWN(
     for (i = 0; i < fNumStreamStates; ++i) {
         if (subsession == NULL /* means: aggregated operation */ || subsession == fStreamStates[i].subsession) {
             if (fStreamStates[i].subsession != NULL) {
-                BDBG_MSG(("%s: deleteStream(fOurSessionId 0x%X; token %p)", __FUNCTION__, fOurSessionId, fStreamStates[i].streamToken ));
+                BDBG_MSG(("%s: deleteStream(fOurSessionId 0x%X; token %p)", BSTD_FUNCTION, fOurSessionId, fStreamStates[i].streamToken ));
                 fStreamStates[i].subsession->deleteStream(fOurSessionId, fStreamStates[i].streamToken);
                 fStreamStates[i].subsession = NULL;
             }
@@ -4109,7 +4109,7 @@ void BIP_Rtsp_ConnectionLivenessCallback(
 
     BIP_CHECK_PTR_GOTO( pClientConnection, "pClientConnection is NULL", error, BIP_ERR_INVALID_PARAMETER );
 
-    BDBG_MSG(( "%s: pClientConnection %p", __FUNCTION__, (void *)pClientConnection ));
+    BDBG_MSG(( "%s: pClientConnection %p", BSTD_FUNCTION, (void *)pClientConnection ));
     pClientConnection->livenessTimeoutTask( pClientConnection );
 error:
     return;
@@ -4127,7 +4127,7 @@ void BIP_Rtsp_SessionLivenessCallback(
 
     BIP_CHECK_PTR_GOTO( pClientSession, "pClientSession is NULL", error, BIP_ERR_INVALID_PARAMETER );
 
-    BDBG_MSG(( "%s: pClientSession %p", __FUNCTION__, (void *)pClientSession ));
+    BDBG_MSG(( "%s: pClientSession %p", BSTD_FUNCTION, (void *)pClientSession ));
     pClientSession->livenessTimeoutTask( pClientSession );
 error:
     return;
@@ -4143,7 +4143,7 @@ void BIP_RtspServer::BIP_RtspClientSession:: noteLiveness()
 
     timeoutMicroSeconds *= 1000000;
 
-    BDBG_MSG(( "BIP_RtspClientSession::%s: rescheduleDelayedTask(fLivenessCheckTask %p (%d secs); pSession (%p)", __FUNCTION__,
+    BDBG_MSG(( "BIP_RtspClientSession::%s: rescheduleDelayedTask(fLivenessCheckTask %p (%d secs); pSession (%p)", BSTD_FUNCTION,
                fLivenessCheckTask, fOurServer->fReclamationTestSeconds, (void *)this ));
     envir().taskScheduler().rescheduleDelayedTask( fLivenessCheckTask, timeoutMicroSeconds, (TaskFunc *)&BIP_Rtsp_SessionLivenessCallback, this );
 }
@@ -4169,7 +4169,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: livenessTimeoutTask(
 
     iter = HashTable::Iterator::create( *clientConnection->fOurServer->fClientSessions );
     while (( pSession = (BIP_RtspServer::BIP_RtspClientSession *)( iter->next( key ))) != NULL) {
-        BDBG_MSG(( "%s: iterator session %p", __FUNCTION__, (void *)pSession ));
+        BDBG_MSG(( "%s: iterator session %p", BSTD_FUNCTION, (void *)pSession ));
         if (pSession->fClientConnection)
         {
             delete pSession->fClientConnection;
@@ -4177,7 +4177,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: livenessTimeoutTask(
         }
     }
     delete iter;
-    BDBG_MSG(( "%s: delete clientConnection (%p)", __FUNCTION__, (void *)clientConnection ));
+    BDBG_MSG(( "%s: delete clientConnection (%p)", BSTD_FUNCTION, (void *)clientConnection ));
     delete clientConnection;
 error:
     return;
@@ -4210,17 +4210,17 @@ void BIP_RtspServer::BIP_RtspClientSession:: livenessTimeoutTask(
         /* for multicast session, inform IGMP we are tearing down */
         if (clientSession->fIsMulticast && clientSession->transportStatus.clientAddressStr)
         {
-            BDBG_MSG(( "%s: calling BIP_IgmpListener_DelGroupAddress; ipAddr %x; streamId %d", __FUNCTION__,
+            BDBG_MSG(( "%s: calling BIP_IgmpListener_DelGroupAddress; ipAddr %x; streamId %d", BSTD_FUNCTION,
                        ntohl( clientSession->fDestinationAddress ), clientSession->fOurStreamId ));
             BIP_IgmpListener_DelGroupAddress( fOurServer->fIgmpListener, ntohl( clientSession->fDestinationAddress ));
         }
         else
         {
-            BDBG_MSG(( "%s: BIP_IgmpListener_DelGroupAddress() ignored; streamId %d is unicast OR clientAddressStr is null (%s)", __FUNCTION__,
+            BDBG_MSG(( "%s: BIP_IgmpListener_DelGroupAddress() ignored; streamId %d is unicast OR clientAddressStr is null (%s)", BSTD_FUNCTION,
                        clientSession->fOurStreamId, clientSession->transportStatus.clientAddressStr ));
         }
 #else   // if ( USE_IGMP==1 )
-        BDBG_ERR(( "%s: DelGroupAddress(%x) commented out", __FUNCTION__, ntohl( clientSession->fDestinationAddress )));
+        BDBG_ERR(( "%s: DelGroupAddress(%x) commented out", BSTD_FUNCTION, ntohl( clientSession->fDestinationAddress )));
 #endif  // if ( USE_IGMP==1 )
 
         /* Because this callback happens outside the "connection" object, we have to create a temporary connection object. */
@@ -4230,13 +4230,13 @@ void BIP_RtspServer::BIP_RtspClientSession:: livenessTimeoutTask(
         snprintf((char *) clientSession->fClientConnection->fRequestBuffer, sizeof( clientSession->fClientConnection->fRequestBuffer )-1,
             "TEARDOWN stream=%d\r\n\r\n", clientSession->fOurStreamId );
         clientSession->fClientConnection->fLastCRLF =  clientSession->fClientConnection->fRequestBuffer + 19;
-        BDBG_MSG(( "%s: triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", __FUNCTION__, clientSession->fClientConnection->fRequestBuffer ));
+        BDBG_MSG(( "%s: triggering CALLBACK ... clientSession->fMessageReceivedCallback.context (%s)", BSTD_FUNCTION, clientSession->fClientConnection->fRequestBuffer ));
         clientSession->fMessageReceivedCallback.callback( clientSession->fMessageReceivedCallback.context,
             strlen((char *) clientSession->fClientConnection->fRequestBuffer ));
     }
     else
     {
-        BDBG_MSG(( "%s: no callback registered; delete session immediately", __FUNCTION__ ));
+        BDBG_MSG(( "%s: no callback registered; delete session immediately", BSTD_FUNCTION ));
         delete clientSession;
     }
 error:
@@ -4253,11 +4253,11 @@ void BIP_RtspServer::BIP_RtspClientConnection:: noteLiveness()
 
     timeoutMicroSeconds *= 1000000;
 
-    BDBG_MSG(( "BIP_RtspClientConnection::%s: rescheduleDelayedTask(fLivenessCheckTask->%p); pConnection (%p); secs %d", __FUNCTION__,
+    BDBG_MSG(( "BIP_RtspClientConnection::%s: rescheduleDelayedTask(fLivenessCheckTask->%p); pConnection (%p); secs %d", BSTD_FUNCTION,
                fLivenessCheckTask, (void *)this, fOurServer->fReclamationTestSeconds+5 ));
     envir().taskScheduler().rescheduleDelayedTask( fLivenessCheckTask, timeoutMicroSeconds,
         (TaskFunc *)&BIP_Rtsp_ConnectionLivenessCallback, this );
-    BDBG_MSG(( "BIP_RtspClientConnection::%s: rescheduleDelayedTask(fLivenessCheckTask->%p); pConnection (%p)", __FUNCTION__, fLivenessCheckTask, (void *)this ));
+    BDBG_MSG(( "BIP_RtspClientConnection::%s: rescheduleDelayedTask(fLivenessCheckTask->%p); pConnection (%p)", BSTD_FUNCTION, fLivenessCheckTask, (void *)this ));
 }
 
 /**
@@ -4273,7 +4273,7 @@ void BIP_RtspServer::BIP_RtspClientConnection:: noteLiveness(
 {
     BIP_RtspServer::BIP_RtspClientSession *clientSession = NULL;
 
-    BDBG_MSG(( "BIP_RtspClientConnection::%s: top; this %p; sessionIdStr (%s)", __FUNCTION__, (void *)this, sessionIdStr ));
+    BDBG_MSG(( "BIP_RtspClientConnection::%s: top; this %p; sessionIdStr (%s)", BSTD_FUNCTION, (void *)this, sessionIdStr ));
 
     // If the request included a "Session:" id, and it refers to a client session that's current ongoing, then use this
     // command to indicate 'liveness' on that client session:
@@ -4297,13 +4297,13 @@ void BIP_RtspServer::BIP_RtspClientConnection::  copyReceivedMessageConnection(
     BIP_CHECK_GOTO(( dstBuffer ), ( "Destination Buffer is Null for copyReceivedMessageConnection " ), error, BIP_ERR_INVALID_PARAMETER, rc );
     if (fRequestBuffer[0] != '\0' && (( fLastCRLF+2 - fRequestBuffer ) > 0 ))
     {
-        BDBG_MSG(( "%s: connecton %p; calling memcpy(%p, %p, len = %d [%p+2-%p])", __FUNCTION__, (void *)this,
+        BDBG_MSG(( "%s: connecton %p; calling memcpy(%p, %p, len = %d [%p+2-%p])", BSTD_FUNCTION, (void *)this,
                    dstBuffer, fRequestBuffer, (int)(fLastCRLF+2 - fRequestBuffer), fLastCRLF, fRequestBuffer ));
         memcpy( dstBuffer, fRequestBuffer, ( fLastCRLF+2 - fRequestBuffer ));
     }
     else
     {
-        BDBG_MSG(( "%s: connecton %p; something invalid ... skipping memcpy(%p, %p, len = %d (%p+2-%p)", __FUNCTION__, (void *)this,
+        BDBG_MSG(( "%s: connecton %p; something invalid ... skipping memcpy(%p, %p, len = %d (%p+2-%p)", BSTD_FUNCTION, (void *)this,
                    dstBuffer, fRequestBuffer, (int)(fLastCRLF+2 - fRequestBuffer), fLastCRLF, fRequestBuffer ));
         dstBuffer[0] = '\0';
     }
@@ -4317,10 +4317,10 @@ void BIP_RtspServer::BIP_RtspClientSession::  copyReceivedMessageSession(
     char *dstBuffer
     )
 {
-    BDBG_MSG(( "%s: fClientConnection %p", __FUNCTION__, (void *)fClientConnection ));
+    BDBG_MSG(( "%s: fClientConnection %p", BSTD_FUNCTION, (void *)fClientConnection ));
     if (fClientConnection)
     {
-        BDBG_MSG(( "%s: calling fClientConnection->copyReceivedMessage() -> %p", __FUNCTION__, dstBuffer ));
+        BDBG_MSG(( "%s: calling fClientConnection->copyReceivedMessage() -> %p", BSTD_FUNCTION, dstBuffer ));
         fClientConnection->copyReceivedMessageConnection( dstBuffer );
     }
     return;
@@ -4353,7 +4353,7 @@ int BIP_RtspServer::BIP_RtspClientSession::  setState(
     ( fState == BIP_RtspLmSessionStreamState_UnicastChannelChangePending ) ? strncpy( stateStr, "UnicastCCPending", sizeof( stateStr )-1 ) :
     ( fState == BIP_RtspLmSessionStreamState_MulticastChannelChangePending ) ? strncpy( stateStr, "MulticastCCPending", sizeof( stateStr )-1 ) :
         strncpy( stateStr, "UNKNOWN", sizeof( stateStr )-1 );
-    BDBG_MSG(( "%s: for session %p (%08lX), state is %s; streamId %d", __FUNCTION__, (void *)this, this->satelliteSettings.owner, stateStr,
+    BDBG_MSG(( "%s: for session %p (%08lX), state is %s; streamId %d", BSTD_FUNCTION, (void *)this, this->satelliteSettings.owner, stateStr,
                satelliteSettings.streamId ));
     return( 0 );
 } // setState
@@ -4379,8 +4379,8 @@ BIP_RtspLmSessionStreamState BIP_RtspServer::BIP_RtspClientSession::  getState(
         ( fState == BIP_RtspLmSessionStreamState_TeardownPending ) ? "TeardownPending" :
         ( fState == BIP_RtspLmSessionStreamState_Teardown ) ? "Teardown" : "UNKNOWN" );
     /* putting above imbedded if structure directly in BDBG_ERR() macro causes it to output "MISSING" for some reason */
-    BDBG_ERR(( "%s: state is %s", __FUNCTION__, currentState ));
+    BDBG_ERR(( "%s: state is %s", BSTD_FUNCTION, currentState ));
 #endif // if 0
-    BDBG_MSG(( "%s: state is %d", __FUNCTION__, fState ));
+    BDBG_MSG(( "%s: state is %d", BSTD_FUNCTION, fState ));
     return( fState );
 } // getState

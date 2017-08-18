@@ -153,11 +153,11 @@ http_parse_url(char *server, unsigned *portPtr, char **uri, char *url)
         /* relative url: just replace the last path of the current url w/ the new url, rest server name & port dont change */
         char *mediaSegmentBaseUri;
         int newUriLen;
-        BDBG_MSG(("%s: current uri %s, new relative URI (%s)", __FUNCTION__, *uri, url));
+        BDBG_MSG(("%s: current uri %s, new relative URI (%s)", BSTD_FUNCTION, *uri, url));
         if ( (mediaSegmentBaseUri = find_base_uri(*uri)) != 0) {
             newUriLen = strlen(mediaSegmentBaseUri) + strlen(url) + 1;
             if ( (newUri = (char *)BKNI_Malloc(newUriLen)) == NULL) {
-                BDBG_ERR(("%s: BKNI_Malloc failure for %d bytes", __FUNCTION__, newUriLen));
+                BDBG_ERR(("%s: BKNI_Malloc failure for %d bytes", BSTD_FUNCTION, newUriLen));
                 return -1;
             }
             memset(newUri, 0, newUriLen);
@@ -169,13 +169,13 @@ http_parse_url(char *server, unsigned *portPtr, char **uri, char *url)
         else {
             /* base url itself is relative, so replace it w/ new one */
             if ((newUri = B_PlaybackIp_UtilsStrdup(url)) == NULL) {
-                BDBG_ERR(("%s: BKNI_Malloc failure for %zu bytes", __FUNCTION__, strlen(url)));
+                BDBG_ERR(("%s: BKNI_Malloc failure for %zu bytes", BSTD_FUNCTION, strlen(url)));
                 return -1;
             }
             BKNI_Free(*uri);
             *uri = newUri;
         }
-        BDBG_MSG(("%s: updated relative URI %s", __FUNCTION__, *uri));
+        BDBG_MSG(("%s: updated relative URI %s", BSTD_FUNCTION, *uri));
         return 0;
     }
     /* http protocol is being used, parse it further */
@@ -199,7 +199,7 @@ http_parse_url(char *server, unsigned *portPtr, char **uri, char *url)
 
         /* now get the uri */
         if ((newUri = B_PlaybackIp_UtilsStrdup(tmp2)) == NULL) {
-            BDBG_ERR(("%s: BKNI_Malloc failure for %zu bytes", __FUNCTION__, strlen(tmp2)));
+            BDBG_ERR(("%s: BKNI_Malloc failure for %zu bytes", BSTD_FUNCTION, strlen(tmp2)));
             return -1;
         }
         BKNI_Free(*uri);
@@ -208,7 +208,7 @@ http_parse_url(char *server, unsigned *portPtr, char **uri, char *url)
         return 0;
     }
     else {
-        BDBG_ERR(("%s: Failed to find the server part from the redirected URL %s", __FUNCTION__, url));
+        BDBG_ERR(("%s: Failed to find the server part from the redirected URL %s", BSTD_FUNCTION, url));
     }
 
     return -1;
@@ -228,10 +228,10 @@ int http_redirect_get_full_location_header(char **urlPtr, char *http_hdr)
         *tmp2 = '\0';
         BKNI_Free(*urlPtr);
         if ((*urlPtr = B_PlaybackIp_UtilsStrdup(tmp1)) == NULL) {
-            BDBG_ERR(("%s: BKNI_Malloc failure for %zu bytes", __FUNCTION__, strlen(tmp1)));
+            BDBG_ERR(("%s: BKNI_Malloc failure for %zu bytes", BSTD_FUNCTION, strlen(tmp1)));
             return -1;
         }
-        BDBG_MSG(("%s: full location header url %s", __FUNCTION__, *urlPtr));
+        BDBG_MSG(("%s: full location header url %s", BSTD_FUNCTION, *urlPtr));
         return 0;
     }
 
@@ -262,7 +262,7 @@ int http_parse_redirect(char *server, unsigned *portPtr, B_PlaybackIpProtocol *p
     }
     else {
         /* protocol should be specified but we need to be forgiving to accept relative URLs w/o server:port part */
-        BDBG_MSG(("%s: Redirect URI contains relative URL: http header %s", __FUNCTION__, http_hdr));
+        BDBG_MSG(("%s: Redirect URI contains relative URL: http header %s", BSTD_FUNCTION, http_hdr));
         absoluteUrl = false;
     }
 
@@ -283,7 +283,7 @@ int http_parse_redirect(char *server, unsigned *portPtr, B_PlaybackIpProtocol *p
                 *portPtr = strtoul(tmp3, (char **) NULL, 10);
             }
 
-            BDBG_MSG(("%s: ### server %s", __FUNCTION__, server));
+            BDBG_MSG(("%s: ### server %s", BSTD_FUNCTION, server));
         }
         else
         {
@@ -304,10 +304,10 @@ int http_parse_redirect(char *server, unsigned *portPtr, B_PlaybackIpProtocol *p
                 BKNI_Free(*urlPtr);
             *tmp1 = '\0';
             if ((*urlPtr = B_PlaybackIp_UtilsStrdup(tmp2)) == NULL) {
-                BDBG_ERR(("%s: ERROR: Failed to alloc buffer of size %zu server", __FUNCTION__, strlen(tmp2)));
+                BDBG_ERR(("%s: ERROR: Failed to alloc buffer of size %zu server", BSTD_FUNCTION, strlen(tmp2)));
                 return -1;
             }
-            BDBG_MSG(("%s: server %s:%d url %s", __FUNCTION__, server, *portPtr, *urlPtr));
+            BDBG_MSG(("%s: server %s:%d url %s", BSTD_FUNCTION, server, *portPtr, *urlPtr));
             *tmp1 = '\r';
             if ( (tmp1 = B_PlaybackIp_UtilsStristr(http_hdr, "Set-Cookie:")) != NULL) {
                 tmp1 += strlen("Set-Cookie:");
@@ -316,13 +316,13 @@ int http_parse_redirect(char *server, unsigned *portPtr, B_PlaybackIpProtocol *p
                     *tmp2 = '\0';
                     cookieHeaderLength = strlen(tmp1) + 1; /* +1 for the string terminator */
                     if ((*cookie = BKNI_Malloc(cookieHeaderLength)) == NULL) {
-                        BDBG_ERR(("%s: ERROR: Failed to alloc buffer of size %d for cookie header", __FUNCTION__, cookieHeaderLength));
+                        BDBG_ERR(("%s: ERROR: Failed to alloc buffer of size %d for cookie header", BSTD_FUNCTION, cookieHeaderLength));
                         return -1;
                     }
                     BKNI_Memset(*cookie, 0, cookieHeaderLength);
                     strncpy(*cookie, tmp1, cookieHeaderLength-1);
                     *tmp2 = '\r';
-                    BDBG_MSG(("%s: found cookie in the redirect reponse: %s", __FUNCTION__, *cookie));
+                    BDBG_MSG(("%s: found cookie in the redirect reponse: %s", BSTD_FUNCTION, *cookie));
                 }
                 else {
                     BDBG_ERR(("Failed to find CRNL in the Set-Cookie header of the HTTP redirect response"));
@@ -401,7 +401,7 @@ int http_parse_asx_payload(char *server, char **urlPtr, char *asx_hdr)
             BKNI_Free(*urlPtr);
             *tmp1 = '\0';
             if ((*urlPtr = B_PlaybackIp_UtilsStrdup(tmp2)) == NULL) {
-                BDBG_ERR(("%s: ERROR: Failed to allocate %zu bytes of tmp2 buffer", __FUNCTION__, strlen(tmp2)));
+                BDBG_ERR(("%s: ERROR: Failed to allocate %zu bytes of tmp2 buffer", BSTD_FUNCTION, strlen(tmp2)));
                 return -1;
             }
             BDBG_MSG(("server %s url %s\n", server, *urlPtr));
@@ -448,10 +448,10 @@ int http_parse_pls_payload(char *server, unsigned *portPtr, char **urlPtr, char 
             /* find the end of the File1 header, so that we just have the URI string */
             *tmp3 = '\0';
         if ((*urlPtr = B_PlaybackIp_UtilsStrdup(tmp2)) == NULL) {
-            BDBG_ERR(("%s: ERROR: Failed to allocate %zu bytes of tmp2 buffer", __FUNCTION__, strlen(tmp2)));
+            BDBG_ERR(("%s: ERROR: Failed to allocate %zu bytes of tmp2 buffer", BSTD_FUNCTION, strlen(tmp2)));
             return -1;
         }
-        BDBG_MSG(("%s: url: http://%s:%d%s", __FUNCTION__, server, *portPtr, *urlPtr));
+        BDBG_MSG(("%s: url: http://%s:%d%s", BSTD_FUNCTION, server, *portPtr, *urlPtr));
         return 0;
     }
 
@@ -486,43 +486,43 @@ http_get_payload_content_type(char *http_hdr)
     if (tmp1) {
         tmp1 += strlen("Content-type: video/");
         if (B_PlaybackIp_UtilsStristr(tmp1, "x-ms-wmv") || B_PlaybackIp_UtilsStristr(tmp1, "x-ms-asf")) {
-            BDBG_MSG(("%s:WMV Content", __FUNCTION__));
+            BDBG_MSG(("%s:WMV Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eAsf;
             goto out;
         }
         else if (B_PlaybackIp_UtilsStristr(tmp1, "mpeg") || B_PlaybackIp_UtilsStristr(tmp1, "mpg") || B_PlaybackIp_UtilsStristr(tmp1, "mp2t")) {
-            BDBG_MSG(("%s:MPEG2 TS Content", __FUNCTION__));
+            BDBG_MSG(("%s:MPEG2 TS Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eTs;
             goto out;
         }
         else if (B_PlaybackIp_UtilsStristr(tmp1, "mp4")) {
-            BDBG_MSG(("%s:MP4 Content", __FUNCTION__));
+            BDBG_MSG(("%s:MP4 Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eMp4;
             goto out;
         }
     }
     tmp1 = B_PlaybackIp_UtilsStristr(http_hdr, "Content-Type: application/flv");
     if (tmp1) {
-        BDBG_MSG(("%s:MP4 Content", __FUNCTION__));
+        BDBG_MSG(("%s:MP4 Content", BSTD_FUNCTION));
         transportType = NEXUS_TransportType_eMp4;
         goto out;
     }
     tmp1 = B_PlaybackIp_UtilsStristr(http_hdr, "Content-Type: video/x-flv");
     if (tmp1) {
-        BDBG_MSG(("%s:Flash Content", __FUNCTION__));
+        BDBG_MSG(("%s:Flash Content", BSTD_FUNCTION));
         transportType = NEXUS_TransportType_eFlv;
         goto out;
     }
     tmp1 = B_PlaybackIp_UtilsStristr(http_hdr, "Content-Type: audio/");
     if (tmp1) {
         if (B_PlaybackIp_UtilsStristr(tmp1, "x-ms-wma") || B_PlaybackIp_UtilsStristr(tmp1, "x-ms-asf")) {
-            BDBG_MSG(("%s:WMA Content", __FUNCTION__));
+            BDBG_MSG(("%s:WMA Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eAsf;
             goto out;
         }
         else if (B_PlaybackIp_UtilsStristr(tmp1, "mpeg") || B_PlaybackIp_UtilsStristr(tmp1, "mpg") ||
                  B_PlaybackIp_UtilsStristr(tmp1, "x-aac") || B_PlaybackIp_UtilsStristr(tmp1, "mp3")) {
-            BDBG_MSG(("%s:MPEG Audio Content", __FUNCTION__));
+            BDBG_MSG(("%s:MPEG Audio Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eEs;
             goto out;
         }
@@ -532,17 +532,17 @@ http_get_payload_content_type(char *http_hdr)
     if (tmp1) {
         tmp1 += strlen("Content-type: ");
         if (B_PlaybackIp_UtilsStristr(tmp1, "x-ms-wmv") || B_PlaybackIp_UtilsStristr(tmp1, "x-ms-asf")) {
-            BDBG_MSG(("%s:WMV Content", __FUNCTION__));
+            BDBG_MSG(("%s:WMV Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eAsf;
             goto out;
         }
         else if (B_PlaybackIp_UtilsStristr(tmp1, "mpeg") || B_PlaybackIp_UtilsStristr(tmp1, "mpg")) {
-            BDBG_MSG(("%s:MPEG2 TS Content", __FUNCTION__));
+            BDBG_MSG(("%s:MPEG2 TS Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eTs;
             goto out;
         }
         else if (B_PlaybackIp_UtilsStristr(tmp1, "mp4")) {
-            BDBG_MSG(("%s:MP4 Content", __FUNCTION__));
+            BDBG_MSG(("%s:MP4 Content", BSTD_FUNCTION));
             transportType = NEXUS_TransportType_eMp4;
             goto out;
         }
@@ -569,7 +569,7 @@ static int _http_socket_write(void *voidHandle, volatile B_PlaybackIpState *play
 
     rc = B_PlaybackIp_UtilsTcpSocketWrite(playbackIpState, sd, wbuf, wbuf_len);
     if (rc <= 0) {
-        BDBG_ERR(("%s: write System Call interrupted or timed out, retrying (rc %d, errno %d)\n", __FUNCTION__, rc, errno));
+        BDBG_ERR(("%s: write System Call interrupted or timed out, retrying (rc %d, errno %d)\n", BSTD_FUNCTION, rc, errno));
         return rc;
     }
     return wbuf_len;
@@ -594,7 +594,7 @@ int http_build_get_req(char **write_buf_pptr, B_PlaybackIpHandle playback_ip, in
     write_buf_size += 512; /* add room for rest of HTTP headers which have fixed sizes */
     write_buf = (char *)BKNI_Malloc(write_buf_size);
     if (!write_buf) {
-        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", BSTD_FUNCTION));
         return -1;
     }
     memset(write_buf, 0, write_buf_size);
@@ -748,7 +748,7 @@ int B_PlaybackIp_SecurityDecryptionDisable(
 #ifdef B_HAS_DTCP_IP
         case B_PlaybackIpSecurityProtocol_DtcpIp:  /* DTCP-IP protected Content */
             rc = B_PlaybackIp_DtcpIpDecryptionDisable(playback_ip->securityHandle);
-            BDBG_MSG(("%s: Disabled DTCP/IP Decryption \n", __FUNCTION__));
+            BDBG_MSG(("%s: Disabled DTCP/IP Decryption \n", BSTD_FUNCTION));
             break;
 #endif
 #ifdef B_HAS_RAD_EA
@@ -756,7 +756,7 @@ int B_PlaybackIp_SecurityDecryptionDisable(
             break;
 #endif
         default:
-            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", __FUNCTION__, playback_ip->openSettings.security.securityProtocol));
+            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", BSTD_FUNCTION, playback_ip->openSettings.security.securityProtocol));
             return -1;
     }
     return rc;
@@ -789,7 +789,7 @@ int B_PlaybackIp_SecurityDecryptionEnable(
 #ifdef B_HAS_DTCP_IP
         case B_PlaybackIpSecurityProtocol_DtcpIp:  /* DTCP-IP protected Content */
             rc = B_PlaybackIp_DtcpIpDecryptionEnable(playback_ip->securityHandle, initialPayload, *initialPayloadLength);
-            BDBG_MSG(("%s: Enabled DTCP/IP Decryption and passed in intial payload of %d length to security module\n", __FUNCTION__, *initialPayloadLength));
+            BDBG_MSG(("%s: Enabled DTCP/IP Decryption and passed in intial payload of %d length to security module\n", BSTD_FUNCTION, *initialPayloadLength));
             /* since initial payload is handled over the dtcp security layer, return 0 length to caller */
             *initialPayloadLength = 0;
             break;
@@ -797,13 +797,13 @@ int B_PlaybackIp_SecurityDecryptionEnable(
 #ifdef B_HAS_RAD_EA
         case B_PlaybackIpSecurityProtocol_RadEa:   /* Rhapsody's RAD-EA protected Content */
             rc = B_PlaybackIp_RadEaDecryptionEnable(playback_ip->securityHandle, initialPayload, *initialPayloadLength);
-            BDBG_MSG(("%s: Enabled RAD/EA Decryption and passed in intial payload of %d length to security module\n", __FUNCTION__, *initialPayloadLength));
+            BDBG_MSG(("%s: Enabled RAD/EA Decryption and passed in intial payload of %d length to security module\n", BSTD_FUNCTION, *initialPayloadLength));
             /* since initial payload is handled over the security layer, return 0 length to caller */
             *initialPayloadLength = 0;
             break;
 #endif
         default:
-            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", __FUNCTION__, playback_ip->openSettings.security.securityProtocol));
+            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", BSTD_FUNCTION, playback_ip->openSettings.security.securityProtocol));
             return -1;
     }
     return rc;
@@ -838,7 +838,7 @@ _http_socket_select(B_PlaybackIpHandle playback_ip, int fd, int timeout)
     while (numTimeoutInterations++ < timeoutIterations) {
             /* user changed the channel, so return */
         if ( breakFromLoop(playback_ip)) {
-            PRINT_SOCKET_MSG(("%s:%p breaking out of select loop due to state (%d) change, # of timeout iterations %d, total timeout %d seconds\n", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state, numTimeoutInterations, (numTimeoutInterations*timeoutInterval)/1000));
+            PRINT_SOCKET_MSG(("%s:%p breaking out of select loop due to state (%d) change, # of timeout iterations %d, total timeout %d seconds\n", BSTD_FUNCTION, (void *)playback_ip, playback_ip->playback_state, numTimeoutInterations, (numTimeoutInterations*timeoutInterval)/1000));
             if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode)
                 playback_ip->selectTimeout = true;
             else
@@ -850,7 +850,7 @@ _http_socket_select(B_PlaybackIpHandle playback_ip, int fd, int timeout)
             playback_ip->serverClosed = true;
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-            BDBG_ERR(("!!! %s : %d => bad file descriptor(fd %d)\n", __FUNCTION__, __LINE__, fd));
+            BDBG_ERR(("!!! %s : %d => bad file descriptor(fd %d)\n", BSTD_FUNCTION, __LINE__, fd));
 #endif
             return -1;
         }
@@ -863,10 +863,10 @@ _http_socket_select(B_PlaybackIpHandle playback_ip, int fd, int timeout)
         rc = select(fd +1, &rfds, NULL, NULL, &tv);
         if (rc < 0) {
             if (errno == EINTR) {
-                BDBG_MSG(("%s: select System Call interrupted, retrying\n", __FUNCTION__));
+                BDBG_MSG(("%s: select System Call interrupted, retrying\n", BSTD_FUNCTION));
                 continue;
             }
-            BDBG_ERR(("%s: ERROR: select(): rc %d, errno %d, fd %d", __FUNCTION__, rc, errno, fd));
+            BDBG_ERR(("%s: ERROR: select(): rc %d, errno %d, fd %d", BSTD_FUNCTION, rc, errno, fd));
             /* got some socket error, return failure */
             playback_ip->serverClosed = true;
             return -1;
@@ -875,16 +875,16 @@ _http_socket_select(B_PlaybackIpHandle playback_ip, int fd, int timeout)
         if (rc == 0 || !FD_ISSET(fd, &rfds)) {
             /* select timeout or some select event but our FD not set: No more data - wait */
             playback_ip->selectTimeout = true;
-            PRINT_SOCKET_MSG(("%s: selectTimeout is true, fd=%d rc=%d", __FUNCTION__, fd, rc));
+            PRINT_SOCKET_MSG(("%s: selectTimeout is true, fd=%d rc=%d", BSTD_FUNCTION, fd, rc));
             continue;
         }
         /* ready ready event on socket, return succcess */
-        PRINT_SOCKET_MSG(("%s:%p select read ready event (before the timeout of %d sec), iterations: cur %d, max %d", __FUNCTION__, (void *)playback_ip, timeout, numTimeoutInterations, timeoutIterations));
+        PRINT_SOCKET_MSG(("%s:%p select read ready event (before the timeout of %d sec), iterations: cur %d, max %d", BSTD_FUNCTION, (void *)playback_ip, timeout, numTimeoutInterations, timeoutIterations));
         return 0;
     }
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s:%p: select timed out after %d sec, iterations: cur %d, max %d\n", __FUNCTION__, (void *)playback_ip, timeout, numTimeoutInterations, timeoutIterations));
+        BDBG_WRN(("%s:%p: select timed out after %d sec, iterations: cur %d, max %d\n", BSTD_FUNCTION, (void *)playback_ip, timeout, numTimeoutInterations, timeoutIterations));
 #endif
     /* select had just timed out due to no data being available on socket */
     playback_ip->selectTimeout = true;
@@ -906,7 +906,7 @@ _http_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char
     while (true) {
         if ( breakFromLoop(playback_ip)) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s: breaking out of read loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_MSG(("%s: breaking out of read loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode) {
                 playback_ip->selectTimeout = true;
                 errno = EINTR;
@@ -919,21 +919,21 @@ _http_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char
         rc = read(sd, rbuf, rbuf_len);
         if (rc < 0) {
             if (errno == EINTR || errno == EAGAIN) {
-                BDBG_ERR(("%s: Read System Call interrupted or timed out, sleeping for 100msec & then retrying (errno %d)", __FUNCTION__, errno));
+                BDBG_ERR(("%s: Read System Call interrupted or timed out, sleeping for 100msec & then retrying (errno %d)", BSTD_FUNCTION, errno));
                 BKNI_Sleep(100);
                 continue;
             }
-            BDBG_ERR(("%s: read ERROR:%d", __FUNCTION__, errno));
+            BDBG_ERR(("%s: read ERROR:%d", BSTD_FUNCTION, errno));
             return -1;
         }
         else if (rc == 0) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: Reached EOF, server closed the connection!", __FUNCTION__));
+                BDBG_ERR(("%s: Reached EOF, server closed the connection!", BSTD_FUNCTION));
 #endif
             return 0;
         }
-        BDBG_MSG_FLOW(("%s: bytes read %d", __FUNCTION__, rc));
+        BDBG_MSG_FLOW(("%s: bytes read %d", BSTD_FUNCTION, rc));
         return rc;
     }
     /* we shouldn't get here */
@@ -966,7 +966,7 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
     while (*bytesRead < bytesToRead) {
         if ( breakFromLoop(playback_ip)) {
             /* user changed the channel, so return */
-            PRINT_SOCKET_MSG(("%s: breaking out of read loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            PRINT_SOCKET_MSG(("%s: breaking out of read loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode)
                 playback_ip->selectTimeout = true;
             else
@@ -980,7 +980,7 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
             if ((readTimeout = B_Time_Diff(&endTime, &startTime)) > playback_ip->setupSettings.u.http.readTimeout) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: breaking from reading loop due to exceeding the read timeout: max read timeout %d, timeout %d, bytesRead %d", __FUNCTION__, playback_ip->setupSettings.u.http.readTimeout, readTimeout, *bytesRead));
+                BDBG_WRN(("%s: breaking from reading loop due to exceeding the read timeout: max read timeout %d, timeout %d, bytesRead %d", BSTD_FUNCTION, playback_ip->setupSettings.u.http.readTimeout, readTimeout, *bytesRead));
 #endif
                 break;
             }
@@ -991,7 +991,7 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
                 BDBG_ERR(("%s: select ERROR:%d, state %d, local socket info: sd:ip:port = %d:%s:%d",
-                        __FUNCTION__, errno, playback_ip->playback_state, sd, inet_ntoa(playback_ip->socketState.local_addr.sin_addr),
+                        BSTD_FUNCTION, errno, playback_ip->playback_state, sd, inet_ntoa(playback_ip->socketState.local_addr.sin_addr),
                         ntohs(playback_ip->socketState.local_addr.sin_port)));
 #endif
             rc = -1;
@@ -1004,7 +1004,7 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
             /* this is because dtcp layer will decrypt next 16 bytes where as some of them are not encrypted as they belong to the HTTP Chunk header */
         {
             if (B_PlaybackIp_SecurityDecryptionDisable(playback_ip) != 0) {
-                BDBG_ERR(("%s: Failed to Disable the Decryption during next chunk xfer header processing", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to Disable the Decryption during next chunk xfer header processing", BSTD_FUNCTION));
                 return -1;
             }
             encryptedBufLength = playback_ip->bytesLeftInCurChunk - *bytesRead;
@@ -1014,12 +1014,12 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
 #endif
         bytesRemaining = bytesToRead - *bytesRead;
         /* read from the socket */
-        PRINT_SOCKET_MSG(("%s: before reading: bytes read %d, asked %d, remaining %d, chunkSize %"PRId64 "", __FUNCTION__, *bytesRead, bytesToRead, bytesRemaining, playback_ip->chunkSize));
+        PRINT_SOCKET_MSG(("%s: before reading: bytes read %d, asked %d, remaining %d, chunkSize %"PRId64 "", BSTD_FUNCTION, *bytesRead, bytesToRead, bytesRemaining, playback_ip->chunkSize));
         if ( (rc = playback_ip->netIo.read(securityHandle, playback_ip, sd, (buf+*bytesRead), bytesRemaining)) <= 0) {
             if (rc != 0 && (errno == EINTR || errno == EAGAIN)) {
                 playback_ip->selectTimeout = true;
                 rc = -1;
-                PRINT_SOCKET_MSG(("%s: read ERROR:%d, selectTimeout is set to true\n", __FUNCTION__, errno));
+                PRINT_SOCKET_MSG(("%s: read ERROR:%d, selectTimeout is set to true\n", BSTD_FUNCTION, errno));
 #ifdef B_HAS_DTCP_IP
                 if (playback_ip->dtcpPcpHeaderFound) {
                     goto dtcpHeaderAdjustment;
@@ -1029,7 +1029,7 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
             }
             if (rc == 0) { /* I dont think we need to wait for last chunk to arrive before settings the server closed flag */
                 playback_ip->serverClosed = true;
-                PRINT_SOCKET_MSG(("%s: read ERROR:%d, setting serverClosed flag to true, rc %d", __FUNCTION__, errno, rc));
+                PRINT_SOCKET_MSG(("%s: read ERROR:%d, setting serverClosed flag to true, rc %d", BSTD_FUNCTION, errno, rc));
             }
             break;
         }
@@ -1040,7 +1040,7 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
             BDBG_ASSERT(rc+playback_ip->encryptedBufLength < HTTP_AES_BLOCK_SIZE);
             memcpy(playback_ip->encryptedBuf+playback_ip->encryptedBufLength, (buf+*bytesRead), rc);
             playback_ip->encryptedBufLength += rc;
-            PRINT_SOCKET_MSG(("%s: after reading: cached %d encrypted bytes, bytes read: cur %d, total %d, asked %d", __FUNCTION__, playback_ip->encryptedBufLength, rc, *bytesRead, bytesToRead));
+            PRINT_SOCKET_MSG(("%s: after reading: cached %d encrypted bytes, bytes read: cur %d, total %d, asked %d", BSTD_FUNCTION, playback_ip->encryptedBufLength, rc, *bytesRead, bytesToRead));
             playback_ip->bytesLeftInCurChunk -= rc; /* this allows the caller to not expect these encrypted bytes in this chunk */
             encryptedBufLength = 0;
             break;
@@ -1064,7 +1064,7 @@ dtcpHeaderAdjustment:
             }
             playback_ip->dtcpPcpHeaderFound = false;
             PRINT_SOCKET_MSG(("%s: bytes read %d, asked %d, adjusting by DTCP PCP Header length of 14 bytes, bytesLeftInCurCHunk %"PRId64 ", chunkSize %"PRId64 "\n",
-                        __FUNCTION__, *bytesRead, bytesToRead, playback_ip->bytesLeftInCurChunk, playback_ip->chunkSize));
+                        BSTD_FUNCTION, *bytesRead, bytesToRead, playback_ip->bytesLeftInCurChunk, playback_ip->chunkSize));
         }
 #endif
         /* if select timeout was set during the last read, break out from the
@@ -1072,13 +1072,13 @@ dtcpHeaderAdjustment:
          * cases when low bitrate content is being received.
          */
         if (playback_ip->selectTimeout) {
-            PRINT_SOCKET_MSG(("%s: breaking from reading loop due to select timeout, bytes read %d", __FUNCTION__, rc));
+            PRINT_SOCKET_MSG(("%s: breaking from reading loop due to select timeout, bytes read %d", BSTD_FUNCTION, rc));
             break;
         }
     }
     if (*bytesRead) {
         playback_ip->totalRead += *bytesRead;
-        PRINT_SOCKET_MSG(("%s: fd %d, bytes read %d, asked %d\n", __FUNCTION__, sd, *bytesRead, bytesToRead));
+        PRINT_SOCKET_MSG(("%s: fd %d, bytes read %d, asked %d\n", BSTD_FUNCTION, sd, *bytesRead, bytesToRead));
         return *bytesRead;
     }
     else
@@ -1096,7 +1096,7 @@ int B_PlaybackIp_ClearSessionOpen(
 
     securityOpenParams->byteRangeOffset = 0;
 
-    BDBG_MSG(("%s: setting up the netIo interface for socket read & write\n", __FUNCTION__));
+    BDBG_MSG(("%s: setting up the netIo interface for socket read & write\n", BSTD_FUNCTION));
     securityOpenParams->netIoPtr->read = _http_socket_read;
     securityOpenParams->netIoPtr->write = _http_socket_write;
     securityOpenParams->netIoPtr->close = B_PlaybackIp_ClearSessionClose;
@@ -1135,7 +1135,7 @@ B_PlaybackIp_SecuritySessionOpen(
             break;
 #ifdef B_HAS_SSL
         case B_PlaybackIpSecurityProtocol_Ssl:     /* SSL/TLS protected Content */
-            BDBG_MSG(("%s: Using SSL/TLS protocol", __FUNCTION__));
+            BDBG_MSG(("%s: Using SSL/TLS protocol", BSTD_FUNCTION));
             openSettings->security.enableDecryption = true;    /* For SSL/TLS, HTTP Response is also encrypted */
             rc = B_PlaybackIp_SslSessionOpen(openSettings, fd, &securityOpenOutputParams );
             break;
@@ -1143,26 +1143,26 @@ B_PlaybackIp_SecuritySessionOpen(
 #ifdef B_HAS_DTCP_IP
         case B_PlaybackIpSecurityProtocol_DtcpIp:  /* DTCP-IP protected Content */
             openSettings->security.enableDecryption = false;    /* For DTCP/IP, HTTP Response is in clear */
-            BDBG_MSG(("%s: Using DTCP-IP protocol", __FUNCTION__));
+            BDBG_MSG(("%s: Using DTCP-IP protocol", BSTD_FUNCTION));
             rc = B_PlaybackIp_DtcpIpSessionOpen(openSettings, fd, &securityOpenOutputParams );
             break;
 #endif
 #ifdef B_HAS_RAD_EA
         case B_PlaybackIpSecurityProtocol_RadEa:   /* Rhapsody's RAD-EA protected Content */
             openSettings->security.enableDecryption = false;    /* For RAD/EA, HTTP Response is in clear */
-            BDBG_MSG(("%s: Using Rhapsody's RAD-EA protocol", __FUNCTION__));
+            BDBG_MSG(("%s: Using Rhapsody's RAD-EA protocol", BSTD_FUNCTION));
             rc = B_PlaybackIp_RadEaSessionOpen(openSettings, fd, &securityOpenOutputParams );
             break;
 #endif
 #ifdef B_HAS_HTTP_AES_SUPPORT
         case B_PlaybackIpSecurityProtocol_Aes128:  /* AES protected Content */
             openSettings->security.enableDecryption = false;    /* For AES, HTTP Response is in clear */
-            BDBG_MSG(("%s: Using AES protocol", __FUNCTION__));
+            BDBG_MSG(("%s: Using AES protocol", BSTD_FUNCTION));
             rc = B_PlaybackIp_AesSessionOpen(openSettings, fd, &securityOpenOutputParams );
             break;
 #endif
         default:
-            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", __FUNCTION__, openSettings->security.securityProtocol));
+            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", BSTD_FUNCTION, openSettings->security.securityProtocol));
             return -1;
     }
 
@@ -1189,24 +1189,24 @@ int B_PlaybackIp_SecurityCloneSessionOpen(
             break;
 #ifdef B_HAS_SSL
         case B_PlaybackIpSecurityProtocol_Ssl:     /* SSL/TLS protected Content */
-            BDBG_MSG(("%s: Using SSL/TLS protocol\n", __FUNCTION__));
+            BDBG_MSG(("%s: Using SSL/TLS protocol\n", BSTD_FUNCTION));
             rc = B_PlaybackIp_SslCloneSessionOpen(fd, securityHandle, newSecurityHandle);
             break;
 #endif
 #ifdef B_HAS_DTCP_IP
         case B_PlaybackIpSecurityProtocol_DtcpIp:  /* DTCP-IP protected Content */
-            BDBG_MSG(("%s: Using DTCP-IP protocol\n", __FUNCTION__));
+            BDBG_MSG(("%s: Using DTCP-IP protocol\n", BSTD_FUNCTION));
             rc = B_PlaybackIp_DtcpIpCloneSessionOpen(fd, securityHandle, newSecurityHandle);
             break;
 #endif
 #ifdef B_HAS_RAD_EA
         case B_PlaybackIpSecurityProtocol_RadEa:   /* Rhapsody's RAD-EA protected Content */
-            BDBG_MSG(("%s: Using Rhapsody's RAD-EA protocol\n", __FUNCTION__));
+            BDBG_MSG(("%s: Using Rhapsody's RAD-EA protocol\n", BSTD_FUNCTION));
             rc = B_PlaybackIp_RadEaCloneSessionOpen(fd, securityHandle, newSecurityHandle);
             break;
 #endif
         default:
-            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", __FUNCTION__, playback_ip->openSettings.security.securityProtocol));
+            BDBG_ERR(("%s: Security protocol (%d) is not supported\n", BSTD_FUNCTION, playback_ip->openSettings.security.securityProtocol));
             return -1;
     }
     return rc;
@@ -1227,7 +1227,7 @@ http_read_response(B_PlaybackIpHandle playback_ip, void *securityHandle, int fd,
     B_PlaybackIpHttpMsgFields httpFields;
     int loopCnt = 0;
 
-    BDBG_MSG(("%s:%p state %d, serverClosed %d\n", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state, playback_ip->serverClosed));
+    BDBG_MSG(("%s:%p state %d, serverClosed %d\n", BSTD_FUNCTION, (void *)playback_ip, playback_ip->playback_state, playback_ip->serverClosed));
     httpFields.parsingResult = B_PlaybackIpHttpHdrParsingResult_eStatusNotSupported;
     rbuf = *rbufp;
     if (!rbuf) {
@@ -1244,40 +1244,40 @@ read_again:
     while (rbuf_size <= DLNA_MAX_HTTP_RESP_SIZE && playback_ip->serverClosed == false) {
         if ( breakFromLoop(playback_ip)) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s: breaking out of while loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_MSG(("%s: breaking out of while loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             return -1;
         }
         if (_http_socket_select(playback_ip, fd, playback_ip->networkTimeout)) {
             if (playback_ip->selectTimeout) {
-                BDBG_MSG(("%s: select timeout, so retry read", __FUNCTION__));
+                BDBG_MSG(("%s: select timeout, so retry read", BSTD_FUNCTION));
             }
-            BDBG_ERR(("%s: select ERROR:%d\n", __FUNCTION__, errno));
+            BDBG_ERR(("%s: select ERROR:%d\n", BSTD_FUNCTION, errno));
             return -1;
         }
 
         /* Assume sizeof(rbuf) >= rbuf_size  */
         /* coverity[ -tainted_data_argument : arg-2 ] */
-        BDBG_MSG(("%s:%p: before netIo.read", __FUNCTION__, (void *)playback_ip));
+        BDBG_MSG(("%s:%p: before netIo.read", BSTD_FUNCTION, (void *)playback_ip));
         if ((rc = playback_ip->netIo.read(securityHandle, playback_ip, fd, rbuf+bytesRead, rbuf_size - bytesRead)) <= 0) {
             if (errno == EINTR || errno == EAGAIN) {
                 if (++loopCnt > 1) {
                     playback_ip->selectTimeout = true;
-                    BDBG_ERR(("%s: read ERROR:%d, selectTimeout is set to true\n", __FUNCTION__, errno));
+                    BDBG_ERR(("%s: read ERROR:%d, selectTimeout is set to true\n", BSTD_FUNCTION, errno));
                 }
                 else {
-                    BDBG_MSG(("%s: read ERROR:%d, select timeout, sleeping for 500 msec and retrying once", __FUNCTION__, errno));
+                    BDBG_MSG(("%s: read ERROR:%d, select timeout, sleeping for 500 msec and retrying once", BSTD_FUNCTION, errno));
                     BKNI_Sleep(500);
                     continue;
                 }
             }
             else
                 playback_ip->serverClosed = true;
-            BDBG_ERR(("%s: read failed, rc %d, read %d, asked %d", __FUNCTION__, rc, bytesRead, rbuf_size));
+            BDBG_ERR(("%s: read failed, rc %d, read %d, asked %d", BSTD_FUNCTION, rc, bytesRead, rbuf_size));
             return -1;
         }
         bytesRead += rc;
         playback_ip->totalRead += rc;
-        BDBG_MSG(("%s:%p: after netIo.read, bytesRead %d, rc %d", __FUNCTION__, (void *)playback_ip, bytesRead, rc));
+        BDBG_MSG(("%s:%p: after netIo.read, bytesRead %d, rc %d", BSTD_FUNCTION, (void *)playback_ip, bytesRead, rc));
         if (B_PlaybackIp_UtilsHttpResponseParse(rbuf, bytesRead, &httpFields) == B_ERROR_SUCCESS)
             break;
 
@@ -1286,19 +1286,19 @@ read_again:
         switch (httpFields.parsingResult) {
         case B_PlaybackIpHttpHdrParsingResult_eIncompleteHdr:
             BDBG_MSG(("%s: Haven't yet received complete HTTP message header (bytesRead %d), reading more data into buffer of size %d\n",
-                        __FUNCTION__, bytesRead, rbuf_size));
+                        BSTD_FUNCTION, bytesRead, rbuf_size));
             if (bytesRead == rbuf_size) {
                 int newSize;
                 BDBG_MSG(("%s: current buffer size (%d) not big enough to read complete HTTP response message, reallocing it by %d bytes to total of %d bytes\n",
-                            __FUNCTION__, rbuf_size, TMP_BUF_SIZE, rbuf_size+TMP_BUF_SIZE));
+                            BSTD_FUNCTION, rbuf_size, TMP_BUF_SIZE, rbuf_size+TMP_BUF_SIZE));
                 newSize = rbuf_size + TMP_BUF_SIZE;
                 if (newSize > DLNA_MAX_HTTP_RESP_SIZE) {
-                    BDBG_ERR(("%s: ERROR: Did not receive complete HTTP Header Response in max allowed size (max size %d, bytes read %d)\n", __FUNCTION__, newSize, bytesRead));
+                    BDBG_ERR(("%s: ERROR: Did not receive complete HTTP Header Response in max allowed size (max size %d, bytes read %d)\n", BSTD_FUNCTION, newSize, bytesRead));
                     playback_ip->serverClosed = true;
                     return -1;
                 }
                 if ((rbuf = B_PlaybackIp_UtilsRealloc(rbuf, rbuf_size, newSize)) == NULL) {
-                    BDBG_ERR(("%s: Failed to reallocate memory by %d amount, errno = %d\n", __FUNCTION__, newSize, errno));
+                    BDBG_ERR(("%s: Failed to reallocate memory by %d amount, errno = %d\n", BSTD_FUNCTION, newSize, errno));
                     playback_ip->serverClosed = true;
                     return -1;
                 }
@@ -1307,22 +1307,22 @@ read_again:
             }
             continue;
         case B_PlaybackIpHttpHdrParsingResult_eStatusBadRequest:
-            BDBG_ERR(("%s: ERROR: Client send a bad HTTP request to server (status code %d)!!\n", __FUNCTION__, httpFields.statusCode));
+            BDBG_ERR(("%s: ERROR: Client send a bad HTTP request to server (status code %d)!!\n", BSTD_FUNCTION, httpFields.statusCode));
             playback_ip->serverClosed = true;
             return -1;
         case B_PlaybackIpHttpHdrParsingResult_eStatusServerError:
-            BDBG_ERR(("%s: ERROR: Server couldn't satisfy a valid HTTP Request (status code %d)!!\n", __FUNCTION__, httpFields.statusCode));
+            BDBG_ERR(("%s: ERROR: Server couldn't satisfy a valid HTTP Request (status code %d)!!\n", BSTD_FUNCTION, httpFields.statusCode));
             playback_ip->serverClosed = true;
             return -1;
         case B_PlaybackIpHttpHdrParsingResult_eStatusNotSupported:
-            BDBG_ERR(("%s: ERROR: Unsupported HTTP Message status code %d in HTTP Response!!\n", __FUNCTION__, httpFields.statusCode));
+            BDBG_ERR(("%s: ERROR: Unsupported HTTP Message status code %d in HTTP Response!!\n", BSTD_FUNCTION, httpFields.statusCode));
             playback_ip->serverClosed = true;
             return -1;
         case B_PlaybackIpHttpHdrParsingResult_eReadNextHdr:
-            BDBG_ERR(("%s: Received HTTP 1xx status code (%d), going back to receiving next response\n", __FUNCTION__, httpFields.statusCode));
+            BDBG_ERR(("%s: Received HTTP 1xx status code (%d), going back to receiving next response\n", BSTD_FUNCTION, httpFields.statusCode));
             goto read_again;
         case B_PlaybackIpHttpHdrParsingResult_eStatusRedirect:
-            BDBG_MSG(("%s: Received HTTP redirect (status code %d) in HTTP Response!!\n", __FUNCTION__, httpFields.statusCode));
+            BDBG_MSG(("%s: Received HTTP redirect (status code %d) in HTTP Response!!\n", BSTD_FUNCTION, httpFields.statusCode));
             playback_ip->serverClosed = false;
             *http_hdr = httpFields.httpHdr;
             *http_payload = httpFields.httpPayload;
@@ -1330,7 +1330,7 @@ read_again:
             return 0;
         case B_PlaybackIpHttpHdrParsingResult_eIncorrectHdr:
         default:
-            BDBG_ERR(("%s: received Incorrect/Invalid Header\n", __FUNCTION__));
+            BDBG_ERR(("%s: received Incorrect/Invalid Header\n", BSTD_FUNCTION));
             playback_ip->serverClosed = true;
             return -1;
         }
@@ -1353,7 +1353,7 @@ read_again:
     }
 #endif
     if (httpFields.parsingResult != B_PlaybackIpHttpHdrParsingResult_eSuccess)  {
-        BDBG_ERR(("%s: received Incorrect/Invalid Reponse Header\n", __FUNCTION__));
+        BDBG_ERR(("%s: received Incorrect/Invalid Reponse Header\n", BSTD_FUNCTION));
         if (!playback_ip->selectTimeout)
             playback_ip->serverClosed = true;
         return -1;
@@ -1371,7 +1371,7 @@ read_again:
         else if (playback_ip->setupSettings.u.http.contentLengthHint)
             playback_ip->contentLength = playback_ip->setupSettings.u.http.contentLengthHint;
     }
-    BDBG_MSG(("%s:%p Content Length %"PRId64 ", initial payload len %d, bytesRead %d\n", __FUNCTION__, (void *)playback_ip, playback_ip->contentLength, initial_payload_len, bytesRead));
+    BDBG_MSG(("%s:%p Content Length %"PRId64 ", initial payload len %d, bytesRead %d\n", BSTD_FUNCTION, (void *)playback_ip, playback_ip->contentLength, initial_payload_len, bytesRead));
 
     /* adjust the total bytes read */
     playback_ip->totalRead -= httpFields.httpPayload - httpFields.httpHdr;
@@ -1388,32 +1388,32 @@ read_again:
         while (!initial_payload_len || ((tmp_ptr = strstr(*http_payload, "\r\n")) == NULL)) {
             if (bytesRead >= rbuf_size) {
                 BDBG_ERR(("%s: ERROR: Initial read of %d bytes is not BIG enough to read chunk size header, increase it from %d",
-                    __FUNCTION__, bytesRead, rbuf_size));
+                    BSTD_FUNCTION, bytesRead, rbuf_size));
                 playback_ip->serverClosed = true;
                 return -1;
             }
             if (_http_socket_select(playback_ip, fd, playback_ip->networkTimeout)) {
-                BDBG_ERR(("%s: select ERROR:%d, but continue\n", __FUNCTION__, errno));
+                BDBG_ERR(("%s: select ERROR:%d, but continue\n", BSTD_FUNCTION, errno));
                 return -1;
             }
 
             if ((rc = playback_ip->netIo.read(securityHandle, playback_ip, fd, rbuf+bytesRead, rbuf_size - bytesRead)) <= 0) {
-                BDBG_ERR(("%s: read failed: rc %d", __FUNCTION__, rc));
+                BDBG_ERR(("%s: read failed: rc %d", BSTD_FUNCTION, rc));
                 if (errno == EINTR || errno == EAGAIN) {
                     playback_ip->selectTimeout = true;
-                    BDBG_ERR(("%s: read ERROR:%d, selectTimeout is set to true\n", __FUNCTION__, errno));
+                    BDBG_ERR(("%s: read ERROR:%d, selectTimeout is set to true\n", BSTD_FUNCTION, errno));
                 }
                 else
                     playback_ip->serverClosed = true;
                 return -1;
             }
-            BDBG_MSG(("%s: read %d bytes, bytesRead %d, initial_payload_len %d\n", __FUNCTION__, rc, bytesRead, initial_payload_len));
+            BDBG_MSG(("%s: read %d bytes, bytesRead %d, initial_payload_len %d\n", BSTD_FUNCTION, rc, bytesRead, initial_payload_len));
             playback_ip->totalRead += rc;
             bytesRead += rc;
             initial_payload_len += rc;
             rbuf[bytesRead] = '\0';
         }
-        BDBG_MSG(("%s: initial payload length including chunk size header %d\n", __FUNCTION__, initial_payload_len));
+        BDBG_MSG(("%s: initial payload length including chunk size header %d\n", BSTD_FUNCTION, initial_payload_len));
         /*
          * So we have found the valid chunk-size header, now read the chunk size. It is format:
          *  <ascii hex string indicating chunk size> <CR> <NL>
@@ -1423,7 +1423,7 @@ read_again:
         *tmp_ptr = '\0';
         playback_ip->chunkSize = strtol(*http_payload, (char **)NULL, 16);    /* base 16 */
         if (playback_ip->chunkSize == 0) {
-            BDBG_MSG(("%s: received 0 chunk size in response, there is no data at the requested range, return EOF\n", __FUNCTION__));
+            BDBG_MSG(("%s: received 0 chunk size in response, there is no data at the requested range, return EOF\n", BSTD_FUNCTION));
             return 0;
         }
 
@@ -1439,7 +1439,7 @@ read_again:
         /* that HTTP header processing is over and it can now start decrypting the incoming data */
         /* Note: payload_len becomes 0 for DTCP as this data is handled over the dtcp_ip layer for later decryption during 1st read call */
         if ((rc = B_PlaybackIp_SecurityDecryptionEnable(playback_ip, *http_payload, &initial_payload_len)) != 0) {
-            BDBG_ERR(("%s: Failed (rc %d) for Enabled Decryption for security protocol %d:", __FUNCTION__, rc, playback_ip->openSettings.security.securityProtocol));
+            BDBG_ERR(("%s: Failed (rc %d) for Enabled Decryption for security protocol %d:", BSTD_FUNCTION, rc, playback_ip->openSettings.security.securityProtocol));
             playback_ip->serverClosed = true;
             return -1;
         }
@@ -1462,7 +1462,7 @@ read_again:
         *payload_len = 0;
 
         BDBG_MSG(("%s: chunk size %"PRId64 ", chunk header size %d, initial payload size %d, bytesLeftInCurChunk %"PRId64 "\n",
-                    __FUNCTION__, playback_ip->chunkSize, chunk_hdr_size, playback_ip->chunkPayloadLength, playback_ip->bytesLeftInCurChunk));
+                    BSTD_FUNCTION, playback_ip->chunkSize, chunk_hdr_size, playback_ip->chunkPayloadLength, playback_ip->bytesLeftInCurChunk));
     }
     else {
         /* non-chunk encoding case: if DTCP encryption is being used, initial payload is now fed to the dtcp module, else it is passed to the caller. */
@@ -1470,7 +1470,7 @@ read_again:
         /* that HTTP header processing is over and it can now start decrypting the incoming data */
         /* Note: payload_len becomes 0 for DTCP as this data is handled over the dtcp_ip layer for later decryption during 1st read call */
         if ((rc = B_PlaybackIp_SecurityDecryptionEnable(playback_ip, *http_payload, payload_len)) != 0) {
-            BDBG_ERR(("%s: Failed (rc %d) for Enabled Decryption for security protocol %d:", __FUNCTION__, rc, playback_ip->openSettings.security.securityProtocol));
+            BDBG_ERR(("%s: Failed (rc %d) for Enabled Decryption for security protocol %d:", BSTD_FUNCTION, rc, playback_ip->openSettings.security.securityProtocol));
             playback_ip->serverClosed = true;
             return -1;
         }
@@ -1487,12 +1487,12 @@ read_again:
     sockRecvParams.useCpuCopy = true;
     if (setsockopt(fd, SOCK_BRCM_STREAM, STRM_SOCK_RECV_PARAMS, &sockRecvParams, sizeof(sockRecvParams)) != 0)
     {
-        BDBG_ERR(("%s: setsockopt() ERROR:", __FUNCTION__));
+        BDBG_ERR(("%s: setsockopt() ERROR:", BSTD_FUNCTION));
         /* in case of failure (shouldn't happen), read 1 pkt at a time */
     }
     BDBG_MSG(("Modified the default pkts per recvfrom to %d\n", PKTS_PER_READ));
 #else
-    BDBG_MSG(("%s:%p tuning socket", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s:%p tuning socket", BSTD_FUNCTION, (void *)playback_ip));
     B_PlaybackIp_UtilsTuneNetworkStack(fd);
 #endif
     return (0);
@@ -1555,7 +1555,7 @@ playback_ip_read_socket(
     int chunk_hdr_size;
     char *tmp_ptr;
 
-    PRINT_SOCKET_MSG(("%s:%p read %d bytes", __FUNCTION__, (void *)playback_ip, buf_size));
+    PRINT_SOCKET_MSG(("%s:%p read %d bytes", BSTD_FUNCTION, (void *)playback_ip, buf_size));
     playback_ip->selectTimeout = false;
     if (!playback_ip->chunkEncoding) {
         /* server is sending content w/o using HTTP xfer chunk encoding */
@@ -1563,7 +1563,7 @@ playback_ip_read_socket(
         if (http_socket_read(playback_ip, securityHandle, fd, buf, bytesToRead, &bytesRead, timeout) < 0) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: ERROR:%d, state %d, select timeout %d, server closed %d", __FUNCTION__, errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
+                BDBG_ERR(("%s: ERROR:%d, state %d, select timeout %d, server closed %d", BSTD_FUNCTION, errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
 #endif
             return -1;
         }
@@ -1573,7 +1573,7 @@ playback_ip_read_socket(
                 return -1;
             }
             /* otherwise, we should consume this data even though we didn't read all that we had wanted */
-            BDBG_MSG(("%s:%d: didn't read (%d) the requested amount (%d) from socket, server closed %d", __FUNCTION__, __LINE__, bytesRead, bytesToRead, playback_ip->serverClosed));
+            BDBG_MSG(("%s:%d: didn't read (%d) the requested amount (%d) from socket, server closed %d", BSTD_FUNCTION, __LINE__, bytesRead, bytesToRead, playback_ip->serverClosed));
         }
         return bytesRead;
     }
@@ -1596,7 +1596,7 @@ playback_ip_read_socket(
     while (totalBytesRead < buf_size && playback_ip->serverClosed == false) {
         if ( breakFromLoop(playback_ip)) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s: breaking out of while loop due to state (%d) change, totalBytesRead %d\n", __FUNCTION__, playback_ip->playback_state, totalBytesRead));
+            BDBG_MSG(("%s: breaking out of while loop due to state (%d) change, totalBytesRead %d\n", BSTD_FUNCTION, playback_ip->playback_state, totalBytesRead));
             if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode) {
                 playback_ip->selectTimeout = true;
                 errno = EINTR;
@@ -1622,14 +1622,14 @@ playback_ip_read_socket(
                 }
                 /* remaining bytes are available in the temp buffer, copy them and return */
                 BDBG_MSG(("%s: copying %d bytes from temp buffer, bytes remaining in current chunk %"PRId64 "\n",
-                            __FUNCTION__, bytesToRead, playback_ip->bytesLeftInCurChunk));
+                            BSTD_FUNCTION, bytesToRead, playback_ip->bytesLeftInCurChunk));
                 memcpy(buf, playback_ip->chunkPlayloadStartPtr, bytesToRead);
                 bytesRead = bytesToRead;
                 playback_ip->chunkPlayloadStartPtr += bytesRead;
                 playback_ip->chunkPayloadLength -= bytesRead;
                 if (playback_ip->chunkPayloadLength < 0) {
                     BDBG_ERR(("%s: ERROR: SW bug: remaining bytes (%d) in temp buf can't be < 0, copied %d\n",
-                                __FUNCTION__, playback_ip->chunkPayloadLength, bytesRead));
+                                BSTD_FUNCTION, playback_ip->chunkPayloadLength, bytesRead));
                     return -1;
                 }
             }
@@ -1640,7 +1640,7 @@ playback_ip_read_socket(
                     bytesToRead = playback_ip->bytesLeftInCurChunk;
                     /* since bytesToRead are now based on the bytes left in the current chunk, set a flag to indicate so */
                     /* as we may need to adjust bytesToRead if PCP header is found for DTCP */
-                    BDBG_MSG(("%s: set flag to indicate that we may need to adjust bytesToRead if PCP header is found for DTCP", __FUNCTION__));
+                    BDBG_MSG(("%s: set flag to indicate that we may need to adjust bytesToRead if PCP header is found for DTCP", BSTD_FUNCTION));
                     playback_ip->adjustBytesToRead = true;
                 }
                 else {
@@ -1648,9 +1648,9 @@ playback_ip_read_socket(
                 }
 
                 BDBG_MSG(("%s: reading %d bytes from socket, total read so far %d, total asked %d, bytesLeftInCurChunk %"PRId64 "",
-                            __FUNCTION__, bytesToRead, totalBytesRead, buf_size, playback_ip->bytesLeftInCurChunk));
+                            BSTD_FUNCTION, bytesToRead, totalBytesRead, buf_size, playback_ip->bytesLeftInCurChunk));
                 if (http_socket_read(playback_ip, securityHandle, fd, buf, bytesToRead, &bytesRead, timeout) < 0) {
-                    BDBG_MSG(("%s: errno :%d, bytes left in chunk %"PRId64 ",total read so far %d\n", __FUNCTION__, errno, playback_ip->bytesLeftInCurChunk, totalBytesRead));
+                    BDBG_MSG(("%s: errno :%d, bytes left in chunk %"PRId64 ",total read so far %d\n", BSTD_FUNCTION, errno, playback_ip->bytesLeftInCurChunk, totalBytesRead));
                     if (totalBytesRead > 0)
                         return totalBytesRead;
                     else
@@ -1658,7 +1658,7 @@ playback_ip_read_socket(
                 }
                 if (bytesRead != bytesToRead && playback_ip->serverClosed == false) {
                     BDBG_MSG(("%s:%d didn't read (%d) the requested amount (%d) from socket, select timeout %d, bytes left in chunk %"PRId64 ", chunk size %"PRId64 "\n",
-                                __FUNCTION__, __LINE__, bytesRead, bytesToRead, playback_ip->selectTimeout, playback_ip->bytesLeftInCurChunk, playback_ip->chunkSize));
+                                BSTD_FUNCTION, __LINE__, bytesRead, bytesToRead, playback_ip->selectTimeout, playback_ip->bytesLeftInCurChunk, playback_ip->chunkSize));
                 }
             }
             totalBytesRead += bytesRead;
@@ -1666,7 +1666,7 @@ playback_ip_read_socket(
             playback_ip->bytesLeftInCurChunk -= bytesRead;
             if (playback_ip->selectTimeout || playback_ip->serverClosed) {
                 BDBG_MSG(("%s:%d select timeout(%d), server closed(%d): returning read (%d), the requested amount (%d), bytes left in chunk %"PRId64 "\n",
-                           __FUNCTION__, __LINE__, playback_ip->selectTimeout, playback_ip->serverClosed, totalBytesRead, bytesToRead, playback_ip->bytesLeftInCurChunk));
+                           BSTD_FUNCTION, __LINE__, playback_ip->selectTimeout, playback_ip->serverClosed, totalBytesRead, bytesToRead, playback_ip->bytesLeftInCurChunk));
                 if (totalBytesRead > 0)
                     return totalBytesRead;
                 else
@@ -1674,10 +1674,10 @@ playback_ip_read_socket(
             }
             if (playback_ip->bytesLeftInCurChunk < 0) {
                 BDBG_ERR(("%s:%d ERROR: SW bug: bytes left in a chunk (%"PRId64 ") can't be < 0, just read %d, totalRead %d, total asked %d\n",
-                            __FUNCTION__, __LINE__, playback_ip->bytesLeftInCurChunk, bytesRead, totalBytesRead, buf_size));
+                            BSTD_FUNCTION, __LINE__, playback_ip->bytesLeftInCurChunk, bytesRead, totalBytesRead, buf_size));
                 return -1;
             }
-            BDBG_MSG(("%s: after update: chunk size %"PRId64 ", bytes left in chunk %"PRId64 ", bytes read %d, to read %d, totalBytesRead %d", __FUNCTION__, playback_ip->chunkSize, playback_ip->bytesLeftInCurChunk, bytesRead, bytesToRead, totalBytesRead));
+            BDBG_MSG(("%s: after update: chunk size %"PRId64 ", bytes left in chunk %"PRId64 ", bytes read %d, to read %d, totalBytesRead %d", BSTD_FUNCTION, playback_ip->chunkSize, playback_ip->bytesLeftInCurChunk, bytesRead, bytesToRead, totalBytesRead));
             continue;
         }
         else {
@@ -1695,11 +1695,11 @@ playback_ip_read_socket(
                 memset(playback_ip->temp_buf+bytesRead, 0, TMP_BUF_SIZE-bytesRead);
                 playback_ip->tempBytesToRead = TMP_BUF_SIZE; /* start w/ total tmp buf size and it gets adjusted by bytesRead below after the else case */
                 playback_ip->chunkPayloadLength = 0;
-                BDBG_MSG(("%s: Finished reading current data chunk, next chunk header may already be previously read (read so far %d, total %d), # of chunk rcvd %d\n", __FUNCTION__, bytesRead, totalBytesRead, playback_ip->num_chunks_received));
+                BDBG_MSG(("%s: Finished reading current data chunk, next chunk header may already be previously read (read so far %d, total %d), # of chunk rcvd %d\n", BSTD_FUNCTION, bytesRead, totalBytesRead, playback_ip->num_chunks_received));
                 playback_ip->num_chunks_received++;
             }
             else {
-                BDBG_MSG(("%s: Finished reading current data chunk, now read next chunk header (total read so far %d), # of chunk rcvd %d\n", __FUNCTION__, totalBytesRead, playback_ip->num_chunks_received));
+                BDBG_MSG(("%s: Finished reading current data chunk, now read next chunk header (total read so far %d), # of chunk rcvd %d\n", BSTD_FUNCTION, totalBytesRead, playback_ip->num_chunks_received));
                 if (playback_ip->tempBytesRead == 0) {
                     /* we haven't read anything so far for this new chunk, so try to read enough to process a complete chunk header */
                     playback_ip->tempBytesToRead = TMP_BUF_SIZE;
@@ -1716,7 +1716,7 @@ playback_ip_read_socket(
                 /* Since some security protocols like DTCP/IP only encrypt the AV content, we will need to disable the decryption */
                 /* so that we can successfully read the current chunk header terminators & next chunk headers (which are both in clear) */
                 if (B_PlaybackIp_SecurityDecryptionDisable(playback_ip) != 0) {
-                    BDBG_ERR(("%s: Failed to Disable the Decryption during next chunk xfer header processing", __FUNCTION__));
+                    BDBG_ERR(("%s: Failed to Disable the Decryption during next chunk xfer header processing", BSTD_FUNCTION));
                     return -1;
                 }
 
@@ -1724,7 +1724,7 @@ playback_ip_read_socket(
                 if (http_socket_read(playback_ip, securityHandle, fd, playback_ip->temp_buf+playback_ip->tempBytesRead, playback_ip->tempBytesToRead, &bytesRead, timeout) <= 0) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                    BDBG_ERR(("%s: read ERROR:%d", __FUNCTION__, errno));
+                    BDBG_ERR(("%s: read ERROR:%d", BSTD_FUNCTION, errno));
 #endif
                     if (totalBytesRead > 0)
                         return totalBytesRead;
@@ -1734,7 +1734,7 @@ playback_ip_read_socket(
             }
             if (bytesRead + playback_ip->tempBytesRead < 5) {
                 /* unless we read minimum of 5 bytes, we shouldn't do any chunk header processing, so save these bytes and read more (this can most likely happen due to network congestion shown by select timeout) */
-                BDBG_MSG(("%s:%d : didn't read (%d) the requested amount (%d) from socket, select timeout %d\n", __FUNCTION__, __LINE__, bytesRead, playback_ip->tempBytesToRead, playback_ip->selectTimeout));
+                BDBG_MSG(("%s:%d : didn't read (%d) the requested amount (%d) from socket, select timeout %d\n", BSTD_FUNCTION, __LINE__, bytesRead, playback_ip->tempBytesToRead, playback_ip->selectTimeout));
                 playback_ip->tempBytesToRead -= bytesRead;
                 playback_ip->tempBytesRead += bytesRead;
                 playback_ip->selectTimeout = true;
@@ -1749,7 +1749,7 @@ playback_ip_read_socket(
                 /* First, make sure the end of chunk marker (CRNL) for previous chunk are present  as each chunk data ends w/ CRNL */
                 if (playback_ip->temp_buf[0] != '\r' || playback_ip->temp_buf[1] != '\n') {
                     BDBG_ERR(("%s: ERROR in HTTP chunk header processing: server didn't send End Markers (CR NL) of current data chunk, instead we got: 0x%x, 0x%x\n",
-                        __FUNCTION__, playback_ip->temp_buf[0], playback_ip->temp_buf[1]));
+                        BSTD_FUNCTION, playback_ip->temp_buf[0], playback_ip->temp_buf[1]));
                     if (totalBytesRead > 0)
                         return totalBytesRead;
                     else
@@ -1757,12 +1757,12 @@ playback_ip_read_socket(
                 }
                 /* now check if next chunk header is completely read, meaning we have read a string w/ some hex digits (atleast one 0) followed by CRNL markers */
                 if (strstr(&playback_ip->temp_buf[2], "\r\n") == 0) {
-                    BDBG_MSG(("%s: End Markers for next Chunk Header are not yet read, go back & read more (bytesRead %d)\n", __FUNCTION__, bytesRead));
+                    BDBG_MSG(("%s: End Markers for next Chunk Header are not yet read, go back & read more (bytesRead %d)\n", BSTD_FUNCTION, bytesRead));
                     playback_ip->tempBytesToRead -= bytesRead;
                     playback_ip->tempBytesRead += bytesRead;
                     if (playback_ip->tempBytesRead == TMP_BUF_SIZE) {
                         /* if we haven't found the end of chunk markers in TMP_BUF_SIZE bytes, there is an error in chunk processing, bail out */
-                        BDBG_ERR(("%s: ERROR: End Markers (CRNL) for next Chunk Header are not found in %d bytes\n", __FUNCTION__, playback_ip->tempBytesRead));
+                        BDBG_ERR(("%s: ERROR: End Markers (CRNL) for next Chunk Header are not found in %d bytes\n", BSTD_FUNCTION, playback_ip->tempBytesRead));
                         return -1;
                     }
                     /* we return here as we expect to read the remaining bytesToRead whenever the next read call may succeed */
@@ -1772,7 +1772,7 @@ playback_ip_read_socket(
                     else
                         return -1;
                 }
-                BDBG_MSG(("%s: Chunk Header Start End Markers are read, so process the chunk header (bytes read %d, temp read %d)\n", __FUNCTION__, bytesRead, playback_ip->tempBytesRead));
+                BDBG_MSG(("%s: Chunk Header Start End Markers are read, so process the chunk header (bytes read %d, temp read %d)\n", BSTD_FUNCTION, bytesRead, playback_ip->tempBytesRead));
 
                 /* adjust total bytes read */
                 playback_ip->tempBytesRead += bytesRead;
@@ -1798,7 +1798,7 @@ playback_ip_read_socket(
                 if (playback_ip->chunkSize == 0) {
                     playback_ip->serverClosed = true;
                     playback_ip->selectTimeout = false;
-                    BDBG_MSG(("%s: received chunk size of 0, received all data (%"PRId64 ") from server, setting serverClosed flag\n", __FUNCTION__, playback_ip->totalRead));
+                    BDBG_MSG(("%s: received chunk size of 0, received all data (%"PRId64 ") from server, setting serverClosed flag\n", BSTD_FUNCTION, playback_ip->totalRead));
                     /* NOTE: we cannot set the contentLength to totalRead here as for trick modes or ASF playback case, we may be getting EOF even though we haven't read whole file */
                 }
                 else {
@@ -1811,18 +1811,18 @@ playback_ip_read_socket(
                         int tempBufLen = playback_ip->encryptedBufLength + playback_ip->chunkPayloadLength ;
                         tempBuf = (char *)BKNI_Malloc(tempBufLen);
                         if (tempBuf == NULL) {
-                            BDBG_ERR(("%s: BKNI_Malloc() Failed to allocate %d bytes for copying the encrypted payload chunks", __FUNCTION__, tempBufLen));
+                            BDBG_ERR(("%s: BKNI_Malloc() Failed to allocate %d bytes for copying the encrypted payload chunks", BSTD_FUNCTION, tempBufLen));
                             return -1;
                         }
                         memcpy(tempBuf, playback_ip->encryptedBuf, playback_ip->encryptedBufLength);
                         memcpy(tempBuf+playback_ip->encryptedBufLength, playback_ip->chunkPlayloadStartPtr, playback_ip->chunkPayloadLength);
                         playback_ip->chunkPayloadLength = tempBufLen;
                         playback_ip->chunkPlayloadStartPtr = tempBuf;
-                        BDBG_MSG(("%s: combined the encrypted payloads: bytes from prev chunk %d, cur chunk %d ", __FUNCTION__, playback_ip->encryptedBufLength, playback_ip->chunkPayloadLength));
+                        BDBG_MSG(("%s: combined the encrypted payloads: bytes from prev chunk %d, cur chunk %d ", BSTD_FUNCTION, playback_ip->encryptedBufLength, playback_ip->chunkPayloadLength));
                     }
 #endif
                     if (B_PlaybackIp_SecurityDecryptionEnable(playback_ip, playback_ip->chunkPlayloadStartPtr, &playback_ip->chunkPayloadLength) != 0) {
-                        BDBG_ERR(("%s: Failed for Enabled Decryption for security protocol %d:", __FUNCTION__, playback_ip->openSettings.security.securityProtocol));
+                        BDBG_ERR(("%s: Failed for Enabled Decryption for security protocol %d:", BSTD_FUNCTION, playback_ip->openSettings.security.securityProtocol));
                         return -1;
                     }
                     playback_ip->bytesLeftInCurChunk = playback_ip->chunkSize; /* start of new chunk */
@@ -1837,17 +1837,17 @@ playback_ip_read_socket(
                     }
 #endif
                     BDBG_MSG(("%s: read new chunk: chunk size %"PRId64 ", chunk header size %d, initial payload size %d, bytesLeftInCurChunk %"PRId64 "\n",
-                        __FUNCTION__, playback_ip->chunkSize, chunk_hdr_size, playback_ip->chunkPayloadLength, playback_ip->bytesLeftInCurChunk));
+                        BSTD_FUNCTION, playback_ip->chunkSize, chunk_hdr_size, playback_ip->chunkPayloadLength, playback_ip->bytesLeftInCurChunk));
                 }
             }
         }
     }
     if (totalBytesRead > buf_size) {
         BDBG_ERR(("%s: ERROR: SW bug: read bytes (%d) are more than total requested (%d), bytes remaining in current chunk %"PRId64 "",
-                __FUNCTION__, totalBytesRead, buf_size, playback_ip->bytesLeftInCurChunk));
+                BSTD_FUNCTION, totalBytesRead, buf_size, playback_ip->bytesLeftInCurChunk));
     }
     BDBG_MSG(("%s: bytes read %d, asked %d, remaining in cur chunk %"PRId64 ", total read %"PRId64 "\n",
-            __FUNCTION__, totalBytesRead, buf_size, playback_ip->bytesLeftInCurChunk, playback_ip->totalRead));
+            BSTD_FUNCTION, totalBytesRead, buf_size, playback_ip->bytesLeftInCurChunk, playback_ip->totalRead));
     return totalBytesRead;
 }
 
@@ -1869,7 +1869,7 @@ http_do_server_trick_modes_socket_transition(
 
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: rate %d, timeSeekRangeBegin %0.3f, timeSeekRangeEnd %0.3f, state %d", __FUNCTION__, rate, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->playback_state));
+        BDBG_WRN(("%s: rate %d, timeSeekRangeBegin %0.3f, timeSeekRangeEnd %0.3f, state %d", BSTD_FUNCTION, rate, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->playback_state));
 #endif
     /*
      * Here are the high level steps:
@@ -1881,14 +1881,14 @@ http_do_server_trick_modes_socket_transition(
     if (playback_ip->netIo.shutdown)
         playback_ip->netIo.shutdown(playback_ip->securityHandle, 0);
     close(playback_ip->socketState.fd);
-    BDBG_MSG(("%s:%p: closed fd=%d", __FUNCTION__, (void *)playback_ip, playback_ip->socketState.fd));
+    BDBG_MSG(("%s:%p: closed fd=%d", BSTD_FUNCTION, (void *)playback_ip, playback_ip->socketState.fd));
 
     /* prepare the HTTP Get Request with new speed & time seek range */
     memset(playback_ip->responseMessage, 0, TMP_BUF_SIZE+1);
 
     /* note: range parameters are set to 0 as they are un-unsed in server based trick modes */
     if (http_build_get_req(&playback_ip->requestMessage, playback_ip, rate, timeSeekRangeBegin, timeSeekRangeEnd, 0, 0, playSpeedString) < 0) {
-        BDBG_ERR(("%s: ERROR: failed to build HTTP Get Request", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to build HTTP Get Request", BSTD_FUNCTION));
         goto error;
     }
 
@@ -1896,7 +1896,7 @@ http_do_server_trick_modes_socket_transition(
     rc = B_PlaybackIp_UtilsTcpSocketConnect(&playback_ip->playback_state, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, true, playback_ip->networkTimeout, &playback_ip->socketState.fd);
     if (rc != B_ERROR_SUCCESS) {
         BDBG_ERR(("%s: ERROR: failed to send Socket Connect Request to Server: %s:%d\n",
-               __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
+               BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
         goto error;
     }
     addrLen = sizeof(playback_ip->socketState.local_addr);
@@ -1906,14 +1906,14 @@ http_do_server_trick_modes_socket_transition(
         goto error;
     }
 
-    BDBG_MSG(("%s: new fd=%d local ip:port = %s:%d", __FUNCTION__, playback_ip->socketState.fd, inet_ntoa(playback_ip->socketState.local_addr.sin_addr), ntohs(playback_ip->socketState.local_addr.sin_port)));
+    BDBG_MSG(("%s: new fd=%d local ip:port = %s:%d", BSTD_FUNCTION, playback_ip->socketState.fd, inet_ntoa(playback_ip->socketState.local_addr.sin_addr), ntohs(playback_ip->socketState.local_addr.sin_port)));
 
     /* SECURITY: clone the new security session using the current one */
     /* Idea is to avoid any re-authentication to the server and instead reuse the session info from the current session */
     securityHandle = playback_ip->securityHandle;
     if (B_PlaybackIp_SecurityCloneSessionOpen(playback_ip, playback_ip->socketState.fd, securityHandle, &playback_ip->securityHandle) < 0) {
         rc = B_ERROR_UNKNOWN;
-        BDBG_ERR(("%s: ERROR: failed to clone the security session, rc %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s: ERROR: failed to clone the security session, rc %d\n", BSTD_FUNCTION, rc));
         goto error;
     }
     /* free up the older security session */
@@ -1922,10 +1922,10 @@ http_do_server_trick_modes_socket_transition(
     /* now send the GET request */
     if (playback_ip->netIo.write(playback_ip->securityHandle, &playback_ip->playback_state, playback_ip->socketState.fd, playback_ip->requestMessage, strlen(playback_ip->requestMessage)) < 0) {
         rc = B_ERROR_UNKNOWN;
-        BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
+        BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
         goto error;
     }
-    BDBG_MSG(("%s: HTTP Get Request--->: \n%s", __FUNCTION__, playback_ip->requestMessage));
+    BDBG_MSG(("%s: HTTP Get Request--->: \n%s", BSTD_FUNCTION, playback_ip->requestMessage));
     BKNI_Free(playback_ip->requestMessage);
     playback_ip->requestMessage = NULL;
 
@@ -1936,13 +1936,13 @@ http_do_server_trick_modes_socket_transition(
     /* RVU TODO: may need to parse the FrameMap in the RVU response for exact frame time and use it for next time seek range */
     if (http_read_response(playback_ip, playback_ip->securityHandle, playback_ip->socketState.fd, &playback_ip->responseMessage, TMP_BUF_SIZE, &http_hdr, &http_payload, &http_payload_length) < 0 ) {
         rc = B_ERROR_UNKNOWN;
-        BDBG_ERR(("%s: ERROR: failed to get the proper response for the trickmode request, rc %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s: ERROR: failed to get the proper response for the trickmode request, rc %d\n", BSTD_FUNCTION, rc));
         goto error;
     }
     if (playback_ip->openSettings.u.http.rvuCompliant) {
         /* check for end of stream header from the server */
         if (strstr(playback_ip->responseMessage, "eom-indicator.rvualliance.org:")) {
-            BDBG_MSG(("%s: Got End of Media Indicator from RVU Server, closing session", __FUNCTION__));
+            BDBG_MSG(("%s: Got End of Media Indicator from RVU Server, closing session", BSTD_FUNCTION));
             playback_ip->serverClosed = true;
             rc = B_ERROR_UNKNOWN;
             goto error;
@@ -1961,10 +1961,10 @@ http_do_server_trick_modes_socket_transition(
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
         /* TODO: is http_payload_length amount of data getting lost? should it be in the playback_ip->initial_data_len? Look into this */
-        BDBG_WRN(("%s: done, initial bytes read %d\n", __FUNCTION__, http_payload_length));
+        BDBG_WRN(("%s: done, initial bytes read %d\n", BSTD_FUNCTION, http_payload_length));
 #endif
     rc = B_ERROR_SUCCESS;
-    BDBG_MSG(("%s:%p: returning fd=%d", __FUNCTION__, (void *)playback_ip, playback_ip->socketState.fd));
+    BDBG_MSG(("%s:%p: returning fd=%d", BSTD_FUNCTION, (void *)playback_ip, playback_ip->socketState.fd));
 error:
     if (playback_ip->requestMessage) {
         BKNI_Free(playback_ip->requestMessage);
@@ -1999,7 +1999,7 @@ B_PlaybackIp_HttpNetRangeReq(
 
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: read %zu bytes of content data at range start %"PRIu64 " end %"PRId64 ", prevFd %d, fd %d, securityHandle %p", __FUNCTION__, length, byteRangeStart, byteRangeEnd, prevFd, playback_ip->socketState.fd, (void *)securityHandle));
+        BDBG_WRN(("%s: read %zu bytes of content data at range start %"PRIu64 " end %"PRId64 ", prevFd %d, fd %d, securityHandle %p", BSTD_FUNCTION, length, byteRangeStart, byteRangeEnd, prevFd, playback_ip->socketState.fd, (void *)securityHandle));
 #endif
 
     if (byteRangeEnd) {
@@ -2011,7 +2011,7 @@ B_PlaybackIp_HttpNetRangeReq(
     /* prepare initial Get request */
     responseMessage = (char *) BKNI_Malloc(TMP_BUF_SIZE+1);
     if (!responseMessage) {
-        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", BSTD_FUNCTION));
         goto error;
     }
     for (;;) {
@@ -2023,17 +2023,17 @@ B_PlaybackIp_HttpNetRangeReq(
             if (playback_ip->netIo.shutdown && !playback_ip->serverClosed)
                 playback_ip->netIo.shutdown(securityHandle, 0);
             if (close(prevFd)) {
-                BDBG_MSG(("%s: failed to close prev socket (%d), ignore it\n", __FUNCTION__, prevFd));
+                BDBG_MSG(("%s: failed to close prev socket (%d), ignore it\n", BSTD_FUNCTION, prevFd));
                 perror("close");
             }
             else
-                BDBG_MSG(("%s: closed prev socket (fd %d)", __FUNCTION__, prevFd));
+                BDBG_MSG(("%s: closed prev socket (fd %d)", BSTD_FUNCTION, prevFd));
             /* reset the socketClosed flag */
             playback_ip->socketClosed = false;
         }
 
         if (http_build_get_req(&requestMessage, playback_ip, 1, 0., 0., byteRangeStart, byteRangeEnd, NULL) < 0) {
-            BDBG_ERR(("%s: ERROR: failed to build HTTP Get request to Server", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to build HTTP Get request to Server", BSTD_FUNCTION));
             goto error;
         }
 
@@ -2041,7 +2041,7 @@ B_PlaybackIp_HttpNetRangeReq(
         rc = B_PlaybackIp_UtilsTcpSocketConnect(&playback_ip->playback_state, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, true, playback_ip->networkTimeout, newFd);
         if (rc != B_ERROR_SUCCESS) {
             BDBG_ERR(("%s: ERROR: failed to send Socket Connect Request to Server: %s:%d\n",
-                        __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
+                        BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
             rc = -1;
             goto error;
         }
@@ -2053,24 +2053,24 @@ B_PlaybackIp_HttpNetRangeReq(
         /* Idea is to avoid any re-authentication to the server and instead reuse the session info from the current session */
         rc = B_PlaybackIp_SecurityCloneSessionOpen(playback_ip, *newFd, securityHandle, newSecurityHandle);
         if (rc < 0) {
-            BDBG_ERR(("%s: ERROR: failed to clone the security session, rc %zu\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s: ERROR: failed to clone the security session, rc %zu\n", BSTD_FUNCTION, rc));
             goto error;
         }
 
         if (playback_ip->netIo.close) {
             /* free up the current security session */
             playback_ip->netIo.close(securityHandle);
-            BDBG_MSG(("%s: freed up the previous (%p) security session, new session %p\n", __FUNCTION__, (void *)securityHandle, (void *)*newSecurityHandle));
+            BDBG_MSG(("%s: freed up the previous (%p) security session, new session %p\n", BSTD_FUNCTION, (void *)securityHandle, (void *)*newSecurityHandle));
         }
         securityHandle = *newSecurityHandle;
 
         /* now send the GET request */
         rc = playback_ip->netIo.write(securityHandle, &playback_ip->playback_state, *newFd, requestMessage, strlen(requestMessage));
         if (rc < 0) {
-            BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
+            BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port));
             goto error;
         }
-        BDBG_MSG(("%s: Sent HTTP Get Request (fd %d)", __FUNCTION__, *newFd));
+        BDBG_MSG(("%s: Sent HTTP Get Request (fd %d)", BSTD_FUNCTION, *newFd));
         BKNI_Free(requestMessage);
         requestMessage = NULL;
 
@@ -2095,7 +2095,7 @@ B_PlaybackIp_HttpNetRangeReq(
             }
             /* previous function gets the new URL & server information and we send another GET request to this server */
             playback_ip->serverClosed = false; /* clear this flag as server anyway closes socket during redirect and we want to call netIo.shutdown above */
-            BDBG_MSG(("%s: HTTP redirect case, (resetting ranges) caching the redirected URL: http://%s:%d%s", __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
+            BDBG_MSG(("%s: HTTP redirect case, (resetting ranges) caching the redirected URL: http://%s:%d%s", BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
             byteRangeEnd = byteRangeStart = 0;
         }
         else {
@@ -2105,7 +2105,7 @@ B_PlaybackIp_HttpNetRangeReq(
         }
 
         if (loopCnt++ >5) {
-            BDBG_ERR(("%s: ERROR: Can't resolve a URL Link in 5 attempts", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Can't resolve a URL Link in 5 attempts", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -2115,17 +2115,17 @@ B_PlaybackIp_HttpNetRangeReq(
         /* initial data was read part of the HTTP response */
         memcpy(buf, http_payload, initialLen);
         bytesRead = initialLen;
-        BDBG_MSG(("%s: COPYING initial data of %d bytes\n", __FUNCTION__, initialLen));
+        BDBG_MSG(("%s: COPYING initial data of %d bytes\n", BSTD_FUNCTION, initialLen));
     }
 
     rc = 0;
     if (length && length-bytesRead > 0) {
-        BDBG_MSG(("%s: remaining %zu, bytesRead %u, length %zu, initial len %d\n", __FUNCTION__, (length-bytesRead), bytesRead, length, initialLen));
+        BDBG_MSG(("%s: remaining %zu, bytesRead %u, length %zu, initial len %d\n", BSTD_FUNCTION, (length-bytesRead), bytesRead, length, initialLen));
         /* read next chunk of data from socket */
         if ((rc = playback_ip_read_socket(playback_ip, securityHandle, *newFd, ((char *)buf)+bytesRead, length-bytesRead, playback_ip->networkTimeout)) <= 0 ) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: Network Read Error: serverClosed %d, selectTimeout %d", __FUNCTION__, playback_ip->serverClosed, playback_ip->selectTimeout));
+                BDBG_ERR(("%s: Network Read Error: serverClosed %d, selectTimeout %d", BSTD_FUNCTION, playback_ip->serverClosed, playback_ip->selectTimeout));
 #endif
             if (playback_ip->serverClosed || playback_ip->selectTimeout)
                 rc = bytesRead; /* hard coding to allow player to consume all data before closing */
@@ -2135,7 +2135,7 @@ B_PlaybackIp_HttpNetRangeReq(
     bytesRead += rc;
 
     BDBG_MSG(("%s: buf %p, asked %zu, read %d, start %"PRIu64 ", end %"PRIu64 "\n",
-                __FUNCTION__, (void *)buf, length, bytesRead, byteRangeStart, byteRangeEnd));
+                BSTD_FUNCTION, (void *)buf, length, bytesRead, byteRangeStart, byteRangeEnd));
     rc = bytesRead;
 
 error:
@@ -2156,14 +2156,14 @@ int http_read_data_from_index_cache(
 {
     unsigned int readIndexOffset = 0;
     BDBG_MSG(("%s: Cache hit: range start %"PRIu64 ", end %"PRIu64 ", i cache depth %d, off: start %"PRId64 ", end %"PRId64 ", idx %d, length %zu\n",
-            __FUNCTION__, byteRangeStart, byteRangeEnd, playback_ip->indexCacheDepth, playback_ip->indexCacheStartOffset, playback_ip->indexCacheEndOffset, playback_ip->indexCacheReadIndex, length));
+            BSTD_FUNCTION, byteRangeStart, byteRangeEnd, playback_ip->indexCacheDepth, playback_ip->indexCacheStartOffset, playback_ip->indexCacheEndOffset, playback_ip->indexCacheReadIndex, length));
     readIndexOffset = playback_ip->indexCacheReadIndex + (byteRangeStart - playback_ip->indexCacheStartOffset);
     readIndexOffset %= playback_ip->indexCacheSize;
 
     /* look for wrap around */
     if (readIndexOffset + length <= playback_ip->indexCacheSize) {
         /* all index data is sequentially available in the buffer w/o any wrap around, copy it */
-        BDBG_MSG(("%s: single copy from index cache offset %d, bytes copied %zu\n", __FUNCTION__, readIndexOffset, length));
+        BDBG_MSG(("%s: single copy from index cache offset %d, bytes copied %zu\n", BSTD_FUNCTION, readIndexOffset, length));
         memcpy(buf, playback_ip->indexCache+readIndexOffset, length);
         return length;
     }
@@ -2180,7 +2180,7 @@ int http_read_data_from_index_cache(
         /* and copy remaining bytes from the begining of the cache */
         memcpy((char *)buf+bytesAtCacheEnd, playback_ip->indexCache, bytesRemaining);
         BDBG_MSG(("%s: Two copies: first of %d bytes from %d index to %d, 2nd of %d bytes from cache begining, copied %zu, bytes\n",
-                __FUNCTION__, bytesAtCacheEnd, readIndexOffset, playback_ip->indexCacheSize-1, bytesRemaining, length));
+                BSTD_FUNCTION, bytesAtCacheEnd, readIndexOffset, playback_ip->indexCacheSize-1, bytesRemaining, length));
         return length;
     }
 }
@@ -2214,7 +2214,7 @@ httpAvCache_lookup(
             /* cache hit: requested byte range is completely in the data cache */
             *cacheIndex = i;
             playback_ip->dataCache[i].stats.hits++;
-            PRINT_CACHE_MSG(("%s: cache[%d] hit (total %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", __FUNCTION__, i,
+            PRINT_CACHE_MSG(("%s: cache[%d] hit (total %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", BSTD_FUNCTION, i,
                         playback_ip->dataCache[i].stats.hits, byteRangeStart, byteRangeEnd,
                         playback_ip->dataCache[i].startOffset, playback_ip->dataCache[i].endOffset));
             B_Time_Get(&playback_ip->dataCache[i].lastUsedTime);
@@ -2225,7 +2225,7 @@ httpAvCache_lookup(
             /* partial cache hit: some initial part of the requested byte range is in the data cache */
             *cacheIndex = i;
             playback_ip->dataCache[i].stats.partialHits++;
-            PRINT_CACHE_MSG(("%s: cache[%d] partial hit (total %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", __FUNCTION__, i,
+            PRINT_CACHE_MSG(("%s: cache[%d] partial hit (total %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", BSTD_FUNCTION, i,
                         playback_ip->dataCache[i].stats.partialHits, byteRangeStart, byteRangeEnd,
                         playback_ip->dataCache[i].startOffset, playback_ip->dataCache[i].endOffset));
             B_Time_Get(&playback_ip->dataCache[i].lastUsedTime);
@@ -2238,7 +2238,7 @@ httpAvCache_lookup(
             /* byte range start is not currently cached, but can fit in the cache and thus is cacheable */
             *cacheIndex = i;
             playback_ip->dataCache[i].stats.cacheable++;
-            PRINT_CACHE_MSG(("%s: cache[%d] miss, but range is cacheable (# %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", __FUNCTION__, i,
+            PRINT_CACHE_MSG(("%s: cache[%d] miss, but range is cacheable (# %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", BSTD_FUNCTION, i,
                         playback_ip->dataCache[i].stats.cacheable, byteRangeStart, byteRangeEnd,
                         playback_ip->dataCache[i].startOffset, playback_ip->dataCache[i].endOffset));
             B_Time_Get(&playback_ip->dataCache[i].lastUsedTime);
@@ -2251,7 +2251,7 @@ httpAvCache_lookup(
             /* byte range start is not currently cached, but can fit in the cache and thus is cacheable */
             *cacheIndex = i;
             playback_ip->dataCache[i].stats.cacheable++;
-            PRINT_CACHE_MSG(("%s: cache[%d] miss, but range is +1 from the current cache end and thus is cacheable (# %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", __FUNCTION__, i,
+            PRINT_CACHE_MSG(("%s: cache[%d] miss, but range is +1 from the current cache end and thus is cacheable (# %d): byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", BSTD_FUNCTION, i,
                         playback_ip->dataCache[i].stats.cacheable, byteRangeStart, byteRangeEnd,
                         playback_ip->dataCache[i].startOffset, playback_ip->dataCache[i].endOffset));
             return HTTP_CACHE_RANGE_CACHEABLE;
@@ -2273,15 +2273,15 @@ httpAvCache_lookup(
     }
     if (*cacheIndex >= HTTP_MAX_DATA_CACHES) {
         if (HTTP_MAX_DATA_CACHES == 1) {
-            PRINT_CACHE_MSG(("%s: only using one data cache, so overwriting its content w/ new request\n", __FUNCTION__));
+            PRINT_CACHE_MSG(("%s: only using one data cache, so overwriting its content w/ new request\n", BSTD_FUNCTION));
         }
         else {
-            BDBG_ERR(("%s: Error: we should always find (%d) one the data caches for use, defaulting it to cache 0\n", __FUNCTION__, *cacheIndex));
+            BDBG_ERR(("%s: Error: we should always find (%d) one the data caches for use, defaulting it to cache 0\n", BSTD_FUNCTION, *cacheIndex));
         }
         *cacheIndex = 0;
     }
     playback_ip->dataCache[*cacheIndex].stats.miss++;
-    PRINT_CACHE_MSG(("%s: cache[%d] miss, range is outside cacheable range (# %d) for byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", __FUNCTION__, *cacheIndex,
+    PRINT_CACHE_MSG(("%s: cache[%d] miss, range is outside cacheable range (# %d) for byte range start %"PRId64 ", end %"PRId64 ", cache offset start %"PRId64 ", end %"PRId64 "\n", BSTD_FUNCTION, *cacheIndex,
         playback_ip->dataCache[*cacheIndex].stats.miss, byteRangeStart, byteRangeEnd, playback_ip->dataCache[*cacheIndex].startOffset, playback_ip->dataCache[*cacheIndex].endOffset));
     return HTTP_CACHE_MISS;
 }
@@ -2301,23 +2301,23 @@ http_avCacheMissProcessing(
     /* seek operation to a range that is outside of cacheable range */
     /* Our action is to close the current connection, setup a new one & ask the server to send data starting from new range */
     PRINT_CACHE_MSG(("%s: rewind/seek case: requested data is not in the cache, so resending the HTTP req to server, first data offset %"PRId64 ", total read %"PRId64 ", consumed %"PRId64 ", rewind %d\n",
-            __FUNCTION__, playback_ip->dataCache[cacheIndex].firstOffset, playback_ip->totalRead, playback_ip->totalConsumed, playback_ip->rewind));
+            BSTD_FUNCTION, playback_ip->dataCache[cacheIndex].firstOffset, playback_ip->totalRead, playback_ip->totalConsumed, playback_ip->rewind));
     PRINT_CACHE_MSG(("%s: byte range start %"PRId64 ", end %"PRId64 ", length %zu, offset start %"PRId64 ", end %"PRId64 "\n",
-            __FUNCTION__, byteRangeStart, byteRangeEnd, length, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset));
+            BSTD_FUNCTION, byteRangeStart, byteRangeEnd, length, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset));
 
     if (playback_ip->reOpenSocket)
         playback_ip->reOpenSocket = false;
     /* send new HTTP Range request on a new socket */
     rc = B_PlaybackIp_HttpNetRangeReq(playback_ip, playback_ip->dataCache[cacheIndex].cache, HTTP_DATA_CACHE_CHUNK_SIZE, byteRangeStart, 0, playback_ip->socketState.fd, &playback_ip->socketState.fd);
     if (rc < 0) {
-        BDBG_ERR(("%s: Failed to rewind the content, read %d, asked %u\n", __FUNCTION__, rc, HTTP_DATA_CACHE_CHUNK_SIZE));
+        BDBG_ERR(("%s: Failed to rewind the content, read %d, asked %u\n", BSTD_FUNCTION, rc, HTTP_DATA_CACHE_CHUNK_SIZE));
         return -1 ;
     }
     bytesRead = rc;
 
     if (bytesRead != HTTP_DATA_CACHE_CHUNK_SIZE || (size_t)bytesRead < length) {
         PRINT_CACHE_MSG(("%s: during rewind/re-seek operation, data cache case: not able to read %zd the requested amount %d, remaining amount %zu\n",
-                __FUNCTION__, bytesRead, HTTP_DATA_CACHE_CHUNK_SIZE, length));
+                BSTD_FUNCTION, bytesRead, HTTP_DATA_CACHE_CHUNK_SIZE, length));
     }
     /* update the data cache pointers */
     playback_ip->rewind = false;
@@ -2333,13 +2333,13 @@ http_avCacheMissProcessing(
     playback_ip->dataCache[cacheIndex].writeIndex = bytesRead;
 
     /* now copy the remaining data from data cache into the requested buffer */
-    PRINT_CACHE_MSG(("%s: during rewind/seek operation, copied %zd bytes (asked %zu) into data cache index %d\n", __FUNCTION__, bytesRead, length, cacheIndex));
+    PRINT_CACHE_MSG(("%s: during rewind/seek operation, copied %zd bytes (asked %zu) into data cache index %d\n", BSTD_FUNCTION, bytesRead, length, cacheIndex));
     playback_ip->dataCache[cacheIndex].inUse = true;
     PRINT_CACHE_MSG(("%s: Data Cache[%d] Setup after rewind/seek: dcache offset start %"PRId64 ", end %"PRId64 ", size %d, index cache end offset %"PRId64 "\n",
-            __FUNCTION__, cacheIndex, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
+            BSTD_FUNCTION, cacheIndex, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
             playback_ip->dataCache[cacheIndex].size, playback_ip->indexCacheEndOffset));
     PRINT_CACHE_MSG(("%s: dcache: hit range start %"PRId64 ", end %"PRId64 ", cache start %"PRId64 ", end %"PRId64 " depth %d, rd idx %d, wr idx %d, read %zd\n",
-            __FUNCTION__, byteRangeStart, byteRangeEnd,
+            BSTD_FUNCTION, byteRangeStart, byteRangeEnd,
             playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
             playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, playback_ip->dataCache[cacheIndex].writeIndex, bytesRead));
     return bytesRead;
@@ -2364,7 +2364,7 @@ http_avCachePartialHitProcessing(
     /* the requested data range is not completely in the data cache, read chunk at a time from network until we can service this range */
     while (byteRangeEnd > playback_ip->dataCache[cacheIndex].endOffset) {
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode)) {
-            PRINT_CACHE_MSG(("%s: breaking of the while loop due to state change (state %d)", __FUNCTION__, playback_ip->playback_state));
+            PRINT_CACHE_MSG(("%s: breaking of the while loop due to state change (state %d)", BSTD_FUNCTION, playback_ip->playback_state));
             if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode) {
                 playback_ip->selectTimeout = true;
                 errno = EINTR;
@@ -2385,14 +2385,14 @@ http_avCachePartialHitProcessing(
             if (playback_ip->dataCache[cacheIndex].readIndex >= playback_ip->dataCache[cacheIndex].size) {
                 playback_ip->dataCache[cacheIndex].readIndex %= playback_ip->dataCache[cacheIndex].size;
                 PRINT_CACHE_MSG(("%s: read index Wrap around: rd idx %d, depth %d, size %d\n",
-                        __FUNCTION__, playback_ip->dataCache[cacheIndex].readIndex,
+                        BSTD_FUNCTION, playback_ip->dataCache[cacheIndex].readIndex,
                         playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].size));
             }
 
             /* data cache depth is reduced by 1 chunk size */
             playback_ip->dataCache[cacheIndex].depth -= HTTP_DATA_CACHE_CHUNK_SIZE;
             PRINT_CACHE_MSG(("%s: dCache Wrap around: Retire %d byte chunk, start offset %"PRId64 ", rd idx %d, depth %d, size %d\n",
-                        __FUNCTION__, HTTP_DATA_CACHE_CHUNK_SIZE,
+                        BSTD_FUNCTION, HTTP_DATA_CACHE_CHUNK_SIZE,
                         playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].readIndex,
                         playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].size));
         }
@@ -2401,7 +2401,7 @@ http_avCachePartialHitProcessing(
         spaceAvailableAtEnd = playback_ip->dataCache[cacheIndex].size - playback_ip->dataCache[cacheIndex].writeIndex;
         if (spaceAvailableAtEnd < HTTP_DATA_CACHE_CHUNK_SIZE) {
             PRINT_CACHE_MSG(("%s: reached towards end of data cache, so reading (%d) less than chunk size (%d), cache size %d, cache wr idx %d\n",
-                        __FUNCTION__, spaceAvailableAtEnd, HTTP_DATA_CACHE_CHUNK_SIZE, playback_ip->dataCache[cacheIndex].size, playback_ip->dataCache[cacheIndex].writeIndex));
+                        BSTD_FUNCTION, spaceAvailableAtEnd, HTTP_DATA_CACHE_CHUNK_SIZE, playback_ip->dataCache[cacheIndex].size, playback_ip->dataCache[cacheIndex].writeIndex));
             bytesToRead = spaceAvailableAtEnd;
         }
         else
@@ -2412,7 +2412,7 @@ http_avCachePartialHitProcessing(
            ) {
             /* in both cases, we need to close the current socket & send a new request to server */
             /* both are done in NetRangeReq()) */
-            BDBG_MSG(("%s: re-setup the connection for cache idx %d, prev cache idx %d, re-open socket %d, fd %d\n", __FUNCTION__, cacheIndex, playback_ip->cacheIndexUsingSocket, playback_ip->reOpenSocket, playback_ip->socketState.fd));
+            BDBG_MSG(("%s: re-setup the connection for cache idx %d, prev cache idx %d, re-open socket %d, fd %d\n", BSTD_FUNCTION, cacheIndex, playback_ip->cacheIndexUsingSocket, playback_ip->reOpenSocket, playback_ip->socketState.fd));
             playback_ip->reOpenSocket = false;
             playback_ip->cacheIndexUsingSocket = cacheIndex;
             /* send new HTTP Range request on a new socket */
@@ -2424,13 +2424,13 @@ http_avCachePartialHitProcessing(
         if (rc < 0) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: Network Read Error, rc %d", __FUNCTION__, rc));
+                BDBG_ERR(("%s: Network Read Error, rc %d", BSTD_FUNCTION, rc));
 #endif
             /* return what ever has been read so far */
             goto error;
         }
         else if (rc == 0 && bytesRead == 0) {
-            PRINT_CACHE_MSG(("%s: read 0 bytes from socket, server has already closed, rc=%d\n", __FUNCTION__, rc));
+            PRINT_CACHE_MSG(("%s: read 0 bytes from socket, server has already closed, rc=%d\n", BSTD_FUNCTION, rc));
             goto error;
         }
         bytesRead += rc;
@@ -2447,11 +2447,11 @@ http_avCachePartialHitProcessing(
 
         cacheMissCount++;
         if (playback_ip->serverClosed) {
-            PRINT_CACHE_MSG(("%s: breaking from reading loop due to server closing connection, bytes read %d", __FUNCTION__, rc));
+            PRINT_CACHE_MSG(("%s: breaking from reading loop due to server closing connection, bytes read %d", BSTD_FUNCTION, rc));
             break;
         }
         if (playback_ip->selectTimeout) {
-            PRINT_CACHE_MSG(("%s: breaking from reading loop due to select timeout, bytes read %d", __FUNCTION__, rc));
+            PRINT_CACHE_MSG(("%s: breaking from reading loop due to select timeout, bytes read %d", BSTD_FUNCTION, rc));
             break;
         }
 
@@ -2459,26 +2459,26 @@ http_avCachePartialHitProcessing(
     }
 error:
     PRINT_CACHE_MSG(("%s: dCache: fd %d, asked %d, read %zd: miss %d, cache start %"PRId64 ", end %"PRId64 " depth %d, wr idx %d\n",
-            __FUNCTION__, playback_ip->socketState.fd, bytesToRead, bytesRead, cacheMissCount,
+            BSTD_FUNCTION, playback_ip->socketState.fd, bytesToRead, bytesRead, cacheMissCount,
             playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
             playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].writeIndex));
     if (bytesRead) {
         /* we have read something: now make sure if we have satisfied all conditions */
         if (byteRangeEnd <= playback_ip->dataCache[cacheIndex].endOffset) {
             /* we have read all requested data from byteRangeStart to End */
-            PRINT_CACHE_MSG(("%s: dCache: requested data (%zu) was read (%zd) w/o interrutions, server closed %d, select timeout %d\n", __FUNCTION__, length, bytesRead, playback_ip->serverClosed, playback_ip->selectTimeout));
+            PRINT_CACHE_MSG(("%s: dCache: requested data (%zu) was read (%zd) w/o interrutions, server closed %d, select timeout %d\n", BSTD_FUNCTION, length, bytesRead, playback_ip->serverClosed, playback_ip->selectTimeout));
             return (int)bytesRead;
         }
         /* now we know that end range is outside the current cache end, check where is the start range, we know that it is > startRange */
         else if (byteRangeStart > playback_ip->dataCache[cacheIndex].endOffset) {
             /* startRange is outside what has been currently read */
             /* even though we have read some data, requested byteRangeStart is still not read possibly due to server close or timeout event */
-            PRINT_CACHE_MSG(("%s: dCache: some requested data (%zu) read (%zd), but still before start range, server closed %d, select timeout %d\n", __FUNCTION__, length, bytesRead, playback_ip->serverClosed, playback_ip->selectTimeout));
+            PRINT_CACHE_MSG(("%s: dCache: some requested data (%zu) read (%zd), but still before start range, server closed %d, select timeout %d\n", BSTD_FUNCTION, length, bytesRead, playback_ip->serverClosed, playback_ip->selectTimeout));
             return -1;
         } else {
             /* this means that start is <= endOffset, so we return data that is in the cache */
             rc = playback_ip->dataCache[cacheIndex].endOffset - byteRangeStart + 1;
-            PRINT_CACHE_MSG(("%s: dCache: requested data (%zu) was partially read (%zd), so returning %d, server closed %d, select timeout %d\n", __FUNCTION__, length, bytesRead, rc, playback_ip->serverClosed, playback_ip->selectTimeout));
+            PRINT_CACHE_MSG(("%s: dCache: requested data (%zu) was partially read (%zd), so returning %d, server closed %d, select timeout %d\n", BSTD_FUNCTION, length, bytesRead, rc, playback_ip->serverClosed, playback_ip->selectTimeout));
             return rc;
         }
     }
@@ -2507,7 +2507,7 @@ http_avCacheHitProcessing(
         if ((readIndexOffset + length) <= playback_ip->dataCache[cacheIndex].size) {
             /* all data range is linealy present in the cache before its end, so do a straight copy */
             memcpy((unsigned char *)buf, playback_ip->dataCache[cacheIndex].cache+readIndexOffset, length);
-            BDBG_MSG(("%s: One copy of %zu bytes from %d index\n", __FUNCTION__, length, readIndexOffset));
+            BDBG_MSG(("%s: One copy of %zu bytes from %d index\n", BSTD_FUNCTION, length, readIndexOffset));
             bytesCopied = length;
         }
         else {
@@ -2524,7 +2524,7 @@ http_avCacheHitProcessing(
             memcpy(buf+bytesAtCacheEnd, playback_ip->dataCache[cacheIndex].cache, bytesRemaining);
             bytesCopied = bytesAtCacheEnd + bytesRemaining;
             BDBG_MSG(("%s: Two copies: first of %d bytes from %d index to %d, 2nd of %d bytes from cache begining, copied %d, asked %zu bytes\n",
-                        __FUNCTION__, bytesAtCacheEnd, readIndexOffset, playback_ip->dataCache[cacheIndex].size-1,
+                        BSTD_FUNCTION, bytesAtCacheEnd, readIndexOffset, playback_ip->dataCache[cacheIndex].size-1,
                         bytesRemaining, bytesCopied, length));
         }
         BDBG_MSG(("dcache: hit range start %"PRId64 ", end %"PRId64 ", cache start %"PRId64 ", end %"PRId64 " depth %d, rd idx %d, rd offset %d, read %zu\n",
@@ -2539,7 +2539,7 @@ http_avCacheHitProcessing(
     }
     else {
         BDBG_ERR(("%s: SW bug, requested range should have been in data cache : range start %"PRId64 ", end %"PRId64 ", cache start %"PRId64 ", end %"PRId64 " depth %d, rd idx %d, rd offset %d, read %zu\n",
-                    __FUNCTION__, byteRangeStart, byteRangeEnd,
+                    BSTD_FUNCTION, byteRangeStart, byteRangeEnd,
                     playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, readIndexOffset, length));
         return -1;
@@ -2566,7 +2566,7 @@ int http_validate_and_adjust_byte_ranges(B_PlaybackIpHandle playback_ip, off_t *
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
                 BDBG_ERR(("%s: server closed case: requested range start is outside data cache end, returning ERROR : range start %"PRId64 ", end %"PRId64 ", cache start %"PRId64 ", end %"PRId64 " depth %d, rd idx %d, read %zu\n",
-                    __FUNCTION__, byteRangeStart, byteRangeEnd,
+                    BSTD_FUNCTION, byteRangeStart, byteRangeEnd,
                     playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, length));
 #endif
@@ -2579,9 +2579,9 @@ int http_validate_and_adjust_byte_ranges(B_PlaybackIpHandle playback_ip, off_t *
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog) {
                 BDBG_ERR(("%s: server closed case: requested range start %"PRId64 ", end %"PRId64 " is outside data cache start %"PRId64 " end %"PRId64 ", trimming it\n",
-                    __FUNCTION__, byteRangeStart, byteRangeEnd, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset));
+                    BSTD_FUNCTION, byteRangeStart, byteRangeEnd, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset));
                 BDBG_ERR(("%s: new range start %"PRId64 ", new end %"PRId64 ", cache start %"PRId64 ", end %"PRId64 " depth %d, rd idx %d, read %zu\n",
-                    __FUNCTION__, byteRangeStart, byteRangeEnd,
+                    BSTD_FUNCTION, byteRangeStart, byteRangeEnd,
                     playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, length));
             }
@@ -2595,7 +2595,7 @@ int http_validate_and_adjust_byte_ranges(B_PlaybackIpHandle playback_ip, off_t *
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
                 BDBG_ERR(("%s: requested range start is outside content length %"PRId64 ", returning ERROR : range start %"PRId64 ", end %"PRId64 ", cache start %"PRId64 ", end %"PRId64 " depth %d, rd idx %d, read %zu\n",
-                    __FUNCTION__, playback_ip->contentLength, byteRangeStart, byteRangeEnd,
+                    BSTD_FUNCTION, playback_ip->contentLength, byteRangeStart, byteRangeEnd,
                     playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, length));
 #endif
@@ -2608,9 +2608,9 @@ int http_validate_and_adjust_byte_ranges(B_PlaybackIpHandle playback_ip, off_t *
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog) {
                 BDBG_ERR(("%s: range end is after content length %"PRId64 ": requested range start %"PRId64 ", end %"PRId64 " is outside data cache start %"PRId64 " end %"PRId64 ", trimming it\n",
-                        __FUNCTION__, playback_ip->contentLength, byteRangeStart, byteRangeEnd, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset));
+                        BSTD_FUNCTION, playback_ip->contentLength, byteRangeStart, byteRangeEnd, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset));
                 BDBG_ERR(("%s: new range start %"PRId64 ", new end %"PRId64 ", cache start %"PRId64 ", end %"PRId64 " depth %d, rd idx %d, read %zu\n",
-                        __FUNCTION__, byteRangeStart, byteRangeEnd,
+                        BSTD_FUNCTION, byteRangeStart, byteRangeEnd,
                         playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                         playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, length));
             }
@@ -2645,7 +2645,7 @@ http_read_data_from_data_cache(
     if (http_validate_and_adjust_byte_ranges(playback_ip, &byteRangeStart, &byteRangeEnd, &length)) {
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_ERR(("%s: Invalid byte range requested, returning EOF", __FUNCTION__));
+            BDBG_ERR(("%s: Invalid byte range requested, returning EOF", BSTD_FUNCTION));
 #endif
         return (ssize_t)0;
     }
@@ -2662,7 +2662,7 @@ http_read_data_from_data_cache(
         if (!playback_ip->waveHeaderInserted) {
             rc = B_PlaybackIp_UtilsBuildWavHeader((void *)buf, length, playback_ip->setupSettings.u.http.bitsPerSample, playback_ip->setupSettings.u.http.sampleRate, playback_ip->setupSettings.u.http.numChannels);
             if (rc < 0) {
-                BDBG_ERR(("%s: Failed to build Wave Header for LPCM files\n", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to build Wave Header for LPCM files\n", BSTD_FUNCTION));
                 goto error;
             }
             buf = (char *)buf + rc;
@@ -2670,7 +2670,7 @@ http_read_data_from_data_cache(
             byteRangeEnd = byteRangeStart+length-1;
             bytesRead = rc;
             playback_ip->waveHeaderInserted = true;
-            BDBG_MSG(("%s: Built & Inserted Wave Header ( bits/sample %d, rate %d, #ch %d) for LPCM files\n", __FUNCTION__,
+            BDBG_MSG(("%s: Built & Inserted Wave Header ( bits/sample %d, rate %d, #ch %d) for LPCM files\n", BSTD_FUNCTION,
                 playback_ip->setupSettings.u.http.bitsPerSample, playback_ip->setupSettings.u.http.sampleRate, playback_ip->setupSettings.u.http.numChannels));
         }
     }
@@ -2684,7 +2684,7 @@ http_read_data_from_data_cache(
             playback_ip->dataCache[0].endOffset = playback_ip->initial_data_len -1;
             playback_ip->dataCache[0].readIndex = 0;
             playback_ip->dataCache[0].writeIndex = playback_ip->initial_data_len;
-            BDBG_MSG(("%s: Copied initial payload of %d bytes into the data cache\n", __FUNCTION__, playback_ip->initial_data_len));
+            BDBG_MSG(("%s: Copied initial payload of %d bytes into the data cache\n", BSTD_FUNCTION, playback_ip->initial_data_len));
             playback_ip->initial_data_len = 0;
         }
         else {
@@ -2700,7 +2700,7 @@ http_read_data_from_data_cache(
             playback_ip->dataCache[0].writeIndex = 0;
         }
         BDBG_MSG(("%s: Data Cache Setup: dcache offset start %"PRId64 ", end %"PRId64 ", size %d, index cache end offset %"PRId64 "\n",
-                    __FUNCTION__, playback_ip->dataCache[0].startOffset, playback_ip->dataCache[0].endOffset,
+                    BSTD_FUNCTION, playback_ip->dataCache[0].startOffset, playback_ip->dataCache[0].endOffset,
                     playback_ip->dataCache[0].size, playback_ip->indexCacheEndOffset));
         playback_ip->dataCache[0].inUse = true;
         playback_ip->dataCache[0].firstOffset = file->offset;
@@ -2712,7 +2712,7 @@ http_read_data_from_data_cache(
             playback_ip->rewind = true;
             playback_ip->totalConsumed = 0;
             BDBG_MSG(("%s: rewinding: first data offset %"PRId64 ", cur %"PRId64 ", total read %"PRId64 ", consumed %"PRId64 "\n",
-                        __FUNCTION__, playback_ip->dataCache[0].firstOffset, file->offset, playback_ip->totalRead, playback_ip->totalConsumed));
+                        BSTD_FUNCTION, playback_ip->dataCache[0].firstOffset, file->offset, playback_ip->totalRead, playback_ip->totalConsumed));
         }
     }
 
@@ -2726,14 +2726,12 @@ http_read_data_from_data_cache(
         if (byteRangeStart >= playback_ip->indexCacheStartOffset && byteRangeEnd <= playback_ip->indexCacheEndOffset) {
             /* asked byte range is completely in index cache */
             BDBG_MSG(("%s: Cache hit in icache: range start %"PRIu64 ", end %"PRIu64 ", icache end off %"PRId64 ", asked %zu, total read %"PRId64 ", consumed %"PRId64 "\n",
-                     __FUNCTION__, byteRangeStart, byteRangeEnd, playback_ip->indexCacheEndOffset, length, playback_ip->totalRead, playback_ip->totalConsumed));
+                     BSTD_FUNCTION, byteRangeStart, byteRangeEnd, playback_ip->indexCacheEndOffset, length, playback_ip->totalRead, playback_ip->totalConsumed));
             bytesRead = http_read_data_from_index_cache(playback_ip, byteRangeStart, byteRangeEnd, buf, length);
             goto out;
         }
         else if (byteRangeStart <= playback_ip->indexCacheEndOffset && byteRangeEnd > playback_ip->indexCacheEndOffset) {
             /* asked byte range is partially in index cache */
-            unsigned int idx;
-            idx = (unsigned)byteRangeStart;
             bytesToCopy = playback_ip->indexCacheEndOffset - byteRangeStart + 1;
             bytesRead = http_read_data_from_index_cache(playback_ip, byteRangeStart, byteRangeEnd, buf, bytesToCopy);
             bytesRead = bytesToCopy;
@@ -2743,7 +2741,7 @@ http_read_data_from_data_cache(
             buf = (char *)buf + bytesRead;
             playback_ip->totalConsumed += bytesRead;
             BDBG_MSG(("%s: Partial Cache hit in icache: range start %"PRIu64 ", end %"PRIu64 ", icache depth %"PRId64 ", copied %u, remaining %zu\n",
-                     __FUNCTION__, byteRangeStart, byteRangeEnd, playback_ip->indexCacheEndOffset, bytesToCopy, length));
+                     BSTD_FUNCTION, byteRangeStart, byteRangeEnd, playback_ip->indexCacheEndOffset, bytesToCopy, length));
         }
     }
 
@@ -2756,7 +2754,7 @@ http_read_data_from_data_cache(
             goto error;
         }
         bytesRead += rc;
-        BDBG_MSG(("%s: live flow: returning %d bytes, read from n/w length %d, from icache %zu, total Read %"PRId64 "", __FUNCTION__, bytesRead, rc, length, playback_ip->totalRead));
+        BDBG_MSG(("%s: live flow: returning %d bytes, read from n/w length %d, from icache %zu, total Read %"PRId64 "", BSTD_FUNCTION, bytesRead, rc, length, playback_ip->totalRead));
         goto out;
     }
 
@@ -2772,11 +2770,11 @@ http_read_data_from_data_cache(
         /* requested range is not in cache, restart connection to server and refill cache from the requested range */
         rc = http_avCacheMissProcessing(playback_ip, byteRangeStart, byteRangeEnd, length, cacheIndex);
         if (rc < 0) {
-            BDBG_ERR(("%s: failed to restart connection to server to refill cache from new range, rc %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s: failed to restart connection to server to refill cache from new range, rc %d\n", BSTD_FUNCTION, rc));
             goto error;
         }
         else if (rc < (int)length) {
-            BDBG_MSG(("%s: lowered length to rc asked %zu, read %d\n",__FUNCTION__, length, rc));
+            BDBG_MSG(("%s: lowered length to rc asked %zu, read %d\n",BSTD_FUNCTION, length, rc));
             length = rc;
         }
         /* now copy the read data */
@@ -2790,7 +2788,7 @@ http_read_data_from_data_cache(
         playback_ip->totalConsumed += bytesToCopy;
         playback_ip->cacheIndexUsingSocket = cacheIndex;
         playback_ip->lastUsedCacheIndex = cacheIndex;
-        BDBG_MSG(("%s: returning %d bytes, orig length %zu, length %zu, byteRangeStart %"PRId64 ", byteRangeEnd %"PRId64 ", total read %"PRId64 "\n", __FUNCTION__, bytesRead, origLength, length, byteRangeStart, byteRangeEnd, playback_ip->totalRead));
+        BDBG_MSG(("%s: returning %d bytes, orig length %zu, length %zu, byteRangeStart %"PRId64 ", byteRangeEnd %"PRId64 ", total read %"PRId64 "\n", BSTD_FUNCTION, bytesRead, origLength, length, byteRangeStart, byteRangeEnd, playback_ip->totalRead));
         goto out;
     case HTTP_CACHE_PARTIAL_HIT:
     case HTTP_CACHE_RANGE_CACHEABLE:
@@ -2800,32 +2798,32 @@ http_read_data_from_data_cache(
         if (rc < 0) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_MSG(("%s: failed to fill up the current data cache, rc %d", __FUNCTION__, rc));
+                BDBG_MSG(("%s: failed to fill up the current data cache, rc %d", BSTD_FUNCTION, rc));
 #endif
             goto error;
         }
         else if (rc < (int)length && byteRangeEnd > playback_ip->dataCache[cacheIndex].endOffset) {
-            BDBG_MSG(("%s: couldn't read all requested amount from n/w, read %d, asked %zu, server has closed %d, select timeout %d\n", __FUNCTION__, rc, length, playback_ip->serverClosed, playback_ip->selectTimeout));
+            BDBG_MSG(("%s: couldn't read all requested amount from n/w, read %d, asked %zu, server has closed %d, select timeout %d\n", BSTD_FUNCTION, rc, length, playback_ip->serverClosed, playback_ip->selectTimeout));
             if (byteRangeStart > playback_ip->dataCache[cacheIndex].endOffset) {
                 BDBG_MSG(("%s: didn't get to read any data, byteRate start %"PRId64 ", end %"PRId64 ", cache end %"PRId64 ", selectTImeout %d",
-                            __FUNCTION__, byteRangeStart, byteRangeEnd, playback_ip->dataCache[cacheIndex].endOffset, playback_ip->selectTimeout));
+                            BSTD_FUNCTION, byteRangeStart, byteRangeEnd, playback_ip->dataCache[cacheIndex].endOffset, playback_ip->selectTimeout));
                 goto error;
             }
             byteRangeEnd = playback_ip->dataCache[cacheIndex].endOffset;
             length = byteRangeEnd - byteRangeStart + 1;
-            BDBG_MSG(("%s: modified new byteRange end to %"PRId64 ", start %"PRId64 "\n", __FUNCTION__, byteRangeEnd, byteRangeStart));
+            BDBG_MSG(("%s: modified new byteRange end to %"PRId64 ", start %"PRId64 "\n", BSTD_FUNCTION, byteRangeEnd, byteRangeStart));
         }
         /* at this point, we should have the requested byte range in the cache, so we drop into the cache hit case below */
     case HTTP_CACHE_HIT:
         /* requested range is in the cache, copy it to the caller's buffer and return */
         rc = http_avCacheHitProcessing(playback_ip, byteRangeStart, byteRangeEnd, buf, length, cacheIndex);
         if (rc <= 0) {
-            BDBG_ERR(("%s: failed to return requested data, rc %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s: failed to return requested data, rc %d\n", BSTD_FUNCTION, rc));
             goto error;
         }
         bytesRead += rc;
         playback_ip->lastUsedCacheIndex = cacheIndex;
-        BDBG_MSG(("%s: returning %d bytes, orig length %zu, length %zu, byteRangeStart %"PRId64 ", byteRangeEnd %"PRId64 ", total Read %"PRId64 "\n", __FUNCTION__, bytesRead, origLength, length, byteRangeStart, byteRangeEnd, playback_ip->totalRead));
+        BDBG_MSG(("%s: returning %d bytes, orig length %zu, length %zu, byteRangeStart %"PRId64 ", byteRangeEnd %"PRId64 ", total Read %"PRId64 "\n", BSTD_FUNCTION, bytesRead, origLength, length, byteRangeStart, byteRangeEnd, playback_ip->totalRead));
         goto out;
     default:
         BDBG_ASSERT(NULL);
@@ -2847,7 +2845,7 @@ out:
         /* content length is not specified when server is sending data using chunk xfer encoding */
         /* we can set the content length once we have reached the end of stream as it helps w/ rewind purposes */
         playback_ip->contentLength = playback_ip->dataCache[playback_ip->lastUsedCacheIndex].endOffset + 1;
-        BDBG_MSG(("%s: for chunk encoding case, set the content length %"PRId64 "\n", __FUNCTION__, playback_ip->contentLength));
+        BDBG_MSG(("%s: for chunk encoding case, set the content length %"PRId64 "\n", BSTD_FUNCTION, playback_ip->contentLength));
     }
     if (bytesRead > 0)
         return (ssize_t)bytesRead;
@@ -2857,7 +2855,7 @@ out:
              /* we return NO data and give other thread a chance to run */
 #ifdef BDBG_DEBUG_BUILD
              if (playback_ip->ipVerboseLog)
-                 BDBG_ERR(("%s: select timeout, tell playback to retry read, state %d", __FUNCTION__, playback_ip->playback_state));
+                 BDBG_ERR(("%s: select timeout, tell playback to retry read, state %d", BSTD_FUNCTION, playback_ip->playback_state));
 #endif
             return BFILE_ERROR_NO_DATA;
          }
@@ -2866,7 +2864,7 @@ out:
              return 0;
          }
          else {
-            BDBG_ERR(("%s: ERROR: read callback failed, rc %d, returing EOF", __FUNCTION__, bytesRead));
+            BDBG_ERR(("%s: ERROR: read callback failed, rc %d, returing EOF", BSTD_FUNCTION, bytesRead));
             return (ssize_t)0;
          }
     }
@@ -2880,7 +2878,6 @@ B_PlaybackIp_HttpNetDataRead(bfile_io_read_t self, void *buf, size_t length)
     B_PlaybackIpHandle playback_ip;
     off_t byteRangeStart;
     off_t byteRangeEnd;
-    size_t origLength;
     static int fileNameSuffix = 0;
     char recordFileName[32];
 #ifdef BDBG_DEBUG_BUILD
@@ -2895,9 +2892,9 @@ B_PlaybackIp_HttpNetDataRead(bfile_io_read_t self, void *buf, size_t length)
     }
     playback_ip = file->playback_ip;
 
-    BDBG_MSG(("%s: read %zu bytes at offset %"PRId64 "", __FUNCTION__, length, file->offset));
+    BDBG_MSG(("%s: read %zu bytes at offset %"PRId64 "", BSTD_FUNCTION, length, file->offset));
     if (BKNI_TryAcquireMutex(playback_ip->lock) == BERR_TIMEOUT) {
-        BDBG_MSG(("%s: can't get the lock, returning", __FUNCTION__));
+        BDBG_MSG(("%s: can't get the lock, returning", BSTD_FUNCTION));
         BKNI_Sleep(80); /* delay returning back to the caller (nexus io thread) otherwise it re-invokes this call rightaway and thus wastes cycles in preventing the thread holding the lock to run */
         return BFILE_ERROR_NO_DATA;
     }
@@ -2914,7 +2911,7 @@ B_PlaybackIp_HttpNetDataRead(bfile_io_read_t self, void *buf, size_t length)
     {
         if (!playback_ip->printedOnce) {
             BDBG_MSG(("%s: playback is requesting data when %s, state %d, return w/o data",
-                        __FUNCTION__,
+                        BSTD_FUNCTION,
                         playback_ip->playback_state == B_PlaybackIpState_eBuffering ? "pre-charging is going on" : "transitioning to trick mode state",
                         playback_ip->playback_state));
             playback_ip->printedOnce = true;
@@ -2925,14 +2922,13 @@ B_PlaybackIp_HttpNetDataRead(bfile_io_read_t self, void *buf, size_t length)
     }
     else
         playback_ip->printedOnce = false;
-    origLength = length;
     byteRangeStart = file->offset;
     byteRangeEnd = byteRangeStart+length-1;
     rc = http_read_data_from_data_cache(playback_ip, file, byteRangeStart, byteRangeEnd, buf, length);
     if (rc > 0)
         playback_ip->totalConsumed += rc;
     BKNI_ReleaseMutex(playback_ip->lock);
-    BDBG_MSG(("%s: returning %zd bytes", __FUNCTION__, rc));
+    BDBG_MSG(("%s: returning %zd bytes", BSTD_FUNCTION, rc));
 #ifdef BDBG_DEBUG_BUILD
     B_Time_Get(&endTime);
     curTime = B_Time_Diff(&endTime, &startTime);
@@ -2947,7 +2943,7 @@ B_PlaybackIp_HttpNetDataRead(bfile_io_read_t self, void *buf, size_t length)
         avg = (avg + curTime)/2;
     else
         avg = curTime;
-    BDBG_MSG(("%s time: min %d, cur %d, max %d avg %d", __FUNCTION__, min, curTime, max, avg));
+    BDBG_MSG(("%s time: min %d, cur %d, max %d avg %d", BSTD_FUNCTION, min, curTime, max, avg));
 #endif
     return rc;
 }
@@ -2961,20 +2957,20 @@ B_PlaybackIp_HttpNetDataSeek(bfile_io_read_t self, off_t offset, int whence)
     }
 
     if (file->playback_ip->contentLength && offset > file->playback_ip->contentLength) {
-        BDBG_WRN(("%s: seeking beyond EOF (content length %"PRId64 ", offset %"PRId64 ", whence %d), returning error", __FUNCTION__, file->playback_ip->contentLength, offset, whence));
+        BDBG_WRN(("%s: seeking beyond EOF (content length %"PRId64 ", offset %"PRId64 ", whence %d), returning error", BSTD_FUNCTION, file->playback_ip->contentLength, offset, whence));
         return -1;
     }
 
     if (whence != 0) {
-        BDBG_MSG(("%s: whence is not 0: playback_ip %p, file %p, offset %"PRId64 ", whence %d\n", __FUNCTION__, (void *)file->playback_ip, (void *)file, offset, whence));
+        BDBG_MSG(("%s: whence is not 0: playback_ip %p, file %p, offset %"PRId64 ", whence %d\n", BSTD_FUNCTION, (void *)file->playback_ip, (void *)file, offset, whence));
     }
 #ifdef THIS_MAYNOT_BE_NEEDED
     if (file->playback_ip->playback_state == B_PlaybackIpState_eEnteringTrickMode) {
-        BDBG_WRN(("%s: during trick modes transition, temporarily fail the seek call \n", __FUNCTION__));
+        BDBG_WRN(("%s: during trick modes transition, temporarily fail the seek call \n", BSTD_FUNCTION));
         return -1;
     }
 #endif
-    BDBG_MSG(("%s: playback_ip %p, file %p, offset %"PRId64 ", whence %d, fd %d, reOpenSocket %d\n", __FUNCTION__, (void *)file->playback_ip, (void *)file, offset, whence, file->playback_ip->socketState.fd, file->playback_ip->reOpenSocket));
+    BDBG_MSG(("%s: playback_ip %p, file %p, offset %"PRId64 ", whence %d, fd %d, reOpenSocket %d\n", BSTD_FUNCTION, (void *)file->playback_ip, (void *)file, offset, whence, file->playback_ip->socketState.fd, file->playback_ip->reOpenSocket));
     file->offset = offset;
     if (file->playback_ip->playback_state != B_PlaybackIpState_eBuffering)
         /* only update lastSeekOffset if we are not buffering */
@@ -2994,12 +2990,12 @@ B_PlaybackIp_HttpNetDataBounds(bfile_io_read_t self, off_t *first, off_t *last)
     /* then returning -1 here puts players in loop forever mode until server closes the connection or we channel changes */
     if (file->playback_ip->contentLength == 0 || file->playback_ip->serverClosed) {
         BDBG_MSG(("%s: returning -1, content length %"PRId64 ", server closed %d\n",
-                    __FUNCTION__, file->playback_ip->contentLength, file->playback_ip->serverClosed));
+                    BSTD_FUNCTION, file->playback_ip->contentLength, file->playback_ip->serverClosed));
         return -1;
     }
     *first = 0;
     *last = file->playback_ip->contentLength;
-    BDBG_MSG(("%s: playback_ip %p, file %p, last %"PRId64 ", size %"PRId64 "\n", __FUNCTION__,
+    BDBG_MSG(("%s: playback_ip %p, file %p, last %"PRId64 ", size %"PRId64 "\n", BSTD_FUNCTION,
                 (void *)file->playback_ip, (void *)file, *last, file->playback_ip->contentLength));
     return 0;
 }
@@ -3016,12 +3012,12 @@ B_PlaybackIp_HttpNetIndexBounds(bfile_io_read_t self, off_t *first, off_t *last)
     /* then returning -1 here puts players in loop forever mode until server closes the connection or we channel change */
     if (file->playback_ip->contentLength == 0 /* || file->playback_ip->serverClosed */ ) {
         BDBG_MSG(("%s: returning -1, content length %"PRId64 ", server closed %d",
-                    __FUNCTION__, file->playback_ip->contentLength, file->playback_ip->serverClosed));
+                    BSTD_FUNCTION, file->playback_ip->contentLength, file->playback_ip->serverClosed));
         return -1;
     }
     *first = 0;
     *last = file->playback_ip->contentLength;
-    BDBG_MSG(("%s: playback_ip %p, file %p, last %"PRId64 "\n", __FUNCTION__, (void *)file->playback_ip, (void *)file, *last));
+    BDBG_MSG(("%s: playback_ip %p, file %p, last %"PRId64 "\n", BSTD_FUNCTION, (void *)file->playback_ip, (void *)file, *last));
     return 0;
 }
 
@@ -3035,9 +3031,9 @@ B_PlaybackIp_HttpNetIndexSeek(bfile_io_read_t self, off_t offset, int whence)
         return -1;
     }
     playback_ip = file->playback_ip;
-    BDBG_MSG(("%s: playback_ip %p, file %p, offset %"PRId64 ", whence %d\n", __FUNCTION__, (void *)file->playback_ip, (void *)file, offset, whence));
+    BDBG_MSG(("%s: playback_ip %p, file %p, offset %"PRId64 ", whence %d\n", BSTD_FUNCTION, (void *)file->playback_ip, (void *)file, offset, whence));
     if (playback_ip->contentLength && offset > file->playback_ip->contentLength) {
-        BDBG_WRN(("%s: seeking beyond EOF (content length %"PRId64 ", offset %"PRId64 ", whence %d), returning error", __FUNCTION__, file->playback_ip->contentLength, offset, whence));
+        BDBG_WRN(("%s: seeking beyond EOF (content length %"PRId64 ", offset %"PRId64 ", whence %d), returning error", BSTD_FUNCTION, file->playback_ip->contentLength, offset, whence));
         return -1;
     }
 
@@ -3049,17 +3045,17 @@ B_PlaybackIp_HttpNetIndexSeek(bfile_io_read_t self, off_t offset, int whence)
         /* of the MPEG2/AVC TS type files, but still works for ASF & MP4 where index can be at the end. */
         if ((playback_ip->contentLength && offset > ((3*file->playback_ip->contentLength)/4)) ||
            (!playback_ip->contentLength && offset > (10*1024*1024))) {  /* ContentLength is not known in chunk encoding case */
-            BDBG_MSG(("%s: index is towards end, resetting index cache: offset %"PRId64 ", content length %"PRId64 "\n", __FUNCTION__, offset, file->playback_ip->contentLength));
+            BDBG_MSG(("%s: index is towards end, resetting index cache: offset %"PRId64 ", content length %"PRId64 "\n", BSTD_FUNCTION, offset, file->playback_ip->contentLength));
             if (!playback_ip->dataCache[0].inUse) {
                 /* data cache is not yet setup (it can be setup if pre-buffering is already done, true for ASF files) */
                 /* Copy currently read data from index to data cache as it is really the movie data & not index data */
 
                 if (playback_ip->indexCacheDepth > playback_ip->dataCache[0].size) {
-                    BDBG_MSG(("%s: index cache %u is too big to be copied into data cache %d", __FUNCTION__, playback_ip->indexCacheDepth, playback_ip->dataCache[0].size));
+                    BDBG_MSG(("%s: index cache %u is too big to be copied into data cache %d", BSTD_FUNCTION, playback_ip->indexCacheDepth, playback_ip->dataCache[0].size));
                     goto out;
                 }
                 memcpy(playback_ip->dataCache[0].cache, playback_ip->indexCache, playback_ip->indexCacheDepth);
-                BDBG_MSG(("%s: copied %d bytes into data cache\n", __FUNCTION__, playback_ip->indexCacheDepth));
+                BDBG_MSG(("%s: copied %d bytes into data cache\n", BSTD_FUNCTION, playback_ip->indexCacheDepth));
                 /* increment data cache write index */
                 playback_ip->dataCache[0].writeIndex = playback_ip->indexCacheDepth;
                 /* indicate addition of this new chunk by moving forward the end offset by a chunk size */
@@ -3070,7 +3066,7 @@ B_PlaybackIp_HttpNetIndexSeek(bfile_io_read_t self, off_t offset, int whence)
                 playback_ip->dataCache[0].startOffset = playback_ip->indexCacheStartOffset;
                 playback_ip->dataCache[0].inUse = true;
                 BDBG_MSG(("%s: data cache start off %"PRId64 ", end %"PRId64 ", depth %u, wr idx %u\n",
-                        __FUNCTION__, playback_ip->dataCache[0].startOffset, playback_ip->dataCache[0].endOffset, playback_ip->dataCache[0].depth, playback_ip->dataCache[0].writeIndex));
+                        BSTD_FUNCTION, playback_ip->dataCache[0].startOffset, playback_ip->dataCache[0].endOffset, playback_ip->dataCache[0].depth, playback_ip->dataCache[0].writeIndex));
             }
             /* tell Read callback to open a separate connection to server for downloading the index (MOOV object) as it is towards the end of the file */
             playback_ip->indexAtEnd = true;
@@ -3112,7 +3108,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
     playback_ip = file->playback_ip;
     file->fd = playback_ip->socketState.fd;
     if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eStopped)) {
-        BDBG_MSG(("%s: returning error (-1) due to state %d change (stop event)", __FUNCTION__, playback_ip->playback_state));
+        BDBG_MSG(("%s: returning error (-1) due to state %d change (stop event)", BSTD_FUNCTION, playback_ip->playback_state));
         rc = -1;
         goto error;
     }
@@ -3125,30 +3121,30 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
     if (playback_ip->hlsSessionEnabled && playback_ip->quickMediaProbe) {
         /* While doing quick probe, we only look in the first two TS packets. HLS Spec requires servers to encode PAT/PMT at the start of each segment. */
         if (file->offset >= 2 * TS_PKT_SIZE) {
-            BDBG_MSG(("%s: forcing EOF to complate probe faster for HLS %zu, offset %"PRId64 "", __FUNCTION__, length, file->offset));
+            BDBG_MSG(("%s: forcing EOF to complate probe faster for HLS %zu, offset %"PRId64 "", BSTD_FUNCTION, length, file->offset));
             return 0;
         }
         length = 2 * TS_PKT_SIZE; /* forcing the read length to only 1st two MPEG2 TS packets */
-        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %"PRId64 "", __FUNCTION__, file->offset));
+        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %"PRId64 "", BSTD_FUNCTION, file->offset));
     }
 #endif
     byteRangeStart = file->offset;
     byteRangeEnd = byteRangeStart+length-1;
     if (playback_ip->contentLength && byteRangeEnd >= playback_ip->contentLength) {
         if (byteRangeStart >= playback_ip->contentLength) {
-            BDBG_MSG(("%s: asking to read beyond EOF, returning 0", __FUNCTION__));
+            BDBG_MSG(("%s: asking to read beyond EOF, returning 0", BSTD_FUNCTION));
             return 0;
         }
         byteRangeEnd = playback_ip->contentLength -1;
-        BDBG_MSG(("%s: trimmed byteRangeEnd from %"PRId64 " to %"PRId64 "\n", __FUNCTION__, byteRangeStart+length,  byteRangeEnd));
+        BDBG_MSG(("%s: trimmed byteRangeEnd from %"PRId64 " to %"PRId64 "\n", BSTD_FUNCTION, byteRangeStart+length,  byteRangeEnd));
         length = byteRangeEnd - byteRangeStart +1;
     }
-    BDBG_MSG(("%s: socketFd %d, read %zu bytes of index data at range start %"PRId64 ", end %"PRId64 "", __FUNCTION__, playback_ip->socketState.fd, length, byteRangeStart, byteRangeEnd));
+    BDBG_MSG(("%s: socketFd %d, read %zu bytes of index data at range start %"PRId64 ", end %"PRId64 "", BSTD_FUNCTION, playback_ip->socketState.fd, length, byteRangeStart, byteRangeEnd));
 
     if (playback_ip->playback_state == B_PlaybackIpState_eSessionSetupInProgress &&
         playback_ip->setupSettings.u.http.psiParsingTimeLimit) {
         if (!playback_ip->mediaProbeStartTimeNoted) {
-            BDBG_MSG(("%s: parsingTimeLimit %ld", __FUNCTION__, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
+            BDBG_MSG(("%s: parsingTimeLimit %ld", BSTD_FUNCTION, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
             B_Time_Get(&playback_ip->mediaProbeStartTime);
             playback_ip->mediaProbeStartTimeNoted = true;
         }
@@ -3158,7 +3154,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             if (mediaProbeTime >= playback_ip->setupSettings.u.http.psiParsingTimeLimit) {
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %ld", __FUNCTION__, mediaProbeTime, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
+                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %ld", BSTD_FUNCTION, mediaProbeTime, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
 #endif
                 rc = -1;
                 goto error;
@@ -3173,7 +3169,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         /* such small segments are only possible for audio only ES streams that was recently added to HLS spec */
         if (file->socketError == true) {
             if (B_PlaybackIp_HlsSetupNextMediaSegment(playback_ip) != true) {
-                BDBG_ERR(("%s: coundn't connect to the server for next segment, so returning error to finish media probe", __FUNCTION__));
+                BDBG_ERR(("%s: coundn't connect to the server for next segment, so returning error to finish media probe", BSTD_FUNCTION));
                 rc = -1;
                 goto error;
             }
@@ -3186,7 +3182,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         /* initialize index cache */
         /* lower the default select timeout to 1 sec */
         if (playback_ip->networkTimeout == HTTP_SELECT_TIMEOUT) {
-            BDBG_MSG(("%s: lowering default select timeout from %d to 1 sec\n", __FUNCTION__, playback_ip->networkTimeout));
+            BDBG_MSG(("%s: lowering default select timeout from %d to 1 sec\n", BSTD_FUNCTION, playback_ip->networkTimeout));
             playback_ip->networkTimeout = 1;
         }
         if (playback_ip->indexAtEnd) {
@@ -3202,7 +3198,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             rc = B_PlaybackIp_HttpNetRangeReq(playback_ip, playback_ip->indexCache, HTTP_INDEX_CACHE_CHUNK_SIZE, byteRangeStart, rangeEnd, playback_ip->socketState.fd, &playback_ip->socketState.fd);
             if (rc < 0) {
                 BDBG_ERR(("%s: ERROR: Couldn't setup socket for reading when index data is towards end, bytes read %d, length %zu\n",
-                            __FUNCTION__, rc, length));
+                            BSTD_FUNCTION, rc, length));
                 file->socketError = true;
                 playback_ip->serverClosed = false;
                 /* set flag to indicate data flow to re-open the socket */
@@ -3211,7 +3207,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             }
             if (rc != HTTP_INDEX_CACHE_CHUNK_SIZE) {
                 BDBG_MSG(("%s: couldn't read (%d) all the requested bytes (%d) from socket due to n/w error or EOF, server closed %d\n",
-                            __FUNCTION__, rc, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->serverClosed));
+                            BSTD_FUNCTION, rc, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->serverClosed));
             }
             playback_ip->indexCacheDepth = rc;
             playback_ip->indexCacheWriteIndex = playback_ip->indexCacheDepth;
@@ -3222,7 +3218,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             playback_ip->reOpenSocket = true;
             file->fd = playback_ip->socketState.fd;
             BDBG_MSG(("%s: Index at end, opened separate connx for index, start off %"PRId64 ", end %"PRId64 ", depth %u, wr idx %u\n",
-                        __FUNCTION__, playback_ip->indexCacheStartOffset,
+                        BSTD_FUNCTION, playback_ip->indexCacheStartOffset,
                         playback_ip->indexCacheEndOffset, playback_ip->indexCacheDepth, playback_ip->indexCacheWriteIndex));
             playback_ip->indexCacheInit = 1;
         } else if (playback_ip->initial_data_len) {
@@ -3232,7 +3228,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             playback_ip->indexCacheEndOffset = playback_ip->indexCacheDepth -1;
             playback_ip->indexCacheWriteIndex = playback_ip->indexCacheDepth;
             bytesRead = playback_ip->initial_data_len;
-            BDBG_MSG(("%s: Copied initial payload of %d bytes into the index cache\n", __FUNCTION__, playback_ip->initial_data_len));
+            BDBG_MSG(("%s: Copied initial payload of %d bytes into the index cache\n", BSTD_FUNCTION, playback_ip->initial_data_len));
             if (playback_ip->fclearIndex) {
                 fwrite(playback_ip->temp_buf, 1, playback_ip->initial_data_len, playback_ip->fclearIndex);
                 fflush(playback_ip->fclearIndex);
@@ -3249,7 +3245,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             playback_ip->initial_data_len = 0;
             playback_ip->indexCacheStartOffset = 0;
             playback_ip->indexCacheReadIndex = 0;
-            BDBG_MSG(("%s: index cache is initialized with no initial payload data", __FUNCTION__));
+            BDBG_MSG(("%s: index cache is initialized with no initial payload data", BSTD_FUNCTION));
         }
         playback_ip->indexCacheInit = 1;
     }
@@ -3273,7 +3269,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             bytesToRead = length;
             while ((size_t)bytesRead < length) {
                 if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eStopped)) {
-                    BDBG_MSG(("%s: breaking out of read loop due to state %d change (stop event)", __FUNCTION__, playback_ip->playback_state));
+                    BDBG_MSG(("%s: breaking out of read loop due to state %d change (stop event)", BSTD_FUNCTION, playback_ip->playback_state));
                     rc = -1;
                     goto error;
                 }
@@ -3284,7 +3280,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
                     if (mediaProbeTime >= playback_ip->setupSettings.u.http.psiParsingTimeLimit) {
 #ifdef BDBG_DEBUG_BUILD
                         if (playback_ip->ipVerboseLog)
-                            BDBG_WRN(("%s: media probe time %d exceeded user specified limit %ld", __FUNCTION__, mediaProbeTime, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
+                            BDBG_WRN(("%s: media probe time %d exceeded user specified limit %ld", BSTD_FUNCTION, mediaProbeTime, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
 #endif
                         rc = -1;
                         goto error;
@@ -3294,24 +3290,24 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
                     if (playback_ip->selectTimeout && !playback_ip->serverClosed) {
                         /* this is a hack just to appease the broken DLNA CTT server as it doesn't close the connection after it done sending data */
                         if (playback_ip->setupSettings.u.http.disableRangeHeader) {
-                            BDBG_ERR(("%s: ERROR: Can't seek when Range Header is not supported\n", __FUNCTION__));
+                            BDBG_ERR(("%s: ERROR: Can't seek when Range Header is not supported\n", BSTD_FUNCTION));
                             return -1;
                         }
-                        BDBG_MSG(("%s: select timeout, so retry read", __FUNCTION__));
+                        BDBG_MSG(("%s: select timeout, so retry read", BSTD_FUNCTION));
                         continue;
                     }
-                    BDBG_WRN(("%s: rc (%d) == 0 (EOF), failed to read index data via the data cache, selectTimeout %d", __FUNCTION__, rc, playback_ip->selectTimeout));
+                    BDBG_WRN(("%s: rc (%d) == 0 (EOF), failed to read index data via the data cache, selectTimeout %d", BSTD_FUNCTION, rc, playback_ip->selectTimeout));
                     bytesRead = rc;
                     break;
                 }
                 bytesRead += rc;
                 bytesToRead -= rc;
-                BDBG_MSG(("%s: read %d bytes from data_cache, total read so far %zd, remaining to read %zu", __FUNCTION__, rc, bytesRead, length));
+                BDBG_MSG(("%s: read %d bytes from data_cache, total read so far %zd, remaining to read %zu", BSTD_FUNCTION, rc, bytesRead, length));
             }
             return bytesRead;
         }
         else {
-            BDBG_MSG(("%s: requested range is neither in index or data cache, since probing is still going on, go thru index cache", __FUNCTION__));
+            BDBG_MSG(("%s: requested range is neither in index or data cache, since probing is still going on, go thru index cache", BSTD_FUNCTION));
         }
     }
 
@@ -3319,14 +3315,14 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
     if (byteRangeStart < playback_ip->indexCacheStartOffset || (byteRangeStart > (playback_ip->indexCacheEndOffset + playback_ip->indexCacheSize)) || playback_ip->reOpenIndexSocket ) {
         /* requested byte range start is not cacheable, so modify the servers sending range */
         if (playback_ip->setupSettings.u.http.disableRangeHeader) {
-            BDBG_ERR(("%s: ERROR: Can't seek when Range Header is not supported\n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Can't seek when Range Header is not supported\n", BSTD_FUNCTION));
             return -1;
         }
         file->socketError = false;
         playback_ip->serverClosed = false;
         rc = B_PlaybackIp_HttpNetRangeReq(playback_ip, playback_ip->indexCache, HTTP_INDEX_CACHE_CHUNK_SIZE, byteRangeStart, 0, playback_ip->socketState.fd, &playback_ip->socketState.fd);
         if (rc < 0) {
-            BDBG_ERR(("%s: ERROR: Couldn't setup socket for reading when index data is towards end, bytes read %d, length %zu\n", __FUNCTION__, rc, length));
+            BDBG_ERR(("%s: ERROR: Couldn't setup socket for reading when index data is towards end, bytes read %d, length %zu\n", BSTD_FUNCTION, rc, length));
             file->socketError = true;
             playback_ip->serverClosed = false;
             playback_ip->reOpenSocket = true;
@@ -3334,7 +3330,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         }
         if (rc != HTTP_INDEX_CACHE_CHUNK_SIZE) {
             BDBG_MSG(("%s: couldn't read (%d) all the requested bytes (%d) from socket due to n/w error or EOF, server closed %d\n",
-                        __FUNCTION__, rc, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->serverClosed));
+                        BSTD_FUNCTION, rc, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->serverClosed));
             playback_ip->serverClosed = false;
             playback_ip->reOpenSocket = true;
         }
@@ -3348,15 +3344,15 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         playback_ip->reOpenSocket = true;
         file->fd = playback_ip->socketState.fd;
         BDBG_MSG(("%s: Index range not cacheable, re-requested new range , start off %"PRId64 ", end %"PRId64 ", depth %u, wr idx %u\n",
-                    __FUNCTION__, playback_ip->indexCacheStartOffset,
+                    BSTD_FUNCTION, playback_ip->indexCacheStartOffset,
                     playback_ip->indexCacheEndOffset, playback_ip->indexCacheDepth, playback_ip->indexCacheWriteIndex));
     }
 
     while (byteRangeEnd > playback_ip->indexCacheEndOffset && file->socketError == false) {
         /* requested range is not in the index cache, so try to read more data from server */
-        BDBG_MSG(("%s: iCache miss count %d, range end %"PRId64 ", cache end %"PRId64 "\n", __FUNCTION__, cacheMissCount, byteRangeEnd, playback_ip->indexCacheEndOffset));
+        BDBG_MSG(("%s: iCache miss count %d, range end %"PRId64 ", cache end %"PRId64 "\n", BSTD_FUNCTION, cacheMissCount, byteRangeEnd, playback_ip->indexCacheEndOffset));
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eStopped)) {
-            BDBG_MSG(("%s: breaking out of read loop due to state %d change (stop event)", __FUNCTION__, playback_ip->playback_state));
+            BDBG_MSG(("%s: breaking out of read loop due to state %d change (stop event)", BSTD_FUNCTION, playback_ip->playback_state));
             rc = -1;
             goto error;
         }
@@ -3368,7 +3364,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             if (mediaProbeTime >= playback_ip->setupSettings.u.http.psiParsingTimeLimit) {
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %ld", __FUNCTION__, mediaProbeTime, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
+                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %ld", BSTD_FUNCTION, mediaProbeTime, playback_ip->setupSettings.u.http.psiParsingTimeLimit));
 #endif
                 rc = -1;
                 goto error;
@@ -3385,7 +3381,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
     if (playback_ip->hlsSessionEnabled && playback_ip->quickMediaProbe) {
         bytesToRead = 2 * TS_PKT_SIZE; /* forcing the read length to only 1st two MPEG2 TS packets as HLS requires PAT &PMT to be present at the start of each segment. */
-        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %"PRId64 "", __FUNCTION__, file->offset));
+        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %"PRId64 "", BSTD_FUNCTION, file->offset));
     }
 #endif
 
@@ -3395,7 +3391,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         if (spaceAvailableAtEnd < bytesToRead || (spaceLeftInCache && spaceLeftInCache < bytesToRead)) {
             bytesToRead = spaceAvailableAtEnd > spaceLeftInCache ? spaceLeftInCache : spaceAvailableAtEnd;
             BDBG_MSG(("%s: reached towards end of index cache or cache getting full, so reading (%zd) less than chunk size (%d), cache size %d, cache wr idx %d, depth %d, spaceAvailAtEnd %d, spaceLeftInCache %d",
-                    __FUNCTION__, bytesToRead, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->indexCacheSize, playback_ip->indexCacheWriteIndex,
+                    BSTD_FUNCTION, bytesToRead, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->indexCacheSize, playback_ip->indexCacheWriteIndex,
                     playback_ip->indexCacheDepth, spaceAvailableAtEnd, spaceLeftInCache));
         }
         /* if index cache is full, we retire the oldest entry from the cache */
@@ -3405,13 +3401,13 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             playback_ip->indexCacheReadIndex += HTTP_INDEX_CACHE_CHUNK_SIZE;
             playback_ip->indexCacheReadIndex %= playback_ip->indexCacheSize;
             BDBG_MSG(("%s: icache wrap: depth %d, size %d, rd idx %d, offset start %"PRId64 ", end %"PRId64 "\n",
-                        __FUNCTION__, playback_ip->indexCacheDepth, playback_ip->indexCacheSize, playback_ip->indexCacheReadIndex,
+                        BSTD_FUNCTION, playback_ip->indexCacheDepth, playback_ip->indexCacheSize, playback_ip->indexCacheReadIndex,
                         playback_ip->indexCacheStartOffset, playback_ip->indexCacheEndOffset));
 
         }
         if (playback_ip->indexCacheDepth > playback_ip->indexCacheSize) {
             BDBG_MSG(("%s: icache pointers bug: depth %d, size %d, rd idx %d, offset start %"PRId64 ", end %"PRId64 "\n",
-                        __FUNCTION__, playback_ip->indexCacheDepth, playback_ip->indexCacheSize, playback_ip->indexCacheReadIndex,
+                        BSTD_FUNCTION, playback_ip->indexCacheDepth, playback_ip->indexCacheSize, playback_ip->indexCacheReadIndex,
                         playback_ip->indexCacheStartOffset, playback_ip->indexCacheEndOffset));
             BDBG_ASSERT(NULL);
             goto error;
@@ -3421,12 +3417,12 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         if (rc <= 0 ) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: read failed, rc %d, Network timeout (%d) or EOF (%d)\n", __FUNCTION__, rc, playback_ip->selectTimeout, playback_ip->serverClosed));
+                BDBG_ERR(("%s: read failed, rc %d, Network timeout (%d) or EOF (%d)\n", BSTD_FUNCTION, rc, playback_ip->selectTimeout, playback_ip->serverClosed));
 #endif
             if (playback_ip->selectTimeout && !playback_ip->serverClosed) {
                 /* this is a hack just to appease the broken DLNA CTT server as it doesn't close the connection after it done sending data */
                 if (playback_ip->setupSettings.u.http.disableRangeHeader) {
-                    BDBG_ERR(("%s: ERROR: Can't seek when Range Header is not supported\n", __FUNCTION__));
+                    BDBG_ERR(("%s: ERROR: Can't seek when Range Header is not supported\n", BSTD_FUNCTION));
                     return -1;
                 }
                 BDBG_MSG(("select timeout, so retry read\n"));
@@ -3439,7 +3435,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             goto error;
         }
         if (rc != bytesToRead) {
-            BDBG_MSG(("%s: couldn't read (%d) all the requested bytes (%d) from socket due to n/w timeout (%d) or EOF (%d)\n", __FUNCTION__, rc, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->selectTimeout, playback_ip->serverClosed));
+            BDBG_MSG(("%s: couldn't read (%d) all the requested bytes (%d) from socket due to n/w timeout (%d) or EOF (%d)\n", BSTD_FUNCTION, rc, HTTP_INDEX_CACHE_CHUNK_SIZE, playback_ip->selectTimeout, playback_ip->serverClosed));
             bytesRead += rc;
             if (!playback_ip->selectTimeout) {
                 /* only consider this as an error if select hasn't timed out */
@@ -3464,7 +3460,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         playback_ip->indexCacheWriteIndex += rc;
         playback_ip->indexCacheWriteIndex %= playback_ip->indexCacheSize;
         BDBG_MSG(("%s: read %d bytes into index cache of depth %d, size %d bytes, next wr index %d\n",
-                    __FUNCTION__, rc, playback_ip->indexCacheDepth, playback_ip->indexCacheSize, playback_ip->indexCacheWriteIndex));
+                    BSTD_FUNCTION, rc, playback_ip->indexCacheDepth, playback_ip->indexCacheSize, playback_ip->indexCacheWriteIndex));
         cacheMissCount++;
     }
 
@@ -3472,7 +3468,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         /* server has closed connection, check if the requested range is with-in cache */
         if (byteRangeStart > playback_ip->indexCacheEndOffset) {
             BDBG_MSG(("%s: requested range is not in index: range start %"PRIu64 ", end %"PRIu64 ", cache depth %d, end off %"PRId64 ", length %zu\n",
-                    __FUNCTION__, byteRangeStart, byteRangeEnd, playback_ip->indexCacheDepth, playback_ip->indexCacheEndOffset, length));
+                    BSTD_FUNCTION, byteRangeStart, byteRangeEnd, playback_ip->indexCacheDepth, playback_ip->indexCacheEndOffset, length));
             rc = 0;
             goto error;
         }
@@ -3480,7 +3476,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         if (byteRangeEnd > playback_ip->indexCacheEndOffset) {
             byteRangeEnd = playback_ip->indexCacheEndOffset;
             length = byteRangeEnd - byteRangeStart + 1;
-            BDBG_MSG(("%s: Server has already closed connection, so resetting byteRangeEnd to %"PRId64 ", length to %zu\n", __FUNCTION__, byteRangeEnd, length));
+            BDBG_MSG(("%s: Server has already closed connection, so resetting byteRangeEnd to %"PRId64 ", length to %zu\n", BSTD_FUNCTION, byteRangeEnd, length));
         }
     }
 
@@ -3489,7 +3485,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
     }
     else {
         BDBG_WRN(("%s: SW bug: requested range is not in index: range start %"PRIu64 ", end %"PRIu64 ", cache depth %d, end off %"PRId64 ", length %zu\n",
-                    __FUNCTION__, byteRangeStart, byteRangeEnd, playback_ip->indexCacheDepth, playback_ip->indexCacheEndOffset, length));
+                    BSTD_FUNCTION, byteRangeStart, byteRangeEnd, playback_ip->indexCacheDepth, playback_ip->indexCacheEndOffset, length));
         rc = -1;
     }
 
@@ -3503,10 +3499,10 @@ _http_av_cache_alloc(B_PlaybackIpAvCache *avCache, int size)
 {
     avCache->cache = (char *)BKNI_Malloc(size);
     if (avCache->cache == NULL) {
-        BDBG_ERR(("%s: Failed to allocate data cache of %d bytes\n", __FUNCTION__, size));
+        BDBG_ERR(("%s: Failed to allocate data cache of %d bytes\n", BSTD_FUNCTION, size));
         return -1;
     }
-    BDBG_MSG(("%s: Allocated %d byte size data cache, buf %p", __FUNCTION__, size, (void *)avCache->cache));
+    BDBG_MSG(("%s: Allocated %d byte size data cache, buf %p", BSTD_FUNCTION, size, (void *)avCache->cache));
     avCache->size = size;
     avCache->depth = 0;
     return 0;
@@ -3527,7 +3523,7 @@ http_av_cache_dealloc(B_PlaybackIpHandle playback_ip)
         BKNI_Free(playback_ip->indexCache);
         playback_ip->indexCache = NULL;
     }
-    BDBG_MSG(("%s: Freed Data & Index Caches\n", __FUNCTION__));
+    BDBG_MSG(("%s: Freed Data & Index Caches\n", BSTD_FUNCTION));
 }
 
 B_PlaybackIpError
@@ -3545,7 +3541,7 @@ http_av_cache_alloc(B_PlaybackIpHandle playback_ip)
     BDBG_MSG(("asked data cache size %d, new size %d\n", playback_ip->openSettings.u.http.networkBufferSize, cacheSize));
     for (i=0; i<HTTP_MAX_DATA_CACHES; i++) {
         if (_http_av_cache_alloc(&playback_ip->dataCache[i], cacheSize) < 0) {
-            BDBG_ERR(("%s: Failed to create data cache # %d\n", __FUNCTION__, i));
+            BDBG_ERR(("%s: Failed to create data cache # %d\n", BSTD_FUNCTION, i));
             goto error;
         }
         playback_ip->dataCache[i].inUse = false;
@@ -3562,10 +3558,10 @@ http_av_cache_alloc(B_PlaybackIpHandle playback_ip)
     playback_ip->indexCacheSize = cacheSize;
     playback_ip->indexCache = (char *)BKNI_Malloc(cacheSize);
     if (playback_ip->indexCache == NULL) {
-        BDBG_ERR(("%s: Failed to allocate index cache of %d bytes\n", __FUNCTION__, playback_ip->indexCacheSize));
+        BDBG_ERR(("%s: Failed to allocate index cache of %d bytes\n", BSTD_FUNCTION, playback_ip->indexCacheSize));
         goto error;
     }
-    BDBG_MSG(("%s: Allocated %d byte size index cache", __FUNCTION__, playback_ip->indexCacheSize));
+    BDBG_MSG(("%s: Allocated %d byte size index cache", BSTD_FUNCTION, playback_ip->indexCacheSize));
     playback_ip->indexCacheDepth = 0;
 
     return B_ERROR_SUCCESS;
@@ -3599,7 +3595,7 @@ B_PlaybackIp_HttpDestroyFilePlayHandle(
 void
 B_PlaybackIp_HttpSessionClose(B_PlaybackIpHandle playback_ip)
 {
-    BDBG_MSG(("%s: ", __FUNCTION__));
+    BDBG_MSG(("%s: ", BSTD_FUNCTION));
 
     B_PlaybackIp_HttpDestroyFilePlayHandle(playback_ip);
 
@@ -3657,20 +3653,20 @@ B_PlaybackIp_HttpSessionClose(B_PlaybackIpHandle playback_ip)
         /* it is not destroyed during sessionOpen completion as app can re-invoke sessionOpen in the callback itself */
         B_Thread_Destroy(playback_ip->sessionOpenThread);
         playback_ip->sessionOpenThread = NULL;
-        BDBG_MSG(("%s: destroying temporary thread created during HTTP session Open", __FUNCTION__));
+        BDBG_MSG(("%s: destroying temporary thread created during HTTP session Open", BSTD_FUNCTION));
     }
     if (playback_ip->sessionSetupThread) {
         /* destroy thread that was created during SessionSetup */
         /* it is not destroyed during sessionSetup completion as app can re-invoke sessionSetup in the callback itself */
         B_Thread_Destroy(playback_ip->sessionSetupThread);
         playback_ip->sessionSetupThread = NULL;
-        BDBG_MSG(("%s: destroying temporary thread created during HTTP session setup", __FUNCTION__));
+        BDBG_MSG(("%s: destroying temporary thread created during HTTP session setup", BSTD_FUNCTION));
     }
     if (playback_ip->trickModeThread) {
         /* destroy thread that was created during 1st non-blocking trickmode call and re-used for all subsequent trickmode calls */
         B_Thread_Destroy(playback_ip->trickModeThread);
         playback_ip->trickModeThread = NULL;
-        BDBG_MSG(("%s: destroying temporary thread created during HTTP trickmode setup", __FUNCTION__));
+        BDBG_MSG(("%s: destroying temporary thread created during HTTP trickmode setup", BSTD_FUNCTION));
     }
     if (playback_ip->newTrickModeJobEvent) {
         BKNI_DestroyEvent(playback_ip->newTrickModeJobEvent);
@@ -3701,7 +3697,7 @@ B_PlaybackIp_HttpSessionClose(B_PlaybackIpHandle playback_ip)
     if (playback_ip->fclearIndex) {
         fclose(playback_ip->fclearIndex);
     }
-    BDBG_MSG(("%s: Done", __FUNCTION__));
+    BDBG_MSG(("%s: Done", BSTD_FUNCTION));
 }
 
 void B_PlaybackIp_HttpNetClose(
@@ -3710,7 +3706,7 @@ void B_PlaybackIp_HttpNetClose(
 {
     struct bfile_in_net *filePlay = (struct bfile_in_net *)file;
 
-    BDBG_MSG(("%s: \n", __FUNCTION__));
+    BDBG_MSG(("%s: \n", BSTD_FUNCTION));
     B_PlaybackIp_HttpSessionClose(filePlay->data.playback_ip);
     return;
 }
@@ -3740,12 +3736,12 @@ B_PlaybackIp_HttpCreateFilePlayHandle(
 
     filePlay = BKNI_Malloc(sizeof(*filePlay));
     if (!filePlay) {
-        BDBG_ERR(("%s: memory allocation failure\n", __FUNCTION__));
+        BDBG_ERR(("%s: memory allocation failure\n", BSTD_FUNCTION));
         return NULL;
     }
     BKNI_Memset(filePlay, 0, sizeof(*filePlay));
     BDBG_MSG(("%s: playback_ip %p, filePlay %p, data %p, index %p, size of file struct %zu\n",
-                __FUNCTION__, (void *)playback_ip, (void *)filePlay, (void *)&filePlay->data, (void *)&filePlay->index, sizeof(*filePlay)));
+                BSTD_FUNCTION, (void *)playback_ip, (void *)filePlay, (void *)&filePlay->data, (void *)&filePlay->index, sizeof(*filePlay)));
 
     filePlay->data.fd = playback_ip->socketState.fd;
     filePlay->data.playback_ip = playback_ip;
@@ -4145,7 +4141,7 @@ parse_quicktime_ref_data_rate(char *buffer, unsigned *rate)
 
     dataRateAtom = (QuickTime_Rate_Atom *)buffer;
     BDBG_MSG(("%s: size %u, type 0x%x, flags %d, rate %u",
-                __FUNCTION__, ntohl(dataRateAtom->size), ntohl(dataRateAtom->type), ntohl(dataRateAtom->flags), ntohl(dataRateAtom->rate)));
+                BSTD_FUNCTION, ntohl(dataRateAtom->size), ntohl(dataRateAtom->type), ntohl(dataRateAtom->flags), ntohl(dataRateAtom->rate)));
     *rate = ntohl(dataRateAtom->rate);
 }
 
@@ -4166,7 +4162,7 @@ void parse_quicktime_ref_data_ref(char *buffer, char **url)
     dataRefAtom = (QuickTime_Ref_Atom *)buffer;
     size = ntohl(dataRefAtom->refSize);
     BDBG_MSG(("%s: size %u, type 0x%x, flags %d, refType 0x%x, url size %zu, url %s",
-                __FUNCTION__, ntohl(dataRefAtom->size), ntohl(dataRefAtom->type), ntohl(dataRefAtom->flags), ntohl(dataRefAtom->refType), size, dataRefAtom->url));
+                BSTD_FUNCTION, ntohl(dataRefAtom->size), ntohl(dataRefAtom->type), ntohl(dataRefAtom->flags), ntohl(dataRefAtom->refType), size, dataRefAtom->url));
     *url = dataRefAtom->url;
 }
 
@@ -4185,7 +4181,7 @@ parse_quicktime_ref_mov_desc(B_PlaybackIpHandle playback_ip, char *buffer, size_
         atom = batom_from_range(playback_ip->factory, rmda, length-bytesProcessed, NULL, NULL);
         batom_cursor_from_atom(&cursor, atom);
         boxHeaderSize = bmp4_parse_box(&cursor, &box);
-        BDBG_MSG(("%s: hdr size %zu, type 0x%x, size %"PRId64 "", __FUNCTION__, boxHeaderSize, box.type, box.size));
+        BDBG_MSG(("%s: hdr size %zu, type 0x%x, size %"PRId64 "", BSTD_FUNCTION, boxHeaderSize, box.type, box.size));
         switch (box.type) {
             case B_MP4_REF_DATA_REF:
                 parse_quicktime_ref_data_ref(rmda, url);
@@ -4222,9 +4218,9 @@ parse_quicktime_redirects(B_PlaybackIpHandle playback_ip, char *buffer, size_t l
         atom = batom_from_range(playback_ip->factory, rmda, length-bytesProcessed, NULL, NULL);
         batom_cursor_from_atom(&cursor, atom);
         boxHeaderSize = bmp4_parse_box(&cursor, &box);
-        BDBG_MSG(("%s: hdr size %zu, type 0x%x, size %"PRId64 "", __FUNCTION__, boxHeaderSize, box.type, box.size));
+        BDBG_MSG(("%s: hdr size %zu, type 0x%x, size %"PRId64 "", BSTD_FUNCTION, boxHeaderSize, box.type, box.size));
         if (box.type != B_MP4_REF_MOV_DESC) {
-            BDBG_WRN(("%s: Error: Invalid Reference Movie Atom as it doesn't contain Reference Movie Descriptor Atom", __FUNCTION__));
+            BDBG_WRN(("%s: Error: Invalid Reference Movie Atom as it doesn't contain Reference Movie Descriptor Atom", BSTD_FUNCTION));
             return NULL;
         }
         parse_quicktime_ref_mov_desc(playback_ip, rmda+boxHeaderSize, box.size-boxHeaderSize, &url, &bitRate);
@@ -4232,7 +4228,7 @@ parse_quicktime_redirects(B_PlaybackIpHandle playback_ip, char *buffer, size_t l
         if (bitRate > maxBitRate) {
             maxBitRate = bitRate;
             newUrl = url;
-            BDBG_MSG(("%s: bitRate %d, url %s", __FUNCTION__, maxBitRate, newUrl));
+            BDBG_MSG(("%s: bitRate %d, url %s", BSTD_FUNCTION, maxBitRate, newUrl));
         }
         bytesProcessed += box.size;
         BDBG_MSG(("proc %zu, len %zu, size %"PRId64 "", bytesProcessed, length, box.size));
@@ -4275,14 +4271,14 @@ http_parse_av_info(
 
 #define STREAM_INFO_SIZE 512
     if ((stream_info = BKNI_Malloc(STREAM_INFO_SIZE)) == NULL) {
-        BDBG_ERR(("%s: memory allocation failure", __FUNCTION__));
+        BDBG_ERR(("%s: memory allocation failure", BSTD_FUNCTION));
         return;
     }
 
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
-    BDBG_MSG(("%s : %d : Calling B_PlaybackIp_HlsSessionSetup() ", __FUNCTION__, __LINE__   ));
+    BDBG_MSG(("%s : %d : Calling B_PlaybackIp_HlsSessionSetup() ", BSTD_FUNCTION, __LINE__   ));
     if (B_PlaybackIp_HlsSessionSetup(playback_ip, http_hdr) < 0) {
-        BDBG_ERR(("%s: Error during HLS Session Probe & Setup", __FUNCTION__));
+        BDBG_ERR(("%s: Error during HLS Session Probe & Setup", BSTD_FUNCTION));
         goto error;
     }
     if (playback_ip->hlsSessionEnabled ) { sessionTypeIsDetermined = true; goto out; }
@@ -4290,9 +4286,9 @@ http_parse_av_info(
 
 #ifdef B_HAS_MPEG_DASH_PROTOCOL_SUPPORT
     if (!sessionTypeIsDetermined ) {
-        BDBG_MSG(("%s : %d : Calling B_PlaybackIp_MpegDashSessionSetup() ", __FUNCTION__, __LINE__   ));
+        BDBG_MSG(("%s : %d : Calling B_PlaybackIp_MpegDashSessionSetup() ", BSTD_FUNCTION, __LINE__   ));
         if (B_PlaybackIp_MpegDashSessionSetup(playback_ip, http_hdr) < 0) {
-            BDBG_ERR(("%s: Error during MPEG-DASH Session Probe & Setup", __FUNCTION__));
+            BDBG_ERR(("%s: Error during MPEG-DASH Session Probe & Setup", BSTD_FUNCTION));
             goto error;
         }
         /* MpegDashSessionSetup() does stream probing and PSI extraction, so there's nothing left to do here. */
@@ -4308,7 +4304,7 @@ redoProbe:
     /* Try to find PSI info using Media Probe Interface */
     playback_ip->probe = bmedia_probe_create();
     if (!playback_ip->probe) {
-        BDBG_ERR(("%s: failed to create the probe object\n", __FUNCTION__));
+        BDBG_ERR(("%s: failed to create the probe object\n", BSTD_FUNCTION));
         goto error;
     }
     bmedia_probe_default_cfg(&probe_config);
@@ -4317,7 +4313,7 @@ redoProbe:
     probe_config.probe_payload = true;
     probe_config.probe_all_formats = false;
     if (http_content_type == NEXUS_TransportType_eUnknown) {
-        BDBG_MSG(("%s: HTTP Response header didn't provide any well known content type, using the hint %d", __FUNCTION__, setupSettings->contentTypeHint));
+        BDBG_MSG(("%s: HTTP Response header didn't provide any well known content type, using the hint %d", BSTD_FUNCTION, setupSettings->contentTypeHint));
         if (setupSettings->contentTypeHint != NEXUS_TransportType_eUnknown) {
             http_content_type = setupSettings->contentTypeHint;
         }
@@ -4369,13 +4365,13 @@ redoProbe:
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
     if (playback_ip->hlsSessionEnabled) {
         if (playback_ip->psi.psiValid) {
-            BDBG_WRN(("%s: PSI info already known via HTTP response for a HLS session!!", __FUNCTION__));
+            BDBG_WRN(("%s: PSI info already known via HTTP response for a HLS session!!", BSTD_FUNCTION));
             goto out;
         }
         if (!hlsTsProbed) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: HLS Session: Probing for TS format first", __FUNCTION__));
+                BDBG_WRN(("%s: HLS Session: Probing for TS format first", BSTD_FUNCTION));
 #endif
             bmedia_probe_default_cfg(&probe_config);
             probe_config.type = B_PlaybackIp_UtilsNexus2Mpegtype(NEXUS_TransportType_eTs);
@@ -4397,7 +4393,7 @@ redoProbe:
             /* try for ES formats as HLS only supports either TS or ES */
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: HLS Session: Probing for ES format", __FUNCTION__));
+                BDBG_WRN(("%s: HLS Session: Probing for ES format", BSTD_FUNCTION));
 #endif
             probe_config.type = B_PlaybackIp_UtilsNexus2Mpegtype(NEXUS_TransportType_eEs);
             probe_config.probe_payload = true;
@@ -4416,8 +4412,8 @@ redoProbe:
 probeAgain:
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog) {
-        BDBG_WRN(("%s: Begin Probing Media for (content type %d) obtaining the PSI info (it may take some time ...)", __FUNCTION__, http_content_type));
-        BDBG_WRN(("%s: probe_config: duration=%s index=%s es=%s payload=%s probeAllFormats=%s parseIndex=%s typeEnum=%d minProbeOffset=%"PRId64 " probeOffset=%"PRId64 "", __FUNCTION__,
+        BDBG_WRN(("%s: Begin Probing Media for (content type %d) obtaining the PSI info (it may take some time ...)", BSTD_FUNCTION, http_content_type));
+        BDBG_WRN(("%s: probe_config: duration=%s index=%s es=%s payload=%s probeAllFormats=%s parseIndex=%s typeEnum=%d minProbeOffset=%"PRId64 " probeOffset=%"PRId64 "", BSTD_FUNCTION,
                 probe_config.probe_duration?"Y":"N",
                 probe_config.probe_index?"Y":"N",
                 probe_config.probe_es?"Y":"N",
@@ -4444,7 +4440,7 @@ probeAgain:
         fullProbeDone = true;
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: playback_ip=%p: Minimum probe didn't return media info, do a detailed probe!", __FUNCTION__, (void *)playback_ip));
+            BDBG_WRN(("%s: playback_ip=%p: Minimum probe didn't return media info, do a detailed probe!", BSTD_FUNCTION, (void *)playback_ip));
 #endif
         goto probeAgain;
     }
@@ -4487,19 +4483,19 @@ probeAgain:
 #endif
 
         if (probe_config.probe_duration && playback_ip->stream->duration) {
-            BDBG_MSG((" %s: duration from HTTP ResponseHeader=%u, Duration from mediaProbe=%u", __FUNCTION__, psi->duration, playback_ip->stream->duration));
+            BDBG_MSG((" %s: duration from HTTP ResponseHeader=%u, Duration from mediaProbe=%u", BSTD_FUNCTION, psi->duration, playback_ip->stream->duration));
             /* Only override duration if we had asked media probe to determine it & it had found one. Otherwise, keep what we find from the HTTP Response header. */
             psi->duration = playback_ip->stream->duration;
         }
         psi->avgBitRate = playback_ip->stream->max_bitrate;
-        BDBG_MSG(("%s: avg bitrate of stream %d, user supplied %d", __FUNCTION__, psi->avgBitRate, setupSettings->avgBitRate));
+        BDBG_MSG(("%s: avg bitrate of stream %d, user supplied %d", BSTD_FUNCTION, psi->avgBitRate, setupSettings->avgBitRate));
         if (psi->avgBitRate == 0 && setupSettings->avgBitRate) {
             psi->avgBitRate = setupSettings->avgBitRate;
         }
         if (psi->avgBitRate)
             psi->maxBufferDuration = (playback_ip->dataCache[0].size*8 / psi->avgBitRate)*1000;  /* in msec */
         else {
-            BDBG_MSG(("%s: Warning: Media Probe couldn't determine the avg bitrate of stream!!!", __FUNCTION__));
+            BDBG_MSG(("%s: Warning: Media Probe couldn't determine the avg bitrate of stream!!!", BSTD_FUNCTION));
             psi->avgBitRate = 0;
         }
 #ifdef BDBG_DEBUG_BUILD
@@ -4519,7 +4515,7 @@ probeAgain:
             ) {
             struct bfile_in_net *filePlay;
             BDBG_MSG(("%s: Not setting index descriptor because %s for this content format %d, (probe index search code %d)",
-                        __FUNCTION__, (setupSettings->dontUseIndex?"app set dontUseIndex flag":"no index info is available"), psi->mpegType, playback_ip->stream->index));
+                        BSTD_FUNCTION, (setupSettings->dontUseIndex?"app set dontUseIndex flag":"no index info is available"), psi->mpegType, playback_ip->stream->index));
             if (playback_ip->fileBuffered) {
                 bfile_buffered_detach(playback_ip->fileBuffered);
                 bfile_buffered_destroy(playback_ip->fileBuffered);
@@ -4539,19 +4535,19 @@ probeAgain:
         /* check for quick time redirect streams */
         if (playback_ip->stream->type == bstream_mpeg_type_mp4 && ((((bmp4_probe_stream*)playback_ip->stream)->rmra.size) != 0)) {
             char *url;
-            BDBG_MSG(("%s: QuickTime redirect stream: rmra size %"PRId64 ", offset %"PRId64 "", __FUNCTION__, ((bmp4_probe_stream*)playback_ip->stream)->rmra.size, ((bmp4_probe_stream*)playback_ip->stream)->rmra.offset));
+            BDBG_MSG(("%s: QuickTime redirect stream: rmra size %"PRId64 ", offset %"PRId64 "", BSTD_FUNCTION, ((bmp4_probe_stream*)playback_ip->stream)->rmra.size, ((bmp4_probe_stream*)playback_ip->stream)->rmra.offset));
             url = parse_quicktime_redirects(playback_ip, playback_ip->indexCache+((bmp4_probe_stream*)playback_ip->stream)->rmra.offset, ((bmp4_probe_stream*)playback_ip->stream)->rmra.size);
             if (url == NULL) {
-                BDBG_ERR(("%s: ERROR: QuickTime redirect stream: however failed to retrieve a valid URL", __FUNCTION__));
+                BDBG_ERR(("%s: ERROR: QuickTime redirect stream: however failed to retrieve a valid URL", BSTD_FUNCTION));
             }
             else {
                 /* separate server name from the URL */
                 if (http_parse_url(playback_ip->openSettings.socketOpenSettings.ipAddr, &playback_ip->openSettings.socketOpenSettings.port, &playback_ip->openSettings.socketOpenSettings.url, url) != 0) {
-                    BDBG_ERR(("%s: ERROR: Failed to parse server name, port, and uri fro the redirected URL %s", __FUNCTION__, url));
+                    BDBG_ERR(("%s: ERROR: Failed to parse server name, port, and uri fro the redirected URL %s", BSTD_FUNCTION, url));
                     goto error;
                 }
                 BDBG_MSG(("%s: QuickTime redirect stream: server %s, port %d, uri %s",
-                            __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
+                            BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
 
                 /* reset index cache */
                 playback_ip->indexCacheDepth = 0;
@@ -4565,15 +4561,15 @@ probeAgain:
                 B_PlaybackIp_HttpDestroyFilePlayHandle(playback_ip);
                 playback_ip->nexusFileHandle = B_PlaybackIp_HttpCreateFilePlayHandle(playback_ip, &playback_ip->bufferedFdIndex);
                 if (playback_ip->nexusFileHandle == NULL) {
-                    BDBG_ERR(("%s: Failed to Create the Playback Handles\n", __FUNCTION__));
+                    BDBG_ERR(("%s: Failed to Create the Playback Handles\n", BSTD_FUNCTION));
                     goto error;
                 }
-                BDBG_MSG(("%s: re-created Nexus file IO handle %p", __FUNCTION__, (void *)playback_ip->nexusFileHandle));
+                BDBG_MSG(("%s: re-created Nexus file IO handle %p", BSTD_FUNCTION, (void *)playback_ip->nexusFileHandle));
 
                 /* reconnect to server and send new HTTP request using new URL */
                 rc = B_PlaybackIp_HttpNetRangeReq(playback_ip, playback_ip->indexCache, HTTP_INDEX_CACHE_CHUNK_SIZE, 0, 0, playback_ip->socketState.fd, &playback_ip->socketState.fd);
                 if (rc < 0) {
-                    BDBG_ERR(("%s: ERROR: Socket setup or HTTP request/response failed for QuickTime redirected URL", __FUNCTION__));
+                    BDBG_ERR(("%s: ERROR: Socket setup or HTTP request/response failed for QuickTime redirected URL", BSTD_FUNCTION));
                     goto error;
                 }
                 if (rc > 0) {
@@ -4585,7 +4581,7 @@ probeAgain:
                     playback_ip->indexCacheEndOffset = rc - 1;
                     playback_ip->indexCacheReadIndex = 0;
                 }
-                BDBG_MSG(("%s: Connected to the server using the new URL, now redo the probe", __FUNCTION__));
+                BDBG_MSG(("%s: Connected to the server using the new URL, now redo the probe", BSTD_FUNCTION));
 
                 /* redo the probe */
                 bmedia_probe_stream_free(playback_ip->probe, playback_ip->stream);
@@ -4600,7 +4596,7 @@ probeAgain:
             if (playback_ip->stream->type == bstream_mpeg_type_ts && ((((bmpeg2ts_probe_stream*)playback_ip->stream)->pkt_len) == 192)) {
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s: TTS Stream\n", __FUNCTION__));
+                    BDBG_WRN(("%s: TTS Stream\n", BSTD_FUNCTION));
 #endif
             psi->transportTimeStampEnabled = true;
         }
@@ -4647,7 +4643,7 @@ probeAgain:
                         psi->extraAudioPid[psi->extraAudioPidsCount] = track->number;
                         psi->extraAudioCodec[psi->extraAudioPidsCount] = B_PlaybackIp_UtilsAudioCodec2Nexus(track->info.audio.codec);
                         psi->extraAudioPidsCount++;
-                        BDBG_WRN(("%s(%d) audio track %u, codec:%u, extraAudioPidsCount : %d\n", __func__, __LINE__, track->number, track->info.audio.codec, psi->extraAudioPidsCount));
+                        BDBG_WRN(("%s(%d) audio track %u, codec:%u, extraAudioPidsCount : %d\n", BSTD_FUNCTION, BSTD_LINE, track->number, track->info.audio.codec, psi->extraAudioPidsCount));
                     }
                 }
             }
@@ -4660,7 +4656,7 @@ probeAgain:
             psi->audioPid = HLS_PES_AUDIO_ES_ID;
         }
         if (playback_ip->hlsSessionEnabled && !hlsEsProbed && !psi->videoPid && !psi->audioPid) {
-            BDBG_ERR(("%s: Video (%d) or Audio (%d) PIDs are not found during Quick Media Probe, redo a full probe", __FUNCTION__, psi->videoPid, psi->audioPid));
+            BDBG_ERR(("%s: Video (%d) or Audio (%d) PIDs are not found during Quick Media Probe, redo a full probe", BSTD_FUNCTION, psi->videoPid, psi->audioPid));
             /* we failed to probe 1st time for HLS which was done for TS format assuming that PAT/PMT will be present at the start of the segment (as required by HLS Spec).
              * however, to be forgiving for non-compliant servers, we will retry this probe. This will also be done for once more for Audio (ES) only streams. */
             psi->psiValid = false;
@@ -4670,7 +4666,7 @@ probeAgain:
         }
 #endif
         if (!psi->videoPid && !psi->audioPid) {
-            BDBG_ERR(("%s: Video (%d) or Audio (%d) PIDs are not found during Media Probe\n", __FUNCTION__, psi->videoPid, psi->audioPid));
+            BDBG_ERR(("%s: Video (%d) or Audio (%d) PIDs are not found during Media Probe\n", BSTD_FUNCTION, psi->videoPid, psi->audioPid));
             psi->psiValid = false;
             goto error;
         }
@@ -4680,13 +4676,13 @@ probeAgain:
     }
     else {
         /* probe didn't find the PSI info either, return error */
-        BDBG_ERR(("%s: media probe didn't find the PSI info, return error", __FUNCTION__));
+        BDBG_ERR(("%s: media probe didn't find the PSI info, return error", BSTD_FUNCTION));
         goto error;
     }
 #endif /* B_HAS_HTTP_MP4_SUPPORT */
 
 error:
-    BDBG_ERR(("%s: ERROR: Couldn't obtain PSI info from HTTP response or Media Probe\n", __FUNCTION__));
+    BDBG_ERR(("%s: ERROR: Couldn't obtain PSI info from HTTP response or Media Probe\n", BSTD_FUNCTION));
     psi->numPlaySpeedEntries = 1;
     psi->mpegType = NEXUS_TransportType_eUnknown;
     psi->psiValid = false;
@@ -4701,7 +4697,7 @@ out:
     {
         playback_ip->reOpenSocket = true;
         playback_ip->serverClosed = false;
-        BDBG_WRN(("%s: ServerClosed Set, clear it and set reOpenSocket flag!", __FUNCTION__));
+        BDBG_WRN(("%s: ServerClosed Set, clear it and set reOpenSocket flag!", BSTD_FUNCTION));
     }
     BDBG_MSG(("state %d", playback_ip->playback_state));
     if (playback_ip->openSettings.eventCallback && playback_ip->playback_state != B_PlaybackIpState_eStopping && playback_ip->playback_state != B_PlaybackIpState_eStopped)
@@ -4741,7 +4737,7 @@ static void httpSessionOpenThread(
     playback_ip->responseMessage = (char *) BKNI_Malloc(TMP_BUF_SIZE+1);
     server = (char *)BKNI_Malloc(TMP_STRING_SIZE+1);
     if (!playback_ip->responseMessage || !server) {
-        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", BSTD_FUNCTION));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
@@ -4758,7 +4754,7 @@ static void httpSessionOpenThread(
     memset(portString, 0, sizeof(portString));  /* getaddrinfo() requires port # in the string form */
     snprintf(portString, sizeof(portString)-1, "%d", port);
     if (getaddrinfo(server, portString, &hints, &addrInfo) != 0) {
-        BDBG_ERR(("%s: ERROR: getaddrinfo failed for server:port: %s:%d, errno %d", __FUNCTION__, server, port, errno));
+        BDBG_ERR(("%s: ERROR: getaddrinfo failed for server:port: %s:%d, errno %d", BSTD_FUNCTION, server, port, errno));
         perror("getaddrinfo");
         errorCode = B_ERROR_SOCKET_ERROR;
         goto error;
@@ -4782,7 +4778,7 @@ static void httpSessionOpenThread(
             while (retryCount++ < maxRetryCount) {
                 if  (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
                     /* user changed the channel, so return */
-                    BDBG_WRN(("%s: breaking out of main pre-charging loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+                    BDBG_WRN(("%s: breaking out of main pre-charging loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
                     break;
                 }
                 rc = B_PlaybackIp_UtilsTcpSocketConnect(&playback_ip->playback_state, server, port, true, TCP_CONNECT_TIMEOUT_INTERVAL, &socketState->fd);
@@ -4790,12 +4786,12 @@ static void httpSessionOpenThread(
                     break;
                 }
                 else {
-                    BDBG_ERR(("%s:%p: state %d ERROR: failed to send Socket Connect Request to Server: %s:%d, Retry it!!!!: retryCount %d, Max retryCount %d", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state, server, port, retryCount, maxRetryCount ));
+                    BDBG_ERR(("%s:%p: state %d ERROR: failed to send Socket Connect Request to Server: %s:%d, Retry it!!!!: retryCount %d, Max retryCount %d", BSTD_FUNCTION, (void *)playback_ip, playback_ip->playback_state, server, port, retryCount, maxRetryCount ));
                     continue;
                 }
             }
             if (rc != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: failed to send Socket Connect Request to Server: %s:%d\n", __FUNCTION__, server, port));
+                BDBG_ERR(("%s: ERROR: failed to send Socket Connect Request to Server: %s:%d\n", BSTD_FUNCTION, server, port));
                 goto error;
             }
         }
@@ -4804,7 +4800,7 @@ static void httpSessionOpenThread(
         /* Do security session setup here as Get request to server may be encrypted */
         rc = B_PlaybackIp_SecuritySessionOpen(playback_ip, &playback_ip->openSettings, fd, &playback_ip->securityHandle);
         if (rc < 0) {
-            BDBG_ERR(("%s: ERROR: failed to setup the session, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s: ERROR: failed to setup the session, rc = %d\n", BSTD_FUNCTION, rc));
             errorCode = B_ERROR_PROTO;
             goto error;
         }
@@ -4815,24 +4811,24 @@ static void httpSessionOpenThread(
             byteRangeStart = 0; /* this ensures that we dont include Range Header in the outgoing requests */
         byteRangeEnd = 0;
         if (http_build_get_req(&playback_ip->requestMessage, playback_ip, speed, seek_range, 0., byteRangeStart, byteRangeEnd, NULL) < 0) {
-            BDBG_ERR(("%s: ERROR: failed to build HTTP Get request to Server", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to build HTTP Get request to Server", BSTD_FUNCTION));
             errorCode = B_ERROR_PROTO;
             goto error;
         }
 
         /* now send GET request */
         if ( (rc = playback_ip->netIo.write(playback_ip->securityHandle, &playback_ip->playback_state, socketState->fd, playback_ip->requestMessage, strlen(playback_ip->requestMessage))) < 0 ) {
-            BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", __FUNCTION__, server, port));
+            BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", BSTD_FUNCTION, server, port));
             errorCode = B_ERROR_PROTO;
             goto error;
         }
-        BDBG_MSG(("%s: Sent HTTP Get Request (fd %d)", __FUNCTION__, playback_ip->socketState.fd));
+        BDBG_MSG(("%s: Sent HTTP Get Request (fd %d)", BSTD_FUNCTION, playback_ip->socketState.fd));
         BKNI_Free(playback_ip->requestMessage);
         playback_ip->requestMessage = NULL;
 
         /* now read the http response */
         if ( (rc = http_read_response(playback_ip, playback_ip->securityHandle, fd, &playback_ip->responseMessage, TMP_BUF_SIZE, &http_hdr, &http_payload, &playback_ip->initial_data_len)) < 0 ) {
-            BDBG_ERR(("%s: ERROR: failed to receive valid HTTP response\n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to receive valid HTTP response\n", BSTD_FUNCTION));
             errorCode = B_ERROR_PROTO;
             goto error;
         }
@@ -4862,7 +4858,7 @@ static void httpSessionOpenThread(
             bytesRead = (http_payload - playback_ip->responseMessage) + playback_ip->initial_data_len;
             rc = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, fd, http_payload+playback_ip->initial_data_len, TMP_BUF_SIZE-bytesRead, playback_ip->networkTimeout);
             if (rc <= 0 && playback_ip->initial_data_len == 0) {
-                BDBG_ERR(("%s: Shoutcast Playlist payload data is missing, rc %d, serverClosed %d, selectTimeout %d", __FUNCTION__, rc, playback_ip->serverClosed, playback_ip->selectTimeout));
+                BDBG_ERR(("%s: Shoutcast Playlist payload data is missing, rc %d, serverClosed %d, selectTimeout %d", BSTD_FUNCTION, rc, playback_ip->serverClosed, playback_ip->selectTimeout));
                 errorCode = B_ERROR_PROTO;
                 goto error;
             }
@@ -4881,7 +4877,7 @@ static void httpSessionOpenThread(
             playback_ip->serverClosed = false;
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: Shoutcast/PLS playlist case, caching the redirected URL: http://%s:%d%s", __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
+                BDBG_WRN(("%s: Shoutcast/PLS playlist case, caching the redirected URL: http://%s:%d%s", BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
 #endif
         }
         else if (http_url_type == HTTP_URL_IS_REDIRECT) {
@@ -4916,7 +4912,7 @@ static void httpSessionOpenThread(
             playback_ip->contentLength = 0;
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: HTTP redirect case, caching the redirected URL: http://%s:%d%s", __FUNCTION__, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
+                BDBG_WRN(("%s: HTTP redirect case, caching the redirected URL: http://%s:%d%s", BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url));
 #endif
         }
         else {
@@ -4928,7 +4924,7 @@ static void httpSessionOpenThread(
             if (playback_ip->initial_data_len != 0) {
                 BDBG_MSG(("copying initial data (part of HTTP response) of len %d to temp buffer\n", playback_ip->initial_data_len));
                 if (playback_ip->initial_data_len > TMP_BUF_SIZE) {
-                    BDBG_ERR(("%s: ERROR: initial data read %d is greater than the temp buffer size %d, need to increase its size", __FUNCTION__, playback_ip->initial_data_len, TMP_BUF_SIZE));
+                    BDBG_ERR(("%s: ERROR: initial data read %d is greater than the temp buffer size %d, need to increase its size", BSTD_FUNCTION, playback_ip->initial_data_len, TMP_BUF_SIZE));
                     errorCode = B_ERROR_PROTO;
                     goto error;
                 }
@@ -4940,7 +4936,7 @@ static void httpSessionOpenThread(
                 /* app needs a copy of the response headers for further app specific header parsing */
                 playback_ip->openStatus.u.http.responseHeaders = strdup(http_hdr);
                 if (playback_ip->openStatus.u.http.responseHeaders == NULL) {
-                    BDBG_ERR(("%s: ERROR: failed to duplicate HTTP Response header string\n", __FUNCTION__));
+                    BDBG_ERR(("%s: ERROR: failed to duplicate HTTP Response header string\n", BSTD_FUNCTION));
                     errorCode = B_ERROR_OUT_OF_MEMORY;
                     goto error;
                 }
@@ -4968,7 +4964,7 @@ static void httpSessionOpenThread(
     }
 
     BDBG_MSG(("%s: successfully received the HTTP Get Response (fd %d, local ip:port = %s:%d)",
-                __FUNCTION__, socketState->fd,
+                BSTD_FUNCTION, socketState->fd,
                 inet_ntoa(socketState->local_addr.sin_addr),
                 ntohs(socketState->local_addr.sin_port)));
     errorCode = B_ERROR_SUCCESS;
@@ -5032,7 +5028,7 @@ B_PlaybackIp_HttpSessionOpen(
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
 
     if (!playback_ip || !openSettings || !openStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }
@@ -5043,7 +5039,7 @@ B_PlaybackIp_HttpSessionOpen(
 
     /* if SessionOpen is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_MSG(("%s: previously started session open operation completed, playback_ip %p", __FUNCTION__, (void *)playback_ip));
+        BDBG_MSG(("%s: previously started session open operation completed, playback_ip %p", BSTD_FUNCTION, (void *)playback_ip));
         goto apiDone;
     }
 
@@ -5054,13 +5050,13 @@ B_PlaybackIp_HttpSessionOpen(
     playback_ip->openSettings.u.http.userAgent = NULL;
     if (openSettings->u.http.additionalHeaders) {
         if (!strstr(openSettings->u.http.additionalHeaders, "\r\n")) {
-            BDBG_ERR(("%s: additional HTTP header is NOT properly terminated (missing \\r\\n), header is %s\n", __FUNCTION__, openSettings->u.http.additionalHeaders));
+            BDBG_ERR(("%s: additional HTTP header is NOT properly terminated (missing \\r\\n), header is %s\n", BSTD_FUNCTION, openSettings->u.http.additionalHeaders));
             errorCode = B_ERROR_INVALID_PARAMETER;
             goto error;
         }
         /* cache a copy of this field */
         if ((playback_ip->openSettings.u.http.additionalHeaders = B_PlaybackIp_UtilsStrdup(openSettings->u.http.additionalHeaders)) == NULL) {
-            BDBG_ERR(("%s: Failed to duplicate additional headers string due to out of memory condition", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to duplicate additional headers string due to out of memory condition", BSTD_FUNCTION));
             errorCode = B_ERROR_OUT_OF_MEMORY;
             goto error;
         }
@@ -5069,13 +5065,13 @@ B_PlaybackIp_HttpSessionOpen(
         /* note: app is not required to terminate userAgent w/ \r\n as as accept it as a string only and add these terminators ourselves */
         /* cache a copy of this field */
         if ((playback_ip->openSettings.u.http.userAgent = B_PlaybackIp_UtilsStrdup(openSettings->u.http.userAgent)) == NULL) {
-            BDBG_ERR(("%s: Failed to duplicate userAgent field string due to out of memory condition", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to duplicate userAgent field string due to out of memory condition", BSTD_FUNCTION));
             errorCode = B_ERROR_OUT_OF_MEMORY;
             goto error;
         }
     }
     /* cache a copy of this field as we may have to re-send request to server at a later point */
-    BDBG_MSG(("%s: ip %s, port %d, proto %d, n/w buf sz %d, copyResp %d, url %s, addHdr %s, userAgent %s", __FUNCTION__,
+    BDBG_MSG(("%s: ip %s, port %d, proto %d, n/w buf sz %d, copyResp %d, url %s, addHdr %s, userAgent %s", BSTD_FUNCTION,
                 openSettings->socketOpenSettings.ipAddr,
                 openSettings->socketOpenSettings.port,
                 openSettings->socketOpenSettings.protocol,
@@ -5090,13 +5086,13 @@ B_PlaybackIp_HttpSessionOpen(
         /* do PSI parsing in a thread and return back to app */
         playback_ip->sessionOpenThread = B_Thread_Create("SessionOpenThread", (B_ThreadFunc)httpSessionOpenThread, (void *)playback_ip, NULL);
         if (NULL == playback_ip->sessionOpenThread) {
-            BDBG_ERR(("%s: Failed to create thread for Session Open", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to create thread for Session Open", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
             goto error;
         }
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: Non blocking session open operation started: playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
+            BDBG_WRN(("%s: Non blocking session open operation started: playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
 #endif
         errorCode = B_ERROR_IN_PROGRESS;
     }
@@ -5147,9 +5143,9 @@ readAppHeader(
                 *tmpPtr1 = '\0';
                 appHeader->length = strtol(tmpPtr, (char **)NULL, 10);
                 *tmpPtr1 = '\r';
-                BDBG_MSG(("%s: length %d", __FUNCTION__, appHeader->length));
+                BDBG_MSG(("%s: length %d", BSTD_FUNCTION, appHeader->length));
                 if (appHeader->length <= 0 || appHeader->length > sizeof(appHeader->data)) {
-                    BDBG_ERR(("%s: read invalid appHeader length %d, should be > 0 & < %zu", __FUNCTION__, appHeader->length, sizeof(appHeader->data)));
+                    BDBG_ERR(("%s: read invalid appHeader length %d, should be > 0 & < %zu", BSTD_FUNCTION, appHeader->length, sizeof(appHeader->data)));
                     rc = -1;
                     break;
                 }
@@ -5160,12 +5156,12 @@ readAppHeader(
                         rc = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, playback_ip->socketState.fd, (char *)appHeader->data, appHeader->length, playback_ip->networkTimeout);
                     }
                     if (rc <=0) {
-                        BDBG_ERR(("%s: failed to read appHeader: length %d", __FUNCTION__, appHeader->length));
+                        BDBG_ERR(("%s: failed to read appHeader: length %d", BSTD_FUNCTION, appHeader->length));
                         rc = -1;
                         break;
                     }
                 }
-                BDBG_MSG(("%s: appHeader data: %d, %d, %d, %d, %d, %d, %d, %d", __FUNCTION__, appHeader->data[0], appHeader->data[1], appHeader->data[2], appHeader->data[3], appHeader->data[4], appHeader->data[5], appHeader->data[6], appHeader->data[7]));
+                BDBG_MSG(("%s: appHeader data: %d, %d, %d, %d, %d, %d, %d, %d", BSTD_FUNCTION, appHeader->data[0], appHeader->data[1], appHeader->data[2], appHeader->data[3], appHeader->data[4], appHeader->data[5], appHeader->data[6], appHeader->data[7]));
             }
         }
     } while(0);
@@ -5191,7 +5187,7 @@ B_PlaybackIp_HttpSessionSetup(
     B_PlaybackIpPsiInfo *psi;
 
     if (!playback_ip || !setupSettings || !setupStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }
@@ -5202,7 +5198,7 @@ B_PlaybackIp_HttpSessionSetup(
 
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", __FUNCTION__, (void *)playback_ip));
+        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", BSTD_FUNCTION, (void *)playback_ip));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -5214,7 +5210,7 @@ B_PlaybackIp_HttpSessionSetup(
 
     if (strstr(playback_ip->responseMessage, "BCM-App-Header-Inserted")) {
         if (readAppHeader(playback_ip) <= 0) {
-            BDBG_ERR(("%s: Failed to read App specific header", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to read App specific header", BSTD_FUNCTION));
             errorCode = B_ERROR_PROTO;
             goto error;
         }
@@ -5234,7 +5230,7 @@ B_PlaybackIp_HttpSessionSetup(
         rc = B_PlaybackIp_SecuritySessionOpen(playback_ip, &playback_ip->openSettings, playback_ip->socketState.fd, &playback_ip->securityHandle);
 
         if (rc < 0) {
-            BDBG_ERR(("%s: ERROR: failed to open security session, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s: ERROR: failed to open security session, rc = %d\n", BSTD_FUNCTION, rc));
             errorCode = B_ERROR_PROTO;
             goto error;
         }
@@ -5244,7 +5240,7 @@ B_PlaybackIp_HttpSessionSetup(
 
         rc = B_PlaybackIp_SecurityDecryptionEnable(playback_ip, playback_ip->temp_buf, &playback_ip->initial_data_len);
         if (rc < 0) {
-            BDBG_ERR(("%s: ERROR: failed to enable descryption, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s: ERROR: failed to enable descryption, rc = %d\n", BSTD_FUNCTION, rc));
             errorCode = B_ERROR_PROTO;
             goto error;
         }
@@ -5254,7 +5250,7 @@ B_PlaybackIp_HttpSessionSetup(
         /* if server is streaming content using HTTP chunk xfer encoding, content length is not set */
         /* setting this value allows index information to be built and thus trickmodes will work on stream */
         playback_ip->contentLength = setupSettings->u.http.contentLengthHint;
-        BDBG_MSG(("%s: Updated Content Length to user supplied hint %"PRId64 "", __FUNCTION__, playback_ip->contentLength));
+        BDBG_MSG(("%s: Updated Content Length to user supplied hint %"PRId64 "", BSTD_FUNCTION, playback_ip->contentLength));
     }
     /* check if HTTP server provided any PSI info in the HTTP response header (Broadcom HTTP streamer does that) */
     /* in that case, we dont need to do explicit probe operation (which can take several seconds) and */
@@ -5272,7 +5268,7 @@ B_PlaybackIp_HttpSessionSetup(
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
             BDBG_WRN(("%s: Skipping Media Probe: %s",
-                    __FUNCTION__, playback_ip->openSettings.u.http.rvuCompliant ? "RVU Session: App knows PSI info" :
+                    BSTD_FUNCTION, playback_ip->openSettings.u.http.rvuCompliant ? "RVU Session: App knows PSI info" :
                                 ((psi->psiValid && psi->numPlaySpeedEntries > 1) ? "Server Side Trickmodes" :
                                  (psi->liveChannel ? "Live Channel" : "App knows PSI & is using Nexus Playpump"))));
 #endif
@@ -5293,18 +5289,18 @@ B_PlaybackIp_HttpSessionSetup(
         /* so we create a Nexus File handle representing the network socket (both data & index handles are mapped to the network socket) */
         playback_ip->nexusFileHandle = B_PlaybackIp_HttpCreateFilePlayHandle(playback_ip, &playback_ip->bufferedFdIndex);
         if (playback_ip->nexusFileHandle == NULL) {
-            BDBG_ERR(("%s: Failed to Create the Playback Handles\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to Create the Playback Handles\n", BSTD_FUNCTION));
             errorCode = B_ERROR_OUT_OF_MEMORY;
             goto error;
         }
-        BDBG_MSG(("%s: created Nexus file IO handle %p", __FUNCTION__, (void *)playback_ip->nexusFileHandle));
+        BDBG_MSG(("%s: created Nexus file IO handle %p", BSTD_FUNCTION, (void *)playback_ip->nexusFileHandle));
 
         /* check if we need to skip the probe, if so, we can't not setup the index descriptor as index info is built/discovered due to skipping PSI discovery */
         if (setupSettings->u.http.skipPsiParsing) {
             /* app told us to skip the probing as it already knows the media info */
             /* typically app does this for LPCM, RAD/EA encrypted MP3 streams */
             struct bfile_in_net *filePlay;
-            BDBG_MSG(("%s: Skipping Media Probe as App asked to skip it", __FUNCTION__));
+            BDBG_MSG(("%s: Skipping Media Probe as App asked to skip it", BSTD_FUNCTION));
 
             /* turn off trick modes (by not providing the index file descriptor in file handle to the Playback */
             if (playback_ip->fileBuffered) {
@@ -5337,13 +5333,13 @@ B_PlaybackIp_HttpSessionSetup(
                 /* do PSI parsing in a thread and return back to app */
                 playback_ip->sessionSetupThread = B_Thread_Create("SessionSetupThread", (B_ThreadFunc)http_parse_av_info, (void *)playback_ip, NULL);
                 if (NULL == playback_ip->sessionSetupThread) {
-                    BDBG_ERR(("%s: Failed to create thread for media probe during Session Setup\n", __FUNCTION__));
+                    BDBG_ERR(("%s: Failed to create thread for media probe during Session Setup\n", BSTD_FUNCTION));
                     errorCode = B_ERROR_UNKNOWN;
                     goto error;
                 }
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
+                    BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
 #endif
                 errorCode = B_ERROR_IN_PROGRESS;
                 goto error;
@@ -5359,7 +5355,7 @@ done:
     /* dont copy PSI info if App had asked us to skip PSI parsing */
     if (!setupSettings->u.http.skipPsiParsing) {
         if (!playback_ip->psi.psiValid) {
-            BDBG_ERR(("%s: Failed to acquire PSI info via media probe\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to acquire PSI info via media probe\n", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
             goto error;
         }
@@ -5424,7 +5420,7 @@ void B_PlaybackIp_HttpPlaybackThread(
     else {
         playback_ip->networkTimeout = HTTP_SELECT_TIMEOUT/10;
     }
-    BDBG_MSG(("%s: n/w timeout %d secs", __FUNCTION__, playback_ip->networkTimeout));
+    BDBG_MSG(("%s: n/w timeout %d secs", BSTD_FUNCTION, playback_ip->networkTimeout));
 
     /* main loop */
     /* TODO: extend this thread to do multiple functions:
@@ -5434,7 +5430,7 @@ void B_PlaybackIp_HttpPlaybackThread(
     while (true) {
         if  (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s: breaking out of main pre-charging loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_MSG(("%s: breaking out of main pre-charging loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             break;
         }
         if (!playback_ip->preChargeBuffer && !playback_ip->sendNextTimeSeekReq) {
@@ -5449,7 +5445,7 @@ void B_PlaybackIp_HttpPlaybackThread(
                 /* event timeout, thus no new task to do, go back and retry it */
                 continue;
             } else if (rc!=0) {
-                BDBG_ERR(("%s: got error while waiting for new task event, rc %d", __FUNCTION__, rc));
+                BDBG_ERR(("%s: got error while waiting for new task event, rc %d", BSTD_FUNCTION, rc));
                 break;
             }
             /* else we got a new task to do: so do the work below */
@@ -5468,7 +5464,7 @@ void B_PlaybackIp_HttpPlaybackThread(
         if (playback_ip->readCallBackInProgress) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: read callback via nexus io thread is still active, HTTP thread has to wait for its completion, sleep & retry\n", __FUNCTION__));
+                BDBG_WRN(("%s: read callback via nexus io thread is still active, HTTP thread has to wait for its completion, sleep & retry\n", BSTD_FUNCTION));
 #endif
             BKNI_ReleaseMutex(playback_ip->lock);
             BKNI_Sleep(100);
@@ -5485,7 +5481,7 @@ void B_PlaybackIp_HttpPlaybackThread(
                 initialDataLength = 0;
                 playback_ip->dataCache[0].startOffset = 0;
                 playback_ip->dataCache[0].endOffset = playback_ip->dataCache[0].startOffset - 1;
-                BDBG_MSG(("%s: Can't seek when Range Header is not supported, so cache from begining!\n", __FUNCTION__));
+                BDBG_MSG(("%s: Can't seek when Range Header is not supported, so cache from begining!\n", BSTD_FUNCTION));
             }
             /* However, for ASF, index data (if present) is at the end of stream. True index data is not acquired during probe until */
             /* playback starts. Thus, during initial buffering for ASF, we copy the content of index cache (mostly ASF headers) into the data cache*/
@@ -5493,7 +5489,7 @@ void B_PlaybackIp_HttpPlaybackThread(
                 /* Copy currently read data from index to data cache as it is really the movie hdr & data & not index data */
                 initialDataLength = playback_ip->indexCacheDepth;
                 memcpy(playback_ip->dataCache[0].cache, playback_ip->indexCache, initialDataLength);
-                BDBG_MSG(("%s: copied %d bytes from index to data cache for ASF\n", __FUNCTION__, initialDataLength));
+                BDBG_MSG(("%s: copied %d bytes from index to data cache for ASF\n", BSTD_FUNCTION, initialDataLength));
 
                 playback_ip->dataCache[0].endOffset = playback_ip->indexCacheDepth -1;
                 playback_ip->dataCache[0].startOffset = 0;
@@ -5516,7 +5512,7 @@ void B_PlaybackIp_HttpPlaybackThread(
             playback_ip->cacheDepthFudgeFactor = 0;
             cacheIndex = 0;
             BDBG_MSG(("%s: Data Cache (# %d) setup during pre-charging: offset start %"PRId64 ", end %"PRId64 ", depth %d, index rd %u, wr %u\n",
-                    __FUNCTION__, cacheIndex, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
+                    BSTD_FUNCTION, cacheIndex, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, playback_ip->dataCache[cacheIndex].writeIndex));
         }
         else if ( (playback_ip->dataCache[playback_ip->lastUsedCacheIndex].endOffset+1) == playback_ip->contentLength) {
@@ -5537,7 +5533,7 @@ void B_PlaybackIp_HttpPlaybackThread(
             playback_ip->reOpenSocket = true;
             playback_ip->serverClosed = false;
             BDBG_MSG(("%s: Data Cache (# %d) pre-charging during rewind: offset start %"PRId64 ", end %"PRId64 ", depth %d, index rd %u, wr %u\n",
-                    __FUNCTION__, cacheIndex, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
+                    BSTD_FUNCTION, cacheIndex, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, playback_ip->dataCache[cacheIndex].writeIndex));
         }
         else {
@@ -5548,7 +5544,7 @@ void B_PlaybackIp_HttpPlaybackThread(
             /* select the cache that was used last by the io threads to read data */
             cacheIndex = playback_ip->lastUsedCacheIndex;
             BDBG_MSG(("%s: before adjustments: Data Cache (# %d): lastSeekOffset %"PRId64 ", offset start %"PRId64 ", end %"PRId64 ", depth %d, index rd %u, wr %u\n",
-                    __FUNCTION__, cacheIndex, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
+                    BSTD_FUNCTION, cacheIndex, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, playback_ip->dataCache[cacheIndex].writeIndex));
             if (playback_ip->lastSeekOffset > playback_ip->dataCache[cacheIndex].startOffset && playback_ip->lastSeekOffset <= playback_ip->dataCache[cacheIndex].endOffset) {
                 int remainder;
@@ -5562,12 +5558,12 @@ void B_PlaybackIp_HttpPlaybackThread(
                 /* we rememeber this fudge factor as we adjust max buffer size by this amount in the GetStatus call */
                 playback_ip->cacheDepthFudgeFactor = HTTP_CACHE_DEPTH_FUDGE_FACTOR + remainder;
                 if (adjustedOffset <= playback_ip->dataCache[cacheIndex].startOffset) {
-                    BDBG_MSG(("%s: adjusted offset was going to go before cache start, resetting it to cacheStart\n", __FUNCTION__));
+                    BDBG_MSG(("%s: adjusted offset was going to go before cache start, resetting it to cacheStart\n", BSTD_FUNCTION));
                     offset = 0;
                 }
                 else {
                     offset = adjustedOffset - playback_ip->dataCache[cacheIndex].startOffset;
-                    BDBG_MSG(("%s: moving start offset by %"PRId64 " bytes\n", __FUNCTION__, offset));
+                    BDBG_MSG(("%s: moving start offset by %"PRId64 " bytes\n", BSTD_FUNCTION, offset));
                 }
                 /* startOffset is moved forward to the adjustedOffset */
                 playback_ip->dataCache[cacheIndex].startOffset += offset;
@@ -5581,7 +5577,7 @@ void B_PlaybackIp_HttpPlaybackThread(
                     goto error;
                 }
                 BDBG_MSG(("%s: Data Cache (# %d) Pruning during pre-charging: lastSeekOffset %"PRId64 ", offset start %"PRId64 ", end %"PRId64 ", depth %d, index rd %u, wr %u\n",
-                    __FUNCTION__, cacheIndex, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
+                    BSTD_FUNCTION, cacheIndex, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                     playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, playback_ip->dataCache[cacheIndex].writeIndex));
             }
             else {
@@ -5608,7 +5604,7 @@ void B_PlaybackIp_HttpPlaybackThread(
                 /* set flag to indicate that we need to re-open the socket */
                 playback_ip->reOpenSocket = true;
                 BDBG_MSG(("%s: Data Cache (# %d) pre-charging: seekOffset is outside current cache, restarting cache from it: offset lastSeek %"PRId64 ", start %"PRId64 ", end %"PRId64 ", depth %d, index rd %u, wr %u\n",
-                        __FUNCTION__, cacheIndex, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
+                        BSTD_FUNCTION, cacheIndex, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
                         playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].readIndex, playback_ip->dataCache[cacheIndex].writeIndex));
             }
         }
@@ -5618,19 +5614,19 @@ void B_PlaybackIp_HttpPlaybackThread(
             sendEvent = true;
             if  (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
                 /* user changed the channel, so return */
-                BDBG_MSG(("%s: breaking out of current pre-charging loop due to state (%d) change\n", __FUNCTION__, playback_ip->playback_state));
+                BDBG_MSG(("%s: breaking out of current pre-charging loop due to state (%d) change\n", BSTD_FUNCTION, playback_ip->playback_state));
                 break;
             }
             if (!playback_ip->preChargeBuffer) {
                 /* app is now asking to stop preCharging, so break */
-                BDBG_MSG(("%s: preChargeBuffer flag is now false, stop pre-charging (playback ip state %d) \n", __FUNCTION__, playback_ip->playback_state));
+                BDBG_MSG(("%s: preChargeBuffer flag is now false, stop pre-charging (playback ip state %d) \n", BSTD_FUNCTION, playback_ip->playback_state));
                 break;
             }
 
             /* See if there is room in cache to read n/w data */
             if (playback_ip->dataCache[cacheIndex].depth >= playback_ip->dataCache[cacheIndex].size || playback_ip->serverClosed) {
                 BDBG_MSG(("%s: Pre-Charge buffer is full (size %d, depth %d) or eof (%d), waiting for app to stop pre-charging, till then sleeping...\n",
-                            __FUNCTION__, playback_ip->dataCache[cacheIndex].size, playback_ip->dataCache[cacheIndex].depth, playback_ip->serverClosed));
+                            BSTD_FUNCTION, playback_ip->dataCache[cacheIndex].size, playback_ip->dataCache[cacheIndex].depth, playback_ip->serverClosed));
                 BKNI_Sleep(500);
                 continue;
             }
@@ -5639,7 +5635,7 @@ void B_PlaybackIp_HttpPlaybackThread(
             spaceAvailableAtEnd = playback_ip->dataCache[cacheIndex].size - playback_ip->dataCache[cacheIndex].writeIndex;
             if (spaceAvailableAtEnd < HTTP_DATA_CACHE_CHUNK_SIZE) {
                 BDBG_MSG(("%s: reached towards end of data cache, so reading (%d) less than chunk size (%d), cache size %d, cache wr idx %d\n",
-                            __FUNCTION__, spaceAvailableAtEnd, HTTP_DATA_CACHE_CHUNK_SIZE, playback_ip->dataCache[cacheIndex].size, playback_ip->dataCache[cacheIndex].writeIndex));
+                            BSTD_FUNCTION, spaceAvailableAtEnd, HTTP_DATA_CACHE_CHUNK_SIZE, playback_ip->dataCache[cacheIndex].size, playback_ip->dataCache[cacheIndex].writeIndex));
                 bytesToRead = spaceAvailableAtEnd;
             }
             else
@@ -5650,7 +5646,7 @@ void B_PlaybackIp_HttpPlaybackThread(
             ) {
                 /* in both cases, we need to close the current socket & send a new request to server */
                 /* both are done in NetRangeReq()) */
-                BDBG_MSG(("%s: re-setup the connection for cache idx %d, prev cache idx %d, re-open socket %d\n", __FUNCTION__, cacheIndex, playback_ip->cacheIndexUsingSocket, playback_ip->reOpenSocket));
+                BDBG_MSG(("%s: re-setup the connection for cache idx %d, prev cache idx %d, re-open socket %d\n", BSTD_FUNCTION, cacheIndex, playback_ip->cacheIndexUsingSocket, playback_ip->reOpenSocket));
                 playback_ip->reOpenSocket = false;
                 playback_ip->cacheIndexUsingSocket = cacheIndex;
                 /* send new HTTP Range request on a new socket */
@@ -5666,7 +5662,7 @@ void B_PlaybackIp_HttpPlaybackThread(
            if (rc <= 0) {
 #ifdef BDBG_DEBUG_BUILD
                if (playback_ip->ipVerboseLog)
-                   BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, rc, playback_ip->playback_state));
+                   BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", BSTD_FUNCTION, rc, playback_ip->playback_state));
 #endif
                 /* we wait until we recover from n/w error (e.g. select timeout due to temporary n/w loss) or app turns off the pre-charging */
                 BKNI_Sleep(100);
@@ -5698,7 +5694,7 @@ void B_PlaybackIp_HttpPlaybackThread(
         }
 
         BDBG_MSG(("%s: pre-charged data cache[%d] read %zd: cache start %"PRId64 ", end %"PRId64 " depth %d, wr idx %d",
-            __FUNCTION__, cacheIndex, bytesRead, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
+            BSTD_FUNCTION, cacheIndex, bytesRead, playback_ip->dataCache[cacheIndex].startOffset, playback_ip->dataCache[cacheIndex].endOffset,
             playback_ip->dataCache[cacheIndex].depth, playback_ip->dataCache[cacheIndex].writeIndex));
         bytesRead = 0;
         /* reset the fudge factor */
@@ -5708,10 +5704,10 @@ void B_PlaybackIp_HttpPlaybackThread(
 
 error:
     if (internalError) {
-        BDBG_ERR(("%s: sw bug: error hint: %s\n", __FUNCTION__, internalError));
+        BDBG_ERR(("%s: sw bug: error hint: %s\n", BSTD_FUNCTION, internalError));
         BKNI_SetEvent(playback_ip->preChargeBufferEvent);
     }
-    BDBG_MSG(("%s: thread is exiting..., state %d", __FUNCTION__, playback_ip->playback_state));
+    BDBG_MSG(("%s: thread is exiting..., state %d", BSTD_FUNCTION, playback_ip->playback_state));
     BKNI_SetEvent(playback_ip->playback_halt_event);
     playback_ip->speed = 0;
     BKNI_ReleaseMutex(playback_ip->lock);
@@ -5734,7 +5730,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
         /* user changed the channel before this thread got a chance to start, we are done */
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: returning due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_WRN(("%s: returning due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
 #endif
         goto out;
     }
@@ -5748,7 +5744,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
     else {
         playback_ip->networkTimeout = HTTP_SELECT_TIMEOUT/10;
     }
-    BDBG_MSG(("%s: n/w timeout %d secs", __FUNCTION__, playback_ip->networkTimeout));
+    BDBG_MSG(("%s: n/w timeout %d secs", BSTD_FUNCTION, playback_ip->networkTimeout));
 
     if (B_PlaybackIp_UtilsWaitForPlaypumpDecoderSetup(playback_ip))
         goto error;
@@ -5761,7 +5757,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
 
     if (playback_ip->startSettings.monitorPsi) {
         if ( (playback_ip->pPsiState = B_PlaybackIp_CreatePsiState(playback_ip)) == NULL ) {
-            BDBG_ERR(("%s: B_PlaybackIp_CreatePsiState() Failed to allocate memory for psiState", __FUNCTION__));
+            BDBG_ERR(("%s: B_PlaybackIp_CreatePsiState() Failed to allocate memory for psiState", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -5771,11 +5767,11 @@ void B_PlaybackIp_HttpPlaypumpThread(
         /* and we thus need to reconnect to server to stream from starting offset */
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: serverClosed %d, netRangeInvoked %d", __FUNCTION__, playback_ip->serverClosed, playback_ip->netRangeFunctionInvoked));
+            BDBG_WRN(("%s: serverClosed %d, netRangeInvoked %d", BSTD_FUNCTION, playback_ip->serverClosed, playback_ip->netRangeFunctionInvoked));
 #endif
         rc = B_PlaybackIp_HttpNetRangeReq(playback_ip, playback_ip->temp_buf, 0, 0, 0, playback_ip->socketState.fd, &playback_ip->socketState.fd);
         if (rc < 0) {
-            BDBG_ERR(("%s: Failed to re-open socket connection", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to re-open socket connection", BSTD_FUNCTION));
             goto error;
         }
         playback_ip->initial_data_len = rc;
@@ -5788,6 +5784,10 @@ void B_PlaybackIp_HttpPlaypumpThread(
         || playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip) {
         B_PlaybackIp_TtsThrottle_Params throttleParams;
         NEXUS_PlaypumpSettings playpumpSettings;
+
+        if (B_PlaybackIp_UtilsDiscardBufferedData(playback_ip, playback_ip->socketState.fd, SOCK_STREAM) == false) {
+            BDBG_WRN(("%s: B_PlaybackIp_UtilsDiscardBufferedData failed, but continuing...", BSTD_FUNCTION));
+        }
 
         playback_ip->ttsThrottle = B_PlaybackIp_TtsThrottle_Open();
 
@@ -5812,18 +5812,19 @@ void B_PlaybackIp_HttpPlaypumpThread(
         /* audio & video case */
         readBufSize = 1024*60;
     }
+
     /* main loop */
     while (true) {
-        BDBG_MSG(("%s:%p: Before Acquiring Mutex! ", __FUNCTION__, (void *)playback_ip));
+        BDBG_MSG(("%s:%p: Before Acquiring Mutex! ", BSTD_FUNCTION, (void *)playback_ip));
         BKNI_AcquireMutex(playback_ip->lock);
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s: breaking out of HTTP loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_MSG(("%s: breaking out of HTTP loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             break;
         }
         if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode) {
             BKNI_ReleaseMutex(playback_ip->lock);
-            BDBG_MSG(("%s: pausing feeder thread to allow trickmode transitions", __FUNCTION__));
+            BDBG_MSG(("%s: pausing feeder thread to allow trickmode transitions", BSTD_FUNCTION));
             BKNI_Sleep(20); /* wait little bit before going back to the top, this allows trickmode thread to get the lock first, finish the trickmode transition and then release the lock */
             continue;
         }
@@ -5833,7 +5834,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
             BKNI_ReleaseMutex(playback_ip->lock);
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: Failed to get buffer from playpump, retry ", __FUNCTION__));
+                BDBG_WRN(("%s: Failed to get buffer from playpump, retry ", BSTD_FUNCTION));
 #endif
             BKNI_Sleep(100);
             continue;
@@ -5843,7 +5844,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
             unsigned bytesToCopy;
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_MSG(("%s: copying the initial %d bytes to playpump buffer", __FUNCTION__, playback_ip->indexCacheDepth));
+                BDBG_MSG(("%s: copying the initial %d bytes to playpump buffer", BSTD_FUNCTION, playback_ip->indexCacheDepth));
 #endif
             /* copy lower of the indexCacheBuffer depth or available playpump buffer. */
             bytesToCopy = playback_ip->indexCacheDepth < readBufSize ? playback_ip->indexCacheDepth : readBufSize;
@@ -5854,7 +5855,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
         else if (playback_ip->initial_data_len) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: copying the initial %d bytes to playpump buffer", __FUNCTION__, playback_ip->initial_data_len));
+                BDBG_WRN(("%s: copying the initial %d bytes to playpump buffer", BSTD_FUNCTION, playback_ip->initial_data_len));
 #endif
             BKNI_Memcpy(playback_ip->buffer, playback_ip->temp_buf, playback_ip->initial_data_len);
             rc = playback_ip->initial_data_len;
@@ -5862,15 +5863,15 @@ void B_PlaybackIp_HttpPlaypumpThread(
         }
         else {
             /* read the requested range of data chunk from socket */
-            BDBG_MSG(("%s: Got playpump buffer to read more data into, now Read %zu bytes from socket (fd=%d) into this buffer", __FUNCTION__, readBufSize, playback_ip->socketState.fd ));
+            BDBG_MSG(("%s: Got playpump buffer to read more data into, now Read %zu bytes from socket (fd=%d) into this buffer", BSTD_FUNCTION, readBufSize, playback_ip->socketState.fd ));
             rc = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, playback_ip->socketState.fd, (char *)playback_ip->buffer, readBufSize, playback_ip->networkTimeout);
             if (rc <= 0) {
-                BDBG_MSG(("%s: rc %zd, serverClosed %d, selectTimeout %d", __FUNCTION__, rc, playback_ip->serverClosed, playback_ip->selectTimeout));
+                BDBG_MSG(("%s: rc %zd, serverClosed %d, selectTimeout %d", BSTD_FUNCTION, rc, playback_ip->serverClosed, playback_ip->selectTimeout));
                 if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode || playback_ip->selectTimeout) {
                     BKNI_ReleaseMutex(playback_ip->lock);
 #ifdef BDBG_DEBUG_BUILD
                     if (playback_ip->ipVerboseLog)
-                        BDBG_WRN(("%s: %s", __FUNCTION__, playback_ip->selectTimeout? "no data coming from server, retry!": "pausing feeder thread to allow trickmode transitions"));
+                        BDBG_WRN(("%s: %s", BSTD_FUNCTION, playback_ip->selectTimeout? "no data coming from server, retry!": "pausing feeder thread to allow trickmode transitions"));
 #endif
                     BKNI_Sleep(50);
                     continue;
@@ -5884,25 +5885,25 @@ void B_PlaybackIp_HttpPlaypumpThread(
                     playback_ip->selectTimeout = true;
                     playback_ip->sendNextTimeSeekReq = true;
                     /* TODO: needs more work */
-                    BDBG_MSG(("%s: RVU trickmode case, finished reading one set of frames, send request for the next frame", __FUNCTION__));
+                    BDBG_MSG(("%s: RVU trickmode case, finished reading one set of frames, send request for the next frame", BSTD_FUNCTION));
                     /* we are in the trick mode state where we need to send new time seek request */
                     if ((rc = http_send_time_seek_request(playback_ip)) != B_ERROR_SUCCESS) {
                         if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode) {
                             BKNI_ReleaseMutex(playback_ip->lock);
-                            BDBG_MSG(("%s: pausing feeder thread to allow trickmode transitions", __FUNCTION__));
+                            BDBG_MSG(("%s: pausing feeder thread to allow trickmode transitions", BSTD_FUNCTION));
                             BKNI_Sleep(50);
                             continue;
                         }
-                        BDBG_MSG(("%s: RVU Trick mode transition had some error, ip state %d \n", __FUNCTION__, playback_ip->playback_state));
+                        BDBG_MSG(("%s: RVU Trick mode transition had some error, ip state %d \n", BSTD_FUNCTION, playback_ip->playback_state));
                         goto error;
                     }
                     BKNI_ReleaseMutex(playback_ip->lock);
-                    BDBG_MSG(("%s: RVU trickmode: done sending next time seek request, continue reading & feeding", __FUNCTION__));
+                    BDBG_MSG(("%s: RVU trickmode: done sending next time seek request, continue reading & feeding", BSTD_FUNCTION));
                     continue;
                 }
                 else if (playback_ip->serverClosed && playback_ip->playback_state == B_PlaybackIpState_ePaused && playback_ip->ipTrickModeSettings.pauseMethod == B_PlaybackIpPauseMethod_UseDisconnectAndSeek ) {
                     BKNI_ReleaseMutex(playback_ip->lock);
-                    BDBG_MSG(("%s: Paused using Disconnect & Seek Method, so keep waiting until app resumes!", __FUNCTION__));
+                    BDBG_MSG(("%s: Paused using Disconnect & Seek Method, so keep waiting until app resumes!", BSTD_FUNCTION));
                     BKNI_Sleep(20);
                     continue;
                 }
@@ -5924,12 +5925,12 @@ void B_PlaybackIp_HttpPlaypumpThread(
                                 if (playback_ip->psi.duration > 0)
                                     timeSeekRangeBegin = playback_ip->psi.duration-1;
                                 else {
-                                    BDBG_ERR(("%s: Failed to loop around when duration is not known!", __FUNCTION__));
+                                    BDBG_ERR(("%s: Failed to loop around when duration is not known!", BSTD_FUNCTION));
                                     break;
                                 }
                             }
                             BDBG_MSG(("%s: state %d, playSpeedString %s",
-                                        __FUNCTION__, playback_ip->playback_state,  playback_ip->ipTrickModeSettings.playSpeedStringDefined ? playback_ip->ipTrickModeSettings.playSpeedString : NULL));
+                                        BSTD_FUNCTION, playback_ip->playback_state,  playback_ip->ipTrickModeSettings.playSpeedStringDefined ? playback_ip->ipTrickModeSettings.playSpeedString : NULL));
                             rc = http_do_server_trick_modes_socket_transition(playback_ip, timeSeekRangeBegin, 0., playback_ip->speedNumerator/playback_ip->speedDenominator /* play speed */,
                                     playback_ip->ipTrickModeSettings.playSpeedStringDefined ? playSpeedString : NULL);
                             playback_ip->reOpenSocket = true; /* this flags tells HTTP layer to reopen the connection */
@@ -5938,19 +5939,19 @@ void B_PlaybackIp_HttpPlaypumpThread(
                             rc = B_PlaybackIp_HttpNetRangeReq(playback_ip, playback_ip->temp_buf, 0, 0, 0, playback_ip->socketState.fd, &playback_ip->socketState.fd);
                         }
                         if (rc < 0) {
-                            BDBG_ERR(("%s: Failed to re-open socket connection", __FUNCTION__));
+                            BDBG_ERR(("%s: Failed to re-open socket connection", BSTD_FUNCTION));
                             break;
                         }
                         playback_ip->initial_data_len = rc;
                         BKNI_ReleaseMutex(playback_ip->lock);
 #ifdef BDBG_DEBUG_BUILD
                         if (playback_ip->ipVerboseLog)
-                            BDBG_WRN(("%s: Server has Closed but endOfStreamLooping is enabled, so resetup server connection", __FUNCTION__));
+                            BDBG_WRN(("%s: Server has Closed but endOfStreamLooping is enabled, so resetup server connection", BSTD_FUNCTION));
 #endif
                         continue;
                     }
                     else {
-                        BDBG_MSG(("%s: Network Read Error, wait to play out the stream", __FUNCTION__));
+                        BDBG_MSG(("%s: Network Read Error, wait to play out the stream", BSTD_FUNCTION));
                         /* wait for h/w pipeline to playout the buffered up data and then issue the error/eof callback */
                         if (B_PlaybackIp_UtilsEndOfStream(playback_ip) == true)
                         {
@@ -5959,7 +5960,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
                                 /* We have played all the AV data, so we move to the paused state and wait for app to take some action: Play/Stop/ etc. */
                                 BKNI_ReleaseMutex(playback_ip->lock);
                                 if (playback_ip->playback_state == B_PlaybackIpState_eStopping) {
-                                    BDBG_WRN(("%s:%p Reached endOfStream & app also called Stop, so breaking from loop!", __FUNCTION__, (void *)playback_ip));
+                                    BDBG_WRN(("%s:%p Reached endOfStream & app also called Stop, so breaking from loop!", BSTD_FUNCTION, (void *)playback_ip));
                                     break;
                                 }
                                 playback_ip->playback_state = B_PlaybackIpState_ePaused;
@@ -5969,7 +5970,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
                                     eventId = (playback_ip->speedNumerator > 0) ? B_PlaybackIpEvent_eServerEndofStreamReached: B_PlaybackIpEvent_eClientBeginOfStream;
 #ifdef BDBG_DEBUG_BUILD
                                     if (playback_ip->ipVerboseLog)
-                                        BDBG_WRN(("%s: Reached endOfStream (server has closed & nothing to play anymore) & app wants us to wait for next API, issue callback w/ eventId %d & do so!", __FUNCTION__, eventId));
+                                        BDBG_WRN(("%s: Reached endOfStream (server has closed & nothing to play anymore) & app wants us to wait for next API, issue callback w/ eventId %d & do so!", BSTD_FUNCTION, eventId));
 #endif
                                     playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, eventId);
                                 }
@@ -5987,7 +5988,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
                             BKNI_ReleaseMutex(playback_ip->lock);
 #ifdef BDBG_DEBUG_BUILD
                             if (playback_ip->ipVerboseLog)
-                                BDBG_WRN(("%s: Continue waiting to either playout the whole stream or re-reading from socket incase it becomes valid again by a seek or rewind trickplay", __FUNCTION__));
+                                BDBG_WRN(("%s: Continue waiting to either playout the whole stream or re-reading from socket incase it becomes valid again by a seek or rewind trickplay", BSTD_FUNCTION));
 #endif
                             BKNI_Sleep(B_PlaybackIp_UtilsGetEndOfStreamTimeout(playback_ip));
                             continue;
@@ -5999,7 +6000,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
         playback_ip->totalConsumed += rc;
         totalBytesRecv = rc;
         BDBG_MSG(("%s: Read from socket: asked %zu bytes, returning %zd bytes, total Read %"PRId64 ", Consumed %"PRId64 "",
-                    __FUNCTION__, totalBytesRecv, rc, playback_ip->totalRead, playback_ip->totalConsumed));
+                    BSTD_FUNCTION, totalBytesRecv, rc, playback_ip->totalRead, playback_ip->totalConsumed));
 
         /* write data to file */
         if (playback_ip->enableRecording && playback_ip->fclear) {
@@ -6008,7 +6009,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
         }
         if (playback_ip->startSettings.monitorPsi) {
             if (B_PlaybackIp_ParseAndProcessPsiState( playback_ip, playback_ip->buffer, totalBytesRecv ) != B_ERROR_SUCCESS ) {
-                BDBG_WRN(("%s: B_PlaybackIp_ParseAndProcessPsi failed but feed %zu bytes into Playpump...", __FUNCTION__, totalBytesRecv));
+                BDBG_WRN(("%s: B_PlaybackIp_ParseAndProcessPsi failed but feed %zu bytes into Playpump...", BSTD_FUNCTION, totalBytesRecv));
             }
         }
 
@@ -6023,19 +6024,48 @@ void B_PlaybackIp_HttpPlaypumpThread(
 #endif
         /* now feed appropriate data it to the playpump */
         if (NEXUS_Playpump_WriteComplete(playback_ip->nexusHandles.playpump, 0, totalBytesRecv)) {
-            BDBG_WRN(("%s: NEXUS_Playpump_WriteComplete failed, continuing...", __FUNCTION__));
+            BDBG_WRN(("%s: NEXUS_Playpump_WriteComplete failed, continuing...", BSTD_FUNCTION));
             BKNI_ReleaseMutex(playback_ip->lock);
             continue;
         }
         BKNI_ReleaseMutex(playback_ip->lock);
-        BDBG_MSG(("%s: Fed %zu bytes to Playpump\n", __FUNCTION__, totalBytesRecv));
+
+        if (playback_ip->settings.ttsParams.throttleParams.bufDepthInMsec &&
+                (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip
+                || playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip)) {
+            if (B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec(playback_ip, &playback_ip->curBufferDepthInMsec) == 0) {
+                B_PlaybackIp_TtsThrottle_UpdateBufferDepth(playback_ip->ttsThrottle, playback_ip->curBufferDepthInMsec);
+            }
+            else {
+                BDBG_WRN(("%s: B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec failed, continuing...", BSTD_FUNCTION));
+            }
+        }
+
+        {
+            static int firstTime = 1;
+            static B_Time lastTime, curTime;
+            unsigned timeBetweenFeeds = 0;
+
+            B_Time_Get(&curTime);
+            if (!firstTime)
+            {
+                timeBetweenFeeds = B_Time_Diff(&curTime, &lastTime);
+                lastTime = curTime;
+            }
+            else
+            {
+                lastTime = curTime;
+                firstTime = 0;
+            }
+            BDBG_WRN(("%s: Fed %zu bytes to Playpump, total=%"PRId64", timeBetweenFeeds=%u \n", BSTD_FUNCTION, totalBytesRecv, playback_ip->totalConsumed, timeBetweenFeeds));
+        }
     }
 
 error:
     BKNI_ReleaseMutex(playback_ip->lock);
     /* TODO: look if tts stop/close needs to be called here or get called within ip stop, most likely should be done here */
 
-    BDBG_MSG(("%s: thread is exiting..., state %d", __FUNCTION__, playback_ip->playback_state));
+    BDBG_MSG(("%s: thread is exiting..., state %d", BSTD_FUNCTION, playback_ip->playback_state));
 
     if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip
         || playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip) {
@@ -6076,28 +6106,28 @@ static B_PlaybackIpError validateAlternateAudioRenditionParams(
 {
     B_PlaybackIpError errorCode = B_ERROR_INVALID_PARAMETER;
     if (pAltAudioRenditionInfo->pid == 0) {
-        BDBG_ERR(("%s: alternateAudio.pid can't be 0 if alternate audio is enabled.", __FUNCTION__));
+        BDBG_ERR(("%s: alternateAudio.pid can't be 0 if alternate audio is enabled.", BSTD_FUNCTION));
         BDBG_ASSERT(NULL);
         goto error;
     }
     if (pAltAudioRenditionInfo->containerType == NEXUS_TransportType_eUnknown) {
-        BDBG_ERR(("%s: alternateAudio.containerType can't be unknown if alternate audio is enabled.", __FUNCTION__));
+        BDBG_ERR(("%s: alternateAudio.containerType can't be unknown if alternate audio is enabled.", BSTD_FUNCTION));
         goto error;
     }
     if (pAltAudioRenditionInfo->language == NULL ) {
-        BDBG_ERR(("%s: alternateAudio.language can't be NULL if alternate audio is enabled.", __FUNCTION__));
+        BDBG_ERR(("%s: alternateAudio.language can't be NULL if alternate audio is enabled.", BSTD_FUNCTION));
         goto error;
     }
     if (pAltAudioRenditionInfo->groupId == NULL ) {
-        BDBG_ERR(("%s: alternateAudio.groupId can't be NULL if alternate audio is enabled.", __FUNCTION__));
+        BDBG_ERR(("%s: alternateAudio.groupId can't be NULL if alternate audio is enabled.", BSTD_FUNCTION));
         goto error;
     }
     if ( hPlaypump == NULL) {
-        BDBG_ERR(("%s: Playpump handle is NULL, it must be set for playing the alternate audio!", __FUNCTION__));
+        BDBG_ERR(("%s: Playpump handle is NULL, it must be set for playing the alternate audio!", BSTD_FUNCTION));
         goto error;
     }
     errorCode = B_ERROR_SUCCESS;
-    BDBG_MSG(("%s: playback_ip=%p: Verified params", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s: playback_ip=%p: Verified params", BSTD_FUNCTION, (void *)playback_ip));
 error:
     return (errorCode);
 }
@@ -6116,7 +6146,7 @@ B_PlaybackIp_HttpSessionStart(
     B_ThreadFunc httpThreadFuncName;
 
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }
@@ -6126,14 +6156,14 @@ B_PlaybackIp_HttpSessionStart(
 
         errorCode = validateAlternateAudioRenditionParams(playback_ip, &playback_ip->startSettings.alternateAudio, playback_ip->startSettings.nexusHandles.playpump2 );
         if (errorCode != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: validateAlternateAudioRenditionParams Failed.", __FUNCTION__));
+            BDBG_ERR(("%s: validateAlternateAudioRenditionParams Failed.", BSTD_FUNCTION));
             goto error;
         }
         for (i=0; i < playback_ip->startSettings.additionalAltAudioRenditionInfoCount; i++)
         {
             errorCode = validateAlternateAudioRenditionParams(playback_ip, &playback_ip->startSettings.additionalAltAudioInfo[i], playback_ip->startSettings.additionalAltAudioInfo[i].hPlaypump );
             if (errorCode != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: validateAlternateAudioRenditionParams for additional altAudioRenditionInfo Failed.", __FUNCTION__));
+                BDBG_ERR(("%s: validateAlternateAudioRenditionParams for additional altAudioRenditionInfo Failed.", BSTD_FUNCTION));
                 goto error;
             }
         }
@@ -6175,7 +6205,7 @@ B_PlaybackIp_HttpSessionStart(
     B_Thread_GetDefaultSettings(&settingsThread);
     playback_ip->playbackIpThread = B_Thread_Create(threadName, httpThreadFuncName, (void *)playback_ip, &settingsThread);
     if (NULL == playback_ip->playbackIpThread) {
-        BDBG_ERR(("%s: Failed to create the %s thread for HTTP media transport protocol\n", __FUNCTION__, threadName));
+        BDBG_ERR(("%s: Failed to create the %s thread for HTTP media transport protocol\n", BSTD_FUNCTION, threadName));
         goto error;
     }
 
@@ -6193,13 +6223,13 @@ B_PlaybackIp_HttpSessionStart(
         /* wait until pre-charging has started */
         rc = BKNI_WaitForEvent(playback_ip->preChargeBufferEvent, IP_HALT_TASK_TIMEOUT_MSEC);
         if (rc == BERR_TIMEOUT) {
-            BDBG_WRN(("%s: timed out for pre-charging start event", __FUNCTION__));
+            BDBG_WRN(("%s: timed out for pre-charging start event", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         } else if (rc!=0) {
-            BDBG_WRN(("%s: got error while trying to wait for pre-charging start event, rc %d", __FUNCTION__, rc));
+            BDBG_WRN(("%s: got error while trying to wait for pre-charging start event, rc %d", BSTD_FUNCTION, rc));
             return B_ERROR_UNKNOWN;
         }
-        BDBG_MSG(("%s: Enabled pre-charging of network buffer", __FUNCTION__));
+        BDBG_MSG(("%s: Enabled pre-charging of network buffer", BSTD_FUNCTION));
     }
     errorCode = B_ERROR_SUCCESS;
 
@@ -6214,7 +6244,7 @@ B_PlaybackIp_HttpSessionStop(B_PlaybackIpHandle playback_ip)
     while (playback_ip->readCallBackInProgress) {
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("read callback via nexus io thread is still active, %s() has to wait for its completion, for now sleeping for 100msec & retrying", __FUNCTION__));
+            BDBG_WRN(("read callback via nexus io thread is still active, %s() has to wait for its completion, for now sleeping for 100msec & retrying", BSTD_FUNCTION));
 #endif
         BKNI_Sleep(100);
         continue;
@@ -6235,7 +6265,7 @@ B_PlaybackIp_HttpSessionStop(B_PlaybackIpHandle playback_ip)
         /* wait for a finite time for either trickModeThread to finish from currently going seek operation or wakeup from waiting on this event */
         BKNI_Sleep(20);
         if (!playback_ip->trickModeThreadDone)
-            BDBG_WRN(("%s: trickModeThread is still not stopped, continuing w/ session stop", __FUNCTION__));
+            BDBG_WRN(("%s: trickModeThread is still not stopped, continuing w/ session stop", BSTD_FUNCTION));
     }
 }
 

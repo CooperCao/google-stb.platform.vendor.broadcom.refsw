@@ -58,7 +58,7 @@ public:
     ~CChannelStreamer(void);
     CChannel * createCopy(CChannel * pChannel);
 
-    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, uint16_t index = ANY_INDEX);
+    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
     virtual eRet mapInputBand(CInputBand * pInputBand, CParserBand * pParserBand = NULL);
     virtual eRet dupParserBand(CParserBand * pParserBand);
     virtual eRet unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);

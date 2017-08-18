@@ -42,6 +42,9 @@
 #ifndef BVCE_DEBUG_H_
 #define BVCE_DEBUG_H_
 
+#include "bavc.h"
+#include "bavc_vce.h"
+
 /* BVCE_Debug_PrintLogMessageEntry - prints the debug log entry to the console.
  *
  * The following messages can be enabled:
@@ -83,5 +86,13 @@ BVCE_Debug_FormatLogMessage(
 /* BVCE_Debug_GetEntrySize - returns size of a log entry */
 unsigned
 BVCE_Debug_GetEntrySize( void );
+
+/* BVCE_Debug_PrintLogVideoDescriptor - pretty-prints a video descriptor */
+void
+BVCE_Debug_PrintLogVideoDescriptor(
+      const BAVC_VideoBufferDescriptor *pstDescriptor,
+      char szDebug[],
+      signed *piBytesLeft
+      );
 
 #endif /* BVCE_DEBUG_H_ */

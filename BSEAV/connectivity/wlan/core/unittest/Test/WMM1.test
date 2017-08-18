@@ -1,0 +1,952 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script for Wmm
+# Written by: Sheida Otmishi Dec 31 2012
+# $Id: 125eb74dcb0670c0ed415047188167899e010d50 $ 2012/07/26 01:29:01 sotmishi Exp $
+# $COPYRIGHT BROADCOM CORPORATION$
+# PORTIONS OF THIS TEST ARE BASED ON 802.11N SYSTEM INTEROPERABILITY TEST PLAN
+# VERSION 2.0.5 WIFI ALLIANCE PAGE #95 TO #100 SECTIONS 4.2.20 TO 4.2.21
+#
+
+package require UTF
+package require UTF::Streams
+package require UTF::Test::QoSSetup
+
+UTF::Test WMM1 {args} {
+    # Default values are set based on the standard.
+    UTF::Getopts {
+	{ap.arg {4717} "AP to setup"}
+	{sta.arg {43224FC9} "STA to setup"}
+	{channel.arg {36} "AP Control Channel, Use 6 for g"}
+	{security.arg {aespsk2} "Security"}
+	{rxstas.arg {} "Rx STAs in order"}
+	{acs.arg {} "Priorities in order"}
+	{txstas.arg {} "TX STAs in order"}
+	{delays.arg {0} "Start delays"}
+	{rates.arg {} "Custom rates"}
+	{wifirates.arg {} "wifi test rates"}
+	{wifidelays.arg {0 0 10} "wifi test delays"}
+	{acrates.arg {} "rates per AC type example: VO 10 VI 20 BE 30 BA 40"}
+	{title.arg "" "Title"}
+	{email.arg "" "Recipients Email"}
+	{testdir.arg "" "Test Directory"}
+	{nosetup "No setup"}
+	{nocal "Do not find calibrate offered rate"}
+	{custom "Custom test"}
+    {do4220 "" "Decrepted. Do not use. Test standard 4.2.20"}
+    {do4221 "" "Decreoted. Do not use. Test standard 4.2.21"}
+	{do4220ts.arg "" "Test standard 4.2.20"}
+	{do4221ts.arg "" "Test standard 4.2.21"}
+	{intque "Internal queue test"}
+	{updown.arg "up down" "Up or Down"}
+	{acsdesc.arg "ascend descend" "Ascend or Decend"}
+	{matrix "Do Characterization"}
+	{duration.arg {20} "20 seconds"}
+	{nompdu "Disable mpdu"}
+	{loglevel.arg {}  "DISPLAY for more log. ANALYZE for more filtering by framework."}
+	{nodisassoc "Do not disassociate"}
+	{nounload "Do not unload"}
+	{rateincr.arg "2" "matrix control"}
+	{ratemult.arg "7" "matrix control"}
+	{endwait.arg "10" "wait after the last stream"}
+	{loop.arg "1" "Repeat custom test"}
+	{configurations.arg {VO {-pktsize 172 -rate 70K} VI {} BA {} BE {-pktsize 1470 -protocol tcp}} "configuration list pktsize rate delay tcpwindowsize udprx_winpktcnt udptx_winpktcnt"}
+	{capacity.arg {} "VO 2 VI 2 BE 2 BA 2"}
+	{stats.arg {rate bytes outoforder txbytes} "stat types"}
+	{tcpstats.arg {rate bytes outoforder txbytes} "tcp valid stats"}
+	{cmds.arg {} "wl roam_trigger -10 all; wl glacial_timer 50"}
+	{norestart "Do not restart the AP at the end"}
+	{stabin.arg "" "path to STA driver"}
+	{apbin.arg "" "path to AP driver"}
+	{hold.arg "5" "hold for driver. TODO synchronize this upvar with other procs later"}
+	{traffictype.arg {BACKGROUND BESTEFFORT HDVIDEO VOIP} ""}
+	{nonegotiate "Negotiate traffic"}
+	{intquedelays.arg {0 0 10 10 10} "Default internal queue delays"}
+	{media "custom media test"}
+	{11acstas.arg "4360 4360-1 4360-3" "11ac STAs"}
+	{11nstas.arg "4331 4360-3nv" "11n STAs"}
+	{11astas.arg "4311" "11a/g STAs"}
+    {attn.arg {ALL {0 15}} "Takes groups of attns sets to distinct values"}
+	{nofb ""}
+	{noampdu ""}
+	{noamsdu ""}
+    }
+#rate pktcount bytes jitter lost outoforder
+
+	set attnlen [llength $(attn)]
+
+    # Do not change default values for multiple tests to work in the same testrun.
+    $(ap) configure -image $(apbin)
+    foreach sta $(sta) {
+	$sta configure -image $(stabin)
+    }
+
+    set rateincr $(rateincr)
+    set ratemult $(ratemult)
+    if {$(loglevel) ne {}} {
+	UTF::stream logginglevel $(loglevel)
+    }
+    
+    if {$(testdir) != ""} {
+	set UTF::SummaryDir $(testdir)
+    }
+
+    if {!$(nocal)} {
+	set offered "true"
+    } else {
+	set offered "false"
+    }
+    
+    # Padding the data with the last element
+    proc wmm_paddata {padlength data} {
+	if {$data eq {} } {
+	    return $data
+	}
+	set enddata  [lindex $data end]
+	while {[llength $data]<$padlength} {
+	    lappend data $enddata
+	}
+	UTF::Message INFO "" "Padding Data: $data"
+	return $data
+    }
+        
+   # General section 4.2.20 or 4.2.21 tests
+    proc wmm_test {args} {
+	UTF::Getopts {
+	    {note.arg "" "Test name"}
+	    {delays.arg {} "delay to start traffic"}
+	    {acs.arg {} "Priorities"}
+	    {txstas.arg {} "TX STAS"}
+	    {rxstas.arg {} "RX STAS"}
+	    {rates.arg {} "offered rate"}
+	    {cal.arg "true" "do offered rate calibration"}
+	    {acrates.arg {} "rates bases on AC type"}
+	    {endwait.arg "10" "wait after the last stream"}
+	    {ap.arg {} "Need to pass the AP to this test to execute custom commands"}
+	    {configurations.arg {VO {-pktsize 172 -rate 70K} VI {} BA {} BE {}} "configuration list pktsize rate delay tcpwindowsize udprx_winpktcnt udptx_winpktcnt"}
+	    {stats.arg {rate bytes outoforder txbytes} "Stat types"}
+	    {tcpstats.arg {rate bytes outoforder txbytes} "tcp valid stats"}
+	    {sta.arg "" "STAs are passed for recovery only"}
+	    {hold.arg "5" "hold for driver"}
+	}
+
+
+	UTF::Message INFO {} $args
+	UTF::Test::QoSSetup -reconnect -stas $(sta) -ap $(ap)
+
+	array set configurearrays $(configurations)
+	set confactypes [array names configurearrays]
+
+	set titlestr "$(note)"
+	foreach txsta $(txstas) rxsta $(rxstas) ac $(acs) delay $(delays) {
+	    append titlestr " $txsta->$rxsta,$ac,$delay "
+	}
+
+	# Check end-2-end connection
+	set continue 1
+	UTF::Try "$titlestr" {
+	    UTF::Message INFO "" "$titlestr"
+	    set pinglist {}
+	    # Need 2way ping to make sure we are talking to the right device in multi-sta host case.
+	    # We do not disassociate the STAs during this test; therefore, we need 2-way ping.
+	    foreach rxsta $(rxstas) txsta $(txstas) {
+                lappend pinglist [eval list $txsta $rxsta]
+		lappend pinglist [eval list $rxsta $txsta]
+            }
+            set pinglist [lsort -unique $pinglist]
+            set pinglistlength [llength $pinglist]
+            for {set i 0} {$i < $pinglistlength} {incr i} {
+                set pair [lindex  $pinglist $i]
+                set src [lindex $pair 0]
+                set sync [lindex $pair 1]
+		set syncip {}
+		set synciping {}
+		set syncipcatch [catch {$sync ipaddr} syncip]
+		UTF::Message INFO "" "$sync ip address $syncip"
+                if {$syncipcatch} {
+                    UTF::Message ERROR "" "$sync $syncip"
+                    set continue 0
+                    error "$sync $syncip"
+                } else {
+                    UTF::Message INFO "" "$src ping $syncip"
+                    set syncipingcatch [catch {$src ping $syncip} synciping]
+		    UTF::Message INFO "" "$src ping $syncip $synciping"
+                    if {$syncipingcatch} {
+                        set continue 0
+                        UTF::Message ERROR "" "$src ping $sync failed"
+                        error "$src ping $sync failed"
+                    }
+                }
+            }
+	}
+	if {!$continue} {
+	    UTF::Message ERROR "" "Do not continue with test $(note)"
+	    return
+	}
+        # end of check end-2-end connection
+
+	UTF::Try "Setup Traffic" {
+	    #create streams
+	    set stms {}
+	    set i 0
+	    foreach ac $(acs) txsta $(txstas) rxsta $(rxstas) delay $(delays) {
+		lappend stms [::UTF::stream create [set streamname "$txsta-$rxsta-$ac-$delay-$i"] -tx $txsta -rx $rxsta -advancedstats on]
+		UTF::Message INFO "" "streamname $txsta-$rxsta-$ac-$delay-$i -tx $txsta -rx $rxsta"
+		switch $ac {
+		    "BA" {
+			$streamname configure -traffictype BACKGROUND
+		    }
+		    "BE" {
+			$streamname configure -traffictype BESTEFFORT
+		    }
+		    "VI" {
+			$streamname configure -traffictype HDVIDEO
+
+		    }
+		    "VO" {
+			$streamname configure -traffictype VOIP
+		    }
+		    default {}
+		}
+	#	$streamname configure -protocol tcp
+
+		UTF::Message INFO "Debug" "configurelist $ac $configurearrays($ac)"
+
+		catch {$streamname configurelist $configurearrays($ac)}
+		incr i
+		UTF::Message INFO "" "$streamname [$streamname cget -traffictype] [$streamname cget -protocol] [$streamname cget -pktsize]"
+	    }
+	    UTF::Message INFO "" "Streams: $stms"
+	    # End of create streams
+	}
+
+	# Update streams default rates.
+	if {$(rates) ne {}} {
+	    UTF::Message INFO "" "stm $stms rate $(rates)"
+	    foreach stm $stms rate $(rates) {
+		UTF::Message INFO "" "$stm [$streamname cget -traffictype] rate ${rate}M"
+		catch {$stm configure -rate ${rate}M}
+	    }
+	} elseif {$(acrates) ne {} } {
+	    array set defaultrates $(acrates)
+	    foreach stm $stms ac $(acs) {
+		UTF::Message INFO "" "stm $stm ac $ac"
+		set rate $defaultrates($ac)
+		UTF::Message INFO "" "rate ${rate}M"
+		catch {$stm configure -rate ${rate}M}
+	    }
+	} 
+
+	UTF::Message INFO "" "stm $stms ac $(acs) delay $(delays)"
+
+	# Calibrate
+	if {$(cal) eq "true"} {
+	    # Calibrate streams
+	    foreach stm $stms {
+		UTF::Try "[namespace tail $stm] Offered Rate" {
+		    set offered [$stm calibrate_actualoffered]
+		    if {$offered <= 0} {
+			UTF::Message ERROR "" "Actual offered rate is invalid"
+			error "Actual offered rate is invalid"
+		    }
+		    catch {$stm configure -rate ${offered}M}
+		    return ${offered}M
+		}
+	    }
+	}
+	# End of calibrate streams
+
+	# Start stream
+	UTF::Try "Traffic" {
+	    # Pass Traffic
+	    catch {UTF::stream allstreams stop}
+	    catch {UTF::stream allstreams stats -clear}
+ 	    foreach stm $stms delay $(delays) {
+		$stm start -w 4M 
+		$stm stats -clear
+             UTF::Sleep $delay
+		UTF::Message INFO "" "Start $stm with $delay sec delays"
+		$stm stop
+	    }
+
+		UTF::Sleep $(hold)
+        foreach stm $stms delay $(delays) {
+                $stm start -w 4M
+                UTF::Sleep $delay
+                UTF::Message INFO "" "Start $stm with $delay sec delays"
+            }
+
+::UTF::stream allstreams stop
+
+::UTF::stream allstreams start
+            UTF::Sleep $(endwait)
+            catch {::UTF::stream allstreams stop}
+            UTF::Sleep $(hold)
+	    foreach stm $stms {
+#		catch {$stm linkcheck}
+		$stm status
+	    }
+   	}
+	# End of start streams
+	
+	#print/graph data
+	set stats $(stats)
+
+	# Print data
+	UTF::Try "Statistics" {
+	    set outstr {}
+	    foreach stm $stms {
+		if {[$stm cget -protocol] eq "tcp"} {
+		    set stats $(tcpstats)
+		}
+                UTF::Message INFO "" "\nSTATS $stm [$stm cget -traffictype] [$stm cget -protocol] $stats"
+		foreach stat $stats {
+		    append outstr "\n$stm $stat: "
+		    append outstr [$stm stats -${stat}]
+		}
+	    }
+	    UTF::Message INFO "" "$outstr"
+	    unset outstr
+	}
+	# End of print data
+
+	# Graph data
+	foreach stat $stats {
+	    UTF::Try "$stat" {
+		# allstream graphs destroy
+		set stmgraphs [::UTF::streamgraph info instances]
+		foreach graph $stmgraphs {
+		    $graph destroy
+		}
+		UTF::streamgraph ${stat}graph -title "$titlestr" -stat $stat -streams "$stms" -details 1
+		set returnval [${stat}graph plot -composite]
+		${stat}graph destroy
+		return $returnval
+	    }
+	}
+	# End of graph
+	unset stats
+
+	# Kill streams
+	UTF::Try "Cleanup" {
+	    catch {::UTF::stream allstreams destroy}
+	    UTF::Message INFO "" "Streams: [::UTF::stream info instances]"
+	}
+
+	unset titlestr
+    }
+
+    proc wmm_capacity {args} {
+	upvar {} {}
+	
+	UTF::Message INFO {} "wmm_capacity $args"
+	UTF::Test::QoSSetup -reconnect -ap $(ap) -stas $(sta)
+
+	array set capacities $(capacity)
+	set actypes [array names capacities]
+
+	array set configurationarray {VO {} VI {} BE {} BA {}}
+	array set conf $(configurations)
+	set confactypes [array names conf]
+	foreach confactype $confactypes {
+	    set configurationarray($confactype) $conf($confactype)
+	}
+
+	if {$(cmds) ne {}} {
+	    set cmds [split $(cmds) ";"]
+	    UTF::Try "Driver Setting" {
+
+		foreach sta $(sta) {
+		    foreach cmd $cmds {
+			UTF::Try "$sta $cmd" {
+			    eval $sta $cmd
+			}
+			UTF::Try "Dumps" {
+			    $sta wl dump phycal
+			    $sta wl ampdu_clear_dump
+			    $(ap) wl dump phycal
+			    $(ap) wl ampdu_clear_dump
+			}
+		    }
+		}
+	    }
+	}
+
+	foreach sta $(sta) {
+
+	    UTF::Test::QoSSetup -reconnect -ap $(ap) -stas $sta
+
+	    set transmitstas [list $sta $(ap)]
+	    set receivestas [list $(ap) $sta]
+
+	    foreach actype $actypes {
+		set streamlists {}
+		foreach txsta $transmitstas rxsta $receivestas {
+		    set streamlist {}
+		    set max $capacities($actype)
+		    for {set i 0} {$i < $max} {incr i} {
+			lappend streamlist [::UTF::stream create ${txsta}-${rxsta}-${actype}-${i} -tx $txsta -rx $rxsta -advancedstats on]
+			catch {${txsta}-${rxsta}-${actype}-${i} configurelist "$configurationarray($actype)"}
+		    }
+		    UTF::Try "${txsta}->${rxsta}-${actype} Start" {
+			foreach stm $streamlist {
+			    catch {$stm start} starterror
+			    catch {$stm stats -clear}
+			} 
+                        UTF::Sleep $(endwait)
+                        catch {UTF::stream allstreams stop}
+                        UTF::Sleep $(hold)
+
+			foreach stm $streamlist {
+#			    catch {$stm linkcheck}
+			}
+
+			$sta wl dump ampdu
+                        $sta wl dump phycal
+                        $sta wl ampdu_clear_dump
+
+			$(ap) wl dump ampdu
+                        $(ap) wl dump phycal
+                        $(ap) wl ampdu_clear_dump
+
+		    }
+		    foreach stat $(stats) {
+			UTF::Try "${txsta}->${rxsta} $actype $max" {
+			    UTF::streamgraph ${txsta}-${rxsta}-${actype}-${stat} -title  "${txsta}->${rxsta}-${actype}-${stat}" -stat $stat -streams $streamlist
+			    set returnval [ ${txsta}-${rxsta}-${actype}-${stat} plot -composite]
+			    ${txsta}-${rxsta}-${actype}-${stat} destroy
+		UTF::Message INFO "" "Streams: [::UTF::stream info instances]"
+			    return $returnval
+			}
+		    }
+		    catch {UTF::stream allstreams stats -clear}
+		    lappend streamlists $streamlist
+		}
+		
+		UTF::Try "${txsta}<->${rxsta}-$actype start" {
+		    set streamlista [lindex $streamlists 0]
+		    set streamlistb [lindex $streamlists 1]
+		    foreach stm $streamlista stmrev $streamlistb {
+			catch {$stm start}
+			catch {$stm stats -clear}
+			catch {$stmrev start}
+			catch {$stmrev stats -clear}
+		    }				
+		    UTF::Sleep $(endwait)
+		    catch {UTF::stream allstreams stop}
+		    $sta wl dump ampdu
+		    $sta wl dump phycal
+		    $sta wl ampdu_clear_dump
+
+                    $(ap) wl dump ampdu
+                    $(ap) wl dump phycal
+                    $(ap) wl ampdu_clear_dump
+
+		}
+
+		set streamlist [::UTF::stream info instances]
+		foreach stat $(stats) {
+		    UTF::Try "${txsta}<->${rxsta} $actype $max" {
+			UTF::streamgraph ${txsta}-${rxsta}-${txsta}-${actype}-${stat} -title "${txsta}->${rxsta}-${txsta}-${actype}-${stat}" -stat $stat -streams $streamlist
+			set returnval [${txsta}-${rxsta}-${txsta}-${actype}-${stat} plot -composite]
+			${txsta}-${rxsta}-${txsta}-${actype}-${stat} destroy
+			UTF::Message INFO "" "Streams: [::UTF::stream info instances]"
+			return $returnval
+		    }
+		}
+
+		catch {::UTF::stream allstreams destroy}
+		UTF::Message INFO "" "Streams: [::UTF::stream info instances]"
+	    }
+	}
+    }
+    eval {append (title) " $(channel) $(security) $(acrates) $(wifirates) $(rates) "}
+	
+    UTF::WrapSummary $UTF::SummaryDir [concat {[UnitTest] UTF Differentiated Traffic} $(title) \([UTF::BuildTitle "$(ap) $(sta)"]\) ] "" $(email) {
+	if {!$(nosetup)} {
+	    UTF::Test::QoSSetup -ap "$(ap)" -stas "$(sta)" -chanspec "$(channel)" -security "$(security)" -nopathcheck -frameburst [expr !$(nofb)] -ampdu [expr !$(noampdu)] -amsdu [expr !$(noamsdu)]
+	    $(ap) :
+	    foreach sta $(sta) {
+		$sta :
+	    }
+	}
+
+	UTF::Try "Enable Messages" {
+	    # Do this once per object
+            UTF::Test::QoSSetup -domsgaction -ap $(ap) -stas "$(sta)"
+	}
+
+	if {!$(nonegotiate)} {
+            UTF::Try "Negotiate Traffic" {
+                foreach traffictype $(traffictype) {
+                    set neglist {}
+                    foreach sta $(sta) {
+                        lappend neglist [UTF::stream ${sta}_${(ap)}_${traffictype} -tx $sta -rx $(ap)]
+                        lappend neglist [UTF::stream ${(ap)}_${sta}_${traffictype} -rx $sta -tx $(ap)]
+                    }
+                    foreach negstm $neglist {
+                        $negstm configure -traffictype $traffictype
+                    }
+                }
+                set neglist [::UTF::stream info instances]
+                foreach negstm $neglist {
+					UTF::Try "[namespace tail $negstm] ([$negstm cget -rate] [$negstm cget -pktsize]B [$negstm cget -tos])" {
+                        UTF::Message INFO "" "[namespace tail $negstm] [$negstm cget -rate] [$negstm cget -pktsize]B [$negstm cget -tos])"
+			$negstm configure -rate 80M
+			$negstm start -w 4M -t 5
+                        UTF::Sleep 10
+                        $negstm stop
+                    }
+                }
+                UTF::stream allstreams stop
+                UTF::stream allstreams destroy
+            }
+            unset neglist
+        }
+
+	if {$(do4220ts) ne {} || $(do4221ts) ne {}} {
+	    set padlength 3
+	    set (wifirates) [wmm_paddata $padlength $(wifirates)]
+	}
+		
+	if {$(do4220ts) ne {}} {
+	    foreach sta $(sta) {
+		set argscmd  "-ap $(ap) -sta \"$sta\" -cal $offered -rates \"$(wifirates)\" -delays \"$(wifidelays)\" -acrates \"$(acrates)\" -endwait \"$(endwait)\""
+		if {[regexp "4" $(do4220ts)]} {
+		    for {set rep 0} {$rep < $(loop)} {incr rep} {
+ 			eval wmm_test -note [list "4.2.20 4"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta $sta $sta]] $argscmd
+		    }
+		}
+                if {[regexp "5" $(do4220ts)]} {
+                    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -note [list "4.2.20 5"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $sta]] -rxstas [list [list $sta $sta $(ap)]] $argscmd
+		    }
+		}
+                if {[regexp "6" $(do4220ts)]} {
+                    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -note [list "4.2.20 6"] -acs [list [list BE VI BE]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+		    }
+		}
+                if {[regexp "7" $(do4220ts)]} {
+                    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -note [list "4.2.20 7"] -acs [list [list VI VO VI]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+		    }
+		}
+                if {[regexp "8" $(do4220ts)]} {
+                    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -note [list "4.2.20 8"] -acs [list [list BA BE BA]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+		    }
+		}
+	    }
+	}
+	
+	if {$(do4221ts) ne {} && [llength $(sta)] >= 2} {
+	    set sta1 [lindex $(sta) 0]
+	    set sta2 [lindex $(sta) 1]
+	    set argscmd "-ap $(ap) -sta \"$sta1 $sta2\" -cal \"$offered\" -rates \"$(wifirates)\" -delays \"$(wifidelays)\" -acrates \"$(acrates)\"  -endwait \"$(endwait)\""
+	    if {[regexp "4" $(do4221ts)]} {
+		for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    eval wmm_test -note [list "4.2.21 4"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta1 $sta1 $sta2]] $argscmd
+		}
+	    }
+	    if {[regexp "5" $(do4221ts)]} {
+                for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    eval wmm_test -note [list "4.2.21 5"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+		}
+	    }
+	    if {[regexp "6" $(do4221ts)]} {
+                for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    eval wmm_test -note [list "4.2.21 6"] -acs [list [list BE VI BE]] -txstas [list [list $sta1 $sta1 $(ap)]] -rxstas [list [list $(ap) $(ap) $sta2]] $argscmd
+		}
+	    }
+	    if {[regexp "7" $(do4221ts)]} {
+                for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    eval wmm_test -note [list "4.2.21 7"] -acs [list [list VI VO VI]] -txstas [list [list $sta1 $sta1 $sta2]] -rxstas [list [list $(ap) $(ap) $(ap)]] $argscmd
+		}
+	    }
+	    if {[regexp "8" $(do4221ts)]} {
+                for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    eval wmm_test -note [list "4.2.21 8"] -acs [list [list VI VO VI]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+		}
+	    }
+	    if {[regexp "9" $(do4221ts)]} {
+		for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    eval wmm_test -note [list "4.2.21 9"] -acs [list [list BA BE BA]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta1 $sta1 $sta2]] $argscmd
+		}
+	    }
+	    if {[regexp "10" $(do4221ts)]} {
+		for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    eval wmm_test -note [list "4.2.21 10"] -acs [list [list BA BE BA]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+		}
+	    }
+	}
+
+	if {$(intque)} {
+            foreach sta $(sta) {
+                set stalist [list $sta $sta $sta $sta $sta]
+                set endlist [list $(ap) $(ap) $(ap) $(ap) $(ap)]
+		set argscmd "-ap $(ap) -sta $sta -cal \"$offered\" -note \"Internal Queue\" -acrates \"$(acrates)\" -delays \"$(intquedelays)\"  -endwait \"$(endwait)\""
+		if {[regexp "down" $(updown)] && [regexp "ascend" $(acsdesc)]} {
+		    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -acs [list [list BA BA BE VI VO]] -txstas [list $endlist] -rxstas  [list $stalist] $argscmd 
+		    }
+		}
+		if {[regexp "down" $(updown)] && [regexp "descend" $(acsdesc)]} {
+                    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -acs [list [list BA VO VI BE BA]] -txstas [list $endlist] -rxstas [list $stalist] $argscmd
+		    }
+		}
+		if {[regexp "up" $(updown)] &&  [regexp "ascend" $(acsdesc)]} {
+                    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -acs [list [list BA BA BE VI VO]] -rxstas [list $endlist] -txstas [list $stalist] $argscmd
+		    }
+		}
+		if {[regexp "up" $(updown)] &&  [regexp "descend" $(acsdesc)]} {
+		    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			eval wmm_test -acs [list [list BA VO VI BE BA]] -rxstas [list $endlist] -txstas [list $stalist] $argscmd
+		    }
+		}
+            }
+        }
+
+	# Do custom test
+	if {$(custom)} {
+	    set padlength [llength $(acs)]
+	    set inlists [list $(delays) $(rxstas) $(txstas) $(rates)]
+	    foreach inlist $inlists {
+		set tmplength  [llength $inlist]
+		if {$tmplength > $padlength} {
+		    set padlength $tmplength
+		}
+	    }
+	    set (acs) [wmm_paddata $padlength $(acs)]
+	    set (txstas) [wmm_paddata $padlength $(txstas)]
+	    set (rxstas) [wmm_paddata $padlength $(rxstas)]
+	    set (delays) [wmm_paddata $padlength $(delays)]
+	    set (rates) [wmm_paddata $padlength $(rates)]
+		# if rate is null the paddata is fine and create stream takes care of the rest.
+
+	    if {$(txstas) ne {} && $(rxstas) ne {}} {
+		if {$(media)} {
+		    for {set rep 0} {$rep < $(loop)} {incr rep} {
+			for {set ati 0} {$ati < $attnlen} {incr ati} {
+			    set grp [lindex $(attn) $ati]
+			    incr ati
+			    set att [lindex $(attn) $ati]
+			    foreach atj $att {
+				UTF::Message INFO "" "set $grp to $atj"
+				$grp attn $atj
+				wmm_test -note "TCP $atj" -acs $(acs) -txstas $(txstas) -rxstas $(rxstas) \
+				    -cal $offered   -endwait $(endwait) -delays $(delays) -rates $(rates) \
+				    -acrates $(acrates) -endwait $(endwait) -configurations $(configurations) \
+				    -ap $(ap) -sta $(sta)
+				wmm_test -note "UDP $atj" -acs $(acs) -txstas $(txstas) -rxstas $(rxstas) \
+				    -cal $offered   -endwait $(endwait) -delays $(delays) -rates {600M 600M 600M} -acrates {600M 600M 600M} \
+				    -configurations {VO {} VI {} BE {-pktsize 1470 -protocol udp -rate 600M} BA {}} -ap $(ap) -sta $(sta) \
+				    -stats {rate bytes jitter lost outoforder pps txbytes txrate}
+			    }
+			}
+		    }
+		}
+	    } else {
+		for {set rep 0} {$rep < $(loop)} {incr rep} {
+		    wmm_test -note "Custom" -acs $(acs) -txstas $(txstas) -rxstas $(rxstas) -cal $offered   -endwait $(endwait) \
+			-delays $(delays) -rates $(rates) -acrates $(acrates) -endwait $(endwait) -configurations $(configurations) \
+			-ap $(ap) -sta $(sta)
+		}
+	    }
+	}
+
+	if {0} {
+	    set (txstas) $(ap)
+	    set (rxstas) $(stas)
+	    # or append (rxstas) " $(acstas) $(nstas) $(astas)"
+	    for {set rep 0} {$rep < $(loop)} {incr rep} {
+		set macs [lsort -unique $(acs)]
+		for {set ati 0} {$ati < $attnlen} {incr ati} {
+		    set grp [lindex $(attn) $ati]
+		    incr ati
+		    set att [lindex $(attn) $ati]
+		    foreach atj $att {
+			UTF::Message INFO "" "set $grp to $atj"
+			$grp attn $atj
+			wmm_test -note "TCP" -acs $(acs) -txstas $(txstas) -rxstas $(rxstas) -cal $offered   -endwait $(endwait) \
+			    -delays $(delays) -rates $(rates) -acrates $(acrates) -endwait $(endwait) -configurations $(configurations) \
+			    -ap $(ap) -sta $(sta)
+			wmm_test -note "UDP" -acs $(acs) -txstas $(txstas) -rxstas $(rxstas) -cal $offered   -endwait $(endwait) \
+			    -delays $(delays) -rates {600M 600M 600M} -acrates {600M 600M 600M} \
+			    -configurations {VO {} VI {} BE {-pktsize 1470 -protocol udp -rate 600M} BA {}} -ap $(ap) -sta $(sta) \
+			    -stats {rate bytes jitter lost outoforder pps txbytes txrate}
+		    }
+		}
+	    }
+	}
+    
+	# This is one sample characterization test using number of streams and stress. Need to generalize to all tests.
+	if {$(matrix)} {
+	    if {$(intque)} {
+		foreach sta $(sta) {
+		    set stalist  [list $sta $sta $sta $sta $sta]
+		    set endlist [list $(ap) $(ap) $(ap) $(ap) $(ap)]
+		    for {set i 1} {$i < $rateincr} {incr i} {
+			set rate [expr $i * $ratemult]
+			set argscmd "-ap $(ap) -sta $sta -cal false -delays \"$(intquedelays)\"  -endwait \"$(endwait)\" -rates \"[list $rate $rate $rate $rate $rate]\" -note \"Internal queue matrix rate $rate\""
+			if {[regexp "down" $(updown)] && [regexp "ascend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -acs [list [list BA BA BE VI VO]] -txstas [list $endlist] -rxstas [list $stalist] $argscmd
+			    }
+			}
+			if {[regexp "down" $(updown)] && [regexp "descend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+ 			    	eval wmm_test -acs [list [list BA VO VI BE BA]] -txstas [list $endlist] -rxstas [list $stalist] $argscmd
+			    }
+			}
+			if {[regexp "up" $(updown)] && [regexp "ascend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -acs [list [list BA BA BE VI VO]] -rxstas [list $endlist] -txstas [list $stalist] $argscmd
+			    }
+			}
+			if {[regexp "up" $(updown)] && [regexp "descend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+ 				eval wmm_test -acs [list [list BA VO VI BE BA]] -rxstas [list $endlist] -txstas [list $stalist] $argscmd
+			    }
+			}
+		    }
+
+		    for {set i 1} {$i < $rateincr} {incr i} {
+			set rate [expr $i * $ratemult]
+			set acratearr [eval list VO $rate VI [expr $rate * 2] BE [expr $rate * 3] BA [expr $rate * 4]]
+			set argscmd "-ap $(ap) -sta $sta -cal false -delays \"$(intquedelays)\"  -endwait \"$(endwait)\" -acrates \"$acratearr\" -rates {} -note \"Internal queue matrix acrate [expr $i * $ratemult]\""
+			if {[regexp "down" $(updown)] && [regexp "ascend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -acs [list [list BA BA BE VI VO]] -txstas [list $endlist] -rxstas [list $stalist] $argscmd
+			    }
+			}
+			if {[regexp "down" $(updown)] && [regexp "descend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -acs [list [list BA VO VI BE BA]] -txstas [list $endlist] -rxstas [list $stalist] $argscmd
+			    }
+			}
+                        if {[regexp "up" $(updown)] && [regexp "ascend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -acs [list [list BA BA BE VI VO]] -rxstas [list $endlist] -txstas [list $stalist] $argscmd
+			    }
+			}
+                        if {[regexp "up" $(updown)] && [regexp "descend" $(acsdesc)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -acs [list [list BA VO VI BE BA]] -rxstas [list $endlist] -txstas [list $stalist] $argscmd
+			    }
+			}
+		    }
+		}
+	    }
+
+	    if {$(do4220ts) ne {}} {
+		foreach sta $(sta) {
+		    for {set i 1} {$i < $rateincr} {incr i} { 
+			set rate [expr $i * $ratemult]
+			set ratelist [list $rate $rate $rate]
+			set argscmd "-sta $sta -ap $(ap) -delays \"$(wifidelays)\" -cal false  -endwait \"$(endwait)\" -rates \"$ratelist\""
+			if {[regexp "4" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+ 				eval wmm_test -note [list "matrix 4.2.20 4 rate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta $sta $sta]] $argscmd
+			    }
+			}
+			if {[regexp "5" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 5 rate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $sta]] -rxstas [list [list $sta $sta $(ap)]] $argscmd
+			    }
+			}
+                        if {[regexp "6" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 6 rate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+			    }
+			}
+			if {[regexp "7" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 7 rate $rate"] -acs [list [list VI VO VI]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+			    }
+			}
+			if {[regexp "8" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 8 rate $rate"] -acs [list [list BA BE BA]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+			    }
+			}
+		    }
+
+		    for {set i 1} {$i < $rateincr} {incr i} {
+                        set rate [expr $i * $ratemult]
+			set acratearr [eval list VO $rate VI [expr $rate * 2] BE [expr $rate * 3] BA [expr $rate * 4]]
+			set argscmd "-sta $sta -ap $(ap) -delays \"$(wifidelays)\" -cal false -rates {}  -endwait \"$(endwait)\" -acrates \"$acratearr\""
+			if {[regexp "4" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 4 acrate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta $sta $sta]] $argscmd
+			    }
+			}
+			if {[regexp "5" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 5 acrate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $sta]] -rxstas [list [list $sta $sta $(ap)]] $argscmd
+			    }
+			}
+			if {[regexp "6" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 6 acrate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+			    }
+			}
+                        if {[regexp "7" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 7 acrate $rate"] -acs [list [list VI VO VI]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+			    }
+			}
+                        if {[regexp "8" $(do4220ts)]} {
+			    for {set rep 0} {$rep < $(loop)} {incr rep} {
+				eval wmm_test -note [list "matrix 4.2.20 8 acrate $rate"] -acs [list [list BA BE BA]] -txstas [list [list $sta $sta $(ap)]] -rxstas [list [list $(ap) $(ap) $sta]] $argscmd
+			    }
+			}
+		    }
+		}
+	    }
+
+	    if {$(do4221ts) ne {} && [llength $(sta)] >= 2} {
+		set sta1 [lindex $(sta) 0]
+		set sta2 [lindex $(sta) 1]
+		for {set i 1} {$i < $rateincr} {incr i} {
+		    set rate [expr $i * $ratemult]
+		    set ratelist [list $rate $rate $rate]
+		    set argscmd "-ap $(ap) -sta \"$sta1 $sta2\"  -delays \"$(wifidelays)\" -cal false  -endwait \"$(endwait)\" -rates \"$ratelist\""
+		    if {[regexp "4" $(do4221ts)]} {
+			for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 4 rate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta1 $sta1 $sta2]] $argscmd
+			}
+		    }
+                    if {[regexp "5" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 5 rate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+			}
+		    }
+                    if {[regexp "6" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 6 rate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $sta1 $sta1 $(ap)]] -rxstas [list [list $(ap) $(ap) $sta2]] $argscmd
+			}
+		    }
+                    if {[regexp "7" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 7 rate $rate"] -acs [list [list VI VO VI]] -txstas [list [list $sta1 $sta1 $sta2]] -rxstas [list [list $(ap) $(ap) $(ap)]] $argscmd
+			}
+		    }
+                    if {[regexp "8" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 8 rate $rate"] -acs [list [list VI VO VI]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+			}
+		    }
+                    if {[regexp "9" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 9 rate $rate"] -acs [list [list BA BE BA]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta1 $sta1 $sta2]] $argscmd
+			}
+		    }
+                    if {[regexp "10" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 10 rate $rate"] -acs [list [list BA BE BA]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+			}
+		    }
+		}
+
+		for {set i 1} {$i < $rateincr} {incr i} {
+		    set rate [expr $i * $ratemult]
+		    set acratearr [eval list VO $rate VI [expr $rate * 2] BE [expr $rate * 3] BA [expr $rate * 4]] 
+		    set argscmd "-ap $(ap) -sta \"$sta1 $sta2\"  -delays \"$(wifidelays)\" -cal false  -endwait \"$(endwait)\" -acrates \"$acratearr\" -rates {}"
+		    if {[regexp "4" $(do4221ts)]} {
+			for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 4 acrate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta1 $sta1 $sta2]] $argscmd
+			}
+		    }
+                    if {[regexp "5" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 5 acrate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+			}
+		    }
+                    if {[regexp "6" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 6 rate $rate"] -acs [list [list BE VI BE]] -txstas [list [list $sta1 $sta1 $(ap)]] -rxstas [list [list $(ap) $(ap) $sta2]] $argscmd
+			}
+		    }
+                    if {[regexp "7" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 7 rate $rate"] -acs [list [list VI VO VI]] -txstas [list [list $sta1 $sta1 $sta2]] -rxstas [list [list $(ap) $(ap) $(ap)]] $argscmd
+			}
+		    }
+                    if {[regexp "8" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 8 rate $rate"] -acs [list [list VI VO VI]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+			}
+		    }
+                    if {[regexp "9" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 9 rate $rate"] -acs [list [list BA BE BA]] -txstas [list [list $(ap) $(ap) $(ap)]] -rxstas [list [list $sta1 $sta1 $sta2]] $argscmd
+			}
+		    }
+                    if {[regexp "10" $(do4221ts)]} {
+                        for {set rep 0} {$rep < $(loop)} {incr rep} {
+			    eval wmm_test -note [list "matrix 4.2.21 10 rate $rate"] -acs [list [list BA BE BA]] -txstas [list [list $(ap) $(ap) $sta2]] -rxstas [list [list $sta1 $sta1 $(ap)]] $argscmd
+			}
+		    }
+		}
+	    }
+	}
+
+	if {$(capacity) ne {}} {
+	    UTF::Test::QoSSetup -ap "$(ap)" -stas "$(sta)" -notestbedsetup -noapload -nostaload -norestore -noassoc -nocountry -nodefaults -nochanspec -security {}
+	    $(ap) :
+	    foreach sta $(sta) {
+		$sta :
+	    }
+	    wmm_capacity
+	}
+
+	# Tear down
+	if {!$(nodisassoc)} {
+	    foreach sta $(sta) {
+		UTF::Try "$sta Disassoc" {
+		    $sta wl disassoc
+		    UTF::Sleep 1
+		}
+	    }
+	}
+
+	if {!$(nounload)} {
+	    foreach sta $(sta) {
+		UTF::Try "$sta Unload" {
+		    $sta unload
+		}
+		catch {$sta deinit}
+	    }
+	}
+
+	if {!$(norestart)} {
+	    # Added to catch packet leakage during the test
+	    UTF::Try "$(ap) Restart" {
+		if {[$(ap) hostis Router Vx BSDAP DSL Airport]} {
+		    $(ap) restart [$(ap) wlname]_radio=0
+		    $(ap) restart
+		} else {
+		    $(ap) wl down
+		    $(ap) wl up
+			$(ap) unload
+		}
+	    }
+	}
+
+	UTF::Try "Tear down" {
+	    set stmgraphs [::UTF::streamgraph info instances]
+	    foreach graph $stmgraphs {
+		$graph destroy
+	    }
+	    ::UTF::stream allstreams destroy
+	    UTF::Message INFO "" "Streams: [::UTF::stream info instances]"
+	    ::UTF::stream exitstreams
+	}
+    }
+}

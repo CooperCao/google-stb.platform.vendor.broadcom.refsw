@@ -65,17 +65,6 @@ NEXUS_HDMI_OUTPUT_SOURCES :=  \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_drm.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_debug.c
 
-
-##################
-#  IMG Interface #
-##################
-ifeq ($(B_REFSW_OS),linuxuser)
-ifeq ($(NEXUS_MODE),)
-NEXUS_HDMI_OUTPUT_SOURCES += $(NEXUS_TOP)/modules/hdmi_output/src/linuxuser/nexus_hdmi_output_image.c
-endif
-endif #B_REFSW_OS
-
-
 # thunk layer
 NEXUS_HDMI_OUTPUT_PRIVATE_INCLUDES += $(NEXUS_TOP)/modules/hdmi_output/src $(NEXUS_SYNCTHUNK_DIR)
 NEXUS_HDMI_OUTPUT_SOURCES += $(NEXUS_SYNCTHUNK_DIR)/nexus_hdmi_output_thunks.c
@@ -134,9 +123,12 @@ ifeq ($(findstring SECURITY, $(NEXUS_MODULES)),SECURITY)
 	endif
 endif
 
+BCHP_DBV_HW_DEF=$(NEXUS_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER)/bchp_hdr_cmp_0_dbv.h
 NEXUS_HDMI_DBV_IMPL=$(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_dbv.c
+ifneq ("$(wildcard $(BCHP_DBV_HW_DEF))","")
 ifneq ("$(wildcard $(NEXUS_HDMI_DBV_IMPL))","")
 NEXUS_DBV_SUPPORT?=y
+endif
 endif
 ifeq ($(NEXUS_DBV_SUPPORT),y)
 NEXUS_HDMI_OUTPUT_DEFINES += NEXUS_DBV_SUPPORT=1

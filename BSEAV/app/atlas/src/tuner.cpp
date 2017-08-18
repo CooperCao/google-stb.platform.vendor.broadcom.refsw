@@ -139,11 +139,12 @@ static void tunerLockHandler(void * context)
 
 CTuner::CTuner(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         eBoardResource   resource,
         CConfiguration * pCfg
         ) :
     CResource(name, number, resource, pCfg),
+    _pConfig(NULL),
     _locked(false),
     _acquireInProgress(false),
     _eventMutex(NULL),

@@ -1,0 +1,447 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script for unicast test
+#
+# Written by: Sheida Otmishi May 26 2010
+# # $Id: 2204c2a65f8e0f9527f494feb1c2cf06cc67911e $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Streams
+package require UTF::Test::QoSSetup
+
+package provide UTF::Test::UnicastQoSBasic 1.1
+
+UTF::Test UnicastQoSBasic {args} {
+
+    UTF::Message INFO {} "UnicastQoSBasic $args"
+
+    # converts a named array of parsed args back into an args list (Tim)
+    proc argify {A} {
+	upvar $A a
+	set l ""
+	foreach {k v} [array get a] {
+	    lappend l -$k $v
+	}
+	set l
+    }
+    
+    UTF::GetKnownopts {
+	{aptag.arg "" "AP tag"}
+	{apdate.arg "" "AP date"}
+	{apbrand.arg "" "AP brand"}
+	{apbin.arg "" "Direct path to AP image"}
+    }
+    set apsettings [argify {}]
+    array unset {}
+    
+    UTF::GetKnownopts {
+	{statag.arg "" "STA tag"}
+	{stadate.arg "" "STA date"}
+	{stabrand.arg "" "STA brand"}
+	{stabin.arg "" "Direct path to STA image"}
+    }
+    set stasettings [argify {}]
+    array unset {}
+    
+    UTF::Getopts {
+	{stas.arg "43224FC9" "STA"}
+	{lan.arg "" "AP lanpeer"}
+	{noaccum "Stop incremental ascend/descend"}
+	{nocal "No air capacity calibration"}
+	{title.arg "" "Title"}
+	{email.arg "" "Recipient email"}
+	{testdir.arg "" "Test directory"}
+	{wait.arg "10" "wait before starting next stream"}
+	{endwait.arg "0" "time after last 10 seconds stream run"}
+	{interval.arg "" "stop/start in endwait"}
+	{nocongest "Do not conget the air capacity"}
+	{congest.arg "3" "RF congestion"}
+	{nointpri "Do not run internal queue test"}
+	{noascend "Do not run Low to High priority queue test"}
+	{nodescend "Do not run High to Low priority queue test"}
+	{norx "Do not test STA receive. Do not test AP transmit queue"}
+	{notx "Do not test STA transmit queue"}
+	{nosetup "Do not Setup"}
+	{ap.arg "4717" "AP"}
+	{chanspec.arg "36l" "Chanspec"}
+	{security.arg "aespsk2" "Security"}
+	{supported.arg "Linux USBDhD MacOS Cygwin" "Currently supported OSs. Left this as an option for now"}
+	{loglevel.arg {} "DISPLAY for more log. ANALYZE for more filtering by framework."}
+	{fb ""}
+	{nodisassoc ""}
+	{nounload ""}
+	{noapunload ""}
+	{lowest.arg "BACK" "Least priority bound"}
+	{highest.arg "VOICE" "Highest priority bound"}
+	{actypes.arg "BACK BEST VIDEO VOICE" "AC Types lowest to highest"}
+	{traffic.arg "BA BE VI VO" "Traffic streams"}
+	{configurations.arg {VO {-pktsize 1470} VI {-pktsize 1470} BA {-pktsize 1470} BE {-pktsize 1470}} \
+	"configuration list pktsize rate delay tcpwindowsize udprx_winpktcnt udptx_winpktcnt"}
+	{loop.arg "1"}
+	{norestart ""}
+    }
+    
+    if {$(loglevel) ne {}} {
+	UTF::stream logginglevel $(loglevel)
+    }
+    
+    if {$(testdir) != ""} {
+	set UTF::SummaryDir $(testdir)
+    }
+    
+    if { $(lan) == {}} {
+#	set (lan) [$(ap) cget -lanpeer]
+    set (lan) [$(ap) lan]
+
+ 	}
+
+    if {$(lan) eq ""} {
+	set (lan) $(ap)
+    }
+    
+    proc miscsetting {AP STA args} {
+	upvar {} {}
+	
+	UTF::Message INFO {} "miscsetting $args"
+
+	if {$(fb)} {
+	    UTF::Try "FB=$(fb)" {
+		UTF::Message INFO "" "Frameburst on"
+		if {![$STA cget -noframeburst]} {
+		    $STA wl frameburst 1
+		} else {
+		    $STA wl frameburst 0
+		}
+		if {![$AP cget -noframeburst]} {
+		    $AP wl frameburst 1
+		} else {
+		    $AP wl frameburst 0
+		}
+		$STA wl frameburst
+		$AP wl frameburst
+	    }
+	}
+    }
+    
+    proc internalpriority {sta {direct rx} args} {
+	upvar {} {}
+	
+    UTF::Message INFO {} "internalpriority $args"
+
+	QoSSetup -reconnect -stas $sta -ap $(ap)
+
+	$sta wl status
+
+	switch -exact $direct {
+	    "rx" {
+		set rxsta $sta
+		set txsta $(ap)
+	    }
+	    "tx" {
+		set rxsta $(ap)
+		set txsta $sta
+	    }
+	}
+	
+	proc passfail {plotter plotname} {
+	    regsub -all "_" $plotname " " plotmsg
+
+	    UTF::Message INFO "" "Plot stream statistics"
+	    set filelist [$plotter plotstats -path $UTF::Logdir -plotname $plotname]
+	    set returnval "html:"
+	    foreach filepath $filelist {
+		# sometimes a plot is missing, eg no lost packets
+		if {[file exists $filepath] && [file size $filepath] > 0} {
+		    set filename [file tail $filepath]
+		    set filesmall \
+			[file rootname $filepath]_sm[file extension $filepath]
+		    regexp -nocase {([a-z]+).png} $filename - msg
+		    regsub -all {\mrate\M} $msg throughput msg
+		    append returnval "<img src=\"$filesmall\" width=\"60\" alt=\"url\" /> <a href=\"$filepath\">$msg</a> "
+		}
+	    }
+	    return $returnval
+	}
+	
+	foreach STA [concat $txsta $rxsta] {
+	    $STA rexec :
+	}
+
+	# Access Category constants, currently sorted.
+	set ac_type $(actypes)
+
+	set ac_params [lappend ac_type ZLEGACY]
+	array set CWmin {BACK 31 BEST 31 VIDEO 15 VOICE 7 ZLEGACY 15}
+	array set CWmax {BACK 1023 BEST 1023 VIDEO 31 VOICE 15 ZLEGACY 1023}
+	array set AIFSN {BACK 7 BEST 3 VIDEO 2 VOICE 2 ZLEGACY 2}
+	array set TXOP {BACK 0 BEST 0 VIDEO 3008 VOICE 1054 ZLEGACY 0}
+	
+	################################
+	# arrays
+	################################
+	set first [lsearch $ac_type $(lowest)]
+	set last [lsearch $ac_type $(highest)]
+
+	for { set i $first } { $i <= $last } { incr i } {
+	    set ac($i) [lindex $ac_type $i]
+	}
+	
+	################################
+	# Temporary debug settings
+	# ##############################
+	::UTF::streamplotter create plotter
+	
+	set stms $(traffic)
+
+	foreach stm $stms {
+	    switch -exact $stm {
+		"BA" {
+		    ::UTF::stream create BA -traffictype BACKGROUND -protocol udp \
+			-advancedstats on -tx $txsta -rx $rxsta
+		}
+		"BE" {
+		    ::UTF::stream create BE -traffictype BESTEFFORT -protocol udp \
+			-advancedstats on -tx $txsta -rx $rxsta
+		}
+		"VI" {
+		    ::UTF::stream create VI -traffictype HDVIDEO -advancedstats on \
+			-tx $txsta -rx $rxsta
+		}
+		"VO" {
+		    ::UTF::stream create VO -traffictype VOICE -advancedstats on \
+			-tx $txsta -rx $rxsta
+		}
+	    }
+	}
+
+	# Using stream name as ac_type
+	array set configurearrays $(configurations)
+	foreach stm $stms {
+	    catch {$stm configurelist $configurearrays($stm)}
+	}
+		
+	foreach i [UTF::Numexpand $last-$first] {
+	    set stmarr($i) [lindex $stms $i]
+	}
+	
+	if {!$(nocal)} {
+	    foreach i [UTF::Numexpand $last-$first] {
+		UTF::Try "$stmarr($i) Offered Rate " {
+		    UTF::Message INFO "" "Calibrate the air capacity"
+		    set maxrate($i) [$stmarr($i) calibrate_actualoffered]
+		    if {$maxrate($i) <= 0} {
+			UTF::Message ERROR "" "Actual offered rate is invalid"
+			error "Actual offered rate is invalid"
+		    }
+		    $stmarr($i) configure -rate "$maxrate($i)M"
+		    return "$maxrate($i)M"
+		}
+	    }
+	}
+	    
+	if {!$(nocongest)} {
+		UTF::Try "$txsta->$rxsta congest" {
+
+		UTF::Message INFO "" "Congest the air with unlimited BA"
+		::UTF::stream create BA_Unlimited -traffictype BACKGROUND -protocol udp \
+		    -advancedstats on -tx $txsta -rx $rxsta
+		set ba_un_maxrate [ expr $(congest) * [BA_Unlimited calibrate_actualoffered] ]
+		if {$ba_un_maxrate <= 0} {
+			UTF::Message ERROR "" "BA_Unlimited Actual offered rate is invalid"
+			error "BA_Unlimited Actual offered rate is invalid"
+		}
+
+		BA_Unlimited configure -rate "${ba_un_maxrate}M"
+		return "BA_UNLIMITED at ${ba_un_maxrate}M"
+	    }
+	}
+
+	set finalblock {
+	    if {$(interval) ne ""} {
+		for {set jump 0} {$jump <= $(endwait)} {set jump [expr $jump + $(interval)]} {
+		    UTF::Sleep $(interval)
+		    UTF::stream allstreams stop
+		    UTF::stream allstreams start
+		}
+	    } else {
+		UTF::Sleep $(endwait)
+	    }
+	    try {
+		passfail plotter $strname
+	    } finally {
+		set stopcatchcode [catch {UTF::stream allstreams stop} stopresults]
+		set clearcatchcode [catch {UTF::stream allstreams stats -clear} clearresults]
+		if {$stopcatchcode} {
+		    UTF::Message ERROR "" "allstreams stop: $stopresults"
+		}
+		if {$clearcatchcode} {
+		    UTF::Message ERROR "" "allstreams clear: $clearresults"
+		}
+		if {$stopcatchcode || $clearcatchcode} {
+		    error
+		}
+		catch {$(ap) wl status}
+	    }
+	}
+    
+
+
+    set innerblock {
+		set strname "$strname\_$stmarr($j)"
+		# qos_dumpstats -duts [list $(ap) $sta] -clearonly
+		catch {$stmarr($j) start}
+		$stmarr($j) stats -clear
+		UTF::Sleep $(wait)
+		# qos_dumpstats -duts [list $(ap) $sta]
+	    # This option is not tested and not in use.
+	    if {($(noaccum))} {
+		UTF::Message INFO "" "Stop previous streams before starting new ones"
+		catch {$stmarr($j) stop}
+		# Makes sense to keep the stats after stopping a stream.
+		#$stmarr($j) stats -clear
+	    }
+	    if {[catch {$stmarr($j) linkcheck} err]} {
+		UTF::Message ERROR "" "$stmarr($j) $err"
+		# error "$stmarr($j) $err"
+	    }
+
+	    $stmarr($j) status
+
+	}
+	    
+	set douterblock {
+	    set pstrname "$txsta\_$rxsta"
+	    for { set j $i } { $j >= $first } {incr j -1 } {
+		append pstrname "_$stmarr($j)"
+	    }
+	    UTF::Try "[regsub "_" $pstrname "->"]" {
+		if { !$(nocongest)} {
+		    catch {BA_Unlimited start}
+		}
+		set strname "$txsta\_$rxsta"
+		for { set j $i } { $j >= $first } {incr j -1 } $innerblock
+		eval $finalblock
+	    }
+	    unset pstrname
+	}
+	    
+	set aouterblock {
+	    set pstrname "$txsta\_$rxsta"
+	    for { set j $i } { $j <= $last } {incr j } {
+		append pstrname "_$stmarr($j)"
+	    }
+	    UTF::Try "[regsub "_" $pstrname "->"]" {
+		if {!$(nocongest)} {
+		    catch {BA_Unlimited start}
+		}
+		set strname "$txsta\_$rxsta"
+		for { set j $i } { $j <= $last } {incr j } $innerblock
+		eval $finalblock
+	    }
+	    unset pstrname
+	}
+	    
+	if {!$(nodescend)} {
+	    UTF::Message INFO "" "Transmit queues in decending order of priority"
+	    foreach i [UTF::Numexpand $last-$first] $douterblock
+	}		
+	    
+	if {!$(noascend)} {
+	    UTF::Message INFO "" "Transmit queues in ascending order of priority"
+	    foreach i [UTF::Numexpand $first-$last] $aouterblock
+	}
+	
+	UTF::Try "Stop Traffic" {
+	    ::UTF::stream allstreams destroy
+	    plotter destroy
+	}
+    }    
+    
+    eval {append (title) " $(chanspec) $(security) "}
+
+    UTF::WrapSummary $UTF::SummaryDir [concat {QOS } $(title) \([UTF::BuildTitle "$(ap) $(stas)"]\) ] "" $(email) {
+	
+	if {!$(nosetup)} {
+	    UTF::Message INFO "" "Do Setup" 
+	    eval UTF::Test::QoSSetup -ap $(ap) -chanspec $(chanspec) -nostaload -security $(security) -noassoc -nopathcheck $apsettings 
+		$(ap) :
+	}
+
+	UTF::Try "Enable Messages" {
+	    # Do this once per object
+	    UTF::Test::QoSSetup -domsgaction -ap $(ap) -stas "$(stas)"
+	}
+
+	foreach sta $(stas) {
+	    if {![eval $sta hostis $(supported)]} {
+		UTF::Message ERROR "" "Incompatible OS"
+		error "Supported Hosts are $(supported)"
+	    }
+	    if {!$(nosetup)} {
+		UTF::Message INFO "" "Do Setup" 
+		eval UTF::Test::QoSSetup -stas $sta -ap $(ap) -nochanspec -noapload -norestore $stasettings -notestbedsetup
+		$(ap) :
+		$sta :
+	    }
+	    miscsetting $(ap) $sta
+	    for {set loop 1} {$loop <= $(loop)} {incr loop} {
+		if {!$(nointpri)} {
+		    UTF::Message INFO "" "Test internal priority transmit queues"
+		    if {!$(norx) } {
+			UTF::Message INFO "" "Test AP internal priority transmit queues" 
+			internalpriority $sta "rx"
+		    }
+		    if {!$(notx)} {
+			UTF::Message INFO "" "Test AP internal priority transmit queues"
+			internalpriority $sta "tx"
+		    }
+		}
+	    }
+	    
+	    if {!$(norestart)} {
+		foreach s [list $sta $(ap)] {
+		    if {![catch {$s wl assert_type} at]} {
+			UTF::Try "$s: Leak check" {
+                            $s wl assert_type 1
+                            $s wl down
+                            $s wl up
+                            $s wl assert_type $at
+			}
+		    }
+		}
+	        # uninitialize security after wl down to make sure subsequent
+		# tests will reinstate the AP properly.
+		$(ap) configure -security ""
+	    }
+
+	    if {!$(nodisassoc)} {
+		UTF::Try "Disassoc" {
+                    $sta wl disassoc
+                    UTF::Sleep 1
+		}
+	    }
+
+	    if {!$(nounload)} {
+		UTF::Try "$sta Unload" {
+		    $sta unload
+		}
+	    }
+	    catch {$sta deinit}
+	}
+
+	if {!$(noapunload)} {
+	    UTF::Try "$(ap) Unload" {
+		$(ap) unload
+	    }
+	}
+  
+	UTF::Try "Tear down" {
+	    ::UTF::stream exitstreams
+	}
+    }
+}

@@ -30,7 +30,7 @@
 void glsl_error_if_type_incomplete(SymbolType *type) {
    while (type->flavour == SYMBOL_ARRAY_TYPE) {
       if(type->u.array_type.member_count==0)
-         glsl_compile_error(ERROR_CUSTOM, 28, g_LineNumber, NULL);
+         glsl_compile_error(ERROR_CUSTOM, 24, g_LineNumber, NULL);
       type = type->u.array_type.member_type;
    }
 }
@@ -118,39 +118,62 @@ static void check_singleton_is_instantiable(const char *name, const SymbolType *
       glsl_compile_error(ERROR_CUSTOM, 14, g_LineNumber, NULL);
 }
 
+static SymbolType *make_array_type_internal(SymbolType *member, unsigned size) {
+   SymbolType *type                = malloc_fast(sizeof(SymbolType));
+   type->flavour                   = SYMBOL_ARRAY_TYPE;
+   type->scalar_count              = size * member->scalar_count;
+   type->u.array_type.member_type  = member;
+   type->u.array_type.member_count = size;
+
+   if (size != 0)
+      type->name = asprintf_fast("%s[%d]", member->name, type->u.array_type.member_count);
+   else
+      type->name = asprintf_fast("%s[]", member->name);
+
+   return type;
+}
+
+void glsl_complete_array_type(SymbolType *type, int member_count)
+{
+   assert(type->flavour==SYMBOL_ARRAY_TYPE);
+
+   SymbolType *member_type = type->u.array_type.member_type;
+   // Array size must be greater than zero.
+   if (member_count <= 0)
+      glsl_compile_error(ERROR_SEMANTIC, 11, g_LineNumber, NULL);
+
+   assert(type->u.array_type.member_count == 0 ||
+          type->u.array_type.member_count == (unsigned)member_count);
+
+   // Re-write the type fields that we've updated
+   type->name = glsl_intern(asprintf_fast("%s[%d]", member_type->name, member_count), false);
+   type->u.array_type.member_count = member_count;
+   type->scalar_count = member_count*member_type->scalar_count;
+}
+
 /* build preliminary (perhaps incomplete) type */
 static SymbolType *make_array_type(SymbolType *member_type, Expr *size)
 {
    if (member_type == &primitiveTypes[PRIM_VOID])
       glsl_compile_error(ERROR_CUSTOM, 18, g_LineNumber, NULL);
 
-   if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 10, 1) &&
-       member_type->flavour == SYMBOL_ARRAY_TYPE)
-   {
-      // members cannot be arrays: multi-dimensional array not allowed
-      glsl_compile_error(ERROR_CUSTOM, 27, g_LineNumber, NULL);
-   }
+   // In version 100 members cannot be arrays: multi-dimensional array not allowed
+   if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 10, 1) && member_type->flavour == SYMBOL_ARRAY_TYPE)
+      glsl_compile_error(ERROR_CUSTOM, 23, g_LineNumber, NULL);
 
-   SymbolType *type                = malloc_fast(sizeof(SymbolType));
-   type->flavour                   = SYMBOL_ARRAY_TYPE;
-   type->scalar_count              = 0;
-   type->u.array_type.member_type  = member_type;
-   type->u.array_type.member_count = 0;
-   type->name                      = NULL;
-
+   /* You can make arrays without specifying a size, but if there is one, check it */
    if (size != NULL) {
       if (size->type != &primitiveTypes[PRIM_INT] && size->type != &primitiveTypes[PRIM_UINT])
          glsl_compile_error(ERROR_SEMANTIC, 10, g_LineNumber, "found type %s", size->type->name);
       if (!size->compile_time_value)
-         glsl_compile_error(ERROR_SEMANTIC, 10, g_LineNumber, "not a constant expression");
-
-      glsl_complete_array_type(type, *(int*)size->compile_time_value);
-      type->name = asprintf_fast("%s[%d]", member_type->name, type->u.array_type.member_count);
-   } else {
-      type->name = asprintf_fast("%s[]", member_type->name);
+         glsl_compile_error(ERROR_SEMANTIC, 10, g_LineNumber, NULL);
+      if (size->type == &primitiveTypes[PRIM_INT] && (int)size->compile_time_value[0] <= 0)
+         glsl_compile_error(ERROR_SEMANTIC, 11, g_LineNumber, "%d", (int)size->compile_time_value[0]);
+      if (size->type == &primitiveTypes[PRIM_UINT] && size->compile_time_value[0] == 0)
+         glsl_compile_error(ERROR_SEMANTIC, 11, g_LineNumber, "%u", size->compile_time_value[0]);
    }
 
-   return type;
+   return make_array_type_internal(member_type, size ? size->compile_time_value[0] : 0);
 }
 
 /* build preliminary (perhaps incomplete) type */
@@ -186,7 +209,15 @@ static int max_block_binding(StorageQualifier sq) {
    else                       return GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS - 1;
 }
 
-Symbol *glsl_commit_block_type(SymbolTable *table, SymbolType *type, Qualifiers *quals)
+static void complete_array_type_from_defaults(SymbolType *type, StorageQualifier sq, DeclDefaultState *dflt) {
+   if (sq != STORAGE_IN && sq != STORAGE_OUT) return;
+
+   unsigned d = (sq == STORAGE_IN) ? dflt->input_size : dflt->output_size;
+   if (type->u.array_type.member_count == 0 && d > 0)
+      glsl_complete_array_type(type, d);
+}
+
+Symbol *glsl_commit_block_type(SymbolTable *table, DeclDefaultState *dflt, SymbolType *type, Qualifiers *quals)
 {
    if(!storage_valid_for_block(quals->sq))
       glsl_compile_error(ERROR_CUSTOM, 4, g_LineNumber, "interface %s does not support blocks",
@@ -206,6 +237,10 @@ Symbol *glsl_commit_block_type(SymbolTable *table, SymbolType *type, Qualifiers 
    assert(is_array_of_blocks(type));
 
    const char *block_name = extract_block_name(type);
+
+   if (type->flavour == SYMBOL_ARRAY_TYPE)
+      complete_array_type_from_defaults(type, quals->sq, dflt);
+
    glsl_error_if_type_incomplete(type);
 
    check_singleton_is_instantiable(block_name, type);
@@ -259,7 +294,7 @@ Symbol *glsl_commit_block_type(SymbolTable *table, SymbolType *type, Qualifiers 
    Symbol *symbol = malloc_fast(sizeof(Symbol));
    SymbolType *ref_type = &primitiveTypes[PRIM_UINT];
    if (type->flavour == SYMBOL_ARRAY_TYPE)
-      ref_type = make_array_type(ref_type, glsl_expr_construct_const_value(g_LineNumber, PRIM_UINT, type->u.array_type.member_count));
+      ref_type = make_array_type_internal(ref_type, type->u.array_type.member_count);
    glsl_symbol_construct_interface_block(symbol, block_name, ref_type, type, quals);
    glsl_symbol_table_insert(table, symbol);
 
@@ -319,7 +354,7 @@ Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const cha
    Symbol *symbol = malloc_fast(sizeof(Symbol));
 
    if (!g_InGlobalScope)
-      glsl_compile_error(ERROR_CUSTOM, 24, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_CUSTOM, 12, g_LineNumber, NULL);
 
    /* Check that this doesn't have type void or use a 'gl_' name */
    check_singleton_is_instantiable(name, type);
@@ -379,27 +414,6 @@ Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const cha
    return symbol;
 }
 
-void glsl_complete_array_type(SymbolType *type, int member_count)
-{
-   assert(type->flavour==SYMBOL_ARRAY_TYPE);
-
-   SymbolType *member_type = type->u.array_type.member_type;
-   // Array size must be greater than zero.
-   if (member_count <= 0)
-      glsl_compile_error(ERROR_SEMANTIC, 11, g_LineNumber, NULL);
-
-   assert(type->u.array_type.member_count == 0 ||
-          type->u.array_type.member_count == (unsigned)member_count);
-
-   // Write the complete typename
-   type->name = NULL;
-   if(member_type->name) {
-      type->name = glsl_intern(asprintf_fast("%s[%d]", member_type->name, member_count), false);
-   }
-   type->u.array_type.member_count = member_count;
-   type->scalar_count = member_count*member_type->scalar_count;
-}
-
 void glsl_complete_array_from_init_type(SymbolType *type, SymbolType *init_type)
 {
    if (init_type->flavour != SYMBOL_ARRAY_TYPE ||
@@ -439,9 +453,11 @@ static SymbolType *copy_type_where_incomplete(SymbolType *type) {
  * ints are allowed varies based on context */
 static bool check_in_out_type(const SymbolType *ty, int arrays_ok, bool struct_ok, bool int_ok, bool matrix_ok)
 {
-   if (ty->flavour == SYMBOL_ARRAY_TYPE)
-      return (arrays_ok > 0) && check_in_out_type(ty->u.array_type.member_type, arrays_ok-1, false, int_ok, matrix_ok);
-   else if (ty->flavour == SYMBOL_STRUCT_TYPE) {
+   if (ty->flavour == SYMBOL_ARRAY_TYPE) {
+      /* Struct are allowed in arrays only in the same circumstances that more array levels are */
+      if (arrays_ok == 0) return false;
+      else return check_in_out_type(ty->u.array_type.member_type, arrays_ok-1, (arrays_ok != 1), int_ok, matrix_ok);
+   } else if (ty->flavour == SYMBOL_STRUCT_TYPE) {
       bool ok = struct_ok;
       for (unsigned i = 0; i < ty->u.struct_type.member_count; i++ ) {
          const SymbolType *sty = ty->u.struct_type.member[i].type;
@@ -457,6 +473,56 @@ static bool check_in_out_type(const SymbolType *ty, int arrays_ok, bool struct_o
    }
 }
 
+static bool format_supported(FormatQualifier format) {
+   switch (format) {
+      case FMT_RGBA32F:
+      case FMT_RGBA16F:
+      case FMT_R32F:
+      case FMT_RGBA8:
+      case FMT_RGBA8_SNORM:
+      case FMT_RGBA32I:
+      case FMT_RGBA16I:
+      case FMT_RGBA8I:
+      case FMT_R32I:
+      case FMT_RGBA32UI:
+      case FMT_RGBA16UI:
+      case FMT_RGBA8UI:
+      case FMT_R32UI:
+         return true;
+
+      /* Extended formats */
+      case FMT_RG32F:
+      case FMT_RG16F:
+      case FMT_R11G11B10F:
+      case FMT_R16F:
+      case FMT_RGBA16:
+      case FMT_RGB10A2:
+      case FMT_RG16:
+      case FMT_RG8:
+      case FMT_R16:
+      case FMT_R8:
+      case FMT_RGBA16_SNORM:
+      case FMT_RG16_SNORM:
+      case FMT_RG8_SNORM:
+      case FMT_R16_SNORM:
+      case FMT_R8_SNORM:
+      case FMT_RG32I:
+      case FMT_RG16I:
+      case FMT_RG8I:
+      case FMT_R16I:
+      case FMT_R8I:
+      case FMT_RGB10A2UI:
+      case FMT_RG32UI:
+      case FMT_RG16UI:
+      case FMT_RG8UI:
+      case FMT_R16UI:
+      case FMT_R8UI:
+         return glsl_ext_status(GLSL_EXT_IMAGE_FORMATS) != GLSL_DISABLED;
+   }
+   unreachable();
+   return false;
+}
+
 static bool format_valid_for_image_type(FormatQualifier format, SymbolType *type) {
    PrimitiveTypeIndex img_ret = glsl_prim_get_image_info(type->u.primitive_type.index)->return_type;
    PrimitiveTypeIndex img_ret_base = primitiveScalarTypeIndices[img_ret];
@@ -467,16 +533,44 @@ static bool format_valid_for_image_type(FormatQualifier format, SymbolType *type
       case FMT_R32F:
       case FMT_RGBA8:
       case FMT_RGBA8_SNORM:
+      case FMT_RG32F:
+      case FMT_RG16F:
+      case FMT_R11G11B10F:
+      case FMT_R16F:
+      case FMT_RGBA16:
+      case FMT_RGB10A2:
+      case FMT_RG16:
+      case FMT_RG8:
+      case FMT_R16:
+      case FMT_R8:
+      case FMT_RGBA16_SNORM:
+      case FMT_RG16_SNORM:
+      case FMT_RG8_SNORM:
+      case FMT_R16_SNORM:
+      case FMT_R8_SNORM:
          return (img_ret_base == PRIM_FLOAT);
+
       case FMT_RGBA32I:
       case FMT_RGBA16I:
       case FMT_RGBA8I:
       case FMT_R32I:
+      case FMT_RG32I:
+      case FMT_RG16I:
+      case FMT_RG8I:
+      case FMT_R16I:
+      case FMT_R8I:
          return (img_ret_base == PRIM_INT);
+
       case FMT_RGBA32UI:
       case FMT_RGBA16UI:
       case FMT_RGBA8UI:
       case FMT_R32UI:
+      case FMT_RGB10A2UI:
+      case FMT_RG32UI:
+      case FMT_RG16UI:
+      case FMT_RG8UI:
+      case FMT_R16UI:
+      case FMT_R8UI:
          return (img_ret_base == PRIM_UINT);
    }
    unreachable();
@@ -564,7 +658,7 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
             binding_used = q.lq->binding;
          } else {
             max_binding = GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS - 1;
-            binding_used = q.lq->binding + type->scalar_count - 1;
+            binding_used = q.lq->binding + (type->scalar_count/2) - 1;
          }
 
          if (binding_used > max_binding)
@@ -575,7 +669,7 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
       if (q.lq->qualified & LOC_QUALED) {
          StorageQualifier sq = q.sq;
          if (sq != STORAGE_IN && sq != STORAGE_OUT && sq != STORAGE_UNIFORM)
-            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "location qualifier not valid for %s",
+            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "location qualifier not valid for storage class '%s'",
                                                                glsl_storage_qual_string(sq));
 
          if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 10, 1)) {
@@ -583,6 +677,9 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
                glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "input location qualifier only valid in vertex shader");
             if (sq == STORAGE_OUT && g_ShaderFlavour != SHADER_FRAGMENT)
                glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "output location qualifier only valid in fragment shader");
+            if (sq == STORAGE_UNIFORM)
+               glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "uniform location qualifier not valid in this language version");
+
          }
       }
 
@@ -591,6 +688,8 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
             glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "format qualifier not valid for type %s", type->name);
          if (!format_valid_for_image_type(q.lq->format, strip_arrays(type)))
             glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "format qualifier inconsistent with type %s", type->name);
+         if (!format_supported(q.lq->format))
+            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Format not supported. An extension may need to be enabled?");
       }
 
       if (q.lq->qualified & OFFSET_QUALED) {
@@ -627,6 +726,8 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
          type = copy_type_where_incomplete(type);
          glsl_complete_array_from_init_type(type, initialiser->type);
       }
+
+      complete_array_type_from_defaults(type, q.sq, dflt);
 
       glsl_error_if_type_incomplete(type);
    }
@@ -676,8 +777,8 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
    if (name == NULL) return NULL;
 
    /* XXX These checks only happen when declaring variables, contrary to what the spec says */
-   /* TODO: Ensure that all these checks are applied correctly when name != NULL */
-   if(q.sq != STORAGE_UNIFORM && glsl_type_contains_opaque(type) && name != NULL)
+
+   if(q.sq != STORAGE_UNIFORM && glsl_type_contains_opaque(type))
       glsl_compile_error(ERROR_CUSTOM, 22, g_LineNumber, NULL);
 
    void *compile_time_value = NULL;
@@ -784,7 +885,7 @@ static SymbolType *glsl_build_struct_or_block_type(SymbolTypeFlavour flavour,
 
    SymbolType *resultType   = malloc_fast(sizeof(SymbolType));
    resultType->flavour      = flavour;
-   resultType->name         = name;
+   resultType->name         = name ? name : "<anon>";
    resultType->scalar_count = 0;    /* Added as we go along */
 
    StructMember *memb = malloc_fast(sizeof(StructMember) * members->count);

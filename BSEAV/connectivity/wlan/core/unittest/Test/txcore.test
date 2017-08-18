@@ -1,0 +1,132 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for txcore
+# $Id: bebf49b07185f868cea76b34b5e540e62e34eaa1 $
+# $Copyright Broadcom Corporation$
+#
+
+
+#	txcore enabled bitmap (Nsts {4..1}) 0x00 0x00 0x05 0x01
+#	txcore mask OFDM 0x01  CCK 0x01
+
+# for any given txchain the bitmap corresponding to the number of
+# streams should be the same as the txchain and the lower streams
+# should be subsets.  ofdm and cck should be the same as txchain
+
+
+package require UTF
+
+UTF::Test txcore {STA} {
+
+    $STA wl mpc 0
+    $STA wl up
+
+    foreach policy {0 1} {
+
+	$STA wl spatial_policy $policy
+
+	for {set i 1} {$i < 8} {incr i} {
+	    switch $policy {
+		0 { set pol "0 (MIN)" }
+		1 { set pol "1 (MAX)" }
+		-1 { set pol "-1 (auto)" }
+		default {
+		    error "Unexpected spacial_policy"
+		}
+	    }
+
+	    set c [UTF::CountBitsSet $i]
+
+	    UTF::Try "$STA txchain $i (${c}x) policy $pol" {
+		$STA wl txchain $i
+		set txcore [$STA wl txcore]
+		set err ""
+
+		if {![regexp -expanded \
+			  {Nsts.*(0x[[:xdigit:]]+)\s(0x[[:xdigit:]]+)\s
+			      (0x[[:xdigit:]]+)\s(0x[[:xdigit:]]+).*\s
+			      OFDM\s(0x[[:xdigit:]]+)\s+
+			      CCK\s(0x[[:xdigit:]]+)} \
+			  $txcore - s4 s3 s2 s1 ofdm cck]} {
+		    error "Can't parse txcore"
+		}
+
+		if {$s4} {
+		    lappend err "4th stream enabled!"
+		}
+
+		# Check all streams use subsets of specified cores.
+		if {($i|$s4) != $i} {
+		    lappend err "4-stream not a subset of chosen cores"
+		}
+		if {($i|$s3) != $i} {
+		    lappend err "3-stream not a subset of chosen cores"
+		}
+		if {($i|$s2) != $i} {
+		    lappend err "2-stream not a subset of chosen cores"
+		}
+		if {($i|$s1) != $i} {
+		    lappend err "1-stream not a subset of chosen cores"
+		}
+
+
+		switch $policy {
+		    1 {
+			# MAX - use as many cores as possible
+			if {$c > 2 && $s3 != $i} {
+			    lappend err "3x not using all cores"
+			}
+			if {$c > 1 && $s2 != $i} {
+			    lappend err "2x not using all cores"
+			}
+			if {$s1 != $i} {
+			    lappend err "1x not using all cores"
+			}
+			if {$ofdm != $i} {
+			    lappend err "OFDM not using all cores"
+			}
+			if {$cck != $i} {
+			    lappend err "CCK not using all cores"
+			}
+		    }
+		    0 {
+			# MIN - use as few cores as possible
+			if {$c > 2} {
+			    if {[UTF::CountBitsSet $s3] < 3} {
+				lappend err "3x not using 3 cores"
+			    }
+			    if {[UTF::CountBitsSet $s2] > 2} {
+				lappend err "2x using more than 2 cores"
+			    }
+			}
+			if {$c > 1} {
+			    if {[UTF::CountBitsSet $s2] < 2} {
+				lappend err "2x not using 2 cores"
+			    }
+			    if {[UTF::CountBitsSet $s1] > 1} {
+				lappend err "1x using more than one core"
+			    }
+			}
+			if {[UTF::CountBitsSet $ofdm] > 1} {
+			    lappend err "OFDM using more than one core"
+			}
+			if {[UTF::CountBitsSet $cck] > 1} {
+			    lappend err "CCK using more than one core"
+			}
+		    }
+		    -1 {
+			# AUTO - cores chosen dynamically
+		    }
+		    default {
+			error "Unexpected spacial_policy"
+		    }
+		}
+		if {$err ne ""} {
+		    error [join $err ": "]
+		}
+	    }
+	}
+    }
+}

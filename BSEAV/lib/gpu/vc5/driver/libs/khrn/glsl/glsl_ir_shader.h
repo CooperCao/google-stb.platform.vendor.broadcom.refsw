@@ -36,7 +36,7 @@ void glsl_ssa_shader_term(SSAShader *sh);
 /* IR format used in relocatable programs: (Some elements are shared from above) */
 
 typedef struct {
-   int successor_condition;
+   int successor_condition;      /* If -1 (no condition) then always false */
    int next_if_true;
    int next_if_false;
    bool barrier;

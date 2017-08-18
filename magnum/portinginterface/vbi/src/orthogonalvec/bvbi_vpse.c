@@ -48,14 +48,10 @@
 #if (BVBI_NUM_WSE >= 1)
 #include "bchp_wse_0.h"  /* RDB info for primary WSE core */
 #endif
-#if (BVBI_NUM_WSE >= 2)
-#include "bchp_wse_1.h"   /* RDB info for secondary WSE core */
-#endif
-#if (BVBI_NUM_WSE >= 3)
-#include "bchp_wse_2.h"  /* RDB info for tertiary WSE core */
-#endif
 
 BDBG_MODULE(BVBI);
+
+#if BVBI_NUM_WSE > 0 /** { **/
 
 
 /***************************************************************************
@@ -351,12 +347,12 @@ static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
 #endif
 #if (BVBI_NUM_WSE >= 2)
     case 1:
-        ulCoreOffset = (BCHP_WSE_1_control - BCHP_WSE_0_control);
+        ulCoreOffset = (BCHP_WSE_1_REG_START - BCHP_WSE_0_REG_START);
         break;
 #endif
 #if (BVBI_NUM_WSE >= 3)
     case 2:
-        ulCoreOffset = (BCHP_WSE_2_control - BCHP_WSE_0_control);
+        ulCoreOffset = (BCHP_WSE_2_REG_START - BCHP_WSE_0_REG_START);
         break;
 #endif
     default:
@@ -365,3 +361,5 @@ static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
 
     return ulCoreOffset;
 }
+
+#endif /** } BVBI_NUM_WSE > 0 **/

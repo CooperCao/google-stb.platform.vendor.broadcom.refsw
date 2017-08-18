@@ -136,7 +136,6 @@ DTCP_IP_APPLIB_TEST_INCLUDE_PATH += \
 	$(BSEAV)/lib/mpeg2_ts_parse \
 	$(BSEAV)/lib/tspsi \
 	$(BSEAV)/api/include \
-	$(BSEAV)/lib/netaccel/include \
 	$(BSEAV)/lib/media \
 	$(BSEAV)/lib/bfile \
 	$(NEXUS_TOP)/lib/dtcp_ip/include \
@@ -230,13 +229,6 @@ ifeq ($(SETTOP_API_SUPPORT),y)
 	$(Q_)$(MAKE) -C $(BSEAV)/api/build/nexus
 endif #SETTOP_API_SUPPORT
 
-ifneq ($(wildcard $(BSEAV)/lib/netaccel/module/Makefile),)
-ifeq ($(NETACCEL_SUPPORT),y)
-	$(Q_)$(MAKE) NETACCEL_BUILD_PRIVATE=y IDLE_STATS=y NETACCEL_STANDALONE=y -C $(BSEAV)/lib/netaccel
-endif #NETACCEL_SUPPORT
-endif
-
-
 ifeq ($(SSL_SUPPORT),y)
 .PHONY:  openssl_lib
 openssl_lib:
@@ -308,11 +300,6 @@ $(DTCP_IP_APPLIB_TEST_ODIR) :
 
 
 install: all
-ifneq ($(REFSW_BUILD),y)
-ifeq ($(NETACCEL_SUPPORT),y)
-	$(Q_)$(MAKE) -C $(BSEAV)/lib/netaccel  INSTALL_DIR=$(NEXUS_BIN_DIR) install
-endif
-endif
 
 ifeq ($(DTCP_IP_SUPPORT),y)
 	@cp -f $(BSEAV)/lib/security/bcrypt/lib/libbcrypt.so $(NEXUS_BIN_DIR)

@@ -53,6 +53,7 @@ typedef struct NEXUS_RecordModuleSettings
         NEXUS_ModuleHandle recpump; /* transport module */
         NEXUS_ModuleHandle playback; /* only required for timeshifting. */
     } modules;
+    NEXUS_CommonModuleSettings common;
 } NEXUS_RecordModuleSettings;
 
 void NEXUS_RecordModule_GetDefaultSettings(

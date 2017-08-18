@@ -49,6 +49,7 @@
 #include "tzmemory.h"
 #include "clock.h"
 #include "config.h"
+#include "pgtable.h"
 
 #define OWNER_ACCESS_PERMS(access) ((access >> 6) & 07)
 #define GROUP_ACCESS_PERMS(access) ((access >> 3) & 07)
@@ -112,7 +113,7 @@ public:
 
     virtual void accessTimes(AccessTimes *) = 0;
 
-    virtual int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset) = 0;
+    virtual int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset, PageTable *pageTable = NULL) = 0;
 
 protected:
     virtual ~IFile() {};

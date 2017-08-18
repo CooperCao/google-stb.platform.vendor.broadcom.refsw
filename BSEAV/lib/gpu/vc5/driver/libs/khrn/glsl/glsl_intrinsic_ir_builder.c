@@ -62,7 +62,6 @@ static const struct intrinsic_ir_info_s intrinsic_ir_info[INTRINSIC_COUNT] = {
    { INTRINSIC_IMAGE_XOR,      DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_IMAGE_XCHG,     DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_IMAGE_CMPXCHG,  DATAFLOW_FLAVOUR_COUNT, -1 },
-   { INTRINSIC_IMAGE_SIZE,     DATAFLOW_FLAVOUR_COUNT, -1 },
 };
 
 static inline Dataflow *pack_const_offsets(const const_value *o) {
@@ -95,6 +94,7 @@ static Dataflow *pack_texture_offsets(int num, Dataflow *const *values)
    return packed;
 }
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
 static bool is_imagebuffer(const PrimSamplerInfo *sampler)
 {
    return (sampler->type == PRIM_IMAGEBUFFER || sampler->type == PRIM_UIMAGEBUFFER ||
@@ -119,9 +119,10 @@ static void texbuffer_translate_coord(Dataflow *sampler, Dataflow *coord,
    *elem_no = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, coord, log2_arr_elem_w);
    *x = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, coord, arr_elem_w_minus_1);
 }
+#endif
 
 static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr) {
-   Dataflow *sampler_scalar_value;
+   Dataflow *sampler_scalar[2];
    Dataflow *coord_scalar_values [4];
    Dataflow *lod_scalar;
    Dataflow *comp_scalar;
@@ -158,17 +159,16 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    }
 
    // Calculate args.
-   glsl_expr_calculate_dataflow(ctx, &sampler_scalar_value, sampler);
-   glsl_expr_calculate_dataflow(ctx, coord_scalar_values,   coord);
-   glsl_expr_calculate_dataflow(ctx, &lod_scalar,           lod);
+   glsl_expr_calculate_dataflow(ctx, sampler_scalar,      sampler);
+   glsl_expr_calculate_dataflow(ctx, coord_scalar_values, coord);
+   glsl_expr_calculate_dataflow(ctx, &lod_scalar,         lod);
    if (comp) glsl_expr_calculate_dataflow(ctx, &comp_scalar, comp);
    if (dref) glsl_expr_calculate_dataflow(ctx, &dref_scalar, dref);
 
    int non_idx_coords = sampler_info->coord_count;
    bool array = sampler_info->array;
-   bool cube = sampler_info->cube;
-   if (is_image && cube)
-   {
+   bool cube  = sampler_info->cube;
+   if (is_image && cube) {
       /* Cube and cubemap arrays images are treated as 2D arrays... */
       assert(non_idx_coords == 3);
       non_idx_coords = 2;
@@ -182,14 +182,15 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    for (int i=0; i<non_idx_coords; i++) gadget_c[i] = coord_scalar_values[i];
    if (array) gadget_c[3] = coord_scalar_values[non_idx_coords];
 
-   if (is_samplerbuffer(sampler_info) || is_imagebuffer(sampler_info))
-   {
+#if !V3D_HAS_LARGE_1D_TEXTURE
+   if (is_samplerbuffer(sampler_info) || is_imagebuffer(sampler_info)) {
       Dataflow *pos = gadget_c[0];
       if (is_image)
-         glsl_imgbuffer_translate_coord(sampler_scalar_value, pos, &gadget_c[0], &gadget_c[3]);
+         glsl_imgbuffer_translate_coord(sampler_scalar[0], pos, &gadget_c[0], &gadget_c[3]);
       else
-         texbuffer_translate_coord(sampler_scalar_value, pos, &gadget_c[0], &gadget_c[3]);
+         texbuffer_translate_coord(sampler_scalar[0], pos, &gadget_c[0], &gadget_c[3]);
    }
+#endif
 
    Dataflow *coords = glsl_dataflow_construct_vec4(gadget_c[0], gadget_c[1], gadget_c[2], gadget_c[3]);
 
@@ -218,26 +219,27 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
       bits_value |= (comp_scalar->u.constant.value & 0x3) << DF_TEXBITS_GATHER_COMP_SHIFT;
    }
 
+   Dataflow *df_sampler = (!is_image && !(bits_value & DF_TEXBITS_FETCH)) ?
+                           sampler_scalar[1] : NULL;
+   if (bits_value & DF_TEXBITS_SAMPLER_FETCH) bits_value |= DF_TEXBITS_FETCH;
+
    const DataflowType component_type_index = glsl_prim_index_to_df_type(primitiveScalarTypeIndices[sampler_info->return_type]);
    const bool         scalar_result        = expr->type == &primitiveTypes[PRIM_FLOAT];
-   glsl_dataflow_construct_texture_lookup(
-          &scalar_values[0],
-          scalar_result ? NULL : &scalar_values[1],
-          scalar_result ? NULL : &scalar_values[2],
-          scalar_result ? NULL : &scalar_values[3],
-          bits_value, sampler_scalar_value, coords, dref_scalar, lod_scalar, gadget_offset,
-          0, component_type_index);
+   glsl_dataflow_construct_texture_lookup(scalar_values, scalar_result ? 1 : 4, bits_value,
+                                          sampler_scalar[0], coords, dref_scalar, lod_scalar,
+                                          gadget_offset, df_sampler, component_type_index);
 
    assert(!is_image || !scalar_result);      /* No image load functions return scalars */
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    if (is_image) {
       Dataflow *ok = NULL;
-      ImageInfoParam size_param[3] = { IMAGE_INFO_LX_WIDTH, IMAGE_INFO_LX_HEIGHT, IMAGE_INFO_LX_DEPTH };
+      Dataflow *size = glsl_dataflow_construct_texture_size(sampler_scalar[0]);
       for (int i=0; i<non_idx_coords; i++) {
-         Dataflow *size = glsl_dataflow_construct_image_info_param(sampler_scalar_value, size_param[i]);
+         Dataflow *s_c  = glsl_dataflow_construct_get_vec4_component(i, size, DF_INT);
          Dataflow *c_ok = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN,
-                                glsl_dataflow_construct_reinterp(coord_scalar_values[i], DF_UINT), size);
+                                glsl_dataflow_construct_reinterp(coord_scalar_values[i], DF_UINT),
+                                glsl_dataflow_construct_reinterp(s_c, DF_UINT));
 
          if (ok == NULL) ok = c_ok;
          else ok = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, ok, c_ok);
@@ -253,18 +255,18 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    {
       /* HW clamps array index. We need border behaviour.
        * Replace result with 0 if array index was out of bounds... */
-
-      Dataflow *num_elems;
-
       /* we should not see cube map arrays here */
       assert( (sampler_info->cube && !sampler_info->array) ||
               (!sampler_info->cube && sampler_info->array));
 
+      Dataflow *num_elems;
       if (sampler_info->cube && !sampler_info->array)
          num_elems = glsl_dataflow_construct_const_uint(6);
-      else
-         num_elems = glsl_dataflow_construct_image_info_param(
-            sampler_scalar_value, IMAGE_INFO_LX_DEPTH);
+      else {
+         Dataflow *s = glsl_dataflow_construct_texture_size(sampler_scalar[0]);
+         num_elems   = glsl_dataflow_construct_get_vec4_component(2, s, DF_INT);
+         num_elems   = glsl_dataflow_construct_reinterp(num_elems, DF_UINT);
+      }
 
       Dataflow *idx_ok = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN,
          glsl_dataflow_construct_reinterp(gadget_c[3], DF_UINT), num_elems);
@@ -278,18 +280,15 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
 }
 
 static void calculate_dataflow_texture_size(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr) {
-   /* Should have only a sampler parameter. Lod was handled already */
-   assert(expr->u.intrinsic.args->count == 1);
    Expr *sampler_expr = expr->u.intrinsic.args->first->expr;
 
-   Dataflow *sampler;
-   glsl_expr_calculate_dataflow(ctx, &sampler, sampler_expr);
+   Dataflow *image_sampler[2];
+   glsl_expr_calculate_dataflow(ctx, image_sampler, sampler_expr);
 
-   Dataflow *size = glsl_dataflow_construct_texture_size(sampler);
+   Dataflow *size = glsl_dataflow_construct_texture_size(image_sampler[0]);
 
-   for (unsigned i=0; i<expr->type->scalar_count; i++) {
+   for (unsigned i=0; i<expr->type->scalar_count; i++)
       scalar_values[i] = glsl_dataflow_construct_get_vec4_component(i, size, DF_INT);
-   }
 }
 
 static void calculate_dataflow_atomic_load(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr) {
@@ -445,9 +444,6 @@ void glsl_intrinsic_ir_calculate_dataflow(BasicBlock* ctx, Dataflow **scalar_val
    case INTRINSIC_IMAGE_CMPXCHG:
    case INTRINSIC_IMAGE_STORE:
       glsl_calculate_dataflow_image_atomic(ctx, scalar_values, expr);
-      break;
-   case INTRINSIC_IMAGE_SIZE:
-      glsl_calculate_dataflow_image_size(ctx, scalar_values, expr);
       break;
    default:
       assert(arg_count >= 0);

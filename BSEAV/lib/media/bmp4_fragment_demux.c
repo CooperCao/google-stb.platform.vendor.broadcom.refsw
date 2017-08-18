@@ -632,7 +632,6 @@ b_mp4_payload_handler_h264(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
         uint32_t nal_len;
         if(left<=lengthSize) {
             BDBG_MSG_TRACE(("b_mp4_payload_handler_h264:%#lx:%#lx invalid frame, left %u", (unsigned long)demux, (unsigned long)stream, (unsigned)left));
-            rc = -1;
             goto error;
         }
         left -= lengthSize;
@@ -641,7 +640,6 @@ b_mp4_payload_handler_h264(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
         BATOM_CLONE(&nal_start, payload);
         if(nal_len==0 || nal_len > left || nal_len!=batom_cursor_skip(payload, nal_len)) {
             BDBG_MSG_TRACE(("b_mp4_payload_handler_h264:%#lx:%#lx not enough frame data %u:%u", (unsigned long)demux, (unsigned long)stream, (unsigned)nal_len, (unsigned)left));
-            rc = -1;
             goto error;
         }
         if(count==0 && frame_no!=0) {
@@ -666,7 +664,8 @@ b_mp4_payload_handler_h264(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
 
 error:
     batom_accum_clear(stream->frame_accum);
-    return -1;
+    rc = -1;
+    return rc;
 }
 
 static int
@@ -731,7 +730,6 @@ b_mp4_payload_handler_h265(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
         uint32_t nal_len;
         if(left<=lengthSize) {
             BDBG_MSG_TRACE(("b_mp4_payload_handler_h265:%#lx:%#lx invalid frame, left %u", (unsigned long)demux, (unsigned long)stream, (unsigned)left));
-            rc = -1;
             goto error;
         }
         left -= lengthSize;
@@ -740,7 +738,6 @@ b_mp4_payload_handler_h265(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
         BATOM_CLONE(&nal_start, payload);
         if(nal_len==0 || nal_len > left || nal_len!=batom_cursor_skip(payload, nal_len)) {
             BDBG_MSG_TRACE(("b_mp4_payload_handler_h265:%#lx:%#lx not enough frame data %u:%u", (unsigned long)demux, (unsigned long)stream, (unsigned)nal_len, (unsigned)left));
-            rc = -1;
             goto error;
         }
         if(count==0 && frame_no!=0) {
@@ -765,7 +762,8 @@ b_mp4_payload_handler_h265(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
 
 error:
     batom_accum_clear(stream->frame_accum);
-    return -1;
+    rc = -1;
+    return rc;
 }
 
 

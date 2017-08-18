@@ -54,7 +54,7 @@ class CTunerSatScanData : public CTunerScanData
 public:
     CTunerSatScanData(
             bool     appendToChannelList = false,
-            uint16_t majorStartNum = 1
+            unsigned majorStartNum = 1
             ) :
         CTunerScanData(eBoardResource_frontendSds, appendToChannelList, majorStartNum),
         _stepFreq(-1),
@@ -87,7 +87,7 @@ class CTunerSat : public CTuner
 public:
     CTunerSat(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

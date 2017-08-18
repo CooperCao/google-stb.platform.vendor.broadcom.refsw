@@ -41,10 +41,10 @@
 
 #include "pthread.h"
 #include "b_dcc_lib.h"
-#include "atlas_main.h"
 #include "nexus_video_input_vbi.h"
 #include "parse_userdata.h"
 #include "mvc.h"
+#include "atlas_main.h"
 
 #define CC_DATA_BUF_SIZE  128
 #define MAX_INPUT_CHARS   128

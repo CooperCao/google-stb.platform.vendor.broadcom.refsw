@@ -1,0 +1,39 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for PR80328
+#
+# Prior to running this test adjust the RSSI for -19
+# The AP used to produce the problem is 4717 running 5.22.80 external
+# The problem is reproduced on  4313combo using 5.60.48.29.
+# DataRate test disassociates the STA at the end.
+# Twick Test/DataRate.test to print counters on the AP/STA and to disable disassocation at the end.
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::DataRate
+
+UTF::Test PR80328 {AP STA} {
+
+    UTF::WrapSummary $UTF::SummaryDir "PR80328" "" "sotmishi@broadcom.com" {
+
+	    $STA load -tag BASS_REL_5_60_48_29
+
+	    $AP load -tag COMANCHE2_REL_5_22_80 -brand linux-external-router
+
+	    $AP restore_defaults
+
+	    APChanspec $AP 3
+    
+	    APConfigureSecurity  $AP -security open
+    
+	    ConnectAPSTA  $AP $STA
+
+ 	   DataRate  $AP $STA
+		
+	}
+}

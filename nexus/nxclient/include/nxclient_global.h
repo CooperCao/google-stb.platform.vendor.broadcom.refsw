@@ -104,6 +104,14 @@ typedef enum NxClient_AudioOutputMode
     NxClient_AudioOutputMode_eMax
 } NxClient_AudioOutputMode;
 
+typedef enum NxClientAudioCodecSupport
+{
+    NxClientAudioCodecSupport_eDefault, /* Follows the edid/default behavior for compressed */
+    NxClientAudioCodecSupport_eEnabled, /* Forces codec to output compressed even if edid reports it as not supported */
+    NxClientAudioCodecSupport_eDisabled, /* Forces codec to not output compressed even if edid reports it as not supported */
+    NxClientAudioCodecSupport_eMax
+} NxClientAudioCodecSupport;
+
 typedef struct NxClient_AudioOutputSettings
 {
     NxClient_AudioOutputMode outputMode; /* Preferred format. Reverts to ePcm if mode not possible. */
@@ -119,6 +127,10 @@ typedef struct NxClient_AudioOutputSettings
 
     NEXUS_AudioChannelStatusInfo channelStatusInfo; /* only applies to hdmi and spdif */
     NEXUS_AudioLoudnessDeviceMode loudnessDeviceMode; /* only applies to hdmi */
+    NxClientAudioCodecSupport compressedOverride[NEXUS_AudioCodec_eMax]; /* Overrides the expected behavior for compressed output based on the codec.
+                                                                            Will affect eAuto, ePassthrough, eTranscode as well as how we fall back if things are not supported.
+                                                                            As long as the transcode codec is supported (via edid or through this) transcode will could still be possible.
+                                                                            Only applies to HDMI and spdif. */
 } NxClient_AudioOutputSettings;
 
 /**
@@ -154,8 +166,11 @@ typedef struct NxClient_AudioSettings {
                                               coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eLeft] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2
                                               coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eRight] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2
                                               */
-
-    NxClient_AudioOutputSettings hdmi, spdif, dac, rfm;
+    NxClient_AudioOutputSettings hdmi;
+    NxClient_AudioOutputSettings spdif;
+    NxClient_AudioOutputSettings dac; /* DAC settings and I2S0 unless -i2s0 specified at runtime */
+    NxClient_AudioOutputSettings i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+    NxClient_AudioOutputSettings rfm;
 } NxClient_AudioSettings;
 
 void NxClient_GetAudioSettings(
@@ -185,6 +200,22 @@ NEXUS_Error NxClient_SetAudioProcessingSettings(
     const NxClient_AudioProcessingSettings *pSettings
     );
 
+
+/**
+Summary:
+Actual audio output status.
+
+Description:
+Status is based on client and/or server settings as well as system capabilities.
+**/
+
+typedef struct NxClient_AudioOutputStatus
+{
+    NxClient_AudioOutputMode outputMode; /* Actual format. Never eAuto. */
+    NEXUS_AudioChannelMode channelMode;  /* for NxClient_AudioOutputMode_ePcm */
+    NEXUS_AudioCodec outputCodec;        /* if compressed output, which codec is being sent. if pcm, ePcm. */
+} NxClient_AudioOutputStatus;
+
 /**
 Summary:
 Actual audio status.
@@ -193,11 +224,12 @@ Description:
 Status is based on client and/or server settings as well as system capabilities.
 **/
 typedef struct NxClient_AudioStatus {
-    struct {
-        NxClient_AudioOutputMode outputMode; /* Actual format. Never eAuto. */
-        NEXUS_AudioChannelMode channelMode;  /* for NxClient_AudioOutputMode_ePcm */
-        NEXUS_AudioCodec outputCodec;        /* if compressed output, which codec is being sent. if pcm, ePcm. */
-    } hdmi, spdif, dac, rfm;
+    NxClient_AudioOutputStatus hdmi;
+    NxClient_AudioOutputStatus spdif;
+    NxClient_AudioOutputStatus dac; /* DAC status and I2S0 unless -i2s0 specified on at runtime */
+    NxClient_AudioOutputStatus i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+    NxClient_AudioOutputStatus rfm;
+
     struct {
         bool ddre;
         bool mixer; /* applies to dolbySettings */
@@ -229,6 +261,12 @@ typedef enum NxClient_HdcpVersion
 /* subset of NEXUS_GraphicsSettings for NxClient */
 typedef struct NxClient_GraphicsSettings
 {
+    /* Control blend of final graphics framebuffer and video using per-pixel or constant alpha.
+    See nexus_display_types.h for values of NEXUS_CompositorBlendFactor. */
+    NEXUS_CompositorBlendFactor sourceBlendFactor; /* Source is the graphics to be blended with video. */
+    NEXUS_CompositorBlendFactor destBlendFactor; /* Dest is video to be blended with graphics. */
+    uint8_t constantAlpha; /* used if sourceBlendFactor or destBlendFactor specify it. */
+
     NEXUS_GraphicsFilterCoeffs horizontalFilter;   /* GFD horizontal upscaler coefficients */
     NEXUS_GraphicsFilterCoeffs verticalFilter;     /* GFD vertical  upscaler coefficients */
     unsigned horizontalCoeffIndex;                 /* if horizontalFilter == eSharp, then this index is used for table-driven coefficients for horizontal upscale. */
@@ -289,8 +327,8 @@ typedef struct NxClient_DisplaySettings
     } display3DSettings;
     struct {
         bool enabled;
-        bool followPreferredFormat;
-        bool preventUnsupportedFormat;
+        bool followPreferredFormat; /* For video only, audio does not have a preferred format */
+        bool preventUnsupportedFormat; /* If disabled audio will ignore EDID and attempt compressed and may result in no audio. Enabled by default */
         NxClient_HdcpLevel hdcp; /* Client sets its desired level. Server aggregates requests from all clients and drives
                       HDCP authentication. Check NxClient_DisplayStatus.hdmi.hdcp for status and hdmiOutputHdcpChanged for callback. */
         NxClient_HdcpVersion version;
@@ -396,6 +434,7 @@ typedef struct NxClient_CallbackStatus
     unsigned hdmiOutputHotplug;
     unsigned hdmiOutputHdcpChanged;
     unsigned displaySettingsChanged;
+    unsigned audioSettingsChanged;
 } NxClient_CallbackStatus;
 
 /**
@@ -409,7 +448,8 @@ typedef struct NxClient_CallbackThreadSettings
 {
     NEXUS_CallbackDesc hdmiOutputHotplug; /* called if NxClient_CallbackStatus.hdmiOutputHotplug increments */
     NEXUS_CallbackDesc hdmiOutputHdcpChanged;
-    NEXUS_CallbackDesc displaySettingsChanged; /* called if NxClient_CallbackStatus.displayStatusChanged increments */
+    NEXUS_CallbackDesc displaySettingsChanged; /* called if NxClient_CallbackStatus.displaySettingsChanged increments */
+    NEXUS_CallbackDesc audioSettingsChanged; /* called if NxClient_CallbackStatus.audioSettingsChanged increments */
     unsigned interval; /* polling interval in milliseconds */
 } NxClient_CallbackThreadSettings;
 
@@ -532,7 +572,7 @@ NEXUS_Error NxClient_LoadHdcpKeys(
     NxClient_HdcpType hdcpType,
     NEXUS_MemoryBlockHandle block, /* Keys are copied. Memory can be freed after call returns.
                                       Memory must be CPU accessible in server. */
-    unsigned blockOffset, /* offset into preceeding block for start of keys */
+    unsigned blockOffset, /* offset into preceding block for start of keys */
     unsigned size /* Size of keys in bytes */
     );
 

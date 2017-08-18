@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  *******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -357,7 +356,6 @@ bmpeg2pes_player_create(bfile_io_read_t fd, const bmedia_player_config *config, 
 {
 	bmpeg2pes_player_t player;
 	bmpeg2pes_demux_config demux_cfg;
-	BERR_Code rc;
 
 	BDBG_ASSERT(fd);
 	BDBG_ASSERT(config);
@@ -366,19 +364,19 @@ bmpeg2pes_player_create(bfile_io_read_t fd, const bmedia_player_config *config, 
 
 	if(!config->buffer) {
 		BDBG_ERR(("bmpeg2pes_player_create: buffer has to be provided"));
-		rc = BERR_TRACE(BERR_NOT_SUPPORTED);
+		BERR_TRACE(BERR_NOT_SUPPORTED);
 		goto err_config;
 	}
 	if(!config->factory) {
 		BDBG_ERR(("bmpeg2pes_player_create: atom_factory has to be provided"));
-		rc = BERR_TRACE(BERR_NOT_SUPPORTED);
+		BERR_TRACE(BERR_NOT_SUPPORTED);
 		goto err_config;
 	}
 	
 	player = BKNI_Malloc(sizeof(*player));
 	if (!player) {
 		BDBG_ERR(("bmpeg2pes_player_create: can't allocate %u bytes", (unsigned)sizeof(*player)));
-		rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+		BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
 		goto err_alloc;
 	}
 	BDBG_OBJECT_INIT(player, bmpeg2pes_player_t);
@@ -791,13 +789,14 @@ bmpeg2pes_player_tell(bmpeg2pes_player_t player, bmedia_player_pos *pos)
 	BDBG_OBJECT_ASSERT(player, bmpeg2pes_player_t);
 	*pos = player->status.position;
 	if(player->last_pts_valid) {
-		int rc;
+                int rc;
 		btime_indexer_location location;
 		location.timestamp = player->last_pts;
 		location.offset = player->read_offset;
 		location.direction = player->time_scale<0 ? btime_indexer_direction_backward:btime_indexer_direction_forward;
 		/* btime_indexer_dump(player->index); */
 		rc = btime_indexer_get_time_by_location(player->index, &location, pos);
+		BSTD_UNUSED(rc);
 	}
     BDBG_MSG(("bmpeg2pes_player_tell:%p %s %u:%u", (void *)player, player->last_pts_valid?"WITH PTS":"", player->last_pts, (unsigned)*pos));
     return;

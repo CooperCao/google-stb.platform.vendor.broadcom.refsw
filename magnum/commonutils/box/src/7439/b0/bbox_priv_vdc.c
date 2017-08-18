@@ -99,7 +99,6 @@ BERR_Code BBOX_P_ValidateId
     if (ulId == 0 || ulId == 8 || ulId == 11 ||
         ulId == 15 || ulId > BBOX_MODES_SUPPORTED)
     {
-        BDBG_ERR(("Box Mode %d is not supported.", ulId));
         eStatus = BBOX_ID_NOT_SUPPORTED;
     }
     return eStatus;

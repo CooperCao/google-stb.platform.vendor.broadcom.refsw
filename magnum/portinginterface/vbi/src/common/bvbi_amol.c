@@ -201,11 +201,11 @@ BERR_Code BVBI_P_AMOL_Init( BVBI_P_Handle *pVbi )
 
 #if (BVBI_NUM_AMOLE > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_AMOLE ; ++hwIndex)
-        BVBI_P_AMOL_Enc_Init (pVbi->hReg, false, hwIndex);
+        BVBI_P_AMOL_Enc_Init (pVbi->hReg, hwIndex);
 #endif
 #if (BVBI_NUM_AMOLE_656 > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_AMOLE_656 ; ++hwIndex)
-        BVBI_P_AMOL_Enc_Init (pVbi->hReg, true, hwIndex);
+        BVBI_P_AMOL_Enc_656_Init (pVbi->hReg, hwIndex);
 #endif
 
     BDBG_LEAVE(BVBI_P_AMOL_Init);

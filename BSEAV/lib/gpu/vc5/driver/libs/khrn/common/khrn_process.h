@@ -9,7 +9,7 @@
 #include "khrn_int_common.h"
 #include "libs/platform/gmem.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern bool khrn_process_init(void);
 extern void khrn_process_shutdown(void);
@@ -18,8 +18,8 @@ extern gmem_handle_t get_dummy_texture(void);
 struct glxx_texture_sampler_state;
 extern const struct glxx_tex_sampler_state *khrn_get_image_unit_default_sampler(void);
 
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-extern gmem_handle_t khrn_get_gfxh_1320_buffer(void);
+#if !V3D_HAS_GFXH1636_FIX
+extern gmem_handle_t khrn_get_dummy_ocq_buffer(void);
 #endif
 extern const char *khrn_get_device_name(void);
 extern const char *khrn_get_gl11_exts_str(void);
@@ -41,7 +41,7 @@ static inline uint32_t khrn_get_vpm_size(void);
 static inline uint32_t khrn_get_num_slices_per_core(void);
 static inline uint32_t khrn_get_num_tmus_per_core(void);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #include "khrn_process.inl"
 

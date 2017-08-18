@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 
@@ -76,7 +75,7 @@ BSAGElib_P_TimerInit(
     BTMR_TimerSettings timerSettings = { BTMR_Type_eSharedFreeRun, NULL, NULL, 0, false };
     rc = BTMR_CreateTimer(hSAGElib->core_handles.hTmr, &hSAGElib->hTimer, &timerSettings);
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BTMR_CreateTimer failure %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - BTMR_CreateTimer failure %d", BSTD_FUNCTION, rc));
     }
     return rc;
 }
@@ -109,11 +108,11 @@ BSAGElib_P_AllocSageVkl(
     BSAGElib_iUnlockHsm();
     if(rc != BERR_SUCCESS) {
         vklId = BCMD_VKL_eMax;
-        BDBG_ERR(("%s - BHSM_AllocateVKL() fails", __FUNCTION__));
+        BDBG_ERR(("%s - BHSM_AllocateVKL() fails", BSTD_FUNCTION));
     }
     else {
         vklId = allocateVKLIO.allocVKL;
-        BDBG_MSG(("%s - allocate vkl id=%u", __FUNCTION__, vklId));
+        BDBG_MSG(("%s - allocate vkl id=%u", BSTD_FUNCTION, vklId));
     }
 
     return vklId;
@@ -153,7 +152,7 @@ BSAGElib_P_SageVklsInit(
     hSAGElib->vkl2 = BSAGElib_P_AllocSageVkl(hSAGElib);
     if (hSAGElib->vkl1 == BCMD_VKL_eMax ||
         hSAGElib->vkl2 == BCMD_VKL_eMax) {
-        BDBG_ERR(("%s - cannot initialize VKLs for SAGE", __FUNCTION__));
+        BDBG_ERR(("%s - cannot initialize VKLs for SAGE", BSTD_FUNCTION));
         rc = BERR_OS_ERROR;
         goto end;
     }
@@ -222,13 +221,13 @@ BSAGElib_Open(
     if (!pSAGElibHandle || !settings) {
         rc = BERR_INVALID_PARAMETER;
         BDBG_ERR(("%s: invalid input parameter [handle=%p, settings=%p]",
-                  __FUNCTION__, (void *)pSAGElibHandle, (void *)settings));
+                  BSTD_FUNCTION, (void *)pSAGElibHandle, (void *)settings));
         goto end;
     }
 
     if (!settings->hReg | !settings->hChp | !settings->hInt | !settings->hTmr | !settings->hHsm) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid core handle", __FUNCTION__));
+        BDBG_ERR(("%s: invalid core handle", BSTD_FUNCTION));
         goto end;
     }
 
@@ -236,39 +235,39 @@ BSAGElib_Open(
         !settings->i_memory_alloc.malloc_restricted |
         !settings->i_memory_alloc.free) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid memory allocation interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid memory allocation interface", BSTD_FUNCTION));
         goto end;
     }
 
     if (!settings->i_memory_map.offset_to_addr | !settings->i_memory_map.addr_to_offset) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid memory map interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid memory map interface", BSTD_FUNCTION));
         goto end;
     }
 
     if (!settings->i_memory_sync.flush | !settings->i_memory_sync.invalidate) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid memory sync interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid memory sync interface", BSTD_FUNCTION));
         goto end;
     }
 
     if (!settings->i_memory_sync_isrsafe.flush | !settings->i_memory_sync_isrsafe.invalidate) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid memory sync isrsafe interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid memory sync isrsafe interface", BSTD_FUNCTION));
         goto end;
     }
 
     if (!settings->i_sync_sage.lock | !settings->i_sync_sage.unlock |
         !settings->i_sync_hsm.lock | !settings->i_sync_hsm.unlock) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid sync sage or HSM interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid sync sage or HSM interface", BSTD_FUNCTION));
         goto end;
     }
 
     instance = BKNI_Malloc(sizeof(*instance));
     if (!instance) {
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
-        BDBG_ERR(("%s: cannot allocate instance context", __FUNCTION__));
+        BDBG_ERR(("%s: cannot allocate instance context", BSTD_FUNCTION));
         goto end;
     }
 
@@ -331,7 +330,7 @@ BSAGElib_Open(
 
     BLST_S_INIT(&instance->clients);
 
-    BDBG_MSG(("%s add hSAGElib=%p", __FUNCTION__, (void *)instance));
+    BDBG_MSG(("%s add hSAGElib=%p", BSTD_FUNCTION, (void *)instance));
     *pSAGElibHandle = instance;
 
 end:
@@ -350,7 +349,7 @@ BSAGElib_P_Close(
         goto end;
     }
 
-    BDBG_MSG(("%s remove hSAGElib=%p", __FUNCTION__, (void *)hSAGElib));
+    BDBG_MSG(("%s remove hSAGElib=%p", BSTD_FUNCTION, (void *)hSAGElib));
 
     for (;;)
     {
@@ -359,7 +358,7 @@ BSAGElib_P_Close(
             break;
         }
         BDBG_ERR(("%s: leaked hSAGElib=%p hSAGElibClient=%p. Forcing close.",
-                  __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient));
+                  BSTD_FUNCTION, (void *)hSAGElib, (void *)hSAGElibClient));
         BSAGElib_P_CloseClient(hSAGElibClient, 1);
     }
 
@@ -431,14 +430,14 @@ BSAGElib_OpenClient(
     if (!settings | !pSAGElibClientHandle) {
         rc = BERR_INVALID_PARAMETER;
         BDBG_ERR(("%s: invalid input parameter [handle=%p, settings=%p]",
-                  __FUNCTION__, (void *)pSAGElibClientHandle, (void *)settings));
+                  BSTD_FUNCTION, (void *)pSAGElibClientHandle, (void *)settings));
         goto end;
     }
 
     hSAGElibClient = BKNI_Malloc(sizeof(*hSAGElibClient));
     if (!hSAGElibClient) {
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
-        BDBG_ERR(("%s: cannot allocate client context", __FUNCTION__));
+        BDBG_ERR(("%s: cannot allocate client context", BSTD_FUNCTION));
         goto end;
     }
 
@@ -459,7 +458,7 @@ BSAGElib_OpenClient(
 
     *pSAGElibClientHandle = hSAGElibClient;
 
-    BDBG_MSG(("%s add hSAGElib=%p hSAGElibClient=%p", __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient));
+    BDBG_MSG(("%s add hSAGElib=%p hSAGElibClient=%p", BSTD_FUNCTION, (void *)hSAGElib, (void *)hSAGElibClient));
 
 end:
     if (rc != BERR_SUCCESS) {
@@ -487,7 +486,7 @@ BSAGElib_P_CloseClient(
 
     hSAGElib = hSAGElibClient->hSAGElib;
 
-    BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p", __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient));
+    BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p", BSTD_FUNCTION, (void *)hSAGElib, (void *)hSAGElibClient));
 
     /* if collector is set, lock/unlock callback could be set to NULL */
     if (!collector) {
@@ -521,7 +520,7 @@ BSAGElib_P_CloseClient(
 
             BSAGElib_P_Rpc_RemoveRemote(remote);
             BDBG_ERR(("%s: leaked module hSAGElib=%p hSAGElibClient=%p remote=%p. Forcing uninit.",
-                      __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
+                      BSTD_FUNCTION, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }
     }
 
@@ -534,11 +533,11 @@ BSAGElib_P_CloseClient(
         }
         if (remote == hSAGElib->hStandbyRemote) {
             hSAGElib->hStandbyRemote = NULL;
-            BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p Standby remote=%p", __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
+            BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p Standby remote=%p", BSTD_FUNCTION, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }
         else {
             BDBG_ERR(("%s: leaked hSAGElib=%p hSAGElibClient=%p remote=%p. Forcing close.",
-                      __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
+                      BSTD_FUNCTION, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }
         BSAGElib_P_Rpc_RemoveRemote(remote);
     }
@@ -668,26 +667,26 @@ BSAGElib_P_GetChipsetType(
     if (rc != BERR_SUCCESS) { goto end; }
 
     BDBG_MSG(("%s - OTP [MSP0: %d, MSP1: %d]",
-              __FUNCTION__, otp_swizzle0a_msp0, otp_swizzle0a_msp1));
+              BSTD_FUNCTION, otp_swizzle0a_msp0, otp_swizzle0a_msp1));
 
     if ((otp_swizzle0a_msp0 == OTP_SWIZZLE0A_MSP0_VALUE_ZS) &&
        (otp_swizzle0a_msp1 == OTP_SWIZZLE0A_MSP1_VALUE_ZS)) {
-        BDBG_LOG(("%s - Chip Type: ZS", __FUNCTION__));
+        BDBG_LOG(("%s - Chip Type: ZS", BSTD_FUNCTION));
         hSAGElib->chipInfo.chipType = BSAGElib_ChipType_eZS;
     }
     else if ((otp_swizzle0a_msp0 == OTP_SWIZZLE0A_MSP0_VALUE_ZB) &&
              (otp_swizzle0a_msp1 == OTP_SWIZZLE0A_MSP1_VALUE_ZB)) {
-        BDBG_LOG(("%s - Chip Type: ZB", __FUNCTION__));
+        BDBG_LOG(("%s - Chip Type: ZB", BSTD_FUNCTION));
         hSAGElib->chipInfo.chipType = BSAGElib_ChipType_eZB;
     }
     else if ((otp_swizzle0a_msp0 == OTP_SWIZZLE0A_MSP0_VALUE_CUST1) &&
              (otp_swizzle0a_msp1 == OTP_SWIZZLE0A_MSP1_VALUE_CUST1)) {
-        BDBG_LOG(("%s - Chip Type: Customer1", __FUNCTION__));
+        BDBG_LOG(("%s - Chip Type: Customer1", BSTD_FUNCTION));
         hSAGElib->chipInfo.chipType = BSAGElib_ChipType_eCustomer1;
     }
     else
     {
-        BDBG_LOG(("%s - Chip Type: Customer specific chip", __FUNCTION__));
+        BDBG_LOG(("%s - Chip Type: Customer specific chip", BSTD_FUNCTION));
         hSAGElib->chipInfo.chipType = BSAGElib_ChipType_eCustomer;
     }
 

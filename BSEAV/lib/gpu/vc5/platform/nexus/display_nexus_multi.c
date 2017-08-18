@@ -23,7 +23,7 @@ typedef struct display
    NEXUS_SurfaceClientHandle  surfaceClient;
 
    void                      *vsyncEvent;
-   bool                       terminating;
+   int                        terminating;
 } display;
 
 static void vsyncCallback(void *context, int param)
@@ -59,8 +59,9 @@ static void recycledCallback(void *context, int param)
 
 
 static DisplayInterfaceResult display_surface(void *context, void *s,
-      int render_fence, int *display_fence)
+      int render_fence, bool create_display_fence, int *display_fence)
 {
+   UNUSED(create_display_fence);
    display *self = (display *)context;
    NXPL_Surface *nxpl_surface = (NXPL_Surface *)s;
    NEXUS_SurfaceHandle surface = nxpl_surface->surface;

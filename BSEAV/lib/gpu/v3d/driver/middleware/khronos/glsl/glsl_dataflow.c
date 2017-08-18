@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include <stdlib.h>
@@ -2756,7 +2749,7 @@ static INLINE void expr_calculate_dataflow_instance(Dataflow** scalar_values, Ex
    }
 }
 
-static Dataflow *build_uniform_offset(Expr *expr, Dataflow **linkable_value, int n)
+static Dataflow *build_uniform_offset(Expr *expr, Dataflow **linkable_value, bool *is_array, int n)
 {
    STACK_CHECK();
 
@@ -2780,7 +2773,10 @@ static Dataflow *build_uniform_offset(Expr *expr, Dataflow **linkable_value, int
       Dataflow* subscript_scalar_value;
 
       // Recurse on aggregate.
-      aggregate_scalar_value = build_uniform_offset(expr->u.subscript.aggregate, linkable_value, n);
+      aggregate_scalar_value = build_uniform_offset(expr->u.subscript.aggregate, linkable_value, is_array, n);
+      // Record we've processed an array node, any future EXPR_FIELD_SELECTOR_STRUCT need to have
+      // address calc applied for TMU
+      *is_array = true;
 
       // Recurse on subscript.
       expr_calculate_dataflow(&subscript_scalar_value, expr->u.subscript.subscript);
@@ -2791,18 +2787,21 @@ static Dataflow *build_uniform_offset(Expr *expr, Dataflow **linkable_value, int
    }
    case EXPR_FIELD_SELECTOR_STRUCT:
    {
-      Dataflow* aggregate_scalar_value;
-      int i, field_offset = 0;
-
       // Recurse on aggregate.
-      aggregate_scalar_value = build_uniform_offset(expr->u.field_selector_struct.aggregate, linkable_value, n);
-
-      for (i = 0; i < expr->u.field_selector_struct.field_no; i++)
-      {
+      Dataflow* aggregate_scalar_value = build_uniform_offset(expr->u.field_selector_struct.aggregate, linkable_value, is_array, n);
+      int field_offset = 0;
+      for (int i = 0; i < expr->u.field_selector_struct.field_no; i++)
          field_offset += expr->u.field_selector_struct.aggregate->type->u.struct_type.member_types[i]->scalar_count;
-      }
 
-      return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, glsl_dataflow_construct_const_int(field_offset), aggregate_scalar_value);
+      // are we inside an array?
+      if (!*is_array)
+      {
+         // Update start address for TMU base
+         *linkable_value = &(*linkable_value)[field_offset];
+         return aggregate_scalar_value;
+      }
+      else
+         return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, glsl_dataflow_construct_const_int(field_offset), aggregate_scalar_value);
    }
 
    default:
@@ -2910,7 +2909,11 @@ static INLINE void expr_calculate_dataflow_subscript(Dataflow** scalar_values, E
 
       dataflow_line_num = expr->line_num;
 
-      subscript_scalar_value = build_uniform_offset(expr, aggregate_scalar_values, expr->type->scalar_count);
+      /* only generate FIELD_SELECTOR gpu code when the struct is inside a texture lookup.
+         Array in structure, just keep as normal, whereas a structure in an array needs to have the
+         respective TMU calculation applied */
+      bool is_array = false;
+      subscript_scalar_value = build_uniform_offset(expr, aggregate_scalar_values, &is_array, expr->type->scalar_count);
 
       {
          Expr *thing = expr;

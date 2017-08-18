@@ -7,15 +7,6 @@ GL_OES_EGL_image_external:
    vec4 texture2DProj(samplerExternalOES sampler, vec4 coord);
 
 
-GL_BRCM_texture_1D:
-    vec4 texture( sampler1D sampler, float coord);
-   uvec4 texture(usampler1D sampler, float coord);
-    vec4 texture( sampler1DArray sampler, vec2 coord);
-   uvec4 texture(usampler1DArray sampler, vec2 coord);
-
-    vec4 textureLod(sampler1D sampler, float coord, float lod);
-
-
 GL_BRCM_sampler_fetch:
    vec4 texelFetchBRCM      (sampler2D sampler, ivec2 coord, int lod);
    vec4 texelFetchOffsetBRCM(sampler2D sampler, ivec2 coord, int lod, ivec2 offset);
@@ -117,6 +108,11 @@ GL_OES_texture_storage_multisample_2d_array:
     vec4 texelFetch ( sampler2DMSArray sampler, ivec3 P, int s);
    ivec4 texelFetch (isampler2DMSArray sampler, ivec3 P, int s);
    uvec4 texelFetch (usampler2DMSArray sampler, ivec3 P, int s);
+
+
+GL_BRCM_shader_framebuffer_fetch_depth_stencil:
+   in highp float gl_LastFragDepthBRCM;
+   in lowp  int   gl_LastFragStencilBRCM;
 
 
 GL_OES_shader_image_atomic:
@@ -302,11 +298,12 @@ GL_OES_geometry_shader:
    void EndPrimitive();
 
    in highp int gl_PrimitiveIDIn;
+   in highp int gl_InvocationID;
 
    out highp int gl_PrimitiveID;
-   out highp int gl_Layer;
+   flat out highp int gl_Layer;
 
-   in  highp int gl_Layer;
+   flat in  highp int gl_Layer;
    in  highp int gl_PrimitiveID;
 
    const mediump int gl_MaxGeometryInputComponents;

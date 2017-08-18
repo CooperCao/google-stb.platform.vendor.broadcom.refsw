@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -947,7 +947,7 @@ BERR_Code BXPT_P_XcBuf_Init(
 {
     BSTD_UNUSED(hXpt);
     BSTD_UNUSED(BandwidthConfig);
-    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", BSTD_FUNCTION ));
     return( BERR_SUCCESS );
 }
 
@@ -957,7 +957,7 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     )
 {
     BSTD_UNUSED(hXpt);
-    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", BSTD_FUNCTION ));
     return( BERR_SUCCESS );
 }
 
@@ -970,7 +970,7 @@ void BXPT_XcBuf_P_EnablePlaybackPausing(
     BSTD_UNUSED(hXpt);
     BSTD_UNUSED(PbChannelNum);
     BSTD_UNUSED(PauseEn);
-    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", BSTD_FUNCTION ));
 }
 #endif /* BXPT_FOR_BOOTUPDATER */
 
@@ -982,7 +982,7 @@ BERR_Code BXPT_P_XcBuf_ReportOverflows(
 {
     BERR_Code Status = 0;
     BSTD_UNUSED(hXpt);
-    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", BSTD_FUNCTION ));
     Errors->overflow.XcbuffRaveIbp = 0;
     Errors->overflow.XcbuffRavePbp = 0;
     Errors->overflow.XcbuffMsgPbp = 0;

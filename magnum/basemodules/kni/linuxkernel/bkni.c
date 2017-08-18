@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ***************************************************************************/
 /**
 The following is copied from bstd.h
@@ -154,13 +153,13 @@ static struct task_struct *g_csOwner;
 
 #if BDBG_DEBUG_BUILD
 
-/* BDBG_P_AssertFailed("Error, must be in critical section to call " __FUNCTION__ "\n", __FILE__, __LINE__);\ */
+/* BDBG_P_AssertFailed("Error, must be in critical section to call " BSTD_FUNCTION "\n", __FILE__, __LINE__);\ */
 
 #define ASSERT_CRITICAL() do \
 {\
     if ( !CHECK_CRITICAL() )\
     {\
-        BDBG_P_PrintString("Error, must be in critical section to call %s\n", __FUNCTION__);\
+        BDBG_P_PrintString("Error, must be in critical section to call %s\n", BSTD_FUNCTION);\
         BDBG_P_AssertFailed("Error, must be in critical section", __FILE__, __LINE__);\
     }\
 } while (0)
@@ -169,7 +168,7 @@ static struct task_struct *g_csOwner;
 {\
     if ( CHECK_CRITICAL() )\
     {\
-        BDBG_P_PrintString("Error, must not be in critical section to call %s\n", __FUNCTION__);\
+        BDBG_P_PrintString("Error, must not be in critical section to call %s\n", BSTD_FUNCTION);\
         BDBG_P_AssertFailed("Error, must not be in critical section", __FILE__, __LINE__);\
     }\
 } while (0)
@@ -237,7 +236,6 @@ struct BKNI_MutexObj {
     BDBG_OBJECT(BKNI_Mutex)
     struct semaphore sem;
     unsigned count;
-    BKNI_MutexSettings settings;
 };
 
 #if BKNI_TRACK_MALLOCS
@@ -876,7 +874,6 @@ BERR_Code BKNI_CreateMutex_tagged(BKNI_MutexHandle *mutex, const char *file, int
     BKNI_P_MutexTracking_Init(&(*mutex)->tracking, file, line);
     init_MUTEX(&(*mutex)->sem);
     (*mutex)->count = 0;
-    (*mutex)->settings.suspended = false;
     return BERR_SUCCESS;
 }
 
@@ -1002,23 +999,6 @@ BERR_Code BKNI_TryAcquireMutex(BKNI_MutexHandle mutex)
 void BKNI_ReleaseMutex(BKNI_MutexHandle mutex)
 {
     BKNI_ReleaseMutex_tagged(mutex, NULL, 0);
-}
-
-void BKNI_GetMutexSettings(BKNI_MutexHandle mutex, BKNI_MutexSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(mutex, BKNI_Mutex);
-    *pSettings = mutex->settings;
-    return;
-}
-
-BERR_Code BKNI_SetMutexSettings(BKNI_MutexHandle mutex, const BKNI_MutexSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(mutex, BKNI_Mutex);
-    mutex->settings = *pSettings;
-#if BKNI_DEBUG_MUTEX_TRACKING
-    mutex->tracking.settings = *pSettings;
-#endif
-    return BERR_SUCCESS;
 }
 
 #ifdef BKNI_METRICS_ENABLED

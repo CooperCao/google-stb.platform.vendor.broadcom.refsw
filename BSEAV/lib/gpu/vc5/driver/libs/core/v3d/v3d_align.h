@@ -8,7 +8,7 @@
 #include "v3d_ver.h"
 #include "libs/util/assert_helpers.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /* Maximum alignment relevant to V3D. Strictly speaking the GMP page size is
  * larger than this and alignment relative to GMP pages is relevant, but that
@@ -128,6 +128,6 @@ static_assrt(V3D_MAX_CORES <= (1 << V3D_OCCLUSION_QUERY_COUNTER_CORE_BITS));
 
 #define V3D_PRIM_COUNTS_ALIGN 32
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

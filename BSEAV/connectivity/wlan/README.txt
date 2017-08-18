@@ -1,3 +1,17 @@
+/****************************************************************************************
+ ****************************************************************************************
+ * STOP! This file does NOT apply when using wlan driver internal development code.  Please go to BSEAV/connectivity/wlan/core 
+ *
+ * Please follow instructions: http://confluence.broadcom.com/pages/viewpage.action?spaceKey=SW7271&title=WLAN+SVN+to+GIT+Migration
+ *
+ * Since you have pulled code from "shared stbwlan/baseline",  anything NOT IN BSEAV/connectivity/wlan/core is out of date 
+ * and not expected to work. 
+ *
+ * Remove comment when this branch is pushed back into "baseline git_refsw" 
+ ****************************************************************************************
+ ****************************************************************************************/ 
+
+
 =======================================
 Instructions for building the WLAN code
 =======================================
@@ -14,11 +28,12 @@ However, the WLAN code can be built in many different ways, depending on the val
      1. B_WLAN_VER specifies the major version of the WLAN source code (e.g., "STB7271_BRANCH_15_10" or "EAGLE_10_10_84")
         If not specified, the default is "STB7271_BRANCH_15_10".
 
-     2. B_WLAN_BRAND specifies which set of WLAN source code will be used for the build.  If not specified
-        the default is "linux-external-stbsoc".
-
-        B_WLAN_BRAND=linux-external-stbsoc       # (Default) Builds using standard WLAN code base
-        B_WLAN_BRAND=linux-mfgtest-stbsoc        # Builds using special "manufacturing test" code base
+     2. No more brands in Single code base: 
+        /*B_WLAN_BRAND specifies which set of WLAN source code will be used for the build.  If not specified
+         *the default is "linux-external-stbsoc".
+ 	*
+  	*       B_WLAN_BRAND=linux-external-stbsoc       # (Default) Builds using standard WLAN code base
+   	*      B_WLAN_BRAND=linux-mfgtest-stbsoc        # Builds using special "manufacturing test" code base
 
      3. WLAN_DEFAULT_BUILDCFG specifies a list of "targets" for the build.  
 

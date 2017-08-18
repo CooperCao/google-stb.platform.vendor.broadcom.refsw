@@ -235,6 +235,16 @@ eRet initializeNexus()
        Configure export heap since it's not allocated by nexus by default */
     platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
 #endif
+
+#ifdef MPOD_SUPPORT
+       for (int i = 0; i < MAX_CABLECARD_ROUTE; i++)
+       {
+	/* enable mpodRs only for parsers that need to send data to the cablecard, which will cause an additional 175k or 200k per parserBand to be allocated from the device heap. */
+		platformSettings.transportModuleSettings.clientEnabled.parserBand[i].mpodRs = true;
+		platformSettings.transportModuleSettings.maxDataRate.parserBand[i] = 108000000;		/* 54000000;*/
+	}
+#endif
+
         /* coverity[stack_use_overflow] */
         nerror = NEXUS_Platform_Init(&platformSettings);
         CHECK_NEXUS_ERROR_GOTO("unable to initialize nexus", ret, nerror, error);
@@ -353,12 +363,12 @@ eRet initializeAtlas()
     {
         {
             bipStatus = BIP_Init(NULL);
-            CHECK_ERROR_GOTO("BIP lib failed to initialize", bipStatus, err_initBipLib);
+            CHECK_BIP_ERROR_GOTO("BIP lib failed to initialize", ret, bipStatus, err_initBipLib);
         }
 #ifdef B_HAS_DTCP_IP
         {
             bipStatus = BIP_DtcpIpClientFactory_Init(NULL);
-            CHECK_ERROR_GOTO("BIP_DtcpIpClientFactoryInit() failed to initialize", bipStatus, err_initBipLib);
+            CHECK_BIP_ERROR_GOTO("BIP_DtcpIpClientFactoryInit() failed to initialize", ret, bipStatus, err_initBipLib);
         }
 #endif /* ifdef B_HAS_DTCP_IP */
 #ifdef B_HAS_SSL
@@ -369,7 +379,7 @@ eRet initializeAtlas()
             BIP_SslClientFactory_GetDefaultInitSettings(&settings);
             settings.pRootCaCertPath = TEST_ROOT_CA_PATH;
             bipStatus                = BIP_SslClientFactory_Init(&settings);
-            CHECK_ERROR_GOTO("BIP_SslClientFactory_Init() failed to initialize", bipStatus, err_initDtcpIp);
+            CHECK_BIP_ERROR_GOTO("BIP_SslClientFactory_Init() failed to initialize", ret,bipStatus, err_initDtcpIp);
         }
 #endif /* ifdef B_HAS_SSL */
     }
@@ -469,11 +479,6 @@ int main(
 {
     eRet ret = eRet_Ok;
 
-#if __COVERITY__
-    __coverity_stack_depth__(100*1024*2);
-#endif
-
-
     if (SIG_ERR == signal(SIGINT, cleanExit))
     {
         BDBG_WRN(("Error setting signal handler %d", SIGINT));
@@ -539,7 +544,7 @@ int main(
 
         {
             CAtlas * pAtlas0 = NULL;
-            uint16_t number  = 0;
+            unsigned number  = 0;
             CLua * pLua      = NULL;
 
             if (true == GET_BOOL(pCfg, ENABLE_LUA))

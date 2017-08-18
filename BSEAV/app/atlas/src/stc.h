@@ -68,7 +68,7 @@ class CStc : public CResource
 public:
     CStc(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CStc(void);

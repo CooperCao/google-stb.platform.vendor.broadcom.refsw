@@ -13,6 +13,8 @@
 #include <malloc.h>
 #include <memory.h>
 
+#include <gralloc_priv.h>
+
 #define UNUSED(X) (void)X
 
 /*****************************************************************************

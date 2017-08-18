@@ -39,6 +39,7 @@
 #include "bvc5.h"
 #include "bvc5_priv.h"
 #include "bvc5_registers_priv.h"
+#include "bvc5_scheduler_event_priv.h"
 
 #ifdef BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -187,6 +188,8 @@ BERR_Code BVC5_Open(
    hVC5->sOpenParams.bUsePowerGating = false;
 #endif
 
+   hVC5->bCollectLoadStats = false;
+
    BDBG_MSG((
       "VC5 options:\n"
       " Power gating = %s\n"
@@ -196,7 +199,7 @@ BERR_Code BVC5_Open(
       " Reset on stall = %s\n"
       " Dump on stall = %s\n"
       " No burst splitting = %s\n"
-      " DRM Device Number = %u\n",
+      " DRM Device Number = %u",
       hVC5->sOpenParams.bUsePowerGating ? "on" : "off",
       hVC5->sOpenParams.bUseClockGating ? "on" : "off",
       hVC5->sOpenParams.bUseStallDetection ? "on" : "off",
@@ -254,7 +257,13 @@ BERR_Code BVC5_Open(
    /* Power up the core now if we don't want to use dynamic power gating */
    /* Note: must do this before calling BVC5_P_HardwarePowerAcquire */
    if (!hVC5->sOpenParams.bUsePowerGating)
+   {
+      /* make sure PLLs are running prior to hitting BPCM.  Note! do not
+         call BVC5_P_HardwarePowerAcquire() as it'll in turn reset the HW
+         which will not work as BPCM is not up yet */
+      BVC5_P_HardwarePLLEnable(hVC5);
       BVC5_P_HardwareBPCMPowerUp(hVC5);
+   }
 
    /* on platforms with PLL_CH, hold it open using reference count for performance reasons. */
 #ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
@@ -375,7 +384,10 @@ BERR_Code BVC5_Close(
 #endif
 
    if (!hVC5->sOpenParams.bUsePowerGating)
+   {
       BVC5_P_HardwareBPCMPowerDown(hVC5);
+      BVC5_P_HardwarePLLDisable(hVC5);
+   }
 
    if (hVC5->hEventMutex != NULL)
       BKNI_DestroyMutex(hVC5->hEventMutex);
@@ -431,7 +443,8 @@ BERR_Code BVC5_RegisterClient(
    uint32_t    *puiClientId,
    int64_t      iUnsecureBinTranslation,
    int64_t      iSecureBinTranslation,
-   uint64_t     uiPlatformToken
+   uint64_t     uiPlatformToken,
+   uint32_t     uiClientPID
 )
 {
    BERR_Code         err = BERR_SUCCESS;
@@ -474,7 +487,7 @@ BERR_Code BVC5_RegisterClient(
 
    *puiClientId = BVC5_P_GetFreeClientId(hVC5);
 
-   err = BVC5_P_ClientMapCreateAndInsert(hVC5, hVC5->hClientMap, pContext, *puiClientId, uiPlatformToken);
+   err = BVC5_P_ClientMapCreateAndInsert(hVC5, hVC5->hClientMap, pContext, *puiClientId, uiPlatformToken, uiClientPID);
    if (err != BERR_SUCCESS)
       goto exit1;
 
@@ -692,6 +705,50 @@ exit:
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
 
    BDBG_LEAVE(BVC5_UsermodeJob);
+
+   return err;
+}
+
+BERR_Code BVC5_SchedEventJob(
+      BVC5_Handle                 hVC5,
+      uint32_t                    uiClientId,
+      const BVC5_JobSchedJob     *pSchedEvent
+)
+{
+   BERR_Code            err;
+   BVC5_P_InternalJob  *pSchedEventJob = NULL;
+   BVC5_ClientHandle    hClient;
+
+   BDBG_ENTER(BVC5_SchedEventJob);
+
+   if (pSchedEvent == NULL)
+      return BERR_INVALID_PARAMETER;
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+   if (hClient == NULL || !BVC5_P_ClientSetMaxJobId(hClient, pSchedEvent->sBase.uiJobId))
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   /* Take a copy of the jobs */
+   pSchedEventJob = BVC5_P_JobCreateSchedEvent(hVC5, uiClientId, pSchedEvent);
+   if (pSchedEventJob == NULL)
+   {
+      err = BERR_OUT_OF_SYSTEM_MEMORY;
+      goto exit;
+   }
+
+   BVC5_P_AddJob(hVC5, hClient, pSchedEventJob);
+
+   err = BERR_SUCCESS;
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_SchedEventJob);
 
    return err;
 }
@@ -1350,8 +1407,165 @@ exit:
 
    BDBG_LEAVE(BVC5_GetCompletion);
 
-   return BERR_SUCCESS;
+   return ret;
 }
+
+/***************************************************************************/
+
+BERR_Code BVC5_NewSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             *pSchedEventId)
+{
+   BERR_Code             err = BERR_SUCCESS;
+   BVC5_ClientHandle     hClient;
+
+   BDBG_ENTER(BVC5_NewSchedEvent);
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   if (!BVC5_P_ClientNewSchedEvent(hClient, pSchedEventId))
+      err = BERR_OUT_OF_SYSTEM_MEMORY;
+   else
+      err = BERR_SUCCESS;
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_NewSchedEvent);
+
+   return err;
+}
+
+BERR_Code BVC5_DeleteSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId)
+{
+   BERR_Code             err = BERR_SUCCESS;
+   BVC5_ClientHandle     hClient;
+
+   BDBG_ENTER(BVC5_DeleteSchedEvent);
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   BVC5_P_ClientDeleteSchedEvent(hClient, uiSchedEventId);
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_DeleteSchedEvent);
+
+   return err;
+}
+
+BERR_Code BVC5_SetSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId)
+{
+   BERR_Code             err = BERR_SUCCESS;
+   BVC5_ClientHandle     hClient;
+
+   BDBG_ENTER(BVC5_SetSchedEvent);
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   BVC5_P_ClientSetSchedEvent(hClient, uiSchedEventId);
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_SetSchedEvent);
+
+   return err;
+}
+
+BERR_Code BVC5_ResetSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId)
+{
+   BERR_Code             err = BERR_SUCCESS;
+   BVC5_ClientHandle     hClient;
+
+   BDBG_ENTER(BVC5_ResetSchedEvent);
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   BVC5_P_ClientResetSchedEvent(hClient, uiSchedEventId);
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_ResetSchedEvent);
+
+   return err;
+}
+
+BERR_Code BVC5_QuerySchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId,
+      bool                 *bEventSet)
+{
+   BERR_Code             err = BERR_SUCCESS;
+   BVC5_ClientHandle     hClient;
+
+   BDBG_ENTER(BVC5_QuerySchedEvent);
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   *bEventSet = BVC5_P_ClientQuerySchedEvent(hClient, uiSchedEventId);
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_QuerySchedEvent);
+
+   return err;
+}
+
 
 /***************************************************************************/
 
@@ -1378,6 +1592,7 @@ BERR_Code BVC5_Standby(
       /* wait until the core goes idle */
       while (!bIsIdle)
       {
+         /* coverity[double_lock] */
          BKNI_AcquireMutex(hVC5->hModuleMutex);
          bIsIdle = BVC5_P_HardwareIsIdle(hVC5);
          BKNI_ReleaseMutex(hVC5->hModuleMutex);
@@ -1438,25 +1653,6 @@ exit:
 
 /***************************************************************************/
 
-/* BVC5_GetTime
- */
-BERR_Code BVC5_GetTime(uint64_t *pMicroseconds)
-{
-   BERR_Code err;
-   BDBG_ENTER(BVC5_GetTime);
-
-   if (pMicroseconds == NULL)
-      err = BERR_INVALID_PARAMETER;
-   else
-      err = BVC5_P_GetTime_isrsafe(pMicroseconds);
-
-   BDBG_LEAVE(BVC5_GetTime);
-
-   return err;
-}
-
-/***************************************************************************/
-
 /* BVC5_HasBrcmv3dko
  */
 bool BVC5_HasBrcmv3dko(
@@ -1464,6 +1660,80 @@ bool BVC5_HasBrcmv3dko(
    )
 {
    return BVC5_P_HasBrcmv3dko();
+}
+
+/***************************************************************************/
+BERR_Code BVC5_SetGatherLoadData(
+   BVC5_Handle    hVC5,
+   bool           bCollect
+)
+{
+   BERR_Code err = BERR_SUCCESS;
+   BDBG_ENTER(BVC5_SetGatherLoadData);
+
+   if (hVC5 == NULL)
+   {
+      BDBG_LEAVE(BVC5_SetGatherLoadData);
+      return BERR_INVALID_PARAMETER;
+   }
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   if (hVC5->sOpenParams.bUseClockGating || hVC5->sOpenParams.bUsePowerGating)
+   {
+      BKNI_Printf("ERROR: %s, power gating and clock gating need to be disabled for performance counters to function\n"
+                  "       disable via 'export V3D_USE_POWER_GATING=0' & 'export V3D_USE_CLOCK_GATING=0' prior to launch\n",
+                  BSTD_FUNCTION);
+      err = BERR_NOT_AVAILABLE;
+   }
+   else
+      hVC5->bCollectLoadStats = bCollect;
+
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_SetGatherLoadData);
+
+   return err;
+}
+
+/***************************************************************************/
+BERR_Code BVC5_GetLoadData(
+   BVC5_Handle          hVC5,
+   BVC5_ClientLoadData *pLoadData,
+   uint32_t             uiNumClients,
+   uint32_t            *pValidClients
+)
+{
+   BERR_Code ret = BERR_SUCCESS;
+
+   BDBG_ENTER(BVC5_GetLoadData);
+
+   if (hVC5 == NULL || pValidClients == NULL)
+   {
+      BDBG_LEAVE(BV3D_GetLoadData);
+      return BERR_INVALID_PARAMETER;
+   }
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   if (hVC5->bCollectLoadStats)
+   {
+      if (pLoadData != NULL && uiNumClients > 0)
+         BVC5_P_ClientMapGetStats(hVC5->hClientMap, pLoadData, uiNumClients, pValidClients, true);
+      else
+         *pValidClients = BVC5_P_ClientMapSize(hVC5->hClientMap);
+   }
+   else
+   {
+      *pValidClients = 0;
+      ret = BERR_NOT_SUPPORTED;
+   }
+
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_GetLoadData);
+
+   return ret;
 }
 
 /* End of File */

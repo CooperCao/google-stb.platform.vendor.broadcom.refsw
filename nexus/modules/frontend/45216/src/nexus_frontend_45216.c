@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_frontend_sat.h"
@@ -258,7 +257,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PreInitAP(NEXUS_45216Device 
         }
 #else
         pInitSettings->habSettings.pImgInterface = &BHAB_SATFE_IMG_Interface;
-        pInitSettings->habSettings.pImgContext = &BHAB_45216_IMG_Context;
+        pInitSettings->habSettings.pImgContext = (void *)&BHAB_45216_IMG_Context;
 #endif
     }
 
@@ -331,6 +330,10 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PreInitAP(NEXUS_45216Device 
         }
     }
     else if(pSettings->gpioInterrupt){
+        NEXUS_GpioSettings gpioSettings;
+        NEXUS_Gpio_GetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+        NEXUS_Gpio_SetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
         BDBG_MSG(("Connecting GPIO interrupt"));
         NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt,
                                              NEXUS_Frontend_P_45216_L1_isr,
@@ -976,7 +979,11 @@ static void NEXUS_Frontend_P_Uninit45216(NEXUS_45216Device *pDevice)
     if (pDevice->settings.isrNumber) {
         NEXUS_Core_DisconnectInterrupt(pDevice->settings.isrNumber);
     } else if (pDevice->settings.gpioInterrupt) {
+        NEXUS_GpioSettings gpioSettings;
         NEXUS_Gpio_SetInterruptCallback_priv(pDevice->settings.gpioInterrupt, NULL, NULL, 0);
+        NEXUS_Gpio_GetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+        NEXUS_Gpio_SetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
     }
 
     if (pDevice->satDevice) {

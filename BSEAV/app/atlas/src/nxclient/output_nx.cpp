@@ -189,7 +189,7 @@ static void bwinHdmiCecCallbackNx(
 
 COutputHdmiNx::COutputHdmiNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutputHdmi(name, number, pCfg),
@@ -269,7 +269,7 @@ void COutputHdmiNx::setWidgetEngine(CWidgetEngine * pWidgetEngine)
     _timerHdcpRetry.setWidgetEngine(_pWidgetEngine);
 } /* setWidgetEngine */
 
-bool COutputHdmiNx::isValidHotplug(uint16_t count)
+bool COutputHdmiNx::isValidHotplug(unsigned count)
 {
     bool bChange = false;
 
@@ -282,7 +282,7 @@ bool COutputHdmiNx::isValidHotplug(uint16_t count)
     return(bChange);
 }
 
-bool COutputHdmiNx::isValidHdcp(uint16_t count)
+bool COutputHdmiNx::isValidHdcp(unsigned count)
 {
     bool bChange = false;
 

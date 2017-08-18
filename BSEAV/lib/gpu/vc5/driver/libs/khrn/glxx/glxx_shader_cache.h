@@ -12,6 +12,7 @@
 #include "libs/core/v3d/v3d_gen.h"
 #include "libs/core/v3d/v3d_vpm.h"
 #include "libs/util/assert_helpers.h"
+#include "libs/compute/compute.h"
 
 typedef struct glxx_shader_general_uniform
 {
@@ -53,11 +54,9 @@ typedef struct
 {
    v3d_size_t code_offset; // Offset of code for this shader in GLXX_LINK_RESULT_DATA_T.res
    GLXX_UNIFORM_MAP_T *uniform_map;
-#if V3D_HAS_RELAXED_THRSW
-   bool four_thread;
-   bool single_seg;
-#else
    v3d_threading_t threading;
+#if V3D_HAS_RELAXED_THRSW
+   bool single_seg;
 #endif
 } GLXX_SHADER_DATA_T;
 
@@ -73,6 +72,9 @@ typedef struct
 #define GLXX_SHADER_FLAGS_TCS_BARRIERS                   (1<<14)
 #define GLXX_SHADER_FLAGS_PRIM_ID_USED                   (1<<15)
 #define GLXX_SHADER_FLAGS_PRIM_ID_TO_FS                  (1<<16)
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#define GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS         (1<<17)
+#endif
 
 struct attr_rec {
    int idx;
@@ -136,6 +138,16 @@ typedef struct glxx_link_result_data
       };
       uint8_t has_tng;
    };
+#endif
+
+#if KHRN_GLES31_DRIVER
+   struct
+   {
+      uint16_t wgs_per_sg;       // number of work-groups per super-group.
+      uint16_t max_wgs;          // maximum number of concurrent work-groups.
+      bool has_barrier;
+      bool allow_concurrent_jobs;
+   } cs;
 #endif
 
 #define GLXX_NUM_SHADING_FLAG_WORDS ((GLXX_CONFIG_MAX_VARYING_SCALARS+23)/24)

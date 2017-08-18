@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2008 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *   API name: Event
 *    Library routines for heap management
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #include "b_os_lib.h"
 #include "bkni.h"
@@ -84,7 +76,6 @@ B_MutexHandle B_Mutex_Create(
     const B_MutexSettings *pSettings   /* Pass NULL for defaults */
     )
 {
-    B_Error errCode;
     B_Mutex *pMutex;
     int rc;
 
@@ -93,7 +84,7 @@ B_MutexHandle B_Mutex_Create(
     pMutex = B_Os_Malloc(sizeof(B_Mutex));
     if ( NULL == pMutex )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         return NULL;
     }
 
@@ -101,7 +92,7 @@ B_MutexHandle B_Mutex_Create(
     if ( rc )
     {
         B_Os_Free(pMutex);
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         return NULL;
     }
 
@@ -221,4 +212,3 @@ bool B_Mutex_P_IsLocked(
     return true;
     #endif
 }
-

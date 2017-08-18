@@ -48,7 +48,7 @@ BDBG_MODULE(atlas_output);
 
 COutput::COutput(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         eBoardResource   type,
         CConfiguration * pCfg
         ) :
@@ -63,7 +63,7 @@ COutput::~COutput()
 
 COutputComponent::COutputComponent(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutput(name, number, eBoardResource_outputComponent, pCfg),
@@ -195,7 +195,7 @@ bool COutputComponent::isValidVideoFormat(NEXUS_VideoFormat format)
 
 COutputSVideo::COutputSVideo(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutput(name, number, eBoardResource_outputSVideo, pCfg),
@@ -267,7 +267,7 @@ bool COutputSVideo::isValidVideoFormat(NEXUS_VideoFormat format)
 
 COutputComposite::COutputComposite(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutput(name, number, eBoardResource_outputComposite, pCfg),
@@ -339,7 +339,7 @@ bool COutputComposite::isValidVideoFormat(NEXUS_VideoFormat format)
 
 COutputRFM::COutputRFM(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutput(name, number, eBoardResource_outputRFM, pCfg)
@@ -641,7 +641,7 @@ static void bwinHdmiCecCallback(
 
 COutputHdmi::COutputHdmi(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
 
@@ -1183,7 +1183,7 @@ error:
     return(dynamicRange);
 }
 
-#define SMD_TO_SMPTE_ST2086(X) ((X)/0.00002)
+#define SMD_TO_SMPTE_ST2086(X) (int)((X)/0.00002)
 
 static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_ZERO =
 {
@@ -1258,7 +1258,8 @@ eRet COutputHdmi::setDynamicRange(eDynamicRange dynamicRange)
     NEXUS_HdmiOutput_GetExtraSettings(getOutput(), &settings);
 
     settings.overrideDynamicRangeMasteringInfoFrame = (eDynamicRange_DolbyVision == dynamicRange) ? false : true;
-    settings.dolbyVision.outputMode = NEXUS_HdmiOutputDolbyVisionMode_eAuto;
+    settings.dolbyVision.outputMode =
+        (dynamicRange == eDynamicRange_DolbyVision) ? NEXUS_HdmiOutputDolbyVisionMode_eEnabled : NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
 
     switch (dynamicRange)
     {
@@ -1460,7 +1461,7 @@ eRet COutput::setMute(bool bMute)
 
 COutputSpdif::COutputSpdif(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutput(name, number, eBoardResource_outputSpdif, pCfg),
@@ -1513,7 +1514,7 @@ NEXUS_AudioOutput COutputSpdif::getConnectorA()
 
 COutputAudioDac::COutputAudioDac(
         const char *         name,
-        const uint16_t       number,
+        const unsigned       number,
         const eBoardResource type,
         CConfiguration *     pCfg
         ) :
@@ -1568,7 +1569,7 @@ NEXUS_AudioOutput COutputAudioDac::getConnectorA()
 
 COutputAudioDacI2s::COutputAudioDacI2s(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutputAudioDac(name, number, eBoardResource_outputAudioDacI2s, pCfg),
@@ -1621,7 +1622,7 @@ NEXUS_AudioOutput COutputAudioDacI2s::getConnectorA()
 
 COutputAudioDummy::COutputAudioDummy(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     COutput(name, number, eBoardResource_outputAudioDummy, pCfg),

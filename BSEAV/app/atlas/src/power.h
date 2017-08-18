@@ -99,7 +99,7 @@ class CPower : public CResource
 public:
     CPower(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~CPower(void);

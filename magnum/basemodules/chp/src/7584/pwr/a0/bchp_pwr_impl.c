@@ -58,16 +58,40 @@
 BDBG_MODULE(BCHP_PWR_IMPL);
 
 #define BCHP_PWR_P_DIV_CONTROL(mult_reg, mult_field, prediv_reg, prediv_field, postdiv_reg, postdiv_field) \
-    BDBG_ASSERT(BCHP_##mult_reg == BCHP_##prediv_reg); \
-    if(set) { \
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_##postdiv_reg, BCHP_MASK(postdiv_reg, postdiv_field), BCHP_FIELD_DATA(postdiv_reg, postdiv_field, *postdiv)); \
-    } else { \
-        reg = BREG_Read32(handle->regHandle, BCHP_##mult_reg); \
+    reg = BREG_Read32(handle->regHandle, BCHP_##mult_reg); \
+    if(!set) { \
         *mult = BCHP_GET_FIELD_DATA(reg, mult_reg, mult_field); \
         *prediv = BCHP_GET_FIELD_DATA(reg, prediv_reg, prediv_field); \
-        reg = BREG_Read32(handle->regHandle, BCHP_##postdiv_reg); \
+    } \
+    reg = BREG_Read32(handle->regHandle, BCHP_##postdiv_reg); \
+    if(set) { \
+        BCHP_SET_FIELD_DATA(reg, postdiv_reg, postdiv_field, *postdiv); \
+        BREG_Write32(handle->regHandle, BCHP_##postdiv_reg, reg); \
+    } else { \
         *postdiv = BCHP_GET_FIELD_DATA(reg, postdiv_reg, postdiv_field); \
     }
+
+#define BCHP_PWR_ENABLE_PLL_CH(pll_reg, ch) \
+    reg = BREG_Read32(handle->regHandle, BCHP_##pll_reg); \
+    mask = BCHP_##pll_reg##_CLOCK_DIS_CH##ch##_MASK; \
+    reg &= ~mask; \
+    BREG_Write32(handle->regHandle, BCHP_##pll_reg, reg); \
+    reg = BREG_Read32(handle->regHandle, BCHP_##pll_reg); \
+    mask = BCHP_##pll_reg##_POST_DIVIDER_HOLD_CH##ch##_MASK; \
+    reg &= ~mask; \
+    BREG_Write32(handle->regHandle, BCHP_##pll_reg, reg); \
+
+#define BCHP_PWR_DISABLE_PLL_CH(pll_reg, ch) \
+    reg = BREG_Read32(handle->regHandle, BCHP_##pll_reg); \
+    mask = BCHP_##pll_reg##_POST_DIVIDER_HOLD_CH##ch##_MASK; \
+    reg &= ~mask; \
+    reg |= mask; \
+    BREG_Write32(handle->regHandle, BCHP_##pll_reg, reg); \
+    reg = BREG_Read32(handle->regHandle, BCHP_##pll_reg); \
+    mask = BCHP_##pll_reg##_CLOCK_DIS_CH##ch##_MASK; \
+    reg &= ~mask; \
+    reg |= mask; \
+    BREG_Write32(handle->regHandle, BCHP_##pll_reg, reg); \
 
 static void BCHP_PWR_P_HW_AVD0_CORE_CLK_Control(BCHP_Handle handle, bool activate)
 {
@@ -551,97 +575,66 @@ static void BCHP_PWR_P_HW_RFM_SRAM_Control(BCHP_Handle handle, bool activate)
 
 static void BCHP_PWR_P_HW_PLL_AVD_CH0_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_AVD_CH0: %s", activate?"on":"off"));
 
     if(activate) {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0, mask, 0);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0, mask, 0);
+        BCHP_PWR_ENABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0, 0)
     } else {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0, mask, mask);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0, mask, mask);
+        BCHP_PWR_DISABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0, 0)
     }
-
 }
 
 static void BCHP_PWR_P_HW_PLL_AVD_CH1_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_AVD_CH1: %s", activate?"on":"off"));
 
     if(activate) {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1, mask, 0);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1, mask, 0);
+        BCHP_PWR_ENABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1, 1)
     } else {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1, mask, mask);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1, mask, mask);
+        BCHP_PWR_DISABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1, 1)
     }
 }
 
 static void BCHP_PWR_P_HW_PLL_AVD_CH2_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_AVD_CH2: %s", activate?"on":"off"));
 
     if(activate) {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2, mask, 0);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2, mask, 0);
+        BCHP_PWR_ENABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2, 2)
     } else {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2, mask, mask);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2, mask, mask);
+        BCHP_PWR_DISABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2, 2)
     }
 }
 
 static void BCHP_PWR_P_HW_PLL_AVD_CH3_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_AVD_CH3: %s", activate?"on":"off"));
 
     if(activate) {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3, mask, 0);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3, mask, 0);
+        BCHP_PWR_ENABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3, 3)
     } else {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3, mask, mask);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3, mask, mask);
+        BCHP_PWR_DISABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3, 3)
     }
 }
 
 static void BCHP_PWR_P_HW_PLL_AVD_CH4_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_AVD_CH4: %s", activate?"on":"off"));
 
     if(activate) {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4, mask, 0);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4, mask, 0);
+        BCHP_PWR_ENABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4, 4)
     } else {
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4, mask, mask);
-        mask = BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK;
-        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4, mask, mask);
+        BCHP_PWR_DISABLE_PLL_CH(CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4, 4)
     }
 }
 

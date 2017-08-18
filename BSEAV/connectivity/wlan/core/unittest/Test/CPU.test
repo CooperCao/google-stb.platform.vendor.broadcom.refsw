@@ -1,0 +1,129 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for reporting RSSI and Noise values
+
+# $Id: c004be3e69c5a741fa3f53b68c104b4006110648 $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::controlchart
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::CPU 2.0
+
+UTF::Test CPU {AP STA args} {
+
+    namespace eval UTF::Test::CPU {
+	proc perfcpu {PAIRS key bogomips args} {
+	    UTF::Getopts {
+		{w.arg 0 "TCP window"}
+	    }
+	    upvar {} upopts
+
+	    lappend key $PAIRS
+
+	    UTF::ControlChart CC -s $upopts(s) \
+		-key $key \
+		-perfcache $upopts(perfcache) -history $upopts(history) \
+		-title "$upopts(dut) CPU Utilization" \
+		-ylabel "CPU" -units "BMIPS/MBPS" -norangecheck 1
+
+	    set mp [$upopts(dut) rexec -async mpstat -P ALL \
+			$upopts(i) $upopts(s)]
+
+	    set mean [lindex \
+			  [UTF::MeanMinMax \
+			       [UTF::Multiperf $PAIRS -i $upopts(i) \
+				    -t [expr {$upopts(i) * $upopts(s)}] \
+				   -w $(w)]] 0]
+
+	    set mpstat [$mp close]
+
+	    # estimate DMIPS/MBPS
+	    set units [expr {$bogomips/$mean}]
+
+	    # remove average
+	    regsub -all -line {^Average.*} $mpstat {} mpstat
+	    set results ""
+	    foreach {- idle} [regexp -inline -line -all \
+				  {\sall\s.*\s(\d+\.\d\d)$} $mpstat] {
+
+		set pc [expr {100 - $idle}]
+		set cpu [expr {$units * $pc / 100}]
+		lappend results $cpu
+	    }
+	    UTF::Message LOG CPU "Results: $results"
+
+	    set ret [CC plotcontrolchart \
+			 [CC addsample [UTF::MeanMinMax $results]]]
+
+	    if {[regexp {HIGH} $ret]} {
+		throw FAIL $ret
+	    } else {
+		return $ret
+	    }
+	}
+
+
+    }
+
+    UTF::Getopts [subst {
+	{chanspec.arg "" "Chanspec"}
+	{security.arg "open" "Security"}
+	{i.arg "2" "Interval"}
+	{s.arg "5" "samples"}
+	{dut.arg "$AP" "dut"}
+	{key.arg "" "Key"}
+	{perfcache.arg "" "Performance Cache"}
+	{history.arg 30 "Performance History"}
+	{nocache "Don't update performance cache"}
+    }]
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    set branch [$(dut) branchname]
+    set key [concat $branch cpu $(key) $(dut) $AP $STA]
+
+    set setup 0
+    UTF::Try "$(dut): CPU (BMIPS/MBPS): WLAN<-LAN" {
+
+	set bogomips 0
+	foreach i [regexp -inline -all {\d+\.\d+} [$(dut) grep -i bogomips /proc/cpuinfo]] {
+	    set bogomips [expr {$bogomips + $i}]
+	}
+	UTF::Message LOG $(dut) "Bogomips: $bogomips"
+
+	# If chanspec is unset - pick the "best"
+	if {$(chanspec) eq ""} {
+	    set (chanspec) [lindex [UTF::PerfChans $AP $STA] 0]
+	}
+
+	if {[$(dut) hostis Linux DHD] &&
+	    [catch {$(dut) type mpstat} ret] && [regexp {not found} $ret]} {
+	    $(dut) rexec -t 60 yum install --disablerepo=updates -y sysstat
+	}
+
+	ConnectAPSTA $AP $STA -chanspec $(chanspec) -security $(security)
+
+	set w [$STA tcpautowindow]
+
+	# warm up
+	UTF::Multiperf [list $AP $STA] -t 1 -w $w
+	set setup 1
+	UTF::Test::CPU::perfcpu [list $AP $STA] $key $bogomips -w $w
+    }
+    if {!$setup} {
+	return
+    }
+   UTF::Try "$(dut): CPU (BMIPS/MBPS): WLAN->LAN" {
+       UTF::Test::CPU::perfcpu [list $STA $AP] $key $bogomips -w $w
+   }
+   UTF::Try "$(dut): CPU (BMIPS/MBPS): WLAN<>LAN" {
+       UTF::Test::CPU::perfcpu [list $AP $STA $STA $AP] $key $bogomips -w $w
+   }
+}

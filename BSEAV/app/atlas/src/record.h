@@ -72,7 +72,7 @@ public:
 
     CRecpump(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CRecpump(void);
@@ -130,7 +130,7 @@ public:
 
     CRecord(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CRecord(void);
@@ -148,8 +148,8 @@ public:
     void                 setSettings(NEXUS_RecordSettings * pRecordSettings);
     void                 setVideo(CVideo * video);
     CVideo *             getVideo(void) { return(_currentVideo); }
-    CPid *               getPid(uint16_t index, ePidType type);
-    CPid *               findPid(uint16_t pidNum, ePidType type);
+    CPid *               getPid(unsigned index, ePidType type);
+    CPid *               findPid(unsigned pidNum, ePidType type);
     CRecpump *           getRecpump(void)                   { return(_pRecpump); }
     CParserBand *        getBand(void)                      { return(_pParserBand); }
     void                 setBand(CParserBand * pParserBand) { _pParserBand = pParserBand; }

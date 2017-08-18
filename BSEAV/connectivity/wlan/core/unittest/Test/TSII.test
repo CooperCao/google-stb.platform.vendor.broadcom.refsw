@@ -1,0 +1,950 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing 
+# 1. tput when using one or two MBSSes
+# 2. tput with combination of different schedulers (ebos/atos/atos2/prr) used by STAs with option to enable/disable ATF
+# Designed & written by: Jessica (Yaqin) Zhu
+# $Id: 40b6787f4023d118e456c9193d3374fe67e16850 $
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::ConfigBridge
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::Connectivity
+package require UTF::Streams
+package require UTF::Streamslib
+package require UTF::wlstats
+package require UTF::ControlChart
+
+package provide UTF::Test::TSII 2.0
+
+namespace eval UTF::Test::TSII {
+    proc LoadRig {DUTS {norestore 0}} {
+	upvar 1 date date
+	set MSG [namespace tail [lindex [info level 0] 0]]
+
+	#for MBSSes etc, only need to load once as they share the same host
+	set tobeloaded {}
+	set tobeloaded_hosts {}
+	foreach DUT $DUTS {
+	    UTF::Message DEBUG "" "$MSG: tobeloaded=$tobeloaded"
+	    set h [$DUT cget -host]
+	    if { ![llength $tobeloaded_hosts] || [set match [lsearch $tobeloaded_hosts $h]] == -1} {
+		lappend tobeloaded $DUT
+		lappend tobeloaded_hosts $h
+	    } else {
+		UTF::Message WARNING "" \
+		    "MSG: Skipping image loading on $DUT which has same host with DUT [lindex $tobeloaded $match]."
+		continue
+	    }
+	}
+	foreach DUT $tobeloaded {
+	    UTF::Try "[$DUT cget -name]: Find $DUT Image" {
+		UTF::CheckImage $DUT $date unknown
+	    }
+	    UTF::Try "[$DUT cget -name]: Load Image" {
+		if {[$DUT hostis Router]} {
+		    $DUT load
+		    if {!$norestore} {
+			$DUT restore_defaults
+		    }
+		    # Bail out rather than continue with whatever happens to
+		    # be on the router.
+		    if {[$DUT cget -_path] eq ""} {
+			error "None Found."
+		    }
+		} else {
+		    if {[catch {$DUT load} ret]} {
+			error "LoadRig failed."
+		    }
+		}
+		set what [$DUT whatami]
+		# Pull out chip info and replace whitespace to make it
+		# easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $DUT $ret
+		}
+		$DUT dbrecord DUT
+		set what
+	    }
+	}
+    }
+
+    proc Reconnect {AP STAS} {
+	set MSG [namespace tail [lindex [info level 0] 0]]
+	set bssid [$AP wl -u bssid]
+	foreach STA $STAS {
+	    set res 0
+	    $STA wl join [$AP wl -u ssid]
+	    set slowassoc [$STA cget -slowassoc]
+	    set timer [after [expr {$slowassoc * 1000}] {}]
+
+	    set BSSID [$STA wl -u bssid]
+	    while {![catch {after info $timer}]} {
+		UTF::Sleep 1
+		set BSSID [$STA wl -u bssid]
+		if {$BSSID eq $bssid} {
+		    set res 1
+		    catch {after cancel $timer}
+		    break
+		}
+	    }
+	    if {$res} {
+		break
+	    }
+	    if {$BSSID eq "00:00:00:00:00:00"} {
+		UTF::Message DEBUG "" "$MSG: $AP bssid=$bssid; $STA bssid=$BSSID"
+		UTF::Message FAIL "" "$MSG: $STA failed to associate with $AP."
+		#throw FAIL "STA $STA failed to associate with AP $AP"
+		error "Reconnect failed."
+	    }
+	}
+    }
+
+    #To configure AP features which can be only done with AP wl down
+    #STAS option for reconnecting associated STAS.
+    proc ConfigureAPFeature {AP FVpairs {STAS ""}} {
+	set MSG [namespace tail [lindex [info level 0] 0]]
+	if {![llength $FVpairs]} {
+	    error "Feature not specified."
+	}
+	UTF::Message DEBUG "" "$MSG AP=$AP FVpairs=$FVpairs"
+	foreach {f v} $FVpairs {
+	    set f [string tolower $f]
+	    if {$f eq "taf"} {
+		set f "$f enable"
+	    }
+	    UTF::Message DEBUG "" "$MSG $f=$v"
+	    if {![catch {$AP wl -u $f} old]} {
+		UTF::Message DEBUG "" "$MSG old $f=$old"
+		if {$old ne $v} {
+		    if {[$AP wl -u isup]} {
+			UTF::Message INFO "" "$MSG shutting down $AP wl interface to configure $f"
+			$AP wl -u down
+		    }
+		    $AP wl -u $f $v
+		}
+	    } else {
+		#if some feature not recognized, print a warning in the log."
+		UTF::Message WARNING "" "$MSG $old"
+		unset old
+	    }
+	}
+	if {![$AP wl -u isup]} {
+	    $AP wl -u up
+	}
+	if {[info exists STAS] && [llength $STAS]} {
+	    if {[catch {Reconnect $AP $STAS} ret]} {
+		error "$MSG: $ret"
+	    }
+	}
+	foreach {f v} $FVpairs {
+	    set f [string tolower $f]
+	    if {$f eq "taf"} {
+		set f "$f enable"
+	    }
+	    if {![catch {$AP wl -u $f} new] && $new ne $v} {
+		error "$MSG: Failed to set $f to $v."
+	    }
+	    UTF::Message DEBUG "" "$MSG new $f=$new"
+	}
+    }
+
+    #Configure traffic scheduler
+    #TAFSchedulers is a dictionary
+    proc ConfigureTAF {TAFSchedulers} {
+	set MSG [namespace tail [lindex [info level 0] 0]]
+	UTF::Message DEBUG "" "$MSG: $TAFSchedulers"
+	UTF::Try "Configuring $TAFSchedulers" {
+	    dict for {AP Schedulers} $TAFSchedulers {
+		UTF::Message DEBUG "" "$MSG: [$AP wl -u status]"
+		if {![$AP wl -u isup]} {
+		    UTF::Sleep 1
+		}
+		foreach {S STAS} [dict get $Schedulers] {
+		    set S [string tolower $S]
+		    UTF::Message DEBUG "" "$MSG: AP=$AP TS=$S STAS=$STAS"
+		    if {$S ne "na"} {
+			set i 0
+			foreach STA $STAS {
+			    set stamac [$STA macaddr]
+			    UTF::Message DEBUG "" "$MSG: $STA macaddr = $stamac."
+			    #ebos prio set based on the order of (stas) list
+			    if {$S eq "ebos"} {
+				incr i
+				$AP wl -u taf $stamac $S $i
+			    } else {
+				$AP wl -u taf $stamac $S
+			    }
+
+			    $AP wl -u taf $S
+			}
+			catch {$AP wl -u taf $S dump}
+		    }
+		}
+	    }
+	}
+    }
+
+    proc tc {chanspec ts} {
+
+	upvar {} {}
+	#upvar TS ts
+	set MSG [namespace tail [lindex [info level 0] 0]]
+	set res 0
+	array set traffic {}
+	set total_stas {}
+	set ckey [list $(key) $chanspec $(security) $(protocol)]
+
+	UTF::Try "+ch=$chanspec: $ts" {
+	    catch {UTF::stream allstreams destroy}
+	    set lrssi {}
+	    dict for {AP Schedulers} $ts {
+		set ckey [concat $ckey $AP [$AP branchname] [$AP cget -brand] [$AP cget -host]]
+		foreach {S STAS} [dict get $Schedulers] {
+		    set res 0
+
+		    #configure AP features before test
+		    if {$S ne "na"} {
+			set ap_features "taf 1"
+		    }
+
+		    if {!$(noatf)} {
+			append ap_features " atf 1"
+		    }
+		    if {[info exists ap_features]} {
+
+			UTF::Try "Configuring \($ap_features\)" {
+			    UTF::Message DEBUG "" "$MSG: $ap_features"
+			    if {[catch {ConfigureAPFeature $AP $ap_features} err]} {
+				set res 1
+				error $err
+			    }
+			}
+		    }
+		    if {$res} {
+			UTF::Message ERROR "" "$MSG: $err."
+			exit $res
+		    }
+		    foreach STA $STAS {
+			set res 0
+			set err ""
+			set skey($STA) [list $S $STA [$STA branchname] [$STA cget -brand] [$STA cget -host]]
+			UTF::Try "Configuring Streams" {
+			    #safer to use list not string when constructing cmd to be evaluated later
+			    #set cmd "UTF::stream %AUTO% -rx $dst -tx $src -reportinterval $(reportinterval)"
+			    if {[regexp -nocase "DOWN" $(direction)]} {
+				set cmd {UTF::stream %AUTO% -rx $STA -tx $AP -reportinterval $(reportinterval)}
+				set cmd [join [list $cmd -name $AP-${STA}-$(direction)] ]
+			    }
+			    if {[regexp -nocase "UP" $(direction)]} {
+				set cmd {UTF::stream %AUTO% -rx $AP -tx $STA -reportinterval $(reportinterval)}
+				set cmd [join [list $cmd -name ${STA}-$AP-$(direction)] ]
+			    }
+			    if {[string toupper $S] eq "EBOS"} {
+				#set ebos as video traffic
+				set cmd [join [list $cmd -tos "0x80"]]
+				set r $(vrate)
+				#only use one ebos stream as stresser if there are more than one ebos clients
+				if {$(vstresser)} {
+				    if {![info exists vstresser_enabled]} {
+					set vstresser_enabled 0
+				    } elseif {!$vstresser_enabled} {
+					set r $(rate)
+					set vstresser_enabled 1
+				    }
+				}
+			    } else {
+				set r $(rate)
+			    }
+			    if {[string toupper $(protocol)] eq "TCP"} {
+				set cmd [join [list $cmd -protocol [string tolower $(protocol)]]]
+				set cmd [join [list $cmd -w $(tcpwsize)]]
+				if {[string toupper $S] eq "EBOS"} {
+				    set cmd [join [list $cmd -rate $r]]
+				} else {
+				    set r -1
+				}
+			    }
+			    if {[string toupper $(protocol)] eq "UDP"} {
+				set cmd [join [list $cmd -rate $r -pktsize $(pktsize)]]
+			    }
+			    UTF::Message DEBUG "" "traffic cmd=$cmd"
+			    UTF::Message DEBUG "" "rate = $r"
+			    set traffic($STA) [eval $cmd]
+			    return "[$traffic($STA) cget -tx] -> [$traffic($STA) cget -rx] : $S $r [$traffic($STA) cget -tos]"
+			}
+			$traffic($STA) id
+			lappend total_stas $STA
+
+			UTF::Try "$AP<->$STA $chanspec FB=$(fb)" {
+			    if {[$STA hostis Router]} {
+				package require UTF::Test::ConfigBridge
+				if {[catch {UTF::Test::ConfigBridge -ap $AP -br $STA -chanspec $chanspec \
+						-security $(security) -linkcheck -proxysta} err]} {
+				    set res 1
+				    UTF::Message DEBUG "" "$err"
+				}
+			    } else {
+				if {[catch {UTF::Test::ConnectAPSTA $AP $STA -chanspec $chanspec -security $(security)} err]} {
+				    set res 1
+				    UTF::Message DEBUG "" "$err"
+				}
+			    }
+#			    #normally ebos is set for video traffic which is normally below 15Mbps
+#			    #in order to test priority within ebos clients, need to put all STAs
+#			    #at the edge to limit phyrate. Lower priority client will get less than offered rate
+#			    #when total tput is beyond wlan bandwidth
+#			    if {$S eq "ebos" &&  [llength $STAS] > 1} {
+#				package require UTF::Test::RangeDiscovery
+#				set apattn [lindex [[$AP cget -attngrp] attn?] 0]
+#				array set origattns {}
+#				UTF::Try "+ $STA RangeDiscovery" {
+#				    $STA wl status
+#				    set g [$STA cget -attngrp]
+#				    set origattns($g,$AP) [lindex [$g attn?] 0]
+#				    if {[catch {UTF::Test::RangeDiscovery -ap $AP -sta $STA -chanspec $chanspec} range] != -1} {
+#					#set sta attn 10db away from beacon edge
+#					$g attn [expr {$range - $apattn - 15}]
+#				    }
+#				    return "$STA ATTN=[$g attn?]"
+#				}
+#			    }
+#
+			    $STA wl -u status
+			    $STA wl -u dump rssi
+			    $AP wl -u status
+			    $AP wl -u assoclist
+			    #set frameburst after any AP restarts
+			    if {$(fb) ne [$AP wl -u frameburst]} {
+				$AP wl -u frameburst $(fb)
+			    }
+			    if {$(fb) ne [$STA wl -u frameburst]} {
+				$STA wl -u frameburst $(fb)
+			    }
+			    set rssi [$STA wl -u rssi]
+			    lappend lrssi "$STA $rssi"
+			    return "$STA RSSI=$rssi $STA FB=[$STA wl -u frameburst] $AP FB=[$AP wl -u frameburst]"
+
+			}
+			if {$res} {
+			    UTF::Message DEBUG "" "Exiting due to connection failure."
+			    exit $res
+			}
+			if {!$(nopktqstats)} {
+			    $STA wl msglevel +time
+			    set pktqstats(${STA}) [UTF::wlstats::pktqstat %AUTO% -ap $AP -sta $STA]
+			    set pktqstats($AP) [UTF::wlstats::pktqstat %AUTO% -ap $AP -common 1]
+			    $AP wl msglevel +time
+			    foreach index [array names pktqstats] {
+				$pktqstats($index) sample
+			    }
+			}
+		    }
+		    #eof loop foreach STA
+		}
+		#eof loop foreach {S STAS}
+
+	    }
+	    #eof loop foreach AP
+
+	    if {!$(notaf)} {
+		ConfigureTAF $ts
+	    }
+	    return "RSSI: $lrssi"
+	}
+	for {set ix 1} {$ix <= $(loop)} {incr ix} {
+	    UTF::Try "TPUT ($chanspec $(protocol) $(direction)) $ix" {
+		if {!$(nopktqstats)} {
+		    foreach index [array names pktqstats] {
+			$pktqstats($index) sample
+		    }
+		}
+		UTF::stream allstreams stop
+		UTF::stream allstreams stats -clear
+		UTF::StreamStatAggregate rate -range $(smoothing) -period $(aggregateinterval)
+		rate clear
+		foreach dut [join [list $AP $(stas)] " "] {
+		    if {![catch {$dut [$dut cget -wl] -silent dump ampdu} ret] && [regexp {AMPDU} $ret]} {
+			# dump command supported in this image
+			if {[catch {$dut [$dut cget -wl] dump_clear ampdu}]} {
+			    #new style clear not supported, try old style clear
+			    $dut [$dut cget -wl] -u ampdu_clear_dump
+			}
+		    }
+		}
+		UTF::stream allstreams start
+
+		#UTF::stream allstreams linkcheck -now
+
+		#UTF::Sleep $(holdtime)
+		#collecting bs_data while traffic on
+		for {set i 0} {$i < $(holdtime)} {incr i} {
+		    UTF::Sleep 1
+		    $AP wl -u bs_data
+		}
+		UTF::stream allstreams stop
+		rate stop
+		if {!$(nopktqstats)} {
+		    foreach index [array names pktqstats] {
+			$pktqstats($index) sample
+		    }
+		}
+		foreach dut [join [list $AP $(stas)] " "] {
+		    if {![catch {$dut [$dut cget -wl] dump ampdu} ret] && [regexp {AMPDU} $ret]} {
+			package require UTF::Dump::AMPDU
+			UTF::Dump::AMPDU dutampdu -raw $ret
+			foreach item {
+			    MPDUdens MPDUdens%
+			    TXVHT TXVHT% TXVHTs TXVHTs%
+			    TXMCS TXMCS% TXMCSs TXMCSs%
+			    MCSPER MCSPER%
+			    RXVHT RXVHT% RXVHTs RXVHTs%
+			    RXMCS RXMCS% RXMCSs RXMCSs%
+			    VHTPER VHTPER%
+			    Frameburst Frameburst%
+			} {
+			    UTF::Message INFO "" "$dut $item = \n[dutampdu $item]"
+			}
+		    }
+		}
+		set STAS [array names traffic]
+
+		set datasum($ix) 0
+		foreach STA $STAS {
+		    #covert into Gbits to draw the controlchart easily
+		    set data($STA,$ix) [expr {[$traffic($STA) stats -rate -sum] / 1024 / 1024 / 1024}]
+		    set datasum($ix) [expr {$datasum($ix) + $data($STA,$ix)}]
+		    UTF::Message DEBUG "" "data($STA,$ix)=$data($STA,$ix)"
+		    UTF::Message DEBUG "" "datasum($ix)=$datasum($ix)"
+		}
+		set gtitle " [string toupper $(protocol)] [string toupper $(direction)] CHAN $chanspec \\n"
+		if {[regexp -nocase "udp" $(protocol)]} {
+		    append gtitle " pktsize=$(pktsize) \\n"
+		}
+		append gtitle $ts
+		set testresults [rate plot -title "$gtitle" -graphsize $(graphsize) -composite -yprecision 1]
+		if {[string toupper $(protocol)] eq "TCP"} {
+		    catch {UTF::streamgraph rtt -stat rtt -yrange "0:*" -reporttext "RTT" -title "RTT" \
+			       -graphsize $(graphsize); rtt plot -composite}
+		    catch {UTF::streamgraph cwnd -stat cwnd -yrange "0:*" -reporttext "CWND" -title "CWND" \
+			       -graphsize $(graphsize); cwnd plot -composite}
+		    return "$testresults [rtt plot -composite -append] [cwnd plot -composite -append]"
+		}
+		if {[string toupper $(protocol)] eq "UDP"} {
+		    catch {UTF::streamgraph latency -stat pktlatency -title "UDP Latency" \
+			       -outputtype $(graphtype) -graphsize $(graphsize) \
+			       -reporttext "Latency"}
+		    return "$testresults [latency plot -composite -append]"
+		}
+	    }
+
+	    #objects are created and destroyed in each iteration 
+	    #outside of try block to gurantee cleanup will still happen
+	    #if anything failed inside the try block
+	    catch {rate destroy; rtt destroy; cwnd destroy; latency destroy}
+	}
+	#catch {UTF::stream exitstreams}
+	catch {UTF::stream allstreams destroy}
+
+	#controlchart for each stream and total
+	if {![array exists data] || ![array exists datasum]} {
+	    array unset traffic
+	    error "$MSG: failed to get data transferred."
+	}
+
+	set lsum {}
+	for {set ix 1} {$ix <= $(loop)} {incr ix} {
+	    lappend lsum $datasum($ix)
+	}
+
+	set tkey {}
+	foreach STA $total_stas {
+	    if {[info exists code]} {
+		unset code
+	    }
+	    UTF::Try "$STA: % of data transferred" {
+		set pert($STA) {}
+		for {set ix 1} {$ix <= $(loop)} {incr ix} {
+		    lappend pert($STA) [format %.2f [expr {1.0 * $data($STA,$ix) / $datasum($ix)}]]
+		}
+		catch {CC destroy}
+	        set tkey [concat $tkey $skey($STA)]
+		UTF::ControlChart CC -s $(loop) -key [concat $ckey $skey($STA)] \
+		-history $(history) \
+		-allowzero true -norangecheck true \
+		-title "$STA - % of Data Transferred" \
+		-ylabel "Percentage" -units ""
+		set ret [CC addsample [UTF::MeanMinMax [lsort $pert($STA)]]]
+		set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+		if {[regexp $FAILMATCH $ret]} {
+		    UTF::Message FAIL "$MSG" $ret
+		    set code 1
+		} else {
+		    UTF::Message PASS "$MSG" $ret
+		    set code 0
+		}
+		set ret [CC plotcontrolchart $ret]
+		if {!$code} {
+		    return $ret
+		} else {
+		    throw FAIL $ret
+		}
+	    }
+	    $STA wl -u disassoc
+	}
+
+	#if the attns have been changed for ebos STAs during RangeDiscovery, change them back
+	if {[array exists origattns]} {
+	    foreach name [array names origattns] {
+		set g [lindex [split $name ","] 0]
+		set ap [lindex [split $name ","] 1]
+		$g attn $origattns($g,$ap)
+	    }
+	    array unset origattns
+	}
+
+	array unset data
+	array unset datasum
+	UTF::Try "Overall Data transferred $total_stas" {
+	    if {[info exists code]} {
+		unset code
+	    }
+	    catch {CC destroy}
+	    UTF::ControlChart CC -s $(loop) -key [concat $ckey $tkey] \
+		-history $(history) \
+		-allowzero true -norangecheck true \
+		-title "Total Data Transferred" \
+		-ylabel "Data Transferred" -units "gigabits"
+	    set ret [CC addsample [UTF::MeanMinMax [lsort $lsum]]]
+	    set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+	    if {[regexp $FAILMATCH $ret]} {
+		UTF::Message FAIL "$MSG" $ret
+		set code 1
+	    } else {
+		UTF::Message PASS "$MSG" $ret
+		set code 0
+	    }
+	    set ret [CC plotcontrolchart $ret]
+	    if {!$code} {
+		return $ret
+	    } else {
+		throw FAIL $ret
+	    }
+	}
+    }
+}
+UTF::Test TSII { args } {
+
+    UTF::Getopts {
+	{aps.arg "" "APs under test"}
+	{stas.arg "" "STAs under test"}
+	{attn.arg "10" "Attenuation between AP and STAS"}
+	{trx.arg "" "Router trx"}
+	{date.arg "" "Image date"}
+	{build.arg "" "build name"}
+	{branch.arg "" "branch name"}
+	{tag.arg "" "tag override"}
+	{dhd_tag.arg "" "dhd tag override"}
+	{title.arg "" "title of report"}
+	{email.arg "" "email alias the report sent to"}
+	{history.arg "30" "Control Chart history"}
+	{nocache "Don't update control chart cache"}
+	{loop.arg "5" "Number of measurements to take"}
+	{key.arg "" "Control chart key"}
+	{direction.arg "DOWN" "traffic direction: up or down"}
+	{protocol.arg "UDP" "traffic stream type can be UDP or TCP, EBOS TS scheduler must be UDP"}
+	{pktsize.arg "1470" "Packet size"}
+	{tcpwsize.arg "4M" "TCP window size"}
+	{vrate.arg "15M" "EBOS traffic rate"}
+	{rate.arg "1.5G" "Traffic rate for non-ebos"}
+	{vstresser "add ebos stresser for multiple streams with ebos"}
+	{holdtime.arg "20" "timer to check traffic"}
+ 	{reportinterval.arg "0.1" "Desired iperf reportinterval"}
+	{aggregateinterval.arg "0.2" "Desired interval when plotting aggregate graph"}
+	{tcptrace.arg "0" "disable/enable tcptrace in stream"}
+	{fb.arg "1" "enable/disable frameburst"}
+	{security.arg "open" "Default security"}
+	{chanspecs.arg "36/80" "List of chanspecs to test"}
+	{graphtype.arg "png" "Graph type"}
+	{graphsize.arg "1024,768" "Graph size"}
+	{smoothing.arg "3" ""}
+	{noload "not to load test rig"}
+	{notaf "not to test TAF"}
+	{noatf "not to test ATF"}
+	{nopktqstats "Disable pktstat sampling"}
+	{norestore "not to call restore_defaults when loading"}
+	{noptp "not to setup ptp"}
+	{scb "enable host memory allocation for SCB"}
+	{notc1 "don't run tc1 as baseline"}
+	{notc2 "don't run tc2"}
+	{notc3 "don't run tc3"}
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+    if {[llength $(aps)] > 2} {
+	error "Expected 1 or 2 APs. "
+    }
+    if {![regexp -nocase "TCP" $(protocol)] && ![regexp -nocase "UDP" $(protocol)]} {
+	error "Invalid protocol $(protocol). It has to be TCP or UDP."
+    }
+    if {![regexp -nocase "UP" $(direction)]  && ![regexp -nocase "DOWN" $(direction)] \
+	    && ![regexp -nocase "BIDIR" $(direction)]} {
+	error "Invalid traffic direction $(direction). It has to be UP, DOWN or BIDIR."
+    }
+    #res used to decide whether to exit the script execution
+    set res 0
+    set (ap) [lindex $(aps) 0]
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+    if {$(date) eq ""} {
+	set date $today
+    } else {
+	set date $(date)
+    }
+    foreach AP "$(aps)" {
+	if {$(trx) ne ""} {
+	    $AP configure -image $(trx) -date {}
+	}
+	if {$(tag) ne ""} {
+	    $AP configure -tag $(tag) -date {}
+	}
+	if {$(dhd_tag) ne ""} {
+	    $AP configure -dhd_tag $(dhd_tag)
+	}
+	if {$(date) ne ""} {
+	    $AP configure -date $(date)
+	    if {[$AP hostis DHD]} {
+		$AP configure -dhd_date $(date)
+	    }
+	}
+    }
+
+
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(aps) $(stas)]]
+    set TITLE "TSII $(title) ($build) (ch=${(chanspecs)},$(security)), [string toupper $(protocol)])"
+    UTF::Message INFO "" $TITLE
+    unset build
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+	if {[llength $(aps)] > 1} {
+
+	    UTF::Try "Validating Host and device of $(aps)" {
+		#mbss (aps) will have same host
+		#but different wl interface
+		foreach AP $(aps) {
+		    set h [$AP cget -host]
+		    set d [$AP cget -device]
+		    lappend l $d
+		    if {![info exists host]} {
+			set host $h
+		    } elseif {$h ne $host} {
+			set res 1
+			error "Usage: All MBSS $(aps) must belong to the same host"
+		    }
+		    if {![info exists dev]} {
+			set dev $d
+		    } elseif {$d eq $dev} {
+			error "Usage: All MBSS $(aps) must have different devices."
+		    }
+		}
+		return "host=$host; devices=$l"
+	    }
+	    #exit script if anything failed in above Try block
+	    if {$res} {
+		UTF::Message DEBUG "" "Exiting due to host/device validation failed."
+		exit $res
+	    }
+	} else {
+	    set host [$(aps) cget -host]
+	}
+
+	if {!$(noload)} {
+	    if {!$(norestore)} {
+		if {[catch {LoadRig "$(aps) $(stas)"}]} {
+		    exit 1
+		}
+	    } else {
+		if {[catch {LoadRig "$(aps) $(stas)" $(norestore)}]} {
+		    exit 1
+		}
+	    }
+	}
+
+	UTF::Try "Common Setup" {
+	    UTF::Try "Initial Cleanup" {
+		catch {$STA wl -u disassoc}
+		UTF::Streamslib::force_cleanup [concat $(aps) $(stas)]
+		UTF::stream allstreams destroy
+	    }
+
+	    #for Fedora19, need to setup ptpd2. The proc and array are in config file
+	    #for Fedora22, ptpd2 should be included already
+	    if {[info procs ::enable_ptp] ne "" && !$(noptp)} {
+		UTF::Try "PTP setup" {
+		    if {[array exists ::ptpinterfaces]} {
+			UTF::Message DEBUG "" "[array get ::ptpinterfaces]"
+			::enable_ptp
+		    }
+		}
+	    }
+
+	    #if ::UTF::SetupTestBed is defined in config file
+	    #run the setup
+	    if {[info exists ::UTF::SetupTestBed]} {
+		UTF::Try "SetupTestBed" {
+		    eval $::UTF::SetupTestBed
+		}
+	    }
+	    foreach STA $(stas) {
+		UTF::Try "$STA Disassoc" {
+		    catch {$STA wl -u disassoc}
+		}
+	    }
+	    UTF::Try "Attenuation Setup" {
+		#all STAs at about the same distance from AP
+		#set AP attn to 0
+		#MBSS has the same attngroup
+		set AP $(ap)
+		set lattn {}
+		foreach STA $(stas) {
+		    set attngrp [$STA cget -attngrp]
+		    UTF::Message DEBUG "" "$STA attngrp=$attngrp"
+		    if {$attngrp eq ""} {
+			set attngrp [$AP cget -attngrp]
+		    } else {
+			set apattngrp [$AP cget -attngrp]
+			if {$apattngrp ne ""} {
+			    $apattngrp attn 0
+			}
+			UTF::Message DEBUG "" "$apattngrp attn?"
+		    }
+		    if {$attngrp eq ""} {
+			UTF::Message WARNING "" "Attenuation group not found for $AP and $STA"
+		    } else {
+			catch {$attngrp attn $(attn)}
+		    }
+		    lappend lattn "$STA [$attngrp attn?]"
+		}
+		return $lattn
+	    }
+
+	    #SCB test needs following nvram settings:
+	    #http://hwnbu-twiki.sj.broadcom.com/bin/view/Mwgroup/PcieFullDongleScbExpand#4-1_Architecture_overview
+	    #-nvram {
+	    #    wl0_scb_alloc=1   <--- global nvram var to enable scb allocation in host memory for dongle routers
+	    #    wl0_bsscfg_class=0 <--- wl0 bsscfg is for data service (private SCBs)
+	    #    wl0.x_bsscfg_class=1 <--- wl0.x bsscfg is for public service (public SCBs)
+	    #    wl0_scb_alloc_class=1 <--- public SCBs are allocated from host memory
+	    #}
+	    #if above not set in utfconf file, script will set them and apply nvram settings
+	    UTF::Try "nvram Settings" {
+		set addinf "UTF::Test::Mbss::APAddInterface"
+		foreach AP $(aps) {
+		    set res 0
+		    set wlname [$AP wlname]
+		    UTF::Message DEBUG "" "$AP wlname=$wlname"
+		    if {![info exists w]} {
+			set w $wlname
+		    } else {
+			if {$w eq $wlname} {
+			    set res 1
+			    error "Usage: All MBSS $(aps) must have different mbss interface."
+			}
+		    }
+
+		    if {[regsub {\.\d+} $wlname {} wlbase]} {
+			set addinf [join [list $addinf "-lan1" $AP]]
+			if {$(scb)} {
+			    if {[$AP nvram get ${wlname}_bsscfg_class] ne "1"} {
+				lappend nv "${wlname}_bsscfg_class=1"
+			    }
+			}
+		    } else {
+			set addinf [join [list $addinf "-lan" $AP]]
+		    }
+
+		    if {$(scb)} {
+			if {[$AP nvram get ${wlbase}_scb_alloc_class] ne "1"} {
+			    lappend nv "${wlbase}_scb_alloc_class=1"
+			}
+			if {[$AP nvram get ${wlbase}_scb_alloc] ne "1"} {
+			    lappend nv "${wlbase}_scb_alloc=1"
+			}
+			if {[$AP nvram get ${wlbase}_bsscfg_class] ne "0"} {
+			    lappend nv "${wlbase}_bsscfg_class=0"
+			}
+		    }
+		    #disable firewall
+		    if {[$AP nvram get fw_disable] ne "1"} {
+			lappend nv "fw_disable=1"
+		    }
+		    # Make sure base radio is on, otherwise nothing will
+		    # happen
+		    if {[$AP nvram get ${wlbase}_radio] ne "1"} {
+			lappend nv ${wlbase}_radio=1
+		    }
+
+
+		    UTF::Message DEBUG "" "AP=$AP; res = $res"
+		}
+		if {[info exists nv]} {
+		    UTF::Message DEBUG "" "nv: $nv"
+		    #$host restart {*}$nv
+		    $AP restart $nv
+		    UTF::Sleep 1
+		}
+	    }
+	    if {$res} {
+		UTF::Message DEBUG "" "Exiting due to error $err"
+		exit $res
+	    }
+	    UTF::Try "APAddInterface" {
+#		if {![$AP wl -i [$AP cget -device] isup]} {
+		    catch {$AP wl -i [$AP cget -device] up} status
+		    UTF::Message DEBUG "" "$status"
+#		}
+		UTF::Message DEBUG "" "APAddInterfaces cmd=$addinf"
+		if {[catch {eval $addinf} err]} {
+		    set res 1
+		    return $err
+		}
+	    }
+	    if {$res} {
+		UTF::Message DEBUG "" "Exiting due to error $err"
+		exit $res
+	    }
+	}
+
+	#==================================================================================#
+	#Test Scenario 1:
+	#All STAs associated with same AP without TS (na) or with TS (ebos/atos/atos2/prr)
+	#
+	#Expect:
+	#a. all stas share bandwidth evenly (check controlchart for each individual STA)
+	#b. total data transmitted and combined tput should not vary much with different
+	#   traffic schedulers or without traffic scheduler (rate graphes and controlcharts)
+	#Repeat the same with different TS (ebos/prr/atos/atos2) configured
+        #Repeat tje same on different MBSS
+	#==================================================================================#
+	if {!$(notc1)} {
+	    lappend (key) "TC1"
+	    foreach AP $(aps) {
+		foreach ch $(chanspecs) {
+		    foreach S {na ebos atos atos2 prr} {
+			dict set TS $AP $S $(stas)
+			UTF::Message DEBUG "" "TS=$TS ch=$ch"
+
+			tc $ch $TS
+
+			if {$S ne "na"} {
+			    catch {$AP wl -u taf $S dump}
+			}
+			dict unset TS $AP $S
+		    }
+		}
+	    }
+	}
+	#==================================================================================#
+	#Test Scenario 2:
+	#all STAs associated with one AP/BSS at the time. Depending on # of STAs, scheduler will
+	#be configured in the order of "ebos, atos, atos2" alternately
+	#Expect:
+	#a. ebos should always get offered rate even during over-subscription, and the rest available
+	#   bandwidth will be shared by others
+	#b. atos will get more bandwidth than atos2
+	#==================================================================================#
+	if {!$(notc2)} {
+	    foreach AP $(aps) {
+		lappend (key) "TC2"
+		#same AP/BSS different TS
+		set nstas [llength $(stas)]
+		foreach ch $(chanspecs) {
+		    #1 STA atos, 1 STA atos2, 1 STA ebos, 1 STA atos
+		    array set arrts {}
+		    set options [list "ebos" "atos" "atos2"]
+		    for {set i 0} {$i < $nstas} {incr i} {
+			set r [expr $i % [llength $options]]
+			lappend arrts([lindex $options $r])  [lindex $(stas) $i]
+		    }
+		    foreach {s stas} [array get arrts] {
+			dict set TS $AP $s $stas
+		    }
+
+		    UTF::Message DEBUG "" "TS=$TS ch=$ch"
+		    tc $ch $TS
+		    foreach S [array names arrts] {
+			if {$S ne "na"} {
+			    catch {$AP wl -u taf $S dump}
+			}
+			dict unset TS $AP $S
+		    }
+		    array unset arrts
+		}
+	    }
+	}
+	#=======================================================================================#
+	#Test Scenario 3:
+	#STAs associated with different MBSSes. Depending on # of STAs, scheduler will be configured
+	#in the order of "ebos, atos, atos2" alternately. atos2 will use mbss
+	#Expect:
+	#a. ebos should always get offered rate even during over-subscription, and the rest available
+	#   bandwidth will be shared by others
+	#b. atos will get more bandwidth than atos2
+	#=========================================================================================#
+	if {!$(notc2)} {
+	    if {[llength $(aps)] > 1} {
+		if {[info exists ts]} {
+		    unset ts
+		}
+		lappend (key) "TC3"
+		#MBSS and different TS
+		set nstas [llength $(stas)]
+		foreach ch $(chanspecs) {
+		    set AP1 [lindex $(aps) 0]
+		    set AP2 [lindex $(aps) 1]
+
+		    array set arrts {}
+		    set options [list "ebos" "atos" "atos2"]
+		    for {set i 0} {$i < $nstas} {incr i} {
+			set r [expr $i % [llength $options]]
+			lappend arrts([lindex $options $r])  [lindex $(stas) $i]
+		    }
+		    foreach {s stas} [array get arrts] {
+			if {$s eq "atos2"} {
+			    set AP $AP2
+			} else {
+			    set AP $AP1
+			}
+			dict set TS $AP $s $stas
+		    }
+		    UTF::Message DEBUG "" "TS=$TS ch=$ch"
+		    tc $ch $TS
+		    foreach AP $(aps) {
+			foreach S $ts($AP) {
+			    catch {$AP wl -u taf $S dump}
+			    dict unset TS $AP $S
+			}
+			#unset ts($AP)
+		    }
+		    array unset arrts
+		}
+	    }
+	}
+	#========================
+	#disassoc stas
+	#========================
+	foreach STA $(stas) {
+	    $STA wl -u disassoc
+	}
+    }
+}

@@ -3,4 +3,4 @@ plm.vid=2
 plm.gfx=2
 image=Avatar.bmp
 bg=epg1080p.png
-pig=on
+usage=pig

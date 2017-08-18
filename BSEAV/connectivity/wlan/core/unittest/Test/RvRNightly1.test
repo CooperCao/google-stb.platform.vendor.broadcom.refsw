@@ -1,0 +1,2323 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for RvR1 nightly run
+# $Id: f4e6c0d2292c3e217afdb03ef820d9cd82d1850c $
+# $Copyright Broadcom Corporation$
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set RvrNightly1_help "\n\nBasic usage: Test/RvrNightly1.test <options>\
+    \n\nThis Rate vs Range script will setup your testrig by loading the desired\
+    \nbuilds, produce high level summary web pages and calls the script that does\
+    \nthe lower level work, rvr1.test. The script rvr1.test is called for up to 4\
+    \ndifferent channels. Each channel is tested for the upstream and downstream\
+    \ntraffic directions.\
+    \n\nThese scripts have many default values, not all of which will work optimally\
+    \non your testrig. Consequently, there are a number of environment variables that\
+    \nyou can set in your config file to customize the behavior to better suit your\
+    \ntestrig:\
+    \n\nYou can customize the attenuation ranges to be tested for each channel:\
+    \n    set ::cycle5G40AttnRange \"0-50 50-0\"\
+    \n    set ::cycle5G20AttnRange \"0-50 50-0\"\
+    \n    set ::cycle2G40AttnRange \"10-60 60-10\"\
+    \n    set ::cycle2G20AttnRange \"10-60 60-10\"\
+    \n\nIf the pathloss is the same for all devices in the testrig, specify:\
+    \n    set ::testbed_pathloss ll\
+    \n    where ll is a positive integer\
+    \n\nYou can specify pathloss for each specific band:\
+    \n    set ::testbed_pathloss_2G 52\
+    \n    set ::testbed_pathloss_5G 63\
+    \n\nIf each device has a different pathloss, you can specify the pathloss for each\
+    \nSTA as shown below:\
+    \n    set ::mc351_4319USB_pathloss 40\
+    \n    set ::mc356_43236USB_pathloss 34\
+    \n    set ::mc355_4336SDIO_pathloss 38\
+    \n\nYou can specify pathloss per band or per channel per STA:\
+    \n    set ::mc356_43236USB_pathloss_2G 34\
+    \n    set ::mc356_43236USB_pathloss_5G 44\
+    \n    set ::mc358_4312NIC_pathloss_36l 55\
+    \n\nYou can take complete control of the AP & STA initialization sequence by\
+    \nspecifying the variables ::rvr_ap_init and ::rvr_sta_init in your config\
+    \nfile. The defaults are defined in rvr1.test proc get_user_parms. Alternately,\
+    \nlook in the RvR logfiles in the Setup AP & STA section to see the defaults.\
+    \nFor SoftAP, you can specify the initialization in ::rvr_softap_init. SoftAP\
+    \ndefaults to the values from ::rvr_sta_init.\
+    \n\nSome people may have more complex initialization needs which depend on the\
+    \nSTA talking to a real AP versus a SoftAP, and other variations. So this\
+    \ninitialization variable heirarchy is available to allow customization\
+    \nfor all devices in the testrig, as well as STA specific customizations:\
+    \nFor STA to SoftAP ::rvr_sta_{STA}_to_softap_init ::rvr_sta_{STA}_init\
+    \n                  ::rvr_sta_to_softap_init ::rvr_sta_init\
+    \nFor STA to AP     ::rvr_sta_{STA}_to_ap_init ::rvr_sta_{STA}_init\
+    \n                  ::rvr_sta_to_ap_init ::rvr_sta_init\
+    \nFor SoftAP        ::rvr_sta_{STA}_am_softap_init ::rvr_sta_{STA}_init\
+    \n                  ::rvr_softap_init ::rvr_sta_init\
+    \nFor AP            ::rvr_ap_{AP}_init ::rvr_ap_init\
+    \nIn the above variables, {STA} & {AP} mean the UTF STA name.\
+    \nWhen the script looks for the initialization, the list is searched from left\
+    \nto right, with the STA specific variable having the highest priority.\
+    \nBecause the script knows which AP & STA you are using, and if you specified\
+    \nthe -softap option or not, the script can locate and use the appropriate\
+    \ninitialization variables without any additional user intervention.\
+    \n\nIf you want to use the -warmup option, you can override the default 5Mb/s pass\
+    \ncriteria by specifying:\
+    \n    set ::rvr_warmup nn\
+    \n    Set this parameter to 0 or -1 if you dont want a pass criteria.\
+    \n\nTo keep tests from running away for hours at a time, the rvr1.test script has a\
+    \ntime limit of 90 minutes for each rampdown/rampup test. If you want to override\
+    \nthe default 90 minute per test timeout value, then specify:\
+    \n    set ::rvr_overall_timeout_min mm\
+    \n    Set this parameter to 0 or -1 for no timeout, unlimited test run time.\
+    \n\nBy default the script will try 1 time to rejoin the AP and STA. This default\
+    \ncan be changed in your config file:\
+    \n    set ::rvr_rejoin_tries ii\
+    \n    The minimum value for this parameter is 1.\
+    \n\nBy default, the script will wait 10 seconds after a rejoin attempt. This\
+    \ndefault can be changed in your config file:\
+    \n    set ::rvr_rejoin_wait_sec jj\
+    \n    The minimum value for this parameter is 5.\
+    \n\nBy default, the script will perform 3 progressive recovery attempts during the\
+    \ntests if things go wrong. This default can be changed in your config file:\
+    \n    set ::recovery_max kk\
+    \n    Set this parameter to 0 or -1 for no recovery actions.\
+    \n\nBy default, the script will stop the rampdown portion of the test after 3\
+    \nconsecutive attenuator steps with no beacons. This default can be changed in\
+    \nyour config file:\
+    \n    set ::rvr_rampdown_nobeacons bb\
+    \n    Set this parameter to 0 or -1 to disable this feature.\
+    \n\nThe optional -stopslowrampup algorithm is controlled by two parameters, whose\
+    \ndefaults are 10 & 1 respectively. These defaults can be changed in your config file:\
+    \n    set ::rvr_slowrampup_cnt cc\
+    \n    set ::rvr_slowrampup_tput tt\
+    \n\nThere may be times that a specific STA needs the router to do something\
+    \nspecifically for that STA. You can add STA specific variables to set the\
+    \nrouter nvram accordingly in your config file. Dont forget to turn these\
+    \nsettings back for theSTAs.\
+    \n    set ::mc351_4319USB_rtr_nvram {antswitch=3}\
+    \n    set ::mc356_43326USB_rtr_nvram {antswitch=0}\
+    \n\nAfter each occasional repeated error attenuator occurs, the attenuator\
+    \nrecovery is attempted. If you choose to specify the variable shown below in\
+    \nyour config file, your attenuator will be power cycled for you, and the\
+    \ncommand retried after the power cycle:\
+    \n    set ::rvr_attn_power \"mcxxwsy 1\"\
+    \nAfter 3 repeated attenuator errors, the rvr1.test is halted. Should you\
+    \nwish to alter the default 3 attenuator error limit, you may specify the\
+    \nvariable shown below in your config file:\
+    \n    set ::rvr_attn_max_errors N\
+    \n    Set this parameter to 0 or -1 to allow unlimited errors to occur.\
+    \n\nThe optional fastrampup test will test 10 samples at the final attenuator\
+    \nvalue. You can alter this value by specifying ::rvr_fastrampup_cnt in your\
+    \nconfig file. Variable ::rvr_fastrampup_tput controls the thruput at which\
+    \nthe fastrampup is made, default is 1 Mb/s.\
+    \n\nFor SoftAP tests, the RF wiring on the attenuator needs to be set up to\
+    \nattenuate the RF path between the SoftAP and the STA being tested. Most\
+    \ntestrigs need to be modified for this to work, as they tend to have a real\
+    \nAP connected to the attenuator, not a SoftAP.\
+    \n\nFor SoftAP tests, you need to ensure the SoftAP and STAs will get IP\
+    \naddresses. A real AP has a built-in DHCP server. If the SoftAP is running\
+    \non Linux, you can run dhcpd on the Linux host. You will still need to\
+    \nconfigure a static IP address for the SoftAP itself. If the SoftAP does\
+    \nnot provide dhcpd, then you must configure static IP addresses for the\
+    \nSTA that will be tested. See examples in utfconf/pb4a.tcl & mc49.tcl.\
+    \n\nThe AP connect time check looks for drops of 30 seconds or more as\
+    \nan indicator of issues. The variable ::rvr_connect_time_drop can be used\
+    \nto alter this threshold. Set to -1 to turn off this test.\
+    \n\nTrenderrors looks at how many consecutive errors occur as well as total\
+    \nerrors in the test. Initially most controlchart tests are shown as PASS,\
+    \nexcept for major errors like assert or ping fail. Then, at the end of the\
+    \ntests, the trend errors analysis is done and the overall PASS/FAIL criteria\
+    \nis determined. Config file variable ::rvr_trend_error_length defaults to 6,\
+    \nand is the minimum number of consecutive errors needed to trigger a trend\
+    \nerror FAIL. Variable ::rvr_trend_error_max defaults to 18, and is the total\
+    \nnumber of errors that can occur, consecutive or not, without causing a FAIL.\
+    \n\nValid options are:\
+    \n -utfconf path        Config file to use, default is ~/.utfconf.tcl"
+
+# Command line options string
+set RvrNightly1_getopts {
+    {allattnrange.arg ""       "Cycle-based RvR1 attenuation range for all band, default: null "}
+    {allhooks                  "Use all the perf_hooks, etc as is - currently the default"}
+    {ap.arg "4717"             "AP name"}
+    {attnstep.arg "1"          "Step value that attenuator is changed by"}
+    {attngrp.arg ""            "Attenuator group to use for test"}
+    {attngrp2.arg ""           "2nd attenuator group to use for test"}
+    {bin.arg ""                "STA image, usefull for private build testing"}
+    {branch.arg "auto"         "Branch override"}
+    {chan2G20.arg 1            "Channel(s) for 2G20band"}
+    {chan2G40.arg 1l           "Channel(s) for 2G40band"}
+    {chan5G20.arg 36           "Channel(s) for 5G20band"}
+    {chan5G40.arg 36l          "Channel(s) for 5G40band"}
+    {chan5G80.arg "36/80"      "Channel(s) for 5G80band"}
+    {chanint                   "Collect chanspec info and graph as integer"}
+    {channels                  "Run channel sweep tests"}
+    {comparesta                "Run STA comparison test upon 2 STAs. Require 2 and only 2 STAs."}
+    {comparestaoneloop         "Run STA comparison test upon 2 STAs in multiple loops, but only 1 loop for first STA. Require -comparesta option."}
+    {compareap                 "Run AP comparison test upon 2 APs. Require 2 and only 2 APs."}
+    {cst                       "Run Client Scaling Test - associate all STAs to AP, but add them to traffic one at a time"}
+    {cast                      "Run Client Assoc Scaling Test - associate STA and send traffic one at a time"}
+    {chantest4mu               "Run a special test where all 6 conbinations out of 4 clients are tested"}
+    {chantest8mu               "Run a special test where all 28 conbinations out of 8 clients are tested"}
+    {cycle2G20AttnRange.arg "" "Cycle-based RvR1 attenuation range for 2G20band, default: 25-75 75-25"}
+    {cycle2G40AttnRange.arg "" "Cycle-based RvR1 attenuation range for 2G40band, default: 20-75 75-20"}
+    {cycle5G20AttnRange.arg "" "Cycle-based RvR1 attenuation range for 5G20band, default: 0-50 50-0 "}
+    {cycle5G40AttnRange.arg "" "Cycle-based RvR1 attenuation range for 5G40band, default: 0-50 50-0 "}
+    {cycle5G80AttnRange.arg "" "Cycle-based RvR1 attenuation range for 5G80band, default: 0-50 50-0 "}
+    {date.arg ""               "depracated, please use rtrdate & stadate"}
+    {downstreamonly            "RvR downstream only tests are done, dont do upstream tests"}
+    {edithooks                 "Selectively edit the perf_hooks, etc for some test speedup"}
+    {email.arg ""              "Email Address, defaults to your email address"}
+    {fastrampup                "Do fast rampup only, saves test time"}
+    {fb0                       "Use frameburst=0, currently the default"}
+    {fb1                       "Use frameburst=1 for maximum throughput"}
+    {forcesniffercapture       "Always save the sniffer capture .pcap file, consumes lots of disk space"}
+    {fullrange                 "Test full attenuator range specified, default is to rampup after 3 steps of no beacons"}
+    {fullrampup                "Do not stop the rampup test, regardless of slow rejoin issues"}
+    {history.arg 30            "History size for control charts"}
+    {iperfnobeacons            "Run iperf tests even if STA has no beacons"}
+    {intattn2G20.arg ""        "secondary attn_grp & attn_val for 2G20 interference, eg: G3 7"}
+    {intattn2G40.arg ""        "secondary attn_grp & attn_val for 2G40 interference, eg: G3 7"}
+    {intattn5G20.arg ""        "secondary attn_grp & attn_val for 5G20 interference, eg: G3 7"}
+    {intattn5G40.arg ""        "secondary attn_grp & attn_val for 5G40 interference, eg: G3 7"}
+    {intattn5G80.arg ""        "secondary attn_grp & attn_val for 5G80 interference, eg: G3 7"}
+    {intattnoem.arg ""         "secondary attn_grp & attn_val for oem interference, eg: G3 7"}
+    {intchan2G20.arg "6"       "2G20 channel setting for interference source"}
+    {intchan2G40.arg "11u"     "2G40 channel setting for interference source"}
+    {intchan5G20.arg "40"      "5G20 channel setting for interference source"}
+    {intchan5G40.arg "44l"     "5G40 channel setting for interference source"}
+    {intchan5G80.arg ""        "5G80 channel setting for interference source"}
+    {intchanoem.arg ""         "oem channel setting for interference source"}
+    {intgap.arg "50"           "pkteng interference time between frames, in usec"}
+    {intgraph                  "Monitor / create interference data graphs even if interference test not active"}
+    {intnrate.arg "7"          "MCS rate to test pkteng interference with"}
+    {intquiet                  "Suppress interference STA error messages, which can flood the error report."}
+    {intrate.arg ""            "Legacy rate test pkteng interference with, if specified, rate will override intnrate"}
+    {intsize.arg "1400"        "pkteng interference frame size, in bytes"}
+    {intsta.arg ""             "STA to be used as the interference source, this is not the DUT STA"}
+    {inttype.arg "pkteng"      "pkteng can be used to generate interference, tone not supported"}
+    {intwl2G20.arg "4"         "For interference tests, AP/STA wl interference setting to use for 2G20 band"}
+    {intwl2G40.arg "4"         "For interference tests, AP/STA wl interference setting to use for 2G40 band"}
+    {intwl5G20.arg "1"         "For interference tests, AP/STA wl interference setting to use for 5G20 band"}
+    {intwl5G40.arg "1"         "For interference tests, AP/STA wl interference setting to use for 5G40 band"}
+    {intwl5G80.arg "1"         "For interference tests, AP/STA wl interference setting to use for 5G80 band"}
+    {intwloem.arg "4"          "For interference tests, STA wl interference setting to use for oem band"}
+    {keepgoing                 "No time limit for test, keep going no matter what"}
+    {logdir.arg ""             "Log directory override"}
+    {loop.arg 1                "Main test loops"}
+    {max.arg 1700              "Expected maximum througput, -1 means no checks done"}
+    {min.arg 0                 "Expected minimum througput, -1 means no checks done"}
+    {mingraphs                 "Produce minimum quantity of graphs"}
+    {msm                       "Mixed SU-MU test"}
+    {mvm                       "Mixed VHT-MU test"}
+    {mhm                       "Mixed HT-MU test"}
+    {mlm                       "Mixed Legacy-MU test"}
+    {mat                       "Mixed antenna test, start all clients with 1 ant and turn into 2 ant one by one"}
+    {musta.arg ""              "Multi user mode. It loads up to 7 additional STAs"}
+    {2G20.nonly		       "2G 20Mhz Tests, expanding to -no2G20 and -2G20only options"}
+    {2G40.nonly		       "2G 40Mhz Tests, expanding to -no2G40 and -2G40only options"}
+    {5G20.nonly		       "5G 20Mhz Tests, expanding to -no5G20 and -5G20only options"}
+    {5G40.nonly		       "5G 40Mhz Tests, expanding to -no5G40 and -5G40only options"}
+    {5G80.nonly		       "5G 80Mhz Tests, expanding to -no5G80 and -5G80only options"}
+    {5G8020.nonly	       "5G 80/20Mhz Tests, expanding to -no5G8020 and -5G8020only options"}
+    {5G8040.nonly	       "5G 80/40Mhz Tests, expanding to -no5G8040 and -5G8040only options"}
+    {5G804020.nonly	       "5G 80/40/20Mhz Tests, expanding to -no5G804020 an -5G804020only options"}
+    {noapload                  "Don't load images"}
+    {noattnchange.arg ""       "Do not change attenuator (for fixed attenuation tests)"}
+    {noattnchange2.arg ""      "Do not change attenuator on 2nd attn group (for fixed attenuation tests)"}
+    {nobtreset                 "Don't reset BlueTooth devices. WARNING: can lead to low WLAN thruput!"}
+    {nocache                   "Don't update performance cache"}
+    {nochannels                "Does nothing, depracated"}
+    {nocomposite               "Don't generate composite RvR graphs for each STA"}
+    {nocompositemainpage       "Generate composite RvR graphs for each STA, but dont show them on the main web page"}
+    {nocontrvr                 "Depracated"}
+    {nocyclervr                "No cycle-based rvr tests, default is run the cycle-based rvr tests"}
+    {nodbuxpost                "Dont post test info to dbux"}
+    {nographs                  "Dont produce any graphs"}
+    {nohistograms              "Do not produce histograms"}
+    {nohooks                   "Dont use any perf_hooks, etc for maximum test speedup"}
+    {noinit                    "Use the testbed as is, no initialization"}
+    {nointstaload              "Don't load Interference STA drivers"}
+    {nomalloc                  "Dont check the serial console for malloc failures"}
+    {nopretest                 "Dont do short warmup test for each controlchart test, defaults on for udp"}
+    {noredundant               "Dont execute redundant wl calls, test runs a bit faster"}
+    {norestore                 "Don't reset AP to defaults"}
+    {norvr                     "No rvr tests, default is run the rvr tests"}
+    {nosetup                   "No loading of AP or STAs, no testbed setup"}
+    {nosetuptestbed            "Don't run Setup Testbed hooks"}
+    {nosniffer                 "No Sniffer"}
+    {nostaload                 "Don't load STA drivers"}
+    {nostareload               "Don't even reload STA drivers (need -nostaload)"}
+    {nostahighlevelsetup       "Let rvr1.test do all the STA setup."}
+    {nosymmetry                "Dont run symmetry tests for rampdown / rampup tests"}
+    {nounload                  "Don't unload driver after test"}
+    {oemAttnRange.arg ""       "Cycle-based RvR1 attenuation range for OEM AP, default: 20-75 75-20"}
+    {oemband.arg ""            "When OEM AP broadcasts on both bands, used to choose the desired band: 2.4 or 5"}
+    {pathloss.arg ""           "Known testbed path loss, in db, from AP to STA when variable attenuator is set to default"}
+    {perfloop.arg 1            "Total performance test iterations for iperf controlchart tests"}
+    {perfsize.arg 5            "Sample size for performance tests"}
+    {perftime.arg 10           "Total time duration, in seconds, for performance tests"}
+    {pingmax.arg ""            "Maximum times to try ping in RvR, default is 10"}
+    {rampdownonly              "Dont do rampup portion of RvR tests, test time is halved"}
+    {rampuponly                "Dont do rampdown portion of RvR tests, test time is halved"}
+    {refreshaddralways         "Always do dhcp before each attenuator step change & iperf test"}
+    {refreshaddrasneeded       "Do dhcp after reassociation for each attenuator step until dhcp succeeds once, then stop"}
+    {restoreaponly             "Do not load or reload AP, just restore the AP NVRAM"}
+    {ringfilecnt.arg ""        "Specify sniffer ring buffer file count. Null means no ring buffer."}
+    {ringfilesize.arg ""       "Specify sniffer ring buffer file size in MBytes. Null means no ring buffer."}
+    {rmt                       "Randomly Mixed test"}
+    {rtrdate.arg ""            "Desired Router build date, format: yyyy.mm.dd"}
+    {rtrtag.arg ""             "Router release tag"}
+    {security.arg "open"       "Security used for tests"}
+    {softap                    "AP is really a STA running softap code"}
+    {sniffer.arg ""            "Sniffer object name"}
+    {sniffercapture.arg ""     "Start/stop commands for when to capture continuous .pcap files. To collect rampdown steps 44-54, specify: d44 d54"}
+    {sta.arg "Sta4321"         "sta name(s)"}
+    {stadate.arg ""            "Desired STA build date, format: yyyy.mm.dd"}
+    {stadhd.arg ""             "STA .ko linux DHD file, usefull for testing private builds"}
+    {statag.arg ""             "STA release tag"}
+    {steplist.arg ""           "List of specific attenuator steps to test, in whatever order"}
+    {steploop.arg 1            "Number of times to repeat attenuator steplist"}
+    {stoponerror               "Stops test on first error, no progressive recovery done. Useful when developer want to see testrig in failed state."}
+    {stopslowrampup            "Stop the rampup test if severe slow rejoin issues are detected"}
+    {tag.arg ""                "depracated, please use rtrtag"}
+    {test.arg "0"              "Test mode for script development, experts only, values: 0 1 2"}
+    {timeout.arg ""            "Overall test timeout, in minutes, default is 90 min"}
+    {title.arg "Rate vs Range Test" "Report title text"}
+    {titleap                   "Use AP name in report & graph titles, default is STA name"}
+    {trenderrors               "Show only trend errors, not 1 error per controlchart"}
+    {trx.arg ""                "Router trx image, usefull for private build testing"}
+    {txbf                      "Run comparison test in this pattern: AP1<->STA1, AP2<->STA2 (useful for TxBF test)"}
+    {udp.arg "0"               "udp test starting value in Mb/s, 0 means off, use tcp"}
+    {udpopt.arg ""             "more options for iperf for udp tests"}
+    {upstreamonly              "RvR upstream only tests are done, dont do downstream tests"}
+    {udpofferratetest          "Run udp tests using imcremental offer rate"}
+    {va.arg "Aflex"            "variable attenuator name"}
+    {warmup                    "Do 60 second iperf warmup tests"}
+    {wet                       "Allow AP in the -sta setting, for WET test"}
+    {windhdbin.arg ""          "WinDHD dongle image file, usefull for testing private builds, in particular for BTAMP"}
+    {window.arg 512k           "Window size for iperf tests, has major impact on throughput"}
+}
+
+# Setup online help info.
+UTF::setup_help $RvrNightly1_help $RvrNightly1_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+package require UTF
+package require UTF::utils
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::ChannelSweep
+package require UTF::Test::RvR1
+
+package provide UTF::Test::RvRNightly1 2.0
+
+#============== Common procs used in RvRNightly1 test ===============
+
+#============== proc create_composite_graphs ========================
+# Proc to create composite graphs
+#====================================================================
+proc create_composite_graphs {focus nocomposite nocompositemainpage\
+    rampdownonly rampuponly fastrampup nographs mingraphs AP STA udp} {
+
+    # NB: focus could be AP or STA name.
+
+    # Some users may not want composite graphs at all.
+    if {$nocomposite || $nographs || $mingraphs} {
+        UTF::Message INFO "" "create_composite_graphs: User requested no composite graphs"
+        return
+    }
+
+    # proc setup_summaries should have given us a testnum to use.
+    # We need a different one for each STA tested, to keep filenames unique.
+    if {![info exists ::saved_testnum]} {
+        error "ERROR: create_composite_graphs ::saved_testnum not defined"
+    }
+
+    # Log the composite graph files & titles to be used.
+    # ::rvr_composite_input is formated as: file1 title1 ... fileN titleN
+    # test code below
+    # set ::rvr_composite_input "/projects/hnd_sig_ext2/brearley/mc35/20101005193736/15.4_mc353_43236_bmac_rvr5G40_cycle_Upstream_2010_10_05_19_42.csv CH36l_Upstream_mc353_43236_bmac /projects/hnd_sig_ext2/brearley/mc35/20101005193736/15.5_mc353_43236_bmac_rvr5G40_cycle_Downstream_2010_10_05_20_08.csv CH36l_Downstream_mc353_43236_bmac /projects/hnd_sig_ext2/brearley/mc35/20101005193736/15.6_mc353_43236_bmac_rvr24G20_cycle_Upstream_2010_10_05_20_32.csv CH1_Upstream_mc353_43236_bmac /projects/hnd_sig_ext2/brearley/mc35/20101005193736/15.7_mc353_43236_bmac_rvr24G20_cycle_Downstream_2010_10_05_21_11.csv CH1_Downstream_mc353_43236_bmac"
+
+    UTF::Message INFO "" "create_composite_graphs: ap_counter=$::ap_counter ::rvr_composite_input=$::rvr_composite_input"
+
+    # We need 2 file/title pairs at the minimum to create a composite graph.
+    # If the user is running tests on just 1 channel in only 1 direction, say upstreamonly,
+    # we can hit situations where there is only 1 RvR graph.
+    # The merge routine wants 2 file/titles minimum.
+    if {[llength $::rvr_composite_input] < 4} {
+        UTF::Message INFO "" "create_composite_graphs:\
+            Need 2 file/titles minimum to create composite graph. Returning to caller..."
+        return
+    }
+
+    # Specify filter, option, description triplets for each composite graph to be created.
+    set filter_option_description_list [list * {} "All"\
+	Upstream {} "Upstream" \
+	Downstream {} "Downstream" \
+        * {-nominmax} "All no min/max"\
+        * {-rampdownonly} "All rampdownonly"\
+        24G {} "2.4 GHz"\
+        24G {-rampdownonly} "2.4 GHz rampdownonly"\
+        5G {} "5 GHz"\
+        5G {-rampdownonly} "5 GHz rampdownonly"]
+
+    # Create composite graph based on filter & option
+    set i 0
+    source "$::UTF::unittest/bin/merge_rvr_data.tcl"
+    foreach {filter option description} $filter_option_description_list {
+
+        # Do rampdownonly graph if necessary. Always do the rampdown/rampup graph.
+        if {[regexp {rampdownonly} $option] && ($rampdownonly || $rampuponly)} {
+            continue
+        }
+
+        # Set fastrampup option only for rampdown/rampup graph
+        set fr ""
+        if {![regexp {rampdownonly} $option] && $fastrampup == 1} {
+            set option "$option -fastrampup"
+        }
+
+        # Select the CSV files & titles that match the filter.
+        set file_title_list ""
+        foreach {file title} $::rvr_composite_input {
+            if {$filter == "*" || [regexp "$filter" "$file"]} {
+                lappend file_title_list $file $title
+            }
+        }
+
+        # Must have at least 2 files/titles.
+        if {[llength $file_title_list] < 4} {
+            UTF::Message INFO "" "create_composite_graphs: Not enough files/titles"
+            continue
+        }
+
+    	# Set Y-Axis transport type.
+    	# Text "transport:" is used so that transport info 
+    	# can be retrieved easily later in MergeRvrData{}.
+    	if {$udp > 0} {
+    	    set transport "transport:UDP"
+    	} else {
+    	    set transport "transport:TCP"
+    	}
+
+	# Set device names for title.
+	# Text "devicenames:" is used so that device info
+	# can be retrieved easily later in MergeRvrData{}.
+	set device_name "devicenames:$AP<=>$STA"
+
+        # Create composite graph using multiple CSV files & titles
+        set graph ""
+        UTF::Message INFO "" "option=$option"
+	UTF::Message INFO "" "create_composite_graphs: file_title_list=$file_title_list option=$option device_name=$device_name"
+	set catch_resp [catch {UTF::Test::MergeRvrData {*}$file_title_list $option $device_name $transport} graph]
+        UTF::Message INFO "" "create_composite_graphs: catch_resp=$catch_resp graph=$graph"
+
+        if {[regexp {no_data_to_plot} $graph]} {
+            UTF::Message ERROR "" "create_composite_graphs: MergeRvrData catch_resp=$catch_resp graph=$graph"
+            continue
+        }
+
+        # Rename graph so it wont conflict with any other composite graphs.
+        incr i
+        set temp [file dirname "$graph"]
+        set temp "$temp/${::saved_testnum}_composite${i}.png"
+	UTF::Message INFO "" "create_composite_graphs: rename $graph to $temp"  
+        set catch_resp [catch {file rename $graph $temp} catch_msg]
+        if {$catch_resp != 0} {
+            UTF::Message ERROR "" "create_composite_graphs: rename catch_resp=$catch_resp catch_msg=$catch_msg"
+            continue
+        }
+
+	# We only need the first composite graph and also the mu-version of it.
+	if {$i == 1 && $::mumode == "mu"} {
+	    lappend ::mu_graph_list $temp
+	}
+
+        # Dump graph on the Composite page, 2 graphs per row.
+        if {[expr $i % 2] == 1} {
+            puts $::COMP "   <tr><td><img src=\"$temp\"></td>"
+        } else {
+            puts $::COMP "       <td><img src=\"$temp\"></td></tr>"
+        }
+        flush $::COMP
+
+        # Dump each graph in row by itself on the All Graphs page.
+        puts $::ALL "   <tr><td>Composite $description</td><td><img src=\"$temp\"></td></tr>"
+        flush $::ALL
+
+        # Some people dont want the composite graphs on the main summary page,
+        # but are happy to have them their own composite only summary web page.
+        if {$nocompositemainpage == 0} {
+            # Push the composite graph to main summary web page.
+            UTF::Try "$focus Composite $description" {
+                return "html: <img src=\"$temp\">"
+            }
+        }
+    }
+}
+
+#============== proc main_rvr_nightly1 ==============================
+# Proc main_rvr_nightly1 does all the STA loading, setup and then
+# calls rvr1.test foreach STA. Router is loaded elsewhere.
+#
+# NB: proc is uniquely named to avoid conflict with other scripts
+# that have a proc main.
+#====================================================================
+proc main_rvr_nightly1 {Router STA} {
+    upvar {} {} ;# gives access to unamed array from getopts
+
+    # A single RvR run can test multiple STA or clones.
+    # If user and rvr1.test said to stop, we stop everything.
+    UTF::Message INFO $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+    if {$(stoponerror) && $::stop_tests == "yes"} {
+       error "$STA stopping tests due to previous error"
+    }
+
+    # Ensure each STA gets full initialization the first time thru rvr1.test
+    set ::rvr_init_done 0
+
+    # Load driver for all STAs.
+    UTF::Try "Load STA Image" {
+	# For RMT (Randomly Mixed Test) test, randomly pick up a list of STAs.
+	if {$(rmt)} {
+	    UTF::Try "Pick up random STAs" {
+		if {![info exists ::randdevicelistSTA1]} {
+		    error "ERROR: RMT test needs ::randdevicelistSTA* variables to be defined!"
+		}
+
+	    	for {set i 1} {$i <= 8} {incr i} {
+		    set rn [expr {int(rand()*10)}] ;# random number 0-9
+		    set tmplist [set ::randdevicelistSTA$i]
+		    lappend pickedlist [lindex $tmplist $rn]
+		    lappend rnlist $rn
+	    	}
+	        UTF::Message INFO "" "Random number list: $rnlist"
+	        UTF::Message INFO "" "Random device list: $pickedlist"
+
+	        # Assign 1st device to original STA variable and rest to musta variable.
+	        set STA [lindex $pickedlist 0]
+	        set (musta) ""
+	        for {set i 1} {$i < [llength $pickedlist]} {incr i} {
+	    	    lappend (musta) [lindex $pickedlist $i]
+	    	}
+	        #UTF::Message INFO "" "Random device list: STA=$STA"
+	        #UTF::Message INFO "" "Random device list: musta=$(musta)"
+	    }
+	}
+
+    	foreach sta "$STA $(musta)" {
+    	    # Find image.
+    	    if {!$(nostaload) && !$(nosetup) && !$(noinit)} {
+            	UTF::Try "$sta: find sta image" {
+            	    # Check primary image and start report header
+            	    UTF::CheckImage $sta $::date unknown
+            	}
+    	    }
+
+    	    # Load/reload/setup image.
+    	    if {!$(nosetup) && !$(noinit)} {
+            	if {$(nostaload)} {
+            	    if {!$(nostareload)} {
+                    	UTF::Try "$sta: reload sta image" {
+                    	    if {$(wet)} {
+                            	# For WET test, this is an AP.
+                            	UTF::reload_rtr $sta
+                    	    } else {
+			    	$sta reload
+                    	    }
+                    	}
+            	    }
+            	} else {
+            	    UTF::Try "$sta: load sta image" {
+                    	if {$(wet)} {
+                    	    # For WET test, this is an AP.
+                    	    UTF::load_rtr_retry $sta
+                    	} else {
+		    	    $sta load
+                    	}
+            	    }
+            	    # Check secondary driver and update report header
+            	    UTF::ReportDriver $sta $::date 
+            	}
+
+                # User may want to let the lower level rvr1.test do all the STA setup.
+                if {!$(nostahighlevelsetup)} {
+            	    UTF::Try "$sta: set sta defaults" {
+                    	if {!$(wet)} {
+                    	    $sta services stop
+                    	    catch {$sta wl msglevel +error +assoc}
+                    	    catch {$sta wl down}
+                    	    # Enable 40 in 2.4, if available.
+                    	    catch {$sta wl mimo_bw_cap 1}
+                    	    $sta wl up
+                    	    UTF::Sleep 1
+                    	    $sta wl ver
+                    	} else {
+                    	    $sta nvram get os_version ;# WET AP
+                    	}
+
+		        # Collect HW info and update report header + DB
+		        UTF::ReportWhatami $sta -role DUT -noload $(nostaload)
+
+                        set hw_ver [$sta chipname]
+                        regsub -all {\s} $hw_ver "_" hw_ver ;# Rawleys specification
+                        return $hw_ver
+            	    }
+            	}
+    	    }
+	}
+
+    	# Determine which bands are supported by STA.
+    	set catch_resp [catch {set sta_bands [$sta wl bands]} catch_msg]
+    	if {$catch_resp != 0} {
+            UTF::Try "Could not get $sta bands" {
+            	error "Halting $sta test: $catch_msg"
+            }
+            return
+    	}
+    }
+
+    # Now get AP bands.
+    if {$::is_oem_ap == 0} {
+        set ap_bands [$Router wl bands]
+    } else {
+        set ap_bands ""
+    }
+    UTF::Message LOG $STA "sta_bands=$sta_bands ap_bands=$ap_bands"
+
+    # rvr1.test needs branch name when it calls get_stream.
+    lappend ::branch_list [$STA branchname]
+    UTF::Message LOG $STA "updated branch_list=$::branch_list"
+
+    # Check disk utilization of all STA to be tested.
+    UTF::check_disk_usage "$Router $STA $(sniffer) $(intsta)"
+
+    # proc main_rvr_nightly1 test loop starts here.
+    if {$(titleap)} {
+        set focus $Router
+    } else {
+        set focus $STA
+    }
+    update_summaries ver $focus $(softap) $(titleap)
+    for {set i 0} {$i < $(loop)} {incr i} {
+	UTF::Message INFO "" "Loop count: $i"
+        if {!$(noinit) && $::is_oem_ap == 0} {
+            UTF::Try "Setup $Router: $(security) security" {
+                UTF::Test::APConfigureSecurity $Router -security $(security)
+            }
+        }
+
+        # Scan all channels if appropriate.
+        if {$(channels) && ![$STA cget -nochannels]} {
+            if {$::is_oem_ap == 0} {
+            	# BRCM RealAP/SoftAP
+                UTF::Test::ChannelSweep $Router $STA -msg $STA
+            } else {
+                # OEM AP
+                error "No control over OEM AP channel used!"
+            }
+        }
+
+        # Do RvR tests if appropriate.
+        if {!$(norvr)} {
+            # Do cycle RvR tests if appropriate.
+            if {!$(nocyclervr)} {
+                # Setup common command string for rvr1.test.
+                set cmd "UTF::Test::RvR1 $Router $STA -musta \"$(musta)\" -sniffer \"$(sniffer)\"\
+		    -va \"$(va)\" -perfloop \"$(perfloop)\" -perfsize \"$(perfsize)\"\
+		    -perftime \"$(perftime)\" -test \"$(test)\" -attnstep \"$(attnstep)\"\
+		    -pathloss \"$(pathloss)\" -timeout \"$(timeout)\" -security \"$(security)\"\
+		    -attngrp \"$(attngrp)\" -attngrp2 \"$(attngrp2)\" -window \"$(window)\" -history \"$(history)\" -udp \"$(udp)\"\
+		    -udpopt \"$(udpopt)\" -min \"$(min)\" -max \"$(max)\" -intnrate \"$(intnrate)\"\
+		    -intrate \"$(intrate)\" -intsta \"$(intsta)\" -inttype \"$(inttype)\"\
+		    -intgap \"$(intgap)\" -intsize \"$(intsize)\" -steplist \"$(steplist)\"\
+		    -steploop \"$(steploop)\" -pingmax \"$(pingmax)\" -sniffercapture \"$(sniffercapture)\"\
+		    -ringfilecnt \"$(ringfilecnt)\" -ringfilesize \"$(ringfilesize)\"\
+		    -noattnchange \"$(noattnchange)\" -noattnchange2 \"$(noattnchange2)\""
+
+                # Add binary options to command string.
+                if {$(allhooks)} {
+                    append cmd " -allhooks"
+                }
+                if {$(chanint)} {
+                    append cmd " -chanint"
+                }
+                if {$(edithooks)} {
+                    append cmd " -edithooks"
+                }
+                if {$(fastrampup)} {
+                    append cmd " -fastrampup"
+                }
+                if {$(fb0)} {
+                    append cmd " -fb0"
+                }
+                if {$(fb1)} {
+                    append cmd " -fb1"
+                }
+                if {$(forcesniffercapture)} {
+                    append cmd " -forcesniffercapture"
+                }
+                if {$(fullrange)} {
+                    append cmd " -fullrange"
+                }
+                if {$(fullrampup)} {
+                    append cmd " -fullrampup"
+                }
+                if {$(intgraph)} {
+                    append cmd " -intgraph"
+                }
+                if {$(intquiet)} {
+                    append cmd " -intquiet"
+                }
+                if {$(iperfnobeacons)} {
+                    append cmd " -iperfnobeacons"
+                }
+                if {$(keepgoing)} {
+                    append cmd " -keepgoing"
+                }
+                if {$(mingraphs)} {
+                    append cmd " -mingraphs"
+                }
+                if {$(nobtreset)} {
+                    append cmd " -nobtreset"
+                }
+                if {$(nographs)} {
+                    append cmd " -nographs"
+                }
+                if {$(nohistograms)} {
+                    append cmd " -nohistograms"
+                }
+                if {$(nohooks)} {
+                    append cmd " -nohooks"
+                }
+                if {$(noinit)} {
+                    append cmd " -noinit"
+                }
+                if {$(nomalloc)} {
+                    append cmd " -nomalloc"
+                }
+                if {$(nopretest)} {
+                    append cmd " -nopretest"
+                }
+                if {$(noredundant)} {
+                    append cmd " -noredundant"
+                }
+                if {$(nosetuptestbed)} {
+                    append cmd " -nosetuptestbed"
+                }
+                if {$(nosymmetry)} {
+                    append cmd " -nosymmetry"
+                }
+                if {$(rampdownonly)} {
+                    append cmd " -rampdownonly"
+                }
+                if {$(rampuponly)} {
+                    append cmd " -rampuponly"
+                }
+                if {$(refreshaddralways)} {
+                    append cmd " -refreshaddralways"
+                }
+                if {$(refreshaddrasneeded)} {
+                    append cmd " -refreshaddrasneeded"
+                }
+                if {$(softap)} {
+                    append cmd " -softap"
+                }
+                if {$(stoponerror)} {
+                    append cmd " -stoponerror"
+                }
+                if {$(stopslowrampup)} {
+                    append cmd " -stopslowrampup"
+                }
+                if {$(titleap)} {
+                    append cmd " -titleap"
+                }
+                if {$(trenderrors)} {
+                    append cmd " -trenderrors"
+                }
+                if {$(comparesta)} {
+                    append cmd " -comparesta"
+                }
+                if {$(comparestaoneloop)} {
+                    append cmd " -comparestaoneloop"
+                }
+                if {$(compareap)} {
+                    append cmd " -compareap"
+                }
+                if {$(txbf)} {
+                    append cmd " -txbf"
+                }
+                if {$(warmup)} {
+                     append cmd " -warmup"
+                }
+                if {$(wet)} {
+                     append cmd " -wet"
+                }
+                if {$(cst)} {
+                     append cmd " -cst"
+                }
+                if {$(cast)} {
+                     append cmd " -cast"
+                }
+                if {$(chantest4mu)} {
+                     append cmd " -chantest4mu"
+                }
+                if {$(chantest8mu)} {
+                     append cmd " -chantest8mu"
+                }
+                if {$(msm)} {
+                     append cmd " -msm"
+                }
+                if {$(mvm)} {
+                     append cmd " -mvm"
+                }
+                if {$(mhm)} {
+                     append cmd " -mhm"
+                }
+                if {$(mlm)} {
+                     append cmd " -mlm"
+                }
+                if {$(mat)} {
+                     append cmd " -mat"
+                }
+                if {$(rmt)} {
+                     append cmd " -rmt"
+                }
+                if {$(udpofferratetest)} {
+                     append cmd " -udpofferratetest"
+                }
+
+                # For OEM AP we dont have control over the channel used. So we just do one
+                # set of tests, using whatever channel we find the OEM AP is currently using.
+                if {$::is_oem_ap == 1} {
+                    if {!$(downstreamonly)} {
+                        eval $cmd -direction Up -chanspec "TBD" -attnlist \"$(oemAttnRange)\" -oemband \"$(oemband)\"\
+			    -intattn \"$(intattnoem)\" -intchan \"$(intchanoem)\" -intwl \"$(intwloem)\"
+                        update_summaries start rvr
+                    }
+                    if {!$(upstreamonly)} {
+                        eval $cmd -direction Down -chanspec "TBD" -attnlist \"$(oemAttnRange)\" -oemband \"$(oemband)\"\
+			    -intattn \"$(intattnoem)\" -intchan \"$(intchanoem)\" -intwl \"$(intwloem)\"
+                        update_summaries end rvr
+                    }
+                }
+
+                if {$(5G80only)} {
+                    set (no5G40) 1
+                    set (no5G20) 1
+                    set (no2G40) 1
+                    set (no2G20) 1
+                } elseif {$(5G8020only)} {
+                    set (no5G40) 1
+                    set (no2G40) 1
+                    set (no2G20) 1
+                } elseif {$(5G8040only)} {
+                    set (no5G20) 1
+                    set (no2G40) 1
+                    set (no2G20) 1
+                } elseif {$(5G804020only)} {
+                    set (no2G40) 1
+                    set (no2G20) 1
+                } elseif {$(5G40only)} {
+                    set (no5G80) 1
+                    set (no5G20) 1
+                    set (no2G40) 1
+                    set (no2G20) 1
+                } elseif {$(5G20only)} {
+                    set (no5G80) 1
+                    set (no5G40) 1
+                    set (no2G40) 1
+                    set (no2G20) 1
+                } elseif {$(2G40only)} {
+                    set (no5G80) 1
+                    set (no5G40) 1
+                    set (no5G20) 1
+                    set (no2G20) 1
+                } elseif {$(2G20only)} {
+                    set (no5G80) 1
+                    set (no5G40) 1
+                    set (no5G20) 1
+                    set (no2G40) 1
+                }
+
+                # Band A, BRCM RealAP/SoftAP
+                if {[string match -nocase *a* $sta_bands] && [string match -nocase *a* $ap_bands] && $::is_oem_ap == 0} {
+                    if {!$(no5G80)} {
+                        foreach ch $(chan5G80) {
+                            set ::last_txbfm_counter 0
+                            set ::last_txndp_counter 0
+                            set ::last_rxsf_counter  0
+
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                                error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(downstreamonly)} {
+                                eval $cmd -direction Up -chanspec $ch -attnlist \"$(cycle5G80AttnRange)\"\
+                                    -intattn \"$(intattn5G80)\" -intchan \"$(intchan5G80)\" -intwl \"$(intwl5G80)\"
+                                update_summaries start rvr
+                            }
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                                error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(upstreamonly)} {
+                                eval $cmd -direction Down -chanspec $ch -attnlist \"$(cycle5G80AttnRange)\"\
+                                    -intattn \"$(intattn5G80)\" -intchan \"$(intchan5G80)\" -intwl \"$(intwl5G80)\"
+                                update_summaries end rvr
+                            }
+                        }
+                    }
+                    if {!$(no5G40)} {
+                        foreach ch $(chan5G40) {
+			    set ::last_txbfm_counter 0
+			    set ::last_txndp_counter 0
+			    set ::last_rxsf_counter  0		
+
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(downstreamonly)} {
+                                eval $cmd -direction Up -chanspec $ch -attnlist \"$(cycle5G40AttnRange)\"\
+				    -intattn \"$(intattn5G40)\" -intchan \"$(intchan5G40)\" -intwl \"$(intwl5G40)\"
+                                update_summaries start rvr
+                            }
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(upstreamonly)} {
+                                eval $cmd -direction Down -chanspec $ch -attnlist \"$(cycle5G40AttnRange)\"\
+				    -intattn \"$(intattn5G40)\" -intchan \"$(intchan5G40)\" -intwl \"$(intwl5G40)\"
+                                update_summaries end rvr
+                            }
+                        }
+                    }
+                    if {!$(no5G20)} {
+                        foreach ch $(chan5G20) {
+                            set ::last_txbfm_counter 0
+                            set ::last_txndp_counter 0
+                            set ::last_rxsf_counter  0
+
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(downstreamonly)} {
+                                eval $cmd -direction Up -chanspec $ch -attnlist \"$(cycle5G20AttnRange)\"\
+				    -intattn \"$(intattn5G20)\" -intchan \"$(intchan5G20)\" -intwl \"$(intwl5G20)\"
+                                update_summaries start rvr
+                            }
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(upstreamonly)} {
+                                eval $cmd -direction Down -chanspec $ch -attnlist \"$(cycle5G20AttnRange)\"\
+				    -intattn \"$(intattn5G20)\" -intchan \"$(intchan5G20)\" -intwl \"$(intwl5G20)\"
+                                update_summaries end rvr
+                            }
+                        }
+                    }
+                } else {
+		    UTF::Message WARN "" "Warning: No test is run because no common 'a' band found between AP and STA." 
+		}
+		    
+                # Band B, BRCM RealAP/SoftAP
+                if {[string match -nocase *b* $sta_bands] && [string match -nocase *b* $ap_bands] && $::is_oem_ap == 0} {
+                    if {!$(no2G40)} {
+                        foreach ch $(chan2G40) {
+                            set ::last_txbfm_counter 0
+                            set ::last_txndp_counter 0
+                            set ::last_rxsf_counter  0
+
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(downstreamonly)} {
+                                eval $cmd -direction Up -chanspec $ch -attnlist \"$(cycle2G40AttnRange)\"\
+				    -intattn \"$(intattn2G40)\" -intchan \"$(intchan2G40)\" -intwl \"$(intwl2G40)\"
+                                update_summaries start rvr
+                            }
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(upstreamonly)} {
+                                eval $cmd -direction Down -chanspec $ch -attnlist \"$(cycle2G40AttnRange)\"\
+				    -intattn \"$(intattn2G40)\" -intchan \"$(intchan2G40)\" -intwl \"$(intwl2G40)\"
+                                update_summaries end rvr
+                            }
+                        }
+                    }
+                    if {!$(no2G20)} {
+                        foreach ch $(chan2G20) {
+                            set ::last_txbfm_counter 0
+                            set ::last_txndp_counter 0
+                            set ::last_rxsf_counter  0
+
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(downstreamonly)} {
+                                eval $cmd -direction Up -chanspec $ch -attnlist \"$(cycle2G20AttnRange)\"\
+				    -intattn \"$(intattn2G20)\" -intchan \"$(intchan2G20)\" -intwl \"$(intwl2G20)\"
+                                update_summaries start rvr
+                            }
+                            UTF::Message LOG $STA "(stoponerror)=$(stoponerror) ::stop_tests=$::stop_tests"
+                            if {$(stoponerror) && $::stop_tests == "yes"} {
+                               error "$STA stopping tests due to previous error"
+                            }
+                            if {!$(upstreamonly)} {
+                                eval $cmd -direction Down -chanspec $ch -attnlist \"$(cycle2G20AttnRange)\"\
+				    -intattn \"$(intattn2G20)\" -intchan \"$(intchan2G20)\" -intwl \"$(intwl2G20)\"
+                                update_summaries end rvr
+                            }
+                        }
+                    }
+                } else {
+		    UTF::Message WARN "" "Warning: No test is run because no common 'b' band found between AP and STA."
+		}
+            }
+        }
+
+	# If we only want 1 loop for first STA, we get out the _for_ loop here.
+	if {$(comparesta) && $(comparestaoneloop) && $(loop) > 0 && $::sta_counter == 0} {
+	    UTF::Message LOG $::localhost "User requests only 1 loop for STA: $STA"  
+	    #set i $(loop)
+	    break
+  	}
+
+	# WAR for fixed rate test.
+        #if {$::ap_counter == 0 && $(loop) > 0} {
+        #    UTF::Message LOG $::localhost "User requests only 1 loop for AP"
+        #    break
+        #}
+
+	# Keep track of test loop. Can be used elsewhere.
+	incr ::loop_counter
+	    
+    } ;# End of proc main_rvr_nightly1 test loop.
+
+    # Calculate mutx gain, only if doing su-mu comparison tests.
+    if {([regexp {^sumu$} $::apmodes] || [regexp {^musu$} $::apmodes]) && $(compareap) && $(musta) != "" && $::ap_counter == 1 && !$(cst)} {
+
+	if {[llength $::tput_mean_list_mutx0] != [llength $::tput_mean_list_mutx1]} {
+	    UTF::Message ERROR "" "mutx gain: Size of 2 lists not equal!"
+	    UTF::Message ERROR "" "mutx gain: ::tput_mean_list_mutx0=$::tput_mean_list_mutx0 ::tput_mean_list_mutx1=$::tput_mean_list_mutx1"
+ 	} else {
+	    for {set i 0} {$i < [llength $::tput_mean_list_mutx1]} {incr i} {
+	    	set e [lindex $::tput_mean_list_mutx0 $i]	;# e is also a list and contains "$chanspec $tput"
+	    	set tmp0 [lindex $e 1]				;# tmp0 is tput for mutx0
+	    	set e [lindex $::tput_mean_list_mutx1 $i]	;# e is also a list and contains "$chanspec $tput"
+	    	set tmp1 [lindex $e 1]				;# tmp1 is tput for mutx1
+
+	    	# Calculate mutx gain.
+	    	set mutx_gain -1
+	    	if {$tmp0 != 0} {
+	    	    set mutx_gain [format {%0.2f} [expr ($tmp1 - $tmp0) / double($tmp0)]]
+
+	    	    # There are rare cases where the statement above generates value as "-0.00".
+	    	    # If that happens, we need to remove the minus sign.
+	    	    if {$mutx_gain == 0 && [regexp {^\-} $mutx_gain]} {
+		    	regsub -all {\-} $mutx_gain {} mutx_gain
+	    	    }
+		} else {
+		    UTF::Message WARN "" "mutx gain: CH=[lindex $e 0]: Skipped mutx gain calculation because denominator is zero"
+	  	}
+
+	    	# Now, get chanspec.
+	    	set ch [lindex $e 0]
+	    	UTF::Message LOG "" "mutx gain: ch=$ch tput_mutx0=$tmp0 tput_mutx1=$tmp1 mutx_gain=$mutx_gain"
+
+	    	# Append chanspec and mutx gain data.
+	    	lappend ::mutx_gain_list "[lindex $e 0] $mutx_gain" 
+	    }
+	    UTF::Message LOG "" "mutx gain: mutx_gain_list=$::mutx_gain_list"
+	}
+    }
+
+    # Create composite RvR graphs
+    create_composite_graphs $focus $(nocomposite) $(nocompositemainpage) $(rampdownonly)\
+	$(rampuponly) $(fastrampup) $(nographs) $(mingraphs) $Router $STA $(udp)
+
+    # Dump the rampdown/rampup graphs on the main summary page.
+    foreach file $::RVR1_list {
+        set temp [file tail "$file"]
+        UTF::Try "$focus $temp" {
+            return "html: <img src=\"$file\">"
+        }
+    }
+
+    # Dump MU graphs to MuGraphs link so users can view them in one page.
+    if {$(musta) != "" && $::mumode == "mu"} {
+    	UTF::Message LOG "" "::mu_graph_list=$::mu_graph_list"
+
+	# Add composite graph first.
+	puts $::MU "   <tr><td><img src=\"[lindex $::mu_graph_list end]\"></td></tr>"
+	flush $::MU
+
+	# Remove last element (composite graph) since we don't need it anymore.
+	set ::mu_graph_list [lrange $::mu_graph_list 0 end-1]
+
+    	foreach e $::mu_graph_list {
+	    # e is a list itself for each BW. 
+	    puts $::MU "   <tr><td><img src=\"[lindex $e 0]\"></td>"
+	    flush $::MU
+
+	    puts $::MU "       <td><img src=\"[lindex $e 2]\"></td></tr>"
+	    flush $::MU
+
+	    puts $::MU "   <tr><td><img src=\"[lindex $e 1]\"></td>"
+	    flush $::MU
+
+	    puts $::MU "       <td><img src=\"[lindex $e 3]\"></td></tr>"
+	    flush $::MU
+	}
+    }
+
+    # Close summary pages.
+    update_summaries close
+
+    # Unload STA driver.
+    if {!$(nounload) && !$(noinit)} {
+	UTF::Try "Unload STA Driver" {
+	    foreach sta "$STA $(musta)" {
+	    	UTF::Try "$sta: unload sta driver" {
+		    $sta unload
+		    $sta deinit
+		}
+	    }
+	}
+    }
+}
+
+#============== proc setup_summaries ================================
+# Proc setup_summaries initialize summary web pages and related 
+# global variables.
+#====================================================================
+proc setup_summaries {AP STA nocyclervr nohistograms rampdownonly\
+    rampuponly nocomposite fastrampup nosymmetry nomalloc chanint\
+    titleap nographs mingraphs intsta intgraph comparesta compareap txbf musta} {
+
+    # Get testrig name
+    UTF::setup_config_testrig
+
+    # Graphs may not be needed.
+    set ::handle_title_list "" ;# used by other routines
+    set ::RVR1_list "" ;# save list of rampdown/rampup graphs
+    if {$nographs} {
+        return
+    }
+
+    # The focus of the web page titles & graphs can be AP or STA. This allows
+    # the user to choose the focus independantly, regardless of softap being
+    # tested or not.
+    if ($titleap) {
+        set focus $AP
+    } else {
+        set focus $STA
+    }
+
+    UTF::Try "$AP: Summary Graphs" {
+        set SummaryLoc [file dirname "$UTF::Logfile"]
+        set testnum [UTF::get_testnum]
+        set ::saved_testnum $testnum ;# needed for composite graphs
+        # puts "UTF::Logfile=$UTF::Logfile SummaryLoc=$SummaryLoc testnum=$testnum"
+
+        # Summmary pages created are based on flag nocyclervr.
+        # There are many graphs from rvr1.
+        # to be summarized. Put most important one first in list,
+        # as that will be shown to users first.
+        set ::handle_title_list "" ;# ensure variable always exists
+        if {$nocyclervr == "0"} {
+
+            # Check if we have rampdown graphs.
+            set ::handle_title_list ""
+            if {$rampuponly == 0} {
+               set ::handle_title_list "$::handle_title_list\
+                   ::RVR0 RampdownThroughput"
+            }
+            if {$rampdownonly == 0 } {
+                # If rampdownonly is off, we also have the rampdown/rampup
+                # graphs and possibly the symmetry graphs.
+                set ::handle_title_list "$::handle_title_list\
+                    ::RVR1 RampdownRampupThroughput"
+                #if {$nosymmetry == 0 && $fastrampup == 0 && $mingraphs == 0} {
+                #    set ::handle_title_list "$::handle_title_list\
+                #        ::RVR2 SymmetryThroughput"
+                #}
+            }
+
+            # We usually want these 5 AP/STA graphs
+            if {$mingraphs == 0} {
+                set ::handle_title_list "$::handle_title_list\
+                    ::RVR3 ApNRate ::RVR4 ApTxRate\
+                    ::RVR5 ApConnectTime ::RVR55 StaNRate ::RVR6 Rssi\
+                    ::RVR7 StaTxRate"
+            }
+
+            # Malloc fail & chanint graphs are optional
+            if {$nomalloc == 0 && $mingraphs == 0} { 
+                set ::handle_title_list "$::handle_title_list ::RVR8 StaMallocFail"
+            }
+            if {$chanint == 1 && $mingraphs == 0} { 
+                set ::handle_title_list "$::handle_title_list ::RVR9 StaChanInt"
+            }
+
+            # We always want the Rejoin ControlCharts
+            set ::handle_title_list "$::handle_title_list ::RVRA StaRejoin"
+
+            # We always want the MCS/Legacy/Beacon ControlCharts
+            set ::handle_title_list "$::handle_title_list ::RVRB StaMcsHi ::RVRC StaMcsLo ::RVRD StaBeacon"
+
+            # Check if we want histograms.
+            if {$nohistograms == 0 && $mingraphs == 0} {
+                set ::handle_title_list "$::handle_title_list\
+                    ::RVR10 ApRxMcs ::RVR11 ApTxMcs ::RVR12 ApMpdu ::RVR13 ApRxMcsSgi\
+                    ::RVR14 ApTxMcsSgi ::RVR15 ApDelay ::RVR16 ApCcdf ::RVR17 ApPer\
+                    ::RVR20 StaRxMcs ::RVR21 StaTxMcs ::RVR22 StaMpdu ::RVR23 StaRxMcsSgi\
+                    ::RVR24 StaTxMcsSgi ::RVR25 StaDelay ::RVR26 StaCcdf ::RVR27 StaPer\
+                    ::RVR30 ApRxVht ::RVR31 ApTxVht ::RVR32 ApRxVhtSgi ::RVR33 ApTxVhtSgi\
+		    ::RVR33A ApVhtPer ::RVR34 StaRxVht ::RVR35 StaTxVht ::RVR36 StaRxVhtSgi\
+		    ::RVR37 StaTxVhtSgi ::RVR38 StaVhtPer ::RVR39 TputMean ::RVR50 ApPktRetried\
+		    ::RVR50A ApPktRetryRatio ::RVR51 ApPktRetryDropped ::RVR51A ApPktRetryDropRatio\
+		    ::RVR52 ApTxbfm ::RVR53 ApTxndp ::RVR54 ApSfRatio ::RVR57 Temperature"
+
+		if {$musta != "" && $::mumode == "mu"} {
+		    set ::handle_title_list "$::handle_title_list\
+		    	::RVR58 ApTxAsMu"
+		}
+            }
+
+            # Check if we want interference graphs.
+            if {($intsta != "" || $intgraph == 1) && $mingraphs == 0} {
+                set ::handle_title_list "$::handle_title_list\
+                    ::RVR40 ApRxBadFcs ::RVR41 ApRxBadPlcp ::RVR42 ApRxCrsGlitch\
+                    ::RVR43 ApRxdFrmUcastMbss ::RVR44 ApRxStrt\
+                    ::RVR45 StaRxBadFcs ::RVR46 StaRxBadPlcp ::RVR47 StaRxCrsGlitch\
+                    ::RVR48 StaRxdFrmUcastMbss ::RVR49 StaRxStrt"
+            }
+        }
+
+        # Check if we want composite graphs.
+        if {$nocyclervr == "0" && $nocomposite == 0 && $mingraphs == 0} {
+            set ::handle_title_list "$::handle_title_list ::COMP Composite"
+        }
+
+        # Check if we want MU graphs to be displayed in one page.
+        if {$musta != "" && $::mumode == "mu"} {
+            set ::handle_title_list "$::handle_title_list ::MU MuGraphs"
+        }
+
+        # Always show ALL graphs; code expects ::ALL to be defined.
+        set ::handle_title_list "$::handle_title_list ::ALL AllGraphs"
+
+        # Add summary page headers.
+        set title_links ""
+        set result ""
+	set mu_result ""
+        set composite_result ""
+        foreach {handle title} $::handle_title_list {
+
+            # Setup filename for summary. We prefer Rampdown/Rampup graphs for result.
+            set file "${testnum}_${focus}_${title}.htm"
+            if {$result == "" || $handle == "::RVR1"} {
+                set result $file
+            }
+
+	    # Save up file name for composite graph page
+            if {$composite_result == "" || $handle == "::COMP"} {
+                set composite_result $file
+            }
+
+	    # Save up file name for MU graph page
+            if {$mu_result == "" || $handle == "::MU"} {
+                set mu_result $file
+            }
+
+            # Open summary file, add html headers to file.
+            set temp [open "$SummaryLoc/$file" w]
+            set $handle $temp
+            puts $temp "<head>"
+            puts $temp "    <title>$::testrig RvRNightly1 $focus $title Summary</title>"
+            puts $temp "</head>\n"
+            puts $temp "<body>\n"
+            flush $temp ;# leave handle open for more writes
+
+            # Save a title link to this page. Add html break at selected points.
+            # Not all items will be present, so add breaks before / after
+            # items that are usually present.
+            if {$handle == "::RVR10"} {
+                set title_links "$title_links <br>"
+            }
+            set title_links "$title_links <a href=\"$file\">$title</a>"
+            if {$handle == "::RVR27" || $handle == "::RVR38" || $handle == "::RVR49"} {
+                set title_links "$title_links <br>"
+            }
+        }
+
+        # Add link so user can go back to detailed logfile.
+        set title_links "$title_links <a href=\"$SummaryLoc/Summary.html\">DetailedLog</a>"
+
+        # Add title_links & h2 to each page.
+        foreach {handle title} $::handle_title_list {
+            set temp [set $handle] ;# retrieve handle value
+            puts $temp "<p>$title_links</p>"
+            puts $temp "<h2>$::testrig RvRNightly1 $focus $title Summary</h2>\n"
+            flush $temp ;# leave handle open for more writes
+        }
+
+	# Create symlink to composite/mu graph page.
+	if {$musta != "" && $::mumode == "mu"} {
+     	    catch {file link -symbolic $SummaryLoc/link-Mu.htm $SummaryLoc/$mu_result}
+	} elseif {$comparesta} {
+     	    catch {file link -symbolic $SummaryLoc/link-$STA-Composite.htm $SummaryLoc/$composite_result}
+	} elseif {$compareap || $txbf} {
+     	    catch {file link -symbolic $SummaryLoc/link-$AP-Composite.htm $SummaryLoc/$composite_result}
+	}
+
+        # Return link to first (thruput) summary page.
+        if {$result == ""} {
+            return "None!"
+        } else {
+            return "html:<a href=\"$result\">Graph Summaries</a>"
+        }
+    }
+}
+
+#============== proc update_summaries ===============================
+# # Proc for updating summary web pages
+#====================================================================
+proc update_summaries {cmd args} {
+    UTF::Message LOG $::localhost "update_summaries cmd=$cmd args=$args"
+        
+    # If necessary, log the device info on all summary files.
+    # For cmd=ver, args are: device name, softap flag, titleap flag
+    if {$cmd == "ver"} {
+        set device [lindex $args 0]
+        set softap [lindex $args 1]
+        set titleap [lindex $args 2]
+
+        # Get hardware info & clean it up.
+        set hw_ver ""
+        if {$titleap && $::is_oem_ap == 1} {
+            set hw_ver "OEM"
+        } else {
+            set catch_resp [catch {set hw_ver [$device whatami]} catch_msg]
+            if {[llength $hw_ver] > 1} {
+                set hw_ver [lrange $hw_ver 1 end] ;# drop UTF object name
+            }
+        }
+        regsub -all {\s} $hw_ver "_" hw_ver ;# Rawleys specification
+        # added for UTF DUT reports
+        $device dbrecord DUT
+        
+        # Get host OS version
+        set os_ver ""
+        if {$titleap && $::is_oem_ap == 1} {
+            set os_ver "OEM"
+        } else {
+            set catch_resp [catch {set os_ver [UTF::check_host_os $device]} catch_msg]
+        }
+
+        # Get driver software version
+        set wl_ver ""
+        if {$titleap} {
+            if {$::is_oem_ap == 1} {
+               set wl_ver "OEM"
+            } else {
+                if {$softap} {
+                    # Soft AP
+                    set catch_resp [catch {set wl_ver [$device wl ver]} catch_msg]
+                } else {
+                    # Real AP
+                    set catch_resp [catch {set wl_ver [$device nvram get os_version]} catch_msg]
+                }
+            }
+        } else {
+            # STA
+            set catch_resp [catch {set wl_ver [$device wl ver]} catch_msg]
+        }
+
+        # Add device info to each summary page
+        UTF::Message LOG $::localhost  "hw_ver=$hw_ver os_ver=$os_ver wl_ver=$wl_ver"
+        foreach {handle title} $::handle_title_list {
+            set temp [set $handle] ;# retrieve handle value
+            puts $temp "<p>$hw_ver &nbsp;&nbsp;&nbsp; $os_ver &nbsp;&nbsp;&nbsp; $wl_ver</p>"
+            puts $temp "<table border=\"0\">"
+            flush $temp ;# leave handle open for more writes
+        }
+        return
+    }
+
+    # If necessary, close all the summary files
+    if {$cmd == "close"} {
+        foreach {handle title} $::handle_title_list {
+            set temp [set $handle] ;# retrieve handle value
+            puts $temp "</table>\n</body>\n</html>"
+            flush $temp
+            close $temp ;# we are done with this file
+        }
+        return
+    }
+
+    # Code for cmd=start|end
+    # Add graphic(s) links based on args.
+    foreach {handle title} $::handle_title_list {
+        if {[string match -nocase "::$args*" $handle]} {
+            # Retrieve file handle value
+            set temp1 [set $handle]
+
+            # Add start row html tag if needed.
+            if {$cmd == "start"} {
+                puts $temp1 "   <tr>"
+            }
+
+            # Lowercase handle is a variable set by the underlying rvr
+            # script and points to the desired graphic file(s).
+            set file [string tolower $handle]
+            if {[info exists $file]} {
+                set temp2 [set $file]
+                if {$temp2 == ""} {
+                    puts $temp1 "      <td>&nbsp;</td>"
+                } else {
+                    # rvr may return multiple graphs
+                    set i 0
+                    foreach png $temp2 {
+                        incr i
+                        set png [string trim $png]
+                        puts $temp1 "      <td><img src=\"$png\"></td>"
+                        # Dump each graph in row by itself on the All Graphs page.
+                        puts $::ALL "   <tr><td>$title</td><td><img src=\"$png\"></td></tr>"
+                    }
+                    if {$handle == "::RVR1"} {
+                        # Collect list of all rampdown/rampup graphs
+                        lappend ::RVR1_list $temp2
+                    }
+                    if {$cmd == "start" && $i > 1} {
+                        puts $temp1 "   </tr>\n   <tr>"
+                    }
+                }
+            }
+            set $file "" ;# initialize for next pass
+
+            # Add end row html tag if needed.
+            if {$cmd == "end"} {
+                puts $temp1 "   </tr>"
+            }
+            flush $temp1 ;# leave handle open for more writes
+            flush $::ALL
+        }
+    }
+}
+
+#============== Main RvRNightly1 test ===============================
+UTF::Test RvRNightly1 {args} {
+    UTF::Getopts "$::RvrNightly1_getopts" "$::RvrNightly1_help"
+
+    # The default attenuation ranges were based on Steve Lam's initial testrig.
+    # To allow other people to customize the attenuation ranges to their own
+    # testrig specific needs, this script will look for alternate default values
+    # in the config file. As usual, values passed from the command line will take
+    # precedance over the config file default values.
+    set attn_var_def [list cycle5G40AttnRange "0-50 50-0"\
+                           cycle5G20AttnRange "0-50 50-0"\
+                           cycle5G80AttnRange "0-50 50-0"\
+                           cycle2G40AttnRange "20-75 75-20"\
+                           cycle2G20AttnRange "25-75 75-25"\
+                           oemAttnRange "25-75 75-25"]
+
+    foreach {variable default} $attn_var_def {
+	# If -allattnrange commandline option exists, everybody uses it.
+        if {$(allattnrange) != ""} {
+            set ($variable) $(allattnrange)
+            continue
+        }
+
+        # If command line has a non-blank value for the variable, we use that value, period.
+        set ($variable) [string trim $($variable)]
+        if {$($variable) != ""} {
+            # puts "using command line value for $variable"
+            continue
+        }
+
+        # If the config file has a non-blank value for the variable,
+        # we use the testrig specific value.
+        set temp1 "::${variable}"
+        if {[info exists $temp1]} {
+            set temp2 [set $temp1]
+            set temp2 [string trim $temp2]
+            if {$temp2 != ""} {
+                set ($variable) $temp2
+                continue
+            }
+        }
+
+        # Use the orginal script default value, for lack of a better value.
+        set ($variable) $default
+    }
+
+    # Display final attenuator ranges.
+    foreach {variable default} $attn_var_def {
+        UTF::Message LOG "" "($variable)=$($variable)"
+    }
+
+    # If necessary, override the config file log directory setting.
+    if {$(logdir) != ""} {
+        set UTF::SummaryDir $(logdir)
+        UTF::Message INFO "" "Using logdir: $UTF::SummaryDir"
+    }
+
+    # In case of conflicting options, make nosniffer override sniffer.
+    if {$(nosniffer)} {
+        set (sniffer) ""
+    }
+
+    # noinit implies nosetup. nosetup is for this script only.
+    # noinit is passed to rvr1.test & has broader impact than nosetup.
+    if {$(noinit)} {
+        set (nosetup) 1
+    }
+
+    # Composite graphs no supported for steplist
+    set (steplist) [string trim $(steplist)]
+    if {$(steplist) != ""} {
+        set (nocomposite) 1
+    }
+
+    # If specified, make sure attngrp exists.
+    set (attngrp) [string trim $(attngrp)]
+    if {$(attngrp) != ""} {
+        UTF::check_host_os $(attngrp)
+    }
+    set (attngrp2) [string trim $(attngrp2)]
+    if {$(attngrp2) != ""} {
+        UTF::check_host_os $(attngrp2)
+    }
+
+    # Can't use -attngrp2 without -attngrp
+    if {$(attngrp2) != "" && $(attngrp) == ""} {
+	error "ERROR: Can't use -attngrp2 alone without -attngrp"
+    }
+
+    # Ensure security is specified.
+    set (security) [string trim $(security)]
+    if {$(security) == ""} {
+        set (security) open
+    }
+
+    # Set controlchart data cache option.
+    if {$(nocache)} {
+        set ::UTF::ControlChart::readonly 1
+    }
+
+    # Router could be a STA running softap code.
+    set Router [lindex $(ap) 0]
+    if {$(softap)} {
+        # Dynamically set -ap flag so Router will be allowed to act as SoftAP.
+        $Router configure -ap 1
+    }
+    set (softap) [UTF::is_softap $Router] ;# Is this a SoftAP?
+    set ::is_oem_ap [UTF::is_oem_ap $Router] ;# Is this an OEM AP?
+
+    set (sta) [string trim $(sta)]
+    if {$(sta) == ""} {
+        error "ERROR: Must specify at least one sta"
+    }
+
+    if {$(compareap) && [llength $(ap)] < 2} {
+        error "ERROR: compareap test requires 2 or more APs."
+    }
+
+    if {$(compareap) && $(titleap)} {
+        error "ERROR: Can't use -compareap and -titleap at same time."
+    }
+
+    if {$(comparesta) && $(compareap)} {
+        error "ERROR: Can't use -comparesta and -compareap at same time."
+    }
+
+    if {$(comparesta) && [llength $(sta)] != 2} {
+        error "ERROR: STA comparison test requires 2 and only 2 STAs."
+    }
+
+    if {$(comparestaoneloop) && !$(comparesta)} {
+        error "ERROR: Option -comparestaoneloop requires -comparesta."
+    }
+
+    if {$(txbf) && [llength $(ap)] != 2} {
+        error "ERROR: TxBF test requires 2 and only 2 APs."
+    }
+
+    if {$(txbf) && [llength $(sta)] != 2} {
+        error "ERROR: TxBF test requires 2 and only 2 STAs."
+    }
+
+    if {$(attnstep) < 1 && $(attnstep) != 0.5} {
+	error "ERROR: Invalid -attnstep value: $(attnstep)"
+    }
+
+#   if {$(musta) != "" && [llength $(musta)] > 7} {
+#	error "ERROR: MU-MIMO test only supports up to 8 STAs."
+#   }
+
+    if {$(chantest4mu) && [llength "$(sta) $(musta)"] != 4} {
+	error "ERROR: -chantest4mu test only supports 4 STAs."
+    }
+
+    if {$(chantest8mu) && [llength "$(sta) $(musta)"] != 8} {
+	error "ERROR: -chantest8mu test only supports 8 STAs."
+    }
+
+    if {$(intsta) != ""} {
+	if {[llength $(intwl2G20)] > 1 && [llength $(intwl2G20)] != $(loop)} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	} 
+	if {[llength $(intwl2G40)] > 1 && [llength $(intwl2G40)] != $(loop)} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	}
+	if {[llength $(intwl5G20)] > 1 && [llength $(intwl5G20)] != $(loop)} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	}
+	if {[llength $(intwl5G40)] > 1 && [llength $(intwl5G40)] != $(loop)} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	}
+	if {[llength $(intwl5G80)] > 1 && [llength $(intwl5G80)] != $(loop)} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	}
+    }
+
+    if {$(intsta) != ""} {
+	if {[llength $(intattn2G20)] > 2 && [llength $(intattn2G20)] != $(loop)+1} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	} 
+	if {[llength $(intattn2G40)] > 2 && [llength $(intattn2G40)] != $(loop)+1} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	} 
+	if {[llength $(intattn5G20)] > 2 && [llength $(intattn5G20)] != $(loop)+1} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	} 
+	if {[llength $(intattn5G40)] > 2 && [llength $(intattn5G40)] != $(loop)+1} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	} 
+	if {[llength $(intattn5G80)] > 2 && [llength $(intattn5G80)] != $(loop)+1} {
+	    error "ERROR: Invalid loop number: $(loop)"
+	} 
+    }
+
+    # Custom and special configuration for these tests.
+    if {$(cst) || $(cast) || $(msm) || $(mvm) || $(mhm) || $(mlm) || $(mat) || $(chantest4mu) || $(chantest8mu)} {
+    	# Hard-code parameters to have a well-defined and controlled behavior.
+	set (5G80only) 1
+	set (attnstep) 2
+	set (noattnchange)  0
+	set (noattnchange2) 0
+	set (rampdownonly)  1
+
+	set fixed_attn 0
+	set ::gnuplot_rvr_xlabel ""
+	set sta_length [llength "$(sta) $(musta)"]
+
+	# Custom X-axis label.
+	if {$(cst) || $(cast)} {
+	    set ::gnuplot_rvr_xaxis "Number of STAs"
+	} elseif {$(msm) || $(mvm) || $(mhm) || $(mlm) || $(mat) || $(chantest4mu) || $(chantest8mu)} {
+	    set ::gnuplot_rvr_xaxis "STA Configuration"
+	}
+
+	# Custom X-axis tic.
+	if {$(chantest4mu) || $(chantest8mu)} {
+	    set k 2
+	    if {$(chantest4mu)} {
+	    	set (cycle5G80AttnRange) "0-58 58-0"
+	    } elseif {$(chantest8mu)} {
+	    	set (cycle5G80AttnRange) "0-278 278-0"
+	    }
+
+	    # Following code generates X-axis label string for chantest.
+	    # Example of 4-client: "'1,2' 0,'1,3' 5,'1,4' 10,'2,3' 15,'2,4' 20,'3,4' 25, '' 30"
+	    for {set i 1} {$i <= $sta_length} {incr i} {
+		for {set j $k} {$j <= $sta_length} {incr j} {
+		    append ::gnuplot_rvr_xlabel "'$i,$j' $fixed_attn,"
+		    incr fixed_attn 5
+		}
+		incr k
+	    }
+	    # Append last item.
+	    append ::gnuplot_rvr_xlabel "'' $fixed_attn"	
+
+	} elseif {$(cst) || $(cast)} {
+	    # Taking 8 clients as example, upper_range = 28 + (20 * (8 - 2)) = 148
+	    set upper_range [expr {28 + [expr {20 * [expr {$sta_length - 2}]}]}]
+	    set (cycle5G80AttnRange) "0-$upper_range $upper_range-0"
+
+	    # Following code generates X-axis label string for CST and CAST tests.
+	    # Example of 8-client: "'1' 0,'2' 5,'3' 10,'4' 15,'5' 20,'6' 25,'7' 30,'8' 35,'7' 40,'6' 45,'5' 50,'4' 55,'3' 60,'2' 65,'1' 70, '' 75"
+	    for {set i 1} {$i <= $sta_length} {incr i} {
+		append ::gnuplot_rvr_xlabel "'$i' $fixed_attn,"
+		incr fixed_attn 5
+	    }
+	    for {set i [expr $sta_length - 1]} {$i >= 1} {incr i -1} {
+		append ::gnuplot_rvr_xlabel "'$i' $fixed_attn,"
+		incr fixed_attn 5
+	    }
+	    # Append last item.
+	    append ::gnuplot_rvr_xlabel "'' $fixed_attn"
+
+	} elseif {$(msm) || $(mvm) || $(mhm) || $(mlm) || $(mat)} {
+	    set x ""
+	    set y ""
+
+	    # Taking 8 clients as example, upper_range = 8 + (20 * $sta_length) = 168
+	    set upper_range [expr {8 + [expr {20 * $sta_length}]}]
+	    set (cycle5G80AttnRange) "0-$upper_range $upper_range-0"
+
+	    if {$(msm)} {
+		# Example of 4-client: '0s4m' 0,'1s3m' 5,'2s2m' 10,'3s1m' 15,'4s0m' 20,'3s1m' 25,'2s2m' 30,'1s3m' 35,'0s4m' 40,'' 45
+		set x s
+		set y m
+	    } elseif {$(mvm)} {
+		# Example of 4-client: '0v4m' 0,'1v3m' 5,'2v2m' 10,'3v1m' 15,'4v0m' 20,'3v1m' 25,'2v2m' 30,'1v3m' 35,'0v4m' 40,'' 45
+		set x v
+		set y m
+	    } elseif {$(mhm)} {
+		# Example of 4-client: '0h4m' 0,'1h3m' 5,'2h2m' 10,'3h1m' 15,'4h0m' 20,'3h1m' 25,'2h2m' 30,'1h3m' 35,'0h4m' 40,'' 45
+		set x h
+		set y m
+	    } elseif {$(mlm)} {
+		# Example of 4-client: '0l4m' 0,'1l3m' 5,'2l2m' 10,'3l1m' 15,'4l0m' 20,'3l1m' 25,'2l2m' 30,'1l3m' 35,'0l4m' 40,'' 45
+		set x l
+		set y m
+	    } elseif {$(mat)} {
+		# Example of 4-client: '0d4s' 0,'1d3s' 5,'2d2s' 10,'3d1s' 15,'4d0s' 20,'3d1s' 25,'2d2s' 30,'1d3s' 35,'0d4s' 40,'' 45
+		set x d
+		set y s
+	    }
+
+	    for {set i 0; set j $sta_length} {$i <= $sta_length} {incr i; incr j -1} {
+		append ::gnuplot_rvr_xlabel "'${i}${x}${j}${y}' $fixed_attn,"
+		incr fixed_attn 5
+	    }
+	    for {set i [expr $sta_length - 1]; set j 1} {$i >= 0} {incr i -1; incr j} {
+		append ::gnuplot_rvr_xlabel "'${i}${x}${j}${y}' $fixed_attn,"
+		incr fixed_attn 5
+	    }
+	    # Append last item.
+	    append ::gnuplot_rvr_xlabel "'' $fixed_attn"
+	}
+    }
+
+    # For offer rate test, we hard-code following parameters to have a well-defined and controlled behavior.
+    if {$(udpofferratetest)} {
+        set (5G80only) 1
+        set (attnstep) 2
+        set (noattnchange)  0
+        set (noattnchange2) 0
+        set (rampdownonly)  1
+
+	# Custom X-axis label. 
+	set ::gnuplot_rvr_xaxis "UDP Offer Rate (M)"
+    }
+
+    foreach STA $(sta) {
+        if {$(wet)} {
+            # AP is required for WET test.
+            if {![UTF::is_ap $STA]} {
+                error "ERROR: For WET test, need an AP in -sta setting, $STA is NOT an AP!"
+            }
+        } else {   
+            UTF::check_sta_type $STA $::sta_type_list
+        }
+        if {$STA == $Router} {
+            error "ERROR: Router=$Router EQ STA=$STA, need to use 2 different devices!"
+        }
+    }
+
+    # If developer images were specified, they take precedance over tag & date.
+    # Router options.
+    foreach Router $(ap) {
+    	if {$::is_oem_ap == 0} {
+            if {$(trx) ne ""} {
+            	$Router configure -image $(trx) -date {}
+            } elseif {$(tag) != ""} {
+            	# tag is depracated, prefer rtrtag.
+             	$Router configure -tag $(tag) -date {}
+            } elseif {$(rtrtag) != ""} {
+            	$Router configure -tag $(rtrtag) -date {}
+            }
+    	}
+    }
+
+    # STA options
+    foreach STA $(sta) {
+        if {$(bin) != ""} {
+            $STA configure -image $(bin) -date {}
+        } elseif {$(statag) != ""} {
+            $STA configure -tag $(statag) -date {}
+        }
+
+        # dhd_image option applies only to the DHD objects.
+        if {$(stadhd) ne ""} {
+            if {[UTF::check_host_type $STA DHD]} {
+                $STA configure -dhd_image $(stadhd)
+            }
+        }
+    
+        # dongleimage option applies only to the WinDHD object.
+        if {$(windhdbin) ne ""} {
+            if {[UTF::check_host_type $STA WinDHD]} {
+                $STA configure -dongleimage $(windhdbin)
+            }
+        }
+    }
+
+    # Enable musta with -bin & -statag options.
+    if {$(musta) != ""} {
+	foreach item $(musta) {
+	    if {$(bin) != ""} {
+		$item configure -image $(bin) -date {}
+	    } elseif {$(statag) != ""} {
+		$item configure -tag $(statag) -date {}
+	    }
+	}
+    }
+
+    # Depracated date will override newer rtrdate & stadate options.
+    # Done for backwards comptibility.
+    if {$(date) != ""} {
+        set (rtrdate) $(date)
+        set (stadate) $(date)
+    }
+
+    # Add optional dates.
+    if {$(rtrdate) != "" && $::is_oem_ap == 0} {
+	foreach Router $(ap) {
+            $Router configure -date $(rtrdate)
+    	}
+    }
+    if {$(stadate) != ""} {
+        foreach item $(sta) {
+            $item configure -date $(stadate)
+        }
+
+	# Enable musta with -stadate option.
+	if {$(musta) != ""} {
+	    foreach item $(musta) {
+		$item configure -date $(stadate)
+	    }
+	}
+    }
+
+    # Get build name for use in report email subject.
+    # When multiple STA are tested, they USUALLY use the same build.
+    if {$(titleap)} {
+       set item $Router
+    } else {
+       set item [lindex $(sta) 0]
+    }   
+    if {[set build [$item cget -image]] eq ""} {
+        set build [$item cget -tag]
+    }
+    if {$build eq "NIGHTLY"} {
+        set build "TOT"
+    }
+
+    # (branch) is used for comparison over time. For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test. (branch) defaults to auto.
+    if {$(branch) eq ""} {
+        if {[regexp {/} $build]} {
+            error "Unable to determine branch name from build.  Please specify -branch"
+        }
+        set (branch) $build
+    }
+
+    # Truncate branch name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+    # rvr1.test needs branch name when it calls get_stream.
+    if {$(branch) != "" && $(branch) != "auto"} {
+        append ::branch_list " $(branch)"
+    }
+    if {![info exists ::branch_list]} {
+        set ::branch_list $build
+    }
+
+    # This script may be nested inside another higher level script. In this
+    # case, setup_testbed_info may have already been run. It is also possible
+    # that the lists of devices has been pared down to reduce the items being
+    # tested. So we need to be careful and not modify the preparations made
+    # by the higher level script.
+    if {[info exists ::endpoint_device_list] &&\
+        [info exists ::lan_peer_sta_list] &&\
+        [info exists ::wan_peer_sta_list]} {
+        UTF::Message INFO "" "using existing setup_testbed_info"
+        if {![info exists ::UTF::trailer_info]} {
+            set ::UTF::trailer_info "<br>Missing testbed info!<br>"
+        }
+    } else {
+        UTF::Message INFO "" "running setup_testbed_info"
+        set ::UTF::trailer_info [UTF::setup_testbed_info $(email) $(logdir)]
+    }
+
+    set email_subject [UTF::setup_email_subject $(title)]
+    UTF::Message INFO "$::localhost" "email_subject=$email_subject"
+
+    # Main test report web page starts here.
+    UTF::WrapSummary $UTF::SummaryDir $email_subject "" $(email) {
+	# Check if 'mu' mode is used in any APs to determine if MuGraphs link is needed. 
+	# The actual option processing will be a little later.
+	set ismu 0 
+	foreach AP $(ap) {
+	    set args [$AP cget -rvrnightly]
+	    if {$args != ""} {
+	    	UTF::Message INFO $AP "args=$args"
+	    	if {[regexp {\-mumode\s+mu} $args]} {
+		    set ismu 1
+		}
+	    }
+	}
+
+        set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+        # Add a web link to the test.log file
+        UTF::Try "Link to test.log" {
+            return "html: <a href=\"./test.log\">test.log</a>"
+        }
+
+	# For comparison tests, add quick-access link to real graph pages.
+	# The empty .htm file will be symlinked to real file later. 
+	if {$(musta) != "" && $ismu && [llength $(ap)] > 1} {
+	    UTF::Try "Link to Composite Graphs" {
+		return "html: <a href=\"./link-Mu.htm\">Composite Graphs</a>"
+	    }
+	} elseif {$(comparesta)} {
+	    set staname [lindex $(sta) 1]
+            UTF::Try "Link to Composite Graphs" {
+                return "html: <a href=\"./link-$staname-Composite.htm\">Composite Graphs</a>"
+            }
+	} elseif {$(compareap) || $(txbf)} {
+	    set apname [lindex $(ap) 1] 
+            UTF::Try "Link to Composite Graphs" {
+                return "html: <a href=\"./link-$apname-Composite.htm\">Composite Graphs</a>"
+            }
+	}
+
+        # User may want to stop tests on first error
+        set ::stop_tests "no" ;# will be set by rvr1.test as appropriate
+        if {$(stoponerror)} {
+            set ::recovery_max 0;# tells progressive_recovery not to do anything
+        }
+
+        # Check start/stop steps for continuous sniffer capture.
+        UTF::check_sniffer_capture_steps $(sniffer) $(sniffercapture)
+
+        # Setup testbed. Some users may turn off AP radios!!!
+        if {!$(noinit) && !$(nosetup)} {
+            UTF::setup_testbed
+        }
+
+        # Set router text msg.
+        #if {$(softap)} {
+        #    set msg "SoftAP"
+        #} else {
+        #    set msg "Router"
+        #}
+
+        # restoreaponly implies noapload
+        if {$(restoreaponly)} {
+            set (noapload) 1
+        }
+
+        # For AP and STA comparison tests 
+	set ::rvr_composite_input ""	;# data for composite graphs
+	set ::mu_graph_list ""		;# mu graphs to be displayed under MuGraphs link
+        set ::sta_counter 0
+	set ::ap_counter 0
+
+	# For mutx gain calculation
+	set ::tput_mean_list_mutx0 ""
+	set ::tput_mean_list_mutx1 ""
+	set ::mutx_gain_list	   ""
+	set ::apmodes		   ""
+	set ::date [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+	# Used for interference test
+	set ::loop_counter 1
+
+	# Check if attenuator supports 0.5dB attnstep.
+	if {$(attnstep) == 0.5} {
+	    set sta_tmp [lindex $(sta) 0]
+	    set ap_tmp  [lindex $(ap)  0]
+	    UTF::choose_attn_grp $(va) $(attngrp) $(attngrp2) $ap_tmp $sta_tmp
+    	    set catch_resp [catch {$::rvr_attn_grp attn 0.5} catch_msg]
+    	    if {$catch_resp == 0} {
+            	UTF::Message LOG "" "Check attenuator for 0.5dB support: va=$(va)\
+		    ::rvr_attn_grp=$::rvr_attn_grp catch_resp=$catch_resp catch_msg=$catch_msg"
+    	    } else {
+            	error "ERROR: User specified 0.5dB attnstep, but attenuator doesn't support it."
+    	    }
+	}
+
+	# Save commandline -udp option so we don't loose it.
+	set cl_udp $(udp)
+
+        foreach AP $(ap) {
+	    # Process AP options from UTF config files specified in -rvrnightly container.
+	    set args [$AP cget -rvrnightly]
+	    UTF::Getopts {
+		{mumode.arg           	"su" 	"mu mode, su/mu (default su)"}
+		{ap3coremode.arg      	"0"  	"4366 3x3 mode (SROM will be modifieda!), 0/1 (default 0)"}
+		{apateachattn.arg     	""   	"execute iovars on AP at each attenuation step (default off)"}
+		{apdumpintraffic.arg	""   	"execute iovars on AP during iperf traffic (default off)"}
+		{ch5g80.arg         	""	"5G80 channel (default null), overwrite commandline option -chan5G80"}
+		{ch5g40.arg          	"" 	"5G40 channel (default null), overwrite commandline option -chan5G40"}
+		{ch5g20.arg         	""  	"5G20 channel (default null), overwrite commandline option -chan5G20"}
+		{myudp.arg           	"" 	"use UDP (default null), overwrite commandline option -udp"}
+		{apbeforeassoc.arg      "" 	"execute iovars on AP before assoc (default off)"}
+		{apafterassoc.arg       "" 	"execute iovars on AP after assoc (default off)"}
+		{apbeforeiperf.arg      "" 	"execute iovars on AP before iperf (default off)"}
+		{apafteriperf.arg       "" 	"execute iovars on AP after iperf (default off)"}
+	    } "RvRNightly options for AP:" args
+
+	    set ::mumode $(mumode)
+	    UTF::Message INFO "" "ap=$AP mumode=$::mumode"
+
+	    set ::ap3coremode $(ap3coremode)
+	    UTF::Message INFO "" "ap=$AP ap3coremode=$::ap3coremode"
+
+	    set ::apateachattn ""
+	    if {$(apateachattn) != ""} {
+	    	foreach e [split $(apateachattn) ";"] {
+		    if {$e != ""} {
+		    	set e [string trim $e]
+		    	lappend ::apateachattn $e
+		    }
+	    	}
+	    	UTF::Message INFO "" "ap=$AP ::apateachattn=$::apateachattn"
+	    }
+
+	    set ::apdumpintraffic ""
+	    if {$(apdumpintraffic) != ""} {
+	    	foreach e [split $(apdumpintraffic) ";"] {
+		    if {$e != ""} {
+		    	set e [string trim $e]
+		    	lappend ::apdumpintraffic $e
+	  	    }
+	    	}
+	    	UTF::Message INFO "" "ap=$AP ::apdumpintraffic=$::apdumpintraffic"
+	    }
+
+	    if {$(ch5g80) != ""} {
+	    	set (chan5G80) $(ch5g80) 
+	    	UTF::Message INFO "" "ap=$AP ch5g80=$(ch5g80) chan5G80=$(chan5G80)"
+	    } elseif {$(ch5g40) != ""} {
+	    	set (chan5G40) $(ch5g40) 
+	    	UTF::Message INFO "" "ap=$AP ch5g40=$(ch5g40) chan5G40=$(chan5G40)"
+	    } elseif {$(ch5g20) != ""} {
+	    	set (chan5G20) $(ch5g20) 
+	    	UTF::Message INFO "" "ap=$AP ch5g20=$(ch5g20) chan5G20=$(chan5G20)"
+	    }
+
+	    # Restore commandline -udp option in case it has been altered.
+	    set (udp) $cl_udp
+
+	    if {$(myudp) != ""} {
+		set (udp) $(myudp)
+		UTF::Message INFO "" "ap=$AP myudp=$(myudp)"
+	    }
+
+	    # Extract iovars that will be executed right BEFORE assoc.
+	    set ::apbeforeassoc ""
+	    if {$(apbeforeassoc) != ""} {
+                foreach e [split $(apbeforeassoc) ";"] {
+                    if {$e != ""} {
+                        set e [string trim $e]
+                        lappend ::apbeforeassoc $e
+                    }
+                }
+	    	UTF::Message INFO "" "ap=$AP ::apbeforeassoc=$::apbeforeassoc"
+	    }
+
+	    # Extract iovars that will be executed right AFTER assoc.
+	    set ::apafterassoc ""
+            if {$(apafterassoc) != ""} {
+                foreach e [split $(apafterassoc) ";"] {
+                    if {$e != ""} {
+                        set e [string trim $e]
+                        lappend ::apafterassoc $e
+                    }
+                }
+	    	UTF::Message INFO "" "ap=$AP ::apafterassoc=$::apafterassoc"
+            }
+
+	    # Extract iovars that will be executed right BEFORE iperf.
+            set ::apbeforeiperf ""
+            if {$(apbeforeiperf) != ""} {
+                foreach e [split $(apbeforeiperf) ";"] {
+                    if {$e != ""} {
+                        set e [string trim $e]
+                        lappend ::apbeforeiperf $e
+                    }
+                }
+                UTF::Message INFO "" "ap=$AP ::apbeforeiperf=$::apbeforeiperf"
+            }
+
+	    # Extract iovars that will be executed right AFTER iperf.
+            set ::apafteriperf ""
+            if {$(apafteriperf) != ""} {
+                foreach e [split $(apafteriperf) ";"] {
+                    if {$e != ""} {
+                        set e [string trim $e]
+                        lappend ::apafteriperf $e
+                    }
+                }
+                UTF::Message INFO "" "ap=$AP ::apafteriperf=$::apafteriperf"
+            }
+
+	    # Process STA options from UTF config files specified in -rvrnightly container.
+	    # (NOTE: only options from 1st STA are honored and applied to all other STAs) 
+	    set args [$STA cget -rvrnightly]
+            UTF::Getopts {
+                {staateachattn.arg  "" "execute iovars on STAs at each attenuation step (default off)"}
+                {stabeforeiperf.arg "" "execute iovars on STAs before iperf (default off)"}
+                {staafteriperf.arg  "" "execute iovars on STAs after iperf (default off)"}
+            } "RvRNightly options for STAs:" args
+
+	    set ::staateachattn ""
+	    if {$(staateachattn) != ""} {
+	    	foreach e [split $(staateachattn) ";"] {
+		    if {$e != ""} {
+		    	set e [string trim $e]
+		    	lappend ::staateachattn $e
+		    }
+	    	}
+	    }
+	    UTF::Message INFO "" "sta=$STA ::staateachattn=$::staateachattn"
+
+            set ::stabeforeiperf ""
+            if {$(stabeforeiperf) != ""} {
+                foreach e [split $(stabeforeiperf) ";"] {
+                    if {$e != ""} {
+                        set e [string trim $e]
+                        lappend ::stabeforeiperf $e
+                    }
+                }
+            }
+            UTF::Message INFO "" "sta=$STA ::stabeforeiperf=$::stabeforeiperf"
+
+            set ::staafteriperf ""
+            if {$(staafteriperf) != ""} {
+                foreach e [split $(staafteriperf) ";"] {
+                    if {$e != ""} {
+                        set e [string trim $e]
+                        lappend ::staafteriperf $e
+                    }
+                }
+            }
+            UTF::Message INFO "" "sta=$STA ::staafteriperf=$::staafteriperf"
+
+	    # Keep track of AP mode to determine if we need to print mutx gain labels onto composite graphs.
+	    # If ::apmodes="sumu" or "musu", yes; otherwise, no.
+	    append ::apmodes $::mumode
+	    UTF::Message INFO "" "ap=$AP apmodes=$::apmodes"
+
+	    UTF::Try "$AP: -->> START TEST" {
+		# Intend to be empty (only want to put a message on report page).
+	    }
+
+	    # Load AP driver.
+            if {!$(noinit) && !$(nosetup) && $::is_oem_ap == 0} {
+            	if {!$(noapload)} {
+                    set catch_msg ""
+                    UTF::Try "$AP: Find AP Image" {
+			# Check primary image and start report header
+			UTF::CheckImage $AP $::date unknown
+                    }
+
+                    UTF::Try "$AP: Load AP Image" {
+			$AP load
+                    }
+
+		    # Check secondary driver and update report header
+		    UTF::ReportDriver $AP $::date
+
+		    # This is to support 4366 3x3 mode by modifying SROM.
+		    #  1. Modify SROM after loading AP driver
+		    #  2. Re-load driver to have 3x3 mode take effect (REQUIRED!)  
+		    if {$::ap3coremode == 1} {
+			UTF::Try "$AP: Modify SROM after loading driver" {
+			    catch {$AP wl down}
+			    catch {$AP wl srwrite 972 0x108}
+			    catch {$AP wl srwrite 208 0xBB}
+			    return
+			}
+			UTF::Try "$AP: Load AP image again" {
+			    $AP load
+			}
+		    }
+		} elseif {!$(restoreaponly)} {
+		    UTF::Try "$AP: Reload AP Image" {
+			$AP reload
+		    }
+		}
+
+		if {!$(norestore)} {
+		    if {[$AP hostis Router DSL Airport]} {
+		    	UTF::Try "$AP: Restore Defaults" {
+			    $AP restore_defaults
+			}
+		    } else {
+		    	UTF::Try "$AP: AP Hardware" {
+			    $AP services stop
+			    catch {$AP wl msglevel +error +assoc}
+			    catch {$AP wl down}
+			    # Enable 40 in 2.4, if available.
+			    catch {$AP wl mimo_bw_cap 1}
+			    $AP wl up
+			    UTF::Sleep 1
+
+			    $AP wl ver
+			    set hw_ver [$AP chipname]
+			    regsub -all {\s} $hw_ver "_" hw_ver ;# Rawleys specification
+
+			    # WAR: after adding 'wl up' above (neccesary to get ucode revinfo), 
+			    # association fails if AP is Full Dongle. Not sure yet if the issue
+			    # is from driver or testing script. The 'wl donw' can be removed
+			    # after root cause found. 
+			    $AP wl down
+
+			    return $hw_ver
+			}
+		    }
+
+		    # Collect HW info and update report header + DB
+		    UTF::ReportWhatami $AP -role REF -noload $(noapload)
+		}
+
+                # If AP is not responding, halt tests.
+                set catch_resp [catch {set resp [$AP wl ver]} catch_msg]
+                if {$catch_resp != 0} {
+                    error "$AP not responding, Halting tests! $catch_msg"
+            	}
+            }
+
+            # Load optional interference STA.
+            set (intsta) [string trim $(intsta)]
+            if {$(intsta) != ""} {
+            	# Sanity checks on intsta.
+            	if {$(intsta) == $AP} {
+                    error "ERROR: STA interference device must not be the Router DUT !"
+            	}
+            	if {[lsearch -exact $(sta) $(intsta)] >= 0} {
+                    error "ERROR: STA interference device must not be a STA DUT !"
+            	}
+            	if {[UTF::is_oem_ap $(intsta)]} {
+                    error "ERROR: Must use BRCM device for STA interference tests, NOT $(intsta) !"
+            	}
+
+            	# Load intsta.
+             	if {[UTF::is_ap $(intsta)]} {
+                    # Load AP interference source
+                    if {!$(noapload) && !$(noinit)} {
+                    	UTF::Try "$(intsta) Load Interference Source" {
+                            UTF::load_rtr_retry $(intsta)
+                    	}
+                    }
+            	} elseif {[UTF::is_sta $(intsta)]} {
+                    # Load STA interference source
+                    # Separate nointstaload is for benefit of Sanity.test
+                    if {!$(nointstaload) && !$(noinit)} {
+                    	UTF::Try "$(intsta) Load Interference Source" {
+                            UTF::load_sta_retry $(intsta)
+                    	}
+                    }
+            	} else {
+                    error "ERROR: (intsta)=$(intsta) not valid AP or STA for interference source!"
+            	}
+
+            	# If requested, suppress messages from interference STA.
+                if {$(intquiet)} {
+                    catch {$(intsta) deinit}
+            	}
+            }
+
+            # Test each STA in list (STA drivers will be loaded in 'proc main_rvr_nightly1').
+	    if {$(txbf)} {
+		# With txbf option, we do tests in this pattern: AP1<->STA1, AP2<->STA2.
+		# Therefore, we pick a STA depending on what AP we have.
+		if {$::ap_counter == 0} {
+		    # This is first AP so we use first STA
+		    set STA [lindex $(sta) 0]
+		} elseif {$::ap_counter == 1} {
+		    # This is second AP so we use second STA
+		    set STA [lindex $(sta) 1]
+		}
+                setup_summaries $AP $STA $(nocyclervr) $(nohistograms)\
+                    $(rampdownonly) $(rampuponly) $(nocomposite) $(fastrampup)\
+                    $(nosymmetry) $(nomalloc) $(chanint) $(titleap) $(nographs)\
+                    $(mingraphs) $(intsta) $(intgraph) $(comparesta) $(compareap) $(txbf)
+                # Call proc main_rvr_nightly1 for each STA
+                main_rvr_nightly1 $AP $STA
+
+	    } else {            
+		# This is regular test and we loop through each STA.
+            	foreach STA $(sta) {
+            	    setup_summaries $AP $STA $(nocyclervr) $(nohistograms)\
+                     	$(rampdownonly) $(rampuponly) $(nocomposite) $(fastrampup)\
+                    	$(nosymmetry) $(nomalloc) $(chanint) $(titleap) $(nographs)\
+                    	$(mingraphs) $(intsta) $(intgraph) $(comparesta) $(compareap) $(txbf) $(musta)
+            	    # Call proc main_rvr_nightly1 for each STA
+     	    	    main_rvr_nightly1 $AP $STA
+
+	    	    incr ::sta_counter
+            	}
+	    }
+
+	    incr ::ap_counter
+
+            # Unload softap driver.
+            if {$(softap) && !$(nounload) && !$(noinit)} {
+		if {$::ap3coremode == 1} {
+		    # Turn 4366 3x3 mode back to 4x4 mode by reverting boardflags4 setting (clearing bit 8).      
+		    UTF::Try "$AP: Reset SROM before unloading driver" {
+			catch {$AP wl srwrite 972 0x008}
+			return
+		    }
+		} 
+            	UTF::Try "$AP: unload ap driver" {
+                    $AP unload
+                }
+            }
+
+	    $AP deinit
+
+	} ;# end of foreach AP
+
+	# Posting to dbux
+	# (Temporarily comment out. If needed, enable again.)
+    	#if {!$(nodbuxpost)} {
+        #    UTF::Try "Post test info to dbux" {
+        #    	if {$(bin) != ""} {
+        #            UTF::post_to_dbux $STA 1
+        #    	} else {
+        #            UTF::post_to_dbux $STA 0
+        #    	}
+        #    }
+        #}
+
+        # Do optional post test analysis. The "" passes the unnamed options array.
+        UTF::do_post_test_analysis RvRNightly1.test ""
+    }
+}

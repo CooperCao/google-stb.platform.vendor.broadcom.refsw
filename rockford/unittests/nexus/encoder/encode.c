@@ -1111,6 +1111,7 @@ static void qam_lock_callback(void *context, int param)
     NEXUS_FrontendQamStatus qamStatus;
     BKNI_EventHandle statusEvent = (BKNI_EventHandle)((GenericCallbackContext*)context)->handle;
 
+    BSTD_UNUSED(param);
     fprintf(stderr, "Lock callback, frontend %p\n", (void*)frontend);
 
     NEXUS_Frontend_GetQamStatus(frontend, &qamStatus);
@@ -1126,6 +1127,7 @@ static void sat_lock_callback(void *context, int param)
     NEXUS_FrontendSatelliteStatus status;
     BKNI_EventHandle statusEvent = (BKNI_EventHandle)((GenericCallbackContext*)context)->handle;
 
+    BSTD_UNUSED(param);
     fprintf(stderr, "Frontend(%p) - lock callback\n", (void*)frontend);
 
     NEXUS_Frontend_GetSatelliteStatus(frontend, &status);

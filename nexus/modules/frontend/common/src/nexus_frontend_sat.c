@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *****************************************************************************/
+
+ ******************************************************************************/
+
 #include "nexus_frontend_module.h"
 #include "nexus_frontend_sat.h"
 
@@ -91,6 +93,9 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatellitePeakscanResult( void *handle
 static NEXUS_Error NEXUS_Frontend_P_Sat_SatelliteToneSearch( void *handle, const NEXUS_FrontendSatelliteToneSearchSettings *pSettings );
 static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteToneSearchResult( void *handle, NEXUS_FrontendSatelliteToneSearchResult *pResult );
 static NEXUS_Error NEXUS_Frontend_P_Sat_GetSignalDetectStatus (void *handle, NEXUS_FrontendSatelliteSignalDetectStatus *pStatus);
+
+/* Bonding */
+void NEXUS_Frontend_P_ResetBondingGroup(NEXUS_FrontendHandle frontend);
 
 /***************************************************************************
 NEXUS -> PI Conversion Routines
@@ -565,7 +570,6 @@ NEXUS_Error NEXUS_Frontend_P_Sat_UnregisterEvents(NEXUS_SatChannel *pChannel)
 
 NEXUS_SatDevice *NEXUS_Frontend_P_Sat_Create_Device(const NEXUS_FrontendSatDeviceSettings *pSettings)
 {
-    BERR_Code errCode;
     NEXUS_SatDevice *pSatDevice = NULL;
     bool deviceManagesDiseqc = false;
 
@@ -576,7 +580,7 @@ NEXUS_SatDevice *NEXUS_Frontend_P_Sat_Create_Device(const NEXUS_FrontendSatDevic
     pSatDevice = BKNI_Malloc(sizeof(*pSatDevice));
     if ( NULL == pSatDevice )
     {
-        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         return NULL;
     }
     BKNI_Memset(pSatDevice, 0, sizeof(*pSatDevice));
@@ -955,8 +959,14 @@ static void NEXUS_Frontend_P_Sat_UninstallCallbacks(void *handle)
 static void NEXUS_Frontend_P_Sat_LockEventHandler(void *pParam)
 {
     NEXUS_SatChannel *pSatChannel = pParam;
+    NEXUS_FrontendHandle frontend;
     BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
     BDBG_MSG(("SAT Lock Event"));
+
+    frontend = pSatChannel->frontendHandle;
+    if (frontend && (frontend->chbond || frontend->bondingMaster)) {
+        NEXUS_Frontend_P_ResetBondingGroup(frontend);
+    }
 
     BTRC_TRACE(ChnChange_TuneLock, STOP);
     NEXUS_TaskCallback_Fire(pSatChannel->lockAppCallback);
@@ -1803,6 +1813,15 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SetDiseqcSettings(void *handle, const NE
             dsqChannelHandle = pSatChannel->satDevice->dsqChannels[pSatChannel->diseqcIndex];
         }
 
+        {
+            uint32_t val;
+            errCode = BDSQ_GetChannelConfig(dsqChannelHandle,BDSQ_CHAN_CONFIG_PRETX_DELAY_MS,&val);
+            if (errCode) { rc = BERR_TRACE(errCode); goto err; }
+            val = pSettings->preTransmitDelay;
+            errCode = BDSQ_SetChannelConfig(dsqChannelHandle,BDSQ_CHAN_CONFIG_PRETX_DELAY_MS,val);
+            if (errCode) { rc = BERR_TRACE(errCode); goto err; }
+        }
+
         errCode = BDSQ_GetChannelSettings(dsqChannelHandle, &dsqSettings);
         if (errCode) { rc = BERR_TRACE(errCode); goto err; }
 
@@ -1846,15 +1865,6 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SetDiseqcSettings(void *handle, const NE
         }
         BDBG_MSG(("voltage: %d",pSettings->voltage == NEXUS_FrontendDiseqcVoltage_e18v ? 18 : 13));
         if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-
-        {
-            uint32_t val;
-            errCode = BDSQ_GetChannelConfig(dsqChannelHandle,BDSQ_CHAN_CONFIG_PRETX_DELAY_MS,&val);
-            if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-            val = pSettings->preTransmitDelay;
-            errCode = BDSQ_SetChannelConfig(dsqChannelHandle,BDSQ_CHAN_CONFIG_PRETX_DELAY_MS,val);
-            if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-        }
 
         pSatChannel->diseqcSettings = *pSettings;
     }
@@ -2191,6 +2201,7 @@ static void NEXUS_Frontend_P_Sat_SpectrumEventCallback(void *pParam)
     BDBG_MSG(("NEXUS_Frontend_P_Sat_SpectrumEventCallback: [%p,%p,%d]",(void *)pSatChannel->spectrumDataReadyEventCallback, (void *)pSatChannel->spectrumDataPointer,pSatChannel->spectrumDataLength));
     rc = BWFE_GetSaSamples(pSatChannel->satDevice->wfeHandle, pSatChannel->spectrumDataPointer);
     BKNI_SetEvent(pSatChannel->spectrumDataReadyEvent);
+    BSTD_UNUSED(rc);
 }
 
 static NEXUS_Error NEXUS_Frontend_P_Sat_RequestSpectrumData(void *handle, const NEXUS_FrontendSpectrumSettings *pSettings)
@@ -2337,6 +2348,7 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscanPsd( void *handle, cons
     BKNI_Memset(&pSatChannel->psd, 0, sizeof(pSatChannel->psd));
 
     errCode = BSAT_StartPsdScan(pSatChannel->satChannel, psStatus->curFreq, pSatChannel->selectedAdc);
+    BSTD_UNUSED(errCode);
 
     return NEXUS_SUCCESS;
 }
@@ -2426,12 +2438,11 @@ tone_step:
 tone_done:
         /* calculate ratio */
         {
-            uint64_t ratio, target_ratio;
+            uint64_t target_ratio;
 #define TONE_SEARCH_RATIO_SCALE (1000)
             uint64_t max_pow = ((uint64_t)psStatus->maxPeakPower)*TONE_SEARCH_RATIO_SCALE;
             uint64_t min_pow = ((uint64_t)psStatus->minPeakPower);
             target_ratio = (((uint64_t)psStatus->minRatio.numerator)*TONE_SEARCH_RATIO_SCALE) / ((uint64_t)psStatus->minRatio.denominator);
-            ratio = max_pow / min_pow;
 
             BDBG_MSG(("target_ratio: %u, min=" BDBG_UINT64_FMT ", max=" BDBG_UINT64_FMT " min=%#x, max=%#x", (unsigned)target_ratio, BDBG_UINT64_ARG(min_pow), BDBG_UINT64_ARG(max_pow), (unsigned)psStatus->minPeakPower, (unsigned)psStatus->maxPeakPower));
             if (max_pow > (min_pow * target_ratio)) {
@@ -2792,8 +2803,6 @@ done:
 
 static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscan( void *handle, const NEXUS_FrontendSatellitePeakscanSettings *pSettings )
 {
-    BERR_Code errCode;
-
     NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
     NEXUS_SatellitePeakscanStatus *psStatus = &pSatChannel->peakscanStatus;
 
@@ -2825,7 +2834,7 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscan( void *handle, const N
                                                              pSatChannel);
         if ( NULL == pSatChannel->peakscanEventCallback )
         {
-            errCode = BERR_TRACE(BERR_OS_ERROR);
+            BERR_TRACE(BERR_OS_ERROR);
             return NEXUS_NOT_AVAILABLE;
         }
     }
@@ -2927,6 +2936,7 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SatelliteToneSearch( void *handle, const
         uint64_t p, q;
         BERR_Code rc;
         rc = BSAT_GetChannelStatus(pSatChannel->satChannel, &status);
+        BSTD_UNUSED(rc);
 #define DFT_SIZE (512)
         fs = status.sampleFreq;
         p = ((uint64_t)fs) * ((uint64_t)512);

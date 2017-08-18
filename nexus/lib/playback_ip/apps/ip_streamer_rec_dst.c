@@ -333,7 +333,7 @@ int initNexusRecDstList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: IP Record can't be enabled on platforms w/o NEXUS_HAS_RECORD support", __FUNCTION__));
+    BDBG_ERR(("%s: IP Record can't be enabled on platforms w/o NEXUS_HAS_RECORD support", BSTD_FUNCTION));
     /* note: we let the init call succeed, but we will fail the open call */
     /* this way app wont fail during startup, but will fail a client request to open/start a recording */
     return 0; 
@@ -342,7 +342,7 @@ void unInitNexusRecDstList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", __FUNCTION__));
+    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", BSTD_FUNCTION));
 }
 int openNexusRecDst(B_PlaybackIpPsiInfo *psi, IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx);
 {
@@ -350,14 +350,14 @@ int openNexusRecDst(B_PlaybackIpPsiInfo *psi, IpStreamerConfig *ipStreamerCfg, I
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", __FUNCTION__));
+    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", BSTD_FUNCTION));
     return -1; 
 }
 void closeNexusRecDst(IpStreamerCtx *ipStreamerCtx);
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", __FUNCTION__));
+    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", BSTD_FUNCTION));
 }
 int setupAndAcquirePsiInfoRecDst(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx, B_PlaybackIpPsiInfo *psiOut);
 {
@@ -365,21 +365,21 @@ int setupAndAcquirePsiInfoRecDst(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx 
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", __FUNCTION__));
+    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", BSTD_FUNCTION));
     return -1; 
 }
 int startNexusRecDst(IpStreamerCtx *ipStreamerCtx);
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", __FUNCTION__));
+    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", BSTD_FUNCTION));
     return -1; 
 }
 int stopNexusRecDst(IpStreamerCtx *ipStreamerCtx);
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", __FUNCTION__));
+    BDBG_ERR(("%s: IP Record Can't be enabled on platforms w/o NEXUS_HAS_RECORD support", BSTD_FUNCTION));
     return -1; 
 }
 #endif

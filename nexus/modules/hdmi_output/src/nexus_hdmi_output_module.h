@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,10 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * Module Description:
- *
- **************************************************************************/
-
+ ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_video_types.h"
 #include "nexus_hdmi_output_thunks.h"
@@ -208,9 +205,10 @@ typedef struct NEXUS_HdmiOutput
     } hdcp2xKeys;
 #endif
 #endif
-    bool resumeFromS3;
+    NEXUS_StandbyMode standbyMode ;
     BHDM_Settings hdmSettings;
     bool edidProcDebugDisplayed ;
+
     bool invalidEdid ;
     bool invalidEdidReported ;
     bool edidHdmiDevice ;
@@ -218,6 +216,34 @@ typedef struct NEXUS_HdmiOutput
 
     NEXUS_HdmiOutputTxHardwareStatus txHwStatus ;
     NEXUS_HdmiOutputRxHardwareStatus rxHwStatus ;
+
+    /* HDCP Stats */
+    struct {
+        struct {
+            struct {
+                unsigned attemptCounter;
+                unsigned passCounter;
+                unsigned failCounter;
+            } auth;
+            unsigned bCapsReadFailureCounter;  /* i2c Read of Rx BCaps register */
+        } hdcp1x;
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+        struct {
+            struct {
+                unsigned attemptCounter;
+                unsigned passCounter;
+                unsigned failCounter;
+            } auth;
+            unsigned ReceiverIdReadError;
+
+            unsigned validReauthReqCounter;   /* ReAuth requests when HDCP is enabled */
+            unsigned invalidReauthReqCounter; /* ReAuth requests when HDCP is disabled (should not happen) */
+            unsigned watchdogCounter;  /* reset of Sage */
+            unsigned timeoutCounter;  /* HDCP auth step has timed out */
+        } hdcp22;
+#endif
+    } hdcpMonitor;
 
     struct {
         NEXUS_HdmiOutputCrcData *queue;
@@ -233,10 +259,15 @@ typedef struct NEXUS_HdmiOutput
         NEXUS_HdmiDynamicRangeMasteringInfoFrame outputInfoFrame;
         BHDM_EDID_HDRStaticDB hdrdb ; /* last one, compared to current one */
         bool connected; /* last one */
+        bool printDrmInfoFrameChanges;
+        NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities processingCaps;
     } drm;
 
     NEXUS_HdmiVendorSpecificInfoFrame vsif;
     NEXUS_HdmiAviInfoFrame avif;
+
+    uint16_t supported3DFormats[BFMT_VideoFmt_eMaxCount];
+    BHDM_EDID_AudioDescriptor supportedAudioFormats[BAVC_AudioFormat_eMaxCount];
 
 #if NEXUS_DBV_SUPPORT
     NEXUS_HdmiOutputDbvState dbv;

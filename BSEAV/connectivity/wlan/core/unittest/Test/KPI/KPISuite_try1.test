@@ -1,0 +1,778 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test wrapper script to measure the time required for a first packet
+#
+# Written by: Robert J. McMahon April 2015
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Test::FirstPacket
+package require UTF::Test::RangeDiscovery
+package require UTF::Test::FTTRBasic
+package require UTF::Test::PhyChanEst
+package require UTF::KPI::OSEvents
+package require UTF::ControlChart
+package require UTF::KPI::KeyValue
+package require UTF::Test::TemperatureConvergence
+
+
+UTF::Test KPISuite {args} {
+    UTF::Getopts {
+	{email.arg "" "Email Address"}
+	{title.arg "" "Title"}
+	{date.arg "" "Image date"}
+	{bin.arg "" "STA image"}
+	{noload "don't load the images"}
+	{noapload "don't load the ap image"}
+	{nostaload "don't load the sta image"}
+	{nosetup "don't run testbed setup routine"}
+	{ap.arg "" "APs under test"}
+	{sta.arg "" "STA under test"}
+	{pktsize.arg "1470" "UDP payload size"}
+	{s.arg "10" "Number of times to loop"}
+	{history.arg "30" "Control Chart history"}
+	{attn.arg "-1" "Set STA attenuation"}
+	{watchdog.arg "30" "Watchdog timeout"}
+	{chanspec.arg "161/80" "Chanspecs to use in the tests, support for 'random'"}
+	{security.arg "open aespsk2" "Default security"}
+	{key.arg "" "Control chart key"}
+	{distance.arg "50 40 20 10" "Distance from beacon edge"}
+	{tag.arg "" "tag override"}
+	{dhd_tag.arg "" "dhd tag override"}
+	{web.nonly "Web page tests"}
+	{weball "Run all web pages"}
+	{scan "Run full scan tests"}
+	{packet.nonly "First packet tests"}
+	{bidir "Run bidir first packet tests"}
+	{rvr "Run the RvR"}
+	{beaconedge.arg "" "Set the beacon edge"}
+	{stressor.arg "" "set the stressor device"}
+	{nostressorload "dont load stressor image"}
+	{staticarp.arg "0" "Use static arp in the tests"}
+	{suiteid.arg "meta" "Metacript ID used for data store"}
+	{msglevel.arg "-scan" "wl msglevel to apply"}
+	{coldboot "Force all systems to restart"}
+	{notemp "don't run temp test"}
+	{noroam "don't run roam test"}
+	{nophychan "don't run phychan test"}
+	{notraffic "don't run any kind of traffic test"}
+	{noptp "don't run ptp check"}
+	{norestore "don't restore AP"}
+	{nostareload "just check if driver is loaded in machine"}
+    {nostressorreload "just check if driver is loaded in stressor machine"}
+	{nofirstweb "Don't run FirstWebPage test"}
+	{nosleepwake "don't run Sleep/Wake WebPage test"}
+	{nounload "don't unload AP and STA images"}
+	
+	}
+
+    set (security) [lsort $(security)]
+
+    set procmsgtag [namespace tail [lindex [info level 0] 0]]
+    set rssisamplecount 10
+    set APPLEBTCMD "/usr/local/bin/applebt"
+    if {[$(sta) hostis MacOS]} {
+	set connecttype "auto"
+    } elseif {[$(sta) hostis DHD]} {
+	set connecttype "join"
+    } else {
+	set connecttype "connect"
+    }
+    if {$(tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -tag $(tag) -date {}
+	}
+    }
+    if {$(dhd_tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -dhd_tag $(dhd_tag)
+	}
+    }
+    if {$(bin) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -image $(bin) -date {}
+	}
+    }
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+    if {$(date) ne ""} {
+	$(sta) configure -date $(date)
+	if {[$(sta) hostis DHD]} {
+	    $(sta) configure -dhd_date $(date)
+	}
+    } else {
+	set (date) $today
+    }
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(sta) $(ap)]]
+    set TITLE "KPI Suite\([file rootname [file tail $::utfconf]]\) $(title) ($build) (ch=${(chanspec)},$(security))"
+    UTF::Message INFO "" $TITLE
+    unset build
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::__tryid "auto"
+	set kpibase_db [UTF::KPI::KeyValue Base]
+	$kpibase_db set  -exclude "metascriptID" $(suiteid) sessionID "$::UTF::SessionID" summaryurl [$UTF::Summary base]
+	if {!$(nosetup)} {
+	    UTF::Try "Rig Setup" {
+		if {[info exists ::UTF::SetupTestBed]} {
+		    UTF::Try "Setup testbed" {
+			eval $::UTF::SetupTestBed
+		    }
+		}
+		set AP [lindex $(ap) 0]
+		UTF::Try "$AP squid cache" {
+		    $AP lan systemctl start squid.service
+			$AP lan systemctl status squid.service
+		}
+		if {$(coldboot)} {
+		    if {[$(sta) hostis MacOS]} {
+			UTF::Try "$(sta) tools update" {
+			    $(sta) power on
+			    # ::update_mac_tools $(sta)
+			    $(sta) rexec networksetup -setairportpower [$(sta) cget -device] on
+			}
+		    }
+		    foreach AP $(ap) {
+			if {[$AP hostis Router]} {
+			    UTF::Try "$AP consolelogger" {
+				$AP lan systemctl start consolelogger.service
+			    }
+			}
+		    }
+		}
+		
+		
+		if {$(stressor) ne ""} {
+		foreach STRESSOR $(stressor) {
+		UTF::Try "Stressor $(stressor) setup" {
+		if {!$(nostressorload)} {
+		    UTF::Try "$(stressor) Find STA Image" {
+			UTF::CheckImage $(stressor) $(date) unknown
+		    }
+		    UTF::Try "$(stressor) load" {
+			$(stressor) load
+		    }
+			$(stressor) services stop
+		    catch {$(stressor) wl msglevel +error +assoc +regulatory}
+		    $(stressor) wl ver
+		    set what [$(stressor) whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $(stressor) $ret
+		    } else {
+			$kpibase_db set "stressorheader" "$w"
+		    }
+		    $(stressor) dbrecord DUT
+		    set what
+			}
+		  }
+		}
+		}
+		}
+		
+		
+		if {$(nostressorload)} {
+		if {$(nostressorreload)} {
+		UTF::Try "$STRESSOR reload" {
+		$STRESSOR wl ver
+		$STRESSOR wl revinfo
+		} 
+	  } else {
+		UTF::Try "$STRESSOR load" {
+		$STRESSOR reload
+		}
+	   }
+	  
+	}
+		
+   UTF::ReportDriver $STRESSOR $(date)
+		    UTF::Try "[$STRESSOR cget -name]: defaults, logs" {
+			$STRESSOR services stop
+			catch {$STRESSOR wl msglevel +error +assoc +regulatory}
+			$kpibase_db set -exclude wl_ver "[string trim [regsub -all {\n} [$STRESSOR wl ver] {}]]"
+			set what [$STRESSOR whatami]
+			# Pull out chip info and replace whitespace to
+			# make it easier for external parsers.
+			regsub -all {\s+} [lreplace $what 0 0] {_} w
+			if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			    UTF::Message WARN $STRESSOR $ret
+			} else {
+			    $kpibase_db set "staheader" "$w"
+			}
+			$STRESSOR dbrecord DUT
+			set what
+		    }
+		
+		UTF::Try "$(sta) alive?" {
+		    if {[catch {$(sta) uname -r} err]} {
+			$(sta) power cycle
+			UTF::Sleep [expr {4 * 60}]
+			set res "rebooted"
+		    } else {
+			set res "ok"
+		    }
+		}
+		foreach AP $(ap) {
+		    catch {$AP attngrp attn default}
+		    if {[$AP hostis Linux]} {
+			UTF::Try "$AP alive?" {
+			    if {[catch {$AP uname -r} err]} {
+				$AP power cycle
+				UTF::Sleep [expr {4 * 60}]
+				set res "rebooted"
+			    } else {
+				set res "ok"
+			    }
+			}
+		    }
+		}
+		UTF::Try "$(sta) Model/OS " {
+		    set model "unknown"
+		    set osver "unknown"
+		    set os "unknowns"
+		    set hosttype [$(sta) hostis]
+		    if {[$(sta) hostis MacOS]} {
+			set osver [$(sta) os_version]
+			catch {$(sta) lan rexec system_profiler -timeout 30 -detailLevel mini} output
+			foreach line [split $output "\n"] {
+			    if {[regexp {Model Identifier:\s+(.*)} $line - model]} {
+				break
+			    }
+			}
+			set os "OS X"
+		    }
+		    if {[$(sta) hostis Linux DHD]} {
+			set osver "[$(sta) rexec uname -r]"
+			if {[regexp {Manufacturer:\s+(.+)\n\s+Product Name:\s+(.+)\n\sVersion:} [$(sta) rexec dmidecode -t 2] - mfg board]} {
+			    set model [string map {" " _} "[string trim ${mfg}]/[string trim $board]"]
+			}
+			set os [$(sta) rexec uname]
+		    }
+		    $kpibase_db set modelID "$model" os "$os" os_version "$osver"
+		    return "${model}/${osver}"
+		}
+		if {[$(sta) hostis MacOS]} {
+		    UTF::Try "$(sta) applebt ver" {
+			set ver [$(sta) rexec $APPLEBTCMD --version]
+			return $ver
+		    }
+		}
+		UTF::Try "Iperf cleans" {
+		    UTF::Streamslib::force_cleanup [concat $(ap) $(sta)]
+		    catch {$(sta) lan rexec iperf -v} ver
+		    return $ver
+		}
+	    }
+	    if {!$(noload)} {
+		set apnum 0
+		foreach AP $(ap) {
+		if {!$(norestore)} {
+		    incr apnum
+		    if {[$AP hostis Router Vx BSDAP DSL Airport]} {
+			$AP restore_defaults
+		    } else {
+			$AP services stop
+			if {[info exists ::UTF::Use11h]} {
+			    catch {$AP wl msglevel +error +assoc +regulatory}
+			} else {
+			    catch {$AP wl msglevel +error +assoc}
+			}
+			if {0} {
+			    UTF::Try "Set $AP 40 in 2.4G" {
+				if {![$AP cget -nomimo_bw_cap]} {
+				    catch {$AP wl down}
+				    # Enable 40 in 2.4, if available.
+				    catch {$AP wl -u mimo_bw_cap 1}
+				    $AP wl up
+				    UTF::Sleep 1
+				}
+			    }
+			}
+		    }
+			
+		    if {$(noapload)} {
+			UTF::Try "$AP Reload" {
+			set what [$AP whatami]
+			# Pull out chip info and replace whitespace to make it
+			# easier for external parsers.
+			regsub -all {\s+} [lreplace $what 0 0] {_} w
+			$UTF::Summary header $AP $w
+			$kpibase_db set "apheader$apnum" "$w"
+		     }
+			} else {
+			UTF::Try "[$AP cget -name]: Find Router Image" {
+			    UTF::CheckImage $AP $(date) unknown
+			}
+			UTF::Try "[$AP cget -name]: Load Image" {
+			    $AP load
+			 }
+			}
+			
+			UTF::Try "$AP: Restore Defaults" {
+			    if {[$AP hostis Router]} {
+				$AP restore_defaults
+			    }
+			    set what [$AP whatami]
+			    # Pull out chip info and replace whitespace to make it
+			    # easier for external parsers.
+			    regsub -all {\s+} [lreplace $what 0 0] {_} w
+			    if {!$(noapload)} {
+				if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+				    UTF::Message WARN $AP $ret
+				} else {
+				    $kpibase_db set "apheader$apnum" "$w"
+				}
+			    }
+			    $AP dbrecord DUT
+			    set what
+			 }
+			
+			UTF::Try "$AP: check msglevel" {
+			    if {[info exists UTF::RouterCheckMsglevelH] &&
+				![regexp {regulatory} [$AP wl msglevel -h]]} {
+				throw fail "regulatory not found"
+			    }
+			    $AP wl msglevel
+			}
+		    
+		    $AP dbrecord REF
+		}
+		
+		if {!$(nostaload)} {
+		foreach STA $(sta) {
+		    UTF::Try "$STA Find STA Image" {
+			UTF::CheckImage $STA $(date) unknown
+		    }
+		    UTF::Try "$STA load" {
+			$STA load
+			if {[$STA hostis MacOS]} {
+			    $STA networksetup -setairportpower [$STA cget -device] on
+			}
+		    }
+		    if {[$(sta) hostis Linux DHD]} {
+			UTF::Try "$STA modules" {
+			    $STA lsmod
+			}
+		    }
+		    UTF::ReportDriver $STA $(date)
+		    UTF::Try "[$STA cget -name]: defaults, logs" {
+			$STA services stop
+			catch {$STA wl msglevel +error +assoc +regulatory}
+			$kpibase_db set -exclude wl_ver "[string trim [regsub -all {\n} [$STA wl ver] {}]]"
+			set what [$STA whatami]
+			# Pull out chip info and replace whitespace to
+			# make it easier for external parsers.
+			regsub -all {\s+} [lreplace $what 0 0] {_} w
+			if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			    UTF::Message WARN $STA $ret
+			} else {
+			    $kpibase_db set "staheader" "$w"
+			}
+			$STA dbrecord DUT
+			set what
+		    }
+		}
+	    } else {
+		foreach STA $(sta) {
+		    if {[$STA hostis MacOS]} {
+		#	$STA networksetup -setairportpower [$STA cget -device] on
+		    }
+		}
+	    }
+	}
+}	
+	if {$(nostaload)} {
+		if {$(nostareload)} {
+		UTF::Try "$STA reload" {
+		$STA wl ver
+		$STA wl revinfo 
+		} 
+	  } else {
+		UTF::Try "$STA load" {
+		$STA reload
+		}
+	   }
+	  
+	}
+	
+    UTF::ReportDriver $STA $(date)
+		    UTF::Try "[$STA cget -name]: defaults, logs" {
+			$STA services stop
+			catch {$STA wl msglevel +error +assoc +regulatory}
+			$kpibase_db set -exclude wl_ver "[string trim [regsub -all {\n} [$STA wl ver] {}]]"
+			set what [$STA whatami]
+			# Pull out chip info and replace whitespace to
+			# make it easier for external parsers.
+			regsub -all {\s+} [lreplace $what 0 0] {_} w
+			if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			    UTF::Message WARN $STA $ret
+			} else {
+			    $kpibase_db set "staheader" "$w"
+			}
+			$STA dbrecord DUT
+			set what
+		    }
+
+	
+	if {!$(noptp)} {
+	UTF::Try "PTP Check/Setup" {
+	    eval ::enable_ptp
+	}
+   }
+	set STA $(sta)
+	set AP [lindex $(ap) 0]
+	set AP2 [lindex $(ap) 1]
+	set AP2 [lindex $(ap) 1]
+	if {$AP2 ne ""} {
+	    $AP2 attngrp attn 95
+	}
+	foreach CHANSPEC $(chanspec) {
+	    if {$CHANSPEC eq "random"} {
+		if {[catch {$(sta) allchanspecs} stachanspecs]} {
+		    UTF::Message ERROR $procmsgtag "$(sta) chanspec discovery failed"
+		    continue
+		}
+		if {[catch {$AP allchanspecs} apchanspecs]} {
+		    UTF::Message ERROR $procmsgtag "$AP chanspec discovery failed"
+		    continue
+		}
+		set incommon [UTF::Common $apchanspecs $stachanspecs]
+		while {[llength $incommon]} {
+		    set candidate [lindex [expr {int(rand() * [llength $incommon])}]]
+		    if {[regexp {([0-9]+)} $candidate - numeric] && $numeric < 36} {
+			set incommon [lsearch -all -not -inline $incommon $candidate]
+			continue
+		    }
+		    if {[lsearch $(chanspec) $candidate] eq -1} {
+			set CHANSPEC $candidate
+			break
+		    } else {
+			set incommon [lsearch -all -not -inline $incommon $candidate]
+		    }
+		}
+		if {$CHANSPEC eq "random"} {
+		    UTF::Message ERROR $procmsgtag "random chanspec selection failed"
+		    continue
+		}
+	    }
+	    $kpibase_db set chanspec $CHANSPEC
+	    foreach SECURITY $(security) {
+		UTF::stream allstreams destroy
+		$kpibase_db set security "$SECURITY"
+		if {[$STA hostis DHD]} {
+		    $kpibase_db set "dhdtag" "[$STA cget -dhd_tag]"
+		}
+		if {$SECURITY ne "open" && [$STA hostis DHD]} {
+		    $STA configure -extsup 1
+		} else {
+		    $STA configure -extsup 0
+		}
+		UTF::Try "$STA Ch=$CHANSPEC $SECURITY" {
+		    set connectok 0
+		    UTF::Try "Connect $AP $STA $(stressor)  $CHANSPEC $SECURITY" {
+			$STA attngrp attn default
+			$AP attngrp attn default
+			$(stressor) attngrp attn default
+			if {[$(sta) hostis MacOS]} {
+			    $(sta) networksetup -setairportpower [$(sta) cget -device] on
+			}
+			if {[$AP hostis Linux]} {
+			    $AP load
+			    APChanspec $AP $CHANSPEC
+			    APConfigureSecurity $AP -security $SECURITY
+			}
+			ConnectAPSTA $AP [concat $(stressor) $STA] -security $SECURITY -chanspec $CHANSPEC
+			set connectok 1
+		    }
+		    # No reason to run the test if cannot pass initial connect
+		    if {!$connectok} {
+			catch {$STA wl_escanresults}
+			$STA wl join [$AP wl ssid]
+			UTF::Sleep 10
+			if  {[$AP wl -u bssid] ne [$STA wl -u bssid]} {
+			    continue
+			}
+		    }
+			
+			if {!$(nophychan)} {
+		    if {![$(sta) hostis DHD]} {
+			UTF::Try "PhyChan" {
+			    package require UTF::PhyChanEst
+			    set phyestimator [UTF::PhyChanEst %AUTO% -ap $AP -sta $(sta)]
+			    for {set ix 0} {$ix < 2} {incr ix} {
+				UTF::Try "Phy estimate $ix" {
+				    $phyestimator sample
+				    $phyestimator mylink
+				}
+			    }
+			    set text "[$phyestimator bestrate]"
+			    return [$phyestimator condition $text]
+			}
+		    }
+		    foreach p [UTF::PhyChanEst info instances] {
+			$p destroy
+		    }
+			}
+		    if {[$(sta) cget -attngrp] ne ""} {
+			if {$(rvr)} {
+			    UTF::Try "RvR" {
+				FTTRBasic -ap $AP -sta $(sta) -count 1 -nosetuptestbed -graphsize 1024,768
+			    }
+			}
+			
+			
+			UTF::Try "Beacon Edge $AP $STA" {
+			   if {$(beaconedge) eq ""} {
+				set catchcode [catch {RangeDiscovery -discovery beacon -ap $AP -sta $STA} res]
+				if {!$catchcode} {
+				    set beaconedge [expr {int($res/5) * 5}]
+				} elseif {$catchcode ne [catch continue]} {
+				   UTF::Message ERROR "ABORT" "Stop script per $res"
+				    exit
+				} else {
+				    set beaconedge 0
+				}
+				} else {
+				set beaconedge $(beaconedge)
+			    }
+			   
+			 }
+				$kpibase_db set  "beaconedge -attribute units=dB" "$beaconedge"
+				return "attn=$beaconedge dB"
+				}
+			 }
+		   
+		if {[$(sta) cget -attngrp] eq ""} {
+		    set (distance) 40
+		    set ATTN "N/A"
+		}
+		array set db [$(sta) dbget]
+		$kpibase_db import array db
+		foreach distance $(distance) {
+		    $kpibase_db set "dfbe -attribute units=dB" "$distance"
+		    if {[$(sta) cget -attngrp] ne ""} {
+			if {[catch {expr {$beaconedge - $distance}} ATTN]} {
+			    set ATTN [expr {50 - $distance}]
+			    UTF::Message ERROR $procmsgtag "beacondedge failed, setting ATTN to $ATTN"
+			}
+			if {$ATTN < 0} {
+			    UTF::Message WARN $procmsgtag "negative attn per distance = $distance) and beacon edge = $beaconedge"
+			    set ATTN 0
+			}
+		    } else {
+			$kpibase_db set "dfbe  -attribute units=dB" ""
+		    }
+		    if {$distance eq [lindex $(distance) 0]} {
+			set firstrun 1
+			set TRYMSG "+Set ATTN/DIST=${ATTN} dB/${distance} dB"
+		    } else {
+			set firstrun 0
+			set TRYMSG "Set ATTN/DIST=${ATTN} dB/${distance} dB"
+		    }
+		    if {$firstrun} {
+			
+			if {!$(notemp)} {
+			UTF::Try "Operating Temp $(sta)" {
+			    if {[$AP hostis Linux]} {
+				$AP load
+				APChanspec $AP $CHANSPEC
+				APConfigureSecurity $AP -security $SECURITY
+			    }
+			    ConnectAPSTA $AP [concat $(sta) $(stressor)] -security $SECURITY -chanspec $CHANSPEC
+			    TemperatureConvergence -ap $AP -sta $(sta)
+			  }
+			 }
+		    }
+			
+			if {!$(noroam)} {
+		    if {([llength $(ap)] eq 2) && $firstrun} {
+			UTF::Try "Roam Latency" {
+			    package require UTF::Test::RoamLatency
+			    RoamLatency -ap $(ap) -sta $(sta) -s $(s) -chanspec $(chanspec) -msglevel $(msglevel) -kpidb $kpibase_db
+			}
+			$AP attngrp attn default
+			$AP2 attngrp attn 95
+		     }
+			}
+		    UTF::Try $TRYMSG {
+			if {[$(sta) cget -attngrp] ne ""} {
+			    $(sta) attngrp attn $ATTN
+			    $kpibase_db set "ATTN -attribute units=dB" "$ATTN"
+			} else {
+			    $kpibase_db set "ATTN -attribute units=dB" ""
+			}
+			ConnectAPSTA $AP [concat $(sta) $(stressor)] -security $SECURITY -chanspec $CHANSPEC
+			set traffic [UTF::stream %AUTO% -tx $AP -rx $(sta) -protocol udp -pktsize 1460 -rate 1M -name "udp"]
+			set rssi {}
+			$traffic start
+			UTF::Sleep 3
+			$traffic linkcheck -now
+			for {set ix 0} {$ix < $rssisamplecount} {incr ix} {
+			    lappend rssi [$(sta) wl rssi]
+			    UTF::Sleep 0.25 quiet
+			}
+			$kpibase_db set -exclude "RSSIs -attribute units=dBm" "$rssi"
+			$(sta) wl status
+			return "RSSIs=$rssi dBm"
+		    }
+		    catch {$traffic destroy}
+		    if {[$(sta) hostis MacOS]} {
+			set BTSTATES "1 0"
+		    } else {
+			set BTSTATES "N/A"
+		    }
+		    if {[info exists thruput_db]} {
+			$thruput_db destroy
+		    }
+		    set thruput_db [UTF::KPI::KeyValue Thruput -parent $kpibase_db -units b/s]
+		    foreach e [UTF::KPI::OSEvents info instances] {
+			$e destroy
+		    }
+		    set btevents [UTF::KPI::OSEvents %AUTO% -sta $(sta) -name $(sta) -type bluetooth]
+			
+			if {!$(notraffic)} {
+		    foreach protocol "tcp udp netload" {
+			$thruput_db set "protocol" "$protocol"
+			foreach BTSTATE $BTSTATES {
+			    $thruput_db set bluetooth $BTSTATE
+			    set trytxt "[string toupper $protocol] thruput (BT=$BTSTATE)"
+			    UTF::Try $trytxt {
+				$btevents stop
+				$btevents start
+				$thruput_db set trytext $trytxt
+				$thruput_db set tryID $::UTF::__tryid
+				$thruput_db set "logfile" $UTF::Logfile
+				if {$protocol ne "netload" && $(stressor) ne ""} {
+				    set tptraffic [UTF::stream %AUTO% -rx $AP -tx $(sta) -protocol $protocol -w "default" -name "${protocol}-up" -t 60 -rate 1.2G -pktsize 1470]
+				    $thruput_db set "streamID" "[$tptraffic id]" protocol "$protocol"
+				} else {
+				    set tptraffic [UTF::stream %AUTO% -rx $AP -tx $(sta) -protocol tcp -w "default" -name "${protocol}-up" -t 60]
+				    set loadtraffic [UTF::stream %AUTO% -rx $AP -tx $(stressor) -protocol udp -w "default" -name "${protocol}-up" -t 90 -rate 200M -pktsize 1470]
+				    $thruput_db set protocol "tcp" "netload" "udp" "streamID" "[$tptraffic id]" "loadID" "[$loadtraffic id]"
+				}
+				if {[$(sta) hostis MacOS]} {
+				    set trycnt 3
+				    while {$trycnt} {
+					$(sta) rexec $APPLEBTCMD  --setPowerState $BTSTATE
+					UTF::Sleep 1.0
+					set currstate [$(sta) rexec $APPLEBTCMD  --getPowerState]
+					if {([regexp {Bluetooth is turned on} $currstate] && $BTSTATE) || ([regexp {Bluetooth is turned off} $currstate] && !$BTSTATE)} {
+					    break
+					} else {
+					    incr trycnt -1
+					}
+				    }
+				    UTF::Sleep 10
+				    	$(sta) rexec $APPLEBTCMD  --listConnectedDevices
+						UTF::Sleep 10
+				    	$(sta) rexec $APPLEBTCMD  --disconnectAll
+                    	UTF::Sleep 10
+                    	$(sta) rexec $APPLEBTCMD  --listConnectedDevices
+				if {!$trycnt} {
+					error "Bluetooth setting of $BTSTATE failed"
+				    }
+				}
+				set error 0
+				if {[info exists loadtraffic] && $(stressor) ne ""} {
+				    $loadtraffic start
+				}
+				if {[catch {$tptraffic test -key [$thruput_db id] -ampdu -settle 1} graph]} {
+				    set error 1
+				    $thruput_db set TryResult "FAIL"
+				} else {
+				    $thruput_db set TryResult "PASS"
+				}
+				$thruput_db set sample "[$tptraffic stats -rate -meanminmax]"
+				$thruput_db write
+				if {$error} {
+				    error $graph
+				} else {
+				    return $graph
+				}
+			    }
+			    catch {$tptraffic destroy}
+			    catch {$loadtraffic destroy}
+			    catch {unset loadtraffic}
+			}
+		    }
+		   }
+		    catch {$btevents destroy}
+		    if {$(scan)} {
+			package require UTF::Test::KPI_Scan
+			KPI_Scan -ap $AP -sta $(sta) -msglevel "-scan" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key)
+			KPI_Scan -ap $AP -sta $(sta) -msglevel "+scan" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key)
+			KPI_Scan -ap $AP -sta $(sta) -stressor tcp -msglevel "-scan" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key)
+			KPI_Scan -ap $AP -sta $(sta) -stressor tcp -msglevel "+scan" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key)
+			KPI_Scan -ap $AP -sta $(sta) -stressor udp -msglevel "-scan" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key)
+		    }
+		    if {!$(nopacket)} {
+			UTF::stream allstreams stop
+		#	FirstPacket -ap $AP -sta $(sta) -pktsize $(pktsize) -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -watchdog $(watchdog) -connect $connecttype -security $SECURITY -staticarp $(staticarp)
+		#	FirstPacket -ap $AP -sta $(sta) -pktsize $(pktsize) -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -watchdog [expr {1 * $(watchdog)}] -connect $connecttype -security $SECURITY -staticarp $(staticarp) -linkactiontype "range"
+			if {$(stressor) ne ""} {
+			    FirstPacket -ap $AP -sta $(sta) -pktsize $(pktsize) -s 2 -history $(history) -kpidb $kpibase_db -key $(key) -watchdog $(watchdog) -stressor $(stressor) -connect $connecttype -security $SECURITY  -chanspec $CHANSPEC -staticarp $(staticarp)
+			}
+			if {$(bidir)} {
+			    FirstPacket -ap $AP -sta $(sta) -pktsize $(pktsize) -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -watchdog $(watchdog) -bidir -connect $connecttype -security $SECURITY -staticarp $(staticarp)
+			}
+		    }
+			if {!$(noweb)} {
+		    if {!$(nofirstweb)} {
+			UTF::stream allstreams stop
+			package require UTF::Test::FirstWebPage
+			FirstWebPage -ap $AP -sta $(sta) -url "http://www.rjmcmahon.com" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -connect $connecttype -security $SECURITY -watchdog 300
+			FirstWebPage -ap $AP -sta $(sta) -url "http://www.apple.com" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -connect $connecttype -security $SECURITY -watchdog 300
+			if {$(weball)} {
+			    UTF::Try FirstWebPage {
+				FirstWebPage -ap $AP -sta $(sta) -url "http://www.google.com" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -connect $connecttype -security $SECURITY
+			#	if {$firstrun} {
+				    FirstWebPage -ap $AP -sta $(sta) -url "http://www.amazon.com" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -connect $connecttype -security $SECURITY
+				    FirstWebPage -ap $AP -sta $(sta) -url "http://www.facebook.com" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -connect $connecttype -security $SECURITY
+				    FirstWebPage -ap $AP -sta $(sta) -url "http://www.taobao.com" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -connect $connecttype -security $SECURITY
+				    FirstWebPage -ap $AP -sta $(sta) -url "http://www.baidu.com" -s $(s) -history $(history) -kpidb $kpibase_db -key $(key) -connect $connecttype -security $SECURITY
+			#	}
+			    }
+			}
+			}
+			if {!$(nosleepwake)} {
+			if {[$(sta) hostis MacOS]} {
+			    UTF::stream allstreams stop
+			    package require UTF::Test::SleepWebFetch
+			    SleepWebFetch -ap $AP -sta $(sta) -url "http://www.rjmcmahon.com" -history $(history) -kpidb $kpibase_db
+			    SleepWebFetch -ap $AP -sta $(sta) -url "http://www.apple.com" -history $(history) -kpidb $kpibase_db
+			}
+		    }
+		   }
+		}
+	    }
+	}
+	if {!$(nounload)} {
+	UTF::Try "$(sta) unload" {
+	    $(sta) unload
+	}
+	foreach AP $(ap) {
+	    UTF::Try "$AP unload" {
+		$AP unload
+	    }
+	 }
+	}
+	foreach e [UTF::KPI::OSEvents info instances] {
+	    $e destroy
+	}
+	UTF::stream exitstreams
+	foreach kpidb [UTF::KPI::KeyValue info instances] {
+	    $kpidb destroy
+	}
+
+ }
+}
+

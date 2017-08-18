@@ -51,7 +51,7 @@ class CSimpleAudioDecodeNx : public CSimpleAudioDecode
 public:
     CSimpleAudioDecodeNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CSimpleAudioDecodeNx(void);

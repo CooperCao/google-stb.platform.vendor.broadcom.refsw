@@ -872,8 +872,11 @@ EGLBoolean (*map_eglUnbindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *d
 EGLBoolean (*map_eglQueryWaylandBufferWL)(EGLDisplay dpy, struct wl_resource *buffer, EGLint name, EGLint *value);
 #endif /* EGL_WL_bind_wayland_display*/
 
-#if GL_BRCM_mirror_once_border
-#endif /* GL_BRCM_mirror_once_border*/
+#if GL_BRCM_image_formats
+#endif /* GL_BRCM_image_formats*/
+
+#if GL_BRCM_mirror_clamp_to_edge
+#endif /* GL_BRCM_mirror_clamp_to_edge*/
 
 #if GL_BRCM_polygon_mode
 void (*map_glPolygonModeBRCM)(GLenum mode);
@@ -885,10 +888,15 @@ void (*map_glProvokingVertexBRCM)(GLenum mode);
 
 #if GL_BRCM_texture_1D
 void (*map_glTexImage1DBRCM)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels);
+void (*map_glTexSubImage1DBRCM)(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid *pixels);
+void (*map_glTexStorage1DBRCM)(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width);
 #endif /* GL_BRCM_texture_1D*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
+
+#if GL_BRCM_texture_unnormalised_coords
+#endif /* GL_BRCM_texture_unnormalised_coords*/
 
 #if GL_EXT_base_instance
 void (*map_glDrawArraysInstancedBaseInstanceEXT)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);

@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "glsl_alloc_tracker.h"
-#include "glsl_file_utils.h"
 
 struct alloc_loc {
    const char       *file;
@@ -53,7 +52,7 @@ void glsl_alloc_tracker_print(const glsl_alloc_tracker_t *tracker) {
    const struct alloc_loc *cur;
    for(cur = tracker->allocs ;cur; cur = cur->next) {
       printf("  %25s:%-5d %8zu bytes total, %4zu allocations\n",
-             glsl_file_utils_basename(cur->file),
+             cur->file,
              cur->line,
              cur->total_bytes,
              cur->num_allocs);

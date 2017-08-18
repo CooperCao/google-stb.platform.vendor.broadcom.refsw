@@ -138,13 +138,13 @@ initNexusQamSrcList(
             settings.capabilities.qam = true;
             frontendHandle = NEXUS_Frontend_Acquire(&settings);
             if (!frontendHandle) {
-                BDBG_MSG(("%s: NULL Frontend (# %d)", __FUNCTION__, i));
+                BDBG_MSG(("%s: NULL Frontend (# %d)", BSTD_FUNCTION, i));
                 continue;
             }
         } else {
             frontendHandle = platformConfig.frontend[i];
             if (!frontendHandle) {
-                BDBG_MSG(("%s: NULL Frontend (# %d)", __FUNCTION__, i));
+                BDBG_MSG(("%s: NULL Frontend (# %d)", BSTD_FUNCTION, i));
                 continue;
             }
         }
@@ -231,7 +231,7 @@ qamLockCallback(void *context, int param)
             NEXUS_FrontendQamStatus qamStatus;
 
             if(NEXUS_Frontend_GetQamStatus(frontendHandle, &qamStatus) != NEXUS_SUCCESS ) {
-                BDBG_ERR(("%s: Failed to get QAM status, frontend %p", __FUNCTION__, (void *)frontendHandle));
+                BDBG_ERR(("%s: Failed to get QAM status, frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
                 return;
             }
             else
@@ -242,22 +242,22 @@ qamLockCallback(void *context, int param)
         }
         else
         {
-            BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, (void *)frontendHandle));
+            BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
             return;
         }
     }
     if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eLocked) {
-        BDBG_MSG(("%s: QAM frontent locked: frontend %p",  __FUNCTION__, (void *)frontendHandle));
+        BDBG_MSG(("%s: QAM frontent locked: frontend %p",  BSTD_FUNCTION, (void *)frontendHandle));
         BKNI_SetEvent(qamSrc->signalLockedEvent);
     }
     else if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eUnlocked) {
-        BDBG_MSG(("%s: frontend %p is unlocked", __FUNCTION__, (void *)frontendHandle));
+        BDBG_MSG(("%s: frontend %p is unlocked", BSTD_FUNCTION, (void *)frontendHandle));
     }
     else if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eNoSignal) {
-        BDBG_ERR(("%s: no signal at this freq for frontend %p", __FUNCTION__, (void *)frontendHandle));
+        BDBG_ERR(("%s: no signal at this freq for frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
     }
     else {
-        BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, (void *)frontendHandle));
+        BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
     }
 }
 
@@ -304,12 +304,12 @@ openNexusQamSrc(
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
                 if (BKNI_WaitForEvent(qamSrcList[i].psiAcquiredEvent, 30000)) {
-                    BDBG_WRN(("%s: CTX %p: timed out while waiting for other thread to finish acquiring PSI info...", __FUNCTION__, (void *)ipStreamerCtx));
+                    BDBG_WRN(("%s: CTX %p: timed out while waiting for other thread to finish acquiring PSI info...", BSTD_FUNCTION, (void *)ipStreamerCtx));
                     rc = -1;
                 }
                 if (ipStreamerCfg->transcodeEnabled && qamSrcList[i].transcodeEnabled) {
                     /* in xcode case, sleep to allow other thread finish setting up */
-                    BDBG_MSG(("%s: delay runnig this thread ", __FUNCTION__));
+                    BDBG_MSG(("%s: delay runnig this thread ", BSTD_FUNCTION));
                     BKNI_Sleep(200);
                 }
                 BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -319,7 +319,7 @@ openNexusQamSrc(
                 /* PSI info is available, set flag to skip it for this session and copy it from this */
                 cachedPsi = qamSrcList[i].psi;
                 numProgramsFound = qamSrcList[i].numProgramsFound;
-                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", __FUNCTION__));
+                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", BSTD_FUNCTION));
             }
 
             if (ipStreamerCfg->transcodeEnabled && qamSrcList[i].transcodeEnabled) {
@@ -335,7 +335,7 @@ openNexusQamSrc(
                     /* new session is also a transcoding session on the same frequency */
                     qamSrc = &qamSrcList[i];
                     frontendIndex = i; /* we use the same index for frontend, input band & parser band as IB & PB needs to have 1:1 mapping */
-                    BDBG_WRN(("%s: reusing frontend index %d for xcode session", __FUNCTION__, i));
+                    BDBG_WRN(("%s: reusing frontend index %d for xcode session", BSTD_FUNCTION, i));
                     break;
                 }
             }
@@ -345,7 +345,7 @@ openNexusQamSrc(
                     /*we resue the fron end if allpass is enabled.*/
                     qamSrc = &qamSrcList[i];
                     frontendIndex = i; /* we use the same index for frontend, input band & parser band as IB & PB needs to have 1:1 mapping */
-                    BDBG_WRN(("%s: reusing frontend index %d for xcode session", __FUNCTION__, i));
+                    BDBG_WRN(("%s: reusing frontend index %d for xcode session", BSTD_FUNCTION, i));
                     break;
                 }
             }
@@ -373,7 +373,7 @@ openNexusQamSrc(
                     /* copy only if cachedPsi is from a different qamSrc */
                     memcpy(qamSrc->psi, cachedPsi, sizeof(B_PlaybackIpPsiInfo)*MAX_PROGRAMS_PER_FREQUENCY);
                 qamSrc->numProgramsFound = numProgramsFound;
-                BDBG_MSG(("%s: PSI data reused from cached copy", __FUNCTION__));
+                BDBG_MSG(("%s: PSI data reused from cached copy", BSTD_FUNCTION));
             }
         }
         BKNI_ReleaseMutex(qamSrc->lock);
@@ -381,7 +381,7 @@ openNexusQamSrc(
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->qamSrcMutex);
     if (!qamSrc) {
-        BDBG_WRN(("%s: No Free tuner available for this %d frequency all turners (# %d) busy", __FUNCTION__, ipStreamerCfg->frequency, i));
+        BDBG_WRN(("%s: No Free tuner available for this %d frequency all turners (# %d) busy", BSTD_FUNCTION, ipStreamerCfg->frequency, i));
         goto error;
     }
     ipStreamerCtx->qamSrc = qamSrc;
@@ -445,11 +445,11 @@ openNexusQamSrc(
             if (parserBandPtr->subChannel != ipStreamerCfg->subChannel ||
                 parserBandPtr->transcode.outVideoCodec != ipStreamerCfg->transcode.outVideoCodec ||
                 parserBandPtr->transcode.outHeight != ipStreamerCfg->transcode.outHeight) {
-                BDBG_WRN(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+                BDBG_WRN(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 goto error;
             }
-            BDBG_WRN(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+            BDBG_WRN(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
             parserBandPtr->transcoderDst->refCount++;
             ipStreamerCtx->transcoderDst = parserBandPtr->transcoderDst;
 
@@ -458,7 +458,7 @@ openNexusQamSrc(
             /* coverity[stack_use_local_overflow] */
             /* coverity[stack_use_overflow] */
             if ((parserBandPtr->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
-                BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to open the transcoder pipe", BSTD_FUNCTION));
                 goto error;
             }
             parserBandPtr->transcodeEnabled = true;
@@ -641,7 +641,7 @@ openNexusQamSrc(
     if (ipStreamerCfg->transcodeEnabled) {
         ipStreamerCtx->remuxParserBandPtr = parserBandPtr;
         /* allocate another Parser band and tie it to IB5 as 7043 transcoder output is feed into the IB5 on SMS/VMS platforms */
-        BDBG_MSG(("%s: initialize another input/parser band for transcoding", __FUNCTION__));
+        BDBG_MSG(("%s: initialize another input/parser band for transcoding", BSTD_FUNCTION));
         parserBandPtr = NULL;
         BKNI_AcquireMutex(ipStreamerCtx->globalCtx->parserBandMutex);
         for (i = 0; i < IP_STREAMER_NUM_PARSER_BANDS; i++) {
@@ -670,7 +670,7 @@ openNexusQamSrc(
         }
         BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->parserBandMutex);
         if (parserBandPtr == NULL) {
-            BDBG_ERR(("%s: Failed to find a free parser band at %d", __FUNCTION__, __LINE__));
+            BDBG_ERR(("%s: Failed to find a free parser band at %d", BSTD_FUNCTION, __LINE__));
             /* free up the parser band */
             BKNI_AcquireMutex(ipStreamerCtx->remuxParserBandPtr->lock);
             ipStreamerCtx->remuxParserBandPtr->refCount--;
@@ -713,17 +713,17 @@ openNexusQamSrc(
             if (parserBandPtr->subChannel != ipStreamerCfg->subChannel ||
                 parserBandPtr->transcode.outVideoCodec != ipStreamerCfg->transcode.outVideoCodec ||
                 parserBandPtr->transcode.outHeight != ipStreamerCfg->transcode.outHeight) {
-                BDBG_WRN(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+                BDBG_WRN(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 goto error;
             }
-            BDBG_WRN(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+            BDBG_WRN(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
             parserBandPtr->transcoderDst->refCount++;
             ipStreamerCtx->transcoderDst = parserBandPtr->transcoderDst;
         }
         else {
             if ((parserBandPtr->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
-                BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to open the transcoder pipe", BSTD_FUNCTION));
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 goto error;
             }
@@ -844,7 +844,7 @@ setupAndAcquirePsiInfoQamSrc(
         BKNI_SetEvent(qamSrc->psiAcquiredEvent);
         BKNI_ReleaseMutex(qamSrc->lock);
         if (qamSrc->numProgramsFound == 0) {
-            BDBG_WRN(("%s: ERROR: Unable to Acquire PSI!!", __FUNCTION__));
+            BDBG_WRN(("%s: ERROR: Unable to Acquire PSI!!", BSTD_FUNCTION));
             return -1;
         }
     }
@@ -874,11 +874,11 @@ startNexusQamSrc(
     QamSrc *qamSrc = ipStreamerCtx->qamSrc;
     int rc = -1;
 
-    BDBG_MSG(("%s: CTX %p: QAM Src %p, refCount %d", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount));
+    BDBG_MSG(("%s: CTX %p: QAM Src %p, refCount %d", BSTD_FUNCTION, (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount));
 
     BKNI_AcquireMutex(qamSrc->lock);
     if (qamSrc->started) {
-        BDBG_MSG(("%s: CTX %p: QAM Src %p is already started, refCount %d", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount));
+        BDBG_MSG(("%s: CTX %p: QAM Src %p is already started, refCount %d", BSTD_FUNCTION, (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount));
         rc = 0;
         goto out;
     }
@@ -892,15 +892,15 @@ startNexusQamSrc(
         goto out;
     }
 #define QAM_LOCK_TIMEOUT 5000
-    BDBG_MSG(("%s: waiting to lock frontend %p for %d msec", __FUNCTION__, (void *)qamSrc->frontendHandle, QAM_LOCK_TIMEOUT));
+    BDBG_MSG(("%s: waiting to lock frontend %p for %d msec", BSTD_FUNCTION, (void *)qamSrc->frontendHandle, QAM_LOCK_TIMEOUT));
     if (BKNI_WaitForEvent(qamSrc->signalLockedEvent, QAM_LOCK_TIMEOUT)) {
-        BDBG_WRN(("%s: CTX %p: failed to lock frontend %p...", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc->frontendHandle));
+        BDBG_WRN(("%s: CTX %p: failed to lock frontend %p...", BSTD_FUNCTION, (void *)ipStreamerCtx, (void *)qamSrc->frontendHandle));
         rc = -1;
     }
     else {
-        BDBG_MSG(("%s: frontend %p is locked", __FUNCTION__, (void *)qamSrc->frontendHandle));
+        BDBG_MSG(("%s: frontend %p is locked", BSTD_FUNCTION, (void *)qamSrc->frontendHandle));
         qamSrc->started = true;
-        BDBG_MSG(("%s: CTX %p: QAM Src %p is started ...", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc));
+        BDBG_MSG(("%s: CTX %p: QAM Src %p is started ...", BSTD_FUNCTION, (void *)ipStreamerCtx, (void *)qamSrc));
         rc = 0;
     }
 out:
@@ -936,7 +936,7 @@ int initNexusQamSrcList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     /* note: we let the init call succeed, but we will fail the open call */
     /* this way app wont fail during startup, but will fail a client request to open/start a recording */
     return 0;
@@ -945,21 +945,21 @@ void unInitNexusQamSrcList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
 }
 int openNexusQamSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 void closeNexusQamSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
 }
 int setupAndAcquirePsiInfoQamSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx, B_PlaybackIpPsiInfo *psiOut)
 {
@@ -967,21 +967,21 @@ int setupAndAcquirePsiInfoQamSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx 
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 int startNexusQamSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 int stopNexusQamSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from QAM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 #endif /* NEXUS_HAS_FRONTEND */

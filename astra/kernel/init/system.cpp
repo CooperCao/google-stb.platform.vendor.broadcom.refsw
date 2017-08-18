@@ -156,6 +156,7 @@ void System::initSecondaryCpu() {
     TzTimers::secondaryCpuInit();
     Scheduler::initSecondaryCpu();
     TzTask::initSecondaryCpu();
+    SysCalls::initSecondaryCpu();
 }
 
 IDirectory *System::root() {

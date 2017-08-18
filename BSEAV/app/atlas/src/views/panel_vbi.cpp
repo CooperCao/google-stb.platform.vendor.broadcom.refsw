@@ -310,9 +310,6 @@ void CPanelVbi::onClick(bwidget_t widget)
     CDisplay *      pDisplaySD = NULL;
     CDisplayVbiData settings;
 
-#if __COVERITY__
-    __coverity_stack_depth__(100*1024);
-#endif
     BDBG_ASSERT(NULL != pModel);
 
     pDisplaySD = pModel->getDisplay(1);

@@ -11,7 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern bool v3d_prim_mode_is_patch(v3d_prim_mode_t prim_mode);
 extern uint32_t v3d_prim_mode_num_verts(v3d_prim_mode_t prim_mode, bool tg_enabled);
@@ -183,6 +183,9 @@ void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
    );
 
 #if V3D_HAS_RT_CLAMP
+# if V3D_HAS_RT_INT_CLAMP
+extern uint32_t v3d_apply_rt_int_clamp(uint32_t wr, v3d_rt_type_t rt_type, v3d_rt_clamp_t clamp);
+# endif
 extern uint32_t v3d_apply_rt_clamp(uint32_t w, v3d_rt_type_t type, v3d_rt_clamp_t clamp);
 #endif
 extern float v3d_snap_depth(float depth, v3d_depth_type_t depth_type);
@@ -553,6 +556,6 @@ void v3d_cl_write_vary_flags(uint8_t **instr, const uint32_t *flags,
 extern void v3d_cl_viewport_offset_from_rect(uint8_t **cl,
    int x, int y, unsigned width, unsigned height);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

@@ -66,7 +66,7 @@ static NEXUS_Error NEXUS_VideoDecoder_P_SetTsm_Xdm(NEXUS_VideoDecoderHandle vide
     }
 #endif
 
-    if (videoDecoder->crcMode) {
+    if (videoDecoder->startSettings.crcMode == NEXUS_VideoDecoderCrcMode_eMfd) {
         tsm = false;
     }
 
@@ -470,7 +470,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_Xdm_ApplySettings(NEXUS_VideoDecoderHandle vide
     BERR_Code rc = 0;
     bool setMute = false;
     bool setFreeze = false;
-    bool setUserdata = false;
 
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     BDBG_OBJECT_ASSERT(&videoDecoder->xdm, NEXUS_VideoDecoder_P_Xdm);
@@ -491,9 +490,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_Xdm_ApplySettings(NEXUS_VideoDecoderHandle vide
     if (force || pSettings->channelChangeMode != videoDecoder->settings.channelChangeMode) {
         rc = NEXUS_VideoDecoder_P_Xdm_SetChannelChangeMode(videoDecoder, pSettings->channelChangeMode);
         if (rc) return BERR_TRACE(rc);
-    }
-    if (pSettings->userDataEnabled != videoDecoder->settings.userDataEnabled) {
-        setUserdata = true;
     }
     if (force || pSettings->dropFieldMode != videoDecoder->settings.dropFieldMode) {
         BKNI_EnterCriticalSection();
@@ -601,13 +597,6 @@ skip:
         rc = NEXUS_VideoDecoder_P_Xdm_SetFreeze(videoDecoder);
         if (rc) return BERR_TRACE(rc);
     }
-#if 0
-    if (setUserdata) {
-        /* this setting is shared with VideoInput's priv interface */
-        rc = NEXUS_VideoDecoder_P_SetUserdata(videoDecoder);
-        if (rc) return BERR_TRACE(rc);
-    }
-#endif
 
     return NEXUS_SUCCESS;
 }

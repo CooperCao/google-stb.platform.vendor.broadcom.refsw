@@ -1,53 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile$
-*
-* DESCRIPTION:
-*   Flowchart toolset interface.
-*
-* $Revision$
-* $Date$
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      Flowchart toolset interface.
+ *
+*******************************************************************************/
 
 #ifndef _BB_SYS_FLOWCHART_H
 #define _BB_SYS_FLOWCHART_H
@@ -167,16 +161,6 @@
  */
 #define fc_run(fcName, pEvents)\
         fcName(pEvents)
-/* IDEA: Support the CONTEXT and/or VOID DATA transferring into and outside the flowchart.
- *      Currently a flowchart may communicate with the application and its parent and child flowcharts only with the
- *  help of shared static memory. It's better to allow transferring the CONTEXT by pointer between these levels.
- */
-/* IDEA: Support the RESET signal.
- *      On the RESET signal the flowchart must: (1) if it's currently in the 'transparent' state propagating all calls
- *  to its subflowchart, it has to forward the RESET signal to the called subflowchart first, and then, when the
- *  subflowchart returned, process the RESET signal itself, (2) process the RESET signal immediately, terminating all
- *  activities, and finish its execution.
- */
 
 /**//**
  * \brief   Opens definition of the flowchart function.
@@ -218,30 +202,6 @@
 #define FC_FUNC(fcName)\
         FC_DECL(fcName) {\
             static int fc_cursor = 0;
-/* IDEA: Implement protection from recursion within the same flowcharts tree.
- *      Currently flowchart is not able to detect the situation when it reentered itself. Surely it is prohibited and
- *  must be put under control in the debug build. The flowchart must have a kind of internal mutex that is switched off
- *  when the flowchart is activated and switched on when the flowchart postpones or finishes its execution.
- */
-/* IDEA: Implement protection of being used by different flowcharts trees simultaneously.
- *      Currently flowchart is not able to detect the situation when it is started within a second tree prior it has
- *  finished its execution within the first tree. The flowchart must save a kind of reference to its parent flowchart
- *  (for example, the entry-point of its parent flowchart function) that started it, and further allow activation only
- *  to that parent flowchart until it finishes; when a flowchart finished execution it becomes free and may be called by
- *  a different parent flowchart. For this approach to work, the root flowchart (that is called by the application but
- *  not by a different flowchart) must not be used by two concurrent processed in the application.
- */
-/* IDEA: Use 8-bit data type for fc_cursor.
- *      Indeed the total number of steps will not exceed 255. On the other hand, for statically allocated variable it's
- *  better to specify as small data type as possible - compiler will move it in appropriate location to avoid padding.
- */
-/* IDEA: Keep events subscription mask in the local variable, and publish to the caller.
- *      Keeping the events subscription mask should facilitate REPOST operator and simplify the surrounding code in the
- *  application - i.e., the application will not be in need to split the whole set of pending events into two parts: the
- *  subset of events in the scope of interest of particular flowchart and the remaining subset. On the other hand, its
- *  better still to publish the subscription to the application in order to instruct it whether to activate particular
- *  flowchart on the newly triggered event or not.
- */
 
 /**//**
  * \brief   Defines enumeration of steps identifiers within the flowchart.
@@ -330,34 +290,7 @@
                 }\
                 case_##stepName:\
                 case stepName: {
-/* IDEA: Introduce special kind of step - FC_WAIT.
- *      Currently both GOTO and POST operators may jump on arbitrary kind of step: START, STEP, SUB - and in the case of
- *  the GOTO operator (but not the POST) it's not necessary indeed to have the 'case stepName:' in description of the
- *  branch destination step. The switch's case is necessary in the definition of a step only if such a step is used
- *  somewhere as the destination of the POST operator, and it's redundant for steps that are not used as destination for
- *  the POST operator, just because such switch's cases never trigger. So, introducing them in all steps descriptions
- *  just increases the code. --> Use 'case stepName:' only in steps that WAIT for events, and the START step also.
- *      On the other hand, if a step may be entered through the POST operator, probably (need to investigate), it must
- *  not allow entering by other means - i.e., branching through the GOTO or implicit entering from the previous step. It
- *  may be true, because the first thing the POST-destination step does is (1) it verifies if the WAIT condition holds,
- *  and (2) it clears the subset of triggered events /or repostpones - so, it must be entered only due to the subscribed
- *  event triggering, but not due to GOTO or implicit entering. --> Prohibit entering the WAIT state by means other then
- *  due to an event triggering: exclude the 'case_##stepName:' and put something like 'break;' after the first '}'.
- *      The third argument is to combine the events subscription list specified to the POST operator with the same list
- *  of cleared events in the POST-destination step block. Indeed, it would be better to specify this list only once just
- *  in order to avoid 'copy-paste' errors. Such a list may be specified in description of the WAIT state but not the
- *  POST operator. It also facilitate (1) possibility of introducing multiple POST operators with the same WAIT-
- *  destination step, and (2) the use of the REPOST operator (that postpones the same step with the same events
- *  sensitivity set).
- *      And finally, the wait-for expression may be integrated into the WAIT step declaration. It will allow to hide the
- *  automation of repostponing the wait-step without clearing triggered events if the desired combination of events has
- *  not occurred yet, and to clear the triggered events if the expression holds.
- *      Think how to combine the single FC_WAIT with different cases like START, STEP, SUB. Probably START and SUB must
- *  not be entered through the POST operator.
- */
-/* IDEA: Refuse of 'case_##' prefix.
- *      It will facilitate Eclipse-navigation between flowchart steps.
- */
+
 
 /**//**
  * \brief   Opens definition of a step within the flowchart, and calls the specified subflowchart.
@@ -484,13 +417,7 @@
                         fc_cursor = dstStepName;\
                         return sensEventsSet_;\
                     } while(0)
-/* IDEA: Implement the REPOST operator.
- *      If the wait-for expression is not held, the postponed step must be repostponed. If the wait-for expression will
- *  be validated explicitly (in an IF operator), a special kind of REPOST operator must be introduced, in order to keep
- *  the pending events set unchanged and pause the flowchart execution with the same events sensitivity set. If the
- *  wait-expression will be validated implicitly (by the internal code of the special WAIT step header), there is no
- *  need in distinct REPOST operator, but its functionality must be performed by the WAIT step header automatically.
- */
+
 
 /**//**
  * \brief   Finishes execution of the flowchart.
@@ -536,9 +463,8 @@
             fc_cursor = 0;\
             return 0x0;\
         }
-/* IDEA: Allow code after FC_END.
- *      Code in the END clause may be useful for common finalization, releasing resources, etc.
- */
 /**@}*/
 
 #endif /* _BB_SYS_FLOWCHART_H */
+
+/* eof bbSysFlowchart.h */

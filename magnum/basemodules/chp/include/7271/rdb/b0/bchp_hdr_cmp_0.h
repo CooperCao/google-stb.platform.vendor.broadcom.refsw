@@ -44,14 +44,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon May  1 13:51:34 2017
- *                 Full Compile MD5 Checksum  7bf005fac94e6f2c34c454d9d0770825
+ * Date:           Generated on               Tue May 16 09:12:27 2017
+ *                 Full Compile MD5 Checksum  c9fe94397c57a2bdaa3b969929981e01
  *                     (minus title and desc)
- *                 MD5 Checksum               1ccaa4467dc618346a05a55e161dc371
+ *                 MD5 Checksum               ae7e8add2c85b4b147ad8ba25378bb70
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1444
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -391,9 +391,9 @@
 #define BCHP_HDR_CMP_0_V0_R3_NL2L_LUT_CTRL       0x20651b60 /* [CFG][32] Video Surface 0 NL2N LUT Control */
 #define BCHP_HDR_CMP_0_V0_NL2L_DEBUG             0x20651b80 /* [CFG][32] Video Surface 0 NL2L LUT RAM Readback Select */
 #define BCHP_HDR_CMP_0_V0_L2NL_LUT_CTRL          0x20652280 /* [CFG][32] Video Surface 0 L2NL LUT Control */
-#define BCHP_HDR_CMP_0_V0_LMR_MULT_COEF          0x20652700 /* [CFG][32] LMR adjustment multiplicative coefficients */
-#define BCHP_HDR_CMP_0_V0_LMR_ADD_COEFF          0x20652704 /* [CFG][32] LMR adjustment additive coefficients */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL           0x20652708 /* [CFG][32] LMR LUT Control */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF       0x20652700 /* [CFG][32] LMR adjustment multiplicative coefficients */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_ADD_COEFF       0x20652704 /* [CFG][32] LMR adjustment additive coefficients */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL        0x20652708 /* [CFG][32] LMR LUT Control */
 #define BCHP_HDR_CMP_0_V0_MB2_COEF_C00           0x20652728 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C00 */
 #define BCHP_HDR_CMP_0_V0_MB2_COEF_C01           0x2065272c /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C01 */
 #define BCHP_HDR_CMP_0_V0_MB2_COEF_C02           0x20652730 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C02 */
@@ -702,9 +702,9 @@
 #define BCHP_HDR_CMP_0_V1_R3_NL2L_LUT_CTRL       0x20657b60 /* [CFG][32] Video Surface 1 NL2N LUT Control */
 #define BCHP_HDR_CMP_0_V1_NL2L_DEBUG             0x20657b80 /* [CFG][32] Video Surface 1 NL2L LUT RAM Readback Select */
 #define BCHP_HDR_CMP_0_V1_L2NL_LUT_CTRL          0x20658280 /* [CFG][32] Video Surface 1 L2NL LUT Control */
-#define BCHP_HDR_CMP_0_V1_LMR_MULT_COEF          0x20658700 /* [CFG][32] LMR adjustment multiplicative coefficients */
-#define BCHP_HDR_CMP_0_V1_LMR_ADD_COEFF          0x20658704 /* [CFG][32] LMR adjustment additive coefficients */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL           0x20658708 /* [CFG][32] LMR LUT Control */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF       0x20658700 /* [CFG][32] LMR adjustment multiplicative coefficients */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_ADD_COEFF       0x20658704 /* [CFG][32] LMR adjustment additive coefficients */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL        0x20658708 /* [CFG][32] LMR LUT Control */
 #define BCHP_HDR_CMP_0_V1_MB2_COEF_C00           0x20658728 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C00 */
 #define BCHP_HDR_CMP_0_V1_MB2_COEF_C01           0x2065872c /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C01 */
 #define BCHP_HDR_CMP_0_V1_MB2_COEF_C02           0x20658730 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C02 */
@@ -5589,89 +5589,89 @@
 
 
 /***************************************************************************
- *V0_LMR_MULT_COEF - LMR adjustment multiplicative coefficients
+ *V0_R0_LMR_MULT_COEF - LMR adjustment multiplicative coefficients
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_LMR_MULT_COEF :: LMR_B [31:16] */
-#define BCHP_HDR_CMP_0_V0_LMR_MULT_COEF_LMR_B_MASK                 0xffff0000
-#define BCHP_HDR_CMP_0_V0_LMR_MULT_COEF_LMR_B_SHIFT                16
-#define BCHP_HDR_CMP_0_V0_LMR_MULT_COEF_LMR_B_DEFAULT              0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_MULT_COEF :: LMR_B [31:16] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF_LMR_B_MASK              0xffff0000
+#define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF_LMR_B_SHIFT             16
+#define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF_LMR_B_DEFAULT           0x00000000
 
-/* HDR_CMP_0 :: V0_LMR_MULT_COEF :: LMR_A [15:00] */
-#define BCHP_HDR_CMP_0_V0_LMR_MULT_COEF_LMR_A_MASK                 0x0000ffff
-#define BCHP_HDR_CMP_0_V0_LMR_MULT_COEF_LMR_A_SHIFT                0
-#define BCHP_HDR_CMP_0_V0_LMR_MULT_COEF_LMR_A_DEFAULT              0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_MULT_COEF :: LMR_A [15:00] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF_LMR_A_MASK              0x0000ffff
+#define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF_LMR_A_SHIFT             0
+#define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF_LMR_A_DEFAULT           0x00000000
 
 /***************************************************************************
- *V0_LMR_ADD_COEFF - LMR adjustment additive coefficients
+ *V0_R0_LMR_ADD_COEFF - LMR adjustment additive coefficients
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_LMR_ADD_COEFF :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V0_LMR_ADD_COEFF_reserved0_MASK             0xfe000000
-#define BCHP_HDR_CMP_0_V0_LMR_ADD_COEFF_reserved0_SHIFT            25
+/* HDR_CMP_0 :: V0_R0_LMR_ADD_COEFF :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_ADD_COEFF_reserved0_MASK          0xfe000000
+#define BCHP_HDR_CMP_0_V0_R0_LMR_ADD_COEFF_reserved0_SHIFT         25
 
-/* HDR_CMP_0 :: V0_LMR_ADD_COEFF :: LMR_C [24:00] */
-#define BCHP_HDR_CMP_0_V0_LMR_ADD_COEFF_LMR_C_MASK                 0x01ffffff
-#define BCHP_HDR_CMP_0_V0_LMR_ADD_COEFF_LMR_C_SHIFT                0
-#define BCHP_HDR_CMP_0_V0_LMR_ADD_COEFF_LMR_C_DEFAULT              0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_ADD_COEFF :: LMR_C [24:00] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_ADD_COEFF_LMR_C_MASK              0x01ffffff
+#define BCHP_HDR_CMP_0_V0_R0_LMR_ADD_COEFF_LMR_C_SHIFT             0
+#define BCHP_HDR_CMP_0_V0_R0_LMR_ADD_COEFF_LMR_C_DEFAULT           0x00000000
 
 /***************************************************************************
- *V0_LMR_LUT_CTRL - LMR LUT Control
+ *V0_R0_LMR_LUT_CTRL - LMR LUT Control
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_LMR_LUT_CTRL :: reserved0 [31:12] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_reserved0_MASK              0xfffff000
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_reserved0_SHIFT             12
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_CTRL :: reserved0 [31:12] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_reserved0_MASK           0xfffff000
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_reserved0_SHIFT          12
 
-/* HDR_CMP_0 :: V0_LMR_LUT_CTRL :: LUT_NUM_SEG [11:08] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_NUM_SEG_MASK            0x00000f00
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_NUM_SEG_SHIFT           8
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_NUM_SEG_DEFAULT         0x00000001
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_CTRL :: LUT_NUM_SEG [11:08] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_NUM_SEG_MASK         0x00000f00
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_NUM_SEG_SHIFT        8
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_NUM_SEG_DEFAULT      0x00000001
 
-/* HDR_CMP_0 :: V0_LMR_LUT_CTRL :: reserved1 [07:05] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_reserved1_MASK              0x000000e0
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_reserved1_SHIFT             5
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_CTRL :: reserved1 [07:05] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_reserved1_MASK           0x000000e0
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_reserved1_SHIFT          5
 
-/* HDR_CMP_0 :: V0_LMR_LUT_CTRL :: LUT_OINT_BITS [04:03] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_OINT_BITS_MASK          0x00000018
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_OINT_BITS_SHIFT         3
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_OINT_BITS_DEFAULT       0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_CTRL :: LUT_OINT_BITS [04:03] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_OINT_BITS_MASK       0x00000018
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_OINT_BITS_SHIFT      3
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_OINT_BITS_DEFAULT    0x00000000
 
-/* HDR_CMP_0 :: V0_LMR_LUT_CTRL :: LUT_XSCL [02:00] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_XSCL_MASK               0x00000007
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_XSCL_SHIFT              0
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_CTRL_LUT_XSCL_DEFAULT            0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_CTRL :: LUT_XSCL [02:00] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_XSCL_MASK            0x00000007
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_XSCL_SHIFT           0
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL_LUT_XSCL_DEFAULT         0x00000000
 
 /***************************************************************************
- *V0_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
+ *V0_R0_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
  ***************************************************************************/
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_ARRAY_BASE             0x2065270c
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_ARRAY_START            0
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_ARRAY_END              6
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_ARRAY_ELEMENT_SIZE     32
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_ARRAY_BASE          0x2065270c
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_ARRAY_START         0
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_ARRAY_END           6
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_ARRAY_ELEMENT_SIZE  32
 
 /***************************************************************************
- *V0_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
+ *V0_R0_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_LMR_LUT_SEG_CTRLi :: reserved0 [31:29] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_reserved0_MASK         0xe0000000
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_reserved0_SHIFT        29
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_SEG_CTRLi :: reserved0 [31:29] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_reserved0_MASK      0xe0000000
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_reserved0_SHIFT     29
 
-/* HDR_CMP_0 :: V0_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_BITS [28:24] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_MASK  0x1f000000
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_SHIFT 24
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_DEFAULT 0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_BITS [28:24] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_MASK 0x1f000000
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_SHIFT 24
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_DEFAULT 0x00000000
 
-/* HDR_CMP_0 :: V0_LMR_LUT_SEG_CTRLi :: reserved1 [23:22] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_reserved1_MASK         0x00c00000
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_reserved1_SHIFT        22
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_SEG_CTRLi :: reserved1 [23:22] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_reserved1_MASK      0x00c00000
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_reserved1_SHIFT     22
 
-/* HDR_CMP_0 :: V0_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_OFFSET [21:11] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_MASK 0x003ff800
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_SHIFT 11
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_DEFAULT 0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_OFFSET [21:11] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_MASK 0x003ff800
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_SHIFT 11
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_DEFAULT 0x00000000
 
-/* HDR_CMP_0 :: V0_LMR_LUT_SEG_CTRLi :: LUT_SEG_END [10:00] */
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_MASK       0x000007ff
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_SHIFT      0
-#define BCHP_HDR_CMP_0_V0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_DEFAULT    0x00000000
+/* HDR_CMP_0 :: V0_R0_LMR_LUT_SEG_CTRLi :: LUT_SEG_END [10:00] */
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_MASK    0x000007ff
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_SHIFT   0
+#define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_DEFAULT 0x00000000
 
 
 /***************************************************************************
@@ -10048,89 +10048,89 @@
 
 
 /***************************************************************************
- *V1_LMR_MULT_COEF - LMR adjustment multiplicative coefficients
+ *V1_R0_LMR_MULT_COEF - LMR adjustment multiplicative coefficients
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_LMR_MULT_COEF :: LMR_B [31:16] */
-#define BCHP_HDR_CMP_0_V1_LMR_MULT_COEF_LMR_B_MASK                 0xffff0000
-#define BCHP_HDR_CMP_0_V1_LMR_MULT_COEF_LMR_B_SHIFT                16
-#define BCHP_HDR_CMP_0_V1_LMR_MULT_COEF_LMR_B_DEFAULT              0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_MULT_COEF :: LMR_B [31:16] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF_LMR_B_MASK              0xffff0000
+#define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF_LMR_B_SHIFT             16
+#define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF_LMR_B_DEFAULT           0x00000000
 
-/* HDR_CMP_0 :: V1_LMR_MULT_COEF :: LMR_A [15:00] */
-#define BCHP_HDR_CMP_0_V1_LMR_MULT_COEF_LMR_A_MASK                 0x0000ffff
-#define BCHP_HDR_CMP_0_V1_LMR_MULT_COEF_LMR_A_SHIFT                0
-#define BCHP_HDR_CMP_0_V1_LMR_MULT_COEF_LMR_A_DEFAULT              0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_MULT_COEF :: LMR_A [15:00] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF_LMR_A_MASK              0x0000ffff
+#define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF_LMR_A_SHIFT             0
+#define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF_LMR_A_DEFAULT           0x00000000
 
 /***************************************************************************
- *V1_LMR_ADD_COEFF - LMR adjustment additive coefficients
+ *V1_R0_LMR_ADD_COEFF - LMR adjustment additive coefficients
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_LMR_ADD_COEFF :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V1_LMR_ADD_COEFF_reserved0_MASK             0xfe000000
-#define BCHP_HDR_CMP_0_V1_LMR_ADD_COEFF_reserved0_SHIFT            25
+/* HDR_CMP_0 :: V1_R0_LMR_ADD_COEFF :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_ADD_COEFF_reserved0_MASK          0xfe000000
+#define BCHP_HDR_CMP_0_V1_R0_LMR_ADD_COEFF_reserved0_SHIFT         25
 
-/* HDR_CMP_0 :: V1_LMR_ADD_COEFF :: LMR_C [24:00] */
-#define BCHP_HDR_CMP_0_V1_LMR_ADD_COEFF_LMR_C_MASK                 0x01ffffff
-#define BCHP_HDR_CMP_0_V1_LMR_ADD_COEFF_LMR_C_SHIFT                0
-#define BCHP_HDR_CMP_0_V1_LMR_ADD_COEFF_LMR_C_DEFAULT              0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_ADD_COEFF :: LMR_C [24:00] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_ADD_COEFF_LMR_C_MASK              0x01ffffff
+#define BCHP_HDR_CMP_0_V1_R0_LMR_ADD_COEFF_LMR_C_SHIFT             0
+#define BCHP_HDR_CMP_0_V1_R0_LMR_ADD_COEFF_LMR_C_DEFAULT           0x00000000
 
 /***************************************************************************
- *V1_LMR_LUT_CTRL - LMR LUT Control
+ *V1_R0_LMR_LUT_CTRL - LMR LUT Control
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_LMR_LUT_CTRL :: reserved0 [31:12] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_reserved0_MASK              0xfffff000
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_reserved0_SHIFT             12
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_CTRL :: reserved0 [31:12] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_reserved0_MASK           0xfffff000
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_reserved0_SHIFT          12
 
-/* HDR_CMP_0 :: V1_LMR_LUT_CTRL :: LUT_NUM_SEG [11:08] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_NUM_SEG_MASK            0x00000f00
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_NUM_SEG_SHIFT           8
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_NUM_SEG_DEFAULT         0x00000001
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_CTRL :: LUT_NUM_SEG [11:08] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_NUM_SEG_MASK         0x00000f00
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_NUM_SEG_SHIFT        8
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_NUM_SEG_DEFAULT      0x00000001
 
-/* HDR_CMP_0 :: V1_LMR_LUT_CTRL :: reserved1 [07:05] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_reserved1_MASK              0x000000e0
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_reserved1_SHIFT             5
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_CTRL :: reserved1 [07:05] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_reserved1_MASK           0x000000e0
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_reserved1_SHIFT          5
 
-/* HDR_CMP_0 :: V1_LMR_LUT_CTRL :: LUT_OINT_BITS [04:03] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_OINT_BITS_MASK          0x00000018
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_OINT_BITS_SHIFT         3
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_OINT_BITS_DEFAULT       0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_CTRL :: LUT_OINT_BITS [04:03] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_OINT_BITS_MASK       0x00000018
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_OINT_BITS_SHIFT      3
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_OINT_BITS_DEFAULT    0x00000000
 
-/* HDR_CMP_0 :: V1_LMR_LUT_CTRL :: LUT_XSCL [02:00] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_XSCL_MASK               0x00000007
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_XSCL_SHIFT              0
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_CTRL_LUT_XSCL_DEFAULT            0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_CTRL :: LUT_XSCL [02:00] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_XSCL_MASK            0x00000007
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_XSCL_SHIFT           0
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL_LUT_XSCL_DEFAULT         0x00000000
 
 /***************************************************************************
- *V1_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
+ *V1_R0_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
  ***************************************************************************/
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_ARRAY_BASE             0x2065870c
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_ARRAY_START            0
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_ARRAY_END              6
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_ARRAY_ELEMENT_SIZE     32
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_ARRAY_BASE          0x2065870c
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_ARRAY_START         0
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_ARRAY_END           6
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_ARRAY_ELEMENT_SIZE  32
 
 /***************************************************************************
- *V1_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
+ *V1_R0_LMR_LUT_SEG_CTRL%i - LMR LUT Segment control [0..6]
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_LMR_LUT_SEG_CTRLi :: reserved0 [31:29] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_reserved0_MASK         0xe0000000
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_reserved0_SHIFT        29
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_SEG_CTRLi :: reserved0 [31:29] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_reserved0_MASK      0xe0000000
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_reserved0_SHIFT     29
 
-/* HDR_CMP_0 :: V1_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_BITS [28:24] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_MASK  0x1f000000
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_SHIFT 24
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_DEFAULT 0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_BITS [28:24] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_MASK 0x1f000000
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_SHIFT 24
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_DEFAULT 0x00000000
 
-/* HDR_CMP_0 :: V1_LMR_LUT_SEG_CTRLi :: reserved1 [23:22] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_reserved1_MASK         0x00c00000
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_reserved1_SHIFT        22
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_SEG_CTRLi :: reserved1 [23:22] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_reserved1_MASK      0x00c00000
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_reserved1_SHIFT     22
 
-/* HDR_CMP_0 :: V1_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_OFFSET [21:11] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_MASK 0x003ff800
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_SHIFT 11
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_DEFAULT 0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_OFFSET [21:11] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_MASK 0x003ff800
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_SHIFT 11
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_DEFAULT 0x00000000
 
-/* HDR_CMP_0 :: V1_LMR_LUT_SEG_CTRLi :: LUT_SEG_END [10:00] */
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_END_MASK       0x000007ff
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_END_SHIFT      0
-#define BCHP_HDR_CMP_0_V1_LMR_LUT_SEG_CTRLi_LUT_SEG_END_DEFAULT    0x00000000
+/* HDR_CMP_0 :: V1_R0_LMR_LUT_SEG_CTRLi :: LUT_SEG_END [10:00] */
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_MASK    0x000007ff
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_SHIFT   0
+#define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_DEFAULT 0x00000000
 
 
 /***************************************************************************

@@ -290,7 +290,6 @@ static void NEXUS_VideoDecoder_P_PrimerSetRave(NEXUS_VideoDecoderPrimerHandle pr
 
 static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle primer, BSTD_DeviceOffset itb_valid)
 {
-    NEXUS_Error rc;
     struct itb_entry_t * pitb;
     struct itb_entry_t * pitb_end;
     uint8_t type;
@@ -299,12 +298,12 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
 
     pitb = NEXUS_OffsetToCachedAddr(primer->sitb_read);
     if (!pitb) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
     pitb_end = NEXUS_OffsetToCachedAddr(itb_valid);
     if (!pitb_end) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
     NEXUS_FlushCache(pitb, itb_valid - primer->sitb_read);
@@ -372,7 +371,7 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
             }
             primer->itb_base_entry = NEXUS_AddrToOffset(pitb);
             if (!primer->itb_base_entry) {
-                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                BERR_TRACE(NEXUS_INVALID_PARAMETER);
                 return;
             }
 
@@ -395,7 +394,7 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
 
     primer->sitb_read = NEXUS_AddrToOffset(pitb);
     if (!primer->sitb_read) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
 }
@@ -443,6 +442,8 @@ void NEXUS_VideoDecoderPrimer_GetDefaultCreateSettings( NEXUS_VideoDecoderPrimer
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->fifoSize = 8 * 1024 * 1024; /* high bit rate streams require a lot of CDB space for priming */
+    pSettings->cdbHeap = NULL;
+    return;
 }
 
 NEXUS_VideoDecoderPrimerHandle NEXUS_VideoDecoderPrimer_Open( NEXUS_VideoDecoderHandle videoDecoder )
@@ -456,6 +457,7 @@ NEXUS_VideoDecoderPrimerHandle NEXUS_VideoDecoderPrimer_Open( NEXUS_VideoDecoder
         NEXUS_VideoDecoderOpenSettings openSettings;
         NEXUS_VideoDecoder_GetOpenSettings(videoDecoder, &openSettings);
         createSettings.fifoSize = openSettings.fifoSize;
+        createSettings.cdbHeap = openSettings.cdbHeap;
     }
     primer = NEXUS_VideoDecoderPrimer_Create(&createSettings);
     if (primer && videoDecoder) {
@@ -492,6 +494,7 @@ NEXUS_VideoDecoderPrimerHandle NEXUS_VideoDecoderPrimer_Create( const NEXUS_Vide
     }
     primer->createSettings = *pSettings;
     NEXUS_VideoDecoder_GetDefaultOpenMosaicSettings(&decodeOpenSettings);
+    decodeOpenSettings.openSettings.cdbHeap = pSettings->cdbHeap;
     decodeOpenSettings.openSettings.fifoSize = pSettings->fifoSize;
     decodeOpenSettings.openSettings.itbFifoSize = 0;
     NEXUS_VideoDecoder_P_GetRaveSettings(0, &raveOpenSettings, &decodeOpenSettings);

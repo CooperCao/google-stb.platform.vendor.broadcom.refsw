@@ -66,6 +66,13 @@ CFLAGS += $(COMMON_PLATFORM_CFLAGS)
 
 CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
 
+# 32-bit ARM
+ifeq ($(findstring arm, ${B_REFSW_ARCH}), arm)
+CFLAGS += \
+	-march=armv7-a \
+	-mfpu=neon
+endif
+
 LDFLAGS += -lpthread
 
 CC = $(B_REFSW_CROSS_COMPILE)gcc

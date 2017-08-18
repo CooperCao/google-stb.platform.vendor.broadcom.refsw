@@ -152,31 +152,31 @@ void acquirePsiInfo(pPsiCollectionDataType pCollectionData, B_PlaybackIpPsiInfo 
         /* now wait for scan to complete */
 #define QAM_LOCK_TIMEOUT 5000
         if (BKNI_WaitForEvent(pCollectionData->signalLockedEvent, QAM_LOCK_TIMEOUT)) {
-            BDBG_ERR(("%s: QAM Src failed to lock the signal during PSI acquisition...", __FUNCTION__));
+            BDBG_ERR(("%s: QAM Src failed to lock the signal during PSI acquisition...", BSTD_FUNCTION));
             goto error;
         }
-        BDBG_MSG(("%s: QAM Src (frontend %p) locked the signal during PSI acquisition...", __FUNCTION__, (void *)pCollectionData->frontend));
+        BDBG_MSG(("%s: QAM Src (frontend %p) locked the signal during PSI acquisition...", BSTD_FUNCTION, (void *)pCollectionData->frontend));
         /* continue below */
     }
     else if (pCollectionData->srcType == IpStreamerSrc_eSat) {
-        BDBG_MSG(("%s: Sat Freq %d, symbolRate %d, mode %d", __FUNCTION__,
+        BDBG_MSG(("%s: Sat Freq %d, symbolRate %d, mode %d", BSTD_FUNCTION,
                     pCollectionData->satSettings->frequency, pCollectionData->satSettings->symbolRate, pCollectionData->satSettings->mode));
         NEXUS_StartCallbacks(pCollectionData->frontend);
         rc = NEXUS_Frontend_TuneSatellite(pCollectionData->frontend, pCollectionData->satSettings);
         if (rc) {BDBG_ERR(("PSI - NEXUS Error (%d) at %d\n", rc, __LINE__)); goto error;}
-        BDBG_MSG(("%s: Sat Src locked the signal during PSI acquisition...", __FUNCTION__));
+        BDBG_MSG(("%s: Sat Src locked the signal during PSI acquisition...", BSTD_FUNCTION));
         if (BKNI_WaitForEvent(pCollectionData->signalLockedEvent, 10000)) {
             BDBG_ERR(("Sat Src failed to lock the signal during PSI acquisition...\n"));
             goto error;
         }
     }
     else if (pCollectionData->srcType == IpStreamerSrc_eOfdm) {
-        BDBG_MSG(("%s: Ofdm Freq %d, bandwidth %d, mode %d", __FUNCTION__,
+        BDBG_MSG(("%s: Ofdm Freq %d, bandwidth %d, mode %d", BSTD_FUNCTION,
                     pCollectionData->ofdmSettings->frequency, pCollectionData->ofdmSettings->bandwidth, pCollectionData->ofdmSettings->mode));
         NEXUS_StartCallbacks(pCollectionData->frontend);
         rc = NEXUS_Frontend_TuneOfdm(pCollectionData->frontend, pCollectionData->ofdmSettings);
         if (rc) {BDBG_ERR(("PSI - NEXUS Error (%d) at %d\n", rc, __LINE__)); goto error;}
-        BDBG_MSG(("%s: Ofdm Src tuned during PSI acquisition...", __FUNCTION__));
+        BDBG_MSG(("%s: Ofdm Src tuned during PSI acquisition...", BSTD_FUNCTION));
         if (BKNI_WaitForEvent(pCollectionData->signalLockedEvent, 10000)) {
             BDBG_ERR(("Ofdm Src failed to lock the signal during PSI acquisition...\n"));
             goto error;
@@ -193,11 +193,11 @@ void acquirePsiInfo(pPsiCollectionDataType pCollectionData, B_PlaybackIpPsiInfo 
     }
 #endif
     else if (pCollectionData->srcType == IpStreamerSrc_eStreamer) {
-        BDBG_MSG(("%s: nothing to be setup for this %d src type", __FUNCTION__, pCollectionData->srcType));
+        BDBG_MSG(("%s: nothing to be setup for this %d src type", BSTD_FUNCTION, pCollectionData->srcType));
         goto out;
     }
     else {
-        BDBG_ERR(("%s: doesn't support PSI discovery for this %d src type", __FUNCTION__, pCollectionData->srcType));
+        BDBG_ERR(("%s: doesn't support PSI discovery for this %d src type", BSTD_FUNCTION, pCollectionData->srcType));
         goto error;
     }
 

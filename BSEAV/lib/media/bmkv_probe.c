@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -232,6 +232,13 @@ b_mkv_probe_add_tracks(bmkv_probe_t probe, bmkv_probe_stream *stream)
         if( mkv_track->validate.CodecName) {
             extra_size += mkv_track->CodecName.utf8_len;
         }
+        if(mkv_track->validate.Video && mkv_track->Video.nelems>0) {
+            const bmkv_TrackEntryVideo *video = &BMKV_TABLE_ELEM(mkv_track->Video,bmkv_TrackEntryVideo, 0);
+            if(video->validate.Colour) {
+                extra_size += video->Colour.data_len;
+            }
+        }
+
         track = BKNI_Malloc(sizeof(*track)+extra_size);
         if(!track) {
             BDBG_ERR(("%s: %p can't allocate %u bytes", "b_mkv_probe_add_tracks", (void *)track, (unsigned)sizeof(*track)));
@@ -252,6 +259,8 @@ b_mkv_probe_add_tracks(bmkv_probe_t probe, bmkv_probe_stream *stream)
         track->MasterTrackUID = 0;
         track->TrickTrackFlag = false;
         track->unsupported = false;
+        track->data.video.Colour.len = 0;
+        track->data.video.Colour.data= NULL;
         BLST_SQ_INSERT_TAIL(&stream->media.tracks, &track->media, link);
         if(mkv_track->validate.Language) {
             BDBG_CASSERT(sizeof(mkv_track->Language)==sizeof(track->language));
@@ -305,6 +314,12 @@ b_mkv_probe_add_tracks(bmkv_probe_t probe, bmkv_probe_stream *stream)
             track->media.info.video.codec = bvideo_codec_unknown;
             if(mkv_track->Video.nelems>0) {
                 const bmkv_TrackEntryVideo *video = &BMKV_TABLE_ELEM(mkv_track->Video,bmkv_TrackEntryVideo, 0);
+                if(video->validate.Colour) {
+                    track->data.video.Colour.data = extra;
+                    track->data.video.Colour.len = video->Colour.data_len;
+                    BKNI_Memcpy(extra, video->Colour.data, video->Colour.data_len);
+                    extra += video->Colour.data_len;
+                }
                 if(video->validate.PixelWidth) {
                     track->media.info.video.width = video->PixelWidth;
                 }

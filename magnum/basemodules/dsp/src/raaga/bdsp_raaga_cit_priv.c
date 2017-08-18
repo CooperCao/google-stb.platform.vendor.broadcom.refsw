@@ -37,7 +37,6 @@
  *****************************************************************************/
 
 #include "bdsp_raaga_priv.h"
-#include "bdsp_raaga_fw_cit.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
 #include "bdsp_task.h"
@@ -794,8 +793,9 @@ static BERR_Code BDSP_Raaga_P_FillAudioGblTaskCfg (
         ui32Error = BDSP_Raaga_P_PopulateGateOpenFMMStages(
                                         (void *)pRaagaPrimaryStage,
                                         psTaskFmmGateOpenConfig,
-                                        pStartSettings->maxIndependentDelay
-                                    );
+                                        pStartSettings->maxIndependentDelay,
+                                        pStartSettings->eFMMPauseBurstType,
+                                        pStartSettings->eSpdifPauseWidth);
         if(ui32Error != BERR_SUCCESS)
         {
             BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in Populating the GateOpen Settings"));

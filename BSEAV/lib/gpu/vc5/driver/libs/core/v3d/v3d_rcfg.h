@@ -7,7 +7,7 @@
 #include "v3d_cl.h"
 #include "v3d_limits.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 struct v3d_rt_cfg
 {
@@ -93,4 +93,4 @@ extern void v3d_calc_tlb_ldst_buffer_desc(
    const struct v3d_rcfg *rcfg, v3d_ldst_buf_t buf,
    const struct v3d_tlb_ldst_params *ls);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

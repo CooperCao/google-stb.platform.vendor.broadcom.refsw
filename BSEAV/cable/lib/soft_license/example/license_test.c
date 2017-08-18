@@ -66,7 +66,7 @@ int main(void)
     openSettings.registeredCallback = soft_license_callback;
     hSoftLicense =  B_SoftLicense_Open(&openSettings);
 
-    while(!(status.transcode && status.ultraHdDecode && status.numTuners >= 8))
+    while(!(status.transcode && status.ultraHdDecode && status.numTuners > 4))
     {
         BKNI_WaitForEvent(event, BKNI_INFINITE);
         B_SoftLicense_GetStatus(hSoftLicense,&status);

@@ -1,0 +1,1145 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script for basic ATF functionality
+#
+# Designed & written by: Jessica (Yaqin) Zhu & Robert J. McMahon May 2015
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::RangeDiscovery
+package require UTF::Test::ConfigBridge
+package require UTF::Test::BridgeCheck
+package require UTF::ControlChart
+package require UTF::wlstats
+
+package provide UTF::Test::ATF 2.0
+
+namespace eval UTF::Test::ATF {
+    proc plot {datafile} {
+	set spath [list /usr/local/bin /usr/bin /tools/bin]
+	set cv 3.0.9
+	foreach p $spath {
+	    set rscript [file join $p Rscript]
+	    set r [file join $p R]
+	    #exec Rscript --version doesn't produce output, check exec R --version instead
+	    if {[file executable $rscript]} {
+		set v [exec $r --version]
+	    }
+	    if {![info exists v] || ![regexp {version (\d+\.\d+\.\d+)} $v -- version]} {
+		    continue
+	    }
+	    if {$version > $cv} {
+		set cv $version
+		set RSCRIPT_CMD $rscript
+	    }
+	}
+	if {![info exists RSCRIPT_CMD]} {
+	    UTF::Message ERROR "" "Unable to find Rscript executable under $spath. Need to install R (>=3.1) package." 
+	    error "Unable to find Rscript executable under $spath"
+	}
+
+	if {![file exists $datafile] || ![file isfile $datafile]} {
+	    UTF::Message ERROR "" "Invalid filename: $datafile."
+	    error "Invalid filename: $datafile."
+	}
+	set d [file dirname $datafile]
+	set f [file nativename [file join $d ratio]]
+	# Make unique files in case we're looping in the same test run.
+	for {set file $f; set i 1} {[file exists "$file.png"]} {incr i} {
+	    set file "${f}_$i"
+	}
+	set plotfile ${file}.png
+	set plotfile_thumb ${file}_thumb.png
+	set s [open ${file}.R "w"]
+	fconfigure $s -buffering line
+	puts $s "library('ggplot2')"
+	puts $s "df = read.csv('$datafile')"
+	puts $s "png(file='$plotfile',width=640,height=480)"
+	puts $s {ggplot(df,aes(x=factor(WSize),y=Ratio.Mean,colour=Base,shape=Base,group=Base)) \
+		     + geom_point() + geom_line() + facet_grid(Protocol ~ Category) \
+		     + labs(x="Window Size (K)") \
+		     + labs(y="Ratio") \
+		     + labs(gtitle="Ratio vs Window Size") \
+		 }
+	puts $s {gabage=dev.off}
+	puts $s "png(file='$plotfile_thumb',width=80,height=50)"
+	puts $s {ggplot(df,aes(x=factor(WSize),y=Ratio.Mean,colour=Base,shape=Base,group=Base)) \
+		     + geom_point() + geom_line() + facet_grid(Protocol ~ Category) \
+		     + labs(x="Window Size (K)") \
+		     + labs(y="Ratio") \
+		     + labs(gtitle="Ratio vs Window Size") \
+		 }
+	puts $s {gabage=dev.off}
+	close $s
+	catch {exec "$RSCRIPT_CMD" "${file}.R"} ret
+	UTF::Message WARN "Rscript" $ret
+	return [subst {html:<a href="[UTF::URI $plotfile]">Ratio Graphs [UTF::ThumbData $plotfile_thumb]</a>}]
+    }
+    proc parseampdu {output {rxtx tx}} {
+	if {$output eq ""} {
+	    UTF::Message WARN "" "No output from wl dump ampdu"
+	}
+	set bestrate "UNK"
+	switch $rxtx {
+	    "tx" {
+		set match [regexp {\nTX MCS\s*:(.*)\nTX VHT\s*:\s*(.*)\nTX MCS SGI:} $output - mcstable vhttable]
+	    }
+	    "rx" {
+		set match [regexp {\nRX MCS\s*:(.*)\nRX VHT\s*:\s*(.*)\nRX MCS SGI:} $output - mcstable vhttable]
+	    }
+	    default "program error: $rxtx"
+	}
+	set best ""
+	if {$match} {
+	    set row 1
+	    foreach line [split $mcstable "\n"] {
+		set line [string trim $line { :}]
+		if {$line ne {}} {
+		    set mcs($row) $line
+		    incr row
+		}
+	    }
+	    set row 1
+	    foreach line [split $vhttable "\n"] {
+		set line [string trim $line { :}]
+		if {$line ne {}} {
+		    set vht($row) $line
+		    incr row
+		}
+	    }
+	    set maxpackets 0
+	    set maxpercent 0
+	    if {[array exists mcs]} {
+		set bestmcs ""
+		foreach row [array names mcs] {
+		    set column 0
+		    foreach entry $mcs($row) {
+			if {[regexp {([0-9]+)\(([0-9]+%)} $entry - packets percent]} {
+			    if {$packets > $maxpackets} {
+				set maxpackets $packets
+				set maxpercent $percent
+				set bestmcs "MCS${column}x${row}x${percent}"
+			    }
+			    incr column
+			}
+		    }
+		}
+		UTF::Message DEBUG "" "bestmcs=$bestmcs"
+		append best $bestmcs
+	    }
+	    set maxpackets 0
+	    set maxpercent 0
+	    if {[array exists vht]} {
+		set bestvht ""
+		foreach row [array names vht] {
+		    set column 0
+		    foreach entry $vht($row) {
+			if {[regexp {([0-9]+)\(([0-9]+%)} $entry - packets percent]} {
+			    if {$packets > $maxpackets} {
+				set maxpackets $packets
+				set maxpercent $percent
+				set bestvht "VHT${column}x${row}x${percent}"
+			    }
+			    incr column
+			}
+		    }
+		}
+		UTF::Message DEBUG "" "bestvht=$bestvht"
+		append best " $bestvht"
+	    }
+	}
+	switch $rxtx {
+	    "tx" {
+		set match [regexp {(tot_mpdus|txampdu)\s+([0-9]+)\s+(tot_ampdus|txmpdu)\s+([0-9]+).*\nTX MCS SGI} $output - - mpdu - ampdu]
+	    }
+	    "rx" {
+		set match [regexp {rxampdu\s+([0-9]+)\s+rxmpdu\s+([0-9]+).*\nRX MCS} $output - ampdu mpdu]
+	    }
+	}
+	if {$match} {
+	    set mpduampdu [expr {(10.0 * $mpdu / $ampdu)/10}]
+	    if {[expr {$mpduampdu < 10}]} {
+		set mpduampdu [format %.1f [expr {(round(10.0 * $mpduampdu)) / 10.0}]]
+	    } else {
+		set mpduampdu [expr {round($mpduampdu)}]
+	    }
+	} else {
+	    UTF::Message WARN "" "Did not find $rxtx mpdu and ampdu in ampdu dump"
+	    set mpduampdu "unk"
+	}
+
+	set text "$best (mdense=$mpduampdu)"
+	UTF::Message INFO "" "Best rate is $text"
+	return $text
+    }
+}
+
+UTF::Test ATF {args} {
+    UTF::Getopts {
+	{email.arg "" "Email Address"}
+	{title.arg "" "Title"}
+	{date.arg "" "Image date"}
+	{trx.arg "" "router private image"}
+	{noload "don't load the images"}
+	{norestore "don't restore to defaults the devices"}
+	{nosetup "don't run testbed setup routine"}
+	{ap.arg "" "AP under test"}
+	{sta.arg "" "STA(s) under test"}
+	{history.arg "30" "Control Chart history"}
+	{attn.arg "-1 -1" "Set STAs attenuation, form of list"}
+	{chanspec.arg "161/80" "Default chanspec to use"}
+	{security.arg "open" "Default security"}
+	{key.arg "" "Control chart key"}
+	{tag.arg "" "tag override"}
+	{dhd_tag.arg "" "dhd tag override"}
+	{protocol.arg "udp tcp" "ip protocol(s) to test"}
+	{rate.arg "1.5G" "Per stream offered rate"}
+	{window.arg "4M 1M 512K 256K 128K" "TCP window sizes to test"}
+	{w.arg "1M" "UDP buffer size"}
+	{pktsize.arg "1470" "UDP payload size, form of list"}
+	{holdtime.arg "30" "Time in seconds to measure traffic"}
+	{graphtype.arg "png" "Graph type"}
+	{graphsize.arg "640,480" "Graph size"}
+	{tcptrace.arg "0" "enable/disable tcptrace in stream"}
+	{roamtrigger.arg "-100" "roamtrigger value"}
+	{distances.arg "0 0 0"  "Attenuation set for stas and ap, form of list"}
+	{ampdu.arg "1" "to enable/disable ampdu"}
+	{quantum.arg "4000" "ATF quantum"}
+	{loop.arg "5" "Number of measurements to take"}
+	{reportinterval.arg "0.1" "iperf report interval"}
+	{history.arg "30" "Control chart history"}
+	{nocache "Don't update control chart cache"}
+	{background.arg "0" "Run some background traffic streams in the opposite direction"}
+	{nopktqstats "Disable pktqstat sampling"}
+	{notcprate "Not to configure rate for TCP streams"}
+	{nophychanest "Not to run PhyChanEst test"}
+	{nodumpampdu "Not to call ampdu dump command, deprecated"}
+	{atf.arg "1" "ATF value set on AP"}
+	{amsdu.arg "1" "enable/disable amsdu on AP"}
+	{fb.arg "1" "enable/disable frameburst"}
+	{mlink.arg "1" "# of ether links to use to achieve >1G tput for baseline"}
+	{mflow.arg "1" "# of flows/sessions per STA for data collection"}
+	{debug "to collect some debug info for private images"}
+    }
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+    if {[llength $(sta)] < 2} {
+	error "[info level 0] requires at least two STAs"
+    }
+
+    set STA1 [lindex $(sta) 0]
+    set STA2 [lindex $(sta) end]
+    set AG1 [$STA1 cget -attngrp]
+
+    #if {$AG1 eq ""} {
+    #error "[info level 0] attenuation group not found for $STA1"
+    #}
+
+    set procmsgtag [namespace tail [lindex [info level 0] 0]]
+    if {$(tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -tag $(tag) -date {}
+	}
+    }
+    if {$(dhd_tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -dhd_tag $(dhd_tag)
+	}
+    }
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+    if {$(date) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -date $(date)
+	    if {[$STA hostis DHD]} {
+		$STA configure -dhd_date $(date)
+	    }
+	}
+	$(ap) configure -date $(date)
+    } else {
+	set (date) $today
+    }
+    if {$(trx) ne ""} {
+	$(ap) configure -image $(trx) -date {}
+    }
+    set ROUTERS {}
+    set STAS {}
+    set PSTAS {}
+    set SOFTAPSTAS  {}
+
+    if {[$(ap) hostis Router]} {
+	lappend ROUTERS $(ap)
+    } else {
+	lappend SOFTAPSTAS $(ap)
+    }
+
+    foreach dut $(sta) {
+	if {[$dut hostis Router] && [lsearch $PSTAS $dut] == -1} {
+	    lappend PSTAS $dut
+	    lappend ROUTERS $dut
+	} elseif {![$dut hostis Router] && [lsearch $SOFTAPSTAS $dut] == -1} {
+	    lappend STAS $dut
+	    lappend SOFTAPSTAS $dut
+	}
+    }
+
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(sta) $(ap)]]
+    set TITLE "ATF $(title) ($build) (ch=${(chanspec)},$(security)), [string toupper $(protocol)]($(window))"
+    UTF::Message INFO "" $TITLE
+    unset build
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::__tryid "auto"
+	UTF::Try "Common Setup" {
+	    UTF::Try "Initial cleanup" {
+		UTF::Try "Iperf cleans" {
+		    UTF::Streamslib::force_cleanup [concat $(ap) $(sta)]
+		}
+		UTF::Try "Attenuator cleans" {
+		    set lduts $(sta)
+		    lappend lduts $(ap)
+		    set i 0
+		    foreach dut $lduts {
+			#set attn to 0 before test starts
+			set AG [$dut cget -attngrp]
+			if {$AG ne ""} {
+			    $AG attn [lindex $(distances) $i]
+			}
+			incr i
+		    }
+		}
+		UTF::Try "Graphcache Directory/File" {
+		    set graphcache [file join $::UTF::Logdir graphcache]
+		    if {![file exists $graphcache]} {
+			if {[catch {file mkdir $graphcache} res]} {
+			    error "Unable to make directory $graphcache $res"
+			}
+		    } elseif {![file writable $graphcache]} {
+			error "Directory $graphcache not writeable"
+		    }
+		    set csv [file nativename [file join $graphcache ratio.csv]]
+		    set csvh [open $csv "w"]
+		    fconfigure $csvh -buffering line
+		    puts $csvh "Protocol,WSize,PSize,Category,Base,Ratio.Mean,Ratio.Min,Ratio.Max"
+		}
+	    }
+
+	    foreach Router $ROUTERS {
+		if {!$(noload)} {
+		    UTF::Try "[$Router cget -name]: Find Router Image" {
+			UTF::CheckImage $Router $(date) unknown
+		    }
+		    UTF::Try "[$Router cget -name]: Load Image" {
+			$Router load
+		    }
+		}
+		if {!$(norestore)} {
+		    UTF::Try "[$Router cget -name]: Restore Defaults" {
+			if {[$Router hostis Router Vx BSDAP DSL Airport]} {
+			    $Router restore_defaults
+			} else {
+			    $Router services stop
+			    if {[info exists ::UTF::Use11h]} {
+				catch {$Router wl msglevel +error +assoc +regulatory}
+			    } else {
+				catch {$Router wl msglevel +error +assoc}
+			    }
+			    if {![$Router cget -nomimo_bw_cap]} {
+				catch {$Router wl down}
+				# Enable 40 in 2.4, if available.
+				$Router wl -u mimo_bw_cap 1
+				$Router wl up
+				UTF::Sleep 1
+			    }
+			}
+			set what [$Router whatami]
+			$Router dbrecord DUT
+			# Pull out chip info and replace whitespace to make it
+			# easier for external parsers.
+			regsub -all {\s+} [lreplace $what 0 0] {_} w
+			if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			    UTF::Message WARN $Router $ret
+			}
+			set what
+		    }
+		}
+	    }
+	    foreach STA $SOFTAPSTAS {
+		if {!$(noload)} {
+		    UTF::Try "$STA Find STA Image" {
+			UTF::CheckImage $STA $(date) unknown
+		    }
+		    UTF::Try "$STA load" {
+			$STA load
+		    }
+		    UTF::ReportDriver $STA $(date)
+		    UTF::Try "[$STA cget -name]: defaults" {
+			$STA services stop
+			catch {$STA wl msglevel +error +assoc +regulatory}
+			$STA wl ver
+			set what [$STA whatami]
+			# Pull out chip info and replace whitespace to
+			# make it easier for external parsers.
+			regsub -all {\s+} [lreplace $what 0 0] {_} w
+			if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			    UTF::Message WARN $STA $ret
+			}
+			$STA dbrecord REF
+			set what
+		    }
+		}
+	    }
+
+	    set SECURITY $(security)
+	    UTF::Try "+Connect $(ap)<=>$(sta)" {
+		set mykey "$(key) $(ap) [$(ap) branchname] [$(ap) cget -brand] $(sta) $(chanspec) $(security)"
+		foreach STA $(sta) {
+		    lappend mykey [$STA branchname] [$STA cget -tag]
+		    if {[$STA hostis DHD]} {
+			lappend mykey [$STA cget -dhd_tag]
+		    }
+		    if {$SECURITY ne "open" && [$STA hostis DHD]} {
+			$STA configure -extsup 1
+		    } else {
+			$STA configure -extsup 0
+		    }
+		}
+		UTF::Try "+$(ap) Ch=$(chanspec) $SECURITY" {
+		    UTF::Try "AP Chanspec=$(chanspec)" {
+			APChanspec $(ap) $(chanspec)
+		    }
+		    UTF::Try "AP Security=$SECURITY" {
+			APConfigureSecurity $(ap) -security $SECURITY
+		    }
+		    UTF::Try "Configuring ATF/AMSDU" {
+			if {[$(ap) wl -u atf] ne $(atf) || [$(ap) wl -u amsdu] ne $(amsdu)} {
+			    $(ap) wl down
+			    $(ap) wl -u amsdu $(amsdu)
+			    $(ap) wl -u atf $(atf)
+			    $(ap) wl up
+			}
+			if {$(quantum) ne ""} {
+			    $(ap) wl -u ampdu_atf_us $(quantum)
+			}
+			return "ATF/ampdu_atf_us=[$(ap) wl -u atf]/[$(ap) wl -u ampdu_atf_us]; amsdu = [$(ap) wl -u amsdu]"
+
+		    }
+		    if {[llength $STAS]} {
+			UTF::Try "Connect $(ap) $STAS" {
+			    ConnectAPSTA $(ap) $STAS
+			}
+		    }
+		    if {[llength $PSTAS]} {
+			ConfigBridge -ap $(ap) -br $PSTAS -chanspec $(chanspec) -security $(security) -linkcheck -proxysta
+		    }
+		    set apbssid [$(ap) wl bssid]
+		    set connectok 1
+		    UTF::Try "Verify bssid=$apbssid" {
+			# No reason to run the test suite if cannot pass initial connect
+			foreach dut $(sta) {
+			    if {[catch {$dut wl bssid} bssid] ||  $bssid ne $apbssid } {
+				set connectok 0
+				error "bssid of $bssid for $dut does not match $apbssid"
+			    }
+			}
+		    }
+
+		    if {!$connectok} {
+			exit
+		    }
+		    lappend mykey $SECURITY
+		}
+		return "Ch=$(chanspec) $SECURITY"
+	    }
+
+	    UTF::Try "+$(sta) rateset/rssi/vhtmode/nmode/ampdu/status after connection" {
+		foreach STA $(sta) {
+		    UTF::Message INFO "" "STA $STA rateset, vhtmode, nmode, ampdu, status after connection:"
+		    UTF::Try "Info of $STA" {
+			$STA wl -u rateset
+			$STA wl -u status
+			return "rssi=[$STA wl -u rssi];vhtmode=[$STA wl -u vhtmode];nmode=[$STA wl -u nmode];ampdu=[$STA wl -u ampdu]"
+		    }
+		    UTF::Try "RSSI of $STA from $(ap)" {
+			set rssi [$(ap) wl -u rssi  [$STA macaddr]]
+			return "$STA rssi=$rssi"
+		    }
+		}
+	    }
+	    if {!$(nophychanest)} {
+		foreach STA $(sta) {
+		    if {![$STA hostis DHD]} {
+			UTF::Try "PhyChan $STA" {
+			    package require UTF::PhyChanEst
+			    set phyestimator [UTF::PhyChanEst %AUTO% -ap $(ap) -sta $STA]
+			    for {set ix 0} {$ix < 2} {incr ix} {
+				UTF::Try "Phy estimate $ix" {
+				    $phyestimator sample
+				    $phyestimator mylink
+				}
+			    }
+			    set text "[$phyestimator bestrate]"
+			    return [$phyestimator condition $text]
+			}
+		    }
+		}
+		foreach p [UTF::PhyChanEst info instances] {
+		    $p destroy
+		}
+	    }
+	    if {!$(nopktqstats)} {
+		UTF::Try "pktqstats" {
+		    foreach STA $(sta) {
+			$STA wl msglevel +time
+			set pktqstats(${STA}) [UTF::wlstats::pktqstat %AUTO% -ap $(ap) -sta $STA]
+		    }
+		    set pktqstats(${(ap)}) [UTF::wlstats::pktqstat %AUTO% -ap $(ap) -common 1]
+		    $(ap) wl msglevel +time
+		    foreach index [array names pktqstats] {
+			$pktqstats($index) sample
+		    }
+		}
+	    }
+	}
+	#
+	#  Measure the max thruput over time of each STA using the phy rate
+	#
+	foreach protocol $(protocol) {
+	    if {[string tolower $protocol] eq "udp"} {
+		set WINDOWS $(w)
+		set pktsize $(pktsize)
+	    } else {
+		set WINDOWS $(window)
+		set pktsize -1
+	    }
+	    foreach w $WINDOWS {
+		foreach ps $pktsize {
+		    set thiskey [list $mykey $protocol $w $ps]
+		    UTF::Try "+[string toupper $protocol] (W=$w PS=$ps ATF=$(atf) BG=$(background) amsdu=[$(ap) wl -u amsdu]) AC/11N Ratio" {
+			UTF::Try "Configuring frameburst" {
+			    foreach STA $(sta) {
+				if {[$STA wl -u frameburst] ne $(fb)} {
+				    $STA wl -u frameburst $(fb)
+				}
+				UTF::Message INFO "" "$STA frameburst=[$STA wl -u frameburst]"
+			    }
+			    if {[$(ap) wl -u frameburst] ne $(fb)} {
+				$(ap) wl -u frameburst $(fb)
+			    }
+			    set apfb [$(ap) wl -u frameburst]
+			    UTF::Message INFO "" "$(ap) frameburst=$apfb"
+			    return "$(ap) frameburst=$apfb amsdu=[$(ap) wl -u amsdu]"
+			}
+			# Start each test from a fresh state, destroy any existing streams
+			# and reinstantiate new ones.  This will auto increment the destination
+			# port amongst other things.
+			UTF::stream allstreams destroy
+			# Instantiate and start two traffic stream per protocol
+			# for 11AC, tput could be > 1G, there need to have additional streams
+			# for multiple sessions, there need to have addtional streams too
+			set mfaststreams {}
+			set mslowstreams {}
+			set linetype 1
+			if {$(mflow) >= $(mlink)} {
+			    set mstreams $(mflow)
+			} else {
+			    set mstreams $(mlink)
+			}
+			if {[string toupper $protocol] eq "TCP" && $(notcprate)} {
+			    set slowstream [UTF::stream %AUTO% -tx $(ap) -rx $STA1 -name "to_${STA1}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype  -pktsize $ps -tcptrace $(tcptrace)]
+			    incr linetype
+			    set faststream [UTF::stream %AUTO% -tx $(ap) -rx $STA2 -name "to_${STA2}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype -pktsize $ps -tcptrace $(tcptrace)]
+			    incr linetype
+			    if {$mstreams > 1} {
+				for {set i 1} {$i <= [expr {$mstreams - 1}]} {incr i} {
+				    lappend mslowstreams [UTF::stream %AUTO% -tx $(ap) -rx $STA1 -name "to_${STA1}_${i}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype  -pktsize $ps -tcptrace $(tcptrace)]
+				    incr linetype
+				    lappend mfaststreams [UTF::stream %AUTO% -tx $(ap) -rx $STA2 -name "to_${STA2}_${i}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype  -pktsize $ps -tcptrace $(tcptrace)]
+				    incr linetype
+				}
+			    }
+			} else {
+			    set slowstream [UTF::stream %AUTO% -tx $(ap) -rx $STA1 -name "to_${STA1}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype -rate $(rate) -pktsize $ps \
+						-tcptrace $(tcptrace)]
+			    incr linetype
+			    set faststream [UTF::stream %AUTO% -tx $(ap) -rx $STA2 -name "to_${STA2}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype -rate $(rate) -pktsize $ps \
+						-tcptrace $(tcptrace)]
+			    incr linetype
+			    if {$mstreams > 1} {
+				for {set i 1} {$i <= [expr {$mstreams - 1}]} {incr i} {
+				    lappend mslowstreams [UTF::stream %AUTO% -tx $(ap) -rx $STA1 -name "to_${STA1}_${i}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype -rate $(rate) -pktsize $ps \
+						-tcptrace $(tcptrace)]
+				    incr linetype
+				    lappend mfaststreams [UTF::stream %AUTO% -tx $(ap) -rx $STA2 -name "to_${STA2}_${i}" \
+						-protocol $protocol -w $w -reportinterval $(reportinterval) \
+						-linetype $linetype -rate $(rate) -pktsize $ps \
+						-tcptrace $(tcptrace)]
+				    incr linetype
+				}
+			    }
+			}
+			if {$(background) ne "0"} {
+			    set bkg_slow [UTF::stream %AUTO% -rx $(ap) -tx $STA1 -name bkg_from_${STA1} -linetype $linetype \
+					      -protocol tcp -w $w -reportinterval $(reportinterval) -rate $(background)]
+			    incr linetype
+			    set bkg_fast [UTF::stream %AUTO% -rx $(ap) -tx $STA2 -name bkg_from_${STA2} -linetype $linetype \
+					      -protocol tcp -w $w -reportinterval $(reportinterval) -rate $(background)]
+			}
+			foreach STREAM "$faststream $slowstream $slowstream" {
+			    set dut [$STREAM cget -rx]
+			    set vhtmode [$dut wl -u vhtmode]
+			    if {$dut eq $STA1} {
+				set other $STA2
+			    } else {
+				set other $STA1
+			    }
+			    UTF::Try "Baseline [$STREAM cget -name] (BG=$(background) VHTMODE=$vhtmode)" {
+				#only leave the dut to be associated
+				catch {$other wl -u disassoc}
+
+				#connect dut to the correct AP if not
+				if {![$dut wl -u isup] || [catch {$dut wl bssid} bssid] || [$(ap) wl bssid] ne $bssid} {
+				    if {![$dut hostis Router]} {
+					ConnectAPSTA $(ap) $dut -chanspec $(chanspec) -security $(security)
+				    } else {
+					ConfigBridge -ap $(ap) -br $dut -chanspec $(chanspec) -security $(security) -linkcheck -proxysta
+				    }
+				}
+				UTF::stream allstreams stop
+				UTF::stream allstreams stats -clear
+				set txdut [$STREAM cget -tx]
+				if {$(ampdu)} {
+				    if {![catch {$txdut [$txdut cget -wl] -silent dump ampdu} ret] && [regexp {AMPDU} $ret]} {
+					# dump command supported in this image
+					UTF::Message INFO "" "clear ampdu on $txdut"
+					if {[catch {$txdut [$txdut cget -wl] ampdu_clear_dump}]} {
+					    #old style clear not supported, try new style clear
+					    $txdut [$txdut cget -wl] -u dump_clear ampdu
+					}
+				    }
+				}
+				if {!$(nopktqstats)} {
+				    foreach index [array names pktqstats] {
+					$pktqstats($index) sample
+				    }
+				}
+				$STREAM id
+				$STREAM start
+
+				if {$mstreams > 1} {
+				    if {$STREAM eq $faststream} {
+					set extrastreams $mfaststreams
+				    }
+				    if  {$STREAM eq $slowstream} {
+					set extrastreams $mslowstreams
+				    }
+				    foreach extra $extrastreams {
+					UTF::Message DEBUG "" "additional streams to get baseline: $extra cget -name"
+					$extra id
+					$extra start
+				    }
+				}
+				#$STREAM linkcheck -now
+				#UTF::Sleep $(holdtime)
+				#collecting bs_data while traffic on
+				for {set i 0} {$i < $(holdtime)} {incr i} {
+				    UTF::Sleep 1
+				    $(ap) wl -u bs_data
+				    #collect info for debugging flowring pkt distribution algorithm
+				    if {$(debug)} {
+					UTF::Sleep 4
+					$(ap) wl -u bus:dumptxrings
+					incr i 4
+				    }
+
+				}
+
+				#Stop traffic
+				$STREAM samplers -disable
+				$STREAM stop
+				if {$mstreams > 1} {
+				    foreach extra $extrastreams {
+					$extra samplers -disable
+					$extra stop
+				    }
+				}
+
+				if {!$(nopktqstats)} {
+				    foreach index [array names pktqstats] {
+					$pktqstats($index) sample
+				    }
+				}
+				set summarize ""
+				if {$(ampdu)} {
+				    set s [$STREAM cget -tx]
+				    set d [$STREAM cget -rx]
+				    foreach dut "$s $d" {
+					if {![catch {$dut [$dut cget -wl] dump ampdu} ret] && [regexp {AMPDU} $ret]} {
+					    package require UTF::Dump::AMPDU
+					    UTF::Dump::AMPDU dutampdu -raw $ret
+					    foreach item {
+						MPDUdens MPDUdens%
+						TXVHT TXVHT% TXVHTs TXVHTs%
+						TXMCS TXMCS% TXMCSs TXMCSs%
+						MCSPER MCSPER%
+						RXVHT RXVHT% RXVHTs RXVHTs%
+						RXMCS RXMCS% RXMCSs RXMCSs%
+						VHTPER VHTPER%
+						Frameburst Frameburst%
+					    } {
+						UTF::Message INFO "" "$dut $item = \n[dutampdu $item]"
+					    }
+					    #this is to compare with above lib, can be removed if it could provide the same info
+					    #if {$d eq $dut} {
+						#parseampdu $ret rx
+					    #}
+					    if {$(ap) eq $dut} {
+						set summarize [parseampdu $ret tx]
+					    }
+					    #end of memo
+					}
+				    }
+				}
+				if {$(tcptrace) && [string tolower [$STREAM cget -protocol]] eq "tcp"} {
+				    UTF::Try "TCPTRACE" {
+					set ret "html:<a href=\"[$STREAM tcptrace xfer]\">pcap</a>"
+
+					if {$mstreams > 1 && [llength $extrastreams] } {
+					    foreach extra $extrastreams {
+						append ret " html:<a href=\"[$extra tcptrace xfer]\">pcap</a>"
+					    }
+					}
+					return $ret
+				    }
+				}
+				set htmltxt "${summarize}"
+				set streamstxt "([lindex [$STREAM stats -rate -sum -h] end]:[$STREAM stats -rate -meanminmax -h])"
+				#get the data transferred
+				set base($dut,$vhtmode) [$STREAM stats -rate -sum]
+				if {![regexp {[0-9]+} $base($dut,$vhtmode)]} {
+				    error "Failed to get stats: base($dut,$vhtmode)=$base($dut,$vhtmode)"
+				}
+				#set ret [$STREAM plot -text $htmltxt]
+				if {$mstreams > 1 && [llength $extrastreams] } {
+				    foreach extra $extrastreams {
+					append streamstxt \
+					    ";([lindex [$extra stats -rate -sum -h] end]:[$extra stats -rate -meanminmax -h])"
+					#if mstreams are used, get the info from additional streams as well
+					set base($dut,$vhtmode) [expr $base($dut,$vhtmode) + [$extra stats -rate -sum]]
+				    }
+				}
+				UTF::Message DEBUG "" "$dut baseline vhtmode=$vhtmode, baseline data=$base($dut,$vhtmode)"
+				set htmltxt "$htmltxt / (T:[UTF::stream hformat $base($dut,$vhtmode)]) / $streamstxt "
+				if {[string toupper $protocol] eq "TCP"} {
+				    UTF::Try "TCP RTT" {
+					catch {UTF::streamgraph rtt -stat rtt -yrange "0:*" -reporttext "RTT" \
+						   -title "Baseline Stream RTT" -graphsize $(graphsize)}
+					return [rtt plot -composite]
+				    }
+				    UTF::Try "TCP CWND" {
+					catch {UTF::streamgraph cwnd -stat cwnd -yrange "100:*" -reporttext "CWND" \
+						   -title "Baseline Stream CWND" -graphsize $(graphsize)}
+					return [cwnd plot -composite]
+				    }
+				} else {
+				    UTF::Try "UDP Latency" {
+					catch {UTF::streamgraph latency -stat pktlatency -title "Baseline Stream Latency" \
+						   -outputtype $(graphtype) -graphsize $(graphsize) -reporttext "Latency"}
+					return [latency plot -composite]
+				    }
+				}
+				UTF::streamgraph g -stat rate -yrange "0:*" -reporttext $htmltxt -title "Rate" -graphsize "1024,768"
+
+				if {$dut eq $STA1 && ![info exists done]} {
+				    set done 1
+				    #flap vhtmode on STA1 to collect baseline for both vhtmode=0 and vhtmode=1
+				    $dut wl -u down
+				    if {$vhtmode ne 1} {
+					$dut wl -u vhtmode 1
+				    } else {
+					$dut wl -u vhtmode 0
+				    }
+				    $dut wl -u up
+				    UTF::Sleep 5
+				    if {![$dut wl -u isup]} {
+					if {![$dut hostis Router]} {
+					    ConnectAPSTA $(ap) $dut -chanspec $(chanspec) -security $(security)
+					} else {
+					    ConfigBridge -ap $(ap) -br $dut -chanspec $(chanspec) -security $(security) -linkcheck -proxysta
+					}
+ 				    }
+				}
+				return [g plot -composite]
+			    }
+			    catch {g destroy; rtt destroy; cwnd destroy; latency destroy}
+			}
+
+			#converting to format that is easy to draw graph
+			if {[regexp {([0-9]*)(m|M)$} $w dummy d]} {
+			    set wsize [expr $d * 1024]
+			} elseif {[regexp {([0-9]*)(k|K)$} $w dummy d]} {
+			    set wsize $d
+			}
+			set csventry "[string toupper $protocol] $wsize $ps"
+			set base_ac_ac_ratio [format %.2f [expr 1.0*$base($STA2,1)/$base($STA1,1)]]
+			puts $csvh [join [split "$csventry AC/AC baseline $base_ac_ac_ratio $base_ac_ac_ratio $base_ac_ac_ratio"] ","]
+			set base_ac_11n_ratio [format %.2f [expr 1.0*$base($STA2,1)/$base($STA1,0)]]
+			puts $csvh [join [split "$csventry AC/11N baseline $base_ac_11n_ratio $base_ac_11n_ratio $base_ac_11n_ratio"] ","]
+			UTF::Message DEBUG "" "base_ac_11n_ratio=$base_ac_11n_ratio; base_ac_ac_ratio=$base_ac_ac_ratio"
+			if {[info exists done]} {unset done}
+
+			#if don't want to have multiple sessions after baseline, only keep one stream per STa
+			if {$(mflow) <= 1} {
+ 			    set streamstodestroy [concat $mfaststreams $mslowstreams]
+			    UTF::Message DEBUG "" "streamstodestroy = $streamstodestroy"
+			    if {[llength $streamstodestroy] > 0} {
+				foreach extra $streamstodestroy {
+				    catch {$extra destroy}
+				}
+			    }
+			    unset mfaststreams
+			    unset mslowstreams
+			}
+			#
+			#  Measure contributions from each stream per aggregate
+			#
+			catch {array unset sums *}
+
+			foreach VHT "1 0" {
+			    set TRYTXT "+[string toupper $protocol]: $STA1 VHTMODE=$VHT"
+			    UTF::Try "$TRYTXT" {
+				UTF::Try "Configuring VHT $VHT on $STA1" {
+				    set vhtmode [$STA1 wl -u vhtmode]
+				    if {$vhtmode ne $VHT} {
+					$STA1 wl -u down
+					$STA1 wl -u vhtmode $VHT
+
+					#option to set ampdu=0 for 11n device
+					if {!$VHT && !$(ampdu)} {
+					    $STA1 wl -u ampdu $(ampdu)
+					}
+					$STA1 wl -u up
+				    }
+				    return "VHT/ampdu: [$STA1 wl -u vhtmode]/[$STA1 wl -u ampdu]"
+				}
+				set reconnectok 0
+				UTF::Try "Reconnect $(ap) $(sta)" {
+				    foreach STA $(sta) {
+					$STA wl roam_trigger $(roamtrigger) all
+				    }
+				    ConnectAPSTA $(ap) $(sta)
+				    $(ap) wl -u atf
+				    set reconnectok 1
+
+				    foreach STA $(sta) {
+					if {[$STA wl -u frameburst] ne $(fb)} {
+					    $STA wl -u frameburst $(fb)
+					}
+					UTF::Message INFO "" "$STA frameburst=[$STA wl -u frameburst]"
+				    }
+				    if {[$(ap) wl -u frameburst] ne $(fb)} {
+					$(ap) wl -u frameburst $(fb)
+				    }
+				    set apfb [$(ap) wl -u frameburst]
+				    UTF::Message INFO "" "$(ap) frameburst=$apfb"
+				    return "$(ap) FB=$apfb"
+				}
+				UTF::Try "STAs rateset/vhtmode/nmode/ampdu after reconnection" {
+				    set lvht {}
+				    foreach STA $(sta) {
+					$STA wl -u rateset
+					lappend lvht [$STA wl -u vhtmode]
+					$STA wl -u nmode
+					$STA wl -u ampdu
+					$STA wl -u status
+					$STA wl -u dump rssi
+					$(ap) wl -u rssi [$STA macaddr]
+					$STA wl -u amsdu
+				    }
+				    return "$(sta) vhtmode: $lvht "
+				}
+				#area for all samples for different VHT
+				set totalarea($VHT,slow) {}
+				set totalarea($VHT,fast) {}
+				set totalaggr($VHT) {}
+				for {set ix 1} {$ix <=  $(loop)} {incr ix} {
+				    UTF::Try "Sample=$ix" {
+					UTF::stream allstreams stop
+					UTF::stream allstreams stats -clear
+					if {!$reconnectok} {
+					    error "skip per failed reconnect"
+					}
+					catch {g destroy; rtt destroy; cwnd destroy}
+
+					set rx1 [$slowstream cget -rx]
+					set rx2 [$faststream cget -rx]
+					foreach dut [join [list $(ap) $rx1 $rx2] " "] {
+					    if {![catch {$dut [$dut cget -wl] -silent dump ampdu} ret] && [regexp {AMPDU} $ret]} {
+						#dump command supported in this image
+						UTF::Message INFO "" "clear ampdu on $dut"
+						if {[catch {$dut [$dut cget -wl] ampdu_clear_dump}]} {
+						    #old style clear not supported, try new style clear
+						    $dut [$dut cget -wl] -u dump_clear ampdu
+						}
+					    }
+					}
+					if {!$(nopktqstats)} {
+					    foreach index [array names pktqstats] {
+						$pktqstats($index) sample
+					    }
+					}
+					UTF::stream allstreams start
+					#UTF::stream allstreams linkcheck -now
+					#UTF::Sleep $(holdtime)
+					for {set i 0} {$i < $(holdtime)} {incr i} {
+					    #collecting bs_data while traffic is on
+					    UTF::Sleep 1
+					    $(ap) wl -u bs_data
+					    #collect info for debugging flowring pkt distribution algorithm
+					    if {$(debug)} {
+						UTF::Sleep 4
+						$(ap) wl -u bus:dumptxrings
+						incr i 4
+					    }
+					}
+					UTF::stream allstreams stop
+					if {!$(nopktqstats)} {
+					    foreach index [array names pktqstats] {
+						$pktqstats($index) sample
+					    }
+					}
+					set summarize ""
+					if {$(ampdu)} {
+					    set fh [$faststream  cget -rx]
+					    set sh [$slowstream  cget -rx]
+					    foreach dut "$(ap) $fh $sh" {
+						if {![catch {$dut [$dut cget -wl] dump ampdu} ret] && [regexp {AMPDU} $ret]} {
+						    package require UTF::Dump::AMPDU
+						    UTF::Dump::AMPDU dutampdu -raw $ret
+						    foreach item {
+							MPDUdens MPDUdens%
+							TXVHT TXVHT% TXVHTs TXVHTs%
+							TXMCS TXMCS% TXMCSs TXMCSs%
+							MCSPER MCSPER%
+							RXVHT RXVHT% RXVHTs RXVHTs%
+							RXMCS RXMCS% RXMCSs RXMCSs%
+							VHTPER VHTPER%
+							Frameburst Frameburst%
+						    } {
+							UTF::Message INFO "" "$dut $item: \n[dutampdu $item]"
+						    }
+						    #this is to compare with above lib, can be removed/replaced
+						    #if it could provide the same info
+						    if {$(ap) eq $dut} {
+							set summarize [parseampdu $ret tx]
+						    }
+						    #end of memo
+						}
+					    }
+
+					}
+					set sums(${VHT},fast,$ix) [$faststream stats -rate -sum]
+					set sums(${VHT},slow,$ix) [$slowstream stats -rate -sum]
+					UTF::Message DEBUG "" "sums(${VHT},fast,$ix) = $sums(${VHT},fast,$ix)"
+					UTF::Message DEBUG "" "sums(${VHT},slow,$ix) = $sums(${VHT},slow,$ix)"
+					if {![regexp {[0-9]+} $sums(${VHT},fast,$ix)] || ![regexp {[0-9]+} $sums(${VHT},slow,$ix)]} {
+					    error "Failed to get stats: sums(${VHT},fast,$ix)=$sums(${VHT},fast,$ix); sums(${VHT},slow,$ix)=$sums(${VHT},slow,$ix)"
+					}
+					set allstreams {}
+					if {$(mflow) ne 1 && [info exists $mfaststreams] && [info exists $mslowstreams]} {
+					    lappend allstreams $slowstream
+					    foreach extra $mslowstreams {
+						set sums(${VHT},slow,$ix) [expr $sums(${VHT},slow,$ix) + [$extra stats -rate -sum]]
+						lappend allstreams $extra
+					    }
+					    lappend allstreams $faststream
+
+					    foreach extra $mfaststreams {
+						set sums(${VHT},fast,$ix) [expr $sums(${VHT},fast,$ix) + [$extra stats -rate -sum]]
+						lappend allstreams $extra
+					    }
+					}
+					if {$(mflow) eq 1} {
+					    lappend allstreams $slowstream
+					    lappend allstreams $faststream
+					}
+
+					UTF::Message DEBUG "" "allstreams = $allstreams"
+					foreach stream $allstreams {
+					    UTF::Try "[$stream cget -name]" {
+
+						if {[string tolower $protocol] eq "tcp"} {
+						    if {$(tcptrace)} {
+							UTF::Try "TCPTRACE fast" {
+							    return "html:<a href=\"[$faststream tcptrace xfer]\">pcap</a>"
+							}
+							UTF::Try "TCPTRACE slow" {
+							    return "html:<a href=\"[$slowstream tcptrace xfer]\">pcap</a>"
+							}
+						    }
+						}
+						return "[lindex [$stream stats -rate -sum -h] end]/[$stream stats -rate -meanminmax -h]"
+					    }
+					}
+
+					set aggr(${VHT},$ix) [expr {$sums(${VHT},fast,$ix) + $sums(${VHT},slow,$ix)}]
+					lappend totalarea($VHT,slow) $sums(${VHT},slow,$ix)
+					lappend totalarea($VHT,fast) $sums(${VHT},fast,$ix)
+					lappend totalaggr($VHT) $aggr(${VHT},$ix)
+					set htmltxt "${summarize}/ (T: [UTF::stream hformat $aggr(${VHT},$ix)]); (S:[UTF::stream hformat $sums(${VHT},slow,$ix)]); (F:[UTF::stream hformat $sums(${VHT},fast,$ix)])"
+					UTF::streamgraph g -stat rate -yrange "0:*" -reporttext "$htmltxt" -title "Rate" -graphsize "1024,768"
+					if {[string toupper $protocol] eq "TCP"} {
+					    set htmltxttcp "(W=$w)"
+					    catch {UTF::streamgraph rtt -stat rtt -yrange "0:*" -reporttext "RTT" -title "RTT $htmltxttcp" -graphsize "1024,768"; rtt plot -composite}
+					    catch {UTF::streamgraph cwnd -stat cwnd -yrange "100:*" -reporttext "CWND" -title "CWND $htmltxttcp" -graphsize "1024,768"; cwnd plot -composite}
+					} else {
+					    catch {UTF::streamgraph latency -stat pktlatency -title "UDP Latency" \
+						       -outputtype $(graphtype) -graphsize $(graphsize) -reporttext "Latency"; \
+						       latency plot -composite}
+					}
+					set plot [g plot -composite]
+					if {[string tolower $protocol] eq "tcp"} {
+					    append plot " [rtt plot -composite] [cwnd plot -composite]"
+					} else {
+					    append plot " [latency plot -composite]"
+					}
+					return $plot
+				    }
+				    catch {g destroy; rtt destroy; cwnd destroy; latency destroy}
+				}
+				set l [UTF::MeanMinMax [lsort $totalaggr($VHT)]]
+				set t "Mean/Min/Max (T:[UTF::stream hformat [lindex $l 0]] [UTF::stream hformat [lindex $l 1]] [UTF::stream hformat [lindex $l 2]])"
+				set l [UTF::MeanMinMax [lsort $totalarea($VHT,slow)]]
+				append t " / (S:[UTF::stream hformat [lindex $l 0]] [UTF::stream hformat [lindex $l 1]] [UTF::stream hformat [lindex $l 2]])"
+				set l [UTF::MeanMinMax [lsort $totalarea($VHT,fast)]]
+				append t " / (F:[UTF::stream hformat [lindex $l 0]] [UTF::stream hformat [lindex $l 1]] [UTF::stream hformat [lindex $l 2]])"
+				return $t
+				#return $sums(${VHT},bestplot)
+			    }
+			    #catch {g destroy; rtt destroy; cwnd destroy; latency destroy}
+			}
+			# Calculate AC/AC ratio and AC/11N ratio and control chart
+			catch {unset benefitresult}
+			if {!$reconnectok} {
+			    error "skip per failed reconnect"
+			}
+			set ac_11n_improvement {}
+			set ac_ac_balance {}
+			set mstas_overhead {}
+			set bcode 0
+			for {set ix 1} {$ix <=  $(loop)} {incr ix} {
+			    #set diff [expr {$sums(1,fast,$ix) - $sums(0,fast,$ix)}]
+			    set ac_ac_ratio [format %.2f [expr {1.0 *  $sums(1,fast,$ix) / $sums(1,slow,$ix)}]]
+			    set ac_11n_ratio [format %.2f [expr {1.0 * $sums(0,fast,$ix) / $sums(0,slow,$ix)}]]
+			    set aggr_ratio [format %.2f [expr {1.0 * $aggr(0,$ix) / $aggr(1,$ix)}]]
+			    set ac_overhead [format %.2f [expr {1.0 * ($base($STA1,1)-$sums(1,fast,$ix)-$sums(1,slow,$ix))/$base($STA1,1)}]]
+			    #set amount [expr {($sums(0,fast,$ix) + $diff) / $sums(0,fast,$ix)}]
+			    UTF::Message STAT "$procmsgtag" "Sample ${ix}: AC/AC ratio=$ac_ac_ratio | AC/11N ratio=$ac_11n_ratio | aggr_ratio=$aggr_ratio"
+			    UTF::Message STAT "$procmsgtag" "Sample ${ix}: AC/AC overhead of multiple STAs = $ac_overhead"
+			    lappend ac_11n_improvement $ac_11n_ratio
+			    lappend ac_ac_balance $ac_ac_ratio
+			    lappend mstas_overhead $ac_overhead
+			}
+			set mmm(ac_ac) [UTF::MeanMinMax [lsort $ac_ac_balance]]
+			set mmm(ac_11n) [UTF::MeanMinMax [lsort $ac_11n_improvement]]
+			set mmm(ac_overhead) [UTF::MeanMinMax [lsort $mstas_overhead]]
+			puts $csvh [join \
+			    [split "$csventry AC/AC data [lindex $mmm(ac_ac) 0] [lindex $mmm(ac_ac) 1] [lindex $mmm(ac_ac) 2]"] ","]
+			puts $csvh [join \
+			    [split "$csventry AC/11N data [lindex $mmm(ac_11n) 0] [lindex $mmm(ac_11n) 1] [lindex $mmm(ac_11n) 2]"] ","]
+			puts $csvh [join \
+			    [split "$csventry AC/AC overhead [lindex $mmm(ac_overhead) 0] [lindex $mmm(ac_overhead) 1] [lindex $mmm(ac_overhead) 2]"] ","]
+			UTF::Message STAT "$procmsgtag" "base: AC/AC ratio=$base_ac_ac_ratio | AC/11N ratio=$base_ac_11n_ratio"
+			catch {CC destroy}
+			UTF::ControlChart CC -s $(loop) -key $thiskey \
+			    -history $(history) \
+			    -allowzero true -norangecheck true \
+			    -title "AC/11N Ratio of Transmitted Data" \
+			    -ylabel "Ratio" -units ""
+			set ret [CC addsample [UTF::MeanMinMax [lsort $ac_11n_improvement]]]
+			set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+			if {[regexp $FAILMATCH $ret]} {
+			    UTF::Message FAIL "" $ret
+			    set code 1
+			} else {
+			    UTF::Message PASS "" $ret
+			    set code $bcode
+			}
+			set ret [CC plotcontrolchart $ret]
+			set benefitresult $ret
+			if {!$code && [lindex $UTF::TryStack end] eq "NONE"} {
+			    return $ret
+			} else {
+			    throw FAIL $ret
+			}
+		    }
+		}
+	    }
+	}
+	close $csvh
+
+	#cleanup
+	set lduts $(sta)
+	lappend lduts $(ap)
+	set i 0
+	foreach dut $lduts {
+	    set AG [$dut cget -attngrp]
+	    if {$AG ne ""} {
+		catch {$AG attn 0}
+	    }
+	    incr i
+	}
+	for {set i 0} {$i < [llength $(sta)]} {incr i} {
+	    #fast STA supports 11AC, slow STA doesn't
+	    set STA [lindex $(sta) $i]
+	    set vhtmode [$STA wl -u vhtmode]
+	    if {$vhtmode ne "1"} {
+		UTF::Try "$STA vhtmode" {
+		    $STA wl -u down
+		    $STA wl -u vhtmode 1
+		    $STA wl -u up
+		    return $STA wl -u vhtmode
+		}
+	    }
+	    UTF::Try "$STA disassoc" {
+		$STA wl -u disassoc
+	    }
+	}
+	UTF::stream exitstreams
+	UTF::Try "Ratio Graphs" {
+	    if {[catch {plot $csv} ret]} {
+		return "Failed to plot due to: $ret"
+	    } else {
+		return $ret
+	    }
+	}
+
+    }
+}
+
+
+

@@ -1,0 +1,64 @@
+#!/usr/bin/expect
+# -*-tcl-*-
+#
+# $Copyright Broadcom Corporation$
+# $Id: f5e17f00afc0c92f1213973508dd01afe425f91e $
+#
+
+# Control APC UPS via Alliant Networks CellularGateway serial
+# passthrough
+
+set host [lindex $argv 0]
+set op [lindex $argv 1]
+if {[lsearch {on off cycle} $op] < 0} {
+    puts stderr "usage: $argv0 address \[on|off|cycle\]"
+    exit 1
+}
+set op [string map {cycle "@000" on "\016\016" off "ZZ"} $op]
+
+spawn -noecho -open [socket $host 5000]
+
+#exp_internal 1
+log_user 1
+set send_slow {1 1}
+set timeout 30
+exp_send "Y"
+expect {
+    "SM\r" {
+	exp_send "r"
+	expect -re {([0-9]+)} {
+	    while {int($expect_out(1,string)) > 29} {
+		exp_send -- "-"
+		expect "OK\r"
+		exp_send "r"
+		expect -r {([0-9]+)}
+	    }
+	}
+	exp_send "p"
+	expect -re {([0-9]+)} {
+	    while {int($expect_out(1,string)) > 29} {
+		exp_send -- "-"
+		expect "OK\r"
+		exp_send "p"
+		expect -r {([0-9]+)}
+	    }
+	}
+	exp_send "Y"
+	expect "\nSM\r"
+	exp_send "Y"
+	expect "\nSM\r"
+	exp_send -s "$op"
+	sleep 5
+	expect {
+	    "\nNA\r" {
+		exp_send_user "Not ready, retry in 15 seconds\n"
+		sleep 15
+		exp_send -s "$op"
+		sleep 5
+		exp_continue
+	    }
+	    "\nOK\r"
+	}
+    }
+}
+exp_send_user "\n"

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -156,7 +156,7 @@ BIP_RtspListenerHandle BIP_RtspListener_Create(
     rc = BKNI_CreateMutex( &hRtspListener->lock );
     BIP_CHECK_ERR_NZ_GOTO( rc, "BKNI_CreateMutex() Failed", error );
 
-    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, (void *)hRtspListener ));
+    BDBG_MSG(( "%s: hRtspListener %p", BSTD_FUNCTION, (void *)hRtspListener ));
     return( hRtspListener );
 
 error:
@@ -196,7 +196,7 @@ static void hRtspListenerMessageReceivedCallback(
     /* TODO: for now, we are directly invoking the callback */
     if (hRtspListener->settings.messageReceivedCallback.callback)
     {
-        BDBG_MSG(( "%s: calling callback()", __FUNCTION__ ));
+        BDBG_MSG(( "%s: calling callback()", BSTD_FUNCTION ));
         hRtspListener->settings.messageReceivedCallback.callback( hRtspListener->settings.messageReceivedCallback.context, hRtspListener->settings.messageReceivedCallback.param );
     }
 }
@@ -233,7 +233,7 @@ static void BIP_Listener_CreateSocket(
     BLST_Q_INSERT_TAIL( &hRtspListener->rtspSocketListHead, hRtspSocket, rtspSocketListNext );
     BKNI_ReleaseMutex( hRtspListener->lock );
 
-    BDBG_MSG(( "%s: new connection on socketFd %d from peer %s, hRtspSocket %p", __FUNCTION__, socketFd, inet_ntoa( peerIpAddress.sin_addr ), (void *)hRtspSocket ));
+    BDBG_MSG(( "%s: new connection on socketFd %d from peer %s, hRtspSocket %p", BSTD_FUNCTION, socketFd, inet_ntoa( peerIpAddress.sin_addr ), (void *)hRtspSocket ));
     return;
 
 error:
@@ -250,7 +250,7 @@ static void hRtspListenerConnectedCallback(
 {
     BIP_RtspListenerHandle hRtspListener = (BIP_RtspListenerHandle)ctx;
 
-    BDBG_MSG(( "%s: calling BIP_Listener_CreateSocket()", __FUNCTION__ ));
+    BDBG_MSG(( "%s: calling BIP_Listener_CreateSocket()", BSTD_FUNCTION ));
     BIP_Listener_CreateSocket( hRtspListener, socketFd );
 } /* hRtspListenerConnectedCallback */
 
@@ -261,7 +261,7 @@ static void hRtspListenerGetRtpStatisticsCallback(
 {
     BIP_RtspListenerHandle hRtspListener = (BIP_RtspListenerHandle)ctx;
 
-    BDBG_MSG(( "%s: streamId (%d); hRtspListener (%p)", __FUNCTION__, streamId, (void *)hRtspListener ));
+    BDBG_MSG(( "%s: streamId (%d); hRtspListener (%p)", BSTD_FUNCTION, streamId, (void *)hRtspListener ));
     BIP_CHECK_PTR_GOTO( hRtspListener, "hRtspListener is null", error, BIP_ERR_INVALID_PARAMETER );
 
 error:
@@ -307,7 +307,7 @@ void BIP_RtspListener_Stop(
     BIP_RtspListenerHandle hRtspListener
     )
 {
-    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, (void *)hRtspListener ));
+    BDBG_MSG(( "%s: hRtspListener %p", BSTD_FUNCTION, (void *)hRtspListener ));
     BIP_RtspLiveMediaListener_Stop( hRtspListener->hRtspLmListener );
 }
 
@@ -318,7 +318,7 @@ BIP_Status BIP_RtspListener_Start(
     BIP_Status errCode = BIP_SUCCESS;
 
     BDBG_OBJECT_ASSERT( hRtspListener, BIP_RtspListener );
-    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, (void *)hRtspListener ));
+    BDBG_MSG(( "%s: hRtspListener %p", BSTD_FUNCTION, (void *)hRtspListener ));
 
     errCode = BIP_RtspLiveMediaListener_Start( hRtspListener->hRtspLmListener );
     BIP_CHECK_ERR_NZ_GOTO( errCode, "SetSettings Failed", error );
@@ -378,7 +378,7 @@ BIP_Status BIP_RtspListener_RecvRequest(
         }
         else
         {
-            BDBG_MSG(( "%s: hRtspSocket %p, hRtspRequest %p", __FUNCTION__, (void *)hRtspSocket, (void *)hRtspRequest ));
+            BDBG_MSG(( "%s: hRtspSocket %p, hRtspRequest %p", BSTD_FUNCTION, (void *)hRtspSocket, (void *)hRtspRequest ));
             /* TODO: Reset idle timeout for this socket */
 
             /* TODO: Also, reset the timeout function that prunes the sockets w/ errors as we go thru each socket once here and prune them if there is error on it */
@@ -404,7 +404,7 @@ BIP_RtspSessionHandle BIP_RtspListener_CreateSession(
     BIP_RtspSocketHandle  hRtspSocket;
     BIP_Status             rc;
 
-    BDBG_MSG(( "%s: creating session on rtspSession %p, hRtspRequest %p", __FUNCTION__, (void *)hRtspListener, (void *)hRtspRequest ));
+    BDBG_MSG(( "%s: creating session on rtspSession %p, hRtspRequest %p", BSTD_FUNCTION, (void *)hRtspListener, (void *)hRtspRequest ));
     hRtspSocket = BIP_RtspRequest_GetSocket( hRtspRequest );
 
     hRtspSession = BIP_RtspSocket_CreateSession( hRtspSocket, hRtspRequest );

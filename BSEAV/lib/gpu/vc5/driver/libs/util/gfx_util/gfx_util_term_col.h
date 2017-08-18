@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef enum
 {
@@ -43,7 +43,7 @@ extern size_t gfx_term_col_sprint_set_bg(char *buf, size_t buf_size, size_t offs
    gfx_term_col_t color);
 extern size_t gfx_term_col_sprint_reset(char *buf, size_t buf_size, size_t offset);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #ifdef __cplusplus
 

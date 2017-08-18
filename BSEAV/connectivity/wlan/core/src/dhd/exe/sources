@@ -1,0 +1,18 @@
+# sources: windows build file for wl.exe
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources,v 1.2 2007-07-31 10:06:37 $
+#
+
+NIC_WL_EXE=dhd
+TARGETPATH=windows/winxp/obj
+
+
+#ifdef BCMCCX
+C_DEFINES += -DBCMCCX
+#endif
+include sources.common
+
+#OTHER_SOURCES=sources.external sources.wme sources_vista sources_vista.external sources_vista.wme

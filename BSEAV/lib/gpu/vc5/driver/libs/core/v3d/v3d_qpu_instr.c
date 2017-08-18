@@ -403,7 +403,7 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
 #if V3D_VER_AT_LEAST(4,0,2,0)
          case 2:  op->opcode = V3D_QPU_OP_IID; break;
          case 3:  op->opcode = V3D_QPU_OP_SAMPID; break;
-         case 4:  op->opcode = V3D_QPU_OP_PATCHID; break;
+         case 4:  op->opcode = V3D_QPU_OP_BARRIERID; break;
 #endif
          case 5:  op->opcode = V3D_QPU_OP_TMUWT; break;
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -422,16 +422,10 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
 #endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
-      case 4:
-         op->opcode = V3D_QPU_OP_TMUWRCFG;
-         break;
-      case 5:
-         op->opcode = V3D_QPU_OP_TLBWRCFG;
-         break;
+      case 4: op->opcode = V3D_QPU_OP_TMUWRCFG; break;
+      case 5: op->opcode = V3D_QPU_OP_TLBWRCFG; break;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-      case 6:
-         op->opcode = V3D_QPU_OP_VPMWRCFG;
-         break;
+      case 6: op->opcode = V3D_QPU_OP_VPMWRCFG; break;
 #endif
 #endif
       default:
@@ -805,7 +799,7 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
       case V3D_QPU_OP_STVPMV: *op_add = 248; *magic_a = false; *waddr_a = 0; return true;
       case V3D_QPU_OP_STVPMD: *op_add = 248; *magic_a = false; *waddr_a = 1; return true;
       case V3D_QPU_OP_STVPMP: *op_add = 248; *magic_a = false; *waddr_a = 2; return true;
-      case V3D_QPU_OP_PATCHID: *op_add = 187; *add_b = 2; *add_a = 4; return true;
+      case V3D_QPU_OP_BARRIERID: *op_add = 187; *add_b = 2; *add_a = 4; return true;
       case V3D_QPU_OP_VPMWT: *op_add = 187; *add_b = 2; *add_a = 6; return true;
 #else
       case V3D_QPU_OP_VPMSETUP: *op_add = 187; *add_b = 3; return true;
@@ -1119,6 +1113,26 @@ static bool force_no_magic(v3d_qpu_opcode_t op)
    }
 }
 
+bool v3d_qpu_op_requires_read_a(v3d_qpu_opcode_t op)
+{
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   switch(op)
+   {
+      /* These instructions have timing restrictions that mean they may only
+       * consume regfile read A */
+      case V3D_QPU_OP_TLBWRCFG:
+      case V3D_QPU_OP_TMUWRCFG:
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+      case V3D_QPU_OP_VPMWRCFG:
+#endif
+         return true;
+
+      default: /* Do nothing */ ;
+   }
+#endif
+   return false;
+}
+
 bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
    char err[V3D_QPU_INSTR_ERR_SIZE])
 {
@@ -1142,6 +1156,13 @@ bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
       {
          set_err(err, "Unrecognised add op: opcode=%u, add_a=%u, add_b=%u",
             op_add, add_a, add_b);
+         return false;
+      }
+
+      if (v3d_qpu_op_requires_read_a(in->u.alu.add.opcode) &&
+          in->u.alu.add.a.source != V3D_QPU_IN_SOURCE_A)
+      {
+         set_err(err, "Bad op input source: %s requires input A", v3d_desc_qpu_opcode(in->u.alu.add.opcode));
          return false;
       }
 
@@ -1434,6 +1455,11 @@ bool v3d_qpu_instr_try_pack(struct v3d_qpu_instr const* in, uint64_t* bits)
             /* Decoder should have forced ma to false */
             return false;
          }
+         if (v3d_qpu_op_requires_read_a(in->u.alu.add.opcode) && in->u.alu.add.a.source != V3D_QPU_IN_SOURCE_A)
+         {
+            /* Config register writes must come from the A regfile read */
+            return false;
+         }
 
          uint32_t sig;
          if(!v3d_qpu_try_encode_sigbits(in->u.alu.sig.sigbits, &sig))
@@ -1625,7 +1651,7 @@ v3d_qpu_res_type_t v3d_qpu_res_type_from_opcode(v3d_qpu_opcode_t opcode)
    case V3D_QPU_OP_SAMPID:
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_QPU_OP_VPMWT:
-   case V3D_QPU_OP_PATCHID:
+   case V3D_QPU_OP_BARRIERID:
 #endif
 #if V3D_HAS_FLAFIRST
    case V3D_QPU_OP_FLAFIRST:

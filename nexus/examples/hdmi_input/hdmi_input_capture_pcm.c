@@ -1031,7 +1031,7 @@ static app_configuration *config_init(int argc, char **argv)
 
         NEXUS_HdmiInput_HdcpGetDefaultKeyset(config->hdmiInput, &hdmiInputKeyset);
 
-        /* Intialize/Load HDCP Key Set	*/
+        /* Initialize/Load HDCP Key Set	*/
         hdmiInputKeyset.alg         = encryptedRxKeySetAlg;
         hdmiInputKeyset.custKeyVarL = encryptedRxKeySetKeyVar1;
         hdmiInputKeyset.custKeyVarH = encryptedRxKeySetKeyVar2;

@@ -146,20 +146,6 @@ static uint32_t clear_shader_c[] =
    0x009e7000, 0x100009e7, /* nop */
 };
 
-/* Clear colour
-* Uniform 0 = color */
-static uint32_t clear_shader_c_depthactive[] =
-{
-   0x009e7000, 0x100009e7, /* nop */
-   0x009e7000, 0x100009e7, /* nop */
-   0x159cffc0, 0x40020b27, /* mov  tlbz, z       ; sbwait */
-   0x009e7000, 0x100009e7, /* nop */
-   0x15827d80, 0x10020ba7, /* mov  tlbc, unif */
-   0x009e7000, 0x300009e7, /* nop                ; thrend */
-   0x009e7000, 0x500009e7, /* nop                ; sbdone */
-   0x009e7000, 0x100009e7, /* nop */
-};
-
 /* Clear colour (masked)
  * Uniform 0 = mask
  * Uniform 1 = color */
@@ -175,22 +161,6 @@ static uint32_t clear_shader_pc[] =
    0x009e7000, 0x300009e7, /* nop                ; thrend*/
    0x009e7000, 0x100009e7, /* nop*/
    0x009e7000, 0x100009e7, /* nop*/
-};
-
-/* Clear colour (masked)
-* Uniform 0 = mask
-* Uniform 1 = color */
-static uint32_t clear_shader_pc_depthactive[] =
-{
-   0x009e7000, 0x100009e7, /* nop */
-   0x15827d80, 0x10020867, /* mov  r1, unif */
-   0x159cffc0, 0x40020b27, /* mov  tlbz, z       ; sbwait */
-   0x179e7240, 0x10020827, /* not  r0, r1 */
-   0x14827380, 0x80020867, /* and  r1, r1, unif  ; loadc */
-   0x149e7100, 0x10020827, /* and  r0, r0, r4 */
-   0x159e7040, 0x30020ba7, /* or   tlbc, r0, r1  ; thrend */
-   0x009e7000, 0x500009e7, /* nop                ; sbdone */
-   0x009e7000, 0x100009e7, /* nop */
 };
 
 /* Clear colour (masked & multisampled)
@@ -216,182 +186,83 @@ static uint32_t clear_shader_mpc[] =
    0x009e7000, 0x100009e7, /* nop*/
 };
 
-/* Clear colour (masked & multisampled)
-* Uniform 0 = mask
-* Uniform 1 = color */
-static uint32_t clear_shader_mpc_depthactive[] =
-{
-   0x009e7000, 0x100009e7, /* nop */
-   0x15827d80, 0x10020867, /* mov  r1, unif */
-   0x159cffc0, 0x40020b27, /* mov  tlbz, z       ; sbwait */
-   0x179e7240, 0x10020827, /* not  r0, r1 */
-   0x14827380, 0x80020867, /* and  r1, r1, unif  ; loadc */
-   0x149e7100, 0x100208a7, /* and  r2, r0, r4 */
-   0x159e7440, 0x80020b67, /* or   tlbm, r2, r1  ; loadc */
-   0x149e7100, 0x100208a7, /* and  r2, r0, r4 */
-   0x159e7440, 0x80020b67, /* or   tlbm, r2, r1  ; loadc */
-   0x149e7100, 0x100208a7, /* and  r2, r0, r4 */
-   0x159e7440, 0x80020b67, /* or   tlbm, r2, r1  ; loadc */
-   0x149e7100, 0x100208a7, /* and  r2, r0, r4 */
-   0x159e7440, 0x10020b67, /* or   tlbm, r2, r1 */
-   0x009e7000, 0x300009e7, /* nop                ; thrend */
-   0x009e7000, 0x500009e7, /* nop                ; sbdone */
-   0x009e7000, 0x100009e7, /* nop */
-   0x009e7000, 0x100009e7, /* nop */
-};
-
 #define CLR_COLOR   1
 #define CLR_DEPTH   2
 #define CLR_STENCIL 4
 #define CLR_MASKED  8
 #define CLR_MULTISAMPLE  16
 
-static uint32_t *clear_shaders[2][32] =
+static uint32_t *clear_shaders[] =
 {
-   /* this bank contain shaders for egl contexts with depth buffers
-      they all need to write to the depth in the QPU code (its blocked in the
-      instruction state config */
-   {
-      0,                /* Non-masked, non-multisample */
-      clear_shader_c_depthactive,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      0,                /* Masked, non-multisample */
-      clear_shader_pc_depthactive,
-      clear_shader_ds,
-      clear_shader_pdsc,
-      clear_shader_ds,
-      clear_shader_pdsc,
-      clear_shader_ds,
-      clear_shader_pdsc,
-      0,                /* Non-masked, multisample */
-      clear_shader_c_depthactive,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      0,                /* Masked, multisample */
-      clear_shader_mpc_depthactive,
-      clear_shader_ds,
-      clear_shader_mpdsc,
-      clear_shader_ds,
-      clear_shader_mpdsc,
-      clear_shader_ds,
-      clear_shader_mpdsc,
-   },
    /* this bank contain shaders for egl contexts without depth buffers */
-   {
-      0,                /* Non-masked, non-multisample */
-      clear_shader_c,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      0,                /* Masked, non-multisample */
-      clear_shader_pc,
-      clear_shader_ds,
-      clear_shader_pdsc,
-      clear_shader_ds,
-      clear_shader_pdsc,
-      clear_shader_ds,
-      clear_shader_pdsc,
-      0,                /* Non-masked, multisample */
-      clear_shader_c,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      clear_shader_ds,
-      clear_shader_dsc,
-      0,                /* Masked, multisample */
-      clear_shader_mpc,
-      clear_shader_ds,
-      clear_shader_mpdsc,
-      clear_shader_ds,
-      clear_shader_mpdsc,
-      clear_shader_ds,
-      clear_shader_mpdsc,
-   }
+   0,                /* Non-masked, non-multisample */
+   clear_shader_c,
+   clear_shader_ds,
+   clear_shader_dsc,
+   clear_shader_ds,
+   clear_shader_dsc,
+   clear_shader_ds,
+   clear_shader_dsc,
+   0,                /* Masked, non-multisample */
+   clear_shader_pc,
+   clear_shader_ds,
+   clear_shader_pdsc,
+   clear_shader_ds,
+   clear_shader_pdsc,
+   clear_shader_ds,
+   clear_shader_pdsc,
+   0,                /* Non-masked, multisample */
+   clear_shader_c,
+   clear_shader_ds,
+   clear_shader_dsc,
+   clear_shader_ds,
+   clear_shader_dsc,
+   clear_shader_ds,
+   clear_shader_dsc,
+   0,                /* Masked, multisample */
+   clear_shader_mpc,
+   clear_shader_ds,
+   clear_shader_mpdsc,
+   clear_shader_ds,
+   clear_shader_mpdsc,
+   clear_shader_ds,
+   clear_shader_mpdsc,
 };
 
-static uint32_t clear_shader_sizes[2][32] =
+static uint32_t clear_shader_sizes[] =
 {
-   {
-      0,
-      sizeof(clear_shader_c_depthactive),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      0,
-      sizeof(clear_shader_pc_depthactive),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_pdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_pdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_pdsc),
-      0,
-      sizeof(clear_shader_c_depthactive),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      0,
-      sizeof(clear_shader_mpc_depthactive),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_mpdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_mpdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_mpdsc),
-   },
-   {
-      0,
-      sizeof(clear_shader_c),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      0,
-      sizeof(clear_shader_pc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_pdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_pdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_pdsc),
-      0,
-      sizeof(clear_shader_c),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_dsc),
-      0,
-      sizeof(clear_shader_mpc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_mpdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_mpdsc),
-      sizeof(clear_shader_ds),
-      sizeof(clear_shader_mpdsc),
-   }
+   0,
+   sizeof(clear_shader_c),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_dsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_dsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_dsc),
+   0,
+   sizeof(clear_shader_pc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_pdsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_pdsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_pdsc),
+   0,
+   sizeof(clear_shader_c),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_dsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_dsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_dsc),
+   0,
+   sizeof(clear_shader_mpc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_mpdsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_mpdsc),
+   sizeof(clear_shader_ds),
+   sizeof(clear_shader_mpdsc),
 };
 
 /*************************************************************
@@ -442,11 +313,12 @@ bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *st
    if (!rs)
       return true;    /* TODO: or false? */
 
-#ifdef DRAW_TEX_LOGGING
-   printf("state_name: %d rs: %d clear: color %d depth %d stencil %d\n",
-      state->name,rs->name, color, depth, stencil);
-   printf("--------------------\n");
-#endif
+   if (DRAW_TEX_LOGGING)
+   {
+      vcos_log(LOG_INFO, "state_name: %d rs: %d clear: color %d depth %d stencil %d",
+         state->name, rs->name, color, depth, stencil);
+      vcos_log(LOG_INFO, "--------------------");
+   }
 
    if (fb.mh_depth != MEM_INVALID_HANDLE)
    {
@@ -927,10 +799,11 @@ bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
 
    if (rs->drawn || rs->hw_cleared)
    {
-#ifdef DRAW_TEX_LOGGING
-      printf("render_state_flush: rs: %d\n",rs->name);
-      printf("--------------------\n");
-#endif
+      if (DRAW_TEX_LOGGING)
+      {
+         vcos_log(LOG_INFO, "render_state_flush: rs: %d", rs->name);
+         vcos_log(LOG_INFO, "--------------------");
+      }
 
       /* Interlock transfer delayed until we know that we can't fail */
 
@@ -1486,20 +1359,6 @@ static bool draw_rect(
    bool color, bool depth, bool stencil,
    int x, int y, int xmax, int ymax)
 {
-   uint8_t *instr;
-   uint32_t *fshader;
-   MEM_LOCK_T fshader_lbh;
-   uint32_t *funif;
-   uint32_t *vdata;
-   uint32_t *rec;
-   uint32_t *locked_addr;
-   uint32_t z;
-   uint32_t selector;
-   uint32_t *shaderCode;
-   uint32_t uniformCount;
-   uint32_t uniformIndx;
-   bool egl_output;
-
    if(!vcos_verify(glxx_lock_fixer_stuff(rs)))//lock fixer stuff can only fail in start_frame
       return false;
 
@@ -1510,6 +1369,7 @@ static bool draw_rect(
    if (fb->ms)
       render_state->ms_color_buffer_valid = true;
 
+   bool egl_output;
    if (khrn_workarounds.FB_BOTTOM_UP)
    {
       /* work off if the output image is an EGL image.  This can be a wrapped image, or an eglSurface or a Pixmap */
@@ -1526,7 +1386,7 @@ static bool draw_rect(
       egl_output = false;
 
    // Set up control list
-   instr = glxx_big_mem_alloc_cle(34);
+   uint8_t *instr = glxx_big_mem_alloc_cle(34);
    if(!instr)
       goto fail;
 
@@ -1557,12 +1417,7 @@ static bool draw_rect(
    else if (stencil)
       add_byte(&instr, 7 << 4);          /* zfunc=always, !enzu */
    else
-   {
-      if (fb->have_depth)
-         add_byte(&instr, 7 << 4);          /* zfunc=always, !enzu */
-      else
-         add_byte(&instr, 0);               /* zfunc=never, !enzu */
-   }
+      add_byte(&instr, 0);               /* zfunc=never, !enzu */
 
    add_byte(&instr, 1<<1);            /* not enez, enezu */
 
@@ -1575,7 +1430,7 @@ static bool draw_rect(
    //TODO: other miscellaneous pieces of state
 
    /* Select the correct clear shader */
-   selector = 0;
+   uint32_t selector = 0;
    if (color)
       selector |= CLR_COLOR;
    if (depth)
@@ -1589,31 +1444,33 @@ static bool draw_rect(
    if (fb->ms)
       selector |= CLR_MULTISAMPLE;
 
-   shaderCode = clear_shaders[fb->have_depth ? 0 : 1][selector];
-   vcos_assert(shaderCode);
+   uint32_t *shader_code = clear_shaders[selector];
+   vcos_assert(shader_code);
 
    /* How many uniforms will we have? */
-   uniformCount = 0;
-   if (stencil || depth)
-      uniformCount += 2;
-   if (color)
-      uniformCount++;
-   if (color && state->shader.common.blend.color_mask != 0xFFFFFFFF)
-      uniformCount++;
 
-   locked_addr = glxx_big_mem_alloc_junk(ALIGN_UP(clear_shader_sizes[fb->have_depth ? 0 : 1][selector], 16) + (ALIGN_UP(uniformCount, 4) * 4) + 48 + 16,
+   uint32_t uniform_count = 0;
+   if (stencil || depth)
+      uniform_count += 2;
+   if (color)
+      uniform_count++;
+   if (color && state->shader.common.blend.color_mask != 0xFFFFFFFF)
+      uniform_count++;
+
+   MEM_LOCK_T fshader_lbh;
+   uint32_t *locked_addr = glxx_big_mem_alloc_junk(ALIGN_UP(clear_shader_sizes[selector], 16) + (ALIGN_UP(uniform_count, 4) * 4) + 48 + 16,
       16, &fshader_lbh);
    if (!locked_addr)
       goto fail;
 
-   fshader = locked_addr;
+   uint32_t *fshader = locked_addr;
 
-   khrn_memcpy(locked_addr, shaderCode, clear_shader_sizes[fb->have_depth ? 0 : 1][selector]);
+   khrn_memcpy(locked_addr, shader_code, clear_shader_sizes[selector]);
 
-   locked_addr += ALIGN_UP(clear_shader_sizes[fb->have_depth ? 0 : 1][selector], 16) / 4;
-   funif = locked_addr;
+   locked_addr += ALIGN_UP(clear_shader_sizes[selector], 16) / 4;
+   uint32_t *funif = locked_addr;
 
-   uniformIndx = 0;
+   uint32_t uniform_indx = 0;
 
    /* First uniform is always color mask if needed */
    if (color && state->shader.common.blend.color_mask != 0xFFFFFFFF)
@@ -1625,10 +1482,10 @@ static bool draw_rect(
       {
          uint32_t color_mask = state->shader.common.blend.color_mask;
          color_mask = (color_mask & 0xff00ff00) | ((color_mask & 0xff0000) >> 16) | ((color_mask & 0xff) << 16);
-         ((uint32_t *)locked_addr)[uniformIndx++] = color_mask;
+         ((uint32_t *)locked_addr)[uniform_indx++] = color_mask;
       }
       else
-         ((uint32_t *)locked_addr)[uniformIndx++] = state->shader.common.blend.color_mask;
+         ((uint32_t *)locked_addr)[uniform_indx++] = state->shader.common.blend.color_mask;
    }
 
    /* Set the stencil mode uniform (if needed) */
@@ -1636,13 +1493,13 @@ static bool draw_rect(
    {
       if (stencil)
       {
-         ((uint32_t *)locked_addr)[uniformIndx++] = stencil_clear_mode(state->clear_stencil);
-         ((uint32_t *)locked_addr)[uniformIndx++] = stencil_mask_mode(state->stencil_mask.front);
+         ((uint32_t *)locked_addr)[uniform_indx++] = stencil_clear_mode(state->clear_stencil);
+         ((uint32_t *)locked_addr)[uniform_indx++] = stencil_mask_mode(state->stencil_mask.front);
       }
       else
       {
-         ((uint32_t *)locked_addr)[uniformIndx++] = stencil_keep_mode;
-         ((uint32_t *)locked_addr)[uniformIndx++] = stencil_keep_mode;
+         ((uint32_t *)locked_addr)[uniform_indx++] = stencil_keep_mode;
+         ((uint32_t *)locked_addr)[uniform_indx++] = stencil_keep_mode;
       }
    }
 
@@ -1654,7 +1511,7 @@ static bool draw_rect(
       col_format = khrn_image_to_tf_format(col_format);
       if (tu_image_format_rb_swap(col_format))
       {
-         ((uint32_t *)locked_addr)[uniformIndx++] = color_floats_to_rgba(
+         ((uint32_t *)locked_addr)[uniform_indx++] = color_floats_to_rgba(
             state->clear_color[2],
             state->clear_color[1],
             state->clear_color[0],
@@ -1662,7 +1519,7 @@ static bool draw_rect(
       }
       else
       {
-         ((uint32_t *)locked_addr)[uniformIndx++] = color_floats_to_rgba(
+         ((uint32_t *)locked_addr)[uniform_indx++] = color_floats_to_rgba(
             state->clear_color[0],
             state->clear_color[1],
             state->clear_color[2],
@@ -1670,10 +1527,10 @@ static bool draw_rect(
       }
    }
 
-   locked_addr += ALIGN_UP(uniformCount, 4);
-   vdata = locked_addr;
+   locked_addr += ALIGN_UP(uniform_count, 4);
+   uint32_t *vdata = locked_addr;
 
-   z = float_to_bits(state->clear_depth);
+   uint32_t z = float_to_bits(state->clear_depth);
    if ((khrn_workarounds.FB_BOTTOM_UP || khrn_workarounds.FB_TOP_DOWN) && egl_output)
       vdata[0] = (fb->height - y) << 20 | x << 4;
    else
@@ -1702,7 +1559,7 @@ static bool draw_rect(
    //TODO: stencil, masked color
 
    locked_addr += 12;
-   rec = locked_addr;
+   uint32_t *rec = locked_addr;
 
    rec[0] = 1 | 12 << 8;  //flags: single-threaded. No point size, clipping, clip header. vstride=12
    rec[1] = khrn_hw_addr(fshader, &fshader_lbh); //PTR

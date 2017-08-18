@@ -2,7 +2,7 @@
 ./refsw init $2
 cd $2
 git refsw share fetch $1
-git checkout personal/mward/$1
+git checkout personal/ccbuild/$1
 today=`date +%Y%m%d`
 cd BSEAV/app/atlas/build
 build_location=$(pwd)
@@ -11,7 +11,7 @@ if [ "$#" -ge "2" ]
 then
 {
 	destination=$2
-	cd /projects/cable_refsw/unified_releases
+	cd /project_it/cable_refsw/unified_releases
 	if [ -d $destination ]
 	then
 	{
@@ -22,7 +22,7 @@ then
 	}
 	else
 	{
-		cd /projects/cable_refsw/unified_releases/phase17.2_take1
+		cd /project_it/cable_refsw/unified_releases/phase17.2_take1
 		find . -type d | cpio -pdvm ../$destination
 		cd ../$destination
 		destination=$(pwd)
@@ -32,7 +32,7 @@ then
 }
 else
 {
-	cd /projects/cable_refsw/unified_releases/phase17.2_take1
+	cd /project_it/cable_refsw/unified_releases/phase17.2_take1
 	find . -type d | cpio -pdvm ../build_script
 	cd build_script
 	destination=$(pwd)
@@ -292,11 +292,11 @@ cp ../../../../obj.97252S_GW/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARC
 make -j NEXUS_USE_7252S_GW=y VIDEO_ENCODER_SUPPORT=y B_REFSW_OBJ_DIR=obj.97252S_GW clean
 
 # 97268 A0 VMS
-source ../../../tools/build/plat 97268 A0 32
+source ../../../tools/build/plat 97268 B0 32
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/$NEXUS_PLATFORM/refsw-$reldate.97268a0_vms-linux-atlas-cable.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_scripts/refsw-$reldate.97268a0_vms-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/$NEXUS_PLATFORM/refsw-$reldate.97268b0_vms-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_scripts/refsw-$reldate.97268b0_vms-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n clean
 
@@ -337,8 +337,8 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal NEXUS_PLATFORM_7241_DCSFBTS
 source ../../../tools/build/plat 97250 b0 cd2 le
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y install
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97250cd2-linux-atlas.bin.tgz
-cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97250/refsw-$reldate.97250cd2-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.97250cd2_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/internal/97250/refsw-$reldate.97250cd2_vms_sff-linux-atlas-cable.bin.tgz
 cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 

@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZCL/include/bbZbProZclSapClusterBasic.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL Basic cluster SAP interface.
+*       ZCL Basic cluster SAP interface.
 *
-* $Revision: 7434 $
-* $Date: 2015-07-10 10:06:56Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_CLUSTER_BASIC_H
 #define _BB_ZBPRO_ZCL_SAP_CLUSTER_BASIC_H
@@ -66,6 +58,7 @@
  *  These attributes are provided by Server side of the cluster.
  * \details
  *  Basic ZCL cluster has no attributes provided by Client side.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \note
  *  This implementation of Basic ZCL cluster doesn't provide Client side; and on the
  *  Server side it doesn't implement any of the optional attributes, only the following
@@ -113,7 +106,7 @@ typedef enum _ZBPRO_ZCL_SapBasicServerAttributeId_t
 
 
 /**//**
- * \name    Data types of attributes of Basic ZCL cluster.
+ * \brief   Data types of attributes of Basic ZCL cluster.
  * \details
  *  All the listed attributes are transferred by value.
  * \details
@@ -137,35 +130,80 @@ typedef enum _ZBPRO_ZCL_SapBasicServerAttributeId_t
  *  - LocationDescription,
  *  - SWBuildID.
  *
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
  */
-
-/**@{*/
-
 typedef uint8_t      ZBPRO_ZCL_SapBasicAttrZclVersion_t;                /*!< ZCLVersion. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef uint8_t      ZBPRO_ZCL_SapBasicAttrApplicationVersion_t;        /*!< ApplicationVersion. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef uint8_t      ZBPRO_ZCL_SapBasicAttrStackVersion_t;              /*!< StackVersion. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef uint8_t      ZBPRO_ZCL_SapBasicAttrHwVersion_t;                 /*!< HWVersion. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef uint8_t      ZBPRO_ZCL_SapBasicAttrPowerSource_t;               /*!< PowerSource. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef uint8_t      ZBPRO_ZCL_SapBasicAttrPhysicalEnvironment_t;       /*!< PhysicalEnvironment. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef Bool8_t      ZBPRO_ZCL_SapBasicAttrDeviceEnabled_t;             /*!< DeviceEnabled. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef BitField8_t  ZBPRO_ZCL_SapBasicAttrAlarmMask_t;                 /*!< AlarmMask. */
 
+/**//**
+ * \brief   Data types of attributes of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.2.2.2, table 3-7.
+ */
 typedef BitField8_t  ZBPRO_ZCL_SapBasicAttrDisableLocalConfig_t;        /*!< DisableLocalConfig. */
-
-/**@}*/
 
 
 /**//**
  * \brief   Enumeration of values of PowerSource attribute of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 3.2.2.2.8, table 3-8.
  */
@@ -192,6 +230,7 @@ typedef enum _ZBPRO_ZCL_SapBasicAttrPowerSourceId_t
 
 /**//**
  * \brief   Enumeration of values of PhysicalEnvironment attribute of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \note
  *  Identifiers for Office (0x24) and LivingRoom (0x39) are renamed to Office_2 and
  *  LivingRoom_2 respectively in order to distinguish them from the same identifiers but
@@ -431,6 +470,7 @@ typedef enum _ZBPRO_ZCL_SapBasicAttrPhysicalEnvironmentId_t
 
 /**//**
  * \brief   Enumeration of values of DeviceEnabled attribute of Basic ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 3.2.2.2.11, table 3-10.
  */
@@ -446,6 +486,7 @@ typedef enum _ZBPRO_ZCL_SapBasicAttrDeviceEnabledId_t
 /**//**
  * \brief   Enumeration of bits comprised in AlarmMask bitmask attribute of Basic ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \details
  *  This attribute has width of 8 bits. Bits with numbers from 2 to 7 (starting with 0)
  *  have no special names and may be used by ZCL-based profile.
@@ -464,6 +505,7 @@ typedef enum _ZBPRO_ZCL_SapBasicAttrAlarmMaskBit_t
 /**//**
  * \brief   Enumeration of values of single bit of AlarmMask attribute of Basic ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \note
  *  This enumeration provides values for single bit without taking into account bit
  *  position within the bitmask representing the attribute. One shall shift these values
@@ -483,6 +525,7 @@ typedef enum _ZBPRO_ZCL_SapBasicAttrAlarmMaskId_t
 /**//**
  * \brief   Enumeration of bits comprised in DisableLocalConfig bitmask attribute of Basic
  *  ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \details
  *  This attribute has width of 8 bits. Bits with numbers from 2 to 7 (starting with 0)
  *  have no special names and may be used by ZCL-based profile.
@@ -502,6 +545,7 @@ typedef enum _ZBPRO_ZCL_SapBasicAttrDisableLocalConfigBit_t
 /**//**
  * \brief   Enumeration of values of single bit of DisableLocalConfig attribute of Basic
  *  ZCL cluster.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \note
  *  This enumeration provides values for single bit without taking into account bit
  *  position within the bitmask representing the attribute. One shall shift these values
@@ -526,6 +570,7 @@ typedef enum _ZBPRO_ZCL_SapBasicAttrDisableLocalConfigId_t
  * \details
  *  Basic ZCL cluster has no commands generated by Server side and received by Client
  *  side.
+ * \ingroup ZBPRO_ZCL_BasicAttr
  * \note
  *  This implementation of Basic ZCL cluster doesn't provide Client side; and its Server
  *  side doesn't implement reception of any of the listed commands as they all are
@@ -541,3 +586,5 @@ typedef enum _ZBPRO_ZCL_SapBasicClientToServerCommandId_t
 
 
 #endif /* _BB_ZBPRO_ZCL_SAP_CLUSTER_BASIC_H */
+
+/* eof bbZbProZclSapClusterBasic.h */

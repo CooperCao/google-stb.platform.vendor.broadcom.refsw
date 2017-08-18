@@ -1,0 +1,1769 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+#  
+# --> this is data rate sweep test  for 43142 by fyang   
+
+
+
+
+catch { lappend auto_path /home/fyang/src/tools/unittest }
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::PingTimes
+package require UTF::Test::DataRate
+package require UTF::Test::Fragmentation
+package require UTF::Test::RTS
+package require UTF::Test::Scan
+package require UTF::Test::controlchart
+package require UTF::Test::memchart
+package require UTF::Test::ChannelSweep
+package require UTF::Test::BigHammer
+package require UTF::Test::IBSS
+package require UTF::Test::DPT
+package require UTF::Test::CalStability
+package require UTF::Test::rssinoise
+package require UTF::Sniffer
+package require UTF::utils
+#
+
+
+
+
+UTF::Test Sample_script_template {args} {
+    UTF::Getopts {
+	{sta.arg "4325sdio" "sta name"}
+	{ap.arg "4704/4318" "AP name"}
+	{trx.arg "" "Router trx"}
+	{tag.arg "" "Router release tag"}
+	{statag.arg "" "STA release tag"}
+	{bin.arg "" "STA dongle image"}
+	{email.arg "" "Email Address"}
+	{noapload "Don't load images"}
+	{nostaload "Don't reload STA drivers"}
+	{nostareload "Don't even reload STA drivers"}
+	{norestore "Don't reset to defaults"}
+	{noscan "No scan tests"}
+	{nojoin "No join security tests"}
+	{nopm "No Power Management tests"}
+	{nopm1 "No Slow Power Management tests"}
+	{nopm2 "No Fast Power Management"}
+	{noframeburst "No Framebursting"}
+        {nofb0 "No non-frameburst open tests"}
+	{noperf "No Performance tests"}
+	{noperf20 "Don't do 20MHz performance tests"}
+	{noperf40 "Don't do 40MHz performance tests"}
+	{nochannels "Don't ch scan/sweep channels "}
+	{nosetup "No Setup"}
+	{nobtests "Disable Bangalore tests"}
+	{nopingtimes "Disable PingTimes test"}
+	{norate "Disable Fixed Rate tests"}
+	{norts "Disable RTS tests"}
+	{nofrag "Disable Fragmentation test"}
+	{date.arg "" "Image date usually sta, uut"}
+        {apdate.arg "" "ap image date"}
+        {history.arg 30 "History size for control charts"}
+	{perfloop.arg 1 "Performance test loops"}
+	{loop.arg 1 "Main test loops"}
+	{nounload "Don't unload driver after test"}
+	{nocache "Don't update performance cache"}
+	{nowep "No WEP security"}
+	{noshared "No shared security"}
+	{notkip "No TKIP security"}
+	{noaes "No AES security"}
+	{nocal "No Calibration tests"}
+	{nobighammer "No BigHammer tests"}
+	{nobx "No Bidirectional Performance tests"}
+	{noibss "No IBSS tests"}
+	{nodpt "No DPT tests"}
+	{title.arg "" "Title"}
+	{branch.arg "auto" "Branch override"}
+        {logdir.arg "" "Log directory override"}
+	{chanspec.arg "" "Chanspec to use for all fixed-channel tests"}
+	{nosetuptestbed "Don't run Setup Testbed hooks"}
+	{noposttesthook "Don't run Post Test hooks"}
+	{perfonly "Only run subset of performance tests"}
+        {perfchans.arg ""  "explicit channel list" } 
+	{datarate_all.arg 0 "datarate all channel list" } 
+	{pingonly.arg 0  "ping test only"}
+	{chsweep.arg  1 "channel sweep default auto" }
+        {apdata.arg  1  "staRX test, ap fixed rate to sta auto "           }
+        {sniffer.arg "" "sniffer object"          }
+        {nosniffer "No Sniffer"}
+        {apr_auto.arg 1 "ap auto rate"}
+
+    }
+
+        
+#define peoc used in this procgram
+
+proc DataRate2 {AP STA}  {
+       upvar {} {}
+       upvar apdata apdata
+    ConnectAPSTA $AP $STA
+
+    # Figure out what band we're using so that we know how to set rate
+    # to "auto".  Can't just use "rate" since we may not be bandlocked.
+    if {[$AP band] eq "a"} {
+	set lratecmd a_rate
+    } else {
+	set lratecmd bg_rate
+    }
+
+    set APIP [$AP ipaddr]
+
+    # Ask the STA for the rateset, since that will be the common set
+    # negotiated between AP and STA for this BSS.
+    set RATESET [$STA wl rateset]
+    set MCSSET ""
+
+    # Split out any MCS rates to be handled seperately.
+    regexp {(.*)(\nMCS SET : .*)} $RATESET - RATESET MCSSET
+    set RATESET [regexp -all -inline {[\d.]+} $RATESET]
+    set MCSSET [regexp -all -inline {[\d.]+} $MCSSET]
+
+    # TARGET is the STA object to have its rate adjusted.
+    # First pass, the AP
+    # Second pass, the STA
+    foreach TARGET [list $AP $STA] {
+        if { $(apdata)== 0 && $TARGET == $AP } { $TARGET wl $lratecmd auto ; continue }   
+	foreach r $RATESET {
+	    UTF::Try "$TARGET: legacy rate set to $r" {
+		$TARGET wl $lratecmd $r
+                #or nrate -r $r 
+                after 1000
+               
+                UTF::Message INFO "$STA" "bssid= [$STA wl bssid]"
+		$STA ping $APIP
+                
+	    }
+	}
+	foreach r $MCSSET {
+	    UTF::Try "$TARGET: mcs rate set to $r" {
+		$TARGET wl nrate -m $r
+                after 1000
+                UTF::Message INFO "$STA" "bssid= [$STA wl bssid]"
+  
+		$STA ping $APIP
+	    }
+	}
+	$TARGET wl $lratecmd auto
+    }
+
+    # Clean up
+    catch {$STA wl disassoc}
+    $AP wl $lratecmd auto
+    $STA wl $lratecmd auto
+}
+
+##
+
+############controler chart for 
+	    
+proc controlchart2 {PAIRS args } {
+
+    # NB: The min/max options are to specify the min/max expected
+    # throughput that this routine will check for. Default -1 means
+    # that the checks will not be done.
+
+    # Minimum expected throughput. If you specify an expected minimum
+    # throughput, an error will occur if the actual throughput is less
+    # than the expected minimum value. The controlchart does give
+    # errors for values that are below the historical trends. However
+    # if the historical data has been low for a while, you may not
+    # observe the performance has dropped below a minimum expected
+    # threshold. The -min option allows you to specify an absolute
+    # lower value below which errors are always flagged, regardless of
+    # the historical data.
+
+    # -min 0 is a special case, which allows zero to be an aceptable
+    # value.  zero is normally an automatic fail.
+
+    # Maximum expected throughput. If you specify an expected maximum
+    # throughput, an error will occur if the actual throughput is
+    # greater than the maximum expected value. The controlchart does
+    # identify high values based on the historical data, but these are
+    # not considered errors. One instance of high values being an
+    # error was a host sending data to itself due to duplicate MAC
+    # address & related DHCP issues. The -max option allow you to
+    # specify an absolute upper value above which errors are always
+    # flagged, regardless of the historical data.
+
+    # Make sure variables exists, so they can be used in defaults
+    if {![info exists UTF::controlchart_cmds]} {
+	set ::UTF::controlchart_cmds ""
+    }
+    if {![info exists UTF::controlchart_iperf]} {
+	set ::UTF::controlchart_iperf ""
+    }
+
+    # Run the option list through subst to pick up external defaults
+    UTF::Getopts [subst {
+	{s.arg "5" "sample size"}
+	{i.arg "2" "test interval in seconds"}
+	{l.arg "" "iperf write length"}
+	{N.arg "1" "Use TCP_NODELAY (disable the Nagle algorithm)"}
+	{loop.arg "1" "loops"}
+	{key.arg "" "Calibration key"}
+	{oldkey.arg "" "Previous key, used for migration"}
+        {max.arg -1 "Expected maximum througput"}
+        {min.arg -1 "Expected minimum througput"}
+	{png.arg 1 "Plot png files"}
+	{perfcache.arg "" "Performance Cache"}
+	{history.arg 30 "Performance History"}
+	{window.arg 0 "Tcp Window"}
+	{nopretest "Skip short pre-test run"}
+	{failonhigh "Include HIGH in the failure criteria"}
+	{cmds.arg [list $UTF::controlchart_cmds] \
+	     "list of additional logging commands to run inside main test loop.  %S will be replaced by the STA object, eg -cmds \[list {%S wl rssi}].  The default is taken from \$UTF::controlchart_cmds"}
+	{iperf.arg [list $UTF::controlchart_iperf] \
+	     "more arguments to pass to iperf"}
+	{stats.arg "" "Array for returning stats"}
+    }]
+
+    # If caller provided storage for -stats, use it.
+    if {$(stats) ne ""} {
+	# Direct ties for sample and mean data
+	upvar $(stats)(samples) samples
+	upvar $(stats)(mmm) mmm
+        # trying to return reference to call proc
+	# Full tie to the array for CC to dump it's own stats
+	 upvar $(stats) stats
+    }
+
+    # PAIRS is the input list.
+
+    # KEYPAIRS is used for the old key.  It uses LAN endpoints for
+    # everything except for HCIS.  These will be automatically
+    # migrated to the new key, which uses the input list directly.
+
+    set KEYPAIRS {}
+    foreach STA $PAIRS {
+	if {[$STA cget -lanpeer] eq "" || [$STA hostis HSIC]} {
+	    lappend KEYPAIRS $STA
+	} else {
+	    lappend KEYPAIRS [$STA cget -lanpeer]
+	}
+    }
+
+    # Create new ControlChart object
+    if {$(oldkey) eq ""} {
+	set (oldkey) $(key)
+    }
+    lappend (oldkey) $KEYPAIRS
+    lappend (key) $PAIRS
+    UTF::ControlChart CC -s $(s) -key $(key) -oldkey $(oldkey) \
+	-perfcache $(perfcache) -history $(history) \
+	-allowzero [expr {$(min) == 0}]
+
+    if {$(loop) > 0} {
+	# Short test of all pairs to make sure rate has
+	# settled. Results are ignored.
+	if {!$(nopretest)} {
+	    UTF::Message LOG "" "controlchart test to stabilize rate"
+	    catch {UTF::Multiperf $PAIRS -w $(window) -N -t 1}
+	}
+    }
+
+    # Fail criteria
+    if {$(failonhigh)} {
+	set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+    } else {
+	set FAILMATCH "LOW|WIDE|ZERO"
+    }
+
+    # Main loop to get performance samples and check them. Since this
+    # loop can run more than once, we dont want to generate a specific
+    # error message on the high level web summary page more than once.
+    # We have flags to keep track of what errors occured. The detailed
+    # log file will show an error message each and every time it
+    # occurs.
+    set error_short_samples no
+    set error_low_tput no
+    set error_high_tput no
+    set error_LWZ ""
+    for {set i 0} {$i < $(loop)} {incr i} {
+
+        if {$(loop) > 1} {
+	    if {[info exists ::UTF::panic]} {
+		UTF::Message FAIL "" "Panic detected - Aborting early"
+		break
+	    }
+	    UTF::Message LOG "" "controlchart getting sample set $i\
+            ============================================================"
+	}
+
+	# Perform optional logging commands.
+        UTF::forall STA $PAIRS cmd $(cmds) {
+	    if {[catch [string map [list %S $STA] $cmd] ret]} {
+		UTF::Message WARN $STA $ret
+	    }
+	}
+
+	# Run optional pre-test hooks
+	foreach STA [lsort -unique $PAIRS] {
+	    foreach cmd [$STA cget -pre_perf_hook] {
+		if {[catch [string map [list %S $STA] $cmd] ret]} {
+		    UTF::Message WARN $STA $ret
+		}
+	    }
+	}
+
+	set mpargs [list -w $(window) -i $(i) -t [expr {$(i) * $(s)}]]
+	if {$(N)} {
+	    lappend mpargs -N
+	}
+	if {$(l) ne ""} {
+	    lappend mpargs -l $(l)
+	}
+	if {$i > 0 || $(min) == 0} {
+	    # After sample 0 is collected, there is no need to ping
+	    # the devices.  If (min) is zero then it's not safe to
+	    # ping.
+	    lappend mpargs -noping
+	}
+
+	# Use try ... finally so that the post test hooks always get
+	# run even if Multiperf gave an error, since they may be
+	# needed for debugging or recovery.  Exit status/stack trace
+	# will not be changed by the finally block.
+	try {
+	    # Get raw performance data samples.
+	    set samples [eval UTF::Multiperf [list $PAIRS] $mpargs $(iperf)]
+	} finally {
+	    # Run optional post-test hooks
+	    foreach STA [lsort -unique $PAIRS] {
+		foreach cmd [$STA cget -post_perf_hook] {
+		    if {[catch [string map [list %S $STA] $cmd] ret]} {
+			UTF::Message WARN $STA $ret
+		    }
+		}
+	    }
+	}
+
+        # Check we actually got the expected number of samples.  There
+        # are some timing issues with iperf such that it might only
+        # report N-1 samples. For the time being, we will allow this
+        # behavior and not flag it as an error.  This should not
+        # invalidate the statistical data in practice. We allow the
+        # case of 1 sample, value of 0 to go into the control chart,
+        # as it will get flagged as a ZERO error.
+
+        set threshold_samples [expr $(s) - 1]
+        set samples [string trim $samples]
+        set actual_samples [llength $samples]
+        if {$actual_samples < $(s) && $actual_samples >= $threshold_samples} {
+            UTF::Message WARN "" "controlchart i=$i iperf gave only\
+                  $actual_samples samples, was expecting $(s) samples"
+        }
+        if {$actual_samples < $threshold_samples &&
+	    $actual_samples != 1 &&
+            $samples != "0"} {
+            UTF::Message ERROR "" "controlchart ERROR: did not get the\
+                expected number of samples from UTF::Multiperf,\
+                i=$i actual_samples=$actual_samples\
+                expected_samples=$(s) samples=$samples"
+            set error_short_samples yes
+
+            # Dont allow short sample data to be collected in
+            # perfcache.
+            continue
+        }
+
+        # Optional minimum throughput check. Data is collected in
+        # perfcache regardless of errors.
+        if {$(min) != -1} {
+            UTF::Message LOG "" \
+		"controlchart check throughput is minimum $(min)"
+            foreach val $samples {
+                if {$val < $(min)} {
+                    UTF::Message ERROR "" "controlchart ERROR: actual\
+                        throughput $val < expected minimum throughput $(min),\
+                        i=$i samples=$samples"
+                    set error_low_tput yes
+                    break
+                }
+            }
+        }
+
+        # Optional maximum throughput check. Data is collected in
+        # perfcache regardless of errors.
+        if {$(max) != -1} {
+            UTF::Message LOG "" \
+		"controlchart check throughput is maximum $(max)"
+            foreach val $samples {
+                if {$val > $(max)} {
+                    UTF::Message ERROR "" "controlchart ERROR: actual\
+                        throughput $val > expected maximum throughput $(max),\
+                        i=$i samples=$samples"
+                    set error_high_tput yes
+                    break
+                }
+            }
+        }
+
+	set mmm [UTF::MeanMinMax $samples]
+        #  
+	set chart [CC addsample $mmm]
+	if {[regexp $FAILMATCH $chart x1]} {
+	    set error_LWZ $x1 ;# save latest error only
+	}
+    }
+
+    # Always use latest controlchart, if any, as the start of the
+    # result.
+    set result_type pass
+    if {[info exists chart]} {
+        set result $chart
+    } else {
+        set result ""
+    }
+
+    if {$(stats) ne ""} {
+	# Retrieve stats from CC object.  The return array is tied to
+	# the -stats calling argument.
+	#CC stats stats
+    }
+
+    if {![string is false $(png)]} {
+        #return a web tag
+	set result [CC plotcontrolchart $result]
+    }
+
+    set error_msg ""
+    if {$error_LWZ != ""} {
+        # If current result already has the appropriate error, dont
+        # add it a second time
+        if {![regexp $error_LWZ $result]} {
+            append result " $error_LWZ"
+        }
+        set result_type fail
+    }
+
+    # Add more data to the result based on the error flags.
+    if {$error_short_samples == "yes"} {
+        append result " Iperf stopped reporting data!"
+        set result_type fail
+    }
+    if {$error_low_tput == "yes"} {
+        append result " Tput < $(min) !"
+        set result_type fail
+    }
+    if {$error_high_tput == "yes"} {
+        append result " Tput > $(max) !"
+        set result_type fail
+    }
+
+    # Return results
+    set result [string trim $result]
+    if {$result_type == "pass"} {
+	UTF::Message PASS "" $result
+	return $result
+    } else {
+	UTF::Message FAIL "" $result
+	error $result
+    }
+}
+
+
+
+
+proc chupdate { channel_in channel_out bw } {
+   upvar $channel_out  channel 
+   upvar $bw _bw 
+    
+  if {[regexp {(\d+)([ul])?} $channel_in match _channel bw ] } {
+               
+
+      if { ![info exist _channel ] } {
+            if {$_channel >= 36} {
+                set band "5"
+            } else {
+                set band "2.4"
+            }
+        }
+        if {$bw eq "l"} {
+                set cap "40"
+        } elseif {$bw eq "u"} {
+	    set cap "40"
+        } else {
+	    set cap "20"
+        }
+
+       set _bw $cap
+        
+       set channel $_channel
+      return 1  
+  } else {
+      return 0
+  }
+}
+
+####
+
+proc DataRate3 {AP STA}  {
+       upvar {} {}
+       upvar apdata apdata
+    ConnectAPSTA $AP $STA
+
+    # Figure out what band we're using so that we know how to set rate
+    # to "auto".  Can't just use "rate" since we may not be bandlocked.
+    if {[$AP band] eq "a"} {
+	set lratecmd a_rate
+    } else {
+	set lratecmd bg_rate
+    }
+
+    set APIP [$AP ipaddr]
+
+    # Ask the STA for the rateset, since that will be the common set
+    # negotiated between AP and STA for this BSS.
+    set RATESET [$STA wl rateset]
+    set MCSSET ""
+
+    # Split out any MCS rates to be handled seperately.
+    regexp {(.*)(\nMCS SET : .*)} $RATESET - RATESET MCSSET
+    set RATESET [regexp -all -inline {[\d.]+} $RATESET]
+    set MCSSET [regexp -all -inline {[\d.]+} $MCSSET]
+
+    # TARGET is the STA object to have its rate adjusted.
+    # First pass, the AP
+    # Second pass, the STA
+  #   $AP wl $lratecmd auto
+  #  $STA wl $lratecmd auto
+
+    foreach TARGET [list $AP $STA ] {
+        if { $TARGET == $STA } { continue }   
+	
+	foreach r $MCSSET {
+	    UTF::Try "$TARGET: mcs rate set to $r" {
+		$TARGET wl nrate -m $r
+                after 1000
+		$STA ping $APIP
+	    }
+	}
+       
+        after 1000
+
+        #	foreach r $RATESET {
+	#    UTF::Try "$TARGET: legacy rate set to $r" {
+	#	$TARGET wl $lratecmd $r
+        #        after 1000
+	#	$STA ping $APIP
+	#    }
+	#}
+ 
+
+	$TARGET wl $lratecmd auto
+    }
+
+    # Clean up
+    catch {$STA wl disassoc}
+    $AP wl $lratecmd auto
+    $STA wl $lratecmd auto
+}
+
+
+
+
+##################################################
+###args processing       
+####################################################
+    # If necessary, override the config file log directory setting.
+    if {$(logdir) != ""} {
+        set UTF::SummaryDir $(logdir)
+        UTF::Message INFO "" "Using logdir: $UTF::SummaryDir"
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+	set ::UTF::MemChart::readonly 1
+    }
+
+    if {$(nobtests)} {
+	# Common disable for historical "Bangalore" tests, and others
+	set (nopingtimes) 1
+	set (norate) 1
+	set (norts) 1
+	set (nofrag) 1
+    }
+
+    set Router  $(ap)
+    set STA [lindex $(sta) 0]
+
+   
+    # Override default tags, push the tag into class object buffer 
+    #, in object , may be set from the configuration file
+    # by using the same command, cget can get it
+    if {$(trx) ne ""} {
+	$Router configure -image $(trx) -date {}
+    } elseif {$(tag) ne ""} {
+	$Router configure -tag $(tag) -date {}
+    }
+
+     #  apdate explicit
+      if {$(apdate) ne ""} {
+            $Router configure -date $(apdate)
+      }
+
+
+    if {$(bin) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -image $(bin) -date {}
+	}
+    }
+    if {$(statag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -tag $(statag) -date {}
+	}
+    }
+    if {$(date) ne ""} {
+	set date $(date)
+	foreach S $(sta) {
+	    $S configure -date $(date)
+	}
+	unset S
+    } else {
+	set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+	# Clean up whitespace (RH9 compat)
+	regsub -all {\s+} $date {} date
+    }
+
+    if {$(perfonly)} {
+	# Enable perfonly on all STAs
+	foreach S $(sta) {
+	    $S configure -perfonly 1
+	}
+    }
+
+    # Compact build list for title
+    set build [UTF::BuildTitle $(sta)]
+
+    if {$(title) eq ""} {
+	if {[$STA hostis WinDHD Cygwin]} {
+	    set (title) [$STA host whatami]
+	} elseif {[$STA hostis LMAC DHD]} {
+	    set (title) "Linux Dongle"
+	} else {
+	    set (title) [$STA hostis]
+	}
+
+	if {[regexp {(\d+sd)} $Router - c]} {
+	    append (title) " with $c AP"
+	}
+    }
+    set TITLE "UTF $(title) ($build)"
+    UTF::Message INFO "" $TITLE
+
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+
+    if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+	    error "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+    }
+    unset build
+
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+
+#############################################################
+# Define  global proc 
+###########################################################
+    proc systime {STA} {
+	catch {
+	    $STA rexec {vmstat 1 6 | awk 'FNR>3{print $14}'}
+
+	}
+    }
+
+    proc pmperf {BUILD AP STA MSG args} {
+	upvar {} testopts
+	UTF::Getopts {
+	    {PM.arg "0" "Power Management"}
+	    {fb.arg "" "Frameburst"}
+	    {ch.arg "" "Chanspec"}
+	    {security.arg "open" "security"}
+            {statxmmm.arg "" "txmmm data"}
+            {direction.arg "1 1" "stx srx" }
+            {starxmmm.arg "" "rxmmm data"}
+	}
+        
+        set stx_f [lindex $(direction) 0] 
+        set srx_f [lindex $(direction) 1]    
+      
+        set txmmm ""  
+        set rxmmm ""     
+        # no return for   default direction 1 1 
+        #if { $(statxmmm) ne "" } {   
+	#    upvar $(statxmmm) txmmm
+        # set txmmm ""
+        #}
+
+	if {$(fb) eq ""} {
+	    # Frameburst default depends on OS
+	    if {![$STA cget -noframeburst] && [$STA hostis MacOS]} {
+		set (fb) 1
+	    } else {
+		set (fb) 0
+	    }
+	} else {
+	    # canonicalize
+	    set (fb) [string is true $(fb)]
+	}
+
+	if {[$AP hostis Router Vx BSDAP DSL]} {
+	    set LAN [$AP lan]
+	} else {
+	    set LAN $AP
+	}
+	if {$(PM) == 1} {
+	    # Low performance tests may need longer to reduce
+	    # quantization errors
+	    set i 5
+	} else {
+	    set i 2
+	}
+
+	if {$(ch) ne ""} {
+	    append MSG ": CH=$(ch)"
+	}
+	if {$(fb)} {
+	    append MSG ": FB=$(fb)"
+	}
+	if {$(PM)} {
+	    append MSG ": PM=$(PM)"
+	}
+	if {$(security) ne "open"} {
+	    append MSG ": $(security)"
+	}
+
+	set setup 0
+        #try test block 
+     #1 WLAN<-LAN     
+	#   UTF::Try "$MSG: WLAN<-LAN" \{
+		# Put STAs into PM mode before association, to make sure
+		# we can associate in PM mode.
+		if {![$STA cget -apmode]} {
+		    if {[catch {$STA wl PM $(PM)} ret] &&
+			([regexp {killed} $ret] ||
+			 ($(PM) && ![regexp {Not STA} $ret]))} {
+			error $ret
+		    }
+		}
+		if {[$STA wl frameburst] ne $(fb)} {
+		    $STA wl frameburst $(fb)
+		    if {[$STA wl frameburst] ne $(fb)} {
+			if {$(fb)} {
+			    error "failed to enable frameburst"
+			} else {
+			    error "failed to disable frameburst"
+			}
+		    }
+		}
+		if {$(ch) ne ""} {
+		    if {[$STA cget -apmode]} {
+			APChanspec $STA $(ch)
+		    } else {
+			APChanspec $AP $(ch)
+		    }
+		}
+		# get args  or it may in the configure file  
+		if {$(security) ne [$AP cget -security]} {
+		    ConnectAPSTA $AP $STA -security $(security)
+		} elseif {[catch {$STA wl bssid} ret] || \
+			      $ret eq "00:00:00:00:00:00"} {
+		    ConnectAPSTA $AP $STA
+		}
+		# Set frameburst after any AP restarts
+		$AP wl frameburst $(fb)
+					
+		# If we're in SoftAP mode, set PM on the router.  Do this
+		# after assoc, since WET assoc may restart the router.
+		if {[$STA cget -apmode]} {
+		    $AP wl PM $(PM)
+		}
+		
+		set k [concat $BUILD $AP $(PM)]
+		if {$(ch) ne ""} {
+		    lappend k "ch=$(ch)"
+		}
+		if {$(fb)} {
+		    lappend k "fb=$(fb)"
+		}
+		
+		# Auto TCP window size setting based on phy rate
+		set w [$STA tcpautowindow]
+		
+		if {$(security) ne "open"} {
+		    lappend k "$(security)"
+		}
+		
+		if {[$STA cget -dosystime]} {
+		    after 5000 [namespace current]::systime $STA
+	        }
+               
+      
+	set setup 1
+        #to disable down stream
+	if { $setup && $srx_f eq 1 } {
+            UTF::Try "$MSG: WLAN<-LAN" {
+	       if { $(starxmmm) eq "" } {            
+		controlchart [list $LAN $STA] -key $k -i $i -window $w \
+		    -loop $testopts(perfloop) -history $testopts(history)
+               } else {
+                        
+                    controlchart2 [list $LAN $STA] -key $k -i $i -window $w -loop $testopts(perfloop) -history $testopts(history) -stats mmm
+                    puts " WLAN<-LAN data mmm= $mmm(mmm)"
+		    puts " WLAN<-LAN data mmm= $mmm(samples)"
+		    puts " WLAN<-LAN data mean=  [lindex $mmm(mmm) 0 ]"
+                    if { [llength $mmm(mmm)] > 1 } {
+			set rxmmm $mmm(mmm)
+		    }    
+
+               } 
+
+	  } 	    
+        }  
+
+        #2  WLAN->LAN , in the conrolchart multiperf is used
+	if { $setup && $stx_f eq 1 } {
+	    UTF::Try "$MSG: WLAN->LAN" {
+	  	if {[$STA cget -dosystime]} {
+	  	    after 5000 [namespace current]::systime $STA
+	  	}
+
+                #catch a latest data in triple type mmm 
+		if { $(statxmmm) eq "" } { 
+		    controlchart [list $STA $LAN] -key $k -i $i -window $w \
+			-loop $testopts(perfloop) -history $testopts(history)
+		} else {   
+		    controlchart2 [list $STA $LAN] -key $k -i $i -window $w \
+			-loop $testopts(perfloop) -history $testopts(history) -stats mmm
+		    puts " WLAN->LAN data mmm= $mmm(mmm)"
+		    puts " WLAN->LAN data mmm= $mmm(samples)"
+		    puts " WLAN->LAN data mean=  [lindex $mmm(mmm) 0 ]"
+                    if { [llength $mmm(mmm)] > 1 } {
+			set txmmm $mmm(mmm)
+		    }    
+		}
+		
+	    }
+            
+        }
+
+
+          if {  $stx_f eq 1  && $srx_f eq 1 } {
+	    #3 WLAN<>LAN
+            # disable the birdirection iperf
+	    if {!$testopts(nobx) && [expr $stx_f] && [expr $srx_f] } {
+		UTF::Try "$MSG: WLAN<>LAN" {
+		    if {[$STA cget -dosystime]} {
+			after 5000 [namespace current]::systime $STA
+		    }
+		    controlchart [list $STA $LAN $LAN $STA] -key $k -i $i \
+			-window $w -loop $testopts(perfloop) \
+			-history $testopts(history)
+		}
+	    }
+	
+	   }
+
+       if  { $stx_f eq 1 && $srx_f ne 1 } {
+         return $txmmm 
+        }    
+       if { $srx_f eq 1  && $stx_f ne 1 } {
+         return $rxmmm 
+       }
+
+    } ;# end of the proc
+
+
+
+##############
+
+###date rate with iperf instead of ping
+proc DataRate4 {AP STA chan }  {
+       upvar {} {}
+       upvar apdata apdata
+       upvar branch branch
+       upvar apr_auto apr_auto 
+       upvar nopm1 nopm1
+       upvar nopm2 nopm2
+       upvar nopm nopm
+
+    ConnectAPSTA $AP $STA -chanspec $chan
+    #pmperf $branch $Router $STA $STA -PM 1 -ch $c
+    #pmperf {BUILD AP STA MSG args}
+   
+    if {$(branch) eq "auto"} {
+	set branch [$STA branchname]
+    } else {
+	set branch $(branch)
+    }
+
+
+    # Figure out what band we're using so that we know how to set rate
+    # to "auto".  Can't just use "rate" since we may not be bandlocked.
+    if {[$AP band] eq "a"} {
+	set lratecmd a_rate
+    } else {
+	set lratecmd bg_rate
+    }
+
+    set APIP [$AP ipaddr]
+
+    # Ask the STA for the rateset, since that will be the common set
+    # negotiated between AP and STA for this BSS.
+    set RATESET [$STA wl rateset]
+    set MCSSET ""
+
+    # Split out any MCS rates to be handled seperately.
+    regexp {(.*)(\nMCS SET : .*)} $RATESET - RATESET MCSSET
+    set RATESET [regexp -all -inline {[\d.]+} $RATESET]
+    set MCSSET [regexp -all -inline {[\d.]+} $MCSSET]
+
+
+    # TARGET is the STA object to have its rate adjusted.
+    # First pass, the AP
+    # Second pass, the STA
+
+# build graph data
+    set legacy_stx {"throughput" x1y1 }
+    set mcs_stx { "throughput" x1y1 }  
+    set legacy_stx0 "" ; # base 
+    set mcs_stx0   ""
+    set web_page_link "" 
+#
+
+#ap fixed  --> sta auto RX     
+set legacy_srx {"throughput" x1y1 }
+    set mcs_srx { "throughput" x1y1 }  
+    set legacy_srx0 "" ; # base 
+    set mcs_srx0   ""
+    set web_page_link2 "" 
+#
+
+#
+
+    foreach TARGET [list $STA $AP ] {
+        if { $(apdata)== 0 && $TARGET == $AP } { $TARGET wl $lratecmd auto ; continue } 
+        
+	foreach r $RATESET {
+	    UTF::Try "$TARGET: legacy rate set to $r" {
+		$TARGET wl $lratecmd $r
+                #no auto, check if config both sides as fixed rate 
+               	if { $(apdata)== 0 && $TARGET == $STA && $(apr_auto) == 0 } { $AP wl $lratecmd $r }          
+  
+                after 1000
+               
+                UTF::Message INFO "$STA" "bssid= [$STA wl bssid]"
+		$STA ping $APIP
+            }  
+            
+              
+	    #PM=0 and get mean
+            if { $TARGET == $STA  } {
+	       set txmmm [ pmperf $branch $AP $STA "$TARGET legacy rate $r" -PM 0 -ch $chan -statxmmm mmm -direction "1 0" ]
+	       if { [ llength $txmmm ] > 1 } {                
+		lappend legacy_stx "$r" ; lappend legacy_stx [lindex $txmmm 0]     	    
+	       }
+	    } else {
+               set rxmmm [ pmperf $branch $AP $STA "$TARGET legacy rate $r" -PM 0 -ch $chan -starxmmm mmm -direction "0 1" ]
+	       if { [ llength $rxmmm ] > 1 } {                
+		   #puts " WLAN<-LAN pm=0 data legacy mmm= $mmm(samples)"
+		   lappend legacy_srx "$r" ; lappend legacy_srx [lindex $rxmmm 0]                     	    
+	       }
+             
+            }
+
+
+	    if {!$(nopm1) && ![$STA cget -nopm1]} {
+		pmperf $branch $AP $STA "$TARGET legacy rate $r" -PM 1 -ch $chan 
+	    }
+	    if {!$(nopm2) && ![$STA cget -nopm2]} {
+		pmperf $branch $AP $STA "$TARGET legacy rate $r" -PM 2 -ch $chan
+	    }  
+
+	}
+
+ if { $TARGET == $STA  } {
+
+        lappend legacy_stx0 "$legacy_stx"
+#	lappend web_page_link [UTF::gnuplot_lines "WLAN->LAN throughput ch$chan" "legacy rate" category "Mb/s" "" "fixed rate sweep" "$legacy_stx0" ] 
+    #draw a graph 
+    UTF::Try "legacy rate test summary at ch$chan" {
+         #if there is web page tag return it will show on the report web page 
+         UTF::gnuplot_lines "WLAN->LAN legacy rate at ch$chan" "legacy rate" category "Mb/s" "" "" "$legacy_stx0" 1
+
+    }
+} else {
+        lappend legacy_srx0 "$legacy_srx"
+#	lappend web_page_link2 [UTF::gnuplot_lines "WLAN<-LAN throughput ch$chan" "legacy rate" category "Mb/s" "" "fixed rate sweep" "$legacy_srx0" ] 
+     #draw a graph 
+     UTF::Try "legacy rate test summary at ch$chan" {
+         UTF::gnuplot_lines "WLAN<-LAN legacy rate at ch$chan" "legacy rate" category "Mb/s" "" "" "$legacy_srx0" 1
+
+    }
+}
+
+##
+
+#mcs testing  for the whole mcsset (fixed rate)
+	foreach r $MCSSET {
+	   UTF::Try "$TARGET: mcs rate set to $r" {
+		$TARGET wl nrate -m $r
+
+	       if { $(apdata)== 0 && $TARGET == $STA && $(apr_auto) == 0 } { $AP wl nrate -m $r }
+
+ 
+	       after 1000
+	       UTF::Message INFO "$STA" "bssid= [$STA wl bssid]"
+	       
+	       $STA ping $APIP
+           }
+
+                #PM=0 and get mean throughput  
+           
+           if { $TARGET == $STA  } { 
+	       set mcstxmmm [ pmperf $branch $AP $STA "$TARGET mcs=$r" -PM 0 -ch $chan -statxmmm mmm -direction "1 0" ]
+	       if { [ llength $mcstxmmm ] > 1 } {
+                
+	          lappend mcs_stx "$r" ; lappend mcs_stx [lindex $mcstxmmm 0]
+               
+              }
+           } else {
+               set mcsrxmmm [ pmperf $branch $AP $STA "$TARGET mcs=$r" -PM 0 -ch $chan -starxmmm mmm -direction "0 1" ]
+	       if { [ llength $mcsrxmmm ] > 1 } {
+	           lappend mcs_srx "$r" ; lappend mcs_srx [lindex $mcsrxmmm 0]
+               
+              } 
+           }
+  
+	   if {!$(nopm1) && ![$STA cget -nopm1]} { 
+	       pmperf $branch $AP $STA "$TARGET mcs=$r"  -PM 1 -ch $chan
+	   }
+	   
+	   if {!$(nopm2) && ![$STA cget -nopm2]} { 
+	       pmperf $branch $AP $STA "$TARGET mcs=$r"  -PM 2 -ch $chan
+	   }
+	                 
+	   
+	}
+
+
+
+ if { $TARGET == $STA  } {
+       
+       lappend mcs_stx0 "$mcs_stx"
+       #lappend web_page_link [UTF::gnuplot_lines "WLAN->LAN throughput vs. mcs,ch$chan" "mcs index" category "Mb/s" "" "fixed rate sweep" "$mcs_stx0"]
+       #draw a graph here
+       UTF::Try "mcs rate test summary at ch=$chan" {
+          UTF::gnuplot_lines "WLAN->LAN throughput vs. mcs at ch$chan" "mcs index" category "Mb/s" "" "" "$mcs_stx0" 1
+
+       }
+} else {
+       lappend mcs_srx0 "$mcs_srx"
+       #lappend web_page_link2 [UTF::gnuplot_lines "WLAN<-LAN throughput vs. mcs,ch$chan" "mcs index" category "Mb/s" "" "fixed rate sweep" "$mcs_srx0"]
+       #draw a graph here ?
+       UTF::Try "mcs rate test summary at ch=$chan" {
+          UTF::gnuplot_lines "WLAN<-LAN throughput vs. mcs at ch$chan" "mcs index" category "Mb/s" "" "" "$mcs_srx0" 1
+       }
+}
+
+        #retore to auto for target to test the other as fixed rate 
+	$TARGET wl $lratecmd auto      
+
+    } 
+
+
+    # Clean up
+    catch {$STA wl disassoc}
+    $AP wl $lratecmd auto
+    $STA wl $lratecmd auto
+
+  
+   return $web_page_link 
+}
+
+
+##############
+
+
+
+    if {$(noscan)} {
+        #dummy proc
+	proc scan {AP STA MSG} {}
+
+         
+    } else {
+	proc scan {AP STA MSG} {
+	    UTF::Try "$MSG: Scan Tests" {
+		UTF::Try "$MSG: Broadcast Scan" {
+		    Scan $AP $STA
+		}
+		UTF::Try "$MSG: Scan directed to SSID" {
+		    Scan $AP $STA -ssid
+		}
+		UTF::Try "$MSG: Scan directed to BSSID" {
+		    Scan $AP $STA -bssid
+		}
+		UTF::Try "$MSG: Scan directed to SSID and BSSID" {
+		    Scan $AP $STA -ssid -bssid
+		}
+		UTF::Try "$MSG: Passive Scan" {
+		    Scan $AP $STA -passive
+		}
+		return
+	    }
+	}
+    }
+
+
+    ###define  join with security with previous channel and datereate set 
+    if {$(nojoin)} {
+	proc joinsec {AP STA MSG} {}
+    } else {
+	proc joinsec {AP STA MSG} {
+	    # access option array
+	    upvar {} {}
+	    UTF::Try "$MSG: Associations Tests" {
+		if {!$(noshared) && ![$STA cget -nowep]} {
+		    # use limited wep on some devices.
+		    if {[$STA cget -usewep64]} {
+			UTF::Try "$MSG: SHARED64 association" {
+			    ConnectAPSTA $AP $STA -security shared64
+			}
+		    } else {
+			UTF::Try "$MSG: SHARED association" {
+			    ConnectAPSTA $AP $STA -security shared
+			}
+		    }
+		}
+
+		if {!$(notkip) && ![$STA cget -notkip]} {
+		    UTF::Try "$MSG: TKIPPSK2 association" {
+			ConnectAPSTA $AP $STA -security tkippsk2
+		    }
+		}
+		if {!$(noaes) && ![$STA cget -noaes]} {
+		    UTF::Try "$MSG: AESPSK association" {
+			ConnectAPSTA $AP $STA -security aespsk
+		    }
+		}
+		return
+	    }
+	}
+    } ;# end of the proc
+
+
+
+ #define main program test proc for a sta with the AP
+ # the main only load sta build
+proc main {Router STA} {
+    # access option array
+    upvar {} {}
+    upvar date date   ;# sta date DUT
+    upvar apdate apdate
+    upvar perfchans perfchans
+    upvar datarate_all datarate_all  
+    upvar pingonly pingonly
+    upvar chsweep chsweep        
+    
+
+    set phyname ""
+    
+    if {$(branch) eq "auto"} {
+	set branch [$STA branchname]
+    } else {
+	set branch $(branch)
+    }
+
+    
+    # Find images
+    if {!$(nostaload)} {
+	UTF::Try "$STA Find STA Image" {
+	    UTF::CheckImage $STA $date unknown
+	}
+    }
+    if {!$(nosetup)} {
+	if {$(nostaload)} {
+	    if {!$(nostareload)} {
+		UTF::Try "$STA reload" {
+		    $STA reload
+		}
+	    }
+	} else {
+	    UTF::Try "$STA load" {
+		$STA load
+	    }
+	}
+	UTF::Try "$STA defaults" {
+	    $STA services stop
+	    catch {$STA wl msglevel +error +assoc}
+	    if {![$STA hostis LMAC]} {
+		catch {$STA wl down}
+		# Enable 40 in 2.4, if available. , it may fall back to 20M if ap not
+		# Doesn't work for LMAC since LMAC is never "down"
+		# 1   ---20/40MHz      ; 2--20mhz ; 0-------20MZ 
+		$STA wl -u mimo_bw_cap 1
+		
+		$STA wl up
+		UTF::Sleep 1
+	    }
+	    $STA wl ver
+	    set what [$STA whatami]
+	    if {!$(nostaload)} {
+		# Pull out chip info and replace whitespace to
+		# make it easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $STA $ret
+		}
+	    }
+	    set what
+	}
+	
+	if {!$(nostaload) && [set reclaim [$STA reclaim]]} {
+	    UTF::Try "$STA: Reclaim" {
+		#		    if {$(bin) eq ""} {
+		#			# Only do MemSave for official builds
+		#			UTF::MemSave $reclaim "reclaim" [$STA imageinfo]
+		#		    }
+		# MemChart
+		memchart $reclaim -key [list $branch $STA reclaim] \
+		    -failonlow
+	    }
+	}
+    }
+
+
+    if { $(perfchans) ne "" } {
+	set perfchans $(perfchans)
+    } else {
+	set perfchans [$STA cget -perfchans]
+    }
+    
+    #
+    if {$(perfchans) eq "" && $(chsweep) == 1 } {
+	# default to finding chanspecs AP and STA have in common
+	set perfchans [UTF::Common [$Router allchanspecs] [$STA allchanspecs]]   
+	#puts "perfchans  =  $perfchans -------------\n"
+	
+    }
+        
+    #set common_ch [UTF::Common [$Router allchanspecs] [$STA allchanspecs]]  
+    #puts "perfchans  =  $common_ch -------------\n"
+    
+    if { [llength $perfchans] != 0 } { 
+	UTF::Message INFO $STA "Channel testing on: \n $perfchans\n"
+    }
+
+#
+    if {$perfchans ne ""} {  
+	# if perfchans were set, use them for the home channel
+	set 20chan [lindex $perfchans 0]
+    } else {
+	# Try to guess a 40 and a 20 MHz channel
+	
+	set 40chan ""
+	if {$(chanspec) ne ""} {
+	    # cmdline override
+	    set 20chan $(chanspec)
+	} else {
+	    # per device defaults
+	    set 20chan [$STA cget -chanspec220]
+	}
+	
+	if {[catch {
+	    if {[regexp {36?l} [$Router wl chanspecs]] &&
+		[regexp {36?l} [$STA wl chanspecs]]} {
+		# 40 MHz channels are available
+		# check if we can use 5GHz band for 40MHz bw tests
+		set 40chan 3l
+		if {[catch {
+		    if {[lsearch [$Router wl bands] "a"] > -1 &&
+			[lsearch [$STA wl bands] "a"] > -1} {
+			set 40chan 36l
+		    }
+		} ret]} {
+		    UTF::Try "$STA: check for 5GHz band" {
+			error $ret
+		    }
+		}
+	    }
+	} ret]} {
+	    if {![regexp {Unsupported} $ret]} {
+		# If any of these commands are unsupported it's a safe bet
+		# that 40MHz isn't available.
+		UTF::Try "$STA: check for 40MHz channels" {
+		    error $ret
+		}
+	    }
+	}
+	if {$40chan eq ""} {
+	    UTF::Message INFO "" "No 40MHz testing"
+	} else {
+	    UTF::Message INFO "" "Using $40chan for 40MHz testing"
+	}
+	
+	if {$40chan ne "" && !$(noperf40)} {
+	    lappend perfchans $40chan
+	}
+	if {!$(noperf20)} {
+	    lappend perfchans $20chan
+	}
+    }
+
+
+    # If performance tests are disabled, clean the channel list
+    if {$(noperf)} {
+	set perfchans ""
+    }
+    
+    if {![$STA cget -apmode]} {
+	UTF::Try "$Router: Home Channel $20chan" {
+	    APChanspec $Router $20chan
+	}
+    }
+    
+
+
+    
+for {set i 0} {$i < $(loop)} {incr i} {
+	
+      #preset the security as open for the channel scan
+	UTF::Try "$Router: Open Security" {
+	    APConfigureSecurity $Router -security open
+	}
+	
+	# Scan all channels
+	if {![$STA cget -perfonly] &&
+	    !$(nochannels) && ![$STA cget -nochannels]} {
+	    if {[catch {
+		ChannelSweep $Router $STA -msg $STA
+	    } ret]} {
+		UTF::Try "$STA: Channel Sweep" {
+		    error $ret
+		}
+	    }
+	}
+	
+#
+	#  if { $(nochannels) &&  $(pingonly) ==  1 }  {  
+        #  	if {[catch {
+	#	    ChannelSweep $Router $STA -msg $STA
+	#	} ret]} {
+	#	    UTF::Try "$STA: Channel Sweep" {
+        #			error $ret
+	#	    }
+	#	}
+	#    }
+#            
+             
+            #clean
+	    catch {  $STA wl disassoc } 
+            #catch {   $STA clear arp }
+ 
+	foreach c $perfchans {
+	    
+	    ##############
+   	    
+	    if {!$(nosniffer) && $(pingonly) == 1 } {  
+		# Setup sniffer to sniff on chanspec1 and start tshark command
+		
+		if {$(sniffer) != "" && [chupdate $c p_ch _bw] } {
+		    # $(sniffer) setupSniffer $p_ch 
+		    $(sniffer) setupSniffer $c
+		    set cap $_bw
+		} else {
+		    $(sniffer) setupSniffer $c
+		    set cap 20
+		}
+		
+		after 2000 
+		# start tshark command on sniffer object
+		if {$(sniffer) != ""} {
+		    
+		    # $(sniffer)
+		    
+		    set filename "data_rate_ch"
+		    append filename "G$cap"
+		    append filename "Ch$c"
+		    append filename ".pcap"
+		    
+		    
+		    set filename "captureFile.pcap"
+		    
+		    $(sniffer) start "tshark -i prism0 -w $filename"
+		    after 2000
+		}
+	    }
+	    #
+	    ################
+	    
+	    UTF::Try "$STA: Channel $c " {
+		#
+		catch {$STA wl disassoc }
+		ConnectAPSTA $Router $STA -chanspec $c
+		if { $(pingonly) == 0 } {
+		    rssinoise $Router $STA 
+		}
+		
+	    }
+	    
+	    #date rate sweep
+	    #if {!$(norate)} {
+	    #    UTF::Try "$STA: Check different rate settings" {
+	    #	DataRate $Router $STA
+	    #    }
+	    #}
+	    
+	    if {!$(noframeburst) && ![$STA cget -noframeburst] && $(pingonly) == 0 } {
+		pmperf $branch $Router $STA $STA -fb 1 -ch $c
+	    }
+	    if {![$STA cget -perfonly] && !$(nopm) && $(pingonly) == 0  } {
+		if {!$(nopm2) && ![$STA cget -nopm2]} {
+		    pmperf $branch $Router $STA $STA -PM 2 -ch $c
+		}
+		if {!$(nopm1) && ![$STA cget -nopm1]} {
+		    pmperf $branch $Router $STA $STA -PM 1 -ch $c
+		}
+	    }
+	    if {!$(noaes) && ![$STA cget -noaes] && $(pingonly) == 0 } {
+		pmperf $branch $Router $STA $STA -security aespsk2 -ch $c
+	    }
+	    # HT is disabled in TKIP and WEP, so no point testing
+	    # them in 40MHz
+	    if {![$STA cget -perfonly] && ![regexp {[lu]} $c] && $(pingonly) == 0 } {
+		if {!$(notkip) && ![$STA cget -notkip]} {
+		    pmperf $branch $Router $STA $STA -security tkippsk -ch $c
+		}
+		if {!$(nowep) && ![$STA cget -nowep]} {
+		    # use limited wep on some devices.
+		    if {[$STA cget -usewep64]} {
+			set wep wep64
+		    } else {
+			set wep wep
+		    }
+		    pmperf $branch $Router $STA $STA -security $wep -ch $c
+		}
+	    }
+	    
+	    	    
+	    
+	    # If the STA doesn't do frameburst then no-frameburst
+	    # becomes a performance test.
+	    if {(![$STA cget -perfonly] || [$STA cget -noframeburst]) &&
+		!$(nofb0)  &&  $(pingonly) == 0 } {
+		pmperf $branch $Router $STA $STA -fb 0 -PM 0 \
+		    -security open -ch $c
+	    }
+	    if {![$STA cget -perfonly] &&
+		!$(nobighammer) && ![$STA cget -nobighammer] && $(pingonly) == 0 } {
+		BigHammer $Router $STA "BigHammer on $c"
+	    }
+	    
+	    
+	    #
+	    if {$(sniffer) != ""  && $(pingonly) == 1 } {
+		after 10000 
+		set SummaryLoc [file dirname "$UTF::Logfile"]
+		UTF::stop_sniffer $(sniffer) 1 $SummaryLoc
+		after 1000
+	    }
+	} ;# end of c loop1
+	
+
+	
+  ####channel independent test , scan , association ,and ping time test
+	
+	if {[llength $perfchans]} {
+	    # If we did some perf tests, check memory on STA.  If
+	    # we're using a Dongle SoftAP, check memory on the AP
+	    # too.
+	    foreach S [list $STA $Router] {
+		if {[$S hostis DHD WinDHD PXA LMAC] &&
+		    ![$S cget -nomaxmem] && [$S cget -console] ne ""} {
+		    UTF::Try "$S: MaxMem in use" {
+			memchart [$S maxmem] -key [list $branch $S maxmem]
+		    }
+		}
+	    }
+	} else {
+	    # If we did no performance tests we need to set the
+	    # channel explicitly.
+	    UTF::Try "$STA: Home Channel $20chan" {
+		APChanspec $Router $20chan
+	    }
+	}
+	
+	if {![$STA cget -perfonly]} {
+	    
+	    if {![$STA cget -apmode]} {
+		scan $Router $STA $STA
+	    } else {
+		# AP and STA are reversed
+		scan $STA $Router $STA
+	    }
+	    #association test
+	    joinsec $Router $STA $STA
+	    
+	    if {!$(nobtests)} {
+		UTF::Try "$Router: Configure open security" {
+		    APConfigureSecurity $Router -security open
+		}
+	    }
+	    
+	    if {!$(nopingtimes)} {
+		# Check ping times 
+		PingTimes $Router $STA
+	    }
+	    
+            #############################################
+
+            #2rd loop testing datarate
+
+	    if {!$(norate) && [ llength $perfchans ] != 0 && $(datarate_all) != 0 } {
+		#data rate for different channel loop2
+		foreach c $perfchans {   
+		    #######snif
+		    
+		    if {!$(nosniffer)} {  
+			# Setup sniffer to sniff on chanspec1 and start tshark command
+			
+			if {$(sniffer) != "" && [chupdate $c p_ch _bw] } {
+			    #$(sniffer) setupSniffer $p_ch 
+			    $(sniffer) setupSniffer $c
+			    set cap $_bw
+			} else {
+			    $(sniffer) setupSniffer $c
+			    set cap 20
+			}
+			
+			# start tshark command on sniffer object
+			if {$(sniffer) != ""} {
+			    
+			    # $(sniffer)
+			    
+			    set filename "data_rate_sweep_ch"
+			    append filename "G$cap"
+			    append filename "Ch$c"
+			    append filename ".pcap"
+			    
+			    set filename "captureFile.pcap"
+			    $(sniffer) start "tshark -i prism0 -w $filename"
+			    after 1000
+			}  
+
+		    }   
+		    
+		    #   
+		    ####### comment out wraper
+                   UTF::Message INFO "$STA"  "Check different rate settings at ch=$c"
+		   # UTF::Try "$STA: Check different rate settings at ch=$c " {
+			APChanspec $Router $c
+			# DataRate $Router $STA
+			# DataRate3 $Router $STA
+			 DataRate4 $Router $STA $c   
+		   # }
+		    
+		    ####
+		    #
+		    if {$(sniffer) != "" } {
+			after 10000
+			set SummaryLoc [file dirname "$UTF::Logfile"]
+			UTF::stop_sniffer $(sniffer) 1 $SummaryLoc
+			after 500
+		    }
+
+
+                ##draw the data rate channel and add into the web page
+                 
+                
+
+                ##		    
+		     
+		} ;# end of loop 2
+	    } ;# end of if before the loop2 
+
+
+
+
+  #channel independent test: RTS and Fragmentation test
+	    
+	    if {!$(norts)} {
+		UTF::Try "$STA: Check RTS thresholds" {
+		    RTS $Router $STA
+		}
+	    }
+	    
+	    if {!$(nofrag) && ![$STA cget -nofragmentation]} {
+		UTF::Try "$STA: Check Fragmentation threshold" {
+		    Fragmentation $Router $STA
+		}
+	    }
+	    
+	    if {!$(nocal) && ![$STA cget -nocal]} {
+		# CalStability will check phytype itself to determine if
+		# it should run.
+		CalStability $STA -chanspec $20chan
+	    }
+	     
+	} ;# end if cget
+	
+	
+	
+	
+	
+    } ;# end loop num
+       
+    #cls
+    if {[$STA cget -apmode]} {
+	# For reverse tests, disassoc AP to avoid lots of roaming
+	# messages when STA goes away.
+	catch {$Router wl disassoc}
+    }
+    
+    
+    if {$(noibss)} {
+	set ibsswith ""
+    } else {
+	set ibsswith [$STA cget -ibsswith]
+    }
+    if {$(nodpt)} {
+	set dptwith ""
+    } else {
+	set dptwith [$STA cget -dptwith]
+    }
+    
+    if {$ibsswith ne ""} {
+	UTF::Try "$ibsswith: reload" {
+	    $ibsswith reload
+	}
+	IBSS $STA $ibsswith
+	if {$ibsswith ne $dptwith} {
+	    UTF::Try "$ibsswith: unload" {
+		$ibsswith unload
+	    }
+	}
+    }
+    if {$dptwith ne ""} {
+	if {$ibsswith ne $dptwith} {
+	    UTF::Try "$dptwith: reload" {
+		$dptwith reload
+	    }
+	}
+	DPT $Router $STA $dptwith
+	UTF::Try "$dptwith: unload" {
+	    $dptwith unload
+	}
+    }
+    if {!$(nounload)} {
+	UTF::Try "$STA: unload driver" {
+	    $STA unload
+	}
+    }
+catch {$STA deinit}
+} ;# end of the Main
+
+########################################################################
+#test block
+########################################################
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	if {!$(nosetuptestbed) && [info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+	    }
+	}
+
+       # UTF::CheckImage $Router $(apdate) unknown
+	if {!$(noapload)} {
+	    UTF::Try "$Router: Find Router Image" {
+                 if { $(apdate) == "" } {
+                     UTF::CheckImage $Router $(date) unknown
+                } else {
+                     UTF::CheckImage $Router $(apdate) unknown
+               }
+	    }
+
+	    UTF::Try "$Router: Load Image" {
+		if {[$Router hostis Router Vx BSDAP DSL]} {
+		    if {[catch {$Router lan ifconfig [$Router lan cget -ipaddr]}]} {
+			$Router lan ifconfig 192.168.1.50
+		    }
+		}
+
+               
+                if { $(apdate) == "" } {    
+		  set ver [$Router load]
+                } else {
+                  set ver [$Router load -date $(apdate)]
+                }
+
+		set what [$Router whatami]
+		# Pull out chip info and replace whitespace to make it
+		# easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $Router $ret
+		}
+		return "$what $ver"
+	    }
+	}
+	if {!$(norestore)} {
+	    UTF::Try "$Router: Restore Defaults" {
+		if {[$Router hostis Router Vx BSDAP DSL]} {
+		    $Router restore_defaults
+		} else {
+		    $Router wl radio on
+		    $Router wl ap 0
+		    catch {$Router wl down}
+		    # Enable 40 in 2.4, if available.
+		    $Router wl -u mimo_bw_cap 1   ;# make it 20/40
+		    $Router wl up
+		    $Router wl disassoc
+		    $Router services stop
+		    $Router wl msglevel +error +assoc
+		    $Router chipname ;#
+		}
+	    }
+	}
+
+
+
+
+	foreach STA $(sta) {
+	    if {[catch {main $(ap) $STA} ret]} {
+		UTF::Try "main loop" {
+		    error $ret
+		}
+	    }
+	}
+
+	PreservedReport
+
+	if {!$(noposttesthook) && [info exists ::UTF::PostTestHook]} {
+	    UTF::Try "Post Test" {
+		eval $::UTF::PostTestHook
+	    }
+	}
+
+
+    } ;# end of Wrap summary block
+
+###################################################
+
+}

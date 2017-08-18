@@ -126,6 +126,7 @@ struct NEXUS_IsrCallback {
 
 typedef struct NEXUS_P_SchedulerRequest {
     int timeout;
+    bool idle;
 } NEXUS_P_SchedulerRequest;
 
 typedef struct NEXUS_P_SchedulerResponse {
@@ -164,8 +165,11 @@ struct NEXUS_P_Scheduler {
     } isr_callbacks;
     NEXUS_ThreadHandle thread;
     BDBG_OBJECT(NEXUS_P_Scheduler)
-    struct NEXUS_CallbackCommon *current_callback;
-    NEXUS_Time current_callbackStartTime;
+    struct {
+        const struct NEXUS_CallbackCommon *callback;
+        NEXUS_Time callbackStartTime;
+        unsigned timeout;
+    } current;
     NEXUS_Scheduler_Status status;
 };
 
@@ -311,7 +315,6 @@ static NEXUS_TimerHandle
 NEXUS_Module_P_ScheduleTimer_locked(NEXUS_P_Scheduler *scheduler, NEXUS_ModuleHandle module, unsigned delayMs, void (*pCallback)(void *),  void *pContext, const char *pFileName, unsigned lineNumber)
 {
     NEXUS_TimerHandle timer, prev, cur;
-    NEXUS_Error rc;
 
     NEXUS_ASSERT_MODULE();
     timer = BLST_S_FIRST(&scheduler->free_timers);
@@ -321,7 +324,7 @@ NEXUS_Module_P_ScheduleTimer_locked(NEXUS_P_Scheduler *scheduler, NEXUS_ModuleHa
     else {
         timer = BKNI_Malloc(sizeof(*timer));
         if(!timer) {
-            rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
             goto err_alloc;
         }
     }
@@ -749,6 +752,13 @@ NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHand
     return;
 }
 
+static void NEXUS_P_Scheduler_SetCurrentCallback(NEXUS_P_Scheduler *scheduler, const struct NEXUS_CallbackCommon *pcommon)
+{
+    scheduler->current.callback = pcommon;
+    NEXUS_Time_Get(&scheduler->current.callbackStartTime);
+    scheduler->current.timeout = 0;
+}
+
 static void
 NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
 {
@@ -818,17 +828,16 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
                 BKNI_LeaveCriticalSection();
 
                 callback->armed_save = false;
-                scheduler->current_callback = &callback->common;
-                NEXUS_Time_Get(&scheduler->current_callbackStartTime);
+                NEXUS_P_Scheduler_SetCurrentCallback(scheduler, &callback->common);
                 NEXUS_UnlockModule();
                 
-                /* It's possible that NEXUS_StartCallbacks is run here, so test scheduler->current_callback. */
+                /* It's possible that NEXUS_StartCallbacks is run here, so test scheduler->current.callback. */
                 /* It's possible that NEXUS_StopCallbacks or NEXUS_IsrCallback_Destroy is run here, so retest the common flags. */
                 BKNI_AcquireMutex(scheduler->callback_lock); /* this expected to always succeed, the only exception if NEXUS_StopCallbacks is running */
                 if (callback->common.stopped) {
                     NEXUS_Base_P_CheckStoppedCallback(&callback->common);
                 }
-                else if (scheduler->current_callback && !callback->common.deleted && desc.callback) {
+                else if (scheduler->current.callback && !callback->common.deleted && desc.callback) {
                     BDBG_MSG_TRACE(("NEXUS_P_Scheduler_IsrCallbacks: %#lx callback: %#lx (%#lx, %u)", (unsigned long)scheduler,
                         (unsigned long)desc.callback, (unsigned long)desc.context, (unsigned)desc.param));
                     desc.callback(desc.context, desc.param);
@@ -837,7 +846,7 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
                 
                 NEXUS_LockModule();
                 NEXUS_P_CALLBACK_STATS_STOP(IsrCallbacks, callback, desc.callback, NEXUS_P_CALLBACK_FILENAME(callback->common.pFileName), NEXUS_P_CALLBACK_LINENO(callback->common.lineNumber));  
-                scheduler->current_callback = NULL;
+                scheduler->current.callback = NULL;
             } else {
                 callback->armed_save = true;
                 NEXUS_Base_P_CheckStoppedCallback(&callback->common);
@@ -846,6 +855,20 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
     }
     return;
 }
+
+#if BDBG_DEBUG_BUILD
+static void NEXUS_Module_P_CheckEnabled(NEXUS_ModuleHandle module, const NEXUS_P_Scheduler *scheduler, const char *file, unsigned line)
+{
+    if(!module->enabled) {
+        BDBG_WRN(("scheduler:%p(%u) state:%u tries to lock disabled module:%s at %s:%u", (void *)scheduler, scheduler->priority,  scheduler->status.state, module->pModuleName, file, line));
+    }
+    return;
+}
+#define NEXUS_MODULE_P_CHECK_ENABLED(module) NEXUS_Module_P_CheckEnabled(module, scheduler, BSTD_FILE, BSTD_LINE)
+#else
+#define NEXUS_MODULE_P_CHECK_ENABLED(module)
+#endif
+
 
 static bool
 NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerRequest *request)
@@ -856,6 +879,7 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
     BDBG_OBJECT_ASSERT(scheduler, NEXUS_P_Scheduler);
     NEXUS_LockModule();
     request->timeout = 0;
+    request->idle = false;
     if(scheduler->exit) {
         goto done;
     }
@@ -864,10 +888,12 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
         scheduler->status.state = NEXUS_Scheduler_State_eRunning;
     } else if(scheduler->status.state == NEXUS_Scheduler_State_eStopping) {
         scheduler->status.state = NEXUS_Scheduler_State_eIdle;
+        request->idle = true;
         timeout = BKNI_INFINITE;
         BDBG_MSG(("scheduler:%p[%u] -> IDLE", (void *)scheduler, scheduler->priority));
         goto idle;
     } else if(scheduler->status.state == NEXUS_Scheduler_State_eIdle) {
+        request->idle = true;
         timeout = BKNI_INFINITE;
         BDBG_MSG(("scheduler:%p[%u] IDLE", (void *)scheduler, scheduler->priority));
         goto idle;
@@ -892,6 +918,7 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
             NEXUS_P_CALLBACK_STATS_STATE();  
             NEXUS_UnlockModule();
             NEXUS_P_CALLBACK_STATS_START();  
+            NEXUS_MODULE_P_CHECK_ENABLED(first_timer->module);
             NEXUS_Module_Lock(first_timer->module);
             if(!first_timer->deleted) {
 
@@ -930,18 +957,17 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
 
         /* ensure we get a coherent desc in case NEXUS_TaskCallback_Set is timesliced in after the NEXUS_UnlockModule(). */
         desc = callback->common.desc;
-        scheduler->current_callback = &callback->common;
-        NEXUS_Time_Get(&scheduler->current_callbackStartTime);
+        NEXUS_P_Scheduler_SetCurrentCallback(scheduler, &callback->common);
         NEXUS_UnlockModule(); /* we release our mutex, before grabbing other */
 
-        /* It's possible that NEXUS_StartCallbacks is run here, so test scheduler->current_callback. */
+        /* It's possible that NEXUS_StartCallbacks is run here, so test scheduler->current.callback. */
         /* It's possible that NEXUS_StopCallbacks or NEXUS_TaskCallback_Destroy is run here, so test the common flags. */
         NEXUS_P_CALLBACK_STATS_START();  
         BKNI_AcquireMutex(scheduler->callback_lock); /* this expected to always succeed, the only exception if NEXUS_StopCallbacks is running */
         if (callback->common.stopped) {
             NEXUS_Base_P_CheckStoppedCallback(&callback->common);
         }
-        else if(scheduler->current_callback && callback->common.armed && !callback->common.deleted) {
+        else if(scheduler->current.callback && callback->common.armed && !callback->common.deleted) {
             i++;
             callback->common.armed = false;
             if (desc.callback) {
@@ -952,7 +978,7 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
         BKNI_ReleaseMutex(scheduler->callback_lock);
         NEXUS_LockModule();
         NEXUS_P_CALLBACK_STATS_STOP(TaskCallback, callback, desc.callback, NEXUS_P_CALLBACK_FILENAME(callback->common.pFileName), NEXUS_P_CALLBACK_LINENO(callback->common.lineNumber));  
-        scheduler->current_callback = NULL;
+        scheduler->current.callback = NULL;
     }
     if(i==4) {
         timeout = 0; /* Clear timeout if maxed out number of callback callouts */
@@ -1006,6 +1032,7 @@ NEXUS_P_SchedulerProcessResponse(NEXUS_P_Scheduler *scheduler, const NEXUS_P_Sch
                     NEXUS_P_CALLBACK_STATS_START();  
                     /* XXX move "hot" entries to head of the list */
                     NEXUS_UnlockModule();
+                    NEXUS_MODULE_P_CHECK_ENABLED(cur_event->module);
                     NEXUS_Module_Lock(cur_event->module);
                     if (!cur_event->deleted) {
                         BDBG_MSG_TRACE(("NEXUS_P_SchedulerProcessResponse: %#lx event:%#lx(%#lx)", (unsigned long)scheduler, (unsigned long)cur_event->pCallback, (unsigned long)cur_event->pContext));
@@ -1072,11 +1099,15 @@ NEXUS_P_Scheduler_Step(NEXUS_P_Scheduler *scheduler, unsigned timeout, NEXUS_P_B
                 request.timeout = timeDiff;
             }
         }
-        BDBG_MSG_TRACE(("NEXUS_P_Scheduler_Step:%#lx: %u(%u)", (unsigned long)scheduler, (unsigned)request.timeout, (unsigned)timeout));
-        response.result = BKNI_WaitForGroup(scheduler->group, request.timeout, response.events, sizeof(response.events)/sizeof(*response.events), &response.nevents);
-        success = NEXUS_P_SchedulerProcessResponse(scheduler, &response);
-        if(!success) {
-            goto done;
+        BDBG_MSG_TRACE(("NEXUS_P_Scheduler_Step:%#lx: %u(%u) %s", (unsigned long)scheduler, (unsigned)request.timeout, (unsigned)timeout, request.idle?"idle":""));
+        if(request.idle) {
+            response.result = BKNI_WaitForEvent(scheduler->control, request.timeout); /* when idle we only wait for the control event */
+        } else {
+            response.result = BKNI_WaitForGroup(scheduler->group, request.timeout, response.events, sizeof(response.events)/sizeof(*response.events), &response.nevents);
+            success = NEXUS_P_SchedulerProcessResponse(scheduler, &response);
+            if(!success) {
+                goto done;
+            }
         }
         if(request.timeout==0) {
             break;
@@ -1154,6 +1185,7 @@ static const char * const NEXUS_P_Scheduler_names[NEXUS_ModulePriority_eMax] = {
     "nx_sched_low_stndby",
     "nx_sched_stndby",
     "nx_sched_high_stndby",
+    "nx_sched_always_on",
     "nx_sched_internal"
 };
 
@@ -1185,7 +1217,7 @@ NEXUS_P_Scheduler_Init(NEXUS_ModulePriority priority, const char *name, const NE
     BLST_D_INIT(&scheduler->isr_callbacks.list);
     scheduler->isr_callbacks.deleted = 0;
     scheduler->isr_callbacks.armed = 0;
-    scheduler->current_callback = NULL;
+    scheduler->current.callback = NULL;
     scheduler->status.state = NEXUS_Scheduler_State_eStarting;
     rc = BKNI_CreateEvent(&scheduler->control);
     if(rc!=BERR_SUCCESS) {
@@ -1226,7 +1258,6 @@ NEXUS_P_Scheduler *
 NEXUS_P_Scheduler_Create(NEXUS_ModulePriority priority)
 {
     NEXUS_P_Scheduler *scheduler;
-    BERR_Code rc;
     const char *name;
     const NEXUS_ThreadSettings *pSettings;
 
@@ -1236,12 +1267,12 @@ NEXUS_P_Scheduler_Create(NEXUS_ModulePriority priority)
 
     scheduler = NEXUS_P_Scheduler_Init(priority, name, pSettings);
     if(!scheduler) {
-        rc = BERR_TRACE(NEXUS_OS_ERROR);
+        BERR_TRACE(NEXUS_OS_ERROR);
         goto err_scheduller;
     }
     scheduler->thread = NEXUS_P_Thread_Create(name, NEXUS_P_Scheduler_Thread, scheduler, pSettings);
     if(!scheduler->thread) {
-        rc = BERR_TRACE(NEXUS_OS_ERROR);
+        BERR_TRACE(NEXUS_OS_ERROR);
         goto err_task;
     }
     return scheduler;
@@ -1451,7 +1482,7 @@ NEXUS_Base_P_StopCallbacks(void *interfaceHandle)
         }
         
         scheduler = callback->scheduler;
-        if (callback != scheduler->current_callback) {
+        if (callback != scheduler->current.callback) {
             /* if this callback isn't current in the scheduler, we don't have to synchronize */
             continue;
         }
@@ -1505,8 +1536,8 @@ NEXUS_Base_P_StartCallbacks(void *interfaceHandle)
             continue;
         }
         /* if a callback is current, this will skip it */
-        if (callback->scheduler->current_callback == callback) {
-            callback->scheduler->current_callback = NULL;
+        if (callback->scheduler->current.callback == callback) {
+            callback->scheduler->current.callback = NULL;
         }
         callback->stopped = false;
         scheduler = callback->scheduler;
@@ -1538,16 +1569,25 @@ NEXUS_Base_P_StartCallbacks(void *interfaceHandle)
     return;
 }
 
-static void NEXUS_P_Base_CheckForStuckCallback_locked(const NEXUS_P_Scheduler *scheduler, unsigned timeout)
+static void NEXUS_P_Base_CheckForStuckCallback_locked(NEXUS_P_Scheduler *scheduler, unsigned timeout)
 {
-    if (scheduler->current_callback) {
+    if (scheduler->current.callback) {
         NEXUS_Time now;
         unsigned duration;
         NEXUS_Time_Get(&now);
-        duration = NEXUS_Time_Diff(&now, &scheduler->current_callbackStartTime);
-        if (duration > timeout) {
-            BDBG_ERR(("stuck callback %s:%d for %d msec, module priority %d", scheduler->current_callback->pFileName, scheduler->current_callback->lineNumber, duration,
-                scheduler->priority));
+        duration = NEXUS_Time_Diff(&now, &scheduler->current.callbackStartTime);
+        if (scheduler->current.timeout == 0) scheduler->current.timeout = timeout;
+        if (duration > scheduler->current.timeout) {
+            if (duration > 1000) {
+                BDBG_ERR(("stuck callback %s:%d for %d msec, module priority %d", scheduler->current.callback->pFileName, scheduler->current.callback->lineNumber, duration,
+                    scheduler->priority));
+            }
+            else {
+                BDBG_WRN(("stuck callback %s:%d for %d msec, module priority %d", scheduler->current.callback->pFileName, scheduler->current.callback->lineNumber, duration,
+                    scheduler->priority));
+            }
+            /* user timeout is initial, then increase recursively */
+            scheduler->current.timeout = 2 * scheduler->current.timeout;
         }
     }
 }

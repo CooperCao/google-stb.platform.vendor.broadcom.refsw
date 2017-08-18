@@ -1041,6 +1041,7 @@ typedef enum BAVC_HdrMetadataType
     BAVC_HdrMetadataType_eDrpu,
     BAVC_HdrMetadataType_eTch_Cvri,
     BAVC_HdrMetadataType_eTch_Cri,
+    BAVC_HdrMetadataType_eTch_Slhdr,
     BAVC_HdrMetadataType_eMax
 
 } BAVC_HdrMetadataType;

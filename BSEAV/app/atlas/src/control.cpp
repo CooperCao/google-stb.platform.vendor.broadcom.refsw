@@ -250,15 +250,28 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
 
     case eKey_VolumeUp:
     {
-        int32_t vol = getVolume() + ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN)/ GET_INT(_pCfg, VOLUME_STEPS));
+        int32_t vol = getVolume();
+        int vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
+
+        if( vol_steps > 0 )
+        {
+            vol = getVolume() + ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN)/vol_steps);
+        }
         setVolume(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL > vol ? vol : NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
     }
     break;
 
     case eKey_VolumeDown:
     {
-        int32_t vol = getVolume() - ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) / GET_INT(_pCfg, VOLUME_STEPS));
+        int32_t vol = getVolume();
+        int vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
+
+        if( vol_steps > 0 )
+        {
+            vol = getVolume() - ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) /vol_steps);
+        }
         setVolume(NEXUS_AUDIO_VOLUME_LINEAR_MIN < vol ? vol : NEXUS_AUDIO_VOLUME_LINEAR_MIN);
+
     }
     break;
 
@@ -688,9 +701,10 @@ void CControl::onIdle()
         if (NULL == pChannel)
         {
             /* verify default channel list file version */
-            if (eRet_ExternalError == _pChannelMgr->verifyChannelListFile(GET_STR(_pCfg, CHANNELS_LIST)))
+            const char * s = GET_STR(_pCfg, CHANNELS_LIST);
+            if ((s!= NULL) && (eRet_ExternalError == _pChannelMgr->verifyChannelListFile(s)))
             {
-                BDBG_WRN(("Invalid channel list version in file:%s.  Perform channel scan to generate a new channel list or copy default channel list file from release bundle.", GET_STR(_pCfg, CHANNELS_LIST)));
+                BDBG_WRN(("Invalid channel list version in file:%s.  Perform channel scan to generate a new channel list or copy default channel list file from release bundle.",s));
             }
         }
         else
@@ -920,6 +934,19 @@ void CControl::processNotification(CNotification & notification)
     break;
 #endif /* if RF4CE_SUPPORT */
 
+    case eNotify_EnableRemoteIr:
+    {
+        bool * pEnableIr = (bool *)notification.getData();
+        CIrRemote *    pIrRemote    = _pModel->getIrRemote();
+
+        if (NULL != pIrRemote)
+        {
+            pIrRemote->setEnable(*pEnableIr);
+            BDBG_WRN(("IR remote: %s", (true == *pEnableIr) ? "ENABLED" : "DISABLED"));
+        }
+    }
+    break;
+
     case eNotify_Tune:
     {
         CChannelData * pChannelData = (CChannelData *)notification.getData();
@@ -1145,7 +1172,7 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_SetAudioProgram:
     {
-        uint16_t * pPid = (uint16_t *)notification.getData();
+        unsigned * pPid = (unsigned *)notification.getData();
         CHECK_PTR_ERROR_GOTO("pid not specified in setAudioProgram notification", pPid, ret, eRet_InvalidParameter, error);
 
         setAudioProgram(*pPid);
@@ -1618,6 +1645,8 @@ void CControl::processNotification(CNotification & notification)
                     pVideoDecode->updatePlm();
                     /* remove duplicates as well */
                     while (NULL != _plmVideoDecodeList.remove(pVideoDecode));
+
+                    setHdmiOutputDynamicRange(dynamicRange);
                 }
                 else
                 {
@@ -1630,7 +1659,7 @@ void CControl::processNotification(CNotification & notification)
             if (0 < index)
             {
                 /* at least one video decoder is not ready to give dynamic range so retry */
-                BDBG_WRN(("IN TIMER: PLM NOT available - start timer for retry"));
+                BDBG_MSG(("IN TIMER: PLM NOT available - start timer for retry"));
                 _timerPlmVerify.start(1000);
             }
         }
@@ -2290,7 +2319,7 @@ error:
 eRet CControl::tuneChannel(
         CChannel *  pChannel,
         eWindowType windowType,
-        uint16_t    tunerIndex
+        unsigned    tunerIndex
         )
 {
     eRet ret = eRet_Ok;
@@ -2541,7 +2570,7 @@ eRet CControl::decodeChannel(
     }
 #endif /* ifdef MPOD_SUPPORT */
 
-    if (NULL != pVideoDecode)
+    if(pVideoDecode != NULL)
     {
         pVideoDecode->setChannel(pChannel);
     }
@@ -2555,21 +2584,24 @@ eRet CControl::decodeChannel(
     {
         MRect rectVideoWinPercent = pChannel->getVideoWindowGeometryPercent();
 
-        ret = pVideoDecode->setVideoWindowGeometryPercent(&rectVideoWinPercent);
-        CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
-
-        if ((NULL != pVideoDecode) && (eWindowType_Mosaic1 <= pVideoDecode->getWindowType()))
+        if (pVideoDecode != NULL)
         {
-            /* if the channel does not have a specified video window geometry, then
-               the video decode will use default values.  these defaults will be
-               returned in rectVideoWinPercent variable.  we will now set the
-               channel to have these default values.  this will ONLY apply for
-               mosaic channels.  mosaic subchannels need a video window geometry
-               so that associated label graphics can be properly placed relative
-               to the video window.  main and pip channels should have an empty
-               CHANNEL video window geometry since they will be resized
-               automatically based on pip swap state. */
-            pChannel->setVideoWindowGeometryPercent(&rectVideoWinPercent);
+            ret = pVideoDecode->setVideoWindowGeometryPercent(&rectVideoWinPercent);
+            CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
+
+            if (eWindowType_Mosaic1 <= pVideoDecode->getWindowType())
+            {
+                /* if the channel does not have a specified video window geometry, then
+                   the video decode will use default values.  these defaults will be
+                   returned in rectVideoWinPercent variable.  we will now set the
+                   channel to have these default values.  this will ONLY apply for
+                   mosaic channels.  mosaic subchannels need a video window geometry
+                   so that associated label graphics can be properly placed relative
+                   to the video window.  main and pip channels should have an empty
+                   CHANNEL video window geometry since they will be resized
+                   automatically based on pip swap state. */
+                pChannel->setVideoWindowGeometryPercent(&rectVideoWinPercent);
+            }
         }
     }
 
@@ -3323,7 +3355,7 @@ eRet CControl::playbackStart(
         /* Change to new playback */
         if (pPlayback->getVideo() != pVideo)
         {
-            BDBG_MSG((" Switch Playback %s to %s ", __FUNCTION__, pVideo->getVideoName().s()));
+            BDBG_MSG((" Switch Playback %s to %s ", BSTD_FUNCTION, pVideo->getVideoName().s()));
 
             stopDecoders(pVideoDecode, pAudioDecode);
             disconnectDecoders(windowType);
@@ -3453,6 +3485,8 @@ eRet CControl::playbackStart(
 
     ret = pPlayback->start();
     CHECK_ERROR_GOTO("unable to start playback", ret, error);
+
+    setWindowGeometry();
 
     _pModel->setMode(eMode_Playback, windowType);
     _pModel->setPlayback(pPlayback, windowType);
@@ -4133,7 +4167,7 @@ void CControl::initializeTuners()
         }                                                                   \
     } while (0);
 
-eRet CControl::setAudioProgram(uint16_t pid)
+eRet CControl::setAudioProgram(unsigned pid)
 {
     CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode();
     CStc *               pStc         = NULL;
@@ -5147,7 +5181,7 @@ eRet CControl::setPowerMode(ePowerMode mode)
     BDBG_ASSERT(NULL != pBoardResources);
     pPower = (CPower *)pBoardResources->checkoutResource(_id, eBoardResource_power);
 
-    BDBG_MSG(("CControl::%s mode:%d", __FUNCTION__, mode));
+    BDBG_MSG(("CControl::%s mode:%d", BSTD_FUNCTION, mode));
     if (pPower->getMode() == mode)
     {
         /* requested mode matches existing mode - still call setMode() which
@@ -5406,26 +5440,26 @@ error:
 }
 #endif
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-eRet CControl::setHdmiOutputDynamicRange()
+eRet CControl::setHdmiOutputDynamicRange(eDynamicRange dynamicRange)
 {
-    eRet          ret                = eRet_Ok;
-    CDisplay *    pDisplay           = _pModel->getDisplay();
-    eDynamicRange dynamicRangeLast   = _pModel->getLastDynamicRange();
-    eDynamicRange dynamicRangeOutput = eDynamicRange_Unknown;
+    eRet               ret                = eRet_Ok;
+    CDisplay *         pDisplay           = _pModel->getDisplay();
+    eDynamicRange      dynamicRangeLast   = _pModel->getLastDynamicRange();
+    eDynamicRange      dynamicRangeOutput = eDynamicRange_Unknown;
 
     if (NULL == pDisplay)
     {
         return(eRet_InvalidState);
     }
 
-    if (true == GET_BOOL(_pCfg, FORCE_HDMI_HDR_OUTPUT))
+    if (((eDynamicRange_HLG == dynamicRange) || (eDynamicRange_SDR == dynamicRange)) && (true == GET_BOOL(_pCfg, FORCE_HDMI_HDR10_OUTPUT)))
     {
         dynamicRangeOutput = eDynamicRange_HDR10;
-        BDBG_WRN(("Forcing HDMI dynamic range output (see FORCE_HDMI_HDR_OUTPUT in atlas.cfg):%s", videoDynamicRangeToString(dynamicRangeOutput).s()));
+        BDBG_WRN(("Forcing HDMI dynamic range output (see FORCE_HDMI_HDR10_OUTPUT in atlas.cfg):%s", videoDynamicRangeToString(dynamicRangeOutput).s()));
     }
     else
     {
-        dynamicRangeOutput = pDisplay->getOutputDynamicRange();
+        dynamicRangeOutput = dynamicRange;
     }
 
     if (dynamicRangeLast != dynamicRangeOutput)

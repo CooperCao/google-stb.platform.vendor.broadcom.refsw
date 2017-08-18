@@ -82,7 +82,7 @@ static void nexusIrCallbackNx(
         {
             CWidgetEngine * pWidgetEngine = irRemote->getWidgetEngine();
 
-            if (NULL != pWidgetEngine)
+            if ((NULL != pWidgetEngine) && (true == irRemote->isEnabled()))
             {
                 /* save event for later processing */
                 irRemote->addEvent(&event);
@@ -96,7 +96,7 @@ static void nexusIrCallbackNx(
 
 CIrRemoteNx::CIrRemoteNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CIrRemote(name, number, pCfg),
@@ -126,7 +126,6 @@ eRet CIrRemoteNx::open(CWidgetEngine * pWidgetEngine)
         NEXUS_InputClientSettings settings;
 
         NEXUS_InputClient_GetSettings(_inputClient, &settings);
-        settings.filterMask             = 0xFFFFFFFF; /* everything */
         settings.filterMask             = (1<<NEXUS_InputRouterDevice_eIrInput);
         settings.codeAvailable.callback = nexusIrCallbackNx;
         settings.codeAvailable.context  = this;
@@ -277,7 +276,7 @@ static void nexusUhfCallbackNx(
 
 CUhfRemoteNx::CUhfRemoteNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CUhfRemote(name, number, pCfg),

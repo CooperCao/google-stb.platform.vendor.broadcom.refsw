@@ -62,10 +62,13 @@
 #include "priv/nexus_display_priv.h"
 #include "priv/nexus_video_window_priv.h"
 #include "priv/nexus_core.h"
+#include "priv/nexus_graphics2d_priv.h"
 
 BDBG_MODULE(nexus_simple_video_decoder);
 
 #define BDBG_MSG_TRACE(X)
+
+static void cache_timer(void *context);
 
 struct nexus_captured_surface {
     NEXUS_SurfaceHandle surface;
@@ -127,7 +130,6 @@ struct NEXUS_SimpleVideoDecoder
     NEXUS_VideoDecoderPlaybackSettings playbackSettings;
     NEXUS_VideoDecoderExtendedSettings extendedSettings;
     NEXUS_VideoDecoderSettings settings;
-    bool crcMode;
 
     struct {
         NEXUS_SimpleVideoDecoderStartCaptureSettings settings;
@@ -240,12 +242,16 @@ static void nexus_simplevideodecoder_p_set_default_decoder_settings(NEXUS_Simple
         NEXUS_VideoDecoderExtendedSettings extendedSettings;
         NEXUS_VideoDecoderPlaybackSettings playbackSettings;
     } data;
+    NEXUS_Error rc;
     NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(&data.settings);
-    NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, &data.settings);
+    rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, &data.settings);
+    if (rc) (void)BERR_TRACE(rc); /* keep going */
     NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(&data.extendedSettings);
-    NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &data.extendedSettings);
+    rc = NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &data.extendedSettings);
+    if (rc) (void)BERR_TRACE(rc); /* keep going */
     NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(&data.playbackSettings);
-    NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &data.playbackSettings);
+    rc = NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &data.playbackSettings);
+    if (rc) (void)BERR_TRACE(rc); /* keep going */
 }
 
 static void nexus_simplevideodecoder_p_set_default_settings(NEXUS_SimpleVideoDecoderHandle handle)
@@ -261,6 +267,7 @@ static void nexus_simplevideodecoder_p_set_default_settings(NEXUS_SimpleVideoDec
     NEXUS_VideoWindow_GetDefaultMadSettings(&handle->pictureQualitySettings.mad);
     NEXUS_VideoWindow_GetDefaultScalerSettings(&handle->pictureQualitySettings.scaler);
     handle->clientSettings.closedCaptionRouting = true;
+    handle->clientSettings.cache.timeout = 500;
     NEXUS_CallbackDesc_Init(&handle->clientSettings.resourceChanged);
 }
 
@@ -687,7 +694,7 @@ error:
 
 static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle handle, bool allow_cache)
 {
-    if (!handle->connected) return;
+    if (!handle->connected) goto flush_cache;
 
     if (handle->hdmiInput.handle) {
         allow_cache = false;
@@ -709,6 +716,11 @@ static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle
     }
 
     handle->connected = false;
+
+flush_cache:
+    if (!allow_cache) {
+        NEXUS_SimpleVideoDecoderModule_CheckCache(handle->server, NULL, handle->serverSettings.videoDecoder);
+    }
 }
 
 static void nexus_simplevideodecoder_p_reset_cap(NEXUS_SimpleVideoDecoderHandle handle, struct nexus_captured_surface *cap)
@@ -982,6 +994,7 @@ static NEXUS_Error nexus_p_start_video_as_graphics(NEXUS_SimpleVideoDecoderHandl
         openSettings.secure = handle->capture.settings.secure;
         videoAsGraphics->gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
         if (videoAsGraphics->gfx==NULL) {
+            videoAsGraphics->refcnt--;
             return BERR_TRACE(NEXUS_UNKNOWN);
         }
         NEXUS_Graphics2D_GetSettings(videoAsGraphics->gfx, &gfxSettings);
@@ -1005,6 +1018,7 @@ static void nexus_p_stop_video_as_graphics(NEXUS_SimpleVideoDecoderHandle handle
         BDBG_ASSERT(videoAsGraphics->timer);
         NEXUS_CancelTimer(videoAsGraphics->timer);
         videoAsGraphics->timer = NULL;
+        NEXUS_OBJECT_REGISTER(NEXUS_Graphics2D, videoAsGraphics->gfx, Acquire);
         NEXUS_Graphics2D_Close(videoAsGraphics->gfx);
     }
     handle->capture.videoAsGraphics = NULL;
@@ -1200,28 +1214,6 @@ static NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHan
 
     nexus_simplevideodecoder_p_enable_tsm_extensions(handle);
 
-    if (handle->crcMode) {
-        NEXUS_VideoInputSettings videoInputSettings;
-        unsigned i;
-        NEXUS_VideoInput videoInput = NEXUS_VideoDecoder_GetConnector(handle->serverSettings.videoDecoder);
-        NEXUS_VideoInput_GetSettings(videoInput, &videoInputSettings);
-        if (videoInputSettings.crcQueueSize == 0) {
-            videoInputSettings.crcQueueSize = 128;
-            rc = NEXUS_VideoInput_SetSettings(videoInput, &videoInputSettings);
-            if (rc) return BERR_TRACE(rc);
-        }
-        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
-            if (handle->serverSettings.window[i]) {
-                NEXUS_VideoWindowSettings windowSettings;
-                NEXUS_VideoWindow_GetSettings(handle->serverSettings.window[i], &windowSettings);
-                if (windowSettings.scaleFactorRounding.verticalTolerance) {
-                    windowSettings.scaleFactorRounding.verticalTolerance = 0;
-                    NEXUS_VideoWindow_SetSettings(handle->serverSettings.window[i], &windowSettings);
-                }
-            }
-        }
-    }
-
     {
         NEXUS_VideoDecoderStartSettings startSettings = handle->startSettings.settings;
         if (handle->stcChannel)
@@ -1311,7 +1303,6 @@ static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle hand
     nexus_simplevideodecoder_p_disable_tsm_extensions(handle); /* must be after stop, before started=false */
     handle->started = false;
     handle->primer.started = false;
-    handle->crcMode = false;
 
     nexus_simplevideodecoder_p_reset_caps(handle);
 }
@@ -1868,12 +1859,13 @@ struct settings_cache {
     BLST_S_ENTRY(settings_cache) link;
     NEXUS_SimpleVideoDecoderHandle handle;
     NEXUS_SimpleVideoDecoderServerSettings settings;
-    NEXUS_Time time;
+    unsigned timeout; /* milliseconds remaining until cleared */
 };
 static struct {
     bool enabled;
     BLST_S_HEAD(settingslist, settings_cache) list;
     NEXUS_TimerHandle timer;
+    NEXUS_Time timerStarted;
 } g_cache;
 
 static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle)
@@ -1911,24 +1903,50 @@ static void destroy_cache_entry(struct settings_cache *c, bool disconnect)
 /* Allow window/decoder connection to remain in cache for 500 msec. This reduces runtime memory usage
 and minimizes black frame when the next video window starts.
 We immediately hide the video window so no after-decode black frame is visible. */
-#define CACHE_TIMEOUT 500
-static void cache_timer(void *context)
+static void adjust_cache_timeouts(void)
 {
-    struct settings_cache *c;
     NEXUS_Time now;
-    BSTD_UNUSED(context);
+    unsigned expired;
+    struct settings_cache *c;
+
+    if (!g_cache.timer) return;
+    NEXUS_CancelTimer(g_cache.timer);
     g_cache.timer = NULL;
+
     NEXUS_Time_Get(&now);
-    for (c = BLST_S_FIRST(&g_cache.list); c; ) {
+    expired = NEXUS_Time_Diff(&now, &g_cache.timerStarted);
+    expired++; /* fudge a bit to avoid 0 */
+    for (c=BLST_S_FIRST(&g_cache.list);c;) {
         struct settings_cache *next = BLST_S_NEXT(c, link);
-        if (NEXUS_Time_Diff(&now, &c->time) >= CACHE_TIMEOUT) {
+        if (c->timeout <= expired) {
+            BDBG_MSG(("cache %p expired: %u <= %u", (void*)c, c->timeout, expired));
             destroy_cache_entry(c, true);
+        }
+        else {
+            BDBG_MSG(("cache %p decremented from %u to %u", (void*)c, c->timeout, c->timeout - expired));
+            c->timeout -= expired;
         }
         c = next;
     }
-    if (BLST_S_FIRST(&g_cache.list)) {
-        g_cache.timer = NEXUS_ScheduleTimer(CACHE_TIMEOUT, cache_timer, NULL);
+}
+
+static void start_cache_timer(void)
+{
+    struct settings_cache *c;
+    BDBG_ASSERT(!g_cache.timer);
+    c = BLST_S_FIRST(&g_cache.list);
+    if (c) {
+        BDBG_MSG(("next cache_timer in %u msec", c->timeout));
+        NEXUS_Time_Get(&g_cache.timerStarted);
+        g_cache.timer = NEXUS_ScheduleTimer(c->timeout, cache_timer, NULL);
     }
+}
+
+static void cache_timer(void *context)
+{
+    BSTD_UNUSED(context);
+    adjust_cache_timeouts();
+    start_cache_timer();
 }
 
 void nexus_simplevideodecoder_p_remove_settings_from_cache(void)
@@ -2008,24 +2026,43 @@ void NEXUS_SimpleVideoDecoderModule_CheckCache( NEXUS_SimpleVideoDecoderServerHa
 /* returns true if added to cache. */
 static bool add_settings_to_cache(NEXUS_SimpleVideoDecoderHandle handle)
 {
-    struct settings_cache *c;
+    struct settings_cache *c, *node, *prevnode;
 
     if (!g_cache.enabled) {
         BDBG_MSG(("don't use cache %d", g_cache.enabled));
+        return false;
+    }
+    if (handle->clientSettings.cache.timeout == 0) {
+        /* no timeout means no cache */
         return false;
     }
 
     c = BKNI_Malloc(sizeof(*c));
     if (!c) return false;
 
+    adjust_cache_timeouts();
+
     c->settings = handle->serverSettings;
     c->handle = handle;
-    NEXUS_Time_Get(&c->time);
-    BLST_S_INSERT_HEAD(&g_cache.list, c, link);
-    BDBG_MSG(("add server settings for %p(%p) cache", (void *)handle, (void *)c->settings.videoDecoder));
-    if (!g_cache.timer) {
-        g_cache.timer = NEXUS_ScheduleTimer(CACHE_TIMEOUT, cache_timer, NULL);
+    c->timeout = handle->clientSettings.cache.timeout;
+    /* insert by increasing timeout */
+    for (node=BLST_S_FIRST(&g_cache.list),prevnode=NULL; node; prevnode=node,node=BLST_S_NEXT(node, link)) {
+        if (c->timeout <= node->timeout) break;
     }
+    if (prevnode) {
+        BLST_S_INSERT_AFTER(&g_cache.list, prevnode, c, link);
+    }
+    else {
+        BLST_S_INSERT_HEAD(&g_cache.list, c, link);
+    }
+
+#if !BDBG_NO_MSG
+    for (node=BLST_S_FIRST(&g_cache.list); node; node=BLST_S_NEXT(node, link)) {
+        BDBG_MSG(("cache %p: %d", (void*)node, node->timeout));
+    }
+#endif
+
+    start_cache_timer();
     return true;
 }
 
@@ -2450,20 +2487,35 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_GetVideoInputCrcData( NEXUS_SimpleVideoDeco
 {
     NEXUS_Error rc;
     NEXUS_VideoInput videoInput;
+    NEXUS_VideoInputSettings videoInputSettings;
+    unsigned i;
+
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
     *pNumReturned = 0;
     if (nexus_simplevideodecoder_has_resource(handle, &rc)) {
         return NEXUS_SUCCESS;
     }
-    if (!handle->started) {
-        handle->crcMode = true;
-        return NEXUS_SUCCESS;
-    }
-    if (!handle->crcMode) {
-        BDBG_ERR(("NEXUS_SimpleVideoDecoder_GetVideoInputCrcData must be called once before Start to enable CRC mode"));
-        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
-    }
+
     videoInput = NEXUS_VideoDecoder_GetConnector(handle->serverSettings.videoDecoder);
+
+    NEXUS_VideoInput_GetSettings(videoInput, &videoInputSettings);
+    if (videoInputSettings.crcQueueSize == 0) {
+        videoInputSettings.crcQueueSize = 128;
+        rc = NEXUS_VideoInput_SetSettings(videoInput, &videoInputSettings);
+        if (rc) return BERR_TRACE(rc);
+    }
+    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        if (handle->serverSettings.window[i]) {
+            NEXUS_VideoWindowSettings windowSettings;
+            NEXUS_VideoWindow_GetSettings(handle->serverSettings.window[i], &windowSettings);
+            if (windowSettings.scaleFactorRounding.verticalTolerance) {
+                windowSettings.scaleFactorRounding.verticalTolerance = 0;
+                rc = NEXUS_VideoWindow_SetSettings(handle->serverSettings.window[i], &windowSettings);
+                if (rc) return BERR_TRACE(rc);
+            }
+        }
+    }
+
     return NEXUS_VideoInput_GetCrcData(videoInput, pEntries, numEntries, pNumReturned);
 }
 

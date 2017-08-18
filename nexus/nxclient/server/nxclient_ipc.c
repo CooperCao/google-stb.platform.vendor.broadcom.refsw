@@ -201,7 +201,14 @@ err_kni_init:
 static void NxClient_P_Uninit(nxclient_ipc_thread id)
 {
     if (nxclient_state.client[id].nxclient_ipc) {
-        nxclient_p_destroy(nxclient_state.client[id].nxclient_ipc);
+        if (id == nxclient_ipc_thread_regular) {
+            nxclient_p_destroy(nxclient_state.client[id].nxclient_ipc);
+        }
+        else {
+            /* nxclient_p_destroy does IPC + free. Because _restricted could be blocked in standby,
+            and _regular will tear down both sockets, we just free here. */
+            BKNI_Free(nxclient_state.client[id].nxclient_ipc);
+        }
         nxclient_state.client[id].nxclient_ipc = NULL;
     }
     if (nxclient_state.client[id].ipc) {
@@ -216,6 +223,7 @@ static void NxClient_P_Uninit(nxclient_ipc_thread id)
 
 void NxClient_Uninit(void)
 {
+    NxClient_StopCallbackThread();
     LOCK();
     if (--nxclient_state.refcnt == 0) {
         NEXUS_Platform_Uninit();

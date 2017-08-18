@@ -96,4 +96,23 @@ static inline void khrn_image_plane_invalidate(khrn_image_plane *img_plane,
          khrn_image_plane_resource_parts(img_plane, changrps, /*subset=*/true));
 }
 
+/* returns  0 if the image is not layered or the image has one layer */
+static inline size_t khrn_image_plane_layer_stride(const khrn_image_plane *img_plane)
+{
+   const khrn_image *img = img_plane->image;
+   if (img)
+   {
+      if (khrn_image_get_num_elems(img) != 1)
+      {
+         assert(khrn_image_get_depth(img) == 1);
+         return img->blob->array_pitch;
+      }
+      else if (khrn_image_get_depth(img) != 1)
+      {
+         assert(khrn_image_get_num_elems(img) == 1);
+         return img->blob->desc[img->level].planes[img_plane->plane_idx].slice_pitch;
+      }
+   }
+   return 0;
+}
 #endif

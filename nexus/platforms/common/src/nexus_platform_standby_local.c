@@ -67,6 +67,8 @@ BDBG_MODULE(nexus_platform_standby_local);
 
 #define BUF_SIZE 256
 
+#define MAX_SYSWAKE_COUNT 2
+
 typedef enum NEXUS_Platform_P_SysWake {
     NEXUS_Platform_P_SysWake_eTimer,
     NEXUS_Platform_P_SysWake_eGpio,
@@ -84,7 +86,7 @@ static struct NEXUS_Platform_Standby_State {
         char count[BUF_SIZE];
         char timeout[BUF_SIZE];
         bool found;
-    } wakeup[NEXUS_Platform_P_SysWake_eMax];
+    } wakeup[NEXUS_Platform_P_SysWake_eMax][MAX_SYSWAKE_COUNT];
 } g_Standby_State;
 
 static struct sysWakePath {
@@ -191,18 +193,26 @@ static void NEXUS_Platform_P_FindSysWake(NEXUS_Platform_P_SysWake type)
 {
     DIR * dir = opendir(g_sysWakePath[type].dir);
     struct dirent *ent;
+    unsigned i;
 
     BDBG_ASSERT(type < NEXUS_Platform_P_SysWake_eMax);
 
+    /* clear out old wakeups, as they can change from call to call */
+    for (i = 0; i < MAX_SYSWAKE_COUNT; i++)
+    {
+        g_Standby_State.wakeup[type][i].found = false;
+    }
+
     if(dir) {
-        while ((ent = readdir(dir)) != NULL) {
+        i = 0;
+        while (((ent = readdir(dir)) != NULL) && (i < MAX_SYSWAKE_COUNT)) {
             if(strstr(ent->d_name, g_sysWakePath[type].file)) {
-                snprintf(g_Standby_State.wakeup[type].enable, BUF_SIZE, "%s/%s/%s", g_sysWakePath[type].dir, ent->d_name, "power/wakeup");
-                snprintf(g_Standby_State.wakeup[type].count, BUF_SIZE, "%s/%s/%s", g_sysWakePath[type].dir, ent->d_name, "power/wakeup_count");
+                snprintf(g_Standby_State.wakeup[type][i].enable, BUF_SIZE, "%s/%s/%s", g_sysWakePath[type].dir, ent->d_name, "power/wakeup");
+                snprintf(g_Standby_State.wakeup[type][i].count, BUF_SIZE, "%s/%s/%s", g_sysWakePath[type].dir, ent->d_name, "power/wakeup_count");
                 if(type == NEXUS_Platform_P_SysWake_eTimer)
-                    snprintf(g_Standby_State.wakeup[type].timeout, BUF_SIZE, "%s/%s/%s", g_sysWakePath[type].dir, ent->d_name, "timeout");
-                g_Standby_State.wakeup[type].found = true;
-                break;
+                    snprintf(g_Standby_State.wakeup[type][i].timeout, BUF_SIZE, "%s/%s/%s", g_sysWakePath[type].dir, ent->d_name, "timeout");
+                g_Standby_State.wakeup[type][i].found = true;
+                i++;
             }
         }
         closedir(dir);
@@ -215,34 +225,37 @@ static NEXUS_Error NEXUS_Platform_P_GetSysWake(NEXUS_Platform_P_SysWake type, un
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     char enabled[32];
+    unsigned i;
 
     BDBG_ASSERT(type < NEXUS_Platform_P_SysWake_eMax);
 
-    if(!g_Standby_State.wakeup[type].found) {
-        NEXUS_Platform_P_FindSysWake(type);
-        if(!g_Standby_State.wakeup[type].found) {
-            BDBG_WRN(("Unable to find %s wakeup", g_sysWakePath[type].file));
-            rc = BERR_TRACE(BERR_NOT_AVAILABLE);
-            goto err;
+    NEXUS_Platform_P_FindSysWake(type);
+
+    for (i = 0; i < MAX_SYSWAKE_COUNT; i++)
+    {
+        if(!g_Standby_State.wakeup[type][i].found) {
+            continue;
         }
+
+        if(sysfs_get_string(g_Standby_State.wakeup[type][i].enable, enabled, sizeof(enabled))) {
+            BDBG_ERR(("Unable to get %s wakeup %u enable status", g_sysWakePath[type].file, i));
+            rc = BERR_TRACE(BERR_OS_ERROR);
+        }
+
+        if(strncmp(enabled, "enabled", strlen(enabled)-1)) {
+            BDBG_MSG(("%s wakeup %u %s", g_sysWakePath[type].file, i, enabled));
+            return NEXUS_SUCCESS;
+        }
+
+        if(sysfs_get(g_Standby_State.wakeup[type][i].count, count)) {
+            BDBG_ERR(("Unable to get %s wakeup %u count", g_sysWakePath[type].file, i));
+            rc = BERR_TRACE(BERR_OS_ERROR);
+        }
+
+        /* we found one */
+        if (*count) break;
     }
 
-    if(sysfs_get_string(g_Standby_State.wakeup[type].enable, enabled, sizeof(enabled))) {
-        BDBG_ERR(("Unable to get %s wakeup enable status", g_sysWakePath[type].file));
-        rc = BERR_TRACE(BERR_OS_ERROR);
-    }
-
-    if(strncmp(enabled, "enabled", strlen(enabled)-1)) {
-        BDBG_MSG(("%s wakeup  %s", g_sysWakePath[type].file, enabled));
-        return NEXUS_SUCCESS;
-    }
-
-    if(sysfs_get(g_Standby_State.wakeup[type].count, count)) {
-        BDBG_ERR(("Unable to get %s wakeup  count", g_sysWakePath[type].file));
-        rc = BERR_TRACE(BERR_OS_ERROR);
-    }
-
-err:
     return rc;
 }
 
@@ -250,55 +263,56 @@ static NEXUS_Error NEXUS_Platform_P_SetSysWake(NEXUS_Platform_P_SysWake type, co
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned timeout;
+    unsigned i;
 
     BDBG_ASSERT(type < NEXUS_Platform_P_SysWake_eMax);
 
-    if(!g_Standby_State.wakeup[type].found) {
-        NEXUS_Platform_P_FindSysWake(type);
-        if(!g_Standby_State.wakeup[type].found) {
-            BDBG_WRN(("Unable to find %s wakeup", g_sysWakePath[type].file));
-            rc = BERR_TRACE(BERR_NOT_AVAILABLE);
+    NEXUS_Platform_P_FindSysWake(type);
+
+    for (i = 0; i < MAX_SYSWAKE_COUNT; i++)
+    {
+        if(!g_Standby_State.wakeup[type][i].found) {
+            continue;
+        }
+
+        BDBG_MSG(("Disable %s wakeup %u : %s", g_sysWakePath[type].file, i, g_Standby_State.wakeup[type][i].enable));
+        if(sysfs_set_string(g_Standby_State.wakeup[type][i].enable, "disabled")) {
+            BDBG_ERR(("Failed to disable %s wakeup %u", g_sysWakePath[type].file, i));
+            rc = BERR_TRACE(BERR_OS_ERROR);
             goto err;
         }
-    }
 
-    BDBG_MSG(("Disable %s wakeup : %s", g_sysWakePath[type].file, g_Standby_State.wakeup[type].enable));
-    if(sysfs_set_string(g_Standby_State.wakeup[type].enable, "disabled")) {
-        BDBG_ERR(("Failed to disable %s wakeup", g_sysWakePath[type].file));
-        rc = BERR_TRACE(BERR_OS_ERROR);
-        goto err;
-    }
-
-    switch(type) {
-        case NEXUS_Platform_P_SysWake_eTimer:
-            timeout = pSettings->wakeupSettings.timeout;
-            if(g_Standby_State.rtcFd > 0) {
-                if(timeout) {
-                    if(set_rtc_wake(timeout)) {
-                        BDBG_ERR(("Failed to set RTC wakeup"));
+        switch(type) {
+            case NEXUS_Platform_P_SysWake_eTimer:
+                timeout = pSettings->wakeupSettings.timeout;
+                if(g_Standby_State.rtcFd > 0) {
+                    if(timeout) {
+                        if(set_rtc_wake(timeout)) {
+                            BDBG_ERR(("Failed to set RTC wakeup"));
+                        }
+                    }
+                } else {
+                    if(sysfs_set(g_Standby_State.wakeup[type][i].timeout, timeout)) {
+                        BDBG_ERR(("Unable to set %s wakeup %u", g_sysWakePath[type].file, i));
+                        rc = BERR_TRACE(BERR_OS_ERROR);
+                        goto err;
                     }
                 }
-            } else {
-                if(sysfs_set(g_Standby_State.wakeup[type].timeout, timeout)) {
-                    BDBG_ERR(("Unable to set %s wakeup", g_sysWakePath[type].file));
-                    rc = BERR_TRACE(BERR_OS_ERROR);
-                    goto err;
-                }
-            }
-            if(g_Standby_State.rtcFd <= 0 && !timeout) goto err;
-            break;
-        case NEXUS_Platform_P_SysWake_eGpio:
-            if(!pSettings->wakeupSettings.gpio) goto err;
-            break;
-        default:
-            break;
-    }
+                if(g_Standby_State.rtcFd <= 0 && !timeout) goto err;
+                break;
+            case NEXUS_Platform_P_SysWake_eGpio:
+                if(!pSettings->wakeupSettings.gpio) goto err;
+                break;
+            default:
+                break;
+        }
 
-    BDBG_MSG(("Enable %s wakeup : %s", g_sysWakePath[type].file, g_Standby_State.wakeup[type].enable));
-    if(sysfs_set_string(g_Standby_State.wakeup[type].enable, "enabled")) {
-        BDBG_ERR(("Failed to enable %s wakeup", g_sysWakePath[type].file));
-        rc = BERR_TRACE(BERR_OS_ERROR);
-        goto err;
+        BDBG_MSG(("Enable %s wakeup %u : %s", g_sysWakePath[type].file, i, g_Standby_State.wakeup[type][i].enable));
+        if(sysfs_set_string(g_Standby_State.wakeup[type][i].enable, "enabled")) {
+            BDBG_ERR(("Failed to enable %s wakeup %u", g_sysWakePath[type].file, i));
+            rc = BERR_TRACE(BERR_OS_ERROR);
+            goto err;
+        }
     }
 
 err:
@@ -317,10 +331,6 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_StandbySettings *pSet
     /* stop schedulers that should not run at this standby level */
     rc = NEXUS_Platform_P_DeactivateSchedulers(pSettings->mode, pSettings->timeout, &deactivated);
     if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc);  goto error;}
-
-    /* start schedulers that should run at this standby level */
-    NEXUS_Platform_P_SchedulersSet_Init(&activate, pSettings->mode);
-    NEXUS_Platform_P_ActivateSchedulers(&activate);
 
 #if defined(NEXUS_WKTMR)
 
@@ -360,7 +370,11 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_StandbySettings *pSet
 #endif /* #if defined(NEXUS_WKTMR) */
 
     rc = NEXUS_Platform_SetStandbySettings_driver(pSettings);
-    if (rc!=NEXUS_SUCCESS) {
+    if (rc==NEXUS_SUCCESS) {
+        /* start schedulers that should run at this standby level */
+        NEXUS_Platform_P_SchedulersSet_Init(&activate, pSettings->mode);
+        NEXUS_Platform_P_ActivateSchedulers(&activate);
+    } else {
         /* NEXUS_Platform_SetStandbySettings_driver failed */
         rc = BERR_TRACE(rc);
         NEXUS_Platform_P_ActivateSchedulers(&deactivated); /* on failure restart schedulers that were stopped */
@@ -542,6 +556,10 @@ void NEXUS_Platform_P_SchedulersSet_Init(NEXUS_Platform_P_SchedulersSet *schedul
             break;
         case NEXUS_StandbyMode_eActive:
             set = NEXUS_Platform_P_IsActiveStandbyScheduler(i);
+            break;
+        case NEXUS_StandbyMode_ePassive:
+        case NEXUS_StandbyMode_eDeepSleep:
+            set = (i == NEXUS_ModulePriority_eAlwaysOn)?true:false;
             break;
         default:
             set = false;

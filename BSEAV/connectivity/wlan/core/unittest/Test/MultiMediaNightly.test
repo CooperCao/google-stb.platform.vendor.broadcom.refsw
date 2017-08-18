@@ -1,0 +1,848 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script for Multicast/Multimedia Functionality and performance
+# testing
+#
+# Written by: Robert J. McMahon March 2010
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Test::WET
+package require UTF::Test::controlchart
+package require UTF::Test::APChanspec
+package require UTF::Multicast
+package require UTF::Streams
+package require UTF::Test::MulticastQoSBasic
+package require UTF::ControlChart
+
+UTF::Test MultiMedia {args} {
+    UTF::Getopts {
+	{ap.arg "" "Upstream AP under test"}
+	{date.arg "" "Image date"}
+	{trx.arg "" "Router trx"}
+	{tag.arg "" "Router release tag"}
+	{email.arg "" "Email Address"}
+	{title.arg "" "Title"}
+	{noapload "Don't load images"}
+	{norestore "Don't reset to defaults"}
+	{wetaps.arg "" "Downstream AP(s) in WET mode under test"}
+	{nocache "Don't update performance cache"}
+	{branch.arg "" "Branch override"}
+        {history.arg 30 "History size for control charts"}
+	{perfloop.arg 1 "Performance test loops"}
+	{security.arg "open" "Default security"}
+	{chanspec.arg "157l" "Default chanspec"}
+	{nosecurity  "Don't do AP/Wet Mode security tests"}
+	{nochannels  "Don't do all channels supported tests"}
+	{noperf      "Don't rund performance tests"}
+	{rvrbasic "Run RvR sanity"}
+	{streams  "Run streams testing"}
+	{multicast.arg "VIDEO" "Type of multicast tests to run"}
+	{debugging "Working in a debugging mode"}
+	{stop "stop at error for manual debugging"}
+    }
+
+    # RJM get rid of this before final release
+    if {$(debugging)} {
+	set debug_notice_color "Blue"
+	set debug_warn_color "Red"
+	append UTF::SummaryDir "-debugging"
+    }
+
+    proc ConfigEMF {UP DOWNLIST SSID} {
+	$UP reboot \
+	    router_disable=1 \
+	    emf_enable=1 \
+	    wl0_mode=ap \
+	    wl0_ssid=$SSID \
+	    wl0_antdiv=0 \
+	    wl0_rateset=all \
+	    wl0_frameburst=on \
+	    wl0_phytype=n \
+	    wl_lazywds=1 \
+	    aci_daemon=down \
+	    wl0_nbw_cap=1
+
+	foreach DOWN $DOWNLIST {
+	    $DOWN reboot \
+		router_disable=1 \
+		emf_enable=1 \
+		wl0_mode=wet \
+		wl0_ssid=$SSID \
+		wl0_frameburst=on \
+		wl0_antdiv=0 \
+		wl0_rateset=all \
+		wl0_nband=auto \
+		wl0_phytype=n \
+		wl_lazywds=1 \
+		aci_daemon=down \
+		wl0_nbw_cap=1
+	}
+    }
+
+    proc wlClearAMPDU {APLIST} {
+	foreach AP $APLIST {
+	    set RFDEV $AP
+	    UTF::Try "AMPDU clear $RFDEV" {
+		$RFDEV wl ampdu_clear_dump
+	    }
+	}
+    }
+
+    proc wlDumpAMPDU {APLIST} {
+	foreach AP $APLIST {
+	    set RFDEV $AP
+	    UTF::Try "AMPDU dump $RFDEV" {
+		set dump [$RFDEV wl dump ampdu]
+		# Extract MCS rate histogram
+		set tmp [UTF::ParseAMPDURates $dump mcs sgi]
+		set mcstmp [lindex $tmp 0]
+		array set mcshist $mcstmp
+		UTF::Message LOG "$RFDEV" "$dump"
+	    }
+	}
+    }
+
+    proc wlDump {APLIST} {
+	foreach AP $APLIST {
+	    set RFDEV $AP
+	    UTF::Try "wl dump $RFDEV" {
+		set dump [$RFDEV wl dump]
+		UTF::Message LOG "$RFDEV" "$dump"
+	    }
+	}
+    }
+
+    proc DisconnectWET {UP DOWNLIST security} {
+	foreach DOWN $DOWNLIST {
+	    UTF::Try "Security $security association" {
+		ConnectAPSTA $UP $DOWN -security $security
+	    }
+	    catch {$UP wl disassoc}
+	    catch {$DOWN wl disassoc}
+	}
+    }
+
+    proc ConfigAPChannel {AP chanspec args} {
+	set band ""
+	set bw ""
+	chanspec2band $chanspec band bw
+	UTF::Try "TST: Chspec=$chanspec $band $bw" {
+	    APChanspec $AP $chanspec
+	}
+    }
+
+    proc ConfigWETChannel {DOWNLIST chanspec} {
+	set band ""
+	set bw ""
+	chanspec2band $chanspec band bw
+	UTF::Try "TST: Chspec=$chanspec $band $bw" {
+	    foreach DOWN $DOWNLIST {
+		APChanspec $DOWN $chanspec -loose
+	    }
+	}
+    }
+
+    # Mode: Managed	RSSI: -26 dBm	noise: -66 dBm	Channel: 157
+    proc parseRSSI {STA} {
+	set rssi [$STA wl rssi]
+	return [expr abs($rssi)]
+    }
+
+    proc CalibrateRSSI {DOWNLIST ATTENLIST {value 45}} {
+	UTF::Try "Set RSSI to -$value dBm" {
+	    foreach DOWN $DOWNLIST Attenuator $ATTENLIST {
+		$Attenuator attn 0
+		UTF::Sleep 5
+		set rssi [parseRSSI $DOWN]
+		if {$rssi == ""} {
+		    error "No RSSI"
+		}
+		if {$rssi > $value} {
+		    UTF::Message WARN $DOWN "High RSSI of $rssi"
+		} else {
+		    $Attenuator attn [expr $value - $rssi]
+		    UTF::Sleep 3
+		}
+		set rssi [parseRSSI $DOWN]
+		set curratten [lindex [$Attenuator attn?] 0]
+		set adj [expr $curratten + ($value - $rssi)]
+		if {$adj <  0} {
+		    set adj 0
+		}
+		$Attenuator attn [expr int($adj)]
+	    }
+	    return "RSSI -$rssi"
+	}
+    }
+
+    proc GetCommonChannels {UP DOWNLIST pchanspecs} {
+	upvar $pchanspecs chanspecs
+	UTF::Try "Get common channels" {
+	    #
+	    # Find the common channels supported by all devices
+	    #
+	    set cmd [list UTF::Common]
+	    set routers [concat $UP $DOWNLIST]
+	    foreach router $routers {
+		set channels($router) [$router allchanspecs]
+		lappend cmd "$channels($router)"
+	    }
+	    set chanspecs [eval $cmd]
+
+	    #
+	    # Pull out channel 34 even if present (RJM: Why? PR needed?)
+	    #
+	    set chanspecs [lsearch -all -not -inline $chanspecs "34"]
+	    set no [llength $chanspecs]
+	    UTF::Message INFO WET "Common channels $chanspecs"
+	    return "channel count = $no"
+	}
+    }
+
+    proc ConfigSecurity {UP DOWNLIST security} {
+	UTF::Record "CFG: Upstream Security=$security" {
+	    APConfigureSecurity $UP -security $security
+	}
+	foreach DOWN $DOWNLIST {
+	    UTF::Record "CFG: Downstream Security=$security" {
+		$DOWN configure -wepkey [$UP cget -wepkey] -wpakey [$UP cget -wpakey]
+		APConfigureSecurity $DOWN -security $security
+	    }
+	}
+    }
+
+    #
+    # Make sure the downstream devices find the AP's chanspec
+    #
+    # Mode: Managed	RSSI: -34 dBm	noise: -94 dBm	Channel: 34
+    proc VerifyDownsFollow {DOWNLIST AP} {
+	set CHANSPECWAITTIME 30000
+	UTF::Try "TST: Down(s) switch to AP chanspec" {
+	    set upchan [$AP wl chanspec]
+	    if {![info exists upchan]} {
+		error "Couldn't parse chanspec info from AP."
+	    }
+	    set timer  [expr [clock clicks -milliseconds] + $CHANSPECWAITTIME]
+	    while {[clock clicks -milliseconds] < $timer } {
+		foreach DOWN $DOWNLIST {
+		    set downchan [$DOWN wl chanspec]
+		    if {[string equal $downchan $upchan]} {
+			set DOWNLIST [lsearch -all -not -inline $DOWNLIST $DOWN]
+		    }
+		}
+		if {![llength $DOWNLIST]} {
+		    UTF::Message INFO "" "All AP devices using same chanspec"
+		    break
+		} else {
+		    # Don't hammer the ap with wl commands,
+		    # rather pause for one second
+		    UTF::Sleep 1
+		}
+	    }
+	    if {[llength $DOWNLIST]} {
+		error "WET device(s) did not change to AP's chanspec"
+	    }
+	}
+    }
+
+    proc VerifyPing {RXLIST TX} {
+	foreach RX $RXLIST {
+	    UTF::Try "PING: $RX -> $TX" {
+		#
+		#  Perform PING verification
+		#
+		$RX ping [[lindex [$TX cget -sta] 0] cget -ipaddr]
+	    }
+	    UTF::Try "PING: $RX <- $TX" {
+		#
+		#  Perform PING verification
+		#
+		$TX ping [[lindex [$RX cget -sta] 0] cget -ipaddr]
+	    }
+	}
+    }
+
+    proc MeasureRvR {DOWNLIST ATTENLIST fdlist numsamples step offset UP chanspec security branch} {
+	set ix 0
+	while {$ix < $numsamples} {
+	    foreach DOWN $DOWNLIST ATTN $ATTENLIST fd $fdlist {
+		set attnvalue [expr int([lindex [$ATTN attn?] 0] + $step)]
+		if {$attnvalue > 103} {
+		    set attnvalue 103
+		}
+		if {$attnvalue < 0} {
+		    set attnvalue 0
+		}
+		# UTF::SetTryCatchCallback UTF::Isolate::PingError $UP $DOWN
+		UTF::Try "MultiMedia RvR sample $UP->$DOWN" {
+		    $ATTN attn $attnvalue
+		    wlClearAMPDU [list $UP $DOWN]
+		    set thruputs [UTF::Multiperf [list [$UP lan] [$DOWN lan]]]
+		    set rssi [parseRSSI $DOWN]
+		    foreach {avg min max} [UTF::MeanMinMax $thruputs]  {}
+		    wlDumpAMPDU [list $UP $DOWN]
+		    puts $fd "$rssi $attnvalue [expr $ix + $offset] $avg $min $max "
+		    return "RSSI=$rssi"
+		}
+	    }
+	    incr ix
+	}
+    }
+
+    proc chanspec2band {chanspec pband pbw} {
+	upvar $pband band
+	upvar $pbw bw
+	# Partition into bands and bandwidths for convenient reporting
+	if {[regexp {^(\d+)(\w*)} $chanspec - c sb]} {
+	    if {$c > 15} {
+		set band "5GHz"
+	    } else {
+		set band "2.4GHz"
+	    }
+	    if {$sb eq ""} {
+		set bw "20MHz"
+	    } else {
+		set bw "40MHz"
+	    }
+	} else {
+	    error "bad chanspec $chanspec"
+	}
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+
+    # RJM: NEED TO Fix this
+    set ATTENLIST "G2 G3"
+
+    set UP $(ap)
+    set DOWNLIST $(wetaps)
+    set stapeer [$UP cget -peer]
+    set TX $stapeer
+    set RXLIST ""
+    foreach wetap $(wetaps) {
+	set stapeer [$wetap cget -peer]
+	lappend RXLIST $stapeer
+    }
+    set defsecurity $(security)
+    set defchanspec $(chanspec)
+
+    set Routers ""
+    foreach Router [concat $UP $DOWNLIST] {
+	regsub {^::} [$Router cget -host] {} host
+	if {[lsearch $Router $host] < 0} {
+	    lappend Routers $host
+	}
+    }
+
+    # Override default tags
+    if {$(trx) ne ""} {
+	foreach Router $Routers {
+	    $Router configure -image $(trx) -date {}
+	}
+    } elseif {$(tag) ne ""} {
+	foreach Router $Routers {
+	    $Router configure -tag $(tag) -date {}
+	}
+    }
+
+    if {$(date) ne ""} {
+	set date $(date)
+	foreach router $Routers {
+	    $router configure -date $(date)
+	}
+    } else {
+	set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+    }
+
+    # Use first Upstream AP for title.
+    set AP $(ap)
+    if {[set build [$AP cget -image]] eq ""} {
+	set build [$AP cget -tag]
+    }
+    if {$build eq "NIGHTLY"} {
+	set build "TOT"
+    }
+
+    set TITLE "UTF $(title) ($build)"
+    UTF::Message INFO "" $TITLE
+
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+
+    if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+	    error "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+    }
+    unset build
+
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+    UTF::WrapSummary $UTF::SummaryDir "MultiMediaNightly $TITLE" "" $(email) {
+	if {!$(norestore)} {
+	    foreach Router $Routers {
+		UTF::Try "$Router: Restore Defaults" {
+		    set logdir [file dirname $UTF::Logfile]
+		    $Router restore_defaults
+		    $Router whatami
+		}
+	    }
+	    # Give spanning tree time to converge
+	    UTF::Sleep 30.0
+	}
+	if {[info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+	    }
+	}
+
+	if {!$(noapload)} {
+	    foreach Router $Routers {
+		UTF::Try "[$Router cget -name]: Find Router Image" {
+		    UTF::CheckImage $Router $date
+		}
+		UTF::Try "[$Router cget -name]: Load Image" {
+		    $Router load
+		}
+	    }
+	    # Give spanning tree time to converge
+	    UTF::Sleep 30.0
+	}
+
+	set testssid "MultiMedia"
+	UTF::Try "CFG: UP:AP,FB=1,RTR=0 DOWN(S): WET,WDS,FB=1,RTR=0" {
+	    ConfigEMF $UP $DOWNLIST $testssid
+	    return "SSID=$testssid"
+	}
+
+	if {!$(nosecurity)} {
+	    UTF::Try "TSTs: WET MultiBridge Security" {
+		#
+		#  Security association testing below
+		#
+		set securities "open shared wep tkippsk aespsk \
+	                        aespsk2+tkippsk2"
+		foreach security $securities {
+		    ConfigSecurity $UP $DOWNLIST $security
+		    VerifyPing $RXLIST $TX
+		}
+	    }
+	}
+
+	if {!$(nochannels)} {
+	    UTF::Try "TSTs: WET MultiBridge All Channels" {
+		GetCommonChannels $UP $DOWNLIST chanspecs
+		ConfigSecurity $UP $DOWNLIST $defsecurity
+		foreach chanspec $chanspecs {
+		    ConfigAPChannel $UP $chanspec
+		    VerifyDownsFollow $DOWNLIST $UP
+		    VerifyPing $RXLIST $TX
+		}
+	    }
+	}
+
+	#
+	#   Multicast tests
+	#
+	if {$(multicast) != ""} {
+	    UTF::Try "TSTs: WET MultiBridge Multicast Setup" {
+		ConfigSecurity $UP $DOWNLIST $defsecurity
+		ConfigAPChannel $UP $defchanspec
+		VerifyDownsFollow $DOWNLIST $UP
+		VerifyPing $RXLIST $TX
+		return "chanspec=$defchanspec security=$defsecurity"
+	    }
+
+	    foreach DOWN $DOWNLIST {
+		UTF::Try "CFG: Apply EMF exec config to $DOWN" {
+		    UTF::Multicast::emf_exec_command $DOWN enable
+		}
+	    }
+	    set mcasttests $(multicast)
+	    set mcasttests [string toupper $mcasttests]
+	    foreach tests $mcasttests  {
+		if {$tests == "LATENCY"} {
+		    foreach rx $RXLIST {
+			UTF::Try "Multicast join/leave latency test $rx" {
+			    $rx tcpdump_tune
+			    set cckey [list $(branch) "WET" "join-latency" [namespace tail $TX] [namespace tail $rx]]
+			    set ccname "CC_latency_"
+			    append ccname [namespace tail $rx]
+			    UTF::ControlChart $ccname -s 5 -key $cckey -history $(history) -perfcache "" -norangecheck 1
+			    $ccname configure -title "Join Latency"
+			    $ccname configure -units "Microsecs"
+			    set latencies [UTF::Multicast::joinlatency -txhost $TX -rxhost $rx -quiet]
+			    if {[llength $latencies] > 2} {
+				set boundsresults [$ccname addsample [UTF::MeanMinMax $latencies]]
+				return [$ccname plotcontrolchart "[UTF::MeanMinMax $latencies] (usecs)"]
+			    } else {
+				error "Insufficient latencies samples"
+			    }
+			}
+		    }
+		} else {
+		    UTF::Try "Multicast $tests Testing" {
+			foreach type $tests {
+			    set mcastmap($type,${TX},${RXLIST}) "DEFAULT"
+			}
+			#
+			# Launch the test
+			#
+			set results [UTF::Multicast::sigiperf_start mcastmap]
+			if {$results == ""} {
+			    UTF::Message ERROR "" "No multicast results in $tests"
+			    error "No multicast results"
+			} else {
+			    array set resultdb $results
+			}
+			set streams_with_lost [UTF::Multicast::lostpackets resultdb]
+			if {$streams_with_lost != ""} {
+			    return "lost pkts in: $streams_with_lost"
+			} else {
+			    return
+			}
+		    }
+		    #
+		    # Test is done, remove the array
+		    #
+		    unset mcastmap
+		}
+	    }
+
+	    if {$(streams)} {
+		#
+		# Streams testing follows.  Go ahead and create
+		# the streams instances up front.
+		#
+		set numbesteffortstreams 2
+		set numvoipstreams 4
+		set streamlist ""
+
+		::UTF::stream create videostream1
+		videostream1 configure -iperf "/usr/local/bin/sigiperf"
+		lappend streamlist "videostream1"
+		videostream1 configure -traffictype HDVIDEO
+		videostream1 configure -transmitsta [$UP cget -peer]
+		videostream1 configure -receivesta [[lindex $DOWNLIST 0] cget -peer]
+		videostream1 configure -multicast 1
+		videostream1 configure -pktsize 1460
+
+
+		::UTF::stream create videostream2
+		videostream2 configure -iperf "/usr/local/bin/sigiperf"
+		lappend streamlist "videostream2"
+		videostream2 configure -traffictype HDVIDEO
+		videostream2 configure -transmitsta [$UP cget -peer]
+		set rxstas ""
+		foreach down $DOWNLIST {
+		    lappend rxstas [$down cget -peer]
+		}
+		videostream2 configure -receivesta $rxstas
+		videostream2 configure -multicast 1
+		videostream2 configure -pktsize 1460
+
+		for {set ix 1} {$ix <= $numbesteffortstreams} {incr ix} {
+		    ::UTF::stream create besteffortstream${ix}
+		    lappend streamlist "besteffortstream${ix}"
+		    besteffortstream${ix} configure -traffictype BESTEFFORT
+		    besteffortstream${ix} configure -transmitsta [$UP cget -peer]
+		    set down [lindex $DOWNLIST [expr $ix % [llength $DOWNLIST]]]
+		    besteffortstream${ix} configure -receivesta [$down cget -peer]
+		}
+
+		for {set ix 1} {$ix <= $numvoipstreams} {incr ix} {
+		    ::UTF::stream create voipstream$ix
+		    lappend streamlist "voipstream$ix"
+		    voipstream$ix configure -traffictype VOIP
+		    voipstream$ix configure -transmitsta [$UP cget -peer]
+		    set down [lindex $DOWNLIST [expr $ix % [llength $DOWNLIST]]]
+		    voipstream$ix configure -receivesta [$down cget -peer]
+		    voipstream$ix configure -iperf /usr/local/bin/sigiperf
+		}
+
+		UTF::Try "Multicast video (single) max rate no loss" {
+		    #
+		    #  See the max bw for a mcast video stream with no lost packets
+		    #
+		    videostream1 start
+		    for {set ix 6; set jx 20} {$ix < 300 && $jx > 0} {incr ix} {
+			videostream1 configure -rate ${ix}M
+			videostream1 stats -clear
+			UTF::Message INFO videostream1 "rate ${ix}Mb/s"
+			UTF::Message INFO videostream1 "status [videostream1 status]"
+			set loopcontrol 10
+			while {[videostream1 stats -count] < 5  && $loopcontrol} {
+			    UTF::Sleep 1.0
+			    incr loopcontrol -1
+			}
+			#
+			# No data, enable some more verbose logging
+			#
+			if {!$loopcontrol || [videostream1 stats -ratepps] == ""} {
+			    UTF::Message ERROR videostream1 "No rate stats found"
+			    videostream1 configurelist "-txdisplay on -rxdisplay on"
+			    UTF::Sleep 3.0
+			    videostream1 configurelist "-txdisplay off -rxdisplay off"
+			    incr jx -1
+			} else {
+			    for {set kx 0} {$kx < 3} {incr kx} {
+				set lostrates [videostream1 stats -lostratepps]
+				set ppsrates [videostream1 stats -ratepps]
+				set rate [videostream1 stats -rate]
+				if {$rate <=0} {
+				    error "Zero measured thruput for videostream"
+				}
+				UTF::Message INFO videostream "lost: [videostream1 stats -lost]"
+				UTF::Message INFO videostream1 "rate\(bw\)=$rate rate\(pps\)=$ppsrates lostrates\(pps\)=$lostrates"
+				foreach lostrate $lostrates {
+				    if {$lostrate > 10} {
+					if {![info exists maxvalue]} {
+					    set maxvalue $ix
+					}
+					incr jx -1
+					set kx 4
+					break
+				    }
+				}
+				UTF::Sleep 1.0
+			    }
+			}
+		    }
+		    videostream1 stop
+		    if {![info exists maxvalue]} {
+			error "Rate testing never triggered lost packets."
+		    }
+		    return "$maxvalue Mb/s"
+		}
+
+		UTF::Try "Multicast video (multiple = [llength $DOWNLIST]) max rate no loss" {
+		    if {[info exists maxvalue]} {
+			unset maxvalue
+		    }
+
+		    #
+		    #  See the max bw for a mcast video stream with no lost packets
+		    #
+		    videostream2 start
+		    for {set ix 6; set jx 20} {$ix < 300 && $jx > 0} {incr ix} {
+			videostream2 configure -rate ${ix}M
+			UTF::Message INFO videostream2 "start rate ${ix}Mb/s"
+			videostream2 stats -clear
+			UTF::Message INFO videostream2 "rate ${ix}Mb/s"
+			set loopcontrol 10
+			while {[videostream2 stats -count] < 5  && $loopcontrol} {
+			    UTF::Sleep 1.0
+			    incr loopcontrol -1
+			}
+			#
+			# No data, enable some more verbose logging
+			#
+			if {!$loopcontrol} {
+			    UTF::Message ERROR videostream2 "No rate stats found"
+			    videostream2 configurelist "-txdisplay on -rxdisplay on"
+			    UTF::Sleep 3.0
+			    videostream2 configurelist "-txdisplay off -rxdisplay off"
+			    incr jx -1
+			} else {
+			    for {set kx 0} {$kx < 3} {incr kx} {
+				set lostrates [videostream2 stats -lostratepps]
+				set ppsrates [videostream2 stats -ratepps]
+				set rates [videostream2 stats -rate]
+				UTF::Message INFO videostream2 "rates\(bw\)=$rates rates\(pps\)=$ppsrates lostrates\(pps\)=$lostrates"
+				foreach lostrate $lostrates {
+				    if {[lindex $lostrate 1]> 10} {
+					if {![info exists maxvalue]} {
+					    set maxvalue $ix
+					}
+					incr jx -1
+					set kx 4
+					break
+				    }
+				}
+				UTF::Sleep 1.0
+			    }
+			}
+		    }
+		    videostream2 stop
+		    if {![info exists maxvalue]} {
+			error "Rate testing never triggered lost packets."
+		    }
+		    return "$maxvalue Mb/s"
+		}
+		UTF::Try "Multicast QoS" {
+		    set tx [$UP cget -peer]
+		    set rx ""
+		    foreach down $DOWNLIST {
+			lappend rx [$down cget -peer]
+		    }
+		    ::UTF::stream allstreams destroy
+		    UTF::Test::MulticastQoSBasic -txsta $tx -rxsta $rx -nosetup
+		}
+	    }
+	}
+
+	#
+	#  Thruput testing
+	#
+	if {!$(noperf)} {
+	    set ctrlchartsecurities "open open open aespsk2 tkippsk"
+	    #
+	    #  If stopping, set the channel to something that the sniffer
+	    #  can access easily.
+	    #
+	    if {$(stop) && !$(multicast)} {
+		set chanspecs "6"
+	    } else {
+		set chanspecs "6l 6 157 124 44"
+	    }
+	    foreach security $ctrlchartsecurities chanspec $chanspecs {
+		UTF::Try "CFG: WET MultiBridge Setup CH=${chanspec}(${security})" {
+		    UTF::Try "CFG: performance security to $security" {
+			ConfigSecurity $UP $DOWNLIST $security
+			return "Security=$security"
+		    }
+		    UTF::Try "CFG: WET MultiBridge AP CH=$chanspec" {
+			ConfigAPChannel $UP $chanspec
+			VerifyDownsFollow $DOWNLIST $UP
+			CalibrateRSSI $DOWNLIST $ATTENLIST
+			return "Chspec=$chanspec"
+		    }
+		    set tmp "RSSI(s)="
+		    foreach DOWN $DOWNLIST {
+			append tmp "[parseRSSI $DOWN] "
+		    }
+		    return $tmp
+		}
+		foreach DOWN $DOWNLIST {
+		    UTF::Try "DATA(tcp): $UP->$DOWN" {
+			wlClearAMPDU [list $AP $DOWN]
+			set results [controlchart [list [$UP lan] [$DOWN lan]] \
+					 -key [list WET $(branch) $UP $DOWN \
+						   $security $chanspec tcp] \
+					 -i 2 -window 512k -loop \
+					 $(perfloop) -history $(history)]
+			return $results
+		    }
+		    UTF::Try "AMPDU dump: CH=${chanspec}(${security}) $UP->$DOWN" {
+			wlDumpAMPDU [list $AP $DOWN]
+		    }
+		}
+	    }
+	}
+
+	#
+	#   RvR cases follow
+	#
+	if {$(rvrbasic)} {
+	    set security $defsecurity
+	    set chanspec $defchanspec
+	    set RSSIMin 40
+	    set RSSIMax 100
+	    set numsamples [expr $RSSIMax - $RSSIMin]
+	    set fdlist ""
+	    UTF::Try "CFG: WET MultiBridge RvR Setup" {
+		UTF::Try "CFG: performance security to $security" {
+		    ConfigSecurity $UP $DOWNLIST $security
+		    return "Security=$security"
+		}
+		UTF::Try "CFG: WET MultiBridge AP CH=$chanspec" {
+		    ConfigAPChannel $UP $chanspec
+		    VerifyDownsFollow $DOWNLIST $UP
+		    CalibrateRSSI $DOWNLIST $ATTENLIST $RSSIMin
+		    return "Chspec=$chanspec"
+		}
+		UTF::Try "Dump nvram" {
+		    set routers [concat $UP $DOWNLIST]
+		    foreach router $routers {
+			$router nvram show
+		    }
+		}
+		set tmp "RSSI(s)="
+		foreach DOWN $DOWNLIST {
+		    append tmp "[parseRSSI $DOWN] "
+		}
+		foreach DOWN $DOWNLIST ATTN $ATTENLIST {
+		    set attnmin($DOWN) [lindex [$ATTN attn?] 0]
+		    set attnmax($DOWN) [expr $attnmin($DOWN) + ($RSSIMax - $RSSIMin)]
+		    if {$attnmax($DOWN) > 103} {
+			set attnmax($DOWN) 103
+		    }
+		    lappend fdlist [open "${logdir}/${DOWN}_rvr.data" w]
+		}
+		return "$tmp"
+	    }
+	    UTF::Try "TST: WET MultiBridge RvR" {
+		#
+		# Walk RSSI down
+		#
+		MeasureRvR $DOWNLIST $ATTENLIST $fdlist $numsamples 1 0 $UP $chanspec $security $(branch)
+		foreach fd $fdlist {
+		    puts -nonewline $fd "\n\n"
+		}
+
+		#
+		# Walk RSSI back up
+		#
+		MeasureRvR $DOWNLIST $ATTENLIST $fdlist $numsamples -1 $numsamples $UP $chanspec $security  $(branch)
+		foreach fd $fdlist {
+		    close $fd
+		}
+		return
+	    }
+	    foreach DOWN $DOWNLIST {
+		set datafile "${logdir}/${DOWN}_rvr.data"
+		set fd [open "${logdir}/gnuplothelper" w]
+		puts $fd "set output \"${logdir}/${DOWN}_Samples.png\""
+		puts $fd "set terminal png"
+		puts $fd "set nokey"
+		puts $fd "set xlabel \"Sample\""
+		puts $fd "set ylabel \"Thruput\""
+		puts $fd "set style line 1 lt 1 lw 2"
+		puts $fd "set style line 2 lt 2 lw 2"
+		puts $fd "plot \"$datafile\" using 3:4:5:6 with yerrorbars, \"$datafile\" using 3:4 with lines ls 1"
+		puts $fd "set output \"${logdir}/${DOWN}_RSSIs.png\""
+		puts $fd "set nokey"
+		puts $fd "set xlabel \"RSSI\""
+		puts $fd "set ylabel \"Thruput\""
+		puts $fd "plot \"$datafile\" index 0 using 1:4:5:6 with yerrorbars, \"$datafile\" index 1 using 1:4:5:6 with yerrorbars"
+		close $fd
+		set rc [catch "exec /usr/bin/gnuplot ${logdir}/gnuplothelper" result]
+	    }
+	    foreach DOWN $DOWNLIST {
+		set samplegraph "${logdir}/${DOWN}_Samples.png"
+		set samplesmall "${logdir}/${DOWN}_Samples_small.png"
+		UTF::Try "Result: WET ${UP}->$DOWN RvR (Samples)" {
+		    catch "exec /usr/bin/convert -resize 75x50 $samplegraph $samplesmall"
+		    set fd [open "$samplesmall"]
+		    fconfigure $fd -translation binary
+		    set data [base64::encode -maxlen 0 [read $fd]]
+		    close $fd
+		    return "html:<!--\[if IE]><img src=\"$samplegraph\" alt=\"url\" /><!\[endif]--><!\[if !IE]><img src=\"data:image/png;base64,$data\" alt=\"data\" /><!\[endif]> <a href=\"$samplegraph\">Thruput vs. Sample No.</a>"
+		}
+		set rssigraph "${logdir}/${DOWN}_RSSIs.png"
+		set rssismall "${logdir}/${DOWN}_RSSIssmall.png"
+		UTF::Try "Result: WET ${UP}->$DOWN RvR (RSSI)" {
+		    catch "exec /usr/bin/convert -resize 75x50 $rssigraph $rssismall"
+		    set fd [open "$rssismall"]
+		    fconfigure $fd -translation binary
+		    set data [base64::encode -maxlen 0 [read $fd]]
+		    close $fd
+		    return "html:<!--\[if IE]><img src=\"$rssigraph\" alt=\"url\" /><!\[endif]--><!\[if !IE]><img src=\"data:image/png;base64,$data\" alt=\"data\" /><!\[endif]> <a href=\"$rssigraph\">Thruput vs RSSI</a>"
+		}
+	    }
+	}
+    }
+}

@@ -1,0 +1,77 @@
+#
+# Linux USB downloader source release filter
+#
+# Note that this is an direct filter file
+#
+# Usage:
+#
+# find src | \
+# perl src/tools/build/srcfilter.pl -v src/tools/release/linux-usbbcmdl-filelist.txt \
+# cpio -p -d (RELEASEDIR)
+#
+# Copyright (C) 2003 Broadcom Corporation$
+# $Id$
+#
+# NOTE: Wildcards are NOT allowed in any filelist. List actual file/dir names
+
+# Makefiles
+src/Makerules
+src/Makerules.env
+src/makefiles/WLAN_Common.mk
+src/makefiles/RelPath.mk
+src/tools/release/WLAN.usf
+src/branding.inc
+
+# C source files
+src/usbdev/usbdl/Makefile
+src/usbdev/usbdl/bcmdl.c
+src/usbdev/usbdl/usb_bsd.c
+src/usbdev/usbdl/usb_linux.c
+src/shared/bcmutils.c
+src/shared/bcmiov.c
+src/shared/hnd_pktq.c
+src/shared/hnd_pktpool.c
+src/shared/zlib/adler32.c
+src/shared/zlib/infblock.c
+src/shared/zlib/infcodes.c
+src/shared/zlib/inffast.c
+src/shared/zlib/inflate.c
+src/shared/zlib/inftrees.c
+src/shared/zlib/infutil.c
+src/shared/zlib/zutil.c
+src/shared/zlib/crc32.c
+
+# Header files
+src/usbdev/usbdl/usb_osl.h
+src/include/trxhdr.h
+src/include/typedefs.h
+src/include/packed_section_end.h
+src/include/packed_section_start.h
+src/include/bcmdevs.h
+src/include/bcmutils.h
+src/include/bcmiov.h
+src/include/bcmtlv.h
+src/include/rte_ioctl.h
+src/include/hnd_pktq.h
+src/include/hnd_pktpool.h
+src/include/bcm_cfg.h
+src/include/bcmdefs.h
+src/include/usbstd.h
+src/include/usbrdl.h
+src/include/bcmendian.h
+src/include/event_log.h
+components/shared/proto/ethernet.h
+components/shared/proto/vlan.h
+components/shared/proto/bcmip.h
+components/shared/proto/bcmipv6.h
+components/shared/proto/bcmtcp.h
+components/shared/proto/802.1d.h
+src/shared/zlib/zlib.h
+src/shared/zlib/zutil.h
+src/shared/zlib/zconf.h
+src/shared/zlib/infblock.h
+src/shared/zlib/infcodes.h
+src/shared/zlib/inffast.h
+src/shared/zlib/inffixed.h
+src/shared/zlib/inftrees.h
+src/shared/zlib/infutil.h

@@ -41,7 +41,7 @@
 #include "bvc5_registers_priv.h"
 
 #define BVC5_P_PERF_COUNTER_HW_GROUP      0
-#if V3D_VER_AT_LEAST(4,0,0,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
 #define BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE 32
 #define BVC5_P_PERF_COUNTER_SCHED_GROUP   1
 #define BVC5_P_PERF_COUNTER_NUM_GROUPS    2
@@ -90,7 +90,7 @@ typedef struct BVC5_P_PerfCounters
    BVC5_CounterGroupDesc    sGroupDescs[BVC5_P_PERF_COUNTER_NUM_GROUPS];
 
    BVC5_P_HwCounter         sHwCounters[BVC5_MAX_COUNTERS_PER_GROUP];
-#if !V3D_VER_AT_LEAST(4,0,0,0)
+#if !V3D_VER_AT_LEAST(4,0,2,0)
    BVC5_P_HwCounter         sBwCounters[BVC5_MAX_COUNTERS_PER_GROUP];
 #endif
    BVC5_P_CounterValue      sSchedValues[BVC5_MAX_COUNTERS_PER_GROUP];

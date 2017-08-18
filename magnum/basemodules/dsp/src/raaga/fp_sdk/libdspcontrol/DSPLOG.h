@@ -169,7 +169,7 @@ extern "C"
 #if FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
 
 #  include <bkni.h>
-#  define DSPLOG_EXIT_FUNC(code)    do { BSTD_UNUSED(code); BKNI_Fail(); } while (0)
+#  define DSPLOG_EXIT_FUNC(code)    do { int status = code; BSTD_UNUSED(status); BKNI_Fail(); } while (0)
 
 #elif FEATURE_IS(LIBC, FREESTANDING)
 

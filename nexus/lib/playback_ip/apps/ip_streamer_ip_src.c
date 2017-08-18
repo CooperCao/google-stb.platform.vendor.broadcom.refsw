@@ -344,7 +344,7 @@ openNexusIpSrc(
         /* coverity[stack_use_local_overflow] */
         /* coverity[stack_use_overflow] */
         if ((ipSrc->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
-            BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to open the transcoder pipe", BSTD_FUNCTION));
             goto error;
         }
         ipSrc->transcodeEnabled = true;
@@ -444,7 +444,7 @@ setupAndAcquirePsiInfoIpSrc(
             /* other thread hasn't yet acquired PSI, so wait for it to acquire it */
             BDBG_MSG(("CTX %p: Another thread sharing the IP Src (ref count %d) hasn't yet acquired PSI info, wait for its completion...", (void *)ipStreamerCtx, ipSrc->refCount));
             if (BKNI_WaitForEvent(ipSrc->psiAcquiredEvent, 60000)) {
-                BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
+                BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", BSTD_FUNCTION));
                 return -1;
             }
         }
@@ -535,7 +535,7 @@ openNexusIpSrcPidChannels(
         ipStreamerCtx->transcoderDst->audioPidChannel = audioPidChannel;
         ipStreamerCtx->transcoderDst->pcrPidChannel = pcrPidChannel;
         if (setupNexusTranscoderPidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-            BDBG_ERR(("%s: setupNexusTranscoderPidChannels() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: setupNexusTranscoderPidChannels() Failed", BSTD_FUNCTION));
             return -1;
         }
     }

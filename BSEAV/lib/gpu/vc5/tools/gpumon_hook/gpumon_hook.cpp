@@ -21,6 +21,7 @@
 #include <set>
 #include <string>
 #include <array>
+#include <chrono>
 
 #include "packet.h"
 #include "remote.h"
@@ -54,6 +55,9 @@ const unsigned int GLESVER = 3;
 
 #define DLLEXPORTENTRY
 
+using Clock = std::chrono::steady_clock;
+using TimePoint = std::chrono::time_point<Clock>;
+
 static Packet  *sCurPacket = NULL;
 static bool     sEnabled = true;
 static bool     sOrphaned = false;
@@ -63,9 +67,8 @@ static uint32_t sPerfNumFrames = 1;
 static float    sPerfNumSeconds = 0.0f;
 static uint32_t sFrameCnt = 0;
 static uint32_t sTotalFrameCnt = 0;
-static uint32_t sTimeStampMs = 0;
+static TimePoint sTimeStamp;
 static bool     sCaptureEvents = false;
-static int64_t  sEventTimebaseOffset = 0;
 static GLint    sEventApiTrack = -1;
 static GLint    sApiEventCode = -1;
 static GLint    sTextureApiEventCode = -1;
@@ -106,6 +109,18 @@ extern "C"
    static void send_thread_change(uint32_t threadID, EGLContext context);
    static void SendPerfDataPacket();
    static void SendEventDataPacket();
+}
+
+static unsigned int TimeDiffNano(TimePoint start, TimePoint end)
+{
+   auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+   return static_cast<unsigned int>(diff);
+}
+
+static uint64_t GetTimeNowUs()
+{
+   return std::chrono::duration_cast<std::chrono::microseconds>(
+         Clock::now().time_since_epoch()).count();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -178,8 +193,9 @@ public:
          }
          else if (sPerfNumSeconds > 0.0f)
          {
-            uint32_t nowMs = plGetTimeNowMs();
-            if (nowMs - sTimeStampMs > (uint32_t)(1000.0f * sPerfNumSeconds))
+            TimePoint now = Clock::now();
+            std::chrono::duration<float> elapsed = now - sTimeStamp;
+            if (elapsed.count() > sPerfNumSeconds)
                sendMe = true;
          }
 
@@ -189,7 +205,7 @@ public:
             if (sCaptureEvents)
                SendEventDataPacket();
 
-            sTimeStampMs = plGetTimeNowMs();
+            sTimeStamp = Clock::now();
             sFrameCnt = 0;
          }
       }
@@ -801,8 +817,9 @@ static void SendPerfDataPacket()
    uint8_t *buf = new uint8_t[numBytes];
    sGetPerfCounterDataBRCM(numBytes, buf, &numBytes, EGL_TRUE);   // TRUE - reset counters
 
-   p.AddItem(PacketItem((uint32_t)(plGetTimeNowUs() >> 32)));
-   p.AddItem(PacketItem((uint32_t)(plGetTimeNowUs() & 0xFFFFFFFF)));
+   uint64_t nowUs = GetTimeNowUs();
+   p.AddItem(PacketItem((uint32_t)(nowUs >> 32)));
+   p.AddItem(PacketItem((uint32_t)(nowUs & 0xFFFFFFFF)));
    p.AddItem(PacketItem(numBytes));
    p.AddItem(PacketItem(buf, numBytes));
 
@@ -821,7 +838,7 @@ static void GetPerfData(const Packet &packet)
    Control::ePerfAction action = (Control::ePerfAction)packet.Item(1).GetUInt32();
 
    sFrameCnt = 0;
-   sTimeStampMs = plGetTimeNowMs();
+   sTimeStamp = Clock::now();
 
    if (action == Control::ePerfStart)
    {
@@ -959,13 +976,14 @@ static void MakeEventDataPacket(Packet &p)
    {
       events = p.AddBuffer(bytes);
       sGetEventDataBRCM(bytes, events.get(), &bytes, &overflowed, &timebase);
-      numArrays++;
+      if (bytes) //might have changed due to errors etc.
+         numArrays++;
    }
 
    if (sEventBuffer.Size() > 0)
       ++numArrays;
 
-   uint64_t nowUs = plGetTimeNowUs();
+   uint64_t nowUs = GetTimeNowUs();
 
    p.AddItem((uint32_t)(bytes + sEventBuffer.Size()));
    p.AddItem((uint32_t)(timebase >> 32));
@@ -2105,24 +2123,12 @@ static void SetVarSet(const Packet &packet)
    {
       sCaptureEvents = !inVarSet(FOURCC('E', 'V', 'T', 'D'), 1);
       sFrameCnt = 0;
-      sTimeStampMs = plGetTimeNowMs();
+      sTimeStamp = Clock::now();
       if (sCaptureEvents)
       {
          sEventBuffer.Clear();
 
-         // Need a timebase so we can create sensible timestamps for the API funcs
-         EGLint         uDummy;
-         EGLBoolean     bDummy;
-         EGLuint64BRCM  timebase;
-         EGLuint64BRCM  nowUs;
-
          sSetEventCollectionBRCM(EGL_ACQUIRE_EVENTS_BRCM);
-
-         nowUs = plGetTimeNowUs();
-         sGetEventDataBRCM(0, NULL, &uDummy, &bDummy, &timebase);
-
-         sEventTimebaseOffset = timebase - nowUs;
-
          sSetEventCollectionBRCM(EGL_START_EVENTS_BRCM);
       }
       else
@@ -2621,12 +2627,12 @@ static bool WantCommand(eGLCommand cmd)
       if (p) { \
          if (sEventBuffer.Size() == bytes)\
          {\
-            sFirstApiCapTime = plGetTimeNowUs() + sEventTimebaseOffset; \
+            sFirstApiCapTime = GetTimeNowUs(); \
             *((uint64_t*)p) = sFirstApiCapTime; p += 2; \
          }\
          else\
          {\
-            *((uint64_t*)p) = plGetTimeNowUs() + sEventTimebaseOffset; p += 2; \
+            *((uint64_t*)p) = GetTimeNowUs(); p += 2; \
          }\
          *p++ = sEventApiTrack; \
          *p++ = (id); \
@@ -2779,12 +2785,12 @@ static bool WantCommand(eGLCommand cmd)
       bool ret = PostPacketize(&__p);\
       if (ret) \
       {\
-         TIMESTAMP __start, __end; \
-         plGetTime(&__start); \
+         TimePoint __start, __end; \
+         __start = Clock::now(); \
          Real(func) args; \
-         plGetTime(&__end);   \
+         __end = Clock::now();   \
          Log##api##Error(); \
-         RetVoidFunc(plTimeDiffNano(&__start, &__end)); \
+         RetVoidFunc(TimeDiffNano(__start, __end)); \
       }\
    }\
    else\
@@ -2809,15 +2815,15 @@ static void PacketizeGenData(GLsizei count, GLuint *data)
       bool ret = PostPacketize(&__p);\
       if (ret) \
       {\
-         TIMESTAMP __start, __end; \
-         plGetTime(&__start); \
+         TimePoint __start, __end; \
+         __start = Clock::now(); \
          Real(func) args; \
-         plGetTime(&__end);   \
+         __end = Clock::now();   \
          Log##api##Error(); \
          Packet   __p(eRET_CODE); \
          sCurPacket = &__p; \
          __p.AddItem(2); \
-         __p.AddItem(plTimeDiffNano(&__start, &__end)); \
+         __p.AddItem(TimeDiffNano(__start, __end)); \
          PacketizeGenData args; \
          PostPacketize(&__p); \
       }\
@@ -2838,12 +2844,12 @@ static void PacketizeGenData(GLsizei count, GLuint *data)
       bool ret = PostPacketize(&__p);\
       if (ret) \
       {\
-         TIMESTAMP __start, __end; \
-         plGetTime(&__start); \
+         TimePoint __start, __end; \
+         __start = Clock::now(); \
          Real(func) args; \
-         plGetTime(&__end);   \
+         __end = Clock::now();   \
          Log##api##Error(); \
-         RetVoidFunc(plTimeDiffNano(&__start, &__end)); \
+         RetVoidFunc(TimeDiffNano(__start, __end)); \
       }\
    }\
    else if (!sOrphaned && sEnabled && sBottleneckMode == Control::eNullDrawCalls)\
@@ -2865,12 +2871,12 @@ static void PacketizeGenData(GLsizei count, GLuint *data)
       bool ret = PostPacketize(&__p);\
       if (ret) \
       {\
-         TIMESTAMP __start, __end; \
-         plGetTime(&__start); \
+         TimePoint __start, __end; \
+         __start = Clock::now(); \
          retType __r = Real(func) args; \
-         plGetTime(&__end);   \
+         __end = Clock::now();   \
          Log##api##Error(); \
-         RetFunc(plTimeDiffNano(&__start, &__end), (__r)); \
+         RetFunc(TimeDiffNano(__start, __end), (__r)); \
          return __r; \
       }\
       else \
@@ -2892,12 +2898,12 @@ static void PacketizeGenData(GLsizei count, GLuint *data)
       bool ret = PostPacketize(&__p);\
       if (ret) \
       {\
-         TIMESTAMP __start, __end; \
-         plGetTime(&__start); \
+         TimePoint __start, __end; \
+         __start = Clock::now(); \
          retType __r = Real(func) args; \
-         plGetTime(&__end);   \
+         __end = Clock::now();   \
          Log##api##Error(); \
-         return_EGLSurface(__r, plTimeDiffNano(&__start, &__end)); \
+         return_EGLSurface(__r, TimeDiffNano(__start, __end)); \
          return __r; \
       }\
       else \
@@ -2921,12 +2927,12 @@ static void PacketizeGenData(GLsizei count, GLuint *data)
       bool ret = PostPacketize(&__p);\
       if (ret) \
       {\
-         TIMESTAMP __start, __end; \
-         plGetTime(&__start); \
+         TimePoint __start, __end; \
+         __start = Clock::now(); \
          Real(func) args; \
-         plGetTime(&__end);   \
+         __end = Clock::now();   \
          Log##api##Error(); \
-         RetVoidFunc(plTimeDiffNano(&__start, &__end)); \
+         RetVoidFunc(TimeDiffNano(__start, __end)); \
       }\
    }\
    else \
@@ -2947,12 +2953,12 @@ static void PacketizeGenData(GLsizei count, GLuint *data)
       bool ret = PostPacketize(&__p);\
       if (ret) \
       {\
-         TIMESTAMP __start, __end; \
-         plGetTime(&__start); \
+         TimePoint __start, __end; \
+         __start = Clock::now(); \
          Real(func) args; \
-         plGetTime(&__end);   \
+         __end = Clock::now();   \
          Log##api##Error(); \
-         RetVoidFunc(plTimeDiffNano(&__start, &__end)); \
+         RetVoidFunc(TimeDiffNano(__start, __end)); \
       }\
    }\
    else if (!sOrphaned && sBottleneckMode == Control::eNullDrawCalls && \
@@ -3050,12 +3056,12 @@ static void PacketizePBOData(GLenum target, void *off, GLint len)
       bool ret = PostPacketize(&p);\
       if (ret) \
       {\
-         TIMESTAMP start, end; \
-         plGetTime(&start); \
+         TimePoint start, end; \
+         start = Clock::now(); \
          Real(func) args; \
-         plGetTime(&end);   \
+         end = Clock::now();   \
          Log##api##Error(); \
-         RetVoidFunc(plTimeDiffNano(&start, &end)); \
+         RetVoidFunc(TimeDiffNano(start, end)); \
       }\
    }\
    else if (!sOrphaned && sBottleneckMode == Control::eTinyTextures && \
@@ -3081,12 +3087,12 @@ static void PacketizePBOData(GLenum target, void *off, GLint len)
       bool ret = PostPacketize(&p);\
       if (ret) \
       {\
-         TIMESTAMP start, end; \
-         plGetTime(&start); \
+         TimePoint start, end; \
+         start = Clock::now(); \
          retType r = Real(func) args; \
-         plGetTime(&end);   \
+         end = Clock::now();   \
          Log##api##Error(); \
-         RetFunc(plTimeDiffNano(&start, &end), (r)); \
+         RetFunc(TimeDiffNano(start, end), (r)); \
          return r; \
       }\
       else \
@@ -3110,12 +3116,12 @@ static void PacketizePBOData(GLenum target, void *off, GLint len)
       bool ret = PostPacketize(&p);\
       if (ret) \
       {\
-         TIMESTAMP start, end; \
-         plGetTime(&start); \
+         TimePoint start, end; \
+         start = Clock::now(); \
          retType r = Real(func) args; \
-         plGetTime(&end);   \
+         end = Clock::now();   \
          Log##api##Error(); \
-         return_EGLSurface(r, plTimeDiffNano(&start, &end)); \
+         return_EGLSurface(r, TimeDiffNano(start, end)); \
          return r; \
       }\
       else \
@@ -3142,12 +3148,12 @@ static void PacketizePBOData(GLenum target, void *off, GLint len)
       bool ret = PostPacketize(&p);\
       if (ret) \
       {\
-         TIMESTAMP start, end; \
-         plGetTime(&start); \
+         TimePoint start, end; \
+         start = Clock::now(); \
          retType r = Real(func) args; \
-         plGetTime(&end);   \
+         end = Clock::now();   \
          Log##api##Error(); \
-         RetFunc(plTimeDiffNano(&start, &end), (r)); \
+         RetFunc(TimeDiffNano(start, end), (r)); \
          return r; \
       }\
       else \
@@ -3170,12 +3176,12 @@ static void PacketizePBOData(GLenum target, void *off, GLint len)
       sSendNextRet = true;\
       if (ret) \
       {\
-         TIMESTAMP start, end; \
-         plGetTime(&start); \
+         TimePoint start, end; \
+         start = Clock::now(); \
          Real(func) args; \
-         plGetTime(&end);   \
+         end = Clock::now();   \
          Log##api##Error(); \
-         RetVoidFunc(plTimeDiffNano(&start, &end));\
+         RetVoidFunc(TimeDiffNano(start, end));\
       }\
    }\
    else \
@@ -3195,12 +3201,12 @@ static void PacketizePBOData(GLenum target, void *off, GLint len)
       sSendNextRet = true;\
       if (ret) \
       {\
-         TIMESTAMP start, end; \
-         plGetTime(&start); \
+         TimePoint start, end; \
+         start = Clock::now(); \
          retType r = Real(func) args; \
-         plGetTime(&end);   \
+         end = Clock::now();   \
          Log##api##Error(); \
-         RetFunc(plTimeDiffNano(&start, &end), (r)); \
+         RetFunc(TimeDiffNano(start, end), (r)); \
          return r; \
       }\
       else \
@@ -3484,8 +3490,6 @@ static void gpumon_initialize(void)
 
             Packetize((uint32_t)getpid(), debug, SPYHOOK_MAJOR_VER, SPYHOOK_MINOR_VER, GLESVER, ptrSize);
             PostPacketize(&p);
-            plGetTimeNowMs(); // Initialize the internal timebases
-            plGetTimeNowUs();
             return;
          }
       }
@@ -3520,14 +3524,14 @@ DLLEXPORT GLenum DLLEXPORTENTRY specialized_glGetError (void)
       {
          uint32_t tid = plGetThreadID();
 
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          GLenum err = sGLErrors[tid].Get(); // Get the first stored error
          sGLErrors[tid] = ErrorGL();        // Clear the stored error
          // Make a call to get timing data, we know there won't be an error
          Real(glGetError)();
-         plGetTime(&end);
-         RetFunc(plTimeDiffNano(&start, &end), (err));
+         end = Clock::now();
+         RetFunc(TimeDiffNano(start, end), (err));
          return err;
       }
       else
@@ -3550,12 +3554,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glBindFramebuffer (GLenum target, GLui
       sSendNextRet = true;
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glBindFramebuffer)(target, framebuffer);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && sBottleneckMode == Control::eTinyViewport)
@@ -3666,12 +3670,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glBufferData (GLenum target, GLsizeipt
 
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glBufferData)(target, size, data, usage);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -3754,12 +3758,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glBufferSubData (GLenum target, GLintp
 
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glBufferSubData)(target, offset, size, data);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -3798,12 +3802,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glColorPointer (GLint size, GLenum typ
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glColorPointer)(size, type, stride, pointer);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -4024,12 +4028,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glDrawArrays (GLenum mode, GLint first
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glDrawArrays)(mode, first, count);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && sBottleneckMode == Control::eNullDrawCalls &&
@@ -4362,12 +4366,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glDrawElements (GLenum mode, GLsizei c
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glDrawElements)(mode, count, type, indices);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && sBottleneckMode == Control::eNullDrawCalls &&
@@ -4394,12 +4398,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glFinish (void)
       sSendNextRet = true;
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          RealApiEvent(glFinish, ());
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -4450,12 +4454,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glNormalPointer (GLenum type, GLsizei 
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glNormalPointer)(type, stride, pointer);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -4485,12 +4489,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glShaderBinary (GLsizei n, const GLuin
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glShaderBinary)(n, shaders, binaryformat, binary, length);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -4908,12 +4912,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glShaderSource (GLuint shader, GLsizei
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glShaderSource)(shader, count, (const GLchar **)string, length);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && (sEnabled || (sMinimalModeCmds.find(cmd_glShaderSource) != sMinimalModeCmds.end())) &&
@@ -4952,12 +4956,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glTexCoordPointer (GLint size, GLenum 
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glTexCoordPointer)(size, type, stride, pointer);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -5032,12 +5036,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glVertexAttribPointer (GLuint indx, GL
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glVertexAttribPointer)(indx, size, type, normalized, stride, ptr);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -5063,12 +5067,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glVertexPointer (GLint size, GLenum ty
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glVertexPointer)(size, type, stride, pointer);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -5086,12 +5090,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glViewport (GLint x, GLint y, GLsizei 
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glViewport)(x, y, width, height);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && (sEnabled || (sMinimalModeCmds.find(cmd_glViewport) != sMinimalModeCmds.end())) &&
@@ -5149,12 +5153,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glPointSizePointerOES (GLenum type, GL
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glPointSizePointerOES)(type, stride, pointer);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -5173,10 +5177,10 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glCompileShader(GLuint shader)
       bool ret = PostPacketize(&__p);
       if (ret)
       {
-         TIMESTAMP __start, __end;
-         plGetTime(&__start);
+         TimePoint __start, __end;
+         __start = Clock::now();
          Real(glCompileShader)(shader);
-         plGetTime(&__end);
+         __end = Clock::now();
          LogGLError();
 
          Packet   p(eRET_CODE);
@@ -5198,7 +5202,7 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glCompileShader(GLuint shader)
          p.AddItem(val);
          p.AddItem(PacketItem(buf));
 
-         p.AddItem(plTimeDiffNano(&__start, &__end));
+         p.AddItem(TimeDiffNano(__start, __end));
 
          PostPacketize(&p);
       }
@@ -5221,10 +5225,10 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glLinkProgram(GLuint program)
       {
          std::vector<std::string> names;
 
-         TIMESTAMP __start, __end;
-         plGetTime(&__start);
+         TimePoint __start, __end;
+         __start = Clock::now();
          Real(glLinkProgram)(program);
-         plGetTime(&__end);
+         __end = Clock::now();
          LogGLError();
 
          Packet   p(eRET_CODE);
@@ -5276,7 +5280,7 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glLinkProgram(GLuint program)
             delete[] name;
          }
 
-         p.AddItem(plTimeDiffNano(&__start, &__end));
+         p.AddItem(TimeDiffNano(__start, __end));
 
          PostPacketize(&p);
       }
@@ -5301,14 +5305,14 @@ DLLEXPORT EGLint EGLAPIENTRY specialized_eglGetError(void)
       {
          uint32_t tid = plGetThreadID();
 
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          EGLint err = sEGLErrors[tid].Get(); // Get the first stored error
          sEGLErrors[tid] = ErrorEGL();       // Clear the stored error
          // Make a call to get timing data, we know there won't be an error
          Real(eglGetError)();
-         plGetTime(&end);
-         RetFunc(plTimeDiffNano(&start, &end), (err));
+         end = Clock::now();
+         RetFunc(TimeDiffNano(start, end), (err));
          return err;
       }
       else
@@ -5332,12 +5336,12 @@ DLLEXPORT EGLBoolean EGLAPIENTRY specialized_eglTerminate(EGLDisplay dpy)
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          EGLBoolean r = Real(eglTerminate)(dpy);
-         plGetTime(&end);
+         end = Clock::now();
          LogEGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (r));
+         RetFunc(TimeDiffNano(start, end), (r));
          return r;
       }
       else
@@ -5412,12 +5416,12 @@ DLLEXPORT EGLContext EGLAPIENTRY specialized_eglCreateContext(EGLDisplay dpy, EG
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          EGLContext c = Real(eglCreateContext)(dpy, config, share_context, attrib_list);
-         plGetTime(&end);
+         end = Clock::now();
          LogEGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (c));
+         RetFunc(TimeDiffNano(start, end), (c));
          return c;
       }
       else
@@ -5473,12 +5477,12 @@ DLLEXPORT EGLBoolean EGLAPIENTRY specialized_eglMakeCurrent(EGLDisplay dpy, EGLS
       sSendNextRet = true;
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          EGLBoolean b = Real(eglMakeCurrent)(dpy, draw, read, ctx);
-         plGetTime(&end);
+         end = Clock::now();
          LogEGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (b));
+         RetFunc(TimeDiffNano(start, end), (b));
          return b;
       }
       else
@@ -5510,12 +5514,12 @@ DLLEXPORT EGLBoolean EGLAPIENTRY specialized_eglSwapBuffers(EGLDisplay dpy, EGLS
       sSendNextRet = true;
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          RealApiEventRet(r, EGLBoolean, eglSwapBuffers, (dpy, surface));
-         plGetTime(&end);
+         end = Clock::now();
          LogEGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (r));
+         RetFunc(TimeDiffNano(start, end), (r));
          return r;
       }
       else
@@ -5542,12 +5546,12 @@ DLLEXPORT EGLint EGLAPIENTRY specialized_eglClientWaitSyncKHR(EGLDisplay dpy, EG
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          EGLint r = Real(eglClientWaitSyncKHR)(dpy, sync, flags, timeout);
-         plGetTime(&end);
+         end = Clock::now();
          LogEGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (r));
+         RetFunc(TimeDiffNano(start, end), (r));
          return r;
       }
       else
@@ -5671,12 +5675,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glDrawRangeElements (GLenum mode, GLui
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glDrawRangeElements)(mode, s, e, count, type, indices);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && (sEnabled || (sMinimalModeCmds.find(cmd_glDrawRangeElements) != sMinimalModeCmds.end())) &&
@@ -5740,12 +5744,12 @@ DLLEXPORT GLboolean DLLEXPORTENTRY specialized_glUnmapBuffer(GLenum target)
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          GLboolean r = Real(glUnmapBuffer)(target);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (r));
+         RetFunc(TimeDiffNano(start, end), (r));
          return r;
       }
       else
@@ -5807,12 +5811,12 @@ DLLEXPORT GLboolean DLLEXPORTENTRY specialized_glUnmapBufferOES(GLenum target)
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          GLboolean r = Real(glUnmapBufferOES)(target);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (r));
+         RetFunc(TimeDiffNano(start, end), (r));
          return r;
       }
       else
@@ -5865,12 +5869,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glFlushMappedBufferRange (GLenum targe
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glFlushMappedBufferRange)(target, offset, length);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -5899,12 +5903,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glTransformFeedbackVaryings (GLuint pr
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glTransformFeedbackVaryings)(program, count, varyings, bufferMode);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -5931,12 +5935,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glVertexAttribIPointer (GLuint index, 
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glVertexAttribIPointer)(index, size, type, stride, pointer);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -5980,12 +5984,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glGetUniformIndices (GLuint program, G
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glGetUniformIndices)(program, uniformCount, uniformNames, uniformIndices);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -6072,12 +6076,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glDrawArraysInstanced (GLenum mode, GL
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glDrawArraysInstanced)(mode, first, count, instanceCount);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && (sEnabled || (sMinimalModeCmds.find(cmd_glDrawArraysInstanced) != sMinimalModeCmds.end())) &&
@@ -6201,12 +6205,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glDrawElementsInstanced (GLenum mode, 
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glDrawElementsInstanced)(mode, count, type, indices, instanceCount);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else if (!sOrphaned && (sEnabled || (sMinimalModeCmds.find(cmd_glDrawElementsInstanced) != sMinimalModeCmds.end())) &&
@@ -6231,12 +6235,12 @@ DLLEXPORT GLenum DLLEXPORTENTRY specialized_glClientWaitSync (GLsync sync, GLbit
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          GLenum r = Real(glClientWaitSync)(sync, flags, timeout);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetFunc(plTimeDiffNano(&start, &end), (r));
+         RetFunc(TimeDiffNano(start, end), (r));
          return r;
       }
       else
@@ -6259,12 +6263,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glWaitSync (GLsync sync, GLbitfield fl
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glWaitSync)(sync, flags, timeout);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -6306,10 +6310,10 @@ DLLEXPORT GLuint DLLEXPORTENTRY specialized_glCreateShaderProgramv(GLenum type, 
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          GLuint r = Real(glCreateShaderProgramv)(type, count, strings);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
 
          Packet   p(eRET_CODE);
@@ -6332,7 +6336,7 @@ DLLEXPORT GLuint DLLEXPORTENTRY specialized_glCreateShaderProgramv(GLenum type, 
          p.AddItem(val);
          p.AddItem(PacketItem(buf));
 
-         p.AddItem(plTimeDiffNano(&start, &end));
+         p.AddItem(TimeDiffNano(start, end));
 
          PostPacketize(&p);
 
@@ -6386,12 +6390,12 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glDebugMessageCallbackKHR(GLDEBUGPROCK
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
          Real(glDebugMessageCallbackKHR)(callback, userParam);
-         plGetTime(&end);
+         end = Clock::now();
          LogGLError();
-         RetVoidFunc(plTimeDiffNano(&start, &end));
+         RetVoidFunc(TimeDiffNano(start, end));
       }
    }
    else
@@ -6414,8 +6418,8 @@ DLLEXPORT __eglMustCastToProperFunctionPointerType DLLEXPORTENTRY specialized_eg
       bool ret = PostPacketize(&p);
       if (ret)
       {
-         TIMESTAMP start, end;
-         plGetTime(&start);
+         TimePoint start, end;
+         start = Clock::now();
 
          Dl_info info;
          int ok = dladdr((const void*)___uniqueFunctionNameInThisBcmInterposerLibrary___, &info);
@@ -6438,9 +6442,9 @@ DLLEXPORT __eglMustCastToProperFunctionPointerType DLLEXPORTENTRY specialized_eg
 #endif
                dlclose(shared_object);
 
-               plGetTime(&end);
+               end = Clock::now();
                LogEGLError();
-               RetFunc(plTimeDiffNano(&start, &end), ((void*)r));
+               RetFunc(TimeDiffNano(start, end), ((void*)r));
                return r;
             }
          }

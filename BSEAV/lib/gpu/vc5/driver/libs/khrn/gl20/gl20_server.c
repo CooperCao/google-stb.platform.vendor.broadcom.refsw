@@ -704,7 +704,7 @@ GL_APICALL void GL_APIENTRY glGetAttachedShaders(GLuint p, GLsizei maxcount, GLs
 #endif
                                     program->fragment, program->compute };
 
-      for (int i=0; i<vcos_countof(attached); i++) {
+      for (int i=0; i<countof(attached); i++) {
          if (maxcount > 0) {
             if (attached[i] != NULL) {
                shaders[count++] = attached[i]->name;
@@ -896,9 +896,9 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
          goto invalid_op;
       switch (linked_program->ir->tess_mode)
       {
-      case TESS_ISOLINES:  params[0] = GL_ISOLINES; break;
-      case TESS_TRIANGLES: params[0] = GL_TRIANGLES; break;
-      case TESS_QUADS:     params[0] = GL_QUADS; break;
+      case V3D_CL_TESS_TYPE_ISOLINES: params[0] = GL_ISOLINES; break;
+      case V3D_CL_TESS_TYPE_TRIANGLE: params[0] = GL_TRIANGLES; break;
+      case V3D_CL_TESS_TYPE_QUAD:     params[0] = GL_QUADS; break;
       default: unreachable();
       }
       break;
@@ -907,9 +907,9 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
          goto invalid_op;
       switch (linked_program->ir->tess_spacing)
       {
-      case TESS_SPACING_EQUAL:      params[0] = GL_EQUAL; break;
-      case TESS_SPACING_FRACT_EVEN: params[0] = GL_FRACTIONAL_EVEN; break;
-      case TESS_SPACING_FRACT_ODD:  params[0] = GL_FRACTIONAL_ODD; break;
+      case V3D_CL_TESS_EDGE_SPACING_EQUAL:           params[0] = GL_EQUAL;           break;
+      case V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_EVEN: params[0] = GL_FRACTIONAL_EVEN; break;
+      case V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_ODD:  params[0] = GL_FRACTIONAL_ODD;  break;
       default: unreachable();
       }
       break;
@@ -944,9 +944,9 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_GEOMETRY))
          goto invalid_op;
       switch (linked_program->ir->gs_out) {
-         case GS_OUT_POINTS:     params[0] = GL_POINTS;         break;
-         case GS_OUT_LINE_STRIP: params[0] = GL_LINE_STRIP;     break;
-         case GS_OUT_TRI_STRIP:  params[0] = GL_TRIANGLE_STRIP; break;
+         case V3D_CL_GEOM_PRIM_TYPE_POINTS:         params[0] = GL_POINTS;         break;
+         case V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP:     params[0] = GL_LINE_STRIP;     break;
+         case V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP: params[0] = GL_TRIANGLE_STRIP; break;
          default: unreachable();
       }
       break;

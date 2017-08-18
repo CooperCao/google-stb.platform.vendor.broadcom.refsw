@@ -78,6 +78,29 @@ BDBG_OBJECT_ID(BKNI_Mutex);
 static unsigned long BKNI_P_GetMicrosecondTick(void);
 static int BKNI_P_SetTargetTime(struct timespec *target, int timeoutMsec);
 
+/* private mutex init which sets universal attributes */
+static int bkni_p_pthread_cs_init(pthread_mutex_t *mutex)
+{
+#if !B_REFSW_ANDROID && (defined(__mips__) || defined(__arm__) || defined(__aarch64__))
+    pthread_mutexattr_t attr;
+    int rc;
+
+    pthread_mutexattr_init(&attr);
+    rc = pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
+    if(rc!=0) {
+        BDBG_WRN(("Can't set PTHREAD_PRIO_INHERIT"));
+    }
+    return pthread_mutex_init(mutex, &attr);
+#else
+    return pthread_mutex_init(mutex, NULL);
+#endif
+}
+
+static int bkni_p_pthread_mutex_init(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_init(mutex, NULL);
+}
+
 #if BKNI_DEBUG_MUTEX_TRACKING
 static void BKNI_P_ForceReleaseMutex(void *);
 typedef struct BKNI_P_HeartBeatTimer  {
@@ -107,8 +130,14 @@ static BERR_Code BKNI_P_HeartBeatTimer_Init(BKNI_P_HeartBeatTimer *timer)
 
     timer->exit = false;
     timer->started = false;
-    pthread_mutex_init(&timer->lock, NULL);
-    pthread_cond_init(&timer->cond, &attr);
+    rc = bkni_p_pthread_mutex_init(&timer->lock);
+    if (rc!=0) {
+        return BERR_TRACE(BERR_OS_ERROR);
+    }
+    rc = pthread_cond_init(&timer->cond, &attr);
+    if (rc!=0) {
+        return BERR_TRACE(BERR_OS_ERROR);
+    }
     return BERR_SUCCESS;
 }
 
@@ -163,7 +192,6 @@ struct BKNI_MutexObj
     BKNI_P_MutexTracking tracking; /* must be first */
     BDBG_OBJECT(BKNI_Mutex)
     pthread_mutex_t mutex;
-    BKNI_MutexSettings settings;
 };
 
 #if BKNI_DEBUG_MUTEX_TRACKING
@@ -210,7 +238,7 @@ static pthread_t g_csOwner;
 {\
     if ( !CHECK_CRITICAL() )\
     {\
-        BDBG_P_PrintString("Error, must be in critical section to call %s\n", __FUNCTION__);\
+        BDBG_P_PrintString("Error, must be in critical section to call %s\n", BSTD_FUNCTION);\
         BKNI_Fail();\
     }\
 } while (0)
@@ -219,7 +247,7 @@ static pthread_t g_csOwner;
 {\
     if ( CHECK_CRITICAL() )\
     {\
-        BDBG_P_PrintString("Error, must not be in critical section to call %s\n", __FUNCTION__);\
+        BDBG_P_PrintString("Error, must not be in critical section to call %s\n", BSTD_FUNCTION);\
         BKNI_Fail();\
     }\
 } while (0)
@@ -551,17 +579,8 @@ BERR_Code BKNI_Init(void)
 #endif
 
     if (g_refcnt == 0) {
-        pthread_mutexattr_t attr;
         int rc;
-
-        pthread_mutexattr_init(&attr);
-#if defined(PTHREAD_PRIO_INHERIT)
-        rc = pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
-        if(rc!=0) {
-            BDBG_WRN(("Can't set PTHREAD_PRIO_INHERIT"));
-        }
-#endif
-        rc = pthread_mutex_init(&g_csMutex, &attr);
+        rc = bkni_p_pthread_cs_init(&g_csMutex);
         if(rc!=0) {
             result = BERR_TRACE(BERR_OS_ERROR);
             goto done;
@@ -583,8 +602,11 @@ done:
 /* coverity[+kill]  */
 void BKNI_Fail(void)
 {
-    /* Derefering 0 will cause a SIGSEGV will usually produce a core dump. */
+    /* Dereference of 0 will cause a SIGSEGV will usually produce a core dump. */
     BDBG_P_PrintString("BKNI_Fail is intentionally causing a segfault. Please inspect any prior error messages or get a core dump stack trace to determine the cause of failure.\n");
+#if B_REFSW_BUILD_FOR_STATIC_ANALYSIS
+    exit(0);
+#endif
     *(volatile unsigned char *)0;
     abort();
 }
@@ -599,12 +621,11 @@ BERR_Code BKNI_CreateMutex_tagged(BKNI_MutexHandle *handle, const char *file, in
         return BERR_TRACE(BERR_OS_ERROR);
     }
     BDBG_OBJECT_SET(mutex, BKNI_Mutex);
-    mutex->settings.suspended = false;
 
     /* WARNING: Do not make BKNI_MutexHandle a recursive mutex. The usual motivation for doing this is to allow recursive calls back into
     Nexus or Magnum from custom callouts. That would be a violation of Nexus and Magnum architecture and will cause catastrophic failure.
     If your application needs its own recursive mutex, please create your own function and leave this unmodified. */
-    if (pthread_mutex_init(&mutex->mutex, NULL)) {
+    if (bkni_p_pthread_mutex_init(&mutex->mutex)) {
         BDBG_OBJECT_DESTROY(*handle, BKNI_Mutex);
         free(mutex);
         return BERR_TRACE(BERR_OS_ERROR);
@@ -696,23 +717,6 @@ BKNI_ReleaseMutex(BKNI_MutexHandle handle)
         BDBG_ASSERT(false);
     }
     return ;
-}
-
-void BKNI_GetMutexSettings(BKNI_MutexHandle mutex, BKNI_MutexSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(mutex, BKNI_Mutex);
-    *pSettings = mutex->settings;
-    return;
-}
-
-BERR_Code BKNI_SetMutexSettings(BKNI_MutexHandle mutex, const BKNI_MutexSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(mutex, BKNI_Mutex);
-    mutex->settings = *pSettings;
-#if BKNI_DEBUG_MUTEX_TRACKING
-    mutex->tracking.settings = *pSettings;
-#endif
-    return BERR_SUCCESS;
 }
 
 #if BKNI_DEBUG_CS_TIMING
@@ -920,7 +924,7 @@ BKNI_CreateEvent_tagged(BKNI_EventHandle *pEvent, const char *file, int line)
     }
     BDBG_OBJECT_SET(event, BKNI_Event);
 
-    rc = pthread_mutex_init (&event->lock, NULL /* default attributes */);
+    rc = bkni_p_pthread_mutex_init(&event->lock);
     if (rc!=0) {
         result = BERR_TRACE(BERR_OS_ERROR);
         goto err_mutex;
@@ -1210,7 +1214,7 @@ BKNI_CreateEventGroup(BKNI_EventGroupHandle *pGroup)
     BDBG_OBJECT_SET(group, BKNI_EventGroup);
 
     BLST_D_INIT(&group->members);
-    rc = pthread_mutex_init (&group->lock, NULL /* default attributes */);
+    rc = bkni_p_pthread_mutex_init(&group->lock);
     if (rc!=0) {
         result = BERR_TRACE(BERR_OS_ERROR);
         goto err_mutex;

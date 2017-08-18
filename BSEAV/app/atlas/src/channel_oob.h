@@ -63,7 +63,7 @@ public:
     ~CChannelOob(void);
     CChannel * createCopy(CChannel * pChannel);
 
-    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, uint16_t index = ANY_INDEX);
+    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
     virtual eRet unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
 
     virtual bool operator ==(CChannel &other);

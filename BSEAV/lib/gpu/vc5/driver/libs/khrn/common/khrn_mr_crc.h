@@ -6,11 +6,11 @@
 #include "libs/platform/v3d_scheduler.h"
 #include "vcos_types.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct khrn_memaccess khrn_memaccess;
 
 /* Used by khrn_fmem_flush to save checksums for each output buffer */
 void khrn_save_crc_checksums(khrn_memaccess* ma, const V3D_BIN_RENDER_INFO_T *br_info);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

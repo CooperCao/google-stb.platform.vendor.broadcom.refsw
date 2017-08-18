@@ -327,6 +327,8 @@ BERR_Code BXVD_P_HostCmdSendInit
    pInit->bvnf_intr_context_base = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdStatus;
 #if !BXVD_P_FW_40BIT_API
    pInit->host_L2_intr_set = hXvd->stPlatformInfo.stReg.uiAvd_CPUL2InterruptSet;
+#else
+   pInit->map8_mode_enabled = (hXvd->scbMapVer == BCHP_ScbMapVer_eMap8);
 #endif
    pInit->chip_prod_revision = hXvd->uiChip_ProductRevision;
    pInit->rave_context_reg_size = BXVD_P_RAVE_CONTEXT_SIZE;
@@ -358,6 +360,9 @@ BERR_Code BXVD_P_HostCmdSendInit
    BXVD_DBG_MSG(hXvd, (" rave_packet_count: %08x", pInit->rave_packet_count));
    BXVD_DBG_MSG(hXvd, (" bvnf_intr_context_1 base: %08x", pInit->bvnf_intr_context_1_base));
    BXVD_DBG_MSG(hXvd, (" memc_sentinel_reg_start: %08x", pInit->memc_sentinel_reg_start));
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" map8_mode_enabled: %08x", pInit->map8_mode_enabled));
+#endif
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
                                                   uDecoderInstance,

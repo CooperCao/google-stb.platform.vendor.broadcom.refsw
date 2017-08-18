@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bhdr.h"
@@ -362,7 +363,7 @@ BERR_Code BHDR_FE_OpenChannel(
 	/* default HDMI Channel Power Settings to on */
 	hFeChannel->stPowerSettings.bHdmiRxPowered = true ;
 
-	hFeChannel->uiHdrSel = BHDR_P_eHdrCoreIdNotAttached ;
+	hFeChannel->uiHdrSel = BAVC_HDMI_CoreId_eNone ;
 
 	BKNI_Memcpy(&hFeChannel->settings, pChannelSettings,
 		sizeof(BHDR_FE_ChannelSettings)) ;
@@ -634,7 +635,7 @@ BERR_Code BHDR_FE_AttachHdmiRxCore(
 	BERR_Code rc = BERR_SUCCESS ;
 	BHDR_FE_P_Channel eNewFeChannel ;
 
-	BHDR_P_HdrCoreId eCoreId ;
+	BAVC_HDMI_CoreId eCoreId ;
 
 
 	BDBG_ENTER(BHDR_FE_AttachHdmiRxCore) ;
@@ -655,7 +656,7 @@ BERR_Code BHDR_FE_AttachHdmiRxCore(
 	}
 
 	eCoreId = hHDR->eCoreId ;
-	if (eCoreId >= BHDR_P_eHdrCoreIdMax)
+	if (eCoreId > BHDR_MAX_CORES)
 	{
 		BDBG_ERR(("Unknown HDMI Rx Core ID %d", eCoreId)) ;
 		goto done ;
@@ -709,7 +710,7 @@ BERR_Code BHDR_FE_DetachHdmiRxCore(
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
 
 	/* forget  FE Channel's assigned core */
-	hFeChannel->uiHdrSel = BHDR_P_eHdrCoreIdNotAttached ;
+	hFeChannel->uiHdrSel = BAVC_HDMI_CoreId_eNone ;
 
 	BDBG_LEAVE(BHDR_FE_DetachHdmiRxCore) ;
 	return rc ;

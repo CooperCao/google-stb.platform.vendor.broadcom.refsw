@@ -6,4 +6,4 @@
 #include "glsl_ir_shader.h"
 
 // Merge duplicate dataflow trees. Modifications are done in-place.
-void glsl_dataflow_cse(SSABlock *block, int n_blocks);
+void glsl_dataflow_cse(SSABlock *block, int n_blocks, bool assume_read_only);

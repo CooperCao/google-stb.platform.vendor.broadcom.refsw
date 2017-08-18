@@ -1,0 +1,284 @@
+#!/bin/env utf
+# -*-tcl-*-
+# Test for RSDB ModeSwitch
+# http://hwnbu-twiki.sj.broadcom.com/bin/view/Mwgroup/4349ModeSwitch#UTF_TESTING_PROCEDURE_FOR_MODE_S
+#
+# $Id: 22f54294da91fd60c1a2d95beeae6d85c9d49a5e $
+# $Copyright Broadcom Corporation$
+#
+
+package provide UTF::Test::RSDBModeSwitch 2.0
+
+package require UTF
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::controlchart
+
+namespace eval UTF::Test::RSDBModeSwitch {
+
+    proc nratenss {S} {
+
+	$S wl rxchain
+	$S wl txchain
+
+	switch -regexp -matchvar m [$S wl nrate] {
+	    {Nss (\d)} {
+		return [lindex $m 1]
+	    }
+	    {index 10[12]} {
+		return 3
+	    }
+	    {index (99|100)} {
+		return 2
+	    }
+	    {index 32} {
+		return 1
+	    }
+	    {index (\d+)} {
+		set mcs [lindex $m 1]
+		return [expr {1+($mcs/8)}]
+	    }
+	    default {
+		return 1
+	    }
+	}
+    }
+
+}
+
+
+# Note STA2 argument is only used to remove a previous interface, and
+# will be eliminated in a later version
+
+UTF::Test RSDBModeSwitch {AP1 AP2 STA1 STA2 args} {
+    UTF::Getopts [subst {
+	{i.arg ".5" "Interval"}
+	{s.arg "4" "samples"}
+	{msg.arg "RSDBModeSwitch" "Message"}
+	{branch.arg "[$AP1 branchname]" "Branch"}
+	{c1.arg "36/80" "Primary chanspec"}
+	{c2.arg "3" "Secondary chanspec"}
+	{b.arg "[$STA1 cget -udp]" "UDP data rate. (0 for TCP)"}
+	{history.arg "30" "History"}
+	{nocache "Don't update performance cache"}
+    }]
+
+    # Dispose of unneeded argument
+    catch {$STA2 wl interface_remove}
+    catch {$STA2 deinit}
+
+    set STA2 [$STA1 wl_interface_create sta #2]
+
+    # Free both cores.
+    catch {$STA1 wl disassoc}
+    catch {$STA2 wl disassoc}
+
+    APChanspec $AP1 $(c1)
+    APChanspec $AP2 $(c2)
+    APConfigureSecurity $AP1 -security open
+    APConfigureSecurity $AP2 -security open
+    set ssid_5g [$AP1 cget -ssid]
+    set ssid_2g [$AP2 cget -ssid]
+
+    UTF::Try "MIMO 5g" {
+	ConnectAPSTA $AP1 $STA1
+
+	# Pass some traffic all ways
+	UTF::Multiperf [list $AP1 $STA1 $STA1 $AP1] -i 1 -t 1
+
+	# Validate
+	UTF::ParseDumpRSDB [$STA1 wl dump rsdb] core
+	set t1 [nratenss $STA1]
+	set r1 [nratenss $AP1]
+	set c1 [lindex [$STA1 wl chanspec] 0]
+
+	return "$c1 ${t1}x$r1 on $core($ssid_5g)"
+    }
+
+    UTF::Try "+Add 2g RSDB" {
+	$AP1 wl msglevel +rate
+	# Associate during traffic
+	UTF::Multiperf [list $AP1 $STA1] -i 1 -t 5 \
+	    -callback {ConnectAPSTA $AP2 $STA2}
+
+	# Pass some traffic all ways
+	UTF::Multiperf [list $AP1 $STA1 $STA1 $AP1 $AP2 $STA2 $STA2 $AP2] \
+	    -i 1 -t 1
+
+	# Validate
+	UTF::ParseDumpRSDB [$STA1 wl dump rsdb] core
+	set t1 [nratenss $STA1]
+	set r1 [nratenss $AP1]
+	set t2 [nratenss $STA2]
+	set r2 [nratenss $AP2]
+	set c1 [lindex [$STA1 wl chanspec] 0]
+	set c2 [lindex [$STA2 wl chanspec] 0]
+	return "$c1 ${t1}x$r1 on $core($ssid_5g), $c2 ${t2}x$r2 on $core($ssid_2g)"
+
+    } finally {
+	    $AP1 wl msglevel -rate
+    }
+    UTF::Try "Return to MIMO 2g" {
+	$AP2 wl msglevel +rate
+	UTF::Multiperf [list $AP2 $STA2] -i 1 -t 5 \
+	    -callback {$STA1 wl disassoc}
+
+	# Pass some traffic all ways
+	UTF::Multiperf [list $AP2 $STA2 $STA2 $AP2] -i 1 -t 1
+
+	# Validate
+	UTF::ParseDumpRSDB [$STA1 wl dump rsdb] core
+	set t2 [nratenss $STA2]
+	set r2 [nratenss $AP2]
+	set c2 [lindex [$STA2 wl chanspec] 0]
+	return "$c2 ${t2}x$r2 on $core($ssid_2g)"
+    } finally {
+	    $AP2 wl msglevel -rate
+    }
+    UTF::Try "+Add 5g RSDB" {
+	$AP2 wl msglevel +rate
+	UTF::Multiperf [list $AP2 $STA2] -i 1 -t 5 \
+	    -callback {ConnectAPSTA $AP1 $STA1}
+
+	# Validate
+	UTF::ParseDumpRSDB [$STA1 wl dump rsdb] core
+	set t1 [nratenss $STA1]
+	set r1 [nratenss $AP1]
+	set t2 [nratenss $STA2]
+	set r2 [nratenss $AP2]
+	set c1 [lindex [$STA1 wl chanspec] 0]
+	set c2 [lindex [$STA2 wl chanspec] 0]
+
+
+	return "$c1 ${t1}x$r1 on $core($ssid_5g), $c2 ${t2}x$r2 on $core($ssid_2g)"
+    } finally {
+	$AP2 wl msglevel -rate
+    }
+    UTF::Try "Return to MIMO 5g" {
+	$AP1 wl msglevel +rate
+	UTF::Multiperf [list $AP1 $STA1] -i 1 -t 5 \
+	    -callback {$STA2 wl disassoc}
+
+	# Pass some traffic all ways
+	UTF::Multiperf [list $AP1 $STA1 $STA1 $AP1] -i 1 -t 1
+
+	# Validate
+	UTF::ParseDumpRSDB [$STA1 wl dump rsdb] core
+	set t1 [nratenss $STA1]
+	set r1 [nratenss $AP1]
+	set c1 [lindex [$STA1 wl chanspec] 0]
+	return "$c1 ${t1}x$r1 on $core($ssid_5g)"
+
+    } finally {
+	catch {$STA2 wl interface_remove}
+	$STA2 destroy
+	$AP1 wl msglevel -rate
+    }
+
+    # Need to deinit STAs because shared message logs are still not
+    # quite safe.
+    #$STA1 deinit
+    #$STA2 deinit
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+if {0} {
+    # Verify MIMO
+    set k [list rsdb $(branch)]
+    set ccopts [list -i $(i) -s $(s) -window 2m -b $(b)]
+
+    UTF::Try "5g" {
+	catch {
+	    controlchart [list $AP1 $STA1] -key [concat $k r1a] {*}$ccopts
+	} UpRet
+	regsub {^html:} $UpRet {} UpRet
+	catch {
+	    controlchart [list $STA1 $AP1] -key [concat $k r1a] {*}$ccopts
+	} DownRet
+	regsub {^html:} $DownRet {} DownRet
+	set results "html: $UpRet<br />$DownRet"
+
+    }
+    UTF::Try "2g" {
+	catch {
+	    controlchart [list $AP2 $STA2] -key [concat $k r1g] {*}$ccopts
+	} UpRet
+	regsub {^html:} $UpRet {} UpRet
+	catch {
+	    controlchart [list $STA2 $AP2] -key [concat $k r1g] {*}$ccopts
+	} DownRet
+	regsub {^html:} $DownRet {} DownRet
+	set results "html: $UpRet<br />$DownRet"
+    }
+
+    catch {
+	controlchart [list $AP1 $STA1] -key [concat $k m1] {*}$ccopts
+    } UpRet
+    regsub {^html:} $UpRet {} UpRet
+    catch {
+	controlchart [list $STA1 $AP1] -key [concat $k m1] {*}$ccopts
+    } DownRet
+    regsub {^html:} $DownRet {} DownRet
+    set results "html: $UpRet<br />$DownRet"
+
+
+    UTF::Try "2g" {
+	catch {
+	    controlchart [list $AP2 $STA2] -key [concat $k m2] {*}$ccopts
+	} UpRet
+	regsub {^html:} $UpRet {} UpRet
+	catch {
+	    controlchart [list $STA2 $AP2] -key [concat $k m2] {*}$ccopts
+	} DownRet
+	regsub {^html:} $DownRet {} DownRet
+	set results "html: $UpRet<br />$DownRet"
+
+    }
+
+    UTF::Try "5g" {
+	catch {
+	    controlchart [list $AP1 $STA1] -key [concat $k r2a] {*}$ccopts
+	} UpRet
+	regsub {^html:} $UpRet {} UpRet
+	catch {
+	    controlchart [list $STA1 $AP1] -key [concat $k r2a] {*}$ccopts
+	} DownRet
+	regsub {^html:} $DownRet {} DownRet
+	set results "html: $UpRet<br />$DownRet"
+    }
+    UTF::Try "2g" {
+	catch {
+	    controlchart [list $AP2 $STA2] -key [concat $k r2g] {*}$ccopts
+	} UpRet
+	regsub {^html:} $UpRet {} UpRet
+	catch {
+	    controlchart [list $STA2 $AP2] -key [concat $k r2g] {*}$ccopts
+	} DownRet
+	regsub {^html:} $DownRet {} DownRet
+	set results "html: $UpRet<br />$DownRet"
+
+    }
+
+    UTF::Try "5g" {
+	catch {
+	    controlchart [list $AP1 $STA1] -key [concat $k m3] {*}$ccopts
+	} UpRet
+	regsub {^html:} $UpRet {} UpRet
+	catch {
+	    controlchart [list $STA1 $AP1] -key [concat $k m3] {*}$ccopts
+	} DownRet
+	regsub {^html:} $DownRet {} DownRet
+	set results "html: $UpRet<br />$DownRet"
+    }
+}

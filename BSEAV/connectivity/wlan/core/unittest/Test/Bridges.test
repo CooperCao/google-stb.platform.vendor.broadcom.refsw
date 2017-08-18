@@ -1,0 +1,213 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# UTF test script for wireless bridges
+# $Id: 1299a80959d7dea5bd034f537ecb5358dad9d8da $
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::Mbss::Connectivity
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::APRemoveInterface
+package require UTF::Test::controlchart
+
+package provide UTF::Test::Bridges 2.0
+
+UTF::Test Bridges {DOWN UP args} {
+
+    UTF::Getopts {
+	{chanspec.arg "3" "Chanspec"}
+	{security.arg "aespsk2" "Security"}
+	{loop.arg "1" "Perf loop"}
+	{history.arg "30" "History"}
+	{nowet "Skip WET test"}
+	{nopsta "Skip PSTA test"}
+	{nodwds "Skip DWDS test"}
+	{nowds "Skip WDS test"}
+	{nore "Skip RE test"}
+	{nocache "Don't update performance cache"}
+	{nowan "Use lan instead of wan"}
+	{norestore "Leave in bridge mode"}
+	{sta.arg "" "STA for RE tests"}
+    }
+
+    if {$(nowan) || [set WAN [$UP wan]] eq ""} {
+	set WAN [$UP lan]
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    UTF::Try "$DOWN->$UP: Configure Bridge" {
+
+	set uwl [$UP wlname]
+	set dwl [$DOWN wlname]
+
+	if {!$(nowds)} {
+	    # Fetch these early, since we may have trouble issuing
+	    # nvram commands later.
+	    set uphwaddr [$UP nvram get ${uwl}_hwaddr]
+	    set dnhwaddr [$DOWN nvram get ${dwl}_hwaddr]
+	    set UPIP [$UP ipaddr]
+	}
+
+	# Configure UP Router
+	$UP configure -security {}; # clear cache
+	APConfigureSecurity $UP -security $(security)
+	APChanspec $UP $(chanspec)
+
+	# Configure Down Bridge
+	$DOWN configure -security {} \
+	    -wepkey [$UP cget -wepkey] -wpakey [$UP cget -wpakey]
+	APChanspec $DOWN $(chanspec) -loose
+	APConfigureSecurity $DOWN -security $(security)
+	# Must disable router functions, otherwise we'll have
+	# competing DHCP servers and incorrect WAN routing
+	if {[$DOWN nvram get router_disable] ne "1"} {
+	    $DOWN reboot router_disable=1
+	    UTF::Sleep 10 $DOWN
+	    $DOWN :
+	}
+	$DOWN lan add_networks $UP
+
+	# Verify UP WAN link, since all the other tests rely on it.
+	$UP ping $WAN
+    }
+
+    if {!$(nore) && $(sta) ne ""} {
+	UTF::Try "$DOWN->$UP: URE" {
+	    UTF::Message INFO $DOWN "Configure RangeExtender URE"
+	    regexp {\d+} $dwl unit
+
+	    Mbss::APAddInterface -lan ${DOWN}.1
+
+	    try {
+		$DOWN restart wl_ure=1 wl_ure_disable=0 \
+		    ${dwl}_mode=wet ${dwl}.1_mode=ap ${dwl}_wds= \
+		    ${dwl}_ssid=[$UP cget -ssid]
+		UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+		$DOWN lan ping $WAN -c 70
+
+		ConnectAPSTA ${DOWN}.1 $(sta) -security $(security)
+		# routing tables
+		$(sta) add_networks $UP
+
+		controlchart [list $(sta) $WAN] \
+		    -key [list [$DOWN branchname] RE $DOWN $(security)] -i 2 \
+		    -window [$(sta) tcpautowindow] -loop $(loop) \
+		    -history $(history)
+	    } finally {
+		catch {$(sta) wl disassoc}
+		Mbss::APRemoveInterface ${DOWN}.1
+		$DOWN restart wl_ure=0 wl_ure_disable=1 \
+		    ${dwl}_mode=ap ${dwl}.1_mode=ap ${dwl}_wds= \
+		    ${dwl}_ssid=[$DOWN cget -ssid]
+	    }
+	}
+    }
+
+    if {!$(nopsta)} {
+	UTF::Try "$DOWN->$UP: PSTA" {
+	    $DOWN restart ${dwl}_mode=psta ${dwl}_wds= \
+		${dwl}_ssid=[$UP cget -ssid]
+	    UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl dump psta}
+
+	    $DOWN lan ping $WAN -c 70
+
+	    controlchart [list $DOWN $WAN] \
+		-key [list [$DOWN branchname] PSTA $(security)] -i 2 \
+		-window [$DOWN tcpautowindow] -loop $(loop) \
+		-history $(history)
+	}
+    }
+
+    if {!$(nowet)} {
+	UTF::Try "$DOWN->$UP: WET" {
+	    $DOWN restart ${dwl}_mode=wet ${dwl}_wds= \
+		${dwl}_ssid=[$UP cget -ssid]
+	    UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl dump wet}
+
+	    $DOWN lan ping $WAN -c 70
+
+	    controlchart [list $DOWN $WAN] \
+		-key [list [$DOWN branchname] WET $(security)] -i 2 \
+		-window [$DOWN tcpautowindow] -loop $(loop) \
+		-history $(history)
+	}
+    }
+
+    if {!$(nodwds)} {
+	UTF::Try "$DOWN->$UP: DWDS" {
+	    $UP restart ${uwl}_dwds=1
+	    $DOWN restart ${dwl}_mode=sta ${dwl}_wds= ${dwl}_dwds=1 \
+		${dwl}_ssid=[$UP cget -ssid]
+	    UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl dwds}
+
+	    $DOWN lan ping $WAN -c 70
+
+	    controlchart [list $DOWN $WAN] \
+		-key [list [$DOWN branchname] DWDS $(security)] -i 2 \
+		-window [$DOWN tcpautowindow] -loop $(loop) \
+		-history $(history)
+	}
+    }
+
+    if {!$(nowds)} {
+	UTF::Try "$DOWN->$UP: WDS" {
+
+	    # upstream lan may take some time to recover from DWDS traffic
+	    $UP lan ping $UPIP -c 60
+
+	    $UP restart ${uwl}_dwds=0 ${uwl}_lazywds= ${uwl}_mode=wds \
+		${uwl}_wds=$dnhwaddr
+	    $DOWN restart ${dwl}_dwds=0 ${dwl}_lazywds= ${dwl}_mode=wds \
+		${dwl}_wds=$uphwaddr ${dwl}_ssid=[$UP cget -ssid]
+	    UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl wds}
+
+	    $DOWN lan ping $WAN -c 70
+
+	    controlchart [list $DOWN $WAN] \
+		-key [list [$DOWN branchname] WDS $(security)] -i 2 \
+		-window [$DOWN tcpautowindow] -loop $(loop) \
+		-history $(history)
+	}
+    }
+
+    if {!$(norestore)} {
+	UTF::Record "$DOWN->$UP: Reset" {
+	    # Put Down back into AP mode
+	    $DOWN reboot \
+		router_disable=0 \
+		${dwl}_mode=ap \
+		${dwl}_wds= \
+		${dwl}_ssid=[$DOWN cget -ssid]
+
+	    # turn off WDS on UP
+	    $UP restart ${uwl}_mode=ap ${uwl}_wds=
+
+	    $DOWN configure -initialized 0
+	    $DOWN lanwanreset
+	}
+    }
+}
+

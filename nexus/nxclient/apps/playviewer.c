@@ -224,7 +224,9 @@ int main(int argc, const char **argv)
     int recursive = 0;
     struct page *p;
     struct appcontext appcontext, *pContext = &appcontext;
+#if NEXUS_HAS_PICTURE_DECODER
     const char *background = "nxclient/desktop_background.png";
+#endif
     const char *fontname = "nxclient/arial_18_aa.bwin_font";
     const char *dir = NULL;
     bool done = false;
@@ -237,9 +239,11 @@ int main(int argc, const char **argv)
             print_usage();
             return 0;
         }
+#if NEXUS_HAS_PICTURE_DECODER
         else if (!strcmp(argv[curarg], "-background") && argc>curarg+1) {
             background = argv[++curarg];
         }
+#endif
         else if (!strcmp(argv[curarg], "-dir") && argc>curarg+1) {
             dir = argv[++curarg];
         }

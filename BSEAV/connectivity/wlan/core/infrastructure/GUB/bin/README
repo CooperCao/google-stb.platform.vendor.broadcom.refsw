@@ -1,0 +1,18 @@
+The convention here in the ./bin directory is that publicly available
+tools (thus gub, hnd, nfscp, etc) do NOT have a .py extension. Internal-use
+scripts such as teetime.py are distinguished by having the .py.
+
+If the driver program is accessed via a symlink it behaves as if it was
+invoked directly with a subcommand by that name. E.g. given the symlink
+"cstyle -> gub", "cstyle foo.c" becomes shorthand for "hnd cstyle foo.c".
+
+New commands in this directory may be started from the bin/STUB example.
+
+We currently suppress the creation of .pyc files.  Not for any known
+good reason, I was just concerned about potential permissions issues
+with .pyc files, but maybe I should have just trusted Python to do
+the right thing.  Suppression is implemented by turning them off in
+preface.py which is the first module imported by any hnd command.
+This comes to late to prevent creation of preface.pyc itself though. We
+could suppress that by keeping a directory with the same name but have
+not yet gone to that extreme.

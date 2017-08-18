@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -260,7 +260,7 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
       BVDC_P_PictureNode            *pPicture)
 {
     uint32_t ulRegOffset;
-    uint32_t ulHSize, ulVSize, ulPxlBufSize;
+    uint32_t ulHSize, ulVSize, ulPxlBufSize, ulBvbInSize;
     uint32_t ulDemoSetting;
     int  ii, ulChannelId;
     uint32_t ulNoiseSigma;
@@ -367,6 +367,10 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
          BCHP_FIELD_ENUM(HD_ANR_MCTF_0_CONT_0_DEMO_SETTING, DEMO_L_R, RIGHT)) |
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_DEMO_SETTING, DEMO_BOUNDARY, ulHSize / 2);
 
+    ulBvbInSize =               /* BVB_IN_SIZE */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, HSIZE, ulHSize) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, VSIZE, ulVSize);
+
     /* memory saving mode will share deinterlacer's memory! */
     bMemSaving = BVDC_P_MVP_USED_MAD(pPicture->stMvpMode);
     if(!bMemSaving)
@@ -467,6 +471,7 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     }
 
     /* the following are coded according to mctf_regs.scr */
+#if (BVDC_P_SUPPORT_MANR_VER < BVDC_P_MANR_VER_6)
 #if (BVDC_P_SUPPORT_MANR_VER < BVDC_P_MANR_VER_5)
     BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, ulRegOffset,
         BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, HD_ANR_MCTF_0_CONT_0_MC_ALPHA_CALC_PARAME));
@@ -533,6 +538,74 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_MC_CTRL, ulRegOffset, 0x3);  /* SEL_7X5 */
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_NMC_CTRL, ulRegOffset, 0x7); /* SSD(?)|SEL_7X5*/
 
+    BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_VIP_OUTPUT_DRAIN, ulRegOffset,
+        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_VIP_OUTPUT_DRAIN, HD_ANR_MCTF_0_AND_OUTPUT_DRAIN));
+    *pList->pulCurrent++ = 0x0;  /* VIP_OUTPUT_DRAIN:CTRL_DISABLE */
+    *pList->pulCurrent++ = 0x0;  /* SCAD_OUTPUT_DRAIN:CTRL_DISABLE */
+    *pList->pulCurrent++ = 0x0;  /* AND_OUTPUT_DRAIN:CTRL_DISABLE */
+
+    BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_MANUAL_CTRL, ulRegOffset, 0x0);
+#else
+
+    BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, ulRegOffset,
+        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, HD_ANR_MCTF_0_CONT_0_WIN_COST_ADJUST));
+    *pList->pulCurrent++ =               /* MC_FILTER_COST_PARAME */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, B1, 0x750) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, B0, 0xEA0);
+    *pList->pulCurrent++ = 0x7;          /* HD_ANR_MCTF_0_CONT_0_NMC_CTRL: SSD(?)|SEL_7X5 */
+    *pList->pulCurrent++ =               /* NMC_FILTER_COST_PARAME */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_NMC_FILTER_COST_PARAME, C1, 0x1D4) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_NMC_FILTER_COST_PARAME, C0, 0x3A8);
+    *pList->pulCurrent++ =               /* MV_CONFID_PARAME */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MV_CONFID_PARAME, ADJ_VALUE, 0x08) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MV_CONFID_PARAME, A0,        0x75);
+    *pList->pulCurrent++ =               /* HD_ANR_MCTF_0_CONT_0_WIN_COST_ADJUST */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_WIN_COST_ADJUST, MC,  0x1) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_WIN_COST_ADJUST, NMC, 0x0);
+
+    BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_MC_ALPHA_CALC_PARAME, ulRegOffset,
+        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_MC_ALPHA_CALC_PARAME, HD_ANR_MCTF_0_CONT_0_MC_NMC_ALPHA_CALC_PARAME));
+    *pList->pulCurrent++ =               /* MC_ALPHA_CALC_PARAME */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MC_ALPHA_CALC_PARAME, K1, 0x708) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MC_ALPHA_CALC_PARAME, K0, 0x10E);
+    *pList->pulCurrent++ =               /* NMC_ALPHA_CALC_PARAME */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_NMC_ALPHA_CALC_PARAME, K1, 0x013) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_NMC_ALPHA_CALC_PARAME, K0, 0x14C);
+    *pList->pulCurrent++ =               /* MC_NMC_ALPHA_CALC_PARAME */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MC_NMC_ALPHA_CALC_PARAME, K1, 0x080) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_MC_NMC_ALPHA_CALC_PARAME, K0, 0x10E);
+
+    BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_ALPHA_LOW_THRESHOLD, ulRegOffset,
+        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_ALPHA_LOW_THRESHOLD, HD_ANR_MCTF_0_MANUAL_CTRL));
+    *pList->pulCurrent++ =               /* ALPHA_LOW_THRESHOLD */
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_ALPHA_LOW_THRESHOLD, MC,    0x1E) |
+        BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_ALPHA_LOW_THRESHOLD, VALUE, 0x1C);
+    *pList->pulCurrent++ = 0x0;          /* HD_ANR_MCTF_0_CONT_0_ALPHA_LOW_ADJUST */
+    *pList->pulCurrent++ = 0x60;         /* HD_ANR_MCTF_0_CONT_0_DARKNESS_THRESHOLD */
+    *pList->pulCurrent++ = 0x0;          /* HD_ANR_MCTF_0_MANUAL_CTRL */
+
+    BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, ulRegOffset, ulBvbInSize);
+
+    if(!bMemSaving)
+    {
+        BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
+    }
+
+    BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_DEMO_SETTING, ulRegOffset,
+        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_DEMO_SETTING, HD_ANR_MCTF_0_AND_OUTPUT_DRAIN));
+    *pList->pulCurrent++ = ulDemoSetting;/* DEMO_SETTING */
+    *pList->pulCurrent++ = 0x0;          /* VIP_OUTPUT_DRAIN:CTRL_DISABLE */
+    *pList->pulCurrent++ = 0x0;          /* AND_OUTPUT_DRAIN:CTRL_DISABLE */
+
+    BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_ME_CTRL, ulRegOffset,
+        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_ME_CTRL, HD_ANR_MCTF_0_CONT_0_MC_CTRL));
+    /* control registers */
+    BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_ME_CTRL, ulRegOffset, 0x3);  /* SEL_7X5 */
+    BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_MC_CTRL, ulRegOffset, 0x3);  /* SEL_7X5 */
+#endif
+
     hAnr->ulTopCtrlReg =
 #if (BVDC_P_SUPPORT_MANR_VER >= BVDC_P_MANR_VER_2)
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_TOP_CTRL, BVB_VIDEO,
@@ -551,14 +624,6 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
 #endif
         BCHP_FIELD_ENUM(HD_ANR_MCTF_0_TOP_CTRL, CONTEXT_CTRL, AUTO          ) |
         BCHP_FIELD_ENUM(HD_ANR_MCTF_0_TOP_CTRL, ENABLE_CTRL,  STOP_ON_FIELD_COMPLETION);
-
-    BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_VIP_OUTPUT_DRAIN, ulRegOffset,
-        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_VIP_OUTPUT_DRAIN, HD_ANR_MCTF_0_AND_OUTPUT_DRAIN));
-    *pList->pulCurrent++ = 0x0;  /* VIP_OUTPUT_DRAIN:CTRL_DISABLE */
-    *pList->pulCurrent++ = 0x0;  /* SCAD_OUTPUT_DRAIN:CTRL_DISABLE */
-    *pList->pulCurrent++ = 0x0;  /* AND_OUTPUT_DRAIN:CTRL_DISABLE */
-
-    BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_MANUAL_CTRL, ulRegOffset, 0x0);
 
 #if (BVDC_P_SUPPORT_MANR_VER >= BVDC_P_MANR_VER_4)
     /* ESB will be turned on ONLY WHEN the picture size is smaller than SD */
@@ -606,6 +671,8 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
         hAnr->alDeltaArray[ii] = 999;
         hAnr->alLongArray[ii] = 0;
     }
+    BSTD_UNUSED(ulBvbInSize);
+    return;
 }
 
 #if (BVDC_P_SUPPORT_MOSAIC_DEINTERLACE)

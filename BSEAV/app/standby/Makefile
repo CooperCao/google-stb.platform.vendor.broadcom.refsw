@@ -86,10 +86,6 @@ LDFLAGS += ${NEXUS_EXTRA_LDFLAGS}
 # Always build with debug
 CFLAGS += -g
 
-K_VERSION       := $(shell grep -m1 "^VERSION" $(LINUX)/Makefile | cut -d\  -f3)
-K_PATCHLEVEL    := $(shell grep -m1 "^PATCHLEVEL" $(LINUX)/Makefile | cut -d\  -f3)
-CFLAGS += -DK_VERSION=$(K_VERSION) -DK_PATCHLEVEL=$(K_PATCHLEVEL)
-
 STANDBY_SRCS += standby.c standby_priv.c cmdline.c util.c
 
 # Pmlib
@@ -105,6 +101,10 @@ clean_pmlib:
 
 CFLAGS += $(PMLIB_CFLAGS)
 LDFLAGS += $(PMLIB_LDFLAGS)
+
+ifeq ($(call pmlib-check-linux-version,3,8,1),1)
+	CFLAGS += -DLINUX_VER_GE_3_8=1
+endif
 
 ifeq ($(WOWLAN_SUPPORT),y)
 CFLAGS += -DWOWLAN

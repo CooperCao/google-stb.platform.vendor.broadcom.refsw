@@ -62,11 +62,8 @@ typedef struct BEGL_SchedInterface
    BEGL_SchedStatus   (*PollComplete)(void *context, void *session, struct bcm_sched_complete *complete);
    BEGL_SchedStatus   (*Query)(void *context, void *session, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalized_deps, struct bcm_sched_query_response *response);
    int                (*MakeFenceForJobs)(void *context, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps, bool force_create);
-   void               (*MakeFence)(void *context, int *fence);
-   BEGL_SchedStatus   (*KeepFence)(void *context, int fence);
    void               (*WaitFence)(void *context, int fence);
    BEGL_FenceStatus   (*WaitFenceTimeout)(void *context, int fence, uint32_t timeoutms);
-   void               (*SignalFence)(void *context, int fence);
    void               (*CloseFence)(void *context, int fence);
 
    bool               (*WaitForAnyNonFinalisedJob)(void *context);
@@ -96,6 +93,13 @@ typedef struct BEGL_SchedInterface
    void               (*SetMMUContext)(void *context, uint64_t physAddr, uint32_t maxVirtAddr, int64_t unsecureBinTranslation, int64_t secureBinTranslation, uint64_t platformToken);
 
    bool               (*ExplicitSync)(void *context);
+
+   /* Scheduler Event Sync Object*/
+   uint64_t           (*NewSchedEvent)(void *context);
+   void               (*DeleteSchedEvent)(void *context, uint64_t event_id);
+   void               (*SetSchedEvent)(void *context, uint64_t event_id);
+   void               (*ResetSchedEvent)(void *context, uint64_t event_id);
+   bool               (*QuerySchedEvent)(void *context, uint64_t event_id);
 
    void                 *context;
    BEGL_MemoryInterface *memIface;

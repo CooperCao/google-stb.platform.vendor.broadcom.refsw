@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+"""
+Create or update a tree of links.
+
+EXAMPLES:
+
+Make an initial tree of symlinks in DIR from fromdir:
+
+    %(prog)s -s -d DIR fromdir
+
+Symlink XXX/file1.c, XXX/foo/file2.c, etc into the current directory.
+
+    %(prog)s -s -d . -p XXX file1.c foo/file2.c bar/file3.c
+"""
+
+from __future__ import print_function
+from __future__ import unicode_literals
+
+# Imported first to fix up sys.path etc.
+import preface  # pylint: disable=relative-import,unused-import
+
+import argparse
+import os
+
+import lib.opts
+import lib.util
+
+
+def main():
+    """Main routine."""
+    parser = argparse.ArgumentParser(
+        epilog=__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '-a', '--absolute', action='store_true',
+        help="make symbolic links with absolute target paths")
+    parser.add_argument(
+        '-d', '--dir',
+        help="target directory")
+    parser.add_argument(
+        '-f', '--force', action='store_true',
+        help="remove existing destination files")
+    parser.add_argument(
+        '-p', '--prefix', default='',
+        help="prepend PREFIX to source paths")
+    parser.add_argument(
+        '-s', '--symbolic', action='store_true',
+        help="make symbolic links instead of hard links")
+    parser.add_argument(
+        '-V', '--verbose', action='count', default=1,
+        help="increment verbosity level")
+    parser.add_argument(
+        'src', nargs='*',
+        help="files or directories to link into DIR")
+    opts = parser.parse_args()
+
+    lib.opts.VERBOSITY = opts.verbose
+
+    for path in opts.src:
+        if os.path.isdir(path):
+            for parent, _, fnames in os.walk(path):
+                for fn in fnames:
+                    opath = os.path.join(opts.prefix, parent, fn)
+                    npath = os.path.join(opts.dir, parent, fn)
+                    lib.util.link(opath, npath,
+                                  parents=True,
+                                  relpath=not opts.absolute,
+                                  symbolic=opts.symbolic)
+        else:
+            opath = os.path.join(opts.prefix, path)
+            npath = os.path.join(opts.dir, path)
+            lib.util.link(opath, npath,
+                          parents=True,
+                          relpath=not opts.absolute,
+                          symbolic=opts.symbolic)
+
+main()
+
+# vim: ts=4:sw=4:tw=80:et:

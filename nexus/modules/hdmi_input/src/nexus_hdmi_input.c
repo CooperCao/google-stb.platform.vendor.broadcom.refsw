@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,6 @@ BDBG_MODULE(nexus_hdmi_input);
 
 static void NEXUS_HdmiInput_P_SetPower( NEXUS_HdmiInputHandle hdmiInput, bool callingHdr );
 static void NEXUS_HdmiInput_P_ReleaseHotPlug(void *context) ;
-
 
 /****************************************
 * Module functions
@@ -604,6 +603,8 @@ void NEXUS_HdmiInput_SetFrameRate_isr(NEXUS_HdmiInputHandle hdmiInput, BAVC_Fram
     BKNI_SetEvent(hdmiInput->frameRateEvent);
 }
 
+#define CONNECTED(hdmiInput) ((hdmiInput)->videoConnected || (hdmiInput)->audioConnected)
+
 NEXUS_Error NEXUS_HdmiInput_GetStatus(NEXUS_HdmiInputHandle hdmiInput, NEXUS_HdmiInputStatus *pStatus)
 {
     NEXUS_HdmiGeneralControlPacket generalControlPacket ;
@@ -635,7 +636,7 @@ NEXUS_Error NEXUS_HdmiInput_GetStatus(NEXUS_HdmiInputHandle hdmiInput, NEXUS_Hdm
 		hdmiInput->index,  pStatus->deviceAttached ? "Yes" : "No")) ;
 
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
     {
         /* report status message once */
         if (hdmiInput->vdcStatus.validHdmiStatus)
@@ -728,7 +729,7 @@ static void NEXUS_HdmiInput_P_SetPower( NEXUS_HdmiInputHandle hdmiInput, bool ca
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
     BHDR_FE_GetPowerState(hdmiInput->frontend, &powerSettings);
-    powerSettings.bHdmiRxPowered  =  callingHdr || hdmiInput->videoConnected ;
+    powerSettings.bHdmiRxPowered  =  callingHdr || CONNECTED(hdmiInput) ;
 
     BDBG_MSG(("Configure HDMI Rx Port%d : %s",
 	      hdmiInput->index, powerSettings.bHdmiRxPowered ? "ON" : "OFF")) ;
@@ -785,16 +786,9 @@ NEXUS_Error NEXUS_HdmiInput_SetMaster(
     return rc;
 }
 
-
-void NEXUS_HdmiInput_VideoConnected_priv( NEXUS_HdmiInputHandle hdmiInput, bool videoConnected )
+static void NEXUS_HdmiInput_SetConnected_priv( NEXUS_HdmiInputHandle hdmiInput)
 {
     BERR_Code rc ;
-
-    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
-    NEXUS_ASSERT_MODULE();
-
-    hdmiInput->videoConnected = videoConnected;
-
     if (!hdmiInput->frontend) {
         return;
     }
@@ -806,16 +800,16 @@ void NEXUS_HdmiInput_VideoConnected_priv( NEXUS_HdmiInputHandle hdmiInput, bool 
         return;
     }
 
-    if (videoConnected)
+    if (CONNECTED(hdmiInput))
     {
         BHDR_Status rxStatus ;
 
         /* power up the HDMI core  */
-        NEXUS_HdmiInput_P_SetPower(hdmiInput, videoConnected);
+        NEXUS_HdmiInput_P_SetPower(hdmiInput, true);
 
         /* port is ENABLED;  enable interrupts  */
         BKNI_EnterCriticalSection() ;
-        BHDR_ConfigureAfterHotPlug_isr(hdmiInput->hdr, videoConnected) ;
+        BHDR_ConfigureAfterHotPlug_isr(hdmiInput->hdr, true) ;
         BKNI_LeaveCriticalSection() ;
 
         rc = BHDR_GetHdmiRxStatus(hdmiInput->hdr, &rxStatus);
@@ -842,9 +836,24 @@ void NEXUS_HdmiInput_VideoConnected_priv( NEXUS_HdmiInputHandle hdmiInput, bool 
         BKNI_LeaveCriticalSection() ;
 
         /* power down the HDMI core  */
-        NEXUS_HdmiInput_P_SetPower(hdmiInput, videoConnected);
-
+        NEXUS_HdmiInput_P_SetPower(hdmiInput, false);
     }
+}
+
+void NEXUS_HdmiInput_AudioConnected_priv( NEXUS_HdmiInputHandle hdmiInput, bool audioConnected )
+{
+    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
+    NEXUS_ASSERT_MODULE();
+    hdmiInput->audioConnected = audioConnected;
+    NEXUS_HdmiInput_SetConnected_priv(hdmiInput);
+}
+
+void NEXUS_HdmiInput_VideoConnected_priv( NEXUS_HdmiInputHandle hdmiInput, bool videoConnected )
+{
+    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
+    NEXUS_ASSERT_MODULE();
+    hdmiInput->videoConnected = videoConnected;
+    NEXUS_HdmiInput_SetConnected_priv(hdmiInput);
 }
 
 NEXUS_Error NEXUS_HdmiInput_SetHotPlug(NEXUS_HdmiInputHandle hdmiInput, bool status)
@@ -854,7 +863,7 @@ NEXUS_Error NEXUS_HdmiInput_SetHotPlug(NEXUS_HdmiInputHandle hdmiInput, bool sta
 
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     if (status) {
@@ -875,11 +884,11 @@ NEXUS_Error NEXUS_HdmiInput_ConfigureAfterHotPlug(NEXUS_HdmiInputHandle hdmiInpu
 
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
-    BDBG_WRN(("CH%d Manual HdmiInput_ConfgureAfterHotPlug: %d, VideoConnected: %d",
-        hdmiInput->index, status, hdmiInput->videoConnected)) ;
+    BDBG_WRN(("CH%d Manual HdmiInput_ConfgureAfterHotPlug: %d, VideoConnected: %d, AudioConnected: %d",
+        hdmiInput->index, status, hdmiInput->videoConnected, hdmiInput->audioConnected)) ;
 
 #if 0
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 #endif
 
@@ -895,7 +904,7 @@ NEXUS_Error NEXUS_HdmiInput_GetRawPacketData( NEXUS_HdmiInputHandle hdmiInput, N
     BDBG_CASSERT(NEXUS_HdmiInputPacketType_eUnused == (NEXUS_HdmiInputPacketType)BAVC_HDMI_PacketType_eUnused);
     BDBG_CASSERT(sizeof(NEXUS_HdmiPacket) == sizeof(BAVC_HDMI_Packet));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     rc = BHDR_GetRawPacketData(hdmiInput->hdr, (BAVC_HDMI_PacketType)packetType, (BAVC_HDMI_Packet*)pPacket);
@@ -950,7 +959,7 @@ NEXUS_Error NEXUS_HdmiInput_GetAviInfoFrameData( NEXUS_HdmiInputHandle hdmiInput
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
     BDBG_CASSERT(sizeof(*pAviInfoFrame) == sizeof(BAVC_HDMI_AviInfoFrame));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     return BHDR_GetAviInfoFrameData(hdmiInput->hdr, (BAVC_HDMI_AviInfoFrame*)pAviInfoFrame);
@@ -961,7 +970,7 @@ NEXUS_Error NEXUS_HdmiInput_GetAudioInfoFrameData( NEXUS_HdmiInputHandle hdmiInp
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
     BDBG_CASSERT(sizeof(*pAudioInfoFrame) == sizeof(BAVC_HDMI_AudioInfoFrame));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     return BHDR_GetAudioInfoFrameData(hdmiInput->hdr, (BAVC_HDMI_AudioInfoFrame*)pAudioInfoFrame);
@@ -972,7 +981,7 @@ NEXUS_Error NEXUS_HdmiInput_GetSpdInfoFrameData( NEXUS_HdmiInputHandle hdmiInput
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
     BDBG_CASSERT(sizeof(*pSpdInfoFrame) == sizeof(BAVC_HDMI_SPDInfoFrame));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     return BHDR_GetSPDInfoFrameData(hdmiInput->hdr, (BAVC_HDMI_SPDInfoFrame*)pSpdInfoFrame);
@@ -1032,7 +1041,7 @@ NEXUS_Error NEXUS_HdmiInput_GetDrmInfoFrameData_priv(NEXUS_HdmiInputHandle hdmiI
     BAVC_HDMI_DRMInfoFrame drmInfoFrame ;
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
     {
         rc = BERR_TRACE(NEXUS_UNKNOWN) ;
         return rc ;
@@ -1099,7 +1108,7 @@ NEXUS_Error NEXUS_HdmiInput_GetAudioContentProtection( NEXUS_HdmiInputHandle hdm
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
     BDBG_CASSERT(sizeof(*pAcp) == sizeof(BAVC_HDMI_ACP));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     BHDR_GetAudioContentProtection(hdmiInput->hdr, (BAVC_HDMI_ACP*)pAcp);
@@ -1111,7 +1120,7 @@ NEXUS_Error NEXUS_HdmiInput_GetAudioClockRegeneration( NEXUS_HdmiInputHandle hdm
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
     BDBG_CASSERT(sizeof(*pAudioClockRegeneration) == sizeof(BAVC_HDMI_AudioClockRegenerationPacket));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     return BHDR_GetAudioClockRegenerationData(hdmiInput->hdr, (BAVC_HDMI_AudioClockRegenerationPacket*)pAudioClockRegeneration);
@@ -1125,7 +1134,7 @@ NEXUS_Error NEXUS_HdmiInput_GetGeneralControlPacket( NEXUS_HdmiInputHandle hdmiI
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
     BDBG_CASSERT(sizeof(*pGeneralControlPacket) == sizeof(BAVC_HDMI_GcpData));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     errCode = BHDR_GetGeneralControlPacketData(hdmiInput->hdr, (BAVC_HDMI_GcpData*)pGeneralControlPacket);
@@ -1155,7 +1164,7 @@ NEXUS_Error NEXUS_HdmiInput_GetISRCData( NEXUS_HdmiInputHandle hdmiInput, NEXUS_
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
     BDBG_CASSERT(sizeof(*pISRC) == sizeof(BAVC_HDMI_ISRC));
 
-    if (!hdmiInput->videoConnected)
+    if (!CONNECTED(hdmiInput))
         return NEXUS_UNKNOWN ;
 
     return BHDR_GetISRCData(hdmiInput->hdr, (BAVC_HDMI_ISRC *)pISRC);

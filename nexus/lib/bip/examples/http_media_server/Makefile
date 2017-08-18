@@ -58,6 +58,7 @@ THEAPPS += http_sat_streamer
 THEAPPS += http_simple_streamer
 THEAPPS += http_recpump_streamer
 THEAPPS += http_ip_input_streamer
+THEAPPS += http_hdmi_input_streamer
 ifeq ($(DTCP_IP_SAGE_SUPPORT),y)
 endif
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "nxclient.h"
 #include "picdecoder.h"
@@ -81,6 +78,7 @@ static unsigned osd_p_compute_internal_dim(unsigned externalDim, unsigned paddin
     return externalDim - externalDim * 2 * padding / BWT_RELATIVE_BASE;
 }
 
+#if ENABLE_GUIDE
 static const char * STR_GUIDE_PANEL_NAME = "guide";
 
 BWT_PanelHandle osd_p_create_guide_panel(OsdHandle osd, const BWT_Dimensions * mainDims, unsigned mainPadding, unsigned textHeight)
@@ -119,6 +117,7 @@ BWT_PanelHandle osd_p_create_guide_panel(OsdHandle osd, const BWT_Dimensions * m
 
     return guide;
 }
+#endif
 
 #if 0
 BWT_LabelHandle osd_p_add_name_value_pair(
@@ -288,7 +287,7 @@ static BWT_TableHandle osd_details_panel_p_create_table(OsdHandle osd, OsdInfoPa
     return table;
 }
 
-BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, OsdInfoPanel *detailsPanel, const BWT_Dimensions * mainDims, unsigned mainPadding, unsigned textHeight, unsigned numVideos)
+BWT_PanelHandle osd_p_create_details_panel(OsdHandle osd, OsdInfoPanel *detailsPanel, const BWT_Dimensions * mainDims, unsigned textHeight, unsigned numVideos)
 {
     BWT_PanelHandle details;
     BWT_PanelCreateSettings settings;
@@ -487,11 +486,10 @@ BWT_VideoWindowHandle osd_p_create_window(OsdHandle osd, const BWT_Dimensions * 
 
 static const char * STR_VIDEO_PANEL_NAME = "video";
 
-BWT_PanelHandle osd_p_create_video_panel(OsdHandle osd, const BWT_Dimensions * mainDims, unsigned mainPadding)
+BWT_PanelHandle osd_p_create_video_panel(OsdHandle osd, const BWT_Dimensions * mainDims)
 {
     BWT_PanelHandle video;
     BWT_PanelCreateSettings panelSettings;
-/*    unsigned padding = (mainDims->width>mainDims->height ? mainDims->height : mainDims->width)*mainPadding/BWT_RELATIVE_BASE;*/
     unsigned i;
 
     assert(osd);
@@ -506,12 +504,34 @@ BWT_PanelHandle osd_p_create_video_panel(OsdHandle osd, const BWT_Dimensions * m
     video = BWT_Panel_Create(osd->bwt, &panelSettings);
     assert(video);
 
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<platform_graphics_get_mosaic_count(osd->gfx); i++) {
         osd->window[i] = osd_p_create_window(osd, &panelSettings.dims, i);
         assert(osd->window[i]);
     }
 
     return video;
+}
+
+static const char * STR_PIP_PANEL_NAME = "pip";
+
+BWT_PanelHandle osd_p_create_pip_panel(OsdHandle osd, const BWT_Dimensions * mainDims)
+{
+    BWT_PanelHandle pip;
+    BWT_PanelCreateSettings panelSettings;
+
+    assert(osd);
+
+    BWT_Panel_GetDefaultCreateSettings(&panelSettings);
+    panelSettings.name = STR_PIP_PANEL_NAME;
+    panelSettings.dims.width = mainDims->width / 3;
+    panelSettings.dims.height = mainDims->height / 3;
+    panelSettings.padding = 0;
+    panelSettings.spacing = 0;
+    panelSettings.flow = BWT_LayoutFlow_eHorizontal;
+    pip = BWT_Panel_Create(osd->bwt, &panelSettings);
+    assert(pip);
+
+    return pip;
 }
 
 OsdHandle osd_create(PlatformHandle platform, PlatformGraphicsHandle gfx, const OsdTheme * pTheme)
@@ -540,28 +560,40 @@ OsdHandle osd_create(PlatformHandle platform, PlatformGraphicsHandle gfx, const 
 
     memcpy(&osd->theme, pTheme, sizeof(*pTheme));
 
+    osd->mosaicCount = platform_graphics_get_mosaic_count(gfx);
+
     osd->main = osd_p_create_main_panel(osd);
     if (!osd->main) goto error;
     mainDims = BWT_Widget_GetDimensions((BWT_WidgetHandle)osd->main);
     mainPadding = BWT_Widget_GetPadding((BWT_WidgetHandle)osd->main);
     textHeight = BWT_Toolkit_GetTextHeight(osd->bwt);
 
-    osd->video = osd_p_create_video_panel(osd, mainDims, mainPadding);
+    osd->video = osd_p_create_video_panel(osd, mainDims);
     if (!osd->video) goto error;
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->video, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
 
+    osd->pip = osd_p_create_pip_panel(osd, mainDims);
+    if (!osd->pip) goto error;
+    BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->pip, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eRight);
+
+#if ENABLE_GUIDE
     osd->guide = osd_p_create_guide_panel(osd, mainDims, mainPadding, textHeight);
     if (!osd->guide) goto error;
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->guide, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eRight);
+#endif
 
-    osd->details.base = osd_p_create_details_panel(osd, &osd->details, mainDims, mainPadding, textHeight, 1);
+    osd->details.base = osd_p_create_details_panel(osd, &osd->details, mainDims, textHeight, 1);
     if (!osd->details.base) goto error;
-    osd->mosaicDetails.base = osd_p_create_details_panel(osd, &osd->mosaicDetails, mainDims, mainPadding, textHeight, MAX_MOSAICS);
+    osd->mosaicDetails.base = osd_p_create_details_panel(osd, &osd->mosaicDetails, mainDims, textHeight, osd->mosaicCount);
     if (!osd->mosaicDetails.base) goto error;
+    osd->pipDetails.base = osd_p_create_details_panel(osd, &osd->pipDetails, mainDims, textHeight, 2);
+    if (!osd->pipDetails.base) goto error;
     osd->info.base = osd_p_create_info_panel(osd, &osd->info, textHeight, 1);
     if (!osd->info.base) goto error;
-    osd->mosaicInfo.base = osd_p_create_info_panel(osd, &osd->mosaicInfo, textHeight, MAX_MOSAICS);
+    osd->mosaicInfo.base = osd_p_create_info_panel(osd, &osd->mosaicInfo, textHeight, osd->mosaicCount);
     if (!osd->mosaicInfo.base) goto error;
+    osd->pipInfo.base = osd_p_create_info_panel(osd, &osd->pipInfo, textHeight, 2);
+    if (!osd->pipInfo.base) goto error;
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->info.base, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eCenter);
     osd->current = &osd->info;
 
@@ -604,6 +636,7 @@ void osd_p_scheduler_callback(void * pContext, int param)
 {
     OsdHandle osd = pContext;
     assert(osd);
+    (void)param;
     BWT_Widget_Render((BWT_WidgetHandle)osd->main);
     BWT_Toolkit_Submit(osd->bwt);
 }
@@ -626,13 +659,13 @@ void osd_toggle_details_mode(OsdHandle osd)
     osd_set_details_mode(osd, !osd->detailed);
 }
 
-static void osd_p_configure_info_panel_layout(OsdHandle osd, bool mosaic, bool layout, bool detailed)
+static void osd_p_configure_info_panel_layout(OsdHandle osd, PlatformUsageMode usageMode, bool layout, bool detailed)
 {
     BWT_VerticalAlignment vAlign;
     BWT_HorizontalAlignment hAlign;
     OsdInfoPanel *infoPanel = NULL;
 
-    if(mosaic && layout == 1) {
+    if(usageMode == PlatformUsageMode_eMosaic && layout == 1) {
         vAlign = BWT_VerticalAlignment_eCenter;
         hAlign = BWT_HorizontalAlignment_eLeft;
     } else {
@@ -640,9 +673,31 @@ static void osd_p_configure_info_panel_layout(OsdHandle osd, bool mosaic, bool l
         hAlign = BWT_HorizontalAlignment_eCenter;
     }
     if (detailed) {
-        infoPanel = mosaic?&osd->mosaicDetails:&osd->details;
+        switch (usageMode)
+        {
+            case PlatformUsageMode_eMosaic:
+                infoPanel = &osd->mosaicDetails;
+                break;
+            case PlatformUsageMode_eMainPip:
+                infoPanel = &osd->pipDetails;
+                break;
+            default:
+                infoPanel = &osd->details;
+                break;
+        }
     } else {
-        infoPanel = mosaic?&osd->mosaicInfo:&osd->info;
+        switch (usageMode)
+        {
+            case PlatformUsageMode_eMosaic:
+                infoPanel = &osd->mosaicInfo;
+                break;
+            case PlatformUsageMode_eMainPip:
+                infoPanel = &osd->pipInfo;
+                break;
+            default:
+                infoPanel = &osd->info;
+                break;
+        }
     }
 
     BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->current->base, false);
@@ -655,99 +710,221 @@ static void osd_p_configure_info_panel_layout(OsdHandle osd, bool mosaic, bool l
 
 void osd_set_details_mode(OsdHandle osd, bool enable)
 {
-    osd_p_configure_info_panel_layout(osd, osd->mosaic, osd->layout, enable);
+    osd_p_configure_info_panel_layout(osd, osd->usageMode, osd->layout, enable);
     osd->detailed = enable;
 }
 
 void osd_toggle_guide_visibility(OsdHandle osd)
 {
     assert(osd);
+#if ENABLE_GUIDE
     BWT_Widget_ToggleVisibility((BWT_WidgetHandle)osd->guide);
+#endif
 }
 
 void osd_set_guide_visibility(OsdHandle osd, bool visible)
 {
     assert(osd);
+#if ENABLE_GUIDE
     BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->guide, visible);
+#else
+    (void)visible;
+#endif
 }
 
 void osd_toggle_pig_mode(OsdHandle osd)
 {
-    osd_set_pig_mode(osd, !osd->pig);
 }
 
 void osd_toggle_mosaic_layout(OsdHandle osd)
 {
-    osd_set_mosaic_mode(osd, osd->mosaic, osd->layout^1);
+    osd_set_usage_mode(osd, osd->usageMode, osd->layout^1);
 }
 
-void osd_set_pig_mode(OsdHandle osd, bool enable)
+static const char * const usageModeStrings[] =
 {
-    unsigned id = platform_graphics_get_non_mosaic_window_id(osd->gfx);
-    if (enable)
-    {
-        if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, false);
-        if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, true);
-        BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[id]);
-        BWT_VideoWindow_SetScale(osd->window[id], 30);
-        BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[id], BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
-    }
+    "full-screen video",
+    "pig",
+    "mosaic",
+    "pip",
+    NULL
+};
+
+static const unsigned mosdims[10][2] =
+{
+    { 0, 0 },
+    { 1, 1 },
+    { 1, 2 },
+    { 2, 2 },
+    { 2, 2 },
+    { 2, 3 },
+    { 2, 3 },
+    { 3, 3 },
+    { 3, 3 },
+    { 3, 3 }
+};
+
+static void get_mosaic_dims(unsigned count, unsigned * rows, unsigned * windows_per_row)
+{
+    if (count > 9) *rows = *windows_per_row = 0;
     else
     {
-        if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, false);
-        if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, true);
-        BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[id]);
-        BWT_VideoWindow_SetScale(osd->window[id], 100);
-        BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[id], BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
+        *rows = mosdims[count][0];
+        *windows_per_row = mosdims[count][1];
     }
-    osd->pig = enable;
 }
 
-void osd_set_mosaic_mode(OsdHandle osd, bool enable, unsigned layout)
+BWT_VerticalAlignment quantize_row(unsigned row, unsigned rows)
+{
+    BWT_VerticalAlignment valign;
+    switch (rows)
+    {
+        case 0:
+            valign = BWT_VerticalAlignment_eDefault;
+            break;
+        case 1:
+            valign = BWT_VerticalAlignment_eCenter;
+            break;
+        default:
+        case 2:
+            valign = (row == 0) ? BWT_VerticalAlignment_eTop : BWT_VerticalAlignment_eBottom;
+            break;
+        case 3:
+            valign = (BWT_VerticalAlignment)row;
+            break;
+    }
+    return valign;
+}
+
+void osd_set_usage_mode(OsdHandle osd, PlatformUsageMode usageMode, unsigned layout)
 {
     BWT_VerticalAlignment vAlign = BWT_VerticalAlignment_eTop;
     BWT_HorizontalAlignment hAlign = BWT_HorizontalAlignment_eLeft;
     unsigned i;
+    unsigned pip = platform_graphics_get_pip_window_id(osd->gfx);
+    unsigned full = platform_graphics_get_main_window_id(osd->gfx);
+    unsigned pig = full;
 
-    if (osd->mosaic == enable && osd->layout == layout) return;
+    printf("osd: old usage: %s; new usage: %s\n", usageModeStrings[osd->usageMode], usageModeStrings[usageMode]);
 
-    /* First Remove all windows. */
-    for (i=0; i<MAX_MOSAICS; i++) {
-        if(osd->window[i]) BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[i]);
+    if (osd->usageMode == usageMode && osd->layout == layout) return;
+
+    switch (osd->usageMode)
+    {
+        case PlatformUsageMode_ePictureInGraphics:
+            printf("osd: hiding background\n");
+            if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, false);
+            printf("osd: removing pig window\n");
+            BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[pig]);
+            break;
+        case PlatformUsageMode_eMosaic:
+            if (osd->layout == 1) printf("osd: hiding background\n");
+            if (osd->layout == 1 && osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, false);
+            printf("osd: removing mosaic windows\n");
+            for (i=0; i<osd->mosaicCount; i++) {
+                if (osd->window[i]) BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[i]);
+            }
+            break;
+        case PlatformUsageMode_eMainPip:
+            printf("osd: removing pip window\n");
+            BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->pip, false);
+            BWT_Panel_RemoveChild(osd->pip, (BWT_WidgetHandle)osd->window[pip]);
+            if (usageMode != PlatformUsageMode_eFullScreenVideo)
+            {
+                printf("osd: removing main window\n");
+                BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[full]);
+            }
+            break;
+        default:
+        case PlatformUsageMode_eFullScreenVideo:
+            printf("osd: hiding thumbnail\n");
+            if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, false);
+            if (usageMode != PlatformUsageMode_eMainPip)
+            {
+                printf("osd: removing main window\n");
+                BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[full]);
+            }
+            break;
     }
 
-    osd_p_configure_info_panel_layout(osd, enable, layout, osd->detailed);
+    osd_p_configure_info_panel_layout(osd, usageMode, layout, osd->detailed);
 
-    if (enable) {
-        if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, false);
-        if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, layout==0?false:true);
-        if (layout == 1) {
-            for(i=0; i<MAX_MOSAICS; i++) {
-                BWT_VideoWindow_SetScale(osd->window[i], i==0?50:33);
-                vAlign = i==0?BWT_VerticalAlignment_eTop:BWT_VerticalAlignment_eBottom;
-                hAlign = i==0?BWT_VerticalAlignment_eCenter:BWT_HorizontalAlignment_eLeft;
-                BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[i], vAlign, hAlign);
-            }
-        } else {
-            unsigned windows_per_row = MAX_MOSAICS/2;
-            for(i=0; i<MAX_MOSAICS; ) {
-                BWT_VideoWindow_SetScale(osd->window[i], 50);
-                BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[i], vAlign, hAlign);
-                if (++i%windows_per_row == 0) {
-                    vAlign = BWT_VerticalAlignment_eBottom;
+    switch (usageMode)
+    {
+        case PlatformUsageMode_ePictureInGraphics:
+            printf("osd: showing background\n");
+            if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, true);
+            printf("osd: adding pig window @30%%\n");
+            BWT_VideoWindow_SetScale(osd->window[pig], 30);
+            BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[pig], vAlign, hAlign);
+            break;
+        case PlatformUsageMode_eMosaic:
+            if (layout == 1) printf("osd: showing background\n");
+            if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, layout==0?false:true);
+            printf("osd: adding %d mosaic windows in layout %u\n", osd->mosaicCount, layout);
+            if (layout == 1) {
+                unsigned smallItemScale = 33;
+                if (osd->mosaicCount > 2)
+                {
+                    smallItemScale = 100 / (osd->mosaicCount - 1);
+                }
+                printf("osd: rendering 1@50%% + %d@%d%% mosaic windows\n", osd->mosaicCount - 1, smallItemScale);
+                for (i = 0; i < osd->mosaicCount; i++) {
+                    BWT_VideoWindow_SetScale(osd->window[i], i == 0 ? 50 : smallItemScale);
+                    vAlign = i==0?BWT_VerticalAlignment_eTop:BWT_VerticalAlignment_eBottom;
+                    hAlign = i==0?BWT_VerticalAlignment_eCenter:BWT_HorizontalAlignment_eLeft;
+                    BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[i], vAlign, hAlign);
+                }
+            } else {
+                unsigned windows_per_row;
+                unsigned scale;
+                unsigned rows;
+                unsigned row;
+
+                get_mosaic_dims(osd->mosaicCount, &rows, &windows_per_row);
+                if (!windows_per_row || !rows) {
+                    printf("osd: error computing mosaic windows per row; usage incomplete\n");
+                    break;
+                }
+                printf("osd: rendering %dx%d mosaic windows\n", rows, windows_per_row);
+
+                if (osd->mosaicCount < 2) scale = 50;
+                else scale = 100 / rows;
+
+                row = 0;
+                for (i = 0; i < osd->mosaicCount; i++) {
+                    BWT_VideoWindow_SetScale(osd->window[i], scale);
+                    BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[i], quantize_row(row, rows), hAlign);
+                    if ((i + 1) % windows_per_row == 0) row++;
                 }
             }
-        }
-    } else {
-        unsigned id = platform_graphics_get_non_mosaic_window_id(osd->gfx);
-        if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, true);
-        if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, false);
-        BWT_VideoWindow_SetScale(osd->window[id], 100);
-        BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[id], vAlign, hAlign);
+            osd->layout = layout;
+            break;
+        case PlatformUsageMode_eMainPip:
+            if (osd->usageMode != PlatformUsageMode_eFullScreenVideo)
+            {
+                printf("osd: adding main window @100%%\n");
+                BWT_VideoWindow_SetScale(osd->window[full], 100);
+                BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[full], BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eLeft);
+            }
+            printf("osd: adding pip window @33%%\n");
+            BWT_VideoWindow_SetScale(osd->window[pip], 33);
+            BWT_Panel_AddChild(osd->pip, (BWT_WidgetHandle)osd->window[pip], BWT_VerticalAlignment_eCenter, BWT_HorizontalAlignment_eCenter);
+            break;
+        default:
+        case PlatformUsageMode_eFullScreenVideo:
+            printf("osd: showing thumbnail\n");
+            if (osd->thumbnail) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->thumbnail, true);
+            if (osd->usageMode != PlatformUsageMode_eMainPip)
+            {
+                printf("osd: adding main window @100%%\n");
+                BWT_VideoWindow_SetScale(osd->window[full], 100);
+                BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[full], vAlign, hAlign);
+            }
+            break;
     }
 
-    osd->mosaic = enable;
-    osd->layout = layout;
+    osd->usageMode = usageMode;
 }
 
 void osd_label_p_update_dynrng(BWT_LabelHandle label, PlatformDynamicRange dynrng)
@@ -1025,7 +1202,7 @@ void osd_update_thumbnail(OsdHandle osd, PlatformPictureHandle pic)
         BWT_Image_GetDefaultCreateSettings(&settings);
         settings.name = STR_THUMBNAIL_NAME;
         settings.pic = pic;
-        settings.visible = !osd->pig && !osd->mosaic;
+        settings.visible = osd->usageMode == PlatformUsageMode_eFullScreenVideo;
         osd->thumbnail = BWT_Image_Create(osd->bwt, &settings);
         assert(osd->thumbnail);
         BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->thumbnail, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eRight);
@@ -1052,7 +1229,7 @@ void osd_update_background(OsdHandle osd, PlatformPictureHandle pic)
         BWT_Image_GetDefaultCreateSettings(&settings);
         settings.name = STR_BACKGROUND_NAME;
         settings.pic = pic;
-        settings.visible = osd->pig || (osd->mosaic && osd->layout == 1);
+        settings.visible = osd->usageMode == PlatformUsageMode_ePictureInGraphics || (osd->usageMode == PlatformUsageMode_eMosaic && osd->layout == 1);
         osd->background = BWT_Image_Create(osd->bwt, &settings);
         assert(osd->background);
         BWT_Panel_SetBackground(osd->main, osd->background);

@@ -1,0 +1,512 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to qualify UDP
+#
+# Written by: Robert J. McMahon April 2016
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Test::Join
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require math::statistics
+
+UTF::Test UDPPerf {args} {
+    UTF::Getopts {
+	{email.arg "" "Email Addrss"}
+	{title.arg "" "Title"}
+	{date.arg "" "Image date"}
+	{bin.arg "" "STA image"}
+	{tag.arg "" "tag override"}
+	{dhd_tag.arg "" "dhd tag override"}
+	{noload "don't load the images"}
+	{apload "load the ap image"}
+	{nosetup "don't run testbed setup routine"}
+	{ap.arg "4708ap1" "APs under test"}
+	{cci.arg "" "Stressor device"}
+	{cciload.arg "1M" "Default CCI load"}
+	{ccidirection.arg "bidir" "Set CCI taffic direction per up, down, bidir"}
+	{sta.arg "4357Ait 4357Bit" "STA(s) under test"}
+	{msglevel.arg "-scan" "wl msglevel to apply"}
+	{mpdudense.arg "-1 1" "mpdu densities"}
+	{frameburst.arg "1 0" "frameburst values"}
+	{chanspec.arg "36/80" "Chanspecs to use in the tests, support for 'random'"}
+	{security.arg "open" "Default security"}
+	{direction.arg "up" "Traffic direction"}
+	{w.arg "4M" "Window size"}
+	{i.arg "0.05" "Report interval"}
+	{holdtime.arg "60" "Total traffic time"}
+	{loop.arg "3" "Number of iterations of test vector"}
+	{readdelay.arg "0" "Time in milliseconds to delay before first read"}
+	{tcptrace "Capture tcp pcaps and run tcptrace"}
+	{txop "Override txop"}
+	{rtt_trigger "Enable rtt mean shift detection and actions"}
+	{initcwnd.arg "-1" "init cwnd"}
+	{initrtt.arg "-1" "init rtt"}
+	{initrttvar.arg "-1" "init rttvar"}
+	{cpu "issue cpu command"}
+	{var "induce variance"}
+	{target.arg "20ms" "Codel target"}
+	{qdisc "Enable qdisc settings"}
+	{amsdu.arg "1 agg_off 0 auto " "AMSDU settings"}
+	{atf.arg "0 1" "ATF settings"}
+	{auto_amsdu_delay.arg "500" "time in ms to enable amsdu"}
+	{tcp_output_bytes_limit.arg "1280K" "TCP's output byte limit setting"}
+	{offered.arg "250M 375M 500M" "UDP offered loads to test"}
+	{pktsize.arg "1470 900" "UDP payload sizes to test"}
+	{40in2G "Enable 40 Mhz in the 2.4G band"}
+	{tos.arg "0x0 0x80 0xc0 0x20" "IP tos: BE/BK/VI/VO=0x0/0x20/0x80/0xc0"}
+	{rts "Set rts threshold to 32 bytes"}
+    }
+
+    set procmsgtag [namespace tail [lindex [info level 0] 0]]
+
+    proc tos2txt {value} {
+	switch -exact $value {
+	    "0x20" {
+		return "BK"
+	    }
+	    "0x0" -
+	    "0x00" {
+		return "BE"
+		set options(-traffictype) "BE"
+	    }
+	    "0x80" {
+		return "VI"
+		set options(-traffictype) "VI"
+	    }
+	    "0xc0" {
+		return "VO"
+		set options(-traffictype) "VO"
+	    }
+	    default {
+		return "UNK"
+	    }
+	}
+    }
+    proc clear_retry_history {DUT} {
+	for {set ix 6832} {$ix <= 6862} {incr ix +2} {
+	    $DUT rexec wl shmem $ix 0
+	}
+	UTF::Message INFO $DUT "Retry shared memory reset"
+    }
+
+    if {$(tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -tag $(tag) -date {}
+	}
+    }
+    if {$(dhd_tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -dhd_tag $(dhd_tag)
+	}
+    }
+    if {$(bin) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -image $(bin) -date {}
+	}
+    }
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+    if {$(date) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -date $(date)
+	    if {[$STA hostis DHD]} {
+		$STA configure -dhd_date $(date)
+	    }
+	}
+    } else {
+	set (date) $today
+    }
+    if {$(direction) eq "up"} {
+	set txs $(sta)
+	set rxs $(ap)
+	set mode ap
+    } else {
+	set txs $(ap)
+	set rxs $(sta)
+	set mode sta
+    }
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(sta) $(ap)]]
+    set TITLE "UDP Performance\([file rootname [file tail $::utfconf]]\) $(title) ($build) (ch=${(chanspec)},$(security),$(tos))"
+    if {$(cci) ne ""} {
+	if {![$(cci) hostis Router]} {
+	    append TITLE "(CCI=$(cciload))"
+	} else {
+	    append TITLE "(CCI=Beacons)"
+	}
+	set DUTS [concat $(sta) $(cci) $(ap)]
+    } else {
+	set DUTS $(sta)
+    }
+    UTF::Message INFO "" $TITLE
+    unset build
+    
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::__tryid "auto"
+	UTF::Try "Iperf -v" {
+	    foreach DUT $DUTS {
+		catch {$device lan rexec pkill iperf}
+		catch {$DUT lan rexec iptables -F}
+		catch {$DUT lan rexec iperf -v} ver
+	    }
+	    return $ver
+	}
+	set STA1 [lindex $(sta) 0]
+	set STA2 [lindex $(sta) 1]
+	
+	if {[info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+		foreach DUT $DUTS {
+		    $DUT attngrp attn default
+		}
+	    }
+	}
+	
+	if {!$(noload)} {
+	    foreach STA $DUTS {
+		if {[$STA hostis Router]} {
+		    continue
+		}
+		if {$(bin) ne ""} {
+		    $STA configure -image $(bin) -date {}
+		}
+		UTF::Try "$STA Find STA Image" {
+		    UTF::CheckImage $STA $(date) unknown
+		}
+		UTF::Try "$STA load" {
+		    $STA load
+		}
+		if {[$STA hostis Linux DHD]} {
+		    UTF::Try "$STA modules" {
+			$STA lsmod
+			return
+		    }
+		}
+		UTF::ReportDriver $STA $(date)
+		UTF::Try "[$STA cget -name]: defaults, logs" {
+		    $STA services stop
+		    catch {$STA wl msglevel +error +assoc +regulatory}
+		    set what [$STA whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $STA $ret
+		    }
+		    $STA dbrecord DUT
+		    set what
+		}
+	    }
+	}
+	if {$(apload)} {
+	    UTF::Try "[$(ap) cget -name]: Find Router Image" {
+		UTF::CheckImage $(ap) $(date) unknown
+	    }
+	    UTF::Try "[$(ap) cget -name]: Load Image" {
+		$(ap) load
+		if {[$(ap) hostis Router Vx BSDAP DSL Airport]} {
+		    $(ap) restore_defaults
+		} else {
+		    $(ap) services stop
+		    if {[info exists ::UTF::Use11h]} {
+			catch {$(ap) wl msglevel +error +assoc +regulatory}
+		    } else {
+			catch {$(ap) wl msglevel +error +assoc}
+		    }
+		    if {$(40in2G)} {
+			UTF::Try "Set $(ap) 40 in 2.4G" {
+			    if {![$(ap) cget -nomimo_bw_cap]} {
+				catch {$(ap) wl down}
+				# Enable 40 in 2.4, if available.
+				catch {$(ap) wl -u mimo_bw_cap 1}
+				$(ap) wl up
+				UTF::Sleep 1
+			    }
+			}
+		    }
+		}
+	    }
+	}
+	UTF::Try "$(ap) whatami" {
+	    set what [$(ap) whatami]
+	    # Pull out chip info and replace whitespace to make it
+	    # easier for external parsers.
+	    regsub -all {\s+} [lreplace $what 0 0] {_} w
+	    $UTF::Summary header $(ap) $w
+	    $(ap) dbrecord DUT
+	    set what
+	}
+	UTF::Try "$(ap): check msglevel" {
+	    if {[info exists UTF::RouterCheckMsglevelH] &&
+		![regexp {regulatory} [$(ap) wl msglevel -h]]} {
+		throw fail "regulatory not found"
+	    }
+	    $(ap) wl msglevel
+	}
+	$(ap) dbrecord REF
+	
+	foreach STA [concat $(sta) $(cci)] {
+	    if {[$STA hostis Router]} {
+		continue
+	    }
+	    UTF::Try "$STA Model/OS " {
+		set model "unknown"
+		set osver "unknown"
+		set os "unknowns"
+		if {[$STA hostis Linux DHD]} {
+		    set osver "[$STA rexec uname -r]"
+		    if {[regexp {Manufacturer:\s+(.+)\n\s+Product Name:\s+(.+)\n\sVersion:} [$STA rexec dmidecode -t 2] - mfg board]} {
+			set model [string map {" " _} "[string trim ${mfg}]/[string trim $board]"]
+		    }
+		    set os [$STA rexec uname]
+		    $STA rexec dmidecode -t 4
+		    $STA rexec lscpu
+		}
+		return "${model}/${osver}"
+	    }
+	}
+	UTF::Try "Enable PTP" {
+	    eval ::enable_ptp -wait 15
+	}
+	
+	UTF::Try "IBSS ch=$(chanspec)" {
+	    $STA1 configure -ipaddr 192.168.1.61
+	    $STA2 configure -ipaddr 192.168.1.71
+	    $STA1 ifconfig 192.168.1.61
+	    $STA2 ifconfig 192.168.1.71
+	    if {$(cci) ne "" && ![$(cci) hostis Router]} {
+		$(cci) configure -ipaddr 192.168.1.81
+		$(cci) ifconfig 192.168.1.81
+	    }
+	    APChanspec $STA1 $(chanspec) -loose -nobandlock
+	    APChanspec $STA2 $(chanspec) -loose -nobandlock
+	    Join $STA1 $STA2 -imode ibss
+	    set c [lindex [$STA2 wl chanspec] 0]
+	    if {$c ne $(chanspec)} {
+		error "Chanspec $c != $(chanspec)"
+	    }
+	}
+	set TX $STA1
+	set RX $STA2
+	set CCITXT {}
+	if {$(cci) ne ""} {
+	    if {![$(cci) hostis Router]} {
+		set CCITXT "CCI=$(ap)/$(cci) $(cciload)/$(ccidirection)"
+	    } else {
+		set CCITXT "CCI=$(ap)/Beacons"
+	    }
+	    UTF::Try  "Setup $CCITXT" {
+		APChanspec $(ap) $(chanspec)
+		APConfigureSecurity $(ap) -security $(security)
+		if {![$(cci) hostis Router]} {
+		    if {[catch {$(cci) wl bssid} stabssid] || ([$(ap) wl bssid] ne $stabssid)} {
+			ConnectAPSTA $(ap) $(cci)
+		    }
+		}
+		return "$(chanspec)/$(security)"
+	    }
+	}
+	UTF::Try  "Escans" {
+	    foreach DUT $DUTS {
+		$DUT wl_escanresults
+	    }
+	    foreach DUT  $DUTS {
+		UTF::Message INFO "$DUT" [$DUT attngrp attn?]
+	    }
+	    return
+	}
+	foreach TOS $(tos) {
+	    UTF::Try "+ToS=${TOS}/[tos2txt $TOS]" {
+		foreach udpsize $(pktsize) {
+		    UTF::Try "+ToS=${TOS}/[tos2txt $TOS] Size=$udpsize" {
+			foreach FB $(frameburst)  {
+			    foreach mpdudense $(mpdudense) {
+				$TX wl ampdu_mpdu $mpdudense
+				if {[expr {$mpdudense > 0}]} {
+				    set mdtxt "$mpdudense"
+				} else {
+				    set mdtxt "auto"
+				}
+				$TX wl frameburst $FB
+				if {$mpdudense eq "1"} {
+				    set OFFERED "1Kpps"
+				} else {
+				    set OFFERED $(offered)
+				}
+				foreach offered  $OFFERED  {
+				    set TRYTEXT "UDP Offered/Sz/ToS=${offered}/${udpsize}/[tos2txt $TOS] FB/MD =${FB}/$mdtxt $CCITXT"
+				    if {$(rts)} {
+					append TRYTEXT " rts"
+				    }
+				    if {$(txop)} {
+					append TRYTEXT " txop=0"
+				    }
+
+				    UTF::Try  $TRYTEXT {
+					if {![catch {$udp destroy}]} {
+					    UTF::Sleep 2.0
+					}
+					catch {UTF::stream allstreams destroy}
+					set udp [UTF::stream %AUTO% -tx $TX -rx $RX -pktsize $udpsize -reportinterval $(i) -name "UDP" -tos $TOS -rxdisplay on -txdisplay off]
+					if {$offered eq "1Kpps"} {
+					    $udp configure -pps 1000
+					} elseif {$offered eq "6Kpps"} {
+					    $udp configure -pps 6000
+					} else {
+					    $udp configure -rate $offered
+					}
+					if {$(cci) ne "" && ![$(cci) hostis Router]} {
+					    if {[catch {$(cci) wl bssid} stabssid] || ([$(ap) wl bssid] ne $stabssid)} {
+						ConnectAPSTA $(ap) $(sta) -security $(security)
+					    }
+					    switch -exact -- [string tolower $(ccidirection)] {
+						"down" {
+						    set cciudprx [UTF::stream %AUTO% -tx $(ap) -rx $(cci) -pktsize $udpsize -rate $(cciload) -reportinterval $(i) -name CCID -rxdisplay off -txdisplay off]
+						}
+						"up" {
+						    set cciudprx [UTF::stream %AUTO% -rx $(ap) -tx $(cci) -pktsize $udpsize -rate $(cciload) -reportinterval $(i) -name CCIU -rxdisplay off -txdisplay off]
+						}
+						"bidir" {
+						    set cciudprx [UTF::stream %AUTO% -tx $(ap) -rx $(cci) -pktsize $udpsize -rate $(cciload) -reportinterval $(i) -name CCID -rxdisplay off -txdisplay off]
+						    set cciudprx [UTF::stream %AUTO% -rx $(ap) -tx $(cci) -pktsize $udpsize -rate $(cciload) -reportinterval $(i) -name CCIU -rxdisplay off -txdisplay off]
+						}
+					    }
+					    if {$(rts)} {
+						$(cci) wl rtsthresh 32
+					    } else {
+						$(cci) wl rtsthresh 2347
+					    }
+					}
+					foreach DUT $DUTS {
+					    catch {$DUT wl -u reset_cnts}
+					    catch {$DUT wl -u counters}
+					    if {[catch {$DUT wl ampdu_clear_dump}]} {
+						$DUT wl -u dump_clear ampdu
+					       $DUT wl -u dump_clear amsdu
+						$DUT wl vhtmode
+						$DUT wl vht_features
+						$DUT wl -u amsdu
+					    }
+					    if {[$DUT hostis Router]} {
+						continue
+					    }
+					    if {$(rts)} {
+						$DUT wl rtsthresh 32
+					    } else {
+						$DUT wl rtsthresh 2347
+					    }
+					}
+					$TX wl -u dlystats_clear
+					if {$(txop)} {
+					    $TX wl -u wme_ac sta be txop 0 ecwmin 1 ecwmax 1
+					}
+					$TX wl -u phy_txpwrctrl
+					$TX wl -u phy_txpwrindex
+					UTF::stream allstreams start
+#					UTF::stream allstreams linkcheck -now
+					$udp linkcheck -now
+					UTF::Sleep 0.5
+					UTF::stream allstreams stats -clear
+					#if {[catch {$udp linkcheck -now -txstrict}]} {
+					#   UTF::stream allstreams destroy
+					#   throw fail "UDP stream lossy at start"
+					#}
+					UTF::Sleep $(holdtime)
+					UTF::stream allstreams stop
+					set freq [format %0.3f [expr {1000.0 *  ([UTF::stream clock] - [$udp stats -starttime])/[$udp stats -pktcount -sum]}]]
+					foreach DUT $DUTS {
+					    catch {$DUT wl -u counters}
+					    catch {$DUT wl -u dump rssi}
+					    catch {$DUT wl -u dump ampdu}
+					    catch {$DUT wl -u dump amsdu}
+
+					}
+					array unset PDF;  array set PDF [$udp stats -pdf]
+					set densegraph "";  set fbgraph ""; set dlystatsgraph ""
+					array unset MPDUDense *;  array unset FBHistogram * ; array unset ChannelHist *
+					set tostag [string toupper [tos2txt [$udp cget -tos]]]
+					UTF::Try "Delay Stats " {
+					    if {![catch {$TX wl dlystats} dlystatsout] && [regexp "AC_${tostag}:.+Delay stats in usec \\\(avg/min/max\\\): (\[0-9\]+)\\\s+(\[0-9\]+)\\\s+(\[0-9\]+).+Delay Hist(.+)(AC_|$)" $dlystatsout - mean min max dtable]} {
+						set concise {}
+						foreach line [split $dtable "\n"] {
+						    set line [string trim [string map {: {} ( { } ) {} % {}} $line]]
+						    if {[string trim $line] ne {}} {
+							set concise [concat $concise $line]
+						    }
+						}
+						UTF::Message DEBUG "" "concise=$concise"
+						if {[llength $concise] ne 32} {
+						    UTF::Message WARN "" "Partial ucode delay histogram"
+						}
+						set ix 0
+						foreach {A B} $concise  {
+						    set ix [expr {$ix + 0.5}]
+						    set ChannelHist($ix) $A
+						    # set jx [format %0.3f [expr {$ix + 0.499}]]
+						    # set ChannelHist($jx) $A
+						}
+						UTF::Message DEBUG "" "ChanHist: [array get ChannelHist]"
+						set dlystatsgraph [UTF::Streamslib::grapharray  ChannelHist -style CCDF -name {chan} -title "Channel Delay CCDF\\n$TRYTEXT (mmm=${mean}/${min}/${max}" -xrange {[0:10]} -yrange {0:1.01} -precision 1 -append -htmltxt "Channel" -linetype 7]
+						return "html:$dlystatsgraph"
+					    } else {
+						UTF::Message DEBUG "" "dly:$dlystatsout"
+						return "Delay stats failed"
+					    }
+					}
+					$TX wl -u phy_txpwrctrl
+					$TX wl -u phy_txpwrindex
+					set xferred [format %0.2f [expr {100.0 * [$udp stats -bytes -sum] / [$udp stats -txbytes -sum]}]]
+					set ratetxt "[lindex [$udp stats -rate -meanminmax -h] 0]/$freq"
+					set latencytxt "[join [$udp stats -pktlatency -meanminmax] /] ms"
+					append TRYTEXT "\\n$latencytxt $ratetxt [UTF::stream hformat [$udp stats -pktcount -sum]] pkts  (time units ms)"
+					if {$mpdudense ne "1" && ![catch {$TX wl dump ampdu} ampduoutput]} {
+					    if {[regexp {MPDUdens(:.+)TX MCS SGI:} $ampduoutput - densetable]} {
+						set densetable [string map {: {} \n {} } $densetable]
+						if {[llength $densetable] ne 128} {
+						    UTF::Message WARN "" "Partial mdense in ampdu output"
+						}
+						set ix 1
+						foreach {A B} $densetable {
+						    set MPDUDense($ix) [string trimleft $A 0]
+						    incr ix
+						}
+						for {set jx $ix} {$jx <= 64} {incr jx} {
+						    set MPDUDense($jx) -0
+						}
+					    }
+					    set densegraph [UTF::Streamslib::grapharray MPDUDense -style impulses -title "MPDUDense $TRYTEXT" -yprecision 1 -append -xtics "0,2,64" -xrange {[0:65]} -linetype 2 -width 5]
+					}
+					if {$FB && [regexp {Frameburst histogram:\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+avg} $ampduoutput - FBHistogram(0) FBHistogram(1) FBHistogram(2) FBHistogram(3) FBHistogram(4) FBHistogram(5) FBHistogram(6) FBHistogram(7)]} {
+					    set fbgraph [UTF::Streamslib::grapharray FBHistogram -style impulses -title "Frameburst $TRYTEXT" -yprecision 1 -append -xtics "0,1,10" -xrange {[0:10]} -linetype 3 -width 5]
+					}
+					foreach {mean min max stdev} [split [$udp stats -pktlatency -meanminmax]] {}
+					if {[expr {($mean + ($mean - $min)) < 10}]} {
+					    set xrange {[0:10]}
+					} elseif {[expr {($mean + ($mean - $min)) < 20}]} {
+					    set xrange {[0:20]}
+					} elseif {[expr {($mean + ($mean - $min)) < 40}]} {
+					    set xrange {[0:40]}
+					} else {
+					    set xrange {[0:*]}
+					}
+					return "[$udp plot -stat pktlatency -outputtype canvas -title "$TRYTEXT $(chanspec) [$udp cget -reportinterval] s" -text $latencytxt] [$udp plot -stat rate -append -title "$TRYTEXT $(chanspec) [$udp cget -reportinterval] s" -text $ratetxt][ UTF::Streamslib::grapharray  PDF -style PDF -title "PDF  $TRYTEXT" -xrange $xrange -precision 1 -yprecision 1 -append][ UTF::Streamslib::grapharray  PDF -style CDF -name {dhd} -title "CDF  $TRYTEXT" -xrange $xrange -yrange {0:1.01} -precision 1 -append -htmltxt CDF -linetype 3][ UTF::Streamslib::grapharray  PDF -style CCDF -name {dhd} -title "CCDF  $TRYTEXT" -xrange $xrange -yrange {0:1.01} -precision 1 -append -htmltxt CCDF -linetype 7] $densegraph $fbgraph $dlystatsgraph"
+				    }
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+	UTF::stream exitstreams
+    }
+}

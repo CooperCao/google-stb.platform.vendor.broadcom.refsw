@@ -104,12 +104,12 @@ bool SecureBuffer::Initialize()
     return true;
 }
 
-void SecureBuffer::Copy(uint32_t offset, uint8_t* dataToCopy, size_t size)
+void SecureBuffer::Copy(uint32_t offset, uint8_t* dataToCopy, uint32_t size)
 {
     PrivateCopy(m_data + offset, dataToCopy, size, true);
 }
 
-void SecureBuffer::Copy(uint32_t offset, IBuffer* bufToCopy, size_t size)
+void SecureBuffer::Copy(uint32_t offset, IBuffer* bufToCopy, uint32_t size)
 {
     if(bufToCopy->IsSecure()) {
         PrivateCopy(m_data + offset, bufToCopy->GetPtr(), size, false);
@@ -118,11 +118,11 @@ void SecureBuffer::Copy(uint32_t offset, IBuffer* bufToCopy, size_t size)
     }
 }
 
-void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, size_t nSize, bool flush)
+void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bool flush)
 {
     NEXUS_Error rc;
 
-    LOGV(("%s: dest:%p, src:%p, size:%d", __FUNCTION__, pDest, pSrc, nSize));
+    LOGV(("%s: dest:%p, src:%p, size:%d", __FUNCTION__, pDest, pSrc, (uint32_t)nSize));
 
     if (m_dmaJob == NULL) {
         LOGD(("%s: setting up DmaJob", __FUNCTION__));
@@ -169,13 +169,10 @@ void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, size_t nSize, bool
             BKNI_Delay(1);
         }
     }
-    else {
+    else if (rc != NEXUS_SUCCESS) {
         LOGE(("%s: error in dma transfer, err:%d", __FUNCTION__, rc));
         return;
     }
-
-    if (flush)
-        NEXUS_FlushCache(blockSettings.pSrcAddr, blockSettings.blockSize);
 
     return;
 }

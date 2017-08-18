@@ -77,6 +77,7 @@ void media_player_get_default_start_settings( media_player_start_settings *psett
     psettings->video.scanMode = NEXUS_VideoDecoderScanMode_eAuto;
     psettings->audio.pid = 0x1fff;
     psettings->sync = NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment;
+    psettings->stcMaster = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
     psettings->transportType = NEXUS_TransportType_eMax; /* no override */
     NEXUS_Playback_GetDefaultSettings(&psettings->playbackSettings);
     media_player_get_default_settings(&psettings->mediaPlayerSettings);
@@ -554,6 +555,8 @@ int media_player_set_settings(media_player_t player, const media_player_settings
 
 static int glob_errfunc(const char *epath, int eerrno)
 {
+    BSTD_UNUSED(epath);
+    BSTD_UNUSED(eerrno);
     BDBG_ERR(("glob_errfunc %s %d", epath, eerrno));
     return -1;
 }
@@ -563,7 +566,6 @@ static int detect_chunk(const char *fname, off_t *chunk_size, unsigned *first_ch
     char path[64];
     int rc;
     glob_t glb;
-    unsigned i;
 
     snprintf(path, sizeof(path), "%s_*", fname);
     rc = glob(path, 0, glob_errfunc, &glb);
@@ -635,7 +637,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
     if (!strcasecmp(url.scheme, "http") || !strcasecmp(url.scheme, "https") || !strcasecmp(url.scheme, "udp") || !strcasecmp(url.scheme, "rtp")) {
         if(player->usePbip) {
             if (!player->ip) {
-                BDBG_ERR(("%s: not suppported. Rebuild with PLAYBACK_IP_SUPPORT=y", url.scheme));
+                BDBG_ERR(("%s: not supported. Rebuild with PLAYBACK_IP_SUPPORT=y", url.scheme));
                 return NEXUS_NOT_SUPPORTED;
             }
             rc = media_player_ip_start(player->ip, psettings, &url);
@@ -644,7 +646,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         else
         {
             if (!player->bip) {
-                BDBG_ERR(("%s: not suppported. Rebuild with PLAYBACK_IP_SUPPORT=y", psettings->stream_url));
+                BDBG_ERR(("%s: not supported. Rebuild with PLAYBACK_IP_SUPPORT=y", psettings->stream_url));
                 return NEXUS_NOT_SUPPORTED;
             }
             rc = media_player_bip_start(player->bip, psettings, psettings->stream_url);
@@ -796,6 +798,10 @@ int media_player_start( media_player_t player, const media_player_start_settings
                 stcSettings.modeSettings.Auto.transportType = probe_results.transportType;
                 setStc = true;
             }
+            if (stcSettings.modeSettings.Auto.behavior != psettings->stcMaster) {
+                stcSettings.modeSettings.Auto.behavior = psettings->stcMaster;
+                setStc = true;
+            }
             if (stcSettings.astm != psettings->astm)
             {
                 stcSettings.astm = psettings->astm;
@@ -869,6 +875,19 @@ int media_player_start( media_player_t player, const media_player_start_settings
             videoProgram.settings.sampleAspectRatio.x = probe_results.video[0].sampleAspectRatio.x;
             videoProgram.settings.sampleAspectRatio.y = probe_results.video[0].sampleAspectRatio.y;
 
+            if (probe_results.videoColourMasteringMetadata.valid) {
+                videoProgram.settings.eotf = probe_results.videoColourMasteringMetadata.eotf;
+                memcpy(&videoProgram.settings.masteringDisplayColorVolume, &probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume, sizeof(videoProgram.settings.masteringDisplayColorVolume));
+                /* NOTE: contentLightLevel unused */
+                BDBG_LOG(("~ eotf: %u ~", probe_results.videoColourMasteringMetadata.eotf));
+                BDBG_LOG(("~ Luminance: max: %u, min: %u ~",
+                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.max,
+                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.min));
+                BDBG_LOG(("~ Luminance: x: %d, y: %d ~",
+                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.x,
+                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.y));
+            }
+
             /* outside of videoProgram */
             player->colorDepth = probe_results.video[0].colorDepth;
         }
@@ -882,6 +901,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
             goto error;
         }
         videoProgram.smoothResolutionChange = psettings->smoothResolutionChange;
+        videoProgram.settings.crcMode = psettings->crcMode;
         player->videoProgram = videoProgram;
 
         if (player->start_settings.decrypt.algo == NEXUS_SecurityAlgorithm_eMax) {
@@ -904,13 +924,6 @@ int media_player_start( media_player_t player, const media_player_start_settings
     if (!player->connectId) {
         rc = media_player_p_connect(player);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
-    }
-
-    if (player->start_settings.crcMode) {
-        NEXUS_VideoInputCrcData data;
-        unsigned num;
-        /* need to call once, before start, to start decoder in CRC mode */
-        NEXUS_SimpleVideoDecoder_GetVideoInputCrcData(player->videoDecoder, &data, 1, &num);
     }
 
     /* crypto */
@@ -1424,6 +1437,11 @@ int media_player_get_playback_status( media_player_t player, NEXUS_PlaybackStatu
 NEXUS_SimpleVideoDecoderHandle media_player_get_video_decoder(media_player_t player)
 {
     return player->videoDecoder;
+}
+
+NEXUS_SimpleAudioDecoderHandle media_player_get_audio_decoder(media_player_t player)
+{
+    return player->audioDecoder;
 }
 
 int media_player_seek( media_player_t player, int offset, int whence )

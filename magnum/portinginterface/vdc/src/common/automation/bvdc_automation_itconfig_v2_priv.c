@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,11 +41,11 @@
  ***************************************************************************/
 
 /*
-This file generated automatically on 2015-11-18 15:05
+This file generated automatically on 2017-04-28 14:23
     by program process_all_tags
 
 Register programming derived from
-    /vobs/DVTSJ/portinginterface/vdc/7422/A0/CONSOLIDATED_VEC
+    /local/users/darnstein/git/bangalore/DVTSJ/portinginterface/vdc/7422/A0/CONSOLIDATED_VEC
 */
 
 
@@ -59,7 +59,7 @@ static const uint32_t s_aulItConfig_480i[1] =
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, BVB_PHASE_SYNC        , 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, INPUT_STREAM_ENABLE   , 0x0001 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, LINE_PHASE            , 0x0000 ) |
-  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_ENABLES            , 0x007f ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_ENABLES            , 0x0003 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_VIDEO_STREAM_SELECT, 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, SLAVE_MODE            , 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, SUPPRESS_TRIGGER0     , 0x0000 ) |
@@ -77,7 +77,7 @@ static const uint32_t s_aulItConfig_576i[1] =
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, BVB_PHASE_SYNC        , 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, INPUT_STREAM_ENABLE   , 0x0001 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, LINE_PHASE            , 0x0000 ) |
-  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_ENABLES            , 0x007f ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_ENABLES            , 0x0003 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_VIDEO_STREAM_SELECT, 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, SLAVE_MODE            , 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, SUPPRESS_TRIGGER0     , 0x0000 ) |
@@ -102,56 +102,70 @@ static const uint32_t s_aulItConfig_576i[1] =
 #define s_aulItConfig_576p54 s_aulItConfig_576p
 
 /* DVTSJ format tag "1080i" */
-/* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1080i.txt: */
-#define s_aulItConfig_1080i s_aulItConfig_480i
+/* From IT_REGISTERS/prog/IT_REGISTERS_1080i.txt: */
+static const uint32_t s_aulItConfig_1080i[1] =
+{
+(
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, ARBITER_LATENCY       , 0x000b ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, BVB_FRAME_CYCLE_COUNT , 0x0001 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, BVB_PHASE_SYNC        , 0x0000 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, INPUT_STREAM_ENABLE   , 0x0001 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, LINE_PHASE            , 0x0000 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_ENABLES            , 0x0007 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_VIDEO_STREAM_SELECT, 0x0000 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, SLAVE_MODE            , 0x0000 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, SUPPRESS_TRIGGER0     , 0x0000 ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, TRIGGER_CNT_CLR_COND  , 0x0000 )
+)
+};
 
 /* DVTSJ format tag "1080i_50hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1080i_50hz.txt: */
-#define s_aulItConfig_1080i_50hz s_aulItConfig_480i
+#define s_aulItConfig_1080i_50hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "1250i_50hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1250i_50hz.txt: */
-#define s_aulItConfig_1250i_50hz s_aulItConfig_480i
+#define s_aulItConfig_1250i_50hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "720p" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_720p.txt: */
-#define s_aulItConfig_720p s_aulItConfig_480i
+#define s_aulItConfig_720p s_aulItConfig_1080i
 
 /* DVTSJ format tag "720p_24hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_720p_24hz.txt: */
-#define s_aulItConfig_720p_24hz s_aulItConfig_480i
+#define s_aulItConfig_720p_24hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "720p_25hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_720p_25hz.txt: */
-#define s_aulItConfig_720p_25hz s_aulItConfig_480i
+#define s_aulItConfig_720p_25hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "720p_30hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_720p_30hz.txt: */
-#define s_aulItConfig_720p_30hz s_aulItConfig_480i
+#define s_aulItConfig_720p_30hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "720p_50hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_720p_50hz.txt: */
-#define s_aulItConfig_720p_50hz s_aulItConfig_480i
+#define s_aulItConfig_720p_50hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "1080p_24hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1080p_24hz.txt: */
-#define s_aulItConfig_1080p_24hz s_aulItConfig_480i
+#define s_aulItConfig_1080p_24hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "1080p_25hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1080p_25hz.txt: */
-#define s_aulItConfig_1080p_25hz s_aulItConfig_480i
+#define s_aulItConfig_1080p_25hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "1080p_30hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1080p_30hz.txt: */
-#define s_aulItConfig_1080p_30hz s_aulItConfig_480i
+#define s_aulItConfig_1080p_30hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "1080p_50hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1080p_50hz_OSCL.txt: */
-#define s_aulItConfig_1080p_50hz s_aulItConfig_480i
+#define s_aulItConfig_1080p_50hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "1080p_60hz" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_1080p_60hz_OSCL.txt: */
-#define s_aulItConfig_1080p_60hz s_aulItConfig_480i
+#define s_aulItConfig_1080p_60hz s_aulItConfig_1080i
 
 /* DVTSJ format tag "NTSC_ITU" */
 /* Duplicated values in IT_REGISTERS/prog/IT_REGISTERS_NTSC_ITU.txt: */
@@ -203,7 +217,7 @@ static const uint32_t s_aulItConfig_SECAM[1] =
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, BVB_PHASE_SYNC        , 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, INPUT_STREAM_ENABLE   , 0x0001 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, LINE_PHASE            , 0x0001 ) |
-  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_ENABLES            , 0x007f ) |
+  BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_ENABLES            , 0x0043 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, MC_VIDEO_STREAM_SELECT, 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, SLAVE_MODE            , 0x0000 ) |
   BVDC_P_IT_FIELD_DATA( TG_CONFIG, SUPPRESS_TRIGGER0     , 0x0000 ) |

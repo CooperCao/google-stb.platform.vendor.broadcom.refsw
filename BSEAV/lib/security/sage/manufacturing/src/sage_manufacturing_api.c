@@ -571,6 +571,8 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
            return "HDCP 1.4 TX";
     case BSAGElib_BinFileDrmType_eMarlin:
            return "MARLIN";
+    case BSAGElib_BinFileDrmType_eKeyMaster:
+           return "KEY_MASTER";
     case BSAGElib_BinFileDrmType_eMax:
            return NULL;
     default:

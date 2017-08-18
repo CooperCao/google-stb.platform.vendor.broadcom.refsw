@@ -1,58 +1,51 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: branches/akhromykh/BEE554_NVM_Implementation/common/Security/include/bbNvmParameters.h $
-*
-* DESCRIPTION:
-*   Parameters defenition for NVM.
-*
-* $Revision: 1832 $
-* $Date: 2014-03-19 07:10:11Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      Parameters defenition for NVM.
+ *
+*******************************************************************************/
+
 #include "bbSysRepeatMacro.h"
 
 #ifdef _RF4CE_
-# ifdef USE_RF4CE_NWK
     PARAMETER_DECLARATION(NVM_RF4CE_NWK_FRAME_COUNTER, &GET_RF4CE_NWK_STATIC_DATA_FIELD()->NIB.frameCounter, sizeof(GET_RF4CE_NWK_STATIC_DATA_FIELD()->NIB.frameCounter))
     PARAMETER_DECLARATION(NVM_RF4CE_NWK_NIB, &GET_RF4CE_NWK_STATIC_DATA_FIELD()->NIB.storable, sizeof(GET_RF4CE_NWK_STATIC_DATA_FIELD()->NIB.storable))
     PARAMETER_DECLARATION(NVM_RF4CE_NWK_PANID, &GET_RF4CE_NWK_STATIC_DATA_FIELD()->panId, sizeof(GET_RF4CE_NWK_STATIC_DATA_FIELD()->panId))
@@ -133,18 +126,15 @@
      PARAMETER_DECLARATION(NVM_RF4CE_MSO_PA, &GET_RF4CE_MSO_STATIC_DATA_FIELD()->attributes, sizeof(GET_RF4CE_MSO_STATIC_DATA_FIELD()->attributes))
 #   endif /* (1 == USE_RF4CE_PROFILE_MSO) */
 #  endif /* (1 == USE_RF4CE_PROFILE_GDP) || (1 == USE_RF4CE_PROFILE_ZRC) || (1 == USE_RF4CE_PROFILE_MSO) */
-# else /* USE_RF4CE_NWK */
-    PARAMETER_DECLARATION(NVM_NO_PARAM, NULL, 0)
-# endif /* USE_RF4CE_NWK */
 #endif /* _RF4CE_ */
 #ifdef _ZBPRO_
     UNION_DECLARATION(NVM_ZBPRO_NWK_IB_FULL, &nwkDescriptor.nib, sizeof(nwkDescriptor.nib))
-//# if !defined(_UNIT_TEST_)
-//#  define NVM_ZBPRO_NWK_IB(name, pName) PARAMETER_DECLARATION(NVM_ZBPRO_NWK_IB_##name, &nwkDescriptor.nib.##pName, sizeof(nwkDescriptor.nib.##pName))
-//# else
+# if !defined(_UNIT_TEST_) && !defined(__arm__) && !defined(_HOST_)
+#  define NVM_ZBPRO_NWK_IB(name, pName) PARAMETER_DECLARATION(NVM_ZBPRO_NWK_IB_##name, &nwkDescriptor.nib.##pName, sizeof(nwkDescriptor.nib.##pName))
+# else
 #  define DOT() .
 #  define NVM_ZBPRO_NWK_IB(name, pName) PARAMETER_DECLARATION(NVM_ZBPRO_NWK_IB_##name, &nwkDescriptor.nib##DOT##pName, sizeof(nwkDescriptor.nib##DOT##pName))
-//# endif
+# endif
     NVM_ZBPRO_NWK_IB(EXTENDED_PAN_ID,                      nwkExtendedPanId)
     NVM_ZBPRO_NWK_IB(MIRRORED_IEEE_ADDR,                   nwkMirroredIeeeAddr)
     NVM_ZBPRO_NWK_IB(PASSIVE_ACK_TIMEOUT_OCT,              nwkPassiveAckTimeoutOct)
@@ -196,21 +186,22 @@
     PARAMETER_DECLARATION(NVM_ZBPRO_NWK_IB_NEIGHBOR_TABLE,          &nwkDescriptor.neighborTable.table, sizeof(nwkDescriptor.neighborTable.table))
     PARAMETER_DECLARATION(NVM_ZBPRO_NWK_IB_SECURITY_MATERIAL_SET,   &nwkDescriptor.securityMaterial.storage, sizeof(nwkDescriptor.securityMaterial.storage))
 
-    // TODO: Tables should be added later
+    // Add tables here as below when needed.
     // PARAMETER_DECLARATION(ZBPRO_NWK_IB_GROUP_ID_TABLE, ...
 
     UNION_DECLARATION(NVM_ZBPRO_APS_IB_FULL, &ZbProApsMmDescr.aib, sizeof(ZbProApsMmDescr.aib))
-//# if !defined(_UNIT_TEST_)
-//#  define NVM_ZBPRO_APS_IB(name, pName) PARAMETER_DECLARATION(NVM_ZBPRO_APS_IB_##name, &ZbProApsMmDescr.aib.##pName, sizeof(ZbProApsMmDescr.aib.##pName))
-//# else
+# if !defined(_UNIT_TEST_) && !defined(__arm__) && !defined(_HOST_)
+#  define NVM_ZBPRO_APS_IB(name, pName) PARAMETER_DECLARATION(NVM_ZBPRO_APS_IB_##name, &ZbProApsMmDescr.aib.##pName, sizeof(ZbProApsMmDescr.aib.##pName))
+# else
 #  define NVM_ZBPRO_APS_IB(name, pName) PARAMETER_DECLARATION(NVM_ZBPRO_APS_IB_##name, &ZbProApsMmDescr.aib##DOT##pName, sizeof(ZbProApsMmDescr.aib##DOT##pName))
-//# endif
+# endif
     NVM_ZBPRO_APS_IB(TRUST_CENTER_ADDRESS,      apsTrustCenterAddress)
     NVM_ZBPRO_APS_IB(USE_EXTENDED_PANID,        apsUseExtendedPANID)
     NVM_ZBPRO_APS_IB(CHANNEL_MASK,              apsChannelMask)
     NVM_ZBPRO_APS_IB(ZDP_RESPONSE_TIMEOUT,      zdoZdpResponseTimeout)
     NVM_ZBPRO_APS_IB(END_DEV_BIND_TIMEOUT,      zdoEdBindTimeout)
     NVM_ZBPRO_APS_IB(ZHA_RESPONSE_TIMEOUT,      zclResponseTimeout)
+    NVM_ZBPRO_APS_IB(DEBUG_ATTR,                apsFragTestSkipBlockMask)
     NVM_ZBPRO_APS_IB(MANUFACTURER_CODE,         zdoManufacturerCode)
     NVM_ZBPRO_APS_IB(SECURITY_TIME_OUT_PERIOD,  apsSecurityTimeOutPeriod)
     NVM_ZBPRO_APS_IB(PERMIT_JOIN_DURATION,      zdoPermitJoinDuration)
@@ -223,6 +214,8 @@
     NVM_ZBPRO_APS_IB(DESIGNATED_COORDINATOR,    apsDesignatedCoordinator)
     NVM_ZBPRO_APS_IB(USE_INSECURE_JOIN,         apsUseInsecureJoin)
     NVM_ZBPRO_APS_IB(INITIAL_SECURITY_STATUS,   zdoInitialSecurityStatus)
+    NVM_ZBPRO_APS_IB(FRAG_THRESHOLD,            apsFragThreshold)
+
     NVM_ZBPRO_APS_IB(RESERVED_ALIGNMENT,        apsReservedAlignment0)
 # undef ZBPRO_APS_IB
 
@@ -236,14 +229,15 @@
     PARAMETER_DECLARATION(NVM_ZBPRO_APS_ENDPOINT_TABLE_BASE, &ZbProApsMmDescr.endpointDescr.table, sizeof(ZbProApsMmDescr.endpointDescr.table))
 
 #define NVM_ZBPRO_APS_ENDPOINT_TABLE_MAPPING_DECLARE(useless, index) \
-		PARAMETER_DECLARATION(                                       \
+        PARAMETER_DECLARATION(                                       \
                 NVM_ZBPRO_APS_ENDPOINT_TABLE_CLUSTER_LIST##index,    \
                 &GetBufferedTransactionBuffer(),                     \
                 NVM_BUFFERED_TRANSACT_BUFFER_SIZE)
 
     REPEAT_MACRO(NVM_ZBPRO_APS_ENDPOINT_TABLE_MAPPING_DECLARE, , ZBPRO_APS_NODE_ENDPOINTS)
 
-    // TODO: Tables should be added later
+    // Add tables here as below when needed.
     // PARAMETER_DECLARATION(ZBPRO_APS_IB_PERMISSIONS_CONFIGURATION_ID, ...
-    // PARAMETER_DECLARATION(ZBPRO_APS_IB_MAX_WINDOW_SIZE_ID, ...
 #endif /* _ZBPRO_ */
+
+/* eof bbNvmParameters.h */

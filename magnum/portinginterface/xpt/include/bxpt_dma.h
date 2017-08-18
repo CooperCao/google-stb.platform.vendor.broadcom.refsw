@@ -469,9 +469,9 @@ void BXPT_Dma_CloseChannel(
     );
 
 /* Internal API. User code should NOT call this. */
-void BXPT_Dma_P_EnableInterrupts(
-    BXPT_Handle hXpt
-    );
+void BXPT_Dma_P_EnableInterrupts(BXPT_Handle hXpt);
+BERR_Code BXPT_Dma_P_OpenChannel(BXPT_Handle hXpt, BCHP_Handle hChp, BREG_Handle hReg, BMMA_Heap_Handle hMmaHeap, BINT_Handle hInt, BXPT_Dma_Handle *phDma, unsigned channelNum, const BXPT_Dma_Settings *pSettings);
+
 #ifdef __cplusplus
 }
 #endif

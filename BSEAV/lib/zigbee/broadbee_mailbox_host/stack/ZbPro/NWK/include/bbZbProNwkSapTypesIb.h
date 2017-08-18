@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/NWK/include/bbZbProNwkSapTypesIb.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   NWK-NIB Attributes definition.
+*       NWK-NIB Attributes definition.
 *
-* $Revision: 3955 $
-* $Date: 2014-10-08 12:45:05Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _ZBPRO_NWK_SAP_TYPES_IB_H
 #define _ZBPRO_NWK_SAP_TYPES_IB_H
@@ -301,9 +293,9 @@ typedef uint8_t       *ZBPRO_NWK_NIB_AddressMap_t;                        /*!<  
 typedef uint8_t        ZBPRO_NWK_NIB_RouteRequestId_t;                    /*!<  Data type for nwkRouteRequestId. */
 typedef uint8_t        ZBPRO_NWK_NIB_MaxLinkRouteCost_t;                  /*!<  Data type for nwkMaxLinkRouteCost. */
 typedef ZBPRO_NWK_DeviceType_t ZBPRO_NWK_NIB_DeviceType_t;                /*!<  Data type for nwkDeviceType. */
-typedef uint8_t        ZBPRO_NWK_NIB_ScanAttempts_t;                      /* required by ZDO */
-typedef uint16_t       ZBPRO_NWK_NIB_TimeBtwnScans_t;                     /* required by ZDO */
-typedef ZBPRO_NWK_ExtAddr_t ZBPRO_NWK_NIB_ExtAddr_t;                      /* required by MAC */
+typedef uint8_t        ZBPRO_NWK_NIB_ScanAttempts_t;                      /*!< required by ZDO */
+typedef uint16_t       ZBPRO_NWK_NIB_TimeBtwnScans_t;                     /*!< required by ZDO */
+typedef ZBPRO_NWK_ExtAddr_t ZBPRO_NWK_NIB_ExtAddr_t;                      /*!< required by MAC */
 /**//**
  * \brief NWK-NIB private attributes data types list macro.
  */
@@ -397,7 +389,7 @@ typedef ZBPRO_NWK_NIB_PUBLIC_VARIANT  ZBPRO_NWK_NibAttributeValue_t;
 #define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_ADDR_ALLOC                         (0x02) // ZBPRO_STOCHASTIC_ADDRESS_ALLOCATION
 #define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_USE_TREE_ROUTING                   (FALSE)
 #define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_MANAGER_ADDR                       (0x0000)
-#define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_MAX_SOURCE_ROUTE                   (0x00)
+#define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_MAX_SOURCE_ROUTE                   (0x0c)
 #define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_UPDATE_ID                          (0x00)
 #define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_TRANSACTION_PERSISTENCE_TIME       (0) /* reflected from mac */
 #define ZBPRO_NWK_NIB_ATTR_DEFAULT_VALUE_NETWORK_ADDRESS                    (0) /* reflected from mac */
@@ -493,3 +485,5 @@ typedef ZBPRO_NWK_NIB_PUBLIC_VARIANT  ZBPRO_NWK_NibAttributeValue_t;
 #define ZBPRO_NWK_NIB_ATTR_MAXALLOWED_ROUTER_TIME_BTWN_SCANS                (0xffff)
 
 #endif /* _ZBPRO_NWK_SAP_TYPES_IB_H */
+
+/* eof bbZbProNwkSapTypesIb.h */

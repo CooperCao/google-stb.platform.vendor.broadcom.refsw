@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "bhab_3466_priv.h"
 #include "bchp_pwr.h"
@@ -77,8 +74,6 @@ BERR_Code BHAB_3466_Open(
     BHAB_Handle hDev;
     BHAB_3466_P_Handle *h3466Dev = NULL;
     unsigned i;
-
-    BDBG_ASSERT(pDefSettings->interruptEnableFunc);
 
     hDev = (BHAB_Handle)BKNI_Malloc(sizeof(BHAB_P_Handle));
 
@@ -263,7 +258,7 @@ BERR_Code BHAB_3466_InitAp(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BHAB_3466_P_Handle *p3466;
-    uint32_t firmwareSize, instaddr, i = 0;
+    uint32_t firmwareSize, instaddr, i = 0, hab;
     const uint8_t *pImage;
     uint8_t retries = 0, count = 0, buf = 0, writebuf[3];
     unsigned char *databuf = NULL;
@@ -352,6 +347,12 @@ BERR_Code BHAB_3466_InitAp(
         }
     }
 
+#ifdef BHAB_LEAP_UART_ENABLE
+    hab = BHAB_HAB_UART_ENABLE;
+#else
+    hab = 0;
+#endif
+    BHAB_CHK_RETCODE(BHAB_3466_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &hab));
 done:
     if (retCode != BERR_SUCCESS)
         BHAB_3466_P_EnableHostInterrupt(handle, true);
@@ -559,7 +560,6 @@ BERR_Code BHAB_3466_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
     uint16_t bytes_left = 0, orig_bytes_left = 0;
     uint32_t sb1, curr_addr;
     uint8_t readbuf[8], writebuf[32];
-    const uint8_t *pImage;
     BREG_SPI_Data spiData[2];
 
     BDBG_ASSERT(handle);
@@ -587,7 +587,6 @@ BERR_Code BHAB_3466_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
         BHAB_CHK_RETCODE(BREG_SPI_Write(p3466->hSpiRegister,  writebuf, 6));
 
         writebuf[1] = BCHP_CSR_RBUS_DATA0;
-        pImage = buf;
 
         spiData[0].data = (void *)writebuf;
         spiData[0].length = 2;
@@ -853,7 +852,8 @@ BERR_Code BHAB_3466_HandleInterrupt_isr(
     p3466 = (BHAB_3466_P_Handle *)(handle->pImpl);
     BDBG_ASSERT(p3466);
 
-    handle->settings.interruptEnableFunc(false, handle->settings.interruptEnableFuncParam);
+    if (handle->settings.interruptEnableFunc)
+        handle->settings.interruptEnableFunc(false, handle->settings.interruptEnableFuncParam);
 
     BKNI_SetEvent_isr(p3466->hApiEvent);
     BKNI_SetEvent_isr(p3466->hInterruptEvent);
@@ -1092,7 +1092,7 @@ BERR_Code BHAB_3466_GetInterruptEventHandle(
 
 
 /****************************Private Functions*********************************/
-BERR_Code BHAB_3466_P_GetADSChannels(
+BERR_Code BHAB_3466_P_GetDemodChannels(
     BHAB_Handle handle,                 /* [in] Device handle */
     uint8_t *totalADSChannels
 )
@@ -1103,128 +1103,23 @@ BERR_Code BHAB_3466_P_GetADSChannels(
     BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_FAMILY_ID, &familyId));
     familyId = (familyId>>16);
     BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_PRODUCT_ID, &chipId));
-    if ((chipId & 0xFF000000) == 0x31000000) {
+    if ((chipId & 0xFF000000) == 0x34000000) {
         chipId = (chipId >> 16);
-    } else {
-        chipId = (chipId >> 8) & 0xFFFFF;
     }
     if (chipId == 0) {
         chipId = familyId;
         BDBG_MSG(("Using Family ID for Chip ID: %X", chipId));
     }
-    else if (chipId == 0x18500)
-        chipId = 0x3185;
 
     switch ( chipId ) {
-        case 0x34667 :
-        case 0x34666 :
         case 0x3466 :
-            *totalADSChannels = 16;
-            break;
-        case 0x34669 :
-        case 0x34668 :
-        case 0x3185  :
-            *totalADSChannels = 8;
-            break;
-        case 0x34665 :
-        case 0x34664 :
-            *totalADSChannels = 4;
-            break;
-        case 0x34662 :
             *totalADSChannels = 2;
             break;
-        default :
-            *totalADSChannels = 16;
-            break;
-    }
-done:
-    return retCode;
-}
-
-BERR_Code BHAB_3466_P_GetAOBChannels(
-    BHAB_Handle handle,                 /* [in] Device handle */
-    uint8_t *totalAOBChannels
-)
-{
-    BERR_Code retCode = BERR_SUCCESS;
-    uint32_t chipId, familyId;
-
-    BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_FAMILY_ID, &familyId));
-    familyId = (familyId>>16);
-    BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_PRODUCT_ID, &chipId));
-    if ((chipId & 0xFF000000) == 0x31000000) {
-        chipId = (chipId >> 16);
-    } else {
-        chipId = (chipId >> 8) & 0xFFFFF;
-    }
-    if (chipId == 0) {
-        chipId = familyId;
-        BDBG_MSG(("Using Family ID for Chip ID: %X", chipId));
-    }
-    else if (chipId == 0x18500)
-        chipId = 0x3185;
-
-    switch ( chipId ) {
-        case 0x34666 :
-        case 0x34668 :
-        case 0x34664 :
-        case 0x34662 :
-        case 0x3185  :
-            *totalAOBChannels = 0;
-            break;
-        case 0x34667 :
-        case 0x34669 :
-        case 0x34665 :
-        case 0x3466 :
-            *totalAOBChannels = 1;
+        case 0x3465 :
+            *totalADSChannels = 1;
             break;
         default :
-            *totalAOBChannels = 1;
-            break;
-    }
-done:
-    return retCode;
-}
-
-BERR_Code BHAB_3466_P_GetIfDacChannels(
-    BHAB_Handle handle,                 /* [in] Device handle */
-    uint8_t *totalIfDacChannels
-)
-{
-    BERR_Code retCode = BERR_SUCCESS;
-    uint32_t chipId, familyId;
-
-    BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_FAMILY_ID, &familyId));
-    familyId = (familyId>>16);
-    BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_PRODUCT_ID, &chipId));
-    if ((chipId & 0xFF000000) == 0x31000000) {
-        chipId = (chipId >> 16);
-    } else {
-        chipId = (chipId >> 8) & 0xFFFFF;
-    }
-    if (chipId == 0) {
-        chipId = familyId;
-        BDBG_MSG(("Using Family ID for Chip ID: %X", chipId));
-    }
-    else if (chipId == 0x18500)
-        chipId = 0x3185;
-
-    switch ( chipId ) {
-        case 0x34667 :
-        case 0x34666 :
-        case 0x3185  :
-            *totalIfDacChannels = 0;
-            break;
-        case 0x34669 :
-        case 0x34665 :
-        case 0x34668 :
-        case 0x34664 :
-        case 0x34662 :
-        case 0x3466 :
-            *totalIfDacChannels = 1;
-            break;
-        default :
-            *totalIfDacChannels = 1;
+            *totalADSChannels = 1;
             break;
     }
 done:
@@ -1299,9 +1194,11 @@ BERR_Code BHAB_3466_P_EnableHostInterrupt(
 {
     BDBG_ASSERT(handle);
 
-    BKNI_EnterCriticalSection();
-    handle->settings.interruptEnableFunc(bEnable, handle->settings.interruptEnableFuncParam);
-    BKNI_LeaveCriticalSection();
+    if (handle->settings.interruptEnableFunc) {
+        BKNI_EnterCriticalSection();
+        handle->settings.interruptEnableFunc(bEnable, handle->settings.interruptEnableFuncParam);
+        BKNI_LeaveCriticalSection();
+    }
 
     return BERR_SUCCESS;
 }
@@ -1353,14 +1250,6 @@ BERR_Code BHAB_3466_P_RunAp(BHAB_Handle handle)
     BDBG_ASSERT(handle);
 
     BHAB_3466_P_EnableHostInterrupt(handle, true);
-
-#ifdef BHAB_LEAP_UART_ENABLE
-    buf = BHAB_HAB_UART_ENABLE;
-    BHAB_CHK_RETCODE(BHAB_3466_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
-#else
-    buf = 0;
-    BHAB_CHK_RETCODE(BHAB_3466_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
-#endif
 
     /* unmask HOST L1 and L2 interrupt bits */
     buf = BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR_LEAP_INTR_0_MASK;
@@ -1527,7 +1416,6 @@ BERR_Code BHAB_3466_P_DecodeInterrupt(BHAB_Handle handle)
     /*INIT DONE INTERRUPT*/
     if (buf & BHAB_AP_INIT_DONE) {
         BDBG_MSG(("AP INIT DONE"));
-        BKNI_Sleep(2000);
         BKNI_SetEvent(p3466->hInitDoneEvent);
         if (buf != 0)
             BHAB_CHK_RETCODE(BHAB_3466_WriteRegister(handle, BCHP_LEAP_HOST_L2_0_CLEAR0, &buf));
@@ -1550,21 +1438,21 @@ BERR_Code BHAB_3466_P_DecodeInterrupt(BHAB_Handle handle)
                 /* pop data */
                 BHAB_CHK_RETCODE(BHAB_3466_WriteRegister(handle, BCHP_LEAP_CTRL_MISC_MBOX_FIFO_POP_DATA, &mbox_data));
 
-                if ((mbox_data >> 24) == BHAB_EventId_eHabDone) {
+                if ((BHAB_GET_EVENT_ID(mbox_data)) == BHAB_EventId_eHabDone) {
                     BKNI_SetEvent(p3466->hHabDoneEvent);
                     continue;
                 }
 
-                if ((mbox_data >> 24) == BHAB_EventId_eHabReady)
+                if ((BHAB_GET_EVENT_ID(mbox_data)) == BHAB_EventId_eHabReady)
                     BKNI_SetEvent(p3466->hHabReady);
 
-                coreType = (mbox_data & BHAB_CORE_TYPE_MASK) >> 19;
+                coreType = (BHAB_GET_CORE_TYPE(mbox_data));
                 if (coreType == BHAB_CoreType_eADS)
                     devId = BHAB_DevId_eADS0;
                 else
                     devId = BHAB_DevId_eODS0;
-                coreId = (mbox_data & BHAB_CORE_ID_MASK) >> 11;
-                if ((mbox_data >> 24) == BHAB_EventId_eLockChange) {
+                coreId = (BHAB_GET_CORE_ID(mbox_data));
+                if ((BHAB_GET_EVENT_ID(mbox_data)) == BHAB_EventId_eLockChange) {
                     if (p3466->InterruptCallbackInfo[devId+coreId].func) {
                         callback = &p3466->InterruptCallbackInfo[devId+coreId];
                         callback->parm2 = (int) BHAB_Interrupt_eLockChange;
@@ -1580,20 +1468,25 @@ BERR_Code BHAB_3466_P_DecodeInterrupt(BHAB_Handle handle)
                         case BHAB_CoreType_eDvbt2:
                             core = "DVB-T2";
                             break;
+                        case BHAB_CoreType_eADS:
+                            core = "ADS";
+                            break;
                         default:
                             BDBG_MSG(("Invalid Core Type"));
                             break;
                     }
 
-                    lockStatus = (mbox_data & BHAB_EVENT_DATA_MASK) >> 6;
+                    lockStatus = (BHAB_GET_LOCK_STATUS(mbox_data));
                     switch(lockStatus) {
-                        case BBHAB_LockStatus_eLocked:
+                        case BHAB_LockStatus_eUnknown:
+                            break;
+                        case BHAB_LockStatus_eLocked:
                             BDBG_MSG(("%s Channel %d Locked", core, coreId));
                             break;
-                        case BBHAB_LockStatus_eUnlocked:
+                        case BHAB_LockStatus_eUnlocked:
                             BDBG_MSG(("%s Channel %d Unlocked", core, coreId));
                             break;
-                        case BBHAB_LockStatus_eNoSignal:
+                        case BHAB_LockStatus_eNoSignal:
                             BDBG_MSG(("%s Channel %d No Signal", core, coreId));
                             break;
                         default:
@@ -1602,10 +1495,13 @@ BERR_Code BHAB_3466_P_DecodeInterrupt(BHAB_Handle handle)
                     }
                 }
 
-                if ((mbox_data >> 24) == BHAB_EventId_eStatusReady) {
+                if ((BHAB_GET_EVENT_ID(mbox_data)) == BHAB_EventId_eStatusReady) {
                     if (p3466->InterruptCallbackInfo[devId+coreId].func) {
                         callback = &p3466->InterruptCallbackInfo[devId+coreId];
-                        callback->parm2 = (int) BHAB_Interrupt_eOdsAsyncStatusReady;
+                        if(coreType == BHAB_CoreType_eADS)
+                            callback->parm2 = (int) BHAB_Interrupt_eQamAsyncStatusReady;
+                        else
+                            callback->parm2 = (int) BHAB_Interrupt_eOdsAsyncStatusReady;
                         BKNI_EnterCriticalSection();
                         callback->func(callback->pParm1, callback->parm2);
                         BKNI_LeaveCriticalSection();
@@ -1619,12 +1515,15 @@ BERR_Code BHAB_3466_P_DecodeInterrupt(BHAB_Handle handle)
                         case BHAB_CoreType_eDvbt2:
                             BDBG_MSG(("DVB-T2 Channel %d Status Ready", coreId));
                             break;
+                        case BHAB_CoreType_eADS:
+                            BDBG_MSG(("ADS Channel %d Status Ready", coreId));
+                            break;
                         default:
                             BDBG_WRN(("Invalid Core Type"));
                             break;
                     }
                 }
-                if ((mbox_data >> 24) == BHAB_EventId_eEmergencyWarningSystem) {
+                if ((BHAB_GET_EVENT_ID(mbox_data)) == BHAB_EventId_eEmergencyWarningSystem) {
                     if (p3466->InterruptCallbackInfo[BHAB_DevId_eGlobal].func) {
                         callback = &p3466->InterruptCallbackInfo[BHAB_DevId_eGlobal];
                         callback->parm2 = (int) BHAB_Interrupt_eEmergencyWarningSystem;
@@ -1634,6 +1533,17 @@ BERR_Code BHAB_3466_P_DecodeInterrupt(BHAB_Handle handle)
                     }
                     else
                         BDBG_WRN(("Emergency Warning System callback not installed. "));
+                }
+                if ((BHAB_GET_EVENT_ID(mbox_data)) == BHAB_EventId_eNewDiversityMaster) {
+                    if (p3466->InterruptCallbackInfo[devId].func) {
+                        callback = &p3466->InterruptCallbackInfo[devId];
+                        callback->parm2 = (int) BHAB_Interrupt_eNewDiversityMaster;
+                        BKNI_EnterCriticalSection();
+                        callback->func(callback->pParm1, callback->parm2);
+                        BKNI_LeaveCriticalSection();
+                    }
+                    else
+                        BDBG_WRN(("New Diversity Master callback not installed. "));
                 }
             }
         }
@@ -1932,7 +1842,7 @@ BERR_Code BHAB_3466_GetTunerChannels(
     uint8_t *numChannels)   /* [out] Returns total tuner channels */
 {
     BERR_Code retCode = BERR_SUCCESS;
-    uint8_t i, numAdsChannels = 0, numAobChannels = 0, numIfdacChannels = 0;
+    uint8_t i, numDemodChannels = 0;
 
     BHAB_3466_P_Handle *p3466;
 
@@ -1940,10 +1850,8 @@ BERR_Code BHAB_3466_GetTunerChannels(
     p3466 = (BHAB_3466_P_Handle *)(handle->pImpl);
     BDBG_ASSERT(p3466);
     if (handle->channelCapabilities == NULL) {
-        BHAB_CHK_RETCODE(BHAB_3466_P_GetADSChannels(handle, &numAdsChannels));
-        BHAB_CHK_RETCODE(BHAB_3466_P_GetAOBChannels(handle, &numAobChannels));
-        BHAB_CHK_RETCODE(BHAB_3466_P_GetIfDacChannels(handle, &numIfdacChannels));
-        handle->totalTunerChannels = 2;
+        BHAB_CHK_RETCODE(BHAB_3466_P_GetDemodChannels(handle, &numDemodChannels));
+        handle->totalTunerChannels = numDemodChannels;
 
         handle->channelCapabilities = (BHAB_ChannelCapability *) BKNI_Malloc( handle->totalTunerChannels*sizeof(BHAB_ChannelCapability) );
         if (!handle->channelCapabilities) {
@@ -1953,6 +1861,7 @@ BERR_Code BHAB_3466_GetTunerChannels(
 
         for (i = 0; i < handle->totalTunerChannels; i++) {
             handle->channelCapabilities[i].tunerChannelNumber = i;
+            handle->channelCapabilities[i].demodCoreType.ads = true;
             handle->channelCapabilities[i].demodCoreType.dvbt = true;
             handle->channelCapabilities[i].demodCoreType.dvbt2 = true;
         }
@@ -1973,7 +1882,7 @@ BERR_Code BHAB_3466_GetCapabilities(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    uint8_t i, numAdsChannels = 0, numAobChannels = 0, numIfdacChannels = 0;
+    uint8_t i, numDemodChannels = 0;
     BHAB_3466_P_Handle *p3466;
 
     BDBG_ASSERT(handle);
@@ -1981,10 +1890,8 @@ BERR_Code BHAB_3466_GetCapabilities(
     BDBG_ASSERT(p3466);
 
     if (handle->channelCapabilities == NULL) {
-        BHAB_CHK_RETCODE(BHAB_3466_P_GetADSChannels(handle, &numAdsChannels));
-        BHAB_CHK_RETCODE(BHAB_3466_P_GetAOBChannels(handle, &numAobChannels));
-        BHAB_CHK_RETCODE(BHAB_3466_P_GetIfDacChannels(handle, &numIfdacChannels));
-        handle->totalTunerChannels = 2; /* TODO */
+        BHAB_CHK_RETCODE(BHAB_3466_P_GetDemodChannels(handle, &numDemodChannels));
+        handle->totalTunerChannels = numDemodChannels;
 
         handle->channelCapabilities = (BHAB_ChannelCapability *) BKNI_Malloc( handle->totalTunerChannels*sizeof(BHAB_ChannelCapability) );
         if (!handle->channelCapabilities) {
@@ -1994,6 +1901,7 @@ BERR_Code BHAB_3466_GetCapabilities(
 
         for (i = 0; i < handle->totalTunerChannels; i++) {
             handle->channelCapabilities[i].tunerChannelNumber = i;
+            handle->channelCapabilities[i].demodCoreType.ads = true;
             handle->channelCapabilities[i].demodCoreType.dvbt = true;
             handle->channelCapabilities[i].demodCoreType.dvbt2 = true;
         }
@@ -2005,12 +1913,8 @@ BERR_Code BHAB_3466_GetCapabilities(
     for (i = 0; i < pCapabilities->totalTunerChannels; i++) {
         pCapabilities->channelCapabilities[i].tunerChannelNumber = handle->channelCapabilities[i].tunerChannelNumber;
         pCapabilities->channelCapabilities[i].demodCoreType.ads = handle->channelCapabilities[i].demodCoreType.ads;
-        pCapabilities->channelCapabilities[i].demodCoreType.aob = handle->channelCapabilities[i].demodCoreType.aob;
-        pCapabilities->channelCapabilities[i].demodCoreType.ifdac = handle->channelCapabilities[i].demodCoreType.ifdac;
         pCapabilities->channelCapabilities[i].demodCoreType.dvbt = handle->channelCapabilities[i].demodCoreType.dvbt;
         pCapabilities->channelCapabilities[i].demodCoreType.dvbt2 = handle->channelCapabilities[i].demodCoreType.dvbt2;
-        pCapabilities->channelCapabilities[i].demodCoreType.dvbc2 = handle->channelCapabilities[i].demodCoreType.dvbc2;
-        pCapabilities->channelCapabilities[i].demodCoreType.isdbt = handle->channelCapabilities[i].demodCoreType.isdbt;
     }
 
 done:

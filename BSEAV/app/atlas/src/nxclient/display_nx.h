@@ -50,7 +50,7 @@ class CDisplayNx : public CDisplay
 public:
     CDisplayNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CDisplayNx(void);

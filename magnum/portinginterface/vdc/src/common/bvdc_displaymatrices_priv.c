@@ -228,8 +228,8 @@ static const BVDC_P_DisplayCscMatrix s_HD240MYCbCr_to_SDYCbCr_656 = BVDC_P_MAKE_
 
 static const BVDC_P_DisplayCscMatrix s_Identity_656 = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
-    -4096,
-    4095,
+    8,
+    1016,
     BVDC_P_MAKE_656_CSC
     (  1.0000,  0.0000,  0.0000,  0.0000,
        0.0000,  1.0000,  0.0000,  0.0000,
@@ -336,8 +336,8 @@ static const BVDC_P_DisplayCscMatrix s_XvYCC_SDYCbCr_to_YIQ_M = BVDC_P_MAKE_VEC_
 
 static const BVDC_P_DisplayCscMatrix s_XvYCC_SDYCbCr_to_SDYCbCr_656 = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
-    -4096,
-    4095,
+    8,
+    1016,
     BVDC_P_MAKE_656_CSC
     (  1.0000, -0.0251,  0.0076,   2.2482,
        0.0000,  1.0076, -0.0049,  -0.3520,

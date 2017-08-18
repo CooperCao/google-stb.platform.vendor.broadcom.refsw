@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,35 +44,6 @@
 #include "bavc_hdmi.h"
 
 BDBG_MODULE(BHDM_PACKET_DRM) ;
-
-/******************************************************************************
-Summary:
-Display the DRM Info Frame packet to be sent to the HDMI Rx
-*******************************************************************************/
-void BHDM_DisplayDRMInfoFramePacket(
-   const BHDM_Handle hHDMI,		  /* [in] HDMI handle */
-   BAVC_HDMI_DRMInfoFrame *pstDRMInfoFrame
-)
-{
-#if BDBG_DEBUG_BUILD
-
-	BDBG_LOG(("*** DRM INFOFRAME")) ;
-	BDBG_LOG(("Tx%d: Checksum:   %#02x", hHDMI->eCoreId,
-		hHDMI->PacketBytes[0])) ;
-
-	BDBG_LOG(("Tx%d: DRM EOTF:   %s", hHDMI->eCoreId,
-		BAVC_HDMI_DRMInfoFrame_EOTFToStr(pstDRMInfoFrame->eEOTF))) ;
-
-	BDBG_LOG(("Tx%d: DRM Descriptor ID   %s", hHDMI->eCoreId,
-		BAVC_HDMI_DRMInfoFrame_DescriptorIdToStr(pstDRMInfoFrame->eDescriptorId))) ;
-
-	/* TODO Add parse/display of fields within the packet */
-	BDBG_LOG((" ")) ;
-#else
-	BSTD_UNUSED(hHDMI) ;
-	BSTD_UNUSED(pstDRMInfoFrame) ;
-#endif
-}
 
 
 /******************************************************************************

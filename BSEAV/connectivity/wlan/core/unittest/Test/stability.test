@@ -1,0 +1,245 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for determining if a given data set is "stable"
+# $Id: 1c7746f9375650e6dbca14df738df5809df7b476 $
+#
+package require UTF
+package require base64
+package require math::statistics
+
+package provide UTF::Test::stability 2.0
+
+UTF::Test stability {args} {
+    UTF::Getopts {
+	{array.arg "" "Database Array"}
+	{title.arg "" "title"}
+	{columns.arg "data" "dataset columns"}
+	{file.arg "stability" "Filename"}
+	{units.arg "" "Units"}
+	{k.arg "3" "K-sigma limits"}
+	{random "Use Random Test Data"}
+	{minwidth.arg "5" "Minimum permitted width limit"}
+	{maxwidth.arg "100" "Max permitted width limit"}
+	{correlated "Only report failures collelated across datasets"}
+    }
+
+    # http://www.qimacros.com/formulas.html
+    set c4 0.798
+    set A2 1.880; set D3 0.000; set D4 3.267; set E2 2.660;
+
+    # Random test data
+    if {$(random)} {
+	array set db [list \
+			  v1 [UTF::GaussRand -50 20 500] \
+			  v2 [UTF::GaussRand -70 20 500] \
+			  v3 [UTF::GaussRand 0 1 500] \
+			  v4 [UTF::GaussRand 1 1 500]]
+    } elseif {$(array) ne ""} {
+	upvar $(array) db
+    } else {
+	error "Need to supply -array or -random"
+    }
+
+    # Color index
+    set c 1
+    set gpdata ""
+
+    set failures 0
+
+    foreach name [lsort [array names db]] {
+	puts $name
+	set data $db($name)
+
+	if {1} {
+	    # Use sample standard deviation
+	    foreach {mean min max number stdev var pstdev pvar} \
+		[math::statistics::basic-stats $data] {}
+
+	    set width [expr {$(k)*$stdev/$c4}]
+	    set fwidth [format {%.2f} $width]
+	    if {$width < $(minwidth)} {
+		UTF::Message INFO "" \
+		    "$name: Range +/- $fwidth (expanded to $(minwidth))"
+		set width $(minwidth)
+	    } elseif {$width > $(maxwidth)} {
+		UTF::Message INFO "" \
+		    "$name: Range +/- $fwidth (capped at $(maxwidth))"
+		set width $(maxwidth)
+	    } else {
+		UTF::Message INFO "" "$name: Range +/- $fwidth"
+	    }
+
+
+	    set Ux [expr {$mean + $width}]
+	    set Lx [expr {$mean - $width}]
+
+	    set n $number
+	} else {
+
+	    # Compute n=2 moving range
+	    set last ""
+	    set sum 0
+	    set Rsum 0
+	    set n 0
+	    foreach d $data {
+		if {$last ne ""} {
+		    set sum [expr {$sum + $d}]
+		    set R [expr {abs($d - $last)}]
+		    set Rsum [expr {$Rsum + $R}]
+		}
+		set last $d
+		incr n
+	    }
+
+	    set mean [expr {$sum/($n-1)}]
+	    set Rmean [expr {$Rsum/($n-1)}]
+
+	    # Calculate X-bar and Rs limits based on moving range
+	    # Ishikawa, Kaoru
+	    set Ux [expr {$mean + $E2*$Rmean}]
+	    set Lx [expr {$mean - $E2*$Rmean}]
+	    set UR [expr {$D4*$Rmean}]
+	    set LR [expr {$D3*$Rmean}]
+	}
+
+	lappend plotlist "\"-\" title \"$name\" with lines lt $c"
+	lappend plotlist_sm "\"-\" notitle with lines lt $c"
+	append gpdata "[join $data \n]\ne\n"
+
+	lappend plotlist "\"-\" notitle with lines lt $c"
+	lappend plotlist_sm "\"-\" notitle with lines lt $c"
+	append gpdata "0 $Ux\n$n $Ux\ne\n"
+
+	lappend plotlist "\"-\" notitle with lines lt $c"
+	lappend plotlist_sm "\"-\" notitle with lines lt $c"
+	append gpdata "0 $Lx\n$n $Lx\ne\n"
+
+	incr c
+
+	for {set i 0} {$i < [llength $data]} {incr i} {
+	    set d [lindex $data $i]
+	    if {$d < $Lx || $d > $Ux} {
+		if {$(correlated)} {
+		    UTF::Message WARN $name "sample $i out of bounds: $d"
+		    if {[info exists corr($i)]} {
+			incr corr($i)
+		    } else {
+			set corr($i) 1
+		    }
+		} else {
+		    # Report all failures
+		    UTF::Message FAIL $name "sample $i out of bounds: $d"
+		    incr failures
+		}
+	    }
+	}
+    }
+    if {$(correlated)} {
+	# Only report correlated failures
+	foreach i [lsort -integer [array names corr]] {
+	    if {$corr($i) > 1} {
+		UTF::Message FAIL "" "sample $i showed $corr($i) failures"
+		incr failures
+	    }
+	}
+    }
+
+    # nativename is needed to avoid confusing gnuplot with ~ and
+    # other special path components.
+    set f [file nativename \
+	       [file join [file dir $UTF::Logfile] $(file)]]
+
+    # Make unique files in case we're looping in the same test run.
+    for {set file $f; set i 1} {[file exists "$file.png"]} {incr i} {
+	set file "${f}_$i"
+    }
+
+    set plotcmd [join $plotlist ", \\\n\t"]
+    set plotcmd_sm [join $plotlist_sm ", \\\n\t"]
+
+    # Put gnuplot command sequence into file: $file.plot
+    # Note: requires Gnuplot v4
+    set G [open "$file.plot" w]
+    fconfigure $G -buffering line
+    if {[UTF::GnuplotVersion] >= 5.0} {
+	puts $G {set colors classic}
+    }
+    if {[UTF::GnuplotVersion] > 4.0} {
+	puts $G {set terminal png transparent size 62,13}
+	puts $G {set tmargin 0; set bmargin 0}
+	puts $G {set lmargin 0; set rmargin 0}
+    } else {
+	puts $G {set terminal png transparent; set size 0.15,0.08}
+	# Gnuplot 4.0 loops if margins are zero - use mogrify below
+    }
+    puts $G {unset ytics}
+    puts $G {unset xtics}
+    puts $G {unset key}
+    puts $G {unset border}
+    puts $G "set output \"${file}_sm.png\""
+
+    puts $G "plot $plotcmd_sm"
+    puts $G $gpdata
+
+    if {[UTF::GnuplotVersion] > 4.0} {
+	puts $G "set terminal png size 640,480 notransparent medium"
+	puts $G {set tmargin -1; set bmargin -1}
+	puts $G {set lmargin -1; set rmargin -1}
+    } else {
+	puts $G "set terminal png notransparent"
+	puts $G "set size 1"
+    }
+
+    puts $G "set title \"$(title) Stability Chart\""
+    if {$(units) eq ""} {
+	puts $G "set ylabel \"$(title)\""
+    } else {
+	puts $G "set ylabel \"$(title) ($(units))\""
+    }
+
+    puts $G {set ytics nomirror}
+    puts $G {set key outside}
+    puts $G {set border}
+    puts $G "set output \"$file.png\""
+
+    puts $G "plot $plotcmd"
+    puts $G $gpdata
+
+    close $G
+
+    # Change default gnuplot terminal type to prevent complaints
+    # about being run without an X11 display
+    set ::env(GNUTERM) png
+
+    # Run gnuplot on plot file.  Catch is needed because gnuplot
+    # often writes to stderr.  Report any output even if we think
+    # it was ok.
+    catch {exec $::UTF::Gnuplot "$file.plot"} ret
+    UTF::Message WARN "gnuplot" $ret
+
+    # Add thumb-nail & full-size png files to results msg.
+
+    if {[UTF::GnuplotVersion] <= 4.0} {
+	# Trim white space from the thumnail to make it as small
+	# as possible.  Not needed for recent Gnuplots.
+	if {[catch {exec /usr/bin/mogrify -transparent white \
+			-colors 3 -trim ${file}_sm.png} ret]} {
+	    UTF::Message WARN "mogrify" $ret
+	}
+    }
+
+    # If we got this far gnuplot worked, so we can save a little
+    # bit of space by removing the source file.
+    file delete "$file.plot"
+
+    set ret "html:[UTF::ThumbData ${file}_sm.png] <a href=\"[UTF::URI ${file}.png]\">"
+    if {$failures} {
+	error "${ret}Unstable ($failures out of bounds)</a>"
+    } else {
+	return "${ret}Stable</a>"
+    }
+
+
+}

@@ -61,7 +61,7 @@ class CTunerQamScanData : public CTunerScanData
 public:
     CTunerQamScanData(
             bool     appendToChannelList = false,
-            uint16_t majorStartNum = 1
+            unsigned majorStartNum = 1
             ) :
         CTunerScanData(eBoardResource_frontendQam, appendToChannelList, majorStartNum),
         _bandwidth(6000000),
@@ -108,7 +108,7 @@ class CTunerQam : public CTuner
 public:
     CTunerQam(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 
@@ -125,7 +125,7 @@ public:
     NEXUS_FrontendQamMode    getDefaultMode(void);
     uint32_t                 getDefaultSymbolRateMin(NEXUS_FrontendQamMode mode);
     uint32_t                 getDefaultSymbolRateMax(NEXUS_FrontendQamMode mode);
-    eRet                     scanFrequencies(uint16_t * pMajor, uint16_t * pNumFreqToScan, uint16_t * pNumFreqScanned);
+    eRet                     scanFrequencies(unsigned * pMajor, unsigned * pNumFreqToScan, unsigned * pNumFreqScanned);
 
 protected:
     ENUM_TO_MSTRING_DECLARE(modeToString, NEXUS_FrontendQamMode)

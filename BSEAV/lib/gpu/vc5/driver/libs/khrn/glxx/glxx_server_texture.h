@@ -21,11 +21,6 @@ struct glxx_teximage_sanity_checks {
    //   bool yuv: always just happens
 };
 
-extern void texImageX(GLenum target, GLint level, GLint internalformat,
-                      GLsizei width, GLsizei height, GLsizei depth,
-                      GLint border, GLenum format, GLenum type,
-                      const GLvoid* pixels, unsigned dim);
-
 extern bool glxx_teximage_internal_checks(GLXX_SERVER_STATE_T *state,
       const struct glxx_teximage_sanity_checks *checks,
       GLenum target, GLenum format, GLenum type, GLenum internalformat,

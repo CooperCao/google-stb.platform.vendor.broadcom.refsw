@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ***************************************************************************/
 
 #include <errno.h>
@@ -62,8 +61,8 @@
 #define IKOS_COMMAND            18
 #define IKOS_REG_READ64         20 /* register read with 64-bit data */
 #define IKOS_REG_WRITE64        22 /* register write with 64-bit data */
-#define IKOS_MEM_READ40         32 /* memory read with 40-bit addr */
-#define IKOS_MEM_WRITE40        34 /* memory write with 40-bit addr */
+#define IKOS_MEM_READ64         32 /* memory read with 40-bit addr */
+#define IKOS_MEM_WRITE64        34 /* memory write with 40-bit addr */
 
 #define SERVER_VERSION_ID       "Hydra_Software_Devel/12"
 
@@ -188,7 +187,6 @@ unsigned long tb_r(unsigned long addr)
         unsigned long regval;
         unsigned long seq1;
         static unsigned long seq = 0;
-
         seq1 = deref32 (
             seq, addr, (unsigned long)g_stSysInfo.bregBaseAddr - BCHP_REGISTER_START, &regval);
         if (seq1 != (seq + 1))
@@ -344,7 +342,7 @@ void* convert_mem_offset_to_vaddr(uint64_t offset, uint32_t size)
 #endif
     else
     {
-        printf("!!! regscope_server MemoryRead addr 0x%x%0x size 0x%x is outside mapped range:\n",
+        printf("!!! regscope_server MemoryRead addr 0x%x%0x size0x%x is outside mapped range:\n",
             (uint32_t)(offset>>32), (uint32_t)offset, size);
         printf("["BDBG_UINT64_FMT", "BDBG_UINT64_FMT")\n",
             BDBG_UINT64_ARG(g_stSysInfo.bmemOffset), BDBG_UINT64_ARG(g_stSysInfo.bmemOffset + g_stSysInfo.bmemSize));
@@ -816,7 +814,6 @@ int sim( )
                 } else {
                     int count = 0;
                     bool is64bit = false;
-                    bool is40bitAddr = false;
                     uint64_t memAddr;
                     /* handle data from a client*/
                     if( (nbytes = my_recv( i, buffer, 1, 0 )) < 1 )
@@ -971,17 +968,16 @@ int sim( )
                         }
                         break;
                     case IKOS_MEM_READ:
-                    case IKOS_MEM_READ40:
-                        is40bitAddr = (IKOS_MEM_READ40==buffer[0]);
-                        count = is40bitAddr? 9:8;
-
+                    case IKOS_MEM_READ64:
+                        is64bit = (IKOS_MEM_READ64==buffer[0]);
+                        count = is64bit? 12:8;
                         if( my_recv( i, &buffer[ 1 ], count, 0 ) < count )
                         {
                             pout( "IKOS_MEM_READ recv()" );
                             stop_client = 1;
                             break;
                         }
-                        if(is40bitAddr) {
+                        if(is64bit) {
                             memAddr =
                                 ((uint64_t) buffer[ 1 ] << 32) |
                                 ((uint64_t) buffer[ 2 ] << 24) |
@@ -1042,16 +1038,16 @@ int sim( )
                         }
                         break;
                     case IKOS_MEM_WRITE:
-                    case IKOS_MEM_WRITE40:
-                        is40bitAddr = (IKOS_MEM_WRITE40==buffer[0]);
-                        count = is40bitAddr? 9:8;
+                    case IKOS_MEM_WRITE64:
+                        is64bit = (IKOS_MEM_WRITE64==buffer[0]);
+                        count = is64bit? 12:8;
                         if( my_recv( i, &buffer[ 1 ], count, 0 ) < count )
                         {
                             pout( "IKOS_MEM_WRITE recv()" );
                             stop_client = 1;
                             break;
                         }
-                        if(is40bitAddr) {
+                        if(is64bit) {
                             memAddr =
                                 ((uint64_t) buffer[ 1 ] << 32) |
                                 ((uint64_t) buffer[ 2 ] << 24) |

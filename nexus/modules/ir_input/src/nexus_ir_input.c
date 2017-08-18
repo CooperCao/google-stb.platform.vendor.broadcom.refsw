@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -90,7 +90,7 @@ void NEXUS_IrInputModule_GetDefaultSettings(NEXUS_IrInputModuleSettings *pSettin
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
 }
 
 NEXUS_ModuleHandle NEXUS_IrInputModule_Init(const NEXUS_IrInputModuleSettings *pSettings)
@@ -218,7 +218,7 @@ static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *co
         ((uint32_t)kirCode[5] << 8);
 
     BDBG_MSG(("NEXUS_IrInput_P_DataReady_isr dev %d, code %#x %#x (%s%s)",
-	interruptDevice, event.code, event.codeHigh, event.preamble.preambleA?"A":"", event.preamble.preambleB?"B":""));
+        interruptDevice, event.code, event.codeHigh, event.preamble.preambleA?"A":"", event.preamble.preambleB?"B":""));
 
     if (interruptDevice < BKIR_KirInterruptDevice_eMax && irChannel->irInput[interruptDevice]) {
         NEXUS_IrInputHandle irInput = irChannel->irInput[interruptDevice];
@@ -480,6 +480,8 @@ NEXUS_Error NEXUS_IrInput_SetSettings( NEXUS_IrInputHandle irInput, const NEXUS_
         }
     }
 
+    BKIR_Set_PM_AON_CONFIG(irInput->irChannel->kirChannel,(BKIR_PM_APN_Config_InputChannel)pSettings->channel_number,(BKIR_InputDevice)pSettings->receiver);
+
     NEXUS_IsrCallback_Set(irInput->dataReady, &pSettings->dataReady);
 
     irInput->settings = *pSettings;
@@ -527,12 +529,17 @@ NEXUS_Error NEXUS_IrInput_GetCustomSettingsForMode(NEXUS_IrInputMode mode, NEXUS
     BERR_Code rc;
     CIR_Param cirParam;
 
+    if (mode==NEXUS_IrInputMode_eCustom) {
+        /* required check so that we don't dereference a null handle in BKIR */
+        goto error;
+    }
     rc = BKIR_GetDefaultCirParam((BKIR_KirDevice)mode, &cirParam);
     if (rc==BERR_SUCCESS) {
         BKNI_Memcpy(pSettings, &cirParam, sizeof(NEXUS_IrInputCustomSettings));
         return NEXUS_SUCCESS;
     }
 
+error:
     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 }
 
@@ -711,6 +718,7 @@ NEXUS_Error NEXUS_IrInputModule_Standby_priv(bool enabled, const NEXUS_StandbySe
         } else {
             if(g_NEXUS_irInput.channel[ch].wakePatternEnabled) {
                 rc = BKIR_DisableDataFilter(g_NEXUS_irInput.channel[ch].kirChannel);
+                if (rc) BERR_TRACE(rc);
                 g_NEXUS_irInput.channel[ch].wakePatternEnabled = false;
             }
         }

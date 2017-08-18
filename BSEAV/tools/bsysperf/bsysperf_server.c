@@ -100,6 +100,8 @@ static bmemperf_boxmode_source g_boxmodeSource        = {0, 0};
 int   g_MegaBytes           = 0;                           /* set to 1 when user wants data displayed in megabytes instead of megabits (default) */
 int   g_MegaBytesDivisor[2] = {1, 8};
 char *g_MegaBytesStr[2] = {"Mbps", "MBps"};
+bsysperf_netStatistics g_netStats[NET_STATS_MAX];
+int                    g_netStatsIdx = -1;                 /* index to entries added to g_netStats array */
 
 typedef struct
 {

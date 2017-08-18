@@ -69,7 +69,7 @@ extern "C" {
 /*#define BSCD_ALT_SC_1     */
 #endif
 
-/* #define BSCD_EMV_2000 */
+#define BSCD_EMV_2000
 #ifdef BSCD_EMV_2000
     /**
       Define this to lower EMV smartcard  frequency
@@ -79,12 +79,12 @@ extern "C" {
     /**
       Define this to use WWT resolve EMV 2000 CWT + 4 tests..
     **/
-    /* #define BSCD_EMV2000_CWT_PLUS_4 */
+     #define BSCD_EMV2000_CWT_PLUS_4
 
     /**
       Define this to use event interrupt to  resolve EMV 2000 CWT + 4 tests..
     **/
-    #define BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
+   /* #define BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR*/
 #endif
 
 
@@ -436,7 +436,7 @@ Maximum character wait time in ETUs
 
 
 /* T14 Irdeto clock Rate Conversion factor.  Spec says 625, but card prefers 600 */
-#define BSCD_T14_IRDETO_CONSTANT_CLOCK_RATE_CONV_FACTOR     600
+#define BSCD_T14_IRDETO_CONSTANT_CLOCK_RATE_CONV_FACTOR     620
 
 /* Irdeto needs to wait for minimum of 1250 from last RX to the next TX  */
 #define BSCD_T14_IRDETO_MIN_DELAY_RX2TX     1250
@@ -741,7 +741,7 @@ BSCD_Channel_SetVccLevel
 typedef enum BSCD_VccLevel {
     BSCD_VccLevel_e5V = 0,   /* 5v is default value */
     BSCD_VccLevel_e3V = 1,    /* 3v  */
-    BSCD_VccLevel_e1P8V = 2    /* 3v  */
+    BSCD_VccLevel_e1P8V = 2    /* 1.8v  */
 } BSCD_VccLevel;
 
 /***************************************************************************

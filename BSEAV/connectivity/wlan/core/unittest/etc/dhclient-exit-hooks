@@ -1,0 +1,23 @@
+# -*-sh-*-
+
+# $Id: 7accdbdf53fd24ad6c53b335025994fbf0b4f6f2 $
+# $Copyright Broadcom Corporation$
+#
+# Catch default route deflections
+
+# TESTNETMASK should be a netmask, or a /prefix specifying the scope
+# of your test network.  Attempts to set a default route will be
+# converted into a route for the test net only.  TESTNETMASK may be
+# set in /etc/sysconfig/network and defaults to /16
+
+if [ -n "$_new_routers" ]; then
+	set $_new_routers
+	PREFIX=${TESTNETMASK:-/16}
+	case $PREFIX in
+	    /*) eval `ipcalc -pn $1${PREFIX}`;;
+	    *) eval `ipcalc -pn $1 ${PREFIX}`;;
+	esac
+	echo -n "$NETWORK/$PREFIX "
+	ip route replace $NETWORK/$PREFIX via $1
+	ip route replace 224.0.0.0/4 dev $DEVICE
+fi

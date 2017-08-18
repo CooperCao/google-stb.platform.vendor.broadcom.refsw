@@ -722,8 +722,7 @@ void BCCGFX_P_WndResize(
 	int InsertAfterIRow ;
 	int RotateAmt ;
 	BCCGFX_P_WND_INFO *pWI ;
-	bool bRefreshScreen = false;
-	
+
     BDBG_ASSERT((hCCGfxHandle));
 
 	BDBG_MSG(( "ccgfxWndResize wnd=%d rc=%d cc=%d\n", WndId, RowCount, ColCount)) ;
@@ -779,8 +778,6 @@ void BCCGFX_P_WndResize(
 				pWI->IndxOfTopRow = pWI->IndxOfTopRow % pWI->ActualRowCount ; 
 			}
 
-			bRefreshScreen = true;
-			
 		}
 		else if ( AddlRows < 0 )
 		{
@@ -820,9 +817,6 @@ void BCCGFX_P_WndResize(
 				}
 #endif
 			}
-			
-			bRefreshScreen = true;
-			
 		}
 		else
 		{
@@ -831,17 +825,6 @@ void BCCGFX_P_WndResize(
 
 		pWI->ColCount = ColCount ;
 
-	}
-
-	/*
-	** TODO: should the screen be redrawn at this point?
-	*/
-
-	/*if ( bRefreshScreen )*/
-	if ( 0 )
-	{
-	    BCCGFX_P_SetDirtyState( hCCGfxHandle, WndId,  false );
-	    BCCGFX_P_RedrawScreen( hCCGfxHandle );
 	}
 
 }
@@ -2807,7 +2790,7 @@ static int BCCGFX_P_SurfaceInit(
     }   
     }
 
-    BDBG_MSG(("%s %d %d", __FUNCTION__, pSurfPool->NumSurfaces, pSurfPool->FreeCount));
+    BDBG_MSG(("%s %d %d", BSTD_FUNCTION, pSurfPool->NumSurfaces, pSurfPool->FreeCount));
     return BDCC_Error_eSuccess ;
 }
 
@@ -2841,7 +2824,7 @@ static void BCCGFX_P_SurfaceClose(
     pSurfPool->FreeCount = 0;
     pSurfPool->NumSurfaces = 0;
     pSurfPool->pSurfInfoList = NULL;
-    BDBG_MSG(("%s %d %d", __FUNCTION__, pSurfPool->NumSurfaces, pSurfPool->FreeCount));
+    BDBG_MSG(("%s %d %d", BSTD_FUNCTION, pSurfPool->NumSurfaces, pSurfPool->FreeCount));
 
     return;
 }
@@ -2951,7 +2934,7 @@ static void BCCGFX_P_SurfaceReleaseAll(
     }
 	
     pSurfPool->FreeCount = pSurfPool->NumSurfaces;
-    BDBG_MSG(("%s %d %d", __FUNCTION__, pSurfPool->NumSurfaces, pSurfPool->FreeCount));
+    BDBG_MSG(("%s %d %d", BSTD_FUNCTION, pSurfPool->NumSurfaces, pSurfPool->FreeCount));
 }
 
 

@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -44,20 +41,22 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Feb 26 13:24:10 2016
- *                 Full Compile MD5 Checksum  1560bfee4f086d6e1d49e6bd3406a38d
+ * Date:           Generated on               Fri May 26 15:56:43 2017
+ *                 Full Compile MD5 Checksum  f5e63307e5dcf1369c866f7e71f68daa
  *                     (minus title and desc)
- *                 MD5 Checksum               8d7264bb382089f88abd2b1abb2a6340
+ *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     823
+ *                 RDB.pm                     1481
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -68,99 +67,99 @@
 /***************************************************************************
  *HIF_MSPI - Public MSPI Registers
  ***************************************************************************/
-#define BCHP_HIF_MSPI_SPCR0_LSB                  0x20203c00 /* [RW] SPCR0_LSB REGISTER */
-#define BCHP_HIF_MSPI_SPCR0_MSB                  0x20203c04 /* [RW] SPCR0_MSB Register */
-#define BCHP_HIF_MSPI_SPCR1_LSB                  0x20203c08 /* [RW] SPCR1_LSB REGISTER */
-#define BCHP_HIF_MSPI_SPCR1_MSB                  0x20203c0c /* [RW] SPCR1_MSB REGISTER */
-#define BCHP_HIF_MSPI_NEWQP                      0x20203c10 /* [RW] NEWQP REGISTER */
-#define BCHP_HIF_MSPI_ENDQP                      0x20203c14 /* [RW] ENDQP REGISTER */
-#define BCHP_HIF_MSPI_SPCR2                      0x20203c18 /* [RW] SPCR2 REGISTER */
-#define BCHP_HIF_MSPI_MSPI_STATUS                0x20203c20 /* [RW] MSPI STATUS REGISTER */
-#define BCHP_HIF_MSPI_CPTQP                      0x20203c24 /* [RO] CPTQP REGISTER */
-#define BCHP_HIF_MSPI_SPCR3                      0x20203c28 /* [RW] SPCR3 REGISTER */
-#define BCHP_HIF_MSPI_REVISION                   0x20203c2c /* [RO] REVISION ID REGISTER */
-#define BCHP_HIF_MSPI_TXRAM00                    0x20203c40 /* [RW] Most significant byte of TXRAM[0] (queue pointer = 0) */
-#define BCHP_HIF_MSPI_TXRAM01                    0x20203c44 /* [RW] Least significant byte of TXRAM[0] (queue pointer = 0) */
-#define BCHP_HIF_MSPI_TXRAM02                    0x20203c48 /* [RW] Most significant byte of TXRAM[1] (queue pointer = 1) */
-#define BCHP_HIF_MSPI_TXRAM03                    0x20203c4c /* [RW] Least significant byte of TXRAM[1] (queue pointer = 1) */
-#define BCHP_HIF_MSPI_TXRAM04                    0x20203c50 /* [RW] Most significant byte of TXRAM[2] (queue pointer = 2) */
-#define BCHP_HIF_MSPI_TXRAM05                    0x20203c54 /* [RW] Least significant byte of TXRAM[2] (queue pointer = 2) */
-#define BCHP_HIF_MSPI_TXRAM06                    0x20203c58 /* [RW] Most significant byte of TXRAM[3] (queue pointer = 3) */
-#define BCHP_HIF_MSPI_TXRAM07                    0x20203c5c /* [RW] Least significant byte of TXRAM[3] (queue pointer = 3) */
-#define BCHP_HIF_MSPI_TXRAM08                    0x20203c60 /* [RW] Most significant byte of TXRAM[4] (queue pointer = 4) */
-#define BCHP_HIF_MSPI_TXRAM09                    0x20203c64 /* [RW] Least significant byte of TXRAM[4] (queue pointer = 4) */
-#define BCHP_HIF_MSPI_TXRAM10                    0x20203c68 /* [RW] Most significant byte of TXRAM[5] (queue pointer = 5) */
-#define BCHP_HIF_MSPI_TXRAM11                    0x20203c6c /* [RW] Least significant byte of TXRAM[5] (queue pointer = 5) */
-#define BCHP_HIF_MSPI_TXRAM12                    0x20203c70 /* [RW] Most significant byte of TXRAM[6] (queue pointer = 6) */
-#define BCHP_HIF_MSPI_TXRAM13                    0x20203c74 /* [RW] Least significant byte of TXRAM[6] (queue pointer = 6) */
-#define BCHP_HIF_MSPI_TXRAM14                    0x20203c78 /* [RW] Most significant byte of TXRAM[7] (queue pointer = 7) */
-#define BCHP_HIF_MSPI_TXRAM15                    0x20203c7c /* [RW] Least significant byte of TXRAM[7] (queue pointer = 7) */
-#define BCHP_HIF_MSPI_TXRAM16                    0x20203c80 /* [RW] Most significant byte of TXRAM[8] (queue pointer = 8) */
-#define BCHP_HIF_MSPI_TXRAM17                    0x20203c84 /* [RW] Least significant byte of TXRAM[8] (queue pointer = 8) */
-#define BCHP_HIF_MSPI_TXRAM18                    0x20203c88 /* [RW] Most significant byte of TXRAM[9] (queue pointer = 9) */
-#define BCHP_HIF_MSPI_TXRAM19                    0x20203c8c /* [RW] Least significant byte of TXRAM[9] (queue pointer = 9) */
-#define BCHP_HIF_MSPI_TXRAM20                    0x20203c90 /* [RW] Most significant byte of TXRAM[10] (queue pointer = 10) */
-#define BCHP_HIF_MSPI_TXRAM21                    0x20203c94 /* [RW] Least significant byte of TXRAM[10] (queue pointer = 10) */
-#define BCHP_HIF_MSPI_TXRAM22                    0x20203c98 /* [RW] Most significant byte of TXRAM[11] (queue pointer = 11) */
-#define BCHP_HIF_MSPI_TXRAM23                    0x20203c9c /* [RW] Least significant byte of TXRAM[11] (queue pointer = 11) */
-#define BCHP_HIF_MSPI_TXRAM24                    0x20203ca0 /* [RW] Most significant byte of TXRAM[12] (queue pointer = 12) */
-#define BCHP_HIF_MSPI_TXRAM25                    0x20203ca4 /* [RW] Least significant byte of TXRAM[12] (queue pointer = 12) */
-#define BCHP_HIF_MSPI_TXRAM26                    0x20203ca8 /* [RW] Most significant byte of TXRAM[13] (queue pointer = 13) */
-#define BCHP_HIF_MSPI_TXRAM27                    0x20203cac /* [RW] Least significant byte of TXRAM[13] (queue pointer = 13) */
-#define BCHP_HIF_MSPI_TXRAM28                    0x20203cb0 /* [RW] Most significant byte of TXRAM[14] (queue pointer = 14) */
-#define BCHP_HIF_MSPI_TXRAM29                    0x20203cb4 /* [RW] Least significant byte of TXRAM[14] (queue pointer = 14) */
-#define BCHP_HIF_MSPI_TXRAM30                    0x20203cb8 /* [RW] Most significant byte of TXRAM[15] (queue pointer = 15) */
-#define BCHP_HIF_MSPI_TXRAM31                    0x20203cbc /* [RW] Least significant byte of TXRAM[15] (queue pointer = 15) */
-#define BCHP_HIF_MSPI_RXRAM00                    0x20203cc0 /* [RW] Most significant byte of RXRAM[0] (queue pointer = 0) */
-#define BCHP_HIF_MSPI_RXRAM01                    0x20203cc4 /* [RW] Least significant byte of RXRAM[0] (queue pointer = 0) */
-#define BCHP_HIF_MSPI_RXRAM02                    0x20203cc8 /* [RW] Most significant byte of RXRAM[1] (queue pointer = 1) */
-#define BCHP_HIF_MSPI_RXRAM03                    0x20203ccc /* [RW] Least significant byte of RXRAM[1] (queue pointer = 1) */
-#define BCHP_HIF_MSPI_RXRAM04                    0x20203cd0 /* [RW] Most significant byte of RXRAM[2] (queue pointer = 2) */
-#define BCHP_HIF_MSPI_RXRAM05                    0x20203cd4 /* [RW] Least significant byte of RXRAM[2] (queue pointer = 2) */
-#define BCHP_HIF_MSPI_RXRAM06                    0x20203cd8 /* [RW] Most significant byte of RXRAM[3] (queue pointer = 3) */
-#define BCHP_HIF_MSPI_RXRAM07                    0x20203cdc /* [RW] Least significant byte of RXRAM[3] (queue pointer = 3) */
-#define BCHP_HIF_MSPI_RXRAM08                    0x20203ce0 /* [RW] Most significant byte of RXRAM[4] (queue pointer = 4) */
-#define BCHP_HIF_MSPI_RXRAM09                    0x20203ce4 /* [RW] Least significant byte of RXRAM[4] (queue pointer = 4) */
-#define BCHP_HIF_MSPI_RXRAM10                    0x20203ce8 /* [RW] Most significant byte of RXRAM[5] (queue pointer = 5) */
-#define BCHP_HIF_MSPI_RXRAM11                    0x20203cec /* [RW] Least significant byte of RXRAM[5] (queue pointer = 5) */
-#define BCHP_HIF_MSPI_RXRAM12                    0x20203cf0 /* [RW] Most significant byte of RXRAM[6] (queue pointer = 6) */
-#define BCHP_HIF_MSPI_RXRAM13                    0x20203cf4 /* [RW] Least significant byte of RXRAM[6] (queue pointer = 6) */
-#define BCHP_HIF_MSPI_RXRAM14                    0x20203cf8 /* [RW] Most significant byte of RXRAM[7] (queue pointer = 7) */
-#define BCHP_HIF_MSPI_RXRAM15                    0x20203cfc /* [RW] Least significant byte of RXRAM[7] (queue pointer = 7) */
-#define BCHP_HIF_MSPI_RXRAM16                    0x20203d00 /* [RW] Most significant byte of RXRAM[8] (queue pointer = 8) */
-#define BCHP_HIF_MSPI_RXRAM17                    0x20203d04 /* [RW] Least significant byte of RXRAM[8] (queue pointer = 8) */
-#define BCHP_HIF_MSPI_RXRAM18                    0x20203d08 /* [RW] Most significant byte of RXRAM[9] (queue pointer = 9) */
-#define BCHP_HIF_MSPI_RXRAM19                    0x20203d0c /* [RW] Least significant byte of RXRAM[9] (queue pointer = 9) */
-#define BCHP_HIF_MSPI_RXRAM20                    0x20203d10 /* [RW] Most significant byte of RXRAM[10] (queue pointer = 10) */
-#define BCHP_HIF_MSPI_RXRAM21                    0x20203d14 /* [RW] Least significant byte of RXRAM[10] (queue pointer = 10) */
-#define BCHP_HIF_MSPI_RXRAM22                    0x20203d18 /* [RW] Most significant byte of RXRAM[11] (queue pointer = 11) */
-#define BCHP_HIF_MSPI_RXRAM23                    0x20203d1c /* [RW] Least significant byte of RXRAM[11] (queue pointer = 11) */
-#define BCHP_HIF_MSPI_RXRAM24                    0x20203d20 /* [RW] Most significant byte of RXRAM[12] (queue pointer = 12) */
-#define BCHP_HIF_MSPI_RXRAM25                    0x20203d24 /* [RW] Least significant byte of RXRAM[12] (queue pointer = 12) */
-#define BCHP_HIF_MSPI_RXRAM26                    0x20203d28 /* [RW] Most significant byte of RXRAM[13] (queue pointer = 13) */
-#define BCHP_HIF_MSPI_RXRAM27                    0x20203d2c /* [RW] Least significant byte of RXRAM[13] (queue pointer = 13) */
-#define BCHP_HIF_MSPI_RXRAM28                    0x20203d30 /* [RW] Most significant byte of RXRAM[14] (queue pointer = 14) */
-#define BCHP_HIF_MSPI_RXRAM29                    0x20203d34 /* [RW] Least significant byte of RXRAM[14] (queue pointer = 14) */
-#define BCHP_HIF_MSPI_RXRAM30                    0x20203d38 /* [RW] Most significant byte of RXRAM[15] (queue pointer = 15) */
-#define BCHP_HIF_MSPI_RXRAM31                    0x20203d3c /* [RW] Least significant byte of RXRAM[15] (queue pointer = 15) */
-#define BCHP_HIF_MSPI_CDRAM00                    0x20203d40 /* [RW] 8-bit command (queue pointer = 0) */
-#define BCHP_HIF_MSPI_CDRAM01                    0x20203d44 /* [RW] 8-bit command (queue pointer = 1) */
-#define BCHP_HIF_MSPI_CDRAM02                    0x20203d48 /* [RW] 8-bit command (queue pointer = 2) */
-#define BCHP_HIF_MSPI_CDRAM03                    0x20203d4c /* [RW] 8-bit command (queue pointer = 3) */
-#define BCHP_HIF_MSPI_CDRAM04                    0x20203d50 /* [RW] 8-bit command (queue pointer = 4) */
-#define BCHP_HIF_MSPI_CDRAM05                    0x20203d54 /* [RW] 8-bit command (queue pointer = 5) */
-#define BCHP_HIF_MSPI_CDRAM06                    0x20203d58 /* [RW] 8-bit command (queue pointer = 6) */
-#define BCHP_HIF_MSPI_CDRAM07                    0x20203d5c /* [RW] 8-bit command (queue pointer = 7) */
-#define BCHP_HIF_MSPI_CDRAM08                    0x20203d60 /* [RW] 8-bit command (queue pointer = 8) */
-#define BCHP_HIF_MSPI_CDRAM09                    0x20203d64 /* [RW] 8-bit command (queue pointer = 9) */
-#define BCHP_HIF_MSPI_CDRAM10                    0x20203d68 /* [RW] 8-bit command (queue pointer = a) */
-#define BCHP_HIF_MSPI_CDRAM11                    0x20203d6c /* [RW] 8-bit command (queue pointer = b) */
-#define BCHP_HIF_MSPI_CDRAM12                    0x20203d70 /* [RW] 8-bit command (queue pointer = c) */
-#define BCHP_HIF_MSPI_CDRAM13                    0x20203d74 /* [RW] 8-bit command (queue pointer = d) */
-#define BCHP_HIF_MSPI_CDRAM14                    0x20203d78 /* [RW] 8-bit command (queue pointer = e) */
-#define BCHP_HIF_MSPI_CDRAM15                    0x20203d7c /* [RW] 8-bit command (queue pointer = f) */
-#define BCHP_HIF_MSPI_WRITE_LOCK                 0x20203d80 /* [RW] Control bit to lock group of write commands */
-#define BCHP_HIF_MSPI_DISABLE_FLUSH_GEN          0x20203d84 /* [RW] Debug bit to mask the generation of flush signals from Mspi */
+#define BCHP_HIF_MSPI_SPCR0_LSB                  0x20203c00 /* [RW][32] SPCR0_LSB REGISTER */
+#define BCHP_HIF_MSPI_SPCR0_MSB                  0x20203c04 /* [RW][32] SPCR0_MSB Register */
+#define BCHP_HIF_MSPI_SPCR1_LSB                  0x20203c08 /* [RW][32] SPCR1_LSB REGISTER */
+#define BCHP_HIF_MSPI_SPCR1_MSB                  0x20203c0c /* [RW][32] SPCR1_MSB REGISTER */
+#define BCHP_HIF_MSPI_NEWQP                      0x20203c10 /* [RW][32] NEWQP REGISTER */
+#define BCHP_HIF_MSPI_ENDQP                      0x20203c14 /* [RW][32] ENDQP REGISTER */
+#define BCHP_HIF_MSPI_SPCR2                      0x20203c18 /* [RW][32] SPCR2 REGISTER */
+#define BCHP_HIF_MSPI_MSPI_STATUS                0x20203c20 /* [RW][32] MSPI STATUS REGISTER */
+#define BCHP_HIF_MSPI_CPTQP                      0x20203c24 /* [RO][32] CPTQP REGISTER */
+#define BCHP_HIF_MSPI_SPCR3                      0x20203c28 /* [RW][32] SPCR3 REGISTER */
+#define BCHP_HIF_MSPI_REVISION                   0x20203c2c /* [RO][32] REVISION ID REGISTER */
+#define BCHP_HIF_MSPI_TXRAM00                    0x20203c40 /* [RW][32] Most significant byte of TXRAM[0] (queue pointer = 0) */
+#define BCHP_HIF_MSPI_TXRAM01                    0x20203c44 /* [RW][32] Least significant byte of TXRAM[0] (queue pointer = 0) */
+#define BCHP_HIF_MSPI_TXRAM02                    0x20203c48 /* [RW][32] Most significant byte of TXRAM[1] (queue pointer = 1) */
+#define BCHP_HIF_MSPI_TXRAM03                    0x20203c4c /* [RW][32] Least significant byte of TXRAM[1] (queue pointer = 1) */
+#define BCHP_HIF_MSPI_TXRAM04                    0x20203c50 /* [RW][32] Most significant byte of TXRAM[2] (queue pointer = 2) */
+#define BCHP_HIF_MSPI_TXRAM05                    0x20203c54 /* [RW][32] Least significant byte of TXRAM[2] (queue pointer = 2) */
+#define BCHP_HIF_MSPI_TXRAM06                    0x20203c58 /* [RW][32] Most significant byte of TXRAM[3] (queue pointer = 3) */
+#define BCHP_HIF_MSPI_TXRAM07                    0x20203c5c /* [RW][32] Least significant byte of TXRAM[3] (queue pointer = 3) */
+#define BCHP_HIF_MSPI_TXRAM08                    0x20203c60 /* [RW][32] Most significant byte of TXRAM[4] (queue pointer = 4) */
+#define BCHP_HIF_MSPI_TXRAM09                    0x20203c64 /* [RW][32] Least significant byte of TXRAM[4] (queue pointer = 4) */
+#define BCHP_HIF_MSPI_TXRAM10                    0x20203c68 /* [RW][32] Most significant byte of TXRAM[5] (queue pointer = 5) */
+#define BCHP_HIF_MSPI_TXRAM11                    0x20203c6c /* [RW][32] Least significant byte of TXRAM[5] (queue pointer = 5) */
+#define BCHP_HIF_MSPI_TXRAM12                    0x20203c70 /* [RW][32] Most significant byte of TXRAM[6] (queue pointer = 6) */
+#define BCHP_HIF_MSPI_TXRAM13                    0x20203c74 /* [RW][32] Least significant byte of TXRAM[6] (queue pointer = 6) */
+#define BCHP_HIF_MSPI_TXRAM14                    0x20203c78 /* [RW][32] Most significant byte of TXRAM[7] (queue pointer = 7) */
+#define BCHP_HIF_MSPI_TXRAM15                    0x20203c7c /* [RW][32] Least significant byte of TXRAM[7] (queue pointer = 7) */
+#define BCHP_HIF_MSPI_TXRAM16                    0x20203c80 /* [RW][32] Most significant byte of TXRAM[8] (queue pointer = 8) */
+#define BCHP_HIF_MSPI_TXRAM17                    0x20203c84 /* [RW][32] Least significant byte of TXRAM[8] (queue pointer = 8) */
+#define BCHP_HIF_MSPI_TXRAM18                    0x20203c88 /* [RW][32] Most significant byte of TXRAM[9] (queue pointer = 9) */
+#define BCHP_HIF_MSPI_TXRAM19                    0x20203c8c /* [RW][32] Least significant byte of TXRAM[9] (queue pointer = 9) */
+#define BCHP_HIF_MSPI_TXRAM20                    0x20203c90 /* [RW][32] Most significant byte of TXRAM[10] (queue pointer = 10) */
+#define BCHP_HIF_MSPI_TXRAM21                    0x20203c94 /* [RW][32] Least significant byte of TXRAM[10] (queue pointer = 10) */
+#define BCHP_HIF_MSPI_TXRAM22                    0x20203c98 /* [RW][32] Most significant byte of TXRAM[11] (queue pointer = 11) */
+#define BCHP_HIF_MSPI_TXRAM23                    0x20203c9c /* [RW][32] Least significant byte of TXRAM[11] (queue pointer = 11) */
+#define BCHP_HIF_MSPI_TXRAM24                    0x20203ca0 /* [RW][32] Most significant byte of TXRAM[12] (queue pointer = 12) */
+#define BCHP_HIF_MSPI_TXRAM25                    0x20203ca4 /* [RW][32] Least significant byte of TXRAM[12] (queue pointer = 12) */
+#define BCHP_HIF_MSPI_TXRAM26                    0x20203ca8 /* [RW][32] Most significant byte of TXRAM[13] (queue pointer = 13) */
+#define BCHP_HIF_MSPI_TXRAM27                    0x20203cac /* [RW][32] Least significant byte of TXRAM[13] (queue pointer = 13) */
+#define BCHP_HIF_MSPI_TXRAM28                    0x20203cb0 /* [RW][32] Most significant byte of TXRAM[14] (queue pointer = 14) */
+#define BCHP_HIF_MSPI_TXRAM29                    0x20203cb4 /* [RW][32] Least significant byte of TXRAM[14] (queue pointer = 14) */
+#define BCHP_HIF_MSPI_TXRAM30                    0x20203cb8 /* [RW][32] Most significant byte of TXRAM[15] (queue pointer = 15) */
+#define BCHP_HIF_MSPI_TXRAM31                    0x20203cbc /* [RW][32] Least significant byte of TXRAM[15] (queue pointer = 15) */
+#define BCHP_HIF_MSPI_RXRAM00                    0x20203cc0 /* [RW][32] Most significant byte of RXRAM[0] (queue pointer = 0) */
+#define BCHP_HIF_MSPI_RXRAM01                    0x20203cc4 /* [RW][32] Least significant byte of RXRAM[0] (queue pointer = 0) */
+#define BCHP_HIF_MSPI_RXRAM02                    0x20203cc8 /* [RW][32] Most significant byte of RXRAM[1] (queue pointer = 1) */
+#define BCHP_HIF_MSPI_RXRAM03                    0x20203ccc /* [RW][32] Least significant byte of RXRAM[1] (queue pointer = 1) */
+#define BCHP_HIF_MSPI_RXRAM04                    0x20203cd0 /* [RW][32] Most significant byte of RXRAM[2] (queue pointer = 2) */
+#define BCHP_HIF_MSPI_RXRAM05                    0x20203cd4 /* [RW][32] Least significant byte of RXRAM[2] (queue pointer = 2) */
+#define BCHP_HIF_MSPI_RXRAM06                    0x20203cd8 /* [RW][32] Most significant byte of RXRAM[3] (queue pointer = 3) */
+#define BCHP_HIF_MSPI_RXRAM07                    0x20203cdc /* [RW][32] Least significant byte of RXRAM[3] (queue pointer = 3) */
+#define BCHP_HIF_MSPI_RXRAM08                    0x20203ce0 /* [RW][32] Most significant byte of RXRAM[4] (queue pointer = 4) */
+#define BCHP_HIF_MSPI_RXRAM09                    0x20203ce4 /* [RW][32] Least significant byte of RXRAM[4] (queue pointer = 4) */
+#define BCHP_HIF_MSPI_RXRAM10                    0x20203ce8 /* [RW][32] Most significant byte of RXRAM[5] (queue pointer = 5) */
+#define BCHP_HIF_MSPI_RXRAM11                    0x20203cec /* [RW][32] Least significant byte of RXRAM[5] (queue pointer = 5) */
+#define BCHP_HIF_MSPI_RXRAM12                    0x20203cf0 /* [RW][32] Most significant byte of RXRAM[6] (queue pointer = 6) */
+#define BCHP_HIF_MSPI_RXRAM13                    0x20203cf4 /* [RW][32] Least significant byte of RXRAM[6] (queue pointer = 6) */
+#define BCHP_HIF_MSPI_RXRAM14                    0x20203cf8 /* [RW][32] Most significant byte of RXRAM[7] (queue pointer = 7) */
+#define BCHP_HIF_MSPI_RXRAM15                    0x20203cfc /* [RW][32] Least significant byte of RXRAM[7] (queue pointer = 7) */
+#define BCHP_HIF_MSPI_RXRAM16                    0x20203d00 /* [RW][32] Most significant byte of RXRAM[8] (queue pointer = 8) */
+#define BCHP_HIF_MSPI_RXRAM17                    0x20203d04 /* [RW][32] Least significant byte of RXRAM[8] (queue pointer = 8) */
+#define BCHP_HIF_MSPI_RXRAM18                    0x20203d08 /* [RW][32] Most significant byte of RXRAM[9] (queue pointer = 9) */
+#define BCHP_HIF_MSPI_RXRAM19                    0x20203d0c /* [RW][32] Least significant byte of RXRAM[9] (queue pointer = 9) */
+#define BCHP_HIF_MSPI_RXRAM20                    0x20203d10 /* [RW][32] Most significant byte of RXRAM[10] (queue pointer = 10) */
+#define BCHP_HIF_MSPI_RXRAM21                    0x20203d14 /* [RW][32] Least significant byte of RXRAM[10] (queue pointer = 10) */
+#define BCHP_HIF_MSPI_RXRAM22                    0x20203d18 /* [RW][32] Most significant byte of RXRAM[11] (queue pointer = 11) */
+#define BCHP_HIF_MSPI_RXRAM23                    0x20203d1c /* [RW][32] Least significant byte of RXRAM[11] (queue pointer = 11) */
+#define BCHP_HIF_MSPI_RXRAM24                    0x20203d20 /* [RW][32] Most significant byte of RXRAM[12] (queue pointer = 12) */
+#define BCHP_HIF_MSPI_RXRAM25                    0x20203d24 /* [RW][32] Least significant byte of RXRAM[12] (queue pointer = 12) */
+#define BCHP_HIF_MSPI_RXRAM26                    0x20203d28 /* [RW][32] Most significant byte of RXRAM[13] (queue pointer = 13) */
+#define BCHP_HIF_MSPI_RXRAM27                    0x20203d2c /* [RW][32] Least significant byte of RXRAM[13] (queue pointer = 13) */
+#define BCHP_HIF_MSPI_RXRAM28                    0x20203d30 /* [RW][32] Most significant byte of RXRAM[14] (queue pointer = 14) */
+#define BCHP_HIF_MSPI_RXRAM29                    0x20203d34 /* [RW][32] Least significant byte of RXRAM[14] (queue pointer = 14) */
+#define BCHP_HIF_MSPI_RXRAM30                    0x20203d38 /* [RW][32] Most significant byte of RXRAM[15] (queue pointer = 15) */
+#define BCHP_HIF_MSPI_RXRAM31                    0x20203d3c /* [RW][32] Least significant byte of RXRAM[15] (queue pointer = 15) */
+#define BCHP_HIF_MSPI_CDRAM00                    0x20203d40 /* [RW][32] 8-bit command (queue pointer = 0) */
+#define BCHP_HIF_MSPI_CDRAM01                    0x20203d44 /* [RW][32] 8-bit command (queue pointer = 1) */
+#define BCHP_HIF_MSPI_CDRAM02                    0x20203d48 /* [RW][32] 8-bit command (queue pointer = 2) */
+#define BCHP_HIF_MSPI_CDRAM03                    0x20203d4c /* [RW][32] 8-bit command (queue pointer = 3) */
+#define BCHP_HIF_MSPI_CDRAM04                    0x20203d50 /* [RW][32] 8-bit command (queue pointer = 4) */
+#define BCHP_HIF_MSPI_CDRAM05                    0x20203d54 /* [RW][32] 8-bit command (queue pointer = 5) */
+#define BCHP_HIF_MSPI_CDRAM06                    0x20203d58 /* [RW][32] 8-bit command (queue pointer = 6) */
+#define BCHP_HIF_MSPI_CDRAM07                    0x20203d5c /* [RW][32] 8-bit command (queue pointer = 7) */
+#define BCHP_HIF_MSPI_CDRAM08                    0x20203d60 /* [RW][32] 8-bit command (queue pointer = 8) */
+#define BCHP_HIF_MSPI_CDRAM09                    0x20203d64 /* [RW][32] 8-bit command (queue pointer = 9) */
+#define BCHP_HIF_MSPI_CDRAM10                    0x20203d68 /* [RW][32] 8-bit command (queue pointer = a) */
+#define BCHP_HIF_MSPI_CDRAM11                    0x20203d6c /* [RW][32] 8-bit command (queue pointer = b) */
+#define BCHP_HIF_MSPI_CDRAM12                    0x20203d70 /* [RW][32] 8-bit command (queue pointer = c) */
+#define BCHP_HIF_MSPI_CDRAM13                    0x20203d74 /* [RW][32] 8-bit command (queue pointer = d) */
+#define BCHP_HIF_MSPI_CDRAM14                    0x20203d78 /* [RW][32] 8-bit command (queue pointer = e) */
+#define BCHP_HIF_MSPI_CDRAM15                    0x20203d7c /* [RW][32] 8-bit command (queue pointer = f) */
+#define BCHP_HIF_MSPI_WRITE_LOCK                 0x20203d80 /* [RW][32] Control bit to lock group of write commands */
+#define BCHP_HIF_MSPI_DISABLE_FLUSH_GEN          0x20203d84 /* [RW][32] Debug bit to mask the generation of flush signals from Mspi */
 
 /***************************************************************************
  *SPCR0_LSB - SPCR0_LSB REGISTER

@@ -939,10 +939,8 @@ vec4 modf(vec4 x, out vec4 i)
 
 bool __isinf(float x)
 {
-   int xi = $$reinterpi(x);
-   int exponent = xi & (0xff << 23);
-   int mantissa = xi & ((1<<23) - 1);
-   return (exponent == (0xff << 23) && mantissa == 0);
+   highp float inf = $$reinterpf(0x7f800000);
+   return $$fabs(x) == inf;
 }
 
 bool isinf(float x)

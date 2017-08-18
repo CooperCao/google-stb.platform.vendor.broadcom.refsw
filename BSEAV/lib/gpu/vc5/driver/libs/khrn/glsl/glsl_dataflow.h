@@ -4,7 +4,6 @@
 #pragma once
 
 #include "glsl_const_types.h"
-#include "glsl_fastmem.h"
 #include "glsl_list.h"
 #include "glsl_common.h"
 
@@ -12,20 +11,16 @@ EXTERN_C_BEGIN
 
 typedef struct _Dataflow Dataflow;
 
-//
-// Dataflow graph where all operations act on scalars.
-//
-
 void glsl_dataflow_reset_count(void);
-int glsl_dataflow_get_count(void);
-int glsl_dataflow_get_next_id(void);
+int  glsl_dataflow_get_count  (void);
+int  glsl_dataflow_get_next_id(void);
 
 // Set up age which will be applied to dataflow. This might not be a good thing.
 void glsl_dataflow_reset_age(void);
 void glsl_dataflow_set_age(int age);
 
-void glsl_dataflow_begin_construction();
-void glsl_dataflow_end_construction();
+void  glsl_dataflow_begin_construction();
+void  glsl_dataflow_end_construction();
 void *glsl_dataflow_malloc(size_t);
 
 // Dataflow chain structure, for efficient appending.
@@ -33,34 +28,28 @@ DECLARE_NODE_LIST(Dataflow,glsl_dataflow_malloc)
 
 typedef bool (*DataflowFilter)(Dataflow* dataflow, void* data);
 
-void glsl_dataflow_chain_init(DataflowChain* chain);
-DataflowChain* glsl_dataflow_chain_append(DataflowChain* chain, Dataflow* dataflow);
-DataflowChain* glsl_dataflow_chain_remove(DataflowChain *chain, Dataflow *dataflow);
-DataflowChain* glsl_dataflow_chain_replace(DataflowChain *chain, Dataflow *dataflow_old, Dataflow *dataflow_new);
-bool glsl_dataflow_chain_contains(DataflowChain *chain, Dataflow *dataflow);
-// If node in chain, removes node from chain.
-// Else, behaviour undefined.
-DataflowChain* glsl_dataflow_chain_remove_node(DataflowChain* chain, DataflowChainNode* node);
-DataflowChain *glsl_dataflow_chain_filter(DataflowChain *dst, DataflowChain *src, void *data, DataflowFilter filter);
+void           glsl_dataflow_chain_init    (DataflowChain *chain);
+DataflowChain *glsl_dataflow_chain_append  (DataflowChain *chain, Dataflow *dataflow);
+// If node in chain, removes node from chain, else, behaviour undefined.
+DataflowChain *glsl_dataflow_chain_remove_node(DataflowChain *chain, DataflowChainNode *node);
 
-typedef enum {
 #if !V3D_VER_AT_LEAST(4,0,2,0)
+typedef enum {
   IMAGE_INFO_ARR_STRIDE,
   IMAGE_INFO_SWIZZLING,
   IMAGE_INFO_XOR_ADDR,
   IMAGE_INFO_LX_ADDR,
   IMAGE_INFO_LX_PITCH,
   IMAGE_INFO_LX_SLICE_PITCH,
-#endif
-  IMAGE_INFO_LX_WIDTH,
-  IMAGE_INFO_LX_HEIGHT,
-  IMAGE_INFO_LX_DEPTH,
 } ImageInfoParam;
+#endif
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
 typedef enum {
   TEXBUFFER_INFO_ARR_ELEM_W_MINUS_1,
   TEXBUFFER_INFO_LOG2_ARR_ELEM_W
 } TexBufferInfoParam;
+#endif
 
 typedef enum {
    DATAFLOW_CONST,
@@ -71,6 +60,7 @@ typedef enum {
 
    DATAFLOW_LOGICAL_NOT,
    DATAFLOW_CONST_IMAGE,
+   DATAFLOW_CONST_SAMPLER,
    DATAFLOW_FTOI_TRUNC,
    DATAFLOW_FTOI_NEAREST,
    DATAFLOW_FTOU,
@@ -101,6 +91,7 @@ typedef enum {
    DATAFLOW_ATOMIC_COUNTER,
    DATAFLOW_IN,
    DATAFLOW_MUL,
+   DATAFLOW_MUL24,
    DATAFLOW_DIV,
    DATAFLOW_REM,
    DATAFLOW_ADD,
@@ -150,10 +141,13 @@ typedef enum {
    DATAFLOW_TEXTURE_ADDR,
 #endif
    DATAFLOW_TEXTURE_SIZE,
+   DATAFLOW_TEXTURE_LEVELS,
    DATAFLOW_GET_VEC4_COMPONENT,
 
    // Fragment colour get (used with GET_VEC4_COMPONENT)
    DATAFLOW_FRAG_GET_COL,
+   DATAFLOW_FRAG_GET_DEPTH,
+   DATAFLOW_FRAG_GET_STENCIL,
 
    // Fragment coordinate retrieval.
    DATAFLOW_FRAG_GET_X,
@@ -163,6 +157,9 @@ typedef enum {
    DATAFLOW_FRAG_GET_Z,
    DATAFLOW_FRAG_GET_W,
    DATAFLOW_FRAG_GET_FF,
+
+   DATAFLOW_COMP_GET_ID0,
+   DATAFLOW_COMP_GET_ID1,
 
    DATAFLOW_GET_THREAD_INDEX,
    DATAFLOW_SHARED_PTR,
@@ -193,16 +190,21 @@ typedef enum {
    DATAFLOW_ADDRESS,
    DATAFLOW_BUF_SIZE,
 
+#if !V3D_VER_AT_LEAST(4,0,2,0)
    /* image unit additional params */
    DATAFLOW_IMAGE_INFO_PARAM,
+#endif
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
    /* texture buffer info */
    DATAFLOW_TEXBUFFER_INFO_PARAM,
+#endif
+   DATAFLOW_GET_FB_MAX_LAYER,
 
    DATAFLOW_FLAVOUR_COUNT
 } DataflowFlavour;
 
-#define DATAFLOW_MAX_DEPENDENCIES 5
+#define DATAFLOW_MAX_DEPENDENCIES 6
 
 /* These are deliberately in a different order from PRIM_* */
 typedef enum {
@@ -210,13 +212,14 @@ typedef enum {
    DF_INT,
    DF_UINT,
    DF_FLOAT,
-   DF_FSAMPLER,
-   DF_ISAMPLER,
-   DF_USAMPLER,
+   DF_F_SAMP_IMG,    /* SAMP variants correspond to SPIR-V sampled images   */
+   DF_I_SAMP_IMG,    /* (GLSL textures) and STOR variants to storage images */
+   DF_U_SAMP_IMG,    /* (GLSL images).                                      */
    DF_ATOMIC,
-   DF_FIMAGE,
-   DF_IIMAGE,
-   DF_UIMAGE,
+   DF_F_STOR_IMG,
+   DF_I_STOR_IMG,
+   DF_U_STOR_IMG,
+   DF_SAMPLER,
    DF_VOID,
    DF_TYPE_COUNT,
    DF_INVALID,
@@ -233,6 +236,9 @@ typedef enum {
    DF_TEXBITS_BSLOD         = (1<<3),
    DF_TEXBITS_I_OFF         = (1<<4),
    DF_TEXBITS_SAMPLER_FETCH = (1<<5),
+#if V3D_HAS_TMU_LOD_QUERY
+   DF_TEXBITS_LOD_QUERY     = (1<<6),
+#endif
 
    DF_TEXBITS_GATHER_COMP_0 = (0 << DF_TEXBITS_GATHER_COMP_SHIFT),
    DF_TEXBITS_GATHER_COMP_1 = (1 << DF_TEXBITS_GATHER_COMP_SHIFT),
@@ -279,6 +285,7 @@ struct _Dataflow
          Dataflow *b;       /* may be NULL */
          Dataflow *off;     /* may be NULL */
          Dataflow *image;
+         Dataflow *sampler; /* may be NULL */
       } texture;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -307,7 +314,7 @@ struct _Dataflow
    union {
       uint32_t raw[4];     /* XXX: Must be the same size as the other members */
 
-      // DATAFLOW_CONST
+      // DATAFLOW_CONST, DATAFLOW_BUF_SIZE
       struct {
          const_value value;
       } constant;
@@ -359,13 +366,17 @@ struct _Dataflow
          int in_b;
       } phi;
 
+#if !V3D_VER_AT_LEAST(4,0,2,0)
       struct {
          ImageInfoParam param;
       } image_info_param;
+#endif
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
       struct {
          TexBufferInfoParam param;
       } texbuffer_info_param;
+#endif
 
       //DATAFLOW_LOAD
       struct{
@@ -398,40 +409,47 @@ Dataflow *glsl_dataflow_construct_ternary_op(DataflowFlavour flavour, Dataflow* 
 Dataflow *glsl_dataflow_construct_op(DataflowFlavour flavour, int num_args, Dataflow **arguments);
 Dataflow *glsl_dataflow_construct_reinterp(Dataflow *operand, DataflowType new_type);
 Dataflow *glsl_dataflow_construct_address(Dataflow *operand);
-Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand);
+Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand, const_value subtract_offset);
 
 Dataflow *glsl_dataflow_construct_vec4(Dataflow *r, Dataflow *g, Dataflow *b, Dataflow *a);
 Dataflow *glsl_dataflow_construct_get_vec4_component(uint32_t component_index, Dataflow *param, DataflowType type);
 
-void glsl_dataflow_construct_frag_get_col(Dataflow **out, DataflowType type,
-                                          uint32_t required_components,
-                                          int render_target);
-void glsl_dataflow_construct_texture_lookup(Dataflow **r_out, Dataflow **g_out,
-                                            Dataflow **b_out, Dataflow **a_out,
+void glsl_dataflow_construct_frag_get_col(Dataflow **out, DataflowType type, int render_target);
+void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
                                             uint32_t bits, Dataflow *image,
                                             Dataflow *coords,
-                                            Dataflow *d, Dataflow *b, Dataflow *off,
-                                            uint32_t required_components,
+                                            Dataflow *d, Dataflow *b, Dataflow *off, Dataflow *sampler,
                                             DataflowType component_type);
 #if V3D_VER_AT_LEAST(4,0,2,0)
 Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *sampler,
                                                Dataflow *x, Dataflow *y, Dataflow *z,
                                                Dataflow *i);
+#else
+Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *sampler, ImageInfoParam param);
 #endif
 Dataflow *glsl_dataflow_construct_texture_size(Dataflow *sampler);
-Dataflow *glsl_dataflow_construct_external(DataflowType t);
+Dataflow *glsl_dataflow_construct_texture_num_levels(Dataflow *sampler);
+Dataflow *glsl_dataflow_construct_external(DataflowType t, int block, int output);
 Dataflow *glsl_dataflow_construct_phi(Dataflow *a, int in_a, Dataflow *b, int in_b);
-Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *sampler, ImageInfoParam param);
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
 Dataflow *glsl_construct_texbuffer_info_param(Dataflow *sampler, TexBufferInfoParam param);
+#endif
 
-const char* glsl_dataflow_info_get_name(DataflowFlavour flavour);
+const char *glsl_dataflow_info_get_name(DataflowFlavour flavour);
 
 // Returns a dataflow node that converts input to the given type.
 Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type);
 
 static inline bool glsl_dataflow_is_integral_type(const Dataflow *df) {
    return df->type == DF_INT || df->type == DF_UINT;
+}
+
+static inline bool glsl_dataflow_type_is_sampled_image(DataflowType t) {
+   return t == DF_F_SAMP_IMG || t == DF_I_SAMP_IMG || t == DF_U_SAMP_IMG;
+}
+static inline bool glsl_dataflow_type_is_storage_image(DataflowType t) {
+   return t == DF_F_STOR_IMG || t == DF_I_STOR_IMG || t == DF_U_STOR_IMG;
 }
 
 bool glsl_dataflow_affects_memory(DataflowFlavour f);

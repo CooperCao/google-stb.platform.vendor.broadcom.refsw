@@ -1,0 +1,521 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Join one or more STAs to AP using SSID and security settings
+# previously assigned to AP by APConfigureSecurity.  For convenience,
+# if the -security option is specified then ConnectAPSTA will call
+# APConfigureSecurity.  Otherwise, if APConfigureSecurity has not been
+# run, then APRetrieveSecurity will be called to retrieve the settings
+# from the AP.
+
+# If -apmode is true, the AP/STA relationship is reversed, with the
+# STA being set to AP mode and the AP to "WET" mode (STA mode +
+# bridging fixup).
+
+#
+# Usage:  ConnectAPSTA AP 'STA1 STA2 ...' [-security type]
+#
+# $Id: e3bdfa78d2b5466a9ad25ec4197228e65ad9f20a $
+#
+
+package require UTF
+package require UTF::Test::APRetrieveSecurity
+package require UTF::Test::APConfigureSecurity
+
+package provide UTF::Test::ConnectAPSTA 2.0
+
+UTF::Test ConnectAPSTA {AP STAS args} {
+    set oargs $args
+    UTF::Getopts {
+	{soft "Use software encryption on the STA"}
+	{apsoft "Use software encryption on the AP"}
+	{security.arg "" "AP security"}
+	{stasecurity.arg "" "STA security"}
+	{ipaddr.arg "" "IP address"}
+	{nobssidcheck "Don't check bssid"}
+	{nochecks "Don't check anything"}
+	{ampdu_density.arg "" "ampdu_density"}
+	{apmode.arg "" "Switch roles of AP and STA"}
+	{chanspec.arg "" "Chanspec"}
+	{tries.arg 1 "Number of join attempts"}
+    }
+
+    if {$(apmode) eq ""} {
+	set (apmode) [string is true -strict [[lindex $STAS 0] cget -apmode]]
+    }
+    if {$(apmode) && [llength $STAS] != 1} {
+	error "apmode testing needs exactly one STA"
+    }
+    if {$(apmode) && ![$AP hostis Router Vx BSDAP]} {
+	# If our AP is a SoftAP swap the args instead of using WET
+	UTF::Message INFO $AP "apmode: Reversing $AP and $STAS"
+	set STA $AP; set AP $STAS; set STAS $STA; set (apmode) 0
+    }
+
+    set wlname [$AP wlname]
+
+    # Make sure the AP is in AP mode, unless we're doing apmode tests.
+    if {!$(apmode) && [$AP hostis Router Vx BSDAP] &&
+	[$AP nvram get ${wlname}_mode] ne "ap"} {
+	$AP restart ${wlname}_mode=ap
+    }
+
+    set configsec ""
+    if {[$AP hostis StaticAP]} {
+	set (nobssidcheck) 1
+	if {$(security) ne "" && $(security) ne [$AP cget -security]} {
+	    error "StaticAP - cannot change security from [$AP cget -security] to $(security)"
+	}
+    } else {
+	if {$(security) ne "" && $(security) ne [$AP cget -security]} {
+	    # Setting security
+	    set configsec $(security)
+	} elseif {[$AP cget -security] eq "" ||
+		  [$AP cget -ssid] eq "" ||
+		  [$AP wl ssid] ne [$AP cget -ssid]} {
+	    if {[$AP wl ap]} {
+		# Trusting security
+		APRetrieveSecurity $AP
+	    } else {
+		# Not configured as an AP  - don't trust existing settings
+		catch {$AP wl disassoc}
+		set configsec "renew"
+	    }
+	}
+
+	if {$configsec ne ""} {
+	    foreach STA $STAS {
+		# Disassoc before changing security on the AP
+		# This is to reduce the roaming messages in the logs
+		if {[$STA cget -extsup]} {
+		    catch {$STA wpa_cli disconnect}
+		}
+		catch {$STA wl disassoc}
+	    }
+	    APConfigureSecurity $AP -security $configsec
+	}
+    }
+
+    set SSID [$AP cget -ssid]
+
+    if {$(chanspec) ne ""} {
+	if {[$AP hostis StaticAP]} {
+	    error "StaticAP - cannot change chanspec"
+	} else {
+	    package require UTF::Test::APChanspec
+	    if {$(apmode)} {
+		# Set chanspec on the SoftAP
+		APChanspec [lindex $STAS 0] $(chanspec)
+
+		# Also attempt to chanspec on the WET device to make sure
+		# it is at least on the right band.
+		APChanspec $AP $(chanspec) -loose
+	    } else {
+		APChanspec $AP $(chanspec)
+	    }
+	}
+    }
+
+    if {!$(apmode) && ![$AP hostis StaticAP]} {
+	if {[$AP wl ssid] ne $SSID} {
+	    error "SSID mismatch - expected $SSID"
+	}
+	set BSSID [$AP wl bssid]
+	if {$BSSID eq "00:00:00:00:00:00"} {
+	    error "Null BSSID"
+	}
+    }
+
+    if {$(ampdu_density) ne ""} {
+	$AP wl down
+	$AP wl ampdu_density $(ampdu_density)
+	$AP wl up
+    }
+
+    set WEPKEY [$AP cget -wepkey]
+    set WEPIDX [$AP cget -wepidx]
+    set WPAKEY [$AP cget -wpakey]
+
+    if {$(stasecurity) eq ""} {
+	set (stasecurity) [$AP cget -security]
+    }
+
+    # Defaults
+    set amode open
+    set swsec 0
+    set auth 0
+
+    set (stasecurity) [join [lsort [split $(stasecurity) "+"]] "+"]
+
+    if {[regexp {^soft(.*)} $(stasecurity) - (stasecurity)]} {
+	set (soft) 1
+    }
+    regsub {(wep|shared)(?:64|128)} $(stasecurity) {\1} (stasecurity)
+
+    switch $(stasecurity) {
+	open {
+	}
+	wep {
+	    set swsec 1
+	}
+	shared {
+	    set swsec 1
+	    set amode shared
+	}
+	tkippsk {
+	    set swsec 2
+	    set amode wpapsk
+	}
+	tkippsk2 {
+	    set swsec 2
+	    set amode wpa2psk
+	}
+	aespsk {
+	    set swsec 4
+	    set amode wpapsk
+	}
+	aespsk2 {
+	    set swsec 4
+	    set amode wpa2psk
+	}
+	aespsk+tkippsk {
+	    set swsec 6
+	    set amode wpapsk
+	}
+	aespsk2+tkippsk2 {
+	    set swsec 6
+	    set amode wpa2psk
+	}
+	aespsk+tkippsk+wep {
+	    set swsec 7
+	    set amode wpapsk
+	}
+	aespsk2+tkippsk2+wep {
+	    set swsec 7
+	    set amode wpa2psk
+	}
+	default {
+	    error "Illegal -stasecurity $(stasecurity)"
+	}
+    }
+    if {$(soft)} {
+	incr swsec 8
+    }
+    if {$(apsoft)} {
+	set awsec [$AP wl wsec]
+	incr awsec 8
+	$AP wl wsec $awsec
+	unset awsec
+    }
+    foreach STA $STAS {
+
+	set wsec $swsec
+	if {[$STA hostis Cygwin WinDHD]} {
+	    # MSFT requires all *weaker* securities to be set, so fill
+	    # in bits to the right...
+	    for {set a [expr {$wsec >> 1}]} {$a} {set a [expr {$a >> 1}]} {
+		set wsec [expr {$wsec | $a}]
+	    }
+	}
+
+	if {$(ipaddr) ne ""} {
+	    set ipaddr $(ipaddr)
+	} else {
+	    set ipaddr [$STA lan cget -ipaddr]
+	}
+
+	UTF::Message INFO $STA "join SSID $SSID with $(stasecurity)"
+
+	# wl ap is a global and is not safe to change in apsta
+	# mode.  If there are virtual interfaces then we'll just
+	# have to assume virtual interfaces are already in the
+	# right mode.
+	if {[$STA wl -u apsta] eq "0"} {
+	    if {$(apmode)} {
+		$STA wl ap 1
+	    } else {
+		if {[$STA wl -u ap] eq "1"} {
+		    $STA wl bss down
+		    $STA wl -u ap 0
+		}
+		# ap being unsupported is ok, since we have to
+		# assume this is a STA only device.
+		catch {
+		    if {[info exists ::UTF::RSDBAPSTAWAR] &&
+			[regexp {AP enable} [$STA wl dump rsdb]]} {
+			$STA reload
+			$STA ifconfig [$STA cget -ipaddr]
+			$STA dhcpd_reset
+			$STA warn "AP->STA reload WAR"
+		    }
+		}
+	    }
+	}
+
+	if {$(ampdu_density) ne ""} {
+	    $STA wl down
+	    $STA wl ampdu_density $(ampdu_density)
+	}
+	if {!$(nochecks)} {
+	    $STA wl up
+	}
+	if {$(apmode)} {
+	    # wpa_auth and AP-mode join both expect bss to be down
+	    $STA wl bss down
+	}
+
+	if {[$STA hostis Wiced]} {
+	    $STA join $AP
+	    continue
+	} elseif {[$STA cget -extsup]} {
+	    $STA wl -u sup_wpa 0
+	    if {[catch {$STA wpa_cli remove_network all} ret]} {
+		UTF::Message LOG $STA $ret
+		$STA supplicant start
+	    }
+	    $STA wpa_cli add_network
+	    $STA wpa_cli set_network 0 ssid '"$SSID"'
+	    $STA wpa_cli set_network 0 mode 0; # STA
+	    if {[regexp {wpa} $amode]} {
+		$STA wpa_cli set_network 0 psk '"$WPAKEY"'
+	    } else {
+		$STA wpa_cli set_network 0 key_mgmt NONE
+		if {($wsec & 0xf) == 1 && $WEPKEY ne ""} {
+		    $STA wpa_cli set_network 0 wep_key$WEPIDX $WEPKEY
+		    $STA wpa_cli set_network 0 wep_tx_keyidx $WEPIDX
+		}
+		if {$amode eq "shared"} {
+		    $STA wpa_cli set_network 0 auth_alg SHARED
+		}
+	    }
+	    set joinscript {
+	    $STA wpa_cli select_network 0
+	    if {!$(nochecks)} {
+		UTF::Sleep 5; # give wpa_supplicant time to scan
+		for {set i 0} {$i < 15} {incr i 2} {
+		    set status [$STA wpa_cli status]
+		    if {[regexp COMPLETED $status]} {
+			break
+		    }
+		    UTF::Sleep 2
+		}
+	    }
+	    }
+	} elseif {[$STA hostis MacOS] && [$STA cget -nativetools]} {
+
+	    if {($wsec & 0xf) == 1 && $WEPKEY ne ""} {
+		set key "\"$WEPKEY\""
+	    } elseif {[regexp {psk} $amode]} {
+		set key "\"$WPAKEY\""
+	    } else {
+		set key ""
+	    }
+
+	    if {$(nochecks)} {
+		if {[regexp {wpa2} $amode]} {
+		    set securitytype WPA2
+		} elseif {[regexp {wpa} $amode]} {
+		    set securitytype WPA
+		} elseif {[regexp {shared} $amode]} {
+		    set securitytype 8021XWEP
+		} elseif {$key ne ""} {
+		    set securitytype WEP
+		} else {
+		    set securitytype OPEN
+		}
+		$STA networksetup -removepreferredwirelessnetwork \
+		    [$STA cget -device] $SSID
+		set joinscript {
+		$STA networksetup -addpreferredwirelessnetworkatindex \
+		    [$STA cget -device] $SSID 0 $securitytype {*}$key
+		}
+	    } else {
+		# Clear scan cache to avoid security mismatch
+		# Clearing cache no longer appears to be needed, and
+		# can cause intermittent join failures.
+		# $STA apple80211 [$STA cget -device] -scancache_clear
+
+		set joinscript {
+		$STA networksetup -setairportnetwork \
+		    [$STA cget -device] $SSID {*}$key
+		}
+	    }
+	} else {
+
+	    $STA wl wsec $wsec
+	    # Need to explicitly disable WPA, otherwise power save may not work
+	    # It will be re-enabled by join if needed.
+	    $STA wl -u wpa_auth 0
+
+	    if {!$(apmode) &&
+		(![$STA hostis Cygwin WinDHD] || [regexp {^5} [$STA cget -osver]])} {
+		# sup_wpa is deprecated in WinVista and later
+		if {[regexp {psk} $amode]} {
+		    # enable internal supplicant before we set any keys
+		    $STA wl sup_wpa 1
+		} else {
+		    # We're turning the supplicant off, so non-supported is ok
+		    if {[catch {$STA wl -u sup_wpa 0} ret] &&
+			![regexp {Not STA} $ret]} {
+			error $ret $::errorInfo
+		    }
+		}
+	    }
+
+	    if {[regexp {psk} $amode]} {
+		# Either internal or os-provided supplicant should be
+		# available at this point.
+		$STA wl set_pmk "\"$WPAKEY\""
+	    }
+
+	    # Don't set wep keys unless wep is the only security setting
+	    if {($wsec & 0xf) == 1 && $WEPKEY ne ""} {
+		if {$WEPIDX == 0} {
+		    # Add wep keys inside join, if possible, for Vista compat
+		    set joinscript {
+		    $STA wl join $SSID key $WEPKEY imode bss amode $amode
+		    }
+		} elseif {([$STA hostis Cygwin WinDHD]) &&
+			  [regexp {^6} [$STA cget -osver]]} {
+		    # Vista
+		    set joinscript {
+		    $STA wl join $SSID key $WEPIDX:$WEPKEY imode bss amode $amode
+		    }
+		} else {
+		    set joinscript {
+		    $STA wl join $SSID imode bss amode $amode
+		    # Add wep keys after join: WAR for PR 44826
+		    $STA wl addwep $WEPIDX $WEPKEY
+		    }
+		}
+	    } else {
+		set joinscript {
+		$STA wl join $SSID imode bss amode $amode
+		}
+	    }
+	}
+
+	if {$(apmode)} {
+
+	    # Record settings if running in AP mode.
+	    $STA configure -ssid $SSID -security $(stasecurity) \
+		-wepkey $WEPKEY -wepidx $WEPIDX -wpakey $WPAKEY
+
+	    eval $joinscript
+
+	    # Use STA as reference.
+	    set BSSID [$STA wl bssid]
+	    set S $AP
+
+	    # Restart AP in WET mode.  It will attempt to associate
+	    # automatically.
+	    $AP restart ${wlname}_mode=wet
+	} else {
+	    # Clear cached settings on STA
+	    $STA configure -ssid "" -security "" -wepkey "" -wepidx "" -wpakey ""
+
+	    # Use AP as reference
+	    set S $STA
+	}
+
+	if {!$(nochecks)} {
+	    for {set tries 1} {1} {incr tries} {
+		if {$tries > 1} {
+		    UTF::Message INFO $S "Join try #$tries"
+		}
+		eval $joinscript
+
+		if {![$STA cget -extsup] &&
+		    !([$STA hostis MacOS] && [$STA cget -nativetools])} {
+		    # Wait for association
+		    UTF::Sleep [$STA cget -slowassoc]
+		}
+
+		if {[catch {$S wl -u bssid} bssid]} {
+		    if {![regexp {Not Associated} $bssid] ||
+			$tries >= $(tries)} {
+			throw FAIL $bssid
+		    }
+		} else {
+		    break
+		}
+	    }
+
+	    for {set tries 1} {$tries < 4} {incr tries} {
+		if {$tries > 1} {
+		    UTF::Message INFO $S "Roam Wait #$tries"
+		}
+		if {$bssid ne "00:00:00:00:00:00"} {
+		    break
+		}
+		UTF::Sleep 3
+		set bssid [$S wl bssid]
+	    }
+	    if {$bssid eq "00:00:00:00:00:00"} {
+		throw FAIL "Roaming"
+	    }
+
+	    if {!$(nobssidcheck) && $bssid ne $BSSID &&
+		![regexp {nsupported} $bssid]} {
+		error "BSSID mismatch '$bssid' ne '$BSSID'"
+	    }
+	    if {[$S wl ssid] ne $SSID} {
+		error "SSID mismatch"
+	    }
+	    if {$wsec} {
+		# Temporarily downgrade keys errors to warnings
+		if {[catch {$S wl -u keys} ret]} {
+		    $S warn $ret
+		}
+		if {![$AP hostis StaticAP] && [catch {$AP wl -u keys} ret]} {
+		    $AP warn $ret
+		}
+	    }
+	    $STA wl status
+	} else {
+	    eval $joinscript
+	}
+
+	if {[$STA cget -post_assoc_hook] ne ""} {
+	    eval [string map [list %S $STA] [$STA cget -post_assoc_hook]]
+	}
+
+	if {[$STA cget -hasdhcpd]} {
+	    $AP ifconfig [$AP cget -ipaddr]
+	    $AP add_networks $STA
+	    set APIP [$AP ipaddr]
+	} else {
+	    if {[catch {$AP ipaddr} APIP]} {
+		# If AP has an ipaddr in the config, apply it.  Note
+		# Routers appear as "dhcp" even though their bridge
+		# has static IP.
+		if {[$AP cget -ipaddr] ne "dhcp"} {
+		    $AP ifconfig [set APIP [$AP cget -ipaddr]]
+		} else {
+		    error $APIP
+		}
+	    }
+	    $STA ifconfig $ipaddr
+	    # Set up STA's routing table to get at all AP's networks
+	    $STA add_networks $AP
+	}
+	#$STA ping $APIP
+
+	if {!$(nochecks) && [catch {$STA ping $APIP} ret]} {
+	    set e $::errorInfo
+	    if {[$AP hostis Router] && [regexp {atlas} [$AP cget -brand]]} {
+		# SWWLAN-51836
+		$STA ping $APIP -c 20
+		$AP worry "Long ping required"
+	    } elseif {[$STA hostis Cygwin WinDHD] &&
+		      [regexp {^10} [$STA cget -osver]]} {
+		# SWWLAN-61858
+		$STA ping $APIP -c 30
+		$AP warn "Long ping required"
+	    } else {
+		error $ret $e
+	    }
+	}
+    }
+}
+

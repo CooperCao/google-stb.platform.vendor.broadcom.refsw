@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 #
@@ -100,6 +99,10 @@ ifeq ($(BCHP_45308_VER),)
 BCHP_45308_VER := B0
 endif
 
+ifeq ($(BCHP_45316_VER),)
+BCHP_45316_VER := B0
+endif
+
 BHAB_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_312X_VER)")}')
 
 BHAB_3461_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3461_VER)")}')
@@ -113,6 +116,7 @@ BHAB_4517_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_4517_VER)")}')
 BHAB_7366_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_7366_VER)")}')
 BHAB_45216_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_45216_VER)")}')
 BHAB_45308_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_45308_VER)")}')
+BHAB_45316_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_45316_VER)")}')
 BHAB_3158_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3158_VER)")}')
 
 # Source needs to know which revision
@@ -121,6 +125,7 @@ BHAB_DEFINES += BHAB_3461_VER=BCHP_VER_$(BCHP_3461_VER)
 BHAB_DEFINES += BHAB_3466_VER=BCHP_VER_$(BCHP_3466_VER)
 BHAB_DEFINES += BHAB_45216_VER=BCHP_VER_$(BCHP_45216_VER)
 BHAB_DEFINES += BHAB_45308_VER=BCHP_VER_$(BCHP_45308_VER)
+BHAB_DEFINES += BHAB_45316_VER=BCHP_VER_$(BCHP_45316_VER)
 
 # Module Includes
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/common
@@ -411,7 +416,12 @@ endif
 endif
 
 ifneq ($(BHAB_45308_SUPPORT),)
+ifeq ($(filter 45308,$(BHAB_CHIP)), 45308)
 BHAB_DEFINES += BHAB_45308_VER=BCHP_VER_$(BCHP_45308_VER)
+endif
+ifeq ($(filter 45316,$(BHAB_CHIP)), 45316)
+BHAB_DEFINES += BHAB_45316_VER=BCHP_VER_$(BCHP_45316_VER)
+endif
 BHAB_INCLUDES += $(MAGNUM)/basemodules/chp/include/45308/rdb/hab/$(BHAB_45308_VER_LOWER)
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/45308/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapsatfe/common/
@@ -420,10 +430,19 @@ BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapsatfe/45308/bhab_45308.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapsatfe/45308/bhab_45308_priv.c
 endif # BHAB_IMG_ONLY
 ifeq ($(BHAB_IMG_EXTERNAL),)
+ifeq ($(filter 45308,$(BHAB_CHIP)), 45308)
 ifeq ($(BHAB_45308_FIRMWARE),echo)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapsatfe/45308/bhab_45308_fw_$(BHAB_45308_VER_LOWER)_echo.c
 else
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapsatfe/45308/bhab_45308_fw_$(BHAB_45308_VER_LOWER).c
+endif
+endif
+ifeq ($(filter 45316,$(BHAB_CHIP)), 45316)
+ifeq ($(BHAB_45308_FIRMWARE),echo)
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapsatfe/45308/bhab_45316_fw_$(BHAB_45316_VER_LOWER)_echo.c
+else
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapsatfe/45308/bhab_45316_fw_$(BHAB_45316_VER_LOWER).c
+endif
 endif
 endif
 endif

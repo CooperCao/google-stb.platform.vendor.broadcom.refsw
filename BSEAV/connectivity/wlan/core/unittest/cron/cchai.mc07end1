@@ -1,0 +1,25 @@
+# These cron jobs are epected to be manually installed on mc07end1 for userid cchai.
+# The cron jobs do NOT self update and do NOT update CVS.
+
+# Early morning tests - tied to specific build schedules
+15 02 * * * /home/cchai/src/tools/unittest/utf_qsub mc07 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"4322NIC, 43225NIC BTAMP QTP DVT_wl\" -rtrdate \"\*\" -stadate \"\*\" -nosetup -noping -noperf -nomimo -noembed -statag NIGHTLY -conn0 \"4718 4322xp 43225vst 43225win7\" -nocompat -dvtwl -norvr
+
+# TOB BTAMP QTP & DVT_wl tests only
+30 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc07 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"4322NIC, 43225NIC BTAMP QTP DVT_wl\" -rtrdate \"\*\" -stadate \"\*\" -nosetup -noping -noperf -nomimo -noembed -conn0 \"4718 4322xp 43225vst 43225win7\" -nocompat -dvtwl -norvr
+
+# Until PR103380 is fixed, use RUBY builds on BTAMP REF PC for 4329 BTAMP tests.
+# 32 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc07 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"Load BTAMP Ref PC\" -rtrdate \"\*\" -stadate \"\*\" -nosetup -noping -noperf -noembed -conn0 \"4718 4322xp 43225vst 43225win7\" -norvr -nocompat -noqtp -noapload -statag RUBY_BRANCH_6_20
+
+# TOB BTAMP 4329 QTP only
+# 34 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc07 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"4329SDIO BTAMP QTP\" -rtrdate \"\*\" -stadate \"\*\" -nosetup -noping -noperf -nomimo -noembed -conn0 \"4718 4329sdio\" -nocompat -norvr
+
+
+
+
+# Evening tests
+# preserved build tests
+00 23 * * * /home/cchai/src/tools/unittest/utf_qsub mc07 /home/cchai/src/tools/unittest/Test/preserved.test -email hnd-utf-list -noaptest -n
+
+# AARDVARK TAGGED Short Mimo, BTAMP QTP & DVT_wl tests
+01 23 * * * /home/cchai/src/tools/unittest/utf_qsub mc07 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"4322NIC, 43225NIC BTAMP QTP DVT_wl\" -rtrdate \"\*\" -stadate \"\*\" -nosetup -noping -noperf -short -statag \"AARDVARK_REL_6_30_\?\?\" -conn0 \"4718 4322xp 43225vst 43225win7\" -nocompat -dvtwl -norvr 
+

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_transport_module.h"
 
@@ -408,13 +407,15 @@ b_pump_crypto_no_cache_flush(const void *addr, size_t len)
 b_pump_crypto_t
 b_pump_crypto_create(NEXUS_PlaypumpHandle pump)
 {
+#if (!NEXUS_HAS_XPT_DMA)
     BERR_Code rc;
+#endif
     b_pump_crypto_t crypto;
     bsink_playback_cfg sink_cfg;
 
     BDBG_MSG_TRACE(("b_pump_crypto_create>:"));
     crypto = BKNI_Malloc(sizeof(*crypto));
-    if(!crypto) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_alloc; }
+    if(!crypto) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_alloc; }
 
     BDBG_OBJECT_INIT(crypto, b_pump_crypto_t);
     crypto->pump = pump;
@@ -426,30 +427,30 @@ b_pump_crypto_create(NEXUS_PlaypumpHandle pump)
     BFIFO_INIT(&crypto->pending, pump->item_mem, pump->openSettings.numDescriptors);
     crypto->ts_feed.pipe_clear = NULL;
     crypto->factory = batom_factory_create(bkni_alloc, B_PUMP_CRYPTO_FACTORY_ATOMS);
-    if(!crypto->factory) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_factory; }
+    if(!crypto->factory) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_factory; }
 
     bsink_playback_default_cfg(&sink_cfg);
     sink_cfg.feed = crypto->pump->play_feed;
     sink_cfg.cache_flush = b_pump_crypto_no_cache_flush; /* since data came straigh from DMA there is no need to flush a cache */
     sink_cfg.addr_to_offset = NEXUS_AddrToOffset;
     crypto->sink = bsink_playback_create(crypto->factory, &sink_cfg);
-    if(!crypto->sink) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_sink; }
+    if(!crypto->sink) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_sink; }
 
     crypto->parser_pipe = batom_pipe_create(crypto->factory);
-    if(!crypto->parser_pipe) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_parser_pipe; }
+    if(!crypto->parser_pipe) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_parser_pipe; }
 
     crypto->ts_feed.pipe_clear = batom_pipe_create(crypto->factory);
-    if(!crypto->ts_feed.pipe_clear) { rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_pipe_clear; }
+    if(!crypto->ts_feed.pipe_clear) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_pipe_clear; }
 
     crypto->parser_acc = batom_accum_create(crypto->factory);
-    if(!crypto->parser_acc) { rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_parser_acc; }
+    if(!crypto->parser_acc) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_parser_acc; }
 
 #if (!NEXUS_HAS_XPT_DMA)
     rc = BKNI_CreateEvent(&crypto->dma.event);
-    if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto err_dma_event; }
+    if(rc!=BERR_SUCCESS) {BERR_TRACE(rc); goto err_dma_event; }
 
     crypto->dma.callback = NEXUS_RegisterEvent(crypto->dma.event, b_pump_crypto_dma_callback, crypto);
-    if(!crypto->dma.callback) { rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_dma_callback; }
+    if(!crypto->dma.callback) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_dma_callback; }
 #endif
 
     BDBG_MSG_TRACE(("b_pump_crypto_create>: %#lx", (unsigned long)crypto));
@@ -459,8 +460,8 @@ b_pump_crypto_create(NEXUS_PlaypumpHandle pump)
 err_dma_callback:
     BKNI_DestroyEvent(crypto->dma.event);
 err_dma_event:
-#endif
     batom_accum_destroy(crypto->parser_acc);
+#endif
 err_parser_acc:
     batom_pipe_destroy(crypto->ts_feed.pipe_clear);
 err_pipe_clear:
@@ -540,6 +541,10 @@ b_pump_crypto_stop(b_pump_crypto_t crypto)
     crypto->dma.job = NULL;
 #else
     if(crypto->dma.busy) {
+#if NEXUS_HAS_XPT_DMA
+        rc = NEXUS_DmaJob_P_Wait(crypto->dma.job);
+        if (rc) BERR_TRACE(rc); /* keep going */
+#else
         unsigned i;
         NEXUS_DmaJobStatus jobStatus;
 
@@ -552,6 +557,7 @@ b_pump_crypto_stop(b_pump_crypto_t crypto)
             BDBG_MSG(("b_pump_crypto_stop: %#lx waiting for DMA to complete %u", (unsigned long)crypto, i));
             BKNI_Sleep(1);
         }
+#endif
         crypto->dma.busy = false;
     }
     NEXUS_DmaJob_Destroy(crypto->dma.job);

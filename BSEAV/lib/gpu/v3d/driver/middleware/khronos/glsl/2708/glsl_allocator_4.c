@@ -1,17 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Responsible for fitting nodes into the ADD and MUL units and allocating registers
-for their destinations.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
@@ -2853,6 +2842,23 @@ static uint32_t generate(uint32_t *output)
             op1 = get_op_struct(op_from_timestamp(i+j, 1));
             dest0 = (op0->flavour != FLAVOUR_UNUSED) ? get_dest_without_pack(op0->dest) : (OP_FLAVOUR_T)~0;
             dest1 = (op1->flavour != FLAVOUR_UNUSED) ? get_dest_without_pack(op1->dest) : (OP_FLAVOUR_T)~0;
+
+            if (khrn_workarounds.GFXH1670)
+            {
+               if (dest0 == DEST_EITHER(44) /* tlbz */ ||
+                  dest0 == DEST_EITHER(45) /* tlbm */ ||
+                  dest0 == DEST_EITHER(46) /* tlbc */ ||
+                  dest0 == DEST_EITHER(47) /* tlbam */
+                  )
+                  bad = true;
+
+               if (dest1 == DEST_EITHER(44) /* tlbz */ ||
+                  dest1 == DEST_EITHER(45) /* tlbm */ ||
+                  dest1 == DEST_EITHER(46) /*tlbc */ ||
+                  dest1 == DEST_EITHER(47) /* tlbam */
+                  )
+                  bad = true;
+            }
 
             if (j == 0)
             {

@@ -9,6 +9,7 @@
    #include "glsl_intrinsic.h"
    #include "glsl_mem_utils.h"
    #include "glsl_symbol_table.h"
+   #include "glsl_fastmem.h"
 
    #include "prepro/glsl_prepro_directive.h"
    #include "prepro/glsl_prepro_token.h"

@@ -55,7 +55,7 @@ class CTunerVsbScanData : public CTunerScanData
 public:
     CTunerVsbScanData(
             bool     appendToChannelList = false,
-            uint16_t majorStartNum = 1
+            unsigned majorStartNum = 1
             ) :
         CTunerScanData(eBoardResource_frontendVsb, appendToChannelList, majorStartNum),
         _bandwidth(6000000),
@@ -90,7 +90,7 @@ class CTunerVsb : public CTuner
 public:
     CTunerVsb(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

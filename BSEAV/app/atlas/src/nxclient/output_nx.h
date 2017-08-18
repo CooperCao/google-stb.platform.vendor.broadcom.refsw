@@ -47,7 +47,7 @@ class COutputHdmiNx : public COutputHdmi
 public:
     COutputHdmiNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputHdmiNx(void);
@@ -63,15 +63,15 @@ public:
     virtual bool         getMute(void);
     virtual eRet         setMute(bool bMute);
 
-    bool isValidHotplug(uint16_t count); /* see NxClient_CallbackStatus.hdmiOutputHotplug */
-    bool isValidHdcp(uint16_t count);    /* see NxClient_CallbackStatus.hdmiOutputHdcpChanged */
+    bool isValidHotplug(unsigned count); /* see NxClient_CallbackStatus.hdmiOutputHotplug */
+    bool isValidHdcp(unsigned count);    /* see NxClient_CallbackStatus.hdmiOutputHdcpChanged */
     eRet setColorSpace(NEXUS_ColorSpace colorSpace);
     eRet setColorDepth(uint8_t colorDepth);
 
 protected:
     NxClient_CallbackStatus _statusCallback;
-    uint16_t                _countHotplug;
-    uint16_t                _countHdcp;
+    unsigned                _countHotplug;
+    unsigned                _countHdcp;
 };
 
 #endif /* OUTPUT_NX_H__ */

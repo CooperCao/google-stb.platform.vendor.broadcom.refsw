@@ -7,7 +7,7 @@
 #include "libs/util/gfx_util/gfx_util.h"
 #include "libs/util/assert_helpers.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 static inline v3d_addr_t v3d_addr_min(v3d_addr_t a, v3d_addr_t b)
 {
@@ -19,13 +19,19 @@ static inline v3d_addr_t v3d_addr_max(v3d_addr_t a, v3d_addr_t b)
    return (a > b) ? a : b;
 }
 
-static inline v3d_addr_t v3d_addr_offset(v3d_addr_t addr, size_t offset)
+static inline v3d_addr_t v3d_addr_offset(v3d_addr_t addr, v3d_size_t offset)
 {
    v3d_addr_t offset_addr;
    assert(offset <= (v3d_addr_t)-1);
    offset_addr = (v3d_addr_t)(addr + offset);
    assert(offset_addr >= addr);
    return offset_addr;
+}
+
+static inline v3d_addr_t v3d_addr_offset_wrap(v3d_addr_t addr, v3d_size_t offset)
+{
+   static_assrt(sizeof(v3d_addr_t) == sizeof(uint32_t));
+   return (uint32_t)addr + (uint32_t)offset;
 }
 
 static inline v3d_addr_t v3d_addr_align_down(v3d_addr_t addr, uint32_t align)
@@ -63,7 +69,7 @@ static inline bool v3d_addr_aligned(v3d_addr_t addr, uint32_t align)
 #define v3d_assert_addr_range_within(BEGIN, SIZE, PERMITTED_BEGIN, PERMITTED_SIZE)
 #endif
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #ifdef __cplusplus
 

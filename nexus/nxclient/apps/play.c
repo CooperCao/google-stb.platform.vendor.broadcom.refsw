@@ -129,6 +129,11 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "  -scan 1080p\n"
     "  -chunk                   chunked playback, size and first chunk is autodetected\n"
     );
+    printf(
+    "  -video_cache_timeout MSEC\n"
+    );
+    print_list_option(
+    "  -master", g_stcChannelMasterStrs);
 }
 
 struct client_state
@@ -291,11 +296,11 @@ static void *standby_monitor(void *context)
     NxClient_StandbyStatus standbyStatus, prevStatus;
 
     rc = NxClient_GetStandbyStatus(&prevStatus);
-    BDBG_ASSERT(!rc);
+    if (rc) exit(0); /* server is down, exit gracefully */
 
     while(!client->stopped) {
         rc = NxClient_GetStandbyStatus(&standbyStatus);
-        BDBG_ASSERT(!rc);
+        if (rc) exit(0); /* server is down, exit gracefully */
 
         if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
             printf("'play' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
@@ -339,6 +344,7 @@ int main(int argc, const char **argv)  {
     struct binput_settings input_settings;
     bool hdcp_flag = false;
     bool hdcp_version_flag = false;
+    unsigned video_cache_timeout = 0;
 
     memset(&pig_inc, 0, sizeof(pig_inc));
     memset(client, 0, sizeof(*client));
@@ -543,6 +549,12 @@ int main(int argc, const char **argv)  {
         else if (!strcmp(argv[curarg], "-chunk")) {
             start_settings.chunked = true;
         }
+        else if (!strcmp(argv[curarg], "-video_cache_timeout") && argc>curarg+1) {
+            video_cache_timeout = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-master") && argc>curarg+1) {
+            start_settings.stcMaster = lookup(g_stcChannelMasterStrs, argv[++curarg]);
+        }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
                 print_usage(&cmdline);
@@ -654,6 +666,12 @@ int main(int argc, const char **argv)  {
             NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(videoDecoder, &settings);
             nxapps_cmdline_apply_SimpleVideoDecodePictureQualitySettings(&cmdline, &settings);
             NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(videoDecoder, &settings);
+        }
+        if (video_cache_timeout) {
+            NEXUS_SimpleVideoDecoderClientSettings settings;
+            NEXUS_SimpleVideoDecoder_GetClientSettings(videoDecoder, &settings);
+            settings.cache.timeout = video_cache_timeout;
+            NEXUS_SimpleVideoDecoder_SetClientSettings(videoDecoder, &settings);
         }
     }
 

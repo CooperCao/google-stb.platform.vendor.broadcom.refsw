@@ -286,8 +286,10 @@ protected:
     CWidgetModalMsgBox * _MsgBoxError;
 #ifdef WPA_SUPPLICANT_SUPPORT
     CWifi * _pNetwork;
-#elif NETAPP_SUPPORT
+#elif defined NETAPP_SUPPORT
     CNetwork * _pNetwork;
+#else /* placeholder */
+    void    * _pNetwork;
 #endif
     CWidgetButton * _pBack;
     MAutoList <CPanelNetworkWifiProp>   _propList;

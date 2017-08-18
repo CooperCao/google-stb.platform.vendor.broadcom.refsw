@@ -110,7 +110,7 @@ bool glxx_texture_are_legal_dimensions(GLenum target, int w, int h, int d)
          ok = w <= MAX_TEXTURE_SIZE;
          break;
       case GL_TEXTURE_1D_ARRAY_BRCM:
-         ok = w <= MAX_TEXTURE_SIZE && d <= MAX_ARRAY_TEXTURE_LAYERS;
+         ok = w <= MAX_TEXTURE_SIZE && h <= MAX_ARRAY_TEXTURE_LAYERS;
          break;
       case GL_TEXTURE_2D:
       case GL_TEXTURE_EXTERNAL_OES:

@@ -103,7 +103,7 @@ namespace RamFS {
 
         void accessTimes(AccessTimes *times);
 
-        int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset);
+        int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset, PageTable *pageTable = NULL);
 
         void freeze();
 

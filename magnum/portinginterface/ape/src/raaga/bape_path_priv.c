@@ -1244,7 +1244,7 @@ void BAPE_PathNode_P_FindConsumersByType(
 Summary:
 Search for consumers by a type and subtype
 ***************************************************************************/
-void BAPE_PathNode_P_FindConsumersBySubtype(
+void BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(
     BAPE_PathNode *pNode,
     BAPE_PathNodeType type,
     unsigned subtype,
@@ -1345,7 +1345,7 @@ bool BAPE_PathNode_P_HasNodeTypeBetween(BAPE_PathNodeType type, unsigned subtype
     BAPE_PathNode *pNodes[BAPE_MAX_NODES];
 
     /* check for intermediate mixer mode */
-    BAPE_PathNode_P_FindConsumersBySubtype(pSourceNode, type, subtype, BAPE_MAX_NODES, &numFound, pNodes);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(pSourceNode, type, subtype, BAPE_MAX_NODES, &numFound, pNodes);
 
     for ( i=0; i<numFound; i++ )
     {
@@ -1366,7 +1366,7 @@ BERR_Code BAPE_PathNode_P_GetDecodersDownstreamDspMixer(BAPE_PathNode * pSourceN
 
     *fwMixer = NULL;
 
-    BAPE_PathNode_P_FindConsumersBySubtype(pSourceNode, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, BAPE_CHIP_MAX_MIXERS, &numFound, pDspMixers);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(pSourceNode, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, BAPE_CHIP_MAX_MIXERS, &numFound, pDspMixers);
     for ( i=0; i<numFound; i++ )
     {
         /* only report if there is no Intermediate mixer in between */

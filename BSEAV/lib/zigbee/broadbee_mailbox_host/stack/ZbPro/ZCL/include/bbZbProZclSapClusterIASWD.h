@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZCL/include/bbZbProZclSapClusterIASWD.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL IAS WD cluster SAP interface.
+*       ZCL IAS WD cluster SAP interface.
 *
-* $Revision: 7614 $
-* $Date: 2015-07-21 14:48:39Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_CLUSTER_IAS_WD_H
 #define _BB_ZBPRO_ZCL_SAP_CLUSTER_IAS_WD_H
@@ -66,6 +58,7 @@
  *  These attributes are provided by Server side of the cluster.
  * \details
  *  IAS WD ZCL cluster has no attributes provided by Client side.
+ * \ingroup ZBPRO_ZCL_IASWDAttr
  * \note
  *  This implementation of IAS WD ZCL cluster doesn't provide Server side. *
  * \par     Documentation
@@ -82,6 +75,7 @@ typedef enum _ZBPRO_ZCL_SapIASWDServerAttributeId_t
 
 /**//**
  * \brief   Data type shared by MaxDuration attribute of IAS WD cluster.
+ * \ingroup ZBPRO_ZCL_IASWDAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 8.4.2.2, Table 8-17.
  */
@@ -92,6 +86,7 @@ typedef   uint16_t   ZBPRO_ZCL_SapIASWDAttrMaxDuration_t;    /*!< Shared data ty
 /**//**
  * \brief   Enum for Warning Mode field of the Start Warning Command request
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1.2, Table 8-19.
  */
@@ -111,6 +106,7 @@ typedef enum _ZBPRO_ZCL_SapIASWDParamWarningMode_t
 /**//**
  * \brief   Enum for Strobe Field of the Start Warning Command request
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1.3, Table 8-20.
  */
@@ -126,6 +122,7 @@ typedef enum _ZBPRO_ZCL_SapIASWDParamWarningStrobe_t
 /**//**
  * \brief   Enum for Siren Level Field of the Start Warning Command request
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1.4, Table 8-21.
  */
@@ -144,19 +141,22 @@ typedef enum _ZBPRO_ZCL_SapIASWDParamSirenLevel_t
 
 /**//**
  * \brief Shared type for Strobe Duty Cycle parameter of the Start Warning command.
-*/
+ * \ingroup ZBPRO_ZCL_StartWarningReq
+ */
 typedef  uint8_t  ZBPRO_ZCL_SapIASWDParamStrobeDutyCycle_t;
 
 
 /**//**
  * \brief Shared type for Warning Duration parameter of the Start Warning command.
-*/
+ * \ingroup ZBPRO_ZCL_StartWarningReq
+ */
 typedef  uint16_t  ZBPRO_ZCL_SapIASWDParamWarningDuration_t;
 
 
 /**//**
  * \brief   Enum for Strobe Level Field of the Start Warning Command request
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1.7, Table 8-22.
  */
@@ -176,6 +176,7 @@ typedef enum _ZBPRO_ZCL_SapIASWDParamStrobeLevel_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Start warning command
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1, figure 8-13.
  */
@@ -216,7 +217,8 @@ typedef struct _ZBPRO_ZCL_IASWDCmdStartWarningReqParams_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Start warning command
  * specific to IAS WD ZCL cluster.
- *\note
+ * \ingroup ZBPRO_ZCL_StartWarningConf
+ * \note
  * Start warning command have no response. So, Confirmation will be empty (with obligatory parameters only).
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1, figure 8-13.
@@ -227,6 +229,7 @@ typedef    ZbProZclLocalPrimitiveParamsPrototype_t     ZBPRO_ZCL_IASWDCmdStartWa
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Start warning command
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningReq
  */
 typedef struct     _ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t     ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t;
 
@@ -234,6 +237,7 @@ typedef struct     _ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t     ZBPRO_ZCL_IASWD
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Start warning command
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -245,6 +249,7 @@ typedef void ZBPRO_ZCL_IASWDCmdStartWarningConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Start warning command
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StartWarningReq
  */
 struct _ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t
 {
@@ -264,6 +269,7 @@ struct _ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t
 /**//**
  * \brief   Enum for Squawk Mode Field of the Squawk Command request
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_SquawkReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.2.2, Table 8-23.
  */
@@ -279,6 +285,7 @@ typedef enum _ZBPRO_ZCL_SapIASWDParamSquawkMode_t
 /**//**
  * \brief   Enum for Strobe Field of the Squawk Command request
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_SquawkReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1.3, Table 8-20.
  */
@@ -294,6 +301,7 @@ typedef enum _ZBPRO_ZCL_SapIASWDParamSquawkStrobe_t
 /**//**
  * \brief   Enum for Squawk Level Field of the Squawk Command request
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_SquawkReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.2.4, Table 8-25.
  */
@@ -312,7 +320,8 @@ typedef enum _ZBPRO_ZCL_SapIASWDParamSquawkLevel_t
 
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Squawk Command
-  * specific to IAS WD ZCL cluster.
+ * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_SquawkReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.2, figure 8-14.
  */
@@ -338,7 +347,8 @@ typedef struct _ZBPRO_ZCL_IASWDCmdSquawkReqParams_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Squawk command
  * specific to IAS WD ZCL cluster.
- *\note
+ * \ingroup ZBPRO_ZCL_SquawkConf
+ * \note
  * Squawk command have no response. So, Confirmation will be empty (with obligatory parameters only).
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.4.2.3.1, figure 8-13.
@@ -349,6 +359,7 @@ typedef    ZbProZclLocalPrimitiveParamsPrototype_t     ZBPRO_ZCL_IASWDCmdSquawkC
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Squawk command
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_SquawkReq
  */
 typedef struct   _ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t     ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t;
 
@@ -356,6 +367,7 @@ typedef struct   _ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t     ZBPRO_ZCL_IASWDCmdSquaw
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Squawk command
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_SquawkConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -367,6 +379,7 @@ typedef void ZBPRO_ZCL_IASWDCmdSquawkConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Squawk command
  * specific to IAS WD ZCL cluster.
+ * \ingroup ZBPRO_ZCL_SquawkReq
  */
 struct _ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t
 {
@@ -384,9 +397,9 @@ struct _ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name    Functions accept ZCL Local Requests to issue Start warning, Squawk commands
+ * \brief   Functions accept ZCL Local Requests to issue Start warning, Squawk commands
  *  specific to IAS WD ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
  * \details
  *  The caller shall specify the following obligatory parameters of request:
  *  - callback                      assign with ZCL Local Confirm handler function,
@@ -432,7 +445,9 @@ struct _ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t
 /**//**
  * \brief   Accepts ZCL Local Request to issue Start warning command
  *  command specific to IAS WD ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_IASWDCmdStartWarningReq(ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t *const  reqDescr);
 
@@ -440,9 +455,13 @@ void ZBPRO_ZCL_IASWDCmdStartWarningReq(ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t 
 /**//**
  * \brief   Accepts ZCL Local Request to issue Squawk command
  *  command specific to IAS WD ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_IASWDCmdSquawkReq(ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t *const  reqDescr);
 
 
 #endif
+
+/* eof bbZbProZclSapClusterIASWD.h */

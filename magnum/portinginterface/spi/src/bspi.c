@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 
@@ -44,10 +41,7 @@
 #include "bchp_common.h"
 #include "breg_spi_priv.h"
 #include "bspi.h"
-
-#if (HAS_UPG_MSPI==1)
 #include "bchp_mspi.h"
-#endif
 
 #if defined(BCHP_IRQ0_REG_START)
 #include "bchp_irq0.h"
@@ -57,6 +51,7 @@
 
 #if defined(BCHP_UPG_SPI_AON_IRQ_REG_START) /* Later 64-bit ARM CPU chips e.g. 7260/68/71/78 */
 #include "bchp_upg_spi_aon_irq.h"
+#include "bchp_int_id_upg_spi_aon_irq.h"
 #endif
 
 #include "bkni_multi.h"
@@ -72,6 +67,8 @@ static BERR_Code BSPI_P_WriteAll(void *context, const uint8_t *pWriteData, size_
 static BERR_Code BSPI_P_Write(void *context, const uint8_t *pWriteData, size_t length);
 static BERR_Code BSPI_P_Read(void *context, const uint8_t *pWriteData, uint8_t *pReadData, size_t length);
 static BERR_Code BSPI_P_ReadAll(void *context, const uint8_t *pWriteData, size_t writeLength, uint8_t *pReadData, size_t readLength);
+
+#define SPI_REG(x)              BCHP_MSPI_##x
 
 #define BSPI_CHK_RETCODE( rc, func )        \
 do {                                        \
@@ -180,7 +177,7 @@ typedef struct BSPI_P_ChannelHandle
 *   Default Module Settings
 *
 *******************************************************************************/
-void BSPI_P_ACQUIRE_UPG_MUTEX(BSPI_ChannelHandle hChn )
+static void BSPI_P_ACQUIRE_UPG_MUTEX(BSPI_ChannelHandle hChn )
 {
     BSPI_Handle hDev;
 
@@ -192,7 +189,7 @@ void BSPI_P_ACQUIRE_UPG_MUTEX(BSPI_ChannelHandle hChn )
     }
 }
 
-void BSPI_P_RELEASE_UPG_MUTEX(BSPI_ChannelHandle hChn )
+static void BSPI_P_RELEASE_UPG_MUTEX(BSPI_ChannelHandle hChn )
 {
     BSPI_Handle hDev;
 
@@ -480,17 +477,7 @@ BERR_Code BSPI_OpenChannel(
                  * Register and enable L2 interrupt.
                  */
 #if !defined(BCHP_INT_ID_spi_irqen)
-
-#if defined(BCHP_UPG_SPI_AON_IRQ_CPU_STATUS)
-#define BCHP_INT_ID_spi_irqen BCHP_INT_ID_CREATE(BCHP_UPG_SPI_AON_IRQ_CPU_STATUS, BCHP_UPG_SPI_AON_IRQ_CPU_STATUS_spi_SHIFT)
-#else
-#if HAS_UPG_MSPI
-#define BCHP_INT_ID_spi_irqen           BCHP_INT_ID_spi
-#else
-/* HIF_MSPI not supported in Magnum */
-#define BCHP_INT_ID_spi_irqen           0
-#endif
-#endif
+#define BCHP_INT_ID_spi_irqen BCHP_INT_ID_spi
 #endif
                 if (channelNo < MAX_SPI_CHANNELS)
                 {
@@ -972,7 +959,7 @@ done:
     return( retCode );
 }
 
-BERR_Code BSPI_P_Start(
+static BERR_Code BSPI_P_Start(
     BSPI_ChannelHandle hChn         /* Device channel handle */
     )
 {
@@ -1001,18 +988,15 @@ BERR_Code BSPI_P_Start(
     return( retCode );
 }
 
-void BSPI_P_SetContinueAfterCommand(
+static void BSPI_P_SetContinueAfterCommand(
     void *context,              /* Device channel handle */
     bool bEnable
 )
 {
-    BSPI_Handle         hDev;
     BSPI_ChannelHandle  hChn;
 
     hChn = (BSPI_ChannelHandle)context;
     BDBG_OBJECT_ASSERT( hChn, BSPI_P_ChannelHandle );
-
-    hDev = hChn->hSpi;
 
     if (bEnable == hChn->continueAfterCommand) {
         BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -1033,13 +1017,11 @@ void BSPI_P_GetBitsPerTransfer
     uint8_t *pBitsPerTransfer  /* Number of bits transferred per command byte */
 )
 {
-    BSPI_Handle         hDev;
     BSPI_ChannelHandle  hChn;
 
     hChn = (BSPI_ChannelHandle)context;
     BDBG_OBJECT_ASSERT( hChn, BSPI_P_ChannelHandle );
 
-    hDev = hChn->hSpi;
     BSPI_P_ACQUIRE_UPG_MUTEX( hChn );
 
     *pBitsPerTransfer = hChn->bitsPerTxfr;
@@ -1401,7 +1383,6 @@ BERR_Code BSPI_P_Multiple_Write
 	size_t count
 )
 {
-    BSPI_Handle         hDev;
     BSPI_ChannelHandle  hChn;
     BERR_Code           retCode = BERR_SUCCESS;
     uint32_t            i = 0;
@@ -1412,7 +1393,6 @@ BERR_Code BSPI_P_Multiple_Write
 
     BSPI_P_ACQUIRE_UPG_MUTEX( hChn );
 
-    hDev = hChn->hSpi;
     tempData = (BREG_SPI_Data *)pWriteData;
 
     if(count < 2) {
@@ -1715,7 +1695,6 @@ void BSPI_P_SetClk(
 {
     BSPI_Handle hDev;
     uint32_t    lval;
-    BERR_Code   retCode = BERR_SUCCESS;
 
     BDBG_OBJECT_ASSERT(hChn, BSPI_P_ChannelHandle);
 
@@ -1723,7 +1702,7 @@ void BSPI_P_SetClk(
 
     if (baud > MAX_SPI_BAUD)
     {
-        retCode = BERR_INVALID_PARAMETER;
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return;
     }
 

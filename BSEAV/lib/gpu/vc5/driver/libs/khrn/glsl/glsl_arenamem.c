@@ -7,7 +7,6 @@
 
 #include "glsl_alloc_tracker.h"
 #include "glsl_arenamem.h"
-#include "glsl_file_utils.h"
 #include "glsl_mem_utils.h"
 
 typedef struct _ArenaHunk {
@@ -32,6 +31,20 @@ struct mem_record {
    int          line;
    size_t       bytes;
 };
+
+
+const char *basename(const char *filename) {
+   const char *p;
+   const char *ret;
+
+   ret = filename;
+   for(p = filename; *p; ++p) {
+      if(*p == '/' || *p == '\\') {
+         ret = p+1;
+      }
+   }
+   return ret;
+}
 #endif
 
 #ifndef GLSL_MEMORY_DEBUG
@@ -44,7 +57,7 @@ ArenaAlloc *glsl_arena_create_debug(size_t hunk_size, const char *file, int line
    ret->hunks       = NULL;
    ret->hunk_size   = hunk_size;
 #ifdef GLSL_MEMORY_DEBUG
-   ret->origin_file = file;
+   ret->origin_file = basename(file);
    ret->origin_line = line;
 #endif
 
@@ -158,7 +171,7 @@ void glsl_arena_print(const ArenaAlloc *a) {
    ArenaHunk *cur;
    int hunk_count;
 
-   printf("Arena allocated at %s:%d\n", glsl_file_utils_basename(a->origin_file), a->origin_line);
+   printf("Arena allocated at %s:%d\n", a->origin_file, a->origin_line);
 
    hunk_count = 0;
    for(cur = a->hunks; cur; cur = cur->prev) {

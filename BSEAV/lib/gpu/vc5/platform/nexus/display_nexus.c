@@ -5,7 +5,6 @@
 #include "display_nexus.h"
 #include "display_helpers.h"
 #include "display_surface.h"
-#include "fence.h"
 
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
@@ -13,11 +12,12 @@
 
 #include "display_interface.h"
 #include "display_framework.h"
-#include "../common/fence_interface_nexus.h"
 #include "../common/surface_interface_nexus.h"
 
 #include "display_nexus_exclusive.h"
 #include "display_nexus_multi.h"
+
+#include "sched_nexus.h"
 
 #include "platform_common.h"
 #include "fence_queue.h"
@@ -152,14 +152,14 @@ static BEGL_Error DispGetNextSurface(
    return BEGL_Success;
 }
 
-static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *nativeSurface, int fence)
+static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *nativeSurface, int fence, int interval)
 {
    UNUSED(context);
    PlatformState *state = (PlatformState *) nativeWindow;
    if (state && nativeSurface)
    {
       DisplayFramework_DisplaySurface(&state->display_framework,
-            nativeSurface, fence, state->native_window->swapInterval);
+            nativeSurface, fence, interval);
       return BEGL_Success;
    }
    else
@@ -178,14 +178,6 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nat
    }
    else
       return BEGL_Fail;
-}
-
-static void DispSetSwapInterval(void *context, void *nativeWindow, int interval)
-{
-   UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
-   if (interval >= 0)
-      state->native_window->swapInterval = interval;
 }
 
 static bool  DisplayPlatformSupported(void *context, uint32_t platform)
@@ -247,7 +239,7 @@ static void *DispWindowPlatformStateCreate(void *context, void *native)
       state = calloc(1, sizeof(*state));
       if (state)
       {
-         FenceInteraface_InitNexus(&state->fence_interface, ctx->schedIface);
+         InitFenceInterface(&state->fence_interface, ctx->schedIface);
          SurfaceInterface_InitNexus(&state->surface_interface);
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
@@ -334,7 +326,6 @@ BEGL_DisplayInterface *CreateDisplayInterface(
          disp->GetNextSurface             = DispGetNextSurface;
          disp->DisplaySurface             = DispDisplaySurface;
          disp->CancelSurface              = DispCancelSurface;
-         disp->SetSwapInterval            = DispSetSwapInterval;
          disp->PlatformSupported          = DisplayPlatformSupported;
          disp->SetDefaultDisplay          = DispSetDefaultDisplay;
          disp->GetDefaultDisplay          = DispGetDefaultDisplay;
@@ -454,8 +445,6 @@ void *NXPL_CreateNativeWindowEXT(const NXPL_NativeWindowInfoEXT *info)
          nw->numSurfaces = 2;
       else
          nw->numSurfaces = MAX_SWAP_BUFFERS;
-
-      nw->swapInterval = 1;
    }
 
    return nw;

@@ -1,0 +1,59 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to reproduce PR95411
+#
+# Written by: Robert J. McMahon May 2011
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Multicast
+package require UTF::IGMPQuerier
+UTF::Test PR95411 {args} {
+    UTF::Getopts {
+	{ap.arg "iptv_ap"}
+	{wets.arg "iptv_br1 iptv_br2"}
+	{count.arg "10"}
+	{pps.arg "5"}
+    }
+    UTF::Try "PR95411 reproduce" {
+	if {[info command igmpq] ne "igmpq"} {
+	    UTF::IGMPQuerier igmpq -ap $(ap)
+	}
+	igmpq start
+	UTF::stream logginglevel ANALYZE
+	foreach wet $(wets) {
+	    lappend wetstas [$wet cget -lanpeer]
+	}
+	set txsta [$(ap) cget -lanpeer]
+	set testruns 4
+	while {$testruns} {
+	    incr testruns -1
+	    UTF::Try "test run" {
+		UTF::stream allstreams stop
+		for {set ix 0} {$ix < $(count)} {incr ix} {
+		    UTF::stream %AUTO% -transmitsta $txsta -receivesta $wetstas -pktsize 200 -pps $(pps) -multicast on
+		}
+		set streams [UTF::stream info instances]
+		foreach stream $streams {
+		    $stream start
+		}
+		UTF::Sleep 2
+		UTF::Multicast::show_emfdb_rates -ap [concat $(ap) $(wets)]
+		foreach stream $streams {
+		    $stream stop
+		}
+		UTF::Multicast::show_emfdb_rates -ap [concat $(ap) $(wets)]
+	    }
+	}
+	# UTF::Sleep 1.0
+    }
+    UTF::Try "exit" {
+	catch {igmpq destroy}
+	UTF::stream exitstreams
+    }
+}

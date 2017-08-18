@@ -1,0 +1,7 @@
+BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature feature)
+{
+    /* override for unittest purposes */
+    BSTD_UNUSED(chp);
+    BSTD_UNUSED(feature);
+    return BERR_SUCCESS;
+}

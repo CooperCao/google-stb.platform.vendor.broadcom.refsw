@@ -474,7 +474,7 @@ eRet CStreamerHttp::addAllTracks()
     CPid *                pPid      = NULL;
     BIP_StreamerTrackInfo streamerTrackInfo;
     int                   trackIndex = 0;
-    uint16_t              pmtPid     = 0;
+    unsigned              pmtPid     = 0;
 
     /* Set mediaInfo parameters.*/
     if (eHttpStreamerInputType_File == _streamerInputType)

@@ -52,7 +52,7 @@ class CSimpleVideoDecodeNx : public CSimpleVideoDecode
 public:
     CSimpleVideoDecodeNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CSimpleVideoDecodeNx();
@@ -63,8 +63,8 @@ public:
     virtual eRet   setVideoWindowGeometryPercent(MRect * pRectGeomPercent = NULL);
 
     NEXUS_SurfaceClientHandle getDesktopClientVideoWin(void) { return(_surfaceClientVideoWin); }
-    eRet                      setPosition(MRect rect, uint16_t zorder);
-    eRet                      setGeometryVideoWindow(MRect rect, uint16_t percent, eWinArea area, uint16_t border, uint16_t zorder, MRect * pRectPercent = NULL);
+    eRet                      setPosition(MRect rect, unsigned zorder);
+    eRet                      setGeometryVideoWindow(MRect rect, unsigned percent, eWinArea area, unsigned border, unsigned zorder, MRect * pRectPercent = NULL);
     NEXUS_VideoFormat         getFormat(void);
 
 protected:

@@ -561,6 +561,18 @@ static void nexus_p_add_display_buffers(NEXUS_DisplayHeapSettings *pHeapSettings
     pHeapSettings->sdBuffers.pipCount += pVdcHeapSettings->ulBufferCnt_SD_Pip;
 }
 
+static unsigned nexus_p_get_window_heap(const struct NEXUS_MemoryLayout *memoryLayout, unsigned memcIndex, enum nexus_memconfig_picbuftype picbuftype, NEXUS_SecureVideo secure)
+{
+    if ((picbuftype == nexus_memconfig_picbuftype_unsecure && secure != NEXUS_SecureVideo_eSecure) ||
+        (picbuftype == nexus_memconfig_picbuftype_secure && secure != NEXUS_SecureVideo_eUnsecure)) {
+        return memoryLayout->heapIndex.pictureBuffer[memcIndex][picbuftype];
+    }
+    else {
+        /* not allowed */
+        return NEXUS_MAX_HEAPS;
+    }
+}
+
 static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryConfigurationSettings *pSettings, const NEXUS_MemoryRtsSettings *pRtsSettings, NEXUS_MemoryConfiguration *pConfig,
     const NEXUS_PlatformSettings *pPlatformSettings)
 {
@@ -682,7 +694,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         structs->xvd.channelSettings.bAVC51Enable = mem->avc51Supported;
         structs->xvd.channelSettings.eChannelMode = still ? BXVD_ChannelMode_eStill : BXVD_ChannelMode_eVideo;
         structs->xvd.channelSettings.b10BitBuffersEnable = mem->colorDepth >= 10;
-
+        structs->xvd.channelSettings.uiExtraPictureMemoryAtoms = mem->extraPictureBuffers;
         structs->xvd.channelSettings.peVideoCmprStdList = structs->xvd.stVideoCompressionList;
         NEXUS_VideoDecoder_SetVideoCmprStdList_priv(structs->xvd.supportedCodecs, &structs->xvd.channelSettings, BAVC_VideoCompressionStd_eMax);
         structs->xvd.channelSettings.eDecodeResolution = NEXUS_VideoDecoder_GetDecodeResolution_priv(info.width, info.height);
@@ -1061,13 +1073,13 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             unsigned memcIndex;
             if (pSettings->display[i].maxFormat > 0 && pSettings->display[i].window[j].used) {
                 memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
-                pConfig->display.videoWindowHeapIndex[i][j] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_unsecure];
-                pConfig->display.secure.videoWindowHeapIndex[i][j] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_secure];
+                pConfig->display.videoWindowHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_unsecure, pSettings->display[i].window[j].secure);
+                pConfig->display.secure.videoWindowHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_secure, pSettings->display[i].window[j].secure);
             }
             memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j];
             if (memcIndex != BBOX_MemcIndex_Invalid) {
-                pConfig->display.deinterlacerHeapIndex[i][j] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_unsecure];
-                pConfig->display.secure.deinterlacerHeapIndex[i][j] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_secure];
+                pConfig->display.deinterlacerHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_unsecure, pSettings->display[i].window[j].secure);
+                pConfig->display.secure.deinterlacerHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_secure, pSettings->display[i].window[j].secure);
             }
         }
     }
@@ -1188,6 +1200,8 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
     if(pInternalSettings) {
         pInternalSettings->videoEncoderSettings = pConfig->videoEncoder;
     }
+#else
+    BSTD_UNUSED(pInternalSettings);
 #endif
 
 done:

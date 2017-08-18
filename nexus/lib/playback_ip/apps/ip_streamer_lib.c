@@ -166,7 +166,7 @@ getEnvVariableValue(char *pName, unsigned long defaultValue)
             value = defaultValue;
         }
     }
-    BDBG_MSG(("%s: %s = %d", __FUNCTION__, pName, value));
+    BDBG_MSG(("%s: %s = %d", BSTD_FUNCTION, pName, value));
     return value;
 }
 
@@ -207,11 +207,11 @@ initNexusPlatform(
     if (!ipStreamerGlobalCfg->dmaHandle) {
         if ((ipStreamerGlobalCfg->dmaHandle = NEXUS_Dma_Open(0, NULL)) == NULL) { BDBG_ERR(("ERROR: NEXUS_Dma_Open failed")); return -1; }
         ipStreamerGlobalCfg->freeDmaHandle = true;
-        BDBG_MSG(("%s: DMA Ctx is opened", __FUNCTION__));
+        BDBG_MSG(("%s: DMA Ctx is opened", BSTD_FUNCTION));
     }
 #endif
 
-    BDBG_MSG(("%s: NEXUS Platfrom is initialized", __FUNCTION__));
+    BDBG_MSG(("%s: NEXUS Platfrom is initialized", BSTD_FUNCTION));
     return 0;
 }
 
@@ -263,7 +263,7 @@ _createKeyHandle(NEXUS_SecurityOperation operationType)
     keySettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
     keyHandle = NEXUS_Security_AllocateKeySlot(&keySettings);
     if (!keyHandle) {
-        BDBG_ERR(("%s: Failed to allocate enc keyslot", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to allocate enc keyslot", BSTD_FUNCTION));
         return NULL;
     }
     NEXUS_Security_GetDefaultAlgorithmSettings(&algConfig);
@@ -272,7 +272,7 @@ _createKeyHandle(NEXUS_SecurityOperation operationType)
     algConfig.terminationMode = NEXUS_SecurityTerminationMode_eClear;
     algConfig.operation = operationType;
     if ( (rc = NEXUS_Security_ConfigAlgorithm(keyHandle, &algConfig)) != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: Failed to Configure Security Algorithms, rc %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s: Failed to Configure Security Algorithms, rc %d", BSTD_FUNCTION, rc));
         return NULL;
     }
 
@@ -282,7 +282,7 @@ _createKeyHandle(NEXUS_SecurityOperation operationType)
     key.keySize = sizeof(keys);
     BKNI_Memcpy(key.keyData, keys, sizeof(keys));
     if (NEXUS_Security_LoadClearKey(keyHandle, &key) != 0) {
-        BDBG_ERR(("%s: Load encryption key failed", __FUNCTION__));
+        BDBG_ERR(("%s: Load encryption key failed", BSTD_FUNCTION));
         return NULL;
     }
 #ifdef ENABLE_CBC_MODE
@@ -292,11 +292,11 @@ _createKeyHandle(NEXUS_SecurityOperation operationType)
     key.keySize = sizeof(ivData);
     BKNI_Memcpy(key.keyData, ivData, sizeof(ivData));
     if (NEXUS_Security_LoadClearKey(keyHandle, &key) != 0) {
-        BDBG_ERR(("%s: Load encryption IV failed", __FUNCTION__));
+        BDBG_ERR(("%s: Load encryption IV failed", BSTD_FUNCTION));
         return NULL;
     }
 #endif
-    BDBG_MSG(("%s: key handle %p successfully created", __FUNCTION__, (void *)keyHandle));
+    BDBG_MSG(("%s: key handle %p successfully created", BSTD_FUNCTION, (void *)keyHandle));
     return keyHandle;
 }
 #endif
@@ -340,7 +340,7 @@ closeNexusPidChannels(
     IpStreamerCtx *ipStreamerCtx
     )
 {
-    BDBG_MSG(("%s: CTX %p: PID Channels are being closed", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: CTX %p: PID Channels are being closed", BSTD_FUNCTION, (void *)ipStreamerCtx));
     if (ipStreamerCtx->ipSrc) {
         closeNexusIpSrcPidChannels(ipStreamerCtx);
     }
@@ -376,7 +376,7 @@ openNexusLivePidChannels(
 {
     BSTD_UNUSED(ipStreamerCfg);
 
-    BDBG_MSG(("%s: pidListCount (%u); enableAllpass %u; filename (%s)", __FUNCTION__, ipStreamerCfg->pidListCount, ipStreamerCfg->enableAllpass, ipStreamerCfg->fileName ));
+    BDBG_MSG(("%s: pidListCount (%u); enableAllpass %u; filename (%s)", BSTD_FUNCTION, ipStreamerCfg->pidListCount, ipStreamerCfg->enableAllpass, ipStreamerCfg->fileName ));
     if (ipStreamerCfg->pidListCount > 0) {
         char pidlist[128] = "pidList: ";
         char sPid[6];
@@ -384,7 +384,7 @@ openNexusLivePidChannels(
             snprintf(sPid, sizeof(sPid)-1, "%u,", ipStreamerCfg->pidList[idx] );
             strncat(pidlist, sPid, sizeof(pidlist)-1 );
         }
-        BDBG_MSG(("%s: %s", __FUNCTION__, pidlist ));
+        BDBG_MSG(("%s: %s", BSTD_FUNCTION, pidlist ));
     }
     if (ipStreamerCfg->enableAllpass) {
         NEXUS_PidChannelSettings pidCfg0;
@@ -392,7 +392,7 @@ openNexusLivePidChannels(
         NEXUS_ParserBand_GetAllPassPidChannelIndex(ipStreamerCtx->parserBandPtr->parserBand, &pidCfg0.pidChannelIndex);
         /* The pid number is redundant here. */
         if ((ipStreamerCtx->videoPidChannel = NEXUS_PidChannel_Open(ipStreamerCtx->parserBandPtr->parserBand, 0x0, &pidCfg0)) == NULL) {
-            BDBG_ERR(("%s: Failed to create pid channel for all pass case", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to create pid channel for all pass case", BSTD_FUNCTION));
             return -1;
         }
     }
@@ -402,7 +402,7 @@ openNexusLivePidChannels(
         /* true for ASTRA's SAT/IP project */
         for (i=0; i< ipStreamerCfg->pidListCount; i++) {
             if ((ipStreamerCtx->pidChannelList[i] = NEXUS_PidChannel_Open(ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCfg->pidList[i], NULL)) == NULL) {
-                BDBG_ERR(("%s: Failed to create pid channel, i %d, pid 0x%x", __FUNCTION__, i, ipStreamerCfg->pidList[i]));
+                BDBG_ERR(("%s: Failed to create pid channel, i %d, pid 0x%x", BSTD_FUNCTION, i, ipStreamerCfg->pidList[i]));
                 return -1;
             }
 
@@ -412,7 +412,7 @@ openNexusLivePidChannels(
             } else if (ipStreamerCfg->pidList[i] > 0 && psi->audioPid == 0) {
                     psi->audioPid = ipStreamerCfg->pidList[i];
             }
-            BDBG_MSG(("%s: NEXUS_PidChannel_Open pidList[%d] 0x%02x; chan %p", __FUNCTION__, i, ipStreamerCfg->pidList[i], (void *)ipStreamerCtx->pidChannelList[i] ));
+            BDBG_MSG(("%s: NEXUS_PidChannel_Open pidList[%d] 0x%02x; chan %p", BSTD_FUNCTION, i, ipStreamerCfg->pidList[i], (void *)ipStreamerCtx->pidChannelList[i] ));
         }
     }
     else {
@@ -467,14 +467,14 @@ openNexusPidChannels(
 #if defined(NEXUS_HAS_VIDEO_ENCODER) && defined(NEXUS_HAS_HDMI_INPUT)
     case IpStreamerSrc_eHdmi:
         if (setupNexusTranscoderPidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-            BDBG_ERR(("%s Failed", __FUNCTION__));
+            BDBG_ERR(("%s Failed", BSTD_FUNCTION));
             return -1;
         }
         break;
 #endif /* NEXUS_HAS_VIDEO_ENCODER */
     case IpStreamerSrc_eIp:
         if (openNexusIpSrcPidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-            BDBG_ERR(("%s: %s() Failed", __FUNCTION__, "openNexusIpSrcPidChannels"));
+            BDBG_ERR(("%s: %s() Failed", BSTD_FUNCTION, "openNexusIpSrcPidChannels"));
             return -1;
         }
         break;
@@ -486,7 +486,7 @@ openNexusPidChannels(
 #ifdef NEXUS_HAS_VIDEO_ENCODER
         if (ipStreamerCtx->transcoderDst) {
             if (openNexusTranscoderPidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-                BDBG_ERR(("%s: %s() Failed", __FUNCTION__, "openNexusIpTranscoderChannels"));
+                BDBG_ERR(("%s: %s() Failed", BSTD_FUNCTION, "openNexusIpTranscoderChannels"));
                 return -1;
             }
         }
@@ -494,14 +494,14 @@ openNexusPidChannels(
 #endif /* NEXUS_HAS_VIDEO_ENCODER */
         {
             if (openNexusLivePidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-                BDBG_ERR(("%s: %s() Failed", __FUNCTION__, "openNexusLivePidChannels"));
+                BDBG_ERR(("%s: %s() Failed", BSTD_FUNCTION, "openNexusLivePidChannels"));
                 return -1;
             }
         }
 
 #ifdef STREAMER_CABLECARD_SUPPORT
         if (openNexusPidChannelsCableCard(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-            BDBG_ERR(("%s: %s() Failed", __FUNCTION__, "openNexusPidChannelsCableCard"));
+            BDBG_ERR(("%s: %s() Failed", BSTD_FUNCTION, "openNexusPidChannelsCableCard"));
             return -1;
         }
 #endif
@@ -510,12 +510,12 @@ openNexusPidChannels(
     case IpStreamerSrc_eFile:
         if (ipStreamerCfg->usePlaybackForStreamingFiles) {
             if (openNexusFileSrcPidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-                BDBG_ERR(("%s: %s() Failed", __FUNCTION__, "openNexusFileSrcPidChannels"));
+                BDBG_ERR(("%s: %s() Failed", BSTD_FUNCTION, "openNexusFileSrcPidChannels"));
                 return -1;
             }
         }
         else {
-            BDBG_MSG(("%s: no PID channel work is needed for direct file streaming (w/o using playback)", __FUNCTION__));
+            BDBG_MSG(("%s: no PID channel work is needed for direct file streaming (w/o using playback)", BSTD_FUNCTION));
             return 0;
         }
         break;
@@ -571,12 +571,12 @@ startNexusDst(
 
     if (ipStreamerCtx->ipDst) {
         rc = startNexusIpDst(ipStreamerCtx);
-        if (rc) {BDBG_ERR(("%s: failed at at %d, returning...", __FUNCTION__, __LINE__)); return -1;}
+        if (rc) {BDBG_ERR(("%s: failed at at %d, returning...", BSTD_FUNCTION, __LINE__)); return -1;}
     }
 
     if (ipStreamerCtx->recDst) {
         rc = startNexusRecDst(ipStreamerCtx);
-        if (rc) {BDBG_ERR(("%s: failed at at %d, returning...", __FUNCTION__, __LINE__)); return -1;}
+        if (rc) {BDBG_ERR(("%s: failed at at %d, returning...", BSTD_FUNCTION, __LINE__)); return -1;}
     }
     return 0;
 }
@@ -722,7 +722,7 @@ printNexusStatus(
     B_PlaybackIpStatus playbackIpStatus;
     NEXUS_RecordStatus recDstStatus;
 
-    BDBG_WRN(("%s: CTX %p: ----------------------", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_WRN(("%s: CTX %p: ----------------------", BSTD_FUNCTION, (void *)ipStreamerCtx));
     if (ipStreamerCtx->ipSrc && ipStreamerCtx->ipSrc->playpump) {
         rc = NEXUS_Playpump_GetStatus(ipStreamerCtx->ipSrc->playpump, &ppStatus);
         if (rc) {
@@ -752,48 +752,48 @@ printNexusStatus(
             if (NEXUS_Playpump_GetStatus(ipStreamerCtx->fileSrc->playpumpHandle, &ppStatus) == NEXUS_SUCCESS &&
                 NEXUS_Playback_GetStatus(ipStreamerCtx->fileSrc->playbackHandle, &pbStatus) == NEXUS_SUCCESS )
             {
-                BDBG_WRN(("%s: Playback[%d] Status:-->", __FUNCTION__, ppStatus.index));
-                BDBG_WRN(("%s: PB fifo depth/size = %u/%u", __FUNCTION__, pbStatus.fifoDepth, pbStatus.fifoSize));
-                BDBG_WRN(("%s: PP fifo depth/size = %u/%u", __FUNCTION__, ppStatus.fifoDepth, ppStatus.fifoSize));
+                BDBG_WRN(("%s: Playback[%d] Status:-->", BSTD_FUNCTION, ppStatus.index));
+                BDBG_WRN(("%s: PB fifo depth/size = %u/%u", BSTD_FUNCTION, pbStatus.fifoDepth, pbStatus.fifoSize));
+                BDBG_WRN(("%s: PP fifo depth/size = %u/%u", BSTD_FUNCTION, ppStatus.fifoDepth, ppStatus.fifoSize));
             }
         }
         if (NEXUS_VideoDecoder_GetStatus(ipStreamerCtx->transcoderDst->videoDecoder, &videoDecodeStatus) == NEXUS_SUCCESS)
         {
-            BDBG_MSG(("%s: Video Decoder[%p] Status:-->", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->videoDecoder));
-            BDBG_MSG(("%s: data buffer depth/size= %u/%u", __FUNCTION__, videoDecodeStatus.fifoDepth, videoDecodeStatus.fifoSize));
-            BDBG_MSG(("%s: queued frames         = %u", __FUNCTION__, videoDecodeStatus.queueDepth));
-            BDBG_MSG(("%s: numDecoded count      = %u", __FUNCTION__, videoDecodeStatus.numDecoded));
-            BDBG_MSG(("%s: numDisplayed          = %u", __FUNCTION__, videoDecodeStatus.numDisplayed));
-            BDBG_MSG(("%s: numDecodeDrops        = %u", __FUNCTION__, videoDecodeStatus.numDecodeDrops));
-            BDBG_MSG(("%s: numDisplayDrops       = %u", __FUNCTION__, videoDecodeStatus.numDisplayDrops));
-            BDBG_MSG(("%s: numDisplayUnderflows  = %u", __FUNCTION__, videoDecodeStatus.numDisplayUnderflows));
-            BDBG_MSG(("%s: current PTS (45KHz)   = 0x%x", __FUNCTION__, videoDecodeStatus.pts));
-            BDBG_MSG(("%s: PTS error count       = %u", __FUNCTION__, videoDecodeStatus.ptsErrorCount));
+            BDBG_MSG(("%s: Video Decoder[%p] Status:-->", BSTD_FUNCTION, (void *)ipStreamerCtx->transcoderDst->videoDecoder));
+            BDBG_MSG(("%s: data buffer depth/size= %u/%u", BSTD_FUNCTION, videoDecodeStatus.fifoDepth, videoDecodeStatus.fifoSize));
+            BDBG_MSG(("%s: queued frames         = %u", BSTD_FUNCTION, videoDecodeStatus.queueDepth));
+            BDBG_MSG(("%s: numDecoded count      = %u", BSTD_FUNCTION, videoDecodeStatus.numDecoded));
+            BDBG_MSG(("%s: numDisplayed          = %u", BSTD_FUNCTION, videoDecodeStatus.numDisplayed));
+            BDBG_MSG(("%s: numDecodeDrops        = %u", BSTD_FUNCTION, videoDecodeStatus.numDecodeDrops));
+            BDBG_MSG(("%s: numDisplayDrops       = %u", BSTD_FUNCTION, videoDecodeStatus.numDisplayDrops));
+            BDBG_MSG(("%s: numDisplayUnderflows  = %u", BSTD_FUNCTION, videoDecodeStatus.numDisplayUnderflows));
+            BDBG_MSG(("%s: current PTS (45KHz)   = 0x%x", BSTD_FUNCTION, videoDecodeStatus.pts));
+            BDBG_MSG(("%s: PTS error count       = %u", BSTD_FUNCTION, videoDecodeStatus.ptsErrorCount));
         }
 
         if (NEXUS_AudioDecoder_GetStatus(ipStreamerCtx->transcoderDst->audioDecoder, &audioDecodeStatus) == NEXUS_SUCCESS)
         {
-            BDBG_MSG(("%s: Audio Decoder[%p] Status:-->", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->audioDecoder));
-            BDBG_MSG(("%s: data buffer depth/size= %u/%u", __FUNCTION__, audioDecodeStatus.fifoDepth, audioDecodeStatus.fifoSize));
-            BDBG_MSG(("%s: queued frames         = %u", __FUNCTION__, audioDecodeStatus.queuedFrames));
-            BDBG_MSG(("%s: numDecoded count      = %u", __FUNCTION__, audioDecodeStatus.framesDecoded));
-            BDBG_MSG(("%s: numDummyFrames        = %u", __FUNCTION__, audioDecodeStatus.dummyFrames));
-            BDBG_MSG(("%s: numFifoOverflows      = %u", __FUNCTION__, audioDecodeStatus.numFifoOverflows));
-            BDBG_MSG(("%s: numFifoUnderflows     = %u", __FUNCTION__, audioDecodeStatus.numFifoUnderflows));
-            BDBG_MSG(("%s: current PTS (45KHz)   = 0x%x", __FUNCTION__, audioDecodeStatus.pts));
-            BDBG_MSG(("%s: PTS error count       = %u", __FUNCTION__, audioDecodeStatus.ptsErrorCount));
+            BDBG_MSG(("%s: Audio Decoder[%p] Status:-->", BSTD_FUNCTION, (void *)ipStreamerCtx->transcoderDst->audioDecoder));
+            BDBG_MSG(("%s: data buffer depth/size= %u/%u", BSTD_FUNCTION, audioDecodeStatus.fifoDepth, audioDecodeStatus.fifoSize));
+            BDBG_MSG(("%s: queued frames         = %u", BSTD_FUNCTION, audioDecodeStatus.queuedFrames));
+            BDBG_MSG(("%s: numDecoded count      = %u", BSTD_FUNCTION, audioDecodeStatus.framesDecoded));
+            BDBG_MSG(("%s: numDummyFrames        = %u", BSTD_FUNCTION, audioDecodeStatus.dummyFrames));
+            BDBG_MSG(("%s: numFifoOverflows      = %u", BSTD_FUNCTION, audioDecodeStatus.numFifoOverflows));
+            BDBG_MSG(("%s: numFifoUnderflows     = %u", BSTD_FUNCTION, audioDecodeStatus.numFifoUnderflows));
+            BDBG_MSG(("%s: current PTS (45KHz)   = 0x%x", BSTD_FUNCTION, audioDecodeStatus.pts));
+            BDBG_MSG(("%s: PTS error count       = %u", BSTD_FUNCTION, audioDecodeStatus.ptsErrorCount));
         }
 
         if (NEXUS_VideoEncoder_GetStatus(ipStreamerCtx->transcoderDst->videoEncoder, &status) == NEXUS_SUCCESS)
         {
-            BDBG_MSG(("%s: Video Encoder[%p] Status:-->", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->videoEncoder));
-            BDBG_MSG(("%s: error flags                  = 0x%x", __FUNCTION__, status.errorFlags));
-            BDBG_MSG(("%s: error count                  = %u", __FUNCTION__, status.errorCount));
-            BDBG_MSG(("%s: picture drops due to error   = %u", __FUNCTION__, status.picturesDroppedErrors));
-            BDBG_MSG(("%s: picture drops due to FRC     = %u", __FUNCTION__, status.picturesDroppedFRC));
-            BDBG_MSG(("%s: pictures Encoded             = %u", __FUNCTION__, status.picturesEncoded));
-            BDBG_MSG(("%s: pictures Received            = %u", __FUNCTION__, status.picturesReceived));
-            BDBG_MSG(("%s: picture Id Last Encoded      = 0x%x", __FUNCTION__, status.pictureIdLastEncoded));
+            BDBG_MSG(("%s: Video Encoder[%p] Status:-->", BSTD_FUNCTION, (void *)ipStreamerCtx->transcoderDst->videoEncoder));
+            BDBG_MSG(("%s: error flags                  = 0x%x", BSTD_FUNCTION, status.errorFlags));
+            BDBG_MSG(("%s: error count                  = %u", BSTD_FUNCTION, status.errorCount));
+            BDBG_MSG(("%s: picture drops due to error   = %u", BSTD_FUNCTION, status.picturesDroppedErrors));
+            BDBG_MSG(("%s: picture drops due to FRC     = %u", BSTD_FUNCTION, status.picturesDroppedFRC));
+            BDBG_MSG(("%s: pictures Encoded             = %u", BSTD_FUNCTION, status.picturesEncoded));
+            BDBG_MSG(("%s: pictures Received            = %u", BSTD_FUNCTION, status.picturesReceived));
+            BDBG_MSG(("%s: picture Id Last Encoded      = 0x%x", BSTD_FUNCTION, status.pictureIdLastEncoded));
 #if 0
             NEXUS_VideoEncoderClearStatus clearStatus;
             NEXUS_VideoEncoder_GetDefaultClearStatus(&clearStatus);
@@ -803,9 +803,9 @@ printNexusStatus(
 
         if (NEXUS_AudioMuxOutput_GetStatus(ipStreamerCtx->transcoderDst->audioMuxOutput, &audioMuxOutputStatus) == NEXUS_SUCCESS)
         {
-            BDBG_MSG(("%s: Audio mux output[%p] Status:-->", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->audioMuxOutput));
-            BDBG_MSG(("%s: numEncoded frames     = %u", __FUNCTION__, audioMuxOutputStatus.numFrames));
-            BDBG_MSG(("%s: numErrorFrames        = %u", __FUNCTION__, audioMuxOutputStatus.numErrorFrames));
+            BDBG_MSG(("%s: Audio mux output[%p] Status:-->", BSTD_FUNCTION, (void *)ipStreamerCtx->transcoderDst->audioMuxOutput));
+            BDBG_MSG(("%s: numEncoded frames     = %u", BSTD_FUNCTION, audioMuxOutputStatus.numFrames));
+            BDBG_MSG(("%s: numErrorFrames        = %u", BSTD_FUNCTION, audioMuxOutputStatus.numErrorFrames));
         }
     }
 #endif
@@ -815,14 +815,14 @@ printNexusStatus(
             NEXUS_FilePosition first, last;
             NEXUS_Record_GetStatus(ipStreamerCtx->ipDst->recordHandle, &ipDstStatus);
             NEXUS_FifoRecord_GetPosition(ipStreamerCtx->ipDst->fifoFileHandle, &first, &last);
-            BDBG_MSG(("%s: IP Ctx %p: FIFO: first:last %lld:%lld, IP Destination: bytes streamed %lld, buffered: depth %d, size %d", __FUNCTION__,
+            BDBG_MSG(("%s: IP Ctx %p: FIFO: first:last %lld:%lld, IP Destination: bytes streamed %lld, buffered: depth %d, size %d", BSTD_FUNCTION,
                         (void *)ipStreamerCtx, first.mpegFileOffset, last.mpegFileOffset, ipDstStatus.recpumpStatus.data.bytesRecorded, ipDstStatus.recpumpStatus.data.fifoDepth, ipDstStatus.recpumpStatus.data.fifoSize));
         }
         else {
             NEXUS_RecpumpStatus recStatus;
             NEXUS_Recpump_GetStatus(ipStreamerCtx->ipDst->recpumpHandle, &recStatus);
-            BDBG_MSG(("%s: Recpump[%d] Status:-->", __FUNCTION__, recStatus.rave.index));
-            BDBG_MSG(("%s: bitrate = %u, fifo depth/size = %u/%u", __FUNCTION__, recStatus.bitrate, recStatus.data.fifoDepth, recStatus.data.fifoSize));
+            BDBG_MSG(("%s: Recpump[%d] Status:-->", BSTD_FUNCTION, recStatus.rave.index));
+            BDBG_MSG(("%s: bitrate = %u, fifo depth/size = %u/%u", BSTD_FUNCTION, recStatus.bitrate, recStatus.data.fifoDepth, recStatus.data.fifoSize));
         }
     }
 
@@ -834,7 +834,7 @@ printNexusStatus(
     }
 #endif
 #endif /* DMS_CROSS_PLATFORMS */
-    BDBG_MSG(("%s: ----------------------", __FUNCTION__));
+    BDBG_MSG(("%s: ----------------------", BSTD_FUNCTION));
     return 0;
 }
 
@@ -849,7 +849,7 @@ openNexusDst(
 {
     NEXUS_Error rc = NEXUS_UNKNOWN;
 
-    BDBG_MSG(("%s: ipDstEnabled %d; recDstEnabled %d", __FUNCTION__, ipStreamerCfg->ipDstEnabled, ipStreamerCfg->recDstEnabled ));
+    BDBG_MSG(("%s: ipDstEnabled %d; recDstEnabled %d", BSTD_FUNCTION, ipStreamerCfg->ipDstEnabled, ipStreamerCfg->recDstEnabled ));
     if (ipStreamerCfg->ipDstEnabled) {
         if (ipStreamerCfg->enableTimeshifting)
             rc = openNexusIpDstWithTimeshift(psi, ipStreamerCfg, ipStreamerCtx);
@@ -894,7 +894,7 @@ openNexusSrc(
     struct sockaddr_in remoteAddr;
     int remoteAddrLen;
 
-    BDBG_MSG(("%s - StreamerCfg (%p); StreamerCtx (%p); srcType (%u)", __FUNCTION__, (void *)ipStreamerCfg, (void *)ipStreamerCtx, ipStreamerCfg->srcType ));
+    BDBG_MSG(("%s - StreamerCfg (%p); StreamerCtx (%p); srcType (%u)", BSTD_FUNCTION, (void *)ipStreamerCfg, (void *)ipStreamerCtx, ipStreamerCfg->srcType ));
     if (ipStreamerCtx->globalCtx->globalCfg.disableFrontend &&
         ipStreamerCfg->srcType != IpStreamerSrc_eFile &&
         ipStreamerCfg->srcType != IpStreamerSrc_eSat ) {
@@ -909,7 +909,7 @@ openNexusSrc(
             BDBG_ERR(("ERROR: Failed to obtain remote IP address, errno: %d\n", errno));
             return -1;
         }
-        BDBG_MSG(("%s: Request from: %s:%d", __FUNCTION__, inet_ntoa(remoteAddr.sin_addr), htons(remoteAddr.sin_port)));
+        BDBG_MSG(("%s: Request from: %s:%d", BSTD_FUNCTION, inet_ntoa(remoteAddr.sin_addr), htons(remoteAddr.sin_port)));
     }
 
     switch (ipStreamerCfg->srcType) {
@@ -1043,18 +1043,18 @@ B_IpStreamer_SessionAcquirePsiInfo(
         return -1;
     }
 
-    BDBG_MSG(("%s: for CTX %p, pidListCount %d", __FUNCTION__, ctx, ipStreamerCtx->cfg.pidListCount ));
+    BDBG_MSG(("%s: for CTX %p, pidListCount %d", BSTD_FUNCTION, ctx, ipStreamerCtx->cfg.pidListCount ));
     for (int idx=0; idx<ipStreamerCtx->cfg.pidListCount; idx++) {
-        BDBG_MSG(("%s: pidList[%d] = %d", __FUNCTION__, idx, ipStreamerCtx->cfg.pidList[idx] ));
+        BDBG_MSG(("%s: pidList[%d] = %d", BSTD_FUNCTION, idx, ipStreamerCtx->cfg.pidList[idx] ));
     }
 
     if (ipStreamerCtx->cfg.pidListCount != 0 || ipStreamerCtx->cfg.enableAllpass ) {
         /* since client has already provided the list of pids it is interested in, we dont need to do the PSI discovery */
-        BDBG_MSG(("%s: %s, so Skip PSI Acquistion for CTX %p", __FUNCTION__, ipStreamerCtx->cfg.enableAllpass ? "Allpass mode":"Client specified PID list", (void *)ipStreamerCtx));
+        BDBG_MSG(("%s: %s, so Skip PSI Acquistion for CTX %p", BSTD_FUNCTION, ipStreamerCtx->cfg.enableAllpass ? "Allpass mode":"Client specified PID list", (void *)ipStreamerCtx));
         memset(psiOut, 0, sizeof(B_PlaybackIpPsiInfo));
         return 0;
     }
-    BDBG_MSG(("%s: Start PSI Acquistion for CTX %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: Start PSI Acquistion for CTX %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
 
     ipStreamerCfg = &ipStreamerCtx->cfg;
     switch (ipStreamerCfg->srcType) {
@@ -1136,7 +1136,7 @@ B_IpStreamer_SessionAcquirePsiInfo(
     }
     BDBG_MSG(("PSI Video Pid %d, PSI Codec %d, PSI Audio Pid %d, PSI Audio Codec %d, PSI Pcr Pid %d, PSI Transport Type %d",
                 psiOut->videoPid, psiOut->videoCodec, psiOut->audioPid, psiOut->audioCodec, psiOut->pcrPid, psiOut->mpegType));
-    BDBG_MSG(("%s: PSI Acquistion complete for CTX %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: PSI Acquistion complete for CTX %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
     return 0;
 }
 
@@ -1150,15 +1150,15 @@ B_IpStreamer_SessionOpen(
     IpStreamerGlobalCtx *ipStreamerGlobalCtx = (IpStreamerGlobalCtx *)gCtx;
     IpStreamerCtx *ipStreamerCtx;
 
-    BDBG_MSG(("%s: global ctx %p, openSettings %p; streamingFd (%u)", __FUNCTION__, (void *)ipStreamerGlobalCtx, (void *)openSettings, openSettings->streamingFd ));
+    BDBG_MSG(("%s: global ctx %p, openSettings %p; streamingFd (%u)", BSTD_FUNCTION, (void *)ipStreamerGlobalCtx, (void *)openSettings, openSettings->streamingFd ));
 
     if (gCtx == NULL || openSettings == NULL) {
-        BDBG_ERR(("%s: Invalid parameters: global ctx %p, openSettings %p", __FUNCTION__, (void *)ipStreamerGlobalCtx, (void *)openSettings));
+        BDBG_ERR(("%s: Invalid parameters: global ctx %p, openSettings %p", BSTD_FUNCTION, (void *)ipStreamerGlobalCtx, (void *)openSettings));
         return NULL;
     }
 
     if ((ipStreamerCtx = BKNI_Malloc(sizeof(IpStreamerCtx))) == NULL) { BDBG_ERR(("BKNI_Malloc Failure at %d", __LINE__)); goto out;}
-    BDBG_MSG(("%s: ipStreamerCtx = malloc(%d) successful ", __FUNCTION__, sizeof(IpStreamerCtx) ));
+    BDBG_MSG(("%s: ipStreamerCtx = malloc(%d) successful ", BSTD_FUNCTION, sizeof(IpStreamerCtx) ));
     memset(ipStreamerCtx, 0, sizeof(IpStreamerCtx));
     if (BKNI_CreateMutex(&ipStreamerCtx->lock) != 0) {
         BDBG_ERR(("BKNI_CreateMutex failed at %d", __LINE__));
@@ -1177,7 +1177,7 @@ B_IpStreamer_SessionOpen(
 
     if (ipStreamerCtx->cfg.hlsSession) {
         if (BKNI_CreateEvent(&ipStreamerCtx->statusEvent)) {
-            BDBG_ERR(("%s: Failed to create event at %d", __FUNCTION__, __LINE__));
+            BDBG_ERR(("%s: Failed to create event at %d", BSTD_FUNCTION, __LINE__));
             goto out;
         }
     }
@@ -1186,13 +1186,13 @@ B_IpStreamer_SessionOpen(
     rc = openNexusSrc(&ipStreamerCtx->cfg, ipStreamerCtx);
     if (rc) {BDBG_ERR(("Failed to select a free src, go back to new listening")); goto errorClose;}
 
-    BDBG_MSG(("%s: done ... session ctx %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: done ... session ctx %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
     return (void *)ipStreamerCtx;
 
 errorClose:
     closeNexusSrc(ipStreamerCtx);
 out:
-    BDBG_ERR(("%s: ERROR: ctx %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_ERR(("%s: ERROR: ctx %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
     if (ipStreamerCtx)
     {
         if (ipStreamerCtx->lock)
@@ -1214,14 +1214,14 @@ B_IpStreamer_SessionClose(
     if (!ipStreamerCtx)
         return;
 
-    BDBG_MSG(("%s: closing session ctx %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: closing session ctx %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
     closeNexusSrc(ipStreamerCtx);
     if (ipStreamerCtx->statusEvent)
         BKNI_DestroyEvent(ipStreamerCtx->statusEvent);
     if (ipStreamerCtx->lock)
         BKNI_DestroyMutex(ipStreamerCtx->lock);
     BKNI_Free(ipStreamerCtx);
-    BDBG_MSG(("%s: closed session ctx", __FUNCTION__));
+    BDBG_MSG(("%s: closed session ctx", BSTD_FUNCTION));
 }
 
 int
@@ -1236,11 +1236,11 @@ B_IpStreamer_SessionSetSettings(
     IpStreamerConfig *ipStreamerCfg;
 
     if (!ipStreamerCtx || !ipStreamerCtx->ipDst) {
-        BDBG_ERR(("%s: referencing a stale Ip Streaming session...", __FUNCTION__));
+        BDBG_ERR(("%s: referencing a stale Ip Streaming session...", BSTD_FUNCTION));
         return -1;
     }
     if (!ipStreamerCtx->ipStreamingInProgress) {
-        BDBG_ERR(("%s: Ip Streaming session is NOT in progress, returning error...", __FUNCTION__));
+        BDBG_ERR(("%s: Ip Streaming session is NOT in progress, returning error...", BSTD_FUNCTION));
         return -1;
     }
     ipStreamerCfg = &ipStreamerCtx->cfg;
@@ -1252,10 +1252,10 @@ B_IpStreamer_SessionSetSettings(
         NEXUS_VideoEncoder_GetSettings(ipStreamerCtx->transcoderDst->videoEncoder, &videoEncoderConfig);
         videoEncoderConfig.bitrateMax = sessionSettings->xcodeBitrate;
         if (NEXUS_VideoEncoder_SetSettings(ipStreamerCtx->transcoderDst->videoEncoder, &videoEncoderConfig)) {
-            BDBG_ERR(("%s: ERROR: Failed to set the Video Encoder Configuration", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to set the Video Encoder Configuration", BSTD_FUNCTION));
             return -1;
         }
-        BDBG_WRN(("%s: ################### modified bitrate to %d ###############", __FUNCTION__, sessionSettings->xcodeBitrate));
+        BDBG_WRN(("%s: ################### modified bitrate to %d ###############", BSTD_FUNCTION, sessionSettings->xcodeBitrate));
     }
 #endif
 #endif
@@ -1278,10 +1278,10 @@ B_IpStreamer_SessionSetSettings(
         settings.streamingFd = sessionSettings->streamingFd;
         settings.hlsSegmentSize = sessionSettings->hlsSegmentSize;
         if (B_PlaybackIp_LiveStreamingSetSettings(ipStreamerCtx->ipDst->liveStreamingHandle, &settings) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", BSTD_FUNCTION));
             return -1;
         }
-        BDBG_MSG(("%s: enabled live Streaming settings", __FUNCTION__));
+        BDBG_MSG(("%s: enabled live Streaming settings", BSTD_FUNCTION));
     }
 #endif /* DMS_CROSS_PLATFORMS */
     return 0;
@@ -1297,7 +1297,7 @@ B_IpStreamer_SessionStart(
     IpStreamerCtx *ipStreamerCtx = (IpStreamerCtx *)ctx;
     IpStreamerConfig *ipStreamerCfg;
 
-    BDBG_MSG(("%s: start streaming on session ctx %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: start streaming on session ctx %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
     if (!ipStreamerCtx || !psi) {
         BDBG_ERR(("ERROR: Invalid parameters: session ctx %p, psi %p", (void *)ipStreamerCtx, (void *)psi));
         return -1;
@@ -1324,7 +1324,7 @@ B_IpStreamer_SessionStart(
     if (rc) {BDBG_ERR(("Failed to start destinations")); goto errorStopDst;}
 #endif /* DMS_CROSS_PLATFORMS */
 
-    BDBG_MSG(("CTX: %p: started %s streaming", __FUNCTION__, ipStreamerCtx->fileSrc? "media file" : "live channel"));
+    BDBG_MSG(("CTX: %p: started %s streaming", BSTD_FUNCTION, ipStreamerCtx->fileSrc? "media file" : "live channel"));
     return 0;
 
 errorStopDst:
@@ -1355,7 +1355,7 @@ B_IpStreamer_SessionStop(
     )
 {
     IpStreamerCtx *ipStreamerCtx = (IpStreamerCtx *)ctx;
-    BDBG_MSG(("%s: stopping streaming on session ctx %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: stopping streaming on session ctx %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
     /* session specific cleanup */
     stopNexusSrc(ipStreamerCtx);
 #ifndef DMS_CROSS_PLATFORMS
@@ -1370,10 +1370,10 @@ B_IpStreamer_SessionStop(
         closeNexusPidChannels(ipStreamerCtx);
     }
     else {
-        BDBG_MSG(("%s: delaying nexus dst stop for transcoded sessions", __FUNCTION__));
+        BDBG_MSG(("%s: delaying nexus dst stop for transcoded sessions", BSTD_FUNCTION));
     }
 #endif /* DMS_CROSS_PLATFORMS */
-    BDBG_MSG(("%s: stopped streaming on session ctx %p", __FUNCTION__, (void *)ipStreamerCtx));
+    BDBG_MSG(("%s: stopped streaming on session ctx %p", BSTD_FUNCTION, (void *)ipStreamerCtx));
 }
 
 void
@@ -1557,7 +1557,7 @@ B_IpStreamer_UnInit(void *ctx)
     IpStreamerGlobalCtx *ipStreamerGlobalCtx = ctx;
     int i = 0;
 
-    BDBG_MSG(("%s: ipStreamerGlobalCtx %p", __FUNCTION__, (void *)ipStreamerGlobalCtx));
+    BDBG_MSG(("%s: ipStreamerGlobalCtx %p", BSTD_FUNCTION, (void *)ipStreamerGlobalCtx));
     if (!ipStreamerGlobalCtx) {
         BDBG_ERR(("ERROR: Failed to uninitialize IP streamer, NULL global context"));
         return;
@@ -1607,7 +1607,7 @@ B_IpStreamer_UnInit(void *ctx)
 #endif /* DMS_CROSS_PLATFORMS */
     BDBG_MSG(("NEXUS Platfrom is un-initialized"));
     unInitLibs();
-    BDBG_MSG(("%s: done", __FUNCTION__));
+    BDBG_MSG(("%s: done", BSTD_FUNCTION));
 }
 
 void *
@@ -1618,7 +1618,7 @@ B_IpStreamer_Init(
     NEXUS_Error rc = NEXUS_UNKNOWN;
     IpStreamerGlobalCtx *ipStreamerGlobalCtx = NULL;
 
-    BDBG_MSG(("%s: ipStreamerGlobalCfg %p", __FUNCTION__, (void *)ipStreamerGlobalCfg));
+    BDBG_MSG(("%s: ipStreamerGlobalCfg %p", BSTD_FUNCTION, (void *)ipStreamerGlobalCfg));
     if (!ipStreamerGlobalCfg) {
         BDBG_ERR(("ERROR: Global IP Streamer Configuration needs to be specified"));
         return NULL;
@@ -1697,7 +1697,7 @@ B_IpStreamer_Init(
     rc = initDtcpIpLib(ipStreamerGlobalCtx);
     if (rc) {BDBG_ERR(("Failed to initialize DTCP/IP Library ")); goto error;}
 #endif /* DMS_CROSS_PLATFORMS */
-    BDBG_MSG(("%s done, ipStreamerGlobalCtx %p", __FUNCTION__, (void *)ipStreamerGlobalCtx));
+    BDBG_MSG(("%s done, ipStreamerGlobalCtx %p", BSTD_FUNCTION, (void *)ipStreamerGlobalCtx));
     return (void *)ipStreamerGlobalCtx;
 
 error:

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,7 +49,7 @@
  *   8. Second callback denotes the completion of the scanning for the frequence and mode once.
  *   8. NEXUS_Frontend_GetFastStatus() is used to determine if the channel is locked/unlocked/no_signal.
  *   9. If the channel is found, the NEXUS_Frontend_GetFastStatus() returns locked status.
- * 10. Then the application calls NEXUS_Frontend_GetQamScanStatus() to retreive complete qam scan results and then proceeds to scan the next frequency.
+ * 10. Then the application calls NEXUS_Frontend_GetQamScanStatus() to retrieve complete qam scan results and then proceeds to scan the next frequency.
  * 11. If the channel is not found, the NEXUS_Frontend_GetFastStatus() returns unlocked/no_signal.
  * 11. Then the application can either wait to see if the scan algorithm can reacquire or it can proceed to scan for the next frequency/mode.
  * 12. In this app, we proceed to scan for the next frequency/mode.

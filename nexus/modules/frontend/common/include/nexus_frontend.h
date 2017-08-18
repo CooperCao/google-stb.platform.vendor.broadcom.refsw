@@ -1079,7 +1079,10 @@ typedef struct NEXUS_FrontendDeviceCableSettings
 
 typedef struct NEXUS_FrontendDeviceTerrestrialSettings
 {
-    bool dummy;
+    unsigned numDiversityChannels; /* If numDiversityChannels is set to 1, diversity mode is enabled, where all the tuners/receivers of the chip enter into an "Antenna Diversity" mode. In this
+                                      mode, channel 0 of the Frontend chip acts as the primary channel, while the slave channels (channels 1 through N-1) automatically mirror or follow the
+                                      primary channel. While diversity mode is enabled, only channel 0 of the Frontend chip is addressable and any commands sent to other channels of the chip
+                                      are rejected. For normal mode of operation, numDiversityChannels should be set to 0, where all the channels are enabled */
 } NEXUS_FrontendDeviceTerrestrialSettings;
 
 typedef enum NEXUS_FrontendLoopthroughGain {
@@ -1095,7 +1098,7 @@ typedef struct NEXUS_FrontendDeviceSettings
     bool enableRfLoopThrough;                /* True = Enables RF loop through. */
     NEXUS_FrontendLoopthroughGain loopthroughGain; /* Loopthrough gain output. This is frontend chip-specific. */
     NEXUS_FrontendDeviceCableSettings cable;
-
+    NEXUS_FrontendDeviceTerrestrialSettings terrestrial;
 } NEXUS_FrontendDeviceSettings;
 
 /* Device API. */

@@ -552,7 +552,7 @@ int main(void)
         hdmiSettings.hotplugCallback.context = &hotPlugCbParams ;
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
-    /* initalize HDCP settings, keys, etc. */
+    /* initialize HDCP settings, keys, etc. */
     initializeHdmiOutputHdcpSettings() ;
 
     /* bring up decoder and connect to display */

@@ -15,6 +15,7 @@ struct bcm_gmem_synclist;
 
 #define V3D_MAX_BIN_SUBJOBS 8
 #define V3D_MAX_RENDER_SUBJOBS 16
+
 #define V3D_MAX_QPU_SUBJOBS 12
 #define V3D_IDENT_REGISTERS 4
 
@@ -25,29 +26,46 @@ typedef enum v3d_empty_tile_mode
    V3D_EMPTY_TILE_MODE_FILL
 } v3d_empty_tile_mode;
 
+typedef struct v3d_subjob
+{
+   uint32_t start;
+   uint32_t end;
+#ifdef __cplusplus
+   v3d_subjob() : start(0), end(0) {}
+   v3d_subjob(uint32_t start, uint32_t end) : start(start), end(end) {}
+#endif
+} v3d_subjob;
+
+typedef struct
+{
+   unsigned num_subjobs;
+   v3d_subjob *subjobs;
+}v3d_subjobs_list;
+
 struct v3d_bin_job
 {
-   uint32_t n;
-   uint32_t start[V3D_MAX_BIN_SUBJOBS];
-   uint32_t end[V3D_MAX_BIN_SUBJOBS];
    uint32_t no_render_overlap : 1;
    uint32_t workaround_gfxh_1181 : 1;   /* GFXH-1181 */
    uint32_t reserved_ : 30;
    uint32_t minInitialBinBlockSize;
    uint32_t tile_state_size;
    void* gmp_table;
+   v3d_subjobs_list subjobs_list;
 };
 
 struct v3d_render_job
 {
-   uint32_t n;
-   uint32_t start[V3D_MAX_RENDER_SUBJOBS];
-   uint32_t end[V3D_MAX_RENDER_SUBJOBS];
    uint32_t no_bin_overlap : 1;
    uint32_t workaround_gfxh_1181 : 1;   /* GFXH-1181 */
    uint32_t empty_tile_mode : 2;
    uint32_t reserved_ : 28;
    void* gmp_table;
+
+   uint32_t tile_alloc_layer_stride;
+
+   uint32_t num_layers;
+   v3d_subjobs_list subjobs_list;  /* subjobs_list->subjobs[layer * num_subjobs_per_layer + subjob_in_layer]
+                                    *, where num_subjobs_per_layer = subjobs_list->num_subjobs/num_layers */
 };
 
 struct v3d_user_job
@@ -60,6 +78,13 @@ struct v3d_user_job
 struct bcm_fence_wait_job
 {
    int fence;
+};
+
+typedef uint64_t bcm_sched_event_id;
+
+struct bcm_event_job
+{
+   bcm_sched_event_id id;
 };
 
 enum tfu_axithrottle {
@@ -274,6 +299,9 @@ enum bcm_sched_job_type
    BCM_SCHED_JOB_TYPE_TEST,
    BCM_SCHED_JOB_TYPE_USERMODE,
    BCM_SCHED_JOB_TYPE_V3D_BARRIER,
+   BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT,
+   BCM_SCHED_JOB_TYPE_SET_EVENT,
+   BCM_SCHED_JOB_TYPE_RESET_EVENT,
    BCM_SCHED_JOB_TYPE_NUM_JOB_TYPES
 };
 
@@ -340,6 +368,7 @@ struct bcm_sched_job
       struct bcm_sched_test test;
       struct bcm_tfu_job tfu;
       struct bcm_usermode_job usermode;
+      struct bcm_event_job event;
    }
    driver;
 };

@@ -126,6 +126,9 @@ typedef enum BIP_StreamerInputType
     BIP_StreamerInputType_eBfile,                  /* Bfile input (bfile_io_read_t interface) */
     BIP_StreamerInputType_eIp,                     /* Input from IP Tuner */
     BIP_StreamerInputType_eRecpump,                /* Input from Recpump directly, where media to stream out will be available (app responsible for this setup!) */
+#if NEXUS_HAS_HDMI_INPUT
+    BIP_StreamerInputType_eHdmi,                   /* Input from HDMI Input, streamer will encode the content to app specified transcoded profile. */
+#endif
     BIP_StreamerInputType_eMax
 } BIP_StreamerInputType;
 
@@ -145,6 +148,9 @@ typedef struct BIP_StreamerFileInputSettings
     bool                    enableHwPacing;                         /* If true, BIP will use File -> playpump -> recpump -> network path to enable h/w based pacing. */
                                                                     /* BIP will also internally choose this path for streaming a single program out of MPTS stream, network decryption, etc. scenarios. */
                                                                     /* NOTE: app must only set this flag for MPEG2 TS & PES type streams as Playback h/w only supports these formats. */
+                                                                    /* NOTE2: BIP will configure transport h/w to pace using transport timestamps (TTS) if */
+                                                                    /* BIP_StreamerStreamInfo.transportTimeStampEnabled is set or BIP_StreamerOutputSettings.enableTransportTimestamp is set. */
+                                                                    /* Otherwise, BIP will program transport h/w to pace using PCRs. */
                                                                     /* Flag is ignored for any other such formats and stream is directly sent over the network path. */
     NEXUS_PlaypumpHandle    hPlaypump;                              /* Playpump handle: used for File -> playpump -> recpump -> network case, BIP will internally open one if not specified. */
     NEXUS_RecpumpHandle     hRecpump;                               /* Recpump handle: BIP will internally open one if not specified & is required for streaming! */
@@ -338,8 +344,21 @@ Input Settings when streaming from HDMI Input: App must setup the BIP_StreamerTr
 */
 typedef struct BIP_StreamerHdmiInputSettings
 {
-    NEXUS_HdmiInputHandle   hHdmiInput;
+    BIP_SETTINGS(BIP_StreamerHdmiInputSettings)   /* Internal use... for init verification. */
 } BIP_StreamerHdmiInputSettings;
+BIP_SETTINGS_ID_DECLARE(BIP_StreamerHdmiInputSettings);
+
+#define BIP_Streamer_GetDefaultHdmiInputSettings(pSettings)                      \
+        BIP_SETTINGS_GET_DEFAULT_BEGIN(pSettings, BIP_StreamerHdmiInputSettings) \
+        /* Set non-zero defaults explicitly. */                                \
+        /* TODO: get defaults for Player related settings. */                  \
+        BIP_SETTINGS_GET_DEFAULT_END
+
+BIP_Status BIP_Streamer_SetHdmiInputSettings(
+    BIP_StreamerHandle              hStreamer,
+    NEXUS_HdmiInputHandle           hHdmiInput,
+    BIP_StreamerHdmiInputSettings   *pHdmiInputSettings
+    );
 #endif
 
 /**
@@ -416,7 +435,9 @@ typedef struct BIP_StreamerOutputSettings
     struct   /* These fields are only used when output container type is NEXUS_TransportType_eTs */
     {
         bool            enableTransportTimestamp;   /* Optional: indicates if 4 byte timestamp should be inserted for MPEG2 TS output (making it 192 byte TS packet) */
-                                                    /* if input stream has transportTimestampEnabled and output settings doesn't set enableTransportTimestamp, then 4 byte timestamp is removed from the output */
+                                                    /* if input stream has transportTimestampEnabled, */
+                                                    /* BIP_StreamerFileInputSettings.enableHwPacing is NOT set, and */
+                                                    /* output settings doesn't set enableTransportTimestamp, then 4 byte timestamp is removed from the output */
 
         BIP_StreamerMpeg2TsPatPmtMode   patPmtMode; /* Selects handling of PAT/PMT for streamer output */
 

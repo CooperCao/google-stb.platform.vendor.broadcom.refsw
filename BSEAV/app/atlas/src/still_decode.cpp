@@ -97,7 +97,7 @@ void CStillDecode::stillDecodeCallback()
 
 CStillDecode::CStillDecode(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_decodeStill, pCfg),

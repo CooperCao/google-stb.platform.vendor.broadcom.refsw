@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,7 +57,7 @@ void statsCollectorWrapper(
 
     BIP_CHECK_PTR_GOTO( pSink, "pSink is NULL", error, BIP_ERR_INVALID_PARAMETER );
 
-    BDBG_MSG(( "%s: pSink %p", __FUNCTION__, pSink ));
+    BDBG_MSG(( "%s: pSink %p", BSTD_FUNCTION, pSink ));
     pSink->statsCollector();
 error:
     return;
@@ -84,7 +84,7 @@ BIP_RtpSink:: BIP_RtpSink(
 BIP_RtpSink::~BIP_RtpSink()
 {
     #if 0
-    BDBG_MSG(( "%s: destructor; unscheduleDelayedTask 0x%x", __FUNCTION__, fStatsCollector ));
+    BDBG_MSG(( "%s: destructor; unscheduleDelayedTask 0x%x", BSTD_FUNCTION, fStatsCollector ));
     // Turn off any periodic processing:
     if (fStatsCollector) {envir().taskScheduler().unscheduleDelayedTask( fStatsCollector ); }
     #endif
@@ -92,7 +92,7 @@ BIP_RtpSink::~BIP_RtpSink()
 
 void BIP_RtpSink::destroy()
 {
-    BDBG_MSG(( "%s: this %p", __FUNCTION__, (void *)this ));
+    BDBG_MSG(( "%s: this %p", BSTD_FUNCTION, (void *)this ));
     delete this;
 }
 
@@ -128,8 +128,8 @@ void BIP_RtpSink:: statsCollector(
 {
     int64_t timeoutMicroSeconds = 5 * 1000000;
 
-    BDBG_MSG(( "%s: PktCnt 0x%x; OctetCnt 0x%x", __FUNCTION__, fPacketCount, fOctetCount ));
-    BDBG_ERR(( "%s: this (%p); fSeqNo %x; fPacketCount %p; fOctetCount %p", __FUNCTION__, this, fSeqNo, fPacketCount, &fOctetCount ));
+    BDBG_MSG(( "%s: PktCnt 0x%x; OctetCnt 0x%x", BSTD_FUNCTION, fPacketCount, fOctetCount ));
+    BDBG_ERR(( "%s: this (%p); fSeqNo %x; fPacketCount %p; fOctetCount %p", BSTD_FUNCTION, this, fSeqNo, fPacketCount, &fOctetCount ));
 
     fPacketCount   += 500;
     fOctetCount    += 1316*1000;

@@ -41,6 +41,8 @@
 #include "nexus_platform_standby.h"
 
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <linux/hdreg.h>
 #include <fcntl.h>
 #include <scsi/scsi.h>
@@ -77,19 +79,21 @@ eRet CMountData::initializeDriveData(const char * str)
 
     BDBG_ASSERT(NULL != str);
 
+    /* coverity[secure_temp] */
     fd = mkstemp(strTmpName);
+    if (0 > fd)
+    {
+        BDBG_ERR(("%s - unable to create unique temp file", BSTD_FUNCTION));
+        goto error;
+    }
+    /* a+rw permissions */
+    fchmod(fd,0666);
 
     /* we will use fdisk -l to retrieve the GUID of the given drive */
     cmd = MString("fdisk -l ") + str;
     cmd += " > ";
     cmd += strTmpName;
     system(cmd);
-
-    if (0 > fd)
-    {
-        BDBG_ERR(("%s - unable to create unique temp file", __FUNCTION__));
-        goto error;
-    }
 
     {
         MString strBuf;
@@ -136,11 +140,13 @@ eRet CMountData::initializeMountData(const char * str)
 {
     eRet ret = eRet_Ok;
     char strPartition[16];
+    int  err = 0;
 
     BDBG_ASSERT(NULL != str);
 
     /* coverity[secure_coding] */
-    sscanf(str, "%15s %31s %15s", strPartition, _strMountPoint, _strMountType);
+    err = sscanf(str, "%15s %31s %15s", strPartition, _strMountPoint, _strMountType);
+    BDBG_MSG(("Code returned by Sscanf is %d",err));
     _nPartition = atoi(strPartition + 8);
     strncpy(_strDrive, strPartition, 8);
     _strDrive[8] = '\0';
@@ -160,12 +166,14 @@ eRet CMountData::initializePartitionData(const char * str)
     int  nMajor           = 0;
     int  nMinor           = 0;
     int  nSize            = 0;
+    int  err              = 0;
     char strPartition[16] = "/dev/";
 
     BDBG_ASSERT(NULL != str);
 
     /* coverity[secure_coding] */
-    sscanf(str, "%16d %16d %32d %10s", &nMajor, &nMinor, &nSize, strPartition + strlen("/dev/"));
+    err = sscanf(str, "%16d %16d %32d %10s", &nMajor, &nMinor, &nSize, strPartition + strlen("/dev/"));
+    BDBG_MSG((" return code for SSCANF is %d ", err));
 
     if (strlen("/dev/sdXn") > strlen(strPartition))
     {
@@ -276,7 +284,7 @@ bool CMountData::operator ==(CMountData &other)
 
 CPower::CPower(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_power, pCfg),
@@ -559,7 +567,7 @@ eRet CPower::setMode(
     eRet       ret     = eRet_Ok;
     ePowerMode modeOld = getMode();
 
-    BDBG_MSG(("CPower::%s set power mode:S%d", __FUNCTION__, mode));
+    BDBG_MSG(("CPower::%s set power mode:S%d", BSTD_FUNCTION, mode));
     /* notifiy observers first before graphics are shut off */
     notifyObservers(eNotify_PowerModeChanged, &mode);
 

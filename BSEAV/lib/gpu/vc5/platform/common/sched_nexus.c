@@ -76,6 +76,9 @@ CHECK_ENUM(BCM_SCHED_JOB_TYPE_FENCE_WAIT,       NEXUS_Graphicsv3dJobType_eFenceW
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_TEST,             NEXUS_Graphicsv3dJobType_eTest);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_USERMODE,         NEXUS_Graphicsv3dJobType_eUsermode);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_V3D_BARRIER,      NEXUS_Graphicsv3dJobType_eBarrier);
+CHECK_ENUM(BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT,    NEXUS_Graphicsv3dJobType_eWaitOnEvent);
+CHECK_ENUM(BCM_SCHED_JOB_TYPE_SET_EVENT,        NEXUS_Graphicsv3dJobType_eSetEvent);
+CHECK_ENUM(BCM_SCHED_JOB_TYPE_RESET_EVENT,      NEXUS_Graphicsv3dJobType_eResetEvent);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_NUM_JOB_TYPES,    NEXUS_Graphicsv3dJobType_eNumJobTypes);
 
 CHECK_ENUM(V3D_EMPTY_TILE_MODE_NONE, NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE);
@@ -119,16 +122,22 @@ CHECK_STRUCT(bcm_sched_event_field_desc,        NEXUS_Graphicsv3dEventFieldDesc)
 CHECK_STRUCT(bcm_sched_event_track_desc,        NEXUS_Graphicsv3dEventTrackDesc);
 
 static void UsermodeHandler(void *context, int param);
+static void RunUsermodeHandler(void *context);
+
 static void FenceDoneHandler(void *context, int param);
+
 static void CompletionHandler(void *context, int param);
 static void RunCompletionHandler(void *context);
 
 typedef struct
 {
    NEXUS_Graphicsv3dHandle    session;
-   BKNI_EventHandle           hRunCallback;
-   NEXUS_ThreadHandle         hTaskHandle;
-   volatile bool              runCallbackExit;
+   BKNI_EventHandle           hCompletionEvent;
+   BKNI_EventHandle           hUsermodeEvent;
+   NEXUS_ThreadHandle         hCompletionThread;
+   NEXUS_ThreadHandle         hUsermodeThread;
+   volatile bool              completionCallbackExit;
+   volatile bool              usermodeCallbackExit;
    uint64_t                   pagetablePhysAddr;
    uint32_t                   mmuMaxVirtAddr;
    int64_t                    unsecureBinTranslation;
@@ -157,6 +166,7 @@ static void *SchedOpen(void *context)
    settings.iUnsecureBinTranslation = ctx->unsecureBinTranslation;
    settings.iSecureBinTranslation   = ctx->secureBinTranslation;
    settings.uiPlatformToken         = ctx->platformToken;
+   settings.uiClientPID             = getpid();
 
    settings.sUsermode.context  = ctx;
    settings.sUsermode.param    = 0;
@@ -171,12 +181,16 @@ static void *SchedOpen(void *context)
    settings.sCompletion.callback = CompletionHandler;
 
    ctx->session = NEXUS_Graphicsv3d_Create(&settings);
-   BKNI_CreateEvent(&ctx->hRunCallback);
+   BKNI_CreateEvent(&ctx->hCompletionEvent);
+   BKNI_CreateEvent(&ctx->hUsermodeEvent);
 
    ctx->pfnUpdateOldestNFID = NULL;
 
-   ctx->runCallbackExit = false;
-   ctx->hTaskHandle = NEXUS_Thread_Create("comp_handler", RunCompletionHandler, (void *)ctx, NULL);
+   ctx->completionCallbackExit = false;
+   ctx->hCompletionThread = NEXUS_Thread_Create("comp_handler", RunCompletionHandler, (void *)ctx, NULL);
+
+   ctx->usermodeCallbackExit = false;
+   ctx->hUsermodeThread = NEXUS_Thread_Create("user_handler", RunUsermodeHandler, (void *)ctx, NULL);
 
    sem_init(&ctx->throttle, 0, 20);
 
@@ -189,17 +203,25 @@ static void SchedClose(void *context, void *session)
 
    if (session != NULL)
    {
-      BKNI_EventHandle hRunCallback;
+      BKNI_EventHandle hOldEvent;
 
       sem_destroy(&ctx->throttle);
 
-      /* Close the completion handler thread */
-      ctx->runCallbackExit = true;
-      BKNI_SetEvent(ctx->hRunCallback);         /* Ensure the thread loop is triggered */
-      NEXUS_Thread_Destroy(ctx->hTaskHandle);   /* This does a join internally */
-      hRunCallback = ctx->hRunCallback;
-      ctx->hRunCallback = NULL;                 /* In case the callback fires after the event is destroyed */
-      BKNI_DestroyEvent(hRunCallback);
+      /* Close the completion handler & userMode threads */
+      ctx->completionCallbackExit = true;
+      ctx->usermodeCallbackExit = true;
+      BKNI_SetEvent(ctx->hCompletionEvent);         /* Ensure the thread loops are triggered */
+      BKNI_SetEvent(ctx->hUsermodeEvent);
+      NEXUS_Thread_Destroy(ctx->hCompletionThread); /* This does a join internally */
+      NEXUS_Thread_Destroy(ctx->hUsermodeThread);   /* This does a join internally */
+
+      hOldEvent = ctx->hCompletionEvent;
+      ctx->hCompletionEvent = NULL;                 /* In case the callback fires after the event is destroyed */
+      BKNI_DestroyEvent(hOldEvent);
+
+      hOldEvent = ctx->hUsermodeEvent;
+      ctx->hUsermodeEvent = NULL;                   /* In case the callback fires after the event is destroyed */
+      BKNI_DestroyEvent(hOldEvent);
 
       NEXUS_Graphicsv3d_Destroy((NEXUS_Graphicsv3dHandle)session);
    }
@@ -252,6 +274,28 @@ static void CopyTFUJob(NEXUS_Graphicsv3dJobTFU *to, const struct bcm_tfu_job *fr
    to->sCustomCoefs.uiBB         = from->custom_coefs.a_bb;
 }
 
+static void CopyBinSubjobsList(NEXUS_Graphicsv3dJobBin *nexusBin, const v3d_subjobs_list * subjobs_list)
+{
+   BDBG_ASSERT(subjobs_list->num_subjobs <= NEXUS_GRAPHICSV3D_MAX_BIN_SUBJOBS);
+   nexusBin->uiNumSubJobs = subjobs_list->num_subjobs;
+   for (unsigned i = 0; i < subjobs_list->num_subjobs; i++)
+   {
+      nexusBin->uiStart[i] = subjobs_list->subjobs[i].start;
+      nexusBin->uiEnd[i] = subjobs_list->subjobs[i].end;
+   }
+}
+
+static void CopyRenderSubjobsList(NEXUS_Graphicsv3dJobRender *nexusRender, const v3d_subjobs_list * subjobs_list)
+{
+   BDBG_ASSERT(subjobs_list->num_subjobs <= NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS);
+   nexusRender->uiNumSubJobs = subjobs_list->num_subjobs;
+   for (unsigned i = 0; i < subjobs_list->num_subjobs; i++)
+   {
+      nexusRender->uiStart[i] = subjobs_list->subjobs[i].start;
+      nexusRender->uiEnd[i] = subjobs_list->subjobs[i].end;
+   }
+}
+
 static unsigned QueueJobBatch(SchedContext *context, void *session, const struct bcm_sched_job *jobs, unsigned num_jobs)
 {
    NEXUS_Error err = NEXUS_SUCCESS;
@@ -277,9 +321,7 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       nexusBin.sBase.uiPagetablePhysAddr = context->pagetablePhysAddr;
       nexusBin.sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
 
-      nexusBin.uiNumSubJobs = jobs->driver.bin.n;
-      memcpy(&nexusBin.uiStart, &jobs->driver.bin.start, sizeof(nexusBin.uiStart));
-      memcpy(&nexusBin.uiEnd,   &jobs->driver.bin.end,   sizeof(nexusBin.uiEnd));
+      CopyBinSubjobsList(&nexusBin, &jobs->driver.bin.subjobs_list);
       nexusBin.uiFlags  = jobs->driver.bin.no_render_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
       nexusBin.uiFlags |= jobs->driver.bin.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 
@@ -295,9 +337,8 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       nexusRender.sBase.uiPagetablePhysAddr = context->pagetablePhysAddr;
       nexusRender.sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
 
-      nexusRender.uiNumSubJobs = jobs->driver.render.n;
-      memcpy(&nexusRender.uiStart, &jobs->driver.render.start, sizeof(nexusRender.uiStart));
-      memcpy(&nexusRender.uiEnd,   &jobs->driver.render.end,   sizeof(nexusRender.uiEnd));
+      BDBG_ASSERT(jobs->driver.render.num_layers == 1);
+      CopyRenderSubjobsList(&nexusRender, &jobs->driver.render.subjobs_list);
       nexusRender.uiFlags  = jobs->driver.render.no_bin_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
       nexusRender.uiFlags |= jobs->driver.render.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 
@@ -393,6 +434,19 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       break;
    }
 
+   case BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT:
+   case BCM_SCHED_JOB_TYPE_SET_EVENT:
+   case BCM_SCHED_JOB_TYPE_RESET_EVENT:
+   {
+      NEXUS_Graphicsv3dJobSchedEvent   schedEvent;
+
+      CopyJobBase(&schedEvent.sBase, jobs);
+      schedEvent.uiEventId = jobs->driver.event.id;
+
+      err = NEXUS_Graphicsv3d_QueueSchedEvent(session, &schedEvent);
+      break;
+   }
+
    default:
       unreachable();
    }
@@ -422,16 +476,15 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
    NEXUS_Graphicsv3dJobBin    nexusBin;
    NEXUS_Graphicsv3dJobRender nexusRender;
 
-   sem_wait(&ctx->throttle);
+   while (sem_wait(&ctx->throttle) == -1 && errno == EINTR)
+      continue;
 
    /* Copy bin job */
    CopyJobBase(&nexusBin.sBase, bin);
    nexusBin.sBase.uiPagetablePhysAddr = ctx->pagetablePhysAddr;
    nexusBin.sBase.uiMmuMaxVirtAddr = ctx->mmuMaxVirtAddr;
 
-   nexusBin.uiNumSubJobs = bin->driver.bin.n;
-   memcpy(nexusBin.uiStart, bin->driver.bin.start, sizeof(nexusBin.uiStart));
-   memcpy(nexusBin.uiEnd,   bin->driver.bin.end,   sizeof(nexusBin.uiEnd));
+   CopyBinSubjobsList(&nexusBin, &bin->driver.bin.subjobs_list);
    nexusBin.uiFlags  = bin->driver.bin.no_render_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
    nexusBin.uiFlags |= bin->driver.bin.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 
@@ -442,9 +495,8 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
    nexusRender.sBase.uiPagetablePhysAddr = ctx->pagetablePhysAddr;
    nexusRender.sBase.uiMmuMaxVirtAddr = ctx->mmuMaxVirtAddr;
 
-   nexusRender.uiNumSubJobs = render->driver.render.n;
-   memcpy(nexusRender.uiStart, render->driver.render.start, sizeof(nexusRender.uiStart));
-   memcpy(nexusRender.uiEnd,   render->driver.render.end,   sizeof(nexusRender.uiEnd));
+   BDBG_ASSERT(render->driver.render.num_layers == 1);
+   CopyRenderSubjobsList(&nexusRender, &render->driver.render.subjobs_list);
    nexusRender.uiFlags  = render->driver.render.no_bin_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
    nexusRender.uiFlags |= render->driver.render.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
    nexusRender.uiEmptyTileMode = render->driver.render.empty_tile_mode;
@@ -535,27 +587,6 @@ int MakeFenceForAnyJob(void *context,
    return fence;
 }
 
-typedef void (*pfnUserCallback)(void *pData);
-
-static void UsermodeHandler(void *context, int param)
-{
-   SchedContext                 *ctx   = (SchedContext *)context;
-   uint64_t                      jobId = 0;
-   NEXUS_Graphicsv3dUsermode     usermode;
-
-   BSTD_UNUSED(param);
-
-   while (NEXUS_Graphicsv3d_GetUsermode(ctx->session, jobId, &usermode) == NEXUS_SUCCESS)
-   {
-      if (!usermode.bHaveJob)
-         break;
-
-      pfnUserCallback callback = (pfnUserCallback)((uintptr_t)usermode.uiCallback);
-      jobId = usermode.uiJobId;
-      callback((void *)((uintptr_t)usermode.uiData));
-   }
-}
-
 static void FenceDoneHandler(void *context, int param)
 {
    SchedContext                       *ctx = (SchedContext *)context;
@@ -577,8 +608,8 @@ static void CompletionHandler(void *context, int param)
 {
    SchedContext *ctx = (SchedContext *)context;
 
-   if (ctx->hRunCallback)
-      BKNI_SetEvent(ctx->hRunCallback);
+   if (ctx->hCompletionEvent)
+      BKNI_SetEvent(ctx->hCompletionEvent);
 }
 
 typedef void (*pfnRunCallback)(void *, uint64_t, NEXUS_Graphicsv3dJobStatus);
@@ -589,9 +620,9 @@ static void RunCompletionHandler(void *context)
 
    do
    {
-      BKNI_WaitForEvent(ctx->hRunCallback, BKNI_INFINITE);
+      BKNI_WaitForEvent(ctx->hCompletionEvent, BKNI_INFINITE);
 
-      if (!ctx->runCallbackExit)
+      if (!ctx->completionCallbackExit)
       {
          NEXUS_Graphicsv3dCompletionInfo   info;
          uint32_t                          numCompletions = 0;
@@ -602,7 +633,7 @@ static void RunCompletionHandler(void *context)
          {
             // We are about to poll for completed jobs again, so we can ignore any
             // completion callbacks that have occurred recently.
-            BKNI_ResetEvent(ctx->hRunCallback);
+            BKNI_ResetEvent(ctx->hCompletionEvent);
 
             // Tell Nexus that we have finalized the last list it gave us, and to tell us about any more.
             NEXUS_Graphicsv3d_GetCompletions(ctx->session,
@@ -636,7 +667,48 @@ static void RunCompletionHandler(void *context)
          }
       }
    }
-   while (!ctx->runCallbackExit);
+   while (!ctx->completionCallbackExit);
+}
+
+static void UsermodeHandler(void *context, int param)
+{
+   SchedContext *ctx = (SchedContext *)context;
+
+   if (ctx->hUsermodeEvent)
+      BKNI_SetEvent(ctx->hUsermodeEvent);
+}
+
+typedef void(*pfnUserCallback)(void *pData);
+
+static void RunUsermodeHandler(void *context)
+{
+   SchedContext   *ctx = (SchedContext *)context;
+
+   do
+   {
+      BKNI_WaitForEvent(ctx->hUsermodeEvent, BKNI_INFINITE);
+
+      if (!ctx->usermodeCallbackExit)
+      {
+         NEXUS_Graphicsv3dUsermode  usermode;
+         uint64_t                   jobId = 0;
+
+         // We are about to poll for usermode jobs again, so we can ignore any
+         // usermode callbacks that have occurred recently.
+         BKNI_ResetEvent(ctx->hUsermodeEvent);
+
+         while (NEXUS_Graphicsv3d_GetUsermode(ctx->session, jobId, &usermode) == NEXUS_SUCCESS)
+         {
+            if (!usermode.bHaveJob)
+               break;
+
+            pfnUserCallback callback = (pfnUserCallback)((uintptr_t)usermode.uiCallback);
+            jobId = usermode.uiJobId;
+            callback((void *)((uintptr_t)usermode.uiData));
+         }
+      }
+   }
+   while (!ctx->usermodeCallbackExit);
 }
 
 static void WaitFence(void *context, int fence)
@@ -696,6 +768,19 @@ static BEGL_FenceStatus WaitFenceTimeout(void *context, int fence, uint32_t time
    return ret;
 }
 
+static bool WaitFenceTimeoutFI(void *context, int fence, uint32_t timeoutms)
+{
+   if (timeoutms == FENCE_WAIT_INFINITE)
+   {
+      WaitFence(context, fence);
+      return true;
+   }
+   else
+   {
+      return WaitFenceTimeout(context, fence, timeoutms) == BEGL_FenceSignaled;
+   }
+}
+
 static void MakeFence(void *context, int *fence)
 {
    SchedContext        *ctx = (SchedContext *)context;
@@ -703,11 +788,11 @@ static void MakeFence(void *context, int *fence)
    NEXUS_Graphicsv3d_FenceMake(ctx->session, fence);
 }
 
-static BEGL_SchedStatus KeepFence(void *context, int fence)
+static bool KeepFence(void *context, int fence)
 {
    SchedContext *ctx = (SchedContext *)context;
    return NEXUS_Graphicsv3d_FenceKeep(ctx->session, fence) == NEXUS_SUCCESS ?
-         BEGL_SchedSuccess : BEGL_SchedFail;
+         true : false;
 }
 
 static void SignalFence(void *context, int fence)
@@ -970,6 +1055,47 @@ static bool ExplicitSync(void *context)
    return false;
 }
 
+/*****************************************************************************/
+// Scheduler event
+
+static bcm_sched_event_id NewSchedEvent(void *context)
+{
+   SchedContext   *ctx  = (SchedContext *)context;
+   uint64_t       evId;
+   NEXUS_Error    err   = NEXUS_Graphicsv3d_NewSchedEvent(ctx->session, &evId);
+   if (err != NEXUS_SUCCESS)
+      return V3D_INVALID_SCHED_EVENT_ID;
+   else
+      return evId;
+}
+
+static void DeleteSchedEvent(void *context, bcm_sched_event_id event_id)
+{
+   SchedContext   *ctx  = (SchedContext *)context;
+   NEXUS_Graphicsv3d_DeleteSchedEvent(ctx->session, event_id);
+}
+
+static void SetSchedEvent(void *context, bcm_sched_event_id event_id)
+{
+   SchedContext   *ctx  = (SchedContext *)context;
+   NEXUS_Graphicsv3d_SetSchedEvent(ctx->session, event_id);
+}
+
+static void ResetSchedEvent(void *context, bcm_sched_event_id event_id)
+{
+   SchedContext   *ctx  = (SchedContext *)context;
+   NEXUS_Graphicsv3d_ResetSchedEvent(ctx->session, event_id);
+}
+
+static bool QuerySchedEvent(void *context, bcm_sched_event_id event_id)
+{
+   SchedContext   *ctx  = (SchedContext *)context;
+   bool           eventSet = false;
+   NEXUS_Graphicsv3d_QuerySchedEvent(ctx->session, event_id, &eventSet);
+
+   return eventSet;
+}
+
 BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
 {
    SchedContext        *ctx   = NULL;
@@ -994,16 +1120,11 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    iface->Close            = SchedClose;
    iface->QueueJobs        = QueueJobs;
    iface->QueueBinRender   = QueueBinRender;
-   /* iface->PollComplete     = PollComplete; */
    iface->Query            = Query;
    iface->MakeFenceForJobs = MakeFenceForJobs;
    iface->WaitFence        = WaitFence;
    iface->WaitFenceTimeout = WaitFenceTimeout;
    iface->CloseFence       = CloseFence;
-
-   iface->MakeFence        = MakeFence;
-   iface->KeepFence        = KeepFence;
-   iface->SignalFence      = SignalFence;
 
    iface->WaitForAnyNonFinalisedJob = WaitForAnyNonFinalisedJob;
    iface->WaitJobs                  = WaitJobs;
@@ -1034,6 +1155,13 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
 
    iface->ExplicitSync              = ExplicitSync;
 
+   // Scheduler event sync object
+   iface->NewSchedEvent             = NewSchedEvent;
+   iface->DeleteSchedEvent          = DeleteSchedEvent;
+   iface->SetSchedEvent             = SetSchedEvent;
+   iface->ResetSchedEvent           = ResetSchedEvent;
+   iface->QuerySchedEvent           = QuerySchedEvent;
+
    return iface;
 
 error:
@@ -1060,4 +1188,17 @@ void DestroySchedInterface(BEGL_SchedInterface *iface)
 
       free(iface);
    }
+}
+
+void InitFenceInterface(FenceInterface *fi, const BEGL_SchedInterface *sched)
+{
+   fi->base.context = (void*)sched->context;
+   fi->base.destroy = NULL; /* unused */
+
+   fi->invalid_fence    = -1;
+   fi->create           = MakeFence;
+   fi->destroy          = CloseFence;
+   fi->keep             = KeepFence;
+   fi->wait             = WaitFenceTimeoutFI;
+   fi->signal           = SignalFence;
 }

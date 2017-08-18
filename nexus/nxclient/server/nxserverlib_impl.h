@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -150,6 +150,7 @@ struct b_audio_config
         NxClient_AudioOutputMode audioCodecOutput[NEXUS_AudioCodec_eMax];
     } hdmi, spdif;
     bool hdmiAc3Plus; /* use true AC3+ -> AC3+ passthrough because HDMI supports it */
+    unsigned maxPCMChannels; /* Max Number of PCM channels support by downstream device. */
 };
 
 struct b_connect;
@@ -368,6 +369,9 @@ struct b_session {
     NxClient_AudioSettings audioSettings;
     struct {
         NEXUS_SimpleAudioDecoderServerHandle server;
+        struct {
+            NxClient_AudioOutputMode outputMode[NEXUS_AudioCodec_eMax]; /* Configured output format */
+        } hdmi, spdif;
     } audio;
 
     struct {
@@ -577,6 +581,7 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
 int  nxserverlib_p_swap_audio(struct b_connect *connect1, struct b_connect *connect2);
 void nxserverlib_p_restart_audio(struct b_session *session);
 int  nxserverlib_p_session_has_sd_audio(struct b_session *session);
+int  nxserverlib_p_audio_i2s0_shares_with_dac(struct b_session *session);
 
 /************
 nxserverlib_input.c API

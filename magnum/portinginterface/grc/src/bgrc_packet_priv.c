@@ -3821,7 +3821,6 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
     uint32_t ulSwPktSize;
     uint32_t ii;
     BM2MC_PACKET_Header *pHeader;
-    bool bSoftwareStriping;
     bool bBlitSwPkt;
 
     if (hGrc->secure != hContext->create_settings.secure) {
@@ -3865,7 +3864,6 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
     while( hContext->ulSwPktSizeToProc )
     {
         pHeader = (BM2MC_PACKET_Header *) pSwPacket;
-        bSoftwareStriping = false;
 
         if (pHeader->type != BM2MC_PACKET_PacketType_eSourcePalette)
         {

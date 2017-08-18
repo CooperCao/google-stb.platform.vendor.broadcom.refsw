@@ -61,7 +61,7 @@ public:
     ~CChannelOfdm(void);
     CChannelOfdm(const CChannelOfdm & chOfdm); /* copy constructor */
 
-    virtual eRet          tune(void * id, CConfig * pConfig, bool bWaitForLock, uint16_t index = ANY_INDEX);
+    virtual eRet          tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
     virtual eRet          unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
     virtual eRet          readXML(MXmlElement * xmlElemChannel);
     virtual void          writeXML(MXmlElement * xmlElemChannel);

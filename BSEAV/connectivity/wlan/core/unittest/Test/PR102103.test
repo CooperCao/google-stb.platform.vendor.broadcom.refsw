@@ -1,0 +1,52 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# PR#102103 UTF: 4360, 4331, 43227, 43228, 4313 Linux host lockup in BigHammer
+#
+# Test approach is to set up a bidirectional traffic background then
+# rapidly hit the STA with reinit.
+#
+# $Id: f4a79dbddcb47b0cc84a13ae776aa163eed7ce33 $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Streams
+package require UTF::Test::ConnectAPSTA
+
+UTF::Test PR102103 {AP STA args} {
+    UTF::Getopts {
+	{loop.arg 5000 "Loop count"}
+    }
+    UTF::Record "Setup" {
+	# Kill off any stale iperf servers - if we kill off daemons
+	# it's ok, they'll get restarted.
+	catch {[$AP lan] pkill -TERM iperf}
+	catch {$STA pkill -TERM iperf}
+	if {[catch {$STA ping $AP}]} {
+	    ConnectAPSTA $AP $STA -security open
+	}
+	UTF::stream logginglevel ANALYZE; # Not interested in data
+	UTF::stream create T -tx $STA -rx $AP -protocol tcp -reportinterval 10
+	UTF::stream create R -tx $AP -rx $STA -protocol tcp -reportinterval 10
+	UTF::stream allstreams start
+    }
+
+    set watchdog 1; # Flag for early abort of the outer loop
+    # Report in batches of 100 to keep the log files reasonable
+    for {set i 0} {$i < $(loop) && $watchdog} {incr i 100} {
+	UTF::Try "loop $i" {
+	    for {set j 0} {$j < 100} {incr j} {
+		UTF::Message INFO $STA "loop [expr {$i + $j}]"
+		set watchdog 0
+		$STA :; # Check STA isn't already dead.
+		$STA wl reinit
+		set watchdog 1
+		UTF::Sleep 0.1
+	    }
+	}
+    }
+    UTF::Record "Cleanup" {
+	UTF::stream exitstreams
+    }
+}

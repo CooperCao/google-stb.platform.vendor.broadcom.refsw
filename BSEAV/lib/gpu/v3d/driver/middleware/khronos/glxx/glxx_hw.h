@@ -1,20 +1,12 @@
-//#define DRAW_TEX_LOGGING
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Hardware abstraction layer API declaration.
-Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_HW_H
 #define GLXX_HW_H
 
-#include "middleware/khronos/glxx/glxx_server.h"
+#define DRAW_TEX_LOGGING 0
 
+#include "middleware/khronos/glxx/glxx_server.h"
 
 typedef struct
 {

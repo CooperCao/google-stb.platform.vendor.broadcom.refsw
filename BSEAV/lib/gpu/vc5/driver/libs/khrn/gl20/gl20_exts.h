@@ -9,12 +9,17 @@
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_int_config.h"
 #include "../common/khrn_process.h"
-#define GL20_EXTS_STR_MAX_SIZE 1853
+#define GL20_EXTS_STR_MAX_SIZE 1913
 static inline char *gl20_exts_str(char *s_in)
 {
    char *s = s_in;
-   memcpy(s, "GL_BRCM_mirror_once_border", 26);
-   s += 26;
+#if V3D_HAS_GFXH1638_FIX
+   memcpy(s, "GL_BRCM_image_formats", 21);
+   s += 21;
+   *(s++) = ' ';
+#endif
+   memcpy(s, "GL_BRCM_mirror_clamp_to_edge", 28);
+   s += 28;
    *(s++) = ' ';
    memcpy(s, "GL_BRCM_polygon_mode", 20);
    s += 20;
@@ -30,6 +35,11 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_BRCM_texture_norm16", 22);
    s += 22;
    *(s++) = ' ';
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   memcpy(s, "GL_BRCM_texture_unnormalised_coords", 35);
+   s += 35;
+   *(s++) = ' ';
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
    memcpy(s, "GL_EXT_base_instance", 20);
    s += 20;
@@ -130,11 +140,9 @@ static inline char *gl20_exts_str(char *s_in)
    s += 29;
    *(s++) = ' ';
 #endif
-#if GL_EXT_texture_filter_anisotropic
    memcpy(s, "GL_EXT_texture_filter_anisotropic", 33);
    s += 33;
    *(s++) = ' ';
-#endif
    memcpy(s, "GL_EXT_texture_format_BGRA8888", 30);
    s += 30;
    *(s++) = ' ';
@@ -300,17 +308,23 @@ static inline char *gl20_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define GL20_MAX_EXTS 71
+#define GL20_MAX_EXTS 73
 static inline unsigned gl20_exts(const char **e_in)
 {
    const char **e = e_in;
-   *(e++) = "GL_BRCM_mirror_once_border";
+#if V3D_HAS_GFXH1638_FIX
+   *(e++) = "GL_BRCM_image_formats";
+#endif
+   *(e++) = "GL_BRCM_mirror_clamp_to_edge";
    *(e++) = "GL_BRCM_polygon_mode";
 #if V3D_VER_AT_LEAST(3,3,0,0)
    *(e++) = "GL_BRCM_provoking_vertex";
 #endif
    *(e++) = "GL_BRCM_texture_1D";
    *(e++) = "GL_BRCM_texture_norm16";
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   *(e++) = "GL_BRCM_texture_unnormalised_coords";
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
    *(e++) = "GL_EXT_base_instance";
 #endif
@@ -363,9 +377,7 @@ static inline unsigned gl20_exts(const char **e_in)
 #if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
    *(e++) = "GL_EXT_texture_cube_map_array";
 #endif
-#if GL_EXT_texture_filter_anisotropic
    *(e++) = "GL_EXT_texture_filter_anisotropic";
-#endif
    *(e++) = "GL_EXT_texture_format_BGRA8888";
 #if V3D_VER_AT_LEAST(3,3,0,0)
    *(e++) = "GL_EXT_texture_sRGB_R8";

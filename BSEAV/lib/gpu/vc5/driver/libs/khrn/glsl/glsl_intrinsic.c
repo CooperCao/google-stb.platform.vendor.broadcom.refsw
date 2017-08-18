@@ -6,6 +6,7 @@
 #include "glsl_intrinsic.h"
 #include "glsl_primitive_types.auto.h"
 #include "glsl_dataflow.h"
+#include "glsl_fastmem.h"
 
 struct intrinsic_info_s {
    glsl_intrinsic_index_t  intrinsic;
@@ -58,7 +59,6 @@ static const struct intrinsic_info_s intrinsic_info[INTRINSIC_COUNT] = {
    { INTRINSIC_IMAGE_XOR,      "imageAtomicXor" },
    { INTRINSIC_IMAGE_XCHG,     "imageAtomicXchg" },
    { INTRINSIC_IMAGE_CMPXCHG,  "imageAtomicCmpxchg" },
-   { INTRINSIC_IMAGE_SIZE,     "imageSize"      },
 };
 
 #ifndef NDEBUG
@@ -166,9 +166,10 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
       break;
 
    case INTRINSIC_TEXTURE_SIZE:
-      /* (ivec2|ivec3) <- intrinsic(genSamplerType) */
+      /* (ivec2|ivec3) <- intrinsic(genImageType) */
       assert(args->count == 1);
-      assert(glsl_prim_is_prim_sampler_type(args->first->expr->type));
+      assert(glsl_prim_is_prim_sampler_type(args->first->expr->type) ||
+             glsl_prim_is_prim_image_type(args->first->expr->type));
       break;
 
    case INTRINSIC_RSQRT:
@@ -298,10 +299,6 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
    case INTRINSIC_IMAGE_STORE:
       validate_image_atomic(intrinsic, args);
       break;
-   case INTRINSIC_IMAGE_SIZE:
-      assert(args->count == 1);
-      assert(glsl_prim_is_prim_image_type(args->first->expr->type));
-      break;
    default:
       unreachable();
       break;
@@ -377,13 +374,10 @@ static SymbolType *calculate_texture_lookup_return_type(ExprChain *args) {
 
 static SymbolType *calculate_texture_size_return_type(ExprChain *args) {
    PrimSamplerInfo *sampler_info;
-   sampler_info = glsl_prim_get_sampler_info(args->first->expr->type->u.primitive_type.index);
-   return glsl_prim_vector_type(PRIM_INT, sampler_info->size_dim);
-}
-
-static SymbolType *calculate_image_size_return_type(ExprChain *args) {
-   PrimSamplerInfo *sampler_info;
-   sampler_info = glsl_prim_get_image_info(args->first->expr->type->u.primitive_type.index);
+   if (glsl_prim_is_prim_image_type(args->first->expr->type))
+      sampler_info = glsl_prim_get_image_info(args->first->expr->type->u.primitive_type.index);
+   else
+      sampler_info = glsl_prim_get_sampler_info(args->first->expr->type->u.primitive_type.index);
    return glsl_prim_vector_type(PRIM_INT, sampler_info->size_dim);
 }
 
@@ -421,9 +415,6 @@ Expr *glsl_intrinsic_construct_expr(int line_num, glsl_intrinsic_index_t intrins
       break;
    case INTRINSIC_IMAGE_STORE:
       expr->type = &primitiveTypes[PRIM_VOID];
-      break;
-   case INTRINSIC_IMAGE_SIZE:
-      expr->type = calculate_image_size_return_type(args);
       break;
    default:
       expr->type = calculate_functionlike_intrinsic_return_type(intrinsic, args);

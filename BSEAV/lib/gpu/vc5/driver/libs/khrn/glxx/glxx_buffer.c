@@ -102,11 +102,12 @@ bool glxx_buffer_data(GLXX_BUFFER_T *buffer, size_t size, const void *data, GLen
       // all done if size 0
       if (size > 0)
       {
-         /* TEXTURE_BUFFER buffers are used as textures, so we need minimum this
-          * alignment */
-         size_t rounded_size = gfx_zround_up(size, GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES);
+         size_t rounded_size = size;
+#if !V3D_HAS_LARGE_1D_TEXTURE
+         rounded_size = gfx_zround_up(size, GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES);
          if (rounded_size < size)
             return false;
+#endif
 
          // attempt to allocate new resource, or fail
          buffer->resource = khrn_resource_create(
@@ -160,28 +161,6 @@ bool glxx_buffer_copy_subdata(
    bool ok = glxx_buffer_subdata(write_buffer, write_offset, size, read_ptr);
    khrn_resource_end_access(read_buffer->resource, read_offset, size, KHRN_ACCESS_READ);
    return ok;
-}
-
-bool glxx_buffer_find_max(uint32_t *max, bool *any,
-   GLXX_BUFFER_T *buffer,
-   unsigned count,
-   unsigned per_index_size,
-   size_t offset,
-   bool primitive_restart
-   )
-{
-   assert(buffer->enabled);
-   // expect higher level API to perform basic alignment and range checks
-   assert((offset % per_index_size) == 0);
-   assert((offset + per_index_size*count) <= buffer->size);
-
-   size_t size = per_index_size * count;
-   void* ptr = khrn_resource_begin_access(&buffer->resource, offset, size, KHRN_ACCESS_READ, KHRN_RESOURCE_PARTS_ALL);
-   if (!ptr)
-      return false;
-   *any = find_max(max, count, per_index_size, ptr, primitive_restart);
-   khrn_resource_end_access(buffer->resource, offset, size, KHRN_ACCESS_READ);
-   return true;
 }
 
 size_t glxx_indexed_binding_point_get_size(const GLXX_INDEXED_BINDING_POINT_T *binding)

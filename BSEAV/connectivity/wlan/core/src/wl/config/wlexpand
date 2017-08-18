@@ -1,0 +1,838 @@
+#!/usr/bin/perl -w
+use strict;
+use vars qw(%fstatus @fabbrev);
+##############################################################
+# Script to expand user-provided feature-spec templates into
+# fully-specified templates (or assignments) for Makefile use.
+#
+# Copyright (C) 2004 Broadcom Corporation
+#
+# $Id: wlexpand,v 1.22 2006-02-21 06:17:02 prakashd Exp $
+##############################################################
+
+##############################################################
+# Internal Feature list moved to featurefile "wl.wlex"
+##############################################################
+
+my(@features, @arches, @required, %deps);
+
+############################################################
+# Theory of Operation I.  (Theoretically, it operates.)
+#
+# The main data structure is a table (hash) of value/status
+# keyed by feature name.  Initialized from feature an arches
+# lists; features start at '' and arches at '-'.
+#
+# Templates are parsed for <name>, no<name>, and <name>* to
+# set values to 1, 0, or *; a raw * or "def" are remembered
+# for later.  Other items are used as config files, and read
+# to set features to 1 or 0.  Finally, unspecified features
+# get defaults if "def" was used (but no arch will default
+# on if any other was set); features still unspecified get *
+# or 0 depending on the presence of a raw *.
+#
+# Values read from a config have (<config>) appended; "def"
+# and * are treated similarly.  Features set to 0 due to
+# lack of any reference have () appended.  Explicit values
+# from the command line have nothing appended.  During input
+# the list of original template elements is modified to make
+# filtering easier ('no' => ~, config => <config>),
+#
+# After input, expansion involves running down the hash keys
+# to find expansion elements, and branching recursively to
+# build both the enabled (1) and disabled (0) cases. At each
+# node a validity/consistency check is performed.  At leaves
+# the results are generated; results are combined in callers
+# as we pop back up the call tree.  The elements list may be
+# modified to indicate resolution of an expansion from a
+# config element (currently only "def").
+#
+# Results are generated at a leaf by selectively using the
+# hash values and list template elements.  Short form uses
+# template config elements followed by settings that were not
+# from configs; long form is all positive hash elements, plus
+# negative features if requested.  At the end, results are
+# filtered to eliminate duplicate feature sets.
+#
+# Possible variations:
+#   (a) Output only configs whose values still count.
+#   (b) Don't drop sources on explicit set to current value.
+#   (c) Track full history to generate minimal feature list.
+#
+# Theory of Operation II.  (An alternative?)
+#
+# Expand templates blindly to get a candidate set of short
+# lists; do regular processing above on each candidate and
+# discard the invalid ones.  Sort on full specs as above to
+# allow elimination of duplicates.  (Wouldn't handle * in
+# configs; having them in def is kind of nice.)
+############################################################
+
+############################################################
+# Initialize/declare some variables, process options
+#
+my $verbose;			# verbose/debug output
+my $autoadd;			# files may set new features
+my $expmax=6;			# max expansion specs allowed
+my @Idirs;			# include directory list
+my $outmode='short';		# output mode
+my $negspec;			# include negative specs
+my $cprefix;			# prefix try for filenames
+my $featurefile = "wl.wlex";    # feature file
+my $list = 0;                   # list mode
+
+# User/built-in strings for default template generation
+my $userdef;
+my $defstring="def";
+my $usingdef;
+
+my @fspecs;			# list of full specs
+my @final;			# final list (dup-filtered)
+%fstatus=();			# main feature hash (full)
+@fabbrev=();			# matching inputs (short)
+
+# Process input switches
+while (@ARGV and $_ = $ARGV[0], /^-/) {
+    shift;
+    last if /^--$/;
+    if (/^-[valhn]+/) {
+	/^-[valhn]+$/ || die "Unknown option(s) in $_, stopped";
+	/v/ and $verbose = 1;
+	/a/ and $autoadd = 1;
+	/n/ and $negspec = 1;
+	/l/ and $list = 1;
+	/h/ and (&help, exit 0);
+	next;
+    }
+    /^--help$/ and (&help, exit 0);
+    if (/^-I/) {
+	my $dir = /^-I$/ && shift || substr $_,2;
+	$dir =~ m:^[-\w/.]+$: ||
+	    die "Bad -I path ", $dir ? "($dir)" : "<none>", ", stopped";
+	push @Idirs, ($dir =~ m:(.*?)/?$:);
+	next;
+    }
+    if (/^-e/) {
+	$expmax = /^-e$/ && shift || substr $_,2;
+	$expmax =~ /^[0-9]+/ ||
+	    die "Invalid (non-numeric) argument $expmax for -e, stopped";
+	next;
+    }
+    if (/^-o/) {
+	$outmode = /^-o$/ && shift || substr $_,2;
+	$outmode =~ /^(config|long|short)$/ ||
+	    die "Invalid output mode $outmode, stopped";
+	next;
+    }
+    if (/^-p/) {
+	$cprefix = /^-p$/ && shift || substr $_,2;
+	$cprefix =~ /^\w+$/ ||
+	    die "Invalid config prefix $cprefix, stopped";
+	next;
+    }
+    if (/^-d/) {
+	my $defel = /^-d$/ && shift || substr $_,2;
+	$defel =~ /^\w+\*?$/ ||
+	    die "Invalid default element $defel, stopped";
+	$userdef .= "-".$defel;
+	next;
+    }
+    if (/^-f/) {
+	$featurefile = /^-f$/ && shift || substr $_,2;
+	next;
+    }
+
+    printf STDERR "Invalid option $_, use -h for help.\n"; exit 1;
+}
+
+$verbose && @Idirs && printf STDERR "Include dirs: @Idirs\n";
+
+# If no includes, use current directory
+!@Idirs && push(@Idirs,".") && $verbose && printf STDERR "No -I, using '.'\n";
+
+# Read feature file
+{
+    my $state = '';
+    foreach (@Idirs) {
+	if (-r "$_/$featurefile") {
+	    $featurefile = "$_/$featurefile";
+	    last;
+	}
+    }
+    $verbose && printf STDERR "Feature file: $featurefile\n";
+    open(FF, $featurefile) ||
+	die "Can't read feature file $featurefile: $!\n";
+    while(<FF>) {
+	chop;
+	s/\#.*//; # Strip comments
+	next if /^\s*$/; # Ignore empty lines
+	if (/^\s*(FEATURES|ARCHES|REQUIRED|DEPS)\s*$/) {
+	    $state=$1;
+	} elsif ($state eq 'FEATURES' && /\s*(\S+(?::[01*]))?/) {
+	    push(@features, $1);
+	} elsif ($state eq 'ARCHES' && /\s*(\S+(?::[01]))?/) {
+	    push(@arches, $1);
+	} elsif ($state eq 'REQUIRED' && /\s*(\S+)/) {
+	    push(@required, $1);
+	} elsif ($state eq 'DEPS' && /\s*(\S+):\s*(.*)/) {
+	    $deps{$1} = [split(' ', $2)];
+	} else {
+	    warn "Illegal feature config entry: $_\n";
+	}
+    }
+    close(FF);
+}
+
+# Lists of arch/feature names only
+my @anames=map(/^(\w+):[10]?$/,@arches);
+my @fnames=map(/^(\w+):[10*]?$/,@features);
+@anames == @arches ||
+    die "Internal error (bad entry in arches), stopped";
+@fnames == @features ||
+    die "Internal error (bad entry in features), stopped";
+
+if($list) {
+    &list;
+    exit 0;
+}
+
+# If no template args, use default
+if (!scalar@ARGV) {
+    $usingdef = 1;
+    if ($userdef) {
+	$defstring = substr($userdef,1);
+    }
+    printf STDERR "No template args, using %s template $defstring\n",
+    ($userdef ? "user" : "builtin");
+    push @ARGV, &strexpand($defstring);
+}
+
+# Handle each template argument
+foreach my $template (@ARGV) {
+    my $stars;
+
+    # Initialize hash with features and arches
+    foreach (@fnames) {	$fstatus{$_}=''; }
+    foreach (@anames) {	$fstatus{$_}='-'; }
+
+    # Initialize abbrev list from template
+    @fabbrev = grep($_,split('-',$template));
+
+    # Process the input template -- i.e. based on fabbrev, fill in
+    # fstatus, also updating format of the fabbrev elements to ease
+    # subsequent type identification.
+    $verbose && printf STDERR "Processing template '$template':\n";
+    &dotemplate();
+
+    $verbose && &dumpf();
+
+    # Check for basic violations
+    if (scalar grep(/^1/,@fstatus{@anames}) > 1) {
+	next if $usingdef;
+	die "Only one of (@anames) allowed, stopped";
+    }
+    $stars = scalar grep(/^\*/,values(%fstatus));
+    $stars > $expmax &&
+	die "Expansion specs exceeds limit ($stars > $expmax), stopped";
+    ($outmode eq 'config') && ($stars || @ARGV > 1) &&
+	die "Config format limited to one template w/o expansion, stopped";
+
+    # Consistency check on starting point
+    my $inv = &validate("override");
+    if ($inv) {
+	next if $usingdef;
+	printf STDERR "Bad template $template ($inv), quitting.\n"; exit 2;
+    }
+
+    # Now do the combinations and collect the results
+    $verbose && $stars && printf STDERR "Expanding wildcards...\n";
+
+    push @fspecs, &combo(keys(%fstatus));
+}
+# Now fspecs contains all expansions for all templates
+# Each expansion is of the form fullspec--shortspec
+
+# Eliminate duplicates, saving only fullspec or shortspec
+@fspecs = sort(@fspecs);
+my ($full, $short, $last);
+for ($last = ''; @fspecs; $last = $full) {
+    ($full, $short) = split('--',shift(@fspecs));
+    ($full ne $last) && push(@final, ($outmode eq 'short') ? $short : $full);
+}
+
+# Output in list or config-file form
+if ($outmode eq 'config') {
+    printf "#####Generated config file#####\n";
+    !$negspec && printf "####(Enabled features only)####\n";
+    foreach my $ftr (split('-',shift(@final))) {
+	if($ftr=~/^no(\w+)/) {
+	    printf "%s=0\n", uc($1);
+	} else {
+	    printf "%s=1\n", uc($ftr);
+	}
+    }
+} else {
+    foreach (@final) { print "$_\n"; }
+}
+
+############################################################
+# Subroutine strexpand does simple string expansion
+# Args: string to expand
+# Returns: list of result strings
+# Process:
+#    - Move elements from input string to output string(s):
+#      - For plain elements, add to each output string
+#      - For expansion elements, generate two copies; use
+#        <name>/no<name> for features, or <name>/<empty>.
+# Comments:
+#    Not easy to use one big regepx: but since no<config>
+#    isn't allowed, and no<ftr> is required (for override)
+#    so we need to look up each element.  (Gosh, does that
+#    give us <arch>* also?)
+#############
+sub strexpand {
+    my $instring = shift(@_);
+    my @outlist = ('start');
+    $verbose && print STDERR "Expanding: $instring\n";
+    my($ftr, $exp);
+    foreach my $element (split('-',$instring)) {
+	($ftr,$exp) = $element =~ /^(\w+)(\*)?$/;
+	if (!$exp) {
+	    map(s/$/-$ftr/,@outlist);
+	} else {
+	    my @neglist = @outlist;
+	    grep(/^$ftr$/,@fnames) && map($_.="-no".$ftr,@neglist);
+	    map(s/$/-$ftr/,@outlist);
+	    push(@outlist,@neglist);
+	}
+    }
+    map(s/^start-//,@outlist);
+    $verbose && print STDERR "Results: @outlist\n";
+    return @outlist;
+}
+
+
+############################################################
+# Subroutine dotemplate processes fabbrev into fstatus
+# Args: none
+# Returns: nothing
+# Process:
+#    - Check template components from fabbrev
+#    - Modify fstatus/fabbrev as per components [no]ftr[*]
+#    - Read config files (i.e. other components)
+#    - Apply default and/or * components to fstatus
+# Entry Conditions:
+#    - fabbrev is a list of non-null template components
+#      of the form [no]name[*], name is feature or file
+#    - fstatus is a hash of known feature/arch names, with
+#      feature values '' and arch values '-'.
+# Exit Conditions:
+#    - fabbrev elements become [~]name[*] for features,
+#      <name> for file/abbrev names (for easier filtering)
+#    - fstatus values are one of (1,0,*) possibly with
+#      (name) appended, where name indicates the source.
+#############
+sub dotemplate {
+    my $def;
+    my $star=0;
+
+    foreach (@fabbrev) {
+	# Parse and validate this item
+	my ($item, $neg, $ftr, $exp) = /^((no)?(\w+)(\*)?|\*)$/;
+	$item || die "Bad template component: $_, stopped";
+
+	# Resolve ambiguity in leading 'no' string
+	if ($neg && !defined($fstatus{$ftr})) {
+	    $ftr = $neg.$ftr; $neg = undef;
+	}
+	$neg && $exp && die "Negative expansion ($item) invalid, stopped";
+
+	# Check special case * first
+	if ($item eq '*') {
+	    $star = '*(*)';
+	    next;
+	}
+
+	# Handle actual feature names
+	if (defined($fstatus{$ftr})) {
+	    $exp && grep(/^$ftr$/,@anames)
+		&& die "Invalid arch expansion $item, stopped";
+	    $verbose && printf STDERR "%s $ftr\n",
+	        ($exp ? "Wildcard" : $neg ? "Disable" : "Enable");
+	    $fstatus{$ftr} = $exp ? '*' : $neg ? '0' : '1';
+	    $neg && s/^no/~/;
+	    next;
+	}
+
+	# Anything else is an abbrev (file or defaults), no expansion
+	$exp && die "Unknown feature or bad abbrev name: $item, stopped";
+
+	# Modify format in fabbrev
+	s/^.*$/<$&>/;
+
+	# Check for built-in defaults (special abbrev)
+	if ($ftr eq 'def' || $ftr eq 'nodef') {
+	    $def = ($ftr eq 'def') ? 1 : 0;
+	    next;
+	}
+
+	# Otherwise, assume config file
+	readconfig($ftr, $cprefix);
+    }
+
+    # Set default and expansion values where needed
+    $verbose && printf STDERR "%sable defaults\n", ($def ? "En" : "Dis");
+    $verbose && $star && printf STDERR "  Enable expansion\n";
+
+    # First, if any arch is on force unspecified ones off
+    grep(/^1/,@fstatus{@anames}) &&
+	map($fstatus{$_}=0, grep($fstatus{$_} eq '-',@anames));
+
+    # Then apply any defaults
+    if ($def) {
+	foreach (@features, @arches) {
+	    my ($name, $defval) = /^(\w+):([01*])$/;
+	    $name && $fstatus{$name} =~ s/^-?$/$defval(def)/;
+	}
+    }
+
+    # At this point, unset arches get set disabled
+    map(s/^-$/0/, %fstatus);
+
+    # But unset features are set disabled or expanded (as per $star)
+    !$star and $star .= "()";
+    map(s/^$/$star/, %fstatus);
+}
+
+############################################################
+# Subroutine readconfig: process a config file
+# Args: base filename, optional prefix
+# Returns: nothing, dies if can't read (or understand) file.
+# Process:
+#    - Find likely files (readable/plain-or-symlink) in the
+#      include directory list; try opening them.
+#    - Read each line and delete comment portion; execute
+#      assignment if line is FTR=N.
+#    - If include, save file handle and call recursively on
+#      new filename.  (Clear handle before call so new open
+#      won't implicitly close it.)  On return, restore file
+#      handle and continue.
+##########################
+sub readconfig {
+    my $fname = shift(@_);
+    my $prefix = shift(@_);
+    my @files = ($fname);
+    my ($fh, @fhlist);
+    my @paths;
+
+    $prefix && push(@files, $prefix.$fname);
+    $verbose && print STDERR "Base names @files\n";
+    foreach my $dir (@Idirs) {
+	push(@paths, map($dir."/".$_,@files));
+    }
+
+    # Try to find and open a matching file
+    @paths = grep(-r $_ && (-f $_ || -l $_), @paths);
+    @paths || die "Can't find readable $fname in include path, stopped\n";
+    my $path;
+    while ($path = shift(@paths)) {
+	open($fh,$path) && last || warn "Can't open $path: $!\n";
+    }
+    $path || die "Can't open config file, stopped";
+    $verbose && printf STDERR "  Reading config file $fname:\n";
+
+    # Process each file line
+    while (my $line=<$fh>) {
+
+	# Remove comments
+	$line =~ s/\s*#.*//;
+	chomp $line;
+	next unless $line;
+	next if ( $line =~ m/WLTUNEFILE\s*=/g );
+
+	# Match and execute assignments and includes
+	if ($line =~ /^\s*(\w+)\s*=\s*([01])\s*$/) {
+	    my $ftr = lc($1);
+	    grep(/^$ftr$/,@anames) &&
+		die "Arch specified at $fname:$., stopped";
+	    unless ($autoadd) {
+		!defined($fstatus{$ftr}) &&
+		    die "Unknown feature $ftr at $fname:$., stopped";
+	    }
+	    $verbose && printf STDERR ("    %s %s (line %s)\n",
+				       $2 ? "Enable" : "Disable", $ftr, $.);
+	    $fstatus{$ftr} = $2."($fname)";
+	} elsif ($line =~ /^include\s+(\S+)\s*$/) {
+	    $1 =~ m:(.*/)?(\w+)$:;
+	    $2 || die "Can't parse file name from '$line', stopped";
+	    $verbose && printf STDERR "  Switch to config file $2 at line $.\n";
+	    push @fhlist, $fh; $fh = undef;
+	    readconfig($2);
+	    $fh = pop @fhlist;
+	    $verbose && printf STDERR "  Returning to config file $fname\n";
+	} else {
+	    die "Unrecognized config line at $fname:$., stopped";
+	}
+    }
+    close($fh);
+}
+
+############################################################
+# Subroutine dumpf displays contents of the fstatus hash
+# Args: none.
+# Returns: nothing.
+sub dumpf {
+    my ($key,$val);
+    printf STDERR "Feature Status:\n";
+    while (($key,$val) = each(%fstatus)) {
+	printf STDERR "  $key => $val\n";
+    }
+    printf STDERR "Fabbrev content:\n";
+    printf STDERR "@fabbrev\n";
+}
+
+############################################################
+# Subroutine validate: check for feature consistency
+# Args: override (force compatibility for defaults)
+# Uses: %fstatus local to caller
+# Returns: string indicating errors, empty ('') if none
+#          if override, %fstatus may be modified
+# Process:
+#    - Check status of @required elements; if none, return
+#      error message listing required elements.
+#    - For each feature enabled so far on this branch (in the
+#      current %fstatus) see if it has a dependency list; see
+#      if any elements of the list are disabled and return a
+#      message listing them.
+#    - If override, modify %fstatus (def) items to enforce
+#      dependencies.  Possible hidden (transitive/overlapped)
+#      deps imply a repeat-until-stable method?  Need to be
+#      careful of infinite toggling.  For now, assume "big"
+#      default (most features on) so only trim (disable) if
+#      needed; no value will change more than once.  Better
+#      method (for future) is to change source id (e.g. &val)
+#      when changed due to non-def value, so non-def values
+#      will propogate through the def net.  [Only an all-def
+#      net might then thrash, validate a def-only config w/o
+#      override to detect internal misconfiguration.]  Might
+#      consider changing fabbrev also (but no ambiguity,
+#      and determinism should mean no conflicts?)
+#    XXX: Could force optional deps on (downstream pruning)
+#    XXX: but we probably wouldn't do transitive closure
+#    XXX: right here, so that line is commented out...
+##################################################
+sub validate {
+    my $override = shift(@_);
+    my $modified;
+
+    # Make sure at least one required feature is 1 or *
+    if (!grep($fstatus{$_} =~ /^1|^\*/, @required)) {
+	return "needs one of ".join(', ', @required);
+    }
+
+    do {
+	$modified = 0;
+	# For each enabled feature, bomb if any deps cannot be enabled
+	foreach my $ftr (grep($fstatus{$_} =~ /^1/, keys(%fstatus))) {
+	    my @ret = grep(!defined($fstatus{$_}) || $fstatus{$_} =~ /^0/, @{$deps{$ftr}});
+	    next if !@ret;
+	    # Aha: some conflicts -- fix or fail
+	    if ($override && $fstatus{$ftr} =~ s/^1\(def\)/0(def)/) {
+		#map(s/^<def>(-\w~]+)?/$&-~$ftr/,@fabbrev);
+		$verbose && print STDERR "Forced $ftr off due to deps @ret\n";
+		$modified = 1;
+	    } else {
+		return $ftr." requires ".join(', ',@ret);
+	    }
+	}
+    } while $modified;
+
+    # No problems: return no error
+    return '';
+}
+
+############################################################
+# Subroutine combo: generate combinations from fstatus
+# Args: a list of fstatus keys to consider
+# Returns: a list of matching feature specs (may be empty)
+# Process:
+#    - Validate this branch, prune (return empty) if invalid
+#    - Walk key list to the next branch point (* entry)
+#    - If no branch (fully expanded leaf) construct result
+#    - Else recurse with locals on both enable and disable
+#      branches, return combined results.
+# Considerations:
+#    Results from fstatus are in fspec form.  For flexibility
+#    may wish to have both complete and positive-only options;
+#    e.g. it might be nice if file output was complete.
+#
+#    Must also produce "short form" output with abbrev names
+#    from template.  These may be derived from the collected
+#    fspecs if sufficient source indications remain.  Since
+#    I'm planning to return scalars here, but use collections
+#    to process derivations, short forms are generated at the
+#    leaves and passed back with the fspecs.
+#
+#    Branches come from a limited number of possibilities:
+#
+#    (1) Explicit <ftr>*.  Fstatus has *, replaced with 1/0
+#        for recursion.  Derived short name may use explicit
+#        <ftr>/no<ftr>, just like any other 1/0 value.
+#
+#    (2) An abbrev (currently only def).  Fstatus is *(name);
+#        the * is changed to 1/0 for recursion; the name is
+#        where explicit feature indications are added to the
+#        short form, and are retained to indicate they've
+#        been included.
+#
+#    (3) A raw * in the template.  Fstatus is *(*), as above
+#        the * is replaced for recursion.  A (*) means there
+#        was no abbrev or explicit setting; short form may
+#        choose to use only positive features for these.
+###########
+sub combo {
+    my ($key, @res, $ret);
+
+    # Prune branch if invalid
+    if ($ret = &validate("override")) {
+	$verbose && printf STDERR "  Pruning: $ret\n";
+	return (());
+    }
+
+    # Find next branch point
+    while ($key = shift(@_)) { last if $fstatus{$key} =~ /^\*/ }
+
+    # If no branch point (leaf) construct and return results
+    !$key && return &genresult();
+
+    # Collect the enabled(1) subtree
+    {
+	local %fstatus = %fstatus;
+	local @fabbrev = @fabbrev;
+
+	# Change * to 1, retain any (name) and extract to $2
+	if($fstatus{$key} =~ s/^\*/1/) {
+	    if ($fstatus{$key} =~ /^1\((\w+)\)/) {
+		# Append value to abbrev in fabbrev
+		map(s/^<$2>([-\w~]+)?/$&-$key/,@fabbrev);
+	    }
+	}
+	@res = &combo(@_);
+    }
+    # Collect the disabled(0) subtree
+    {
+	local %fstatus = %fstatus;
+	local @fabbrev = @fabbrev;
+
+	# Change * to 0, retain any (name) and extract to $2
+	if($fstatus{$key} =~ s/^\*/0/) {
+	    if ($fstatus{$key} =~ /^0\((\w+)\)/) {
+		# Append value to abbrev in fabbrev
+		map(s/^<$2>([-\w~]+)?/$&-$key/,@fabbrev);
+	    }
+	}
+	push(@res,&combo);
+    }
+
+    # Return the combined results
+    return @res;
+}
+
+############################################################
+# Subroutine genresult: generate results for a single leaf
+# Args: none
+# Returns: a full fspec and a short name (joined by '--')
+# Process:
+#    - Generate the short name:
+#      - Start with all abbrev names from fabbrev
+#      - Add non-abbrev (explicit) items from fstatus
+#      ? May try to order based on fabbrev order
+#      ? May choose positive-only for *(*) items
+#    - Generate the full spec
+#      - Run down fstatus, may choose positive-only?
+#    - Generate file output?
+###############
+sub genresult {
+    my @templist;
+    my ($shortspec, $fullspec);
+    my @shortspec=grep(/^<\w+>/, @fabbrev);
+    foreach (@fnames) {
+	if ($fstatus{$_} =~ /^([01])(\(\*\))?$/) {
+	    my $ftr = $1 ? $_ : "no".$_;
+	    if ($2) {
+		push(@templist, $ftr);
+	    } else {
+		push(@shortspec, $ftr);
+	    }
+	}
+    }
+    foreach (@anames) {
+	$fstatus{$_} =~ /^1/ && push(@shortspec, $_);
+    }
+
+    push(@shortspec, @templist);
+    $shortspec = join('-', @shortspec);
+    $shortspec =~ s/[<>]//g;
+    $shortspec =~ s/~/no/g;
+
+    # Now generate the full specification (positive only)
+    # $fullspec = join('-', sort(grep($fstatus{$_}=~/^1/, keys(%fstatus))));
+
+    # Generate full spec
+    foreach my $ftr (keys(%fstatus)) {
+	# Always include positive features
+	$fstatus{$ftr}=~/^1/ && push(@templist,$ftr) && next;
+	# If negspec requested, include non-arch negatives too
+	$negspec && !grep(/^$ftr$/,@anames) && push(@templist,$ftr);
+    }
+    # Sort by feature name, then prepend "no" where needed and join
+    @templist = sort(@templist);
+    $fullspec = join('-', map(((defined($fstatus{$_}) && $fstatus{$_}=~/^1/) ?
+			      $_ : "no".$_), @templist));
+
+    # Combine the two
+    return join('--', ($fullspec, $shortspec));
+}
+
+############################################################
+# Subroutine help displays the small (and large) help text
+# Args: default $_ indicates -h or --help
+# Returns: nothing
+##################
+sub help {
+use File::Basename;
+my $progname=basename($0);
+my $usage="
+Usage: $progname [-vna] [-o mode] [-e N] [-I dir]... [-p pre] [-d dflt]... [<template>]...
+   or: $progname -l | -h | --help
+Options:
+	-v	verbose	-- progress/debug output
+	-n	negspec -- include negatives in long/config ouput
+	-a	autoadd	-- accept unknown features in config file
+	-o mode	output  -- mode is config, long, or short (default)
+	-e N	expmax  -- reject more the N expansions (default 6)
+	-I dir  add dir to config-file path (space is optional)
+	-f file feature file (default is wl.wlex for wl features)
+        -p pre	prefix  -- optional prefix for config file names
+	-d dflt default -- element(s) to expand when no template
+	-l	list	-- show recognized features
+	-h      help	-- display basic usage (this message)
+	--help	display extended usage (this plus more)
+";
+
+my $help='
+Converts the input templates to a set of corresponding feature lists.
+
+INPUT
+------
+An input <template> is a list of elements separated (connected) by
+hyphens.  A template element is generally a feature name (optionally
+prefixed w/"no" or suffixed w/"*") to enable, disable, or expand the
+feature.  Element "def" requests internal defaults for unspecified
+features, while a raw "*" requests expansion of unspecified features.
+Any other element is assumed to be the name of a config file to read.
+
+Order matters: a template is processed left-to-right, and the final
+setting for a feature is the last one encountered -- either in the
+template itself or a config file.  (The only exceptions are * and
+def, which are only applied to otherwise unspecified features.)
+
+OUTPUT
+-------
+Output form is controlled by the -o option.  Default (-o short) is a
+set of feature lists which include config items (files or "def") from
+the template, followed by individual feature elements. Long output is
+a set of feature lists with any config items replaced by the feature
+settings they represent.  Config output is long output in config file
+format (only allowed for a single feature list).
+
+Long and config output generate only positive feature elements by
+default; the -n option causes all feature settings to be output,
+including negative ones.  (The short output always included negative
+elements, since they may be required as overrides for settings in
+preceding config items.)
+
+CONFIG FILES
+-------------
+Config files are searched for in the set of directories specified by
+the -I options; the first readable plain file (or symlink) found is
+used (it the open fails, a warning is printed and the next one used).
+
+Config files are intended to be shared with Makefiles.  Lines are of
+the form "<feature>=<val>", where <val> must be 0 or 1 (dis/enabled).
+Include references are followed using the -I paths.  Comments, which
+are anything following a #, are ignored.
+
+FEATURE FILES
+-------------
+Feature files determine the list of available feature names, their
+defaults and their dependencies.  Feature files are searched for in
+the same way as Config files.
+
+CAVEATS
+--------
+All template and feature elements are assumed to be lower case, but
+feature name in config files are assumed to be upper case; case is
+lowered when reading feature names from a file, and raised when
+generating config-file output.
+
+Examples:
+
+	Command: wlexpand debug-native-sta*-ap
+	Outputs: ap-debug-native ap-debug-native-sta
+
+	Reason: expands sta* to both sta and nosta
+
+    If file "config" contains DBAND=0 and WME=1 settings:
+
+	Command: wlexpand debug-sta-config-dband-nowme
+	Outputs: dband-debug-sta
+
+	Reason: dband-nowme override previous config values
+
+    while:
+
+	Command: wlexpand debug-sta-dband-nowme-config
+	Outputs: debug-sta-wme
+
+	Reason: config values override previous dband-nowme
+
+
+    For brevity, assume DEBUG, AP, STA, WET, WME, DBAND are
+    the only known features:
+
+	Command: wlexpand debug-nodband-wme-*-ap
+	Outputs: ap-debug-sta-wet-wme ap-debug-sta-wme ap-debug-wme
+
+	Reason: raw * expands unnamed features (i.e. sta*, wet*),
+		but wet dependency on sta limits usable features
+';
+    print "$usage";
+    /^--help$/ && print "$help";
+}
+
+
+############################################################
+# Subroutine list displays info about recognized features
+# Args: none
+# Returns: nothing
+##################
+sub list {
+    printf "Recognized features/arches:\n";
+    # For each feature: print feature, default, deps; prefix w/footnotes
+    foreach (@features, @arches) {
+	my $ftype = ' ';
+	my ($name,$defval) = /^(\w+)(?::([01*]))?$/;
+
+	if (grep(/^$name$/,@required)) { $ftype = '*'; }
+	elsif (grep(/^$name$/,@anames)) { $ftype = '-'; }
+
+	printf "  $ftype $name";
+	$defval = $defval ? "[default: $defval]" : "[no default]";
+	printf "%s$defval", (length($name) < 4 ? "\t\t" : "\t");
+	printf "\t(requires: @{$deps{$name}})" if exists $deps{$name};
+	printf "\n";
+    }
+    printf "* At least one of these must be specified.\n";
+    printf "- At most one of these (and no negation or expansion).\n";
+}

@@ -55,8 +55,6 @@ APPS = \
 
 include ../Makefile.inc
 
-CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/netaccel/include
-
 BFILE_DIR=$(NEXUS_TOP)/../BSEAV/lib/bfile
 BCMPLAYER_DIR=$(NEXUS_TOP)/../BSEAV/lib/bcmplayer
 CFLAGS += -I$(BFILE_DIR) -I$(BCMPLAYER_DIR)/include -I$(BCMPLAYER_DIR)/utils

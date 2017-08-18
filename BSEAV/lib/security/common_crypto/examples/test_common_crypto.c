@@ -286,7 +286,7 @@ void generate_test_data(
     keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
     if(!keySlot) 
     {
-        BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", BSTD_FUNCTION));
         goto errorExit;
     }
 
@@ -302,7 +302,7 @@ void generate_test_data(
 
     rc = CommonCrypto_LoadKeyConfig(handle,  &configSettings);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - CommonCrypto_LoadKeyConfig failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - CommonCrypto_LoadKeyConfig failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -313,7 +313,7 @@ void generate_test_data(
 
     rc = CommonCrypto_LoadCipheredKey(handle, &cipheredKeySettings);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - CommonCrypto_LoadCipheredKey failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - CommonCrypto_LoadCipheredKey failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -321,7 +321,7 @@ void generate_test_data(
         || algVariant ==  NEXUS_SecurityAlgorithmVariant_eCounter)
     {
         if(pIvSettings == NULL){
-            BDBG_ERR(("%s - Invalid parameter\n", __FUNCTION__));
+            BDBG_ERR(("%s - Invalid parameter\n", BSTD_FUNCTION));
             goto errorExit;
         }
 
@@ -332,14 +332,14 @@ void generate_test_data(
 
         rc =  CommonCrypto_LoadClearKeyIv(handle, &ivSettings);
         if(rc != NEXUS_SUCCESS){
-            BDBG_ERR(("%s - CommonCrypto_LoadClearKeyIv failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - CommonCrypto_LoadClearKeyIv failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
     }
 
     rc = NEXUS_Memory_Allocate(size, NULL, &pBuf);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -357,7 +357,7 @@ void generate_test_data(
 
     rc = CommonCrypto_DmaXfer(handle, &jobSettings, &blk, 1);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - CommonCrypto_DmaXfer failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - CommonCrypto_DmaXfer failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -416,7 +416,7 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
     keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
     if(!keySlot) 
     {
-        BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", BSTD_FUNCTION));
         return NEXUS_NOT_AVAILABLE; 
     }
     
@@ -439,7 +439,7 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
 
         rc = CommonCrypto_SetupKey(handle, &keySettings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - CommonCrypto_SetupKey failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - CommonCrypto_SetupKey failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
     }
@@ -462,7 +462,7 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
 
         rc = CommonCrypto_LoadKeyConfig(handle, &configSettings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - CommonCrypto_LoadKeyConfig failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - CommonCrypto_LoadKeyConfig failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
 
@@ -474,14 +474,14 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
 
         rc = CommonCrypto_LoadCipheredKey(handle, &cipheredKeySettings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - CommonCrypto_LoadCipheredKey failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - CommonCrypto_LoadCipheredKey failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
     }
 
     rc = NEXUS_Memory_Allocate(16, NULL, (void *)&pBuf);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -515,17 +515,17 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
 
             rc =  CommonCrypto_LoadClearKeyIv(handle, &ivSettings);
             if(rc != NEXUS_SUCCESS){
-                BDBG_ERR(("%s - CommonCrypto_LoadClearKeyIv failed, rc = %d\n", __FUNCTION__, rc));
+                BDBG_ERR(("%s - CommonCrypto_LoadClearKeyIv failed, rc = %d\n", BSTD_FUNCTION, rc));
                 goto errorExit;
             }
         }
         else {
             rc = NEXUS_Memory_Allocate(16, NULL, (void *)&pIv);
             if(rc != NEXUS_SUCCESS){
-                BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", __FUNCTION__, rc));
+                BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", BSTD_FUNCTION, rc));
                 goto errorExit;
             }
-            printf("%s - %d\n", __FUNCTION__, __LINE__);
+            printf("%s - %d\n", BSTD_FUNCTION, __LINE__);
 
             /*BKNI_Memcpy(pIv, pTest->pIvSettings->iv, 16);*/
              /* Copy IV.  H and L need to be swapped */
@@ -553,7 +553,7 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
 
     rc = CommonCrypto_DmaXfer(handle, &jobSettings, blks, nb_blks);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - CommonCrypto_DmaXfer failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - CommonCrypto_DmaXfer failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -561,7 +561,7 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
     DEBUG_PRINT_ARRAY("AFTER pExpectedResult", 16, pExpectedResult );
 
     if(BKNI_Memcmp(pBuf, pExpectedResult, 16) != 0) {
-        BDBG_ERR(("%s - DMA operation failed\n", __FUNCTION__));
+        BDBG_ERR(("%s - DMA operation failed\n", BSTD_FUNCTION));
         rc = NEXUS_UNKNOWN;
     }
 
@@ -595,7 +595,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
     keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
     if(!keySlot) 
     {
-        BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", BSTD_FUNCTION));
         return NEXUS_NOT_AVAILABLE; 
     }
 
@@ -618,7 +618,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
 
         rc = CommonCrypto_SetupKey(handle, &keySettings);
         if(rc != NEXUS_SUCCESS){
-            BDBG_ERR(("%s - CommonCrypto_SetupKey failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - CommonCrypto_SetupKey failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
     }
@@ -639,7 +639,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
 
         rc = CommonCrypto_LoadKeyConfig(handle, &configSettings);
         if(rc != NEXUS_SUCCESS){
-            BDBG_ERR(("%s - CommonCrypto_LoadKeyConfig failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - CommonCrypto_LoadKeyConfig failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
 
@@ -661,7 +661,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
         if(keyIvSettings.settings.keySize != 0 || keyIvSettings.settings.ivSize != 0) {
             rc =  CommonCrypto_LoadClearKeyIv(handle, &keyIvSettings);
             if(rc != NEXUS_SUCCESS){
-                BDBG_ERR(("%s - CommonCrypto_LoadClearKeyIv failed, rc = %d\n", __FUNCTION__, rc));
+                BDBG_ERR(("%s - CommonCrypto_LoadClearKeyIv failed, rc = %d\n", BSTD_FUNCTION, rc));
                 goto errorExit;
             }
         }
@@ -669,7 +669,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
 
     rc = NEXUS_Memory_Allocate(16, NULL, (void *)&pBuf);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -695,7 +695,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
 
         rc = NEXUS_Memory_Allocate(pTest->pKeyIvSettings->keySize, NULL, (void *)&pKey);
         if(rc != NEXUS_SUCCESS){
-            BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
         /* Copy key.  H and L need to be swapped */
@@ -712,7 +712,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
     if(pTest->enableExtIv){
         rc = NEXUS_Memory_Allocate(pTest->pKeyIvSettings->ivSize, NULL, (void *)&pIv);
         if(rc != NEXUS_SUCCESS){
-            BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Memory_Allocate failed, rc = %d\n", BSTD_FUNCTION, rc));
             goto errorExit;
         }
 
@@ -740,7 +740,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
 
     rc = CommonCrypto_DmaXfer(handle, &jobSettings, blks, nb_blks);
     if(rc != NEXUS_SUCCESS){
-        BDBG_ERR(("%s - CommonCrypto_DmaXfer failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - CommonCrypto_DmaXfer failed, rc = %d\n", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -748,7 +748,7 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
     DEBUG_PRINT_ARRAY("AFTER pExpectedResult", 16, pExpectedResult);
 
     if(BKNI_Memcmp(pBuf, pExpectedResult, 16) != 0){
-        BDBG_ERR(("%s -  DMA operation failed\n", __FUNCTION__));
+        BDBG_ERR(("%s -  DMA operation failed\n", BSTD_FUNCTION));
         rc = NEXUS_UNKNOWN;
     }
 
@@ -806,7 +806,7 @@ int main(void)
     if(rc != NEXUS_SUCCESS)
     {
         global_error_count++;
-        printf("%s - Failure to initialize NEXUS platform.\n", __FUNCTION__);
+        printf("%s - Failure to initialize NEXUS platform.\n", BSTD_FUNCTION);
         goto handle_error;
     }
 #endif
@@ -819,14 +819,14 @@ int main(void)
     if(handle == NULL)
     {
         global_error_count++;
-        printf("%s - Failure to open Common Crypto.\n", __FUNCTION__);
+        printf("%s - Failure to open Common Crypto.\n", BSTD_FUNCTION);
         goto handle_error;        
     }
 
     init_test_vectors(handle);
 
     nb_tests = sizeof(tests_clear_key) / sizeof(tests_clear_key[0]);
-    printf("\n%s - Running clear key tests\n", __FUNCTION__);
+    printf("\n%s - Running clear key tests\n", BSTD_FUNCTION);
     for(ii = 0; ii < nb_tests; ii++) 
     {
         printf("Clear key test no %2d:", ii);
@@ -841,7 +841,7 @@ int main(void)
         }
     }
 
-    printf("\n%s - Running key ladder tests\n", __FUNCTION__);
+    printf("\n%s - Running key ladder tests\n", BSTD_FUNCTION);
     nb_tests = sizeof(tests_key_ladder) / sizeof(tests_key_ladder[0]);
     for(ii = 0; ii < nb_tests; ii++)
     {

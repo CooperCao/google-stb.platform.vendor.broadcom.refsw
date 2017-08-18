@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "nexus_hdmi_output_module.h"
@@ -138,7 +137,8 @@ static NEXUS_Error NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(
     if (!edid.hdmiVsdb.yCbCr422 && !edid.hdmiVsdb.yCbCr444)
         preferred->colorSpace = NEXUS_ColorSpace_eRgb ;
 
-    BDBG_WRN(("Switching to EDID preferred format (%d)", preferred->videoFormat)) ;
+    BDBG_WRN(("Switching to EDID preferred format %s",
+        NEXUS_P_VideoFormat_ToStr_isrsafe(preferred->videoFormat))) ;
 
     preferred->colorDepth = NEXUS_HdmiColorDepth_e8bit ;
 
@@ -154,7 +154,6 @@ static NEXUS_Error NEXUS_HdmiOutput_OverrideVideoSettings_priv(
     NEXUS_HdmiOutputVideoSettings *preferred)
 {
     NEXUS_Error errCode = NEXUS_SUCCESS ;
-    bool overrideSettings = false ;
 
     if ((preferred->colorSpace != requested->colorSpace)
     && (!hdmiOutput->displaySettings.overrideMatrixCoefficients))
@@ -163,8 +162,6 @@ static NEXUS_Error NEXUS_HdmiOutput_OverrideVideoSettings_priv(
             requested->colorSpace, preferred->colorSpace)) ;
 
         /* set override flag if the override value is different than current setting */
-        if (preferred->colorSpace != hdmiOutput->displaySettings.colorSpace)
-            overrideSettings = true  ;
         hdmiOutput->displaySettings.colorSpace = preferred->colorSpace ;
     }
 
@@ -174,8 +171,6 @@ static NEXUS_Error NEXUS_HdmiOutput_OverrideVideoSettings_priv(
             requested->colorDepth, preferred->colorDepth)) ;
 
         /* set override flag if the override value is different than current setting */
-        if (preferred->colorDepth!= hdmiOutput->displaySettings.colorDepth)
-            overrideSettings = true ;
         hdmiOutput->displaySettings.colorDepth = preferred->colorDepth ;
     }
 
@@ -722,8 +717,8 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     switch(requested->colorSpace)
     {
     case  NEXUS_ColorSpace_eYCbCr420 :
-        BDBG_WRN(("4:2:0 Color Space is not supported for non 4K format %d; Use 4:4:4 instead",
-            requested->videoFormat)) ;
+        BDBG_WRN(("4:2:0 Color Space is not supported for non 4K format %s; Use 4:4:4 instead",
+			NEXUS_P_VideoFormat_ToStr_isrsafe(requested->videoFormat))) ;
         preferred->colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
         break ;
 
@@ -862,10 +857,8 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings_priv(
     }
 
 
-    BDBG_MSG(("===> Request %s Format: %d; Colorspace: (%d) %s; Colordepth: %d",
-        ((requested->videoFormat == NEXUS_VideoFormat_e3840x2160p60hz)
-        || (requested->videoFormat == NEXUS_VideoFormat_e3840x2160p50hz)) ? "4K" : "non-4K",
-        requested->videoFormat,
+    BDBG_MSG(("===> Request Format: %s  Colorspace: (%d) %s; Colordepth: %d",
+		NEXUS_P_VideoFormat_ToStr_isrsafe(requested->videoFormat),
         requested->colorSpace, NEXUS_ColorSpace_Text[requested->colorSpace],
         requested->colorDepth)) ;
 
@@ -888,8 +881,8 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings_priv(
         errCode = NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(hdmiOutput, requested, preferred) ;
     }
 
-    BDBG_MSG(("<=== Recommend Format: %d; Colorspace: (%d) %s; Colordepth: %d",
-        preferred->videoFormat,
+    BDBG_MSG(("<=== Recommend Format: %s; Colorspace: (%d) %s; Colordepth: %d",
+		NEXUS_P_VideoFormat_ToStr_isrsafe(preferred->videoFormat),
         preferred->colorSpace, NEXUS_ColorSpace_Text[preferred->colorSpace],
         preferred->colorDepth)) ;
 

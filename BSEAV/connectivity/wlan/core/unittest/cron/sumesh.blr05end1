@@ -1,0 +1,151 @@
+#job-ID  prior   name       user         state submit/start at     queue                          #file edited on 27 AUG 2014 
+MAILTO=sumesh@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+45   00,01,08,09,10,11,12,13,14,15,16,17,18,19,20,21,22,23 * * *   /home/sumesh/svn/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+
+
+#********************************43217 ACI tests Int rate 1 6 mcs15 ******************
+
+#00   17     * * *    svn/unittest/cron/launch blr05_43217ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G20 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 43217b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#30   17     * * *    svn/unittest/cron/launch blr05_43217ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G20 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 43217b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#30   18     * * *    svn/unittest/cron/launch blr05_43217ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G20 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 43217b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+#00   19     * * *    svn/unittest/cron/launch blr05_43217ACI2G40_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G40 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 43217b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#30   19     * * *    svn/unittest/cron/launch blr05_43217ACI2G40_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G40 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 43217b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#00   20     * * *    svn/unittest/cron/launch blr05_43217ACI2G40_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G40 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 43217b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4' -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+#******************************** 43224 ACI test Int rate 1 6 mcs15 ******************
+
+#30   20     * * *    svn/unittest/cron/launch blr05_43224ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G20 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 43224b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#00   21     * * *    svn/unittest/cron/launch blr05_43224ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G20 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 43224b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#30   21     * * *    svn/unittest/cron/launch blr05_43224ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G20 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 43224b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+#00   22     * * *    svn/unittest/cron/launch blr05_43224ACI2G40_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G40 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 43224b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#30   22     * * *    svn/unittest/cron/launch blr05_43224ACI2G40_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G40 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 43224b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#00   23     * * *    svn/unittest/cron/launch blr05_43224ACI2G40_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G40 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 43224b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4' -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+#******************************** 43228 ACI test Int rate 1 6 mcs15 ******************
+
+#00   00     * * *    svn/unittest/cron/launch blr05_43228ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G20 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 43228b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#30   00     * * *    svn/unittest/cron/launch blr05_43228ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G20 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 43228b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#00   01     * * *    svn/unittest/cron/launch blr05_43228ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G20 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 43228b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+#30   01     * * *    svn/unittest/cron/launch blr05_43228ACI2G40_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G40 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 43228b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#00   02     * * *    svn/unittest/cron/launch blr05_43228ACI2G40_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G40 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 43228b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#30   02     * * *    svn/unittest/cron/launch blr05_43228ACI2G40_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G40 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 43228b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4' -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+#******************************** 4331 ACI test Int rate 1 6 mcs15 ******************
+
+#00   03     * * *    svn/unittest/cron/launch blr05_4331ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G20 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 4331b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#30   03     * * *    svn/unittest/cron/launch blr05_4331ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G20 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 4331b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#00   04     * * *    svn/unittest/cron/launch blr05_4331ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G20 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 4331b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+#30   04     * * *    svn/unittest/cron/launch blr05_4331ACI2G40_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G40 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 4331b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+#00   05     * * *    svn/unittest/cron/launch blr05_4331ACI2G40_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G40 Int.Rate 6 BISON_BRANCH_7_10]' -ap 4360ref -sta 4331b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4 '  -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intrate 6 -perftime 20 -perfsize 10
+
+#30   05     * * *    svn/unittest/cron/launch blr05_4331ACI2G40_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G40 Int.Rate MCS15 BISON_BRANCH_7_10]' -ap 4360ref -sta 4331b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G40 '0 2 4' -loop 3 -no2G20 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -noapload -downstreamonly -intnrate 15 -perftime 20 -perfsize 10
+
+
+
+#########4313 ACI TESTS#############
+ 
+#00  18        * * *      svn/unittest/cron/launch blr05_4313mode0 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4313  + ACI {INT OVERRIDE 0}' -ap 4360ref -sta '4313b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 0' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 0 -intwl2G40 0 -intchan2G40 11 -email hnd-utf-list -nocache 
+
+#30  18        * * *      svn/unittest/cron/launch blr05_4313mode1 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4313  + ACI {INT OVERRIDE 1}' -ap 4360ref -sta '4313b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 0' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0  -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 1 -intwl2G40 1 -intchan2G40 11 -email hnd-utf-list -nocache
+
+#00  19        * * *      svn/unittest/cron/launch blr05_4313mode2 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4313  + ACI {INT OVERRIDE 2}' -ap 4360ref -sta '4313b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 0' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0  -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 2 -intwl2G40 2 -intchan2G40 11 -email hnd-utf-list -nocache
+
+#03  19        * * *      svn/unittest/cron/launch blr05_4313mode3 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4313  + ACI {INT OVERRIDE 3}' -ap 4360ref -sta '4313b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 0' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0  -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 3 -intwl2G40 3 -intchan2G40 11 -email hnd-utf-list -nocache
+
+#00  20        * * *      svn/unittest/cron/launch blr05_4313mode4 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4313  + ACI {INT OVERRIDE 4}' -ap 4360ref -sta '4313b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 0' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0  -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 4 -intwl2G40 4 -intchan2G40 11 -email hnd-utf-list  -nocache
+
+
+
+###########43217 ACI TESTS############
+#30  20        * * *      svn/unittest/cron/launch blr05_43217mode0 Test/RvRNightly1.test -utfconf blr05  -title ' RvR 43217 + ACI {INT OVERRIDE 0}' -ap 4360ref -sta '43217b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 0 -intwl2G40 0 -intchan2G40 11 -email hnd-utf-list -nocache
+
+#00  21        * * *      svn/unittest/cron/launch blr05_43217mode1 Test/RvRNightly1.test -utfconf blr05  -title ' RvR 43217 + ACI {INT OVERRIDE 1}' -ap 4360ref -sta '43217b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 1 -intwl2G40 1 -intchan2G40 11 -email hnd-utf-list -nocache
+
+#30  21        * * *      svn/unittest/cron/launch blr05_43217mode2 Test/RvRNightly1.test -utfconf blr05  -title ' RvR 43217 + ACI {INT OVERRIDE 2}' -ap 4360ref -sta '43217b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 2 -intwl2G40 2 -intchan2G40 11 -email hnd-utf-list -nocache
+
+#00  22        * * *      svn/unittest/cron/launch blr05_43217mode3 Test/RvRNightly1.test -utfconf blr05  -title ' RvR 43217 + ACI {INT OVERRIDE 3}' -ap 4360ref -sta '43217b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 3 -intwl2G40 3 -intchan2G40 11 -email hnd-utf-list -nocache
+
+#30  22        * * *      svn/unittest/cron/launch blr05_43217mode4 Test/RvRNightly1.test -utfconf blr05  -title ' RvR 43217 + ACI {INT OVERRIDE 4}' -ap 4360ref -sta '43217b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 4 -intwl2G40 4 -intchan2G40 11 -email hnd-utf-list -nocache
+
+
+
+############ 43224 ACI TEST #############
+#30  23        * * *      svn/unittest/cron/launch blr05_43224mode0 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43224  + ACI {INT OVERRIDE 0}' -ap 4360ref -sta ' 43224b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -intattn2G40 'ALL 20' -intattn5G20 'ALL 10' -intattn5G40 'ALL 10' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 0 -intwl2G40 0 -intwl5G20 0 -intwl5G40 0 -intchan2G40 11  -email hnd-utf-list -nocache
+
+#00  00        * * *      svn/unittest/cron/launch blr05_43224mode1 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43224  + ACI {INT OVERRIDE 1}' -ap 4360ref -sta ' 43224b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -intattn2G40 'ALL 20' -intattn5G20 'ALL 10' -intattn5G40 'ALL 10' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 1 -intwl2G40 1 -intwl5G20 1 -intwl5G40 1 -intchan2G40 11  -email hnd-utf-list -nocache
+
+#00  01        * * *      svn/unittest/cron/launch blr05_43224mode2 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43224  + ACI {INT OVERRIDE 2}' -ap 4360ref -sta ' 43224b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -intattn2G40 'ALL 20' -intattn5G20 'ALL 10' -intattn5G40 'ALL 10' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 2 -intwl2G40 2 -intwl5G20 2 -intwl5G40 2 -intchan2G40 11  -email hnd-utf-list -nocache
+
+#00  02        * * *      svn/unittest/cron/launch blr05_43224mode3 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43224  + ACI {INT OVERRIDE 3}' -ap 4360ref -sta ' 43224b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -intattn2G40 'ALL 20' -intattn5G20 'ALL 10' -intattn5G40 'ALL 10' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 3 -intwl2G40 3 -intwl5G20 3 -intwl5G40 3 -intchan2G40 11  -email hnd-utf-list -nocache
+
+#00  03        * * *      svn/unittest/cron/launch blr05_43224mode4 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43224  + ACI {INT OVERRIDE 4}' -ap 4360ref -sta ' 43224b'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -intattn2G40 'ALL 20' -intattn5G20 'ALL 10' -intattn5G40 'ALL 10' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 4 -intwl2G40 4 -intwl5G20 4 -intwl5G40 4 -intchan2G40 11  -email hnd-utf-list -nocache
+
+
+
+
+############ 43228 ACI TEST #############
+#03  03        * * *      svn/unittest/cron/launch blr05_43228mode0 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43228  + ACI {INT OVERRIDE 0}' -ap 4360ref -sta ' 43228b 43228t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -intattn5G20 'ALL 20' -intattn5G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 0 -intwl2G40 0 -intwl5G20 0 -intwl5G40 0 -intchan2G40 11  -email hnd-utf-list -nocache
+ 
+#00  04        * * *      svn/unittest/cron/launch blr05_43228mode1 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43228  + ACI {INT OVERRIDE 1}' -ap 4360ref -sta ' 43228b 43228t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -intattn5G20 'ALL 20' -intattn5G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 1 -intwl2G40 1 -intwl5G20 1 -intwl5G40 1 -intchan2G40 11  -email hnd-utf-list -nocache
+
+#00  05        * * *      svn/unittest/cron/launch blr05_43228mode2 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43228  + ACI {INT OVERRIDE 2}' -ap 4360ref -sta ' 43228b 43228t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -intattn5G20 'ALL 20' -intattn5G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 2 -intwl2G40 2 -intwl5G20 2 -intwl5G40 2 -intchan2G40 11  -email hnd-utf-list -nocache
+
+#00  06        * * *      svn/unittest/cron/launch blr05_43228mode3 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43228  + ACI {INT OVERRIDE 3}' -ap 4360ref -sta ' 43228b 43228t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -intattn5G20 'ALL 20' -intattn5G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 3 -intwl2G40 3 -intwl5G20 3 -intwl5G40 3 -intchan2G40 11  -email hnd-utf-list -nocache
+
+#00  07        * * *      svn/unittest/cron/launch blr05_43228mode4 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 43228  + ACI {INT OVERRIDE 4}' -ap 4360ref -sta ' 43228b 43228t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -intattn2G40 'ALL 20' -intattn5G20 'ALL 20' -intattn5G40 'ALL 20' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 4 -intwl2G40 4 -intwl5G20 4 -intwl5G40 4 -intchan2G40 11  -email hnd-utf-list  -nocache
+
+
+
+############ 4331 ACI TEST #############
+#00  08        * * *      svn/unittest/cron/launch blr05_4331aci_mode0 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4331  + ACI {INT OVERRIDE 0}' -ap 4360ref -sta '4331b 4331t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 13' -intattn2G40 'ALL 23' -intattn5G20 'ALL 30' -intattn5G40 'ALL 23' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 0 -intwl2G40 0 -intwl5G20 0 -intwl5G40 0 -intchan2G40 11  -email hnd-utf-list  -nocache
+
+
+#00  09        * * *      svn/unittest/cron/launch blr05_4331aci_mode1 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4331  + ACI {INT OVERRIDE 1}' -ap 4360ref -sta '4331b 4331t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 13' -intattn2G40 'ALL 23' -intattn5G20 'ALL 30' -intattn5G40 'ALL 23' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 1 -intwl2G40 1 -intwl5G20 1 -intwl5G40 1 -intchan2G40 11  -email hnd-utf-list  -nocache
+
+
+#00  10        * * *      svn/unittest/cron/launch blr05_4331aci_mode2 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4331  + ACI {INT OVERRIDE 2}' -ap 4360ref -sta '4331b 4331t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 13' -intattn2G40 'ALL 23' -intattn5G20 'ALL 30' -intattn5G40 'ALL 23' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 2 -intwl2G40 2 -intwl5G20 2 -intwl5G40 2 -intchan2G40 11  -email hnd-utf-list  -nocache
+
+
+#00  11        * * *      svn/unittest/cron/launch blr05_4331aci_mode3 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4331  + ACI {INT OVERRIDE 3}' -ap 4360ref -sta '4331b 4331t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 13' -intattn2G40 'ALL 23' -intattn5G20 'ALL 30' -intattn5G40 'ALL 23' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 3 -intwl2G40 3 -intwl5G20 3 -intwl5G40 3 -intchan2G40 11  -email hnd-utf-list  -nocache
+
+
+#00  12        * * *      svn/unittest/cron/launch blr05_4331aci_mode4 Test/RvRNightly1.test -utfconf blr05  -title 'RvR 4331  + ACI {INT OVERRIDE 4}' -ap 4360ref -sta '4331b 4331t'  -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 13' -intattn2G40 'ALL 23' -intattn5G20 'ALL 30' -intattn5G40 'ALL 23' -cycle2G20AttnRange 30-0 -cycle2G40AttnRange 30-0 -cycle5G20AttnRange 30-0 -cycle5G40AttnRange 30-0 -downstreamonly  -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30 -intwl2G20 4 -intwl2G40 4 -intwl5G20 4 -intwl5G40 4 -intchan2G40 11  -email hnd-utf-list  -nocache
+
+
+
+
+
+
+
+
+
+
+
+
+
+

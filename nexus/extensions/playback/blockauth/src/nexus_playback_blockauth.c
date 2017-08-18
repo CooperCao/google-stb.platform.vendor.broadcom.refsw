@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2015 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_playback_module.h"
 #include "nexus_playback_impl.h"
@@ -49,7 +48,7 @@ void NEXUS_Playback_P_BlockAuthRestart(NEXUS_PlaybackHandle p)
     if (p->state.state == eTransition && p->state.blockauth.fifo_drain_mode) {
         BDBG_MSG(("cancel fifo drain mode, restart requested"));
         if( p->state.blockauth.fifo_drain_timer ) {
-            BDBG_MSG(("FIFO drain timer still active, cancelling %#x", p->state.blockauth.fifo_drain_timer ));
+            BDBG_MSG(("FIFO drain timer still active, cancelling %#lx", (unsigned long)p->state.blockauth.fifo_drain_timer ));
             NEXUS_CancelTimer(p->state.blockauth.fifo_drain_timer);
             p->state.blockauth.fifo_drain_timer = NULL;
         }
@@ -60,7 +59,7 @@ void NEXUS_Playback_P_BlockAuthRestart(NEXUS_PlaybackHandle p)
 void NEXUS_Playback_P_BlockAuthStop(NEXUS_PlaybackHandle p)
 {
     if ( p->state.blockauth.fifo_drain_timer ) {
-        BDBG_MSG(("Timer still active, cancelling %#x", p->state.blockauth.fifo_drain_timer ));
+        BDBG_MSG(("Timer still active, cancelling %#lx", (unsigned long)p->state.blockauth.fifo_drain_timer ));
         NEXUS_CancelTimer(p->state.blockauth.fifo_drain_timer);
         p->state.blockauth.fifo_drain_timer = NULL;
         p->state.blockauth.fifo_drain_mode = false;
@@ -72,7 +71,7 @@ bool NEXUS_Playback_P_BlockAuthEnabled(NEXUS_PlaybackHandle p)
     return p->blockauthSettings.enabled;
 }
 
-int NEXUS_Playback_P_BlockAuthFrameData(NEXUS_PlaybackHandle p, unsigned size, unsigned read_size, int *plast)
+int NEXUS_Playback_P_BlockAuthFrameData(NEXUS_PlaybackHandle p, unsigned size, unsigned *read_size, int *plast)
 {
     size_t authorized = 0;
 
@@ -81,14 +80,15 @@ int NEXUS_Playback_P_BlockAuthFrameData(NEXUS_PlaybackHandle p, unsigned size, u
     if (p->blockauthSettings.authorize_block(
             p->blockauthSettings.ca_state,
             (p->state.io.last_file_offset - size + p->state.io.file_behind),
-            read_size,
+            *read_size,
             &authorized) != 0) {
         return NEXUS_PLAYBACK_BLOCKAUTH_READ_ERROR;
     }
-    BDBG_MSG(("%s:Auth offset = %lld, size=%d, Authorised=%d", __FUNCTION__, (p->state.io.last_file_offset - size + p->state.io.file_behind), read_size, authorized));
-    if (authorized < read_size) {
-        *plast = (*plast - (read_size - authorized));
-        BDBG_MSG(("%s req_size=%u authorized=%u frame:last %u size %u", __FUNCTION__, read_size, authorized, *plast, p->state.frame.size));
+
+    BDBG_MSG(("%s:Auth offset = %lld, size=%d, Authorised=%d", BSTD_FUNCTION, (p->state.io.last_file_offset - size + p->state.io.file_behind), *read_size, authorized));
+    if (authorized < *read_size) {
+        *plast = (*plast - (*read_size - authorized));
+        BDBG_MSG(("%s req_size=%u authorized=%u frame:last %u size %u", BSTD_FUNCTION, *read_size, authorized, *plast, p->state.frame.size));
         p->state.io.last_file_offset -= size;
         p->state.io.last_file_offset = (p->state.io.last_file_offset + p->state.io.file_behind + authorized);
         BDBG_MSG((">>>>>> modified offset %lld", p->state.io.last_file_offset));
@@ -111,10 +111,10 @@ int NEXUS_Playback_P_BlockAuthFrameData(NEXUS_PlaybackHandle p, unsigned size, u
 
         if (authorized == 0) {
             b_play_start_fifo_drain(p);
-            return NEXUS_PLAYBACK_BLOCKAUTH_READ_ERROR;
+            return NEXUS_PLAYBACK_BLOCKAUTH_DRAIN;
         }
         else {
-            read_size = authorized;
+            *read_size = authorized;
         }
     }
     else {
@@ -130,13 +130,14 @@ int NEXUS_Playback_P_BlockAuthFrameData(NEXUS_PlaybackHandle p, unsigned size, u
 static void
 b_play_fifo_timer(void *playback)
 {
+    int rc = 0;
     bool cancel = false;
     NEXUS_PlaybackHandle p = playback;
 
     BDBG_OBJECT_ASSERT(p, NEXUS_Playback);
     p->state.blockauth.fifo_drain_timer = NULL;
 
-    BDBG_MSG(("%s: entry mode=%d, marker=%d, skip=%d)", __FUNCTION__,
+    BDBG_MSG(("%s: entry mode=%d, marker=%d, skip=%d)", BSTD_FUNCTION,
               p->state.blockauth.fifo_drain_mode, p->state.fifoMarker, p->state.blockauth.drainskip));
 
     if (p->state.blockauth.fifo_drain_mode){
@@ -148,36 +149,25 @@ b_play_fifo_timer(void *playback)
         if (cancel == false) {
             NEXUS_PlaypumpHandle playpump = p->params.playpump;
             NEXUS_PlaypumpStatus playpumpStatus;
+            bool fifoDrain = false;
 
             playpumpStatus.fifoDepth = 0;
             NEXUS_Playpump_GetStatus(playpump, &playpumpStatus);
             if (playpumpStatus.fifoDepth != 0) {
-                int timeout = 500;
+                int timeout = 2000;
 
-                if (p->state.blockauth.drainskip && (uint32_t)p->state.blockauth.drainskip == p->state.fifoMarker
-                    && p->state.fifoMarker == playpumpStatus.fifoDepth
-                    && playpumpStatus.descFifoDepth == 1){
+                if (/*p->state.blockauth.drainskip && (uint32_t)p->state.blockauth.drainskip == p->state.fifoMarker
+                    && */ p->state.fifoMarker == playpumpStatus.fifoDepth
+                    /*&& playpumpStatus.descFifoDepth == 1 */){
                     NEXUS_Time now;
                     long diff;
 
                     NEXUS_Time_Get(&now);
                     diff = NEXUS_Time_Diff(&now, &p->state.fifoLast);
                     if (diff >= timeout){
-                        BDBG_MSG(("%s: FIFO not drained (fifoDepth last=%d, cur=%d, skip=%d)", __FUNCTION__,
-                                  p->state.fifoMarker, playpumpStatus.fifoDepth, p->state.blockauth.drainskip));
-                        p->state.blockauth.drain_timeout = 0;
-                        p->state.blockauth.fifo_drain_mode = false;
-                        p->state.blockauth.drainskip = 0;
-
-                        BDBG_MSG(("%s:%d load_key (offset=%lld)", __FUNCTION__, __LINE__, p->state.io.last_file_offset + p->state.io.file_behind));
-                        if (p->blockauthSettings.load_key(
-                                p->blockauthSettings.ca_state,
-                                (p->state.io.last_file_offset + p->state.io.file_behind)) != 0) {
-                            b_play_handle_read_error(p, 0);
-                            return;
-                        }
-                        BDBG_MSG(("%s: load complete", __FUNCTION__));
-                        goto done;
+                        BDBG_MSG(("%s: FIFO not drained (fifoDepth last=%d, cur=%d, skip=%d, desc=%d)", BSTD_FUNCTION,
+                                  p->state.fifoMarker, playpumpStatus.fifoDepth, p->state.blockauth.drainskip, playpumpStatus.descFifoDepth));
+                        fifoDrain = true;
                     }
                 }
                 else {
@@ -185,34 +175,40 @@ b_play_fifo_timer(void *playback)
                     NEXUS_Time_Get(&p->state.fifoLast);
                 }
 
-                p->state.blockauth.drain_timeout += 50;
-                BDBG_MSG(("%s: Rescheduling timer (fifoDepth=%d,marker=%d,skip=%d,desc=%d)", __FUNCTION__, playpumpStatus.fifoDepth, p->state.fifoMarker, p->state.blockauth.drainskip, playpumpStatus.descFifoDepth));
-                p->state.blockauth.fifo_drain_timer = NEXUS_ScheduleTimer(50, b_play_fifo_timer, p);
+                if (!fifoDrain){
+                    p->state.blockauth.drain_timeout += 100;
+                    BDBG_MSG(("%s: Rescheduling timer (fifoDepth=%d,marker=%d,skip=%d,desc=%d)", BSTD_FUNCTION, playpumpStatus.fifoDepth, p->state.fifoMarker, p->state.blockauth.drainskip, playpumpStatus.descFifoDepth));
+                    p->state.blockauth.fifo_drain_timer = NEXUS_ScheduleTimer(100, b_play_fifo_timer, p);
+                }
             }
             else {
-                BDBG_MSG(("%s: FIFO drained (fifoDepth=%d)", __FUNCTION__, playpumpStatus.fifoDepth));
+                BDBG_MSG(("%s: FIFO drained (fifoDepth=%d)", BSTD_FUNCTION, playpumpStatus.fifoDepth));
+                fifoDrain = true;
+            }
+
+            if (fifoDrain){
                 p->state.blockauth.drain_timeout = 0;
                 p->state.blockauth.fifo_drain_mode = false;
                 p->state.blockauth.drainskip = 0;
-                BDBG_MSG(("%s: load_key (offset=%lld)", __FUNCTION__, p->state.io.last_file_offset + p->state.io.file_behind));
-                if (p->blockauthSettings.load_key(
+                BDBG_MSG(("%s: load_key (offset=%lld)", BSTD_FUNCTION, p->state.io.last_file_offset + p->state.io.file_behind));
+                rc = p->blockauthSettings.load_key(
                         p->blockauthSettings.ca_state,
-                        (p->state.io.last_file_offset + p->state.io.file_behind)) != 0) {
-                    b_play_handle_read_error(p, 0);
+                        (p->state.io.last_file_offset + p->state.io.file_behind));
+                if(rc != 0) {
+                    BDBG_MSG(("%s: error on load key", BSTD_FUNCTION));
                     return;
                 }
-                BDBG_MSG(("%s: load complete", __FUNCTION__));
+                BDBG_MSG(("%s: load complete", BSTD_FUNCTION));
             }
         }
         else {
             p->state.blockauth.drain_timeout = 0;
             p->state.blockauth.fifo_drain_mode = false;
             p->state.blockauth.drainskip = 0;
-            BDBG_MSG(("%s: %#lx IO control cancelled", __FUNCTION__, p));
+            BDBG_MSG(("%s: %#lx IO control cancelled", BSTD_FUNCTION, (unsigned long)p));
         }
     }
-done:
-    BDBG_MSG(("%s: done, mode=%d, cancel=%d", __FUNCTION__, p->state.blockauth.fifo_drain_mode, cancel));
+    BDBG_MSG(("%s: done, mode=%d, cancel=%d", BSTD_FUNCTION, p->state.blockauth.fifo_drain_mode, cancel));
     if (p->state.blockauth.fifo_drain_mode == false){
         if (!cancel) {
             b_play_send_frame(p); /* continue reading data */
@@ -240,7 +236,7 @@ int NEXUS_Playback_P_BlockAuthDrainSkip(NEXUS_PlaybackHandle p, unsigned size)
 {
     if (p->blockauthSettings.enabled) {
         p->state.blockauth.drainskip = size;
-        return -1;
+        return 0;
     }
     return 0;
 }

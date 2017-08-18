@@ -156,6 +156,10 @@ B_REFSW_DSS_SUPPORT means the SW supports it and is set by env variable. */
 #include "nexus_tbg.h"
 #endif
 
+#if NEXUS_HAS_ETBG
+#include "nexus_etbg.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -238,6 +242,40 @@ typedef struct NEXUS_TransportClientCapture {
     NEXUS_ThreadHandle thread;
     NEXUS_TransportClientCaptureDescriptor xc;
 } NEXUS_TransportClientCapture;
+#endif
+
+#if NEXUS_TRANSPORT_RS_CAPTURE_ENABLED
+
+#include <stdio.h>
+
+typedef struct NEXUS_TransportRsCaptureCreateSettings
+{
+    bool isPlayback;
+    unsigned parserIndex;
+} NEXUS_TransportRsCaptureCreateSettings;
+
+typedef struct NEXUS_TransportRsCaptureDescriptor {
+    FILE * file;
+    void * read;
+    void * base;
+    uint32_t validOffsetOffset;
+    void * valid;
+    void * end;
+    void * wrap;
+    uint32_t wrapOffsetOffset;
+    unsigned unmoved;
+} NEXUS_TransportRsCaptureDescriptor;
+
+#define MAX_RS_CAP_NAME_LEN (1+2) /* parserType ('I' | 'P') + parserIndex (2 digits) */
+
+typedef struct NEXUS_TransportRsCapture {
+    char name[MAX_RS_CAP_NAME_LEN];
+    NEXUS_TransportRsCaptureCreateSettings createSettings;
+    bool running;
+    unsigned no;
+    NEXUS_ThreadHandle thread;
+    NEXUS_TransportRsCaptureDescriptor rs;
+} NEXUS_TransportRsCapture;
 #endif
 
 typedef struct NEXUS_Remux_P_PidChannel {
@@ -421,6 +459,7 @@ struct NEXUS_StcChannel {
     bool deferIndexChange;
     NEXUS_StcChannelSettings settings;
     NEXUS_TimebaseHandle timebase;
+    bool modifyDefaultTimebase;
     BPCRlib_Channel pcrlibChannel;
     NEXUS_StcChannelDecoderConnectionQueue decoders;
     bool swPcrOffsetEnabled;
@@ -486,6 +525,7 @@ struct NEXUS_P_HwPidChannel {
     bool settingsPrivValid;
     NEXUS_Playpump_OpenPidChannelSettings_priv settingsPriv;
     NEXUS_PidChannelHandle bypassKeyslotPidChannel; /* if set, security cleanup required and refcnt bumped on this pid channel until it's done */
+    bool neverEnableContinuityCount;
 };
 
 #ifndef NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES
@@ -628,6 +668,10 @@ struct NEXUS_ParserBand
     unsigned lengthErrorCount;
     bool mpodBand; /* true if used as virtual band for mpod */
     void *gcbSwHandle;
+
+#if NEXUS_TRANSPORT_RS_CAPTURE_ENABLED
+    NEXUS_TransportRsCapture *rsCap;
+#endif
 };
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_ParserBand);
@@ -657,6 +701,10 @@ struct NEXUS_Timebase
         NEXUS_TimebaseSourceType savedSourceType;
     } astm;
 #endif /* NEXUS_HAS_ASTM */
+    unsigned onePcrErrCount, twoPcrErrCount, phaseSaturationEventCount;
+    BINT_CallbackHandle intOnePcrErr;
+    BINT_CallbackHandle intTwoPcrErr;
+    BINT_CallbackHandle intPhaseSaturation;
 };
 
 typedef enum NEXUS_XptDataInterrupt {
@@ -766,6 +814,16 @@ typedef struct NEXUS_Tsmf_P_State
 
 extern NEXUS_Tsmf_P_State g_NEXUS_Tsmf_P_State;
 
+#ifdef NEXUS_HAS_ETBG
+typedef struct NEXUS_Etbg_P_State
+{
+   BLST_S_HEAD(NEXUS_EtbgGroups, NEXUS_Etbg) handles;
+   unsigned numGroups;
+   unsigned groupMap;
+} NEXUS_Etbg_P_State;
+
+extern NEXUS_Etbg_P_State g_NEXUS_Etbg_P_State;
+#endif
 
 void NEXUS_Playpump_P_ConsumerStarted(NEXUS_PlaypumpHandle p);
 void NEXUS_Playpump_P_GetOpenSettings(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpOpenSettings *pOpenSettings);
@@ -793,8 +851,10 @@ NEXUS_Error NEXUS_P_HwPidChannel_CalcEnabled( NEXUS_P_HwPidChannel *pidChannel);
 void NEXUS_P_HwPidChannel_CloseAll(NEXUS_P_HwPidChannel *hwPidChannel); /* this function would close all SW pid channels, and then close hwPidChannel */
 NEXUS_Error NEXUS_Playpump_P_HwPidChannel_Disconnect(NEXUS_PlaypumpHandle p, NEXUS_P_HwPidChannel *pidChannel);
 NEXUS_Error NEXUS_DmaJob_P_HwPidChannel_Disconnect(NEXUS_DmaJobHandle handle, NEXUS_P_HwPidChannel *pidChannel);
+NEXUS_Error NEXUS_DmaJob_P_Wait(NEXUS_DmaJobHandle handle);
 NEXUS_Error NEXUS_P_HwPidChannel_GetStatus(NEXUS_P_HwPidChannel *pidChannel, NEXUS_PidChannelStatus *pStatus);
 unsigned nexus_p_xpt_parser_band(NEXUS_P_HwPidChannel *hwPidChannel);
+NEXUS_Error nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChannelSettings *pSettings);
 
 /* create new instance of [SW] NEXUS_PidChannel from existing HW PidChannel , this will link two together */
 NEXUS_PidChannelHandle NEXUS_PidChannel_P_Create(NEXUS_P_HwPidChannel *hwPidChannel);
@@ -836,6 +896,10 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Dma);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_DmaJob);
 #endif
 
+#if NEXUS_HAS_ETBG
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Etbg);
+#endif
+
 #if NEXUS_RAVE_OUTPUT_CAPTURE_ENABLED
 void NEXUS_RaveCapture_GetDefaultCreateSettings(NEXUS_RaveCaptureCreateSettings * pCreateSettings);
 NEXUS_RaveCapture * NEXUS_RaveCapture_Create(const NEXUS_RaveCaptureCreateSettings * pCreateSettings);
@@ -856,6 +920,17 @@ void NEXUS_TransportClientCapture_Close(NEXUS_TransportClientCapture *cap);
 void NEXUS_TransportClientCapture_Flush(NEXUS_TransportClientCapture *cap);
 NEXUS_Error NEXUS_TransportClientCapture_Start(NEXUS_TransportClientCapture *cap);
 void NEXUS_TransportClientCapture_Stop(NEXUS_TransportClientCapture *cap);
+#endif
+
+#if NEXUS_TRANSPORT_RS_CAPTURE_ENABLED
+void NEXUS_TransportRsCapture_GetDefaultCreateSettings(NEXUS_TransportRsCaptureCreateSettings * pCreateSettings);
+NEXUS_TransportRsCapture * NEXUS_TransportRsCapture_Create(const NEXUS_TransportRsCaptureCreateSettings * pCreateSettings);
+void NEXUS_TransportRsCapture_Destroy(NEXUS_TransportRsCapture *cap);
+void NEXUS_TransportRsCapture_Open(NEXUS_TransportRsCapture *cap);
+void NEXUS_TransportRsCapture_Close(NEXUS_TransportRsCapture *cap);
+void NEXUS_TransportRsCapture_Flush(NEXUS_TransportRsCapture *cap);
+NEXUS_Error NEXUS_TransportRsCapture_Start(NEXUS_TransportRsCapture *cap);
+void NEXUS_TransportRsCapture_Stop(NEXUS_TransportRsCapture *cap);
 #endif
 
 #ifdef __cplusplus

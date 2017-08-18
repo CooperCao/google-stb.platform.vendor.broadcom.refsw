@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"
@@ -469,7 +468,7 @@ static void BCEC_P_TimerExpiration_isr (BCEC_Handle hCEC, int parm2)
 		goto done ;
 	}
 
-	BDBG_MSG(("%s: Stop HW from continue retrying", __FUNCTION__));
+	BDBG_MSG(("%s: Stop HW from continue retrying", BSTD_FUNCTION));
 	Register = BREG_Read32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset) ;
 	Register &=  ~ BCHP_MASK_CEC_CNTRL(CEC_CNTRL_1, START_XMIT_BEGIN) ;
 	BREG_Write32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset, Register) ;   /* 0 */
@@ -1279,7 +1278,7 @@ BERR_Code BCEC_XmitMessage(
 		{
 			uint16_t msDelay=0;
 
-			BDBG_MSG(("%s: Enable CEC work-around to prevent continuous retransmission", __FUNCTION__));
+			BDBG_MSG(("%s: Enable CEC work-around to prevent continuous retransmission", BSTD_FUNCTION));
 
 			Register = BREG_Read32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset) ;
 			Register &=  ~ BCHP_MASK_CEC_CNTRL(CEC_CNTRL_1, START_XMIT_BEGIN) ;

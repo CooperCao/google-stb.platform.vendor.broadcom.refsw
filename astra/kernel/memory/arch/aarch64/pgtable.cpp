@@ -424,6 +424,9 @@ void PageTable::mapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::
 		//printf("l0Table=%p l0Idx=%d\n",(void *)l0Table,l0Idx);
 		if (!IS_VALID_TABLE_DESCRIPTOR(l0Desc)) {
 			uint64_t *table = (uint64_t *)allocPageTableBlock();
+			for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++)
+				table[i] = 0;
+
 			l0Table[l0Idx] = MAKE_TABLE_DESCRIPTOR(TzMem::virtToPhys(table));
 
 			ARCH_SPECIFIC_DCCIMVAC(&l0Table[l0Idx]);

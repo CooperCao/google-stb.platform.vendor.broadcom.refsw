@@ -49,7 +49,6 @@ typedef enum glsl_intrinsic_index_e {
    INTRINSIC_IMAGE_XOR,
    INTRINSIC_IMAGE_XCHG,
    INTRINSIC_IMAGE_CMPXCHG,
-   INTRINSIC_IMAGE_SIZE,
    INTRINSIC_COUNT, // MARKER
 } glsl_intrinsic_index_t;
 

@@ -1,0 +1,196 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for adding a virtual interface to a router
+#
+# Mbss::APAddInterface AP1 [-lan|-lan1] AP2 ...
+#
+# Use -lan and -lan1 inline to switch which bridge the subsequent
+# interfaces get added to.  The default is -lan1, the guest net.
+#
+# $Id: dfd05e93cead614528995816ae2c81f2ff840dc8 $
+#
+package require UTF
+
+package provide UTF::Test::Mbss::APAddInterface 2.0
+
+UTF::Test Mbss::APAddInterface {args} {
+
+    # Check args and find host
+    foreach AP $args {
+	# -lan and -lan1 etc switch bridges
+	if {[regexp {^-lan1?$} $AP]} {
+	    continue
+	}
+	if {[regexp {^-(lan.*)$} $AP - bridge]} {
+	    error "bridge $bridge not supported"
+	}
+	set h [$AP cget -host]
+
+	if {![info exists host]} {
+	    set host $h
+	} elseif {$h ne $host} {
+	    error "Usage: All virtual interfaces must belong to the same host"
+	}
+    }
+    if {![info exists host]} {
+	error "No AP specified"
+    }
+    if {[$AP hostis Vx]} {
+	set bridge lan
+	if {[lsearch $args -lan1] >= 0} {
+	    error "lan1 not supported on Vx"
+	}
+    } else {
+	set bridge lan1
+    }
+    set ifnames(lan) [set oldifnames(lan) [$host nvram get lan_ifnames]]
+    set ifnames(lan1) [set oldifnames(lan1) [$host nvram get lan1_ifnames]]
+
+    foreach AP $args {
+	# -lan and -lan1 etc switch bridges
+	if {[regexp {^-(lan1?)$} $AP - bridge]} {
+	    continue
+	}
+	lappend aps $AP
+	set wlname [$AP wlname]
+	if {[$AP hostis Router] && ![regexp {netbsd} [$AP cget -trx]]} {
+	    # Linux routers use the device name
+	    set ifname [$AP cget -device]
+	    set ifname_br [$AP cget -device]
+	} elseif {[$AP hostis BSDAP]} {
+	    if {[regexp {bwl(\d+)\.(\d+)} [$AP cget -device] - maj min]} {
+		set ifname "wlan[expr {$maj * 512 + ($min eq""?0:$min)}]"
+	    } else {
+		set ifname $wlname
+	    }
+	    set ifname_br $wlname
+	} else {
+	    # Everything else uses the wlname
+	    set ifname $wlname
+	    set ifname_br $wlname
+	}
+	if {[regsub {\.\d+} $wlname {} wlbase]} {
+	    if {![info exists vifs($wlbase)]} {
+		set vifs($wlbase) \
+		    [set oldvifs($wlbase) [$AP nvram get ${wlbase}_vifs]]
+		# Make sure base radio is on, otherwise nothing will
+		# happen
+		if {[$AP nvram get ${wlbase}_radio] ne "1"} {
+		    lappend nv ${wlbase}_radio=1
+		}
+	    }
+	    if {[lsearch $vifs($wlbase) $wlname] < 0} {
+		lappend vifs($wlbase) $wlname
+	    }
+	    if {[$AP hostis BSDAP]} {
+		if {![info exists channel($wlbase)]} {
+		    set channel($wlbase) [$AP nvram get ${wlbase}_channel]
+		}
+		if {[$AP nvram get ${wlname}_channel] ne $channel($wlbase)} {
+		    lappend nv ${wlname}_channel=$channel($wlbase)
+		}
+	    }
+	}
+	if {[$AP nvram get ${wlname}_bss_enabled] ne "1"} {
+	    lappend nv ${wlname}_bss_enabled=1
+	}
+	if {[$AP nvram get ${wlname}_mode] eq ""} {
+	    lappend nv ${wlname}_mode=ap
+	}
+	if {[$AP nvram get ${wlname}_radio] ne "1"} {
+	    lappend nv ${wlname}_radio=1
+	}
+	if {[$AP nvram get ${wlname}_ifname] ne $ifname} {
+	    lappend nv ${wlname}_ifname=$ifname
+	}
+	set SSID [$AP nvram get ${wlname}_ssid]
+	if {$SSID eq "" || $SSID eq "Broadcom"} {
+	    if {[info exists wlbase] && [regsub {wl\d\.} $wlname {} suf]} {
+		if {![info exists ssid($wlbase)]} {
+		    set ssid($wlbase) [$AP nvram get ${wlbase}_ssid]
+		    if {$ssid($wlbase) eq "" || $ssid($wlbase) eq "Broadcom"} {
+			set ssid($wlbase) [UTF::NewSSID]
+		    }
+		    # truncate ssid to allow room for MBSS indexes
+		    set ssid($wlbase) [string range $ssid($wlbase) 0 28]
+		}
+		lappend nv \
+		    "${wlname}_ssid=$ssid($wlbase)_$suf"
+	    } else {
+		lappend nv "${wlname}_ssid=[UTF::NewSSID]"
+	    }
+	}
+	foreach br [array names ifnames] {
+	    set i [lsearch $ifnames($br) $ifname_br]
+	    if {$br eq $bridge && $i < 0} {
+		lappend ifnames($br) $ifname_br
+	    } elseif {$br ne $bridge && $i >= 0} {
+		set ifnames($br) [lreplace $ifnames($br) $i $i]
+	    } else {
+		# Not modified
+		continue
+	    }
+	}
+    }
+    foreach br [array names ifnames] {
+	# WAR for CM3384 - remove duplicates, preserve order.
+	set new {}
+	foreach i $ifnames($br) {
+	    if {$i ni $new} {
+		lappend new $i
+	    }
+	}
+	set ifnames($br) $new
+	# ENDWAR
+	if {$ifnames($br) ne $oldifnames($br)} {
+	    lappend nv "${br}_ifnames=$ifnames($br)"
+	}
+    }
+    foreach wlbase [array names vifs] {
+	if {$vifs($wlbase) ne $oldvifs($wlbase)} {
+	    lappend nv "${wlbase}_vifs=$vifs($wlbase)"
+	}
+    }
+    if {[info exists nv]} {
+	$host restart {*}$nv
+	# Some APs need another second to set up all BSSes
+	UTF::Sleep 1
+    }
+
+    # Check nvram from last AP (they're on the same host)
+    if {[$AP hostis BSDAP]} {
+	set ret [$AP rexec "nvram show >/dev/null"]
+	if {[regexp {\(-\d+ left\)} $ret]} {
+	    error "nvram overflow: $ret"
+	}
+    }
+
+    if {[$host cget -defer_restart]} {
+	# Skip checks
+	return
+    }
+
+    foreach AP $aps {
+	if {[$AP wl bss] ne "up"} {
+	    # error "BSS not enabled"
+	    # Debug for SWWLAN-49860
+	    set down 1
+	    for {set i 1} {$i < 31} {incr i} {
+		UTF::Sleep 1
+		if {[$AP wl bss] eq "up"} {
+		    set down 0
+		    $AP worry "BSS recovered in $i sec"
+		    break
+		}
+	    }
+	    if {$down} {
+		error "BSS still not enabled after $i sec!"
+	    }
+	}
+	if {[$AP wl bssid] eq "00:00:00:00:00:00"} {
+	    error "Null BSSID"
+	}
+    }
+}

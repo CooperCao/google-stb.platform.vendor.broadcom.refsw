@@ -1,0 +1,61 @@
+#job-ID  prior   name       user         state submit/start at     queue                          #file edited on 27 AUG 2014 
+MAILTO=gurraman@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+00,15,30,45     00,01,08,09,10,11,12,13,14,15,16,17,18,19,20,21,22,23 * * *   /home/gurraman/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+
+#******************************** 43224 ACI test Int rate  6 mcs15 ******************
+
+##30   20     * * *    unittest/cron/launch blr05_43224ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G20 Int.Rate 1 ]' -ap 4360ref -sta 43224b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 3 ' -loop 3 -intwl2G40 '0 2 3 ' -loop 3 -nocompositemainpage  -no5G20 -no5G40 -intchan2G40 11  -downstreamonly -intrate 1 -perftime 20 -perfsize 10
+
+55   18   * * *    unittest/cron/launch blr05_43224ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G Int.Rate 6 ]' -ap 4360ref -sta 43224t -nostaload -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 3 ' -loop 3 -intwl2G40 '0 2 3 ' -loop 3 -nocompositemainpage  -no5G20 -no5G40 -intchan2G40 11 -noapload -downstreamonly -intrate 6 -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+00   23    * * *    unittest/cron/launch blr05_43224ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43224 ACI 2G20 Int.Rate MCS15]' -ap 4360ref -sta 43224t -nostaload -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 3 ' -loop 3 -intwl2G40 '0 2 3 ' -loop 3 -nocompositemainpage -noapload -no5G20 -no5G40 -intchan2G40 11  -downstreamonly -intnrate 15 -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+##******************************** 43228 ACI test Int rate  6 mcs15 ******************
+
+#00   00     * * *   unittest/cron/launch blr05_43228ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G20 Int.Rate 1 ]' -ap 4360ref -sta 43228t -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 4 ' -loop 3 -nocompositemainpage -no2G40 -no5G20 -no5G40 -intchan2G40 11 - -downstreamonly -intrate 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+19   02     * * *    unittest/cron/launch blr05_43228ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G Int.Rate 6 ]' -ap 4360ref -sta 43228t -nostaload -nosniffer -intsta 4360aci -noapload -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 4 ' -loop 3 -intwl2G40 '0 2 4 ' -loop 3 -nocompositemainpage  -no5G20 -no5G40 -intchan2G40 11 -downstreamonly -intrate 6 -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+30   03     * * *    unittest/cron/launch blr05_43228ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43228 ACI 2G Int.Rate]' -ap 4360ref -sta 43228t -nosniffer -nostaload -intsta 4360aci -noapload -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 4 ' -loop 3 -intwl2G40 '0 2 4 ' -loop 3 -nocompositemainpage  -no5G20 -no5G40 -intchan2G40 11  -downstreamonly -intnrate 15 -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+
+#******************************** 4331 ACI test Int rate  6 mcs15 ******************
+
+#00   03     * * *   unittest/cron/launch blr05_4331ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G20 Int.Rate 1 BISON_BRANCH_7_10]' -ap 4360ref -sta 4331bt -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 2 4 '  -loop 3 -no2G40 -no5G20 -no5G40 -nocompositemainpage -intchan2G40 11 -downstreamonly -intrate 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+30  22     * * *   unittest/cron/launch blr05_4331ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G Int.Rate 6 ]' -ap 4360ref -sta 4331t -nosniffer -intsta 4360aci -nostaload -noapload -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 4 ' -loop 3 -intwl2G40 '0 2 4 ' -loop 3 -nocompositemainpage -no5G20 -no5G40 -intchan2G40 11  -downstreamonly -intrate 6 -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+30  23     * * *   unittest/cron/launch blr05_4331ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[4331 ACI 2G Int.Rate MCS15 ]' -ap 4360ref -sta 4331t  -nosniffer -intsta 4360aci -nostaload -noapload -attngrp G2 -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 4 '-loop 3 -intwl2G40 '0 2 4 '-loop 3-nocompositemainpage -no5G20 -no5G40 -intchan2G40 11  -downstreamonly -intnrate 15  -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+
+#*************************************43217 ACI test Int rate 6 mc15 **********************
+
+35   00     * * *   unittest/cron/launch blr05_43217ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G Int.Rate 6 ]' -ap 4360ref -sta 43217t -nosniffer -nostaload -intsta 4360aci -attngrp G2 -noapload  -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -intwl2G40 '0 2 4' -loop 3 -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 4 ' -loop 3 -nocompositemainpage -no5G20 -no5G40 -intchan2G40 11 -downstreamonly -intrate 6 -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+30   01     * * *   unittest/cron/launch blr05_43217ACI2G20_mcs15 Test/RvRNightly1.test -utfconf blr05 -title '[43217 ACI 2G Int.Rate MCS15 ]' -ap 4360ref -sta 43217t -nosniffer -nostaload -intsta 4360aci -attngrp G2 -noapload -intattn2G20 'ALL 0' -cycle2G20AttnRange '50-0' -intattn2G40 'ALL 0' -cycle2G40AttnRange '50-0' -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 2 4 ' -loop 3 -intwl2G40 '0 2 4 ' -loop 3 -nocompositemainpage -no5G20 -no5G40 -intchan2G40 11 -downstreamonly -intnrate 15 -loop1 1 -perftime 20 -perfsize 10 -email hnd-utf-list
+
+
+#*********************************43909 RvR & StaNightly as Sta ******************************
+
+15	19		* * *	unittest/cron/launch blr05_43909RvR Test/RvRNightly1.test -utfconf blr05 -title '[43909 RvRNightly_Sta]' -ap 4360ref -sta 43909 -udp 40 -nostaload -perftime 10 -attnstep 2 -cycle5G80AttnRange "0-60 60-0" -cycle2G20AttnRange "0-60 60-0" -cycle2G40AttnRange "0-60 60-0" -cycle5G20AttnRange "0-60 60-0" -cycle5G40AttnRange "0-60 60-0" -udpopt {-i 1} -chan5G80 36/80 -va af -email hnd-utf-list
+
+00	21		* * *	unittest/cron/launch blr05_43909 Test/StaNightly.test -utfconf blr05 -title '[43909 StaNightly]' -ap 4360ref -sta 43909 -nostaload -noapload -email hnd-utf-list
+
+
+
+
+
+
+
+
+
+
+
+
+

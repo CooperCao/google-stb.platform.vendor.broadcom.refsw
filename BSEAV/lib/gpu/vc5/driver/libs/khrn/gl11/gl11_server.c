@@ -1,33 +1,28 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#include "../glxx/gl_public_api.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include "../common/khrn_int_common.h"
-#include "../common/khrn_int_math.h"
+#include "../common/khrn_int_util.h"
+
+#include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_shared.h"
 #include "../glxx/glxx_server.h"
 #include "../glxx/glxx_server_internal.h"
-#include "gl11_shadercache.h"
-
 #include "../glxx/glxx_texture.h"
 #include "../glxx/glxx_buffer.h"
-#include "../common/khrn_int_util.h"
 #include "../glxx/glxx_translate.h"
+
+#include "gl11_shadercache.h"
 
 #include "libs/util/gfx_util/gfx_util_conv.h"
 
 #include <string.h>
-#include <math.h>
 #include <limits.h>
 
-#define LOG2E  1.442695f
-
-
 /*
-   FIXMEFIXMEFIXMEFIX! change glFog and glLightModel and GlLight and GLMaterial to reject attempts to set
-   vector valued variables with scalar variants
-
-
 Commentary:
 
 Many functions come in pairs - a fixed point version and a floating point version.
@@ -467,14 +462,12 @@ GL_API void GL_APIENTRY glPointSizex(GLfixed size)
 static uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *params)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
-   int t;
    uint32_t tbits;
    uint32_t sh;
    int result = 0;
    if (!state) return 0;
 
-   t = state->active_texture - GL_TEXTURE0;
-   tbits = state->gl11.statebits.texture[t];
+   tbits = state->gl11.statebits.texture[state->active_texture];
 
    switch (env) {
    case GL_POINT_SPRITE_OES:
@@ -491,7 +484,7 @@ static uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *param
    case GL_TEXTURE_ENV:
       switch (pname) {
       case GL_TEXTURE_ENV_MODE:
-         params[0] = state->gl11.texunits[t].mode;
+         params[0] = state->gl11.texunits[state->active_texture].mode;
          result = 1;
          break;
       case GL_COMBINE_RGB:
@@ -559,35 +552,26 @@ static uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *param
 static int get_texenv_float_internal(GLenum env, GLenum pname, float *params)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
-   int t;
-   int result = 0;
    if (!state) return 0;
 
-   t = state->active_texture - GL_TEXTURE0;
+   GL11_TEXUNIT_T *t = &state->gl11.texunits[state->active_texture];
 
-   switch (env) {
-   case GL_TEXTURE_ENV:
-      switch (pname) {
-      case GL_TEXTURE_ENV_COLOR:
-         {
-            int i;
-            for (i = 0; i < 4; i++)
-               params[i] = state->gl11.texunits[t].color[i];
-            result = 4;
-         }
-         break;
-      case GL_RGB_SCALE:
-         params[0] = state->gl11.texunits[t].rgb_scale;
-         result = 1;
-         break;
-      case GL_ALPHA_SCALE:
-         params[0] = state->gl11.texunits[t].alpha_scale;
-         result = 1;
-         break;
-      default:
-         unreachable();
-         break;
-      }
+   assert(env == GL_TEXTURE_ENV);
+
+   int result = -1;
+   switch (pname) {
+   case GL_TEXTURE_ENV_COLOR:
+      for (int i = 0; i < 4; i++)
+         params[i] = t->color[i];
+      result = 4;
+      break;
+   case GL_RGB_SCALE:
+      params[0] = t->rgb_scale;
+      result = 1;
+      break;
+   case GL_ALPHA_SCALE:
+      params[0] = t->alpha_scale;
+      result = 1;
       break;
    default:
       unreachable();
@@ -618,7 +602,7 @@ static GL11_MATRIX_STACK_T *get_stack(GLXX_SERVER_STATE_T *state)
    case GL_PROJECTION:
       return &state->gl11.projection;
    case GL_TEXTURE:
-      return &state->gl11.texunits[state->active_texture - GL_TEXTURE0].stack;
+      return &state->gl11.texunits[state->active_texture].stack;
    default:
       unreachable();
       return NULL;
@@ -703,8 +687,8 @@ static void fogv_internal(GLenum pname, const GLfloat *params)
       if (d >= 0.0f) {
          state->gl11.fog.density = d;
 
-         state->gl11.fog.coeff_exp = -d * LOG2E;
-         state->gl11.fog.coeff_exp2 = -d * d * LOG2E;
+         state->gl11.fog.coeff_exp  = -d * (float)M_LOG2E;
+         state->gl11.fog.coeff_exp2 = -d * d * (float)M_LOG2E;
       } else
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
@@ -1514,8 +1498,8 @@ static bool gl11_state_init(GL11_STATE_T *gl11_state)
    gl11_state->fog.end = 1.0f;
 
    gl11_state->fog.scale = 1.0f;
-   gl11_state->fog.coeff_exp = -LOG2E;
-   gl11_state->fog.coeff_exp2 = -LOG2E;
+   gl11_state->fog.coeff_exp  = -(float)M_LOG2E;
+   gl11_state->fog.coeff_exp2 = -(float)M_LOG2E;
 
    gl11_state->hints_program.fog = GL_DONT_CARE;
 
@@ -1751,10 +1735,9 @@ static GLboolean is_scalef(GLfloat scale)
 static void texenvfv_internal(GLenum target, GLenum pname, const GLfloat *params)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
-   int t;
    if (!state) return;
 
-   t = state->active_texture - GL_TEXTURE0;
+   int t = state->active_texture;
 
    switch (target) {
    case GL_POINT_SPRITE_OES:
@@ -2009,9 +1992,7 @@ static void lightv_internal(GLenum l, GLenum pname, const GLfloat *params)
 
          gl11_matrix_mult_col(light->position, state->gl11.current_modelview, clean);
 
-         /*
-            compute 3-vector position of the light for use by the HAL
-         */
+         /* compute 3-vector position of the light for use by the HAL */
 
          SET_INDIVIDUAL(state->gl11.statebits.vertex, GL11_LIGHT_LOCAL << index, light->position[3] != 0.0f);
          if (light->position[3] != 0.0f)
@@ -2039,7 +2020,7 @@ static void lightv_internal(GLenum l, GLenum pname, const GLfloat *params)
          light->spot.cutoff = clean_float(params[0]);
          SET_INDIVIDUAL(state->gl11.statebits.vertex, GL11_LIGHT_SPOT << index, light->spot.cutoff != 180.0f);
 
-         light->cos_cutoff = (GLfloat)cos(2.0f * PI * light->spot.cutoff / 360.0f);        // derived value
+         light->cos_cutoff = (float)cos(2.0f * M_PI * light->spot.cutoff / 360.0f);
          break;
       case GL_CONSTANT_ATTENUATION:
          light->attenuation.constant = clean_float(params[0]);
@@ -2405,7 +2386,7 @@ static float *get_matrix(GLXX_SERVER_STATE_T *state)
       state->gl11.changed.projection_modelview = true;
       return state->gl11.current_projection;
    case GL_TEXTURE:
-      return state->gl11.texunits[state->active_texture - GL_TEXTURE0].current_matrix;
+      return state->gl11.texunits[state->active_texture].current_matrix;
    case GL_MATRIX_PALETTE_OES:
       return state->gl11.palette_matrices[state->gl11.current_palette_matrix];
    default:
@@ -2553,7 +2534,7 @@ static void rotate_internal(float angle, float x, float y, float z)
       convert angle to radians
    */
 
-   angle = 2.0f * PI * angle / 360.0f;
+   angle = 2.0f * (float)M_PI * angle / 360.0f;
 
    /*
       build matrix

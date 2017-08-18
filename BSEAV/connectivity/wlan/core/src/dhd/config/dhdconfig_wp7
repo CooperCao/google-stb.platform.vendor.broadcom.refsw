@@ -1,0 +1,10 @@
+
+include $(DHDCFGDIR)/dhd_default
+include $(DHDCFGDIR)/dhd_hnd
+
+# set individual features to 1
+# example
+# BCMCCX=1
+# BCMINTERNAL
+WM7DHD=1
+

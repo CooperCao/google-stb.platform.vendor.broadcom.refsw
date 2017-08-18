@@ -134,7 +134,7 @@ void CTunerQamScanData::dump()
 
 CTunerQam::CTunerQam(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTuner(name, number, eBoardResource_frontendQam, pCfg)
@@ -569,7 +569,7 @@ void CTunerQam::saveScanData(CTunerScanData * pScanData)
 void CTunerQam::doScan()
 {
     eRet                       ret   = eRet_Ok;
-    uint16_t                   major = 1;
+    unsigned                   major = 1;
     CChannelQam                chQam(_pCfg, this); /* temp channel we'll use to do tuning during scan */
     CTunerScanNotificationData notifyData(this);   /* notification data for reporting scan start/stop/progress */
     channel_list_t *           _pChannelList;
@@ -651,9 +651,9 @@ error:
 void CTunerQam::doScan()
 {
     eRet     ret            = eRet_Ok;
-    uint16_t major          = 1;
-    uint16_t numFreqToScan  = 0;
-    uint16_t numFreqScanned = 0;
+    unsigned major          = 1;
+    unsigned numFreqToScan  = 0;
+    unsigned numFreqScanned = 0;
 
     CTunerScanNotificationData notifyData(this); /* notification data for reporting scan start/stop/progress */
 
@@ -699,19 +699,21 @@ void CTunerQam::doScan()
         ret             = scanFrequencies(&major, &numFreqToScan, &numFreqScanned);
         if (eRet_NotSupported == ret)
         {
-            ("*** Scan mode unsupported: 64");
+            BDBG_WRN(("*** Scan mode unsupported: 64"));
         }
 
         _scanData._mode = NEXUS_FrontendQamMode_e256;
         ret             = scanFrequencies(&major, &numFreqToScan, &numFreqScanned);
         if (eRet_NotSupported == ret)
         {
-            ("*** Scan mode unsupported: 256");
+            BDBG_WRN(("*** Scan mode unsupported: 256"));
         }
     }
 
 error:
-    notifyData.setPercent(100 * numFreqScanned / numFreqToScan);
+    if(numFreqToScan > 0) {
+        notifyData.setPercent(100 * numFreqScanned / numFreqToScan);
+    }
     scanDone(&notifyData);
 
     _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_QAM);
@@ -720,9 +722,9 @@ error:
 #endif /* ifdef MPOD_SUPPORT */
 
 eRet CTunerQam::scanFrequencies(
-        uint16_t * pMajor,
-        uint16_t * pNumFreqToScan,
-        uint16_t * pNumFreqScanned
+        unsigned * pMajor,
+        unsigned * pNumFreqToScan,
+        unsigned * pNumFreqScanned
         )
 {
     CChannelQam                chQam(_pCfg, this); /* temp channel we'll use to do tuning during scan */

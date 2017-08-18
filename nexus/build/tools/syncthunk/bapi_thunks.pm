@@ -194,7 +194,7 @@ sub build_thunks
         }
 
         # make call
-        print FILE "  module_lock(__FUNCTION__);\n";
+        print FILE "  module_lock(BSTD_FUNCTION);\n";
 
         if (scalar @{$generated_code->{'server_post_lock'}}) {
             my $file = \*FILE;

@@ -300,7 +300,7 @@ int main(void)
     hdmiSettings.hotplugCallback.context = &hotPlugCbParams;
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
-    /* initalize HDCP settings, keys, etc. */
+    /* initialize HDCP settings, keys, etc. */
     initializeHdmiOutputHdcpSettings() ;
 
     /* Force a hotplug to switch to preferred format */
@@ -329,7 +329,7 @@ int main(void)
         printf("Main Menu\n");
         printf(" 0) Exit\n");      
         printf(" 1) Mute/Unmute (currently %s)\n",mute?"MUTED":"NOT MUTED");
-        printf(" 2) Start/Stop Audio Decoder (currently %s)\n",started?"STARTED":"STOPED");
+        printf(" 2) Start/Stop Audio Decoder (currently %s)\n",started?"STARTED":"STOPPED");
         printf(" 3) Switch between PCM/Compressed (currently %s)\n", pcm?"PCM":"COMPRESSED");
         printf(" 4) Disable/enable Pause Bursts (currently %s)\n", pauseBurst?"ENABLED":"DISABLED");
         printf(" 5) Reconfigure the digital outputs to %s\n", pcm?"COMPRESSED":"PCM");
@@ -467,7 +467,7 @@ int main(void)
             }
             break;
             
-        case 5: /* automaticaly switch between pcm and compressed */
+        case 5: /* automatically switch between pcm and compressed */
             /* change burst config */
             if (audioHdmiHandle)
             {

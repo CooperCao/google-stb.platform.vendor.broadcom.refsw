@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,6 +65,42 @@ NEXUS_Sage_WaitSage_priv(void)
     return NEXUS_NOT_AVAILABLE;
 }
 
+NEXUS_Error
+NEXUS_Sage_LoadImage_priv(NEXUS_SageImageHolder *holder)
+{
+    NEXUS_Error rc;
+    void *img_context = NULL;
+    BIMG_Interface img_interface;
+
+    NEXUS_ASSERT_MODULE();
+
+    if(!holder) {
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto EXIT;
+    }
+
+    rc = Nexus_SageModule_P_Img_Create(NEXUS_CORE_IMG_ID_SAGE, &img_context, &img_interface);
+    if (rc != NEXUS_SUCCESS) {
+        rc = BERR_TRACE(rc);
+        goto EXIT;
+    }
+
+    rc = NEXUS_SageModule_P_Load(holder, &img_interface, img_context);
+    if (rc == NEXUS_NOT_AVAILABLE) {
+        /* May not be an error, leave it to the caller to decide */
+        BDBG_MSG(("%s - File not found (%s)", BSTD_FUNCTION, holder->name));
+    } else if(rc != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s - Cannot Load IMG %s ", BSTD_FUNCTION, holder->name));
+    }
+
+EXIT:
+    if (img_context) {
+        Nexus_SageModule_P_Img_Destroy(img_context);
+    }
+
+    return rc;
+}
+
 void * NEXUS_Sage_Malloc_priv(size_t size)
 {
     NEXUS_ASSERT_MODULE();
@@ -127,7 +163,7 @@ NEXUS_Sage_P_StandbyConvertMode(
     default:
     case NEXUS_StandbyMode_eMax:
     case NEXUS_StandbyMode_eActive:
-        BDBG_ERR(("%s: cannot go to standby mode %u", __FUNCTION__, nexusMode));
+        BDBG_ERR(("%s: cannot go to standby mode %u", BSTD_FUNCTION, nexusMode));
         mode = BSAGElib_eStandbyMax;
         break;
     }
@@ -254,17 +290,17 @@ NEXUS_SageModule_Standby_priv(
 
     BDBG_ENTER(NEXUS_Sage_Standby_priv);
 
-    BDBG_MSG(("%s: enabled=%s, mode=%u", __FUNCTION__, enabled ? "true" : "false", pSettings->mode));
+    BDBG_MSG(("%s: enabled=%s, mode=%u", BSTD_FUNCTION, enabled ? "true" : "false", pSettings->mode));
 
     if (!pSettings) {
-        BDBG_ERR(("%s: pSettings is not set.", __FUNCTION__));
+        BDBG_ERR(("%s: pSettings is not set.", BSTD_FUNCTION));
         nexus_rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto end;
     }
 
     /* check if SAGE booted */
     if(!NEXUS_Sage_P_CheckSageBooted()) {
-        BDBG_ERR(("%s: SAGE (re)boot failure", __FUNCTION__));
+        BDBG_ERR(("%s: SAGE (re)boot failure", BSTD_FUNCTION));
         nexus_rc = BERR_TRACE(NEXUS_TIMEOUT);
         goto end;
     }
@@ -300,6 +336,7 @@ NEXUS_SageModule_Standby_priv(
             /* Scrub and disable URR/XRR */
             NEXUS_Sage_P_SvpEnterS3();
             NEXUS_Sage_P_SvpStop(false);
+            NEXUS_Sage_P_BP3Uninit();
             NEXUS_Sage_P_ARUninit(SAGElibStandbyMode);
         }
 

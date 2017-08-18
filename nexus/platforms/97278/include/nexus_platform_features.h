@@ -101,6 +101,11 @@ upon the chip usage. See below */
 
 #define NEXUS_NUM_SPI_CHANNELS 4
 
+#if defined NEXUS_USE_3390_VMS
+#define NEXUS_I2C_CHANNEL_DSTRM_TUNER     4  /* todo: remove this when BCM3128 code removed in nexus_platform_frontend_cable (for VMS board) */
+#endif
+
+
 #include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

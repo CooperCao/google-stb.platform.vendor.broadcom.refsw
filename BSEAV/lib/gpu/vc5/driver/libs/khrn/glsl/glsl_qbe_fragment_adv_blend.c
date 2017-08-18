@@ -136,26 +136,24 @@ static Backflow *adv_blend_colorburn(Backflow *cs, Backflow *cd, Backflow *as, B
 
 static Backflow *adv_blend_softlight(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
-   // D(1 + (2S-1)(1-D))          , S <= 0.5
-   // D(1 + (2S-1)((16D-12)D + 3)), S > 0.5 && D <= 0.25
-   // D + (2S-1)(sqrt(D)-D)       , S > 0.5 && D >  0.25
-   Backflow *d  = tr_blend_div(cd, ad);
-   Backflow *s  = tr_blend_div(cs, as); // TODO: this divide could be eliminated with some algebra,
-                                        // but is it worth it given all the other ops?
-   Backflow *one    = tr_cfloat(1.0f);
-   Backflow *s2     = mul(s,   tr_cfloat(2.0f)); // 2S
-   Backflow *s2_one = sub(s2,  one);             // 2S - 1
-   Backflow *one_d  = sub(one, d  );             // 1 - D
+   // AsCd + (2CsCd - AsCd) E, Where E is given by:
+   //       (1-D))          , S <= 0.5
+   //       ((16D-12)D + 3)), S > 0.5 && D <= 0.25
+   //       (rsqrt(D)-1))   , S > 0.5 && D >  0.25
+   Backflow *d = tr_blend_div(cd, ad);
+   Backflow *one = tr_cfloat(1.0f);
 
-   Backflow *case1 = mul(d, add(one, mul(s2_one, one_d)));
-   Backflow *expr2 = add(mul(sub(mul(tr_cfloat(16.0f), d), tr_cfloat(12.0f)), d), tr_cfloat(3.0f));
-   Backflow *case2 = mul(d, add(one, mul(s2_one, expr2)));
-   Backflow *case3 = add(d, mul(s2_one, sub(tr_sqrt(d), d)));
+   Backflow *e1 = sub(one, d);
+   Backflow *e2 = add(mul(sub(mul(tr_cfloat(16.0f), d), tr_cfloat(12.0f)), d), tr_cfloat(3.0f));
+   Backflow *e3 = sub(tr_mov_to_reg(REG_MAGIC_RSQRT, d), one);
 
-   Backflow *s_lte_half = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, s, tr_cfloat(0.5f));
+   Backflow *s_lte_half = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, cs, mul(tr_cfloat(0.5f), as));
    Backflow *d_lte_qter = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, d, tr_cfloat(0.25f));
+   Backflow *e = tr_if(s_lte_half, e1, tr_if(d_lte_qter, e2, e3));
 
-   return mul(tr_if(s_lte_half, case1, tr_if(d_lte_qter, case2, case3)), asad);
+   Backflow *ascd = mul(as, cd);
+   Backflow *s2_one = sub(mul(mul(cs, cd), tr_cfloat(2.0f)), ascd);
+   return add(ascd, mul(s2_one, e));
 }
 
 static Backflow *adv_blend_difference(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
@@ -424,12 +422,9 @@ void adv_blend_blend(Backflow *res[4], Backflow *src[4], Backflow *dst[4], uint3
 
 void adv_blend_read_tlb(Backflow *res[4][4], const FragmentBackendState *s, SchedBlock *block, int rt)
 {
-   int type = s->rt[rt].type;
-   assert(type == GLSL_FB_F16 || type == GLSL_FB_F32);
-
    Backflow *node[16];
    Backflow *first, *last;
-   tr_read_tlb(s->ms, rt, type, 0xf, node, &first, &last);
+   tr_read_tlb(s->ms, rt, s->rt[rt].is_16, s->rt[rt].is_int, 0xf, node, &first, &last);
 
    if (block->last_tlb_read)
       glsl_iodep(first, block->last_tlb_read);

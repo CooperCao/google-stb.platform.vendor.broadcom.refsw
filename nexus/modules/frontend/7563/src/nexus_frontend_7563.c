@@ -839,7 +839,6 @@ Summary:
  ***************************************************************************/
 NEXUS_FrontendHandle NEXUS_Frontend_Open3461(const NEXUS_3461Settings *pSettings)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_FrontendHandle frontendHandle = NULL;
     NEXUS_7563 *pDevice = NULL;
     unsigned chn_num=0;
@@ -869,7 +868,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3461(const NEXUS_3461Settings *pSettings
 
     /* Create a Nexus frontend handle */
     frontendHandle = NEXUS_Frontend_P_Create(pDevice);
-    if ( NULL == frontendHandle ) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
+    if ( NULL == frontendHandle ) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
 
     /* Establish device capabilities */
     frontendHandle->capabilities.ofdm = true;
@@ -906,14 +905,14 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3461(const NEXUS_3461Settings *pSettings
     for(chn_num=0; chn_num < NEXUS_MAX_7563_FRONTENDS; chn_num++){
 
         pDevice->lockAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->lockAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+        if ( NULL == pDevice->lockAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
         pDevice->asyncStatusAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
      }
 
     pDevice->updateGainAppCallback[0] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-    if ( NULL == pDevice->updateGainAppCallback[0] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+    if ( NULL == pDevice->updateGainAppCallback[0] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
     pDevice->frontendHandle = frontendHandle;
     frontendHandle->chip.familyId = pDevice->familyId;
@@ -1878,7 +1877,6 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_7563_GetDvbt2AsyncL1PreStatus(void *handle, NEXUS_FrontendDvbt2L1PreStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    BODS_SelectiveAsyncStatusType statusType;
     NEXUS_7563 *pDevice;
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7563 *)handle;
@@ -1925,7 +1923,6 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_7563_GetDvbt2AsyncL1PostConfigurableStatus(void *handle, NEXUS_FrontendDvbt2L1PostConfigurableStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    BODS_SelectiveAsyncStatusType statusType;
     NEXUS_7563 *pDevice;
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7563 *)handle;
@@ -1993,7 +1990,6 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_7563_GetDvbt2AsyncPostDynamicStatus(void *handle, NEXUS_FrontendDvbt2L1PostDynamicStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    BODS_SelectiveAsyncStatusType statusType;
     NEXUS_7563 *pDevice;
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7563 *)handle;
@@ -2030,7 +2026,6 @@ static NEXUS_Error NEXUS_Frontend_P_7563_GetDvbt2AsyncL1PlpStatus(void *handle, 
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
     unsigned i=0;
-    BODS_SelectiveAsyncStatusType statusType;
     NEXUS_7563 *pDevice;
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7563 *)handle;
@@ -2060,7 +2055,6 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_7563_GetDvbt2AsyncBasicStatus(void *handle, NEXUS_FrontendDvbt2BasicStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    BODS_SelectiveAsyncStatusType statusType;
     NEXUS_7563 *pDevice;
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7563 *)handle;

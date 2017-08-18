@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -69,7 +69,7 @@ BIP_RtspLiveMediaSessionHandle BIP_RtspLiveMediaSession_CreateFromRequest(
     hRtspLmSession->lmRtspClientSession = lmRtspClientConnection->createNewClientSession( lmRtspClientConnection, requestStr );
     BIP_CHECK_PTR_GOTO( hRtspLmSession->lmRtspClientSession, "Memory Allocation Failed", error, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
 
-    BDBG_MSG(( "%s: hRtspLmSession %p", __FUNCTION__, (void *)hRtspLmSession ));
+    BDBG_MSG(( "%s: hRtspLmSession %p", BSTD_FUNCTION, (void *)hRtspLmSession ));
     return( hRtspLmSession );
 
 error:
@@ -92,21 +92,21 @@ void BIP_RtspLiveMediaSession_Destroy(
 {
     BDBG_OBJECT_ASSERT( hRtspLmSession, BIP_RtspLiveMediaSession );
 
-    BDBG_MSG(( "%s: hRtspLmSession %p", __FUNCTION__, (void *)hRtspLmSession ));
+    BDBG_MSG(( "%s: hRtspLmSession %p", BSTD_FUNCTION, (void *)hRtspLmSession ));
     if (hRtspLmSession)
     {
         if ( hRtspLmSession->pidList ) {
-            BDBG_MSG(( "%s: Free pidList (%p)", __FUNCTION__, (void *)hRtspLmSession->pidList ));
+            BDBG_MSG(( "%s: Free pidList (%p)", BSTD_FUNCTION, (void *)hRtspLmSession->pidList ));
             BKNI_Free( hRtspLmSession->pidList );
         }
 
         if ( hRtspLmSession->lmRtspClientSession  )
         {
-            BDBG_MSG(( "%s: delete hRtspLmSession->lmRtspClientSession (%p)", __FUNCTION__, (void *)hRtspLmSession->lmRtspClientSession ));
+            BDBG_MSG(( "%s: delete hRtspLmSession->lmRtspClientSession (%p)", BSTD_FUNCTION, (void *)hRtspLmSession->lmRtspClientSession ));
             delete hRtspLmSession->lmRtspClientSession;
         }
 
-        BDBG_MSG(( "%s: Free hRtspLmSession (%p)", __FUNCTION__, (void *)hRtspLmSession ));
+        BDBG_MSG(( "%s: Free hRtspLmSession (%p)", BSTD_FUNCTION, (void *)hRtspLmSession ));
         BKNI_Free( hRtspLmSession );
     }
 }
@@ -141,7 +141,7 @@ BIP_Status BIP_RtspLiveMediaSession_SendResponse(
     BIP_RtspResponseStatus         responseStatus
     )
 {
-    BDBG_MSG(("%s: calling sendResponse(%x)", __FUNCTION__, responseStatus ));
+    BDBG_MSG(("%s: calling sendResponse(%x)", BSTD_FUNCTION, responseStatus ));
     hRtspLmSession->lmRtspClientSession->sendResponse( responseStatus );
     return( BIP_SUCCESS );
 }
@@ -151,7 +151,7 @@ BIP_Status BIP_RtspLiveMediaSession_ReportLockStatus(
     bool                           bLockStatus
     )
 {
-    BDBG_MSG(("%s: bLockStatus (%d)", __FUNCTION__, bLockStatus ));
+    BDBG_MSG(("%s: bLockStatus (%d)", BSTD_FUNCTION, bLockStatus ));
     hRtspLmSession->lmRtspClientSession->reportLockStatus( bLockStatus );
     return( BIP_SUCCESS );
 }
@@ -181,9 +181,9 @@ void BIP_RtspLiveMediaSession_CopyMessage(
     char                          *pBuffer
     )
 {
-    BDBG_MSG(( "%s: hRtspLmSession (%p)", __FUNCTION__,  (void *)hRtspLmSession ));
-    BDBG_MSG(( "%s: hRtspLmSession->lmRtspClientSession (%p)", __FUNCTION__,  (void *)hRtspLmSession->lmRtspClientSession ));
-    BDBG_MSG(( "%s: sessionId %08X; calling hRtspLmSession->lmRtspClientSession->copyReceivedMessage(%s)", __FUNCTION__,
+    BDBG_MSG(( "%s: hRtspLmSession (%p)", BSTD_FUNCTION,  (void *)hRtspLmSession ));
+    BDBG_MSG(( "%s: hRtspLmSession->lmRtspClientSession (%p)", BSTD_FUNCTION,  (void *)hRtspLmSession->lmRtspClientSession ));
+    BDBG_MSG(( "%s: sessionId %08X; calling hRtspLmSession->lmRtspClientSession->copyReceivedMessage(%s)", BSTD_FUNCTION,
                hRtspLmSession->lmRtspClientSession->getClientSessionId(), pBuffer ));
     hRtspLmSession->lmRtspClientSession->copyReceivedMessageSession( pBuffer );
 }
@@ -279,7 +279,7 @@ BIP_Status BIP_RtspLiveMediaSession_ParseSatelliteSettings(
         }
         else
         {
-            BDBG_ERR(( "%s:if msys is set mtype(%s) must be set. Error", __FUNCTION__, clientSession->satelliteSettings.mtype ));
+            BDBG_ERR(( "%s:if msys is set mtype(%s) must be set. Error", BSTD_FUNCTION, clientSession->satelliteSettings.mtype ));
             goto error;
         }
 
@@ -308,12 +308,12 @@ BIP_Status BIP_RtspLiveMediaSession_ParseSatelliteSettings(
                 pSatelliteSettings->ldpcPilotScan = !eightpsk;
             }
 
-            BDBG_MSG(( "%s: ldpcPilot %d, ldpcPilotPll %d ldpcPilotScan %d", __FUNCTION__, pSatelliteSettings->ldpcPilot, pSatelliteSettings->ldpcPilotPll, pSatelliteSettings->ldpcPilotScan ));
+            BDBG_MSG(( "%s: ldpcPilot %d, ldpcPilotPll %d ldpcPilotScan %d", BSTD_FUNCTION, pSatelliteSettings->ldpcPilot, pSatelliteSettings->ldpcPilotPll, pSatelliteSettings->ldpcPilotScan ));
         }
     }
     else
     {
-        BDBG_ERR(( "%s:  Sat Modulation mode %d is not yet supported or not set", __FUNCTION__, pSatelliteSettings->mode ));
+        BDBG_ERR(( "%s:  Sat Modulation mode %d is not yet supported or not set", BSTD_FUNCTION, pSatelliteSettings->mode ));
         goto error;
     }
 
@@ -327,7 +327,7 @@ BIP_Status BIP_RtspLiveMediaSession_ParseSatelliteSettings(
     rollOffHundredTimes = clientSession->satelliteSettings.ro * 100;
     if(rollOffHundredTimes == 10)
     {
-        BDBG_ERR(( "%s: ERROR: don't support  set BSAT_ACQ_NYQUIST_10 in Nexus API yet", __FUNCTION__ ));
+        BDBG_ERR(( "%s: ERROR: don't support  set BSAT_ACQ_NYQUIST_10 in Nexus API yet", BSTD_FUNCTION ));
     }
     else if (rollOffHundredTimes == 35 )
     {
@@ -339,7 +339,7 @@ BIP_Status BIP_RtspLiveMediaSession_ParseSatelliteSettings(
     }
     else
     {
-        BDBG_MSG(( "%s: roll_off value (%f) not set to 0.35,0.25, or 0.20. Defaulting to 0.20", __FUNCTION__,clientSession->satelliteSettings.ro ));
+        BDBG_MSG(( "%s: roll_off value (%f) not set to 0.35,0.25, or 0.20. Defaulting to 0.20", BSTD_FUNCTION,clientSession->satelliteSettings.ro ));
         pSatelliteSettings->nyquist20 = true;
     }
 
@@ -353,7 +353,7 @@ BIP_Status BIP_RtspLiveMediaSession_ParseSatelliteSettings(
     }
     else
     {
-        BDBG_ERR(( "%s: Not sure what to do with pol of value or not set: %s (yet)", __FUNCTION__,clientSession->satelliteSettings.pol ));
+        BDBG_ERR(( "%s: Not sure what to do with pol of value or not set: %s (yet)", BSTD_FUNCTION,clientSession->satelliteSettings.pol ));
     }
     return( BIP_SUCCESS );
 
@@ -379,9 +379,9 @@ BIP_Status BIP_RtspLiveMediaSession_GetTransportStatus(
     clientSession     = hRtspLmSession->lmRtspClientSession;
     *pTransportStatus = clientSession->transportStatus;
 
-    BDBG_MSG(( "%s:  pTransportStatus ->clientIpStr %s", __FUNCTION__, ( pTransportStatus )->clientAddressStr ));
+    BDBG_MSG(( "%s:  pTransportStatus ->clientIpStr %s", BSTD_FUNCTION, ( pTransportStatus )->clientAddressStr ));
 
-    BDBG_MSG(( "%s:  pTransportStatus ->isMulticast %d", __FUNCTION__, ( pTransportStatus )->isMulticast ));
+    BDBG_MSG(( "%s:  pTransportStatus ->isMulticast %d", BSTD_FUNCTION, ( pTransportStatus )->isMulticast ));
 
     return( BIP_SUCCESS );
 }

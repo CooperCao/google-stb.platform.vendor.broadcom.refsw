@@ -442,12 +442,11 @@ invalid_pkt:
 
 brtp_enqueue
 brtp_feed(brtp_t rtp, batom_pipe_t pipe_in) {
-    int i;
     batom_t atom;
     batom_cursor cursor;
     brtp_enqueue enqueue_result = brtp_enqueue_queued;
 
-    for(i=0;;) {
+    while(true) {
         if(batom_pipe_peek(pipe_in)) {
             atom = batom_pipe_pop(pipe_in);
             BDBG_ASSERT(atom);

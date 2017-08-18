@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2003-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_base.h"
@@ -56,6 +48,7 @@
 #define BDBG_MSG_TRACE(x) BDBG_MSG(x)
 
 BDBG_MODULE(nexus_base);
+BDBG_FILE_MODULE(nexus_base_standby);
 BDBG_FILE_MODULE(nexus_base_threadinfo);
 
 
@@ -67,9 +60,6 @@ BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_ThreadInfoTree, NEXUS_P_ThreadInfo, node)
 BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_ThreadInfoTree, NEXUS_P_ThreadInfo, node)
 
 struct NEXUS_P_Base_State NEXUS_P_Base_State;
-#if NEXUS_P_DEBUG_CALLBACKS
-static void NEXUS_Base_P_PrintPendingCallers(void);
-#endif
 
 static const char NEXUS_P_Base_Name[] = "NEXUS_Base";
 
@@ -175,6 +165,11 @@ NEXUS_Module_Create_locked(const char *pModuleName, const NEXUS_ModuleSettings *
         rc = BERR_TRACE(rc);
         goto err_lock;
     }
+    rc = BKNI_CreateEvent(&module->event);
+    if(rc!=BERR_SUCCESS) {
+        rc = BERR_TRACE(rc);
+        goto err_event;
+    }
     module->scheduler = NULL;
 
     /* insert into the sorted list */
@@ -206,6 +201,8 @@ NEXUS_Module_Create_locked(const char *pModuleName, const NEXUS_ModuleSettings *
     return module;
 
 err_name:
+    BKNI_DestroyEvent(module->event);
+err_event:
     BKNI_DestroyMutex(module->lock);
 err_lock:
     BKNI_Free(module);
@@ -227,6 +224,7 @@ NEXUS_Module_Destroy_locked(NEXUS_ModuleHandle module)
 
     module->enabled = false;
     BLST_S_REMOVE(&NEXUS_P_Base_State.modules, module, NEXUS_Module, link);
+    BKNI_DestroyEvent(module->event);
     BKNI_DestroyMutex(module->lock);
     BDBG_OBJECT_DESTROY(module, NEXUS_Module);
     BKNI_Free(module);
@@ -436,7 +434,7 @@ NEXUS_Base_Init(const NEXUS_Base_Settings *pSettings)
         rc = BERR_TRACE(BERR_OS_ERROR);
         goto err_module;
     }
-    NEXUS_P_Base_Os_MarkThread("main"); 
+    NEXUS_P_Base_Os_MarkThread("main");
     NEXUS_LockModule();
 #if NEXUS_BASE_EXTERNAL_SCHEDULER
     rc = NEXUS_P_Base_ExternalSchedulerInit(); /* initialize schedulers, but don't start threads */
@@ -526,10 +524,10 @@ NEXUS_Module_Assert(NEXUS_ModuleHandle module)
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     NEXUS_P_ThreadInfo *info;
     NEXUS_P_LockEntry *entry;
-    
+
     if (!module->enabled) {
         return true;
-    } 
+    }
     info = NEXUS_P_ThreadInfo_Get();
     if(info) {
         bool result = false;
@@ -591,7 +589,7 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
     NEXUS_P_MODULE_STATS_START();
     BSTD_UNUSED(pFileName);
     BSTD_UNUSED(lineNumber);
-    
+
     if (!module) {
         BDBG_ERR(("Locking a NULL module handle. It is possible that the module was not initialized and the application is calling its API."));
         BSTD_UNUSED(module);
@@ -606,6 +604,44 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
     NEXUS_Module_P_CheckLock("NEXUS_Module_Lock_Tagged", info, module, pFileName, lineNumber);
     rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
     BDBG_ASSERT(rc==BERR_SUCCESS);
+    if(!module->enabled) {
+        unsigned i;
+#if BDBG_DEBUG_BUILD
+        unsigned fib=5,fib_prev=3;
+        NEXUS_Time start;
+        NEXUS_Time_Get(&start);
+#endif
+
+        for(i=0;;i++) {
+            BERR_Code event_rc;
+#if BDBG_DEBUG_BUILD
+            NEXUS_Time curtime;
+            long timeBlocked;
+            NEXUS_Time_Get(&curtime);
+            timeBlocked = NEXUS_Time_Diff(&curtime, &start);
+
+            if(i==fib) {
+                fib = fib + fib_prev;
+                fib_prev = i;
+                BDBG_MODULE_WRN(nexus_base_standby, ("blocked for %ldms call to disabled %s Module from %s:%u", timeBlocked, module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber));
+            } else {
+                BDBG_MODULE_MSG(nexus_base_standby, ("blocked for %ldms call to disabled %s Module from %s:%u", timeBlocked, module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber));
+            }
+#endif
+            BKNI_ReleaseMutex(module->lock);
+            event_rc = BKNI_WaitForEvent(module->event, 1000);
+            rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
+            BDBG_ASSERT(rc==BERR_SUCCESS);
+            if(module->enabled)  { /* acquire again and test status */
+                if(event_rc==BERR_SUCCESS) {
+                    BKNI_SetEvent(module->event); /* re-fire event in case if there are another waiters */
+                }
+                break;
+            }
+        }
+        BDBG_MODULE_MSG(nexus_base_standby, ("resume call to %s Module from %s:%u", module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber));
+    }
+
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     if(info) {
         if(BLIFO_WRITE_PEEK(&info->stack)>0) {
@@ -620,6 +656,7 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
     }
 #endif
     NEXUS_P_MODULE_STATS_STOP();
+    /* coverity[missing_unlock: FALSE] */ /* purpose of this function is to acquire mutex and return */
     return;
     BSTD_UNUSED(info);
 }
@@ -642,6 +679,12 @@ NEXUS_Module_TryLock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, un
 #endif
     NEXUS_Module_P_CheckLock("NEXUS_Module_TryLock_Tagged", info, module, pFileName, lineNumber);
     rc = BKNI_TryAcquireMutex_tagged(module->lock, pFileName, lineNumber);
+    if(rc==BERR_SUCCESS) {
+        if(!module->enabled) {
+            BKNI_ReleaseMutex(module->lock);
+            rc=BERR_TIMEOUT;
+        }
+    }
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     if(info) {
         if(rc==BERR_SUCCESS) {
@@ -659,6 +702,7 @@ NEXUS_Module_TryLock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, un
         }
     }
 #endif
+    /* coverity[missing_unlock: FALSE] */ /* purpose of this function is to return with acquired mutex or return error */
     return rc==BERR_SUCCESS;
     BSTD_UNUSED(info);
 }
@@ -671,6 +715,10 @@ NEXUS_Module_Unlock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, uns
     BSTD_UNUSED(pFileName);
     BSTD_UNUSED(lineNumber);
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
+    if(!module->enabled) {
+        BDBG_MODULE_ERR(nexus_base_standby, ("trying to unlock blocked %s Module from %s:%u", module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber));
+        BDBG_ASSERT(0);
+    }
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     info = NEXUS_P_ThreadInfo_Get();
     if(info) {
@@ -695,55 +743,37 @@ NEXUS_Module_Unlock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, uns
 
 void
 NEXUS_Module_Enable_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsigned lineNumber)
-{    
+{
+    BERR_Code rc;
     BSTD_UNUSED(pFileName);
     BSTD_UNUSED(lineNumber);
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(module->enabled == false);
 
-#if NEXUS_POWER_MANAGEMENT
-    {
-        BKNI_MutexSettings settings;
-        BERR_Code rc;
-
-        BKNI_GetMutexSettings(module->lock, &settings);
-        settings.suspended = false;
-        rc = BKNI_SetMutexSettings(module->lock, &settings);
-        BDBG_ASSERT(rc==BERR_SUCCESS);      
-    }
-#endif
-    
+    rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
+    BDBG_ASSERT(rc==BERR_SUCCESS);
     module->enabled = true;
+    BDBG_MODULE_MSG(nexus_base_standby, ("Enabled %s Module(schedulers %p) from %s:%u", module->pModuleName, (void *)module->scheduler, NEXUS_P_FILENAME(pFileName), lineNumber));
     BKNI_ReleaseMutex(module->lock);
-    BDBG_MSG(("Enabling %s Module", module->pModuleName));    
+    BKNI_SetEvent(module->event);
 
     return;
 }
 
 void
 NEXUS_Module_Disable_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsigned lineNumber)
-{   
+{
     BERR_Code rc;
     BSTD_UNUSED(pFileName);
     BSTD_UNUSED(lineNumber);
-    BDBG_OBJECT_ASSERT(module, NEXUS_Module);        
+    BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(module->enabled == true);
-    
-    BDBG_MSG(("Disabling %s Module", module->pModuleName));
+
+    BDBG_MODULE_MSG(nexus_base_standby, ("Disabling %s Module(scheduler %p) from %s:%u", module->pModuleName, (void *)module->scheduler, NEXUS_P_FILENAME(pFileName), lineNumber));
     rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
-    BDBG_ASSERT(rc==BERR_SUCCESS);      
-
+    BDBG_ASSERT(rc==BERR_SUCCESS);
     module->enabled = false;
-#if NEXUS_POWER_MANAGEMENT
-    {
-        BKNI_MutexSettings settings;
-
-        BKNI_GetMutexSettings(module->lock, &settings);
-        settings.suspended = true;
-        rc = BKNI_SetMutexSettings(module->lock, &settings);
-        BDBG_ASSERT(rc==BERR_SUCCESS);      
-    }
-#endif
+    BKNI_ReleaseMutex(module->lock);
 
     return;
 }
@@ -802,7 +832,7 @@ NEXUS_Module_GetPriority(NEXUS_ModuleHandle module, NEXUS_ModulePriority *pPrior
 bool NEXUS_Module_ActiveStandyCompatible(NEXUS_ModuleHandle module)
 {
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
-    
+
     if(module->settings.priority == NEXUS_ModulePriority_eIdleActiveStandby ||
        module->settings.priority == NEXUS_ModulePriority_eLowActiveStandby ||
        module->settings.priority == NEXUS_ModulePriority_eHighActiveStandby) {
@@ -1114,6 +1144,7 @@ size_t NEXUS_P_SizeAlign(size_t v, size_t alignment)
 #if NEXUS_P_DEBUG_CALLBACKS
 void NEXUS_Module_SetPendingCaller(NEXUS_ModuleHandle module, const char *functionName)
 {
+    BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     NEXUS_LockModule();
     NEXUS_Time_Get(&module->pendingCaller.time);
     module->pendingCaller.functionName = functionName;
@@ -1187,6 +1218,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "audio_equalizer_disabled",
     "audio_logs_enabled",
     "audio_max_delay",
+    "audio_mixer_start_disabled",
     "audio_processing_disabled",
     "audio_ramp_disabled",
     "audio_target_print_file",
@@ -1214,6 +1246,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "force_vsync",
     "hddvi_width",
     "hdmi_bypass_edid",
+    "hdmi_crc_test",
     "hdmi_i2c_software_mode",
     "hdmi_use_debug_edid",
     "hdmiformatoverride",

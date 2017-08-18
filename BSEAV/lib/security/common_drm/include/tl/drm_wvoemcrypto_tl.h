@@ -94,6 +94,19 @@ typedef struct
     Drm_WVOemCryptoCipherMode cipher_mode;
 } Drm_WVOemCryptoKeyObject;
 
+/* Better to have the same define in Sage side */
+typedef struct
+{
+    uint32_t key_id;
+    uint32_t key_id_length;
+    uint32_t key_data_iv;
+    uint32_t key_data;
+    uint32_t key_data_length;
+    uint32_t key_control_iv;
+    uint32_t key_control;
+    Drm_WVOemCryptoCipherMode cipher_mode;
+} Drm_WVOemCryptoSageKeyObject;
+
 typedef struct
 {
     const uint8_t* key_id;
@@ -105,6 +118,18 @@ typedef struct
     const uint8_t* key_control;
 } Drm_WVOemCryptoKeyObject_V10;
 
+/* Better to have the same define in Sage side */
+typedef struct
+{
+    uint32_t key_id;
+    uint32_t key_id_length;
+    uint32_t key_data_iv;
+    uint32_t key_data;
+    uint32_t key_data_length;
+    uint32_t key_control_iv;
+    uint32_t key_control;
+} Drm_WVOemCryptoSageKeyObject_V10;
+
 typedef struct Drm_WVOemCryptoKeyRefreshObject
 {
     const uint8_t* key_id;
@@ -113,6 +138,15 @@ typedef struct Drm_WVOemCryptoKeyRefreshObject
     const uint8_t* key_control;
 
 } Drm_WVOemCryptoKeyRefreshObject;
+
+/* Better to have the same define in Sage side */
+typedef struct Drm_WVOemCryptoSageKeyRefreshObject
+{
+    uint32_t key_id;
+    uint32_t key_id_length;
+    uint32_t key_control_iv;
+    uint32_t key_control;
+} Drm_WVOemCryptoSageKeyRefreshObject;
 
 typedef enum Drm_WVOemCryptoBufferType_t
 {

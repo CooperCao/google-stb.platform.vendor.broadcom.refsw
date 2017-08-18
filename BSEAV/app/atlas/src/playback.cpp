@@ -142,7 +142,7 @@ error:
 /* CPlaypump Classes */
 CPlaypump::CPlaypump(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_playpump, pCfg),
@@ -285,7 +285,7 @@ error:
 /* CPlayback Class Functions */
 CPlayback::CPlayback(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_playback, pCfg),
@@ -413,7 +413,7 @@ eRet CPlayback::close(CPidMgr * pPidMgr)
 {
     eRet ret = eRet_Ok;
 
-    BDBG_MSG(("  %s() STRN CMP value is %s, ", __FUNCTION__, (ePlaybackTrick_Stop != _trickModeState) ? "not-Stopped" : "Stop"));
+    BDBG_MSG(("  %s() STRN CMP value is %s, ", BSTD_FUNCTION, (ePlaybackTrick_Stop != _trickModeState) ? "not-Stopped" : "Stop"));
     stop(pPidMgr);
 
     if (NULL != _playback)
@@ -508,7 +508,7 @@ eRet CPlayback::start()
 {
     if (_currentVideo == NULL)
     {
-        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", __FUNCTION__));
+        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", BSTD_FUNCTION));
         return(eRet_ExternalError);
     }
 
@@ -521,7 +521,7 @@ eRet CPlayback::start(NEXUS_PlaybackPosition pos)
 
     if (_currentVideo == NULL)
     {
-        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", __FUNCTION__));
+        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", BSTD_FUNCTION));
         return(eRet_ExternalError);
     }
     ret = start(_currentVideo);
@@ -539,7 +539,7 @@ eRet CPlayback::seek(NEXUS_PlaybackPosition pos)
 
     if (_currentVideo == NULL)
     {
-        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", __FUNCTION__));
+        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", BSTD_FUNCTION));
         return(eRet_ExternalError);
     }
     if (NEXUS_SUCCESS != NEXUS_Playback_Seek(_playback, pos))
@@ -581,7 +581,7 @@ eRet CPlayback::start(CVideo * pVideo)
 
     if (_currentVideo && (ePlaybackTrick_Stop != _trickModeState))
     {
-        BDBG_MSG((" %s() State Trickmode is %d, ", __FUNCTION__, _trickModeState));
+        BDBG_MSG((" %s() State Trickmode is %d, ", BSTD_FUNCTION, _trickModeState));
 
         BDBG_MSG(("Resuming Play back"));
         play(ePlaybackTrick_Play, false);
@@ -1017,7 +1017,6 @@ eRet CPlayback::trickMode(CPlaybackTrickData * pTrickModeData)
     break;
 
     default:
-        ret = eRet_NotSupported;
         goto error;
     } /* switch */
 
@@ -1255,7 +1254,7 @@ eRet CPlayback::setSettings(NEXUS_PlaybackSettings * pPlaybackSettings)
      */
     if (ePlaybackTrick_Stop != _trickModeState)
     {
-        BDBG_MSG((" %s() State is not stopped, ", __FUNCTION__));
+        BDBG_MSG((" %s() State is not stopped, ", BSTD_FUNCTION));
         NEXUS_Playback_Stop(_playback);
     }
 
@@ -1321,7 +1320,7 @@ error:
 } /* getTimeString */
 
 CPid * CPlayback::getPid(
-        uint16_t index,
+        unsigned index,
         ePidType type
         )
 {
@@ -1329,7 +1328,7 @@ CPid * CPlayback::getPid(
 }
 
 CPid * CPlayback::findPid(
-        uint16_t pidNum,
+        unsigned pidNum,
         ePidType type
         )
 {

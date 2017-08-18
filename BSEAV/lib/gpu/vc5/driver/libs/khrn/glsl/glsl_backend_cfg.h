@@ -9,7 +9,7 @@
 /*
 33222222222211111111110000000000
 10987654321098765432109876543210
-------aaaauxdzwffwffwffwffpp-ccc   backend
+--aaaauxdzwfffwfffwfffwfffpp-ccc   backend
 
 a = advanced blend type
 p = prim point
@@ -36,24 +36,34 @@ u = disable UBO fetch optimization
 #define GLSL_PRIM_LINE              (2<<4)
 #define GLSL_PRIM_M                 (3<<4)
 
-#define GLSL_FB_GADGET_M (0x7)
-#define GLSL_FB_GADGET_S 6
-#define GLSL_FB_F16         3    /* These numbers correspond to the TLB write */
-#define GLSL_FB_F32         0    /* types used by the HW in the config reg.   */
-#define GLSL_FB_I32         1
-#define GLSL_FB_NOT_PRESENT 2
+#define GLSL_FB_GADGET_M    (0xF)
+#define GLSL_FB_GADGET_S    6
+#define GLSL_FB_16          (1 << 0)
+#define GLSL_FB_32          (0 << 0)
+#define GLSL_FB_INT         (1 << 1)
+#define GLSL_FB_PRESENT     (1 << 2)
+
+#if !V3D_VER_AT_LEAST(4,0,2,0)
 /* V3Dv3.3 and earlier must write alpha if it's present for 16-bit RTs */
-#define GLSL_FB_ALPHA_16_WORKAROUND (1<<2)
+# define GLSL_FB_ALPHA_16_WORKAROUND (1<<3)
+#endif
 
-/* Leave space for 4 fb gadgets. 6, 9, 12, 15 */
+static inline void glsl_pack_fb_gadget(uint32_t *packed, uint32_t gadget, int i) {
+   *packed |= gadget << (GLSL_FB_GADGET_S + 4*i);
+}
+static inline uint32_t glsl_unpack_fb_gadget(uint32_t packed, int i) {
+   return (packed >> (GLSL_FB_GADGET_S + 4*i)) & GLSL_FB_GADGET_M;
+}
 
-#define GLSL_Z_ONLY_WRITE              (1<<18)
-#define GLSL_FEZ_SAFE_WITH_DISCARD     (1<<19)
-#define GLSL_COMPUTE_PADDING           (1<<20)
-#define GLSL_DISABLE_UBO_FETCH         (1<<21)
+/* Leave space for 4 fb gadgets. 6, 10, 14, 18 */
+
+#define GLSL_Z_ONLY_WRITE              (1<<22)
+#define GLSL_FEZ_SAFE_WITH_DISCARD     (1<<23)
+#define GLSL_COMPUTE_PADDING           (1<<24)
+#define GLSL_DISABLE_UBO_FETCH         (1<<25)
 
 /* Advanced blend */
-#define GLSL_ADV_BLEND_S              22
+#define GLSL_ADV_BLEND_S              26
 #define GLSL_ADV_BLEND_M              (0xf << GLSL_ADV_BLEND_S)
 #define GLSL_ADV_BLEND_MULTIPLY       1
 #define GLSL_ADV_BLEND_SCREEN         2
@@ -75,7 +85,6 @@ u = disable UBO fetch optimization
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 
 #include "libs/khrn/glxx/glxx_int_config.h"
-#include "libs/core/lfmt/lfmt_translate_v3d.h"
 
 typedef uint16_t glsl_gadgettype_t;
 
@@ -102,23 +111,13 @@ typedef uint16_t glsl_gadgettype_t;
 #define GLSL_GADGETTYPE_NEEDS_SWIZZLE(g) ((g)>>12 >= 3)
 
 static inline glsl_gadgettype_t glsl_make_shader_swizzled_gadgettype(
-   gfx_lfmt_tmu_ret_t ret, const v3d_tmu_swizzle_t swizzles[4])
+   glsl_gadgettype_t base_gadget, const v3d_tmu_swizzle_t swizzles[4])
 {
-   glsl_gadgettype_t g;
-   switch (ret) {
-   case GFX_LFMT_TMU_RET_8:         g = GLSL_GADGETTYPE_INT8; break;
-   case GFX_LFMT_TMU_RET_16:        g = GLSL_GADGETTYPE_INT16; break;
-   case GFX_LFMT_TMU_RET_32:        g = GLSL_GADGETTYPE_INT32; break;
-   case GFX_LFMT_TMU_RET_1010102:   g = GLSL_GADGETTYPE_INT10_10_10_2; break;
-   default:                         unreachable();
-   }
-   assert(GLSL_GADGETTYPE_NEEDS_SWIZZLE(g));
+   assert(GLSL_GADGETTYPE_NEEDS_SWIZZLE(base_gadget));
    return
-      ((uint16_t)swizzles[0] << 0) |
-      ((uint16_t)swizzles[1] << 3) |
-      ((uint16_t)swizzles[2] << 6) |
-      ((uint16_t)swizzles[3] << 9) |
-      g;
+      ((uint16_t)swizzles[0] << 0) | ((uint16_t)swizzles[1] << 3) |
+      ((uint16_t)swizzles[2] << 6) | ((uint16_t)swizzles[3] << 9) |
+      base_gadget;
 }
 
 static inline glsl_gadgettype_t glsl_make_tmu_swizzled_gadgettype(

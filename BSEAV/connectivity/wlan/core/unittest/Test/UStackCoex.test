@@ -1,0 +1,550 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF CIT UpperStack test script
+#
+# $Id: 48bffeb0af038f8f371097c267e9f7a6dcb8f99e $
+# $Copyright Broadcom Corporation$
+#
+
+#puts "argc=($::argc) argv0=($::argv0) argv=($::argv)"
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::utils
+
+package provide UTF::Test::UStackCoex 2.0
+
+UTF::Test CITUStack {args} {
+
+	UTF::Getopts { \
+		{testbed.arg "" ""} \
+		{email.arg "hnd-utf-list" "Email Address"} \
+		{apbranch.arg "NIGHTLY" "AP Branch to load"} \
+		{stabranch.arg "NIGHTLY" "STA Branch to load"} \
+		{noapload "Don't load images"} \
+		{nostaload "Don't reload STA drivers"} \
+		{noustack24g20 "Don't run UpperStack 2.4G @ 20 cycle test"} \
+		{DUTtype.arg "4325"} \
+		{BT.arg "Unknown"} \
+		{extendedConfig.arg "4325Linvars.tcl"} \
+		{os.arg "linux"} \
+		{testsuite.arg "100"} \
+	}
+
+	
+	set ROUTERS {AP1-4321-4705}
+	set ROUTERS {AP1-4321-4705}
+	if {$(DUTtype) == "4325"} {
+		set TestType "4325"
+		set STAS {DUT4325}
+		set STA1 DUT4325
+	}
+	if {$(DUTtype) == "4329"} {
+		set TestType "4329"
+		set STAS {DUT4329}
+		set STA1 DUT4329
+	}
+	set Router1 AP1-4321-4705
+	
+
+	# Override default tags
+	set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+
+	foreach STA $STAS {
+		set blah 0
+		if {$(os) == "windows"} {
+			set blah [regexp {.*RAPTOR2.*} $(stabranch) match]
+		}
+		if {$blah == 1} {
+			$STA configure -tag $(stabranch) -brand win_mfgtest_dongle_sdio -noaes 1 -notkip 1
+		} else {
+			$STA configure -tag $(stabranch)
+		}
+ 	
+		if {[set stabuild [$STA cget -image]] eq ""} {
+			set stabuild [$STA cget -tag]
+		}
+	}
+
+	
+	
+ 	foreach AP $ROUTERS {
+		$AP configure -tag $(apbranch)
+ 	
+		if {[set build [$AP cget -image]] eq ""} {
+			set build [$AP cget -tag]
+		}
+	}
+
+
+	if {$build eq "NIGHTLY"} {
+		set build "TOT"
+	}
+
+	if {$stabuild eq "NIGHTLY"} {
+		set stabuild "TOT"
+	}
+
+	set BT $(BT)
+	if {$(DUTtype) == "4325"} {
+		set TITLE "CIT $(testbed) 4325 Upperstack Test (AP:$build, STA:$stabuild, BT:$BT)"
+	}
+	if {$(DUTtype) == "4329"} {
+		set TITLE "CIT $(testbed) 4329 Upperstack Test (AP:$build, STA:$stabuild, BT:$BT)"
+	}
+	UTF::Message INFO "" $TITLE
+
+	# Truncate build name for performance keys
+	regsub {_.*} $build {} build
+
+	set summaryinfo ""
+
+	# Find images
+	#
+	
+	
+	if {!$(nostaload)} {
+	foreach STA $STAS {
+		if {[catch {$STA findimages} path]} {
+			set staloaderror $path
+			puts "$staloaderror"
+		} else {
+			set STALoadPath $path
+			set path [$STA findimages]
+			regsub {.*build_[^/]+/} $path {} id
+			regsub {/release.*} $id {} id
+			lappend summaryinfo $id
+			if {[regexp {_REL_} $id] || \
+				![info exists date] || [string match "*/$date.*" $id]} {
+				set staloaderror ""
+			} else {
+				UTF::Message INFO $STA "Build Unavailable. Instead will use ($STALoadPath)"
+				set staloaderror "Build Unavailable"
+			}
+		}
+	}
+	}
+
+	
+    if {!$(noapload)} {
+ 	foreach AP $ROUTERS {
+		if {[catch {$AP findimages} path]} {
+			set aploaderror $path
+			puts "$aploaderror"
+		} else {
+			set APLoadPath $path
+			# Shortcut for future loads.
+			$AP configure -image $path
+			regsub {.*build_[^/]+/({PRESERVED/,})?} $path {} id
+			regsub {/build.*} $id {} id
+			lappend summaryinfo $id
+			if {[regexp {_REL_} $id] || \
+				![info exists date] || [string match "*/$date.*" $id]} {
+				set aploaderror ""
+			} else {
+				UTF::Message INFO $AP "Build Unavailable. Instead will use ($APLoadPath)"
+				set aploaderror "Build Unavailable"
+			}
+		}
+	}
+	}
+	lappend summaryinfo "UTFConfig: $UTF::args(utfconf)"
+	UTF::WrapSummary $UTF::SummaryDir $TITLE $summaryinfo $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+    if {!$(noapload)} {
+	UTF::Try "$TestType: Find Router Image" {
+		if {$aploaderror ne ""} {
+			error $aploaderror
+		} else {
+			UTF::Message INFO "Image Path:" $APLoadPath
+		}
+	}
+	}
+
+	# Find images
+	if {!$(nostaload)} {
+	UTF::Try "$TestType: Find STA Image" {
+		if {$staloaderror ne ""} {
+			error $staloaderror
+		} else {
+			UTF::Message INFO "Image Path:" $STALoadPath
+		}
+	}
+	}
+
+	UTF::Try "$TestType: Reset Attenuator" {
+		catch {
+			# set all the attenuator channels to 0
+			JoeMainPC rexec -t 1000 -T 1000 "/cygdrive/c/SetAttn.bat 0"
+		}
+		UTF::Message PASS "Attenuator is set to 0" ""
+	}
+	
+	UTF::Try "$TestType: Turn on All Routers" {
+		foreach AP $ROUTERS {
+			UTF::Message INFO $AP "Turn on the router"
+			$AP configure -initialized 0
+			$AP power on
+		}
+		
+		UTF::Sleep 20
+	}
+
+	if {!$(nostaload)} {
+	foreach STA $STAS {
+		UTF::Try "$TestType: $STA load" {
+		#$STA load
+		UTF::enh_load $STA
+		}
+	}
+	}
+
+    if {!$(noapload)} {
+ 	foreach AP $ROUTERS {
+ 		UTF::Try "$TestType: Load $AP OS" {
+		catch {$AP restore_defaults}
+		$AP load
+		}
+	}
+	}
+	
+	foreach STA $STAS {
+		UTF::Try "$TestType: $STA setup" {
+			$STA services stop
+			catch {$STA wl msglevel error assoc}
+			$STA wl up
+			UTF::Sleep 2
+			$STA wl ver
+			$STA chipname
+		}
+	}
+
+	# all the test results will be moved to under the UTF Logfile directory
+	
+	set LogLoc $UTF::Logfile
+	
+	#########################################################################################################
+	####                                     B r o a d c o m
+	#########################################################################################################
+	
+	#################### Router Setup (Broadcom 2.4G 20 Ch6) ######################
+	
+	UTF::Try "$TestType: Router Setup (Broadcom 2.4G 20 Ch6)" {
+	
+		foreach AP $ROUTERS {
+			UTF::Message INFO $AP "Turn on the router"
+			$AP configure -initialized 0
+			$AP power on
+		}
+		
+		UTF::Sleep 20
+
+		foreach AP $ROUTERS {
+			# 2.4 GHz band (0->2.4 GHz, 1->5 GHz) 
+			# Bandwidth (0->20 GHz on both channels, 1->40 GHz on both channels, 2->20 GHz 0n 2.4 and 40 GHz on 5)
+			$AP restart \
+				wl0_nband=2 \
+				wl0_channel=6 \
+				wl0_nbw_cap=0 \
+				wl0_nctrlsb=lower
+		}
+	
+		UTF::Sleep 15
+
+		foreach AP $ROUTERS {
+			if {$AP != $Router1} {
+				$AP power off
+			}
+		}
+
+		$Router1 wl down
+		catch {$Router1 wl nphy_antsel 0x01}
+		$Router1 wl up
+	}
+
+	#################### Upper Stack (Broadcom 2.4G 20 Ch6) ######################
+
+	if {!$(noustack24g20)} {
+	catch {
+		# kill any existing tcl shell
+		JoeMainPC rexec -t 1000 -T 1000 "taskkill /IM tclsh.exe /F"
+
+		# kill any error window belonging to Chariot endpoint crash, otherwise Chariot will not run properly
+		JoeMainPC rexec -t 1000 -T 1000 "taskkill /IM dwwin.exe /F"
+	}
+	set scriptList ""
+	if {$(testsuite) == "999"} {
+		set scriptList "08.wlanA_A2dpC_wlanTX_A2dpS_DH5_RoleDisAllowed.tcl 09.wlanA_A2dpC_wlanRX_A2dpS_DH5_RoleDisAllowed.tcl 10.wlanA_A2dpC_wlanBI_A2dpS_DH5_RoleDisAllowed.tcl"
+		puts "<<<<<<<<<<<<<<<<<<<<<<<<<<<< test 8,9,10 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"		
+	}
+	if {$(testsuite) == "4329"} {
+		set scriptList "00.A2dpC_A2dpS_Auto_RoleDisallowed_reconnect.tcl 01.A2dpC_A2dpS_Auto_RoleDisallowed.tcl 02.A2dpC_A2dpS_DH5_RoleDisallowed.tcl 03.A2dpC_A2dpS_Auto_RoleAllowed.tcl 04.A2dpC_A2dpS_DH5_RoleAllowed.tcl 05.wlanA_wlanTX.tcl 06.wlanA_wlanRX.tcl 07.wlanA_wlanBI.tcl 08.wlanA_A2dpC_wlanTX_A2dpS_DH5_RoleDisAllowed.tcl 09.wlanA_A2dpC_wlanRX_A2dpS_DH5_RoleDisAllowed.tcl 10.wlanA_A2dpC_wlanBI_A2dpS_DH5_RoleDisAllowed.tcl 11.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleDisAllowed.tcl 12.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleDisAllowed.tcl 13.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleDisAllowed.tcl 26.A2dpC_wlanA_A2dpS_wlanTX_DH5_RoleAllowed.tcl 27.A2dpC_wlanA_A2dpS_wlanRX_DH5_RoleAllowed.tcl 28.A2dpC_wlanA_A2dpS_wlanBI_DH5_RoleAllowed.tcl 29.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleAllowed.tcl 30.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleAllowed.tcl 31.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleAllowed.tcl 37.wlanA_wlanTX_A2dpC_A2dpS_DH5_RoleAllowed.tcl 38.wlanA_wlanRX_A2dpC_A2dpS_DH5_RoleAllowed.tcl 39.wlanA_wlanBI_A2dpC_A2dpS_DH5_RoleAllowed.tcl 40.wlanA_A2dpC_wlanTX_A2dpS_DH5_RoleAllowed.tcl 41.wlanA_A2dpC_wlanRX_A2dpS_DH5_RoleAllowed.tcl 42.wlanA_A2dpC_wlanBI_A2dpS_DH5_RoleAllowed.tcl 43.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleAllowed.tcl 44.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleAllowed.tcl 45.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleAllowed.tcl 46.A2dpC_A2dpS_wlanA_wlanBI_Auto_RoleAllowed.tcl 47.wlanA_A2dpC_wlanTX_A2dpS_Auto_RoleAllowed.tcl 48.wlanA_A2dpC_wlanRX_A2dpS_Auto_RoleAllowed.tcl 49.wlanA_A2dpC_wlanBI_A2dpS_Auto_RoleAllowed.tcl 50.A2dpC_A2dpS_wlanA_wlanTX_Auto_RoleAllowed.tcl 51.A2dpC_A2dpS_wlanA_wlanRX_Auto_RoleAllowed.tcl 65.wlanA_A2dpC_A2dpS_wlanRX_Auto_RoleAllowed.tcl 66.wlanA_A2dpC_A2dpS_wlanTX_Auto_RoleAllowed.tcl 67.wlanA_A2dpC_A2dpS_wlanBI_Auto_RoleAllowed.tcl "
+		#set scriptList "06.wlanA_wlanRX.tcl 12.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleDisAllowed.tcl"
+		puts "<<<<<<<<<<<<<<<<<<<<<<<<<<<< 4329 test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"		
+	}
+	if {$(testsuite) == "4329s"} {
+		set scriptList "00.A2dpC_A2dpS_Auto_RoleDisallowed_reconnect.tcl 14.1sensors_wlanA_A2dpC_A2dpS_wlanTX_remote_Auto_RoleDisAllowed.tcl 15.1sensors_wlanA_A2dpC_A2dpS_wlanRX_remote_Auto_RoleDisAllowed.tcl 16.1sensors_wlanA_A2dpC_A2dpS_wlanBI_remote_Auto_RoleDisAllowed.tcl 20.1sensors_A2dpC_A2dpS_wlanA_wlanTX_remote_Auto_RoleDisAllowed.tcl 21.1sensors_A2dpC_A2dpS_wlanA_wlanRX_remote_Auto_RoleDisAllowed.tcl 22.1sensors_A2dpC_A2dpS_wlanA_wlanBI_remote_Auto_RoleDisAllowed.tcl 32.A2dpC_A2dpS_2sensors_remote_Auto_RoleDisAllowed.tcl 33.A2dpC_A2dpS_2sensors_remote_DH5_RoleDisAllowed.tcl 34.A2dpC_A2dpS_2sensors_remote_wlanA_wlanTX_DH5_RoleDisAllowed.tcl 35.A2dpC_A2dpS_2sensors_remote_wlanA_wlanRX_DH5_RoleDisAllowed.tcl 36.A2dpC_A2dpS_2sensors_remote_wlanA_wlanBI_DH5_RoleDisAllowed.tcl 52.1sensors_A2dpC_A2dpS_Auto_RoleDisAllowed.tcl 53.A2dpC_1sensors_A2dpS_Auto_RoleDisAllowed.tcl 54.A2dpC_A2dpS_1sensors_Auto_RoleDisAllowed.tcl" 
+		puts "<<<<<<<<<<<<<<<<<<<<<<<<<<<< 4329 sensor test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"		
+	}
+	
+	if {[string index $(testsuite) 0] == "1"} {
+		if {$scriptList == ""} {
+			set scriptList "00.A2dpC_A2dpS_Auto_RoleDisallowed_reconnect.tcl 01.A2dpC_A2dpS_Auto_RoleDisallowed.tcl 02.A2dpC_A2dpS_DH5_RoleDisallowed.tcl 03.A2dpC_A2dpS_Auto_RoleAllowed.tcl 04.A2dpC_A2dpS_DH5_RoleAllowed.tcl 05.wlanA_wlanTX.tcl 06.wlanA_wlanRX.tcl 07.wlanA_wlanBI.tcl 08.wlanA_A2dpC_wlanTX_A2dpS_DH5_RoleDisAllowed.tcl 09.wlanA_A2dpC_wlanRX_A2dpS_DH5_RoleDisAllowed.tcl 10.wlanA_A2dpC_wlanBI_A2dpS_DH5_RoleDisAllowed.tcl 11.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleDisAllowed.tcl 12.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleDisAllowed.tcl 13.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleDisAllowed.tcl 14.1sensors_wlanA_A2dpC_A2dpS_wlanTX_remote_Auto_RoleDisAllowed.tcl 15.1sensors_wlanA_A2dpC_A2dpS_wlanRX_remote_Auto_RoleDisAllowed.tcl 16.1sensors_wlanA_A2dpC_A2dpS_wlanBI_remote_Auto_RoleDisAllowed.tcl 20.1sensors_A2dpC_A2dpS_wlanA_wlanTX_remote_Auto_RoleDisAllowed.tcl 21.1sensors_A2dpC_A2dpS_wlanA_wlanRX_remote_Auto_RoleDisAllowed.tcl 22.1sensors_A2dpC_A2dpS_wlanA_wlanBI_remote_Auto_RoleDisAllowed.tcl 26.A2dpC_wlanA_A2dpS_wlanTX_DH5_RoleAllowed.tcl 27.A2dpC_wlanA_A2dpS_wlanRX_DH5_RoleAllowed.tcl 28.A2dpC_wlanA_A2dpS_wlanBI_DH5_RoleAllowed.tcl 29.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleAllowed.tcl 30.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleAllowed.tcl 31.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleAllowed.tcl 32.A2dpC_A2dpS_2sensors_remote_Auto_RoleDisAllowed.tcl 33.A2dpC_A2dpS_2sensors_remote_DH5_RoleDisAllowed.tcl 34.A2dpC_A2dpS_2sensors_remote_wlanA_wlanTX_DH5_RoleDisAllowed.tcl 35.A2dpC_A2dpS_2sensors_remote_wlanA_wlanRX_DH5_RoleDisAllowed.tcl 36.A2dpC_A2dpS_2sensors_remote_wlanA_wlanBI_DH5_RoleDisAllowed.tcl 37.wlanA_wlanTX_A2dpC_A2dpS_DH5_RoleAllowed.tcl 38.wlanA_wlanRX_A2dpC_A2dpS_DH5_RoleAllowed.tcl 39.wlanA_wlanBI_A2dpC_A2dpS_DH5_RoleAllowed.tcl 40.wlanA_A2dpC_wlanTX_A2dpS_DH5_RoleAllowed.tcl 41.wlanA_A2dpC_wlanRX_A2dpS_DH5_RoleAllowed.tcl 42.wlanA_A2dpC_wlanBI_A2dpS_DH5_RoleAllowed.tcl 43.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleAllowed.tcl 44.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleAllowed.tcl 45.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleAllowed.tcl 46.A2dpC_A2dpS_wlanA_wlanBI_Auto_RoleAllowed.tcl 47.wlanA_A2dpC_wlanTX_A2dpS_Auto_RoleAllowed.tcl 48.wlanA_A2dpC_wlanRX_A2dpS_Auto_RoleAllowed.tcl 49.wlanA_A2dpC_wlanBI_A2dpS_Auto_RoleAllowed.tcl 50.A2dpC_A2dpS_wlanA_wlanTX_Auto_RoleAllowed.tcl 51.A2dpC_A2dpS_wlanA_wlanRX_Auto_RoleAllowed.tcl 52.1sensors_A2dpC_A2dpS_Auto_RoleDisAllowed.tcl 53.A2dpC_1sensors_A2dpS_Auto_RoleDisAllowed.tcl 54.A2dpC_A2dpS_1sensors_Auto_RoleDisAllowed.tcl 65.wlanA_A2dpC_A2dpS_wlanRX_Auto_RoleAllowed.tcl 66.wlanA_A2dpC_A2dpS_wlanTX_Auto_RoleAllowed.tcl 67.wlanA_A2dpC_A2dpS_wlanBI_Auto_RoleAllowed.tcl"
+			puts "<<<<<<<<<<<<<<<<<<<<<<<<<<<< 4325 testsuite 100 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"		
+		} else {
+			set scriptList "$scriptlist 00.A2dpC_A2dpS_Auto_RoleDisallowed_reconnect.tcl 01.A2dpC_A2dpS_Auto_RoleDisallowed.tcl 02.A2dpC_A2dpS_DH5_RoleDisallowed.tcl 03.A2dpC_A2dpS_Auto_RoleAllowed.tcl 04.A2dpC_A2dpS_DH5_RoleAllowed.tcl 05.wlanA_wlanTX.tcl 06.wlanA_wlanRX.tcl 07.wlanA_wlanBI.tcl 08.wlanA_A2dpC_wlanTX_A2dpS_DH5_RoleDisAllowed.tcl 09.wlanA_A2dpC_wlanRX_A2dpS_DH5_RoleDisAllowed.tcl 10.wlanA_A2dpC_wlanBI_A2dpS_DH5_RoleDisAllowed.tcl 11.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleDisAllowed.tcl 12.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleDisAllowed.tcl 13.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleDisAllowed.tcl 14.1sensors_wlanA_A2dpC_A2dpS_wlanTX_remote_Auto_RoleDisAllowed.tcl 15.1sensors_wlanA_A2dpC_A2dpS_wlanRX_remote_Auto_RoleDisAllowed.tcl 16.1sensors_wlanA_A2dpC_A2dpS_wlanBI_remote_Auto_RoleDisAllowed.tcl 20.1sensors_A2dpC_A2dpS_wlanA_wlanTX_remote_Auto_RoleDisAllowed.tcl 21.1sensors_A2dpC_A2dpS_wlanA_wlanRX_remote_Auto_RoleDisAllowed.tcl 22.1sensors_A2dpC_A2dpS_wlanA_wlanBI_remote_Auto_RoleDisAllowed.tcl 26.A2dpC_wlanA_A2dpS_wlanTX_DH5_RoleAllowed.tcl 27.A2dpC_wlanA_A2dpS_wlanRX_DH5_RoleAllowed.tcl 28.A2dpC_wlanA_A2dpS_wlanBI_DH5_RoleAllowed.tcl 29.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleAllowed.tcl 30.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleAllowed.tcl 31.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleAllowed.tcl 32.A2dpC_A2dpS_2sensors_remote_Auto_RoleDisAllowed.tcl 33.A2dpC_A2dpS_2sensors_remote_DH5_RoleDisAllowed.tcl 34.A2dpC_A2dpS_2sensors_remote_wlanA_wlanTX_DH5_RoleDisAllowed.tcl 35.A2dpC_A2dpS_2sensors_remote_wlanA_wlanRX_DH5_RoleDisAllowed.tcl 36.A2dpC_A2dpS_2sensors_remote_wlanA_wlanBI_DH5_RoleDisAllowed.tcl 37.wlanA_wlanTX_A2dpC_A2dpS_DH5_RoleAllowed.tcl 38.wlanA_wlanRX_A2dpC_A2dpS_DH5_RoleAllowed.tcl 39.wlanA_wlanBI_A2dpC_A2dpS_DH5_RoleAllowed.tcl 40.wlanA_A2dpC_wlanTX_A2dpS_DH5_RoleAllowed.tcl 41.wlanA_A2dpC_wlanRX_A2dpS_DH5_RoleAllowed.tcl 42.wlanA_A2dpC_wlanBI_A2dpS_DH5_RoleAllowed.tcl 43.A2dpC_A2dpS_wlanA_wlanTX_DH5_RoleAllowed.tcl 44.A2dpC_A2dpS_wlanA_wlanRX_DH5_RoleAllowed.tcl 45.A2dpC_A2dpS_wlanA_wlanBI_DH5_RoleAllowed.tcl 46.A2dpC_A2dpS_wlanA_wlanBI_Auto_RoleAllowed.tcl 47.wlanA_A2dpC_wlanTX_A2dpS_Auto_RoleAllowed.tcl 48.wlanA_A2dpC_wlanRX_A2dpS_Auto_RoleAllowed.tcl 49.wlanA_A2dpC_wlanBI_A2dpS_Auto_RoleAllowed.tcl 50.A2dpC_A2dpS_wlanA_wlanTX_Auto_RoleAllowed.tcl 51.A2dpC_A2dpS_wlanA_wlanRX_Auto_RoleAllowed.tcl 52.1sensors_A2dpC_A2dpS_Auto_RoleDisAllowed.tcl 53.A2dpC_1sensors_A2dpS_Auto_RoleDisAllowed.tcl 54.A2dpC_A2dpS_1sensors_Auto_RoleDisAllowed.tcl 65.wlanA_A2dpC_A2dpS_wlanRX_Auto_RoleAllowed.tcl 66.wlanA_A2dpC_A2dpS_wlanTX_Auto_RoleAllowed.tcl 67.wlanA_A2dpC_A2dpS_wlanBI_Auto_RoleAllowed.tcl" 
+			puts "<<<<<<<<<<<<<<<<<<<<<<<<<<<< Add 4325 testsuite 100 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"		
+		}
+		
+	}
+
+	if {[string index $(testsuite) 1] == "1"} {
+		if {$scriptList == ""} {
+			set scriptList "00.A2dpC_A2dpS_Auto_RoleDisallowed_reconnect.tcl 97.wlanA_A2dpC_wlanTX_A2dpS_Auto_RoleAllowed_RvR.tcl 98.wlanA_A2dpC_wlanRX_A2dpS_Auto_RoleAllowed_RvR.tcl 99.wlanA_A2dpC_wlanBI_A2dpS_Auto_RoleAllowed_RvR.tcl"
+			#set scriptList "97.wlanA_A2dpC_wlanTX_A2dpS_Auto_RoleAllowed_RvR.tcl"
+			puts "<<<<<<<<<<<<<<<<<<<<<<<<<<<< testsuite RvR 010 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"		
+		} else {
+			set scriptList "$scriptlist 00.A2dpC_A2dpS_Auto_RoleDisallowed_reconnect.tcl 97.wlanA_A2dpC_wlanTX_A2dpS_Auto_RoleAllowed_RvR.tcl 98.wlanA_A2dpC_wlanRX_A2dpS_Auto_RoleAllowed_RvR.tcl 99.wlanA_A2dpC_wlanBI_A2dpS_Auto_RoleAllowed_RvR.tcl"
+			puts "<<<<<<<<<<<<<<<<<<<<<<<<<<<< Add testsuite RvR 010 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"		
+		}
+	}
+
+	if {[string index $(testsuite) 2] == "1"} {
+	}
+
+	set globalConfig $(extendedConfig)
+	#catch [JoeMainPC rexec -t 1800 -T 1800 "rm -fr /cygdrive/c/ustackdir"]
+	set locOfUstackScripts "/home/jbrennan/ustackdir"
+	set locOfscripts "/cygdrive/c/ustackdir"
+	set locOfTclsh "/cygdrive/c/Tcl/bin/tclsh"
+	set mainTestScript "btewlantestmulti.tcl"
+	set Index [string last "test.log" $LogLoc]
+	set NewLogPath [string replace $LogLoc $Index end ""]
+	#JoeMainPC rexec -t 1800 -T 1800 "mkdir $locOfscripts"
+	#JoeMainPC copyto "$locOfUstackScripts/." $locOfscripts
+	
+	foreach script $scriptList {
+		set testfailed 0
+		set goodfilename [regexp {[0-9]+\.(.*)\.tcl} $script match testName]
+		set rvrtrue [regexp {.*RvR.*} $script match]
+		if {$goodfilename != 1} {
+			set testName $script
+		}
+	UTF::Try "$TestType: $testName" {
+				JoeMainPC rexec -t 1800 -T 1800 "cd $locOfscripts ; rm -fr *testid*"
+			
+		if {$globalConfig == ""} {
+			if {$rvrtrue == "1"} {
+				JoeMainPC rexec -t 18000 -T 180000 "cd $locOfscripts ; $locOfTclsh $mainTestScript $script"
+			} else {
+				JoeMainPC rexec -t 1800 -T 1800 "cd $locOfscripts ; $locOfTclsh $mainTestScript $script"
+			}
+		} else {
+			if {$rvrtrue == "1"} {
+				JoeMainPC rexec -t 18000 -T 180000 "cd $locOfscripts ; $locOfTclsh $mainTestScript $script $globalConfig"
+			} else {
+				JoeMainPC rexec -t 1800 -T 1800 "cd $locOfscripts ; $locOfTclsh $mainTestScript $script $globalConfig"
+			}
+		}
+				set csvFilename ""
+				set htmlFilename [JoeMainPC rexec -t 2000 -T 2000 "cd $locOfscripts ; ls *testid*.html"]
+				catch {set csvFilename [JoeMainPC rexec -t 2000 -T 2000 "cd $locOfscripts ; ls *testid*.csv"]}
+				set blahblah [regexp {.*testid([0-9]+)\.html} $htmlFilename match testid]
+				set blahblah [regexp {.*testid([0-9]+)\.csv} $csvFilename match testid]
+				JoeMainPC copyfrom "$locOfscripts\/*testid*" $NewLogPath
+				exec chmod -R 777 $NewLogPath
+				JoeMainPC rexec -t 2000 -T 2000 "cd $locOfscripts ; rm -fr *testid*"
+				set fileId [open $NewLogPath\/$htmlFilename]
+				while {[gets $fileId line] >= 0} {
+					set lineresult [regexp {.*Fail.*} $line match]
+					if {$lineresult == "1"} {
+						set testfailed "1"
+					}
+				}
+				close $fileId
+				if {[catch {set wavFiles [glob $NewLogPath\/*testid$testid*.wav]}] == 0} {
+					foreach testWavFiles $wavFiles {
+						regexp "$NewLogPath\(.*)" $testWavFiles match anotherwav
+						UTF::Try "AUDIO: $anotherwav" {
+							return "link:$anotherwav"
+						}
+					}
+				}
+				if {$testfailed == "1"} {
+					if {$rvrtrue == "0"} {
+						error "link:$htmlFilename"
+					} else {
+						return "link:$htmlFilename"
+					}				
+				} else {
+					return "link:$htmlFilename"
+				}	
+	}
+	if {$rvrtrue == "1"} {
+		set limitedFiles [regexp {97.wlanA_A2dpC_wlanTX_A2dpS_Auto_RoleAllowed_RvR.tcl|98.wlanA_A2dpC_wlanRX_A2dpS_Auto_RoleAllowed_RvR.tcl|99.wlanA_A2dpC_wlanBI_A2dpS_Auto_RoleAllowed_RvR.tcl} $script match]
+		if {$limitedFiles == "1" && $csvFilename != ""} {
+
+set bithroughput(0) "1 1"
+
+set bithroughput(-50) "1 1"
+set bithroughput(-51) "1 1"
+set bithroughput(-52) "1 1"
+set bithroughput(-53) "1 1"
+set bithroughput(-54) "1 1"
+set bithroughput(-55) "1 1"
+set bithroughput(-56) "1 1"
+set bithroughput(-57) "1 1"
+set bithroughput(-58) "1 1"
+set bithroughput(-59) "1 1"
+set bithroughput(-60) "1 1"
+set bithroughput(-61) "1 1"
+set bithroughput(-62) "1 1"
+set bithroughput(-63) "1 1"
+set bithroughput(-64) "1 1"
+set bithroughput(-65) "1 1"
+set bithroughput(-66) "1 1"
+set bithroughput(-67) "1 1"
+set bithroughput(-68) "1 1"
+set bithroughput(-69) "1 1"
+set bithroughput(-70) "1 1"
+set bithroughput(-71) "1 1"
+set bithroughput(-72) "1 1"
+set bithroughput(-73) "1 1"
+set bithroughput(-74) "1 1"
+set bithroughput(-75) "1 1"
+set bithroughput(-76) "1 1"
+set bithroughput(-77) "1 1"
+set bithroughput(-78) "1 1"
+set bithroughput(-79) "1 1"
+set bithroughput(-80) "1 1"
+set bithroughput(-81) "1 1"
+set bithroughput(-82) "1 1"
+set bithroughput(-83) "1 1"
+set bithroughput(-84) "1 1"
+set bithroughput(-85) "1 1"
+set bithroughput(-86) "1 1"
+set bithroughput(-87) "1 1"
+set bithroughput(-88) "1 1"
+set bithroughput(-89) "1 1"
+set bithroughput(-90) "1 1"
+set bithroughput(-91) "1 1"
+set bithroughput(-92) "1 1"
+set bithroughput(-93) "1 1"
+set bithroughput(-94) "1 1"
+set bithroughput(-95) "1 1"
+
+set rxtxthroughput(0) "1"
+
+set rxtxthroughput(-50) "1"
+set rxtxthroughput(-51) "1"
+set rxtxthroughput(-52) "1"
+set rxtxthroughput(-53) "1"
+set rxtxthroughput(-54) "1"
+set rxtxthroughput(-55) "1"
+set rxtxthroughput(-56) "1"
+set rxtxthroughput(-57) "1"
+set rxtxthroughput(-58) "1"
+set rxtxthroughput(-59) "1"
+set rxtxthroughput(-60) "1"
+set rxtxthroughput(-61) "1"
+set rxtxthroughput(-62) "1"
+set rxtxthroughput(-63) "1"
+set rxtxthroughput(-64) "1"
+set rxtxthroughput(-65) "1"
+set rxtxthroughput(-66) "1"
+set rxtxthroughput(-67) "1"
+set rxtxthroughput(-68) "1"
+set rxtxthroughput(-69) "1"
+set rxtxthroughput(-70) "1"
+set rxtxthroughput(-71) "1"
+set rxtxthroughput(-72) "1"
+set rxtxthroughput(-73) "1"
+set rxtxthroughput(-74) "1"
+set rxtxthroughput(-75) "1"
+set rxtxthroughput(-76) "1"
+set rxtxthroughput(-77) "1"
+set rxtxthroughput(-78) "1"
+set rxtxthroughput(-79) "1"
+set rxtxthroughput(-80) "1"
+set rxtxthroughput(-81) "1"
+set rxtxthroughput(-82) "1"
+set rxtxthroughput(-83) "1"
+set rxtxthroughput(-84) "1"
+set rxtxthroughput(-85) "1"
+set rxtxthroughput(-86) "1"
+set rxtxthroughput(-87) "1"
+set rxtxthroughput(-88) "1"
+set rxtxthroughput(-89) "1"
+set rxtxthroughput(-90) "1"
+set rxtxthroughput(-91) "1"
+set rxtxthroughput(-92) "1"
+set rxtxthroughput(-93) "1"
+set rxtxthroughput(-94) "1"
+set rxtxthroughput(-95) "1"
+
+#set filename $script
+set fileId [open $NewLogPath\/$csvFilename]
+regexp {.*_wlan(TX|RX|BI)_.*} $script match dir
+set fileInfo [gets $fileId line]
+while {$fileInfo > 0} {
+	set rssiMatch [regexp {Rssi:,(-?[0-9]+)} $line match rssi]
+		if {$rssiMatch == 1} {
+			set throughput($rssi) ""
+		}
+	if {$rssiMatch == 1} {
+		set nextgroup "0"
+		while {$nextgroup == 0 && $fileInfo >= 0 } {
+		set fileInfo [gets $fileId line]
+		set throughputMatch [regexp {.*\->.*\,(.*) Mbps,.*} $line match throughputMbps]
+			if {$throughputMatch == "1"} {
+				if {$throughput($rssi) == ""} {
+					set throughput($rssi) $throughputMbps
+				} else {
+					set throughput($rssi) "$throughput($rssi) $throughputMbps"
+				}
+			}
+			set nextgroup [regexp {.*Ports.*} $line match]
+		}
+	
+		
+
+		if {$dir == "BI"} {
+			set pfthroughput $bithroughput($rssi)
+			if {[lindex $throughput($rssi) 0] >= [lindex $bithroughput($rssi) 0] && [lindex $throughput($rssi) 1] >= [lindex $bithroughput($rssi) 1]} { 
+				set rvrResult "PASS"
+			} else {
+				set rvrResult "FAIL"
+			}
+		}
+		if {$dir == "TX" || $dir == "RX"} {
+			set pfthroughput $rxtxthroughput($rssi)
+			if {[lindex $throughput($rssi) 0] >= [lindex $rxtxthroughput($rssi) 0]} { 
+				set rvrResult "PASS"
+			} else {
+				set rvrResult "FAIL"
+			}
+		}
+		puts "throughput($rssi) = $throughput($rssi)"
+		UTF::Try "$TestType: $testName RvR Analysis WLAN RSSI: $rssi" {
+			if {$rvrResult == "PASS"} {
+				return "$throughput($rssi) Mbps\t\[$pfthroughput Mbps\]"
+			} else {
+				error "$throughput($rssi) Mbps\t\[$pfthroughput Mbps\]"
+			}
+		}
+		
+	}
+	set fileInfo [gets $fileId line]
+}
+close $fileId
+		}
+	}
+	
+	}
+	}
+
+	}
+}

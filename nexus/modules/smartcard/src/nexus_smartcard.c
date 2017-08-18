@@ -1,44 +1,41 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "nexus_smartcard_module.h"
 #include "bscd.h"
 #include "bscd_datatypes.h"
@@ -81,7 +78,7 @@ void NEXUS_SmartcardModule_GetDefaultSettings(NEXUS_SmartcardModuleSettings *pSe
     BDBG_ASSERT(pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
 }
 
 void NEXUS_SmartcardModule_GetDefaultInternalSettings(NEXUS_SmartcardModuleInternalSettings *pSettings)
@@ -271,15 +268,29 @@ NEXUS_Error NEXUS_Smartcard_SetSettings(NEXUS_SmartcardHandle smartcard, const N
     pChSettings->srcClkFreqInHz = pSettings->sourceClockFreq;
     pChSettings->ATRRecvTimeInteger.ulValue = pSettings->atrReceiveTime.value;
     pChSettings->ATRRecvTimeInteger.unit = pSettings->atrReceiveTime.unit;
-    pChSettings->bConnectDirectly = pSettings->connectDirectly;
-    if(pSettings->connectDirectly){
+    if(!pSettings->connectDirectly){
+        if(pSettings->connection == NEXUS_SmartcardConnection_eDirect){
+            smartcard->channelSettings.bConnectDirectly = true;
+        }
+        else if((pSettings->connection == NEXUS_SmartcardConnection_eTda8034) || (pSettings->connection == NEXUS_SmartcardConnection_eTda8024)){
+            smartcard->channelSettings.bConnectDirectly = false;
+            if(pSettings->connection == NEXUS_SmartcardConnection_eTda8024){
+                smartcard->channelSettings.eResetCycles = BSCD_MAX_RESET_IN_CLK_CYCLES;
+            }
+            else{
+                smartcard->channelSettings.eResetCycles = BSCD_TDA803X_MAX_RESET_IN_CLK_CYCLES;
+            }
+        }
+        else{
+            BDBG_WRN(("NEXUS_SmartcardConnection_eInternal is not supported"));
+            return NEXUS_NOT_SUPPORTED;
+        }
+    }
+    else {
         BDBG_WRN(("Use of connectDirectly should be deprecated. Use NEXUS_SmartcardConnection enum in NEXUS_SmartcardSettings instead."));
-        smartcard->channelSettings.bIsAnalogIntf = false;
+        smartcard->channelSettings.bConnectDirectly = true;
     }
-    if(pSettings->connection == NEXUS_SmartcardConnection_eInternal){
-        smartcard->channelSettings.bIsAnalogIntf = true;
-    }
-    smartcard->channelSettings.bConnectDirectly = pSettings->connectDirectly;
+    smartcard->channelSettings.bConnectDirectly = pChSettings->bConnectDirectly;
     smartcard->channelSettings.bDirectVccInverted = pSettings->directPowerSupply.vccInverted;
     smartcard->channelSettings.bDirectRstInverted = pSettings->directPowerSupply.resetInverted;
     switch (pSettings->resetCycles)
@@ -380,28 +391,39 @@ static NEXUS_Error NEXUS_Smartcard_P_Open(NEXUS_SmartcardHandle smartcard, unsig
     smartcard->channelSettings.srcClkFreqInHz = pSettings->sourceClockFreq;
     smartcard->channelSettings.ATRRecvTimeInteger.ulValue = pSettings->atrReceiveTime.value;
     smartcard->channelSettings.ATRRecvTimeInteger.unit = pSettings->atrReceiveTime.unit;
-    smartcard->channelSettings.bConnectDirectly = pSettings->connectDirectly;
     /*
             To keep backward compatibility between connectDirectly and the NEXUS_SmartcardConnection enum connection, this is the logic being used:
 
             connectDirectly     connection             - Action
             ----------------------------------------------------------------
-            true                    0           - use old api, print WRN
-
-            true                    non-zero        - use new api, print WRN
+            true                    0/non-zero      - use old api, print WRN
 
             false (default)         0 (default)     - default, use new api, no WRN
 
             false                   non-zero        - use new api
 
     */
-
-    if(pSettings->connectDirectly){
-        BDBG_WRN(("Use of connectDirectly should be deprecated. Use NEXUS_SmartcardConnection enum in NEXUS_SmartcardSettings instead."));
-        smartcard->channelSettings.bIsAnalogIntf = false;
+    if(!pSettings->connectDirectly){
+        if(pSettings->connection == NEXUS_SmartcardConnection_eDirect){
+            smartcard->channelSettings.bConnectDirectly = true;
+        }
+        else if((pSettings->connection == NEXUS_SmartcardConnection_eTda8034) || (pSettings->connection == NEXUS_SmartcardConnection_eTda8024)){
+            smartcard->channelSettings.bConnectDirectly = false;
+            if(pSettings->connection == NEXUS_SmartcardConnection_eTda8024){
+                smartcard->channelSettings.eResetCycles = BSCD_MAX_RESET_IN_CLK_CYCLES;
+            }
+            else{
+                smartcard->channelSettings.eResetCycles = BSCD_TDA803X_MAX_RESET_IN_CLK_CYCLES;
+            }
+        }
+        else{
+            BDBG_WRN(("NEXUS_SmartcardConnection_eInternal is not supported"));
+            return NEXUS_NOT_SUPPORTED;
+        }
     }
-    if(pSettings->connection == NEXUS_SmartcardConnection_eInternal){
-        smartcard->channelSettings.bIsAnalogIntf = true;
+    else {
+        BDBG_WRN(("Use of connectDirectly should be deprecated. Use NEXUS_SmartcardConnection enum in NEXUS_SmartcardSettings instead."));
+        smartcard->channelSettings.bConnectDirectly = true;
     }
     smartcard->channelSettings.bConnectDirectly = pSettings->connectDirectly;
     smartcard->channelSettings.bDirectVccInverted = pSettings->directPowerSupply.vccInverted;

@@ -1,0 +1,49 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# UTF test script for checking connectivity of a set-top-box after
+# rebooting and power cycling
+#
+# $Id: 046c2e95f26c4d54b33166e9375b66af09e2cc0b $
+#
+
+package require UTF
+
+UTF::Test stb_pingcheck {DUT args} {
+    UTF::Getopts {
+	{loop.arg "1000" "Total loops"}
+	{count.arg "120" "Ping count"}
+	{noreboot "Skip reboot test"}
+	{nopower "Skip power cycle test"}
+    }
+
+    set ip [$DUT cget -lan_ip]
+    $DUT :
+
+    for {set i 0} {$i < $(loop)} {incr i} {
+	if {!$(noreboot)} {
+	    UTF::Try "reboot" {
+		$DUT reboot
+		$DUT wait_for_boot 10
+		$DUT :
+		set ret [localhost rexec ping -c $(count) $ip]
+		if {![regexp { (\d+)% packet loss} $ret ret l] || $l ne "0"} {
+		    throw FAIL $ret
+		}
+		return $ret
+	    }
+	}
+	if {!$(nopower)} {
+	    UTF::Try "power cycle" {
+		$DUT power cycle
+		$DUT wait_for_boot 10
+		$DUT :
+		set ret [localhost rexec ping -c $(count) $ip]
+		if {![regexp { (\d+)% packet loss} $ret ret l] || $l ne "0"} {
+		    throw FAIL "$l% packet loss"
+		}
+		return $ret
+	    }
+	}
+    }
+}

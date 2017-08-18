@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 
@@ -72,7 +71,7 @@ BSAGE_P_TimerInit(
     BTMR_TimerSettings timerSettings = { BTMR_Type_eSharedFreeRun, NULL, NULL, 0, false };
     rc = BTMR_CreateTimer(hSAGE->hTmr, &hSAGE->hTimer, &timerSettings);
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BTMR_CreateTimer failure %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - BTMR_CreateTimer failure %d", BSTD_FUNCTION, rc));
     }
     return rc;
 }
@@ -130,11 +129,11 @@ BSAGE_Close(
 
     if(hSAGE_Global != hSAGE)
     {
-        BDBG_ERR(("%s: invalid SAGE handle %p, hSAGE_Global %p",__FUNCTION__,hSAGE,hSAGE_Global));
+        BDBG_ERR(("%s: invalid SAGE handle %p, hSAGE_Global %p",BSTD_FUNCTION,hSAGE,hSAGE_Global));
         hSAGE = hSAGE_Global;
     }
 
-    BDBG_MSG(("%s remove hSAGE=%p", __FUNCTION__, (void *)hSAGE));
+    BDBG_MSG(("%s remove hSAGE=%p", BSTD_FUNCTION, (void *)hSAGE));
 
     for (;;)
     {
@@ -170,44 +169,44 @@ BSAGE_Open(
 
     if (!pSAGEHandle ) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid input parameter NULL handle pointer",__FUNCTION__));
+        BDBG_ERR(("%s: invalid input parameter NULL handle pointer",BSTD_FUNCTION));
         goto end;
     }
 
     if(hSAGE_Global != NULL)
     {
-        BDBG_ERR(("%s: BSAGE already openned, return handle",__FUNCTION__));
+        BDBG_ERR(("%s: BSAGE already openned, return handle",BSTD_FUNCTION));
         instance = hSAGE_Global;
         *pSAGEHandle = hSAGE_Global;
     }
 
     if (!settings) {
-        BDBG_ERR(("%s: NULL settings, return NULL SAGElib handle",__FUNCTION__));
+        BDBG_ERR(("%s: NULL settings, return NULL SAGElib handle",BSTD_FUNCTION));
         *pSAGEHandle = hSAGE_Global;
         goto end;
     }
 
     if (!settings->hReg | !settings->hInt | !settings->hTmr) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid core handle", __FUNCTION__));
+        BDBG_ERR(("%s: invalid core handle", BSTD_FUNCTION));
         goto end;
     }
 
     if (!settings->i_memory_map.offset_to_addr | !settings->i_memory_map.addr_to_offset) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid memory map interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid memory map interface", BSTD_FUNCTION));
         goto end;
     }
 
     if (!settings->i_memory_sync.flush | !settings->i_memory_sync.invalidate) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid memory sync isrsafe interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid memory sync isrsafe interface", BSTD_FUNCTION));
         goto end;
     }
 
     if (!settings->i_sync_hsm.lock | !settings->i_sync_hsm.unlock) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid sync HSM interface", __FUNCTION__));
+        BDBG_ERR(("%s: invalid sync HSM interface", BSTD_FUNCTION));
         goto end;
     }
 
@@ -215,7 +214,7 @@ BSAGE_Open(
     instance = BKNI_Malloc(sizeof(*instance));
     if (!instance) {
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
-        BDBG_ERR(("%s: cannot allocate instance context", __FUNCTION__));
+        BDBG_ERR(("%s: cannot allocate instance context", BSTD_FUNCTION));
         goto end;
     }
     BKNI_Memset(instance, 0, sizeof(*instance));
@@ -243,7 +242,7 @@ BSAGE_Open(
     rc = BSAGE_P_Management_Initialize(instance);
     if (rc != BERR_SUCCESS) { goto end; }
 
-    BDBG_MSG(("%s add hSAGE=%p", __FUNCTION__, (void *)instance));
+    BDBG_MSG(("%s add hSAGE=%p", BSTD_FUNCTION, (void *)instance));
     *pSAGEHandle = instance;
     hSAGE_Global = instance;
 
@@ -269,13 +268,13 @@ BSAGE_RegisterCallback(
 
     if (!callback) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_MSG(("%s: event %d,NULL callback function", __FUNCTION__,event));
+        BDBG_MSG(("%s: event %d,NULL callback function", BSTD_FUNCTION,event));
         goto end;
     }
 
     if (remote == NULL && event != BSAGE_Event_watchdog) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s:  event %d,NULL remote handle", __FUNCTION__,event));
+        BDBG_ERR(("%s:  event %d,NULL remote handle", BSTD_FUNCTION,event));
         goto end;
     }
 
@@ -304,7 +303,7 @@ BSAGE_RegisterCallback(
         break;
     default:
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid event %d", __FUNCTION__,event));
+        BDBG_ERR(("%s: invalid event %d", BSTD_FUNCTION,event));
         goto end;
     }
 end:
@@ -323,7 +322,7 @@ BSAGE_UnRegisterCallback(
 
     if (remote == NULL && event != BSAGE_Event_watchdog) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s:  event %d,NULL remote handle", __FUNCTION__,event));
+        BDBG_ERR(("%s:  event %d,NULL remote handle", BSTD_FUNCTION,event));
         goto end;
     }
 
@@ -346,7 +345,7 @@ BSAGE_UnRegisterCallback(
         break;
     default:
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid event %d", __FUNCTION__,event));
+        BDBG_ERR(("%s: invalid event %d", BSTD_FUNCTION,event));
         goto end;
     }
 end:
@@ -366,7 +365,7 @@ BSAGE_GetStatus(
 
     if (!hSAGE) {
         rc = BERR_NOT_INITIALIZED;
-        BDBG_ERR(("%s: SAGE is not open yet, hSAGE is NULL", __FUNCTION__));
+        BDBG_ERR(("%s: SAGE is not open yet, hSAGE is NULL", BSTD_FUNCTION));
         goto err;
     }
 

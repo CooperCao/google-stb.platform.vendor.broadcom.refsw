@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -559,6 +559,7 @@ typedef struct BIP_PlayerTtsParams
     BIP_CallbackDesc    maxBufDepthViolationCallback;   /*!< Callback to indicate maximum buffer depth violation. */
     unsigned            pacingMaxError;                 /*!< Set the timestamp error bound, as used by the playback pacing logic */
     unsigned            maxClockMismatch;               /*!< Specify the maximum clock mismatch (in ppm) between server/encoder and STB */
+    bool                bufDepthInMsec;                 /*!< If true, buffer depth is calculated in msec (instead of bytes) using the TTS(if present) or PCR. */
 } BIP_PlayerTtsParams;
 
 typedef struct BIP_PlayerSettings
@@ -675,11 +676,12 @@ BIP_PlayerSettings
         (pSettings)->trackGroupId = UINT_MAX;\
         (pSettings)->maxStreamBitRate = UINT_MAX;\
         (pSettings)->minStreamBitRate = 0;\
-        (pSettings)->ttsParams.pacingMaxError     = 2636;       \
-        (pSettings)->ttsParams.initBufDepth       = 625000;     \
-        (pSettings)->ttsParams.minBufDepth        = 125000;     \
-        (pSettings)->ttsParams.maxBufDepth        = 2250000;        \
-        (pSettings)->ttsParams.maxClockMismatch   = 60;     \
+        (pSettings)->ttsParams.bufDepthInMsec     = false;\
+        (pSettings)->ttsParams.pacingMaxError     = 2636;\
+        (pSettings)->ttsParams.initBufDepth       = 625000;\
+        (pSettings)->ttsParams.minBufDepth        = 125000;\
+        (pSettings)->ttsParams.maxBufDepth        = 2250000;\
+        (pSettings)->ttsParams.maxClockMismatch   = 60;\
         BIP_SETTINGS_GET_DEFAULT_END
 
 /**

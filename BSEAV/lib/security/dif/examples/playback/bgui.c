@@ -49,25 +49,37 @@
 
 BDBG_MODULE(bgui);
 
+static bool s_gfxClosed = false;
+static bool s_surfaceDestroyed = false;
+
 struct bgui
 {
     struct bgui_settings settings;
 #if NXCLIENT_SUPPORT
     NxClient_AllocResults allocResults;
     NEXUS_SurfaceClientHandle surfaceClient;
-    BKNI_EventHandle windowMovedEvent;
+    BKNI_EventHandle displayedEvent, windowMovedEvent;
 #endif
     unsigned currentSurface;
     NEXUS_Graphics2DHandle gfx;
     NEXUS_SurfaceHandle surface[2];
-    BKNI_EventHandle displayedEvent, checkpointEvent;
+    BKNI_EventHandle checkpointEvent;
 };
+
+static void complete1(void *context, int param)
+{
+    BSTD_UNUSED(param);
+    BDBG_LOG(("%s: context=%p gfxClosed=%d", __FUNCTION__, context, s_gfxClosed));
+    if (!s_gfxClosed)
+        BKNI_SetEvent((BKNI_EventHandle)context);
+}
 
 static void complete2(void *context, int param)
 {
     BSTD_UNUSED(param);
-    BDBG_LOG(("%s: context=%p", __FUNCTION__, context));
-    BKNI_SetEvent((BKNI_EventHandle)context);
+    BDBG_LOG(("%s: context=%p surfaceReleased=%d", __FUNCTION__, context, s_surfaceDestroyed));
+    if (!s_surfaceDestroyed)
+        BKNI_SetEvent((BKNI_EventHandle)context);
 }
 
 void bgui_get_default_settings(struct bgui_settings *psettings)
@@ -100,10 +112,11 @@ bgui_t bgui_create(const struct bgui_settings *psettings)
 
     rc = BKNI_CreateEvent(&gui->checkpointEvent);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
+
+#if NXCLIENT_SUPPORT
     rc = BKNI_CreateEvent(&gui->displayedEvent);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
-#if NXCLIENT_SUPPORT
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.surfaceClient = 1; /* surface client required for video windows */
     rc = NxClient_Alloc(&allocSettings, &gui->allocResults);
@@ -124,6 +137,7 @@ bgui_t bgui_create(const struct bgui_settings *psettings)
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 #endif
 
+    s_surfaceDestroyed = false;
     NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
     surfaceCreateSettings.width = gui->settings.width;
     surfaceCreateSettings.height = gui->settings.height;
@@ -137,9 +151,10 @@ bgui_t bgui_create(const struct bgui_settings *psettings)
     if (!gui->surface[1]) {BERR_TRACE(-1); goto error;}
 #endif
 
+    s_gfxClosed = false;
     gui->gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);
     NEXUS_Graphics2D_GetSettings(gui->gfx, &gfxSettings);
-    gfxSettings.checkpointCallback.callback = complete2;
+    gfxSettings.checkpointCallback.callback = complete1;
     gfxSettings.checkpointCallback.context = gui->checkpointEvent;
     rc = NEXUS_Graphics2D_SetSettings(gui->gfx, &gfxSettings);
     if (rc) {BERR_TRACE(rc); goto error;}
@@ -154,9 +169,11 @@ error:
 void bgui_destroy(bgui_t gui)
 {
     unsigned i;
+    s_gfxClosed = true;
     if (gui->gfx) {
         NEXUS_Graphics2D_Close(gui->gfx);
     }
+    s_surfaceDestroyed = true;
     for (i=0;i<2;i++) {
         if (gui->surface[i]) NEXUS_Surface_Destroy(gui->surface[i]);
     }
@@ -171,10 +188,10 @@ void bgui_destroy(bgui_t gui)
     if (gui->checkpointEvent) {
         BKNI_DestroyEvent(gui->checkpointEvent);
     }
+#if NXCLIENT_SUPPORT
     if (gui->displayedEvent) {
         BKNI_DestroyEvent(gui->displayedEvent);
     }
-#if NXCLIENT_SUPPORT
     if (gui->windowMovedEvent) {
         BKNI_DestroyEvent(gui->windowMovedEvent);
     }

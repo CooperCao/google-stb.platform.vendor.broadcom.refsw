@@ -151,19 +151,15 @@ static void nullify(GLXX_TEXTURE_T *texture)
    unretain_current(texture);
 
    texture->explicit_mipmaps = 0;
+   texture->binding_type = TEXTURE_BLOB_NULL;
 
    for (i = 0; i < GLXX_TEXTURE_POOL_SIZE; i++)
    {
       texture->blob_pool[i].secure = false;
       MEM_ASSIGN(texture->blob_pool[i].mh_storage, MEM_INVALID_HANDLE);
    }
-
    MEM_ASSIGN(texture->mh_depaletted_blob, MEM_INVALID_HANDLE);
-
-   texture->binding_type = TEXTURE_BLOB_NULL;
-
    MEM_ASSIGN(texture->mh_ms_image, MEM_INVALID_HANDLE);
-
    MEM_ASSIGN(texture->external_image, MEM_INVALID_HANDLE);
 }
 
@@ -742,7 +738,7 @@ bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
    }
 
    result = update_mipmaps_and_blobs(texture, level, buffer);
-   //glxx_texture_check_complete(texture, false);
+   //glxx_texture_check_complete(texture);
    return result;
 }
 
@@ -1275,7 +1271,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_new_blob(GLXX_TEXTURE_T *text
    return complete ? COMPLETE : INCOMPLETE;
 }
 
-static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *texture)
+static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *texture, bool base_complete)
 {
    bool complete = true;
    KHRN_IMAGE_WRAP_T src_wrap, dst_wrap;
@@ -1285,8 +1281,9 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *
 
    buffer_minmax(texture, &min_buffer, &max_buffer);
 
-   vcos_assert(texture->blob_mip_count >= glxx_texture_get_mipmap_count(texture));
-   mipmap_count = glxx_texture_get_mipmap_count(texture);
+   mipmap_count = base_complete ? 1 : glxx_texture_get_mipmap_count(texture);
+   vcos_assert(texture->blob_mip_count >= mipmap_count);
+
    for (buffer = min_buffer; buffer <= max_buffer; buffer++) {
       for (level = 0; level < mipmap_count; level++) {
          if (!(texture->blob_valid[buffer] & 1<<level)) {
@@ -1406,7 +1403,7 @@ bool glxx_texture_is_cube_complete(GLXX_TEXTURE_T *texture)
 // to call khrn_sharebuffer_flush_buffer. This means you can install a framebuffer
 // before calling this function and it will still be there at the end.
 
-GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete(GLXX_TEXTURE_T *texture)
+GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete_levels(GLXX_TEXTURE_T *texture, bool base_complete)
 {
    //TODO: internal formats have same colour components but different bit depths
    uint32_t min_buffer, max_buffer;
@@ -1416,14 +1413,21 @@ GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete(GLXX_TEXTURE_T *texture)
 
    if (texture->binding_type == TEXTURE_STATE_BOUND_TEXIMAGE || texture->binding_type == TEXTURE_STATE_BOUND_EGLIMAGE)
       result = COMPLETE;   /* Assume that bound textures are always complete */
-   else if (texture->binding_type == TEXTURE_BLOB_NULL || !(texture->blob_valid[min_buffer] & 1<<0) || texture->blob_mip_count < glxx_texture_get_mipmap_count(texture))
+   else if (texture->binding_type == TEXTURE_BLOB_NULL ||
+      !(texture->blob_valid[min_buffer] & (1 << 0)) ||
+      texture->blob_mip_count < glxx_texture_get_mipmap_count(texture))
       result = copy_mipmaps_to_new_blob(texture);
    else if (texture->binding_type == TEXTURE_STATE_UNDER_CONSTRUCTION)
-      result = copy_mipmaps_to_current_blob(texture);
-   else if (texture->blob_valid[min_buffer] & 1<<0)
+      result = copy_mipmaps_to_current_blob(texture, base_complete);
+   else if (texture->blob_valid[min_buffer] & (1 << 0))
       result = COMPLETE;   /* texture already complete and blobbed, and has all the mipmaps we need */
 
    return result;
+}
+
+GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete(GLXX_TEXTURE_T *texture)
+{
+   return glxx_texture_check_complete_levels(texture, false);
 }
 
 void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HANDLE_T *images, uint32_t binding_type, MEM_HANDLE_T bound_data, int mipmap_level)
@@ -1612,10 +1616,9 @@ uint32_t glxx_texture_get_mipmap_count(GLXX_TEXTURE_T *texture)
    {
       int w = texture->width;
       int h = texture->height;
-      uint32_t result;
 
       vcos_assert(w > 0 && h > 0);
-      result = _msb(_max(w, h)) + 1;
+      uint32_t result = _msb(_max(w, h)) + 1;
       vcos_assert(result >= 1 && result <= LOG2_MAX_TEXTURE_SIZE + 1);
       return result;
    }
@@ -1638,8 +1641,8 @@ static uint32_t texture_get_required_blob_size(GLXX_TEXTURE_T *texture, bool dep
       break;
    case GL_TEXTURE_CUBE_MAP:
       res = glxx_texture_get_mipmap_offset(texture,
-               TEXTURE_BUFFER_NEGATIVE_Z+1,
-               glxx_texture_get_mipmap_count(texture)-1, depaletted);
+         TEXTURE_BUFFER_NEGATIVE_Z + 1,
+         glxx_texture_get_mipmap_count(texture) - 1, depaletted);
       break;
    default:
       break;
@@ -2090,4 +2093,21 @@ void glxx_texture_set_crop_rect(GLXX_TEXTURE_T *texture, const GLint * params)
    texture->crop_rect.Vcr=params[1];
    texture->crop_rect.Wcr=params[2];
    texture->crop_rect.Hcr=params[3];
+}
+
+bool glxx_texture_has_images_outside_range(const GLXX_TEXTURE_T *texture, unsigned num_levels)
+{
+   assert(num_levels > 0);
+
+   uint32_t min_buffer, max_buffer;
+   buffer_minmax(texture, &min_buffer, &max_buffer);
+
+   unsigned mask = ~((1 << num_levels) - 1);
+
+   for (uint32_t buffer = min_buffer; buffer <= max_buffer; buffer++) {
+      if (texture->blob_valid[buffer] & mask)
+         return true;
+   }
+
+   return false;
 }

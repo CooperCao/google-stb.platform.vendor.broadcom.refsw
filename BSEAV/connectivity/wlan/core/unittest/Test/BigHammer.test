@@ -1,0 +1,146 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for wl reinit (Big Hammer)
+#
+
+# This reset is used by external builds to recover from PSM Watchdogs,
+# etc, so we need to be sure it gets tested, even though internal
+# builds would normally assert first.
+
+# $Id: 10c834c7f645f6c028969484af0176d5e304e1af $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::BigHammer 2.0
+
+UTF::Test BigHammer {AP STA args} {
+
+    # Pull out ap option since we need it before we can fetch the
+    # rest of the arguments.
+    if {[lsearch -exact $args -ap] >= 0} {
+	set DUT $AP
+    } else {
+	set DUT $STA
+    }
+
+    if {[$DUT cget -noaes]} {
+	set security "open"
+    } else {
+	set security "aespsk2"
+    }
+
+    UTF::Getopts [subst {
+	{msg.arg "BigHammer" "Message"}
+	{ap "Hammer the AP instead of the STA"}
+	{chanspec.arg "" "Chanspec"}
+	{security.arg "$security" "Security"}
+	{nodoze "Skip dozing test"}
+	{notraffic "Skip traffic test"}
+    }]
+
+    if {[$DUT hostis Wiced]} {
+	# Wiced can't run parallel tasks
+	set (notraffic) 1
+    }
+
+    UTF::Try "$DUT: $(msg)" {
+	set notok 1
+	ConnectAPSTA $AP $STA -security $(security) -chanspec $(chanspec)
+	set notok 0
+	if {!$(nodoze) && !$(ap) && ![$STA cget -nopm1] && ![$STA cget -apmode]} {
+	    UTF::Try "$STA: $(msg): Reinit while dozing" {
+		# Select sleep mode
+		set oldPM [$STA wl PM]
+		set oldbcn_timeout [$STA wl bcn_timeout]
+
+		# Only applies to PM modes.
+		# PM=1 is more reliable at producing failures.  If
+		# PM=2 is required, you may need to cut down the
+		# sleep time:
+		# $STA wl pm2_sleep_ret 20
+		# May also need to wait before the reinit.
+
+		$STA wl PM 1
+
+		# Set a short timeout
+		$STA wl bcn_timeout 2
+
+		# Issue reinit
+		$STA expect_reinit 1
+		$STA wl reinit
+
+		# Wait for beacon loss.
+		UTF::Sleep 6
+
+
+		# Verify link
+		if {[$STA wl bssid] eq "00:00:00:00:00:00"} {
+		    error "Link lost"
+		}
+		UTF::Message INFO [$STA cget -name] \
+		    "BSSID is ok - ping check to make sure"
+		$STA ping $AP -c 20
+
+	    } finally {
+		# reset anything we changed
+		catch {$STA expect_reinit 0}
+		catch {$STA wl bcn_timeout $oldbcn_timeout}
+		catch {$STA wl PM $oldPM}
+	    }
+
+	}
+
+	if {!$(notraffic)} {
+	    UTF::Try "$DUT: $(msg): Reinit during traffic" {
+
+		# Reassociate if neccesary
+		if {[catch {$STA ping $AP}]} {
+		    ConnectAPSTA $AP $STA
+		}
+
+		# Fire off reinit while traffic is flowing:
+		$DUT expect_reinit 1
+		UTF::Multiperf [list $AP $STA $STA $AP] -i 2 -t 10 -nolanx \
+		    -callback {UTF::Sleep 5;$DUT wl reinit}
+		$STA wl bssid
+		$STA ping $AP -c 20
+	    } finally {
+		catch {$DUT expect_reinit 0}
+	    }
+	}
+
+	set notok 1
+	UTF::Try "$DUT: $(msg): Verify DUT is ok after down/up" {
+	    # The reinit might have broken some state that won't show
+	    # up until after a down/up.
+	    if {[$DUT hostis Router]} {
+		$DUT restart
+	    } else {
+		$DUT wl down
+		$DUT wl up
+		if {[$DUT cget -apmode]} {
+		    # make sure MPC didn't leave AP down
+		    $DUT wl bss up
+		}
+	    }
+	    ConnectAPSTA $AP $STA
+	    set notok 0
+	    return
+	}
+    }
+    if {$notok} {
+	# If STA didn't recover after up down, then we'd better
+	# reload.
+	UTF::Try "$DUT: $(msg): Attempting recovery by reloading driver" {
+	    $DUT reload
+	    # Try connect again - also fixes up SoftAP
+	    $DUT configure -security ""
+	    ConnectAPSTA $AP $STA -security $(security)
+	}
+    }
+}

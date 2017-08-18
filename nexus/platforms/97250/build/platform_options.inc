@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2013-2014 Broadcom Corporation
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 #
@@ -57,7 +49,7 @@
 BDSP_ENCODER_SUPPORT ?= y
 BDSP_ENCODER_ACCELERATOR_SUPPORT ?= y
 
-#nexus HDMI_INPUT is only supported in 72501 board
+# 7250 B0 RDB does not have HDMI RX registers
 NEXUS_HDMI_INPUT_SUPPORT ?= n
 
 ifeq ($(NEXUS_USE_7250_SV),y)
@@ -80,11 +72,11 @@ NEXUS_PLATFORM_DEFINES += NEXUS_USE_7250_CD2=1
 endif
 ifeq ($(NEXUS_USE_72501_SFF),y)
 NEXUS_PLATFORM_DEFINES += NEXUS_USE_72501_SFF=1
-NEXUS_HDMI_INPUT_SUPPORT :=y
+#NEXUS_HDMI_INPUT_SUPPORT :=y
 endif
 ifeq ($(NEXUS_USE_72501_SAT),y)
 NEXUS_PLATFORM_DEFINES += NEXUS_USE_72501_SAT=1
-NEXUS_HDMI_INPUT_SUPPORT :=y
+#NEXUS_HDMI_INPUT_SUPPORT :=y
 endif
 
 

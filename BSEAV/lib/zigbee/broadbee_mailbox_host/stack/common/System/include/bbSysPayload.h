@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/common/System/include/bbSysPayload.h $
-*
-* DESCRIPTION:
-*   System Payloads interface.
-*
-* $Revision: 3357 $
-* $Date: 2014-08-21 05:04:58Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      System Payloads interface.
+ *
+*******************************************************************************/
 
 #ifndef _SYS_PAYLOAD_H
 #define _SYS_PAYLOAD_H
@@ -72,7 +64,7 @@ extern "C" {
 /**//**
  * \brief Maximum allowed (supported) length of dynamic data.
  */
-#define SYS_DYNAMIC_DATA_LENGTH_MAX  UINT8_MAX
+#define SYS_DYNAMIC_DATA_LENGTH_MAX  UINT16_MAX
 
 
 /**//**
@@ -312,7 +304,7 @@ extern uint8_t _PRJ_DCCM_SIZE_[];
  *  corresponding field of ZCL Frame Payload.
  * \param[in]       fieldSize           Size of the deserialized field according to the
  *  specification.
- * \param[in/out]   remainder           Reference to counter of reminded octets in the ZCL
+ * \param[in/out]   remainder           Reference to counter of reminded octets in the
  *  Frame Payload to be deserialized.
  * \param[in]       failureLabel        Label of branch with the code of the failure
  *  processor.
@@ -445,8 +437,8 @@ extern uint8_t _PRJ_DCCM_SIZE_[];
 
 /**//**
  * \brief   Macro performing validation and serialization of a single field.
- * \param[out]      srcField            Reference to variable which to serialize into the
- *  corresponding field of ZCL Frame Payload.
+ * \param[in]       srcField            Reference to variable which to serialize into the
+ *  corresponding field of Frame Payload.
  * \param[in]       fieldSize           Size of the serialized field according to the
  *  specification.
  */
@@ -551,6 +543,51 @@ extern uint8_t _PRJ_DCCM_SIZE_[];
         SYS_CopyToPayload((payload), (offset), serializationBuffer, serializationBufferOffset); \
     }
 
+#if defined(_MEMORY_MANAGER_)
+/**//**
+ * \brief   Structure for Fragmentation Descriptor.
+ * \details This data structure holds the following:
+ *  - block Ids of two inter-blocks preallocated for needs of the fragment extraction
+ *      operation.
+ *  - information on how the original payload was processed during a fragment extraction,
+ *      and how it must be restored while the fragment is returned back.
+ *
+ * \note    A new fragmentation descriptor must be Constructed with
+ *  \c SYS_FragDescrConstruct() function. This function may return FALSE if there was an
+ *  error during descriptor construction. After the whole session is completed, the
+ *  redundand fragmentation descriptor must be destructed with the
+ *  \c SYS_FragDescrDestruct() function.
+ * \note    Only one fragment may be extracted from a payload at a time. Prior to extract
+ *  a next fragment or destruct the fragmentation descriptor, the extracted fragment must
+ *  be returned back into the original payload.
+ * \details The \c interBlock array holds Ids of two dynamic memory blocks that may be
+ *  utilized during a fragment extraction as inter-blocks for splitting the payload. These
+ *  blocks are allocated initially during construction of the fragmentation descriptor and
+ *  freed during its destruction. There are two blocks because, in general, to extract a
+ *  fragment the payload must be split in two points - the fragment start, and the
+ *  fragment end. If during a call (the first or the second) to the Split function the
+ *  corresponding inter-block was actually utilized, the block Id stored in this
+ *  descriptor will be reassigned with zero (the Null Block Id); otherwise it will keep
+ *  its initial value. Later, during returning the fragment into the payload, the Append
+ *  function (which is also called twice, in general) checks the corresponding block Id
+ *  stored value, if it equals zero or nonzero - it regulates how the fragment is joined
+ *  with the payload. If after a call to Append function a block escapes, it is saved into
+ *  the corresponding block Id element (a block will escape if and only if the inter-block
+ *  was actually utilized during the complementary Split operation).
+ * \details For the extended debug the fragmentation descriptor keeps also parameters of
+ *  the last fragment extraction operation performed: chunk Id of the fragmented payload,
+ *  chunk Id of the extracted fragment, and offset of the extracted fragment.
+ */
+typedef struct _SYS_FragDescr_t {
+    MM_ChunkId_t  interBlock[2];    /*!< Array of inter-blocks utilized during fragment extraction. */
+# ifdef _DEBUG_PAYLOAD_FRAG_
+    MM_ChunkId_t  payload;          /*!< Keeps the chunk Id of the payload that was fragmented. */
+    MM_ChunkId_t  fragment;         /*!< Keeps the chunk Id of the fragment that was extracted. */
+    MM_Size_t     offset;           /*!< Keeps the offset of the extracted fragment. */
+# endif
+} SYS_FragDescr_t;
+#endif /* _MEMORY_MANAGER_ */
+
 /************************* FUNCTIONS PROTOTYPES *****************************************/
 #ifdef SUBSTITUTE_PAYLOAD_FUNCS
 typedef struct __MY_DebugType_t
@@ -573,6 +610,7 @@ ___SYS_MemAlloc((payload), (size)) ? ___AddMyDebugData((payload), __FILE__, __LI
     ___RemoveMyDebugData((payload)); \
     ___SYS_FreePayload((payload)); \
 }
+#if defined(_MEMORY_MANAGER_)
 #define SYS_AppendPayload(dst, src) \
 { \
     ___RemoveMyDebugData((src)); \
@@ -588,11 +626,13 @@ ___SYS_MemAlloc((payload), (size)) ? ___AddMyDebugData((payload), __FILE__, __LI
 ___SYS_DuplicatePayload((dst), (src)) ? ___AddMyDebugData((dst), __FILE__, __LINE__) : false
 #define SYS_SplitPayload(tail, head, offset) \
 ___SYS_SplitPayload((tail), (head), (offset)) ? ___AddMyDebugData((tail), __FILE__, __LINE__) : false
+#endif /* defined(_MEMORY_MANAGER_) */
 #else /* RF4CE_CONTROLLER */
 #define SYS_MemAlloc(payload, size) \
 ___SYS_MemAlloc((payload), (size))
 #define SYS_FreePayload(payload) \
 ___SYS_FreePayload((payload))
+#if defined(_MEMORY_MANAGER_)
 #define SYS_AppendPayload(dst, src) \
 ___SYS_AppendPayload((dst), (src))
 #define SYS_FreePayloadHead(payload, count) \
@@ -601,6 +641,7 @@ ___SYS_FreePayloadHead((payload), (count))
 ___SYS_DuplicatePayload((dst), (src))
 #define SYS_SplitPayload(tail, head, offset) \
 ___SYS_SplitPayload((tail), (head), (offset))
+#endif /* defined(_MEMORY_MANAGER_) */
 #endif /* RF4CE_CONTROLLER */
 
 /*************************************************************************************//**
@@ -798,6 +839,7 @@ SYS_PUBLIC void SYS_CopyPayloadToPayload(SYS_DataPointer_t       *dst,
                                          SYS_DataLength_t         count);
 
 
+#if defined(_MEMORY_MANAGER_)
 /*************************************************************************************//**
   \brief Appends the first Payload with data from the second Payload.
   \param    dst     Pointer to the destination (the first) dynamic Payload descriptor.
@@ -859,6 +901,144 @@ SYS_PUBLIC bool ___SYS_SplitPayload(SYS_DataPointer_t *tail,
 
 
 /*************************************************************************************//**
+  \brief Splits the linked chain of memory blocks at the given block id
+
+  \param[in] pChain - pointer to the descriptor of the linked chain to be split.
+  \param[in] pTrailer - pointer to the descriptor of the part to be detached.
+*****************************************************************************************/
+SYS_PUBLIC void SYS_SplitLinked(SYS_DataPointer_t *pChain, SYS_DataPointer_t *pTrailer);
+#endif /* defined(_MEMORY_MANAGER_) */
+
+
+/*************************************************************************************//**
+  \brief    Resizes the payload size when it does not require additional blocks.
+  \param[in/out]    pPayload    Pointer to descriptor of the resized payload.
+  \param[in]        size        New size of the payload, in bytes.
+  \details
+    This function changes the payload size within small limits without changing the number
+    of blocks forming this payload.
+  \note
+    The caller shall be assured that the operation is actually feasible. In the case of
+    failure the application is halted.
+*****************************************************************************************/
+SYS_PUBLIC void SYS_ResizePayload(SYS_DataPointer_t *const pPayload, const SYS_DataLength_t size);
+
+
+#if defined(_MEMORY_MANAGER_)
+/*************************************************************************************//**
+  \name Group of functions supporting fragmentation of payloads.
+*****************************************************************************************/
+/**@{*/
+
+/*************************************************************************************//**
+  \brief    Constructs a fragmentation descriptor.
+  \param[in/out]    pFragDescr      Pointer to the fragmentation descriptor object.
+  \return   TRUE if descriptor was successfully constructed; FALSE otherwise.
+  \details
+    This function initializes the given descriptor object, allocates the necessary amount
+    of dynamic memory, links it to the descriptor, and returns TRUE if there were no
+    failures. If this function failed to allocate the required dynamic memory, it returns
+    FALSE and frees all the previously allocated resources.
+*****************************************************************************************/
+SYS_PUBLIC bool SYS_FragDescrConstruct(SYS_FragDescr_t *const pFragDescr);
+
+/*************************************************************************************//**
+  \brief    Destructs a fragmentation descriptor.
+  \param[in/out]    pFragDescr      Pointer to the fragmentation descriptor object.
+  \details
+    This function frees all resources linked to the given descriptor.
+*****************************************************************************************/
+SYS_PUBLIC void SYS_FragDescrDestruct(SYS_FragDescr_t *const pFragDescr);
+
+/*************************************************************************************//**
+  \brief    Extracts a fragment from a payload.
+  \param[in/out]    pPayload        Pointer to descriptor of the payload to be fragmented.
+  \param[in/out]    pFragment       Pointer to the payload descriptor object to be
+      assigned with the descriptor of the extracted fragmented.
+  \param[in]        offset          Offset of the fragment within the payload, in bytes.
+  \param[in]        len             Length of the extracted fragment, in bytes.
+  \param[in/out]    pFragDescr      Pointer to the fragmentation descriptor object.
+  \note
+    Only one fragment may be extracted from a payload at a time. Prior to extract a next
+    fragment or destruct the fragmentation descriptor, the extracted fragment must be
+    returned back into the original payload.
+  \note
+    This function modifies the payload object. It does not copy a part from the original
+    payload into a new fragment object, but namely cut out the fragment from the payload.
+  \note
+    When the \p offset equals zero - i.e., the fragment starts at the payload beginning -
+    the \p pPayload is actually changed by this function. Later when the extracted
+    fragment is returned back, this actual \p pPayload must be used for the payload being
+    restored.
+  \details
+    This function cuts the given payload in two places (in general): after the \p offset
+    bytes from its beginning, and after \p offset + \p len bytes. After that the central
+    part - the required fragment - is returned with \p pFragment; while the remaining head
+    and tail parts are joined together and left in the \p pPayload. When \p offset equals
+    zero (the fragment starts at the beginning of the payload) the remaining head part is
+    empty; when \p offset + \p len equals the given payload length (the fragment ends at
+    the end of the payload), the remaining tail part is empty. When \p len equals the
+    payload length (i.e., the fragment takes in the whole payload) the remaining payload
+    is empty; in this case the \p pPayload will point to the empty payload after this
+    function returns.
+  \details
+    The fragmentation descriptor object provides this function with necessary amount of
+    preallocated dynamic memory, and after this function returns it keeps the information
+    on how the original payload must be restored later when the extracted fragment will be
+    returned back.
+*****************************************************************************************/
+SYS_PUBLIC void SYS_FragmentExtract(SYS_DataPointer_t *const pPayload, SYS_DataPointer_t *const pFragment,
+        const SYS_DataLength_t offset, const SYS_DataLength_t len, SYS_FragDescr_t *const pFragDescr);
+
+/*************************************************************************************//**
+  \brief    Returns a fragment back into the payload from which it was previously
+      extracted.
+  \param[in/out]    pPayload        Pointer to descriptor of the payload to be restored.
+  \param[in/out]    pFragment       Pointer to descriptor of the fragment to be returned
+      back into the payload.
+  \param[in]        offset          Offset of the fragment within the payload, in bytes.
+  \param[in/out]    pFragDescr      Pointer to the fragmentation descriptor object.
+  \note
+    This function shall use the same fragmentation descriptor object that was used
+    previously when the returned fragment was extracted from the payload.
+  \details
+    This function splits the given payload at \p offset bytes from its beginning for the
+    head and tail parts. Then it joins head, fragment, and tail parts sequentially
+    restoring the original payload.
+  \details
+    The fragmentation descriptor object provides this function with the information on how
+    the original payload was processed during extraction of the fragment, and how it must
+    be treated now to restore its original structure. Also this descriptor accepts back
+    the auxiliary dynamic memory that might be used during fragment extraction and which
+    is freed now with returning the fragment back.
+*****************************************************************************************/
+SYS_PUBLIC void SYS_FragmentReturn(SYS_DataPointer_t *const pPayload, SYS_DataPointer_t *const pFragment,
+        const SYS_DataLength_t offset, SYS_FragDescr_t *const pFragDescr);
+
+/*************************************************************************************//**
+  \brief    Inserts a newly received fragment into the payload composed from previously
+      received fragments.
+  \param[in/out]    pPayload        Pointer to descriptor of the composed payload.
+  \param[in/out]    pFragment       Pointer to descriptor of a newly received fragment.
+  \param[in]        offset          Offset of the fragment within the payload, in bytes.
+  \details
+    This function splits the given payload at \p offset bytes from its beginning for the
+    head and tail parts. Then it joins head, fragment, and tail parts sequentially
+    composing the payload.
+  \note
+    The \p offset shall point on a fragment boundary between previously received and
+    joined fragments. This point will also be a memory block boundary. Due to this fact,
+    this function does not need additional dynamic memory for its operation.
+*****************************************************************************************/
+SYS_PUBLIC void SYS_FragmentInsert(SYS_DataPointer_t *const pPayload, SYS_DataPointer_t *const pFragment,
+        const SYS_DataLength_t offset);
+
+/**@}*/
+#endif /* _MEMORY_MANAGER_ */
+
+
+/************************* INLINES ******************************************************/
+/*************************************************************************************//**
   \brief Checks whether  given pointers the same data.
 
   \param[in] firstPayload - the first payload descriptor.
@@ -878,43 +1058,6 @@ INLINE bool SYS_IsEqualPayload(SYS_DataPointer_t *firstPayload, SYS_DataPointer_
 }
 
 
-/*************************************************************************************//**
-  \brief Splits the linked chain of memory blocks at the given block id
-
-  \param[in] chain - pointer to the descriptor of the linked chain to be split.
-  \param[in] trailer - pointer to the descriptor of the part to be detached.
-*****************************************************************************************/
-INLINE void SYS_SplitLinked(SYS_DataPointer_t *chain, SYS_DataPointer_t *trailer)
-{
-    SYS_DataLength_t chainLength, trailerLength;
-    bool res;
-
-    SYS_DbgAssert(chain, SYS_PAYLOAD_SPLITLINKED0A);
-    SYS_DbgAssert(trailer, SYS_PAYLOAD_SPLITLINKED0B);
-
-#if defined(_MEMORY_MANAGER_)
-    /* TODO: This functionality should be implemented by Memory Manager itself. */
-    {
-        SYS_DataPointer_t border = { .plain = 0 };
-
-        chainLength = SYS_GetPayloadSize(chain);
-        trailerLength = SYS_GetPayloadSize(trailer);
-
-        res = SYS_SplitPayload(&border, chain, chainLength - trailerLength);
-        SYS_DbgAssert(res, SYS_PAYLOAD_SPLITLINKED1);
-        res = SYS_IsEqualPayload(trailer, &border);
-        SYS_DbgAssert(res, SYS_PAYLOAD_SPLITLINKED2);
-    }
-#else
-    /* IS NOT SUPPORTED */
-    SYS_DbgAssert(trailer, SYS_PAYLOAD_SPLITLINKED_NOT_SUPPORTED);
-    (void)chainLength;
-    (void)trailerLength;
-    (void)res;
-#endif
-}
-
-
 /*
  * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
  * when compiled by G++ but not GCC.
@@ -929,3 +1072,5 @@ INLINE void SYS_SplitLinked(SYS_DataPointer_t *chain, SYS_DataPointer_t *trailer
 #endif
 
 #endif /* _SYS_PAYLOAD_H */
+
+/* eof bbSysPayload.h */

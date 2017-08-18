@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -93,6 +93,8 @@ static BERR_Code BAPE_I2sInput_P_ApplySettings_Legacy(BAPE_I2sInputHandle handle
 /* Input port callbacks */
 static void BAPE_I2sInput_P_Enable(BAPE_InputPort inputPort);
 static void BAPE_I2sInput_P_Disable(BAPE_InputPort inputPort);
+static BERR_Code BAPE_I2sInput_P_ConsumerAttached_isr(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer, BAPE_FMT_Descriptor *pFormat);
+static void      BAPE_I2sInput_P_ConsumerDetached_isr(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer);
 #endif
 
 /****  #define SETUP_PINMUX_FOR_I2S_IN_ON_7422   Only defined for testing... changes pinmux settings. */
@@ -137,7 +139,7 @@ BERR_Code BAPE_I2sInput_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
     
-    BDBG_MSG(("%s: Opening I2S Input: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening I2S Input: %u", BSTD_FUNCTION, index));
 
     *pHandle = NULL;
 
@@ -173,6 +175,17 @@ BERR_Code BAPE_I2sInput_Open(
 #if defined BAPE_I2S_IOPIN_VERSION
     {
         uint32_t regVal;
+        #if BAPE_CHIP_MAX_FCI_SPLITTERS
+        BAPE_FciSplitterGroupCreateSettings fciSpCreateSettings;
+        BAPE_FciSplitterGroup_P_GetDefaultCreateSettings(&fciSpCreateSettings);
+        errCode = BAPE_FciSplitterGroup_P_Create(handle->deviceHandle, &fciSpCreateSettings, &handle->inputPort.fciSpGroup);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Could not allocate FCI Splitter"));
+            BAPE_I2sInput_Close(handle);
+            return BERR_TRACE(errCode);
+        }
+        #endif
         regVal = BAPE_Reg_P_Read(deviceHandle, handle->offset + BAPE_I2S_IOPIN_CONSTRUCT(BCHP_AUD_FMM_IOP_IN_I2S,CAPTURE_FCI_ID_TABLE));
         handle->inputPort.streamId[BAPE_ChannelPair_eLeftRight] = BCHP_GET_FIELD_DATA(regVal, BAPE_I2S_IOPIN_CONSTRUCT(AUD_FMM_IOP_IN_I2S,CAPTURE_FCI_ID_TABLE), START_FCI_ID);
     }
@@ -181,6 +194,8 @@ BERR_Code BAPE_I2sInput_Open(
 #endif
     handle->inputPort.enable = BAPE_I2sInput_P_Enable;
     handle->inputPort.disable = BAPE_I2sInput_P_Disable;
+    handle->inputPort.consumerAttached_isr = BAPE_I2sInput_P_ConsumerAttached_isr;
+    handle->inputPort.consumerDetached_isr = BAPE_I2sInput_P_ConsumerDetached_isr;
     BKNI_Snprintf(handle->name, sizeof(handle->name), "I2S Input %u", index);
     handle->inputPort.pName = handle->name;
 
@@ -242,6 +257,12 @@ void BAPE_I2sInput_Close(
         #endif
         BDBG_ASSERT(!BAPE_InputPort_P_HasConsumersAttached(&handle->inputPort));
         return;
+    }
+
+    if ( handle->inputPort.fciSpGroup )
+    {
+        BAPE_FciSplitterGroup_P_Destroy(handle->inputPort.fciSpGroup);
+        handle->inputPort.fciSpGroup = NULL;
     }
 
     handle->deviceHandle->i2sInputs[handle->index] = NULL;
@@ -386,17 +407,71 @@ static void BAPE_I2sInput_P_Disable(BAPE_InputPort inputPort)
 #endif
 }
 
+/* work around to reset FCI splitter and HDMI IN - works around FCI splitter locking up HDMI IN when grouping is used */
+static void BAPE_I2sInput_P_FciSpReset_isrsafe(BAPE_I2sInputHandle handle)
+{
+    #if defined BCHP_AUD_MISC_INIT_SPLTR0_LOGIC_INIT_MASK
+    BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BCHP_AUD_MISC_INIT, AUD_MISC_INIT, SPLTR0_LOGIC_INIT, Init);
+    BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BCHP_AUD_MISC_INIT, AUD_MISC_INIT, SPLTR0_LOGIC_INIT, Inactive);
+    #else
+    BSTD_UNUSED(handle);
+    #endif
+}
+
 #ifdef BAPE_I2S_IOPIN_VERSION
 /* 7429 style of registers */
+
 static void BAPE_I2sInput_P_Enable_IopOut(BAPE_InputPort inputPort)
 {
     BAPE_I2sInputHandle handle;
+    BERR_Code errCode;
 
     handle = inputPort->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_I2sInput);
-    BDBG_ASSERT(false == handle->enable);
 
     BDBG_MSG(("Enabling %s", handle->name));
+
+    if ( handle->enable && inputPort->fciSpGroup )
+    {
+        /* we have a second client asking to enable.
+           restart fci splitter to attach that output */
+        BDBG_MSG(("Enabling %s (restart FCI Splitter only)", handle->name));
+        BAPE_FciSplitterGroup_P_Stop(handle->inputPort.fciSpGroup);
+        errCode = BAPE_FciSplitterGroup_P_Start(handle->inputPort.fciSpGroup);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Unable to start I2S Input FCI Splitter"));
+        }
+        BAPE_I2sInput_P_FciSpReset_isrsafe(handle);
+        return;
+    }
+    else
+    {
+        BDBG_ASSERT(false == handle->enable);
+    }
+
+    /* If we have an FCI splitter, enable it here */
+    if ( handle->inputPort.fciSpGroup )
+    {
+        BAPE_FciSplitterGroupSettings fciGroupSettings;
+        unsigned numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&inputPort->format);
+        BAPE_FciSplitterGroup_P_Stop(handle->inputPort.fciSpGroup);
+
+        BAPE_FciSplitterGroup_P_GetSettings(handle->inputPort.fciSpGroup, &fciGroupSettings);
+        BAPE_InputPort_P_GetFciIds(inputPort, &fciGroupSettings.input);
+        fciGroupSettings.numChannelPairs = numChannelPairs;
+        errCode = BAPE_FciSplitterGroup_P_SetSettings(handle->inputPort.fciSpGroup, &fciGroupSettings);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Unable to set FCI Splitter Settings"));
+        }
+        errCode = BAPE_FciSplitterGroup_P_Start(handle->inputPort.fciSpGroup);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Unable to start I2S Input FCI Splitter"));
+        }
+        BAPE_I2sInput_P_FciSpReset_isrsafe(handle);
+    }
 
     BAPE_Reg_P_UpdateField(handle->deviceHandle, 
                            BAPE_I2S_IOPIN_CONSTRUCT(BCHP_AUD_FMM_IOP_IN_I2S,CAP_STREAM_CFG_0) + handle->offset,
@@ -413,7 +488,17 @@ static void BAPE_I2sInput_P_Disable_IopOut(BAPE_InputPort inputPort)
 
     handle = inputPort->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_I2sInput);
-    BDBG_ASSERT(true == handle->enable);
+
+    if ( !handle->enable )
+    {
+        return;
+    }
+
+    /* Check if we have multiple consumers */
+    if ( BAPE_InputPort_P_GetNumConsumersAttached(inputPort) > 1 )
+    {
+        return;
+    }
 
     BDBG_MSG(("Disabling %s", handle->name));
 
@@ -422,6 +507,11 @@ static void BAPE_I2sInput_P_Disable_IopOut(BAPE_InputPort inputPort)
                            BAPE_I2S_IOPIN_CONSTRUCT(AUD_FMM_IOP_IN_I2S,CAP_STREAM_CFG_0),
                            CAP_ENA,
                            0);
+
+    if ( handle->inputPort.fciSpGroup )
+    {
+        BAPE_FciSplitterGroup_P_Stop(handle->inputPort.fciSpGroup);
+    }
 
     handle->enable = false;
 }
@@ -604,6 +694,57 @@ static BERR_Code BAPE_I2sInput_P_ApplySettings_Legacy(BAPE_I2sInputHandle handle
 }
 
 #endif
+
+static BERR_Code BAPE_I2sInput_P_ConsumerAttached_isr(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer, BAPE_FMT_Descriptor *pFormat)
+{
+    BAPE_I2sInputHandle handle;
+
+    BDBG_OBJECT_ASSERT(inputPort, BAPE_InputPort);
+    handle = inputPort->pHandle;
+    BDBG_OBJECT_ASSERT(handle, BAPE_I2sInput);
+
+    BDBG_MSG(("Attaching consumer %s, type %d", pConsumer->pName, (int)pFormat->type));
+
+    switch ( pConsumer->type )
+    {
+    case BAPE_PathNodeType_eDecoder:
+    case BAPE_PathNodeType_eInputCapture:
+        break;
+    default:
+        BDBG_ERR(("Node %s is not a valid consumer for I2S Input", pConsumer->pName));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    BDBG_ASSERT(BAPE_InputPort_P_ConsumerIsAttached_isrsafe(inputPort, pConsumer));
+
+    /* push our current format down to the consumer's pFormat */
+    BAPE_InputPort_P_GetFormat_isr(inputPort, pFormat);
+
+    return BERR_SUCCESS;
+}
+
+/**************************************************************************/
+
+static void BAPE_I2sInput_P_ConsumerDetached_isr(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer)
+{
+    BAPE_I2sInputHandle handle;
+
+    BSTD_UNUSED(pConsumer);
+
+    BDBG_OBJECT_ASSERT(inputPort, BAPE_InputPort);
+    handle = inputPort->pHandle;
+    BDBG_OBJECT_ASSERT(handle, BAPE_I2sInput);
+
+    BDBG_MSG(("Detaching consumer %s", pConsumer->pName));
+
+    if ( BAPE_InputPort_P_GetNumConsumersAttached_isrsafe(inputPort) > 1 )
+    {
+        BDBG_MSG(("Detached one consumer %s (restart FCI Splitter only)", pConsumer->pName));
+        BAPE_I2sInput_P_FciSpReset_isrsafe(handle);
+    }
+
+    return;
+}
 
 #endif
 

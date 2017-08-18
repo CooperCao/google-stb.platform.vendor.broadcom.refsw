@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -115,7 +115,7 @@ static void NEXUS_Sage_P_ResponseCallback_isr(
     BSTD_UNUSED(async_id);
 
     if (!channel) {
-        BDBG_ERR(("%s: retreived channel is NULL", __FUNCTION__));
+        BDBG_ERR(("%s: retreived channel is NULL", BSTD_FUNCTION));
         return;
     }
 
@@ -138,13 +138,13 @@ static BERR_Code NEXUS_Sage_P_CallbackRequestCallback_isr(
     BSTD_UNUSED(handle);
 
     if (!channel) {
-        BDBG_ERR(("%s: retreived channel is NULL", __FUNCTION__));
+        BDBG_ERR(("%s: retreived channel is NULL", BSTD_FUNCTION));
         rc = BSAGE_ERR_INTERNAL;
         goto end;
     }
 
     if (channel->status.pendingCallbackRequest) {
-        BDBG_ERR(("%s: channel is already processing a callback request", __FUNCTION__));
+        BDBG_ERR(("%s: channel is already processing a callback request", BSTD_FUNCTION));
         rc = BSAGE_ERR_INTERNAL;
         goto end;
     }
@@ -154,7 +154,7 @@ static BERR_Code NEXUS_Sage_P_CallbackRequestCallback_isr(
         NEXUS_IsrCallback_Fire_isr(channel->callbackRequestRecvCallback);
     }
     else {
-        BDBG_ERR(("%s: callback requests are not enabled for channel", __FUNCTION__));
+        BDBG_ERR(("%s: callback requests are not enabled for channel", BSTD_FUNCTION));
         rc = BSAGE_ERR_INTERNAL;
         goto end;
     }
@@ -173,7 +173,7 @@ static void NEXUS_Sage_P_TATerminateCallback_isr(
     BSTD_UNUSED(source);
 
     if (!channel) {
-        BDBG_ERR(("%s: retreived channel is NULL", __FUNCTION__));
+        BDBG_ERR(("%s: retreived channel is NULL", BSTD_FUNCTION));
         goto end;
     }
 

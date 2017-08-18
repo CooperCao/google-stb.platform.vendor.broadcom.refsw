@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -532,10 +532,13 @@ Description:
     This routine will send the number of bytes specified in a DiSEqC message.
     The callback provided will be called when the transfer is complete, at
     which point the reply/status can be read.
+
+    If pSendData is NULL and sendDataSize is 0, this can be used to send a
+    toneburst.
 ***************************************************************************/
 NEXUS_Error NEXUS_Frontend_SendDiseqcMessage(
     NEXUS_FrontendHandle handle,
-    const uint8_t *pSendData,               /* attr{nelem=sendDataSize} */
+    const uint8_t *pSendData,               /* attr{null_allowed=y;nelem=sendDataSize} */
     size_t sendDataSize,                    /* In Bytes */
     const NEXUS_CallbackDesc *pSendComplete /* Callback will be received when message status is ready */
     );
@@ -896,4 +899,3 @@ Write a satellite demod register
 #endif
 
 #endif /* #ifndef NEXUS_FRONTEND_SATELLITE_H__ */
-

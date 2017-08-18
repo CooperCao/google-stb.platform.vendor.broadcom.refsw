@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "nexus_sage_module.h"
@@ -126,7 +125,7 @@ static BERR_Code NEXUS_Sage_SVP_P_WaitForSage(void)
     if (rc == BERR_TIMEOUT)
     {
         BDBG_ERR(("%s: Timeout (%dms) waiting for sage response from previous request",
-            __FUNCTION__, SAGERESPONSE_TIMEOUT));
+            BSTD_FUNCTION, SAGERESPONSE_TIMEOUT));
         rc = BERR_TRACE(rc);
         goto done;
     }
@@ -245,12 +244,10 @@ void NEXUS_Sage_P_SvpUninit(bool reset)
 /* Some of the init needs to be delayed until SAGE is running */
 /* TODO: Move some of this (platform open/init, module open/init, into
 * more generic functions that can be used across nexus */
-static void NEXUS_Sage_P_SvpInitDelayed(void *dummy)
+void NEXUS_Sage_P_SvpInitDelayed(void)
 {
     BSAGElib_ClientSettings sagelibClientSettings;
     BERR_Code rc;
-
-    BSTD_UNUSED(dummy);
 
     NEXUS_LockModule();
 
@@ -469,7 +466,7 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
         if (rc == BERR_TIMEOUT)
         {
             BDBG_ERR(("%s: Timeout (%dms) waiting for SVP Init",
-                __FUNCTION__, SAGERESPONSE_TIMEOUT));
+                BSTD_FUNCTION, SAGERESPONSE_TIMEOUT));
             rc = BERR_TRACE(rc);
             goto EXIT;
         }
@@ -535,7 +532,7 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         if (rc == BERR_TIMEOUT)
         {
             BDBG_ERR(("%s: Timeout (%dms) waiting for SVP Init",
-                __FUNCTION__, SAGERESPONSE_TIMEOUT));
+                BSTD_FUNCTION, SAGERESPONSE_TIMEOUT));
             BERR_TRACE(NEXUS_NOT_INITIALIZED);
             goto EXIT;
         }
@@ -599,5 +596,10 @@ NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings 
 {
     BSTD_UNUSED(memcIndex);
     BSTD_UNUSED(pSettings);
+    return BERR_SUCCESS;
+}
+
+void NEXUS_Sage_P_BP3Uninit(void)
+{
     return BERR_SUCCESS;
 }

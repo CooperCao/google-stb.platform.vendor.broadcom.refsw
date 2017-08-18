@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 16:41:47 2016
- *                 Full Compile MD5 Checksum  0072c2a9745def7d4ff3c4aae05a171e
+ * Date:           Generated on               Fri May 26 15:56:43 2017
+ *                 Full Compile MD5 Checksum  f5e63307e5dcf1369c866f7e71f68daa
  *                     (minus title and desc)
- *                 MD5 Checksum               9feece43d7905e67de199498af7699e5
+ *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1481
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -81,6 +78,14 @@
 #define BCHP_RDC_scb_init_status                 0x20603020 /* [RO][32] SCB Initialing Status Register */
 #define BCHP_RDC_stc_flag_0                      0x20603024 /* [RW][32] STC Snapshot Trigger Flag 0 for MFD_0 and VECs. */
 #define BCHP_RDC_stc_flag_1                      0x20603028 /* [RW][32] STC Snapshot Trigger Flag 1 for MFD_1 and VECs. */
+#define BCHP_RDC_data_0                          0x20603080 /* [RW][32] General Purpose RAM Register at location 0 */
+#define BCHP_RDC_data_1                          0x20603084 /* [RW][32] General Purpose RAM Register at location 1 */
+#define BCHP_RDC_data_2                          0x20603088 /* [RW][32] General Purpose RAM Register at location 2 */
+#define BCHP_RDC_data_3                          0x2060308c /* [RW][32] General Purpose RAM Register at location 3 */
+#define BCHP_RDC_data_4                          0x20603090 /* [RW][32] General Purpose RAM Register at location 4 */
+#define BCHP_RDC_data_5                          0x20603094 /* [RW][32] General Purpose RAM Register at location 5 */
+#define BCHP_RDC_data_6                          0x20603098 /* [RW][32] General Purpose RAM Register at location 6 */
+#define BCHP_RDC_data_7                          0x2060309c /* [RW][32] General Purpose RAM Register at location 7 */
 #define BCHP_RDC_comb_mask_0                     0x20603100 /* [RW][32] Trigger 31:0 Combine 0 Mask Register. */
 #define BCHP_RDC_comb_mask_0_hi                  0x20603104 /* [RW][32] Trigger 63:32 Combine 0 Mask Register. */
 #define BCHP_RDC_comb_mask_0_hi2                 0x20603108 /* [RW][32] Trigger 96:64 Combine 0 Mask Register. */
@@ -872,6 +877,62 @@
 #define BCHP_RDC_data_i_data_MASK                                  0xffffffff
 #define BCHP_RDC_data_i_data_SHIFT                                 0
 
+
+/***************************************************************************
+ *data_0 - General Purpose RAM Register at location 0
+ ***************************************************************************/
+/* RDC :: data_0 :: data [31:00] */
+#define BCHP_RDC_data_0_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_0_data_SHIFT                                 0
+
+/***************************************************************************
+ *data_1 - General Purpose RAM Register at location 1
+ ***************************************************************************/
+/* RDC :: data_1 :: data [31:00] */
+#define BCHP_RDC_data_1_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_1_data_SHIFT                                 0
+
+/***************************************************************************
+ *data_2 - General Purpose RAM Register at location 2
+ ***************************************************************************/
+/* RDC :: data_2 :: data [31:00] */
+#define BCHP_RDC_data_2_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_2_data_SHIFT                                 0
+
+/***************************************************************************
+ *data_3 - General Purpose RAM Register at location 3
+ ***************************************************************************/
+/* RDC :: data_3 :: data [31:00] */
+#define BCHP_RDC_data_3_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_3_data_SHIFT                                 0
+
+/***************************************************************************
+ *data_4 - General Purpose RAM Register at location 4
+ ***************************************************************************/
+/* RDC :: data_4 :: data [31:00] */
+#define BCHP_RDC_data_4_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_4_data_SHIFT                                 0
+
+/***************************************************************************
+ *data_5 - General Purpose RAM Register at location 5
+ ***************************************************************************/
+/* RDC :: data_5 :: data [31:00] */
+#define BCHP_RDC_data_5_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_5_data_SHIFT                                 0
+
+/***************************************************************************
+ *data_6 - General Purpose RAM Register at location 6
+ ***************************************************************************/
+/* RDC :: data_6 :: data [31:00] */
+#define BCHP_RDC_data_6_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_6_data_SHIFT                                 0
+
+/***************************************************************************
+ *data_7 - General Purpose RAM Register at location 7
+ ***************************************************************************/
+/* RDC :: data_7 :: data [31:00] */
+#define BCHP_RDC_data_7_data_MASK                                  0xffffffff
+#define BCHP_RDC_data_7_data_SHIFT                                 0
 
 /***************************************************************************
  *comb_mask_0 - Trigger 31:0 Combine 0 Mask Register.

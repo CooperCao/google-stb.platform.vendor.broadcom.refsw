@@ -9,44 +9,61 @@
 #include "libs/util/common.h"
 #include "glsl_backend_uniforms.h"
 
-struct inline_qasm {
+typedef struct inline_qasm {
    const uint64_t *code;
    size_t          size;
-};
+} inline_qasm;
 
-extern const struct inline_qasm cs_barrier_preamble;
-extern const struct inline_qasm tcs_barrier_preamble;
-extern const struct inline_qasm cs_pad_setmsf_with_barriers;
-extern const struct inline_qasm cs_scoreboard_wait;
-extern const struct inline_qasm cs_one_thread_wait;
-extern const struct inline_qasm cs_pad_setmsf;
-extern const struct inline_qasm cs_barrier;
-extern const struct inline_qasm tcs_barrier;
-extern const struct inline_qasm cs_barrier_lthrsw;
-extern const struct inline_qasm tcs_barrier_lthrsw;
-
-static inline size_t copy_inline_qasm_if(uint64_t *dst, size_t dst_offset, const struct inline_qasm *src) {
-   if (dst) memcpy(dst + dst_offset, src->code, src->size * sizeof(uint64_t));
-   return dst_offset + src->size;
-}
-
-struct inline_umap {
+typedef struct inline_umap {
    const umap_entry *unifs;
    size_t            size;
-};
+} inline_umap;
 
-// Unifs for both tcs and cs barrier preambles.
-extern const struct inline_umap cs_barrier_preamble_unif;
-extern const struct inline_umap tcs_barrier_preamble_unif;
-extern const struct inline_umap cs_pad_setmsf_with_barriers_unif;
-extern const struct inline_umap cs_pad_setmsf_unif;
-extern const struct inline_umap barrier_unif;
-
-static inline size_t copy_inline_umap_if(umap_entry *dst, size_t dst_offset, const struct inline_umap *src) {
-   if (dst) memcpy(dst + dst_offset, src->unifs, src->size * sizeof(umap_entry));
-   return dst_offset + src->size;
+static inline size_t copy_inline_qasm_if(uint64_t *dst, size_t dst_offset, const struct inline_qasm *src) {
+   if (src) {
+      if (dst) memcpy(dst + dst_offset, src->code, src->size * sizeof(uint64_t));
+      return dst_offset + src->size;
+   }
+   return 0;
 }
 
+static inline size_t copy_inline_umap_if(umap_entry *dst, size_t dst_offset, const struct inline_umap *src) {
+   if (src) {
+      if (dst) memcpy(dst + dst_offset, src->unifs, src->size * sizeof(umap_entry));
+      return dst_offset + src->size;
+   }
+   return 0;
+}
+
+#if !V3D_USE_CSD
 // If using cs_pad_setmsf_with_barriers  truncate the last instruction and unif of the barrier code.
 static const size_t cs_pad_setmsf_with_barriers_code_truncate = 1;
 static const size_t cs_pad_setmsf_with_barriers_unif_truncate = 1;
+extern const inline_qasm cs_pad_setmsf_after_barrier_preamble;
+extern const inline_qasm cs_pad_setmsf_threaded;
+extern const inline_qasm cs_pad_setmsf_unthreaded;
+#endif
+extern const inline_qasm cs_barrier_preamble;
+extern const inline_qasm cs_barrier;
+extern const inline_qasm cs_barrier_lthrsw;
+
+extern const inline_qasm tcs_barrier_preamble_bin;
+extern const inline_qasm tcs_barrier_preamble_rdr;
+extern const inline_qasm tcs_barrier_bin;
+extern const inline_qasm tcs_barrier_rdr;
+extern const inline_qasm tcs_barrier_lthrsw_bin;
+extern const inline_qasm tcs_barrier_lthrsw_rdr;
+extern const inline_qasm tcs_barrier_mem_only;
+
+#if !V3D_USE_CSD
+extern const inline_umap cs_pad_setmsf_after_barrier_preamble_unif;
+extern const inline_umap cs_pad_setmsf_unif;
+#endif
+extern const inline_umap cs_barrier_preamble_unif;
+extern const inline_umap cs_barrier_unif;
+extern const inline_umap tcs_barrier_preamble_bin_unif;
+extern const inline_umap tcs_barrier_preamble_rdr_unif;
+extern const inline_umap tcs_barrier_bin_unif;
+extern const inline_umap tcs_barrier_rdr_unif;
+extern const inline_umap tcs_barrier_lthrsw_bin_unif;
+extern const inline_umap tcs_barrier_lthrsw_rdr_unif;

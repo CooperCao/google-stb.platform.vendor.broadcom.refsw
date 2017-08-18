@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -114,7 +114,7 @@ aes_setup_nexus_dma(
     NexusConfig.operation = NEXUS_SecurityOperation_eDecrypt;
 
     if (NEXUS_Security_ConfigAlgorithm(securityCtx->encKeyHandle, &NexusConfig)!= 0) {
-        BDBG_ERR(("%s: NEXUS_Security_ConfigAlgorithm", __FUNCTION__));
+        BDBG_ERR(("%s: NEXUS_Security_ConfigAlgorithm", BSTD_FUNCTION));
         goto error;
     }
 
@@ -125,11 +125,11 @@ aes_setup_nexus_dma(
     key.keySize = sizeof(securityCtx->openSettings.security.settings.aes128.key);
     BKNI_Memcpy(key.keyData, securityCtx->openSettings.security.settings.aes128.key, key.keySize);
     if (NEXUS_Security_LoadClearKey(securityCtx->encKeyHandle, &key) != 0) {
-        BDBG_ERR(("%s: NEXUS_Security_LoadClearKey Failed to load Dec Key", __FUNCTION__));
+        BDBG_ERR(("%s: NEXUS_Security_LoadClearKey Failed to load Dec Key", BSTD_FUNCTION));
         goto error;
     }
     for (int i=0; i<16; i++) {
-        BDBG_MSG_FLOW(("%s: key[%d] 0x%02x", __FUNCTION__, i, (unsigned char)key.keyData[i]));
+        BDBG_MSG_FLOW(("%s: key[%d] 0x%02x", BSTD_FUNCTION, i, (unsigned char)key.keyData[i]));
     }
     /* Load IV */
     key.keyEntryType = NEXUS_SecurityKeyType_eClear;
@@ -137,14 +137,14 @@ aes_setup_nexus_dma(
     key.keySize = sizeof(securityCtx->openSettings.security.settings.aes128.iv);
     BKNI_Memcpy(key.keyData, securityCtx->openSettings.security.settings.aes128.iv, key.keySize);
     if (NEXUS_Security_LoadClearKey(securityCtx->encKeyHandle, &key) != 0) {
-        BDBG_ERR(("%s: NEXUS_Security_LoadClearKey Failed to load IV", __FUNCTION__));
+        BDBG_ERR(("%s: NEXUS_Security_LoadClearKey Failed to load IV", BSTD_FUNCTION));
         goto error;
     }
     for (int i=0; i<16; i++) {
-        BDBG_MSG_FLOW(("%s: iv[%d] 0x%02x", __FUNCTION__, i, (unsigned char)key.keyData[i]));
+        BDBG_MSG_FLOW(("%s: iv[%d] 0x%02x", BSTD_FUNCTION, i, (unsigned char)key.keyData[i]));
     }
     status = true;
-    BDBG_MSG(("%s: successfull!!", __FUNCTION__));
+    BDBG_MSG(("%s: successfull!!", BSTD_FUNCTION));
 error:
     return status;
 }
@@ -165,7 +165,7 @@ aes_decrypt_data(
     NEXUS_DmaJobBlockSettings blockSettings;
     NEXUS_DmaJobStatus jobStatus;
 
-    BDBG_MSG(("%s: buf enc %p, clear %p, length %d", __FUNCTION__, read_ptr, clear_buff, bytesRead));
+    BDBG_MSG(("%s: buf enc %p, clear %p, length %d", BSTD_FUNCTION, read_ptr, clear_buff, bytesRead));
     NEXUS_DmaJob_GetDefaultSettings(&jobSettings);
     jobSettings.numBlocks                   = 1;
     jobSettings.keySlot                     = securityCtx->encKeyHandle;
@@ -173,7 +173,7 @@ aes_decrypt_data(
     jobSettings.completionCallback.callback = NULL;
     dmaJob = NEXUS_DmaJob_Create(securityCtx->dmaHandle, &jobSettings);
     if (dmaJob == NULL) {
-        BDBG_ERR(("%s: Failed to create Nexus DMA job", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create Nexus DMA job", BSTD_FUNCTION));
         goto error;
     }
 
@@ -186,7 +186,7 @@ aes_decrypt_data(
     blockSettings.scatterGatherCryptoEnd    = true;
     blockSettings.cached                    = true;
     rc = NEXUS_DmaJob_ProcessBlocks(dmaJob, &blockSettings, 1);
-    BDBG_MSG(("%s: DMA job sumitted", __FUNCTION__));
+    BDBG_MSG(("%s: DMA job sumitted", BSTD_FUNCTION));
     for(;;) {
         NEXUS_DmaJob_GetStatus(dmaJob, &jobStatus);
         if(jobStatus.currentState == NEXUS_DmaJobState_eComplete ) {
@@ -194,7 +194,7 @@ aes_decrypt_data(
         }
         BKNI_Delay(1);
     }
-    BDBG_MSG(("%s: DMA job completed", __FUNCTION__));
+    BDBG_MSG(("%s: DMA job completed", BSTD_FUNCTION));
 
     NEXUS_DmaJob_Destroy(dmaJob);
 
@@ -202,7 +202,7 @@ aes_decrypt_data(
     /* AES CBC uses the last 16 bytes of current block as the IV for the next block */
     BKNI_Memcpy(securityCtx->openSettings.security.settings.aes128.iv, &read_ptr[bytesRead-HTTP_AES_BLOCK_SIZE], HTTP_AES_BLOCK_SIZE);
     if (aes_setup_nexus_dma(securityCtx) != true) {
-        BDBG_ERR(("%s: ERROR: failed to setup nexus dma", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to setup nexus dma", BSTD_FUNCTION));
         goto error;
     }
     *clear_buff_size = bytesRead;
@@ -221,7 +221,7 @@ aes_setup_sw_dec(
                 securityCtx->openSettings.security.settings.aes128.key,
                 sizeof(securityCtx->openSettings.security.settings.aes128.key)*8,
                 &securityCtx->aesSwDecKey) < 0) {
-        BDBG_ERR(("%s: Failed to set the AES key", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to set the AES key", BSTD_FUNCTION));
         return false;
     }
     return true;
@@ -294,7 +294,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
             /* move the remaining bytes to the beginning */
             memmove(securityCtx->extended_decrypted_bytes, securityCtx->extended_decrypted_bytes + bytesToCopy, securityCtx->extended_len);
         }
-        BDBG_MSG(("%s: extended bytes returned %d, remaining extended bytes %d", __FUNCTION__, bytesRead, securityCtx->extended_len));
+        BDBG_MSG(("%s: extended bytes returned %d, remaining extended bytes %d", BSTD_FUNCTION, bytesRead, securityCtx->extended_len));
         return bytesRead;
     }
 
@@ -304,11 +304,11 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
         if ((rbuf_len > HTTP_AES_BLOCK_SIZE) && (rbuf_len % HTTP_AES_BLOCK_SIZE)) {
             truncated_len = rbuf_len % HTTP_AES_BLOCK_SIZE;
             rbuf_len -= truncated_len;   /* Truncate length of clear data expected in return */
-            BDBG_MSG(("%s: Adjust length for decryption block size, original %d, new %d", __FUNCTION__, rbuf_len+truncated_len, rbuf_len));
+            BDBG_MSG(("%s: Adjust length for decryption block size, original %d, new %d", BSTD_FUNCTION, rbuf_len+truncated_len, rbuf_len));
         } else if (rbuf_len < HTTP_AES_BLOCK_SIZE) {
             /* since caller is asking to read/decrypt less than AES block size, we will need to read & decrypt extra bytes for 16 byte alignment */
             /* and then save the extended bytes for subsequent read */
-            BDBG_MSG(("%s: Extend reading for %d bytes\n", __FUNCTION__,  rbuf_len));
+            BDBG_MSG(("%s: Extend reading for %d bytes\n", BSTD_FUNCTION,  rbuf_len));
             securityCtx->extended_len = HTTP_AES_BLOCK_SIZE - rbuf_len;
             rbuf_len += securityCtx->extended_len;
             orig_rbuf = rbuf;
@@ -319,7 +319,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
     /* Copy previously read encrypted data (which was left over from the decryption due to PCP header being present) to begining of rbuf */
     /* Read length shouuld be 16 byte aligned */
     if (securityCtx->residual_encrypted_len && securityCtx->residual_encrypted_len <= HTTP_AES_BLOCK_SIZE ) {
-        BDBG_MSG(("%s: Prepend previously read but not decrypted %d bytes, bytesRead so far %d", __FUNCTION__,  securityCtx->residual_encrypted_len, bytesRead));
+        BDBG_MSG(("%s: Prepend previously read but not decrypted %d bytes, bytesRead so far %d", BSTD_FUNCTION,  securityCtx->residual_encrypted_len, bytesRead));
         bytesToCopy = rbuf_len > securityCtx->residual_encrypted_len ? securityCtx->residual_encrypted_len : rbuf_len;
         if (bytesToCopy <= HTTP_AES_BLOCK_SIZE)
             memcpy(read_ptr+bytesRead, securityCtx->residual_encrypted_bytes, bytesToCopy);
@@ -333,7 +333,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
     /* Read length shouuld be 16 byte aligned */
     if (securityCtx->partial_read_len && securityCtx->partial_read_len <= HTTP_AES_BLOCK_SIZE) {
         bytesToCopy = (rbuf_len-bytesRead) > securityCtx->partial_read_len ? securityCtx->partial_read_len : (rbuf_len-bytesRead);
-        BDBG_MSG(("%s: Preprend partial read %d bytes, total partial read %d, bytesRead already read %d", __FUNCTION__, bytesToCopy, securityCtx->partial_read_len, bytesRead));
+        BDBG_MSG(("%s: Preprend partial read %d bytes, total partial read %d, bytesRead already read %d", BSTD_FUNCTION, bytesToCopy, securityCtx->partial_read_len, bytesRead));
         if (bytesToCopy <= HTTP_AES_BLOCK_SIZE)
             /* coverity[overrun-local: FALSE] */
             memcpy(read_ptr+bytesRead, securityCtx->partial_read_bytes, bytesToCopy);
@@ -347,7 +347,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
     if (securityCtx->initialPayloadLength && securityCtx->initialPayloadLength <= TMP_BUF_SIZE) {
         /* Copy initially read encrypted data to begining of rbuf */
         bytesToCopy = (rbuf_len-bytesRead) > securityCtx->initialPayloadLength ? securityCtx->initialPayloadLength : (rbuf_len-bytesRead);
-        BDBG_MSG(("%s: copying read %d bytes from initial buf length of %d into decryption buffer, bytesRead so far %d", __FUNCTION__,  bytesToCopy, securityCtx->initialPayloadLength, bytesRead));
+        BDBG_MSG(("%s: copying read %d bytes from initial buf length of %d into decryption buffer, bytesRead so far %d", BSTD_FUNCTION,  bytesToCopy, securityCtx->initialPayloadLength, bytesRead));
         if (bytesToCopy < TMP_BUF_SIZE)
             memcpy(read_ptr+bytesRead, securityCtx->initialPayload, bytesToCopy);
         bytesRead += bytesToCopy;
@@ -359,7 +359,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
 
     read_len = rbuf_len - bytesRead;
     bytesToRead = read_len;
-    BDBG_MSG(("%s:%p now read remaining %d bytes from sockFd %d, total rbuf_len %d, bytesRead %d", __FUNCTION__, (void *)playback_ip, read_len, sd, rbuf_len, bytesRead));
+    BDBG_MSG(("%s:%p now read remaining %d bytes from sockFd %d, total rbuf_len %d, bytesRead %d", BSTD_FUNCTION, (void *)playback_ip, read_len, sd, rbuf_len, bytesRead));
 
     if (rbuf_len < 0 || read_len < 0 )
         BDBG_ASSERT(NULL);
@@ -368,48 +368,48 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
         /* read_len will only be 0 when initialPayload had all the requested bytes, so we dont need to read any data from the socket */
         if ( breakFromLoop(playback_ip)) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s:%p breaking out of read loop due to state (%d) change\n", __FUNCTION__, (void *)playback_ip, playbackIpState(playback_ip) ));
+            BDBG_MSG(("%s:%p breaking out of read loop due to state (%d) change\n", BSTD_FUNCTION, (void *)playback_ip, playbackIpState(playback_ip) ));
             return -1;
         }
         rc = read(sd, read_ptr + bytesRead, read_len);
         if (rc < 0) {
             if (errno == EINTR || errno == EAGAIN) {
                 if (bytesRead) {
-                    BDBG_MSG(("%s: breaking from read loop due to partial data %d bytes recvd, bytesToRead %d", __FUNCTION__, bytesRead, bytesToRead));
+                    BDBG_MSG(("%s: breaking from read loop due to partial data %d bytes recvd, bytesToRead %d", BSTD_FUNCTION, bytesRead, bytesToRead));
                     break;
                 }
                 else {
-                    BDBG_MSG(("%s: Read System Call interrupted or timed out (errno %d)\n", __FUNCTION__, errno));
+                    BDBG_MSG(("%s: Read System Call interrupted or timed out (errno %d)\n", BSTD_FUNCTION, errno));
                     return rc;  /* no data read return */
                 }
             }
-            BDBG_ERR(("%s: read ERROR:%d", __FUNCTION__, errno));
+            BDBG_ERR(("%s: read ERROR:%d", BSTD_FUNCTION, errno));
             return -1;
         }else if (rc == 0) {
-            BDBG_MSG(("%s: Reached EOF, server closed the connection!\n", __FUNCTION__));
+            BDBG_MSG(("%s: Reached EOF, server closed the connection!\n", BSTD_FUNCTION));
             serverClosed = true;
             break;
         } else if (rc < read_len) {
             bytesRead += rc;
             read_len -= rc;
-            BDBG_MSG(("%s: Partial read rc %d, bytesRead so far %d, bytes remaining: read_len %d, rbuf_len %d, continue reading", __FUNCTION__, rc, bytesRead, read_len, rbuf_len));
+            BDBG_MSG(("%s: Partial read rc %d, bytesRead so far %d, bytes remaining: read_len %d, rbuf_len %d, continue reading", BSTD_FUNCTION, rc, bytesRead, read_len, rbuf_len));
             /* we sleep a little to allow more data to arrive from the server */
             BKNI_Sleep(100);
         } else {
             bytesRead += rc;
-            BDBG_MSG(("%s: read all requested data: rc %d, bytesRead %d, read_len %d, rbuf_len %d", __FUNCTION__, rc, bytesRead, read_len, rbuf_len));
+            BDBG_MSG(("%s: read all requested data: rc %d, bytesRead %d, read_len %d, rbuf_len %d", BSTD_FUNCTION, rc, bytesRead, read_len, rbuf_len));
             break;
         }
     }
 
     /* if decryption is not yet enabled or is disabled, then simply return the read data */
     if (!securityCtx->openSettings.security.enableDecryption) {
-        BDBG_MSG(("%s:%p: decryption is off: so memcopying the result of %d bytes from src %p to dst %p buffer", __FUNCTION__, (void *)playback_ip, bytesRead, (void *)read_ptr, rbuf));
+        BDBG_MSG(("%s:%p: decryption is off: so memcopying the result of %d bytes from src %p to dst %p buffer", BSTD_FUNCTION, (void *)playback_ip, bytesRead, (void *)read_ptr, rbuf));
         memcpy(rbuf, read_ptr, bytesRead);
         return bytesRead;
     }
 
-    BDBG_MSG(("%s:%p Asked %d bytes Read =%d bytes\n", __FUNCTION__, (void *)playback_ip, rbuf_len-securityCtx->extended_len+truncated_len, bytesRead));
+    BDBG_MSG(("%s:%p Asked %d bytes Read =%d bytes\n", BSTD_FUNCTION, (void *)playback_ip, rbuf_len-securityCtx->extended_len+truncated_len, bytesRead));
 
     /* Partial data receive.  Data is NOT aligned to 16 byte */
     if (bytesRead % HTTP_AES_BLOCK_SIZE) {
@@ -424,13 +424,13 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
         }
         else if (bytesRead > HTTP_AES_BLOCK_SIZE) {
             truncated_len = bytesRead % HTTP_AES_BLOCK_SIZE;
-            BDBG_MSG(("%s: Partial data received %d, expected %d, need to truncate %d\n", __FUNCTION__, bytesRead, rbuf_len, truncated_len));
+            BDBG_MSG(("%s: Partial data received %d, expected %d, need to truncate %d\n", BSTD_FUNCTION, bytesRead, rbuf_len, truncated_len));
             bytesRead -= truncated_len;   /* Truncate length */
             securityCtx->partial_read_len = truncated_len;
             memcpy(securityCtx->partial_read_bytes, read_ptr+bytesRead, securityCtx->partial_read_len);
         }else {
             BDBG_MSG(("%s: bytesRead %d < AES block size, so returning EAGAIN: asked (rbuf_len) %d, app asked %d, rc %d, extended %d",
-                        __FUNCTION__, bytesRead, rbuf_len, rbuf_len-securityCtx->extended_len, rc, securityCtx->extended_len));
+                        BSTD_FUNCTION, bytesRead, rbuf_len, rbuf_len-securityCtx->extended_len, rc, securityCtx->extended_len));
             securityCtx->partial_read_len = bytesRead;
             memcpy(securityCtx->partial_read_bytes, read_ptr, securityCtx->partial_read_len);
             errno = EAGAIN;
@@ -448,16 +448,16 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
 
 #ifdef HW_DEC
     if (aes_decrypt_data(securityCtx, (unsigned char *)read_ptr, bytesRead, (unsigned char*)rbuf, &bytesRead) != true) {
-        BDBG_ERR(("%s: AES decryption failed", __FUNCTION__));
+        BDBG_ERR(("%s: AES decryption failed", BSTD_FUNCTION));
         return 0;
     }
 #else
     if (aes_sw_decrypt_data(securityCtx, (unsigned char *)read_ptr, bytesRead, (unsigned char*)rbuf, &bytesRead) != true) {
-        BDBG_ERR(("%s: AES decryption failed", __FUNCTION__));
+        BDBG_ERR(("%s: AES decryption failed", BSTD_FUNCTION));
         return 0;
     }
 #endif
-    BDBG_MSG(("%s:%p: AES decryption successfull: clear bytes %d", __FUNCTION__, (void *)playback_ip, bytesRead));
+    BDBG_MSG(("%s:%p: AES decryption successfull: clear bytes %d", BSTD_FUNCTION, (void *)playback_ip, bytesRead));
 #ifdef RECORD_CLEAR_DATA
         /* write data to file */
         fwrite(rbuf, 1, bytesRead , fclear);
@@ -465,7 +465,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
 #endif
     /* If we had to read more than requested due to AES block size requirement, then adjust length and copy data back to original buffer */
     if (securityCtx->extended_len) {
-        BDBG_MSG(("%s: extended bytes saved %d, rbuf_len %d ", __FUNCTION__, securityCtx->extended_len, rbuf_len));
+        BDBG_MSG(("%s: extended bytes saved %d, rbuf_len %d ", BSTD_FUNCTION, securityCtx->extended_len, rbuf_len));
         rbuf_len -= securityCtx->extended_len;
         bytesRead -= securityCtx->extended_len;
 
@@ -532,11 +532,11 @@ int  B_PlaybackIp_AesDecryptionDisable(
     B_PlaybackIpAesCtx *securityCtx = (B_PlaybackIpAesCtx *)securityHandle;
 
     if (!securityCtx) {
-        BDBG_ERR(("%s: invalid securityCtx %p", __FUNCTION__, (void *)securityCtx));
+        BDBG_ERR(("%s: invalid securityCtx %p", BSTD_FUNCTION, (void *)securityCtx));
         return -1;
     }
     /* set flag to disable decryption */
-    BDBG_MSG(("%s: Disabling AES Decryption\n", __FUNCTION__));
+    BDBG_MSG(("%s: Disabling AES Decryption\n", BSTD_FUNCTION));
     securityCtx->openSettings.security.enableDecryption = false;
 
     return 0;
@@ -550,17 +550,17 @@ int B_PlaybackIp_AesDecryptionEnable(
     B_PlaybackIpAesCtx *securityCtx = (B_PlaybackIpAesCtx *)securityHandle;
 
     if (!securityCtx || (initialPayloadLength && !initialPayload)) {
-        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", __FUNCTION__, (void *)securityCtx, initialPayloadLength, (void *)initialPayload));
+        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", BSTD_FUNCTION, (void *)securityCtx, initialPayloadLength, (void *)initialPayload));
         return -1;
     }
     /* set flag to enable decryption */
-    BDBG_MSG(("%s: Enabling AES Decryption: initial payload %d", __FUNCTION__, initialPayloadLength));
+    BDBG_MSG(("%s: Enabling AES Decryption: initial payload %d", BSTD_FUNCTION, initialPayloadLength));
     securityCtx->openSettings.security.enableDecryption = true;
 
     if (initialPayloadLength) {
         securityCtx->initialPayloadLength = initialPayloadLength;
         if (initialPayloadLength > TMP_BUF_SIZE) {
-            BDBG_ERR(("%s: Need to increase the initialPayload buffer length from %d to %d\n", __FUNCTION__, TMP_BUF_SIZE, initialPayloadLength));
+            BDBG_ERR(("%s: Need to increase the initialPayload buffer length from %d to %d\n", BSTD_FUNCTION, TMP_BUF_SIZE, initialPayloadLength));
             BDBG_ASSERT(NULL);
             return -1;
         }
@@ -580,7 +580,7 @@ void B_PlaybackIp_AesSessionClose(
     B_PlaybackIpAesCtx *securityCtx = (B_PlaybackIpAesCtx *)voidHandle;
     if (securityCtx)
     {
-        BDBG_MSG(("%s:", __FUNCTION__));
+        BDBG_MSG(("%s:", BSTD_FUNCTION));
         /* Free up Aes Handle & any other saved contexts */
 #ifdef HW_DEC
         if (securityCtx->encKeyHandle) {
@@ -612,37 +612,37 @@ int B_PlaybackIp_AesSessionOpen(
     NEXUS_SecurityKeySlotSettings keySettings;
 #endif
 
-    BDBG_MSG(("%s:", __FUNCTION__));
+    BDBG_MSG(("%s:", BSTD_FUNCTION));
 
     BSTD_UNUSED(sd);
 
     if (openSettings == NULL) {
-        BDBG_ERR(("%s: Invalid parameters, Open Settings %p", __FUNCTION__, (void *)openSettings));
+        BDBG_ERR(("%s: Invalid parameters, Open Settings %p", BSTD_FUNCTION, (void *)openSettings));
         goto error;
     }
     securityOpenSettings = &openSettings->security;
     securityOpenOutputParams->byteRangeOffset = 0;
 
     if (sd <= 0) {
-        BDBG_ERR(("%s: invalid socket, sd = %d", __FUNCTION__, sd));
+        BDBG_ERR(("%s: invalid socket, sd = %d", BSTD_FUNCTION, sd));
         goto error;
     }
 
     if (securityOpenSettings->securityProtocol != B_PlaybackIpSecurityProtocol_Aes128) {
-        BDBG_ERR(("%s: invoking AES module with incorrect security protocol %d", __FUNCTION__, securityOpenSettings->securityProtocol));
+        BDBG_ERR(("%s: invoking AES module with incorrect security protocol %d", BSTD_FUNCTION, securityOpenSettings->securityProtocol));
         goto error;
     }
 
 #ifdef HW_DEC
     if (securityOpenSettings->dmaHandle == NULL) {
-        BDBG_ERR(("%s: App needs to provide M2M DMA Handle in the dmaHandle", __FUNCTION__));
+        BDBG_ERR(("%s: App needs to provide M2M DMA Handle in the dmaHandle", BSTD_FUNCTION));
         goto error;
     }
 #endif
 
     securityCtx = BKNI_Malloc(sizeof(B_PlaybackIpAesCtx));
     if (!securityCtx) {
-        BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
         goto error;
     }
     memset(securityCtx, 0, sizeof(B_PlaybackIpAesCtx));
@@ -652,13 +652,13 @@ int B_PlaybackIp_AesSessionOpen(
     /* allocate an encrypt buffer of a default size and then re-malloc if user is asking for larger data */
     securityCtx->encryptBuf = (char *)B_PlaybackIp_UtilsAllocateMemory(AES_ENCRYPT_BUFFER_SIZE, openSettings->heapHandle);
     if (!securityCtx->encryptBuf) {
-        BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
         goto error;
     }
     securityCtx->encryptBufSize = AES_ENCRYPT_BUFFER_SIZE;
     securityCtx->clearBuf = (char *)B_PlaybackIp_UtilsAllocateMemory(AES_ENCRYPT_BUFFER_SIZE, openSettings->heapHandle);
     if (!securityCtx->clearBuf) {
-        BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
         goto error;
     }
     securityCtx->clearBufSize = AES_ENCRYPT_BUFFER_SIZE;
@@ -669,17 +669,17 @@ int B_PlaybackIp_AesSessionOpen(
     keySettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
     securityCtx->encKeyHandle = NEXUS_Security_AllocateKeySlot(&keySettings);
     if(!securityCtx->encKeyHandle) {
-        BDBG_ERR(("%s: ERROR: Nexus Key Allocate Slot failed", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: Nexus Key Allocate Slot failed", BSTD_FUNCTION));
         goto error;
     }
     if (aes_setup_nexus_dma(securityCtx) != true) {
-        BDBG_ERR(("%s: ERROR: failed to setup nexus dma", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to setup nexus dma", BSTD_FUNCTION));
         goto error;
     }
-    BDBG_MSG(("%s: Successfully Allocated Nexus Key Slot: handle %p, encrypt Buffer %p", __FUNCTION__, (void *)securityCtx->encKeyHandle, (void *)securityCtx->encryptBuf));
+    BDBG_MSG(("%s: Successfully Allocated Nexus Key Slot: handle %p, encrypt Buffer %p", BSTD_FUNCTION, (void *)securityCtx->encKeyHandle, (void *)securityCtx->encryptBuf));
 #else
     if (aes_setup_sw_dec(securityCtx) != true ) {
-        BDBG_ERR(("%s: ERROR: failed to setup sw dec key", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to setup sw dec key", BSTD_FUNCTION));
         goto error;
     }
 #endif
@@ -688,7 +688,7 @@ int B_PlaybackIp_AesSessionOpen(
     securityOpenOutputParams->netIoPtr->close = B_PlaybackIp_AesSessionClose;
     securityOpenOutputParams->netIoPtr->suspend = NULL;
     *securityOpenOutputParams->securityHandle = (void *)securityCtx;
-    BDBG_MSG(("%s: done", __FUNCTION__));
+    BDBG_MSG(("%s: done", BSTD_FUNCTION));
     return 0;
 error:
     if (securityCtx)
@@ -705,7 +705,7 @@ void * B_PlaybackIp_AesInit(void *nexusDmaHandle)
 {
     BSTD_UNUSED(nexusDmaHandle);
     if (!gAesInitRefCnt) {
-        BDBG_MSG(("%s: done\n", __FUNCTION__));
+        BDBG_MSG(("%s: done\n", BSTD_FUNCTION));
     }
     gAesInitRefCnt++;
     return NULL;
@@ -722,7 +722,7 @@ void B_PlaybackIp_AesUnInit(void * ctx)
     gAesInitRefCnt--;
     if (!gAesInitRefCnt) {
         /* Global system un-initialization for Aes library */
-        BDBG_MSG(("%s: done\n", __FUNCTION__));
+        BDBG_MSG(("%s: done\n", BSTD_FUNCTION));
     }
 }
 

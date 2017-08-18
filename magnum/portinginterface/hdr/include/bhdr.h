@@ -321,6 +321,8 @@ typedef struct _BHDR_Settings_
 typedef struct BHDR_Status
 {
 	bool bValidStatus ;
+
+	BAVC_HDMI_Port stPort ;
 	uint8_t HdmiMode ;
 	uint8_t DeviceAttached ;
 	uint8_t PllLocked ;

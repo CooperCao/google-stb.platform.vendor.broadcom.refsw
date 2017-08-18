@@ -570,14 +570,21 @@ bmedia_vc1sm_read_info(bmedia_vc1sm_info *info, batom_cursor *cursor)
 	loopfilter = batom_bitstream_bit(&bs);
 	batom_bitstream_drop(&bs); /* Reserved3 */
 	multires = batom_bitstream_bit(&bs);
+	BSTD_UNUSED(multires);
 	batom_bitstream_drop(&bs); /* Reserved4 */
 	fastuvmc = batom_bitstream_bit(&bs);
+	BSTD_UNUSED(fastuvmc);
 	extended_mv = batom_bitstream_bit(&bs);
+	BSTD_UNUSED(extended_mv);
 	dquant = batom_bitstream_bits(&bs, 2);
+	BSTD_UNUSED(dquant);
 	vstransform = batom_bitstream_bit(&bs);
+	BSTD_UNUSED(vstransform);
 	batom_bitstream_drop(&bs); /* Reserved5 */
 	overlap = batom_bitstream_bit(&bs);
+	BSTD_UNUSED(overlap);
 	syncmarker = batom_bitstream_bit(&bs);
+	BSTD_UNUSED(syncmarker);
 	rangered = batom_bitstream_bit(&bs);
 	maxbframes = batom_bitstream_bits(&bs, 3);
 	quantizer = batom_bitstream_bits(&bs, 2);

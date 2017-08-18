@@ -60,8 +60,6 @@ typedef struct
 
 #define VCOS_ONCE_INIT        PTHREAD_ONCE_INIT
 
-#define VCOS_TICKS_PER_SECOND _vcos_get_ticks_per_second()
-
 /** Convert errno values into the values recognized by vcos */
 VCOS_STATUS_T vcos_pthreads_map_error(int error);
 VCOS_STATUS_T vcos_pthreads_map_errno(void);
@@ -358,14 +356,6 @@ static inline int vcos_atomic_swap(int nv, volatile int *v) {
 
 static inline int vcos_atomic_cmpxchg(int ov, int nv, volatile int *v) {
    return __sync_bool_compare_and_swap(v, ov, nv) ? 0 : 1;
-}
-
-static inline int vcos_strcasecmp(const char *s1, const char *s2) {
-   return strcasecmp(s1,s2);
-}
-
-static inline int vcos_strncasecmp(const char *s1, const char *s2, size_t n) {
-   return strncasecmp(s1,s2,n);
 }
 
 static inline VCOS_STATUS_T vcos_tls_create(VCOS_TLS_KEY_T *key, void (*destructor)(void *)) {

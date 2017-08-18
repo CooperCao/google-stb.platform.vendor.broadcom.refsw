@@ -93,7 +93,7 @@ bool Streamer::SetupPlaypump(
     return true;
 }
 
-IBuffer* Streamer::CreateBuffer(size_t size, uint8_t* data)
+IBuffer* Streamer::CreateBuffer(uint32_t size, uint8_t* data)
 {
     IBuffer* buffer = BufferFactory::CreateBuffer(size, data);
     if (buffer == NULL) {

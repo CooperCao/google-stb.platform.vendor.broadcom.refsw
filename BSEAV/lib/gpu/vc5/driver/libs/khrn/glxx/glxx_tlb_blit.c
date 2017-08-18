@@ -18,17 +18,17 @@ static bool store_general_compatible(GFX_LFMT_T lfmt)
  * Otherwise, false returned. */
 static bool try_init_blit(
    GLXX_HW_FRAMEBUFFER_T *src_hw_fb, GLXX_BLIT_T *blit,
-   const GLXX_SERVER_STATE_T *state,
+   GLXX_SERVER_STATE_T *state,
    GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
    GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
    GLbitfield mask)
 {
    const GLXX_FRAMEBUFFER_T *src_fb = state->bound_read_framebuffer;
-   if (!glxx_init_hw_framebuffer(src_fb, src_hw_fb))
+   if (!glxx_init_hw_framebuffer(src_fb, src_hw_fb, &state->fences))
       return false;
 
    const GLXX_FRAMEBUFFER_T *dst_fb = state->bound_draw_framebuffer;
-   if (!glxx_init_hw_framebuffer(dst_fb, &blit->dst_fb))
+   if (!glxx_init_hw_framebuffer(dst_fb, &blit->dst_fb, &state->fences))
    {
       glxx_destroy_hw_framebuffer(src_hw_fb);
       return false;

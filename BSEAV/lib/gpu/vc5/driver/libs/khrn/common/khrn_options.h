@@ -8,7 +8,7 @@
 #include "../glxx/gl_public_api.h"
 #include "vcos.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 struct khrn_options {
    bool nonms_double_buffer;
@@ -36,11 +36,14 @@ struct khrn_options {
 
 #if KHRN_DEBUG
    bool                 no_gmp;                   /* Disable GMP support. */
+   bool                 no_ubo_to_unif;           /* Disable pre-loading UBO values into uniform stream. */
    bool                 save_crc_enabled;
    bool                 autoclif_enabled;
-   int32_t              autoclif_only_one_clif_i; /* < 0 means capture all frames */
-   char                 autoclif_only_one_clif_name[VCOS_PROPERTY_VALUE_MAX];
+   int32_t              autoclif_single_frame; /* < 0 means capture all frames */
+   char                 autoclif_filename[VCOS_PROPERTY_VALUE_MAX]; // Filename of recorded CLIF. Should only be set if autoclif_single_frame >= 0.
+   char                 autoclif_prefix[VCOS_PROPERTY_VALUE_MAX]; // Prefix for recorded CLIF filenames. Ignored if autoclif_filename set.
    uint32_t             autoclif_bin_block_size; /* Set the size of the binning memory block in recorded CLIFs */
+   bool                 flush_after_draw;
 #endif
 
    char                 checksum_capture_filename[VCOS_PROPERTY_VALUE_MAX];
@@ -66,6 +69,12 @@ struct khrn_options {
     * almost certainly cases where this will cause something bad to happen...
     * hence "only for testing purposes". */
    bool force_multisample;
+
+   /* Test modes for forcing wireframe */
+   bool force_wireframe_lines;
+   bool force_wireframe_points;
+   bool random_wireframe;
+   uint32_t random_wireframe_seed;
 
    /* Test modes for forcing centroid varyings */
    bool force_centroid;
@@ -99,6 +108,8 @@ struct khrn_options {
 extern struct khrn_options khrn_options;
 
 extern void khrn_init_options(void);
+extern bool khrn_options_make_wireframe(void);
+extern bool khrn_options_make_wireframe_points(void);
 extern bool khrn_options_make_centroid(void);
 #if V3D_HAS_VARY_NO_PERSP
 extern bool khrn_options_make_noperspective(void);
@@ -113,6 +124,6 @@ extern void khrn_error_assist(GLenum error, const char *func, const char *file, 
 #define __func__ __FUNCTION__
 #endif
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

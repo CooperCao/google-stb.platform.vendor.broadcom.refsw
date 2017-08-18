@@ -1,0 +1,16 @@
+#!/bin/bash 
+
+if test -e /usr/bin/tclsh8.6;
+then
+   export TCLLIBPATH="$PWD"
+   exec -a $0 tclsh8.6 "$@"
+fi
+
+if test -e /usr/share/tcl8.5/tcllib-*;
+then
+    export TCLLIBPATH="$PWD"
+else
+    export TCLLIBPATH="$PWD /projects/hnd/tools/linux/share/tcllib1.10"
+fi
+
+exec -a $0 tclsh8.5 "$@"

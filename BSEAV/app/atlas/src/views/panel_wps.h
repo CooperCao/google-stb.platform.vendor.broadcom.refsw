@@ -83,7 +83,7 @@ protected:
     bool              _done;
     CWidgetButton *   _pCancel;
     MString           _result;
-    uint16_t          _maxSeconds;
+    unsigned          _maxSeconds;
     CTimer            _timerProgress;
     CTimer            _timerClose;
 };

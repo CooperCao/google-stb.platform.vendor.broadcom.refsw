@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapForZBPRO.h $
-*
-* DESCRIPTION:
-*   MAC-SAP interface for the ZigBee PRO stack.
-*
-* $Revision: 10332 $
-* $Date: 2016-03-09 08:57:51Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MAC-SAP interface for the ZigBee PRO stack.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_SAP_FOR_ZBPRO_H
 #define _BB_MAC_SAP_FOR_ZBPRO_H
@@ -80,6 +73,7 @@
 /************************* PROTOTYPES ***************************************************/
 /*************************************************************************************//**
  * \brief   Accepts MCPS-DATA.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -100,6 +94,7 @@ MAC_PUBLIC void ZBPRO_MAC_DataReq(MAC_DataReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Issues MCPS-DATA.indication to the ZigBee PRO Stack from the MAC.
+ * \ingroup Functions
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details
  *  ZigBee PRO shall provide MCPS-DATA.indication handler-function according to the
@@ -128,6 +123,7 @@ MAC_PUBLIC MAC_DataIndCallback_t ZBPRO_MAC_DataInd;
 
 /*************************************************************************************//**
  * \brief   Accepts MCPS-PURGE.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -148,6 +144,7 @@ MAC_PUBLIC void ZBPRO_MAC_PurgeReq(MAC_PurgeReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-ASSOCIATE.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -168,6 +165,7 @@ MAC_PUBLIC void ZBPRO_MAC_AssociateReq(MAC_AssociateReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Issues MLME-ASSOCIATE.indication to the ZigBee PRO Stack from the MAC.
+ * \ingroup Functions
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details
  *  ZigBee PRO shall provide MLME-ASSOCIATE.indication handler-function according to the
@@ -191,6 +189,7 @@ MAC_PUBLIC MAC_AssociateIndCallback_t ZBPRO_MAC_AssociateInd;
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-ASSOCIATE.response for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   respDescr   Pointer to the response descriptor object.
  * \note
  *  The descriptor pointed by \p respDescr must reside in the global memory space and must
@@ -213,6 +212,7 @@ MAC_PUBLIC void ZBPRO_MAC_AssociateResp(MAC_AssociateRespDescr_t *const respDesc
 #if defined(_MAC_TESTER_)
 /*************************************************************************************//**
  * \brief   Accepts MLME-BEACON.response for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   respDescr   Pointer to the response descriptor object.
  * \details
  *  This nonstandard primitive is used by the Test Harness to instigate the MAC to
@@ -232,13 +232,13 @@ MAC_PUBLIC void ZBPRO_MAC_AssociateResp(MAC_AssociateRespDescr_t *const respDesc
  * \par     Documentation
  *  See IEEE Std 802.15.4-2006, subclause 7.5.2.4.
 *****************************************************************************************/
-/* TODO: Rename to REQUEST. */
 MAC_PUBLIC void ZBPRO_MAC_BeaconResp(MAC_BeaconRespDescr_t *const respDescr);
 #endif /* _MAC_TESTER_ */
 
 
 /*************************************************************************************//**
  * \brief   Issues MLME-BEACON-NOTIFY.indication to the ZigBee PRO Stack from the MAC.
+ * \ingroup Functions
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details
  *  ZigBee PRO shall provide MLME-BEACON-NOTIFY.indication handler-function according to
@@ -267,6 +267,7 @@ MAC_PUBLIC MAC_BeaconNotifyIndCallback_t ZBPRO_MAC_BeaconNotifyInd;
 
 /*************************************************************************************//**
  * \brief   Issues MLME-COMM-STATUS.indication to the ZigBee PRO Stack from the MAC.
+ * \ingroup Functions
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details
  *  ZigBee PRO shall provide MLME-COMM-STATUS.indication handler-function according to
@@ -297,6 +298,7 @@ MAC_PUBLIC MAC_CommStatusIndCallback_t ZBPRO_MAC_CommStatusInd;
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-GET.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -323,6 +325,7 @@ MAC_PUBLIC void ZBPRO_MAC_GetReq(MAC_GetReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Issues MLME-ORPHAN.indication to the ZigBee PRO Stack from the MAC.
+ * \ingroup Functions
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details
  *  ZigBee PRO shall provide MLME-ORPHAN.indication handler-function according to the
@@ -346,6 +349,7 @@ MAC_PUBLIC MAC_OrphanIndCallback_t ZBPRO_MAC_OrphanInd;
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-ORPHAN.response for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   respDescr   Pointer to the response descriptor object.
  * \note
  *  The descriptor pointed by \p respDescr must reside in the global memory space and must
@@ -367,6 +371,7 @@ MAC_PUBLIC void ZBPRO_MAC_OrphanResp(MAC_OrphanRespDescr_t *const respDescr);
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-POLL.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -387,6 +392,7 @@ MAC_PUBLIC void ZBPRO_MAC_PollReq(MAC_PollReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Issues MLME-POLL.indication to the ZigBee PRO Stack from the MAC.
+ * \ingroup Functions
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details
  *  ZigBee PRO shall provide MLME-POLL.indication handler-function according to the
@@ -417,6 +423,7 @@ MAC_PUBLIC MAC_PollIndCallback_t ZBPRO_MAC_PollInd;
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-RESET.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -442,6 +449,7 @@ MAC_PUBLIC void ZBPRO_MAC_ResetReq(MAC_ResetReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-RX-ENABLE.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -471,6 +479,7 @@ MAC_PUBLIC void ZBPRO_MAC_RxEnableReq(MAC_RxEnableReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-SCAN.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -495,6 +504,7 @@ MAC_PUBLIC void ZBPRO_MAC_ScanReq(MAC_ScanReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-SET.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -521,6 +531,7 @@ MAC_PUBLIC void ZBPRO_MAC_SetReq(MAC_SetReqDescr_t *const reqDescr);
 
 /*************************************************************************************//**
  * \brief   Accepts MLME-START.request for the ZigBee PRO context of the MAC.
+ * \ingroup Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \note
  *  The descriptor pointed by \p reqDescr must reside in the global memory space and must
@@ -552,3 +563,5 @@ MAC_PUBLIC HAL_PrngDescr_t* ZBPRO_MAC_PrngDescr(void);
 
 
 #endif /* _BB_MAC_SAP_FOR_ZBPRO_H */
+
+/* eof bbMacSapForZBPRO.h */

@@ -71,21 +71,21 @@ typedef enum
 } ePidType;
 
 /* 0 is a valid pid, but only with respect to PSI table acquisition */
-#define VALID_PID(pid)  ((pid) != 0 && (pid) < 0x1FFF)
+#define VALID_PID(pid)  ((pid) != 0 && (pid) < 0x7FFFFFFF)
 
 class CPid
 {
 public:
     CPid(
-            uint16_t pid = 0xFFFF,
+            unsigned pid = 0xFFFF,
             ePidType type = ePidType_Unknown
             );
     CPid(
-            uint16_t         pid,
+            unsigned         pid,
             NEXUS_VideoCodec videoCodec
             );
     CPid(
-            uint16_t         pid,
+            unsigned         pid,
             NEXUS_AudioCodec audioCodec
             );
     CPid(MXmlElement * xmlElemPid);
@@ -106,8 +106,8 @@ public:
     eRet                   parseVideo(MXmlElement * xmlElemPid);
     void                   readXML(MXmlElement * xmlElemPid);
     void                   writeXML(MXmlElement * xmlElem);
-    uint16_t               getPid(void)                                     { return(_pid); }
-    void                   setPid(uint16_t pid)                             { _pid = pid; }
+    unsigned               getPid(void)                                     { return(_pid); }
+    void                   setPid(unsigned pid)                             { _pid = pid; }
     NEXUS_PidChannelHandle getPidChannel(void)                              { return(_pidChannel); }
     void                   setPidChannel(NEXUS_PidChannelHandle pidChannel) { _pidChannel = pidChannel; }
     void                   setPidType(ePidType pidType)                     { _pidType = pidType; }
@@ -124,8 +124,8 @@ public:
     void                   setSettings(NEXUS_PlaybackPidChannelSettings * pSettings) { _playbackSettings = *pSettings; }
     void                   getSettings(NEXUS_PlaypumpOpenPidChannelSettings * pSettings);
     void                   setSettings(NEXUS_PlaypumpOpenPidChannelSettings * pSettings);
-    uint16_t               getCaPid(void)                                         { return(_caPid); }
-    void                   setCaPid(uint16_t caPid)                               { _caPid = caPid; }
+    unsigned               getCaPid(void)                                         { return(_caPid); }
+    void                   setCaPid(unsigned caPid)                               { _caPid = caPid; }
     NEXUS_VideoCodec       getVideoCodec()                                        { return(_videoCodec); }
     NEXUS_VideoFrameRate   getVideoFrameRate()                                    { return(_videoFrameRate); }
     NEXUS_AudioCodec       getAudioCodec()                                        { return(_audioCodec); }
@@ -141,24 +141,24 @@ public:
     bool                   isPlayback(void)                                       { return(_isPlayback); }
     bool                   isOpen()                                               { return(NULL != _pidChannel); }
     bool                   isDVREncryption(void)                                  { return((_pCrypto != NULL) ? true : false);  }
-    uint16_t               getWidth(void)                                         { return(_width); }
-    void                   setWidth(uint16_t width)                               { _width = width; }
-    uint16_t               getHeight(void)                                        { return(_height); }
-    void                   setHeight(uint16_t height)                             { _height = height; }
-    uint16_t               getBitrate(void)                                       { return(_bitrate); }
-    void                   setBitrate(uint16_t bitrate)                           { _bitrate = bitrate; }
-    uint16_t               getSampleRate(void)                                    { return(_audioSampleRate); }
-    void                   setSampleRate(uint16_t sampleRate)                     { _audioSampleRate = sampleRate; }
-    uint16_t               getSampleSize(void)                                    { return(_audioSampleSize); }
-    void                   setSampleSize(uint16_t sampleSize)                     { _audioSampleSize = sampleSize; }
-    uint16_t               getAudioChannels(void)                                 { return(_audioChannels); }
-    void                   setAudioChannels(uint16_t audioChannels)               { _audioChannels = audioChannels; }
+    unsigned               getWidth(void)                                         { return(_width); }
+    void                   setWidth(unsigned width)                               { _width = width; }
+    unsigned               getHeight(void)                                        { return(_height); }
+    void                   setHeight(unsigned height)                             { _height = height; }
+    unsigned               getBitrate(void)                                       { return(_bitrate); }
+    void                   setBitrate(unsigned bitrate)                           { _bitrate = bitrate; }
+    unsigned               getSampleRate(void)                                    { return(_audioSampleRate); }
+    void                   setSampleRate(unsigned sampleRate)                     { _audioSampleRate = sampleRate; }
+    unsigned               getSampleSize(void)                                    { return(_audioSampleSize); }
+    void                   setSampleSize(unsigned sampleSize)                     { _audioSampleSize = sampleSize; }
+    unsigned               getAudioChannels(void)                                 { return(_audioChannels); }
+    void                   setAudioChannels(unsigned audioChannels)               { _audioChannels = audioChannels; }
     void                   print(bool bForce = false);
     void                   dump(bool bForce = false) { print(bForce); }
 
 protected:
-    uint16_t                             _pid;
-    uint16_t                             _caPid;
+    unsigned                             _pid;
+    unsigned                             _caPid;
     ePidType                             _pidType;
     bool                                 _isPcr;
     bool                                 _isPlayback;
@@ -172,19 +172,19 @@ protected:
     NEXUS_VideoFrameRate                 _videoFrameRate;
     NEXUS_AudioCodec                     _audioCodec;
     CCrypto *                            _pCrypto;
-    uint16_t                             _width;
-    uint16_t                             _height;
-    uint16_t                             _bitrate;
-    uint16_t                             _audioSampleRate;
-    uint16_t                             _audioSampleSize;
-    uint16_t                             _audioChannels;
+    unsigned                             _width;
+    unsigned                             _height;
+    unsigned                             _bitrate;
+    unsigned                             _audioSampleRate;
+    unsigned                             _audioSampleSize;
+    unsigned                             _audioChannels;
 };
 
 class CPidVideo : public CPid
 {
 public:
     CPidVideo(
-            uint16_t         pid,
+            unsigned         pid,
             NEXUS_VideoCodec videoCodec
             ) :
         CPid(pid, ePidType_Video),
@@ -203,7 +203,7 @@ class CPidAudio : public CPid
 {
 public:
     CPidAudio(
-            uint16_t         pid,
+            unsigned         pid,
             NEXUS_AudioCodec audioCodec
             ) :
         CPid(pid, ePidType_Audio),
@@ -221,7 +221,7 @@ protected:
 class CPidPcr : public CPid
 {
 public:
-    CPidPcr(uint16_t pid) :
+    CPidPcr(unsigned pid) :
         CPid(pid, ePidType_Pcr) {}
 
     eRet readXML(MXmlElement * xmlElemPid);
@@ -231,7 +231,7 @@ public:
 class CPidAncillary : public CPid
 {
 public:
-    CPidAncillary(uint16_t pid) :
+    CPidAncillary(unsigned pid) :
         CPid(pid, ePidType_Ancillary) {}
 
     eRet readXML(MXmlElement * xmlElemPid);

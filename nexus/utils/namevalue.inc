@@ -101,10 +101,15 @@ const namevalue_t g_videoFormatStrs[] = {
     {"1080p120",  NEXUS_VideoFormat_e1080p120hz},
     {"720p3D",    NEXUS_VideoFormat_e3D_720p},
     {"1080p3D",   NEXUS_VideoFormat_e3D_1080p_24Hz},
+    {"4Kp24", NEXUS_VideoFormat_e3840x2160p24hz},
     {"3840x2160p24", NEXUS_VideoFormat_e3840x2160p24hz},
+    {"4Kp25", NEXUS_VideoFormat_e3840x2160p25hz},
     {"3840x2160p25", NEXUS_VideoFormat_e3840x2160p25hz},
+    {"4Kp30", NEXUS_VideoFormat_e3840x2160p30hz},
     {"3840x2160p30", NEXUS_VideoFormat_e3840x2160p30hz},
+    {"4Kp50", NEXUS_VideoFormat_e3840x2160p50hz},
     {"3840x2160p50", NEXUS_VideoFormat_e3840x2160p50hz},
+    {"4Kp60", NEXUS_VideoFormat_e3840x2160p60hz},
     {"3840x2160p60", NEXUS_VideoFormat_e3840x2160p60hz},
     {"4096x2160p24", NEXUS_VideoFormat_e4096x2160p24hz},
     {"4096x2160p25", NEXUS_VideoFormat_e4096x2160p25hz},
@@ -489,7 +494,7 @@ const namevalue_t g_macrovisionStrs[] = {
 
 
 const namevalue_t g_securityAlgoStrs[] = {
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     {"3des",NEXUS_SecurityAlgorithm_e3DesAba},
     {"aes",NEXUS_SecurityAlgorithm_eAes128},
 #endif

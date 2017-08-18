@@ -60,8 +60,8 @@ public:
 
     bool                   isGridVisible(void) { return(_showGrid); }
     void                   showMeter(bool show);
-    int16_t                getLevel(void) { return(_level); }
-    void                   setLevel(int16_t level);
+    int                    getLevel(void) { return(_level); }
+    void                   setLevel(int level);
     uint32_t               getColor(void) { return(_color); }
     void                   setColor(uint32_t color);
     eRet                   loadMeterImage(const char * filename, bwin_image_render_mode renderMode = bwin_image_render_mode_single);
@@ -69,18 +69,18 @@ public:
     bwin_image_render_mode getMeterRenderMode(void)          { return(_imageRenderMode); }
     void                   setRangeIndicator(bool showRange) { _showRange = showRange; }
     bool                   isRangeIndicatorVisible(void)     { return(_showRange); }
-    void                   setRangeIndicatorSize(uint16_t size);
-    uint16_t               getRangeIndicatorSize(void)      { return(_rangeSize); }
+    void                   setRangeIndicatorSize(unsigned size);
+    unsigned               getRangeIndicatorSize(void)      { return(_rangeSize); }
     void                   setNumPoints(uint32_t numPoints) { _numPoints = numPoints; }
     uint32_t               getNumPoints(void);
-    void                   addCoordinate(int16_t x, int16_t y);
-    void                   getCoordinate(int16_t * x, int16_t * y, int i);
+    void                   addCoordinate(int x, int y);
+    void                   getCoordinate(int * x, int * y, int i);
     void                   clearGrid(void);
 
     typedef struct gridPoints
     {
-        int16_t   x;
-        int16_t   y;
+        int   x;
+        int   y;
     } gridPoints;
 
 protected:
@@ -88,9 +88,9 @@ protected:
     bwin_image_t           _imageGrid;
     bwin_image_render_mode _imageRenderMode;
     uint32_t               _color;
-    int16_t                _level;
+    int                    _level;
     bool                   _showRange;
-    int16_t                _rangeSize;
+    int                    _rangeSize;
     uint32_t               _numPoints;
     MAutoList <gridPoints> _gridPoints;
 };

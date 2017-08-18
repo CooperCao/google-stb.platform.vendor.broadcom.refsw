@@ -95,11 +95,11 @@ public:
     virtual void show(bool bShow, bool bLockFocus);
     virtual void setGeometry(MRect geometry);
 
-    uint16_t        getSeparatorSize(void)          { return(_separatorSize); }
-    void            setSeparatorSize(uint16_t size) { _separatorSize = size; }
+    unsigned        getSeparatorSize(void)          { return(_separatorSize); }
+    void            setSeparatorSize(unsigned size) { _separatorSize = size; }
     void            add(CWidgetButton * pWidgetItem);
     void            remove(CWidgetButton * pWidgetItem);
-    CWidgetButton * remove(uint16_t index);
+    CWidgetButton * remove(unsigned index);
     int             getNumButtons(void) { return(_widgetList.total()); }
     void            setActive(CWidgetButton * pWidgetItem, bool bActive);
     bool            isActive(CWidgetButton * pWidgetItem);
@@ -113,7 +113,7 @@ public:
     bool            isLastVisible(CWidgetButton * pWidget);
     bool            isFastScroll(B_Time * pTimePrevKeyPress);
     void            scrollTo(int index);
-    uint16_t        getFastScrollIncrement(void);
+    unsigned        getFastScrollIncrement(void);
     bool            getScroll(void) { return(_scroll); }
     void            setScroll(bool scroll);
     bool            getAutoResize(void) { return(_autoResize); }
@@ -125,7 +125,7 @@ public:
 
 protected:
     MAutoList <CWidgetListItem> _widgetList;
-    uint16_t                    _separatorSize;
+    unsigned                    _separatorSize;
     bool   _scroll;
     bool   _autoResize;
     bool   _lockFocus;

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -422,7 +422,7 @@ static void NEXUS_Frontend_P_7125_CloseQam(
     /* see if there are still open channels*/
     if (pDevice->numfrontends)
     {
-        BDBG_MSG(("%s() return with numfrontends = %u",__FUNCTION__, pDevice->numfrontends));
+        BDBG_MSG(("%s() return with numfrontends = %u",BSTD_FUNCTION, pDevice->numfrontends));
         return;
     }
 
@@ -431,7 +431,7 @@ static void NEXUS_Frontend_P_7125_CloseQam(
         (pDevice->ads_chn[i]) = NULL;
     }
 
-    BDBG_MSG(("%s() closed BADS channels, unregistering isrEventCallback",__FUNCTION__));
+    BDBG_MSG(("%s() closed BADS channels, unregistering isrEventCallback",BSTD_FUNCTION));
     NEXUS_UnregisterEvent(pDevice->isrEventCallback);
 
     if (pDevice->adsHandle) BADS_Close(pDevice->adsHandle);
@@ -787,14 +787,14 @@ static void NEXUS_Frontend_P_7125_UntuneQam(void *handle)
     NEXUS_7125Qam *pDevice = (NEXUS_7125Qam *)channelHandle->pDevice;
     unsigned chn_num = channelHandle->chn_num;
 
-    BDBG_MSG(("%s()",__FUNCTION__));
+    BDBG_MSG(("%s()",BSTD_FUNCTION));
 
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7125Qam);
 
 #ifdef NEXUS_POWER_MANAGEMENT
     rc = NEXUS_Tuner_Untune7125(pDevice->tuner[chn_num]);
     if (rc) {rc = BERR_TRACE(rc);}
-    BDBG_MSG(("%s() call BADS_EnablePowerSaver()",__FUNCTION__));
+    BDBG_MSG(("%s() call BADS_EnablePowerSaver()",BSTD_FUNCTION));
     rc = BADS_EnablePowerSaver(pDevice->ads_chn[channelHandle->chn_num]);
     if (rc) {rc = BERR_TRACE(rc);}
 #else
@@ -822,14 +822,14 @@ static void NEXUS_Frontend_P_7125_GetType(void *handle,NEXUS_FrontendType *type)
 
     if(retCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: unable to get version",__FUNCTION__));
+        BDBG_ERR(("%s: unable to get version",BSTD_FUNCTION));
         goto error;
     }
     type->chip.familyId = adsVersion.familyId;
     type->chip.id = adsVersion.chipId;
     type->chip.version.major = adsVersion.majVer;
     type->chip.version.minor = adsVersion.minVer;
-    BDBG_MSG(("%s %#x  %#x ",__FUNCTION__,type->chip.familyId,type->chip.version.major));
+    BDBG_MSG(("%s %#x  %#x ",BSTD_FUNCTION,type->chip.familyId,type->chip.version.major));
 error:
     return;
 }

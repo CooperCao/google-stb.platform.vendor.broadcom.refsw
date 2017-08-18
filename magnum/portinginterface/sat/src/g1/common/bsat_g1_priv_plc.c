@@ -450,7 +450,7 @@ static BERR_Code BSAT_g1_P_LookupPlcTable_isr(const uint8_t *pBwTable, const uin
 /******************************************************************************
  BSAT_g1_P_SetPlc_isr()
 ******************************************************************************/
-static BERR_Code BSAT_g1_P_SetPlc_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t damp)
+BERR_Code BSAT_g1_P_SetPlc_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t damp)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t i, j, b0, b1, b2, b3, val, P_hi, P_lo, Q_hi, Q_lo;

@@ -79,7 +79,6 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-    uint8_t i=0;
     const NEXUS_PlatformMemory *pMemory = &g_platformMemory; /* g_platformMemory is completely initialized already */
     BSTD_UNUSED(boxMode);
     /* kernel suggested boot options bmem=192M@64M bmem=512M@512M for boards with >750M memory
@@ -110,10 +109,13 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
 
 #if NEXUS_PLATFORM_7241_T2SFF || NEXUS_PLATFORM_7241_DCSFBTSFF
+    {
+    uint8_t i=0;
     for (i=0;i<NEXUS_MAX_I2C_CHANNELS;i++) {
         if ( i != NEXUS_I2C_CHANNEL_HDMI_TX ){
             pSettings->i2c[i].settings.interruptMode = false;
         }
+    }
     }
 #endif
 

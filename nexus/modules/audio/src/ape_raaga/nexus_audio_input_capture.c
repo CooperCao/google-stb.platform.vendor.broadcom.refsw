@@ -224,7 +224,7 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
         }
         BKNI_Memset(procHandle, 0, sizeof(*procHandle));
 
-        BDBG_MSG(("%s - Memory Capture mode, allocating resources", __FUNCTION__));
+        BDBG_MSG(("%s - Memory Capture mode, allocating resources", BSTD_FUNCTION));
         heap = NEXUS_P_DefaultHeap(pSettings->heap, NEXUS_DefaultHeapType_eFull);
         if ( NULL == heap )
         {
@@ -265,7 +265,7 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
     }
     else
     {
-        BDBG_MSG(("%s - Capture to FMM mode", __FUNCTION__));
+        BDBG_MSG(("%s - Capture to FMM mode", BSTD_FUNCTION));
     }
 
     for ( i = 0; i < NEXUS_AudioChannel_eMax; i++ )
@@ -409,6 +409,26 @@ void NEXUS_AudioInputCapture_GetDefaultStartSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
+#if NEXUS_HAS_HDMI_INPUT
+#include "priv/nexus_hdmi_input_priv.h"
+static void NEXUS_P_AudioInputCapture_ConnectHdmiInput(NEXUS_AudioInputCaptureHandle handle, bool connected)
+{
+    if (handle->startSettings.input) {
+        NEXUS_HdmiInputHandle hdmiInput = handle->startSettings.input->pObjectHandle;
+        if (handle->startSettings.input->objectType == NEXUS_AudioInputType_eHdmi && hdmiInput) {
+            NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiInput);
+            NEXUS_HdmiInput_AudioConnected_priv(hdmiInput, connected);
+            NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiInput);
+        }
+        else {
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+    }
+}
+#else
+#define NEXUS_P_AudioInputCapture_ConnectHdmiInput(handle, connected)
+#endif
+
 /***************************************************************************
 Summary:
 Start capturing input data
@@ -513,6 +533,8 @@ NEXUS_Error NEXUS_AudioInputCapture_Start(
     }
     handle->running = true;
 
+    NEXUS_P_AudioInputCapture_ConnectHdmiInput(handle, true);
+
     return BERR_SUCCESS;
 
 err_start:
@@ -557,6 +579,7 @@ void NEXUS_AudioInputCapture_Stop(
     inputCaptureInterrupts.inputHalted.pCallback_isr = NULL;
     inputCaptureInterrupts.watermark.pCallback_isr = NULL;
     (void)BAPE_InputCapture_SetInterruptHandlers(handle->apeHandle, &inputCaptureInterrupts);
+    NEXUS_P_AudioInputCapture_ConnectHdmiInput(handle, false);
 
     handle->running = false;
 }

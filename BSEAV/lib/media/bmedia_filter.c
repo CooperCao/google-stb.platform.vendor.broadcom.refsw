@@ -322,12 +322,6 @@ b_media_asf_uninit(bmedia_filter_t filter)
     basf_parser_destroy(filter->asf.parser);
     return;
 }
-
-static void* b_media_asf_get_handle(bmedia_filter_t filter)
-{
-        return (void*)filter->asf.parser;
-}
-
 #endif /* B_HAS_ASF */
 
 static int

@@ -1418,11 +1418,12 @@ bool glxx_hw_draw_triangles(
       }
    }
 
-#ifdef DRAW_TEX_LOGGING
-   printf("state_name: %d rs: %d draw_triangles: count %d type %d\n",
-      state->name,rs->name,count,type);
-   printf("--------------------\n");
-#endif
+   if (DRAW_TEX_LOGGING)
+   {
+      vcos_log(LOG_INFO, "state_name: %d rs: %d draw_triangles: count %d type %d",
+         state->name, rs->name, count, type);
+      vcos_log(LOG_INFO, "--------------------");
+   }
 
    /* TODO: only allocate space for as many vertex attributes as we need */
    /* TODO: extended vertex stride? */
@@ -2390,24 +2391,19 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
       {
          vcos_assert(!IS_GL_11(state));
 
-         if (!is_cube)
-         {
-            //XXX TODO find out why are we getting !texture->is_cube
-            *location = 0;
-         }
-         else
+         uint32_t cube_stride = 0;
+         if (is_cube)
          {
             uint32_t stride = glxx_texture_get_cube_stride(texture);
-            uint32_t cube_stride;
+
             vcos_assert(!(stride & 0xfff));
-               cube_stride = stride | 1 << 30;
-
-            /* disable automatic level of detail in vertex shader */
-            if (in_vshader)
-               cube_stride |= 1;
-
-            *location = cube_stride;
+               cube_stride = stride | (1 << 30);
          }
+         /* disable automatic level of detail in vertex shader */
+         if (in_vshader)
+            cube_stride |= 1 | (1 << 30);
+
+         *location = cube_stride;
          break;
       }
       default:
@@ -2506,70 +2502,79 @@ static uint32_t convert_index_type(GLenum type)
       return 0;
    }
 }
-#ifdef DRAW_TEX_LOGGING
-static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, GLXX_HW_RENDER_STATE_T *rs, GLfloat Xs, GLfloat Ys, GLfloat Zw, GLfloat Ws, GLfloat Hs)
+
+static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, GLXX_HW_RENDER_STATE_T *rs,
+                         GLfloat Xs, GLfloat Ys, GLfloat Zw, GLfloat Ws, GLfloat Hs)
 {
    GL11_CACHE_KEY_T * entry = &state->shader;
    int i;
 
-   printf("state_name: %d rs: %d drawTex: Xs %f Ys %f Zw %f Ws %f Hs %f\n",
+   UNUSED(fb);
+   UNUSED(rs);
+   UNUSED(Xs);
+   UNUSED(Ys);
+   UNUSED(Zw);
+   UNUSED(Ws);
+   UNUSED(Hs);
+
+   vcos_log(LOG_INFO, "state_name: %d rs: %d drawTex: Xs %f Ys %f Zw %f Ws %f Hs %f\n",
       state->name, rs->name, Xs, Ys, Zw, Ws, Hs);
 
-   for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
-      if(entry->texunits[i].props.active)
+   for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   {
+      if (entry->texunits[i].props.active)
       {
          GLXX_TEXTURE_T * texture;
-         printf("texunit:%d mode:0x%x coord_replace:0x%x\n",i,entry->texunits[i].mode,entry->texunits[i].coord_replace);
-         printf("   active:%d complex:%d has_color:%d has_alpha:%d\n",entry->texunits[i].props.active,entry->texunits[i].props.complex,
+         vcos_log(LOG_INFO, "texunit:%d mode:0x%x coord_replace:0x%x",i,entry->texunits[i].mode,entry->texunits[i].coord_replace);
+         vcos_log(LOG_INFO, "   active:%d complex:%d has_color:%d has_alpha:%d",entry->texunits[i].props.active,entry->texunits[i].props.complex,
             entry->texunits[i].props.has_color, entry->texunits[i].props.has_alpha);
-         printf("   rgb: combine:0x%x scale:%f source:0x%x 0x%x 0x%x operand:0x%x 0x%x 0x%x\n",entry->texunits[i].rgb.combine,entry->texunits[i].rgb.scale,
+         vcos_log(LOG_INFO, "   rgb: combine:0x%x scale:%f source:0x%x 0x%x 0x%x operand:0x%x 0x%x 0x%x",entry->texunits[i].rgb.combine,entry->texunits[i].rgb.scale,
             entry->texunits[i].rgb.source[0],entry->texunits[i].rgb.source[1],entry->texunits[i].rgb.source[2],
             entry->texunits[i].rgb.operand[0],entry->texunits[i].rgb.operand[1],entry->texunits[i].rgb.operand[2]);
-         printf("   alpha: combine:0x%x scale:%f source:0x%x 0x%x 0x%x operand:0x%x 0x%x 0x%x\n",entry->texunits[i].alpha.combine,entry->texunits[i].alpha.scale,
+         vcos_log(LOG_INFO, "   alpha: combine:0x%x scale:%f source:0x%x 0x%x 0x%x operand:0x%x 0x%x 0x%x",entry->texunits[i].alpha.combine,entry->texunits[i].alpha.scale,
             entry->texunits[i].alpha.source[0],entry->texunits[i].alpha.source[1],entry->texunits[i].alpha.source[2],
             entry->texunits[i].alpha.operand[0],entry->texunits[i].alpha.operand[1],entry->texunits[i].alpha.operand[2]);
-         texture = mem_lock(state->bound_texture[i].mh_twod);
-         printf("   handle: %d crop_rect: Ucr %d Vcr %d Wcr %d Hcr %d W %d H %d\n",
+         texture = mem_lock(state->bound_texture[i].mh_twod, NULL);
+         vcos_log(LOG_INFO, "   handle: %d crop_rect: Ucr %d Vcr %d Wcr %d Hcr %d W %d H %d",
             state->bound_texture[i].mh_twod,
             texture->crop_rect.Ucr,texture->crop_rect.Vcr,texture->crop_rect.Wcr,texture->crop_rect.Hcr,texture->width,texture->height);
-         printf("   wrap: s 0x%x t 0x%x mag: 0x%x min: 0x%x\n",texture->wrap.s,texture->wrap.t,texture->mag,texture->min);
+         vcos_log(LOG_INFO, "   wrap: s 0x%x t 0x%x mag: 0x%x min: 0x%x",texture->wrap.s,texture->wrap.t,texture->mag,texture->min);
          mem_unlock(state->bound_texture[i].mh_twod);
       }
    }
 
-   printf("viewport: x %d y %d w %d h %d\n",state->viewport.x,state->viewport.y,state->viewport.width,state->viewport.height);
-   printf("scissor_test: %d\n",state->caps.scissor_test);
-   if(state->caps.scissor_test)
-      printf("  scissor: x %d y %d w %d h %d\n",state->scissor.x,state->scissor.y,state->scissor.width,state->scissor.height);
-   printf("blend: %d\n",state->caps.blend);
-   if(state->caps.blend)
+   vcos_log(LOG_INFO, "viewport: x %d y %d w %d h %d",state->viewport.x,state->viewport.y,state->viewport.width,state->viewport.height);
+   vcos_log(LOG_INFO, "scissor_test: %d",state->caps.scissor_test);
+   if (state->caps.scissor_test)
+      vcos_log(LOG_INFO, "  scissor: x %d y %d w %d h %d",state->scissor.x,state->scissor.y,state->scissor.width,state->scissor.height);
+   vcos_log(LOG_INFO, "blend: %d",state->caps.blend);
+   if (state->caps.blend)
    {
-      printf("  color_mask 0x%x eqn 0x%x eqn_alpha 0x%x\n",
+      vcos_log(LOG_INFO, "  color_mask 0x%x eqn 0x%x eqn_alpha 0x%x",
          entry->common.blend.color_mask,entry->common.blend.equation,entry->common.blend.equation_alpha);
-      printf("  src_func 0x%x src_func_a 0x%x dst_func 0x%x dst_func_a 0x%x\n",
+      vcos_log(LOG_INFO, "  src_func 0x%x src_func_a 0x%x dst_func 0x%x dst_func_a 0x%x",
          entry->common.blend.src_function,entry->common.blend.src_function_alpha,entry->common.blend.dst_function,entry->common.blend.dst_function_alpha);
-      printf("  blend_color: (%f %f %f %f)\n",
+      vcos_log(LOG_INFO, "  blend_color: (%f %f %f %f)",
          state->blend_color[0],state->blend_color[1],state->blend_color[2],state->blend_color[3]);
    }
-   printf("stencil_test: %d depth_test: %d\n",state->caps.stencil_test,state->caps.depth_test);
-   printf("logic_op: %d func: 0x%x\n",state->caps.color_logic_op,entry->common.blend.logic_op);
-   printf("dither: %d multisample: %d\n",state->caps.dither,state->caps.multisample);
-   printf("sample_a2c: %d sample_c: %d sample_a21: %d\n",
+   vcos_log(LOG_INFO, "stencil_test: %d depth_test: %d",state->caps.stencil_test,state->caps.depth_test);
+   vcos_log(LOG_INFO, "logic_op: %d func: 0x%x",state->caps.color_logic_op,entry->common.blend.logic_op);
+   vcos_log(LOG_INFO, "dither: %d multisample: %d",state->caps.dither,state->caps.multisample);
+   vcos_log(LOG_INFO, "sample_a2c: %d sample_c: %d sample_a21: %d",
       state->caps.sample_alpha_to_coverage,state->caps.sample_coverage,state->caps.sample_alpha_to_one);
-   printf("polygon_offset: %d alpha_test: %d fog: %d\n",
+   vcos_log(LOG_INFO, "polygon_offset: %d alpha_test: %d fog: %d",
       state->caps.polygon_offset_fill,state->caps_fragment.alpha_test,state->caps_fragment.fog);
-   printf("color: (%f %f %f %f)\n",
+   vcos_log(LOG_INFO, "color: (%f %f %f %f)",
          state->copy_of_color[0],state->copy_of_color[1],state->copy_of_color[2],state->copy_of_color[3]);
 
-   printf("cattribs_live:0x%x vattribs_live:0x%x\n",entry->cattribs_live,entry->vattribs_live);
+   vcos_log(LOG_INFO, "cattribs_live:0x%x vattribs_live:0x%x",entry->cattribs_live,entry->vattribs_live);
 
    /* TODO frame buffer format */
-   printf("framebuffer: format 0x%x has_depth %d has_stencil %d ms %d w %d h %d\n",
+   vcos_log(LOG_INFO, "framebuffer: format 0x%x has_depth %d has_stencil %d ms %d w %d h %d",
       fb->col_format, fb->have_depth, fb->have_stencil, fb->ms, fb->width, fb->height);
 
-   printf("--------------------\n");
+   vcos_log(LOG_INFO, "--------------------");
 }
-#endif
 
 bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs, bool secure)
 {
@@ -2624,7 +2629,8 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       mergeable_attribs[i] = (uint32_t)~0;
    }
 
-   for(i = 0;i<4;i++) {
+   for(i = 0;i<4;i++)
+   {
       num_vpm_rows_c[i] = 0;
       num_vpm_rows_v[i] = 0;
    }
@@ -2666,9 +2672,8 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    state->shader.common.primitive_type = glxx_hw_primitive_mode_to_type(GL_TRIANGLE_FAN);
    state->shader.drawtex = true;
 
-#ifdef DRAW_TEX_LOGGING
-   draw_tex_log(state, &fb, rs, Xs, Ys, Zw, Ws, Hs);
-#endif
+   if (DRAW_TEX_LOGGING)
+      draw_tex_log(state, &fb, rs, Xs, Ys, Zw, Ws, Hs);
 
    attrib_data = glxx_big_mem_alloc_junk(stride * 4, 4, &attrib_data_lbh);
    if(!attrib_data)

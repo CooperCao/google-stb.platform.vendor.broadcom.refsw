@@ -791,7 +791,11 @@ CASE(eglCreatePlatformPixmapSurfaceEXT, 0x470711cd);
 
 // EGL_EXT_protected_surface
 
-// GL_BRCM_mirror_once_border
+// GL_BRCM_image_formats
+#if V3D_HAS_GFXH1638_FIX
+#endif /* V3D_HAS_GFXH1638_FIX*/
+
+// GL_BRCM_mirror_clamp_to_edge
 
 // GL_BRCM_polygon_mode
 CASE(glPolygonModeBRCM, 0x67332781);
@@ -803,8 +807,14 @@ CASE(glProvokingVertexBRCM, 0xe8a03b96);
 
 // GL_BRCM_texture_1D
 CASE(glTexImage1DBRCM, 0xc6130655);
+CASE(glTexSubImage1DBRCM, 0x35efaee5);
+CASE(glTexStorage1DBRCM, 0x88036b85);
 
 // GL_BRCM_texture_norm16
+
+// GL_BRCM_texture_unnormalised_coords
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_EXT_base_instance
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -925,8 +935,6 @@ CASE(glTexBufferRangeEXT, 0x180c1aca);
 #endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_EXT_texture_filter_anisotropic
-#if GL_EXT_texture_filter_anisotropic
-#endif /* GL_EXT_texture_filter_anisotropic*/
 
 // GL_EXT_texture_format_BGRA8888
 

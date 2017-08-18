@@ -10,7 +10,7 @@
 #include "gfx_buffer_slow_conv_xform.h"
 #include "vcos.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /* TODO? add get_block and/or put_block as steps for greater flexibility, more
  * code sharing with glGenerateMipmap */
@@ -203,4 +203,4 @@ extern size_t gfx_buffer_sprint_elem(char *buf, size_t buf_size, size_t offset,
 #define GFX_BUFFER_SPRINT_ELEM(BUF_NAME, DESC, P, X, Y, Z, PRINT_POINTER) \
    VCOS_SAFE_STRFUNC_TO_LOCAL_BUF(BUF_NAME, 2048, gfx_buffer_sprint_elem, DESC, P, X, Y, Z, PRINT_POINTER)
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

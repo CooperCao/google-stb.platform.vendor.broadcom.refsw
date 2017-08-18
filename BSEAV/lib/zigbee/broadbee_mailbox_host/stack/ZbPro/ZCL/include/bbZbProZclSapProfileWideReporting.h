@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile$
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL Profile-Wide Reporting SAP interface.
+*       ZCL Profile-Wide Reporting SAP interface.
 *
-* $Revision$
-* $Date$
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_PROFILE_WIDE_REPORTING_H
 #define _BB_ZBPRO_ZCL_SAP_PROFILE_WIDE_REPORTING_H
@@ -59,21 +51,11 @@
 #include "bbZbProZclCommon.h"
 #include "bbZbProZclAttrLocal.h"
 
-/************************* COMMON DEFINITIONS ************************************************/
-/**//**
- * \brief Common types for Attribute commands.
- * TODO move it to common part.
- */
-typedef uint16_t  ZBPRO_ZCL_AttributeId_t;
-//typedef uint8_t  ZBPRO_ZCL_AttrDataType_t;
-
-
-
-
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief   Enumerator for Direction parameter of the  Attribute Reporting Configuration Record of the
  *  Configure Reporting and Read Reporting Configuration Response profile-wide commands.
+ * \ingroup ZBPRO_ZCL_ProfileWideAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.7.1.2 and 2.4.10.1.3.
  */
@@ -109,6 +91,7 @@ typedef enum _ZBPRO_ZCL_AttributeReportingDirection_t
  * \brief  Shared type for Minimum Reporting Interval and Maximum Reporting Interval
  * parameters of the  Attribute Reporting Configuration Record of the
  *  Configure Reporting and Read Reporting Configuration Response profile-wide commands.
+ * \ingroup ZBPRO_ZCL_ProfileWideAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.7.1.5, 2.4.7.1.6 and 2.4.10.1.5, 2.4.10.1.6.
  */
@@ -118,6 +101,7 @@ typedef  uint16_t  ZBPRO_ZCL_AttribureReportingInterval_t;
 /**//**
  * \brief  Shared type for Timeout Period parameter of the  Attribute Reporting Configuration Record of the
  *  Configure Reporting and of the Read Reporting Configuration Response profile-wide commands.
+ * \ingroup ZBPRO_ZCL_ProfileWideAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.7.1.8 and 2.4.10.1.8.
  */
@@ -128,6 +112,7 @@ typedef  uint16_t  ZBPRO_ZCL_AttribureReportingTimeoutPeriod_t;
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Configure Reporting
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ConfigureReportingReq
  * \note
  * Configure Reporting command with only one Attribute reporting configuration is supported.
  * \par     Documentation
@@ -137,12 +122,12 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqParams_t
 {
     /* Obligatory fields. Do not change the order. Custom parameters, if exist, must follow these fields. */
 
-    ZbProZclLocalPrimitiveObligatoryPart_t    zclObligatoryPart;       /*!< Set of obligatory parameters of ZCL public
+    ZbProZclLocalPrimitiveObligatoryPart_t    zclObligatoryPart;        /*!< Set of obligatory parameters of ZCL public
                                                                             interface to local application. */
     /* Custom parameters. */
 
     /* 32-bit data. */
-    SYS_DataPointer_t                             payload;             /*!< Reportable change - the minimum change to
+    SYS_DataPointer_t                             payload;              /*!< Reportable change - the minimum change to
                                                                              the attribute that will result in a report
                                                                              being issued. Variable-length field. */
 
@@ -169,7 +154,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqParams_t
                                                                              identifier field. */
 
     /* 8-bit data. */
-    ZBPRO_ZCL_AttributeReportingDirection_t       directionReporting;            /*!< Direction - The direction field specifies
+    ZBPRO_ZCL_AttributeReportingDirection_t       directionReporting;   /*!< Direction - The direction field specifies
                                                                              whether values of the attribute are to be
                                                                              reported, or whether reports of the
                                                                              attribute are to be received. */
@@ -189,6 +174,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdConfigu
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Configure Reporting
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ConfigureReportingConf
  * \note
  * Configure Reporting command with only one Attribute reporting configuration is supported. So, there only
  * one Attribute status record in the Configure Reporting Response.
@@ -232,6 +218,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdConfigu
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Configure Reporting
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ConfigureReportingReq
  */
 typedef struct     _ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqDescr_t
     ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqDescr_t;
@@ -240,6 +227,7 @@ typedef struct     _ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqDescr_t
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Configure Reporting
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ConfigureReportingConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -251,6 +239,7 @@ typedef void ZBPRO_ZCL_ProfileWideCmdConfigureReportingConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Configure Reporting
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ConfigureReportingReq
  */
 struct _ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqDescr_t
 {
@@ -272,6 +261,7 @@ struct _ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Read Reporting Configuration
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadReportingConfigurationReq
  * \note
  * Read Reporting Configuration command with only one Attribute record is supported.
  * \par     Documentation
@@ -306,8 +296,9 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdReadRep
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Read Reporting Configuration
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadReportingConfigurationConf
  * \note
-  * Read Reporting Configuration command with only one Attribute record is supported. So, there only
+ * Read Reporting Configuration command with only one Attribute record is supported. So, there only
  * one Attribute record in the Read Reporting Configuration Response.
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.10.1, figure 2-21 and figure 2-22.
@@ -366,6 +357,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdReadRep
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Read Reporting Configuration
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadReportingConfigurationReq
  */
 typedef struct     _ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReqDescr_t
     ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReqDescr_t;
@@ -374,6 +366,7 @@ typedef struct     _ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReqDescr_t
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Read Reporting Configuration
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadReportingConfigurationConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -385,6 +378,7 @@ typedef void ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Read Reporting Configuration
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadReportingConfigurationReq
  */
 struct _ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReqDescr_t
 {
@@ -404,13 +398,14 @@ struct _ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReqDescr_t
 
 /*-------------------------------- Report Attributes Command indication ------------------------------------------*/
 /**//**
- * \brief   Structure for Attribure report record in the Report Attribute
+ * \brief   Structure for Attribure report record in the Report Attributes
  * profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReportAttributesInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.11.1, figure 2-24.
  */
- typedef struct PACKED _ZBPRO_ZCL_ProfileWideCmdAttributeReport_t
- {
+typedef struct PACKED _ZBPRO_ZCL_ProfileWideCmdAttributeReport_t
+{
     ZBPRO_ZCL_AttributeId_t   attributeID;    /*!< The attribute identifier field is 16 bits in length and shall
                                                    contain the identifier of the attribute that is being reported. */
 
@@ -420,13 +415,13 @@ struct _ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReqDescr_t
     /*!< The attribute data field is variable in length and shall contain
          the actual value of the attribute being reported.
     uint8_t                   attributeData[N];  */
-
- } ZBPRO_ZCL_ProfileWideCmdAttributeReport_t;
+} ZBPRO_ZCL_ProfileWideCmdAttributeReport_t;
 
 
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Report Attributes
  * profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReportAttributesInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.11.1, figure 2-23 and figure 2-24.
  */
@@ -453,9 +448,9 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdReportA
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name    Functions accept ZCL Local Requests to issue Configure Reporting and
+ * \brief   Functions accept ZCL Local Requests to issue Configure Reporting and
  * Read Reporting Configuration profile-wide commands.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
  * \details
  *  The caller shall specify the following obligatory parameters of request:
  *  - callback                      assign with ZCL Local Confirm handler function,
@@ -510,7 +505,9 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdReportA
 /**//**
  * \brief   Accepts ZCL Local Request to issue Configure Reporting
  *  profile-wide command.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdConfigureReportingReq(
     ZBPRO_ZCL_ProfileWideCmdConfigureReportingReqDescr_t *const  reqDescr);
@@ -519,7 +516,9 @@ void ZBPRO_ZCL_ProfileWideCmdConfigureReportingReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue Read Reporting Configuration
  *  profile-wide command.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReq(
     ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReqDescr_t *const  reqDescr);
@@ -528,9 +527,13 @@ void ZBPRO_ZCL_ProfileWideCmdReadReportingConfigurationReq(
 /**//**
  * \brief   Handles ZCL Local Indication on reception of Report Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdReportAttributesInd(
-		ZBPRO_ZCL_ProfileWideCmdReportAttributesIndParams_t *const  indParams);
+        ZBPRO_ZCL_ProfileWideCmdReportAttributesIndParams_t *const  indParams);
 
 #endif
+
+/* eof bbZbProZclSapProfileWideReporting.h */

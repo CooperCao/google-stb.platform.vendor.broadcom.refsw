@@ -50,7 +50,7 @@ BDBG_MODULE(atlas_record);
 /* CRecpump Class*/
 CRecpump::CRecpump(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_recpump, pCfg),
@@ -179,7 +179,7 @@ done:
 /* CRecord Class*/
 CRecord::CRecord(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_record, pCfg),
@@ -292,7 +292,7 @@ eRet CRecord::start()
 
     if ((_currentVideo == NULL) || _currentVideo->getVideosPath().isEmpty())
     {
-        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", __FUNCTION__));
+        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", BSTD_FUNCTION));
         return(eRet_ExternalError);
     }
 
@@ -429,7 +429,7 @@ void CRecord::setVideo(CVideo * pVideo)
 }
 
 CPid * CRecord::getPid(
-        uint16_t index,
+        unsigned index,
         ePidType type
         )
 {
@@ -437,7 +437,7 @@ CPid * CRecord::getPid(
 }
 
 CPid * CRecord::findPid(
-        uint16_t index,
+        unsigned index,
         ePidType type
         )
 {

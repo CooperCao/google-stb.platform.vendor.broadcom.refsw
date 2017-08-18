@@ -1,0 +1,143 @@
+
+
+Nucleus Connection API (cxapi) Release Notes:
+=============================================
+
+Changes in 4.218.xx:
+	- WAPI support.
+
+Changes in 4.218.110:
+	- no WLC_E_SCAN_COMPLETE event when cxnn running
+	- fixed no failure indication to client when SSID invalid or PSK invalid
+	- add IBSS channel selection
+	- add WPAPSK hex format support
+	- add IBSS (adhoc) support
+
+Changes in 4.218.103:
+	- wapi: add AP's WAPI IE to WLC_E_LINK
+	- use wl_event_msg_t instead of bcm_event_t
+	- IOCTL abstractions for connection API
+	- initial WAPI support for linux only
+	- WPA2-PSK with 11n Atheros and 11n Cisco AP not working
+	- fix linux FC9 build
+
+Changes in 4.218.86:
+	- Nucleus port of user-mode cxapi for 4319
+
+Changes in nucleus-cxapi-4.216.73.tar.gz:
+	- support for EAP-FAST and LEAP, requires Nucleus WLAN drvier 4.216.73
+	  (see EAP-FAST and LEAP notes below)
+	- correct conditional compiles with CXP_CONNECT_SYNCHRONOUS and CXP_DISCONNECT_SYNCHRONOUS
+	- fix bitwise operator mismatch for checking CXP_NST_STOP
+	- fix disconnect/cleanup assertion
+	- removed wlu_generic.c from package as it is available in the WL driver
+	- allow openssl to run (and not error) if compiled with OPENSSL_NO_STDIO for custom certificate handling
+    - fix for different WE versions (Linux only)
+    - fix echo input key (Linux only)
+
+Changes in nucleus-cxapi-4.216.71.tar.gz:
+	- fixed cxapi failure event when SSID does not exist
+	- fixed cxapi no longer polls to check the SSID/BSSID
+	- fixed intermittent WEP connection failure
+	- added conditional compile for BCMCCX
+	- fixed compiler warnings
+	- TTLS with server validation supported, CA root certificate required and
+	  accessed via standard file I/O functions (fopen, fgets, fclose)
+
+Changes in nucleus-cxapi-4.216.67.tar.gz:
+	- requires Nucleus WLAN driver 4.216.67 (dongle-host-driver-source.tar.gz)
+	- initial release with cxapi support on Nucleus
+	- password based EAP methods supported (ttls-pap, ttls-chap, ttls-md5, ttls-mschap, ttls-mschapv2,
+	  peap-mschapv2, peap-gtc)
+	- certificate based EAP methods not supported
+
+
+Instructions:
+-------------
+
+To unzip this package:
+	tar xzf nucleus-cxapi*.tar.gz
+- src/include directory is common to WLAN
+
+Build environment:
+- compiler executables and flags defined in ./src/cx/source/nucleus/makerules
+- Nucleus include path defined in ./src/cx/source/nucleus/makerules
+  (e.g. CFLAGS += -I$(DIRBASE)/../../bsp/rtos/nucleus/inc)
+- the following is Broadcom target platform specific for serial debug output 
+		CFLAGS += -DBWL_MOBCOM_DBGPRINTF
+  and should be removed from ./src/cx/source/nucleus/makerules
+  Alternatively, debug output may be platform specific redirected (see BWL_MOBCOM_DBGPRINTF in ./src/include/generic_osl.h)
+- compiler executables and flags for openSSL defined in ./src/cx/source/openssl/Configure (search for 'Nucleus')
+
+
+To build asue, bcmcrypto, cx, openssl, usersup, waisup, and xsupplicant libarary (./src/cx/bin/nucleusarm/libcx.a):
+   cd ./src/cx/source/nucleus
+   make
+  
+To build cnClient application library (./src/cx/bin/nucleusarm/cnClient.a):
+   cd ./src/cx/cnClient/nucleus
+   make
+
+
+Integration:
+------------
+
+- port specific files which access Nucleus via OSL abstraction:
+	./src/cx/source/xsupplicant/src/frame_handlers/generic_osl/generic_frame_funcs.c
+	./src/cx/source/xsupplicant/src/os_wrappers/generic_osl/generic_os_funcs.c
+	./src/cx/source/xsupplicant/src/wireless/generic_osl/brcm_wireless_funcs.c
+	./src/cx/source/cx/cxp_disp_wl_generic.c
+	./src/cx/source/cx/cxp_generic.c
+	./src/cx/source/cx/cxp_wl_generic.c
+	./src/cx/source/cx/cxp_wl_generic.h
+	./src/cx/cnClient/clie_tools_generic.c
+		
+- the following function must be implemented on the target to provide a callback
+  with received packet (see ./src/cx/source/xsupplicant/src/frame_handlers/
+  generic_osl/generic_frame_funcs.c):
+	void wl_drv_register_rx_callback(wl_drv_hdl hdl,
+			void (*callback)(const char *packet, const unsigned int length));
+    
+- cxapi requires WLAN events to be enabled
+	wl up
+	wl event_msgs 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+
+EAP-FAST and LEAP:
+------------------
+
+- EAP-FAST and LEAP requires dongle image with CCX and WLAN driver compiled with BCMCCX:
+     
+1) change dongle image in src/dhd/rtos/Makefile to:
+   DNGL_IMAGE_NAME ?= 4325b0/sdio-g-cdc-reclaim-idsup-wme-ccx
+   
+2) add BCMCCX to src/dhd/rtos/Makefile
+   CFLAGS += -DBCMCCX
+
+3) recompile WLAN driver:
+   cd ./src/dhd/rtos
+   make
+
+
+Invoking cxapi:
+---------------
+
+- Nucleus cxapi is invoked by cx_main_args (in ./src/cx/cnClient/cnClient.c) with configuration parameters
+
+- wl_cmds (in ./src/cx/cnClient/cnClient.c) defines the supported parameters
+
+- examples:
+
+	cnClient -A eth0 -ssid wlaneap -wpa2 -aes -peap-mschapv2 -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid wlaneap -wpa2 -aes -peap-gtc -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid wlaneap -wpa2 -aes -ttls-pap -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid wlaneap -wpa2 -aes -ttls-chap -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid wlaneap -wpa2 -aes -ttls-md5 -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid wlaneap -wpa2 -aes -ttls-mschap -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid wlaneap -wpa2 -aes -ttls-mschapv2 -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid aironet -wpa -tkip -fast-mschapv2 -identity brcmuser -user brcmuser -password richmond2010
+	cnClient -A eth0 -ssid aironet -wpa -tkip -leap -identity brcmuser -user brcmuser -password richmond2010
+	
+- EAP-FAST requires application to register for reconnect callback (cx_reconnect_register() in cnClient.c).
+  EAP-FAST PAC (Protected Access Credentials) provisioning invokes the reconnect callback which requires
+  the application to reconnect by re-invoking cx_main_args with the original configuration parameters

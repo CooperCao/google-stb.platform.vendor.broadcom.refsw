@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Jan  4 10:49:53 2017
- *                 Full Compile MD5 Checksum  7d7ecd2f231e57c2cad54acc68aba7d0
+ * Date:           Generated on               Tue May 23 18:01:57 2017
+ *                 Full Compile MD5 Checksum  faf7ad9783d64fd3b76af19c41ef463c
  *                     (minus title and desc)
- *                 MD5 Checksum               abfa74885d525b3b66c0de72b0e964ec
+ *                 MD5 Checksum               b7c66081f7ba94771fae7095d4e08762
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1139
+ *                 RDB.pm                     1459
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -139,14 +136,14 @@
 #define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_MISO_PAD_CTRL_MISO_drive_strength_control_14MA 7
 
 /***************************************************************************
  *SSB_ADDR1_PAD_CTRL - Pad control for SSB_ADDR1 pad.
@@ -180,14 +177,14 @@
 #define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_SSB_ADDR1_PAD_CTRL_SSB_ADDR1_drive_strength_control_14MA 7
 
 /***************************************************************************
  *MTSIF_TX_CLK_PAD_CTRL - Pad control for MTSIF_TX_CLK pad.
@@ -489,14 +486,14 @@
 #define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_MTSIF_ATS_RESET_PAD_CTRL_MTSIF_ATS_RESET_drive_strength_control_14MA 7
 
 /***************************************************************************
  *MTSIF_ATS_INC_PAD_CTRL - Pad control for MTSIF_ATS_INC pad.
@@ -538,14 +535,14 @@
 #define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_MTSIF_ATS_INC_PAD_CTRL_MTSIF_ATS_INC_drive_strength_control_14MA 7
 
 /***************************************************************************
  *GPIO_0_PAD_CTRL - Pad control for GPIO_0 pad.
@@ -579,14 +576,14 @@
 #define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_GPIO_0_PAD_CTRL_GPIO_0_drive_strength_control_14MA 7
 
 /***************************************************************************
  *GPIO_1_PAD_CTRL - Pad control for GPIO_1 pad.
@@ -620,14 +617,14 @@
 #define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_GPIO_1_PAD_CTRL_GPIO_1_drive_strength_control_14MA 7
 
 /***************************************************************************
  *GPIO_2_PAD_CTRL - Pad control for GPIO_2 pad.
@@ -661,14 +658,14 @@
 #define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_GPIO_2_PAD_CTRL_GPIO_2_drive_strength_control_14MA 7
 
 /***************************************************************************
  *GPIO_3_PAD_CTRL - Pad control for GPIO_3 pad.
@@ -702,14 +699,14 @@
 #define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_GPIO_3_PAD_CTRL_GPIO_3_drive_strength_control_14MA 7
 
 /***************************************************************************
  *GPIO_4_PAD_CTRL - Pad control for GPIO_4 pad.
@@ -743,14 +740,14 @@
 #define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_GPIO_4_PAD_CTRL_GPIO_4_drive_strength_control_14MA 7
 
 /***************************************************************************
  *GPO_0_PAD_CTRL - Pad control for GPO_0 pad.
@@ -784,14 +781,14 @@
 #define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_GPO_0_PAD_CTRL_GPO_0_drive_strength_control_14MA 7
 
 /***************************************************************************
  *GPO_1_PAD_CTRL - Pad control for GPO_1 pad.
@@ -825,14 +822,14 @@
 #define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_MASK 0x00000007
 #define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_SHIFT 0
 #define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_DEFAULT 0x00000003
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_02MA 0
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_04MA 1
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_06MA 2
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_08MA 3
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_10MA 4
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_12MA 5
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_14MA 6
-#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_16MA 7
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_Reserved 0
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_02MA 1
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_04MA 2
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_06MA 3
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_08MA 4
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_10MA 5
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_12MA 6
+#define BCHP_TOP_CTRL_GPO_1_PAD_CTRL_GPO_1_drive_strength_control_14MA 7
 
 /***************************************************************************
  *MTSIF_RX_CLK_PAD_CTRL - Pad control for MTSIF_RX_CLK pad.

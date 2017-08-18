@@ -275,6 +275,7 @@ typedef struct sScanInfo
     bool            bLocked;
     bool            bWPS;
     int32_t         lRate;
+    int32_t         lSnr;
     Bandwidth_t     tBandwidth;
     char            cChanSpec[BWL_CSPEC_LEN+1];
 } ScanInfo_t;

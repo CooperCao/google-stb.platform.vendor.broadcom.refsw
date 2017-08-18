@@ -274,7 +274,7 @@ eRet CServerHttp::start()
         BIP_HttpServerStartSettings httpServerStartSettings;
 
         BIP_HttpServer_GetDefaultStartSettings(&httpServerStartSettings);
-        BDBG_MSG(("%s: Starting HttpServer...", __FUNCTION__));
+        BDBG_MSG(("%s: Starting HttpServer...", BSTD_FUNCTION));
 
         httpServerStartSettings.maxConcurrentRequestsToQueue = 64;
         httpServerStartSettings.pPort                        = _port.s();
@@ -307,10 +307,6 @@ eRet CServerHttp::stop()
     eRet            ret       = eRet_Ok;
     CStreamerHttp * pStreamer = NULL;
 
-    if (!this)
-    {
-        return(ret);
-    }
     BDBG_MSG((BIP_MSG_PRE_FMT " CServerHttp %p" BIP_MSG_PRE_ARG, (void *)this));
 
     /* Stop the Server first, so that it doesn't accept any new connections. */

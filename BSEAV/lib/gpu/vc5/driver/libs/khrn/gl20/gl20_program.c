@@ -180,19 +180,13 @@ bool gl20_program_bind_attrib(GL20_PROGRAM_T *program, uint32_t index, const cha
 
 void gl20_program_acquire(GL20_PROGRAM_T *program)
 {
-   assert(program);
-   assert(program->refs >= 0);
-
+   assert(program->refs < UINT32_MAX);
    program->refs++;
-
-   assert(program->refs >= 0);
 }
 
 void gl20_program_release(GL20_PROGRAM_T *program)
 {
-   assert(program);
    assert(program->refs > 0);
-
    program->refs--;
 }
 
@@ -205,34 +199,8 @@ void gl20_program_save_error(GL20_PROGRAM_T *program, const char *error) {
    }
 }
 
-/* Return how many locations are taken up in the default block. Can be padded */
-static unsigned default_block_locations(const GLenum gl_type) {
-   switch(gl_type) {
-   case GL_BOOL:              return 1;
-   case GL_BOOL_VEC2:         return 2;
-   case GL_BOOL_VEC3:         return 4;
-   case GL_BOOL_VEC4:         return 4;
-   case GL_FLOAT:             return 1;
-   case GL_FLOAT_MAT2:        return 4;
-   case GL_FLOAT_MAT2x3:      return 8;
-   case GL_FLOAT_MAT2x4:      return 8;
-   case GL_FLOAT_MAT3:        return 12;
-   case GL_FLOAT_MAT3x2:      return 6;
-   case GL_FLOAT_MAT3x4:      return 12;
-   case GL_FLOAT_MAT4:        return 16;
-   case GL_FLOAT_MAT4x2:      return 8;
-   case GL_FLOAT_MAT4x3:      return 16;
-   case GL_FLOAT_VEC2:        return 2;
-   case GL_FLOAT_VEC3:        return 4;
-   case GL_FLOAT_VEC4:        return 4;
-   case GL_INT:               return 1;
-   case GL_INT_VEC2:          return 2;
-   case GL_INT_VEC3:          return 4;
-   case GL_INT_VEC4:          return 4;
-   case GL_UNSIGNED_INT:      return 1;
-   case GL_UNSIGNED_INT_VEC2: return 2;
-   case GL_UNSIGNED_INT_VEC3: return 4;
-   case GL_UNSIGNED_INT_VEC4: return 4;
+static bool is_sampler_type(GLenum gl_type) {
+   switch (gl_type) {
    case GL_INT_SAMPLER_1D_BRCM:
    case GL_INT_SAMPLER_1D_ARRAY_BRCM:
    case GL_INT_SAMPLER_2D:
@@ -268,6 +236,14 @@ static unsigned default_block_locations(const GLenum gl_type) {
    case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
    case GL_UNSIGNED_INT_SAMPLER_BUFFER:
    case GL_SAMPLER_EXTERNAL_OES:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static bool is_image_type(GLenum gl_type) {
+   switch (gl_type) {
    case GL_IMAGE_2D:
    case GL_IMAGE_3D:
    case GL_IMAGE_CUBE:
@@ -286,9 +262,49 @@ static unsigned default_block_locations(const GLenum gl_type) {
    case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
    case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
    case GL_UNSIGNED_INT_IMAGE_BUFFER:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static bool is_atomic_type(GLenum gl_type) {
+   return gl_type == GL_UNSIGNED_INT_ATOMIC_COUNTER;
+}
+
+/* Return how many locations are taken up in the default block. Can be padded */
+static unsigned default_block_locations(GLenum gl_type) {
+   if (is_sampler_type(gl_type) || is_image_type(gl_type))
       return 1;
-   case GL_UNSIGNED_INT_ATOMIC_COUNTER:
+   if (is_atomic_type(gl_type))
       return 0;
+
+   switch(gl_type) {
+   case GL_BOOL:              return 1;
+   case GL_BOOL_VEC2:         return 2;
+   case GL_BOOL_VEC3:         return 4;
+   case GL_BOOL_VEC4:         return 4;
+   case GL_FLOAT:             return 1;
+   case GL_FLOAT_MAT2:        return 4;
+   case GL_FLOAT_MAT2x3:      return 8;
+   case GL_FLOAT_MAT2x4:      return 8;
+   case GL_FLOAT_MAT3:        return 12;
+   case GL_FLOAT_MAT3x2:      return 6;
+   case GL_FLOAT_MAT3x4:      return 12;
+   case GL_FLOAT_MAT4:        return 16;
+   case GL_FLOAT_MAT4x2:      return 8;
+   case GL_FLOAT_MAT4x3:      return 16;
+   case GL_FLOAT_VEC2:        return 2;
+   case GL_FLOAT_VEC3:        return 4;
+   case GL_FLOAT_VEC4:        return 4;
+   case GL_INT:               return 1;
+   case GL_INT_VEC2:          return 2;
+   case GL_INT_VEC3:          return 4;
+   case GL_INT_VEC4:          return 4;
+   case GL_UNSIGNED_INT:      return 1;
+   case GL_UNSIGNED_INT_VEC2: return 2;
+   case GL_UNSIGNED_INT_VEC3: return 4;
+   case GL_UNSIGNED_INT_VEC4: return 4;
    default:
       unreachable();
       return 0;
@@ -371,6 +387,13 @@ static GLSL_PROGRAM_T *link_compute(GL20_PROGRAM_T *program) {
       return NULL;
    }
 
+#if GLXX_HAS_TNG
+   if (program->tess_control || program->tess_evaluation || program->geometry) {
+      gl20_program_save_error(program, "Link Error: Graphics shader cannot be linked with compute shader");
+      return NULL;
+   }
+#endif
+
    if (program->compute->binary == NULL) {
       gl20_program_save_error(program, "Link Error: Compute shader not compiled");
       return NULL;
@@ -383,31 +406,19 @@ static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
 {
    assert(program->compute == NULL);
 
-   if (program->vertex && program->vertex->binary == NULL) {
-      gl20_program_save_error(program, "Link Error: Vertex shader not compiled");
-      return NULL;
-   }
-
+   const GL20_SHADER_T *shader[SHADER_FLAVOUR_COUNT] = { [SHADER_VERTEX]          = program->vertex,
 #if GLXX_HAS_TNG
-   if (program->tess_control && program->tess_control->binary == NULL) {
-      gl20_program_save_error(program, "Link Error: Tessellation control shader not compiled");
-      return NULL;
-   }
-
-   if (program->tess_evaluation && program->tess_evaluation->binary == NULL) {
-      gl20_program_save_error(program, "Link Error: Tessellation evaluation shader not compiled");
-      return NULL;
-   }
-
-   if (program->geometry && program->geometry->binary == NULL) {
-      gl20_program_save_error(program, "Link Error: Geometry shader not compiled");
-      return NULL;
-   }
+                                                         [SHADER_TESS_CONTROL]    = program->tess_control,
+                                                         [SHADER_TESS_EVALUATION] = program->tess_evaluation,
+                                                         [SHADER_GEOMETRY]        = program->geometry,
 #endif
+                                                         [SHADER_FRAGMENT]        = program->fragment };
 
-   if (program->fragment && program->fragment->binary == NULL) {
-      gl20_program_save_error(program, "Link Error: Fragment shader not compiled");
-      return NULL;
+   for (ShaderFlavour f = SHADER_VERTEX; f <= SHADER_FRAGMENT; f++) {
+      if (shader[f] && shader[f]->binary == NULL) {
+         gl20_program_save_error(program, "Link Error: Attached shader not compiled");
+         return NULL;
+      }
    }
 
    if ((program->transform_feedback.buffer_mode == GL_SEPARATE_ATTRIBS  &&
@@ -441,18 +452,8 @@ static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
 #endif
 
    CompiledShader *stages[SHADER_FLAVOUR_COUNT] = { 0, };
-   if (program->vertex)
-      stages[SHADER_VERTEX] = program->vertex->binary;
-   if (program->fragment)
-      stages[SHADER_FRAGMENT] = program->fragment->binary;
-#if GLXX_HAS_TNG
-   if (program->tess_control)
-      stages[SHADER_TESS_CONTROL] = program->tess_control->binary;
-   if (program->tess_evaluation)
-      stages[SHADER_TESS_EVALUATION] = program->tess_evaluation->binary;
-   if (program->geometry)
-      stages[SHADER_GEOMETRY] = program->geometry->binary;
-#endif
+   for (ShaderFlavour f = SHADER_VERTEX; f <= SHADER_FRAGMENT; f++)
+      if (shader[f]) stages[f] = shader[f]->binary;
 
    ret = glsl_link_program(stages, &source, program->separable);
    if (!ret) {
@@ -480,11 +481,48 @@ void gl20_program_link(GL20_PROGRAM_T *program)
    if (!program->common.link_status)
       return;
 
+   unsigned samplers[SHADER_FLAVOUR_COUNT] = { 0, };
+   unsigned images  [SHADER_FLAVOUR_COUNT] = { 0, };
+   unsigned atomics [SHADER_FLAVOUR_COUNT] = { 0, };
+   for (unsigned i=0; i<program_ir->default_uniforms.num_members; i++) {
+      GLSL_BLOCK_MEMBER_T *m = &program_ir->default_uniforms.members[i];
+      bool used[SHADER_FLAVOUR_COUNT] = { m->used_in_vs, m->used_in_tcs, m->used_in_tes, m->used_in_gs, m->used_in_fs, m->used_in_cs };
+      for (ShaderFlavour f = 0; f < SHADER_FLAVOUR_COUNT; f++) {
+         if (is_sampler_type(m->type) && used[f]) samplers[f] += m->array_length;
+         if (is_image_type  (m->type) && used[f]) images  [f] += m->array_length;
+         if (is_atomic_type (m->type) && used[f]) atomics [f] += m->array_length;
+      }
+   }
+
+   for (ShaderFlavour f = SHADER_VERTEX; f < SHADER_FLAVOUR_COUNT; f++) {
+      const char *error = NULL;
+
+      if (samplers[f] > GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS)
+         error = "Link Error: Too many samplers";
+
+      bool vertex_pipe = (f != SHADER_FRAGMENT && f != SHADER_COMPUTE);
+      unsigned max_atomics = vertex_pipe ? GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTERS : GLXX_CONFIG_MAX_SHADER_ATOMIC_COUNTERS;
+      if (atomics[f] > max_atomics)
+         error = "Link Error: Too many atomic counters";
+
+      unsigned max_images = vertex_pipe ? GLXX_CONFIG_MAX_VERTEX_IMAGE_UNIFORMS : GLXX_CONFIG_MAX_SHADER_IMAGE_UNIFORMS;
+      if (images[f] > max_images)
+         error = "Link Error: Too many image uniforms";
+
+      if (error != NULL) {
+         gl20_program_save_error(program, error);
+         glsl_program_free(program_ir);
+         program->common.link_status = false;
+         return;
+      }
+   }
+
    program->common.separable = program->separable;
 
    if (!save_linked_program_data(program, program_ir)) {
       glsl_program_free(program_ir);
       gl20_program_save_error(program, "Link Error: Out of memory");
+      program->common.link_status = false;
    }
 }
 

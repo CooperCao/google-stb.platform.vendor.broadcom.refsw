@@ -58,17 +58,21 @@ struct {
 void NEXUS_LedModule_GetDefaultSettings(NEXUS_LedModuleSettings *pSettings)
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
 }
 NEXUS_ModuleHandle NEXUS_LedModule_Init(const NEXUS_LedModuleSettings *pSettings)
 {
+    NEXUS_ModuleSettings moduleSettings;
     BDBG_ASSERT(!g_NEXUS_ledModule);
-    g_NEXUS_ledModule = NEXUS_Module_Create("led", NULL);
     if (pSettings) {
         g_NEXUS_led.settings = *pSettings;
     }
     else {
         NEXUS_LedModule_GetDefaultSettings(&g_NEXUS_led.settings);
     }
+    NEXUS_Module_GetDefaultSettings(&moduleSettings);
+    moduleSettings.priority = NEXUS_AdjustModulePriority(moduleSettings.priority, &g_NEXUS_led.settings.common);
+    g_NEXUS_ledModule = NEXUS_Module_Create("led", &moduleSettings);
     return g_NEXUS_ledModule;
 }
 void NEXUS_LedModule_Uninit()

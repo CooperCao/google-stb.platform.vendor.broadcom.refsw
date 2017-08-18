@@ -108,7 +108,7 @@ static void BXDM_PPDF_S_PrintString_isrsafe(
 
       case BXDM_Debug_MsgType_eUnKnown:
       default:
-         BDBG_MODULE_MSG( BXDM_PPDBG, ("%s: unknown message type", __FUNCTION__ ));
+         BDBG_MODULE_MSG( BXDM_PPDBG, ("%s: unknown message type", BSTD_FUNCTION ));
          BDBG_MODULE_MSG( BXDM_PPDBG, ("%s", pstEntry->data.stString.szString ));
          break;
 
@@ -450,7 +450,7 @@ void BXDM_PictureProvider_PrintEntry_isrsafe(
          break;
 
       default:
-         BDBG_MSG(("%s: unknown message type:%d.", __FUNCTION__, pstEntry->stMetadata.eType ));
+         BDBG_MSG(("%s: unknown message type:%d.", BSTD_FUNCTION, pstEntry->stMetadata.eType ));
          break;
 
    }
@@ -470,7 +470,7 @@ void BXDM_PictureProvider_ReadFifo_isrsafe(
 
    if ( NULL ==  hXdmPP->stDMConfig.stDebugReader.hDebugReader)
    {
-      BDBG_MSG(("%s::  hXdmPP->stDMConfig.stDebugReader.hDebugReader== NULL", __FUNCTION__ ));
+      BDBG_MSG(("%s::  hXdmPP->stDMConfig.stDebugReader.hDebugReader== NULL", BSTD_FUNCTION ));
       goto error;
    }
 

@@ -50,7 +50,7 @@ BDBG_MODULE(atlas_tuner_qam);
 
 CTunerQamNx::CTunerQamNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTunerQam(name, number, pCfg)

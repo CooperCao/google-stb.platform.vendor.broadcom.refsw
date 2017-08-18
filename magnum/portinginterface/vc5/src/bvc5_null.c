@@ -198,10 +198,7 @@ void BVC5_P_NullWriteRegister(
       break;
    }
 }
-
 #endif
 
 /* Avoid compiler warning about empty translation unit */
-static void BVC5_P_NullDummy(void)
-{
-}
+typedef int make_iso_compilers_happy;

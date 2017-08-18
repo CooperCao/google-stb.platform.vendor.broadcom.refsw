@@ -27,7 +27,7 @@ stream[0] = test_pattern_1920x1080_30hz_10b_HLG_BT2020.ts
 stream[1] = test_pattern_1920x1080_30hz_10b_HLG_BT2020.ts
 stream[2] = test_pattern_1920x1080_30hz_10b_HLG_BT2020.ts
 stream[3] = test_pattern_1920x1080_30hz_10b_HLG_BT2020.ts
-pig = off
+usage = mosaic
 bg =
 image =
 commit

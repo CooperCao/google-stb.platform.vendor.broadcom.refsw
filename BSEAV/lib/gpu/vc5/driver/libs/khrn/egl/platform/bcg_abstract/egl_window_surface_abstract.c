@@ -21,8 +21,9 @@
 /* Our own representation of an egl_window_surface */
 struct egl_window_surface
 {
-   EGL_SURFACE_T base;                       /* The driver's internal surface data */
-   khrn_image  *active_image;              /* The current back buffer as a khrn_image */
+   EGL_SURFACE_T  base;                      /* The driver's internal surface data */
+   int            interval;                  /* pushed as part of buffer queue */
+   khrn_image    *active_image;              /* The current back buffer as a khrn_image */
    void          *native_back_buffer;        /* The current back buffer surface (opaque) */
    void          *native_window_state;       /* Opaque data that the platform ties to the native window */
 };
@@ -114,7 +115,7 @@ static egl_swap_result_t swap_buffers(EGL_SURFACE_T *surface, bool preserve)
 
       assert(platform->DisplaySurface);
 
-      if (platform->DisplaySurface(platform->context, surf->native_window_state, surf->native_back_buffer, fence) != BEGL_Success)
+      if (platform->DisplaySurface(platform->context, surf->native_window_state, surf->native_back_buffer, fence, surf->interval) != BEGL_Success)
          return EGL_SWAP_SWAPPED;
 
       KHRN_MEM_ASSIGN(surf->active_image, NULL);
@@ -246,6 +247,9 @@ static EGLSurface egl_create_window_surface_impl(EGLDisplay dpy, EGLConfig confi
 
    surface->base.fns = &fns;
 
+   /* set default swap interval */
+   surface->interval = 1;
+
    /* Let the platform attach it's own data to the native window if required */
    if (platform->WindowPlatformStateCreate != NULL)
       surface->native_window_state = platform->WindowPlatformStateCreate(platform->context, (void*)win);
@@ -316,10 +320,14 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT(EGLDisplay dpy,
 static void swap_interval(EGL_SURFACE_T *surface, int interval)
 {
    EGL_WINDOW_SURFACE_T          *surf = (EGL_WINDOW_SURFACE_T *)surface;
-   BEGL_DisplayInterface         *platform = &g_bcgPlatformData.displayInterface;
 
-   if (platform->SetSwapInterval)
-      platform->SetSwapInterval(platform->context, surf->native_window_state, interval);
+   /* EGL spec. 3.10.3, silently clamped to min/max */
+   if (interval < EGL_CONFIG_MIN_SWAP_INTERVAL)
+      interval = EGL_CONFIG_MIN_SWAP_INTERVAL;
+   if (interval > EGL_CONFIG_MAX_SWAP_INTERVAL)
+      interval = EGL_CONFIG_MAX_SWAP_INTERVAL;
+
+   surf->interval = interval;
 }
 
 static EGL_SURFACE_METHODS_T fns =

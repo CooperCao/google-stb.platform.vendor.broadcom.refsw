@@ -112,7 +112,7 @@ static const EGLint s_api_bits = EGL_OPENGL_BIT | EGL_OPENVG_BIT |
 bool egl_config_is_valid(const EGL_CONFIG_T *config)
 {
    const EGL_CONFIG_T *start = &egl_configs[0];
-   const EGL_CONFIG_T *end = start + vcos_countof(egl_configs);
+   const EGL_CONFIG_T *end = start + countof(egl_configs);
    ptrdiff_t offset;
 
    if (config < start || config >= end)
@@ -847,7 +847,11 @@ bool egl_can_texture_from_format(GFX_LFMT_T lfmt)
    GFX_LFMT_TMU_TRANSLATION_T tran;
 
    // This checks if the hardware can texture from it
-   return gfx_lfmt_maybe_translate_tmu(&tran, lfmt, GFX_LFMT_TMU_DEPTH_DONT_CARE);
+   return gfx_lfmt_maybe_translate_tmu(&tran, lfmt
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+      , /*need_depth_type=*/false
+#endif
+      );
 }
 
 bool egl_can_display_format(GFX_LFMT_T lfmt)
@@ -996,7 +1000,7 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
 {
    EGLint error = EGL_BAD_DISPLAY;
    SORT_PARAMS_T sort_params;
-   CONFIG_CHOICE_T choices[vcos_countof(egl_configs)];
+   CONFIG_CHOICE_T choices[countof(egl_configs)];
    unsigned j = 0;
    EGLint *cleaned_attrib_list = NULL;
 
@@ -1033,7 +1037,7 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
       update_sort_params(cleaned_attrib_list, &sort_params);
    }
 
-   for (unsigned int i = 0; i < vcos_countof(egl_configs); i++)
+   for (unsigned int i = 0; i < countof(egl_configs); i++)
    {
       const EGL_CONFIG_T *candidate = egl_configs + i;
 

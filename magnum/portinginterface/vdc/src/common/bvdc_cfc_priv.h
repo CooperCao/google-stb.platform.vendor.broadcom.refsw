@@ -678,6 +678,28 @@ typedef union
 } BVDC_P_Cfc_Capability;
 
 /*
+ * CFC force Config. Test API. App uses it to force certain CFC sub-modules off
+ *
+ */
+typedef union
+{
+    struct
+    {
+        uint32_t                 bDisableNl2l             : 1;  /* 0 */
+        uint32_t                 bDisableLRangeAdj        : 1;
+        uint32_t                 bDisableLmr              : 1;
+        uint32_t                 bDisableL2nl             : 1;
+        uint32_t                 bDisableRamLuts          : 1;  /* 4 */
+        uint32_t                 bDisableMb               : 1;
+        uint32_t                 bDisableDolby            : 1;
+        uint32_t                 bDisableTch              : 1;
+        uint32_t                 bDisableItm              : 1;  /* 8 */
+    } stBits;
+
+    uint32_t ulInts;
+} BVDC_P_Cfc_ForceCfg;
+
+/*
  * CFC (color format conversion) context
  * Note: Each mosaic csc configure slot is represented by a CFC handle
  */
@@ -689,6 +711,7 @@ typedef struct BVDC_P_CfcContext
     uint8_t                     ucMosaicSlotIdx;  /* used for CFC in CMP only */
 
     BVDC_P_Cfc_Capability       stCapability;
+    BVDC_P_Cfc_ForceCfg         stForceCfg;
 
     BVDC_P_ColorSpace           stColorSpaceIn;
     BVDC_P_ColorSpace          *pColorSpaceOut;  /* e.g. ptr to struct in hCompositor or hDisplay */

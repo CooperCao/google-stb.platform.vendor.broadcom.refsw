@@ -43,6 +43,7 @@
 
 #define BMEMPERF_SERVER_PORT  6000
 #define BSYSPERF_SERVER_PORT  6001
+#define TELNET_PORT           23
 #define BMEMPERF_MAX_NUM_CPUS          8
 #define BMEMPERF_IRQ_NAME_LENGTH  64
 #define BMEMPERF_IRQ_MAX_TYPES    120 /* number of different interrupts listed in /proc/interrupts */
@@ -59,7 +60,14 @@
 #define PATH_PROCNET_IGMP_MAX        4096
 #define MAX_LENGTH_GETPIDOF_CMD      128
 #define BASPMON_CFG_FILENAME         "baspmon.cfg"
-#define BASPMON_MAX_NUM_STREAMS      16
+#define BPROBE_CFG_FILENAME          "bprobe.cfg"
+#define BASPMON_MAX_NUM_STREAMS      24
+#define BMEMPERF_PID_CHANNEL_MAX     768
+#define NET_STATS_MAX                10
+#define BSYSPERF_VALUE_BASE          10
+#define POWER_PROBE_LIST_DAT_FILENAME "power_probe_list.dat"
+#define POWER_PROBE_BASPMON          0
+#define POWER_PROBE_BPROBE           100
 
 typedef struct
 {
@@ -122,6 +130,12 @@ typedef enum
     DVFS_GOVERNOR_PERFORMANCE
 } DVFS_GOVERNOR_TYPES;
 
+typedef enum
+{
+    POWER_PROBE_ONE_HERTZ=0,
+    POWER_PROBE_RETURN_CONNECTED_PROBES
+} POWER_PROBE_COMMANDS;
+
 typedef struct
 {
     unsigned int interface_bit_width; /* 16 or 32 */
@@ -143,6 +157,16 @@ typedef struct
     unsigned long int  aspPid[32];
     unsigned long int  aspPktCount[32];
 } bmemperf_asp_details;
+
+typedef struct
+{
+    unsigned long long int rxErrors;
+    unsigned long long int txErrors;
+    unsigned long long int rxBytes;
+    unsigned long long int txBytes;
+    char                   name[16];
+    char                   ipAddress[32];
+} bsysperf_netStatistics;
 
 const char *noprintf( const char *format, ... );
 char *getPlatformVersion(
@@ -182,6 +206,7 @@ int scanForStr(
     );
 char *DateYyyyMmDdHhMmSs( void );
 char *HhMmSs( unsigned long int timestamp );
+char *HhMmSsMsec( unsigned long int timestamp );
 char *DayMonDateYear( unsigned long int timestamp );
 int convert_to_string_with_commas(
     unsigned long int value,
@@ -205,9 +230,14 @@ int P_getCpuUtilization( void );
 char * bmemperf_get_boa_error_log( const char * appname );
 unsigned int bmemperf_get_boa_error_log_line_count( const char * errorLogContents );
 unsigned int bmemperf_readReg32( unsigned int offset );
+unsigned int bmemperf_writeReg32( unsigned int offset, unsigned int new_value );
 
 #ifdef BMEMCONFIG_READ32_SUPPORTED
 char * getProductIdStr( void );
+unsigned long int Bmemperf_PidChannelGetPccEnable( int hwPidChannelIndex );
+int Bmemperf_PidChannelSetPccEnable( int hwPidChannelIndex );
+unsigned long int Bmemperf_PidChannelGetAutoSyncDetect( int hwPidChannelIndex );
+int Bmemperf_PidChannelSetAutoSyncDetect( int hwPidChannelIndex );
 #endif /* BMEMCONFIG_READ32_SUPPORTED */
 int bmemperfOpenDriver( void );
 void *bmemperfMmap( int g_memFd );
@@ -225,6 +255,7 @@ const char        *get_executing_command( const char * exe_name );
 #define            Bsysperf_Free(buffer)    if(buffer){free(buffer); buffer=0;}
 int                replace_space_with_nbsp( char *buffer, long int buffer_size );
 char              *Bsysperf_GetProcessCmdline( const char * process_name );
+int                Bsysperf_GetProcessPidOf( const char * process_name );
 char              *Bsysperf_ReplaceNewlineWithNull ( char *buffer );
 int                Bsysperf_RestoreNewline( char * posEol );
 int                decodeURL ( char * URL );
@@ -241,11 +272,19 @@ int                getFileSize( const char *filename);
 char              *getFileContents( const char *filename);
 char              *Bsysperf_FindLastStr ( const char * buffer, const char * searchStr );
 void               printflog (const char * szFormat, ... );
-int                Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies );
+void               printffile(const char *sLogFile, const char * szFormat, ... );
+int                Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies, bool bMinimalFields );
 int                Bsysperf_GetTcpStatistics( char *outputBuffer, int outputBufferLen );
 int                Bsysperf_GetXptData( bmemperf_xpt_details *pxpt );
 int                Bsysperf_GetAspData( bmemperf_asp_details *pasp );
 int                Bmemperf_GetCfgFileEntry( const char* cfg_filename, const char* cfg_tagline, char* output_buffer, int output_buffer_len );
 int                Bmemperf_SetCfgFileEntry( const char* cfg_filename, const char* cfg_tagline, char* new_value );
+int                get_netstat_data( bsysperf_netStatistics *pNetStats );
+int                Bmemperf_Ping( const char * addr, int port );
+void               Bmemperf_ChangeCpuState( int new_state );
+#ifdef BMEMCONFIG_BOXMODE_SUPPORTED
+int                Bmemperf_GetProductIdMemc( void );
+#endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/
+char              *formatul( unsigned long long int value );
 
 #endif /* __BMEMPERF_LIB_H__ */

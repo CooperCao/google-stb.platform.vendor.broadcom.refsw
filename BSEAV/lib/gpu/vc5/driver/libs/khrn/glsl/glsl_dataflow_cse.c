@@ -58,7 +58,7 @@ static bool df_type_is_read_only(DataflowFlavour f) {
    return f == DATAFLOW_UNIFORM || f == DATAFLOW_UNIFORM_BUFFER;
 }
 
-static bool valid_for_replacement(const Dataflow *p) {
+static bool addr_is_read_only(const Dataflow *p) {
    if (p->flavour == DATAFLOW_ADDRESS && df_type_is_read_only(p->d.unary_op.operand->flavour))
       return true;
 
@@ -74,7 +74,7 @@ static bool valid_for_replacement(const Dataflow *p) {
    return false;
 }
 
-static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
+static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df, bool assume_read_only)
 {
    if (df == NULL) return NULL;
 
@@ -89,7 +89,9 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
       case DATAFLOW_UNIFORM:
       case DATAFLOW_STORAGE_BUFFER:
       case DATAFLOW_BUF_SIZE:
+#if !V3D_VER_AT_LEAST(4,0,2,0)
       case DATAFLOW_IMAGE_INFO_PARAM:
+#endif
          return df;
       default:
          break;
@@ -110,12 +112,12 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
 
    // Depth first traversal of the graph
    for (int i = 0; i < df->dependencies_count; i++)
-      df->d.dependencies[i] = dataflow_cse_accept(ctx, df->d.dependencies[i]);
+      df->d.dependencies[i] = dataflow_cse_accept(ctx, df->d.dependencies[i], assume_read_only);
 
-   /* In version 310 or later stores mean that we need to be more careful
-    * with folding load expressions. */
-   if (df->flavour == DATAFLOW_VECTOR_LOAD && g_ShaderVersion >= GLSL_SHADER_VERSION(3, 10, 1))
-      if (!valid_for_replacement(df->d.unary_op.operand)) return df;
+   /* Old versions of the language didn't allow writes, in which case assume everything
+    * is read-only. Otherwise we need to check */
+   if (df->flavour == DATAFLOW_VECTOR_LOAD)
+      if (!(assume_read_only || addr_is_read_only(df->d.unary_op.operand))) return df;
 
    // If we have seen identical node before, use it instead.
    hash = dataflow_hash(df);
@@ -131,15 +133,15 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
    return df;
 }
 
-static void block_cse(Dataflow **outputs, int n_outputs)
+static void block_cse(Dataflow **outputs, int n_outputs, bool assume_read_only)
 {
    Map *ctx = glsl_map_new();
    for (int i=0; i<n_outputs; i++)
-      outputs[i] = dataflow_cse_accept(ctx, outputs[i]);
+      outputs[i] = dataflow_cse_accept(ctx, outputs[i], assume_read_only);
    glsl_map_delete(ctx);
 }
 
-void glsl_dataflow_cse(SSABlock *block, int n_blocks) {
+void glsl_dataflow_cse(SSABlock *block, int n_blocks, bool assume_read_only) {
    for (int i=0; i<n_blocks; i++)
-      block_cse(block[i].outputs, block[i].n_outputs);
+      block_cse(block[i].outputs, block[i].n_outputs, assume_read_only);
 }

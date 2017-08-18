@@ -70,7 +70,7 @@ void BSYNClib_RateMismatchDetector_GetDefaultSettings(
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_GetDefaultSettings);
 }
 
-void BSYNClib_RateMismatchDetector_P_GetDefaultConfig(BSYNClib_RateMismatchDetector_Config * psConfig)
+static void BSYNClib_RateMismatchDetector_P_GetDefaultConfig(BSYNClib_RateMismatchDetector_Config * psConfig)
 {
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_P_GetDefaultConfig);
 	BDBG_ASSERT(psConfig);
@@ -79,7 +79,7 @@ void BSYNClib_RateMismatchDetector_P_GetDefaultConfig(BSYNClib_RateMismatchDetec
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_GetDefaultConfig);
 }
 
-void BSYNClib_RateMismatchDetector_P_GetDefaultStatus(BSYNClib_RateMismatchDetector_Status * psStatus)
+static void BSYNClib_RateMismatchDetector_P_GetDefaultStatus(BSYNClib_RateMismatchDetector_Status * psStatus)
 {
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_P_GetDefaultStatus);
 	BDBG_ASSERT(psStatus);

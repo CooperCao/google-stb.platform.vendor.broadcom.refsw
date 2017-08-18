@@ -104,17 +104,16 @@ error:
 
 void NEXUS_ParserBand_StopBondingGroup(NEXUS_ParserBand master)
 {
-    NEXUS_Error rc;
     NEXUS_PlaypumpHandle playpump;
     NEXUS_ParserBandHandle masterPb = NULL;
     masterPb = NEXUS_ParserBand_Resolve_priv(master);
 
     if (masterPb==NULL) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
     if (masterPb->gcbSwHandle==NULL) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
     NEXUS_Gcb_P_Stop(masterPb->gcbSwHandle);
@@ -141,17 +140,16 @@ NEXUS_Error NEXUS_ParserBand_GetBondingGroupStatus(NEXUS_ParserBand master, NEXU
 
 NEXUS_PlaypumpHandle NEXUS_ParserBand_GetBondingGroupPlaypump(NEXUS_ParserBand master)
 {
-    NEXUS_Error rc;
     NEXUS_ParserBandHandle masterPb = NULL;
     NEXUS_PlaypumpHandle playpump;
     masterPb = NEXUS_ParserBand_Resolve_priv(master);
 
     if (masterPb==NULL) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
     }
     if (masterPb->gcbSwHandle==NULL) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
     }
     playpump = ((NEXUS_GcbSwHandle)masterPb->gcbSwHandle)->playpump;

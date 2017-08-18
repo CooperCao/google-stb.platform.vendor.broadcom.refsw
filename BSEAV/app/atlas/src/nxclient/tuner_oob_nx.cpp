@@ -50,7 +50,7 @@ BDBG_MODULE(atlas_tuner_oob);
 
 CTunerOobNx::CTunerOobNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTunerOob(name, number, pCfg)

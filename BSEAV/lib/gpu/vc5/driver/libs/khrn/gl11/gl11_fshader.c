@@ -1,11 +1,12 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include "gl11_shader.h"
 #include "../glsl/glsl_dataflow.h"
 #include "../glxx/glxx_shader_ops.h"
-#include "../glxx/glxx_server.h"   /* For STATE_OFFSET */
-#include "../common/khrn_int_math.h"      /* For SQRT_2 */
 
 const GLXX_VEC4_T *texenv_src(uint32_t           src,
                               const GLXX_VEC4_T *texture,
@@ -173,15 +174,17 @@ static bool need_clamp_above(uint32_t combine)
    }
 }
 
-static void texture_lookup(GLXX_VEC4_T *result, Dataflow *sampler, const GLXX_VEC4_T *coord)
+static void texture_lookup(GLXX_VEC4_T *result, Dataflow *image, Dataflow *sampler, const GLXX_VEC4_T *coord)
 {
    Dataflow *coords = glsl_dataflow_construct_vec4(coord->x, coord->y, NULL, NULL);
-   Dataflow *r, *g, *b, *a;
-   glsl_dataflow_construct_texture_lookup(&r, &g, &b, &a, 0,
-                                          sampler, coords,
-                                          NULL, NULL, NULL, 0xF, DF_FLOAT);
+   Dataflow *c[4];
+   glsl_dataflow_construct_texture_lookup(c, 4, DF_TEXBITS_NONE, image, coords, NULL, NULL, NULL, sampler, DF_FLOAT);
 
-   glxx_v_vec4(result, r, g, b, a);
+   Dataflow *l = c[0]->d.unary_op.operand;
+   assert(l->flavour == DATAFLOW_TEXTURE);
+   l->u.texture.required_components = 0xF;
+
+   glxx_v_vec4(result, c[0], c[1], c[2], c[3]);
 }
 
 static void project_coordinate(GLXX_VEC4_T *result, const GLXX_VEC4_T *coord)
@@ -191,6 +194,7 @@ static void project_coordinate(GLXX_VEC4_T *result, const GLXX_VEC4_T *coord)
 }
 
 struct u_texunit_s {
+   Dataflow *image;
    Dataflow *sampler;
    GLXX_VEC4_T color;
    Dataflow *rgb_scale;
@@ -231,7 +235,7 @@ static void texturing(GLXX_VEC4_T       *result,
          if (texunit & GL11_TEX_COMPLEX)
             project_coordinate(&coord, &coord);
 
-         texture_lookup(&texture, u_texunits[i].sampler, &coord);
+         texture_lookup(&texture, u_texunits[i].image, u_texunits[i].sampler, &coord);
 
          /* Marshall arguments of the combine function. Interpolate uses 3 */
          for (int j = 0; j < 3; j++)
@@ -364,14 +368,14 @@ static void apply_antialiased_line(GLXX_VEC4_T       *result,
       then we will have partial coverage */
 
    Dataflow *half_line = glxx_mul(glxx_cfloat(0.5f), line_width);
-   Dataflow *drawn_line_width = glxx_add( glxx_floor( glxx_mul( line_width, glxx_cfloat(SQRT_2) )), glxx_cfloat(3.0f));
+   Dataflow *drawn_line_width = glxx_add( glxx_floor( glxx_mul( line_width, glxx_cfloat((float)M_SQRT2) )), glxx_cfloat(3.0f));
 
    /* mirror at 0.5 */
    Dataflow *x = glxx_abs(glxx_sub(glxx_cfloat(0.5f), line_coord));
    Dataflow *pixels = glxx_mul(drawn_line_width, x);         /* number of pixels from centre of line */
 
    /* fraction of pixel covered */
-   Dataflow *coverage = glxx_sub( glxx_cfloat(0.5f), glxx_mul(glxx_cfloat(1.0f/SQRT_2), glxx_sub(pixels, half_line)));
+   Dataflow *coverage = glxx_sub( glxx_cfloat(0.5f), glxx_mul(glxx_cfloat(1.0f/(float)M_SQRT2), glxx_sub(pixels, half_line)));
    /* Discard pixels that aren't covered at all in case blend is off */
    *discard = glxx_lequal( coverage, glxx_cfloat(0.0f) );
    coverage = glxx_clamp(coverage);
@@ -432,7 +436,12 @@ static void apply_logic_op(GLXX_VEC4_T *result, const GLXX_VEC4_T *col_in, uint3
    Dataflow *out[4];
 
    /* Get the existing fb color. 0xf -> all components, 0 -> rt 0 */
-   glsl_dataflow_construct_frag_get_col(cur, DF_FLOAT, 0xf, 0);
+   glsl_dataflow_construct_frag_get_col(cur, DF_FLOAT, 0);
+
+   Dataflow *g = cur[0]->d.unary_op.operand;
+   assert(g->flavour == DATAFLOW_FRAG_GET_COL);
+   g->u.texture.required_components = 0xF;
+
 
    /* The colours come back as floats in [0,1] so convert back to int */
    for (int i=0; i<4; i++) {
@@ -528,7 +537,9 @@ static void construct_builtins(struct builtin_unifs_s *unif, int *bindings) {
    new_bound_u(&unif->alpha_func_ref, &count, bindings, GL11_STATE_OFFSET(alpha_func.ref));
    new_bound_v4_u(&unif->projected_clip_plane, &count, bindings, GL11_STATE_OFFSET(projected_clip_plane));
    for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
-      unif->texunits[i].sampler = glsl_dataflow_construct_const_image(DF_FSAMPLER, count, false);
+      unif->texunits[i].image = glsl_dataflow_construct_const_image(DF_F_SAMP_IMG, count, false);
+      bindings[count++] = i;
+      unif->texunits[i].sampler = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, count);
       bindings[count++] = i;
       new_bound_v4_u(&unif->texunits[i].color, &count, bindings, GL11_STATE_OFFSET(texunits[i].color));
       new_bound_u(&unif->texunits[i].rgb_scale, &count, bindings, GL11_STATE_OFFSET(texunits[i].rgb_scale));

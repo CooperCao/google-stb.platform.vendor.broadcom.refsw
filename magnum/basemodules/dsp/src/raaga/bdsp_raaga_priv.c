@@ -40,7 +40,6 @@
 
 #include "bdsp_raaga_priv.h"
 #include "bdsp_raaga_fw_algo.h"
-#include "bdsp_raaga_fw_cit.h"
 #include "bdsp_raaga_fwdownload_priv.h"
 #include "bdsp_raaga_int_priv.h"
 #include "bdsp_raaga_fw.h"
@@ -475,7 +474,9 @@ void BDSP_Raaga_P_GetDefaultContextSettings(
 BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
 								void *pPrimaryStageHandle,
 								BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *sTaskFmmGateOpenConfig,
-								uint32_t ui32MaxIndepDelay
+								uint32_t ui32MaxIndepDelay,
+								BDSP_AF_P_BurstFillType eFMMPauseBurstType,
+								BDSP_AF_P_SpdifPauseWidth eSpdifPauseWidth
 							)
 {
 	BERR_Code errCode = BERR_SUCCESS;
@@ -484,6 +485,8 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
 	unsigned ui32BufferDepthThreshold;
 	BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pPrimaryStageHandle;
 	BDSP_MMA_Memory IOBuffer_Source, IOBuffer_Destination;
+	BDSP_AF_P_BurstFillType eFMMPauseBurstTypeVar = BDSP_AF_P_BurstFill_eZeroes;
+	BDSP_AF_P_SpdifPauseWidth eSpdifPauseWidthVar = BDSP_AF_P_SpdifPauseWidth_eInvalid;
 
 	BDBG_ENTER(BDSP_Raaga_P_PopulateGateOpenFMMStages);
 
@@ -510,7 +513,7 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
 				case BDSP_AF_P_DistinctOpType_eMono_PCM:
 					ui32FMMContentType = BDSP_AF_P_FmmContentType_ePcm;
 					ui32FMMDstType = BDSP_AF_P_FmmDstFsRate_eBaseRate;
-					ui32BufferDepthThreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+					ui32BufferDepthThreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 					break;
 				case BDSP_AF_P_DistinctOpType_eCompressed:
 				case BDSP_AF_P_DistinctOpType_eAuxilaryDataOut:
@@ -520,7 +523,7 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
 				case BDSP_AF_P_DistinctOpType_eDolbyReEncodeAuxDataOut:
 					ui32FMMContentType = BDSP_AF_P_FmmContentType_eCompressed;
 					ui32FMMDstType = BDSP_AF_P_FmmDstFsRate_eBaseRate;
-					ui32BufferDepthThreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+					ui32BufferDepthThreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 					break;
 				case BDSP_AF_P_DistinctOpType_eCompressed4x:
 				/*SW7425-6056: It is based on ui32FMMContentType that the FW decides on a type of zero fill.
@@ -533,7 +536,7 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
 						ui32FMMContentType = BDSP_AF_P_FmmContentType_eCompressed;
 					}
 					ui32FMMDstType = BDSP_AF_P_FmmDstFsRate_e4xBaseRate;
-					ui32BufferDepthThreshold = (BDSP_CIT_P_COMPRESSED4X_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+					ui32BufferDepthThreshold = (BDSP_AF_P_COMPRESSED4X_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 					break;
 				case BDSP_AF_P_DistinctOpType_eCompressedHBR:
 					ui32FMMContentType = BDSP_AF_P_FmmContentType_eCompressed;
@@ -541,11 +544,11 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
 					if(pRaagaConnectStage->algorithm == BDSP_Algorithm_eMlpPassthrough)
 					{
 						/* Note: MLP Passthru uses a different logic for threshold and hence no need to add residual collection. The calculation is explained in the macro defination*/
-						ui32BufferDepthThreshold = BDSP_CIT_P_COMPRESSED16X_MLP_BUFFER_THRESHOLD;
+						ui32BufferDepthThreshold = BDSP_AF_P_COMPRESSED16X_MLP_BUFFER_THRESHOLD;
 					}
 					else
 					{
-						ui32BufferDepthThreshold = (BDSP_CIT_P_COMPRESSED16X_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+						ui32BufferDepthThreshold = (BDSP_AF_P_COMPRESSED16X_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 					}
 					break;
 				default:
@@ -566,10 +569,17 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
 
 				IOBuffer_Destination.pAddr = (void *)((uint8_t *)IOBuffer_Destination.pAddr + SIZEOF(BDSP_AF_P_sIO_BUFFER));
 				IOBuffer_Destination.offset = IOBuffer_Destination.offset + SIZEOF(BDSP_AF_P_sIO_BUFFER);
+				if(BDSP_AF_P_FmmContentType_eCompressed==ui32FMMContentType)
+				{
+					eFMMPauseBurstTypeVar = eFMMPauseBurstType;
+					eSpdifPauseWidthVar   = eSpdifPauseWidth;
+				}
 				sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].ui32IndepDelay= pRaagaConnectStage->sStageOutput[output].connectionDetails.fmm.descriptor.delay;
 				sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].eFMMContentType = ui32FMMContentType;
 				sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].eFmmDstFsRate = ui32FMMDstType;
 				sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].ui32BufferDepthThreshold = ui32BufferDepthThreshold;
+				sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].eFMMPauseBurstType = eFMMPauseBurstTypeVar;
+				sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].eSpdifPauseWidth = eSpdifPauseWidthVar;
 				ui32NumPorts++;
 			}
 		}
@@ -605,7 +615,9 @@ BERR_Code BDSP_Raaga_P_RetrieveGateOpenSettings(
 	BKNI_Memset(&sTaskFmmGateOpenConfig,0,sizeof(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
 	errCode = BDSP_Raaga_P_PopulateGateOpenFMMStages((void *)pRaagaTask->startSettings.primaryStage->pStageHandle,
 		&sTaskFmmGateOpenConfig,
-		pRaagaTask->startSettings.maxIndependentDelay);
+		pRaagaTask->startSettings.maxIndependentDelay,
+		pRaagaTask->startSettings.eFMMPauseBurstType,
+		pRaagaTask->startSettings.eSpdifPauseWidth);
 
 	if(errCode != BERR_SUCCESS)
 	{
@@ -697,6 +709,8 @@ void BDSP_Raaga_P_GetDefaultTaskStartSettings(
 	pSettings->maxIndependentDelay = BDSP_AF_P_MAX_INDEPENDENT_DELAY;
 
 	pSettings->gateOpenReqd = true;
+	pSettings->eFMMPauseBurstType=BDSP_AF_P_BurstFill_ePauseBurst;
+	pSettings->eSpdifPauseWidth=BDSP_AF_P_SpdifPauseWidth_eEightWord;
 }
 
 /***********************************************************************
@@ -1064,7 +1078,7 @@ BERR_Code BDSP_Raaga_P_SetAlgorithm(
 	if( !pRaagaStage->settings.algorithmSupported[algorithm])
 	{
 		BDBG_ERR((" algorithm %s (%d) being passed in %s was not enabled during CreateStage call ",
-					pAlgoInfo->pName,algorithm, __FUNCTION__));
+					pAlgoInfo->pName,algorithm, BSTD_FUNCTION));
 		return BERR_TRACE(BERR_NOT_SUPPORTED);
 	}
 
@@ -3519,7 +3533,7 @@ void BDSP_Raaga_P_DestroyContext(
 		/* Remove from list */
 		BLST_S_REMOVE_HEAD(&pRaagaContext->freeTaskList, node);
 
-		BDBG_ERR(("Free Task list is not empty in %s ", __FUNCTION__));
+		BDBG_ERR(("Free Task list is not empty in %s ", BSTD_FUNCTION));
 
 		/* Destroy task */
 		BDBG_OBJECT_DESTROY(pTask, BDSP_RaagaTask);
@@ -4428,7 +4442,7 @@ static BERR_Code BDSP_Raaga_P_FindSchedulingBuffer(
 	/* Holds the list of stage handles that have not been examined */
 	uint32_t i, ui32Buff0AddrStart, ui32Buff2BuffOffset;
 	BDSP_RaagaQueue* pRaagaQueue;
-	unsigned int uiSchedulingBufferThreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+	unsigned int uiSchedulingBufferThreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 
 	BDBG_ASSERT(NULL != pSettings);
 	BDBG_ASSERT(NULL != pBufferId);
@@ -4437,7 +4451,7 @@ static BERR_Code BDSP_Raaga_P_FindSchedulingBuffer(
 	*pBufferId = 0;
 	*pDelay = 0;
 	*pDstRate = BDSP_AF_P_FmmDstFsRate_eBaseRate;
-	*pSchedulingBufferthreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+	*pSchedulingBufferthreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 
 	BDSP_STAGE_TRAVERSE_LOOP_BEGIN((BDSP_RaagaStage *)pStartSettings->primaryStage->pStageHandle, pStageIterator)
 	BSTD_UNUSED(macroStId);
@@ -4523,29 +4537,29 @@ static BERR_Code BDSP_Raaga_P_FindSchedulingBuffer(
 								if(pStageIterator->algorithm == BDSP_Algorithm_eMlpPassthrough)
 								{
 									/* Note: MLP Passthru uses a different logic for threshold and hence no need to add residual collection. The calculation is explained in the macro defination*/
-									uiSchedulingBufferThreshold = BDSP_CIT_P_COMPRESSED16X_MLP_BUFFER_THRESHOLD;
+									uiSchedulingBufferThreshold = BDSP_AF_P_COMPRESSED16X_MLP_BUFFER_THRESHOLD;
 								}
 								else
 								{
-									uiSchedulingBufferThreshold = (BDSP_CIT_P_COMPRESSED16X_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+									uiSchedulingBufferThreshold = (BDSP_AF_P_COMPRESSED16X_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 								}
 							}
 							else if (pStageIterator->eStageOpBuffDataType[i] == BDSP_AF_P_DistinctOpType_eCompressed4x)
 							{
 								compressedRate = BDSP_AF_P_FmmDstFsRate_e4xBaseRate;
-								uiSchedulingBufferThreshold = (BDSP_CIT_P_COMPRESSED4X_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+								uiSchedulingBufferThreshold = (BDSP_AF_P_COMPRESSED4X_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 							}
 							else
 							{
 								compressedRate = BDSP_AF_P_FmmDstFsRate_eBaseRate;
-								uiSchedulingBufferThreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+								uiSchedulingBufferThreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 							}
 
 							if ((pStageIterator->eStageOpBuffDataType[i] == BDSP_AF_P_DistinctOpType_eCompressed)
 								&& (pStageIterator->algorithm == BDSP_Algorithm_eBtscEncoder))
 							{
 								compressedRate = BDSP_AF_P_FmmDstFsRate_e4xBaseRate;
-								uiSchedulingBufferThreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+								uiSchedulingBufferThreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 							}
 						}
 						BDBG_MSG(("Scheduling buffer associated with %s(%d)",BDSP_Raaga_P_LookupAlgorithmInfo(pStageIterator->algorithm)->pName,pStageIterator->algorithm ));
@@ -4557,7 +4571,7 @@ static BERR_Code BDSP_Raaga_P_FindSchedulingBuffer(
 						*pDelay = pStageIterator->sStageOutput[i].connectionDetails.fmm.descriptor.delay;
 						*pDstRate = BDSP_AF_P_FmmDstFsRate_eBaseRate;
 						*eSchedulingBufferType = BDSP_CIT_P_FwStgSrcDstType_eFMMBuf;
-						*pSchedulingBufferthreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+						*pSchedulingBufferthreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 
 						BDBG_MSG(("Scheduling buffer: associated with %s(%d)",BDSP_Raaga_P_LookupAlgorithmInfo(pStageIterator->algorithm)->pName,pStageIterator->algorithm ));
 						BDBG_MSG(("Scheduling buffer: *pBufferId=%d, *pDelay=%d, ",*pBufferId,*pDelay));
@@ -4600,12 +4614,12 @@ BERR_Code BDSP_Raaga_P_CalcThresholdZeroFillTimeAudOffset_isrsafe(
 	BDBG_OBJECT_ASSERT (pRaagaStage, BDSP_RaagaStage);
 
 	eDelayMode = pCtbInput->audioTaskDelayMode;
-    psCTB_OutputStructure->ui32Threshold = (BDSP_CIT_P_MINIMUM_ALGO_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+    psCTB_OutputStructure->ui32Threshold = (BDSP_AF_P_MAX_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
 	if (pRaagaStage->algorithm == BDSP_Algorithm_eMlpPassthrough)
 	{
-		psCTB_OutputStructure->ui32Threshold = BDSP_CIT_P_INDEPENDENT_MAT_THRESHOLD;
+		psCTB_OutputStructure->ui32Threshold = BDSP_AF_P_INDEPENDENT_MAT_THRESHOLD;
 		BDBG_MSG(("**** Increasing threshold value to increase zero fill ... Old Threshold = %d, New Threshold = %d******",\
-				(BDSP_CIT_P_MINIMUM_ALGO_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION), BDSP_CIT_P_INDEPENDENT_MAT_THRESHOLD));
+				(BDSP_AF_P_MAX_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING), BDSP_AF_P_INDEPENDENT_MAT_THRESHOLD));
 	}
 	if(eDelayMode == BDSP_AudioTaskDelayMode_eDefault)
 	{
@@ -9498,7 +9512,7 @@ BERR_Code BDSP_Raaga_P_GetPictureQueueCount_isr(
 
 	if (pRaagaTask->isStopped == true)
 	{
-		BDBG_MSG(("%s : Task is not started yet.", __FUNCTION__));
+		BDBG_MSG(("%s : Task is not started yet.", BSTD_FUNCTION));
 		goto end;
 	}
 
@@ -9578,7 +9592,7 @@ BERR_Code BDSP_Raaga_P_GetPictureCount_isr(
 
 	if (pRaagaTask->isStopped == true)
 	{
-		BDBG_MSG(("%s : Task is not started yet.", __FUNCTION__));
+		BDBG_MSG(("%s : Task is not started yet.", BSTD_FUNCTION));
 		goto end;
 	}
 

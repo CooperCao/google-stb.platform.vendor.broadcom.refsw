@@ -9,6 +9,7 @@
 #include "glsl_extensions.h"
 
 #include "glsl_errors.h"
+#include "glsl_fastmem.h"
 
 #include <stdlib.h>
 #include <string.h>

@@ -32,6 +32,8 @@ static struct {
    {{"GL_EXT_primitive_bounding_box",},                true, GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_EXT_PRIMITIVE_BOUNDING_BOX, NULL },
    {{"GL_KHR_blend_equation_advanced",},               true, GLSL_DISABLED, 0, NULL },
 
+   {{"GL_BRCM_shader_framebuffer_fetch_depth_stencil",}, V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_BRCM_SHADER_FRAMEBUFFER_FETCH_DEPTH_STENCIL, NULL },
+
    {{"GL_OES_sample_variables",},                      V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_SAMPLE_VARIABLES, NULL},
    {{"GL_OES_shader_multisample_interpolation",},      V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, 0, NULL },
 
@@ -46,6 +48,7 @@ static struct {
    {{"GL_OES_geometry_point_size",     "GL_EXT_geometry_point_size"},     false, GLSL_DISABLED, 0, NULL },
 
    {{"GL_BRCM_no_perspective",},     V3D_HAS_VARY_NO_PERSP, GLSL_DISABLED, 0, NULL },
+   {{"GL_BRCM_image_formats",},      V3D_HAS_GFXH1638_FIX,  GLSL_DISABLED, 0, NULL },
 
    {{"GL_ANDROID_extension_pack_es31a", },     V3D_VER_AT_LEAST(4,0,2,0) && false, GLSL_DISABLED, 0, aep_implies },
 };

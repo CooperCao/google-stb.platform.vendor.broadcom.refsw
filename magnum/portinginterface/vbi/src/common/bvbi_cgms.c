@@ -184,7 +184,7 @@ BERR_Code BVBI_Field_SetCGMSBData_isr(
 * Implementation of supporting CGMS functions that are not in API
 ***************************************************************************/
 
-
+#if BVBI_NUM_CGMSAE >= 1
 BERR_Code BVBI_P_CGMS_Init( BVBI_P_Handle *pVbi )
 {
     uint8_t hwIndex;
@@ -193,15 +193,12 @@ BERR_Code BVBI_P_CGMS_Init( BVBI_P_Handle *pVbi )
 
     /* Initialize CGMS encoders */
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_CGMSAE ; ++hwIndex)
-        BVBI_P_CGMS_Enc_Init (pVbi->hReg, false, hwIndex);
-#if (BVBI_NUM_CGMSAE_656 > 0)
-    for (hwIndex = 0 ; hwIndex < BVBI_NUM_CGMSAE_656 ; ++hwIndex)
-        BVBI_P_CGMS_Enc_Init (pVbi->hReg, true, hwIndex);
-#endif
+        BVBI_P_CGMS_Enc_Init (pVbi->hReg, hwIndex);
 
     BDBG_LEAVE(BVBI_P_CGMS_Init);
     return BERR_SUCCESS;
 }
+#endif
 
 uint32_t BVPI_P_CGMS_format_data_isr (uint32_t userdata)
 {

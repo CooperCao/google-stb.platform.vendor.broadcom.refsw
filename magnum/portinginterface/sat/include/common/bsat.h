@@ -716,6 +716,7 @@ typedef struct BSAT_TurboAcqSettings
    uint32_t scanModes;    /* modes searched in Turbo scan mode: bitwise OR of BSAT_SCAN_MODE_TURBO_* */
    uint32_t ctl;          /* see BSAT_TURBO_CTL_* */
    uint32_t tzsyOverride; /* TZSY value if BSAT_TURBO_CTL_OVERRIDE_TZSY bit is set in ctl */
+   uint32_t flbwOverride; /* front carrier loop bw in Hz if BSAT_TURBO_CTL_OVERRIDE_FLBW bit is set in ctl */
 } BSAT_TurboAcqSettings;
 
 
@@ -1064,6 +1065,7 @@ typedef struct BSAT_SpectrumStatus {
 
 /* bit definitions for BSAT_TurboAcqSettings.ctl */
 #define BSAT_TURBO_CTL_OVERRIDE_TZSY 0x01  /* 0=use default setting for TZSY, 1=override TFEC_TZSY */
+#define BSAT_TURBO_CTL_OVERRIDE_FLBW 0x02  /* 0=use default front carrier loop bw, 1=override */
 
 /* data types used by BSAT_GetTraceInfo() */
 typedef enum BSAT_TraceEvent

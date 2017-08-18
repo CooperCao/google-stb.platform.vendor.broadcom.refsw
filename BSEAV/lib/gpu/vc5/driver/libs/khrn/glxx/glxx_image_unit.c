@@ -42,6 +42,35 @@ static bool is_allowed_image_unit_format(GLenum internalformat)
    case GL_R32I:
    case GL_RGBA8:
    case GL_RGBA8_SNORM:
+
+#if V3D_HAS_GFXH1638_FIX
+   case GL_RG32F:
+   case GL_RG16F:
+   case GL_R11F_G11F_B10F:
+   case GL_R16F:
+   case GL_RGBA16_EXT:
+   case GL_RGB10_A2:
+   case GL_RG16_EXT:
+   case GL_RG8:
+   case GL_R16_EXT:
+   case GL_R8:
+   case GL_RGBA16_SNORM_EXT:
+   case GL_RG16_SNORM_EXT:
+   case GL_RG8_SNORM:
+   case GL_R16_SNORM_EXT:
+   case GL_R8_SNORM:
+   case GL_RG32I:
+   case GL_RG16I:
+   case GL_RG8I:
+   case GL_R16I:
+   case GL_R8I:
+   case GL_RGB10_A2UI:
+   case GL_RG32UI:
+   case GL_RG16UI:
+   case GL_RG8UI:
+   case GL_R16UI:
+   case GL_R8UI:
+#endif
       return true;
    default:
       return false;
@@ -227,7 +256,8 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
    GFX_LFMT_TYPE_T unit_lfmt_type;
    unit_lfmt_type = calc_image_unit->fmt & GFX_LFMT_TYPE_MASK;
    if (unit_lfmt_type == GFX_LFMT_TYPE_UNORM ||
-       unit_lfmt_type == GFX_LFMT_TYPE_SNORM)
+       unit_lfmt_type == GFX_LFMT_TYPE_SNORM ||
+       unit_lfmt_type == GFX_LFMT_TYPE_UFLOAT )
       unit_lfmt_type = GFX_LFMT_TYPE_FLOAT;
    if (lfmt_type != unit_lfmt_type)
       goto end;

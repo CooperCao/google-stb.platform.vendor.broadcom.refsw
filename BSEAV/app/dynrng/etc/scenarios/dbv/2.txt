@@ -1,0 +1,2 @@
+stream=volcanos_U30000_mz.ts
+osd=off

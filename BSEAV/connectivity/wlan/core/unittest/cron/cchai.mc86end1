@@ -1,0 +1,127 @@
+#MAILTO=cchai@broadcom.com
+# Created: 8/23/2012
+#
+#=========================================================
+# crontab to send summary emails via local sendmail
+#=========================================================
+# check if any host is unreachable
+05 08 * * * /home/cchai/bin/ping_host.pl
+
+# run at morning (generate partial reports)  
+30 10 * * * /home/cchai/bin/check_logs.pl 
+
+# run at midnight (generate full reports)
+#50 23 * * * /home/cchai/bin/check_logs.pl full
+
+###
+### mc86a
+###
+# mc86tst1 - 4331 for implicit txbf
+05 01 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-tot-bf0 4360softap-tot-bf1" -sta 4331t -va af -attngrp G1 -no2G20 -no2G40 -no5G20 -cycle5G40AttnRange "0-80 80-0" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 4331t"
+
+10 01 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 4331b -va af -attngrp G1 -no2G20 -no2G40 -no5G20 -cycle5G40AttnRange "0-80 80-0" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 4331b"
+
+# mc86tst6 - 43228 for implicit txbf
+20 01 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-tot-bf0 4360softap-tot-bf1" -sta 43228t -va af -attngrp G1 -no2G20 -no2G40 -no5G20 -cycle5G40AttnRange "0-80 80-0" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 43228t"
+
+30 01 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 43228b -va af -attngrp G1 -no2G20 -no2G40 -no5G20 -cycle5G40AttnRange "0-80 80-0" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 43228b"
+
+# mc86tst12 - 43224
+40 01 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-bis-bf0s 4360softap-bis-bf1s" -sta 43224t -va af -attngrp G1 -no2G20 -no2G40 -no5G20 -cycle5G40AttnRange "10-80 80-10" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 43224t"
+
+50 01 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-bis-bf0s 4360softap-bis-bf1s" -sta 43224b -va af -attngrp G1 -no2G20 -no2G40 -no5G20 -cycle5G40AttnRange "10-80 80-10" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 43224b"
+
+# mc86tst3 - 4350c1 for explicit txbf
+10 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap 4360softap-bis-bf1 -sta 4350c1b -va af -attngrp G1 -chan5G80 36/80 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "0-80 80-0" -cycle5G80AttnRange "0-80 80-0" -perftime 2.5 -fb1 -window 4M -email hnd-utf-list -title 4350c1b
+
+20 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 4350c1b -va af -attngrp G1 -chan5G80 36/80 -no2G20 -no2G40 -no5G20 -no5G40 -cycle5G80AttnRange "0-80 80-0" -perftime 2.5 -fb1 -window 4M -email hnd-utf-list -compareap -downstreamonly -title "EXP 4350c1b"
+
+30 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap "4360softap-tot-bf0 4360softap-tot-bf1" -sta 4350c1t -va af -attngrp G1 -chan5G80 36/80 -no2G20 -no2G40 -no5G20 -no5G40 -cycle5G80AttnRange "0-80 80-0" -perftime 2.5 -fb1 -window 4M -email hnd-utf-list -compareap -downstreamonly -title "EXP 4350c1t"
+
+# StaNightly
+40 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86a -ap 4360softap-bis -sta "4350c1b 43224b 43228b 4331b" -email hnd-utf-list -title "MC86A StaNightly 4350c1b 43224b 43228b 4331b"
+
+# EVENING TESTS
+10 19 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86a -ap 4360softap-bis -sta "4350c1t 43224t 43228t 4331t" -email hnd-utf-list -title "MC86A StaNightly 4350c1t 43224t 43228t 4331t"
+
+20 19 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap 4360softap-bis -sta 4331b -va af -attngrp G1 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "10-80 80-10" -perftime 2.5 -fb1 -email hnd-utf-list -title "4331b 2G20"
+
+30 19 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap 4360softap-bis -sta 43224b -va af -attngrp G1 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "10-80 80-10" -perftime 2.5 -fb1 -email hnd-utf-list -title "43224b 2G20"
+
+40 19 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap 4360softap-bis -sta 43228b -va af -attngrp G1 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "10-80 80-10" -perftime 2.5 -fb1 -email hnd-utf-list -title "43228b 2G20"
+
+#50 19 * * * /home/cchai/src/tools/unittest/cron/launch mc86a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86a -ap 4360softap-tot -sta 4350c1t -va af -attngrp G1 -chan5G80 36/80 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "10-80 80-10" -cycle5G80AttnRange "10-80 80-10" -perftime 2.5 -fb1 -window 4M -email hnd-utf-list -title 4350c1t
+
+
+
+###
+### mc86b
+###
+# 4330 - mc86tst2 (Only can run up to 5G20)
+10 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86b -ap 4360softap-bis -sta "4330" -email hnd-utf-list -title "MC86B StaNightly 4330"
+
+15 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap 4360softap-bis -sta 4330 -va af -attngrp G2 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "20-80 80-20" -perftime 2.5 -fb0 -email hnd-utf-list -title 4330
+
+25 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 4330 -va af -attngrp G2 -no2G20 -no2G40 -no5G40 -cycle5G20AttnRange "10-70 70-10" -perftime 2.5 -fb0 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 4330"
+
+30 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap "4360softap-tot-bf0 4360softap-tot-bf1" -sta 4330 -va af -attngrp G2 -no2G20 -no2G40 -no5G40 -cycle5G20AttnRange "10-70 70-10" -perftime 2.5 -fb0 -email hnd-utf-list -compareap -downstreamonly -title "IMP HT 4330"
+
+
+# 4358wlspie_P105 PCIe FD 2x2 - mc86tst4 (variation of 43569) 
+35 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86b -ap 4360softap-bis -sta "4358b35tx 4358b35t 4358b35x 4358b35" -email hnd-utf-list -title "MC86B StaNightly 4358 PCIe"
+
+#37 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap 4360softap-bis -sta 4358b -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "0-80 80-0" -perftime 2.5 -fb1 -window 2m -email hnd-utf-list -title "4358 B10"
+
+40 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap 4360softap-bis -sta 4358b35 -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "0-80 80-0" -perftime 2.5 -fb1 -window 2m -email hnd-utf-list -title "4358 B35"
+
+45 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 4358b35x -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "0-80 80-0" -perftime 2.5 -fb1 -window 2m -compareap -downstreamonly -email hnd-utf-list -title "PERF EXP 4358 B35"
+
+58 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 4358b35x -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "0-80 80-0" -perftime 2.5 -fb1 -window 2m -compareap -downstreamonly -email hnd-utf-list -title "PERF UDP EXP 4358 B35" -udp 800m -attnstep 2 -max 800
+
+
+# 43342 - mc86tst5
+# (only run upstream. Downstream not working) 
+#05 03 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap 4360softap-bis -sta 43342 -va af -attngrp G2 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "20-80 80-20" -perftime 2.5 -fb0 -upstreamonly -email hnd-utf-list -title 43342
+
+
+# 4345 b1 1x1 PCIe - mc86tst13 (from Paul Filanowski, 3/27/2014)
+05 03 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86b -ap 4360softap-bis -sta "4345px 4345p 4345pn" -email hnd-utf-list -title "MC86B StaNightly 4345 PCIe"
+
+10 03 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap 4360softap-bis -sta 4345p -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "20-80 80-20" -perftime 2.5 -fb1 -email hnd-utf-list -title "4345 PCIe"
+
+15 03 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 4345p -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "20-80 80-20" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "EXP 4345 PCIe"
+
+16 03 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap 4360softap-bis -sta 4345pn -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "20-80 80-20" -perftime 2.5 -fb1 -email hnd-utf-list -title "4345 PCIe NIC"
+
+18 03 * * * /home/cchai/src/tools/unittest/cron/launch mc86b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86b -ap "4360softap-bis-bf0 4360softap-bis-bf1" -sta 4345pn -va af -attngrp G2 -no2G20 -no2G40 -no5G20 -no5G40 -chan5G80 36/80 -cycle5G80AttnRange "20-80 80-20" -perftime 2.5 -fb1 -email hnd-utf-list -compareap -downstreamonly -title "EXP 4345 PCIe NIC"
+
+
+###
+### mc86c
+###
+# mc86tst11 - 43430 a0 - SDIO 11n 1x1 2G20-only
+#30 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86c -ap 43602softap-bis -sta 43430a0r -email hnd-utf-list -title "MC86C StaNightly 43602-43430a0r" -noperf80 -noperf40
+
+#32 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86c -ap 4360softap-bis -sta 43430a0r -email hnd-utf-list -title "MC86C StaNightly 4360-43430a0r" -noperf80 -noperf40
+
+25 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86c -ap 43602softap-bis -sta "43430a0bx 43430a0b" -email hnd-utf-list -title "MC86C StaNightly 43602-43430a0" -noperf80 -noperf40
+
+27 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86c -ap 43602softap-bis -sta 43430a0b -va af -attngrp G3 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "30-90 90-30" -perftime 2.5 -fb1 -email hnd-utf-list -title "43602-43430a0b" -chan2G20 3
+
+#32 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86c -ap 43602softap-bis -sta 43430a0r -va af -attngrp G3 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "30-90 90-30" -perftime 2.5 -fb1 -email hnd-utf-list -title "43602-43430a0r" -chan2G20 3
+
+
+# mc86end2 - 43430 a1 - SDIO 11n 1x1 2G20-only
+45 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc86c -ap 43602softap-bis -sta "43430a1bx 43430a1b" -email hnd-utf-list -title "MC86C StaNightly 43602-43430a1" -noperf80 -noperf40
+
+50 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86c -ap 43602softap-bis -sta 43430a1b -va af -attngrp G3 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "30-90 90-30" -perftime 2.5 -fb1 -email hnd-utf-list -title "43602-43430a1b" -chan2G20 3
+
+#55 02 * * * /home/cchai/src/tools/unittest/cron/launch mc86c /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc86c -ap 43602softap-bis -sta 43430a1r -va af -attngrp G3 -no2G40 -no5G20 -no5G40 -cycle2G20AttnRange "30-90 90-30" -perftime 2.5 -fb1 -email hnd-utf-list -title "43602-43430a1r" -chan2G20 3
+
+
+# Evening Test
+
+
+# -- end --
+
+

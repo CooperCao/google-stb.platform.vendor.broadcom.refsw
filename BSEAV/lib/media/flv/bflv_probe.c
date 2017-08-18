@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY. *
  *
  * Module Description:
  *
  * BMedia library, stream probe module
- * 
- * Revision History:
  *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #include "bstd.h"
 #include "bflv_probe.h"
@@ -38,27 +58,6 @@ typedef struct b_flv_probe_object_handler {
     uint8_t meta;
 } b_flv_probe_object_handler;
 
-struct bflv_probe {
-    BDBG_OBJECT(bflv_probe_t)
-    bflv_parser_t parser;
-    b_flv_probe_object_handler video;
-    b_flv_probe_object_handler audio;
-    b_flv_probe_object_handler script;
-    struct {
-        bool valid;
-        unsigned value;
-    } duration;
-    struct {
-        bool valid;
-        unsigned value;
-    } videoWidth;
-    struct {
-        bool valid;
-        unsigned value;
-    } videoHeight;
-};
-
-BDBG_OBJECT_ID(bflv_probe_t);
 typedef enum bflv_script_datavalue_type {
     bflv_script_datavalue_type_Number = 0,
     bflv_script_datavalue_type_Boolean = 1,
@@ -104,6 +103,35 @@ struct bflv_script_datavalue {
         } date;
     } data;
 };
+
+struct bflv_probe {
+    BDBG_OBJECT(bflv_probe_t)
+    bflv_parser_t parser;
+    b_flv_probe_object_handler video;
+    b_flv_probe_object_handler audio;
+    b_flv_probe_object_handler script;
+    struct {
+        bool valid;
+        unsigned value;
+    } duration;
+    struct {
+        bool valid;
+        unsigned value;
+    } videoWidth;
+    struct {
+        bool valid;
+        unsigned value;
+    } videoHeight;
+    union {
+        struct {
+            struct bflv_script_string string;
+            struct bflv_script_datavalue d;
+            struct bflv_script_datavalue n,v;
+        } b_flv_parse_script_data;
+    } function_data;
+};
+
+BDBG_OBJECT_ID(bflv_probe_t);
 
 static bool b_flv_read_string(batom_cursor *cursor, bflv_script_datavalue_type type, struct bflv_script_string *string)
 {
@@ -221,58 +249,61 @@ b_flv_parse_script_data(bflv_probe_t probe, batom_t data)
       E.4.4.1 SCRIPTDATA
     */
     for(;;) {
-        struct bflv_script_datavalue n,v;
-        if(!b_flv_read_datavalue(&cursor, &n)) {
+        struct bflv_script_datavalue *n = &probe->function_data.b_flv_parse_script_data.n;
+        struct bflv_script_datavalue *v = &probe->function_data.b_flv_parse_script_data.n;
+
+        if(!b_flv_read_datavalue(&cursor, n)) {
             break;
         }
-        if(n.type != bflv_script_datavalue_type_String) {
-            BDBG_WRN(("%p:Unsupported top level type:%#x", (void *)probe, n.type));
+        if(n->type != bflv_script_datavalue_type_String) {
+            BDBG_WRN(("%p:Unsupported top level type:%#x", (void *)probe, n->type));
             break;
         }
-        BDBG_MSG(("variable:%s", n.data.string.buf));
-        if(!b_flv_read_datavalue(&cursor, &v)) {
+        BDBG_MSG(("variable:%s", n->data.string.buf));
+        if(!b_flv_read_datavalue(&cursor, v)) {
             break;
         }
-        switch(v.type) {
+        switch(v->type) {
         case bflv_script_datavalue_type_Object:
         case bflv_script_datavalue_type_ECMA_array:
             for(;;) {
-                struct bflv_script_string string;
-                struct bflv_script_datavalue d;
+                struct bflv_script_string *string = &probe->function_data.b_flv_parse_script_data.string;
+                struct bflv_script_datavalue *d = &probe->function_data.b_flv_parse_script_data.d;
+
                 static const char onMetaData[]="onMetaData";
 
-                if(!b_flv_read_string(&cursor, bflv_script_datavalue_type_String, &string)) {
+                if(!b_flv_read_string(&cursor, bflv_script_datavalue_type_String, string)) {
                     goto done;
                 }
-                if(string.len) {
-                    BDBG_MSG(("property:%s.%s", n.data.string.buf, string.buf));
+                if(string->len) {
+                    BDBG_MSG(("property:%s.%s", n->data.string.buf, string->buf));
                 }
-                if(!b_flv_read_datavalue(&cursor, &d)) {
+                if(!b_flv_read_datavalue(&cursor, d)) {
                     break;
                 }
-                if(d.type == bflv_script_datavalue_type_Object_end_marker) {
+                if(d->type == bflv_script_datavalue_type_Object_end_marker) {
                     break;
                 }
-                if(!b_flv_parse_is_primitive_type(d.type)) {
-                    BDBG_WRN(("%p:Unsupported Property type:%u", (void *)probe,d.type));
+                if(!b_flv_parse_is_primitive_type(d->type)) {
+                    BDBG_WRN(("%p:Unsupported Property type:%u", (void *)probe,d->type));
                     goto done;
                 }
-                if(BKNI_Memcmp(n.data.string.buf, onMetaData, sizeof(onMetaData))==0) {
+                if(BKNI_Memcmp(n->data.string.buf, onMetaData, sizeof(onMetaData))==0) {
                     static const char duration[]="duration";
                     static const char width[]="width";
                     static const char height[]="height";
 
-                    if(d.type == bflv_script_datavalue_type_Number && BKNI_Memcmp(string.buf, duration, sizeof(duration))==0) {
+                    if(d->type == bflv_script_datavalue_type_Number && BKNI_Memcmp(string->buf, duration, sizeof(duration))==0) {
                         probe->duration.valid = true;
-                        probe->duration.value = (unsigned)(1000*d.data.number.v_double);
+                        probe->duration.value = (unsigned)(1000*d->data.number.v_double);
                         BDBG_MSG(("duration %u", probe->duration.value));
-                    } else if(d.type == bflv_script_datavalue_type_Number && BKNI_Memcmp(string.buf, width, sizeof(width))==0) {
+                    } else if(d->type == bflv_script_datavalue_type_Number && BKNI_Memcmp(string->buf, width, sizeof(width))==0) {
                         probe->videoWidth.valid = true;
-                        probe->videoWidth.value = (unsigned)(d.data.number.v_double);
+                        probe->videoWidth.value = (unsigned)(d->data.number.v_double);
                         BDBG_MSG(("width %u", probe->videoWidth.value));
-                    } else if(d.type == bflv_script_datavalue_type_Number && BKNI_Memcmp(string.buf, height, sizeof(height))==0) {
+                    } else if(d->type == bflv_script_datavalue_type_Number && BKNI_Memcmp(string->buf, height, sizeof(height))==0) {
                         probe->videoHeight.valid = true;
-                        probe->videoHeight.value = (unsigned)(d.data.number.v_double);
+                        probe->videoHeight.value = (unsigned)(d->data.number.v_double);
                         BDBG_MSG(("height %u", probe->videoHeight.value));
                     }
                 }
@@ -281,13 +312,13 @@ b_flv_parse_script_data(bflv_probe_t probe, batom_t data)
         case bflv_script_datavalue_type_Strict_array:
             {
                 unsigned i;
-                for(i=0;i<v.data.Strict_array.length;i++) {
-                    struct bflv_script_datavalue d;
-                    if(!b_flv_read_datavalue(&cursor, &d)) {
+                for(i=0;i<v->data.Strict_array.length;i++) {
+                    struct bflv_script_datavalue *d = &probe->function_data.b_flv_parse_script_data.d;
+                    if(!b_flv_read_datavalue(&cursor, d)) {
                         break;
                     }
-                    if(!b_flv_parse_is_primitive_type(d.type)) {
-                        BDBG_WRN(("%p:Unsupported Strict array type:%u", (void *)probe,d.type));
+                    if(!b_flv_parse_is_primitive_type(d->type)) {
+                        BDBG_WRN(("%p:Unsupported Strict array type:%u", (void *)probe,d->type));
                         goto done;
                     }
                 }

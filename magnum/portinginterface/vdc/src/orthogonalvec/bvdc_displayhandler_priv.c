@@ -208,13 +208,13 @@ static const struct
     {BVDC_P_Output_eNone,          BDBG_STRING("BVDC_P_Output_eNone")}
 };
 
-
+#if BVDC_P_MAX_DACS
 /*************************************************************************
  *  {secret}
  * BVDC_P_Display_FindDac_isr
  *  Return true if found, false otherwise.
  **************************************************************************/
-bool BVDC_P_Display_FindDac_isr
+static bool BVDC_P_Display_FindDac_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_DacOutput                   eDacOutput )
 {
@@ -231,6 +231,7 @@ bool BVDC_P_Display_FindDac_isr
     }
     return false;
 }
+#endif
 
 static void BVDC_P_Display_CalculateOffset_isr
     ( BVDC_P_DisplayAnlgChan          *pstAnlgChan,
@@ -267,6 +268,7 @@ static void BVDC_P_Display_CalculateOffset_isr
             }
             break;
 
+#if BVDC_P_NUM_SHARED_VF
         case BVDC_P_ResourceType_eVf:
             switch(pstAnlgChan->ulVf)
             {
@@ -301,7 +303,9 @@ static void BVDC_P_Display_CalculateOffset_isr
                 BDBG_ASSERT(0);
             }
             break;
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM
         case BVDC_P_ResourceType_eSecam:
             switch(pstAnlgChan->ulSecam)
             {
@@ -326,7 +330,9 @@ static void BVDC_P_Display_CalculateOffset_isr
                 BDBG_ASSERT(0);
             }
             break;
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM_HD
         case BVDC_P_ResourceType_eSecam_HD:
             /* TODO */
             switch(BVDC_P_NUM_SHARED_SECAM + pstAnlgChan->ulSecam_HD)
@@ -366,7 +372,9 @@ static void BVDC_P_Display_CalculateOffset_isr
                 BDBG_ASSERT(0);
             }
             break;
+#endif
 
+#if BVDC_P_NUM_SHARED_SDSRC
         case BVDC_P_ResourceType_eSdsrc:
             switch(pstAnlgChan->ulSdsrc)
             {
@@ -408,6 +416,7 @@ static void BVDC_P_Display_CalculateOffset_isr
                 BDBG_ASSERT(0);
             }
             break;
+#endif
 
         case BVDC_P_ResourceType_eDvi:
             switch(pstDviChan->ulDvi)
@@ -525,6 +534,7 @@ void BVDC_P_FreeITResources_isr
 
 BERR_Code BVDC_P_AllocITResources
     ( BVDC_P_Resource_Handle           hResource,
+      BVDC_Display_Handle              hDisplay,
       BVDC_DisplayId                   eDisplayId,
       BVDC_P_DisplayAnlgChan          *pstChan,
       uint32_t                         ulIt )
@@ -540,6 +550,25 @@ BERR_Code BVDC_P_AllocITResources
             goto fail;
         }
         BVDC_P_Display_CalculateOffset_isr(pstChan, NULL, BVDC_P_ResourceType_eIt);
+
+#if BVDC_P_MV_BLOCKING_SUPPORT
+        /* Scratch registers for MV polling */
+        if(hDisplay->ulMVQueryTmpAddr == 0)
+        {
+            BKNI_LeaveCriticalSection();
+            hDisplay->ulMVQueryAddr = BRDC_GET_MV_BLOCK_REG(hDisplay->eId);
+            hDisplay->ulMVQueryTmpAddr = BRDC_AllocScratchReg(hDisplay->hVdc->hRdc);
+            BKNI_EnterCriticalSection();
+            if(hDisplay->ulMVQueryTmpAddr == 0)
+            {
+                BDBG_ERR(("Not enough scratch registers for Tmp MV query!"));
+                goto fail;
+            }
+            BRDC_WriteScratch(hDisplay->hVdc->hRegister, hDisplay->ulMVQueryAddr, 0);
+        }
+#else
+        BSTD_UNUSED(hDisplay);
+#endif
     }
     else
     {
@@ -763,8 +792,62 @@ fail:
 }
 
 
+static void BVDC_P_Display_StartAnlgCtrler_isr
+    ( BVDC_Display_Handle              hDisplay,
+      BVDC_P_ListInfo                 *pList,
+      bool                             bStop )
+{
+    uint32_t             ulItConfig = 0;
+    BVDC_P_DisplayInfo  *pCurInfo = &hDisplay->stCurInfo;
+
+    if(hDisplay->bAnlgEnable ||   /* if analog master */
+       (!hDisplay->bAnlgEnable &&  /* or anlog slave with DACs */
+       (hDisplay->stAnlgChan_0.bEnable || hDisplay->stAnlgChan_1.bEnable)))
+    {
+        ulItConfig = BVDC_P_GetItConfig_isr(pCurInfo);
+        BDBG_ASSERT (ulItConfig);
+
+        if(hDisplay->bAnlgEnable)
+        {
+            /* Master mode */
+            ulItConfig &= ~(BCHP_FIELD_ENUM(IT_0_TG_CONFIG, SLAVE_MODE, ENABLED));
+        }
+        else
+        {
+            /* Slave mode */
+            ulItConfig |= (BCHP_FIELD_ENUM(IT_0_TG_CONFIG, SLAVE_MODE, ENABLED));
+        }
+
+#if (BVDC_P_SUPPORT_IT_VER >= 3)
+        if(hDisplay->stCurInfo.ulAnlgChan0Mask == 0 &&
+           hDisplay->stCurInfo.ulAnlgChan1Mask == 0)
+        {
+            /* HDMI slave no analog (require at least IT) */
+            ulItConfig |= (BCHP_FIELD_ENUM(IT_0_TG_CONFIG, STAND_ALONE, ON));
+        }
+        else
+        {
+            ulItConfig |= (BCHP_FIELD_ENUM(IT_0_TG_CONFIG, STAND_ALONE, OFF));
+        }
+#endif
+
+        if(bStop)
+        {
+            ulItConfig &= ~(
+                BCHP_MASK(IT_0_TG_CONFIG, MC_ENABLES)
+                );
+        }
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_IT_0_TG_CONFIG + hDisplay->stAnlgChan_0.ulItRegOffset);
+        *pList->pulCurrent++ = ulItConfig;
+    }
+}
+
+
 static void BVDC_P_TearDownIT_isr
-    ( BVDC_P_DisplayAnlgChan             *pstChan,
+    ( BVDC_Display_Handle                 hDisplay,
+      BVDC_P_DisplayAnlgChan             *pstChan,
       BVDC_P_ListInfo                    *pList )
 {
     /* Disable modules in the path. This will drain data in the pipeline. */
@@ -778,8 +861,26 @@ static void BVDC_P_TearDownIT_isr
 
     if ((pstChan->ulIt != BVDC_P_HW_ID_INVALID))
     {
+#if BVDC_P_MV_BLOCKING_SUPPORT
+        /* If block by MV query, skip IT reset */
+        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
+        *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulMVQueryAddr);
+        *pList->pulCurrent++ = BRDC_OP_COND_SKIP(BRDC_Variable_0);
+        *pList->pulCurrent++ = 6; /* if MV block, skip the next 6-dwords resetting IT */
+
         BVDC_P_VEC_SW_INIT(IT_0, pstChan->ulItSwInitOffset, 1);
         BVDC_P_VEC_SW_INIT(IT_0, pstChan->ulItSwInitOffset, 0);
+#else
+        /* Format change no reset, only turning off the MC instead */
+        BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList, true);
+#endif
+
+#if BVDC_P_MV_BLOCKING_SUPPORT
+        /* Save MV block register into tmp scratch to be used for skipping */
+        /* trigger disabling and marker setting later */
+        *pList->pulCurrent++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_0);
+        *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulMVQueryTmpAddr);
+#endif
     }
 
     return;
@@ -789,6 +890,7 @@ static void BVDC_P_TearDownAnalogChan_isr
     ( BVDC_P_DisplayAnlgChan             *pstChan,
       BVDC_P_ListInfo                    *pList )
 {
+#if BVDC_P_NUM_SHARED_VF
     if (pstChan->ulVf != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -796,7 +898,9 @@ static void BVDC_P_TearDownAnalogChan_isr
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_VF_0_SOURCE, SOURCE, BCHP_VEC_CFG_VF_0_SOURCE_SOURCE_DISABLE);
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM
     if (pstChan->ulSecam != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -804,7 +908,9 @@ static void BVDC_P_TearDownAnalogChan_isr
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_SECAM_0_SOURCE, SOURCE, BCHP_VEC_CFG_SECAM_0_SOURCE_SOURCE_DISABLE);
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM_HD
     if (pstChan->ulSecam_HD != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -812,7 +918,9 @@ static void BVDC_P_TearDownAnalogChan_isr
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_SECAM_0_SOURCE, SOURCE, BCHP_VEC_CFG_SECAM_0_SOURCE_SOURCE_DISABLE);
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SDSRC
     if (pstChan->ulSdsrc != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -820,8 +928,9 @@ static void BVDC_P_TearDownAnalogChan_isr
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_SDSRC_0_SOURCE, SOURCE, BCHP_VEC_CFG_SDSRC_0_SOURCE_SOURCE_DISABLE);
     }
+#endif
 
-#if (BVDC_P_NUM_SHARED_HDSRC > 0)
+#if BVDC_P_NUM_SHARED_HDSRC
     if (pstChan->ulHdsrc != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -835,18 +944,23 @@ static void BVDC_P_TearDownAnalogChan_isr
      * SECAM0 can not be left at reset state. It would
      * affect other cores.
      */
+#if BVDC_P_NUM_SHARED_VF
     if (pstChan->ulVf != BVDC_P_HW_ID_INVALID)
     {
         BVDC_P_VEC_SW_INIT(VF_0, pstChan->ulVfSwInitOffset, 1);
         BVDC_P_VEC_SW_INIT(VF_0, pstChan->ulVfSwInitOffset, 0);
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM
     if (pstChan->ulSecam != BVDC_P_HW_ID_INVALID)
     {
         BVDC_P_VEC_SW_INIT(SECAM_0, pstChan->ulSecamSwInitOffset, 1);
         BVDC_P_VEC_SW_INIT(SECAM_0, pstChan->ulSecamSwInitOffset, 0);
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM_HD
     if (pstChan->ulSecam_HD != BVDC_P_HW_ID_INVALID
 #if BVDC_P_VEC_HW7425_475_WORK_AROUND
         && pstChan->ulSecam_HD != 1 /* SECAM_2 */
@@ -856,14 +970,17 @@ static void BVDC_P_TearDownAnalogChan_isr
         BVDC_P_VEC_SW_INIT(SECAM_0, pstChan->ulSecamHDSwInitOffset, 1);
         BVDC_P_VEC_SW_INIT(SECAM_0, pstChan->ulSecamHDSwInitOffset, 0);
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SDSRC
     if (pstChan->ulSdsrc != BVDC_P_HW_ID_INVALID)
     {
         BVDC_P_VEC_SW_INIT(SDSRC_0, pstChan->ulSdsrcSwInitOffset, 1);
         BVDC_P_VEC_SW_INIT(SDSRC_0, pstChan->ulSdsrcSwInitOffset, 0);
     }
+#endif
 
-#if (BVDC_P_NUM_SHARED_HDSRC > 0)
+#if BVDC_P_NUM_SHARED_HDSRC
     if (pstChan->ulHdsrc != BVDC_P_HW_ID_INVALID)
     {
         BVDC_P_VEC_SW_INIT(HDSRC_0, pstChan->ulHdsrcSwInitOffset, 1);
@@ -871,6 +988,8 @@ static void BVDC_P_TearDownAnalogChan_isr
     }
 #endif
 
+    BSTD_UNUSED(pstChan);
+    BSTD_UNUSED(pList);
     return;
 }
 
@@ -960,6 +1079,7 @@ static void BVDC_P_SetupAnalogChan_isr
 {
     uint32_t ulSrcSource = 0;
 
+#if BVDC_P_NUM_SHARED_VF
     if (pstChan->ulVf != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -967,13 +1087,16 @@ static void BVDC_P_SetupAnalogChan_isr
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_VF_0_SOURCE, SOURCE, pstChan->ulIt);
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM
     if (pstChan->ulSecam != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VEC_CFG_SECAM_0_SOURCE + pstChan->ulSecam * 4);
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_SECAM_0_SOURCE, SOURCE, pstChan->ulVf);
+#if BVDC_P_NUM_SHARED_SECAM_HD
         if(pstChan->ulPrevSecam_HD != pstChan->ulSecam_HD &&
            BVDC_P_Resource_GetHwIdAcquireCntr_isr(hResource, BVDC_P_ResourceType_eSecam_HD, pstChan->ulPrevSecam_HD) == 0)
         {
@@ -983,14 +1106,18 @@ static void BVDC_P_SetupAnalogChan_isr
             *pList->pulCurrent++ =
                 BCHP_FIELD_DATA(VEC_CFG_SECAM_0_SOURCE, SOURCE, BCHP_VEC_CFG_SECAM_0_SOURCE_SOURCE_DISABLE);
         }
+#endif
     }
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM_HD
     if (pstChan->ulSecam_HD != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VEC_CFG_SECAM_0_SOURCE + (BVDC_P_NUM_SHARED_SECAM + pstChan->ulSecam_HD) * 4);
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_SECAM_0_SOURCE, SOURCE, pstChan->ulVf);
+#if BVDC_P_NUM_SHARED_SECAM
         if(pstChan->ulPrevSecam != pstChan->ulSecam &&
            BVDC_P_Resource_GetHwIdAcquireCntr_isr(hResource, BVDC_P_ResourceType_eSecam, pstChan->ulPrevSecam) == 0)
         {
@@ -1000,7 +1127,9 @@ static void BVDC_P_SetupAnalogChan_isr
             *pList->pulCurrent++ =
                 BCHP_FIELD_DATA(VEC_CFG_SECAM_0_SOURCE, SOURCE, BCHP_VEC_CFG_SECAM_0_SOURCE_SOURCE_DISABLE);
         }
+#endif
     }
+#endif
 
     if(pstChan->ulSecam != BVDC_P_HW_ID_INVALID)
     {
@@ -1016,6 +1145,7 @@ static void BVDC_P_SetupAnalogChan_isr
         ulSrcSource += BVDC_P_NUM_SHARED_SECAM;
     }
 
+#if BVDC_P_NUM_SHARED_SDSRC
     if (pstChan->ulSdsrc != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -1023,7 +1153,7 @@ static void BVDC_P_SetupAnalogChan_isr
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_SDSRC_0_SOURCE, SOURCE, ulSrcSource);
 
-#if (BVDC_P_NUM_SHARED_HDSRC > 0)
+#if BVDC_P_NUM_SHARED_HDSRC
         if(pstChan->ulSdsrc != pstChan->ulPrevSdsrc &&
            pstChan->ulHdsrc != pstChan->ulPrevHdsrc &&
            BVDC_P_Resource_GetHwIdAcquireCntr_isr(hResource, BVDC_P_ResourceType_eHdsrc, pstChan->ulPrevHdsrc) == 0)
@@ -1036,8 +1166,9 @@ static void BVDC_P_SetupAnalogChan_isr
         }
 #endif
     }
+#endif
 
-#if (BVDC_P_NUM_SHARED_HDSRC > 0)
+#if BVDC_P_NUM_SHARED_HDSRC
     if (pstChan->ulHdsrc != BVDC_P_HW_ID_INVALID)
     {
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -1045,6 +1176,7 @@ static void BVDC_P_SetupAnalogChan_isr
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_HDSRC_0_SOURCE, SOURCE, BCHP_VEC_CFG_HDSRC_0_SOURCE_SOURCE_SSP_0 +
             ulSrcSource);
+#if BVDC_P_NUM_SHARED_SDSRC
         if(pstChan->ulSdsrc != pstChan->ulPrevSdsrc &&
            pstChan->ulHdsrc != pstChan->ulPrevHdsrc &&
            BVDC_P_Resource_GetHwIdAcquireCntr_isr(hResource, BVDC_P_ResourceType_eSdsrc, pstChan->ulPrevSdsrc) == 0)
@@ -1055,9 +1187,12 @@ static void BVDC_P_SetupAnalogChan_isr
             *pList->pulCurrent++ =
                 BCHP_FIELD_DATA(VEC_CFG_SDSRC_0_SOURCE, SOURCE, BCHP_VEC_CFG_SDSRC_0_SOURCE_SOURCE_DISABLE);
         }
+#endif
     }
 #endif
 
+    BSTD_UNUSED(hResource);
+    BSTD_UNUSED(pList);
     return;
 }
 
@@ -1252,7 +1387,7 @@ static void BVDC_P_Display_Setup656TG_isr
 
 
 
-
+#if BVDC_P_NUM_SHARED_SDSRC
 static void BVDC_P_Vec_Build_CSC_isr
     ( const BVDC_P_DisplayCscMatrix   *pCscMatrix,
       BVDC_P_ListInfo                 *pList )
@@ -1357,7 +1492,9 @@ static void BVDC_P_Vec_Build_SRC_isr
 
     return;
 }
+#endif
 
+#if BVDC_P_NUM_SHARED_SM
 static void BVDC_P_Vec_Build_SM_isr
     ( BFMT_VideoFmt                    eVideoFmt,
       BVDC_P_Output                    eOutputCS,
@@ -1413,7 +1550,9 @@ static void BVDC_P_Vec_Build_SM_isr
 
     return;
 }
+#endif
 
+#if BVDC_P_NUM_SHARED_SECAM
 static void BVDC_P_Vec_Build_SECAM_isr
     ( BFMT_VideoFmt                    eVideoFmt,
       BVDC_P_DisplayAnlgChan          *pstChan,
@@ -1451,6 +1590,7 @@ static void BVDC_P_Vec_Build_SECAM_isr
     }
     return;
 }
+#endif
 
 static void BDVC_P_Vec_Build_Grpd_isr
     ( const BFMT_VideoInfo            *pFmtInfo,
@@ -1613,20 +1753,27 @@ static void BVDC_P_Vec_Build_CSC_SRC_SM_isr
     /* Setup Main CSC */
     if( eOutputCS != BVDC_P_Output_eUnknown )
     {
+#if BVDC_P_NUM_SHARED_SDSRC
         /* Setup SRC */
         ulSrcControl = BVDC_P_GetSrcControl_isr(eOutputCS);
         BVDC_P_Vec_Build_SRC_isr(ulSrcControl, pstChan, pList);
+#else
+        BSTD_UNUSED(ulSrcControl);
+#endif
 
         /* Setup SM */
         if (pstChan->ulSdsrc != BVDC_P_HW_ID_INVALID)
         {
+#if BVDC_P_NUM_SHARED_SM
             pTable = BVDC_P_GetSmTable_isr(pCurInfo, eOutputCS);
             BVDC_P_Vec_Build_SM_isr(pCurInfo->pFmtInfo->eVideoFmt, eOutputCS, pTable, pstChan, pList);
             if(pstChan->ulSecam != BVDC_P_HW_ID_INVALID)
             {
                 BVDC_P_Vec_Build_SECAM_isr(pCurInfo->pFmtInfo->eVideoFmt, pstChan, pList);
             }
-
+#else
+            BSTD_UNUSED(pTable);
+#endif
             /* TODO: Which versioning to use?  SM, SRC, or by itself? */
             /* SRC, has hardwired GRPD into it.  Need to separate if HW
              * introduces Mux after SRC to bypass or selectable GRPD_x. */
@@ -1653,11 +1800,13 @@ static void BVDC_P_Vec_Build_CSC_SRC_SM_isr
             BVDC_P_Csc_ApplyYCbCrColor_isr(&pstChan->stCscMatrix.stCscCoeffs, ucCh1, ucCh0, ucCh2);
         }
 
+#if BVDC_P_NUM_SHARED_SDSRC
         *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_CSC_TABLE_SIZE);
         /* CSC module pairs with VF */
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CSC_0_CSC_MODE + pstChan->ulCscRegOffset);
 
         BVDC_P_Vec_Build_CSC_isr(&pstChan->stCscMatrix, pList);
+#endif
     }
 
     return;
@@ -1676,6 +1825,7 @@ static void BVDC_P_Vec_Build_VF_isr
       BVDC_P_Output                    eOutputCS,
       BVDC_P_ListInfo                 *pList )
 {
+#if BVDC_P_NUM_SHARED_VF
     BVDC_P_Display_ShaperSettings stShaperSettings;
     uint32_t             ulNsaeReg;
     BVDC_P_DisplayInfo  *pCurInfo = &hDisplay->stCurInfo;
@@ -1960,6 +2110,12 @@ static void BVDC_P_Vec_Build_VF_isr
             BCHP_FIELD_ENUM(VF_0_DRAIN_PIXELS_SCART, ENABLE, DISABLE) |
             BCHP_FIELD_DATA(VF_0_DRAIN_PIXELS_SCART, NUM_OF_SAMPLES, 0);
     }
+#endif
+#else
+    BSTD_UNUSED(hDisplay);
+    BSTD_UNUSED(pstChan);
+    BSTD_UNUSED(eOutputCS);
+    BSTD_UNUSED(pList);
 #endif
     return;
 }
@@ -2310,6 +2466,14 @@ static void BVDC_P_Vec_Build_IT_isr
     if (bLoadMicrocode)
     {
         BVDC_P_Display_Build_ItBvbSize_isr(hDisplay, pList, ulOffset);
+
+#if BVDC_P_MV_BLOCKING_SUPPORT
+        /* If block by MV query, skip disabling VEC trigger */
+        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
+        *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulMVQueryTmpAddr);
+        *pList->pulCurrent++ = BRDC_OP_COND_SKIP(BRDC_Variable_0);
+        *pList->pulCurrent++ = 4; /* if MV block, skip the next 4-dwords disabling triggers */
+#endif
 
         /* Setup Vec triggers */
         /* Must be in the Rul, otherwise the Reset will destroy it */
@@ -2670,7 +2834,7 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
         /* Therefore in order to output 4kx2k format, DVI_RM needs to run at */
         /* 1080p60 rate (148.5MHz) and the DVI_MASTER_SEL will be set to be */
         /* set at TWICE_DTG_RM to double that rate to 297Mhz */
-        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(BFMT_VideoFmt_e1080p);
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(BFMT_VideoFmt_e1080p);
 #else
         pFmtInfo = pCurInfo->pHdmiFmtInfo;
 #endif
@@ -2839,9 +3003,12 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
             BCHP_HDMI_TX_PHY_MDIV_LOAD + pstChan->ulDvpRegOffset);
 #endif
     }
-#if (BVDC_P_SUPPORT_HDMI_RM_VER >= BVDC_P_HDMI_RM_VER_7)
+#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7)
     else
     {
+        /* Updated: SWSTB-4930 fix no longer requires
+         * ALWAYS_RESET_PLL_ON_FREQ_CHANGE = 0 only restricted to
+         * BVDC_P_HDMI_RM_VER_7 */
         /* HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1 (RW),
          * For frequency shitf (aka rate vs rate/1.001) we need
          * ALWAYS_RESET_PLL_ON_FREQ_CHANGE = 0 to avoid unintented reset. */
@@ -3387,8 +3554,8 @@ static void BVDC_P_Vec_Build_DVI_FC_isr
             pCurInfo->stHdmiSettings.stSettings.eColorComponent == BAVC_Colorspace_eYCbCr422 ? BCHP_DVI_FC_0_FORMAT_CONV_CONTROL_FORMAT_FORMAT_422 :
             pCurInfo->stHdmiSettings.stSettings.eColorComponent == BAVC_Colorspace_eYCbCr420 ? BCHP_DVI_FC_0_FORMAT_CONV_CONTROL_FORMAT_FORMAT_420 :
                 BCHP_DVI_FC_0_FORMAT_CONV_CONTROL_FORMAT_FORMAT_444) |
-        BCHP_FIELD_ENUM(DVI_FC_0_FORMAT_CONV_CONTROL, FILTER_MODE, BYPASS) |
-        BCHP_FIELD_ENUM(DVI_FC_0_FORMAT_CONV_CONTROL, DERING_EN, OFF) );
+        BCHP_FIELD_ENUM(DVI_FC_0_FORMAT_CONV_CONTROL, FILTER_MODE, FILTER3) |
+        BCHP_FIELD_ENUM(DVI_FC_0_FORMAT_CONV_CONTROL, DERING_EN,   ON) );
 
 #else
     BSTD_UNUSED(hDisplay);
@@ -3410,7 +3577,7 @@ static void BVDC_P_ProgramDviChan_isr
     BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, pstChan, pList, true);
     BVDC_P_Vec_Build_DVI_DTG_isr(hDisplay, pstChan, bReloadMicrocode, pList);
     BVDC_P_Vec_Build_DVI_DVF_isr(hDisplay, pstChan, pList);
-    BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+    BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, BSTD_FUNCTION));
     BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, pstChan, pList);
     BVDC_P_Vec_Build_DVI_FC_isr(hDisplay, pstChan, pList);
     BVDC_P_Display_SetupDviTG_isr(hDisplay, pList);
@@ -3619,6 +3786,7 @@ static void BVDC_P_Vec_Build_656_DTG_isr
 
     /* get correct 656 dtram */
     p656Dtram = BVDC_P_Get656DtramTable_isr(pCurInfo);
+    BDBG_ASSERT(p656Dtram);
 
     /* Load uCode */
     /* Dtram[0..3f] is reserved for 656 */
@@ -3763,7 +3931,7 @@ static void BVDC_P_Vec_Build_656_CSC_isr
     BVDC_P_Display_Get656CscTable_isr(&hDisplay->stCurInfo,
         hDisplay->hCompositor->bIsBypass, &pCscMatrix);
 
-    /* TODO: handle user csc */
+    BDBG_ASSERT(pCscMatrix);
     hDisplay->st656CscMatrix = *pCscMatrix;
 
     /* Handle CSC mute */
@@ -3781,7 +3949,44 @@ static void BVDC_P_Vec_Build_656_CSC_isr
         BVDC_P_Csc_ApplyYCbCrColor_isr(&hDisplay->st656CscMatrix.stCscCoeffs, ucCh1, ucCh0, ucCh2);
     }
 
+#if BVDC_P_NUM_SHARED_SDSRC
     BVDC_P_Vec_Build_CSC_isr(&hDisplay->st656CscMatrix, pList);
+#else
+    *pList->pulCurrent++ =
+        BCHP_FIELD_ENUM(ITU656_CSC_0_CSC_MODE, CLAMP_MODE_C0, MIN_MAX) |
+        BCHP_FIELD_ENUM(ITU656_CSC_0_CSC_MODE, CLAMP_MODE_C1, MIN_MAX) |
+        BCHP_FIELD_ENUM(ITU656_CSC_0_CSC_MODE, CLAMP_MODE_C2, MIN_MAX) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_MODE, RANGE1, 0x005A) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_MODE, RANGE2, 0x007F);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_MIN_MAX, MIN, pCscMatrix->ulMin) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_MIN_MAX, MAX, pCscMatrix->ulMax);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C01_C00, COEFF_C0, pCscMatrix->stCscCoeffs.usY0) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C01_C00, COEFF_C1, pCscMatrix->stCscCoeffs.usY1);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C03_C02, COEFF_C2, pCscMatrix->stCscCoeffs.usY2) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C03_C02, COEFF_C3, pCscMatrix->stCscCoeffs.usYOffset);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C11_C10, COEFF_C0, pCscMatrix->stCscCoeffs.usCb0) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C11_C10, COEFF_C1, pCscMatrix->stCscCoeffs.usCb1);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C13_C12, COEFF_C2, pCscMatrix->stCscCoeffs.usCb2) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C13_C12, COEFF_C3, pCscMatrix->stCscCoeffs.usCbOffset);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C21_C20, COEFF_C0, pCscMatrix->stCscCoeffs.usCr0) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C21_C20, COEFF_C1, pCscMatrix->stCscCoeffs.usCr1);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C23_C22, COEFF_C2, pCscMatrix->stCscCoeffs.usCr2) |
+        BCHP_FIELD_DATA(ITU656_CSC_0_CSC_COEFF_C23_C22, COEFF_C3, pCscMatrix->stCscCoeffs.usCrOffset);
+#endif
 
     return;
 }
@@ -3853,51 +4058,6 @@ static void BVDC_P_Display_Start656Ctrler_isr
 }
 #endif /* BVDC_P_SUPPORT_ITU656_OUT != 0 */
 
-
-static void BVDC_P_Display_StartAnlgCtrler_isr
-    ( BVDC_Display_Handle              hDisplay,
-      BVDC_P_ListInfo                 *pList )
-{
-    uint32_t             ulItConfig = 0;
-    BVDC_P_DisplayInfo  *pCurInfo = &hDisplay->stCurInfo;
-
-    if(hDisplay->bAnlgEnable ||   /* if analog master */
-       (!hDisplay->bAnlgEnable &&  /* or anlog slave with DACs */
-       (hDisplay->stAnlgChan_0.bEnable || hDisplay->stAnlgChan_1.bEnable)))
-    {
-        ulItConfig = BVDC_P_GetItConfig_isr(pCurInfo);
-        BDBG_ASSERT (ulItConfig);
-
-        if(hDisplay->bAnlgEnable)
-        {
-            /* Master mode */
-            ulItConfig &= ~(BCHP_FIELD_ENUM(IT_0_TG_CONFIG, SLAVE_MODE, ENABLED));
-        }
-        else
-        {
-            /* Slave mode */
-            ulItConfig |= (BCHP_FIELD_ENUM(IT_0_TG_CONFIG, SLAVE_MODE, ENABLED));
-        }
-
-#if (BVDC_P_SUPPORT_IT_VER >= 3)
-        if(hDisplay->stCurInfo.ulAnlgChan0Mask == 0 &&
-           hDisplay->stCurInfo.ulAnlgChan1Mask == 0)
-        {
-            /* HDMI slave no analog (require at least IT) */
-            ulItConfig |= (BCHP_FIELD_ENUM(IT_0_TG_CONFIG, STAND_ALONE, ON));
-        }
-        else
-        {
-            ulItConfig |= (BCHP_FIELD_ENUM(IT_0_TG_CONFIG, STAND_ALONE, OFF));
-        }
-#endif
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_IT_0_TG_CONFIG + hDisplay->stAnlgChan_0.ulItRegOffset);
-        *pList->pulCurrent++ = ulItConfig;
-    }
-}
-
 static void BVDC_P_Display_StartDviCtrler_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_P_ListInfo                 *pList )
@@ -3948,6 +4108,17 @@ static void BVDC_P_Display_SetFormatSwitchMarker_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_P_ListInfo                 *pList )
 {
+#if BVDC_P_MV_BLOCKING_SUPPORT
+    /* If block by MV query, skip format switch marker */
+    if(hDisplay->ulMVQueryTmpAddr != 0)
+    {
+        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
+        *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulMVQueryTmpAddr);
+        *pList->pulCurrent++ = BRDC_OP_COND_SKIP(BRDC_Variable_0);
+        *pList->pulCurrent++ = 3; /* if MV block, skip the next 3-dwords setting marker */
+    }
+#endif
+
     /* This RUL sets a marker to indicate that we are switching
      * format and VEC triggers are disabled. Upon detecting this marker,
      * BVDC_P_CompositorDisplay_isr() will re-enable the triggers.
@@ -3955,7 +4126,6 @@ static void BVDC_P_Display_SetFormatSwitchMarker_isr
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulRdcVarAddr);
     *pList->pulCurrent++ = 1;
-
 }
 
 static void BVDC_P_Display_StartMicroCtrler_isr
@@ -3967,7 +4137,7 @@ static void BVDC_P_Display_StartMicroCtrler_isr
      */
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bHdmiRmd)
     {
-        BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList);
+        BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList, false);
 #if (BVDC_P_SUPPORT_ITU656_OUT != 0)
         BVDC_P_Display_Start656Ctrler_isr(hDisplay, pList);
 #endif
@@ -3979,11 +4149,11 @@ static void BVDC_P_Display_StartMicroCtrler_isr
         BVDC_P_Display_Start656Ctrler_isr(hDisplay, pList);
 #endif
         BVDC_P_Display_StartDviCtrler_isr(hDisplay, pList);
-        BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList);
+        BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList, false);
     }
     else if(hDisplay->st656Chan.bEnable)
     {
-        BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList);
+        BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList, false);
         BVDC_P_Display_StartDviCtrler_isr(hDisplay, pList);
 #if (BVDC_P_SUPPORT_ITU656_OUT != 0)
         BVDC_P_Display_Start656Ctrler_isr(hDisplay, pList);
@@ -4473,7 +4643,7 @@ static void BVDC_P_Display_UpdateStgRamp_VideoFormat_isr
         unsigned i;
 
         hDisplay->stCurInfo.ulResolutionRampCount = 0;
-        hDisplay->stCurInfo.pFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(hDisplay->eStgRampFmt);
+        hDisplay->stCurInfo.pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(hDisplay->eStgRampFmt);
         if(BVDC_P_IS_CUSTOMFMT(hDisplay->eStgRampFmt))
         {
             hDisplay->stCurInfo.stCustomFmt = hDisplay->stStgRampCustomFmt;
@@ -4629,7 +4799,7 @@ static void BVDC_P_Display_Apply_VideoFormat_isr
          * 1) Tear down IT
          */
         BDBG_MSG(("VideoFmt: Tear down display[%d] IT", hDisplay->eId));
-        BVDC_P_TearDownIT_isr(&hDisplay->stAnlgChan_0, pList);
+        BVDC_P_TearDownIT_isr(hDisplay, &hDisplay->stAnlgChan_0, pList);
 
         if(!hDisplay->stCurInfo.bHdmiRmd)
         {
@@ -4833,7 +5003,8 @@ static void BVDC_P_Display_Apply_Acp_isr
     if(!hDisplay->stCurInfo.bHdmiRmd)
     {
         /* Program IT_?_TG_CONFIG register */
-        BVDC_P_Display_StartAnlgCtrler_isr (hDisplay, pList);
+        BVDC_P_Display_StartAnlgCtrler_isr (hDisplay, pList, false);
+        BVDC_P_Display_StartDviCtrler_isr(hDisplay, pList);
 
         if(hDisplay->bAnlgEnable ||   /* if analog master */
            (!hDisplay->bAnlgEnable &&  /* or anlog slave with DACs */
@@ -4970,15 +5141,19 @@ static void BVDC_P_Display_Copy_DAC_Setting_isr
     ( BVDC_Display_Handle              hDisplay )
 {
     BVDC_P_DisplayInfo *pCurInfo, *pNewInfo;
+#if BVDC_P_MAX_DACS
     int i;
+#endif
 
     pCurInfo = &hDisplay->stCurInfo;
     pNewInfo = &hDisplay->stNewInfo;
 
+#if BVDC_P_MAX_DACS
     for(i = 0; i < BVDC_P_MAX_DACS; i++)
     {
         pCurInfo->aDacOutput[i] = pNewInfo->aDacOutput[i];
     }
+#endif
 
     pCurInfo->bCvbs   = pNewInfo->bCvbs;
     pCurInfo->bSvideo = pNewInfo->bSvideo;
@@ -4995,6 +5170,7 @@ static void BVDC_P_Display_Copy_DAC_Setting_isr
     return;
 }
 
+#if BVDC_P_MAX_DACS
 static void BVDC_P_Display_ProgramDac_isr
     ( BVDC_DacOutput                   eDacOutput,
       uint32_t                         ulDac,
@@ -5116,12 +5292,14 @@ static uint32_t BVDC_P_Dislay_FindDacSrc_isr
 
     return ulDacSrc;
 }
+#endif
 
 static void BVDC_P_Display_Apply_DAC_Setting_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_P_ListInfo                 *pList,
       BAVC_Polarity                    eFieldPolarity )
 {
+#if BVDC_P_MAX_DACS
     uint32_t i, ulCurDac, ulDacSrc, ulDacMask = 0, ulDacGroupMask;
     BVDC_P_DisplayInfo *pCurInfo = &hDisplay->stCurInfo;
     uint32_t *pulDacBGAdj;
@@ -5131,9 +5309,11 @@ static void BVDC_P_Display_Apply_DAC_Setting_isr
 #if (BVDC_P_SUPPORT_TDAC_VER >= BVDC_P_SUPPORT_TDAC_VER_9)
     int iDac;
 #endif
+#endif
 
     BDBG_MSG(("Display%d programming Dac...", hDisplay->eId));
 
+#if BVDC_P_MAX_DACS
     pulDacBGAdj = hDisplay->hVdc->stSettings.aulDacBandGapAdjust;
     pulDacGrouping = hDisplay->hVdc->aulDacGrouping;
     aDacOutput = hDisplay->hVdc->aDacOutput;
@@ -5525,6 +5705,7 @@ static void BVDC_P_Display_Apply_DAC_Setting_isr
             /*BDBG_MSG(("end of mask %d", ulDacGroupMask));*/
         }
     }
+#endif /* BVDC_P_MAX_DACS */
 
     if (hDisplay->stAnlgChan_0.bEnable && hDisplay->bDacProgAlone)
     {
@@ -5647,6 +5828,7 @@ static void BVDC_P_Display_Apply_TrimmingWidth_Setting_isr
         BVDC_P_Vec_Build_ItMc_isr(
             pList, pRamTbl, hDisplay->stAnlgChan_0.ulItRegOffset);
 
+#if BVDC_P_NUM_SHARED_SM
         /* SM may need reprogramming because init_phase */
         pstChan = &hDisplay->stAnlgChan_0;
         if (pstChan->bEnable)
@@ -5682,6 +5864,7 @@ static void BVDC_P_Display_Apply_TrimmingWidth_Setting_isr
                 }
             }
         }
+#endif
     }
 
     hDisplay->stCurInfo.stDirty.stBits.bWidthTrim = BVDC_P_CLEAN;
@@ -5712,7 +5895,7 @@ static void BVDC_P_Display_Apply_InputColorSpace_Setting_isr
 
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
     {
-        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, BSTD_FUNCTION));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 
@@ -6405,7 +6588,7 @@ static void BVDC_P_Display_Apply_HdmiCsc_Setting_isr
 
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
     {
-        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, BSTD_FUNCTION));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList);
     }
 
@@ -7483,7 +7666,7 @@ static void BVDC_P_Display_Apply_OutputMute_Setting_isr
 
     if(hDisplay->stCurInfo.bEnableHdmi)
     {
-        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, BSTD_FUNCTION));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 

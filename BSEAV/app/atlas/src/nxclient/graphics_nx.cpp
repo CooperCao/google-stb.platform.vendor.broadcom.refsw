@@ -57,7 +57,7 @@ static void setEventCallback(
 
 CSurfaceClientNx::CSurfaceClientNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CSurfaceClient(name, number, pCfg)
@@ -143,7 +143,7 @@ error:
     return(ret);
 } /* setBlend */
 
-eRet CSurfaceClientNx::setZOrder(uint16_t zOrder)
+eRet CSurfaceClientNx::setZOrder(unsigned zOrder)
 {
     eRet                     ret    = eRet_Ok;
     NEXUS_Error              nerror = NEXUS_SUCCESS;
@@ -161,10 +161,11 @@ error:
 
 CGraphicsNx::CGraphicsNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
-    CGraphics(name, number, pCfg)
+    CGraphics(name, number, pCfg),
+    _pSurfaceClientVideo(NULL)
 {
 }
 
@@ -174,8 +175,8 @@ CGraphicsNx::~CGraphicsNx()
 }
 
 eRet CGraphicsNx::initGraphics(
-        uint16_t width,
-        uint16_t height
+        unsigned width,
+        unsigned height
         )
 {
     eRet                         ret    = eRet_Ok;

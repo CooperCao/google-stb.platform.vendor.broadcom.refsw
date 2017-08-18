@@ -193,6 +193,11 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_MEMDMA                      1
 #define BXPT_NUM_MEMDMA_PID_CHANNELS         (BXPT_P_PID_TABLE_SIZE - BXPT_NUM_PID_CHANNELS)
 #define BXPT_P_MEMDMA_PID_CHANNEL_START      BXPT_NUM_PID_CHANNELS
+#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0)
+/* Some chips do not have the performance monitor regs */
+#else
+#define BXPT_DMA_HAS_PERFORMANCE_METER  1
+#endif
 
 #if ( (BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_D0) || (BCHP_CHIP==7439 && BCHP_VER<BCHP_VER_B0) ||\
         (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==7366 && BCHP_VER<BCHP_VER_B0) || \
@@ -221,7 +226,11 @@ In the math below, the arrays are 0-based.
 
 #elif (BCHP_CHIP == 7278)
 #define BXPT_NUM_RAVE_CONTEXTS          48
-#define BXPT_NUM_MTSIF                  4
+	#if BCHP_VER == BCHP_VER_A0
+		#define BXPT_NUM_MTSIF                  4
+	#else
+		#define BXPT_NUM_MTSIF                  2
+	#endif
 #define BXPT_NUM_STCS                   16
 #define BXPT_P_HAS_0_238_PPM_RESOLUTION 1
 #define BXPT_MAX_EXTERNAL_TRIGS         6
@@ -245,6 +254,10 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_RAVE_L2                    1
 #endif
 
+#if(BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0)
+#define BXPT_HAS_PACKET_PLACEHOLDER 1
+#endif
+
 #if ( (BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7439 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==74371 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==7366 && BCHP_VER<BCHP_VER_B0) )
 #define BXPT_NUM_INPUT_BANDS            11
 #elif (BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_D0)
@@ -258,9 +271,11 @@ In the math below, the arrays are 0-based.
 #endif
 
 #if (BCHP_CHIP == 7278)
-#define BXPT_TSMF_P_MAX_TSMF 2
-#else
 #define BXPT_TSMF_P_MAX_TSMF 24
+#define BXPT_TSMF_P_MAX_TSMF_BONDING_GROUPS 8
+#define BXPT_TSMF_FIXED_PARSER_MAPPING  1
+#else
+#define BXPT_TSMF_P_MAX_TSMF 2
 #endif
 
 #if ( (BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7439 && BCHP_VER<BCHP_VER_B0) ||\
@@ -282,6 +297,11 @@ In the math below, the arrays are 0-based.
 #else
 #define BXPT_NUM_STC_SNAPSHOTS          0
 #define BXPT_HAS_STC_SNAPSHOT_XBAR 0
+#endif
+
+/* Extended TSMF bonding group */
+#if BCHP_CHIP == 7278
+   #define BXPT_HAS_ETBG    1
 #endif
 
 #endif /* BXPT_IS_CORE28NM */

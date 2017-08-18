@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CENWKDiscovery.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE Network Layer component discovery handler.
+ *      This is the header file for the RF4CE Network Layer component discovery handler.
  *
- * $Revision: 2869 $
- * $Date: 2014-07-10 08:15:06Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_NWK_DISCOVERY_H
 #define _RF4CE_NWK_DISCOVERY_H
 
@@ -120,6 +114,7 @@ typedef struct _RF4CE_NWK_NodeDesc_t
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.confirm parameters type.
+ * \ingroup RF4CE_NWK_DiscoveryConf
  */
 typedef struct _RF4CE_NWK_DiscoveryConfParams_t
 {
@@ -130,6 +125,7 @@ typedef struct _RF4CE_NWK_DiscoveryConfParams_t
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.request parameters type.
+ * \ingroup RF4CE_NWK_DiscoveryReq
  */
 typedef struct _RF4CE_NWK_DiscoveryReqParams_t
 {
@@ -154,23 +150,26 @@ typedef struct _RF4CE_NWK_DiscoveryReqParams_t
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.request type declaration.
+ * \ingroup RF4CE_NWK_DiscoveryReq
  */
 typedef struct _RF4CE_NWK_DiscoveryReqDescr_t RF4CE_NWK_DiscoveryReqDescr_t;
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY confirmation function type.
+ * \ingroup RF4CE_NWK_DiscoveryConf
  */
 typedef void (*RF4CE_NWK_DiscoveryConfCallback_t)(RF4CE_NWK_DiscoveryReqDescr_t *req, RF4CE_NWK_DiscoveryConfParams_t *conf);
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.request type.
+ * \ingroup RF4CE_NWK_DiscoveryReq
  */
 typedef struct _RF4CE_NWK_DiscoveryReqDescr_t
 {
 #ifndef _HOST_
     SYS_QueueElement_t queueElement;            /*!< Service field. */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_DiscoveryReqParams_t params;   /*!< The filled request. */
     RF4CE_NWK_DiscoveryConfCallback_t callback; /*!< Callback to be called upon operation complete. */
@@ -178,6 +177,7 @@ typedef struct _RF4CE_NWK_DiscoveryReqDescr_t
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.indication parameters type.
+ * \ingroup RF4CE_NWK_DiscoveryInd
  */
 typedef struct _RF4CE_NWK_DiscoveryIndParams_t
 {
@@ -203,11 +203,13 @@ typedef struct _RF4CE_NWK_DiscoveryIndParams_t
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.indication callback function type.
+ * \ingroup RF4CE_NWK_DiscoveryInd
  */
 typedef void (RF4CE_NWK_DiscoveryIndCallback_t)(RF4CE_NWK_DiscoveryIndParams_t *indication);
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.response parameters type.
+ * \ingroup RF4CE_NWK_DiscoveryResp
  */
 typedef struct _RF4CE_NWK_DiscoveryRespParams_t
 {
@@ -222,6 +224,7 @@ typedef struct _RF4CE_NWK_DiscoveryRespParams_t
 
 /**//**
  * \brief RF4CE NWK NLME-COMM.STATUS.indication parameters type.
+ * \ingroup RF4CE_NWK_CommStatusInd
  */
 typedef struct _RF4CE_NWK_COMMStatusIndParams_t
 {
@@ -234,12 +237,14 @@ typedef struct _RF4CE_NWK_COMMStatusIndParams_t
 } RF4CE_NWK_COMMStatusIndParams_t;
 
 /**//**
- * \brief RF4CE NWK NLME-COM.STATUS.indication callback function type.
+ * \brief RF4CE NWK NLME-COMM.STATUS.indication callback function type.
+ * \ingroup RF4CE_NWK_CommStatusInd
  */
 typedef void (RF4CE_NWK_COMMStatusIndCallback_t)(RF4CE_NWK_COMMStatusIndParams_t *indication);
 
 /**//**
  * \brief RF4CE NWK NLME-DISCOVERY.response type.
+ * \ingroup RF4CE_NWK_DiscoveryResp
  */
 typedef struct _RF4CE_NWK_DiscoveryRespDescr_t
 {
@@ -248,6 +253,7 @@ typedef struct _RF4CE_NWK_DiscoveryRespDescr_t
 
 /**//**
  * \brief RF4CE NWK NLME-AUTODISCOVERY.confirm parameters type.
+ * \ingroup RF4CE_NWK_AutoDiscoveryConf
  */
 typedef struct _RF4CE_NWK_AutoDiscoveryConfParams_t
 {
@@ -257,6 +263,7 @@ typedef struct _RF4CE_NWK_AutoDiscoveryConfParams_t
 
 /**//**
  * \brief RF4CE NWK NLME-AUTODISCOVERY.request parameters type.
+ * \ingroup RF4CE_NWK_AutoDiscoveryReq
  */
 typedef struct _RF4CE_NWK_AutoDiscoveryReqParams_t
 {
@@ -268,23 +275,26 @@ typedef struct _RF4CE_NWK_AutoDiscoveryReqParams_t
 
 /**//**
  * \brief RF4CE NWK NLME-AUTODISCOVERY.request type declaration.
+ * \ingroup RF4CE_NWK_AutoDiscoveryReq
  */
 typedef struct _RF4CE_NWK_AutoDiscoveryReqDescr_t RF4CE_NWK_AutoDiscoveryReqDescr_t;
 
 /**//**
- * \brief RF4CE NWK NLME-DISCOVERY confirmation function type.
+ * \brief RF4CE NWK NLME-AUTODISCOVERY confirmation function type.
+ * \ingroup RF4CE_NWK_AutoDiscoveryConf
  */
 typedef void (*RF4CE_NWK_AutoDiscoveryConfCallback_t)(RF4CE_NWK_AutoDiscoveryReqDescr_t *req, RF4CE_NWK_AutoDiscoveryConfParams_t *conf);
 
 /**//**
  * \brief RF4CE NWK NLME-AUTODISCOVERY.request type.
+ * \ingroup RF4CE_NWK_AutoDiscoveryReq
  */
 typedef struct _RF4CE_NWK_AutoDiscoveryReqDescr_t
 {
 #ifndef _HOST_
     SYS_QueueElement_t queueElement;            /*!< Service field. */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_AutoDiscoveryReqParams_t params;   /*!< The filled request. */
     RF4CE_NWK_AutoDiscoveryConfCallback_t callback; /*!< Callback to be called upon operation complete. */
@@ -293,6 +303,7 @@ typedef struct _RF4CE_NWK_AutoDiscoveryReqDescr_t
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Initiates asynchronous procedure to discover neighbor targets.
+ \ingroup RF4CE_NWK_Functions
 
  \param[in] request - pointer to the structure that contains a pointer to the request structure.
  \return Nothing.
@@ -301,6 +312,7 @@ void RF4CE_NWK_DiscoveryReq(RF4CE_NWK_DiscoveryReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Initiates asynchronous procedure to respond to the received discovery request data.
+ \ingroup RF4CE_NWK_Functions
 
  \param[in] response - pointer to the structure that contains a pointer to the response structure.
  \return Nothing.
@@ -309,6 +321,7 @@ void RF4CE_NWK_DiscoveryResp(RF4CE_NWK_DiscoveryRespDescr_t *response);
 
 /************************************************************************************//**
  \brief Initiates asynchronous procedure to enable automatic discovery requests responding.
+ \ingroup RF4CE_NWK_Functions
 
  \param[in] request - pointer to the structure that contains a pointer to the request structure.
  \return Nothing.
@@ -317,12 +330,16 @@ void RF4CE_NWK_AutoDiscoveryReq(RF4CE_NWK_AutoDiscoveryReqDescr_t *request);
 
 /************************************************************************************//**
  \brief RF4CE NWK NLME-DISCOVERY.indication prototype. For more information see RF4CE_NWK_DiscoveryIndCallback_t type.
+ \ingroup RF4CE_NWK_Functions
  ****************************************************************************************/
 extern RF4CE_NWK_DiscoveryIndCallback_t RF4CE_NWK_DiscoveryInd;
 
 /************************************************************************************//**
  \brief RF4CE NWK NLME-COM.STATUS.indication prototype. For more information see RF4CE_NWK_COMMStatusIndCallback_t type.
+ \ingroup RF4CE_NWK_Functions
  ****************************************************************************************/
 extern RF4CE_NWK_COMMStatusIndCallback_t RF4CE_NWK_COMMStatusInd;
 
 #endif /* _RF4CE_NWK_DISCOVERY_H */
+
+/* eof bbRF4CENWKDiscovery.h */

@@ -1,0 +1,298 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF wrapper script for thermal envelope
+#
+# Written by: Robert J. McMahon March 2016
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::ControlChart
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::ThermalEnvelope
+package require UTF::KPI::KeyValue
+
+UTF::Test ThermalCycle {args} {
+    UTF::Getopts {
+	{email.arg "" "Email Address"}
+	{title.arg "" "Title"}
+	{date.arg "" "Image date"}
+	{ap.arg "SoftAP" "APs under test"}
+	{sta.arg "fc19 fc22" "STA(s) under test"}
+	{bin.arg "" "STA image"}
+	{tag.arg "" "tag override"}
+	{dhd_tag.arg "" "dhd tag override"}
+	{noload "don't load the images"}
+	{apload "load the ap image"}
+	{nosetup "don't run testbed setup routine"}
+	{chanspec.arg "161/80" "Chanspecs to use in the tests, support for 'random'"}
+	{security.arg "open" "Default security"}
+	{loop.arg "5" "Cycles to run"}
+	{direction.arg "tx rx" "Directions to test"}
+	{type.arg "traffic assoc" "Test type"}
+	{amount.arg "15G" "Amount of traffic to send"}
+	{history.arg "30" "Control Chart history"}
+	{phychandump "Dump phychan at critical points"}
+	{nrate.arg "auto" "nrate to test"}
+	{protocol.arg "tcp udp" "protocol for traffic tests"}
+	{holdtime.arg "240" "hold time for time based tests"}
+    }
+
+    set procmsgtag [namespace tail [lindex [info level 0] 0]]
+    # Compact build list for title
+    if {$(tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -tag $(tag) -date {}
+	}
+    }
+    if {$(dhd_tag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -dhd_tag $(dhd_tag)
+	}
+    }
+    if {$(bin) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -image $(bin) -date {}
+	}
+    }
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+    if {$(date) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -date $(date)
+	    if {[$STA hostis DHD]} {
+		$STA configure -dhd_date $(date)
+	    }
+	}
+    } else {
+	set (date) $today
+    }
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(sta) $(ap)]]
+    set rigname [file rootname [file tail $::utfconf]]
+    set TITLE "Thermal Cycle\($rigname\) $(title) $build $(type) nrate=$(nrate)"
+    if {$(type) eq "traffic" && $(amount) > 0} {
+	append TITLE " amount=$(amount)"
+    }
+    UTF::Message INFO "" $TITLE
+    unset build
+    
+    set basedb [UTF::KPI::KeyValue Base]
+    $basedb set testrig $rigname
+    
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::__tryid "auto"
+	if {[info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+		foreach DUT $(sta) {
+		    $DUT attngrp attn default
+		}
+	    }
+	}
+	
+	if {!$(noload)} {
+	    foreach STA $(sta) {
+		if {[$STA hostis Router]} {
+		    continue
+		}
+		if {$(bin) ne ""} {
+		    $STA configure -image $(bin) -date {}
+		}
+		UTF::Try "$STA Find STA Image" {
+		    UTF::CheckImage $STA $(date) unknown
+		}
+		UTF::Try "$STA load" {
+		    $STA load
+		}
+		if {[$STA hostis Linux DHD]} {
+		    UTF::Try "$STA modules" {
+			$STA lsmod
+			return
+		    }
+		}
+		UTF::ReportDriver $STA $(date)
+		UTF::Try "[$STA cget -name]: defaults, logs" {
+		    $STA services stop
+		    catch {$STA wl msglevel +error +assoc +regulatory}
+		    set what [$STA whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $STA $ret
+		    }
+		    $STA dbrecord DUT
+		    set what
+		}
+	    }
+	}
+	if {$(apload)} {
+	    UTF::Try "[$(ap) cget -name]: Find Router Image" {
+		UTF::CheckImage $(ap) $(date) unknown
+	    }
+	    UTF::Try "[$(ap) cget -name]: Load Image" {
+		$(ap) load
+		if {[$(ap) hostis Router Vx BSDAP DSL Airport]} {
+		    $(ap) restore_defaults
+		} else {
+		    $(ap) services stop
+		    if {[info exists ::UTF::Use11h]} {
+			catch {$(ap) wl msglevel +error +assoc +regulatory}
+		    } else {
+			catch {$(ap) wl msglevel +error +assoc}
+		    }
+		}
+	    }
+	}
+	UTF::Try "$(ap) whatami" {
+	    set what [$(ap) whatami]
+	    # Pull out chip info and replace whitespace to make it
+	    # easier for external parsers.
+	    regsub -all {\s+} [lreplace $what 0 0] {_} w
+	    $UTF::Summary header $(ap) $w
+	    $(ap) dbrecord DUT
+	    set what
+	}
+	UTF::Try "$(ap): check msglevel" {
+	    if {[info exists UTF::RouterCheckMsglevelH] &&
+		![regexp {regulatory} [$(ap) wl msglevel -h]]} {
+		throw fail "regulatory not found"
+	    }
+	    $(ap) wl msglevel
+	}
+	$(ap) dbrecord REF
+	foreach STA $(sta) {
+	    if {[$STA hostis Router]} {
+		continue
+	    }
+	    UTF::Try "$STA Model/OS " {
+		set model "unknown"
+		set osver "unknown"
+		set os "unknowns"
+		if {[$STA hostis Linux DHD]} {
+		    set osver "[$STA rexec uname -r]"
+		    if {[regexp {Manufacturer:\s+(.+)\n\s+Product Name:\s+(.+)\n\sVersion:} [$STA rexec dmidecode -t 2] - mfg board]} {
+			set model [string map {" " _} "[string trim ${mfg}]/[string trim $board]"]
+		    }
+		    set os [$STA rexec uname]
+		    $STA rexec dmidecode -t 4
+		    $STA rexec lscpu
+		}
+		return "${model}/${osver}"
+	    }
+	}
+	UTF::Try "Enable PTP" {
+	    eval ::enable_ptp -wait 60
+	}
+	UTF::Try "Connect $(ap) $(sta) $(security) $(chanspec)" {
+	    if {![$(ap) hostis Router]} {
+		set iphost 61
+		foreach STA $(sta) {
+		    $STA configure -ipaddr 192.168.1.$iphost
+		    $STA ifconfig 192.168.1.$iphost
+		    incr iphost +10
+		}
+		$(ap) load
+		$(ap) configure -ap 1
+		$(ap) configure -ipaddr 192.168.1.60
+		$(ap) configure -ssid [$(ap) cget -name]
+	    }
+	    $(ap) attngrp attn default
+	    $(sta) attngrp attn default
+	    $(sta) wl up
+	    $(sta) wl_escanresults
+	    UTF::Test::ConnectAPSTA $(ap) $(sta) -security $(security) -chanspec $(chanspec)
+	}
+	if {[$(sta) hostis DHD]} {
+	    UTF::Try "Disable DHD console polling" {
+		$(sta) dhd -i [$(sta) cget -device] dconpoll 0
+	    }
+	}
+	foreach ADSP "0 1" {
+	    set color $ADSP
+	    UTF::Try "ADSP=$ADSP BCN=1" {
+		$(sta) wl bcn_li_bcn 1
+		$(sta) wl adps $ADSP
+		$basedb set ADSP $ADSP
+		if {$ADSP} {
+		    set adsptext "ADSP=ON"
+		} else {
+		    set adsptext "ADSP=OFF"
+		}
+	    }
+	    foreach STA $(sta) {
+		foreach testtype $(type) {
+		    switch -exact $testtype {
+			"traffic" {
+			    foreach PROTO  $(protocol) {
+				foreach direction $(direction) {
+				    foreach NRATE $(nrate) {
+					UTF::Try "+Thermal $(sta) (${NRATE}, ${PROTO}-$direction)  $adsptext $(loop)" {
+					    set results {}
+					    for {set ix 0} {$ix < $(loop)} {incr ix} {
+						if {[catch {$(sta) wl bssid} stabssid] || ([$(ap) wl bssid] ne $stabssid)} {
+						    UTF::Test::ConnectAPSTA $(ap) $(sta) -security $(security) -chanspec $(chanspec)
+						}
+						catch {$(ap) wl frameburst 1}
+						catch {$(sta) wl frameburst 1}
+						$basedb set stafb [$(sta) wl -u frameburst]
+						$basedb set apfb [$(ap) wl -u frameburst]
+						if {![catch {UTF::Test::ThermalEnvelope -ap $(ap) -sta $(sta) -direction $direction -type $testtype -amount $(amount) -testdb $basedb -nrate $NRATE -protocol $PROTO -color $color -title $adsptext} result]} {
+						    lappend results $result
+						} else {
+						    UTF::Message ERROR $procmsgtag $result
+						}
+					    }
+					    set CC [UTF::ControlChart %AUTO% -s $(loop) -key "Thermal $(sta) $testtype $direction $(ap) $(amount) [$basedb id]" -history $(history) -title "Thermal" -units "C*s" -norangecheck 1 -format "%.0f" -s $(loop)]
+					    set boundsresults [$CC  addsample [UTF::MeanMinMax $results]]
+					    if {[regexp {(HIGH|LOW|WIDE|ZERO)} $boundsresults - ccresult]} {
+						error "[$CC plotcontrolchart $boundsresults]"
+					    } else {
+						return "[$CC plotcontrolchart $boundsresults]"
+					    }
+					}
+					catch {$CC destroy}
+				    }
+				}
+			    }
+			}
+			"voice" -
+			"assoc" {
+			    UTF::Try "+Thermal $(sta) $testtype $adsptext $(loop)" {
+				set results {}
+				if {$testtype eq "voice"} {
+				    $basedb set holdtime $(holdtime)
+				}
+				for {set ix 0} {$ix < $(loop)} {incr ix} {
+				    if {[catch {$(sta) wl bssid} stabssid] || ([$(ap) wl bssid] ne $stabssid)} {
+					UTF::Test::ConnectAPSTA $(ap) $(sta) -security $(security) -chanspec $(chanspec)
+				    }
+				    UTF::Sleep 120
+				    if {![catch {UTF::Test::ThermalEnvelope -ap $(ap) -sta $(sta) -type $testtype -holdtime $(holdtime) -testdb $basedb -nrate $(nrate) -color $color -title $adsptext} result]} {
+					lappend results $result
+				    }
+				}
+				set CC [UTF::ControlChart %AUTO% -s $(loop) -key "Thermal $(sta) $testtype $(ap) $(amount)  [$basedb id]" -history $(history) -title "Thermal" -units "C*s" -norangecheck 1 -format "%.0f" -s $(loop)]
+				set boundsresults [$CC  addsample [UTF::MeanMinMax $results]]
+				if {[regexp {(HIGH|LOW|WIDE|ZERO)} $boundsresults - ccresult]} {
+				    error "[$CC plotcontrolchart $boundsresults]"
+				} else {
+				    return "[$CC plotcontrolchart $boundsresults]"
+				}
+			    }
+			    catch {$CC destroy}
+			}
+		    }
+		}
+	    }
+	}
+    }
+    catch {$basedb destroy}
+}
+

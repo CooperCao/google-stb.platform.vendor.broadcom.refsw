@@ -33,9 +33,9 @@ ifneq ("$(FLEXGTEQ_20535)", "1")
 $(error flex >= 2.5.35 must be available on build machine)
 endif
 
-BISONGTEQ_20401 := $(shell expr `bison --version | head -1 | awk 'BEGIN { FS = "\\\.|\\\ " } { printf("%d%2.2d%2.2d\n", $$4, $$5, $$6) }'` \>= 20401)
-ifneq ("$(BISONGTEQ_20401)", "1")
-$(error bison >= 2.4.1 must be available on build machine)
+BISONGTEQ_20700 := $(shell expr `bison --version | head -1 | awk 'BEGIN { FS = "\\\.|\\\ " } { printf("%d%2.2d%2.2d\n", $$4, $$5, $$6) }'` \>= 20700)
+ifneq ("$(BISONGTEQ_20700)", "1")
+$(error bison >= 2.7.0 must be available on build machine)
 endif
 
 ifndef B_REFSW_CROSS_COMPILE
@@ -48,7 +48,7 @@ C++ = $(B_REFSW_CROSS_COMPILE)g++
 # 32-bit ARM
 ifeq ($(findstring arm, ${B_REFSW_ARCH}), arm)
 CFLAGS += \
-	-mcpu=cortex-a15 \
+	-march=armv7-a \
 	-mfpu=neon
 endif
 
@@ -116,7 +116,7 @@ $(info ***** performance of the V3D driver.)
 $(info ****************************************************)
 
 ifneq ($(PROFILING),0)
-CFLAGS += -Os -g -DNDEBUG
+CFLAGS += -O3 -g -DNDEBUG
 LDFLAGS += --export-dynamic
 else
 CFLAGS += -O0 -g -fvisibility=hidden
@@ -128,7 +128,7 @@ LIBDIR ?= lib_$(NEXUS_PLATFORM)_debug
 
 else
 
-CFLAGS += -Os -DNDEBUG
+CFLAGS += -O3 -DNDEBUG
 
 ifeq ($(PROFILING),0)
 CFLAGS += -fvisibility=hidden
@@ -320,23 +320,27 @@ C_SRC = \
 	$(COMMON_SRC_FILES) \
 	$(addprefix $(GLSL_INTERMEDIATE)/, $(COMMON_GENERATED_SRC_FILES))
 
-OBJS := \
-	$(addprefix $(OBJDIR)/, $(notdir $(C_SRC:%.c=%.o)))
+
+OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(C_SRC)))
+OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(C_SRC)))
+OBJS := $(addprefix $(OBJDIR)/, $(notdir $(OBJS0)))
 
 define CCompileRule
 $(2) : $(1) \
 	$(AUTO_FILES)
 		$(Q)echo Compiling $(notdir $(1))
-		$(Q)$(CC) -c $(CFLAGS) -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
-
+		$(Q)$(3) -c -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
 endef
 
-$(foreach src,$(C_SRC),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11 -fno-rtti -fno-exceptions
+
+$(foreach src,$(filter %.c,$(C_SRC)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(C_SRC)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 $(LIBDIR)/libv3ddriver.so: $(OBJS)
 	$(Q)echo Linking ... libv3ddriver.so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
+	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
 
 $(LIBDIR)/libv3ddriver.a: $(OBJS)
 	$(Q)echo Archiving ... libv3ddriver.a

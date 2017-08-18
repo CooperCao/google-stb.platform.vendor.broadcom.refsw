@@ -1,0 +1,6 @@
+This is dongle images build directory.
+
+To build all dongle images do 'make' here.
+To see help messages do 'make help' here.
+
+To create new dongle images see http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/WlDongleTargetSpec for details.

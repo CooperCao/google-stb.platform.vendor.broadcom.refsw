@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,6 +54,9 @@ NEXUS_Error NEXUS_AudioMuxOutput_GetBufferStatus_priv(
     NEXUS_AudioMuxOutputHandle handle,
     NEXUS_AudioMuxOutputStatus *pStatus /* [out] */
     );
+
+NEXUS_Error NEXUS_AudioMuxOutput_GetBufferBlocks_priv(NEXUS_AudioMuxOutputHandle handle,
+    BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock);
 
 #ifdef __cplusplus
 }

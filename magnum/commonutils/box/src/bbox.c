@@ -47,6 +47,7 @@
 #include "bbox_priv.h"
 #include "bbox_vdc.h"
 
+
 BDBG_MODULE(BBOX);
 BDBG_FILE_MODULE(BBOX_CFG);
 BDBG_OBJECT_ID(BBOX_BOX);
@@ -129,6 +130,7 @@ void BBOX_P_PrintBoxConfig
             BBOX_Vdc_Resource_Feeder eVfd;
             BBOX_Vdc_Resource_Scaler eScl;
             BBOX_Vdc_SclCapBias eSclCapBias;
+            bool bSrcSideDeinterlacer;
 
             BDBG_MODULE_MSG(BBOX_CFG, ("        Window %d:", j));
             BDBG_MODULE_MSG(BBOX_CFG, ("            available: %s", (pBoxVdcCap->astDisplay[i].astWindow[j].bAvailable == true) ? "true" : "false"));
@@ -170,6 +172,9 @@ void BBOX_P_PrintBoxConfig
                     BDBG_MODULE_MSG(BBOX_CFG, ("            deinterlacer: %x", ulMad));
                 }
             }
+
+            bSrcSideDeinterlacer = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.bSrcSideDeinterlacer;
+            BDBG_MODULE_MSG(BBOX_CFG, ("            src side deinterlacer: %s", !bSrcSideDeinterlacer ? "false" : "true"));
 
             eCap = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eCap;
             if (eCap == BBOX_Vdc_Resource_Capture_eUnknown)
@@ -324,6 +329,10 @@ BERR_Code BBOX_Open
     /* All done. now return the new fresh context to user. */
     *phBox = (BBOX_Handle)pBox;
 
+#if (BDBG_DEBUG_BUILD)
+    BBOX_P_Vdc_ValidateBoxModes(*phBox);
+#endif
+
 BBOX_Open_Done:
     BDBG_LEAVE(BBOX_Open);
 
@@ -429,6 +438,7 @@ BERR_Code BBOX_GetConfig
             goto BBOX_GetConfig_Done;
         }
 
+
         if (hBox->stBoxConfig.stBox.ulBoxId != 0)
         {
             /* Check memc assignment against BOX config */
@@ -529,5 +539,4 @@ BBOX_LoadRts_Done:
     BDBG_LEAVE(BBOX_LoadRts);
     return err;
 }
-
 /* end of file */

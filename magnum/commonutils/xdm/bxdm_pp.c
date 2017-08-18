@@ -2258,13 +2258,13 @@ BXDM_PictureProvider_SetPCRMode_isr(
    BDBG_ASSERT( pstPCRModes );
 
    BDBG_MSG(("%s(0x%lu) ePCRDiscontinuityModeAtStartup:%d",
-                     __FUNCTION__,
+                     BSTD_FUNCTION,
                      (unsigned long)hXdmPP,
                      pstPCRModes->ePCRDiscontinuityModeAtStartup ));
 
    if ( pstPCRModes->ePCRDiscontinuityModeAtStartup >= BXDM_PictureProvider_PCRDiscontinuityMode_eMax )
    {
-      BDBG_WRN(("%s:: ePCRDiscontinuityModeAtStartup value of %d is out of range", __FUNCTION__, pstPCRModes->ePCRDiscontinuityModeAtStartup ));
+      BDBG_WRN(("%s:: ePCRDiscontinuityModeAtStartup value of %d is out of range", BSTD_FUNCTION, pstPCRModes->ePCRDiscontinuityModeAtStartup ));
       rc = BERR_INVALID_PARAMETER;
    }
    else
@@ -2373,7 +2373,7 @@ BXDM_PictureProvider_SetErrorThreshold_isr(
 
    if ( uiErrorThreshold > 100 )
    {
-      BDBG_WRN(("%s:: uiErrorThreshold of %d is outside the expected range of 0:100 ", __FUNCTION__, uiErrorThreshold ));
+      BDBG_WRN(("%s:: uiErrorThreshold of %d is outside the expected range of 0:100 ", BSTD_FUNCTION, uiErrorThreshold ));
       rc = BERR_INVALID_PARAMETER;
    }
    else
@@ -3067,13 +3067,11 @@ BXDM_PictureProvider_GetDebugFifo(
 /*
  * SWSTB-3450: support for passing start parameters directly to BXDM_PictureProvider_Start_isr
  */
-BERR_Code
+void
 BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
-   BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_StartSettings * pstStartSettings
 )
 {
-   BSTD_UNUSED(hXdmPP);
    BDBG_ASSERT(pstStartSettings);
 
    BKNI_Memset( pstStartSettings , 0, sizeof( BXDM_PictureProvider_StartSettings ));
@@ -3099,7 +3097,7 @@ BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
    pstStartSettings->stColorOverride.stHDR.ulMaxDispMasteringLuma       = 0xFFFFFFFF;
    pstStartSettings->stColorOverride.stHDR.ulMinDispMasteringLuma       = 0xFFFFFFFF;
 
-   return BERR_SUCCESS;
+   return;
 
 }
 

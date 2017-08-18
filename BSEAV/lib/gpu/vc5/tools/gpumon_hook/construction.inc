@@ -872,8 +872,11 @@ map_eglUnbindWaylandDisplayWL = base_eglUnbindWaylandDisplayWL;
 map_eglQueryWaylandBufferWL = base_eglQueryWaylandBufferWL;
 #endif /* EGL_WL_bind_wayland_display*/
 
-#if GL_BRCM_mirror_once_border
-#endif /* GL_BRCM_mirror_once_border*/
+#if GL_BRCM_image_formats
+#endif /* GL_BRCM_image_formats*/
+
+#if GL_BRCM_mirror_clamp_to_edge
+#endif /* GL_BRCM_mirror_clamp_to_edge*/
 
 #if GL_BRCM_polygon_mode
 map_glPolygonModeBRCM = base_glPolygonModeBRCM;
@@ -885,10 +888,15 @@ map_glProvokingVertexBRCM = base_glProvokingVertexBRCM;
 
 #if GL_BRCM_texture_1D
 map_glTexImage1DBRCM = base_glTexImage1DBRCM;
+map_glTexSubImage1DBRCM = base_glTexSubImage1DBRCM;
+map_glTexStorage1DBRCM = base_glTexStorage1DBRCM;
 #endif /* GL_BRCM_texture_1D*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
+
+#if GL_BRCM_texture_unnormalised_coords
+#endif /* GL_BRCM_texture_unnormalised_coords*/
 
 #if GL_EXT_base_instance
 map_glDrawArraysInstancedBaseInstanceEXT = base_glDrawArraysInstancedBaseInstanceEXT;

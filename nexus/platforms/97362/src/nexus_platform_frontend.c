@@ -148,7 +148,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         pConfig->frontend[i] = NEXUS_Frontend_Open7346(&settings);
         if ( pConfig->frontend[i] )
         {
-            BDBG_MSG(("NEXUS_Frontend_Open7346: Open sucess [%d] [%p]", i, (void *)pConfig->frontend[i] ));
+            BDBG_MSG(("NEXUS_Frontend_Open7346: Open success [%d] [%p]", i, (void *)pConfig->frontend[i] ));
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
             switch (i)
             {
@@ -196,7 +196,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         pConfig->frontend[i] = NEXUS_Frontend_Open4506(&settings4506);
         if ( pConfig->frontend[i] )
         {
-            BDBG_MSG(("NEXUS_Frontend_Open4506: Open sucess [%d] [%p]", i, (void *)pConfig->frontend[i] ));
+            BDBG_MSG(("NEXUS_Frontend_Open4506: Open success [%d] [%p]", i, (void *)pConfig->frontend[i] ));
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
             switch (j)
             {

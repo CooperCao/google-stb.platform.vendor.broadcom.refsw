@@ -62,7 +62,7 @@ eRet CAudioCapture::open(CWidgetEngine * pWidgetEngine)
     eRet ret = eRet_Ok;
 
     BSTD_UNUSED(pWidgetEngine);
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 }
 
@@ -70,7 +70,7 @@ eRet CAudioCapture::close()
 {
     eRet ret = eRet_Ok;
 
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 }
 
@@ -78,7 +78,7 @@ eRet CAudioCapture::start(void)
 {
     eRet ret = eRet_Ok;
 
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 }
 
@@ -86,7 +86,7 @@ eRet CAudioCapture::stop(void)
 {
     eRet ret = eRet_Ok;
 
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 }
 
@@ -99,7 +99,7 @@ eRet CAudioCapture::getBuffer(
 
     BSTD_UNUSED(pBuffer);
     BSTD_UNUSED(pBufferSize);
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 }
 
@@ -108,7 +108,7 @@ eRet CAudioCapture::readComplete(unsigned bufferSize)
     eRet ret = eRet_Ok;
 
     BSTD_UNUSED(bufferSize);
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 }
 

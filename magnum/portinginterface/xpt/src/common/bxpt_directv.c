@@ -218,8 +218,6 @@ BERR_Code BXPT_Mesg_StartDirecTvMessageCapture(
     return BXPT_Mesg_StartDirecTvMessageCaptureWithOptions( hXpt, PidChannelNum, MesgBufferNum, MessageType, Settings, &Options );
 }
 
-extern void ConfigPid2BufferMap( BXPT_Handle hXpt, unsigned int PidChannelNum, unsigned int BufferNumber, bool enableIt);
-
 BERR_Code BXPT_Mesg_StartDirecTvMessageCaptureWithOptions(
     BXPT_Handle hXpt,                           /* [in] Handle for this transport */
     unsigned int PidChannelNum,                 /* [in] Which PID channel. */

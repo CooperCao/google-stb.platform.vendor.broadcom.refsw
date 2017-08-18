@@ -1458,6 +1458,7 @@ static void pbipCallback(
     }
 }
 
+#if 0
 static void errorCallbackFromPlayback(
     void *appCtx,
     int param
@@ -1486,6 +1487,7 @@ static void errorCallbackFromPlayback(
         BDBG_ASSERT( brc == BIP_SUCCESS );
     }
 } /* errorCallbackFromPlayback */
+#endif
 
 static void endOfStreamCallbackFromPlayback(
     void *appCtx,
@@ -3629,7 +3631,7 @@ static BIP_Status prepareForPullMode(
         NEXUS_PlaypumpSettings settings;
         NEXUS_Playpump_GetSettings(hPlayer->hPlaypump, &settings);
         settings.transportType = hPlayer->streamInfo.transportType;
-        if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled) settings.timestamp.type = NEXUS_TransportTimestampType_eMod300;
+        if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled) settings.timestamp.type = NEXUS_TransportTimestampType_e32_Binary;
         nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump, &settings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
@@ -3640,7 +3642,7 @@ static BIP_Status prepareForPullMode(
         NEXUS_PlaybackSettings settings;
 
         NEXUS_Playback_GetSettings(hPlayer->hPlayback, &settings);
-        if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled) settings.playpumpSettings.timestamp.type = NEXUS_TransportTimestampType_eMod300;
+        if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled) settings.playpumpSettings.timestamp.type = NEXUS_TransportTimestampType_e32_Binary;
         settings.playpump = hPlayer->hPlaypump;
         settings.stcChannel = hPlayer->hStcChannel;
         settings.simpleStcChannel = hPlayer->hSimpleStcChannel;
@@ -3654,8 +3656,13 @@ static BIP_Status prepareForPullMode(
             settings.endOfStreamCallback.callback = NULL;
             settings.endOfStreamCallback.context = NULL;
         }
+#if 0
+        /* Commenting out the errorCallbacks from Nexus Playback. This otherwise causes any stream error */
+        /* to prematurely stop the streaming before sending all current data. */
+        /* This code will be removed once this code gets tested in couple of releases. */
         settings.errorCallback.callback = errorCallbackFromPlayback;
         settings.errorCallback.context = hPlayer;
+#endif
         nrc = NEXUS_Playback_SetSettings(hPlayer->hPlayback, &settings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playback_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playback=%p is setup for pull mode of streaming: loop on EOS=%s startPaused=%s" BIP_MSG_PRE_ARG,
@@ -3930,7 +3937,7 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
         NEXUS_PlaypumpSettings settings;
         NEXUS_Playpump_GetSettings(hPlayer->hPlaypump, &settings);
         settings.transportType = hPlayer->streamInfo.transportType;
-        if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled) settings.timestamp.type = NEXUS_TransportTimestampType_eMod300;
+        if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled) settings.timestamp.type = NEXUS_TransportTimestampType_e32_Binary;
         nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump, &settings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
@@ -4058,6 +4065,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             lockedTimebaseSettings.sourceSettings.pcr.pidChannel = pcrPidChannel;
             lockedTimebaseSettings.sourceSettings.pcr.maxPcrError = 255;
             lockedTimebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
+            lockedTimebaseSettings.sourceSettings.pcr.jitterCorrection = NEXUS_TristateEnable_eDisable;
             nrc = NEXUS_Timebase_SetSettings(hPlayer->lockedTimebase, &lockedTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
@@ -4163,7 +4171,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
 
             NEXUS_Timebase_GetSettings(hPlayer->freeRunTimebase, &freeRunTimebaseSettings);
             freeRunTimebaseSettings.freeze = true;
-            freeRunTimebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e122ppm;
+            freeRunTimebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e244ppm;
             freeRunTimebaseSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
             nrc = NEXUS_Timebase_SetSettings(hPlayer->freeRunTimebase, &freeRunTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
@@ -4177,14 +4185,13 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
 
         NEXUS_Playpump_GetSettings(hPlayer->hPlaypump, &settings);
         settings.transportType = hPlayer->streamInfo.transportType;
-        if (hPlayer->clockRecoveryMode == BIP_PlayerClockRecoveryMode_ePushWithPcrNoSyncSlip)
+        if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled)
         {
-            /* PCR Pacing mode doesn't use the 4 byte timestamps even if it is present in the stream. */
-            settings.timestamp.type = NEXUS_TransportTimestampType_eNone;
+            settings.timestamp.type = NEXUS_TransportTimestampType_e32_Binary;
         }
         else
         {
-            settings.timestamp.type = NEXUS_TransportTimestampType_e32_Binary;
+            settings.timestamp.type = NEXUS_TransportTimestampType_eNone;
         }
         settings.timestamp.pacing = true;
         settings.timestamp.pacingMaxError = hPlayer->playerSettings.ttsParams.pacingMaxError;
@@ -4222,6 +4229,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
         hPlayer->pbipState.settings.ttsParams.throttleParams.maxBufDepth = hPlayer->playerSettings.ttsParams.maxBufDepth;
         hPlayer->pbipState.settings.ttsParams.throttleParams.minBufDepth = hPlayer->playerSettings.ttsParams.minBufDepth;
         hPlayer->pbipState.settings.ttsParams.throttleParams.maxClockMismatch = hPlayer->playerSettings.ttsParams.maxClockMismatch;
+        hPlayer->pbipState.settings.ttsParams.throttleParams.bufDepthInMsec = hPlayer->playerSettings.ttsParams.bufDepthInMsec;
         /* TODO: set the callback */
         if (hPlayer->clockRecoveryMode == BIP_PlayerClockRecoveryMode_ePushWithPcrNoSyncSlip)
         {

@@ -424,29 +424,55 @@ typedef struct BVBI_P_Field_Handle
  * VBI private closed caption (CC) functions
  ***************************************************************************/
 BERR_Code BVBI_P_CC_Init ( BVBI_P_Handle *pVbi );
-void BVBI_P_CC_Enc_Init (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex);
+
+#if BVBI_NUM_CCE >= 1
+void BVBI_P_CC_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
 BERR_Code BVBI_P_CC_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
+    uint8_t hwCoreIndex,
+    bool bActive,
+    BFMT_VideoFmt eVideoFormat,
+    bool bArib480p);
+BERR_Code BVBI_P_CC_Encode_Data_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BAVC_Polarity polarity,
+    uint16_t usData );
+#if !B_REFSW_MINIMAL
+BERR_Code BVBI_P_CC_Encode_Enable_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    bool bEnable);
+#endif
+#endif
+
+#if BVBI_NUM_CCE_656 >= 1
+void BVBI_P_CC_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
+BERR_Code BVBI_P_CC_Enc_656_Program (
+    BREG_Handle hReg,
     uint8_t hwCoreIndex,
     bool bActive,
     bool bPR18010_bad_line_number,
     BFMT_VideoFmt eVideoFormat,
     bool bArib480p);
-BERR_Code BVBI_P_CC_Encode_Data_isr (
+BERR_Code BVBI_P_CC_Encode_656_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     uint16_t usData );
-BERR_Code BVBI_P_CC_Encode_Enable_isr (
+#if !B_REFSW_MINIMAL
+BERR_Code BVBI_P_CC_Encode_656_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif
+#endif
+
 uint16_t BVBI_P_SetCCParityBits_isr (
     uint16_t uchData);
+
 void BVBI_P_CC_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
 uint32_t BVBI_P_CC_Decode_Data_isr (
     BREG_Handle hReg,
@@ -463,31 +489,30 @@ BERR_Code BVBI_P_CC_Dec_Program (
 /***************************************************************************
  * VBI private CGMS functions
  ***************************************************************************/
-BERR_Code BVBI_P_CGMS_Init ( BVBI_P_Handle *pVbi );
 
-void BVBI_P_CGMS_Enc_Init (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex);
+#if BVBI_NUM_CGMSAE >= 1
+BERR_Code BVBI_P_CGMS_Init ( BVBI_P_Handle *pVbi );
+void BVBI_P_CGMS_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
 BERR_Code BVBI_P_CGMSA_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
     bool bArib480p);
 BERR_Code BVBI_P_CGMSA_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     uint32_t ulData );
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_P_CGMSA_Encode_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif
 BERR_Code BVBI_P_CGMSB_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
@@ -495,7 +520,6 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     bool bCea805dStyle);
 BERR_Code BVBI_P_CGMSB_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     BVBI_CGMSB_Datum cgmsbDatum );
@@ -505,6 +529,7 @@ BERR_Code BVBI_P_CGMSB_Encode_Enable_isr (
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif
 
 void BVBI_P_CGMS_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
 
@@ -527,27 +552,44 @@ uint32_t BVPI_P_CGMS_format_data_isr (uint32_t userdata);
  ***************************************************************************/
 BERR_Code BVBI_P_WSS_Init ( BVBI_P_Handle *pVbi );
 
+#if (BVBI_NUM_WSE >= 1) /** { **/
 void BVBI_P_WSS_Enc_Init     (BREG_Handle hReg, uint8_t hwCoreIndex);
-void BVBI_P_WSS_656_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
 BERR_Code BVBI_P_WSS_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
-    bool bPR18010_bad_line_number,
     BFMT_VideoFmt eVideoFormat);
 BERR_Code BVBI_P_WSS_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     uint16_t usData );
 BERR_Code BVBI_P_WSS_Encode_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif /** }  (BVBI_NUM_WSE >= 1) **/
+
+#if (BVBI_NUM_WSE_656 >= 1) /** { **/
+void BVBI_P_WSS_Enc_656_Init     (BREG_Handle hReg, uint8_t hwCoreIndex);
+BERR_Code BVBI_P_WSS_Enc_656_Program (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    bool bActive,
+    bool bPR18010_bad_line_number,
+    BFMT_VideoFmt eVideoFormat);
+BERR_Code BVBI_P_WSS_Encode_656_Data_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BAVC_Polarity polarity,
+    uint16_t usData );
+BERR_Code BVBI_P_WSS_Encode_656_Enable_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    bool bEnable);
+#endif /** }  (BVBI_NUM_WSE_656 >= 1) **/
 
 void BVBI_P_WSS_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
 
@@ -564,6 +606,7 @@ uint32_t BVBI_P_WSS_Decode_Data_isr (
     uint16_t *pusData );
 
 
+#if BVBI_NUM_WSE > 0 /** { **/
 /***************************************************************************
  * VBI private VPS functions
  ***************************************************************************/
@@ -588,6 +631,7 @@ BERR_Code BVBI_P_VPS_Encode_Data_isr (
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     BVBI_VPSData *pVPSData );
+#endif /** } BVBI_NUM_WSE > 0 **/
 
 /***************************************************************************
  * VBI private Teletext functions
@@ -595,10 +639,10 @@ BERR_Code BVBI_P_VPS_Encode_Data_isr (
 
 BERR_Code BVBI_P_TT_Init ( BVBI_P_Handle *pVbi );
 
-void BVBI_P_TT_Enc_Init (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex);
+#if BVBI_NUM_TTE > 0 /** { **/
+void BVBI_P_TT_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
 BERR_Code BVBI_P_TT_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     bool bXserActive,
@@ -610,18 +654,47 @@ BERR_Code BVBI_P_TT_Enc_Program (
 );
 uint32_t BVBI_P_TT_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    BAVC_Polarity polarity,
+    BVBI_P_TTData* pTTDataNext );
+#if !B_REFSW_MINIMAL
+BERR_Code BVBI_P_TT_Encode_Enable_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    bool bEnable);
+#endif
+#endif /** } BVBI_NUM_TTE > 0 **/
+
+#if BVBI_NUM_TTE_656 > 0 /** { **/
+void BVBI_P_TT_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
+BERR_Code BVBI_P_TT_Enc_656_Program (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    bool bActive,
+    bool bXserActive,
+    BFMT_VideoFmt eVideoFormat,
+    bool tteShiftDirMsb2Lsb,
+    BVBI_XSER_Settings* xserSettings,
+    BVBI_P_TTData* topData,
+    BVBI_P_TTData* botData
+);
+uint32_t BVBI_P_TT_Encode_656_Data_isr (
+    BREG_Handle hReg,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     BAVC_Polarity polarity,
     bool bPR18010_bad_line_number,
     BVBI_P_TTData* pTTDataNext );
-BERR_Code BVBI_P_TT_Encode_Enable_isr (
+#if !B_REFSW_MINIMAL
+BERR_Code BVBI_P_TT_Encode_656_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif
+#endif /** } BVBI_NUM_TTE > 0 **/
 
 void BVBI_P_TT_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
 BERR_Code BVBI_P_TT_Dec_Program (
@@ -651,11 +724,10 @@ BERR_Code BVBI_P_TTData_Alloc (
  ***************************************************************************/
 
 BERR_Code BVBI_P_GS_Init ( BVBI_P_Handle *pVbi );
-void BVBI_P_GS_Enc_Init (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex);
-
+#if (BVBI_NUM_GSE > 0)
+void BVBI_P_GS_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
 BERR_Code BVBI_P_GS_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
@@ -664,28 +736,52 @@ BERR_Code BVBI_P_GS_Enc_Program (
 );
 uint32_t BVBI_P_GS_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     BAVC_Polarity polarity,
     BVBI_GSData* pGSDataNext );
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_P_GS_Encode_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif
+#endif
+#if (BVBI_NUM_GSE_656 > 0)
+void BVBI_P_GS_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
+BERR_Code BVBI_P_GS_Enc_656_Program (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    bool bActive,
+    BFMT_VideoFmt eVideoFormat,
+    bool bArib480p,
+    BVBI_GSOptions* gsOptions
+);
+uint32_t BVBI_P_GS_Encode_656_Data_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    BAVC_Polarity polarity,
+    BVBI_GSData* pGSDataNext );
+#if !B_REFSW_MINIMAL
+BERR_Code BVBI_P_GS_Encode_656_Enable_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    bool bEnable);
+#endif
+#endif
 
 /***************************************************************************
  * VBI private AMOL functions
  ***************************************************************************/
 
 BERR_Code BVBI_P_AMOL_Init ( BVBI_P_Handle *pVbi );
-void BVBI_P_AMOL_Enc_Init (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex);
-
+#if BVBI_NUM_AMOLE >= 1
+void BVBI_P_AMOL_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
 BERR_Code BVBI_P_AMOL_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
@@ -694,26 +790,53 @@ BERR_Code BVBI_P_AMOL_Enc_Program (
 );
 uint32_t BVBI_P_AMOL_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     BAVC_Polarity polarity,
     BVBI_AMOL_Type amolType,
     uint8_t* pAMOLData );
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_P_AMOL_Encode_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif
+#endif
+
+#if BVBI_NUM_AMOLE_656 >= 1
+void BVBI_P_AMOL_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex);
+BERR_Code BVBI_P_AMOL_Enc_656_Program (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    bool bActive,
+    BFMT_VideoFmt eVideoFormat,
+    bool bArib480p,
+    BVBI_AMOL_Type amolType
+);
+uint32_t BVBI_P_AMOL_Encode_656_Data_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    BAVC_Polarity polarity,
+    BVBI_AMOL_Type amolType,
+    uint8_t* pAMOLData );
+#if !B_REFSW_MINIMAL
+BERR_Code BVBI_P_AMOL_Encode_656_Enable_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    bool bEnable);
+#endif
+#endif
 
 /***************************************************************************
  * VBI private multi-line closed caption functions
  ***************************************************************************/
 
+#if (BVBI_NUM_CCE > 0)
 BERR_Code BVBI_P_MCC_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
@@ -721,19 +844,41 @@ BERR_Code BVBI_P_MCC_Enc_Program (
 );
 uint32_t BVBI_P_MCC_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
-    bool bArib480p,
     BAVC_Polarity polarity,
-    bool bPR18010_bad_line_number,
     BVBI_MCCData* pMCCData );
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_P_MCC_Encode_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
+#endif
+#endif
+
+#if (BVBI_NUM_CCE_656 > 0)
+BERR_Code BVBI_P_MCC_Enc_656_Program (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    bool bActive,
+    BFMT_VideoFmt eVideoFormat,
+    bool bArib480p
+);
+uint32_t BVBI_P_MCC_Encode_656_Data_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    BAVC_Polarity polarity,
+    BVBI_MCCData* pMCCData );
+#if !B_REFSW_MINIMAL
+BERR_Code BVBI_P_MCC_Encode_656_Enable_isr (
+    BREG_Handle hReg,
+    uint8_t hwCoreIndex,
+    BFMT_VideoFmt eVideoFormat,
+    bool bEnable);
+#endif
+#endif
 
 /***************************************************************************
  * VBI private SCTE functions

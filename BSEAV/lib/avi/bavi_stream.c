@@ -357,24 +357,6 @@ done:
 	return bavi_parser_action_none;
 }
 
-static void
-b_avi_demux_atom_free(batom_t atom, void *user)
-{
-	bavi_demux_t demux = *(bavi_demux_t *)user;
-	const batom_vec *pes_vec;
-	BDBG_OBJECT_ASSERT(demux, bavi_demux_t);
-	BDBG_MSG_TRACE(("b_avi_demux_atom_free: %#lx %#lx", (unsigned long)atom, (unsigned long)demux));
-	pes_vec = batom_get_vec(atom, 0);
-	BDBG_ASSERT(pes_vec);
-	demux->alloc->bmem_free(demux->alloc, pes_vec->base);
-	return;
-}
-
-static const batom_user b_avi_demux_atom = {
-	b_avi_demux_atom_free,
-	sizeof(bavi_demux_t)
-};
-
 static bool
 b_avi_stream_audio(bavi_stream_t stream, batom_t data)
 {

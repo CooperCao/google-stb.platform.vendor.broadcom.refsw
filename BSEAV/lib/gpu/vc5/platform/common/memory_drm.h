@@ -3,5 +3,13 @@
  ******************************************************************************/
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 BEGL_MemoryInterface *CreateDRMMemoryInterface(void);
 void DestroyDRMMemoryInterface(BEGL_MemoryInterface *iface);
+
+#ifdef __cplusplus
+}
+#endif

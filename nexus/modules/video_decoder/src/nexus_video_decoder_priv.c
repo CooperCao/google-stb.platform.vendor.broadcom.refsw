@@ -1516,7 +1516,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetTsm(NEXUS_VideoDecoderHandle videoDecoder)
     }
 #endif
 
-    if (videoDecoder->crcMode) {
+    if (videoDecoder->startSettings.crcMode == NEXUS_VideoDecoderCrcMode_eMfd) {
         tsm = false;
     }
 
@@ -2101,10 +2101,4 @@ void NEXUS_VideoDecoderModule_GetStatistics( NEXUS_VideoDecoderModuleStatistics 
     BKNI_EnterCriticalSection();
     *pStats = g_NEXUS_VideoDecoderModuleStatistics;
     BKNI_LeaveCriticalSection();
-}
-
-void NEXUS_VideoDecoder_EnableCrcMode_priv(NEXUS_VideoDecoderHandle handle)
-{
-    BDBG_OBJECT_ASSERT(handle, NEXUS_VideoDecoder);
-    handle->crcMode = true;
 }

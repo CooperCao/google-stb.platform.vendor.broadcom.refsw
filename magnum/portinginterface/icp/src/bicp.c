@@ -237,6 +237,7 @@ BERR_Code BICP_Close(
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BICP_GetDefaultSettings(
     BICP_Settings *pDefSettings,        /* [output] Returns default setting */
     BCHP_Handle hChip                   /* Chip handle */
@@ -265,6 +266,7 @@ BERR_Code BICP_GetTotalChannels(
 
     return( retCode );
 }
+#endif
 
 BERR_Code BICP_GetChannelDefaultSettings(
     BICP_Handle hDev,                   /* Device handle */
@@ -454,6 +456,7 @@ done:
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BICP_GetDevice(
     BICP_ChannelHandle hChn,            /* Device channel handle */
     BICP_Handle *phDev                  /* [output] Returns Device handle */
@@ -469,7 +472,7 @@ BERR_Code BICP_GetDevice(
 
     return( retCode );
 }
-
+#endif
 
 BERR_Code BICP_GetEventHandle(
     BICP_ChannelHandle hChn,            /* Device channel handle */
@@ -513,6 +516,7 @@ BERR_Code BICP_EnableEdge(
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BICP_DisableEdge(
     BICP_ChannelHandle  hChn,           /* Device channel handle */
     BICP_EdgeConfig     edge            /* edge config */
@@ -537,6 +541,7 @@ BERR_Code BICP_DisableEdge(
 
     return( retCode );
 }
+#endif
 
 BERR_Code BICP_GetTimerCnt(
     BICP_ChannelHandle  hChn,           /* Device channel handle */
@@ -580,6 +585,7 @@ BERR_Code BICP_GetTimerCnt(
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BICP_PollTimer(
     BICP_ChannelHandle  hChn,           /* Device channel handle */
     bool                *triggered,     /* status of trigger */
@@ -676,6 +682,7 @@ void BICP_GetIntCount(
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
     *data = hChn->isrCount;
 }
+#endif
 
 /*******************************************************************************
 *

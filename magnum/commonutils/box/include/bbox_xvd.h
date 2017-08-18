@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -228,6 +228,17 @@ typedef enum BBOX_XVD_DecodeResolution
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
 }
 
+#define BBOX_XVD_DECODER_INFO_4Kp50_1080p25_V1( _memIndex, _secondaryMemcIndex, \
+                                                _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V1( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 50, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 25, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
 #define BBOX_XVD_DECODER_INFO_4Kp60_1080p30_V1( _memIndex, _secondaryMemcIndex, \
                                                 _bitDepth0, _mfdIndex0, _nexusIndex0, \
                                                 _bitDepth1, _mfdIndex1, _nexusIndex1) \
@@ -247,6 +258,17 @@ typedef enum BBOX_XVD_DecodeResolution
       _memIndex, _secondaryMemcIndex, 2, \
       _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 60, _mfdIndex0, _nexusIndex0, \
       _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 60, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
+#define BBOX_XVD_DECODER_INFO_1080p60_1080p30_V1( _memIndex, _secondaryMemcIndex, \
+                                                  _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                  _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V1( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_eHD, 60, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex1, _nexusIndex1, \
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
 }
 

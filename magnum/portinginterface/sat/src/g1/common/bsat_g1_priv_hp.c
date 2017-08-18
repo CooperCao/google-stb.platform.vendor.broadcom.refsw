@@ -716,6 +716,7 @@ BERR_Code BSAT_g1_P_HpGetAcmStatus(BSAT_ChannelHandle h, BSAT_g1_P_AcmStatus *pS
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_HP_ACM_CHECK);
    pStatus->modcod = (uint8_t)((val >> 2) & 0x1F);
+   pStatus->bPilot = (val & 1) ? true : false;
    pStatus->type = (uint8_t)(val & 0x3);
    pStatus->bSpinv = val & 0x80 ? true : false;
    pStatus->mode = BSAT_Mode_eDvbs2_Qpsk_1_4 + pStatus->modcod - 1;

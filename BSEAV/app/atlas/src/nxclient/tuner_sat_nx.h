@@ -50,7 +50,7 @@ class CTunerSatNx : public CTunerSat
 public:
     CTunerSatNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

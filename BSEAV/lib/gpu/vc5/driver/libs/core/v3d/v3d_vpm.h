@@ -11,7 +11,7 @@
 
 // See "VPM Usage" section in arch spec.
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
 
@@ -64,4 +64,4 @@ void v3d_vpm_compute_cfg(
    uint8_t const vs_output_words[2],
    bool z_pre_pass);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

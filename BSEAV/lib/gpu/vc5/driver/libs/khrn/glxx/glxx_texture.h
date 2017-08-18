@@ -231,9 +231,11 @@ typedef struct
    uint32_t height;
    uint32_t depth;
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
    /* valid only for TEXTURE_BUFFER */
    uint32_t texbuffer_log2_arr_elem_w; /* log2 (array element's width in texels) */
    uint32_t texbuffer_arr_elem_w_minus_1; /* array element's width in texels - 1*/
+#endif
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    uint32_t hw_param1_gather[4];
@@ -349,10 +351,25 @@ extern void glxx_texture_remove_observer(GLXX_TEXTURE_T *texture);
  * img with the texture image for that face, level, layer. The image is
  * reference counted; the caller needs to call khrn_mem_release on the returned
  * image when done with it.
- * *img can be NULL if there is no texture image for that face/level
+ * *img can be NULL if there is no image for that level/layer/face or if
+ * selected level is not level base and the texture is not mipmap complete(or
+ * cube complete for cube textures)
  */
 bool glxx_texture_acquire_one_elem_slice(GLXX_TEXTURE_T* texture,
       unsigned face, unsigned level, unsigned layer, khrn_image **img);
+
+/* Returns false if we run of of memory; otherwise, returns true and fills in
+ * img with the texture image for that level. The image is reference counted;
+ * the caller needs to call khrn_mem_release on the returned image when done
+ * with it.
+ * For a cubemap, create an image that refers to a blob containing all the
+ * faces;
+ * *img can be NULL if there is no image for that level or if selected level is
+ * not level base and the texture is not mipmap complete(or cube complete for
+ * cube textures)
+ */
+bool glxx_texture_acquire_level(GLXX_TEXTURE_T *texture,
+      unsigned level, glxx_context_fences *fences, khrn_image **p_img);
 
 /* Call this when you want to share a slice from a texture with an eglimage;
  * You should call this function only on an unbound texture or an egl image
@@ -361,7 +378,9 @@ bool glxx_texture_acquire_one_elem_slice(GLXX_TEXTURE_T* texture,
  * img with the texture image for that face, level, layer. The image is
  * reference counted; the caller needs to call khrn_mem_release on the returned
  * image when done with it.
- * *img can be NULL if there is no texture image for that face/level
+ * *img can be NULL if there is no image for that level/layer or if selected
+ * level is not level base and the texture is not mipmap complete(or cube
+ * complete for cube textures)
  */
 bool glxx_texture_acquire_from_eglimage(GLXX_TEXTURE_T *texture, unsigned face,
       unsigned level, unsigned layer, khrn_image **img);
@@ -393,5 +412,10 @@ extern void glxx_compressed_paletted_teximageX(GLenum target, GLint level,
       GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth,
       GLint border, GLsizei imageSize, const GLvoid *pixels, unsigned dim);
 
+/* for non-imutable textures, returns false if there is no image uploaded at
+ * base_level;
+ * for immutable textures, we can always calculate num_levels */
+extern bool glxx_texture_try_get_num_levels(const GLXX_TEXTURE_T *texture,
+      bool only_base_level, unsigned *base_level, unsigned *num_levels);
 
 #endif

@@ -39,6 +39,10 @@
 #ifndef NEXUS_VIDEO_WINDOW_IMPL_H__
 #define NEXUS_VIDEO_WINDOW_IMPL_H__
 
+#if NEXUS_DISPLAY_EXTENSION_DYNRNG
+#include "nexus_display_dynrng.h"
+#endif
+
 void NEXUS_VideoWindow_P_InitState(NEXUS_VideoWindowHandle window, unsigned parentIndex, unsigned index, NEXUS_DisplayHandle display);
 BERR_Code NEXUS_VideoWindow_P_SetVdcSettings(NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowSettings *settings, bool force);
 
@@ -114,6 +118,7 @@ struct NEXUS_VideoWindow {
     NEXUS_VideoInput standby;
     struct {
         BVDC_Window_Handle window; /* could be NULL */
+        BVDC_Window_Capabilities caps;
         bool masterFrameRate;
     } vdcState;
 
@@ -126,6 +131,13 @@ struct NEXUS_VideoWindow {
     struct {
         BAVC_CoreList coreList;
     } sage;
+#endif
+#if NEXUS_DISPLAY_EXTENSION_DYNRNG
+    struct
+    {
+        NEXUS_DynamicRangeProcessingSettings settings;
+        BVDC_Test_Window_ForceCfcConfig cfcConfig;
+    } dynrng;
 #endif
 };
 

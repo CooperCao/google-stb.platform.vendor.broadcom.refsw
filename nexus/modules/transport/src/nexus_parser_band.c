@@ -164,6 +164,7 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
     BXPT_ParserConfig parserCfg;
     unsigned prevMaxDataRate = 0;
     unsigned bandHwIndex;
+    bool change_allPass;
 
     BDBG_OBJECT_ASSERT(parserBand, NEXUS_ParserBand);
 
@@ -231,6 +232,7 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
     if (rc) {return BERR_TRACE(rc);}
 
     prevMaxDataRate = parserBand->settings.maxDataRate;
+    change_allPass = (parserBand->settings.allPass != pSettings->allPass);
     parserBand->settings = *pSettings;
 
 #if NEXUS_TRANSPORT_EXTENSION_TSMF
@@ -250,6 +252,15 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
     of the following calls is important. */
     rc = BXPT_ParserAllPassMode(pTransport->xpt, bandHwIndex, pSettings->allPass);
     if (rc) {return BERR_TRACE(rc);}
+    if (change_allPass) {
+        /* update all pidchannels, must be called after parserBand->settings is saved */
+        NEXUS_P_HwPidChannel *pidChannel;
+        for (pidChannel = BLST_S_FIRST(&pTransport->pidChannels); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
+            if (pidChannel->parserBand == parserBand) {
+                (void)nexus_p_set_pid_cc(pidChannel, &pidChannel->settings);
+            }
+        }
+    }
 
 #if BXPT_HAS_XCBUF
     if(!pSettings->allPass)
@@ -555,6 +566,19 @@ static NEXUS_ParserBandHandle NEXUS_ParserBand_P_Open(unsigned index)
     NEXUS_ParserBand_P_GetDefaultSettings(index, &parserBandSettings);
     (void)NEXUS_ParserBand_P_SetSettings(handle, &parserBandSettings);
 
+#if NEXUS_TRANSPORT_RS_CAPTURE_ENABLED
+{
+   NEXUS_TransportRsCaptureCreateSettings createSettings;
+
+   NEXUS_TransportRsCapture_GetDefaultCreateSettings(&createSettings);
+   createSettings.isPlayback = false;
+   createSettings.parserIndex = index;
+   handle->rsCap = NEXUS_TransportRsCapture_Create(&createSettings);
+   NEXUS_TransportRsCapture_Open(handle->rsCap);
+   NEXUS_TransportRsCapture_Start(handle->rsCap);
+}
+#endif
+
 end:
     return handle;
 }
@@ -567,6 +591,14 @@ NEXUS_ParserBand NEXUS_ParserBand_Open(unsigned index)
 static void NEXUS_ParserBand_P_Finalizer(NEXUS_ParserBandHandle band)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_ParserBand, band);
+
+#if NEXUS_TRANSPORT_RS_CAPTURE_ENABLED
+{
+   NEXUS_TransportRsCapture_Stop(band->rsCap);
+   NEXUS_TransportRsCapture_Close(band->rsCap);
+   NEXUS_TransportRsCapture_Destroy(band->rsCap);
+}
+#endif
 
     NEXUS_PidChannel_CloseAll(band->hwIndex);
 
@@ -628,7 +660,7 @@ NEXUS_Error NEXUS_ParserBand_GetAllPassPidChannelIndex(
 {
     NEXUS_ParserBandHandle handle = NULL;
 
-    handle = NEXUS_ParserBand_P_ResolveAcquire(parserBand, false);
+    handle = NEXUS_ParserBand_P_ResolveAcquire(parserBand, true);
     if (handle)
     {
         /* On the front-end parsers, the PID channel number is the parser band number. There's little risk that it'll change. */
@@ -660,7 +692,7 @@ static bool is_mtsif(unsigned i, NEXUS_FrontendConnectorHandle connector, void *
     if (ps->sourceType == NEXUS_ParserBandSourceType_eTsmf && ps->sourceTypeSettings.tsmf) {
         NEXUS_TsmfSettings settings;
         NEXUS_Tsmf_GetSettings(ps->sourceTypeSettings.tsmf, &settings);
-        if (settings.sourceType == NEXUS_TsmfSourceType_eMtsif && (settings.sourceTypeSettings.mtsif==connector || !connector)) {
+        if ((settings.sourceType == NEXUS_TsmfSourceType_eMtsif || settings.sourceType == NEXUS_TsmfSourceType_eMtsifRx) && (settings.sourceTypeSettings.mtsif==connector || !connector)) {
             *tsmf = ps->sourceTypeSettings.tsmf;
             return true;
         }
@@ -808,6 +840,18 @@ void NEXUS_ParserBand_P_MtsifErrorStatus_priv(unsigned lengthError, unsigned tra
 {
     BSTD_UNUSED(lengthError);
     BSTD_UNUSED(transportError);
+}
+
+void NEXUS_ParserBand_P_ResetOverflowCounts(NEXUS_ParserBandHandle parserBand)
+{
+	BSTD_UNUSED(parserBand);
+}
+
+NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, const NEXUS_ParserBandSettings *pSettings)
+{
+	BSTD_UNUSED(parserBand);
+	BSTD_UNUSED(pSettings);
+	return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
 
 #endif /* NEXUS_NUM_PARSER_BANDS */

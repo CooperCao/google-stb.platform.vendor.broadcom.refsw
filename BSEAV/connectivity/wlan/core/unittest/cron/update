@@ -1,0 +1,37 @@
+#!/bin/bash
+# UTF crontab self-update script
+# 	$Id: ad4a872607b5ea6b26652ffb49e92cec599c33c3 $
+
+# Identify the correct crontab file
+HOST=$(uname -n| tr '[:upper:]' '[:lower:]')
+HOST=${HOST%%.*}
+tmp=/tmp/utfcronupdate.$USER.$HOST
+
+dir=$(dirname $0)
+cd $dir
+
+if [ -d ../.svn ]; then
+    /usr/bin/svn cat -rHEAD $USER.$HOST > $tmp
+elif git config --get-all svn-remote.svn.url; then
+    echo "Rejecting attempt to update master git-svn workspace"
+    exit 1
+else
+    # Note this may fail due to local changes.
+    git pull
+    tmp=$USER.$HOST
+fi
+
+# Make sure we don't cut ourselves off from the updates.
+if grep "cron/update" $tmp >/dev/null; then :; else
+    echo "$USER.$HOST self-update line missing.  Will not update crontab."
+    exit 1
+fi
+
+if crontab -l | diff - $tmp; then
+    # nothing to do
+    exit
+else
+    crontab $tmp
+fi
+
+

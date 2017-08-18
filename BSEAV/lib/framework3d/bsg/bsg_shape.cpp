@@ -817,7 +817,7 @@ static Box CalcBox(uint32_t count, float *buff, uint32_t size)
 
 void ObjFactoryTask::OnThread()
 {
-   m_reader = std::auto_ptr<ObjReader>(new ObjReader(m_fileName, Application::Instance()->FindResourceFolder(m_fileName)));
+   m_reader = std::unique_ptr<ObjReader>(new ObjReader(m_fileName, Application::Instance()->FindResourceFolder(m_fileName)));
 
    Call(&ObjFactoryTask::OnLoaded);
 

@@ -62,6 +62,9 @@ typedef struct BGRC_P_Handle
     uint32_t ulPacketMemoryMax;                 /* max packet memory */
     uint32_t ulOperationMax;                    /* max operations */
     uint32_t ulWaitTimeout;                     /* seconds to wait before assuming device is hung */
+#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+    uint32_t ulWeight;                          /* scheduling */
+#endif
     bool secure;
 
     BGRC_StandbySettings  stStandbySettings;

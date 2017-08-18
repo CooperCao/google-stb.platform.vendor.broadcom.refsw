@@ -20,9 +20,15 @@ static void glDrawTexfOES_impl(GLfloat x_s, GLfloat y_s, GLfloat z_s, GLfloat w_
    if (!state)
       return;
 
-   if(w_s <=0.0f || h_s <= 0.0f)
+   if (w_s <= 0.0f || h_s <= 0.0f)
    {
       error = GL_INVALID_VALUE;
+      goto end;
+   }
+
+   if (!glxx_fb_is_complete(state->bound_draw_framebuffer, &state->fences))
+   {
+      error = GL_INVALID_FRAMEBUFFER_OPERATION;
       goto end;
    }
 

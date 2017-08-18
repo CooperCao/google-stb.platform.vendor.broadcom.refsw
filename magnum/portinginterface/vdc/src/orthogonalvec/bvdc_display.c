@@ -309,7 +309,7 @@ BERR_Code BVDC_Display_Create
     {
         BDBG_MSG(("BVDC_Display_Create Display[%d] allocates resource for AnlgChan_0", hDisplay->eId));
         BKNI_EnterCriticalSection();
-        err = BVDC_P_AllocITResources(hCompositor->hVdc->hResource, eId * 2, &hDisplay->stAnlgChan_0, BVDC_P_HW_ID_INVALID);
+        err = BVDC_P_AllocITResources(hCompositor->hVdc->hResource, hDisplay, eId * 2, &hDisplay->stAnlgChan_0, BVDC_P_HW_ID_INVALID);
         BKNI_LeaveCriticalSection();
 
         if(err)
@@ -585,7 +585,7 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
         if (pBoxVdc->astDisplay[hDisplay->eId].eMaxVideoFmt != BBOX_VDC_DISREGARD)
         {
             BKNI_EnterCriticalSection();
-            pBoxMaxVideoFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(pBoxVdc->astDisplay[hDisplay->eId].eMaxVideoFmt);
+            pBoxMaxVideoFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(pBoxVdc->astDisplay[hDisplay->eId].eMaxVideoFmt);
             BKNI_LeaveCriticalSection();
 
             if (pFmtInfo->ulVertFreq > pBoxMaxVideoFmtInfo->ulVertFreq)
@@ -681,7 +681,7 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
             hDisplay->stNewInfo.stDirty.stBits.bMpaaHdmi = BVDC_P_DIRTY;
         }
     }
-	BDBG_MSG(("pFmt=%p[%s], cur->pFmt=%p[%s], bFmtChange=%d",
+    BDBG_MSG(("pFmt=%p[%s], cur->pFmt=%p[%s], bFmtChange=%d",
         (void *)pFmtInfo,pFmtInfo->pchFormatStr,(void *)hDisplay->stCurInfo.pFmtInfo,hDisplay->stCurInfo.pFmtInfo->pchFormatStr, bFmtChange));
 
     BDBG_LEAVE(BVDC_Display_SetCustomVideoFormat);
@@ -756,11 +756,14 @@ BERR_Code  BVDC_Display_SetDacConfiguration
 {
     BVDC_P_DisplayInfo *pNewInfo;
     BVDC_P_DisplayInfo *pCurInfo;
+#if BVDC_P_MAX_DACS
     uint32_t            i;
+#endif
 
     BDBG_ENTER(BVDC_Display_SetDacConfiguration);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
+#if BVDC_P_MAX_DACS
 #if defined(BVDC_GFX_PERSIST)
     if (BVDC_DacOutput_eUnused == eDacOutput)
     {
@@ -794,7 +797,6 @@ BERR_Code  BVDC_Display_SetDacConfiguration
 
     pNewInfo = &hDisplay->stNewInfo;
     pCurInfo = &hDisplay->stCurInfo;
-
 
     /* Other than VDEC pass-through, bypass path does not support Dac outputs */
     if(hDisplay->bIsBypass && (eDacOutput != BVDC_DacOutput_eUnused))
@@ -844,6 +846,12 @@ BERR_Code  BVDC_Display_SetDacConfiguration
     {
         pNewInfo->stDirty.stBits.bMpaaComp = BVDC_P_DIRTY;
     }
+#else
+    BSTD_UNUSED(pCurInfo);
+    BSTD_UNUSED(pNewInfo);
+    BSTD_UNUSED(ulDacs);
+    BSTD_UNUSED(eDacOutput);
+#endif
 
     BDBG_LEAVE(BVDC_Display_SetDacConfiguration);
     return BERR_SUCCESS;
@@ -860,7 +868,9 @@ BERR_Code BVDC_Display_GetDacConfiguration
       uint32_t                         ulDac,
       BVDC_DacOutput                  *peDacOutput )
 {
+#if BVDC_P_MAX_DACS
     uint32_t     i;
+#endif
     BVDC_DacOutput eDacOutput = BVDC_DacOutput_eUnused;
 
     BDBG_ENTER(BVDC_Display_GetDacConfiguration);
@@ -872,6 +882,7 @@ BERR_Code BVDC_Display_GetDacConfiguration
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+#if BVDC_P_MAX_DACS
     /* Get index to Dac table */
     for (i=0; i < BVDC_P_MAX_DACS; i++)
     {
@@ -881,6 +892,7 @@ BERR_Code BVDC_Display_GetDacConfiguration
             break;
         }
     }
+#endif
 
     *peDacOutput = eDacOutput;
     BDBG_LEAVE(BVDC_Display_GetDacConfiguration);
@@ -1242,7 +1254,7 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
         (BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hDisplay->hVdc->hChip,
         BCHP_LicensedFeature_eDolbyVision)))
     {
-        BDBG_MSG(("Invalid license[%d] output.", BCHP_LicensedFeature_eDolbyVision));
+        BDBG_ERR(("Invalid Dolby Vision license output."));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
     /* BP3 Do NOT Modify End */
@@ -3043,10 +3055,12 @@ BERR_Code BVDC_Display_GetVfFilter
             BDBG_ERR(("Display output does not exist.  Cannot get internal VF filter settings."));
             return BERR_INVALID_PARAMETER;
         }
+#if BVDC_P_NUM_SHARED_VF
         BKNI_EnterCriticalSection();
         BKNI_Memcpy(paulFilterRegs, pAnlgChan->apVfFilter[lChannel], BVDC_P_CHROMA_TABLE_SIZE * sizeof(uint32_t));
         *pulSumOfTaps = BVDC_P_ExtractSumOfTaps_isr (pAnlgChan->vfMisc);
         BKNI_LeaveCriticalSection();
+#endif
     }
 
     BDBG_LEAVE(BVDC_Display_GetVfFilter);

@@ -132,6 +132,24 @@ NEXUS_Error NEXUS_VideoEncoder_ReadComplete(
     unsigned descriptorsCompleted /* must be <= pSize+pSize2 returned by last NEXUS_VideoEncoder_GetPictures call. */
     );
 
+/**
+Summary:
+The mux manager (or other consumer) will call this API to get encoded pictures from the NEXUS_VideoEncoder
+Populates one video encoder descriptor for each frame into the provided NEXUS_VideoEncoderDescriptor array.
+Each frame will only be returned once. I.e. Subsequent calls to ReadIndex will return only descriptors that
+weren't read previously.
+
+This API does not modify the index/data pointers, so can be called in conjunction with any other consumer.
+
+The index is implemented as a circular FIFO, so will always return the newest descriptors when called.
+To ensure no descriptors are missed, ReadIndex must be called periodically and repeatedly until  *pRead < size.
+**/
+NEXUS_Error NEXUS_VideoEncoder_ReadIndex(
+    NEXUS_VideoEncoderHandle handle,
+    NEXUS_VideoEncoderDescriptor *pBuffer, /* attr{nelem=size;nelem_out=pRead} [out] pointer to NEXUS_VideoEncoderDescriptor structs */
+    unsigned size, /* max number of NEXUS_VideoEncoderPicture elements in pBuffer */
+    unsigned *pRead /* [out] number of NEXUS_VideoEncoderPicture elements read */
+    );
 
 #define NEXUS_VIDEOENCODER_ERROR_INVALID_INPUT_DIMENSION          0x00000001
 #define NEXUS_VIDEOENCODER_ERROR_USER_DATA_LATE                   0x00000002

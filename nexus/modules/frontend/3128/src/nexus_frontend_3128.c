@@ -681,7 +681,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init3128(NEXUS_3128 *pDevice)
     stHabSettings.slaveChipAddr = pDevice->openSettings.i2cSlaveAddr;
     stHabSettings.isMtsif = pDevice->openSettings.isMtsif;
 
-    if(!pDevice->openSettings.interruptMode == NEXUS_FrontendInterruptMode_ePolling){
+    if(!(pDevice->openSettings.interruptMode == NEXUS_FrontendInterruptMode_ePolling)){
         if(pDevice->openSettings.isrNumber) {
             stHabSettings.interruptEnableFunc = NEXUS_Frontend_P_3128_IsrControl_isr;
             stHabSettings.interruptEnableFuncParam = (void*)&pDevice->openSettings.isrNumber;
@@ -719,7 +719,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init3128(NEXUS_3128 *pDevice)
     }
 
     /* Success opeining Hab.  Connect Interrupt */
-    if(!pDevice->openSettings.interruptMode == NEXUS_FrontendInterruptMode_ePolling){
+    if(!(pDevice->openSettings.interruptMode == NEXUS_FrontendInterruptMode_ePolling)){
         if(pDevice->openSettings.isrNumber) {
             rc = NEXUS_Core_ConnectInterrupt(pDevice->openSettings.isrNumber, NEXUS_Frontend_P_3128_L1_isr, (void *)pDevice->hab, 0);
             if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -1374,7 +1374,6 @@ Summary:
  ***************************************************************************/
 NEXUS_FrontendHandle NEXUS_Frontend_Open3128(const NEXUS_3128Settings *pSettings)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_FrontendHandle frontendHandle = NULL;
     NEXUS_3128 *pDevice = NULL;
     unsigned int chn_num=0;
@@ -1394,7 +1393,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3128(const NEXUS_3128Settings *pSettings
         || (pSettings->channelNumber >= NEXUS_MAX_3128_FRONTENDS ))
     {
         BDBG_ERR((" channel number exceeds available one"));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto err_create;
+        BERR_TRACE(BERR_INVALID_PARAMETER); goto err_create;
     }
 
     if(pSettings->device == NULL) {
@@ -1439,7 +1438,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3128(const NEXUS_3128Settings *pSettings
 #endif
     default:
         BDBG_ERR((" channel type not supported"));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto err_create;
+        BERR_TRACE(BERR_INVALID_PARAMETER); goto err_create;
     }
 
     /* chekc if fronthandle is already opened*/
@@ -1449,11 +1448,11 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3128(const NEXUS_3128Settings *pSettings
     }
 
     pChannel = (NEXUS_3128Channel*)BKNI_Malloc(sizeof(NEXUS_3128Channel));
-    if ( NULL == pChannel ) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_create;}
+    if ( NULL == pChannel ) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_create;}
 
     /* Create a Nexus frontend handle */
     frontendHandle = NEXUS_Frontend_P_Create(pChannel);
-    if ( NULL == frontendHandle ) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
+    if ( NULL == frontendHandle ) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
 
     /* Establish device capabilities */
     if ( pSettings->type == NEXUS_3128ChannelType_eInBand) {
@@ -1502,15 +1501,15 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3128(const NEXUS_3128Settings *pSettings
 
     /* Create app callback */
     callback = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-    if ( NULL == callback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+    if ( NULL == callback ) {BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
     /* install callback to  notify of lock/unlock change */
     if ( pSettings->type == NEXUS_3128ChannelType_eInBand)
     {
         qamAsyncStatusReadyCallback = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == qamAsyncStatusReadyCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_callback_destroy;}
+        if ( NULL == qamAsyncStatusReadyCallback ) {BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_callback_destroy;}
 
         spectrumDataCallback = NEXUS_TaskCallback_Create(frontendHandle, NULL);
-        if ( NULL == spectrumDataCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_callback_destroy;}
+        if ( NULL == spectrumDataCallback ) {BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_callback_destroy;}
 
         pDevice->spectrumDataAppCallback[chn_num] = spectrumDataCallback;
         pDevice->asyncStatusAppCallback[chn_num] = qamAsyncStatusReadyCallback;
@@ -1519,7 +1518,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3128(const NEXUS_3128Settings *pSettings
     {
 #if NEXUS_FRONTEND_312x_OOB
         oobAsyncStatusReadyCallback = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == oobAsyncStatusReadyCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_oob_async_create;}
+        if ( NULL == oobAsyncStatusReadyCallback ) {BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_oob_async_create;}
 
         pDevice->asyncStatusAppCallback[chn_num] = oobAsyncStatusReadyCallback ;
 #endif
@@ -1564,7 +1563,6 @@ static void NEXUS_Frontend_P_3128_Close(
     NEXUS_FrontendHandle handle
     )
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_3128 *pDevice;
     NEXUS_3128Channel *pChannel;
 
@@ -1577,7 +1575,7 @@ static void NEXUS_Frontend_P_3128_Close(
     if (pChannel->chn_num >= NEXUS_MAX_3128_FRONTENDS)
     {
         BDBG_ERR((" Unsupported Frontend Handle"));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+        BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
     pDevice->pGenericDeviceHandle->abortThread = true;
@@ -1993,7 +1991,7 @@ static NEXUS_Error NEXUS_Frontend_P_3128_TuneQam(void *handle, const NEXUS_Front
        uint32_t agcVal=0;
        uint32_t buf=0;
        NEXUS_FrontendDevice_P_GetDocsisLnaDeviceAgcValue(hFrontendDevice->parent,&agcVal);
-       BDBG_MSG(("%s DOCSIS agcVal:%#lx <<<",__FUNCTION__,agcVal));
+       BDBG_MSG(("%s DOCSIS agcVal:%#lx <<<",BSTD_FUNCTION,(long unsigned int)agcVal));
        rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_SFT0, &buf);
        if(rc){rc = BERR_TRACE(rc); goto done;}
        if(buf & 0x80000000)
@@ -3399,7 +3397,6 @@ void NEXUS_Tuner_GetDefaultOpen3128Settings(NEXUS_TunerOpen3128Settings *pSettin
 
 NEXUS_TunerHandle NEXUS_Tuner_Open3128(unsigned index, const NEXUS_TunerOpen3128Settings *pSettings)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_3128 *pDevice = NULL;
     NEXUS_3128Channel *pChannel = NULL;
     NEXUS_FrontendDevice *pFrontendDevice = NULL;
@@ -3409,7 +3406,7 @@ NEXUS_TunerHandle NEXUS_Tuner_Open3128(unsigned index, const NEXUS_TunerOpen3128
 
     if(pSettings->device == NULL) {
         BDBG_ERR(("Open the 3128 device handle first by calling NEXUS_FrontendDevice_Open3128()."));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     else {
@@ -3423,7 +3420,7 @@ NEXUS_TunerHandle NEXUS_Tuner_Open3128(unsigned index, const NEXUS_TunerOpen3128
     }
 
     pChannel = (NEXUS_3128Channel*)BKNI_Malloc(sizeof(NEXUS_3128Channel));
-    if(NULL == pChannel){rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
+    if(NULL == pChannel){ BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
 
     /* save channel number in pChannel*/
     pChannel->pDevice = pDevice;
@@ -3431,15 +3428,15 @@ NEXUS_TunerHandle NEXUS_Tuner_Open3128(unsigned index, const NEXUS_TunerOpen3128
 
     /* Create a Nexus frontend handle */
     pDevice->ifDacHandle = NEXUS_Tuner_P_Create(pChannel);
-    if(NULL == pDevice->ifDacHandle){rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
+    if(NULL == pDevice->ifDacHandle){ BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
 
     pDevice->ifDacHandle->pGenericDeviceHandle = pFrontendDevice;
 
     pDevice->ifDacAppCallback = NEXUS_IsrCallback_Create(pDevice->ifDacHandle, NULL);
-    if ( NULL == pDevice->ifDacAppCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto error;}
+    if ( NULL == pDevice->ifDacAppCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto error;}
 
     pDevice->ifDacAsyncStatusAppCallback = NEXUS_IsrCallback_Create(pDevice->ifDacHandle, NULL);
-    if ( NULL == pDevice->ifDacAsyncStatusAppCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto error;}
+    if ( NULL == pDevice->ifDacAsyncStatusAppCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto error;}
 
     /* bind functions*/
     pDevice->ifDacHandle->close = NEXUS_Tuner_P_3128_Close;
@@ -3498,7 +3495,7 @@ static NEXUS_Error NEXUS_Frontend_P_3128_TuneOob(void *handle, const NEXUS_Front
         uint32_t agcVal=0;
         uint32_t buf=0;
         NEXUS_FrontendDevice_P_GetDocsisLnaDeviceAgcValue(hFrontendDevice->parent,&agcVal);
-        BDBG_MSG(("%s DOCSIS agcVal:%#lx <<<",__FUNCTION__agcVal));
+        BDBG_MSG(("%s DOCSIS agcVal:%#lx <<<",BSTD_FUNCTIONagcVal));
         rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_SFT0, &buf);
         if(rc){rc = BERR_TRACE(rc); goto done;}
         if(buf & 0x80000000)

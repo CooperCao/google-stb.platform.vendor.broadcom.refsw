@@ -44,12 +44,13 @@
 #define BVBI_CAP_PRIV_H__
 
 #include "bchp_common.h"
+#include "bchp_int_id_video_enc_intr2.h"
 
-#if defined(BCHP_IT_2_REG_START)
+#if defined(BCHP_INT_ID_VBI_2_0_INTR)
 #define BVBI_NUM_VEC 3
-#elif defined(BCHP_IT_1_REG_START)
+#elif defined(BCHP_INT_ID_VBI_1_0_INTR)
 #define BVBI_NUM_VEC 2
-#elif defined(BCHP_IT_0_REG_START)
+#elif defined(BCHP_INT_ID_VBI_0_0_INTR)
 #define BVBI_NUM_VEC 1
 #else
 #define BVBI_NUM_VEC 0

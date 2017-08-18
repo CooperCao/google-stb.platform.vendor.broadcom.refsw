@@ -42,7 +42,7 @@ BDBG_MODULE(atlas_timebase);
 
 CTimebase::CTimebase(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_timebase, pCfg),

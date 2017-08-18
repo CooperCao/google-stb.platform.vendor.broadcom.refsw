@@ -117,7 +117,6 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
-    pSettings->multichannelFormat = BAPE_MultichannelFormat_e5_1;
     #if BDSP_MS12_SUPPORT
     BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDpcmr, (void *)&rendererStageSettings, sizeof(rendererStageSettings));
     BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDDPEncode, (void *)&encodeStageSettings, sizeof(encodeStageSettings));
@@ -140,9 +139,12 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     pSettings->surroundMixLevel = (BAPE_Ac3SurroundMixLevel)rendererStageSettings.ui32SurmixLev;
     pSettings->dolbySurround = (BAPE_Ac3DolbySurround)rendererStageSettings.ui32DsurMod;
     pSettings->dialogLevel = rendererStageSettings.ui32DialNorm;
+    pSettings->multichannelFormat = BAPE_MultichannelFormat_e5_1;
     pSettings->encodeSettings.certificationMode = (encodeStageSettings.eTranscodeEnable)?false:true;
     pSettings->encodeSettings.spdifHeaderEnabled = (encodeStageSettings.eSpdifHeaderEnable)?true:false;
     #endif
+
+    pSettings->stereoOutputMode = BAPE_ChannelMode_e2_0;
 
     pSettings->drcMode = BAPE_DolbyDigitalReencodeDrcMode_eLine;
     pSettings->drcModeDownmix = BAPE_DolbyDigitalReencodeDrcMode_eRf;
@@ -1063,7 +1065,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     const BAPE_DolbyDigitalReencodeSettings *ddreSettings)
 {
     bool forceDrcModes = false;
-    BAPE_ChannelMode channelMode;
+    BAPE_ChannelMode channelMode, stereoChannelMode;
     bool lfe;
     unsigned stereoOutputPort;
     unsigned multichOutputPort;
@@ -1092,7 +1094,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     }
     else
     {
-        BDBG_MSG(("%s, No Valid Output Port found!", __FUNCTION__));
+        BDBG_MSG(("%s, No Valid Output Port found!", BSTD_FUNCTION));
         return;
     }
 
@@ -1102,7 +1104,6 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
         forceDrcModes = true;
     }
 
-
     /* Setup correct number of outputs and derive parameters from master decoder if required */
     /* Outputcfg[0] is used for multichannel if enabled otherwise is used for stereo */
     lfe = true;
@@ -1111,16 +1112,16 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     {
         lfe = false;
     }
+    stereoChannelMode = handle->settings.stereoOutputMode;
+    BDBG_ASSERT((stereoChannelMode <= BAPE_ChannelMode_e2_0));
 
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(channelMode));
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32OutLfe, lfe?1:0);
-    BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, rendererStageSettings->sUserOutputCfg[0].ui32OutputChannelMatrix);
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(channelMode));
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32OutLfe, lfe?1:0);
+    BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, rendererStageSettings->sUserOutputCfg[multichOutputPort].ui32OutputChannelMatrix);
 
-    if ( BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle) )
-    {
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(BAPE_ChannelMode_e2_0));    /* Stereo */
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32OutLfe, 0);
-    }
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(stereoChannelMode));
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32OutLfe, 0);
+    BAPE_DSP_P_GetChannelMatrix(stereoChannelMode, false, rendererStageSettings->sUserOutputCfg[stereoOutputPort].ui32OutputChannelMatrix);
 
     /* To simplify setting UserOutputCfg settings for stereo and multichannel we will always have a valid index for
        multichannel and stereo outputs.  The index will be dependent on what outputs are connected but if only one

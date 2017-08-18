@@ -1,0 +1,63 @@
+; Installation inf for the Broadcom USB Downloader
+;
+; (c) Copyright 2004 Broadcom
+;
+
+[Version]
+Signature="$CHICAGO$"
+Class=USB
+ClassGUID={36FC9E60-C465-11CF-8056-444553540000}
+provider=%BRCM%
+DriverVer=08/05/1999,5.00.2064
+CatalogFile=bcmdl.cat
+
+[SourceDisksNames]
+1=%Disk_Description%,,,
+
+[SourceDisksFiles]
+BCMDL2.sys = 1
+
+[Manufacturer]
+%MfgName%=Broadcom
+
+[Broadcom]
+%USB\VID_0A5C&PID_BD12.DeviceDesc%=BCMDL2.Dev, USB\VID_0A5C&PID_BD12
+%USB\VID_0A5C&PID_BD12.DeviceDesc%=BCMDL2.Dev, USB\VID_0A5C&PID_2801
+%USB\VID_0A5C&PID_BD12.DeviceDesc%=BCMDL2.Dev, USB\VID_0720&PID_BD12
+
+[DestinationDirs]
+BCMDL2.Files.Ext = 10,System32\Drivers
+
+[BCMDL2.Dev.NT]
+CopyFiles=BCMDL2.Files.Ext
+
+[BCMDL2.Dev.NT.Services]
+Addservice = BCMDL2, 0x00000002, BCMDL2.AddService
+
+[BCMDL2.AddService]
+DisplayName    = %BCMDL2.SvcDesc%
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 3                  ; SERVICE_DEMAND_START
+ErrorControl   = 1                  ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %10%\System32\Drivers\BCMDL2.sys
+AddReg         = BCMDL2.AddReg
+LoadOrderGroup = Base
+
+[BCMDL2.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,BCMDL2.sys
+HKR,"Parameters","MaximumTransferSize",0x10001,4096
+HKR,"Parameters","DebugLevel",0x10001,2
+HKR,"Parameters","BulkUsbEnable",0x10001,1
+
+[BCMDL2.Files.Ext]
+BCMDL2.sys
+
+;---------------------------------------------------------------;
+
+[Strings]
+BRCM=Broadcom
+MfgName="Broadcom"
+Disk_Description="Broadcom USB Download  Installation Disk"
+USB\VID_0A5C&PID_BD12.DeviceDesc="BcmDl2.Sys 4328 USB Downloader"
+BCMDL2.SvcDesc="BcmDl2.Sys USB Downloader"

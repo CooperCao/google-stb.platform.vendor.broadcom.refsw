@@ -352,8 +352,8 @@ void CPanelWps::processNotification(CNotification & notification)
         CTimer * pTimer = (CTimer *)notification.getData();
         if (&_timerProgress == pTimer)
         {
-            uint16_t nOneSecond = 65535 / _maxSeconds;
-            uint16_t nLevel     = _pProgress->getLevel() + nOneSecond;
+            unsigned nOneSecond = 65535 / _maxSeconds;
+            unsigned nLevel     = _pProgress->getLevel() + nOneSecond;
 
             _pProgress->setLevel(nLevel);
             if (nLevel > (65535 - (nOneSecond / 2)))

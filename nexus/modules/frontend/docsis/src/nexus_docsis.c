@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 
 #include "nexus_frontend_module.h"
@@ -78,9 +77,15 @@ BMXT_ChipRev NEXUS_DOCSIS_P_GetChipRev(uint8_t rawChipRev)
             chipRev = BMXT_ChipRev_eB0;
         }
         break;
-	case 0x10: /*Case of 3390 */
+    case 0x10: /*Case of 3390 */
         {
             BDBG_WRN(("3390 DOCSIS Chip Rev: B0"));
+            chipRev = BMXT_ChipRev_eB0;
+        }
+        break;
+    case 0x60: /*Case of 3390 Z0*/
+        {
+            BDBG_WRN(("3390 DOCSIS Chip Rev: Z0"));
             chipRev = BMXT_ChipRev_eB0;
         }
         break;
@@ -434,7 +439,7 @@ errorInit:
         }
     }
 
-    if (hDevice->pGenericDeviceHandle->mtsifConfig.mxt)
+    if (hDevice->pGenericDeviceHandle &&  hDevice->pGenericDeviceHandle->mtsifConfig.mxt)
     {
         BMXT_Close(hDevice->pGenericDeviceHandle->mtsifConfig.mxt);
     }
@@ -587,7 +592,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
         if(pOpenSettings->channelNum < hDevice->numDataChannels
            && hDevice->hDsChannel[pOpenSettings->channelNum])
         {
-            BDBG_ERR(("%s:Either dsChannel is already used or it's a data channel",__FUNCTION__));
+            BDBG_ERR(("%s:Either dsChannel is already used or it's a data channel",BSTD_FUNCTION));
             goto error;
         }
 
@@ -606,7 +611,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
         hChannel->hTnr = BDCM_Tnr_Open(hDevice->hDocsis, &tnrSettings);
         if (!hChannel->hTnr)
         {
-            BDBG_ERR(("%s: tuner open failed",__FUNCTION__));
+            BDBG_ERR(("%s: tuner open failed",BSTD_FUNCTION));
             goto error;
         }
 
@@ -619,28 +624,28 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
                                                 &adsSettings);
         if (!hChannel->qam)
         {
-            BDBG_ERR(("%s: demod open failed",__FUNCTION__));
+            BDBG_ERR(("%s: demod open failed",BSTD_FUNCTION));
             goto error;
         }
 
         hChannel->lockDriverCallback = NEXUS_TaskCallback_Create(hFrontend, NULL);
         if (!hChannel->lockDriverCallback)
         {
-            BDBG_ERR(("%s:lockDriverCallback create failed",__FUNCTION__));
+            BDBG_ERR(("%s:lockDriverCallback create failed",BSTD_FUNCTION));
             goto error;
         }
 
         hChannel->lockAppCallback = NEXUS_TaskCallback_Create(hFrontend, NULL);
         if (!hChannel->lockAppCallback)
         {
-             BDBG_ERR(("%s: lockAppCallback create failed",__FUNCTION__));
+             BDBG_ERR(("%s: lockAppCallback create failed",BSTD_FUNCTION));
              goto error;
         }
 
         hChannel->asyncStatusAppCallback = NEXUS_TaskCallback_Create(hFrontend, NULL);
         if (!hChannel->asyncStatusAppCallback)
         {
-            BDBG_ERR(("%s: asyncStatusAppCallback create failed",__FUNCTION__));
+            BDBG_ERR(("%s: asyncStatusAppCallback create failed",BSTD_FUNCTION));
             goto error;
         }
 
@@ -706,7 +711,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
             hChannel->hTnr = BDCM_Tnr_Open(hDevice->hDocsis,&tnrSettings);
             if(!hChannel->hTnr)
             {
-                BDBG_ERR(("%s: OOB demod open failed",__FUNCTION__));
+                BDBG_ERR(("%s: OOB demod open failed",BSTD_FUNCTION));
                 goto error;
             }
             BDCM_Aob_GetChannelDefaultSettings(&aobSettings);
@@ -716,14 +721,14 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
             hChannel->outOfBand = BDCM_Aob_OpenChannel(hDevice->hDocsis,&aobSettings);
             if(!hChannel->outOfBand)
             {
-                BDBG_ERR(("%s: OOB demod open failed",__FUNCTION__));
+                BDBG_ERR(("%s: OOB demod open failed",BSTD_FUNCTION));
                 goto error;
             }
 
             hChannel->lockAppCallback = NEXUS_TaskCallback_Create(hFrontend, NULL);
             if (!hChannel->lockAppCallback)
             {
-                 BDBG_ERR(("%s: lockAppCallback create failed",__FUNCTION__));
+                 BDBG_ERR(("%s: lockAppCallback create failed",BSTD_FUNCTION));
                  goto error;
             }
 
@@ -774,7 +779,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
                 hChannel->upStream =  BDCM_Aus_OpenChannel(hDevice->hDocsis,&ausSettings);
                 if(!hChannel->upStream)
                 {
-                    BDBG_ERR(("%s: US demod open failed",__FUNCTION__));
+                    BDBG_ERR(("%s: US demod open failed",BSTD_FUNCTION));
                     goto error;
                 }
 
@@ -805,7 +810,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
             {
                 if(pOpenSettings->channelNum >= hDevice->numDataChannels)
                 {
-                    BDBG_ERR(("%s: invalid DOCSIS data channel index",__FUNCTION__));
+                    BDBG_ERR(("%s: invalid DOCSIS data channel index",BSTD_FUNCTION));
                 }
 
                 hFrontend = NEXUS_Frontend_P_Create(hChannel);

@@ -44,7 +44,7 @@ BDBG_MODULE(atlas_audio_capture_client);
 
 CAudioCaptureClient::CAudioCaptureClient(
         const char *         name,
-        const uint16_t       number,
+        const unsigned       number,
         const eBoardResource type,
         CConfiguration *     pCfg
         ) :
@@ -68,7 +68,7 @@ eRet CAudioCaptureClient::processAudioData(
 
     BSTD_UNUSED(buffer);
     BSTD_UNUSED(bufferSize);
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 } /* processAudioData */
 
@@ -77,6 +77,6 @@ eRet CAudioCaptureClient::processAudioSampleRate(unsigned sampleRate)
     eRet ret = eRet_Ok;
 
     BSTD_UNUSED(sampleRate);
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode. Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 }

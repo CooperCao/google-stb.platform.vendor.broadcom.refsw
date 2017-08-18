@@ -39,7 +39,7 @@
 #brcmAlert_table, #brcmAlert_th, #brcmAlert_td{
     background-color:lightgray;
     border-collapse: collapse;
-    width=100px;
+    width:100px;
 }
 
 #brcmAlert_th, #brcmAlert_td{

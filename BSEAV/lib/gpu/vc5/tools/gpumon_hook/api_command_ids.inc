@@ -663,4 +663,6 @@ cmd_glTexBufferRangeOES,
 cmd_glCopyImageSubDataOES,
 cmd_glCopyImageSubDataEXT,
 cmd_glPolygonOffsetClampEXT,
+cmd_glTexSubImage1DBRCM,
+cmd_glTexStorage1DBRCM,
 cmd_last

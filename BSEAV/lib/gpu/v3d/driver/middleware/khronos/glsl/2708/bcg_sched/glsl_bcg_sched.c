@@ -866,8 +866,12 @@ static bool AllowedWriteInLastThreeInstrs(Register_Enum reg)
    case Register_VPM_ST_ADDR     :
       return false;
    case Register_TLB_Z           :
-      return !khrn_workarounds.HW2806;
-
+      return !(khrn_workarounds.HW2806 ||
+               khrn_workarounds.GFXH1670);
+   case Register_TLB_COLOUR_MS   :
+   case Register_TLB_COLOUR_ALL  :
+   case Register_TLB_ALPHA_MASK:
+      return !khrn_workarounds.GFXH1670;
    default:
       return true;
    }

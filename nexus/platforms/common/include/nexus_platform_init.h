@@ -116,6 +116,7 @@ typedef void *NEXUS_FrontendHandle; /* stub */
 #endif
 
 #include "nexus_core_compat.h"
+#include "nexus_core_file_init.h"
 
 /* The following macros are for internal use, but are included in this public header file so that
 we can provide a tagged NEXUS_Platform_Init to ensure binary compatibility because the nexus binary
@@ -142,10 +143,6 @@ Run time configuration for the File Module
 #ifndef NEXUS_FILE_MAX_IOWORKERS
 #define NEXUS_FILE_MAX_IOWORKERS 4
 #endif
-typedef struct NEXUS_FileModulePlatformSettings {
-    unsigned workerThreads; /* number of the I/O worker threads  instaniated in the File module */
-    NEXUS_ThreadSettings schedulerSettings[NEXUS_FILE_MAX_IOWORKERS];
-} NEXUS_FileModulePlatformSettings;
 
 typedef NEXUS_Error (*NEXUS_PlatformImgInterface_Open)(const char *context, void **image, unsigned image_id);
 typedef void (*NEXUS_PlatformImgInterface_Close)(void *image);
@@ -184,6 +181,7 @@ typedef struct NEXUS_PlatformHeapSettings {
             NEXUS_Addr base;
             uint64_t length;
         } region; /* if region.valid  is set, then heap must be placed into the specified region */
+        char tag[8]; /* heap will be placed in a O/S region with a matching tag */
     } placement;
 } NEXUS_PlatformHeapSettings;
 
@@ -244,7 +242,7 @@ typedef struct NEXUS_PlatformSettings
     NEXUS_Graphics2DModuleSettings graphics2DModuleSettings;
     NEXUS_StandbySettings standbySettings;
 
-    NEXUS_FileModulePlatformSettings fileModuleSettings;
+    NEXUS_FileModuleSettings fileModuleSettings;
     NEXUS_SageModuleSettings sageModuleSettings;
     NEXUS_PwmModuleSettings pwmSettings;
     struct {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -211,7 +211,7 @@ static void rtspSessionReportLockStatus(
 {
     BIP_Status rc;
 
-    BDBG_MSG(( "%s: bLockStatus %d", __FUNCTION__, bLockStatus ));
+    BDBG_MSG(( "%s: bLockStatus %d", BSTD_FUNCTION, bLockStatus ));
 
     rc = BIP_RtspSession_ReportLockStatus( hRtspSession, bLockStatus );
     BIP_CHECK_GOTO(( !rc ), ( "BIP_RtspSession_ReportLockStatus Failed" ), error, BIP_ERR_INTERNAL, rc );
@@ -232,19 +232,19 @@ static void lock_callback(
 
     BSTD_UNUSED( param );
 
-    BDBG_MSG(( "%s: appRtspSession (%p) ", __FUNCTION__, (void *)appRtspSession ));
+    BDBG_MSG(( "%s: appRtspSession (%p) ", BSTD_FUNCTION, (void *)appRtspSession ));
     BIP_CHECK_PTR_GOTO( appRtspSession, "appRtspSession handle invalid", error, BIP_ERR_INVALID_PARAMETER );
 
     frontend = appRtspSession->frontend;
-    BDBG_MSG(( "%s: Frontend(%p) ", __FUNCTION__, (void *)frontend ));
+    BDBG_MSG(( "%s: Frontend(%p) ", BSTD_FUNCTION, (void *)frontend ));
     BIP_CHECK_PTR_GOTO( frontend, "Frontend handle invalid", error, BIP_ERR_INVALID_PARAMETER );
 
     NEXUS_Frontend_GetSatelliteStatus( frontend, &status );
-    BDBG_MSG(( "%s: demod LOCKED = %d", __FUNCTION__, status.demodLocked ));
+    BDBG_MSG(( "%s: demod LOCKED = %d", BSTD_FUNCTION, status.demodLocked ));
     if (diseqcSupport)
     {
         NEXUS_Frontend_GetDiseqcStatus( frontend, &disqecStatus );
-        BDBG_MSG(( "%s: diseqc tone = %d, voltage = %d\n", __FUNCTION__, disqecStatus.toneEnabled, disqecStatus.voltage ));
+        BDBG_MSG(( "%s: diseqc tone = %d, voltage = %d\n", BSTD_FUNCTION, disqecStatus.toneEnabled, disqecStatus.voltage ));
     }
 
     rtspSessionReportLockStatus( appRtspSession->hRtspSession, status.demodLocked );
@@ -356,7 +356,7 @@ NEXUS_Error initNexus(
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NxClient_Join Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
 
 
-            BDBG_ERR(( "%s: Done with nx join ", __FUNCTION__));
+            BDBG_ERR(( "%s: Done with nx join ", BSTD_FUNCTION));
             BKNI_Sleep(5000);
         }
 #else /* !NXCLIENT_SUPPORT */
@@ -590,7 +590,7 @@ NEXUS_Error startNexusSatSrc(
     rc = NEXUS_Frontend_TuneSatellite( appRtspSession->frontend, &appRtspSession->satSettings );
     BIP_CHECK_GOTO(( !rc ), ( "NEXUS_Frontend_TuneSatellite Failed" ), error, rc, rc );
 
-    BDBG_MSG(( "%s: Success: frontend (%p)", __FUNCTION__, (void *)appRtspSession->frontend));
+    BDBG_MSG(( "%s: Success: frontend (%p)", BSTD_FUNCTION, (void *)appRtspSession->frontend));
 error:
     return( rc );
 } /* startNexusSatSrc */
@@ -608,7 +608,7 @@ void stopNexusSatSrc(
         NEXUS_Frontend_Untune( appRtspSession->frontend );
     }
 
-    BDBG_MSG(( "%s: Done: frontend (%p)", __FUNCTION__, (void *)appRtspSession->frontend ));
+    BDBG_MSG(( "%s: Done: frontend (%p)", BSTD_FUNCTION, (void *)appRtspSession->frontend ));
 } /* stopNexusSatSrc */
 
 NEXUS_Error openNexusSatSrc(
@@ -631,7 +631,7 @@ NEXUS_Error openNexusSatSrc(
     appRtspSession->parserBand = NEXUS_ParserBand_Open( NEXUS_ANY_ID );
     BIP_CHECK_GOTO(( appRtspSession->parserBand ), ( "NEXUS_ParserBand_Open Failed" ), error, NEXUS_NOT_INITIALIZED, rc );
 
-    BDBG_MSG(( "%s: Success", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Success", BSTD_FUNCTION ));
     return( rc );
 
 error:
@@ -648,7 +648,7 @@ void closeNexusSatSrc(
     if (appRtspSession->parserBand) {NEXUS_ParserBand_Close( appRtspSession->parserBand ); appRtspSession->parserBand = NEXUS_ParserBand_eInvalid; }
     if (appRtspSession->frontend) {NEXUS_Frontend_Release( appRtspSession->frontend ); appRtspSession->frontend = NULL; }
 
-    BDBG_MSG(( "%s: Done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Done", BSTD_FUNCTION ));
 } /* closeNexusSatSrc */
 
 NEXUS_Error openNexusIpDst(
@@ -673,7 +673,7 @@ NEXUS_Error openNexusIpDst(
     appRtspSession->recpumpHandle               = NEXUS_Recpump_Open( NEXUS_ANY_ID, &recpumpOpenSettings );
     BIP_CHECK_GOTO(( appRtspSession->recpumpHandle ), ( "NEXUS_Recpump_Open Failed" ), error, NEXUS_UNKNOWN, rc );
 
-    BDBG_MSG(( "%s: Success", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Success", BSTD_FUNCTION ));
 
     return( NEXUS_SUCCESS );
 
@@ -691,7 +691,7 @@ void closeNexusIpDst(
 
     if (appRtspSession->recpumpHandle) {NEXUS_Recpump_Close( appRtspSession->recpumpHandle ); }
 
-    BDBG_MSG(( "%s: Done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Done", BSTD_FUNCTION ));
 } /* closeNexusIpDst */
 
 NEXUS_Error startNexusIpDst(
@@ -734,10 +734,10 @@ NEXUS_Error startNexusIpDst(
     BIP_CHECK_GOTO(( !rc ), ( "NEXUS_Recpump_AddPidChannel Failed for pmtPid" ), error, NEXUS_UNKNOWN, rc );
 
 #else /* if  USE_HARDCODED_PARAMS */
-    BDBG_MSG(("%s: pid list count %d ",__FUNCTION__,appRtspSession->pidInfo.pidListCount));
+    BDBG_MSG(("%s: pid list count %d ",BSTD_FUNCTION,appRtspSession->pidInfo.pidListCount));
     for (i = 0; i< appRtspSession->pidInfo.pidListCount; i++)
     {
-        BDBG_MSG(("%s: Adding pid channel (%d)",__FUNCTION__, appRtspSession->pidInfo.pidList[i]));
+        BDBG_MSG(("%s: Adding pid channel (%d)",BSTD_FUNCTION, appRtspSession->pidInfo.pidList[i]));
         appRtspSession->pidChannelList[i] = NEXUS_PidChannel_Open( appRtspSession->parserBand, appRtspSession->pidInfo.pidList[i], NULL );
         BIP_CHECK_GOTO(( appRtspSession->pidChannelList[i] ), ( "NEXUS_PidChannel_Open failed for pid %d ", appRtspSession->pidInfo.pidList[i] ), error, NEXUS_UNKNOWN, rc );
         rc = NEXUS_Recpump_AddPidChannel( appRtspSession->recpumpHandle, appRtspSession->pidChannelList[i], NULL );
@@ -754,11 +754,11 @@ NEXUS_Error startNexusIpDst(
     brc = BIP_RtspSession_StartStreamer( appRtspSession->hRtspSession, &streamerSettings );
     BIP_CHECK_GOTO(( !brc ), ( "Unable to Start Streamer on session %p", (void *)appRtspSession->hRtspSession ), error, NEXUS_INVALID_PARAMETER, rc );
 
-    BDBG_MSG(( "%s: SUCCESS", __FUNCTION__ ));
+    BDBG_MSG(( "%s: SUCCESS", BSTD_FUNCTION ));
     return( rc );
 
 error:
-    BDBG_ERR(( "%s: Failed", __FUNCTION__ ));
+    BDBG_ERR(( "%s: Failed", BSTD_FUNCTION ));
     return( NEXUS_UNKNOWN );
 } /* startNexusIpDst */
 
@@ -775,7 +775,7 @@ void stopNexusIpDst(
     if (appRtspSession->recpumpHandle) {NEXUS_Recpump_RemoveAllPidChannels( appRtspSession->recpumpHandle ); }
     if (appRtspSession->parserBand) {NEXUS_PidChannel_CloseAll( appRtspSession->parserBand ); }
 
-    BDBG_MSG(( "%s: Done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Done", BSTD_FUNCTION ));
 } /* stopNexusIpDst */
 
 static void rtspSessionSendResponse(
@@ -787,7 +787,7 @@ static void rtspSessionSendResponse(
 {
     BIP_Status rc;
 
-    BDBG_MSG(( "%s: responseStatus %x", __FUNCTION__, rtspResponseStatus ));
+    BDBG_MSG(( "%s: responseStatus %x", BSTD_FUNCTION, rtspResponseStatus ));
     BSTD_UNUSED( hRtspRequest );
 
     /* Set a successful response */
@@ -817,7 +817,7 @@ static BIP_Status rtspSessionUpdateTuningParams(
 
     BSTD_UNUSED( appCtx );
 
-    BDBG_MSG(( "%s:", __FUNCTION__ ));
+    BDBG_MSG(( "%s:", BSTD_FUNCTION ));
     rc = BIP_RtspSession_ParseSatelliteSettings( appRtspSession->hRtspSession, &appRtspSession->satSettings, &appRtspSession->diseqcSettings, &appRtspSession->addSatSettings);
     BIP_CHECK_GOTO(( !rc ), ( "BIP_RtspSession_ParseSatelliteSettings Failed" ), error, rc, rc );
     PRINTMSG_PARAMS(( "SatSettings frequency %d, mode %d pilot %d, symbolRate %d", appRtspSession->satSettings.frequency, appRtspSession->satSettings.mode, appRtspSession->satSettings.ldpcPilot, appRtspSession->satSettings.symbolRate ));
@@ -826,10 +826,10 @@ static BIP_Status rtspSessionUpdateTuningParams(
     rc = BIP_RtspSession_GetPids( appRtspSession->hRtspSession, &appRtspSession->pidInfo );
     BIP_CHECK_GOTO(( !rc ), ( "BIP_RtspSession_GetPids Failed" ), error, rc, rc );
 
-    PRINTMSG_PARAMS(( "%s:  pidInfo.pidListCount %d", __FUNCTION__, appRtspSession->pidInfo.pidListCount ));
+    PRINTMSG_PARAMS(( "%s:  pidInfo.pidListCount %d", BSTD_FUNCTION, appRtspSession->pidInfo.pidListCount ));
     for (i = 0; i< appRtspSession->pidInfo.pidListCount; i++)
     {
-        PRINTMSG_PARAMS(( "%s: pidInfo.pidList[%d] = %d", __FUNCTION__, i, appRtspSession->pidInfo.pidList[i] ));
+        PRINTMSG_PARAMS(( "%s: pidInfo.pidList[%d] = %d", BSTD_FUNCTION, i, appRtspSession->pidInfo.pidList[i] ));
     }
 
     /* Free the previous pidChannelList if already allocated */
@@ -865,7 +865,7 @@ static BIP_Status printAppSessions(
     {
         PRINTMSG_LIST(( "appRtspSession List index %d \n ", i++ ));
 
-        PRINTMSG_LIST(( "%s: App Session %p appRtspSession->hRtspSession %p  ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
+        PRINTMSG_LIST(( "%s: App Session %p appRtspSession->hRtspSession %p  ", BSTD_FUNCTION, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
         /*  BDBG_OBJECT_ASSERT( appRtspSession->hRtspSession, BIP_RtspSession ); */
         PRINTMSG_LIST(( "------------------------\n" ));
         appRtspSession = BLST_Q_NEXT( appRtspSession, rtspSessionListNext );
@@ -888,7 +888,7 @@ static void rtspSessionProcessEvents(
     NEXUS_Error           nrc            = 0;
     bool                  startOver      = false;
 
-    BDBG_MSG(( "%s: ", __FUNCTION__ ));
+    BDBG_MSG(( "%s: ", BSTD_FUNCTION ));
 
     /* Loop thru the list of sessions and process ones with pending messages */
     appRtspSession = BLST_Q_FIRST( &appCtx->rtspSessionListHead );
@@ -936,7 +936,7 @@ static void rtspSessionProcessEvents(
                 case BIP_RtspRequestMethod_eSetup:
                 case BIP_RtspRequestMethod_ePlayWithUrl:
                 {
-                    BDBG_MSG(( "%s: SETUP or PLAY_WithUrl Method: treat it like Channel Change %p", __FUNCTION__, (void *)appRtspSession->hRtspSession ));
+                    BDBG_MSG(( "%s: SETUP or PLAY_WithUrl Method: treat it like Channel Change %p", BSTD_FUNCTION, (void *)appRtspSession->hRtspSession ));
                     stopNexusIpDst( appCtx, appRtspSession );
                     stopNexusSatSrc( appCtx, appRtspSession );
 
@@ -947,7 +947,7 @@ static void rtspSessionProcessEvents(
                 }
                 case BIP_RtspRequestMethod_ePlay:
                 {
-                    BDBG_MSG(( "%s: PLAY Request on app Session %p, hRtspSession %p", __FUNCTION__, (void *)appRtspSession ,(void *)appRtspSession->hRtspSession ));
+                    BDBG_MSG(( "%s: PLAY Request on app Session %p, hRtspSession %p", BSTD_FUNCTION, (void *)appRtspSession ,(void *)appRtspSession->hRtspSession ));
                     nrc = startNexusSatSrc( appCtx, appRtspSession );
                     BIP_CHECK_GOTO(( !nrc ), ( "startNexusSatSrc Failed" ), errorOnSession, BIP_RtspResponseStatus_eServerError, rc );
 
@@ -960,7 +960,7 @@ static void rtspSessionProcessEvents(
                 }
                 case BIP_RtspRequestMethod_eTeardown:
                 {
-                    BDBG_MSG(( "%s: TEARDOWN Request on app Session %p, hRtspSession %p", __FUNCTION__,(void *)appRtspSession , (void *)appRtspSession->hRtspSession ));
+                    BDBG_MSG(( "%s: TEARDOWN Request on app Session %p, hRtspSession %p", BSTD_FUNCTION,(void *)appRtspSession , (void *)appRtspSession->hRtspSession ));
                     stopNexusIpDst( appCtx, appRtspSession );
                     stopNexusSatSrc( appCtx, appRtspSession );
                     closeNexusIpDst( appCtx, appRtspSession );
@@ -975,7 +975,7 @@ static void rtspSessionProcessEvents(
 
                 default:
                 {
-                    BDBG_MSG(( "%s: ERROR: method (%d) is not recognized/supported", __FUNCTION__, method ));
+                    BDBG_MSG(( "%s: ERROR: method (%d) is not recognized/supported", BSTD_FUNCTION, method ));
                     rc = BIP_RtspResponseStatus_eServerError;
                     break;
                 }
@@ -987,7 +987,7 @@ errorOnSession:
 
             if (method == BIP_RtspRequestMethod_eTeardown)
             {
-                PRINTMSG_LIST(( "%s: BLST_Q_REMOVE appRtspSession (%p)", __FUNCTION__, (void *)appRtspSession ));
+                PRINTMSG_LIST(( "%s: BLST_Q_REMOVE appRtspSession (%p)", BSTD_FUNCTION, (void *)appRtspSession ));
                 BLST_Q_REMOVE( &appCtx->rtspSessionListHead, appRtspSession, rtspSessionListNext );
 
                 rtspListenerDestroySession( appRtspSession );
@@ -1002,7 +1002,7 @@ errorOnSession:
             {
                 #if 0
                 appRtspSession = BLST_Q_NEXT( appRtspSession, rtspSessionListNext );
-                BDBG_MSG(( "%s: End of Inner while Loop Sssion id %p", __FUNCTION__, appRtspSession ));
+                BDBG_MSG(( "%s: End of Inner while Loop Sssion id %p", BSTD_FUNCTION, appRtspSession ));
                 #endif
             }
         } /* while for processing all events for this session */
@@ -1013,11 +1013,11 @@ errorOnSession:
 
             if (appRtspSession !=NULL)
             {
-                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p hRtspSession %p  rc %d ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession,  rc ));
+                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p hRtspSession %p  rc %d ", BSTD_FUNCTION, (void *)appRtspSession, (void *)appRtspSession->hRtspSession,  rc ));
             }
             else
             {
-                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p NULL   rc %d ", __FUNCTION__, (void *)appRtspSession,  rc ));
+                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p NULL   rc %d ", BSTD_FUNCTION, (void *)appRtspSession,  rc ));
             }
 
             startOver = false;
@@ -1029,11 +1029,11 @@ errorOnSession:
             rc             = BIP_SUCCESS;
             if (appRtspSession !=NULL)
             {
-                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p hRtspSession %p   rc %d ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession,  rc ));
+                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p hRtspSession %p   rc %d ", BSTD_FUNCTION, (void *)appRtspSession, (void *)appRtspSession->hRtspSession,  rc ));
             }
             else
             {
-                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p NULL   rc %d ", __FUNCTION__, (void *)appRtspSession, rc ));
+                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p NULL   rc %d ", BSTD_FUNCTION, (void *)appRtspSession, rc ));
             }
         }
     }     /* for loop for processing the next session */
@@ -1064,7 +1064,7 @@ static void rtspSessionIgmpMembershipReportProcessEvents(
             case BIP_RtspIgmpMemRepStatus_eJoin:
             {
 
-                BDBG_MSG(( "%s: Join Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
+                BDBG_MSG(( "%s: Join Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", BSTD_FUNCTION, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
                 /* Get various SesSatIp specific fields from the URL */
                 rc = rtspSessionUpdateTuningParams( appCtx, appRtspSession );
                 BIP_CHECK_GOTO(( !rc ), ( "rtspSessionUpdateTuningParams Failed" ), error, rc, rc );
@@ -1081,7 +1081,7 @@ static void rtspSessionIgmpMembershipReportProcessEvents(
             case BIP_RtspIgmpMemRepStatus_eLeave:
             {
 
-                BDBG_MSG(( "%s: Leave Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
+                BDBG_MSG(( "%s: Leave Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", BSTD_FUNCTION, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
                 stopNexusIpDst( appCtx, appRtspSession );
                 stopNexusSatSrc( appCtx, appRtspSession );
                 responseStatus = BIP_RtspResponseStatus_eSuccess;
@@ -1095,7 +1095,7 @@ static void rtspSessionIgmpMembershipReportProcessEvents(
 error:
         rtspSessionSendResponse( appRtspSession, appRtspSession->hRtspSession, responseStatus, NULL );
     }
-    BDBG_MSG(( "%s: Done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Done", BSTD_FUNCTION ));
     return;
 } /* rtspSessionIgmpMembershipReportProcessEvents */
 
@@ -1107,7 +1107,7 @@ static void rtspSessionIgmpMembershipReportCallback(
     AppCtx *appCtx = context;
 
     BSTD_UNUSED( param );
-    BDBG_MSG(( "%s: B_Event_Set( appCtx->hRtspSessionIgmpMembershipReportEvents )", __FUNCTION__ ));
+    BDBG_MSG(( "%s: B_Event_Set( appCtx->hRtspSessionIgmpMembershipReportEvents )", BSTD_FUNCTION ));
     B_Event_Set( appCtx->hRtspSessionIgmpMembershipReportEvents );
 }
 
@@ -1120,7 +1120,7 @@ static void rtspSessionMessageReceivedCallback(
 
     BSTD_UNUSED( param );
 
-    BDBG_MSG(( "%s: B_Event_Set( appCtx->hRtspSessionEvents )", __FUNCTION__ ));
+    BDBG_MSG(( "%s: B_Event_Set( appCtx->hRtspSessionEvents )", BSTD_FUNCTION ));
     B_Event_Set( appCtx->hRtspSessionEvents );
 }
 
@@ -1167,7 +1167,7 @@ static AppRtspSessionCtx *rtspListenerCreateSession(
     BIP_RtspSessionHandle   hRtspSession   = NULL;
     BIP_RtspSessionSettings sessionSettings;
 
-    BDBG_MSG(( "%s: creating session ...", __FUNCTION__ ));
+    BDBG_MSG(( "%s: creating session ...", BSTD_FUNCTION ));
     hRtspSession = BIP_RtspListener_CreateSession( hRtspListener, hRtspRequest );
     BIP_CHECK_GOTO(( hRtspSession ), ( "BIP_RtspListener_CreateSession Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
@@ -1197,7 +1197,7 @@ static AppRtspSessionCtx *rtspListenerCreateSession(
     appRtspSession->hRtspResponse = BIP_RtspResponse_Create( NULL /*&hRtspResponseCreateSettings*/ );
     BIP_CHECK_GOTO(( appRtspSession->hRtspResponse ), ( "BIP_RtspResponse_Create Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
-    BDBG_MSG(( "%s: returning new session ... %p", __FUNCTION__, (void *)appRtspSession ));
+    BDBG_MSG(( "%s: returning new session ... %p", BSTD_FUNCTION, (void *)appRtspSession ));
     return( appRtspSession );
 
 error:
@@ -1276,7 +1276,7 @@ static void rtspListenerProcessEvents(
         if (rc == BIP_ERR_NOT_AVAILABLE)
         {
             /* no more pending messages available for this listener, so break out */
-            BDBG_MSG(( "%s: No more pending message available for hRtspListener %p",__FUNCTION__,  (void *)hRtspListener ));
+            BDBG_MSG(( "%s: No more pending message available for hRtspListener %p",BSTD_FUNCTION,  (void *)hRtspListener ));
             break;
         }
         else if (rc != BIP_SUCCESS)
@@ -1297,13 +1297,13 @@ static void rtspListenerProcessEvents(
             case BIP_RtspRequestMethod_eSetup:
             {
                 /* Process SETUP command */
-                BDBG_MSG(( "%s: SETUP new session, method %d", __FUNCTION__, method ));
+                BDBG_MSG(( "%s: SETUP new session, method %d", BSTD_FUNCTION, method ));
                 rtspListenerProcessSetupCmd( appCtx, hRtspListener, hRtspRequest );
                 break;
             }
             default:
             {
-                BDBG_WRN(( "%s: RtspListener should only get Setup Message, rest are internally handled by BIP!", __FUNCTION__ ));
+                BDBG_WRN(( "%s: RtspListener should only get Setup Message, rest are internally handled by BIP!", BSTD_FUNCTION ));
                 BDBG_ASSERT( NULL );
                 break;
             }
@@ -1320,7 +1320,7 @@ static void rtspListenerMessageReceivedCallback(
 
     BSTD_UNUSED( param );
 
-    BDBG_MSG(( "%s: B_Event_Set( appCtx->hRtspListenerEvents )", __FUNCTION__ ));
+    BDBG_MSG(( "%s: B_Event_Set( appCtx->hRtspListenerEvents )", BSTD_FUNCTION ));
     B_Event_Set( appCtx->hRtspListenerEvents );
 }
 
@@ -1331,7 +1331,7 @@ void unInitRtspListener(
     AppRtspSessionCtx *appRtspSession = NULL;
 
     if (!appCtx) {return; }
-    BDBG_MSG(( "%s: ", __FUNCTION__ ));
+    BDBG_MSG(( "%s: ", BSTD_FUNCTION ));
     if (appCtx->rtspListenerStarted) {BIP_RtspListener_Stop( appCtx->hRtspListener ); }
     appCtx->rtspListenerStarted = false;
 
@@ -1484,8 +1484,8 @@ int main(
     BIP_CHECK_GOTO(( !rc ), ( "initRtspListener Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     /* Wait on Event group and process events as they come */
-    BDBG_MSG(( "%s: Start monitoring events", __FUNCTION__ ));
-    BDBG_LOG(( "%s: type 'q' or 'quit' followed by ENTER to exit gracefully", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Start monitoring events", BSTD_FUNCTION ));
+    BDBG_LOG(( "%s: type 'q' or 'quit' followed by ENTER to exit gracefully", BSTD_FUNCTION ));
     while (!gGotSigInt && !gExitThread)
     {
         unsigned      i;
@@ -1516,10 +1516,10 @@ int main(
         B_EventGroup_Wait( appCtx->hRtspEventGroup, 1000, triggeredEvents, appCtx->maxTriggeredEvents, &numTriggeredEvents );
         for (i = 0; i < numTriggeredEvents; i++)
         {
-            BDBG_MSG(( "%s:  event ARRIVED \n\n", __FUNCTION__ ));
+            BDBG_MSG(( "%s:  event ARRIVED \n\n", BSTD_FUNCTION ));
             if (triggeredEvents[i] == appCtx->hRtspListenerEvents)
             {
-                BDBG_MSG(( "%s: Process RtspListener events", __FUNCTION__ ));
+                BDBG_MSG(( "%s: Process RtspListener events", BSTD_FUNCTION ));
                 /* process all events on the Rtsp listener */
                 rtspListenerProcessEvents( appCtx );
                 /* now process the next event */
@@ -1527,20 +1527,20 @@ int main(
             }
             if (triggeredEvents[i] == appCtx->hRtspSessionEvents)
             {
-                BDBG_MSG(( "%s: Process RtspSessions Events", __FUNCTION__ ));
+                BDBG_MSG(( "%s: Process RtspSessions Events", BSTD_FUNCTION ));
                 rtspSessionProcessEvents( appCtx );
                 continue;
             }
             if (triggeredEvents[i] == appCtx->hRtspSessionIgmpMembershipReportEvents)
             {
-                BDBG_MSG(( "%s: Process Igmp Membership Report Events ", __FUNCTION__ ));
+                BDBG_MSG(( "%s: Process Igmp Membership Report Events ", BSTD_FUNCTION ));
                 rtspSessionIgmpMembershipReportProcessEvents( appCtx );
                 continue;
             }
-            BDBG_WRN(( "%s: didn't process event (i %d)", __FUNCTION__, i ));
+            BDBG_WRN(( "%s: didn't process event (i %d)", BSTD_FUNCTION, i ));
         }
     }
-    BDBG_LOG(( "%s: Shutting down", __FUNCTION__ ));
+    BDBG_LOG(( "%s: Shutting down", BSTD_FUNCTION ));
 
 error:
     unInitIgmpListener( appCtx );

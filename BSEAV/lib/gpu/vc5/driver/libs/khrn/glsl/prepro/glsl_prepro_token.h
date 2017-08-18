@@ -4,8 +4,6 @@
 #pragma once
 
 #include "glsl_const_types.h"
-#include "glsl_symbols.h"
-#include "glsl_layout.h"   /* Should be included in parser.h. Stupid bison */
 #include "glsl_parser.h"
 
 #ifndef NDEBUG

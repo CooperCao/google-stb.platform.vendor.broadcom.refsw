@@ -64,7 +64,7 @@ typedef struct NEXUS_AudioCapture
     NEXUS_AudioCaptureProcessorHandle procHandle;
     /* uint32_t *pBuffer;
     int bufferSize, rptr, wptr, bufferDepth; */
-    NEXUS_IsrCallbackHandle dataCallback, sampleRateCallback;
+    NEXUS_IsrCallbackHandle dataCallback, sampleRateCallback, overflowCallback;
     unsigned sampleRate;
     size_t fifoSize;  /* PI capture fifo size (per channel pair) */
     char name[16];   /* AUDIO CAPTURE %d */
@@ -88,6 +88,7 @@ static size_t NEXUS_AudioCapture_P_GetContiguousSpace(NEXUS_AudioCaptureProcesso
 static void NEXUS_AudioCapture_P_AdvanceBuffer(NEXUS_AudioCaptureProcessorHandle handle, size_t bytes);
 static void NEXUS_AudioCapture_P_DataInterrupt_isr(void *pParam, int param);
 static void NEXUS_AudioCapture_P_SampleRateChange_isr(void *pParam, int param, unsigned sampleRate);
+static void NEXUS_AudioCapture_P_Overflow_isr(void *pParam, int param);
 static void NEXUS_AudioCapture_P_FlushDeviceBuffer_isr(NEXUS_AudioCaptureHandle handle);
 
 #define min(A,B) ((A)<(B)?(A):(B))
@@ -106,6 +107,43 @@ static BERR_Code NEXUS_AudioCapture_P_Output_ConsumeData(
     )
 {
     return BAPE_OutputCapture_ConsumeData((BAPE_OutputCaptureHandle)hCapture, numBytes);
+}
+
+static NEXUS_Error NEXUS_AudioCapture_P_CalculateThreshold(
+    NEXUS_AudioCaptureFormat format,
+    unsigned bufferSize,
+    unsigned inThreshold,
+    unsigned * outThreshold    /* [out] */
+    )
+{
+    BDBG_ASSERT(outThreshold != NULL);
+    switch ( format )
+    {
+    case NEXUS_AudioCaptureFormat_e16BitStereo:
+    case NEXUS_AudioCaptureFormat_eCompressed:
+        *outThreshold = (inThreshold/2) & (~255);
+        break;
+    case NEXUS_AudioCaptureFormat_e24BitStereo:
+    case NEXUS_AudioCaptureFormat_e24Bit7_1:
+    case NEXUS_AudioCaptureFormat_e24Bit5_1:
+        *outThreshold = inThreshold & (~255);
+        break;
+    case NEXUS_AudioCaptureFormat_e16BitMonoLeft:
+    case NEXUS_AudioCaptureFormat_e16BitMonoRight:
+    case NEXUS_AudioCaptureFormat_e16BitMono:
+        *outThreshold = (inThreshold/4) & (~255);
+        break;
+    default:
+        BDBG_ERR(("Unsupported capture format %u", format));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if ( *outThreshold > bufferSize/2 )
+    {
+        BDBG_WRN(("Capture watermark threshold is greater than half the fifo size"));
+        *outThreshold = bufferSize/2 & (~255);
+    }
+
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_AudioCapture_GetDefaultOpenSettings(
@@ -216,6 +254,9 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
     case NEXUS_AudioMultichannelFormat_e5_1:
         openSettings.numBuffers = 3;
         break;
+    case NEXUS_AudioMultichannelFormat_e7_1:
+        openSettings.numBuffers = 4;
+        break;
     default:
         BDBG_ERR(("Unsupported multichannel format %u", pSettings->multichannelFormat));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -224,36 +265,9 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
 
     openSettings.bufferSize = pSettings->fifoSize/openSettings.numBuffers;
 
-    if ( pSettings->threshold )
-    {
-        switch ( pSettings->format )
-        {
-        case NEXUS_AudioCaptureFormat_e16BitStereo:
-        case NEXUS_AudioCaptureFormat_eCompressed:
-            openSettings.watermarkThreshold = (pSettings->threshold/2) & (~255);
-            break;
-        case NEXUS_AudioCaptureFormat_e24BitStereo:
-            openSettings.watermarkThreshold = pSettings->threshold & (~255);
-            break;
-        case NEXUS_AudioCaptureFormat_e16BitMonoLeft:
-        case NEXUS_AudioCaptureFormat_e16BitMonoRight:
-        case NEXUS_AudioCaptureFormat_e16BitMono:
-            openSettings.watermarkThreshold = (pSettings->threshold/4) & (~255);
-            break;
-        case NEXUS_AudioCaptureFormat_e24Bit5_1:
-            openSettings.watermarkThreshold = (pSettings->threshold) & (~255);
-            break;
-        default:
-            BDBG_ERR(("Unsupported capture format %u", pSettings->format));
-            (void)BERR_TRACE(BERR_INVALID_PARAMETER);
-            goto err_param;
-        }
-        if ( openSettings.watermarkThreshold > openSettings.bufferSize/2 )
-        {
-            BDBG_WRN(("Capture watermark threshold is greater than half the fifo size"));
-            openSettings.watermarkThreshold = openSettings.bufferSize/2 & (~255);
-        }
-    }
+    errCode = NEXUS_AudioCapture_P_CalculateThreshold(pSettings->format, openSettings.bufferSize, pSettings->threshold, &openSettings.watermarkThreshold);
+    if ( errCode != NEXUS_SUCCESS ) { BERR_TRACE(errCode); goto err_param; }
+
     heap = NEXUS_P_DefaultHeap(pSettings->heap, NEXUS_DefaultHeapType_eFull);
     if ( NULL == heap ) 
     {
@@ -279,6 +293,13 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
     {
         (void)BERR_TRACE(BERR_OS_ERROR);
         goto err_sample_rate_callback;
+    }
+
+    handle->overflowCallback = NEXUS_IsrCallback_Create(handle, NULL);
+    if ( NULL == handle->overflowCallback )
+    {
+        (void)BERR_TRACE(BERR_OS_ERROR);
+        goto err_overflow_callback;
     }
 
     errCode = BAPE_OutputCapture_Open(NEXUS_AUDIO_DEVICE_HANDLE, index, &openSettings, &handle->apeHandle);
@@ -333,6 +354,8 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
     interrupts.watermark.pParam1 = handle;
     interrupts.sampleRate.pCallback_isr = NEXUS_AudioCapture_P_SampleRateChange_isr;
     interrupts.sampleRate.pParam1 = handle;
+    interrupts.overflow.pCallback_isr = NEXUS_AudioCapture_P_Overflow_isr;
+    interrupts.overflow.pParam1 = handle;
     errCode = BAPE_OutputCapture_SetInterruptHandlers(handle->apeHandle, &interrupts);
     BDBG_ASSERT(errCode == BERR_SUCCESS);
 
@@ -351,6 +374,8 @@ err_buffer_alloc:
     }
     BAPE_OutputCapture_Close(handle->apeHandle);
 err_ape_handle:
+    NEXUS_IsrCallback_Destroy(handle->overflowCallback);
+err_overflow_callback:
     NEXUS_IsrCallback_Destroy(handle->sampleRateCallback);
 err_sample_rate_callback:
     NEXUS_IsrCallback_Destroy(handle->dataCallback);
@@ -405,6 +430,7 @@ static void NEXUS_AudioCapture_P_Finalizer(
     BAPE_OutputCapture_Close(handle->apeHandle);
     NEXUS_IsrCallback_Destroy(handle->sampleRateCallback);
     NEXUS_IsrCallback_Destroy(handle->dataCallback);
+    NEXUS_IsrCallback_Destroy(handle->overflowCallback);
     index = handle - g_captures;
     NEXUS_CLIENT_RESOURCES_RELEASE(audioCapture,IdList,index);
     BKNI_Free(handle->procHandle);
@@ -438,6 +464,7 @@ NEXUS_Error NEXUS_AudioCapture_SetSettings(
     const NEXUS_AudioCaptureSettings *pSettings
     )
 {   
+    NEXUS_Error rc;
     BAPE_OutputCaptureSettings captureSettings;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioCapture);
@@ -448,39 +475,13 @@ NEXUS_Error NEXUS_AudioCapture_SetSettings(
 
     BAPE_OutputCapture_GetSettings(handle->apeHandle, &captureSettings);
 
-    if ( pSettings->threshold )
-    {
-        switch ( handle->settings.format )
-        {
-        case NEXUS_AudioCaptureFormat_e16BitStereo:
-        case NEXUS_AudioCaptureFormat_eCompressed:
-            captureSettings.watermark = (handle->settings.threshold * 2) & (~255);
-            break;
-        case NEXUS_AudioCaptureFormat_e24BitStereo:
-            captureSettings.watermark = handle->settings.threshold & (~255);
-            break;
-        case NEXUS_AudioCaptureFormat_e16BitMonoLeft:
-        case NEXUS_AudioCaptureFormat_e16BitMonoRight:
-        case NEXUS_AudioCaptureFormat_e16BitMono:
-            captureSettings.watermark = (handle->settings.threshold * 4) & (~255);
-            break;
-        case NEXUS_AudioCaptureFormat_e24Bit5_1:
-            captureSettings.watermark = (handle->settings.threshold / 3) & (~255);
-            break;
-        default:
-            BDBG_ERR(("Unsupported capture format %u", handle->settings.format));
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-        
-        if ( captureSettings.watermark > (unsigned)handle->procHandle->bufferSize/2 )
-        {
-            BDBG_WRN(("Capture watermark threshold is greater than half the fifo size"));
-            captureSettings.watermark = handle->procHandle->bufferSize/2 & (~255);
-        }
-    }
+    rc = NEXUS_AudioCapture_P_CalculateThreshold(handle->settings.format, handle->procHandle->bufferSize, pSettings->threshold, &captureSettings.watermark);
+    if ( rc != NEXUS_SUCCESS ) { return BERR_TRACE(rc); }
 
-    BAPE_OutputCapture_SetSettings(handle->apeHandle, &captureSettings);
-    return BERR_SUCCESS;
+    rc = BAPE_OutputCapture_SetSettings(handle->apeHandle, &captureSettings);
+    if ( rc != NEXUS_SUCCESS ) { return BERR_TRACE(rc); }
+
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_AudioCapture_GetDefaultStartSettings(
@@ -491,6 +492,7 @@ void NEXUS_AudioCapture_GetDefaultStartSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_CallbackDesc_Init(&pSettings->dataCallback);
     NEXUS_CallbackDesc_Init(&pSettings->sampleRateCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->overflowCallback);
 }
 
 NEXUS_Error NEXUS_AudioCapture_Start(
@@ -510,6 +512,7 @@ NEXUS_Error NEXUS_AudioCapture_Start(
     /* Setup callback */
     NEXUS_IsrCallback_Set(handle->dataCallback, pSettings?&pSettings->dataCallback:NULL);
     NEXUS_IsrCallback_Set(handle->sampleRateCallback, pSettings?&pSettings->sampleRateCallback:NULL);
+    NEXUS_IsrCallback_Set(handle->overflowCallback, pSettings?&pSettings->overflowCallback:NULL);
 
     /* Setup internal buffer and start */
     BKNI_EnterCriticalSection();
@@ -536,6 +539,7 @@ void NEXUS_AudioCapture_Stop(
 
     NEXUS_IsrCallback_Set(handle->dataCallback, NULL);
     NEXUS_IsrCallback_Set(handle->sampleRateCallback, NULL);
+    NEXUS_IsrCallback_Set(handle->overflowCallback, NULL);
 }
 
 NEXUS_Error NEXUS_AudioCapture_GetBuffer(
@@ -617,6 +621,20 @@ static void NEXUS_AudioCapture_P_SampleRateChange_isr(void *pParam, int param, u
     NEXUS_IsrCallback_Fire_isr(handle->sampleRateCallback);
 }
 
+
+static void NEXUS_AudioCapture_P_Overflow_isr(void *pParam, int param)
+{
+    NEXUS_AudioCaptureHandle handle;
+
+    handle = pParam;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioCapture);
+    BSTD_UNUSED(param);
+
+    BDBG_MSG(("Capture Overflow Interrupt"));
+    /* Propagate directly to app. */
+    NEXUS_IsrCallback_Fire_isr(handle->overflowCallback);
+}
+
 static void NEXUS_AudioCapture_P_FlushDeviceBuffer_isr(NEXUS_AudioCaptureHandle handle)
 {
     BAPE_OutputCapture_Flush_isr(handle->apeHandle);
@@ -677,6 +695,7 @@ NEXUS_Error NEXUS_AudioCapture_P_GetBuffer(
         NEXUS_AudioCapture_P_ConvertMonoMix(handle);
         break;
     case NEXUS_AudioCaptureFormat_e24Bit5_1:
+    case NEXUS_AudioCaptureFormat_e24Bit7_1:
         NEXUS_AudioCapture_P_ConvertMultichannel(handle);
         break;
     default:
@@ -937,9 +956,13 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
 static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessorHandle handle)
 {
     BERR_Code errCode;
-    uint32_t *pSource0, *pSource1, *pSource2;
+    uint32_t * pSource[4];
     size_t bufferSize, copied;
     BAPE_BufferDescriptor bufferDescriptor;
+    unsigned numChPairs;
+    unsigned i;
+
+    numChPairs = (handle->format == NEXUS_AudioCaptureFormat_e24Bit7_1) ? 4 : 3;
 
     for ( ;; )
     {
@@ -956,65 +979,50 @@ static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessor
             return;
         }
 
-        BMMA_FlushCache(bufferDescriptor.buffers[0].block, bufferDescriptor.buffers[0].pBuffer, bufferSize);
-        BMMA_FlushCache(bufferDescriptor.buffers[2].block, bufferDescriptor.buffers[2].pBuffer, bufferSize);
-        BMMA_FlushCache(bufferDescriptor.buffers[4].block, bufferDescriptor.buffers[4].pBuffer, bufferSize);
-        pSource0 = bufferDescriptor.buffers[0].pBuffer;
-        pSource1 = bufferDescriptor.buffers[2].pBuffer;
-        pSource2 = bufferDescriptor.buffers[4].pBuffer;
+        for ( i = 0; i < numChPairs; i++ )
+        {
+            BMMA_FlushCache(bufferDescriptor.buffers[i*2].block, bufferDescriptor.buffers[i*2].pBuffer, bufferSize);
+            pSource[i] = bufferDescriptor.buffers[i*2].pBuffer;
+        }
         copied = 0;
         while ( bufferSize >= 8 )
         {
             size_t available, bytesToCopy;
             available = NEXUS_AudioCapture_P_GetContiguousSpace(handle);
-            if ( available < 24 )
+            if ( available < 4*numChPairs*2 )
             {
                 /* Our buffer is full. */
                 break;
             }
-            if ( available >= bufferSize*3 )
+            if ( available >= bufferSize*numChPairs )
             {
-                bytesToCopy = bufferSize*3;
+                bytesToCopy = bufferSize*numChPairs;
             }
             else
             {
                 bytesToCopy = available;
             }
-            while ( bytesToCopy >= 24 )
+            while ( bytesToCopy >= 4*numChPairs*2 ) /* 4 bytes per sample * numchs */
             {
-                handle->pBuffer[handle->wptr] = (*pSource0++) & 0xffffff00;
-                NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                handle->pBuffer[handle->wptr] = (*pSource0++) & 0xffffff00;
-                NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                if ( pSource1 )
+                for ( i = 0; i < numChPairs; i++ )
                 {
-                    handle->pBuffer[handle->wptr] = (*pSource1++) & 0xffffff00;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                    handle->pBuffer[handle->wptr] = (*pSource1++) & 0xffffff00;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
+                    if ( pSource[i] )
+                    {
+                        handle->pBuffer[handle->wptr] = (*pSource[i]++) & 0xffffff00;
+                        NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
+                        handle->pBuffer[handle->wptr] = (*pSource[i]++) & 0xffffff00;
+                        NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
+                    }
+                    else
+                    {
+                        handle->pBuffer[handle->wptr] = 0;
+                        NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
+                        handle->pBuffer[handle->wptr] = 0;
+                        NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
+                    }
                 }
-                else
-                {
-                    handle->pBuffer[handle->wptr] = 0;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                    handle->pBuffer[handle->wptr] = 0;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                }
-                if ( pSource2 )
-                {
-                    handle->pBuffer[handle->wptr] = (*pSource2++) & 0xffffff00;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                    handle->pBuffer[handle->wptr] = (*pSource2++) & 0xffffff00;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                }
-                else
-                {
-                    handle->pBuffer[handle->wptr] = 0;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                    handle->pBuffer[handle->wptr] = 0;
-                    NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                }
-                bytesToCopy -= 24;
+
+                bytesToCopy -= 4*numChPairs*2;
                 copied += 8;
                 bufferSize -= 8;
             }

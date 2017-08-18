@@ -121,6 +121,7 @@ static void cpuTestThread(void * pParam)
     BDBG_ASSERT(NULL != pCpuTest);
     BDBG_ASSERT(NULL != pCpuTest->getImageBuffer());
 
+    memset(&cinfo,0,sizeof(cinfo));
     cinfo.err = jpeg_std_error(&jerr);
 
     while (true == pCpuTest->getThreadRun())
@@ -172,7 +173,7 @@ static void bwinCpuTestCallback(
     eRet       ret      = eRet_Ok;
     CCpuTest * pCpuTest = (CCpuTest *)pObject;
 
-    BDBG_MSG(("%s - sync'd with main loop", __FUNCTION__));
+    BDBG_MSG(("%s - sync'd with main loop", BSTD_FUNCTION));
 
     BDBG_ASSERT(NULL != pCpuTest);
     BSTD_UNUSED(strCallback);

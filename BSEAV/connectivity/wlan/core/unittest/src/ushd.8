@@ -1,0 +1,97 @@
+.\" Copyright (c) 1983, 1989, 1991 The Regents of the University of California.
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\" 3. All advertising materials mentioning features or use of this software
+.\"    must display the following acknowledgement:
+.\"	This product includes software developed by the University of
+.\"	California, Berkeley and its contributors.
+.\" 4. Neither the name of the University nor the names of its contributors
+.\"    may be used to endorse or promote products derived from this software
+.\"    without specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $Copyright Broadcom Corporation$
+.\"
+.\"	$Id: 7de273875fb6af4f55177d19b256acd122e78902 $
+.\"
+.Dd August 29, 2006
+.Dt USHD 8
+.Os UTF
+.Sh NAME
+.Nm ushd
+.Nd remote shell server with status codes
+.Sh SYNOPSIS
+.Nm ushd
+.Op Fl p Ar port
+.Op Fl i Ar interface
+.Op Fl d
+.Sh DESCRIPTION
+The
+.Nm ushd
+server
+is the server for the
+.Xr ush 1
+program.  The server provides remote execution facilities
+with no authentication.
+.Pp
+The
+.Nm ushd
+server
+listens for service requests at the port indicated by the
+.Fl p
+option.  When a service request is received a protocol similar to
+.Xr fsh 1
+is used to control execution of a command and manage IO to and from
+that command.
+
+The options are as follows:
+.Bl -tag -width flag
+.It Fl p
+By default,
+.Nm Ush
+and
+.Nm Ushd
+communicate on port 4700.  The
+.Fl p
+option allows an alternate port to be specified.
+.It Fl i
+If available, restricts requests to the named network interface.
+Availability of this feature is determined by the host operating
+system.
+.It Fl d
+inidcates that
+.Nm ushd
+should detach from the terminal and become a daemon.
+.El
+.Pp
+Note that the design of this system is COMPLETELY INSECURE except
+on a carefully firewalled private network. Under all other
+circumstances,
+.Nm ushd
+should be disabled entirely.
+.El
+.Sh SEE ALSO
+.Xr ush 1 ,
+.Xr fsh 1 ,
+.Sh BUGS
+There is no authentication procedure.  This is insecure, but is useful
+in an ``open'' environment.

@@ -121,11 +121,15 @@ NEXUS_Platform_P_ModulesInit(const NEXUS_PlatformSettings *pSettings)
 
 #if NEXUS_HAS_FILE
     BDBG_MSG((">FILE"));
-    NEXUS_FileModule_GetDefaultSettings(&fileModuleSettings);
-    /* TODO: need separate struct that can be nested in NEXUS_ClientAuthenticationSettings so that clients can get module init settings here */
-    if(pSettings) {
-        fileModuleSettings.workerThreads = pSettings->fileModuleSettings.workerThreads;
-        BKNI_Memcpy(fileModuleSettings.schedulerSettings, pSettings->fileModuleSettings.schedulerSettings, sizeof(fileModuleSettings.schedulerSettings));
+    if (pSettings) {
+        fileModuleSettings = pSettings->fileModuleSettings;
+    }
+    else {
+        NEXUS_Platform_GetFileModuleSettings_driver(&fileModuleSettings);
+        /* if 0, then NEXUS_Platform_Init was called with NULL and client must get the default. */
+        if (fileModuleSettings.workerThreads == 0) {
+            NEXUS_FileModule_GetDefaultSettings(&fileModuleSettings);
+        }
     }
     file = NEXUS_FileModule_Init(&fileModuleSettings);
     if (!file) {

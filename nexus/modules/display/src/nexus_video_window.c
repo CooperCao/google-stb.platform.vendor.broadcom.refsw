@@ -909,8 +909,9 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
         BDBG_MSG(("window zorder %d display index %d windowheapindex %d display main heap %d",
             window->index,window->display->index,windowHeapIndex,pVideo->moduleSettings.primaryDisplayHeapIndex ));
         if (windowHeapIndex >= NEXUS_MAX_HEAPS) {
-            /* for non-memconfig platforms, or invalid param */
-            windowHeapIndex = 0;
+            BDBG_ERR(("no %s memory for display %d, window %d", link->secureVideo?"secure":"unsecure", window->display->index, window->index));
+            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            goto err_window;
         }
         else if (!g_pCoreHandles->heap[windowHeapIndex].nexus) {
             BDBG_ERR(("no heap[%d] for display %d, window %d", windowHeapIndex, window->display->index, window->index));
@@ -977,6 +978,9 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
                              link->sourceVdc, &windowCfg);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_createwindow;}
     BDBG_ASSERT(window->vdcState.window);
+
+    rc = BVDC_Window_GetCapabilities(window->vdcState.window, &window->vdcState.caps);
+    if(rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto err_postcreate; }
 
     /* will call NEXUS_VideoWindow_P_SetCbSetting in NEXUS_VideoWindow_P_SetVdcSettings */
     rc = BVDC_Window_InstallCallback(window->vdcState.window, NEXUS_VideoWindow_P_Callback_isr, window, 0);
@@ -1193,8 +1197,12 @@ NEXUS_VideoWindow_AddInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput inpu
 #endif
     NEXUS_OBJECT_ACQUIRE(window, NEXUS_VideoInput, input);
 
+    rc = NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(window->display);
+    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto err_updatedynrngcaps; }
+
     return NEXUS_SUCCESS;
 
+err_updatedynrngcaps:
 err_applychanges:
 err_setsettings:
     NEXUS_VideoWindow_P_DestroyVdcWindow(window);
@@ -1271,6 +1279,8 @@ NEXUS_VideoWindow_P_RemoveInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput
     window->input = NULL;
 
     NEXUS_OBJECT_RELEASE(window, NEXUS_VideoInput, input);
+
+    NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(window->display);
 
     return NEXUS_SUCCESS;
 }
@@ -1601,11 +1611,10 @@ static NEXUS_Error NEXUS_VideoWindow_P_ApplySplitScreenSettings(NEXUS_VideoWindo
 NEXUS_VideoWindowHandle
 NEXUS_VideoWindow_Open(NEXUS_DisplayHandle display, unsigned windowIndex)
 {
-    BERR_Code rc;
     NEXUS_VideoWindowHandle window;
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
     if (windowIndex >= pVideo->cap.display[display->index].numVideoWindows) {
-        rc = BERR_TRACE(BERR_NOT_SUPPORTED);
+        BERR_TRACE(BERR_NOT_SUPPORTED);
         return NULL;
     }
     window = &display->windows[windowIndex];
@@ -1769,14 +1778,18 @@ NEXUS_Error NEXUS_VideoWindow_SetSyncSettings_priv( NEXUS_VideoWindowHandle wind
 
     window->syncSettings = *pSyncSettings;
 
+#if NEXUS_NUM_MOSAIC_DECODES
     if (!window->mosaic.parent)
+#endif
     {
         windowVdc = window->vdcState.window;
     }
+#if NEXUS_NUM_MOSAIC_DECODES
     else
     {
         windowVdc = window->mosaic.parent->vdcState.window;
     }
+#endif
     if (windowVdc)
     {
         rc = BVDC_Window_SetDelayOffset(windowVdc, window->cfg.delay + window->syncSettings.delay);
@@ -1818,7 +1831,7 @@ NEXUS_Error NEXUS_VideoWindow_GetSyncStatus_isr( NEXUS_VideoWindowHandle window,
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
 
     /* translate display status on demand */
-    rc = NEXUS_P_Display_GetMagnumVideoFormatInfo_isr(window->display, window->display->cfg.format, &video_format_info);
+    rc = NEXUS_P_Display_GetMagnumVideoFormatInfo_isrsafe(window->display, window->display->cfg.format, &video_format_info);
     if (rc) {return BERR_TRACE(rc);}
     /* master frame rate sync status is set in ConfigMasterFrameRate */
     window->syncStatus.height = video_format_info.ulDigitalHeight;
@@ -2349,6 +2362,46 @@ NEXUS_Error NEXUS_VideoWindow_SetSettings_priv( NEXUS_VideoWindowHandle handle, 
 }
 
 #if NEXUS_HAS_VIDEO_ENCODER
+static BERR_Code NEXUS_VideoWindow_P_Attach(NEXUS_VideoWindowHandle window)
+{
+    BERR_Code rc;
+
+    rc = NEXUS_VideoWindow_P_CreateVdcWindow(window, &window->cfg);
+    if (rc) return BERR_TRACE(rc);
+    rc = NEXUS_VideoWindow_P_SetVdcSettings(window, &window->cfg, true);
+    if (rc) return BERR_TRACE(rc);
+    return 0;
+}
+
+#if NEXUS_P_CRBVN_496_WORKAROUND /* TODO: following may be generic */
+static void NEXUS_VideoWindow_P_Dettach(NEXUS_VideoWindowHandle window)
+{
+    if (!window->vdcState.window) {
+        /* nothing to recreate */
+        return;
+    }
+
+    NEXUS_VideoWindow_P_DestroyVdcWindow(window);
+    return;
+}
+
+void NEXUS_DisplayModule_ClearDisplay_Prepare_priv(NEXUS_DisplayHandle display)
+{
+    unsigned i;
+    NEXUS_ASSERT_MODULE();
+    BDBG_WRN(("Disable MAD:%p", (void *)display));
+    BDBG_OBJECT_ASSERT(display, NEXUS_Display);
+    for(i=0;i<sizeof(display->windows)/sizeof(display->windows[0]);i++) {
+        NEXUS_VideoWindowHandle window = &display->windows[i];
+        if (!window->open) {
+            continue;
+        }
+        NEXUS_VideoWindow_P_Dettach(window);
+    }
+    return;
+}
+#endif
+
 void NEXUS_DisplayModule_ClearDisplay_priv(NEXUS_DisplayHandle display)
 {
     unsigned i;
@@ -2361,7 +2414,11 @@ void NEXUS_DisplayModule_ClearDisplay_priv(NEXUS_DisplayHandle display)
         if (!window->open) {
             continue;
         }
-        rc = NEXUS_VideoWindow_P_RecreateWindow(window);
+        if(window->vdcState.window) {
+            rc = NEXUS_VideoWindow_P_RecreateWindow(window);
+        } else {
+            rc = NEXUS_VideoWindow_P_Attach(window);
+        }
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); /* keep on going */ }
     }
     return;

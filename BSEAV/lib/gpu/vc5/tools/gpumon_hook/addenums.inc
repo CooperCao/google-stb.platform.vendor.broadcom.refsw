@@ -1973,11 +1973,12 @@ AddEnum(EGL_TEXTURE_Y_UV_WL);
 AddEnum(EGL_TEXTURE_Y_XUXV_WL);
 #endif /* EGL_WL_bind_wayland_display*/
 
-#if GL_BRCM_mirror_once_border
-AddEnum(GL_CLAMP_TO_BORDER_BRCM);
-AddEnum(GL_MIRROR_ONCE_BRCM);
-AddEnum(GL_TEXTURE_BORDER_COLOR_BRCM);
-#endif /* GL_BRCM_mirror_once_border*/
+#if GL_BRCM_image_formats
+#endif /* GL_BRCM_image_formats*/
+
+#if GL_BRCM_mirror_clamp_to_edge
+AddEnum(GL_MIRROR_CLAMP_TO_EDGE_BRCM);
+#endif /* GL_BRCM_mirror_clamp_to_edge*/
 
 #if GL_BRCM_polygon_mode
 AddEnum(GL_POINT_BRCM);
@@ -2012,6 +2013,10 @@ AddEnum(GL_R16_SNORM_BRCM);
 AddEnum(GL_RG16_SNORM_BRCM);
 AddEnum(GL_RGBA16_SNORM_BRCM);
 #endif /* GL_BRCM_texture_norm16*/
+
+#if GL_BRCM_texture_unnormalised_coords
+AddEnum(GL_TEXTURE_UNNORMALISED_COORDS_BRCM);
+#endif /* GL_BRCM_texture_unnormalised_coords*/
 
 #if GL_EXT_base_instance
 #endif /* GL_EXT_base_instance*/

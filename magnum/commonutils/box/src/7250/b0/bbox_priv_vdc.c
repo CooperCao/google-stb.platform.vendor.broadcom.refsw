@@ -71,6 +71,7 @@
 #include "bbox_vdc_box9_config.h"
 #include "bbox_vdc_box10_config.h"
 #include "bbox_vdc_box11_config.h"
+#include "bbox_vdc_box12_config.h"
 
 
 BDBG_MODULE(BBOX_PRIV);
@@ -82,7 +83,6 @@ BERR_Code BBOX_P_ValidateId
     BERR_Code eStatus = BERR_SUCCESS;
     if (ulId == 0 || ulId > BBOX_MODES_SUPPORTED)
     {
-        BDBG_ERR(("Box Mode ID %d is not supported on this chip.", ulId));
         eStatus = BBOX_ID_NOT_SUPPORTED;
     }
     return eStatus;
@@ -128,6 +128,9 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 11:
             BBOX_P_Vdc_SetBox11SourceCapabilities(pSourceCap);
             break;
+        case 12:
+            BBOX_P_Vdc_SetBox12SourceCapabilities(pSourceCap);
+            break;
     }
 }
 
@@ -172,6 +175,9 @@ void BBOX_P_Vdc_SetDisplayCapabilities
         case 11:
             BBOX_P_Vdc_SetBox11DisplayCapabilities(pDisplayCap);
             break;
+        case 12:
+            BBOX_P_Vdc_SetBox12DisplayCapabilities(pDisplayCap);
+            break;
     }
 }
 
@@ -209,6 +215,9 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 11:
             BBOX_P_Vdc_SetBox11DeinterlacerCapabilities(pDeinterlacerCap);
             break;
+        case 12:
+            BBOX_P_Vdc_SetBox12DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
     }
 }
 
@@ -244,6 +253,9 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 11:
             BBOX_P_Vdc_SetBox11XcodeCapabilities(pXcodeCap);
+            break;
+        case 12:
+            BBOX_P_Vdc_SetBox12XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -288,6 +300,9 @@ BERR_Code BBOX_P_GetMemConfig
         case 11:
             BBOX_P_GetBox11MemConfig(pBoxMemConfig);
             break;
+        case 12:
+            BBOX_P_GetBox12MemConfig(pBoxMemConfig);
+            break;
     }
     return BERR_SUCCESS;
 }
@@ -330,6 +345,9 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 11:
             BBOX_P_GetBox11Rts(pBoxRts);
+            break;
+        case 12:
+            BBOX_P_GetBox12Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

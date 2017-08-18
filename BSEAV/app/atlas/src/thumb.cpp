@@ -266,8 +266,8 @@ void CThumb::close()
 eRet CThumb::extract(
         uint32_t            timeStamp,
         NEXUS_SurfaceHandle stillSurface,
-        uint16_t            width,
-        uint16_t            height
+        unsigned            width,
+        unsigned            height
         )
 {
     eRet        ret       = eRet_Ok;
@@ -357,8 +357,8 @@ eRet CThumb::getStillSurface(
         CStillDecode *      pStillDecode,
         CGraphics *         pGraphics,
         NEXUS_SurfaceHandle stillSurface,
-        uint16_t            width,
-        uint16_t            height
+        unsigned            width,
+        unsigned            height
         )
 {
     eRet                               ret            = eRet_Ok;

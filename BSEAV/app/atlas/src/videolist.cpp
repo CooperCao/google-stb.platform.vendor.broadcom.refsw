@@ -146,10 +146,10 @@ CVideo::~CVideo()
 }
 
 /* gets width of first video pid */
-uint16_t CVideo::getWidth()
+unsigned CVideo::getWidth()
 {
     CPid *   pPid   = NULL;
-    uint16_t nWidth = 0;
+    unsigned nWidth = 0;
 
     /* get first video pid */
     pPid = _pidMgr.getPid(0, ePidType_Video);
@@ -162,7 +162,7 @@ uint16_t CVideo::getWidth()
 }
 
 /* sets width of first video pid */
-void CVideo::setWidth(uint16_t width)
+void CVideo::setWidth(unsigned width)
 {
     CPid * pPid = NULL;
 
@@ -175,10 +175,10 @@ void CVideo::setWidth(uint16_t width)
 }
 
 /* gets height of first video pid */
-uint16_t CVideo::getHeight()
+unsigned CVideo::getHeight()
 {
     CPid *   pPid    = NULL;
-    uint16_t nHeight = 0;
+    unsigned nHeight = 0;
 
     /* get first video pid */
     pPid = _pidMgr.getPid(0, ePidType_Video);
@@ -191,7 +191,7 @@ uint16_t CVideo::getHeight()
 }
 
 /* sets height of first video pid */
-void CVideo::setHeight(uint16_t height)
+void CVideo::setHeight(unsigned height)
 {
     CPid * pPid = NULL;
 
@@ -518,8 +518,8 @@ eRet CPlaybackList::readInfo(
 
     /* check xml version number */
     {
-        uint16_t major = 1;
-        uint16_t minor = 0;
+        int major = 1;
+        int minor = 0;
 
         xmlElemAtlas = xmlElemTop->findChild(XML_TAG_ATLAS);
         if (xmlElemAtlas)
@@ -527,10 +527,10 @@ eRet CPlaybackList::readInfo(
             strVersion = xmlElemAtlas->attrValue(XML_ATT_VERSION);
             if (false == strVersion.isEmpty())
             {
-                uint16_t dotIndex = strVersion.find('.');
+                unsigned dotIndex = strVersion.find('.');
 
-                major = (uint16_t)strVersion.left(dotIndex).toInt();
-                minor = (uint16_t)MString(strVersion.mid(dotIndex + 1)).toInt();
+                major = (unsigned)strVersion.left(dotIndex).toInt();
+                minor = (unsigned)MString(strVersion.mid(dotIndex + 1)).toInt();
             }
         }
 
@@ -700,9 +700,8 @@ eRet CVideo::generateIndex()
     if (NULL != file)
     {
         /* nav index file already exists */
-        fclose(file);
-        file = NULL;
-        return(ret);
+        BDBG_MSG(("Nav index exists for %s",strIndexName.s()));
+        goto close_file;
     }
 
     /* nav index file doesn't exist so create it */
@@ -731,7 +730,14 @@ error:
     CHECK_BOS_WARN("unable to remove TEMP index nav file", ret, retOS);
 
     /* create empty nav file so atlas won't repeatedly try failing nav generation */
-    fclose(fopen(strIndexNamePath, "w"));
+    file = fopen(strIndexNamePath,"w");
+close_file:
+    if(file != NULL )
+    {
+        fclose(file);
+        file = NULL;
+    }
+
 done:
     setIndexGenerationNeeded(false);
 #endif /* PLAYBACK_IP_SUPPORT */
@@ -772,7 +778,7 @@ MString CVideo::getVideoNamePathAbsolute(void)
  * if given program number, find() will return videoname and program num match. */
 CVideo * CPlaybackList::find(
         const char * name,
-        int16_t      nProgram
+        int          nProgram
         )
 {
     MListItr <CVideo> itrVideo(&_videos);
@@ -803,7 +809,7 @@ CVideo * CPlaybackList::find(
                 else
                 {
                     /* program number given so compare it */
-                    if (nProgram == video->getProgram())
+                    if (nProgram == (int)video->getProgram())
                     {
                         /* found video name match that also matches program number */
                         break;
@@ -1164,7 +1170,8 @@ error:
         fclose(fin);
         fin = NULL;
     }
-
+    /* CVideo is put in the list then freed when list is destroyed */
+    /* coverity[resource_leak] */
     return(retVal);
 } /* createInfo */
 

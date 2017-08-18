@@ -50,13 +50,13 @@ class CSurfaceClientNx : public CSurfaceClient
 public:
     CSurfaceClientNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CSurfaceClientNx(void);
     virtual eRet open(NEXUS_SurfaceCompositorHandle surfaceCompositor = NULL);
     virtual eRet setBlend(NEXUS_BlendEquation * pBlendEquationAlpha, NEXUS_BlendEquation * pBlendEquationColor);
-    virtual eRet setZOrder(uint16_t zOrder);
+    virtual eRet setZOrder(unsigned zOrder);
 };
 
 class CGraphicsNx : public CGraphics
@@ -64,12 +64,12 @@ class CGraphicsNx : public CGraphics
 public:
     CGraphicsNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CGraphicsNx(void);
 
-    virtual eRet initGraphics(uint16_t width, uint16_t height);
+    virtual eRet initGraphics(unsigned width, unsigned height);
     virtual void uninitGraphics(void);
     virtual void setActive(bool bActive);
 

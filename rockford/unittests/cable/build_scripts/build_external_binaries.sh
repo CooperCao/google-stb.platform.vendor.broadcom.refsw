@@ -2,7 +2,7 @@
 ./refsw init $2
 cd $2
 git refsw share fetch $1
-git checkout personal/mward/$1
+git checkout personal/ccbuild/$1
 #git checkout shared/shared/$1
 today=`date +%Y%m%d`
 cd BSEAV/app/atlas/build
@@ -23,7 +23,7 @@ then
 	}
 	else
 	{
-		cd /project_it/cable_refsw/unified_releases/phase17.2_take1
+		cd /project_it/cable_refsw/unified_releases/phase17.2_take2
 		find . -type d | cpio -pdvm ../$destination
 		cd ../$destination
 		destination=$(pwd)
@@ -33,7 +33,7 @@ then
 }
 else
 {
-	cd /project_it/cable_refsw/unified_releases/phase17.2_take1
+	cd /project_it/cable_refsw/unified_releases/phase17.2_take2
 	find . -type d | cpio -pdvm ../build_script
 	cd build_script
 	destination=$(pwd)
@@ -216,7 +216,7 @@ make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABL
 source ../../../tools/build/plat 97268 B0 32
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n install
-cp ../../../../obj.$NEXUS_PLATFORM.external/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/external/$NEXUS_PLATFORM/refsw-$reldate.97268a0_vms-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.external/BSEAV/bin/refsw-$today.$NEXUS_PLATFORM-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/external/$NEXUS_PLATFORM/refsw-$reldate.97268b0_vms-linux-atlas-cable.bin.tgz
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_SYSTEM_CABLE=y NEXUS_USE_7268_VMS=y  CABLE_SUPPORT=y CABLECARD_SUPPORT=n ESTB_CFG_SUPPORT=n NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n clean
 
 # 97445 E0 VMS_SFF
@@ -250,7 +250,7 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_PLATFORM_7241_DCSFBTS
 source ../../../tools/build/plat 97250 B0 cd2 le
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_MODE=proxy MEDIA_RMFF_SUPPORT=n MEDIA_ASF_SUPPORT=n BDSP_3RDPARTY_ALGO_SUPPORT=n VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_MODE=proxy MEDIA_RMFF_SUPPORT=n MEDIA_ASF_SUPPORT=n BDSP_3RDPARTY_ALGO_SUPPORT=n VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y  install
-cp ../../../../obj.$NEXUS_PLATFORM.external/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/external/97250/refsw-$reldate.97250cd2-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.external/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/external/97250/refsw-$reldate.97250cd2_vms_sff-linux-atlas-cable.bin.tgz
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_MODE=proxy MEDIA_RMFF_SUPPORT=n MEDIA_ASF_SUPPORT=n BDSP_3RDPARTY_ALGO_SUPPORT=n VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 
 #97420_3255

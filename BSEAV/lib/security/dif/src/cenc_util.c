@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -86,17 +86,17 @@ void cenc_parse_auxiliary_info_sizes(batom_cursor *cursor,
     } else {
         frag_header->aux_info_size += samplecount * defsize;
     }
-    LOGD(("%s: aux_info_size %u", __FUNCTION__, frag_header->aux_info_size));
+    LOGD(("%s: aux_info_size %u", __FUNCTION__, (uint32_t)frag_header->aux_info_size));
 }
 
-size_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
+uint32_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
     bmp4_mp4_frag_headers *frag_header)
 {
     uint8_t version;
     uint32_t flags;
     uint32_t entrycount;
     uint32_t i;
-    size_t drmoffset;
+    uint32_t drmoffset;
 
     LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
     batom_cursor_copy(cursor, &version, 1);
@@ -123,7 +123,7 @@ size_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
     }
 
     /* parse clear/encrypted data*/
-    drmoffset = (size_t)frag_header->samples_info.samples[0].offset;
+    drmoffset = frag_header->samples_info.samples[0].offset;
 
     LOGD(("drmoffset=%u current moof size=%u", drmoffset,
         frag_header->current_moof_size));
@@ -136,11 +136,11 @@ void cenc_parse_mdat_head(mp4_parse_frag_info *frag_info,
 {
     uint32_t i, j;
     batom_cursor *cursor = &frag_info->cursor;
-    size_t ivlength = 8;
+    uint32_t ivlength = 8;
     uint16_t numsubsamples;
     uint16_t numclear;
     uint32_t numencrypted;
-    size_t length;
+    uint32_t length;
 
     LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__,
         cursor->cursor, cursor->left, cursor->pos, cursor->count));
@@ -178,4 +178,54 @@ void cenc_parse_mdat_head(mp4_parse_frag_info *frag_info,
             smpl->entries[j].bytesOfEncData = numencrypted;
         }
     }
+}
+
+int cenc_parse_sample_encryption_box(
+    batom_cursor *cursor,
+    bmp4_mp4_frag_headers *frag_header)
+{
+    uint8_t version;
+    uint32_t flags;
+    uint32_t sample_count;
+    uint32_t i;
+    uint32_t ivlength = 8;
+    uint32_t length;
+    uint16_t subsample_count;
+    uint16_t j;
+    uint16_t bytes_clear;
+    uint32_t bytes_encrypted;
+
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
+    batom_cursor_copy(cursor, &version, 1);
+    LOGD(("%s: version %u", __FUNCTION__, version));
+
+    flags = batom_cursor_uint24_be(cursor);
+    LOGD(("%s: flags 0x%x", __FUNCTION__, flags));
+
+    sample_count = batom_cursor_uint32_be(cursor);
+    LOGD(("%s: sample_count %u", __FUNCTION__, sample_count));
+
+    for (i = 0; i < sample_count; i++) {
+        SampleInfo *smpl = &frag_header->samples_info.samples[i];
+
+        memset(smpl->iv, 0, 16);
+        length = batom_cursor_copy(cursor, smpl->iv, ivlength);
+        if (length != ivlength) {
+            LOGE(("%s: could not read iv for %dth sample", __FUNCTION__, i));
+            return -1;
+        }
+
+        if (flags & 0x000002) {
+            subsample_count = batom_cursor_uint16_be(cursor);
+            smpl->nbOfEntries = subsample_count;
+
+            for (j = 0; j < subsample_count; j++) {
+                bytes_clear = batom_cursor_uint16_be(cursor);
+                bytes_encrypted = batom_cursor_uint32_be(cursor);
+                smpl->entries[j].bytesOfClearData = bytes_clear;
+                smpl->entries[j].bytesOfEncData = bytes_encrypted;
+            }
+        }
+    }
+    return 0;
 }

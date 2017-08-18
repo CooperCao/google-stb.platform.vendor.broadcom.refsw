@@ -55,7 +55,7 @@ class CTunerOobScanData : public CTunerScanData
 public:
     CTunerOobScanData(
             bool     appendToChannelList = false,
-            uint16_t majorStartNum = 1
+            unsigned majorStartNum = 1
             ) :
         CTunerScanData(eBoardResource_frontendQam, appendToChannelList, majorStartNum),
         _bandwidth(6000000),
@@ -93,7 +93,7 @@ class CTunerOob : public CTuner
 public:
     CTunerOob(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

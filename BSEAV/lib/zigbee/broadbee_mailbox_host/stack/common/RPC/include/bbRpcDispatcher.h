@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile$
-*
-* DESCRIPTION:
-*   RPC Dispatcher interface.
-*
-* $Revision$
-* $Date$
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      RPC Dispatcher interface.
+ *
+*******************************************************************************/
 
 #ifndef _BB_RPC_DISPATCHER_H
 #define _BB_RPC_DISPATCHER_H
@@ -159,18 +151,18 @@ struct _RpcDispatcher_t
  *  Transaction Sequence Number Mask must be of the form (2^m-1), where m=8...32.
  */
 void rpcDispatcherInit(
-                RpcDispatcher_t                  *const  dispatcher,
-                const SYS_SchedulerPriority_t            schedulerPriority,
-                const RpcService_t               *const  servicesDescrTable,
-                      RpcCustomLinkClientTrans_t *const  customLinkClientTrans,
-                      RpcCustomLinkServerTrans_t *const  customLinkServerTrans,
-                      RpcCustomIssueDataReq_t    *const  customIssueDataReq,
-                      RpcCustomKillTrans_t       *const  customKillTrans,
-                      RpcTransaction_t           *const  transactionsPullHead,
-                const size_t                             transactionsPullSize,
-                const size_t                             transactionDescrSize,
-                const RpcDualQuotaLimit_t                transQuotaLimits[RPC_DUAL_QUOTA_CHANNELS_NUMBER],
-                const RpcTransSeqNumMask_t               transSeqNumMask);
+                RpcDispatcher_t            *const  dispatcher,
+                const SYS_SchedulerPriority_t      schedulerPriority,
+                const RpcService_t         *const  servicesDescrTable,
+                RpcCustomLinkClientTrans_t *const  customLinkClientTrans,
+                RpcCustomLinkServerTrans_t *const  customLinkServerTrans,
+                RpcCustomIssueDataReq_t    *const  customIssueDataReq,
+                RpcCustomKillTrans_t       *const  customKillTrans,
+                RpcTransaction_t           *const  transactionsPullHead,
+                const size_t                       transactionsPullSize,
+                const size_t                       transactionDescrSize,
+                const RpcDualQuotaLimit_t          transQuotaLimits[RPC_DUAL_QUOTA_CHANNELS_NUMBER],
+                const RpcTransSeqNumMask_t         transSeqNumMask);
 
 
 /**//**
@@ -239,12 +231,26 @@ void rpcDispatcherAcceptDataConf(
  *  received Remote Request, or application-specific payload descriptor. This data is
  *  provided by the calling application which also chooses what to save in the Transaction
  *  for purposes of Services.
- * \param[in]   isResponse      TRUE if the frame described with \p remoteRequest is a
- *  Server Response indeed but not a Client Request; FALSE if it is a Client Request.
+ * \param[in]   mayBeRequest    TRUE if the frame described with \p remoteRequest may be
+ *  a Client Request; FALSE if it may be a Server Response only.
+ * \param[in]   mayBeResponse   TRUE if the frame described with \p remoteRequest may be
+ *  a Server Response; FALSE if it may be a Client Request only.
  * \param[in]   serviceId       Unique numeric identifier of the corresponding Service.
  * \param[in]   transSeqNum     Transaction Sequence Number reported by the lower-level
  *  layer.
  * \return  TRUE if indicated data was processed; FALSE if it was rejected.
+ * \details
+ *  If \p mayBeResponse is TRUE, then the frame is processed as a response candidate
+ *  against all the waiting client transactions; if it's FALSE then this step is omitted
+ *  and the frame is treated only as a new client request or unsolicited server response.
+ * \details
+ *  If \p mayBeRequest is TRUE and if it was checked that this frame is not related to any
+ *  of waiting client transactions, then the frame is processed as a new client request;
+ *  if it's FALSE, then in the same case the frame is processed as an unsolicited
+ *  response.
+ * \note
+ *  At least one of \p mayBeRequest and \p mayBeResponse must be TRUE; but it's legal if
+ *  both of them are TRUE.
  * \note
  *  In the case when this function returns FALSE (i.e., indicated data is rejected) the
  *  caller shall dismiss the dynamic memory allocated for the indication payload. If TRUE
@@ -264,3 +270,5 @@ bool rpcDispatcherAcceptDataInd(
 
 
 #endif /* _BB_RPC_DISPATCHER_H */
+
+/* eof bbRpcDispatcher.h */

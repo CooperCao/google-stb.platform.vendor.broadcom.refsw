@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include <cutils/log.h>
 #include "default_android.h"
@@ -54,6 +54,5 @@ void v3d_android_unload(void)
    RSOANPL_UnregisterAndroidDisplayPlatform(s_platformHandle);
 
    nxwrap_destroy_client(nxwrap);
-   nexus_client = NULL;
    nxwrap = NULL;
 }

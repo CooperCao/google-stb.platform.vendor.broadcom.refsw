@@ -81,6 +81,7 @@ public:
     virtual eRet       swapPip(void);
     virtual eRet       setPowerMode(ePowerMode mode);
     virtual ePowerMode getPowerMode(void);
+    virtual eRet       setWindowGeometry(void);
 
     virtual eRet    connectDecoders(
             CSimpleVideoDecode * pVideoDecode,
@@ -105,7 +106,7 @@ public:
     eRet            processKeyEvent(CRemoteEvent * pRemoteEvent);
     void            onIdle(void);
     CWidgetEngine * getWidgetEngine(void) { return(_pWidgetEngine); }
-    eRet            tuneChannel(CChannel * pChannel = NULL, eWindowType windowType = eWindowType_Max, uint16_t tunerIndex = ANY_INDEX);
+    eRet            tuneChannel(CChannel * pChannel = NULL, eWindowType windowType = eWindowType_Max, unsigned tunerIndex = ANY_INDEX);
     eRet            unTuneChannel(CChannel * pChannel = NULL, bool bFullUnTune = false, eWindowType windowType = eWindowType_Max);
     eRet            unTuneAllChannels(void);
     eRet            decodeChannel(CChannel * pChannel, eWindowType windowType);
@@ -126,7 +127,7 @@ public:
     eRet recordStop(CChannel * pChannel = NULL);
     eRet encodeStart(const char * fileName = NULL, const char * path = NULL);
     eRet encodeStop(CChannel * pChannel = NULL);
-    eRet setAudioProgram(uint16_t pid);
+    eRet setAudioProgram(unsigned pid);
     eRet setAudioProcessing(eAudioProcessing audioProcessing);
     eRet          ipServerStart(void);
     eRet          ipServerStop(void);
@@ -141,7 +142,6 @@ public:
     eRet          setBoxDetect(bool bBoxDetect);
     eRet          setAspectRatio(NEXUS_DisplayAspectRatio aspectRatio);
     eRet          setAutoVideoFormat(bool bAutoVideoFormat);
-    eRet          setWindowGeometry(void);
     eRet          showWindowType(eWindowType windowType, bool bShow = true);
     void          setModel(CModel * pModel)                { _pModel = pModel; }
     void          setChannelMgr(CChannelMgr * pChannelMgr) { _pChannelMgr = pChannelMgr; }
@@ -173,7 +173,7 @@ public:
     eRet setGraphicsDynamicRange(CChannel * pChannel);
 #endif
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    eRet setHdmiOutputDynamicRange(void);
+    eRet setHdmiOutputDynamicRange(eDynamicRange dynamicRange = eDynamicRange_SDR);
     eRet videoDecodeUpdatePlm(CSimpleVideoDecode * pVideoDecode);
 #endif
 

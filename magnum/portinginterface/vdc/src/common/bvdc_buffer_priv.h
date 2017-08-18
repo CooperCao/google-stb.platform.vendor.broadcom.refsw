@@ -510,10 +510,14 @@ typedef enum _BVDC_P_WrRateCode
     BVDC_P_WrRate_Faster, /* Faster but not 2 times or more.
                            * i.e. writer = 50Hz, reader = 60Hz
                            */
-    BVDC_P_WrRate_2TimesFaster /* 2 times or even more faster.
-                                * i.e. writer = 24Hz, reader = 60Hz
-                                * This usually is the pulldown case
-                                */
+    BVDC_P_WrRate_2TimesFaster, /* 2 times faster.
+                                 * i.e. writer = 30Hz, reader = 60Hz
+                                 * This usually is the pulldown case
+                                 */
+    BVDC_P_WrRate_MoreThan2TimesFaster /* >2 times faster.
+                                        * i.e. writer = 24Hz, reader = 60Hz
+                                        * This usually is the pulldown case
+                                        */
 
 } BVDC_P_WrRateCode;
 
@@ -627,43 +631,13 @@ typedef struct BVDC_P_BufferContext
      */
     bool                          bMtgMadDisplay1To1RateRelationship;
 
-    /* This is effective while in MtgMode_eXdmRepeat only. It indicates that the relationship
-     * between the display rate and the rate at which the pictures coming out
-     * of the XDM after dropping the repeated pictures is about 1:1. For example,
-     * if the source's native rate is 24Hz, the XDM  will send pictures out at 60Hz in
-     * a 3:2 cadence with repeats. The multiibuffering algorithm, in turn, drops the repeats,
-     * which essentially results in a 1:1 source-display relationship. This helps the
-     * multibuffering algorithm decide whether to enforce a rate gap between writer and reader
-     * and is meant to prevent tearing.
-     */
-    bool                          bMtgXdmDisplay1to1RateRelationship;
-
-    /* This is effective while in MTG mode only and the associated deinterlacer is
-     * disabled. This indicates that the repeated pictures sent by the DM are to be
-     * dropped or not. It distinguishes a MTG source that has repeats from a MTG source
-     * without repeats. A MTG source without repeats is handled as a regular source
-     * in that all pictures will be processed by the multi-buffer algorithm. Refer to
-     * to the multi-buffer algorithm's MTG timeline analysis.
-     */
-    bool                          bMtgRepeatMode;
-
-    /* This keeps track of the number of repeated pictures and is used to determine
-     * bMtgRepeatMode along with ulMtgUniquePicCount.
-     */
-    uint32_t                      ulMtgSrcRepeatCount;
-
-    /* This keeps track of the number of non-repeated pictures and is used to determine
-     * bMtgRepeatMode along with ulMtgSrcRepeatCount.
-     */
-    uint32_t                      ulMtgUniquePicCount;
-
     /* Keeps track of how many times the reader node in the multibuffer algorithm
-     * was repeated. This only pertains when when we have a 60i-24 MTG src that is
+     * was repeated. This only pertains when when we have a 60-24 MTG src that is
      * displayed at 50Hz. This is needed to avoid a 2:2:3:1:2 cadence and instead
      * produce a 2:2:3:2:2 cadence. See corresponding multi-buffer algorithm's
      * MTG timeline analysis.
-    */
-    uint32_t                      ulMtgDisplayRepeatCount;
+     */
+    uint32_t                      ulMtgPictureRepeatCount;
 
 } BVDC_P_BufferContext;
 

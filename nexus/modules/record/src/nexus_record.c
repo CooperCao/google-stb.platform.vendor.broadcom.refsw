@@ -150,10 +150,9 @@ NEXUS_RecordHandle
 NEXUS_Record_Create(void)
 {
     NEXUS_RecordHandle record;
-    NEXUS_Error rc;
 
     record = BKNI_Malloc(sizeof(*record));
-    if(!record) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
+    if(!record) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
     BDBG_OBJECT_INIT(record, NEXUS_Record);
 #if NEXUS_HAS_PLAYBACK
     BLST_S_INIT(&record->playback_list);
@@ -636,11 +635,11 @@ NEXUS_Record_SetSettings(NEXUS_RecordHandle record, const NEXUS_RecordSettings *
     NEXUS_TaskCallback_Set(record->overflowCallback, &settings->overflowCallback);
 
     record->cfg = *settings;
-    
+
     if (record->cfg.pollingTimer && !record->processDataTimer && record->started) {
         record->processDataTimer = NEXUS_ScheduleTimer(record->cfg.pollingTimer, NEXUS_Record_P_ProcessDataTimer, record);
     }
-    
+
     return NEXUS_SUCCESS;
 
 err_recpump_settings:

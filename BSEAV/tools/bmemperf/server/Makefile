@@ -83,6 +83,7 @@ APP_CFLAGS = \
 # This is the minimum needed to compile and link with Nexus
 APP_CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 APP_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/api/include
+APP_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/tools/bmemconfig
 APP_CFLAGS += -I${NEXUS_TOP}/../${B_THIS_DIR}/${NEXUS_PLATFORM}
 APP_CFLAGS += -I${NEXUS_TOP}/lib/os/include -I${NEXUS_TOP}/lib/os/include/linuxuser
 APP_CFLAGS += -L${BINDIR}

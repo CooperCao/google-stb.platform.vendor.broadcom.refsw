@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include "vcos_types.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /** float <-> float16 */
 
@@ -238,4 +238,4 @@ extern float gfx_lin_to_srgb_float(float f);
 /* ES3 spec "3.8.15 sRGB Texture Color Conversion" */
 extern float gfx_srgb_to_lin_float(float f);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

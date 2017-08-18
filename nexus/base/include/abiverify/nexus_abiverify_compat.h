@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,7 @@
 #define NEXUS_P_COMPAT_UNION_VERIFY_GENERIC(struct, base, union, type) BDBG_CASSERT(B_SIZEOF(struct,base.union)==sizeof(unsigned)); NEXUS_P_COMPAT_UNION_VERIFY(struct, base, union, type)
 #define NEXUS_P_COMPAT_UNION_VERIFY_SPECIAL(struct, base, union, type) BDBG_ASSERT(0);  /* not supported */
 
-#define NEXUS_P_COMPAT_IN_BEGIN(type) static NEXUS_Error type##_compat_in(const B_NEXUS_COMPAT_TYPE(type) *__src, type *__dst) { NEXUS_Error __rc=NEXUS_SUCCESS;
+#define NEXUS_P_COMPAT_IN_BEGIN(type) static NEXUS_Error type##_compat_in(const B_NEXUS_COMPAT_TYPE(type) *__src, type *__dst) { NEXUS_Error __rc=NEXUS_SUCCESS; BSTD_UNUSED(__src);
 #define NEXUS_P_COMPAT_IN_END(type) return __rc;}
 #define NEXUS_P_COMPAT_LOCAL_STRUCT(type) static void type##_compat_not_supported(void) { BDBG_CASSERT(0); /* structures with attribute local=true can't be referenced by non-local functions */;}
 
@@ -66,7 +66,7 @@
 #define NEXUS_P_COMPAT_FIELD_ARRAY_1(DIR, rc, src, dst, type, field, size, KIND) {unsigned _n_array;for(_n_array=0;_n_array<size;_n_array++) {NEXUS_P_COMPAT_FIELD(DIR, rc, src, dst, type, field[_n_array], KIND) }}
 #define NEXUS_P_COMPAT_FIELD_ARRAY_2(DIR, rc, src, dst, type, field, size1, size2, KIND) {unsigned _n_array_1;for(_n_array_1=0;_n_array_1<size1;_n_array_1++) {unsigned _n_array_2;for(_n_array_2=0;_n_array_2<size2;_n_array_2++) {NEXUS_P_COMPAT_FIELD(DIR, rc, src, dst, type, field[_n_array_1][_n_array_2], KIND) }}}
 
-#define NEXUS_P_COMPAT_OUT_BEGIN(type) static NEXUS_Error type##_compat_out(const type *__src, B_NEXUS_COMPAT_TYPE(type) *__dst) { NEXUS_Error __rc=NEXUS_SUCCESS;
+#define NEXUS_P_COMPAT_OUT_BEGIN(type) static NEXUS_Error type##_compat_out(const type *__src, B_NEXUS_COMPAT_TYPE(type) *__dst) { NEXUS_Error __rc=NEXUS_SUCCESS; BSTD_UNUSED(__src);
 #define NEXUS_P_COMPAT_OUT_END(type) return __rc;}
 
 #define NEXUS_P_COMPAT_OUT_PLAIN(rc, src, dst, type) NEXUS_P_COMPAT_IN_PLAIN(rc, src, dst, type)
@@ -97,7 +97,7 @@
 
 #define NEXUS_P_COMPAT_VARARG_IN_DECLARE(api, arg, type,compat_type) const compat_type *__compat_##arg; type *__##arg;
 #define NEXUS_P_COMPAT_VARARG_IN_PLACE(api, arg, type, compat_type, nelem) if(!__compat_in_data->api.pointer.is_null.arg) { if(compat_in_data_size < __compat_in_data->api.vararg.arg + __compat_in_data->api.args.nelem * sizeof(compat_type)) {__rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); break;} __compat_##arg = (void *)((uint8_t *)__compat_in_data + __compat_in_data->api.vararg.arg);  } else {__compat_##arg = NULL;}
-#define NEXUS_P_COMPAT_VARARG_IN_PLACE_WITH_CONVERT(api, arg, type, compat_type, convert, nelem) if(!__compat_in_data->api.pointer.is_null.arg) { if(compat_in_data_size < __compat_in_data->api.vararg.arg + convert(__compat_in_data->api.args.nelem)) {__rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); break;} __compat_##arg = (void *)((uint8_t *)__compat_in_data + __compat_in_data->api.vararg.arg);  } else {__compat_##arg = NULL;}
+#define NEXUS_P_COMPAT_VARARG_IN_PLACE_WITH_CONVERT(api, arg, type, compat_type, convert, nelem) BSTD_UNUSED(__compat_##arg); if(!__compat_in_data->api.pointer.is_null.arg) { if(compat_in_data_size < __compat_in_data->api.vararg.arg + convert(__compat_in_data->api.args.nelem)) {__rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); break;} __compat_##arg = (void *)((uint8_t *)__compat_in_data + __compat_in_data->api.vararg.arg);  } else {__compat_##arg = NULL;}
 #define NEXUS_P_COMPAT_VARARG_IN_CONVERT(api, arg, KIND, type, nelem) __rc = NEXUS_P_CompatInVararg_InVarArg(&__vin_data, sizeof(*__##arg) *  __compat_in_data->api.args.nelem,  __compat_##arg, &__in_data->api.vararg.arg, &__in_data->api.pointer.is_null.arg); if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc); break;} ; __in_data = __vin_data.data;if(__compat_##arg != NULL) { unsigned __i; __##arg = (void *)( (uint8_t *)__in_data +__in_data->api.vararg.arg);for(__i=0;__i<__compat_in_data->api.args.nelem;__i++) { NEXUS_P_COMPAT_IN_##KIND(__rc,__compat_##arg[__i], __##arg[__i], type)}}
 #define NEXUS_P_COMPAT_VARARG_IN_CONVERT_WITH_CONVERT(api, arg, type, convert, nelem) __rc = NEXUS_P_CompatInVararg_Copy(&__vin_data, compat_in_data_size, __compat_in_data, convert(__compat_in_data->api.args.nelem) , __compat_in_data->api.vararg.arg, &__in_data->api.vararg.arg); if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);break;} BSTD_UNUSED(__##arg); __in_data=__vin_data.data;
 

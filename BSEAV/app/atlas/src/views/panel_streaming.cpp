@@ -265,8 +265,8 @@ void CPanelStreaming::layout()
     MRect    rectPlaylists = _pPlaylistsMenu->getGeometry();
     MRect    rectProps     = _pPlaylistPropertiesMenu->getGeometry();
     MRect    rectPanel     = getGeometry();
-    uint16_t propsMargin   = 7;
-    uint16_t topMargin     = 10;
+    unsigned propsMargin   = 7;
+    unsigned topMargin     = 10;
     MRect    rectPlaylistsListView;
 
     /* layout videos menu */

@@ -159,7 +159,7 @@ B_PlaybackIp_liveMediaSessionOpen(
 
     lmContext = new B_PlaybackIp_liveMediaSessionContext;
     if (!lmContext) {
-        BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+        BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
@@ -168,21 +168,20 @@ B_PlaybackIp_liveMediaSessionOpen(
 
     lmContext->session = new B_PlaybackIp_liveMediaSession;
     if (!lmContext->session) {
-        BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+        BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
     memset(lmContext->session, 0, sizeof(B_PlaybackIp_liveMediaSession));
     lmContext->session->playback_ip = playback_ip;
     lmContext->session->openSettings = *openSettings;
-    BDBG_MSG(("%s: created Live Media wrapper session ctx: lmContext %p", __FUNCTION__, (void *)lmContext));
+    BDBG_MSG(("%s: created Live Media wrapper session ctx: lmContext %p", BSTD_FUNCTION, (void *)lmContext));
 
     if (openSettings->socketOpenSettings.interfaceName) {
         int fd;
         struct ifreq ifr;
-        struct sockaddr_in *ifaddr;
         if ( (fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-            BDBG_ERR(("%s: ERROR: Failed to create socket, errno %d\n", __FUNCTION__, errno));
+            BDBG_ERR(("%s: ERROR: Failed to create socket, errno %d\n", BSTD_FUNCTION, errno));
             perror("socket");
             errorCode = B_ERROR_SOCKET_ERROR;
             goto error;
@@ -195,7 +194,7 @@ B_PlaybackIp_liveMediaSessionOpen(
         }
         /* This is a LiveMedia global variable that should be set to the local i/f address. */
         ReceivingInterfaceAddr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
-        BDBG_MSG(("%s: IP Address Information for Interface %s is %s", __FUNCTION__, openSettings->socketOpenSettings.interfaceName, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr) ));
+        BDBG_MSG(("%s: IP Address Information for Interface %s is %s", BSTD_FUNCTION, openSettings->socketOpenSettings.interfaceName, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr) ));
         close(fd);
     }
 
@@ -349,10 +348,10 @@ B_PlaybackIp_doSessionInit(void *context)
 
     /* Defer this to a/f SETUP time when we know the protocol Media is being streamed on (Raw UDP or RTP) */
     // setup buffer for reception stats
-    BDBG_MSG(("%s: rtp header data size %d, %d\n", __FUNCTION__, (int)sizeof(B_PlaybackIp_RtpHeader) , B_MAX_RTP_HEADERS));
+    BDBG_MSG(("%s: rtp header data size %d, %d\n", BSTD_FUNCTION, (int)sizeof(B_PlaybackIp_RtpHeader) , B_MAX_RTP_HEADERS));
     session->rtpHeaderData = (B_PlaybackIp_RtpStatsHeader *)malloc(sizeof(B_PlaybackIp_RtpStatsHeader) * B_MAX_RTP_HEADERS);
     if (!session->rtpHeaderData) {
-        BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+        BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
         session->errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
@@ -378,7 +377,7 @@ B_PlaybackIp_doSessionInit(void *context)
         // create RTSP Client object
         session->rtspClient = RTSPClient::createNew(*lmContext->lm_env, session->url, verbose, NULL, 0/*portNumBits*/, -1/*socketNumToServer*/);
         if (!session->rtspClient) {
-            BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+            BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
             session->errorCode = B_ERROR_OUT_OF_MEMORY;
             goto error;
         }
@@ -393,7 +392,7 @@ B_PlaybackIp_doSessionInit(void *context)
             // open RTP socket
             session->rtpGroupsock = new Groupsock(*lmContext->lm_env, sessionAddress, 0, ttl);
             if (!session->rtpGroupsock) {
-                BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+                BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
                 session->errorCode = B_ERROR_OUT_OF_MEMORY;
                 goto error;
             }
@@ -415,24 +414,24 @@ B_PlaybackIp_doSessionInit(void *context)
         // open RTCP socket
         session->rtcpGroupsock = new Groupsock(*lmContext->lm_env, sessionAddress, portNum+1, ttl);
         if (!session->rtcpGroupsock) {
-            BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+            BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
             session->errorCode = B_ERROR_OUT_OF_MEMORY;
             goto error;
         }
     }
     else {
         // open RTP/RTCP sockets
-        BDBG_MSG(("%s: Got IP address: %s, port number: %d, protocol: %d", __FUNCTION__, openSettings->socketOpenSettings.ipAddr, openSettings->socketOpenSettings.port, openSettings->socketOpenSettings.protocol));
+        BDBG_MSG(("%s: Got IP address: %s, port number: %d, protocol: %d", BSTD_FUNCTION, openSettings->socketOpenSettings.ipAddr, openSettings->socketOpenSettings.port, openSettings->socketOpenSettings.protocol));
         sessionAddress.s_addr = our_inet_addr(openSettings->socketOpenSettings.ipAddr);
         session->rtpGroupsock = new Groupsock(*lmContext->lm_env, sessionAddress, openSettings->socketOpenSettings.port, ttl);
         if (!session->rtpGroupsock) {
-            BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+            BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
             session->errorCode = B_ERROR_OUT_OF_MEMORY;
             goto error;
         }
         session->rtcpGroupsock = new Groupsock(*lmContext->lm_env, sessionAddress, openSettings->socketOpenSettings.port+1, ttl);
         if (!session->rtcpGroupsock) {
-            BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
+            BDBG_ERR(("%s: Memory allocation failure\n", BSTD_FUNCTION));
             session->errorCode = B_ERROR_OUT_OF_MEMORY;
             goto error;
         }
@@ -454,7 +453,7 @@ error:
 }
 
 static void sendRequestCallback(RTSPClient* context, int resultCode, char* resultString) {
-    BDBG_MSG(("%s: request returned: code %d; string (%s)", __FUNCTION__, resultCode, resultString ));
+    BDBG_MSG(("%s: request returned: code %d; string (%s)", BSTD_FUNCTION, resultCode, resultString ));
     if (context) {
         if(resultString) context->fResultString = strdup(resultString); else context->fResultString = NULL;
         context->fWatchVariableForSyncInterface=1;
@@ -466,7 +465,7 @@ static void sendRequestCallback(RTSPClient* context, int resultCode, char* resul
 
 char * sendOptionsCmd ( RTSPClient* rtspClient )
 {
-    BDBG_MSG(("%s: calling sendOptionsCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
+    BDBG_MSG(("%s: calling sendOptionsCommand(); RTSPClient (%p) ", BSTD_FUNCTION, (void *)rtspClient ));
     rtspClient->sendOptionsCommand(sendRequestCallback, NULL );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -475,7 +474,7 @@ char * sendOptionsCmd ( RTSPClient* rtspClient )
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
     if ( rtspClient->fResultCode == 0)  return rtspClient->fResultString; // success
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", BSTD_FUNCTION, (void *)rtspClient, rtspClient->fResultString ));
     return NULL;
 }
 
@@ -484,7 +483,7 @@ char * sendDescribeCmd ( RTSPClient* rtspClient, const char * url )
     rtspClient->fDescribeStatusCode = 0; // BRCM: CAD 2013-10-21
 
     rtspClient->setBaseURL( url );
-    BDBG_MSG(("%s: calling sendDescribeCommand(); RTSPClient (%p); url (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->url() ));
+    BDBG_MSG(("%s: calling sendDescribeCommand(); RTSPClient (%p); url (%s) ", BSTD_FUNCTION, (void *)rtspClient, rtspClient->url() ));
     rtspClient->sendDescribeCommand(sendRequestCallback, NULL );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -494,7 +493,7 @@ char * sendDescribeCmd ( RTSPClient* rtspClient, const char * url )
 
     if ( rtspClient->fResultCode == 0) return rtspClient->fResultString; // success
     if ( rtspClient->fDescribeStatusCode == 0) rtspClient->fDescribeStatusCode = 2 /* stream unavailable*/; // BRCM: CAD 2013-10-21
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", BSTD_FUNCTION, (void *)rtspClient, rtspClient->fResultString ));
     delete[] rtspClient->fResultString;
     return NULL;
 }
@@ -504,7 +503,7 @@ int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
                    Authenticator* authenticator)
 {
     BDBG_MSG(("%s: calling sendSetupCommand(session %p, Outgoing %u, UsingTCP %u, forceMulti %u, authenticator %p); ",
-               __FUNCTION__, (void *)&subsession, streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, (void *)authenticator ));
+               BSTD_FUNCTION, (void *)&subsession, streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, (void *)authenticator ));
     rtspClient->sendSetupCommand(subsession, sendRequestCallback,  streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, authenticator);
 
     UsageEnvironment& env = rtspClient->envir();
@@ -512,7 +511,7 @@ int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
     rtspClient->fWatchVariableForSyncInterface=0;
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", BSTD_FUNCTION, (void *)rtspClient, rtspClient->fResultString ));
     delete[] rtspClient->fResultString;
     return rtspClient->fResultCode == 0;
 }
@@ -520,7 +519,7 @@ int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
 int sendPlayCmd ( RTSPClient* rtspClient, MediaSession& session,
                   double start, double end, float scale, Authenticator* authenticator )
 {
-    BDBG_MSG(("%s: calling sendPlayCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
+    BDBG_MSG(("%s: calling sendPlayCommand(); RTSPClient (%p) ", BSTD_FUNCTION, (void *)rtspClient ));
     rtspClient->sendPlayCommand(session, sendRequestCallback, start, end, scale, authenticator );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -529,13 +528,13 @@ int sendPlayCmd ( RTSPClient* rtspClient, MediaSession& session,
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
     delete[] rtspClient->fResultString;
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", BSTD_FUNCTION, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return rtspClient->fResultCode==0;
 }
 
 int sendPauseCmd ( RTSPClient* rtspClient, MediaSession& session )
 {
-    BDBG_MSG(("%s: calling sendPauseCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
+    BDBG_MSG(("%s: calling sendPauseCommand(); RTSPClient (%p) ", BSTD_FUNCTION, (void *)rtspClient ));
     rtspClient->sendPauseCommand(session, sendRequestCallback );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -544,13 +543,13 @@ int sendPauseCmd ( RTSPClient* rtspClient, MediaSession& session )
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
     delete[] rtspClient->fResultString;
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", BSTD_FUNCTION, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return rtspClient->fResultCode==0;
 }
 
 bool sendTeardownCmd ( RTSPClient* rtspClient, MediaSession& session )
 {
-    BDBG_MSG(("%s: calling sendTeardownCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
+    BDBG_MSG(("%s: calling sendTeardownCommand(); RTSPClient (%p) ", BSTD_FUNCTION, (void *)rtspClient ));
     rtspClient->sendTeardownCommand(session, sendRequestCallback );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -558,7 +557,7 @@ bool sendTeardownCmd ( RTSPClient* rtspClient, MediaSession& session )
     rtspClient->fWatchVariableForSyncInterface=0;
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", BSTD_FUNCTION, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return true;
 }
 
@@ -566,7 +565,7 @@ bool sendSetParameterCmd ( RTSPClient* rtspClient, MediaSession* rtspMediaSessio
                            const char * parameter,  const char * value, Authenticator* authenticator )
 {
     bool rc = 0;
-    BDBG_MSG(( "%s: calling sendSetParameterCommand()\n", __FUNCTION__ ));
+    BDBG_MSG(( "%s: calling sendSetParameterCommand()\n", BSTD_FUNCTION ));
     rc = rtspClient->sendSetParameterCommand( *rtspMediaSession, sendRequestCallback, parameter, value, authenticator);
 
     UsageEnvironment& env = rtspClient->envir();
@@ -575,14 +574,14 @@ bool sendSetParameterCmd ( RTSPClient* rtspClient, MediaSession* rtspMediaSessio
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
     rc = rtspClient->fResultCode == 0;
-    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", __FUNCTION__, (void*)rtspClient, rc ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", BSTD_FUNCTION, (void*)rtspClient, rc ));
     return rtspClient->fResultCode==0;
 }
 
 bool sendGetParameterCmd ( RTSPClient* rtspClient, MediaSession* rtspMediaSession, const char * parameterName,  char*& parameterValue )
 {
     bool rc = 0;
-    BDBG_MSG(( "%s: calling sendGetParameterCommand ()\n", __FUNCTION__ ));
+    BDBG_MSG(( "%s: calling sendGetParameterCommand ()\n", BSTD_FUNCTION ));
     rc = rtspClient->sendGetParameterCommand( *rtspMediaSession, sendRequestCallback, parameterName );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -593,7 +592,7 @@ bool sendGetParameterCmd ( RTSPClient* rtspClient, MediaSession* rtspMediaSessio
     if( rtspClient->fResultString ) parameterValue = strdup( rtspClient->fResultString );
 
     rc = rtspClient->fResultCode == 0;
-    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", __FUNCTION__, (void *)rtspClient, rc ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", BSTD_FUNCTION, (void *)rtspClient, rc ));
     return rtspClient->fResultCode==0;
 }
 
@@ -607,7 +606,7 @@ static void B_PlaybackIp_doSessionOpen(void *context)
 
     if (session->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eRtsp) {
         // do OPTIONS
-        BDBG_MSG(("%s: OPTIONS", __FUNCTION__));
+        BDBG_MSG(("%s: OPTIONS", BSTD_FUNCTION));
         char* optionsResponse = sendOptionsCmd( lmContext->session->rtspClient );
         if(optionsResponse == NULL) {
             BDBG_ERR(("Error: Failed to get OPTIONS response"));
@@ -628,7 +627,7 @@ static void B_PlaybackIp_doSessionOpen(void *context)
                     session->scaleListEntries = 0;
                     tmpPtr += strlen("Accept-Scale:");
                     if ((tmpPtr2 = strstr(tmpPtr, "\r\n")) == NULL && (tmpPtr2 = strstr(tmpPtr, "\n")) == NULL) {
-                        BDBG_WRN(("%s: Accept-Scale record is not correctly terminated (missing CR NL or NL)", __FUNCTION__));
+                        BDBG_WRN(("%s: Accept-Scale record is not correctly terminated (missing CR NL or NL)", BSTD_FUNCTION));
                         session->scaleListEntries = 0;
                     }
                     else {
@@ -642,7 +641,7 @@ static void B_PlaybackIp_doSessionOpen(void *context)
                             *tmpPtr3 = ',';
                             scaleList = tmpPtr3+1;
                             if (session->scaleListEntries >= MAX_SCALE_LIST_ENTRIES) {
-                                BDBG_WRN(("%s: RTSP server sent more scale values that the scale list entries %d", __FUNCTION__, MAX_SCALE_LIST_ENTRIES));
+                                BDBG_WRN(("%s: RTSP server sent more scale values that the scale list entries %d", BSTD_FUNCTION, MAX_SCALE_LIST_ENTRIES));
                                 break;
                             }
                             BDBG_MSG(("scale list[%d] = %0.1f", session->scaleListEntries-1, session->scaleList[session->scaleListEntries-1]));
@@ -688,7 +687,7 @@ static void B_PlaybackIp_doSessionSetup(void *context)
     B_PlaybackIpHandle playback_ip = session->playback_ip;
     char *tmpPtr;
 
-    BDBG_MSG(("%s: Entered B_PlaybackIp_doSessionSetup() session: %p\n", __FUNCTION__, (void *)session ));
+    BDBG_MSG(("%s: Entered B_PlaybackIp_doSessionSetup() session: %p\n", BSTD_FUNCTION, (void *)session ));
 
     if(session->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eRtsp) {
         // do OPTIONS
@@ -718,7 +717,7 @@ static void B_PlaybackIp_doSessionSetup(void *context)
         if (tmpPtr) {
             char *tmpPtr2;
             if ( (tmpPtr2 = strstr(tmpPtr, "\r\n")) == NULL && (tmpPtr2 = strstr(tmpPtr, "\n")) == NULL) {
-                BDBG_WRN(("%s: SDP m record is not correctly terminated (missing CR NL or NL, assuming RTP as transport protocol", __FUNCTION__));
+                BDBG_WRN(("%s: SDP m record is not correctly terminated (missing CR NL or NL, assuming RTP as transport protocol", BSTD_FUNCTION));
                 playback_ip->mediaTransportProtocol = B_PlaybackIpProtocol_eRtp;
             }
             else {
@@ -728,15 +727,15 @@ static void B_PlaybackIp_doSessionSetup(void *context)
                 /* now look for RTP keyword, if found, transport is RTP else UDP */
                 if (strstr(tmpPtr, "RTP")) {
                     playback_ip->mediaTransportProtocol = B_PlaybackIpProtocol_eRtp;
-                    BDBG_MSG(("DESCRIBE: %s: media transport protocol is RTP", __FUNCTION__));
+                    BDBG_MSG(("DESCRIBE: %s: media transport protocol is RTP", BSTD_FUNCTION));
                 }
                 else if (strstr(tmpPtr, "UDP")) {
                     playback_ip->mediaTransportProtocol = B_PlaybackIpProtocol_eUdp;
-                    BDBG_MSG(("DESCRIBE: %s: media transport protocol is UDP", __FUNCTION__));
+                    BDBG_MSG(("DESCRIBE: %s: media transport protocol is UDP", BSTD_FUNCTION));
                 }
                 else {
                     BDBG_ERR(("DESCRIBE: %s: media transport defined in the m= description is not supported, m record is %s",
-                                __FUNCTION__, tmpPtr));
+                                BSTD_FUNCTION, tmpPtr));
                     goto error;
                 }
                 *tmpPtr2 = tmp;
@@ -744,14 +743,14 @@ static void B_PlaybackIp_doSessionSetup(void *context)
         }
         else {
             /* media transport not defined, assume default */
-            BDBG_MSG(("DESCRIBE: %s: media transport record m= not defined, assume media transport default of RTP", __FUNCTION__));
+            BDBG_MSG(("DESCRIBE: %s: media transport record m= not defined, assume media transport default of RTP", BSTD_FUNCTION));
             playback_ip->mediaTransportProtocol = B_PlaybackIpProtocol_eRtp;
         }
 
         // Create a media session object from the SDP description
         BDBG_MSG(("DESCRIBE: Creating the media session object from the SDP description..."));
         session->rtspMediaSession = MediaSession::createNew(*lmContext->lm_env, sdpDescription);
-        BDBG_MSG(("DESCRIBE: %s: session %p; rtspMediaSession %p", __FUNCTION__, (void *)session, (void *)session->rtspMediaSession ));
+        BDBG_MSG(("DESCRIBE: %s: session %p; rtspMediaSession %p", BSTD_FUNCTION, (void *)session, (void *)session->rtspMediaSession ));
         delete[] sdpDescription;
         if (session->rtspMediaSession == NULL) {
             BDBG_ERR(("Error: Failed to create a MediaSession object from the SDP description"));
@@ -884,7 +883,7 @@ B_PlaybackIp_doSessionStart(void *context)
 
     if(session->state == lmSessionStateOpened) {
         session->periodicTaskPendingCount++;
-        BDBG_MSG(("%s: queuing B_PlaybackIp_doPeriodicTask() in B_PlaybackIp_doSessionStart()\n", __FUNCTION__ ));
+        BDBG_MSG(("%s: queuing B_PlaybackIp_doPeriodicTask() in B_PlaybackIp_doSessionStart()\n", BSTD_FUNCTION ));
         blive_scheduler_queue_delayed_task(B_LM_PERIODIC_TASK_USEC, (TaskFunc*)B_PlaybackIp_doPeriodicTask, lmContext);
         session->state = lmSessionStateStarted;
     }

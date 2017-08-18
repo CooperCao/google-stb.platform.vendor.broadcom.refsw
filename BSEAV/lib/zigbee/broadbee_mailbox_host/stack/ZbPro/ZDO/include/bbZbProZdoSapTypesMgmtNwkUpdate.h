@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZDO/include/bbZbProZdoSapTypesMgmtNwkUpdate.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZDO / ZDP Mgmt_NWK_Update Service interface.
+*       ZDO / ZDP Mgmt_NWK_Update Service interface.
 *
-* $Revision: 10263 $
-* $Date: 2016-02-29 18:03:06Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZDO_SAP_TYPES_MGMT_NWK_UPDATE_H
 #define _BB_ZBPRO_ZDO_SAP_TYPES_MGMT_NWK_UPDATE_H
@@ -61,11 +54,10 @@
 
 /************************* DEFINITIONS **************************************************/
 /**//**
- * \name    Limit values for Mgmt_NWK_Update_req command parameters.
+ * \brief   Limit values for Mgmt_NWK_Update_req command parameters.
  * \par     Documentation
  *  See ZigBee Document 053474r20, subclause 2.4.3.3.9, table 2.88.
  */
-/**@{*/
 #define ZBPRO_ZDO_MGMT_NWK_UPDATE_REQ_PARAM_SCAN_DURATION_MAX   0x05        /*!< Maximum allowed value for the
                                                                                 \c scanDuration parameter in ED-Scanning
                                                                                 Request subtype. */
@@ -73,7 +65,6 @@
 #define ZBPRO_ZDO_MGMT_NWK_UPDATE_REQ_PARAM_SCAN_COUNT_MAX      0x05        /*!< Maximum allowed value for the
                                                                                 \c scanCount parameter in ED-Scanning
                                                                                 Request subtype. */
-/**@}*/
 
 
 /**//**
@@ -83,6 +74,7 @@
  *  for parsing the received Local or Remote Request parameter \c scanDuration to discover
  *  the type of Request. The 'ED_SCAN' value may be used in internal processing when need
  *  to denote a Request for channel scanning in general.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateReq
  * \par     Documentation
  *  See ZigBee Document 053474r20, subclause 2.4.3.3.9, table 2.88.
  */
@@ -112,6 +104,7 @@ typedef enum _ZBPRO_ZDO_MgmtNwkUpdateReqSubtypeId_t
 
 /**//**
  * \brief   Returns ZDO Mgmt_NWK_Update Local or Remote Request sybtype.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateReq
  * \param[in]   scanDuration    Value of \c ScanDuration parameter.
  * \return  Either ED-Scanning, Change-Channel, Assign-Attributes, or Reserved subtype.
  */
@@ -126,6 +119,7 @@ typedef enum _ZBPRO_ZDO_MgmtNwkUpdateReqSubtypeId_t
 /**//**
  * \brief   Structure for parameters of ZDO Local Request to issue ZDP Mgmt_NWK_Update_req
  *  command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateReq
  * \note
  *  The field \c ScanDuration is also used as the request subtype identifier field
  *  according to the Specification.
@@ -192,6 +186,7 @@ typedef struct _ZBPRO_ZDO_MgmtNwkUpdateReqParams_t
  *  This structure is also used for parameters of (1) ZDO Local Request to issue
  *  Unsolicited ZDP Mgmt_NWK_Update_notify command, and (2) ZDO Indication for received
  *  Unsolicited ZDP Mgmt_NWK_Update_notify command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateConf
  * \note
  *  For the case of ZDO Local Request to issue Unsolicited ZDP Mgmt_NWK_Update_notify
  *  command, the \c zdpAddress shall be assigned with the Network (16-bit short) Address
@@ -235,6 +230,7 @@ typedef struct _ZBPRO_ZDO_MgmtNwkUpdateConfParams_t
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue ZDP Mgmt_NWK_Update_req
  *  command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateReq
  */
 typedef struct _ZBPRO_ZDO_MgmtNwkUpdateReqDescr_t  ZBPRO_ZDO_MgmtNwkUpdateReqDescr_t;
 
@@ -242,6 +238,7 @@ typedef struct _ZBPRO_ZDO_MgmtNwkUpdateReqDescr_t  ZBPRO_ZDO_MgmtNwkUpdateReqDes
 /**//**
  * \brief   Data type for ZDO Local Confirmation callback function of ZDP
  *  Mgmt_NWK_Update_req command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -253,6 +250,7 @@ typedef void ZBPRO_ZDO_MgmtNwkUpdateConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue ZDP Mgmt_NWK_Update_req
  *  command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateReq
  */
 struct _ZBPRO_ZDO_MgmtNwkUpdateReqDescr_t
 {
@@ -271,6 +269,7 @@ struct _ZBPRO_ZDO_MgmtNwkUpdateReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZDO Local Request to issue Unsolicited ZDP
  *  Mgmt_NWK_Update_notify command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateConf
  * \par     Documentation
  *  See ZigBee Document 053474r20, subclause 2.4.4.3.9, figure 2.102, table 2.137.
  */
@@ -280,6 +279,7 @@ typedef ZBPRO_ZDO_MgmtNwkUpdateConfParams_t  ZBPRO_ZDO_MgmtNwkUpdateUnsolRespPar
 /**//**
  * \brief   Structure for parameters of ZDO Local Confirmation on Unsolicited ZDP
  *  Mgmt_NWK_Update_notify command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateUnsolConf
  */
 typedef struct _ZBPRO_ZDO_MgmtNwkUpdateUnsolConfParams_t
 {
@@ -293,6 +293,7 @@ typedef struct _ZBPRO_ZDO_MgmtNwkUpdateUnsolConfParams_t
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue Unsolicited ZDP
  *  Mgmt_NWK_Update_notify command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateUnsolResp
  */
 typedef struct _ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t  ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t;
 
@@ -300,6 +301,7 @@ typedef struct _ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t  ZBPRO_ZDO_MgmtNwkUpdate
 /**//**
  * \brief   Data type for ZDO Local Confirmation callback function of Unsolicited ZDP
  *  Mgmt_NWK_Update_notify command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateUnsolConf
  * \param[in]   respDescr       Pointer to the descriptor of response being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -311,6 +313,7 @@ typedef void ZBPRO_ZDO_MgmtNwkUpdateUnsolConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue Unsolicited ZDP
  *  Mgmt_NWK_Update_notify command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateUnsolResp
  */
 struct _ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t
 {
@@ -329,6 +332,7 @@ struct _ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t
 /**//**
  * \brief   Structure for parameters of ZDO Indication for received Unsolicited ZDP
  *  Mgmt_NWK_Update_notify command.
+ * \ingroup ZBPRO_ZDO_MgmtNwkUpdateUnsolInd
  * \par     Documentation
  *  See ZigBee Document 053474r20, subclause 2.4.4.3.9, figure 2.102, table 2.137.
  */
@@ -338,7 +342,9 @@ typedef ZBPRO_ZDO_MgmtNwkUpdateUnsolRespParams_t  ZBPRO_ZDO_MgmtNwkUpdateUnsolIn
 /************************* PROTOTYPES ***************************************************/
 /**//**
  * \brief   Accepts ZDO Local Request to issue ZDP Mgmt_NWK_Update_req command.
+ * \ingroup ZBPRO_ZDO_Functions
  * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZDO_MgmtNwkUpdateReq(
                 ZBPRO_ZDO_MgmtNwkUpdateReqDescr_t *const  reqDescr);
@@ -347,7 +353,9 @@ void ZBPRO_ZDO_MgmtNwkUpdateReq(
 /**//**
  * \brief   Accepts ZDO Local Request to issue Unsolicited ZDP Mgmt_NWK_Update_notify
  *  command.
+ * \ingroup ZBPRO_ZDO_Functions
  * \param[in]   respDescr       Pointer to ZDO Local Unsolicited Response descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZDO_MgmtNwkUpdateUnsolResp(
                 ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t *const  respDescr);
@@ -356,12 +364,16 @@ void ZBPRO_ZDO_MgmtNwkUpdateUnsolResp(
 /**//**
  * \brief   Handles ZDO Indication for received Unsolicited ZDP Mgmt_NWK_Update_notify
  *  command.
+ * \ingroup ZBPRO_ZDO_Functions
  * \param[in]   indParams       Pointer to ZDO Indication parameters.
  * \note
  *  This function must be provided by the application.
+ * \return Nothing.
  */
 void ZBPRO_ZDO_MgmtNwkUpdateUnsolInd(
                 ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t *const  indParams);
 
 
 #endif /* _BB_ZBPRO_ZDO_SAP_TYPES_MGMT_NWK_UPDATE_H */
+
+/* eof bbZbProZdoSapTypesMgmtNwkUpdate.h */

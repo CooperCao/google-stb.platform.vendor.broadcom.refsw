@@ -1,0 +1,15 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2001 Broadcom Corporation
+#
+# $Id: sources,v 1.3 2009-05-25 10:37:04 $
+#
+
+
+#ifdef BCMCCX
+C_DEFINES += -DBCMCCX
+#endif
+include sources.socket
+
+OTHER_SOURCES=sources.dongle sources.wifi

@@ -107,15 +107,12 @@ static void nexus_surface_compositor_p_submitframebuffer(struct NEXUS_SurfaceCom
 
 static void nexus_surface_compositor_slave_compositing_completed(struct NEXUS_SurfaceCompositorDisplay *slaveDisplay)
 {
-    unsigned new_ref_cnt;
-
     BDBG_MSG_TRACE(("slave_compositing_completed:%#lx %#lx:%#lx", (unsigned long)slaveDisplay, (unsigned long)slaveDisplay->compositing, (unsigned long)slaveDisplay->master_framebuffer));
     BDBG_ASSERT(slaveDisplay->master_framebuffer);
     BDBG_ASSERT(slaveDisplay->master_framebuffer->ref_cnt>0);
     BDBG_ASSERT(slaveDisplay->compositing);
 
     slaveDisplay->master_framebuffer->ref_cnt--;
-    new_ref_cnt = slaveDisplay->master_framebuffer->ref_cnt;
     slaveDisplay->master_framebuffer = NULL;
     slaveDisplay->composited =  slaveDisplay->compositing;
     slaveDisplay->compositing = NULL;

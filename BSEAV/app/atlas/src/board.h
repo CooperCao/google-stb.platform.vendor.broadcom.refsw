@@ -91,7 +91,7 @@ protected:
     MString  _name;
     MString  _revision;
     char     _major;
-    uint16_t _minor;
+    unsigned _minor;
 };
 
 class CChipInfo
@@ -105,7 +105,7 @@ public:
     eRet         setRevision(const char * revision);
     const char * getRevision(void) { return(_revision.s()); }
     char         getMajor()        { return(_major); }
-    uint16_t     getMinor()        { return(_minor); }
+    unsigned     getMinor()        { return(_minor); }
 
     eRet addFamily(CChipFamily family);
     eRet removeFamily(CChipFamily family);
@@ -118,7 +118,7 @@ protected:
     uint32_t            _number;
     MString             _revision;
     char                _major;
-    uint16_t            _minor;
+    unsigned            _minor;
     MList <CChipFamily> _familyList;
 };
 
@@ -161,23 +161,23 @@ public:
     CBoardResources();
     ~CBoardResources();
 
-    virtual eRet add(eBoardResource resource, const uint16_t numResources, const char * name, CConfiguration * pCfg,
-            const uint16_t startIndex = 0, const unsigned id = 0);
+    virtual eRet add(eBoardResource resource, const unsigned numResources, const char * name, CConfiguration * pCfg,
+            const unsigned startIndex = 0, const unsigned id = 0);
 
 #if NEXUS_HAS_FRONTEND
-    eRet addFrontend(const uint16_t numTuner, CConfiguration * pCfg, NEXUS_FrontendCapabilities * pCapabilities = NULL);
+    virtual eRet addFrontend(const unsigned numTuner, CConfiguration * pCfg, NEXUS_FrontendCapabilities * pCapabilities = NULL);
 #endif
 
     void clear(void);
 
-    CResource * checkoutResource(void * id, eBoardResource resource, uint16_t index = ANY_INDEX, uint32_t number = ANY_NUMBER);
+    CResource * checkoutResource(void * id, eBoardResource resource, unsigned index = ANY_INDEX, uint32_t number = ANY_NUMBER);
     eRet        checkinResource(CResource * pResource);
-    CResource * reserveResource(void * id, eBoardResource resource, uint16_t index = ANY_INDEX);
-    CResource * findCheckedoutResource(void * id, eBoardResource resource, uint16_t index = ANY_INDEX);
-    bool        findResource(void * id, eBoardResource resource, uint16_t index = ANY_INDEX);
+    CResource * reserveResource(void * id, eBoardResource resource, unsigned index = ANY_INDEX);
+    CResource * findCheckedoutResource(void * id, eBoardResource resource, unsigned index = ANY_INDEX);
+    bool        findResource(void * id, eBoardResource resource, unsigned index = ANY_INDEX);
 
-    eRet registerObserver(void * id, eBoardResource resource, CObserver * pObserver, uint16_t index = ANY_INDEX, eNotification notification = eNotify_All);
-    eRet unregisterObserver(void * id, eBoardResource resource, CObserver * pObserver, uint16_t index = ANY_INDEX, eNotification notification = eNotify_All);
+    eRet registerObserver(void * id, eBoardResource resource, CObserver * pObserver, unsigned index = ANY_INDEX, eNotification notification = eNotify_All);
+    eRet unregisterObserver(void * id, eBoardResource resource, CObserver * pObserver, unsigned index = ANY_INDEX, eNotification notification = eNotify_All);
 
     void dump(bool bForce = false);
     void dumpList(MList <CResource> * pList);

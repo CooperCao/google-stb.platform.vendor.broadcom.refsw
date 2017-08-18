@@ -306,7 +306,7 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
       uint32_t                            ulWinIndex,
       BVDC_WinMemConfigSettings          *pWindow )
 {
-    bool             bStg, bForceCapture, bSclCapSymmetric;
+    bool             bStg, bForceCapture;
     BVDC_SclCapBias  eSclCapBias;
 
     BDBG_ASSERT(pSystemConfigInfo);
@@ -352,7 +352,7 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
 #if BVDC_P_SUPPORT_XCODE_WIN_CAP
         bStg, false,
 #endif
-        &bForceCapture, &bSclCapSymmetric, &eSclCapBias, NULL);
+        &bForceCapture, &eSclCapBias, NULL);
 
     pWindow->bSmoothScaling = (eSclCapBias != BVDC_SclCapBias_eAuto)
         ? true : false;

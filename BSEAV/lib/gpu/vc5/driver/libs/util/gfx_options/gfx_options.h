@@ -12,7 +12,7 @@
 #include <string>
 #endif
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern bool gfx_options_bool_log_cat(struct log_cat *cat, const char *name, bool def);
 extern uint32_t gfx_options_uint32_log_cat(struct log_cat *cat, const char *name, uint32_t def);
@@ -24,7 +24,7 @@ extern int gfx_options_enum_log_cat(struct log_cat *cat, const char *name, int d
    /* List of (enum_name, enum_value) pairs ending with enum_name == NULL */
    ...);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #ifdef __cplusplus
 static inline std::string gfx_options_str_cpp_log_cat(struct log_cat *cat, const char *name, const char *def)

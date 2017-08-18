@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacPibDefs.h $
-*
-* DESCRIPTION:
-*   MAC-PIB internals definitions.
-*
-* $Revision: 10537 $
-* $Date: 2016-03-18 12:15:44Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MAC-PIB internals definitions.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_PIB_DEFS_H
 #define _BB_MAC_PIB_DEFS_H
@@ -83,17 +76,12 @@ typedef struct _MacPibEssential_t {
     MAC_ShortAddress_t      macShortAddress;            /*!< Value of macShortAddress. */
 
     /* 8-bit data. */
-    PHY_PageChannel_t      macCurrentChannelOnPage;     /*!< Values of macCurrentPage and macCurrentChannel. */
-
-    MAC_Dsn_t              macDSN;                      /*!< Value of macDSN. */
-
-    MAC_MaxCSMABackoffs_t  macMaxCSMABackoffs;          /*!< Value of macMaxCSMABackoffs. */
-
-    MAC_MinBE_t            macMinBE;                    /*!< Value of macMinBE. */
-
-    MAC_MaxBE_t            macMaxBE;                    /*!< Value of macMaxBE. */
-
-    MAC_MaxFrameRetries_t  macMaxFrameRetries;          /*!< Value of macMaxFrameRetries. */
+    PHY_PageChannel_t       macCurrentChannelOnPage;    /*!< Values of macCurrentPage and macCurrentChannel. */
+    MAC_Dsn_t               macDSN;                     /*!< Value of macDSN. */
+    MAC_MaxCSMABackoffs_t   macMaxCSMABackoffs;         /*!< Value of macMaxCSMABackoffs. */
+    MAC_MinBE_t             macMinBE;                   /*!< Value of macMinBE. */
+    MAC_MaxBE_t             macMaxBE;                   /*!< Value of macMaxBE. */
+    MAC_MaxFrameRetries_t   macMaxFrameRetries;         /*!< Value of macMaxFrameRetries. */
 
     /* 1-bit data. */
     MAC_RxOnWhenIdle_t      macRxOnWhenIdle;            /*!< Value of macRxOnWhenIdle. */
@@ -130,12 +118,11 @@ typedef struct _MacPibZBPRO_t {
 
     /* 16-bit data. */
     MAC_CoordShortAddress_t             macCoordShortAddress;           /*!< Value of macCoordShortAddress. */
-    MAC_TransactionPersistenceTime_t  macTransactionPersistenceTime;    /*!< Value of macTransactionPersistenceTime. */
-
-    MAC_MaxFrameTotalWaitTime_t       macMaxFrameTotalWaitTime;         /*!< Value of macMaxFrameTotalWaitTime. */
+    MAC_TransactionPersistenceTime_t    macTransactionPersistenceTime;  /*!< Value of macTransactionPersistenceTime. */
+    MAC_MaxFrameTotalWaitTime_t         macMaxFrameTotalWaitTime;       /*!< Value of macMaxFrameTotalWaitTime. */
 
     /* 8-bit data. */
-    MAC_ResponseWaitTime_t            macResponseWaitTime;              /*!< Value of macResponseWaitTime. */
+    MAC_ResponseWaitTime_t              macResponseWaitTime;            /*!< Value of macResponseWaitTime. */
 
     /* 1-bit data. */
     MAC_PanCoordinator_t                macPanCoordinator;              /*!< Value of macPanCoordinator. */
@@ -198,19 +185,22 @@ typedef struct _MacPibSecurity_t {
 #define MAC_ATTR_DEFAULT_VALUE_COORD_EXTENDED_ADDRESS           MAC_UNASSIGNED_EXTENDED_ADDRESS
 #define MAC_ATTR_DEFAULT_VALUE_COORD_SHORT_ADDRESS              MAC_UNASSIGNED_SHORT_ADDRESS
 #define MAC_ATTR_DEFAULT_VALUE_DSN                              0x00
-#define MAC_ATTR_DEFAULT_VALUE_GTS_PERMIT                       FALSE   /* Nonbeacon-enabled PAN does not provide GTS. */
+#define MAC_ATTR_DEFAULT_VALUE_GTS_PERMIT                       FALSE   /* Nonbeacon-enabled PAN doesn't provide GTS. */
 #define MAC_ATTR_DEFAULT_VALUE_MAX_CSMA_BACKOFFS                4
 #define MAC_ATTR_DEFAULT_VALUE_MIN_BE                           3
+#define MAC_ATTR_DEFAULT_VALUE_MIN_BE_ZBPRO                     5       /* See ZigBee PRO r20, Annex D.6. */
 #define MAC_ATTR_DEFAULT_VALUE_PAN_ID                           MAC_UNASSIGNED_PAN_ID
-#define MAC_ATTR_DEFAULT_VALUE_PROMISCUOUS_MODE                 FALSE
+#define MAC_ATTR_DEFAULT_VALUE_PROMISCUOUS_MODE                 MAC_PROMISCUOUS_MODE_DISABLED
 #define MAC_ATTR_DEFAULT_VALUE_RX_ON_WHEN_IDLE                  FALSE
 #define MAC_ATTR_DEFAULT_VALUE_SHORT_ADDRESS                    MAC_UNASSIGNED_SHORT_ADDRESS
 #define MAC_ATTR_DEFAULT_VALUE_SUPERFRAME_ORDER                 15
 #define MAC_ATTR_DEFAULT_VALUE_TRANSACTION_PERSISTENCE_TIME     0x01F4
 #define MAC_ATTR_DEFAULT_VALUE_ASSOCIATED_PAN_COORD             FALSE
 #define MAC_ATTR_DEFAULT_VALUE_MAX_BE                           5
-#define MAC_ATTR_DEFAULT_VALUE_MAX_FRAME_TOTAL_WAIT_TIME        1220    // TODO: Default value according to the MAC Cert. Test Spec., test DATA-04.
-//#define MAC_ATTR_DEFAULT_VALUE_MAX_FRAME_TOTAL_WAIT_TIME        1986    /* TODO: Replace with expression according to default PHY; see the comment below. */
+#define MAC_ATTR_DEFAULT_VALUE_MAX_BE_ZBPRO                     8       /* See ZigBee PRO r20, Annex D.6. */
+#define MAC_ATTR_DEFAULT_VALUE_MAX_FRAME_TOTAL_WAIT_TIME        (1220 + 266)    /* According to DATA-04 cert. test. */
+#define MAC_ATTR_DEFAULT_VALUE_MAX_FRAME_TOTAL_WAIT_TIME_ZBPRO  \
+        ((31 + 63 + 127 + 255 * (4 - 3 + 1)) * 20 + 8 * (4 + 1) + 12 + 266)     /* For macMinBE = 5 and macMaxBE = 8. */
 #define MAC_ATTR_DEFAULT_VALUE_MAX_FRAME_RETRIES                3
 #define MAC_ATTR_DEFAULT_VALUE_RESPONSE_WAIT_TIME               32
 #define MAC_ATTR_DEFAULT_VALUE_SYNC_SYMBOL_OFFSET               0
@@ -226,9 +216,7 @@ typedef struct _MacPibSecurity_t {
 /**@}*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
-/* IDEA: Implement as a macro-formula from other default values.
- *
- * Probably better to implement a common function for the def-macro and for macPibApiGetDefaultMaxFrameTotalWaitTime()
+/* Probably better to implement a common function for the def-macro and for macPibApiGetDefaultMaxFrameTotalWaitTime()
  *
  * Default value for macMaxFrameTotalWaitTime @ 2.45 MHz band:
  *
@@ -249,10 +237,11 @@ typedef struct _MacPibSecurity_t {
  *  macMaxFrameTotalWaitTime = (8*3+31*2)*20+266 = 1986
  */
 
-
-/*
- * MAC-PIB attributes values constraints.
+/*--------------------------------------------------------------------------------------------------------------------*/
+/**//**
+ * \name    MAC-PIB attributes values constraints.
  */
+/**@{*/
 #define MAC_ATTR_ONLYALLOWED_VALUE_CONTEXT_ENABLED              TRUE
 #define MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_ZBPRO   16
 #define MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_RF4CE   4
@@ -262,6 +251,8 @@ typedef struct _MacPibSecurity_t {
 #define MAC_ATTR_MAXALLOWED_VALUE_MAX_FRAME_RETRIES             7
 #define MAC_ATTR_MAXALLOWED_VALUE_RESPONSE_WAIT_TIME            64
 #define MAC_ATTR_MINALLOWED_VALUE_RESPONSE_WAIT_TIME            2
-
+/**@}*/
 
 #endif /* _BB_MAC_PIB_DEFS_H */
+
+/* eof bbMacPibDefs.h */

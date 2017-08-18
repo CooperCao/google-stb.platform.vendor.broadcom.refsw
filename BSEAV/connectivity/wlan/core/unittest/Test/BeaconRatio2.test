@@ -1,0 +1,196 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for checking beacon receive ratios
+# $Id: 1fb4be9bc297bc0ca984825b987fa0e8adc870ef $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::ControlChart
+
+package provide UTF::Test::BeaconRatio2 2.0
+
+UTF::Test BeaconRatio2 {AP1 AP2 STA1 args} {
+    UTF::Getopts [subst {
+	{msg.arg "BeaconRatio2" "Message"}
+	{s.arg 5 "Number of samples"}
+	{t.arg 2 "Wait time in seconds"}
+	{chanspec1.arg 36/80 "Chanspec1"}
+	{chanspec2.arg 3 "Chanspec1"}
+	{dtim1.arg 3 "dtim1 mode"}
+	{dtim2.arg 3 "dtim2 mode"}
+	{PM.arg 1 "PM mode"}
+	{key.arg "" "Controlchart key"}
+	{png.arg 1 "Use png file"}
+	{perfloop.parg 1 "Perf loops"}
+	{perfcache.arg "" "Performance Cache"}
+	{history.arg 30 "Performance History"}
+	{nocache "Don't update performance cache"}
+	{prpkt "Log packets"}
+	{branch.arg "[$STA1 branchname]" "Branch"}
+	{core2.arg "" "Core to attach secondary interface"}
+    }]
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+    set icargs ""
+    if {$(core2) ne ""} {
+	lappend icargs -c $(core2)
+    }
+
+
+    # Fail criteria
+    set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+    set msg "$STA1: $(msg): PM$(PM)"
+
+    set key [concat $(branch) BeaconRatio PM=$(PM) $(key)]
+    UTF::Try $msg {
+	set STA2 [$STA1 wl_interface_create sta #2 {*}$icargs]
+	set olddtim1 [$AP1 wl dtim]
+	if {$olddtim1 ne $(dtim1)} {
+	    $AP1 wl down
+	    $AP1 wl dtim $(dtim1)
+	} else {
+	    unset olddtim1
+	}
+	set olddtim2 [$AP2 wl dtim]
+	if {$olddtim2 ne $(dtim2)} {
+	    $AP2 wl down
+	    $AP2 wl dtim $(dtim2)
+	} else {
+	    unset olddtim2
+	}
+
+	ConnectAPSTA $AP1 $STA1 -security open -chanspec $(chanspec1)
+	ConnectAPSTA $AP2 $STA2 -security open -chanspec $(chanspec2)
+
+	set oldPM1 [$STA1 wl PM]
+	set oldPM2 [$STA2 wl PM]
+
+	set msgactions [$STA1 cget -msgactions]
+
+
+	$STA1 wl PM $(PM)
+	$STA2 wl PM $(PM)
+	# Beacons per msec, based on router beacon interval
+	set bpms1 [expr {(1000.0 / (1024 * [$AP1 wl bi]))}]
+	set dtim1 [$STA1 wl dtim]
+
+	UTF::ControlChart CC1 -s $(s) -key [concat $key $dtim1 $STA1 $AP1] \
+	    -perfcache $(perfcache) -history $(history) \
+	    -title "PM $(PM) Beacon Ratio" \
+	    -ylabel "Beacon Ratio" -units % \
+	    -overridehistoricalmean [expr {100.0/$dtim1}]
+
+	# Beacons per msec, based on router beacon interval
+	set bpms2 [expr {(1000.0 / (1024 * [$AP2 wl bi]))}]
+	set dtim2 [$STA2 wl dtim]
+	UTF::ControlChart CC2 -s $(s) -key [concat $key $dtim2 $STA2 $AP2] \
+	    -perfcache $(perfcache) -history $(history) \
+	    -title "PM $(PM) Beacon Ratio" \
+	    -ylabel "Beacon Ratio" -units % \
+	    -overridehistoricalmean [expr {100.0/$dtim2}]
+
+	# Make sure devices are idle before sampling
+	$STA1 idlewait $AP1 -warn
+	$STA2 idlewait $AP2 -warn
+
+	$STA1 configure -msgactions [linsert $msgactions 1 {unaligned TBTT} WARN]
+	if {$(prpkt)} {
+	    $STA1 wl msglevel +prpkt
+	}
+	for {set i 0} {$i < $(perfloop)} {incr i} {
+	    set before1 [$STA1 wl_counter rxbeaconmbss]
+	    set before2 [$STA2 wl_counter rxbeaconmbss]
+	    set start [clock clicks -milliseconds]
+	    set samples1 {}
+	    set samples2 {}
+
+	    for {set s 0} {$s < $(s)} {incr s} {
+		UTF::Sleep $(t)
+		set after1 [$STA1 wl_counter rxbeaconmbss]
+		set after2 [$STA2 wl_counter rxbeaconmbss]
+		set end [clock clicks -milliseconds]
+		set bcns1 [expr {$after1 - $before1}]
+		set bcns2 [expr {$after2 - $before2}]
+		set int [expr {($end - $start)}]
+		set expected1 [expr {$int * $bpms1}]
+		set expected2 [expr {$int * $bpms2}]
+		set percent1 [expr {100 * $bcns1 / $expected1}]
+		set percent2 [expr {100 * $bcns2 / $expected2}]
+		UTF::Message LOG [$STA1 cget -name] \
+		    [format {%dms: bcns: %d/%.1f (%.2f%%)} \
+			 $int $bcns1 $expected1 $percent1]
+		UTF::Message LOG [$STA2 cget -name] \
+		    [format {%dms: bcns: %d/%.1f (%.2f%%)} \
+			 $int $bcns2 $expected2 $percent2]
+		lappend samples1 $percent1
+		lappend samples2 $percent2
+		set before1 $after1
+		set before2 $after2
+		set start $end
+	    }
+	    set ret1 [CC1 addsample [UTF::MeanMinMax $samples1]]
+	    set ret2 [CC2 addsample [UTF::MeanMinMax $samples2]]
+	}
+	if {$(prpkt)} {
+	    $STA1 wl msglevel -prpkt
+	}
+
+	set code 0
+	if {[regexp $FAILMATCH $ret1]} {
+	    UTF::Message FAIL "" $ret1
+	    set code 1
+	} else {
+	    UTF::Message PASS "" $ret1
+	}
+	if {[regexp $FAILMATCH $ret2]} {
+	    UTF::Message FAIL "" $ret2
+	    set code 1
+	} else {
+	    UTF::Message PASS "" $ret2
+	}
+
+	if {![string is false $(png)]} {
+	    set ret1 [CC1 plotcontrolchart $ret1]
+	    set ret2 [CC2 plotcontrolchart $ret2]
+	}
+	regsub {^html:} $ret1 {} ret1
+	regsub {^html:} $ret2 {} ret2
+	set results "html: $ret1<br />$ret2"
+	CC1 destroy
+	CC2 destroy
+	if {$code} {
+	    throw FAIL $results
+	} else {
+	    return $results
+	}
+    } finally {
+	$AP2 configure -ssid ""
+	if {[info exists msgactions]} {
+	    $STA1 configure -msgactions $msgactions
+	}
+	if {[info exists olddtim1]} {
+	    $AP1 wl down
+	    $AP1 wl dtim $olddtim1
+	    $AP1 wl up
+	    $AP1 wl bss up
+	}
+	if {[info exists olddtim2]} {
+	    $AP2 wl down
+	    $AP2 wl dtim $olddtim2
+	    $AP2 wl up
+	    $AP2 wl bss up
+	}
+	if {[info exists oldPM1]} {
+	    $STA1 wl PM $oldPM1
+	}
+	if {[info exists oldPM2]} {
+	    $STA2 wl PM $oldPM2
+	}
+	$STA2 wl_interface_remove
+    }
+}

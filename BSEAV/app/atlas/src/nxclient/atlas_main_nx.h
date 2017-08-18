@@ -53,7 +53,7 @@ class CAtlasNx : public CAtlas
 {
 public:
     CAtlasNx(
-            uint16_t      number,
+            unsigned      number,
             eAtlasMode    mode,
             CChannelMgr * pChannelMgr,
 #if DVR_LIB_SUPPORT

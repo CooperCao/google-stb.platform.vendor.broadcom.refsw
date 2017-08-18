@@ -112,7 +112,7 @@ struct nxserver_settings
     NEXUS_MemoryConfigurationSettings memConfigSettings; /* pass in memconfig used to init system */
     enum nxserverlib_svp_type svp; /* Secure Video Path: settings */
     unsigned growHeapBlockSize; /* NXCLIENT_DYNAMIC_HEAP will grow and shrink with these contiguous blocks.
-                                   Should be >= the largest contiguous block requried. */
+                                   Should be >= the largest contiguous block required. */
     unsigned timeout;
     bool prompt;
     bool grab; /* allow clients to grab resources from other clients */
@@ -135,6 +135,13 @@ struct nxserver_settings
     struct {
         bool i2sEnabled;
     } audioInputs;
+    struct {
+        bool i2sEnabled[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+        bool dacEnabled[NEXUS_MAX_AUDIO_DAC_OUTPUTS];
+        bool spdifEnabled[NEXUS_MAX_AUDIO_SPDIF_OUTPUTS];
+        bool hdmiEnabled[NEXUS_MAX_AUDIO_HDMI_OUTPUTS];
+        bool rfmEnabled;
+    } audioOutputs;
     struct {
         unsigned fifoSize; /* default fifo size. if 0, use internal defaults. */
     } audioPlayback;
@@ -177,13 +184,11 @@ struct nxserver_settings
         bool keypad;
         bool allowSpdif4xCompressed;        /* allow 61937x4 mode over SPDIF interface - used for special applications, many AVRs
                                             do not support this mode */
+        bool i2sOutputEnabled[NEXUS_MAX_AUDIO_I2S_OUTPUTS]; /* If 0 is true do not share DAC settings, if 1 is true attach 2nd I2S if preesnt on chip */
     } session[NXCLIENT_MAX_SESSIONS];
 
     NxClient_DisplaySettings display; /* only session 0 */
     struct {
-        struct {
-            bool initialFormat; /* use user-specified display format at init, but follow HDMI EDID preferred format for any hotplug after that. */
-        } hd;
         struct {
             NEXUS_Rect graphicsPosition;
             bool dedicatedTimebase; /* HD uses timebase 0. This allows SD to have no jitter from PCR clock recovery.
@@ -214,8 +219,8 @@ struct nxserver_settings
 
 #if NEXUS_HAS_HDMI_OUTPUT
     struct {
-        char *hdcp2xBinFile;
-        char *hdcp1xBinFile;
+        char hdcp2xBinFile[128];
+        char hdcp1xBinFile[128];
         NxClient_HdcpLevel alwaysLevel;
         NxClient_HdcpVersion versionSelect;
     } hdcp;
@@ -271,6 +276,10 @@ struct nxserver_cmdline_settings
         unsigned userId, groupId; /* drop to this user and group id after connecting to driver */
     } permissions;
     bool dtu;
+    struct {
+        unsigned queued_elements;
+        unsigned threads;
+    } file;
 };
 
 
@@ -351,8 +360,6 @@ void        NxClient_P_GetDisplaySettings(nxclient_t client, struct b_session *s
 NEXUS_Error NxClient_P_SetDisplaySettings(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings );
 NEXUS_Error NxClient_P_GetDisplayStatus(struct b_session *session, NxClient_DisplayStatus *pStatus );
 
-void NxClient_P_GetComposition(nxclient_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *composition);
-NEXUS_Error NxClient_P_SetComposition(nxclient_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *composition);
 NEXUS_Error NxClient_P_WriteTeletext(nxclient_t client, const nxclient_p_teletext_data *data, size_t numLines,  size_t *pNumLinesWritten);
 NEXUS_Error NxClient_P_WriteClosedCaption(nxclient_t client, const nxclient_p_closecaption_data *data, size_t numEntries, size_t *pNumEntriesWritten );
 NEXUS_Error NxClient_P_Display_SetWss(nxclient_t client, uint16_t wssData);

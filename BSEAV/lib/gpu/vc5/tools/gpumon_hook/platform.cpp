@@ -28,40 +28,6 @@ void plUnlockMutex(MutexHandle *handle)
    pthread_mutex_unlock(handle);
 }
 
-unsigned int plGetTimeNowMs()
-{
-   return plGetTimeNowUs() / 1000;
-}
-
-uint64_t plGetTimeNowUs()
-{
-   static uint64_t sTimeBase = 0;
-
-   uint64_t nowUs;
-
-   struct timespec now;
-
-   clock_gettime(CLOCK_MONOTONIC, &now);
-
-   nowUs = now.tv_sec * 1000000;
-   nowUs += now.tv_nsec / 1000;
-
-   if (sTimeBase == 0)
-      sTimeBase = nowUs;
-
-   return nowUs - sTimeBase;
-}
-
-void plGetTime(TIMESTAMP *now)
-{
-   clock_gettime(CLOCK_REALTIME, now);
-}
-
-unsigned int plTimeDiffNano(TIMESTAMP *start, TIMESTAMP *end)
-{
-   return ((end->tv_sec - start->tv_sec) * 1000000000) + (end->tv_nsec - start->tv_nsec);
-}
-
 static pthread_once_t  sInitLockOnce;
 static pthread_mutex_t sGlobalLock;
 static unsigned int    sLastThreadId = 0;
@@ -150,28 +116,6 @@ void plLockMutex(MutexHandle *handle)
 void plUnlockMutex(MutexHandle *handle)
 {
    ReleaseMutex(*handle);
-}
-
-unsigned int plGetTimeNowMs()
-{
-   return timeGetTime();
-}
-
-uint64_t plGetTimeNowUs()
-{
-   unsigned int msec = timeGetTime();
-
-   return (uint64_t)msec * 1000;
-}
-
-void plGetTime(TIMESTAMP *now)
-{
-   *now = 0;   /* Not needed on Windows */
-}
-
-unsigned int plTimeDiffNano(TIMESTAMP *start, TIMESTAMP *end)
-{
-   return *end - *start;
 }
 
 // TODO - Windows platform funcs

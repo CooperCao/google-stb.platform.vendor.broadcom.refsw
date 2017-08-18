@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: branches/dkiselev/ZRC2/stack/RF4CE/Profiles/ZRC/include/private/bbRF4CEZRCPrivateHeartbeat.h $
- *
- * DESCRIPTION:
- *   This is the header file for the RF4CE private ZRC heartbeat handler.
- *
- * $Revision: 4430 $
- * $Date: 2014-11-10 14:33:34Z $
- *
- ****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/******************************************************************************
+*
+* DESCRIPTION:
+*       RF4CE GDP 2.0 Heartbeat command processor private interface.
+*
+*******************************************************************************/
 
 #ifndef _BB_RF4CE_ZRC_PRIVATE_HEARTBEAT_H
 #define _BB_RF4CE_ZRC_PRIVATE_HEARTBEAT_H
@@ -64,6 +56,7 @@
 /**//**
  * \brief   Structure for parameters of the request to issue the Heartbeat GDP command.
  * \details The \c pollingTriggerId field specifies the fired trigger that will be
+ *  reported to the Poll Server in the Heartbeat GDP command. All triggers are valid in
  *  general except the Time Based Polling and the Key Press Polling (these two are
  *  generated internally by the Poll Client). The \c pairingRef must be a valid reference
  *  of the linked Poll Server to be polled.
@@ -102,6 +95,12 @@ typedef struct _Rf4ceGdp2HeartbeatReqDescr_t  Rf4ceGdp2HeartbeatReqDescr_t;
  * \brief   Template for callback handler-function of the confirmation on request to
  *  issue the Heartbeat GDP command.
  * \param[in]   reqDescr        Pointer to the confirmed request descriptor.
+ * \param[in]   confParams      Pointer to the confirmation parameters object.
+ * \details
+ *  This callback function shall be provided internally by the Poll Service on the Poll
+ *  Client side. This function will be called by the GDP layer on completion of
+ *  corresponding request. The request descriptor object being confirmed is pointed with
+ *  the \p reqDescr; the confirmed request descriptor object may be dismissed or reused by
  *  the Poll Service just when this callback function is called. The confirmation
  *  parameters structured object is temporarily created in the program stack and is
  *  pointed here with the \p confParams; the parameters object must be processed
@@ -124,12 +123,13 @@ struct _Rf4ceGdp2HeartbeatReqDescr_t
     /* Structured data. */
     RF4CE_NWK_RequestService_t        service;          /*!< Service field. */
 #else
-	void *context;
+    void *context;
 #endif
 
     /* Structured data. */
     Rf4ceGdp2HeartbeatReqParams_t     params;           /*!< Request parameters structured object. */
-};
+
+}; /* Rf4ceGdp2HeartbeatReqDescr_t */
 
 
 /************************* PROTOTYPES ***************************************************/
@@ -144,7 +144,7 @@ void rf4ceGdp2HeartbeatReq(Rf4ceGdp2HeartbeatReqDescr_t *const reqDescr);
 
 
 /*************************************************************************************//**
- * \brief   Handles the request to issue the Heartbeat GDP command.
+ * \brief   Handles a request to issue the Heartbeat GDP command.
  * \param[in]   queueElement        Pointer to the service field of the descriptor object
  *  of the original request to issue the Heartbeat GDP command.
  * \details
@@ -181,6 +181,8 @@ void rf4ceGdp2HeartbeatGenericResponseInd(uint8_t pairingRef, RF4CE_ZRC2GDP2_Sta
  * \brief   Handles the Client Notification GDP command received on the Heartbeat GDP
  *  command.
  * \param[in] dataIndParams         Pointer to the NLDE-DATA.indication parameters object.
+ * \param[in] dataPayloadLength     Length in bytes of the received RF4CE NWK Data frame
+ *  payload (i.e., the length of the Client Notification GDP frame).
  * \param[in] leaveReceiverOn       TRUE if necessary to leave the receiver switched on.
  * \details
  *  This function shall be called internally by this node command processor on reception
@@ -199,3 +201,5 @@ void rf4cezrc2RXEnableReq(RF4CE_NWK_RXEnableReqDescr_t *reqDescr);
 
 
 #endif /* _BB_RF4CE_ZRC_PRIVATE_HEARTBEAT_H */
+
+/* eof bbRF4CEZRCPrivateHeartbeat.h */

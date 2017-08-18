@@ -8,7 +8,7 @@
 #include "v3d_gen.h"
 #include "v3d_limits.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 // V3D_TMU_F_BITS sets # blend bits for bi/tri linear
 // e.g. 4 bits give 16 levels bend,
@@ -66,14 +66,25 @@ static inline bool v3d_tmu_is_depth_type(v3d_tmu_type_t type)
 {
    switch (type)
    {
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP16:
-   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH_COMP32F:
+#endif
+   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH24_X8:
       return true;
    default:
       return false;
    }
+}
+
+static inline bool v3d_tmu_type_supports_shadow(v3d_tmu_type_t type)
+{
+#if V3D_HAS_TMU_R32F_R16_SHAD
+   if (type == V3D_TMU_TYPE_R32F || type == V3D_TMU_TYPE_R16)
+      return true;
+#endif
+   return v3d_tmu_is_depth_type(type);
 }
 
 typedef enum
@@ -115,16 +126,16 @@ extern uint32_t v3d_tmu_get_num_channels(v3d_tmu_type_t type);
 /* Return the output type (true=32, false=16) that is used when
  * !V3D_MISCCFG.ovrtmuout or when (cfg=1 & ltype!=CHILD_IMAGE &
  * output_type=V3D_TMU_OUTPUT_TYPE_AUTO) */
-extern bool v3d_tmu_auto_output_32(v3d_tmu_type_t type, bool shadow, bool coefficient);
+extern bool v3d_tmu_auto_output_32(v3d_tmu_type_t type, bool shadow);
 
 static inline bool v3d_tmu_output_type_32(v3d_tmu_output_type_t output_type,
-   v3d_tmu_type_t type, bool shadow, bool coefficient)
+   v3d_tmu_type_t type, bool shadow)
 {
    switch (output_type)
    {
    case V3D_TMU_OUTPUT_TYPE_16:     return false;
    case V3D_TMU_OUTPUT_TYPE_32:     return true;
-   case V3D_TMU_OUTPUT_TYPE_AUTO:   return v3d_tmu_auto_output_32(type, shadow, coefficient);
+   case V3D_TMU_OUTPUT_TYPE_AUTO:   return v3d_tmu_auto_output_32(type, shadow);
    default:                         unreachable();
    }
 }
@@ -138,9 +149,7 @@ extern uint32_t v3d_tmu_get_word_read_default(
 
 /* Get the maximum number of words that can be returned by the TMU with the
  * specified configuration */
-extern uint32_t v3d_tmu_get_word_read_max(
-   v3d_tmu_type_t type, bool coefficient, bool gather,
-   bool output_32);
+extern uint32_t v3d_tmu_get_word_read_max(v3d_tmu_type_t type, bool gather, bool output_32);
 
 extern bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type);
 
@@ -179,13 +188,15 @@ struct v3d_tmu_cfg
    bool pix_mask; /* General too */
    bool tmuoff_4x; /* false if tmuoff was not written */
    bool bslod;
-   bool coefficient;
-   uint32_t coeff_sample;
+   uint32_t sample_num;
    bool gather;
    int32_t tex_off_s;
    int32_t tex_off_t;
    int32_t tex_off_r;
    v3d_tmu_op_t op; /* General too */
+#if V3D_HAS_TMU_LOD_QUERY
+   bool lod_query;
+#endif
 
    /* From texture state */
    bool flipx;
@@ -234,9 +245,7 @@ struct v3d_tmu_cfg
    /* For texture accesses, derived from rest of config */
    v3d_addr_t base_addr; /* Offsets in mip_levels are relative to this */
    GFX_BUFFER_DESC_T mip_levels[V3D_MAX_MIP_COUNT];
-   /* The range of mip levels the hardware might access. Note that in
-    * coefficient mode, the hardware will never actually access any memory, but
-    * we still set minlvl/miplvls as if it would. */
+   /* The range of mip levels the hardware might access. */
    uint32_t minlvl, miplvls;
    /* The format we should have through the blend pipeline stage */
    GFX_LFMT_T blend_fmt;
@@ -278,4 +287,9 @@ extern void v3d_tmu_cfg_collect_general(struct v3d_tmu_cfg *cfg,
    const struct v3d_tmu_reg_flags *written,
    const V3D_TMU_GENERAL_CONFIG_T *general_cfg);
 
-VCOS_EXTERN_C_END
+#if V3D_HAS_LARGE_1D_TEXTURE
+extern void v3d_tmu_get_wh_for_1d_tex_state(uint32_t *w, uint32_t *h,
+      uint32_t width_in);
+#endif
+
+EXTERN_C_END

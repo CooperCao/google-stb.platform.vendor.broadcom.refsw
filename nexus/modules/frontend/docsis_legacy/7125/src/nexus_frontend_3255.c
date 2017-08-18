@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1250,7 +1250,7 @@ static void NEXUS_Frontend_P_3255_Reacquire(void *context)
     if (rc!=BERR_SUCCESS) { BERR_TRACE(rc); return; }
     if (lockStatus != BADS_LockStatus_eLocked)
     {
-        BDBG_MSG(("%s() unlocked, reacquiring.",__FUNCTION__));
+        BDBG_MSG(("%s() unlocked, reacquiring.",BSTD_FUNCTION));
         BKNI_Memset(&params, 0, sizeof(params));
 
         if ( pSettings->annex == NEXUS_FrontendQamAnnex_eA )
@@ -1324,7 +1324,7 @@ static void NEXUS_Frontend_P_3255_ReacquireCheck(void *context)
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3255);
     BDBG_ASSERT(NULL != pSettings);
 
-	BDBG_MSG(("%s() calling firing lockAppCallback.",__FUNCTION__));
+	BDBG_MSG(("%s() calling firing lockAppCallback.",BSTD_FUNCTION));
 	NEXUS_TaskCallback_Fire(pDevice->lockAppCallback[chn_num]);
 
     if (pDevice->status != NEXUS_DocsisStatus_eOperational) return;
@@ -1338,7 +1338,7 @@ static void NEXUS_Frontend_P_3255_ReacquireCheck(void *context)
         {
             NEXUS_CancelTimer(pDevice->retuneTimer[chn_num]);
         }
-        BDBG_MSG(("%s() unlocked, schedule a timer to reacquire.",__FUNCTION__));
+        BDBG_MSG(("%s() unlocked, schedule a timer to reacquire.",BSTD_FUNCTION));
         pDevice->retuneTimer[chn_num] = NEXUS_ScheduleTimer(2000, NEXUS_Frontend_P_3255_Reacquire, context);
     }
 }
@@ -2301,7 +2301,7 @@ NEXUS_Error NEXUS_Frontend_3255_GetTnrAgc(
         return NEXUS_NOT_SUPPORTED;
     }
 	*agcVal = outParam.AgcVal;
-    BDBG_MSG((" %s	AGC is 0x%x", __FUNCTION__,*agcVal));
+    BDBG_MSG((" %s	AGC is 0x%x", BSTD_FUNCTION,*agcVal));
     return NEXUS_SUCCESS;
 
 }
@@ -4528,7 +4528,7 @@ static void NEXUS_Frontend_P_3255_GetType(void *handle,NEXUS_FrontendType *type)
     retCode = BRPC_CallProc(pDevice->rpc_handle, BRPC_ProcId_ADS_GetVersion, (const uint32_t *)&Param, sizeof(Param)/4, (uint32_t *)&outVerParam, sizeInLong(outVerParam), &retVal);
     if(retCode != BERR_SUCCESS || retVal != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: unable to get version",__FUNCTION__));
+        BDBG_ERR(("%s: unable to get version",BSTD_FUNCTION));
         goto error;
     }
     /* assigning chip ID as family ID */
@@ -4536,7 +4536,7 @@ static void NEXUS_Frontend_P_3255_GetType(void *handle,NEXUS_FrontendType *type)
     type->chip.id = outVerParam.majVer >> 16;
     type->chip.version.major = outVerParam.majVer & 0x0000000f;
     type->chip.version.minor = 0;
-    BDBG_MSG(("%s %#x  %#x ",__FUNCTION__,type->chip.familyId,type->chip.version.major));
+    BDBG_MSG(("%s %#x  %#x ",BSTD_FUNCTION,type->chip.familyId,type->chip.version.major));
 error:
     return;
 }

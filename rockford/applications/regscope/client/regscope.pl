@@ -129,7 +129,7 @@ our $g_hush = 1;
 
 # Command line options
 our %g_CmdOption = ();
-our $g_Options   = "hnR:I:S:E:D:";
+our $g_Options   = "hnxR:I:S:E:D:";
 getopts($g_Options, \%g_CmdOption);
 
 # List of registers to watch
@@ -199,6 +199,12 @@ my %vnet_hash = (
     ("TNTD_0",              "TNT_0,VNET_F_TNTD_0_SRC" ),
     ("XSRC_0",              "XRC_0,VNET_F_XSRC_0_SRC" ),
     ("XSRC_1",              "XRC_1,VNET_F_XSRC_1_SRC" ),
+    ("XSRC_2",              "XRC_2,VNET_F_XSRC_2_SRC" ),
+
+    ("ITM_0",               "ITM_0,VNET_F_ITM_0_SRC" ),
+    ("VFC_0",               "VFC_0,VNET_F_VFC_0_SRC" ),
+    ("VFC_1",               "VFC_1,VNET_F_VFC_1_SRC" ),
+    ("VFC_2",               "VFC_2,VNET_F_VFC_2_SRC" ),
 
 # value from VNET_F_*_SRC_*
     ("Loopback_0",          "LPB_0,VNET_B_LOOPBACK_0_SRC"),
@@ -344,9 +350,9 @@ else
         $g_rdb->set_strict();
         $g_rdb->AllowRegOverlap(1);
         my $error = $g_rdb->ParseFile($pathnameRDB, $filenameRDB);
+        ERROR($error->ErrorMsg) if ($error);
         CheckChipWithHWL($g_rdb);
         $g_rdb->SetVarHush($g_hush);
-        ERROR($error->ErrorMsg) if ($error);
         InteractiveMode();
     }
     else
@@ -452,7 +458,14 @@ sub InteractiveMode
 
         if($^O =~ m/linux/i)
         {
-            $cmd = $term->readline($Prompt);
+            if (defined ($g_CmdOption{x}))
+            {
+                $cmd = <STDIN>;
+            }
+            else
+            {
+                $cmd = $term->readline($Prompt);
+            }
         }
         else # Win32
         {
@@ -3090,6 +3103,7 @@ sub PrintUsage
     print "\t              registers. No advance regscope features, eg., 'bvn' are\n";
     print "\t              available. This option is used when the intended RDB\n";
     print "\t              failed load.\n";
+    print "\t-x            Doesn't use command line editing. Useful for scripting.\n";
     print "\t-D RDBdir     RDB directory holding uncompressed .rdb files for\n";
     print "\t              all chips.\n";
     print "\t-R RDBfile    RDB file that contain register field definitions.\n";
@@ -4486,7 +4500,17 @@ sub StdRDBFilesL
 
   if(defined $cmd_R)
   {
-    @RDBFiles = split(/\;/, $cmd_R);
+    # @RDBFiles = split(/\;/, $cmd_R);
+    $RDBFiles[0] = "$cmd_R" . "/current/src/top/";
+    $RDBFiles[1] = basename($cmd_R) . ".rdb";
+    my $rdbfile = $RDBFiles[1];
+
+    printf "%s\n", $rdbfile;
+
+    if(!(-e $rdbfile))
+    {
+        ERROR("Unable to find RDB file \"$potentialrdbfile\".") if($rdbfile eq "");
+    }
   }
   #elsif(defined($ENV{RDBFILE}))
   #{
@@ -4509,7 +4533,6 @@ sub StdRDBFilesL
         $sourceDirectory = './silver/';
     }
 
-    # if($^O =~ m/Win32/i)
     $chip = lc $chipdef;
 
     $RDBFiles[0] = $sourceDirectory . $chip . "/current/src/top/";
@@ -4559,4 +4582,13 @@ sub CheckChipWithHWL
     my $gak = <STDIN>;
   }
 }
+
+# For debugging with ddd
+# sub DB::get_fork_TTY
+# {
+    # open XT, q[3>&1 xterm -title 'Forked Perl debugger' -e sh -c 'tty 1>&3; sleep 10000000' |];
+    # $DB::fork_TTY = <XT>;
+    # chomp $DB::fork_TTY;
+# }
+
 # End of File

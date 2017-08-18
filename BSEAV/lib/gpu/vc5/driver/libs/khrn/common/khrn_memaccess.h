@@ -8,7 +8,7 @@
 #include "vcos_types.h"
 #include "gmem.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct khrn_render_state khrn_render_state;
 typedef struct khrn_memaccess khrn_memaccess;
@@ -26,14 +26,14 @@ void khrn_memaccess_register_resource(khrn_memaccess* ma, khrn_resource* res);
 //! This must be called before using khrn_memaccess_read().
 void khrn_memaccess_pre_read(khrn_memaccess* ma);
 
-//! Read from a v3d address. Must call khrn_memaccess_pre_read() before use.
-void khrn_memaccess_read(khrn_memaccess* ma, void *dst, v3d_addr_t read_addr, v3d_size_t read_size);
+//! Get readable pointer from v3d address. Must call khrn_memaccess_pre_read() before use.
+const void *khrn_memaccess_read_ptr(khrn_memaccess* ma, v3d_addr_t read_addr, v3d_size_t read_size);
 
 //! Implements simcom_memaccess.read.
 void khrn_memaccess_read_fn(void *dst, v3d_addr_t src_addr, size_t size,
    const char *file, uint32_t line, const char *func, void *p);
 
 //! Build GMP tables for bin/render jobs.
-void khrn_memaccess_build_gmp_tables(khrn_memaccess* ma, void* gmp_tables[2]);
+void khrn_memaccess_build_gmp_tables(khrn_memaccess* ma, uint8_t* gmp_tables);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

@@ -48,7 +48,7 @@ BDBG_MODULE(atlas_tsb);
 /* CTsb Class*/
 CTsb::CTsb(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_tsb, pCfg),

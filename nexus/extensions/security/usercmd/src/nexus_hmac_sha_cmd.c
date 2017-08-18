@@ -148,6 +148,7 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
             useBounceBuffer = true; /*Its not BMEM ... it must be system memory */
         }
 
+#if NEXUS_ZEUS_VERSION > NEXUS_ZEUS_VERSION_CALC(2,2)
         if( hsmConf.unInputDataLen <= sizeof(hsmConf.inputData) )
         {
             BHSM_MemcpySwap( hsmConf.inputData,
@@ -157,6 +158,7 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
 
             hsmConf.dataInplace = true;
         }
+#endif /* #if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(4,2) */
     }
     else
     {

@@ -1,0 +1,15 @@
+all: usbrdl_sflash_bootloader.bin
+
+usbrdl_sflash_bootloader.bin: boot-flash-nonxip run-btldr
+	@echo make the bootloader
+	cat boot-flash-nonxip/usbrdl.bin run-btldr/usbrdl.bin > $@
+
+.PHONY: boot-flash-nonxip run-btldr
+boot-flash-nonxip run-btldr: FORCE
+	$(MAKE) $@
+
+.PHONY: clean
+clean: FORCE
+	rm -rf usbrdl_sflash_bootloader.bin
+
+FORCE:

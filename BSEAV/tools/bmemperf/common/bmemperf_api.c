@@ -356,6 +356,7 @@ static void getTopBWConsumerClientStats(
 
             ptrClientData->bw        = bw;
             ptrClientData->client_id = client_index;
+            /*if ( 200 <= client_index && client_index <= 205 ) printf("%s: client_index %d\n", __FUNCTION__, client_index); CAD debug */
             ptrClientData->rr        = bmemperfData[memc_index].rrEn;
             ptrClientData->block_out = bmemperfData[memc_index].boVal;
 
@@ -594,7 +595,7 @@ void setClientList(
     }
 } /* setClientList */
 
-static void initClientList(
+void bmemperf_InitClientList(
     void
     )
 {
@@ -654,7 +655,7 @@ void *dataFetchThread(
     pthread_mutex_init( &globalStats.lock, NULL );
 
     /** initialize client list with client_id any say 10 for 0th index and INVALID for rest of the index ***/
-    initClientList();
+    bmemperf_InitClientList();
 
     bmemperf_init();
 

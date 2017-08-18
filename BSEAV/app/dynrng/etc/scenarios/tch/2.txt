@@ -1,0 +1,2 @@
+stream=ZombieClip1mn_2020_ldr.ts
+dynrng=hdr10

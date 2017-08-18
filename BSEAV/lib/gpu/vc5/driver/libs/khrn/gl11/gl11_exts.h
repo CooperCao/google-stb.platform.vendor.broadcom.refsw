@@ -25,11 +25,9 @@ static inline char *gl11_exts_str(char *s_in)
    memcpy(s, "GL_EXT_robustness", 17);
    s += 17;
    *(s++) = ' ';
-#if GL_EXT_texture_filter_anisotropic
    memcpy(s, "GL_EXT_texture_filter_anisotropic", 33);
    s += 33;
    *(s++) = ' ';
-#endif
    memcpy(s, "GL_EXT_texture_format_BGRA8888", 30);
    s += 30;
    *(s++) = ' ';
@@ -109,9 +107,7 @@ static inline unsigned gl11_exts(const char **e_in)
    *(e++) = "GL_EXT_discard_framebuffer";
    *(e++) = "GL_EXT_multisampled_render_to_texture";
    *(e++) = "GL_EXT_robustness";
-#if GL_EXT_texture_filter_anisotropic
    *(e++) = "GL_EXT_texture_filter_anisotropic";
-#endif
    *(e++) = "GL_EXT_texture_format_BGRA8888";
    *(e++) = "GL_KHR_debug";
    *(e++) = "GL_OES_EGL_image";

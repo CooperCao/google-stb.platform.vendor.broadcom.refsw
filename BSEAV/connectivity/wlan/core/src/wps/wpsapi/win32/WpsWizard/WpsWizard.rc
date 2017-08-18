@@ -1,0 +1,413 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+#include "autores.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "#include ""autores.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""WpsWizardStrings.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""version.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\WpsWizard.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 235, 55
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About WpsWizard"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "WpsWizard Version 1.0",IDC_STATIC,40,10,119,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2008",IDC_STATIC,40,25,119,8
+    DEFPUSHBUTTON   "OK",IDOK,179,7,50,16,WS_GROUP
+END
+
+IDD_WPSMODESELECTIONPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "wPS Wizard"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    CONTROL         "pBC (Push Button Configuration)",IDC_MODE_PBC,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,112,38,247,10,WS_EX_TRANSPARENT
+    CONTROL         "pIN (Personal Identification Number)",IDC_MODE_PIN,
+                    "Button",BS_AUTORADIOBUTTON | WS_TABSTOP,112,62,247,10
+    GROUPBOX        "select one of the following methods",IDC_GROUP_SELECT_MODE,99,19,269,67
+    LTEXT           "Static",IDC_STATIC_SEL_MODE_DESC,99,101,269,114
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+END
+
+IDD_PBCMODEPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "wPS Wizard"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,7,80,213
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+    LTEXT           "press the PBC button",IDC_STATIC_PBC_DESCRIPTION,110,36,241,149
+    GROUPBOX        "pbc (Push Button Configuration)",IDC_GROUP_PBC_MODE,93,9,278,199
+END
+
+IDD_PINMODEPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "wPS Wizard"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+    GROUPBOX        "pIN (Personal Identicification Number)",IDC_GROUP_PIN_MODE,93,6,280,135
+    CONTROL         "enter a PIN into my Access Point or Registrar",IDC_STAENR_GET_SETTINGS,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,104,24,260,10
+    CONTROL         "enter the PIN from my Access Point",IDC_STAER_GET_SETTINGS,
+                    "Button",BS_AUTORADIOBUTTON | BS_TOP,104,42,260,20
+    LTEXT           "pIN:",IDC_STATIC_PIN,104,65,67,9
+    EDITTEXT        IDC_REG_PINCODE,178,65,64,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Static",IDC_STATIC_PIN_DESCRIPTOIN,102,83,260,61
+    LTEXT           "Static",IDC_ENROLLEE_PINCODE,178,65,64,12
+    LTEXT           "to access the web-based Wi-Fi Protected Setup page of the WPS AP, connect an Ethernet cable from the LAN port on your computer to a LAN port on the WPS AP. Then, open a browser and type the IP address of the AP in the browser Address bar.",IDC_INST_CABLE_CONNECT_AP,93,157,280,60
+END
+
+IDD_CONFIGSTATUSPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "wPS Wizard"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_STATIC_RIGHTBK,84,0,295,220
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "configuration Stage:",IDC_LABEL_CONFIG_STATUS,98,9,135,12
+    LTEXT           "searching for WPS Access Point...",IDC_LABEL_SEARCHING_AP,112,46,202,11
+    LTEXT           "negotiating Security...",IDC_LABEL_NEGOTIATING_RETRIEVING,112,80,202,11
+    LTEXT           "creating network profile...",IDC_LABEL_CREATING_PROFILE,112,96,202,11
+    LTEXT           "restoring network environment...",IDC_LABEL_RESTORING_NETWORK_ENV,112,111,202,11
+    LTEXT           "",IDC_TXTINDICATOR_SEARCHING_AP,334,46,37,8,0,WS_EX_RIGHT
+    LTEXT           "",IDC_TXTINDICATOR_NEGOTIATING_RETRIEVING,334,80,37,8,0,WS_EX_RIGHT
+    LTEXT           "",IDC_TXTINDICATOR_CREATING_PROFILE,334,96,37,8,0,WS_EX_RIGHT
+    LTEXT           "",IDC_TXTINDICATOR_RESTORING_NETWORK_ENV,334,111,37,8,0,WS_EX_RIGHT
+    LISTBOX         IDC_STATUS_LOG,96,128,275,73,LBS_SORT | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_NOSEL | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP,WS_EX_TRANSPARENT | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE
+    LTEXT           "initializing WPS process...",IDC_LABEL_INITIALIZING_WPS,112,30,202,11
+    LTEXT           "",IDC_TXTINDICATOR_WPS_INITIALIZING,334,30,37,8,0,WS_EX_RIGHT
+    LTEXT           "connecting to Access Point...",IDC_LABEL_JOINING_AP,112,63,202,11
+    LTEXT           "",IDC_TXTINDICATOR_JOINING_AP,334,63,37,8,0,WS_EX_RIGHT
+    LTEXT           "0",IDC_BMPINDICATOR_WPS_INITIALIZING,96,30,8,8
+    LTEXT           "0",IDC_BMPINDICATOR_SEARCHING_AP,96,46,13,8
+    LTEXT           "0",IDC_BMPINDICATOR_JOINING_AP,96,63,13,8
+    LTEXT           "0",IDC_BMPINDICATOR_NEGOTIATING_RETRIEVING,96,80,13,8
+    LTEXT           "0",IDC_BMPINDICATOR_CREATING_PROFILE,96,96,13,8
+    LTEXT           "0",IDC_BMPINDICATOR_RESTORING_NETWORK_ENV,96,111,13,8
+    RTEXT           "Result",IDC_LABEL_RESULT,292,9,79,12,0,WS_EX_RIGHT
+    LTEXT           "Static",IDC_LABEL_PIN,143,205,162,11,0,WS_EX_RIGHT
+    LTEXT           "Static",IDC_STATIC_PIN,330,205,41,11
+END
+
+IDD_WELCOMEPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "wi-Fi Proected Setup Wizard"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+    CTEXT           "",IDC_STATIC_TITLE_TEXT,90,20,271,16
+    LTEXT           "Static",IDC_STATIC_DESCRIPTION,90,58,271,155
+END
+
+IDD_WIZARDPROPPG DIALOG  0, 0, 186, 95
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,129,7,50,16
+    PUSHBUTTON      "Cancel",IDCANCEL,129,26,50,16
+END
+
+IDD_SELECT_AP DIALOGEX 0, 0, 320, 187
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "AP Selection"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,176,162,62,14
+    PUSHBUTTON      "Cancel",IDCANCEL,247,162,62,14
+    LTEXT           "please select network to connect to:",IDC_LABEL_SEL_NETWORK,7,8,179,11
+    CONTROL         "",IDC_AP_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,51,302,103
+    PUSHBUTTON      "refresh",IDC_SCAN_NETWORK,237,7,72,14
+    CONTROL         "only show APs that authorized us to do WPS with",IDC_SHOW_AUTH_AP,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,7,23,255,21
+END
+
+IDD_WPSROLESELECTIONPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "wPS Wizard"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    CONTROL         "join a wireless network",IDC_ROLE_JOIN_AP,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,109,65,253,10,WS_EX_TRANSPARENT
+    CONTROL         "configure a wireless network",IDC_ROLE_CONFIG_AP,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,109,39,253,10
+    GROUPBOX        "select one of the following methods",IDC_GROUP_SELECT_MODE,98,17,272,74
+    CONTROL         "automatically select network to connect",IDC_SEL_AUTO_CONNECT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,98,103,272,10
+    LTEXT           "Static",IDC_STATIC_AUTO_SEL_DESC,98,125,272,89
+END
+
+IDD_CONFIGAPPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "wPS Wizard"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    EDITTEXT        IDC_AP_PIN,295,5,79,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_SSID,249,97,89,12,ES_AUTOHSCROLL
+    COMBOBOX        IDC_SECURITY_METHOD,249,112,89,51,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_ENCR_TYPE,249,128,89,53,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_NW_KEY,249,144,89,12,ES_AUTOHSCROLL
+    CONTROL         "hide characters as I type",IDC_CHECK_HIDE_CHAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,159,246,12
+    PUSHBUTTON      "generate Default",IDC_GENERATE_DEFAULT,293,51,79,16
+    LTEXT           "use the PIN code from my AP:",IDC_STATIC_ENTER_AP_PIN,97,5,146,13
+    LTEXT           "security Method:",IDC_STATIC_SECURITY_METHOD,109,112,133,12
+    LTEXT           "data encryption:",IDC_STATIC_DATA_ENCR,109,128,133,12
+    LTEXT           "network Key:",IDC_STATIC_NETWORK_KEY,109,144,133,12
+    LTEXT           "sSID:",IDC_STATIC_SSID,109,97,133,12
+    LTEXT           "either 8 to 63 characters or exactly 64 characters using the numbers 0-9 and the letters A-F (letters can be uppercase or lower case).",IDC_STATIC_KEY_DESC,109,178,256,31
+    GROUPBOX        "network Settings",IDC_GROUP_NETWORK_SETTINGS,97,84,275,130
+    LTEXT           "The 8-digit PIN code is printed on the label on the case of the WPS AP.",IDC_STATIC_AP_PIN_DESC,97,22,275,18
+    LTEXT           "If you want to have the wizard assign the network name and network key, click Generate Default.",IDC_GEN_DEFAULT_DESC,97,51,191,32
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,97,45,275,1
+END
+
+IDD_WPSFINISHPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    CTEXT           "sSID (network name):",IDC_LABEL_SSID,92,103,274,18
+    CTEXT           "",IDC_STATIC_SSID,92,143,274,47
+    LTEXT           "wireless Configuration via WPS Succeeded!",IDC_STATIC_RESULT_DESC,92,11,274,58
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,92,84,274,1
+END
+
+IDD_VERSELECTIONPG DIALOGEX 0, 0, 380, 220
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "wPS Wizard"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "",IDC_STATIC_LEFTBK,0,0,80,220
+    LTEXT           "",IDC_STATIC_RIGHTBK,83,0,296,220
+    GROUPBOX        "which WPS version do you want to use?",IDC_GROUP_VER_SELECTION,99,19,269,68
+    CONTROL         "wPS 1.0",IDC_WPS_V1,"Button",BS_AUTORADIOBUTTON,120,60,145,10
+    CONTROL         "wPS 2.0",IDC_WPS_V2,"Button",BS_AUTORADIOBUTTON,120,41,145,10
+    LTEXT           "",IDC_STATIC_SECUREEZ_BITMAP,3,50,74,78
+    LTEXT           "",IDC_COMPANY_LOGO,5,5,70,45
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 48
+    END
+
+    IDD_PBCMODEPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 373
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 199
+    END
+
+    IDD_PINMODEPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 373
+        BOTTOMMARGIN, 213
+    END
+
+    IDD_CONFIGSTATUSPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 373
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 213
+    END
+
+    IDD_WELCOMEPG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 377
+        BOTTOMMARGIN, 199
+    END
+
+    IDD_WIZARDPROPPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 88
+    END
+
+    IDD_SELECT_AP, DIALOG
+    BEGIN
+        RIGHTMARGIN, 309
+        BOTTOMMARGIN, 176
+    END
+
+    IDD_WPSROLESELECTIONPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 373
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 213
+    END
+
+    IDD_CONFIGAPPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 373
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 213
+    END
+
+    IDD_WPSFINISHPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 373
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 213
+    END
+
+    IDD_VERSELECTIONPG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BITMAP_WPSLOGO_VERT BITMAP                  "res\\WPS-vert.bmp"
+IDB_IDLE                BITMAP                  "res\\indicator_state_idle.bmp"
+IDB_SUCCESS             BITMAP                  "res\\indicator_state_green.bmp"
+IDB_FAIL                BITMAP                  "res\\indicator_state_red.bmp"
+IDB_BITMAP_COMPANY_VT   BITMAP                  "res\\WPS-vert-company.bmp"
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#endif //_WIN32
+#include "WpsWizardStrings.rc2"  // non-Microsoft Visual C++ edited resources
+#include "version.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"         // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

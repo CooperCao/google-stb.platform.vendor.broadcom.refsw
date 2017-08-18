@@ -52,7 +52,7 @@ static const BBOX_MemConfig stBoxMemConfig_7278A0_box1 =
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
       BBOX_MK_DVI_CFC_MEMC_IDX(0),   /* HDMI display CFC */
       {
-         BBOX_MK_HDR_MEMC_IDX(1,       0,       1,       1,       1,        0,        0      ), /* disp 0 */
+         BBOX_MK_HDR_MEMC_IDX(1,       0,       1,       1,       1,        0,        1      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, 1      ),  /* disp 1 */
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 1,       Invalid, Invalid),  /* disp 2 */
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 1,       Invalid, Invalid),  /* disp 3 */

@@ -1,0 +1,5 @@
+stream[0]=Fire_HDR_UHD_HEVC.mp4
+stream[1]=Geostorm_SDR_AVC.mp4
+plm.vid=2
+plm.gfx=2
+usage=pip

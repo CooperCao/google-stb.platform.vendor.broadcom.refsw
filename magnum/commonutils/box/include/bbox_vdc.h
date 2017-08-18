@@ -340,10 +340,11 @@ typedef enum
 
 typedef struct
 {
-    uint32_t  ulMad;
-    BBOX_Vdc_Resource_Capture eCap;
-    BBOX_Vdc_Resource_Feeder  eVfd;
-    BBOX_Vdc_Resource_Scaler  eScl;
+    uint32_t                      ulMad;
+    bool                          bSrcSideDeinterlacer; /* deinterlacer and SCL are decoupled if true */
+    BBOX_Vdc_Resource_Capture     eCap;
+    BBOX_Vdc_Resource_Feeder      eVfd;
+    BBOX_Vdc_Resource_Scaler      eScl;
 } BBOX_Vdc_ResourceFeature;
 
 typedef struct

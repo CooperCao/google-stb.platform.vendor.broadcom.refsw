@@ -86,7 +86,7 @@ static unsigned check_standby(void)
     NEXUS_Error rc;
 
     rc = NxClient_GetStandbyStatus(&standbyStatus);
-    BDBG_ASSERT(!rc);
+    if (rc) exit(0); /* server is down, exit gracefully */
     if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
         printf("'blit_client' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
         NxClient_AcknowledgeStandby(true);
@@ -274,7 +274,10 @@ int main(int argc, const char **argv)
         static const BM2MC_PACKET_Blend copyAlpha = {BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, false,
             BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false, BM2MC_PACKET_BlendFactor_eZero};
 
-        if(check_standby()) continue;
+        if(check_standby()) {
+            BKNI_Sleep(100);
+            continue;
+        }
 
         NEXUS_Surface_InitPlane(surface, &surfacePlane);
 
@@ -334,7 +337,10 @@ int main(int argc, const char **argv)
         BDBG_ASSERT(!rc);
 #else
         unsigned j;
-        if(check_standby()) continue;
+        if(check_standby()) {
+            BKNI_Sleep(100);
+            continue;
+        }
         for (j=0;j<50;j++) {
             blitSettings.source.surface = surface;
             blitSettings.source.rect.width = SIDEBAR_WIDTH;

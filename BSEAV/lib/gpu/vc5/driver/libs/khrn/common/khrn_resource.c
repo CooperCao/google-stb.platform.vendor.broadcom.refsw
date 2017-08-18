@@ -577,6 +577,23 @@ void* khrn_resource_begin_access(
    return (char*)ptr + offset;
 }
 
+void* khrn_resource_read_now(
+   khrn_resource* res,
+   v3d_size_t offset,
+   v3d_size_t length)
+{
+   assert(!res->in_begin_flags);
+   void* ptr = gmem_map_and_get_ptr(res->handle);
+   if (!ptr)
+      return NULL;
+
+   khrn_resource_flush_writer(res);
+   v3d_scheduler_wait_jobs(&res->pre_read, V3D_SCHED_DEPS_COMPLETED);
+   khrn_resource_gmem_invalidate_mapped_range(res, offset, length);
+
+   return (char*)ptr + offset;
+}
+
 void* khrn_resource_try_read_now(
    khrn_resource* res,
    v3d_size_t offset,

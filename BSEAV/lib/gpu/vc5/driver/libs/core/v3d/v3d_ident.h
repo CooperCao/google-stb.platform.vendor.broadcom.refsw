@@ -5,7 +5,7 @@
 
 #include "v3d_gen.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern void v3d_check_ver(int v3d_ver);
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -18,4 +18,4 @@ extern void v3d_check_hub_ident(const V3D_HUB_IDENT_T *ident);
 
 extern size_t v3d_sprint_device_name(char *buf, size_t buf_size, size_t offset, const V3D_IDENT_T *ident);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

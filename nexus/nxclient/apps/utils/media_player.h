@@ -110,7 +110,7 @@ typedef struct media_player_settings
                                            Eg: eng for english, por for portugal.Default this will be set to NULL */
         unsigned ac3_service_type;      /* This is to select a ac3(only) service type specific audio track.
                                            For more details please see ATSC A/52:2012 Digital Audio Compression Standard spec section 5.4.2.2.
-                                           Defult this will be set to UINT_MAX */
+                                           Default this will be set to UINT_MAX */
     }audio;
     bool enableDynamicTrackSelection;    /*If true, Player will detect if a track changes in the middle of the stream & re-select tracks based
                                            on the Track Preferences defined above unless App has defined trackSelectionCallback.
@@ -169,12 +169,13 @@ typedef struct media_player_start_settings
     NxClient_HdcpVersion hdcp_version;
     enum media_player_audio_primers audio_primers;
     NEXUS_SimpleStcChannelSyncMode sync; /* sync mode for simple stc channel */
+    NEXUS_StcChannelAutoModeBehavior stcMaster;
     const char  *additional_headers;/* Additional HTTP headers that app wants to include in the outgoing Get Request. Terminate each header with "\0xd\0xa". */
     NEXUS_PlaybackSettings playbackSettings;
     media_player_settings  mediaPlayerSettings;
     bool astm;
     bool forceStopDisconnect; /* Force media player disconnect when stopping */
-    bool crcMode;
+    NEXUS_VideoDecoderCrcMode crcMode;
 } media_player_start_settings;
 
 
@@ -317,6 +318,7 @@ Summary:
 **/
 NEXUS_SimpleVideoDecoderHandle media_player_get_video_decoder(media_player_t player);
 
+NEXUS_SimpleAudioDecoderHandle media_player_get_audio_decoder(media_player_t player);
 /**
 Summary:
 **/

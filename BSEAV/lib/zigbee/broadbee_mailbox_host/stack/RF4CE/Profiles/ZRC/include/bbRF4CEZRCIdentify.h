@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile$
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   RF4CE GDP 2.0 Identify sub-type of Client Notification command processor interface.
+*       RF4CE GDP 2.0 Identify sub-type of Client Notification command processor interface.
 *
-* $Revision$
-* $Date$
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_RF4CE_ZRC_IDENTIFY_H
 #define _BB_RF4CE_ZRC_IDENTIFY_H
@@ -62,6 +54,7 @@
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief   Structure for Identify flags field.
+ * \ingroup RF4CE_GDP2_IdentifyReq
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 5.11.1.1,
  *  figure 21.
@@ -90,6 +83,7 @@ typedef union _RF4CE_GDP2_IdentifyFlags_t
 /**//**
  * \brief   Structure for parameters of the request to initiate the Identification
  *  Capabilities Announcement procedure on the Identify Client.
+ * \ingroup RF4CE_GDP2_IdentifyCapAnnounceReq
  */
 typedef struct _RF4CE_GDP2_IdentifyCapAnnounceReqParams_t
 {
@@ -102,6 +96,7 @@ typedef struct _RF4CE_GDP2_IdentifyCapAnnounceReqParams_t
 /**//**
  * \brief   Structure for parameters of the confirmation on request to perform the
  *  Identification Capabilities Announcement procedure on the Identify Client.
+ * \ingroup RF4CE_GDP2_IdentifyCapAnnounceConf
  */
 typedef struct _RF4CE_GDP2_IdentifyCapAnnounceConfParams_t
 {
@@ -114,6 +109,7 @@ typedef struct _RF4CE_GDP2_IdentifyCapAnnounceConfParams_t
 /**//**
  * \brief   Structure for descriptor of the request to initiate the Identification
  *  Capabilities Announcement procedure on the Identify Client.
+ * \ingroup RF4CE_GDP2_IdentifyCapAnnounceReq
  */
 typedef struct _RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t  RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t;
 
@@ -121,7 +117,15 @@ typedef struct _RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t  RF4CE_GDP2_IdentifyCap
 /**//**
  * \brief   Template for callback handler-function of the confirmation on request to
  *  perform the Identification Capabilities Announcement procedure on the Identify Client.
+ * \ingroup RF4CE_GDP2_IdentifyCapAnnounceConf
  * \param[in]   reqDescr        Pointer to the confirmed request descriptor.
+ * \param[in]   confParams      Pointer to the confirmation parameters object.
+ * \details
+ *  This callback function shall be provided by the application of the prospective
+ *  Identify Client that requests initiation of the Identification Capabilities
+ *  Announcement procedure. It will be called by the GDP layer on completion of
+ *  corresponding request. The request descriptor object being confirmed is pointed with
+ *  the \p reqDescr; the confirmed request descriptor object may be dismissed or reused by
  *  the application just when this callback function is called. The confirmation
  *  parameters structured object is temporarily created in the program stack and is
  *  pointed here with the \p confParams; the parameters object must be processed
@@ -135,6 +139,7 @@ typedef void (*RF4CE_GDP2_IdentifyCapAnnounceConfCallback_t)(RF4CE_GDP2_Identify
 /**//**
  * \brief   Structure for descriptor of the request to initiate the Identification
  *  Capabilities Announcement procedure on the Identify Client.
+ * \ingroup RF4CE_GDP2_IdentifyCapAnnounceReq
  */
 struct _RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t
 {
@@ -150,7 +155,7 @@ struct _RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t
         RF4CE_ZRC2_SetAttributesReqDescr_t        pushReqDescr;     /*!< Push Attributes request descriptor. */
     };
 #else
-	void *context;
+    void *context;
 #endif
 
     /* Structured data. */
@@ -163,6 +168,7 @@ struct _RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t
  * \brief   Structure for parameters of the indication of the Identification
  *  Capabilities Announcement procedure started for this node as an Identify Server by a
  *  remote Identify Client.
+ * \ingroup RF4CE_GDP2_IdentifyCapAnnounceInd
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 6.2.12, table 12.
  */
@@ -184,6 +190,7 @@ typedef struct _RF4CE_GDP2_IdentifyCapAnnounceIndParams_t
 /**//**
  * \brief   Structure for parameters of the request to issue the Identify sub-type of the
  *  Client Notification GDP command.
+ * \ingroup RF4CE_GDP2_IdentifyReq
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 5.11.1.1, table 6.
  */
@@ -209,6 +216,7 @@ typedef struct _RF4CE_GDP2_IdentifyReqParams_t
 /**//**
  * \brief   Structure for parameters of the confirmation on request to issue the Identify
  *  sub-type of the Client Notification GDP command.
+ * \ingroup RF4CE_GDP2_IdentifyConf
  */
 typedef RF4CE_GDP2_ClientNotificationConfParams_t  RF4CE_GDP2_IdentifyConfParams_t;
 
@@ -216,6 +224,7 @@ typedef RF4CE_GDP2_ClientNotificationConfParams_t  RF4CE_GDP2_IdentifyConfParams
 /**//**
  * \brief   Structure for descriptor of the request to issue the Identify sub-type of the
  *  Client Notification GDP command.
+ * \ingroup RF4CE_GDP2_IdentifyReq
  */
 typedef struct _RF4CE_GDP2_IdentifyReqDescr_t  RF4CE_GDP2_IdentifyReqDescr_t;
 
@@ -223,6 +232,7 @@ typedef struct _RF4CE_GDP2_IdentifyReqDescr_t  RF4CE_GDP2_IdentifyReqDescr_t;
 /**//**
  * \brief   Template for callback handler-function of the confirmation on request to
  *  issue the Identify sub-type of the Client Notification GDP command.
+ * \ingroup RF4CE_GDP2_IdentifyConf
  * \param[in]   reqDescr        Pointer to the confirmed request descriptor.
  * \param[in]   confParams      Pointer to the confirmation parameters object.
  * \details
@@ -243,6 +253,7 @@ typedef void (*RF4CE_GDP2_IdentifyConfCallback_t)(RF4CE_GDP2_IdentifyReqDescr_t 
 /**//**
  * \brief   Structure for descriptor of the request to issue the Identify sub-type of the
  *  Client Notification GDP command.
+ * \ingroup RF4CE_GDP2_IdentifyReq
  */
 struct _RF4CE_GDP2_IdentifyReqDescr_t
 {
@@ -254,7 +265,7 @@ struct _RF4CE_GDP2_IdentifyReqDescr_t
     RF4CE_GDP2_ClientNotificationReqDescr_t  clientNotificationReq;     /*!< Embedded Client Notification request
                                                                             descriptor. */
 #else
-	void *context;
+    void *context;
 #endif
 
     /* Structured data. */
@@ -266,6 +277,7 @@ struct _RF4CE_GDP2_IdentifyReqDescr_t
 /**//**
  * \brief   Structure for parameters of the indication of a received Identify sub-type of
  *  the Client Notification GDP command.
+ * \ingroup RF4CE_GDP2_IdentifyInd
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 5.11.1.1,
  *  figure 21.
@@ -287,6 +299,16 @@ typedef struct _RF4CE_GDP2_IdentifyIndParams_t
 
 /************************* PROTOTYPES ***************************************************/
 /*************************************************************************************//**
+ * \brief   Accepts request from the application to perform the Identification
+ *  Capabilities Announcement procedure as an Identify Client.
+ * \ingroup RF4CE_ZRC_Functions
+ * \param[in]   reqDescr    Pointer to the request descriptor object.
+ * \details
+ *  This function shall be called by the application of Identify Client to announce its
+ *  capabilities to the Identify Server. On the request this node sends the Push
+ *  Attributes GDP command with its aplIdentificationCapabilities attribute to the
+ *  dedicated paired node (that is expected to become the Identify Server). The
+ *  application of such a node, if it is capable to act as the Identify Server, is
  *  informed by these means what identify activities it may request the Identify Client to
  *  perform. The request is accomplished with the confirmation having a single parameter
  *  \c status that indicates either success or failure.
@@ -299,7 +321,26 @@ void RF4CE_GDP2_IdentifyCapAnnounceReq(RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t 
 /*************************************************************************************//**
  * \brief   Notifies the application layer of the prospective Identify Server about the
  *  Identification Capabilities Announcement procedure started by an Identify Client node.
- * \param[in]   indParam        Pointer to the indication parameters object.
+ * \ingroup RF4CE_ZRC_Functions
+ * \param[in]   indParams       Pointer to the indication parameters object.
+ * \details
+ *  This callback function shall be provided by the application of a device that is
+ *  capable to act as an Identify Server. It will be called by the GDP layer on request to
+ *  participate in the Identification Capabilities Announcement procedure initiated by a
+ *  prospective Identify Client. This function is called by the Push Attributes GDP
+ *  command indication processor on reception of such a command from an Identify Client
+ *  that has started its Identification Capabilities Announcement procedure for this node
+ *  if this command contains a valid value of the aplIdentificationCapabilities attribute
+ *  being pushed. This function is called only if this node is capable to act as an
+ *  Identify Server according to its aplGDPCapabilities attribute. The indication
+ *  parameters object pointed with the \p indParams contains the \c pairingRef and
+ *  \c identifyFlags that denotes respectively the local pairing reference of the remote
+ *  node (according to the RF4CE NWK Pairing Table) and the received value of the
+ *  aplIdentificationCapabilities attribute being pushed. The indication parameters object
+ *  is temporarily created in the program stack; it must be processed completely prior to
+ *  this callback function returns, or otherwise it must be copied into a different
+ *  permanent location.
+ * \details
  *  The GDP layer does not perform any analysis of the received
  *  aplIdentificationCapabilities attribute value. The application layer is responsible
  *  for that. On such an indication, the application shall analyze the received
@@ -312,6 +353,7 @@ void RF4CE_GDP2_IdentifyCapAnnounceInd(RF4CE_GDP2_IdentifyCapAnnounceIndParams_t
 /*************************************************************************************//**
  * \brief   Accepts request from the application to issue the Identify sub-type of the
  *  Client Notification GDP command.
+ * \ingroup RF4CE_ZRC_Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \details
  *  This function shall be called by the Identify Server application when it needs the
@@ -325,7 +367,8 @@ void RF4CE_GDP2_IdentifyReq(RF4CE_GDP2_IdentifyReqDescr_t *const reqDescr);
  * \brief   Notifies the application layer of the Identify Client about reception of a
  *  Identify sub-type of the Client Notification GDP command from a linked Identify
  *  Server.
- * \param[in]   indParam        Pointer to the indication parameters object.
+ * \ingroup RF4CE_ZRC_Functions
+ * \param[in]   indParams       Pointer to the indication parameters object.
  * \details
  *  This callback function shall be provided by the application of a device that is
  *  capable to act as an Identify Client. It will be called by the GDP layer during the
@@ -347,3 +390,5 @@ void RF4CE_GDP2_IdentifyInd(RF4CE_GDP2_IdentifyIndParams_t *const indParams);
 
 
 #endif /* _BB_RF4CE_ZRC_IDENTIFY_H */
+
+/* EOF bbRF4CEZRCIdentify.h */

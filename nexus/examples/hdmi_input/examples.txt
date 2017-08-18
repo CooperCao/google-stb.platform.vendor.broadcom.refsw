@@ -7,7 +7,7 @@ HDCP keys are requiered to connect any commercial HDMI device e.g. Bluray etc. t
 
 
 hdmi_input_to_hdmi_output:
-This app is used to demonstrate receiving video on the HDMI Rx and re-transmitting on the HDMI Tx. This app does not fully implement HDCP Repeater capability  and should be used to test with non-commecrcial test devices (generators, other refence boards etc.)
+This app is used to demonstrate receiving video on the HDMI Rx and re-transmitting on the HDMI Tx. This app does not fully implement HDCP Repeater capability  and should be used to test with non-commercial test devices (generators, other reference boards etc.)
 
 
 hdmi_repeater_passthrough:

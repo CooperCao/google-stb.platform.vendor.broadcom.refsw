@@ -1,0 +1,321 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to measure the thermal envelope
+#
+# Written by: Robert J. McMahon March 2016
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Streamslib
+package require math
+package require math::statistics
+
+package provide UTF::Test::ThermalEnvelope 2.0
+
+namespace eval UTF::Test::ThermalEnvelope {
+    proc ismonotonic  {values} {
+	foreach value $values {
+	    if {![info exist prev]} {
+		set prev $value
+	    } elseif {[expr {$value > $prev}]} {
+		return 0
+	    }
+	    set prev $value
+	}
+	return 1
+    }
+}
+
+UTF::Test ThermalEnvelope {args} {
+    UTF::Getopts {
+	{sta.arg "" "STA under test"}
+	{timeout.arg "900" "Max time in seconds to wait for convergence"}
+	{interval.arg "2" "Polling interval"}
+	{subgrpsize.arg "5" "Latest values to use before declaring stable"}
+	{ap.arg "" "AP to use"}
+	{testdb.arg "" "Parent KPI db"}
+	{outputtype.arg "png"}
+	{direction.arg "tx" "Traffic direction"}
+	{type.arg "traffic" "Type of test"}
+	{amount.arg "15G" "Amount of traffic to send"}
+	{nrate.arg "auto" "nrate to test"}
+	{protocol.arg "udp" "protocol for traffic tests"}
+	{holdtime.arg "240" "hold time for time based tests"}
+	{color.arg "0" "Gnuplot color offset"}
+	{title.arg "" "Text to append to graph title"}
+    }
+    if {[set msgtag [$(sta) cget -name]] eq ""} {
+	set msgtag [namespace tail $(sta)]
+    }
+    if {$(type) eq "traffic"} {
+	set TXRATE [$(sta) cget -udp]
+	if {$(direction) eq "tx"} {
+	    set TX $(sta)
+	    set RX $(ap)
+	    set linetype [expr {$(color) + 1}]
+	    set mode ap
+	} else {
+	    set TX $(ap)
+	    set RX $(sta)
+	    set linetype [expr {$(color) + 2}]
+	    set mode sta
+	}
+	set amount [UTF::stream hexpand $(amount)]
+	if {$amount < 0} {
+ 	    set amount [UTF::stream hexpand 15G]
+	}
+    } else {
+	set linetype [expr {$(color) + 3}]
+    }
+    set results {}
+    array unset temperatures *
+    catch {after cancel $aid}
+    if {$(type) eq "traffic"} {
+	set TRYTEXT "$(sta) (${(nrate)}, ${(protocol)}-${(direction)})"
+    } else {
+	set TRYTEXT $(type)
+    }
+    UTF::Try $TRYTEXT {
+	UTF::Message INFO $(ap) "*** STA CURPOWER BELOW ***"
+	catch {$TX lan rexec iptables -F}
+	catch {$(sta) wl -u curpower}
+	catch {$(sta) wl -u txpwr1}
+	if {$(type) eq "traffic"} {
+	    if {$(nrate) ne ""} {
+		$TX txrate [$TX band] $(nrate)
+		if {$(testdb) ne "" && ![catch {$TX wl nrate} results]} {
+		    $(testdb) set "nrate" "$results"
+		}
+	    }
+	    set traffic [UTF::stream %AUTO% -tx $TX -rx $RX -protocol $(protocol) -name $(protocol) -w 4M -pktsize 1470 -rate $TXRATE]
+	    if {$(testdb) ne {}} {
+		$(testdb) set "trafficstream" "[$traffic id]"
+	    }
+	    set mystate "INIT"
+	} else {
+	    set mystate "INIT"
+	}
+	set temps {}
+	set now [clock milliseconds]
+	set consecutive 0
+	set watchdog [after [expr {$(timeout) * 1000}] "::UTF::Message ERROR $(sta) {Temperature convergence test timeout}"]
+	while {$mystate ne "DONE" && ![set timeout [catch {after info $watchdog}]]} {
+	    set current_temp [lindex [$(sta) wl phy_tempsense] 0]
+	    catch {$(sta) wl chanim_stats}
+	    lappend temps $current_temp
+	    UTF::Sleep $(interval)
+	    if {$mystate ne "INIT"} {
+		set temperatures([format %0.3f [expr {([clock milliseconds] - $now)/1000.0}]]) $current_temp
+	    }
+	    if {[llength $temps] < [expr {2 * $(subgrpsize)}]} {
+		continue
+	    }
+	    if {$mystate eq "COOLING" || $mystate eq "INIT"} {
+		set latest [lrange $temps end-[expr {(2 * ${(subgrpsize)}) - 1}] end]
+		set sensitivity [expr {3.0 /  ${(subgrpsize)}}]
+	    } else {
+		set latest [lrange $temps end-[expr {$(subgrpsize) - 1}] end]
+		set sensitivity [expr {1.5 /  ${(subgrpsize)}}]
+	    }
+	    set variance [format %0.3f [math::statistics::var $latest]]
+	    if {$(type) eq "voice"} {
+		set ismono 1
+	    } else {
+		set ismono [ismonotonic $latest]
+	    }
+	    UTF::Message INFO "$msgtag" "state=$mystate var=$variance sensitivity=$sensitivity mono=$ismono consecutive=$consecutive temps=$latest"
+	    # Check for STATE events
+	    if {$mystate ne "XFERING" &&  \
+		    ([expr {($variance > $sensitivity )  ||  (($mystate eq "COOLING" || $mystate eq "INIT") && (($variance != 0) && $ismono))}])} {
+		set consecutive 0
+		continue
+	    }
+	    # Need N (default 3)  consecutive events to trigger a state change
+	    if {$mystate ne "XFERING" && [expr {[incr consecutive] < 3}]} {
+		continue
+	    }
+	    set consecutive 0
+	    # STATE MACHINE BELOW
+	    switch -exact $mystate {
+		"INIT" {
+		    UTF::Message EVENT "$msgtag" "Thermal event=HEATING"
+		    switch -exact $(type) {
+			"traffic" {
+			    $traffic start
+			    $traffic linkcheck -now
+			    $traffic stats -clear
+			}
+			"assoc" {
+			    $(sta) wl disassoc
+			    UTF::Sleep 120
+			    $(sta) wl join [$(ap) wl ssid]
+			}
+			"voice" {
+			    $(sta) wl disassoc
+			    UTF::Sleep 180
+			    set heating_start [clock seconds]
+			    set timestart [clock milliseconds]
+			    set assocwatchdog [after 10000  "::UTF::Message ERROR $(sta) {ASSOC TIMEOUT}"]
+			    $(sta) wl join [$(ap) wl ssid]
+			    set apbssid [$(ap) wl bssid]
+			    while {![set timeout [catch {after info $assocwatchdog}]]} {
+				if {![catch {$(sta) wl bssid} bssid] && ($bssid eq $apbssid)} {
+				    break
+				}
+				UTF::Sleep 0.1 quiet
+			    }
+			    if {$timeout} {
+				error "ASSOC FAILED"
+			    } else {
+				after cancel $assocwatchdog
+				unset assocwatchdog
+			    }
+			    package require UTF::VoiceCall
+			    package require UTF::tcpdump
+			    set sniff [UTF::tcpdump %AUTO% -sta $(sta)]
+			    #			    $sniff start
+			    set call [UTF::VoiceCall %AUTO% -stas "$(sta) $(ap)"]
+			    $call start
+			}
+			default {
+			    error "invalid type $(type)"
+			}
+		    }
+		    if {![info exists heating_start]} {
+			set heating_start [clock seconds]
+			set timestart [clock milliseconds]
+		    }
+		    set mystate "HEATING"
+		}
+		"HEATING" {
+		    switch -exact $(type) {
+			"traffic" {
+			    if {$amount > 0} {
+				UTF::Message EVENT "$msgtag" "Thermal event=XFERING"
+				set mystate "XFERING"
+			    }  else {
+				UTF::Message EVENT "$msgtag" "Thermal event=COOLING"
+				set mystate "COOLING"
+				$traffic stop
+				set total [$traffic stats -silent -bytes -sum]
+				UTF::Message STATS "$msgtag" "Bytes xfered=[UTF::stream hformat $total]"
+			    }
+			}
+			"assoc" {
+			    UTF::Message EVENT "$msgtag" "Thermal event=DONE(nocool)"
+			    set mystate "DONE"
+			}
+			"voice" {
+			    if {[expr {([clock seconds] - $heating_start) < $(holdtime)}]} {
+				UTF::Message EVENT "$msgtag" "Thermal event=XFERING"
+				set mystate "XFERING"
+			    }  else {
+				UTF::Message EVENT "$msgtag" "Thermal event=TIMER(nocool)"
+				set mystate "DONE"
+				catch {$call destroy}
+				catch {$sniff destroy}
+				catch {unset heating_start}
+			    }
+			}
+		    }
+		}
+		"XFERING" {
+		    switch -exact $(type) {
+			"traffic" {
+			    set total [$traffic stats -silent -bytes -sum]
+			    UTF::Message STATS "$msgtag" "Bytes xfered=[UTF::stream hformat $total]"
+			    if {[expr {$total >= $amount}] || ![$traffic status -silent]} {
+				$traffic stop
+				set mystate COOLING
+				UTF::Message EVENT "$msgtag" "Thermal event=COOLING"
+			    }
+			}
+			"assoc" -
+			"voice" {
+			    if {[expr {([clock seconds] - $heating_start) < $(holdtime)}]} {
+				UTF::Message EVENT "$msgtag" "Thermal event=XFERING"
+				set mystate "XFERING"
+			    } else {
+				UTF::Message EVENT "$msgtag" "Thermal event=TIMER(nocool)"
+				set mystate "DONE"
+				catch {$call destroy}
+				catch {$sniff destroy}
+				catch {unset heating_start}
+			    }
+			}
+		    }
+		}
+		"COOLING" {
+		    UTF::Message EVENT "$msgtag" "Thermal event=DONE"
+		    set mystate "DONE"
+		}
+	    }
+	}
+	if {$mystate eq "INIT"} {
+	    error "Never got out of INIT state"
+	}
+	if {$timeout} {
+	    set failtry 1
+	} else {
+	    after cancel $watchdog
+	    set failtry 0
+	}
+	set runtime "[format %0.0f [expr {([clock milliseconds] - $timestart)/1000.0}]]"
+	set mintemp [expr {int([math::statistics::min $temps])}]
+	set maxtemp [expr {int([math::statistics::max $temps])}]
+	set delta [expr {$maxtemp - $mintemp}]
+	set indices [lsort -real [array names temperatures]]
+	if {$temperatures([lindex $indices end]) > $mintemp } {
+	    set temperatures([format %0.3f [expr {[lindex $indices end] + 0.001}]]) $mintemp
+	}
+	if {$temperatures([lindex $indices 0]) > $mintemp } {
+	    set temperatures([format %0.3f [expr {[lindex $indices 0] - 0.001}]]) $mintemp
+	}
+	foreach index [lsort -real [array names temperatures]] {
+	    set minshiftedtemp [expr {$temperatures($index) - $mintemp}]
+	    set temperatures($index) $minshiftedtemp
+	    lappend tmp $index $minshiftedtemp
+	    set temperatures($index) $minshiftedtemp
+	}
+	if {[llength $tmp] > 10} {
+	    set area [format %0.0f [lindex [math::integrate $tmp] 0]]
+	} else {
+	    set area {}
+	}
+	set mean [format %0.2f [expr {1.0 * $area / $runtime}]]
+	set final "Min/Max/Delta  ${mintemp}/${maxtemp}/$delta C Area/Time/Avg ${area}/${runtime}/$mean"
+	if {$(type) eq "traffic"} {
+	    append final " Bytes= [UTF::stream hformat $total]B"
+	}
+	UTF::Message STAT "$msgtag" "$final"
+	if {$delta < 50} {
+	    set yrange "0:50"
+	} elseif  {$delta < 75} {
+	    set yrange "0:75"
+	} else {
+	    set yrange "0:"
+	}
+	if {$(type) eq "traffic"} {
+	    set txt "[string toupper [list [$traffic cget -protocol] $(direction)]] $(nrate)"
+	    set results "[UTF::Streamslib::grapharray temperatures -ymin 0 -htmltxt "$final" -title "$txt Thermal Envelope $(sta) $(title)\\n $final" -outputtype $(outputtype) -style "filledcurves" -yrange $yrange -linetype $linetype][$traffic plot -append -text [lindex [$traffic stats -rate -meanminmax -h] 0]]"
+	} else {
+	    set txt "$(type)"
+	    set results [UTF::Streamslib::grapharray temperatures -ymin 0 -htmltxt "$final" -title "Thermal Envelope ($txt) $(sta) $(title)\\n $final" -outputtype $(outputtype) -style "filledcurves" -yrange $yrange -linetype $linetype]
+	}
+	if {$failtry} {
+	    catch {$traffic destroy}
+	    error "test timeout"
+	} else {
+	    return $results
+	}
+    }
+    if {$(type) eq "traffic"} {
+	catch {$traffic destroy}
+    }
+    return $area
+}

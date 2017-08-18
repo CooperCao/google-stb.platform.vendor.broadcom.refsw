@@ -312,6 +312,13 @@ static inline void khrn_resource_end_access(
    v3d_size_t length,
    khrn_access_flags_t flags);
 
+//! Perform synchronisation required for CPU read access to this resource range now.
+//! Return CPU mapped pointer to buffer at offset, or NULL on map failure.
+void* khrn_resource_read_now(
+   khrn_resource* res,
+   v3d_size_t offset,
+   v3d_size_t length);
+
 //! Perform synchronisation required for CPU read access to this resource range now
 //! if it would not stall. Otherwise return the pointer and set read_now to false.
 //! Return CPU mapped pointer to buffer at offset, or NULL on map failure.

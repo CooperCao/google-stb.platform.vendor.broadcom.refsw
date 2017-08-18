@@ -227,6 +227,7 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStarted).s(), "eNotify_DecodeStarted
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStopped).s(), "eNotify_DecodeStopped")                       /* status   - a video or audio decode has stopped decoding */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_DiscoveredPlaylistsShown).s(), "eNotify_DiscoveredPlaylistsShown") /* status   - a discovered playlist has been displayed on console */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistShown).s(), "eNotify_PlaylistShown")                       /* status   - a playlist contents has been displayed on console */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_EnableRemoteIr).s(), "eNotify_EnableRemoteIr")                     /* status   - enable/disable ir remote handling */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Invalid).s(), "eNotify_Invalid")
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Max).s(), "eNotify_Max")
 ENUM_TO_MSTRING_END()

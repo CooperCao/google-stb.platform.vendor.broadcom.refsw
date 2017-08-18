@@ -16,4 +16,5 @@ void glsl_vertex_backend(SchedBlock *block, int block_id,
                          const LinkMap *link_map,
                          SchedShaderInputs *ins,
                          const VertexBackendState *s,
+                         const bool *shader_outputs_used,
                          const GLSL_VARY_MAP_T *vary_map);

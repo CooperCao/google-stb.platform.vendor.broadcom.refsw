@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#   Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,6 +53,7 @@ $Data::Dumper::Terse    = 1;
 
 my @profiles = ('Standard');
 my $num_profiles = scalar @profiles;
+my $num_pmap_settings = 0;
 
 my @nexus_functions = (
         "AIO",
@@ -676,10 +677,8 @@ sub generate_nexus_nodes {
 sub has_feature {
     my ($featuredef, $feature) = @_;
     if(exists $featuredef->{$feature} && $featuredef->{$feature} == 1) {
-        print "$feature exists\n";
         return 1;
     } else {
-        print "$feature does not exists\n";
         return 0;
     }
 }
@@ -760,6 +759,13 @@ sub generate_user_defined_nodes {
                 $nodes->{"BINT_OPEN"}{_list}{$1}++;
                 $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
             }
+
+            if($node =~ /^(VICE)(\d*)(_CLK)$/) {
+                $nodes->{"VDC_STG".($2*2)}{_list}{$node}++;
+                $nodes->{"VDC_STG".($2*2+1)}{_list}{$node}++;
+                $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2)}++;
+                $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2+1)}++;
+            }
         } elsif($node =~ /^(RAAGA)(\d*)(.*?)$/) {
             if($3 eq "_DSP") {
                 foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
@@ -795,14 +801,6 @@ sub generate_user_defined_nodes {
 
             $nodes->{"BINT_OPEN"}{_list}{$1}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
-        } elsif($node =~ /^(VICE)(\d*)(_CLK)$/) {
-            $nodes->{"VDC_STG".($2*2)}{_list}{$node}++;
-            $nodes->{"VDC_STG".($2*2+1)}{_list}{$node}++;
-
-            $nodes->{"BINT_OPEN"}{_list}{$node}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$node}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2)}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2+1)}++;
         } elsif($node =~ /^(VIP)(\d*)$/) {
             my $idx = $2 ne ""?$2:0;
             $nodes->{"VDC_STG".($idx)}{_list}{$node}++;
@@ -858,7 +856,7 @@ sub generate_brcm_copyright_header
     my @lines;
 
     push @lines, " /******************************************************************************\n";
-    push @lines, " *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.\n";
+    push @lines, " *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.\n";
     push @lines, " *\n";
     push @lines, " *  This program is the proprietary software of Broadcom and/or its licensors,\n";
     push @lines, " *  and may only be used, duplicated, modified or distributed pursuant to the terms and\n";
@@ -972,7 +970,7 @@ sub generate_bchp_impl_string {
                         next;
                     }
                 }
-                if(!$hw_desc->{$hw_node}{$reg}{_field}{$divisor}{_shared}) {
+                if(!$hw_desc->{$hw_node}{$reg}{_field}{$divisor}{_shared} && $divisor eq "POSTDIV") {
                     push @lines2, "        BCHP_SET_FIELD_DATA(reg, $register, $field, ".$var.");\n";
                     $write_count++;
                 }
@@ -1206,13 +1204,13 @@ sub generate_bchp_resources_priv_h_file {
     print $fh "void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);\n";
     print $fh "\n";
 
-    print $fh "#define BCHP_PWR_P_NUM_NONLEAFS   ", scalar(keys %$nonleafs), "\n";
-    print $fh "#define BCHP_PWR_P_NUM_NONLEAFSHW ", scalar(keys %$nonleafshw), "\n";
-    print $fh "#define BCHP_PWR_P_NUM_LEAFS      ", scalar(keys %$leafs), "\n";
-    print $fh "#define BCHP_PWR_P_NUM_MUXES      ", scalar(@MX_all), "\n";
-    print $fh "#define BCHP_PWR_P_NUM_DIVS       ", scalar(@DV_all), "\n";
-    print $fh "#define BCHP_PWR_P_NUM_ALLNODES   ", scalar(keys %$nonleafs)+scalar(keys %$leafs)+scalar(keys %$nonleafshw)+scalar(@MX_all)+scalar(@DV_all), "\n";
-    print $fh "#define BCHP_PWR_NUM_P_MAPS     ", $num_profiles, "\n";
+    print $fh "#define BCHP_PWR_P_NUM_NONLEAFS     ", scalar(keys %$nonleafs), "\n";
+    print $fh "#define BCHP_PWR_P_NUM_NONLEAFSHW   ", scalar(keys %$nonleafshw), "\n";
+    print $fh "#define BCHP_PWR_P_NUM_LEAFS        ", scalar(keys %$leafs), "\n";
+    print $fh "#define BCHP_PWR_P_NUM_MUXES        ", scalar(@MX_all), "\n";
+    print $fh "#define BCHP_PWR_P_NUM_DIVS         ", scalar(@DV_all), "\n";
+    print $fh "#define BCHP_PWR_P_NUM_ALLNODES     ", scalar(keys %$nonleafs)+scalar(keys %$leafs)+scalar(keys %$nonleafshw)+scalar(@MX_all)+scalar(@DV_all), "\n";
+    print $fh "#define BCHP_PWR_NUM_P_PMAPSETTINGS ", $num_pmap_settings, "\n";
     print $fh "\n";
 
     print $fh "#endif\n";
@@ -1417,6 +1415,115 @@ sub generate_dvcontrol_function_string
     push @lines, "            break;\n";
     push @lines, "    }\n";
     push @lines, "}\n";
+
+    return @lines;
+}
+
+sub generate_pmap_table
+{
+    my $prefix1 = shift;
+    my $prefix2 = shift;
+    my $nodes = shift;
+    my $hw_desc = shift;
+    my (@lines1, @lines2, @lines3, @lines);
+    my %pmap_table;
+    my %div_table;
+    my $cnt = 0;
+
+    foreach (sort @$nodes) {
+        foreach my $reg (sort keys %{$hw_desc->{$_}}) {
+            foreach my $type (keys %{$hw_desc->{$_}{$reg}{_field}}) {
+                foreach my $field (keys %{$hw_desc->{$_}{$reg}{_field}{$type}}) {
+                    if($field eq "_pmap") {next;}
+                    if($field eq "_shared") {next;}
+                    if(!$hw_desc->{$_}{$reg}{_field}{$type}{_shared}) {
+                        $pmap_table{$reg}{$field}{_value} = $hw_desc->{$_}{$reg}{_field}{$type}{$field};
+                        $pmap_table{$reg}{$field}{_type} = $type;
+                        push(@{$pmap_table{$reg}{$field}{_nodes}}, $_);
+                    }
+                }
+            }
+        }
+    }
+
+    push @lines, "\n";
+    push @lines1, "const BCHP_PmapSettings ${prefix2}_DefaultPMapSettings[BCHP_PWR_NUM_P_PMAPSETTINGS] = {\n";
+
+    foreach my $reg (sort keys %pmap_table) {
+        foreach my $field (sort keys $pmap_table{$reg}) {
+            push @lines1, "    PMAP(${reg}, ${field}, $pmap_table{$reg}{$field}{_value}),\n";
+            #push @lines1, "    {$pmap_table{$reg}{$field}{_value}, BCHP_${reg}_${field}_SHIFT, BCHP_${reg}_${field}_MASK, BCHP_${reg}},\n";
+            foreach (sort @{$pmap_table{$reg}{$field}{_nodes}}) {
+                $div_table{$_}{$pmap_table{$reg}{$field}{_type}} = $cnt;
+            }
+            $cnt++;
+        }
+    }
+    $num_pmap_settings = $cnt;
+
+    push @lines1, "};\n\n";
+    push @lines3, "const ${prefix2}_FreqMap ${prefix2}_FreqMapList[BCHP_PWR_P_NUM_DIVS] = {\n";
+
+    foreach (sort keys %div_table) {
+        if(!exists $div_table{$_}{MULT}) { $div_table{$_}{MULT} = -1; }
+        if(!exists $div_table{$_}{PREDIV}) { $div_table{$_}{PREDIV} = -1; }
+        if(!exists $div_table{$_}{POSTDIV}) { $div_table{$_}{POSTDIV} = -1; }
+        push @lines2, "DIVTABLE(${_}, $div_table{$_}{MULT}, $div_table{$_}{PREDIV}, $div_table{$_}{POSTDIV});\n";
+        push @lines3, "    FREQMAP(${_}),\n";
+
+        #push @lines2, "const ${prefix2}_DivTable ${prefix2}_DivTable_${_}[] = {";
+        #push @lines2, "{$div_table{$_}{MULT}, $div_table{$_}{PREDIV}, $div_table{$_}{POSTDIV}}";
+        #push @lines2, "};\n";
+        #push @lines3, "    {${prefix1}_${_}, ${prefix2}_DivTable_${_}},\n";
+    }
+
+    push @lines2, "\n";
+    push @lines3, "};";
+
+    push @lines, @lines1;
+    push @lines, @lines2;
+    push @lines, @lines3;
+    push @lines, "\n";
+
+    #print Dumper (%pmap_table);
+    #print Dumper (%div_table);
+
+    return @lines;
+}
+
+sub generate_freq_map
+{
+    my $prefix1 = shift;
+    my $prefix2 = shift;
+    my $prefix3 = shift;
+    my $nodes = shift;
+    my $hw_desc = shift;
+    my (@lines1, @lines2, @lines);
+    my %div_table;
+    push @lines, "\n";
+    push @lines2, "const ${prefix3} ${prefix3}List[BCHP_PWR_P_NUM_DIVS] = {\n";
+
+    foreach (sort @$nodes) {
+        foreach my $reg (sort keys %{$hw_desc->{$_}}) {
+            foreach my $type (keys %{$hw_desc->{$_}{$reg}{_field}}) {
+                push(@{$div_table{$_}{$type}}, "BCHP_".$reg);
+            }
+        }
+
+        if (exists $div_table{$_}{MULT} && exists $div_table{$_}{PREDIV} && exists $div_table{$_}{POSTDIV}) {
+            push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {";
+            push @lines1, "{$div_table{$_}{MULT}[0],$div_table{$_}{PREDIV}[0],$div_table{$_}{POSTDIV}[0]}";
+            push @lines1, "};\n";
+            push @lines2, "    {${prefix1}_${_}, ${prefix2}_${_}},\n";
+        }
+    }
+    push @lines2, "};\n";
+
+    push @lines, @lines1;
+    push @lines, "\n";
+    push @lines, @lines2;
+
+    #print Dumper (%div_table);
 
     return @lines;
 }
@@ -1698,10 +1805,16 @@ sub generate_bchp_resources_c_file {
     @lines = generate_dvcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@DV_all);
     print $fh @lines;
 
-    @lines = generate_mx_table("BCHP_PWR", "BCHP_PWR_P_MuxTable", "BCHP_PWR_P_MuxMap", \@MX_all, $hw_desc);
-    print $fh @lines;
+    #@lines = generate_mx_table("BCHP_PWR", "BCHP_PWR_P_MuxTable", "BCHP_PWR_P_MuxMap", \@MX_all, $hw_desc);
+    #print $fh @lines;
 
-    @lines = generate_dv_table("BCHP_PWR", "BCHP_PWR_P_DivTable", "BCHP_PWR_P_FreqMap", \@DV_all, $hw_desc);
+    #@lines = generate_dv_table("BCHP_PWR", "BCHP_PWR_P_DivTable", "BCHP_PWR_P_FreqMap", \@DV_all, $hw_desc);
+    #print $fh @lines;
+
+    #@lines = generate_freq_map("BCHP_PWR", "BCHP_PWR_P_DivTable", "BCHP_PWR_P_FreqMap", \@DV_all, $hw_desc);
+    #print $fh @lines;
+
+    @lines = generate_pmap_table("BCHP_PWR", "BCHP_PWR_P", \@DV_all, $hw_desc);
     print $fh @lines;
 
     close $fh;
@@ -1775,9 +1888,9 @@ sub generate_bchp_files {
     my ($src_dir, $inc_dir) = get_bchp_path($chp, $ver);
     generate_bchp_resources_txt_file($nodes, $src_dir."/bchp_pwr_resources_".$chp.".txt");
     generate_bchp_impl_c_file($hw_desc, $src_dir."/bchp_pwr_impl.c");
-    generate_bchp_resources_priv_h_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx, $src_dir."/bchp_pwr_resources_priv.h");
     generate_bchp_resources_h_file(\%nonleafs, $inc_dir."/bchp_pwr_resources.h");
     generate_bchp_resources_c_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx, $nodes, $hw_desc, $src_dir."/bchp_pwr_resources.c");
+    generate_bchp_resources_priv_h_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx, $src_dir."/bchp_pwr_resources_priv.h");
 }
 
 sub get_rdb_path {

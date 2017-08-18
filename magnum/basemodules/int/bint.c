@@ -139,6 +139,7 @@ struct BINT_P_L2Register {
     BINT_P_IntMap intMapEntry; /* interrupt map entry (copy with 'correct' L1Shift)*/
     bool standard;
     bool weakMask;
+    bool l3Root;
     int enableCount; /* Number of callbacks that are enabled for this register */
     unsigned count; /* Number of times when interrupt fired for this register */
     BINT_Handle intHandle; /* handle to the main InterruptInterface */
@@ -232,8 +233,11 @@ static void BINT_P_SetMask_isrsafe(BINT_Handle intHandle, bool standard, uint32_
     return;
 }
 
-static void BINT_P_ClearMask_isrsafe(BINT_Handle intHandle, bool standard, uint32_t L2RegOffset, unsigned L2Shift)
+
+static void BINT_P_ClearMask_isrsafe(BINT_Handle intHandle, const BINT_P_L2Register *L2, unsigned L2Shift)
 {
+    bool standard = L2->standard;
+    uint32_t L2RegOffset = L2->intMapEntry.L2RegOffset;
     if(standard) {
         BREG_Write32( intHandle->regHandle, L2RegOffset+BINT_P_STD_MASK_CLEAR, 1<<L2Shift);
     } else {
@@ -241,6 +245,7 @@ static void BINT_P_ClearMask_isrsafe(BINT_Handle intHandle, bool standard, uint3
     }
     return;
 }
+
 
 void BINT_GetDefaultCustomSettings( BINT_CustomSettings *pSettings )
 {
@@ -309,6 +314,7 @@ static BERR_Code BINT_P_InitializeL2Register(BINT_P_L2Register *L2Reg, struct BI
     BLST_S_INIT(&L2Reg->aggregatorList);
 
     L2Reg->standard = (intMapEntry->L1Shift & BINT_IS_STANDARD)==BINT_IS_STANDARD;
+    L2Reg->l3Root= (intMapEntry->L1Shift & BINT_P_MAP_MISC_L3_ROOT_MASK)==BINT_P_MAP_MISC_L3_ROOT_MASK;
     L2Reg->weakMask = (intMapEntry->L1Shift & BINT_P_MAP_MISC_WEAK_MASK)==BINT_P_MAP_MISC_WEAK_MASK;
     L2Reg->enableCount = 0;
     L2Reg->count = 0;
@@ -363,12 +369,6 @@ static BERR_Code BINT_P_AddL3Interrupts(BINT_Handle intHandle, BINT_P_L2Register
         BLST_S_INSERT_HEAD(&L2Aggregator->L2RegList, L2Reg, link);
         state->countL3++;
     }
-#ifndef BINT_OPEN_BYPASS_L2INIT
-    /* enable L2 aggregator interrupt lines */
-    for(L2Aggregator=BLST_S_FIRST(&L2->aggregatorList);L2Aggregator;L2Aggregator=BLST_S_NEXT(L2Aggregator, link)) {
-        BINT_P_ClearMask_isrsafe(intHandle, L2->standard, L2->intMapEntry.L2RegOffset, L2Aggregator->L2Shift);
-    }
-#endif
     return BERR_SUCCESS;
 }
 
@@ -448,6 +448,9 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
         if (BINT_L2IsDisabled(pCustomSettings, L2Register->L2RegOffset)) {
             continue;
         }
+        if(L2Register->L1Shift&BINT_P_MAP_MISC_L3_ROOT_MASK) { /* don't apply mask for L3 ROOT interrupt */
+            continue;
+        }
         for(bit=0; bit<32; bit++) {
             if ( (L2Register->L2InvalidMask&(1<<bit))==0) {
                 BINT_P_SetMask_isrsafe(intHandle, (L2Register->L1Shift&BINT_IS_STANDARD)==BINT_IS_STANDARD, L2Register->L2RegOffset, bit);
@@ -483,6 +486,10 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
         if(intMapEntry->L1Shift<0) {
             break;
         }
+        if( (intMapEntry->L1Shift & BINT_P_MAP_MISC_L3_MASK) == BINT_P_MAP_MISC_L3_MASK) {
+            (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+            continue;
+        }
         rc = BINT_P_InitializeL2Register(L2Reg, &openState, intMapEntry, pCustomSettings);
         if(rc==BERR_NOT_SUPPORTED) {
             rc = BERR_SUCCESS;continue;
@@ -503,25 +510,31 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
             }
         }
 #endif
-        for(l3count=0;;l3count++) {
-            if(intMapEntry[1+l3count].L1Shift<0) {
-                break;
+        if((intMapEntry->L1Shift & BINT_P_MAP_MISC_L3_ROOT_MASK) == BINT_P_MAP_MISC_L3_ROOT_MASK) {
+            for(l3count=0;;l3count++) {
+                const BINT_P_IntMap *intMapEntryL3 = &intMapEntry[1+l3count];
+
+
+                if(intMapEntryL3->L1Shift<0) {
+                    break;
+                }
+                if( (intMapEntryL3->L1Shift & BINT_P_MAP_MISC_L3_MASK) != BINT_P_MAP_MISC_L3_MASK) {
+                    break;
+                }
+                /* found L3 interrupt */;
+                if( (intMapEntryL3->L1Shift & BINT_IS_STANDARD) != BINT_IS_STANDARD) {
+                    (void)BERR_TRACE(BERR_NOT_SUPPORTED); /* L2 must be standard interrupt */
+                    BDBG_ASSERT(0);
+                }
+                if(L1Shift != BINT_MAP_GET_L1SHIFT(intMapEntryL3)) {
+                    (void)BERR_TRACE(BERR_NOT_SUPPORTED); /* L1 Shift should match for all L3 interrupts */
+                }
             }
-            if( (intMapEntry[1+l3count].L1Shift & BINT_P_MAP_MISC_L3_MASK) == 0) {
-                break;
+            BDBG_ASSERT(l3count);
+            if(l3count) {
+                BINT_P_AddL3Interrupts(intHandle, L2Reg, &openState, i+1, l3count, pCustomSettings);
+                i+= l3count; /* skip L3 interrupts */
             }
-            /* found L3 interrupt */;
-            if( (intMapEntry->L1Shift & BINT_IS_STANDARD) != BINT_IS_STANDARD) {
-                (void)BERR_TRACE(BERR_NOT_SUPPORTED); /* L2 must be standard interrupt */
-                BDBG_ASSERT(0);
-            }
-            if(L1Shift != BINT_MAP_GET_L1SHIFT(&intHandle->settings.pIntMap[i])) {
-                (void)BERR_TRACE(BERR_NOT_SUPPORTED); /* L1 Shift should match for all L3 interrupts */
-            }
-        }
-        if(l3count) {
-            BINT_P_AddL3Interrupts(intHandle, L2Reg, &openState, i+1, l3count, pCustomSettings);
-            i+= l3count; /* skip L3 interrupts */
         }
     }
     BDBG_MSG(("using BINT with %u external interrupts, %u standard interrupts, %u L3 interrupts and %u with a 'weak' mask", openState.countExternal, openState.countStandard, openState.countL3, openState.countWeakMask));
@@ -763,16 +776,27 @@ void BINT_Isr( BINT_Handle intHandle, int L1Shift )
     BKNI_ASSERT_ISR_CONTEXT();
 #endif
     for(L2Reg = BLST_S_FIRST(&intHandle->L1[L1Shift].L2RegList); L2Reg ; L2Reg = BLST_S_NEXT(L2Reg, link)) {
-        const BINT_P_L2Aggregator *L2Aggregator = BLST_S_FIRST(&L2Reg->aggregatorList);
-        if(L2Reg->enableCount==0 && !L2Reg->weakMask && L2Aggregator==NULL) { /* short-circular register access if there is no enabled interrupt handlers and no need to explicitly clears interrupt */
-            continue;
-        }
-        if (L2Reg->standard) {
-            uint32_t intStatus;
+        uint32_t intStatus;
+        if(!L2Reg->l3Root) {
+            if(L2Reg->enableCount==0 && !L2Reg->weakMask ) { /* short-circular register access if there is no enabled interrupt handlers and no need to explicitly clears interrupt */
+                continue;
+            }
+            if (L2Reg->standard) {
 
-            /* Standard registers can be handled internal to bint.c which results in dramatic performance improvement.
-            Each chip must set BINT_IS_STANDARD as appropriate. */
+                /* Standard registers can be handled internal to bint.c which results in dramatic performance improvement.
+                Each chip must set BINT_IS_STANDARD as appropriate. */
 
+                intStatus = BREG_Read32_isr(intHandle->regHandle, L2Reg->intMapEntry.L2RegOffset); /* read status */
+                intStatus &= ~L2Reg->intMapEntry.L2InvalidMask; /* only handle interrupts that are known */
+                if(intStatus==0) {
+                    continue; /* short-circuit loop over L2 interrupts */
+                }
+                BINT_P_ProcessStandardL2Reg_isr(intHandle, L2Reg, intStatus);
+            } else {
+                BINT_P_ProcessL2Reg_isr(intHandle, L2Reg);
+            }
+        } else {
+            const BINT_P_L2Aggregator *L2Aggregator = BLST_S_FIRST(&L2Reg->aggregatorList);
             intStatus = BREG_Read32_isr(intHandle->regHandle, L2Reg->intMapEntry.L2RegOffset); /* read status */
             intStatus &= ~L2Reg->intMapEntry.L2InvalidMask; /* only handle interrupts that are known */
             if(intStatus==0) {
@@ -783,7 +807,6 @@ void BINT_Isr( BINT_Handle intHandle, int L1Shift )
                 unsigned L2Bit = 1<<L2Aggregator->L2Shift;
                 if(intStatus && L2Bit) {
                     BINT_P_L2Register *L3Reg;
-                    BREG_Write32_isr(intHandle->regHandle, L2Reg->intMapEntry.L2RegOffset + BINT_P_STD_CLEAR, L2Bit); /* clear L2 interrupt for activated L3 aggregator */
                     for(L3Reg = BLST_S_FIRST(&L2Aggregator->L2RegList); L3Reg ; L3Reg = BLST_S_NEXT(L3Reg, link)) {
                         uint32_t intL3Status;
                         intL3Status = BREG_Read32_isr(intHandle->regHandle, L3Reg->intMapEntry.L2RegOffset); /* read status */
@@ -794,8 +817,6 @@ void BINT_Isr( BINT_Handle intHandle, int L1Shift )
                     }
                 }
             }
-        } else {
-            BINT_P_ProcessL2Reg_isr(intHandle, L2Reg);
         }
     }
     return;
@@ -819,6 +840,9 @@ BINT_P_FindL2Reg(const struct BINT_P_L2RegisterList *L2RegList, BINT_Id intId)
         L1 interrupt shift.
         */
         if( BCHP_INT_ID_GET_REG(intId) != L2Reg->intMapEntry.L2RegOffset) {
+            continue;
+        }
+        if(L2Reg->l3Root) {
             continue;
         }
         if((L2Reg->intMapEntry.L2InvalidMask & (1<<L2Shift)) == 0 || L2Reg->intMapEntry.L2InvalidMask == BINT_DONT_PROCESS_L2) {
@@ -1019,7 +1043,7 @@ BERR_Code BINT_EnableCallback_isr( BINT_CallbackHandle cbHandle )
     cbHandle->L2Handle->L2Reg->enableCount ++;
     if( cbHandle->L2Handle->enableCount == 1 )
     {
-        BINT_P_ClearMask_isrsafe(intHandle, cbHandle->L2Handle->L2Reg->standard, BCHP_INT_ID_GET_REG(cbHandle->L2Handle->intId), BCHP_INT_ID_GET_SHIFT(cbHandle->L2Handle->intId));
+        BINT_P_ClearMask_isrsafe(intHandle, cbHandle->L2Handle->L2Reg, BCHP_INT_ID_GET_SHIFT(cbHandle->L2Handle->intId));
     }
 
     return BERR_SUCCESS;
@@ -1060,7 +1084,7 @@ BERR_Code BINT_DisableCallback_isr( BINT_CallbackHandle cbHandle )
     BDBG_ASSERT(L2Handle->L2Reg->enableCount >=0);
     if( cbHandle->L2Handle->enableCount == 0 )
     {
-        BINT_P_SetMask_isrsafe(intHandle, cbHandle->L2Handle->L2Reg->standard, BCHP_INT_ID_GET_REG(cbHandle->L2Handle->intId), BCHP_INT_ID_GET_SHIFT(cbHandle->L2Handle->intId) );
+        BINT_P_SetMask_isrsafe(intHandle, L2Handle->L2Reg->standard, BCHP_INT_ID_GET_REG(L2Handle->intId), BCHP_INT_ID_GET_SHIFT(L2Handle->intId) );
     }
 
     /* Flag callback as disabled only after it is masked so that we can execute if we get an interrupt */
@@ -1576,7 +1600,7 @@ static bool BINT_P_ApplyStateL2Reg_isr(BINT_Handle intHandle, const struct BINT_
             {
                 continue;
             }
-            BINT_P_ClearMask_isrsafe(intHandle, L2Reg->standard, L2Reg->intMapEntry.L2RegOffset, BCHP_INT_ID_GET_SHIFT(L2Handle->intId));
+            BINT_P_ClearMask_isrsafe(intHandle, L2Reg, BCHP_INT_ID_GET_SHIFT(L2Handle->intId));
         }
         break;
     }
@@ -1597,7 +1621,7 @@ void BINT_ApplyL2State_isr(BINT_Handle intHandle, uint32_t L2RegOffset)
             const BINT_P_L2Aggregator *L2Aggregator;
             for(L2Aggregator = BLST_S_FIRST(&L2Reg->aggregatorList); L2Aggregator; L2Aggregator = BLST_S_NEXT(L2Aggregator, link)) {
                 if(BINT_P_ApplyStateL2Reg_isr(intHandle, &L2Aggregator->L2RegList, L2RegOffset)) {
-                    BINT_P_ClearMask_isrsafe(intHandle, L2Reg->standard, L2Reg->intMapEntry.L2RegOffset, L2Aggregator->L2Shift);
+                    BINT_P_ClearMask_isrsafe(intHandle, L2Reg, L2Aggregator->L2Shift);
                 }
             }
         }

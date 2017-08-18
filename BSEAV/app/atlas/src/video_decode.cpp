@@ -290,7 +290,7 @@ static void NexusSimpleVideoDecodeStreamChangedCallback(
 
 CVideoDecode::CVideoDecode(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_decodeVideo, pCfg),
@@ -300,6 +300,7 @@ CVideoDecode::CVideoDecode(
     _pWidgetEngine(NULL),
     _started(false),
     _sourceChanged(false),
+    _streamChanged(false),
     _maxWidth(0),
     _maxHeight(0)
 {
@@ -484,7 +485,7 @@ bool CVideoDecode::isCodecSupported(NEXUS_VideoCodec codec)
 
 CSimpleVideoDecode::CSimpleVideoDecode(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CVideoDecode(name, number, pCfg),
@@ -502,8 +503,8 @@ CSimpleVideoDecode::CSimpleVideoDecode(
      * regular video decoder type */
     setType(eBoardResource_simpleDecodeVideo);
 
+    memset(&_startSettings,0,sizeof(_startSettings));
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&_startSettings);
-
     BDBG_ASSERT(eRet_Ok == ret);
 }
 
@@ -823,7 +824,7 @@ eRet CSimpleVideoDecode::getOptimalVideoFormat(
         isPal = true;
     }
 
-    BDBG_MSG(("%s:%dx%d", __FUNCTION__, status.source.width, status.source.height));
+    BDBG_MSG(("%s:%dx%d", BSTD_FUNCTION, status.source.width, status.source.height));
 
     if (240 > status.source.height)
     {
@@ -982,13 +983,13 @@ error:
 }
 
 eRet CSimpleVideoDecode::setMaxSize(
-        uint16_t width,
-        uint16_t height
+        unsigned width,
+        unsigned height
         )
 {
     eRet     ret               = eRet_Ok;
-    uint16_t maxWidthPlatform  = 0;
-    uint16_t maxHeightPlatform = 0;
+    unsigned maxWidthPlatform  = 0;
+    unsigned maxHeightPlatform = 0;
 
     if ((0 == width) || (0 == height))
     {

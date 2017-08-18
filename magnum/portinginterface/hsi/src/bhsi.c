@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -130,12 +130,12 @@ static void BHSI_P_OloadIntHandler_isr(
 
     if (NULL == hHsi) {
         BDBG_ERR(("%s: NULL HSI Handle",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         goto end;
     }
     if (!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p closed",
-                  __FUNCTION__, (void*)hHsi));
+                  BSTD_FUNCTION, (void*)hHsi));
         goto end;
     }
 
@@ -158,12 +158,12 @@ static void BHSI_P_DrdyIntHandler_isr(
 
     if (NULL == hHsi) {
         BDBG_ERR(("%s: NULL HSI Handle",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         goto end;
     }
     if (!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p closed",
-                  __FUNCTION__, (void*)hHsi));
+                  BSTD_FUNCTION, (void*)hHsi));
         goto end;
     }
 
@@ -222,7 +222,7 @@ static void BHSI_P_CleanupContext(BHSI_Handle hHsi)
 {
     BERR_Code errCode;
 
-    BDBG_MSG(("%s(%p)", __FUNCTION__, (void*)hHsi));
+    BDBG_MSG(("%s(%p)", BSTD_FUNCTION, (void*)hHsi));
 
     if (NULL == hHsi) {
         return;
@@ -241,7 +241,7 @@ static void BHSI_P_CleanupContext(BHSI_Handle hHsi)
         errCode = BINT_DestroyCallback(hHsi->oLoadIntCallback);
         if (errCode != BERR_SUCCESS) {
             BDBG_ERR(("%s: BINT_DestroyCallback(Oload) returns error %u",
-                      __FUNCTION__, errCode));
+                      BSTD_FUNCTION, errCode));
             (void)BERR_TRACE(BERR_INVALID_PARAMETER) ;
         }
         hHsi->oLoadIntCallback = NULL;
@@ -254,7 +254,7 @@ static void BHSI_P_CleanupContext(BHSI_Handle hHsi)
         errCode = BINT_DestroyCallback(hHsi->drdyIntCallback);
         if (errCode != BERR_SUCCESS) {
             BDBG_ERR(("%s: BINT_DestroyCallback(Drdy) returns error %u",
-                      __FUNCTION__, errCode));
+                      BSTD_FUNCTION, errCode));
             (void)BERR_TRACE(BERR_INVALID_PARAMETER) ;
         }
         hHsi->drdyIntCallback = NULL;
@@ -301,7 +301,7 @@ BERR_Code BHSI_Reset_isr(BHSI_Handle hHsi)
 
     if (NULL == hHsi) {
         BDBG_ERR(("%s: NULL HSI Handle",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BHSI_P_DONE_LABEL;
     }
@@ -369,7 +369,7 @@ BERR_Code BHSI_Open(
     hsiHandle->interruptHandle = hInt;
     hsiHandle->settings = *pSettings;
 
-    BDBG_MSG(("%s: timeout %u ms", __FUNCTION__, (unsigned)hsiHandle->settings.timeOutMsec));
+    BDBG_MSG(("%s: timeout %u ms", BSTD_FUNCTION, (unsigned)hsiHandle->settings.timeOutMsec));
 
     /* save */
     *hHsi = hsiHandle;
@@ -437,13 +437,13 @@ BERR_Code BHSI_Close(
 
     if (NULL == hHsi) {
         BDBG_ERR(("%s: NULL HSI Handle",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BHSI_P_DONE_LABEL;
     }
     if(!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p is closed",
-                  __FUNCTION__, (void*)hHsi));
+                  BSTD_FUNCTION, (void*)hHsi));
         /* keep destroying instance */
     }
     BHSI_P_CleanupContext(hHsi);
@@ -479,7 +479,7 @@ BERR_Code BHSI_Send(
 
     if (NULL == hHsi) {
         BDBG_ERR(("%s: NULL HSI Handle",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BHSI_P_DONE_LABEL;
     }
@@ -490,14 +490,14 @@ BERR_Code BHSI_Send(
 
     if(!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p is closed",
-                  __FUNCTION__, (void*)hHsi));
+                  BSTD_FUNCTION, (void*)hHsi));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BHSI_P_DONE_LABEL;
     }
 
     if (totalLen > hHsi->settings.requestBufLen) {
         BDBG_ERR(("%s: The length of Input Data + header (%u) > (%u) request Buffer Size",
-                  __FUNCTION__, totalLen, hHsi->settings.requestBufLen));
+                  BSTD_FUNCTION, totalLen, hHsi->settings.requestBufLen));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
         goto BHSI_P_DONE_LABEL;
     }
@@ -519,7 +519,7 @@ BERR_Code BHSI_Send(
         if (hHsi->sendSeq != savedSendSeq) {
             /* probably Reset happens. */
             BDBG_WRN(("%s: HSI=%p send sequence is not valid (reset?)",
-                      __FUNCTION__, (void*)hHsi));
+                      BSTD_FUNCTION, (void*)hHsi));
             errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
             goto BHSI_P_DONE_LABEL;
         }
@@ -527,7 +527,7 @@ BERR_Code BHSI_Send(
 
     if (i == timeoutMsec * 500) {
         BDBG_ERR(("%s: Timout for waiting for SCPU_HOST_IRDY = 1",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         errCode = BERR_TRACE(BERR_TIMEOUT);
         goto BHSI_P_DONE_LABEL;
     }
@@ -575,14 +575,14 @@ BERR_Code BHSI_Send(
     if ( errCode != BERR_SUCCESS ) {
         /* TODO handle error. when will the buffer become available again? */
         BDBG_ERR(("%s:  Error Code= %x returned from BKNI_WaitForEvent",
-                  __FUNCTION__, errCode));
+                  BSTD_FUNCTION, errCode));
         goto BHSI_P_DONE_LABEL;
     }
     if (hHsi->sendSeq != savedSendSeq) {
         /* send sequence is not valid */
         BKNI_ResetEvent(hHsi->oLoadWaitEvent);
         BDBG_WRN(("%s: HSI=%p send sequence differ (reset)",
-                  __FUNCTION__, (void*)hHsi));
+                  BSTD_FUNCTION, (void*)hHsi));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BHSI_P_DONE_LABEL;
     }
@@ -604,7 +604,7 @@ BERR_Code BHSI_Send(
             _msg->size > hHsi->settings.requestAckBufLen) {
             BDBG_ERR(("%s: Received Message is %u bytes length.\n"
                       "\tACK buffer: %u <= authorized size <= %u",
-                      __FUNCTION__, _msg->size,
+                      BSTD_FUNCTION, _msg->size,
                       (unsigned)BHSI_HEAD_SIZE, hHsi->settings.requestAckBufLen));
             errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
             goto BHSI_P_DONE_LABEL;
@@ -614,7 +614,7 @@ BERR_Code BHSI_Send(
 
         if (rcvLen > maxAckBufLen) {
             BDBG_ERR(("%s: The length of ackowledge message ( %d ) < allocated buffer legnth",
-                      __FUNCTION__, maxAckBufLen));
+                      BSTD_FUNCTION, maxAckBufLen));
             errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
             goto BHSI_P_DONE_LABEL;
         }
@@ -652,20 +652,20 @@ BERR_Code BHSI_Receive_isrsafe(
 
     if (NULL == hHsi) {
         BDBG_ERR(("%s: NULL HSI Handle",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BHSI_P_DONE_LABEL;
     }
     if(!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p is closed",
-                  __FUNCTION__, (void*)hHsi));
+                  BSTD_FUNCTION, (void*)hHsi));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BHSI_P_DONE_LABEL;
     }
 
     if (!hHsi->bReceivePending) {
         BDBG_ERR(("%s: BHSI_Receive can only be used once after responseCallback is fired.",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto BHSI_P_DONE_LABEL;
     }
@@ -686,7 +686,7 @@ BERR_Code BHSI_Receive_isrsafe(
         _msg->size > hHsi->settings.responseBufLen) {
         BDBG_ERR(("%s: Received Message is %u bytes length.\n"
                   "Response buffer: %u <= authorized size <= %u",
-                  __FUNCTION__, _msg->size, (unsigned)BHSI_HEAD_SIZE, hHsi->settings.responseBufLen));
+                  BSTD_FUNCTION, _msg->size, (unsigned)BHSI_HEAD_SIZE, hHsi->settings.responseBufLen));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto BHSI_P_DONE_LABEL;
     }
@@ -694,7 +694,7 @@ BERR_Code BHSI_Receive_isrsafe(
 
     if (rcvLen > maxRcvBufLen) {
         BDBG_ERR(("%s: The length of Receiving Message ( %d ) > Allocated Buffer Size (%d)",
-                  __FUNCTION__, rcvLen, maxRcvBufLen));
+                  BSTD_FUNCTION, rcvLen, maxRcvBufLen));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto BHSI_P_DONE_LABEL;
     }
@@ -733,14 +733,14 @@ BERR_Code BHSI_Ack_isrsafe (
     BDBG_ASSERT(hHsi);
 
     if (hHsi == NULL) {
-        BDBG_ERR(("%s: bad HSI Handle", __FUNCTION__));
+        BDBG_ERR(("%s: bad HSI Handle", BSTD_FUNCTION));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
         goto BHSI_P_DONE_LABEL;
     }
 
     if(!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p is closed",
-                  __FUNCTION__, (void*)hHsi));
+                  BSTD_FUNCTION, (void*)hHsi));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
         goto BHSI_P_DONE_LABEL;
     }
@@ -754,7 +754,7 @@ BERR_Code BHSI_Ack_isrsafe (
             errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
             BDBG_ERR(("%s: (Ack Message + HSI header) is %u bytes length.\n"
                       "Ack buffer: %u <= authorized size <= %u",
-                      __FUNCTION__, totalLen,
+                      BSTD_FUNCTION, totalLen,
                       (unsigned)BHSI_HEAD_SIZE, hHsi->settings.responseAckBufLen));
             goto BHSI_P_DONE_LABEL;
         }

@@ -398,7 +398,7 @@ BDBG_CASSERT(NEXUS_NUM_HDMI_OUTPUTS <= NEXUS_MAX_HDMI_OUTPUTS);
 #endif
 
 #if NEXUS_HAS_CEC && NEXUS_NUM_CEC
-        if (pSettings->openCec) {
+        {
             NEXUS_CecSettings cecSettings;
             NEXUS_Cec_GetDefaultSettings(&cecSettings);
             /* Open but disable CEC core by default. The app can enable CEC when needed */
@@ -414,6 +414,13 @@ BDBG_CASSERT(NEXUS_NUM_HDMI_OUTPUTS <= NEXUS_MAX_HDMI_OUTPUTS);
                 goto error;
             }
             NEXUS_OBJECT_REGISTER(NEXUS_Cec, pConfig->outputs.cec[0], Create);
+        }
+        /* We open cec by default to initialize it and prevent unwanted wakeups
+         * Close it if openCec == false */
+        if (!pSettings->openCec) {
+            NEXUS_OBJECT_UNREGISTER(NEXUS_Cec, pConfig->outputs.cec[0], Destroy);
+            NEXUS_Cec_Close(pConfig->outputs.cec[0]);
+            pConfig->outputs.cec[0] = NULL;
         }
 #endif
         }

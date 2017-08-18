@@ -831,7 +831,9 @@ static void BVDC_P_HdDvi_ReadHwStatus_isr
     ulReg = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulFormatUpdateRegAddr);
     hHdDvi->bFormatUpdate =
         BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_VID_FORMAT_UPDATE_STATUS, UPDATED_HAP) ||
-        BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_VID_FORMAT_UPDATE_STATUS, UPDATED_VAL1);
+        BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_VID_FORMAT_UPDATE_STATUS, UPDATED_VAL1) ||
+        BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_VID_FORMAT_UPDATE_STATUS, UPDATED_VSP_1) ||
+        BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_VID_FORMAT_UPDATE_STATUS, UPDATED_VSP_2);
 
     /* Error flag: HD_DVI_0_PCTR_ERROR_STATUS */
     ulReg = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulPctrErrRegAddr);
@@ -2774,7 +2776,7 @@ static void BVDC_P_HdDvi_UpdateAutoFormat_isr
     {
         /* TODO: Refactor this portion of the code with videodetect */
         uint32_t ulTolWidth, ulTolHeight;
-        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isr((BFMT_VideoFmt)i);
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe((BFMT_VideoFmt)i);
 
         ulDigitalHeight = pFmtInfo->ulDigitalHeight;
         if(pFmtInfo->eOrientation == BFMT_Orientation_e3D_OverUnder)
@@ -3147,17 +3149,17 @@ static void BVDC_P_HdDvi_UpdateStatus_isr
         }
     }
 
-    if(bVideoDetected)
+    if(!bVideoDetected || (hHdDvi->hSource->eTrigCtrl != BVDC_P_TriggerCtrl_eSource))
+    {
+        hHdDvi->hSource->bStartFeed = false;
+    }
+    else
     {
         if(++hHdDvi->ulStartFeedCnt >= BVDC_P_HDDVI_VIDEO_DETECT_COUNT)
         {
             hHdDvi->ulStartFeedCnt = 0;
             hHdDvi->hSource->bStartFeed = true;
         }
-    }
-    else
-    {
-        hHdDvi->hSource->bStartFeed = false;
     }
 
     /* If hmdi mode use from aviInfo frame */
@@ -3248,11 +3250,11 @@ static void BVDC_P_HdDvi_UpdateStatus_isr
     if(hHdDvi->hSource->eFrameRateCode != eFrameRateCode)
     {
         hHdDvi->hSource->eFrameRateCode   = eFrameRateCode;
-        hHdDvi->hSource->ulPixelCount = ((pCurInfo->pFmtInfo->ulDigitalWidth *
-            pCurInfo->pFmtInfo->ulDigitalHeight) / BFMT_FREQ_FACTOR) *
-            BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hHdDvi->hSource->eFrameRateCode);
         pCurDirty->stBits.bFrameRateCode = BVDC_P_DIRTY;
     }
+    hHdDvi->hSource->ulPixelCount = ((pCurInfo->pFmtInfo->ulDigitalWidth *
+        pCurInfo->pFmtInfo->ulDigitalHeight) / BFMT_FREQ_FACTOR) *
+        BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hHdDvi->hSource->eFrameRateCode);
 
     /* Need to update anything due dirty got set? */
     if(BVDC_P_IS_DIRTY(pCurDirty))

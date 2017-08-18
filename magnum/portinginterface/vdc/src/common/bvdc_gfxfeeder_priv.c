@@ -1526,7 +1526,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_HORIZ_FIR_INIT_PHASE ) + ulRulOffset;
             *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE, PHASE, hGfxFeeder->ulFirInitPhase );
-#else
+#elif (BVDC_P_SUPPORT_GFD_VER <=  BVDC_P_SUPPORT_GFD_VER_10)
             /* 3D support */
             BDBG_CASSERT(2 == (((BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE) / sizeof(uint32_t)) + 1));
             *pulRulCur++ = BRDC_OP_IMMS_TO_REGS((
@@ -1534,6 +1534,13 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_HORIZ_FIR_INIT_PHASE ) + ulRulOffset;
             *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE,   PHASE, hGfxFeeder->ulFirInitPhase );
             *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE_R, PHASE, hGfxFeeder->ulFirInitPhase );
+#else /* BVDC_P_SUPPORT_GFD_VER_11 */
+            BDBG_CASSERT(2 == (((BCHP_GFD_0_HORIZ_FIR_INIT_PHASE - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R) / sizeof(uint32_t)) + 1));
+            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS((
+                (BCHP_GFD_0_HORIZ_FIR_INIT_PHASE - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R) / sizeof(uint32_t)) + 1);
+            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R ) + ulRulOffset;
+            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE_R, PHASE, hGfxFeeder->ulFirInitPhase );
+            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE,   PHASE, hGfxFeeder->ulFirInitPhase );
 #endif
         }
 
@@ -1546,11 +1553,19 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
 #endif
             (stFlags.bNeedVertScale || !stFlags.bInterlaced)? pCurSur->ulPitch : 2 * pCurSur->ulPitch;
 
+#if (BVDC_P_SUPPORT_GFD_VER <=  BVDC_P_SUPPORT_GFD_VER_10)
         BDBG_CASSERT(2 == (((BCHP_GFD_0_SRC_HSIZE - BCHP_GFD_0_SRC_OFFSET) / sizeof(uint32_t)) + 1));
         *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_SRC_HSIZE - BCHP_GFD_0_SRC_OFFSET) / sizeof(uint32_t)) + 1);
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_OFFSET ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, ulOffsetPixInByte );
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, pCurCfg->ulCntWidth );
+#else
+        BDBG_CASSERT(2 == (((BCHP_GFD_0_SRC_OFFSET - BCHP_GFD_0_SRC_HSIZE) / sizeof(uint32_t)) + 1));
+        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_SRC_OFFSET - BCHP_GFD_0_SRC_HSIZE) / sizeof(uint32_t)) + 1);
+        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_HSIZE ) + ulRulOffset;
+        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, pCurCfg->ulCntWidth );
+        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, ulOffsetPixInByte );
+#endif
 
         *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_PITCH ) + ulRulOffset;
@@ -2267,33 +2282,21 @@ void BVDC_P_GfxFeeder_UpdateState_isr
         if ( stCurDirty.stBits.bCsc ||
              hGfxFeeder->hWindow->hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace )
         {
-            if (!hGfxFeeder->stCfc.stCapability.stBits.bLRngAdj &&
-                BPXL_IS_RGB_FORMAT(pCurSur->eActivePxlFmt) &&
-                !BVDC_P_IS_SDR(hGfxFeeder->stCfc.pColorSpaceOut->stAvcColorSpace.eColorTF))
+            if (stCurDirty.stBits.bCsc)
             {
-                BDBG_MODULE_MSG(BVDC_CFC_1,("Cmp%d_G0-Cfc0: sdr -> hdr", hGfxFeeder->stCfc.eId - BVDC_P_CfcId_eComp0_G0));
-                BDBG_MODULE_MSG(BVDC_CFC_2,("   Using special SDR to HDR CSC adjustment for GFX"));
-                hGfxFeeder->stCfc.stMc = hGfxFeeder->stCscSdr2Hdr;
-                hGfxFeeder->stCfc.ucSelBlackBoxNL = BVDC_P_CFC_NL_SEL_BYPASS;
+                BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(pCurSur, &hGfxFeeder->stCfc.stColorSpaceIn);
             }
-            else
-            {
-                if (stCurDirty.stBits.bCsc)
-                {
-                    BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(pCurSur, &hGfxFeeder->stCfc.stColorSpaceIn);
-                }
 #if BVDC_P_DBV_SUPPORT
-                if(hGfxFeeder->stCfc.stCapability.stBits.bDbvToneMapping) {
-                    BVDC_P_Dbv_UpdateGfxInputColorSpace_isr(hGfxFeeder->hWindow->hCompositor, &hGfxFeeder->stCfc.stColorSpaceIn.stAvcColorSpace);
-                }
+            if(hGfxFeeder->stCfc.stCapability.stBits.bDbvToneMapping) {
+                BVDC_P_Dbv_UpdateGfxInputColorSpace_isr(hGfxFeeder->hWindow->hCompositor, &hGfxFeeder->stCfc.stColorSpaceIn.stAvcColorSpace);
+            }
 #endif
-                BVDC_P_Cfc_UpdateCfg_isr(&hGfxFeeder->stCfc, false, true);
-                if( hGfxFeeder->hWindow->stCurInfo.bUserCsc )
-                {
-                    BDBG_MODULE_MSG(BVDC_CFC_2,("Using User WIN CSC for GFX CFC"));
-                    BVDC_P_Cfc_FromMatrix_isr( &hGfxFeeder->stCfc,
-                        hGfxFeeder->hWindow->stCurInfo.pl32_Matrix, hGfxFeeder->hWindow->stCurInfo.ulUserShift);
-                }
+            BVDC_P_Cfc_UpdateCfg_isr(&hGfxFeeder->stCfc, false, true);
+            if( hGfxFeeder->hWindow->stCurInfo.bUserCsc )
+            {
+                BDBG_MODULE_MSG(BVDC_CFC_2,("Using User WIN CSC for GFX CFC"));
+                BVDC_P_Cfc_FromMatrix_isr( &hGfxFeeder->stCfc,
+                   hGfxFeeder->hWindow->stCurInfo.pl32_Matrix, hGfxFeeder->hWindow->stCurInfo.ulUserShift);
             }
 
 #ifndef BVDC_FOR_BOOTUPDATER

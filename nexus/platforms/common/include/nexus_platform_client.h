@@ -40,6 +40,7 @@
 #define NEXUS_PLATFORM_CLIENT_H__
 
 #include "nexus_platform_common.h"
+#include "nexus_core_file_init.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -118,6 +119,9 @@ void NEXUS_Platform_GetClientConfiguration(
 
 /* Returns everything except NEXUS_MemoryStatus.addr, which can be locally obtained with NEXUS_OffsetToCacheAddr. See NEXUS_Heap_GetStatus. */
 NEXUS_Error NEXUS_Platform_GetHeapStatus_driver( NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus);
+
+/* Returns FileModuleSettings passed into NEXUS_Platform_Init, used by client in NEXUS_Platform_Join */
+void NEXUS_Platform_GetFileModuleSettings_driver( NEXUS_FileModuleSettings *pFileModuleSettings );
 
 #ifdef __cplusplus
 }

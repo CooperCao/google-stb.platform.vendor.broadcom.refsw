@@ -364,7 +364,7 @@ bool CControlNx::checkPower(void)
         return false;
     }
 
-    BDBG_MSG(("CControlNX::%s mode:S%d", __FUNCTION__,pPowerNx->getMode()));
+    BDBG_MSG(("CControlNX::%s mode:S%d", BSTD_FUNCTION,pPowerNx->getMode()));
     powerOn = pPowerNx->checkPower();
     pBoardResources->checkinResource(pPowerNx);
     BKNI_Sleep(1000);
@@ -391,7 +391,7 @@ eRet CControlNx::setPowerMode(ePowerMode mode)
     pPowerNx = (CPowerNx *)pBoardResources->checkoutResource(_id, eBoardResource_power);
 
 
-    BDBG_MSG(("CControlNx::%s mode:S%d", __FUNCTION__, mode));
+    BDBG_MSG(("CControlNx::%s mode:S%d", BSTD_FUNCTION, mode));
     if (pPowerNx->getMode() == mode)
     {
         /* requested mode matches existing mode - still call setMode() which
@@ -760,3 +760,18 @@ void CControlNx::disconnectDecoders(eWindowType winType)
         _pModel->setConnectId(0, winType);
     }
 } /* disconnectDecoders() */
+
+eRet CControlNx::setWindowGeometry()
+{
+    eRet ret = eRet_Ok;
+
+    CSimpleVideoDecode * pVideoDecodeMain = _pModel->getSimpleVideoDecode(eWindowType_Main);
+    CSimpleVideoDecode * pVideoDecodePip  = _pModel->getSimpleVideoDecode(eWindowType_Pip);
+    MRect rectFull(0, 0, 1000, 1000);
+
+    if (NULL != pVideoDecodeMain) pVideoDecodeMain->setVideoWindowGeometryPercent(&rectFull);
+    if (NULL != pVideoDecodePip)  pVideoDecodePip->setVideoWindowGeometryPercent(&rectFull);
+
+    /* setVideoWindGeometry will give you the correct error messages */
+    return ret;
+}

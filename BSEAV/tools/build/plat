@@ -326,7 +326,7 @@ mixed)
 3.3-1.0|3.3-1.1|3.3-1.2|3.3-1.3|3.3-1.4|3.3-1.5|\
 3.3-2.0|3.3-2.1|3.3-2.2|3.3-2.3|3.3-2.4|3.3-2.5|3.3-2.6|3.3-2.7|\
 3.3-3.0|3.3-3.0a|3.3-3.1|3.3-3.2|3.3-3.3|3.3-3.4|3.3-3.5|3.3-3.6|\
-3.3-3.7|3.3-3.8|3.3-3.9|3.3-4.0|3.3-4.1)
+3.3-3.7|3.3-3.8|3.3-3.9|3.3-4.0|3.3-4.1|3.3-4.2)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
@@ -345,13 +345,15 @@ mixed)
     ;;
 
 4.1-1.0|4.1-1.1|4.1-1.2|4.1-1.3|\
-4.1-1.4|4.1-1.5|4.1-1.6)
+4.1-1.4|4.1-1.5|4.1-1.6|4.9-1.0)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
     ;;
 
-4.1-1.7|4.1-1.8|4.1-1.9|4.1-1.10)
+4.1-1.7|4.1-1.8|4.1-1.9|4.1-1.10|4.1-1.11|4.1-1.12)
+    # use the standard method to determine chip/ver linux and toolchain paths
+    # with bmips support
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
     NEW_MIPS=y
@@ -836,13 +838,15 @@ if [ -z "$NEXUS_PLATFORM" -a -n "$BCHP_VER" ] || [ -n "$NEXUS_PLATFORM" -a -z "$
 fi
 
 if [ -z "$LINUX_ROOT" ]; then
-   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.10
+   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.12
    URSR_ARM64_LINUX_ROOT=$URSR_ARM_LINUX_ROOT
-   URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-4.1
+   URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-4.2
+   URSR_MIPS_LINUX_4_1_ROOT=$URSR_ARM_LINUX_ROOT
 else
    URSR_ARM_LINUX_ROOT=$LINUX_ROOT
    URSR_ARM64_LINUX_ROOT=$LINUX_ROOT
    URSR_MIPS_LINUX_ROOT=$LINUX_ROOT
+   URSR_MIPS_LINUX_4_1_ROOT=$LINUX_ROOT
 fi
 
 # If NEXUS_PLATFORM was specified and kernel version was not, set a default.
@@ -858,7 +862,7 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
 
     97260)
        case $BCHP_VER in
-       A0)
+       A0|B0)
        if [[ $B_REFSW_ARCH == "arm-linux" ]] ; then
            LINUX_ROOT=$URSR_ARM_LINUX_ROOT
        else
@@ -872,7 +876,7 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
        ;;
     97268|97271)
        case $BCHP_VER in
-       A0|B0)
+       B0)
        if [[ $B_REFSW_ARCH == "arm-linux" ]] ; then
            LINUX_ROOT=$URSR_ARM_LINUX_ROOT
        else
@@ -885,8 +889,8 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
        esac
        ;;
     97278)
-        case $BCHP_VER in
-        A0)
+       case $BCHP_VER in
+       A0|B0)
        if [[ $B_REFSW_ARCH == "arm-linux" ]] ; then
            LINUX_ROOT=$URSR_ARM_LINUX_ROOT
        else
@@ -1085,7 +1089,7 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
         esac
         ;;
-    97425|97422|93322)
+    97422|93322)
         case $BCHP_VER in
         A0|A1|B0|B1)
         CHIP_REV_NOT_SUPPORTED=1
@@ -1098,13 +1102,45 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
         esac
         ;;
-    97429|97428|97241)
+    97425)
+        case $BCHP_VER in
+        A0|A1|B0|B1)
+        CHIP_REV_NOT_SUPPORTED=1
+        ;;
+        B2)
+	    if [ -n "$NEXUS_PLATFORM_7425_DBS" -o -n "$NEXUS_PLATFORM_4528_DBS" ]; then
+	      LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
+	    else
+	      LINUX_ROOT=$URSR_MIPS_LINUX_4_1_ROOT
+	      NEW_MIPS=y
+	    fi
+        ;;
+        *)
+        CHIP_VER_NOT_VALID=1
+        ;;
+        esac
+        ;;
+    97428|97241)
         case $BCHP_VER in
         A0)
         CHIP_REV_NOT_SUPPORTED=1
         ;;
         B0)
         LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
+        ;;
+        *)
+        CHIP_VER_NOT_VALID=1
+        ;;
+        esac
+        ;;
+    97429)
+        case $BCHP_VER in
+        A0)
+        CHIP_REV_NOT_SUPPORTED=1
+        ;;
+        B0)
+        LINUX_ROOT=$URSR_MIPS_LINUX_4_1_ROOT
+        NEW_MIPS=y
         ;;
         *)
         CHIP_VER_NOT_VALID=1
@@ -1125,15 +1161,12 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
     97435)
         case $BCHP_VER in
         B0)
-	    case $NEXUS_USE_7425_SV_BOARD in
-            y|Y)
-	    LINUX_ROOT=/opt/brcm/linux-4.1-1.10
-	    NEW_MIPS=y
-	    ;;
-	    *)
-	    LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
-	    ;;
-	    esac
+	    if [ -n "$NEXUS_PLATFORM_7425_DBS" -o -n "$NEXUS_PLATFORM_4528_DBS" ]; then
+	      LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
+	    else
+	      LINUX_ROOT=$URSR_MIPS_LINUX_4_1_ROOT
+	      NEW_MIPS=y
+	    fi
         ;;
         *)
         CHIP_VER_NOT_VALID=1
@@ -1295,7 +1328,14 @@ if [ ! -z $LINUX_ROOT ]; then
             export LINUX=${LINUX}_be
     fi
     # use the kernel tree's misc/toolchain file to determine the toolchain
-    NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat ${LINUX_ROOT}/misc/toolchain`/bin
+    # GCC 6.3 toolchain is referenced in a separate file, choose this one as a preference
+    if [ -f ${LINUX_ROOT}/misc/toolchain_63 ]; then
+        TOOLCHAIN_SUFFIX=_63
+    else
+        TOOLCHAIN_SUFFIX=
+    fi
+    NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat ${LINUX_ROOT}/misc/toolchain${TOOLCHAIN_SUFFIX}`/bin
+
 fi
 
 # Check if system is an emulation client

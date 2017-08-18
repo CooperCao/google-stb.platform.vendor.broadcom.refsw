@@ -960,7 +960,7 @@ static XFORM_FUNC_NAME_T xform_func_to_name_map[] = {
 
 const char *gfx_buffer_xform_func_desc(GFX_BUFFER_XFORM_FUNC_T xform_func)
 {
-   for (size_t i = 0; i != vcos_countof(xform_func_to_name_map); ++i)
+   for (size_t i = 0; i != countof(xform_func_to_name_map); ++i)
    {
       if (xform_func_to_name_map[i].func == xform_func)
          return xform_func_to_name_map[i].name;
@@ -1035,7 +1035,7 @@ void gfx_buffer_xform_seq_add_with_opts_planar(
    const GFX_LFMT_T *dst_fmts,
    const GFX_BUFFER_XFORM_OPTIONS_T *opts)
 {
-   assert(seq->count < vcos_countof(seq->steps));
+   assert(seq->count < countof(seq->steps));
 
    const GFX_BUFFER_XFORM_T *prev_xform = (seq->count > 0) ?
       &seq->steps[seq->count - 1] : NULL;
@@ -1177,10 +1177,10 @@ void gfx_buffer_xform_seq_construct_continue(
       GFX_LFMT_T fmts_d32_s8_split[] = { GFX_LFMT_D32_FLOAT, GFX_LFMT_S8_UINT };
 
       if (gfx_lfmts_equal(
-            vcos_countof(fmts_d32_s8_packed), fmts_d32_s8_packed,
+            countof(fmts_d32_s8_packed), fmts_d32_s8_packed,
             src_num_planes, src_fmts) &&
          gfx_lfmts_equal(
-            vcos_countof(fmts_d32_s8_split), fmts_d32_s8_split,
+            countof(fmts_d32_s8_split), fmts_d32_s8_split,
             dst_num_planes, dst_fmts))
       {
          gfx_buffer_xform_seq_add_planar(xform_seq, gfx_buffer_xform_split_d32s8,

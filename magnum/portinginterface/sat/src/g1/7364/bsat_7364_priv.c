@@ -117,6 +117,28 @@ BERR_Code BSAT_g1_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 
 
 /******************************************************************************
+ BSAT_g1_P_ValidateAcqParams()
+******************************************************************************/
+BERR_Code BSAT_g1_P_ValidateAcqParams(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams)
+{
+   BSTD_UNUSED(h);
+
+   if (((pParams->mode >= BSAT_Mode_eDvbs2_16apsk_2_3) && (pParams->mode <= BSAT_Mode_eDvbs2_32apsk_9_10)) || (pParams->mode == BSAT_Mode_eDvbs2_ACM))
+   {
+      return (BERR_TRACE(BERR_NOT_SUPPORTED));
+   }
+   if (BSAT_MODE_IS_DVBS2X(pParams->mode))
+   {
+      BDBG_ERR(("DVB-S2X not supported"));
+      return (BERR_TRACE(BERR_NOT_SUPPORTED));
+   }
+   if ((pParams->options & BSAT_ACQ_NYQUIST_MASK) == BSAT_ACQ_NYQUIST_5)
+      return (BERR_TRACE(BERR_NOT_SUPPORTED));
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
  BSAT_g1_P_GetRegisterAddress_isrsafe()
 ******************************************************************************/
 static void BSAT_g1_P_GetRegisterAddress_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t *pAddr)

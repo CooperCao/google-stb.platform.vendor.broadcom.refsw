@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2016 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *   API name: Event
 *    Library routines for event management
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "errno.h"
@@ -139,7 +131,6 @@ B_ThreadHandle B_Thread_Create(
     )
 {
     int rc;
-    B_Error errCode;
     B_Thread *pThread;
     B_ThreadSettings defaultSettings;
     static const char *pDefaultName = "B_OS Unknown";
@@ -168,7 +159,7 @@ B_ThreadHandle B_Thread_Create(
     pThread = B_Os_Malloc(sizeof(B_Thread));
     if ( NULL == pThread )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         return NULL;
     }
 
@@ -178,7 +169,7 @@ B_ThreadHandle B_Thread_Create(
     if ( NULL == pThread->pName )
     {
         B_Os_Free(pThread);
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         return NULL;
     }
 
@@ -189,7 +180,7 @@ B_ThreadHandle B_Thread_Create(
         {
             free(pThread->pName);
             B_Os_Free(pThread);
-            errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+            (void)BERR_TRACE(B_ERROR_OS_ERROR);
             return NULL;
         }
     }
@@ -199,7 +190,7 @@ B_ThreadHandle B_Thread_Create(
     {
         free(pThread->pName);
         B_Os_Free(pThread);
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         return NULL;
     }
 
@@ -212,8 +203,8 @@ B_ThreadHandle B_Thread_Create(
         B_Event_Destroy(pThread->hExitEvent);
         free(pThread->pName);
         B_Os_Free(pThread);
-        BDBG_WRN(("%s: pthread_create Failed, rc=%d errno=%d", __FUNCTION__, rc, errno));
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        BDBG_WRN(("%s: pthread_create Failed, rc=%d errno=%d", BSTD_FUNCTION, rc, errno));
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         return NULL;
     }
 

@@ -405,11 +405,10 @@ bmedia_timestamp_parser_t
 bmpeg1_pts_parser_create(uint16_t stream_id, size_t packet_len)
 {
 	b_mpeg1_pts_parser *parser;
-	BERR_Code rc;
 
 	parser = BKNI_Malloc(sizeof(*parser));
 
-	if(!parser) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
+	if(!parser) { (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
 
 	BDBG_OBJECT_INIT(parser, b_mpeg1_pts_parser);
 	BDBG_MSG(("bmpeg1_pts_parser_create: %p stream id:%#x packet_len:%u", (void *)parser, (unsigned)stream_id, (unsigned)packet_len));

@@ -5,7 +5,7 @@
 
 #include "libs/core/lfmt/lfmt_block.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern GFX_LFMT_T gfx_buffer_get_decompressed_fmt(GFX_LFMT_T compressed_fmt);
 
@@ -27,4 +27,4 @@ extern void gfx_buffer_get_pixel_from_compr_block(
    /* Block-relative coords */
    uint32_t x, uint32_t y, uint32_t z);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

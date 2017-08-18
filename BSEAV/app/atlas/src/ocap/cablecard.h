@@ -120,7 +120,7 @@ typedef struct Cablecard *cablecard_t;
 
 typedef void (*cablecard_mpeg_callback)(void * context, int param);
 
-typedef void (*cablecard_html_callback)(uint8_t *html, uint16_t len, uint8_t dialogNb, uint8_t fileStatus);
+typedef void (*cablecard_html_callback)(uint8_t *html, unsigned len, uint8_t dialogNb, uint8_t fileStatus);
 
 typedef struct cablecard_setting {
  	NEXUS_FrontendOutOfBandMode oob_mode;
@@ -220,7 +220,7 @@ public:
     void cablecard_init();
     int cablecard_get_page(int app_num);
     unsigned int get_num_lines_filled(void);
-    void parse_app_info_query(uint8_t *html, uint16_t len);
+    void parse_app_info_query(uint8_t *html, unsigned len);
     friend void cablecard_in(void);
     friend void cablecard_out(void);
     int bcm_3255_tristate_oob_pins();
@@ -229,7 +229,7 @@ public:
     NEXUS_FrontendLockStatus isLocked(void);
     CParserBand * getParserBand(void) { return _pParserBand; }; 
 #ifdef SNMP_SUPPORT
-    friend void enforceCciCb(uint8_t cci_data, uint16_t prog_num, uint8_t cci_ltsid);
+    friend void enforceCciCb(uint8_t cci_data, unsigned prog_num, uint8_t cci_ltsid);
 #endif
 protected:
     CParserBand         * _pParserBand;

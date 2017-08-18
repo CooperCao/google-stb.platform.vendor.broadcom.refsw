@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1039,7 +1039,9 @@ static BIP_Status BIP_Play_SetupNexusAVDecoders(
     BIP_Status bipStatus = BIP_ERR_NEXUS;
 
 #if NXCLIENT_SUPPORT
+    NEXUS_SimpleVideoDecoderServerHandle videoServer;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
+    NEXUS_SimpleAudioDecoderServerHandle audioServer;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_SimpleVideoDecoderServerSettings videoServerSettings;
     NEXUS_SimpleAudioDecoderServerSettings audioServerSettings;
@@ -1055,13 +1057,24 @@ static BIP_Status BIP_Play_SetupNexusAVDecoders(
 #if NEXUS_HAS_SYNC_CHANNEL
     NEXUS_SyncChannel_GetSettings(pCtx->syncChannel, &pCtx->syncChannelSettings);
 #if NXCLIENT_SUPPORT
-    NEXUS_SimpleVideoDecoder_GetServerSettings(pCtx->hSimpleVideoDecoder, &videoServerSettings);
-    NEXUS_SimpleAudioDecoder_GetServerSettings(pCtx->hSimpleAudioDecoder, &audioServerSettings);
-    if (!pCtx->options.disableVideo && (pCtx->videoCodec != NEXUS_VideoCodec_eUnknown))
-        pCtx->syncChannelSettings.videoInput = NEXUS_VideoDecoder_GetConnector(videoServerSettings.videoDecoder);
-    if (!pCtx->options.disableAudio && (pCtx->audioCodec != NEXUS_AudioCodec_eUnknown))
-        pCtx->syncChannelSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioServerSettings.primary,
-                                                    audioServerSettings.syncConnector);
+    videoServer = NEXUS_SimpleVideoDecoderServer_Create();
+    audioServer = NEXUS_SimpleAudioDecoderServer_Create();
+
+    if(videoServer && audioServer)
+    {
+        NEXUS_SimpleVideoDecoder_GetServerSettings(videoServer, pCtx->hSimpleVideoDecoder, &videoServerSettings);
+        NEXUS_SimpleAudioDecoder_GetServerSettings(audioServer, pCtx->hSimpleAudioDecoder, &audioServerSettings);
+        if (!pCtx->options.disableVideo && (pCtx->videoCodec != NEXUS_VideoCodec_eUnknown))
+            pCtx->syncChannelSettings.videoInput = NEXUS_VideoDecoder_GetConnector(videoServerSettings.videoDecoder);
+        if (!pCtx->options.disableAudio && (pCtx->audioCodec != NEXUS_AudioCodec_eUnknown))
+            pCtx->syncChannelSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioServerSettings.primary,
+    }
+                                                        audioServerSettings.syncConnector);
+    if(audioServer)
+        NEXUS_SimpleAudioDecoderServer_Destroy(audioServer);
+    if(videoServer)
+        NEXUS_SimpleVideoDecoderServer_Destroy(videoServer);
+
 #else /* NXCLIENT_SUPPORT */
     if (!pCtx->options.disableVideo && (pCtx->videoCodec != NEXUS_VideoCodec_eUnknown))
         pCtx->syncChannelSettings.videoInput = NEXUS_VideoDecoder_GetConnector(pCtx->videoDecoder);

@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/ProfileManager/include/bbRF4CEPMProfiles.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE profile manager profiles inclusion section.
+ *      This is the header file for the RF4CE profile manager profiles inclusion section.
  *
- * $Revision: 3272 $
- * $Date: 2014-08-15 09:13:13Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_PM_PROFILES_H
 #define _RF4CE_PM_PROFILES_H
 
@@ -153,61 +147,67 @@ typedef enum _RF4CE_DevicesTypes_t
 
 typedef enum _RF4CE_ProfileState_t
 {
-    RF4CE_PS_FREE = 0,      /* Current member is free */
-    RF4CE_PS_IDLE,          /* Current member is idle */
-    RF4CE_PS_SENDING,       /* Current member is idle */
-    RF4CE_PS_MAX_PM_STATE   /* Maximum value for PM State */
+    RF4CE_PS_FREE = 0,      /*!< Current member is free */
+    RF4CE_PS_IDLE,          /*!< Current member is idle */
+    RF4CE_PS_SENDING,       /*!< Current member is sending */
+    RF4CE_PS_MAX_PM_STATE   /*!< Maximum value for PM State */
 } RF4CE_ProfileState_t;
 
 /************************* TYPES *******************************************************/
 /**//**
  * \brief Profiles/data indication data structure.
+ * \ingroup RF4CE_ProfileDataInd
  */
 typedef struct _RF4CE_PM_ProfilesData_t
 {
-    uint8_t profileId;
-    void (*callback)(RF4CE_NWK_DataIndParams_t *indication);
+    uint8_t profileId;                       /*!< Profile ID */
+    void (*callback)(RF4CE_NWK_DataIndParams_t *indication); /*!< Data Indication Callback */
 } RF4CE_PM_ProfilesData_t;
 
 /**//**
  * \brief Profiles Set Devices Support request parameters.
+ * \ingroup RF4CE_SetSupportedDevicesReq
  */
 typedef struct _RF4CE_SetSupportedDevicesReqParams_t
 {
-    uint8_t numDevices;
-    uint8_t devices[3];
+    uint8_t numDevices;                      /*!< Number of devices */
+    uint8_t devices[3];                      /*!< Array of supported devices */
 } RF4CE_SetSupportedDevicesReqParams_t;
 
 /**//**
  * \brief Profiles Set Devices Support confirmation parameters.
+ * \ingroup RF4CE_SetSupportedDevicesConf
  */
 typedef struct _RF4CE_SetSupportedDevicesConfParams_t
 {
-    Bool8_t status;
+    Bool8_t status;                          /*!< Confirmation status */
 } RF4CE_SetSupportedDevicesConfParams_t;
 
 /**//**
  * \brief Profiles Set Devices Support request declaration.
+ * \ingroup RF4CE_SetSupportedDevicesReq
  */
 typedef struct _RF4CE_SetSupportedDevicesReqDescr_t RF4CE_SetSupportedDevicesReqDescr_t;
 
 /**//**
  * \brief Profiles Set Devices Support callback declaration.
+ * \ingroup RF4CE_SetSupportedDevicesConf
  */
 typedef void (*RF4CE_GDP_SetSupportedDevicesCallback_t)(RF4CE_SetSupportedDevicesReqDescr_t *req, RF4CE_SetSupportedDevicesConfParams_t *conf);
 
 /**//**
  * \brief Profiles Set Devices Support request descriptor.
+ * \ingroup RF4CE_SetSupportedDevicesReq
  */
 struct _RF4CE_SetSupportedDevicesReqDescr_t
 {
 #ifndef _HOST_
-    RF4CE_NWK_RequestService_t service;
+    RF4CE_NWK_RequestService_t service;      /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
-    RF4CE_SetSupportedDevicesReqParams_t params;
-    RF4CE_GDP_SetSupportedDevicesCallback_t callback;
+    RF4CE_SetSupportedDevicesReqParams_t params;      /*!< Request parameters */
+    RF4CE_GDP_SetSupportedDevicesCallback_t callback; /*!< Confirmation callback */
 };
 
 /**//**
@@ -250,6 +250,7 @@ extern const RF4CE_PM_ProfilesData_t RF4CE_DataIndications[];
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Sets Supported Device List.
+ \ingroup RF4CE_PM_Functions
 
  \param[in] request - ponter to the request structure.
  \return Nothing.
@@ -258,6 +259,7 @@ void RF4CE_SetSupportedDevicesReq(RF4CE_SetSupportedDevicesReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Returns the supported device list.
+ \ingroup RF4CE_PM_Functions
 
  \return The supported device list.
  ****************************************************************************************/
@@ -265,6 +267,7 @@ uint8_t* RF4CE_DevicesIdList(void);
 
 /************************************************************************************//**
  \brief Returns size of the DevicesIdList.
+ \ingroup RF4CE_PM_Functions
 
  \return Size of the DevicesIdList.
  ****************************************************************************************/
@@ -272,6 +275,7 @@ uint8_t RF4CE_DevicesIdListSize(void);
 
 /************************************************************************************//**
  \brief Returns size of the ProfilesIdList.
+ \ingroup RF4CE_PM_Functions
 
  \return Size of the ProfilesIdList.
  ****************************************************************************************/
@@ -279,6 +283,7 @@ uint8_t RF4CE_ProfilesIdListSize(void);
 
 /************************************************************************************//**
  \brief Returns size of the ProfilesIdList1.
+ \ingroup RF4CE_PM_Functions
 
  \return Size of the ProfilesIdList1.
  ****************************************************************************************/
@@ -286,6 +291,7 @@ uint8_t RF4CE_ProfilesIdListSize1(void);
 
 /************************************************************************************//**
  \brief Returns size of the ProfilesIdList2.
+ \ingroup RF4CE_PM_Functions
 
  \return Size of the ProfilesIdList2.
  ****************************************************************************************/
@@ -293,9 +299,21 @@ uint8_t RF4CE_ProfilesIdListSize2(void);
 
 /************************************************************************************//**
  \brief Returns size of the DataIndications.
+ \ingroup RF4CE_PM_Functions
 
  \return Size of the DataIndications.
  ****************************************************************************************/
 uint8_t RF4CE_DataIndicationsSize(void);
 
+/************************************************************************************//**
+ \brief Checkes if the pairing reference is used.
+ \ingroup RF4CE_PM_Functions
+
+ \param[in] pairRef - pairing reference which should be checked.
+ \return true if the pairRef is marked as used in the pairing table in the RF4CE NWK.
+ ****************************************************************************************/
+bool RF4CE_PM_CheckPairRefUsed(uint8_t pairRef);
+
 #endif /* _RF4CE_PM_PROFILES_H */
+
+/* eof bbRF4CEPMProfiles.h */

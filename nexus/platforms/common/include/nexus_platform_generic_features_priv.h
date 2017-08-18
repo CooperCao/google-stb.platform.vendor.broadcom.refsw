@@ -113,7 +113,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_GRAPHICS2D
-#if (BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445) && !defined NEXUS_WEBCPU
+#if (BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445 || BCHP_CHIP == 7278 || BCHP_CHIP == 11360 ) && !defined NEXUS_WEBCPU
 #define NEXUS_NUM_2D_ENGINES 2
 #else
 #define NEXUS_NUM_2D_ENGINES 1

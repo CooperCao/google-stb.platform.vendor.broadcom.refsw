@@ -50,7 +50,7 @@ class CTunerVsbNx : public CTunerVsb
 public:
     CTunerVsbNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

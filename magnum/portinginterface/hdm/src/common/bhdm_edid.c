@@ -253,6 +253,8 @@ static BERR_Code BHDM_EDID_P_ParseV1V2TimingExtension(const BHDM_Handle hHDMI) ;
 
 static BERR_Code BHDM_EDID_P_ParseV3TimingExtension(const BHDM_Handle hHDMI);
 
+static BERR_Code BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI) ;
+
 static BERR_Code BHDM_EDID_P_GetVerticalFrequency(
 	uint32_t ulVertFreqMask,            /* [in] Vertical Frequency Mask (bfmt) */
 	uint16_t *uiVerticalFrequency)  ;   /* [out] Vertical Frequency value */
@@ -3250,13 +3252,19 @@ static void BHDM_EDID_P_ParseColorimetryDB(const BHDM_Handle hHDMI, uint8_t Data
 
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eAdobeRGB]
 		= ColorimetrySupportByte & 0x10 ;
-#if DISABLED
-	/* Disabling BT2020 CL due to unreliable results observed on various DTV */
+
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC]
 		= ColorimetrySupportByte & 0x20 ;
-#else
-	BDBG_WRN(("Support for BT2020 CL is DISABLED")) ;
-#endif
+
+	/* if BT2020 CL is supported, override support and warn */
+	if (hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC])
+	{
+		/* Disable BT2020 CL due to unreliable results observed on various DTV */
+		hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC] = false ;
+		BDBG_WRN(("HDMI Rx <%s> support for BT2020 CL has been DISABLED",
+			hHDMI->AttachedEDID.MonitorName)) ;
+	}
+
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020YCC]
 		= ColorimetrySupportByte & 0x40 ;
 	hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020RGB]
@@ -3915,7 +3923,7 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 }
 
 
-BERR_Code BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI)
+static BERR_Code BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI)
 {
 	BERR_Code rc = BERR_SUCCESS;
 
@@ -4807,7 +4815,6 @@ done:
 void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 {
 #if !BDBG_NO_LOG
-	BERR_Code rc ;
 	uint8_t i, j ;
 	static char const ucDataBlockHeaderFormat[] = "[%s Data Block]" ;
 	static char const ucDataBlockSeparator[] = "_______________________________________" ;
@@ -4880,7 +4887,7 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 
 
 	BDBG_LOG(("EDID Descriptors:")) ;
-	if ( hHDMI->AttachedEDID.MonitorName)
+	if (hHDMI->AttachedEDID.MonitorName[0])
 	{
 		BDBG_LOG(("   Monitor Name: %s", hHDMI->AttachedEDID.MonitorName)) ;
 	}
@@ -4991,7 +4998,7 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 					else
 					{
 						BDBG_WRN(("Error printing Audio DB formats; Unknown/Un-Supported Bit Rate")) ;
-						rc = BHDM_EDID_HDMI_UNKNOWN_BIT_RATE ;
+						/* rc = BHDM_EDID_HDMI_UNKNOWN_BIT_RATE ; */
 						continue ;
 					}
 
@@ -5233,17 +5240,113 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 
 	if (hHDMI->AttachedEDID.YCbCr420CapabilityVideDBFound)
 	{
-		uint8_t EdidSvdCode ;
+		uint8_t EdidSvdCode = 0 ;
+		bool bCeaCodeFound =false ;
+		uint16_t uiCea861FormatVeriticalFrequency ;
+		bool bCea861VideoFormatInterlaced ;
+		const BHDM_EDID_P_CEA_861B_VIDEO_FORMAT *pCea861VideoFormat ;
 
 		BDBG_LOG((ucDataBlockHeaderFormat, "YCbCr 4:2:0 Video")) ;
 		for (i = 0; i < BFMT_VideoFmt_eMaxCount; i++)
 		{
-			if (hHDMI->AttachedEDID.BcmSupported420VideoFormats[(BFMT_VideoFmt) i])
+			if (hHDMI->AttachedEDID.BcmSupported420VideoFormats[i])
 			{
-				EdidSvdCode = BHDM_EDID_P_Cea861bFormats[i].CeaVideoCode ;
-				BDBG_LOG(("CEA-861 Video ID: %3d (%-27s) : SUPPORTED",
-					EdidSvdCode,
-					(char *) BAVC_HDMI_AviInfoFrame_VideoIdCodeToStr(EdidSvdCode))) ;
+				const BFMT_VideoInfo *pVideoInfo = BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
+
+				/* based on BCM Supported YCbCr 4:2:0 video format, find associated CEA-861 Code */
+				for (j = 0 ; j < BHDM_EDID_P_BCM_VIDEO_FORMATS_MAX ; j++)
+				{
+					pCea861VideoFormat = &BHDM_EDID_P_Cea861bFormats[j] ;
+
+					/* convert scan type */
+					if (pCea861VideoFormat->eScanType == BAVC_ScanType_eInterlaced)
+						bCea861VideoFormatInterlaced = true ;
+					else
+						bCea861VideoFormatInterlaced = false ;
+
+					/* convert  refresh rate */
+					switch (pCea861VideoFormat->eFrameRateCode)
+					{
+					default:
+					case BAVC_FrameRateCode_eUnknown : /* Unknown */
+					case BAVC_FrameRateCode_eMax :        /* Max Enum Value */
+						BDBG_WRN(("Unknown FrameRate Code: %d; Using 60Hz",
+							pCea861VideoFormat->eFrameRateCode)) ;
+						uiCea861FormatVeriticalFrequency = 6000 ;
+						break ;
+
+					case BAVC_FrameRateCode_e23_976 :
+					case BAVC_FrameRateCode_e24 :
+						uiCea861FormatVeriticalFrequency = 2400 ;
+						break ;
+
+					case BAVC_FrameRateCode_e25 :
+						uiCea861FormatVeriticalFrequency = 2500 ;
+						break ;
+
+					case BAVC_FrameRateCode_e29_97 :
+					case BAVC_FrameRateCode_e30 :
+						uiCea861FormatVeriticalFrequency = 3000 ;
+						break ;
+
+					case BAVC_FrameRateCode_e50 :
+						uiCea861FormatVeriticalFrequency = 5000 ;
+						break ;
+
+					case BAVC_FrameRateCode_e59_94 :
+					case BAVC_FrameRateCode_e60 :
+						uiCea861FormatVeriticalFrequency = 6000 ;
+						break ;
+
+					case BAVC_FrameRateCode_e100 :
+						uiCea861FormatVeriticalFrequency = 10000 ;
+						break ;
+
+					case BAVC_FrameRateCode_e119_88 :
+						uiCea861FormatVeriticalFrequency = 12000 ;
+						break ;
+					}
+
+					/* messages for debugging search */
+					BDBG_MSG(("Checking bfmt  %s  %d x %d %d Hz  AR: %d %s",
+						pVideoInfo->pchFormatStr,
+						pVideoInfo->ulWidth, pVideoInfo->ulHeight,
+						pVideoInfo->ulVertFreq /100,
+						pVideoInfo->eAspectRatio,
+						pVideoInfo->bInterlaced ? "Interlaced" : "Progressive")) ;
+
+					BDBG_MSG(("Checking CEA 861 format %s  %d x %d  %d Hz    AR: %d   Interlaced: %s",
+						(char *) BAVC_HDMI_AviInfoFrame_VideoIdCodeToStr(pCea861VideoFormat->CeaVideoCode),
+						pCea861VideoFormat->HorizontalPixels, pCea861VideoFormat->VerticalPixels,
+						pCea861VideoFormat->eAspectRatio, uiCea861FormatVeriticalFrequency,
+						bCea861VideoFormatInterlaced ? "Interlaced" : "Progressive")) ;
+
+					if ((pVideoInfo->ulWidth != (uint32_t) pCea861VideoFormat->HorizontalPixels) /* format width */
+					||  (pVideoInfo->ulHeight != pCea861VideoFormat->VerticalPixels) /* format height */
+					||  (pVideoInfo->ulVertFreq != uiCea861FormatVeriticalFrequency) /* refresh rate */
+					||  (pVideoInfo->bInterlaced != bCea861VideoFormatInterlaced) /* ScanType */
+					||  (pVideoInfo->eAspectRatio != pCea861VideoFormat->eAspectRatio)) /*  Aspect Ratio */
+						continue ;
+
+					/* Matching CEA-861 Video Format Found */
+					EdidSvdCode = pCea861VideoFormat->CeaVideoCode ;
+					bCeaCodeFound = true ;
+
+					break ;
+				}
+
+				if (bCeaCodeFound)
+				{
+					BDBG_LOG(("CEA-861 Video ID: %3d (%-27s) : SUPPORTED",
+						EdidSvdCode,
+						(char *) BAVC_HDMI_AviInfoFrame_VideoIdCodeToStr(EdidSvdCode))) ;
+				}
+				else
+				{
+					BDBG_WRN(("Unknown supported BFMT %d", j)) ;
+					(void)BERR_TRACE(BERR_UNKNOWN) ;
+					break ;
+				}
 			}
 		}
 		BDBG_LOG((ucDataBlockSeparator)) ;

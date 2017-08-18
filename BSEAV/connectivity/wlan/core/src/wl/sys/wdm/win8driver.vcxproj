@@ -1,0 +1,717 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="win8x_nic_checked|Win32">
+      <Configuration>win8x_nic_checked</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="win8x_nic_free|Win32">
+      <Configuration>win8x_nic_free</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="win8x_nic_checked|x64">
+      <Configuration>win8x_nic_checked</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="win8x_nic_free|x64">
+      <Configuration>win8x_nic_free</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\bcmcrypto\aes.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\gcm.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\aesgcm.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\aeskeywrap.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\des.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\hmac.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\md5.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\passhash.c" />
+    <ClCompile Include="..\..\..\shared\aiutils.c" />
+    <ClCompile Include="..\..\..\shared\bcmevent.c" />
+    <ClCompile Include="..\..\..\shared\bcmotp.c" />
+    <ClCompile Include="..\..\..\shared\bcmsrom.c" />
+    <ClCompile Include="..\..\..\shared\bcmstdlib.c" />
+    <ClCompile Include="..\..\..\shared\bcmutils.c" />
+    <ClCompile Include="..\..\..\shared\bcmxtlv.c" />
+    <ClCompile Include="..\..\..\shared\bcm_app_utils.c" />
+    <ClCompile Include="..\..\..\shared\hnd_pktq.c" />
+    <ClCompile Include="..\..\..\shared\hnd_pktpool.c" />
+    <ClCompile Include="..\..\..\shared\hndd11.c" />
+    <ClCompile Include="..\..\..\shared\bcmwifi\src\bcmwifi_channels.c" />
+    <ClCompile Include="..\..\..\shared\bcmwpa.c" />
+    <ClCompile Include="..\..\..\shared\bcm_assert_log.c" />
+    <ClCompile Include="..\..\..\shared\bcm_mpool.c" />
+    <ClCompile Include="..\..\..\shared\bcm_notif.c" />
+    <ClCompile Include="..\..\..\shared\nvram_ro.c" />
+    <ClCompile Include="..\..\keymgmt\src\km.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_alloc.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_b4m4.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_bsscfg.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_dump.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_event.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_hw.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_hw_algo.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_hw_algo_hwktab.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_hw_alloc.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_hw_dump.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_ioctl.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_iovars.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_ivtw.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_aes.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_aes_mcmfp.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_ccx.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_none.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_tkip.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_tkip_linux.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_wapi.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_key_wep.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_notify.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_scb.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_tkip.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_util.c" />
+    <ClCompile Include="..\..\keymgmt\src\km_wowl_hw.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\ndshared.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\nhd_ndis.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndcommon.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndconfig.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_nddbg.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndglobal.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndindicate.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndtimer.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndvif.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndis.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndnwifi.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_ndp2p.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_oidcmn.c" />
+    <ClCompile Include="..\..\..\..\components\ndis\src\wl_oidext.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\dbg\phy_ac_dbg.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\et\phy_ac_et.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\et\phy_ac_et_data.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\btcx\phy_ac_btcx.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\chanmgr\phy_ac_chanmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\chanmgr\phy_ac_chanmgr_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\fcbs\phy_ac_fcbs.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\lpc\phy_ac_lpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\misc\phy_ac_misc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\misc\phy_ac_misc_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\rxgcrs\phy_ac_rxgcrs.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\rxgcrs\phy_ac_rxgcrs_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\rxspur\phy_ac_rxspur.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\samp\phy_ac_samp.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\samp\phy_ac_samp_data.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\tssical\phy_ac_tssical.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\mu\phy_ac_mu.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\fcbs\phy_fcbs.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\fcbs\phy_fcbs_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\lpc\phy_lpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\rxgcrs\phy_rxgcrs.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\rxspur\phy_rxspur.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\rxspur\phy_rxspur_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\samp\phy_samp.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\samp\phy_samp_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\tssical\phy_tssical.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\tssical\phy_tssical_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\mu\phy_mu.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phy_ioctl.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phy_iovar.c" />
+    <ClCompile Include="..\..\ppr\src\wlc_ppr.c" />
+    <ClCompile Include="..\..\iocv\src\wlc_iocv_cmd.c" />
+    <ClCompile Include="..\..\iocv\src\wlc_iocv_reg.c" />
+    <ClCompile Include="..\..\iocv\src\wlc_iocv_low.c" />
+    <ClCompile Include="..\..\iocv\src\wlc_iocv_high.c" />
+    <ClCompile Include="..\..\dump\src\wlc_dump_reg.c" />
+    <ClCompile Include="..\..\chctx\src\wlc_chctx_reg.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\core\phy.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\core\phy_cmn.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\core\phy_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\core\phy_ioct.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\core\phy_iovt.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\core\phy_type_disp.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\core\phy_type_disp_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\hirssi\phy_hirssi.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\hirssi\phy_hirssi_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\radar\phy_radar.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\radar\phy_radar_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\radar\phy_radar_shared.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\radar\phy_radar_utils.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\dbg\phy_dbg.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\et\phy_et.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\rssi\phy_rssi.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\rssi\phy_rssi_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\tbl\phy_tbl.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\tbl\phy_tbl_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\antdiv\phy_antdiv.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\antdiv\phy_antdiv_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\tpc\phy_tpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\tpc\phy_tpc_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\txpwrcap\phy_txpwrcap.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\txpwrcap\phy_txpwrcap_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\rxgcrs\phy_rxgcrs_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\misc\phy_rstr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\misc\phy_misc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\misc\phy_misc_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\radio\phy_radio.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\ana\phy_ana.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_channel.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_math.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_misc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_radio.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_reg.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_status.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_var.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\utils\phy_utils_pmu.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\txiqlocal\phy_txiqlocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\txiqlocal\phy_txiqlocal_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\btcx\phy_btcx.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\btcx\phy_btcx_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\init\phy_init.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\cache\phy_cache.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\rxiqcal\phy_rxiqcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\papdcal\phy_papdcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\papdcal\phy_papdcal_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\chanmgr\phy_chanmgr_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\chanmgr\phy_chanmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\chanmgr\phy_chanmgr_notif.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\calmgr\phy_calmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\calmgr\phy_calmgr_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\temp\phy_temp.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\temp\phy_temp_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\vcocal\phy_vcocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\vcocal\phy_vcocal_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\hecap\phy_hecap.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\wd\phy_wd.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\noise\phy_noise.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\noise\phy_noise_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\dccal\phy_dccal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\tof\phy_tof.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\prephy\phy_prephy.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\hc\phy_hc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\hc\phy_hc_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\vasip\phy_vasip.c" />
+    <ClCompile Include="..\..\..\..\components\phy\cmn\stf\phy_stf.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\ana\phy_ac_ana.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\antdiv\phy_ac_antdiv.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\hirssi\phy_ac_hirssi.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\noise\phy_ac_noise.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\rssi\phy_ac_rssi.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\rssi\phy_ac_rssi_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\txiqlocal\phy_ac_txiqlocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\tbl\phy_ac_tbl.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\tbl\phy_ac_tbl_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\rxiqcal\phy_ac_rxiqcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\papdcal\phy_ac_papdcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\papdcal\phy_ac_papdcal_data.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\temp\phy_ac_temp.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\tpc\phy_ac_tpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\tpc\phy_ac_tpc_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\txpwrcap\phy_ac_txpwrcap.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\vcocal\phy_ac_vcocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\hecap\phy_ac_hecap.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\core\phy_ac.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\core\phy_ac_ioct.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\core\phy_ac_ioct_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\core\phy_ac_iovt.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\core\phy_ac_iovt_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\radar\phy_ac_radar.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\cache\phy_ac_cache.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\calmgr\phy_ac_calmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\radio\phy_ac_radio.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\radio\phy_ac_radio_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\radio\phy_ac_pllconfig_20696.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\dccal\phy_ac_dccal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\tof\phy_ac_tof.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\prephy\phy_ac_prephy.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\hc\phy_ac_hc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\vasip\phy_ac_vasip.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ac\stf\phy_ac_stf.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\ana\phy_ht_ana.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\btcx\phy_ht_btcx.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\chanmgr\phy_ht_chanmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\cache\phy_ht_cache.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\dbg\phy_ht_dbg.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\noise\phy_ht_noise.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\rssi\phy_ht_rssi.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\txiqlocal\phy_ht_txiqlocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\tbl\phy_ht_tbl.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\tbl\phy_ht_tbl_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\rxiqcal\phy_ht_rxiqcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\papdcal\phy_ht_papdcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\temp\phy_ht_temp.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\tpc\phy_ht_tpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\vcocal\phy_ht_vcocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\core\phy_ht.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\core\phy_ht_ioct.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\core\phy_ht_ioct_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\core\phy_ht_iovt.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\core\phy_ht_iovt_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\radar\phy_ht_radar.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\calmgr\phy_ht_calmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\radio\phy_ht_radio.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\misc\phy_ht_misc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\rxgcrs\phy_ht_rxgcrs.c" />
+    <ClCompile Include="..\..\..\..\components\phy\ht\stf\phy_ht_stf.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\ana\phy_lcn20_ana.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\antdiv\phy_lcn20_antdiv.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\chanmgr\phy_lcn20_chanmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\cache\phy_lcn20_cache.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\noise\phy_lcn20_noise.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\radio\phy_lcn20_radio.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\tbl\phy_lcn20_tbl.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\tbl\phy_lcn20_tbl_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\tpc\phy_lcn20_tpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\core\phy_lcn20.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\core\phy_lcn20_ioct.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\core\phy_lcn20_ioct_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\core\phy_lcn20_iovt.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\core\phy_lcn20_iovt_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\rssi\phy_lcn20_rssi.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\misc\phy_lcn20_misc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\rxspur\phy_lcn20_rxspur.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\txiqlocal\phy_lcn20_txiqlocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\lpc\phy_lcn20_lpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\lcn20\tssical\phy_lcn20_tssical.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\cache\phy_n_cache.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\ana\phy_n_ana.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\chanmgr\phy_n_chanmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\btcx\phy_n_btcx.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\noise\phy_n_noise.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\rssi\phy_n_rssi.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\txiqlocal\phy_n_txiqlocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\tbl\phy_n_tbl.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\tbl\phy_n_tbl_iov.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\rxiqcal\phy_n_rxiqcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\papdcal\phy_n_papdcal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\temp\phy_n_temp.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\tpc\phy_n_tpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\vcocal\phy_n_vcocal.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\core\phy_n.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\core\phy_n_ioct.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\core\phy_n_ioct_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\core\phy_n_iovt.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\core\phy_n_iovt_high.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\radar\phy_n_radar.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\calmgr\phy_n_calmgr.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\radio\phy_n_radio.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\antdiv\phy_n_antdiv.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\misc\phy_n_misc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\rxgcrs\phy_n_rxgcrs.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\rxspur\phy_n_rxspur.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\lpc\phy_n_lpc.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\dbg\phy_n_dbg.c" />
+    <ClCompile Include="..\..\..\..\components\phy\n\stf\phy_n_stf.c" />
+    <ClCompile Include="..\..\..\..\components\drivers\wl\shim\src\wl_shim.c" />
+    <ClCompile Include="..\..\..\..\components\drivers\wl\shim\src\wl_shim_nodes_arr.c" />
+    <ClCompile Include="..\..\..\..\components\drivers\wl\shim\src\wl_shim_node_2.c" />
+    <ClCompile Include="..\..\..\..\components\drivers\wl\shim\src\wl_shim_node_4.c" />
+    <ClCompile Include="..\..\..\..\components\drivers\wl\shim\src\wl_shim_node_default.c" />
+    <ClCompile Include="..\d11ucode_ge24.c" />
+    <ClCompile Include="..\d11ucode_ge40.c" />
+    <ClCompile Include="..\d11ucode_gt15.c" />
+    <ClCompile Include="..\d11ucode_mu.c" />
+    <ClCompile Include="..\d11ucode_p2p.c" />
+    <ClCompile Include="..\d11ucode_wowl.c" />
+    <ClCompile Include="..\d11vasip_code.c" />
+    <ClCompile Include="..\wlc_vasip.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\hmac_sha256.c" />
+    <ClCompile Include="..\..\..\shared\hnddma.c" />
+    <ClCompile Include="..\..\..\shared\hnddma_rx.c" />
+    <ClCompile Include="..\..\..\shared\hnddma_tx.c" />
+    <ClCompile Include="..\..\..\shared\hndpmu.c" />
+    <ClCompile Include="..\..\..\shared\hndlhl.c" />
+    <ClCompile Include="..\..\..\shared\ndiserrmap.c" />
+    <ClCompile Include="..\..\..\shared\ndis_osl.c" />
+    <ClCompile Include="..\..\..\shared\nicpci.c" />
+    <ClCompile Include="..\..\..\shared\pcie_core.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\prf.c" />
+    <ClCompile Include="..\..\..\shared\qmath.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\rc4.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\rijndael-alg-fst.c" />
+    <ClCompile Include="..\..\..\shared\sbutils.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\sha1.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\sha256.c" />
+    <ClCompile Include="..\..\..\shared\saverestore.c" />
+    <ClCompile Include="..\..\..\shared\sr_array.c" />
+    <ClCompile Include="..\..\..\shared\siutils.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\sms4.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\tkhash.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\tkmic.c" />
+    <ClCompile Include="..\..\..\bcmcrypto\wep.c" />
+    <ClCompile Include="..\wlc.c" />
+    <ClCompile Include="..\wlc_addrmatch.c" />
+    <ClCompile Include="..\wlc_11d.c" />
+    <ClCompile Include="..\wlc_11h.c" />
+    <ClCompile Include="..\wlc_akm_ie.c" />
+    <ClCompile Include="..\wlc_alloc.c" />
+    <ClCompile Include="..\wlc_ampdu.c" />
+    <ClCompile Include="..\wlc_ampdu_cmn.c" />
+    <ClCompile Include="..\wlc_ampdu_rx.c" />
+    <ClCompile Include="..\wlc_amsdu.c" />
+    <ClCompile Include="..\wlc_antsel.c" />
+    <ClCompile Include="..\wlc_ap.c" />
+    <ClCompile Include="..\wlc_bmac_iocv.c" />
+    <ClCompile Include="..\wlc_cubby.c" />
+    <ClCompile Include="..\wlc_frag.c" />
+    <ClCompile Include="..\wlc_ltr.c" />
+    <ClCompile Include="..\wlc_qoscfg.c" />
+    <ClCompile Include="..\wlc_rspec.c" />
+    <ClCompile Include="..\wlc_txs.c" />
+    <ClCompile Include="..\wlc_wds.c" />
+    <ClCompile Include="..\wlc_apcs.c" />
+    <ClCompile Include="..\wlc_apps.c" />
+    <ClCompile Include="..\wlc_assoc.c" />
+    <ClCompile Include="..\wlc_auth.c" />
+    <ClCompile Include="..\wlc_bmac.c" />
+    <ClCompile Include="..\wlc_bsscfg.c" />
+    <ClCompile Include="..\wlc_bsscfg_psq.c" />
+    <ClCompile Include="..\wlc_bsscfg_viel.c" />
+    <ClCompile Include="..\wlc_cac.c" />
+    <ClCompile Include="..\wlc_cca.c" />
+    <ClCompile Include="..\wlc_msfblob.c" />
+    <ClCompile Include="..\wlc_channel.c" />
+    <ClCompile Include="..\..\..\..\components\clm-api\src\wlc_clm.c" />
+    <ClCompile Include="..\wlc_cntry.c" />
+    <ClCompile Include="..\wlc_csa.c" />
+    <ClCompile Include="..\wlc_dfs.c" />
+    <ClCompile Include="..\wlc_diag.c" />
+    <ClCompile Include="..\wlc_event.c" />
+    <ClCompile Include="..\wlc_event_utils.c" />
+    <ClCompile Include="..\wlc_extlog.c" />
+    <ClCompile Include="..\wlc_he.c" />
+    <ClCompile Include="..\wlc_hrt.c" />
+    <ClCompile Include="..\wlc_hs20.c" />
+    <ClCompile Include="..\wlc_ht.c" />
+    <ClCompile Include="..\wlc_obss.c" />
+    <ClCompile Include="..\wlc_hw.c" />
+    <ClCompile Include="..\wlc_ie_helper.c" />
+    <ClCompile Include="..\wlc_ie_mgmt.c" />
+    <ClCompile Include="..\wlc_ie_mgmt_lib.c" />
+    <ClCompile Include="..\wlc_ie_mgmt_vs.c" />
+    <ClCompile Include="..\wlc_ie_misc_hndlrs.c" />
+    <ClCompile Include="..\wlc_ie_reg.c" />
+    <ClCompile Include="..\wlc_interfere.c" />
+    <ClCompile Include="..\wlc_intr.c" />
+    <ClCompile Include="..\wlc_iocv.c" />
+    <ClCompile Include="..\wlc_lq.c" />
+    <ClCompile Include="..\wlc_log.c" />
+    <ClCompile Include="..\wlc_macfltr.c" />
+    <ClCompile Include="..\wlc_mbss.c" />
+    <ClCompile Include="..\wlc_mchan.c" />
+    <ClCompile Include="..\wlc_mcnx.c" />
+    <ClCompile Include="..\wlc_mfp.c" />
+    <ClCompile Include="..\wlc_misc.c" />
+    <ClCompile Include="..\wlc_monitor.c" />
+    <ClCompile Include="..\wlc_ndis_iovar.c" />
+    <ClCompile Include="..\wlc_p2p.c" />
+    <ClCompile Include="..\wlc_pcb.c" />
+    <ClCompile Include="..\wlc_perf_utils.c" />
+    <ClCompile Include="..\wlc_pktc.c" />
+    <ClCompile Include="..\wlc_pmkid.c" />
+    <ClCompile Include="..\wlc_power_sel.c" />
+    <ClCompile Include="..\wlc_scb_powersel.c" />
+    <ClCompile Include="..\wlc_smfs.c" />
+    <ClCompile Include="..\wlc_stamon.c" />
+    <ClCompile Include="..\wlc_tbtt.c" />
+    <ClCompile Include="..\wlc_traffic_mgmt.c" />
+    <ClCompile Include="..\..\olpc\src\wlc_olpc_engine.c" />
+    <ClCompile Include="..\wlc_tso.c" />
+    <ClCompile Include="..\wlc_test.c" />
+    <ClCompile Include="..\wlc_twt.c" />
+    <ClCompile Include="..\wlc_phy_shim.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_ac.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_20691.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_20693.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_20694.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_20695.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_ac_gains.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_ht.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_lcn20.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phytbl_n.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phy_ht.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phy_lcn20.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phy_n.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phy_extended_n.c" />
+    <ClCompile Include="..\..\..\..\components\phy\old\wlc_phy_radio_n.c" />
+    <ClCompile Include="..\wlc_pio.c" />
+    <ClCompile Include="..\wlc_btcx.c" />
+    <ClCompile Include="..\wlc_chanctxt.c" />
+    <ClCompile Include="..\wlc_sta.c" />
+    <ClCompile Include="..\..\..\..\components\msch\src\wlc_msch.c" />
+    <ClCompile Include="..\..\..\..\components\msch\src\wlc_mschutil.c" />
+    <ClCompile Include="..\..\..\..\components\msch\src\wlc_msch_profiler.c" />
+    <ClCompile Include="..\wlc_act_frame.c" />
+    <ClCompile Include="..\wlc_pm.c" />
+    <ClCompile Include="..\wlc_prot.c" />
+    <ClCompile Include="..\wlc_prot_g.c" />
+    <ClCompile Include="..\wlc_prot_n.c" />
+    <ClCompile Include="..\wlc_quiet.c" />
+    <ClCompile Include="..\wlc_rate.c" />
+    <ClCompile Include="..\wlc_rate_def.c" />
+    <ClCompile Include="..\wlc_rate_sel.c" />
+    <ClCompile Include="..\wlc_rm.c" />
+    <ClCompile Include="..\wlc_scan.c" />
+    <ClCompile Include="..\wlc_scandb.c" />
+    <ClCompile Include="..\wlc_scan_utils.c" />
+    <ClCompile Include="..\wlc_scb.c" />
+    <ClCompile Include="..\wlc_scb_ratesel.c" />
+    <ClCompile Include="..\wlc_stf.c" />
+    <ClCompile Include="..\wlc_sup.c" />
+    <ClCompile Include="..\wlc_tdls.c" />
+    <ClCompile Include="..\wlc_tpc.c" />
+    <ClCompile Include="..\wlc_txc.c" />
+    <ClCompile Include="..\wlc_utils.c" />
+    <ClCompile Include="..\wlc_vht.c" />
+    <ClCompile Include="..\wlc_airtime.c" />
+    <ClCompile Include="..\wlc_tx.c" />
+    <ClCompile Include="..\wlc_txmod.c" />
+    <ClCompile Include="..\wlc_flow_ctx.c" />
+    <ClCompile Include="..\wlc_chctx.c" />
+    <ClCompile Include="..\..\..\..\components\accel\sw\src\txflow_classifier.c" />
+    <ClCompile Include="..\wlc_rx.c" />
+    <ClCompile Include="..\wlc_dbg.c" />
+    <ClCompile Include="..\wlc_dump.c" />
+    <ClCompile Include="..\d11reglist.c" />
+    <ClCompile Include="..\wlc_macdbg.c" />
+    <ClCompile Include="..\wlc_txtime.c" />
+    <ClCompile Include="..\wlc_murx.c" />
+    <ClCompile Include="..\wlc_mux.c" />
+    <ClCompile Include="..\wlc_mux_utils.c" />
+    <ClCompile Include="..\wlc_scbq.c" />
+    <ClCompile Include="..\wlc_bcmc_txq.c" />
+    <ClCompile Include="..\wlc_txbf.c" />
+    <ClCompile Include="..\wlc_vndr_ie_list.c" />
+    <ClCompile Include="..\wlc_wapi.c" />
+    <ClCompile Include="..\wlc_wnm.c" />
+    <ClCompile Include="..\wlc_wowl.c" />
+    <ClCompile Include="..\wlc_wpapsk.c" />
+    <ClCompile Include="..\wl_pfn.c" />
+    <ClCompile Include="..\wowlaestbls.c" />
+    <ClCompile Include="..\wlc_ucinit.c" />
+    <ClCompile Include="obj\win8x_nic\checked\x86\wlc_clm_data.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="obj\win8x_nic\free\x86\wlc_clm_data.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="obj\win8x_nic\checked\x64\wlc_clm_data.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="obj\win8x_nic\free\x64\wlc_clm_data.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="obj\win8x_nic\checked\x86\d11shm.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="obj\win8x_nic\free\x86\d11shm.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="obj\win8x_nic\checked\x64\d11shm.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="obj\win8x_nic\free\x64\d11shm.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\wl.rc">
+      <AdditionalIncludeDirectories>
+      $(ConfigurationName);
+      ../;
+      ../../../include;
+      ../../../../components/shared;
+      $(SDK_INC_PATH);
+      </AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1F1A92FD-D2CD-402B-9036-75ABF807B634}</ProjectGuid>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <TargetVersion>WindowsV6.3</TargetVersion>
+    <ConfigurationType>Driver</ConfigurationType>
+    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
+    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='win8x_nic_checked'" Label="Configuration">
+    <DriverType>WDM</DriverType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='win8x_nic_free'" Label="Configuration">
+    <DriverType>KMDF</DriverType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <PropertyGroup>
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">bcmwl63</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">bcmwl63</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">bcmwl63a</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">bcmwl63a</TargetName>
+    <OutDir>$(SolutionDir)$(ConfigurationName)_$(Platform)\</OutDir>
+    <IntDir>$(ConfigurationName)_$(Platform)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignMode>Off</SignMode>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+      $(IntDir);
+      obj\win8x_nic\checked\x86;
+      obj\win8x_nic\checked\x64;
+      obj\win8x_nic\free\x86;
+      obj\win8x_nic\free\x64;
+      $(ConfigurationName);
+      ..\..\..\include;
+      ..\..\..\..\components\shared;
+      ..\..\keymgmt\src;
+      ..\..\keymgmt\include;
+      ..\..\iocv\src;
+      ..\..\iocv\include;
+      ..\..\dump\include;
+      ..\..\chctx\include;
+      ..\..\..\..\components\ndis\include;
+      ..\..\..\..\components\drivers\wl\shim\include;
+      ..\..\..\shared\bcmwifi\include;
+      ..\..\..\bcmcrypto;
+      ..\..\..\shared;
+      ..\..\..\shared\zlib;
+      ..\..\olpc\include;
+      ..\..\ppr\include;
+      ..\..\..\..\components\accel\include;
+      ..\..\..\..\components\clm-api\include;
+      ..\..\..\..\components\phy\old;
+      ..\..\..\..\components\phy\cmn\hal;
+      ..\..\..\..\components\phy\ac\include;
+      ..\..\..\..\components\phy\ac\papdcal;
+      ..\..\..\..\components\phy\ac\dsi;
+      ..\..\..\..\components\phy\cmn\include;
+      ..\..\..\..\components\phy\ht\include;
+      ..\..\..\..\components\phy\lcn20\include;
+      ..\..\..\..\components\phy\n\include;
+      ..\..\..\..\components\phy\cmn\ana;
+      ..\..\..\..\components\phy\cmn\cache;
+      ..\..\..\..\components\phy\cmn\core;
+      ..\..\..\..\components\phy\cmn\et;
+      ..\..\..\..\components\phy\cmn\hirssi;
+      ..\..\..\..\components\phy\cmn\misc;
+      ..\..\..\..\components\phy\cmn\papdcal;
+      ..\..\..\..\components\phy\cmn\rssi;
+      ..\..\..\..\components\phy\cmn\temp;
+      ..\..\..\..\components\phy\cmn\dsi;
+      ..\..\..\..\components\phy\cmn\utils;
+      ..\..\..\..\components\phy\cmn\antdiv;
+      ..\..\..\..\components\phy\cmn\calmgr;
+      ..\..\..\..\components\phy\cmn\dbg;
+      ..\..\..\..\components\phy\cmn\init;
+      ..\..\..\..\components\phy\cmn\radar;
+      ..\..\..\..\components\phy\cmn\radio;
+      ..\..\..\..\components\phy\cmn\rxiqcal;
+      ..\..\..\..\components\phy\cmn\tpc;
+      ..\..\..\..\components\phy\cmn\txpwrcap;
+      ..\..\..\..\components\phy\cmn\vcocal;
+      ..\..\..\..\components\phy\cmn\hecap;
+      ..\..\..\..\components\phy\cmn\btcx;
+      ..\..\..\..\components\phy\cmn\chanmgr;
+      ..\..\..\..\components\phy\cmn\noise;
+      ..\..\..\..\components\phy\cmn\tbl;
+      ..\..\..\..\components\phy\cmn\txiqlocal;
+      ..\..\..\..\components\phy\cmn\wd;
+      ..\..\..\..\components\phy\cmn\fcbs;
+      ..\..\..\..\components\phy\cmn\lpc;
+      ..\..\..\..\components\phy\cmn\samp;
+      ..\..\..\..\components\phy\cmn\rxgcrs;
+      ..\..\..\..\components\phy\cmn\rxspur;
+      ..\..\..\..\components\phy\cmn\tssical;
+      ..\..\..\..\components\phy\cmn\mu;
+      ..\..\..\..\components\phy\cmn\dccal;
+      ..\..\..\..\components\phy\cmn\tof;
+      ..\..\..\..\components\phy\cmn\nap;
+      ..\..\..\..\components\phy\cmn\prephy;
+      ..\..\..\..\components\phy\cmn\hc;
+      ..\..\..\..\components\phy\cmn\vasip;
+      ..\..\..\..\components\phy\cmn\stf;
+      ..\..\..\..\components\phy\lcn20\core;
+      ..\..\..\..\components\phy\n\core;
+      ..\..\..\..\components\phy\ht\core;
+      ..\..\..\..\components\phy\ac\core;
+      ..\..\..\..\components\msch\include;
+      ..\..\..\..\components\chips\sr_asm;
+      ..\..\cpl\components\sup\ihv\IHVService\inc;
+      ..\;
+      </AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <WarningLevel>Level3</WarningLevel>
+      <ForcedIncludeFiles>wlconfig_win_nic_win8x.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/wd4163 %(AdditionalOptions) /d1scalableinclude-</AdditionalOptions>
+    </ClCompile>
+    <ResourceCompile />
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\BufferOverflowK.lib;$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\wmilib.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\usbd.lib;</AdditionalDependencies>
+      <GenerateMapFile>true</GenerateMapFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>_X86_=1;i386=1;STD_CALL;%(PreprocessorDefinitions);NDIS640_MINIPORT=1;NDIS640;BCMINTERNAL;</PreprocessorDefinitions>
+      <Optimization>MinSpace</Optimization>
+    </ClCompile>
+    <ResourceCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>_X86_=1;i386=1;STD_CALL;%(PreprocessorDefinitions);NDIS640_MINIPORT=1;NDIS640;</PreprocessorDefinitions>
+      <Optimization>Full</Optimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='win8x_nic_checked|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_WIN64;_AMD64_;AMD64;%(PreprocessorDefinitions);NDIS640_MINIPORT=1;NDIS640;BCMINTERNAL;</PreprocessorDefinitions>
+      <Optimization>MinSpace</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='win8x_nic_free|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_WIN64;_AMD64_;AMD64;%(PreprocessorDefinitions);NDIS640_MINIPORT=1;NDIS640;</PreprocessorDefinitions>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <ResourceCompile />
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

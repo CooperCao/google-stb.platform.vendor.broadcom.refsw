@@ -127,7 +127,7 @@ class CResource : public CMvcModel
 public:
     CResource(
             const char *         name,
-            const uint16_t       number,
+            const unsigned       number,
             const eBoardResource type,
             CConfiguration *     pCfg
             );
@@ -137,7 +137,7 @@ public:
     virtual void dump(void);
 
     const char *   getName(void)                { return(_name.s()); }
-    uint16_t       getNumber(void)              { return(_number); }
+    unsigned       getNumber(void)              { return(_number); }
     eBoardResource getType(void)                { return(_type); }
     void           setType(eBoardResource type) { _type = type; }
     bool           isOutput(void);
@@ -145,8 +145,8 @@ public:
     bool           isAudioOutput(void);
     bool           isFrontend(void);
     eRet           setCheckedOut(bool checkedOut, void * id = NULL);
-    void           setCheckedOutMax(uint16_t max) { _checkedOutMax = max; }
-    uint16_t       getCheckedOutMax(void)         { return(_checkedOutMax); }
+    void           setCheckedOutMax(unsigned max) { _checkedOutMax = max; }
+    unsigned       getCheckedOutMax(void)         { return(_checkedOutMax); }
     void *         getCheckedOutId(void)          { return(_checkedOutId); }
     bool           isCheckedOut(void)             { return(0 < _checkedOut); }
     bool           isAvailForCheckout(void)       { return(_checkedOut < _checkedOutMax); }
@@ -160,11 +160,11 @@ public:
 
 protected:
     MString          _name;
-    uint16_t         _number;
+    unsigned         _number;
     eBoardResource   _type;
     CConfiguration * _pCfg;
-    uint16_t         _checkedOut;
-    uint16_t         _checkedOutMax;
+    unsigned         _checkedOut;
+    unsigned         _checkedOutMax;
     void *           _reserveId;
     void *           _checkedOutId;
     bool             _bInit;

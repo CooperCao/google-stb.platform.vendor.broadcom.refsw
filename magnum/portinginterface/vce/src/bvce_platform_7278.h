@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,6 +51,15 @@ extern "C" {
 #define BVCE_P_CORE_MAJOR     3
 #define BVCE_P_CORE_MINOR     0
 #define BVCE_P_CORE_SUBMINOR  0
+#define BVCE_P_CORE_REVISION  2
+
+#define BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES 1
+#define BVCE_PLATFORM_P_BOX_MODE_SUPPORT 1
+#elif (BCHP_VER < BCHP_VER_C0)
+/* 7278 Bx */
+#define BVCE_P_CORE_MAJOR     3
+#define BVCE_P_CORE_MINOR     0
+#define BVCE_P_CORE_SUBMINOR  1
 #define BVCE_P_CORE_REVISION  2
 
 #define BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES 1

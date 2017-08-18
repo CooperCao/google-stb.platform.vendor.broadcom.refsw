@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"
@@ -66,7 +65,7 @@ BSAGElib_P_Rpc_DispatchResponse_isr(
     BSAGElib_RpcMessage *message = remote->message;
 
     BDBG_MSG(("%s: remote=%p [id=%u, sequence=%u]: %u",
-              __FUNCTION__, (void *)remote, message->instanceId, message->sequence, response_rc));
+              BSTD_FUNCTION, (void *)remote, message->instanceId, message->sequence, response_rc));
 
     if (BSAGElib_iRpcResponse_isr) {
         BSAGElib_iRpcResponse_isr(remote, remote->async_arg, message->sequence, response_rc);
@@ -75,7 +74,7 @@ BSAGElib_P_Rpc_DispatchResponse_isr(
     else {
         BSAGElib_CallbackItem *callbackItem = remote->callbackItem;
         if (!callbackItem) {
-            BDBG_ERR(("%s: error no callback item - drop response", __FUNCTION__));
+            BDBG_ERR(("%s: error no callback item - drop response", BSTD_FUNCTION));
             goto end;
         }
         remote->callbackItem = NULL;
@@ -110,7 +109,7 @@ BSAGElib_Rpc_AddRemote(
 
     remote = BKNI_Malloc(sizeof(*remote));
     if (!remote) {
-        BDBG_ERR(("%s: Cannot allocate remote context", __FUNCTION__));
+        BDBG_ERR(("%s: Cannot allocate remote context", BSTD_FUNCTION));
         goto end;
     }
 
@@ -121,7 +120,7 @@ BSAGElib_Rpc_AddRemote(
         BKNI_Free(remote);
         remote = NULL;
         BDBG_ERR(("%s: Cannot allocate message context using malloc interface",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         goto end;
     }
 
@@ -140,7 +139,7 @@ BSAGElib_Rpc_AddRemote(
         BKNI_Free(remote);
         remote = NULL;
         BDBG_ERR(("%s: Cannot Add Sage Remote",
-                  __FUNCTION__));
+                  BSTD_FUNCTION));
         goto end;
     }
 
@@ -168,7 +167,7 @@ static BERR_Code BSAGElib_P_Rpc_RemoveRemoteResponses( BSAGElib_ClientHandle hSA
     BSAGElib_Handle hSAGElib = hSAGElibClient->hSAGElib;
     BSAGElib_CallbackItem *itemNext;
 
-    BDBG_MSG(("%s: remote %p ",__FUNCTION__, (void *)remote));
+    BDBG_MSG(("%s: remote %p ",BSTD_FUNCTION, (void *)remote));
 
     BKNI_EnterCriticalSection();
     itemNext = BLST_SQ_FIRST(&hSAGElibClient->responseCallbacks);
@@ -181,7 +180,7 @@ static BERR_Code BSAGElib_P_Rpc_RemoveRemoteResponses( BSAGElib_ClientHandle hSA
         itemNext = BLST_SQ_NEXT(item, link); /* save next item */
 
         if (item->remote == remote) {
-            BDBG_MSG(("%s: remote %p response removed %x '%s'",__FUNCTION__, (void *)item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
+            BDBG_MSG(("%s: remote %p response removed %x '%s'",BSTD_FUNCTION, (void *)item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
 
             BLST_SQ_REMOVE(&hSAGElibClient->responseCallbacks, item, BSAGElib_P_CallbackItem, link);
             BKNI_LeaveCriticalSection();
@@ -211,7 +210,7 @@ BSAGElib_P_Rpc_RemoveRemote(
 
     hSAGElib = remote->hSAGElibClient->hSAGElib;
     BDBG_MSG(("%s hSAGElib=%p hSAGElibClient=%p remove remote=%p id=%u",
-              __FUNCTION__, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote, remote->message->instanceId));
+              BSTD_FUNCTION, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote, remote->message->instanceId));
 
     if (remote->open) {
         /* Special case for system crit platform and S3 */
@@ -221,7 +220,7 @@ BSAGElib_P_Rpc_RemoveRemote(
         if(remote->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT)
         {
             BDBG_ERR(("%s hSAGElib=%p hSAGElibClient=%p remote=%p platformId=%u moduleId=%u instanceId=%u is open",
-                      __FUNCTION__, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote,
+                      BSTD_FUNCTION, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote,
                       remote->platformId, remote->moduleId, remote->message->instanceId));
 
             if (remote->moduleId != 0) {
@@ -240,7 +239,7 @@ BSAGElib_P_Rpc_RemoveRemote(
     rc = BSAGElib_P_Rpc_RemoveRemoteResponses(remote->hSAGElibClient, remote);
     if(rc == BERR_SUCCESS){
         BDBG_MSG(("%s Removed all Remote Response hSAGElib=%p hSAGElibClient=%p remove remote=%p",
-                  __FUNCTION__, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote));
+                  BSTD_FUNCTION, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote));
     }
 
     if (remote->callbackItem) {
@@ -287,7 +286,7 @@ BSAGElib_Rpc_SendCommand(
     if (!BSAGElib_iRpcResponse_isr) {
         remote->callbackItem = BSAGElib_P_Rpc_ResponseCallbackAllocate(remote->hSAGElibClient);
         if (!remote->callbackItem) {
-            BDBG_ERR(("%s: cannot allocate callback item", __FUNCTION__));
+            BDBG_ERR(("%s: cannot allocate callback item", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto end;
         }
@@ -346,7 +345,7 @@ BSAGElib_Rpc_SendCallbackResponse(
 /*    rc = BSAGE_Rpc_SendCallbackResponse(remote->hRemote,sequenceId,retCode);*/
     if (rc != BERR_SUCCESS) {
         BDBG_ERR(("%s: BHSI_Send failure (%d)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -382,7 +381,7 @@ BSAGElib_P_Rpc_ResponseCallbackAllocate(
     if (!item) {
         item = BKNI_Malloc(sizeof(*item));
         if (!item) {
-            BDBG_ERR(("%s: cannot allocate memory for Callback Item context", __FUNCTION__));
+            BDBG_ERR(("%s: cannot allocate memory for Callback Item context", BSTD_FUNCTION));
         }
     }
 
@@ -410,12 +409,12 @@ BSAGElib_P_Rpc_PopResponseCallback(
             {
                 item->remote->open = false;
                 BDBG_WRN(("%s: remote %p warning %x '%s'",
-                      __FUNCTION__, (void *)item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
+                      BSTD_FUNCTION, (void *)item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
             }
             else
             {
                 BDBG_ERR(("%s: remote %p error %x '%s'",
-                      __FUNCTION__, (void *)item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
+                      BSTD_FUNCTION, (void *)item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
             }
         }
 

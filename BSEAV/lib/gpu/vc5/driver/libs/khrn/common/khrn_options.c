@@ -12,6 +12,7 @@
 LOG_DEFAULT_CAT("khrn_options")
 
 struct khrn_options khrn_options;
+static GFX_RAND_STATE_T random_wireframe_state;
 static GFX_RAND_STATE_T random_centroid_state;
 #if V3D_HAS_VARY_NO_PERSP
 static GFX_RAND_STATE_T random_noperspective_state;
@@ -59,13 +60,14 @@ void khrn_init_options(void)
 
 #if KHRN_DEBUG
    khrn_options.no_gmp                       = gfx_options_bool("KHRN_NO_GMP", false);
+   khrn_options.no_ubo_to_unif               = gfx_options_bool("KHRN_NO_UBO_TO_UNIF", false);
    khrn_options.save_crc_enabled             = gfx_options_bool("KHRN_SAVE_CRCS", false);
-   khrn_options.autoclif_enabled             = gfx_options_bool(  "KHRN_AUTOCLIF",                 false);
-   khrn_options.autoclif_only_one_clif_i     = gfx_options_int32( "AUTOCLIF_ONLY_ONE_CLIF_I",      -1);
-                                               gfx_options_str(   "AUTOCLIF_ONLY_ONE_CLIF_NAME",   "",
-                                                     khrn_options.autoclif_only_one_clif_name,
-                                                     sizeof(khrn_options.autoclif_only_one_clif_name));
-   khrn_options.autoclif_bin_block_size      = gfx_options_uint32("AUTOCLIF_BIN_BLOCK_SIZE",       4 * 1024 * 1024);
+   khrn_options.autoclif_enabled             = gfx_options_bool("KHRN_AUTOCLIF", false);
+   khrn_options.autoclif_single_frame        = gfx_options_int32("AUTOCLIF_SINGLE_FRAME", -1);
+   gfx_options_str("AUTOCLIF_FILENAME", "", khrn_options.autoclif_filename, sizeof(khrn_options.autoclif_filename));
+   gfx_options_str("AUTOCLIF_PREFIX", "rec", khrn_options.autoclif_prefix, sizeof(khrn_options.autoclif_prefix));
+   khrn_options.autoclif_bin_block_size      = gfx_options_uint32("AUTOCLIF_BIN_BLOCK_SIZE", 4 * 1024 * 1024);
+   khrn_options.flush_after_draw             = gfx_options_bool("KHRN_FLUSH_AFTER_DRAW", false);
 #endif
                                                gfx_options_str(   "CHECKSUM_CAPTURE_FILENAME",     "",
                                                      khrn_options.checksum_capture_filename,
@@ -76,6 +78,11 @@ void khrn_init_options(void)
    khrn_options.use_rgba5551_am              = gfx_options_bool(  "KHRN_USE_RGBA5551_AM",          false);
    khrn_options.prefer_yflipped              = gfx_options_bool(  "KHRN_PREFER_YFLIPPED",          false);
    khrn_options.force_multisample            = gfx_options_bool(  "KHRN_FORCE_MS",                 false);
+
+   khrn_options.force_wireframe_lines        = gfx_options_bool(  "KHRN_FORCE_WIREFRAME_LINES",    false);
+   khrn_options.force_wireframe_points       = gfx_options_bool(  "KHRN_FORCE_WIREFRAME_POINTS",   false);
+   khrn_options.random_wireframe             = gfx_options_bool(  "KHRN_RANDOM_WIREFRAME",         false);
+   khrn_options.random_wireframe_seed        = gfx_options_uint32("KHRN_RANDOM_WIREFRAME_SEED",    42);
 
    khrn_options.force_centroid               = gfx_options_bool(  "KHRN_FORCE_CENTROID",           false);
    khrn_options.random_centroid              = gfx_options_bool(  "KHRN_RANDOM_CENTROID",          false);
@@ -100,6 +107,8 @@ void khrn_init_options(void)
    khrn_options.no_async_host_reads    = gfx_options_bool("KHRN_NO_ASYNC_HOST_READS", false);
    khrn_options.force_async_host_reads = gfx_options_bool("KHRN_FORCE_ASYNC_HOST_READS", false);
 
+   if (khrn_options.random_wireframe)
+      gfx_rand_init(&random_wireframe_state, khrn_options.random_wireframe_seed);
    if (khrn_options.random_centroid)
       gfx_rand_init(&random_centroid_state, khrn_options.random_centroid_seed);
 #if V3D_HAS_VARY_NO_PERSP
@@ -110,6 +119,28 @@ void khrn_init_options(void)
    if (khrn_options.random_sample_rate_shading)
       gfx_rand_init(&random_sample_rate_shading_state, khrn_options.random_sample_rate_shading_seed);
 #endif
+}
+
+bool khrn_options_make_wireframe(void)
+{
+   if (khrn_options.force_wireframe_lines || khrn_options.force_wireframe_points)
+      return true;
+
+   if (khrn_options.random_wireframe)
+      return gfx_rand_with_prob(&random_wireframe_state, 0.67f);
+
+   return false;
+}
+
+bool khrn_options_make_wireframe_points(void)
+{
+   if (khrn_options.force_wireframe_points)
+      return true;
+
+   if (khrn_options.random_wireframe)
+      return gfx_rand_with_prob(&random_wireframe_state, 0.5f);
+
+   return false;
 }
 
 bool khrn_options_make_centroid(void)

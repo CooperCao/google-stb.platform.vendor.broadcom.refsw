@@ -73,7 +73,8 @@ BDBG_OBJECT_ID(BVDC_BUF);
        = Cx:y    Window x reader repeat 1 field/frame, y:pCurReaderBuf->ulBufferId
        = Dx:y    Window x reader repeat for polarity, y:pCurReaderBuf->ulBufferId
        = Ex:y    Window x reader repeat 1 field/frame, y:pCurReaderBuf->ulBufferId with possible inversion
-       = Fx:y    Window x writer overruns reader, y:pCurWriterBuf->ulBufferId
+       = Fx:y    Window x writer overruns reader which may or may not be allowed, y:pCurWriterBuf->ulBufferId
+       = Gx:y    Window x reader overruns writer which may or may not be allowed, y:pCurReaderBuf->ulBufferId
        = Kx:y    Window x new writer IRQ at position y
        = Lx:y    Window x new reader IRQ at position y
      + [...W.R]: Position of reader and writer pointers
@@ -168,19 +169,23 @@ BDBG_OBJECT_ID(BVDC_BUF);
 #define BVDC_P_BUF_LOG_W_NORMAL_ADVANCE_SHIFT          0
 #define BVDC_P_BUF_LOG_SKIP_DUE_TO_WRITER_GAP_SHIFT    1
 #define BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT           2
+#define BVDC_P_BUF_LOG_W_OVERRAN_R_SHIFT               3
 
 #define BVDC_P_BUF_LOG_W_NORMAL_ADVANCE                0x1
 #define BVDC_P_BUF_LOG_SKIP_DUE_TO_WRITER_GAP          0x2
 #define BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG                 0x4
+#define BVDC_P_BUF_LOG_W_OVERRAN_R                     0x8
 
 
 #define BVDC_P_BUF_LOG_R_NORMAL_ADVANCE_SHIFT          4
-#define BVDC_P_BUF_LOG_REPEAT_FIELD_SHIFT              5
-#define BVDC_P_BUF_LOG_REPEAT_FRAME_SHIFT              6
+#define BVDC_P_BUF_LOG_FORCED_REPEAT_PIC_SHIFT         5
+#define BVDC_P_BUF_LOG_FORCED_REPEAT_PIC_COUNT_SHIFT   6
+#define BVDC_P_BUF_LOG_R_OVERRAN_W_SHIFT               7
 
 #define BVDC_P_BUF_LOG_R_NORMAL_ADVANCE                0x10
-#define BVDC_P_BUF_LOG_REPEAT_FIELD                    0x20
-#define BVDC_P_BUF_LOG_REPEAT_FRAME                    0x40
+#define BVDC_P_BUF_LOG_FORCED_REPEAT_PIC               0x20
+#define BVDC_P_BUF_LOG_FORCED_REPEAT_COUNT             0x40
+#define BVDC_P_BUF_LOG_R_OVERRAN_W                     0x80
 
 /* This index implementation assumes little-endian configuration.
    This allows vdclog_dump to only output the recent events.
@@ -220,6 +225,7 @@ typedef struct {
     uint32_t    ulBufferTS;
     uint32_t    ulInfo_1;
     uint32_t    ulInfo_2;
+    uint32_t    ulInfo_3;
 } BVDC_P_BufLogSkipRepeat;
 
 typedef struct  {
@@ -327,26 +333,36 @@ void BVDC_P_Buffer_DumpLog
 
             if ((pstSrc + usBufLogR)->cLogType == 'A' || (pstSrc + usBufLogR)->cLogType == 'B')
             {
-
                 ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== skip");  /* mark the skip event to ease reading of the logs */
             }
 
             if ((pstSrc + usBufLogR)->cLogType == 'C' || (pstSrc + usBufLogR)->cLogType == 'D')
             {
+                if ((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_2 & BVDC_P_BUF_LOG_FORCED_REPEAT_PIC)
+                {
+                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== MTG forced repeat");
+                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== pic %x", (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_3);
 
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== repeat");  /* mark the repeat event to ease reading of the logs */
+                }
+                else
+                {
+                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== repeat");  /* mark the repeat event to ease reading of the logs */
+                }
             }
 
             if ((pstSrc + usBufLogR)->cLogType == 'E')
             {
-
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== possible inversion");  /* mark the skip/repeat event to ease reading of the logs */
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== possible inversion");  /* mark the inversion event to ease reading of the logs */
             }
 
             if ((pstSrc + usBufLogR)->cLogType == 'F')
             {
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== W overran R");  /* mark the encroachment event to ease reading of the logs */
+            }
 
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== W overran R");  /* mark the skip/repeat event to ease reading of the logs */
+            if ((pstSrc + usBufLogR)->cLogType == 'G')
+            {
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== R overran W");  /* mark the encroachment event to ease reading of the logs */
             }
 
             /* mark skips accordingly */
@@ -362,8 +378,15 @@ void BVDC_P_Buffer_DumpLog
                 }
                 else if ((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_2 & BVDC_P_BUF_LOG_W_NORMAL_ADVANCE)
                 {
-                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== normal");
+                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== normal advance");
                 }
+
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== pic %x", (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_3);
+            }
+
+            if ((pstSrc + usBufLogR)->cLogType == 'L')
+            {
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== pic %x", (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_3);
             }
 
             /* check for missed/delayed interrupts */
@@ -505,6 +528,7 @@ static void BVDC_P_BufLogAddEvent_isr( int type,
                                        uint32_t v4,
                                        uint32_t v5,
                                        uint32_t v6,
+                                       uint32_t v7,
                                        const BVDC_P_Buffer_Handle hBuffer
                                      )
 {
@@ -541,6 +565,7 @@ static void BVDC_P_BufLogAddEvent_isr( int type,
         astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulInfo_1 = v3;
         astBufLog[usBufLogW].ulInterruptLatency = v5;
         astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulInfo_2 = v6;
+        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulInfo_3 = v7;
 
         pPicture = BLST_CQ_FIRST(hBuffer->pBufList);
 
@@ -646,20 +671,24 @@ static void BVDC_P_Buffer_UpdateTimestamps_isr
 static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_Polarity              eSrcPolarity,
-      const BAVC_Polarity              eDispPolarity );
+      const BAVC_Polarity              eDispPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode );
 
 static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
     ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eSrcPolarity);
+      const BAVC_Polarity              eSrcPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode );
 
 static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_Polarity              eSrcPolarity,
-      const BAVC_Polarity              eDispPolarity );
+      const BAVC_Polarity              eDispPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode );
 
 static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
     ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eVecPolarity);
+      const BAVC_Polarity              eVecPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode );
 
 
 /***************************************************************************
@@ -735,7 +764,7 @@ static uint32_t BVDC_P_Buffer_GetCurrentDelay_isr
         /* forced synclocked double-buffer might have interlaced pulldown reader overlapped with writer pointer */
         bProgressivePullDown =  VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->eVideoFmt) &&
                                 (hWindow->hBuffer->eWriterVsReaderRateCode == BVDC_P_WrRate_NotFaster) &&
-                                (hWindow->hBuffer->eReaderVsWriterRateCode == BVDC_P_WrRate_2TimesFaster);
+                                (hWindow->hBuffer->eReaderVsWriterRateCode >= BVDC_P_WrRate_2TimesFaster);
 
         if (!bProgressivePullDown)
             return 0;
@@ -752,7 +781,7 @@ static uint32_t BVDC_P_Buffer_GetCurrentDelay_isr
         if (delay_count == hWindow->hBuffer->ulActiveBufCnt)
         {
             delay_count--;
-            BDBG_WRN(("Set delay count to max delay %d", delay_count));
+            BDBG_MSG(("Set delay count to max delay %d", delay_count));
             break;
         }
     }
@@ -1086,11 +1115,7 @@ void BVDC_P_Buffer_Init
     hBuffer->pCurWriterBuf    = hBuffer->pCurReaderBuf;
 
     hBuffer->bMtgMadDisplay1To1RateRelationship = false;
-    hBuffer->bMtgXdmDisplay1to1RateRelationship = false;
-    hBuffer->bMtgRepeatMode = false;
-    hBuffer->ulMtgSrcRepeatCount = 0;
-    hBuffer->ulMtgUniquePicCount = 0;
-    hBuffer->ulMtgDisplayRepeatCount = 0;
+    hBuffer->ulMtgPictureRepeatCount = 0;
 
     /* Initialize all the picture nodes. */
     pPicture = hBuffer->pCurReaderBuf;
@@ -1194,6 +1219,7 @@ BERR_Code BVDC_P_Buffer_AddPictureNodes_isr
         BVDC_P_BufLogAddEvent_isr('U',
                             hBuffer->hWindow->eId,
                             hBuffer->ulActiveBufCnt,
+                            0,
                             0,
                             0,
                             0,
@@ -1325,6 +1351,7 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
         BVDC_P_BufLogAddEvent_isr('V',
                             hBuffer->hWindow->eId,
                             hBuffer->ulActiveBufCnt,
+                            0,
                             0,
                             0,
                             0,
@@ -1491,11 +1518,7 @@ BERR_Code BVDC_P_Buffer_Invalidate_isr
     hBuffer->ulCurrReaderTimestamp = 0;
 
     hBuffer->bMtgMadDisplay1To1RateRelationship = false;
-    hBuffer->bMtgXdmDisplay1to1RateRelationship = false;
-    hBuffer->bMtgRepeatMode = false;
-    hBuffer->ulMtgSrcRepeatCount = 0;
-    hBuffer->ulMtgUniquePicCount = 0;
-    hBuffer->ulMtgDisplayRepeatCount = 0;
+    hBuffer->ulMtgPictureRepeatCount = 0;
 
 #if BVDC_P_REPEAT_ALGORITHM_ONE
     hBuffer->bRepeatForGap = false;
@@ -1506,6 +1529,7 @@ BERR_Code BVDC_P_Buffer_Invalidate_isr
                         hBuffer->hWindow->eId,
                         hBuffer->pCurReaderBuf->ulBufferId,
                         hBuffer->pCurWriterBuf->ulBufferId,
+                        0,
                         0,
                         0,
                         0,
@@ -1818,6 +1842,7 @@ static void BVDC_P_Buffer_UpdateWriterTimestamps_isr
                         0,
                         0,
                         0,
+                        0,
                         hWindow->hBuffer);
 #endif
 
@@ -1904,6 +1929,7 @@ static void BVDC_P_Buffer_UpdateReaderTimestamps_isr
                             0,
                             0,
                             0,
+                            0,
                             hWindow->hBuffer);
 #endif
 
@@ -1940,17 +1966,14 @@ static void BVDC_P_Buffer_UpdateReaderTimestamps_isr
  * the video pixels are really captured.
  */
 BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
-    ( BVDC_Window_Handle     hWindow,
-      const BAVC_Polarity    eSrcPolarity,
-      BVDC_P_Buffer_MtgMode  eMtgMode )
+    ( BVDC_Window_Handle           hWindow,
+      const BAVC_Polarity          eSrcPolarity,
+      const BVDC_P_Buffer_MtgMode  eMtgMode )
 {
     BVDC_P_PictureNode      *pNextNode;
     uint32_t                 ulTimeStamp;
     uint32_t                 ulMadOutPhase=1;
-    bool                     bMtgRepeatPicture = false;
-#if (BVDC_BUF_LOG == 1)
-    bool                     bPicDropDueToMtg = false;
-#endif
+    bool                     bDropPicDueToXdmMtgRepeat = false;
 
     BDBG_ENTER(BVDC_P_Buffer_GetNextWriterNode_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -1966,22 +1989,19 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
 
     if (hWindow->stCurInfo.hSource->bMtgSrc)
     {
-        bMtgRepeatPicture = hWindow->hBuffer->pCurWriterBuf->bChannelChange ||
-                  hWindow->hBuffer->pCurWriterBuf->stFlags.bPictureRepeatFlag;
+        uint32_t ulSrcFreq = BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hWindow->stCurInfo.hSource->eFrameRateCode);
 
-        if (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat && bMtgRepeatPicture)
-        {
-            hWindow->hBuffer->ulMtgSrcRepeatCount++;
-            hWindow->hBuffer->ulMtgUniquePicCount = 0;
-        }
-        else
-        {
-            hWindow->hBuffer->ulMtgUniquePicCount++;
-        }
+        bool bMtgRepeatPicture = (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat) &&
+                             (hWindow->hBuffer->pCurWriterBuf->bChannelChange ||
+                              hWindow->hBuffer->pCurWriterBuf->stFlags.bPictureRepeatFlag) &&
+                              !hWindow->hBuffer->pCurWriterBuf->bIgnorePicture;
 
-        hWindow->hBuffer->bMtgRepeatMode =
-            (hWindow->hBuffer->ulMtgSrcRepeatCount >= 1 && hWindow->hBuffer->ulMtgUniquePicCount <= 1) ? true : false;
+        bool bUpSampledRate = (ulSrcFreq == hWindow->stCurInfo.hSource->ulVertFreq) ? false : true;
+
+        bDropPicDueToXdmMtgRepeat = bMtgRepeatPicture && bUpSampledRate &&
+                (hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq == ulSrcFreq) ? true : false;
     }
+
     /* ----------------------------------
      * sync lock case
      *-----------------------------------*/
@@ -2081,26 +2101,24 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
     }
 
     /* Determine if MTG phase or MTG-based picture repeats warrant multibuffer processing. If not, drop the picture. */
-    if (((hWindow->pCurWriterNode->stFlags.bRev32Locked && (ulMadOutPhase != 3 && ulMadOutPhase != 1)) ||
-         (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat && bMtgRepeatPicture)) && !hWindow->pCurWriterNode->bMute)
+    if (((hWindow->pCurWriterNode->stFlags.bRev32Locked &&
+          ((ulMadOutPhase != 3 && ulMadOutPhase != 1) && eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)) ||
+          bDropPicDueToXdmMtgRepeat) && !hWindow->pCurWriterNode->bMute)
     {
         hWindow->hBuffer->pCurWriterBuf = hWindow->pCurWriterNode;
         if (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat)
         {
-            BDBG_MODULE_MSG(BVDC_BUF_MTGW,("Win[%d]: Drop repeated picture, B[%d]",
-                    hWindow->eId, hWindow->hBuffer->pCurWriterBuf->ulBufferId));
+            BDBG_MODULE_MSG(BVDC_BUF_MTGW,("Win[%d]: Drop repeated picture %d, B[%d]",
+                    hWindow->eId,
+                    hWindow->hBuffer->pCurWriterBuf->ulDecodePictureId,
+                    hWindow->hBuffer->pCurWriterBuf->ulBufferId));
         }
         else
         {
             BDBG_ASSERT(eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase);
-            BDBG_MODULE_MSG(BVDC_BUF_MTGW,("Win[%d]: Use current phase %d, B[%d]",
+            BDBG_MODULE_MSG(BVDC_BUF_MTGW,("Win[%d]: Use current phase %d, B[%d]\n",
                     hWindow->eId, hWindow->hBuffer->pCurWriterBuf->ulMadOutPhase, hWindow->hBuffer->pCurWriterBuf->ulBufferId));
         }
-
-#if (BVDC_BUF_LOG == 1)
-        bPicDropDueToMtg = true;
-#endif
-
         goto done;
     }
 
@@ -2117,11 +2135,14 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
     {
         BVDC_P_Buffer_CheckWriterIsrOrder_isr(hWindow,
             hWindow->stCurInfo.hSource->eNextFieldId,
-            BVDC_P_NEXT_POLARITY(hWindow->hBuffer->pCurReaderBuf->eDisplayPolarity));
+            BVDC_P_NEXT_POLARITY(hWindow->hBuffer->pCurReaderBuf->eDisplayPolarity),
+            eMtgMode);
     }
 
     if (!hWindow->hBuffer->bWriterNodeMovedByReader)
-        BVDC_P_Buffer_MoveSyncSlipWriterNode_isr(hWindow, eSrcPolarity); /* Update current writer node */
+    {
+        BVDC_P_Buffer_MoveSyncSlipWriterNode_isr(hWindow, eSrcPolarity, eMtgMode); /* Update current writer node */
+    }
     else
     {
         hWindow->hBuffer->bWriterNodeMovedByReader = false; /* clear the flag */
@@ -2135,6 +2156,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
     /* The delay in this node is now invalid */
     hWindow->hBuffer->pCurWriterBuf->bValidTimeStampDelay = false;
 
+
 done:
 
 #if (BVDC_BUF_LOG == 1)
@@ -2147,7 +2169,8 @@ done:
             (hWindow->hBuffer->pCurWriterBuf->eDstPolarity << BVDC_P_BUF_LOG_DST_POLARITY_SHIFT),
         hWindow->hBuffer->ulCurrWriterTimestamp,
         (100000/hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq),
-        (((bPicDropDueToMtg) ? 1 : 0) << BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT),
+        (((bDropPicDueToXdmMtgRepeat) ? 1 : 0) << BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT),
+        hWindow->hBuffer->pCurWriterBuf->ulDecodePictureId,
         hWindow->hBuffer);
 #endif
 
@@ -2179,6 +2202,7 @@ static void BVDC_P_Buffer_UpdateTimestamps_isr
         hWindow->hBuffer->ulNumCapField,
         0,
         0,
+        0,
         hWindow->hBuffer);
 #endif
 
@@ -2192,7 +2216,8 @@ static void BVDC_P_Buffer_UpdateTimestamps_isr
 static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_Polarity              eSrcPolarity,
-      const BAVC_Polarity              eDispPolarity )
+      const BAVC_Polarity              eDispPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode )
 {
     uint32_t ulTimestampDiff;
 
@@ -2211,6 +2236,7 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
                         hWindow->hBuffer->ulCurrReaderTimestamp,
                         0,
                         0,
+                        0,
                         hWindow->hBuffer);
 #endif
 
@@ -2227,7 +2253,7 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
                 if ((hWindow->hBuffer->eLastBuffAction == BVDC_P_Last_Buffer_Action_Writer_Moved) &&
                     (hWindow->hBuffer->eWriterVsReaderRateCode == hWindow->hBuffer->eReaderVsWriterRateCode))
                 {
-                    BVDC_P_Buffer_MoveSyncSlipReaderNode_isr(hWindow, eDispPolarity);
+                    BVDC_P_Buffer_MoveSyncSlipReaderNode_isr(hWindow, eDispPolarity, eMtgMode);
                 hWindow->hBuffer->bReaderNodeMovedByWriter = true;
 #if (BVDC_BUF_LOG == 1)
                     BVDC_P_BufLogAddEvent_isr('S',
@@ -2237,6 +2263,8 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
                         hWindow->hBuffer->ulCurrReaderTimestamp,
                         0,
                         0,
+                        0,
+
                         hWindow->hBuffer);
 #else
                     BDBG_MSG(("(A) Win[%d] W: %d writer ISR moved reader due to misordered ISR",
@@ -2271,7 +2299,8 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
 #define BVDC_P_PHASE2_TIME_STAMP_ADJUST  0x208D
 static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
     ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eSrcPolarity )
+      const BAVC_Polarity              eSrcPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode )
 {
     BVDC_P_PictureNode         *pNextNode, *pNextNextNode, *pPrevNode;
     bool                        bSkip;
@@ -2281,6 +2310,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
     BDBG_ENTER(BVDC_P_Buffer_MoveSyncSlipWriterNode_isr);
 
     BSTD_UNUSED(eSrcPolarity);
+    BSTD_UNUSED(eMtgMode);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     BDBG_OBJECT_ASSERT(hWindow->hBuffer, BVDC_BUF);
 
@@ -2301,16 +2331,6 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
     BVDC_P_Buffer_CalculateRateGap_isr(hWindow->stCurInfo.hSource->ulVertFreq,
         hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq,
         &hWindow->hBuffer->eWriterVsReaderRateCode, &hWindow->hBuffer->eReaderVsWriterRateCode);
-
-    /* Set no rate gap for MTG mode without deinterlacer and with picture repeats. */
-    if (hWindow->stCurInfo.hSource->bMtgSrc &&
-        !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode) &&
-        hWindow->hBuffer->bMtgRepeatMode &&
-        hWindow->hBuffer->bMtgXdmDisplay1to1RateRelationship)
-    {
-        hWindow->hBuffer->eWriterVsReaderRateCode = BVDC_P_WrRate_NotFaster;
-        hWindow->hBuffer->eReaderVsWriterRateCode = BVDC_P_WrRate_NotFaster;
-    }
 
     /* determine the timestamp sampling period for game mode */
     if((BVDC_P_ROUND_OFF(hWindow->stCurInfo.hSource->ulVertFreq,
@@ -2357,7 +2377,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
      */
     bProgressivePullDown =  VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->eVideoFmt) &&
                             (hWindow->hBuffer->eWriterVsReaderRateCode == BVDC_P_WrRate_NotFaster) &&
-                            (hWindow->hBuffer->eReaderVsWriterRateCode == BVDC_P_WrRate_2TimesFaster);
+                            (hWindow->hBuffer->eReaderVsWriterRateCode >= BVDC_P_WrRate_2TimesFaster);
 
     /* Check if next node is reader OR if we are in full progressive mode. */
     if (((pNextNode == hWindow->hBuffer->pCurReaderBuf) && !bProgressivePullDown) ||
@@ -2388,6 +2408,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
                 hWindow->hBuffer->ulCurrWriterTimestamp,
                 0,
                 0,
+                0,
                 hWindow->hBuffer);
 #else
             BDBG_MSG(("Win[%d] W:     Skip 2 fields, num of cap fields %d, total %d",
@@ -2404,6 +2425,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
                 hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
                     (hWindow->hBuffer->ulSkipStat << BVDC_P_BUF_LOG_PIC_SKIP_CNT_SHIFT),
                 hWindow->hBuffer->ulCurrWriterTimestamp,
+                0,
                 0,
                 0,
                 hWindow->hBuffer);
@@ -2427,6 +2449,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
                 hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
                     (hWindow->hBuffer->ulSkipStat << BVDC_P_BUF_LOG_PIC_SKIP_CNT_SHIFT),
                 hWindow->hBuffer->ulCurrWriterTimestamp,
+                0,
                 0,
                 0,
                 hWindow->hBuffer);
@@ -2578,11 +2601,12 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextReaderNode_isr
         /* Check if reader ISR is executing out of order */
         BVDC_P_Buffer_CheckReaderIsrOrder_isr(hWindow,
             hWindow->stCurInfo.hSource->eNextFieldId,
-            BVDC_P_NEXT_POLARITY(hWindow->hBuffer->pCurReaderBuf->eDisplayPolarity));
+            BVDC_P_NEXT_POLARITY(hWindow->hBuffer->pCurReaderBuf->eDisplayPolarity),
+            eMtgMode);
     }
 
     if (!hWindow->hBuffer->bReaderNodeMovedByWriter)
-        BVDC_P_Buffer_MoveSyncSlipReaderNode_isr(hWindow, eVecPolarity); /* Update current writer node */
+        BVDC_P_Buffer_MoveSyncSlipReaderNode_isr(hWindow, eVecPolarity, eMtgMode); /* Update current writer node */
     else
     {
         hWindow->hBuffer->bReaderNodeMovedByWriter = false; /* clear the flag */
@@ -2598,6 +2622,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextReaderNode_isr
 
 done:
 
+
 #if (BVDC_BUF_LOG == 1)
     BVDC_P_BufLogAddEvent_isr('L',
         hWindow->eId,
@@ -2609,6 +2634,7 @@ done:
         hWindow->hBuffer->ulCurrReaderTimestamp,
         (100000/hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq),
         0,
+        hWindow->hBuffer->pCurReaderBuf->ulDecodePictureId,
         hWindow->hBuffer);
 #endif
 
@@ -2626,7 +2652,8 @@ done:
 static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_Polarity              eSrcPolarity,
-      const BAVC_Polarity              eDispPolarity )
+      const BAVC_Polarity              eDispPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode )
 {
     uint32_t ulTimestampDiff;
 
@@ -2642,6 +2669,7 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
                         hWindow->stCurResource.hCapture->ulTimestamp,
                         hWindow->hBuffer->ulCurrReaderTimestamp,
                         hWindow->hBuffer->ulCurrWriterTimestamp,
+                        0,
                         0,
                         0,
                         hWindow->hBuffer);
@@ -2662,7 +2690,7 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
                 if ((hWindow->hBuffer->eLastBuffAction == BVDC_P_Last_Buffer_Action_Reader_Moved) &&
                     (hWindow->hBuffer->eWriterVsReaderRateCode == hWindow->hBuffer->eReaderVsWriterRateCode))
                 {
-                    BVDC_P_Buffer_MoveSyncSlipWriterNode_isr(hWindow, eSrcPolarity);
+                    BVDC_P_Buffer_MoveSyncSlipWriterNode_isr(hWindow, eSrcPolarity, eMtgMode);
                     hWindow->hBuffer->bWriterNodeMovedByReader = true;
 
 #if (BVDC_BUF_LOG == 1)
@@ -2671,6 +2699,7 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
                         hWindow->hBuffer->ulNumCapField,
                         hWindow->hBuffer->ulCurrReaderTimestamp,
                         hWindow->hBuffer->ulCurrWriterTimestamp,
+                        0,
                         0,
                         0,
                         hWindow->hBuffer);
@@ -2705,11 +2734,17 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
 
 static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
     ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eVecPolarity )
+      const BAVC_Polarity              eVecPolarity,
+      const BVDC_P_Buffer_MtgMode      eMtgMode )
 {
-    BVDC_P_PictureNode         *pNextNode, *pNextNextNode, *pPrevNode, *pCurNode;
-    bool                        bRepeat;
-    uint32_t                    ulGap;
+    BVDC_P_PictureNode *pNextNode, *pNextNextNode, *pPrevNode, *pCurNode;
+    bool                bRepeat;
+    uint32_t            ulGap;
+    bool                bReverseProgressivePulldown;
+
+#if (BVDC_BUF_LOG == 1)
+    bool bForcedRepeat = false;
+#endif
 
     BDBG_ENTER(BVDC_P_Buffer_MoveSyncSlipReaderNode_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -2763,11 +2798,21 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
         bRepeat = false;
     }
 
+    /* Source rate is 60(or 59.94) Hz and display rate is 24(or 23.976) Hz. This allows the reader to encroach the writer. It exploits
+       the rate difference in that the reader is slow enough and will not overrun the writer at the next Vsync. The writer will be done
+       by then. This is needed to avoid judder. */
+    bReverseProgressivePulldown = VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->eVideoFmt) &&
+                                  VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt) &&
+                                  (hWindow->hBuffer->eWriterVsReaderRateCode == BVDC_P_WrRate_MoreThan2TimesFaster) &&
+                                  (hWindow->hBuffer->eReaderVsWriterRateCode == BVDC_P_WrRate_NotFaster);
+
     /* Check if we are encroaching the writer */
-    if((((pNextNode == hWindow->hBuffer->pCurWriterBuf) &&
-         !hWindow->stCurInfo.stGameDelaySetting.bEnable) ||
-         ((hWindow->hBuffer->eReaderVsWriterRateCode > BVDC_P_WrRate_NotFaster) && (pNextNextNode == hWindow->hBuffer->pCurWriterBuf)) ||
-          bRepeat) && !hWindow->hBuffer->bMtgMadDisplay1To1RateRelationship)
+    if (((((pNextNode == hWindow->hBuffer->pCurWriterBuf) &&
+           !hWindow->stCurInfo.stGameDelaySetting.bEnable) ||
+          ((hWindow->hBuffer->eReaderVsWriterRateCode > BVDC_P_WrRate_NotFaster) && (pNextNextNode == hWindow->hBuffer->pCurWriterBuf)) ||
+           bRepeat) && !hWindow->hBuffer->bMtgMadDisplay1To1RateRelationship) &&
+           !bReverseProgressivePulldown)
+
     {
         /* Repeat reader. We may have to bear a field inversion here if both
          * source and display are interlaced and pictures are not captured as
@@ -2779,7 +2824,8 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
             hWindow->hBuffer->ulRepeatStat++;
             hWindow->hBuffer->pCurReaderBuf->stFlags.bPictureRepeatFlag = true;
 
-            hWindow->hBuffer->ulMtgDisplayRepeatCount++;
+            hWindow->hBuffer->ulMtgPictureRepeatCount++;
+
 
 #if (BVDC_BUF_LOG == 1)
             if (!hWindow->bFrameCapture && hWindow->stCurInfo.hSource->bSrcInterlaced &&
@@ -2793,6 +2839,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
                     hWindow->hBuffer->ulCurrReaderTimestamp,
                     0,
                     0,
+                    0,
                     hWindow->hBuffer);
             }
             else
@@ -2803,6 +2850,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
                     hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
                         (hWindow->hBuffer->ulRepeatStat << BVDC_P_BUF_LOG_PIC_REPEAT_CNT_SHIFT),
                     hWindow->hBuffer->ulCurrReaderTimestamp,
+                    0,
                     0,
                     0,
                     hWindow->hBuffer);
@@ -2831,9 +2879,9 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
              * move reader to next field anyway to spread 2 repeats over 4 fields.
              * Bear a field inversion. Reader bvdc_buffer_priv.h for details.
              */
-            if((!hWindow->hBuffer->bRepeatForGap) ||
-               ((pNextNode == hWindow->hBuffer->pCurWriterBuf) && (!hWindow->stCurInfo.stGameDelaySetting.bEnable)) ||
-               ((hWindow->hBuffer->eReaderVsWriterRateCode > BVDC_P_WrRate_NotFaster) && (pNextNextNode == hWindow->hBuffer->pCurWriterBuf)))
+            if ((!hWindow->hBuffer->bRepeatForGap) ||
+                ((pNextNode == hWindow->hBuffer->pCurWriterBuf) && (!hWindow->stCurInfo.stGameDelaySetting.bEnable)) ||
+                ((hWindow->hBuffer->eReaderVsWriterRateCode > BVDC_P_WrRate_NotFaster) && (pNextNextNode == hWindow->hBuffer->pCurWriterBuf)))
 #endif
             {
                 hWindow->hBuffer->ulRepeatStat++;
@@ -2849,6 +2897,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
                     hWindow->hBuffer->ulCurrReaderTimestamp,
                     0,
                     0,
+                    0,
                     hWindow->hBuffer);
 #else
                 BDBG_MSG(("Win[%d] R:      Repeat for polarity, src I, VEC %d. orig src p %d, cap %d, total %d",
@@ -2862,7 +2911,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
                 /* restore the current reader buffer */
                 hWindow->hBuffer->pCurReaderBuf = pCurNode;
                 hWindow->hBuffer->pCurReaderBuf->stFlags.bPictureRepeatFlag = true;
-                hWindow->hBuffer->ulMtgDisplayRepeatCount++;
+                hWindow->hBuffer->ulMtgPictureRepeatCount++;
             }
         }
 
@@ -2870,36 +2919,137 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
          * This is needed to prevent a 2:2:2:2:2:2:3:1:3 cadence. The expected cadence is 2: 2:2:2:2:2:3:2:2:2.
          *  See multibuffer analysis.
          */
+
         if (hWindow->hBuffer->pCurReaderBuf->stFlags.bRev32Locked &&
             hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq == (50 * BFMT_FREQ_FACTOR))
+
         {
-            /* Check if R encroaches W. */
-            if (pNextNode == hWindow->hBuffer->pCurWriterBuf)
+            if (eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
             {
-                /* Restore the current reader buffer. */
-                hWindow->hBuffer->pCurReaderBuf = pCurNode;
-                hWindow->hBuffer->ulMtgDisplayRepeatCount++;
-            }
-            else
-            {
-                /* Check if R has repeated at least once */
-                if (hWindow->hBuffer->ulMtgDisplayRepeatCount == 0)
+                /* Check if R encroaches W. */
+                if (pNextNode == hWindow->hBuffer->pCurWriterBuf)
                 {
-                    /* Restore the current reader buffer. This ensures a repeat. */
+                    /* Restore the current reader buffer. */
                     hWindow->hBuffer->pCurReaderBuf = pCurNode;
-                    hWindow->hBuffer->ulMtgDisplayRepeatCount++;
+                    hWindow->hBuffer->ulMtgPictureRepeatCount++;
+
+#if (BVDC_BUF_LOG == 1)
+                    bForcedRepeat = true;
+#endif
                 }
                 else
                 {
-                    hWindow->hBuffer->ulMtgDisplayRepeatCount = 0;
+                    /* Check if R has repeated at least once */
+                    if (hWindow->hBuffer->ulMtgPictureRepeatCount == 0)
+                    {
+                        /* Restore the current reader buffer. This ensures a repeat. */
+                        hWindow->hBuffer->pCurReaderBuf = pCurNode;
+                        hWindow->hBuffer->ulMtgPictureRepeatCount++;
+
+#if (BVDC_BUF_LOG == 1)
+                        bForcedRepeat = true;
+#endif
+                    }
+                    else
+                    {
+                        hWindow->hBuffer->ulMtgPictureRepeatCount = 0;
+                    }
+                }
+            }
+            else if (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat)
+            {
+                if (pNextNode->stFlags.bPictureRepeatFlag)
+                {
+                    if (hWindow->hBuffer->ulMtgPictureRepeatCount == 0)
+                    {
+                        if (pCurNode->ulDecodePictureId != pNextNode->ulDecodePictureId)
+                        {
+                            /* Restore the current reader buffer. This is a repeat. */
+                            hWindow->hBuffer->pCurReaderBuf = pCurNode;
+
+#if (BVDC_BUF_LOG == 1)
+                            bForcedRepeat = true;
+#endif
+                        }
+                        hWindow->hBuffer->ulMtgPictureRepeatCount++;
+                    }
+                    else
+                    {
+                        if (pCurNode->ulDecodePictureId != pNextNode->ulDecodePictureId)
+                        {
+                            /* New picture */
+                            hWindow->hBuffer->ulMtgPictureRepeatCount = 0;
+                        }
+                        else
+                        {
+                            hWindow->hBuffer->ulMtgPictureRepeatCount++;
+                        }
+                    }
+                }
+                else
+                {
+                    if (hWindow->hBuffer->ulMtgPictureRepeatCount != 0)
+                    {
+                        /* New picture */
+                        hWindow->hBuffer->ulMtgPictureRepeatCount = 0;
+                    }
+                    else
+                    {
+                        if (pCurNode->ulDecodePictureId != pNextNode->ulDecodePictureId)
+                        {
+                            /* Restore the current reader buffer. This is a repeat. */
+                            hWindow->hBuffer->pCurReaderBuf = pCurNode;
+                            hWindow->hBuffer->ulMtgPictureRepeatCount++;
+
+
+#if (BVDC_BUF_LOG == 1)
+                            bForcedRepeat = true;
+#endif
+                        }
+                    }
+                }
+
+
+#if (BVDC_BUF_LOG == 1)
+                if (bForcedRepeat)
+                {
+                    BVDC_P_BufLogAddEvent_isr('C',
+                            hWindow->eId,
+                            hWindow->hBuffer->pCurReaderBuf->ulBufferId,
+                            hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
+                                (hWindow->hBuffer->ulSkipStat << BVDC_P_BUF_LOG_PIC_SKIP_CNT_SHIFT),
+                            hWindow->hBuffer->ulCurrReaderTimestamp,
+                            0,
+                            (bForcedRepeat ? 1 : 0 << BVDC_P_BUF_LOG_FORCED_REPEAT_PIC_SHIFT)|
+                            (hWindow->hBuffer->ulMtgPictureRepeatCount << BVDC_P_BUF_LOG_FORCED_REPEAT_PIC_COUNT_SHIFT),
+                            hWindow->hBuffer->pCurReaderBuf->ulDecodePictureId,
+                            hWindow->hBuffer);
+                }
+#endif
                 }
             }
         }
 
+#if (BVDC_BUF_LOG == 1)
+    if (hWindow->hBuffer->pCurReaderBuf == hWindow->hBuffer->pCurWriterBuf)
+    {
+        BVDC_P_BufLogAddEvent_isr('G',
+                hWindow->eId,
+                hWindow->hBuffer->pCurReaderBuf->ulBufferId,
+                hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
+                    (hWindow->hBuffer->ulSkipStat << BVDC_P_BUF_LOG_PIC_SKIP_CNT_SHIFT),
+                hWindow->hBuffer->ulCurrReaderTimestamp,
+                0,
+                0,
+                0,
+                hWindow->hBuffer);
+    }
+#endif
+
+
 #if BVDC_P_REPEAT_ALGORITHM_ONE
         hWindow->hBuffer->bRepeatForGap = false;
 #endif
-    }
 
 done:
     BDBG_LEAVE(BVDC_P_Buffer_MoveSyncSlipReaderNode_isr);
@@ -2939,17 +3089,30 @@ void BVDC_P_Buffer_CalculateRateGap_isr
         if(ulSrcVertRate > ulDstVertRate)
         {
             *peReaderVsWriterRateCode = BVDC_P_WrRate_NotFaster;
-            *peWriterVsReaderRateCode = ((ulSrcVertRate / ulDstVertRate) >= 2)
-                ? BVDC_P_WrRate_2TimesFaster : BVDC_P_WrRate_Faster;
+            if ((ulSrcVertRate / ulDstVertRate) >= 2)
+            {
+                *peWriterVsReaderRateCode = ((ulSrcVertRate % ulDstVertRate) > 0) ?
+                    BVDC_P_WrRate_MoreThan2TimesFaster : BVDC_P_WrRate_2TimesFaster;
+            }
+            else
+            {
+                *peWriterVsReaderRateCode = BVDC_P_WrRate_Faster;
+            }
         }
         else
         {
             *peWriterVsReaderRateCode = BVDC_P_WrRate_NotFaster;
-            *peReaderVsWriterRateCode = ((ulDstVertRate / ulSrcVertRate) >= 2)
-                ? BVDC_P_WrRate_2TimesFaster : BVDC_P_WrRate_Faster;
+            if ((ulDstVertRate / ulSrcVertRate) >= 2)
+            {
+                *peReaderVsWriterRateCode = ((ulDstVertRate % ulSrcVertRate) > 0) ?
+                    BVDC_P_WrRate_MoreThan2TimesFaster : BVDC_P_WrRate_2TimesFaster;
+            }
+            else
+            {
+                *peReaderVsWriterRateCode = BVDC_P_WrRate_Faster;
+            }
         }
     }
-
     return;
 }
 

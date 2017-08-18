@@ -67,6 +67,7 @@ BDBG_MODULE(nexus_driver_procfs);
 #include <linux/proc_fs.h>
 #include <asm/uaccess.h>
 #include <linux/kernel.h>
+#include <linux/slab.h>
 static struct proc_dir_entry *brcm_dir_entry;          /* /proc/brcm */
 static struct proc_dir_entry *brcm_config_entry;       /* /proc/brcm/config */
 #if BDBG_DEBUG_BUILD
@@ -108,7 +109,7 @@ static const char * const lvl_str[BDBG_P_eLastEntry] = {
         "unk", "trc", "msg", "wrn", "err"
 };
 
-#define NEXUS_P_PROC_DATA_MAX   32
+#define NEXUS_P_PROC_DATA_MAX   48
 
 static nexus_driver_proc_data g_proc_data[NEXUS_P_PROC_DATA_MAX] = {{NULL, NULL, NULL, NULL, NULL}};
 
@@ -192,11 +193,13 @@ static ssize_t brcm_proc_debug_read(struct file *fp,char *buf,size_t bufsize, lo
         brcm_bdbg_fetch_state(cache.buffer, &cache.len, BRCM_PROC_DEBUG_CACHESIZE);
     }
 
+    if (!cache.buffer) return -1;
     len = cache.len - *offp;
-    if (len == 0) {
+    if (len <= 0) {
         BKNI_Free(cache.buffer);
         cache.buffer = NULL;
         cache.len = 0;
+        len = 0;
     }
     else {
         if (len > bufsize) {
@@ -434,8 +437,8 @@ static void nexus_p_free_capture_buffers(void)
     struct dbgprint_page *page;
     while ((page = BLST_Q_FIRST(&NEXUS_P_ProcFsState.additional))) {
         BLST_Q_REMOVE_HEAD(&NEXUS_P_ProcFsState.additional, link);
-        BKNI_Free(page->buf);
-        BKNI_Free(page);
+        kfree(page->buf);
+        kfree(page);
     }
 }
 
@@ -460,16 +463,17 @@ brcm_proc_dbgprint_capture(
             page = BLST_Q_LAST(&NEXUS_P_ProcFsState.additional);
             if (!page || dbgprint_page_done(page)) {
                 /* add another page */
-                page = BKNI_Malloc(sizeof(*page));
+                /* must use kmalloc, not BKNI_Malloc, because we may be called from bkni_track_mallocs.inc */
+                page = kmalloc(sizeof(*page), GFP_KERNEL);
                 if (!page) {
                     BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
                     return;
                 }
                 BKNI_Memset(page, 0, sizeof(*page));
                 page->bufsize = 4096;
-                page->buf = BKNI_Malloc(page->bufsize);
+                page->buf = kmalloc(page->bufsize, GFP_KERNEL);
                 if (!page->buf) {
-                    BKNI_Free(page);
+                    kfree(page);
                     BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
                     return;
                 }
@@ -491,6 +495,11 @@ brcm_proc_dbgprint_capture(
             page->wptr += left;
         }
     }
+}
+
+void nexus_driver_proc_print(BDBG_ModulePrintKind kind, const char *fmt, va_list ap)
+{
+    brcm_proc_dbgprint_capture(kind, BDBG_eLog, NULL, fmt, ap);
 }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
@@ -526,8 +535,8 @@ static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize,
             total += n;
             if (page->rptr < page->wptr) break;
             BLST_Q_REMOVE_HEAD(&NEXUS_P_ProcFsState.additional, link);
-            BKNI_Free(page->buf);
-            BKNI_Free(page);
+            kfree(page->buf);
+            kfree(page);
         }
         #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
         *start = buf; /* reading fs/proc/generic.c, this is required for multi-page reads */
@@ -548,12 +557,17 @@ static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize,
     NEXUS_P_ProcFsState.first.wptr = 0;
     nexus_p_free_capture_buffers();
 
-    /* call function which captures to NEXUS_P_ProcFsState */
-    NEXUS_Module_Lock(p->handle);
-    BDBG_SetModulePrintFunction(p->dbg_modules,brcm_proc_dbgprint_capture);
-    p->callback(p->context);
-    BDBG_SetModulePrintFunction(p->dbg_modules,NULL);
-    NEXUS_Module_Unlock(p->handle);
+    if (NEXUS_Platform_P_ModuleInStandby(p->handle)) {
+        NEXUS_P_ProcFsState.first.wptr = BKNI_Snprintf(buf, bufsize, "%s in standby\n", NEXUS_Module_GetName(p->handle));
+    }
+    else {
+        /* call function which captures to NEXUS_P_ProcFsState */
+        NEXUS_Module_Lock(p->handle);
+        BDBG_SetModulePrintFunction(p->dbg_modules,brcm_proc_dbgprint_capture);
+        p->callback(p->context);
+        BDBG_SetModulePrintFunction(p->dbg_modules,NULL);
+        NEXUS_Module_Unlock(p->handle);
+    }
 
     #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
     *start = buf; /* reading fs/proc/generic.c, this is required for multi-page reads */

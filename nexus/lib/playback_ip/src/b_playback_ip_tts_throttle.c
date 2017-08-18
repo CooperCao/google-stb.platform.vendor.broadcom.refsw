@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,7 +63,7 @@ BDBG_MODULE(b_tts_throttle);
 #define TTS_PWM_STEP_SIZE               47          /* !!! 7Hz !!! (Hz/bit = 4386/0x7fff = 0.13385 Hz/bit, ie. 0.00494 ppm/bit) */
 #define TTS_PWM_STEPS_PER_SLEW          8
 
-#define TTS_MAX_PPM_VALUE               60       /* default to 60 ppm */
+#define TTS_MAX_PPM_VALUE               240       /* default to 60 ppm */
 #define TTS_MIN_PPM_VALUE               (-TTS_MAX_PPM_VALUE)
 
 #if PLAYBACK_IP_GCB_SUPPORT
@@ -86,13 +86,6 @@ BDBG_MODULE(b_tts_throttle);
 #define TTS_TREND_SAMPLE_PERIOD         120
 #define TTS_HALT_TASK_TIMEOUT_MSEC      600
 
-typedef enum B_PlaybackIp_TtsThrottle_State {
-    B_PlaybackIp_TtsThrottle_State_Opened,
-    B_PlaybackIp_TtsThrottle_State_Paused,
-    B_PlaybackIp_TtsThrottle_State_Running,
-    B_PlaybackIp_TtsThrottle_State_Stopping
-} B_PlaybackIp_TtsThrottle_State;
-
 /* the TTS throttle structure */
 typedef struct B_PlaybackIp_TtsThrottle {
     NEXUS_PlaypumpHandle playPump;
@@ -106,6 +99,7 @@ typedef struct B_PlaybackIp_TtsThrottle {
     unsigned bufHead;
     unsigned bufTail;
     int bufSamplesSum;
+    uint32_t bufDepthInMsec;
 
     unsigned *avgSamples;
     unsigned avgHead;
@@ -412,6 +406,7 @@ B_PlaybackIpError B_PlaybackIp_TtsThrottle_GetStatus(
     )
 {
     BKNI_Memcpy(status, &ttsThrottle->status, sizeof(*status));
+    status->state = ttsThrottle->state;
 
     return B_ERROR_SUCCESS;
 }
@@ -457,7 +452,7 @@ void B_PlaybackIp_TtsThrottle_Pause(
     }
 
     if (NEXUS_Playpump_SetPause(ttsThrottle->playPump, pause) != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to %s", __FUNCTION__, pause ? "set pause":"unset pause"));
+        BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to %s", BSTD_FUNCTION, pause ? "set pause":"unset pause"));
     }
 
 }
@@ -493,6 +488,14 @@ void B_PlaybackIp_TtsThrottle_Step(
     NEXUS_Error rc;
     B_Time cur_time;
     int diff_time;
+    size_t curBufDepth;
+
+    if (ttsThrottle->params.bufDepthInMsec) {
+        curBufDepth = ttsThrottle->bufDepthInMsec;
+    }
+    else {
+        curBufDepth = pumpStatus.fifoDepth;
+    }
 
     B_Time_Get(&cur_time);
     diff_time = B_Time_Diff(&cur_time, &ttsThrottle->prevTime);
@@ -505,15 +508,15 @@ void B_PlaybackIp_TtsThrottle_Step(
                 rc = NEXUS_Playpump_GetStatus(ttsThrottle->playPump, &pumpStatus);
                 if (rc) BDBG_WRN(("NEXUS_Playpump_GetStatus returned error: %d", rc));
 
-            B_PlaybackIp_TtsThrottle_P_SlowAdjust(ttsThrottle, pumpStatus.fifoDepth);
-            if(ttsThrottle->status.pacingErrorCount != pumpStatus.pacingTsRangeError) {
-                ttsThrottle->status.pacingErrorCount = pumpStatus.pacingTsRangeError;
+                B_PlaybackIp_TtsThrottle_P_SlowAdjust(ttsThrottle, curBufDepth);
+                if(ttsThrottle->status.pacingErrorCount != pumpStatus.pacingTsRangeError) {
+                    ttsThrottle->status.pacingErrorCount = pumpStatus.pacingTsRangeError;
                     /* make it ding (for debug) */
                     /* (("pacing error %c", 7)); */
                     BDBG_WRN(("pacing error"));
                 }
 
-/* supress early LumaBuffer messages */
+                /* supress early LumaBuffer messages */
 #if 0
                 if(ttsThrottle->periodCount == TTS_DELAYED_START_PERIOD)
                     ip_start_luma_msg = true;
@@ -592,7 +595,7 @@ static void B_PlaybackIp_TtsThrottle_P_SlowAdjust(
     B_PlaybackIp_TtsThrottle_P_PwmSlew(ttsThrottle);
 
 /* re-enable the ttsThrottle log (before release) */
-#if 0
+#if 1
     {
         NEXUS_PlaypumpStatus pumpStatus;
         NEXUS_Error rc;
@@ -601,10 +604,11 @@ static void B_PlaybackIp_TtsThrottle_P_SlowAdjust(
         rc = NEXUS_Playpump_GetStatus(ttsThrottle->playPump, &pumpStatus);
         if (rc) BDBG_WRN(("NEXUS_Playpump_GetStatus returned error: %d", rc));
 
-        BDBG_WRN(("depth: %ld, min: %d, max: %d, clk_adj: %ld, min: %d, max: %d, pcr_err: %d, trend_up: %d, duty: %d, mode: %d",
+        BDBG_WRN(("depth: avg, min, max, bytes, clk_adj %u, %u, %u, %zu, %d clk min: %ld, max: %ld, pcr_err: %d, trend_up: %d, duty: %d, mode: %d",
               ttsThrottle->status.avgBufDepth,
               ttsThrottle->prevMinBufDepth,
               ttsThrottle->prevMaxBufDepth,
+              pumpStatus.fifoDepth,
               ttsThrottle->status.pacingClockAdjustment,
               ttsThrottle->minPwmValue/TTS_PPM_TO_PWM_CONV_FACTOR,
               ttsThrottle->maxPwmValue/TTS_PPM_TO_PWM_CONV_FACTOR,
@@ -614,12 +618,12 @@ static void B_PlaybackIp_TtsThrottle_P_SlowAdjust(
               ttsThrottle->trendDutyCycle,
               ttsThrottle->wideTrackMode));
     }
-#else
-    BDBG_MSG(("tts throttle %p: bufDepth: %u, clock_adj: %d, violation_count: %u, err_count: %u",
+    BDBG_WRN(("tts throttle %p: bufDepth: %u, clock_adj: %d, violation_count: %u, err_count: %u",
               (void *)ttsThrottle, ttsThrottle->status.avgBufDepth,
               ttsThrottle->status.pacingClockAdjustment,
               ttsThrottle->status.bufViolationCount,
               ttsThrottle->status.pacingErrorCount));
+#else
 #endif
 }
 
@@ -864,7 +868,7 @@ B_PlaybackIpError B_PlaybackIp_TtsThrottle_SetCenterFreq(
      */
 
     center_freq = (PWM_CENTER_FREQUENCY+(ttsThrottle->currentPwmValue/48));
-    BDBG_MSG(("adjust center_freq: %d PPM", ((int32_t)center_freq - (int32_t)0x400000) >> 2));
+    BDBG_WRN(("adjust center_freq: %d,%u,%u", ((int32_t)center_freq - (int32_t)0x400000) >> 2, center_freq, ttsThrottle->status.avgBufDepth ));
 
     NEXUS_Timebase_GetSettings(timebase, &timebaseSettings);
     timebaseSettings.sourceSettings.freeRun.centerFrequency = center_freq;
@@ -879,14 +883,22 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
     NEXUS_PlaypumpStatus pumpStatus;
     NEXUS_Error rc;
     size_t initBufferDepth = ttsThrottle->params.initBufDepth;
+    size_t curBufDepth;
 
     BDBG_ASSERT(ttsThrottle->playPump);
     rc = NEXUS_Playpump_GetStatus(ttsThrottle->playPump, &pumpStatus);
     if (rc) BDBG_WRN(("NEXUS_Playpump_GetStatus returned error: %d", rc));
 
+    if (ttsThrottle->params.bufDepthInMsec) {
+        curBufDepth = ttsThrottle->bufDepthInMsec;
+    }
+    else {
+        curBufDepth = pumpStatus.fifoDepth;
+    }
+
     switch(ttsThrottle->bufferState) {
     case B_PlaybackIpBufferState_eInit:
-        if(pumpStatus.fifoDepth >= initBufferDepth) {
+        if(curBufDepth >= initBufferDepth) {
             BDBG_WRN(("tts throttle %p: Playpump buffer fullness established %zu (%zu), going to playing state", (void *)ttsThrottle, pumpStatus.fifoDepth, initBufferDepth));
             B_PlaybackIp_TtsThrottle_Pause(ttsThrottle, false);
             BKNI_Sleep(1); /* this prevents a pacing error at startup */
@@ -898,7 +910,7 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
         }
         break;
     case B_PlaybackIpBufferState_ePreCharging:
-        if(pumpStatus.fifoDepth >= initBufferDepth) {
+        if(curBufDepth >= initBufferDepth) {
             BDBG_WRN(("tts throttle %p: Playpump buffer fullness restored, going to playing state", (void *)ttsThrottle));
             B_PlaybackIp_TtsThrottle_Pause(ttsThrottle, false);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePlaying;
@@ -914,10 +926,11 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePreCharging;
         }
         else if(pumpStatus.fifoDepth==0) {
-            BDBG_WRN(("tts throttle: %p, Playpump buffer underflow!", (void *)ttsThrottle));
+            BDBG_WRN(("tts throttle: %p, Playpump buffer underflow, avgBufDepthInMsec=%zu", (void *)ttsThrottle, curBufDepth));
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, true);
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, false);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePreCharging;
+            ttsThrottle->bufDepthInMsec = 0;
         }
         break;
     case B_PlaybackIpBufferState_ePostCharging:
@@ -929,4 +942,12 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
     }
 
     return B_ERROR_SUCCESS;
+}
+void
+B_PlaybackIp_TtsThrottle_UpdateBufferDepth(
+    B_PlaybackIp_TtsThrottleHandle ttsThrottle,
+    uint32_t bufDepthInMsec
+    )
+{
+    ttsThrottle->bufDepthInMsec = bufDepthInMsec;
 }

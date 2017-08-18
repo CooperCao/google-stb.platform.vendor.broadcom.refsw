@@ -26,7 +26,7 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/platform/default_android \
 	$(V3D_DRIVER_TOP)/platform/android \
 	$(V3D_DRIVER_TOP)/platform/nexus \
-   $(ANDROID_TOP)/frameworks/native/libs/arect/include
+	$(ANDROID_TOP)/frameworks/native/libs/arect/include
 
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
@@ -276,11 +276,8 @@ intermediates := $(call local-intermediates-dir)
 LOCAL_SRC_FILES := $(filter-out $(GENERATED_SRC_FILES), $(LOCAL_SRC_FILES))
 GENERATED_SRC_FILES := $(addprefix $(intermediates)/, $(GENERATED_SRC_FILES))
 LOCAL_GENERATED_SOURCES := $(GENERATED_SRC_FILES)
-ifeq (,$(strip $(OUT_DIR_COMMON_BASE)))
-GENERATED_SRC_DIR := $(ANDROID_TOP)/$(intermediates)
-else
-GENERATED_SRC_DIR := $(intermediates)
-endif
+GENERATED_SRC_DIR := $(abspath ${intermediates})
+
 LOCAL_C_INCLUDES += \
 	$(intermediates)/driver/middleware/khronos/glsl \
 	$(intermediates)/driver

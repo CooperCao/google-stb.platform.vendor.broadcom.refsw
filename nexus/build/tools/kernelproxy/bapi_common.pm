@@ -187,7 +187,7 @@ sub process_function_attributes {
                     }
                     elsif (!$$params[0]->{ISREF} && $param != $$params[0]) {
                         # enum instead of handle.
-                        # use enum type + enum value as psuedo handle
+                        # use enum type + enum value as pseudo handle
                         # hardcoded for a max of 128 enum values per type
                         # value<<2+1 to use non-4 byte aligned value to ensure no conflict with actual handle
                         $handle = "(unsigned long)(($id<<9) + ($driver_arg.ioctl.$$params[0]->{NAME}<<2) + 1)";
@@ -197,7 +197,7 @@ sub process_function_attributes {
                             push @pre_update_driver, "/* MAP callback from proxy space to the driver space */";
                             push @pre_update_driver, "NEXUS_DRIVER_CALLBACK_TO_DRIVER(&$field_driver, $handle, $id);";
                             if($handle eq 'NULL') {
-                                push @post_update_driver, "/* since callback wasn't avaliable before calling function, use the return result to update callback */";
+                                push @post_update_driver, "/* since callback wasn't available before calling function, use the return result to update callback */";
                                 push @post_update_driver, "NEXUS_DRIVER_CALLBACK_UPDATE(&$field_driver, $handle, $id, $driver_arg.ioctl.__retval);";
                             } else {
                                 push @post_update_driver, "/* after function succeded, commit changes */";

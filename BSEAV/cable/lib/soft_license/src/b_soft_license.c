@@ -100,6 +100,7 @@ static void B_SoftLicense_P_Polling(void *param)
 #endif
 
     BDBG_OBJECT_ASSERT(hSoftLicense,B_SoftLicense);
+    BKNI_Memset(&status,0,sizeof(status));
 #if NEXUS_HAS_FRONTEND
     NEXUS_FrontendModule_GetStatistics(&frontendStats);
     status.numTuners = frontendStats.maxTunedFrontends;
@@ -116,7 +117,7 @@ static void B_SoftLicense_P_Polling(void *param)
 
     if ( (status.transcode != hSoftLicense->status.transcode && status.transcode) ||
          (status.ultraHdDecode != hSoftLicense->status.ultraHdDecode && status.ultraHdDecode) ||
-         (status.numTuners != hSoftLicense->status.numTuners && status.numTuners >= 8)
+         (status.numTuners != hSoftLicense->status.numTuners && status.numTuners > 4)
        )
     {
         B_Mutex_Lock(g_SoftLicense->mutex);

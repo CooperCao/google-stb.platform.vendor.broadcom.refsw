@@ -61,11 +61,19 @@ ISRStatus tzTimerISR(int intrNum) {
 	return IntrDone;
 }
 
+ISRStatus tzSGIISR(int intrNum) {
+	UNUSED(intrNum);
+	printf("got sgi secure %d\n", arm::smpCpuNum());
+	return IntrDone;
+}
+
 void TzTimers::init(void *deviceTree) {
 	Arch::Timer::init(deviceTree);
 
 	nextTimerId = 0;
 	Interrupt::isrRegister(Arch::Timer::irqNum(), tzTimerISR);
+	Interrupt::isrRegister(TZ_SECURE_SGI_IRQ, tzSGIISR);
+
 	spinLockInit(&lock);
 
 	TimerEntry::init();
@@ -76,6 +84,7 @@ void TzTimers::init(void *deviceTree) {
 
 void TzTimers::secondaryCpuInit() {
 	Interrupt::isrRegister(Arch::Timer::irqNum(), tzTimerISR);
+	Interrupt::isrRegister(TZ_SECURE_SGI_IRQ, tzSGIISR);
 
 	TimerEntry::init();
 	timers.cpuLocal().init();

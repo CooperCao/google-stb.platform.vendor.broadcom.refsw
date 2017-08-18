@@ -78,8 +78,8 @@ int  nxclient_p_set_display_settings(nxclient_ipc_t client, const NxClient_Displ
 int  nxclient_p_get_display_status(nxclient_ipc_t client, NxClient_DisplayStatus *pStatus);
 void nxclient_p_get_audio_settings(nxclient_ipc_t client, NxClient_AudioSettings *pSettings);
 int  nxclient_p_set_audio_settings(nxclient_ipc_t client, const NxClient_AudioSettings *pSettings);
-void nxclient_p_get_composition(nxclient_ipc_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *composition);
-int  nxclient_p_set_composition(nxclient_ipc_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *composition);
+void nxclient_p_get_surface_client_composition(nxclient_ipc_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *composition);
+int  nxclient_p_set_surface_client_composition(nxclient_ipc_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *composition);
 int  nxclient_p_write_teletext(nxclient_ipc_t client, const nxclient_p_teletext_data *data, size_t numLines, size_t *pNumLinesWritten);
 int  nxclient_p_write_closedcaption(nxclient_ipc_t client, const nxclient_p_closecaption_data *data, size_t numEntries, size_t *pNumEntriesWritten );
 int  nxclient_p_display_set_wss(nxclient_ipc_t client, uint16_t wssData);

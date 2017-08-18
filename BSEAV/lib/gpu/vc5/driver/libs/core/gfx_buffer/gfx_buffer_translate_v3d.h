@@ -7,7 +7,7 @@
 #include "libs/core/v3d/v3d_common.h"
 #include "libs/core/v3d/v3d_cl.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern v3d_memory_format_t gfx_buffer_translate_memory_format(
    const GFX_BUFFER_DESC_T *desc, uint32_t plane_i);
@@ -33,4 +33,4 @@ extern v3d_tfu_oformat_t gfx_buffer_desc_get_tfu_oformat_and_height_pad_in_ub(
    unsigned plane_index
    );
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

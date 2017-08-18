@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/common/System/src/bbSysTimeoutTask.c $
-*
-* DESCRIPTION:
-*   Timeout task handler implementation.
-*
-* $Revision: 3612 $
-* $Date: 2014-09-17 09:29:25Z $
-*
-****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      Timeout task handler implementation.
+ *
+*******************************************************************************/
 
 /************************* INCLUDES ****************************************************/
 #include "bbSysTimeoutTask.h"
@@ -76,20 +69,27 @@
 #define SYS_TIMEOUT_TASK_FLAG_IS_TASK    0x08
 #define SYS_TIMEOUT_TASK_FLAG_IS_SIGNAL  0x10
 
-/* TODO: Move to the memory manager */
-static SYS_QueueDescriptor_t MM_TimeoutTasksQueue =
+/************************* STATIC STAFF ************************************************/
+/************************************************************************************//**
+  \brief Timeout Tasks Queue.
+****************************************************************************************/
+static SYS_QueueDescriptor_t TimeoutTasksQueue =
 {
     .nextElement = NULL
 };
 
-SYS_QueueDescriptor_t *MM_GET_TIMEOUT_TASKS_QUEUE(void)
+/************************************************************************************//**
+  \brief Returns the local timeout tasks queue.
+  \return Pointer to the queue.
+****************************************************************************************/
+INLINE SYS_QueueDescriptor_t *GET_TIMEOUT_TASKS_QUEUE(void)
 {
-    return &MM_TimeoutTasksQueue;
+    return &TimeoutTasksQueue;
 }
 
-/************************* INLINE FUNCTIONS ********************************************/
 /************************************************************************************//**
   \brief Returns a pointer to the service field by the specified pointer to queue element.
+  \return Service field by the specified pointer to queue element.
 ****************************************************************************************/
 INLINE SYS_TimeoutTaskServiceField_t *getServiceField(SYS_QueueElement_t *queueElement)
 {
@@ -99,7 +99,8 @@ INLINE SYS_TimeoutTaskServiceField_t *getServiceField(SYS_QueueElement_t *queueE
 }
 
 /************************************************************************************//**
-  \brief Returns a pointer to the service field by the specified pointer to queue element.
+  \brief Returns the timeout field value by the specified pointer to a service field.
+  \return The timeout field value by the specified pointer to a timeout task service field.
 ****************************************************************************************/
 INLINE uint32_t getTimeout(SYS_TimeoutTaskServiceField_t *serviceField)
 {
@@ -115,7 +116,7 @@ INLINE uint32_t getTimeout(SYS_TimeoutTaskServiceField_t *serviceField)
 ****************************************************************************************/
 void SYS_TimeoutTaskHandlerReset(void)
 {
-    SYS_QueueResetQueue(MM_GET_TIMEOUT_TASKS_QUEUE());
+    SYS_QueueResetQueue(GET_TIMEOUT_TASKS_QUEUE());
 }
 
 /************************************************************************************//**
@@ -124,7 +125,7 @@ void SYS_TimeoutTaskHandlerReset(void)
 ****************************************************************************************/
 void SYS_TimeoutTaskHandlerTick(void)
 {
-    SYS_QueueDescriptor_t *timeoutTasksQueue = MM_GET_TIMEOUT_TASKS_QUEUE();
+    SYS_QueueDescriptor_t *timeoutTasksQueue = GET_TIMEOUT_TASKS_QUEUE();
     SYS_TimeoutTaskServiceField_t *serviceField = getServiceField(SYS_QueueGetQueueHead(timeoutTasksQueue));
 
     while (NULL != serviceField)
@@ -185,7 +186,8 @@ void SYS_TimeoutTaskPost(SYS_TimeoutTask_t *timeoutTask, SYS_TimeoutTaskMode_t m
     timeoutTask->service.counter = TIMEOUT_TASK_MS_TO_TICKS(timeoutTask->timeout);
     if (0 == timeoutTask->service.counter)
         timeoutTask->service.counter++;
-    SYS_QueuePutQueueElementToTail(MM_GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement);
+    SYS_DbgAssertComplex(!SYS_QueueFindParentElement(GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement), SYS_QUEUE_PUT_TASK_0);
+    SYS_QueuePutQueueElementToTail(GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement);
 }
 
 /************************************************************************************//**
@@ -197,7 +199,7 @@ void SYS_TimeoutTaskRePost(SYS_TimeoutTask_t *timeoutTask, SYS_TimeoutTaskMode_t
 {
     SYS_DbgAssert(NULL != timeoutTask, SYSTIMEOUTTASK_REPOSTTIMEOUTTASK_DA0);
 
-    if(timeoutTask->service.flags & SYS_TIMEOUT_TASK_FLAG_CANCEL)
+    if (timeoutTask->service.flags & SYS_TIMEOUT_TASK_FLAG_CANCEL)
         return;
     timeoutTask->service.flags  = SYS_TIMEOUT_TASK_FLAG_IS_TASK;
     timeoutTask->service.flags |= (TIMEOUT_TASK_REPEAT_MODE == mode) ?
@@ -205,7 +207,12 @@ void SYS_TimeoutTaskRePost(SYS_TimeoutTask_t *timeoutTask, SYS_TimeoutTaskMode_t
     timeoutTask->service.counter = TIMEOUT_TASK_MS_TO_TICKS(timeoutTask->timeout);
     if (0 == timeoutTask->service.counter)
         timeoutTask->service.counter++;
-    SYS_QueuePutQueueElementToTail(MM_GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement);
+
+    if (NULL == SYS_QueueFindParentElement(GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement))
+    {
+        SYS_DbgAssertComplex(!SYS_QueueFindParentElement(GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement), SYS_QUEUE_PUT_TASK_1);
+        SYS_QueuePutQueueElementToTail(GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement);
+    }
 }
 
 /************************************************************************************//**
@@ -216,7 +223,7 @@ void SYS_TimeoutTaskRemove(SYS_TimeoutTask_t *timeoutTask)
 {
     SYS_DbgAssert(NULL != timeoutTask, SYSTIMEOUTTASK_REMOVETIMEOUTTASK_DA0);
 
-    SYS_QueueRemoveQueueElement(MM_GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement);
+    SYS_QueueRemoveQueueElement(GET_TIMEOUT_TASKS_QUEUE(), &timeoutTask->service.queueElement);
     timeoutTask->service.flags |=  SYS_TIMEOUT_TASK_FLAG_CANCEL;
 }
 
@@ -235,7 +242,9 @@ void SYS_TimeoutSignalStart(SYS_TimeoutSignal_t *timeoutSignal, SYS_TimeoutTaskM
     timeoutSignal->service.counter = TIMEOUT_TASK_MS_TO_TICKS(timeoutSignal->timeout);
     if (0 == timeoutSignal->service.counter)
         timeoutSignal->service.counter++;
-    SYS_QueuePutQueueElementToTail(MM_GET_TIMEOUT_TASKS_QUEUE(), &timeoutSignal->service.queueElement);
+
+    SYS_DbgAssertComplex(!SYS_QueueFindParentElement(GET_TIMEOUT_TASKS_QUEUE(), &timeoutSignal->service.queueElement), SYS_QUEUE_PUT_TASK_2);
+    SYS_QueuePutQueueElementToTail(GET_TIMEOUT_TASKS_QUEUE(), &timeoutSignal->service.queueElement);
 }
 
 /************************************************************************************//**
@@ -246,7 +255,7 @@ void SYS_TimeoutSignalStop(SYS_TimeoutSignal_t *timeoutSignal)
 {
     SYS_DbgAssert(NULL != timeoutSignal, SYSTIMEOUTTASK_STOPTTIMEOUTSIGNAL_DA0);
 
-    SYS_QueueRemoveQueueElement(MM_GET_TIMEOUT_TASKS_QUEUE(), &timeoutSignal->service.queueElement);
+    SYS_QueueRemoveQueueElement(GET_TIMEOUT_TASKS_QUEUE(), &timeoutSignal->service.queueElement);
 }
 
 /************************************************************************************//**
@@ -258,8 +267,10 @@ void SYS_TimeoutSignalStop(SYS_TimeoutSignal_t *timeoutSignal)
 SYS_Time_t SYS_TimeoutRemain(SYS_TimeoutTaskServiceField_t *timeoutService)
 {
     if (0 == timeoutService->counter
-            || NULL == SYS_QueueFindParentElement(MM_GET_TIMEOUT_TASKS_QUEUE(), &timeoutService->queueElement))
+            || NULL == SYS_QueueFindParentElement(GET_TIMEOUT_TASKS_QUEUE(), &timeoutService->queueElement))
         return 0;
 
     return TIMEOUT_TASK_TICKS_TO_MS(timeoutService->counter);
 }
+
+/* eof bbSysTimeoutTask.c */

@@ -55,8 +55,12 @@ class CBoardResourcesNx : public CBoardResources
 public:
     CBoardResourcesNx();
 
-    virtual eRet add(eBoardResource resource, const uint16_t numResources, const char * name, CConfiguration * pCfg,
-            const uint16_t startIndex = 0, const unsigned id = 0);
+    virtual eRet add(eBoardResource resource, const unsigned numResources, const char * name, CConfiguration * pCfg,
+            const unsigned startIndex = 0, const unsigned id = 0);
+
+#if NEXUS_HAS_FRONTEND
+    virtual eRet addFrontend(const unsigned numTuner, CConfiguration * pCfg, NEXUS_FrontendCapabilities * pCapabilities = NULL);
+#endif
 };
 
 #ifdef __cplusplus

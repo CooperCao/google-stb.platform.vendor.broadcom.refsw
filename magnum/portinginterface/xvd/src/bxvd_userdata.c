@@ -82,6 +82,11 @@ BERR_Code BXVD_P_Userdata_QueueInitialize(QUEUE_MGR *queue, BXVD_Userdata_Settin
    for (i = 0; i < stUDSettings.maxQueueDepth; i++)
    {
       queue->queue_data[i].uUserData = (unsigned char *)BKNI_Malloc(stUDSettings.maxQueueItemSize*sizeof(unsigned char));
+
+      /* SWSTB-5460: handle BKNI_Malloc failures */
+      if (queue->queue_data[i].uUserData == NULL)
+         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+
       BKNI_Memset(queue->queue_data[i].uUserData, 0, stUDSettings.maxQueueItemSize);
    }
 
@@ -120,13 +125,46 @@ BERR_Code BXVD_P_Userdata_QueueDestroy(QUEUE_MGR *queue, BXVD_Userdata_Settings 
    queue->ulNextPtr = BXVD_P_USERDATA_QUEUE_START;
 
    for (i = 0; i < stUDSettings.maxQueueDepth; i++)
-      BKNI_Free(queue->queue_data[i].uUserData);
+   {
+      /* SWSTB-5460: not all the entries will be valid if BKNI_Malloc
+       * failed in BXVD_P_Userdata_QueueInitialize. */
+      if (queue->queue_data[i].uUserData)
+         BKNI_Free(queue->queue_data[i].uUserData);
+   }
 
    if (queue->queue_data)
+   {
       BKNI_Free(queue->queue_data);
+      queue->queue_data = NULL;
+   }
 
    return BERR_SUCCESS;
 }
+
+/*
+ * SWSTB-5460: revamp cleanup to better handle failures at open time.
+ */
+BERR_Code BXVD_Userdata_Destroy(BXVD_Userdata_Handle hUserData)
+{
+   BERR_Code eStatus = BERR_SUCCESS;
+
+   BDBG_ENTER(BXVD_Userdata_Close);
+   BDBG_ASSERT(hUserData);
+
+   BXVD_P_Userdata_QueueDestroy(&hUserData->queue,  hUserData->sUserdataSettings);
+
+   /*
+    * Release all allocated buffers
+    */
+   BKNI_Free(hUserData->pBfr);
+   BKNI_Free(hUserData);
+
+   hUserData = NULL;
+
+   BDBG_LEAVE(BXVD_Userdata_Close);
+   return eStatus;
+}
+
 
 void *BXVD_P_ConvertUDOff2Addr_isr(BXVD_Userdata_Handle hUserData,
                                    BXVD_P_PHY_ADDR fwUserDataAddr)
@@ -488,6 +526,14 @@ BERR_Code BXVD_Userdata_Open(BXVD_ChannelHandle            hXvdCh,
    /* Initialize the userdata queue */
    eStatus = BXVD_P_Userdata_QueueInitialize(&(hXvdCh->pUserData->queue), pUserdata->sUserdataSettings);
 
+   /* SWSTB-5460: cleanup if a BKNI_Malloc failed in BXVD_P_Userdata_QueueInitialize */
+   if ( eStatus != BERR_SUCCESS )
+   {
+      BXVD_DBG_ERR(hXvdCh, ("%s: BKNI_Malloc failed", BSTD_FUNCTION ));
+      BXVD_Userdata_Destroy( hXvdCh->pUserData );
+      *phUserData = NULL;
+   }
+
 #ifdef BXVD_FLATTEN_USERDATA
    BXVD_DBG_MSG(hXvdCh, ("Userdata will be delivered as coalesced packets"));
 #else
@@ -522,15 +568,7 @@ BERR_Code BXVD_Userdata_Close(BXVD_Userdata_Handle hUserData)
    hUserData->hXvdCh->pUserData = NULL;
    BKNI_LeaveCriticalSection();
 
-
-   BXVD_P_Userdata_QueueDestroy(&hUserData->queue,  hUserData->sUserdataSettings);
-
-   /*
-    * Release all allocated buffers
-    */
-   BKNI_Free(hUserData->pBfr);
-   BKNI_Free(hUserData);
-   hUserData = NULL;
+   BXVD_Userdata_Destroy( hUserData );
 
    BDBG_LEAVE(BXVD_Userdata_Close);
    return eStatus;
@@ -660,7 +698,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
    /* SWSTB-3092: check if pDataBfr is NULL */
    if ( NULL == pDataBfr )
    {
-      BDBG_WRN(("%s: pDataBfr is NULL", __FUNCTION__ ));
+      BDBG_WRN(("%s: pDataBfr is NULL", BSTD_FUNCTION ));
       eStatus = BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
       goto consume;
    }
@@ -682,7 +720,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
 
       if ( NULL == userDataPtr )
       {
-         BDBG_WRN(("%s: userDataPtr is NULL", __FUNCTION__ ));
+         BDBG_WRN(("%s: userDataPtr is NULL", BSTD_FUNCTION ));
          eStatus = BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
          goto consume;
       }

@@ -51,7 +51,11 @@ void init_expose_fences(void)
  * everything else is initialized in a thread-safe way. */
 static bool init(void)
 {
-   return true;
+   return
+         g_bcgPlatformData.displayInterface.Init ?
+               g_bcgPlatformData.displayInterface.Init(
+                     g_bcgPlatformData.displayInterface.context) :
+               true;
 }
 
 static bool is_platform_supported(EGLenum egl_platform)
@@ -144,6 +148,8 @@ static bool set_default_display(EGLNativeDisplayType display)
 /* Any cleanup the platform needs to do when the whole process quits. */
 static void terminate(void)
 {
+   if (g_bcgPlatformData.displayInterface.Terminate)
+      g_bcgPlatformData.displayInterface.Terminate(g_bcgPlatformData.displayInterface.context);
 }
 
 /* Return true if config can be used to render to pixmap. */

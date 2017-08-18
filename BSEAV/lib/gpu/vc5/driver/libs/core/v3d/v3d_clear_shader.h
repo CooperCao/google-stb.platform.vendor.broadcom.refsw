@@ -16,6 +16,7 @@ void v3d_clear_shader_color(uint32_t **shader_code, uint32_t *shader_size, uint3
 
 void v3d_clear_shader_no_color(uint32_t **shader_code, uint32_t *shader_size, uint32_t *unif_ptr);
 
+
 #ifdef __cplusplus
 }
 #endif

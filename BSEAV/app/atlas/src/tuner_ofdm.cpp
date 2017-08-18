@@ -130,7 +130,7 @@ void CTunerOfdmScanData::dump()
 
 CTunerOfdm::CTunerOfdm(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTuner(name, number, eBoardResource_frontendOfdm, pCfg)
@@ -332,9 +332,9 @@ void CTunerOfdm::saveScanData(CTunerScanData * pScanData)
 void CTunerOfdm::doScan()
 {
     eRet                       ret            = eRet_Ok;
-    uint16_t                   major          = 1;
-    uint16_t                   numFreqToScan  = 0;
-    uint16_t                   numFreqScanned = 0;
+    unsigned                   major          = 1;
+    unsigned                   numFreqToScan  = 0;
+    unsigned                   numFreqScanned = 0;
     CChannelOfdm               chOfdm(_pCfg, this); /* temp channel we'll use to do tuning during scan */
     CTunerScanNotificationData notifyData(this);    /* notification data for reporting scan start/stop/progress */
     uint32_t *                 pFreq = NULL;

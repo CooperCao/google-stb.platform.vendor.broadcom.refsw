@@ -43,7 +43,7 @@ BDBG_MODULE(atlas_band);
 
 CParserBandNx::CParserBandNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CParserBand(name, number, pCfg)

@@ -641,6 +641,8 @@ typedef struct BXVD_P_Context
  /* FW revision information */
   BXVD_RevisionInfo sRevisionInfo;
 
+  BCHP_ScbMapVer scbMapVer;
+
   /* For Crc */
   unsigned long        ulDebugDeliveryQueueAddr;
   unsigned long        ulDebugReleaseQueueAddr;
@@ -1105,54 +1107,6 @@ void BXVD_P_ValidateHeaps
   BXVD_P_MemCfgMode  eMemCfgMode
 );
 
-#if 0
-BERR_Code BXVD_P_StillPictureEnabled(BXVD_Handle hXvd, bool *pEnableState, BXVD_DecodeMode *pSPDecodeMode);
-#endif
-
-/***************************************************************************
-Summary:
-    Releases the indicated PPB via FW.
-
-Description:
-    This API releases the PPB indicated in the ppb argument.
-
-Returns:
-    BERR_SUCCESS
-
-See Also:
-    None
-
-****************************************************************************/
-BERR_Code BXVD_P_ReleasePPB(BXVD_Handle hXvd,   uint32_t ppb);
-
-BERR_Code BXVD_P_ReleasePPB_isr(BXVD_Handle hXvd,   uint32_t ppb);
-
-
-#if 0
-/***************************************************************************
-Name:
-        BXVD_P_ParseDecodeMode
-
-Description:
-    This routine parses the list of decoder modes looking for the mode that requires the largest picture buffers.
-
-Returns:
-    None:
-
-See Also:
-    None
-
-****************************************************************************/
-
-
-BERR_Code BXVD_P_ParseDecodeMode
-(
-  BXVD_Handle hXvd,
-  BXVD_DecodeMode *pDecodeModeList,  /* List of decoder modes */
-  BXVD_DecodeMode *eDecodeMode     /* Enum of mode in provided list that requires the largest buffer */
-);
-#endif
-
 BERR_Code BXVD_P_Boot
 (
   BXVD_Handle hXvd
@@ -1167,13 +1121,6 @@ BERR_Code BXVD_P_TeardownStillPictureCompatibilityMode
 (
    BXVD_Handle hXvd
 );
-#if 0
-
-BERR_Code BXVD_P_InitializeFWMemConfigCompatibilityModeTable
-(
-   BXVD_Handle hXvd
-);
-#endif
 
 /* AVD DEVICE COMMANDS */
 BERR_Code BXVD_P_HostCmdSendInit

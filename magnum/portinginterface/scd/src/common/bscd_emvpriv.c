@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,7 +37,6 @@
  *
  * Module Description: This file contains Broadcom smart card Porting 
  *                     Interface EMV private functions.  
- *                    			                    
  *
  ***************************************************************************/
 #include "bstd.h"
@@ -844,8 +843,6 @@ BERR_Code BSCD_Channel_P_EMVValidateTSByte(
 		unsigned char in_ucTSByte
 )
 {
-	BERR_Code		errCode = BERR_SUCCESS;
-	
 	if (in_ucTSByte == 0x3f) {
 		BDBG_MSG(("TS = %02x, Inverse Convention", in_ucTSByte));
 		return BERR_SUCCESS;
@@ -858,7 +855,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTSByte(
 
 	else {
 		BDBG_ERR(("TS = %02x, Unknown Convention", in_ucTSByte));
-		errCode = BERR_TRACE(BSCD_STATUS_FAILED);
+		(void)BERR_TRACE(BSCD_STATUS_FAILED);
 		return BSCD_STATUS_FAILED;
 	}
 }

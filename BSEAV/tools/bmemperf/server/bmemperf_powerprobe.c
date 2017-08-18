@@ -48,6 +48,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <unistd.h>
+#include "bmemperf_lib.h"
 
 const char carriage_ret[] = "\r";
 /**
@@ -59,21 +60,23 @@ void bmemperf_send_data(
      int iswrite,
      const char *tagname,
      const char *data,
-     int len
+     int len,
+     const char *const logfile
      )
 {
 
-    /*printf("%s: %s Sending data; [%s]\n", Caller, DateYyyyMmDdHhMmSs(), data);*/
+    /*if(logfile) printffile( logfile, "%s: %s Sending data; len+1 (%d) [%s]\n", Caller, DateYyyyMmDdHhMmSs(), len+1, data);*/
     if (write(socket_fd, data, sizeof(char)*(len+1)) < 0) {
-        perror( "bmemperf_send_data; sending username");
         return;
     }
+    /*if(logfile) printffile( logfile, "%s: %s Sending data; len+1 (%d) ... done\n", Caller, DateYyyyMmDdHhMmSs(), len+1 );*/
 
     /* Input a carriage return character to complete data send */
+    /*if(logfile) printffile( logfile, "%s: %s Sending cr; len+1 (%d) [%s]\n", Caller, DateYyyyMmDdHhMmSs(), 1, "cr");*/
     if (write(socket_fd, carriage_ret, sizeof(char)*1) < 0) {
-        perror( "bmemperf_send_data; sending username");
         return;
     }
+    /*if(logfile) printffile( logfile, "%s: %s Sending data; len+1 (%d) ... done\n", Caller, DateYyyyMmDdHhMmSs(), 1 );*/
 }
 
 /**
@@ -84,16 +87,20 @@ int bmemperf_get_response (
     int socket_fd,
     const char * const ExpectedResponse,
     char * ActualResponse,
-    int ActualResponseLen )
+    int ActualResponseLen,
+    const char *const logfile )
 {
     fd_set               master_fdset; /* master_fdset file descriptor list */
     fd_set               read_fdset;   /* temp file descriptor list for select() */
     int                  fdmax;        /* maximum file descriptor number */
-    char                 buf[1024];    /* buffer for client data */
+    char                 buf[2048];    /* buffer for client data */
     int                  nbytes;
+    int                  nfds    = 0;  /* number of file descriptors that are ready to read/write */
     int                  i;
+    struct timeval       timeout = {0, 100000};
 
-    /*printf("%s: from %s ... socket_fd %d ... look for (%s)\n", __FUNCTION__, Caller, socket_fd, ExpectedResponse );*/
+    if(logfile) printffile( logfile, "%s: from %s ... socket_fd %d ... look for (%s)\n", __FUNCTION__, Caller, socket_fd, ExpectedResponse );
+    fflush(stderr);fflush(stdout);
     /* clear the master_fdset and temp sets */
     FD_ZERO(&master_fdset);
     FD_ZERO(&read_fdset);
@@ -108,11 +115,17 @@ int bmemperf_get_response (
         read_fdset = master_fdset;
 
         /*printf("fdmax is %d...\n", fdmax);*/
-        if (select(fdmax + 1, &read_fdset, NULL, NULL, NULL) == -1) {
-            perror("Server-select() error lol!");
-            exit(1);
+        if ( (nfds = select(fdmax + 1, &read_fdset, NULL, NULL, &timeout )) == -1) {
+            if(logfile) printffile( logfile, "Server-select() error!");
+            return ( 0 );
         }
         /*printf("Server-select() is OK...\n");*/
+        if ( nfds == 0 ) /* timeout occurred */
+        {
+            if(logfile) printffile( logfile, "\n\n%s: from %s ... socket_fd %d ... select timed out\n", __FUNCTION__, Caller, socket_fd );
+            if(logfile) printffile( logfile, "%s: from %s ... Returning Response (%s)\n\n\n", __FUNCTION__, Caller, ActualResponse );
+            return ( 0 );
+        }
 
         /*
          * run through the existing connections looking for data to
@@ -127,35 +140,80 @@ int bmemperf_get_response (
                     if ((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
                         /* got error or connection closed by client */
                         if (nbytes == 0)
+                        {
                             /* connection closed */
-                            printf("%s: socket %d hung up\n", Caller, i);
-
+                            if(logfile) printffile( logfile, "%s: socket %d hung up\n", Caller, i);
+                        }
                         else
-                            perror("recv() error lol!");
+                        {
+                            if(logfile) printffile( logfile, "recv() error!");
+                        }
 
                         /* close it... */
                         close(i);
+                        if(logfile) printffile( logfile, "\n\n\nSocket %d: close(%d) ... caller (%s) \n\n", i, i, Caller );
                         /* remove from master_fdset set */
                         FD_CLR(i, &master_fdset);
+
+                        goto abort;
                     } else {
                         /* we got some data from a client */
 
                         if ( nbytes > 0 )
                         {
                             long int response_len = 0;
+                            float    pctFull = 0.0;
+
+#if 0
+                            /* check for printable characters */
+                            for( idx=0; idx<nbytes; idx++ )
+                            {
+                                if ( ! isprint( buf[idx] ) ) buf[idx] = '?';
+                            }
+#endif
+
+                            /*if(logfile) printffile( logfile, "Socket %d: got partial %d bytes ... (%s) \n", i, nbytes, buf );*/
                             strncat( ActualResponse, buf, ActualResponseLen - strlen(ActualResponse) - 1 );
                             response_len = strlen(ActualResponse);
-                            /*printf("Response now is len %ld (%s) \n", response_len, ActualResponse);
+                            /*if(logfile) printffile( logfile, "Socket %d: Cummulative response now is len %ld (%s) \n", i, response_len, ActualResponse);
                             fflush(stdout);fflush(stderr);*/
+                            pctFull = response_len *1.0;
+                            pctFull /= ActualResponseLen;
+                            pctFull *= 100.0;
+                            /*printf("Response now is len %ld ... of %d ... %5.2f full \n", response_len, ActualResponseLen, pctFull );*/
                             if ( response_len > 5)
                             {
                                 if ( response_len > 8 &&
-                                     (ActualResponse[response_len-2] == ':' || ActualResponse[response_len-2] == '#' ) &&
-                                     (ActualResponse[response_len-1] == ' ' ) )
+                                   ( ( (ActualResponse[response_len-2] == ':' || ActualResponse[response_len-2] == '#' ) &&
+                                       (ActualResponse[response_len-1] == ' ' ) ) || pctFull > 95.0 ) )
                                 {
-                                    /*printf( "ActualResponse ... len %d ... (%s) ... returning\n==========\n", strlen(ActualResponse), ActualResponse );*/
+                                    /*if(logfile) printffile( logfile, "%s: found prompt ... Returning ActualResponse ... len %d ... (%s)\n==========\n",
+                                            __FUNCTION__, strlen(ActualResponse), ActualResponse );*/
+                                    /* Sometimes the return buffer gets nearly full but we still do not see the end-of-line prompt. */
+                                    /* If this happens, assume the prompt got lost somewhere and return whatever we have in the buffer. */
+                                    if ( pctFull > 95.0 )
+                                    {
+                                        ActualResponse[ response_len ] = 0;
+                                        printf( "Aborted response ...\n(%s) \n", &ActualResponse[ response_len - 80 ] );
+                                        return 0;
+                                    }
+                                    printf( "FinalResponse ... len %d ... returning\n==========\n", (unsigned)strlen(ActualResponse) );
                                     return 0;
                                 }
+                                else if ( strstr( ActualResponse, "Terminated" ) )
+                                {
+                                    /*if(logfile) printffile( logfile, "%s: terminated ... Returning ActualResponse ... len %d ... (%s)\n==========\n",
+                                            __FUNCTION__, strlen(ActualResponse), ActualResponse );*/
+                                    return 0;
+                                }
+                                else
+                                {
+                                    /*if(logfile) printffile( logfile, "Socket %d: total response len %ld NOT prompt (%s)\n", i, response_len, buf );*/
+                                }
+                            }
+                            else
+                            {
+                                /*if(logfile) printffile( logfile, "Socket %d: total response len %ld <= 5 (%s)\n", i, response_len, buf );*/
                             }
                         }
                     }
@@ -167,5 +225,6 @@ int bmemperf_get_response (
             }
         }
     }
-    return 0;
+abort:
+    return ( -1 );
 }

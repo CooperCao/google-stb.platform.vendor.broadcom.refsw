@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 #undef LOGE
 #undef LOGW
@@ -364,7 +365,7 @@ static void ParsePssh(std::string* pssh, std::string* wrmheader)
     //   finally, the blob of data
     uint32_t* ptr32 = (uint32_t*)pssh->data();
     if (*ptr32 != pssh->size()) {
-        LOGE(("%s: pssh length doesn't match: psshLen=%u pssh.size=%u", __FUNCTION__, *ptr32, pssh->size()));
+        LOGE(("%s: pssh length doesn't match: psshLen=%u pssh.size=%u", __FUNCTION__, *ptr32, (uint32_t)pssh->size()));
         return;
     }
 
@@ -458,7 +459,7 @@ bool Playready30Decryptor::Initialize(std::string& pssh)
     DRM_CONST_STRING sDstrHDSPath = DRM_EMPTY_DRM_STRING;
     DRM_WCHAR sRgwchHDSPath[DRM_MAX_PATH];
 
-    DRM_DWORD dwEncryptionMode  = OEM_TEE_AES128CTR_DECRYPTION_MODE_NOT_SECURE;
+    DRM_DWORD dwEncryptionMode  = OEM_TEE_DECRYPTION_MODE_NOT_SECURE;
 
     dump_hex("Initialize: pssh", pssh.data(), pssh.size());
 
@@ -598,7 +599,7 @@ bool Playready30Decryptor::Initialize(std::string& pssh)
     }
 
     /* set encryption/decryption mode */
-    dwEncryptionMode = OEM_TEE_AES128CTR_DECRYPTION_MODE_HANDLE;
+    dwEncryptionMode = OEM_TEE_DECRYPTION_MODE_HANDLE;
     dr = Drm_Content_SetProperty(
         s_pDrmAppCtx, DRM_CSP_DECRYPTION_OUTPUT_MODE,
         (const DRM_BYTE*)&dwEncryptionMode, sizeof(DRM_DWORD)) ;
@@ -610,9 +611,10 @@ bool Playready30Decryptor::Initialize(std::string& pssh)
     return true;
 }
 
-bool Playready30Decryptor::GenerateKeyRequest(std::string initData)
+bool Playready30Decryptor::GenerateKeyRequest(std::string initData, dif_streamer::SessionType type)
 {
     BSTD_UNUSED(initData);
+    BSTD_UNUSED(type);
     DRM_RESULT dr = DRM_SUCCESS;
     char *pCh_url = NULL;
     uint8_t *pCh_data = NULL;
@@ -680,7 +682,8 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData)
         NULL,
         NULL,
         NULL,
-        &chLen);
+        &chLen,
+        NULL);
 
     if (dr != DRM_E_BUFFERTOOSMALL) {
         LOGE(("%s: Drm_LicenseAcq_GenerateChallenge(): 0x%x", __FUNCTION__, (unsigned)dr));
@@ -714,7 +717,8 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData)
         NULL,
         NULL,
         pCh_data,
-        &chLen);
+        &chLen,
+        NULL);
 
     pCh_data[chLen] = 0;
 
@@ -732,18 +736,17 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData)
 
     if (pCh_url[0]) {
         m_defaultUrl.assign(pCh_url, urlLen - 1);
-        m_defaultUrl.append("?PlayRight=1&SecurityLevel=3000");
-        LOGD(("default url(%d): \"%s\"", m_defaultUrl.size(), m_defaultUrl.c_str()));
+        LOGD(("default url(%d): \"%s\"", (uint32_t)m_defaultUrl.size(), m_defaultUrl.c_str()));
     }
 
     if ((pCh_data[0]) && chLen != 0) {
         m_keyMessage.assign((const char*)&pCh_data[0], chLen);
     }
 
-    LOGD(("GenerateKeyRequest: keyMessage(%d): %s", m_keyMessage.size(), m_keyMessage.c_str()));
+    LOGD(("GenerateKeyRequest: keyMessage(%d): %s", (uint32_t)m_keyMessage.size(), m_keyMessage.c_str()));
 
     uint32_t numDeleted;
-    dr = Drm_StoreMgmt_DeleteLicenses(s_pDrmAppCtx, NULL, (DRM_DWORD*)&numDeleted);
+    dr = Drm_StoreMgmt_DeleteLicenses(s_pDrmAppCtx, NULL, NULL, (DRM_DWORD*)&numDeleted);
 
     if (dr != DRM_SUCCESS) {
         LOGE(("%s: Drm_StoreMgmt_DeleteLicenses: 0x%x", __FUNCTION__, (unsigned)dr));
@@ -768,7 +771,7 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData)
 #include <curl/curl.h>
 std::string s_pr30Buffer;
 
-static size_t curl_writeback( void *ptr, size_t size, size_t nmemb, void *stream)
+static uint32_t curl_writeback( void *ptr, uint32_t size, uint32_t nmemb, void *stream)
 {
     BSTD_UNUSED(stream);
     s_pr30Buffer.append((char*)ptr, size * nmemb);
@@ -782,10 +785,21 @@ std::string Playready30Decryptor::GetKeyRequestResponse(std::string url)
     s_pr30Buffer.assign("");
 
     if (!url.empty()) {
+        LOGD(("given url(%d): \"%s\"", (uint32_t)url.size(), url.c_str()));
         m_defaultUrl.assign(url);
     }
 
-    LOGW(("%s: server_url: %s", __FUNCTION__, m_defaultUrl.c_str()));
+    size_t param_seek = m_defaultUrl.find("?");
+    if (param_seek == std::string::npos) {
+        m_defaultUrl.append("?PlayRight=1&SecurityLevel=3000");
+    } else {
+        param_seek = m_defaultUrl.find("SecurityLevel");
+        if (param_seek == std::string::npos) {
+            m_defaultUrl.append("&PlayRight=1&SecurityLevel=3000");
+        }
+    }
+
+    LOGW(("%s: server_url(%d): %s", __FUNCTION__, (uint32_t)m_defaultUrl.size(), m_defaultUrl.c_str()));
     CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
@@ -810,7 +824,7 @@ std::string Playready30Decryptor::GetKeyRequestResponse(std::string url)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
     res = curl_easy_perform(curl);
-    LOGW(("%s: s_pr30Buffer(%d): %s, res: %d", __FUNCTION__, s_pr30Buffer.size(), s_pr30Buffer.c_str(), res));
+    LOGW(("%s: s_pr30Buffer(%d): %s, res: %d", __FUNCTION__, (uint32_t)s_pr30Buffer.size(), s_pr30Buffer.c_str(), res));
 
     if (res != 0) {
         LOGE(("%s: curl error %d", __FUNCTION__, res));
@@ -834,7 +848,7 @@ std::string Playready30Decryptor::GetKeyRequestResponse(std::string url)
         drm_msg = s_pr30Buffer.substr(body_head);
     }
 
-    LOGD(("HTTP response body: (%u bytes): %s", drm_msg.size(), drm_msg.c_str()));
+    LOGD(("HTTP response body: (%u bytes): %s", (uint32_t)drm_msg.size(), drm_msg.c_str()));
     curl_easy_cleanup(curl);
     return drm_msg;
 }
@@ -1010,8 +1024,8 @@ uint32_t Playready30Decryptor::DecryptSample(
     uint8_t i = 0;
     uint32_t bytes_processed = 0;
 
-    size_t clearSize = 0;
-    size_t encSize = 0;
+    uint32_t clearSize = 0;
+    uint32_t encSize = 0;
     for (i = 0; i < pSample->nbOfEntries; i++) {
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;
@@ -1062,7 +1076,7 @@ uint32_t Playready30Decryptor::DecryptSample(
     }
 
     uint32_t *pEncryptedRegionMappings = (uint32_t*)BKNI_Malloc(sizeof(uint32_t) * pSample->nbOfEntries * 2);
-    size_t entryNb = 0;
+    uint32_t entryNb = 0;
 
     for (i = 0; i <  pSample->nbOfEntries; i++) {
         uint32_t num_clear = pSample->entries[i].bytesOfClearData;

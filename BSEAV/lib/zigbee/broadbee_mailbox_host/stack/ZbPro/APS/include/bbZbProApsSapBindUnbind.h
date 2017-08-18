@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/APS/include/bbZbProApsSapBindUnbind.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   APSME-(UN)BIND service interface.
+*       APSME-(UN)BIND service interface.
 *
-* $Revision: 2437 $
-* $Date: 2014-05-19 13:56:29Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_APS_SAP_BIND_UNBIND_H
 #define _BB_ZBPRO_APS_SAP_BIND_UNBIND_H
@@ -59,38 +51,45 @@
 #include "bbZbProApsKeywords.h"     /* ZigBee PRO APS macro keywords definition. */
 #include "bbZbProApsCommon.h"       /* ZigBee PRO APS general types definitions. */
 
+
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief APSME-(UN)BIND.request parameters data structure.
+ * \ingroup ZBPRO_APS_BindUnbindReq
  */
 typedef struct _ZBPRO_APS_BindUnbindReqParams_t
 {
-    ZBPRO_APS_ExtAddr_t     srcAddress;
-    /* Structured / 96-bit data. */
-    ZBPRO_APS_Address_t     dstAddr;       /*!< The destination address mode and address
+    /* 64-bit data. */
+    ZBPRO_APS_ExtAddr_t     srcAddress;     /*!< The source IEEE address for the binding entry. */
+
+    /* Structured data, aligned at 32 bits. */
+    ZBPRO_APS_Address_t     dstAddr;        /*!< The destination address mode and address
                                                 for the binding entry. */
     /* 16-bit data. */
-    ZBPRO_APS_ClusterId_t   clusterId;     /*!< The identifier of the cluster on the source device
-                                                that is to be (un)bound to/from the destination device. */
+    ZBPRO_APS_ClusterId_t   clusterId;      /*!< The identifier of the cluster on the source device that is to be
+                                                (un)bound to/from the destination device. */
     /* 8-bit data. */
-    ZBPRO_APS_EndpointId_t  srcEndpoint;   /*!< The source endpoint for the binding entry. */
+    ZBPRO_APS_EndpointId_t  srcEndpoint;    /*!< The source endpoint for the binding entry. */
 
-    ZBPRO_APS_EndpointId_t  dstEndpoint;   /*!< The destination endpoint for the binding entry. */
+    ZBPRO_APS_EndpointId_t  dstEndpoint;    /*!< The destination endpoint for the binding entry. */
 
 } ZBPRO_APS_BindUnbindReqParams_t;
 
 
 /**//**
  * \brief APSME-(UN)BIND.confirm parameters data structure.
+ * \ingroup ZBPRO_APS_BindUnbindConf
  */
 typedef struct _ZBPRO_APS_BindUnbindConfParams_t
 {
     ZBPRO_APS_Status_t       status;        /*!< The results of the (un)binding request. */
+
 } ZBPRO_APS_BindUnbindConfParams_t;
 
 
 /**//**
  * \brief APSME-(UN)BIND.request descriptor data type declaration.
+ * \ingroup ZBPRO_APS_BindUnbindReq
  */
 typedef struct _ZBPRO_APS_BindUnbindReqDescr_t  ZBPRO_APS_BindUnbindReqDescr_t;
 
@@ -98,6 +97,7 @@ typedef struct _ZBPRO_APS_BindUnbindReqDescr_t  ZBPRO_APS_BindUnbindReqDescr_t;
 /**//**
  * \brief APSME-(UN)BIND.confirm callback function data type.
  * \details Call this function to issue APSME-(UN)BIND.confirm to the higher layer.
+ * \ingroup ZBPRO_APS_BindUnbindConf
  * \param reqDescr Pointer to the confirmed request descriptor data structure.
  * \param confParams Pointer to the confirmation parameters data structure. Treat this
  *  data structure in the confirmation handler-function as it has been allocated in the
@@ -110,6 +110,7 @@ typedef void ZBPRO_APS_BindUnbindConfCallback_t(ZBPRO_APS_BindUnbindReqDescr_t  
 
 /**//**
  * \brief APSME-(UN)BIND.request descriptor data type.
+ * \ingroup ZBPRO_APS_BindUnbindReq
  */
 struct _ZBPRO_APS_BindUnbindReqDescr_t
 {
@@ -137,7 +138,8 @@ struct _ZBPRO_APS_BindUnbindReqDescr_t
   \brief
     Accepts APSME-BIND.request from ZDO Binding Manager to ZigBee Pro APS and starts its
     processing.
-  \param    reqDescr
+  \ingroup ZBPRO_APS_Functions
+  \param[in]    reqDescr
     Pointer to the request descriptor data structure.
   \note
     Data structure pointed by \p reqDescr must reside in global memory space and must be
@@ -148,6 +150,7 @@ struct _ZBPRO_APS_BindUnbindReqDescr_t
     It is allowed to commence new request to APS directly from the context of the
     confirmation handler. The same request descriptor data object may be used for the new
     request as that one returned with confirmation parameters.
+  \return Nothing.
 *****************************************************************************************/
 APS_PUBLIC void ZBPRO_APS_BindReq(ZBPRO_APS_BindUnbindReqDescr_t *reqDescr);
 
@@ -156,7 +159,8 @@ APS_PUBLIC void ZBPRO_APS_BindReq(ZBPRO_APS_BindUnbindReqDescr_t *reqDescr);
   \brief
     Accepts APSME-UNBIND.request from ZDO Binding Manager to ZigBee Pro APS and starts its
     processing.
-  \param    reqDescr
+  \ingroup ZBPRO_APS_Functions
+  \param[in]    reqDescr
     Pointer to the request descriptor data structure.
   \note
     Data structure pointed by \p reqDescr must reside in global memory space and must be
@@ -167,8 +171,11 @@ APS_PUBLIC void ZBPRO_APS_BindReq(ZBPRO_APS_BindUnbindReqDescr_t *reqDescr);
     It is allowed to commence new request to APS directly from the context of the
     confirmation handler. The same request descriptor data object may be used for the new
     request as that one returned with confirmation parameters.
+  \return Nothing.
 *****************************************************************************************/
 APS_PUBLIC void ZBPRO_APS_UnbindReq(ZBPRO_APS_BindUnbindReqDescr_t *reqDescr);
 
 
 #endif /* _BB_ZBPRO_APS_SAP_BIND_UNBIND_H */
+
+/* eof bbZbProApsSapBindUnbind.h */

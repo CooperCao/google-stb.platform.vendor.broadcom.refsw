@@ -180,7 +180,7 @@ public:
     void                                 restoreLastTunedChannelPowerSave(void) { _lastChannel[_fullScreenWindowType] = _lastChannelPowerSave; }
     void                                 saveLastTunedChannelPowerSave(void) { _lastChannelPowerSave = _lastChannel[_fullScreenWindowType]; }
     void                                 resetChannelHistory(void);
-    uint16_t                             numMatchingCurrentChannels(CChannel * pChannel, eWindowType excluded = eWindowType_Max);
+    unsigned                             numMatchingCurrentChannels(CChannel * pChannel, eWindowType excluded = eWindowType_Max);
     eWindowType                          getFullScreenWindowType(void) { return(_fullScreenWindowType); }
     void                                 setFullScreenWindowType(eWindowType windowType);
     eWindowType                          getPipScreenWindowType(void);

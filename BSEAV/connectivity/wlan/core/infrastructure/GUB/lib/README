@@ -1,0 +1,4 @@
+This directory is for general-purpose modules. If a module isn't a
+special GUB step class or command it probably belongs here.
+
+New modules in this directory may be started from the lib/STUB.py example.

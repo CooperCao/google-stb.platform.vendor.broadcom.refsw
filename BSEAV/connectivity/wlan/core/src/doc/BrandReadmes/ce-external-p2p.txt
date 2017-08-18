@@ -1,0 +1,62 @@
+###################################################################
+# 
+# This package contains Broadcom Windows CE 500 and 600 SoftAP HSL 
+# Library distribution
+#
+###################################################################
+
+Following directories are present in this distribution:
+	+---apps        : This directory contains the Sample 
+	|                 SoftAP Application executable.
+	+---dll         : This directory contains the dlls needed 
+	|   +             by the SoftAP HSL Library
+	|   +---500
+	|   |   +---ARM
+	|   |   \---X86
+	|   \---600
+	|       +---ARM
+	|       \---X86
+	|
+	+---include     : This directory contains the include files
+	|   +             needed to build applications using SoftAP
+	|   +             HSL library
+	|   \---proto
+	|
+	+---lib         : This directory contains the libraries 
+	|   +             needed to build the SoftAP application
+	|   +---500
+	|   |   +---ARM
+	|   |   \---X86
+	|   \---600
+	|       +---ARM
+	|       \---X86
+	|
+	\---src         : This directory contains the source files
+	    +             of the Sample application
+	    +---include
+	    |   \---proto
+	    +---p2p
+	    |   \---p2plib
+	    |       +---ce
+	    |       |   \---p2p_test_gui   : This directory contains the
+	    |       |                        sample application project file.
+	    |       |       \---p2p_test_gui
+	    |       |           \---res
+	    |       \---include
+	    \---wps
+	        +---ce
+	        |   \---wps_enr
+	        |       \---include
+	        +---common
+	        |   \---include
+	        \---wpscli
+	            \---include
+
+        
+How to build the Sample application:
+------------------------------------
+The Visual Studio solution file of the sample SoftAP application is available at src/p2p/p2plib/ce/p2p_test_gui/p2p_test_gui.sln.
+
+Open the solution file in Visual Studio 2008 and build the solution. The static libraries required for building the project is available under 'lib' directory of the package.
+
+------------------------------------------------------------------------

@@ -1,0 +1,100 @@
+XPT_WR_RS	0		
+XPT_WR_XC	1		
+XPT_WR_CDB	2		
+XPT_WR_ITB_MSG	3		
+XPT_RD_RS	4		
+XPT_RD_XC_RMX_MSG	5		
+XPT_RD_XC_RAVE	6		
+XPT_RD_PB	7		
+XPT_WR_MEMDMA	8		
+			Reserved for XPT
+GENET0_WR	10		
+GENET0_RD	11		
+			
+SATA	17		
+						
+BSP	22		dedicated port
+SCPU	23		dedicated port
+FLASH_DMA	24		
+			
+SDIO_EMMC	26		
+SDIO_CARD	27		
+			
+MCIF_RD	29		M-Card, 1st port (read), (cablecard)
+MCIF_WR	30		M-Card, 1st port (write), (cablecard)
+UART_DMA_RD	31		
+UART_DMA_WR	32
+		
+USB_HI_0	33		Port 0 (STB owned) of dual port USB interface
+USB_LO_0	34		Port 0 (STB owned) of dual port USB interface
+USB_X_BDC_0	38		Port 0 (STB owned) of dual port USB interface
+			
+RAAGA	40		
+RAAGA_1	41		
+			
+AUD_AIO	44		
+VEC_VIP0	55		
+VEC_VIP1	56		
+						
+HVD0_DBLK	73		
+HVD0_DBLK_1	74		
+HVD0_ILCPU	75		
+HVD0_OLCPU	76		
+HVD0_CAB	77		
+HVD0_ILSI	78		
+SID	87		HVD0 SID
+
+BVN_MAD_PIX_FD	94		
+BVN_MAD_QUANT	95		
+BVN_MAD_PIX_CAP	96		
+	
+BVN_MFD0	106		
+BVN_MFD0_1	107		
+BVN_MFD1	108		
+BVN_MFD1_1	109		
+			
+BVN_VFD0	118		
+BVN_VFD1	119		
+			
+BVN_CAP0	126		
+BVN_CAP1	127		
+			
+BVN_GFD0	134		
+BVN_GFD1	135		
+BVN_CMP0	166		
+BVN_RDC		144		
+
+VEC_VBI_ENC0	145		
+VEC_LUT_LD	146		
+
+M2MC_0		147		2D graphics - instance 0 - client "0"
+M2MC_1		148		2D graphics - instance 0 - client "1"
+M2MC_2		149		2D graphics - instance 0 - client "2"
+			
+PCIE_0		151		
+			
+			Ports 200 and up have special purposes
+HOST_CPU_MCP_R_HI	200		Host CPU MCP read client - high priority
+HOST_CPU_MCP_R_LO	201		Host CPU MCP read client - low priority
+HOST_CPU_MCP_W_HI	202		Host CPU MCP write client - high priority
+HOST_CPU_MCP_W_LO	203		Host CPU MCP write client - low priority
+
+V3D_MCP_R_HI	204		V3D (VC4 graphics core) MCP read client - high priority
+V3D_MCP_R_LO	205		V3D (VC4 graphics core) MCP read client - low priority
+V3D_MCP_W_HI	206		V3D (VC4 graphics core) MCP write client (tile buffer writes) - high priority
+V3D_MCP_W_LO	207		V3D (VC4 graphics core) MCP write client (tile buffer writes) - low priority
+
+UBUS_RD		208		
+UBUS_WR		209		
+
+HVD0_MOCOMP	216		HVD0 PFRI / MOCOMP
+
+TRACELOG	248		
+MEMC_RESERVED_0	249		Reserved
+ZCQS_ENGINE	250		DRAM ZQ Calibration Short client
+MSA		251		MSA (Memory Soft Access)
+DIS0		252		DIS (DRAM Interface Stress) #0
+DIS1		253		DIS (DRAM Interface Stress) #1
+DRAM_INIT_ZQCS	254		DRAM Init and Low Power Mode Engine
+REFRESH		255		Refresh
+

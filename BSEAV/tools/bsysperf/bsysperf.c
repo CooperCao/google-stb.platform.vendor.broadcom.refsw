@@ -81,22 +81,8 @@ char         *g_client_name[BMEMPERF_MAX_NUM_CLIENT];
 bmemperf_info g_bmemperf_info;
 bool          gPerfError = false;
 
-typedef struct
-{
-    unsigned long long int rxErrors;
-    unsigned long long int txErrors;
-    unsigned long long int rxBytes;
-    unsigned long long int txBytes;
-    char                   name[16];
-    char                   ipAddress[32];
-} bsysperf_netStatistics;
-
-#define NET_STATS_MAX       10
-#define BSYSPERF_VALUE_BASE 10
 bsysperf_netStatistics g_netStats[NET_STATS_MAX];
 int                    g_netStatsIdx = -1;                 /* index to entries added to g_netStats array */
-
-char outString[32];
 
 typedef enum {
     PERF_FLAME_UNINITED=0,
@@ -110,177 +96,6 @@ typedef enum {
     PERF_FLAME_DELETE_OUT_FILE,
     PERF_FLAME_MAX
 } Bsysperf_PerfFlame_State;
-
-/**
- *  Function: This function will format an integer to output an indicator for kilo, mega, or giga.
- **/
-static char *formatul(
-    unsigned long long int value
-    )
-{
-    float fValue = value;
-
-    if (value < 1024)
-    {
-        sprintf( outString, "%llu", value );
-    }
-    else if (value < 1024 * 1024)
-    {
-        sprintf( outString, "%5.1f K", fValue / 1024 );
-    }
-    else if (value < 1024 * 1024 * 1024)
-    {
-        sprintf( outString, "%6.2f M", fValue / 1024 / 1024 );
-    }
-    else
-    {
-        sprintf( outString, "%7.3f G", fValue / 1024 / 1024 / 1024 );
-    }
-
-    return( outString );
-}                                                          /* formatul */
-
-/**
- *  Function: This function will look in the provided string for the specified tag string. If the tag string is
- *  found on the line, the converted integer value will be returned.
- **/
-static int scan_for_tag(
-    const char             *line,
-    const char             *tag,
-    unsigned long long int *value
-    )
-{
-    int                     rc     = -1;
-    char                   *pos    = NULL;
-    unsigned long long int  lvalue = 0;
-    char                    valueStr[64];
-
-    pos = strstr( line, tag );
-    if (pos)
-    {
-        pos   += strlen( tag );
-        lvalue = strtoull( pos, NULL, BSYSPERF_VALUE_BASE );
-        if (strstr( tag, "RX packets:" ) && ( lvalue > 0 ))
-        {
-            valueStr[0] = 0;
-            convert_to_string_with_commas( lvalue, valueStr, sizeof( valueStr ));
-            PRINTF( "%s %lu (%s) (%s) (addr -> %p)<br>\n", tag, lvalue, valueStr, pos, (void *)value );
-        }
-
-        if (value)
-        {
-            *value = lvalue;
-        }
-
-        rc = 0;
-    }
-    /* -1 is used to indicate the tag was not found; rc=0 indicates the tag was found and some values were scanned */
-    return( rc );
-}                                                          /* scan_for_tag */
-
-/**
- *  Function: This function will use the 'ethtool' utility to read RX and TX data for the specified network interface.
- *            Since the data from the ifconfig utility has been deemed to be unreliable, the kernel team has suggested
- *            we use the 'ethtool' utility to get statistics for the "asp" interface.
- **/
-static int get_ethtool_data(
-    int netStatsIdx
-    )
-{
-    char *rc  = NULL;
-    char *pos = NULL;
-    FILE *cmd = NULL;
-    char  line[MAX_LINE_LENGTH];
-    unsigned int line_count = 0;
-    unsigned long long llu_bytes = 0;
-
-    if ( netStatsIdx < 0 || netStatsIdx > NET_STATS_MAX ) return 0;
-
-/* These counters are from the embedded network switch's perspective and thus are reversed.
- * In other words, when ASP is streaming out, you will see the Rx Count on ASP device go up
- * as it is receiving packets from ASP. Likewise, when ASP is receiving packets, the switch
- * is transmitting those packets to ASP (which in turn came from a network client on another
- * switch's port), and thus TxCount would go up!
-*/
-#define ASP_RX_SEARCH_TAG "TxOctets"
-#define ASP_TX_SEARCH_TAG "RxOctets"
-
-    /* create a line similar to this ... /bin/ethtool -S asp | grep "RxOctets|TxOctets"
-     * We should get two lines back similar to this:
-     *      RxOctets: 14259285
-     *      RxOctets: 432809372
-     */
-    sprintf( line, "%s -S %s | grep -E \"%s|%s\"", ETHTOOL_UTILITY, g_netStats[netStatsIdx].name, ASP_RX_SEARCH_TAG, ASP_TX_SEARCH_TAG );
-    cmd = popen( line, "r" );
-
-    /* we are only expecting to read 2 lines ... one for RX and one for TX */
-    while ( cmd && line_count < 2 )
-    {
-        char search_string[32];
-
-        memset( line, 0, sizeof( line ));
-        memset( search_string, 0, sizeof( search_string ));
-
-        rc = fgets( line, MAX_LINE_LENGTH, cmd );
-
-        /* if something was read in */
-        if ( rc )
-        {
-            /* remove end-of-line character if present */
-            pos = strchr( line, '\n' );
-            if (pos != NULL)
-            {
-                *pos = '\0';
-            }
-
-            PRINTF( "~%s: got len %u: line (%s)~", __FUNCTION__, (int) strlen( line ), line );
-
-            sprintf( search_string, "%s: ", ASP_TX_SEARCH_TAG );
-            pos = strstr( line, search_string );
-            if (pos != NULL)
-            {
-                pos += strlen( search_string ); /* advance pointer to where the byte could should be located */
-                sscanf( pos, "%llu", &llu_bytes );
-
-#if 0
-                /* CAD 2017-01-17: The ethtool appears to send back bytes even though tag is called Octets. */
-                /*                 Multiplying by 8 results in a number that is 8 times higher than expected. */
-                llu_bytes *= 8; /* convert from octets to bytes */
-#endif
-
-                g_netStats[netStatsIdx].txBytes = llu_bytes;
-                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_TX_SEARCH_TAG, g_netStats[netStatsIdx].name, llu_bytes );
-            }
-
-            sprintf( search_string, "%s: ", ASP_RX_SEARCH_TAG );
-            pos = strstr( line, search_string );
-            if (pos != NULL)
-            {
-                pos += strlen( search_string ); /* advance pointer to where the byte could should be located */
-                sscanf( pos, "%llu", &llu_bytes );
-
-#if 0
-                /* CAD 2017-01-17: The ethtool appears to send back bytes even though tag is called Octets. */
-                /*                 Multiplying by 8 results in a number that is 8 times higher than expected. */
-                llu_bytes *= 8; /* convert from octets to bytes */
-#endif
-
-                g_netStats[netStatsIdx].rxBytes = llu_bytes;
-                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_RX_SEARCH_TAG, g_netStats[netStatsIdx].name, llu_bytes );
-            }
-        }
-        else
-        {
-            break; /* once we get a read error, stop reading */
-        }
-
-        line_count++;
-    }
-
-    pclose( cmd );
-
-    return( 0 );
-} /* get_ethtool_data */
 
 /**
  *  Function: This function will return the version of the perf utility. This is used to determine if the kernel
@@ -577,145 +392,6 @@ static void get_PerfDeep_Results(
 
     return;
 }                                                          /* get_PerfDeep_Results */
-
-/**
- *  Function: This function will gather various network statistics
- **/
-static int get_netstat_data(
-    bsysperf_netStatistics *pNetStats
-    )
-{
-    char *pos = NULL;
-    FILE *cmd = NULL;
-    char  line[MAX_LINE_LENGTH];
-#if DEBUG_WLANZERO
-    struct timeval tv;
-    bool   bFoundWlan0 = false;
-#endif /* DEBUG_WLANZERO */
-
-    if (pNetStats == NULL)
-    {
-        return( -1 );
-    }
-
-#if DEBUG_WLANZERO
-    gettimeofday( &tv, NULL );
-    printflog( "time now ... %d.%06d =====================\n", tv.tv_sec, tv.tv_usec );
-#endif /* DEBUG_WLANZERO */
-
-    /* clear out the array */
-    memset( pNetStats, 0, sizeof( *pNetStats ));
-    g_netStatsIdx = -1;
-
-    sprintf( line, "%s", IFCONFIG_UTILITY );
-    cmd = popen( line, "r" );
-
-    do {
-        memset( line, 0, sizeof( line ));
-        fgets( line, MAX_LINE_LENGTH, cmd );
-        if (strlen( line ))
-        {
-#if DEBUG_WLANZERO
-            if ( bFoundWlan0 ) printflog( "%s", line );
-#endif /* DEBUG_WLANZERO */
-            /* if something is in column 1, it must be a name of another interface */
-            if (( 'a' <= line[0] ) && ( line[0] <= 'z' ))
-            {
-                /* if there is room for another interface */
-                if (g_netStatsIdx < (NET_STATS_MAX-1) )
-                {
-                    g_netStatsIdx++;
-
-                    /* look for a space; that marks the end of the i/f name */
-                    pos = strchr( line, ' ' );
-                    if (pos)
-                    {
-                        *pos = '\0';                       /* null-terminate the i/f name */
-                        strncpy( pNetStats[g_netStatsIdx].name, line, sizeof( pNetStats[g_netStatsIdx].name ) - 1 );
-#if DEBUG_WLANZERO
-                        if ( strcmp( pNetStats[g_netStatsIdx].name, "wlan0") == 0 ) {
-                            *pos = ' ';
-                            printflog( "%s", line );
-                            *pos = '\0';
-                            bFoundWlan0 = true;
-                        }
-#endif /* DEBUG_WLANZERO */
-                    }
-                }
-                else
-                {
-                    printf( "%s: not enough room for new interface (%s) in array; max'ed out at %u\n", __FUNCTION__, line, g_netStatsIdx );
-                }
-            }
-
-            /* if we are working on an interface that was successfully saved in the global structure (i.e. we haven't run out of space) */
-            if ( (g_netStatsIdx >= 0) && (g_netStatsIdx < NET_STATS_MAX) )
-            {
-                int rc = 0;
-
-                /* if line has IP address on it */
-                if (( pos = strstr( line, "inet addr:" )))
-                {
-                    char *ipAddrStart = NULL;
-
-                    pos += strlen( "inet addr:" );
-
-                    ipAddrStart = pos;
-
-                    /* look for a space; that marks the end of the i/f name */
-                    pos = strchr( ipAddrStart, ' ' );
-                    if (pos)
-                    {
-                        *pos = '\0';                       /* null-terminate the IP address */
-                        strncpy( pNetStats[g_netStatsIdx].ipAddress, ipAddrStart, sizeof( pNetStats[g_netStatsIdx].ipAddress ) - 1 );
-                        PRINTF( "IF (%s) has IP addr (%s)<br>\n", pNetStats[g_netStatsIdx].name, pNetStats[g_netStatsIdx].ipAddress );
-                    }
-                }
-                /*
-                eth0      Link encap:Ethernet  HWaddr 00:10:18:D2:C3:C9
-                          inet addr:10.14.244.188  Bcast:10.14.245.255  Mask:255.255.254.0
-                          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
-                          RX packets:11832 errors:0 dropped:0 overruns:0 frame:0
-                          TX packets:2150 errors:0 dropped:0 overruns:0 carrier:0
-                          collisions:0 txqueuelen:1000
-                          RX bytes:2429458 (2.3 MiB)  TX bytes:632148 (617.3 KiB)
-                */
-
-                rc = scan_for_tag( line, "RX packets:", &pNetStats[g_netStatsIdx].rxErrors );
-                /* if the RX packets tag was found, now scan for errors tag on the same line */
-                if (rc == 0)
-                {
-                    rc = scan_for_tag( line, " errors:", &pNetStats[g_netStatsIdx].rxErrors );
-                }
-
-                rc = scan_for_tag( line, "TX packets:", &pNetStats[g_netStatsIdx].txErrors );
-                /* if the TX packets tag was found, now scan for errors tag on the same line */
-                if (rc == 0)
-                {
-                    rc = scan_for_tag( line, " errors:", &pNetStats[g_netStatsIdx].txErrors );
-                }
-                rc = scan_for_tag( line, "RX bytes:", &pNetStats[g_netStatsIdx].rxBytes );
-                /* if the RX bytes tag was found, now scan for the Tx bytes tag on the same line */
-                if (rc == 0)
-                {
-                    scan_for_tag( line, "TX bytes:", &pNetStats[g_netStatsIdx].txBytes );
-
-                    /* before moving on to the next interface device, check to see if we are processing the "asp" interface */
-                    if ( strcmp( pNetStats[g_netStatsIdx].name, "asp" ) == 0 )
-                    {
-                        get_ethtool_data( g_netStatsIdx );
-                    }
-                }
-                /*printf("~DEBUG~ip_addr (%s) ... TX bytes (%lld)~", pNetStats[g_netStatsIdx].ipAddress, pNetStats[g_netStatsIdx].txBytes );*/
-            }
-        }
-    } while (strlen( line ));
-    PRINTF( "\n" );
-
-    pclose( cmd );
-
-    return( 0 );
-}                                                          /* get_netstat_data */
 
 /**
  *  Function: This function will sort the irq details based on the number of interrupts.
@@ -2063,7 +1739,8 @@ int main(
 
         printf( "<tr>");
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Chan:<span class=bluetext>%d </span></td> ", tScanInfo.ulChan );
-        printf( "<td align=left colspan=2 class=silver_allborders >PrimChan:<span class=bluetext>%d </span></td> ", tScanInfo.ulPrimChan );
+        printf( "<td align=left colspan=2 class=silver_allborders >PrimChan:<span class=bluetext>%d</span></td> ",
+                tScanInfo.ulPrimChan );
         printf( "<td align=left colspan=2 class=silver_allborders >Locked:<span class=bluetext>%s </span></td> ", TRUE_OR_FALSE(tScanInfo.bLocked) );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >WPS:<span class=bluetext>%s</span></td> ", TRUE_OR_FALSE(tScanInfo.bWPS) );
         printf( "</tr>");
@@ -2152,7 +1829,7 @@ int main(
 
         printf( "<tr>");
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;border-bottom: solid thin black;\" >PmqOvfl:<span class=bluetext>%s </span></td> ", formatul( tCounters.pmqovfl) );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" ><span class=bluetext>&nbsp;</span></td> " );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" >SNR:<span class=bluetext>%d</span></td>", tScanInfo.lSnr );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" ><span class=bluetext>&nbsp;</span></td> " );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;border-bottom: solid thin black;\" >&nbsp;</td> " );
         printf( "</tr>");
@@ -2366,7 +2043,7 @@ int main(
 
     if ( DvfsControl == 1)
     {
-        Bsysperf_DvfsCreateHtml( false /* bIncludeFrequencies */ );
+        Bsysperf_DvfsCreateHtml( false /* bIncludeFrequencies */, false );
     }
 
     if ( GovernorSetting )

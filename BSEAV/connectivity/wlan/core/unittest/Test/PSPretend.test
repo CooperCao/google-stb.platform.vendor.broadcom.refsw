@@ -1,0 +1,405 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Perform PSPretend test cases
+#
+# Written by: Robert J. McMahon Septbember 2013
+#
+# $Id: f44554a39f2095b49b83b547b6e8d22d21a02d44 $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Streams
+package require UTF::wlstats
+package require UTF::ControlChart
+
+package provide UTF::Test::PSPretend 2.0
+
+UTF::Test PSPretend {args} {
+    UTF::Getopts {
+	{pspretend.arg "0 5 0" "pspretend value(s) to use"}
+	{stream.arg "" "stream to use"}
+	{ap.arg "" "ap to use"}
+	{sta.arg "" "sta(s) to use"}
+	{udprate.arg "10M" "UDP offered load"}
+	{holdtime.arg "10" "time to hold traffic in seconds"}
+	{pollfrequency.arg "1" "interval to poll stats"}
+	{multicast "use multicast traffic stream"}
+	{pktsize.arg "1460" "packet size to use for test"}
+	{parallel "Do a parallel test with all streams active"}
+	{serial "Do a serial test for each stream/pair"}
+	{nopktqstats "Don't do pktstats polling"}
+	{reportinterval.arg "0.1" "iperf report interval"}
+    }
+    set failtest 0
+    set finalresults {}
+    set streams {}
+    set domulticast 0
+    array set pktqstats {}
+    # set default test to parallel
+    if {!$(parallel) && !$(serial)} {
+	set (parallel) 1
+    }
+    foreach STA $(sta) {
+	lappend streams [UTF::stream %AUTO% -name "UDP($STA)" -tx $(ap) -rx $STA -rate $(udprate) -pktsize $(pktsize) -reportinterval $(reportinterval)]
+    }
+    if {$(multicast) || [llength $(sta)] > 1} {
+	$(ap) igmp_querier enable
+	lappend streams [UTF::stream %AUTO% -name "MCAST" -tx $(ap) -rx $(sta) -multicast 1 -rate $(udprate) -pktsize $(pktsize) -reportinterval $(reportinterval)]
+	set domulticast 1
+    }
+    set failtry 0
+    UTF::Try "Test Init/Rig Verify" {
+	$(ap) wl msglevel +time
+	set security "open"
+	set chanspec [lindex [$(ap) wl chanspec] 0]
+	set rssistring ""
+	foreach STA $(sta) {
+	    lappend rssistring "$STA/[$STA wl rssi]dB"
+	}
+	UTF::Try "MAC addrs" {
+	    foreach STA $(sta) {
+		$STA macaddr
+		[$STA lan] macaddr
+	    }
+	    foreach STA $(sta) {
+		UTF::Message INFO $STA "MAC=[$STA macaddr]"
+		UTF::Message INFO $STA "LAN MAC=[[$STA lan] macaddr]"
+	    }
+	    return
+	}
+	# Pull out any non-working streams from the test
+	foreach STREAM $streams {
+	    UTF::Try "Linkcheck [$STREAM cget -name]=$(udprate)" {
+		set skey [$STREAM id]
+		$STREAM start
+		if {[catch {$STREAM linkcheck -now}]} {
+		    $STREAM stop
+		    if {[$STREAM cget -multicast]} {
+			package require UTF::Test::MulticastLinkcheck
+			catch {UTF::Test::MulticastLinkcheck -ap $(ap) -sta $(sta) -wlpktdebug -etpktdebug}
+		    }
+		    # Remove failed streams from the test
+		    set streams [lsearch -all -not -inline $streams $STREAM]
+		    $STREAM destroy
+		    set failtry 1
+		    error "stream will be removed from test"
+		}
+		$STREAM stop
+		return
+	    }
+	}
+	# Run the stream to validate the rig is ok
+	# If this fails the following tests will run but
+	# their results are suspect.
+	foreach STREAM $streams {
+	    UTF::Try "Verify [$STREAM cget -name]=$(udprate)" {
+		foreach SCB [array names pktqstats] {
+		    $pktqstats($SCB) destroy
+		}
+		array unset pktqstats *
+		set skey [$STREAM id]
+		foreach STA [$STREAM cget -rx] {
+		    catch {$pktqstats(${(ap)},${STA}) destroy}
+		    if {[$STREAM cget -multicast]} {
+			set pktqstats(${(ap)},${STA}) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$(ap) wl pktq_stats a:[$STA macaddr]" -name "[[$(ap) cget -host] cget -name]"]
+		    } else {
+			set pktqstats(${(ap)},${STA}) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$(ap) wl pktq_stats a:[[$STA lan] macaddr]" -name "[[$(ap) cget -host] cget -name]"]
+		    }
+		}
+		UTF::stream allstreams stop
+		$STREAM start
+		$STREAM linkcheck -now
+		$STREAM stats -clear
+		set start [clock clicks -milliseconds]
+		set wlcmdstart $start
+		while {[expr {[clock clicks -milliseconds] - $start}] <= [expr {int($(holdtime) * 1000)}]} {
+		    if {!$(nopktqstats)} {
+			foreach SCB [array names pktqstats] {
+			    $pktqstats($SCB) sample
+			}
+		    }
+		    set adj [expr {([clock clicks -milliseconds] - $wlcmdstart) / 1000.0}]
+		    UTF::Sleep [expr {$(pollfrequency) - $adj}]
+		    set wlcmdstart [clock clicks -milliseconds]
+		}
+		$STREAM samplers -disable
+		set sg [UTF::streamgraph %AUTO% -streams $STREAM -stat rate -title "Offered = $(udprate) $chanspec Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -details 1]
+		set lg [UTF::streamgraph %AUTO% -stat lost -streams $STREAM -title "Lost Pkts Offered = $(udprate) Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -with "impulses" -details 1]
+		set latency [UTF::streamgraph %AUTO% -stat pktlatency -streams $STREAM -title "Latency = $(udprate) Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -details 1]
+		set results "[$sg plot][$lg plot -append][$latency plot -append]"
+		$sg destroy; $lg destroy; $latency destroy
+		set totallost [$STREAM stats -lost -sum]
+		if {[$STREAM cget -multicast]} {
+		    set allrx 0
+		    foreach RX $totallost {
+			set allrx [expr {$allrx + [lindex $RX 1]}]
+		    }
+		    set totallost $allrx
+		}
+		UTF::Message STAT "" "total lost packets = $totallost"
+		if {$totallost > 0} {
+		    error $results
+		} else {
+		    return $results
+		}
+	    }
+	}
+	if {!$failtry} {
+	    return $chanspec
+	} else {
+	    error $chanspec
+	}
+    }
+    if {!$(parallel)} {
+	foreach STREAM $streams {
+	    UTF::Try "[$STREAM cget -name]=$(udprate) PS=$(pspretend)" {
+		set skey [$STREAM id]
+		foreach SCB [array names pktqstats] {
+		    $pktqstats($SCB) destroy
+		}
+		array unset pktqstats *
+		foreach STA [$STREAM cget -rx] {
+		    if {[$STREAM cget -multicast]} {
+			set pktqstats(${(ap)},${STA}) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$(ap) wl pktq_stats a:[$STA macaddr]" -name "[[$(ap) cget -host] cget -name]"]
+		    } else {
+			set pktqstats(${(ap)},${STA},[$STA lan]) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$(ap) wl pktq_stats a:[[$STA lan] macaddr]" -name "[[$(ap) cget -host] cget -name]"]
+		    }
+		}
+		foreach pspretend $(pspretend) {
+		    set events {}
+		    UTF::Try "PSPretend=$pspretend [$STREAM cget -name]=$(udprate) suspend_mac" {
+			UTF::stream allstreams stop
+			if {[string is integer $pspretend]} {
+			    $(ap) wl pspretend_retry_limit $pspretend
+			}
+			# Clear old values
+			foreach SCB [array names pktqstats] {
+			    $pktqstats($SCB) sample
+			    $pktqstats($SCB) clear
+			}
+			$STREAM start
+			$STREAM linkcheck -now
+			$STREAM stats -clear
+			set start [clock clicks -milliseconds]
+			set wlcmdstart $start
+			set dosuspend 1
+			while {[expr {[clock clicks -milliseconds] - $start}] <= [expr {int($(holdtime) * 1000)}]} {
+			    if {!$(nopktqstats)} {
+				foreach SCB [array names pktqstats] {
+				    $pktqstats($SCB) sample
+				}
+			    }
+			    set adj [expr {([clock clicks -milliseconds] - $wlcmdstart) / 1000.0}]
+			    UTF::Sleep [expr {$(pollfrequency) - $adj}]
+			    set wlcmdstart [clock clicks -milliseconds]
+			    # peform suspend every other sample
+			    # this forces a change in psretry
+			    if {$dosuspend} {
+				lappend events [list "s" [expr {[UTF::stream clock] - [$STREAM stats -starttime]}]]
+				foreach STA $(sta) {
+				    $STA wl -u suspend_mac 150
+				}
+				set dosuspend 0
+			    } else  {
+				set dosuspend 1
+			    }
+			}
+			$STREAM samplers -disable
+			set sg [UTF::streamgraph %AUTO% -streams $STREAM -stat rate -title "Rate = $(udprate) $chanspec Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -xtics $events -details 1]
+			set lg [UTF::streamgraph %AUTO% -stat lost -streams $STREAM -title "Lost Rate = $(udprate) Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -with "impulses" -xtics $events -details 1]
+			set latency [UTF::streamgraph %AUTO% -stat pktlatency -streams $STREAM -title "Latency = $(udprate) Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -details 1]
+			set results "[$sg plot][$lg plot -append][$latency plot -append]"
+			$sg destroy; $lg destroy; $latency destroy
+			if {$finalresults eq {}} {
+			    set finalresults $results
+			}
+			if {[$STREAM cget -multicast]} {
+			    set allrx 0
+			    foreach RX $totallost {
+				set allrx [expr {$allrx + [lindex $RX 1]}]
+			    }
+			    set totallost $allrx
+			} else {
+			    set totallost [$STREAM stats -lost -sum]
+			    set per [$STREAM stats -per]
+			    UTF::Message STAT "" "PER = $per"
+			}
+			UTF::Message STAT "" "total lost packets = $totallost"
+			if {($pspretend && ($totallost > 0 || $per > 0.2)) || (!$pspretend && $totallost == 0)} {
+			    error $results
+			} else {
+			    return $results
+			}
+		    }
+		    foreach SCB [array names pktqstats] {
+			if {$pspretend} {
+			    set trytext "PSRETRY non-zero check $SCB"
+			} else {
+			    set trytext "PSRETRY all zero check $SCB"
+			}
+			UTF::Try $trytext {
+			    $pktqstats($SCB) write
+			    set pktstatqueue [$pktqstats($SCB) get -queue]
+			    set htmllink [$pktqstats($SCB) myhtmllink -text "$pktstatqueue"]
+			    if {[$pktqstats($SCB) interesting -show -search "psretry"]} {
+				UTF::Message STAT $SCB "psretries found"
+				if {$pspretend} {
+				    return $htmllink
+				} else {
+				    error $htmllink
+				}
+			    } else {
+				UTF::Message STAT $SCB "psretries not found"
+				if {$pspretend} {
+				    error $htmllink
+				} else {
+				    return $htmllink
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    } else {
+	# Parallel test
+	foreach STREAM $streams {
+	    set failtry 0
+	    UTF::Try "[$STREAM cget -name]=$(udprate)" {
+		$STREAM start
+		if {[catch {$STREAM linkcheck -now}]} {
+		    UTF::Message ERROR "" "Stream $STREAM not working"
+		    set failtry 1
+		}
+		$STREAM stop
+		set skey [$STREAM id]
+		foreach STA [$STREAM cget -rx] {
+		    if {[$STREAM cget -multicast]} {
+			set pktqstats(${(ap)},${STA}) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$(ap) wl pktq_stats a:[$STA macaddr]" -name "[[$(ap) cget -host] cget -name]"]
+		    } else {
+			set pktqstats(${(ap)},${STA},[$STA lan]) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$(ap) wl pktq_stats a:[[$STA lan] macaddr]" -name "[[$(ap) cget -host] cget -name]"]
+		    }
+		}
+		if {$failtry} {
+		    error "linkcheck"
+		}
+	    }
+	}
+	if {[llength $streams]} {
+	    foreach pspretend $(pspretend) {
+		set events {}
+		UTF::Try "PSPretend=$pspretend ALLSTREAMS=$(udprate) suspend_mac" {
+		    UTF::stream allstreams stop
+		    if {[string is integer $pspretend]} {
+			$(ap) wl pspretend_retry_limit $pspretend
+		    }
+		    # Clear old values
+		    foreach SCB [array names pktqstats] {
+			$pktqstats($SCB) sample
+			$pktqstats($SCB) clear
+		    }
+		    UTF::stream allstreams start
+		    UTF::stream allstreams linkcheck -now
+		    UTF::stream allstreams stats -clear
+		    set start [clock clicks -milliseconds]
+		    set wlcmdstart $start
+		    set dosuspend 1
+		    while {[expr {[clock clicks -milliseconds] - $start}] <= [expr {int($(holdtime) * 1000)}]} {
+			if {!$(nopktqstats)} {
+			    foreach SCB [array names pktqstats] {
+				$pktqstats($SCB) sample
+			    }
+			}
+			set adj [expr {([clock clicks -milliseconds] - $wlcmdstart) / 1000.0}]
+			UTF::Sleep [expr {$(pollfrequency) - $adj}]
+			set wlcmdstart [clock clicks -milliseconds]
+			# peform suspend every other sample
+			# this forces a change in psretry
+			if {$dosuspend} {
+			    lappend events [list "s" [expr {[UTF::stream clock] - [$STREAM stats -starttime]}]]
+			    foreach STA $(sta) {
+				$STA wl -u suspend_mac 150
+			    }
+			    set dosuspend 0
+			} else  {
+			    set dosuspend 1
+			}
+		    }
+		    UTF::stream allstreams samplers -disable
+		    foreach STREAM $streams {
+			UTF::Try "[$STREAM cget -name]=$(udprate) PS=$pspretend" {
+			    set sg [UTF::streamgraph %AUTO% -streams $STREAM -stat rate -title "Rate = $(udprate) $chanspec Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -xtics $events -details 1]
+			    set lg [UTF::streamgraph %AUTO% -stat lost -streams $STREAM -title "Lost Rate = $(udprate) Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -with "impulses" -xtics $events -details 1]
+			    set latency [UTF::streamgraph %AUTO% -stat pktlatency -streams $STREAM -title "Latency = $(udprate) Security=$security $rssistring" -yticsynch 1 -graphsize "1024,768" -details 1]
+			    set results "[$sg plot][$lg plot -append][$latency plot -append]"
+			    $sg destroy; $lg destroy; $latency destroy
+			    if {$finalresults eq {}} {
+				set finalresults $results
+			    }
+
+			    if {[$STREAM cget -multicast]} {
+				set allrx 0
+				foreach RX $totallost {
+				    set allrx [expr {$allrx + [lindex $RX 1]}]
+				}
+				set totallost $allrx
+			    } else {
+				set totallost [$STREAM stats -lost -sum]
+				set per [$STREAM stats -per]
+				UTF::Message STAT "" "PER = $per"
+			    }
+			    UTF::Message STAT "" "total lost packets = $totallost"
+			    if {($pspretend && ($totallost > 0 || $per > 0.2)) || (!$pspretend && $totallost == 0)} {
+				error $results
+			    } else {
+				return $results
+			    }
+			}
+		    }
+		    foreach SCB [array names pktqstats] {
+			if {$pspretend} {
+			    set trytext "PSRETRY non-zero check $SCB"
+			} else {
+			    set trytext "PSRETRY all zero check $SCB"
+			}
+			UTF::Try $trytext {
+			    $pktqstats($SCB) write
+			    set pktstatqueue [$pktqstats($SCB) get -queue]
+			    set htmllink [$pktqstats($SCB) myhtmllink -text "$pktstatqueue"]
+			    if {[$pktqstats($SCB) interesting -show -search "psretry"]} {
+				UTF::Message STAT $SCB "psretries found"
+				if {$pspretend} {
+				    return $htmllink
+				} else {
+				    error $htmllink
+				}
+			    } else {
+				UTF::Message STAT $SCB "psretries not found"
+				if {$pspretend} {
+				    error $htmllink
+				} else {
+				    return $htmllink
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+    UTF::Try "Test exit" {
+	foreach STREAM $streams {
+	    $STREAM destroy
+	}
+	if {$domulticast} {
+	    $(ap) igmp_querier disable
+	}
+    }
+    if {$failtest} {
+	error $finalresults
+    } else {
+	return $finalresults
+    }
+}

@@ -613,7 +613,7 @@ void RamFS::File::accessTimes(AccessTimes *tm) {
 
 static char zeroPage[PAGE_SIZE_4K_BYTES];
 
-int RamFS::File::mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset) {
+int RamFS::File::mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset, PageTable *pageTable) {
     uint8_t *va = (uint8_t *)addr;
 
     if ((prot & PROT_READ) && (!checkPermissions(PERMS_READ_BIT)))
@@ -636,7 +636,9 @@ int RamFS::File::mmap(void *addr, void **mappedAddr, size_t length, int prot, in
         noExec = false;
     bool sharedMem = (flags & MAP_SHARED);
 
-    PageTable *pageTable = TzTask::current()->userPageTable();
+    if (!pageTable)
+        pageTable = TzTask::current()->userPageTable();
+
     PageTable *kernelPageTable = PageTable::kernelPageTable();
 
     int numPages = (length/PAGE_SIZE_4K_BYTES) + 1;

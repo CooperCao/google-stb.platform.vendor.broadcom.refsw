@@ -433,8 +433,7 @@ void BVC5_P_HardwareReadEventFifos(
    );
 
 uint64_t BVC5_P_GetEventTimestamp(
-   BVC5_Handle hVC5,
-   uint32_t    uiCore
+   void
    );
 
 void BVC5_P_HardwareClearEventFifos(
@@ -446,6 +445,14 @@ void BVC5_P_HardwareClearEventFifos(
 bool BVC5_P_SwitchSecurityMode(
    BVC5_Handle          hVC5,
    bool                 bSecure
+);
+
+void BVC5_P_HardwarePLLEnable(
+   BVC5_Handle hVC5
+);
+
+void BVC5_P_HardwarePLLDisable(
+   BVC5_Handle hVC5
 );
 
 #endif /* BVC5_HARDWARE_H__ */

@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Memory management
-File     :  $RCSfile$
-Revision :  $Revision$
-
-FILE DESCRIPTION
-Implementation of memory management API.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <sys/types.h>
 #include <stdarg.h>
 
@@ -1431,10 +1421,10 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
    {
    case ABGR_8888_RSO:
    case XBGR_8888_RSO:
-   case RGB_565_RSO:
-      /* this just informs the platform to do a packet blit operation.  As we pass the
-         stride, it works for 16 bit as well */
       conv_format = BEGL_BufferFormat_eA8B8G8R8;
+      break;
+   case RGB_565_RSO:
+      conv_format = BEGL_BufferFormat_eR5G6B5;
       break;
    case YV12_RSO:
       conv_format = BEGL_BufferFormat_eYV12_Texture;
@@ -1476,7 +1466,8 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
          }
          else
          {
-            if (conv_format == BEGL_BufferFormat_eA8B8G8R8)
+            if ((conv_format == BEGL_BufferFormat_eA8B8G8R8) ||
+                (conv_format == BEGL_BufferFormat_eR5G6B5))
             {
                memcpy(dstCached, srcCached, height * stride);
                mem_flush_cache();
@@ -1487,7 +1478,8 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
       }
       else
       {
-         if (conv_format == BEGL_BufferFormat_eA8B8G8R8)
+         if ((conv_format == BEGL_BufferFormat_eA8B8G8R8) ||
+             (conv_format == BEGL_BufferFormat_eR5G6B5))
             memcpy(dstCached, srcCached, height * stride);
          else
             vcos_assert(0);   /* NO SW PATH FOR YUV */

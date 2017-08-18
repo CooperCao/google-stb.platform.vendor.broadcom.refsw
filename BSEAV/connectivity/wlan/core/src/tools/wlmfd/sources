@@ -1,0 +1,15 @@
+# sources: windows build file for wl.exe
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources,v 1.2 2008-04-02 14:18:41 $
+#
+
+TARGETPATH=obj
+TARGETNAME=mfgtest
+#VSVERSION=VS2003
+
+include sources.common
+
+OTHER_SOURCES=sources.wlmfd_dll

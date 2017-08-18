@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -366,17 +366,19 @@ typedef struct BVDC_P_Context
     uint32_t                       ulApplyCnt;
     bool                           bForcePrint;
 
+#if BVDC_P_MAX_DACS
     BVDC_DacOutput                 aDacOutput[BVDC_P_MAX_DACS];
     uint32_t                       aDacDisplay[BVDC_P_MAX_DACS];
+    uint32_t                       aulDacScaleSel[BVDC_P_MAX_DACS];
+    uint32_t                       aulDacSyncSource[BVDC_P_MAX_DACS];
+    uint32_t                       aulDacSyncEn[BVDC_P_MAX_DACS];
+    BVDC_DacConnectionState        aeDacStatus[BVDC_P_MAX_DACS];
+#endif
     bool                           bCalibrated;
     bool                           bDacDetectionEnable;
     const uint32_t                *aulDacGrouping;
     uint32_t                       ulDacDetect;
     uint32_t                       ulDacDetectSyncCtrl;
-    uint32_t                       aulDacScaleSel[BVDC_P_MAX_DACS];
-    uint32_t                       aulDacSyncSource[BVDC_P_MAX_DACS];
-    uint32_t                       aulDacSyncEn[BVDC_P_MAX_DACS];
-    BVDC_DacConnectionState        aeDacStatus[BVDC_P_MAX_DACS];
     uint32_t                       ulPlugOutWait;
     uint32_t                       ulPlugInWait;
 

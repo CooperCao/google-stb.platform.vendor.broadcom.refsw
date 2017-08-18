@@ -9,6 +9,9 @@
 #include "khrn_mem.h"
 #include "khrn_process_debug.h"
 #include "khrn_fmem_debug_info.h"
+#if KHRN_DEBUG
+#include "khrn_capture_buffer.h"
+#endif
 #include "../gl11/gl11_exts.h"
 #include "../gl20/gl20_exts.h"
 #include "../glxx/glxx_server.h"
@@ -24,11 +27,14 @@
 #include "libs/platform/v3d_scheduler.h"
 #include "libs/platform/v3d_driver_api.h"
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
+#if KHRN_GLES31_DRIVER
+#include "libs/compute/compute.h"
+#endif
 
 static struct statics {
    gmem_handle_t dummy_texture_handle;
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   gmem_handle_t gfxh_1320_buffer;
+#if !V3D_HAS_GFXH1636_FIX
+   gmem_handle_t dummy_ocq_buffer;
 #endif
    bool initialized;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -53,10 +59,10 @@ const GLXX_TEXTURE_SAMPLER_STATE_T *khrn_get_image_unit_default_sampler(void)
    return &statics.image_unit_default_sampler;
 }
 
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-gmem_handle_t khrn_get_gfxh_1320_buffer(void)
+#if !V3D_HAS_GFXH1636_FIX
+gmem_handle_t khrn_get_dummy_ocq_buffer(void)
 {
-   return statics.gfxh_1320_buffer;
+   return statics.dummy_ocq_buffer;
 }
 #endif
 
@@ -102,15 +108,16 @@ static void khrn_statics_shutdown(struct statics *s)
 {
    gmem_free(s->dummy_texture_handle);
    s->dummy_texture_handle = 0;
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   gmem_free(s->gfxh_1320_buffer);
-   s->gfxh_1320_buffer = 0;
+#if !V3D_HAS_GFXH1636_FIX
+   gmem_free(s->dummy_ocq_buffer);
+   s->dummy_ocq_buffer = 0;
 #endif
 }
 
 static void init_image_unit_default_sampler(GLXX_TEXTURE_SAMPLER_STATE_T *sampler)
 {
-   /* the important values are clamp to border, border_color[1-4]=0, min_lod = max_lod = 0;*/
+   /* the important values are clamp to border, border_color[1-4]=0, min_lod = max_lod = 0
+    * and GL_NEAREST for min/mag;*/
    sampler->filter.min = sampler->filter.mag = GL_NEAREST;
    sampler->wrap.s = sampler->wrap.t = sampler->wrap.r = GL_CLAMP_TO_BORDER;
    sampler->anisotropy = 1.0f;
@@ -147,15 +154,15 @@ static bool khrn_statics_init(struct statics *s)
 
    gmem_flush_mapped_buffer(s->dummy_texture_handle);
 
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   /* GFXH-1320 workaround: create a dummy occlusion query buffer sized for each way in the cache. */
-   s->gfxh_1320_buffer = gmem_alloc(
+#if !V3D_HAS_GFXH1636_FIX
+   /* GFXH-1320 & GFXH-1636 workaround: create a dummy occlusion query buffer sized for each way in the cache. */
+   s->dummy_ocq_buffer = gmem_alloc(
       V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN * 8,
       V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN,
       GMEM_USAGE_V3D_RW,
       "khrn dummy occlusion query buffer"
       );
-   if (s->gfxh_1320_buffer == GMEM_HANDLE_INVALID)
+   if (s->dummy_ocq_buffer == GMEM_HANDLE_INVALID)
       goto error;
 #endif
 
@@ -191,6 +198,10 @@ void khrn_process_shutdown(void)
       /* ensure that all job completion handlers run first */
       v3d_scheduler_wait_all();
 
+#if KHRN_DEBUG
+      khrn_capture_wait();
+#endif
+
       /* shutdown the driver */
 #ifdef KHRN_GEOMD
       fmem_debug_info_term_process();
@@ -202,6 +213,9 @@ void khrn_process_shutdown(void)
       khrn_tile_state_deinit();
 #endif
       v3d_parallel_term();
+#if KHRN_GLES31_DRIVER
+      compute_term();
+#endif
       v3d_platform_shutdown();
       profile_shutdown();
    }
@@ -216,10 +230,15 @@ bool khrn_process_init(void)
 #endif
 
    khrn_init_options();
+   khrn_fmem_static_init();
    profile_init();
 
    demand_msg(v3d_platform_init(), "Failed to initialise platform");
    v3d_check_ident(v3d_scheduler_get_identity(), 0);
+
+#if KHRN_GLES31_DRIVER
+   compute_init();
+#endif
 
 #ifdef KHRN_GEOMD
    if (khrn_options.geomd)
@@ -258,6 +277,9 @@ bool khrn_process_init(void)
       v3d_parallel_term();
    }
 
+#if KHRN_GLES31_DRIVER
+   compute_term();
+#endif
    v3d_platform_shutdown();
    profile_shutdown();
 

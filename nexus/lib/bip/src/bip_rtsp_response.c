@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -141,7 +141,7 @@ BIP_RtspResponse_SetStatus(
 {
     BDBG_OBJECT_ASSERT( rtspResponse, BIP_RtspResponse );
     rtspResponse->status = responseStatus;
-    BDBG_MSG(("%s: rtpsResponse %p; status %x(%zu); size %zu", __FUNCTION__, (void *)rtspResponse, rtspResponse->status, sizeof(rtspResponse->status),
+    BDBG_MSG(("%s: rtpsResponse %p; status %x(%zu); size %zu", BSTD_FUNCTION, (void *)rtspResponse, rtspResponse->status, sizeof(rtspResponse->status),
               sizeof(*rtspResponse) ));
 }
 

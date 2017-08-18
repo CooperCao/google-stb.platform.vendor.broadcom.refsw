@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -162,7 +162,7 @@ static unsigned check_standby(void)
     NEXUS_Error rc;
 
     rc = NxClient_GetStandbyStatus(&standbyStatus);
-    BDBG_ASSERT(!rc);
+    if (rc) exit(0); /* server is down, exit gracefully */
     if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
         printf("'animation_client' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
         NxClient_AcknowledgeStandby(true);
@@ -352,7 +352,10 @@ int main(int argc, const char **argv)
     /* push already-rendered surfaces in as fast as possible. allow display vsync to flow control. */
     fps.time = starttime = b_get_time();
     while (1) {
-        if(check_standby()) continue;
+        if(check_standby()) {
+            BKNI_Sleep(100);
+            continue;
+        }
 
         if (g_queue.surface[g_queue.submit_ptr].submitted || g_queue.depth >= max_depth) {
             recycle_next(blit_client);

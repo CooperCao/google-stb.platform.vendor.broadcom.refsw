@@ -1,0 +1,18 @@
+#
+MAILTO=pkwan@broadcom.com
+#
+#
+# self update line
+# 5 */6 * * * /home/pkwan/src/tools/unittest/cron/update
+#========================================================
+# UTF TESTS
+#========================================================
+#
+# 30 3 * * * src/tools/unittest/cron/launch 43224TOT utfconf/mc28 Test/EmbeddedNightly.test -sta 43224Vista3 -ap 4717 -loop 1 -title "SGE Cron" -tag COMANCHE2_REL_5_22_80 -statag BASS_BRANCH_5_60
+# 30 19 * * * src/tools/unittest/cron/launch AP2AKASHI /home/pkwan/src/tools/unittest/3sta.sh -e hnd-utf-list ap2a 
+# 30 0 * * * src/tools/unittest/cron/launch AP1AKASHI /home/pkwan/src/tools/unittest/3sta.sh -e hnd-utf-list ap1a 
+# 30 5 * * * src/tools/unittest/cron/launch AP2MILLAU /home/pkwan/src/tools/unittest/3sta.sh -e hnd-utf-list ap2m 
+# 30 10 * * * src/tools/unittest/cron/launch AP1MILLAU /home/pkwan/src/tools/unittest/3sta.sh -e hnd-utf-list ap1m
+# local cron statements
+# statements from cron log
+# 5 */8 * * * /bin/bash /home/pkwan/scripts/svnRefresh.sh >> /home/pkwan/tmp/svnUpdate.log

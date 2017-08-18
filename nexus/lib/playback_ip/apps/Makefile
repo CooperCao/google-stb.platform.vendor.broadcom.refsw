@@ -172,7 +172,6 @@ IP_APPLIB_TEST_INCLUDE_PATH += \
     $(BSEAV)/lib/mpeg2_ts_parse \
     $(BSEAV)/lib/tspsi \
     $(BSEAV)/api/include \
-    $(BSEAV)/lib/netaccel/include \
     $(BSEAV)/lib/media \
     $(BSEAV)/lib/bfile \
 	$(BSEAV)/lib/tspsi2/ \
@@ -367,12 +366,6 @@ ifeq ($(SETTOP_API_SUPPORT),y)
 # and things clobber each other.  But everyone keeps saying that SETTOP_API is dead...
 #   SUBLIBS += settop_api
 endif #SETTOP_API_SUPPORT
-
-ifneq ($(wildcard $(BSEAV)/lib/netaccel/module/Makefile),)
-    ifeq ($(NETACCEL_SUPPORT),y)
-        SUBLIBS += netaccel
-    endif #NETACCEL_SUPPORT
-endif
 
 # Now, from the list of sub-libraries build targets, build an equivalent list
 # of "clean" targets.
@@ -724,24 +717,6 @@ clean_settop_api:
 	@echo "[Clean... settop_api]"
 	$(Q_)$(MAKE) -C $(BSEAV)/api/build/nexus clean
 	$(B_TRACE_RECIPE_END)
-
-###############################################################################
-#  netaccel Targets  ("netaccel", "clean_netaccel".
-###############################################################################
-.PHONY: netaccel
-netaccel:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... netaccel]"
-	$(Q_)$(MAKE) NETACCEL_BUILD_PRIVATE=y IDLE_STATS=y NETACCEL_STANDALONE=y -C $(BSEAV)/lib/netaccel install
-	$(B_TRACE_RECIPE_END)
-
-.PHONY: clean_netaccel
-clean_netaccel:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... netaccel]"
-	$(Q_)$(MAKE) NETACCEL_BUILD_PRIVATE=y IDLE_STATS=y NETACCEL_STANDALONE=y -C $(BSEAV)/lib/netaccel clean
-	$(B_TRACE_RECIPE_END)
-
 
 ###############################################################################
 #  openssl Targets  ("openssl", "clean_openssl").

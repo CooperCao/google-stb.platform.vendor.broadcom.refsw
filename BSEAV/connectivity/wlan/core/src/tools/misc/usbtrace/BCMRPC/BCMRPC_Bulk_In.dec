@@ -1,0 +1,39 @@
+#
+#  Broadcom USB RPC - Bulk In Endpoint Decoder
+#
+#  $ Copyright Broadcom Corporation $
+#
+#  $Id: BCMRPC_Bulk_In.dec,v 1.1 2008-11-18 01:13:16 stafford Exp $
+#
+
+%include "CATCScriptAPI.inc"    #include usefull decoder functions
+%include "UsbCommon.inc"
+%include "BCMRPC_Common.inc"
+
+#----  Input
+# in.Data       - Data_block to decode
+# in.DataLength - Length of Data_block 
+#
+#----  Output
+# out.Decoded   - amount of data has been decoded
+#
+
+set UsbDecodeType	= "Endpoint";
+set UsbEndpType		= "Bulk";
+set UsbEndpDir		= "In";
+set UsbMaxPktSize	= 512;
+set UsbMaxXferSize	= 8192;
+set UsbMaxXferDecodeSize = 8192;  # Max bytes that we will be decoding  
+set UsbEndpId		= 21; # just a unique value for each endpoint of the same Class/Vendor/Product to distinguish them
+
+#
+# Parsing entry point
+#
+
+ProcessData()
+{
+    InitType2Decoder();
+
+    return ProcessTPBuffer();
+}
+

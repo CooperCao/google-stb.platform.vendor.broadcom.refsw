@@ -100,8 +100,8 @@ public:
         memset(tm, 0, sizeof(AccessTimes));
     }
 
-    int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset) {
-        UNUSED(addr); UNUSED(mappedAddr); UNUSED(length); UNUSED(prot);
+    int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset, PageTable *pageTable = NULL) {
+        UNUSED(addr); UNUSED(mappedAddr); UNUSED(length); UNUSED(prot); UNUSED(pageTable);
         UNUSED(flags); UNUSED(offset);
         return -ENOSYS;
     }
@@ -167,8 +167,8 @@ public:
         memset(tm, 0, sizeof(AccessTimes));
     }
 
-    int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset) {
-        UNUSED(addr); UNUSED(mappedAddr); UNUSED(length); UNUSED(prot);
+    int mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset, PageTable *pageTable = NULL) {
+        UNUSED(addr); UNUSED(mappedAddr); UNUSED(length); UNUSED(prot); UNUSED(pageTable);
         UNUSED(flags); UNUSED(offset);
         return -ENOSYS;
     }

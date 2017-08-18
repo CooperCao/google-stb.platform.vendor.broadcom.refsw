@@ -118,7 +118,7 @@ NEXUS_CFLAGS += -I$(ANDROID)/system/core/include \
 	-I$(ANDROID)/out/target/product/${ANDROID_PRODUCT_OUT}/obj/SHARED_LIBRARIES/libm_intermediates \
 	-I$(ANDROID)/frameworks/native/include \
 	-I$(ANDROID)/bionic/libc/kernel/uapi \
-   -I$(LINUX)/include
+	-I$(LINUX)/include
 
 # includes - arch specific - only arm/aarch64 supported.
 ifeq ($(B_REFSW_ARCH), aarch64-linux)

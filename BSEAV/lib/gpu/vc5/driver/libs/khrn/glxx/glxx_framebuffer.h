@@ -35,9 +35,15 @@ typedef struct
 
       struct texture_info
       {
+         unsigned level;      /* mip-map level to use */
+
+         bool use_face_layer; /* if this is true, use the specified face and layer of the texture;
+                                 if false, use all the faces and layers for that level,
+                                 depending on the texture type
+                                 (e.g : only cube_map uses all the faces) */
          unsigned face;
-         unsigned level;
          unsigned layer;
+
          glxx_ms_mode ms_mode; /* if we multisample, the result will be
                                   stored in a downsampled texture
                                   (the case for FramebufferTexture2DMultisampleEXT)
@@ -99,6 +105,7 @@ typedef struct
 
    unsigned default_width;
    unsigned default_height;
+   unsigned default_layers;
    unsigned default_samples;
    glxx_ms_mode default_ms_mode; /* default_ms_mode is calculated from default_samples;
                                     we need to keep default_samples because the user can
@@ -127,7 +134,8 @@ const GLXX_ATTACHMENT_T* glxx_fb_get_attachment_by_index(const GLXX_FRAMEBUFFER_
 
 extern void glxx_fb_attach_texture(GLXX_FRAMEBUFFER_T *fb,
       glxx_attachment_point_t att_point, GLXX_TEXTURE_T *texture,
-      unsigned face, unsigned level, unsigned layer,
+      unsigned level,
+      bool use_face_layer, unsigned face, unsigned layer,
       glxx_ms_mode ms_mode);
 
 extern void glxx_fb_attach_renderbuffer(GLXX_FRAMEBUFFER_T *fb,
@@ -221,6 +229,13 @@ typedef enum
  *  with that type in the attachemnt, we fill in img with whatever image is
  *  present in that attachment (NULL id no image attached).
  *
+ *  if the attachment is a layered texture and use_0_if_layered is false,
+ *  return an image refering to all the images of the attached texture level;
+ *  otherwise return an image refering to layer 0/face 0 of the attached
+ *  texture level;
+ *
+ *  if use_0_if_layers is true, fences can be NULL;
+ *
  * Returns false if driver run out of resources.
  * Returns true otherwise. If the returned img != NULL then is_ms will
  * reflect the type of the image returned (is_ms = true --> multisampled image)
@@ -229,21 +244,25 @@ typedef enum
  * is_ms can be NULL if not needed.
  */
 extern bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
-      glxx_att_img_t att_img, khrn_image **img, bool *is_ms);
+      glxx_att_img_t att_img, bool use_0_if_layered,
+      glxx_context_fences *fences,
+      khrn_image **img, bool *is_ms);
 
 /* Acquires the desired att_img image from the read buffer specified for this
  * fb. If read buffer was set to none, img will be NULL.
- * See glxx_attachment_acuire_image for the params.
+ * If the attachment is a layered texture, return the image for layer 0 of the
+ * attached texture level.
  *
  * Returns false if driver run out of resources.
  * Filled in image is reference counted and the caller must release it.
  */
 extern bool glxx_fb_acquire_read_image(const GLXX_FRAMEBUFFER_T *fb,
-      glxx_att_img_t att_img, khrn_image **img, bool *ms);
+      glxx_att_img_t att_img,
+      khrn_image **img, bool *ms);
 
 extern GFX_LFMT_T glxx_attachment_get_api_fmt(const GLXX_ATTACHMENT_T *attachment);
 
-extern bool glxx_fb_is_complete(const GLXX_FRAMEBUFFER_T *fb);
+extern bool glxx_fb_is_complete(const GLXX_FRAMEBUFFER_T *fb, glxx_context_fences *fences);
 
 typedef enum
 {
@@ -255,6 +274,7 @@ typedef enum
    enumify(GL_FRAMEBUFFER_UNSUPPORTED)
 }glxx_fb_status_t;
 
-extern glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb);
+extern glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T
+      *fb, glxx_context_fences *fences);
 
 #endif

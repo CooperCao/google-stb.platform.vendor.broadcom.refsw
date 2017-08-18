@@ -442,6 +442,7 @@ typedef struct bmemperf_client_casdata_Index
     volatile unsigned int index;
 } bmemperf_client_casdata_Index;
 
+void         bmemperf_InitClientList( void );
 int          bmemperf_init( void );
 unsigned int bmemperf_collect_arb_details( unsigned int client_id, unsigned int memc_index );
 unsigned int bmemperf_get_arb_err( unsigned int client_id, unsigned int memc_index );

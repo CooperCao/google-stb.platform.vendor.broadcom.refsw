@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ******************************************************************************/
 
 
@@ -152,7 +151,7 @@ void BCEC_P_HandleInterrupt_isr(
 
 #if BCEC_CONFIG_DEBUG_INTERRUPTS
 		BDBG_WRN(("%s: wakeReason1=0x%08x, wakeReason2=0x%08x, wakeReason3=0x%08x, wakeReason4=0x%08x [STATUS_0=0x%08x]",
-			__FUNCTION__, hCEC->wakeReason1, hCEC->wakeReason2, hCEC->wakeReason3, hCEC->wakeReason4, Register));
+			BSTD_FUNCTION, hCEC->wakeReason1, hCEC->wakeReason2, hCEC->wakeReason3, hCEC->wakeReason4, Register));
 #endif
 
 		/*************************************************************

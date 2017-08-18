@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
 ******************************************************************************/
 
 #include "nexus_platform.h"
@@ -56,6 +55,9 @@
 #include "bstd.h"
 #include "bkni.h"
 
+#undef min
+#define min(A,B) ((A)<(B)?(A):(B))
+
 /* the following define the input and its characteristics -- these will vary by input */
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
@@ -69,6 +71,7 @@ int main(void)
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_DisplayHandle display;
+    NEXUS_DisplayCapabilities displayCap;
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoWindowSettings windowSettings;
     NEXUS_PlatformSettings platformSettings;
@@ -84,6 +87,7 @@ int main(void)
     NEXUS_HdmiOutputStatus hdmiStatus;
 #endif
     NEXUS_Error rc;
+    NEXUS_Rect  pigRect = {100,100,200,200};
 
     /* Bring up all modules for a platform in a default configuraiton for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -113,6 +117,7 @@ int main(void)
     /* bring up display */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     display = NEXUS_Display_Open(0, &displaySettings);
+    NEXUS_GetDisplayCapabilities(&displayCap);
     window = NEXUS_VideoWindow_Open(display, 0);
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
@@ -133,11 +138,12 @@ int main(void)
     }
 #endif
 
+    NEXUS_VideoFormat_GetInfo(displaySettings.format, &formatInfo);
     NEXUS_VideoWindow_GetSettings(window, &windowSettings);
-    windowSettings.position.x = 100;
-    windowSettings.position.y = 100;
-    windowSettings.position.width = 200;
-    windowSettings.position.height = 200;
+    windowSettings.position.x = pigRect.x*(formatInfo.width/displayCap.display[0].graphics.width);
+    windowSettings.position.y = pigRect.y*(formatInfo.height/displayCap.display[0].graphics.height);
+    windowSettings.position.width = pigRect.width*(formatInfo.width/displayCap.display[0].graphics.width);
+    windowSettings.position.height = pigRect.height*(formatInfo.height/displayCap.display[0].graphics.height);
     windowSettings.alpha = 0xFF;
     windowSettings.zorder = 1; /* put video on top of graphics */
     NEXUS_VideoWindow_SetSettings(window, &windowSettings);
@@ -146,13 +152,12 @@ int main(void)
     vdecode = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(vdecode));
 
-    NEXUS_VideoFormat_GetInfo(displaySettings.format, &formatInfo);
 
     /* bring up graphics */
     NEXUS_Surface_GetDefaultCreateSettings(&createSurfaceSettings);
     createSurfaceSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-    createSurfaceSettings.width = formatInfo.width;
-    createSurfaceSettings.height = formatInfo.height;
+    createSurfaceSettings.width = min(displayCap.display[0].graphics.width, formatInfo.width);
+    createSurfaceSettings.height = min(displayCap.display[0].graphics.height, formatInfo.height);
     createSurfaceSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
     framebuffer = NEXUS_Surface_Create(&createSurfaceSettings);
 
@@ -163,11 +168,11 @@ int main(void)
     fillSettings.surface = framebuffer;
     fillSettings.color = 0xFF0000FF;
     NEXUS_Graphics2D_Fill(gfx, &fillSettings);
-
+    NEXUS_Graphics2D_Checkpoint(gfx,NULL);
     NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
     graphicsSettings.enabled = true;
-    graphicsSettings.clip.width = formatInfo.width;
-    graphicsSettings.clip.height = formatInfo.height;
+    graphicsSettings.clip.width = createSurfaceSettings.width;
+    graphicsSettings.clip.height = createSurfaceSettings.height;
     graphicsSettings.zorder = 0; /* put graphics under video */
     rc = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
     BDBG_ASSERT(!rc);

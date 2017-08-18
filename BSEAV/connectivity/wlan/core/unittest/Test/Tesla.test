@@ -1,0 +1,313 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF Tesla wrapper
+#
+# $Id: 98c23e27abb1832f3b169effdc0131ac6f99c2d7 $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::Tesla 2.0
+
+UTF::Test Tesla {args} {
+
+    UTF::Getopts {
+	{email.arg "hnd-utf-list abhorkar" "Email Address"}
+	{apbranch.arg "NIGHTLY" "AP Branch to load"}
+	{stabranch.arg "NIGHTLY" "STA Branch to load"}
+	{nostaload "Don't reload STA drivers"}
+	{DUTtype.arg "MacbookDUT"}
+    }
+
+    set TestType "Tesla"
+    
+    # Override default tags
+    set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+    if {$(DUTtype) == "MacbookDUT" || $(DUTtype) == "abhay4321"} {
+	set STAS "MacbookDUT"
+    }
+    if {$(DUTtype) == "MacbookX9DUT" || $(DUTtype) == "abhayX9"} {
+	set STAS "MacbookX9DUT"
+    }
+    if {$(DUTtype) == "MacMiniM93DUT" || $(DUTtype) == "abhayMacMiniM93"} {
+	set STAS "MacMiniM93DUT"
+    }
+
+    foreach STA $STAS {
+	$STA configure -tag $(stabranch)
+	if {[set stabuild [$STA cget -image]] eq ""} {
+	    set stabuild [$STA cget -tag]
+	}
+    }
+    
+    if {$stabuild eq "NIGHTLY"} {
+	set stabuild "TOT"
+    }
+    if {$(DUTtype) == "MacbookDUT" || $(DUTtype) == "abhay4321"} {
+	set TITLE "CIT Tesla Macbook 4321 (STA:$stabuild)"
+    }
+    if {$(DUTtype) == "MacbookX9DUT" || $(DUTtype) == "abhayX9"} {
+	set TITLE "CIT Tesla Macbook X9 (STA:$stabuild)"
+    }
+    if {$(DUTtype) == "MacMiniM93DUT" || $(DUTtype) == "abhayMacMiniM93"} {
+	set TITLE "CIT Tesla MacMini M93 (STA:$stabuild)"
+    }
+
+    UTF::Message INFO "" $TITLE
+
+    set summaryinfo ""
+    set header "1"
+
+    # Find images
+
+    if {!$(nostaload)} {
+	foreach STA $STAS {
+	    if {[catch {$STA findimages} path]} {
+		set staloaderror $path
+		puts "$staloaderror"
+	    } else {
+		set STALoadPath $path
+		set path [$STA findimages]
+		regsub {.*build_[^/]+/} $path {} id
+		regsub {/release.*} $id {} id
+		lappend summaryinfo $id
+		if {[regexp {_REL_} $id] ||
+		    ![info exists date] || [string match "*/$date.*" $id]} {
+		    set staloaderror ""
+		} else {
+		    UTF::Message INFO $STA \
+			"Build Unavailable. Instead will use ($STALoadPath)"
+		    set staloaderror "Build Unavailable"
+		}
+	    }
+	}
+    }
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE $summaryinfo $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	# Find images
+	if {!$(nostaload)} {
+	    UTF::Try "$TestType: Find STA Image" {
+		if {$staloaderror ne ""} {
+		    error $staloaderror
+		} else {
+		    UTF::Message INFO "Image Path:" $STALoadPath
+		}
+	    }
+	}
+
+	if {!$(nostaload)} {
+	    foreach STA $STAS {
+		UTF::Try "$TestType: $STA load" {
+		    $STA load
+		}
+	    }
+	}
+
+	foreach STA $STAS {
+	    UTF::Try "$TestType: $STA setup" {
+		$STA services stop
+		catch {$STA wl msglevel error assoc inform}
+		$STA wl up
+		UTF::Sleep 2
+		$STA wl ver
+		#$STA chipname
+	    }
+	}
+
+	# all the test results will be moved to under the UTF Logfile directory
+
+	set LogLoc $UTF::Logfile
+
+	#################### Tesla ######################
+
+
+	set locOfCoreConfigScript "/Users/local/Desktop/BRCM\\ Matrix/Profiles"
+	if {$(DUTtype) == "MacbookDUT"} {
+	    set coreConfigScript "Macbook4321.txt"
+	}
+	if {$(DUTtype) == "MacbookX9DUT"} {
+	    set coreConfigScript "MacbookX9.txt"
+	}
+	if {$(DUTtype) == "MacMiniM93DUT"} {
+	    set coreConfigScript "MacMiniM93.txt"
+	}
+	if {$(DUTtype) == "abhayX9"} {
+	    set coreConfigScript "abhayX9.txt"
+	}
+	if {$(DUTtype) == "abhay4321"} {
+	    set coreConfigScript "abhay4321.txt"
+	}
+	set teslaArgs "-retryCriteria failures -retryMax 3"
+	set mainTestScript \
+	    "/Applications/Tesla.app/Contents/Resources/teslaCLI.sh"
+	set locOfTelsaResults "/Users/local/Desktop/TeslaResults"
+	set Index [string last "test.log" $LogLoc]
+	set NewLogPath [string replace $LogLoc $Index end ""]
+	set testId [expr int([expr rand()]*100000)]
+
+	catch {[MacbookDUT wl down]}
+	catch {[MacbookX9DUT wl down]}
+	catch {[MacMiniM93DUT wl down]}
+	after 120000
+
+	UTF::Try "Tesla: Main" {
+	    TeslaMainPC rexec -t 60 -T 60 \
+		"cp $locOfCoreConfigScript\/$coreConfigScript $locOfCoreConfigScript\/$testId\.txt"
+	    TeslaMainPC rexec -t 21600 -T 21600 \
+		"$mainTestScript $locOfCoreConfigScript\/$testId\.txt $teslaArgs"
+	    return "Run Successful"
+	}
+
+	UTF::Try "Tesla: Summary" {
+	    TeslaMainPC copyfrom "$locOfTelsaResults\/$testId" $NewLogPath
+	    TeslaMainPC rexec -t 30 -T 30 \
+		"rm -fr $locOfCoreConfigScript\/$testId\.txt"
+	    TeslaMainPC rexec -t 30 -T 30 \
+		"rm -fr $locOfTelsaResults\/$testId"
+
+	    exec chmod -R 777 $NewLogPath
+	    set datestamp [exec ls $NewLogPath/$testId]
+	    set timestamp [exec ls $NewLogPath/$testId/$datestamp]
+	    puts $NewLogPath/$testId/$datestamp/$timestamp
+	    set summaryfile \
+		[glob $NewLogPath/$testId/$datestamp/$timestamp/*summary*]
+	    puts $summaryfile
+	    regexp {\{(.*)\}} $summaryfile match summaryfile
+	    file copy $summaryfile $NewLogPath
+	    set summaryfile [glob $NewLogPath/*summary*.txt]
+	    regexp {\{(.*)\}} $summaryfile match summaryfile
+	    puts $summaryfile
+	    return "link:$summaryfile"
+	}
+	UTF::Try "Tesla: Details" {
+	    catch {TeslaMainPC copyfrom "$locOfTelsaResults\/$testId" \
+		       $NewLogPath}
+	    catch {TeslaMainPC rexec -t 30 -T 30 \
+		       "rm -fr $locOfCoreConfigScript\/$testId\.txt"}
+	    catch {TeslaMainPC rexec -t 30 -T 30 \
+		       "rm -fr $locOfTelsaResults\/$testId"}
+
+	    exec chmod -R 777 $NewLogPath
+	    set datestamp [exec ls $NewLogPath/$testId]
+	    set timestamp [exec ls $NewLogPath/$testId/$datestamp]
+	    puts $NewLogPath/$testId/$datestamp/$timestamp
+	    set detailsfile \
+		[glob $NewLogPath/$testId/$datestamp/$timestamp/*details*]
+	    puts $detailsfile
+	    regexp {\{(.*)\}} $detailsfile match detailsfile
+	    file copy $detailsfile $NewLogPath
+	    set detailsfile [glob $NewLogPath/*details*.txt]
+	    regexp {\{(.*)\}} $detailsfile match detailsfile
+	    puts $detailsfile
+	    return "link:$detailsfile"
+	}
+
+	set fileId [open $summaryfile]
+	set firstline "0"
+	set lineone ""
+	set linetwo ""
+	set linethree ""
+	set linefour ""
+	set linefive ""
+
+
+	proc convert.string.to.hex str {
+	    binary scan $str H* hex
+	    return $hex
+	}
+
+	proc convert.hex.to.string hex {
+	    foreach c [split $hex ""] {
+		if {![string is xdigit $c]} {
+		    return "#invalid $hex"
+		}
+	    }
+	    binary format H* $hex
+	}
+	set goforward "1"
+	set fileInfo [gets $fileId line]
+
+	while {$fileInfo >= 0} {
+	    set line [convert.string.to.hex $line]
+	    set line [regsub -all "0320" $line ""]
+	    set line [regsub -all "be20" $line ""]
+	    set line [convert.hex.to.string $line]
+	    if {$firstline == "1"} {
+		set testMatch [regexp {[ \t]+(.*)\.tcl[ \t]+([0-9]+)[ \t]+([0-9])+[ \t]+(.*)} $line match test pass fail testmessage]
+		if {$testMatch !=1} {
+		    set printheader "1"
+		    set linematch [regexp {([ ]+)(.*)} $line match \
+				       frontwhitespace rest]
+		    set numTest [regsub -all " " $frontwhitespace "" blah]
+		    switch $numTest {
+			7 {
+			    set lineone "$rest"
+			    set linetwo ""
+			    set linethree ""
+			    set linefour ""
+			    set linefive ""
+			    set header "$lineone"
+			}
+			11 {
+			    set linetwo "$rest"
+			    set linethree ""
+			    set linefour ""
+			    set linefive ""
+			    set header "$lineone\:$linetwo"
+			}
+			15 {
+			    set linethree "$rest"
+			    set linefour ""
+			    set linefive ""
+			    set header "$lineone\:$linetwo\:$linethree"
+			}
+			19 {
+			    set linefour "$rest"
+			    set linefive ""
+			    set header \
+				"$lineone\:$linetwo\:$linethree\:$linefour"
+			}
+
+		    }
+		    set goforward "1"
+		} else {
+		    if {$printheader == "1"} {
+			set header [regsub -all " +\:" $header ":"]
+			#puts "$header"
+			set printheader "0"
+			UTF::Try "$header" {
+			    while {$testMatch == 1} {
+				UTF::Try "$test" {
+				    if {$pass < "1"} {
+					error $testmessage
+				    }
+				}
+				gets $fileId line
+				set line [convert.string.to.hex $line]
+				set line [regsub -all "0320" $line ""]
+				set line [regsub -all "be20" $line ""]
+				set line [convert.hex.to.string $line]
+				set testMatch [regexp {[ \t]+(.*)\.tcl[ \t]+([0-9]+)[ \t]+([0-9])+[ \t]+(.*)} $line match test pass fail testmessage]
+				set goforward "0"
+			    }
+			}
+		    }
+		}
+	    }
+	    if {$firstline == "0"} {
+		set firstline [regexp {.*Pass Fail.*} $line match]
+	    }
+	    if {$goforward == "1"} {
+		set fileInfo [gets $fileId line]
+	    }
+	}
+    }
+   #$STA shutdown_reboot
+}
+

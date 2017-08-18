@@ -59,7 +59,7 @@
     #include <sys/socket.h>             /* socket/bind/etc. */
 #endif
 
-BDBG_MODULE(prdyhttp);
+BDBG_MODULE(prdy_http);
 
 /* local
 defines
@@ -614,7 +614,7 @@ PRDY_HTTP_Client_SendRequest(PRDY_HTTP_Engine* http, const char *method, char *u
 
     burl_set(&url, urlstr);
     if (http->_currentFd == -1) {
-        if (!url._host || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
+        if (!url._host[0] || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
             return -1; //(bdrm_http_status_failed_connect);
     } else keepalive = HTTP_KEEP_ALIVE_ON;
 
@@ -649,7 +649,7 @@ PRDY_HTTP_Client_SendRequestV1_1(PRDY_HTTP_Engine* http, const char *method, cha
 
     burl_set(&url, urlstr);
     if (http->_currentFd == -1) {
-        if (!url._host || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
+        if (!url._host[0] || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
             return -1; //(bdrm_http_status_failed_connect);
     } else {
         BDBG_ERR(("%s: ERROR: unexpected status: _currentFD is invalid", __FUNCTION__));
@@ -721,7 +721,7 @@ PRDY_HTTP_GetPetition(PRDY_HTTP_Engine* http, char *urlstr)
 
     burl_set(&url, urlstr);
     if (http->_currentFd == -1) {
-        if (!url._host || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
+        if (!url._host[0] || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
             return -1;
     }
 
@@ -760,7 +760,7 @@ PRDY_HTTP_GetPetitionV1_1(PRDY_HTTP_Engine* http, char *urlstr, const char *host
 
     burl_set(&url, urlstr);
     if (http->_currentFd == -1) {
-        if (!url._host || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
+        if (!url._host[0] || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
             return -1;
     }
 
@@ -821,6 +821,7 @@ PRDY_HTTP_Client_GetForwardLinkUrl (
 
     /* initialize http engine and post */
     PRDY_HTTP_Engine_Init(&http);
+
     /* printf("%s - http engine init success. \n",__FUNCTION__)*/
     if ((post_ret = PRDY_HTTP_GetPetitionV1_1(&http, forward_link, NULL)) != 0) {
         BDBG_WRN(("PRDY_HTTP_license_get failed on POST"));
@@ -1344,6 +1345,8 @@ burl_str_replace(char* str, char to, char from)
     uint32_t idx;
     uint32_t count = 0, len = strlen(str);
 
+    return 0;
+
     for(idx = 0; idx < len; idx++) {
         if (str[idx] == from) {
             idx = to;
@@ -1444,7 +1447,7 @@ burl_clear(bdrm_url* drm_url)
 const char*
 burl_path(bdrm_url* drm_url)
 {
-    return (drm_url->_path) ? (const char *)(drm_url->_path) : (drm_url->_query);
+    return (drm_url->_path[0]) ? (const char *)(drm_url->_path) : (drm_url->_query);
 }
 
 /* get search from url object
@@ -1468,7 +1471,7 @@ burl_fragment(bdrm_url* drm_url)
 uint32_t
 burl_is_absolute(bdrm_url* drm_url)
 {
-    return ((drm_url->_host) || ((drm_url->_query) && (drm_url->_query[0] == '/')));
+    return ((drm_url->_host[0]) || ((drm_url->_query) && (drm_url->_query[0] == '/')));
 }
 
 /* set url from char, parse elements and store in members.

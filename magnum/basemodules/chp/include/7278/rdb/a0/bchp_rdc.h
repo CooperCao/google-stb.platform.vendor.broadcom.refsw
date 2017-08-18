@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep  1 14:32:41 2016
- *                 Full Compile MD5 Checksum  6fb3c439bf5a497d10d0a09493b41526
+ * Date:           Generated on               Fri May 26 16:30:57 2017
+ *                 Full Compile MD5 Checksum  b5d0ff4e780420249ed7539086f0200a
  *                     (minus title and desc)
- *                 MD5 Checksum               c7e6f0a8e19df692ab31ede29db92393
+ *                 MD5 Checksum               4a0169c9562de445280dcb6857c4b464
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1105
+ *                 RDB.pm                     1481
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -89,6 +86,22 @@
 #define BCHP_RDC_hdmi_sync_sel                   0x00004044 /* [CFG][32] HDMI TX Metadata SRAM Bank Synchronizer Select Register */
 #define BCHP_RDC_itm0_sync_sel                   0x00004048 /* [CFG][32] ITM0 LUT SRAM Bank Synchronizer Select Register */
 #define BCHP_RDC_itm1_sync_sel                   0x0000404c /* [CFG][32] ITM1 LUT SRAM Bank Synchronizer Select Register */
+#define BCHP_RDC_data_0                          0x00004080 /* [RW][64] General Purpose RAM Register at location 0 */
+#define BCHP_RDC_data_1                          0x00004088 /* [RW][64] General Purpose RAM Register at location 1 */
+#define BCHP_RDC_data_2                          0x00004090 /* [RW][64] General Purpose RAM Register at location 2 */
+#define BCHP_RDC_data_3                          0x00004098 /* [RW][64] General Purpose RAM Register at location 3 */
+#define BCHP_RDC_data_4                          0x000040a0 /* [RW][64] General Purpose RAM Register at location 4 */
+#define BCHP_RDC_data_5                          0x000040a8 /* [RW][64] General Purpose RAM Register at location 5 */
+#define BCHP_RDC_data_6                          0x000040b0 /* [RW][64] General Purpose RAM Register at location 6 */
+#define BCHP_RDC_data_7                          0x000040b8 /* [RW][64] General Purpose RAM Register at location 7 */
+#define BCHP_RDC_data_8                          0x000040c0 /* [RW][64] General Purpose RAM Register at location 8 */
+#define BCHP_RDC_data_9                          0x000040c8 /* [RW][64] General Purpose RAM Register at location 9 */
+#define BCHP_RDC_data_10                         0x000040d0 /* [RW][64] General Purpose RAM Register at location 10 */
+#define BCHP_RDC_data_11                         0x000040d8 /* [RW][64] General Purpose RAM Register at location 11 */
+#define BCHP_RDC_data_12                         0x000040e0 /* [RW][64] General Purpose RAM Register at location 12 */
+#define BCHP_RDC_data_13                         0x000040e8 /* [RW][64] General Purpose RAM Register at location 13 */
+#define BCHP_RDC_data_14                         0x000040f0 /* [RW][64] General Purpose RAM Register at location 14 */
+#define BCHP_RDC_data_15                         0x000040f8 /* [RW][64] General Purpose RAM Register at location 15 */
 #define BCHP_RDC_comb_mask_0                     0x00004100 /* [CFG][32] Trigger 31:0  Combine 0 Mask Register. */
 #define BCHP_RDC_comb_mask_0_hi                  0x00004104 /* [CFG][32] Trigger 63:32 Combine 0 Mask Register. */
 #define BCHP_RDC_comb_mask_0_hi2                 0x00004108 /* [CFG][32] Trigger 95:64 Combine 0 Mask Register. */
@@ -181,6 +194,262 @@
 #define BCHP_RDC_desc_29_tm_snapshot             0x00004374 /* [RO][32] Descriptor 29 Timer Snapshot. */
 #define BCHP_RDC_desc_30_tm_snapshot             0x00004378 /* [RO][32] Descriptor 30 Timer Snapshot. */
 #define BCHP_RDC_desc_31_tm_snapshot             0x0000437c /* [RO][32] Descriptor 31 Timer Snapshot. */
+#define BCHP_RDC_scratch64_0                     0x00004800 /* [RW][64] Scratch RAM 64bit Register at location 0 */
+#define BCHP_RDC_scratch64_1                     0x00004808 /* [RW][64] Scratch RAM 64bit Register at location 1 */
+#define BCHP_RDC_scratch64_2                     0x00004810 /* [RW][64] Scratch RAM 64bit Register at location 2 */
+#define BCHP_RDC_scratch64_3                     0x00004818 /* [RW][64] Scratch RAM 64bit Register at location 3 */
+#define BCHP_RDC_scratch64_4                     0x00004820 /* [RW][64] Scratch RAM 64bit Register at location 4 */
+#define BCHP_RDC_scratch64_5                     0x00004828 /* [RW][64] Scratch RAM 64bit Register at location 5 */
+#define BCHP_RDC_scratch64_6                     0x00004830 /* [RW][64] Scratch RAM 64bit Register at location 6 */
+#define BCHP_RDC_scratch64_7                     0x00004838 /* [RW][64] Scratch RAM 64bit Register at location 7 */
+#define BCHP_RDC_scratch64_8                     0x00004840 /* [RW][64] Scratch RAM 64bit Register at location 8 */
+#define BCHP_RDC_scratch64_9                     0x00004848 /* [RW][64] Scratch RAM 64bit Register at location 9 */
+#define BCHP_RDC_scratch64_10                    0x00004850 /* [RW][64] Scratch RAM 64bit Register at location 10 */
+#define BCHP_RDC_scratch64_11                    0x00004858 /* [RW][64] Scratch RAM 64bit Register at location 11 */
+#define BCHP_RDC_scratch64_12                    0x00004860 /* [RW][64] Scratch RAM 64bit Register at location 12 */
+#define BCHP_RDC_scratch64_13                    0x00004868 /* [RW][64] Scratch RAM 64bit Register at location 13 */
+#define BCHP_RDC_scratch64_14                    0x00004870 /* [RW][64] Scratch RAM 64bit Register at location 14 */
+#define BCHP_RDC_scratch64_15                    0x00004878 /* [RW][64] Scratch RAM 64bit Register at location 15 */
+#define BCHP_RDC_scratch64_16                    0x00004880 /* [RW][64] Scratch RAM 64bit Register at location 16 */
+#define BCHP_RDC_scratch64_17                    0x00004888 /* [RW][64] Scratch RAM 64bit Register at location 17 */
+#define BCHP_RDC_scratch64_18                    0x00004890 /* [RW][64] Scratch RAM 64bit Register at location 18 */
+#define BCHP_RDC_scratch64_19                    0x00004898 /* [RW][64] Scratch RAM 64bit Register at location 19 */
+#define BCHP_RDC_scratch64_20                    0x000048a0 /* [RW][64] Scratch RAM 64bit Register at location 20 */
+#define BCHP_RDC_scratch64_21                    0x000048a8 /* [RW][64] Scratch RAM 64bit Register at location 21 */
+#define BCHP_RDC_scratch64_22                    0x000048b0 /* [RW][64] Scratch RAM 64bit Register at location 22 */
+#define BCHP_RDC_scratch64_23                    0x000048b8 /* [RW][64] Scratch RAM 64bit Register at location 23 */
+#define BCHP_RDC_scratch64_24                    0x000048c0 /* [RW][64] Scratch RAM 64bit Register at location 24 */
+#define BCHP_RDC_scratch64_25                    0x000048c8 /* [RW][64] Scratch RAM 64bit Register at location 25 */
+#define BCHP_RDC_scratch64_26                    0x000048d0 /* [RW][64] Scratch RAM 64bit Register at location 26 */
+#define BCHP_RDC_scratch64_27                    0x000048d8 /* [RW][64] Scratch RAM 64bit Register at location 27 */
+#define BCHP_RDC_scratch64_28                    0x000048e0 /* [RW][64] Scratch RAM 64bit Register at location 28 */
+#define BCHP_RDC_scratch64_29                    0x000048e8 /* [RW][64] Scratch RAM 64bit Register at location 29 */
+#define BCHP_RDC_scratch64_30                    0x000048f0 /* [RW][64] Scratch RAM 64bit Register at location 30 */
+#define BCHP_RDC_scratch64_31                    0x000048f8 /* [RW][64] Scratch RAM 64bit Register at location 31 */
+#define BCHP_RDC_scratch64_32                    0x00004900 /* [RW][64] Scratch RAM 64bit Register at location 32 */
+#define BCHP_RDC_scratch64_33                    0x00004908 /* [RW][64] Scratch RAM 64bit Register at location 33 */
+#define BCHP_RDC_scratch64_34                    0x00004910 /* [RW][64] Scratch RAM 64bit Register at location 34 */
+#define BCHP_RDC_scratch64_35                    0x00004918 /* [RW][64] Scratch RAM 64bit Register at location 35 */
+#define BCHP_RDC_scratch64_36                    0x00004920 /* [RW][64] Scratch RAM 64bit Register at location 36 */
+#define BCHP_RDC_scratch64_37                    0x00004928 /* [RW][64] Scratch RAM 64bit Register at location 37 */
+#define BCHP_RDC_scratch64_38                    0x00004930 /* [RW][64] Scratch RAM 64bit Register at location 38 */
+#define BCHP_RDC_scratch64_39                    0x00004938 /* [RW][64] Scratch RAM 64bit Register at location 39 */
+#define BCHP_RDC_scratch64_40                    0x00004940 /* [RW][64] Scratch RAM 64bit Register at location 40 */
+#define BCHP_RDC_scratch64_41                    0x00004948 /* [RW][64] Scratch RAM 64bit Register at location 41 */
+#define BCHP_RDC_scratch64_42                    0x00004950 /* [RW][64] Scratch RAM 64bit Register at location 42 */
+#define BCHP_RDC_scratch64_43                    0x00004958 /* [RW][64] Scratch RAM 64bit Register at location 43 */
+#define BCHP_RDC_scratch64_44                    0x00004960 /* [RW][64] Scratch RAM 64bit Register at location 44 */
+#define BCHP_RDC_scratch64_45                    0x00004968 /* [RW][64] Scratch RAM 64bit Register at location 45 */
+#define BCHP_RDC_scratch64_46                    0x00004970 /* [RW][64] Scratch RAM 64bit Register at location 46 */
+#define BCHP_RDC_scratch64_47                    0x00004978 /* [RW][64] Scratch RAM 64bit Register at location 47 */
+#define BCHP_RDC_scratch64_48                    0x00004980 /* [RW][64] Scratch RAM 64bit Register at location 48 */
+#define BCHP_RDC_scratch64_49                    0x00004988 /* [RW][64] Scratch RAM 64bit Register at location 49 */
+#define BCHP_RDC_scratch64_50                    0x00004990 /* [RW][64] Scratch RAM 64bit Register at location 50 */
+#define BCHP_RDC_scratch64_51                    0x00004998 /* [RW][64] Scratch RAM 64bit Register at location 51 */
+#define BCHP_RDC_scratch64_52                    0x000049a0 /* [RW][64] Scratch RAM 64bit Register at location 52 */
+#define BCHP_RDC_scratch64_53                    0x000049a8 /* [RW][64] Scratch RAM 64bit Register at location 53 */
+#define BCHP_RDC_scratch64_54                    0x000049b0 /* [RW][64] Scratch RAM 64bit Register at location 54 */
+#define BCHP_RDC_scratch64_55                    0x000049b8 /* [RW][64] Scratch RAM 64bit Register at location 55 */
+#define BCHP_RDC_scratch64_56                    0x000049c0 /* [RW][64] Scratch RAM 64bit Register at location 56 */
+#define BCHP_RDC_scratch64_57                    0x000049c8 /* [RW][64] Scratch RAM 64bit Register at location 57 */
+#define BCHP_RDC_scratch64_58                    0x000049d0 /* [RW][64] Scratch RAM 64bit Register at location 58 */
+#define BCHP_RDC_scratch64_59                    0x000049d8 /* [RW][64] Scratch RAM 64bit Register at location 59 */
+#define BCHP_RDC_scratch64_60                    0x000049e0 /* [RW][64] Scratch RAM 64bit Register at location 60 */
+#define BCHP_RDC_scratch64_61                    0x000049e8 /* [RW][64] Scratch RAM 64bit Register at location 61 */
+#define BCHP_RDC_scratch64_62                    0x000049f0 /* [RW][64] Scratch RAM 64bit Register at location 62 */
+#define BCHP_RDC_scratch64_63                    0x000049f8 /* [RW][64] Scratch RAM 64bit Register at location 63 */
+#define BCHP_RDC_scratch64_64                    0x00004a00 /* [RW][64] Scratch RAM 64bit Register at location 64 */
+#define BCHP_RDC_scratch64_65                    0x00004a08 /* [RW][64] Scratch RAM 64bit Register at location 65 */
+#define BCHP_RDC_scratch64_66                    0x00004a10 /* [RW][64] Scratch RAM 64bit Register at location 66 */
+#define BCHP_RDC_scratch64_67                    0x00004a18 /* [RW][64] Scratch RAM 64bit Register at location 67 */
+#define BCHP_RDC_scratch64_68                    0x00004a20 /* [RW][64] Scratch RAM 64bit Register at location 68 */
+#define BCHP_RDC_scratch64_69                    0x00004a28 /* [RW][64] Scratch RAM 64bit Register at location 69 */
+#define BCHP_RDC_scratch64_70                    0x00004a30 /* [RW][64] Scratch RAM 64bit Register at location 70 */
+#define BCHP_RDC_scratch64_71                    0x00004a38 /* [RW][64] Scratch RAM 64bit Register at location 71 */
+#define BCHP_RDC_scratch64_72                    0x00004a40 /* [RW][64] Scratch RAM 64bit Register at location 72 */
+#define BCHP_RDC_scratch64_73                    0x00004a48 /* [RW][64] Scratch RAM 64bit Register at location 73 */
+#define BCHP_RDC_scratch64_74                    0x00004a50 /* [RW][64] Scratch RAM 64bit Register at location 74 */
+#define BCHP_RDC_scratch64_75                    0x00004a58 /* [RW][64] Scratch RAM 64bit Register at location 75 */
+#define BCHP_RDC_scratch64_76                    0x00004a60 /* [RW][64] Scratch RAM 64bit Register at location 76 */
+#define BCHP_RDC_scratch64_77                    0x00004a68 /* [RW][64] Scratch RAM 64bit Register at location 77 */
+#define BCHP_RDC_scratch64_78                    0x00004a70 /* [RW][64] Scratch RAM 64bit Register at location 78 */
+#define BCHP_RDC_scratch64_79                    0x00004a78 /* [RW][64] Scratch RAM 64bit Register at location 79 */
+#define BCHP_RDC_scratch64_80                    0x00004a80 /* [RW][64] Scratch RAM 64bit Register at location 80 */
+#define BCHP_RDC_scratch64_81                    0x00004a88 /* [RW][64] Scratch RAM 64bit Register at location 81 */
+#define BCHP_RDC_scratch64_82                    0x00004a90 /* [RW][64] Scratch RAM 64bit Register at location 82 */
+#define BCHP_RDC_scratch64_83                    0x00004a98 /* [RW][64] Scratch RAM 64bit Register at location 83 */
+#define BCHP_RDC_scratch64_84                    0x00004aa0 /* [RW][64] Scratch RAM 64bit Register at location 84 */
+#define BCHP_RDC_scratch64_85                    0x00004aa8 /* [RW][64] Scratch RAM 64bit Register at location 85 */
+#define BCHP_RDC_scratch64_86                    0x00004ab0 /* [RW][64] Scratch RAM 64bit Register at location 86 */
+#define BCHP_RDC_scratch64_87                    0x00004ab8 /* [RW][64] Scratch RAM 64bit Register at location 87 */
+#define BCHP_RDC_scratch64_88                    0x00004ac0 /* [RW][64] Scratch RAM 64bit Register at location 88 */
+#define BCHP_RDC_scratch64_89                    0x00004ac8 /* [RW][64] Scratch RAM 64bit Register at location 89 */
+#define BCHP_RDC_scratch64_90                    0x00004ad0 /* [RW][64] Scratch RAM 64bit Register at location 90 */
+#define BCHP_RDC_scratch64_91                    0x00004ad8 /* [RW][64] Scratch RAM 64bit Register at location 91 */
+#define BCHP_RDC_scratch64_92                    0x00004ae0 /* [RW][64] Scratch RAM 64bit Register at location 92 */
+#define BCHP_RDC_scratch64_93                    0x00004ae8 /* [RW][64] Scratch RAM 64bit Register at location 93 */
+#define BCHP_RDC_scratch64_94                    0x00004af0 /* [RW][64] Scratch RAM 64bit Register at location 94 */
+#define BCHP_RDC_scratch64_95                    0x00004af8 /* [RW][64] Scratch RAM 64bit Register at location 95 */
+#define BCHP_RDC_scratch64_96                    0x00004b00 /* [RW][64] Scratch RAM 64bit Register at location 96 */
+#define BCHP_RDC_scratch64_97                    0x00004b08 /* [RW][64] Scratch RAM 64bit Register at location 97 */
+#define BCHP_RDC_scratch64_98                    0x00004b10 /* [RW][64] Scratch RAM 64bit Register at location 98 */
+#define BCHP_RDC_scratch64_99                    0x00004b18 /* [RW][64] Scratch RAM 64bit Register at location 99 */
+#define BCHP_RDC_scratch64_100                   0x00004b20 /* [RW][64] Scratch RAM 64bit Register at location 100 */
+#define BCHP_RDC_scratch64_101                   0x00004b28 /* [RW][64] Scratch RAM 64bit Register at location 101 */
+#define BCHP_RDC_scratch64_102                   0x00004b30 /* [RW][64] Scratch RAM 64bit Register at location 102 */
+#define BCHP_RDC_scratch64_103                   0x00004b38 /* [RW][64] Scratch RAM 64bit Register at location 103 */
+#define BCHP_RDC_scratch64_104                   0x00004b40 /* [RW][64] Scratch RAM 64bit Register at location 104 */
+#define BCHP_RDC_scratch64_105                   0x00004b48 /* [RW][64] Scratch RAM 64bit Register at location 105 */
+#define BCHP_RDC_scratch64_106                   0x00004b50 /* [RW][64] Scratch RAM 64bit Register at location 106 */
+#define BCHP_RDC_scratch64_107                   0x00004b58 /* [RW][64] Scratch RAM 64bit Register at location 107 */
+#define BCHP_RDC_scratch64_108                   0x00004b60 /* [RW][64] Scratch RAM 64bit Register at location 108 */
+#define BCHP_RDC_scratch64_109                   0x00004b68 /* [RW][64] Scratch RAM 64bit Register at location 109 */
+#define BCHP_RDC_scratch64_110                   0x00004b70 /* [RW][64] Scratch RAM 64bit Register at location 110 */
+#define BCHP_RDC_scratch64_111                   0x00004b78 /* [RW][64] Scratch RAM 64bit Register at location 111 */
+#define BCHP_RDC_scratch64_112                   0x00004b80 /* [RW][64] Scratch RAM 64bit Register at location 112 */
+#define BCHP_RDC_scratch64_113                   0x00004b88 /* [RW][64] Scratch RAM 64bit Register at location 113 */
+#define BCHP_RDC_scratch64_114                   0x00004b90 /* [RW][64] Scratch RAM 64bit Register at location 114 */
+#define BCHP_RDC_scratch64_115                   0x00004b98 /* [RW][64] Scratch RAM 64bit Register at location 115 */
+#define BCHP_RDC_scratch64_116                   0x00004ba0 /* [RW][64] Scratch RAM 64bit Register at location 116 */
+#define BCHP_RDC_scratch64_117                   0x00004ba8 /* [RW][64] Scratch RAM 64bit Register at location 117 */
+#define BCHP_RDC_scratch64_118                   0x00004bb0 /* [RW][64] Scratch RAM 64bit Register at location 118 */
+#define BCHP_RDC_scratch64_119                   0x00004bb8 /* [RW][64] Scratch RAM 64bit Register at location 119 */
+#define BCHP_RDC_scratch64_120                   0x00004bc0 /* [RW][64] Scratch RAM 64bit Register at location 120 */
+#define BCHP_RDC_scratch64_121                   0x00004bc8 /* [RW][64] Scratch RAM 64bit Register at location 121 */
+#define BCHP_RDC_scratch64_122                   0x00004bd0 /* [RW][64] Scratch RAM 64bit Register at location 122 */
+#define BCHP_RDC_scratch64_123                   0x00004bd8 /* [RW][64] Scratch RAM 64bit Register at location 123 */
+#define BCHP_RDC_scratch64_124                   0x00004be0 /* [RW][64] Scratch RAM 64bit Register at location 124 */
+#define BCHP_RDC_scratch64_125                   0x00004be8 /* [RW][64] Scratch RAM 64bit Register at location 125 */
+#define BCHP_RDC_scratch64_126                   0x00004bf0 /* [RW][64] Scratch RAM 64bit Register at location 126 */
+#define BCHP_RDC_scratch64_127                   0x00004bf8 /* [RW][64] Scratch RAM 64bit Register at location 127 */
+#define BCHP_RDC_scratch64_128                   0x00004c00 /* [RW][64] Scratch RAM 64bit Register at location 128 */
+#define BCHP_RDC_scratch64_129                   0x00004c08 /* [RW][64] Scratch RAM 64bit Register at location 129 */
+#define BCHP_RDC_scratch64_130                   0x00004c10 /* [RW][64] Scratch RAM 64bit Register at location 130 */
+#define BCHP_RDC_scratch64_131                   0x00004c18 /* [RW][64] Scratch RAM 64bit Register at location 131 */
+#define BCHP_RDC_scratch64_132                   0x00004c20 /* [RW][64] Scratch RAM 64bit Register at location 132 */
+#define BCHP_RDC_scratch64_133                   0x00004c28 /* [RW][64] Scratch RAM 64bit Register at location 133 */
+#define BCHP_RDC_scratch64_134                   0x00004c30 /* [RW][64] Scratch RAM 64bit Register at location 134 */
+#define BCHP_RDC_scratch64_135                   0x00004c38 /* [RW][64] Scratch RAM 64bit Register at location 135 */
+#define BCHP_RDC_scratch64_136                   0x00004c40 /* [RW][64] Scratch RAM 64bit Register at location 136 */
+#define BCHP_RDC_scratch64_137                   0x00004c48 /* [RW][64] Scratch RAM 64bit Register at location 137 */
+#define BCHP_RDC_scratch64_138                   0x00004c50 /* [RW][64] Scratch RAM 64bit Register at location 138 */
+#define BCHP_RDC_scratch64_139                   0x00004c58 /* [RW][64] Scratch RAM 64bit Register at location 139 */
+#define BCHP_RDC_scratch64_140                   0x00004c60 /* [RW][64] Scratch RAM 64bit Register at location 140 */
+#define BCHP_RDC_scratch64_141                   0x00004c68 /* [RW][64] Scratch RAM 64bit Register at location 141 */
+#define BCHP_RDC_scratch64_142                   0x00004c70 /* [RW][64] Scratch RAM 64bit Register at location 142 */
+#define BCHP_RDC_scratch64_143                   0x00004c78 /* [RW][64] Scratch RAM 64bit Register at location 143 */
+#define BCHP_RDC_scratch64_144                   0x00004c80 /* [RW][64] Scratch RAM 64bit Register at location 144 */
+#define BCHP_RDC_scratch64_145                   0x00004c88 /* [RW][64] Scratch RAM 64bit Register at location 145 */
+#define BCHP_RDC_scratch64_146                   0x00004c90 /* [RW][64] Scratch RAM 64bit Register at location 146 */
+#define BCHP_RDC_scratch64_147                   0x00004c98 /* [RW][64] Scratch RAM 64bit Register at location 147 */
+#define BCHP_RDC_scratch64_148                   0x00004ca0 /* [RW][64] Scratch RAM 64bit Register at location 148 */
+#define BCHP_RDC_scratch64_149                   0x00004ca8 /* [RW][64] Scratch RAM 64bit Register at location 149 */
+#define BCHP_RDC_scratch64_150                   0x00004cb0 /* [RW][64] Scratch RAM 64bit Register at location 150 */
+#define BCHP_RDC_scratch64_151                   0x00004cb8 /* [RW][64] Scratch RAM 64bit Register at location 151 */
+#define BCHP_RDC_scratch64_152                   0x00004cc0 /* [RW][64] Scratch RAM 64bit Register at location 152 */
+#define BCHP_RDC_scratch64_153                   0x00004cc8 /* [RW][64] Scratch RAM 64bit Register at location 153 */
+#define BCHP_RDC_scratch64_154                   0x00004cd0 /* [RW][64] Scratch RAM 64bit Register at location 154 */
+#define BCHP_RDC_scratch64_155                   0x00004cd8 /* [RW][64] Scratch RAM 64bit Register at location 155 */
+#define BCHP_RDC_scratch64_156                   0x00004ce0 /* [RW][64] Scratch RAM 64bit Register at location 156 */
+#define BCHP_RDC_scratch64_157                   0x00004ce8 /* [RW][64] Scratch RAM 64bit Register at location 157 */
+#define BCHP_RDC_scratch64_158                   0x00004cf0 /* [RW][64] Scratch RAM 64bit Register at location 158 */
+#define BCHP_RDC_scratch64_159                   0x00004cf8 /* [RW][64] Scratch RAM 64bit Register at location 159 */
+#define BCHP_RDC_scratch64_160                   0x00004d00 /* [RW][64] Scratch RAM 64bit Register at location 160 */
+#define BCHP_RDC_scratch64_161                   0x00004d08 /* [RW][64] Scratch RAM 64bit Register at location 161 */
+#define BCHP_RDC_scratch64_162                   0x00004d10 /* [RW][64] Scratch RAM 64bit Register at location 162 */
+#define BCHP_RDC_scratch64_163                   0x00004d18 /* [RW][64] Scratch RAM 64bit Register at location 163 */
+#define BCHP_RDC_scratch64_164                   0x00004d20 /* [RW][64] Scratch RAM 64bit Register at location 164 */
+#define BCHP_RDC_scratch64_165                   0x00004d28 /* [RW][64] Scratch RAM 64bit Register at location 165 */
+#define BCHP_RDC_scratch64_166                   0x00004d30 /* [RW][64] Scratch RAM 64bit Register at location 166 */
+#define BCHP_RDC_scratch64_167                   0x00004d38 /* [RW][64] Scratch RAM 64bit Register at location 167 */
+#define BCHP_RDC_scratch64_168                   0x00004d40 /* [RW][64] Scratch RAM 64bit Register at location 168 */
+#define BCHP_RDC_scratch64_169                   0x00004d48 /* [RW][64] Scratch RAM 64bit Register at location 169 */
+#define BCHP_RDC_scratch64_170                   0x00004d50 /* [RW][64] Scratch RAM 64bit Register at location 170 */
+#define BCHP_RDC_scratch64_171                   0x00004d58 /* [RW][64] Scratch RAM 64bit Register at location 171 */
+#define BCHP_RDC_scratch64_172                   0x00004d60 /* [RW][64] Scratch RAM 64bit Register at location 172 */
+#define BCHP_RDC_scratch64_173                   0x00004d68 /* [RW][64] Scratch RAM 64bit Register at location 173 */
+#define BCHP_RDC_scratch64_174                   0x00004d70 /* [RW][64] Scratch RAM 64bit Register at location 174 */
+#define BCHP_RDC_scratch64_175                   0x00004d78 /* [RW][64] Scratch RAM 64bit Register at location 175 */
+#define BCHP_RDC_scratch64_176                   0x00004d80 /* [RW][64] Scratch RAM 64bit Register at location 176 */
+#define BCHP_RDC_scratch64_177                   0x00004d88 /* [RW][64] Scratch RAM 64bit Register at location 177 */
+#define BCHP_RDC_scratch64_178                   0x00004d90 /* [RW][64] Scratch RAM 64bit Register at location 178 */
+#define BCHP_RDC_scratch64_179                   0x00004d98 /* [RW][64] Scratch RAM 64bit Register at location 179 */
+#define BCHP_RDC_scratch64_180                   0x00004da0 /* [RW][64] Scratch RAM 64bit Register at location 180 */
+#define BCHP_RDC_scratch64_181                   0x00004da8 /* [RW][64] Scratch RAM 64bit Register at location 181 */
+#define BCHP_RDC_scratch64_182                   0x00004db0 /* [RW][64] Scratch RAM 64bit Register at location 182 */
+#define BCHP_RDC_scratch64_183                   0x00004db8 /* [RW][64] Scratch RAM 64bit Register at location 183 */
+#define BCHP_RDC_scratch64_184                   0x00004dc0 /* [RW][64] Scratch RAM 64bit Register at location 184 */
+#define BCHP_RDC_scratch64_185                   0x00004dc8 /* [RW][64] Scratch RAM 64bit Register at location 185 */
+#define BCHP_RDC_scratch64_186                   0x00004dd0 /* [RW][64] Scratch RAM 64bit Register at location 186 */
+#define BCHP_RDC_scratch64_187                   0x00004dd8 /* [RW][64] Scratch RAM 64bit Register at location 187 */
+#define BCHP_RDC_scratch64_188                   0x00004de0 /* [RW][64] Scratch RAM 64bit Register at location 188 */
+#define BCHP_RDC_scratch64_189                   0x00004de8 /* [RW][64] Scratch RAM 64bit Register at location 189 */
+#define BCHP_RDC_scratch64_190                   0x00004df0 /* [RW][64] Scratch RAM 64bit Register at location 190 */
+#define BCHP_RDC_scratch64_191                   0x00004df8 /* [RW][64] Scratch RAM 64bit Register at location 191 */
+#define BCHP_RDC_scratch64_192                   0x00004e00 /* [RW][64] Scratch RAM 64bit Register at location 192 */
+#define BCHP_RDC_scratch64_193                   0x00004e08 /* [RW][64] Scratch RAM 64bit Register at location 193 */
+#define BCHP_RDC_scratch64_194                   0x00004e10 /* [RW][64] Scratch RAM 64bit Register at location 194 */
+#define BCHP_RDC_scratch64_195                   0x00004e18 /* [RW][64] Scratch RAM 64bit Register at location 195 */
+#define BCHP_RDC_scratch64_196                   0x00004e20 /* [RW][64] Scratch RAM 64bit Register at location 196 */
+#define BCHP_RDC_scratch64_197                   0x00004e28 /* [RW][64] Scratch RAM 64bit Register at location 197 */
+#define BCHP_RDC_scratch64_198                   0x00004e30 /* [RW][64] Scratch RAM 64bit Register at location 198 */
+#define BCHP_RDC_scratch64_199                   0x00004e38 /* [RW][64] Scratch RAM 64bit Register at location 199 */
+#define BCHP_RDC_scratch64_200                   0x00004e40 /* [RW][64] Scratch RAM 64bit Register at location 200 */
+#define BCHP_RDC_scratch64_201                   0x00004e48 /* [RW][64] Scratch RAM 64bit Register at location 201 */
+#define BCHP_RDC_scratch64_202                   0x00004e50 /* [RW][64] Scratch RAM 64bit Register at location 202 */
+#define BCHP_RDC_scratch64_203                   0x00004e58 /* [RW][64] Scratch RAM 64bit Register at location 203 */
+#define BCHP_RDC_scratch64_204                   0x00004e60 /* [RW][64] Scratch RAM 64bit Register at location 204 */
+#define BCHP_RDC_scratch64_205                   0x00004e68 /* [RW][64] Scratch RAM 64bit Register at location 205 */
+#define BCHP_RDC_scratch64_206                   0x00004e70 /* [RW][64] Scratch RAM 64bit Register at location 206 */
+#define BCHP_RDC_scratch64_207                   0x00004e78 /* [RW][64] Scratch RAM 64bit Register at location 207 */
+#define BCHP_RDC_scratch64_208                   0x00004e80 /* [RW][64] Scratch RAM 64bit Register at location 208 */
+#define BCHP_RDC_scratch64_209                   0x00004e88 /* [RW][64] Scratch RAM 64bit Register at location 209 */
+#define BCHP_RDC_scratch64_210                   0x00004e90 /* [RW][64] Scratch RAM 64bit Register at location 210 */
+#define BCHP_RDC_scratch64_211                   0x00004e98 /* [RW][64] Scratch RAM 64bit Register at location 211 */
+#define BCHP_RDC_scratch64_212                   0x00004ea0 /* [RW][64] Scratch RAM 64bit Register at location 212 */
+#define BCHP_RDC_scratch64_213                   0x00004ea8 /* [RW][64] Scratch RAM 64bit Register at location 213 */
+#define BCHP_RDC_scratch64_214                   0x00004eb0 /* [RW][64] Scratch RAM 64bit Register at location 214 */
+#define BCHP_RDC_scratch64_215                   0x00004eb8 /* [RW][64] Scratch RAM 64bit Register at location 215 */
+#define BCHP_RDC_scratch64_216                   0x00004ec0 /* [RW][64] Scratch RAM 64bit Register at location 216 */
+#define BCHP_RDC_scratch64_217                   0x00004ec8 /* [RW][64] Scratch RAM 64bit Register at location 217 */
+#define BCHP_RDC_scratch64_218                   0x00004ed0 /* [RW][64] Scratch RAM 64bit Register at location 218 */
+#define BCHP_RDC_scratch64_219                   0x00004ed8 /* [RW][64] Scratch RAM 64bit Register at location 219 */
+#define BCHP_RDC_scratch64_220                   0x00004ee0 /* [RW][64] Scratch RAM 64bit Register at location 220 */
+#define BCHP_RDC_scratch64_221                   0x00004ee8 /* [RW][64] Scratch RAM 64bit Register at location 221 */
+#define BCHP_RDC_scratch64_222                   0x00004ef0 /* [RW][64] Scratch RAM 64bit Register at location 222 */
+#define BCHP_RDC_scratch64_223                   0x00004ef8 /* [RW][64] Scratch RAM 64bit Register at location 223 */
+#define BCHP_RDC_scratch64_224                   0x00004f00 /* [RW][64] Scratch RAM 64bit Register at location 224 */
+#define BCHP_RDC_scratch64_225                   0x00004f08 /* [RW][64] Scratch RAM 64bit Register at location 225 */
+#define BCHP_RDC_scratch64_226                   0x00004f10 /* [RW][64] Scratch RAM 64bit Register at location 226 */
+#define BCHP_RDC_scratch64_227                   0x00004f18 /* [RW][64] Scratch RAM 64bit Register at location 227 */
+#define BCHP_RDC_scratch64_228                   0x00004f20 /* [RW][64] Scratch RAM 64bit Register at location 228 */
+#define BCHP_RDC_scratch64_229                   0x00004f28 /* [RW][64] Scratch RAM 64bit Register at location 229 */
+#define BCHP_RDC_scratch64_230                   0x00004f30 /* [RW][64] Scratch RAM 64bit Register at location 230 */
+#define BCHP_RDC_scratch64_231                   0x00004f38 /* [RW][64] Scratch RAM 64bit Register at location 231 */
+#define BCHP_RDC_scratch64_232                   0x00004f40 /* [RW][64] Scratch RAM 64bit Register at location 232 */
+#define BCHP_RDC_scratch64_233                   0x00004f48 /* [RW][64] Scratch RAM 64bit Register at location 233 */
+#define BCHP_RDC_scratch64_234                   0x00004f50 /* [RW][64] Scratch RAM 64bit Register at location 234 */
+#define BCHP_RDC_scratch64_235                   0x00004f58 /* [RW][64] Scratch RAM 64bit Register at location 235 */
+#define BCHP_RDC_scratch64_236                   0x00004f60 /* [RW][64] Scratch RAM 64bit Register at location 236 */
+#define BCHP_RDC_scratch64_237                   0x00004f68 /* [RW][64] Scratch RAM 64bit Register at location 237 */
+#define BCHP_RDC_scratch64_238                   0x00004f70 /* [RW][64] Scratch RAM 64bit Register at location 238 */
+#define BCHP_RDC_scratch64_239                   0x00004f78 /* [RW][64] Scratch RAM 64bit Register at location 239 */
+#define BCHP_RDC_scratch64_240                   0x00004f80 /* [RW][64] Scratch RAM 64bit Register at location 240 */
+#define BCHP_RDC_scratch64_241                   0x00004f88 /* [RW][64] Scratch RAM 64bit Register at location 241 */
+#define BCHP_RDC_scratch64_242                   0x00004f90 /* [RW][64] Scratch RAM 64bit Register at location 242 */
+#define BCHP_RDC_scratch64_243                   0x00004f98 /* [RW][64] Scratch RAM 64bit Register at location 243 */
+#define BCHP_RDC_scratch64_244                   0x00004fa0 /* [RW][64] Scratch RAM 64bit Register at location 244 */
+#define BCHP_RDC_scratch64_245                   0x00004fa8 /* [RW][64] Scratch RAM 64bit Register at location 245 */
+#define BCHP_RDC_scratch64_246                   0x00004fb0 /* [RW][64] Scratch RAM 64bit Register at location 246 */
+#define BCHP_RDC_scratch64_247                   0x00004fb8 /* [RW][64] Scratch RAM 64bit Register at location 247 */
+#define BCHP_RDC_scratch64_248                   0x00004fc0 /* [RW][64] Scratch RAM 64bit Register at location 248 */
+#define BCHP_RDC_scratch64_249                   0x00004fc8 /* [RW][64] Scratch RAM 64bit Register at location 249 */
+#define BCHP_RDC_scratch64_250                   0x00004fd0 /* [RW][64] Scratch RAM 64bit Register at location 250 */
+#define BCHP_RDC_scratch64_251                   0x00004fd8 /* [RW][64] Scratch RAM 64bit Register at location 251 */
+#define BCHP_RDC_scratch64_252                   0x00004fe0 /* [RW][64] Scratch RAM 64bit Register at location 252 */
+#define BCHP_RDC_scratch64_253                   0x00004fe8 /* [RW][64] Scratch RAM 64bit Register at location 253 */
+#define BCHP_RDC_scratch64_254                   0x00004ff0 /* [RW][64] Scratch RAM 64bit Register at location 254 */
+#define BCHP_RDC_scratch64_255                   0x00004ff8 /* [RW][64] Scratch RAM 64bit Register at location 255 */
 #define BCHP_RDC_desc_0_addr                     0x00005000 /* [RW][64] DMA Descriptor 0 Address Register. */
 #define BCHP_RDC_desc_0_count                    0x00005008 /* [RW][32] DMA Descriptor 0 Count Register. */
 #define BCHP_RDC_desc_0_config                   0x00005010 /* [RW][32] DMA Descriptor 0 Configuration Register. */
@@ -1310,6 +1579,118 @@
 
 
 /***************************************************************************
+ *data_0 - General Purpose RAM Register at location 0
+ ***************************************************************************/
+/* RDC :: data_0 :: data64 [63:00] */
+#define BCHP_RDC_data_0_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_0_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_1 - General Purpose RAM Register at location 1
+ ***************************************************************************/
+/* RDC :: data_1 :: data64 [63:00] */
+#define BCHP_RDC_data_1_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_1_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_2 - General Purpose RAM Register at location 2
+ ***************************************************************************/
+/* RDC :: data_2 :: data64 [63:00] */
+#define BCHP_RDC_data_2_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_2_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_3 - General Purpose RAM Register at location 3
+ ***************************************************************************/
+/* RDC :: data_3 :: data64 [63:00] */
+#define BCHP_RDC_data_3_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_3_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_4 - General Purpose RAM Register at location 4
+ ***************************************************************************/
+/* RDC :: data_4 :: data64 [63:00] */
+#define BCHP_RDC_data_4_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_4_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_5 - General Purpose RAM Register at location 5
+ ***************************************************************************/
+/* RDC :: data_5 :: data64 [63:00] */
+#define BCHP_RDC_data_5_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_5_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_6 - General Purpose RAM Register at location 6
+ ***************************************************************************/
+/* RDC :: data_6 :: data64 [63:00] */
+#define BCHP_RDC_data_6_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_6_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_7 - General Purpose RAM Register at location 7
+ ***************************************************************************/
+/* RDC :: data_7 :: data64 [63:00] */
+#define BCHP_RDC_data_7_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_7_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_8 - General Purpose RAM Register at location 8
+ ***************************************************************************/
+/* RDC :: data_8 :: data64 [63:00] */
+#define BCHP_RDC_data_8_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_8_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_9 - General Purpose RAM Register at location 9
+ ***************************************************************************/
+/* RDC :: data_9 :: data64 [63:00] */
+#define BCHP_RDC_data_9_data64_MASK                                BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_9_data64_SHIFT                               0
+
+/***************************************************************************
+ *data_10 - General Purpose RAM Register at location 10
+ ***************************************************************************/
+/* RDC :: data_10 :: data64 [63:00] */
+#define BCHP_RDC_data_10_data64_MASK                               BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_10_data64_SHIFT                              0
+
+/***************************************************************************
+ *data_11 - General Purpose RAM Register at location 11
+ ***************************************************************************/
+/* RDC :: data_11 :: data64 [63:00] */
+#define BCHP_RDC_data_11_data64_MASK                               BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_11_data64_SHIFT                              0
+
+/***************************************************************************
+ *data_12 - General Purpose RAM Register at location 12
+ ***************************************************************************/
+/* RDC :: data_12 :: data64 [63:00] */
+#define BCHP_RDC_data_12_data64_MASK                               BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_12_data64_SHIFT                              0
+
+/***************************************************************************
+ *data_13 - General Purpose RAM Register at location 13
+ ***************************************************************************/
+/* RDC :: data_13 :: data64 [63:00] */
+#define BCHP_RDC_data_13_data64_MASK                               BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_13_data64_SHIFT                              0
+
+/***************************************************************************
+ *data_14 - General Purpose RAM Register at location 14
+ ***************************************************************************/
+/* RDC :: data_14 :: data64 [63:00] */
+#define BCHP_RDC_data_14_data64_MASK                               BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_14_data64_SHIFT                              0
+
+/***************************************************************************
+ *data_15 - General Purpose RAM Register at location 15
+ ***************************************************************************/
+/* RDC :: data_15 :: data64 [63:00] */
+#define BCHP_RDC_data_15_data64_MASK                               BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_data_15_data64_SHIFT                              0
+
+/***************************************************************************
  *comb_mask_0 - Trigger 31:0  Combine 0 Mask Register.
  ***************************************************************************/
 /* RDC :: comb_mask_0 :: mask [31:00] */
@@ -2104,6 +2485,1798 @@
 #define BCHP_RDC_scratch64_i_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
 #define BCHP_RDC_scratch64_i_data64_SHIFT                          0
 
+
+/***************************************************************************
+ *scratch64_0 - Scratch RAM 64bit Register at location 0
+ ***************************************************************************/
+/* RDC :: scratch64_0 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_0_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_0_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_1 - Scratch RAM 64bit Register at location 1
+ ***************************************************************************/
+/* RDC :: scratch64_1 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_1_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_1_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_2 - Scratch RAM 64bit Register at location 2
+ ***************************************************************************/
+/* RDC :: scratch64_2 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_2_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_2_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_3 - Scratch RAM 64bit Register at location 3
+ ***************************************************************************/
+/* RDC :: scratch64_3 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_3_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_3_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_4 - Scratch RAM 64bit Register at location 4
+ ***************************************************************************/
+/* RDC :: scratch64_4 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_4_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_4_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_5 - Scratch RAM 64bit Register at location 5
+ ***************************************************************************/
+/* RDC :: scratch64_5 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_5_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_5_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_6 - Scratch RAM 64bit Register at location 6
+ ***************************************************************************/
+/* RDC :: scratch64_6 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_6_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_6_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_7 - Scratch RAM 64bit Register at location 7
+ ***************************************************************************/
+/* RDC :: scratch64_7 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_7_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_7_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_8 - Scratch RAM 64bit Register at location 8
+ ***************************************************************************/
+/* RDC :: scratch64_8 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_8_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_8_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_9 - Scratch RAM 64bit Register at location 9
+ ***************************************************************************/
+/* RDC :: scratch64_9 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_9_data64_MASK                           BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_9_data64_SHIFT                          0
+
+/***************************************************************************
+ *scratch64_10 - Scratch RAM 64bit Register at location 10
+ ***************************************************************************/
+/* RDC :: scratch64_10 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_10_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_10_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_11 - Scratch RAM 64bit Register at location 11
+ ***************************************************************************/
+/* RDC :: scratch64_11 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_11_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_11_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_12 - Scratch RAM 64bit Register at location 12
+ ***************************************************************************/
+/* RDC :: scratch64_12 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_12_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_12_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_13 - Scratch RAM 64bit Register at location 13
+ ***************************************************************************/
+/* RDC :: scratch64_13 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_13_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_13_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_14 - Scratch RAM 64bit Register at location 14
+ ***************************************************************************/
+/* RDC :: scratch64_14 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_14_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_14_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_15 - Scratch RAM 64bit Register at location 15
+ ***************************************************************************/
+/* RDC :: scratch64_15 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_15_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_15_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_16 - Scratch RAM 64bit Register at location 16
+ ***************************************************************************/
+/* RDC :: scratch64_16 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_16_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_16_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_17 - Scratch RAM 64bit Register at location 17
+ ***************************************************************************/
+/* RDC :: scratch64_17 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_17_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_17_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_18 - Scratch RAM 64bit Register at location 18
+ ***************************************************************************/
+/* RDC :: scratch64_18 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_18_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_18_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_19 - Scratch RAM 64bit Register at location 19
+ ***************************************************************************/
+/* RDC :: scratch64_19 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_19_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_19_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_20 - Scratch RAM 64bit Register at location 20
+ ***************************************************************************/
+/* RDC :: scratch64_20 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_20_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_20_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_21 - Scratch RAM 64bit Register at location 21
+ ***************************************************************************/
+/* RDC :: scratch64_21 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_21_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_21_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_22 - Scratch RAM 64bit Register at location 22
+ ***************************************************************************/
+/* RDC :: scratch64_22 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_22_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_22_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_23 - Scratch RAM 64bit Register at location 23
+ ***************************************************************************/
+/* RDC :: scratch64_23 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_23_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_23_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_24 - Scratch RAM 64bit Register at location 24
+ ***************************************************************************/
+/* RDC :: scratch64_24 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_24_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_24_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_25 - Scratch RAM 64bit Register at location 25
+ ***************************************************************************/
+/* RDC :: scratch64_25 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_25_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_25_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_26 - Scratch RAM 64bit Register at location 26
+ ***************************************************************************/
+/* RDC :: scratch64_26 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_26_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_26_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_27 - Scratch RAM 64bit Register at location 27
+ ***************************************************************************/
+/* RDC :: scratch64_27 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_27_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_27_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_28 - Scratch RAM 64bit Register at location 28
+ ***************************************************************************/
+/* RDC :: scratch64_28 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_28_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_28_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_29 - Scratch RAM 64bit Register at location 29
+ ***************************************************************************/
+/* RDC :: scratch64_29 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_29_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_29_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_30 - Scratch RAM 64bit Register at location 30
+ ***************************************************************************/
+/* RDC :: scratch64_30 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_30_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_30_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_31 - Scratch RAM 64bit Register at location 31
+ ***************************************************************************/
+/* RDC :: scratch64_31 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_31_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_31_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_32 - Scratch RAM 64bit Register at location 32
+ ***************************************************************************/
+/* RDC :: scratch64_32 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_32_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_32_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_33 - Scratch RAM 64bit Register at location 33
+ ***************************************************************************/
+/* RDC :: scratch64_33 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_33_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_33_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_34 - Scratch RAM 64bit Register at location 34
+ ***************************************************************************/
+/* RDC :: scratch64_34 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_34_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_34_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_35 - Scratch RAM 64bit Register at location 35
+ ***************************************************************************/
+/* RDC :: scratch64_35 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_35_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_35_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_36 - Scratch RAM 64bit Register at location 36
+ ***************************************************************************/
+/* RDC :: scratch64_36 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_36_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_36_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_37 - Scratch RAM 64bit Register at location 37
+ ***************************************************************************/
+/* RDC :: scratch64_37 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_37_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_37_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_38 - Scratch RAM 64bit Register at location 38
+ ***************************************************************************/
+/* RDC :: scratch64_38 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_38_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_38_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_39 - Scratch RAM 64bit Register at location 39
+ ***************************************************************************/
+/* RDC :: scratch64_39 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_39_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_39_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_40 - Scratch RAM 64bit Register at location 40
+ ***************************************************************************/
+/* RDC :: scratch64_40 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_40_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_40_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_41 - Scratch RAM 64bit Register at location 41
+ ***************************************************************************/
+/* RDC :: scratch64_41 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_41_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_41_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_42 - Scratch RAM 64bit Register at location 42
+ ***************************************************************************/
+/* RDC :: scratch64_42 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_42_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_42_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_43 - Scratch RAM 64bit Register at location 43
+ ***************************************************************************/
+/* RDC :: scratch64_43 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_43_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_43_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_44 - Scratch RAM 64bit Register at location 44
+ ***************************************************************************/
+/* RDC :: scratch64_44 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_44_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_44_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_45 - Scratch RAM 64bit Register at location 45
+ ***************************************************************************/
+/* RDC :: scratch64_45 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_45_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_45_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_46 - Scratch RAM 64bit Register at location 46
+ ***************************************************************************/
+/* RDC :: scratch64_46 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_46_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_46_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_47 - Scratch RAM 64bit Register at location 47
+ ***************************************************************************/
+/* RDC :: scratch64_47 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_47_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_47_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_48 - Scratch RAM 64bit Register at location 48
+ ***************************************************************************/
+/* RDC :: scratch64_48 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_48_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_48_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_49 - Scratch RAM 64bit Register at location 49
+ ***************************************************************************/
+/* RDC :: scratch64_49 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_49_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_49_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_50 - Scratch RAM 64bit Register at location 50
+ ***************************************************************************/
+/* RDC :: scratch64_50 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_50_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_50_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_51 - Scratch RAM 64bit Register at location 51
+ ***************************************************************************/
+/* RDC :: scratch64_51 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_51_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_51_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_52 - Scratch RAM 64bit Register at location 52
+ ***************************************************************************/
+/* RDC :: scratch64_52 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_52_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_52_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_53 - Scratch RAM 64bit Register at location 53
+ ***************************************************************************/
+/* RDC :: scratch64_53 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_53_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_53_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_54 - Scratch RAM 64bit Register at location 54
+ ***************************************************************************/
+/* RDC :: scratch64_54 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_54_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_54_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_55 - Scratch RAM 64bit Register at location 55
+ ***************************************************************************/
+/* RDC :: scratch64_55 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_55_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_55_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_56 - Scratch RAM 64bit Register at location 56
+ ***************************************************************************/
+/* RDC :: scratch64_56 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_56_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_56_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_57 - Scratch RAM 64bit Register at location 57
+ ***************************************************************************/
+/* RDC :: scratch64_57 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_57_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_57_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_58 - Scratch RAM 64bit Register at location 58
+ ***************************************************************************/
+/* RDC :: scratch64_58 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_58_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_58_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_59 - Scratch RAM 64bit Register at location 59
+ ***************************************************************************/
+/* RDC :: scratch64_59 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_59_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_59_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_60 - Scratch RAM 64bit Register at location 60
+ ***************************************************************************/
+/* RDC :: scratch64_60 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_60_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_60_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_61 - Scratch RAM 64bit Register at location 61
+ ***************************************************************************/
+/* RDC :: scratch64_61 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_61_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_61_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_62 - Scratch RAM 64bit Register at location 62
+ ***************************************************************************/
+/* RDC :: scratch64_62 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_62_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_62_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_63 - Scratch RAM 64bit Register at location 63
+ ***************************************************************************/
+/* RDC :: scratch64_63 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_63_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_63_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_64 - Scratch RAM 64bit Register at location 64
+ ***************************************************************************/
+/* RDC :: scratch64_64 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_64_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_64_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_65 - Scratch RAM 64bit Register at location 65
+ ***************************************************************************/
+/* RDC :: scratch64_65 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_65_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_65_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_66 - Scratch RAM 64bit Register at location 66
+ ***************************************************************************/
+/* RDC :: scratch64_66 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_66_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_66_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_67 - Scratch RAM 64bit Register at location 67
+ ***************************************************************************/
+/* RDC :: scratch64_67 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_67_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_67_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_68 - Scratch RAM 64bit Register at location 68
+ ***************************************************************************/
+/* RDC :: scratch64_68 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_68_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_68_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_69 - Scratch RAM 64bit Register at location 69
+ ***************************************************************************/
+/* RDC :: scratch64_69 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_69_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_69_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_70 - Scratch RAM 64bit Register at location 70
+ ***************************************************************************/
+/* RDC :: scratch64_70 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_70_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_70_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_71 - Scratch RAM 64bit Register at location 71
+ ***************************************************************************/
+/* RDC :: scratch64_71 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_71_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_71_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_72 - Scratch RAM 64bit Register at location 72
+ ***************************************************************************/
+/* RDC :: scratch64_72 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_72_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_72_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_73 - Scratch RAM 64bit Register at location 73
+ ***************************************************************************/
+/* RDC :: scratch64_73 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_73_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_73_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_74 - Scratch RAM 64bit Register at location 74
+ ***************************************************************************/
+/* RDC :: scratch64_74 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_74_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_74_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_75 - Scratch RAM 64bit Register at location 75
+ ***************************************************************************/
+/* RDC :: scratch64_75 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_75_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_75_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_76 - Scratch RAM 64bit Register at location 76
+ ***************************************************************************/
+/* RDC :: scratch64_76 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_76_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_76_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_77 - Scratch RAM 64bit Register at location 77
+ ***************************************************************************/
+/* RDC :: scratch64_77 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_77_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_77_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_78 - Scratch RAM 64bit Register at location 78
+ ***************************************************************************/
+/* RDC :: scratch64_78 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_78_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_78_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_79 - Scratch RAM 64bit Register at location 79
+ ***************************************************************************/
+/* RDC :: scratch64_79 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_79_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_79_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_80 - Scratch RAM 64bit Register at location 80
+ ***************************************************************************/
+/* RDC :: scratch64_80 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_80_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_80_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_81 - Scratch RAM 64bit Register at location 81
+ ***************************************************************************/
+/* RDC :: scratch64_81 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_81_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_81_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_82 - Scratch RAM 64bit Register at location 82
+ ***************************************************************************/
+/* RDC :: scratch64_82 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_82_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_82_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_83 - Scratch RAM 64bit Register at location 83
+ ***************************************************************************/
+/* RDC :: scratch64_83 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_83_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_83_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_84 - Scratch RAM 64bit Register at location 84
+ ***************************************************************************/
+/* RDC :: scratch64_84 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_84_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_84_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_85 - Scratch RAM 64bit Register at location 85
+ ***************************************************************************/
+/* RDC :: scratch64_85 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_85_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_85_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_86 - Scratch RAM 64bit Register at location 86
+ ***************************************************************************/
+/* RDC :: scratch64_86 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_86_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_86_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_87 - Scratch RAM 64bit Register at location 87
+ ***************************************************************************/
+/* RDC :: scratch64_87 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_87_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_87_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_88 - Scratch RAM 64bit Register at location 88
+ ***************************************************************************/
+/* RDC :: scratch64_88 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_88_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_88_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_89 - Scratch RAM 64bit Register at location 89
+ ***************************************************************************/
+/* RDC :: scratch64_89 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_89_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_89_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_90 - Scratch RAM 64bit Register at location 90
+ ***************************************************************************/
+/* RDC :: scratch64_90 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_90_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_90_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_91 - Scratch RAM 64bit Register at location 91
+ ***************************************************************************/
+/* RDC :: scratch64_91 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_91_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_91_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_92 - Scratch RAM 64bit Register at location 92
+ ***************************************************************************/
+/* RDC :: scratch64_92 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_92_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_92_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_93 - Scratch RAM 64bit Register at location 93
+ ***************************************************************************/
+/* RDC :: scratch64_93 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_93_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_93_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_94 - Scratch RAM 64bit Register at location 94
+ ***************************************************************************/
+/* RDC :: scratch64_94 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_94_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_94_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_95 - Scratch RAM 64bit Register at location 95
+ ***************************************************************************/
+/* RDC :: scratch64_95 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_95_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_95_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_96 - Scratch RAM 64bit Register at location 96
+ ***************************************************************************/
+/* RDC :: scratch64_96 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_96_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_96_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_97 - Scratch RAM 64bit Register at location 97
+ ***************************************************************************/
+/* RDC :: scratch64_97 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_97_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_97_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_98 - Scratch RAM 64bit Register at location 98
+ ***************************************************************************/
+/* RDC :: scratch64_98 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_98_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_98_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_99 - Scratch RAM 64bit Register at location 99
+ ***************************************************************************/
+/* RDC :: scratch64_99 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_99_data64_MASK                          BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_99_data64_SHIFT                         0
+
+/***************************************************************************
+ *scratch64_100 - Scratch RAM 64bit Register at location 100
+ ***************************************************************************/
+/* RDC :: scratch64_100 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_100_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_100_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_101 - Scratch RAM 64bit Register at location 101
+ ***************************************************************************/
+/* RDC :: scratch64_101 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_101_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_101_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_102 - Scratch RAM 64bit Register at location 102
+ ***************************************************************************/
+/* RDC :: scratch64_102 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_102_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_102_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_103 - Scratch RAM 64bit Register at location 103
+ ***************************************************************************/
+/* RDC :: scratch64_103 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_103_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_103_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_104 - Scratch RAM 64bit Register at location 104
+ ***************************************************************************/
+/* RDC :: scratch64_104 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_104_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_104_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_105 - Scratch RAM 64bit Register at location 105
+ ***************************************************************************/
+/* RDC :: scratch64_105 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_105_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_105_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_106 - Scratch RAM 64bit Register at location 106
+ ***************************************************************************/
+/* RDC :: scratch64_106 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_106_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_106_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_107 - Scratch RAM 64bit Register at location 107
+ ***************************************************************************/
+/* RDC :: scratch64_107 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_107_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_107_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_108 - Scratch RAM 64bit Register at location 108
+ ***************************************************************************/
+/* RDC :: scratch64_108 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_108_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_108_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_109 - Scratch RAM 64bit Register at location 109
+ ***************************************************************************/
+/* RDC :: scratch64_109 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_109_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_109_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_110 - Scratch RAM 64bit Register at location 110
+ ***************************************************************************/
+/* RDC :: scratch64_110 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_110_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_110_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_111 - Scratch RAM 64bit Register at location 111
+ ***************************************************************************/
+/* RDC :: scratch64_111 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_111_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_111_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_112 - Scratch RAM 64bit Register at location 112
+ ***************************************************************************/
+/* RDC :: scratch64_112 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_112_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_112_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_113 - Scratch RAM 64bit Register at location 113
+ ***************************************************************************/
+/* RDC :: scratch64_113 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_113_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_113_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_114 - Scratch RAM 64bit Register at location 114
+ ***************************************************************************/
+/* RDC :: scratch64_114 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_114_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_114_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_115 - Scratch RAM 64bit Register at location 115
+ ***************************************************************************/
+/* RDC :: scratch64_115 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_115_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_115_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_116 - Scratch RAM 64bit Register at location 116
+ ***************************************************************************/
+/* RDC :: scratch64_116 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_116_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_116_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_117 - Scratch RAM 64bit Register at location 117
+ ***************************************************************************/
+/* RDC :: scratch64_117 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_117_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_117_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_118 - Scratch RAM 64bit Register at location 118
+ ***************************************************************************/
+/* RDC :: scratch64_118 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_118_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_118_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_119 - Scratch RAM 64bit Register at location 119
+ ***************************************************************************/
+/* RDC :: scratch64_119 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_119_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_119_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_120 - Scratch RAM 64bit Register at location 120
+ ***************************************************************************/
+/* RDC :: scratch64_120 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_120_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_120_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_121 - Scratch RAM 64bit Register at location 121
+ ***************************************************************************/
+/* RDC :: scratch64_121 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_121_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_121_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_122 - Scratch RAM 64bit Register at location 122
+ ***************************************************************************/
+/* RDC :: scratch64_122 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_122_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_122_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_123 - Scratch RAM 64bit Register at location 123
+ ***************************************************************************/
+/* RDC :: scratch64_123 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_123_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_123_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_124 - Scratch RAM 64bit Register at location 124
+ ***************************************************************************/
+/* RDC :: scratch64_124 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_124_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_124_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_125 - Scratch RAM 64bit Register at location 125
+ ***************************************************************************/
+/* RDC :: scratch64_125 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_125_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_125_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_126 - Scratch RAM 64bit Register at location 126
+ ***************************************************************************/
+/* RDC :: scratch64_126 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_126_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_126_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_127 - Scratch RAM 64bit Register at location 127
+ ***************************************************************************/
+/* RDC :: scratch64_127 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_127_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_127_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_128 - Scratch RAM 64bit Register at location 128
+ ***************************************************************************/
+/* RDC :: scratch64_128 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_128_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_128_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_129 - Scratch RAM 64bit Register at location 129
+ ***************************************************************************/
+/* RDC :: scratch64_129 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_129_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_129_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_130 - Scratch RAM 64bit Register at location 130
+ ***************************************************************************/
+/* RDC :: scratch64_130 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_130_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_130_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_131 - Scratch RAM 64bit Register at location 131
+ ***************************************************************************/
+/* RDC :: scratch64_131 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_131_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_131_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_132 - Scratch RAM 64bit Register at location 132
+ ***************************************************************************/
+/* RDC :: scratch64_132 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_132_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_132_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_133 - Scratch RAM 64bit Register at location 133
+ ***************************************************************************/
+/* RDC :: scratch64_133 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_133_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_133_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_134 - Scratch RAM 64bit Register at location 134
+ ***************************************************************************/
+/* RDC :: scratch64_134 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_134_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_134_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_135 - Scratch RAM 64bit Register at location 135
+ ***************************************************************************/
+/* RDC :: scratch64_135 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_135_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_135_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_136 - Scratch RAM 64bit Register at location 136
+ ***************************************************************************/
+/* RDC :: scratch64_136 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_136_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_136_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_137 - Scratch RAM 64bit Register at location 137
+ ***************************************************************************/
+/* RDC :: scratch64_137 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_137_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_137_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_138 - Scratch RAM 64bit Register at location 138
+ ***************************************************************************/
+/* RDC :: scratch64_138 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_138_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_138_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_139 - Scratch RAM 64bit Register at location 139
+ ***************************************************************************/
+/* RDC :: scratch64_139 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_139_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_139_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_140 - Scratch RAM 64bit Register at location 140
+ ***************************************************************************/
+/* RDC :: scratch64_140 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_140_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_140_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_141 - Scratch RAM 64bit Register at location 141
+ ***************************************************************************/
+/* RDC :: scratch64_141 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_141_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_141_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_142 - Scratch RAM 64bit Register at location 142
+ ***************************************************************************/
+/* RDC :: scratch64_142 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_142_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_142_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_143 - Scratch RAM 64bit Register at location 143
+ ***************************************************************************/
+/* RDC :: scratch64_143 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_143_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_143_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_144 - Scratch RAM 64bit Register at location 144
+ ***************************************************************************/
+/* RDC :: scratch64_144 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_144_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_144_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_145 - Scratch RAM 64bit Register at location 145
+ ***************************************************************************/
+/* RDC :: scratch64_145 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_145_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_145_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_146 - Scratch RAM 64bit Register at location 146
+ ***************************************************************************/
+/* RDC :: scratch64_146 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_146_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_146_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_147 - Scratch RAM 64bit Register at location 147
+ ***************************************************************************/
+/* RDC :: scratch64_147 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_147_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_147_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_148 - Scratch RAM 64bit Register at location 148
+ ***************************************************************************/
+/* RDC :: scratch64_148 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_148_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_148_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_149 - Scratch RAM 64bit Register at location 149
+ ***************************************************************************/
+/* RDC :: scratch64_149 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_149_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_149_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_150 - Scratch RAM 64bit Register at location 150
+ ***************************************************************************/
+/* RDC :: scratch64_150 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_150_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_150_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_151 - Scratch RAM 64bit Register at location 151
+ ***************************************************************************/
+/* RDC :: scratch64_151 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_151_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_151_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_152 - Scratch RAM 64bit Register at location 152
+ ***************************************************************************/
+/* RDC :: scratch64_152 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_152_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_152_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_153 - Scratch RAM 64bit Register at location 153
+ ***************************************************************************/
+/* RDC :: scratch64_153 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_153_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_153_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_154 - Scratch RAM 64bit Register at location 154
+ ***************************************************************************/
+/* RDC :: scratch64_154 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_154_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_154_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_155 - Scratch RAM 64bit Register at location 155
+ ***************************************************************************/
+/* RDC :: scratch64_155 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_155_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_155_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_156 - Scratch RAM 64bit Register at location 156
+ ***************************************************************************/
+/* RDC :: scratch64_156 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_156_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_156_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_157 - Scratch RAM 64bit Register at location 157
+ ***************************************************************************/
+/* RDC :: scratch64_157 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_157_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_157_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_158 - Scratch RAM 64bit Register at location 158
+ ***************************************************************************/
+/* RDC :: scratch64_158 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_158_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_158_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_159 - Scratch RAM 64bit Register at location 159
+ ***************************************************************************/
+/* RDC :: scratch64_159 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_159_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_159_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_160 - Scratch RAM 64bit Register at location 160
+ ***************************************************************************/
+/* RDC :: scratch64_160 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_160_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_160_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_161 - Scratch RAM 64bit Register at location 161
+ ***************************************************************************/
+/* RDC :: scratch64_161 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_161_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_161_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_162 - Scratch RAM 64bit Register at location 162
+ ***************************************************************************/
+/* RDC :: scratch64_162 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_162_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_162_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_163 - Scratch RAM 64bit Register at location 163
+ ***************************************************************************/
+/* RDC :: scratch64_163 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_163_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_163_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_164 - Scratch RAM 64bit Register at location 164
+ ***************************************************************************/
+/* RDC :: scratch64_164 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_164_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_164_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_165 - Scratch RAM 64bit Register at location 165
+ ***************************************************************************/
+/* RDC :: scratch64_165 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_165_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_165_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_166 - Scratch RAM 64bit Register at location 166
+ ***************************************************************************/
+/* RDC :: scratch64_166 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_166_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_166_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_167 - Scratch RAM 64bit Register at location 167
+ ***************************************************************************/
+/* RDC :: scratch64_167 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_167_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_167_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_168 - Scratch RAM 64bit Register at location 168
+ ***************************************************************************/
+/* RDC :: scratch64_168 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_168_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_168_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_169 - Scratch RAM 64bit Register at location 169
+ ***************************************************************************/
+/* RDC :: scratch64_169 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_169_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_169_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_170 - Scratch RAM 64bit Register at location 170
+ ***************************************************************************/
+/* RDC :: scratch64_170 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_170_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_170_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_171 - Scratch RAM 64bit Register at location 171
+ ***************************************************************************/
+/* RDC :: scratch64_171 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_171_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_171_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_172 - Scratch RAM 64bit Register at location 172
+ ***************************************************************************/
+/* RDC :: scratch64_172 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_172_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_172_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_173 - Scratch RAM 64bit Register at location 173
+ ***************************************************************************/
+/* RDC :: scratch64_173 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_173_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_173_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_174 - Scratch RAM 64bit Register at location 174
+ ***************************************************************************/
+/* RDC :: scratch64_174 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_174_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_174_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_175 - Scratch RAM 64bit Register at location 175
+ ***************************************************************************/
+/* RDC :: scratch64_175 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_175_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_175_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_176 - Scratch RAM 64bit Register at location 176
+ ***************************************************************************/
+/* RDC :: scratch64_176 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_176_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_176_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_177 - Scratch RAM 64bit Register at location 177
+ ***************************************************************************/
+/* RDC :: scratch64_177 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_177_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_177_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_178 - Scratch RAM 64bit Register at location 178
+ ***************************************************************************/
+/* RDC :: scratch64_178 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_178_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_178_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_179 - Scratch RAM 64bit Register at location 179
+ ***************************************************************************/
+/* RDC :: scratch64_179 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_179_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_179_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_180 - Scratch RAM 64bit Register at location 180
+ ***************************************************************************/
+/* RDC :: scratch64_180 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_180_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_180_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_181 - Scratch RAM 64bit Register at location 181
+ ***************************************************************************/
+/* RDC :: scratch64_181 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_181_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_181_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_182 - Scratch RAM 64bit Register at location 182
+ ***************************************************************************/
+/* RDC :: scratch64_182 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_182_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_182_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_183 - Scratch RAM 64bit Register at location 183
+ ***************************************************************************/
+/* RDC :: scratch64_183 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_183_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_183_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_184 - Scratch RAM 64bit Register at location 184
+ ***************************************************************************/
+/* RDC :: scratch64_184 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_184_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_184_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_185 - Scratch RAM 64bit Register at location 185
+ ***************************************************************************/
+/* RDC :: scratch64_185 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_185_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_185_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_186 - Scratch RAM 64bit Register at location 186
+ ***************************************************************************/
+/* RDC :: scratch64_186 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_186_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_186_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_187 - Scratch RAM 64bit Register at location 187
+ ***************************************************************************/
+/* RDC :: scratch64_187 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_187_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_187_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_188 - Scratch RAM 64bit Register at location 188
+ ***************************************************************************/
+/* RDC :: scratch64_188 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_188_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_188_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_189 - Scratch RAM 64bit Register at location 189
+ ***************************************************************************/
+/* RDC :: scratch64_189 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_189_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_189_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_190 - Scratch RAM 64bit Register at location 190
+ ***************************************************************************/
+/* RDC :: scratch64_190 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_190_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_190_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_191 - Scratch RAM 64bit Register at location 191
+ ***************************************************************************/
+/* RDC :: scratch64_191 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_191_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_191_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_192 - Scratch RAM 64bit Register at location 192
+ ***************************************************************************/
+/* RDC :: scratch64_192 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_192_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_192_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_193 - Scratch RAM 64bit Register at location 193
+ ***************************************************************************/
+/* RDC :: scratch64_193 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_193_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_193_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_194 - Scratch RAM 64bit Register at location 194
+ ***************************************************************************/
+/* RDC :: scratch64_194 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_194_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_194_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_195 - Scratch RAM 64bit Register at location 195
+ ***************************************************************************/
+/* RDC :: scratch64_195 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_195_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_195_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_196 - Scratch RAM 64bit Register at location 196
+ ***************************************************************************/
+/* RDC :: scratch64_196 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_196_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_196_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_197 - Scratch RAM 64bit Register at location 197
+ ***************************************************************************/
+/* RDC :: scratch64_197 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_197_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_197_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_198 - Scratch RAM 64bit Register at location 198
+ ***************************************************************************/
+/* RDC :: scratch64_198 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_198_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_198_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_199 - Scratch RAM 64bit Register at location 199
+ ***************************************************************************/
+/* RDC :: scratch64_199 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_199_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_199_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_200 - Scratch RAM 64bit Register at location 200
+ ***************************************************************************/
+/* RDC :: scratch64_200 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_200_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_200_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_201 - Scratch RAM 64bit Register at location 201
+ ***************************************************************************/
+/* RDC :: scratch64_201 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_201_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_201_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_202 - Scratch RAM 64bit Register at location 202
+ ***************************************************************************/
+/* RDC :: scratch64_202 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_202_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_202_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_203 - Scratch RAM 64bit Register at location 203
+ ***************************************************************************/
+/* RDC :: scratch64_203 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_203_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_203_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_204 - Scratch RAM 64bit Register at location 204
+ ***************************************************************************/
+/* RDC :: scratch64_204 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_204_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_204_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_205 - Scratch RAM 64bit Register at location 205
+ ***************************************************************************/
+/* RDC :: scratch64_205 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_205_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_205_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_206 - Scratch RAM 64bit Register at location 206
+ ***************************************************************************/
+/* RDC :: scratch64_206 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_206_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_206_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_207 - Scratch RAM 64bit Register at location 207
+ ***************************************************************************/
+/* RDC :: scratch64_207 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_207_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_207_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_208 - Scratch RAM 64bit Register at location 208
+ ***************************************************************************/
+/* RDC :: scratch64_208 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_208_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_208_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_209 - Scratch RAM 64bit Register at location 209
+ ***************************************************************************/
+/* RDC :: scratch64_209 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_209_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_209_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_210 - Scratch RAM 64bit Register at location 210
+ ***************************************************************************/
+/* RDC :: scratch64_210 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_210_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_210_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_211 - Scratch RAM 64bit Register at location 211
+ ***************************************************************************/
+/* RDC :: scratch64_211 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_211_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_211_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_212 - Scratch RAM 64bit Register at location 212
+ ***************************************************************************/
+/* RDC :: scratch64_212 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_212_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_212_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_213 - Scratch RAM 64bit Register at location 213
+ ***************************************************************************/
+/* RDC :: scratch64_213 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_213_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_213_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_214 - Scratch RAM 64bit Register at location 214
+ ***************************************************************************/
+/* RDC :: scratch64_214 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_214_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_214_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_215 - Scratch RAM 64bit Register at location 215
+ ***************************************************************************/
+/* RDC :: scratch64_215 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_215_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_215_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_216 - Scratch RAM 64bit Register at location 216
+ ***************************************************************************/
+/* RDC :: scratch64_216 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_216_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_216_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_217 - Scratch RAM 64bit Register at location 217
+ ***************************************************************************/
+/* RDC :: scratch64_217 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_217_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_217_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_218 - Scratch RAM 64bit Register at location 218
+ ***************************************************************************/
+/* RDC :: scratch64_218 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_218_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_218_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_219 - Scratch RAM 64bit Register at location 219
+ ***************************************************************************/
+/* RDC :: scratch64_219 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_219_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_219_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_220 - Scratch RAM 64bit Register at location 220
+ ***************************************************************************/
+/* RDC :: scratch64_220 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_220_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_220_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_221 - Scratch RAM 64bit Register at location 221
+ ***************************************************************************/
+/* RDC :: scratch64_221 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_221_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_221_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_222 - Scratch RAM 64bit Register at location 222
+ ***************************************************************************/
+/* RDC :: scratch64_222 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_222_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_222_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_223 - Scratch RAM 64bit Register at location 223
+ ***************************************************************************/
+/* RDC :: scratch64_223 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_223_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_223_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_224 - Scratch RAM 64bit Register at location 224
+ ***************************************************************************/
+/* RDC :: scratch64_224 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_224_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_224_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_225 - Scratch RAM 64bit Register at location 225
+ ***************************************************************************/
+/* RDC :: scratch64_225 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_225_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_225_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_226 - Scratch RAM 64bit Register at location 226
+ ***************************************************************************/
+/* RDC :: scratch64_226 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_226_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_226_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_227 - Scratch RAM 64bit Register at location 227
+ ***************************************************************************/
+/* RDC :: scratch64_227 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_227_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_227_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_228 - Scratch RAM 64bit Register at location 228
+ ***************************************************************************/
+/* RDC :: scratch64_228 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_228_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_228_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_229 - Scratch RAM 64bit Register at location 229
+ ***************************************************************************/
+/* RDC :: scratch64_229 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_229_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_229_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_230 - Scratch RAM 64bit Register at location 230
+ ***************************************************************************/
+/* RDC :: scratch64_230 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_230_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_230_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_231 - Scratch RAM 64bit Register at location 231
+ ***************************************************************************/
+/* RDC :: scratch64_231 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_231_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_231_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_232 - Scratch RAM 64bit Register at location 232
+ ***************************************************************************/
+/* RDC :: scratch64_232 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_232_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_232_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_233 - Scratch RAM 64bit Register at location 233
+ ***************************************************************************/
+/* RDC :: scratch64_233 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_233_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_233_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_234 - Scratch RAM 64bit Register at location 234
+ ***************************************************************************/
+/* RDC :: scratch64_234 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_234_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_234_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_235 - Scratch RAM 64bit Register at location 235
+ ***************************************************************************/
+/* RDC :: scratch64_235 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_235_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_235_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_236 - Scratch RAM 64bit Register at location 236
+ ***************************************************************************/
+/* RDC :: scratch64_236 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_236_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_236_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_237 - Scratch RAM 64bit Register at location 237
+ ***************************************************************************/
+/* RDC :: scratch64_237 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_237_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_237_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_238 - Scratch RAM 64bit Register at location 238
+ ***************************************************************************/
+/* RDC :: scratch64_238 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_238_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_238_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_239 - Scratch RAM 64bit Register at location 239
+ ***************************************************************************/
+/* RDC :: scratch64_239 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_239_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_239_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_240 - Scratch RAM 64bit Register at location 240
+ ***************************************************************************/
+/* RDC :: scratch64_240 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_240_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_240_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_241 - Scratch RAM 64bit Register at location 241
+ ***************************************************************************/
+/* RDC :: scratch64_241 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_241_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_241_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_242 - Scratch RAM 64bit Register at location 242
+ ***************************************************************************/
+/* RDC :: scratch64_242 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_242_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_242_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_243 - Scratch RAM 64bit Register at location 243
+ ***************************************************************************/
+/* RDC :: scratch64_243 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_243_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_243_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_244 - Scratch RAM 64bit Register at location 244
+ ***************************************************************************/
+/* RDC :: scratch64_244 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_244_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_244_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_245 - Scratch RAM 64bit Register at location 245
+ ***************************************************************************/
+/* RDC :: scratch64_245 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_245_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_245_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_246 - Scratch RAM 64bit Register at location 246
+ ***************************************************************************/
+/* RDC :: scratch64_246 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_246_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_246_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_247 - Scratch RAM 64bit Register at location 247
+ ***************************************************************************/
+/* RDC :: scratch64_247 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_247_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_247_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_248 - Scratch RAM 64bit Register at location 248
+ ***************************************************************************/
+/* RDC :: scratch64_248 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_248_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_248_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_249 - Scratch RAM 64bit Register at location 249
+ ***************************************************************************/
+/* RDC :: scratch64_249 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_249_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_249_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_250 - Scratch RAM 64bit Register at location 250
+ ***************************************************************************/
+/* RDC :: scratch64_250 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_250_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_250_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_251 - Scratch RAM 64bit Register at location 251
+ ***************************************************************************/
+/* RDC :: scratch64_251 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_251_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_251_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_252 - Scratch RAM 64bit Register at location 252
+ ***************************************************************************/
+/* RDC :: scratch64_252 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_252_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_252_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_253 - Scratch RAM 64bit Register at location 253
+ ***************************************************************************/
+/* RDC :: scratch64_253 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_253_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_253_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_254 - Scratch RAM 64bit Register at location 254
+ ***************************************************************************/
+/* RDC :: scratch64_254 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_254_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_254_data64_SHIFT                        0
+
+/***************************************************************************
+ *scratch64_255 - Scratch RAM 64bit Register at location 255
+ ***************************************************************************/
+/* RDC :: scratch64_255 :: data64 [63:00] */
+#define BCHP_RDC_scratch64_255_data64_MASK                         BCHP_UINT64_C(0xffffffff, 0xffffffff)
+#define BCHP_RDC_scratch64_255_data64_SHIFT                        0
 
 /***************************************************************************
  *desc_0_addr - DMA Descriptor 0 Address Register.

@@ -62,13 +62,13 @@ public:
     virtual void drawText(bwidget_t widget, blabel_settings * pLabelSettings, const bwin_rect rect, const bwin_rect * pRectClip);
 
     MString  getText(void);
-    uint16_t getPosition(void) { return(_position); }
-    void     setPosition(uint16_t position);
-    void     addChar(char ch, uint16_t * pPosition);
-    void     removeChar(uint16_t * pPosition, bool right);
+    unsigned getPosition(void) { return(_position); }
+    void     setPosition(unsigned position);
+    void     addChar(char ch, unsigned * pPosition);
+    void     removeChar(unsigned * pPosition, bool right);
 
 protected:
-    uint16_t _position;
+    unsigned _position;
 };
 
 #ifdef __cplusplus

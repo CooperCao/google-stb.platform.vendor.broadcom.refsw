@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -97,7 +97,7 @@ http_get_current_pts(
     if (playback_ip->nexusHandles.videoDecoder && (playback_ip->playback_state == B_PlaybackIpState_eTrickMode || !playback_ip->startSettings.musicChannelWithVideoStills)) {
         NEXUS_VideoDecoderStatus status;
         if ((NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, &status) != NEXUS_SUCCESS) || (status.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS)) {
-            BDBG_ERR(("%s: %s", __FUNCTION__, (status.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS"));
+            BDBG_ERR(("%s: %s", BSTD_FUNCTION, (status.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS"));
             return B_ERROR_UNKNOWN;
         }
         *currentPts = status.pts;
@@ -109,7 +109,7 @@ http_get_current_pts(
     else if (playback_ip->nexusHandles.simpleVideoDecoder && (playback_ip->playback_state == B_PlaybackIpState_eTrickMode || !playback_ip->startSettings.musicChannelWithVideoStills)) {
         NEXUS_VideoDecoderStatus status;
         if ((NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status) != NEXUS_SUCCESS) || (status.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS)) {
-            BDBG_ERR(("%s: %s", __FUNCTION__, (status.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS"));
+            BDBG_ERR(("%s: %s", BSTD_FUNCTION, (status.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS"));
             return B_ERROR_UNKNOWN;
         }
         *currentPts = status.pts;
@@ -123,7 +123,7 @@ http_get_current_pts(
     else if (playback_ip->nexusHandles.primaryAudioDecoder) {
         NEXUS_AudioDecoderStatus audioStatus;
         if ((NEXUS_AudioDecoder_GetStatus(playback_ip->nexusHandles.primaryAudioDecoder, &audioStatus) != NEXUS_SUCCESS) || (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS)) {
-            BDBG_ERR(("%s: %s: pts=%u", __FUNCTION__, (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS", audioStatus.pts));
+            BDBG_ERR(("%s: %s: pts=%u", BSTD_FUNCTION, (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS", audioStatus.pts));
             return B_ERROR_UNKNOWN;
         }
         *currentPts = audioStatus.pts;
@@ -131,7 +131,7 @@ http_get_current_pts(
     else if (playback_ip->nexusHandles.secondaryAudioDecoder) {
         NEXUS_AudioDecoderStatus audioStatus;
         if ((NEXUS_AudioDecoder_GetStatus(playback_ip->nexusHandles.secondaryAudioDecoder, &audioStatus) != NEXUS_SUCCESS) || (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS)) {
-            BDBG_ERR(("%s: %s: pts=%u", __FUNCTION__, (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS", audioStatus.pts));
+            BDBG_ERR(("%s: %s: pts=%u", BSTD_FUNCTION, (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS", audioStatus.pts));
             return B_ERROR_UNKNOWN;
         }
         *currentPts = audioStatus.pts;
@@ -140,7 +140,7 @@ http_get_current_pts(
     else if (playback_ip->nexusHandles.simpleAudioDecoder) {
         NEXUS_AudioDecoderStatus audioStatus;
         if ((NEXUS_SimpleAudioDecoder_GetStatus(playback_ip->nexusHandles.simpleAudioDecoder, &audioStatus) != NEXUS_SUCCESS) || (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS)) {
-            BDBG_ERR(("%s: %s: pts=%u", __FUNCTION__, (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS", audioStatus.pts));
+            BDBG_ERR(("%s: %s: pts=%u", BSTD_FUNCTION, (audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromInvalidPTS) ? "Got NEXUS_PtsType_eInterpolatedFromInvalidPTS, ignore it":"Failed to get current video PTS", audioStatus.pts));
             return B_ERROR_UNKNOWN;
         }
         *currentPts = audioStatus.pts;
@@ -163,13 +163,13 @@ http_calculate_current_position(B_PlaybackIpHandle playback_ip, unsigned current
     if (!playback_ip->mediaStartTimeNoted) {
         /* we haven't yet received 1st pts callback and thus not noted the media start time, so we return time we have accumulated till last discontinuity */
         /* this can happen either during seek (when decoders are flushed) or when sync channel has to flush the decoders (as they are full due to TSM not passing, frames in future due to lost frames) */
-        BDBG_MSG(("%s: mediaStartTimeNoted is not yet set, returning streamDurationUntilLastDiscontinuity = %u", __FUNCTION__, playback_ip->streamDurationUntilLastDiscontinuity ));
+        BDBG_MSG(("%s: mediaStartTimeNoted is not yet set, returning streamDurationUntilLastDiscontinuity = %u", BSTD_FUNCTION, playback_ip->streamDurationUntilLastDiscontinuity ));
         return (playback_ip->streamDurationUntilLastDiscontinuity);
     }
 
     if (currentPts == 0) {
         /* current PTS is 0 (as DM may have been reset during channel change or DM may have been underflowed (which looks like a bug in DM) */
-        BDBG_MSG(("%s: currentPts is 0, using lastPts as currentPts, lastPts %x, firstPts %x", __FUNCTION__, playback_ip->lastUsedPts, playback_ip->firstPts));
+        BDBG_MSG(("%s: currentPts is 0, using lastPts as currentPts, lastPts %x, firstPts %x", BSTD_FUNCTION, playback_ip->lastUsedPts, playback_ip->firstPts));
         if (playback_ip->getNewPtsAfterDiscontinuity) {
             /* there was a recent pts discontinuity event and thus we needed to get the new currentPts, but we haven't gotten one yet */
             /* so we use the firstPts before the discontinuity in our calculation */
@@ -185,7 +185,7 @@ http_calculate_current_position(B_PlaybackIpHandle playback_ip, unsigned current
         /* but the currentPts happens to be same as the lastPts */
         /* This can happen when TSM hasn't yet matured for the new frames after the discontinuity */
         /* so we use the previous firstPts to calculate the current position so far */
-        BDBG_MSG(("%s: currentPts hasn't changed since the last discontinuity, lastPts %x, currentPts %x", __FUNCTION__, playback_ip->lastUsedPts, currentPts));
+        BDBG_MSG(("%s: currentPts hasn't changed since the last discontinuity, lastPts %x, currentPts %x", BSTD_FUNCTION, playback_ip->lastUsedPts, currentPts));
         currentPosition = (playback_ip->lastUsedPts - playback_ip->firstPtsBeforePrevDiscontinuity) / 45; /* in msec: our decoders report PTS in 45Khz rate */
         currentPosition = playback_ip->streamDurationUntilLastDiscontinuity;
     }
@@ -197,9 +197,9 @@ http_calculate_current_position(B_PlaybackIpHandle playback_ip, unsigned current
         playback_ip->getNewPtsAfterDiscontinuity = false; /* as we successfully got the new current pts */
         playback_ip->lastUsedPts = currentPts;
         playback_ip->ptsDuringLastDiscontinuity = 0;
-        BDBG_MSG(("%s: currentPts %x, firstPts %x, lastPts %x, pos %lu streamDurationUntilLastDiscontinuity %u", __FUNCTION__, currentPts, playback_ip->firstPts, playback_ip->lastUsedPts, currentPosition, playback_ip->streamDurationUntilLastDiscontinuity));
+        BDBG_MSG(("%s: currentPts %x, firstPts %x, lastPts %x, pos %lu streamDurationUntilLastDiscontinuity %u", BSTD_FUNCTION, currentPts, playback_ip->firstPts, playback_ip->lastUsedPts, currentPosition, playback_ip->streamDurationUntilLastDiscontinuity));
     }
-    BDBG_MSG_FLOW(("%s: returning currentPosition=%lu", __FUNCTION__, currentPosition));
+    BDBG_MSG_FLOW(("%s: returning currentPosition=%lu", BSTD_FUNCTION, currentPosition));
     return currentPosition;
 }
 
@@ -230,7 +230,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
             {
                 /* We use the last noted position */
                 *currentPosition = playback_ip->lastPosition;
-                BDBG_MSG(("%s: mediaStartTimeNoted=%d mediaEndTimeNoted=%d state=%d", __FUNCTION__, playback_ip->mediaStartTimeNoted, playback_ip->mediaEndTimeNoted, playback_ip->playback_state));
+                BDBG_MSG(("%s: mediaStartTimeNoted=%d mediaEndTimeNoted=%d state=%d", BSTD_FUNCTION, playback_ip->mediaStartTimeNoted, playback_ip->mediaEndTimeNoted, playback_ip->playback_state));
             }
             else
             {
@@ -255,7 +255,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
                     /* It can happen if there was a network timeout condition where we have no new video frames or audio samples to play. */
                     /* In such cases, we dont update our current position and instead wait until this count starts changing again! */
                     /* Note: we do this only in the Playing state as position gets reset to current point anyway when we resume from TrickMode to Play */
-                    BDBG_MSG(("%s: displayed picture count didn't change in this interval %ld", __FUNCTION__, B_Time_Diff(&currentTime, &playback_ip->mediaStartTime)));
+                    BDBG_MSG(("%s: displayed picture count didn't change in this interval %ld", BSTD_FUNCTION, B_Time_Diff(&currentTime, &playback_ip->mediaStartTime)));
                     *currentPosition = playback_ip->lastPosition;
                 }
                 else {
@@ -266,7 +266,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
                 }
                 /* Make sure our position is within the allowed bounds */
                 if ((int)(*currentPosition) <= 0) {
-                    BDBG_MSG(("%s: ###### resetting current position %u to 0", __FUNCTION__, (int)(*currentPosition)));
+                    BDBG_MSG(("%s: ###### resetting current position %u to 0", BSTD_FUNCTION, (int)(*currentPosition)));
                     if (playback_ip->settings.enableEndOfStreamLooping && playback_ip->playback_state == B_PlaybackIpState_eTrickMode && speedNumerator < 0) {
                         *currentPosition = playback_ip->psi.duration;
                         playback_ip->lastPosition = *currentPosition;
@@ -277,7 +277,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
                     }
                 }
                 else if (playback_ip->psi.duration && *currentPosition >= playback_ip->psi.duration) {
-                    BDBG_MSG(("%s: ###### resetting current position %lu to stream duration %u, loop %d", __FUNCTION__, *currentPosition, playback_ip->psi.duration, playback_ip->settings.enableEndOfStreamLooping));
+                    BDBG_MSG(("%s: ###### resetting current position %lu to stream duration %u, loop %d", BSTD_FUNCTION, *currentPosition, playback_ip->psi.duration, playback_ip->settings.enableEndOfStreamLooping));
                     if (playback_ip->settings.enableEndOfStreamLooping) {
                         *currentPosition = 0;
                         playback_ip->lastPosition = *currentPosition;
@@ -289,7 +289,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
                 }
                 playback_ip->mediaStartTime = currentTime;
             }
-            BDBG_MSG_FLOW(("%s: #### currentPosition %lu, num %d, denom %d", __FUNCTION__, *currentPosition, speedNumerator, speedDenominator));
+            BDBG_MSG_FLOW(("%s: #### currentPosition %lu, num %d, denom %d", BSTD_FUNCTION, *currentPosition, speedNumerator, speedDenominator));
         }
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
         else if (playback_ip->hlsSessionEnabled) {
@@ -305,20 +305,20 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
                     /* if there is an error in getting the current PTS value, we still do the position calculation assuming it is 0 */
                     /* which will basically use the last valid PTS value in the http_calculate_current_position */
                     currentPts = playback_ip->lastUsedPts;
-                    BDBG_ERR(("%s: currentPts is 0, setting it to lastUsedPts 0x%x", __FUNCTION__, playback_ip->lastUsedPts));
+                    BDBG_ERR(("%s: currentPts is 0, setting it to lastUsedPts 0x%x", BSTD_FUNCTION, playback_ip->lastUsedPts));
                 }
                 *currentPosition = (currentPts - playback_ip->originalFirstPts) / 45; /* in msec: our decoders report PTS in 45Khz rate */
                 if (*currentPosition > playback_ip->psi.duration) {
                     /* looks like current position is not valid. */
                     if ( playback_ip->speedNumerator < 0) {
                         /* rewind case, set to start. */
-                        BDBG_ERR(("%s: currentPosition %lu is > duration, setting it to 0 for rewind case! %u: pts: current 0x%x, lastUsedPts 0x%x", __FUNCTION__,
+                        BDBG_ERR(("%s: currentPosition %lu is > duration, setting it to 0 for rewind case! %u: pts: current 0x%x, lastUsedPts 0x%x", BSTD_FUNCTION,
                                     *currentPosition, playback_ip->psi.duration, currentPts, playback_ip->lastUsedPts));
                         *currentPosition = 0;
                     }
                     else {
                         /* normal or fwd case, set to end. */
-                        BDBG_ERR(("%s: currentPosition %lu is > duration, setting it to duration %u, pts: current 0x%x, lastUsed 0x%x", __FUNCTION__,
+                        BDBG_ERR(("%s: currentPosition %lu is > duration, setting it to duration %u, pts: current 0x%x, lastUsed 0x%x", BSTD_FUNCTION,
                                     *currentPosition, playback_ip->psi.duration, currentPts, playback_ip->lastUsedPts));
                         *currentPosition = playback_ip->psi.duration;
                     }
@@ -335,7 +335,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
             /* To take care of the case, where seek was invoked because user has slided the timebar, sending older timestamp */
             /* will cause the timebar to jump backwards. To take care of this case, we use the lastSeekPosition as the current one */
             *currentPosition = playback_ip->lastSeekPosition;
-            BDBG_MSG_FLOW(("%s: using position from last seek position = %lu as we haven't received 1st frame after seeking....", __FUNCTION__, *currentPosition));
+            BDBG_MSG_FLOW(("%s: using position from last seek position = %lu as we haven't received 1st frame after seeking....", BSTD_FUNCTION, *currentPosition));
         }
         else {
             if (http_get_current_pts(playback_ip, &currentPts) != B_ERROR_SUCCESS) {
@@ -345,14 +345,14 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
             }
             *currentPosition = http_calculate_current_position(playback_ip, currentPts); /* accounts for check for PTS wrap & discontinuity */
         }
-        BDBG_MSG(("%s: current position (using %s method) at %0.3f/%0.3f sec", __FUNCTION__, (playback_ip->startSettings.mediaPositionUsingWallClockTime?"wallClock":"pts"), *currentPosition/1000., playback_ip->psi.duration/1000.));
+        BDBG_MSG(("%s: current position (using %s method) at %0.3f/%0.3f sec", BSTD_FUNCTION, (playback_ip->startSettings.mediaPositionUsingWallClockTime?"wallClock":"pts"), *currentPosition/1000., playback_ip->psi.duration/1000.));
         playback_ip->pausedByteOffset = *currentPosition * (playback_ip->psi.avgBitRate/8000.0); /* byte position * byte rate in milli-sec */
     }
     else {
         /* not using playpump, so continue below to get position from Nexus playback */
         if (playback_ip->nexusHandles.playback) {
             if (NEXUS_Playback_GetStatus(playback_ip->nexusHandles.playback, &playbackStatus) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: NEXUS_Playback_GetStatus() Failed\n", __FUNCTION__));
+                BDBG_ERR(("%s: ERROR: NEXUS_Playback_GetStatus() Failed\n", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             }
             /* this is the position of the last frame that was sent to the vdec */
@@ -362,10 +362,10 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
             *currentPosition = 0;
         playback_ip->pausedByteOffset = *currentPosition * (playback_ip->psi.avgBitRate/8000.0); /* byte position * byte rate in milli-sec */
         if (playback_ip->psi.duration && *currentPosition >= playback_ip->psi.duration) {
-            BDBG_MSG(("%s: calculated incorrect current position (%lu) as is outside the file duration %d, setting it to file duration\n", __FUNCTION__, *currentPosition, playback_ip->psi.duration));
+            BDBG_MSG(("%s: calculated incorrect current position (%lu) as is outside the file duration %d, setting it to file duration\n", BSTD_FUNCTION, *currentPosition, playback_ip->psi.duration));
             *currentPosition = playback_ip->psi.duration;
         }
-        BDBG_MSG(("%s: current position: at %0.3f sec, byte offset %"PRId64 , __FUNCTION__, *currentPosition/1000., playback_ip->pausedByteOffset));
+        BDBG_MSG(("%s: current position: at %0.3f sec, byte offset %"PRId64 , BSTD_FUNCTION, *currentPosition/1000., playback_ip->pausedByteOffset));
     }
     return B_ERROR_SUCCESS;
 }
@@ -385,7 +385,7 @@ updateNexusAudioDecodersState(
     speedNumerator = playback_ip->speedNumerator;
     speedDenominator = playback_ip->speedDenominator;
     rate = (float) speedNumerator / speedDenominator;
-    BDBG_MSG(("%s: speedNumerator %d, speedDenominator %d, rate %.1f", __FUNCTION__, speedNumerator, speedDenominator, rate));
+    BDBG_MSG(("%s: speedNumerator %d, speedDenominator %d, rate %.1f", BSTD_FUNCTION, speedNumerator, speedDenominator, rate));
 
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     if (playback_ip->nexusHandles.simpleAudioDecoder)
@@ -395,7 +395,7 @@ updateNexusAudioDecodersState(
     else if (playback_ip->nexusHandles.secondaryAudioDecoder)
         NEXUS_AudioDecoder_GetTrickState(playback_ip->nexusHandles.secondaryAudioDecoder, &audioTrickSettings);
     else {
-        BDBG_WRN(("%s: No Audio Decoder Handles provided, Audio is not enabled!", __FUNCTION__));
+        BDBG_WRN(("%s: No Audio Decoder Handles provided, Audio is not enabled!", BSTD_FUNCTION));
         return (B_ERROR_SUCCESS);
     }
 #endif
@@ -404,7 +404,7 @@ updateNexusAudioDecodersState(
         /* This is true when transitioning in-n-out of trickmodes using HW STC */
         /* which is true only for +ve trickmodes upto 2x, or pause/play case w/ connx stalling. */
         /* we keep audio on and dont set forceStopped. */
-        BDBG_MSG(("%s: hwStcTrickMode settings for rate %0.1f", __FUNCTION__, rate));
+        BDBG_MSG(("%s: hwStcTrickMode settings for rate %0.1f", BSTD_FUNCTION, rate));
         audioTrickSettings.forceStopped  = false;
         /* adjust the audio rate: since speedNumerator is 1 for Play, 0 for Pause, and valid in other HW STC trickModes, this equation works in all cases*/
         audioTrickSettings.rate = (NEXUS_NORMAL_PLAY_SPEED * speedNumerator) / speedDenominator;
@@ -420,7 +420,7 @@ updateNexusAudioDecodersState(
         if (rate == 1.0 || rate == 0.0) {
             /* Resuming to Play or Going to Decoder Pause */
             /* We keep audio on and dont set forceStopped. */
-            BDBG_MSG(("%s: decoder settings for rate %0.1f %s", __FUNCTION__, rate, (rate == 1.0)?"Play":"Pause"));
+            BDBG_MSG(("%s: decoder settings for rate %0.1f %s", BSTD_FUNCTION, rate, (rate == 1.0)?"Play":"Pause"));
             audioTrickSettings.forceStopped  = false;
             /* Set the audio decoder rate */
             audioTrickSettings.rate = NEXUS_NORMAL_PLAY_SPEED * (int)rate;
@@ -431,7 +431,7 @@ updateNexusAudioDecodersState(
         else {
             /* We can be using either simulatedStc trickmodes or just video decoder trickmodes. */
             /* Since we are here for all -ve trickmodes or > 2x speeds, audio is not played */
-            BDBG_MSG(("%s: %s trickMode settings for rate %0.1f", __FUNCTION__, playback_ip->simulatedStcTrickMode?"Simualted Stc":"Decoder", rate));
+            BDBG_MSG(("%s: %s trickMode settings for rate %0.1f", BSTD_FUNCTION, playback_ip->simulatedStcTrickMode?"Simualted Stc":"Decoder", rate));
             audioTrickSettings.forceStopped  = true;
             audioTrickSettings.muted = true;
             /* rate shouldn't really matter as decoder is stopped */
@@ -440,7 +440,7 @@ updateNexusAudioDecodersState(
             audioTrickSettings.tsmEnabled = false;
         }
     }
-    BDBG_MSG(("%s: AudioTrickSettings: forceStopped %s, rate %d, muted %s, stcTrickEnabled %s, tsmEnabled %s", __FUNCTION__,
+    BDBG_MSG(("%s: AudioTrickSettings: forceStopped %s, rate %d, muted %s, stcTrickEnabled %s, tsmEnabled %s", BSTD_FUNCTION,
                 audioTrickSettings.forceStopped ? "Y":"N",
                 audioTrickSettings.rate,
                 audioTrickSettings.muted ? "Y":"N",
@@ -453,16 +453,16 @@ updateNexusAudioDecodersState(
         if (playback_ip->nexusHandles.simpleAudioDecoderCount) {
             for (i=0; i<playback_ip->nexusHandles.simpleAudioDecoderCount; i++) {
                 if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoders[i], &audioTrickSettings) != NEXUS_SUCCESS) {
-                    BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+                    BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", BSTD_FUNCTION));
                     rc = B_ERROR_UNKNOWN;
                 }
-                BDBG_MSG(("%s: NEXUS_AudioDecoder_SetTrickState() handle=%p i=%d\n", __FUNCTION__, (void *)playback_ip->nexusHandles.simpleAudioDecoders[i], i));
+                BDBG_MSG(("%s: NEXUS_AudioDecoder_SetTrickState() handle=%p i=%d\n", BSTD_FUNCTION, (void *)playback_ip->nexusHandles.simpleAudioDecoders[i], i));
             }
         }
         else {
             /* For backward compatibility since App didn't specify the simpleAudioDecoderCount, just update the current SimpleAudioDecoder handle. */
             if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoder, &audioTrickSettings) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
             }
         }
@@ -473,7 +473,7 @@ updateNexusAudioDecodersState(
     {
         if (playback_ip->nexusHandles.primaryAudioDecoder) {
             if (NEXUS_AudioDecoder_SetTrickState(playback_ip->nexusHandles.primaryAudioDecoder, &audioTrickSettings) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto out;
             }
@@ -482,7 +482,7 @@ updateNexusAudioDecodersState(
         }
         if (playback_ip->nexusHandles.secondaryAudioDecoder) {
             if (NEXUS_AudioDecoder_SetTrickState(playback_ip->nexusHandles.secondaryAudioDecoder, &audioTrickSettings) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for secondary audio decoder \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for secondary audio decoder \n", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
             }
             else
@@ -541,7 +541,7 @@ updateNexusStcSettings(
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     if (playback_ip->nexusHandles.simpleStcChannel) {
         if (NEXUS_SimpleStcChannel_SetRate(playback_ip->nexusHandles.simpleStcChannel, increment, prescale) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_StcChannel_SetRate() failed \n", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_StcChannel_SetRate() failed \n", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
 
@@ -549,12 +549,12 @@ updateNexusStcSettings(
         /* audio/video data when transitioning from decoder_pause-->play or decoder_pause->seek->play. */
         /* The problem shows up if the time period between transition is long. */
         if (NEXUS_SimpleStcChannel_Invalidate(playback_ip->nexusHandles.simpleStcChannel) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_StcChannel_Invalidate() failed \n", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_StcChannel_Invalidate() failed \n", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
 #if 0
         if (NEXUS_VideoDecoder_InvalidateSimulatedStc(playback_ip->nexusHandles.videoDecoder) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_VideoDecoder_InvalidateSimulatedStc() failed \n", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_VideoDecoder_InvalidateSimulatedStc() failed \n", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
 #endif
@@ -564,7 +564,7 @@ updateNexusStcSettings(
     {
         if (playback_ip->nexusHandles.stcChannel) {
             if (NEXUS_StcChannel_SetRate(playback_ip->nexusHandles.stcChannel, increment, prescale) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_StcChannel_SetRate() failed \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_StcChannel_SetRate() failed \n", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             }
 
@@ -572,12 +572,12 @@ updateNexusStcSettings(
             /* audio/video data when transitioning from decoder_pause-->play or decoder_pause->seek->play. */
             /* The problem shows up if the time period between transition is long. */
             if (NEXUS_StcChannel_Invalidate(playback_ip->nexusHandles.stcChannel) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_StcChannel_Invalidate() failed \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_StcChannel_Invalidate() failed \n", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             }
         }
     }
-    BDBG_MSG(("%s: STC Trickmode: increment %u, prescale %u", __FUNCTION__, increment, prescale));
+    BDBG_MSG(("%s: STC Trickmode: increment %u, prescale %u", BSTD_FUNCTION, increment, prescale));
     return B_ERROR_SUCCESS;
 }
 
@@ -597,7 +597,7 @@ updateNexusPlaypumpDecodersState(
     speedDenominator = playback_ip->speedDenominator;
     rate = (float) speedNumerator / speedDenominator;
 
-    BDBG_MSG(("%s: speedNumerator %d, speedDenominator %d, rate %.1f, simulatedStcTrickMode %s, hwStcTrickMode %s", __FUNCTION__,
+    BDBG_MSG(("%s: speedNumerator %d, speedDenominator %d, rate %.1f, simulatedStcTrickMode %s, hwStcTrickMode %s", BSTD_FUNCTION,
                 speedNumerator, speedDenominator, rate,
                 playback_ip->simulatedStcTrickMode ? "Y":"N",
                 playback_ip->hwStcTrickMode ? "Y":"N"));
@@ -612,7 +612,7 @@ updateNexusPlaypumpDecodersState(
          */
         stcIncrement = (NEXUS_NORMAL_PLAY_SPEED * speedNumerator) / speedDenominator;
         stcPreScale = NEXUS_NORMAL_PLAY_SPEED-1; /* STC HW adds 1 */
-        BDBG_MSG(("%s: Hardware STC based Trick play settings are: increment %d, prescale %d", __FUNCTION__, stcIncrement, stcPreScale));
+        BDBG_MSG(("%s: Hardware STC based Trick play settings are: increment %d, prescale %d", BSTD_FUNCTION, stcIncrement, stcPreScale));
     }
     else {
         /* non-hw based STC trickmode case, we run hw STC at the normal rate and instead manipulate either simualated STC or decoder rate */
@@ -623,7 +623,7 @@ updateNexusPlaypumpDecodersState(
 
     /* update audio decoder state to match the given trickmode: audio decoder trickmode settings are calculated in this function */
     if (updateNexusAudioDecodersState(playback_ip, ipTrickModeSettings) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: failed to update nexus audio decoder state during trickmode transition\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to update nexus audio decoder state during trickmode transition\n", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
 
@@ -633,7 +633,7 @@ updateNexusPlaypumpDecodersState(
         if (ipTrickModeSettings->method == B_PlaybackIpTrickModesMethod_UseRvuSpec) {
             suspendPacing = rate == 1.0? false:true;
             if (B_PlaybackIp_TtsThrottle_SuspendPacing(playback_ip->ttsThrottle, suspendPacing) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: B_PlaybackIp_TtsThrottle_SuspendPacing() Failed to %s", __FUNCTION__, suspendPacing ? "suspend pacing":"resume pacing"));
+                BDBG_ERR(("%s: B_PlaybackIp_TtsThrottle_SuspendPacing() Failed to %s", BSTD_FUNCTION, suspendPacing ? "suspend pacing":"resume pacing"));
                 return B_ERROR_UNKNOWN;
             }
         }
@@ -642,16 +642,16 @@ updateNexusPlaypumpDecodersState(
         else
             pausePlaypump = false;
         if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump, pausePlaypump) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to %s", __FUNCTION__, pausePlaypump ? "set pause":"unset pause"));
+            BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to %s", BSTD_FUNCTION, pausePlaypump ? "set pause":"unset pause"));
             return B_ERROR_UNKNOWN;
         }
         if (playback_ip->nexusHandles.playpump2) {
             if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump2, pausePlaypump) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_Playpump_SetPause() for playpump2 failed to %s", __FUNCTION__, pausePlaypump ? "set pause":"unset pause"));
+                BDBG_ERR(("%s: NEXUS_Playpump_SetPause() for playpump2 failed to %s", BSTD_FUNCTION, pausePlaypump ? "set pause":"unset pause"));
                 return B_ERROR_UNKNOWN;
             }
         }
-        BDBG_MSG(("%s: playpump pause %s, suspend pacing %s", __FUNCTION__, pausePlaypump ? "Y":"N", suspendPacing ? "Y":"N"));
+        BDBG_MSG(("%s: playpump pause %s, suspend pacing %s", BSTD_FUNCTION, pausePlaypump ? "Y":"N", suspendPacing ? "Y":"N"));
     }
 
     /* update video decoder settings for streams playing video */
@@ -674,7 +674,7 @@ updateNexusPlaypumpDecodersState(
             /* for STC trickmodes, set video decoder settings to handle +ve trickmodes upto 2x */
             /* we tell decoder to decode all pictures at the normal decoder rate (but really it is driven by the h/w STC rate) */
             /* also, we keep the TSM on. */
-            BDBG_MSG(("%s: programming video decoder for HW STC based %s at rate %0.1f", __FUNCTION__,
+            BDBG_MSG(("%s: programming video decoder for HW STC based %s at rate %0.1f", BSTD_FUNCTION,
                         (rate == 1.0 || rate == 0.0) ? "Play/Pause":"Trickmode", rate));
             videoDecoderTrickSettings.rate = NEXUS_NORMAL_DECODE_RATE; /* decoder rate doesn't matter for pause as STC is frozen for pause */
             videoDecoderTrickSettings.stcTrickEnabled = (rate == 1.0)? false:true; /* allows decoder to properly handle the PTS errors */
@@ -690,7 +690,7 @@ updateNexusPlaypumpDecodersState(
         else if (rate == 1.0 || rate == 0.0) {
             /* We are resuming back to normal play mode or going into decoder based pause */
             /* we tell decoder to decode all pictures at the normal decoder rate and re-enable TSM */
-            BDBG_MSG(("%s: programming video decoder for decoder based %s ", __FUNCTION__, (rate == 1.0) ? "Play":"Pause"));
+            BDBG_MSG(("%s: programming video decoder for decoder based %s ", BSTD_FUNCTION, (rate == 1.0) ? "Play":"Pause"));
             videoDecoderTrickSettings.rate = (rate == 1.0) ? NEXUS_NORMAL_DECODE_RATE : 0;
             videoDecoderTrickSettings.stcTrickEnabled = false;
 
@@ -707,7 +707,7 @@ updateNexusPlaypumpDecodersState(
             /* We can be using either simualtedSTC trickmodes or just video decoder trickmodes. */
             /* First, we setup the settings which differ in two modes: TSM & Decoder Rate */
             if (playback_ip->simulatedStcTrickMode) {
-                BDBG_MSG(("%s: programming video decoder for simulatedStcTrickMode", __FUNCTION__));
+                BDBG_MSG(("%s: programming video decoder for simulatedStcTrickMode", BSTD_FUNCTION));
 #if 0
                 playback_ip->enableRecording = 1; /* NOTE: this is just for debugging the slow rewind issue */
 #endif
@@ -723,7 +723,7 @@ updateNexusPlaypumpDecodersState(
                 /* for nonSimulatedStc trick modes (when server provides frameRateInTrickMode) */
                 int frameRateNum;
                 int frameRateInTrickMode;
-                BDBG_MSG(("%s: programming video decoder for decoder rate based trickmodes", __FUNCTION__));
+                BDBG_MSG(("%s: programming video decoder for decoder rate based trickmodes", BSTD_FUNCTION));
                 /* we turn-off the TSM and instead just program decoder rate to decode at that rate. */
                 videoDecoderTrickSettings.tsmEnabled = NEXUS_TsmMode_eDisabled;
                 videoDecoderTrickSettings.stcTrickEnabled = false;
@@ -735,7 +735,7 @@ updateNexusPlaypumpDecodersState(
                     frameRateInTrickMode = ipTrickModeSettings->frameRateInTrickMode ? ipTrickModeSettings->frameRateInTrickMode : playback_ip->psi.frameRateInTrickMode;
                     frameRateNum = mapNexusFrameRateEnumToNum(playback_ip->frameRate);
                     videoDecoderTrickSettings.rate = (NEXUS_NORMAL_DECODE_RATE/frameRateNum)*frameRateInTrickMode;
-                    BDBG_MSG(("%s: frame rate %d, nexus enum %d , frameRateInTrickMode %d", __FUNCTION__, frameRateNum, playback_ip->frameRate, frameRateInTrickMode));
+                    BDBG_MSG(("%s: frame rate %d, nexus enum %d , frameRateInTrickMode %d", BSTD_FUNCTION, frameRateNum, playback_ip->frameRate, frameRateInTrickMode));
                 }
             }
             /* video decoder settings which are common to both Simulated STC or Decoder trickmode case */
@@ -762,14 +762,14 @@ updateNexusPlaypumpDecodersState(
 
         if (playback_ip->nexusHandles.videoDecoder) {
             if (NEXUS_VideoDecoder_SetTrickState(playback_ip->nexusHandles.videoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             }
         }
 #ifdef NEXUS_HAS_SIMPLE_DECODER
         else {
             if (NEXUS_SimpleVideoDecoder_SetTrickState(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             }
         }
@@ -790,7 +790,7 @@ updateNexusPlaypumpDecodersState(
         /* I dont think we need to invalidate the simulated STC but will need to look into this later.. */
         if (playback_ip->simulatedStcTrickMode) {
             if (NEXUS_VideoDecoder_InvalidateSimulatedStc(playback_ip->nexusHandles.videoDecoder) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_VideoDecoder_InvalidateSimulatedStc() failed \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_VideoDecoder_InvalidateSimulatedStc() failed \n", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             }
         }
@@ -800,11 +800,11 @@ updateNexusPlaypumpDecodersState(
 
     /* update set the STC rate */
     if (updateNexusStcSettings(playback_ip, stcIncrement, stcPreScale) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: failed to set the stc rate to: incremen %u, prescale %u during trickmode transition", __FUNCTION__, stcIncrement, stcPreScale));
+        BDBG_ERR(("%s: ERROR: failed to set the stc rate to: incremen %u, prescale %u during trickmode transition", BSTD_FUNCTION, stcIncrement, stcPreScale));
         return B_ERROR_UNKNOWN;
     }
 
-    BDBG_MSG(("%s: Trick play settings are sucessfully applied to Nexus AV decoders and Playpump", __FUNCTION__));
+    BDBG_MSG(("%s: Trick play settings are sucessfully applied to Nexus AV decoders and Playpump", BSTD_FUNCTION));
     return B_ERROR_SUCCESS;
 }
 
@@ -831,15 +831,15 @@ http_send_time_seek_request(
     }
 
     BDBG_MSG(("%s: initTimeSeekRangeBegin %0.3f, interval %0.3f, timeSeekRangeBegin %0.3f, timeSeekRangeEnd %0.3f, state %d",
-                __FUNCTION__, playback_ip->initialTimeSeekRangeBegin, playback_ip->timeSeekRangeInterval, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->playback_state));
+                BSTD_FUNCTION, playback_ip->initialTimeSeekRangeBegin, playback_ip->timeSeekRangeInterval, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->playback_state));
 
     /* now build & send the new get request so that server will send stream at new speed */
     if ((rc = http_do_server_trick_modes_socket_transition(playback_ip, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->ipTrickModeSettings.rate, NULL /*playSpeedString */)) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: Failed to update server about the trick play transition\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to update server about the trick play transition\n", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
 
-    BDBG_ERR(("%s: Done", __FUNCTION__));
+    BDBG_ERR(("%s: Done", BSTD_FUNCTION));
     return B_ERROR_SUCCESS;
 }
 
@@ -895,13 +895,13 @@ http_do_client_side_trick_modes_using_playback(
         }
     }
 
-    BDBG_MSG(("%s: Calling NEXUS_Playback_TrickMode() nexus rate %d", __FUNCTION__, playbackTrickModeSettings.rate));
+    BDBG_MSG(("%s: Calling NEXUS_Playback_TrickMode() nexus rate %d", BSTD_FUNCTION, playbackTrickModeSettings.rate));
     if (NEXUS_Playback_TrickMode(playback_ip->nexusHandles.playback, &playbackTrickModeSettings) != NEXUS_SUCCESS) {
-        BDBG_WRN(("%s: NEXUS_Playback_TrickMode() failed for rate %d\n", __FUNCTION__, ipTrickModeSettings->rate));
+        BDBG_WRN(("%s: NEXUS_Playback_TrickMode() failed for rate %d\n", BSTD_FUNCTION, ipTrickModeSettings->rate));
         return (B_ERROR_UNKNOWN);
     }
 
-    BDBG_MSG(("%s: NEXUS_Playback_TrickMode() successfully updated the trick mode rate to %d, nexus rate %d", __FUNCTION__, ipTrickModeSettings->rate, playbackTrickModeSettings.rate));
+    BDBG_MSG(("%s: NEXUS_Playback_TrickMode() successfully updated the trick mode rate to %d, nexus rate %d", BSTD_FUNCTION, ipTrickModeSettings->rate, playbackTrickModeSettings.rate));
     return B_ERROR_SUCCESS;
 }
 
@@ -929,7 +929,7 @@ B_PlaybackIp_GetTrickModeSettings(
     )
 {
     if (!playback_ip || !ipTrickModeSettings) {
-        BDBG_ERR(("%s: ERROR: incorrect params: playback_ip %p, trickMode %p\n", __FUNCTION__, (void *)playback_ip, (void *)ipTrickModeSettings));
+        BDBG_ERR(("%s: ERROR: incorrect params: playback_ip %p, trickMode %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)ipTrickModeSettings));
         return B_ERROR_INVALID_PARAMETER;
     }
     B_PlaybackIp_HttpSetDefaultTrickModeSettings(&playback_ip->ipTrickModeSettings);
@@ -980,7 +980,7 @@ B_PlaybackIp_PauseRvu(
 {
     BSTD_UNUSED(playback_ip);
     BSTD_UNUSED(ipTrickModeSettings);
-    BDBG_ERR(("%s: ERROR: Rvu Pause is not yet supported", __FUNCTION__));
+    BDBG_ERR(("%s: ERROR: Rvu Pause is not yet supported", BSTD_FUNCTION));
     return B_ERROR_SUCCESS;
 }
 
@@ -1007,7 +1007,7 @@ B_PlaybackIp_PauseRtsp(
     ipTrickModeSettings->frameRepeat = 0;
     ipTrickModeSettings->decodeMode = NEXUS_VideoDecoderDecodeMode_eAll;
     if ((rc = updateNexusPlaypumpDecodersState(playback_ip, ipTrickModeSettings)) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during pause transition\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during pause transition\n", BSTD_FUNCTION));
         return rc;
     }
     return B_ERROR_SUCCESS;
@@ -1015,7 +1015,7 @@ B_PlaybackIp_PauseRtsp(
     BSTD_UNUSED(playback_ip);
     BSTD_UNUSED(ipTrickModeSettings);
     /* Until RTSP-ES support is complete, we are going to disable RTSP trickmodes */
-    BDBG_ERR(("%s: Until RTSP-ES support is complete, we are going to disable RTSP trickmodes", __FUNCTION__));
+    BDBG_ERR(("%s: Until RTSP-ES support is complete, we are going to disable RTSP trickmodes", BSTD_FUNCTION));
     return B_ERROR_UNKNOWN;
 #endif
 }
@@ -1035,7 +1035,7 @@ B_PlaybackIp_PauseHttp(
     if (!playback_ip->useNexusPlaypump) {
         /* pause Nexus Playback and it takes care of pausing decoders & playpump */
         if (NEXUS_Playback_Pause(playback_ip->nexusHandles.playback) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: Failed to Pause Nexus Playback", __FUNCTION__ ));
+            BDBG_ERR(("%s: ERROR: Failed to Pause Nexus Playback", BSTD_FUNCTION ));
             rc = B_ERROR_UNKNOWN;
             goto error;
         }
@@ -1060,11 +1060,11 @@ B_PlaybackIp_PauseHttp(
             playback_ip->speedDenominator = 1;
         }
 
-        BDBG_MSG(("%s: Pause Method: %s, Pause using STC Pause, speedNumerator %d, speedDenominator %d", __FUNCTION__,
+        BDBG_MSG(("%s: Pause Method: %s, Pause using STC Pause, speedNumerator %d, speedDenominator %d", BSTD_FUNCTION,
                     (ipTrickModeSettings->pauseMethod == B_PlaybackIpPauseMethod_UseConnectionStalling) ? "Connection Stalling":"Disconnection & Seek",
                     playback_ip->speedNumerator, playback_ip->speedDenominator));
         if ((rc = updateNexusPlaypumpDecodersState(playback_ip, ipTrickModeSettings)) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during pause transition", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during pause transition", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -1096,7 +1096,7 @@ B_PlaybackIp_PauseHttp(
         /* Since decoders are in pause state, this will eventually cause all buffers in pipleline to fill up and */
         /* thus read io thread will stop reading from the socket. This will cause TCP buffers to fill and thus */
         /* TCP flow control will send 0 TCP window to server and thus make it stop sending the content */
-        BDBG_MSG(("%s: Paused IP Playback using Connection Stalling Method", __FUNCTION__));
+        BDBG_MSG(("%s: Paused IP Playback using Connection Stalling Method", BSTD_FUNCTION));
     }
     rc = B_ERROR_SUCCESS;
     return rc;
@@ -1116,40 +1116,40 @@ trickModePause_locked(
     NEXUS_PlaybackPosition currentPosition;
 
     if (!playback_ip || !ipTrickModeSettings) {
-        BDBG_ERR(("%s: ERROR: incorrect params: playback_ip %p, trickMode %p", __FUNCTION__, (void *)playback_ip, (void *)ipTrickModeSettings));
+        BDBG_ERR(("%s: ERROR: incorrect params: playback_ip %p, trickMode %p", BSTD_FUNCTION, (void *)playback_ip, (void *)ipTrickModeSettings));
         return B_ERROR_INVALID_PARAMETER;
     }
 
-    BDBG_MSG(("%s: Pausing playback_ip %p, method %d socket=%d", __FUNCTION__, (void *)playback_ip, ipTrickModeSettings->pauseMethod, playback_ip->socketState.fd));
+    BDBG_MSG(("%s: Pausing playback_ip %p, method %d socket=%d", BSTD_FUNCTION, (void *)playback_ip, ipTrickModeSettings->pauseMethod, playback_ip->socketState.fd));
     if (playback_ip->playback_state != B_PlaybackIpState_ePaused &&
             playback_ip->playback_state != B_PlaybackIpState_ePlaying &&
             playback_ip->playback_state != B_PlaybackIpState_eTrickMode) {
-        BDBG_ERR(("%s: ERROR: Can't do Pause command in this state %d", __FUNCTION__, playback_ip->playback_state));
+        BDBG_ERR(("%s: ERROR: Can't do Pause command in this state %d", BSTD_FUNCTION, playback_ip->playback_state));
         return B_ERROR_INVALID_PARAMETER;
     }
 
     if (playback_ip->psi.liveChannel) {
-        BDBG_WRN(("%s: Can't do Pause for liveChannels (psi.liveChannel flag %d), Ignoring the command", __FUNCTION__, playback_ip->psi.liveChannel));
+        BDBG_WRN(("%s: Can't do Pause for liveChannels (psi.liveChannel flag %d), Ignoring the command", BSTD_FUNCTION, playback_ip->psi.liveChannel));
         return B_ERROR_SUCCESS;
     }
 
     if (playback_ip->playback_state == B_PlaybackIpState_ePaused) {
         /* already in pause state, so resume */
         if (trickModePlay_locked(playback_ip)) {
-            BDBG_ERR(("%s: ERROR: Failed to resume from pause", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to resume from pause", BSTD_FUNCTION));
             rc = B_ERROR_UNKNOWN;
             return rc;
         }
-        BDBG_MSG(("%s: resuming from pause", __FUNCTION__));
+        BDBG_MSG(("%s: resuming from pause", BSTD_FUNCTION));
         return B_ERROR_SUCCESS;
     }
 
     if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
-        BDBG_WRN(("%s: Failed to determine the current playback position", __FUNCTION__));
+        BDBG_WRN(("%s: Failed to determine the current playback position", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
     playback_ip->lastPosition = currentPosition; /* this is the last position upto which we have played the media so far! */
-    BDBG_MSG(("%s: ##### lastPosition played %lu until Pause", __FUNCTION__, playback_ip->lastPosition));
+    BDBG_MSG(("%s: ##### lastPosition played %lu until Pause", BSTD_FUNCTION, playback_ip->lastPosition));
 
     /* now change the state to EnteringTrickMode until we finish the trickmode work */
     currentState = playback_ip->playback_state;
@@ -1174,14 +1174,14 @@ trickModePause_locked(
     else if (ipTrickModeSettings->method == B_PlaybackIpTrickModesMethod_UseRvuSpec)
         rc = B_PlaybackIp_PauseRvu(playback_ip, ipTrickModeSettings);
     else {
-        BDBG_ERR(("%s: ERROR: Pause not supported for IP protocol %d", __FUNCTION__, playback_ip->protocol));
+        BDBG_ERR(("%s: ERROR: Pause not supported for IP protocol %d", BSTD_FUNCTION, playback_ip->protocol));
         rc = B_ERROR_NOT_SUPPORTED;
     }
 
     if (rc == B_ERROR_SUCCESS) {
         playback_ip->playback_state = B_PlaybackIpState_ePaused;
         playback_ip->ipTrickModeSettings = *ipTrickModeSettings;
-        BDBG_MSG(("%s: Successfully Paused IP Playback, ip state %d", __FUNCTION__, playback_ip->playback_state));
+        BDBG_MSG(("%s: Successfully Paused IP Playback, ip state %d", BSTD_FUNCTION, playback_ip->playback_state));
     }
     else {
         /* in case of error, reset the state back to current state */
@@ -1230,14 +1230,14 @@ B_PlaybackIp_PlayRtsp(
     ipTrickModeSettings.frameRepeat = 0;
     ipTrickModeSettings.decodeMode = NEXUS_VideoDecoderDecodeMode_eAll;
     if ((rc = updateNexusPlaypumpDecodersState(playback_ip, &ipTrickModeSettings)) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", BSTD_FUNCTION));
         return rc;
     }
     return B_ERROR_SUCCESS;
 #else
     BSTD_UNUSED(playback_ip);
     /* Until RTSP-ES support is complete, we are going to disable RTSP trickmodes */
-    BDBG_ERR(("%s: Until RTSP-ES support is complete, we are going to disable RTSP trickmodes", __FUNCTION__));
+    BDBG_ERR(("%s: Until RTSP-ES support is complete, we are going to disable RTSP trickmodes", BSTD_FUNCTION));
     return B_ERROR_UNKNOWN;
 #endif
 }
@@ -1271,9 +1271,9 @@ B_PlaybackIp_PlayHttp(
         /* (only happens when IP data is pulled by Nexus Playback) */
         /* TODO: not sure what state was being set here in the old code, may need to experiment w/ different format playback when taking it out */
         playback_ip->playback_state = B_PlaybackIpState_ePlaying;
-        BDBG_MSG(("%s: Calling Nexus Play", __FUNCTION__));
+        BDBG_MSG(("%s: Calling Nexus Play", BSTD_FUNCTION));
         if (NEXUS_Playback_Play(playback_ip->nexusHandles.playback) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: Failed to Resume Nexus Playback", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to Resume Nexus Playback", BSTD_FUNCTION));
             rc = B_ERROR_UNKNOWN;
             goto error;
         }
@@ -1297,11 +1297,11 @@ B_PlaybackIp_PlayHttp(
             /* seekPosition is not set */
             /* we are resuming from either trickplay or paused state, so note the current position, so that we can resume normal play from that point */
             if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &playPosition) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to determine the current playback position", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to determine the current playback position", BSTD_FUNCTION));
                 goto error;
             }
         }
-        BDBG_MSG(("%s: resuming position %0.3f, reOpenSocket %d", __FUNCTION__, playPosition/1000., playback_ip->reOpenSocket));
+        BDBG_MSG(("%s: resuming position %0.3f, reOpenSocket %d", BSTD_FUNCTION, playPosition/1000., playback_ip->reOpenSocket));
 
         if (playback_ip->reOpenSocket == true || playback_ip->ipTrickModeSettings.method == B_PlaybackIpTrickModesMethod_UseRvuSpec || playback_ip->frameRewindCalled == true) {
             playback_ip->frameRewindCalled = false;
@@ -1315,14 +1315,14 @@ B_PlaybackIp_PlayHttp(
                 timeSeekRangeEnd = 0.;
             /* build & send the new HTTP Get request to server so that it will send stream at new speed & time position */
             if ((rc = http_do_server_trick_modes_socket_transition(playback_ip, timeSeekRangeBegin, timeSeekRangeEnd, 1 /* play speed */, NULL /*playSpeedString */)) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to update server about the trick play transition\n", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to update server about the trick play transition\n", BSTD_FUNCTION));
                 goto error;
             }
             playback_ip->reOpenSocket = false;
 
             /* flush the AV decoders & Nexus playpump buffers so that we cleanly start decode from the new stream position */
             if (B_PlaybackIp_UtilsFlushAvPipeline(playback_ip)) {
-                BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", __FUNCTION__));
+                BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
@@ -1349,7 +1349,7 @@ B_PlaybackIp_PlayHttp(
         playback_ip->speedNumerator = 1;
         playback_ip->speedDenominator = 1;
         if ((rc = updateNexusPlaypumpDecodersState(playback_ip, &ipTrickModeSettings)) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", BSTD_FUNCTION));
             goto error;
         }
         playback_ip->ipTrickModeSettings = ipTrickModeSettings;
@@ -1359,7 +1359,7 @@ B_PlaybackIp_PlayHttp(
         playback_ip->simulatedStcTrickMode = false;
         playback_ip->stcRate = NEXUS_NORMAL_PLAY_SPEED;
     }
-    BDBG_MSG(("%s: Successfully Resumed IP Playback, ip state %d, fd %d", __FUNCTION__, playback_ip->playback_state, playback_ip->socketState.fd));
+    BDBG_MSG(("%s: Successfully Resumed IP Playback, ip state %d, fd %d", BSTD_FUNCTION, playback_ip->playback_state, playback_ip->socketState.fd));
     rc = B_ERROR_SUCCESS;
 error:
     return rc;
@@ -1399,7 +1399,7 @@ trickModePlay_locked(
         rc = B_PlaybackIp_PlayRtsp(playback_ip);
 #endif
     else {
-        BDBG_ERR(("%s: ERROR: Play not supported for IP protocol %d", __FUNCTION__, playback_ip->protocol));
+        BDBG_ERR(("%s: ERROR: Play not supported for IP protocol %d", BSTD_FUNCTION, playback_ip->protocol));
         rc = B_ERROR_NOT_SUPPORTED;
     }
     /* reset the paused position */
@@ -1415,7 +1415,7 @@ trickModePlay_locked(
     else {
         playback_ip->playback_state = currentState;
     }
-    BDBG_MSG(("%s: Resuming to Play state, ip state %d", __FUNCTION__, playback_ip->playback_state));
+    BDBG_MSG(("%s: Resuming to Play state, ip state %d", BSTD_FUNCTION, playback_ip->playback_state));
     playback_ip->playApiActive = false;
     playback_ip->trickmodeCalled = false;
     return rc;
@@ -1430,23 +1430,23 @@ B_PlaybackIp_PlayImpl(
     B_PlaybackIpError rc = B_ERROR_UNKNOWN;
 
     if (!playback_ip) {
-        BDBG_ERR(("%s: NULL params playback_ip", __FUNCTION__));
+        BDBG_ERR(("%s: NULL params playback_ip", BSTD_FUNCTION));
         return B_ERROR_INVALID_PARAMETER;
     }
 
-    BDBG_MSG(("%s: Resuming plaback_ip %p, current state %d, pause method %d, fd %d", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state, playback_ip->ipTrickModeSettings.pauseMethod, playback_ip->socketState.fd));
+    BDBG_MSG(("%s: Resuming plaback_ip %p, current state %d, pause method %d, fd %d", BSTD_FUNCTION, (void *)playback_ip, playback_ip->playback_state, playback_ip->ipTrickModeSettings.pauseMethod, playback_ip->socketState.fd));
 
     if (playback_ip->playback_state != B_PlaybackIpState_ePaused &&
             playback_ip->playback_state != B_PlaybackIpState_ePlaying &&
             playback_ip->playback_state != B_PlaybackIpState_eTrickMode) {
-        BDBG_ERR(("%s: ERROR: Can't do Play command in this state %d\n", __FUNCTION__, playback_ip->playback_state));
+        BDBG_ERR(("%s: ERROR: Can't do Play command in this state %d\n", BSTD_FUNCTION, playback_ip->playback_state));
         return B_ERROR_INVALID_PARAMETER;
     }
 
     /* if API is in progress, return INCOMPLETE */
     if (playback_ip->apiInProgress) {
         rc = B_ERROR_IN_PROGRESS;
-        BDBG_MSG(("%s: previously started Play operation still in progress, playback_ip %p, status %d", __FUNCTION__, (void *)playback_ip, rc));
+        BDBG_MSG(("%s: previously started Play operation still in progress, playback_ip %p, status %d", BSTD_FUNCTION, (void *)playback_ip, rc));
         return (rc);
     }
 
@@ -1454,17 +1454,17 @@ B_PlaybackIp_PlayImpl(
     if (playback_ip->apiCompleted) {
         rc = playback_ip->trickModeStatus;
         playback_ip->apiCompleted = false;
-        BDBG_MSG(("%s: previously started Play operation completed, playback_ip %p, status %d", __FUNCTION__, (void *)playback_ip, rc));
+        BDBG_MSG(("%s: previously started Play operation completed, playback_ip %p, status %d", BSTD_FUNCTION, (void *)playback_ip, rc));
         goto out;
     }
 
     if (playback_ip->playback_state == B_PlaybackIpState_ePlaying) {
-        BDBG_MSG(("%s playbackIp=%p: Ignoring B_PlaybackIp_Play() in the Playing State!", __FUNCTION__, (void *)playback_ip));
+        BDBG_MSG(("%s playbackIp=%p: Ignoring B_PlaybackIp_Play() in the Playing State!", BSTD_FUNCTION, (void *)playback_ip));
         return B_ERROR_SUCCESS;
     }
 
     lock_ip_session(playback_ip);
-    BDBG_MSG(("%s playback_ip=%p: nonBlockingMode=%s", __FUNCTION__, (void *)playback_ip, nonBlockingMode?"Y":"N"));
+    BDBG_MSG(("%s playback_ip=%p: nonBlockingMode=%s", BSTD_FUNCTION, (void *)playback_ip, nonBlockingMode?"Y":"N"));
 
     playback_ip->playApiActive = true;
     playback_ip->frameAdvanceApiActive = false;
@@ -1483,18 +1483,18 @@ B_PlaybackIp_PlayImpl(
              * because the first thing the thread does is to wait on the
              * event. */
             if (BKNI_CreateEvent(&playback_ip->newTrickModeJobEvent)) {
-                BDBG_ERR(("%s: Failed to create an event at %d", __FUNCTION__, __LINE__));
+                BDBG_ERR(("%s: Failed to create an event at %d", BSTD_FUNCTION, __LINE__));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
 
             playback_ip->trickModeThread = B_Thread_Create("trickModeThread", (B_ThreadFunc)trickModeThread, (void *)playback_ip, NULL/*threadSettings*/);
             if (playback_ip->trickModeThread == NULL) {
-                BDBG_ERR(("%s: Failed to create thread for trickmode operation during trickmode", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to create thread for trickmode operation during trickmode", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
-            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", __FUNCTION__));
+            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", BSTD_FUNCTION));
         }
         /* trickModeThread is either already running or we just started it, wake it up to start the seek work */
         BKNI_SetEvent(playback_ip->newTrickModeJobEvent);
@@ -1510,12 +1510,12 @@ B_PlaybackIp_PlayImpl(
     /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
     /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-    BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    BDBG_MSG(("%s: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 
 error:
     unlock_ip_session(playback_ip);
-    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
+    BDBG_ERR(("%s: ERROR: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 }
 
@@ -1543,7 +1543,7 @@ B_PlaybackIp_SeekRvu(
 {
     BSTD_UNUSED(playback_ip);
     BSTD_UNUSED(ipTrickModeSettings);
-    BDBG_ERR(("%s: ERROR: Rvu Seek is not yet supported", __FUNCTION__));
+    BDBG_ERR(("%s: ERROR: Rvu Seek is not yet supported", BSTD_FUNCTION));
     return B_ERROR_SUCCESS;
 }
 
@@ -1555,7 +1555,7 @@ B_PlaybackIp_SeekRtsp(
 {
     BSTD_UNUSED(playback_ip);
     BSTD_UNUSED(ipTrickModeSettings);
-    BDBG_ERR(("%s: ERROR: RTSP Seek is not yet supported", __FUNCTION__));
+    BDBG_ERR(("%s: ERROR: RTSP Seek is not yet supported", BSTD_FUNCTION));
     return B_ERROR_SUCCESS;
 }
 
@@ -1573,17 +1573,17 @@ B_PlaybackIp_SeekHttp(
     if (!playback_ip->useNexusPlaypump) {
         if (playback_ip->psi.duration && seekPosition >= playback_ip->psi.duration) {
             BDBG_WRN(("%s: asked position (relative flag %d, seek backward %d, pos relative %lu, absolute %lu) is outside the file duration %u",
-                        __FUNCTION__, ipTrickModeSettings->seekPositionIsRelative, ipTrickModeSettings->seekBackward, ipTrickModeSettings->seekPosition, seekPosition, playback_ip->psi.duration));
+                        BSTD_FUNCTION, ipTrickModeSettings->seekPositionIsRelative, ipTrickModeSettings->seekBackward, ipTrickModeSettings->seekPosition, seekPosition, playback_ip->psi.duration));
             seekPosition = 0;
         }
-        BDBG_MSG(("%s: Calling Nexus Seek\n", __FUNCTION__));
+        BDBG_MSG(("%s: Calling Nexus Seek\n", BSTD_FUNCTION));
         /* we need to unlock here, this is because for some streams that dont have index data, Nexus Seek */
         /* will invoke data callback of Http module. If we didn't release the lock here, the data callback wont */
         /* run as this lock serializes either this thread or data callback thread and thus seek would fail */
 
         unlock_ip_session(playback_ip);
         if ( (nrc = NEXUS_Playback_Seek(playback_ip->nexusHandles.playback, seekPosition)) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: Failed to seek using NEXUS_Playback_Seek, rc %d", __FUNCTION__, nrc));
+            BDBG_ERR(("%s: ERROR: Failed to seek using NEXUS_Playback_Seek, rc %d", BSTD_FUNCTION, nrc));
             rc = B_ERROR_UNKNOWN;
             goto error;
         }
@@ -1592,14 +1592,14 @@ B_PlaybackIp_SeekHttp(
     }
     else {
         /* using Nexus Playpump to feed data, so server must support time seek */
-        BDBG_MSG(("%s: currentState %d, seekPosition %lu", __FUNCTION__, currentState, seekPosition));
+        BDBG_MSG(("%s: currentState %d, seekPosition %lu", BSTD_FUNCTION, currentState, seekPosition));
         if (currentState == B_PlaybackIpState_ePaused) {
 
             /* we reset the media start time flag as it will get set again during the 1st PTS interrupt */
             playback_ip->mediaStartTimeNoted = false;
 
             if (trickModeFrameAdvance_locked(playback_ip, true /* forward */, true /* seekPositionValid */, seekPosition) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: trickModeFrameAdvance_locked() Failed", __FUNCTION__));
+                BDBG_ERR(("%s: ERROR: trickModeFrameAdvance_locked() Failed", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
@@ -1624,7 +1624,7 @@ trickModeSeek_locked(
 
     /* note: caller has already locked the session */
     /* currently assumes only seek call are invoked thru this function */
-    BDBG_MSG(("%s: Seeking (%s) to %lu msec of %s position in %s direction, fd %d, ip state %d\n", __FUNCTION__,
+    BDBG_MSG(("%s: Seeking (%s) to %lu msec of %s position in %s direction, fd %d, ip state %d\n", BSTD_FUNCTION,
                 ipTrickModeSettings->nonBlockingMode? "non-blocking mode":"blocking mode",
                 ipTrickModeSettings->seekPosition,
                 ipTrickModeSettings->seekPositionIsRelative? "relative":"absolute",
@@ -1635,7 +1635,7 @@ trickModeSeek_locked(
         /* we are forcing to use the DisconnectAndSeek method of pausing as seek will anyway require reconnecting at a different offset */
         ipTrickModeSettings->pauseMethod = B_PlaybackIpPauseMethod_UseDisconnectAndSeek;
         if (trickModePause_locked(playback_ip, ipTrickModeSettings)) {
-            BDBG_ERR(("%s: ERROR: Failed to pause Ip playback during Seek operation", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to pause Ip playback during Seek operation", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
     }
@@ -1653,10 +1653,10 @@ trickModeSeek_locked(
         /* get the current position */
         NEXUS_PlaybackPosition currentPosition;
         if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: Failed to determine the current playback position\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to determine the current playback position\n", BSTD_FUNCTION));
             goto error;
         }
-        BDBG_MSG(("%s: current position %0.3f", __FUNCTION__, currentPosition/1000.));
+        BDBG_MSG(("%s: current position %0.3f", BSTD_FUNCTION, currentPosition/1000.));
 
         /* adjust relative value into the current position determined by the Pause() call above */
         if (ipTrickModeSettings->seekBackward)
@@ -1667,7 +1667,7 @@ trickModeSeek_locked(
     else {
         seekPosition = ipTrickModeSettings->seekPosition;
     }
-    BDBG_MSG(("%s: updated seek position from %lu to %lu (in msec) \n", __FUNCTION__, ipTrickModeSettings->seekPosition, seekPosition));
+    BDBG_MSG(("%s: updated seek position from %lu to %lu (in msec) \n", BSTD_FUNCTION, ipTrickModeSettings->seekPosition, seekPosition));
 
     /* Now seek to the new position */
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
@@ -1687,7 +1687,7 @@ trickModeSeek_locked(
     else if (playback_ip->ipTrickModeSettings.method == B_PlaybackIpTrickModesMethod_UseRvuSpec)
         rc = B_PlaybackIp_SeekRvu(playback_ip, ipTrickModeSettings);
     else {
-        BDBG_ERR(("%s: ERROR: Seek not supported for IP protocol %d", __FUNCTION__, playback_ip->protocol));
+        BDBG_ERR(("%s: ERROR: Seek not supported for IP protocol %d", BSTD_FUNCTION, playback_ip->protocol));
         rc = B_ERROR_NOT_SUPPORTED;
     }
 
@@ -1707,18 +1707,18 @@ trickModeSeek_locked(
     if (currentState == B_PlaybackIpState_ePlaying || currentState == B_PlaybackIpState_eTrickMode) {
         /* We resume to play state if we were originally in Playing or TrickMode state */
         /* Note: we do so even though seek may have failed as we had paused the playback, so we continue playing igroring the seek affect */
-        BDBG_MSG(("%s: %p: Calling trickModePlay_locked", __FUNCTION__, (void *)playback_ip));
+        BDBG_MSG(("%s: %p: Calling trickModePlay_locked", BSTD_FUNCTION, (void *)playback_ip));
         if (trickModePlay_locked(playback_ip)) {
-            BDBG_ERR(("%s: ERROR: Failed to play\n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to play\n", BSTD_FUNCTION));
             rc = B_ERROR_UNKNOWN;
             goto error;
         }
     }
     rc = B_ERROR_SUCCESS;
-    BDBG_MSG(("%s: Seeked to position %lu msec, fd %d", __FUNCTION__,  seekPosition, playback_ip->socketState.fd));
+    BDBG_MSG(("%s: Seeked to position %lu msec, fd %d", BSTD_FUNCTION,  seekPosition, playback_ip->socketState.fd));
     return rc;
 error:
-    BDBG_ERR(("%s: Seek failed for playback_ip session %p, fd %d", __FUNCTION__,  (void *)playback_ip, playback_ip->socketState.fd));
+    BDBG_ERR(("%s: Seek failed for playback_ip session %p, fd %d", BSTD_FUNCTION,  (void *)playback_ip, playback_ip->socketState.fd));
     return rc;
 }
 
@@ -1730,16 +1730,16 @@ trickModeThread(
     B_PlaybackIpHandle playback_ip = (B_PlaybackIpHandle)data;
     BERR_Code rc;
 
-    BDBG_MSG(("%s: started, playback_ip %p", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s: started, playback_ip %p", BSTD_FUNCTION, (void *)playback_ip));
 
     while (true) {
         if ((rc = BKNI_WaitForEvent(playback_ip->newTrickModeJobEvent, 10)) != BERR_SUCCESS && rc != BERR_TIMEOUT) {
-            BDBG_ERR(("%s: got error while waiting for new trickMode job event, rc %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s: got error while waiting for new trickMode job event, rc %d", BSTD_FUNCTION, rc));
             break;
         }
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s: breaking out of trickMode thread due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_MSG(("%s: breaking out of trickMode thread due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             break;
         }
         if (rc == BERR_TIMEOUT) {
@@ -1747,7 +1747,7 @@ trickModeThread(
         }
 
         /* We are here that means user wants us to do a trickmode job */
-        BDBG_MSG(("%s: calling func to handle %s ", __FUNCTION__, playback_ip->trickmodeApiActive? "TrickMode API" : playback_ip->frameAdvanceApiActive? "FrameAdvance API": playback_ip->playApiActive? "Play API":"Seek API"));
+        BDBG_MSG(("%s: calling func to handle %s ", BSTD_FUNCTION, playback_ip->trickmodeApiActive? "TrickMode API" : playback_ip->frameAdvanceApiActive? "FrameAdvance API": playback_ip->playApiActive? "Play API":"Seek API"));
         if (playback_ip->trickmodeApiActive == true) {
             playback_ip->trickModeStatus = trickModeTrick_locked(playback_ip, &playback_ip->ipTrickModeSettings);
         }
@@ -1769,7 +1769,7 @@ trickModeThread(
     }
 
     playback_ip->trickModeThreadDone = true;
-    BDBG_MSG(("%s: done", __FUNCTION__));
+    BDBG_MSG(("%s: done", BSTD_FUNCTION));
 }
 
 B_PlaybackIpError
@@ -1781,24 +1781,24 @@ B_PlaybackIp_Seek(
     B_PlaybackIpError rc;
 
     if (!playback_ip || !ipTrickModeSettings) {
-        BDBG_ERR(("%s: ERROR: incorrect params: playback_ip %p, trickMode %p\n", __FUNCTION__, (void *)playback_ip, (void *)ipTrickModeSettings));
+        BDBG_ERR(("%s: ERROR: incorrect params: playback_ip %p, trickMode %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)ipTrickModeSettings));
         return B_ERROR_INVALID_PARAMETER;
     }
 
     if (playback_ip->psi.liveChannel) {
         /* TODO: take this check out once trickmodes on live channels are supported */
-        BDBG_WRN(("%s: ERROR: Seek not supported for LIVE Channels yet, ignoring seek command", __FUNCTION__));
+        BDBG_WRN(("%s: ERROR: Seek not supported for LIVE Channels yet, ignoring seek command", BSTD_FUNCTION));
         return B_ERROR_SUCCESS;
     }
 
     if (playback_ip->protocol != B_PlaybackIpProtocol_eHttp) {
         /* TODO: take this check out once RTSP & other protocols are supported */
-        BDBG_ERR(("%s: ERROR: Seek not supported for IP protocol %d, ignoring seek command", __FUNCTION__, playback_ip->protocol));
+        BDBG_ERR(("%s: ERROR: Seek not supported for IP protocol %d, ignoring seek command", BSTD_FUNCTION, playback_ip->protocol));
         return B_ERROR_SUCCESS;
     }
 
     if (playback_ip->psi.duration && ipTrickModeSettings->seekPosition >= playback_ip->psi.duration) {
-        BDBG_ERR(("%s: Ignoring Seek to %lu msec as it is beyond the stream duration %d", __FUNCTION__,
+        BDBG_ERR(("%s: Ignoring Seek to %lu msec as it is beyond the stream duration %d", BSTD_FUNCTION,
                     ipTrickModeSettings->seekPosition, playback_ip->psi.duration));
         return B_ERROR_SUCCESS;
     }
@@ -1810,7 +1810,7 @@ B_PlaybackIp_Seek(
     if (playback_ip->apiCompleted) {
         rc = playback_ip->trickModeStatus;
         playback_ip->apiCompleted = false;
-        BDBG_MSG(("%s: previously started seek operation completed, playback_ip %p, trickModeStatus %d", __FUNCTION__, (void *)playback_ip, rc));
+        BDBG_MSG(("%s: previously started seek operation completed, playback_ip %p, trickModeStatus %d", BSTD_FUNCTION, (void *)playback_ip, rc));
         goto out;
     }
 
@@ -1832,25 +1832,25 @@ B_PlaybackIp_Seek(
              * because the first thing the thread does is to wait on the
              * event. */
             if (BKNI_CreateEvent(&playback_ip->newTrickModeJobEvent)) {
-                BDBG_ERR(("%s: Failed to create an event at %d", __FUNCTION__, __LINE__));
+                BDBG_ERR(("%s: Failed to create an event at %d", BSTD_FUNCTION, __LINE__));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
 
             playback_ip->trickModeThread = B_Thread_Create("trickModeThread", (B_ThreadFunc)trickModeThread, (void *)playback_ip, NULL/*threadSettings*/);
             if (playback_ip->trickModeThread == NULL) {
-                BDBG_ERR(("%s: Failed to create thread for trickmode operation during seek", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to create thread for trickmode operation during seek", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
-            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", __FUNCTION__));
+            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", BSTD_FUNCTION));
         }
         /* save the settings so that thread function can use it */
         playback_ip->ipTrickModeSettings = *ipTrickModeSettings;
         /* trickModeThread is either already running or we just started it, wake it up to start the seek work */
         BKNI_SetEvent(playback_ip->newTrickModeJobEvent);
         rc = B_ERROR_IN_PROGRESS;
-        BDBG_MSG(("%s: started seek processing in non-blocking mode (playback_ip lock is held)", __FUNCTION__));
+        BDBG_MSG(("%s: started seek processing in non-blocking mode (playback_ip lock is held)", BSTD_FUNCTION));
     }
     else {
         /* seek function is being called in the non-blocking mode, just call the function to do the seek work */
@@ -1862,12 +1862,12 @@ B_PlaybackIp_Seek(
     /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
     /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-    BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    BDBG_MSG(("%s: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 
 error:
     unlock_ip_session(playback_ip);
-    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
+    BDBG_ERR(("%s: ERROR: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 }
 
@@ -1880,7 +1880,7 @@ B_PlaybackIpError B_PlaybackIp_GetTrickModeByRate(
     /* bool allow_brcm_trick_modes = bsettop_get_config("no_brcm_trick_modes") == NULL; */
     BSTD_UNUSED(playback_ip);
     BSTD_UNUSED(trickMode);
-    BDBG_MSG(("%s: rate: %d", __FUNCTION__, rate));
+    BDBG_MSG(("%s: rate: %d", BSTD_FUNCTION, rate));
 
     /* this function is supposed to return the trickmode parameters for a given rate. However, it doesn't make sense for IP trickmodes */
     /* as IP trickmodes parameters are quite high level at this time (e.g. take only rate and trick mode type as input) */
@@ -1902,7 +1902,7 @@ B_PlaybackIp_TrickModeHttp(
 
     if (!playback_ip->useNexusPlaypump) {
         if ((rc = http_do_client_side_trick_modes_using_playback(playback_ip, ipTrickModeSettings)) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: Trick mode transition failed \n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Trick mode transition failed \n", BSTD_FUNCTION));
             goto error;
         }
 #ifdef BDBG_DEBUG_BUILD
@@ -1949,10 +1949,10 @@ B_PlaybackIp_TrickModeHttp(
             /* Since server side trickmode is being requested, then we must send the new playSpeed request to the server */
 
             if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
-                BDBG_WRN(("%s: Failed to determine the current playback position", __FUNCTION__));
+                BDBG_WRN(("%s: Failed to determine the current playback position", BSTD_FUNCTION));
                 goto error;
             }
-            BDBG_MSG(("%s: new trickplay starting position %0.3f", __FUNCTION__, currentPosition/1000.));
+            BDBG_MSG(("%s: new trickplay starting position %0.3f", BSTD_FUNCTION, currentPosition/1000.));
 
             /* build & send the new HTTP Get request to server so that it will send stream at new speed & time position */
             timeSeekRangeBegin = currentPosition/1000.;
@@ -1978,10 +1978,10 @@ B_PlaybackIp_TrickModeHttp(
             }
 
             BDBG_MSG(("%s: timeSeekRangeBegin %0.3f, timeSeekRangeEnd %0.3f, interval %0.3f, state %d, playSpeedString %s",
-                        __FUNCTION__, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->timeSeekRangeInterval, playback_ip->playback_state,   ipTrickModeSettings->playSpeedStringDefined ? ipTrickModeSettings->playSpeedString : NULL));
+                        BSTD_FUNCTION, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->timeSeekRangeInterval, playback_ip->playback_state,   ipTrickModeSettings->playSpeedStringDefined ? ipTrickModeSettings->playSpeedString : NULL));
             if ((rc = http_do_server_trick_modes_socket_transition(playback_ip, timeSeekRangeBegin, timeSeekRangeEnd, playback_ip->speedNumerator/playback_ip->speedDenominator /* play speed */,
                             ipTrickModeSettings->playSpeedStringDefined ? ipTrickModeSettings->playSpeedString : NULL)) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to update server about the trick play transition\n", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to update server about the trick play transition\n", BSTD_FUNCTION));
                 goto error;
             }
             /* store last position we start trickmode from as this will be used in currentPosition calculation when we receive 1st PTS from this new stream point */
@@ -1998,7 +1998,7 @@ B_PlaybackIp_TrickModeHttp(
             {
                 /* we dont flush pipeline if we are already in the trick mode state */
                 if (B_PlaybackIp_UtilsFlushAvPipeline(playback_ip)) {
-                    BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", __FUNCTION__));
+                    BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", BSTD_FUNCTION));
                     rc = B_ERROR_UNKNOWN;
                     goto error;
                 }
@@ -2016,7 +2016,7 @@ B_PlaybackIp_TrickModeHttp(
         }
         /* now tell decoder & playpump to resume */
         if ((rc = updateNexusPlaypumpDecodersState(playback_ip, ipTrickModeSettings)) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -2038,7 +2038,7 @@ B_PlaybackIp_TrickModeRtsp(
     BSTD_UNUSED(playback_ip);
     BSTD_UNUSED(ipTrickModeSettings);
     /* Until RTSP-ES support is complete, we are going to disable RTSP trickmodes */
-    BDBG_ERR(("%s: Until RTSP-ES support is complete, we are going to disable RTSP trickmodes", __FUNCTION__));
+    BDBG_ERR(("%s: Until RTSP-ES support is complete, we are going to disable RTSP trickmodes", BSTD_FUNCTION));
     return B_ERROR_UNKNOWN;
 
 #ifdef TODO
@@ -2061,7 +2061,7 @@ B_PlaybackIp_TrickModeRtsp(
         ipTrickModeSettings->decodeMode = NEXUS_VideoDecoderDecodeMode_eAll;
     }
     if (updateNexusPlaypumpDecodersState(playback_ip, ipTrickModeSettings) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during trickmode transition\n", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
     return B_ERROR_SUCCESS;
@@ -2080,7 +2080,7 @@ trickModeTrick_locked(
 
     /* note: caller has already locked the session */
 
-    BDBG_MSG(("%s: Starting trickmode work: rate %d speedNumerator %d, speedDenominator %d", __FUNCTION__,
+    BDBG_MSG(("%s: Starting trickmode work: rate %d speedNumerator %d, speedDenominator %d", BSTD_FUNCTION,
                 ipTrickModeSettings->rate, playback_ip->speedNumerator, playback_ip->speedDenominator));
 
     /* change the state to EnteringTrickMode until we finish the trickmode work */
@@ -2103,7 +2103,7 @@ trickModeTrick_locked(
         rc = B_PlaybackIp_TrickModeRtsp(playback_ip, ipTrickModeSettings);
 #endif
     else {
-        BDBG_ERR(("%s: ERROR: TrickMode not supported for IP protocol %d", __FUNCTION__, playback_ip->protocol));
+        BDBG_ERR(("%s: ERROR: TrickMode not supported for IP protocol %d", BSTD_FUNCTION, playback_ip->protocol));
         rc = B_ERROR_NOT_SUPPORTED;
     }
 
@@ -2118,7 +2118,7 @@ trickModeTrick_locked(
             playback_ip->lastPosition += B_Time_Diff(&currentTime, &playback_ip->mediaStartTime);
             playback_ip->mediaStartTime = currentTime;
             playback_ip->mediaEndTimeNoted = false; /* just in case trickplay started when we were at the end */
-            BDBG_MSG(("%s: ##### time played %lu until trickmode", __FUNCTION__, playback_ip->lastPosition));
+            BDBG_MSG(("%s: ##### time played %lu until trickmode", BSTD_FUNCTION, playback_ip->lastPosition));
         }
     }
     else {
@@ -2136,27 +2136,27 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
     B_PlaybackIpError rc = B_ERROR_UNKNOWN;
 
     if (!playback_ip || !ipTrickModeSettings) {
-        BDBG_ERR(("%s: NULL params (playback_ip %p, trickModeSettings %p)\n", __FUNCTION__, (void *)playback_ip, (void *)ipTrickModeSettings));
+        BDBG_ERR(("%s: NULL params (playback_ip %p, trickModeSettings %p)\n", BSTD_FUNCTION, (void *)playback_ip, (void *)ipTrickModeSettings));
         return B_ERROR_INVALID_PARAMETER;
     }
 
     if (playback_ip->psi.liveChannel) {
         /* TODO: take this check out once trickmodes on live channels are supported */
-        BDBG_WRN(("%s: ERROR: Seek not supported for LIVE Channels yet, ignoring seek command", __FUNCTION__));
+        BDBG_WRN(("%s: ERROR: Seek not supported for LIVE Channels yet, ignoring seek command", BSTD_FUNCTION));
         return B_ERROR_SUCCESS;
     }
 
     if ((ipTrickModeSettings->method == B_PlaybackIpTrickModesMethod_UseTimeSeekRange ||
          ipTrickModeSettings->method == B_PlaybackIpTrickModesMethod_UsePlaySpeed ||
          ipTrickModeSettings->method == B_PlaybackIpTrickModesMethod_UseRvuSpec) && !playback_ip->useNexusPlaypump) {
-        BDBG_ERR(("%s: trick mode method %d requires App to configure IP Session using Nexus Plapump, ignoring the command", __FUNCTION__, ipTrickModeSettings->method));
+        BDBG_ERR(("%s: trick mode method %d requires App to configure IP Session using Nexus Plapump, ignoring the command", BSTD_FUNCTION, ipTrickModeSettings->method));
         return B_ERROR_SUCCESS;
     }
     if (ipTrickModeSettings->method == B_PlaybackIpTrickModesMethod_UseByteRange && playback_ip->useNexusPlaypump) {
-        BDBG_ERR(("%s: trick mode method %d requires App to configure IP Session using Nexus Playback, ignoring the command", __FUNCTION__, ipTrickModeSettings->method));
+        BDBG_ERR(("%s: trick mode method %d requires App to configure IP Session using Nexus Playback, ignoring the command", BSTD_FUNCTION, ipTrickModeSettings->method));
         return B_ERROR_SUCCESS;
     }
-    BDBG_MSG(("%s: trick mode method %d, rate %d, playSpeedString %s", __FUNCTION__, ipTrickModeSettings->method, ipTrickModeSettings->rate, ipTrickModeSettings->playSpeedStringDefined?ipTrickModeSettings->playSpeedString:""));
+    BDBG_MSG(("%s: trick mode method %d, rate %d, playSpeedString %s", BSTD_FUNCTION, ipTrickModeSettings->method, ipTrickModeSettings->rate, ipTrickModeSettings->playSpeedStringDefined?ipTrickModeSettings->playSpeedString:""));
 
     /* App can specific playSpeed using 3 ways:
      * -playSpeedString (allows any speed value),
@@ -2168,10 +2168,10 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
     if (ipTrickModeSettings->playSpeedStringDefined) {
         /* App is specifiying Server side trickmodes using playSpeedString, so parse it. */
         if (B_PlaybackIp_UtilsParsePlaySpeedString(ipTrickModeSettings->playSpeedString, &playback_ip->speedNumerator, &playback_ip->speedDenominator, NULL) < 0) {
-            BDBG_ERR(("%s: Failed to parse the playSpeedString %s", __FUNCTION__, ipTrickModeSettings->playSpeedString));
+            BDBG_ERR(("%s: Failed to parse the playSpeedString %s", BSTD_FUNCTION, ipTrickModeSettings->playSpeedString));
             return (B_ERROR_INVALID_PARAMETER);
         }
-        BDBG_MSG(("%s: playSpeedSring %s, speedNumerator %d, speedDenominator %d", __FUNCTION__,
+        BDBG_MSG(("%s: playSpeedSring %s, speedNumerator %d, speedDenominator %d", BSTD_FUNCTION,
                     ipTrickModeSettings->playSpeedString, playback_ip->speedNumerator, playback_ip->speedDenominator));
     }
     else if (ipTrickModeSettings->absoluteRateDefined) {
@@ -2188,26 +2188,26 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
                 /* build a playSpeed string for this fractional speed case. */
                 memset(playback_ip->playSpeedString, 0, sizeof(playback_ip->playSpeedString));
                 snprintf(playback_ip->playSpeedString,  sizeof(playback_ip->playSpeedString)-1, "%d/%d", playback_ip->speedNumerator, playback_ip->speedDenominator);
-                BDBG_MSG(("%s: rate %d, speedNumerator %d, speedDenominator %d, playSpeedString %s", __FUNCTION__,
+                BDBG_MSG(("%s: rate %d, speedNumerator %d, speedDenominator %d, playSpeedString %s", BSTD_FUNCTION,
                     ipTrickModeSettings->absoluteRate, playback_ip->speedNumerator, playback_ip->speedDenominator, playback_ip->playSpeedString ));
                 ipTrickModeSettings->playSpeedStringDefined = true;
                 ipTrickModeSettings->playSpeedString = playback_ip->playSpeedString;
             }
         }
-        BDBG_MSG(("%s: rate %d, speedNumerator %d, speedDenominator %d", __FUNCTION__,
+        BDBG_MSG(("%s: rate %d, speedNumerator %d, speedDenominator %d", BSTD_FUNCTION,
                     ipTrickModeSettings->absoluteRate, playback_ip->speedNumerator, playback_ip->speedDenominator));
     }
     else {
         /* playSpeed is specified using the rate variable, which only takes the integer values, so fractional speeds! */
         playback_ip->speedNumerator = ipTrickModeSettings->rate;
         playback_ip->speedDenominator = 1;
-        BDBG_MSG(("%s: rate %d, speedNumerator %d, speedDenominator %d", __FUNCTION__,
+        BDBG_MSG(("%s: rate %d, speedNumerator %d, speedDenominator %d", BSTD_FUNCTION,
                     ipTrickModeSettings->rate, playback_ip->speedNumerator, playback_ip->speedDenominator));
     }
 
     if ( (playback_ip->speedNumerator == playback_ip->speedDenominator && playback_ip->playback_state == B_PlaybackIpState_ePlaying) ||
         playback_ip->speedNumerator == 0 || playback_ip->speedDenominator == 0) {
-        BDBG_WRN(("%s: Ignoring TrickMode command as requested rate is 1x: speedNumerator %d, speedDenominator %d, currentState=%d", __FUNCTION__,
+        BDBG_WRN(("%s: Ignoring TrickMode command as requested rate is 1x: speedNumerator %d, speedDenominator %d, currentState=%d", BSTD_FUNCTION,
                     playback_ip->speedNumerator, playback_ip->speedDenominator, playback_ip->playback_state));
         return (B_ERROR_SUCCESS);
     }
@@ -2220,7 +2220,7 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
     if (playback_ip->apiCompleted) {
         rc = playback_ip->trickModeStatus;
         playback_ip->apiCompleted = false;
-        BDBG_MSG(("%s: previously started trickmode operation completed, playback_ip %p, trickModeStatus %d", __FUNCTION__, (void *)playback_ip, rc));
+        BDBG_MSG(("%s: previously started trickmode operation completed, playback_ip %p, trickModeStatus %d", BSTD_FUNCTION, (void *)playback_ip, rc));
         goto out;
     }
 
@@ -2241,18 +2241,18 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
              * because the first thing the thread does is to wait on the
              * event. */
             if (BKNI_CreateEvent(&playback_ip->newTrickModeJobEvent)) {
-                BDBG_ERR(("%s: Failed to create an event at %d", __FUNCTION__, __LINE__));
+                BDBG_ERR(("%s: Failed to create an event at %d", BSTD_FUNCTION, __LINE__));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
 
             playback_ip->trickModeThread = B_Thread_Create("trickModeThread", (B_ThreadFunc)trickModeThread, (void *)playback_ip, NULL/*threadSettings*/);
             if (playback_ip->trickModeThread == NULL) {
-                BDBG_ERR(("%s: Failed to create thread for trickmode operation during trickmode", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to create thread for trickmode operation during trickmode", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
-            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", __FUNCTION__));
+            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", BSTD_FUNCTION));
         }
         /* save the settings so that thread function can use it */
         playback_ip->ipTrickModeSettings = *ipTrickModeSettings;
@@ -2270,12 +2270,12 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
     /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
     /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-    BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    BDBG_MSG(("%s: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 
 error:
     unlock_ip_session(playback_ip);
-    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
+    BDBG_ERR(("%s: ERROR: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 }
 
@@ -2302,7 +2302,7 @@ static bool getNextPts(
         if (nrc == NEXUS_SUCCESS) {
             /* Picture queue has the next frame w/ valid PTS, so break. */
             foundValidPts = true;
-            BDBG_MSG(("%s: Valid Next PTS=%08x in loops=%d", __FUNCTION__, *pNextPts, i));
+            BDBG_MSG(("%s: Valid Next PTS=%08x in loops=%d", BSTD_FUNCTION, *pNextPts, i));
             break;
         }
         else {
@@ -2310,7 +2310,7 @@ static bool getNextPts(
             BKNI_Sleep(10);
         }
     }
-    if (foundValidPts == false) BDBG_WRN(("%s: NEXUS Video Decoder's GetNextPts called failed over %d attempts", __FUNCTION__, i));
+    if (foundValidPts == false) BDBG_WRN(("%s: NEXUS Video Decoder's GetNextPts called failed over %d attempts", BSTD_FUNCTION, i));
     return (foundValidPts);
 } /* getNextPts */
 
@@ -2344,11 +2344,11 @@ static bool updateStcToNextPts(
     }
 
     if (nrc == NEXUS_SUCCESS) {
-        BDBG_MSG(("%s: currentStc=0x%x nextPts=0x%x, updatedStc=0x%x", __FUNCTION__, currentStc, nextPts, updatedStc));
+        BDBG_MSG(("%s: currentStc=0x%x nextPts=0x%x, updatedStc=0x%x", BSTD_FUNCTION, currentStc, nextPts, updatedStc));
         updatedStcToNextPts = true;
     }
     else {
-        BDBG_ERR(("%s: Failed to update STC: currentStc=0x%x nextPts=0x%x, updatedStc=0x%x", __FUNCTION__, currentStc, nextPts, updatedStc));
+        BDBG_ERR(("%s: Failed to update STC: currentStc=0x%x nextPts=0x%x, updatedStc=0x%x", BSTD_FUNCTION, currentStc, nextPts, updatedStc));
     }
     return (updatedStcToNextPts);
 } /* updateStcToNextPts */
@@ -2371,11 +2371,11 @@ static bool getCurrentDisplayedCount(
     }
     if (nrc == NEXUS_SUCCESS) {
         *pCurNumDisplayed = status.numDisplayed;
-        BDBG_MSG(("%s: VideoDecoderStatus, curNumDisplayed=%d", __FUNCTION__, *pCurNumDisplayed));
+        BDBG_MSG(("%s: VideoDecoderStatus, curNumDisplayed=%d", BSTD_FUNCTION, *pCurNumDisplayed));
         return true;
     }
     else {
-        BDBG_WRN(("%s: Failed to get VideoDecoderStatus, nrc=%d", __FUNCTION__, nrc));
+        BDBG_WRN(("%s: Failed to get VideoDecoderStatus, nrc=%d", BSTD_FUNCTION, nrc));
         return false;
     }
 } /* getCurrentDisplayedCount */
@@ -2398,11 +2398,11 @@ static bool displayOneFrame(
         nrc = NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status);
     }
     if (nrc == NEXUS_SUCCESS && status.numDisplayed && status.numDisplayed > curNumDisplayed) {
-        BDBG_MSG(("%s: Displayed one frame: numDisplayed cur=%u new=%u", __FUNCTION__, curNumDisplayed, status.numDisplayed));
+        BDBG_MSG(("%s: Displayed one frame: numDisplayed cur=%u new=%u", BSTD_FUNCTION, curNumDisplayed, status.numDisplayed));
         return (true);
     }
     else {
-        BDBG_MSG(("%s: Didn't Displayed one frame: numDisplayed cur=%u new=%u", __FUNCTION__, curNumDisplayed, status.numDisplayed));
+        BDBG_MSG(("%s: Didn't Displayed one frame: numDisplayed cur=%u new=%u", BSTD_FUNCTION, curNumDisplayed, status.numDisplayed));
         return (false);
     }
 } /* displayOneFrame */
@@ -2419,10 +2419,10 @@ static NEXUS_Error frameAdvanceUsingNexusVideoDecoder(
         nrc = NEXUS_SimpleVideoDecoder_FrameAdvance(playback_ip->nexusHandles.simpleVideoDecoder);
     }
     if (nrc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: %s() Failed", __FUNCTION__, playback_ip->nexusHandles.videoDecoder?"NEXUS_VideoDecoder_FrameAdvance":"NEXUS_SimpleVideoDecoder_FrameAdvance" ));
+        BDBG_ERR(("%s: ERROR: %s() Failed", BSTD_FUNCTION, playback_ip->nexusHandles.videoDecoder?"NEXUS_VideoDecoder_FrameAdvance":"NEXUS_SimpleVideoDecoder_FrameAdvance" ));
     }
     else {
-        BDBG_MSG(("%s: %s() successfull!", __FUNCTION__, playback_ip->nexusHandles.videoDecoder?"NEXUS_VideoDecoder_FrameAdvance":"NEXUS_SimpleVideoDecoder_FrameAdvance" ));
+        BDBG_MSG(("%s: %s() successfull!", BSTD_FUNCTION, playback_ip->nexusHandles.videoDecoder?"NEXUS_VideoDecoder_FrameAdvance":"NEXUS_SimpleVideoDecoder_FrameAdvance" ));
     }
     return (nrc);
 }
@@ -2449,7 +2449,7 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
 
     /* note: caller has already locked the session */
 
-    BDBG_MSG(("%s: Starting frameAdvance work: forward %s", __FUNCTION__, forward ? "Y" : "N"));
+    BDBG_MSG(("%s: Starting frameAdvance work: forward %s", BSTD_FUNCTION, forward ? "Y" : "N"));
 
     /* change the state to EnteringTrickMode until we finish the trickmode work */
     currentState = playback_ip->playback_state;
@@ -2469,22 +2469,22 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         }
         else {
             if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
-                BDBG_WRN(("%s: Failed to determine the current playback position", __FUNCTION__));
+                BDBG_WRN(("%s: Failed to determine the current playback position", BSTD_FUNCTION));
                 goto error;
             }
         }
-        BDBG_MSG(("%s: current position %0.3f", __FUNCTION__, currentPosition/1000.));
+        BDBG_MSG(("%s: current position %0.3f", BSTD_FUNCTION, currentPosition/1000.));
 
         /* Adjust the currentPosition for frame reverse case. */
         if (!forward) {
             unsigned gopDurationInMs = 1000;
             if (playback_ip->psi.psiValid && playback_ip->psi.videoCodec == NEXUS_VideoCodec_eMpeg2) {
                 gopDurationInMs = 1000;
-                BDBG_MSG(("%s: For MPEG2 frame reverse, assuming GOP duration of %u, adjusted current position %lu", __FUNCTION__, gopDurationInMs, currentPosition-gopDurationInMs));
+                BDBG_MSG(("%s: For MPEG2 frame reverse, assuming GOP duration of %u, adjusted current position %lu", BSTD_FUNCTION, gopDurationInMs, currentPosition-gopDurationInMs));
             }
             else {
                 currentPosition -= 2000;
-                BDBG_MSG(("%s: For non-MPEG2 frame reverse, assuming GOP duration of %u, adjusted current position %lu", __FUNCTION__, gopDurationInMs, currentPosition-gopDurationInMs));
+                BDBG_MSG(("%s: For non-MPEG2 frame reverse, assuming GOP duration of %u, adjusted current position %lu", BSTD_FUNCTION, gopDurationInMs, currentPosition-gopDurationInMs));
             }
             if (currentPosition > gopDurationInMs ) currentPosition -= gopDurationInMs;
             /* Also update the lastPosition to this updated value. */
@@ -2495,10 +2495,10 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         timeSeekRangeBegin = currentPosition/1000.;
         timeSeekRangeEnd = 0.;
         BDBG_MSG(("%s: Re-Open Socket: reOpenSocket=%s forward=%s frameRewindCalled=%s trickModeCalled=%s seekPositionValid=%s",
-                    __FUNCTION__, playback_ip->reOpenSocket?"Y":"N", forward?"Y":"N", playback_ip->frameRewindCalled?"Y":"N", playback_ip->trickmodeCalled?"Y":"N", seekPositionValid?"Y":"N" ));
+                    BSTD_FUNCTION, playback_ip->reOpenSocket?"Y":"N", forward?"Y":"N", playback_ip->frameRewindCalled?"Y":"N", playback_ip->trickmodeCalled?"Y":"N", seekPositionValid?"Y":"N" ));
 
         if ((rc = http_do_server_trick_modes_socket_transition(playback_ip, timeSeekRangeBegin, timeSeekRangeEnd, 1 /* play speed */, forward?"1":"-1" /*playSpeedString */)) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: Failed to update server about the trick play transition", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to update server about the trick play transition", BSTD_FUNCTION));
             goto error;
         }
         playback_ip->reOpenSocket = false;
@@ -2508,14 +2508,14 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
     /* If we had to reconnect to the server, Flush the AV Buffers & Re-configure the Decoders. */
     if (reOpenedSocket) {
         if (B_PlaybackIp_UtilsFlushAvPipeline(playback_ip)) {
-            BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", BSTD_FUNCTION));
             rc = B_ERROR_UNKNOWN;
             goto error;
         }
-        BDBG_MSG(("%s: Flushed Playpump & AV Decoders!", __FUNCTION__));
+        BDBG_MSG(("%s: Flushed Playpump & AV Decoders!", BSTD_FUNCTION));
 
         /* Re-configure the Video Decoder. */
-        BDBG_MSG(("%s: Reset VideoDecoder configuration to correctly play a frame in %s direction", __FUNCTION__, forward?"forward": "reverse"));
+        BDBG_MSG(("%s: Reset VideoDecoder configuration to correctly play a frame in %s direction", BSTD_FUNCTION, forward?"forward": "reverse"));
         if (playback_ip->nexusHandles.videoDecoder)
             NEXUS_VideoDecoder_GetTrickState(playback_ip->nexusHandles.videoDecoder, &videoDecoderTrickSettings);
         else
@@ -2542,24 +2542,24 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         }
         if (playback_ip->nexusHandles.videoDecoder) {
             if (NEXUS_VideoDecoder_SetTrickState(playback_ip->nexusHandles.videoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
         }
         else {
             if (NEXUS_SimpleVideoDecoder_SetTrickState(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_SimpleVideoDecoder_SetTrickState() failed \n", __FUNCTION__));
+                BDBG_ERR(("%s: NEXUS_SimpleVideoDecoder_SetTrickState() failed \n", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
         }
-        BDBG_MSG(("%s: Successfully configured video decoder!", __FUNCTION__));
+        BDBG_MSG(("%s: Successfully configured video decoder!", BSTD_FUNCTION));
     }
 
     /* Check if we need to feed little bit of data to the decoders. */
     if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump, false) != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to un-pause it!", __FUNCTION__));
+        BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to un-pause it!", BSTD_FUNCTION));
         rc = B_ERROR_UNKNOWN;
         goto error;
     }
@@ -2580,7 +2580,7 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
 
     /* Note the current displayed picture count. */
     if (getCurrentDisplayedCount( playback_ip, &curNumDisplayed) == false) {
-        BDBG_ERR(("%s: getCurrentDisplayedCount failed!", __FUNCTION__));
+        BDBG_ERR(("%s: getCurrentDisplayedCount failed!", BSTD_FUNCTION));
         goto error;
     }
 
@@ -2589,7 +2589,7 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         /* Since Frame Advance requires us to Pause the Decoders (which is done using STC Pause as Audio Primers dont support Decoder Pause), */
         /* we unpause the STC here so that Video Decoder can display the 1-frame in the reverse direction. */
         if (updateNexusStcSettings(playback_ip, 1, 0) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to set the stc rate to FrameAdvance transition", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to set the stc rate to FrameAdvance transition", BSTD_FUNCTION));
             goto error;
         }
         freezeStc = true;
@@ -2600,20 +2600,20 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         if (forward) {
             /* Get the Next PTS from the Video Decoder's picture Q, this may need little time if we dont have pre-buffered or pre-decoded frames in the queue. */
             if (getNextPts(playback_ip, &nextPts) == false) {
-                BDBG_ERR(("%s: getNextPts failed!", __FUNCTION__));
+                BDBG_ERR(("%s: getNextPts failed!", BSTD_FUNCTION));
                 goto error;
             }
 
             /* Update STC to the PTS of the next Frame, this will allow DM to display one frame. */
             if (updateStcToNextPts(playback_ip, nextPts) == false) {
-                BDBG_ERR(("%s: updateStcToNextPts failed!", __FUNCTION__));
+                BDBG_ERR(("%s: updateStcToNextPts failed!", BSTD_FUNCTION));
                 goto error;
             }
         }
         else {
             /* In reverse direction, we only get I-frames from the server and thus rely decoder to play 1 frame in the reverse direction. */
             if (frameAdvanceUsingNexusVideoDecoder(playback_ip) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: frameAdvanceUsingNexusVideoDecoder()", __FUNCTION__));
+                BDBG_ERR(("%s: ERROR: frameAdvanceUsingNexusVideoDecoder()", BSTD_FUNCTION));
                 goto error;
             }
         }
@@ -2622,14 +2622,14 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
 
         /* Check if Decoder displayed a frame. */
         if (displayOneFrame(playback_ip, curNumDisplayed) == true) {
-            BDBG_MSG(("%s: displayOneFrame in %d loop attempts in %s direction!", __FUNCTION__, i, forward?"forward":"reverse"));
+            BDBG_MSG(("%s: displayOneFrame in %d loop attempts in %s direction!", BSTD_FUNCTION, i, forward?"forward":"reverse"));
             oneFrameDisplayed = true;
             break;
         }
     }
 
     if (!oneFrameDisplayed) {
-        BDBG_WRN(("%s: Failed to FrameAdvance by one frame in %d attempts, curNumDisplayed cur=%u", __FUNCTION__, i, curNumDisplayed ));
+        BDBG_WRN(("%s: Failed to FrameAdvance by one frame in %d attempts, curNumDisplayed cur=%u", BSTD_FUNCTION, i, curNumDisplayed ));
     }
     if (!forward) {
         playback_ip->frameRewindCalled = true;
@@ -2649,12 +2649,12 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
 error:
     if (freezeStc) {
         if (updateNexusStcSettings(playback_ip, 0, 0) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: Failed to freeze the STC!", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to freeze the STC!", BSTD_FUNCTION));
         }
     }
 
     if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump, true) != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to pause it!", __FUNCTION__));
+        BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to pause it!", BSTD_FUNCTION));
         rc = B_ERROR_UNKNOWN;
     }
     playback_ip->playback_state = currentState;
@@ -2672,12 +2672,12 @@ B_PlaybackIpError B_PlaybackIp_FrameAdvance(
     B_PlaybackIpError rc = B_ERROR_UNKNOWN;
 
     if (!playback_ip) {
-        BDBG_ERR(("%s: NULL params playback_ip", __FUNCTION__));
+        BDBG_ERR(("%s: NULL params playback_ip", BSTD_FUNCTION));
         return B_ERROR_INVALID_PARAMETER;
     }
 
     if (playback_ip->playback_state != B_PlaybackIpState_ePaused &&  playback_ip->frameAdvanceApiActive == false ) {
-        BDBG_ERR(("%s: Can't call FrameAdvance API w/o calling Pause first!", __FUNCTION__));
+        BDBG_ERR(("%s: Can't call FrameAdvance API w/o calling Pause first!", BSTD_FUNCTION));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -2689,12 +2689,12 @@ B_PlaybackIpError B_PlaybackIp_FrameAdvance(
     if (playback_ip->apiCompleted) {
         rc = playback_ip->trickModeStatus;
         playback_ip->apiCompleted = false;
-        BDBG_MSG(("%s: previously started frameAdvance operation completed, playback_ip %p, trickModeStatus %d", __FUNCTION__, (void *)playback_ip, rc));
+        BDBG_MSG(("%s: previously started frameAdvance operation completed, playback_ip %p, trickModeStatus %d", BSTD_FUNCTION, (void *)playback_ip, rc));
         goto out;
     }
 
     lock_ip_session(playback_ip);
-    BDBG_MSG(("%s playback_ip=%p: forward=%s nonBlockingMode=%s", __FUNCTION__, (void *)playback_ip, forward?"Y":"N", nonBlockingMode?"Y":"N"));
+    BDBG_MSG(("%s playback_ip=%p: forward=%s nonBlockingMode=%s", BSTD_FUNCTION, (void *)playback_ip, forward?"Y":"N", nonBlockingMode?"Y":"N"));
 
     playback_ip->frameAdvanceApiActive = true;
     playback_ip->playApiActive = false;
@@ -2714,18 +2714,18 @@ B_PlaybackIpError B_PlaybackIp_FrameAdvance(
              * because the first thing the thread does is to wait on the
              * event. */
             if (BKNI_CreateEvent(&playback_ip->newTrickModeJobEvent)) {
-                BDBG_ERR(("%s: Failed to create an event at %d", __FUNCTION__, __LINE__));
+                BDBG_ERR(("%s: Failed to create an event at %d", BSTD_FUNCTION, __LINE__));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
 
             playback_ip->trickModeThread = B_Thread_Create("trickModeThread", (B_ThreadFunc)trickModeThread, (void *)playback_ip, NULL/*threadSettings*/);
             if (playback_ip->trickModeThread == NULL) {
-                BDBG_ERR(("%s: Failed to create thread for trickmode operation during trickmode", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to create thread for trickmode operation during trickmode", BSTD_FUNCTION));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
-            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", __FUNCTION__));
+            BDBG_MSG(("%s: Successfully created thread & event for trickmode operations ", BSTD_FUNCTION));
         }
         /* trickModeThread is either already running or we just started it, wake it up to start the seek work */
         BKNI_SetEvent(playback_ip->newTrickModeJobEvent);
@@ -2740,12 +2740,12 @@ B_PlaybackIpError B_PlaybackIp_FrameAdvance(
     /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
     /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-    BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    BDBG_MSG(("%s: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 
 error:
     unlock_ip_session(playback_ip);
-    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
+    BDBG_ERR(("%s: ERROR: returning rc =%d", BSTD_FUNCTION, rc));
     return rc;
 }
 

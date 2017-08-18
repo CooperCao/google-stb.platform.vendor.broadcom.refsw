@@ -359,6 +359,9 @@ int bmemperf_boxmode_init(
         /* loop through all boxmodes to find the client names, MHz, and SCB freq for the current box mode */
         for (idx = 0; idx<BMEMPERF_MAX_BOXMODES; idx++)
         {
+            PRINTF("%s: g_boxmodes[%d].boxmode %d ... boxmode %ld ... g_bmemperf_info %p ... client_name %p\n",
+                    __FUNCTION__, idx, g_boxmodes[idx].boxmode, boxmode,
+                    g_boxmodes[idx].g_bmemperf_info, g_boxmodes[idx].g_client_name );
             if (( 0 < g_boxmodes[idx].boxmode ) && ( g_boxmodes[idx].boxmode < BMEMPERF_MAX_BOXMODES ) &&
                 ( g_boxmodes[idx].g_bmemperf_info ) && ( g_boxmodes[idx].g_client_name) )
             {
@@ -375,6 +378,7 @@ int bmemperf_boxmode_init(
             else
             {
                 printf( "~boxmode:%ld; stopped looking at idx %u\n~", boxmode, idx );
+                fflush(stdout);fflush(stderr);
                 break;
             }
         }

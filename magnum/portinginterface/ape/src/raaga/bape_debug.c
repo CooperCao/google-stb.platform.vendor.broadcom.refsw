@@ -98,7 +98,7 @@ BERR_Code BAPE_Debug_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
     
-    BDBG_MSG(("%s opening Debug",__FUNCTION__));
+    BDBG_MSG(("%s opening Debug",BSTD_FUNCTION));
 
     *pHandle = NULL;
 
@@ -150,7 +150,7 @@ BERR_Code BAPE_Debug_GetStatus(
             errCode = BAPE_Debug_GetOutputVolume(handle, pStatus);
             break;
         default:
-            BDBG_ERR(("%s pStatus->type %u not supported",__FUNCTION__,pStatus->type));
+            BDBG_ERR(("%s pStatus->type %u not supported",BSTD_FUNCTION,pStatus->type));
             errCode = BERR_INVALID_PARAMETER;
             break;
     }
@@ -193,160 +193,113 @@ BERR_Code BAPE_Debug_GetChannelStatus(
     BAPE_OutputPort output,
     BAPE_DebugDigitalOutputStatus *status)
 {
-
-    BERR_Code errCode = BERR_SUCCESS;   
     const BAPE_FMT_Descriptor     *pFormat;
-    uint32_t regAddr;
-
+    uint32_t lowRegAddr, highRegAddr;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Debug);
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
-    BDBG_MSG(("%s called for output->type %s[%d]",__FUNCTION__,output->pName,output->index));   
+    BDBG_MSG(("%s called for output->type %s[%d]",BSTD_FUNCTION,output->pName,output->index));
 
     status->enabled = true;
     status->pName = (char *)output->pName;
     status->index = output->index;
-    if (output->mixer)
-    {
+    if (output->mixer) {
         pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
-        
         status->type = pFormat->type;        
         status->compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pFormat);
         status->sampleRate = pFormat->sampleRate;
-
     }
 
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START     
-    switch (output->type)
-    {
-        case BAPE_OutputPortType_eMaiOutput:
-            if (status->index == 0)
-            {
-                regAddr = BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_0;
-            }
-            else
-            {
+    switch (output->type) {
+    case BAPE_OutputPortType_eMaiOutput:
+        if (status->index == 0) {
+            lowRegAddr = BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_0;
+            highRegAddr = BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_1;
+        }
+        else {
 #if BCHP_AUD_FMM_IOP_OUT_MAI_1_REG_START
-                regAddr = BCHP_AUD_FMM_IOP_OUT_MAI_1_SPDIF_CHANSTAT_0;
+            lowRegAddr = BCHP_AUD_FMM_IOP_OUT_MAI_1_SPDIF_CHANSTAT_0;
+            highRegAddr = BCHP_AUD_FMM_IOP_OUT_MAI_1_SPDIF_CHANSTAT_1;
 #else
-                return BERR_INVALID_PARAMETER;
+            return BERR_INVALID_PARAMETER;
 #endif
-            }
-            status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);
-            status->formatId = BAPE_Debug_BitRangeValue(status->cbits[0],0,0);
-            status->audio = BAPE_Debug_BitRangeValue(status->cbits[0],1,1);
-            status->copyright = BAPE_Debug_BitRangeValue(status->cbits[0],2,2);
-            status->emphasis = BAPE_Debug_BitRangeValue(status->cbits[0],3,5);
-            status->mode = BAPE_Debug_BitRangeValue(status->cbits[0],6,7);
-            status->categoryCode = BAPE_Debug_BitRangeValue(status->cbits[0],8,15);
-            status->samplingFrequency = BAPE_Debug_BitRangeValue(status->cbits[0],24,27);
-        
-            if (status->index == 0)
-            {
-                regAddr = BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CHANSTAT_1;
-            }
-            else
-            {
-#if BCHP_AUD_FMM_IOP_OUT_MAI_1_REG_START
-                regAddr = BCHP_AUD_FMM_IOP_OUT_MAI_1_SPDIF_CHANSTAT_1;
-#else
-                return BERR_INVALID_PARAMETER;
-#endif
-            }                
-            status->cbits[1] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);
-            status->pcmWordLength = BAPE_Debug_BitRangeValue(status->cbits[1],0,0);
-            status->pcmSampleWordLength = BAPE_Debug_BitRangeValue(status->cbits[1],1,3);
-            status->pcmOrigSamplingFrequency = BAPE_Debug_BitRangeValue(status->cbits[1],4,7);
-            status->pcmCgmsA = BAPE_Debug_BitRangeValue(status->cbits[1],8,9);                      
-            break;
-        case BAPE_OutputPortType_eSpdifOutput:
-            if (status->index == 0)
-            {
-                regAddr = BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_0;
-            }
-            else
-            {
-                return BERR_INVALID_PARAMETER;
-            }
-            status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);
-            status->formatId = BAPE_Debug_BitRangeValue(status->cbits[0],0,0);
-            status->audio = BAPE_Debug_BitRangeValue(status->cbits[0],1,1);
-            status->copyright = BAPE_Debug_BitRangeValue(status->cbits[0],2,2);
-            status->emphasis = BAPE_Debug_BitRangeValue(status->cbits[0],3,5);
-            status->mode = BAPE_Debug_BitRangeValue(status->cbits[0],6,7);
-            status->categoryCode = BAPE_Debug_BitRangeValue(status->cbits[0],8,15);
-            status->samplingFrequency = BAPE_Debug_BitRangeValue(status->cbits[0],24,27);
-                
-            if (status->index == 0)
-            {
-                regAddr = BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_1;
-            }
-            else
-            {
-                return BERR_INVALID_PARAMETER;
-            }
-            status->cbits[1] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);                
-            status->pcmWordLength = BAPE_Debug_BitRangeValue(status->cbits[1],0,0);
-            status->pcmSampleWordLength = BAPE_Debug_BitRangeValue(status->cbits[1],1,3);
-            status->pcmOrigSamplingFrequency = BAPE_Debug_BitRangeValue(status->cbits[1],4,7);
-            status->pcmCgmsA = BAPE_Debug_BitRangeValue(status->cbits[1],8,9);           
-            break;
-        default:
-            BDBG_ERR(("%s INVALID TYPE %d",__FUNCTION__,status->index));
-            errCode = BERR_INVALID_PARAMETER;
-            break;
-        
+        }
+        break;
+    case BAPE_OutputPortType_eSpdifOutput:
+        if (status->index == 0) {
+            lowRegAddr = BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_0;
+            highRegAddr = BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_1;
+        }
+        else {
+            return BERR_INVALID_PARAMETER;
+        }
+        break;
+    default:
+        BDBG_ERR(("%s INVALID TYPE %d",BSTD_FUNCTION,status->index));
+        return BERR_INVALID_PARAMETER;
     }
-    
-
 #else /* Legacy */
+    if (status->index != 0) {
+        return BERR_INVALID_PARAMETER;
+    }
+
     switch (output->type)
     {
-        case BAPE_OutputPortType_eMaiOutput:
-            regAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1;
-            status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);            
-            status->formatId = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_PRO_CONS);
-            status->audio = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_COMP_LIN);
-            status->copyright = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_CP);
-            status->emphasis = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_EMPH);
-            status->mode = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_CMODE);
-            status->categoryCode = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_CATEGORY);       
-            status->samplingFrequency = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_FREQ);
-                   
-            regAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_1;
-            status->cbits[1] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);
-            status->pcmWordLength = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_1, PCM_MAX_LEN);
-            status->pcmSampleWordLength = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_1, PCM_LENGTH);
-            status->pcmOrigSamplingFrequency = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_1, PCM_ORIG_FREQ);
-            status->pcmCgmsA = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_1, PCM_CGMS_A);        
-            break;
-        case BAPE_OutputPortType_eSpdifOutput:
-            regAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0;
-            status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);
-            status->formatId = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_PRO_CONS);
-            status->audio = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_COMP_LIN);
-            status->copyright = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_CP);
-            status->emphasis = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_EMPH);
-            status->mode = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_CMODE);
-            status->categoryCode = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_CATEGORY);        
-            status->samplingFrequency = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0, PCM_FREQ);
-            
-            regAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0;
-            status->cbits[1] = BAPE_Reg_P_Read(handle->deviceHandle, regAddr);
-            status->pcmWordLength = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0, PCM_MAX_LEN);
-            status->pcmSampleWordLength = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0, PCM_LENGTH);
-            status->pcmOrigSamplingFrequency = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0, PCM_ORIG_FREQ);
-            status->pcmCgmsA = BAPE_Reg_P_ReadField(handle->deviceHandle, regAddr, AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0, PCM_CGMS_A);        
-            break;
-        default:
-            BDBG_ERR(("%s INVALID TYPE %d",__FUNCTION__,output->type));
-            errCode = BERR_INVALID_PARAMETER;
-            break;
+    case BAPE_OutputPortType_eMaiOutput:
+        lowRegAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1;
+        highRegAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_1;
+        break;
+    case BAPE_OutputPortType_eSpdifOutput:
+        lowRegAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_0;
+        highRegAddr = BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_0;
+        break;
+    default:
+        BDBG_ERR(("%s INVALID TYPE %d",BSTD_FUNCTION,output->type));
+        return BERR_INVALID_PARAMETER;
     }
 #endif
 
-    return errCode;
-  
+    status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, lowRegAddr);
+    status->cbits[1] = BAPE_Reg_P_Read(handle->deviceHandle, highRegAddr);
+    status->formatId = BAPE_Debug_BitRangeValue(status->cbits[0],0,0);
+    if (status->formatId == 0) { /* Consumer */
+        status->channelStatus.consumer.audio = BAPE_Debug_BitRangeValue(status->cbits[0], 1, 1);
+        status->channelStatus.consumer.copyright = BAPE_Debug_BitRangeValue(status->cbits[0],2,2);
+        status->channelStatus.consumer.emphasis = BAPE_Debug_BitRangeValue(status->cbits[0],3,5);
+        status->channelStatus.consumer.mode = BAPE_Debug_BitRangeValue(status->cbits[0],6,7);
+        status->channelStatus.consumer.categoryCode = BAPE_Debug_BitRangeValue(status->cbits[0],8,15);
+        status->channelStatus.consumer.samplingFrequency = BAPE_Debug_BitRangeValue(status->cbits[0],24,27);
+
+        status->channelStatus.consumer.pcmWordLength = BAPE_Debug_BitRangeValue(status->cbits[1],0,0);
+        status->channelStatus.consumer.pcmSampleWordLength = BAPE_Debug_BitRangeValue(status->cbits[1],1,3);
+        status->channelStatus.consumer.pcmOrigSamplingFrequency = BAPE_Debug_BitRangeValue(status->cbits[1],4,7);
+        status->channelStatus.consumer.pcmCgmsA = BAPE_Debug_BitRangeValue(status->cbits[1],8,9);
+    }
+    else { /* Professional */
+        status->channelStatus.professional.audio = BAPE_Debug_BitRangeValue(status->cbits[0], 1, 1);
+        status->channelStatus.professional.emphasis = BAPE_Debug_BitRangeValue(status->cbits[0],2,4);
+        status->channelStatus.professional.sampleRateLocked = BAPE_Debug_BitRangeValue(status->cbits[0], 5, 5);
+        status->channelStatus.professional.legacySampleRate = BAPE_Debug_BitRangeValue(status->cbits[0], 6, 7);
+        status->channelStatus.professional.mode = BAPE_Debug_BitRangeValue(status->cbits[0],8,11);
+        status->channelStatus.professional.user = BAPE_Debug_BitRangeValue(status->cbits[0],12,15);
+        status->channelStatus.professional.auxSampleBits = BAPE_Debug_BitRangeValue(status->cbits[0],16,18);
+        status->channelStatus.professional.wordLength = BAPE_Debug_BitRangeValue(status->cbits[0],19,21);
+        status->channelStatus.professional.alignment = BAPE_Debug_BitRangeValue(status->cbits[0],22,23);
+        status->channelStatus.professional.multichannelMode = BAPE_Debug_BitRangeValue(status->cbits[0],31,31);
+        if (status->channelStatus.professional.multichannelMode == 1) {
+            status->channelStatus.professional.channelNumber = BAPE_Debug_BitRangeValue(status->cbits[0], 24, 27);
+            status->channelStatus.professional.multichannelModeNum = BAPE_Debug_BitRangeValue(status->cbits[0], 28, 30);
+        }
+        else {
+            status->channelStatus.professional.channelNumber = BAPE_Debug_BitRangeValue(status->cbits[0], 24, 30);
+        }
+        status->channelStatus.professional.audioReference = BAPE_Debug_BitRangeValue(status->cbits[1], 0, 1);
+        status->channelStatus.professional.samplingFrequencyExt = BAPE_Debug_BitRangeValue(status->cbits[1], 3, 6);
+        status->channelStatus.professional.sampleFreqScaling = BAPE_Debug_BitRangeValue(status->cbits[1], 7, 7);
+    }
+
+    return BERR_SUCCESS;
 }
 
 static BERR_Code BAPE_Debug_P_GetVolume(
@@ -360,7 +313,7 @@ static BERR_Code BAPE_Debug_P_GetVolume(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Debug);
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
-    BDBG_MSG(("%s called for output->type %s[%d]",__FUNCTION__, output->pName, output->index));
+    BDBG_MSG(("%s called for output->type %s[%d]",BSTD_FUNCTION, output->pName, output->index));
 
     volume->enabled = true;
     volume->pName = (char *)output->pName;
@@ -430,7 +383,7 @@ void BAPE_Debug_GetInterruptHandlers(
 {
     BSTD_UNUSED(handle);
     BSTD_UNUSED(pInterrupts);
-    BDBG_ERR(("%s is unimplemented and should not be used",__FUNCTION__));
+    BDBG_ERR(("%s is unimplemented and should not be used",BSTD_FUNCTION));
 }
 
 
@@ -441,7 +394,7 @@ BERR_Code BAPE_Debug_SetInterruptHandlers(
 {
     BSTD_UNUSED(handle);
     BSTD_UNUSED(pInterrupts);
-    BDBG_ERR(("%s is unimplemented and should not be used",__FUNCTION__));
+    BDBG_ERR(("%s is unimplemented and should not be used",BSTD_FUNCTION));
     return BERR_INVALID_PARAMETER;
 }
 #endif

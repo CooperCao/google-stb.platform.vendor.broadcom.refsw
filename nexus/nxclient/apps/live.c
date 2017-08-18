@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -468,11 +468,11 @@ static void *standby_monitor(void *context)
     NxClient_StandbyStatus standbyStatus, prevStatus;
 
     rc = NxClient_GetStandbyStatus(&prevStatus);
-    BDBG_ASSERT(!rc);
+    if (rc) exit(0); /* server is down, exit gracefully */
 
     while(!client->done) {
         rc = NxClient_GetStandbyStatus(&standbyStatus);
-        BDBG_ASSERT(!rc);
+        if (rc) exit(0); /* server is down, exit gracefully */
 
         if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
             struct decoder *d;

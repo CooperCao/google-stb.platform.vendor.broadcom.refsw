@@ -146,6 +146,10 @@ NEXUS_FilePlay_Cancel(NEXUS_FilePlayHandle file)
 
             /* the new worker gets the item, but the item has failed and should be added to the completed queue now. */
             pScheduler->workers[i] = BKNI_Malloc(sizeof(struct NEXUS_File_P_IoWorker));
+            if (!pScheduler->workers[i]) {
+                BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                break;
+            }
             pScheduler->workers[i]->no = worker->no;
             pScheduler->workers[i]->current = NULL; /* don't give the item to the new worker. it will be serviced from NEXUS_P_File_TryCompleted. */
             worker->current->result = -1;
@@ -277,12 +281,12 @@ static void
 NEXUS_P_File_TryCompleted(struct NEXUS_File_P_Scheduler *sched, bool timerContext)
 {
     if(BLST_S_FIRST(&pScheduler->completed)) {
-        bool locker = false;
         struct NEXUS_File_P_Item *e;
         struct NEXUS_File_P_Queue completed = sched->completed; /* save copy of completed queue */
         BLST_S_INIT(&sched->completed); /* clear completed queue */
         while( NULL!=(e=BLST_S_FIRST(&completed))) {
             struct NEXUS_File_P_Queue *queue;
+            bool locker = false;
             bool locked;
 
             BLST_S_REMOVE_HEAD(&completed, list);
@@ -328,6 +332,7 @@ NEXUS_P_File_TryCompleted(struct NEXUS_File_P_Scheduler *sched, bool timerContex
             NEXUS_LockModule(); /* back into file module lock */
             if (locker) /* this thread was a Lock user, rather than a TryLock user */
             {
+                BDBG_ASSERT(sched->lockThreads);
                 sched->lockThreads--; /* needs to be RMW in file module lock */
             }
             BLST_S_INSERT_HEAD(queue, e, list);
@@ -561,6 +566,11 @@ NEXUS_File_P_Scheduler_Start(const NEXUS_FileModuleSettings *settings)
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_event;}
     for(i=0;i<pScheduler->workerThreads;i++) {
         pScheduler->workers[i] = BKNI_Malloc(sizeof(struct NEXUS_File_P_IoWorker));
+        if (!pScheduler->workers[i]) {
+            rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            NEXUS_File_P_Scheduler_Stop();
+            goto error;
+        }
         pScheduler->workers[i]->no = i;
         pScheduler->workers[i]->thread = NULL;
         pScheduler->workers[i]->current = NULL;
@@ -593,10 +603,9 @@ NEXUS_File_P_Scheduler_Stop(void)
     pScheduler->kill_count = 0;
     /* we need to account for the case when not all threads were initialized */
     for(i=0;i<pScheduler->workerThreads;i++) {
-        if(!pScheduler->workers[i]->thread) {
-            break;
+        if (pScheduler->workers[i] && pScheduler->workers[i]->thread) {
+            pScheduler->kill_count++;
         }
-        pScheduler->kill_count++;
     }
     for(;;) {
         unsigned count = pScheduler->kill_count;
@@ -612,11 +621,12 @@ NEXUS_File_P_Scheduler_Stop(void)
         NEXUS_LockModule();
     }
     for(i=0;i<pScheduler->workerThreads;i++) {
-        if(!pScheduler->workers[i]->thread) {
-            break;
+        if (pScheduler->workers[i]) {
+            if (pScheduler->workers[i]->thread) {
+                NEXUS_Thread_Destroy(pScheduler->workers[i]->thread);
+            }
+            BKNI_Free(pScheduler->workers[i]);
         }
-        NEXUS_Thread_Destroy(pScheduler->workers[i]->thread);
-        BKNI_Free(pScheduler->workers[i]);
     }
     NEXUS_File_P_CleanupZombies();
     if(pScheduler->timer) {

@@ -43,6 +43,7 @@
 #include "bvdc_pep_priv.h"
 #include "bvdc_mcvp_priv.h"
 #include "bvdc_mcdi_priv.h"
+#include "bvdc_cfc_priv.h"
 
 
 BDBG_MODULE(BVDC_TEST);
@@ -378,6 +379,66 @@ BERR_Code BVDC_Test_Window_ReturnBuffer_isr
     }
 
     BDBG_LEAVE(BVDC_Test_Window_ReturnBuffer_isr);
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Cfc_SetForceCfg
+    ( BVDC_P_Cfc_ForceCfg             *pCfcForceCfg,
+      BVDC_Test_Window_ForceCfcConfig *pWinForceCfcCfg)
+{
+    pCfcForceCfg->stBits.bDisableNl2l = (pWinForceCfcCfg->bDisableNl2l)? 1 : 0;
+    pCfcForceCfg->stBits.bDisableLRangeAdj = (pWinForceCfcCfg->bDisableLRangeAdj)? 1 : 0;
+    pCfcForceCfg->stBits.bDisableLmr = (pWinForceCfcCfg->bDisableLmr)? 1 : 0;
+    pCfcForceCfg->stBits.bDisableL2nl = (pWinForceCfcCfg->bDisableL2nl)? 1 : 0;
+    pCfcForceCfg->stBits.bDisableRamLuts = (pWinForceCfcCfg->bDisableRamLuts)? 1 : 0;
+    pCfcForceCfg->stBits.bDisableMb = (pWinForceCfcCfg->bDisableMb)? 1 : 0;
+    pCfcForceCfg->stBits.bDisableDolby = (pWinForceCfcCfg->bDisableDolby)? 1 : 0;
+    pCfcForceCfg->stBits.bDisableTch = (pWinForceCfcCfg->bDisableTch)? 1 : 0;
+    /*pCfcForceCfg->stBits.bDisableItm = (pWinForceCfcCfg->bDisableItm)? 1 : 0;*/
+}
+
+/*************************************************************************
+ *  BVDC_Test_Window_SetCfcConfig
+ *************************************************************************/
+BERR_Code BVDC_Test_Window_SetCfcConfig
+    ( BVDC_Window_Handle               hWindow,
+      BVDC_Test_Window_ForceCfcConfig *pForceCfcCfg)
+{
+    int ii;
+    BVDC_P_Cfc_ForceCfg  stCfcForceCfg;
+
+    BDBG_ENTER(BVDC_Test_Window_SetCfcConfig);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+    BDBG_ASSERT(NULL != pForceCfcCfg);
+
+    BVDC_P_Cfc_SetForceCfg(&stCfcForceCfg, pForceCfcCfg);
+    if (BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
+    {
+        for (ii=0; ii<BVDC_P_CMP_CFCS; ii++)
+        {
+            hWindow->astMosaicCfc[ii].stForceCfg.ulInts = stCfcForceCfg.ulInts;
+            hWindow->astMosaicCfc[ii].stColorSpaceIn.stCfg.stBits.bDirty = BVDC_P_DIRTY;
+        }
+        hWindow->astMosaicCfc[0].pColorSpaceOut->stCfg.stBits.bDirty = BVDC_P_DIRTY;
+        hWindow->stNewInfo.stDirty.stBits.bCscAdjust = BVDC_P_DIRTY;
+        hWindow->stCurInfo.stDirty.stBits.bCscAdjust = BVDC_P_DIRTY;
+        BDBG_MSG(("win%d stCfcForceCfg = %08x", hWindow->eId, stCfcForceCfg.ulInts));
+    }
+    else if (NULL != hWindow->stCurInfo.hSource->hGfxFeeder)
+    {
+        hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.stForceCfg.ulInts = stCfcForceCfg.ulInts;
+        hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.stColorSpaceIn.stCfg.stBits.bDirty = BVDC_P_DIRTY;
+        hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.pColorSpaceOut->stCfg.stBits.bDirty = BVDC_P_DIRTY;
+        hWindow->stCurInfo.hSource->hGfxFeeder->stNewCfgInfo.stDirty.stBits.bCsc = BVDC_P_DIRTY;
+        hWindow->stCurInfo.hSource->hGfxFeeder->stCurCfgInfo.stDirty.stBits.bCsc = BVDC_P_DIRTY;
+        BDBG_MSG(("gfx%d stCfcForceCfg = %08x", hWindow->stCurInfo.hSource->hGfxFeeder->eId, stCfcForceCfg.ulInts));
+    }
+
+    BDBG_LEAVE(BVDC_Test_Window_SetCfcConfig);
     return BERR_SUCCESS;
 }
 

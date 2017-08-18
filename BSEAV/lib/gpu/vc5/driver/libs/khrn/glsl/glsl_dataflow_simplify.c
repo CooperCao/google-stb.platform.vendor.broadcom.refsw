@@ -1,6 +1,8 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
+#include <string.h>
+
 #include "glsl_const_operators.h"
 #include "glsl_dataflow_simplify.h"
 #include "libs/util/gfx_util/gfx_util.h"
@@ -41,6 +43,7 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_EXTERNAL,            FOLDER_CANT_FOLD, },
    { DATAFLOW_LOGICAL_NOT,         FOLDER_RET_MATCH, 1, .uf = { op_logical_not, NULL, NULL, NULL } },
    { DATAFLOW_CONST_IMAGE,         FOLDER_CANT_FOLD, },
+   { DATAFLOW_CONST_SAMPLER,       FOLDER_CANT_FOLD, },
    { DATAFLOW_FTOI_TRUNC,          FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_trunc,   NULL, NULL }, },
    { DATAFLOW_FTOI_NEAREST,        FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_nearest, NULL, NULL }, },
    { DATAFLOW_FTOU,                FOLDER_RET_UINT,  1, .uf = { NULL, op_floattouint,        NULL, NULL }, },
@@ -71,6 +74,7 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_ATOMIC_COUNTER,      FOLDER_CANT_FOLD, },
    { DATAFLOW_IN,                  FOLDER_CANT_FOLD, },
    { DATAFLOW_MUL,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_mul, op_i_mul, op_u_mul }, },
+   { DATAFLOW_MUL24,               FOLDER_RET_MATCH, 2, .bf = { NULL, NULL,     op_i_mul, op_u_mul }, },
    { DATAFLOW_DIV,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_div, op_i_div, op_u_div }, },
    { DATAFLOW_REM,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL,     op_i_rem, op_u_rem }, },
    { DATAFLOW_ADD,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_add, op_i_add, op_i_add }, },
@@ -120,6 +124,8 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_TEXTURE_SIZE,        FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_VEC4_COMPONENT,  FOLDER_CANT_FOLD, },
    { DATAFLOW_FRAG_GET_COL,        FOLDER_CANT_FOLD, },
+   { DATAFLOW_FRAG_GET_DEPTH,      FOLDER_CANT_FOLD, },
+   { DATAFLOW_FRAG_GET_STENCIL,    FOLDER_CANT_FOLD, },
    { DATAFLOW_FRAG_GET_X,          FOLDER_CANT_FOLD, },
    { DATAFLOW_FRAG_GET_Y,          FOLDER_CANT_FOLD, },
    { DATAFLOW_FRAG_GET_X_UINT,     FOLDER_CANT_FOLD, },
@@ -127,6 +133,8 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_FRAG_GET_Z,          FOLDER_CANT_FOLD, },
    { DATAFLOW_FRAG_GET_W,          FOLDER_CANT_FOLD, },
    { DATAFLOW_FRAG_GET_FF,         FOLDER_CANT_FOLD, },
+   { DATAFLOW_COMP_GET_ID0,        FOLDER_CANT_FOLD, },
+   { DATAFLOW_COMP_GET_ID1,        FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_THREAD_INDEX,    FOLDER_CANT_FOLD, },
    { DATAFLOW_SHARED_PTR,          FOLDER_CANT_FOLD, },
    { DATAFLOW_IS_HELPER,           FOLDER_CANT_FOLD, },
@@ -135,6 +143,7 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_SAMPLE_MASK,         FOLDER_CANT_FOLD, },
    { DATAFLOW_SAMPLE_ID,           FOLDER_CANT_FOLD, },
    { DATAFLOW_NUM_SAMPLES,         FOLDER_CANT_FOLD, },
+   { DATAFLOW_TEXTURE_LEVELS,      FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_VERTEX_ID,       FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_INSTANCE_ID,     FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_BASE_INSTANCE,   FOLDER_CANT_FOLD, },
@@ -150,8 +159,13 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_GET_INVOCATION_ID,   FOLDER_CANT_FOLD, },
    { DATAFLOW_ADDRESS,             FOLDER_CANT_FOLD, },
    { DATAFLOW_BUF_SIZE,            FOLDER_CANT_FOLD, },
+#if !V3D_VER_AT_LEAST(4,0,2,0)
    { DATAFLOW_IMAGE_INFO_PARAM,    FOLDER_CANT_FOLD, },
+#endif
+#if !V3D_HAS_LARGE_1D_TEXTURE
    { DATAFLOW_TEXBUFFER_INFO_PARAM, FOLDER_CANT_FOLD, },
+#endif
+   { DATAFLOW_GET_FB_MAX_LAYER,     FOLDER_CANT_FOLD, },
 };
 
 static int df_type_index(DataflowType t) {
@@ -280,6 +294,16 @@ static Dataflow *simplify_unary_op (DataflowFlavour flavour, Dataflow *operand) 
       return glsl_dataflow_construct_unary_op(DATAFLOW_FTOI_NEAREST, operand->d.unary_op.operand);
    if (flavour == DATAFLOW_FTOI_TRUNC && operand->flavour == DATAFLOW_TRUNC)
       return glsl_dataflow_construct_unary_op(DATAFLOW_FTOI_TRUNC, operand->d.unary_op.operand);
+
+   if (flavour == DATAFLOW_FTOI_TRUNC && operand->flavour == DATAFLOW_FRAG_GET_X)
+      return glsl_dataflow_construct_reinterp(glsl_dataflow_construct_nullary_op(DATAFLOW_FRAG_GET_X_UINT), DF_INT);
+   if (flavour == DATAFLOW_FTOI_TRUNC && operand->flavour == DATAFLOW_FRAG_GET_Y)
+      return glsl_dataflow_construct_reinterp(glsl_dataflow_construct_nullary_op(DATAFLOW_FRAG_GET_Y_UINT), DF_INT);
+
+   if (flavour == DATAFLOW_FTOU && operand->flavour == DATAFLOW_FRAG_GET_X)
+      return glsl_dataflow_construct_nullary_op(DATAFLOW_FRAG_GET_X_UINT);
+   if (flavour == DATAFLOW_FTOU && operand->flavour == DATAFLOW_FRAG_GET_Y)
+      return glsl_dataflow_construct_nullary_op(DATAFLOW_FRAG_GET_Y_UINT);
 
    if (flavour == DATAFLOW_FTOI_NEAREST && operand->flavour == DATAFLOW_NEAREST)
       return glsl_dataflow_construct_unary_op(DATAFLOW_FTOI_NEAREST, operand->d.unary_op.operand);
@@ -567,17 +591,26 @@ static Dataflow *simplify_commutative_binop(DataflowFlavour flavour, Dataflow *n
    }
    if (non_c->type == DF_INT || non_c->type == DF_UINT) {
       if (c->u.constant.value == 0) {
-         if (flavour == DATAFLOW_MUL) return c;
+         if (flavour == DATAFLOW_MUL || flavour == DATAFLOW_MUL24) return c;
          if (flavour == DATAFLOW_ADD) return non_c;
          if (flavour == DATAFLOW_BITWISE_AND) return c;
          if (flavour == DATAFLOW_BITWISE_OR ) return non_c;
          if (flavour == DATAFLOW_BITWISE_XOR) return non_c;
       }
       if (c->u.constant.value == 1) {
-         if (flavour == DATAFLOW_MUL) return non_c;
+         if (flavour == DATAFLOW_MUL || flavour == DATAFLOW_MUL24) return non_c;
+      }
+      if (c->u.constant.value == (c->type == DF_UINT ? 0 : INT32_MIN)) {
+         if (flavour == DATAFLOW_MIN) return c;
+         if (flavour == DATAFLOW_MAX) return non_c;
+      }
+      if (c->u.constant.value == (c->type == DF_UINT ? UINT32_MAX : INT32_MAX)) {
+         if (flavour == DATAFLOW_MIN) return non_c;
+         if (flavour == DATAFLOW_MAX) return c;
       }
       if (c->u.constant.value == 0xFFFFFFFF) {
-         if (flavour == DATAFLOW_MUL)         return glsl_dataflow_construct_unary_op(DATAFLOW_ARITH_NEGATE, non_c);
+         if (flavour == DATAFLOW_MUL || flavour == DATAFLOW_MUL24)
+            return glsl_dataflow_construct_unary_op(DATAFLOW_ARITH_NEGATE, non_c);
          if (flavour == DATAFLOW_BITWISE_AND) return non_c;
          if (flavour == DATAFLOW_BITWISE_OR ) return c;
          if (flavour == DATAFLOW_BITWISE_XOR) return glsl_dataflow_construct_unary_op(DATAFLOW_BITWISE_NOT, non_c);
@@ -684,7 +717,7 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
       }
    }
 
-   if (flavour == DATAFLOW_MUL && (left->type == DF_INT || left->type == DF_UINT)) {
+   if ((flavour == DATAFLOW_MUL || flavour == DATAFLOW_MUL24) && (left->type == DF_INT || left->type == DF_UINT)) {
       if (left->flavour == DATAFLOW_CONST && is_pow2(left->u.constant.value)) {
          Dataflow *c = glsl_dataflow_construct_const_value(left->type, log2i(left->u.constant.value));
          return glsl_dataflow_construct_binary_op(DATAFLOW_SHL, right, c);
@@ -764,6 +797,9 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
    if (flavour == DATAFLOW_SUB && right->flavour == DATAFLOW_ARITH_NEGATE)
       return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, left, right->d.unary_op.operand);
 
+   if (flavour == DATAFLOW_SUB && left->flavour == DATAFLOW_BUF_SIZE && right->flavour == DATAFLOW_CONST)
+      return glsl_dataflow_construct_buf_size(left->d.unary_op.operand, left->u.constant.value + right->u.constant.value);
+
    if (left->flavour == DATAFLOW_CONST) {
       Dataflow *comm = simplify_commutative_binop(flavour, right, left);
       if (comm) return comm;
@@ -788,6 +824,9 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
          if (flavour == DATAFLOW_SHL) return left;
          if (flavour == DATAFLOW_SHR) return left;
       }
+
+      if (flavour == DATAFLOW_SHL && right->u.constant.value == 1)
+         return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, left, left);
    }
 
    if (left == right) {

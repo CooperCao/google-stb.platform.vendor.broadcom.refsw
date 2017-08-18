@@ -1,57 +1,99 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/NWK/include/bbZbProNwkCommon.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   Network Layer Common declarations
+*       Network Layer Common declarations
 *
-* $Revision: 3417 $
-* $Date: 2014-08-27 16:19:14Z $
-*
-****************************************************************************************/
+*******************************************************************************/
 
 #ifndef _ZBPRO_NWK_COMMON_H
 #define _ZBPRO_NWK_COMMON_H
+
+
+/******************************** ZBPRO DOCUMENTATION STRUCTURE ***************************/
+/**//**
+ * \defgroup ZBPRO (ZigBee-PRO API)
+ @{
+ * \defgroup ZBPRO_NWK (Network API)
+ @{
+ * \defgroup ZBPRO_NWK_Types (ZBPRO Network Types)
+ @{
+ * \defgroup ZBPRO_NWK_DataReq (Data Request)
+ * \defgroup ZBPRO_NWK_DataInd (Data Indication)
+ * \defgroup ZBPRO_NWK_DataConf (Data Confirmation)
+ * \defgroup ZBPRO_NWK_StatusInd (Status Indication)
+ * \defgroup ZBPRO_NWK_DiscoveryConf (Discovery Confirmation)
+ * \defgroup ZBPRO_NWK_DiscoveryReq (Discovery Request)
+ * \defgroup ZBPRO_NWK_EDScanReq (Energy Detection Scan Request)
+ * \defgroup ZBPRO_NWK_EDScanConf (Energy Detection Scan Confirmation)
+ * \defgroup ZBPRO_NWK_GetSetReq (Get/Set Request Misc)
+ * \defgroup ZBPRO_NWK_SetReq (Set Request)
+ * \defgroup ZBPRO_NWK_SetConf (Set Confirmation)
+ * \defgroup ZBPRO_NWK_GetReq (Get Request)
+ * \defgroup ZBPRO_NWK_GetConf (Get Confirmation)
+ * \defgroup ZBPRO_NWK_SetKeyReq (Set Key Request)
+ * \defgroup ZBPRO_NWK_SetKeyConf (Set Key Confirmation)
+ * \defgroup ZBPRO_NWK_GetKeyReq (Get Key Request)
+ * \defgroup ZBPRO_NWK_GetKeyConf (Get Key Confirmation)
+ * \defgroup ZBPRO_NWK_JoinReq (Join Request)
+ * \defgroup ZBPRO_NWK_JoinConf (Join Confirmation)
+ * \defgroup ZBPRO_NWK_JoinInd (Join Indication)
+ * \defgroup ZBPRO_NWK_LeaveReq (Leave Request)
+ * \defgroup ZBPRO_NWK_LeaveConf (Leave Confirmation)
+ * \defgroup ZBPRO_NWK_LeaveInd (Leave Indication)
+ * \defgroup ZBPRO_NWK_NetworkFormationReq (Network Formation Request)
+ * \defgroup ZBPRO_NWK_NetworkFormationConf (Network Formation Confirmation)
+ * \defgroup ZBPRO_NWK_PermitJoinConf (Permit Join Confirmation)
+ * \defgroup ZBPRO_NWK_PermitJoinReq (Permit Join Request)
+ * \defgroup ZBPRO_NWK_ResetReq (Reset Request)
+ * \defgroup ZBPRO_NWK_ResetConf (Reset Confirmation)
+ * \defgroup ZBPRO_NWK_RouteDiscoveryReq (RouteDiscovery Request)
+ * \defgroup ZBPRO_NWK_RouteDiscoveryConf (RouteDiscovery Confirmation)
+ * \defgroup ZBPRO_NWK_StartRouterReq (Start Router Request)
+ * \defgroup ZBPRO_NWK_StartRouterConf (Start Router Confirmation)
+ @}
+ * \defgroup ZBPRO_NWK_Functions (ZBPRO Network Routines)
+ @}
+ @}
+ */
+
 
 /************************* INCLUDES ****************************************************/
 #include "bbSysBasics.h"
@@ -98,6 +140,7 @@
  * \brief Network coordinator address.
  */
 #define ZBPRO_NWK_COORDINATOR_ADDR                 0x0000U
+
 /**//**
  * \brief True if extended address is valid.
  */
@@ -233,7 +276,6 @@ typedef enum
 /**//**
  * \brief NWK Allocation Address mode
  */
-
 typedef enum
 {
     ZBPRO_DISTRIBUTED_ADDRESS_ALLOCATION    = 0x00,
@@ -303,6 +345,7 @@ typedef uint8_t                 ZBPRO_NWK_PermitJoinDuration_t;
  *      uint8_t         outgoingCost : 3,
  *      uint8_t         reserved2    : 2
  *  };
+ *  \endcode
  *  \note
  *  To access link cost fields the special macros shall be used.
  */
@@ -343,7 +386,7 @@ typedef uint8_t ZBPRO_NWK_Depth_t;
  */
 typedef struct _ZbProNwkServiceField_t
 {
-    SYS_QueueElement_t   queueElement;
+    SYS_QueueElement_t   queueElement;        /*!< Service queue field */
 } ZbProNwkServiceField_t;
 
 /**//**
@@ -375,22 +418,15 @@ typedef MAC_CapabilityInfo_t ZBPRO_NWK_Capability_t;
  */
 typedef enum _ZBPRO_NWK_RejoinMethod_t
 {
-    /* If the device is requesting to join a network through association. */
-    ZBPRO_NWK_JOIN_VIA_ASSOCIATION  = 0x00U,
-    /* if the device is joining directly or rejoining the network using
-            the orphaning procedure. */
-    ZBPRO_NWK_JOIN_VIA_ORPHANING    = 0x01U,
-    /* if the device is joining the network using the NWK rejoining procedure. */
-    ZBPRO_NWK_JOIN_VIA_REJOIN       = 0x02U,
-    /* if the device is to change the operational network channel to that
-            identified in the ScanChannels parameter. */
-    ZBPRO_NWK_JOIN_CHANNEL_CHANGE   = 0x03U,
-
-    /* Service methods do not use them from application. */
-
-    /* if the device is joining the network without any join procedure, just actualizes it attributes. */
-    ZBPRO_NWK_JOIN_VIA_COMMISSIONING = 0x04U,
-    ZBPRO_NWK_JOIN_VIA_FORMATION    = 0x05U,
+    ZBPRO_NWK_JOIN_VIA_ASSOCIATION  = 0x00U,  /*!< If the device is requesting to join a network through association. */
+    ZBPRO_NWK_JOIN_VIA_ORPHANING    = 0x01U,  /*!< if the device is joining directly or rejoining the network using
+                                                   the orphaning procedure. */
+    ZBPRO_NWK_JOIN_VIA_REJOIN       = 0x02U,  /*!< if the device is joining the network using the NWK rejoining procedure. */
+    ZBPRO_NWK_JOIN_CHANNEL_CHANGE   = 0x03U,  /*!< if the device is to change the operational network channel to that
+                                                   identified in the ScanChannels parameter. */
+    ZBPRO_NWK_JOIN_VIA_COMMISSIONING = 0x04U, /*!< if the device is joining the network without any join procedure,
+                                                   just actualizes it attributes. */
+    ZBPRO_NWK_JOIN_VIA_FORMATION    = 0x05U,  /*!< if the device is joining via formation. */
     ZBPRO_NWK_JOIN_INVALID_TYPE,
 } ZBPRO_NWK_RejoinMethod_t;
 
@@ -413,6 +449,7 @@ typedef uint8_t ZBPRO_NWK_MaxDuSize_t;
  *      uint8_t   deviceDepth        :4,
  *      uint8_t   endDeviceCapacity  :1
  *  };
+ *  \endcode
  *  \note
  *  To access link cost fields the special macros shall be used.
  */
@@ -445,18 +482,13 @@ typedef struct _ZbProNwkParsedBeaconPayload_t
     uint8_t protocolId;                         /*!< This field identifies the network layer protocols in use and,
                                                      for purposes of this specification, shall always be set to 0,
                                                      indicating the ZigBee protocols. */
-
     ZbProNwkBeaconPayloadBitfield_t options;    /*!< This field contains bitfields (bits 8-23) from
                                                      beacon payload structure. */
-
-
     ZBPRO_NWK_ExtPanId_t nwkExtendedPanid;      /*!< The globally unique ID for the PAN of which the beaconing
                                                    device is a member. */
-
     uint8_t txOffset[3];                        /*!< This value indicates the difference in time, measured in
                                                    symbols, between the beacon transmission time of the device
                                                    and the beacon transmission time of its parent. */
-
     ZBPRO_NWK_UpdateId_t updateId;              /*!< This field reflects the value of nwkUpdateId from the NIB. */
 } ZbProNwkParsedBeaconPayload_t;
 
@@ -465,8 +497,10 @@ typedef struct _ZbProNwkParsedBeaconPayload_t
  */
 typedef struct _ZbProNwkParsedBeaconNotify_t
 {
-    MAC_BeaconNotifyIndParams_t indParams;
-    ZbProNwkParsedBeaconPayload_t     beaconPayload;
+    MAC_BeaconNotifyIndParams_t   indParams;    /*!< Indication parameters */
+    ZbProNwkParsedBeaconPayload_t beaconPayload;/*!< Beacon payload */
 } ZbProNwkParsedBeaconNotify_t;
 
 #endif /* _ZBPRO_NWK_COMMON_H */
+
+/* eof bbZbProNwkCommon.h */

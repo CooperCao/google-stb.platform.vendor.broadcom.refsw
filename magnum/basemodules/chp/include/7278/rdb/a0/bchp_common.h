@@ -44,14 +44,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed May  3 12:05:57 2017
+ * Date:           Generated on               Wed May  3 10:53:10 2017
  *                 Full Compile MD5 Checksum  04b1690769525e89df711042d19ca1ec
  *                     (minus title and desc)
- *                 MD5 Checksum               812871c1429d405777bde6b303e0573c
+ *                 MD5 Checksum               4a0169c9562de445280dcb6857c4b464
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1485
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -71,7 +71,10 @@
 #define BCHP_REGISTER_START                                0x00000000 /* MFD_0 is first */
 #define BCHP_REGISTER_END                                  0x022ff180 /* XPT_SRAC_SLICE is last */
 #define BCHP_REGISTER_SIZE                                 0x008bfc60 /* Number of registers */
-#define BCHP_REGISTER_HAS_READONLY                                  1 /* Has RO register list */
+#define BCHP_REGISTER_HAS_RBUS7                                     1 /* Has at least one register set with RBUS7 inteface */
+#define BCHP_REGISTER_HAS_READONLY                                  0 /* Has RO register list */
+#define BCHP_REGISTER_HAS_CORE_INFO                                 1 /* Has core info list */
+#define BCHP_REGISTER_HAS_REGISTER_INFO                             1 /* Has register info list */
 #define BCHP_REGISTER_HAS_16_BIT                                    0 /* Has 16-bit wide register */
 #define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
 #define BCHP_REGISTER_HAS_64_BIT                                    1 /* Has 64-bit wide register */

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,18 +110,18 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
      * for decryption. For sw decryption, two separate buffers (one for socket read and one for decryption ) are used.
      */
 #ifdef B_DTCP_IP_HW_DECRYPTION
-    BDBG_MSG(("%s: Using HW decryption for DTCP, rbuf_len %d, sd %d", __FUNCTION__, rbuf_len, sd));
+    BDBG_MSG(("%s: Using HW decryption for DTCP, rbuf_len %d, sd %d", BSTD_FUNCTION, rbuf_len, sd));
 #else
-    BDBG_MSG(("%s: Using SW decryption for DTCP, rbuf_len %d, sd %d", __FUNCTION__, rbuf_len, sd));
+    BDBG_MSG(("%s: Using SW decryption for DTCP, rbuf_len %d, sd %d", BSTD_FUNCTION, rbuf_len, sd));
 #endif
     if (rbuf_len > securityCtx->encryptBufSize) {
         /* Realloc */
         B_PlaybackIp_UtilsFreeMemory(securityCtx->encryptBuf);
         if ( (securityCtx->encryptBuf = (char *)B_PlaybackIp_UtilsAllocateMemory(rbuf_len, securityCtx->openSettings.heapHandle)) == NULL) {
-            BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+            BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
             return -1;
         }
-        BDBG_MSG(("%s:%d: reallocated encrypt buffer", __FUNCTION__, __LINE__));
+        BDBG_MSG(("%s:%d: reallocated encrypt buffer", BSTD_FUNCTION, __LINE__));
         securityCtx->encryptBufSize = rbuf_len;
     }
     read_ptr = securityCtx->encryptBuf;
@@ -129,9 +129,9 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
     if (playback_ip->ipVerboseLog && firstTime) {
         firstTime = 0;
 #ifdef B_DTCP_IP_HW_DECRYPTION
-        BDBG_WRN(("%s: Using HW decryption for DTCP", __FUNCTION__));
+        BDBG_WRN(("%s: Using HW decryption for DTCP", BSTD_FUNCTION));
 #else
-        BDBG_WRN(("%s: Using SW decryption for DTCP", __FUNCTION__));
+        BDBG_WRN(("%s: Using SW decryption for DTCP", BSTD_FUNCTION));
 #endif
     }
 #endif
@@ -146,7 +146,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
             /* move the remaining bytes to the beginning */
             memmove(securityCtx->extended_decrypted_bytes, securityCtx->extended_decrypted_bytes + bytesRead, securityCtx->extended_len);
         }
-        BDBG_MSG(("%s: extended bytes returned %d, remaining extended bytes %d", __FUNCTION__, bytesRead, securityCtx->extended_len));
+        BDBG_MSG(("%s: extended bytes returned %d, remaining extended bytes %d", BSTD_FUNCTION, bytesRead, securityCtx->extended_len));
         return bytesRead;
     }
 
@@ -156,11 +156,11 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
         if ((rbuf_len > HTTP_AES_BLOCK_SIZE) && (rbuf_len % HTTP_AES_BLOCK_SIZE)) {
             truncated_len = rbuf_len % HTTP_AES_BLOCK_SIZE;
             rbuf_len -= truncated_len;   /* Truncate length of clear data expected in return */
-            BDBG_MSG(("%s: Adjust length for decryption block size, original %d, new %d", __FUNCTION__, rbuf_len+truncated_len, rbuf_len));
+            BDBG_MSG(("%s: Adjust length for decryption block size, original %d, new %d", BSTD_FUNCTION, rbuf_len+truncated_len, rbuf_len));
         } else if (rbuf_len < HTTP_AES_BLOCK_SIZE) {
             /* since caller is asking to read/decrypt less than AES block size, we will need to read & decrypt extra bytes for 16 byte alignment */
             /* and then save the extended bytes for subsequent read */
-            BDBG_MSG(("%s: Extend reading for %d bytes\n", __FUNCTION__,  rbuf_len));
+            BDBG_MSG(("%s: Extend reading for %d bytes\n", BSTD_FUNCTION,  rbuf_len));
             securityCtx->extended_len = HTTP_AES_BLOCK_SIZE - rbuf_len;
             rbuf_len += securityCtx->extended_len;   /*  Add padding  */
             orig_rbuf = rbuf;
@@ -171,7 +171,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
     /* Copy previously read encrypted data (which was left over from the decryption due to PCP header being present) to begining of rbuf */
     /* Read length shouuld be 16 byte aligned */
     if (securityCtx->residual_encrypted_len && securityCtx->residual_encrypted_len <= HTTP_AES_BLOCK_SIZE ) {
-        BDBG_MSG(("%s: Prepend previously read but not decrypted %d bytes, bytesRead so far %d", __FUNCTION__,  securityCtx->residual_encrypted_len, bytesRead));
+        BDBG_MSG(("%s: Prepend previously read but not decrypted %d bytes, bytesRead so far %d", BSTD_FUNCTION,  securityCtx->residual_encrypted_len, bytesRead));
         bytesToCopy = rbuf_len > securityCtx->residual_encrypted_len ? securityCtx->residual_encrypted_len : rbuf_len;
         memcpy(read_ptr+bytesRead, securityCtx->residual_encrypted_bytes, bytesToCopy);
         bytesRead += bytesToCopy;
@@ -184,7 +184,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
     /* Read length shouuld be 16 byte aligned */
     if (securityCtx->partial_read_len && securityCtx->partial_read_len <= HTTP_AES_BLOCK_SIZE) {
         bytesToCopy = (rbuf_len-bytesRead) > securityCtx->partial_read_len ? securityCtx->partial_read_len : (rbuf_len-bytesRead);
-        BDBG_MSG(("%s: Preprend partial read %d bytes, total partial read %d, bytesRead already read %d", __FUNCTION__, bytesToCopy, securityCtx->partial_read_len, bytesRead));
+        BDBG_MSG(("%s: Preprend partial read %d bytes, total partial read %d, bytesRead already read %d", BSTD_FUNCTION, bytesToCopy, securityCtx->partial_read_len, bytesRead));
         memcpy(read_ptr+bytesRead, securityCtx->partial_read_bytes, bytesToCopy);
         bytesRead += bytesToCopy;
         securityCtx->partial_read_len -= bytesToCopy;
@@ -196,7 +196,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
     if (securityCtx->initialPayloadLength && securityCtx->initialPayloadLength <= TMP_BUF_SIZE) {
         /* Copy initially read encrypted data to begining of rbuf */
         bytesToCopy = (rbuf_len-bytesRead) > securityCtx->initialPayloadLength ? securityCtx->initialPayloadLength : (rbuf_len-bytesRead);
-        BDBG_MSG(("%s: copying read %d bytes from initial buf length of %d into decryption buffer, bytesRead so far %d", __FUNCTION__,  bytesToCopy, securityCtx->initialPayloadLength, bytesRead));
+        BDBG_MSG(("%s: copying read %d bytes from initial buf length of %d into decryption buffer, bytesRead so far %d", BSTD_FUNCTION,  bytesToCopy, securityCtx->initialPayloadLength, bytesRead));
         memcpy(read_ptr+bytesRead, securityCtx->initialPayload, bytesToCopy);
         bytesRead += bytesToCopy;
         securityCtx->initialPayloadLength -= bytesToCopy;
@@ -207,7 +207,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
 
     read_len = rbuf_len - bytesRead;
     bytesToRead = read_len;
-    BDBG_MSG(("%s: now read remaining %d bytes, total rbuf_len %d, bytesRead %d, sd %d", __FUNCTION__,  read_len, rbuf_len, bytesRead, sd));
+    BDBG_MSG(("%s: now read remaining %d bytes, total rbuf_len %d, bytesRead %d, sd %d", BSTD_FUNCTION,  read_len, rbuf_len, bytesRead, sd));
 
     if (rbuf_len < 0 || read_len < 0 )
         BDBG_ASSERT(NULL);
@@ -216,42 +216,42 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
         /* read_len will only be 0 when initialPayload had all the requested bytes, so we dont need to read any data from the socket */
         if ((*playbackIpState == B_PlaybackIpState_eStopping) || (*playbackIpState == B_PlaybackIpState_eStopped )) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s: breaking out of read loop due to state (%d) change\n", __FUNCTION__, *playbackIpState));
+            BDBG_MSG(("%s: breaking out of read loop due to state (%d) change\n", BSTD_FUNCTION, *playbackIpState));
             return -1;
         }
         rc = read(sd, read_ptr + bytesRead, read_len);
         if (rc < 0) {
             if (errno == EINTR || errno == EAGAIN) {
                 if (bytesRead) {
-                    BDBG_MSG(("%s: breaking from read loop due to partial data %d bytes recvd, bytesToRead %d", __FUNCTION__, bytesRead, bytesToRead));
+                    BDBG_MSG(("%s: breaking from read loop due to partial data %d bytes recvd, bytesToRead %d", BSTD_FUNCTION, bytesRead, bytesToRead));
                     break;  /* Partial data received */
                 }
                 else {
-                    BDBG_MSG(("%s: Read System Call interrupted or timed out (errno %d)\n", __FUNCTION__, errno));
+                    BDBG_MSG(("%s: Read System Call interrupted or timed out (errno %d)\n", BSTD_FUNCTION, errno));
                     return rc;  /* no data read return */
                 }
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: read ERROR:%d", __FUNCTION__, errno));
+                BDBG_ERR(("%s: read ERROR:%d", BSTD_FUNCTION, errno));
 #endif
             return -1;
         }else if (rc == 0) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: Reached EOF, server closed the connection!, bytesRead=%d", __FUNCTION__, bytesRead));
+                BDBG_ERR(("%s: Reached EOF, server closed the connection!, bytesRead=%d", BSTD_FUNCTION, bytesRead));
 #endif
             break;
         } else if (rc < read_len)
         {
             bytesRead += rc;
             read_len -= rc;
-            BDBG_MSG(("%s: Partial read rc %d, bytesRead so far %d, bytes remaining: read_len %d, rbuf_len %d, continue reading", __FUNCTION__, rc, bytesRead, read_len, rbuf_len));
+            BDBG_MSG(("%s: Partial read rc %d, bytesRead so far %d, bytes remaining: read_len %d, rbuf_len %d, continue reading", BSTD_FUNCTION, rc, bytesRead, read_len, rbuf_len));
             /* we sleep a little to allow more data to arrive from the server */
             BKNI_Sleep(10);
         } else {
             bytesRead += rc;
-            BDBG_MSG(("%s: read all requested data: rc %d, bytesRead %d, read_len %d, rbuf_len %d", __FUNCTION__, rc, bytesRead, read_len, rbuf_len));
+            BDBG_MSG(("%s: read all requested data: rc %d, bytesRead %d, read_len %d, rbuf_len %d", BSTD_FUNCTION, rc, bytesRead, read_len, rbuf_len));
             break;
         }
     }
@@ -267,19 +267,19 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
         return bytesRead;
     }
 
-    BDBG_MSG(("%s: Asked %d bytes Read =%d bytes\n", __FUNCTION__, rbuf_len-securityCtx->extended_len+truncated_len, bytesRead));
+    BDBG_MSG(("%s: Asked %d bytes Read =%d bytes\n", BSTD_FUNCTION, rbuf_len-securityCtx->extended_len+truncated_len, bytesRead));
 
     /* Partial data receive.  Data is NOT aligned to 16 byte */
     if (bytesRead % HTTP_AES_BLOCK_SIZE) {
         if (bytesRead > HTTP_AES_BLOCK_SIZE) {
             truncated_len = bytesRead % HTTP_AES_BLOCK_SIZE;
-            BDBG_MSG(("%s: Partial data received %d, expected %d, need to truncate %d\n", __FUNCTION__, bytesRead, rbuf_len, truncated_len));
+            BDBG_MSG(("%s: Partial data received %d, expected %d, need to truncate %d\n", BSTD_FUNCTION, bytesRead, rbuf_len, truncated_len));
             bytesRead -= truncated_len;   /* Truncate length */
             securityCtx->partial_read_len = truncated_len;
             memcpy(securityCtx->partial_read_bytes, read_ptr+bytesRead, securityCtx->partial_read_len);
         }else {
             BDBG_MSG(("%s: bytesRead %d < AES block size, so returning EAGAIN: asked (rbuf_len) %d, app asked %d, rc %d, extended %d",
-                        __FUNCTION__, bytesRead, rbuf_len, rbuf_len-securityCtx->extended_len, rc, securityCtx->extended_len));
+                        BSTD_FUNCTION, bytesRead, rbuf_len, rbuf_len-securityCtx->extended_len, rc, securityCtx->extended_len));
             securityCtx->partial_read_len = bytesRead;
             memcpy(securityCtx->partial_read_bytes, read_ptr, securityCtx->partial_read_len);
             errno = EAGAIN;
@@ -314,7 +314,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
                     &dtcp_pcp_header_found);
 
             if (errorCode != BERR_SUCCESS) {
-                BDBG_ERR(("%s: DTCP_DepacketizeData returned %d\n", __FUNCTION__, bytesRead));
+                BDBG_ERR(("%s: DTCP_DepacketizeData returned %d\n", BSTD_FUNCTION, bytesRead));
                 break;
             }
             if (playback_ip->chunkEncoding && dtcp_pcp_header_found ) {
@@ -360,7 +360,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
     }
     /* If padding occurred; then adjust length and copy data back to original buffer */
     if (securityCtx->extended_len) {
-        BDBG_MSG(("%s: extended bytes saved %d, rbuf_len %d ", __FUNCTION__, securityCtx->extended_len, rbuf_len));
+        BDBG_MSG(("%s: extended bytes saved %d, rbuf_len %d ", BSTD_FUNCTION, securityCtx->extended_len, rbuf_len));
         rbuf_len -= securityCtx->extended_len;
         bytesRead -= securityCtx->extended_len;
 
@@ -409,11 +409,11 @@ int  B_PlaybackIp_DtcpIpDecryptionDisable(
     B_PlaybackIpDtcpIpCtx *securityCtx = (B_PlaybackIpDtcpIpCtx *)securityHandle;
 
     if (!securityCtx) {
-        BDBG_ERR(("%s: invalid securityCtx %p", __FUNCTION__, (void *)securityCtx));
+        BDBG_ERR(("%s: invalid securityCtx %p", BSTD_FUNCTION, (void *)securityCtx));
         return -1;
     }
     /* set flag to disable decryption */
-    BDBG_MSG(("%s: Disabling DTCP/IP Decryption\n", __FUNCTION__));
+    BDBG_MSG(("%s: Disabling DTCP/IP Decryption\n", BSTD_FUNCTION));
     securityCtx->openSettings.security.enableDecryption = false;
 
     return 0;
@@ -427,17 +427,17 @@ int B_PlaybackIp_DtcpIpDecryptionEnable(
     B_PlaybackIpDtcpIpCtx *securityCtx = (B_PlaybackIpDtcpIpCtx *)securityHandle;
 
     if (!securityCtx || (initialPayloadLength && !initialPayload)) {
-        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", __FUNCTION__, (void *)securityCtx, initialPayloadLength, initialPayload));
+        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", BSTD_FUNCTION, (void *)securityCtx, initialPayloadLength, initialPayload));
         return -1;
     }
     /* set flag to enable decryption */
-    BDBG_MSG(("%s: Enabling DTCP/IP Decryption\n", __FUNCTION__));
+    BDBG_MSG(("%s: Enabling DTCP/IP Decryption\n", BSTD_FUNCTION));
     securityCtx->openSettings.security.enableDecryption = true;
 
     if (initialPayloadLength) {
         securityCtx->initialPayloadLength = initialPayloadLength;
         if (initialPayloadLength > TMP_BUF_SIZE) {
-            BDBG_ERR(("%s: Need to increase the initialPayload buffer length from %d to %d\n", __FUNCTION__, TMP_BUF_SIZE, initialPayloadLength));
+            BDBG_ERR(("%s: Need to increase the initialPayload buffer length from %d to %d\n", BSTD_FUNCTION, TMP_BUF_SIZE, initialPayloadLength));
             BDBG_ASSERT(NULL);
             return -1;
         }
@@ -465,29 +465,29 @@ int B_PlaybackIp_DtcpIpSessionOpen(
     securityOpenOutputParams->byteRangeOffset = 0;
 
     if (openSettings == NULL) {
-        BDBG_ERR(("%s: Invalid parameters, Open Settings %p\n", __FUNCTION__, (void *)openSettings));
+        BDBG_ERR(("%s: Invalid parameters, Open Settings %p\n", BSTD_FUNCTION, (void *)openSettings));
         goto error;
     }
     securityOpenSettings = &openSettings->security;
 
     if (sd <= 0) {
-        BDBG_ERR(("%s: invalid socket, sd = %d", __FUNCTION__, sd));
+        BDBG_ERR(("%s: invalid socket, sd = %d", BSTD_FUNCTION, sd));
         goto error;
     }
 
     if (securityOpenSettings->securityProtocol != B_PlaybackIpSecurityProtocol_DtcpIp) {
-        BDBG_ERR(("%s: invoking DTCP/IP module with incorrect security protocol %d", __FUNCTION__, securityOpenSettings->securityProtocol));
+        BDBG_ERR(("%s: invoking DTCP/IP module with incorrect security protocol %d", BSTD_FUNCTION, securityOpenSettings->securityProtocol));
         goto error;
     }
 
     if (securityOpenSettings->initialSecurityContext == NULL) {
-        BDBG_ERR(("%s: AKE Handle is not provided by app\n", __FUNCTION__));
+        BDBG_ERR(("%s: AKE Handle is not provided by app\n", BSTD_FUNCTION));
         goto error;
     }
 
     securityCtx = BKNI_Malloc(sizeof(B_PlaybackIpDtcpIpCtx));
     if (!securityCtx) {
-        BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
         goto error;
     }
     memset(securityCtx, 0, sizeof(B_PlaybackIpDtcpIpCtx));
@@ -497,20 +497,20 @@ int B_PlaybackIp_DtcpIpSessionOpen(
     /* allocate an encrypt buffer of a default size and then re-malloc if user is asking for larger data */
     securityCtx->encryptBuf = (char *)B_PlaybackIp_UtilsAllocateMemory(DTCP_IP_ENCRYPT_BUF_SIZE, openSettings->heapHandle);
     if (!securityCtx->encryptBuf) {
-        BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
         goto error;
     }
     securityCtx->encryptBufSize = DTCP_IP_ENCRYPT_BUF_SIZE;
     if((securityCtx->streamHandle = DtcpAppLib_OpenSinkStream(securityCtx->akeHandle, B_StreamTransport_eHttp)) == NULL)
     {
-        BDBG_ERR(("%s: Failed to open DTCP-IP sink stream\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to open DTCP-IP sink stream\n", BSTD_FUNCTION));
         rc = B_ERROR_SOCKET_ERROR;
         goto error;
     }
 
-    BDBG_MSG(("%s: Successfully Opened Sink Stream: handles AKE %p, Stream %p\n", __FUNCTION__, securityCtx->akeHandle, securityCtx->streamHandle));
+    BDBG_MSG(("%s: Successfully Opened Sink Stream: handles AKE %p, Stream %p\n", BSTD_FUNCTION, securityCtx->akeHandle, securityCtx->streamHandle));
 
-    BDBG_MSG(("%s: setting up the netIo interface for socket read & write\n", __FUNCTION__));
+    BDBG_MSG(("%s: setting up the netIo interface for socket read & write\n", BSTD_FUNCTION));
     securityOpenOutputParams->netIoPtr->read = _http_dtcp_ip_socket_read;
     /* TODO: if data written doesn't need to be protected, then write function need not be implemented */
     /* netIo->write = _http_dtcp_ip_socket_write; */
@@ -535,7 +535,7 @@ int B_PlaybackIp_DtcpIpCloneSessionOpen(
 
     securityCtx = BKNI_Malloc(sizeof(B_PlaybackIpDtcpIpCtx));
     if (!securityCtx) {
-        BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
         goto error;
     }
     memset(securityCtx, 0, sizeof(B_PlaybackIpDtcpIpCtx));
@@ -545,18 +545,18 @@ int B_PlaybackIp_DtcpIpCloneSessionOpen(
     /* allocate an encrypt buffer of a default size and then re-malloc if user is asking for larger data */
     securityCtx->encryptBuf = (char *)B_PlaybackIp_UtilsAllocateMemory(DTCP_IP_ENCRYPT_BUF_SIZE, securityCtx->openSettings.heapHandle);
     if (!securityCtx->encryptBuf) {
-        BDBG_ERR(("%s:%d: memory allocation failure\n", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d: memory allocation failure\n", BSTD_FUNCTION, __LINE__));
         goto error;
     }
     securityCtx->encryptBufSize = DTCP_IP_ENCRYPT_BUF_SIZE;
     if((securityCtx->streamHandle = DtcpAppLib_OpenSinkStream(securityCtx->akeHandle, B_StreamTransport_eHttp)) == NULL)
     {
-        BDBG_ERR(("%s: Failed to open DTCP-IP sink stream\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to open DTCP-IP sink stream\n", BSTD_FUNCTION));
         goto error;
     }
     securityCtx->openSettings.security.enableDecryption = false;
 
-    BDBG_MSG(("%s: Successfully Opened Sink Stream: handles AKE %p, Stream %p\n", __FUNCTION__, securityCtx->akeHandle, securityCtx->streamHandle));
+    BDBG_MSG(("%s: Successfully Opened Sink Stream: handles AKE %p, Stream %p\n", BSTD_FUNCTION, securityCtx->akeHandle, securityCtx->streamHandle));
 
     *targetSecurityHandle = securityCtx;
     return 0;
@@ -578,7 +578,7 @@ void B_PlaybackIp_DtcpIpSessionClose(
     B_PlaybackIpDtcpIpCtx *securityCtx = (B_PlaybackIpDtcpIpCtx *)voidHandle;
     if (securityCtx)
     {
-        BDBG_MSG(("%s: Closing handles AKE %p, Stream %p\n", __FUNCTION__, securityCtx->akeHandle, securityCtx->streamHandle));
+        BDBG_MSG(("%s: Closing handles AKE %p, Stream %p\n", BSTD_FUNCTION, securityCtx->akeHandle, securityCtx->streamHandle));
         /* Free up DtcpIp Handle & any other saved contexts */
         if(securityCtx->streamHandle) {
             DtcpAppLib_CloseStream(securityCtx->streamHandle);
@@ -617,7 +617,7 @@ void * B_PlaybackIp_DtcpIpInit(void *nexusDmaHandle)
             BDBG_ERR(("DtcpIp AppLib faild to start\n"));
             goto error;
         }
-        BDBG_MSG(("%s: done\n", __FUNCTION__));
+        BDBG_MSG(("%s: done\n", BSTD_FUNCTION));
     }
     gDtcpIpInitRefCnt++;
 
@@ -647,7 +647,7 @@ void B_PlaybackIp_DtcpIpUnInit(void * ctx)
 #endif
         DtcpAppLib_Shutdown(ctx);
         /* unload library */
-        BDBG_MSG(("%s: done\n", __FUNCTION__));
+        BDBG_MSG(("%s: done\n", BSTD_FUNCTION));
     }
 }
 

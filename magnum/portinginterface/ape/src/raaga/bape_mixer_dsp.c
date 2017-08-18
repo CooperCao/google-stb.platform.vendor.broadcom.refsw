@@ -125,7 +125,7 @@ BERR_Code BAPE_DspMixer_P_Create(
 {
     BERR_Code errCode;
     BAPE_MixerHandle handle;
-    BAPE_MixerSettings defaultSettings;
+    BAPE_MixerSettings * pDefaultSettings = NULL;
     BDSP_TaskCreateSettings taskCreateSettings;
     BDSP_StageCreateSettings stageCreateSettings;
     BAPE_FMT_Descriptor format;
@@ -136,22 +136,29 @@ BERR_Code BAPE_DspMixer_P_Create(
 
     *pHandle = NULL;
 
-    if ( NULL == pSettings )
-    {
-        BAPE_Mixer_GetDefaultSettings(&defaultSettings);
-        pSettings = &defaultSettings;
-    }
-
     if ( NULL == deviceHandle->dspContext )
     {
         BDBG_ERR(("DSP support is not available.  Can't create a DSP mixer."));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
+    if ( NULL == pSettings )
+    {
+        pDefaultSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+        if ( pDefaultSettings == NULL )
+        {
+            BDBG_ERR(("Unable to allocate memory for BAPE_MixerSettings"));
+            return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        }
+        BAPE_Mixer_GetDefaultSettings(pDefaultSettings);
+        pSettings = pDefaultSettings;
+    }
+
     if ( pSettings->dspIndex >= deviceHandle->numDsps )
     {
         BDBG_ERR(("DSP %u is not available.  This system has %u DSPs.", pSettings->dspIndex, deviceHandle->numDsps));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_handle;
     }
 
     if ( pSettings->outputDelay )
@@ -258,6 +265,12 @@ BERR_Code BAPE_DspMixer_P_Create(
 
     *pHandle = handle;
 
+    if ( pDefaultSettings )
+    {
+        BKNI_Free(pDefaultSettings);
+        pDefaultSettings = NULL;
+    }
+
     return BERR_SUCCESS;
 
 err_src_stage:
@@ -267,6 +280,11 @@ err_caps:
 err_format:
     BAPE_DspMixer_P_Destroy(handle);
 err_handle:
+    if ( pDefaultSettings )
+    {
+        BKNI_Free(pDefaultSettings);
+        pDefaultSettings = NULL;
+    }
     return errCode;
 }
 
@@ -663,13 +681,13 @@ err_loopback_settings:
         #if BAPE_CHIP_MAX_PLLS > 0
             if ( BAPE_MCLKSOURCE_IS_PLL(handle->mclkSource))
             {
-                BAPE_P_DetachMixerFromPll(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
+                BAPE_P_DetachMixerFromPll_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
             }
         #endif
         #if BAPE_CHIP_MAX_NCOS > 0
             if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkSource))
             {
-                BAPE_P_DetachMixerFromNco(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
+                BAPE_P_DetachMixerFromNco_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
             }
         #endif
         handle->mclkSource = BAPE_MclkSource_eNone;
@@ -843,7 +861,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     }
 
     /* Validate we either have real-time outputs or don't depending on system requirements */
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->pathNode, BAPE_PathNodeType_eMixer, BAPE_MixerType_eStandard, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->pathNode, BAPE_PathNodeType_eMixer, BAPE_MixerType_eStandard, 1, &numFound, &pNode);
     if ( taskStartSettings.realtimeMode == BDSP_TaskRealtimeMode_eNonRealTime )
     {
         if ( numFound != 0 )
@@ -918,7 +936,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         BAPE_PathNode *pNode;
         unsigned numFound;
 
-        BAPE_PathNode_P_FindConsumersBySubtype(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pNode);
+        BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pNode);
         switch ( numFound )
         {
         case 1:
@@ -1001,13 +1019,13 @@ err_create_loopback_path:
         #if BAPE_CHIP_MAX_PLLS > 0
             if ( BAPE_MCLKSOURCE_IS_PLL(handle->mclkSource))
             {
-                BAPE_P_DetachMixerFromPll(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
+                BAPE_P_DetachMixerFromPll_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
             }
         #endif
         #if BAPE_CHIP_MAX_NCOS > 0
             if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkSource))
             {
-                BAPE_P_DetachMixerFromNco(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
+                BAPE_P_DetachMixerFromNco_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
             }
         #endif
 
@@ -1030,7 +1048,7 @@ bool BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(BAPE_MixerHandle handle)
     BAPE_PathNode *pNode;
     unsigned numFound;
 
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pNode);
     switch ( numFound )
     {
     case 0:
@@ -1061,7 +1079,7 @@ static BAPE_MultichannelFormat BAPE_DspMixer_P_GetDdreMultichannelFormat(BAPE_Mi
     BAPE_PathNode *pNode;
     unsigned numFound;
 
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pNode);
     switch ( numFound )
     {
     case 1:
@@ -1649,7 +1667,7 @@ static BERR_Code BAPE_DspMixer_P_InputFormatChange(struct BAPE_PathNode *pNode, 
     handle = (BAPE_MixerHandle)pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
 
-    BDBG_MSG(("%s: old type %lu, new type %lu", __FUNCTION__, (unsigned long)pConnection->format.type, (unsigned long)pNewFormat->type));
+    BDBG_MSG(("%s: old type %lu, new type %lu", BSTD_FUNCTION, (unsigned long)pConnection->format.type, (unsigned long)pNewFormat->type));
 
     /* See if input format has changed.  If not, do nothing. */
     if ( pNewFormat->type == pConnection->format.type )
@@ -1790,13 +1808,13 @@ static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle)
         #if BAPE_CHIP_MAX_PLLS > 0
             if ( BAPE_MCLKSOURCE_IS_PLL(handle->mclkSource))
             {
-                BAPE_P_DetachMixerFromPll(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
+                BAPE_P_DetachMixerFromPll_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
             }
         #endif
         #if BAPE_CHIP_MAX_NCOS > 0
             if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkSource))
             {
-                BAPE_P_DetachMixerFromNco(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
+                BAPE_P_DetachMixerFromNco_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
             }
         #endif
 
@@ -2087,7 +2105,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
     int32_t coeffs[BAPE_Channel_eMax][BAPE_Channel_eMax];
     uint32_t scaleValue[BAPE_Channel_eMax];
     int32_t enableCustomMixing;
-    BAPE_UnifiedFWMixerUserConfig userConfig;
+    BAPE_UnifiedFWMixerUserConfig * pUserConfig = NULL;
 
     BDBG_OBJECT_ASSERT(source, BAPE_PathConnector);
 
@@ -2188,6 +2206,13 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
         BDBG_MSG(("Setting FW Mixing Coefs[%u][%u] to 0x%08x (mute=%u value=%#x)", taskInputIndex, i, scaleValue[i], handle->inputVolume[index].muted, coeffs[i][i]));
     }
 
+    pUserConfig = BKNI_Malloc(sizeof(BAPE_UnifiedFWMixerUserConfig));
+    if ( pUserConfig == NULL )
+    {
+        BDBG_ERR(("Failed to allocate BAPE_UnifiedFWMixerUserConfig"));
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
+
     /* Apply settings to FW Mixer */
     if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
@@ -2195,16 +2220,16 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
         BAPE_DecoderMixingMode mixingMode = BAPE_DecoderMixingMode_eMax;
 
         /*BDSP_Stage_SetAlgorithm(mixer->hMixerStage, BDSP_Algorithm_eMixerDapv2);*/
-        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
+        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &(pUserConfig->userConfigDapv2), sizeof(pUserConfig->userConfigDapv2));
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            goto err_cleanup;
         }
 
         /* set volumes */
         for ( i = 0; i < BAPE_Channel_eMax; i++ )
         {
-            userConfig.userConfigDapv2.i32MixerVolumeControlGains[taskInputIndex][i] = scaleValue[i];
+            pUserConfig->userConfigDapv2.i32MixerVolumeControlGains[taskInputIndex][i] = scaleValue[i];
         }
 
         /* check input types and modes */
@@ -2239,39 +2264,39 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
         errCode = BDSP_AudioStage_GetDatasyncSettings(handle->hMixerStage, &datasyncSettings);
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            goto err_cleanup;
         }
 
         datasyncSettings.uAlgoSpecConfigStruct.sMixerDapv2Config.ui32DualMainModeEnable = false;
         switch ( mixingMode )
         {
         case BAPE_DecoderMixingMode_eDescription:
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixingMode, 0);
+            BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, i32MixingMode, 0);
             break;
         case BAPE_DecoderMixingMode_eStandalone:
             datasyncSettings.uAlgoSpecConfigStruct.sMixerDapv2Config.ui32DualMainModeEnable = true;
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixingMode, 2);
+            BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, i32MixingMode, 2);
             break;
         default:
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixingMode, 1);
+            BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, i32MixingMode, 1);
             break;
         }
 
         errCode = BDSP_AudioStage_SetDatasyncSettings(handle->hMixerStage, &datasyncSettings);
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            goto err_cleanup;
         }
 
         /* update fade configuration for this input */
         /* in cert mode, allow volumes to pass through as dB, without alteration, in production, convert to Q1.31 format */
         if ( (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_MODE) )
         {
-            if ( (unsigned)userConfig.userConfigDapv2.sFadeControl[taskInputIndex].i32attenuation != handle->inputVolume[index].fade.level )
+            if ( (unsigned)pUserConfig->userConfigDapv2.sFadeControl[taskInputIndex].i32attenuation != handle->inputVolume[index].fade.level )
             {
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32attenuation, (int32_t)handle->inputVolume[index].fade.level);
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32type, (int32_t)handle->inputVolume[index].fade.type);
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32duration, (int32_t)handle->inputVolume[index].fade.duration);
+                BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, sFadeControl[taskInputIndex].i32attenuation, (int32_t)handle->inputVolume[index].fade.level);
+                BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, sFadeControl[taskInputIndex].i32type, (int32_t)handle->inputVolume[index].fade.type);
+                BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, sFadeControl[taskInputIndex].i32duration, (int32_t)handle->inputVolume[index].fade.duration);
             }
         }
         else
@@ -2284,33 +2309,33 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
             {
                 levelQ131 = 0x7FFFFFFF;
             }
-            if ( levelQ131 != (unsigned)userConfig.userConfigDapv2.sFadeControl[taskInputIndex].i32attenuation )
+            if ( levelQ131 != (unsigned)pUserConfig->userConfigDapv2.sFadeControl[taskInputIndex].i32attenuation )
             {
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32attenuation, (int32_t)levelQ131);
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32type, (int32_t)handle->inputVolume[index].fade.type);
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32duration, (int32_t)handle->inputVolume[index].fade.duration);
+                BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, sFadeControl[taskInputIndex].i32attenuation, (int32_t)levelQ131);
+                BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, sFadeControl[taskInputIndex].i32type, (int32_t)handle->inputVolume[index].fade.type);
+                BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, sFadeControl[taskInputIndex].i32duration, (int32_t)handle->inputVolume[index].fade.duration);
             }
         }
 
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);
-        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
+        BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);
+        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &(pUserConfig->userConfigDapv2), sizeof(pUserConfig->userConfigDapv2));
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            goto err_cleanup;
         }
     }
     else
     {
         /*BDSP_Stage_SetAlgorithm(mixer->hMixerStage, BDSP_Algorithm_eMixer);*/
-        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
+        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &(pUserConfig->userConfig), sizeof(pUserConfig->userConfig));
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            goto err_cleanup;
         }
 
         for ( i = 0; i < BAPE_Channel_eMax; i++ )
         {
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, MixingCoeffs[taskInputIndex][i], scaleValue[i]);
+            BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfig, MixingCoeffs[taskInputIndex][i], scaleValue[i]);
         }
 
         enableCustomMixing = false;
@@ -2318,7 +2343,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
         {
             for ( j = 0; j < 6; j++ )
             {
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomMixingCoefficients[i][j], handle->settings.loopbackVolumeMatrix[i][j]<<7);
+                BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfig, i32CustomMixingCoefficients[i][j], handle->settings.loopbackVolumeMatrix[i][j]<<7);
                 if ( (i != j && handle->settings.loopbackVolumeMatrix[i][j] != 0) ||
                      (i == j && handle->settings.loopbackVolumeMatrix[i][j] != BAPE_VOLUME_NORMAL) )
                 {
@@ -2332,24 +2357,37 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
         for ( i = 0; i < 6; i++ )
         {
             BDBG_MODULE_MSG(bape_mixer_lb, ("%08x %08x %08x %08x %08x %08x",
-                      userConfig.userConfig.i32CustomMixingCoefficients[i][0],
-                      userConfig.userConfig.i32CustomMixingCoefficients[i][1],
-                      userConfig.userConfig.i32CustomMixingCoefficients[i][2],
-                      userConfig.userConfig.i32CustomMixingCoefficients[i][3],
-                      userConfig.userConfig.i32CustomMixingCoefficients[i][4],
-                      userConfig.userConfig.i32CustomMixingCoefficients[i][5]));
+                      pUserConfig->userConfig.i32CustomMixingCoefficients[i][0],
+                      pUserConfig->userConfig.i32CustomMixingCoefficients[i][1],
+                      pUserConfig->userConfig.i32CustomMixingCoefficients[i][2],
+                      pUserConfig->userConfig.i32CustomMixingCoefficients[i][3],
+                      pUserConfig->userConfig.i32CustomMixingCoefficients[i][4],
+                      pUserConfig->userConfig.i32CustomMixingCoefficients[i][5]));
         }
         #endif
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomEffectsAudioMixingEnable, enableCustomMixing);
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32UserMixBalance, handle->settings.multiStreamBalance);
-        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
+        BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfig, i32CustomEffectsAudioMixingEnable, enableCustomMixing);
+        BAPE_DSP_P_SET_VARIABLE(pUserConfig->userConfig, i32UserMixBalance, handle->settings.multiStreamBalance);
+        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &(pUserConfig->userConfig), sizeof(pUserConfig->userConfig));
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            goto err_cleanup;
         }
     }
 
+    if ( pUserConfig )
+    {
+        BKNI_Free(pUserConfig);
+        pUserConfig = NULL;
+    }
+
     return BERR_SUCCESS;
+err_cleanup:
+    if ( pUserConfig )
+    {
+        BKNI_Free(pUserConfig);
+        pUserConfig = NULL;
+    }
+    return BERR_TRACE(errCode);
 }
 
 

@@ -269,7 +269,7 @@ void CStreamerUdp::setProgram(const char * str)
         }
     }
 
-    BDBG_MSG((BIP_MSG_PRE_FMT "<---------------------------------------------------------------------->"BIP_MSG_PRE_ARG));
+    BDBG_MSG((BIP_MSG_PRE_FMT "<---------------------------------------------------------------------->" BIP_MSG_PRE_ARG));
     BDBG_MSG(("_programNumberValid= %d and _programNumber = %d",
               _programNumberValid,
               _programNumber
@@ -403,7 +403,7 @@ eRet CStreamerUdp::addAllTracks()
     CPid *                pPid      = NULL;
     BIP_StreamerTrackInfo streamerTrackInfo;
     int                   trackIndex = 0;
-    uint16_t              pmtPid     = 10;
+    unsigned              pmtPid     = 10;
 
     /* Set mediaInfo parameters.*/
     if (eUdpStreamerInputType_File == _streamerInputType)
@@ -502,7 +502,7 @@ eRet CStreamerUdp::addAllTracks()
     return(ret);
 
 error:
-    BDBG_ERR(("%s,Error ", __FUNCTION__));
+    BDBG_ERR(("%s,Error ", BSTD_FUNCTION));
 
     return(ret);
 } /* addAllTracks */

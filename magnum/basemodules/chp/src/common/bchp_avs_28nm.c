@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -176,20 +176,41 @@ BERR_Code BCHP_P_AvsClose ( BCHP_P_AvsHandle hHandle )
 
 /* This is where these values come from IF the AVS firmware is running */
 /* The firmware updates these values every second */
-#define voltage_register     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (2*4))
-#define temperature_register (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (3*4))
+
+#ifdef AVS_DUAL_DOMAIN_CAPABLE
+#define MAX_AVS_DOMAIN_CNT 2
+#else
+#define MAX_AVS_DOMAIN_CNT 1
+#endif
+
+static uint32_t vreg_addr[MAX_AVS_DOMAIN_CNT] = {
+    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (2*4))
+#ifdef AVS_DUAL_DOMAIN_CAPABLE
+    , (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (2*12))
+#endif
+};
+static uint32_t treg_addr[MAX_AVS_DOMAIN_CNT] = {
+    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (3*4))
+#ifdef AVS_DUAL_DOMAIN_CAPABLE
+    , (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (3*13))
+#endif
+};
 
 /* Because we may have started up without AVS firmware running, we need to provide data in both situations.
  * If the firmware is running then it is updating the current data in the above locations.
  * If it is not running (i.e. above locations are always zero) then get the data ourselves.
  */
-static void AvsGetData(BCHP_P_AvsHandle hHandle, unsigned *voltage, signed *temperature, bool *firmware_running)
+static void AvsGetData(BCHP_P_AvsHandle hHandle, unsigned *voltage, signed *temperature, bool *firmware_running, unsigned index)
 {
     uint32_t v_reg, t_reg;
 
-    *voltage = BREG_Read32(hHandle->hRegister, voltage_register);
-    *temperature = BREG_Read32(hHandle->hRegister, temperature_register);
+    *voltage = 0;
+    *temperature = 0;
     *firmware_running = true; /* assume its running */
+    if (index >= MAX_AVS_DOMAIN_CNT) return;
+
+    *voltage = BREG_Read32(hHandle->hRegister, vreg_addr[index]);
+    *temperature = BREG_Read32(hHandle->hRegister, treg_addr[index]);
 
     if (!*voltage)
     {
@@ -232,11 +253,15 @@ BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
 #endif
     signed temperature;
     bool firmware_running;
+#ifdef AVS_DUAL_DOMAIN_CAPABLE
+    unsigned voltage1;
+    signed temperature1;
+#endif
 
     BDBG_ENTER(BCHP_Monitor_Pvt);
     BDBG_OBJECT_ASSERT(hHandle, bchp_avs_t);
 
-    AvsGetData(hHandle, &voltage, &temperature, &firmware_running);
+    AvsGetData(hHandle, &voltage, &temperature, &firmware_running, 0);
 
 #if BDBG_DEBUG_BUILD
 #ifdef BCHP_AVS_PVT_MNTR_CONFIG_1_DAC_CODE /* i.e. 7145 */
@@ -257,6 +282,13 @@ BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
         sign(temperature), mantissa(temperature), fraction(temperature),
         firmware_running?"alive":"dead"));
 
+#ifdef AVS_DUAL_DOMAIN_CAPABLE
+    AvsGetData(hHandle, &voltage1, &temperature1, &firmware_running, 1);
+    BDBG_MSG(("Voltage1 = %d.%03dV, DAC = %d (0x%x), Temp1 = [%c%d.%03dC]",
+        mantissa(voltage1), fraction(voltage1), dac, dac,
+        sign(temperature1), mantissa(temperature1), fraction(temperature1)));
+#endif
+
     BDBG_LEAVE(BCHP_Monitor_Pvt);
     return BERR_SUCCESS;
 }
@@ -268,17 +300,31 @@ BERR_Code BCHP_P_AvsGetData (
     unsigned voltage;
     signed temperature;
     bool firmware_running;
+    unsigned voltage1 = 0;
+    signed temperature1 = 0;
 
     BDBG_ASSERT(pData);
 
     BDBG_ENTER(BCHP_AvsGetData);
 
-    AvsGetData(hHandle, &voltage, &temperature, &firmware_running);
+    AvsGetData(hHandle, &voltage, &temperature, &firmware_running, 0);
 
     pData->voltage = voltage;
     pData->temperature = temperature;
     pData->enabled  = firmware_running?true:false;
     pData->tracking = firmware_running?true:false;
+
+#ifdef AVS_DUAL_DOMAIN_CAPABLE
+    AvsGetData(hHandle, &voltage1, &temperature1, &firmware_running, 1);
+#endif
+
+    pData->voltage1 = voltage1;
+    pData->temperature1 = temperature1;
+
+    BDBG_MSG(("voltage=%d  temperature=%d", pData->voltage, pData->temperature));
+#ifdef AVS_DUAL_DOMAIN_CAPABLE
+    BDBG_MSG(("voltage1=%d  temperature1=%d", pData->voltage1, pData->temperature1));
+#endif
 
     BDBG_LEAVE(BCHP_AvsGetData);
     return BERR_SUCCESS;

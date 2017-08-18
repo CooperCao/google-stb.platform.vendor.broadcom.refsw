@@ -1,0 +1,2801 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<!-- Copyright 2001-2012, Broadcom Corporation $ -->
+<!-- $Id: ReleaseNotesBSP.html,v 1.11 2011-01-11 17:45:02 willfeng Exp $ -->
+<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<title>Broadcom Embedded iLine10/iLine32/Ethernet Network Drivers Release Notes</title>
+<style>
+<!--
+BODY	{font-family: Arial}
+H1,H2,H3{font-family: Arial; color: black}
+H4	{font-family: Arial; color: black; font-weight: light; font-style: italic}
+UL,P,TD,OL{font-family: Arial; font-size: 12pt}
+
+-->
+</style>
+</head>
+
+<body LINK="#0000ff" VLINK="#800080">
+
+<p>
+<img SRC="BCMLogo.gif" WIDTH="200" HEIGHT="98"></p>
+
+<h1>Broadcom 94710 Board Support Package<br>
+Release 3.09.0.1</h1>
+
+<p align="center"><b><font COLOR="red">Broadcom Corporation Confidential. For evaluation use only.</font></b>
+</p>
+
+<hr SIZE="4">
+
+<h2>System Requirements</h2>
+
+<ul>
+  <h3>Operating Systems: </h3>
+  <ul>
+    <li>VxWorks Tornado 2.1 - END Driver Model</li>
+    <li>Linux 2.4.5 kernel</li>
+  </ul>
+  <h3>Hardware: </h3>
+  <UL>
+    <LI>BCM94710R4 Reference Design -or- 
+    <LI>BCM94710/4702-0D Reference Design -or- 
+    <LI>BCM94710R4 Reference Design BCM94301 on a mini-PCI riser card -or- 
+    <LI>BCM94710/4702-0D Reference Design with BCM94301 on a mini-PCI riser card 
+    -or- 
+    <LI>BCM94710/4702-0D Reference Design with BCM94301 PCMCIA card (VxWorks 
+    Only) -or- 
+    <LI>BCM94710AP Reference Design with or without BCM94301 Mini-PCI card -or- 
+    <LI>Vendor Equivalent </LI></UL></UL>
+
+<H2>&nbsp;What's New in Release 3.09.0.1? </H2>
+<UL>
+  <UL>
+    <LI>PMON: Added option for manufacturers to boot pmon and continuously poll for new pmon upgrade
+    <LI>PMON: Expanded byte limit on NVRAM parameter strings
+    <LI>Linux: Added support for NVRAM API and wl.o for BSP configuration.  See Resource Guide for notes.
+    <LI>Linux and VxWorks: Inclusion of various wireless bugfixes from 3.08 WECA approved STA release
+    <LI>Linux and VxWorks: Full support for 802.11 Power Save Mode 
+    <LI>VxWorks, Linux, & PMON: Resolved issue with removal of uart from the board
+    <LI>Full WECA tests executed in BRCM Labs. <BR><BR>
+
+<style>
+<!--
+ /* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{mso-style-parent:"";
+	margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:10.0pt;
+	font-family:"Times New Roman";
+	mso-fareast-font-family:"Times New Roman";}
+a:link, span.MsoHyperlink
+	{color:blue;
+	text-decoration:underline;
+	text-underline:single;}
+a:visited, span.MsoHyperlinkFollowed
+	{color:purple;
+	text-decoration:underline;
+	text-underline:single;}
+p.xl22, li.xl22, div.xl22
+	{mso-style-name:xl22;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:navy;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-right-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl23, li.xl23, div.xl23
+	{mso-style-name:xl23;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:navy;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-right-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl24, li.xl24, div.xl24
+	{mso-style-name:xl24;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:navy;
+	border:none;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-bottom-alt:solid white .5pt;
+	mso-border-right-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl25, li.xl25, div.xl25
+	{mso-style-name:xl25;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:navy;
+	border:none;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-bottom-alt:solid white .5pt;
+	mso-border-right-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl26, li.xl26, div.xl26
+	{mso-style-name:xl26;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-left-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl27, li.xl27, div.xl27
+	{mso-style-name:xl27;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl28, li.xl28, div.xl28
+	{mso-style-name:xl28;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl29, li.xl29, div.xl29
+	{mso-style-name:xl29;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl30, li.xl30, div.xl30
+	{mso-style-name:xl30;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:#99CCFF;
+	border:none;
+	mso-border-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";}
+p.xl31, li.xl31, div.xl31
+	{mso-style-name:xl31;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#99CCFF;
+	border:none;
+	mso-border-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:green;
+	font-weight:bold;}
+p.xl32, li.xl32, div.xl32
+	{mso-style-name:xl32;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl33, li.xl33, div.xl33
+	{mso-style-name:xl33;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;}
+p.xl34, li.xl34, div.xl34
+	{mso-style-name:xl34;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;
+	text-decoration:underline;
+	text-underline:single;}
+p.xl35, li.xl35, div.xl35
+	{mso-style-name:xl35;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:white;
+	font-weight:bold;
+	text-decoration:underline;
+	text-underline:single;}
+p.xl36, li.xl36, div.xl36
+	{mso-style-name:xl36;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:#993300;
+	font-weight:bold;}
+p.xl37, li.xl37, div.xl37
+	{mso-style-name:xl37;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:green;
+	font-weight:bold;}
+p.xl38, li.xl38, div.xl38
+	{mso-style-name:xl38;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:#993300;
+	font-weight:bold;}
+p.xl39, li.xl39, div.xl39
+	{mso-style-name:xl39;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#3366FF;
+	border:none;
+	mso-border-bottom-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:green;
+	font-weight:bold;}
+p.xl40, li.xl40, div.xl40
+	{mso-style-name:xl40;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	background:#99CCFF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-right-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";}
+p.xl41, li.xl41, div.xl41
+	{mso-style-name:xl41;
+	margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	background:#99CCFF;
+	border:none;
+	mso-border-top-alt:solid white .5pt;
+	mso-border-left-alt:solid white .5pt;
+	mso-border-right-alt:solid white .5pt;
+	padding:0in;
+	mso-padding-alt:0in 0in 0in 0in;
+	font-size:8.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:"Times New Roman";
+	color:green;
+	font-weight:bold;}
+@page Section1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.25in 1.0in 1.25in;
+	mso-header-margin:.5in;
+	mso-footer-margin:.5in;
+	mso-paper-source:0;}
+div.Section1
+	{page:Section1;}
+-->
+</style>
+</head>
+
+<body lang=EN-US link=blue vlink=purple style='tab-interval:.5in'>
+
+<div class=Section1>
+
+<table border=0 cellspacing=0 cellpadding=0 width=627 style='width:470.0pt;
+ border-collapse:collapse;mso-padding-alt:0in 0in 0in 0in'>
+ <tr style='height:12.75pt'>
+  <td width=421 nowrap rowspan=2 style='width:316.0pt;border:solid white .5pt;
+  background:navy;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>SECTION 4.0:<span style="mso-spacerun: yes">  </span>AP TEST
+  CONFIGURATIONS<o:p></o:p></span></b></p>
+  </td>
+  <td width=92 nowrap style='width:69.0pt;border-top:solid white .5pt;
+  border-left:none;border-bottom:none;border-right:solid white .5pt;background:
+  navy;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>4710 Vx 3.09.0.1<o:p></o:p></span></b></p>
+  </td>
+  <td width=113 nowrap style='width:85.0pt;border-top:solid white .5pt;
+  border-left:none;border-bottom:none;border-right:solid white .5pt;background:
+  navy;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>4710 Lx 3.09.0.1<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap style='border-top:none;border-left:none;border-bottom:solid white .5pt;
+  border-right:solid white .5pt;background:navy;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>HW: Rev 7.2<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap style='border-top:none;border-left:none;border-bottom:solid white .5pt;
+  border-right:solid white .5pt;background:navy;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>HW: Rev 7.2<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #A1 - Agere STA (RTS off, FRAG off, PS off)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP (WEP, CH 1, Rate 1,2)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[2.8]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[1.2]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.25]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #A2 - Intel 2011b (RTS 300, Frag 500, PS no)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP (WEP off, CH 3, Rate
+  All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[2.3]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[2.0]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.25]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #A3 - Aironet STA (RTS off, FRAG 500, PS Max)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP (WEP off, CH 6, Rate
+  1,2 )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[.1]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[.1]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.004]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #A4 - Symbol STA ( RTS 400, Frag off, PS on)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP (WEP, CH 11, Rate All
+  )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[2.0]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[2.2]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.23]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #A5 - All STAs<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA1 - Agere STA (RTS off, Frag off, PS off)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP ( WEP, CH 2, Rate All
+  )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[1.4]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[1.4]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.25]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA2 - Intel 2011b (RTS 300, Frag off, PS On)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP ( WEP off, CH 4, Rate
+  All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[3.1]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[3.1]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.3]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA3 - Aironet STA (RTS 300, Frag 500,PS Max)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP (WEP off, CH 5, Rate
+  All)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[.2]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[.25]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.003]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA4 - Symbol (RTS 400, Frag off, PS on)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                    </span>4710 AP (WEP, CH 7, Rate 1,2)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[1.6]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[1.2]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.29]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA5 - Agere STA (RTS 256, Frag off, PS off)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                      </span>4710 AP ( WEP, CH 8, Rate
+  All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[1.1]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[1.0]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.24]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA6 - Intel 2011b (RTS off, Frag 500, PS off)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun: yes">                             
+  </span><span style="mso-spacerun: yes">        </span>4710 AP ( WEP off, CH
+  9, Rate 1,2 )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[1.9]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[2.4]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.29]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA7 - Aironet STA (RTS off, Frag 500, PS Max)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                      </span>4710 AP ( WEP off, CH 10,
+  Rate All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[.15]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[.4]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.002]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #EA8 - Symbol STA (RTS off, Frag off, PS off)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                      </span>4710 AP ( WEP, CH 11, Rate
+  1,2 )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 1:<span
+  style="mso-spacerun: yes">  </span>FileSendlong tx<span style="mso-spacerun:
+  yes">  </span>[1.6]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 2:<span
+  style="mso-spacerun: yes">  </span>FileSendlong rx<span style="mso-spacerun:
+  yes">  </span>[1.7]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Data Transfer 3:<span
+  style="mso-spacerun: yes">  </span>InquiryLong tx<span style="mso-spacerun:
+  yes">  </span>[.25]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><u><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Section 4.3.3.1 ReAssociation/Roaming<o:p></o:p></span></u></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><u
+  style='visibility:hidden'><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>&nbsp;<o:p></o:p></span></u></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><u
+  style='visibility:hidden'><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>&nbsp;<o:p></o:p></span></u></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- With Agere STA<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- With Cisco350 STA<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- With Intel 2011b STA<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- With Symbol STA<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Section 4.3.3.2 Data Payload Encapsulation<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- IPX Ethernet 802.2 tx<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- IPX Ethernet 802.2 rx<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- IPX Ethernet 802.3 tx<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- IPX Ethernet 802.3 rx<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- IPX Ethernet Type II tx<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- IPX Ethernet Type II rx<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Section 4.3.3.3 Broadcast/Multicast Reception<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'
+  x:str="Configuration #MCA1 - Agere(PS off) w/ Cisco (PS off) &amp; Cisco (PS off) ">
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #MCA1 - Agere(PS off) w/ Cisco (PS off) &amp; Cisco
+  (PS off) <o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                      </span>4710 AP ( WEP, CH 8, Rate
+  All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'
+  x:str="      - Association ">
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association <o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- REALAUD Data Transfer [.05]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #MCA2 - Intel (PS off) w/ Symbol (PS off) &amp;
+  Lucent (PS off)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:#993300'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                      </span>4710 AP ( WEP, CH 8, Rate
+  All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:#993300'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- REALAUD Data Transfer [.05]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #MCA3 - Cisco (PS off) w/ Cisco (PS on) &amp; Symbol
+  (PS on)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:#993300'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun:
+  yes">                                      </span>4710 AP ( WEP, CH 8, Rate
+  All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:#993300'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- REALAUD Data Transfer [.05]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:none;border-left:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Configuration #MCA4 - Symbol (PS off) w/ / Cisco (PS on) &amp; Lucent
+  (PS on)<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='background:#3366FF;padding:.75pt .75pt 0in .75pt;
+  height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'><span style="mso-spacerun: yes">                               
+  </span>4710 AP ( WEP, CH 8, Rate All )<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Association<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- REALAUD Data Transfer [.05]<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Section 4.3.3.4 Intra-BSS Transfer Tests<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Agere -&gt; Cisco -&gt; Symbol -&gt;
+  Intel Round Robin<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:solid white .5pt;border-right:none;background:#3366FF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><b><span style='font-size:8.0pt;font-family:Arial;
+  color:white'>Section 4.3.3.5 Negative Tests<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-bottom:solid white .5pt;
+  background:#3366FF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:white'>&nbsp;<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Negative:<span style="mso-spacerun:
+  yes">  </span>Wrong ESSID<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Negative:<span style="mso-spacerun:
+  yes">  </span>Wrong case in ESSID<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Negative:<span style="mso-spacerun:
+  yes">  </span>ESSID substring<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border:solid white .5pt;border-top:none;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Negative:<span style="mso-spacerun:
+  yes">  </span>WEP key mismatch<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border-top:none;border-left:none;border-bottom:
+  solid white .5pt;border-right:solid white .5pt;background:#99CCFF;padding:
+  .75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr style='height:12.75pt'>
+  <td nowrap valign=bottom style='border-top:none;border-left:solid white .5pt;
+  border-bottom:none;border-right:solid white .5pt;background:#99CCFF;
+  padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal><span style='font-size:8.0pt;font-family:Arial'><span
+  style="mso-spacerun: yes">      </span>- Negative:<span style="mso-spacerun:
+  yes">  </span>Station/AP WEP mismatch<o:p></o:p></span></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-right:solid white .5pt;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+  <td nowrap valign=bottom style='border:none;border-right:solid white .5pt;
+  background:#99CCFF;padding:.75pt .75pt 0in .75pt;height:12.75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b><span
+  style='font-size:8.0pt;font-family:Arial;color:green'>Pass<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+</table>
+</Ul></Ul>
+
+
+<h2>&nbsp;What's New in the 3.06 Release?</h2>
+<ul>
+  <UL>
+    <li>Linux and VxWorks: Added support for BCM4702
+    <li>Linux and VxWorks: Added 802.11b access point capability to the router
+    <ul>
+	<li> 802.11b driver 
+	<li> New configuration object to apply wireless configuration
+	<li> Wireless configurable interface to include SSID, Channel, Indexed WEP keys(64/128), and MAC address filters, channel ranges based on country code, WECA based configurations parameters, authentication method
+ 	<li> Support for DS based communication with Cisco and Intersil AP's
+	<li> Runtime decision for PCI and PCMCIA based 4301 cards
+    <LI>Tested with laptops from multiple vendors against Access Points from multiple vendors:
+    <UL>
+      <LI>Laptops
+      <UL>
+        <LI>Dell Latitude C610
+        <LI>IBM ThinkPad X23, IBM ThinkPad T23, IBM ThinkPad A30.</LI>
+        <LI>Toshiba Tecra 9000, Portage 4100, Satellite Pro 4600.</LI>
+        <LI>Sony VAIO PCG_SRX77P</LI>
+	<li>Gateway 9550, Solo5300
+	<li>Fujitsu Lifebook B Series
+	<li>Compaq Armada V300
+      </UL>
+      <LI>Access Points:
+      <UL>
+        <LI>Lucent AP-1000
+        <LI>Cisco 350
+      </UL>
+      <LI>Stations: 
+      <UL>
+        <LI>Agere Wireless miniPCI</LI>
+        <LI>ActionTec Wireless miniPCI (Intersil based)</LI>
+        <LI>SMC Wireless PCMCIA</LI>
+        <li>Broadcom Wireless MiniPCI
+        <li>Broadcom Wireless Cardbus
+        <LI>Intel Pro/Wireless PCMCIA</LI>
+        <LI>Lucent Orinoco Wireless PCMCIA</LI>
+    </UL>
+    </ul>
+   </UL>
+   </UL>
+   </UL>
+
+
+<h2>&nbsp;What's New in the 3.00 Release?</h2>
+<ul>
+  <UL>
+    <LI> pmon : handles tftp downloads on Linux</LI>
+    <LI> pmon : build in Native Linux and Vx toolchains</LI>
+    <LI> pmon: flush cache's on nvram updates to ensure router updates work correctly
+    <LI> pmon : defaults to 125Mhz operation</LI>
+    <LI> pmon : fixed init of enet phy</LI>
+    <LI> pmon, VxWorks, Linux: All defaulted to run 4710 at 125Mhz
+    <LI> Linux : Upgrade in toolchain runtime</LI>
+    <LI> VxWorks : adds support for internal uart</LI>
+    <LI> VxWorks : pkt throughput fix</LI>
+    <LI> VxWorks : moved to Tornado 2.1</LI>
+    <LI> VxWorks : added full documentation</LI>
+    <LI> VxWorks : Internal uart optional driver to backup external uart
+    <LI> VxWorks, Linux: Common Interrupt map for devices
+    <LI> VxWorks, Linux: Sample drivers for PCI devices
+    <LI> VxWorks, Linux: Intersil PCMCIA sample drivers for wireless prototypes
+    <LI> VxWorks, Linux: GDB kernel level debugging over serial port
+    <LI> Tools : added method to strip glibc based on applications needs
+    <LI> tools : updated vision-ice files for 16bit reg access in BE/LE mode</LI>
+    <LI> docs : interal uart debug monitor, gdb over uart, gdb over enet</LI>
+   </UL>
+</ul>
+
+<h2>&nbsp;What's Included in This Release</h2>
+
+<ul>
+  <ul>
+    <li>Kernel/BSP src tree</li>
+    <li>Ethernet and iLine drivers</li>
+    <li>Applications</li>
+    <ul>
+	<li>Bridge, busybox, and iptables for Linux</li>
+	<li>Bridge for VxWorks</li>
+	<li>Support for BRCM NVRAM API</li>
+    </ul>
+    <li>Full bsp binary images</li>
+    <li>pmon boot loader binaries and source</li>
+    <li>BRCM Resource Guide</li>
+    <li>Complete toolchain binaries (compiler, assembler, linker, glibc) for Linux</li>
+  </ul>
+</ul>
+
+<h2>&nbsp;Known Limitations, Problems, or Special Notes</h2>
+
+<ul>
+  <ul>
+    <li>VxWorks: PCMCIA Intersil driver support has a problem on Rx.  All pkts have CRC errors.
+    <li>All software expects a 16bit flash interface, same as reference hardware
+    <li>If you are using a dual enet phy we request that your designs use et1.  That way if we have to fall back to an internal uart MDIO's are still hooked up properly.
+    <li>The Linux BSP relies on an external dual uart such that debug messages are on on uart0 and GDB runs on uart1.  Please use dual uart's for Linux designs.
+</ul>
+
+</ul>
+
+
+
+<h2>&nbsp;Support</h2>
+
+<ul>
+  <ul>
+  <li>If you have questions, please send email to hnsupport@broadcom.com.</LI>
+  <LI>If you would like to report a bug, please go to our partner support site at 
+  http://hnsupport.broadcom.com, and select the "Bug Reporting" button once logged on
+  with your company specific username/password provided to you by Broadcom.  Be sure
+  and use the appropriate category (partner_hw for hardware issues, partner_sw for 
+  software issues).</li>
+  </ul>
+</ul>
+
+
+<P>
+
+<hr SIZE="4">
+
+<p align="center">Copyright © 2001-2012 Broadcom Corporation</p>
+</body>
+</html>

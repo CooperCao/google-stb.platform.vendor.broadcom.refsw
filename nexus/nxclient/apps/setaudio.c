@@ -79,11 +79,17 @@ static void print_usage(void)
     print_list_option("hdmi_transcode_codec", g_audioDdreCodecs);
     printf(
         "  -hdmi_delay MSEC\n"
+        "  -hdmi_compressed_codec_default [codec]\n"
+        "  -hdmi_compressed_codec_enable [codec]\n"
+        "  -hdmi_compressed_codec_disable [codec]\n"
         );
     print_list_option("spdif", g_nxclientAudioOutputModeStrs);
     print_list_option("spdif_channel_mode", g_audioChannelModeStrs);
     printf(
         "  -spdif_delay MSEC\n"
+        "  -spdif_compressed_codec_default [codec]\n"
+        "  -spdif_compressed_codec_enable [codec]\n"
+        "  -spdif_compressed_codec_disable [codec]\n"
         );
     print_list_option("dac_channel_mode", g_audioChannelModeStrs);
     printf(
@@ -127,6 +133,8 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
     printf(
         "NxClient Audio Settings:\n"
         "dac   %s, %s, %d msec delay\n"
+        "i2s0  %s, %s, %d msec delay\n"
+        "i2s1  %s, %s, %d msec delay\n"
         "hdmi  %s, %s, %d msec delay\n"
         "spdif %s, %s, %d msec delay\n"
         "rfm   %s, %s, %d msec delay\n"
@@ -135,6 +143,14 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->dac.outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->dac.channelMode),
         pSettings->dac.additionalDelay,
+
+        lookup_name(g_nxclientAudioOutputModeStrs, pSettings->i2s[0].outputMode),
+        lookup_name(g_audioChannelModeStrs, pSettings->i2s[0].channelMode),
+        pSettings->i2s[0].additionalDelay,
+
+        lookup_name(g_nxclientAudioOutputModeStrs, pSettings->i2s[1].outputMode),
+        lookup_name(g_audioChannelModeStrs, pSettings->i2s[1].channelMode),
+        pSettings->i2s[1].additionalDelay,
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->hdmi.outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->hdmi.channelMode),
@@ -182,12 +198,20 @@ static void print_status(void)
     printf(
         "NxClient Audio Status:\n"
         "dac   %s, %s\n"
+        "i2s0  %s, %s\n"
+        "i2s1  %s, %s\n"
         "hdmi  %s, %s\n"
         "spdif %s, %s\n"
         "rfm   %s, %s\n",
 
         lookup_name(g_nxclientAudioOutputModeStrs, status.dac.outputMode),
         lookup_name(g_audioCodecStrs, status.dac.outputCodec),
+
+        lookup_name(g_nxclientAudioOutputModeStrs, status.i2s[0].outputMode),
+        lookup_name(g_audioCodecStrs, status.i2s[0].outputCodec),
+
+        lookup_name(g_nxclientAudioOutputModeStrs, status.i2s[1].outputMode),
+        lookup_name(g_audioCodecStrs, status.i2s[1].outputCodec),
 
         lookup_name(g_nxclientAudioOutputModeStrs, status.hdmi.outputMode),
         lookup_name(g_audioCodecStrs, status.hdmi.outputCodec),
@@ -208,6 +232,7 @@ int main(int argc, char **argv)  {
     bool processing_change = false;
     int curarg = 1;
     int rc;
+    NEXUS_AudioCodec codec;
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
     rc = NxClient_Join(&joinSettings);
@@ -241,6 +266,21 @@ int main(int argc, char **argv)  {
             change = true;
             audioSettings.hdmi.transcodeCodec = lookup(g_audioDdreCodecs, argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-hdmi_compressed_codec_default") && curarg+1<argc) {
+            change = true;
+            codec = lookup(g_audioCodecStrs, argv[++curarg]);
+            audioSettings.hdmi.compressedOverride[codec] = NxClientAudioCodecSupport_eDefault;
+        }
+        else if (!strcmp(argv[curarg], "-hdmi_compressed_codec_enable") && curarg+1<argc) {
+            change = true;
+            codec = lookup(g_audioCodecStrs, argv[++curarg]);
+            audioSettings.hdmi.compressedOverride[codec] = NxClientAudioCodecSupport_eEnabled;
+        }
+        else if (!strcmp(argv[curarg], "-hdmi_compressed_codec_disable") && curarg+1<argc) {
+            change = true;
+            codec = lookup(g_audioCodecStrs, argv[++curarg]);
+            audioSettings.hdmi.compressedOverride[codec] = NxClientAudioCodecSupport_eDisabled;
+        }
         else if (!strcmp(argv[curarg], "-spdif") && argc>curarg+1) {
             change = true;
             audioSettings.spdif.outputMode = lookup(g_nxclientAudioOutputModeStrs, argv[++curarg]);
@@ -253,6 +293,21 @@ int main(int argc, char **argv)  {
             change = true;
             audioSettings.spdif.additionalDelay = atoi(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-spdif_compressed_codec_default") && curarg+1<argc) {
+            change = true;
+            codec = lookup(g_audioCodecStrs, argv[++curarg]);
+            audioSettings.spdif.compressedOverride[codec] = NxClientAudioCodecSupport_eDefault;
+        }
+        else if (!strcmp(argv[curarg], "-spdif_compressed_codec_enable") && curarg+1<argc) {
+            change = true;
+            codec = lookup(g_audioCodecStrs, argv[++curarg]);
+            audioSettings.spdif.compressedOverride[codec] = NxClientAudioCodecSupport_eEnabled;
+        }
+        else if (!strcmp(argv[curarg], "-spdif_compressed_codec_disable") && curarg+1<argc) {
+            change = true;
+            codec = lookup(g_audioCodecStrs, argv[++curarg]);
+            audioSettings.spdif.compressedOverride[codec] = NxClientAudioCodecSupport_eDisabled;
+        }
         else if (!strcmp(argv[curarg], "-dac_channel_mode") && curarg+1<argc) {
             change = true;
             audioSettings.dac.channelMode = lookup(g_audioChannelModeStrs, argv[++curarg]);
@@ -260,6 +315,22 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-dac_delay") && curarg+1<argc) {
             change = true;
             audioSettings.dac.additionalDelay = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-i2s0_channel_mode") && curarg+1<argc) {
+            change = true;
+            audioSettings.i2s[0].channelMode = lookup(g_audioChannelModeStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-i2s0_delay") && curarg+1<argc) {
+            change = true;
+            audioSettings.i2s[0].additionalDelay = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-i2s1_channel_mode") && curarg+1<argc) {
+            change = true;
+            audioSettings.i2s[1].channelMode = lookup(g_audioChannelModeStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-i2s1_delay") && curarg+1<argc) {
+            change = true;
+            audioSettings.i2s[1].additionalDelay = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-rfm_channel_mode") && curarg+1<argc) {
             change = true;

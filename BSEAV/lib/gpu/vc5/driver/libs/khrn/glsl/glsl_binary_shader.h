@@ -26,11 +26,9 @@ typedef struct {
    size_t      code_size;
    umap_entry *unif;
    size_t      unif_count;
-#if V3D_HAS_RELAXED_THRSW
-   bool four_thread;
-   bool single_seg;
-#else
    unsigned n_threads;
+#if V3D_HAS_RELAXED_THRSW
+   bool single_seg;
 #endif
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    bool uses_control_flow;
@@ -42,6 +40,10 @@ typedef struct {
          bool tlb_wait_first_thrsw;
          bool per_sample;
          bool reads_prim_id;
+#if V3D_VER_AT_LEAST(4,0,2,0)
+         bool reads_implicit_varys;
+#endif
+         bool barrier;
       } fragment;
       struct {
          bool     prim_id_used;

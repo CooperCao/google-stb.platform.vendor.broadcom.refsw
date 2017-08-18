@@ -1601,7 +1601,7 @@ static void BAPE_StandardMixer_P_StopPathFromInput(
         /* wait for ramping to complete on this mixer group */
         if ( BAPE_MixerGroup_P_WaitForRamping(handle->mixerGroups[mixerIndex]) == BERR_TIMEOUT )
         {
-            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...", __FUNCTION__));
+            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...", BSTD_FUNCTION));
         }
     }
 
@@ -2794,14 +2794,14 @@ static void BAPE_StandardMixer_P_FreeResources(BAPE_MixerHandle handle)
 #if BAPE_CHIP_MAX_PLLS > 0
     if ( BAPE_MCLKSOURCE_IS_PLL(handle->mclkSource))
     {
-        BAPE_P_DetachMixerFromPll(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
+        BAPE_P_DetachMixerFromPll_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
     }
 #endif
 
 #if BAPE_CHIP_MAX_NCOS > 0
     if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkSource))
     {
-        BAPE_P_DetachMixerFromNco(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
+        BAPE_P_DetachMixerFromNco_isrsafe(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
     }
 #endif
         handle->mclkSource = BAPE_MclkSource_eNone;

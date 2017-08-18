@@ -256,17 +256,17 @@ error:
     if (alloc->index.block) {
         BMMA_Unlock(alloc->index.block, alloc->index.buffer);
         BMMA_UnlockOffset(alloc->index.block, alloc->index.offset);
-    }
-    if (alloc->index.mmaHeap) { /* only free if nexus allocated */
-        BMMA_Free(alloc->index.block);
+        if (alloc->index.mmaHeap) { /* only free if nexus allocated */
+            BMMA_Free(alloc->index.block);
+        }
     }
 
     if (alloc->data.block) {
         BMMA_Unlock(alloc->data.block, alloc->data.buffer);
         BMMA_UnlockOffset(alloc->data.block, alloc->data.offset);
-    }
-    if (alloc->data.mmaHeap) { /* only free if nexus allocated */
-        BMMA_Free(alloc->data.block);
+        if (alloc->data.mmaHeap) { /* only free if nexus allocated */
+            BMMA_Free(alloc->data.block);
+        }
     }
     return rc;
 }
@@ -880,6 +880,14 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
         NEXUS_OBJECT_RELEASE(r, NEXUS_Dma, r->settings.securityDma);
     }
 #endif
+#if BXPT_NUM_TSIO
+    if (r->tsioDmaEndIrq) {
+        BINT_DestroyCallback(r->tsioDmaEndIrq);
+    }
+    if (r->tsioDmaEndCallback) {
+        NEXUS_IsrCallback_Destroy(r->tsioDmaEndCallback);
+    }
+#endif
     if (r->index.overflow_irq) {
         BINT_DestroyCallback(r->index.overflow_irq);
     }
@@ -917,16 +925,16 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
     }
 
     /* free blocks after BXPT_Rave_FreeContext */
-    if (r->rave_rec_mem.data.mmaHeap) {
+    if (r->rave_rec_mem.data.mmaHeap && r->rave_rec_mem.data.block) {
         BMMA_Free(r->rave_rec_mem.data.block);
     }
-    if (r->rave_rec_mem.index.mmaHeap) {
+    if (r->rave_rec_mem.index.mmaHeap && r->rave_rec_mem.index.block) {
         BMMA_Free(r->rave_rec_mem.index.block);
     }
-    if (r->extra_rave_rec_mem.data.mmaHeap) {
+    if (r->extra_rave_rec_mem.data.mmaHeap && r->extra_rave_rec_mem.data.block) {
         BMMA_Free(r->extra_rave_rec_mem.data.block);
     }
-    if (r->extra_rave_rec_mem.index.mmaHeap) {
+    if (r->extra_rave_rec_mem.index.mmaHeap && r->extra_rave_rec_mem.index.block) {
         BMMA_Free(r->extra_rave_rec_mem.index.block);
     }
 
@@ -942,16 +950,6 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
     if (r->index.dataReadyCallback) {
         NEXUS_TaskCallback_Destroy(r->index.dataReadyCallback);
     }
-
-#if BXPT_NUM_TSIO
-    if (r->tsioDmaEndIrq) {
-        BINT_DestroyCallback(r->tsioDmaEndIrq);
-    }
-    if (r->tsioDmaEndCallback) {
-        NEXUS_IsrCallback_Destroy(r->tsioDmaEndCallback);
-    }
-#endif
-
     r->rave_rec = NULL;
     pTransport->recpump[r->tindex] = NULL;
     NEXUS_OBJECT_DESTROY(NEXUS_Recpump, r);
@@ -1636,6 +1634,12 @@ void NEXUS_Recpump_StopData(NEXUS_RecpumpHandle r)
         }
 #if NEXUS_ENCRYPTED_DVR_WITH_M2M
         if(r->cryptoActive) {
+#if NEXUS_HAS_XPT_DMA
+            if (r->crypto.tail != r->crypto.head) { /*  DMA idle */
+                rc = NEXUS_DmaJob_P_Wait(r->crypto.job);
+                if (rc) BERR_TRACE(rc); /* keep going */
+            }
+#else
             unsigned i;
             for(i=0;i<100;i++) {
                 NEXUS_DmaJobStatus jobStatus;
@@ -1650,6 +1654,7 @@ void NEXUS_Recpump_StopData(NEXUS_RecpumpHandle r)
                 BDBG_MSG(("NEXUS_Recpump_StopData: %#lx waiting for DMA to complete %u", (unsigned long)r, i));
                 BKNI_Sleep(1);
             }
+#endif
             NEXUS_DmaJob_Destroy(r->crypto.job);
             r->crypto.job = NULL;
             r->cryptoActive = false;
@@ -1884,7 +1889,6 @@ NEXUS_Error NEXUS_Recpump_SetPidChannelSettings(NEXUS_RecpumpHandle r, NEXUS_Pid
 
 NEXUS_Error NEXUS_Recpump_RemovePidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChannelHandle pidChannel)
 {
-    NEXUS_Error rc;
     NEXUS_Recpump_P_PidChannel *pid;
     struct NEXUS_Rave_P_ErrorCounter_Link* raveLink;
     NEXUS_P_HwPidChannel *hwPidChannel;
@@ -1911,7 +1915,7 @@ NEXUS_Error NEXUS_Recpump_RemovePidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChann
         BKNI_Free(raveLink);
     }
     else {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); /* keep going */
+        BERR_TRACE(NEXUS_INVALID_PARAMETER); /* keep going */
     }
     hwPidChannel->destinations &= ~(NEXUS_PIDCHANNEL_P_DESTINATION_RAVE);
 

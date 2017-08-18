@@ -120,7 +120,7 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus_driver(
 
 /***************************************************************************
 Summary:
-    This api has been deprecated. It is only meant for backward compatiblity.
+    This api has been deprecated. It is only meant for backward compatibility.
     Use NEXUS_Platform_GetStandbySettings to get the current standby settings.
 ***************************************************************************/
 void NEXUS_Platform_GetDefaultStandbySettings(
@@ -129,7 +129,7 @@ void NEXUS_Platform_GetDefaultStandbySettings(
 
 /***************************************************************************
 Summary:
-    This api has been deprecated. It is only meant for backward compatiblity.
+    This api has been deprecated. It is only meant for backward compatibility.
     Use NEXUS_Platform_SetStandbySettings to enter stnadby mode.
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_InitStandby(
@@ -138,19 +138,19 @@ NEXUS_Error NEXUS_Platform_InitStandby(
 
 /***************************************************************************
 Summary:
-    This api has been deprecated. It is only meant for backward compatiblity.
+    This api has been deprecated. It is only meant for backward compatibility.
 ***************************************************************************/
 void NEXUS_Platform_UninitStandby(void);
 
 /***************************************************************************
 Summary:
-    This api has been deprecated. It is only meant for backward compatiblity.
+    This api has been deprecated. It is only meant for backward compatibility.
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_PreStandby(void);
 
 /***************************************************************************
 Summary:
-    This api has been deprecated. It is only meant for backward compatiblity.
+    This api has been deprecated. It is only meant for backward compatibility.
 ***************************************************************************/
 NEXUS_Error NEXUS_Platform_PostStandby(void);
 

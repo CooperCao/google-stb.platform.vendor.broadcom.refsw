@@ -120,7 +120,7 @@ if($txt_file eq 'IO') {
         } elsif(/([a-zA-Z][^\t]+)\t( |\d*)\t(\d+)(\t|$)(.*)/) {
             #print "2: $_\n";
             @line = ([$1,$2,$3],$5);
-        } elsif(/([a-zA-Z][^\t]+)\t(\d+)(\t|$)(.*)/) {
+        } elsif(/([a-zA-Z][^\t ]+)[\t ]+(\d+)(\t|$)(.*)/) {
             #print "1: $_\n";
             @line = ([$1,$2],$4);
         } else {

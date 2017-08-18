@@ -12,6 +12,8 @@
 #include "glsl_qbe_fragment_adv_blend.h"
 
 #include "glsl_const_operators.h"
+
+#include "libs/core/v3d/v3d_tlb.h"
 #include "libs/util/gfx_util/gfx_util.h"
 
 #include <assert.h>
@@ -89,8 +91,7 @@ static void fragment_backend(
 #if !V3D_HAS_FEP_SAMPLE_MASK
    does_discard = does_discard || s->sample_mask;
 #endif
-   bool invariant_z_write = (does_discard && !s->fez_safe_with_discard) || !s->early_fragment_tests;
-   bool full_z_write      = (depth != NULL);
+   bool z_write = (does_discard && !s->fez_safe_with_discard) || !s->early_fragment_tests || depth != NULL;
 
    Backflow *tlb_nodes[4*4*V3D_MAX_RENDER_TARGETS+1];
    uint32_t unif_byte[4*4*V3D_MAX_RENDER_TARGETS+1];
@@ -98,25 +99,21 @@ static void fragment_backend(
    uint32_t tlb_depth_age  = 0;
    unsigned tlb_node_count = 0;
 
-   if (full_z_write)
+   if (z_write)
    {
-      unif_byte[tlb_node_count] = 0x84;  /* per-pixel Z write */
-      tlb_nodes[tlb_node_count++] = depth;
-      tlb_depth_age = depth->age;
-   }
-   else if (invariant_z_write)
-   {
-      unif_byte[tlb_node_count] = 0x80;  /* invariant Z write */
-      tlb_nodes[tlb_node_count++] = tr_const(0);   /* H/W doesn't use this */
+      V3D_TLB_CONFIG_Z_T cfg = {
+#if V3D_HAS_TLB_SAMPLED_READ
+         .all_samples_same_data = true,
+#endif
+         .use_written_z = (depth != NULL) };
+      unif_byte[tlb_node_count  ] = v3d_pack_tlb_config_z(&cfg);
+      tlb_nodes[tlb_node_count++] = depth ? depth : tr_const(0);
+      if (depth) tlb_depth_age = depth->age;
    }
 
    for (unsigned i = 0; i < V3D_MAX_RENDER_TARGETS; i++)
    {
-      if (s->rt[i].type == GLSL_FB_NOT_PRESENT) continue;
-
-      assert(s->rt[i].type == GLSL_FB_F16 ||
-             s->rt[i].type == GLSL_FB_F32 ||
-             s->rt[i].type == GLSL_FB_I32);
+      if (!s->rt[i].is_present) continue;
 
       // Read FB for advanced blending
       // Blending is not supported for integer formats
@@ -132,27 +129,21 @@ static void fragment_backend(
          if (B(i,0) != NULL) rt_channels++;
          if (A(i,0) != NULL) rt_channels++;
 
+#if !V3D_VER_AT_LEAST(4,0,2,0)
          /* Work around GFXH-1212 by writing 4 channels for 16 bit images with alpha */
          if (s->rt[i].alpha_16_workaround) rt_channels = 4;
-
-         /* We set this up once per render target. The config byte is
-          * emitted with the first sample that's written
-          */
-         int vec_sz = rt_channels;
-         int swap = 0;
-         if (s->rt[i].type == GLSL_FB_F16) {
-            vec_sz = (rt_channels+1)/2;   /* F16 targets have half the outputs */
-            swap = 1;                     /* and support the 'swap' field (bit 2) */
-         }
-         assert(vec_sz <= 4);
+#endif
 
          bool block_per_sample = !V3D_VER_AT_LEAST(4,0,2,0) && block->per_sample;
          bool ms_adv_blend     = s->ms && s->adv_blend;
          bool per_sample       = block_per_sample || ms_adv_blend;
          bool shared_frag      = !block_per_sample && ms_adv_blend;
 
-         uint8_t config_byte   = (s->rt[i].type << 6) | ((7-i) << 3) |
-                                 ((!per_sample)<<2) | (swap << 1) | (vec_sz-1);
+         /* We set this up once per render target. The config byte is
+          * emitted with the first sample that's written
+          */
+         int vec_sz = (s->rt[i].is_16) ? (rt_channels+1)/2 : rt_channels;
+         uint8_t config_byte = v3d_tlb_config_color(i, s->rt[i].is_16, s->rt[i].is_int, vec_sz, per_sample);
 
          int samples = per_sample ? 4 : 1;
 
@@ -166,7 +157,8 @@ static void fragment_backend(
             /* Pad out the output array for working around GFXH-1212 */
             for (int j=0; j<4; j++) if (out[j] == NULL) out[j] = tr_cfloat(0.0f);
 
-            if (s->rt[i].type == GLSL_FB_F16) {
+            if (s->rt[i].is_16) {
+               assert(!s->rt[i].is_int);     /* We don't pack integers into 16/16 */
                /* Pack the values in pairs for output */
                for (int j=0; j<vec_sz; j++) {
                   assert(out[2*j] != NULL && out[2*j+1] != NULL);
@@ -196,13 +188,17 @@ static void fragment_backend(
 #if !V3D_HAS_RELAXED_THRSW
    /* QPU restrictions prevent us writing nothing to the TLB. Write some fake data */
    if (s->requires_sbwait && block->first_tlb_read == NULL && tlb_node_count == 0) {
+# if V3D_VER_AT_LEAST(4,0,2,0)
+      int vec_sz = 1;
+# else
       /* Check rt[0] for the workaround. If the target is present but the output from
        * the shader uninitialised then the setting will be valid. If the target is not
        * present then the setting will be off, which is correct for the drivers default
        * RT. This would break were the default to change to 16 bits with alpha. */
       bool alpha16 = s->rt[0].alpha_16_workaround;
       int vec_sz = alpha16 ? 4 : 1;
-      unif_byte[tlb_node_count] = 0x3C | (vec_sz-1);
+# endif
+      unif_byte[tlb_node_count] = v3d_tlb_config_color(/*rt=*/0, /*is_16=*/false, /*is_int=*/false, vec_sz, /*per_sample=*/false);
       tlb_nodes[tlb_node_count++] = tr_const(0);
       for (int i=1; i<vec_sz; i++) {
          unif_byte[tlb_node_count] = ~0u;
@@ -260,8 +256,8 @@ static void fragment_backend(
    if (first_write != NULL)
       glsl_iodep(first_write, cov_dep);
 
-   *writes_z_out   = invariant_z_write || full_z_write;
-   *ez_disable_out = full_z_write || !s->early_fragment_tests;
+   *writes_z_out   = z_write;
+   *ez_disable_out = (depth != NULL) || !s->early_fragment_tests;
 
    if (last_write != NULL)
       glsl_backflow_chain_push_back(&block->iodeps, last_write);
@@ -273,14 +269,17 @@ static void fragment_backend(
 }
 
 static void collect_shader_outputs(SchedBlock *block, int block_id, const IRShader *sh,
-                                   const LinkMap *link_map, Backflow **nodes, bool out_per_sample)
+                                   const LinkMap *link_map, Backflow **nodes,
+                                   const bool *shader_outputs_used)
 {
    for (int i=0; i<link_map->num_outs; i++) {
-      if (link_map->outs[i] == -1) continue;
+      int out_idx = link_map->outs[i];
+      if (out_idx == -1) continue;
+      if (!shader_outputs_used[out_idx]) continue;
 
       int samples = (!V3D_VER_AT_LEAST(4,0,2,0) && block->per_sample) ? 4 : 1;
-      int out_samples = out_per_sample ? 4 : 1;
-      IROutput *o = &sh->outputs[link_map->outs[i]];
+      int out_samples = 4;
+      IROutput *o = &sh->outputs[out_idx];
       if (o->block == block_id) {
          for (int j=0; j<samples; j++) {
             nodes[out_samples*i+j] = block->outputs[samples*o->output + j];
@@ -297,12 +296,13 @@ void glsl_fragment_backend(
    const IRShader *sh,
    const LinkMap *link_map,
    const FragmentBackendState *s,
+   const bool *shader_outputs_used,
    bool *does_discard_out,
    bool *does_z_change_out)
 {
    /* If block->per_sample the outputs are at 4*id + sample_num */
    Backflow *bnodes[4*DF_BLOB_FRAGMENT_COUNT] = { 0, };
-   collect_shader_outputs(block, block_id, sh, link_map, bnodes, true);
+   collect_shader_outputs(block, block_id, sh, link_map, bnodes, shader_outputs_used);
 
    fragment_backend(s, block,
                     bnodes + DF_FNODE_R(0),

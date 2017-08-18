@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -105,7 +105,7 @@ int main(int argc, char **argv)  {
     bool loop = false;
     const char *filename = NULL;
     bool forcePcm = true;
-    unsigned sampleRate = 48000;
+    unsigned sampleRate = 0;
     int vol = -1;
     unsigned i;
     struct probe_results probeRes;
@@ -300,13 +300,13 @@ int main(int argc, char **argv)  {
         {
             NEXUS_SimpleAudioPlayback_GetDefaultStartSettings(&startSettings);
             startSettings.bitsPerSample = 16;
-            startSettings.sampleRate = frameStatus[0].sampleRate;
+            startSettings.sampleRate = sampleRate ? sampleRate : frameStatus[0].sampleRate;
             startSettings.stereo = true;
             startSettings.dataCallback.callback = complete;
             startSettings.dataCallback.context = pbEvent;
             startSettings.dataCallback.param = 1;
             startSettings.startThreshold = frameStatus[0].filledBytes + 1;  /* Wait for next frame to arrive before kicking off HW */
-            BDBG_LOG(("Starting playback for %u Hz", frameStatus[0].sampleRate));
+            BDBG_LOG(("Starting playback for %u Hz", startSettings.sampleRate));
             rc = NEXUS_SimpleAudioPlayback_Start(audioPlayback, &startSettings);
             if ( rc )
             {

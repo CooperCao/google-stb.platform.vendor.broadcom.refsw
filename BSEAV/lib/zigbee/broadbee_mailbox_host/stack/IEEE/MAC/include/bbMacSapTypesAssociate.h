@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesAssociate.h $
-*
-* DESCRIPTION:
-*   MLME-ASSOCIATE service data types definition.
-*
-* $Revision: 10263 $
-* $Date: 2016-02-29 18:03:06Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MLME-ASSOCIATE service data types definition.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_SAP_TYPES_ASSOCIATE_H
 #define _BB_MAC_SAP_TYPES_ASSOCIATE_H
@@ -226,7 +219,14 @@ typedef union _MAC_CapabilityInfo_t
 
 /**//**
  * \brief   Structure for parameters of the MLME-ASSOCIATE.request.
- * \note    Security parameters are excluded because the MAC Security is not implemented.
+ * \ingroup AssociateReq
+ * \note    MAC Security is not implemented. The SecurityLevel parameter is left
+ *  unassigned; or assigned with 0x00 'None' if _MAC_SAP_PROCESS_REDUNDANT_PARAMS_
+ *  conditional build key is defined by the project make configuration file. All received
+ *  secured frames are acknowledged but then dropped; in this case
+ *  MLME-COMM-STATUS.indication is issued with the status UNSUPPORTED_LEGACY (except the
+ *  RF4CE Controller for which a received secured frame is acknowledged and then dropped
+ *  without any indication).
  * \par     Documentation
  *  See IEEE Std 802.15.4-2006, subclause 7.1.3.1.1, table 47.
  */
@@ -249,7 +249,6 @@ typedef struct _MAC_AssociateReqParams_t
     MAC_CapabilityInfo_t    capabilityInfo;     /*!< Specifies the operational capabilities of the associating
                                                     device. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t     securityLevel;      /*!< The security level to be used. */
 
 } MAC_AssociateReqParams_t;
@@ -257,6 +256,7 @@ typedef struct _MAC_AssociateReqParams_t
 
 /**//**
  * \brief   Structure for parameters of the MLME-ASSOCIATE.confirm.
+ * \ingroup AssociateConf
  * \details Possible values for the \c status parameter are the following:
  *  - SUCCESS                   The requested association was completed successfully.
  *  - CHANNEL_ACCESS_FAILURE    The Association Request MAC Command frame transmission
@@ -278,7 +278,13 @@ typedef struct _MAC_AssociateReqParams_t
  *      UNSUPPORTED_SECURITY        This implementation of the MAC does not support the
  *      MAC Security.
  *
- * \note    Security parameters are excluded because the MAC Security is not implemented.
+ * \note    MAC Security is not implemented. The SecurityLevel parameter is left
+ *  unassigned; or assigned with 0x00 'None' if _MAC_SAP_PROCESS_REDUNDANT_PARAMS_
+ *  conditional build key is defined by the project make configuration file. All received
+ *  secured frames are acknowledged but then dropped; in this case
+ *  MLME-COMM-STATUS.indication is issued with the status UNSUPPORTED_LEGACY (except the
+ *  RF4CE Controller for which a received secured frame is acknowledged and then dropped
+ *  without any indication).
  * \par     Documentation
  *  See IEEE Std 802.15.4-2006, subclause 7.1.3.4.1, table 47.
  */
@@ -290,7 +296,6 @@ typedef struct _MAC_AssociateConfParams_t
     /* 8-bit data. */
     MAC_Status_t         status;                /*!< The status of the association attempt. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t  securityLevel;         /*!< The security level to be used; or the security level purportedly
                                                     used by the received frame. */
 } MAC_AssociateConfParams_t;
@@ -298,12 +303,14 @@ typedef struct _MAC_AssociateConfParams_t
 
 /**//**
  * \brief   Structure for descriptor of the MLME-ASSOCIATE.request.
+ * \ingroup AssociateReq
  */
 typedef struct _MAC_AssociateReqDescr_t  MAC_AssociateReqDescr_t;
 
 
 /**//**
  * \brief   Template for the callback handler-function of the MLME-ASSOCIATE.confirm.
+ * \ingroup AssociateConf
  * \param[in]   reqDescr    Pointer to the confirmed request descriptor.
  * \param[in]   confParams  Pointer to the confirmation parameters object.
  * \details Call function of this type provided by the higher layer from the MAC to issue
@@ -329,6 +336,7 @@ typedef void MAC_AssociateConfCallback_t(MAC_AssociateReqDescr_t   *const reqDes
 
 /**//**
  * \brief   Structure for descriptor of the MLME-ASSOCIATE.request.
+ * \ingroup AssociateReq
  */
 struct _MAC_AssociateReqDescr_t
 {
@@ -344,7 +352,14 @@ struct _MAC_AssociateReqDescr_t
 
 /**//**
  * \brief   Structure for parameters of the MLME-ASSOCIATE.indication.
- * \note    Security parameters are excluded because the MAC Security is not implemented.
+ * \ingroup AssociateInd
+ * \note    MAC Security is not implemented. The SecurityLevel parameter is left
+ *  unassigned; or assigned with 0x00 'None' if _MAC_SAP_PROCESS_REDUNDANT_PARAMS_
+ *  conditional build key is defined by the project make configuration file. All received
+ *  secured frames are acknowledged but then dropped; in this case
+ *  MLME-COMM-STATUS.indication is issued with the status UNSUPPORTED_LEGACY (except the
+ *  RF4CE Controller for which a received secured frame is acknowledged and then dropped
+ *  without any indication).
  * \par     Documentation
  *  See IEEE Std 802.15.4-2006, subclause 7.1.3.2.1, table 48.
  */
@@ -359,7 +374,6 @@ typedef struct _MAC_AssociateIndParams_t
 
     PHY_LQI_t             mpduLinkQuality;      /*!< LQI value measured during reception of the association request. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t   securityLevel;        /*!< The security level purportedly used by the received MAC command
                                                     frame. */
 } MAC_AssociateIndParams_t;
@@ -367,6 +381,7 @@ typedef struct _MAC_AssociateIndParams_t
 
 /**//**
  * \brief   Template for the callback handler-function of the MLME-ASSOCIATE.indication.
+ * \ingroup AssociateInd
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details Call function of this type provided by the higher layer from the MAC to issue
  *  the MLME-ASSOCIATE.indication to the destination ZigBee PRO higher layer. The
@@ -383,6 +398,7 @@ typedef void MAC_AssociateIndCallback_t(MAC_AssociateIndParams_t *const indParam
 
 /**//**
  * \brief   Structure for parameters of the MLME-ASSOCIATE.response.
+ * \ingroup AssociateResp
  * \details Possible values for the \c status parameter are the following:
  *  - ASSOCIATION_SUCCESSFUL    The higher layer confirms the requested association.
  *  - PAN_AT_CAPACITY           The higher layer refuses the requested association due to
@@ -399,7 +415,13 @@ typedef void MAC_AssociateIndCallback_t(MAC_AssociateIndParams_t *const indParam
  *      Response MAC Command frame when it will be transmitted on the discretion of the
  *      device requesting association.
  *
- * \note    Security parameters are excluded because the MAC Security is not implemented.
+ * \note    MAC Security is not implemented. The SecurityLevel parameter is left
+ *  unassigned; or assigned with 0x00 'None' if _MAC_SAP_PROCESS_REDUNDANT_PARAMS_
+ *  conditional build key is defined by the project make configuration file. All received
+ *  secured frames are acknowledged but then dropped; in this case
+ *  MLME-COMM-STATUS.indication is issued with the status UNSUPPORTED_LEGACY (except the
+ *  RF4CE Controller for which a received secured frame is acknowledged and then dropped
+ *  without any indication).
  * \par     Documentation
  *  See IEEE Std 802.15.4-2006, subclause 7.1.3.3.1, table 49.
  */
@@ -418,7 +440,6 @@ typedef struct _MAC_AssociateRespParams_t
     /* 8-bit data. */
     MAC_Status_t         status;                /*!< The status of the association attempt. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t  securityLevel;         /*!< The security level to be used. */
 
 } MAC_AssociateRespParams_t;
@@ -426,6 +447,7 @@ typedef struct _MAC_AssociateRespParams_t
 
 /**//**
  * \brief   Structure for parameters of the MLME-COMM-STATUS-ASSOCIATE.indication.
+ * \ingroup CommStatusInd
  * \details This is a particular case of the common MLME-COMM-STATUS.indication when it is
  *  issued by the MAC to the higher layer as a confirmation on a previous
  *  MLME-ASSOCIATE.response.
@@ -437,6 +459,7 @@ typedef MAC_CommStatusIndParams_t  MAC_CommStatusAssociateIndParams_t;
 
 /**//**
  * \brief   Structure for descriptor of the MLME-ASSOCIATE.response.
+ * \ingroup AssociateResp
  */
 typedef struct _MAC_AssociateRespDescr_t  MAC_AssociateRespDescr_t;
 
@@ -444,6 +467,7 @@ typedef struct _MAC_AssociateRespDescr_t  MAC_AssociateRespDescr_t;
 /**//**
  * \brief   Template for the callback handler-function of the
  *  MLME-COMM-STATUS-ASSOCIATE.indication.
+ * \ingroup CommStatusInd
  * \param[in]   respDescr   Pointer to the confirmed response descriptor.
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details Call function of this type provided by the higher layer from the MAC to issue
@@ -469,6 +493,7 @@ typedef void MAC_CommStatusAssociateIndCallback_t(MAC_AssociateRespDescr_t      
 
 /**//**
  * \brief   Structure for descriptor of the MLME-ASSOCIATE.response.
+ * \ingroup AssociateResp
  */
 struct _MAC_AssociateRespDescr_t
 {
@@ -483,3 +508,5 @@ struct _MAC_AssociateRespDescr_t
 
 
 #endif /* _BB_MAC_SAP_TYPES_ASSOCIATE_H */
+
+/* eof bbMacSapTypesAssociate.h */
