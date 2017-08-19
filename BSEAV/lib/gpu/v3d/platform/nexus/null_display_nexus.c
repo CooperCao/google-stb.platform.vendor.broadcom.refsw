@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_nexus.h"
 
 #include "nexus_platform.h"
@@ -18,6 +10,7 @@ DESC
 #include <malloc.h>
 #include <memory.h>
 #include <semaphore.h>
+#include <errno.h>
 
 #include "png.h"
 
@@ -260,7 +253,8 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
       NXPL_WindowState *windowState = (NXPL_WindowState *)bufferAccess->windowState.platformState;
       NXPL_BufferData  *buffer = bufferAccess->buffer;
 
-      sem_wait(&windowState->lockSemaphore);
+      while (sem_wait(&windowState->lockSemaphore) == -1 && errno == EINTR)
+         continue;
 
       return BEGL_Success;
    }

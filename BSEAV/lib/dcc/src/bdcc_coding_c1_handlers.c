@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2002-2013 Broadcom Corporation
- *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,42 +9,34 @@
  *  Software, and Broadcom expressly reserves all rights in and to the Software and all
  *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *   
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
  *  Except as expressly set forth in the Authorized License,
- *   
+ *
  *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
  *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *   
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  *  USE OR PERFORMANCE OF THE SOFTWARE.
- *  
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "b_api_shim.h"
@@ -295,6 +287,8 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_DefineWindow(
     unsigned int prevVisible = 0;
 #endif
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
+
     BSTD_UNUSED(AddlBytes);
 
     pw->WndId = wnd;
@@ -425,7 +419,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_DefineWindow(
         {
             unsigned char destroyWnd = 1 << wnd;
             BDCC_COD_P_ProcessCmd_C1_DeleteWindows(hCodObject, 0x8C, 1, &destroyWnd);
-            BDBG_MSG(("Bit error in %s, deleted window", __FUNCTION__));
+            BDBG_MSG(("Bit error in %s, deleted window", BSTD_FUNCTION));
         }
     }
     else
@@ -454,6 +448,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_SetWindowAttributes(
     unsigned int *pm = &pw->UpdateMask;
     unsigned int tempBorderType;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -500,6 +495,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_SetPenAttributes(
     unsigned int *pm = &pw->UpdateMask;
     unsigned int i;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -524,7 +520,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_SetPenAttributes(
     {
         unsigned char destroyWnd = 1 << wnd;
         BDCC_COD_P_ProcessCmd_C1_DeleteWindows(hCodObject, 0x8C, 1, &destroyWnd);
-        BDBG_MSG(("Bit error in %s, deleted window", __FUNCTION__));
+        BDBG_MSG(("Bit error in %s, deleted window", BSTD_FUNCTION));
     }
     else
     {
@@ -553,6 +549,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_SetPenColor(
     unsigned int *pm = &pw->UpdateMask;
     unsigned int i;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -593,6 +590,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_SetPenLocation(
     BDCC_INT_P_Pen *pp = &pw->Pen;
     unsigned int *pm = &pw->UpdateMask;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -616,10 +614,11 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_SetPenLocation(
     {
         unsigned char destroyWnd = 1 << wnd;
         BDCC_COD_P_ProcessCmd_C1_DeleteWindows(hCodObject, 0x8C, 1, &destroyWnd);
-        BDBG_MSG(("Bit error in %s, deleted window", __FUNCTION__));
+        BDBG_MSG(("Bit error in %s, deleted window", BSTD_FUNCTION));
     }
     else
     {
+        BDBG_MSG(("%s wnd=%d row=%d col=%d", BSTD_FUNCTION, wnd, pp->Row, pp->Col));
         BDCC_INT_P_UpdateWindow(hCodObject, pw);
     }
     return(BDCC_COD_P_ProcessDisposition_eConsumeContinue);
@@ -638,6 +637,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_DeleteWindows(
     int wnd;
     BDCC_INT_P_Window *pw;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -674,6 +674,10 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_HideWindows(
     int wnd;
     BDCC_INT_P_Window *pw;
     unsigned int *pm;
+    /* SW7364-355 */
+    unsigned int wndCount = 0;
+    int firstWnd = -1; 	/* how many windows defined and firstWnd if it is only one */
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
 
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
@@ -688,6 +692,11 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_HideWindows(
             pm = &pw->UpdateMask;
             *pm = 0;
             UpdateVarDirect(&pw->WindowDef.Visible, BDCC_ATTR_MASK_VISIBLE, pm, 0);
+            if (pw->fDefined) {
+		wndCount++;
+		if (-1 == firstWnd)
+		    firstWnd = wnd;
+            }
         }
     }
 
@@ -697,10 +706,14 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_HideWindows(
     {
         unsigned int totalHiddenRowCount, reqdRows = 0;
 
-        /* get total hidden rows, must limit it to 4 */
-        totalHiddenRowCount = GetTotalRowCount(hCodObject, 9 /* dummy */, false);
-                
-        if((totalHiddenRowCount) > FCC_MAX_ROW)
+        /* SW7364-355, adjust priority age list only if more than one windows defined */
+	if (wndCount < 2)
+		totalHiddenRowCount = GetTotalRowCount(hCodObject, firstWnd, false);
+	else
+		totalHiddenRowCount = GetTotalRowCount(hCodObject, 9 /* dummy */, false);
+
+	/* get total hidden rows, must limit it to 4 */
+	if((totalHiddenRowCount) > FCC_MAX_ROW)
         {
             /* exceeds max rows, must cull some windows starting with lowest priority */
             reqdRows = totalHiddenRowCount - FCC_MAX_ROW;
@@ -737,6 +750,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_DisplayWindows(
     BDCC_INT_P_Window *pw;
     unsigned int *pm;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -801,6 +815,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_ToggleWindows(
     BDCC_INT_P_Window *pw;
     unsigned int *pm;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -882,6 +897,7 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_ClearWindows(
     BDCC_INT_P_Window *pw;
     unsigned int *pm;
 
+    BDBG_MSG(("%s enter", BSTD_FUNCTION));
     BSTD_UNUSED(cmd);
     BSTD_UNUSED(AddlBytes);
 
@@ -988,4 +1004,3 @@ BDCC_COD_P_ProcessDisposition BDCC_COD_P_ProcessCmd_C1_Stub(
 
     return(BDCC_COD_P_ProcessDisposition_eConsumeContinue);
 }
-

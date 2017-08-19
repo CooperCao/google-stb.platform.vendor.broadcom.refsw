@@ -1,0 +1,2692 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# BTAMP qualification test plan script
+# See BlueTooth 802.11 PAL Test Specification D09R24 2009/2/24
+# Written by John Brearley 2009
+#
+# To get online help, type: Test/btampqtp.test -help
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set ::qtp_help "\n\nBasic usage: Test/btampqtp.test <options>\
+    \nRuns the BTAMP QTP tests. If you need drivers loaded, use the higher level\
+    \nscript Sanity.test, which will load the drivers and run the QTP tests.\
+    \n\n-tc defaults to \"all\". -tc can be \"all\" or \"sanity\" or a space/comma\
+    \nseparated list of integers and/or ranges, eg: \"3-10,15 19 30 - 35\"\n"
+
+# Command line options string
+set ::qtp_getopts {
+    {c.arg "US"      "Country code to use"}
+    {cl.arg "1"      "Channel range low value"}       
+    {ch.arg "1"      "Channel range high value"}
+    {dut.arg ""      "DUT hostname, default will be taken from config file"}
+    {email.arg ""    "Email address list, format: userid1@broadcom.com,userid2@broadcom.com,... default is your email"}
+    {f               "Fast flag"}
+    {logdir.arg ""   "Log directory override"}
+    {noinit          "Use testrig as is, no initialization"}
+    {nodi            "Dont run Discovery tests, default is to run Discovery tests"}
+    {nopl            "Dont run Physical Link tests, default is to run Physical Link tests"}
+    {noll            "Dont run Logical Link tests, default is to run Logical Link tests"}
+    {noda            "Dont run Data transfer tests, default is to run Data transfer tests"}
+    {noot            "Dont run Other tests, default is to run Other tests"}
+    {plh1.arg "0x13" "Physical Link Handle 1 to test"}
+    {plh2.arg "0x14" "Physical Link Handle 2 to test"}
+    {r               "Restore Rays original QTP build for XP PC only"}
+    {ref1.arg ""     "Ref1 hostname, default will be taken from config file"}
+    {ref2.arg ""     "Ref2 hostname, default will be taken from config file"}
+    {sc.arg "1"      "Sniffer channel to use"}
+    {stall           "Sniffer trace taken for all tests, default is for only tests required by BTAMP QTP"}
+    {tc.arg "all"    "list of testcases to run"}
+}
+
+# Setup online help info.
+UTF::setup_help $::qtp_help $::qtp_getopts
+
+# Load packages
+package require UTF
+package require UTF::Aeroflex
+package require UTF::btamplib
+package require UTF::Sniffer
+package require UTF::utils
+
+package provide UTF::Test::BtampQtp 2.0
+
+# Notes on DbgView.exe
+# - older version from 2005 works with no hassles
+# - newer version from 2007 has a GUI popup requiring you agree with license terms
+# - if this GUI popup is not correctly answered, when the scripts try to start DbgView
+#   you may end up with no DbgView process being started, which causes many testcases
+#   to fail, as no log file is generated
+# - I also went thru a process of renaming .exe files to swap between the old &
+#   new versions, which may or may not help the issue get stabilized
+# - As usual, when issue appears to be resolved, reboot PC and try again to verify
+# - TC 0 is intended to flush out these issues.
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+# This is the main QTP test
+UTF::Test btampqtp {args} {
+
+    # Basic command line option processing. Options are stored in the
+    # unnamed array $()
+    UTF::Getopts "$::qtp_getopts" "$::qtp_help"
+
+    # Get testbed info and log it. Although the trailer / testbed info is
+    # added to the end of the summary web page, for development, a lot of
+    # the time the script is deliberately aborted before this occurs. Logging
+    # the data now ensures you can go see the data on your screen or the
+    # general log file.
+    # set ::UTF::trailer_info "abcdefgh" ;# test code
+    if {![info exists ::UTF::trailer_info] || $::UTF::trailer_info == ""} {
+        set ::UTF::trailer_info [UTF::setup_testbed_info $(email) $(logdir)]
+        UTF::Message INFO "" "$::UTF::trailer_info"
+    }
+    if {![info exists ::branch_list]} {
+        set ::branch_list unknown
+    }
+    set ::summaryinfo ""
+    set ::title ""
+
+    # Set email subject & report title.
+    set ::email_subject [UTF::setup_email_subject $::title]
+
+    # Start the UTF web summary page & email
+    UTF::WrapSummary $UTF::SummaryDir "$::email_subject" "$::summaryinfo" "$(email)" {
+
+        # Mappings for testcases
+        set ::tc_max 45 ;# number of last testcase in this script
+        set ::tc_all "" ;# list of all testcase numbers
+            for {set i 0} {$i <= $::tc_max} {incr i} {
+            append ::tc_all " $i"
+        }
+        # puts "::tc_all=$::tc_all"
+        set ::tc_sanity "0 1 3 8 9 14 18 19 24 28 29 31 33 35" ;# list of sanity testcases
+
+        # Other global variables
+        set ::attn_max 103
+        set ::clean_dbgview_logs "no"
+        set ::errors 0
+        set ::error_list ""
+        set ::FAST 0 ;# doesnt reset wl driver at start of each testcase
+        catch "unset ::list_embedded" ;# shows embedded devices, if any
+        set ::local_os $::tcl_platform(os)
+        set ::RESTORE 0;# doesnt restore qtp driver from Ray Hayes
+        if {[info exists ::saved_pwd]} {
+            UTF::Message LOG "$::localhost" "found ::saved_pwd=$::saved_pwd"
+        } else {
+            set ::saved_pwd [pwd] ;# needed after we cd to UTF log directory
+            UTF::Message LOG "$::localhost" "set ::saved_pwd=$::saved_pwd"
+        }
+        set ::tc_errors 0
+        set ::tc_fail 0
+        set ::tc_fail_list ""
+        set ::tc_num "n/a"
+        set ::tc_pass 0
+        set ::tc_state ""
+        set ::tc_title "n/a"
+        set ::warnings 0
+        set ::warning_list ""
+
+        # Set global variables from cmd line options.
+        if {$(dut) != ""} {
+            set ::btamp_dut $(dut)
+        }
+        set ::FAST $(f)
+        set ::RESTORE $(r)
+        set ::country [string toupper $(c)]
+        set ::ch_low $(cl)
+        set ::ch_high $(ch)
+        if {$(ref1) != ""} {
+            set ::btamp_ref1 $(ref1)
+        }
+        if {$(ref2) != ""} {
+            set ::btamp_ref2 $(ref2)
+        }
+        set ::utf_sniffer_ch $(sc)
+        if {$(stall)} {
+            set ::btamp_sniffer_trace yes
+        } else {
+            set ::btamp_sniffer_trace no
+        }
+
+        # Setup 2 PLH, check for different values
+        set ::plh1 [btamplib::cleanupHex $(plh1)]
+        set ::plh2 [btamplib::cleanupHex $(plh2)]
+        if {$::plh1 == $::plh2} {
+            error "ERROR: plh1=$::plh1 must be different from plh2=$::plh2"
+        }
+
+        # Check range of PLH
+        if {$::plh1 < 0x00 || $::plh1 > 0xff} {
+            error "ERROR: plh1=$::plh1 out of range 0x0 - 0xff"
+        }
+        if {$::plh2 < 0x00 || $::plh2 > 0xff} {
+            error "ERROR: plh2=$::plh2 out of range 0x0 - 0xff"
+        }
+
+        # Clean up and translate ::TC list as appropriate.
+        set ::TC $(tc)
+        set ::TC [string tolower $::TC]
+        if {$::TC == "sanity"} {
+            set ::TC $::tc_sanity
+        } elseif {$::TC == "all"} {
+            set ::TC $::tc_all
+        } else {
+            # Scan for integers, 0 or greater, expand integer ranges.
+            # eg: 1 - 5 becomes: 1 2 3 4 5
+            regsub -all {\-} $::TC " - " ::TC ;# ensure spaces around hyphens 
+            regsub -all {,} $::TC " " ::TC ;# ensure commas to spaces
+            # puts "::TC=$::TC"
+            set last_num "" ;# starting number of range
+            set range no ;# indicates range being found / processed
+            set result ""
+            foreach num $::TC {
+                # Look for range indicator, hyphen '-'
+                # puts "num=$num last_num=$last_num range=$range"
+                if {$num == "-"} {
+                    if {$range == "yes"} {
+                        error "ERROR: Duplicate hyphen '-' in test case number range!"
+                    }
+                    if {$last_num == ""} {
+                        error "ERROR: Missing starting number in test case number range!"
+                    }
+                    set range yes
+                    continue
+                }
+
+                # Look for positive integers
+                if {![regexp {^\d+$} $num] || $num < 0} {
+                    error "ERROR: Invalid number: $num, must be integer 0 or greater!"
+ 
+                } else {
+                    # We found an integer 0 or greater.
+                    # If we arent in a range, save last num and append to result.
+                    if {$range == "no"} {
+                        set last_num $num
+                        append result " $num"
+                        continue
+
+                    } else {
+                        # This is the end of a range. Expand the range.
+                        # puts "expanding range $last_num - $num"
+                        for {set i [expr $last_num + 1]} {$i <= $num} {incr i} {
+                            append result " $i"
+                        }
+                        set last_num ""
+                        set range no
+                        continue
+                    }
+                }
+            }
+            set ::TC $result
+        }
+        set ::TC [lsort -integer -unique $::TC]
+        UTF::Message LOG "$::localhost" "::TC=$::TC"
+
+        # Find UTF log directory & cd to it. This ensures that all temporary files
+        # are stored in a unique place and dont conflict with any other test jobs
+        # that may be concurrently running.
+        set log_dir [file dirname "$UTF::Logfile"]
+        UTF::Message LOG "$::localhost" "old pwd=[pwd]"
+        cd $log_dir
+        UTF::Message LOG "$::localhost" "new pwd=[pwd]"
+
+        # If user didnt specify -dut, -ref1 or -ref2 parameters, we will 
+        # pick and choose from the config file. Get list of suitable host
+        # object names.
+        set test_object_types "Cygwin DHD Linux WinDHD" ;# dont include Sniffer!
+        set host_list ""
+        foreach type $test_object_types {
+            append host_list " [UTF::get_names_values $type]"
+        }
+        set host_list [string trim $host_list]
+        regsub -all "::" $host_list "" host_list
+        set host_list [lsort $host_list]
+        # set host_list "" ;# test code
+        UTF::Message LOG "$::localhost" "possible test objects: $host_list"
+
+        # Remove lan / wan peers, as they dont have WLAN STA.
+        foreach item "$::lan_wan_device_list" {
+            set host_list [UTF::remove_item_exact $host_list $item]
+        }
+        UTF::Message LOG "$::localhost" "valid test objects: $host_list"
+
+        # Remove objects in host_list that are already in use.
+        # Ensure device variables are set, if only to null.
+        foreach var "::btamp_dut ::btamp_ref1 ::btamp_ref2" {
+            if {[info exists $var]} {
+                set temp [set $var]
+                # puts "var=$var temp=$temp"
+                set temp [string trim $temp]
+                set $var  [UTF::get_name $temp]
+                set host_list [UTF::remove_item_exact $host_list $temp]
+            } else {
+                set $var ""
+                # puts "var=$var set to null"
+            }
+        }
+        set host_list [lsort $host_list]
+        UTF::Message LOG "$::localhost" "test objects available for defaults\
+            if needed: $host_list"
+
+        # Now fill in the missing device names, if any.
+        foreach {var option} "::btamp_dut -dut ::btamp_ref1 -ref1 ::btamp_ref2 -ref2" {
+            set temp [set $var]
+            set temp [string trim $temp]
+            # puts "var=$var temp=$temp option=$option"
+            if {$temp == "" } {
+                set default_host [lindex $host_list 0]
+                set $var $default_host
+                set host_list [lreplace $host_list 0 0]
+                UTF::Message LOG "$::localhost" "Choosing $var=$default_host \
+                    You can specify $option <host> on the command line, or you\
+                    can set the preferred default via variable $var\
+                    in your config file."
+            }
+        }
+        UTF::Message LOG "$::localhost" "test objects that will not be\
+            used in this test run: $host_list"
+
+        # Check dut, ref1 & ref2 were all specified.
+        if {$::btamp_dut == "" || $::btamp_ref1 == "" || $::btamp_ref2 == ""} {
+            error "You may not have 3 hosts for testing defined in your config file."
+        }
+
+        # Check hostnames are valid objects in the config file and are correct
+        # type, mainly not a Sniffer.
+        foreach host "$::btamp_dut $::btamp_ref1 $::btamp_ref2" {
+            set catch_resp [catch "UTF::check_host_type $host $test_object_types" catch_msg]
+            # puts "check host type: host=$host catch_resp=$catch_resp catch_msg=$catch_msg"
+            if {$catch_resp == 0 && $catch_msg == "1"} {
+                continue
+            } else {
+                error "host=$host is not one of the object types: $test_object_types ,\
+                    catch_msg=$catch_msg"
+            }
+        }
+
+        # Check that all 3 hostnames are different, no duplicates names and no 
+        # clone objects pointing to a common host.
+        set temp [UTF::remove_duplicate_objects "$::btamp_dut $::btamp_ref1 $::btamp_ref2"]
+        if {[llength $temp] != 3} {
+            error "The test hostnames must all be unique, no duplicates or clone objects\
+                allowed: DUT=$::btamp_dut Ref1=$::btamp_ref1 Ref2=$::btamp_ref2"
+        }
+
+        # Some testrigs have Aeroflex attenuator and other initialization 
+        # strings defined, usually to set all channels to 0 attenuation, 
+        # turn off AP radios, etc. If found, setup the testbed. This needs
+        # to be done before checking RSSI.
+        # set ::attn_grp_list "a b" ;# test code
+        if {[info exists ::UTF::SetupTestBed]} {
+            if {!$(noinit)} {
+                UTF::setup_testbed
+            }
+        } elseif {[info exists ::attn_grp_list] && $::attn_grp_list != ""} {
+            UTF::Try "Setup attenuator issue" {
+                # Attenuators in an unknown state will lead to disaster!
+                error "You have not specified variable ::UTF::SetupTestBed in your\
+                    config file. You must specify the initialization string\
+                    for attenuator groups $::attn_grp_list in variable ::UTF::SetupTestBed"
+            }
+        }
+
+        # Mac address is required initialization. Dont skip that!
+        # RSSI & driver version info can be skipped for -noinit.
+        set dut_os [UTF::check_host_os $::btamp_dut]
+        set ref1_os [UTF::check_host_os $::btamp_ref1]
+        set ref2_os [UTF::check_host_os $::btamp_ref2]
+        UTF::Try "Setup DUT=$::btamp_dut $dut_os Ref1=$::btamp_ref1 $ref1_os Ref2=$::btamp_ref2 $ref2_os" {
+
+            # Log various settings
+            UTF::Message LOG "$::localhost" "options settings: FAST=$::FAST\
+                RESTORE=$::RESTORE \ nodi=$(nodi) nopl=$(nopl) noll=$(noll)\
+                noda=$(noda) noot=$(noot) country=$::country ch_low=$::ch_low\
+                ch_high=$::ch_high utf_sniffer_ch=$::utf_sniffer_ch"
+            UTF::Message LOG "$::localhost" "plh1=$::plh1 plh2=$::plh2 running testcases: $::TC"
+            UTF::Message LOG "$::localhost" "saved_pwd=$::saved_pwd"
+
+            # Accessing hardware is best done inside a Try block.
+            set ::btamp_dut_mac [btamplib::getMacAddr $::btamp_dut]
+            UTF::Message LOG "$::localhost" "DUT=$::btamp_dut btamp_dut_mac=$::btamp_dut_mac"
+            set ::btamp_ref1_mac [btamplib::getMacAddr $::btamp_ref1]
+            UTF::Message LOG "$::localhost" "Ref1=$::btamp_ref1 btamp_ref1_mac=$::btamp_ref1_mac"
+            set ::btamp_ref2_mac [btamplib::getMacAddr $::btamp_ref2]
+            UTF::Message LOG "$::localhost" "Ref2=$::btamp_ref2 btamp_ref2_mac=$::btamp_ref2_mac"
+
+            # Get all 3 STA names.
+            set dut_sta [lindex [$::btamp_dut cget -sta] 0]
+            set ref1_sta [lindex [$::btamp_ref1 cget -sta] 0]
+            set ref2_sta [lindex [$::btamp_ref2 cget -sta] 0]
+
+            # Look for attenuator between REF1 & DUT. REF1 is preferred so that the
+            # Sniffer can still see RF from the DUT. But, if we have to, we will use
+            # attenuator on DUT side. Attenuator on REF2 is of no use to the testcases
+            # that need the attenuator.
+            foreach item "$ref1_sta $dut_sta" {
+                set attn_grp [$item cget -attngrp]
+                set attn_grp [string trim $attn_grp]
+                if {$attn_grp != ""} {
+                    break
+                }
+            }
+
+            # Get the default attenuator setting, may not be 0.
+            set attn_val ""
+            if {$attn_grp != ""} {
+                set attn_val [$attn_grp attn]
+                set attn_val [lindex $attn_val 0]
+                set attn_val [expr int($attn_val)]
+            }
+            UTF::Message LOG $::localhost "found attn_grp=$attn_grp attn_val=$attn_val"
+
+            # Remaining initialization is optional.
+            if {$(noinit)} {
+                return
+            }
+
+            # Collect scan info.
+            $::btamp_dut  wl up
+            $::btamp_ref1 wl up
+            $::btamp_ref2 wl up
+            $::btamp_dut  wl scan
+            $::btamp_ref1 wl scan
+            $::btamp_ref2 wl scan
+            UTF::Sleep 6
+            set dut_scan  [$::btamp_dut  wl scanresults]
+            set ref1_scan [$::btamp_ref1 wl scanresults]
+            set ref2_scan [$::btamp_ref2 wl scanresults]
+
+            # Parse out RSSI info from scans. Because driver is not associated
+            # yet, the driver will report "wl rssi" = 0. So we get this data
+            # from the scans. Many testrigs turn off the AP radios, so we often
+            # dont get RSSI into.
+            if {![regexp -nocase {RSSI:\s*(-\d+)} $dut_scan - dut_rssi]} {
+                set dut_rssi ""
+            }
+            if {![regexp -nocase {RSSI:\s*(-\d+)} $ref1_scan - ref1_rssi]} {
+                set ref1_rssi ""
+            }
+            if {![regexp -nocase {RSSI:\s*(-\d+)} $ref2_scan - ref2_rssi]} {
+                set ref2_rssi ""
+            }
+    
+            # Collect build info.
+            set dut_ver [$::btamp_dut wl ver]
+            set dut_ver [lindex [split $dut_ver "\n"] end] ;# take last line
+            set ref1_ver [$::btamp_ref1 wl ver]
+            set ref1_ver [lindex [split $ref1_ver "\n"] end] ;# take last line 
+            set ref2_ver [$::btamp_ref2 wl ver]
+            set ref2_ver [lindex [split $ref2_ver "\n"] end] ;# take last line
+    
+            # Setup registry entries to turn on BTAMP. These entries will be
+            # activated later by driver disable/enable at the start of each 
+            # testcase. Method reg needs a sta_name, not a host_name.
+            set catch_resp [catch "$dut_sta  reg BtAmp 1" catch_msg]
+            UTF::Message LOG "$::btamp_dut" "dut_sta=$dut_sta reg BtAmp 1 catch_resp=$catch_resp catch_msg=$catch_msg"
+            set catch_resp [catch "$ref1_sta reg BtAmp 1" catch_msg]
+            UTF::Message LOG "$::btamp_ref1" "ref1_sta=$ref1_sta reg BtAmp 1 catch_resp=$catch_resp catch_msg=$catch_msg"
+            set catch_resp [catch "$ref2_sta reg BtAmp 1" catch_msg]
+            UTF::Message LOG "$::btamp_ref2" "ref2_sta=$ref2_sta reg BtAmp 1 catch_resp=$catch_resp catch_msg=$catch_msg"
+
+            # Any missing driver version info is considered an error.
+            # Many testrigs turn off the AP radios, so we often dont get RSSI into.
+            set result pass
+            # set dut_ver "";# test code
+            # set ref1_rssi "";# test code
+            foreach var "dut_ver ref1_ver ref2_ver" {
+                set x [set $var]
+                set x [string trim $x]
+                puts "var=$var x=$x"
+                if {$x == ""} {
+                    set result fail
+                    set $var "<b><font color=\"red\">Missing Info</font></b>"
+                }
+            }
+
+            # Put build & RSSI info on main summary page.
+            set msg "html: DUT: $dut_ver RSSI $dut_rssi <br>\
+                Ref1: $ref1_ver RSSI $ref1_rssi <br>\
+                Ref2: $ref2_ver RSSI $ref2_rssi"
+            regsub -all {wl0:} $msg "" msg
+            if {$result == "pass"} {
+                return "$msg"
+            } else {
+                error "$msg"
+            }
+        }
+
+        # UTF::setup_testbed_info creates ::sniffer_sta_list
+        set ::utf_sniffer_host ""
+        set ::sniffer_os ""
+        # set ::sniffer_sta_list "" ;# test code
+        if {$::sniffer_sta_list != ""} {
+            set ::utf_sniffer_host [lindex $::sniffer_sta_list 0]
+            set ::utf_sniffer_host [UTF::get_name $::utf_sniffer_host]
+            set ::utf_sniffer_if "prism0"
+            UTF::Message LOG "$::localhost" "::sniffer_sta_list=$::sniffer_sta_list\
+                ::utf_sniffer_host=$::utf_sniffer_host ::utf_sniffer_if=$::utf_sniffer_if"
+            set ::sniffer_os [UTF::check_host_os $::utf_sniffer_host]
+        }
+
+        # Setup sniffer on appropriate channel
+        if {$::utf_sniffer_host == ""} {
+            UTF::Try "Setup Sniffer" {
+                error "This testbed does not have a Sniffer!"
+            }
+
+        } elseif {!$(noinit)} {
+            UTF::Try "Setup Sniffer=$::utf_sniffer_host $::sniffer_os Ch${::utf_sniffer_ch}" {
+                set resp [$::utf_sniffer_host trySetupSniffer]
+
+                # Get scan info & parse RSSI out. Many testrigs turn off the AP
+                # radios, so we often dont get RSSI into.
+                $::utf_sniffer_host wl up
+                $::utf_sniffer_host wl scan
+                UTF::Sleep 6
+                set sniffer_scan [$::utf_sniffer_host wl scanresults]
+                if {![regexp -nocase {RSSI:\s*(-\d+)} $sniffer_scan - sniffer_rssi]} {
+                    set sniffer_rssi ""
+                }
+
+                # Get Sniffer build version
+                set sniffer_ver [$::utf_sniffer_host wl ver]
+                set sniffer_ver [lindex [split $sniffer_ver "\n"] end] ;# take last line 
+
+                # Check we got sniffer version.
+                set result pass
+                # set sniffer_rssi "";# test code
+                foreach var "sniffer_ver" {
+                    set x [set $var]
+                    set x [string trim $x]
+                    puts "var=$var x=$x"
+                    if {$x == ""} {
+                        set result fail
+                        set $var "<b><font color=\"red\">Missing Info</font></b>"
+                    }
+                }
+
+                # Put build & RSSI info on main summary page.
+                set msg "html: $resp Sniffer: $sniffer_ver RSSI $sniffer_rssi"
+                regsub -all {wl0:} $msg "" msg
+                if {$result == "pass"} {
+                    return "$msg"
+                } else {
+                    error "$msg"
+                }
+            }
+        }
+
+        # Setup directory for .pcap files
+        if {$::utf_sniffer_host != "" && $::utf_sniffer_ch > 0} {
+            UTF::Try "Directory of .pcap files" {
+                set pcap_link [$::utf_sniffer_host setupDir]
+                return $pcap_link
+            }
+        }
+
+        # Basic sanity test of DbgView for all Windows test machines.
+        # If DbgView isnt working, all of the tests will fail.
+        set ::errors 0
+        set ::tc_errors 0
+        set ::error_list ""
+        set ::tc_num 0
+        set ::tc0_cnt 3 ;# if not running TC0, must set to 3!
+        if {[lsearch -exact $::TC $::tc_num] >= 0} {
+            set ::tc_title "Testbed sanity checks"
+            UTF::Try "TC$::tc_num $::tc_title" {
+                set ::tc0_cnt 0 ;# when running TC0, must set to 0!
+                set msg ""
+                foreach host "$::btamp_dut $::btamp_ref1 $::btamp_ref2" {
+
+                    # Ignore Linux objects.
+                    set type [UTF::check_host_type $host]
+                    if {$type != "Cygwin" && $type != "WinDHD"} {
+                        UTF::Message LOG "" "skipping checks for $host type=$type"
+                        incr ::tc0_cnt
+                        continue
+                    }
+
+                    # The remote PC should be running debugview_daemon.tcl
+                    # which restarts debugview as necessary.
+                    UTF::Message LOG "$host" "\nSanity checks for host=$host type=$type\n"
+                    set cnt [btamplib::findProcessByName $host Dbgview.exe -noerror]
+                    if {$cnt == 0} {
+                        # If DebugView isnt there, we are basically toast.
+                        # So there is no harm in trying a reboot...
+                        UTF::Message LOG "$host" "TC$::tc_num DebugView not running on\
+                            host=$host, rebooting..."
+                        $host shutdown_reboot
+                        append msg " rebooted $host"
+
+                        # Check again for DebugView process
+                        set cnt [btamplib::findProcessByName $host Dbgview.exe -noerror]
+                        if {$cnt == 0} {
+                            # We really and truly are toast. Log an error so TC 0 will fail.
+                            btamplib::logError $host "TC$::tc_num DebugView is still not running on\
+                                host=$host after it was rebooted"
+                            continue
+                        }
+                    }
+
+                    # Get the current DebugView log file line count.
+                    set cnt [btamplib::getMessagesLogLineCnt $host messages -noerror]
+                    # set cnt "no such file" ;# test code
+                    UTF::Message LOG "$host" "cnt=$cnt"
+                    if {![regexp {^[\-\d]+$} $cnt] || $cnt < 0} {
+                        # This usually means the file doesnt exist, or is in a state
+                        # of totally messed up file permissions. This has been seen
+                        # using Cygwin to do ls -l on messages file. Interestingly
+                        # enough, the only way I could clear the issue was a reboot.
+                        # Unix chown & chmod didnt work, nor did rm -f.
+                        UTF::Message LOG "$host" "TC$::tc_num messages file issue on\
+                            host=$host, cnt=$cnt rebooting PC..."
+                        $host shutdown_reboot
+                        append msg " rebooted $host"
+                        # This time errors will be logged if we are still in trouble.
+                        btamplib::waitDebugView $host
+                        btamplib::getMessagesLogLineCnt $host
+                    }
+
+                    # We made it to the end of the loop, nobody threw an error.
+                    incr ::tc0_cnt
+                }
+                btamplib::tc_result
+
+                # If any hosts were rebooted, let user know.
+                if {$msg != ""} {
+                    error "$msg"
+                }
+            }
+        }
+
+        # If TC0 got any errors, we abort the script run. When you throw a TCL error
+        # outside of a Try block, UTF registers this as a Framework error and stops
+        # right there. 
+        if {$::errors > 0 || $::tc0_cnt != 3} {
+             error "You MUST resolve the above FATAL ERRORS before this script will\
+                 run properly, tc0_cnt=$::tc0_cnt"
+        }
+
+        # If necessary, restore the qtp build from Ray Hayes.
+        # Applies only to XP PC, NOT Vista, NOT Win7 and NOT Linux.
+        if {$::RESTORE == 1} {
+            foreach host "$::btamp_dut $::btamp_ref1 $::btamp_ref2" {
+                set host [string tolower $host]
+                if {$host == "mc07tst1" || $host == "mc07tst2" ||\
+                    $host == "mc13tst2"} {
+                    # These are XP PC.
+                    puts "restore host=$host"
+                    btamplib::restore_qtp_build $host
+                }
+            }
+        }
+
+        # Discovery tests
+        if {!$(nodi)} {
+            set ::tc_num 1
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.1.1
+                set ::tc_title "QTP 5.2.1.1 TP/DI/AI/BV-01-C_Read_Local_AMP_Info"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_AMP_Info"
+
+                    # These steps are above and beyond what the QTP wants
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_Version_Info"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_Supported_Commands"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+
+                    # Parse the results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciReadLocalAmpInfo
+
+                    # These steps are above and beyond what the QTP wants
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::parseHciReadLocalVersionInfo
+                    btamplib::parseHciReadLocalSupportedCommands
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 2
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.2.1
+                set ::tc_title "QTP 5.2.2.1 TP/DI/AA/BV-01-C_Read_Local_AMP_ASSOC,no_physical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC\
+                        0 0 0 0 0"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+
+                    # Parse the results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }	
+
+            set ::tc_num 3
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.2.2
+                set ::tc_title "QTP 5.2.2.2 TP/DI/AA/BV-02-C_Write_Remote_AMP_ASSOC"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut 
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    UTF::Sleep 3
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high]"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+
+                    # Parse the results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init  DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 4
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.2.3
+                set ::tc_title "QTP 5.2.2.3 TP/DI/AA/BI-01-C_Write_Remote_AMP_ASSOC,unsupported IE token"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    set invalid_tlv "0x99 0x10 0x00 0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x0a 0x0b 0x0c 0x0d 0x0e 0x0f" ;# from test plan
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high $invalid_tlv]"
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+    
+                    # Parse the results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x10 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 5
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.2.4
+                set ::tc_title "QTP 5.2.2.4 TP/DI/AA/BI-02-C_Read_Local_AMP_Assoc,invalid_physical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC\
+                        $::plh2 0 0" ;# PLH2 is invalid here
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+
+                    # Parse the results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac $::plh2 "" 0x02 "";# 0x02 is expected status for invalid ::plh2
+                    btamplib::parseHciPhysicalLinkComplete 0x10 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 6
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.2.5
+                set ::tc_title "QTP 5.2.2.5 TP/DI/AA/BI-03-C_Write_Remote_AMP_ASSOC,invalid length of TLV"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    set invalid_tlv "0x01 0x07 0x00 0x00 0x01 0x02 0x03 0x04 0x05 0x06" ;# from test plan
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high $invalid_tlv]"
+                    UTF::Sleep 15
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+
+                    # Parse the results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1 0x12 ;# 0x12 is expected status for invalid tlv length
+                    # See PR76819, Ray says extra event is OK
+                    btamplib::parseHciPhysicalLinkComplete 0x10 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 7
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.3.1
+                set ::tc_title "QTP 5.2.3.1 TP/DI/ST/BV-01-C_Read_Link_Quality"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut 
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1\
+                        $::plh1 BE -symmetric
+                    UTF::Sleep 3
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data\
+                        0 0 1 2 3 4 5 6 7 8 9 0"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data\
+                        0 0 1 2 3 4 5 6 7 8 9 0"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data\
+                        0 0 1 2 3 4 5 6 7 8 9 0"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Link_Quality\
+                        $::plh1 0x00"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00\
+                        $::plh1 0x0000 0x01 -symmetric
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle
+                    btamplib::parseHciAclData $handle
+                    btamplib::parseHciAclData $handle
+                    btamplib::parseHciReadLinkQuality $handle
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00 $::plh1 0x0000 0x01 -symmetric
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+        }
+
+        # Physical Link tests
+        if {!$(nopl)} {
+            set ::tc_num 8
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.1.1
+                set ::tc_title "QTP 5.3.1.1 TP/PL/PLC/BV-01-C_Initiate_Physical_Link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble514Init $::btamp_ref1
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::hciPreamble5153Read $::btamp_ref1 0x00
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl\
+                        HCI_cmd Write_Connection_Accept_Timeout 0x40 0xb5"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl\
+                        HCI_cmd Write_Connection_Accept_Timeout 0x40 0xb5"
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Accept_Physical_Link_Request\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_ref1_mac $::plh1 $::country $::ch_low $::ch_high]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high ]"
+                    # Wait for write remote amp assoc to complete before doing read local amp assoc.
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC\
+                         $::plh1 0 0 0 0"
+                    set rssi [btamplib::collect_info $::btamp_dut $::btamp_ref1]
+                    UTF::Sleep 3
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciWriteConnectionAcceptTimeout
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh1
+                    set subband 1 ;# must have 1 sub-band triplet
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac $::plh1 $subband
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # NB: Test plan implies that PhysicalLinkComplete is last
+                    # item to show up, but its not.
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble514Init Ref1
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_ref1_mac 0x00
+                    btamplib::parseHciWriteConnectionAcceptTimeout
+                    btamplib::parseHciAcceptPhysicalLinkRequest
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                    return "RSSI_DUT,RSSI_Ref1: $rssi" ;# Show RSSI on web summary page
+                }
+            }
+
+            set ::tc_num 9
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.1.2
+                set ::tc_title "QTP 5.3.1.2 TP/PL/PLC/BV-02-C_Accept_Physical_Link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble514Init $::btamp_ref1
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00 
+                    btamplib::hciPreamble5153Read $::btamp_ref1 0x00
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd\
+                        Write_Connection_Accept_Timeout 0x40 0xb5"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd\
+                        Write_Connection_Accept_Timeout 0x40 0xb5"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Accept_Physical_Link_Request\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_ref1_mac $::plh1 $::country $::ch_low $::ch_high]"
+                    UTF::Sleep 10
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC\
+                         $::plh1 0 0 0 0"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+              
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciWriteConnectionAcceptTimeout
+                    btamplib::parseHciAcceptPhysicalLinkRequest
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # NB: Test plan implies that PhysicalLinkComplete is last
+                    # item to show up, but its not.
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble514Init Ref1
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_ref1_mac 0x00 
+                    btamplib::parseHciWriteConnectionAcceptTimeout
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh1
+                    set subband 1 ;# must have 1 sub-band triplet
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_ref1_mac $::plh1 $subband
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 10
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.1.3
+                set ::tc_title "QTP 5.3.1.3 TP/PL/PLC/BV-03-C_Initiate_Physical_Link,connection accept timeout"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd\
+                        Create_Physical_Link [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd\
+                        Write_Remote_AMP_ASSOC [btamplib::composeHciWriteRemoteAmpAssocHexCmd\
+                        $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high]"
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x10 $::plh1 ;# expect timeout 0x10
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 11
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.1.4
+                set ::tc_title "QTP 5.3.1.4 TP/PL/PLC/BV-04-C_Initiate_Physical_Link,no compatible channels"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble514Init $::btamp_ref1
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::hciPreamble5153Read $::btamp_ref1 0x00
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Accept_Physical_Link_Request\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    set bad_ch 0x24 ;# channel 36 in 5GHz band is not offered by remote
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $bad_ch $bad_ch]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high]"
+                    UTF::Sleep 15
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00 
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x39 $::plh1 ;# expect incompatible channel 0x39
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble514Init Ref1
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_ref1_mac 0x00 
+                    btamplib::parseHciAcceptPhysicalLinkRequest
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x10  $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 12
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.1.5
+                set ::tc_title "QTP 5.3.1.5 TP/PL/PLC/BV-05-C_Create_Physical_Link,second physical link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    btamplib::testSetup $::btamp_ref2
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    btamplib::hciPreamble514Init $::btamp_ref2
+                    # To reproduce PR76396:
+                    # 1) set ::plh2 to ::plh1
+                    # 2) in WriteRemoteAmpAssoc, use Mac addr of Ref1, not Ref2
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Physical_Link \
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh2]"
+                    btamplib::run_cmd $::btamp_ref2 "$::loc_wl HCI_cmd Accept_Physical_Link_Request\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh2]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_ref2_mac $::plh2 $::country $::ch_low $::ch_high]"
+                    btamplib::run_cmd $::btamp_ref2 "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh2 $::country $::ch_low $::ch_high]"
+                    UTF::Sleep 10 ;# Wait for Physical Link Complete
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC $::plh2 0 0 0 0"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+                    set log_ref2 [btamplib::getMessagesLog $::btamp_ref2]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh2
+                    btamplib::parseHciChannelSelected $::plh2
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh2
+                    set subband 1 ;# must have 1 sub-band triplet
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac $::plh2 $subband
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble514Init Ref1
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_ref1_mac 0x00
+                    btamplib::parseHciAcceptPhysicalLinkRequest
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref2 results
+                    btamplib::readLogFile $log_ref2 $::btamp_ref2
+                    btamplib::parseHciPreamble514Init Ref2
+                    btamplib::parseHciAcceptPhysicalLinkRequest
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh2
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh2
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 13
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.1.6
+                set ::tc_title "QTP 5.3.1.6 Test TP/PL/PLC/BI-01-C_Reject_physical_link_from_other_AMP_devices"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble514Init $::btamp_ref1
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::hciPreamble5153Read $::btamp_ref1 0x00
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd\
+                        Create_Physical_Link [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    # The QTP says to use any Mac Address except that of Ref1 or DUT,
+                    # so we use Ref2 Mac Address. Also use the minimum channel list.
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_ref2_mac $::plh1 "XXX"]"
+                    # Here we use the correct DUT Mac Address.
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 "XXX"]"
+                    UTF::Sleep 3
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd\
+                        Read_Local_AMP_ASSOC $::plh1 0 0 0 0"
+                    UTF::Sleep 15
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    set subband 1 ;# must have 1 sub-band triplet
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac  $::plh1 $subband
+                    btamplib::parseHciPhysicalLinkComplete 0x10 $::plh1;# code per TSE3349
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble514Init Ref1
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_ref1_mac 0x00
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1 0x02
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 14
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.2.1
+                set ::tc_title "QTP 5.3.2.1 TP/PL/PLD/BV-01-C_Disconnect_Physical_Link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    set reason 0x16 ;# connection terminated by local host
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd\
+                        Disconnect_Physical_Link $::plh1 $reason"
+                    UTF::Sleep 15 ;# need 10+ seconds for Ref1 to get the disconnect PR76415
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+     
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciDisconnectPhysicalLink
+                    btamplib::parseHciDisconnectPhysicalLinkComplete 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x0 $::plh1
+                    set reason 0x08 ;# wanting 0x13 was rejected, see PR76128
+                    btamplib::parseHciDisconnectPhysicalLinkComplete 0x0 $::plh1 $reason
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 15
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.2.2
+                set ::tc_title "QTP 5.3.2.2 TP/PL/PLD/BI-01-C_Disconnect_Physical_Link,invalid link handle"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    UTF::Sleep 3
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd\
+                        Disconnect_Physical_Link $::plh2 0" ;# plh2 is not valid here
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciDisconnectPhysicalLink 0x02 ;# expect Unknown Connection Id
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 16
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.3.1
+                set ::tc_title "QTP 5.3.3.1 Test TP/PL/PLS/BV-01-C_Respond to Link Supervision Request"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    UTF::Sleep 20 ;# LSTO should occur after 10 sec
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 17
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.3.3.2
+                set ::tc_title "QTP 5.3.3.2 TP/PL/PLS/BV-02-C_Generate Link Supervision Request"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE -symmetric
+                    UTF::Sleep 20
+                    btamplib::driverControl $::btamp_ref1 disable
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 0xff 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x10"
+                    UTF::Sleep 15
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00 $::plh1 0x0000 0x01 -symmetric
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciDisconnectLogicalLinkComplete 0x00 0x0000 0x08 ;# reason=timeout
+                    btamplib::parseHciDisconnectPhysicalLinkComplete 0x00 $::plh1 0x08 ;# reason=timeout
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00 $::plh1 0x0000 0x01 -symmetric
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+        }
+
+        # Logical Link tests
+        if {!$(noll)} {
+            set ::tc_num 18
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.1
+                set ::tc_title "QTP 5.4.1.1 TP/LL/LLC/BV-01-C_Initiate_logical_link_setup_of_best_effort_logical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 BE]"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciCreateLogicalLink
+                    btamplib::parseHciLogicalLinkComplete 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 19
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.2
+                set ::tc_title "QTP 5.4.1.2 TP/LL/LLC/BV-02-C_Accept_logical_link_setup_of_best_effort_logical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Accept_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 BE]"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+                    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciAcceptLogicalLinkRequest
+                    btamplib::parseHciLogicalLinkComplete 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 20
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.3
+                set ::tc_title "QTP 5.4.1.3 TP/LL/LLC/BV-03-C_Initiate_guaranteed_logical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 GU]"
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciCreateLogicalLink
+                    btamplib::parseHciLogicalLinkComplete 0x00 $::plh1 0x0000 0x03
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 21
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.4
+                set ::tc_title "QTP 5.4.1.4 TP/LL/LLC/BV-04-C_Create_Logical_Link,Accept_guaranteed_logical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Accept_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 GU]"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciAcceptLogicalLinkRequest
+                    btamplib::parseHciLogicalLinkComplete 0x00 $::plh1 0x0000 0x03
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 22
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.5
+                set ::tc_title "QTP 5.4.1.5 TP/LL/LLC/BV-05-C_Create_Logical_Link,Cancel_Logical_Link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 BE]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Logical_Link_Cancel\
+                        $::plh1 0x01"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results per option 2 in QTP
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciCreateLogicalLink
+                    btamplib::parseHciLogicalLinkComplete 0x00 $::plh1
+                    btamplib::parseHciLogicalLinkCancel 0x0b $::plh1 ;# ACL connection already exists
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 23
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.6
+                set ::tc_title "QTP 5.4.1.6 Test TP/LL/LLC/BV-06-C_Logical_Link,modify_Flow_Spec"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE -symmetric
+                    UTF::Sleep 3
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Flow_Spec_Modify\
+                         [btamplib::composeHciFlowSpecModifyHexCmd 0x0 0x0 BE_AGG]"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00 $::plh1 0x0000 0x01 -symmetric
+                    btamplib::parseHciFlowSpecModify
+                    btamplib::parseHciFlowSpecModifyComplete
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00 $::plh1 0x0000 0x01 -symmetric
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 24
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.7
+                set ::tc_title "QTP 5.4.1.7 TP/LL/LLC/BV-07-C_Create_Logical_Link,multiple_logical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE -symmetric
+                    btamplib::hciPreambleLogLink $::btamp_dut $::btamp_ref1 $::plh1 GU -symmetric
+                    UTF::Sleep 10
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data\
+                        0 0xff 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x10"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data\
+                        1 0xff 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x20"
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00 $::plh1 0x0000 0x01 -symmetric
+                    btamplib::parseHciPreambleLogLink 0x00 $::plh1 0x0001 0x03
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks 1 0x0001
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00 $::plh1 0x0000 0x01 -symmetric
+                    btamplib::parseHciPreambleLogLink 0x00 $::plh1 0x0001 0x03
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle
+                    btamplib::parseHciAclData $handle
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 25
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.8
+                set ::tc_title "QTP 5.4.1.8 TP/LL/LLC/BI-01-C_Create_Logical_Link,nonexistent_physical_link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 BE]"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciCreateLogicalLink 0x02 ;# Unknown Connection ID
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 26
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.9
+                set ::tc_title "QTP 5.4.1.9 TP/LL/LLC/BI-02-C_Create_Logical_Link,physical_link_connection_in_progress"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble514Init $::btamp_ref1
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Accept_Physical_Link_Request\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_ref1_mac $::plh1\
+                        $::country $::ch_low $::ch_high]"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 BE]"
+                    UTF::Sleep 2
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1\
+                        $::country $::ch_low $::ch_high ]"
+                    UTF::Sleep 2
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC\
+                        $::plh1 0 0 0 0"
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    btamplib::parseHciCreateLogicalLink 0x0C ;# Command Disallowed
+                    btamplib::parseHciPhysicalLinkComplete 0x00 $::plh1
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble514Init Ref1
+                    btamplib::parseHciAcceptPhysicalLinkRequest
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 27
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.1.10
+                set ::tc_title "QTP 5.4.1.10 Test TP/LL/LLC/BI-03-C_Create_Logical_Link,max bandwidth exceeded"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5151PhyLink $::btamp_dut $::btamp_ref1 $::plh1
+                    # To reproduce PR76168, change service XL to 00, which sends lots of 0's in flow spec
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Create_Logical_Link\
+                        [btamplib::composeHciCreateLogicalLinkHexCmd $::plh1 XL]"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5151PhyLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciCreateLogicalLink 0x2d
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5151PhyLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 28
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.2.1
+                set ::tc_title "QTP 5.4.2.1 Test TP/LL/LLD/BV-01-C_Disconnect_Logical_Link"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Disconnect_Logical_Link 0x0 0x0"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciDisconnectLogicalLink
+                    btamplib::parseHciDisconnectLogicalLinkComplete
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 29
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.2.2
+                set ::tc_title "QTP 5.4.2.2 TP/LL/LLD/BV-02-C_Disconnect_Logical_Link,multiple_logical_links"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5155LogLink2 $::btamp_dut $::btamp_ref1 $::plh1
+                    UTF::Sleep 2 ;# wait for connections to go thru
+                    # NB: MUST specify 2 bytes for LogicalLinkHandle in DisconnectLogicalLink command (PR76137)
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Disconnect_Logical_Link 1 0"
+                    UTF::Sleep 5 ;# ensure disconnect goes thru before data
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 0 1 2 3 4 5 6 7 8 9 0"
+                    # This step is above and beyond what the QTP asks for. Just to
+                    # be sure, we send data on the LLC that is disconnected. It should
+                    # not appear on the Ref1 side.
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 1 0 1 2 3 4 5 6 7 8 9 0"
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5155LogLink2 DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciDisconnectLogicalLink
+                    btamplib::parseHciDisconnectLogicalLinkComplete 0x00 0x0001
+                    btamplib::parseHciCompletedDataBlocks
+
+                    # See PR77834. Ray Hayes says its OK for 4325 to send CompletedDataBlock
+                    # event for the packet sent on disconnected LLH. BT Core V3 document
+                    # section 4.3, p407 on disconnection behavior kind of supports this
+                    # view. So TC29 now expects the embedded devices to send the CDB event.
+                    if {[lsearch -exact $::list_embedded $::btamp_dut] >= 0} {
+                        UTF::Message LOG $::btamp_dut "PR77834 - expect embedded devices to send CompletedDataBlock for ACL packet on disconnnected LLH"
+                        btamplib::parseHciCompletedDataBlocks 0x01 0x0001
+                    }
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 30
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.4.2.3
+                set ::tc_title "QTP 5.4.2.3 TP/LL/LLD/BI-01-C_Disconnect_Logical_Link,invalid_link_handle"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Disconnect_Logical_Link 1 0"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciDisconnectLogicalLink 0x02 ;# Unknown Connection ID
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+        }
+
+        # Data transfer tests
+        if {!$(noda)} {
+            # NB: The BTAMP QTP section 5.5.1 specifies this specific 100 byte payload
+            # be used for all data tests.
+            # NB: The wl command takes these values as decimal & converts them to hex.
+            # As workaround for PR76903, we drop the leading 0 for 08 & 09.
+            set datapayload "00 01 02 03 04 05 06 07 8 9 10\
+                11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30\
+                31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\
+                51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70\
+                71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90\
+                91 92 93 94 95 96 97 98 99"
+            # Hex pattern used to check above payload arrived intact.
+            set hex_payload "00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f\
+                10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f\
+                20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f\
+                30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f\
+                40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f\
+                50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f\
+                60 61 62 63"
+
+            set ::tc_num 31
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.5.1.1
+                set ::tc_title "QTP 5.5.1.1 TP/DA/TX/BV-01-C_Data_Transfer-send_predefined_BE_packet,QoS_not_supported"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1
+                    UTF::Sleep 2 ;# wait for connections to go thru
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0 $::plh1
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 32
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.5.1.2
+                set ::tc_title "QTP 5.5.1.2 TP/DA/TX/BV-02-C_Data_Transfer-transmit_on_guaranteed_logical_channel,QoS_supported"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1
+                    btamplib::hciPreambleLogLink $::btamp_dut $::btamp_ref1 $::plh1 GU
+                    UTF::Sleep 10
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 1 $datapayload"
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciPreambleLogLink 0x00 $::plh1 0x0001 0x03
+                    btamplib::parseHciCompletedDataBlocks 1 0x0001
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0 $::plh1
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 33
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.5.1.3
+                set ::tc_title "5.5.1.3 TP/DA/TX/BV-03-C_Data_Transfer-transmit,multiple_physical_links"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    btamplib::testSetup $::btamp_ref2
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5154PhyLink2LogLink $::btamp_dut $::btamp_ref1\
+                        $::btamp_ref2 $::plh1 $::plh2 BE BE -symmetric
+                    # Here we add 1 extra byte of data to make each packet unique
+                    # so we can verify the right packet went to the right place.
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload 01" ;# to Ref1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 1 $datapayload 02" ;# to Ref2
+
+                    # These steps are above and beyond the QTP requirements.
+                    # It would be useful to verify data packets can also 
+                    # be sent in the opposite direction from Ref1/2 to DUT.
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data 0 $datapayload 03"
+                    btamplib::run_cmd $::btamp_ref2 "$::loc_wl HCI_ACL_data 0 $datapayload 04"
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Failed_Contact_Counter 0 0"
+                    UTF::Sleep 1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Reset_Failed_Contact_Counter 0 0"
+
+                    # Turn on for complete test of data transparency
+                    # btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0\
+                    100 101 102 103 104 105 106 107 108 109\
+                    110 111 112 113 114 115 116 117 118 119\
+                    120 121 122 123 124 125 126 127 128 129\
+                    130 131 132 133 134 135 136 137 138 139\
+                    140 141 142 143 144 145 146 147 148 149\
+                    150 151 152 153 154 155 156 157 158 159\
+                    160 161 162 163 164 165 166 167 168 169\
+                    170 171 172 173 174 175 176 177 178 179\
+                    180 181 182 183 184 185 186 187 188 189\
+                    190 191 192 193 194 195 196 197 198 199\
+                    200 201 202 203 204 205 206 207 208 209\
+                    210 211 212 213 214 215 216 217 218 219\
+                    220 221 222 223 224 225 226 227 228 229\
+                    230 231 232 233 234 235 236 237 238 239\
+                    240 241 242 243 244 245 246 247 248 249\
+                    250 251 252 253 254 255"
+
+                    UTF::Sleep 20
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+                    set log_ref2 [btamplib::getMessagesLog $::btamp_ref2]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00\
+                        $::plh1 0x0000 0x01;# PLH1 LLH1
+                    # NB need to parse PLH2 without the reset sequence, use: -noiutinit
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00\
+                        $::plh2 0x0001 0x01 -noiutinit ;# PLH2 LLH2
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks 1 0x0001
+
+                    # Check each unique packet arrived in the correct place
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    set handle1 "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle1 0x03 "$hex_payload 03" 
+                    set handle2 "0x00[string range $::plh2 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle2 0x03 "$hex_payload 04"
+                    btamplib::parseHciReadFailedContactCounter
+                    btamplib::parseHciResetFailedContactCounter
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00\
+                        $::plh1 0x0000 0x01 -symmetric
+                    # Check each unique packet arrived in the correct place
+                    btamplib::parseHciAclData $handle1 0x03 "*$hex_payload 01"
+                    UTF::Message LOG $::btamp_ref1 "Extra items above and beyond what the QTP wants"
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref2 results
+                    btamplib::readLogFile $log_ref2 $::btamp_ref2
+                    btamplib::parseHciPreamble5152LogLink Ref2 $::btamp_ref2_mac 0x00\
+                        $::plh2 0x0000 0x01 -symmetric
+                    # Check each unique packet arrived in the correct place
+                    btamplib::parseHciAclData $handle2 0x03 "$hex_payload 02"
+                    UTF::Message LOG $::btamp_ref2 "Extra items above and beyond what the QTP wants"
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 34
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                set ::tc_title "QTP 5.5.1.4 TP/DA/TX/BI-01-C_Data_Transfer-invalid_logical_link"
+                # Reference: BT 802.11 PAL Test Specification section 5.5.1.4
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1
+                    UTF::Sleep 5
+                    # NB: 0xAA == d.170, 0xBB == d.187, 0xCC == d.204
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 170 170\
+                        170 170 170 170 170 170 170 170" ;# AA
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 1 187 187\
+                        187 187 187 187 187 187 187 187" ;# BB - invalid LLH, will be discarded
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 204 204\
+                        204 204 204 204 204 204 204 204" ;# CC
+                    UTF::Sleep 10
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciCompletedDataBlocks ;# for packet "aa"
+                    # See PR77834 & PR77835. TC34 now expects the embedded devices to send the
+                    # CDB event for packet with "bb".
+                    if {[lsearch -exact $::list_embedded $::btamp_dut] >= 0} {
+                        UTF::Message LOG $::btamp_dut "PR77835 - expect embedded devices to send CompletedDataBlock for ACL packet on invalid LLH"
+                        btamplib::parseHciCompletedDataBlocks 0x01 0x0001 ;# for packet "bb"
+                    }
+                    btamplib::parseHciCompletedDataBlocks ;# for packet "cc"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0 $::plh1
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "aa aa aa aa aa aa aa aa aa aa"
+                    # Packet with "bb" should not be received
+                    btamplib::parseHciAclData $handle 0x03 "cc cc cc cc cc cc cc cc cc cc"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 35
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.5.2.1
+                set ::tc_title "QTP 5.5.2.1 TP/DA/RX/BV-01-C_Data_Transfer-received_predefined_BE_packet,QoS_not_supported"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    # If -symmetric option not used, Ref1 wont be able to send data.
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1\
+                        $::plh1 BE -symmetric
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00\
+                        $::plh1 0x0000 0x01 -symmetric
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 36
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.5.2.2
+                set ::tc_title "QTP 5.5.2.2 TP/DA/RX/BV-02-C_Data_Transfer-receive_on_guaranteed_logical_channel,QoS_supported"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    # If -symmetric option not used, Ref1 wont be able to send data.
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 GU -symmetric
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+    
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00\
+                        $::plh1 0x0000 0x03
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+    
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00\
+                        $::plh1 0x0000 0x03 -symmetric
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 37
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.2.3, p79
+                set ::tc_title "QTP 5.5.2.3 TP/DA/RX/BV-03-C_Data_Transfer-received_predefined_BE_packet,QoS_supported"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    # If -symmetric option not used, Ref1 wont be able to send data.
+                    btamplib::hciPreamble5155LogLink2 $::btamp_dut $::btamp_ref1 $::plh1 GU -symmetric
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5155LogLink2 DUT $::btamp_dut_mac 0x0 $::plh1
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5155LogLink2 Ref1 $::btamp_ref1_mac 0x00\
+                        $::plh1 0x0000 0x0001 0x01 0x03 -symmetric
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 38
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.2.4
+                set ::tc_title "QTP 5.5.2.4 TP/DA/RX/BV-04-C_Data_Transfer-receive,multiple_physical_links"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    btamplib::testSetup $::btamp_ref2
+                    UTF::snifferCtl start yes
+                    btamplib::hciPreamble5154PhyLink2LogLink $::btamp_dut $::btamp_ref1\
+                        $::btamp_ref2 $::plh1 $::plh2 BE BE -symmetric
+                    # Here we add 1 extra byte of data to make each packet unique
+                    # so we can verify the right packet went to the right place.
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_ACL_data 0 $datapayload 01"
+                    btamplib::run_cmd $::btamp_ref2 "$::loc_wl HCI_ACL_data 0 $datapayload 02"
+                    UTF::Sleep 5
+
+                    # These steps are above and beyond the QTP requirements.
+                    # It would be useful to verify data packets can also 
+                    # be sent in the opposite direction from DUT to Ref1/2.
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload 03"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 1 $datapayload 04"
+
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+                    set log_ref2 [btamplib::getMessagesLog $::btamp_ref2]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00\
+                        $::plh1 0x0000 0x01;# PLH1 LLH1
+                    # NB need to parse PLH2 without the reset sequence, use: -noiutinit
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00\
+                        $::plh2 0x0001 0x01 -noiutinit ;# PLH2 LLH2
+                    # Check each unique packet arrived in the correct place
+                    set handle1 "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle1 0x03 "$hex_payload 01"
+                    set handle2 "0x00[string range $::plh2 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle2 0x03 "$hex_payload 02"
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks 1 0x0001
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x00\
+                        $::plh1 0x0000 0x01 -symmetric
+                    btamplib::parseHciCompletedDataBlocks
+                    UTF::Message LOG $::btamp_ref1 "Extra items above and beyond what the QTP wants"
+                    btamplib::parseHciAclData $handle1 0x03 "$hex_payload 03"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref2 results
+                    btamplib::readLogFile $log_ref2 $::btamp_ref2
+                    btamplib::parseHciPreamble5152LogLink Ref2 $::btamp_ref2_mac 0x00\
+                        $::plh2 0x0000 0x01 -symmetric
+                    btamplib::parseHciCompletedDataBlocks
+                    UTF::Message LOG $::btamp_ref2 "Extra items above and beyond what the QTP wants"
+                    btamplib::parseHciAclData $handle2 0x03 "$hex_payload 04"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 39
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.3.1
+                set ::tc_title "QTP 5.5.3.1 TP/DA/BU/BV-01-C_Data_Transfer,Data_Flush"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    # Dont run TC if there is no attenuator.
+                    if {$attn_grp == ""} {
+                        btamplib::logError $::localhost "Need attenuator for DUT or REF1 for this testcase to run."
+                        btamplib::tc_result
+                        return
+                    }
+
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    # Use -symmetric option or links timeout.
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE -symmetric
+                    UTF::Sleep 5
+                    # Stop all RF, including ACKs
+                    $attn_grp attn $::attn_max
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Enhanced_Flush 00 00 00"
+                    UTF::Sleep 1
+                    # Restore RF.
+                    $attn_grp attn $attn_val
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x00 $::plh1
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciEnhancedFlush
+                    btamplib::parseHciEnhancedFlushComplete
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0\
+                        $::plh1 0x0000 0x01 -symmetric
+                    # NB: Data should have been flushed at DUT side, so we
+                    # do NOT want any data to show up at the Ref1 side.
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 40
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.3.2
+                set ::tc_title "QTP 5.5.3.2 TP/DA/BU/BV-02-C_Flush_Timeout"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    # Dont run TC if there is no attenuator.
+                    if {$attn_grp == ""} {
+                        btamplib::logError $::localhost "Need attenuator for DUT or REF1 for this testcase to run."
+                        btamplib::tc_result
+                        return
+                    }
+
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    # Use -symmetric option or links timeout.
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 GU -symmetric
+                    UTF::Sleep 5
+
+                    # In order to make the flush timer actually expire, which is the whole 
+                    # purpose of this test, we need to do 2 things:
+                    # 1) We stop the 802.11 ACKs from REF1 side. We do this by disconnecting
+                    #    the RF media temporarily using the variable attenuator.
+                    # 2) The short 100 byte packet gets retransmited up to 15 times. When the
+                    #    RF media is running at 54Mb/s, the 15 retransmits can occur within
+                    #    2 milliseconds. Since the flush timer is set to 10,000 microseconds
+                    #    == 10 milliseconds, we need to drag out the retransmit process so
+                    #    that the flush timer will expire while the packet is still in the 
+                    #    DUT buffer. The dragging out is done by lowering the RF media speed
+                    #    to 1Mb/s. This slows down the 15 retransmits and the 10 ms flush timer
+                    #    actually does expire as we want it to. If we didnt do this, we would
+                    #    not receive the Flush Occurred Event.
+                    # NB: The Completed Data Block Event simply means that we are done processing
+                    #    this packet, regardless of successfull transmission or flush. The 
+                    #    actual status of the packet is not included in the Event. The upper
+                    #    layer protocols are expected to sort out what happened and initiate
+                    #    appropriate recovery action.
+                    $attn_grp attn $::attn_max ;# turn off RF via attenuator
+
+                    # set speed to 1Mb/s
+                    set band [btamplib::run_cmd $::btamp_dut "$::loc_wl band"]
+                    if {$band == "b" || $band == "auto"} {
+                        btamplib::run_cmd $::btamp_dut "$::loc_wl bg_rate 1"
+                    } else {
+                        btamplib::run_cmd $::btamp_dut "$::loc_wl a_rate 1"
+                    }
+
+                    # Send 1 data packet.
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 1
+                    # Restore RF.
+                    $attn_grp attn $attn_val
+                    UTF::Sleep 2
+
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Failed_Contact_Counter 0 0"
+                    UTF::Sleep 1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Reset_Failed_Contact_Counter 0 0"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x0\
+                        $::plh1 0x0000 0x03
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciFlushOccurred
+
+                    UTF::Message LOG $::btamp_dut "Extra items above and beyond what the QTP wants"
+                    btamplib::parseHciReadFailedContactCounter
+                    btamplib::parseHciResetFailedContactCounter
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0\
+                        $::plh1 0x0000 0x03 -symmetric
+                    # NB: Data should have been flushed at DUT side, so we
+                    # do NOT want any data to show up at the Ref1 side.
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 41
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.3.3
+                set ::tc_title "QTP 5.5.3.3 TP/DA/BU/BV-03-C_Read_Data_Block_Size_Command"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    # Use -symmetric option or links timeout.
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE -symmetric
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Data_Block_Size"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 5
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciReadDataBlockSize
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0\
+                       $::plh1 0x0000 0x01 -symmetric
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload" 
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+        }
+
+        # Other tests
+        if {!$(noot)} {
+
+            set ::tc_num 42
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.4.1
+                set ::tc_title "QTP 5.5.4.1 TP/OT/AR/BV-01-C_Receive_traffic_report"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    # Use -symmetric option or links timeout.
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE -symmetric
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+
+                    # Trigger the activity report
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl btamp_act_report 0"
+                    UTF::Sleep 2
+
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 3
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0\
+                        $::plh1 0x0000 0x01 -symmetric
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload" 
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload"
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 43
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.4.2
+                set ::tc_title "QTP 5.5.4.2 TP/OT/AR/BV-02-C_Schedule_using_Activity_Report"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::logError "" "Scheduled Activity Report is not supported functionality"
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            set ::tc_num 44
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: QTP section 5.5.4.3
+                set ::tc_title "QTP 5.5.4.3 TP/OT/SRM/BV-01-C_Short_Range_Mode"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    UTF::snifferCtl start yes
+                    # Use -symmetric option or links timeout.
+                    btamplib::hciPreamble5152LogLink $::btamp_dut $::btamp_ref1 $::plh1 BE -symmetric
+                    set rssi1 [btamplib::collect_info $::btamp_dut $::btamp_ref1]
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Short_Range_Mode\
+                        $::plh1 0x01"
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_ACL_data 0 $datapayload"
+                    UTF::Sleep 5
+                    set rssi2 [btamplib::collect_info $::btamp_dut $::btamp_ref1]
+                    UTF::snifferCtl stop yes
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble5152LogLink DUT $::btamp_dut_mac 0x0 $::plh1
+                    btamplib::parseHciShortRangeMode
+                    btamplib::parseHciShortRangeModeChangeComplete 0x0 $::plh1
+                    btamplib::parseHciCompletedDataBlocks
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble5152LogLink Ref1 $::btamp_ref1_mac 0x0\
+                        $::plh1 0x0000 0x01 -symmetric
+                    set handle "0x00[string range $::plh1 2 3]" ;# insert leading 00
+                    btamplib::parseHciAclData $handle 0x03 "$hex_payload" 
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                    return "RSSI_DUT,RSSI_Ref1 before: $rssi1 after: $rssi2" ;# Show RSSI on web summary page
+                }
+            }
+
+            # Test not in QTP, covers case of invalid country code in NVRAM, PR101159. Based on TC8.
+            set ::tc_num 45
+            set ::saved_country $::country ;# need to restore later
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                set ::country XV ;# invalid country code
+                set ::tc_title "OT Invalid country code $::country in NVRAM"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    btamplib::testSetup $::btamp_ref1
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl country $::country"
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl country"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl country $::country"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl country"
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::hciPreamble514Init $::btamp_ref1
+                    btamplib::hciPreamble5153Read $::btamp_dut 0x00
+                    btamplib::hciPreamble5153Read $::btamp_ref1 0x00
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl\
+                        HCI_cmd Write_Connection_Accept_Timeout 0x40 0xb5"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl\
+                        HCI_cmd Write_Connection_Accept_Timeout 0x40 0xb5"
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl HCI_cmd Create_Physical_Link\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Accept_Physical_Link_Request\
+                        [btamplib::composeHciCreatePhysicalLinkHexCmd $::plh1]"
+                    # The STA driver converts the invalid XV in NVRAM to XXX.
+                    # BUT the driver will NOT accept XV in the HCI commands,
+                    # so we use XXX for remainder of test.
+                    set ::country XXX
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_ref1_mac $::plh1 $::country $::ch_low $::ch_high]"
+                    btamplib::run_cmd $::btamp_ref1 "$::loc_wl HCI_cmd Write_Remote_AMP_ASSOC\
+                        [btamplib::composeHciWriteRemoteAmpAssocHexCmd $::btamp_dut_mac $::plh1 $::country $::ch_low $::ch_high ]"
+                    # Wait for write remote amp assoc to complete before doing read local amp assoc.
+                    UTF::Sleep 5
+                    btamplib::run_cmd $::btamp_dut  "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC\
+                         $::plh1 0 0 0 0"
+                    UTF::Sleep 3
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+                    set log_ref1 [btamplib::getMessagesLog $::btamp_ref1]
+
+                    # Parse the DUT results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_dut_mac 0x00
+                    btamplib::parseHciWriteConnectionAcceptTimeout
+                    btamplib::parseHciCreatePhysicalLink
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciChannelSelected $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh1
+                    set subband 1 ;# must have 1 sub-band triplet
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac $::plh1 $subband
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # NB: Test plan implies that PhysicalLinkComplete is last
+                    # item to show up, but its not.
+
+                    # Parse the Ref1 results
+                    btamplib::readLogFile $log_ref1 $::btamp_ref1
+                    btamplib::parseHciPreamble514Init Ref1
+                    btamplib::parseHciPreamble5153Read 0x$::btamp_ref1_mac 0x00
+                    btamplib::parseHciWriteConnectionAcceptTimeout
+                    btamplib::parseHciAcceptPhysicalLinkRequest
+                    btamplib::parseHciWriteRemoteAmpAssoc $::plh1
+                    btamplib::parseHciPhysicalLinkComplete 0x0 $::plh1
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }
+
+            # New test case added for Sai for 80211.TS/4.0.4 08/03/2012
+            # This test case is similar to 5.2.2.1 
+            set ::tc_num 46
+            if {[lsearch -exact $::TC $::tc_num] >= 0} {
+                # Reference: BT 802.11 PAL Test Specification section 5.2.2.6
+                set ::tc_title "QTP 5.2.2.6 TP/DI/AA/BV-03-C_Read_Local_AMP_ASSOC"
+                UTF::Try "TC$::tc_num $::tc_title" {
+                    btamplib::testSetup $::btamp_dut
+                    UTF::snifferCtl start $::btamp_sniffer_trace
+                    btamplib::hciPreamble514Init $::btamp_dut
+                    btamplib::run_cmd $::btamp_dut "$::loc_wl HCI_cmd Read_Local_AMP_ASSOC\
+                        0 0 0 0 0"
+                    UTF::Sleep 2
+                    UTF::snifferCtl stop $::btamp_sniffer_trace
+                    set log_dut [btamplib::getMessagesLog $::btamp_dut]
+
+                    # Parse the results
+                    btamplib::readLogFile $log_dut $::btamp_dut
+                    btamplib::parseHciPreamble514Init DUT
+                    btamplib::parseHciReadLocalAmpAssoc 0x$::btamp_dut_mac
+                    btamplib::getNextHciItem EOF ;# nothing more is expected
+
+                    # Declare the testcase pass/fail result.
+                    btamplib::tc_result
+                }
+            }	
+
+            # Restore country code.
+            set ::country $::saved_country
+            btamplib::run_cmd $::btamp_dut "$::loc_wl country $::country"
+            btamplib::run_cmd $::btamp_ref1 "$::loc_wl country $::country"
+        }
+
+        # Show total warnings on web summary page.
+        if {$::warnings > 0} {
+            UTF::Try "Warnings: $::warnings" {
+                # Put list of all warnings in one place for easy viewing.
+                set temp [split $::warning_list "\n"]
+                foreach item $temp {
+                    UTF::Message WARN "" "$item"
+                }
+                return
+            }
+        }
+
+        # If any of the DebugView log files is getting too large,
+        # clean them up.
+        # set ::clean_dbgview_logs "yes" ;# test code
+        if {$::clean_dbgview_logs == "yes"} {
+            set ::tc_errors 0
+            UTF::Try "Clean up large DebugView logs" {
+                # Do all hosts as a group. That way if human intervention
+                # is required, the human can go fix all issues in one shot,
+                # rather than fix one, run the script again, go fix another...
+                foreach host "$::btamp_dut $::btamp_ref1 $::btamp_ref2 $host_list" {
+                    # Ignore Linux objects.
+                    set type [UTF::check_host_type $host]
+                    if {$type != "Cygwin" && $type != "WinDHD"} {
+                        UTF::Message LOG "" "skipping DebugView cleanup $host type=$type"
+                        continue
+                    }
+
+                    UTF::Message LOG "$host" "\nCleaning up DebugView log files on $host\n"
+                    btamplib::deleteDebugViewLog $host
+                }
+                if {$::tc_errors == 0} {
+                    return
+                } else {
+                    error "$::tc_errors errors"
+                }
+            }
+        }
+
+        # If necessary, cleanup from final testcase that ran. If a PC crashed, or
+        # UTF found an error message, the testcase may not have completed normally
+        # by calling tc_result.
+        if {$::tc_state != ""} {
+            lappend ::tc_fail_list $::tc_state
+            incr ::tc_fail
+            UTF::Message LOG "" "btampqtp.test previous TC $::tc_state did not\
+                complete normally, added to tc_fail_list"
+        }
+        set ::tc_state ""
+
+        # Show fail list on web summary page
+        set temp $::tc_fail_list ;# Save before modifications below.
+        if {$::tc_fail_list != "" } {
+            UTF::Try "TC fail list" {
+                # Add TC 0 to tc_fail_list, which triggers additional checks & cleanup
+                # when the higher level script does its retry of failed TC.
+                set ::tc_fail_list "0 $::tc_fail_list"
+                error "TC: $temp"
+            }
+        }
+
+        # Show final statistics on users terminal
+        UTF::Message LOG "" "\n\nAll done, $::tc_pass PASS, $::tc_fail FAIL,\
+            $::errors error(s), $::warnings warning(s), tc_fail_list=$temp\n\n"
+
+        # Restore original pwd
+        cd $::saved_pwd
+
+    # End of code block for UTF::WrapSummary
+    }
+# End of code block for UTF::Test
+}

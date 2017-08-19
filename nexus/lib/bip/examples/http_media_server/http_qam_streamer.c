@@ -93,6 +93,7 @@ typedef struct AppStreamerCtx
     AppCtx                      *pAppCtx;
     bool                        endOfStreamerRcvd;  /* We have received End of Streaming event for this Streamer. */
     const char                  *pUrlPath;          /* Cached URL */
+    BIP_StringHandle            hTarget;
     const char                  *pMethodName;       /* HTTP Request Method Name */
     BIP_HttpStreamerHandle      hHttpStreamer;      /* Cached Streamer handle */
     BIP_StreamerStreamInfo      streamerStreamInfo; /* StreamerStreamInfo structure will be populated from mediaInfo structure received from hMediaInfo object.*/
@@ -105,6 +106,7 @@ typedef struct AppStreamerCtx
     bool                        enableXcode;
     char                        *xcodeProfile;
     bool                        enableTransportTimestamp;
+    unsigned                    trackGroupId;       /* For MPEG2-TS this specifies the program_number. */
 } AppStreamerCtx;
 
 #define USER_INPUT_BUF_SIZE 64
@@ -220,6 +222,66 @@ error:
     untuneAndReleaseFrontend( hFrontend, parserBand );
     return ( rc );
 } /* acquireAndTuneFrontend */
+
+#define PROGRAM   "Program"
+/* Parse the url and extract the query string parameters like Program and Pacing information. */
+static BIP_Status parseUrl(
+    const char *pUrl,
+    AppStreamerCtx          *pAppStreamerCtx,
+    BIP_StringHandle        hTarget
+    )
+{
+    BIP_Status              bipStatus = BIP_SUCCESS;
+    char *saveptr1;
+    char *pTempChar1 = NULL;
+    char *pTempChar2 = NULL;
+    char *pLocalCopy= strdup(pUrl);
+
+    pTempChar1 = strstr(pLocalCopy, "?");
+    if(pTempChar1 == NULL) {
+        bipStatus = BIP_String_StrcpyChar(hTarget, pUrl);
+        BIP_CHECK_GOTO(( bipStatus==BIP_SUCCESS ), ( "BIP_String_StrcpyChar() Failed" ), end, BIP_ERR_CREATE_FAILED, bipStatus );
+        BDBG_MSG(("Query string not available"));
+        goto end;
+    }
+    bipStatus = BIP_String_StrcpyCharN(hTarget, pUrl, (pTempChar1 - pLocalCopy));
+    BIP_CHECK_GOTO(( bipStatus==BIP_SUCCESS ), ( "BIP_String_StrcpyChar() Failed" ), end, BIP_ERR_CREATE_FAILED, bipStatus );
+
+    pTempChar1++;
+
+    pTempChar1 = strtok_r(pTempChar1, "=&", &saveptr1);
+    if(pTempChar1 == NULL)
+    {
+       BDBG_MSG((BIP_MSG_PRE_FMT "Query string not available" BIP_MSG_PRE_ARG));
+       goto end;
+    }
+
+    while(pTempChar1 != NULL)
+    {
+       if(!strcasecmp(pTempChar1, PROGRAM))
+       {
+           pTempChar2 = strtok_r(NULL, "=&", &saveptr1);
+           if(pTempChar2 == NULL)
+           {
+              BDBG_MSG((BIP_MSG_PRE_FMT "Incomplete Query string" BIP_MSG_PRE_ARG));
+              goto end;
+           }
+           pAppStreamerCtx->trackGroupId = strtol(pTempChar2, NULL, 10);
+
+           BDBG_MSG((BIP_MSG_PRE_FMT "QueryString: trackGroupId = %d" BIP_MSG_PRE_ARG, pAppStreamerCtx->trackGroupId));
+       }
+       else
+       {
+           BDBG_WRN(("TODO: not yet parsing query string parameter =%s", pTempChar1));
+           bipStatus = BIP_INF_NOT_AVAILABLE;
+           break;
+       }
+       pTempChar1 = strtok_r(NULL, "=&", &saveptr1);
+    }
+end:
+    free(pLocalCopy);
+    return bipStatus;
+}
 
 static void endOfStreamCallbackFromBip(
     void *context,
@@ -356,10 +418,21 @@ static BIP_Status startStreamer(
         if(pMediaInfoStream->numberOfTrackGroups != 0)
         {
             trackGroupPresent = true;
-            if( pAppStreamerCtx->pAppCtx->trackGroupId != 0)
+            unsigned trackGroupId = 0;
+
+            if (pAppStreamerCtx->trackGroupId)
+            {
+                trackGroupId = pAppStreamerCtx->trackGroupId;
+            }
+            else if (pAppStreamerCtx->pAppCtx->trackGroupId)
+            {
+                trackGroupId = pAppStreamerCtx->pAppCtx->trackGroupId;
+            }
+
+            if (trackGroupId)
             {
                 /* Get Track Group by Id.*/
-                 pMediaInfoTrackGroup = BIP_MediaInfo_GetTrackGroupById(  pAppStreamerCtx->pAppCtx->hMediaInfo, pAppStreamerCtx->pAppCtx->trackGroupId );
+                 pMediaInfoTrackGroup = BIP_MediaInfo_GetTrackGroupById( pAppStreamerCtx->pAppCtx->hMediaInfo, trackGroupId );
                  responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
                  BIP_CHECK_GOTO( (pMediaInfoTrackGroup != NULL), ("BIP_MediaInfo_GetTrackGroupById() Failed"), rejectRequest, BIP_ERR_INTERNAL, bipStatus);
             }
@@ -592,6 +665,8 @@ static void processHttpRequestEvent(
 
         /* Process the received Request, start w/ the Method */
         {
+            const char *pTmpUrlPath;
+
             /* Note: app may retrieve various HTTP Headers from the Request using BIP_HttpRequest_GetHeader. */
             bipStatus = BIP_HttpRequest_GetMethod( hHttpRequest, &method, &pAppStreamerCtx->pMethodName );
             responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
@@ -604,10 +679,18 @@ static void processHttpRequestEvent(
                     rejectRequest, BIP_ERR_INVALID_REQUEST_TARGET, bipStatus );
 
             /* Retrieve the requested URL */
-            bipStatus = BIP_HttpRequest_GetTarget( hHttpRequest, &pAppStreamerCtx->pUrlPath );
+            bipStatus = BIP_HttpRequest_GetTarget( hHttpRequest, &pTmpUrlPath);
             responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpRequest_GetTarget Failed" ), rejectRequest, bipStatus, bipStatus );
 
+            /* Parse the url and extract the query string parameters like Program and Pacing information. It also extracts and adds the target's realtive path in hTarget.*/
+            pAppStreamerCtx->hTarget = BIP_String_Create();
+            BIP_CHECK_GOTO(( pAppStreamerCtx->hTarget ), ( "BIP_String_Create() Failed" ), rejectRequest, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+            bipStatus = parseUrl(pTmpUrlPath, pAppStreamerCtx, pAppStreamerCtx->hTarget);
+            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "parseUrl Failed" ), rejectRequest, bipStatus, responseStatus );
+
+            pAppStreamerCtx->pUrlPath = BIP_String_GetString(pAppStreamerCtx->hTarget);
         }
 
         /* All is well, so Start Streamer */
@@ -618,6 +701,8 @@ static void processHttpRequestEvent(
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "AppStreamerCtx %p: Streaming is started!" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx));
         }
+        if (pAppStreamerCtx->hTarget) BIP_String_Destroy(pAppStreamerCtx->hTarget);
+        pAppStreamerCtx->hTarget = NULL;
         continue;
 
 rejectRequest:
@@ -625,6 +710,8 @@ rejectRequest:
         rejectRequestAndSetResponseHeaders( pAppStreamerCtx->pAppCtx, hHttpRequest, responseStatus );
         if (pAppStreamerCtx)
         {
+            if (pAppStreamerCtx->hTarget) BIP_String_Destroy(pAppStreamerCtx->hTarget);
+            pAppStreamerCtx->hTarget = NULL;
             B_Os_Free(pAppStreamerCtx);
             pAppStreamerCtx = NULL;
         }
@@ -635,6 +722,8 @@ error:
     if (pAppStreamerCtx)
     {
         if (pAppStreamerCtx->hHttpStreamer) stopAndDestroyStreamer( pAppStreamerCtx );
+        if (pAppStreamerCtx->hTarget) BIP_String_Destroy(pAppStreamerCtx->hTarget);
+        pAppStreamerCtx->hTarget = NULL;
         B_Os_Free(pAppStreamerCtx);
         pAppStreamerCtx = NULL;
     }
@@ -797,7 +886,7 @@ static BIP_Status initHttpServer(
         BIP_HttpServerStartSettings httpServerStartSettings;
 
         BIP_HttpServer_GetDefaultStartSettings(&httpServerStartSettings);
-        BDBG_MSG(("%s: Starting HttpServer...", __FUNCTION__));
+        BDBG_MSG(("%s: Starting HttpServer...", BSTD_FUNCTION));
         httpServerStartSettings.pPort = BIP_String_GetString( pAppCtx->hPort );
         if (pAppCtx->enableDtcpIp)
         {
@@ -852,6 +941,7 @@ BIP_Status parseOptions(
     int i;
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
 
+    pAppCtx->mode = 256;
     for (i=1; i<argc; i++)
     {
         if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )

@@ -1,0 +1,29 @@
+#ifdef BWL_SRC
+
+#ifdef LINUX_SRC
+src/wps/common/include/wps_openssl.h
+src/include/bcmcrypto/bn.h
+src/include/bcmcrypto/dh.h
+src/include/bcmcrypto/sha256.h
+src/include/bcmcrypto/hmac_sha256.h
+src/bcmcrypto/dh.c
+src/bcmcrypto/bn.c
+src/bcmcrypto/bn_lcl.h
+src/bcmcrypto/sha256.c
+src/bcmcrypto/md32_common.h
+src/bcmcrypto/hmac-sha256.c
+src/bcmcrypto/random.c
+src/apps/bwl/linux/GNUmakefile
+src/apps/bwl/linux/bwl.c
+src/apps/bwl/linux/bwl.h
+src/apps/bwl/linux/bwl_api.doc
+src/apps/bwl/linux/bwl_linux.c
+src/apps/bwl/linux/bwl_utils.c
+src/apps/bwl/linux/bwl_wps_enr.c
+src/apps/bwl/linux/bwl_wps_libs.mk
+src/apps/bwl/linux/bwltest.c
+src/apps/bwl/linux/bwlver.sh
+src/apps/bwl/linux/bwlver.h.in
+src/apps/bwl/linux/MakeVersion
+#endif
+#endif

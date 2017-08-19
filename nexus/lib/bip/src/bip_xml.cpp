@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -529,7 +529,7 @@ BIP_Status BIP_XmlElem_AddAttrInt(
     BIP_StringHandle hString = NULL;
 
     hString = BIP_String_CreateFromPrintf("%d",value);
-    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", __FUNCTION__ ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", BSTD_FUNCTION ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BIP_XmlElem_AddAttr(xmlElem, name, BIP_String_GetString(hString));
 
@@ -551,7 +551,7 @@ BIP_Status BIP_XmlElem_AddAttrUnsigned(
     BIP_StringHandle hString = NULL;
 
     hString = BIP_String_CreateFromPrintf("%u",value);
-    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", __FUNCTION__ ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", BSTD_FUNCTION ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BIP_XmlElem_AddAttr(xmlElem, name, BIP_String_GetString(hString));
 
@@ -574,7 +574,7 @@ BIP_Status BIP_XmlElem_AddAttrFloat(
     BIP_StringHandle hString = NULL;
 
     hString = BIP_String_CreateFromPrintf("%f",value);
-    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", __FUNCTION__ ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", BSTD_FUNCTION ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BIP_XmlElem_AddAttr(xmlElem, name, BIP_String_GetString(hString));
 
@@ -597,7 +597,7 @@ BIP_Status BIP_XmlElem_AddAttrInt64(
     BIP_StringHandle hString = NULL;
 
     hString = BIP_String_CreateFromPrintf("%lld",value);
-    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", __FUNCTION__ ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", BSTD_FUNCTION ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BIP_XmlElem_AddAttr(xmlElem, name, BIP_String_GetString(hString));
 
@@ -620,7 +620,7 @@ BIP_Status BIP_XmlElem_AddAttrUnsigned64(
     BIP_StringHandle hString = NULL;
 
     hString = BIP_String_CreateFromPrintf("%llu",value);
-    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", __FUNCTION__ ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", BSTD_FUNCTION ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BIP_XmlElem_AddAttr(xmlElem, name, BIP_String_GetString(hString));
 
@@ -645,12 +645,12 @@ BIP_Status BIP_XmlElem_AddAttrBool(
     if(true == value)
     {
         hString = BIP_String_CreateFromPrintf("%s","true");
-        BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", __FUNCTION__ ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+        BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", BSTD_FUNCTION ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
     }
     else
     {
         hString = BIP_String_CreateFromPrintf("%s","false");
-        BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", __FUNCTION__ ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+        BIP_CHECK_GOTO((hString ), ( "%s:BIP_String_CreateFromPrintf failed \n", BSTD_FUNCTION ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
     }
 
     BIP_XmlElem_AddAttr(xmlElem, name, BIP_String_GetString(hString));

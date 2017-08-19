@@ -61,10 +61,8 @@ NEXUS_Error NEXUS_PictureCtrl_P_ApplySetSettings( NEXUS_VideoWindowHandle window
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_PictureCtrlContext  *pContext;
-    BVDC_Window_Handle  windowVDC;
 
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
-    windowVDC = window->vdcState.window;
     pContext = &(window->picContext);
 
     /* Apply Color settings */

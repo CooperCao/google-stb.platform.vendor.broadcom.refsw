@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -284,6 +284,7 @@ typedef struct bmkv_TrackEntryVideo {
     unsigned AspectRatioType;
     unsigned ColourSpace;
     bmkv_float GammaValue;
+    bmkv_data Colour;
     struct {
         bool FlagInterlaced;
         bool StereoMode;
@@ -299,6 +300,7 @@ typedef struct bmkv_TrackEntryVideo {
         bool AspectRatioType;
         bool ColourSpace;
         bool GammaValue;
+        bool Colour;
     } validate;
 } bmkv_TrackEntryVideo;
 
@@ -467,6 +469,64 @@ typedef struct bmkv_Tracks {
 #define BMKV_ATTACHMENT_ID 0x1941A469
 #define BMKV_CHAPTERS_ID 0x1043A770
 
+typedef struct bmkv_TrackEntryVideoColourMasteringMetadata {
+    bmkv_float PrimaryRChromaticityX;
+    bmkv_float PrimaryRChromaticityY;
+    bmkv_float PrimaryGChromaticityX;
+    bmkv_float PrimaryGChromaticityY;
+    bmkv_float PrimaryBChromaticityX;
+    bmkv_float PrimaryBChromaticityY;
+    bmkv_float WhitePointChromaticityX;
+    bmkv_float WhitePointChromaticityY;
+    bmkv_float LuminanceMax;
+    bmkv_float LuminanceMin;
+    struct {
+        bool PrimaryRChromaticityX;
+        bool PrimaryRChromaticityY;
+        bool PrimaryGChromaticityX;
+        bool PrimaryGChromaticityY;
+        bool PrimaryBChromaticityX;
+        bool PrimaryBChromaticityY;
+        bool WhitePointChromaticityX;
+        bool WhitePointChromaticityY;
+        bool LuminanceMax;
+        bool LuminanceMin;
+    } validate;
+} bmkv_TrackEntryVideoColourMasteringMetadata;
+
+typedef struct bmkv_TrackEntryVideoColour {
+    unsigned MatrixCoefficients;
+    unsigned BitsPerChannel;
+    unsigned ChromaSubsamplingHorz;
+    unsigned ChromaSubsamplingVert;
+    unsigned CbSubsamplingHorz;
+    unsigned CbSubsamplingVert;
+    unsigned ChromaSitingHorz;
+    unsigned ChromaSitingVert;
+    unsigned Range;
+    unsigned TransferCharacteristics;
+    unsigned Primaries;
+    unsigned MaxCLL;
+    unsigned MaxFALL;
+    bmkv_table MasteringMetadata;
+    struct {
+        bool MatrixCoefficients;
+        bool BitsPerChannel;
+        bool ChromaSubsamplingHorz;
+        bool ChromaSubsamplingVert;
+        bool CbSubsamplingHorz;
+        bool CbSubsamplingVert;
+        bool ChromaSitingHorz;
+        bool ChromaSitingVert;
+        bool Range;
+        bool TransferCharacteristics;
+        bool Primaries;
+        bool MaxCLL;
+        bool MaxFALL;
+        bool MasteringMetadata;
+    } validate;
+} bmkv_TrackEntryVideoColour;
+
 
 
 bool bmkv_EBML_parse(batom_cursor *cursor, size_t elem_size, bmkv_EBML *ebml);
@@ -500,6 +560,7 @@ bool bmkv_IsTrackVideoVp9(const bmkv_TrackEntry *track);
 bool bmkv_IsTrackAudioOpus(const bmkv_TrackEntry *track);
 bool bmkv_IsTrackAudioPcmInt(const bmkv_TrackEntry *track);
 
+extern const bmkv_parser_desc bmkv_TrackEntryVideoColour_desc;
 #ifdef __cplusplus
 }
 #endif

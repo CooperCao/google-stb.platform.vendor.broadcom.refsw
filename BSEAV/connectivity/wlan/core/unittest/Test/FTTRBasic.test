@@ -1,0 +1,388 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to qualify iperf RvR
+#
+# Written by: Robert J. McMahon January 2012
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::FTTR
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::ConfigBridge
+
+package provide UTF::Test::FTTRBasic 2.0
+
+UTF::Test FTTRBasic {args} {
+    UTF::Getopts {
+	{ap.arg "4708ap" "AP under test"}
+	{sta.arg "4360lx2" "STA under test"}
+	{bin.arg "" "STA dongle image"}
+	{attngrp.arg "" "attenuator to use"}
+	{steps.arg "-1" "number of attenuator steps"}
+	{protocol.arg "tcp udp" "Protocols to test"}
+	{dwell.arg "1" "dwell to measure traffic"}
+	{count.arg "5" "number of RvRs"}
+	{iperfupdate ""}
+	{direction.arg "down up" "direction(s) to test"}
+	{stepsize.arg "1" "Attenuator step size in dB"}
+	{title.arg "" "Titles"}
+	{email.arg "" ""}
+	{tos.arg "0x0"}
+	{w.arg "4M"}
+	{rcrestart ""}
+	{tracelevel.arg "external"}
+	{load "load the image"}
+	{date.arg "" "Image date"}
+	{apdate.arg "" "AP Image date"}
+	{security.arg "open" "Default security"}
+	{chanspec.arg "36/80" "Chanspec list to test"}
+	{scansuppress "Enable scan suppress during test run"}
+	{testdefaults "Apply test defaults"}
+	{amsdu.arg "-1" "AMSDU setting"}
+	{amsdu_aggblock.arg "-1" "AMSDU aggblock setting"}
+	{atf.arg "-1" "Airtime Fairness setting"}
+	{frameburst.arg "-1" "Airtime Fairness setting"}
+	{nosetuptestbed "Don't run Setup Testbed hooks"}
+	{trx.arg "" "Router trx"}
+	{multicast "Include multicast testing"}
+	{udprate.arg "1.2G" "UDP offerred rate"}
+	{roamtrigger.arg "-100" "roamtrigger value"}
+	{nopktqstats "disable pktqstat polling"}
+	{tcptrace "enable tcptrace and pcap capture"}
+	{graphsize.arg "640,480" "Graph size"}
+	{country.arg "-1" "Country code override"}
+    }
+
+    if {$(bin) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -image $(bin) -date {}
+	}
+    }
+    if {$(date) ne ""} {
+	set date $(date)
+	foreach S $(sta) {
+	    $S configure -date $(date)
+	}
+	unset S
+    }
+    if {$(apdate) ne ""} {
+	foreach S $(ap) {
+	    $S configure -date $(apdate)
+	}
+    }
+
+    # Compact build list for title
+    set build [UTF::BuildTitle [concat $(ap) $(sta)]]
+    set TITLE "UTF FTTR-Basic $(title) ($build) (dwell $(dwell) s) (debug=$(tracelevel))"
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	if {!$(nosetuptestbed) && [info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Init endpoints" {
+		set ends [list [$(ap) lan] [$(sta) lan]]
+		::UTF::Streamslib::force_cleanup $ends
+		foreach endpoint $ends {
+		    $endpoint tcptune [expr {4 * 1024 * 1024}]
+		}
+	    }
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+	    }
+	}
+	set BRIDGES {}
+	set STAS {}
+	foreach STA $(sta) {
+	    if {[$STA hostis Router] && [lsearch $BRIDGES $STA] == -1} {
+		lappend BRIDGES $STA
+	    } else {
+		lappend STAS $STA
+	    }
+	}
+	if {$(load)} {
+	    foreach Router [concat $(ap) $BRIDGES] {
+		UTF::Try "[$Router cget -name]: Find Router Image" {
+		    if {$(trx) ne ""} {
+			$Router configure -image $(trx) -date {}
+			set date {}
+		    } else {
+			set date [$Router cget -date]
+		        if { ([string length $date] < 5) || ( $date == "%date%") } {
+                            set date ""
+			}
+		    }
+		    UTF::CheckImage $Router $date unknown
+		}
+		UTF::Try "[$Router cget -name]: Load Image" {
+		    $Router load
+		}
+		UTF::Try "[$Router cget -name]: Restore Defaults" {
+		    $Router restore_defaults
+		    set what [$Router whatami]
+		    $Router dbrecord DUT
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $Router $ret
+		    }
+		    set what
+		}
+	    }
+	    UTF::Try "[$STA cget -name]: Find STA Image" {
+		set date [$STA cget -date]
+		if { ([string length $date] < 5) || ( $date == "%date%") } {
+                    set date ""
+		}
+		UTF::CheckImage $STA $date unknown
+	    }
+	    UTF::Try "[$STA cget -name]: load" {
+		$STA load
+	    }
+	    UTF::Try "[$STA cget -name]: defaults" {
+		$STA services stop
+		catch {$STA wl msglevel +error +assoc}
+		catch {$STA wl msglevel -scan}
+		if {![$STA cget -nomimo_bw_cap]} {
+		    catch {$STA wl down}
+		    # Enable 40 in 2.4, if available.
+		    # Doesn't work for LMAC since LMAC is never "down"
+		    $STA wl -u mimo_bw_cap 1
+		    $STA wl up
+		    UTF::Sleep 1
+		}
+		$STA wl ver
+		set what [$STA whatami]
+		$STA dbrecord DUT
+		# Pull out chip info and replace whitespace to
+		# make it easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $STA $ret
+		}
+		set what
+	    }
+	}
+	set norcrestart 1
+	set FBTXT "FB=$(frameburst)"
+	set ATFTXT "ATF=$(atf)"
+	foreach STA $(sta) {
+	    set curattn($STA) [lindex [[$STA cget -attngrp] attn?] 0]
+	}
+	if {$(testdefaults)} {
+	    UTF::Try "CHAN=$(chanspec) security=$(security) amsdu=$(amsdu) RT=$(roamtrigger)" {
+		UTF::Test::APChanspec $(ap) $(chanspec)
+		UTF::Test::APConfigureSecurity $(ap) -security $(security)
+		if {[llength $BRIDGES]} {
+		    UTF::Test::ConfigBridge -ap $(ap) -br $BRIDGES -security $(security) -chanspec $(chanspec) -linkcheck
+		}
+		foreach STA $(sta) {
+		    $STA wl roam_trigger $(roamtrigger) all
+		}
+		foreach STA $(sta) {
+		    $STA tcptune $(w)
+		}
+		if {$(amsdu) ne "-1"} {
+		    UTF::Try "$(ap) AMSDU $(amsdu)" {
+			set wlname [$(ap) wlname]
+			if {$(amsdu) eq "1"} {
+			    eval [concat $(ap) restart ${wlname}_amsdu=on]
+			} elseif {$(amsdu) eq "0"} {
+			    eval [concat $(ap) restart ${wlname}_amsdu=off]
+			} else {
+			    error "amsdu $(amsdu)"
+			}
+			UTF::Test::ConnectAPSTA $(ap) $STAS
+			if {$(amsdu) ne "-1"} {
+			    UTF::Try "AMSDU $(amsdu)" {
+				$STA wl down
+				$STA wl amsdu $(amsdu)
+				$STA wl up
+				$STA wl join [$(ap) wl ssid]
+			    }
+			}
+		    }
+		}
+		if {$(amsdu_aggblock) ne "-1"} {
+		    UTF::Try "amsdu_aggblock=$(amsdu_aggblock)" {
+			$(ap) wl amsdu_aggblock $(amsdu_aggblock)
+			foreach STA $STAS {
+			    $STA wl amsdu_aggblock $(amsdu_aggblock)
+			}
+		    }
+		}
+		if {$(atf) ne "-1"} {
+		    foreach dut [concat $(ap) $(sta)] {
+			$dut wl atf $(atf)
+		    }
+		}
+		if {$(frameburst) ne "-1"} {
+		    switch -exact $(frameburst) {
+			"1" -
+			"11" {
+			    foreach dut [concat $(ap) $(sta)] {
+				$dut wl frameburst 1
+			    }
+			}
+			"0" -
+			"00" {
+			    foreach dut [concat $(ap) $(sta)] {
+				$dut wl frameburst 0
+			    }
+			}
+			"10" {
+			    $(ap) wl frameburst 1
+			    foreach dut $(sta) {
+				$dut wl frameburst 0
+			    }
+			}
+			"01" {
+			    $(ap) wl frameburst 0
+			    foreach dut $(sta) {
+				$dut wl frameburst 1
+			    }
+			}
+		    }
+		}
+		return "AMSDU $STA/$(ap) ([$STA wl amsdu]/[$(ap) wl amsdu])"
+	    }
+	}
+	foreach STA $(sta) {
+	    set ATTNGRP $(attngrp)
+	    if {$ATTNGRP eq {}} {
+		set ATTNGRP [$STA cget -attngrp]
+	    }
+	    if {$ATTNGRP eq {}} {
+		set ATTNGRP [$STA cget -attngrp]
+	    }
+	    if {$(steps) eq "-1"} {
+		UTF::Try "Discover beacon range" {
+		    set rxb [UTF::FTTR %AUTO% -ap $(ap) -sta $STA -holdtime $(dwell) -settle 0.5 -protocol udp -tcptune 0 -attngrp $ATTNGRP -stepsize $(stepsize) -country $(country)]
+		    set beaconrange [$rxb discover_norxbeacon -rssi]
+		    set attnsteps [lindex  $beaconrange 0]
+		    $rxb destroy
+		    return "Attn/RSSI1/RSSI2 [join $beaconrange /] dB"
+                }
+	    } else {
+		set attnsteps $(steps)
+	    }
+	    # Exit script now if there is no attenuator curve
+	    if {![info exists attnsteps]} {
+		return
+	    }
+	    if {$(multicast)} {
+		set mcasts "0 1"
+		package require UTF::Test::ConfigEMF
+		UTF::Test::ConfigEMF -ap $(ap) -sta $STA
+	    } else {
+		set mcasts "0"
+	    }
+	    set DEVICETXT "${(ap)}:[$(ap) cget -tag] ${STA}:[$STA cget -tag]"
+	    foreach MCAST $mcasts {
+		foreach direction $(direction) {
+		    if {$MCAST && [string toupper $direction] eq "UP"} {
+			continue
+		    }
+		    foreach protocol $(protocol) {
+			if {$MCAST && [string toupper $protocol] eq "TCP"} {
+			    continue
+			}
+			set tcptrace 0
+			if {[string toupper $protocol] eq "UDP"} {
+			    set windows [lindex $(w) 0]
+			    set stats "rate"
+			    set pqstats 0
+			} else {
+			    set windows $(w)
+			    set stats "rate"
+			    set pqstats 1
+			    if {$(tcptrace)} {
+				set tcptrace 1
+			    }
+			}
+			foreach TOS $(tos) {
+			    if {$(rcrestart) && !$norcrestart} {
+				set norcrestart 0
+				UTF::Try "RC Restart" {
+				    foreach STA $(sta) {
+					[$STA cget -attngrp] attn $curattn($STA)
+				    }
+				    $(ap) wl ver
+				    $(sta) load
+				    $(ap) restart
+				    UTF::Sleep 30
+				    UTF::Test::ConnectAPSTA $(ap) $(sta)
+				    $(ap) wl status
+				    $(sta) wl status
+				    return "AP=[$(ap) wl chanspec] STA=[$(sta) wl chanspec]"
+				}
+			    }
+			    foreach WINDOW $windows {
+				if {$(scansuppress)} {
+				    set SSTXT "Scan=Suppress"
+				} else {
+				    set SSTXT "Scan=NoSuppress"
+				}
+				if {[$STA hostis Router]} {
+				    set STATXT "PSTA"
+				} else {
+				    set STATXT "STA"
+				}
+				if {[string tolower $direction] eq "down"} {
+				    if {!$MCAST} {
+					set TITLETXT "[string toupper $protocol] AP->$STATXT"
+				    } else {
+					set TITLETXT "MCAST AP->$STATXT"
+				    }
+				} else {
+				    set TITLETXT "[string toupper $protocol] ${STATXT}->AP"
+				}
+				set TESTTXT "ToS=$TOS $ATFTXT $FBTXT $SSTXT W=$WINDOW"
+				set fttrs {}
+				for {set ix 1} {$ix <= $(count)} {incr ix} {
+				    UTF::Try "$TITLETXT $TESTTXT ($ix)" {
+					if {$MCAST eq "1"  && $(udprate) eq "1G"} {
+					    set (udprate) 800M
+					}
+					set test($ix) [UTF::FTTR %AUTO% -ap $(ap) -sta $STA -holdtime $(dwell) -settle 0.5 -protocol $protocol -tcptune 0 -attngrp $ATTNGRP -steps $attnsteps -direction $direction -title "[string map {\" {}} $(title)] $TITLETXT $TESTTXT\\n$DEVICETXT" -stepsize $(stepsize) -tos $TOS -w $WINDOW -tracelevel $(tracelevel) -multicast $MCAST -stats $stats -udprate $(udprate) -pktqstats $pqstats -tcptrace $tcptrace -numsamples 40 -country $(country) -graphsize $(graphsize)]
+					lappend fttrs $test($ix)
+					if {$(scansuppress)} {
+					    foreach STA $(sta) {
+						$STA wl scansuppress 0
+						$STA wl_escanresults
+						$STA wl scansuppress 1
+					    }
+					}
+					if {[catch {$test($ix) run} res]} {
+					    set norcrestart 0
+					    foreach STA $(sta) {
+						[$STA cget -attngrp] attn $curattn($STA)
+					    }
+					    error "$res"
+					} else {
+					    return "$res"
+					}
+				    }
+				}
+				if {$(count) > 1} {
+				    UTF::Try "$TITLETXT (Avg)" {
+					UTF::FTTR compute_fexpected -fttrs $fttrs
+					return [$test(1) plot -expected]
+				    }
+				}
+				for {set ix 1} {$ix <= $(count)} {incr ix} {
+				    $test($ix) destroy
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+}
+

@@ -348,6 +348,10 @@ typedef struct NEXUS_SimpleVideoDecoderClientSettings
     NEXUS_CallbackDesc resourceChanged; /* underlying video decoder was added or removed. check NEXUS_SimpleVideoDecoderClientStatus.enabled. */
     NEXUS_VideoWindowAfdSettings afdSettings;
     bool closedCaptionRouting; /* parse userdata for closed captioning and route to displays capable of VBI encoding */
+    struct {
+        unsigned timeout; /* Amount of time decoder/window connection may remain after SimpleVideoDecoder is released. Units in msec.
+                             This speeds up the next decode if the decoder/window connection happens to be the same. */
+    } cache;
 } NEXUS_SimpleVideoDecoderClientSettings;
 
 /**

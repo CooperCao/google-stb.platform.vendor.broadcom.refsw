@@ -181,19 +181,24 @@ BERR_Code BVBI_Encode_Create (
         eErr = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto BVBI_Encode_Create_Done;
     }
-    if ((eDest != BAVC_VbiPath_eVec0)
+    if
+    (
+#if (BVBI_NUM_VEC >= 1)
+        (eDest != BAVC_VbiPath_eVec0) &&
+#endif
 #if (BVBI_NUM_VEC >= 2)
-     && (eDest != BAVC_VbiPath_eVec1)
+        (eDest != BAVC_VbiPath_eVec1) &&
 #endif
 #if (BVBI_NUM_VEC >= 3)
-     && (eDest != BAVC_VbiPath_eVec2)
+        (eDest != BAVC_VbiPath_eVec2) &&
 #endif
 #if (BVBI_NUM_PTVEC >= 1)
-     && (eDest != BAVC_VbiPath_eBypass0)
+        (eDest != BAVC_VbiPath_eBypass0) &&
 #endif
 #if (BVBI_NUM_PTVEC >= 2)
-     && (eDest != BAVC_VbiPath_eBypass1)
+        (eDest != BAVC_VbiPath_eBypass1) &&
 #endif
+        1
     )
     {
         BDBG_ERR(("Invalid parameter"));
@@ -1100,7 +1105,10 @@ BERR_Code BVBI_Encode_Data_isr (
             }
         }
 
-        /* Encode the various forms of VBI data as configured */
+        /*
+         * Encode the various forms of VBI data as configured
+         */
+
         whatActive =
             currentState->ulActive_Standards |
             currentState->ulActive_656_Standards |
@@ -1109,13 +1117,28 @@ BERR_Code BVBI_Encode_Data_isr (
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_CC           ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_CC_NOENCODE)    )
         {
-            (void)BVBI_P_CC_Encode_Data_isr (
-                    pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
-                    pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCCE],
-                    polarity,
-                    pVbi_Fld->usCCData );
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_CCE_656 > 0
+                (void)BVBI_P_CC_Encode_656_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                        polarity,
+                        pVbi_Fld->usCCData );
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_CCE > 0
+                (void)BVBI_P_CC_Encode_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                        polarity,
+                        pVbi_Fld->usCCData );
+                #endif
+            }
         }
+
         if ( (whatActive               & BVBI_P_SELECT_CGMSA          ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_CGMSA          ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_CGMS_NOENCODE)    )
@@ -1126,36 +1149,68 @@ BERR_Code BVBI_Encode_Data_isr (
             if (pVbi_Enc->curr.eVideoFormat != BFMT_VideoFmt_e576p_50Hz)
                 ulData = BVPI_P_CGMS_format_data_isr (ulData);
 
-            (void)BVBI_P_CGMSA_Encode_Data_isr (
-                    pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
-                    pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
-                    polarity,
-                    ulData );
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_CGMSAE_656 > 0
+                (void)BVBI_P_CGMSA_Encode_656_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
+                        polarity,
+                        ulData );
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_CGMSAE > 0
+                (void)BVBI_P_CGMSA_Encode_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
+                        polarity,
+                        ulData );
+                #endif
+            }
         }
+
+        #if BVBI_NUM_CGMSAE > 0
         if ( (whatActive               & BVBI_P_SELECT_CGMSB          ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_CGMSB          ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_CGMS_NOENCODE)    )
         {
             (void)BVBI_P_CGMSB_Encode_Data_isr (
                     pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
                     pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
                     polarity,
                     *(pVbi_Fld->pCgmsbDatum));
         }
+        #endif
+
         if ( (whatActive               & BVBI_P_SELECT_WSS           ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_WSS           ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_WSS_NOENCODE)    )
         {
-            (void)BVBI_P_WSS_Encode_Data_isr (
-                    pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
-                    pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eWSE],
-                    polarity,
-                    pVbi_Fld->usWSSData );
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_WSE_656 > 0
+                (void)BVBI_P_WSS_Encode_656_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eWSE],
+                        polarity,
+                        pVbi_Fld->usWSSData );
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_WSE > 0
+                (void)BVBI_P_WSS_Encode_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eWSE],
+                        polarity,
+                        pVbi_Fld->usWSSData );
+                #endif
+            }
         }
 
+        #if BVBI_NUM_WSE > 0
         if ( (whatActive               & BVBI_P_SELECT_VPS           ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_VPS           ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_VPS_NOENCODE)    )
@@ -1167,6 +1222,8 @@ BERR_Code BVBI_Encode_Data_isr (
                     polarity,
                     pVbi_Fld->pVPSData );
         }
+        #endif
+
 #if (BVBI_NUM_TTE > 0) || (BVBI_NUM_TTE_656 > 0)
         if ( (whatActive               & BVBI_P_SELECT_TT                 ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_TT                 ) &&
@@ -1187,59 +1244,118 @@ BERR_Code BVBI_Encode_Data_isr (
                     &pVbi->ttFreelist, clink);
                 pttData = BVBI_P_LCOP_GET_isr (pVbi_Enc, botTTDataO);
             }
-            (void)BVBI_P_TT_Encode_Data_isr (
-                    pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
-                    pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eTTE],
-                    currentState->eVideoFormat,
-                    polarity,
-                    currentState->bPR18010_bad_line_number,
-                    pttData);
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_TTE_656 > 0
+                (void)BVBI_P_TT_Encode_656_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eTTE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        currentState->bPR18010_bad_line_number,
+                        pttData);
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_TTE > 0
+                (void)BVBI_P_TT_Encode_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eTTE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        pttData);
+                #endif
+            }
         }
 #endif
-#if (BVBI_NUM_GSE > 0)
+
         if ( (whatActive               & BVBI_P_SELECT_GS                ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_GS                ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_GEMSTAR_NOENCODE)    )
         {
-            (void)BVBI_P_GS_Encode_Data_isr (
-                    pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
-                    pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eGSE],
-                    currentState->eVideoFormat,
-                    polarity,
-                    pVbi_Fld->pGSData );
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_GSE_656 > 0
+                (void)BVBI_P_GS_Encode_656_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eGSE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        pVbi_Fld->pGSData );
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_GSE > 0
+                (void)BVBI_P_GS_Encode_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eGSE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        pVbi_Fld->pGSData );
+                #endif
+            }
         }
-#endif
-#if (BVBI_NUM_AMOLE > 0)
+
         if ( (whatActive               & BVBI_P_SELECT_AMOL              ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_AMOL              ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_AMOL_NOENCODE   )    )
         {
-            (void)BVBI_P_AMOL_Encode_Data_isr (
-                    pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
-                    pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eAMOLE],
-                    currentState->eVideoFormat,
-                    polarity,
-                    pVbi_Fld->amolType,
-                    pVbi_Fld->pAmolData );
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_AMOLE_656 > 0
+                (void)BVBI_P_AMOL_Encode_656_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eAMOLE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        pVbi_Fld->amolType,
+                        pVbi_Fld->pAmolData );
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_AMOLE > 0
+                (void)BVBI_P_AMOL_Encode_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eAMOLE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        pVbi_Fld->amolType,
+                        pVbi_Fld->pAmolData );
+                #endif
+            }
         }
-#endif
+
         if ( (whatActive               & BVBI_P_SELECT_MCC              ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_MCC              ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_MCC_NOENCODE   )    )
         {
-            (void)BVBI_P_MCC_Encode_Data_isr (
-                    pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
-                    pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCCE],
-                    currentState->eVideoFormat,
-                    pVbi_Enc->bArib480p,
-                    polarity,
-                    currentState->bPR18010_bad_line_number,
-                    pVbi_Fld->pMCCData );
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_CCE_656 > 0
+                (void)BVBI_P_MCC_Encode_656_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        pVbi_Fld->pMCCData );
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_CCE > 0
+                (void)BVBI_P_MCC_Encode_Data_isr (
+                        pVbi_Enc->pVbi->hReg,
+                        pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                        currentState->eVideoFormat,
+                        polarity,
+                        pVbi_Fld->pMCCData );
+                #endif
+            }
         }
+
 #if (BVBI_NUM_SCTEE > 0)  /** { **/
         if ( (whatActive               & BVBI_P_SELECT_SCTE              ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_SCTE              ) &&
@@ -1351,48 +1467,94 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     isActive = ((nextActive & BVBI_P_SELECT_CC) != 0);
     if (force || BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_CC))
     {
-        eErr = BERR_TRACE (BVBI_P_CC_Enc_Program (
-            pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
-            hwCoreIndex[BVBI_P_EncCoreType_eCCE],
-            isActive,
-            cnState->bPR18010_bad_line_number,
-            cnState->eVideoFormat,
-            pVbi_Enc->bArib480p));
-        if (eErr != BERR_SUCCESS)
+        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
         {
-            if (firstErr == BERR_SUCCESS)
-                firstErr = eErr;
-            if (!force)
-                goto done;
+            #if BVBI_NUM_CCE_656 > 0
+            eErr = BERR_TRACE (BVBI_P_CC_Enc_656_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                isActive,
+                cnState->bPR18010_bad_line_number,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+        else
+        {
+            #if BVBI_NUM_CCE > 0
+            eErr = BERR_TRACE (BVBI_P_CC_Enc_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                isActive,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
         }
     }
+
     isActive = ((nextActive & BVBI_P_SELECT_CGMSA) != 0);
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_CGMSA))
     {
-        eErr = BERR_TRACE (BVBI_P_CGMSA_Enc_Program (
-            pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
-            hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
-            isActive,
-            cnState->eVideoFormat,
-            pVbi_Enc->bArib480p));
-        if (eErr != BERR_SUCCESS)
+        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
         {
-            if (firstErr == BERR_SUCCESS)
-                firstErr = eErr;
-            if (!force)
-                goto done;
+            #if BVBI_NUM_CGMSAE_656 > 0
+            eErr = BERR_TRACE (BVBI_P_CGMSA_Enc_656_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
+                isActive,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+        else
+        {
+            #if BVBI_NUM_CGMSAE > 0
+            eErr = BERR_TRACE (BVBI_P_CGMSA_Enc_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
+                isActive,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
         }
     }
+
+    #if BVBI_NUM_CGMSAE > 0
     isActive = ((nextActive & BVBI_P_SELECT_CGMSB) != 0);
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_CGMSB))
     {
         eErr = BERR_TRACE (BVBI_P_CGMSB_Enc_Program (
             pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
             hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
             isActive,
             cnState->eVideoFormat,
@@ -1406,25 +1568,50 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
                 goto done;
         }
     }
+    #endif
+
     isActive = ((nextActive & BVBI_P_SELECT_WSS) != 0);
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_WSS))
     {
-        eErr = BERR_TRACE (BVBI_P_WSS_Enc_Program (
-            pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
-            hwCoreIndex[BVBI_P_EncCoreType_eWSE],
-            isActive,
-            cnState->bPR18010_bad_line_number,
-            cnState->eVideoFormat));
-        if (eErr != BERR_SUCCESS)
+        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
         {
-            if (firstErr == BERR_SUCCESS)
-                firstErr = eErr;
-            if (!force)
-                goto done;
+            #if BVBI_NUM_WSE_656 > 0
+            eErr = BERR_TRACE (BVBI_P_WSS_Enc_656_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eWSE],
+                isActive,
+                cnState->bPR18010_bad_line_number,
+                cnState->eVideoFormat));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+        else
+        {
+            #if BVBI_NUM_WSE > 0
+            eErr = BERR_TRACE (BVBI_P_WSS_Enc_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eWSE],
+                isActive,
+                cnState->eVideoFormat));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
         }
     }
+
+    #if BVBI_NUM_WSE > 0
     isActive = ((nextActive & BVBI_P_SELECT_VPS) != 0);
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_VPS))
@@ -1443,6 +1630,9 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
                 goto done;
         }
     }
+    #endif
+
+#if (BVBI_NUM_TTE > 0) || (BVBI_NUM_TTE_656 > 0)
     isActive = ((nextActive & BVBI_P_SELECT_TT) != 0);
     if (force || BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_TT))
     {
@@ -1456,89 +1646,20 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
             pVbi_Enc, botTTDataO, &pVbi->ttFreelist, clink);
         pbotData =  BVBI_P_LCOP_GET (pVbi_Enc, botTTDataO);
 
-#if (BVBI_NUM_TTE > 0) || (BVBI_NUM_TTE_656 > 0)
-        /* coverity[var_deref_model: FALSE] */
-        eErr = BERR_TRACE (BVBI_P_TT_Enc_Program (
-            pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
-            hwCoreIndex[BVBI_P_EncCoreType_eTTE],
-            isActive,
-            ((cnState->ulActive_XSER_Standards & BVBI_P_SELECT_TT) != 0),
-            cnState->eVideoFormat,
-            pVbi->tteShiftDirMsb2Lsb,
-            &cnState->xserSettings,
-            ptopData,
-            pbotData
-        ));
-        if (eErr != BERR_SUCCESS)
+        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
         {
-            if (firstErr == BERR_SUCCESS)
-                firstErr = eErr;
-            if (!force)
-                goto done;
-        }
-#endif
-    }
-
-#if (BVBI_NUM_GSE > 0)
-    isActive = ((nextActive & BVBI_P_SELECT_GS) != 0);
-    if (force || BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_GS))
-    {
-        eErr = BERR_TRACE (BVBI_P_GS_Enc_Program (
-            pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
-            hwCoreIndex[BVBI_P_EncCoreType_eGSE],
-            isActive,
-            cnState->eVideoFormat,
-            pVbi_Enc->bArib480p,
-            &cnState->gsOptions
-        ));
-        if (eErr != BERR_SUCCESS)
-        {
-            if (firstErr == BERR_SUCCESS)
-                firstErr = eErr;
-            if (!force)
-                goto done;
-        }
-    }
-#endif
-#if (BVBI_NUM_AMOLE > 0)
-    isActive = ((nextActive & BVBI_P_SELECT_AMOL) != 0);
-    if (force ||
-        BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_AMOL))
-    {
-        eErr = BERR_TRACE (BVBI_P_AMOL_Enc_Program (
-            pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
-            hwCoreIndex[BVBI_P_EncCoreType_eAMOLE],
-            isActive,
-            cnState->eVideoFormat,
-            pVbi_Enc->bArib480p,
-            cnState->amolType
-        ));
-        if (eErr != BERR_SUCCESS)
-        {
-            if (firstErr == BERR_SUCCESS)
-                firstErr = eErr;
-            if (!force)
-                goto done;
-        }
-    }
-#endif
-    isActive = ((nextActive & BVBI_P_SELECT_MCC) != 0);
-    /* Cannot initialize both CC and MCC. It is one or the other. */
-    if ((nextActive & BVBI_P_SELECT_CC) == 0)
-    {
-        if (force ||
-            BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_MCC))
-        {
-            eErr = BERR_TRACE (BVBI_P_MCC_Enc_Program (
+            #if BVBI_NUM_TTE_656 > 0
+            /* coverity[var_deref_model: FALSE] */
+            eErr = BERR_TRACE (BVBI_P_TT_Enc_656_Program (
                 pVbi->hReg,
-                BVBI_P_is656_isr(pVbi_Enc->eDest),
-                hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                hwCoreIndex[BVBI_P_EncCoreType_eTTE],
                 isActive,
+                ((cnState->ulActive_XSER_Standards & BVBI_P_SELECT_TT) != 0),
                 cnState->eVideoFormat,
-                pVbi_Enc->bArib480p
+                pVbi->tteShiftDirMsb2Lsb,
+                &cnState->xserSettings,
+                ptopData,
+                pbotData
             ));
             if (eErr != BERR_SUCCESS)
             {
@@ -1546,6 +1667,171 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
                     firstErr = eErr;
                 if (!force)
                     goto done;
+            }
+            #endif
+        }
+        else
+        {
+            #if BVBI_NUM_TTE > 0
+            /* coverity[var_deref_model: FALSE] */
+            eErr = BERR_TRACE (BVBI_P_TT_Enc_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eTTE],
+                isActive,
+                ((cnState->ulActive_XSER_Standards & BVBI_P_SELECT_TT) != 0),
+                cnState->eVideoFormat,
+                pVbi->tteShiftDirMsb2Lsb,
+                &cnState->xserSettings,
+                ptopData,
+                pbotData
+            ));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+    }
+#endif
+
+    isActive = ((nextActive & BVBI_P_SELECT_GS) != 0);
+    if (force || BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_GS))
+    {
+        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        {
+            #if BVBI_NUM_GSE_656 > 0
+            eErr = BERR_TRACE (BVBI_P_GS_Enc_656_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eGSE],
+                isActive,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p,
+                &cnState->gsOptions
+            ));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+        else
+        {
+            #if BVBI_NUM_GSE > 0
+            eErr = BERR_TRACE (BVBI_P_GS_Enc_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eGSE],
+                isActive,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p,
+                &cnState->gsOptions
+            ));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+    }
+
+    isActive = ((nextActive & BVBI_P_SELECT_AMOL) != 0);
+    if (force ||
+        BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_AMOL))
+    {
+        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        {
+            #if BVBI_NUM_AMOLE_656 > 0
+            eErr = BERR_TRACE (BVBI_P_AMOL_Enc_656_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eAMOLE],
+                isActive,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p,
+                cnState->amolType
+            ));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+        else
+        {
+            #if BVBI_NUM_AMOLE > 0
+            eErr = BERR_TRACE (BVBI_P_AMOL_Enc_Program (
+                pVbi->hReg,
+                hwCoreIndex[BVBI_P_EncCoreType_eAMOLE],
+                isActive,
+                cnState->eVideoFormat,
+                pVbi_Enc->bArib480p,
+                cnState->amolType
+            ));
+            if (eErr != BERR_SUCCESS)
+            {
+                if (firstErr == BERR_SUCCESS)
+                    firstErr = eErr;
+                if (!force)
+                    goto done;
+            }
+            #endif
+        }
+    }
+
+    isActive = ((nextActive & BVBI_P_SELECT_MCC) != 0);
+    /* Cannot initialize both CC and MCC. It is one or the other. */
+    if ((nextActive & BVBI_P_SELECT_CC) == 0)
+    {
+        if (force ||
+            BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_MCC))
+        {
+            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            {
+                #if BVBI_NUM_CCE_656 > 0
+                eErr = BERR_TRACE (BVBI_P_MCC_Enc_656_Program (
+                    pVbi->hReg,
+                    hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                    isActive,
+                    cnState->eVideoFormat,
+                    pVbi_Enc->bArib480p
+                ));
+                if (eErr != BERR_SUCCESS)
+                {
+                    if (firstErr == BERR_SUCCESS)
+                        firstErr = eErr;
+                    if (!force)
+                        goto done;
+                }
+                #endif
+            }
+            else
+            {
+                #if BVBI_NUM_CCE > 0
+                eErr = BERR_TRACE (BVBI_P_MCC_Enc_Program (
+                    pVbi->hReg,
+                    hwCoreIndex[BVBI_P_EncCoreType_eCCE],
+                    isActive,
+                    cnState->eVideoFormat,
+                    pVbi_Enc->bArib480p
+                ));
+                if (eErr != BERR_SUCCESS)
+                {
+                    if (firstErr == BERR_SUCCESS)
+                        firstErr = eErr;
+                    if (!force)
+                        goto done;
+                }
+                #endif
             }
         }
     }

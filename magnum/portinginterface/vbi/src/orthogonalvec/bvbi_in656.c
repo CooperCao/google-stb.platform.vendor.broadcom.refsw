@@ -51,9 +51,6 @@
 #if (BVBI_NUM_IN656 > 0) /** { **/
 
 #include "bchp_in656_0.h"   /* RDB info for IN656 registers */
-#if (BVBI_NUM_IN656 >= 2)
-#include "bchp_in656_1.h"   /* RDB info for IN656 registers */
-#endif
 
 BDBG_MODULE(BVBI);
 
@@ -83,7 +80,7 @@ BERR_Code BVBI_P_IN656_Init( BVBI_P_Handle *pVbi )
     ulCoreOffset = 0x0;
     BVBI_P_IN656_Dec_Init (pVbi->hReg, ulCoreOffset);
 #if (BVBI_NUM_IN656 >= 2)
-    ulCoreOffset = BCHP_IN656_1_REV_ID - BCHP_IN656_0_REV_ID;
+    ulCoreOffset = BCHP_IN656_1_REG_START - BCHP_IN656_0_REG_START;
     BVBI_P_IN656_Dec_Init (pVbi->hReg, ulCoreOffset);
 #endif
 
@@ -123,7 +120,7 @@ BERR_Code BVBI_P_IN656_Dec_Program (
         break;
 #if (BVBI_NUM_IN656 >= 2)
     case BAVC_SourceId_e656In1:
-        ulOffset = BCHP_IN656_1_REV_ID - BCHP_IN656_0_REV_ID;
+        ulOffset = BCHP_IN656_1_REG_START - BCHP_IN656_0_REG_START;
         break;
 #endif
     default:
@@ -297,7 +294,7 @@ BERR_Code BVBI_P_IN656_Decode_Data_isr (
         ulOffset = 0;
         break;
 #if (BVBI_NUM_IN656 >= 2)
-        ulOffset = BCHP_IN656_1_REV_ID - BCHP_IN656_0_REV_ID;
+        ulOffset = BCHP_IN656_1_REG_START - BCHP_IN656_0_REG_START;
         break;
 #endif
     default:

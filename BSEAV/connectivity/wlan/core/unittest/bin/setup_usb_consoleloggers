@@ -1,0 +1,53 @@
+#! /bin/bash
+
+# Script for initially setting up consolelogger services for USB
+# serial devices on FC15
+
+# Plug in the USB devices before running this script.
+
+#######################################################################
+# WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+#
+# This will overwrite any existing consolelogger services and will not
+# respect the ordering of any pre-existing services.  This is only
+# suitable for inital setup.  It needs to be replaced with a much
+# smarter and less dangerous script as soon as possible!
+#
+#######################################################################
+
+i=0
+shopt -s nullglob
+for path in  /dev/serial/by-path/*; do
+
+    port=$((40000+$i))
+
+    c="# consolelogger startup script for Fedora 15 and above.
+#
+# To initially install this service, copy this file to: /lib/systemd/system
+# Then type: systemctl enable consolelogger$i.service
+# Then type: systemctl start consolelogger$i.service
+# systemctl also accepts: status, stop, disable commands
+
+# For more info on this file format, type: man systemd.service
+
+[Unit]
+Description=UTF consolelogger $i
+
+[Service]
+ExecStart=/usr/local/bin/consolelogger -p $port $path
+Restart=always
+RestartSec=1min
+
+[Install]
+WantedBy=multi-user.target
+"
+
+    echo consolelogger$i $port $path
+    echo "$c" > /lib/systemd/system/consolelogger$i.service
+    systemctl enable consolelogger$i.service
+    systemctl restart consolelogger$i.service
+    : $((i++))
+done
+
+
+

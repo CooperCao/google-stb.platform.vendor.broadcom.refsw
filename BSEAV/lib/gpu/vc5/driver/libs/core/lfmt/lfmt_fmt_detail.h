@@ -6,7 +6,7 @@
 #include "lfmt.h"
 #include "vcos_types.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 #define GFX_LFMT_MAX_SLOTS 4
 #define GFX_LFMT_FMT_DETAIL_INVALID_SLOT UINT32_MAX
@@ -48,4 +48,4 @@ static inline uint32_t gfx_lfmt_fmt_detail_get_slot_by_channel(
    return i;
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

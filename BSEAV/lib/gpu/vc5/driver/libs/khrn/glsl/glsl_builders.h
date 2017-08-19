@@ -38,7 +38,7 @@ void glsl_insert_function_definition(Statement *statement);
 
 // Adds the struct type 'type' to the named symbol table.
 void    glsl_commit_struct_type(SymbolTable *table, SymbolType *type);
-Symbol *glsl_commit_block_type (SymbolTable *table, SymbolType *type, Qualifiers *quals);
+Symbol *glsl_commit_block_type (SymbolTable *table, DeclDefaultState *dflt, SymbolType *type, Qualifiers *quals);
 void glsl_commit_anonymous_block_members(SymbolTable *table, Symbol *symbol, MemoryQualifier mq);
 
 // Specializes glsl_commit_singleton() for function instances.

@@ -1,0 +1,262 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# Usage:  NandFlash AP -srcfile -dstfi
+#
+# $Id: 63d00acf2fbf08fecc8a1cdd6c024d573b2baa8a $
+#
+
+package require UTF
+package require UTF::ControlChart
+
+package provide UTF::Test::Flash 1.11
+
+UTF::Test Flash {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP"}
+	{src.arg "" "source file"}
+	{dest.arg "" "destination Flash"}
+	{dstfile.arg "" "destination file"}
+	{size.arg {0} ""}
+	{load "load router"}
+	{restore "restore router"}
+	{wait.arg  "5" "wait for removing dest file"}
+	{keepdest "keep destination file on flash"}
+	{keeptemp "keep temporaty file on controller"}
+	{noboot "Do not reboot the router before reading back the file"}
+	{email.arg "" "Email"}
+	{title.arg "" "Title"}
+	{perfcache.arg "perfcache" ""}
+	{history.arg "30" "performance history"}
+	{samples.arg "3" "Copy iterations"}
+	{nocache ""}
+	{nocopy ""}
+	{notime ""}
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    proc copytest {AP src dest size} {
+        upvar {} {}
+        try {
+	    UTF::Message INFO "" "SummaryDir $UTF::SummaryDir"
+            set srcdest "[file rootname [file tail $dest]][file tail $UTF::SummaryDir]$UTF::SessionID$AP"
+            regsub -all "/" $srcdest "_" srcdest
+            set localsrc "/tmp/${::tcl_platform(user)}${srcdest}_src.log"
+            set localdest "/tmp/${::tcl_platform(user)}${srcdest}_dest.log"
+            UTF::Message INFO "" "src $localsrc \n dest $localdest"
+            if {$size eq 0} {
+                exec cp $src $localsrc
+            } else {
+                exec -keepnewline head -c${size} $src > $localsrc
+            }
+            $AP copyto $localsrc $dest
+            UTF::Message INFO "" "Destination: [$AP rexec ls -l $dest]"
+            if {!$(noboot)} {
+                $AP reboot
+            }
+            UTF::Message INFO "" "Destination: [$AP rexec ls -l $dest]"
+            $AP copyfrom $dest $localdest
+            UTF::Message INFO "" "Local: [exec ls -l $localdest]"
+            UTF::Message INFO "" "source: [set srcck [exec cksum $localsrc]]"
+            UTF::Message INFO "" "Copy: [set destck [exec cksum $localdest]]"
+            catch {exec diff $localsrc $localdest} diffstr
+            if {$diffstr ne ""} {
+                UTF::Message ERROR "" "Diff Error $diffstr"
+                error "src: $srcck dest: $destck"
+            } else {
+                UTF::Message INFO "" "src: $srcck dest: $destck are the same"
+            }
+        } finally {
+            if {!$(keepdest)} {
+                UTF::Try "Cleanup" {
+                    $AP rexec -t $(wait) rm $dest
+                    UTF::Message INFO "" "Removing dest file"
+                }
+            }
+            if {!$(keeptemp)} {
+                set rmsrcerr [catch {exec rm $localsrc} rmsrc]
+                if {$rmsrcerr} {
+                    UTF::Message ERROR "" "removing local source error $rmsrc"
+                }
+                set rmdesterr [catch {exec rm $localdest} rmdesterr]
+                if {$rmdesterr} {
+                    UTF::Message ERROR "" "removing local destination error $rmdesterr"
+                }
+                UTF::Message INFO "" "Removed local temporary files"
+            }
+        }
+    }
+
+    proc timetest {AP src dest size} {
+	upvar {} {}
+	set tombps {}
+	set frommbps {}
+	UTF::Try "$AP" {
+	    set srcdest "[file rootname [file tail $dest]][file tail $UTF::SummaryDir]$UTF::SessionID$AP"
+	    regsub -all "/" $srcdest "_" srcdest
+	    set localsrc "/tmp/${::tcl_platform(user)}${srcdest}_src.log"
+	    set localdest "/tmp/${::tcl_platform(user)}${srcdest}_dest.log"
+	    UTF::Message INFO "" "src $localsrc \n dest $localdest"
+	    if {$size eq 0} {
+		exec cp $src $localsrc
+		set size [file size $src]
+	    } else {
+		exec -keepnewline head -c${size} $src > $localsrc
+	    }
+	    for {set i 0} {$i < $(samples)} {incr i} {
+		set time [lindex [time {$AP copyto  $localsrc $dest}] 0]
+		UTF::Message INFO "" "CopyTo time: $time"
+		if {$time eq "0"} {
+		    error "Copy took no time!"
+		}
+		lappend tombps [expr { ($size+0.0) / $time}]
+	    }
+	    UTF::Message INFO "" "Destination: [$AP rexec ls -l $dest]"
+	    #$AP reboot
+	    for {set i 0} {$i < $(samples)} {incr i} {
+		set time [lindex [time {$AP copyfrom $dest $localdest}] 0]
+		UTF::Message INFO "" "CopyFrom time: $time"
+		if {$time eq "0"} {
+		    error "Copy took no time!"
+		}
+		lappend frommbps [expr { ($size+0.0) / $time}]
+	    }
+	    if {!$(keepdest)} {
+		catch {$AP rexec -t $(wait) rm $dest}
+	    }
+	    if {!$(keeptemp)} {
+		catch {exec rm $localsrc}
+		catch {exec rm $localdest}
+	    }
+	    return
+	}
+	UTF::Message INFO "" "tombps $tombps \n frommbps $frommbps"
+	return [list $tombps $frommbps]
+    }
+
+    UTF::WrapSummary $UTF::SummaryDir [concat {Flash } $(title) \([::UTF::BuildTitle $(ap)]\) ] "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir $(perfcache)]
+
+	foreach ap $(ap) {
+	    set fsrc $(src)
+	    set fdest $(dest)
+	    set continu 1
+	    set dstfile $(dstfile)
+	    if {$(load)} {
+		UTF::Try "$ap Image" {
+		    UTF::CheckImage $ap
+		}
+		UTF::Try "$ap Load" {
+		    $ap load
+		    return [$ap wl ver]
+		}
+	    }
+	    if {$(restore)} {
+		UTF::Try "$ap Restore" {
+		    $ap restore_defaults
+
+		    set what [$ap whatami]
+		    # Pull out chip info and replace whitespace to make it
+		    # easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $ap $ret
+		    }
+		    $ap dbrecord DUT
+		    $ap whatami
+		}
+	    }
+	    if {$fsrc eq ""} {
+		UTF::Try "$ap Source" {
+		    set err  [catch {$ap findimages} fsrc ]
+		    if {$err} {
+			UTF::Message ERROR "" "err $err"
+			set continu 0
+			error "Please provide a source file to copy"
+		    } elseif {[file isfile $fsrc]} {
+			UTF::Message INFO "" "Source: $fsrc"
+			return $fsrc
+		    }
+		}
+	    }
+	    if {$fdest eq ""} {
+		UTF::Try "$ap Destinations" {
+		    set fdest [regexp -all -inline {/tmp/media/sd[a-z][0-9]|/tmp/media/nand} [$ap rexec mount]]
+		    return $fdest
+		}
+	    }
+	    if {$dstfile eq ""} {
+		set dstfile [file tail $fsrc]
+	    }
+
+	    if {$continu && !$(nocopy)} {
+                foreach desti $fdest {
+		    #  foreach size $(size)
+		    UTF::Try "Copy $desti [lindex $(size) 0]" {
+			    copytest $ap $fsrc ${desti}/$dstfile [lindex $(size) 0]
+		    }
+		}
+	    }
+	    if {$continu && !$(notime)} {
+		set ccbranch [$ap cget -tag]
+		regsub -all NIGHTLY $ccbranch TOT ccbranch
+		regsub {_.*} $ccbranch {} ccbranch
+		set maxsize [file size $fsrc]
+		foreach desti $fdest {
+		    regexp {sd[a-z][0-9]|nand} $desti ccdest
+		    foreach size $(size) {
+			set times [timetest $ap $fsrc ${desti}/$dstfile $size]
+			set ret {}
+			# TODO redundant check
+			if {$size eq 0} {
+			    set size $maxsize
+			}
+			UTF::Try "$ap Copy $size To $ccdest" {
+			    set tombps [lindex $times 0]
+			    if {$tombps ne {}} {
+				set key  "$ccbranch $ap TO $ccdest $size"
+				UTF::Message INFO "" "key: $key"
+				UTF::ControlChart CC -key  $key -norangecheck 1 \
+				    -perfcache $(perfcache) -history $(history) \
+				    -title $key -ylabel "Time" -s $(samples)
+				set ret [CC addsample [UTF::MeanMinMax $tombps]]
+				set ret [CC plotcontrolchart $ret]
+				if {[regexp "HIGH|WIDE|ZERO" $ret]} {
+				    UTF::Message FAIL "" $ret
+				    throw FAIL $ret
+				} else {
+				    UTF::Message PASS "" $ret
+				}
+			    }
+			    return $ret
+			}
+			UTF::Try "$ap Copy $size From $ccdest" {
+			    set frommbps [lindex $times 1]
+			    if {$frommbps ne {}} {
+				set key "$ccbranch $ap FROM $ccdest $size"
+				UTF::Message INFO "" "key: $key"
+				UTF::ControlChart CC -key $key -norangecheck 1 \
+				    -perfcache $(perfcache) -history $(history) \
+				    -title $key -ylabel "Time" -s $(samples)
+				set ret [CC addsample [UTF::MeanMinMax $frommbps]]
+				set ret [CC plotcontrolchart $ret]
+				if {[regexp "HIGH|WIDE|ZERO" $ret]} {
+				    UTF::Message FAIL "" $ret
+				    throw FAIL $ret
+				} else {
+				    UTF::Message PASS "" $ret
+				}
+			    }
+			    return $ret
+			}
+		    }
+		}
+	    }
+	    $ap deinit
+	}
+    }
+}

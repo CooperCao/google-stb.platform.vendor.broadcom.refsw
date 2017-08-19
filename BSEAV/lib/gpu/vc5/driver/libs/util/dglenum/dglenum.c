@@ -23,7 +23,7 @@ uint32_t khrn_glenum_from_str_maybe(const char *name)
 {
    int i;
 
-   for (i = 0; i != vcos_countof(glenums); ++i) {
+   for (i = 0; i != countof(glenums); ++i) {
       if (!strcmp(glenums[i].name, name)) {
          return glenums[i].value;
       }
@@ -51,7 +51,7 @@ const char *khrn_glenum_to_str(uint32_t value)
       default: break;
    }
 
-   for (i = 0; i != vcos_countof(glenums); ++i) {
+   for (i = 0; i != countof(glenums); ++i) {
       if (glenums[i].value == value) {
          return glenums[i].name;
       }

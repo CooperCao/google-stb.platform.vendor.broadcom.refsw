@@ -1,0 +1,187 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for simple RvR testing upstream and downstream in a
+# single pass
+#
+#
+# $Id: e10ab3d03d6d537781870b1014a213f5ae1648aa $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Multiperf
+
+UTF::Test RvR2ways {AP STA args} {
+
+    # No point unless we have a log file.
+    if {$UTF::Logfile eq ""} {
+	regsub {/} "test_$STA.log" {.} UTF::Logfile
+    }
+
+    regsub {/} $STA {.} file
+
+    # Pick defaults based on STA capabilities
+    UTF::Getopts [subst {
+	{i.arg 2 "Iperf Interval"}
+	{t.arg 6 "Iperf test time"}
+	{group.arg "[lindex [concat \
+				[$STA cget -attngrp] [$AP cget -attngrp]] 0]" \
+	     "Attenuator group"}
+	{attn.arg "0-103" "Attenuator values"}
+	{attnref.arg "" "Attenuator reference"}
+	{chanspec.arg "36l" "Chanspec"}
+	{security.arg "open" "Security"}
+	{frameburst.arg [expr {![$STA cget -noframeburst]}] "STA Frameburst"}
+	{apframeburst.arg [expr {![$AP cget -noframeburst]}] "AP Frameburst"}
+	{window.arg [$STA cget -tcpwindow] "TCP Window size"}
+	{title.arg "" "Report title"}
+	{scansuppress "Suppress scans during test run"}
+	{b.arg "0" "bandwidth - implies UDP"}
+	{u "UDP (default 1mbps)"}
+	{roam_trigger.arg "" "Roam Trigger"}
+	{ldpc_tx.arg "" "ldpc_tx"}
+	{apampdu_mpdu.arg "" "AP ampdu_mpdu"}
+	{slow_start.arg 0 "Discard initial samples"}
+	{temp "Record temperature"}
+	{sgi_tx.arg "" "Force sgi_tx at both ends"}
+	{symmetric "Only do Upstream tests"}
+    }]
+
+    # Mimic iperf args:
+    # -b x enables UDP
+    # -u is equivalent to -b 1m
+    if {$(b) eq "0" && $(u)} {
+	set $(b) "1m"
+    }
+
+    set (attn) [UTF::Numexpand $(attn)]
+
+    if {$(group) eq ""} {
+	error "Attenuation group not specified in config or commandline"
+    }
+
+    if {$(attnref) ne ""} {
+	$(group) configure -ref $(attnref)
+    }
+
+    $(group) attn [lindex $(attn) 0]
+
+    ConnectAPSTA $AP $STA -security $(security) -chanspec $(chanspec)
+    $AP wl frameburst $(apframeburst)
+    $STA wl frameburst $(frameburst)
+
+    if {[$AP hostis Router Vx BSDAP]} {
+	set LAN [$AP lan]
+    } else {
+	set LAN $AP
+    }
+
+    set parm(window) $(window)
+    set parm(chanspec) $(chanspec)
+    set parm(fb) $(frameburst)
+    set parm(apfb) $(apframeburst)
+    set parm(title) $(title)
+    set parm(roam_trigger) $(roam_trigger)
+    set parm(ldpc_tx) $(ldpc_tx)
+    set parm(apampdu_mpdu) $(apampdu_mpdu)
+    set parm(sgi_tx) $(sgi_tx)
+    if {$(b) ne "0"} {
+	set parm(udp) 1
+    }
+    set parm(attnref) $(attnref)
+
+    if {$parm(window) eq "auto"} {
+	set parm(window) [$STA tcpautowindow]
+    }
+
+    if {$parm(roam_trigger) ne ""} {
+	$STA wl roam_trigger $parm(roam_trigger) all
+    }
+    if {$(scansuppress)} {
+	$STA wl scansuppress $(scansuppress)
+    } else {
+	catch {$STA wl scansuppress 0}
+    }
+
+    if {$parm(ldpc_tx) ne ""} {
+	$AP wl ldpc_tx $parm(ldpc_tx)
+    }
+
+    if {$parm(apampdu_mpdu) ne ""} {
+	$AP wl ampdu_mpdu $parm(apampdu_mpdu)
+    }
+
+    if {$parm(sgi_tx) ne ""} {
+	$AP wl sgi_tx $parm(sgi_tx)
+	$STA wl sgi_tx $parm(sgi_tx)
+    }
+
+    # Give the first test more time to settle since we may have just
+    # changed the attenuation a long way.
+    set settletime 6
+
+    foreach parm(attn) $(attn) {
+	$(group) attn $parm(attn)
+
+	# pretest to settle rates, etc
+	if {$settletime > 0} {
+	    UTF::Multiperf [list $STA $LAN] -b $(b) -i 1 \
+		-t $settletime -w $parm(window) -noping
+	    set settletime 0
+	}
+
+	# No point trying performance test if we're already roaming
+	if {[$STA wl bssid] eq "00:00:00:00:00:00"} {
+	    continue
+	}
+
+	set parm(dir) "Upstream"
+	set cmd [list UTF::Multiperf [list $STA $LAN] \
+		      -b $(b) -i $(i) -t $(t) -w $parm(window) -noping]
+	set discard $(slow_start)
+	foreach ret [eval $cmd] {
+	    if {[incr discard -1] < 0} {
+		UTF::XPASS $AP $ret [UTF::ParmStrip parm]
+	    }
+	}
+	if {$(temp)} {
+	    if {[regexp {(\d+) } [$AP wl phy_tempsense] - temp]} {
+		UTF::XPASS $AP $temp \
+		    [concat [UTF::ParmStrip parm] data aptemp]
+	    }
+	    if {[regexp {(\d+) } [$STA wl phy_tempsense] - temp]} {
+		UTF::XPASS $AP $temp \
+		    [concat [UTF::ParmStrip parm] data statemp]
+	    }
+	}
+
+	if {$(symmetric)} {
+	    continue
+	}
+
+	set parm(dir) "Downstream"
+	set cmd [list UTF::Multiperf [list $LAN $STA] \
+		      -b $(b) -i $(i) -t $(t) -w $parm(window) -noping]
+
+	set discard $(slow_start)
+	foreach ret [eval $cmd] {
+	    if {[incr discard -1] < 0} {
+		UTF::XPASS $AP $ret [UTF::ParmStrip parm]
+	    }
+	}
+	if {$(temp)} {
+	    if {[regexp {(\d+) } [$AP wl phy_tempsense] - temp]} {
+		UTF::XPASS $AP $temp \
+		    [concat [UTF::ParmStrip parm] data aptemp]
+	    }
+	    if {[regexp {(\d+) } [$STA wl phy_tempsense] - temp]} {
+		UTF::XPASS $AP $temp \
+		    [concat [UTF::ParmStrip parm] data statemp]
+	    }
+	}
+    }
+}
+

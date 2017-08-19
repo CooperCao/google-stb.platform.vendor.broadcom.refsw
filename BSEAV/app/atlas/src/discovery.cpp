@@ -100,6 +100,7 @@ void CAutoDiscoveryServer::connectCallback()
 
 /*************************** CAutoDiscoveryServer ***************************/
 
+/* coverity[secure_coding] */
 CAutoDiscoveryServer::CAutoDiscoveryServer(
         const char *     name,
         CConfiguration * pCfg
@@ -125,7 +126,7 @@ CAutoDiscoveryServer::CAutoDiscoveryServer(
         /* every time same server starts enforce a fresh new beacon */
         srand(time(NULL));
         /* coverity[secure_coding] */
-        _beacon_version = rand();
+        _beacon_version = random();
     }
 }
 
@@ -236,7 +237,7 @@ void CAutoDiscoveryServer::timerCallback(void * pTimer)
         /*BDBG_MSG(("beacon %s, size %d",_beacon,beacon_size)); */
 
         /* coverity[check_return] */
-        BDBG_MSG(("sending beacon:%s from ip:"INET_ADDR_PRINTF_FMT, _beacon, INET_ADDR_PRINTF_ARG(pIfInterface->s_addr)));
+        BDBG_MSG(("sending beacon:%s from ip:" INET_ADDR_PRINTF_FMT, _beacon, INET_ADDR_PRINTF_ARG(pIfInterface->s_addr)));
         sendto(_beacon_fd, _beacon, beacon_size, 0, (struct sockaddr *) &_beacon_addr, sizeof(_beacon_addr));
     }
     _beaconIntervalTimer.start(_beaconIntervalMsec);
@@ -296,6 +297,7 @@ void CDiscoveredServer::httpClientFinishedCallback()
     CChannelBip * pIpChannel = NULL;
     char          url[512];
     int           index = 0;
+    int           err   = 0;
 
     /* clean up thread */
     if (_hHttpClientThread)
@@ -321,7 +323,8 @@ void CDiscoveredServer::httpClientFinishedCallback()
         while (index < _playlistBuffer.length())
         {
             /* coverity[secure_coding]*/
-            sscanf(_playlistBuffer.s()+ index, "%511s", url);
+            err = sscanf(_playlistBuffer.s()+ index, "%511s", url);
+            BDBG_MSG((" Code Returned by Sscanf is %d",err));
             pIpChannel = new CChannelBip(getWidgetEngine()->getCfg());
             if (!pIpChannel)
             {
@@ -507,6 +510,8 @@ error:
         BKNI_Free(rbuf);
     }
     triggerHttpClientFinishedCallback(pServer, NULL, 0);
+    /* addrInfo is freed later when socket it closed */
+    /* coverity[resource_leak] */
 } /* HttpClientThread */
 
 CDiscoveredServer::CDiscoveredServer(const char * strIpAddress) :
@@ -1073,6 +1078,7 @@ void CAutoDiscoveryClient::processServerBeacons(void)
     struct sockaddr_in addr;
     socklen_t          addrlen = (socklen_t)sizeof(addr);
     struct timeval     tv;
+    int                err = 0;
 
     tv.tv_usec = 0;
     CDiscoveredServer discoveredServer("");
@@ -1086,7 +1092,8 @@ void CAutoDiscoveryClient::processServerBeacons(void)
     {
         time(&discoveredServer._timeStamp);
         /* coverity[secure_coding] */
-        sscanf(_message, "%49s %u", _serverName, &discoveredServer._beaconVersion);
+        err = sscanf(_message, "%49s %u", _serverName, &discoveredServer._beaconVersion);
+        BDBG_MSG(("Code from Sscanf is %d", err));
         discoveredServer._s_addr = addr.sin_addr.s_addr;
         discoveredServer._serverName.strncpy((const char *)_serverName);
         /*

@@ -121,7 +121,7 @@ void CTunerOobScanData::dump()
 
 CTunerOob::CTunerOob(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTuner(name, number, eBoardResource_frontendOob, pCfg)

@@ -135,6 +135,7 @@ typedef struct NEXUS_AudioModuleData
     bool watchdogDeferred;
     unsigned numDsps;
     bool verifyFirmware;   /* true if Firmware verifcation is required for Raaga0 or Raaga1  */
+    char firmwareVersionInfo[25];  /* Raaga Release Version */
 } NEXUS_AudioModuleData;
 
 extern NEXUS_AudioModuleData g_NEXUS_audioModuleData;
@@ -272,6 +273,11 @@ typedef struct NEXUS_AudioDecoder
     unsigned numFifoOverflows;
     unsigned numFifoUnderflows;
     char name[11];   /* DECODER %d */
+    struct
+    {
+        BAPE_MixerInputVolume current;
+        BAPE_MixerInputVolume next;
+    } volume;
 } NEXUS_AudioDecoder;
 
 /***************************************************************************

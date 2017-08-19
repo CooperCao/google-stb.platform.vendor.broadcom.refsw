@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -214,7 +206,7 @@ int main(int argc, char **argv)
 
     /* bring up decoder and connect to display */
     NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderOpenSettings);
-    videoDecoderOpenSettings.fifoSize = 10*1024*1024; /* this is stream-dependant */
+    videoDecoderOpenSettings.fifoSize = 10*1024*1024; /* this is stream-dependent */
     videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);
     /* tell the decoder about the orientation of the source */
     NEXUS_VideoDecoder_GetSettings(videoDecoder, &videoDecoderSettings);

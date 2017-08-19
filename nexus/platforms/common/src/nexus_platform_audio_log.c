@@ -164,6 +164,7 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                             break;
                         }
                         (void)fwrite(pBuffer, bufferSize, 1, debugData[type].dsp[dsp].pFile);
+                        fflush(debugData[type].dsp[dsp].pFile);
                         NEXUS_AudioDsp_DebugReadComplete(dsp, type, bufferSize);
                         BDBG_MSG(("Wrote %u bytes of debug type %u", (unsigned)bufferSize, type));
                         logged = true;

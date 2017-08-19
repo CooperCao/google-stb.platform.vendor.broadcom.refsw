@@ -72,8 +72,8 @@ typedef struct
    /* !is_draw_arrays only */
    GLXX_INDEX_T index_type;
 
-   int basevertex;
-   unsigned int baseinstance;
+   int32_t basevertex;
+   uint32_t baseinstance;
 
    bool is_indirect;
    /* is_indirect only */
@@ -92,7 +92,7 @@ typedef struct
 typedef struct
 {
    v3d_addr_t addr;
-   v3d_size_t stride;
+   uint32_t stride;
    uint32_t divisor;
 #if V3D_HAS_ATTR_MAX_INDEX
    uint32_t max_index;
@@ -135,10 +135,11 @@ extern GLXX_HW_RENDER_STATE_T* glxx_install_rs(GLXX_SERVER_STATE_T *state,
 
 /*
  * Creates a collection of ref counted images from framebuffer attachments.
- * Framebuffer must be complete before calling this function
+ * Important: Framebuffer must be complete before calling this function
  */
 extern bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
-                                      GLXX_HW_FRAMEBUFFER_T *hw_fb);
+                                      GLXX_HW_FRAMEBUFFER_T *hw_fb,
+                                      glxx_context_fences *fences);
 extern void glxx_destroy_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *hw_fb);
 
 extern void glxx_assign_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *a, const GLXX_HW_FRAMEBUFFER_T *b);
@@ -146,16 +147,19 @@ extern void glxx_assign_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *a, const GLXX_HW_F
 extern bool glxx_draw_rect(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs,
       const GLXX_CLEAR_T *clear, const glxx_rect *rect);
 
-#if !V3D_VER_AT_LEAST(3,3,0,0)
+uint32_t *glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem,
+      const glxx_rect *rect, uint32_t z);
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
 uint32_t glxx_workaround_gfxh_1313_size(void);
 bool glxx_workaround_gfxh_1313(uint8_t** instr_ptr, khrn_fmem* fmem,
    uint32_t fb_width, uint32_t fb_height);
+#endif
 
-uint32_t glxx_workaround_gfxh_1320_size(void);
-bool glxx_workaround_gfxh_1320(uint8_t** instr_ptr, khrn_fmem* fmem,
+#if !V3D_HAS_GFXH1636_FIX
+uint32_t glxx_fill_ocq_cache_size(void);
+bool glxx_fill_ocq_cache(uint8_t** instr_ptr, khrn_fmem* fmem,
    uint32_t fb_width, uint32_t fb_height);
-
 #endif
 
 extern bool glxx_hw_tf_aware_sync_res(GLXX_HW_RENDER_STATE_T *rs,

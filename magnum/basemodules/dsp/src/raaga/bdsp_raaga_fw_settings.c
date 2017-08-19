@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bdsp_raaga_fw_settings.h"
@@ -69,7 +66,7 @@ const  BDSP_P_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSettings
                 BDSP_Audio_WMAIpType_eASF
             }},
         0,                                           /* eForceCompleteFirstFrame */
-		BDSP_Raaga_Audio_DatasyncType_eNone
+        BDSP_Raaga_Audio_DatasyncType_eNone
     },
     {                                       /* sTsmConfigParams */
             90,                                 /* i32TSMSmoothThreshold */
@@ -511,7 +508,9 @@ const BDSP_Raaga_Audio_LpcmUserConfig  BDSP_sLcpmDvdDefaultUserConfig =
 const BDSP_Raaga_Audio_PassthruConfigParams  BDSP_sPcmDefaultUserConfig =
 {
     BDSP_Raaga_ePassthruType_PCM,
-    BDSP_Raaga_eAacHeaderType_Raw
+    BDSP_Raaga_eAacHeaderType_Raw,
+	BDSP_AF_P_BurstFill_eZeroes,
+	BDSP_AF_P_SpdifPauseWidth_eInvalid
 };
 
 const BDSP_Raaga_Audio_PcmWavConfigParams  BDSP_sPcmWavDefaultUserConfig =
@@ -771,8 +770,8 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
+        },
+          0xFFFFFFFF,{0},{0},0,0,{0},1
         },
         {
             2,                      /*ui32ChannelConfig*/
@@ -792,10 +791,10 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
         },
-	{
+          0xFFFFFFFF,{0},{0},0,0,{0},1
+        },
+    {
             2,                      /*ui32ChannelConfig*/
             0,                    /*i32MainAssocMixPref*/
             0,                      /*ui32Phase90Preference*/
@@ -813,8 +812,8 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
+        },
+          0xFFFFFFFF,{0},{0},0,0,{0},1
         }
     },
     3,      /* ui32InputCplxLevel */
@@ -829,7 +828,7 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
 
     0,      /* ui32AC4DecodeMode */
     1,      /* ui32EnableADMixing */
-	-1      /* i32StreamInfoPresentationNumber */
+    -1      /* i32StreamInfoPresentationNumber */
 };
 
 const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig =
@@ -1160,7 +1159,9 @@ const BDSP_Raaga_Audio_G723EncoderUserConfig BDSP_sDefG723_1EncodeConfigSettings
 const BDSP_Raaga_Audio_PassthruConfigParams   BDSP_sDefaultPassthruSettings =
 {
     BDSP_Raaga_ePassthruType_SPDIF,          /* ui32PassthruType */
-    BDSP_Raaga_eAacHeaderType_Raw
+    BDSP_Raaga_eAacHeaderType_Raw,
+	BDSP_AF_P_BurstFill_ePauseBurst,
+	BDSP_AF_P_SpdifPauseWidth_eEightWord
 };
 
 const BDSP_Raaga_Audio_AVLConfigParams BDSP_sDefAVLConfigSettings =
@@ -1411,7 +1412,7 @@ const BDSP_Raaga_Audio_DpcmrConfigParams BDSP_sDefDpcmrUserConfig=
             },
             0,          /* b_discard_drc */
             1,           /*compressor_profile*/
-	    0
+        0
 };
 
 const BDSP_Raaga_Audio_SRCUserConfigParams   BDSP_sDefaultSrcSettings =
@@ -1895,7 +1896,9 @@ const BDSP_Raaga_Audio_MixerConfigParams  BDSP_sDefFwMixerConfigSettings =
         /*RS*/  {0, 0, 0, 0x40000000, 0, 0},
         /*C*/   {0, 0, 0, 0, 0x40000000, 0},
         /*LFE*/ {0, 0, 0, 0, 0, 0x40000000}
-    }
+    },
+	BDSP_AF_P_BurstFill_ePauseBurst,
+	BDSP_AF_P_SpdifPauseWidth_eEightWord
 };
 const BDSP_Raaga_Audio_MixerDapv2ConfigParams  BDSP_sDefMixerDapv2ConfigParams =
 {
@@ -1976,6 +1979,15 @@ const BDSP_Raaga_Audio_FadeCtrlConfigParams BDSP_sDefFadeCtrlConfigSettings =
     0x7FFFFFFF,                                       /* ui32VolumeTargetLevel */
     2,                                                /* ui32EasingFunctionType */
     4800,                                             /* ui32DurationInSamples */
+};
+
+const BDSP_Raaga_Audio_AmbisonicsConfigParams BDSP_sDefAmbisonicsConfigSettings =
+{
+    1,                                                  /* ui32BinauralRender */
+    1,                                                  /* ui32BinauralRender */
+    0,                                                  /* ui32Yaw */
+    0,                                                  /* ui32Pitch */
+    0,                                                  /* ui32Roll */
 };
 
 const BDSP_Raaga_Audio_TruSurrndHDConfigParams BDSP_sDefTruSurrndHDConfigSettings =

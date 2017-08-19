@@ -348,7 +348,7 @@ BERR_Code BAPE_Playback_Start(
     bool hbr=false;
     BAPE_PathNode *pNode;
     unsigned numFound;
-    bool mixedWithDsp;
+    bool mixedWithDsp = false;
 
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
     BDBG_ASSERT(NULL != pSettings);
@@ -498,7 +498,7 @@ BERR_Code BAPE_Playback_Start(
         BAPE_Mixer_P_PrintMixers(hPlayback->hApe);
     #endif
 
-    BAPE_PathNode_P_FindConsumersBySubtype(&hPlayback->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&hPlayback->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
     mixedWithDsp = (numFound > 0) ? true : false;
     if (mixedWithDsp)
     {

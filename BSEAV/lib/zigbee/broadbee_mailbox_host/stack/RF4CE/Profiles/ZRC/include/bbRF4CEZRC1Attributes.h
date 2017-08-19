@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/ZRC/include/bbRF4CEZRC1Attributes.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE ZRC 1.1 profile attributes handler.
+ *      This is the header file for the RF4CE ZRC 1.1 profile attributes handler.
  *
- * $Revision: 3368 $
- * $Date: 2014-08-21 16:02:35Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
 
 #ifndef BBRF4CEZRC1ATTRIBUTES_H
 #define BBRF4CEZRC1ATTRIBUTES_H
@@ -70,20 +63,18 @@ typedef enum _RF4CE_ZRC1_AttributesID_t
     RF4CE_ZRC1_APL_KEY_EXCHANGE_TRANSFER_COUNT    = 0x82, /*!< ZRC 1. The value of the KeyExTransferCount parameter
                                                                passed to the pair request primitive during the push
                                                                button pairing procedure. */
-    RF4CE_ZRC1_APL_COMMAND_DISCOVERY              = 0x83, /*!< ZRC 1. Command discovery value. */
-                                                          /* Overlapped with GDP2.0 POWER_STATUS -wzz 2016.01.27*/
-    RF4CE_ZRC1_APL_AUTODISCOVERY_PAIR_TIMEOUT     = 0x84, /*!< Custom attribute. */
-                                                          /* Overlapped with RF4CE_ZRC2_POLL_CONSTRAINTS -wzz 2016.01.27*/
-//#ifdef _PHY_TEST_HOST_INTERFACE_
-    /* A self-defined attribute is created here for customer requirement.
-        Max auto-discovery duration is a constant in ZRC1.1 spec.
-        ZRC2.0 has aplcBindWindowDuration(RF4CE_GDP_APLC_BIND_WINDOW_DURATION).
-        The self-defined attribute GDP_AUTO_DISC_DURATION may represent both of them.
-        Besides, we may consider to merge common attributes currently in ZRC1 and ZRC2 systematically to GDP module.
-        -wzz 2016.01.27
-    */
+    RF4CE_ZRC1_APL_COMMAND_DISCOVERY              = 0x83, /*!< ZRC 1. Command discovery value.
+                                                               Overlapped with GDP2.0 POWER_STATUS -wzz 2016.01.27*/
+    RF4CE_ZRC1_APL_AUTODISCOVERY_PAIR_TIMEOUT     = 0x84, /*!< Custom attribute.
+                                                               Overlapped with RF4CE_ZRC2_POLL_CONSTRAINTS -wzz 2016.01.27*/
     GDP_AUTO_DISC_DURATION                        = 0x8C
-//#endif
+    /*!< A self-defined attribute is created here for customer requirement.
+         Max auto-discovery duration is a constant in ZRC1.1 spec.
+         ZRC2.0 has aplcBindWindowDuration(RF4CE_GDP_APLC_BIND_WINDOW_DURATION).
+         The self-defined attribute GDP_AUTO_DISC_DURATION may represent both of them.
+         Besides, we may consider to merge common attributes currently in ZRC1 and ZRC2 systematically to GDP module.
+         -wzz 2016.01.27
+     */
 } RF4CE_ZRC1_AttributesID_t;
 
 /**//**
@@ -122,19 +113,17 @@ typedef enum _RF4CE_ZRC_AttributeStatus_t
  */
 typedef struct _RF4CE_ZRC1_Attributes_t
 {
-    uint32_t aplZRC1KeyRepeatInterval;            /*!< ZRC 1. The interval in ms at which user command repeat
+    uint32_t    aplZRC1KeyRepeatInterval;           /*!< ZRC 1. The interval in ms at which user command repeat
                                                        frames will be transmitted. */
-    uint32_t aplZRC1KeyRepeatWaitTime;            /*!< ZRC 1. The duration that a recipient of a user control
+    uint32_t    aplZRC1KeyRepeatWaitTime;           /*!< ZRC 1. The duration that a recipient of a user control
                                                        repeated command frame waits before terminating a
                                                        repeated operation. */
     uint8_t     aplZRC1KeyExchangeTransferCount;    /*!< ZRC 1. The value of the KeyExTransferCount parameter
                                                        passed to the pair request primitive during the push
                                                        button pairing procedure. */
     uint8_t     aplZRC1CommandDiscovery[32];        /*!< ZRC 1. Command discovery bitmap. */
-    uint16_t    aplZRC1AutodiscoveryPairTimeout;
-//#ifdef _PHY_TEST_HOST_INTERFACE_
+    uint16_t    aplZRC1AutodiscoveryPairTimeout;    /*!< ZRC 1. Autodiscovery Pair timeout. */
     uint32_t    aplGDPAutoDiscoveryDuration;        /*!< Self-defined attribute for total Binding Timeout. */
-//#endif
 } RF4CE_ZRC1_Attributes_t;
 
 /**//**
@@ -142,16 +131,16 @@ typedef struct _RF4CE_ZRC1_Attributes_t
  */
 typedef union _RF4CE_ZRC1_Attribute_t
 {
-    uint32_t aplZRC1KeyRepeatInterval;            /*!< ZRC 1. The interval in ms at which user command repeat
+    uint32_t    aplZRC1KeyRepeatInterval;           /*!< ZRC 1. The interval in ms at which user command repeat
                                                        frames will be transmitted. */
-    uint32_t aplZRC1KeyRepeatWaitTime;            /*!< ZRC 1. The duration that a recipient of a user control
+    uint32_t    aplZRC1KeyRepeatWaitTime;           /*!< ZRC 1. The duration that a recipient of a user control
                                                        repeated command frame waits before terminating a
                                                        repeated operation. */
     uint8_t     aplZRC1KeyExchangeTransferCount;    /*!< ZRC 1. The value of the KeyExTransferCount parameter
                                                        passed to the pair request primitive during the push
                                                        button pairing procedure. */
     uint8_t     aplZRC1CommandDiscovery[32];        /*!< ZRC 1. Command discovery bitmap. */
-    uint16_t    aplZRC1AutodiscoveryPairTimeout;
+    uint16_t    aplZRC1AutodiscoveryPairTimeout;    /*!< ZRC 1. Autodiscovery Pair timeout. */
 #ifdef _PHY_TEST_HOST_INTERFACE_
     uint32_t    aplGDPAutoDiscoveryDuration;        /*!< Self-defined attribute for total Binding Timeout. */
 #endif
@@ -159,89 +148,100 @@ typedef union _RF4CE_ZRC1_Attribute_t
 
 /**//**
  * \brief RF4CE ZRC 1.1 Get Attribute Request parameters.
+ * \ingroup RF4CE_ZRC1_GetAttributeReq
  */
 typedef struct _RF4CE_ZRC1_GetAttributeReqParams_t
 {
-    uint8_t attributeId;
+    uint8_t attributeId;                            /*!< Attribute ID. */
 } RF4CE_ZRC1_GetAttributeReqParams_t;
 
 /**//**
  * \brief RF4CE ZRC 1.1 Get Attribute Request confirm.
+ * \ingroup RF4CE_ZRC1_GetAttributeConf
  */
 typedef struct _RF4CE_ZRC1_GetAttributeConfParams_t
 {
-    uint8_t status;
-    RF4CE_ZRC1_Attribute_t data;
+    uint8_t status;                                 /*!< Confirmation status. */
+    RF4CE_ZRC1_Attribute_t data;                    /*!< Attribute data. */
 } RF4CE_ZRC1_GetAttributeConfParams_t;
 
 /**//**
  * \brief RF4CE ZRC 1.1 Set Attribute Request parameters.
+ * \ingroup RF4CE_ZRC1_SetAttributeReq
  */
 typedef struct _RF4CE_ZRC1_SetAttributeReqParams_t
 {
-    uint8_t attributeId;
-    RF4CE_ZRC1_Attribute_t data;
+    uint8_t attributeId;                            /*!< Attribute ID. */
+    RF4CE_ZRC1_Attribute_t data;                    /*!< Attribute data. */
 } RF4CE_ZRC1_SetAttributeReqParams_t;
 
 /**//**
  * \brief RF4CE ZRC 1.1 Set Attribute Request confirm.
+ * \ingroup RF4CE_ZRC1_SetAttributeConf
  */
 typedef struct _RF4CE_ZRC1_SetAttributeConfParams_t
 {
-    uint8_t status;
+    uint8_t status;                                 /*!< Confirmation status. */
 } RF4CE_ZRC1_SetAttributeConfParams_t;
 
 /**//**
  * \brief RF4CE ZRC 1.1 Attribute Get request descriptor declaration.
+ * \ingroup RF4CE_ZRC1_GetAttributeReq
  */
 typedef struct _RF4CE_ZRC1_GetAttributeDescr_t RF4CE_ZRC1_GetAttributeDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 1.1 Attribute Get request callback.
+ * \ingroup RF4CE_ZRC1_GetAttributeConf
  */
 typedef void (*RF4CE_ZRC1_GetAttributeCallback_t)(RF4CE_ZRC1_GetAttributeDescr_t *req, RF4CE_ZRC1_GetAttributeConfParams_t *conf);
 
 /**//**
  * \brief RF4CE ZRC 1.1 Attribute Set request descriptor declaration.
+ * \ingroup RF4CE_ZRC1_SetAttributeReq
  */
 typedef struct _RF4CE_ZRC1_SetAttributeDescr_t RF4CE_ZRC1_SetAttributeDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 1.1 Attribute Set request callback.
+ * \ingroup RF4CE_ZRC1_SetAttributeConf
  */
 typedef void (*RF4CE_ZRC1_SetAttributeCallback_t)(RF4CE_ZRC1_SetAttributeDescr_t *req, RF4CE_ZRC1_SetAttributeConfParams_t *conf);
 
 /**//**
  * \brief RF4CE ZRC 1.1 Attribute Get request descriptor.
+ * \ingroup RF4CE_ZRC1_GetAttributeReq
  */
 struct _RF4CE_ZRC1_GetAttributeDescr_t
 {
 #ifndef _HOST_
-    RF4CE_NWK_RequestService_t service;
+    RF4CE_NWK_RequestService_t service;             /*!< Service field. */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
-    RF4CE_ZRC1_GetAttributeReqParams_t params;
-    RF4CE_ZRC1_GetAttributeCallback_t callback;
+    RF4CE_ZRC1_GetAttributeReqParams_t params;      /*!< Request parameters. */
+    RF4CE_ZRC1_GetAttributeCallback_t callback;     /*!< Request callback. */
 };
 
 /**//**
  * \brief RF4CE ZRC 1.1 Attribute Set request descriptor.
+ * \ingroup RF4CE_ZRC1_SetAttributeReq
  */
 struct _RF4CE_ZRC1_SetAttributeDescr_t
 {
 #ifndef _HOST_
-    RF4CE_NWK_RequestService_t service;
+    RF4CE_NWK_RequestService_t service;             /*!< Service field. */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
-    RF4CE_ZRC1_SetAttributeReqParams_t params;
-    RF4CE_ZRC1_SetAttributeCallback_t callback;
+    RF4CE_ZRC1_SetAttributeReqParams_t params;      /*!< Request parameters. */
+    RF4CE_ZRC1_SetAttributeCallback_t callback;     /*!< Request callback. */
 };
 
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Starts asynchronous ZRC 1.1 Get Attributes Request.
+ \ingroup RF4CE_ZRC_Functions
 
  \param[in] request - pointer to the request descriptor.
  \return Nothing.
@@ -250,6 +250,7 @@ void RF4CE_ZRC1_GetAttributesReq(RF4CE_ZRC1_GetAttributeDescr_t *request);
 
 /************************************************************************************//**
  \brief Starts asynchronous ZRC 1.1 Set Attributes Request.
+ \ingroup RF4CE_ZRC_Functions
 
  \param[in] request - pointer to the request descriptor.
  \return Nothing.
@@ -257,3 +258,5 @@ void RF4CE_ZRC1_GetAttributesReq(RF4CE_ZRC1_GetAttributeDescr_t *request);
 void RF4CE_ZRC1_SetAttributesReq(RF4CE_ZRC1_SetAttributeDescr_t *request);
 
 #endif // BBRF4CEZRC1ATTRIBUTES_H
+
+/* eof bbRF4CEZRC1Attributes.h */

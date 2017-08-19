@@ -1,0 +1,16 @@
+#
+# SDIO/PCMCIA Device Driver directory
+#
+# $Copyright (C) 2001-2003 Broadcom Corporation$
+#
+# $Id: README,v 1.2 2005-11-28 21:22:01 nn Exp $
+#
+
+See TWIKI topic:
+
+http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/SdioDev
+
+Directory src/sdpcmdev:
+
+Repository for files specific to building SDIO/PCMCIA device dongle targets. 
+Files defined here are accessed to build sdio-* targets under src/dongle.

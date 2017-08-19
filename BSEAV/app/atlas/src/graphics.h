@@ -91,7 +91,7 @@ class CSurfaceClient : public CResource
 public:
     CSurfaceClient(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CSurfaceClient(void);
@@ -99,7 +99,7 @@ public:
     virtual eRet open(NEXUS_SurfaceCompositorHandle surfaceCompositor = NULL);
     virtual void close(void);
     virtual eRet setBlend(NEXUS_BlendEquation * pBlendEquationAlpha, NEXUS_BlendEquation * pBlendEquationColor);
-    virtual eRet setZOrder(uint16_t zOrder);
+    virtual eRet setZOrder(unsigned zOrder);
 
     eRet setSurface(NEXUS_SurfaceHandle surface);
     eRet updateSurface(MRect * pRectUpdate = NULL);
@@ -118,14 +118,14 @@ class CGraphics : public CResource
 public:
     CGraphics(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CGraphics(void);
 
     virtual eRet open(CConfig * pConfig);
     virtual void close(void);
-    virtual eRet initGraphics(uint16_t width, uint16_t height);
+    virtual eRet initGraphics(unsigned width, unsigned height);
     virtual void uninitGraphics(void);
     virtual void dump();
 
@@ -144,12 +144,12 @@ public:
     void                          setActive(bool bActive);
     bool                          isActive(void) { return(_bActive); }
     eRet                          destripeToSurface(NEXUS_StripedSurfaceHandle stripedSurface, NEXUS_SurfaceHandle stillSurface, MRect rectStill);
-    bwin_framebuffer_t            createBwinFramebuffer(NEXUS_SurfaceHandle surface, uint16_t width = 0, uint16_t height = 0);
+    bwin_framebuffer_t            createBwinFramebuffer(NEXUS_SurfaceHandle surface, unsigned width = 0, unsigned height = 0);
     eRet                          destroyBwinFramebuffer(bwin_framebuffer_t framebuffer);
     eRet                          setFramebufferSize(CDisplay * pDisplay);
     eRet                          getFramebufferSettings(bwin_framebuffer_settings * pSettings);
-    uint16_t                      getWidth(void)  { return(_graphicsWidth); }
-    uint16_t                      getHeight(void) { return(_graphicsHeight); }
+    unsigned                      getWidth(void)  { return(_graphicsWidth); }
+    unsigned                      getHeight(void) { return(_graphicsHeight); }
     void                          graphicsCheckpoint(void);
     void                          flush(NEXUS_SurfaceHandle surface = NULL);
     void                          sync(bwin_framebuffer_t framebuffer);
@@ -176,8 +176,8 @@ protected:
     NEXUS_SurfaceCompositorHandle _surfaceCompositor;
     CDisplay *                    _pDisplayPrimary;
     CDisplay *                    _pDisplaySecondary;
-    uint16_t                      _graphicsWidth;
-    uint16_t                      _graphicsHeight;
+    unsigned                      _graphicsWidth;
+    unsigned                      _graphicsHeight;
     NEXUS_Graphics2DHandle        _blitter;
     B_EventHandle                 _checkpointEvent;
     B_EventHandle                 _inactiveEvent;

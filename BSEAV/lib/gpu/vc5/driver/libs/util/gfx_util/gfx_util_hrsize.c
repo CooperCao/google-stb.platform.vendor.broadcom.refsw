@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include "gfx_util_hrsize.h"
 #include "vcos_string.h"
+#include <inttypes.h>
 
 void gfx_util_hrsize_internal(char *buf, size_t buf_size, size_t size)
 {

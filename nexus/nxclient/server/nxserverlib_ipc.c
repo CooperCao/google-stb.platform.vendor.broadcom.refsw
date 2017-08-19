@@ -80,7 +80,6 @@ struct nxclient_ipc {
     BLST_D_ENTRY(nxclient_ipc) link;
     int fd;
     bool do_close;
-    bool do_close_after_read;
     bipc_server_client_t ipc;
     nxclient_t client;
     struct ipc_server *server;
@@ -147,6 +146,15 @@ void nxserverlib_destroy_local_ipcstub(struct nxclient_ipc *client)
     BKNI_Free(client);
 }
 
+static bool nxserver_verify_client_open(struct ipc_server *server, struct nxclient_ipc *client)
+{
+    struct nxclient_ipc *c;
+    for (c=BLST_D_FIRST(&server->clients);c;c=BLST_D_NEXT(c, link)) {
+        if (c == client) return true;
+    }
+    return false;
+}
+
 static struct ipc_thread_context {
     struct ipc_server *server;
     nxclient_ipc_thread id;
@@ -178,17 +186,26 @@ static void ipc_thread(void *context)
         struct pollfd fds[B_MAX_CLIENTS];
         struct nxclient_ipc *clients[B_MAX_CLIENTS];
         unsigned i,nfds,events;
+        bool standby = (id == nxclient_ipc_thread_restricted && nxserver_is_standby(server->server));
 
         i=0;
         for(client=BLST_D_FIRST(&server->clients);client;) {
             struct nxclient_ipc *next = BLST_D_NEXT(client, link);
             if(client->id == id) {
                 if (client->do_close) {
+                    if (client->other_client) {
+                        if (next == client->other_client) {
+                            next = BLST_D_NEXT(client->other_client, link);
+                        }
+                        BDBG_MSG(("destroy other client %p", (void*)client->other_client));
+                        nxserver_client_destroy(server, client->other_client);
+                    }
                     BDBG_MSG(("destroy %s client %p", dbg_str, (void*)client));
                     nxserver_client_destroy(server, client);
                 }
-                else {
+                else if (!standby) {
                     if (i==B_MAX_CLIENTS) break;
+
                     BDBG_MSG_TRACE(("add %s client %p: %d", dbg_str, (void*)client, client->fd));
                     clients[i] = client;
                     fds[i].revents = 0;
@@ -215,7 +232,7 @@ static void ipc_thread(void *context)
         BKNI_ReleaseMutex(server->lock);
         BDBG_MSG_TRACE(("poll %s %u", dbg_str, nfds));
         do {
-            rc = poll(fds, nfds, nfds == 0 ? 25 : 1000);
+            rc = poll(fds, nfds, (nfds == 0 && !standby) ? 25 : 1000);
         } while (rc < 0 && (errno == EAGAIN || errno == EINTR));
         BDBG_MSG_TRACE(("poll %s %u->%d", dbg_str, nfds, rc));
         BKNI_AcquireMutex(server->lock);
@@ -227,20 +244,13 @@ static void ipc_thread(void *context)
                 events --;
                 client = clients[i];
                 if(client) {
-                    BDBG_ASSERT(client->id == id);
-                    if (id == nxclient_ipc_thread_restricted) {
-                        if(nxserver_is_standby(server->server)) {
-                            if(client->do_close_after_read) { /* close 'restricted' portion of unwinding clients */
-                                BDBG_MSG(("destroy %s client %p", dbg_str, (void*)client));
-                                nxserver_client_destroy(server, client);
-                            }
-                            continue; /* don't accept calls over restricted wire when in standby */
+                    /* client may have been destroyed by other thread */
+                    if (nxserver_verify_client_open(server, client)) {
+                        rc = bipc_server_client_process(server->ipc, client->ipc);
+                        if(rc!=0) {
+                            BDBG_MSG(("closing %s client:%p(%p) with fd:%d ", dbg_str, (void*)client, (void*)client->client, client->fd));
+                            nxserver_client_destroy(server, client);
                         }
-                    }
-                    rc = bipc_server_client_process(server->ipc, client->ipc);
-                    if(rc!=0) {
-                        BDBG_MSG(("closing %s client:%p(%p) with fd:%d ", dbg_str, (void*)client, (void*)client->client, client->fd));
-                        nxserver_client_destroy(server, client);
                     }
                 } else {
                     bipc_server_client_create_settings settings;
@@ -407,8 +417,8 @@ void nxclient_p_destroy(nxclient_ipc_t _client)
         return;
     }
     client->do_close = true;
-    if(client->other_client) {
-        client->other_client->do_close_after_read = true;
+    if (client->other_client) {
+        client->other_client->do_close = true;
     }
     return;
 }
@@ -463,15 +473,15 @@ void nxclient_p_disconnect(nxclient_ipc_t _client, unsigned connectId)
     NxClient_P_Disconnect(_client->client, connectId);
 }
 
-void nxclient_p_get_composition(nxclient_ipc_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *composition)
+void nxclient_p_get_surface_client_composition(nxclient_ipc_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *composition)
 {
-    NxClient_P_GetComposition(client->client, surfaceClientId, composition);
+    NxClient_P_GetSurfaceClientComposition(client->client, surfaceClientId, composition);
     return;
 }
 
-int nxclient_p_set_composition(nxclient_ipc_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *composition)
+int nxclient_p_set_surface_client_composition(nxclient_ipc_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *composition)
 {
-    return NxClient_P_SetComposition(client->client, surfaceClientId, composition);
+    return NxClient_P_SetSurfaceClientComposition(client->client, surfaceClientId, composition);
 }
 
 int nxclient_p_write_teletext(nxclient_ipc_t client, const nxclient_p_teletext_data *data, size_t numLines, size_t *pNumLinesWritten)

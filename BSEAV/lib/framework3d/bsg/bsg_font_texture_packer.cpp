@@ -109,7 +109,7 @@ uint32_t FontTexturePacker::AssignCoords(std::vector<uint32_t> &width, std::vect
 
    while (retry)
    {
-      std::auto_ptr<FontTextureNode> top(new FontTextureNode(0, 0, width[tex], height[tex]));
+      std::unique_ptr<FontTextureNode> top(new FontTextureNode(0, 0, width[tex], height[tex]));
 
       bool  ok   = true;
 

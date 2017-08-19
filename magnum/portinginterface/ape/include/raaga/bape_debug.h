@@ -60,17 +60,8 @@ typedef enum BAPE_DebugSourceType
     BAPE_DebugSourceType_eMax
 } BAPE_DebugSourceType;
 
-
-typedef struct BAPE_DebugDigitalOutputStatus
-{       
-    char *pName;
-    uint32_t index; 
-    bool enabled;
-    BAPE_DataType   type;       
-    bool compressedAsPcm;
-    unsigned int sampleRate;
-    uint32_t cbits[2];          /* The 2nd D-WORD is not supported for compressed and expected to be 0's */
-    uint8_t formatId;           /* Byte 0:Bit 0 Consumer/Professional */
+typedef struct BAPE_DebugDigitalConsumerChannelStatus
+{
     uint8_t audio;              /* Byte 0:Bit 1 Audio/Non-Audio */
     uint8_t copyright;          /* Byte 0:Bit 2 Copyright */
     uint8_t emphasis;           /* Byte 0:Bits 3-5 Pre-emphasis will be 000 if non-audio */
@@ -82,7 +73,42 @@ typedef struct BAPE_DebugDigitalOutputStatus
     uint8_t pcmSampleWordLength; /* Byte 4:Bits 1-3 Sample Word Length Value dependent on wordLength */
     uint8_t pcmOrigSamplingFrequency; /* Byte 4:Bits 4-7 Orginal Sampling Frequency */    
     uint8_t pcmCgmsA;           /* Byte 5:Bits 0-1 CGMSA */    
+} BAPE_DebugDigitalConsumerChannelStatus;
 
+typedef struct BAPE_DebugDigitalProfessionalChannelStatus
+{
+    uint8_t audio;                  /* Byte 0:Bit 1 Audio/Non-Audio */
+    uint8_t emphasis;               /* Byte 0:Bits 2-4 Pre-emphasis will be 000 if non-audio */
+    uint8_t sampleRateLocked;       /* Byte 0:Bit 5 Sample Rate Locked */
+    uint8_t legacySampleRate;       /* Byte 0:Bits 6-7 Sample Rate if 0 could be Byte 4:3-6*/
+    uint8_t mode;                   /* Byte 1:Bits 0-3 Channel Mode */
+    uint8_t user;                   /* Byte 1:Bits 4-7 User bit management */
+    uint8_t auxSampleBits;          /* Byte 2:Bits 0-2 Sample Length */
+    uint8_t wordLength;             /* Byte 2:Bits 3-5 Source Word Length */
+    uint8_t alignment;              /* Byte 2:Bits 6-7 Alignment Level */
+    uint8_t channelNumber;          /* Byte 3:Bits 0-6 or 0-3 depending on multichannel mode*/
+    uint8_t multichannelModeNum;    /* Byte 3:Bits 4-6 it multichannelMode is 1 */
+    uint8_t multichannelMode;       /* Byte 3:Bit 7 */
+    uint8_t audioReference;         /* Byte 4:Bits 0-1 Digital Audio Reference Signal */
+    uint8_t samplingFrequencyExt;   /* Byte 4:Bits 3-6 Sampling Frequency */
+    uint8_t sampleFreqScaling;      /* Byte 4:Bit 7 Sampling frequency is 1/1,001 times that
+                                        indicated by Byte 4 bits 3 to 6, or by Byte 0 bits 6 to 7*/
+} BAPE_DebugDigitalProfessionalChannelStatus;
+
+typedef struct BAPE_DebugDigitalOutputStatus
+{
+    char *pName;
+    uint32_t index;
+    bool enabled;
+    BAPE_DataType   type;
+    bool compressedAsPcm;
+    unsigned int sampleRate;
+    uint32_t cbits[2];          /* The 2nd D-WORD is not supported for compressed and expected to be 0's */
+    uint8_t formatId;           /* Byte 0:Bit 0 Consumer/Professional */
+    union {
+        BAPE_DebugDigitalConsumerChannelStatus consumer;
+        BAPE_DebugDigitalProfessionalChannelStatus professional;
+    } channelStatus;
 } BAPE_DebugDigitalOutputStatus;
 
 typedef struct BAPE_DebugOutputStatus

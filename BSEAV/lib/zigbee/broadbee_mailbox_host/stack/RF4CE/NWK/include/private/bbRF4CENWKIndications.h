@@ -1,264 +1,139 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/private/bbRF4CENWKIndications.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE Network Layer component indications routines.
+ *      This is the header file for the RF4CE Network Layer component indications routines.
  *
- * $Revision: 3142 $
- * $Date: 2014-08-04 10:47:40Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_NWK_INDICATIONS_H
 #define _RF4CE_NWK_INDICATIONS_H
 /************************* INCLUDES ****************************************************/
 #include "bbSysTypes.h"
 #include "bbSysTaskScheduler.h"
-#include "bbMacSapTypesData.h"
+#include "bbMacSapForRF4CE.h"
+
+#include "bbRF4CENWKNIBAttributes.h"
+
+
+/************************* TYPES *******************************************************/
+/**//**
+ * \brief RF4CE NWK incoming data indications queue.
+ */
+typedef struct _RF4CE_NWK_IncomingFrameBuffer_t
+{
+    SYS_QueueElement_t queueElement;                    /*!< Internal queue field */
+
+    RF4CE_PairingTableEntry_t *pairEntry;               /*!< Pointer to an appropriate pair entry */
+    SYS_DataPointer_t   body;
+
+    MAC_Address_t       srcAddr;                        /*!< Source address */
+    MAC_PanId_t         srcPanId;                       /*!< Source PAN ID */
+    MAC_AddrMode_t      srcAddrMode;                    /*!< Source address mode */
+    Bool8_t             isBroadcast;
+
+    uint32_t            frameCounter;                   /*!< Frame counter from frame header. */
+    uint16_t            vendorId;                       /*!< Vendor id from frame header. */
+    uint8_t             profileId;                      /*!< Profile id from frame header. */
+    uint8_t             frameControl;                   /*!< Frame control. */
+    uint8_t             lqi;                            /*!< frame link quality */
+    uint8_t             channelDesignatorValue;
+} RF4CE_NWK_IncomingFrameBuffer_t;
+
+typedef struct _RF4CE_RxServiceMem_t
+{
+    SYS_QueueDescriptor_t   freeIndication;
+    SYS_QueueDescriptor_t   usedIndication;
+    RF4CE_NWK_IncomingFrameBuffer_t frameStorage[RF4CE_NWK_MAX_INCOMING_PACKETS];
+    MAC_SetReqDescr_t       macSetReq;
+} RF4CE_RxServiceMem_t;
 
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
- \brief Called upon unpair request receiption.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
+ \brief Reset rf4ce network service to default state.
  ****************************************************************************************/
-void RF4CE_NWK_OnUnpairRequest(MAC_DataIndParams_t *indication, uint8_t dataSize);
+void rf4ceNwkRxServiceReset(void);
 
 /************************************************************************************//**
- \brief Update Key Request Handler Task.
-
+ \brief Task handlers for specific commands.
  \param[in] taskDescriptor - pointer to the current task descriptor structure.
  \return Nothing.
  ****************************************************************************************/
 void RF4CE_NWK_UpdateKeyRequestHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief Pair Request Task Handler. Handles Request queue and dispatches calls.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_PairUnpairRequestHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief The callback is called after Key Seed Wait timeout expires.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnKeySeedWaitTimeoutInitiator(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief The callback is called after Response Wait timeout expires.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnResponseWaitTimeoutInitiator(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief The callback is called after Key Seed Wait timeout expires.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnKeySeedWaitTimeoutResponder(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief The callback is called after Response Wait timeout expires.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnResponseWaitTimeoutResponder(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief DATA Request Task Handler.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
 void RF4CE_NWK_DataRequestHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief DATA Indication Task Handler.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_DataIndicationHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief Start/Reset request Handler Task.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
 void RF4CE_NWK_StartResetRequestHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief DATA encryption Handler Task.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
 void RF4CE_NWK_DataRequestEncryptHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief Data indication Handler Task.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnDataIndication(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief Discovery Request Handler Task. Controller only.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
+void RF4CE_NWK_OnMacDataIndication(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
 void RF4CE_NWK_DiscoveryRequestHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief The callback is called after Discovery Duration timeout expires. Controller only.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
 void RF4CE_NWK_OnDiscoveryDurationTimeout(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief Called upon discovery response receiption. Controller only.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnDiscoveryResponse(MAC_DataIndParams_t *indication, uint8_t dataSize);
-
-/************************************************************************************//**
- \brief Called upon pair response receiption. Controller only.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnPairResponse(MAC_DataIndParams_t *indication, uint8_t dataSize);
-
-/************************************************************************************//**
- \brief Called upon key seed receiption. Controller only.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnKeySeed(MAC_DataIndParams_t *indication, uint8_t dataSize);
-
-/************************************************************************************//**
- \brief Called upon ping response receiption. Controller only.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnPingResponse(MAC_DataIndParams_t *indication, uint8_t dataSize);
-
 #ifdef RF4CE_TARGET
-
-/************************************************************************************//**
- \brief Called upon discovery request receiption. Target only.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnDiscoveryRequest(MAC_DataIndParams_t *indication, uint8_t dataSize);
-
-/************************************************************************************//**
- \brief Called upon pair request receiption. Target only.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnPairRequest(MAC_DataIndParams_t *indication, uint8_t dataSize);
-
-/************************************************************************************//**
- \brief Called upon ping request receiption. Target only.
-
- \param[in] indication - pointer to the incoming data.
- \param[in] dataSize - real data size pointed by indication->msdu.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_OnPingRequest(MAC_DataIndParams_t *indication, uint8_t dataSize);
-
-/************************************************************************************//**
- \brief Auto-Discovery Request Handler Task. Target only.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
 void RF4CE_NWK_AutoDiscoveryRequestHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief Auto-Discovery Request Handler Task. Target only.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
 void RF4CE_NWK_AutoDiscoveryRequestHandler2(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
+void RF4CE_NWK_OnAutoDiscoveryTimeout(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
+#else
+# define RF4CE_NWK_AutoDiscoveryRequestHandler(...)
+# define RF4CE_NWK_AutoDiscoveryRequestHandler2(...)
+# define RF4CE_NWK_OnAutoDiscoveryTimeout(...)
+#endif /* RF4CE_TARGET */
 
 /************************************************************************************//**
- \brief The callback is called after Auto Discovery timeout expires. Target only.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
+ \brief Group of internal command handlers.
+ \param[in] packetBuffer - pointer to the incoming packet.
  \return Nothing.
  ****************************************************************************************/
-void RF4CE_NWK_OnAutoDiscoveryTimeout(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
+void RF4CE_NWK_OnDataIndication(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+void RF4CE_NWK_OnDiscoveryResponse(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+void RF4CE_NWK_OnPairResponse(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+void RF4CE_NWK_OnUnpairRequest(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+void RF4CE_NWK_OnKeySeed(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+void RF4CE_NWK_OnPingResponse(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+#ifdef RF4CE_TARGET
+void RF4CE_NWK_OnDiscoveryRequest(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+void RF4CE_NWK_OnPairRequest(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+void RF4CE_NWK_OnPingRequest(RF4CE_NWK_IncomingFrameBuffer_t *const packetBuffer);
+#else
+# define RF4CE_NWK_OnDiscoveryRequest(...)
+# define RF4CE_NWK_OnPairRequest(...)
+# define RF4CE_NWK_OnPingRequest(...)
 #endif /* RF4CE_TARGET */
 
 #endif /* _RF4CE_NWK_INDICATIONS_H */
+
+/* eof bbRF4CENWKIndications.h */

@@ -49,9 +49,6 @@
 void
 botf_mem_init(botf_mem *mem, BSTD_DeviceOffset addr, void *cached_ptr, uint64_t range, struct BOTF_Data *otf, void (*FlushCache)(const void *, size_t))
 {
-    void *ptr;
-    BERR_Code rc;
-
     mem->base = (int64_t)(long)cached_ptr - addr;
     mem->ptr = cached_ptr;
     mem->addr = addr;

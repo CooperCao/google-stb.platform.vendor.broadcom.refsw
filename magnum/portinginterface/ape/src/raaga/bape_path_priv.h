@@ -172,7 +172,7 @@ void BAPE_PathNode_P_FindConsumersByType(
 Summary:
 Search for consumers by a type and subtype
 ***************************************************************************/
-void BAPE_PathNode_P_FindConsumersBySubtype(
+void BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(
     BAPE_PathNode *pNode,
     BAPE_PathNodeType type,
     unsigned subtype,

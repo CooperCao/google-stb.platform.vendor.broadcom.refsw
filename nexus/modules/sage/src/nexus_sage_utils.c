@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -75,7 +75,7 @@ int NEXUS_Sage_P_IsHeapValid(NEXUS_HeapHandle heap, NEXUS_MemoryType memoryType)
         && status.memcIndex == 0                    /* on Zeus30 chips, SAGE-side can only access MEMC0 */
 #endif
         ) {
-        BDBG_MSG(("%s: VALID heap=%p [offset=" BDBG_UINT64_FMT ", size=%u]", __FUNCTION__, (void *)heap, BDBG_UINT64_ARG(status.offset), status.size));
+        BDBG_MSG(("%s: VALID heap=%p [offset=" BDBG_UINT64_FMT ", size=%u]", BSTD_FUNCTION, (void *)heap, BDBG_UINT64_ARG(status.offset), status.size));
         return 1; /* the heap is valid */
     }
 
@@ -94,7 +94,7 @@ static NEXUS_Error NEXUS_Sage_P_GetHeapConfig(NEXUS_MemoryType memoryType, uint3
     }
     else {/* default is not valid, fall back to heap search */
         int i;
-        BDBG_WRN(("%s: default heap is not compatible. do a heap search.", __FUNCTION__));
+        BDBG_WRN(("%s: default heap is not compatible. do a heap search.", BSTD_FUNCTION));
         for (i = 0; i < NEXUS_MAX_HEAPS; i++) {
             heap = g_pCoreHandles->heap[i].nexus;
             if (NEXUS_Sage_P_IsHeapValid(heap, memoryType)) {
@@ -107,10 +107,10 @@ static NEXUS_Error NEXUS_Sage_P_GetHeapConfig(NEXUS_MemoryType memoryType, uint3
     if (validHeap) {
         NEXUS_Memory_GetDefaultAllocationSettings(allocSettings);
         allocSettings->heap = validHeap;
-        allocSettings->alignment = 4096; /* Align to 4096 for SAGE-side concerns */
+        allocSettings->alignment = SAGE_ALIGN_SIZE; /* Align to 4096 for SAGE-side concerns */
     }
     else {
-        BDBG_ERR(("%s: Cannot find default heap of type %u", __FUNCTION__, memoryType));
+        BDBG_ERR(("%s: Cannot find default heap of type %u", BSTD_FUNCTION, memoryType));
         rc = NEXUS_NOT_INITIALIZED;
     }
 
@@ -125,7 +125,7 @@ NEXUS_Error NEXUS_Sage_P_ConfigureAlloc(void)
                                     NEXUS_MEMC0_MAIN_HEAP,
                                     &g_sage_utils.defaultAllocSettings);
     if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: Cannot get global heap config (error=%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: Cannot get global heap config (error=%u)", BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -133,7 +133,7 @@ NEXUS_Error NEXUS_Sage_P_ConfigureAlloc(void)
                                     NEXUS_VIDEO_SECURE_HEAP,
                                     &g_sage_utils.restrictedAllocSettings);
     if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: Cannot get restricted heap config (error=%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: Cannot get restricted heap config (error=%u)", BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -142,7 +142,7 @@ NEXUS_Error NEXUS_Sage_P_ConfigureAlloc(void)
         rc = NEXUS_Heap_GetStatus(g_sage_utils.restrictedAllocSettings.heap,
                                   &status);
         if (rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Cannot get restricted heap status     (error=%u)", __FUNCTION__, rc));
+            BDBG_ERR(("%s: Cannot get restricted heap status     (error=%u)", BSTD_FUNCTION, rc));
             goto end;
         }
         g_sage_utils.restrictedAddrStart = (uint8_t *)NEXUS_OffsetToCachedAddr(status.offset);
@@ -163,10 +163,11 @@ static void * NEXUS_Sage_P_AllocGeneric(size_t size, const NEXUS_MemoryAllocatio
 {
     NEXUS_Error rc;
     void *mem;
-    rc = NEXUS_Memory_Allocate(size,
-                               allocSettings,
-                               &mem);
-    if (rc == NEXUS_SUCCESS) {
+    size_t roundedSize = RoundUpP2(size, SAGE_ALIGN_SIZE);
+    rc = NEXUS_Memory_Allocate(roundedSize,
+                                allocSettings,
+                                       &mem);
+     if (rc == NEXUS_SUCCESS) {
         return mem;
     }
     return NULL;

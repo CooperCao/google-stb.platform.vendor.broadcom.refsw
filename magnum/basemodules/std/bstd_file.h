@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,9 +44,11 @@
 #ifdef BSTD_FILE_DISABLED
 #define BSTD_FILE "unknown"
 #define BSTD_LINE 0
+#define BSTD_FUNCTION "unknown"
 #else
 #define BSTD_FILE __FILE__
 #define BSTD_LINE __LINE__
+#define BSTD_FUNCTION __extension__ __FUNCTION__
 #endif
 
 #endif /* #ifndef BSTD_FILE_H__ */

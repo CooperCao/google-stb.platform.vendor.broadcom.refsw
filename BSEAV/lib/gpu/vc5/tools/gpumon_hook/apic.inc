@@ -872,8 +872,11 @@ HOOK(eglUnbindWaylandDisplayWL);
 HOOK(eglQueryWaylandBufferWL);
 #endif /* EGL_WL_bind_wayland_display*/
 
-#if GL_BRCM_mirror_once_border
-#endif /* GL_BRCM_mirror_once_border*/
+#if GL_BRCM_image_formats
+#endif /* GL_BRCM_image_formats*/
+
+#if GL_BRCM_mirror_clamp_to_edge
+#endif /* GL_BRCM_mirror_clamp_to_edge*/
 
 #if GL_BRCM_polygon_mode
 HOOK(glPolygonModeBRCM);
@@ -885,10 +888,15 @@ HOOK(glProvokingVertexBRCM);
 
 #if GL_BRCM_texture_1D
 HOOK(glTexImage1DBRCM);
+HOOK(glTexSubImage1DBRCM);
+HOOK(glTexStorage1DBRCM);
 #endif /* GL_BRCM_texture_1D*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
+
+#if GL_BRCM_texture_unnormalised_coords
+#endif /* GL_BRCM_texture_unnormalised_coords*/
 
 #if GL_EXT_base_instance
 HOOK(glDrawArraysInstancedBaseInstanceEXT);

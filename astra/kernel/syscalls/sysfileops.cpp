@@ -280,7 +280,7 @@ void SysCalls::doWritev(TzTask *currTask) {
     unsigned long iovcnt = currTask->userReg(TzTask::UserRegs::r2);
 
     struct iovec *userIovecs = (struct iovec *)iovecs;
-    struct iovec *kernelIovecs = (struct iovec *)paramsPage;
+    struct iovec *kernelIovecs = (struct iovec *)paramsPage.cpuLocal();
     bool rc = fromUser(userIovecs, kernelIovecs, iovcnt * sizeof(struct iovec));
     if (!rc) {
         currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
@@ -288,7 +288,7 @@ void SysCalls::doWritev(TzTask *currTask) {
     }
 
 
-    uint8_t *startPos = (uint8_t *)paramsPage + iovcnt * sizeof(struct iovec);
+    uint8_t *startPos = (uint8_t *)paramsPage.cpuLocal() + iovcnt * sizeof(struct iovec);
     uint8_t *currPos = startPos;
     uint8_t *lastPos = startPos + PAGE_SIZE_4K_BYTES - 1;
 
@@ -877,7 +877,7 @@ void SysCalls::doPoll(TzTask *currTask) {
     }
     //printf("%s: nfds %d\n", __FUNCTION__, nfds);
 
-    struct pollfd *fdsKernel = (struct pollfd *)paramsPage;
+    struct pollfd *fdsKernel = (struct pollfd *)paramsPage.cpuLocal();
     bool rc = fromUser(fdsUser, fdsKernel, nfds*sizeof(struct pollfd));
     if (!rc) {
         currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
@@ -929,7 +929,7 @@ void SysCalls::doPPoll(TzTask *currTask) {
     PageTable *kpt = PageTable::kernelPageTable();
     PageTable *upt = currTask->userPageTable();
     TzMem::PhysAddr pa = upt->lookUp(PAGE_START_4K(fdsUser));
-    struct pollfd *fdsKernel = (struct pollfd *)paramsPage;
+    struct pollfd *fdsKernel = (struct pollfd *)paramsPage.cpuLocal();
     kpt->mapPage(PAGE_START_4K(fdsUser), pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
     bool rc = fromUser(fdsUser, fdsKernel, nfds*sizeof(struct pollfd));
     if (!rc) {
@@ -956,7 +956,7 @@ void SysCalls::doPPoll(TzTask *currTask) {
        kpt->mapPage(PAGE_START_4K(timeoutUser), pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
 
     /* Skip past the nfds data in the paramsPage to map the timeout argument */
-    struct timespec *timeoutKernel = (struct timespec *)((uint8_t *)paramsPage + nfds * sizeof(struct pollfd));
+    struct timespec *timeoutKernel = (struct timespec *)((uint8_t *)paramsPage.cpuLocal() + nfds * sizeof(struct pollfd));
     rc = copyFromUser(timeoutUser, timeoutKernel);
     if (!rc) {
        if(kpt->isAddrRangeMapped(PAGE_START_4K(fdsUser),PAGE_SIZE_4K_BYTES))

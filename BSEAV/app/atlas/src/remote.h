@@ -181,12 +181,13 @@ class CRemote : public CResource
 public:
     CRemote(
             const char *         name,
-            const uint16_t       number,
+            const unsigned       number,
             const eBoardResource type,
             CConfiguration *     pCfg
             ) :
         CResource(name, number, type, pCfg),
-        _pWidgetEngine(NULL) {}
+        _pWidgetEngine(NULL),
+        _bEnabled(true) {}
     ~CRemote(void) {}
 
     virtual eRet open(CWidgetEngine * pWidgetEngine) = 0;
@@ -204,9 +205,12 @@ public:
     static void     displayRf4ceRemotes(void);
     static void     addRf4ceRemote(const char * remote_name);
     static void     removeRf4ceRemote(int pairingRefNum);
+    bool            isEnabled(void) { return(_bEnabled); }
+    void            setEnable(bool bEnable) { _bEnabled = bEnable; }
 
 protected:
     CWidgetEngine *         _pWidgetEngine;
+    bool                    _bEnabled;
     MAutoList<CRemoteEvent> _eventList;
 };
 
@@ -215,7 +219,7 @@ class CIrRemote : public CRemote
 public:
     CIrRemote(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CIrRemote(void);
@@ -254,7 +258,7 @@ class CRf4ceRemote : public CRemote
 public:
     CRf4ceRemote(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CRf4ceRemote(void);
@@ -287,7 +291,7 @@ class CBluetoothRemote : public CRemote
 public:
     CBluetoothRemote(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CBluetoothRemote(void);
@@ -328,7 +332,7 @@ class CUhfRemote : public CRemote
 public:
     CUhfRemote(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CUhfRemote(void);

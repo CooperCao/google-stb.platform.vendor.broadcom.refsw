@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1007,7 +1007,6 @@ BIP_Status BIP_Arb_DoDeferred(
 {
     int     rc = BIP_SUCCESS;
     BIP_ArbDclItem      *pDclItem;
-    BIP_ArbDclItem      *pDclItemNext;
     BIP_ArbFactory      *pArbFactory = &g_BIP_ArbFactory;
 
     BSTD_UNUSED(hArb);
@@ -1024,9 +1023,6 @@ BIP_Status BIP_Arb_DoDeferred(
                 pDclItem->callbackBusy = true;
                 break;
             }
-        }
-        if (pDclItem) {
-            pDclItemNext = BLST_Q_NEXT(pDclItem, dclItem_next);
         }
         B_Mutex_Unlock(pArbFactory->hDclMutex);
 

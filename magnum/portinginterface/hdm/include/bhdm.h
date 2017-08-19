@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -714,6 +714,7 @@ typedef struct _BHDM_Settings_
 	bool AltDvoPath ;
 
 	bool BypassEDIDChecking ;  /* debug tool */
+	bool bCrcTestMode ; /* auto crc test mode; should never be used in production */
 	bool UseDebugEdid ;  /* use statically declared EDID; see bhdm_debug_edid.c */
 
 	bool bFifoMasterMode;      /* Set true to enable master mode */
@@ -742,6 +743,7 @@ See Also
 ****************************************************************************/
 typedef struct
 {
+	BAVC_HDMI_Port stPort ;
 	BHDM_TmdsSettings tmds ;
 	uint32_t pixelClockRate;
 	BHDM_PACKET_ACR_CONFIG stAcrPacketConfig ;
@@ -1640,10 +1642,8 @@ See Also:
 	BHDM_SetVendorSpecificInfoFrame
 	BHDM_GetVendorSpecificInfoFrame
 *******************************************************************************/
-void BHDM_DisplayVendorSpecificInfoFrame(
-	BHDM_Handle hHDMI,          /* [in] HDMI handle */
-	const BAVC_HDMI_VendorSpecificInfoFrame *pstVendorSpecificInfoFrame
-) ;
+#define BHDM_DisplayVendorSpecificInfoFrame(hHDMI,pstPacket) \
+	BAVC_HDMI_DisplayVendorSpecificInfoFrame(NULL, pstPacket)
 
 
 /******************************************************************************
@@ -1681,7 +1681,6 @@ Input:
 
 Returns:
 	None
-
 See Also:
 	BHDM_SetVendorSpecificInfoFramePacket
 	BHDM_DisplayVendorSpecificInfoFrame
@@ -1708,11 +1707,8 @@ See Also:
 	BHDM_GetAviInfoFramePacket
 	BHDM_SetAviInfoFramePacket
 *******************************************************************************/
-void BHDM_DisplayAVIInfoFramePacket(
-	BHDM_Handle hHDMI,
-	BAVC_HDMI_AviInfoFrame *pstAviInfoFrame
-) ;
-
+#define BHDM_DisplayAVIInfoFrame(hHDMI,pstPacket) \
+	BAVC_HDMI_DisplayAVIInfoFramePacket(NULL, pstPacket)
 
 /******************************************************************************
 Summary:
@@ -1768,7 +1764,7 @@ BERR_Code BHDM_GetAVIInfoFramePacket(
 
 /******************************************************************************
 Summary:
-Set Audio InfoFrame
+Display Audio InfoFrame
 
 Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
@@ -1782,11 +1778,8 @@ See Also:
 	BHDM_GetAudioInfoFramePacket
 	BHDM_SetAudioInfoFramePacket
 *******************************************************************************/
-void BHDM_DisplayAudioInfoFramePacket(
-	BHDM_Handle hHDMI,
-	BAVC_HDMI_AudioInfoFrame *pstAudioInfoFrame
-) ;
-
+#define BHDM_DisplayAudioInfoFramePacket(hHDMI,pstPacket) \
+	BAVC_HDMI_DisplayAudioInfoFramePacket(NULL, pstPacket)
 
 /******************************************************************************
 Summary:
@@ -1855,11 +1848,8 @@ See Also:
 	BHDM_GetDrmInfoFramePacket
 	BHDM_SetDrmInfoFramePacket
 *******************************************************************************/
-void BHDM_DisplayDRMInfoFramePacket(
-	BHDM_Handle hHDMI,
-	BAVC_HDMI_DRMInfoFrame *pstDrmInfoFrame
-) ;
-
+#define BHDM_DisplayDRMInfoFramePacket(hHDMI,pstPacket) \
+	BAVC_HDMI_DisplayDRMInfoFramePacket(NULL, pstPacket)
 
 
 /******************************************************************************

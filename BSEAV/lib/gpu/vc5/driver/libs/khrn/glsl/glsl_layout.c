@@ -41,19 +41,45 @@ static bool lq_takes_argument(LQ q) {
 static FormatQualifier to_format_qualifier(LQ id)
 {
    switch(id) {
-      case LQ_RGBA32F:     return FMT_RGBA32F;
-      case LQ_RGBA16F:     return FMT_RGBA16F;
-      case LQ_R32F:        return FMT_R32F;
-      case LQ_RGBA8:       return FMT_RGBA8;
-      case LQ_RGBA8_SNORM: return FMT_RGBA8_SNORM;
-      case LQ_RGBA32I:     return FMT_RGBA32I;
-      case LQ_RGBA16I:     return FMT_RGBA16I;
-      case LQ_RGBA8I:      return FMT_RGBA8I;
-      case LQ_R32I:        return FMT_R32I;
-      case LQ_RGBA32UI:    return FMT_RGBA32UI;
-      case LQ_RGBA16UI:    return FMT_RGBA16UI;
-      case LQ_RGBA8UI:     return FMT_RGBA8UI;
-      case LQ_R32UI:       return FMT_R32UI;
+      case LQ_RGBA32F:      return FMT_RGBA32F;
+      case LQ_RGBA16F:      return FMT_RGBA16F;
+      case LQ_R32F:         return FMT_R32F;
+      case LQ_RGBA8:        return FMT_RGBA8;
+      case LQ_RGBA8_SNORM:  return FMT_RGBA8_SNORM;
+      case LQ_RG32F:        return FMT_RG32F;
+      case LQ_RG16F:        return FMT_RG16F;
+      case LQ_R11G11B10F:   return FMT_R11G11B10F;
+      case LQ_R16F:         return FMT_R16F;
+      case LQ_RGBA16:       return FMT_RGBA16;
+      case LQ_RGB10A2:      return FMT_RGB10A2;
+      case LQ_RG16:         return FMT_RG16;
+      case LQ_RG8:          return FMT_RG8;
+      case LQ_R16:          return FMT_R16;
+      case LQ_R8:           return FMT_R8;
+      case LQ_RGBA16_SNORM: return FMT_RGBA16_SNORM;
+      case LQ_RG16_SNORM:   return FMT_RG16_SNORM;
+      case LQ_RG8_SNORM:    return FMT_RG8_SNORM;
+      case LQ_R16_SNORM:    return FMT_R16_SNORM;
+      case LQ_R8_SNORM:     return FMT_R8_SNORM;
+      case LQ_RGBA32I:      return FMT_RGBA32I;
+      case LQ_RGBA16I:      return FMT_RGBA16I;
+      case LQ_RGBA8I:       return FMT_RGBA8I;
+      case LQ_R32I:         return FMT_R32I;
+      case LQ_RG32I:        return FMT_RG32I;
+      case LQ_RG16I:        return FMT_RG16I;
+      case LQ_RG8I:         return FMT_RG8I;
+      case LQ_R16I:         return FMT_R16I;
+      case LQ_R8I:          return FMT_R8I;
+      case LQ_RGBA32UI:     return FMT_RGBA32UI;
+      case LQ_RGBA16UI:     return FMT_RGBA16UI;
+      case LQ_RGBA8UI:      return FMT_RGBA8UI;
+      case LQ_R32UI:        return FMT_R32UI;
+      case LQ_RGB10A2UI:    return FMT_RGB10A2UI;
+      case LQ_RG32UI:       return FMT_RG32UI;
+      case LQ_RG16UI:       return FMT_RG16UI;
+      case LQ_RG8UI:        return FMT_RG8UI;
+      case LQ_R16UI:        return FMT_R16UI;
+      case LQ_R8UI:         return FMT_R8UI;
       default: unreachable(); return FMT_RGBA8;
    }
 }
@@ -118,14 +144,40 @@ LayoutQualifier *glsl_layout_create(const LayoutIDList *l) {
          case LQ_R32F:
          case LQ_RGBA8:
          case LQ_RGBA8_SNORM:
+         case LQ_RG32F:
+         case LQ_RG16F:
+         case LQ_R11G11B10F:
+         case LQ_R16F:
+         case LQ_RGBA16:
+         case LQ_RGB10A2:
+         case LQ_RG16:
+         case LQ_RG8:
+         case LQ_R16:
+         case LQ_R8:
+         case LQ_RGBA16_SNORM:
+         case LQ_RG16_SNORM:
+         case LQ_RG8_SNORM:
+         case LQ_R16_SNORM:
+         case LQ_R8_SNORM:
          case LQ_RGBA32I:
          case LQ_RGBA16I:
          case LQ_RGBA8I:
          case LQ_R32I:
+         case LQ_RG32I:
+         case LQ_RG16I:
+         case LQ_RG8I:
+         case LQ_R16I:
+         case LQ_R8I:
          case LQ_RGBA32UI:
          case LQ_RGBA16UI:
          case LQ_RGBA8UI:
          case LQ_R32UI:
+         case LQ_RGB10A2UI:
+         case LQ_RG32UI:
+         case LQ_RG16UI:
+         case LQ_RG8UI:
+         case LQ_R16UI:
+         case LQ_R8UI:
             if (ret->qualified & FORMAT_QUALED)
                glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Only one format may be specified per declaration");
             ret->qualified |= FORMAT_QUALED;

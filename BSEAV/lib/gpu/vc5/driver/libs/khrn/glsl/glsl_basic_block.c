@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include "glsl_basic_block.h"
 #include "glsl_symbols.h"
+#include "glsl_fastmem.h"
 #include "glsl_primitive_types.auto.h"
 
 BasicBlock *glsl_basic_block_construct()
@@ -115,40 +116,47 @@ static Dataflow **basic_block_get_scalar_values(BasicBlock *basic_block, const S
 
       for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
          PrimitiveTypeIndex type_index = glsl_get_scalar_value_type_index(symbol->type, i);
-         DataflowType df_type;
          if (glsl_prim_is_prim_sampler_type(&primitiveTypes[type_index])) {
+            /* Sampled images must be paired up with their samplers */
+            assert(i+1 < symbol->type->scalar_count && type_index == glsl_get_scalar_value_type_index(symbol->type, i+1));
+
             PrimSamplerInfo *psi = glsl_prim_get_sampler_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
+            DataflowType df_type;
             switch (ret_basic_type) {
-               case PRIM_FLOAT:    df_type = DF_FSAMPLER; break;
-               case PRIM_INT:      df_type = DF_ISAMPLER; break;
-               case PRIM_UINT:     df_type = DF_USAMPLER; break;
+               case PRIM_FLOAT:    df_type = DF_F_SAMP_IMG; break;
+               case PRIM_INT:      df_type = DF_I_SAMP_IMG; break;
+               case PRIM_UINT:     df_type = DF_U_SAMP_IMG; break;
                default: assert(0); df_type = DF_INVALID;  break;
             }
+            loads[i++] = glsl_dataflow_construct_load(df_type);
+            loads[i]   = glsl_dataflow_construct_load(DF_SAMPLER);
          } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index])) {
-            df_type = DF_UINT;
+            loads[i] = glsl_dataflow_construct_load(DF_UINT);
          } else if (glsl_prim_is_prim_image_type(&primitiveTypes[type_index])) {
             PrimSamplerInfo *psi = glsl_prim_get_image_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
+            DataflowType df_type;
             switch (ret_basic_type) {
-               case PRIM_FLOAT:    df_type = DF_FIMAGE;  break;
-               case PRIM_INT:      df_type = DF_IIMAGE;  break;
-               case PRIM_UINT:     df_type = DF_UIMAGE;  break;
+               case PRIM_FLOAT:    df_type = DF_F_STOR_IMG;  break;
+               case PRIM_INT:      df_type = DF_I_STOR_IMG;  break;
+               case PRIM_UINT:     df_type = DF_U_STOR_IMG;  break;
                default: assert(0); df_type = DF_INVALID; break;
             }
-         } else
-            df_type = glsl_prim_index_to_df_type(type_index);
-
-         scalar_values[i] = loads[i] = glsl_dataflow_construct_load(df_type);
-
-         if (symbol->flavour == SYMBOL_VAR_INSTANCE)
-         {
-            scalar_values[i]->u.load.fmt_valid = symbol->u.var_instance.layout_format_specified;
-            scalar_values[i]->u.load.fmt = symbol->u.var_instance.layout_format;
+            loads[i] = glsl_dataflow_construct_load(df_type);
+         } else {
+            loads[i] = glsl_dataflow_construct_load(glsl_prim_index_to_df_type(type_index));
          }
-         else
-            scalar_values[i]->u.load.fmt_valid = false;
 
+         if (symbol->flavour == SYMBOL_VAR_INSTANCE) {
+            loads[i]->u.load.fmt_valid = symbol->u.var_instance.layout_format_specified;
+            loads[i]->u.load.fmt = symbol->u.var_instance.layout_format;
+         } else
+            loads[i]->u.load.fmt_valid = false;
+      }
+
+      for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
+         scalar_values[i] = loads[i];
       }
       glsl_map_put(basic_block->loads, symbol, loads);
    }

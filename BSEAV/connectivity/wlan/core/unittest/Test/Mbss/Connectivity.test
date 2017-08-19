@@ -1,0 +1,84 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing connectivity on a router
+
+# $Id: 944ef652417b8e74f3bbf7913a6b0adc61428172 $
+#
+# Usage: Connectivity LANS LAN1S WANS [-firewall off]
+#
+# LANS is a list of STAs on the LAN
+# LAN1S is a list of STAs on the guest LAN
+# WANS is a list of STAs on the WAN
+
+package require UTF
+
+package provide UTF::Test::Mbss::Connectivity 2.0
+
+UTF::Test Mbss::Connectivity {LANS LAN1S WANS args} {
+    UTF::Getopts {
+	{firewall.arg "on" "Firewall Enabled"}
+    }
+
+    # Cache IPs
+    foreach STA1 [concat $LANS $LAN1S $WANS] {
+	set ip($STA1) [$STA1 ipaddr]
+    }
+
+    if {[llength $LANS]} {
+	UTF::Try "LAN STAs can see each other" {
+	    UTF::ForeachPermutation {STA1 STA2} $LANS {
+		UTF::Try "$STA1/LAN -> $STA2/LAN" {
+		    $STA1 ping $ip($STA2) -c 15
+		}
+	    }
+	}
+    }
+
+    if {[llength $LAN1S]} {
+	UTF::Try "LAN1 STAs can see each other" {
+	    UTF::ForeachPermutation {STA1 STA2} $LAN1S {
+		UTF::Try "$STA1/LAN1 -> $STA2/LAN1" {
+		    $STA1 ping $ip($STA2) -c 15
+		}
+	    }
+	}
+    }
+
+    if {[llength $WANS]} {
+	UTF::Try "LAN* can see WAN, but WAN to LAN* depends on firewall" {
+	    foreach STA1 $WANS {
+		foreach STA2 [concat $LANS $LAN1S] {
+		    if {$(firewall)} {
+			UTF::Try "$STA1/WAN !-> $STA2/LAN* (firewall)" {
+			    $STA1 !ping $ip($STA2) -c 5
+			}
+		    } else {
+			UTF::Try "$STA1/WAN -> $STA2/LAN*" {
+			    $STA1 ping $ip($STA2) -c 15
+			}
+		    }
+		    UTF::Try "$STA2/LAN* -> $STA1/WAN" {
+			$STA2 ping $ip($STA1) -c 15
+		    }
+		}
+	    }
+	}
+    }
+
+    if {[llength $LANS] && [llength $LAN1S]} {
+	UTF::Try "LAN STAs can see LAN1, but LAN1 cannot see LAN" {
+	    foreach STA1 $LANS {
+		foreach STA2 $LAN1S {
+		    UTF::Try "$STA1/LAN -> $STA2/LAN1" {
+			$STA1 ping $ip($STA2) -c 15
+		    }
+		    UTF::Try "$STA2/LAN1 !-> $STA1/LAN" {
+			$STA2 !ping $ip($STA1) -c 5
+		    }
+		}
+	    }
+	}
+    }
+
+}

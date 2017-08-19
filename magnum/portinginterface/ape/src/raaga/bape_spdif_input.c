@@ -127,7 +127,7 @@ BERR_Code BAPE_SpdifInput_Open(
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
     BDBG_ASSERT(NULL != phandle);
     
-    BDBG_MSG(("%s: Opening SPDIF Input: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening SPDIF Input: %u", BSTD_FUNCTION, index));
 
     *phandle = NULL;
 
@@ -1054,7 +1054,7 @@ static void BAPE_SpdifInput_P_DetectInputChange_isr (BAPE_SpdifInputHandle    ha
         /* Notify our client (probably Nexus) that there has been a format change.  */
         if (handle->clientFormatDetectionSettings.enabled == true && handle->clientFormatDetectionSettings.formatChangeInterrupt.pCallback_isr)
         {
-            BDBG_MSG(("%s - Calling format change callback ", __FUNCTION__));
+            BDBG_MSG(("%s - Calling format change callback ", BSTD_FUNCTION));
             handle->clientFormatDetectionSettings.formatChangeInterrupt.pCallback_isr(
                                         handle->clientFormatDetectionSettings.formatChangeInterrupt.pParam1,
                                         handle->clientFormatDetectionSettings.formatChangeInterrupt.param2);

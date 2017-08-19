@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -147,7 +147,7 @@ cleanup:
         if (pBuf) {
             SRAI_Memory_Free(pBuf);
         }
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
         return rc;
     }
 
@@ -203,7 +203,7 @@ cleanup:
 handle_error:
 
     if (rc) {
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
         /* error: cleanup */
         _P_Uninit_Ta(platformId);
     }
@@ -247,7 +247,7 @@ static void _P_Uninit_Ta(uint32_t platformId)
 #ifdef USE_LOADABLE_TA
     sage_rc = SRAI_Platform_UnInstall(platformId);
     if (sage_rc != BERR_SUCCESS) {
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, sage_rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, sage_rc);
     }
 
     if (pBuf) {
@@ -274,7 +274,7 @@ _P_GenerateLoadCaKey(
 
     container = SRAI_Container_Allocate();
     if (container == NULL) {
-        BDBG_ERR(("%s - cannot allocate container", __FUNCTION__));
+        BDBG_ERR(("%s - cannot allocate container", BSTD_FUNCTION));
         rc = BSAGE_ERR_CONTAINER_REQUIRED;
         goto handle_error;
     }
@@ -285,7 +285,7 @@ _P_GenerateLoadCaKey(
 
     keySlotHandle = NEXUS_Security_AllocateKeySlot(&keyslotSettings);
     if (keySlotHandle == NULL) {
-        BDBG_ERR(("%s - Error allocating keyslot", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating keyslot", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto handle_error;
     }
@@ -293,7 +293,7 @@ _P_GenerateLoadCaKey(
     NEXUS_KeySlot_GetInfo(keySlotHandle, &keyslotInfo);
 
     BDBG_LOG(("%s - Keyslot index=%u, engine=%u",
-              __FUNCTION__, keyslotInfo.keySlotNumber, keyslotInfo.keySlotEngine));
+              BSTD_FUNCTION, keyslotInfo.keySlotNumber, keyslotInfo.keySlotEngine));
 
     container->basicIn[0] = keyslotInfo.keySlotNumber;
 
@@ -305,16 +305,16 @@ _P_GenerateLoadCaKey(
 
     rc = SRAI_Module_ProcessCommand(hCaModule, TestCa_CommandId_LoadCaKey, container);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - Cannot process TestCa_CommandId_LoadCaKey command", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot process TestCa_CommandId_LoadCaKey command", BSTD_FUNCTION));
         goto handle_error;
     }
     else if (container->basicOut[0] != BERR_SUCCESS) {
-        BDBG_ERR(("%s - Error in TestCa_CommandId_LoadCaKey command: %s", __FUNCTION__, BSAGElib_Tools_ReturnCodeToString(container->basicOut[0])));
+        BDBG_ERR(("%s - Error in TestCa_CommandId_LoadCaKey command: %s", BSTD_FUNCTION, BSAGElib_Tools_ReturnCodeToString(container->basicOut[0])));
         rc = container->basicOut[0];
         goto handle_error;
     }
 
-    BDBG_MSG(("%s - line = %u basic = %u ", __FUNCTION__, __LINE__, container->basicIn[0]));
+    BDBG_MSG(("%s - line = %u basic = %u ", BSTD_FUNCTION, __LINE__, container->basicIn[0]));
 
     *pKeySlotHandle = keySlotHandle;
     keySlotHandle = NULL; /* eat-up keyslot on success */
@@ -340,34 +340,34 @@ static void _P_CaFreeKeySlot(NEXUS_KeySlotHandle hKeySlot)
     NEXUS_SecurityKeySlotInfo keyslotInfo;
     BSAGElib_InOutContainer *container = NULL;
 
-    BDBG_LOG(("%s enter", __FUNCTION__));
+    BDBG_LOG(("%s enter", BSTD_FUNCTION));
 
     if (hKeySlot == NULL) {
-        BDBG_ERR(("%s - Nothing to do, keyslot handle is already NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Nothing to do, keyslot handle is already NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto handle_error;
     }
 
     container = SRAI_Container_Allocate();
     if (container == NULL) {
-        BDBG_ERR(("%s - cannot allocate container", __FUNCTION__));
+        BDBG_ERR(("%s - cannot allocate container", BSTD_FUNCTION));
         rc = BSAGE_ERR_CONTAINER_REQUIRED;
         goto handle_error;
     }
 
     /* pass the index again as a sanity check */
     NEXUS_KeySlot_GetInfo(hKeySlot, &keyslotInfo);
-    BDBG_LOG(("%s - Keyslot index = '%u'", __FUNCTION__, keyslotInfo.keySlotNumber));
+    BDBG_LOG(("%s - Keyslot index = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
     container->basicIn[0] = keyslotInfo.keySlotNumber;
     container->basicIn[1] = keyslotInfo.keySlotEngine;
 
     rc = SRAI_Module_ProcessCommand(hCaModule, TestCa_CommandId_FreeKeySlot, container);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - Cannot process TestCa_CommandId_FreeKeySlot command", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot process TestCa_CommandId_FreeKeySlot command", BSTD_FUNCTION));
         goto handle_error;
     }
     else if (container->basicOut[0] != BERR_SUCCESS) {
-        BDBG_ERR(("%s - Error in TestCa_CommandId_FreeKeySlot command: %s", __FUNCTION__, BSAGElib_Tools_ReturnCodeToString(container->basicOut[0])));
+        BDBG_ERR(("%s - Error in TestCa_CommandId_FreeKeySlot command: %s", BSTD_FUNCTION, BSAGElib_Tools_ReturnCodeToString(container->basicOut[0])));
         rc = container->basicOut[0];
         goto handle_error;
     }
@@ -384,7 +384,7 @@ handle_error:
         container = NULL;
     }
 
-    BDBG_LOG(("%s leave", __FUNCTION__));
+    BDBG_LOG(("%s leave", BSTD_FUNCTION));
     return;
 }
 

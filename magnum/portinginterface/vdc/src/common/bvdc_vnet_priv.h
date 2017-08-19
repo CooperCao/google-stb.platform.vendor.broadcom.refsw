@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -98,12 +98,14 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
 /* Check if this mode uses the mcvp at reader. */
 #define BVDC_P_VNET_USED_MVP_AT_READER(stVnetMode) \
     (((stVnetMode).stBits.bUseMvp) && \
-     !(((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap)))
+     !(((stVnetMode).stBits.bUseCap) && \
+       (((stVnetMode).stBits.bSclBeforeCap) || ((stVnetMode).stBits.bSrcSideDeinterlace))))
 
 /* Check if this mode uses the mcvp at writer. */
 #define BVDC_P_VNET_USED_MVP_AT_WRITER(stVnetMode) \
     (((stVnetMode).stBits.bUseMvp) && \
-     ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
+     ((stVnetMode).stBits.bUseCap) && \
+     ((stVnetMode).stBits.bSclBeforeCap || (stVnetMode).stBits.bSrcSideDeinterlace))
 
 
 /* Check if this mode bypass the mcvp. */
@@ -125,12 +127,14 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
 /* Check if this mode uses the mad32 at reader. */
 #define BVDC_P_MVP_USED_MAD_AT_READER(stVnetMode, stMvpMode) \
     (((stMvpMode).stBits.bUseMad) && \
-     !(((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap)))
+     !(((stVnetMode).stBits.bUseCap) && \
+       (((stVnetMode).stBits.bSclBeforeCap) || ((stVnetMode).stBits.bSrcSideDeinterlace))))
 
 /* Check if this mode uses the mad32 at writer. */
 #define BVDC_P_MVP_USED_MAD_AT_WRITER(stVnetMode, stMvpMode) \
     (((stMvpMode).stBits.bUseMad) && \
-     ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
+     ((stVnetMode).stBits.bUseCap) && \
+     ((stVnetMode).stBits.bSclBeforeCap || (stVnetMode).stBits.bSrcSideDeinterlace))
 
 
 /* Check if this mode uses the XSRC (tied to 10-bit 4K usage). */

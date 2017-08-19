@@ -355,7 +355,7 @@ static void BAPE_DecoderStatus_P_StatusReady_isr(void *pParam1, int param2)
     /* to be used on demand when we need to block for status */
     if ( handle->statusEvent )
     {
-        BDBG_MSG(("\nSetting Status event\n"));
+        BDBG_MSG(("Setting Status event"));
         BKNI_SetEvent_isr(handle->statusEvent);
     }
 

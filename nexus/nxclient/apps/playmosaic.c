@@ -199,11 +199,11 @@ static void *standby_monitor(void *context)
     BSTD_UNUSED(context);
 
     rc = NxClient_GetStandbyStatus(&prevStatus);
-    BDBG_ASSERT(!rc);
+    if (rc) exit(0); /* server is down, exit gracefully */
 
     while(!g_app.done) {
         rc = NxClient_GetStandbyStatus(&standbyStatus);
-        BDBG_ASSERT(!rc);
+        if (rc) exit(0); /* server is down, exit gracefully */
 
         if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
             printf("'play' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));

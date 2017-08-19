@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -223,7 +223,7 @@ typedef struct BXDM_PPDBG_P_Info
 #define BXDM_PPDBG_State2_InitialSTCInvalid     0x00080
 
 #define BXDM_P_MAX_INTERRUPT_POLARITY  BAVC_Polarity_eFrame + 1
-#define BXDM_P_MAX_VIDEO_PROTOCOL 21
+#define BXDM_P_MAX_VIDEO_PROTOCOL 22
 
 extern const char BXDM_P_InterruptPolarityToStrLUT[];
 extern const char BXDM_P_PicturePolaritytoStrLUT[][BXDM_P_MAX_INTERRUPT_POLARITY];

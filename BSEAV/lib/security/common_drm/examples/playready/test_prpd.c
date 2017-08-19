@@ -63,6 +63,7 @@
 #include "nxclient.h"
 #endif
 
+BDBG_MODULE(test_prpd);
 
 #define DUMP_DATA_HEX(string,data,size) {        \
    char tmp[512]= "\0";                          \
@@ -70,7 +71,7 @@
    sprintf(tmp,"%s",string);                     \
    while( i<size && l < 512) {                   \
     sprintf(tmp+l," %02x", data[i]); ++i; l+=3;} \
-   printf(tmp); printf("\n");                    \
+   printf("%s",tmp); printf("\n");                    \
 }
 
 #define AES_EKL_SIZE          32
@@ -410,6 +411,8 @@ ErrorExit:
  *
  * 10. Test completes
  **********************************************************************************************/
+/*#define DRM_PRDY_ERRORCODE_EXTENSION*/
+
 int main(int argc, char* argv[])
 {
     int testResult = -1;
@@ -491,6 +494,9 @@ int main(int argc, char* argv[])
     uint16_t              minute1 =0;
     uint16_t              second1 =0;
     uint16_t              milliseconds1 =0;
+#ifdef DRM_PRDY_ERRORCODE_EXTENSION
+    DRM_Prdy_Error_e        drm_err = DRM_Prdy_fail;
+#endif
 
 
     BSTD_UNUSED(argc);
@@ -516,13 +522,22 @@ int main(int argc, char* argv[])
 #endif
 
     DRM_Prdy_GetDefaultParamSettings(&prdyParamSettings);
+
+#ifndef DRM_PRDY_ERRORCODE_EXTENSION
     drm =  DRM_Prdy_Initialize( &prdyParamSettings);
     if( drm == NULL)
     {
        printf("[FAILED] - %d Failed to create drm, quitting....\n",__LINE__);
        goto clean_exit;
     }
-
+#else
+    drm =  DRM_Prdy_Initialize_Ex( &prdyParamSettings, &drm_err);
+    if( drm == NULL)
+    {
+       printf("[FAILED] - %d Failed to create drm (converted err %d), quitting....\n",__LINE__, drm_err);
+       goto clean_exit;
+    }
+#endif
     printf("[PASSED] - %d Created a DRM_Prdy_context.\n",__LINE__);
 
 #ifndef NETFLIX_EXT
@@ -533,7 +548,7 @@ int main(int argc, char* argv[])
 
     /* NOW changing the system time */
     time( &systemTime);
-    printf("\t - %d The System time in kernal now in second is: %d\n",__LINE__,systemTime);
+    printf("\t - %d The System time in kernal now in second is: %d\n",__LINE__,(int)systemTime);
 
     printf("\t - %d sleep for 2 seconds..\n",__LINE__);
     sleep(2);
@@ -544,7 +559,7 @@ int main(int argc, char* argv[])
     settimeofday(&tv, 0);
 
     time( &systemTime);
-    printf("\t - %d Rolled back the system time 1800 seconds and now is : %d\n",__LINE__,systemTime);
+    printf("\t - %d Rolled back the system time 1800 seconds and now is : %d\n",__LINE__,(int)systemTime);
     DRM_Prdy_GetSystemTime(drm,&year1,&month1,&dayOfWeek1,&day1,&hour1,&minute1,&second1,&milliseconds1);
 
     printf("\t - %d Rolled back the Playready time 1 hour : %d\n",__LINE__,hour-1);

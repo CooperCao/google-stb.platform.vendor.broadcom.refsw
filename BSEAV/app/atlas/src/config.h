@@ -71,7 +71,7 @@ public:
 
 protected:
     MString               _name;       /* name of the board */
-    uint16_t              _revision;   /* board revision */
+    unsigned              _revision;   /* board revision */
     MAutoList <CChipInfo> _chipList;   /* list of Broadcom chips on the board */
     CBoardFeatures        _features;   /* features supported by the board */
     CBoardResources *     _pResources; /* resources supported by the board */

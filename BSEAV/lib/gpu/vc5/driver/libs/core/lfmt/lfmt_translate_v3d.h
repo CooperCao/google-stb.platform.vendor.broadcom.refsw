@@ -9,7 +9,7 @@
 #include "libs/core/v3d/v3d_tmu.h"
 #include "libs/core/v3d/v3d_tfu.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern v3d_index_type_t gfx_lfmt_translate_index_type(GFX_LFMT_T lfmt);
 
@@ -114,13 +114,7 @@ extern v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T lfmt);
 
 /** TMU */
 
-typedef enum
-{
-   GFX_LFMT_TMU_DEPTH_ALWAYS, /* Caller requires v3d_tmu_is_depth_type(t->type) */
-   GFX_LFMT_TMU_DEPTH_NEVER, /* Caller requires !v3d_tmu_is_depth_type(t->type) */
-   GFX_LFMT_TMU_DEPTH_DONT_CARE
-} gfx_lfmt_tmu_depth_pref_t;
-
+#if !V3D_VER_AT_LEAST(3,3,0,0)
 /* format of data returned from tmu. the tmu word enables can limit the number
  * of words returned */
 typedef enum
@@ -136,12 +130,14 @@ typedef enum
 
    GFX_LFMT_TMU_RET_INVALID
 } gfx_lfmt_tmu_ret_t;
+#endif
 
 typedef struct
 {
    v3d_tmu_type_t type;
    bool srgb;
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    gfx_lfmt_tmu_ret_t ret;
 
    /* If shader_swizzle is true, swizzling needs to be done in the shader --
@@ -149,15 +145,24 @@ typedef struct
     * shader_swizzle is false, swizzles should be passed to the TMU and the
     * shader doesn't need to do any swizzling. */
    bool shader_swizzle;
+#endif
    v3d_tmu_swizzle_t swizzles[4];
 } GFX_LFMT_TMU_TRANSLATION_T;
 
 /* These only pay attention to format, ignoring premultipliedness.
  * false is returned on failure. */
 extern bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref);
+   GFX_LFMT_T lfmt
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+   , bool need_depth_type
+#endif
+   );
 extern void gfx_lfmt_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref);
+   GFX_LFMT_T lfmt
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+   , bool need_depth_type
+#endif
+   );
 
 /* Returns just format */
 extern GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb);
@@ -183,4 +188,4 @@ extern void gfx_lfmt_translate_to_tfu_type(
    v3d_tfu_yuv_col_space_t src_yuv_col_space, /* Ignored if src not YUV */
    GFX_LFMT_T dst_lfmt);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

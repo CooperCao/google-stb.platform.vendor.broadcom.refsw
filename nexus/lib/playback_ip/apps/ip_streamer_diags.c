@@ -120,7 +120,7 @@ int B_IpStreamer_GetFrontendStatus(void * dlnaGlobalCtx, int frontendNo, IpStrea
     SatSrc *satSrc;
     unsigned int i;
 
-    BDBG_MSG_FLOW(("%s: frontendNo=%d, NEXUS_MAX_FRONTENDS=%d\n", __FUNCTION__, frontendNo, NEXUS_MAX_FRONTENDS));
+    BDBG_MSG_FLOW(("%s: frontendNo=%d, NEXUS_MAX_FRONTENDS=%d\n", BSTD_FUNCTION, frontendNo, NEXUS_MAX_FRONTENDS));
 
     if (ipStreamerGlobalCtx == NULL)
         return 1;   /* not successful */
@@ -137,7 +137,7 @@ int B_IpStreamer_GetFrontendStatus(void * dlnaGlobalCtx, int frontendNo, IpStrea
     {
         BKNI_AcquireMutex(ipStreamerGlobalCtx->qamSrcMutex);
         qamSrc = &ipStreamerGlobalCtx->qamSrcList[i];
-        BDBG_MSG_FLOW(("%s: frontendHandle[%d]=%d, refCount=%d, started %d", __FUNCTION__, i, ipStreamerGlobalCtx->qamSrcList[i].frontendHandle, qamSrc->refCount, qamSrc->started));
+        BDBG_MSG_FLOW(("%s: frontendHandle[%d]=%d, refCount=%d, started %d", BSTD_FUNCTION, i, ipStreamerGlobalCtx->qamSrcList[i].frontendHandle, qamSrc->refCount, qamSrc->started));
         if (qamSrc->refCount != 0 && qamSrc->started)
         {
             frontendHandle = qamSrc->frontendHandle;
@@ -145,12 +145,12 @@ int B_IpStreamer_GetFrontendStatus(void * dlnaGlobalCtx, int frontendNo, IpStrea
             if(_diagModeRunning == 0 || _diagModeRunning == QAM_STATUS_RUNNING)
             {
                 _diagModeRunning = QAM_STATUS_RUNNING;
-                BDBG_MSG_FLOW(("%s: Remote Diag (%d) is started", __FUNCTION__, _diagModeRunning));
+                BDBG_MSG_FLOW(("%s: Remote Diag (%d) is started", BSTD_FUNCTION, _diagModeRunning));
             }
             else
             {
                 BKNI_ReleaseMutex(ipStreamerGlobalCtx->qamSrcMutex);
-                BDBG_MSG_FLOW(("%s: Remote Diags (%d) are already running", __FUNCTION__, _diagModeRunning));
+                BDBG_MSG_FLOW(("%s: Remote Diags (%d) are already running", BSTD_FUNCTION, _diagModeRunning));
                 return 1;
             }
         }
@@ -170,10 +170,10 @@ int B_IpStreamer_GetFrontendStatus(void * dlnaGlobalCtx, int frontendNo, IpStrea
     {
         if (*src == IpStreamerSrc_eQam)
         {
-            BDBG_MSG_FLOW(("%s: Requesting Qam Stats for frontendHandle[%d]=%d, refCount=%d\n", __FUNCTION__, i, frontendHandle, qamSrc->refCount));
+            BDBG_MSG_FLOW(("%s: Requesting Qam Stats for frontendHandle[%d]=%d, refCount=%d\n", BSTD_FUNCTION, i, frontendHandle, qamSrc->refCount));
             rc = NEXUS_Frontend_GetQamStatus(frontendHandle, &cable_status);
-            if (rc != NEXUS_SUCCESS) {BDBG_ERR(("%s: NEXUS_Frontend_GetQamStatus Failed!!!!!!!!!!!!!!", __FUNCTION__)); goto out;}
-            BDBG_MSG_FLOW(("%s: Got Qam Stats for frontendHandle[%d]=%d, refCount=%d\n", __FUNCTION__, i, frontendHandle, qamSrc->refCount));
+            if (rc != NEXUS_SUCCESS) {BDBG_ERR(("%s: NEXUS_Frontend_GetQamStatus Failed!!!!!!!!!!!!!!", BSTD_FUNCTION)); goto out;}
+            BDBG_MSG_FLOW(("%s: Got Qam Stats for frontendHandle[%d]=%d, refCount=%d\n", BSTD_FUNCTION, i, frontendHandle, qamSrc->refCount));
 
             status->receiverLock = cable_status.receiverLock;
             status->fecLock = cable_status.fecLock;
@@ -237,7 +237,7 @@ out:
             if (_diagModeRunning == QAM_STATUS_RUNNING)
             {
                 _diagModeRunning = 0;
-                BDBG_MSG_FLOW(("%s: Remote Diag (%d) is reset", __FUNCTION__, _diagModeRunning));
+                BDBG_MSG_FLOW(("%s: Remote Diag (%d) is reset", BSTD_FUNCTION, _diagModeRunning));
             }
             return 0;   /* success */
         }
@@ -362,7 +362,7 @@ int B_IpStreamer_GetFrontendStatus(void * dlnaGlobalCtx, int frontendNo, IpStrea
     BSTD_UNUSED(frontendNo);
     BSTD_UNUSED(src);
     BSTD_UNUSED(status);
-    BDBG_ERR(("%s: Frontend status not supported on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Frontend status not supported on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return 1;
 }
 #endif
@@ -403,12 +403,12 @@ int B_IpStreamer_GetFrontendSoftDecision(void * dlnaGlobalCtx, int frontendNo, I
             if(_diagModeRunning == 0 || _diagModeRunning == QAM_STATUS_RUNNING)
             {
                 _diagModeRunning = QAM_STATUS_RUNNING;
-                BDBG_MSG_FLOW(("%s: Remote Diag (%d) is started", __FUNCTION__, _diagModeRunning));
+                BDBG_MSG_FLOW(("%s: Remote Diag (%d) is started", BSTD_FUNCTION, _diagModeRunning));
             }
             else
             {
                 BKNI_ReleaseMutex(ipStreamerGlobalCtx->qamSrcMutex);
-                BDBG_MSG_FLOW(("%s: Remote Diags (%d) are already running", __FUNCTION__, _diagModeRunning));
+                BDBG_MSG_FLOW(("%s: Remote Diags (%d) are already running", BSTD_FUNCTION, _diagModeRunning));
                 return 1;
             }
             BKNI_ReleaseMutex(ipStreamerGlobalCtx->qamSrcMutex);
@@ -434,7 +434,7 @@ int B_IpStreamer_GetFrontendSoftDecision(void * dlnaGlobalCtx, int frontendNo, I
         if(_diagModeRunning == QAM_STATUS_RUNNING)
         {
             _diagModeRunning = 0;
-            BDBG_MSG_FLOW(("%s: Remote Diag (%d) is reset", __FUNCTION__, _diagModeRunning));
+            BDBG_MSG_FLOW(("%s: Remote Diag (%d) is reset", BSTD_FUNCTION, _diagModeRunning));
         }
         return 0;   /* success */
     }
@@ -457,7 +457,7 @@ static void spectrum_data_ready_callback(void *context, int param)
     }
     else
     {
-        BDBG_ERR(("%s: frontend handle is NULL!!", __FUNCTION__));
+        BDBG_ERR(("%s: frontend handle is NULL!!", BSTD_FUNCTION));
     }
 }
 
@@ -479,7 +479,7 @@ int B_IpStreamer_SpecAOpen(void * dlnaGlobalCtx, int frontendNo, int* selectedFr
     if(_diagModeRunning == 0)
     {
         _diagModeRunning = SPECA_RUNNING;
-        BDBG_MSG_FLOW(("%s: Remote Diag (%d) is started", __FUNCTION__, _diagModeRunning));
+        BDBG_MSG_FLOW(("%s: Remote Diag (%d) is started", BSTD_FUNCTION, _diagModeRunning));
         if (ipStreamerGlobalCtx->qamSrcList[frontendNo].refCount == 0)
         {
             i = frontendNo;
@@ -524,7 +524,7 @@ int B_IpStreamer_SpecAOpen(void * dlnaGlobalCtx, int frontendNo, int* selectedFr
     else
     {
         BKNI_ReleaseMutex(ipStreamerGlobalCtx->qamSrcMutex);
-        BDBG_MSG_FLOW(("%s: Remote Diags (%d) are already running", __FUNCTION__, _diagModeRunning));
+        BDBG_MSG_FLOW(("%s: Remote Diags (%d) are already running", BSTD_FUNCTION, _diagModeRunning));
         rc = 1;
     }
     return rc;
@@ -557,7 +557,7 @@ int B_IpStreamer_SpecAClose(void * dlnaGlobalCtx, int frontendNo)
     if(_diagModeRunning == SPECA_RUNNING)
     {
         _diagModeRunning = 0;
-        BDBG_MSG_FLOW(("%s: Remote Diag (%d) is reset", __FUNCTION__, _diagModeRunning));
+        BDBG_MSG_FLOW(("%s: Remote Diag (%d) is reset", BSTD_FUNCTION, _diagModeRunning));
     }
     BKNI_ReleaseMutex(ipStreamerGlobalCtx->qamSrcMutex);
     
@@ -628,11 +628,11 @@ int B_IpStreamer_GetFrontendSpecAData(void * dlnaGlobalCtx, int frontendNo, IpSt
         rc = NEXUS_Frontend_RequestSpectrumData(frontendHandle, &spectrumSettings);
         rc = BKNI_WaitForEvent(qamSrc->signalSpecADataRdy, 5000);
         if(rc == NEXUS_TIMEOUT) {
-            BDBG_ERR(("%s ERROR: Spectrum data retreival timed out.", __FUNCTION__));
+            BDBG_ERR(("%s ERROR: Spectrum data retreival timed out.", BSTD_FUNCTION));
         }
         return 0;   /* success */
     }
-    BDBG_ERR(("%s: Error, frontendHandle is NULL!", __FUNCTION__));
+    BDBG_ERR(("%s: Error, frontendHandle is NULL!", BSTD_FUNCTION));
     return 1;   /* not successful */
 }
 #endif /* REMOTE_DIAG_SUPPORT */

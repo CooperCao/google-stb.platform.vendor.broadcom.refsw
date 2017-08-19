@@ -100,7 +100,7 @@ protected:
     eHttpStreamerInputType _streamerInputType;      /* Based on the requested Url we set this to file or tuner.*/
     MString                _tuneChannelName;        /* Channel name. Eg: 1.1 , 1.2, 1.3 etc.*/
     bool                   _programNumberValid;
-    uint16_t               _programNumber;
+    unsigned               _programNumber;
     bool                   _rangeHeaderPresent;       /* Optional: if true, Request contains a Range Header. */
     uint64_t               _rangeStartOffset;         /* Optional: starting offset of the Range Header. */
     uint64_t               _rangeLength;              /* Optional: range length from the starting offset. */

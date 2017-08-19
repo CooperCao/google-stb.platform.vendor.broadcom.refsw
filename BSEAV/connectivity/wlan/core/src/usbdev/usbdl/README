@@ -1,0 +1,15 @@
+
+		USB Host Remote Download
+		
+	
+This code uses the linux libusb library that supports user mode access
+of usb functionality, hence libusb must be installed before building
+this code.
+
+To have the code auto start on the usb connection you will have to 
+have USB hotplug installed on your linux machine. The file usb.usermap
+shows the entry required to kick off the usbRdl script. The usb.usermap
+file can be found under /etc/hotplug. Create a directory /etc/hotplug/usb
+and put the usbRdl script there. Obviously you will need to modify 
+this script to run bcmdl from the correct location.
+ 

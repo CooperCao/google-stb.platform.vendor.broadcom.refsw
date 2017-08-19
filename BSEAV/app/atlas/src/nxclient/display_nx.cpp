@@ -47,7 +47,7 @@ BDBG_MODULE(atlas_display);
 
 CDisplayNx::CDisplayNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CDisplay(name, number, pCfg)
@@ -154,6 +154,7 @@ eRet CDisplayNx::setContentMode(NEXUS_VideoWindowContentMode contentMode)
     nerror                           = NEXUS_SurfaceClient_SetSettings(scVideoWin, &settings);
     CHECK_NEXUS_ERROR_GOTO("unable to set content mode", ret, nerror, error);
 
+    notifyObservers(eNotify_ContentModeChanged, &contentMode);
 error:
     return(ret);
 } /* setContentMode */
@@ -326,13 +327,13 @@ eRet CDisplayNx::setAspectRatio(NEXUS_DisplayAspectRatio aspectRatio)
     NxClient_GetDisplaySettings(&settings);
     if (0 < getNumber())
     {
-        BDBG_MSG(("%s for slave display - do nothing", __FUNCTION__));
+        BDBG_MSG(("%s for slave display - do nothing", BSTD_FUNCTION));
         goto error;
     }
     else
     {
         settings.aspectRatio = aspectRatio;
-        BDBG_MSG(("%s display:%d aspect ratio:%d", __FUNCTION__, getNumber(), aspectRatio));
+        BDBG_MSG(("%s display:%d aspect ratio:%d", BSTD_FUNCTION, getNumber(), aspectRatio));
     }
     nerror = NxClient_SetDisplaySettings(&settings);
     CHECK_NEXUS_ERROR_GOTO("unable to set aspect ratio", ret, nerror, error);
@@ -478,13 +479,12 @@ eDynamicRange CDisplayNx::getOutputDynamicRange()
     NxClient_DisplaySettings settings;
 
     NxClient_GetDisplaySettings(&settings);
-    /* TODO: how do we determine dolby vision output mode?  this is typically just set to auto!
-    if (NEXUS_HdmiOutputDolbyVisionMode_eDisabled != settings.hdmiPreferences.dolbyVision.outputMode)
+    /* TODO: how do we determine dolby vision output mode? */
+    if (NEXUS_HdmiOutputDolbyVisionMode_eEnabled == settings.hdmiPreferences.dolbyVision.outputMode)
     {
         dynamicRange = eDynamicRange_DolbyVision;
     }
     else
-    */
     if (NEXUS_VideoEotf_eHdr10 == settings.hdmiPreferences.drmInfoFrame.eotf)
     {
         dynamicRange = eDynamicRange_HDR10;
@@ -502,7 +502,7 @@ eDynamicRange CDisplayNx::getOutputDynamicRange()
     return(dynamicRange);
 } /* getOutputDynamicRange() */
 
-#define SMD_TO_SMPTE_ST2086(X) ((X)/0.00002)
+#define SMD_TO_SMPTE_ST2086(X) (int)((X)/0.00002)
 
 static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_ZERO =
 {
@@ -572,8 +572,9 @@ eRet CDisplayNx::setOutputDynamicRange(eDynamicRange dynamicRange)
 
     NxClient_GetDisplaySettings(&settings);
 
+    /* TODO: should we use NEXUS_HdmiOutputDolbyVisionMode_eAuto instead of NEXUS_HdmiOutputDolbyVisionMode_eDisabled? */
     settings.hdmiPreferences.dolbyVision.outputMode =
-        (dynamicRange == eDynamicRange_DolbyVision) ? NEXUS_HdmiOutputDolbyVisionMode_eAuto : NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
+        (dynamicRange == eDynamicRange_DolbyVision) ? NEXUS_HdmiOutputDolbyVisionMode_eEnabled : NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
 
     switch(dynamicRange)
     {

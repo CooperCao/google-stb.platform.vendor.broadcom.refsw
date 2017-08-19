@@ -162,7 +162,10 @@ BERR_Code BMUXlib_File_IVF_Create(BMUXlib_File_IVF_Handle *phIVFMux, const BMUXl
       }
    }
 
-   *phIVFMux = hMux;
+   if (BERR_SUCCESS == rc)
+   {
+      *phIVFMux = hMux;
+   }
 
    BDBG_LEAVE(BMUXlib_File_IVF_Create);
    return rc;

@@ -1,0 +1,11 @@
+# sources: windows build file for external wl.exe
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources.external,v 1.6 2004-12-29 23:06:06 $
+#
+NIC_WL_EXE=wl
+TARGETPATH=windows/winxp/obj/external
+
+include sources.common

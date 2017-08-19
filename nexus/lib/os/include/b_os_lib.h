@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2015 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *   API name: OS
 *    Library routines for OS abstraction
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef B_OS_LIB_H__
@@ -217,7 +209,7 @@ Allocate Memory (malloc equivalent)
     #define B_Os_Malloc(numBytes)  BKNI_Malloc(numBytes)
 #else
     #ifdef BDBG_DEBUG_BUILD
-        #define B_Os_Malloc(numBytes) B_Os_Malloc_tagged((numBytes), __FUNCTION__, __LINE__)
+        #define B_Os_Malloc(numBytes) B_Os_Malloc_tagged((numBytes), BSTD_FUNCTION, __LINE__)
     #else
         #define B_Os_Malloc(numBytes) B_Os_Malloc_tagged((numBytes), NULL, 0)
     #endif
@@ -236,7 +228,7 @@ Free Memory (free equivalent)
     #define B_Os_Free(pMemory) BKNI_Free(pMemory)
 #else
     #ifdef BDBG_DEBUG_BUILD
-        #define B_Os_Free(pMemory) B_Os_Free_tagged((pMemory), __FUNCTION__, __LINE__)
+        #define B_Os_Free(pMemory) B_Os_Free_tagged((pMemory), BSTD_FUNCTION, __LINE__)
     #else
         #define B_Os_Free(pMemory) B_Os_Free_tagged((pMemory), NULL, 0)
     #endif
@@ -255,7 +247,7 @@ Allocate and Clear memory (calloc equivalent)
     #define  B_Os_Calloc(numMembers, numBytes)   B_Os_Memset(BKNI_Malloc(numBytes * numMembers),0,numBytes * numMembers)
 #else
     #ifdef BDBG_DEBUG_BUILD
-        #define B_Os_Calloc(numMembers, numBytes) B_Os_Calloc_tagged((numMembers), (numBytes), __FUNCTION__, __LINE__)
+        #define B_Os_Calloc(numMembers, numBytes) B_Os_Calloc_tagged((numMembers), (numBytes), BSTD_FUNCTION, __LINE__)
     #else
         #define B_Os_Calloc(numMembers, numBytes) B_Os_Calloc_tagged((numMembers), (numBytes), NULL, 0)
     #endif
@@ -277,7 +269,7 @@ Note:   B_Os_Realloc_tagged() has been removed, since we don't have a
 ***************************************************************************/
 #ifdef B_OS_LIB_USE_NATIVE_MALLOC_CALLS_INSTEAD_OF_BKNI
     #ifdef BDBG_DEBUG_BUILD
-        #define B_Os_Realloc(pMemory, numBytes) B_Os_Realloc_tagged((pMemory), (numBytes), __FUNCTION__, __LINE__)
+        #define B_Os_Realloc(pMemory, numBytes) B_Os_Realloc_tagged((pMemory), (numBytes), BSTD_FUNCTION, __LINE__)
     #else
         #define B_Os_Realloc(pMemory, numBytes) B_Os_Realloc_tagged((pMemory), (numBytes), NULL, 0)
     #endif

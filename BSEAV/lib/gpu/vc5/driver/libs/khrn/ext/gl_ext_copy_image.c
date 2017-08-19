@@ -31,28 +31,30 @@ struct selector
 static GLenum get_operand(GLXX_SERVER_STATE_T *state, GLuint name,
       GLenum target, struct operand *operand)
 {
-   GLenum result;
    if (target ==  GL_TEXTURE_BUFFER)
-   {
-      result = GL_INVALID_ENUM;
-   }
-   else if (glxx_texture_is_tex_target(state, target))
+      return GL_INVALID_ENUM;
+
+   if (glxx_texture_is_tex_target(state, target))
    {
       operand->type = operand_type_texture;
       operand->texture = khrn_map_lookup(&state->shared->textures, name);
-      result = operand->texture ? GL_NO_ERROR : GL_INVALID_VALUE;
+      if (!operand->texture)
+         return GL_INVALID_VALUE;
+
+      if (target != operand->texture->target)
+         return GL_INVALID_ENUM;
+
+      return GL_NO_ERROR;
    }
-   else if (target == GL_RENDERBUFFER)
+
+   if (target == GL_RENDERBUFFER)
    {
       operand->type = operand_type_renderbuffer;
       operand->renderbuffer = khrn_map_lookup(&state->shared->renderbuffers, name);
-      result = operand->renderbuffer ? GL_NO_ERROR : GL_INVALID_VALUE;
+      return operand->renderbuffer ? GL_NO_ERROR : GL_INVALID_VALUE;
    }
-   else
-   {
-      result = GL_INVALID_ENUM;
-   }
-   return result;
+
+   return GL_INVALID_ENUM;
 }
 
 static khrn_image* get_image(const struct operand *operand, unsigned face,
@@ -224,12 +226,12 @@ static inline bool valid_end(unsigned end, unsigned size, unsigned align)
 
 static inline bool valid_region(const khrn_image *img,
       unsigned x, unsigned y, unsigned z, unsigned e,
-      unsigned w, unsigned h, unsigned d, unsigned last_e)
+      unsigned w, unsigned h, unsigned d, unsigned de)
 {
    unsigned img_w, img_h, img_d, img_e;
    khrn_image_get_dimensions(img, &img_w, &img_h, &img_d, &img_e);
 
-   if (e > img_e || last_e > img_e)
+   if (e > img_e || e + de > img_e)
       return false;
 
    GFX_LFMT_T lfmts[GFX_BUFFER_MAX_PLANES];
@@ -263,32 +265,34 @@ static GLenum check_texture(GLXX_TEXTURE_T *texture, GLint level,
    if (!glxx_texture_are_legal_dimensions(texture->target, width, height, depth))
       return GL_INVALID_VALUE;
 
+   /* Check the parameters using the image from the 1st slice. The texture
+    * must be complete for the operation to actually go ahead, which will check
+    * that all the other images match the ones that are checked here.  */
+   struct selector first, size;
+   tex_image_selector(&first, texture->target, z);
+   tex_image_selector(&size,  texture->target, depth);
+   if (first.face >= MAX_FACES || first.face + size.face > MAX_FACES)
+      return GL_INVALID_VALUE;
+
+   khrn_image *img = texture->img[first.face][level];
+   if (!img)
+      return GL_INVALID_VALUE;
+
+   if (!valid_region(img, x, y, first.depth, first.elem,
+         width, height, size.depth, size.elem))
+      return GL_INVALID_VALUE;
+
+   return GL_NO_ERROR;
+}
+
+static GLenum check_tex_completeness(GLXX_TEXTURE_T *texture, GLint level)
+{
    unsigned base_level, num_levels;
-   const bool base_complete = (level == 0);
-   if (!glxx_texture_check_completeness(texture, base_complete,
+   if (!glxx_texture_check_completeness(texture, false,
          &base_level, &num_levels))
       return GL_INVALID_OPERATION;
 
    if ((unsigned)level < base_level ||  (unsigned)level >= base_level + num_levels)
-      return GL_INVALID_VALUE;
-
-   /* check region using image from the 1st slice,
-    * texture completeness  guarantees that all other images
-    * (faces/array elements/3D slices) for this level of detail
-    * have the same format and dimensions
-    */
-   assert(depth > 0);
-   struct selector first, last;
-   const unsigned last_z =  z + depth - 1;
-   tex_image_selector(&first, texture->target, z);
-   tex_image_selector(&last, texture->target, last_z);
-   if (first.face >= MAX_FACES || last.face >= MAX_FACES)
-         return GL_INVALID_VALUE;
-
-   khrn_image *img = texture->img[first.face][level];
-   assert(img);
-   if (!valid_region(img, x, y, first.depth, first.elem,
-         width, height, last.depth - first.depth + 1, last.elem))
       return GL_INVALID_VALUE;
 
    return GL_NO_ERROR;
@@ -315,23 +319,18 @@ static GLenum check(const struct operand *operand,
       GLint level, GLint x, GLint y, GLint z,
       GLsizei width, GLsizei height, GLsizei depth)
 {
-   GLenum result;
    switch (operand->type)
    {
    case operand_type_texture:
-      result = check_texture(operand->texture, level, x, y, z,
-            width, height, depth);
-      break;
+      return check_texture(operand->texture, level, x, y, z,
+                           width, height, depth);
    case operand_type_renderbuffer:
-      result = check_renderbuffer(operand->renderbuffer, level, x, y, z,
-            width, height, depth);
-      break;
+      return check_renderbuffer(operand->renderbuffer, level, x, y, z,
+                                width, height, depth);
    default:
       unreachable();
-      result = false;
+      return false;
    }
-
-   return result;
 }
 
 static void copy_one_slice(GLXX_SERVER_STATE_T *state,
@@ -341,15 +340,13 @@ static void copy_one_slice(GLXX_SERVER_STATE_T *state,
       unsigned dst_x, unsigned dst_y, unsigned dst_z,
       unsigned  src_width, unsigned src_height)
 {
-   khrn_image *src_img, *dst_img;
-   struct selector src_sel, dst_sel;
-
    /* convert z coordinate into image selector (face,element,depth) */
+   struct selector src_sel, dst_sel;
    image_selector(&src_sel, src, src_z);
    image_selector(&dst_sel, dst, dst_z);
 
-   src_img = get_image(src, src_sel.face, src_level);
-   dst_img = get_image(dst, dst_sel.face, dst_level);
+   khrn_image *src_img = get_image(src, src_sel.face, src_level);
+   khrn_image *dst_img = get_image(dst, dst_sel.face, dst_level);
 
    bool ok = khrn_image_memcpy_one_elem_slice(dst_img, dst_x, dst_y, dst_sel.depth,
          dst_sel.elem, src_img, src_x, src_y, src_sel.depth,
@@ -410,6 +407,13 @@ static void copy_image_sub_data_impl(GLuint src_name, GLenum src_target,
    if (error)
       goto end;
 
+   if (src.type == operand_type_texture)
+      error = check_tex_completeness(src.texture, src_level);
+   if (dst.type == operand_type_texture)
+      error = check_tex_completeness(dst.texture, dst_level);
+   if (error)
+      goto end;
+
    if (!src_width || !src_height || !src_depth)
       goto end; /* nothing to do */
 
@@ -448,19 +452,14 @@ GL_APICALL void GL_APIENTRY glCopyImageSubDataOES(GLuint srcName,
 }
 
 #if KHRN_GLES32_DRIVER
-GL_APICALL void GL_APIENTRY glCopyImageSubData(
-      GLuint srcName, GLenum srcTarget, GLint srcLevel,
-      GLint srcX, GLint srcY, GLint srcZ,
-      GLuint dstName, GLenum dstTarget, GLint dstLevel,
-      GLint dstX, GLint dstY, GLint dstZ,
-      GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
+GL_APICALL void GL_APIENTRY glCopyImageSubData(GLuint srcName,
+      GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ,
+      GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY,
+      GLint dstZ, GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
 {
-   copy_image_sub_data_impl(
-         srcName, srcTarget, srcLevel,
-         srcX, srcY, srcZ,
-         dstName, dstTarget, dstLevel,
-         dstX, dstY, dstZ,
-         srcWidth, srcHeight, srcDepth);
+   copy_image_sub_data_impl(srcName, srcTarget, srcLevel, srcX, srcY, srcZ,
+         dstName, dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight,
+         srcDepth);
 }
 
 #endif

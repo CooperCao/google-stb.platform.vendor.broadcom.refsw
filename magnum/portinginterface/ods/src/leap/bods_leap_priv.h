@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -712,6 +712,16 @@ BERR_Code BODS_Leap_GetSelectiveAsyncStatus(
     BODS_SelectiveAsyncStatusType type,
     BODS_SelectiveStatus *pStatus   /* [out] */
 );
+
+BERR_Code BODS_Leap_GetConfigSettings(
+    BODS_Handle hDev,                 /* [in] Device handle */
+    BODS_ConfigSettings *settings     /* [out] ODS config settings. */
+    );
+
+BERR_Code BODS_Leap_SetConfigSettings(
+    BODS_Handle hDev,                   /* [in] Device handle */
+    const BODS_ConfigSettings *settings /* [in] ODS config settings. */
+    );
 
 #ifdef __cplusplus
 }

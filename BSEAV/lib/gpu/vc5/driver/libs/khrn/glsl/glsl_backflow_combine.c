@@ -48,30 +48,45 @@ void dpostv_node_combine(Backflow *node, void *data) {
       /* Try to combine the move target with the previous node */
       Backflow *operand = node->dependencies[1];
 
-      if (!is_alu_type(operand->type)) return;
+      if (!is_alu_type(operand->type) && operand->type != SIG) return;
+#if V3D_HAS_SIG_TO_MAGIC2
+      const static v3d_qpu_sigbits_t valid_sigbits = V3D_QPU_SIG_LDUNIF;
+#else
+      const static v3d_qpu_sigbits_t valid_sigbits = 0;
+#endif
+      if (operand->type == SIG && (operand->u.sigbits & valid_sigbits) == 0) return;
 
       if (operand->magic_write != REG_UNDECIDED || operand->dependencies[0] != NULL) return;
       if (operand->any_io_dependents) return;
       /* XXX: We don't need to bail in this case, if we remember to transfer the iodependency */
       if (operand->io_dependencies.head != NULL) return;
 
-      /* Can't combine ldvpm with moves to register targets */
-      if (operand->type == ALU_A && glsl_sched_node_requires_regfile(operand->u.alu.op)) return;
+      /* Can't combine regfile-requiring nodes with moves to register targets */
+      if (glsl_sched_node_requires_regfile(operand)) return;
+
+      /* Can't combine uniform loads with magic targets that also load uniforms */
+      if (node->unif_type != BACKEND_UNIFORM_UNASSIGNED && operand->unif_type != BACKEND_UNIFORM_UNASSIGNED) return;
 
       node->type = operand->type;
       for (int i=0; i<BACKFLOW_DEP_COUNT; i++) {
          node->dependencies[i] = operand->dependencies[i];
       }
-      node->u.alu.op  = operand->u.alu.op;
-      node->u.alu.unpack[0] = operand->u.alu.unpack[0];
-      node->u.alu.unpack[1] = operand->u.alu.unpack[1];
+      if (is_alu_type(operand->type)) {
+         node->u.alu.op  = operand->u.alu.op;
+         node->u.alu.unpack[0] = operand->u.alu.unpack[0];
+         node->u.alu.unpack[1] = operand->u.alu.unpack[1];
+      } else {
+         node->u.sigbits = operand->u.sigbits;
+      }
       node->age = operand->age;
+
+      if (operand->unif_type != BACKEND_UNIFORM_UNASSIGNED) {
+         node->unif_type = operand->unif_type;
+         node->unif = operand->unif;
+      }
 
       for (BackflowIODepChainNode *n=node->io_dependencies.head; n; n=n->next)
          node->age = gfx_umax(node->age, n->val.dep->age);
-
-      /* Validity checking: These would be invalid nodes, and would break this */
-      assert(operand->unif == BACKEND_UNIFORM_UNASSIGNED);
    }
 
    if (node->dependencies[0]) {
@@ -119,18 +134,19 @@ void dpostv_node_combine(Backflow *node, void *data) {
 void glsl_combine_sched_nodes(SchedBlock *b) {
    BackflowVisitor *comb_visit = glsl_backflow_visitor_begin(NULL, NULL, dpostv_node_combine);
 
-   for (int i=0; i<b->num_outputs; i++) {
+   for (int i=0; i<b->num_outputs; i++)
       glsl_backflow_visit(b->outputs[i], comb_visit);
-   }
 
-   for (BackflowChainNode *n=b->iodeps.head; n; n=n->next) {
+   for (BackflowChainNode *n=b->iodeps.head; n; n=n->next)
       glsl_backflow_visit(n->val, comb_visit);
-   }
 
    /* Texture dependencies have not been resolved yet, so data written will not be combined */
    for (struct tmu_lookup_s *l = b->tmu_lookups; l; l=l->next) {
       glsl_backflow_visit(l->last_write, comb_visit);
    }
+
+   if(b->branch_cond)
+      glsl_backflow_visit(b->branch_cond, comb_visit);
 
    glsl_backflow_visitor_end(comb_visit);
 }

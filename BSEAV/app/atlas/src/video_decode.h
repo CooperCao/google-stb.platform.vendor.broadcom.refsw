@@ -66,7 +66,7 @@ class CVideoDecode : public CResource
 public:
     CVideoDecode(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CVideoDecode(void);
@@ -99,8 +99,8 @@ protected:
     bool                     _started;
     bool                     _sourceChanged;
     bool                     _streamChanged;
-    uint16_t                 _maxWidth;
-    uint16_t                 _maxHeight;
+    unsigned                 _maxWidth;
+    unsigned                 _maxHeight;
 };
 
 class CBoardResources;
@@ -110,7 +110,7 @@ class CSimpleVideoDecode : public CVideoDecode
 public:
     CSimpleVideoDecode(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CSimpleVideoDecode();
@@ -144,7 +144,7 @@ public:
     eRet                        getStreamInfo(NEXUS_VideoDecoderStreamInformation * pStream);
     eRet                        getOptimalVideoFormat(COutput * pOutput, NEXUS_VideoFormat * pFormat);
     eRet                        setStc(CStc * pStc);
-    eRet                        setMaxSize(uint16_t width, uint16_t height);
+    eRet                        setMaxSize(unsigned width, unsigned height);
     eRet                        setColorDepth(uint8_t depth);
     eRet                        setDnrBlockNoiseMode(NEXUS_VideoWindowFilterMode mode);
     NEXUS_VideoWindowFilterMode getDnrBlockNoiseMode(void);

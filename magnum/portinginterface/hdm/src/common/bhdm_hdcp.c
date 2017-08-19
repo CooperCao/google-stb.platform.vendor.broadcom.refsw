@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "breg_endian.h"
@@ -1761,8 +1760,13 @@ BERR_Code BHDM_HDCP_GetRxCaps(
             BHDM_HDCP_RX_I2C_ADDR, BHDM_HDCP_RX_BCAPS, pRxCapsReg, 1)) ;
     }
 #else
-    BHDM_CHECK_RC(rc, BHDM_P_BREG_I2C_Read(hHDMI,
-        BHDM_HDCP_RX_I2C_ADDR, BHDM_HDCP_RX_BCAPS, pRxCapsReg, 1)) ;
+	rc = BHDM_P_BREG_I2C_Read(hHDMI, BHDM_HDCP_RX_I2C_ADDR, BHDM_HDCP_RX_BCAPS, pRxCapsReg, 1) ;
+	if (rc)
+	{
+		hHDMI->MonitorStatus.hdcp.BCapsReadFailures++ ;
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
 #endif
 
 #if 0
@@ -3087,7 +3091,7 @@ BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool e
     hRegister = hHDMI->hRegister;
     ulOffset = hHDMI->ulOffset;
 
-    BDBG_MSG(("%s: bReAuthRequestPending = %d, enable =%d", __FUNCTION__, hHDMI->bReAuthRequestPending, enable));
+    BDBG_MSG(("%s: bReAuthRequestPending = %d, enable =%d", BSTD_FUNCTION, hHDMI->bReAuthRequestPending, enable));
     if (enable)
     {
         if (hHDMI->bReAuthRequestPending)

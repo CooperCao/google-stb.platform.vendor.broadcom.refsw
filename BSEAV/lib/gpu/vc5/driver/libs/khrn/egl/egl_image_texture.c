@@ -178,7 +178,7 @@ EGL_IMAGE_T *egl_image_texture_new(EGL_CONTEXT_T *context,
    }
 
    /* if we already are already share this level, fail;
-    * TODO: fail if we are alreadi share this level for eglimage source */
+    * TODO: fail if we are already share this level for eglimage source */
    if (texture->binding == TEX_BOUND_TEXIMAGE ||
        texture->binding == TEX_BOUND_EGLIMAGE_TARGET)
    {
@@ -237,7 +237,7 @@ EGL_IMAGE_T *egl_image_texture_new(EGL_CONTEXT_T *context,
    if(!glxx_texture_acquire_from_eglimage(texture, face, attr.level,
          attr.zoffset, &image))
    {
-      error = EGL_BAD_PARAMETER;
+      error = EGL_BAD_ALLOC;
       goto end;
    }
 

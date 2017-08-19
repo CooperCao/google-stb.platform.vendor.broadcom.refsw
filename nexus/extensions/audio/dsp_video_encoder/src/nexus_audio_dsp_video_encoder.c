@@ -395,6 +395,20 @@ error:
     return rc;
 }
 
+NEXUS_Error NEXUS_DspVideoEncoder_GetBufferBlocks_priv(NEXUS_DspVideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+{
+    NEXUS_Error rc;
+    BAVC_VideoBufferStatus bufferStatus;
+
+    NEXUS_ASSERT_MODULE();
+    rc = BVEE_Channel_GetBufferStatus(encoder->veeChannel, &bufferStatus);
+    if(rc!=BERR_SUCCESS) return BERR_TRACE(rc);
+
+    *phFrameBufferBlock = bufferStatus.stCommon.hFrameBufferBlock;
+    *phMetadataBufferBlock = bufferStatus.stCommon.hMetadataBufferBlock;
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_Error NEXUS_DspVideoEncoder_GetStatus_priv(NEXUS_DspVideoEncoderHandle encoder, NEXUS_DspVideoEncoderStatus *pStatus)
 {
     NEXUS_Error rc;
@@ -457,9 +471,7 @@ void NEXUS_DspVideoEncoder_GetRaveSettings_priv(NEXUS_RaveOpenSettings *raveSett
     NEXUS_ASSERT_MODULE();
 
     raveSettings->config.Cdb.Length = 256*1024;
-    raveSettings->config.Cdb.Alignment = 4;
     raveSettings->config.Itb.Length = 128*1024;
-    raveSettings->config.Itb.Alignment = 4;
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE
     raveSettings->config.Cdb.LittleEndian = true;
 #else

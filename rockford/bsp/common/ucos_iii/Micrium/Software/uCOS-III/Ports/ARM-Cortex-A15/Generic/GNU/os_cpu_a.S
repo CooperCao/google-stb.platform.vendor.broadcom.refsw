@@ -704,6 +704,7 @@ ENTRY_PROC(OS_CPU_ARM_ExceptIrqHndlr)
 
     CMP     R4, #1                                              @ if (OSIntNestingCtr == 1)
     BNE     OS_CPU_ARM_IRQHndlr_BreakIRQ
+    B       OS_CPU_ARM_IRQHndlr_BreakTask
 END_PROC(OS_CPU_ARM_ExceptIrqHndlr)
 
 

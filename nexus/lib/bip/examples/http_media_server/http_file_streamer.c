@@ -1011,7 +1011,7 @@ static BIP_Status generateNav(
             BIP_Status nv_status;
             /*  We just add here _trackId.nv extension for the file name.*/
             hAbsoluteNavFileName = buildNavFileName( pInfoFilesDirectoryPath, pMediaFileAbsolutePathName, pMediaInfoTrack->trackId );
-            BIP_CHECK_GOTO(( hAbsoluteNavFileName ), ( "%s: BIP_String_StrcpyPrintf Failed to create nav file file=%s trackId=%d", __FUNCTION__, pMediaFileAbsolutePathName, pMediaInfoTrack->trackId ), error, rc, rc );
+            BIP_CHECK_GOTO(( hAbsoluteNavFileName ), ( "%s: BIP_String_StrcpyPrintf Failed to create nav file file=%s trackId=%d", BSTD_FUNCTION, pMediaFileAbsolutePathName, pMediaInfoTrack->trackId ), error, rc, rc );
 
             BIP_MediaInfo_GetDefaultMakeNavForTsSettings(&navForTsSetting);
 
@@ -1147,7 +1147,7 @@ static BIP_Status generateMediaInfoForFiles(
 
     numDirEntries = scandir( pMediaFilesDirectoryPath, &namelist, fileNameFilter, NULL );
     BIP_CHECK_GOTO(( numDirEntries > 0 ), ( "%s: Failed to scan media directory %s, numDirEntries %d, errno %d, errnoString: %s",
-                __FUNCTION__, pMediaFilesDirectoryPath, numDirEntries, errno, strerror(errno) ), error, BIP_ERR_INTERNAL, bipStatus );
+                BSTD_FUNCTION, pMediaFilesDirectoryPath, numDirEntries, errno, strerror(errno) ), error, BIP_ERR_INTERNAL, bipStatus );
 
     hMediaPath = BIP_String_Create();
     BIP_CHECK_GOTO( (hMediaPath != NULL), ("BIP_String_Create() Failed"), error, BIP_ERR_CREATE_FAILED, bipStatus);
@@ -1314,7 +1314,7 @@ static BIP_Status initHttpServer(
         BIP_HttpServerStartSettings httpServerStartSettings;
 
         BIP_HttpServer_GetDefaultStartSettings(&httpServerStartSettings);
-        BDBG_MSG(("%s: Starting HttpServer...", __FUNCTION__));
+        BDBG_MSG(("%s: Starting HttpServer...", BSTD_FUNCTION));
 
         httpServerStartSettings.pPort = BIP_String_GetString(pAppCtx->hPort);
         httpServerStartSettings.pInterfaceName = BIP_String_GetString(pAppCtx->hInterfaceName);

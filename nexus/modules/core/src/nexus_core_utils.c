@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,8 +73,7 @@ void NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_VideoFormat videoFormat, NEXUS_Vide
     rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(videoFormat, &fmt);
     if (rc) {BERR_TRACE(rc); return;}
 
-    /* TODO: could be _isrsafe */
-    fmtInfo = BFMT_GetVideoFormatInfoPtr_isr(fmt);
+    fmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(fmt);
     if (!fmtInfo) {BERR_TRACE(NEXUS_INVALID_PARAMETER); return;}
 
     BDBG_MSG(("NEXUS_VideoFormat_GetInfo %d->%d: %dx%d", videoFormat, fmt, fmtInfo->ulWidth, fmtInfo->ulHeight));

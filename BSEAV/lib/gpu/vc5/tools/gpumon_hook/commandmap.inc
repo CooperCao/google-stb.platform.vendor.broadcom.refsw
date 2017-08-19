@@ -662,3 +662,5 @@
    "glCopyImageSubDataOES",                            "v",  "weWWWWweWWWWWWW", "",
    "glCopyImageSubDataEXT",                            "v",  "weWWWWweWWWWWWW", "",
    "glPolygonOffsetClampEXT",                          "v",  "fff",             "",
+   "glTexSubImage1DBRCM",                              "v",  "eWWWeep",         "const GLvoid *",
+   "glTexStorage1DBRCM",                               "v",  "eWeW",            "",

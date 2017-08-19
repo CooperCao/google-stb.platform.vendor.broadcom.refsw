@@ -52,8 +52,8 @@
 
 SysCalls::SvcPerformer SysCalls::dispatchTable[NUM_SYS_CALLS];
 SysCalls::SvcPerformer SysCalls::dispatchTableExt[NUM_EXT_SYS_CALLS];
-TzMem::PhysAddr SysCalls::paramsPagePhys;
-TzMem::VirtAddr SysCalls::paramsPage;
+PerCPU<TzMem::PhysAddr> SysCalls::paramsPagePhys;
+PerCPU<TzMem::VirtAddr> SysCalls::paramsPage;
 
 void SysCalls::init() {
     for (int i=0; i<NUM_SYS_CALLS; i++)
@@ -312,24 +312,43 @@ void SysCalls::init() {
     dispatchTableExt[EXT_tracelog_stop - EXT_SYS_CALL_BASE] = doTraceLogStop;
     dispatchTableExt[EXT_tracelog_add - EXT_SYS_CALL_BASE] = doTraceLogAdd;
 
-    paramsPagePhys = TzMem::allocPage(KERNEL_PID);
-    if (paramsPagePhys == nullptr) {
+    paramsPagePhys.cpuLocal() = TzMem::allocPage(KERNEL_PID);
+    if (paramsPagePhys.cpuLocal() == nullptr) {
         err_msg("%s: Could not get memory !\n", __FUNCTION__);
-        paramsPage = nullptr;
+        paramsPage.cpuLocal() = nullptr;
         return;
     }
 
     PageTable *pt = PageTable::kernelPageTable();
-    paramsPage = pt->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanDirection::ScanForward);
-    if (paramsPage == nullptr) {
+    paramsPage.cpuLocal() = pt->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanDirection::ScanForward);
+    if (paramsPage.cpuLocal() == nullptr) {
         err_msg("%s: address space exhausted\n", __FUNCTION__);
-        TzMem::freePage(paramsPagePhys);
+        TzMem::freePage(paramsPagePhys.cpuLocal());
         return;
     }
-    pt->mapPage(paramsPage, paramsPagePhys, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
+    pt->mapPage(paramsPage.cpuLocal(), paramsPagePhys.cpuLocal(), MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
 
     spinLockInit(&execLock);
     spinLockInit(&fopsLock);
+}
+
+void SysCalls::initSecondaryCpu() {
+    paramsPagePhys.cpuLocal() = TzMem::allocPage(KERNEL_PID);
+    if (paramsPagePhys.cpuLocal() == nullptr) {
+        err_msg("%s: Could not get memory !\n", __FUNCTION__);
+        paramsPage.cpuLocal() = nullptr;
+        return;
+    }
+
+    PageTable *pt = PageTable::kernelPageTable();
+    paramsPage.cpuLocal() = pt->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanDirection::ScanForward);
+    if (paramsPage.cpuLocal() == nullptr) {
+        err_msg("%s: address space exhausted\n", __FUNCTION__);
+        TzMem::freePage(paramsPagePhys.cpuLocal());
+        return;
+    }
+    pt->mapPage(paramsPage.cpuLocal(), paramsPagePhys.cpuLocal(), MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
+
 }
 
 void SysCalls::dispatch() {
@@ -794,7 +813,7 @@ void SysCalls::doGetCurrCpu(TzTask *currTask) {
 
 void SysCalls::doGenSgi(TzTask *currTask) {
     int irq = (int)currTask->userReg(TzTask::UserRegs::r0);
-    GIC::sgiGenerate(irq);
+    GIC::sgiGenerate(1, irq);
     currTask->writeUserReg(TzTask::UserRegs::r0, 0);
 }
 

@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void dump_hex(const char* name, const char* data, size_t length, bool force=false)
+static void dump_hex(const char* name, const char* data, uint32_t length, bool force=false)
 {
     if (!force && (getenv("DUMP_HEX") == NULL)) return;
     size_t i;

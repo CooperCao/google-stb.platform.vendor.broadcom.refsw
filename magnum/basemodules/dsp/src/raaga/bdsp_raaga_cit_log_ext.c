@@ -37,7 +37,6 @@
  *****************************************************************************/
 
 #include "bdsp_raaga_priv.h"
-#include "bdsp_raaga_fw_cit.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
 #include "bdsp_task.h"

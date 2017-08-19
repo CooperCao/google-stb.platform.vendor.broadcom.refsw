@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -214,6 +214,8 @@ int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDeco
                         pData[total].field = (ccData[i].polarity==BAVC_Polarity_eTopField)?0:1;
                         pData[total].data[0] = ccData[i].cc_data_1;
                         pData[total].data[1] = ccData[i].cc_data_2;
+                        /* SW7364-348, need to clear noData flag, otherwise residual 708 data could mess 608 data */
+                        pData[total].noData = 0;
                         total++;
                     }
                     /* don't send invalid 608 data */

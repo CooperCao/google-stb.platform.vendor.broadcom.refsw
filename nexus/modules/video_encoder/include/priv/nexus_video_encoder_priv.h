@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,6 +53,9 @@ NEXUS_Error NEXUS_VideoEncoder_GetBufferStatus_priv(
     NEXUS_VideoEncoderHandle handle,
     NEXUS_VideoEncoderStatus *pStatus /* [out] */
     );
+
+NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder,
+    BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock);
 
 #ifdef __cplusplus
 }

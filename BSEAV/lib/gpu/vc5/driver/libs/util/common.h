@@ -47,6 +47,14 @@
    #define align_of(T) (sizeof(struct { T t; char ch; }) - sizeof(T))
 #endif
 
+#ifdef _MSC_VER
+   #define ALIGNED(X) __declspec(align(X))
+#elif defined(__GNUC__) || defined (__clang__)
+   #define ALIGNED(X) __attribute__((aligned(X)))
+#else
+   #define ALIGNED(X)
+#endif
+
 // inline is a keyword in C99 and C++, although MSVC supports a
 // good portion of C99, somehow the inline keyword missed the list
 #if defined(_MSC_VER) && !defined(inline) && !defined(__cplusplus)

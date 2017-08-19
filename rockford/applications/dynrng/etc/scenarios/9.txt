@@ -6,5 +6,5 @@ plm.vid=0
 plm.gfx=2
 image=Avatar.bmp
 bg=desktop_background.brcmLTD.png
-pig=off
+usage=mosaic
 layout=1

@@ -5,6 +5,7 @@
 
 #include "gl20_shader.h"
 #include "../glsl/glsl_errors.h"
+#include "libs/compute/compute.h"
 
 static void gl20_shader_free_source(GL20_SHADER_T *shader)
 {
@@ -131,7 +132,15 @@ void gl20_shader_compile(GL20_SHADER_T *shader)
    source.sourcev = (const char *const*)shader->source;
    source.name = shader->name;
 
-   shader->binary = glsl_compile_shader(get_shader_flavour(shader->type), &source, (khrn_get_num_cores() > 1));
+#if KHRN_DEBUG
+   bool record = khrn_options.save_crc_enabled || khrn_options.autoclif_enabled;
+#else
+   bool record = false;
+#endif
+
+   uint32_t shared_mem_per_core = KHRN_GLES31_DRIVER ? v3d_scheduler_get_compute_shared_mem_size_per_core() : 0;
+   shader->binary = glsl_compile_shader(get_shader_flavour(shader->type), &source,
+                                         (khrn_get_num_cores() > 1) && !record, record, shared_mem_per_core);
 
    free(shader->info_log);
    if (shader->binary != NULL)

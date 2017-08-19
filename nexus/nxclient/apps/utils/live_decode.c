@@ -159,6 +159,7 @@ static void stop_audio(live_decode_channel_t channel)
 
 static void first_pts_passed(void *context, int param)
 {
+    BSTD_UNUSED(context);
     BSTD_UNUSED(param);
     BDBG_MSG(("first pts passed: %p", context));
 }

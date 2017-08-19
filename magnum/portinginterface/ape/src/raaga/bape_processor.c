@@ -114,6 +114,16 @@ static void BAPE_Processor_P_GetDefaultSettings(
             pSettings->settings.advTsm.mode = (BAPE_AdvancedTsmMode)dspSettings.ui32TsmCorrectionMode;
         }
         break;
+    case BAPE_PostProcessorType_eAmbisonic:
+        {
+            BDSP_Raaga_Audio_AmbisonicsConfigParams dspSettings;
+            BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAmbisonics, (void *)&dspSettings, sizeof(dspSettings));
+            pSettings->settings.ambisonic.ambisonicSource = dspSettings.ui32AmbisonicProcess;
+            pSettings->settings.ambisonic.yaw = dspSettings.ui32Yaw;
+            pSettings->settings.ambisonic.pitch = dspSettings.ui32Pitch;
+            pSettings->settings.ambisonic.roll = dspSettings.ui32Roll;
+        }
+        break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", type));
         BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -131,6 +141,7 @@ static bool BAPE_Processor_P_SupportsMultichannelOutput(BAPE_PostProcessorType t
     case BAPE_PostProcessorType_eFade:
         break;
     case BAPE_PostProcessorType_eAdvancedTsm:
+    case BAPE_PostProcessorType_eAmbisonic:
         return true;
         break; /* unreachable */
     }
@@ -188,6 +199,10 @@ BERR_Code BAPE_Processor_Create(
     case BAPE_PostProcessorType_eAdvancedTsm:
         handle->node.pName = "AdvancedTsm";
         bdspAlgo = BDSP_Algorithm_eTsmCorrection;
+        break;
+    case BAPE_PostProcessorType_eAmbisonic:
+        handle->node.pName = "Ambisonic";
+        bdspAlgo = BDSP_Algorithm_eAmbisonics;
         break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", handle->type));
@@ -334,7 +349,7 @@ static void BAPE_Processor_P_GetFadeStatus(
         pStatus->status.fade.active = (status.ui32FadeActiveStatus==1) ? true : false;
         pStatus->status.fade.remaining = status.ui32RemainingDuration;
         pStatus->status.fade.level = status.ui32CurrentVolumeLevel;
-        BDBG_MSG(("%s: active %u, remaining %lu, level %lu", __FUNCTION__,
+        BDBG_MSG(("%s: active %u, remaining %lu, level %lu", BSTD_FUNCTION,
                   (unsigned)pStatus->status.fade.active,
                   (unsigned long)pStatus->status.fade.remaining,
                   (unsigned long)pStatus->status.fade.level));
@@ -364,7 +379,7 @@ static void BAPE_Processor_P_GetAdvancedTsmStatus(
         pStatus->status.advTsm.ptsValid = (status.ui32PTSValid==1) ? true : false;
         pStatus->status.advTsm.ptsType = (BAPE_PtsType)status.ui32PTSType;
         pStatus->status.advTsm.correction = status.i32TimeInMsecAdjusted;
-        BDBG_MSG(("%s: pts %u, valid %u, type %d, correction %d", __FUNCTION__,
+        BDBG_MSG(("%s: pts %u, valid %u, type %d, correction %d", BSTD_FUNCTION,
                   (unsigned)pStatus->status.advTsm.pts,
                   (unsigned)pStatus->status.advTsm.ptsValid,
                   (int)pStatus->status.advTsm.ptsType,
@@ -384,6 +399,7 @@ void BAPE_Processor_GetStatus(
     switch ( handle->type )
     {
     case BAPE_PostProcessorType_eKaraokeVocal:
+    case BAPE_PostProcessorType_eAmbisonic:
         break;
     case BAPE_PostProcessorType_eAdvancedTsm:
         BAPE_Processor_P_GetAdvancedTsmStatus(handle, pStatus);
@@ -416,6 +432,7 @@ void BAPE_Processor_GetConnector(
         case BAPE_PostProcessorType_eKaraokeVocal:
         case BAPE_PostProcessorType_eFade:
         case BAPE_PostProcessorType_eAdvancedTsm:
+        case BAPE_PostProcessorType_eAmbisonic:
             *pConnector = &handle->node.connectors[BAPE_ConnectorFormat_eStereo];
             break;
         default:
@@ -426,6 +443,7 @@ void BAPE_Processor_GetConnector(
         switch ( handle->type )
         {
         case BAPE_PostProcessorType_eAdvancedTsm:
+        case BAPE_PostProcessorType_eAmbisonic:
             *pConnector = &handle->node.connectors[BAPE_ConnectorFormat_eMultichannel];
             break;
         default:
@@ -520,15 +538,24 @@ static BDSP_DataType BAPE_Processor_P_DetermineOutputFormat(BAPE_ProcessorHandle
         if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]) > 0 && BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel]) > 0 )
         {
             BDBG_ERR(("Advanced Tsm Processor does not support simultaneous stereo and multichannel consumers"));
-            BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        else if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel]) > 0 )
+        {
+            connector = &handle->node.connectors[BAPE_ConnectorFormat_eMultichannel];
         }
         else if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]) > 0 )
         {
             connector = &handle->node.connectors[BAPE_ConnectorFormat_eStereo];
         }
-        else
+        break;
+    case BAPE_PostProcessorType_eAmbisonic:
+        if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel]) > 0 )
         {
             connector = &handle->node.connectors[BAPE_ConnectorFormat_eMultichannel];
+        }
+        else if ( BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]) > 0 )
+        {
+            connector = &handle->node.connectors[BAPE_ConnectorFormat_eStereo];
         }
         break;
     }
@@ -681,6 +708,47 @@ static BERR_Code BAPE_Processor_P_ApplyAdvancedTsmSettings(BAPE_ProcessorHandle 
     return BERR_SUCCESS;
 }
 
+static BERR_Code BAPE_Processor_P_ApplyAmbisonicSettings(BAPE_ProcessorHandle handle)
+{
+    BERR_Code errCode;
+    BDSP_Raaga_Audio_AmbisonicsConfigParams userConfig, curUserConfig;
+    bool hasStereoConsumers;
+
+    errCode = BDSP_Stage_GetSettings(handle->hStage, &userConfig, sizeof(userConfig));
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    BKNI_Memcpy(&curUserConfig, &userConfig, sizeof(curUserConfig));
+
+    /* we already validated in AllocatePath that we only have one output type */
+    hasStereoConsumers = BAPE_Connector_P_GetNumConnections(&handle->node.connectors[BAPE_ConnectorFormat_eStereo]) > 0;
+
+    BDBG_MSG(("Applying Ambisonic settings for Processor module %p.", (void *)handle));
+    BDBG_MSG(("  ambisonicSource %u, yaw %u, pitch %u, roll %u",
+              handle->settings.settings.ambisonic.ambisonicSource,
+              handle->settings.settings.ambisonic.yaw,
+              handle->settings.settings.ambisonic.pitch,
+              handle->settings.settings.ambisonic.roll));
+
+    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32AmbisonicProcess, handle->settings.settings.ambisonic.ambisonicSource ? 1 : 0);
+    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32Yaw, handle->settings.settings.ambisonic.yaw);
+    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32Pitch, handle->settings.settings.ambisonic.pitch);
+    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32Roll, handle->settings.settings.ambisonic.roll);
+    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32BinauralRendering, hasStereoConsumers? 1:0);
+
+    if ( BKNI_Memcmp(&curUserConfig, &userConfig, sizeof(curUserConfig)) != 0 )
+    {
+        errCode = BDSP_Stage_SetSettings(handle->hStage, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+
+    return BERR_SUCCESS;
+}
+
 static BERR_Code BAPE_Processor_P_ApplyDspSettings(BAPE_ProcessorHandle handle)
 {
     BERR_Code errCode = BERR_SUCCESS;
@@ -694,6 +762,9 @@ static BERR_Code BAPE_Processor_P_ApplyDspSettings(BAPE_ProcessorHandle handle)
         break;
     case BAPE_PostProcessorType_eAdvancedTsm:
         errCode = BAPE_Processor_P_ApplyAdvancedTsmSettings(handle);
+        break;
+    case BAPE_PostProcessorType_eAmbisonic:
+        errCode = BAPE_Processor_P_ApplyAmbisonicSettings(handle);
         break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", handle->type));
@@ -852,10 +923,12 @@ void BAPE_Processor_GetStatus(
 
 void BAPE_Processor_GetConnector(
     BAPE_ProcessorHandle handle,
+    BAPE_ConnectorFormat format,
     BAPE_Connector *pConnector
     )
 {
     BSTD_UNUSED(handle);
+    BSTD_UNUSED(format);
     BSTD_UNUSED(pConnector);
 }
 

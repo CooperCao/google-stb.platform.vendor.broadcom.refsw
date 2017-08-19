@@ -1,53 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/ZbPro/APS/include/bbZbProApsSapIb.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This header describes API for the ZigBee PRO APS Information Base component.
+ *      This header describes API for the ZigBee PRO APS Information Base component.
  *
- * $Revision: 10263 $
- * $Date: 2016-02-29 18:03:06Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _ZBPRO_APS_SAP_IB_H
 #define _ZBPRO_APS_SAP_IB_H
 
@@ -59,24 +54,25 @@
 /************************* TYPES ********************************************************/
 /**//**
  * \brief APS-IB attributes identifiers enumeration (see ZigBee spec r20, Table 2.24 and Table 4.38).
+ * \ingroup ZBPRO_APS_Misc
  */
 typedef enum _ZbProApsIbAttributeId_t
 {
     /* AIB Attributes */
     ZBPRO_APS_IB_FIRST_ID                       = 0xC1,
-    ZBPRO_APS_IB_BIDING_TABLE_ID                = ZBPRO_APS_IB_FIRST_ID, //NOTE: table
+    ZBPRO_APS_IB_BIDING_TABLE_ID                = ZBPRO_APS_IB_FIRST_ID, // \note table
     ZBPRO_APS_IB_DESIGNATED_COORDINATOR_ID      = 0xC2,
     ZBPRO_APS_IB_CHANNEL_MASK_ID                = 0xC3,
     ZBPRO_APS_IB_USE_EXTENDED_PANID_ID          = 0xC4,
-    ZBPRO_APS_IB_GROUP_TABLE_ID                 = 0xC5, //NOTE: table
+    ZBPRO_APS_IB_GROUP_TABLE_ID                 = 0xC5, // \note table
     ZBPRO_APS_IB_NONMEMBER_RADIUS_ID            = 0xC6,
-    ZBPRO_APS_IB_PERMISSIONS_CONFIGURATION_ID   = 0xC7, //NOTE: table
+    ZBPRO_APS_IB_PERMISSIONS_CONFIGURATION_ID   = 0xC7, // \note table
     ZBPRO_APS_IB_USE_INSECURE_JOIN_ID           = 0xC8,
     ZBPRO_APS_IB_INTERFRAME_DELAY_ID            = 0xC9,
     ZBPRO_APS_IB_LAST_CHANNEL_ENERGY_ID         = 0xCA,
     ZBPRO_APS_IB_LAST_CHANNEL_FAILURE_RATE_ID   = 0xCB,
     ZBPRO_APS_IB_CHANNEL_TIMER_ID               = 0xCC,
-    ZBPRO_APS_IB_MAX_WINDOW_SIZE_ID             = 0xCD, //NOTE: table
+    ZBPRO_APS_IB_MAX_WINDOW_SIZE_ID             = 0xCD, // \note table
     ZBPRO_APS_IB_LAST_ID                        = ZBPRO_APS_IB_MAX_WINDOW_SIZE_ID,
 
     /* Attributes which are used by ZDO */
@@ -91,7 +87,7 @@ typedef enum _ZbProApsIbAttributeId_t
 
     /* Additional Security-Related AIB Attributes */
     ZBPRO_APS_IB_FIRST_SECURITY_ID              = 0xE0,
-    ZBPRO_APS_IB_DEVICE_KEY_PAIR_SET_ID         = ZBPRO_APS_IB_FIRST_SECURITY_ID, //NOTE: table
+    ZBPRO_APS_IB_DEVICE_KEY_PAIR_SET_ID         = ZBPRO_APS_IB_FIRST_SECURITY_ID, // \note table
     ZBPRO_APS_IB_TRUST_CENTER_ADDRESS_ID        = 0xE1,
     ZBPRO_APS_IB_SECURITY_TIME_OUT_PERIOD_ID    = 0xE2,
     ZBPRO_APS_IB_LAST_SECURITY_ID               = ZBPRO_APS_IB_SECURITY_TIME_OUT_PERIOD_ID,
@@ -99,6 +95,12 @@ typedef enum _ZbProApsIbAttributeId_t
     ZBPRO_APS_IB_ADDITIONAL_FIRST_SECURITY_ID   = 0xE3,
     ZBPRO_APS_IB_INITIAL_SECURITY_STATUS_ID     = ZBPRO_APS_IB_ADDITIONAL_FIRST_SECURITY_ID,
     ZBPRO_APS_IB_ADDITIONAL_LAST_SECURITY_ID    = ZBPRO_APS_IB_INITIAL_SECURITY_STATUS_ID,
+
+    /* Additional Fragmentation-Related AIB Attributes */
+    ZBPRO_APS_IB_FRAG_ADDITIONAL_FIRST_ID       = 0xE4,
+    ZBPRO_APS_IB_FRAG_THRESHOLD_ID              = ZBPRO_APS_IB_FRAG_ADDITIONAL_FIRST_ID,
+    ZBPRO_APS_IB_FRAG_TEST_SKIP_BLOCK_MASK_ID   = 0xE5,
+    ZBPRO_APS_IB_FRAG_ADDITIONAL_LAST_ID        = ZBPRO_APS_IB_FRAG_TEST_SKIP_BLOCK_MASK_ID
 
 } ZbProApsIbAttributeId_t;
 
@@ -109,6 +111,7 @@ typedef enum _ZbProApsIbAttributeId_t
     (                                                                                                   \
             (((attrId >= ZBPRO_APS_IB_FIRST_SECURITY_ID) && (attrId <= ZBPRO_APS_IB_LAST_SECURITY_ID))  \
             || ((attrId >= ZBPRO_APS_IB_ADDITIONAL_FIRST_SECURITY_ID) && (attrId <= ZBPRO_APS_IB_ADDITIONAL_LAST_SECURITY_ID))\
+            || ((attrId >= ZBPRO_APS_IB_FRAG_ADDITIONAL_FIRST_ID) && (attrId <= ZBPRO_APS_IB_FRAG_ADDITIONAL_LAST_ID))\
             || ((attrId >= ZBPRO_APS_IB_FIRST_ID) && (attrId <= ZBPRO_APS_IB_LAST_ID))                  \
             || ((attrId >= ZBPRO_APS_IB_ZDO_ID_START) && (attrId <= ZBPRO_APS_IB_ZDO_ID_END)))          \
             && (attrId != ZBPRO_APS_IB_DEVICE_KEY_PAIR_SET_ID)                                          \
@@ -128,6 +131,7 @@ typedef enum _ZbProApsIbAttributeId_t
     SYS_Time_t                                      zdoZdpResponseTimeout;          \
     SYS_Time_t                                      zdoEdBindTimeout;               \
     SYS_Time_t                                      zclResponseTimeout;             \
+    uint32_t                                        apsFragTestSkipBlockMask;       \
     ZBPRO_APS_ManufacturerCode_t                    zdoManufacturerCode;            \
     ZBPRO_APS_SucurityTimeOutPeriod_t               apsSecurityTimeOutPeriod;       \
     ZBPRO_NWK_PermitJoinDuration_t                  zdoPermitJoinDuration;          \
@@ -140,15 +144,16 @@ typedef enum _ZbProApsIbAttributeId_t
     Bool8_t                                         apsDesignatedCoordinator;       \
     Bool8_t                                         apsUseInsecureJoin;             \
     uint8_t                                         zdoInitialSecurityStatus;       \
+    ZBPRO_APS_FragThreshold_t                       apsFragThreshold;               \
     \
-    uint16_t                                        apsReservedAlignment0
+    uint8_t                                         apsReservedAlignment0
 
 /**//**
  * \brief APS-IB private attributes variant data type.
  */
 typedef union _ZbProApsIbAttributeValue_t
 {
-    ZBPRO_APS_IB_ARRT_LIST;
+    ZBPRO_APS_IB_ARRT_LIST;                      /*!< APS-IB private attributes data types list macro. */
 } ZbProApsIbAttributeValue_t;
 
 /**//**
@@ -176,7 +181,7 @@ typedef ZBPRO_APS_IB_PUBLIC_VARIANT ZBPRO_APS_IbAttributeValue_t;
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_USE_EXTENDED_PANID              (ZBPRO_NWK_UNASSIGNED_EXTENDED_PANID)
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_NONMEMBER_RADIUS                (2)
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_USE_INSECURE_JOIN               (true)
-#define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_INTERFRAME_DELAY                (0x00) //TODO: set valid value after the fragmentation feature implementation
+#define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_INTERFRAME_DELAY                (10)
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_LAST_CHANNEL_ENERGY             (0)
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_LAST_CHANNEL_FAILURE_RATE       (0)
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_CHANNEL_TIMER                   (1)
@@ -188,6 +193,8 @@ typedef ZBPRO_APS_IB_PUBLIC_VARIANT ZBPRO_APS_IbAttributeValue_t;
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_ZHA_RESPONSE_TIMEOUT            (5000)
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_SCAN_DURATION                   (5)
 #define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_INITIAL_SECURITY_STATUS         (ZBPRO_APS_PRECONFIGURED_TRUST_CENTER_KEY)
+#define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_FRAG_THRESHOLD                  (50)
+#define ZBPRO_APS_IB_ATTR_DEFAULT_VALUE_FRAG_TEST_SKIP_BLOCK_MASK       (0)
 
 /**//**
  * \brief APS-IB attributes values constraints.
@@ -229,5 +236,11 @@ typedef ZBPRO_APS_IB_PUBLIC_VARIANT ZBPRO_APS_IbAttributeValue_t;
 #define ZBPRO_APS_IB_ATTR_MAX_ALLOWED_VALUE_ZHA_RESPONSE_TIMEOUT        (0xffffffff)
 #define ZBPRO_APS_IB_ATTR_MIN_ALLOWED_VALUE_SCAN_DURATION               (0)
 #define ZBPRO_APS_IB_ATTR_MAX_ALLOWED_VALUE_SCAN_DURATION               (0xff)
+#define ZBPRO_APS_IB_ATTR_MIN_ALLOWED_VALUE_FRAG_THRESHOLD              (0)
+#define ZBPRO_APS_IB_ATTR_MAX_ALLOWED_VALUE_FRAG_THRESHOLD              (ZBPRO_APS_MAX_DU_SIZE)
+#define ZBPRO_APS_IB_ATTR_MIN_ALLOWED_VALUE_FRAG_TEST_SKIP_BLOCK_MASK   (0)
+#define ZBPRO_APS_IB_ATTR_MAX_ALLOWED_VALUE_FRAG_TEST_SKIP_BLOCK_MASK   (0xFFffFFff)
 
 #endif /* _ZBPRO_APS_SAP_IB_H */
+
+/* eof bbZbProApsSapIb.h */

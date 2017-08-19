@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *   API name: Scheduler
 *    Library routines for timer and thread event callback management
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "b_os_lib.h"
@@ -56,7 +48,7 @@
 #include "blst_squeue.h"
 #include "blst_queue.h"
 #ifdef UCOS_DIAGS
-	#include "ucos_ii.h"
+    #include "ucos_ii.h"
 #endif
 
 BDBG_MODULE(b_os_scheduler);
@@ -149,42 +141,41 @@ B_SchedulerHandle B_Scheduler_Create(
     )
 {
     B_Scheduler *pScheduler;
-    B_Error errCode;
 
     BSTD_UNUSED(pSettings);     /* Empty Structure */
 
     pScheduler = B_Os_Calloc(1, sizeof(B_Scheduler));
     if ( NULL == pScheduler )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         goto err_malloc;
     }
 
     pScheduler->mutex = B_Mutex_Create(NULL);
     if ( NULL == pScheduler->mutex )
     {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_mutex;
     }
 
     pScheduler->callbackMutex = B_Mutex_Create(NULL);
     if ( NULL == pScheduler->callbackMutex )
     {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_callback_mutex;
     }
 
     pScheduler->controlEvent = B_Event_Create(NULL);
     if ( NULL == pScheduler->controlEvent )
     {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_event;
     }
 
     pScheduler->eventGroup = B_EventGroup_Create(NULL);
     if ( NULL == pScheduler->eventGroup )
     {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_group;
     }
 
@@ -279,7 +270,6 @@ B_SchedulerEventId B_Scheduler_RegisterEvent(
     void *pContext                              /* Value passed to callback routine */
     )
 {
-    B_Error errCode;
     B_SchedulerEvent *pEvent;
 
     BDBG_ASSERT(NULL != scheduler);
@@ -290,7 +280,7 @@ B_SchedulerEventId B_Scheduler_RegisterEvent(
     pEvent = B_Os_Malloc(sizeof(B_SchedulerEvent));
     if ( NULL == pEvent )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         return NULL;
     }
 
@@ -390,7 +380,6 @@ B_SchedulerTimerId B_Scheduler_StartTimer(
     void *pContext                          /* Value passed to callback routine */
     )
 {
-    B_Error errCode;
     B_SchedulerTimer *pTimer, *pNode, *pPrev=NULL;
 
     BDBG_ASSERT(NULL != scheduler);
@@ -401,7 +390,7 @@ B_SchedulerTimerId B_Scheduler_StartTimer(
     pTimer = B_Os_Malloc(sizeof(B_SchedulerTimer));
     if ( NULL == pTimer )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         return NULL;
     }
 
@@ -458,7 +447,7 @@ void B_Scheduler_CancelTimer(
     B_SchedulerTimerId timerId
     )
 {
-    B_SchedulerTimer *pNode, *pPrev=NULL;
+    B_SchedulerTimer *pNode;
 
     BDBG_ASSERT(NULL != scheduler);
     BDBG_ASSERT(NULL != timerId);
@@ -473,7 +462,6 @@ void B_Scheduler_CancelTimer(
             {
                 break;
             }
-            pPrev = pNode;
         }
         if ( NULL == pNode || pNode->deleted == true )
         {
@@ -733,7 +721,6 @@ B_SchedulerCallbackHandle B_SchedulerCallback_Create(
     const B_SchedulerCallbackSettings *pSettings    /* Pass NULL for defaults */
     )
 {
-    B_Error errCode;
     B_SchedulerCallback *pCallback;
 
     BDBG_ASSERT(NULL != scheduler);
@@ -744,7 +731,7 @@ B_SchedulerCallbackHandle B_SchedulerCallback_Create(
     pCallback = B_Os_Calloc(1, sizeof(B_SchedulerCallback));
     if ( NULL == pCallback )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         return NULL;
     }
 
@@ -891,4 +878,3 @@ void B_Scheduler_StopCallbacks(
     B_Mutex_Lock(scheduler->callbackMutex);
     B_Mutex_Unlock(scheduler->callbackMutex);
 }
-

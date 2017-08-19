@@ -78,6 +78,7 @@ public:
 	int addMmapSection(TzMem::VirtAddr va, int numPages, int accessPerms, bool noExec, bool shared, uint16_t tid);
 	void removeMmapSection(TzMem::VirtAddr va);
 
+    void allocAndCopyFrom(const PageTable *srcPt, TzMem::VirtAddr srcVa, TzMem::VirtAddr dstVa, const int numPages);
     static ElfImage * loadElf(int pid, IFile *exeFile, IDirectory *exeDir);
     static ElfImage * loadElf(int pid, const ElfImage* parent);
     const char *ldNamePtr(void) { return loaderName32bit; };

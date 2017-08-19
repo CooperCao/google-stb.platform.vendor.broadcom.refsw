@@ -123,6 +123,8 @@ static void * mainLoop(void * param)
         BKNI_ReleaseMutex(dcc->mutex);
     }
 
+    return(NULL);
+
 error:
     BKNI_ReleaseMutex(dcc->mutex);
 
@@ -193,7 +195,7 @@ static void dcc_config(
     {
         index = 3;
     }
-    index = 0;
+
 #if !defined (SCALE_480I_FONTS) && !defined (SCALE_720P_FONTS)
     loadFonts(dcc->winlib, index);
 #endif
@@ -438,7 +440,6 @@ eRet CClosedCaption::dcc_init(
         index = 3;
     }
 
-    index = 0;
     loadFonts(dcc->winlib, index);
     dcc->winlibInterface.HideDisp(dcc->winlib, true);
 

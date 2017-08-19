@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -331,6 +331,24 @@ BERR_Code BHAB_45308_BscRead(
    uint8_t out_n,        /* [in] number of bytes to transmit (<=8) before the i2c restart condition not including the i2c slave address */
    uint8_t *in_buf,      /* [out] stores the data read */
    uint32_t in_n         /* [in] number of bytes to read after the i2c restart condition */
+);
+
+
+/***************************************************************************
+Summary:
+   Configure XP variant for BCM453XX chip.
+Description:
+   This function applies only to XP variants of the BCM453XX chip.  It has no
+   effect on non-XP chips.  This function may only be called once (subsequent
+   calls have no effect).
+Returns:
+   BERR_Code
+See Also:
+   BHAB_Open()
+****************************************************************************/
+BERR_Code BHAB_45308_InitXp(
+   BHAB_Handle h,  /* [in] BHAB handle */
+   uint8_t x       /* [in] 0=Enable turbo access, 1=Enable DTV access */
 );
 
 #ifdef __cplusplus

@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -121,6 +121,7 @@ endif
 
 ifeq ($(B_REFSW_ANDROID),y)
 MAGNUM_OS_ABSTRACTION += \
+    MAGNUM/bv3d_android_fences.c \
     MAGNUM/bvc5_android_fences.c \
     MAGNUM/bvc5_android_bin_pool_alloc.c
 endif
@@ -227,6 +228,24 @@ endif
 EXTRA_CLEAN += clean_dbv
 clean_dbv:
 	$(MAKE) -f $(MAGNUM)/portinginterface/vdc/src/dbv/Makefile BDBV_OBJ_DIR=$(BDBV_OBJ_DIR) BDBV_OBJ_SUFFIX=$(NEXUS_OBJ_SUFFIX) clean
+endif
+
+ifeq ($(filter ${B_REFSW_ARCH},arm-linux aarch64-linux),${B_REFSW_ARCH})
+ifeq (${NEXUS_MODE},driver)
+BDTC_OBJ_DIR=$(NEXUS_OBJ_DIR)/MAGNUM
+ifneq ($(MAKECMDGOALS),clean)
+$(BDTC_OBJ_DIR)/dtc.inc:
+	$(MAKE) -f $(BSEAV)/opensource/dtc/Makefile BDTC_OBJ_DIR=$(BDTC_OBJ_DIR)
+-include $(BDTC_OBJ_DIR)/dtc.inc
+vpath %.c $(BDTC_OBJ_DIR)/$(DTC_DIR)/libfdt
+-include $(BDTC_OBJ_DIR)/$(DTC_DIR)/libfdt/Makefile.libfdt
+MAGNUM_CFLAGS += -I$(BDTC_OBJ_DIR)/$(DTC_DIR)/libfdt
+MAGNUM_OBJECTS += $(addprefix $(NEXUS_OBJ_DIR)/MAGNUM/,$(patsubst %.c,%.$(NEXUS_OBJ_SUFFIX),$(notdir $(LIBFDT_SRCS))))
+endif
+clean_dtc:
+	$(MAKE) -C $(BSEAV)/opensource/dtc BDTC_OBJ_DIR=$(BDTC_OBJ_DIR) clean
+OTHER_CLEANS += clean_dtc
+endif
 endif
 
 # Add all magnum CFLAGS to NEXUS_CFLAGS

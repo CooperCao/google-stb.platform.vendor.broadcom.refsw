@@ -391,12 +391,12 @@ int main(int argc, char **argv)
 
         enc_buf_len = 2*BUF_SIZE;
         if (NEXUS_Memory_Allocate(enc_buf_len, &allocSettings, (void *)(&enc_buf))) {
-            BDBG_ERR(("%s: memory allocation failure for encrypted buffer\n", __FUNCTION__));
+            BDBG_ERR(("%s: memory allocation failure for encrypted buffer\n", BSTD_FUNCTION));
             goto dtcp_shutdown;
         }
 
         if (NEXUS_Memory_Allocate(enc_buf_len, &allocSettings, (void *)(&clr_buf))) {
-            BDBG_ERR(("%s: memory allocation failure for clear buffer\n", __FUNCTION__));
+            BDBG_ERR(("%s: memory allocation failure for clear buffer\n", BSTD_FUNCTION));
             NEXUS_Memory_Free(enc_buf);
             goto dtcp_shutdown;
         }

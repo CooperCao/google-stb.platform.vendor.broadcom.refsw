@@ -58,5 +58,4 @@ imageAtomicOr,  INTRINSIC_IMAGE_OR
 imageAtomicXor, INTRINSIC_IMAGE_XOR
 imageAtomicXchg,INTRINSIC_IMAGE_XCHG
 imageAtomicCmpxchg,INTRINSIC_IMAGE_CMPXCHG
-imageSize,     INTRINSIC_IMAGE_SIZE
 %%

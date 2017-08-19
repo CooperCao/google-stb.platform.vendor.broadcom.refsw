@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,12 +36,6 @@
 #  ANY LIMITED REMEDY.
 #
 ############################################################
-
-#
-# Conditional Options for this Makefile
-#
-# N/A
-#
 
 # Define this module
 MAGNUM_MODULES += BDBG
@@ -120,6 +114,10 @@ endif
 
 ifeq ($(B_REFSW_STRICT_PRINTF_FORMAT),y)
 BDBG_DEFINES += B_REFSW_STRICT_PRINTF_FORMAT=1
+endif
+
+ifeq ($(B_REFSW_BUILD_FOR_STATIC_ANALYSIS),y)
+BDBG_DEFINES += B_REFSW_BUILD_FOR_STATIC_ANALYSIS=1
 endif
 
 ifeq ($(B_REFSW_ANDROID), y)

@@ -585,11 +585,11 @@ BERR_Code BXPT_Remux_AddPcrOffset(
    #ifdef BXPT_P_REMUX_JITTER_FIX
    return fixedOffsetControl(hRmx, AddOffsetEn, FixedPcrOffset);
    #else
-   BDBG_MSG(("Fixed offset no longer available due to hw bug."));
+   BDBG_WRN(("Fixed offset no longer available due to hw bug."));
    BSTD_UNUSED(hRmx);
    BSTD_UNUSED(AddOffsetEn);
    BSTD_UNUSED(FixedPcrOffset);
-   return BERR_NOT_SUPPORTED;
+   return BERR_SUCCESS;
    #endif
 }
 

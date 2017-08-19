@@ -1,0 +1,119 @@
+#!/usr/bin/perl -w
+
+# Simple replacement for "cvs history".  This is faster and more
+# robust against typical history file corruption problems.  This is
+# indended to be used by cvsreport.
+
+# Note the use of "date -d" (GNU extension) means this needs to be run
+# on a system with GNU date, eg a Linux system.
+
+# $Id: cvshistory,v 12.7 2009-06-10 21:30:25 tima Exp $
+
+
+use strict;
+use POSIX qw(strftime);
+use Time::Local;
+use Getopt::Std;
+
+# cvs -d $cvsroot history -a -u $USER -x MART -D $date
+
+my %opt = (x=>'MART', u=>$ENV{'LOGNAME'}, D=>'00:00 last week', h=>'history');
+
+my @_ARGV = @ARGV;
+getopts('d:au:x:D:h:', \%opt);
+if (@ARGV && $ARGV[0] eq "history") {
+    shift;
+    getopts('d:au:x:D:h:', \%opt);
+} elsif (@ARGV) {
+    print STDERR "usage: $0 -d CVSROOT [history] -a -uUSER -xFLAGS -D DATE\n";
+    exit 1;
+}
+
+my $CVSROOT = $opt{d} || $ENV{CVSROOT};
+my $history = "$CVSROOT/CVSROOT/$opt{h}";
+
+my $cutoff = `/bin/date -d '$opt{D}' '+%s' 2>&1`;
+chop $cutoff;
+if ($cutoff !~ /^\d+$/) {
+    print "$cutoff\n";  # cvsreport throws away stderr
+    exit 1;
+}
+
+open(H, $history) or die "can't read $history: $!\n";
+
+seek(H, 0, 2);
+my $min = 0;
+my $max = tell(H);
+my $test;
+
+my ($hdate, $date, $tdate);
+
+# Binary search for start date.
+
+# Since the records we're interested in are usually closer to the end
+# of the file, this makes the script many times faster than cvs
+my $diff = 1001;
+while ($diff > 1000) {
+    $diff = $max - $min;
+    $test = $min + int($diff/2);
+    seek(H, $test, 0);
+    my $linecount = 0;
+    while(<H>) {
+	# scan for a valid date
+	if (($hdate) = /^[A-Z]([\da-f]+)\|/) {
+	    $date = hex($hdate);
+	    if ($date < $cutoff) {
+		$min = $test;
+	    } else {
+		$max = $test;
+	    }
+	    last;
+	} elsif (++$linecount > 10) {
+	    die "10 lines with no date - something is wrong with $history";
+	}
+    }
+}
+
+if ($opt{h} eq 'history' && $test < 1000) {
+    # Too close to the begining of the file.  Check history-prev first
+    system($0, @_ARGV, '-h', 'history-prev');
+}
+
+my ($action, $xuser, $method, $path, $revision, $file);
+
+# Scan from start date using a simple regexp parser, more robust
+# against history file corruption than cvs
+
+# Also no sorting required, which reduces memory consumption.
+
+while(<H>) {
+    next unless /^[$opt{x}]/;
+    chop;
+    if (($action, $hdate,
+	 $xuser, 
+	 $method, 
+	 $path, 
+	 $revision, 
+	 $file) = /^(\w)([\da-f]+)\|
+	([^|]+)\|
+	([^|]+)\|
+	([^|]+)\|
+	([^|]+)\|
+	([^|]+)/x
+	) {
+	next unless $opt{a} || $xuser eq $opt{u};
+	# Expand *<n> compression
+	$method=~s/\*([\da-f]+)/substr($path,hex($1))/e;
+
+	$date = hex($hdate);
+	next unless $date > $cutoff; 
+	$tdate=strftime("%Y-%m-%d %H:%M +0000", gmtime($date));
+	if ($action eq 'T') {
+	    print "$action $tdate $xuser $file [$revision:$path]\n";
+	} else {
+	    print "$action $tdate $xuser $revision $file $path == $method\n";
+	}
+    } else {
+	warn "Bad line: $_\n";
+    }
+}

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,6 +109,13 @@ typedef struct NEXUS_SimpleAudioDecoderProcessorSettings
                                                and be available for use. if false, KaraokeVocalSettings will be ignored. */
         NEXUS_KaraokeVocalSettings settings;
     } karaokeVocal;
+    struct {
+        bool connected;                     /* if true, Ambisonic processing will be inserted in the processing chain
+                                               and be available for use. if false, AudioAmbisonicSettings will be ignored. */
+        NEXUS_AudioConnectorType connectorType; /* specifies which connector this post processing should be connected to.
+                                                   Valid values are eStereo or eMultichannel. */
+        NEXUS_AmbisonicSettings settings;
+    } ambisonic;
 } NEXUS_SimpleAudioDecoderProcessorSettings;
 
 /**

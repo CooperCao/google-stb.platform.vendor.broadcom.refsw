@@ -71,8 +71,8 @@ public:
     void destroy(void);
     eRet open(CVideo * pVideo, CStillDecode * pStillDecode, CGraphics * pGraphics);
     void close(void);
-    eRet extract(uint32_t timeStamp, NEXUS_SurfaceHandle stillSurface, uint16_t width, uint16_t height);
-    eRet getStillSurface(CStillDecode * pStillDecode, CGraphics * pGraphics, NEXUS_SurfaceHandle stillSurface, uint16_t width, uint16_t height);
+    eRet extract(uint32_t timeStamp, NEXUS_SurfaceHandle stillSurface, unsigned width, unsigned height);
+    eRet getStillSurface(CStillDecode * pStillDecode, CGraphics * pGraphics, NEXUS_SurfaceHandle stillSurface, unsigned width, unsigned height);
 
     void dump(void);
 

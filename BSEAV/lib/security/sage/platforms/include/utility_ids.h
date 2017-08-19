@@ -44,6 +44,7 @@
 typedef enum Utility_ModuleId_e{
     Utility_ModuleId_eHeartbeat = 0x01,
     Utility_ModuleId_eRsa       = 0x02,
+    Utility_ModuleId_eSecureRsa = 0x03
 }Utility_ModuleId_e;
 
 enum {
@@ -59,7 +60,24 @@ enum {
     Rsa_CommandId_ePublicDecrypt  = 0x104,
     Rsa_CommandId_ePrivateEncrypt = 0x105,
     Rsa_CommandId_ePrivateDecrypt = 0x106,
-    Rsa_CommandId_eMax
+    Rsa_CommandId_eMax,
+
+    /* Secure Rsa command IDs */
+    SecureRsa_CommandId_eLoadRsaPackage    = 0x200,
+    SecureRsa_CommandId_eGetStatus         = 0x201,
+    SecureRsa_CommandId_eRemoveKey         = 0x202,
+    SecureRsa_CommandId_eRsaSign           = 0x210,
+    SecureRsa_CommandId_eRsaVerify         = 0x211,
+    SecureRsa_CommandId_eRsaHostUsage      = 0x212,
+    SecureRsa_CommandId_eRsaDecryptKey3    = 0x213,
+    SecureRsa_CommandId_eRsaDecryptKpk     = 0x214,
+    SecureRsa_CommandId_eKey3Import        = 0x220,
+    SecureRsa_CommandId_eKey3Export        = 0x221,
+    SecureRsa_CommandId_eKey3Route         = 0x222,
+    SecureRsa_CommandId_eKey3Unroute       = 0x223,
+    SecureRsa_CommandId_eKey3CalculateHmac = 0x224,
+    SecureRsa_CommandId_eKpkDecryptRsa     = 0x230,
+    SecureRsa_CommandId_eMax
 };
 
 

@@ -134,7 +134,7 @@ bool SecureStreamer::SetupPidChannel()
     return true;
 }
 
-IBuffer* SecureStreamer::CreateBuffer(size_t size, uint8_t* data)
+IBuffer* SecureStreamer::CreateBuffer(uint32_t size, uint8_t* data)
 {
     SecureBuffer* buffer = reinterpret_cast<SecureBuffer*>(
         BufferFactory::CreateBuffer(size, data, true));

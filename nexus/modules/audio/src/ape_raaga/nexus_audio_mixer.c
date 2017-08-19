@@ -122,11 +122,9 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
     int i;
     NEXUS_Error rc=0;
     NEXUS_AudioMixerSettings * defaults = NULL;
-    NEXUS_AudioCapabilities audioCapabilities;
     int mixerCount;
 
-    NEXUS_GetAudioCapabilities(&audioCapabilities);
-    mixerCount = min(audioCapabilities.numMixers, NEXUS_NUM_AUDIO_MIXERS);
+    mixerCount = min(g_NEXUS_audioModuleData.capabilities.numMixers, NEXUS_NUM_AUDIO_MIXERS);
 
     for ( i = 0; i < mixerCount; i++ )
     {
@@ -400,7 +398,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     const NEXUS_AudioMixerSettings *pSettings    /* [out] Mixer Settings */
     )
 {
-    NEXUS_AudioMixerDolbySettings oldDolbySettings;
+    NEXUS_AudioMixerDolbySettings * pOldDolbySettings = NULL;
     NEXUS_AudioInputHandle oldMaster, newMaster;
     bool loopbackVolMatrixChanged = false;
     bool outputVolumeChanged = false;
@@ -431,10 +429,17 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
+    pOldDolbySettings = BKNI_Malloc(sizeof(NEXUS_AudioMixerDolbySettings));
+    if ( pOldDolbySettings == NULL )
+    {
+        BDBG_ERR(("Unable to allocate memory for NEXUS_AudioMixerDolbySettings"));
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+
     oldMaster = handle->settings.master;
     newMaster = pSettings->master;
     oldSampleRate = handle->settings.outputSampleRate;
-    oldDolbySettings = handle->settings.dolby;
+    BKNI_Memcpy(pOldDolbySettings, &(handle->settings.dolby), sizeof(NEXUS_AudioMixerDolbySettings));
     oldMultiStreamBalance = handle->settings.multiStreamBalance;
 
     outputVolumeChanged = handle->settings.intermediate && (0 != BKNI_Memcmp(handle->settings.outputVolume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax) || handle->settings.outputMuted != pSettings->outputMuted);
@@ -454,7 +459,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
                 errCode = NEXUS_AudioMixer_GetInputSettings(handle, newMaster, &inputSettings);
                 if ( errCode )
                 {
-                    BDBG_ERR(("%s Unable to get master inputs Input Volume", __FUNCTION__));
+                    BDBG_ERR(("%s Unable to get master inputs Input Volume", BSTD_FUNCTION));
                 }
             }
 
@@ -463,13 +468,13 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
             {
                 BDBG_ERR(("Master input %p is not connected to mixer %p", (void *)pSettings->master, (void *)handle));
                 handle->settings.master = NULL;
-                return BERR_TRACE(BERR_NOT_SUPPORTED);
+                errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto err_cleanup;
             }
             errCode = NEXUS_AudioMixer_AddInput(handle, newMaster);
             if ( errCode )
             {
                 handle->settings.master = NULL;
-                return BERR_TRACE(BERR_NOT_SUPPORTED);
+                errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto err_cleanup;
             }
 
             if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
@@ -477,7 +482,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
                 errCode = NEXUS_AudioMixer_SetInputSettings(handle, newMaster, &inputSettings);
                 if ( errCode )
                 {
-                    BDBG_ERR(("%s Unable to set master inputs Input Volume", __FUNCTION__));
+                    BDBG_ERR(("%s Unable to set master inputs Input Volume", BSTD_FUNCTION));
                 }
             }
         }
@@ -485,7 +490,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
 
     if ( pSettings->mixUsingDsp )
     {
-        if ( (BKNI_Memcmp(&oldDolbySettings, &pSettings->dolby, sizeof(oldDolbySettings)) != 0) ||
+        if ( (BKNI_Memcmp(pOldDolbySettings, &pSettings->dolby, sizeof(NEXUS_AudioMixerDolbySettings)) != 0) ||
              oldSampleRate != pSettings->outputSampleRate ||
              oldMultiStreamBalance != pSettings->multiStreamBalance ||
              loopbackVolMatrixChanged || mainDecodeFadeChanged )
@@ -513,8 +518,9 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
             errCode = BAPE_Mixer_SetSettings(handle->dspMixer, &mixerSettings);
             if ( errCode )
             {
-                handle->settings.dolby = oldDolbySettings;
-                return BERR_TRACE(errCode);
+                BKNI_Memcpy(&(handle->settings.dolby), pOldDolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
+                BERR_TRACE(errCode);
+                goto err_cleanup;
             }
         }
     }
@@ -531,14 +537,29 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
             errCode = BAPE_Mixer_SetSettings(handle->imMixer, &mixerSettings);
             if ( errCode )
             {
-                handle->settings.dolby = oldDolbySettings;
-                return BERR_TRACE(errCode);
+                BKNI_Memcpy(&(handle->settings.dolby), pOldDolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
+                BERR_TRACE(errCode);
+                goto err_cleanup;
             }
         }
     }
 
+    if ( pOldDolbySettings )
+    {
+        BKNI_Free(pOldDolbySettings);
+        pOldDolbySettings = NULL;
+    }
+
     /* Success */
     return BERR_SUCCESS;
+
+err_cleanup:
+    if ( pOldDolbySettings )
+    {
+        BKNI_Free(pOldDolbySettings);
+        pOldDolbySettings = NULL;
+    }
+    return errCode;
 }
 
 NEXUS_Error NEXUS_AudioMixer_Start(
@@ -874,13 +895,13 @@ NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
         }
         else
         {
-            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)",__FUNCTION__, (void *)input, (void *)handle));
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)",BSTD_FUNCTION, (void *)input, (void *)handle));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
     }
     else
     {
-        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers",__FUNCTION__));
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers",BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     return BERR_SUCCESS;
@@ -945,13 +966,13 @@ NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
         }
         else
         {
-            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", __FUNCTION__, (void *)input, (void *)handle));
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", BSTD_FUNCTION, (void *)input, (void *)handle));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
     }
     else
     {
-        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", __FUNCTION__));
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     return BERR_SUCCESS;
@@ -1002,13 +1023,13 @@ NEXUS_Error NEXUS_AudioMixer_GetInputStatus(
         }
         else
         {
-            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", __FUNCTION__, (void *)input, (void *)handle));
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", BSTD_FUNCTION, (void *)input, (void *)handle));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
     }
     else
     {
-        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", __FUNCTION__));
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1050,7 +1071,7 @@ NEXUS_Error NEXUS_AudioMixer_GetStatus(
     }
     else
     {
-        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", __FUNCTION__));
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1083,7 +1104,7 @@ NEXUS_Error NEXUS_AudioMixer_P_SetInputVolume(
         }
         else
         {
-            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", __FUNCTION__, (void *)input, (void *)handle));
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", BSTD_FUNCTION, (void *)input, (void *)handle));
             return BERR_INVALID_PARAMETER;
         }
     }
@@ -1153,8 +1174,6 @@ NEXUS_AudioMixer_P_GetMixerByIndex(
     unsigned index
     )
 {
-    NEXUS_AudioCapabilities audioCapabilities;
-    NEXUS_GetAudioCapabilities(&audioCapabilities);
-    BDBG_ASSERT(index < audioCapabilities.numMixers);
+    BDBG_ASSERT(index < g_NEXUS_audioModuleData.capabilities.numMixers);
     return g_mixers[index].opened?&g_mixers[index]:NULL;
 }

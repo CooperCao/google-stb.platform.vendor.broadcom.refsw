@@ -7765,6 +7765,32 @@ void Command::run_glTexImage1DBRCM()
    WarnNotAvailable("glTexImage1DBRCM");
 #endif
 }
+void Command::run_glTexSubImage1DBRCM()
+{
+#if GL_BRCM_texture_1D
+   if (m_packet.NumItems() > 9)
+      WarnDataNotHandled("glTexSubImage1DBRCM");
+   if (m_replay->GetDeviceCaps().m_has_GL_BRCM_texture_1D && m_replay->GetDispatch().real_glTexSubImage1DBRCM)
+      m_replay->GetDispatch().real_glTexSubImage1DBRCM(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLsizei, 3), GetU32(GLenum, 4), GetU32(GLenum, 5), GetArrayPtr(const GLvoid *, 7));
+   else
+      WarnNotAvailable("glTexSubImage1DBRCM");
+#else
+   WarnNotAvailable("glTexSubImage1DBRCM");
+#endif
+}
+void Command::run_glTexStorage1DBRCM()
+{
+#if GL_BRCM_texture_1D
+   if (m_packet.NumItems() > 5)
+      WarnDataNotHandled("glTexStorage1DBRCM");
+   if (m_replay->GetDeviceCaps().m_has_GL_BRCM_texture_1D && m_replay->GetDispatch().real_glTexStorage1DBRCM)
+      m_replay->GetDispatch().real_glTexStorage1DBRCM(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetI32(GLsizei, 3));
+   else
+      WarnNotAvailable("glTexStorage1DBRCM");
+#else
+   WarnNotAvailable("glTexStorage1DBRCM");
+#endif
+}
 void Command::run_glDrawArraysInstancedBaseInstanceEXT()
 {
 #if GL_EXT_base_instance

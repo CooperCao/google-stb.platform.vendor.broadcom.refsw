@@ -13,13 +13,15 @@
 #include <assert.h>
 
 static void collect_shader_outputs(SchedBlock *block, int block_id, const IRShader *sh,
-                                   const LinkMap *link_map, Backflow **nodes)
+                                   const LinkMap *link_map, const bool *shader_outputs_used, Backflow **nodes)
 {
    for (int i=0; i<link_map->num_outs; i++) {
-      if (link_map->outs[i] == -1) continue;
+      int out_idx = link_map->outs[i];
+      if (out_idx == -1) continue;
+      if (!shader_outputs_used[out_idx]) continue;
 
       assert(!block->per_sample);
-      IROutput *o = &sh->outputs[link_map->outs[i]];
+      IROutput *o = &sh->outputs[out_idx];
       if (o->block == block_id) {
          nodes[i] = block->outputs[o->output];
       } else {
@@ -223,12 +225,13 @@ void glsl_vertex_backend(
    const LinkMap *link_map,
    SchedShaderInputs *ins,
    const VertexBackendState *s,
+   const bool *shader_outputs_used,
    const GLSL_VARY_MAP_T *vary_map)
 {
    assert(!block->per_sample);
 
    Backflow *bnodes[DF_BLOB_VERTEX_COUNT] = { 0, };
-   collect_shader_outputs(block, block_id, sh, link_map, bnodes);
+   collect_shader_outputs(block, block_id, sh, link_map, shader_outputs_used, bnodes);
 
    vertex_backend(s, block, ins,
                   bnodes[DF_VNODE_X], bnodes[DF_VNODE_Y],

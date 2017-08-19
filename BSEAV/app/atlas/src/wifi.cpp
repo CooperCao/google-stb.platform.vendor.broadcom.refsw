@@ -131,7 +131,7 @@ void bwinWifiCallback(
     eRet    ret   = eRet_Ok;
     CWifi * pWifi = (CWifi *)pObject;
 
-    BDBG_MSG(("%s - sync'd with main loop", __FUNCTION__));
+    BDBG_MSG(("%s - sync'd with main loop", BSTD_FUNCTION));
 
     BDBG_ASSERT(NULL != pWifi);
     BSTD_UNUSED(strCallback);
@@ -156,7 +156,7 @@ void CWifi::processWpaResponse(const char * strCallback)
         pVoid          = (void *)this;
         notifyResponse = eNotify_Invalid;
 
-        BDBG_WRN(("%s notification:%s", __FUNCTION__, notificationToString(pResponse->_notification).s()));
+        BDBG_WRN(("%s notification:%s", BSTD_FUNCTION, notificationToString(pResponse->_notification).s()));
         switch (pResponse->_notification)
         {
         case eNotify_NetworkWifiList:
@@ -325,7 +325,7 @@ void CWifi::processWpaResponse(const char * strCallback)
         break;
 
         default:
-            BDBG_ERR(("%s:%s unhandled", __FUNCTION__, notificationToString(pResponse->_notification).s()));
+            BDBG_ERR(("%s:%s unhandled", BSTD_FUNCTION, notificationToString(pResponse->_notification).s()));
             break;
         } /* switch */
 
@@ -346,7 +346,7 @@ error:
 
 CWifi::CWifi(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_wifi, pCfg),
@@ -411,6 +411,8 @@ eRet CWifi::readInterface()
     }
 
 error:
+    closedir(pDir);
+    pDir = NULL;
     return(ret);
 } /* readInterface */
 
@@ -684,9 +686,12 @@ doneStatus:
             while (wpa_ctrl_pending(pWpaMonitor) > 0)
             {
                 char   buf[4096];
-                size_t bufLen = sizeof(buf) - 1;
+                size_t bufLen = 0;
 
                 memset(buf, 0, sizeof(buf));
+                /* need to null terminate for coverity */
+                buf[sizeof(buf)-1] = '\0';
+                bufLen = sizeof(buf) - 1;
                 if (0 == wpa_ctrl_recv(pWpaMonitor, buf, &bufLen))
                 {
                     MString         strBuf(buf);
@@ -840,28 +845,29 @@ doneStatus:
                 eRet           ret      = eRet_Ok;
                 CWifiCommand * pCmdData = (CWifiCommand *)pAction->getDataPtr();
 
-                BDBG_MSG(("worker thread connect login/password:%s/%s", pCmdData->_strSSID.s(), pCmdData->_strPassword.s()));
-
-                /* add network if it does not already exist */
-                if (false == pCmdData->_bWps)
-                {
-                    strWpaCommand = "LIST_NETWORKS";
-                    ret           = pWifi->sendRequest(strWpaCommand.s(), &strResponse, wpa_msg_cb);
-                    CHECK_ERROR_CONTINUE("unable to send list networks request to wpa supplicant", ret);
-
-                    ret = pWifi->updateNetworksParse(&strResponse);
-                    CHECK_ERROR_CONTINUE("unable to parse update networks response", ret);
-
-                    if (true == pWifi->isNetworkListEmpty())
-                    {
-                        strWpaCommand = "ADD_NETWORK";
-                        ret           = pWifi->sendRequest(strWpaCommand.s(), &strResponse, wpa_msg_cb);
-                        CHECK_ERROR_CONTINUE("unable to send add network request to wpa supplicant", ret);
-                    }
-                }
-
                 if (NULL != pCmdData)
                 {
+
+                    BDBG_MSG(("worker thread connect login/password:%s/%s", pCmdData->_strSSID.s(), pCmdData->_strPassword.s()));
+
+                    /* add network if it does not already exist */
+                    if (false == pCmdData->_bWps)
+                    {
+                        strWpaCommand = "LIST_NETWORKS";
+                        ret           = pWifi->sendRequest(strWpaCommand.s(), &strResponse, wpa_msg_cb);
+                        CHECK_ERROR_CONTINUE("unable to send list networks request to wpa supplicant", ret);
+
+                        ret = pWifi->updateNetworksParse(&strResponse);
+                        CHECK_ERROR_CONTINUE("unable to parse update networks response", ret);
+
+                        if (true == pWifi->isNetworkListEmpty())
+                        {
+                            strWpaCommand = "ADD_NETWORK";
+                            ret           = pWifi->sendRequest(strWpaCommand.s(), &strResponse, wpa_msg_cb);
+                            CHECK_ERROR_CONTINUE("unable to send add network request to wpa supplicant", ret);
+                        }
+                    }
+
                     /* disconnect the current connected network if necessary */
                     {
                         strWpaCommand = "STATUS";
@@ -1264,7 +1270,7 @@ eRet CWifi::updateNetworksParse(MString * pStrResponse)
     CScopedMutex scopedMutex(_parseMutex);
     CScopedMutex scopedMutex2(_networksListMutex);
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     CHECK_PTR_ERROR_GOTO("update networks failed: not connected to WPA Supplicant", _pWpaControl, ret, eRet_InvalidState, error);
 
     _networksList.clear();
@@ -1578,7 +1584,7 @@ eRet CWifi::staticIpStart()
         strCommand += MString(GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_IP)) + " ";
         strCommand += GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_NETMASK);
 
-        BDBG_WRN(("%s:%s", __FUNCTION__, strCommand.s()));
+        BDBG_WRN(("%s:%s", BSTD_FUNCTION, strCommand.s()));
         retSystem = system(strCommand.s());
         if (-1 == retSystem)
         {
@@ -1595,7 +1601,7 @@ eRet CWifi::staticIpStop()
     eRet ret          = eRet_Ok;
     int32_t retSystem = 0;
 
-    BDBG_WRN(("%s:%s", __FUNCTION__, strCommand.s()));
+    BDBG_WRN(("%s:%s", BSTD_FUNCTION, strCommand.s()));
     retSystem = system(strCommand.s());
     if (-1 == retSystem)
     {
@@ -1620,7 +1626,7 @@ eRet CWifi::dhcpStart()
     strCommand  = "udhcpc -i " + _strInterfaceName + " -p" + strUdhcpcProcessIdFilename;
     strCommand += " -s udhcpc.script &";
 
-    BDBG_WRN(("%s:%s", __FUNCTION__, strCommand.s()));
+    BDBG_WRN(("%s:%s", BSTD_FUNCTION, strCommand.s()));
     retSystem = system(strCommand.s());
     if (-1 == retSystem)
     {
@@ -1646,7 +1652,7 @@ eRet CWifi::dhcpStop()
     pFD = fopen(strUdhcpcProcessIdFilename, "r");
     if (NULL == pFD)
     {
-        BDBG_MSG(("%s:no udhcpc process running for wlan0", __FUNCTION__));
+        BDBG_MSG(("%s:no udhcpc process running for wlan0", BSTD_FUNCTION));
         goto done;
     }
 
@@ -1655,7 +1661,7 @@ eRet CWifi::dhcpStop()
 
     nProcessID = MString(strProcessID).toInt();
 
-    BDBG_WRN(("%s:kill %s", __FUNCTION__, strProcessID));
+    BDBG_WRN(("%s:kill %s", BSTD_FUNCTION, strProcessID));
     kill(nProcessID, SIGTERM);
 error:
 done:

@@ -98,7 +98,7 @@ void B_PlaybackIp_RtpInit(
 #else
     brtp_cfg cfg;
 #endif /* SPF_SUPPORT */
-    BDBG_MSG(("%s: \n", __FUNCTION__));
+    BDBG_MSG(("%s: \n", BSTD_FUNCTION));
     playback_ip->factory = batom_factory_create(bkni_alloc, 512);
     BDBG_ASSERT(playback_ip->factory);
     playback_ip->pipe_out = batom_pipe_create(playback_ip->factory);
@@ -114,7 +114,7 @@ void B_PlaybackIp_RtpExit(
     B_PlaybackIpHandle playback_ip
     )
 {
-    BDBG_MSG(("%s: \n", __FUNCTION__));
+    BDBG_MSG(("%s: \n", BSTD_FUNCTION));
     BRTP_DESTROY(playback_ip->rtp);
     batom_pipe_destroy(playback_ip->pipe_in);
     batom_pipe_destroy(playback_ip->pipe_out);
@@ -266,21 +266,19 @@ B_PlaybackIp_ReadRtpPackets(
     int udpPayloadLength = 0; /* udp payload length, i.e. rtp header + payload length */
     struct udp_hdr *udpHeader;
     B_PlaybackIp_RtpHeader *rtpHeader = NULL;
-    int fd;
     int bytesRemaining;
     int totalBytesRecv;
     bool recvTimeout = false;
     bool flushPipeline = false;
 
-    fd = playback_ip->socketState.fd;
     /* get the wrapper structure to hold each read packet */
     item = BLST_Q_FIRST(&playback_ip->free_item);
     if (!item) {
         /* no free items left currently as all are queued up for RTP processing, wait for more until next cycle */
-        BDBG_ERR(("%s: out of items\n", __FUNCTION__));
+        BDBG_ERR(("%s: out of items\n", BSTD_FUNCTION));
         goto error;
     }
-    BDBG_MSG_FLOW(("%s: item %p, item->data 0x%p\n", __FUNCTION__, (void *)item, (void *)item->data));
+    BDBG_MSG_FLOW(("%s: item %p, item->data 0x%p\n", BSTD_FUNCTION, (void *)item, (void *)item->data));
 
     do {
         memset((int *)playback_ip->bytesRecvPerPkt, 0, PKTS_PER_CHUNK * sizeof(int));
@@ -296,10 +294,10 @@ B_PlaybackIp_ReadRtpPackets(
             &recvTimeout
             );
         if (rc != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: Network Read Error", __FUNCTION__));
+            BDBG_ERR(("%s: Network Read Error", BSTD_FUNCTION));
             goto error;
         }
-        BDBG_MSG_FLOW(("%s: read %d bytes from server\n", __FUNCTION__, totalBytesRecv));
+        BDBG_MSG_FLOW(("%s: read %d bytes from server\n", BSTD_FUNCTION, totalBytesRecv));
         if (recvTimeout) {
             /* network packet loss event, this constitutues a unmarked discontinuity */
             /* current video decoder & display manager is not able to gracefully recover from it */
@@ -352,7 +350,7 @@ B_PlaybackIp_ReadRtpPackets(
         udpHeader = (struct udp_hdr *) ((char *)(item[0].data) + i*IP_MAX_PKT_SIZE);
         if (ntohs(udpHeader->len) <= 0 ||  ntohs(udpHeader->len) > IP_MAX_PKT_SIZE) {
             BDBG_ERR(("ERROR in %s: pkt# %d, Received incorrect UDP Hdr fields, aborting app, UDP header: sport %d, dport %d, len %d\n",
-                __FUNCTION__, i, ntohs(udpHeader->source), ntohs(udpHeader->dest), ntohs(udpHeader->len)));
+                BSTD_FUNCTION, i, ntohs(udpHeader->source), ntohs(udpHeader->dest), ntohs(udpHeader->len)));
             goto error;
         }
         udpPayloadLength = ntohs(udpHeader->len) - sizeof(struct udp_hdr);
@@ -370,7 +368,7 @@ B_PlaybackIp_ReadRtpPackets(
 #endif
 #ifdef DBG_RTP
         if (printRtp(rtpHeader, playback_ip)) {
-            BDBG_ERR(("%s: Incorrect RTP header found at index %d", __FUNCTION__, i));
+            BDBG_ERR(("%s: Incorrect RTP header found at index %d", BSTD_FUNCTION, i));
             goto error;
         }
 #endif
@@ -389,13 +387,13 @@ B_PlaybackIp_ReadRtpPackets(
         atom = batom_from_range(playback_ip->factory, (const void *)(rtpHeader), udpPayloadLength, &B_PlaybackIpAtomUser, &pitem);
         BDBG_ASSERT(atom);
         if (!atom) {
-            BDBG_ERR(("ERROR in %s: got NULL ATOM for a RTP Payload, possibly out of memory\n", __FUNCTION__));
+            BDBG_ERR(("ERROR in %s: got NULL ATOM for a RTP Payload, possibly out of memory\n", BSTD_FUNCTION));
             goto error;
         }
         /* feed atom to rtp processing engine */
         batom_pipe_push(playback_ip->pipe_out, atom);
 
-        BDBG_MSG_FLOW(("%s: pipe1, push %d atom, item->data: %p, atom: %p", __FUNCTION__, i, (void *)udpHeader, (void *)atom));
+        BDBG_MSG_FLOW(("%s: pipe1, push %d atom, item->data: %p, atom: %p", BSTD_FUNCTION, i, (void *)udpHeader, (void *)atom));
         /* done with current packet, move to next packet */
         i++;
     } while (bytesRemaining);
@@ -406,7 +404,7 @@ B_PlaybackIp_ReadRtpPackets(
     /* this info is used by the free routine to insert only the start item of a block into the free list */
     /* only when the last_item in the block is freed */
     item[i-1].block_end = true;
-    if (i != PKTS_PER_CHUNK) BDBG_MSG(("******** %s: # of item %d, idx: block end %d, start %d", __FUNCTION__, i, item[i-1].item_index, item[0].item_index));
+    if (i != PKTS_PER_CHUNK) BDBG_MSG(("******** %s: # of item %d, idx: block end %d, start %d", BSTD_FUNCTION, i, item[i-1].item_index, item[0].item_index));
     result = 0;
 error:
     return (result);
@@ -425,7 +423,7 @@ B_PlaybackIp_FeedRtpPacketsToPlaypump(
     /* read from pipe until no data left */
     for (;;) {
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping) {
-            BDBG_WRN(("%s: breaking out due to state %d change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_WRN(("%s: breaking out due to state %d change", BSTD_FUNCTION, playback_ip->playback_state));
             break;
         }
         atom = batom_pipe_peek(playback_ip->pipe_in);
@@ -445,7 +443,7 @@ B_PlaybackIp_FeedRtpPacketsToPlaypump(
                 /* don't treat this as an error: it can occur when the playpump overflows and is subsequently flushed */
                 BDBG_WRN(("Returned error from NEXUS_Playpump_ReadComplete()!"));
             }
-            BDBG_MSG(("%s: fed %lu byte to Playpump, item cnt %d\n", __FUNCTION__, playback_ip->byte_count, item_cnt));
+            BDBG_MSG(("%s: fed %lu byte to Playpump, item cnt %d\n", BSTD_FUNCTION, playback_ip->byte_count, item_cnt));
             playback_ip->totalConsumed += playback_ip->byte_count;
             /* write data to file */
             if (playback_ip->enableRecording && playback_ip->fclear) {
@@ -506,11 +504,11 @@ void B_PlaybackIp_RtpProcessing(
     char recordFileName[32];
     static int fileNameSuffix = 0;
 
-    BDBG_MSG(("Entered %s()\n", __FUNCTION__));
+    BDBG_MSG(("Entered %s()\n", BSTD_FUNCTION));
 
     if (playback_ip->startSettings.monitorPsi) {
         if ( (playback_ip->pPsiState = B_PlaybackIp_CreatePsiState(playback_ip)) == NULL ) {
-            BDBG_ERR(("%s: B_PlaybackIp_CreatePsiState() Failed to allocate memory for psiState", __FUNCTION__));
+            BDBG_ERR(("%s: B_PlaybackIp_CreatePsiState() Failed to allocate memory for psiState", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -549,11 +547,11 @@ void B_PlaybackIp_RtpProcessing(
 
     if (setsockopt(playback_ip->socketState.fd, SOCK_BRCM_DGRAM, STRM_SOCK_RECV_PARAMS, &sockRecvParams, sizeof(sockRecvParams)) != 0)
     {
-        BDBG_ERR(("%s: setsockopt() ERROR:", __FUNCTION__));
+        BDBG_ERR(("%s: setsockopt() ERROR:", BSTD_FUNCTION));
         /* in case of failure (shouldn't happen), read 1 pkt at a time */
     }
     BDBG_ERR(("%s: Modified the default pkts per recvfrom to %d, payload offset %d\n",
-                __FUNCTION__, PKTS_PER_READ, sockRecvParams.pktOffset));
+                BSTD_FUNCTION, PKTS_PER_READ, sockRecvParams.pktOffset));
 #endif
 
     if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip
@@ -576,7 +574,7 @@ void B_PlaybackIp_RtpProcessing(
         sockRecvParams.pktsPerRecv = PKTS_PER_READ;
         if (setsockopt(playback_ip->socketState.fd, SOCK_BRCM_DGRAM, STRM_SOCK_RECV_PARAMS, &sockRecvParams, sizeof(sockRecvParams)) != 0)
         {
-            BDBG_ERR(("%s: setsockopt() ERROR:", __FUNCTION__));
+            BDBG_ERR(("%s: setsockopt() ERROR:", BSTD_FUNCTION));
             /* in case of failure (shouldn't happen), read 1 pkt at a time */
         }
 #endif
@@ -587,7 +585,7 @@ void B_PlaybackIp_RtpProcessing(
         goto error;
 
     if (B_PlaybackIp_UtilsDiscardBufferedData(playback_ip, playback_ip->socketState.fd, SOCK_DGRAM) == false) {
-        BDBG_WRN(("%s: B_PlaybackIp_UtilsDiscardBufferedData failed, but continuing...", __FUNCTION__));
+        BDBG_WRN(("%s: B_PlaybackIp_UtilsDiscardBufferedData failed, but continuing...", BSTD_FUNCTION));
     }
 
     /* main loop */
@@ -613,7 +611,7 @@ error:
         B_PlaybackIp_TtsThrottle_Close(playback_ip->ttsThrottle);
     }
 
-    BDBG_MSG(("Exiting %s()\n", __FUNCTION__));
+    BDBG_MSG(("Exiting %s()\n", BSTD_FUNCTION));
     BKNI_SetEvent(playback_ip->playback_halt_event);
 }
 
@@ -688,7 +686,7 @@ B_PlaybackIp_RtpSessionOpen(
     bool ipAddressIsUnicast = false;
 
     if (!playback_ip || !openSettings || !openStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
     socketState = &openStatus->socketState;
@@ -701,23 +699,23 @@ B_PlaybackIp_RtpSessionOpen(
     memset(portString, 0, sizeof(portString));  /* getaddrinfo() requires port # in the string form */
     snprintf(portString, sizeof(portString), "%d", openSettings->socketOpenSettings.port);
     if (getaddrinfo(openSettings->socketOpenSettings.ipAddr, portString, &hints, &addrInfo) != 0) {
-        BDBG_ERR(("%s: ERROR: getaddrinfo failed: %s, errno %d", __FUNCTION__, openSettings->socketOpenSettings.ipAddr, errno));
+        BDBG_ERR(("%s: ERROR: getaddrinfo failed: %s, errno %d", BSTD_FUNCTION, openSettings->socketOpenSettings.ipAddr, errno));
         perror("getaddrinfo");
         errorCode = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
     if (addrInfo->ai_family != AF_INET && addrInfo->ai_family != AF_INET6) {
-        BDBG_WRN(("%s: ERROR: Unsupported Address family %d\n", __FUNCTION__, addrInfo->ai_family));
+        BDBG_WRN(("%s: ERROR: Unsupported Address family %d\n", BSTD_FUNCTION, addrInfo->ai_family));
         errorCode = B_ERROR_SOCKET_ERROR;
         goto error;
     }
 
     if (addrInfo->ai_family == AF_INET6 && openSettings->socketOpenSettings.protocol == B_PlaybackIpProtocol_eRtp) {
         openSettings->socketOpenSettings.protocol = B_PlaybackIpProtocol_eRtpNoRtcp;
-        BDBG_WRN(("%s: Only Basic RTP protocol is supported, RTCP is not yet supported by LiveMedia Library for IPv6 Protocol\n", __FUNCTION__));
+        BDBG_WRN(("%s: Only Basic RTP protocol is supported, RTCP is not yet supported by LiveMedia Library for IPv6 Protocol\n", BSTD_FUNCTION));
     }
     else if (addrInfo->ai_family == AF_INET6 && openSettings->socketOpenSettings.protocol == B_PlaybackIpProtocol_eRtsp) {
-        BDBG_WRN(("%s: RTSP protocol is NOT supported over IPv6 as LiveMedia Library doesn't yet support IPv6 Protocol\n", __FUNCTION__));
+        BDBG_WRN(("%s: RTSP protocol is NOT supported over IPv6 as LiveMedia Library doesn't yet support IPv6 Protocol\n", BSTD_FUNCTION));
         errorCode = B_ERROR_NOT_SUPPORTED;
         goto error;
     }
@@ -739,16 +737,16 @@ B_PlaybackIp_RtpSessionOpen(
     /* allocate the items which are contained in the atoms for RTP processing */
     playback_ip->item = (B_PlaybackIpItem *)BKNI_Malloc(IP_MAX_ITEMS * sizeof(struct B_PlaybackIpItem));
     if (!playback_ip->item) {
-        BDBG_ERR(("%s: Failed to allocate memory \n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to allocate memory \n", BSTD_FUNCTION));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
     memset(playback_ip->item, 0, IP_MAX_ITEMS * sizeof(struct B_PlaybackIpItem));
-    BDBG_MSG(("%s: allocated %d bytes for %d items\n", __FUNCTION__, IP_MAX_ITEMS * (int)sizeof(struct B_PlaybackIpItem), IP_MAX_ITEMS));
+    BDBG_MSG(("%s: allocated %d bytes for %d items\n", BSTD_FUNCTION, IP_MAX_ITEMS * (int)sizeof(struct B_PlaybackIpItem), IP_MAX_ITEMS));
     /* setup the item->data pointer: this is where AV data is copied in the recv calls */
     playback_ip->item_mem = (uint8_t *)BKNI_Malloc(IP_MAX_ITEMS * IP_MAX_PKT_SIZE);
     if (!playback_ip->item_mem) {
-        BDBG_ERR(("%s: Failed to allocate memory \n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to allocate memory \n", BSTD_FUNCTION));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
@@ -770,20 +768,20 @@ B_PlaybackIp_RtpSessionOpen(
     /* rtp header initialization: we cache rtp header of each packet and make them available for RTCP stats purposes */
     playback_ip->rtp_hdr_data = (B_PlaybackIp_RtpHeaderData *)BKNI_Malloc(sizeof(B_PlaybackIp_RtpHeaderData));
     if (!playback_ip->rtp_hdr_data) {
-        BDBG_ERR(("%s: Failed to allocate memory\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to allocate memory\n", BSTD_FUNCTION));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
     playback_ip->rtp_hdr_data->entry_cnt = 0;
     if (BKNI_CreateMutex(&playback_ip->rtp_hdr_data->lock)) {
-        BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event\n", BSTD_FUNCTION));
         goto error;
     }
 
     playback_ip->bytesRecvPerPkt = (int *)BKNI_Malloc(PKTS_PER_CHUNK * sizeof(int));
     playback_ip->discard_buf = (char *)BKNI_Malloc(DISCARD_BUFFER_SIZE * sizeof(char));
     if (playback_ip->bytesRecvPerPkt == NULL || playback_ip->discard_buf == NULL) {
-        BDBG_ERR(("%s: BKNI_Malloc failed: recv buff %p, discard_buf %p\n", __FUNCTION__, (void *)playback_ip->bytesRecvPerPkt, (void *)playback_ip->discard_buf));
+        BDBG_ERR(("%s: BKNI_Malloc failed: recv buff %p, discard_buf %p\n", BSTD_FUNCTION, (void *)playback_ip->bytesRecvPerPkt, (void *)playback_ip->discard_buf));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
@@ -837,7 +835,7 @@ B_PlaybackIp_RtpSessionOpen(
     BKNI_Memset(&laddr, 0, sizeof(laddr));
     len = sizeof(laddr);
     if (getsockname(socketState->fd, (struct sockaddr *)&laddr, &len) != 0) {
-        BDBG_ERR(("%s: failed to get socket information\n", __FUNCTION__));
+        BDBG_ERR(("%s: failed to get socket information\n", BSTD_FUNCTION));
         errorCode = B_ERROR_PROTO;
         goto error;
     }
@@ -870,18 +868,18 @@ B_PlaybackIp_RtpSessionOpen(
 #endif
         }
     }
-    BDBG_WRN(("%s: Local addr 0x%x, port %d\n", __FUNCTION__, ntohl(laddr.sin_addr.s_addr), ntohs(laddr.sin_port)));
+    BDBG_WRN(("%s: Local addr 0x%x, port %d\n", BSTD_FUNCTION, ntohl(laddr.sin_addr.s_addr), ntohs(laddr.sin_port)));
 
 #if defined(B_HAS_NETACCEL)
     /* create accelerated DGRAM socket */
     if ((socketState->fd = socket(AF_INET, SOCK_BRCM_DGRAM, 0)) == -1 ) {
-        BDBG_ERR(("%s: Failed to create the socket, errno %d", __FUNCTION__, errno));
+        BDBG_ERR(("%s: Failed to create the socket, errno %d", BSTD_FUNCTION, errno));
         errorCode = B_ERROR_SOCKET_ERROR;
         goto error;
     }
 
     if (bind(socketState->fd, (struct sockaddr *) &(laddr), sizeof (struct sockaddr)) == -1) {
-        BDBG_ERR(("%s: Bind failed, errno %d", __FUNCTION__, errno));
+        BDBG_ERR(("%s: Bind failed, errno %d", BSTD_FUNCTION, errno));
         errorCode = B_ERROR_SOCKET_ERROR;
         goto error;
     }
@@ -892,12 +890,14 @@ B_PlaybackIp_RtpSessionOpen(
         if (B_PlaybackIp_UtilsSetErouterFilter(playback_ip, openSettings) != B_ERROR_SUCCESS)
             goto error;
     }
+#else
+    BSTD_UNUSED(ipAddressIsUnicast);
 #endif
 
     B_PlaybackIp_UtilsTuneNetworkStack(socketState->fd);
     errorCode = B_ERROR_SUCCESS;
 
-    BDBG_MSG(("%s: successfully opened the RTP session (fd %d)", __FUNCTION__, socketState->fd));
+    BDBG_MSG(("%s: successfully opened the RTP session (fd %d)", BSTD_FUNCTION, socketState->fd));
     return errorCode;
 
 error:
@@ -914,10 +914,9 @@ B_PlaybackIp_RtpSessionSetup(
 {
     int rc = -1;
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
-    B_PlaybackIpPsiInfo *psi;
 
     if (!playback_ip || !setupSettings || !setupStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }
@@ -928,7 +927,7 @@ B_PlaybackIp_RtpSessionSetup(
 
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", __FUNCTION__, (void *)playback_ip));
+        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", BSTD_FUNCTION, (void *)playback_ip));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -944,19 +943,18 @@ B_PlaybackIp_RtpSessionSetup(
         goto error;
     }
 
-    psi = &playback_ip->psi;
-    BDBG_MSG(("%s: psiParsingTimeLimit %ld", __FUNCTION__, playback_ip->setupSettings.u.udp.psiParsingTimeLimit));
+    BDBG_MSG(("%s: psiParsingTimeLimit %ld", BSTD_FUNCTION, playback_ip->setupSettings.u.udp.psiParsingTimeLimit));
     if (playback_ip->openSettings.nonBlockingMode) {
         /* do PSI parsing in a thread and return back to app */
         playback_ip->sessionSetupThread = B_Thread_Create("SessionSetupThread", (B_ThreadFunc)B_PlaybackIp_UtilsMediaProbeCreate, (void *)playback_ip, NULL);
         if (NULL == playback_ip->sessionSetupThread) {
-            BDBG_ERR(("%s: Failed to create thread for media probe during Session Setup\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to create thread for media probe during Session Setup\n", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
             goto error;
         }
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
+            BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
 #endif
         errorCode = B_ERROR_IN_PROGRESS;
         goto error;
@@ -968,7 +966,7 @@ B_PlaybackIp_RtpSessionSetup(
 done:
     /* check the success of probing function */
     if (!playback_ip->psi.psiValid) {
-        BDBG_ERR(("%s: Failed to acquire PSI info via media probe\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to acquire PSI info via media probe\n", BSTD_FUNCTION));
         errorCode = B_ERROR_UNKNOWN;
         goto error;
     }
@@ -1028,7 +1026,7 @@ B_PlaybackIp_RtpSessionStart(
     NEXUS_PlaypumpSettings nSettings;
 
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }
@@ -1039,14 +1037,14 @@ B_PlaybackIp_RtpSessionStart(
         nSettings.dataCallback.context = playback_ip;
         rc = NEXUS_Playpump_SetSettings(playback_ip->nexusHandles.playpump, &nSettings);
         if (rc) {
-            BDBG_ERR(("%s:%d Nexus Error: %d\n", __FUNCTION__, __LINE__, rc));
+            BDBG_ERR(("%s:%d Nexus Error: %d\n", BSTD_FUNCTION, __LINE__, rc));
             goto error;
         }
         playback_ip->pumpparams = nSettings;
     }
 
     if (playback_ip->pumpparams.timestamp.type != NEXUS_TransportTimestampType_eNone) {
-        BDBG_WRN(("%s: Timestamp mode is enabled", __FUNCTION__));
+        BDBG_WRN(("%s: Timestamp mode is enabled", BSTD_FUNCTION));
         transportPacketSize = TS_PKT_SIZE + 4; /* 4 byte timestamp per Transport packet */
     }
     else {
@@ -1071,7 +1069,7 @@ B_PlaybackIp_RtpSessionStart(
         session_cfg.pt_value = RTP_PAYLOAD_TYPE_ES;
     else
         session_cfg.pt_value = RTP_PAYLOAD_TYPE_MP2T;
-    BDBG_MSG(("%s: Using Payload type %d", __FUNCTION__, session_cfg.pt_value ));
+    BDBG_MSG(("%s: Using Payload type %d", BSTD_FUNCTION, session_cfg.pt_value ));
     BRTP_START(playback_ip->rtp, playback_ip->pipe_in, &session_cfg);
 
     BLST_Q_INIT(&playback_ip->free_item);
@@ -1088,7 +1086,7 @@ B_PlaybackIp_RtpSessionStart(
     B_Thread_GetDefaultSettings(&settingsThread);
     playback_ip->playbackIpThread = B_Thread_Create(threadName, (B_ThreadFunc)B_PlaybackIp_RtpProcessing, (void *)playback_ip, &settingsThread);
     if (NULL == playback_ip->playbackIpThread) {
-        BDBG_ERR(("%s: Failed to create the %s thread for RTP media transport protocol\n", __FUNCTION__, threadName));
+        BDBG_ERR(("%s: Failed to create the %s thread for RTP media transport protocol\n", BSTD_FUNCTION, threadName));
         goto error;
     }
 

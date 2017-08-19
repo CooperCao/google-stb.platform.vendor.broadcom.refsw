@@ -33,8 +33,7 @@ VideoCore OS Abstraction Layer - public header file
   * Mutexes are used for locking. Attempts to take a mutex twice, or to unlock it
   * in a different thread to the one in which it was locked should be expected to fail.
   * Mutexes are not re-entrant (see vcos_reentrant_mutex.h for a slightly slower
-  * re-entrant mutex). VCOS_MUTEX_T may not be fair. If you want a fair mutex, use
-  * VCOS_FAIR_MUTEX_T.
+  * re-entrant mutex). VCOS_MUTEX_T may not be fair!
   *
   * \subsection event Events
   *

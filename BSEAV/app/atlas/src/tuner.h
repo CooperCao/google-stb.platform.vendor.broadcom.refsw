@@ -144,7 +144,7 @@ public:
     CTunerScanData(
             eBoardResource tunerType,
             bool           appendToChannelList = false,
-            uint16_t       majorStartNum = 1
+            unsigned       majorStartNum = 1
             ) :
         _tunerType(tunerType),
         _appendToChannelList(appendToChannelList),
@@ -181,7 +181,7 @@ protected:
 public:
     MAutoList <uint32_t> _freqList;
     bool                 _appendToChannelList;
-    uint16_t             _majorStartNum;
+    unsigned             _majorStartNum;
 #ifdef MPOD_SUPPORT
     channel_list_t * _pChannelList;
     bool             _useCableCardSiData;
@@ -193,7 +193,7 @@ class CTuner : public CResource
 public:
     CTuner(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             eBoardResource   resource,
             CConfiguration * pCfg
             );

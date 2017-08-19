@@ -5,8 +5,13 @@
 
 #include "libs/util/assert_helpers.h"
 #include "libs/util/common.h"
+#ifdef __cplusplus
+#include "libs/util/gfx_util/gfx_util_wildcard.h"
+#endif
 #include <stdint.h>
 #include <stdbool.h>
+
+EXTERN_C_BEGIN
 
 struct desc_map_entry
 {
@@ -79,3 +84,23 @@ static inline uint32_t desc_map_desc_to_value(
    verif(desc_map_try_desc_to_value(&value, map, desc));
    return value;
 }
+
+EXTERN_C_END
+
+#ifdef __cplusplus
+
+/* Call f(e) for each entry e in map where gfx_wildcard_pattern_matches(pattern, e.desc) */
+template<class F>
+static inline void desc_map_for_each_matching(
+   const desc_map &map, const char *pattern, F f)
+{
+   // Brainless implementation...
+   for (size_t i = 0; i != map.num_entries; ++i)
+   {
+      const desc_map_entry &e = map.entries_value_ordered[i];
+      if (gfx_wildcard_pattern_matches(pattern, e.desc))
+         f(e);
+   }
+}
+
+#endif

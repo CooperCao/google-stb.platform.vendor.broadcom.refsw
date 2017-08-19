@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,6 +71,7 @@
 
 #define BMP4_CENC_SAIZ            BMP4_TYPE('s','a','i','z')
 #define BMP4_CENC_SAIO            BMP4_TYPE('s','a','i','o')
+#define BMP4_CENC_SENC            BMP4_TYPE('s','e','n','c')
 
 #define AAC_ESDS_ES_HDR_OFFSET    35
 #define MP4_BOX_HEADER_SIZE       8     /* 4 bytes size, 4 bytes header string */
@@ -141,7 +142,7 @@ int bmp4_parse_sinf(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
     int     rc = 0;
     bmp4_box     box;
     bmp4_box     te_box;
-    size_t       box_hdr_size;
+    uint32_t       box_hdr_size;
     uint32_t     i;
     bmp4_protectionSchemeInfo  *pScheme = NULL;
 
@@ -282,8 +283,8 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 {
     int     rc = -1;
     bmp4_box     box;
-    size_t       box_hdr_size;
-    size_t       entry_hdr_size;
+    uint32_t       box_hdr_size;
+    uint32_t       entry_hdr_size;
     uint32_t     i, j;
     bmp4_box entry_box;
     bmp4_fullbox fullbox;
@@ -389,7 +390,7 @@ int bmp4_parse_stbl(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 {
     int     rc = 0;
     bmp4_box     box;
-    size_t       box_hdr_size;
+    uint32_t       box_hdr_size;
     uint32_t     i;
 
     BDBG_ASSERT(cursor != NULL);
@@ -426,7 +427,7 @@ int bmp4_parse_minf(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 
     int     rc = 0;
     bmp4_box     box;
-    size_t       box_hdr_size;
+    uint32_t       box_hdr_size;
     uint32_t     i;
 
     BDBG_ASSERT(cursor != NULL);
@@ -462,7 +463,7 @@ int bmp4_parse_mdia(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 {
     int     rc = 0;
     bmp4_box     box;
-    size_t       box_hdr_size;
+    uint32_t       box_hdr_size;
     uint32_t     i;
 
     BDBG_ASSERT(cursor != NULL);
@@ -498,7 +499,7 @@ int bmp4_parse_trak(bmp4_mp4_headers *header, batom_t atom, batom_cursor *cursor
 {
     int     rc = 0;
     bmp4_box     box;
-    size_t       box_hdr_size;
+    uint32_t       box_hdr_size;
     uint32_t     i;
     bmp4_trackInfo  track;
     bmp4_trackheaderbox  track_header;
@@ -720,11 +721,11 @@ int bmp4_parse_sample_enc_extended_box(bmp4_mp4_frag_headers *frag_header, batom
 
 static
 int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header,
-        batom_cursor *cursor, bmp4_box traf, size_t box_size)
+        batom_cursor *cursor, bmp4_box traf, uint32_t box_size)
 {
     uint32_t i, j;
     bmp4_box box;
-    size_t box_hdr_size;
+    uint32_t box_hdr_size;
     bmp4_track_fragment_header bmp4_frag_hdr;
     bmp4_track_fragment_run_header bmp4_run_hdr;
     bmp4_box_extended senc_box;
@@ -808,13 +809,29 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
             {
                 LOGD(("%s: BMP4_CENC_SAIO", __FUNCTION__));
                 frag_header->encrypted = true;
+                batom_cursor_skip(cursor, box.size - box_hdr_size);
+                break;
+            }
+            case BMP4_CENC_SENC: /* senc */
+            {
+                LOGD(("%s: BMP4_CENC_SENC", __FUNCTION__));
+                cenc_parse_sample_encryption_box(cursor, frag_header);
+                if (rc == 0)
+                    frag_header->enc_info_parsed = true;
                 break;
             }
             case BMP4_EXTENDED: /* uuid */
             {
                 LOGD(("%s: BMP4_EXTENDED", __FUNCTION__));
-                bmp4_parse_box_extended(cursor, &senc_box);
-                rc = bmp4_parse_sample_enc_extended_box(frag_header, cursor);
+                if (frag_header->enc_info_parsed) {
+                    LOGD(("%s: Skip UUID box because senc was parsed already", __FUNCTION__));
+                    batom_cursor_skip(cursor, box.size - box_hdr_size);
+                } else {
+                    bmp4_parse_box_extended(cursor, &senc_box);
+                    rc = bmp4_parse_sample_enc_extended_box(frag_header, cursor);
+                    if (rc == 0)
+                        frag_header->enc_info_parsed = true;
+                }
                 frag_header->encrypted = true;
                 break;
             }
@@ -879,7 +896,7 @@ int bmp4_parse_moov(bmp4_mp4_headers *header, batom_t atom)
     batom_cursor  cursor;
     bmp4_box      box;
     bmp4_box      moov;
-    size_t        box_hdr_size;
+    uint32_t        box_hdr_size;
     uint32_t      i;
 
     if(atom == NULL)
@@ -947,7 +964,7 @@ int bmp4_parse_moof(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
     batom_cursor cursor;
     bmp4_box box;
     bmp4_box moof;
-    size_t box_hdr_size;
+    uint32_t box_hdr_size;
     uint32_t i;
     int rc = 0;
 

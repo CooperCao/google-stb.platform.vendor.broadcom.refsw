@@ -51,6 +51,10 @@
 #ifdef ENABLE_WIDEVINE
 #include "wv_decryptor.h"
 #endif
+#ifdef ENABLE_WIDEVINE_3x
+#include "wv3x_decryptor.h"
+#endif
+
 BDBG_MODULE(decryptor_factory);
 
 using namespace dif_streamer;
@@ -72,6 +76,11 @@ IDecryptor* DecryptorFactory::CreateDecryptor(DrmType type)
 #ifdef ENABLE_WIDEVINE
       case drm_type_eWidevine:
         decryptor = new WidevineDecryptor();
+        break;
+#endif
+#ifdef ENABLE_WIDEVINE_3x
+      case drm_type_eWidevine3x:
+        decryptor = new Widevine3xDecryptor();
         break;
 #endif
       case drm_type_eClear:

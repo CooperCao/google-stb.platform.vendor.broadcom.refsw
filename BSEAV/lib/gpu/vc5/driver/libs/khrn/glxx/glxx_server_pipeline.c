@@ -671,8 +671,8 @@ void adjust_fragment_maps(IR_PROGRAM_T *ir, GLSL_PROGRAM_T *glsl_vprog, GLSL_PRO
    if (glsl_vprog == glsl_fprog)
       return;
 
-   unsigned outIndex = 0;
-   unsigned outIndexMap[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
+   unsigned out_index = 0;
+   unsigned out_index_map[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
 
    for (unsigned i = 0; i < glsl_vprog->num_outputs; ++i) {
       GLSL_INOUT_T *out = &glsl_vprog->outputs[i];
@@ -680,35 +680,32 @@ void adjust_fragment_maps(IR_PROGRAM_T *ir, GLSL_PROGRAM_T *glsl_vprog, GLSL_PRO
       if (is_builtin(out->name))
          continue;
 
-      outIndexMap[i] = outIndex;
-      outIndex += glxx_get_element_count(out->type);
+      out_index_map[i] = out_index;
+      out_index += glxx_get_element_count(out->type);
    }
 
-   unsigned        num_ins  = ir->stage[SHADER_FRAGMENT].link_map->num_ins;
-   unsigned        inEntry  = 0;
+   unsigned        in_entry = 0;
    LinkMap        *link_map = ir->stage[SHADER_FRAGMENT].link_map;
    VARYING_INFO_T *varying  = ir->varying;
 
    for (unsigned i = 0; i < glsl_fprog->num_inputs; ++i) {
       GLSL_INOUT_T   *in  = &glsl_fprog->inputs[i];
       GLSL_INOUT_T   *out = find_var(glsl_vprog->outputs, glsl_vprog->num_outputs, in);
-      unsigned        sz  = glxx_get_element_count(in->type);
 
       /* Builtins will not appear in the outs */
       if (out == NULL)
          continue;
 
-      unsigned outOffset = outIndexMap[out - glsl_vprog->outputs];
+      unsigned out_offset = out_index_map[out - glsl_vprog->outputs];
 
-      for (unsigned j = 0; j < sz; ++j) {
-         if (inEntry >= num_ins) break;
+      for (unsigned j = 0; j < glxx_get_element_count(in->type); ++j) {
+         if (in_entry >= (unsigned)link_map->num_ins) break;
 
-         varying[inEntry].centroid      = in->centroid;
-         varying[inEntry].noperspective = in->noperspective;
-         varying[inEntry].flat          = in->flat;
-         link_map->ins[inEntry]         = outOffset;
-         inEntry   += 1;
-         outOffset += 1;
+         varying[out_offset].centroid      = in->centroid;
+         varying[out_offset].noperspective = in->noperspective;
+         varying[out_offset].flat          = in->flat;
+
+         link_map->ins[in_entry++]         = out_offset++;
       }
    }
 }
@@ -729,12 +726,12 @@ static IR_PROGRAM_T *combine_ir_programs(GLSL_PROGRAM_T *glsl_vprog, GLSL_PROGRA
    result->stage[SHADER_VERTEX].link_map   = copy_link_map(vprog->stage[SHADER_VERTEX].link_map);
    result->stage[SHADER_FRAGMENT].link_map = copy_link_map(fprog->stage[SHADER_FRAGMENT].link_map);
 
+   memcpy(result->varying, fprog->varying, V3D_MAX_VARYING_COMPONENTS * sizeof(VARYING_INFO_T));
+
    adjust_fragment_maps(result, glsl_vprog, glsl_fprog);
 
    result->live_attr_set = vprog->live_attr_set;
    result->tf_vary_map   = vprog->tf_vary_map;
-
-   memcpy(result->varying, fprog->varying, V3D_MAX_VARYING_COMPONENTS * sizeof(VARYING_INFO_T));
 
    return result;
 }
@@ -764,7 +761,7 @@ static void calculate_ordinals(int *ordinal_map, GLSL_INOUT_T *inouts, unsigned 
    int       ordinal   = 0;
 
    for (unsigned i = 0; i < num; ++i) {
-      char  *pos = strchr(inouts[i].name, '.');
+      char *pos = strchr(inouts[i].name, '.');
 
       /* Not a structure? */
       if (pos == NULL) {
@@ -846,6 +843,12 @@ bool glxx_pipeline_validate(const GLXX_PIPELINE_T *pipeline)
 #endif
                { GRAPHICS_STAGE_FRAGMENT,        SHADER_FRAGMENT        } };
 
+   // Any stage that is attached must have a separable program bound
+   for (STAGE_T i=0; i < STAGE_COUNT; i++) {
+      GL20_PROGRAM_T *p = pipeline->stage[i].program;
+      if (p && !p->separable) return false;
+   }
+
    bool haveGraphics = false;
    for (int i=0; i<countof(gfx); i++) {
       if (pipeline->stage[gfx[i].stage].program != NULL) haveGraphics = true;
@@ -857,12 +860,6 @@ bool glxx_pipeline_validate(const GLXX_PIPELINE_T *pipeline)
       return false;
 
    if (haveGraphics) {
-      // Any stage that is attached must have a separable program bound
-      for (int i=0; i<countof(gfx); i++) {
-         GL20_PROGRAM_T *p = pipeline->stage[gfx[i].stage].program;
-         if (p && !p->separable) return false;
-      }
-
 #if GLXX_HAS_TNG
       // If there is a TES or a TCS then both must be present
       bool tcs = (pipeline->stage[GRAPHICS_STAGE_TESS_CONTROL].program != NULL);
@@ -913,27 +910,26 @@ bool glxx_pipeline_validate(const GLXX_PIPELINE_T *pipeline)
          }
       }
 
-      // TODO: The rest of this function doesn't work for T+G
-      if (pipeline->stage[GRAPHICS_STAGE_VERTEX].program &&
-          pipeline->stage[GRAPHICS_STAGE_FRAGMENT].program )
-      {
+      for (STAGE_T i = GRAPHICS_STAGE_VERTEX; i < GRAPHICS_STAGE_COUNT; i++ ) {
+         if (!pipeline->stage[i].program) continue;
+
+         STAGE_T next;
+         for (next = i+1; next < GRAPHICS_STAGE_COUNT; next++) {
+            if (pipeline->stage[next].program) break;
+         }
+         if (next == GRAPHICS_STAGE_COUNT) break;
+
          // If a stage is present then it must be linked correctly, so these are non-NULL
-         GLSL_PROGRAM_T *v = pipeline->stage[GRAPHICS_STAGE_VERTEX].program->common.linked_glsl_program;
-         GLSL_PROGRAM_T *f = pipeline->stage[GRAPHICS_STAGE_FRAGMENT].program->common.linked_glsl_program;
+         GLSL_PROGRAM_T *a = pipeline->stage[i].program->common.linked_glsl_program;
+         GLSL_PROGRAM_T *b = pipeline->stage[next].program->common.linked_glsl_program;
 
          // TODO: Need a better way of only running this function on inter-program interfaces
-         if (v != f) {
-            if (!validate_in_out_interface(v->outputs, v->num_outputs, f->inputs,  f->num_inputs))
+         // TODO: Not sure if this works properly with arrayed interfaces
+         if (a != b) {
+            if (!validate_in_out_interface(a->outputs, a->num_outputs, b->inputs,  b->num_inputs))
                return false;
          }
       }
-   }
-
-   if (haveCompute) {
-      GL20_PROGRAM_COMMON_T *gl_cprog = &pipeline->stage[COMPUTE_STAGE_COMPUTE].program->common;
-
-      if (!gl_cprog->separable)
-         return false;
    }
 
    return true;
@@ -944,24 +940,15 @@ bool glxx_pipeline_create_graphics_common(GLXX_PIPELINE_T *pipeline)
    GL20_PROGRAM_T *gl20_vprog = pipeline->stage[GRAPHICS_STAGE_VERTEX].program;
    GL20_PROGRAM_T *gl20_fprog = pipeline->stage[GRAPHICS_STAGE_FRAGMENT].program;
 
-   GL20_PROGRAM_COMMON_T *gl_vprog = gl20_vprog != NULL ? &gl20_vprog->common : NULL;
-   GL20_PROGRAM_COMMON_T *gl_fprog = gl20_fprog != NULL ? &gl20_fprog->common : NULL;
-
    /* Need a minimum of vertex and fragment programs */
-   if (gl_vprog == NULL || gl_fprog == NULL)
+   if (gl20_vprog == NULL || gl20_fprog == NULL)
       return false;
+
+   GL20_PROGRAM_COMMON_T *gl_vprog = &gl20_vprog->common;
+   GL20_PROGRAM_COMMON_T *gl_fprog = &gl20_fprog->common;
 
    GLSL_PROGRAM_T *glsl_vprog = gl_vprog->linked_glsl_program;
    GLSL_PROGRAM_T *glsl_fprog = gl_fprog->linked_glsl_program;
-
-   if (glsl_vprog == NULL || glsl_fprog == NULL)
-      return false;
-
-   IR_PROGRAM_T *ir_vprog = glsl_vprog->ir;
-   IR_PROGRAM_T *ir_fprog = glsl_fprog->ir;
-
-   if (ir_vprog == NULL || ir_fprog == NULL)
-      return false;
 
    IR_PROGRAM_T *ir = combine_ir_programs(glsl_vprog, glsl_fprog);
 
@@ -971,12 +958,12 @@ bool glxx_pipeline_create_graphics_common(GLXX_PIPELINE_T *pipeline)
    /* TODO: check that the interfaces match properly including that the shader versions match */
    combine_gl20_program_common(&pipeline->common, gl_vprog, gl_fprog);
 
-   int   *frag_uniforms = ir->stage[SHADER_FRAGMENT].link_map->uniforms;
+   int *frag_uniforms = ir->stage[SHADER_FRAGMENT].link_map->uniforms;
 
    for (unsigned i = 0; i < glsl_fprog->num_samplers; ++i) {
       int location = glsl_fprog->samplers[i].location;
 
-      frag_uniforms[location] -= gl_vprog->num_scalar_uniforms- glsl_vprog->num_samplers;
+      frag_uniforms[location] -= gl_vprog->num_scalar_uniforms - glsl_vprog->num_samplers;
    }
 
    for (int i=0; i<ir->stage[SHADER_FRAGMENT].link_map->num_uniforms; i++)

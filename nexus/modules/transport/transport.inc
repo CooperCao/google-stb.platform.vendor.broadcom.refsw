@@ -228,6 +228,11 @@ NEXUS_TRANSPORT_DEFINES += NEXUS_TRANSPORT_CLIENT_CAPTURE_ENABLED=1
 NEXUS_TRANSPORT_SOURCES += nexus_xc_capture.c
 endif
 
+ifeq ($(NEXUS_TRANSPORT_RS_CAPTURE_ENABLED),y)
+NEXUS_TRANSPORT_DEFINES += NEXUS_TRANSPORT_RS_CAPTURE_ENABLED=1
+NEXUS_TRANSPORT_SOURCES += nexus_rs_capture.c
+endif
+
 #####################
 # Module Extensions #
 #####################

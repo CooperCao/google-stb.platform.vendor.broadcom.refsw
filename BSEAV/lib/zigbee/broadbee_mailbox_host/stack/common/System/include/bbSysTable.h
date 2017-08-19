@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/common/System/include/bbSysTable.h $
-*
-* DESCRIPTION:
-*   Tables engine interface and implementation.
-*
-* $Revision: 2927 $
-* $Date: 2014-07-15 16:04:50Z $
-*
-****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      Tables engine interface and implementation.
+ *
+*******************************************************************************/
+
 #ifndef _BB_SYS_TABLE_H
 #define _BB_SYS_TABLE_H
 
@@ -56,24 +50,15 @@
 #include "bbSysBasics.h"            /* Basic system environment set. */
 #include "bbSysTime.h"
 #include "bbHalSystemTimer.h"
+#include "bbSysCrc.h"               /* for SYS_Crc16 */
 
 /************************* DEFINITIONS **************************************************/
-// TODO: Move it to appropriate place. ///////////
-#include "bbSysCrc.h"
-INLINE uint16_t HAL_Hash(const uint32_t hashKey)
-{
-    // TODO: This is stub.
-    return SYS_Crc16(0x2A, (uint8_t *)&hashKey, sizeof(hashKey));
-}
-//////////////////////////////////////////////////
-
-
 #define SYS_TABLE_NO_BUSY_BIT_OFFSET 0U
 #define SYS_TABLE_NO_HASH_DWORD 0U
 
 #define SYS_TABLE_FOLD(tableDescr, iteratorName, hashKey) \
     void *iteratorName = SYS_TableGetFindPoint(tableDescr, hashKey); \
-    for (uint8_t tries = SYS_TableRowNum(tableDescr); \
+    for (uint8_t tries = (tableDescr)->rowNum; \
         0 < tries; \
         --tries, iteratorName = SYS_TableEntryGetNext(tableDescr, iteratorName))
 
@@ -153,16 +138,6 @@ INLINE void SYS_TableReset(SYS_TableDescriptor_t *const descr)
 }
 
 /**************************************************************************//**
-  \brief Gets table size.
-  \param[in] descr - table descriptor.
-  \return table size.
- ******************************************************************************/
-INLINE uint8_t SYS_TableRowNum(SYS_TableDescriptor_t *const descr)
-{
-    return descr->rowNum;
-}
-
-/**************************************************************************//**
   \brief Gets entry table size.
   \param[in] descr - table descriptor.
   \return entry table size.
@@ -199,8 +174,8 @@ INLINE uint8_t *SYS_TableGetEndPoint(SYS_TableDescriptor_t *const descr)
  ******************************************************************************/
 INLINE uint8_t *SYS_TableGetFindPoint(SYS_TableDescriptor_t *const descr, const uint32_t hashKey)
 {
-    return SYS_TableGetStartPoint(descr) +
-        (HAL_Hash(hashKey) % SYS_TableRowNum(descr)) * SYS_TableGetEntrySize(descr);
+    uint16_t hash = SYS_Crc16(0x2A, (uint8_t *)&hashKey, sizeof(hashKey));
+    return SYS_TableGetStartPoint(descr) + (hash % descr->rowNum) * descr->entrySize;
 }
 
 /**************************************************************************//**
@@ -224,21 +199,8 @@ INLINE bool SYS_TableEntryIsBusy(SYS_TableDescriptor_t *const descr, const void 
   \return   next entry pointer,
             if currentEntry = NULL, returns the first row
  ******************************************************************************/
-INLINE void *SYS_TableEntryGetNext(SYS_TableDescriptor_t *const descr,
-                                   const void *const currentEntry)
-{
-    uint8_t *nextOne;
-
-    if (NULL != currentEntry)
-    {
-        nextOne = (uint8_t *)currentEntry + descr->entrySize;
-
-        if (nextOne < SYS_TableGetEndPoint(descr))
-            return (void*)nextOne;
-    }
-
-    return (void*) SYS_TableGetStartPoint(descr);
-}
+void *SYS_TableEntryGetNext(SYS_TableDescriptor_t *const descr,
+                                   const void *const currentEntry);
 
 /**************************************************************************//**
   \brief Gets the next entry of the specified table. It does not loop.
@@ -250,27 +212,8 @@ INLINE void *SYS_TableEntryGetNext(SYS_TableDescriptor_t *const descr,
             if currentEntry = NULL, returns the first row.
             Returns NULL, if the ens of table is reached.
  ******************************************************************************/
-INLINE void *SYS_TableEntryGetNextDirect(SYS_TableDescriptor_t *const descr,
-                                   const void *const currentEntry)
-{
-    uint8_t *nextOne, *res;
-
-    if (NULL == currentEntry)
-    {
-        res = SYS_TableGetStartPoint(descr);
-    }
-    else
-    {
-        nextOne = (uint8_t *)currentEntry + descr->entrySize;
-
-        if (nextOne < SYS_TableGetEndPoint(descr))
-            res = nextOne;
-        else
-            res = NULL;
-    }
-
-    return (void*) res;
-}
+void *SYS_TableEntryGetNextDirect(SYS_TableDescriptor_t *const descr,
+                                   const void *const currentEntry);
 
 /**************************************************************************//**
   \brief Gets a next non-empty entry of the specified table. It does not loop.
@@ -461,3 +404,5 @@ INLINE void SYS_TableAgeUpdateTimeStamp(SYS_TableAgingData_t *const agingData)
 #endif
 
 #endif /* _BB_SYS_TABLE_H */
+
+/* eof bbSysTable.h */

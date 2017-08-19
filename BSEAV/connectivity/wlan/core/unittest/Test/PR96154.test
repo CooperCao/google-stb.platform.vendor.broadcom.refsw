@@ -1,0 +1,40 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# PR#86485: UTF: 43224p2p MultiSTA all tests fail due to BEACONS LOST
+#
+# $Id: 3305b6ba9c6498618c4bc2127bc5b61310b877fa $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+
+UTF::Test PR96154 {args} {
+
+UTF::Getopts {
+	{ap.arg "" "AP"}
+	{email.arg "" "email"}
+	{sta.arg  "" "STA"}
+	}
+
+	set AP $(ap)
+	set STA $(sta)
+
+	# Enhance by automating the available build discovery.
+	set dates {2011.5.19.0 2011.5.19.1 2011.5.19.4 2011.5.19.5 2011.5.19.6 2011.5.20.0 2011.5.20.1}
+
+
+	foreach date $dates {
+		UTF::Try "$date" {
+			$STA load -date $date
+			UTF::Test::ConnectAPSTA $AP $STA -security open -chanspec 3l
+			#Enhance by doing something clever here to catch failure automatically.
+			lan rexec " iperf -c 192.168.1.101 -t 20 -i 2"
+			$STA wl disassoc
+		}
+    }
+
+}

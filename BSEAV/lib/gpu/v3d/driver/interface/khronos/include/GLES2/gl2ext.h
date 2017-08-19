@@ -500,7 +500,7 @@ typedef void (GL_APIENTRYP PFNGLGETBUFFERPOINTERVOESPROC) (GLenum target, GLenum
 
 /* GL_OES_packed_depth_stencil */
 #ifndef GL_OES_packed_depth_stencil
-#define GL_OES_packed_depth_stencil 0
+#define GL_OES_packed_depth_stencil 1
 #endif
 
 /* GL_OES_rgb8_rgba8 */

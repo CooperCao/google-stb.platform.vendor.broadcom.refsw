@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #include "nxclient.h"
 #include "nexus_playback.h"
@@ -57,6 +46,7 @@
 #include <string.h>
 
 BDBG_MODULE(playback_decode_only);
+#include "nxapp_prompt.inc"
 
 /* the following define the input file and its characteristics -- these will vary by input file */
 #define FILE_NAME "videos/cnnticker.mpg"
@@ -172,8 +162,7 @@ int main(int argc, char **argv)
     }
     NEXUS_Playback_Start(playback, file, NULL);
 
-    BDBG_WRN(("Press ENTER to exit"));
-    getchar();
+    nxapp_prompt("exit");
 
     NEXUS_Playback_Stop(playback);
     NEXUS_Playback_Destroy(playback);

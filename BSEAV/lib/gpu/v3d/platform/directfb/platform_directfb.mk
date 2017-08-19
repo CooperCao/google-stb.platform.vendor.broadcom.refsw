@@ -36,6 +36,7 @@ CFLAGS += \
 	-I$(V3D_DIR)/interface/khronos/include \
 	-DBCHP_CHIP=$(BCHP_CHIP) \
 	-D_XOPEN_SOURCE=600 \
+	-D_GNU_SOURCE \
 	-I${DIRECTFB_INSTALL_DIRECTFB_INCLUDE_DIR} \
 	-I../nexus \
 	-DDIRECTFB
@@ -79,6 +80,7 @@ SOURCES = default_directfb.c \
 			../common/memory_nexus.c \
 			../common/packet_rgba.c \
 			../common/packet_yv12.c \
+			../common/autoclif.c \
 			display_directfb.c
 
 ifeq ($(BUILD_DYNAMIC),1)

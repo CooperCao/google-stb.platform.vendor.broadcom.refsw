@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -109,6 +109,7 @@ extern "C" {
 #define BINT_P_MAP_L2_SHIFT 12
 
 #define BINT_P_MAP_MISC_L3_MASK   0x10000000
+#define BINT_P_MAP_MISC_L3_ROOT_MASK   0x08000000
 
 /*
 Summary:
@@ -121,6 +122,18 @@ Standard L2 interrupts allowed to use simple form to specify L2 interrupt entry.
  - core - name of the corresponding L2 status register -  this is the name of register in RDB without the '_STATUS' suffix. For example for the register name 'MEMC_L2_0_R5F_STATUS' one should specify 'MEMC_L2_0_R5F'
 */
 #define BINT_MAP_STD(L1,name,core) {BINT_IS_STANDARD | (BCHP_HIF_CPU_INTR1_INTR_W##L1##_STATUS_##name##_CPU_INTR_SHIFT+L1*32), BCHP_##core##_STATUS, 0, #name}
+
+/*
+Summary:
+This macro definition used to define the interrupt map entry for 'standard' L2 interrupts
+
+Description:
+Standard L2 interrupts allowed to use simple form to specify L2 interrupt entry. Only three arguments are needed:
+ - L1 - number of L1 status register (0,1,2, etc) that L1 interrupt belongs to
+ - name - name of the L1 interrupts - this is the name in RBD without the '_CPU_INTR' suffix. For example for RDB field name 'MEMC1_CPU_INTR' one should specify 'MEMC1'
+ - core - name of the corresponding L2 status register -  this is the name of register in RDB without the '_STATUS' suffix. For example for the register name 'MEMC_L2_0_R5F_STATUS' one should specify 'MEMC_L2_0_R5F'
+*/
+#define BINT_MAP_L3_ROOT(L1,name,core) {BINT_P_MAP_MISC_L3_ROOT_MASK | (BCHP_HIF_CPU_INTR1_INTR_W##L1##_STATUS_##name##_CPU_INTR_SHIFT+L1*32), BCHP_##core##_STATUS, 0, #name}
 
 /*
 Summary:

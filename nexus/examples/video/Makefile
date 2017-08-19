@@ -38,6 +38,7 @@
 ############################################################
 
 APPS = \
+    app_display_mgmt \
     capture_buffer \
     capture_i_frames \
     ccir656_video \

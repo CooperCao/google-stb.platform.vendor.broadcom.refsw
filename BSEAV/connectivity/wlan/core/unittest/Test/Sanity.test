@@ -1,0 +1,1327 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# Basic sanity test script 
+#
+# To get online help, type: Test/Sanity.test -h
+#
+
+# $Id: 0e4c1b76233bdf5437e7d16b8705a256098b18b4 $
+# $Copyright Broadcom Corporation$
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set Sanity_help "\n\nBasic usage: Test/Sanity.test <options>\
+    \n\nThis script will setup your test rig by loading the desired builds,\
+    \nmaking connections between your wireless devices, running ping\
+    \nconnectivity tests & running short traffic tests. If you have any\
+    \nembedded devices, the StaNightly & DonglePktFilter tests are also\
+    \nrun for them, as appropriate.\
+    \n\nFor the dates, TODAY will be translated to todays actual date.\
+    \nCURRENT will match todays date, 1 day ago and 2 days ago.\
+    \n\\\* will find the most recent build, regardless of age.\
+    \n2008.1 will find the most recent build in Jan 2008, no need to add \\\* wildcard.\
+    \n\nOther tag values: NIGHTLY, DIPSY2_BRANCH_4_170, STAGURR_REL_4_150_10_24, ...\
+    \nTag names can also contain the \\\* wildcard.\
+    \n\nThis script will connect all wireless devices to the first Router STA\
+    \nby default. You can alter this behavior with the options discussed below.\
+    \nYour Router may have multiple STA defined. The -rtrdef option can be\
+    \nused to specify which Router STA is to be used for all connections. If\
+    \nyou have multiple Routers, each of which needs to be connected to a specific\
+    \nset of STAs, use the -connN options to spell out your needs. Then -connN\
+    \noptions can also be used to test only the specified devices and exclude\
+    \nthe other devices in the testbed. You can also define the default router\
+    \nor connection lists in your utfconf file using the variables UTF::rtrdef,\
+    \nUTF::conn0, UTF::conn1, ...\
+    \n\nThe first time you run the script on a specific testbed that you personally\
+    \nhave never used before with UTF, specify the -auth option and you will be\
+    \nprompted for the login passwords for each device in the testbed that uses SSH.\
+    \n\nYou can specify an arbitrary initialization string to be run at the start\
+    \nof the tests, usually used to set the all attenuator channels to 0 attenuation.\
+    \nIn your config file, specify the variable ::UTF::SetupTestBed\
+    \n\nvalid options are:\
+    \n -utfconf path        Config file to use, default is ~/.utfconf.tcl"
+
+# Command line options string
+set Sanity_getopts {
+    {auth                "Go through authorization cycle for each device in the testbed that uses SSH"}
+    {attngrp.arg ""      "Attenuator group to use for RvR tests"}
+    {attnstep.arg "1"    "Step value that RvR attenuator is changed by"}
+    {branch.arg ""       "Saves results in correct branch perfcache files when drivers are not loaded"}
+    {btcgr.arg ""        "BT image file, usefull for testing private builds"}
+    {chan2G20.arg 1      "Channel(s) for 2G20band RvR tests"}
+    {chan2G40.arg 1l     "Channel(s) for 2G40band RvR tests"}
+    {chan5G20.arg 36     "Channel(s) for 5G20band RvR tests"}
+    {chan5G40.arg 36l    "Channel(s) for 5G40band RvR tests"}
+    {chan5G80.arg ""     "Channel(s) for 5G80band RvR tests"}
+    {chanspec.arg ""     "Channel for other tests, blank means let scripts choose"}
+    {chanspec2.arg ""    "Channel2 for other tests,  blank means let scripts choose"}
+    {conn0.arg ""        "AP-STA connection list 0, format: \"AP1 STA1 ... STAn\""}
+    {conn1.arg ""        "AP-STA connection list 1, format: \"AP2 STAn+1 ... STAm\""}
+    {conn2.arg ""        "AP-STA connection list 2, format: \"AP3 STAm+1 ... STAo\""}
+    {conn3.arg ""        "AP-STA connection list 3, format: \"AP4 STAo+1 ... STAp\""}
+    {conn4.arg ""        "AP-STA connection list 4, format: \"AP5 STAp+1 ... STAq\""}
+    {dhdtag.arg ""       "STA DHD release tag, needed for some dongles, default is statag"}
+    {disassoc            "Disassociate STAs at end of tests. By default, the STAs may be left associated"}
+    {downstreamonly      "RvR downstream only tests are done, dont do upstream tests"}
+    {dvtwl               "Run DVT wl tests, DVT wl tests not run by default"}
+    {email.arg ""        "Email address list, format: userid1,userid2,... default is your userid"}
+    {ext                 "Use external builds"}
+    {fastrampup          "Do RvR fast rampup only, saves test time"}
+    {full                "Reboot all hosts no matter what. Default is a conditional check & reboot."}
+    {fullrampup          "Do not stop the RvR rampup test, regardless of slow rejoin issues"}
+    {history.arg 30      "History size for control charts"}
+    {intattn2G20.arg ""  "RvR secondary attn_grp & attn_val for 2G20 interference, eg: G3 7"}
+    {intattn2G40.arg ""  "RvR secondary attn_grp & attn_val for 2G40 interference, eg: G3 7"}
+    {intattn5G20.arg ""  "RvR secondary attn_grp & attn_val for 5G20 interference, eg: G3 7"}
+    {intattn5G40.arg ""  "RvR secondary attn_grp & attn_val for 5G40 interference, eg: G3 7"}
+    {intattn5G80.arg ""  "RvR secondary attn_grp & attn_val for 5G80 interference, eg: G3 7"}
+    {intattnoem.arg ""   "RvR secondary attn_grp & attn_val for oem interference, eg: G3 7"}
+    {intchan2G20.arg "6" "RvR 2G20 channel setting for interference source"}
+    {intchan2G40.arg "6l" "RvR 2G40 channel setting for interference source"}
+    {intchan5G20.arg "40" "RvR 5G20 channel setting for interference source"}
+    {intchan5G40.arg "40u" "RvR 5G40 channel setting for interference source"}
+    {intchan5G80.arg ""  "RvR 5G80 channel setting for interference source"}
+    {intchanoem.arg ""   "RvR oem channel setting for interference source"}
+    {intgap.arg "50"     "RvR pkteng interference time between frames, in usec"}
+    {intgraph            "RvR Monitor / create interference data graphs even if interference test not active"}
+    {intnrate.arg "7"    "RvR MCS rate to test pkteng interference with"}
+    {intrate.arg ""      "RvR Legacy rate test pkteng interference with, if specified, rate will override intnrate"}
+    {intsize.arg "1400"  "RvR pkteng interference frame size, in bytes"}
+    {intsta.arg ""       "RvR STA to be used as the interference source, this is not the DUT STA"}
+    {inttype.arg "pkteng" "RvR pkteng can be used to generate interference, tone doesnt work"}
+    {intwl2G20.arg "4"   "RvR interference tests, AP/STA wl interference setting to use for 2G20 band"}
+    {intwl2G40.arg "4"   "RvR interference tests, AP/STA wl interference setting to use for 2G40 band"}
+    {intwl5G20.arg "1"   "RvR interference tests, AP/STA wl interference setting to use for 5G20 band"}
+    {intwl5G40.arg "1"   "RvR interference tests, AP/STA wl interference setting to use for 5G40 band"}
+    {intwl5G80.arg "1"   "RvR interference tests, AP/STA wl interference setting to use for 5G80 band"}
+    {intwloem.arg "4"    "RvR interference tests, STA wl interference setting to use for oem band"}
+    {logdir.arg ""       "Log directory override"}
+    {loop.arg 1          "Loop counter for StaNightly.test"}
+    {max.arg 750         "Expected maximum througput, -1 means no checks done"}
+    {min.arg 2           "Expected minimum througput, -1 means no checks done"}
+    {noapload            "Don't load the AP images, default is load the AP images"}
+    {nobtreset           "Don't reset BlueTooth devices. WARNING: can lead to low WLAN thruput!"}
+    {nocache             "Don't update performance cache files"}
+    {nocheck             "Don't check the testbed, default is to run RebootTestbed"}
+    {nocollect           "Don't collect AP/STA default info, default is to collect this info"}
+    {nocompat            "Don't run the EmbeddedCompatibility tests, default is to run EmbeddedCompatibility tests"}
+    {nocontrvr           "Depracated"}
+    {nocyclervr          "No cycle-based RvR tests, default is run the cycle-based RvR tests"}
+    {nodvtwl             "No DVT wl tests, default is not run the DVT wl tests"}
+    {noembed             "No embedded tests, default is run the embedded tests"}
+    {nofilter            "No pkt filter tests, default is run the pkt filter tests"}
+    {noinit              "Use the testbed as is, no initialization"}
+    {nomalloc            "Don't check the serial port malloc failure counts, default is to check"}
+    {nomimo              "No longer does anything, depracated"}
+    {noperf              "No performance tests, default is run the performance tests"}
+    {noping              "No ping tests, default is run the ping tests"}
+    {nopretest           "RvR only - dont do short warmup test for each controlchart test for each attenuator value"}
+    {noreload            "Dont even reload AP/STA during setup"}
+    {norvr               "No RvR tests at all, default is run the RvR tests"}
+    {nosetup             "No setup for the radios / connections, default is setup the radios & connections"}
+    {nosetuptestbed      "Don't run Setup Testbed hooks"}
+    {nosniffer           "No sniffer is available for the RvR or other tests"}
+    {nostaload           "Don't load the STA images, default is load the STA images"}
+    {noqtp               "No BTAMP QTP tests, default is to run the BTAMP QTP tests specified in your config file"}
+    {nowan               "Don't test with the AP WAN port, default is to test with the AP WAN server, if available"}
+    {no2G20rvr           "No 2G 20Mhz RvR tests, default is run the 2G 20Mhz RvR tests"}
+    {no2G40rvr           "No 2G 40Mhz RvR tests, default is run the 2G 40Mhz RvR tests"}
+    {no5G20rvr           "No 5G 20Mhz RvR tests, default is run the 5G 20Mhz RvR tests"}
+    {no5G40rvr           "No 5G 40Mhz RvR tests, default is run the 5G 40Mhz RvR tests"}
+    {oemband.arg ""      "For RvR, when OEM AP broadcasts on both bands, used to choose the desired band: 2.4 or 5"}
+    {perfloop.arg 1      "Total performance test iterations for iperf controlchart tests"}
+    {perfsize.arg 5      "Sample size for performance tests"}
+    {perftime.arg 10     "Total time duration, in seconds, for performance tests"}
+    {pingmax.arg ""      "Maximum times to try ping in RvR, default is 10"}
+    {retry.arg 3         "Number of times to try rebooting an unresponsive host"}
+    {rampdownonly        "Dont do rampup portion of RvR tests, test time is halved"}
+    {rampuponly          "Dont do rampdown portion of RvR tests, test time is halved"}
+    {refreshaddrasneeded "Do dhcp after reassociation for each RvR attenuator step until dhcp succeeds once, then stop"}
+    {rtrdate.arg ""      "Desired Router build date, format: yyyy.mm.dd|CURRENT|TODAY|\\\*, default=\\\*"}
+    {rtrdef.arg ""       "Default Router STA for connections"}
+    {rtrtag.arg ""       "Router release tag, default is NIGHTLY"}
+    {rtrtrx.arg ""       "Router image file, usefull for testing private builds"}
+    {security.arg "open" "Security settings for use in RvR tests"}
+    {setup               "Runs the setup method for each device in the testbed that uses SSH"}
+    {short               "Runs a shorter version of the tests in StaNightly, default is to run all tests"}
+    {showenv             "Show environment variables in the log file"}
+    {sniffer.arg ""      "Sniffer to use, if any, in the RvR & other tests"}
+    {softap              "AP is really a STA running softap code"}
+    {stabin.arg ""       "STA .sys or .bin image file, usefull for testing private builds"}
+    {stadhd.arg ""       "STA .ko linux DHD file, usefull for testing private builds"}
+    {stadate.arg ""      "Desired STA build date, format: yyyy.mm.dd|CURRENT|TODAY|\\\*, default=\\\*"}
+    {statag.arg ""       "STA release tag, default is NIGHTLY"}
+    {steplist.arg ""     "List of specific attenuator steps to test, in whatever order"}
+    {steploop.arg 1      "Number of times to repeat attenuator steplist"}
+    {tc.arg "all"        "List of BTAMP QTP testcases to run"}
+    {tdls                "Run only TDLS/DPT tests from StaNightly, default is to run all tests"}
+    {title.arg ""        "Title description text string for use in the reports, eg: \"Linux 4322USB dongle\""}
+    {titleap             "Use AP name in RvR report & graph titles, default is STA name"}
+    {udp.arg "0"         "RvR udp test starting value in Mb/s, 0 means off, use tcp"}
+    {udpopt.arg ""       "RvR more options for iperf for udp tests"}
+    {useobjectsasis      "Lets you specify specific builds/images in the config file so script loads exactly those mages."}
+    {upstreamonly        "RvR upstream only tests are done, dont do downstream tests"}
+    {va.arg ""           "DEPRACATED! Please use attngrp option instead."}
+    {windhdbin.arg ""    "WinDHD dongle image file, usefull for testing private builds, in particular for BTAMP"}
+    {window.arg 512k     "Window size for iperf tests, does not impact StaNightly tests"}
+    {15min               "Runs 15-minute BW=40 FB=1 RX/TX/Bidirectional stress tests on the specified device"}
+    {15min20             "Runs 15-minute BW=20 FB=1 RX/TX/Bidirectional stress tests on the specified device"}
+}
+
+# Setup online help info.
+UTF::setup_help $Sanity_help $Sanity_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+# NB: The UTF package seems to recognize -utfconf option without any 
+# additional code in this script.
+
+# Load packages
+package require UTF
+package require UTF::Aeroflex
+package require UTF::utils
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::controlchart
+package require UTF::Test::DonglePktFilter
+package require UTF::Test::DVT_wl
+package require UTF::Test::StaNightly
+package require UTF::Test::EmbeddedCompatibility
+package require UTF::Test::RebootTestbed
+package require UTF::Test::RvRNightly1
+package require UTF::Sniffer
+
+package provide UTF::Test::Sanity 2.0
+
+UTF::Test Sanity {args} {
+    global env
+
+    # Basic command line option processing. Options are stored in the
+    # unnamed array $()
+    UTF::Getopts "$::Sanity_getopts" "$::Sanity_help"
+
+    # Dont alter the tag/date options, as that will impact the values that 
+    # may be stored in the config file individual objects.
+
+    # noinit turns off several items.
+    if {$(noinit)} {
+        set (noapload) 1
+        set (nobtreset) 1
+        set (nocheck) 1
+        set (nocolletct) 1
+        set (noping) 1
+        set (nosetup) 1
+        set (nosetuptestbed) 1
+        set (nostaload) 1
+    }
+
+    # Setup email option if necessary. UTF email utilities will 
+    # set default to your username as necessary.
+    if {$(email) == ""} {
+        # Check for utf config file email default
+        if {[info exists UTF::email_list]} {
+            set (email) "$UTF::email_list"
+        }
+    }
+
+    # Environment variables can alter the defaults for noapload & nostaload
+    if {[info exists env(UTF_debug_noapload)] && $env(UTF_debug_noapload) == 1} {
+        set (noapload) 1
+    }
+    if {[info exists env(UTF_debug_nostaload)] && $env(UTF_debug_nostaload) == 1} {
+        set (nostaload) 1
+    }
+    # puts "email=$(email) noapload=$(noapload) nostaload=$(nostaload)"
+    # parray "" ;# displays unnamed array of calling options
+
+    # If config file has a default router, load it up as long as there was
+    # no corresponding command line option set.
+    if {[info exists UTF::rtrdef] && $(rtrdef) == ""} {
+        set (rtrdef) $UTF::rtrdef
+    }
+    # puts "rtrdef=$(rtrdef)"
+
+    # Count the number of -connN options currently allowed. If more -connN
+    # options are needed, they will be dynamically detected here and processed.
+    set temp [array names ""]
+    set conn_max -1
+    foreach item $temp { 
+        if {[string match -nocase *conn* $item]} {
+            incr conn_max
+        }
+    }
+    # puts "conn_max=$conn_max temp=$temp"
+
+    # Keep track of any connection lists found anywhere. Command line -connN
+    # lists take precedance over config file variables.
+    set conn_lists no
+    for {set i 0} {$i <= $conn_max} {incr i} {
+        if {$(conn$i) != ""} {
+            set conn_lists yes
+
+        } else {
+            # Use catch/set to cycle thru the config file UTF::connN variables.
+            set catch_resp [catch "set UTF::conn$i" catch_msg]
+            # puts "i=$i catch_resp=$catch_resp catch_msg=$catch_msg"
+            if {$catch_resp == 0} { 
+                set (conn$i) $catch_msg
+                set conn_lists yes
+            }
+        }
+        # puts "conn$i=$(conn$i)"
+    }
+
+    # Get testbed info.
+    set ::UTF::trailer_info [UTF::setup_testbed_info $(email) $(logdir)]
+    UTF::Message LOG "$::localhost" "endpoint_device_list=$::endpoint_device_list"
+
+    # If there are no connection lists specified, then we create a
+    # basic one. If we cant, the remainder of tests will be halted.
+    # set ::router_sta_list "" ;# test code
+    # set ::endpoint_sta_list "" ;# test code
+    if {$conn_lists == "no"} {
+        if {$::endpoint_sta_list == ""} { 
+            error "Sanity.test ERROR: No STA available for tests!"
+        }
+        if {$(rtrdef) != ""} {
+            # Use the specified default Router & all endpoint STAs.
+            set (conn0) "$(rtrdef) $::endpoint_sta_list"
+            set conn_lists yes
+            UTF::Message INFO $::localhost "Default connection list: $(conn0)"
+
+        } else {
+            # Use the first Router & all endpoint STAs.
+            set ::router_sta_list [string trim $::router_sta_list]
+            if {$::router_sta_list == ""} { 
+                error "No Router available for tests!"
+            } else {
+                set (conn0) "[lindex $::router_sta_list 0] $::endpoint_sta_list"
+                set conn_lists yes
+                UTF::Message INFO $::localhost "Default connection list: $(conn0)"
+            }
+        }
+
+        # Remove duplicate objects from the default connection list.
+        set (conn0) [UTF::remove_duplicate_objects $(conn0)]
+        UTF::Message INFO $::localhost "Default connection list: $(conn0)"
+    }
+
+    # Sanity check the contents of the connection lists. This covers the
+    # lists in the config file, the command line lists and default connection
+    # list, if it was created. We also collect the lists into one big string
+    # (not list) for use in trimming the device lists to test.
+    set conn_error 0
+    for {set i 0} {$i <= $conn_max} {incr i} { 
+        if {[UTF::check_connection_list $i $(conn$i) $(softap)] == "ERROR"} {
+            incr conn_error
+        }
+        append composite_conn_str " $(conn$i)" ;# create string, not list
+    } 
+    if {$conn_error != 0} {
+        error "Sanity.test ERROR: Connection list(s) got error(s)"
+    }
+
+    # Trim the list of host devices that will be tested down to match the
+    # superset of the STAs in the connection lists. We dont look at the
+    # STAs in the wan/lan lists, as they are used as needed or not.
+    # puts "composite_conn_str=$composite_conn_str"
+    foreach item "$::endpoint_sta_list $::endpoint_sta_bt_list\
+        $::router_sta_list" {
+
+        # Look for STA item in the composite_conn_str
+        if {[lsearch -exact $composite_conn_str $item] >= 0} {
+            # puts "\n\nitem=$item found in superset"
+        } else {
+
+            # STA not found, remove STA from list of items to test
+            # puts "\n\nitem=$item not in superset STA list"
+            UTF::remove_test_item $item
+        }
+    }
+
+    # With advent of SoftAP, we need to ensure the AP items are in the 
+    # ::router_sta_list, so that they get tagged with desired rtrtag,
+    # not the statag.
+    for {set i 0} {$i <= $conn_max} {incr i} {
+        set ap [lindex $(conn$i) 0]
+        set ap [string trim $ap]
+        # puts "(conn$i)=$(conn$i) ap=$ap"
+        if {$ap != "" && [lsearch -exact $::router_sta_list $ap] < 0} {
+            # This must be a SoftAP item, move to ::router_list
+            # puts "Adding ap=$ap to ::router_sta_list"
+            append ::router_sta_list " $ap"
+            set j [lsearch $::endpoint_sta_list $ap]
+            if {$j >= 0} {
+                # puts "Deleting ap=$ap from ::endpoint_sta_list"
+                set ::endpoint_sta_list [lreplace $::endpoint_sta_list $j $j]
+            }
+            set host [$ap cget -host]
+            set name [$host cget -name]
+            # puts "Adding name=$name to ::router_device_list"
+            append ::router_device_list " $name"
+            set j [lsearch $::endpoint_device_list $name]
+            if {$j >= 0} {
+                # puts "Deleting name=$name from ::endpoint_device_list"
+                set ::endpoint_device_list [lreplace $::endpoint_device_list $j $j]
+            }
+        }
+    }
+
+    UTF::Message LOG "$::localhost" "\n\n\nendpoint_device_list=$::endpoint_device_list"
+    UTF::Message LOG "$::localhost" "endpoint_sta_list=$::endpoint_sta_list"
+    UTF::Message LOG "$::localhost" "router_device_list=$::router_device_list"
+    UTF::Message LOG "$::localhost" "router_sta_list=$::router_sta_list\n\n\n"
+
+    # Look for variable attenuator. DEPRACATED!
+    set (va) [string trim $(va)]
+    if {$(va) == ""} {
+        set va_list [UTF::get_names_values UTF::Aeroflex]
+        set (va) [lindex $va_list 0] ;# use first one found
+        # puts "found va_list=$va_list default (va)=$(va)"
+    }
+
+    # Validate variable attenuator name. DEPRACATED!
+    if {$(va) != ""} {
+        UTF::Message LOG "$::localhost" "Checking variable attenuator: $(va)"
+        set resp [UTF::check_host_type $(va) Aeroflex AeroflexDirect]
+        if {$resp == 0} {
+            error "ERROR: $(va) not type Areoflex AeroflexDirect"
+        }
+    }
+
+    # Look for attenuator group default, the preferred new way.
+    set (attngrp) [string trim $(attngrp)]
+    if {$(attngrp) == ""} {
+        # We prefer ALL, if available, for the default.
+        if {[lsearch -exact $::attn_grp_list ALL] >= 0} {
+            set (attngrp) ALL
+        } else {
+            # ALL is not available, use first one found.
+            set (attngrp) [lindex $::attn_grp_list 0]
+        }
+        # puts "found attn_grp_list=$::attn_grp_list default (attngrp)=$(attngrp)"
+    }
+
+    # Validate attenuator group.
+    if {$(va) != ""} {
+        UTF::Message LOG "$::localhost" "Checking attenuator group: $(attngrp)"
+        set resp [eval UTF::check_host_type $(attngrp) $::attn_grp_type_list]
+        if {$resp == 0} {
+            error "ERROR: $(attngrp) not one of type: $::attn_grp_type_list"
+        }
+    }
+
+    # In case of conflicting options, make nosniffer override sniffer.
+    if {$(nosniffer)} {
+        set (sniffer) ""
+    }
+
+    # Validate sniffer name.
+    if {$(sniffer) != ""} {
+        UTF::Message LOG "$::localhost" "Checking sniffer: $(sniffer)"
+        set resp [UTF::check_host_type $(sniffer) Sniffer]
+        if {$resp == 0} {
+            error "ERROR: $(sniffer) not type Sniffer"
+        }
+    }
+
+    # The first time a different UTF testbed is used, you need to go through
+    # the authorization process for each device that has a login process.
+    # This option makes it easier for the end user.
+    if {$(auth)} { 
+        UTF::auth_devices
+    }
+
+    # Once in a while the testbed needs to be updated by running the
+    # setup method on all devices. This option makes it easier for the
+    # end user.
+    if {$(setup)} { 
+        UTF::setup_devices
+    }
+
+    # Setup build info for routers / STAs
+    set buildfinderror [UTF::setup_build_info "$(rtrtrx)" "$(rtrtag)" "$(rtrdate)"\
+        "$(statag)" "$(stadate)" "$(noapload)" "$(nostaload)" summaryinfo "" ""\
+        "$(ext)" "$(stabin)" "$(btcgr)" "$(windhdbin)" "$(stadhd)" "$(useobjectsasis)"\
+        "$(dhdtag)"]
+
+    # Set email subject & report title.
+    set email_subject [UTF::setup_email_subject $(title)]
+
+    # Main code body that starts html summary report and runs tests.
+    # puts "UTF::SummaryDir=$UTF::SummaryDir summaryinfo=$summaryinfo\
+    #    email_subject=$email_subject"
+
+    # Ensure that we always graph at least all of the performance data
+    # that we collect on this test run. If we dont, then you get a graph
+    # of the last 30 samples and the previous (perfloop - 30) samples are
+    # NOT graphed, which is extremely unhelpful.
+    if {$(history) < $(perfloop)} {
+        set (history) $(perfloop)
+    }
+
+    # If requested, dont save the performance results in the cache files.
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    # Log testbed info. Although the trailer / testbed info is added to the
+    # end of the summary web page, for development, a lot of the time the
+    # script is deliberately aborted before this occurs. Logging the data
+    # now ensures you can go see the data on your screen or the general log
+    # file.
+    UTF::Message INFO "" "$::UTF::trailer_info"
+
+    UTF::WrapSummary $UTF::SummaryDir "$email_subject" "$summaryinfo" "$(email)" {
+
+        # Add a web link to the test.log file
+        UTF::Try "Link to test.log" {
+            return "html: <a href=\"./test.log\">test.log</a>"
+        }
+
+        # Log key lists, etc.
+        UTF::Message LOG "$::localhost" "email_subject=$email_subject"
+        UTF::Message LOG "$::localhost" "endpoint_device_list=$::endpoint_device_list"
+        UTF::Message LOG "$::localhost" "endpoint_sta_list=$::endpoint_sta_list"
+        UTF::Message LOG "$::localhost" "router_device_list=$::router_device_list"
+        UTF::Message LOG "$::localhost" "router_sta_list=$::router_sta_list"
+
+        # Create a high level error entry on the summary web page for each
+        # host device/sta that will not be tested due to lack of a suitable build.
+        # We also remove the host device/STAs from the list of items to test.
+        if {$buildfinderror != ""} {
+            foreach {device sta} $buildfinderror {
+                UTF::Try "Find build for: $sta" {
+                    set name [$device cget -name]
+                    UTF::Message ERROR $name "No build found for device=$device sta=$sta"
+                    UTF::remove_test_item $sta
+                    error "no build found"
+                }
+            }
+        }
+
+        # If requested, log all the environment variables. This is useful
+        # for sorting out issues with cron jobs.
+        if {$(showenv)} {
+            UTF::Try "Environment variables" {
+                set env_names [array names env]
+                set env_names [lsort $env_names]
+                foreach item $env_names {
+                    UTF::Message INFO "$::localhost" "env($item)=$env($item)"
+                }
+            }
+        }
+
+        # Reboot hosts in testbed as needed. Default is to check for
+        # unresponsive hosts and reboot only the unresponsive ones.
+        if {!$(nocheck)} {
+            UTF::Try "RebootTestbed full=$(full)" {
+                # Getopts doesnt like null options, so we have to work 
+                # around this.
+                if {$(full)} {
+                    RebootTestbed -full -retry $(retry)
+                } else {
+                    RebootTestbed -retry $(retry)
+                }
+            }
+        }
+
+        # Drop any unresponsive hosts from the list of items to test.
+        if {[info exists ::unresponsive_hosts]} {
+            foreach host $::unresponsive_hosts {
+                UTF::Message ERROR $::localhost "$host is not responding,\
+                    dont run any more tests on this host"
+                UTF::remove_test_item $host
+            }
+        }
+
+        # Disassociate all STAs if required.
+        if {!$(nosetup) && $::endpoint_sta_list != ""} {
+            UTF::Try "Disassociate STAs" {
+                foreach STA $::endpoint_sta_list {
+                    set catch_resp [catch {$STA wl disassoc} catch_msg]
+                }
+            }
+        }
+
+        # Check disk utilization of all STA to be tested.
+        UTF::check_disk_usage "$::endpoint_sta_list $::router_sta_list $::sniffer_sta_list"
+
+        # Setup testbed. Some users may turn off AP radios!!!
+        # NB: Dont use nosetup here, it messes up for RvR jobs that use -nosetup.
+        if {!$(nosetuptestbed)} {
+            UTF::setup_testbed
+        }
+
+        # Reset all BT devices in testrig, if any. If you dont do this, your
+        # Coex WLAN device throughput can be only 50% of what you expect.
+        if {!$(nobtreset)} {
+            UTF::Try "Reset all BT devices" {
+                UTF::reset_all_bt_devices
+            }
+        }
+
+        # Save the list of items that will be tested further. Other scripts
+        # may reset these lists, which can have undesirable effects when we
+        # check the testbed again at the very end of this script. Although 
+        # some devices may fail to load, we want to keep them on this list
+        # to reboot and perform scandump analysis at the very end of the script.
+        set local_endpoint_device_list $::endpoint_device_list
+        set local_lan_peer_sta_list $::lan_peer_sta_list
+        set local_wan_peer_sta_list $::wan_peer_sta_list
+
+        # Load the STAs if required.
+        if {!$(nostaload) && $::endpoint_sta_list != ""} {
+            UTF::Try "Load STAs" {
+                foreach STA $::endpoint_sta_list {
+                    # Dont load Sniffer. We use the existing driver.
+                    if {[UTF::check_host_type $STA Sniffer]} {
+                        UTF::Message LOG "$STA" "UTF::setup_build_info Skipping Sniffer $STA"
+                        continue
+                    }
+                    UTF::Try "Load STA $STA" {
+                        UTF::load_sta_retry $STA
+                    }
+                }
+            }
+        }
+
+        # Some tests need to be given specific channels to use.
+        set channel [lindex $(chanspec) 0]
+        if {$channel == ""} {
+            set channel 6
+        }
+        set channel2 [lindex $(chanspec2) 0]
+        if {$channel2 == ""} {
+            set channel2 6l
+        }
+
+        # Load the Routers if required, set default channel
+        if {!$(noapload) && $::router_sta_list != ""} {
+            UTF::Try "Load Routers" {
+                foreach Router $::router_sta_list {
+                    # Check if Router is real AP or SoftAP
+                    if {[eval UTF::check_host_type $Router $::ap_type_list]} {
+                        # Real AP
+                        UTF::Try "Load Router $Router" {
+                            UTF::load_rtr_retry $Router
+                        }
+                        UTF::Try "Router $Router CH=$channel" {
+                            APChanspec $Router $channel
+                        }
+
+                    } else {
+                        # SoftAP
+                        UTF::Try "Load SoftAP $Router" {
+                            UTF::load_sta_retry $Router
+                        }
+                        UTF::Try "SoftAP $Router CH=$channel" {
+                            APChanspec $Router $channel
+                        }
+                    }
+                }
+            }
+        }
+
+        # Collect AP/STA info in the log, including sniffer, if any.
+        if {!$(nocollect)} {
+            UTF::Try "Collecting defaults, info" {
+                foreach STA "$::router_sta_list $::endpoint_sta_list $::sniffer_sta_list" {
+                    UTF::Try "$STA defaults, info" {
+                        UTF::Message INFO "$::localhost" "Collecting defaults, nrate, etc for: $STA"
+                        foreach cmd {PM frameburst radio rssi nrate rate} {
+                            set catch_resp [catch "$STA wl $cmd" catch_msg]
+                        }
+                        set catch_resp [catch "$STA whatami" catch_msg]
+                        if {$catch_resp == 0} {
+                            UTF::Message INFO "$::localhost" "whatami: $catch_msg"
+                            return "$catch_msg"
+                        }
+                    }
+                }
+            }
+        }
+
+        # Update the report header table with actual OS & hw versions.
+        set summaryinfo [UTF::update_report_hwinfo $summaryinfo]
+
+        # Update report title with actual TAG numbers
+        eval UTF::update_report_title $::router_sta_list $::endpoint_sta_list
+
+        # Now adjust the connection lists to remove the devices that
+        # did not find builds or did not load. This avoids wasting time
+        # testing devices that are not usable.
+        UTF::Message LOG "$::localhost" "endpoint_device_list=$::endpoint_device_list\
+            endpoint_sta_list=$::endpoint_sta_list"
+        UTF::Try "Adjusting connection lists" {
+            set aggregate_list ""
+            for {set i 0} {$i <= $conn_max} {incr i} {
+                set temp [UTF::update_connection_list $i $(conn$i)]
+                set (conn$i) $temp
+                append aggregate_list $temp
+            }
+
+            # Are there any connection lists left?
+            set aggregate_list [string trim $aggregate_list]
+            if {$aggregate_list == ""} {
+                error "Nothing left to test."
+            }
+        }
+
+        # Outside the UTF::Try block, an error becomes a Framework error
+        # and halts the remaining tests.
+        UTF::Message LOG "$::localhost" "endpoint_device_list=$::endpoint_device_list\
+            endpoint_sta_list=$::endpoint_sta_list"
+        if {$aggregate_list == ""} {
+            error "Halting remaining tests."
+        }
+
+        # If required, reload STAs & Routers, associate the AP and STAS.
+        # Device initialization commands defined here. Many STA defaults do not include these.
+        set cmd_list {{%S wl down} {%S wl mimo_bw_cap 1} {%S wl radio on} {%S wl up} {%S wl PM 0}}
+        if {!$(nosetup)} {
+            # Cycle thru each connection list.
+            UTF::Try "Conditional Reload STAs/AP, Open Connections" {
+                for {set i 0} {$i <= $conn_max} {incr i} {
+                    set temp $(conn$i)
+                    set rtr [lindex $temp 0]
+                    set sta [lrange $temp 1 end]
+                    UTF::Message INFO "" "Conditional Reload STAs/AP, Open Connections i=$i rtr=$rtr sta=$sta"
+                    if {$rtr == "" || $sta == ""} {
+                        continue
+                    }
+
+                    # If we did not explicitly load the STA drivers, then reload them
+                    if {$(nostaload) && !$(noreload)} { 
+                        foreach item $sta {
+                            UTF::Try "Reload $item" {
+                                UTF::reload_sta $item
+                            }
+                        }
+                    }
+
+                    # If we did not explicitly load the router, then reboot it
+                    # and set default channel.
+                    if {$(noapload) && !$(noreload)} {
+                        if {[eval UTF::check_host_type $rtr $::ap_type_list]} {
+                            # Real AP
+                            UTF::Try "Reboot Router $rtr" {
+                                UTF::reload_rtr $rtr
+                            }
+                            UTF::Try "Router $rtr CH=$channel" {
+                                APChanspec $rtr $channel
+                            }
+                        } else {
+                            # SoftAP
+                            UTF::Try "Reload SoftAP $rtr" {
+                                UTF::reload_sta $rtr
+                            }
+                            UTF::Try "SoftAP $rtr CH=$channel" {
+                                APChanspec $rtr $channel
+                            }
+                        }
+                    }
+
+                    # Common device initialization.
+                    UTF::Try "Device initialization" {
+                        foreach item "$rtr $sta" {
+                            UTF::init_device $item $cmd_list
+                        }
+                    }
+
+                    # Associate STAs, open connections. Althougth the
+                    # ConnectAPSTA script will join multiple STAs at once
+                    # it has a VERY NASTY habit of stopping on the first
+                    # error. So if one driver is unresponsive, it doesnt
+                    # even bother trying the remaining STAs. This can lead
+                    # to all sorts of false failures because the other STAs
+                    # arent even connected. So we run the ConnectAPSTA 
+                    # separately for each STA in the list!
+                    foreach item $sta {
+                        UTF::Try "Open Connection $rtr $item" {
+                            UTF::open_connection_retry $rtr $item
+                        }
+                    }
+                }
+            }
+        }
+
+        # Now adjust the connection lists to remove the devices that
+        # did not associate. This avoids wasting time testing devices
+        # that are not usable.
+        UTF::Try "Adjusting connection lists" {
+            set aggregate_list ""
+            for {set i 0} {$i <= $conn_max} {incr i} {
+                set temp [UTF::update_connection_list $i $(conn$i)]
+                set (conn$i) $temp
+                append aggregate_list $temp
+            }
+
+            # Are there any connection lists left?
+            set aggregate_list [string trim $aggregate_list]
+            if {$aggregate_list == ""} {
+                error "Nothing left to test."
+            }
+        }
+
+        # Outside the UTF::Try block, an error becomes a Framework error
+        # and halts the remaining tests.
+        UTF::Message LOG "$::localhost" "endpoint_device_list=$::endpoint_device_list"
+        if {$aggregate_list == ""} {
+            error "Halting remaining tests."
+        }
+
+        # Do ping tests if required. Use all connection lists. Add in
+        # the lan/wan peer devices, if any for each Router.
+        if {!$(noping)} {
+            UTF::Try "Ping Connectivity Test" {
+                for {set i 0} {$i <= $conn_max} {incr i} {
+
+                    # Parse connection list, skip null lists.
+                    set temp $(conn$i)
+                    set rtr [lindex $temp 0]
+                    set sta [lrange $temp 1 end]
+                    UTF::Message INFO "" "Ping connectivity i=$i rtr=$rtr sta=$sta"
+                    if {$rtr == "" || $sta == ""} {
+                        continue
+                    }
+
+                    # Get router lan/wan peers, if any. Generate pairs to ping.
+                    if {[eval UTF::check_host_type $rtr $::ap_type_list]} {
+                        # Real AP
+                        set host [$rtr cget -host] ;# finds parent object
+                        set lan [$host cget -lanpeer]
+                        set lan [lindex $lan 0];# in case there is more than one
+                        set wan [$host cget -wanpeer]
+                        set wan [lindex $wan 0];# in case there is more than one
+                    } else {
+                        # SoftAP doesnt have lan/wan peers. 
+                        set lan ""
+                        set wan ""
+                    }
+                    if {$(nowan)} {
+                        set wan ""
+                    }
+                    UTF::Message INFO "" "lan=$lan wan=$wan"
+                    set ping_pairs [UTF::Combinations 2 "$rtr $sta $lan $wan"] ;# includes Router/SoftAP
+                    UTF::Message INFO "" "Ping connectivity i=$i ping_pairs=$ping_pairs"
+
+                    # Ping each pair of stas in each direction
+                    foreach pair $ping_pairs {
+                        set sta0 [lindex $pair 0]
+                        set sta1 [lindex $pair 1]
+                        UTF::Try "Ping $sta0 <--> $sta1" {
+                            # NB: On the router, the ping command is very limited
+                            # and only sends 1 packet. To send more than 1 packet
+                            # you would need to add a loop here.
+                            # Send pings in each direction.
+                            $sta0 ping $sta1
+                            $sta1 ping $sta0
+                        }
+                    }
+                }
+             }
+         }
+
+         # Do performance tests if required. Use only endpoints. Add in
+         # the lan/wan peer devices, if any for each Router.
+         # NB: The Router doesnt run the iperf tool, so it is not included
+         # in the pairs tested here.
+         if {!$(noperf)} {
+
+             # Setup parameters for controlchart / iperf
+             set iperf_total_sec [expr double($(perftime))]
+             if {$iperf_total_sec < 2.5} {
+                 set iperf_total_sec 2.5
+             }
+             set iperf_sample_size [expr int($(perfsize))]
+             if {$iperf_sample_size < 1} {
+                 set iperf_sample_size 5
+             }
+             set iperf_interval_sec [expr double($iperf_total_sec / $iperf_sample_size)]
+
+             UTF::Try "Performance Test, duration=$iperf_total_sec seconds, perfloop=$(perfloop)" {
+
+                 # Setup stream needed for control chart keys
+                 set stream [UTF::get_stream_name end]
+
+                 for {set i 0} {$i <= $conn_max} {incr i} {
+
+                    # Parse connection list, skip null lists.
+                    set temp $(conn$i)
+                    set rtr [lindex $temp 0]
+                    set sta [lrange $temp 1 end]
+                    UTF::Message INFO "" "Performance i=$i rtr=$rtr sta=$sta"
+                    if {$rtr == "" || $sta == ""} {
+                        continue
+                    }
+
+                    # Get router lan/wan peers, if any. Generate pairs to performance test.
+                    if {[eval UTF::check_host_type $rtr $::ap_type_list]} {
+                        # Real AP
+                        set host [$rtr cget -host] ;# finds parent object
+                        set lan [$host cget -lanpeer]
+                        set lan [lindex $lan 0];# in case there is more than one 
+                        set wan [$host cget -wanpeer]
+                        set wan [lindex $wan 0];# in case there is more than one
+                    } else {
+                        # SoftAP doesnt have lan/wan peers.
+                        # But we want to test against SoftAP, so lan=SoftAP
+                        set lan $rtr
+                        set wan ""
+                    }
+                    if {$(nowan)} {
+                        set wan ""
+                    }
+                    UTF::Message INFO "" "lan=$lan wan=$wan"
+                    set perf_pairs [UTF::Combinations 2 "$sta $lan $wan"] ;# Includes SoftAP, excludes Router
+
+                    # Including script name in the control chart keys keeps
+                    # the historical data specific to this script. However the
+                    # value of argv0 depends on who loaded who and cannot be
+                    # relied on to give the name of this particular script.
+                    # Hence we hard code the name of the script. If someone
+                    # copies this script they will have to manually change the
+                    # script name here...
+                    set keys "$stream $rtr Sanity.test"
+                    if {$channel != "11"} {
+                        append keys " Ch$channel"
+                    }
+                    UTF::Message INFO "" "Performance i=$i perf_pairs=$perf_pairs\
+                        keys=$keys iperf_interval_sec=$iperf_interval_sec\
+                        iperf_sample_size=$iperf_sample_size"
+
+                    # Performance test each pair of sta in each direction & bidirectional.
+                    foreach pair $perf_pairs {
+                        set sta0 [lindex $pair 0]
+                        set sta1 [lindex $pair 1]
+
+                        UTF::Try "Performance Test CH=$channel $sta0 --> $sta1" {
+                            controlchart [list $sta0 $sta1] -key $keys -i $iperf_interval_sec -s $iperf_sample_size -min $(min) -max $(max) -loop $(perfloop) -history $(history) -window $(window)
+                        }
+                        UTF::Try "Performance Test CH=$channel $sta0 <-- $sta1" {
+                            controlchart [list $sta1 $sta0] -key $keys -i $iperf_interval_sec -s $iperf_sample_size -min $(min) -max $(max) -loop $(perfloop) -history $(history) -window $(window)
+                        }
+                        UTF::Try "Performance Test CH=$channel $sta0 <-> $sta1" {
+                            controlchart [list $sta1 $sta0 $sta0 $sta1] -key $keys -i $iperf_interval_sec -s $iperf_sample_size -min $(min) -max $(max) -loop $(perfloop) -history $(history) -window $(window)
+                        }
+                    }
+                }
+            }
+        }
+
+        # Disassociate STAs if appropriate. If there are no further tests
+        # being run, leave the STAs associated so user can manually use
+        # the test rig. If more automated tests will be run, disassociate
+        # STAs to ensure that each test only have one AP-STA pair active
+        # at any time. Each subsequent test script is expected to do its
+        # own STA reload and association to the AP as needed.
+        if {!$(noembed) || !$(norvr) || !$(nofilter) || !$(nocompat) || !$(noqtp) || $(dvtwl)} {
+            UTF::Try "Disassociate STAs" {
+                foreach STA $::endpoint_sta_list {
+                    set catch_resp [catch {$STA wl disassoc} catch_msg]
+                }
+            }
+        }
+
+        # Ensure branch has a value. Embedded tests need a default.
+        set (branch) [string trim $(branch)]
+        set (statag) [string trim $(statag)]
+        if {$(branch) == ""} {
+            if {$(statag) != ""} {
+                set (branch) $(statag)
+            } else {
+                set (branch) [UTF::get_stream_name end]
+            }
+        }
+
+        # Do embedded tests if required.
+        if {!$(noembed)} {
+
+            # Run the embedded tests against each STA and corresponding router.
+            for {set i 0} {$i <= $conn_max} {incr i} {
+
+                # Parse connection list, skip null lists.
+                set temp $(conn$i)
+                set rtr [lindex $temp 0]
+                set sta [lrange $temp 1 end]
+                UTF::Message INFO "" "Embedded i=$i rtr=$rtr sta=$sta"
+                if {$rtr == "" || $sta == ""} {
+                    continue
+                }
+
+                # Test each STA
+                foreach item $sta {
+
+                    # Run the StaNightly test for this specific Router & STA.
+                    set item_os [UTF::check_host_os $item]
+                    set item_notes [UTF::get_build_notes [$item cget -image]]
+                    regsub -all -nocase {&nbsp;} $item_notes "" item_notes
+                    UTF::Try "StaNightly $rtr <--> $item $item_os $item_notes" {
+                        UTF::Message INFO "$::localhost" "StaNightly using loop=$(loop)"
+                        # NB: We pass both the -statag & -branch options to allow
+                        # the script to recognize which stream we are testing. This
+                        # is used by the control chart script to generate keys
+                        # correctly so that the historical data for each stream 
+                        # is kept in separate files. If we dont do this, the data
+                        # for multiple streams will end up in one file, giving
+                        # really weird looking charts.
+
+                        # NB: SigBatch usually turns on -short. So we put -short at
+                        # at lower priority than -15min or -15min20.
+                        if {$(15min)} {
+                            # Run 15-minute stress tests for BW=40 & FB=1 only.
+                            StaNightly -ap $rtr -sta $item -nostaload -nostareload -noapload -norestore -loop 1       -perfloop 90          -history 90         -statag $(statag) -branch $(branch) -chanspec $(chanspec) -nounload -nosetuptestbed -noperf20 -noibss -nodpt -noscan -nojoin -nopm1 -nopm2 -nochannels -nobtests -nofrag -nowep -noshared -notkip -noaes -nocache -nofb0 -nobighammer
+                        } elseif {$(15min20)} {
+                            # Run 15-minute stress tests for BW=20 & FB=1 only.
+                            StaNightly -ap $rtr -sta $item -nostaload -nostareload -noapload -norestore -loop 1       -perfloop 90          -history 90         -statag $(statag) -branch $(branch) -chanspec $(chanspec) -nounload -nosetuptestbed -noperf40 -noibss -nodpt -noscan -nojoin -nopm1 -nopm2 -nochannels -nobtests -nofrag -nowep -noshared -notkip -noaes -nocache -nofb0 -nobighammer
+                        } elseif {$(tdls)} {
+                            # Do only TDLS/DPT tests
+                            StaNightly -ap $rtr -sta $item -nostaload -nostareload -noapload -norestore -loop $(loop) -perfloop $(perfloop) -history $(history) -statag $(statag) -branch $(branch) -chanspec $(chanspec) -nounload -nosetuptestbed -noperf   -noibss        -noscan -nojoin -nopm1 -nopm2 -nochannels -nobtests -nofrag -nowep -noshared -notkip -noaes          -nofb0 -nobighammer
+                        } elseif {$(short)} {
+                            # Do subset of StaNightly tests
+                            StaNightly -ap $rtr -sta $item -nostaload -nostareload -noapload -norestore -loop $(loop) -perfloop $(perfloop) -history $(history) -statag $(statag) -branch $(branch) -chanspec $(chanspec) -nounload -nosetuptestbed                                                        -nochannels -nobtests -nofrag -nowep -noshared -notkip -noaes                 -nobighammer
+                        } else {
+                            # Do all StaNightly tests
+                            StaNightly -ap $rtr -sta $item -nostaload -nostareload -noapload -norestore -loop $(loop) -perfloop $(perfloop) -history $(history) -statag $(statag) -branch $(branch) -chanspec $(chanspec) -nounload -nosetuptestbed
+                        }
+                    }
+                }
+            }
+        }
+
+        # Do RvRNightly1 tests if required and variable attenuator is available.
+        if {!$(norvr) && $(attngrp) != ""} {
+
+            # Process each connection list.
+            for {set i 0} {$i <= $conn_max} {incr i} {
+
+                # Parse connection list, skip null lists.
+                set temp $(conn$i)
+                set rtr [lindex $temp 0]
+                set sta [lrange $temp 1 end]
+                UTF::Message INFO "" "Performance i=$i rtr=$rtr sta=$sta"
+                if {$rtr == "" || $sta == ""} {
+                    continue
+                }
+
+                # Do RvR tests for each sta in the connection list with the rtr.
+                foreach item $sta {
+
+                    UTF::Try "RvRNightly1 $rtr <-> $item" {
+                        # Not all STA use PM=0 as default, so enforce PM=0.
+                        catch {$item wl PM 0}
+
+                        # Compose command for RvR tests.
+                        # NB: Dont use the -noinit option here. That will prevent frameburst
+                        # from being set correctly, also mimo_bw_cap for 2G40 tests.
+                        set cmd "RvRNightly1 -ap $rtr -sta $item -va \"$(va)\" -attngrp $(attngrp) -attnstep $(attnstep) -chan5G80 \"$(chan5G80)\" -chan5G40 \"$(chan5G40)\" -chan5G20 \"$(chan5G20)\" -chan2G40 \"$(chan2G40)\" -chan2G20 \"$(chan2G20)\" -history $(history) -intattn2G20 \"$(intattn2G20)\" -intattn2G40 \"$(intattn2G40)\" -intattn5G20 \"$(intattn5G20)\" -intattn5G40 \"$(intattn5G40)\" -intattn5G80 \"$(intattn5G80)\" -intattnoem \"$(intattnoem)\" -intchan2G20 \"$(intchan2G20)\" -intchan2G40 \"$(intchan2G40)\" -intchan5G20 \"$(intchan5G20)\" -intchan5G40 \"$(intchan5G40)\" -intchan5G80 \"$(intchan5G80)\" -intchanoem \"$(intchanoem)\" -intnrate \"$(intnrate)\" -intrate \"$(intrate)\" -intsta \"$(intsta)\" -inttype \"$(inttype)\" -intwl2G20 \"$(intwl2G20)\" -intwl2G40 \"$(intwl2G40)\" -intwl5G20 \"$(intwl5G20)\" -intwl5G40 \"$(intwl5G40)\" -intwl5G80 \"$(intwl5G80)\" -intwloem \"$(intwloem)\" -intgap \"$(intgap)\" -intsize \"$(intsize)\" -oemband \"$(oemband)\" -window $(window) -perfsize $(perfsize) -perftime $(perftime) -udp $(udp) -udpopt \"$(udpopt)\" -steplist \"$(steplist)\" -steploop \"$(steploop)\" -pingmax \"$(pingmax)\"  -min 0 -max $(max) -security $(security) -noapload -nostaload -norestore -nosetup -nosetuptestbed -nounload -edithooks -stopslowrampup -fb1 -trenderrors -nocompositemainpage -intquiet"
+                        if {$(sniffer) != ""} {
+                           append cmd " -sniffer $(sniffer)"
+                        }
+                        # NB: To get the actual options the RvR script will understand,
+                        # We need to append the text string, not the value in $().
+                        if {$(downstreamonly)} {
+                           append cmd " -downstreamonly"
+                        }
+                        if {$(fastrampup)} {
+                           append cmd " -fastrampup"
+                        }
+                        if {$(fullrampup)} {
+                           append cmd " -fullrampup"
+                        }
+                        if {$(intgraph)} {
+                           append cmd " -intgraph"
+                        }
+                        if {$(no5G40rvr)} {
+                           append cmd " -no5G40"
+                        }
+                        if {$(no5G20rvr)} {
+                           append cmd " -no5G20"
+                        }
+                        if {$(no2G40rvr)} {
+                           append cmd " -no2G40"
+                        }
+                        if {$(no2G20rvr)} {
+                           append cmd " -no2G20"
+                        }
+                        if {$(nobtreset)} {
+                           append cmd " -nobtreset"
+                        }
+                        if {$(nocyclervr)} {
+                           append cmd " -nocyclervr"
+                        }
+                        if {$(nomalloc)} {
+                           append cmd " -nomalloc"
+                        }
+                        if {$(nopretest)} {
+                           append cmd " -nopretest"
+                        }
+                        if {$(nosniffer)} {
+                           append cmd " -nosniffer"
+                        }
+                        if {$(rampdownonly)} {
+                           append cmd " -rampdownonly"
+                        }
+                        if {$(rampuponly)} {
+                           append cmd " -rampuponly"
+                        }
+                        if {$(refreshaddrasneeded)} {
+                           append cmd " -refreshaddrasneeded"
+                        }
+                        if {$(softap)} {
+                           append cmd " -softap"
+                        }
+                        if {$(titleap)} {
+                           append cmd " -titleap"
+                        }
+                        if {$(upstreamonly)} {
+                           append cmd " -upstreamonly"
+                        }
+                        UTF::Message LOG "$::localhost" "RvR cmd=$cmd"
+
+                        # Run the tests
+                        eval $cmd
+                    }
+                } 
+            } 
+        }
+
+        # If necessary, run the BTAMP QTP tests listed in the config file.
+        # The trick here is to run only the DUT that match the
+        # endpoint_device_list. This allows us to test selected triplets
+        # of devices while ignoring other triplets. The staggered schedule
+        # of builds makes this a requirement.
+        if {!$(noqtp) && [info exists ::btamp_qtp_tests]} {
+            # Load the BTAMP QTP tests
+            UTF::Message LOG "" "Loading QTP script ::btamp_qtp_tests=$::btamp_qtp_tests"
+            package require UTF::Test::BtampQtp
+            UTF::Message LOG "" "Done load QTP script"
+
+            # Process each item in test list.
+            foreach item $::btamp_qtp_tests {
+
+                # Each test item contains the dut, ref1, ref2 & title text
+                regsub {::} $item "" item
+                set dut [lindex $item 0]
+                set ref1 [lindex $item 1]
+                set ref2 [lindex $item 2]
+                set title_text [lindex $item 3]
+
+                # If the DUT is not on the endpoint_device_list, we
+                # skip that triplet. 
+                if {[lsearch $::endpoint_device_list $dut] < 0} {
+                    UTF::Message LOG "" "BTAMPQTP skipping triplet $dut\
+                        $ref1 $ref2 $title_text, $dut not in\
+                        endpoint_device_list=$::endpoint_device_list"
+                    continue
+                }
+
+                UTF::Try "BTAMP QTP DUT=$dut $title_text" {
+                    # Ensure hosts are responding.
+                    UTF::Try "RebootTestbed full=0" {
+                        RebootTestbed -hostlist "$dut $ref1 $ref2 $::endpoint_device_list"
+                    }
+
+                    # Run BTAMPQTP suite.
+                    btampqtp -dut $dut -ref1 $ref1 -ref2 $ref2 -tc $(tc)
+
+                    # Ensure hosts are still responding.
+                    UTF::Try "RebootTestbed full=0" {
+                        RebootTestbed -hostlist "$dut $ref1 $ref2 $::endpoint_device_list"
+                    }
+
+                    # Check for failed testcases and rerun them once.
+                    if {[info exists ::tc_fail_list]} {
+                        set ::tc_fail_list [string trim $::tc_fail_list]
+                        if {$::tc_fail_list != ""} {
+                            UTF::Try "Retry of failed testcases: $::tc_fail_list" {
+                               return "See below"
+                            }
+                            # Run BTAMPQTP suite for the failed testcases.
+                            btampqtp -dut $dut -ref1 $ref1 -ref2 $ref2 -tc $::tc_fail_list
+
+                            # Ensure hosts are still responding.
+                            UTF::Try "RebootTestbed full=0" {
+                                RebootTestbed -hostlist "$dut $ref1 $ref2 $::endpoint_device_list"
+                            }
+                        }
+                    }
+                }
+            } 
+        }
+
+        # Collect malloc failure counts from devices that have serial consoles.
+        # The previous tests are supposed to have left the driver loaded. If the
+        # driver is unloaded, the 4315USB folks say the "mu" stats may not be
+        # valid.
+
+        # We need to do the malloc checks before running the pkt_filter tests,
+        # because it deliberately fills the dongle memory, creating lots of
+        # of malloc failures which wont be distinguishable from the real ones
+        # that occured in the previous tests.
+        if {!$(nomalloc)} {
+
+            UTF::Try "Check STA console malloc fail counts" {
+
+                # Check only the STAs for malloc fail counts.
+                for {set i 0} {$i <= $conn_max} {incr i} {
+
+                    # Parse connection list, skip null lists.
+                    set temp $(conn$i)
+                    set rtr [lindex $temp 0]
+                    set sta [lrange $temp 1 end]
+                    UTF::Message INFO "" "Malloc fail count i=$i rtr=$rtr sta=$sta"
+                    if {$rtr == "" || $sta == ""} {
+                        continue
+                    }
+ 
+                    # Check each STA
+                    foreach item $sta {
+                        UTF::Try "$item console malloc fail count" {
+                           UTF::check_rte_mu_output $item ".*malloc.*count:" EQ 0
+                        }
+                    }
+                }
+            }
+        }
+
+        # Do pkt filter dongle tests if required. Use only DHD STAs
+        # whose load image name contains "pktfilter".
+        if {!$(nofilter)} {
+
+            # Get list of DHD STAs using the pktfilter build
+            set dhd_pktfilter_sta ""
+            foreach item $::endpoint_sta_list {
+                if {[$item hostis DHD]} {
+                    set item_notes1 [UTF::get_build_notes [$item cget -image]]
+                    set item_notes2 [UTF::get_build_notes [$item cget -type]]
+                    # puts "item=$item item_notes1=$item_notes1 item_notes2=$item_notes2"
+                    if {[string match -nocase "*pktfilter*" $item_notes1] ||\
+                        [string match -nocase "*pktfilter*" $item_notes2]} {
+                        lappend dhd_pktfilter_sta $item
+                    }
+                }
+            }
+            # puts "dhd_pktfilter_sta=$dhd_pktfilter_sta"
+
+            # Run the pkt filter tests against each STA and corresponding router.
+            for {set i 0} {$i <= $conn_max} {incr i} {
+
+                # Parse connection list, skip null lists.
+                set temp $(conn$i)
+                set rtr [lindex $temp 0]
+                set sta [lrange $temp 1 end]
+                UTF::Message INFO "" "PktFilter i=$i rtr=$rtr sta=$sta"
+                if {$rtr == "" || $sta == ""} {
+                    continue
+                }
+
+                # Use only STAs that are in the dhd_pktfilter_sta list.
+                foreach item $sta {
+                    if {[lsearch -exact $dhd_pktfilter_sta $item] < 0} {
+                        # puts "skipping item=$item"
+                        continue
+                    }
+
+                    # Run the DonglePktFilter test for this specific Router & STA.
+                    set item_os [UTF::check_host_os $item]
+                    set item_notes [UTF::get_build_notes [$item cget -image]]
+                    UTF::Try "DonglePktFilter $rtr <--> $item $item_os $item_notes" {
+                         # Find a lan/wan peer for this router
+                         set lan [$rtr cget -lanpeer]
+                         set lan [lindex $lan 0];# in case there is more than one
+                         # set lan "" ;# test code
+                         if {$lan == ""} {
+                             set lan [$rtr cget -wanpeer]
+                             set lan [lindex $lan 0];# in case there is more than one
+                             if {$lan == ""} {
+                                 error "No lan/wan peer found for $rtr"
+                             }
+                         }
+                         DonglePktFilter -ap $rtr -sta $item -lan $lan -noload
+                    }
+                }
+            }
+        }
+
+        # Do DVT wl tests if explicitly requested.
+        if {$(dvtwl) && !$(nodvtwl)} {
+
+            # Run the DVT wl tests against each STA only. 
+            # Routers are not tested at this time.
+            for {set i 0} {$i <= $conn_max} {incr i} {
+
+                # Parse connection list, skip null lists.
+                set temp $(conn$i)
+                set rtr [lindex $temp 0]
+                set sta [lrange $temp 1 end]
+                UTF::Message INFO "" "DVT wl i=$i rtr=$rtr sta=$sta"
+                if {$rtr == "" || $sta == ""} {
+                    continue
+                }
+
+                UTF::Try "DVT_wl tests" {
+                    DVT_wl -stas "$sta" -nostaload -noaptest
+                }
+            }
+        }
+
+        # If necessary, run the EmbeddedCompatibility tests.
+        if {!$(nocompat)} {
+            for {set i 0} {$i <= $conn_max} {incr i} {
+
+                # Parse connection list, skip null lists.
+                set temp $(conn$i)
+                set rtr [lindex $temp 0]
+                set sta [lrange $temp 1 end]
+                UTF::Message INFO "" "EmbeddedCompatibility wl i=$i rtr=$rtr sta=$sta"
+                if {$rtr == "" || $sta == ""} {
+                    continue
+                }
+
+                UTF::Try "EmbeddedCompatibility" {
+                    EmbeddedCompatibility -aps "$rtr" -stas "$sta" -nosetup -20chan $channel -40chan $channel2 -sniffer $(sniffer)
+                }
+            }
+        }
+
+        # Disassociate STAs if requested.
+        if {$(disassoc)} {
+            UTF::Try "Disassociate STAs" {
+                foreach STA $::endpoint_sta_list {
+                    set catch_resp [catch {$STA wl disassoc} catch_msg]
+                }
+            }
+        }
+
+        # Do optional post test analysis. The "" passes the unnamed options array.
+        UTF::do_post_test_analysis Sanity.test ""
+
+        # Final testbed cleanup. Reboot only the hosts in the testbed that
+        # crashed during the tests that just ran.
+        if {!$(nocheck)} {
+            UTF::Try "RebootTestbed full=0" {
+                # Reset lists of devices we actually tested
+                set ::endpoint_device_list $local_endpoint_device_list
+                set ::lan_peer_sta_list $local_lan_peer_sta_list
+                set ::wan_peer_sta_list $local_wan_peer_sta_list
+                RebootTestbed
+            }
+        }
+
+        # Update the report header table with end test time.
+        set summaryinfo [UTF::update_report_testtime $summaryinfo]
+
+    # End of code block for UTF::WrapSummary
+    }
+}
+	

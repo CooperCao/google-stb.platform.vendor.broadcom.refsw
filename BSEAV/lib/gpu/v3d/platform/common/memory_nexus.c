@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-This is a default implementation of a Nexus platform layer used by V3D.
-This illustrates one way in which the abstract memory interface might be
-implemented. You can replace this with your own custom version if preferred.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "nexus_memory.h"
 #include "nexus_platform.h"
 #include "nexus_graphicsv3d.h"
@@ -307,7 +297,8 @@ static void MemCopy2d(void *context, BEGL_MemCopy2d *params)
    {
       /* as this is a straight 32bit memcpy it actually works for either of the buffer
          formats which dont require format conversion */
-      if (params->format == BEGL_BufferFormat_eA8B8G8R8)
+      if ((params->format == BEGL_BufferFormat_eA8B8G8R8) ||
+          (params->format == BEGL_BufferFormat_eR5G6B5))
          memCopy2d_rgba(data, params);
       else if (params->format == BEGL_BufferFormat_eYV12_Texture)
          memCopy2d_yv12(data, params);
@@ -545,9 +536,19 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
          else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
             data->heapMap.heap = clientConfig.heap[0];
          else
+#ifdef NXCLIENT_SUPPORT
+            /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
             data->heapMap.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+#else
+            data->heapMap.heap = NULL;
+#endif
 
+#ifdef NXCLIENT_SUPPORT
          data->heapMapSecure.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
+#else
+         /* not available in NEXUS_CLIENT_SUPPORT=y mode */
+         data->heapMapSecure.heap = NULL;
+#endif
 #else
          /* If you change this, then the heap must also change in nexus_platform.c
             With refsw NEXUS_OFFSCREEN_SURFACE is the only heap guarenteed to be valid for v3d to use */

@@ -3,8 +3,10 @@
  ******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "glsl_errors.h"
+#include "glsl_safemem.h"
 #include "glsl_ir_shader.h"
 
 void glsl_ssa_shader_term(SSAShader *sh) {

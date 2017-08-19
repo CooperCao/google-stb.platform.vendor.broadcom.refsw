@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,7 @@
 BDBG_MODULE(BXDM_PPTMR);
 
 /* SW7445-2997: added 12.5 -> 20 Hz display rates. */
-const uint32_t BXDM_PPTMR_lutVsyncsPersSecond[BXDM_PictureProvider_MonitorRefreshRate_eMax]=
+const uint32_t BXDM_P_VsyncsPerSecondLUT[BXDM_PictureProvider_MonitorRefreshRate_eMax]=
 {
    60,   /* BXDM_PictureProvider_MonitorRefreshRate_eUnknown */
    7,   /* BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz */
@@ -76,7 +76,7 @@ const uint32_t BXDM_PPTMR_lutVsyncsPersSecond[BXDM_PictureProvider_MonitorRefres
   100,   /* BXDM_PictureProvider_MonitorRefreshRate_e100 */
   120,   /* BXDM_PictureProvider_MonitorRefreshRate_e119_88 */
   120,   /* BXDM_PictureProvider_MonitorRefreshRate_e120 */
-}; /* end of BXDM_PPTMR_lutVsyncsPersSecond */
+}; /* end of BXDM_P_VsyncsPerSecondLUT */
 
 #if BDBG_DEBUG_BUILD
 
@@ -98,7 +98,9 @@ void BXDM_PPTMR_S_ResetTimerData_isr( BXDM_PPTIMER_P_Data * pTimerData );
  * Private functions
  */
 
-void BXDM_PPTMR_S_GetTime_isrsafe(
+#if (defined(BXDM_PPTMR_P_ENABLE_FUNCTION_TIMING)) || \
+    (defined(BXDM_PPTMR_P_ENABLE_CALLBACK_TIMING))
+static void BXDM_PPTMR_S_GetTime_isrsafe(
    BXDM_PictureProvider_Handle hXdmPP,
    uint32_t * pTimeUsec
    )
@@ -114,9 +116,12 @@ void BXDM_PPTMR_S_GetTime_isrsafe(
 
    return;
 }
+#endif
 
 
-void BXDM_PPTMR_S_SnapshotEndTimeAndUpdateElapse_isr(
+#if (defined(BXDM_PPTMR_P_ENABLE_FUNCTION_TIMING)) || \
+    (defined(BXDM_PPTMR_P_ENABLE_CALLBACK_TIMING))
+static void BXDM_PPTMR_S_SnapshotEndTimeAndUpdateElapse_isr(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PPTIMER_P_Sample * pTimerSample
    )
@@ -153,6 +158,7 @@ void BXDM_PPTMR_S_SnapshotEndTimeAndUpdateElapse_isr(
 
    return;
 }
+#endif
 
 
 void BXDM_PPTMR_S_CookResults_isr(
@@ -395,7 +401,7 @@ void BXDM_PPTMR_P_PrintResults_isr(
          eMonitorRefreshRate = hXdmPP->stDMConfig.eMonitorRefreshRate;
       }
 
-      uiVsyncThreshold = BXDM_PPTMR_lutVsyncsPersSecond[ eMonitorRefreshRate ];
+      uiVsyncThreshold = BXDM_P_VsyncsPerSecondLUT[ eMonitorRefreshRate ];
    }
 
 
@@ -543,4 +549,3 @@ void BXDM_PPTMR_S_ResetTimerData_isr(
 }
 
 #endif   /* if debug build */
-

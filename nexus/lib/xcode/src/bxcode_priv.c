@@ -2130,7 +2130,7 @@ static unsigned getAudioDummyId(BXCode_P_Context  *bxcode)
     NEXUS_AudioCapabilities audioCapabilities;
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
-    audioDummyId = audioCapabilities.numOutputs.dummy;
+    audioDummyId = audioCapabilities.numOutputs.dummy - 1;
     BSTD_UNUSED(bxcode);
     do {
         if(((1<<audioDummyId) & g_BXCode_P_State.usedAudioDummyOutputs) == 0) break;

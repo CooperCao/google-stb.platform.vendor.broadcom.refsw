@@ -59,7 +59,6 @@ APPS = \
 	playpump \
 	playpump_audio_pes_from_memory \
 	playpump_change_asf \
-	playpump_ip \
 	playpump_lpcm \
 	playpump_scatter_gather \
 	playpump_two_pes_files \
@@ -85,7 +84,6 @@ CLEAN_APPS += record_append
 
 include ../Makefile.inc
 
-CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/netaccel/include
 BCMPLAYER_DIR=$(NEXUS_TOP)/../BSEAV/lib/bcmplayer
 CFLAGS += -I$(BCMPLAYER_DIR)/include
 

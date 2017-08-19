@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include <stdio.h>
@@ -163,7 +156,7 @@ static INLINE bool requires_forced_packing(Dataflow *dataflow)
    return false;
 }
 
-static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_length, unsigned int scalar_count, bool is_array)
+static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_length, unsigned int scalar_count, bool is_array, bool in_array)
 {
    unsigned int i, j = 0;
    char* name;
@@ -178,7 +171,8 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
          {
             vcos_assert(DATAFLOW_UNIFORM == context->vert_scalar_values[i * scalar_count + j]->flavour || DATAFLOW_CONST_SAMPLER == context->vert_scalar_values[i * scalar_count + j]->flavour);
 
-            if (context->vert_scalar_values[i * scalar_count + j]->dependents.count > 0 ||
+            if (in_array ||
+                context->vert_scalar_values[i * scalar_count + j]->dependents.count > 0 ||
                 context->vert_scalar_values[i * scalar_count + j]->iodependents.count > 0 ||
                 requires_forced_packing(context->vert_scalar_values[i * scalar_count + j]))
             {
@@ -276,7 +270,7 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
    if (context->frag_scalar_values) context->frag_scalar_values += array_length * scalar_count;
 }
 
-static void pack_uniform(pack_uniform_t* context, SymbolType* type)
+static void pack_uniform(pack_uniform_t* context, SymbolType* type, bool in_array)
 {
    STACK_CHECK();
 
@@ -284,7 +278,7 @@ static void pack_uniform(pack_uniform_t* context, SymbolType* type)
    {
       case SYMBOL_PRIMITIVE_TYPE:
          {
-            pack_array(context, get_gl_type(type), 1, type->scalar_count, false);
+            pack_array(context, get_gl_type(type), 1, type->scalar_count, false, in_array);
          }
          return;
 
@@ -308,7 +302,7 @@ static void pack_uniform(pack_uniform_t* context, SymbolType* type)
                   type->u.struct_type.member_names[i]);
 
                // Recurse.
-               pack_uniform(context, type->u.struct_type.member_types[i]);
+               pack_uniform(context, type->u.struct_type.member_types[i], in_array);
 
                // Back up context->sb to remove field selector.
                len_delta = context->sb.len - len_delta;
@@ -322,7 +316,7 @@ static void pack_uniform(pack_uniform_t* context, SymbolType* type)
             if (SYMBOL_PRIMITIVE_TYPE == type->u.array_type.member_type->flavour)
             {
                // Array of primitives.
-               pack_array(context, get_gl_type(type), type->u.array_type.member_count, type->u.array_type.member_type->scalar_count, true);
+               pack_array(context, get_gl_type(type), type->u.array_type.member_count, type->u.array_type.member_type->scalar_count, true, in_array);
                return;
             }
             else
@@ -346,7 +340,7 @@ static void pack_uniform(pack_uniform_t* context, SymbolType* type)
                      i);
 
                   // Recurse.
-                  pack_uniform(context, type->u.array_type.member_type);
+                  pack_uniform(context, type->u.array_type.member_type, true);
 
                   // Back up context->sb to remove subscript.
                   len_delta = context->sb.len - len_delta;
@@ -576,7 +570,7 @@ static void pack_uniforms(ShaderFlavour flavour, pack_uniform_t *context, MapNod
       }
 
       // Pack.
-      pack_uniform(context, uniform->source->type);
+      pack_uniform(context, uniform->source->type, false);
 
       // Set handled flag(s).
 next:

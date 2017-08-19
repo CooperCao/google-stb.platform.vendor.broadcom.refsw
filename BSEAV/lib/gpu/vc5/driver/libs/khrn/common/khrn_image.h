@@ -174,7 +174,7 @@ extern unsigned khrn_image_get_offset(const khrn_image *img,
 extern bool khrn_image_is_one_elem_slice(const khrn_image *img);
 
 /* return true if img1 and img2 are equal (they wrap the same blob, refer to
- * the same slice and element in the blob, and have the same number of elements */
+ * the same slice and element in the blob, and have the same number of slices and elements */
 extern bool khrn_image_equal(const khrn_image *img1, const khrn_image *img2);
 
 #endif

@@ -74,7 +74,7 @@ NEXUS_Display_GetDefaultSettings(NEXUS_DisplaySettings *pSettings)
     return;
 }
 
-NEXUS_Error NEXUS_P_Display_GetMagnumVideoFormatInfo_isr(NEXUS_DisplayHandle display, NEXUS_VideoFormat videoFormat, BFMT_VideoInfo *pInfo)
+NEXUS_Error NEXUS_P_Display_GetMagnumVideoFormatInfo_isrsafe(NEXUS_DisplayHandle display, NEXUS_VideoFormat videoFormat, BFMT_VideoInfo *pInfo)
 {
     BFMT_VideoFmt formatVdc;
 
@@ -91,8 +91,11 @@ NEXUS_Error NEXUS_P_Display_GetMagnumVideoFormatInfo_isr(NEXUS_DisplayHandle dis
         NEXUS_Error rc;
         const BFMT_VideoInfo *tmp;
         rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(videoFormat, &formatVdc);
-        if (rc) {return BERR_TRACE(rc);}
-        tmp = BFMT_GetVideoFormatInfoPtr_isr(formatVdc);
+        if (rc) {
+            BDBG_LOG(("Failed to find (%d)", videoFormat));
+            return BERR_TRACE(rc);
+        }
+        tmp = BFMT_GetVideoFormatInfoPtr_isrsafe(formatVdc);
         if (tmp == NULL) {return BERR_TRACE(BERR_INVALID_PARAMETER);}
         *pInfo = *tmp;
     }
@@ -170,7 +173,7 @@ NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySett
         BFMT_VideoInfo video_format_info;
         NEXUS_Rect newDisplayRect = {0,0,0,0};
 
-        rc = NEXUS_P_Display_GetMagnumVideoFormatInfo_isr(display, pSettings->format, &video_format_info);
+        rc = NEXUS_P_Display_GetMagnumVideoFormatInfo_isrsafe(display, pSettings->format, &video_format_info);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_format; }
 
         newDisplayRect.width = video_format_info.ulDigitalWidth;
@@ -495,6 +498,7 @@ static void NEXUS_Display_ReturnCaptureBuffer_isr(NEXUS_DisplayHandle display)
     /* Query the encoder for all possible buffers that can be returned */
     for(;;) {
         rc = display->encoder.dequeueCb_isr(display->encoder.context, &image);
+        BSTD_UNUSED(rc);
 
         if(image.hImage==NULL) {
             break;
@@ -1208,6 +1212,10 @@ NEXUS_Display_AddOutput(NEXUS_DisplayHandle display, NEXUS_VideoOutput output)
     if (rc) {rc = BERR_TRACE(rc); goto err_apply;}
 
     BLST_D_INSERT_HEAD(&display->outputs, link, link);
+
+    rc = NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(display);
+    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto err_apply; }
+
     return BERR_SUCCESS;
 
 err_apply:
@@ -1258,6 +1266,8 @@ NEXUS_Display_RemoveOutput( NEXUS_DisplayHandle display, NEXUS_VideoOutput outpu
 
     /* even if VDC fails, we have removed from the list, so we must succeed */
     (void)NEXUS_Display_P_ApplyChanges();
+
+    NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(display);
 
     return BERR_SUCCESS;
 
@@ -1728,8 +1738,9 @@ static void NEXUS_Display_P_UndriveVideoDecoder( NEXUS_DisplayHandle display )
 
 static void NEXUS_Display_P_VecInterrupt_isr(void *context, int param)
 {
-    BSTD_UNUSED(param);
-    NEXUS_IsrCallback_Fire_isr(((NEXUS_DisplayHandle)context)->vsyncCallback.isrCallback);
+    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)context;
+    NEXUS_IsrCallback_Fire_isr(display->vsyncCallback.isrCallback);
+    display->vsyncCallback.lastVsyncType = (NEXUS_VideoBufferType)param;
 }
 
 static NEXUS_Error NEXUS_Display_P_SetVsyncCallback(NEXUS_DisplayHandle display, bool enabled)
@@ -1740,7 +1751,7 @@ static NEXUS_Error NEXUS_Display_P_SetVsyncCallback(NEXUS_DisplayHandle display,
     pDesc = display->vsyncCallback.desc.callback?&display->vsyncCallback.desc:&display->cfg.vsyncCallback;
     NEXUS_IsrCallback_Set(display->vsyncCallback.isrCallback, pDesc);
 
-    if (!enabled || !pDesc->callback) {
+    if (!enabled) {
         unsigned i;
         for (i=0;i<3;i++) {
             if (display->vsyncCallback.intCallback[i]) {
@@ -1755,12 +1766,20 @@ static NEXUS_Error NEXUS_Display_P_SetVsyncCallback(NEXUS_DisplayHandle display,
             if (!display->vsyncCallback.intCallback[i]) {
                 BERR_Code rc;
                 BINT_Id intId;
-                BAVC_Polarity pol = i==0?BAVC_Polarity_eTopField:i==1?BAVC_Polarity_eBotField:BAVC_Polarity_eFrame;
+                BAVC_Polarity pol;
+                NEXUS_VideoBufferType vsyncType;
+                switch ( i )
+                {
+                default:
+                case 0: pol = BAVC_Polarity_eTopField; vsyncType = NEXUS_VideoBufferType_eTopField; break;
+                case 1: pol = BAVC_Polarity_eBotField; vsyncType = NEXUS_VideoBufferType_eBotField; break;
+                case 2: pol = BAVC_Polarity_eFrame;    vsyncType = NEXUS_VideoBufferType_eFrame;    break;
+                }
 
                 rc = BVDC_Display_GetInterruptName(display->displayVdc, pol, &intId);
                 if (rc) return BERR_TRACE(rc);
 
-                rc = BINT_CreateCallback(&display->vsyncCallback.intCallback[i], g_pCoreHandles->bint, intId, NEXUS_Display_P_VecInterrupt_isr, display, 0);
+                rc = BINT_CreateCallback(&display->vsyncCallback.intCallback[i], g_pCoreHandles->bint, intId, NEXUS_Display_P_VecInterrupt_isr, display, (int)vsyncType);
                 if (rc) return BERR_TRACE(rc);
                 rc = BINT_EnableCallback(display->vsyncCallback.intCallback[i]);
                 if (rc) return BERR_TRACE(rc);
@@ -2093,6 +2112,7 @@ NEXUS_Error NEXUS_Display_GetStatus( NEXUS_DisplayHandle display, NEXUS_DisplayS
     pStatus->numWindows = numWindows;
     pStatus->graphicsSupported = (numGraphics != 0);
     pStatus->timingGenerator = display->timingGenerator;
+    pStatus->lastVsyncType = display->vsyncCallback.lastVsyncType;
     return 0;
 }
 
@@ -2131,7 +2151,6 @@ unsigned NEXUS_Display_GetStgIndex_priv(NEXUS_DisplayHandle display)
 NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, NEXUS_VideoWindowHandle window, NEXUS_DisplayEncoderSettings *pSettings)
 {
     BERR_Code rc = NEXUS_SUCCESS;
-    unsigned encodeRate;
 #if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     BAVC_EncodePictureBuffer picture;
     BVDC_Display_StgSettings vdcSettings;
@@ -2176,18 +2195,14 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         }
 #endif
 
-        encodeRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(pSettings->encodeRate);
         BKNI_EnterCriticalSection();
         display->encoder.enqueueCb_isr = pSettings->enqueueCb_isr;
         display->encoder.dequeueCb_isr = pSettings->dequeueCb_isr;
         display->encoder.context = pSettings->context;
         display->encoder.framesEnqueued = 0;
         display->encoder.window = encodeWindow;
-#if 0
-        display->encoder.dropRate = ((display->status.refreshRate/1000)+1) / (encodeRate/1000);
-#else
         display->encoder.dropRate = 1; /* No drop ins nexus. DSP firmware will handle frame drops */
-#endif
+
         for(pImage = BLST_SQ_FIRST(&display->encoder.free); pImage;  pImage= BLST_SQ_NEXT(pImage, link)) {
             pImage->hImage = NULL;
         }

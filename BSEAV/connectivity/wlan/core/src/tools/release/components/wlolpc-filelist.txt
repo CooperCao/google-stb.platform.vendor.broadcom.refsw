@@ -1,0 +1,4 @@
+#if defined(WLSRC) || defined(WLSRC_SRC)
+src/wl/olpc/src/wlc_olpc_engine.c
+src/wl/olpc/include/wlc_olpc_engine.h
+#endif

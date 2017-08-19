@@ -3,6 +3,8 @@
  ******************************************************************************/
 #pragma once
 
+#include "libs/core/v3d/v3d_gen.h"
+
 typedef struct {
    const Symbol *symbol;
    bool active;
@@ -34,22 +36,22 @@ struct CompiledShader_s {
 
    unsigned          tess_vertices;
 
-   enum tess_mode    tess_mode;
-   enum tess_spacing tess_spacing;
-   bool              tess_point_mode;
-   bool              tess_cw;
+   v3d_cl_tess_type_t         tess_mode;
+   v3d_cl_tess_edge_spacing_t tess_spacing;
+   bool                       tess_point_mode;
+   bool                       tess_cw;
 
-   enum gs_in_type   gs_in;
-   enum gs_out_type  gs_out;
-   unsigned          gs_n_invocations;
-   unsigned          gs_max_vertices;
+   enum gs_in_type         gs_in;
+   v3d_cl_geom_prim_type_t gs_out;
+   unsigned                gs_n_invocations;
+   unsigned                gs_max_vertices;
+   unsigned                gs_max_known_layers;
 
    bool                    early_fragment_tests;
    AdvancedBlendQualifier  abq;
 
    unsigned         cs_wg_size[3];
    unsigned         cs_shared_block_size;
-   bool             cs_has_barrier;
 
    ShaderInterface uniform;
    ShaderInterface in;

@@ -1,0 +1,73 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for stress testing MBSS by sending encrypted traffic
+# in all directions
+
+# $Id: dfbc784f55440c5f6a75cff764a0a21a28746e4b $
+#
+
+package require UTF
+package require UTF::Test::controlchart
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::Connectivity
+
+package provide UTF::Test::Mbss::Stress 2.0
+
+UTF::Test Mbss::Stress {AP1 AP2 STA1 STA2 args} {
+
+    UTF::Getopts {
+	{branch.arg "" "Branch"}
+	{loops.arg 12 "Loops"}
+	{noperf "No performance"}
+	{nojoin "No join"}
+    }
+
+    catch {$STA1 wl disassoc}
+    catch {$STA2 wl disassoc}
+
+    if {[string is false [$AP1 nvram get fw_disable]]} {
+	$AP1 restart fw_disable=1
+    }
+    if {[$AP1 cget -noaes]} {
+	set security open
+    } else {
+	set security aespsk2
+    }
+    APAddInterface -lan $AP1 $AP2
+    UTF::Test::APConfigureSecurity $AP1 -security $security
+    UTF::Test::APConfigureSecurity $AP2 -security $security
+
+    if {$(nojoin)} {
+	return
+    }
+
+    UTF::Test::ConnectAPSTA $AP1 $STA1
+    UTF::Test::ConnectAPSTA $AP2 $STA2
+
+    set WAN [$AP1 wan]
+
+    Connectivity [list [$AP1 lan] $STA1 $STA2] {} $WAN -firewall off
+
+    if {$(noperf)} {
+	return
+    }
+
+    if {$(branch) eq ""} {
+	set (branch) [$AP1 branchname]
+    }
+
+    set pairs [list \
+		   $AP1 $STA1 $STA1 $AP1 \
+		   $AP2 $STA2 $STA2 $AP2 \
+		   $STA1 $STA2 $STA2 $STA1 ]
+
+    if {$WAN ne ""} {
+	lappend pairs $STA2 $WAN $WAN $STA1
+    }
+
+    UTF::Test::controlchart $pairs \
+	-loop $(loops) -key [list $(branch) "Stress" $AP1] -history $(loops)
+}

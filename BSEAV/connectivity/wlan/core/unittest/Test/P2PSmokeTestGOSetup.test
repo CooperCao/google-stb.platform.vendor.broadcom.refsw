@@ -1,0 +1,114 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# P2P Smoke test GO Setup script 
+#
+
+# $Id: 2fbc348b6dcecf3d3a220e5a280842941244a3a5 $
+# $Copyright Broadcom Corporation$
+#
+
+# Test description:
+#	Create a Direct P2P connection between GO & GC and ping the P2P IP addresses
+#
+
+package require UTF
+
+package provide UTF::Test::P2PSmokeTestGOSetup 2.0
+
+#################################################################################
+#################################################################################
+UTF::Test P2PSmokeTestGOSetup {args} {
+	UTF::Getopts {
+		{email.arg "" "Email Address"}
+		{title.arg "" "Title"}
+		{sta_go.arg "" "Group Owner GO sta name"}
+		{p2p_chan.arg "3" "P2P Channel"}
+		{p2p_ssid.arg "DIRECT-GO" "P2P SSID"}
+		{go_p2p_ip.arg "192.168.5.235"	"GO P2P IP address"}
+	}
+
+	#####################################################
+	##############        Setup GO       ################
+	#####################################################
+	proc setup_go {sta_go p2p_chan go_p2p_ip} {
+		UTF::Message INFO "" "************************Func:setup_go***************************"
+
+		UTF::Message INFO "" "Check to see if P2P GO interface already exists"
+		set catch_resp [catch {$sta_go wl p2p_if 22:22:22:22:22:22} catch_msg]
+		if {$catch_resp == 0} {
+			set go_p2p_ifname ""
+			regexp -nocase { (.*)} $catch_msg match go_p2p_ifname
+			if {$go_p2p_ifname != ""} {
+				UTF::Message ERROR "" "P2P GO interface '$go_p2p_ifname' already exists. You must re-load GO driver"
+				error "P2P GO interface '$go_p2p_ifname' already exists. You must re-load GO driver"
+			}
+		}
+		
+		UTF::Message INFO "" "setup GO apsta"
+		$sta_go wl down
+		UTF::Sleep 1
+		$sta_go wl apsta 1
+		$sta_go wl up
+		UTF::Sleep 2
+
+		UTF::Message INFO "" "setup P2P go"
+		
+		$sta_go wl p2p_ifadd 22:22:22:22:22:22 go $p2p_chan
+		UTF::Sleep 1
+
+		# get the new P2P GO interface name
+		# For Linux go_p2p_ifname should be "wl0.1"
+		set rc [$sta_go wl p2p_if 22:22:22:22:22:22]
+		regexp -nocase { (.*)} $rc match go_p2p_ifname
+		UTF::Message INFO "" "P2P GO interface '$go_p2p_ifname' is created"
+		
+		$sta_go rexec ifconfig $go_p2p_ifname $go_p2p_ip netmask 255.255.255.0 up
+		
+		$sta_go wl -i $go_p2p_ifname add_ie 1 18 50:6F:9A 090202000409030600222222222222
+		$sta_go wl -i $go_p2p_ifname add_ie 2 41 50:6F:9A 0902020004090D1900222222222222000400010050F204000600101100045032502D0E010000
+		$sta_go wl -i $go_p2p_ifname ssid DIRECT-GO
+		$sta_go wl -i $go_p2p_ifname bss up
+		UTF::Sleep 2
+
+		UTF::Message INFO "" "Dump GO interfaces for debugging"		
+		$sta_go rexec ifconfig
+		
+		# Confirm chanspec
+		set temp [$sta_go wl -i $go_p2p_ifname chanspec]
+		regexp {(\S+) } $temp match go_chan
+		
+		if {$p2p_chan != $go_chan} {
+			error "GO chan is $go_chan instead of $p2p_chan" 
+		} else {
+			UTF::Message INFO "" "PASS. P2P GO interface '$go_p2p_ifname' for channel $p2p_chan is created successfully."
+		}
+	}
+	
+	#################################################################################
+	#                                  M A I N
+	#################################################################################
+    set test_name [file tail $::argv0]
+    set test_name [file rootname $test_name]
+    set TITLE "UTF $(title) $test_name"
+    UTF::Message INFO "" $TITLE
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+		set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+		UTF::Try "SmokeTest P2P GO Setup" {
+			#####################################################
+			##############        Setup GO       ################
+			#####################################################
+			set catch_resp [catch {setup_go $(sta_go) $(p2p_chan) $(go_p2p_ip)} catch_msg]
+			if {$catch_resp == 0} {
+				UTF::Message INFO "" "setup_go catch_resp=$catch_resp catch_msg=$catch_msg"
+				UTF::Message INFO "" "----------------------------------------------------------"
+			} else {
+				UTF::Message ERROR "" "***Failed. Setup GO failed with '$catch_msg'"
+				error "setup_go failed with '$catch_msg'"
+			}
+		}
+	}
+}

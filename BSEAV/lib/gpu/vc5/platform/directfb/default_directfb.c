@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include "default_directfb.h"
 #include "private_directfb.h"
+#include "display_directfb.h"
 
 #include "memory_nexus.h"
 #include "sched_nexus.h"

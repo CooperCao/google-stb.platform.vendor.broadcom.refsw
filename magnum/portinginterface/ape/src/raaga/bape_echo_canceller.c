@@ -342,7 +342,7 @@ BERR_Code BAPE_EchoCanceller_AddLocalInput(
         BDBG_ERR(("Can not have more than one local input"));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    BDBG_MSG(("%s: node %p, input %p", __FUNCTION__, (void *)&handle->localNode, (void *)input));
+    BDBG_MSG(("%s: node %p, input %p", BSTD_FUNCTION, (void *)&handle->localNode, (void *)input));
     errCode = BAPE_PathNode_P_AddInput(&handle->localNode, input);
     if ( errCode )
     {
@@ -365,7 +365,7 @@ BERR_Code BAPE_EchoCanceller_RemoveLocalInput(
         BDBG_ERR(("Input %s %s (%p) is not connected as the local input", input->pParent->pName, input->pName, (void *)input));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-    BDBG_MSG(("%s: node %p, input %p", __FUNCTION__, (void *)&handle->localNode, (void *)input));
+    BDBG_MSG(("%s: node %p, input %p", BSTD_FUNCTION, (void *)&handle->localNode, (void *)input));
     errCode = BAPE_PathNode_P_RemoveInput(&handle->localNode, input);
     if ( errCode )
     {
@@ -392,7 +392,7 @@ BERR_Code BAPE_EchoCanceller_AddRemoteInput(
         BDBG_ERR(("Can not have more than one remote input"));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    BDBG_MSG(("%s: node %p, input %p", __FUNCTION__, (void *)&handle->remoteNode, (void *)input));
+    BDBG_MSG(("%s: node %p, input %p", BSTD_FUNCTION, (void *)&handle->remoteNode, (void *)input));
     errCode = BAPE_PathNode_P_AddInput(&handle->remoteNode, input);
     if ( errCode )
     {
@@ -419,7 +419,7 @@ BERR_Code BAPE_EchoCanceller_RemoveRemoteInput(
         BDBG_ERR(("Input %s %s (%p) is not connected as the remote input", input->pParent->pName, input->pName, (void *)input));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-    BDBG_MSG(("%s: node %p, input %p", __FUNCTION__, (void *)&handle->remoteNode, (void *)input));
+    BDBG_MSG(("%s: node %p, input %p", BSTD_FUNCTION, (void *)&handle->remoteNode, (void *)input));
     errCode = BAPE_PathNode_P_RemoveInput(&handle->remoteNode, input);
     if ( errCode )
     {
@@ -438,7 +438,7 @@ BERR_Code BAPE_EchoCanceller_RemoveAllInputs(
     )
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_EchoCanceller);
-    BDBG_MSG(("%s: localInput %p, remoteInput %p", __FUNCTION__, (void *)handle->localInput, (void *)handle->remoteInput));
+    BDBG_MSG(("%s: localInput %p, remoteInput %p", BSTD_FUNCTION, (void *)handle->localInput, (void *)handle->remoteInput));
     if ( handle->localInput )
     {
         (void)BAPE_EchoCanceller_RemoveLocalInput(handle, handle->localInput);
@@ -536,7 +536,7 @@ static BERR_Code BAPE_EchoCanceller_P_Local_AllocatePathFromInput(struct BAPE_Pa
     }
 
 
-    BDBG_MSG(("%s: node %p, connection %p", __FUNCTION__, (void *)pNode, (void *)pConnection));
+    BDBG_MSG(("%s: node %p, connection %p", BSTD_FUNCTION, (void *)pNode, (void *)pConnection));
     errCode = BDSP_Stage_AddInterTaskBufferInput(handle->hStage, 
                                                  BAPE_DSP_P_GetDataTypeFromConnector(pConnection->pSource), 
                                                  handle->hInterTaskBuffer, 
@@ -569,7 +569,7 @@ static BERR_Code BAPE_EchoCanceller_P_Remote_AllocatePathFromInput(struct BAPE_P
     BDBG_ASSERT(pNode == &handle->remoteNode);
     BDBG_ASSERT(pConnection->pSource == handle->remoteInput);
 
-    BDBG_MSG(("%s: node %p, connection %p", __FUNCTION__, (void *)pNode, (void *)pConnection));
+    BDBG_MSG(("%s: node %p, connection %p", BSTD_FUNCTION, (void *)pNode, (void *)pConnection));
 
     /* When the first input starts, initialize the IO Generic Buffer RD/WR pointers to defaults. */
     if ( false == handle->localStarted && false == handle->remoteStarted )
@@ -602,7 +602,7 @@ static BERR_Code BAPE_EchoCanceller_P_Local_StartPathFromInput(struct BAPE_PathN
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    BDBG_MSG(("%s: node %p, connection %p", __FUNCTION__, (void *)pNode, (void *)pConnection));
+    BDBG_MSG(("%s: node %p, connection %p", BSTD_FUNCTION, (void *)pNode, (void *)pConnection));
     BDBG_ASSERT(false == handle->localStarted);
     handle->localStarted = true;
 
@@ -628,7 +628,7 @@ static BERR_Code BAPE_EchoCanceller_P_Remote_StartPathFromInput(struct BAPE_Path
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    BDBG_MSG(("%s: node %p, connection %p", __FUNCTION__, (void *)pNode, (void *)pConnection));
+    BDBG_MSG(("%s: node %p, connection %p", BSTD_FUNCTION, (void *)pNode, (void *)pConnection));
     BDBG_ASSERT(false == handle->remoteStarted);
     handle->remoteStarted = true;
 
@@ -647,7 +647,7 @@ static void BAPE_EchoCanceller_P_Local_StopPathFromInput(struct BAPE_PathNode *p
     BDBG_ASSERT(pNode == &handle->localNode);
     BDBG_ASSERT(pConnection->pSource == handle->localInput);
 
-    BDBG_MSG(("%s: node %p, connection %p", __FUNCTION__, (void *)pNode, (void *)pConnection));
+    BDBG_MSG(("%s: node %p, connection %p", BSTD_FUNCTION, (void *)pNode, (void *)pConnection));
     BDBG_ASSERT(handle->localStarted);
     handle->localStarted = false;
 
@@ -668,7 +668,7 @@ static void BAPE_EchoCanceller_P_Remote_StopPathFromInput(struct BAPE_PathNode *
     BDBG_ASSERT(pNode == &handle->remoteNode);
     BDBG_ASSERT(pConnection->pSource == handle->remoteInput);
 
-    BDBG_MSG(("%s: node %p, connection %p", __FUNCTION__, (void *)pNode, (void *)pConnection));
+    BDBG_MSG(("%s: node %p, connection %p", BSTD_FUNCTION, (void *)pNode, (void *)pConnection));
     BDBG_ASSERT(handle->remoteStarted);
     handle->remoteStarted = false;
 }
@@ -704,7 +704,7 @@ static bool BAPE_EchoCanceller_P_IsRunning(BAPE_EchoCancellerHandle handle)
 
 static void BAPE_EchoCanceller_P_InitInterTaskDescriptors(BAPE_EchoCancellerHandle handle)
 {
-    BDBG_MSG(("%s: handle %p", __FUNCTION__, (void *)handle));
+    BDBG_MSG(("%s: handle %p", BSTD_FUNCTION, (void *)handle));
     BDSP_InterTaskBuffer_Flush(handle->hInterTaskBuffer);
 }
 #else

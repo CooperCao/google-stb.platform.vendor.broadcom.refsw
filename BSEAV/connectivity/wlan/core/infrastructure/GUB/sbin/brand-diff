@@ -1,0 +1,166 @@
+#!/usr/bin/env python2.7
+
+"""
+Compare the variable settings made by two makefiles.
+
+Example:
+
+  %(prog)s linux-internal-wl.mk linux-external-wl.mk
+
+"""
+
+from __future__ import print_function
+from __future__ import unicode_literals
+
+# Imported first to fix up sys.path etc.
+import preface
+
+import argparse
+import os
+import subprocess
+import sys
+import tempfile
+
+AUTOMATIC = '.?+*^<@%'
+UNINTERESTING = set([
+    'CURDIR',
+    'MAKE',
+    'MAKEARGS',
+    'MAKEFLAGS',
+    'MAKEFILE_LIST',
+    'MOGRIFY_CHUNK',
+    'MOGRIFY_CHUNKS',
+    'MOGRIFY_RUN',
+    'MOGRIFY_TMPDIR',
+    'MOGRIFY_TS',
+    'SHELL',
+])
+
+
+def variables(makefile, all):
+    """Return a dict of the variables defined by this makefile."""
+    found = {}
+    cmd = ['make', '-q', '-p', '-f', makefile]
+    nenv = {}
+    for name in os.environ:
+        if '\n' not in os.environ[name]:
+            nenv[name] = os.environ[name]
+    proc = subprocess.Popen(cmd, env=nenv,
+                            stdout=subprocess.PIPE,
+                            stderr=open(os.devnull, 'wb'))
+    active = False
+    prev = None
+    for line in proc.stdout:
+        line = line.rstrip()
+        if line == '# Variables':
+            active = True
+        elif line == '# Pattern-specific Variable Values':
+            active = False
+        if not active:
+            continue
+        if line.startswith('#'):
+            prev = line
+            continue
+        if '=' not in line:
+            continue
+        if not all:
+            if prev == '# default' or prev == '# environment':
+                continue
+        if line[0] in AUTOMATIC:
+            continue
+        try:
+            name, assignment, value = line.split(None, 2)
+        except ValueError:
+            name, assignment = line.split(None, 1)
+            value = ''
+        finally:
+            if not all and name not in UNINTERESTING:
+                found[name] = value
+    if proc.wait() > 1:
+        subprocess.call(cmd, stdout=open(os.devnull, 'wb'))
+        sys.exit(2)
+    return found
+
+
+def exports(makefile, all):
+    """Return a dict of the environment defined within this makefile."""
+    found = {}
+    cmd = ['make', '-f', '-']
+    nenv = {}
+    for name in os.environ:
+        if '\n' not in os.environ[name]:
+            nenv[name] = os.environ[name]
+    proc = subprocess.Popen(cmd, env=nenv,
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=open(os.devnull, 'wb'))
+
+    # Pass a temporary tiny makefile on stdin which includes
+    # the real one and prints the environment.
+    proc.stdin.write('.PHONY: exports\nexports:\n\n')
+    proc.stdin.write('include %s\n\n' % makefile)
+    proc.stdin.write('exports:; @env | sort\n')
+    proc.stdin.close()
+
+    for line in proc.stdout:
+        name, value = line.split('=', 1)
+        if not all and name not in UNINTERESTING:
+            found[name] = value
+
+    if proc.wait():
+        cmd[-1] = makefile
+        subprocess.call(cmd, stdout=open(os.devnull, 'wb'))
+        sys.exit(2)
+
+    return found
+
+
+def main(argv):
+    """Compare the variable settings made by two makefiles."""
+
+    parser = argparse.ArgumentParser(
+        epilog=__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '-a', '--all', action='store_true',
+        help="do not filter out 'uninteresting' variables")
+    parser.add_argument(
+        '-e', '--exports', action='store_true',
+        help="compare exported variables")
+    parser.add_argument(
+        '-k', '--keep-tmp', action='store_true',
+        help="leave temp files around for analysis")
+    parser.add_argument('makefile', nargs=argparse.REMAINDER)
+    opts = parser.parse_args(argv[1:])
+
+    if not opts.makefile:
+        main([argv[0], '-h'])
+
+    tmpfiles = []
+
+    for makefile in opts.makefile:
+        if opts.exports:
+            results = exports(makefile, opts.all)
+        else:
+            results = variables(makefile, opts.all)
+        f = tempfile.NamedTemporaryFile(mode='w', delete=False,
+                                        prefix=preface.PROG + '.',
+                                        suffix='.tmp')
+        tmpfiles.append(f.name)
+        for name in sorted(results):
+            f.write('%s = %s\n' % (name, results[name]))
+        f.close()
+
+    if len(tmpfiles) == 2:
+        subprocess.call(['diff'] + tmpfiles)
+
+    if opts.keep_tmp or len(tmpfiles) != 2:
+        subprocess.call(['ls', '-l'] + tmpfiles)
+    else:
+        for tmpfile in tmpfiles:
+            os.unlink(tmpfile)
+
+if __name__ == '__main__':
+    main(sys.argv)
+
+# vim: ts=8:sw=4:tw=80:et:

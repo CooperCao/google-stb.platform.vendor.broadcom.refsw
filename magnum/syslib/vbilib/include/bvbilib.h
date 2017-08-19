@@ -724,6 +724,7 @@ BERR_Code BVBIlib_List_Destroy(
 );
 
 
+#if (BVBI_NUM_IN656 > 0)
 /*****************************************************************************
   Summary:
     Create a BVBIlib_Decode_Handle.
@@ -751,6 +752,7 @@ BERR_Code BVBIlib_Decode_Create(
                                                  BVBIlib_Decode_Handle to
                                                  be initialized              */
 );
+#endif
 
 
 /*****************************************************************************
@@ -791,6 +793,7 @@ BERR_Code BVBIlib_Encode_Create(
 
 
 
+#if (BVBI_NUM_IN656 > 0)
 /*****************************************************************************
   Summary:
     Destroy a BVBIlib_Decode_Handle.
@@ -809,7 +812,7 @@ BERR_Code BVBIlib_Decode_Destroy(
     BVBIlib_Decode_Handle declHdl     /* [in] A BVBIlib_Decode_Handle to be
                                               destroyed                     */
 );
-
+#endif
 
 
 /*****************************************************************************
@@ -832,6 +835,7 @@ BERR_Code BVBIlib_Encode_Destroy(
 );
 
 
+#if (BVBI_NUM_IN656 > 0)
 /*****************************************************************************
   Summary:
     Decodes a field of VBI data and provides it to the caller.
@@ -876,6 +880,7 @@ BERR_Code BVBIlib_Decode_Data_isr(
     BAVC_Polarity            polarity  /*  [in] Which field (even, odd, or
                                                 frame) to decode data from.  */
 );
+#endif
 
 
 /*****************************************************************************

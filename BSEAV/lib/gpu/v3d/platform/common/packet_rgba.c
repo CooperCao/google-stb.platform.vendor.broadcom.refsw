@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-This is a default implementation of a Nexus platform layer used by V3D.
-This illustrates one way in which the abstract memory interface might be
-implemented. You can replace this with your own custom version if preferred.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #if NEXUS_HAS_GRAPHICS2D
 
 #include "nexus_platform.h"
@@ -20,6 +10,22 @@ implemented. You can replace this with your own custom version if preferred.
 
 #include <string.h>
 #include <stdio.h>
+
+static BM2MC_PACKET_PixelFormat get_conversion_format(BEGL_ColorFormat f)
+{
+   BM2MC_PACKET_PixelFormat res;
+   if (f == BEGL_BufferFormat_eA8B8G8R8)
+      res = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
+   else if (f == BEGL_BufferFormat_eR5G6B5)
+      res = BM2MC_PACKET_PixelFormat_eR5_G6_B5;
+   else
+   {
+      printf("Unsupported color format\n");
+      res = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
+   }
+
+   return res;
+}
 
 static const BM2MC_PACKET_Blend copyColor = { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, false,
                                               BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false,
@@ -68,7 +74,7 @@ void memCopy2d_rgba(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
          BM2MC_PACKET_INIT(pPacket, OutputFeeder, false);
          pPacket->plane.address = params->dstOffset;
          pPacket->plane.pitch = params->dstStride;
-         pPacket->plane.format = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
+         pPacket->plane.format = get_conversion_format(params->format);
          pPacket->plane.width = params->width;
          pPacket->plane.height = params->height;
          next = ++pPacket;
@@ -79,7 +85,7 @@ void memCopy2d_rgba(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
          BM2MC_PACKET_INIT(pPacket, SourceFeeder, false);
          pPacket->plane.address = params->srcOffset;
          pPacket->plane.pitch = params->stride;
-         pPacket->plane.format = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
+         pPacket->plane.format = get_conversion_format(params->format);
          pPacket->plane.width = params->width;
          pPacket->plane.height = params->height;
          next = ++pPacket;

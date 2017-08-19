@@ -880,9 +880,10 @@ static char scte_id[4] = "SCTE";
 
 void tsPsi_procProgDescriptors( const uint8_t *p_bfr, unsigned bfrSize, PROGRAM_INFO_T *progInfo )
 {
-    int i,j;
+    int i;
     TS_PSI_descriptor descriptor;
 #ifdef MPOD_SUPPORT
+    int j;
     char *cc_ptr;
 #endif
 

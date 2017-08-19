@@ -4,6 +4,7 @@
 #pragma once
 
 #include "libs/core/v3d/v3d_limits.h"
+#include "libs/core/v3d/v3d_gen.h"
 #include "glsl_ir_shader.h"
 
 typedef enum {
@@ -47,20 +48,6 @@ typedef struct {
    uint32_t entries[V3D_MAX_VARYING_COMPONENTS];
 } GLSL_VARY_MAP_T;
 
-enum tess_mode {
-   TESS_ISOLINES,
-   TESS_TRIANGLES,
-   TESS_QUADS,
-   TESS_INVALID,
-};
-
-enum tess_spacing {
-   TESS_SPACING_EQUAL,
-   TESS_SPACING_FRACT_EVEN,
-   TESS_SPACING_FRACT_ODD,
-   TESS_SPACING_INVALID,
-};
-
 enum gs_in_type {
    GS_IN_POINTS,
    GS_IN_LINES,
@@ -68,13 +55,6 @@ enum gs_in_type {
    GS_IN_LINES_ADJ,
    GS_IN_TRIS_ADJ,
    GS_IN_INVALID
-};
-
-enum gs_out_type {
-   GS_OUT_POINTS,
-   GS_OUT_LINE_STRIP,
-   GS_OUT_TRI_STRIP,
-   GS_OUT_INVALID
 };
 
 typedef struct {
@@ -85,16 +65,16 @@ typedef struct {
 
    uint32_t live_attr_set; /* A bit-field showing which attributes are live */
 
-   unsigned          tess_vertices;
-   enum tess_mode    tess_mode;
-   enum tess_spacing tess_spacing;
-   bool              tess_point_mode;
-   bool              tess_cw;
+   unsigned                   tess_vertices;
+   v3d_cl_tess_type_t         tess_mode;
+   v3d_cl_tess_edge_spacing_t tess_spacing;
+   bool                       tess_point_mode;
+   bool                       tess_cw;
 
-   enum gs_in_type   gs_in;
-   enum gs_out_type  gs_out;
-   unsigned          gs_n_invocations;
-   unsigned          gs_max_vertices;
+   enum gs_in_type         gs_in;
+   v3d_cl_geom_prim_type_t gs_out;
+   unsigned                gs_n_invocations;
+   unsigned                gs_max_vertices;
 
    GLSL_VARY_MAP_T tf_vary_map;
 
@@ -102,9 +82,13 @@ typedef struct {
    AdvancedBlendQualifier abq;
    bool                   varyings_per_sample;
    VARYING_INFO_T         varying[V3D_MAX_VARYING_COMPONENTS];
+   unsigned               max_known_layers;
 
-   unsigned               cs_wg_size[3];
+   unsigned cs_wg_size[3];
+   unsigned cs_shared_block_size;
 } IR_PROGRAM_T;
+
+EXTERN_C_BEGIN
 
 bool glsl_wg_size_requires_barriers(const unsigned wg_size[3]);
 
@@ -113,3 +97,5 @@ void glsl_link_map_free(LinkMap *l);
 
 IR_PROGRAM_T *glsl_ir_program_create();
 void          glsl_ir_program_free(IR_PROGRAM_T *bin);
+
+EXTERN_C_END

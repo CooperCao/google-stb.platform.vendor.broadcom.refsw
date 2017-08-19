@@ -74,6 +74,7 @@ APPS = \
     audio_playpump_x4 \
     audio_playback_trick \
     audio_karaoke \
+    audio_decode_ambisonic \
     audio_decode_fade \
     audio_dsp_selector \
     audio_loudness \

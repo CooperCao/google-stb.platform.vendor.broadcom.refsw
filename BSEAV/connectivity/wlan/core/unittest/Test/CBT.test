@@ -1,0 +1,686 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF CBT emulation
+#
+# Usage: CBT <args>
+#
+# $Id: 41b9f81ab5f4d6a5289dbe3f885d0091262cd372 $
+#
+
+package require UTF
+package require UTF::utils
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::controlchart
+package require UTF::Vx
+
+# Leave this commented out until we want to publish it for other tests to call.
+package provide UTF::Test::CBT 2.0
+
+UTF::Test CBT {args} {
+
+    UTF::Getopts {
+	{email.arg "" "Email Address"}
+	{aptag.arg "NIGHTLY" "Tag for AP builds"}
+	{statag.arg "NIGHTLY" "Tag for STA builds"}
+	{date.arg "" "Date for builds"}
+	{apdate.arg "" "Date for AP builds"}
+	{stadate.arg "" "Date for STA builds"}
+	{noapload "Don't load APs"}
+	{norestore "Don't restore to defaults"}
+	{nostaload "Don't load STAs"}
+	{noassoc "Don't perform association test"}
+	{noperf "Don't perform throughput test"}
+	{stas.arg "" "Include STA list"}
+	{xstas.arg "" "Exclude STA list"}
+	{aps.arg "" "Include AP list"}
+	{xaps.arg "" "Exclude AP list"}
+	{nointernal "No internal STA testing"}
+	{doexternal "Do external STA testing"}
+	{noreload "Don't reload driver at end"}
+	{nocrashcheck "Don't check for crash reports at end"}
+        {InstallShield "Run InstallShield Test"}
+	{n "Don't do anything"}
+	{title.arg "" "Title"}
+        {loop.arg 1 "iterations to run traffic tests"}
+        {i.arg 1 "iperf test interval, seconds"}
+    }
+
+    if {$(n)} {
+	set (email) "none"
+	set (noapload) 1
+	set (nostaload) 1
+	set (norestore) 1
+	set (noassoc) 1
+	set (noperf) 1
+	set (noreload) 1
+	set (nocrashcheck) 1
+    }
+
+    set ::main_loop $(loop)
+    set ::main_i $(i)
+
+    set TITLE $(aptag)
+    if {$(aptag) ne $(statag)} {
+	append TITLE "/$(statag)"
+    }
+
+    regsub "NIGHTLY" $TITLE "TOT" TITLE
+
+    if {$(title) ne ""} {
+	set TITLE "UTF CBT $(title) ($TITLE)"
+    } else {
+	set TITLE "UTF CBT ($TITLE)"
+    }
+
+    if {$(InstallShield)} {
+        set (noapload) 1
+        set (norestore) 1
+        set (noassoc) 1
+        set (noperf) 1
+        set (noreload) 1
+        regsub "UTF CBT" $TITLE "UTF CBT InstallShield" TITLE
+    }
+
+    set cases {}
+    array set loadaps {}
+    array set loadstas {}
+
+    proc cbttest {AP STA args} {
+
+	# Access test options
+	upvar {} {}
+	upvar cases cases
+	upvar loadaps loadaps
+	upvar loadstas loadstas
+
+	# Filter tests
+	if {($(aps) ne "" && [lsearch $(aps) $AP] < 0) ||
+	    [lsearch $(xaps) $AP] >= 0 ||
+	    ($(stas) ne "" && [lsearch $(stas) $STA] < 0) ||
+	    [lsearch $(xstas) $STA] >= 0} {
+	    return
+	}
+
+	regsub {^::} [$AP cget -host] {} host
+	if {![info exists loadaps($host)]} {
+	    set loadaps($host) 1
+	}
+	if {!$(InstallShield) || [$STA hostis Cygwin]} {
+	    # For InstallShield tests, ignore anything that isn't Windows.
+	    set loadstas($STA) 1
+	}
+	lappend cases $AP $STA $args
+    }
+
+    proc cbtdotests {} {
+	upvar {} {}
+	upvar cases cases
+	upvar loadaps loadaps
+	upvar loadstas loadstas
+
+	UTF::Message INFO "APS" [lsort [array names loadaps]]
+	UTF::Message INFO "STAS" [lsort [array names loadstas]]
+
+	set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+
+        ## Do not show the skipped AP tests on InstallShield report. OK to remove.
+        if {!$(InstallShield)} {
+	    # loadaps array: 1 means load needed, 0 means load done.
+	    # This allows for APs that are only needed during second
+	    # phase.
+	    foreach AP [lsort [array names loadaps]] {
+		if {$loadaps($AP)} {
+                    if {[$AP cget -tag] eq "NIGHTLY"} {
+		        if {$(date) ne ""} {
+		            $AP configure -date $(date)
+		        } else {
+		            $AP configure -tag $(aptag)
+		        }
+		    }
+		#Support for apdate option added by Steve Liang
+		    if {$(apdate) ne ""} {
+                            $AP configure -date $(apdate)
+                    }
+		    UTF::Try "$AP find image" {
+			UTF::CheckImage $AP
+		    }
+		}
+	    }
+	    foreach AP [lsort [array names loadaps]] {
+		if {$loadaps($AP)} {
+		    if {[catch {
+			UTF::Record "$AP web load" {
+			    if {$(noapload)} {
+				return "skipped"
+			    }
+			    $AP load -web 1
+			}
+		    }]} {
+			if {[$AP info type] ne "::UTF::DSL"} {
+			    UTF::Try "$AP CFE load" {
+				$AP load
+			    }
+			}
+		    }
+		    set loadaps($AP) 0
+		    $AP deinit
+		}
+	    }
+	    foreach AP [lsort [array names loadaps]] {
+		UTF::Try "$AP restore" {
+		    if {$(norestore)} {
+			return "skipped"
+		    }
+		    try {
+			$AP restore_defaults
+		    } finally {
+			$AP deinit
+		    }
+		}
+	    }
+        }
+
+	foreach STA [lsort [array names loadstas]] {
+            if {[$STA cget -tag] eq "NIGHTLY"} {
+                if {$(date) ne ""} {
+	            $STA configure -date $(date)
+	        } else {
+	            $STA configure -tag $(statag)
+	        }
+	    }
+	#Support for stadate option added by Steve Liang
+	    if {$(stadate) ne ""} {
+                $STA configure -date $(stadate)
+            }
+
+	    ## Do not show the skipped AP tests on InstallShield
+	    ## report. OK to remove.
+	    if {!$(InstallShield)} {
+		#Support for apdate option added by Steve Liang
+		if {$(apdate) ne ""} {
+                    $AP configure -date $(apdate)
+                } else {
+		    $AP configure -date $(date)
+                }
+	    }
+	    UTF::Try "$STA find image" {
+		UTF::CheckImage $STA
+	    }
+	    if {$(InstallShield)} {
+		UTF::Try "$STA load InstallShield" {
+		    if {$(nostaload) || ![$STA hostis Cygwin]} {
+			return "skipped"
+		    } else {
+			UTF::Message INFO "" "$STA load InstallShield"
+			$STA load InstallShield
+		    }
+		}
+	    } else {
+		UTF::Try "$STA load" {
+		    if {$(nostaload)} {
+			return "skipped"
+		    } else {
+			$STA load
+                    }
+		}
+	    }
+	}
+
+        ## Do not show the skipped AP tests on InstallShield
+        ## report. OK to remove.
+        if {!$(InstallShield)} {
+	    foreach {AP STA args} $cases {
+		if {$(noassoc)} {
+		    UTF::Message INFO "" "$AP $STA $args"
+		} else {
+		    eval [list cbtdotest $AP $STA] $args
+		}
+	    }
+        }
+
+	if {!$(noreload)} {
+	    UTF::Message INFO "" "reload to check for memory leaks"
+	    foreach STA [lsort [array names loadstas]] {
+		UTF::Try "$STA reload" {
+		    try {
+			$STA reload
+		    } finally {
+			#$STA deinit
+		    }
+		    array unset loadstas $STA
+		}
+	    }
+	}
+	if {!$(nocrashcheck)} {
+	    # If there are any Windows STAs left, try to mop up any
+	    # crash reports
+	    foreach STA [lsort [array names loadstas]] {
+		if {[$STA hostis Cygwin WinDHD MacOS]} {
+		    UTF::Try "$STA crashcheck" {
+			try {
+			    $STA crashcheck
+			    $STA :
+			} finally {
+			    #$STA deinit
+			}
+		    }
+		}
+	    }
+	}
+
+	# Clear case list
+	set cases {}
+	# Clear STA list
+	array unset loadstas
+	# Don't clear AP list since they don't need to be reinstalled
+    }
+
+    proc cbtdotest {AP STA args} {
+	UTF::Getopts {
+	    {security.arg "open" "Security"}
+	    {piomode "Use PIO mode"}
+	}
+
+	catch {$AP whatami} ret
+	set APis "$ret ($AP)"
+	catch {$STA whatami} ret
+	set STAis "($STA) $ret"
+	if {$(piomode)} {
+	    append STAis "(pio)"
+	}
+	set key [list $AP $(security)]
+	if {$(piomode)} {
+	    lappend key "pio"
+	    UTF::Try "$STA enable PIOMODE" {
+		$STA wl down
+		$STA wl piomode 1
+		$STA wl up
+	    }
+	}
+	
+        # Main loop starts here.
+        for {set j 1} {$j <= $::main_loop} {incr j} {
+            UTF::Try "$APis -> $STAis $(security)" {
+	    
+                # Rodney Added this to get window size to TP test from UTFCONFIG file
+                # temporarily fixed this due to lack of tcpwindow setting in cbt utfconfig file
+	        # Auto TCP window size setting based on phy rate
+	        set w [$STA tcpautowindow]
+	    
+	        catch {$STA wl msglevel 0x101}
+
+	        ConnectAPSTA $AP $STA -security $(security)
+	        UTF::Message INFO $STA "$AP -> $STA RSSI: [$STA wl rssi]"
+	        controlchart [list [$AP lan] $STA] -key $key -i $::main_i -window $w
+	    }
+
+            UTF::Try "$APis <- $STAis $(security)" {
+                # If we lost the connection, remake it.
+                if {[catch {$AP wl bssid} apbssid] ||
+                    [catch {$STA wl bssid} stabssid] ||
+                    $apbssid ne $stabssid} {
+                    ConnectAPSTA $AP $STA
+                }
+                UTF::Message INFO $STA "$AP <- $STA RSSI: [$STA wl rssi]"
+                controlchart [list $STA [$AP lan]] -key $key -i $::main_i -window $w
+            }
+
+        } ;# end main loop
+
+        UTF::Try "Cleanup $STA" {
+            if {$(piomode)} {
+                UTF::Try "$STA disable piomode" {
+                    $STA reload
+                }
+            }
+            catch {$STA wl disassoc}
+            #$STA deinit
+            $AP deinit
+        }
+    }
+
+    # Declare WEB page summary block.  Everything inside this block
+    # will be recorded as a web page and an email will be sent out at
+    # the end.  If the test fails unexpectedly within this block, the
+    # failure will be recorded and the email will still be sent out.
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+
+	# Set up cache for performance resaults
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	if {!$(nointernal)} {
+	    UTF::Message INFO "CBT" "Internal"
+
+	    cbttest BCM3        WS9
+            cbttest BCM3        WS10
+	    cbttest BCM3	WS5
+	    cbttest BCM3	WS7
+	    cbttest BCM3	WS6 -security wep
+	    cbttest BCM3	WS23 -security wep
+	    cbttest BCM3	WS4 -security tkippsk
+	    cbttest BCM3	WS3 -security tkippsk
+            cbttest BCM3        WS17 -security aespsk2
+	    cbttest BCM3	WS11 -security aespsk2
+            cbttest BCM3_1	WS8 -security wep
+            cbttest BCM3_1	WS22 -security tkippsk
+        
+        # added by rodneby to debug BCM3_1 to WS26 ping issues
+        cbttest BCM3 WS26 -security aespsk2
+        
+        cbttest BCM3_1	WS26 -security aespsk2
+	    cbttest BCM3_1	WS12 -security aespsk2
+	    cbttest BCM4	WS5
+	    cbttest BCM4	WS15
+            cbttest BCM4	WS10 -security wep
+	    cbttest BCM4	WS17 -security wep
+	    cbttest BCM4	WS3 -security aespsk2
+	    cbttest BCM4        WS9 -security aespsk2
+	    cbttest BCM4	WS28 -security aespsk2
+	    cbttest BCM4	WS20 -security aespsk2
+	    cbttest BCM4	WS11 -security aespsk2
+            cbttest BCM4_1	WS6 -security tkippsk
+            cbttest BCM4_1	WS8 -security tkippsk
+	    cbttest BCM4_1	WS7 -security aespsk2
+	    cbttest BCM4_1	WS12 -security aespsk2
+	    cbttest BCM5	WS5
+	    cbttest BCM5	WS28
+	    cbttest BCM5	WS6
+	    cbttest BCM5	WS14 -security wep
+	    cbttest BCM5	WS27 -security wep
+	    cbttest BCM5	WS10 -security wep
+	    cbttest BCM5	WS11 -security tkippsk
+	    cbttest BCM5	WS9 -security tkippsk
+            cbttest BCM5        WS26 -security tkippsk
+            cbttest BCM5        WS17 -security aespsk2
+	    cbttest BCM5	WS25 -security aespsk2
+	    cbttest BCM6	WS4
+	    cbttest BCM6 	WS5
+	    cbttest BCM6	WS13
+	    cbttest BCM6	WS27 -security wep
+	    cbttest BCM6 	WS28 -security wep
+	    cbttest BCM6	WS7 -security tkippsk
+	    cbttest BCM6	WS8 -security tkippsk
+	    cbttest BCM6	WS10 -security tkippsk
+            cbttest BCM6	WS9 -security aespsk2
+            cbttest BCM6        WS17 -security aespsk2
+	    cbttest BCM6_1      WS12 -security tkippsk
+	    cbttest BCM6_1 	WS26 -security aespsk2
+            cbttest BCM6_1      WS11 -security aespsk2
+	    cbttest BCM6_1	WS6 -security aespsk2
+	    cbttest BCM7	WS5
+	    cbttest BCM7	WS3
+	    cbttest BCM7	WS4 -security wep
+	    cbttest BCM7	WS6 -security wep
+	    cbttest BCM7	WS7 -security wep
+	    cbttest BCM7	WS23 -security tkippsk
+	    cbttest BCM7	WS14 -security tkippsk
+            cbttest BCM7        WS17 -security tkippsk
+	    cbttest BCM7        WS13 -security aespsk2
+	    cbttest BCM7	WS20 -security aespsk2
+	    cbttest BCM8	WS6
+	    cbttest BCM8	WS5
+	    cbttest BCM8	WS10 -security wep
+	    cbttest BCM8	WS12 -security wep
+            cbttest BCM8	WS11 -security wep
+            cbttest BCM8	WS14 -security tkippsk
+            cbttest BCM8	WS27 -security aespsk2
+ 	    cbttest BCM8	WS26 -security aespsk2
+	    cbttest BCM8	WS17 -security aespsk2
+	    cbttest BCM9	WS5
+	    cbttest BCM9	WS9
+	    cbttest BCM9	WS20 -security wep
+	    cbttest BCM9	WS4 -security tkippsk
+	    cbttest BCM9	WS3 -security tkippsk
+	    cbttest BCM9        WS22 -security aespsk2
+	    cbttest BCM9 	WS11 -security aespsk2
+            cbttest BCM9        WS17 -security aespsk2
+	    cbttest BCM9	WS25 -security aespsk2
+	    cbttest BCM10	WS5
+	    cbttest BCM10	WS11
+	    cbttest BCM10	WS25 -security wep
+	    cbttest BCM10	WS3 -security aespsk2
+	    cbttest BCM10	WS12 -security aespsk2
+	    cbttest BCM10	WS23 -security aespsk2
+            cbttest BCM10       WS17 -security aespsk2
+	    cbttest BCM10_1	WS27 -security wep
+   	    cbttest BCM10_1	WS22 -security aespsk2
+	    cbttest BCM10_1	WS26 -security aespsk2
+            cbttest BCM10_1     WS11 -security aespsk2
+	    cbttest BCM11	WS5
+	    cbttest BCM11	WS4 -security wep
+	    cbttest BCM11	WS9 -security tkippsk
+	    cbttest BCM11	WS13 -security tkippsk
+            cbttest BCM11	WS20 -security tkippsk
+	    cbttest BCM11 	WS10 -security aespsk2
+	    cbttest BCM11	WS11 -security aespsk2
+	    cbttest BCM11	WS17 -security aespsk2
+	    cbttest BCM12	WS5
+	    cbttest BCM12	WS11 -security tkippsk
+	    cbttest BCM12	WS29 -security tkippsk
+ 	    cbttest BCM12	WS23 -security aespsk2
+	    cbttest BCM12	WS4 -security aespsk2
+	    cbttest BCM12	WS17 -security aespsk2
+            cbttest BCM14	WS5
+            cbttest BCM14	WS9
+            cbttest BCM14	WS11
+            cbttest BCM14       WS12
+            cbttest BCM14       WS26
+            cbttest BCM14       WS22
+            cbttest BCM14	WS27
+	    cbttest BCM14	WS25
+            cbttest BCM14       WS4 -security wep
+            cbttest BCM14       WS6 -security wep
+            cbttest BCM14       WS10 -security wep
+            cbttest BCM14       WS13 -security wep
+            cbttest BCM14       WS14 -security wep
+            cbttest BCM14       WS15 -security wep
+            cbttest BCM14       WS17 -security wep
+            cbttest BCM14       WS20 -security wep
+            cbttest BCM14       WS23 -security wep
+	    cbttest BCM14	WS29 -security wep
+	    cbttest BCM15	WS5 -security wep
+            cbttest BCM15	WS8 -security wep
+	    cbttest BCM15	WS3 -security wep
+	    cbttest BCM15	WS12 -security tkippsk
+	    cbttest BCM15	WS4 -security tkippsk
+	    cbttest BCM15	WS11 -security aespsk2
+	    cbttest BCM15	WS23  -security aespsk2
+	    cbttest BCM15	WS29 -security aespsk2
+	    cbttest BCM15_1	WS7 -security tkippsk
+	    cbttest BCM15_1	WS25 -security aespsk2 
+	    cbttest BCM16	WS5
+	    cbttest BCM16	WS9 -security wep
+	    cbttest BCM16	WS13 -security wep
+            cbttest BCM16       WS15 -security wep
+	    cbttest BCM16	WS14 -security tkippsk
+	    cbttest BCM16	WS26 -security tkippsk
+	    cbttest BCM16	WS4 -security tkippsk
+            cbttest BCM16       WS3 -security aespsk2
+	    cbttest BCM16       WS29 -security aespsk2
+	    cbttest BCM16	WS17 -security aespsk2
+	    cbttest BCM16_1	WS11 -security wep
+	    cbttest BCM16_1	WS10 -security tkippsk
+	    cbttest BCM16_1	WS26 -security tkippsk
+	    cbttest BCM16_1	WS27 -security aespsk2
+	    cbttest BCM16_1	WS8 -security aespsk2
+            cbttest BCM18       WS5
+            cbttest BCM18       WS26
+            cbttest BCM18       WS25 -security tkippsk
+            cbttest BCM18       WS27 -security aespsk2
+            cbttest BCM18       WS11 -security aespsk2
+	    cbttest BCM21	WS5
+	    cbttest BCM21	WS9
+	    cbttest BCM21	WS25
+	    cbttest BCM21	WS8 -security wep
+            cbttest BCM21	WS15 -security wep
+	    cbttest BCM21	WS22 -security wep
+	    cbttest BCM21	WS29 -security tkippsk
+	    cbttest BCM21	WS6 -security tkippsk
+	    cbttest BCM21	WS4 -security aespsk2
+	    cbttest BCM21	WS9 -security aespsk2
+	    cbttest BCM21	WS13 -security aespsk2
+            cbttest BCM21       WS17 -security aespsk2
+            cbttest BCM21_1     WS7
+            cbttest BCM21_1     WS11 -security wep
+            cbttest BCM21_1     WS10 -security wep
+            cbttest BCM21_1     WS26 -security wep
+            cbttest BCM21_1     WS33 -security tkippsk
+            cbttest BCM21_1     WS27 -security tkippsk
+            cbttest BCM21_1     WS12 -security aespsk2
+            cbttest BCM21_1     WS14 -security aespsk2
+	    cbttest BCM22	WS5
+            cbttest BCM22	WS15
+	    cbttest BCM22	WS9  -security wep
+	    cbttest BCM22	WS28 -security tkippsk
+            cbttest BCM22	WS11 -security aespsk2
+            cbttest BCM22	WS23 -security aespsk2
+	    cbttest BCM22	WS4  -security aespsk2
+	    cbttest BCM22	WS6 -security aespsk2
+	    cbttest BCM22	WS17 -security aespsk2
+            cbttest BCM23       WS29
+            cbttest BCM23	WS15
+            cbttest BCM23       WS10  -security wep
+	    cbttest BCM23 	WS11 -security wep
+            cbttest BCM23       WS23 -security tkippsk
+            cbttest BCM23       WS14 -security tkippsk
+	    cbttest BCM23	WS12 -security tkippsk
+            cbttest BCM23       WS8  -security aespsk2
+            cbttest BCM23       WS20  -security aespsk2
+            cbttest BCM23       WS22  -security aespsk2
+            cbttest BCM23       WS28  -security aespsk2
+	    cbttest BCM23	WS17 -security aespsk2
+            cbttest BCM24       WS12 -security wep
+	    cbttest BCM24	WS7 -security tkippsk
+	    cbttest BCM24	WS6 -security tkippsk
+            cbttest BCM24       WS22 -security tkippsk
+            cbttest BCM24       WS27 -security tkippsk
+            cbttest BCM24       WS11 -security aespsk2
+	    cbttest BCM24	WS26 -security aespsk2
+	    cbttest BCM25	WS5
+            cbttest BCM25	WS17 -piomode
+	    cbttest BCM25	WS26
+	    cbttest BCM25	WS27
+            cbttest BCM25	WS15 -security wep
+	    cbttest BCM25  	WS13 -security wep
+	    cbttest BCM25	WS8 -security tkippsk
+	    cbttest BCM25	WS6 -security aespsk2
+            cbttest BCM25       WS17 -security aespsk2
+            cbttest BCM25	WS4 -security aespsk2
+            cbttest BCM25	WS9 -security aespsk2
+	    cbttest BCM25       WS29 -security aespsk2
+	    cbttest BCM28	WS5
+	    cbttest BCM28	WS28
+	    cbttest BCM28	WS15 -security wep
+	    cbttest BCM28	WS12 -security tkippsk
+	    cbttest BCM28	WS4 -security tkippsk
+	    cbttest BCM28	WS25 -security tkippsk
+            cbttest BCM28       WS7 -security aespsk2
+            cbttest BCM28_1     WS7 
+            cbttest BCM28_1     WS8 -security wep
+            cbttest BCM28_1     WS17 -security tkippsk
+	    cbttest BCM28_1	WS33 -security aespsk2
+	    cbttest BCM28_1	WS26 -security aespsk2
+
+	    if {[llength $cases]} {
+		# Execute tests
+		cbtdotests
+	    } else {
+		UTF::Message WARN "CBT" "No Internal test cases selected"
+	    }
+	}
+
+	if {$(doexternal)} {
+	    UTF::Message INFO "CBT" "External"
+
+            cbttest BCM3        WS4x
+            cbttest BCM3        WS5x
+            cbttest BCM3        WS6x
+            cbttest BCM3        WS7x
+            cbttest BCM3        WS6x -security wep
+            cbttest BCM3        WS4x -security tkippsk
+            cbttest BCM4        WS5x
+            cbttest BCM4        WS10x
+            cbttest BCM4        WS6x -security wep
+            cbttest BCM4        WS9x -security wep
+            cbttest BCM4        WS9x -security tkippsk
+            cbttest BCM5        WS5x
+            cbttest BCM5        WS7x
+            cbttest BCM5        WS10x
+            cbttest BCM5        WS6x -security wep
+            cbttest BCM5        WS9x -security tkippsk
+            cbttest BCM6        WS4x
+            cbttest BCM6        WS5x
+            cbttest BCM6        WS9x
+            cbttest BCM6        WS13x
+            cbttest BCM6        WS7x -security tkippsk
+            cbttest BCM6        WS10x -security tkippsk
+            cbttest BCM7        WS4x
+            cbttest BCM7        WS5x
+            cbttest BCM7        WS6x
+            cbttest BCM7        WS6x -security wep
+            cbttest BCM7        WS7x -security wep
+            cbttest BCM7        WS13x -security tkippsk
+            cbttest BCM8        WS6x
+            cbttest BCM8        WS7x
+            cbttest BCM8        WS10x -security wep
+            cbttest BCM9        WS5x
+            cbttest BCM9        WS9x
+            cbttest BCM9        WS27x
+            cbttest BCM9        WS4x -security tkippsk
+            cbttest BCM10       WS29x
+            cbttest BCM10       WS10x -security tkippsk
+            cbttest BCM11       WS5x
+            cbttest BCM11       WS4x -security wep
+            cbttest BCM11       WS10x -security wep
+            cbttest BCM11       WS10x -security tkippsk
+            cbttest BCM11       WS13x -security tkippsk
+            cbttest BCM12       WS4x
+            cbttest BCM12       WS5x
+            cbttest BCM12       WS8x
+            cbttest BCM12       WS20x
+            cbttest BCM14       WS4x
+            cbttest BCM14       WS9x
+            cbttest BCM14       WS26x -security wep
+            cbttest BCM14       WS27x -security wep
+            cbttest BCM15       WS5x
+            cbttest BCM15       WS13x -security wep
+            cbttest BCM15       WS14x -security tkippsk
+            cbttest BCM15_1     WS7x -security tkippsk
+            cbttest BCM16       WS5x
+            cbttest BCM16       WS9x
+            cbttest BCM16       WS13x -security wep
+            cbttest BCM16       WS14x -security tkippsk
+            cbttest BCM16_1     WS10x
+            cbttest BCM18       WS5x
+            cbttest BCM18       WS9x
+            cbttest BCM18       WS4x -security tkippsk
+            cbttest BCM21       WS9x
+            cbttest BCM21       WS22x
+            cbttest BCM21       WS22x -security wep
+            cbttest BCM21       WS4x -security tkippsk
+            cbttest BCM21       WS22x -security tkippsk
+            cbttest BCM22       WS4x
+            cbttest BCM22       WS5x
+            cbttest BCM22       WS6x -security wep
+            cbttest BCM22       WS9x -security tkippsk
+            cbttest BCM25       WS26x
+            cbttest BCM25       WS27x
+            cbttest BCM25       WS7x -security wep
+            cbttest BCM25       WS13x -security wep
+            cbttest BCM25       WS29x -security wep
+            cbttest BCM28_1	WS14x
+            cbttest BCM28_1     WS10x -security tkippsk
+
+	    if {[llength $cases]} {
+		# Execute tests
+		cbtdotests
+	    } else {
+		UTF::Message WARN "CBT" "No test External cases selected"
+	    }
+
+            # Do optional post test analysis. The "" passes the unnamed options array.
+            UTF::do_post_test_analysis CBT.test ""
+	}
+    }
+}

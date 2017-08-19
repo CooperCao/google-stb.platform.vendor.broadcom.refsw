@@ -47,16 +47,21 @@ typedef enum {
     BIMG_Ioctl_Req_Type_Open,   /* this request sent from the driver to user mode app */
     BIMG_Ioctl_Req_Type_Next,   /* this is request from the driver to user mode app */
     BIMG_Ioctl_Req_Type_Close,  /* this is request from the driver to user mode app */ 
-    BIMG_Ioctl_Req_Type_Start,  /* start is a special request, which should be used first time by application called into the driver */
-    BIMG_Ioctl_Req_Type_Again,  /* driver interrupted. no request. proxy must call again. */
-    BIMG_Ioctl_Req_Type_Exit    /* exit is a special request from the user application, which is used to release another process which might wait inside ioctl */
-}BIMG_Ioctl_Req_Type ;
+    BIMG_Ioctl_Req_Type_Again   /* driver interrupted. no request. proxy must call again. */
+} BIMG_Ioctl_Req_Type;
+
+typedef enum  {
+    BIMG_Ioctl_Ack_Type_Wait,   /* application waits for commands */
+    BIMG_Ioctl_Ack_Type_Reply,  /* application responds to call from driver */
+    BIMG_Ioctl_Ack_Type_Exit    /* exit is a special request from the user application, which is used to release another process which might wait inside ioctl */
+} BIMG_Ioctl_Ack_Type;
 
 typedef uint64_t BIMG_Ioctl_Pointer;
 
 typedef struct {
     char id[BIMG_ID_MAX_LEN];
     uint32_t req_type;
+    uint32_t sequence_no;
     union {
         struct {
             uint32_t image_id;
@@ -74,12 +79,16 @@ typedef struct {
 
 typedef struct {
     int result;
+    BIMG_Ioctl_Ack_Type ack_type;
+    BIMG_Ioctl_Req_Type req_type; /* if ack==BIMG_Ioctl_Ack_Type_Reply this must match BIMG_Ioctl_Req.req_type */
+    uint32_t sequence_no; /* if ack==BIMG_Ioctl_Ack_Type_Reply this must match BIMG_Ioctl_Req.sequence_no */
     union {
         struct {
             BIMG_Ioctl_Pointer image;
         } open;
         struct {
             BIMG_Ioctl_Pointer data;
+            uint32_t length;
         } next;
         struct {
             uint32_t dummy;
@@ -88,8 +97,8 @@ typedef struct {
 }BIMG_Ioctl_Ack;
 
 typedef struct {
-    BIMG_Ioctl_Req req;
-    BIMG_Ioctl_Ack ack;
+    BIMG_Ioctl_Req req; /* set by driver, read by user space */
+    BIMG_Ioctl_Ack ack; /* set by user space, read by driver */
 }BIMG_Ioctl;
 
 int nexus_img_interfaces_init(void);

@@ -44,6 +44,8 @@
 #include "bdsq_g1_priv.h"
 BDBG_MODULE(bdsq_g1_priv);
 
+/*#define BDSQ_DISABLE_NOISE_ESTIMATION*/
+
 
 /******************************************************************************
  BDSQ_g1_P_Open()
@@ -144,6 +146,7 @@ BERR_Code BDSQ_g1_P_InitChannelConfig(BDSQ_ChannelHandle h)
    hChn->configParam[BDSQ_g1_CONFIG_CIC_LEN] = 0x03;              /* fast cic filter length */
    hChn->configParam[BDSQ_g1_CONFIG_CIC_MIN_THRESH] = 0x41;       /* fast cic min threshold */
    hChn->configParam[BDSQ_g1_CONFIG_CIC_DELTA_THRESH] = 0x00;     /* fast cic delta threshold */
+   hChn->configParam[BDSQ_g1_CONFIG_RX_END_TIMEOUT] = 6000;       /* rx termination timeout */
 
    return BERR_SUCCESS;
 }
@@ -384,7 +387,11 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
       BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCMEMDAT, firCoeffNonConfirm[i]);
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSFIRCTL, 0x00000168);
 
+#ifdef BDSQ_DISABLE_NOISE_ESTIMATION
+   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL00, 0x01091000);    /* freeze noise int lpfnest=1, release control word reset, release state machine reset */
+#else
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL00, 0x00091000);    /* release control word reset, release state machine reset */
+#endif
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL01, 0x00000013);    /* set ddfs gain 630mV */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL02, 0x1B810000);    /* set dac1 trim to 0V, power down diseqc rx by default, neg edge adc interface */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL03, 0x00314060);    /* noise estimator decimate by 8, slow CIC, differential mode output */
@@ -393,12 +400,16 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
    val = hChn->configParam[BDSQ_g1_CONFIG_RX_TONE_MODE] & 0x7;
    BDSQ_P_ReadModifyWriteRegister(h, BCHP_SDS_DSEC_DSCTL03, ~0x07070000, (val << 24) | (val << 16));
 
-   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_RERT, 0x1770660D);       /* decrease vtop and vbot level for dac1 */
+   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_RERT, (hChn->configParam[BDSQ_g1_CONFIG_RX_END_TIMEOUT] << 16) | 0x660D); /* decrease vtop and vbot level for dac1 */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_TPWC, 0x3C200A15);       /* decrease tone absent timing, adjust TXPWPC to x20 */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCT, 0x08000000);       /* misc diseqc controls */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_SLEW, 0x06060600);       /* adjust TOA to TOD timing */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_ADCTL, 0x02000000);      /* TBD required? */
+#ifdef BDSQ_DISABLE_NOISE_ESTIMATION
+   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_RTDC2, 0x00000700);      /* disable noise estimation, adjust noise_lpf_alpha and min_noise_int=0 */
+#else
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_RTDC2, 0x00000704);      /* adjust noise_lpf_alpha and min_noise_int */
+#endif
 
    /* set fast and slow cic filter lengths, adjust fast cic delta and min threshold */
    val = (hChn->configParam[BDSQ_g1_CONFIG_CIC_LEN] & 0x3F) << 24;
@@ -440,9 +451,15 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_RBDT, 0x012C0000 | (hChn->configParam[BDSQ_g1_CONFIG_RX_BIT_TIMING] & 0xFFF));
 
    /* diseqc resets, toggle integrators, clear status */
+#ifdef BDSQ_DISABLE_NOISE_ESTIMATION
+   BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7E006301);
+   BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
+   BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7E006301);
+#else
    BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7F006301);
    BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
    BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7F006301);
+#endif
 
    /* reset buffer status and diseqc status */
    hChn->bufStatus = BDSQ_BUF_ALL_EMPTY;
@@ -660,9 +677,15 @@ BERR_Code BDSQ_g1_P_GetTone(BDSQ_ChannelHandle h, bool *pbTone)
    BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL01, 0x00004000);    /* enable tone detection */
 
    /* reset integrators and diseqc */
+#ifdef BDSQ_DISABLE_NOISE_ESTIMATION
+   BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7E000301);
+   BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
+   BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7E000301);
+#else
    BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7F000301);
    BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
    BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7F000301);
+#endif
 
    /* check if tone present after 5ms */
    BKNI_Sleep(5);
@@ -682,9 +705,16 @@ BERR_Code BDSQ_g1_P_GetTone(BDSQ_ChannelHandle h, bool *pbTone)
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_ADCTL, 0x06000000);      /* diseqc AFE PGA setting */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_RTDC2, 0x0000060F);      /* set lpf alpha, always integrate */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL03, 0x003F4060);    /* noise estimator decimate by 8, slow CIC, soft demod mode for tone detect */
+
+#ifdef BDSQ_DISABLE_NOISE_ESTIMATION
+   BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7E000300);       /* diseqc resets, freeze integrators, clear status */
+   BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
+   BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7E000300);     /* release resets, unfreeze integrators, unclear status */
+#else
    BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7F000300);       /* diseqc resets, freeze integrators, clear status */
    BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
    BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7F000300);     /* release resets, unfreeze integrators, unclear status */
+#endif
 
    BKNI_Sleep(5);    /* use bkni sleep since task level function */
 
@@ -1010,9 +1040,15 @@ BERR_Code BDSQ_g1_P_EnableRx(BDSQ_ChannelHandle h, bool bEnable)
       hChn->dsecStatus.status = BDSQ_SendStatus_eSuccess;
 
       /* reset the FIFO, memory, noise integrator, etc. */
+   #ifdef BDSQ_DISABLE_NOISE_ESTIMATION
+      BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7E002201);
+      BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
+      BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7E002201);
+   #else
       BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL00, 0x7F002201);
       BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
       BDSQ_P_AndRegister(h, BCHP_SDS_DSEC_DSCTL00, ~0x7F002201);
+   #endif
 
       /* power off diseqc rx */
       BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL02, 0x00800000);
@@ -1283,6 +1319,9 @@ BERR_Code BDSQ_g1_P_SetChannelConfig(BDSQ_ChannelHandle h, uint32_t addr, uint32
       case BDSQ_g1_CONFIG_CIC_DELTA_THRESH:
          val &= 0xFF;
          BDSQ_P_ReadModifyWriteRegister(h, BCHP_SDS_DSEC_FCIC, ~0xFF000000, val << 24);
+         break;
+      case BDSQ_g1_CONFIG_RX_END_TIMEOUT:
+         val &= 0xFFFF;
          break;
    }
 

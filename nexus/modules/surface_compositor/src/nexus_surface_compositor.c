@@ -183,11 +183,11 @@ static void nexus_surface_compositor_p_initialize_compositor_display(struct NEXU
 static struct NEXUS_SurfaceCompositorDisplay *nexus_surface_compositor_p_create_display(NEXUS_SurfaceCompositorHandle server)
 {
     struct NEXUS_SurfaceCompositorDisplay *display;
-    NEXUS_Error rc;
 
     display = BKNI_Malloc(sizeof(*display));
     if(display==NULL) {
-        rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);return NULL;
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
     }
     BKNI_Memset(display, 0, sizeof(*display));
     nexus_surface_compositor_p_initialize_compositor_display(display);
@@ -575,6 +575,9 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
         if (!pSettings->display[i].display) continue;
         NEXUS_Display_GetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
         /* update only those members which NSC does not calculate */
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, sourceBlendFactor);
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, destBlendFactor);
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, constantAlpha);
         COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, horizontalFilter);
         COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, verticalFilter);
         COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, horizontalCoeffIndex);
@@ -1284,7 +1287,7 @@ static NEXUS_P_SurfaceCompositorRenderElement *nexus_surface_compositor_p_proces
     }
 
     new_width = nexus_surface_compositor_p_limit_downscale_factor(source->width, dest->width, server->settings.bounceBuffer.width, server->bounceBuffer.capabilities.maxHorizontalDownScale);
-    new_height = nexus_surface_compositor_p_limit_downscale_factor(source->height, dest->height, server->settings.bounceBuffer.height, server->bounceBuffer.capabilities.maxHorizontalDownScale);
+    new_height = nexus_surface_compositor_p_limit_downscale_factor(source->height, dest->height, server->settings.bounceBuffer.height, server->bounceBuffer.capabilities.maxVerticalDownScale);
 
     BDBG_MSG(("bounce:%p %ux%u -> %ux%u -> %ux%u", (void *)server, source->width, source->height, new_width, new_height, dest->width, dest->height));
 
@@ -1730,13 +1733,11 @@ void nexus_surface_compositor_p_compose(NEXUS_SurfaceCompositorHandle server)
         struct NEXUS_SurfaceCompositorFramebuffer *framebuffer;
         bool tunnelActive = server->tunnel.client && !server->tunnel.client->state.left.hidden;
         struct NEXUS_SurfaceCompositorFramebuffer *tunnelSource = NULL;
-        struct NEXUS_SurfaceCompositorFramebuffer *tunnelDest = NULL;
 
         tunnelSource = framebuffer = BLST_Q_FIRST(&cmpDisplay->tunnel.submitted);
         if(tunnelActive && framebuffer && !server->tunnel.overlapped) {
             /* render into client provided framebuffer */
             BDBG_MSG_TRACE(("compose:%#lx rendering into tunnel framebuffer:%#lx", (unsigned long)server, (unsigned long)framebuffer));
-            tunnelDest = framebuffer;
             BLST_Q_REMOVE_HEAD(&cmpDisplay->tunnel.submitted, tunnelLink); /* would be added  into available by nexus_surface_compositor_p_recycle_displayed_framebuffer */
         } else {
             framebuffer = BLST_SQ_FIRST(&cmpDisplay->available);
@@ -1898,6 +1899,7 @@ static void nexus_surface_compositor_p_update_dirty_client(NEXUS_SurfaceClientHa
     pBlitSettings->output.rect = client->set.dirtyRect;
     NEXUS_SURFACECLIENT_P_SURFACE_VERIFY(client, &client->set.surface);
     rc = NEXUS_Graphics2D_Blit(client->server->gfx, pBlitSettings);
+    BSTD_UNUSED(rc);
     /* TODO: if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
         cannot block for packetSpaceAvailable.
         must keep track of which blits are completed.
@@ -2072,8 +2074,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_GetStatus( NEXUS_SurfaceCompositorHandle ser
 
     if (server->tunnel.client) {
         unsigned i;
-        NEXUS_SurfaceClient_TunnelSurface *tunnelSurface;
-        for(tunnelSurface=NULL,i=0;i<sizeof(server->tunnel.client->tunnel.surfaces)/sizeof(server->tunnel.client->tunnel.surfaces[0]);i++) {
+        for(i=0;i<sizeof(server->tunnel.client->tunnel.surfaces)/sizeof(server->tunnel.client->tunnel.surfaces[0]);i++) {
             if(server->tunnel.client->tunnel.surfaces[i].surface) {
                 pStatus->numAcquiredTunneledSurfaces++;
             }

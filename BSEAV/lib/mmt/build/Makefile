@@ -40,11 +40,7 @@ include ../../../api/build/tools.mak
 BSEAV := $(shell cd "../../.." && ${PWD})
 MAGNUM = $(BSEAV)/../magnum
 WITH_NEXUS?=y
-ifeq (${WITH_NEXUS},y)
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
-else
-B_REFSW_OBJ_DIR ?= obj.${B_REFSW_ARCH}
-endif
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
 B_REFSW_STRICT_PRINTF_FORMAT=y
 
@@ -69,16 +65,15 @@ APP = mmt
 
 CFLAGS += -W -Wall
 CFLAGS += -I ../../../api/include
-ifeq (${WITH_NEXUS},y)
 NEXUS_TOP = $(BSEAV)/../nexus
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
-CFLAGS += -DWITH_NEXUS=1 $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 LDFLAGS += ${NEXUS_LDFLAGS} $(NEXUS_LD_LIBRARIES)
-else
-include $(BSEAV)/build/refsw_inc.mak
-CFLAGS += $(B_REFSW_CFLAGS) $(B_REFSW_GENERIC_MAGNUM_CFLAGS) $(B_REFSW_MAGNUM_INCLUDE_DIRS)
-CFLAGS += ${B_REFSW_C_ONLY_FLAGS} ${B_REFSW_LINUXKERNEL_CFLAGS}
+
+ifeq (${WITH_NEXUS},y)
+CFLAGS += -DWITH_NEXUS=1
 endif
+
 CFLAGS += ${B_TEST_CFLAGS} ${B_TEST_INC}
 CFLAGS += -fstrict-aliasing -frename-registers
 CFLAGS += -D_POSIX_C_SOURCE=199309L
@@ -91,8 +86,8 @@ endif
 SRCS += ${B_TEST_SRCS}
 
 ifneq ($(APP),)
-SRCS += bmmt_test.c
-#SRCS += btlv_playback.c
+#SRCS += bmmt_test.c
+SRCS += bmmt_playback.c
 endif
 
 CFLAGS += -I ../../utils
@@ -101,17 +96,6 @@ vpath %.c ../../utils ${MAGNUM}/commonutils/lst/test
 ODIR = ${B_REFSW_OBJ_ROOT}/BSEAV/lib/mmt/build/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)
 
 OS = ${B_REFSW_OS}
-ifeq (${WITH_NEXUS},y)
-else
-# Need some Magnum basemodules
-include $(MAGNUM)/basemodules/kni/bkni.inc
-include $(MAGNUM)/basemodules/dbg/bdbg.inc
-include $(MAGNUM)/commonutils/lst/blst.inc
-CFLAGS += $(addprefix -I, $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES)))
-CFLAGS += $(addprefix -D, $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES)))
-SRCS += $(notdir $(foreach module, $(MAGNUM_MODULES), $($(module)_SOURCES)))
-vpath %.c $(dir $(foreach module, $(MAGNUM_MODULES), $($(module)_SOURCES)))
-endif
 
 ifeq ($(B_REFSW_ARCH),i386-linux)
 #LDFLAGS += -m32
@@ -129,7 +113,5 @@ OBJS += ${MAGNUM_OBJS}
 
 include ${BSEAV}/api/build/rules.mak
 
-ifeq (${WITH_NEXUS},y)
 install: application
 	${CP} ${APP_IMAGE} $(NEXUS_BIN_DIR)
-endif

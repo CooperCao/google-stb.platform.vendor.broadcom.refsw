@@ -225,6 +225,8 @@ typedef struct NEXUS_AudioCaptureStartSettings
                                            You will not receive another callback until NEXUS_AudioCapture_GetBuffer is called. */
     NEXUS_CallbackDesc sampleRateCallback;    /* Callback when sample rate changes.  Call NEXUS_AudioCapture_GetStatus() to get the
                                                  current sample rate */
+    NEXUS_CallbackDesc overflowCallback; /* Callback when capture buffer is full. User should call NEXUS_AudioCapture_GetBuffer.
+                                           You will not receive another callback until NEXUS_AudioCapture_GetBuffer is called. */
 } NEXUS_AudioCaptureStartSettings;
 
 /***************************************************************************

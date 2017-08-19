@@ -10,6 +10,7 @@
 #include "glsl_fastmem.h"
 #include "glsl_errors.h"
 #include "glsl_compiler.h"
+#include "glsl_parser.h"
 #include "glsl_map.h"
 #include "glsl_globals.h"
 #include "glsl_symbols.h"
@@ -44,6 +45,7 @@
 #include "../glxx/glxx_int_config.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
+#include "libs/core/v3d/v3d_gen.h"
 
 void glsl_term_lexer();
 bool glsl_find_version(int sourcec, const char *const *sourcev, int *version);
@@ -239,6 +241,9 @@ static void dpostv_find_active_ids(Dataflow *dataflow, void *data) {
          break;
       case DATAFLOW_CONST_IMAGE:
          active->uniform[dataflow->u.const_image.location] = true;
+         break;
+      case DATAFLOW_CONST_SAMPLER:
+         active->uniform[dataflow->u.linkable_value.row] = true;
          break;
       case DATAFLOW_ATOMIC_COUNTER:
          active->atomic[dataflow->u.buffer.index] |= (1 << (dataflow->u.buffer.offset / 4));
@@ -819,10 +824,24 @@ static Dataflow *dprev_promote_constants(Dataflow *d, void *data) {
       glsl_map_put(dat->map, d, promoted);
    }
    if (out->flavour == DATAFLOW_EXTERNAL) {
-      Dataflow *promoted = glsl_dataflow_construct_external(out->type);
-      promoted->u.external.block  = out->u.external.block;
-      promoted->u.external.output = out->u.external.output;
+      Dataflow *promoted = glsl_dataflow_construct_external(out->type, out->u.external.block, out->u.external.output);
       glsl_map_put(dat->map, d, promoted);
+   }
+
+   if (out->flavour == DATAFLOW_GET_VEC4_COMPONENT) {
+      if (out->d.unary_op.operand->flavour == DATAFLOW_VECTOR_LOAD) {
+         Dataflow *a = out->d.unary_op.operand->d.unary_op.operand;
+         if (a->flavour == DATAFLOW_ADDRESS) {
+            Dataflow *u = a->d.unary_op.operand;
+            if (u->flavour == DATAFLOW_UNIFORM_BUFFER) {
+               Dataflow *buf_copy = glsl_dataflow_construct_buffer(DATAFLOW_UNIFORM_BUFFER, u->type, u->u.buffer.index, u->u.buffer.offset);
+               Dataflow *addr_copy = glsl_dataflow_construct_address(buf_copy);
+               Dataflow *load_copy = glsl_dataflow_construct_vector_load(out->d.unary_op.operand->type, addr_copy);
+               Dataflow *promoted = glsl_dataflow_construct_get_vec4_component(out->u.get_vec4_component.component_index, load_copy, out->type);
+               glsl_map_put(dat->map, d, promoted);
+            }
+         }
+      }
    }
 
    /* This has no children, so could return d or NULL here */
@@ -1059,64 +1078,131 @@ static void initialise_interface_symbols(BasicBlock *entry_block, Map *initial_v
    }
 }
 
-static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size[3], Symbol *shared_block, bool multicore)
+static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size[3], Symbol *shared_block, bool multicore, bool clamp_shared_idx, uint32_t shared_mem_per_core)
 {
    const Symbol *s_l_idx = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UINT__GL_LOCALINVOCATIONINDEX);
-   const Symbol *s_l_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_LOCALINVOCATIONID);
+   const Symbol *s_l_id  = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_LOCALINVOCATIONID);
    const Symbol *s_wg_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_WORKGROUPID);
-   const Symbol *s_g_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_GLOBALINVOCATIONID);
+   const Symbol *s_g_id  = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_GLOBALINVOCATIONID);
 
-   // Fetch local_index, global_id[3] from TLB.
+   glsl_generate_compute_variables(s_l_idx, s_l_id, s_wg_id, s_g_id,
+                                   entry_block, wg_size, shared_block, multicore, clamp_shared_idx, shared_mem_per_core);
+}
+
+static void uint15_div_by_constant(Dataflow** div, Dataflow** rem, Dataflow* num, uint32_t divisor)
+{
+   assert(divisor != 0);
+
+   if (divisor >= (1 << 15))
+   {
+      *div = glsl_dataflow_construct_const_uint(0);
+      *rem = num;
+   }
+   else if (gfx_is_power_of_2(divisor))
+   {
+      *div = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, num, glsl_dataflow_construct_const_uint(gfx_log2(divisor)));
+      *rem = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, num, glsl_dataflow_construct_const_uint(divisor - 1));
+   }
+   else
+   {
+      uint32_t shift = 32u - 15u + gfx_msb(divisor);
+      uint32_t mul = (1u << shift) / divisor + 1u;
+      *div = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, num, glsl_dataflow_construct_const_uint(mul));
+      *div = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, *div, glsl_dataflow_construct_const_uint(shift));
+      *rem = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, *div, glsl_dataflow_construct_const_uint(divisor));
+      *rem = glsl_dataflow_construct_binary_op(DATAFLOW_SUB, num, *rem);
+   }
+}
+
+void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id, const Symbol *s_wg_id, const Symbol *s_g_id,
+                                     BasicBlock *entry_block, const unsigned *wg_size, const Symbol *shared_block,
+                                     bool multicore, bool clamp_shared_idx, uint32_t shared_mem_per_core)
+{
+   unsigned const shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
+   unsigned items_per_wg = wg_size[0]*wg_size[1]*wg_size[2];
+
+#if V3D_USE_CSD
+   Dataflow* id0 = glsl_dataflow_construct_nullary_op(DATAFLOW_COMP_GET_ID0);
+   Dataflow* id1 = glsl_dataflow_construct_nullary_op(DATAFLOW_COMP_GET_ID1);
+
+   Dataflow* wg_id[3];
+   wg_id[0] = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, id0, glsl_dataflow_construct_const_uint(UINT16_MAX));
+   wg_id[1] = glsl_dataflow_construct_binary_op(DATAFLOW_SHR,         id0, glsl_dataflow_construct_const_uint(16));
+   wg_id[2] = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, id1, glsl_dataflow_construct_const_uint(UINT16_MAX));
+
+   Dataflow* l_idx = glsl_dataflow_construct_const_uint(0);
+   Dataflow* m_idx = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, id1, glsl_dataflow_construct_const_uint(16));
+   if (items_per_wg > 1)
+   {
+      unsigned bits_for_l_idx = gfx_msb(gfx_umax(items_per_wg, 64) - 1) + 1;
+      l_idx = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, id1, glsl_dataflow_construct_const_uint(32 - bits_for_l_idx));
+      m_idx = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, m_idx, glsl_dataflow_construct_const_uint(gfx_mask(16 - bits_for_l_idx)));
+   }
+#else
+   // Fetch wg_in_mem << s | local_index, wg_id_offset[3] from TLB.
    Dataflow *tlb[4];
-   glsl_dataflow_construct_frag_get_col(tlb, DF_UINT, 0, 0);
+   glsl_dataflow_construct_frag_get_col(tlb, DF_UINT, 0);
 
-   // TLB[0] contains the local_index packed with a per-row groups index. The local_index uses a whole number of bits
-   // determined by the work-group size rounded up to the next power of 2.
-   uint32_t wg_num_items_p2 = gfx_next_power_of_2(wg_size[0] * wg_size[1] * wg_size[2]);
-
-   Dataflow *wg_num_items_p2_df = glsl_dataflow_construct_const_uint(wg_num_items_p2);
-   Dataflow *l_idx = glsl_dataflow_construct_binary_op(DATAFLOW_REM, tlb[0], wg_num_items_p2_df);
-   Dataflow *g_idx = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, tlb[0], wg_num_items_p2_df); // local group index
-   glsl_basic_block_set_scalar_values(entry_block, s_l_idx, &l_idx);
-
-   Dataflow *g_id[3];
-   Dataflow *l_id[3];
    Dataflow *wg_id[3];
    for (unsigned i = 0; i != 3; ++i)
    {
-      // Fetch base global ID from varyings, add in offset from TLB.
-      g_id[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_IN, DF_UINT, i);
-      g_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, tlb[i+1], g_id[i]);
-
-      // Compute local and work-group IDs from global ID.
-      Dataflow *wg_sz = glsl_dataflow_construct_const_uint(wg_size[i]);
-      wg_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, g_id[i], wg_sz);
-      l_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_REM, g_id[i], wg_sz);
+      // Fetch base work-group ID from varyings, add in offset from TLB.
+      wg_id[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_IN, DF_UINT, i);
+      wg_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, tlb[i+1], wg_id[i]);
    }
 
+   Dataflow *l_idx, *m_idx;
+   if (shared_block_size > 0)
+   {
+      unsigned bits_for_l_idx = gfx_log2(gfx_next_power_of_2(items_per_wg));
+      l_idx = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, tlb[0], glsl_dataflow_construct_const_uint(gfx_mask(bits_for_l_idx)));
+      m_idx = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, tlb[0], glsl_dataflow_construct_const_uint(bits_for_l_idx));
+   }
+   else
+   {
+      l_idx = tlb[0];
+      m_idx = NULL;
+   }
+#endif
+
+   // Compute local ID from local invocation index.
+   Dataflow* zero = glsl_dataflow_construct_const_uint(0);
+   Dataflow* rem = l_idx;
+   Dataflow* l_id[3] = { zero, zero, zero };
+   if (wg_size[2] > 1)
+      uint15_div_by_constant(&l_id[2], &rem, rem, wg_size[0] * wg_size[1]);
+   if (wg_size[1] > 1)
+      uint15_div_by_constant(&l_id[1], &rem, rem, wg_size[0]);
+   l_id[0] = rem;
+
+   // Compute global ID from local and work-group IDs.
+   Dataflow *g_id[3];
+   for (unsigned i = 0; i != 3; ++i)
+   {
+      Dataflow *wg_sz = glsl_dataflow_construct_const_uint(wg_size[i]);
+      g_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, wg_id[i], wg_sz);
+      g_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, g_id[i], l_id[i]);
+   }
+
+   glsl_basic_block_set_scalar_values(entry_block, s_l_idx, &l_idx);
    glsl_basic_block_set_scalar_values(entry_block, s_g_id, g_id);
    glsl_basic_block_set_scalar_values(entry_block, s_l_id, l_id);
    glsl_basic_block_set_scalar_values(entry_block, s_wg_id, wg_id);
 
-   // Limit shared memory use to half the L2 cache size.
    Dataflow *shared_block_start = glsl_dataflow_construct_const_uint(0u);
-   unsigned const shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
    if (shared_block_size > 0)
    {
-      unsigned const l2_size = 128*1024; // timh-todo: 256k on v3d 3.3, is version available here?
-      unsigned max_concurrent_groups = shared_block_size > 0 ? l2_size / 2 / shared_block_size : ~0u;
-      assert(max_concurrent_groups >= 2);
-      uint32_t max_groups_per_row = (V3D_MAX_TLB_WIDTH_PX * 2u) / wg_num_items_p2;
-      max_groups_per_row = gfx_umin(max_groups_per_row, max_concurrent_groups / 2u);
-
-      // shared_block_start = g_idx * shared_block_size
-      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, g_idx, glsl_dataflow_construct_const_uint(shared_block_size));
+      assert(shared_block_size <= shared_mem_per_core);
+      // shared_block_start = m_idx * shared_block_size
+      if (clamp_shared_idx)
+         m_idx = glsl_dataflow_construct_binary_op(DATAFLOW_MIN, m_idx, glsl_dataflow_construct_const_uint(shared_mem_per_core / shared_block_size - 1));
+      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, m_idx, glsl_dataflow_construct_const_uint(shared_block_size));
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, glsl_dataflow_construct_nullary_op(DATAFLOW_SHARED_PTR));
 
       if (multicore) {
          Dataflow *core_offset = glsl_dataflow_construct_nullary_op(DATAFLOW_GET_THREAD_INDEX);
          core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, core_offset, glsl_dataflow_construct_const_uint(6));
-         core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, core_offset, glsl_dataflow_construct_const_uint(l2_size/2));
+         core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, core_offset, glsl_dataflow_construct_const_uint(shared_mem_per_core));
          shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, core_offset);
       }
    }
@@ -1124,7 +1210,7 @@ static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size
 }
 
 /* XXX: Hackily copy this here to build a shared block symbol */
-static Symbol *construct_shared_block(SymbolList *members)
+Symbol *glsl_construct_shared_block(const SymbolList *members)
 {
    SymbolType *resultType   = malloc_fast(sizeof(SymbolType));
    resultType->flavour      = SYMBOL_BLOCK_TYPE;
@@ -1203,15 +1289,15 @@ typedef union {
    } tess_control;
 
    struct {
-      enum tess_mode mode;
-      enum tess_spacing spacing;
+      v3d_cl_tess_type_t         mode;
+      v3d_cl_tess_edge_spacing_t spacing;
       bool cw;
       bool points;
    } tess_eval;
 
    struct {
-      enum gs_in_type  in;
-      enum gs_out_type out;
+      enum gs_in_type         in;
+      v3d_cl_geom_prim_type_t out;
       unsigned n_invocations;
       unsigned max_vertices;
    } geometry;
@@ -1230,8 +1316,8 @@ static void iface_data_fill_default(IFaceData *data, ShaderFlavour flavour) {
          for (int i=0; i<3; i++) data->compute.wg_size[i] = 1;
          break;
       case SHADER_TESS_EVALUATION:
-         data->tess_eval.mode    = TESS_INVALID;
-         data->tess_eval.spacing = TESS_SPACING_EQUAL;
+         data->tess_eval.mode    = V3D_CL_TESS_TYPE_INVALID;
+         data->tess_eval.spacing = V3D_CL_TESS_EDGE_SPACING_EQUAL;
          break;
       case SHADER_GEOMETRY:
          data->geometry.n_invocations = 1;
@@ -1255,11 +1341,31 @@ static void set_gs_in_type(IFaceData *data, enum gs_in_type type, bool *declared
    *declared = true;
 }
 
-static void set_gs_out_type(IFaceData *data, enum gs_out_type type, bool *declared) {
+static void set_gs_out_type(IFaceData *data, v3d_cl_geom_prim_type_t type, bool *declared) {
    if (*declared && data->geometry.out != type)
       glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent geometry shader output declarations");
    data->geometry.out = type;
    *declared = true;
+}
+
+static void set_tess_spacing(IFaceData *data, v3d_cl_tess_edge_spacing_t spacing, bool *declared) {
+   if (*declared && data->tess_eval.spacing != spacing)
+      glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent tessellation spacing declarations");
+   data->tess_eval.spacing = spacing;
+   *declared = true;
+}
+
+static void set_tess_winding(IFaceData *data, bool cw, bool *declared) {
+   if (*declared && data->tess_eval.cw != cw)
+      glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent tessellation winding mode declarations");
+   data->tess_eval.cw = cw;
+   *declared = true;
+}
+
+static void set_tess_eval_mode(IFaceData *data, v3d_cl_tess_type_t mode) {
+   if (data->tess_eval.mode != V3D_CL_TESS_TYPE_INVALID && data->tess_eval.mode != mode)
+      glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent tessellation mode declarations");
+   data->tess_eval.mode = mode;
 }
 
 static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour flavour) {
@@ -1269,6 +1375,8 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
 
    bool size_declared             = false;
    bool tess_vertices_declared    = false;
+   bool tess_spacing_declared     = false;
+   bool tess_winding_declared     = false;
    bool gs_n_invocations_declared = false;
    bool gs_in_type_declared       = false;
    bool gs_out_type_declared      = false;
@@ -1290,16 +1398,16 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
          for (LayoutIDList *idn = qn->q->u.layout; idn; idn=idn->next) {
             if (sq == STORAGE_IN) {
                switch(idn->l->id) {
-                  case LQ_SIZE_X:                  data->compute.wg_size[0] = idn->l->argument;       break;
-                  case LQ_SIZE_Y:                  data->compute.wg_size[1] = idn->l->argument;       break;
-                  case LQ_SIZE_Z:                  data->compute.wg_size[2] = idn->l->argument;       break;
-                  case LQ_EARLY_FRAGMENT_TESTS:    data->fragment.early_fragment_tests = true;        break;
-                  case LQ_SPACING_EQUAL:           data->tess_eval.spacing = TESS_SPACING_EQUAL;      break;
-                  case LQ_SPACING_FRACTIONAL_EVEN: data->tess_eval.spacing = TESS_SPACING_FRACT_EVEN; break;
-                  case LQ_SPACING_FRACTIONAL_ODD:  data->tess_eval.spacing = TESS_SPACING_FRACT_ODD;  break;
-                  case LQ_CW:                      data->tess_eval.cw      = true;                    break;
-                  case LQ_CCW:                     data->tess_eval.cw      = false;                   break;
-                  case LQ_POINT_MODE:              data->tess_eval.points  = true;                    break;
+                  case LQ_SIZE_X:                  data->compute.wg_size[0] = idn->l->argument; break;
+                  case LQ_SIZE_Y:                  data->compute.wg_size[1] = idn->l->argument; break;
+                  case LQ_SIZE_Z:                  data->compute.wg_size[2] = idn->l->argument; break;
+                  case LQ_EARLY_FRAGMENT_TESTS:    data->fragment.early_fragment_tests = true;  break;
+                  case LQ_SPACING_EQUAL:           set_tess_spacing(data, V3D_CL_TESS_EDGE_SPACING_EQUAL,           &tess_spacing_declared); break;
+                  case LQ_SPACING_FRACTIONAL_EVEN: set_tess_spacing(data, V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_EVEN, &tess_spacing_declared); break;
+                  case LQ_SPACING_FRACTIONAL_ODD:  set_tess_spacing(data, V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_ODD,  &tess_spacing_declared); break;
+                  case LQ_CW:                      set_tess_winding(data, true,  &tess_winding_declared); break;
+                  case LQ_CCW:                     set_tess_winding(data, false, &tess_winding_declared); break;
+                  case LQ_POINT_MODE:              data->tess_eval.points  = true;                        break;
                   case LQ_INVOCATIONS:
                      set_iface_unsigned(&data->geometry.n_invocations, idn->l->argument, &gs_n_invocations_declared);
                      break;
@@ -1309,10 +1417,10 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
                   case LQ_TRIANGLES_ADJACENCY:     set_gs_in_type(data, GS_IN_TRIS_ADJ,  &gs_in_type_declared); break;
                   case LQ_TRIANGLES:
                      if (flavour == SHADER_GEOMETRY) set_gs_in_type(data, GS_IN_TRIANGLES, &gs_in_type_declared);
-                     else                            data->tess_eval.mode = TESS_TRIANGLES;
+                     else                            set_tess_eval_mode(data, V3D_CL_TESS_TYPE_TRIANGLE);
                      break;
-                  case LQ_ISOLINES:                data->tess_eval.mode = TESS_ISOLINES; break;
-                  case LQ_QUADS:                   data->tess_eval.mode = TESS_QUADS;    break;
+                  case LQ_ISOLINES:                set_tess_eval_mode(data, V3D_CL_TESS_TYPE_ISOLINES); break;
+                  case LQ_QUADS:                   set_tess_eval_mode(data, V3D_CL_TESS_TYPE_QUAD);     break;
                   default: /* Do nothing */ break;
                }
 
@@ -1320,9 +1428,9 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
                   size_declared = true;
             } else if (sq == STORAGE_OUT) {
                switch (idn->l->id) {
-                  case LQ_POINTS:         set_gs_out_type(data, GS_OUT_POINTS,     &gs_out_type_declared); break;
-                  case LQ_LINE_STRIP:     set_gs_out_type(data, GS_OUT_LINE_STRIP, &gs_out_type_declared); break;
-                  case LQ_TRIANGLE_STRIP: set_gs_out_type(data, GS_OUT_TRI_STRIP,  &gs_out_type_declared); break;
+                  case LQ_POINTS:         set_gs_out_type(data, V3D_CL_GEOM_PRIM_TYPE_POINTS,         &gs_out_type_declared); break;
+                  case LQ_LINE_STRIP:     set_gs_out_type(data, V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP,     &gs_out_type_declared); break;
+                  case LQ_TRIANGLE_STRIP: set_gs_out_type(data, V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP, &gs_out_type_declared); break;
                   case LQ_MAX_VERTICES:
                      set_iface_unsigned(&data->geometry.max_vertices, idn->l->argument, &gs_max_vertices_declared); break;
                   case LQ_VERTICES:
@@ -1365,19 +1473,36 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
                                                   V3D_MAX_GEOMETRY_INVOCATIONS);
       if (!gs_out_type_declared)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires output type declaration");
-      if (!gs_max_vertices_declared || data->geometry.max_vertices < 1 ||
-          data->geometry.max_vertices > GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES)
+      if (!gs_max_vertices_declared || data->geometry.max_vertices > GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES)
       {
-         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare max_vertices in the range [1, %d]",
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare max_vertices in the range [0, %d]",
                                                   GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES);
       }
    }
 
+   if (flavour == SHADER_COMPUTE && size_declared) {
+      static const unsigned max_size[3] = { GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_X,
+                                            GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Y,
+                                            GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
+
+      for (int i=0; i<3; i++) {
+         if (data->compute.wg_size[i] == 0 || data->compute.wg_size[i] > max_size[i])
+            glsl_compile_error(ERROR_CUSTOM, 15, -1, "local size %d should be in the range (0, %d]", data->compute.wg_size[i], max_size[i]);
+      }
+
+      unsigned total_invocations = data->compute.wg_size[0] * data->compute.wg_size[1] * data->compute.wg_size[2];
+      if (total_invocations > GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "Compute invocations %d exceeds maximum %d",
+                                                  total_invocations,
+                                                  GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS);
+
+   }
+   /* No error for not declaring a size -- that must be deferred until link time */
    if (flavour == SHADER_COMPUTE && !size_declared)
       for (int i=0; i<3; i++) data->compute.wg_size[i] = 0;
 }
 
-void glsl_ssa_shader_optimise(SSAShader *sh) {
+void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only) {
    if (sh->n_blocks > 1) {
       unphi_constants(sh->blocks, sh->n_blocks);
       promote_constants(sh->blocks, sh->n_blocks);
@@ -1386,7 +1511,7 @@ void glsl_ssa_shader_optimise(SSAShader *sh) {
 
    eliminate_dead_code(sh);
 
-   glsl_dataflow_cse(sh->blocks, sh->n_blocks);
+   glsl_dataflow_cse(sh->blocks, sh->n_blocks, mem_read_only);
 
    setup_required_components(sh->blocks, sh->n_blocks);
 }
@@ -1426,7 +1551,7 @@ static bool list_contains_loops_or_barriers(BasicBlockList *l) {
 #ifdef ANDROID
 __attribute__((optimize("-O0")))
 #endif
-CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *src, bool multicore)
+CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *src, bool multicore, bool clamp_shared_idx, uint32_t shared_mem_per_core)
 {
    CompiledShader *ret = NULL;
 
@@ -1489,7 +1614,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
          glsl_shader_interfaces_update(interfaces, n->statement->u.var_decl.var);
    }
 
-   Symbol *shared_block = construct_shared_block(interfaces->shared);
+   Symbol *shared_block = glsl_construct_shared_block(interfaces->shared);
 
    Map *symbol_ids = glsl_shader_interfaces_id_map(interfaces);
 
@@ -1521,7 +1646,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    initialise_interface_symbols(entry_block, initial_values);
    glsl_map_delete(initial_values);
    if (flavour == SHADER_COMPUTE)
-      generate_compute_variables(entry_block, iface_data.compute.wg_size, shared_block, multicore);
+      generate_compute_variables(entry_block, iface_data.compute.wg_size, shared_block, multicore, clamp_shared_idx, shared_mem_per_core);
 
    Map *offsets = glsl_map_new();
    for (BasicBlockList *n = l ; n != NULL; n=n->next) {
@@ -1555,7 +1680,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    if (new_flattening)
       flatten_and_predicate(&ir_sh);
 
-   glsl_ssa_shader_optimise(&ir_sh);
+   glsl_ssa_shader_optimise(&ir_sh, version < GLSL_SHADER_VERSION(3, 10, 1));
 
    ret = glsl_compiled_shader_create(flavour, version);
    if (ret == NULL) { return NULL; }
@@ -1597,14 +1722,20 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
          glsl_compile_error(ERROR_CUSTOM, 5, -1, "Use of gl_FragDepth while early_fragment_tests specified");
 
       bool visible_effects = false;
+      bool reads_depth_stencil = false;
       for (int i=0; i<ret->num_cfg_blocks; i++) {
          CFGBlock *b = &ret->blocks[i];
          for (int j=0; j<b->num_dataflow; j++) {
             if (glsl_dataflow_affects_memory(b->dataflow[j].flavour)) visible_effects = true;
+            if (b->dataflow[j].flavour == DATAFLOW_FRAG_GET_DEPTH || b->dataflow[j].flavour == DATAFLOW_FRAG_GET_STENCIL)
+               reads_depth_stencil = true;
          }
       }
 
-      ret->early_fragment_tests = iface_data.fragment.early_fragment_tests || !visible_effects;
+      if (iface_data.fragment.early_fragment_tests && reads_depth_stencil)
+         glsl_compile_error(ERROR_CUSTOM, 5, -1, "Reading depth or stencil buffer while early_fragment_tests specified");
+
+      ret->early_fragment_tests = iface_data.fragment.early_fragment_tests || !(visible_effects || reads_depth_stencil);
       ret->abq = iface_data.fragment.abq;
    }
 
@@ -1620,6 +1751,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    }
 
    if (flavour == SHADER_GEOMETRY) {
+      ret->gs_max_known_layers = 1;
       ret->gs_in  = iface_data.geometry.in;
       ret->gs_out = iface_data.geometry.out;
       ret->gs_n_invocations = iface_data.geometry.n_invocations;
@@ -1629,15 +1761,6 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    if (flavour == SHADER_COMPUTE) {
       for (int i=0; i<3; i++) ret->cs_wg_size[i] = iface_data.compute.wg_size[i];
       ret->cs_shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
-
-      bool barriers = ret->cs_shared_block_size > 0;
-      for (unsigned i = 0; i != ir_sh.n_blocks; ++i) {
-         if (ir_sh.blocks[i].barrier) {
-            barriers = true;
-            break;
-         }
-      }
-      ret->cs_has_barrier = barriers && glsl_wg_size_requires_barriers(ret->cs_wg_size);
    }
 
    glsl_ssa_shader_term(&ir_sh);

@@ -167,7 +167,7 @@ int main(int argc, const char **argv)
         parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
         NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
         parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
-        NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
+        NEXUS_Platform_GetStreamerInputBand(streamer, &parserBandSettings.sourceTypeSettings.inputBand);
         NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
     }
 

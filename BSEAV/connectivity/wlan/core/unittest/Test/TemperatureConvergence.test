@@ -1,0 +1,105 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to converge on a temperature
+#
+# Written by: Robert J. McMahon November 2011
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Streamslib
+package require math::statistics
+
+package provide UTF::Test::TemperatureConvergence 2.0
+
+UTF::Test TemperatureConvergence {args} {
+    UTF::Getopts {
+	{sta.arg "" "STA under test"}
+	{timeout.arg "300" "Max time in seconds to wait for convergence"}
+	{interval.arg "5" "Polling interval"}
+	{stable.arg "5" "Latest values to use before declaring stable"}
+	{ap.arg "" "AP to use"}
+	{notraffic "" "Don't run traffic"}
+	{cooldown ""}
+    }
+    if {$(cooldown) && !$(notraffic)} {
+	set tests "up down"
+    } else {
+	set tests "up"
+    }
+    set upresults {}
+    foreach test $tests {
+	array unset temperatures *
+	catch {after cancel $aid}
+	UTF::Try "Temp Converge $(sta) $test" {
+	    set failtry 0
+	    UTF::Message INFO $(ap) "*** STA CURPOWER BELOW ***"
+	    $(sta) wl -u curpower
+	    if {!$(notraffic) && $test eq "up"} {
+		set traffic [UTF::stream %AUTO% -tx  $(sta) -rx $(ap) -protocol tcp]
+		$traffic id
+		$traffic start
+		$traffic linkcheck -now
+	    } elseif {$test eq "down"} {
+		catch {$traffic destroy}
+	    }
+	    variable __timeout
+	    set __timeout 0
+	    set temps {}
+	    set eventcmd [namespace code [list set __timeout 1]]
+	    set aid [after [expr {int($(timeout) * 1000)}] $eventcmd]
+	    set now [clock seconds]
+	    while {1} {
+		set current_temp [lindex [$(sta) wl phy_tempsense] 0]
+		$(sta) wl -u txpwr1
+		lappend temps $current_temp
+		set temperatures([expr {[clock seconds] - $now}]) $current_temp
+		UTF::Sleep $(interval)
+		if {[llength $temps] < $(stable)} {
+		    continue
+		}
+		set latest [lrange $temps end-[expr {$(stable) - 1}] end]
+		set variance [format %0.3f [math::statistics::var $latest]]
+		UTF::Message INFO "[namespace tail $(sta)]" "var=$variance temps=$latest "
+		# Break the loop based on the variance of the lastest samples
+		# being less than or equal to 1 degree, 3 times in sequence
+		if {[expr {((1.0/$(stable)) - $variance) >= 0}]} {
+		    if {[incr sequentialcnt] > 3} {
+			break
+		    }
+		} else {
+		    set sequentialcnt 0
+		}
+		# Break the loop and fail the try block if the timeout occurred
+		if {$__timeout} {
+		    UTF::Message WARN "[namespace tail $(sta)]" "Temp TIMEOUT"
+		    set failtry 1
+		    break
+		}
+	    }
+	    if {$failtry} {
+		set time "UNK"
+	    } else {
+		set time "[expr {[clock seconds] - $now}] s"
+	    }
+	    set tfinal [lindex [UTF::MeanMinMax $latest] 0]
+	    set delta [format %0.1f [expr {$tfinal - [lindex $temps 0]}]]
+	    set final "${tfinal} C/$delta C/$time"
+	    set results [UTF::Streamslib::grapharray temperatures -ymin 0 -htmltxt "$final" -title "Temperature Convergence\\n[string toupper $test] (STA=${(sta)}) $final"]
+	    if {$failtry} {
+		error "temp didn't converge within [expr {[clock seconds] - $now}] s"
+	    }
+	    if {$test eq "up"} {
+		set upresults $results
+	    }
+	    return $results
+	}
+	catch {after cancel $aid}
+	catch {$traffic destroy}
+	return $upresults
+    }
+}

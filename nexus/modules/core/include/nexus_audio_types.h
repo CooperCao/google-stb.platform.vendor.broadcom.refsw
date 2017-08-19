@@ -476,6 +476,7 @@ typedef enum NEXUS_AudioPostProcessing
     NEXUS_AudioPostProcessing_eTruVolume,
     NEXUS_AudioPostProcessing_eDsola,
     NEXUS_AudioPostProcessing_eBtsc,
+    NEXUS_AudioPostProcessing_eAmbisonic,
     NEXUS_AudioPostProcessing_eFade,
     NEXUS_AudioPostProcessing_eKaraokeVocal,
     NEXUS_AudioPostProcessing_eAdvancedTsm,
@@ -516,7 +517,7 @@ typedef struct NEXUS_AudioFadeSettings
     unsigned level;             /* Percentage representing the volume level.
                                    0 is muted, 100 is full volume. Default is 100. */
     unsigned duration;          /* duration in milliseconds it will take to change
-                                   to a new level. Valid values are 3 - 1000 */
+                                   to a new level. Valid values are 3 - 60000 */
     unsigned type;              /* specifies the type of fade -
                                    0- Linear (Default), 1-Cubic-In, 2-Cubic-Out. */
 } NEXUS_AudioFadeSettings;

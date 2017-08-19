@@ -397,7 +397,7 @@ void CModel::setTsb(
         eWindowType windowType
         )
 {
-    BDBG_WRN(("%s: %u", __FUNCTION__, windowType));
+    BDBG_WRN(("%s: %u", BSTD_FUNCTION, windowType));
     if (eWindowType_Max == windowType)
     {
         windowType = _fullScreenWindowType;
@@ -450,12 +450,12 @@ void CModel::resetChannelHistory()
 
 /* search all "current channels" for matches to given channel (ignore given excluded windowType.
  * return the number of matches found */
-uint16_t CModel::numMatchingCurrentChannels(
+unsigned CModel::numMatchingCurrentChannels(
         CChannel *  pChannel,
         eWindowType excluded
         )
 {
-    uint16_t count = 0;
+    unsigned count = 0;
 
     for (int i = 0; i < eWindowType_Max; i++)
     {
@@ -506,6 +506,6 @@ void CModel::setDeferredChannelNum(
  * and no way to consume a keypress along the way */
 eRet CModel::sendGlobalKeyDown(eKey * pKey)
 {
-    BDBG_WRN(("%s key:%d", __FUNCTION__, *pKey));
+    BDBG_WRN(("%s key:%d", BSTD_FUNCTION, *pKey));
     return(notifyObservers(eNotify_KeyDown, pKey));
 }

@@ -47,6 +47,7 @@
 #include "gicv2.h"
 
 #define ARM_CORTEX_A53_SECURE_TIMER_IRQ   29
+#define TZ_SECURE_SGI_IRQ   14
 
 static uint8_t *distributor;
 static uint8_t *cpuInterface;
@@ -103,7 +104,7 @@ static void gicDistributorInit(void *va) {
         //      Group 1: All normal world interrupts.
         //
         // The TZ OS is only interested in one PPI interrupts: Secure clock.
-        uint32_t ppiGroups = ~( 1 << ARM_CORTEX_A53_SECURE_TIMER_IRQ);
+        uint32_t ppiGroups = ~(( 1 << ARM_CORTEX_A53_SECURE_TIMER_IRQ) |(1 << TZ_SECURE_SGI_IRQ));
         regWrite32(distributor + GICD_IGROUPR, ppiGroups);
 
 	// Route all SPIs to the current CPU.
@@ -130,12 +131,15 @@ static void gicCpuInterfaceinit(void *va = nullptr) {
 	//regWrite32(distributor+GICD_ICENABLER, 0xffff);
 
 	// Enable all SGIs
-	uint32_t mask =  1 << (29%GICD_ISENABLER_NUM_BITS);
+	uint32_t mask =  (1 << (ARM_CORTEX_A53_SECURE_TIMER_IRQ%GICD_ISENABLER_NUM_BITS))
+			| (1 << (TZ_SECURE_SGI_IRQ%GICD_ISENABLER_NUM_BITS));
+
 	regWrite32(distributor+GICD_ISENABLER, mask);
 
 	// Set the default interrupt priority threshold.
 	for (int i=0; i<32; i+=4)
 		regWrite32(distributor+GICD_IPRIORITYR+i, 0xabababab);
+
 	regWrite32(cpuInterface+GICC_PMR, 0xf8);
 	regWrite32(cpuInterface+GICC_BPR, 0x0);
 
@@ -232,6 +236,7 @@ int gicV2Init(void *deviceTree) {
 }
 
 void gicV2InitSecondary() {
+	gicDistributorInit(distributor);
 	gicCpuInterfaceinit(cpuInterface);
 }
 
@@ -261,12 +266,17 @@ void gicV2InterruptDisable(uint32_t intrId) {
 	regWrite32(distributor+GICD_ICENABLER+isenableWordNum, mask);
 }
 
-void gicV2sgiGenerate(uint32_t intrId) {
+void gicV2sgiGenerate(uint8_t cpuTargetList, uint32_t intrId) {
 	uint32_t sgir = intrId & 0xf;
 
-	// SGI to CPU 0 only
-	sgir |= ((1 << 0) & 0xff) << 16;
-	sgir |= 1 << 15;
+	// SGI to CPU Target List
+	sgir |= ((cpuTargetList) & 0xff) << 16;
+
+	if (TZ_SECURE_SGI_IRQ == intrId)
+		sgir |= 0 << 15;
+	else
+		sgir |= 1 << 15;
+
 
 	ARCH_SPECIFIC_DMB;
 	regWrite32(distributor+GICD_SGIR, sgir);

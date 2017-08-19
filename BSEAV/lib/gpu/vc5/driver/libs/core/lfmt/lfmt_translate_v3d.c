@@ -702,7 +702,11 @@ static void avoid_integer_types(GFX_LFMT_TMU_TRANSLATION_T *t)
 #endif
 
 bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref)
+   GFX_LFMT_T lfmt
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+   , bool need_depth_type
+#endif
+   )
 {
    GFX_LFMT_T tmu_out_fmt;
    t->type = try_get_tmu_type_and_out_fmt(&tmu_out_fmt, lfmt);
@@ -710,9 +714,9 @@ bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
       return false;
    gfx_lfmt_check_num_slots_eq(tmu_out_fmt, v3d_tmu_get_num_channels(t->type));
 
-   switch (depth_pref)
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+   if (need_depth_type)
    {
-   case GFX_LFMT_TMU_DEPTH_ALWAYS:
       /* Caller requires v3d_tmu_is_depth_type(t->type) */
       switch (t->type)
       {
@@ -722,17 +726,8 @@ bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
          if (!v3d_tmu_is_depth_type(t->type))
             return false;
       }
-      break;
-   case GFX_LFMT_TMU_DEPTH_NEVER:
-      /* Caller requires !v3d_tmu_is_depth_type(t->type) */
-      if (v3d_tmu_is_depth_type(t->type))
-         return false;
-      break;
-   case GFX_LFMT_TMU_DEPTH_DONT_CARE:
-      break;
-   default:
-      unreachable();
    }
+#endif
 
    t->srgb = gfx_lfmt_contains_srgb(tmu_out_fmt);
    if (t->srgb && !srgb_ok(t->type, tmu_out_fmt, V3D_TFU_RGBORD_RGBA_OR_RG_YUYV_OR_UV))
@@ -748,9 +743,9 @@ bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
    if (!try_get_swizzles(t->swizzles, tmu_out_fmt, /*use_missing_channels=*/false))
       return false;
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    t->ret = GFX_LFMT_TMU_RET_AUTO;
    t->shader_swizzle = false;
-#if !V3D_VER_AT_LEAST(3,3,0,0)
    /* Integer types not supported... */
    avoid_integer_types(t);
 #endif
@@ -759,9 +754,17 @@ bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
 }
 
 void gfx_lfmt_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref)
+   GFX_LFMT_T lfmt
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+   , bool need_depth_type
+#endif
+   )
 {
-   bool success = gfx_lfmt_maybe_translate_tmu(t, lfmt, depth_pref);
+   bool success = gfx_lfmt_maybe_translate_tmu(t, lfmt
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+      , need_depth_type
+#endif
+      );
    assert(success);
    vcos_unused_in_release(success);
 }
@@ -808,9 +811,11 @@ GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb)
    case V3D_TMU_TYPE_RGBA16F:                         lfmt = GFX_LFMT_R16_G16_B16_A16_FLOAT; break;
    case V3D_TMU_TYPE_R11F_G11F_B10F:                  lfmt = GFX_LFMT_R11G11B10_UFLOAT; break;
    case V3D_TMU_TYPE_RGB9_E5:                         lfmt = GFX_LFMT_R9G9B9SHAREDEXP5_UFLOAT; break;
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP16:                    lfmt = GFX_LFMT_R16_UNORM; break;
-   case V3D_TMU_TYPE_DEPTH_COMP24:                    lfmt = GFX_LFMT_R24X8_UNORM; break;
    case V3D_TMU_TYPE_DEPTH_COMP32F:                   lfmt = GFX_LFMT_R32_FLOAT; break;
+#endif
+   case V3D_TMU_TYPE_DEPTH_COMP24:                    lfmt = GFX_LFMT_R24X8_UNORM; break;
    case V3D_TMU_TYPE_DEPTH24_X8:                      lfmt = GFX_LFMT_X8R24_UNORM; break;
    case V3D_TMU_TYPE_R4:                              lfmt = GFX_LFMT_R4_UNORM; break;
    case V3D_TMU_TYPE_R1:                              lfmt = GFX_LFMT_R1_UNORM; break;
@@ -1117,9 +1122,15 @@ bool gfx_lfmt_maybe_translate_to_tfu_type(
    GFX_LFMT_T dst_lfmt)
 {
    GFX_LFMT_TMU_TRANSLATION_T dst_t;
-   if (!gfx_lfmt_maybe_translate_tmu(&dst_t, fudge_lfmt_for_tfu(dst_lfmt), GFX_LFMT_TMU_DEPTH_DONT_CARE))
+   if (!gfx_lfmt_maybe_translate_tmu(&dst_t, fudge_lfmt_for_tfu(dst_lfmt)
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+         , /*need_depth_type=*/false
+#endif
+         ))
       return false;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    assert(dst_t.ret == GFX_LFMT_TMU_RET_AUTO);
+#endif
 
    if (!v3d_is_valid_tfu_type((v3d_tfu_type_t)dst_t.type))
       return false;

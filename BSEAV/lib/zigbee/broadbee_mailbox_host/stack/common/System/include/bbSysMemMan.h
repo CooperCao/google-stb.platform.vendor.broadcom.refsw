@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/common/System/include/bbSysMemMan.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the Memory Manager component.
+ *      Memory Manager interface.
  *
- * $Revision: 1887 $
- * $Date: 2014-03-25 09:31:48Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _BB_SYS_MEM_MAN_H
 #define _BB_SYS_MEM_MAN_H
 
@@ -227,6 +221,9 @@ SYS_PUBLIC bool SYS_MemoryManagerFreeTail(const MM_ChunkId_t  chunkId, const MM_
  *  detached head part.
  * \param[out]      pTailChunkId    Pointer to the detached tail memory chunk Id.
  * \param[in]       headSize        Size of the prospective head part of the chunk, in bytes.
+ * \param[in/out]   pInterBlockId   Pointer to the block Id that shall be utilized as the inter-block for the split
+ *  operation; finally is assigned with the Null Block Id if the inter-block was actually utilized, or preserves its
+ *  input value otherwise. As the input parameter, it regulates the strategy implemented by this function (see details).
  * \return  TRUE if operation was performed successfully; FALSE otherwise.
  * \details If the operation has been completed successfully, the TRUE status is returned, the \c tailChunkId is
  *  assigned with the chunk Id of the detached tail part, and the \c headChunkId is assigned with the chunk Id of the
@@ -234,19 +231,43 @@ SYS_PUBLIC bool SYS_MemoryManagerFreeTail(const MM_ChunkId_t  chunkId, const MM_
  *  empty, or is assigned with the Null Block Id otherwise (the second case takes place when the \p headSize equals to
  *  zero and the \c headChunkId is the leading block of split chunk). The \c tailChunkId is assigned either with the
  *  chunk Id of the detached tail part, or with the Null Block Id if the tail part is empty.
- * \details For the split operation to complete successfully one free block may be needed (namely in the case when the
- *  cut point lies inside a block but not on the block boundary). If this additional block is needed and if there are no
- *  free blocks at the moment, the split operation fails and the FALSE status is returned; in this case the
- *  \c tailChunkId is assigned with the Null Block Id, the \c headChunkId preserves its original value and the memory
- *  chunk is kept unchanged.
+ * \details For the split operation to complete successfully one unused block may be needed, namely in the case when the
+ *  cut point falls inside a block but not on a block boundary. When this additional inter-block is actually needed,
+ *  this function implements three different strategies depending on the value of the \p pInterBlockId and the value of
+ *  the variable pointed by the \p pInterBlockId:
+ *  - when \p pInterBlockId is assigned with a valid pointer to a variable holding a valid inter-block Id (not the Null
+ *      Block Id) - the function will utilize the specified inter-block for completion of the requested split operation.
+ *      This function returns TRUE and reassigns the value pointed by the \p pInterBlockId with the Null Block Id, which
+ *      signals to the caller that the originally provided inter-block was actually utilized.
+ *  - when \p pInterBlockId is assigned with a valid pointer to a variable holding the Null Block Id - it means that the
+ *      caller prohibits this function using an inter-block for the requested split operation. It's possible only in the
+ *      case when the cut point falls on a block boundary. Consequently, in this case, the caller expects that the cut
+ *      point will not fall inside a block. If this assumption is violated, this function returns FALSE and refuses of
+ *      splitting the memory chunk.
+ *  - when \p pInterBlockId is assigned with NULL - this function shall try to allocate one unused inter-block itself
+ *      when necessary. If it succeeded to allocate one, the split operation is completed and TRUE is returned. If there
+ *      are no free blocks at the moment, this function returns FALSE and refuses of splitting the memory chunk.
+ *
+ * \details In the case when the given memory chunk is split on the boundary of a block, no additional unused block is
+ *  needed for completion of the operation. In this case operation is completed successfully and TRUE is returned. Also,
+ *  if \p pInterBlockId is not NULL, the value pointed by the \p pInterBlockId is not checked and left unchanged. In the
+ *  case when the caller provided the function with a valid inter-block, this block will not be substituted with the
+ *  Null Block Id; it signals to the caller that the block was not utilized by this function.
+ * \details The block that is specified as the inter-block by the caller (when specified) must be currently busy and
+ *  have the leading status; it's allocated size must be 1 byte (which guarantees that its size in blocks equals exactly
+ *  one block).
  */
 SYS_PUBLIC bool SYS_MemoryManagerSplit(MM_ChunkId_t *const  pHeadChunkId, MM_ChunkId_t *const  pTailChunkId,
-        const MM_Size_t  headSize);
+        const MM_Size_t  headSize, MM_ChunkId_t *const  pInterBlockId);
 
 /**//**
  * \brief   Appends the tail memory chunk to the head memory chunk.
  * \param[in/out]   pHeadChunkId        Pointer to the head memory chunk Id.
  * \param[in]       tailChunkId         Identifier of the tail memory chunk.
+ * \param[in/out]   pExhaustBlockId     Pointer to the variable that shall be finally assigned with Id of the block that
+ *  escapes from the combined memory chunk after appending the tail part, in the case when joined blocks are combined
+ *  into a single block. As the input parameter, it regulates the strategy of appending the tail part implemented by
+ *  this function (see details).
  * \return  TRUE if operation was performed successfully; FALSE otherwise.
  * \details For two chunks to become joined they must be nonempty and have valid format. Both or one of \c headChunkId
  *  and \p tailChunkId may be assigned with the Null Block Id (the corresponding chunk is considered empty); in such
@@ -259,8 +280,36 @@ SYS_PUBLIC bool SYS_MemoryManagerSplit(MM_ChunkId_t *const  pHeadChunkId, MM_Chu
  * \details The joined head and tail chunks must be different, if they are not empty; otherwise operation fails.
  * \details Both chunks must have busy (allocated) status, if they are not empty; otherwise (i.e., if either
  *  \c headChunkId or \p tailChunkId specifies a free block) operation fails.
+ * \details This function implements two different strategies depending on the value of the \p pExhaustBlockId and the
+ *  value of the variable pointed by the \p pExhaustBlockId:
+ *  - when \p pExhaustBlockId is assigned with NULL, or when it is assigned with a valid pointer and the variable
+ *      pointed by \p pExhaustBlockId is assigned with a valid block Id that is not the Null Block Id - it means that
+ *      the caller wishes the tail part to be appended without combining joined blocks (the last block of the head part
+ *      and the first block of the tail part) into a single block.
+ *  - when \p pExhaustBlockId is assigned with a valid pointer and the variable pointed by \p pExhaustBlockId is
+ *      assigned with the Null Block Id (i.e., prepared to receive the escaping block) - it means that the caller wishes
+ *      the function to combine joined blocks into a single block. The function validates the total length of two
+ *      combined blocks; it shall not exceed the length of a single block. After combining blocks one of original blocks
+ *      is exhausted; the variable pointed by \p pExhaustBlockId is assigned with its Id.
  */
-SYS_PUBLIC bool SYS_MemoryManagerAppend(MM_ChunkId_t *const  pHeadChunkId, const MM_ChunkId_t  tailChunkId);
+SYS_PUBLIC bool SYS_MemoryManagerAppend(MM_ChunkId_t *const  pHeadChunkId, const MM_ChunkId_t  tailChunkId,
+        MM_ChunkId_t *const  pExhaustBlockId);
+
+/**//**
+ * \brief   Resizes the memory chunk within its trailing block.
+ * \param[in/out]   chunkId     Identifier of the memory chunk to be resized.
+ * \param[in]       size        New size of the memory chunk, in bytes.
+ * \return  TRUE if operation was performed successfully; FALSE otherwise.
+ * \details As soon as a memory chunk consists of chained blocks, and the very last block in the chain (the trailing
+ *  block) potentially may have the allocated size from 1 to the Maximum Block Size (depends on the configuration), the
+ *  overall chunk size may be changed within small limits without changing the number of blocks forming this chunk. If
+ *  currently the trailing block has its allocated size S which is (a) less than the M (let it stay for the Maximum
+ *  Block Size in the system), and (b) greater than 1 - then in the case (a) the chunk may be extended for (M-S) bytes,
+ *  and in the case (b) it may be shrink for (S-1) bytes.
+ * \details If the given limits are not sufficient for particular task, then other functions shall be used for modifying
+ *  the memory chunk size.
+ */
+SYS_PUBLIC bool SYS_MemoryManagerResize(const MM_ChunkId_t  chunkId, const MM_Size_t  size);
 
 /**//**
  * \brief   Returns the size of the specified memory chunk, in bytes.
@@ -322,3 +371,5 @@ SYS_PUBLIC void* SYS_MemoryManagerGetMapBlockIdMemory(const MM_ChunkId_t  blockI
 SYS_PUBLIC uint32_t SYS_MemoryManagerAvailableBlocks(void);
 
 #endif /* _BB_SYS_MEM_MAN_H */
+
+/* eof bbSysMemMan.h */

@@ -167,7 +167,6 @@ static bipc_server_client_t b_ipc_server_find_client(bipc_t ipc, int recv_fd, in
 
 bipc_server_client_t bipc_server_client_create(bipc_t ipc, bipc_server_client_create_settings *create_settings)
 {
-    int rc=-1;
     unsigned i;
     bipc_server_client_t client;
 
@@ -191,7 +190,6 @@ bipc_server_client_t bipc_server_client_create(bipc_t ipc, bipc_server_client_cr
         client->instances[i].object = NULL;
     }
     BLST_D_INSERT_HEAD(&ipc->t.server.clients, client, link);
-    rc = 0;
 done:
     BKNI_ReleaseMutex(ipc->t.server.lock);
     return client;

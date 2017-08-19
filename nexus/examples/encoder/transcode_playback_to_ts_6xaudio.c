@@ -793,7 +793,7 @@ again:
 #endif
 
 	/******************************************
-	 *  NRT workaround for the XPT band hold and data ready events sharing the same threshold: avoid band hold from occuring,
+	 *  NRT workaround for the XPT band hold and data ready events sharing the same threshold: avoid band hold from occurring,
 	 * otherwise, video stutter would happen!
 	 * 1) The nexus_record timer fires at 250 ms interval to service record data as bottom line;
 	 * 2) whenever nexus record timer fires, it'll consume up to Nx(3x(47x4096)) cdb data;

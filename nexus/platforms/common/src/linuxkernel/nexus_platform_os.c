@@ -63,6 +63,10 @@
 #include <linux/mm.h>
 #include <linux/kmod.h>
 #include <linux/sched.h>
+#if USE_LIBFDT
+#include "libfdt.h"
+#include <linux/of_fdt.h>
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
     static spinlock_t g_magnum_spinlock = __SPIN_LOCK_UNLOCKED(g_magnum_spinlock);
@@ -1116,26 +1120,172 @@ NEXUS_Error NEXUS_Platform_P_DropPrivilege(const NEXUS_PlatformSettings *pSettin
     return 0;
 }
 
+static unsigned NEXUS_Platform_P_ReadDeviceTreeStr(const char *path, const char *prop)
+{
+    unsigned id = 0;
+#if USE_LIBFDT
+    int offset = fdt_path_offset(initial_boot_params, path);
+    const char *val = fdt_getprop(initial_boot_params, offset, prop, NULL);
+    if (val) {
+       id  = NEXUS_atoi(val); /*Assuming 32bit. Need to check for length */
+    }
+#else
+#if NEXUS_CPU_ARM
+    BDBG_ERR(("Libfdt is not supported for current kernel version"));
+#endif
+#endif
+    return id;
+}
+
+static unsigned NEXUS_Platform_P_ReadDeviceTreeInt(const char *path, const char *prop)
+{
+    unsigned id = 0;
+#if USE_LIBFDT
+    int offset = fdt_path_offset(initial_boot_params, path);
+    const uint32_t *val = fdt_getprop(initial_boot_params, offset, prop, NULL);
+    if (val) {
+       id  = fdt32_to_cpu(*val); /*Assuming 32bit. Need to check for length */
+    }
+#else
+#if NEXUS_CPU_ARM
+    BDBG_ERR(("Libfdt is not supported for current kernel version"));
+#endif
+#endif
+    return id;
+}
+
 #if !NEXUS_PLATFORM_P_READ_BOX_MODE
 unsigned NEXUS_Platform_P_ReadBoxMode(void)
 {
-    const char *env = NEXUS_GetEnv("B_REFSW_BOXMODE");
-    return env?NEXUS_atoi(env):0;
+    unsigned boxMode = 0;
+    const char *override;
+    override = NEXUS_GetEnv("B_REFSW_BOXMODE");
+    if (override) {
+        boxMode = NEXUS_atoi(override);
+    }
+    if (!boxMode) {
+        boxMode = NEXUS_Platform_P_ReadDeviceTreeStr("/bolt", "box");
+    }
+    return boxMode;
 }
 #endif
-void NEXUS_Platform_P_AddBoardStatus(NEXUS_PlatformStatus *pStatus)
+
+unsigned NEXUS_Platform_P_ReadBoardId(void)
 {
-    const char *env = NEXUS_GetEnv("B_REFSW_BOARD_ID");
-    if (env) {
-        unsigned id = NEXUS_atoi(env);
-        pStatus->boardId.major = id >> 28;
-        pStatus->boardId.minor = (id >> 24) & 0xF;
-    }
+    return NEXUS_Platform_P_ReadDeviceTreeInt("/bolt", "board-id");
 }
+
 unsigned NEXUS_Platform_P_ReadPMapId(void)
 {
-    const char *env = NEXUS_GetEnv("B_REFSW_PMAP_ID");
-    return env?NEXUS_atoi(env):0;
+    return NEXUS_Platform_P_ReadDeviceTreeInt("/bolt", "pmap");
+}
+
+static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(NEXUS_Platform_P_DtNodeList *nodeList, const char *path, const char *compatible)
+{
+    unsigned cnt = 0;
+#if USE_LIBFDT
+    int offset;
+    unsigned int len;
+    const char *pathp;
+
+    BSTD_UNUSED(path);
+
+    for (offset = fdt_node_offset_by_compatible(initial_boot_params, -1, compatible);
+        offset >= 0;
+        offset = fdt_node_offset_by_compatible(initial_boot_params, offset, compatible)) {
+        int prop_offset;
+        NEXUS_Platform_P_DtNode *node = NULL;
+
+        pathp = fdt_get_name(initial_boot_params, offset, &len);
+        BDBG_MSG(("Node : %s", pathp));
+        node = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtNode));
+        BLST_Q_INIT(&node->properties);
+        BKNI_Memcpy(node->name, pathp, sizeof(node->name));
+        BLST_Q_INSERT_HEAD(&nodeList->nodes, node, link);
+        cnt++;
+
+        for (prop_offset = fdt_first_property_offset(initial_boot_params, offset);
+            prop_offset >= 0;
+            prop_offset = fdt_next_property_offset(initial_boot_params, prop_offset)) {
+            const char *pname;
+            int *val;
+
+            val = (int*)fdt_getprop_by_offset(initial_boot_params, prop_offset, &pname, &len);
+            if (val != NULL) {
+                NEXUS_Platform_P_DtProperty *prop;
+                if (!BKNI_Memcmp(pname, "compatible", 10) || !BKNI_Memcmp(pname, "name", 4)) {
+                    continue;
+                }
+                BDBG_MSG(("\tProperty : %s:%x", pname, fdt32_to_cpu(*val)));
+                prop = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtProperty));
+                BKNI_Memcpy(prop->name, pname, sizeof(prop->name));
+                prop->value = fdt32_to_cpu(*val);
+                BLST_Q_INSERT_HEAD(&node->properties, prop, link);
+            }
+        }
+    }
+#endif
+
+    return cnt;
+}
+
+BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void)
+{
+    char *compat[] = {"brcm,pmap-divider", "brcm,pmap-multiplier", "brcm,pmap-mux"};
+    BCHP_PmapSettings *pMapSettings = NULL;
+    unsigned cnt = 0, size, i;
+    NEXUS_Platform_P_DtNodeList nodeList;
+    NEXUS_Platform_P_DtNode *node;
+
+    BLST_Q_INIT(&nodeList.nodes);
+    for (i=0; i<sizeof(compat)/sizeof(compat[0]); i++) {
+        cnt += NEXUS_Platform_P_ParseDeviceTreeCompatible(&nodeList, NULL, compat[i]);
+    }
+    BDBG_MSG(("Found %d compatible nodes", cnt));
+
+    if (!cnt) return NULL;
+
+    size = (cnt+1)*sizeof(BCHP_PmapSettings); /* One extra to indicate end data */
+    pMapSettings = BKNI_Malloc(size);
+    if(!pMapSettings) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL; }
+
+    BKNI_Memset(pMapSettings, 0, size);
+
+    i = 0;
+    while(NULL != (node = BLST_Q_FIRST(&nodeList.nodes))) {
+        NEXUS_Platform_P_DtProperty *prop;
+        BDBG_MSG(("Node %s", node->name));
+        while(NULL != (prop = BLST_Q_FIRST(&node->properties))) {
+            BDBG_MSG(("\t%s : %x", prop->name, prop->value));
+            if (!BKNI_Memcmp(prop->name, "brcm,value", 10)) {
+                pMapSettings[i].value = prop->value;
+            } else if (!BKNI_Memcmp(prop->name, "bit-shift", 9)) {
+                pMapSettings[i].shift = prop->value;
+            } else if (!BKNI_Memcmp(prop->name, "bit-mask", 8)) {
+                pMapSettings[i].mask = prop->value;
+            } else if (!BKNI_Memcmp(prop->name, "reg", 3)) {
+                pMapSettings[i].reg = prop->value;
+            } else {
+                BDBG_WRN(("Unknown Device Tree Property"));
+            }
+            BLST_Q_REMOVE_HEAD(&node->properties, link);
+            BKNI_Free(prop);
+        }
+        BLST_Q_REMOVE_HEAD(&nodeList.nodes, link);
+        BKNI_Free(node);
+        i++;
+    }
+    BDBG_ASSERT(cnt==i);
+
+    return pMapSettings;
+}
+
+void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState)
+{
+    if (preInitState->pMapSettings) {
+        BKNI_Free(preInitState->pMapSettings);
+        preInitState->pMapSettings = NULL;
+    }
 }
 
 NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus)

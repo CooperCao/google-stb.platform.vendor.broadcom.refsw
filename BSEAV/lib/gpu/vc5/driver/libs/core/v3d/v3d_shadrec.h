@@ -8,7 +8,7 @@
 #include "vcos_types.h"
 #include "libs/util/assert_helpers.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct v3d_nv_shader_record_alloc_sizes
 {
@@ -64,27 +64,6 @@ static inline uint32_t v3d_attr_get_size_in_memory(const V3D_SHADREC_GL_ATTR_T *
    return v3d_attr_type_get_size_in_memory(attr->type, attr->size);
 }
 
-static inline v3d_threading_t v3d_translate_threading(uint32_t threadability)
-{
-   switch (threadability) {
-   case 1:  return V3D_THREADING_T1;
-   case 2:  return V3D_THREADING_T2;
-   case 4:  return V3D_THREADING_T4;
-   default: unreachable(); return V3D_THREADING_INVALID;
-   }
-}
-
-#if !V3D_HAS_RELAXED_THRSW
-static inline uint32_t v3d_get_threadability(v3d_threading_t threading)
-{
-   static_assrt(V3D_THREADING_T1 == 0);
-   static_assrt(V3D_THREADING_T2 == 1);
-   static_assrt(V3D_THREADING_T4 == 2);
-   assert(threading >= 0 && threading <= 2);
-   return 1 << threading;
-}
-#endif
-
 static inline const char *v3d_maybe_desc_shader_type_br(bool render, v3d_shader_type_t shader_type)
 {
    switch (shader_type)
@@ -95,6 +74,9 @@ static inline const char *v3d_maybe_desc_shader_type_br(bool render, v3d_shader_
    case V3D_SHADER_TYPE_GEOM:    return render ? "geom_rdr" : "geom_bin";
    case V3D_SHADER_TYPE_FRAG:    return "frag";
    case V3D_SHADER_TYPE_USER:    return "user";
+#if V3D_HAS_CSD
+   case V3D_SHADER_TYPE_COMPUTE: return "compute";
+#endif
    default:                      return NULL;
    }
 }
@@ -190,6 +172,6 @@ static inline void v3d_shadrec_gl_tg_get_vpm_cfg(V3D_VPM_CFG_TG_T cfg[2],
 
 #endif
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

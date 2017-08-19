@@ -1,0 +1,666 @@
+#!/usr/bin/expect
+# -*-tcl-*-
+#
+# $Copyright Broadcom Corporation$
+# $Id: 967358a8bbeedb0f4e5211bc7c06dfae461e5a6e $
+#
+
+# load [ip] file
+proc load {file args} {
+
+    set quiet false
+    set erase false
+    foreach a $args {
+	switch -- $a {
+	    -quiet {
+		set quiet true
+	    }
+	    -erase {
+		set erase true
+	    }
+	    default {
+		error "usage: load file \[-quiet\] \[-erase\]"
+	    }
+	}
+    }
+
+    global spawn_id
+    global verboseboot
+
+    switch -r $file {
+	{\.trx$} {
+	    set flash "flash1.trx"
+	}
+	{\.bin$} {
+	    set flash "flash0"
+	}
+	default {
+	    error "$file must be *.trx or *.bin"
+	}
+    }
+    if {![file exists $file]} {
+	error "$file: not found"
+    }
+
+    # State vars
+    set status "unknown"
+    set timeout 60
+    set retries 20
+
+    if {!$quiet} {
+	log_user 1
+    }
+
+    # Reset any previous connections
+    exp_send "\u0003\u0004"
+    exp_send "\n"
+
+    expect {
+	timeout {
+	    error "Timeout\n"
+	}
+	-re "Programming\.\.\." {
+	    set retries 0
+	    set status 0
+	}
+	-re {ipaddr ([\d.]+), mask .*\n.*\n.*\n} {
+	    if {!$erase} {
+		set ipaddr $expect_out(1,string)
+		sleep 3
+		set cmd "epi_ping -n -C 10 -c 1 $ipaddr"
+		exp_send_user "\n\# $cmd\n"
+		exp_send_user [eval exec $cmd]
+	    }
+	    exp_continue
+	}
+	-re {CFE> $} {
+	    if {$erase} {
+		exp_send "nvram erase\rreboot\r"
+		set erase false
+	    } elseif {![info exists ipaddr]} {
+		exp_send "ifconfig\r"
+	    } elseif {$retries > 0} {
+		incr retries -1
+		exp_send "flash -noheader : $flash\r"
+	    }
+	    exp_continue
+	}
+	-re {Reading :: } {
+	    if {[info exists ipaddr] && $retries > 0} {
+		set cmd "tftp -m binary $ipaddr -c put $file -"
+		exp_send_user "\n\# $cmd\n"
+		if {[catch {eval exec $cmd} ret]} {
+		    exp_send_user -- "tftp failure: $ret\n"
+		}
+		exp_continue
+	    }
+	}
+	"CFE version" {
+	    exp_send "\003"
+	    exp_continue
+	}
+	-re {\n(\#|\#\d+\#|->|>) $} {
+	    exp_send "reboot \"-q\"\r"
+	    expect {
+		# Add failsafe reboot in case the -q is not
+		# supported (eg some vendor OS's).
+		"invalid option" {
+		    exp_send "reboot\r"
+		    exp_continue
+		}
+		"CFE version" {
+		    exp_send "\003"
+		}
+	    }
+	    exp_continue
+	}
+	-re "Hit enter to continue|# |-> |> |RTE BSP|Local Echo Off" {
+	    # May be a prompt, better press Return to find out
+	    exp_send "\r"
+	    exp_continue
+	}
+    }
+
+    set timeout 200
+    expect {
+	-re {\* command status = ([-\d]+)} {
+	    set status $expect_out(1,string)
+	    if {$status != 0} {
+		error "Bad load status: $status"
+	    }
+	}
+	-re {CFE> $} {
+	    # Missed the status, but done anyway.
+	}
+	-re {.+$} {
+	    # If we have unrecognised output, try to get another CFE
+	    # prompt"
+	    exp_send "\n"
+	    exp_continue
+	}
+
+    }
+
+    exp_send "\nreboot\n"
+    # Wait for OS-Specific late boot messages so that we don't exit
+    # too early and let clients hit the first "Hit enter" prompt by
+    # mistake.  If there are no OS-Specific late boot messages
+    # available, eg an external build, then count the Hit enter
+    # prompts.
+    set hitenter 0
+    expect {
+	timeout {
+	    error "Timeout waiting for reboot to complete\n"
+	}
+	-re "Hit enter to continue" {
+	    if {[incr hitenter] < 2} {
+		exp_continue
+	    }
+	}
+	-re "(Boot program checksum is invalid)" {
+	    error $expect_out(1,string)
+	}
+	-re {Algorithmics|RTE BSP|VxWorks|telnetd} {
+	    sleep 2
+	}
+    }
+
+    if {$status != "0"} {
+	error "Bad load status: $status"
+    } else {
+	return
+    }
+}
+
+proc reboot {args} {
+    global verboseboot
+
+    set need_commit 0
+    set erase 0
+    set qargs {}
+    global spawn_id
+
+    log_user 1
+
+    # Make sure every nvram argument is in the form key="value"
+    foreach a $args {
+	if {$a == "erase"} {
+	    set erase 1
+	} elseif {![regexp {^([^=]*)=\"?([^=\"]*)\"?$} $a - k v]} {
+	    error "Bad nvram setting \"$a\": should be key=value"
+	} elseif {$v eq "unset"} {
+	    lappend qargs "unset $k"
+	} else {
+	    lappend qargs "set $k=\"$v\""
+	}
+    }
+
+    # Reset any previous connections
+    exp_send "\r"
+    set interrupt 0
+
+    expect {
+	-timeout 5 timeout {
+	    if {!$interrupt} {
+		incr interrupt
+		puts stderr "^C"
+		exp_send -- "\003"
+		exp_continue
+	    }
+	}
+	"Hit enter to continue..." {
+	    exp_send "\r"
+	    exp_continue
+	}
+	"CFE version" {
+	    exp_send "\003"
+	    exp_continue
+	}
+	-re {\n(\#|\#\d+\#|->|>|CFE>) $} {
+	    # Only CFE has nvram erase
+	    if {$expect_out(1,string) == "CFE>" && $erase} {
+		exp_send "nvram erase\r"
+		expect -re "command status|\# $"
+		exp_send "reboot\r"
+		expect "CFE>"
+		set erase 0
+		exp_continue
+	    } elseif {$expect_out(1,string) != "->" && [llength $qargs] > 0 &&
+		      !$erase} {
+		# Vx nvram set has awkward syntax, leave it to CFE
+		exp_send "nvram [lindex $qargs 0]\r"
+		set qargs [lreplace $qargs 0 0]
+		incr need_commit
+		exp_continue
+	    } elseif {$need_commit > 0} {
+		# nvram update sucessfull - commit and reboot
+		exp_send "nvram commit\r"
+		expect -re "command status|\# $"
+		exp_send "reboot\r"
+	    } elseif {$erase || [llength $qargs] > 0} {
+		# nvram update not sucessful - reboot and try again
+		# at CFE
+		exp_send "reboot \"-q\"\r"
+		if {[regexp {\#} $expect_out(1,string)]} {
+		    # Add failsafe reboot in case the -q is not
+		    # supported (eg some vendor OS's).  Let the
+		    # timeout do double duty as the delay to prevent
+		    # repeating.
+		    expect -timeout 5 "invalid option" {
+			exp_send "reboot\r"
+		    }
+		}
+		exp_continue
+	    } else {
+		# no nvram update needed
+		exp_send "reboot\r"
+	    }
+	}
+	-re "Reading :: " {
+	    # Stuck trying to load OS.  Interrupt so we can use CFE
+	    exp_send "\003"
+	    exp_continue
+	}
+	-re "Hit enter to continue...|# |-> |> |RTE BSP|Local Echo Off" {
+	    # May be a prompt, better press Return to find out
+	    exp_send "\r"
+	    exp_continue
+	}
+    }
+    # Wait for OS-Specific late boot messages so that we don't exit
+    # too early and let clients hit the first "Hit enter" prompt by
+    # mistake.  If there are no OS-Specific late boot messages
+    # available, eg an external build, then count the Hit enter
+    # prompts.
+    set hitenter 0
+    expect {
+	timeout {
+	    error "Timeout waiting for reboot to complete\n"
+	}
+	-re "Hit enter to continue" {
+	    if {[incr hitenter] < 2} {
+		exp_continue
+	    }
+	}
+	-re {Algorithmics|RTE BSP|BCM47.. VxWorks Router|telnetd} {
+	    sleep 2
+	    exp_send "\r"
+	    expect -- "->"
+	}
+    }
+    exp_send "\n"
+}
+
+proc connect {} {
+    global spawn_id
+    exp_send "\r"
+    interact {
+	"\u0016\u0004" {
+	    exp_send "\u0016\u0004"
+	}
+	"\u0004" {
+	    return
+	}
+    }
+    send_user "\r"
+}
+
+proc logger {} {
+    global spawn_id
+    # don't want timeouts to interrupt logging, but if a test is still
+    # running after a day then something has gone wrong.
+    set timeout 86400
+    # May need to force reconnection, eg in synacess servers.
+    exp_send "\r"
+
+    expect {
+	-re {..*} {
+	    puts -nonewline "$expect_out(buffer)"
+	    exp_continue
+	}
+    }
+}
+
+proc command {args} {
+    set cmd [join $args " "]
+
+    global spawn_id
+    exp_send "\r"
+    set interrupt 0
+    expect {
+	-timeout 5 timeout {
+	    if {!$interrupt} {
+		incr interrupt
+		puts stderr "^C"
+		exp_send -- "\003"
+		exp_continue
+	    }
+	}
+	-re {\u00ff..} {
+	    # pause if we see a telnet negotiation, otherwise
+	    # expect may read an early EOF
+	    sleep 0.1
+	    exp_continue
+	}
+	-re {incorrect\n} {
+	    send_user -- "$expect_out(buffer)\r"
+	    exp_continue
+	}
+	"CFE> " {
+	    exp_send "go\r"
+	    exp_continue
+	}
+	-re {[^-]> $} {
+	    exp_send "\016\004"
+	    exp_continue
+	}
+	-re {\n([Ll]ogin: |[Uu]sername: )} {
+	    # Login prompt, in case someone tries us against something other
+	    # than a router.
+	    send_user -- $expect_out(1,string)
+	    expect_user -re "(.*)\n"
+	    exp_send -- "$expect_out(1,string)\r"
+	    expect -re {\n([Pp]assword: )} {
+		stty -echo
+		send_user -- $expect_out(1,string)
+		expect_user -re "(.*)\n"
+		exp_send -- "$expect_out(1,string)\r"
+		stty echo
+		send_user "\n"
+	    }
+	    exp_continue
+	}
+	"Hit enter to continue..." {
+	    exp_send "\r"
+	    exp_continue
+	}
+        ">Make sure to set Telnet mode to Local Echo Off\n\r>" {
+            # Skip Synaccess message
+            exp_send "\r"
+            exp_continue
+        }
+	default {
+	    puts stderr "connect failed"
+	    exit 1
+	}
+	-re {\# $} {
+	    puts stderr "Linux prompt detected!"
+	    exit 1
+	}
+	-re {-> }
+    }
+
+    set p [pid]
+    # Send command with minimal wrapper just to get return code
+    # without messing up the log file
+    regexp {^\s*(.*?)[;\s]*$} $cmd - cmd
+    set send_slow {5 .001}
+    exp_send -s -- "$cmd\r"
+
+    # Skip command echo.  If we don't spot the echo quickly, ignore it
+    # and move on
+    expect {
+	-timeout 5 timeout {}
+	-ex "$cmd\r\n"
+    }
+
+    set ret_code ""
+    expect {
+	-re {(.*)Type <CR> to continue, Q<CR> to stop: } {
+	    exp_send_user -- $expect_out(1,string)
+	    exp_send "\r"
+	    exp_continue
+	}
+	-re {undefined symbol: [^\n]*\n} {
+	    exp_send_user -- $expect_out(buffer)
+	    set ret_code 255
+	}
+	# Trailing number might be ret_code code, store it.
+	-re {(.*)value = ([-\d]+) = 0x[0-9a-f]+} {
+	    exp_send_user -- $expect_out(1,string)
+	    set ret_code $expect_out(2,string)
+	    exp_continue
+	}
+	-re {(.*)-> } {
+	    if {$ret_code == ""} {
+		exp_send_user -- "!!$expect_out(buffer)!!"
+	    }
+	}
+	-re "logout\r" {
+	    set ret_code 0
+	}
+	-ex "Hit enter to continue..." {
+	    exp_send_user -- "$expect_out(buffer)\n"
+	    exp_send "\r"
+	    set ret_code 0
+	}
+ 	full_buffer {
+	    exp_send_user -- $expect_out(buffer)
+	    exp_continue
+	}
+    }
+    if {$ret_code == ""} {
+	set ret_code 255
+    }
+    # Send some data - workaround for expect's long-standing 1-second
+    # close down bug
+    exp_send "\0"
+    exit $ret_code
+}
+
+proc usage {} {
+    puts stderr "Usage: $::argv0 \[-\](dev|ip:port) \[cmd \[args ...\]\]"
+    puts stderr "       $::argv0 \[-\](dev|ip:port) load file"
+    puts stderr "       $::argv0 \[-\](dev|ip:port) reboot \[key=value ...\]"
+    exit 1
+}
+
+set vru "/var/run/utf"
+
+# Args
+if {[llength $argv] > 0 && [set host [lindex $argv 0]] != "-man"} {
+
+    if {[info exists env(EXP_INTERNAL)]} {
+	exp_internal 1
+    } else {
+	exp_internal 0
+    }
+    log_user 0
+    set logger [regexp {^-(.*)} $host - host]
+    if {[catch {
+	if {[catch {
+	    # Redirect to consolelogger, if available
+	    set port \
+		[gets [open "$vru/[string map {/ _ : _} $host]"]]
+	    spawn -noecho -open [socket localhost $port]
+	} ret]} {
+	    if {[string match "*/*" $host]} {
+		# reject background (logging) processes if they try to
+		# talk to the device directly.
+		if {$logger} {
+		    exit
+		}
+		set fd [open $host {RDWR NONBLOCK}]
+		fconfigure $fd \
+		    -mode {115200,n,8,1} -buffering none -blocking 0
+		catch {fconfigure $fd -handshake xonxoff}
+		spawn -noecho -open $fd
+	    } else {
+		# Telnet gets a new session so no reset needed
+		if {![regexp {(.*):(.*)} $host - host port]} {
+		    set port 23
+		}
+		spawn -noecho -open [socket $host $port]
+	    }
+	}
+	# Make sure we're using the same encoding as consolelogger
+	fconfigure $spawn_id -encoding binary
+
+	set timeout 60
+
+	if {[llength $argv] == 1} {
+	    connect
+	} else {
+	    set cmd [lindex $argv 1]
+	    if {[llength $argv] == 2} {
+		# Whole commandline probably quoted as one string
+		set argv [lreplace $cmd 0 0]
+		set cmd  [lindex $cmd 0]
+	    } else {
+		set argv [lreplace $argv 0 1]
+	    }
+	    if {$cmd == "logger"} {
+		logger
+	    } elseif {$cmd == "load"} {
+		eval load $argv
+	    } elseif {$cmd == "reboot"} {
+		eval reboot $argv
+	    } else {
+		eval command $cmd $argv
+	    }
+	}
+    } ret]} {
+	puts stderr $ret
+	exit 1
+    }
+    exit 0
+}
+
+# Leave this 'til last to improve performance
+lappend auto_path . /projects/hnd/tools/linux/share/unittest
+package require UTF::doc
+
+UTF::doc {
+    # [manpage_begin vxshell n 1.0]
+    # [moddesc {HND Wireless Test Framework}]
+    # [titledesc {tool for managing a Broadcom VxWorks AP}]
+    # [copyright {2005 Broadcom Corporation}]
+    # [description]
+    # [para]
+
+    # [cmd vxshell] is a command for communicating with a VxWorks AP
+    # via the serial or telnet console.  If the serial port
+    # or telnet host:port are being managed by a [cmd consolelogger]
+    # process, [cmd vxshell] will connect to the [cmd consolelogger]
+    # process instead.
+
+    # [list_begin arguments]
+
+    # [arg_def "" connection]
+
+    # Every [cmd apshell] command requires a [arg connection] argument
+    # which specifies the mechanism for communicating with the AP.
+    # Various alternative connection mechanisms are available:
+
+    # [list_begin arguments]
+
+    # [arg_def "" /dev/ttyS*]
+
+    # The name of the serial port device directly connected to the AP.
+
+    # [arg_def "" address]
+
+    # The hostname or IP address of the AP.  In this case [cmd
+    # apshell] will use the AP's [cmd telnet] interface.
+
+    # [para]
+
+    # NOTE: this will not work for [cmd load] since it does not allow
+    # access to the CFE> prompt.
+
+    # [arg_def "" address:port]
+
+    # The hostname or IP address and TCP port of a terminal server or
+    # [cmd consolelogger] session.
+
+    # [list_end]
+
+    # [para]
+
+    # If [cmd consolelogger] is not running only one [cmd apshell]
+    # process can access a device at a time.  This can cause problems
+    # when background logging processes compete with foreground
+    # command processes.  [cmd consolelogger] avoids this problem by
+    # allowing multiple [cmd vxshell] processes to access the same
+    # device.
+
+    # [para]
+
+    # [arg connection] may be prefixed with [cmd -] to indicate this
+    # is a background process and therefore requires [cmd
+    # consolelogger].  If [cmd consolelogger] is not running then
+    # attempts to connect to [arg -connection] will fail silently.
+
+    # [list_end]
+
+    # [list_begin definitions]
+
+    # [call [cmd vxshell] [arg connection] [cmd load] [arg file]]
+
+    # Load os or cfe image on AP/Router.  Requires both serial and IP
+    # access. [cmd apshell] will display console messages during the
+    # load and reboot sequence.  The AP will be queried for its
+    # current IP address.
+
+    # [list_begin arguments]
+
+    # [arg_def "" file]
+
+    # The path name of the os image file (*.trx) or cfe image file
+    # (cfe.bin of cfez.bin) to be installed.
+
+    # [list_end]
+
+    # [call [cmd vxshell] [arg connection]  [cmd reboot]
+    #	      [lb][arg {key=value ...}][rb]]
+
+    # Set and commit nvram variables and reboot.  Variables will be
+    # set at the [option {# }] prompt, if possible, otherwise they
+    # will be set at the [option {CFE> }] prompt.  [cmd vxshell] will
+    # display console messages during the reboot sequence.  Nvram
+    # variables can be completely removed using [arg key=unset].
+
+    # [call [cmd vxshell] [arg connection] [lb][cmd {cmd ...}][rb]]
+
+    # Simulates [cmd {rsh host cmd ...}] on AP/Router.  Requires
+    # serial or IP access to the AP.
+
+    # [list_begin arguments]
+
+    # [arg_def "" {cmd ...}]
+
+    # Optional command and arguments to be run.  If a command line is
+    # not specified, an interactive terminal session is started.  To
+    # disconnect from the session use ^D (however, like a regular
+    # tty. if you need to input a literal ^D to the session you can
+    # escape it by using ^V^D).
+
+    # [para]
+
+    # If a command line is specified, it will be run on the AP and the
+    # results returned.  The command line can contain arbitrary quotes
+    # and embedded newlines.  [cmd vxshell] will exit with the same
+    # exit code as the [cmd cmd].  If a username and password are
+    # required, they will be prompted for.
+
+    # [para]
+
+    # NOTE: The shell on the AP is very limited - in particular,
+    # subshells and here-documents are not supported, and bad quoting
+    # can give silent success, instead of returning error.
+
+    # [list_end]
+
+    # [list_end]
+
+    # [see_also [uri APdoc.cgi?consolelogger consolelogger]]
+    # [see_also [uri APdoc.cgi?apshell apshell]]
+    # [see_also [uri APdoc.cgi?ciscoshell ciscoshell]]
+    # [see_also [uri APdoc.cgi?linuxsimshell linuxsimshell]]
+
+    # [manpage_end]
+}
+
+UTF::man
+exit
+

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-
-FILE DESCRIPTION
-Platform specific header for BCG's abstract platform support
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __BEGL_DISPLAYPLATFORM_H__
 #define __BEGL_DISPLAYPLATFORM_H__
 
@@ -121,6 +114,9 @@ typedef struct BEGL_DisplayInterface
     * Prevents the client code needing to perform context lookups. */
    void *context;
 
+   bool (*Init)(void *context);
+   void (*Terminate)(void *context);
+
    /* Called to determine current size of the window referenced by the opaque window handle.
     * Also fills in the number of pre-allocated swap-chain buffers, which must be > 0.
     * Set to the number of buffers in your pre-allocated chain. See BufferGet().
@@ -144,11 +140,9 @@ typedef struct BEGL_DisplayInterface
    BEGL_Error (*GetNextSurface)(void *context, void *opaqueNativeWindow, BEGL_BufferFormat format,
                                BEGL_BufferFormat *actualFormat, void **opaqueNativeSurface, bool secure, int *fence);
 
-   BEGL_Error (*DisplaySurface)(void *context, void *nativeWindow, void *nativeSurface, int fence);
+   BEGL_Error (*DisplaySurface)(void *context, void *nativeWindow, void *nativeSurface, int fence, int interval);
 
    BEGL_Error (*CancelSurface)(void *context, void *nativeWindow, void *nativeSurface, int fence);
-
-   void (*SetSwapInterval)(void *context, void *nativeWindow, int interval);
 
    bool  (*PlatformSupported)(void *context, uint32_t platform);
 

@@ -203,6 +203,7 @@ struct NEXUS_Client
     struct nexus_driver_client_state client_state; /* generic struct for nexus_driver_callbacks.c/nexus_driver_objects.c */
     bool dynamicallyCreated;
     bool deleted;
+    bool disable_ipc; /* close has been called but defered for standby, but no more ipc is needed */
     unsigned numJoins;
 
     struct b_server_callback_cxn callback_cxn[NEXUS_ModulePriority_eMax];
@@ -593,6 +594,7 @@ static void nexus_autoclose_client_lock(struct NEXUS_Client *client)
     NEXUS_Platform_GetStandbySettings(&standbySettings);
     if(standbySettings.mode != NEXUS_StandbyMode_eOn) {
         BDBG_MSG(("Defer client cleanup %p:%u", (void *)client, (unsigned)client->pid));
+        client->disable_ipc = true;
         return;
     }
 
@@ -711,7 +713,6 @@ static void nexus_server_cancel_callback(struct b_server_callback_cxn *callback_
 
 static NEXUS_Error nexus_p_read_interface(const struct NEXUS_Client *client,void **interface)
 {
-    NEXUS_Error nrc;
     int rc;
     unsigned interface_size = sizeof(*interface);
     void *interface_pointer = interface;
@@ -730,7 +731,7 @@ static NEXUS_Error nexus_p_read_interface(const struct NEXUS_Client *client,void
 #if NEXUS_COMPAT_32ABI
     if(client->client_state.abi != NEXUS_P_NATIVE_ABI) {
         NEXUS_BaseObject *object;
-        nrc = NEXUS_BaseObject_FromId(objectId, &object);
+        (void)NEXUS_BaseObject_FromId(objectId, &object);
         /* don't test error code */
         *interface = object;
     }
@@ -806,7 +807,7 @@ static void nexus_server_thread(void *context)
             NEXUS_LockModule();
             for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
                 BDBG_OBJECT_ASSERT(client, NEXUS_Client);
-                if (client->fd != -1) {
+                if (client->fd != -1 && !client->disable_ipc) {
                     BDBG_ASSERT(num<1+(NEXUS_ModulePriority_eMax-1)+B_MAX_CLIENTS);
                     client->pollnum = num;
                     fds[num].fd = client->fd;

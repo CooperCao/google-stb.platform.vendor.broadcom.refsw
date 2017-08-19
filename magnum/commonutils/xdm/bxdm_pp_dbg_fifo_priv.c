@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,8 +54,6 @@ BDBG_MODULE(BXDM_PPDBG_FIFO_PRIV);
 
 
 #if BDBG_DEBUG_BUILD && BXDM_DEBUG_FIFO
-
-extern uint32_t BXDM_PPTMR_lutVsyncsPersSecond[];
 
 /* To be deleted. */
 
@@ -520,7 +518,7 @@ void BXDM_PPDFIFO_P_QueString_isr(
 
    if ( NULL == pstDebugFifo->hDebugFifo )
    {
-      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", __FUNCTION__ ));
+      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
       goto error;
    }
 
@@ -528,7 +526,7 @@ void BXDM_PPDFIFO_P_QueString_isr(
 
    if ( NULL == pstEntry )
    {
-      BDBG_MSG(("%s:: pstEntry == NULL", __FUNCTION__ ));
+      BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
       goto error;
    }
 
@@ -582,7 +580,7 @@ BERR_Code BXDM_PPDFIFO_P_QueDBG_isr(
 
       if ( NULL == pstDebugFifo->hDebugFifo )
       {
-         BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", __FUNCTION__ ));
+         BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
          goto error;
       }
 
@@ -590,7 +588,7 @@ BERR_Code BXDM_PPDFIFO_P_QueDBG_isr(
 
       if ( NULL == pstEntry )
       {
-         BDBG_MSG(("%s:: pstEntry == NULL", __FUNCTION__ ));
+         BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
          goto error;
       }
 
@@ -705,7 +703,7 @@ void BXDM_PPDFIFO_P_QueMFD_isr(
 
    if ( NULL == pstDebugFifo->hDebugFifo )
    {
-      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", __FUNCTION__ ));
+      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
       goto error;
    }
 
@@ -715,7 +713,7 @@ void BXDM_PPDFIFO_P_QueMFD_isr(
 
       if ( NULL == pstEntry )
       {
-         BDBG_MSG(("%s:: pstEntry == NULL", __FUNCTION__ ));
+         BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
          goto error;
       }
 
@@ -779,7 +777,7 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
 
    if ( NULL == pstDebugFifo->hDebugFifo )
    {
-      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", __FUNCTION__ ));
+      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
       goto Done;
    }
 
@@ -787,7 +785,7 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
 
    if ( NULL == pstEntry )
    {
-      BDBG_MSG(("%s:: pstEntry == NULL", __FUNCTION__ ));
+      BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
       goto Done;
    }
 
@@ -801,7 +799,7 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
 
       /* Print once per second or when any of the parameters change. */
 
-      bPrintAdditional = ( hXdmPP->stDMState.stDecode.uiVsyncCountQM >= BXDM_PPTMR_lutVsyncsPersSecond[ hXdmPP->stDMConfig.eMonitorRefreshRate ] );
+      bPrintAdditional = ( hXdmPP->stDMState.stDecode.uiVsyncCountQM >= BXDM_P_VsyncsPerSecondLUT[ hXdmPP->stDMConfig.eMonitorRefreshRate ] );
 
       if ( pstSelectedUnified && true == pstSelectedPicture->bValidated )
       {
@@ -1210,9 +1208,10 @@ void BXDM_PPDFIFO_P_QueStartDecode_isr(
    BXDM_PPDFIFO_P_QueString_isr(
             hXdmPP,
             BXDM_Debug_MsgType_eDBG,
-            "--- %x:[%02x.xxx] BXDM_PictureProvider_StartDecode_isr has been called ---",
+            "--- %x:[%02x.xxx] BXDM_PictureProvider_StartDecode_isr has been called (hXdmPP:0x%lu) ---",
             pDebug->uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP )
+            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+            (unsigned long)hXdmPP
             );
    return;
 }
@@ -1227,9 +1226,10 @@ void BXDM_PPDFIFO_P_QueStopDecode_isr(
    BXDM_PPDFIFO_P_QueString_isr(
             hXdmPP,
             BXDM_Debug_MsgType_eDBG,
-            "--- %x:[%02x.xxx] BXDM_PictureProvider_StopDecode_isr has been called ---",
+            "--- %x:[%02x.xxx] BXDM_PictureProvider_StopDecode_isr has been called (hXdmPP:0x%lu) ---",
             pDebug->uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP )
+            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+            (unsigned long)hXdmPP
             );
 
    return;
@@ -1325,7 +1325,7 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Create(
 
    if ( NULL == pstDebugFifo->hBMMABlock )
    {
-      BDBG_ERR(("%s:: BMMA_Alloc failure", __FUNCTION__ ));
+      BDBG_ERR(("%s:: BMMA_Alloc failure", BSTD_FUNCTION ));
       bAllocationError = true;
       rc = BERR_OUT_OF_DEVICE_MEMORY;
       goto error;
@@ -1341,7 +1341,7 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Create(
 
    if ( 0 == pstDebugFifo->bmmaOffset )
    {
-      BDBG_ERR(("%s:: BMMA_LockOffset failure", __FUNCTION__ ));
+      BDBG_ERR(("%s:: BMMA_LockOffset failure", BSTD_FUNCTION ));
       bAllocationError = true;
       rc = BERR_OUT_OF_DEVICE_MEMORY;
       goto error;
@@ -1354,7 +1354,7 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Create(
 
    if ( 0 == pstDebugFifo->pBuffer )
    {
-      BDBG_ERR(("%s:: BMMA_Lock failure", __FUNCTION__ ));
+      BDBG_ERR(("%s:: BMMA_Lock failure", BSTD_FUNCTION ));
       bAllocationError = true;
       rc = BERR_OUT_OF_DEVICE_MEMORY;
       goto error;
@@ -1375,10 +1375,10 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Create(
 
    if ( BERR_SUCCESS != rc )
    {
-      BDBG_ERR(("%s:: BDBG_Fifo_Create failure: rc:%08x", __FUNCTION__, rc ));
+      BDBG_ERR(("%s:: BDBG_Fifo_Create failure: rc:%08x", BSTD_FUNCTION, rc ));
       bAllocationError = true;
    }
-   BDBG_MSG(("%s:: ", __FUNCTION__ ));
+   BDBG_MSG(("%s:: ", BSTD_FUNCTION ));
    BDBG_MSG(("    pstDebugFifo->hBMMAHeap: %08x", (unsigned)pstDebugFifo->hBMMAHeap ));
    BDBG_MSG(("    pstDebugFifo->hDebugFifo: %08x", (unsigned)pstDebugFifo->hDebugFifo ));
    BDBG_MSG(("    pstDebugFifo->pBuffer: %08x", (unsigned)pstDebugFifo->pBuffer ));
@@ -1415,11 +1415,11 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Destroy(
 
    if ( NULL == pstDebugFifo )
    {
-      BDBG_ERR(("%s  pstDebugFifo is NULL", __FUNCTION__ ));
+      BDBG_ERR(("%s  pstDebugFifo is NULL", BSTD_FUNCTION ));
       goto error;
    }
 
-   BDBG_MSG(("%s::", __FUNCTION__ ));
+   BDBG_MSG(("%s::", BSTD_FUNCTION ));
    BDBG_MSG(("    pstDebugFifo->hBMMAHeap: %08x", (unsigned)pstDebugFifo->hBMMAHeap ));
    BDBG_MSG(("    hDebugFifo: %08x", (unsigned)pstDebugFifo->hDebugFifo ));
    BDBG_MSG(("    pBuffer: %08x", (unsigned)pstDebugFifo->pBuffer ));
@@ -1478,7 +1478,7 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Create(
 
    if ( BERR_SUCCESS != rc )
    {
-      BDBG_ERR(("%s:: BXDM_PictureProvider_GetDebugFifo failure: rc:%08x", __FUNCTION__, rc ));
+      BDBG_ERR(("%s:: BXDM_PictureProvider_GetDebugFifo failure: rc:%08x", BSTD_FUNCTION, rc ));
       bAllocationError = true;
       goto error;
    }
@@ -1487,7 +1487,7 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Create(
 
    if ( NULL == pstReaderInfo->pEntry )
    {
-      BDBG_ERR(("%s:: BKNI_Malloc failure", __FUNCTION__ ));
+      BDBG_ERR(("%s:: BKNI_Malloc failure", BSTD_FUNCTION ));
       rc = BERR_OUT_OF_SYSTEM_MEMORY;
       bAllocationError = true;
       goto error;
@@ -1497,7 +1497,7 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Create(
 
    if ( 0 == pstReaderInfo->pDebugFifo )
    {
-      BDBG_ERR(("%s:: BMMA_Lock failure:", __FUNCTION__ ));
+      BDBG_ERR(("%s:: BMMA_Lock failure:", BSTD_FUNCTION ));
       rc = BERR_OUT_OF_SYSTEM_MEMORY;
       bAllocationError = true;
       goto error;
@@ -1509,12 +1509,12 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Create(
 
    if (  BERR_SUCCESS != rc  )
    {
-      BDBG_ERR(("%s:: BDBG_FifoReader_Create failure: rc:%08x", __FUNCTION__, rc ));
+      BDBG_ERR(("%s:: BDBG_FifoReader_Create failure: rc:%08x", BSTD_FUNCTION, rc ));
       bAllocationError = true;
       goto error;
    }
 
-   BDBG_MSG(("%s::", __FUNCTION__ ));
+   BDBG_MSG(("%s::", BSTD_FUNCTION ));
    BDBG_MSG(("    pstReaderInfo->hDebugReader: %08x", (unsigned)pstReaderInfo->hDebugReader ));
    BDBG_MSG(("    pstReaderInfo->pEntry: %08x", (unsigned)pstReaderInfo->pEntry ));
    BDBG_MSG(("    pstReaderInfo->pDebugFifo: %08x", (unsigned)pstReaderInfo->pDebugFifo ));
@@ -1547,7 +1547,7 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Destroy(
    pstReaderInfo = &hXdmPP->stDMConfig.stDebugReader;
 
 
-   BDBG_MSG(("%s::", __FUNCTION__ ));
+   BDBG_MSG(("%s::", BSTD_FUNCTION ));
    BDBG_MSG(("    pstReaderInfo->hDebugReader: %08x", (unsigned)pstReaderInfo->hDebugReader ));
    BDBG_MSG(("    pstReaderInfo->pEntry: %08x", (unsigned)pstReaderInfo->pEntry ));
    BDBG_MSG(("    pstReaderInfo->pDebugFifo: %08x", (unsigned)pstReaderInfo->pDebugFifo ));

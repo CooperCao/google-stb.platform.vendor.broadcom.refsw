@@ -8,13 +8,14 @@
 #include "v3d_gen.h"
 #include <stddef.h>
 #include <stdio.h>
+#if !V3D_HAS_RELAXED_THRSW
 const char *v3d_maybe_desc_threading(v3d_threading_t threading)
 {
    switch (threading) {
-   case V3D_THREADING_T1: return "t1";
-   case V3D_THREADING_T2: return "t2";
-   case V3D_THREADING_T4: return "t4";
-   default:               return NULL;
+   case V3D_THREADING_1: return "1";
+   case V3D_THREADING_2: return "2";
+   case V3D_THREADING_4: return "4";
+   default:              return NULL;
    }
 }
 const char *v3d_desc_threading(v3d_threading_t threading)
@@ -23,6 +24,61 @@ const char *v3d_desc_threading(v3d_threading_t threading)
    assert(desc);
    return desc;
 }
+#endif
+#if !V3D_HAS_RELAXED_THRSW
+v3d_threading_t v3d_translate_threading(uint32_t x)
+{
+   switch (x) {
+   case 1:  return V3D_THREADING_1;
+   case 2:  return V3D_THREADING_2;
+   case 4:  return V3D_THREADING_4;
+   default: unreachable(); return V3D_THREADING_INVALID;
+   }
+}
+uint32_t v3d_translate_from_threading(v3d_threading_t x)
+{
+   switch (x) {
+   case V3D_THREADING_1: return 1;
+   case V3D_THREADING_2: return 2;
+   case V3D_THREADING_4: return 4;
+   default:              unreachable(); return 0;
+   }
+}
+#endif
+#if V3D_HAS_RELAXED_THRSW
+const char *v3d_maybe_desc_threading(v3d_threading_t threading)
+{
+   switch (threading) {
+   case V3D_THREADING_2: return "2";
+   case V3D_THREADING_4: return "4";
+   default:              return NULL;
+   }
+}
+const char *v3d_desc_threading(v3d_threading_t threading)
+{
+   const char *desc = v3d_maybe_desc_threading(threading);
+   assert(desc);
+   return desc;
+}
+#endif
+#if V3D_HAS_RELAXED_THRSW
+v3d_threading_t v3d_translate_threading(uint32_t x)
+{
+   switch (x) {
+   case 2:  return V3D_THREADING_2;
+   case 4:  return V3D_THREADING_4;
+   default: unreachable(); return V3D_THREADING_INVALID;
+   }
+}
+uint32_t v3d_translate_from_threading(v3d_threading_t x)
+{
+   switch (x) {
+   case V3D_THREADING_2: return 2;
+   case V3D_THREADING_4: return 4;
+   default:              unreachable(); return 0;
+   }
+}
+#endif
 const char *v3d_maybe_desc_attr_type(v3d_attr_type_t attr_type)
 {
    switch (attr_type) {
@@ -92,9 +148,13 @@ bool v3d_is_valid_tmu_type(v3d_tmu_type_t tmu_type)
    case V3D_TMU_TYPE_RGBA16F:
    case V3D_TMU_TYPE_R11F_G11F_B10F:
    case V3D_TMU_TYPE_RGB9_E5:
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP16:
+#endif
    case V3D_TMU_TYPE_DEPTH_COMP24:
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP32F:
+#endif
    case V3D_TMU_TYPE_DEPTH24_X8:
    case V3D_TMU_TYPE_R4:
    case V3D_TMU_TYPE_R1:
@@ -183,9 +243,13 @@ const char *v3d_maybe_desc_tmu_type(v3d_tmu_type_t tmu_type)
    case V3D_TMU_TYPE_RGBA16F:                         return "rgba16f";
    case V3D_TMU_TYPE_R11F_G11F_B10F:                  return "r11f_g11f_b10f";
    case V3D_TMU_TYPE_RGB9_E5:                         return "rgb9_e5";
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP16:                    return "depth_comp16";
+#endif
    case V3D_TMU_TYPE_DEPTH_COMP24:                    return "depth_comp24";
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP32F:                   return "depth_comp32f";
+#endif
    case V3D_TMU_TYPE_DEPTH24_X8:                      return "depth24_x8";
    case V3D_TMU_TYPE_R4:                              return "r4";
    case V3D_TMU_TYPE_R1:                              return "r1";
@@ -267,9 +331,13 @@ bool v3d_is_valid_tfu_type(v3d_tfu_type_t tfu_type)
    case V3D_TFU_TYPE_RGBA16F:
    case V3D_TFU_TYPE_R11F_G11F_B10F:
    case V3D_TFU_TYPE_RGB9_E5:
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TFU_TYPE_DEPTH_COMP16:
+#endif
    case V3D_TFU_TYPE_DEPTH_COMP24:
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TFU_TYPE_DEPTH_COMP32F:
+#endif
    case V3D_TFU_TYPE_DEPTH24_X8:
    case V3D_TFU_TYPE_R4:
    case V3D_TFU_TYPE_R1:
@@ -346,9 +414,13 @@ const char *v3d_maybe_desc_tfu_type(v3d_tfu_type_t tfu_type)
    case V3D_TFU_TYPE_RGBA16F:                         return "rgba16f";
    case V3D_TFU_TYPE_R11F_G11F_B10F:                  return "r11f_g11f_b10f";
    case V3D_TFU_TYPE_RGB9_E5:                         return "rgb9_e5";
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TFU_TYPE_DEPTH_COMP16:                    return "depth_comp16";
+#endif
    case V3D_TFU_TYPE_DEPTH_COMP24:                    return "depth_comp24";
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TFU_TYPE_DEPTH_COMP32F:                   return "depth_comp32f";
+#endif
    case V3D_TFU_TYPE_DEPTH24_X8:                      return "depth24_x8";
    case V3D_TFU_TYPE_R4:                              return "r4";
    case V3D_TFU_TYPE_R1:                              return "r1";
@@ -713,16 +785,37 @@ const char *v3d_desc_tmu_std_bcol(v3d_tmu_std_bcol_t tmu_std_bcol)
    return desc;
 }
 #endif
+bool v3d_is_valid_shader_type(v3d_shader_type_t shader_type)
+{
+   switch (shader_type)
+   {
+   case V3D_SHADER_TYPE_VERTEX:
+   case V3D_SHADER_TYPE_TESSC:
+   case V3D_SHADER_TYPE_TESSE:
+   case V3D_SHADER_TYPE_GEOM:
+   case V3D_SHADER_TYPE_FRAG:
+#if V3D_HAS_CSD
+   case V3D_SHADER_TYPE_COMPUTE:
+#endif
+   case V3D_SHADER_TYPE_USER:
+   return true;
+   default:
+      return false;
+   }
+}
 const char *v3d_maybe_desc_shader_type(v3d_shader_type_t shader_type)
 {
    switch (shader_type) {
-   case V3D_SHADER_TYPE_VERTEX: return "vertex";
-   case V3D_SHADER_TYPE_TESSC:  return "tessc";
-   case V3D_SHADER_TYPE_TESSE:  return "tesse";
-   case V3D_SHADER_TYPE_GEOM:   return "geom";
-   case V3D_SHADER_TYPE_FRAG:   return "frag";
-   case V3D_SHADER_TYPE_USER:   return "user";
-   default:                     return NULL;
+   case V3D_SHADER_TYPE_VERTEX:  return "vertex";
+   case V3D_SHADER_TYPE_TESSC:   return "tessc";
+   case V3D_SHADER_TYPE_TESSE:   return "tesse";
+   case V3D_SHADER_TYPE_GEOM:    return "geom";
+   case V3D_SHADER_TYPE_FRAG:    return "frag";
+#if V3D_HAS_CSD
+   case V3D_SHADER_TYPE_COMPUTE: return "compute";
+#endif
+   case V3D_SHADER_TYPE_USER:    return "user";
+   default:                      return NULL;
    }
 }
 const char *v3d_desc_shader_type(v3d_shader_type_t shader_type)
@@ -751,7 +844,7 @@ bool v3d_is_valid_qpu_opcode(v3d_qpu_opcode_t qpu_opcode)
    case V3D_QPU_OP_REVF:
    case V3D_QPU_OP_IID:
    case V3D_QPU_OP_SAMPID:
-   case V3D_QPU_OP_PATCHID:
+   case V3D_QPU_OP_BARRIERID:
    case V3D_QPU_OP_TMUWT:
    case V3D_QPU_OP_VPMWT:
    case V3D_QPU_OP_FLAFIRST:
@@ -860,7 +953,7 @@ const char *v3d_maybe_desc_qpu_opcode(v3d_qpu_opcode_t qpu_opcode)
    case V3D_QPU_OP_REVF:       return "revf";
    case V3D_QPU_OP_IID:        return "iid";
    case V3D_QPU_OP_SAMPID:     return "sampid";
-   case V3D_QPU_OP_PATCHID:    return "patchid";
+   case V3D_QPU_OP_BARRIERID:  return "barrierid";
    case V3D_QPU_OP_TMUWT:      return "tmuwt";
    case V3D_QPU_OP_VPMWT:      return "vpmwt";
    case V3D_QPU_OP_FLAFIRST:   return "flafirst";
@@ -1346,6 +1439,9 @@ bool v3d_is_valid_tsy_op(v3d_tsy_op_t tsy_op)
    case V3D_TSY_OP_INC_SEMAPHORE:
    case V3D_TSY_OP_DEC_SEMAPHORE:
    case V3D_TSY_OP_SET_QUORUM_FREE_ALL:
+#if V3D_HAS_GFXH1659_FIX
+   case V3D_TSY_OP_SET_QUORUM_WAIT_INC_CHECK:
+#endif
    case V3D_TSY_OP_IN_DATA:
    return true;
    default:
@@ -1355,24 +1451,27 @@ bool v3d_is_valid_tsy_op(v3d_tsy_op_t tsy_op)
 const char *v3d_maybe_desc_tsy_op(v3d_tsy_op_t tsy_op)
 {
    switch (tsy_op) {
-   case V3D_TSY_OP_SET_QUORUM:          return "set_quorum";
-   case V3D_TSY_OP_INC_WAITERS:         return "inc_waiters";
-   case V3D_TSY_OP_DEC_WAITERS:         return "dec_waiters";
-   case V3D_TSY_OP_INC_QUORUM:          return "inc_quorum";
-   case V3D_TSY_OP_DEC_QUORUM:          return "dec_quorum";
-   case V3D_TSY_OP_FREE_ALL:            return "free_all";
-   case V3D_TSY_OP_RELEASE:             return "release";
-   case V3D_TSY_OP_ACQUIRE:             return "acquire";
-   case V3D_TSY_OP_WAIT:                return "wait";
-   case V3D_TSY_OP_WAIT_INC:            return "wait_inc";
-   case V3D_TSY_OP_WAIT_CHECK:          return "wait_check";
-   case V3D_TSY_OP_WAIT_INC_CHECK:      return "wait_inc_check";
-   case V3D_TSY_OP_WAIT_CV:             return "wait_cv";
-   case V3D_TSY_OP_INC_SEMAPHORE:       return "inc_semaphore";
-   case V3D_TSY_OP_DEC_SEMAPHORE:       return "dec_semaphore";
-   case V3D_TSY_OP_SET_QUORUM_FREE_ALL: return "set_quorum_free_all";
-   case V3D_TSY_OP_IN_DATA:             return "in_data";
-   default:                             return NULL;
+   case V3D_TSY_OP_SET_QUORUM:                return "set_quorum";
+   case V3D_TSY_OP_INC_WAITERS:               return "inc_waiters";
+   case V3D_TSY_OP_DEC_WAITERS:               return "dec_waiters";
+   case V3D_TSY_OP_INC_QUORUM:                return "inc_quorum";
+   case V3D_TSY_OP_DEC_QUORUM:                return "dec_quorum";
+   case V3D_TSY_OP_FREE_ALL:                  return "free_all";
+   case V3D_TSY_OP_RELEASE:                   return "release";
+   case V3D_TSY_OP_ACQUIRE:                   return "acquire";
+   case V3D_TSY_OP_WAIT:                      return "wait";
+   case V3D_TSY_OP_WAIT_INC:                  return "wait_inc";
+   case V3D_TSY_OP_WAIT_CHECK:                return "wait_check";
+   case V3D_TSY_OP_WAIT_INC_CHECK:            return "wait_inc_check";
+   case V3D_TSY_OP_WAIT_CV:                   return "wait_cv";
+   case V3D_TSY_OP_INC_SEMAPHORE:             return "inc_semaphore";
+   case V3D_TSY_OP_DEC_SEMAPHORE:             return "dec_semaphore";
+   case V3D_TSY_OP_SET_QUORUM_FREE_ALL:       return "set_quorum_free_all";
+#if V3D_HAS_GFXH1659_FIX
+   case V3D_TSY_OP_SET_QUORUM_WAIT_INC_CHECK: return "set_quorum_wait_inc_check";
+#endif
+   case V3D_TSY_OP_IN_DATA:                   return "in_data";
+   default:                                   return NULL;
    }
 }
 const char *v3d_desc_tsy_op(v3d_tsy_op_t tsy_op)
@@ -1384,7 +1483,7 @@ const char *v3d_desc_tsy_op(v3d_tsy_op_t tsy_op)
 const char *v3d_maybe_desc_tlb_rw_type(v3d_tlb_rw_type_t tlb_rw_type)
 {
    switch (tlb_rw_type) {
-   case V3D_TLB_RW_TYPE_COLOR_F16:  return "color_f16";
+   case V3D_TLB_RW_TYPE_COLOR_16:   return "color_16";
    case V3D_TLB_RW_TYPE_COLOR_32:   return "color_32";
    case V3D_TLB_RW_TYPE_Z:          return "z";
    case V3D_TLB_RW_TYPE_ALPHA_MASK: return "alpha_mask";
@@ -1397,14 +1496,41 @@ const char *v3d_desc_tlb_rw_type(v3d_tlb_rw_type_t tlb_rw_type)
    assert(desc);
    return desc;
 }
+bool v3d_is_valid_tlb_rw_color_type(v3d_tlb_rw_color_type_t tlb_rw_color_type)
+{
+   switch (tlb_rw_color_type)
+   {
+   case V3D_TLB_RW_COLOR_TYPE_16:
+   case V3D_TLB_RW_COLOR_TYPE_16_SWAPPED:
+#if V3D_HAS_TLB_WR_CONVERT
+   case V3D_TLB_RW_COLOR_TYPE_32:
+#endif
+#if !V3D_HAS_TLB_WR_CONVERT
+   case V3D_TLB_RW_COLOR_TYPE_FLOAT32:
+#endif
+#if !V3D_HAS_TLB_WR_CONVERT
+   case V3D_TLB_RW_COLOR_TYPE_INT32:
+#endif
+   return true;
+   default:
+      return false;
+   }
+}
 const char *v3d_maybe_desc_tlb_rw_color_type(v3d_tlb_rw_color_type_t tlb_rw_color_type)
 {
    switch (tlb_rw_color_type) {
-   case V3D_TLB_RW_COLOR_TYPE_FLOAT16:         return "float16";
-   case V3D_TLB_RW_COLOR_TYPE_FLOAT16_SWAPPED: return "float16_swapped";
-   case V3D_TLB_RW_COLOR_TYPE_FLOAT32:         return "float32";
-   case V3D_TLB_RW_COLOR_TYPE_INT32:           return "int32";
-   default:                                    return NULL;
+   case V3D_TLB_RW_COLOR_TYPE_16:         return "16";
+   case V3D_TLB_RW_COLOR_TYPE_16_SWAPPED: return "16_swapped";
+#if V3D_HAS_TLB_WR_CONVERT
+   case V3D_TLB_RW_COLOR_TYPE_32:         return "32";
+#endif
+#if !V3D_HAS_TLB_WR_CONVERT
+   case V3D_TLB_RW_COLOR_TYPE_FLOAT32:    return "float32";
+#endif
+#if !V3D_HAS_TLB_WR_CONVERT
+   case V3D_TLB_RW_COLOR_TYPE_INT32:      return "int32";
+#endif
+   default:                               return NULL;
    }
 }
 const char *v3d_desc_tlb_rw_color_type(v3d_tlb_rw_color_type_t tlb_rw_color_type)
@@ -1835,12 +1961,32 @@ const char *v3d_desc_rt_type(v3d_rt_type_t rt_type)
    return desc;
 }
 #if V3D_HAS_RT_CLAMP
+bool v3d_is_valid_rt_clamp(v3d_rt_clamp_t rt_clamp)
+{
+   switch (rt_clamp)
+   {
+   case V3D_RT_CLAMP_NONE:
+   case V3D_RT_CLAMP_NORM:
+   case V3D_RT_CLAMP_POS:
+#if V3D_HAS_RT_INT_CLAMP
+   case V3D_RT_CLAMP_INT:
+#endif
+   return true;
+   default:
+      return false;
+   }
+}
+#endif
+#if V3D_HAS_RT_CLAMP
 const char *v3d_maybe_desc_rt_clamp(v3d_rt_clamp_t rt_clamp)
 {
    switch (rt_clamp) {
    case V3D_RT_CLAMP_NONE: return "none";
    case V3D_RT_CLAMP_NORM: return "norm";
    case V3D_RT_CLAMP_POS:  return "pos";
+#if V3D_HAS_RT_INT_CLAMP
+   case V3D_RT_CLAMP_INT:  return "int";
+#endif
    default:                return NULL;
    }
 }
@@ -3165,6 +3311,9 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C:
 #endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED:
+#endif
    case V3D_CL_STENCIL_CFG:
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_BLEND_CFG:
@@ -3434,6 +3583,9 @@ const char *v3d_maybe_desc_cl_opcode(v3d_cl_opcode_t cl_opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C:                                return "clear_l2c";
 #endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED:                      return "clean_l1td_deferred";
+#endif
    case V3D_CL_STENCIL_CFG:                              return "stencil_cfg";
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_BLEND_CFG:                                return "blend_cfg";
@@ -3613,7 +3765,7 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).cs.unifs_addr = packed[8];
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_HAS_RELAXED_THRSW && !V3D_HAS_NO_PRIM_PACK
 void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).point_size_included = packed[0] & 1;
@@ -3645,17 +3797,67 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).vs_input_size.sectors = packed[1] >> 24 & 15;
    (*unpacked).vs_input_size.min_req = (packed[1] >> 28 & 3) + 1;
    (*unpacked).defaults = packed[2];
-   (*unpacked).fs.four_thread = packed[3] & 1;
+   (*unpacked).fs.threading = (v3d_threading_t)(packed[3] & 1);
    (*unpacked).fs.single_seg = packed[3] >> 1 & 1;
    (*unpacked).fs.propagate_nans = packed[3] >> 2 & 1;
    (*unpacked).fs.addr = packed[3] >> 3 << 3;
    (*unpacked).fs.unifs_addr = packed[4];
-   (*unpacked).vs.four_thread = packed[5] & 1;
+   (*unpacked).vs.threading = (v3d_threading_t)(packed[5] & 1);
    (*unpacked).vs.single_seg = packed[5] >> 1 & 1;
    (*unpacked).vs.propagate_nans = packed[5] >> 2 & 1;
    (*unpacked).vs.addr = packed[5] >> 3 << 3;
    (*unpacked).vs.unifs_addr = packed[6];
-   (*unpacked).cs.four_thread = packed[7] & 1;
+   (*unpacked).cs.threading = (v3d_threading_t)(packed[7] & 1);
+   (*unpacked).cs.single_seg = packed[7] >> 1 & 1;
+   (*unpacked).cs.propagate_nans = packed[7] >> 2 & 1;
+   (*unpacked).cs.addr = packed[7] >> 3 << 3;
+   (*unpacked).cs.unifs_addr = packed[8];
+}
+#endif
+#if V3D_HAS_NO_PRIM_PACK
+void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t *packed)
+{
+   (*unpacked).point_size_included = packed[0] & 1;
+   (*unpacked).clipping = packed[0] >> 1 & 1;
+   (*unpacked).cs_vertex_id = packed[0] >> 2 & 1;
+   (*unpacked).cs_instance_id = packed[0] >> 3 & 1;
+   (*unpacked).cs_baseinstance = packed[0] >> 4 & 1;
+   (*unpacked).vs_vertex_id = packed[0] >> 5 & 1;
+   (*unpacked).vs_instance_id = packed[0] >> 6 & 1;
+   (*unpacked).vs_baseinstance = packed[0] >> 7 & 1;
+   (*unpacked).z_write = packed[0] >> 8 & 1;
+   (*unpacked).no_ez = packed[0] >> 9 & 1;
+   (*unpacked).cs_separate_blocks = packed[0] >> 10 & 1;
+   (*unpacked).vs_separate_blocks = packed[0] >> 11 & 1;
+   (*unpacked).sample_rate_shading = packed[0] >> 13 & 1;
+   (*unpacked).prim_id_used = packed[0] >> 14 & 1;
+   (*unpacked).prim_id_to_fs = packed[0] >> 15 & 1;
+   (*unpacked).disable_scb = packed[0] >> 16 & 1;
+   (*unpacked).scb_wait_on_first_thrsw = packed[0] >> 17 & 1;
+   (*unpacked).disable_implicit_varys = packed[0] >> 18 & 1;
+   (*unpacked).no_prim_pack = packed[0] >> 19 & 1;
+   (*unpacked).num_varys = gfx_check_urange(packed[0] >> 24, 0, 64);
+   (*unpacked).cs_output_size.sectors = gfx_unpack_uint_0_is_max(packed[1] & 15, 4);
+   (*unpacked).cs_output_size.min_extra_req = packed[1] >> 4 & 3;
+   (*unpacked).cs_input_size.sectors = packed[1] >> 8 & 15;
+   (*unpacked).cs_input_size.min_req = (packed[1] >> 12 & 3) + 1;
+   (*unpacked).vs_output_size.sectors =
+      gfx_unpack_uint_0_is_max(packed[1] >> 16 & 15, 4);
+   (*unpacked).vs_output_size.min_extra_req = packed[1] >> 20 & 3;
+   (*unpacked).vs_input_size.sectors = packed[1] >> 24 & 15;
+   (*unpacked).vs_input_size.min_req = (packed[1] >> 28 & 3) + 1;
+   (*unpacked).defaults = packed[2];
+   (*unpacked).fs.threading = (v3d_threading_t)(packed[3] & 1);
+   (*unpacked).fs.single_seg = packed[3] >> 1 & 1;
+   (*unpacked).fs.propagate_nans = packed[3] >> 2 & 1;
+   (*unpacked).fs.addr = packed[3] >> 3 << 3;
+   (*unpacked).fs.unifs_addr = packed[4];
+   (*unpacked).vs.threading = (v3d_threading_t)(packed[5] & 1);
+   (*unpacked).vs.single_seg = packed[5] >> 1 & 1;
+   (*unpacked).vs.propagate_nans = packed[5] >> 2 & 1;
+   (*unpacked).vs.addr = packed[5] >> 3 << 3;
+   (*unpacked).vs.unifs_addr = packed[6];
+   (*unpacked).cs.threading = (v3d_threading_t)(packed[7] & 1);
    (*unpacked).cs.single_seg = packed[7] >> 1 & 1;
    (*unpacked).cs.propagate_nans = packed[7] >> 2 & 1;
    (*unpacked).cs.addr = packed[7] >> 3 << 3;
@@ -3678,12 +3880,12 @@ void v3d_unpack_shadrec_gl_geom(V3D_SHADREC_GL_GEOM_T *unpacked, const uint32_t 
 #if V3D_HAS_RELAXED_THRSW
 void v3d_unpack_shadrec_gl_geom(V3D_SHADREC_GL_GEOM_T *unpacked, const uint32_t *packed)
 {
-   (*unpacked).gs_bin.four_thread = packed[0] & 1;
+   (*unpacked).gs_bin.threading = (v3d_threading_t)(packed[0] & 1);
    (*unpacked).gs_bin.single_seg = packed[0] >> 1 & 1;
    (*unpacked).gs_bin.propagate_nans = packed[0] >> 2 & 1;
    (*unpacked).gs_bin.addr = packed[0] >> 3 << 3;
    (*unpacked).gs_bin.unifs_addr = packed[1];
-   (*unpacked).gs_render.four_thread = packed[2] & 1;
+   (*unpacked).gs_render.threading = (v3d_threading_t)(packed[2] & 1);
    (*unpacked).gs_render.single_seg = packed[2] >> 1 & 1;
    (*unpacked).gs_render.propagate_nans = packed[2] >> 2 & 1;
    (*unpacked).gs_render.addr = packed[2] >> 3 << 3;
@@ -3714,22 +3916,22 @@ void v3d_unpack_shadrec_gl_tess(V3D_SHADREC_GL_TESS_T *unpacked, const uint32_t 
 #if V3D_HAS_RELAXED_THRSW
 void v3d_unpack_shadrec_gl_tess(V3D_SHADREC_GL_TESS_T *unpacked, const uint32_t *packed)
 {
-   (*unpacked).tcs_bin.four_thread = packed[0] & 1;
+   (*unpacked).tcs_bin.threading = (v3d_threading_t)(packed[0] & 1);
    (*unpacked).tcs_bin.single_seg = packed[0] >> 1 & 1;
    (*unpacked).tcs_bin.propagate_nans = packed[0] >> 2 & 1;
    (*unpacked).tcs_bin.addr = packed[0] >> 3 << 3;
    (*unpacked).tcs_bin.unifs_addr = packed[1];
-   (*unpacked).tcs_render.four_thread = packed[2] & 1;
+   (*unpacked).tcs_render.threading = (v3d_threading_t)(packed[2] & 1);
    (*unpacked).tcs_render.single_seg = packed[2] >> 1 & 1;
    (*unpacked).tcs_render.propagate_nans = packed[2] >> 2 & 1;
    (*unpacked).tcs_render.addr = packed[2] >> 3 << 3;
    (*unpacked).tcs_render.unifs_addr = packed[3];
-   (*unpacked).tes_bin.four_thread = packed[4] & 1;
+   (*unpacked).tes_bin.threading = (v3d_threading_t)(packed[4] & 1);
    (*unpacked).tes_bin.single_seg = packed[4] >> 1 & 1;
    (*unpacked).tes_bin.propagate_nans = packed[4] >> 2 & 1;
    (*unpacked).tes_bin.addr = packed[4] >> 3 << 3;
    (*unpacked).tes_bin.unifs_addr = packed[5];
-   (*unpacked).tes_render.four_thread = packed[6] & 1;
+   (*unpacked).tes_render.threading = (v3d_threading_t)(packed[6] & 1);
    (*unpacked).tes_render.single_seg = packed[6] >> 1 & 1;
    (*unpacked).tes_render.propagate_nans = packed[6] >> 2 & 1;
    (*unpacked).tes_render.addr = packed[6] >> 3 << 3;
@@ -3903,7 +4105,7 @@ void v3d_unpack_shadrec_vg(V3D_SHADREC_VG_T *unpacked, const uint32_t *packed)
 #if V3D_HAS_RELAXED_THRSW
 void v3d_unpack_shadrec_vg(V3D_SHADREC_VG_T *unpacked, const uint32_t *packed)
 {
-   (*unpacked).fs.four_thread = packed[1] & 1;
+   (*unpacked).fs.threading = (v3d_threading_t)(packed[1] & 1);
    (*unpacked).fs.single_seg = packed[1] >> 1 & 1;
    (*unpacked).fs.propagate_nans = packed[1] >> 2 & 1;
    (*unpacked).fs.addr = packed[1] >> 3 << 3;
@@ -3939,7 +4141,6 @@ void v3d_unpack_tmu_param0(V3D_TMU_PARAM0_T *unpacked, uint32_t packed0)
       (*unpacked).u.cfg1.gather = packed0 >> 4 & 1;
       (*unpacked).u.cfg1.bias = packed0 >> 5 & 1;
       (*unpacked).u.cfg1.bslod = packed0 >> 6 & 1;
-      (*unpacked).u.cfg1.coefficient = packed0 >> 7 & 1;
       (*unpacked).u.cfg1.shadow = packed0 >> 8 & 1;
       assert((packed0 >> 9 & 1) == 1);
       (*unpacked).u.cfg1.wrap_s = (v3d_tmu_wrap_t)(packed0 >> 10 & 7);
@@ -3996,19 +4197,33 @@ void v3d_unpack_tmu_param1(V3D_TMU_PARAM1_T *unpacked, uint32_t packed0)
    (*unpacked).sampler_addr = packed0 >> 3 << 3;
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_TMU_LOD_QUERY
 void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
 {
    (*unpacked).tmuoff_4x = packed0 & 1;
    (*unpacked).bslod = packed0 >> 1 & 1;
-   (*unpacked).coeff_sample = packed0 >> 2 & 3;
-   (*unpacked).coefficient = packed0 >> 4 & 1;
+   (*unpacked).sample_num = packed0 >> 2 & 3;
    (*unpacked).gather_comp = packed0 >> 5 & 3;
    (*unpacked).gather = packed0 >> 7 & 1;
    (*unpacked).offsets[0] = gfx_sext(packed0 >> 8 & 15, 4);
    (*unpacked).offsets[1] = gfx_sext(packed0 >> 12 & 15, 4);
    (*unpacked).offsets[2] = gfx_sext(packed0 >> 16 & 15, 4);
    (*unpacked).op = (v3d_tmu_op_t)(packed0 >> 20 & 15);
+}
+#endif
+#if V3D_HAS_TMU_LOD_QUERY
+void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).tmuoff_4x = packed0 & 1;
+   (*unpacked).bslod = packed0 >> 1 & 1;
+   (*unpacked).sample_num = packed0 >> 2 & 3;
+   (*unpacked).gather_comp = packed0 >> 5 & 3;
+   (*unpacked).gather = packed0 >> 7 & 1;
+   (*unpacked).offsets[0] = gfx_sext(packed0 >> 8 & 15, 4);
+   (*unpacked).offsets[1] = gfx_sext(packed0 >> 12 & 15, 4);
+   (*unpacked).offsets[2] = gfx_sext(packed0 >> 16 & 15, 4);
+   (*unpacked).op = (v3d_tmu_op_t)(packed0 >> 20 & 15);
+   (*unpacked).lod_query = packed0 >> 24 & 1;
 }
 #endif
 void v3d_unpack_tmu_general_config(V3D_TMU_GENERAL_CONFIG_T *unpacked, uint8_t packed0)
@@ -4022,15 +4237,95 @@ void v3d_unpack_tsy_config(V3D_TSY_CONFIG_T *unpacked, uint8_t packed0)
    (*unpacked).op = (v3d_tsy_op_t)(uint32_t)(packed0 & 31);
    (*unpacked).gfxh_1370_do_not_change = (uint32_t)(packed0 >> 5);
 }
+#if V3D_HAS_TLB_WR_CONVERT
 void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
 {
    if ((uint32_t)(packed0 >> 6) == 3)
    {
-      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_F16;
-      (*unpacked).u.color_f16.num_words = (uint32_t)(packed0 & 1) + 1;
-      (*unpacked).u.color_f16.no_swap = (uint32_t)(packed0 >> 1 & 1);
-      (*unpacked).u.color_f16.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
-      (*unpacked).u.color_f16.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
+      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_16;
+      (*unpacked).u.color_16.num_words = (uint32_t)(packed0 & 1) + 1;
+      (*unpacked).u.color_16.no_swap = (uint32_t)(packed0 >> 1 & 1);
+      (*unpacked).u.color_16.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      (*unpacked).u.color_16.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
+      assert((uint32_t)(packed0 >> 6) == 3);
+   }
+   else if ((uint32_t)(packed0 >> 7) == 0)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_32;
+      (*unpacked).u.color_32.num_words = (uint32_t)(packed0 & 3) + 1;
+      (*unpacked).u.color_32.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      (*unpacked).u.color_32.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
+      assert((uint32_t)(packed0 >> 7) == 0);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 8)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_Z;
+      (*unpacked).u.z.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      (*unpacked).u.z.use_written_z = (uint32_t)(packed0 >> 3 & 1);
+      assert((uint32_t)(packed0 >> 4) == 8);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 9)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_ALPHA_MASK;
+      (*unpacked).u.alpha_mask.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      assert((uint32_t)(packed0 >> 4) == 9);
+   }
+   else
+   {
+      unreachable();
+   }
+}
+#endif
+#if V3D_HAS_TLB_SAMPLED_READ && !V3D_HAS_TLB_WR_CONVERT
+void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
+{
+   if ((uint32_t)(packed0 >> 6) == 3)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_16;
+      (*unpacked).u.color_16.num_words = (uint32_t)(packed0 & 1) + 1;
+      (*unpacked).u.color_16.no_swap = (uint32_t)(packed0 >> 1 & 1);
+      (*unpacked).u.color_16.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      (*unpacked).u.color_16.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
+      assert((uint32_t)(packed0 >> 6) == 3);
+   }
+   else if ((uint32_t)(packed0 >> 7) == 0)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_32;
+      (*unpacked).u.color_32.num_words = (uint32_t)(packed0 & 3) + 1;
+      (*unpacked).u.color_32.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      (*unpacked).u.color_32.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
+      (*unpacked).u.color_32.as_int = (uint32_t)(packed0 >> 6 & 1);
+      assert((uint32_t)(packed0 >> 7) == 0);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 8)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_Z;
+      (*unpacked).u.z.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      (*unpacked).u.z.use_written_z = (uint32_t)(packed0 >> 3 & 1);
+      assert((uint32_t)(packed0 >> 4) == 8);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 9)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_ALPHA_MASK;
+      (*unpacked).u.alpha_mask.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      assert((uint32_t)(packed0 >> 4) == 9);
+   }
+   else
+   {
+      unreachable();
+   }
+}
+#endif
+#if !V3D_HAS_TLB_SAMPLED_READ
+void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
+{
+   if ((uint32_t)(packed0 >> 6) == 3)
+   {
+      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_16;
+      (*unpacked).u.color_16.num_words = (uint32_t)(packed0 & 1) + 1;
+      (*unpacked).u.color_16.no_swap = (uint32_t)(packed0 >> 1 & 1);
+      (*unpacked).u.color_16.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
+      (*unpacked).u.color_16.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
       assert((uint32_t)(packed0 >> 6) == 3);
    }
    else if ((uint32_t)(packed0 >> 7) == 0)
@@ -4058,6 +4353,7 @@ void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
       unreachable();
    }
 }
+#endif
 void v3d_unpack_unif_branch(V3D_UNIF_BRANCH_T *unpacked, uint32_t packed0)
 {
    (*unpacked).bcond = (v3d_qpu_bcond_t)(packed0 & 7);
@@ -4088,7 +4384,7 @@ void v3d_unpack_tmu_indirect_not_child_image(V3D_TMU_INDIRECT_T *unpacked, const
    (*unpacked).swizzles[3] = (v3d_tmu_swizzle_t)(packed[3] >> 25 & 7);
    (*unpacked).flipx = packed[3] >> 28 & 1;
    (*unpacked).flipy = packed[3] >> 29 & 1;
-   (*unpacked).etcflip = packed[3] >> 30 & 1;
+   assert((packed[3] >> 30 & 1) == 1);
    (*unpacked).bcolour = (uint64_t)packed[4] | (uint64_t)packed[5] << 32;
    (*unpacked).u.not_child_image.min_lod = gfx_sext(packed[6] & 0xffff, 16);
    (*unpacked).u.not_child_image.max_lod = gfx_sext(packed[6] >> 16, 16);
@@ -4125,7 +4421,7 @@ void v3d_unpack_tmu_indirect_child_image(V3D_TMU_INDIRECT_T *unpacked, const uin
    (*unpacked).swizzles[3] = (v3d_tmu_swizzle_t)(packed[3] >> 25 & 7);
    (*unpacked).flipx = packed[3] >> 28 & 1;
    (*unpacked).flipy = packed[3] >> 29 & 1;
-   (*unpacked).etcflip = packed[3] >> 30 & 1;
+   assert((packed[3] >> 30 & 1) == 1);
    (*unpacked).bcolour = (uint64_t)packed[4] | (uint64_t)packed[5] << 32;
    (*unpacked).u.child_image.cwidth = packed[6] & 0x3fff;
    (*unpacked).u.child_image.cheight = packed[6] >> 14 & 0x3fff;
@@ -4273,7 +4569,7 @@ void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *p
    (*unpacked).tg_geom_inst = packed[10] >> 26 & 1;
 }
 #endif
-#if V3D_HAS_TL_START_UNC
+#if V3D_HAS_TL_START_UNC && !V3D_HAS_PSE_WIREFRAME
 void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).cl_pos = packed[0];
@@ -4299,6 +4595,31 @@ void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *p
    (*unpacked).tg_geom_inst = packed[10] >> 27 & 1;
 }
 #endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *packed)
+{
+   (*unpacked).cl_pos = packed[0];
+   (*unpacked).sn_pos = packed[1];
+   (*unpacked).prev_indices[0] = packed[2];
+   (*unpacked).prev_indices[1] = packed[3];
+   (*unpacked).prev_indices[2] = packed[4];
+   (*unpacked).prev_serials[0] = packed[5];
+   (*unpacked).prev_serials[1] = packed[6];
+   (*unpacked).prev_serials[2] = packed[7];
+   (*unpacked).prev_prim_id = packed[8];
+   (*unpacked).curr_xy_mode = packed[9] & 1;
+   (*unpacked).in_generic_ind_list = packed[9] >> 1 & 1;
+   (*unpacked).in_prim_list = packed[9] >> 2 & 1;
+   (*unpacked).ctr = packed[9] >> 3 & 0xffffff;
+   (*unpacked).blksize = (v3d_tile_alloc_block_size_t)(packed[9] >> 27 & 3);
+   (*unpacked).halfwrt = packed[9] >> 29 & 1;
+   (*unpacked).deferred_sn = packed[9] >> 30 | (packed[10] & 0x3fffff) << 2;
+   (*unpacked).cur_sn_level = packed[10] >> 22 & 3;
+   (*unpacked).tg_tess = packed[10] >> 24 & 1;
+   (*unpacked).tg_geom = packed[10] >> 25 & 1;
+   (*unpacked).tg_geom_inst = packed[10] >> 26 & 1;
+}
+#endif
 void v3d_unpack_indirect_indexed_record(V3D_INDIRECT_INDEXED_RECORD_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).num_indices = packed[0];
@@ -4314,6 +4635,7 @@ void v3d_unpack_indirect_arrays_record(V3D_INDIRECT_ARRAYS_RECORD_T *unpacked, c
    (*unpacked).first_index = packed[2];
    (*unpacked).base_instance = packed[3];
 }
+#if !V3D_HAS_PSE_WIREFRAME
 void v3d_unpack_clip_record(V3D_CLIP_RECORD_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).xs = (int32_t)packed[0];
@@ -4324,6 +4646,20 @@ void v3d_unpack_clip_record(V3D_CLIP_RECORD_T *unpacked, const uint32_t *packed)
    (*unpacked).vcoeff[1] = gfx_float_from_bits(packed[5]);
    (*unpacked).vcoeff[2] = gfx_float_from_bits(packed[6]);
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_unpack_clip_record(V3D_CLIP_RECORD_T *unpacked, const uint32_t *packed)
+{
+   (*unpacked).xs = (int32_t)packed[0];
+   (*unpacked).ys = (int32_t)packed[1];
+   (*unpacked).zs = gfx_float_from_bits(packed[2]);
+   (*unpacked).rw = gfx_float_from_bits(packed[3]);
+   (*unpacked).vcoeff[0] = gfx_float_from_bits(packed[4]);
+   (*unpacked).vcoeff[1] = gfx_float_from_bits(packed[5]);
+   (*unpacked).vcoeff[2] = gfx_float_from_bits(packed[6]);
+   (*unpacked).intedges = packed[7] & 7;
+}
+#endif
 void v3d_unpack_autochain_link(V3D_AUTOCHAIN_LINK_T *unpacked, const uint8_t *packed)
 {
    (*unpacked).next_block_size =
@@ -4418,6 +4754,7 @@ void v3d_unpack_cl_compr_ind_common(V3D_CL_COMPR_IND_COMMON_T *unpacked, const u
       (*unpacked).u.clipped_prim.clip_vert[1] = (uint32_t)(packed[1] >> 1 & 1);
       (*unpacked).u.clipped_prim.clip_vert[2] = (uint32_t)(packed[1] >> 2 & 1);
       (*unpacked).u.clipped_prim.flat_zw = (uint32_t)(packed[1] >> 3 & 1);
+      (*unpacked).u.clipped_prim.is_first2 = (uint32_t)(packed[1] >> 4 & 1);
       (*unpacked).u.clipped_prim.addr =
          ((uint32_t)(packed[1] >> 5) | (uint32_t)packed[2] << 3 |
          (uint32_t)packed[3] << 11 | (uint32_t)packed[4] << 19) << 5;
@@ -4480,6 +4817,7 @@ void v3d_unpack_cl_compr_serial(V3D_CL_COMPR_SERIAL_T *unpacked, const uint8_t *
       (*unpacked).u.clipped_prim.clip_vert[1] = (uint32_t)(packed[1] >> 1 & 1);
       (*unpacked).u.clipped_prim.clip_vert[2] = (uint32_t)(packed[1] >> 2 & 1);
       (*unpacked).u.clipped_prim.flat_zw = (uint32_t)(packed[1] >> 3 & 1);
+      (*unpacked).u.clipped_prim.is_first2 = (uint32_t)(packed[1] >> 4 & 1);
       (*unpacked).u.clipped_prim.addr =
          ((uint32_t)(packed[1] >> 5) | (uint32_t)packed[2] << 3 |
          (uint32_t)packed[3] << 11 | (uint32_t)packed[4] << 19) << 5;
@@ -4742,6 +5080,7 @@ void v3d_unpack_cl_compr_ind_d3dpvsf_tri(V3D_CL_COMPR_IND_D3DPVSF_TRI_T *unpacke
       unreachable();
    }
 }
+#if !V3D_HAS_PSE_WIREFRAME
 void v3d_unpack_cl_compr_ind_line(V3D_CL_COMPR_IND_LINE_T *unpacked, const uint8_t *packed)
 {
    if (v3d_is_valid_line_ind_reuse((v3d_line_ind_reuse_t)(uint32_t)(packed[0] & 3)))
@@ -4811,6 +5150,74 @@ void v3d_unpack_cl_compr_ind_line(V3D_CL_COMPR_IND_LINE_T *unpacked, const uint8
       unreachable();
    }
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_unpack_cl_compr_ind_line(V3D_CL_COMPR_IND_LINE_T *unpacked, const uint8_t *packed)
+{
+   if (v3d_is_valid_line_ind_reuse((v3d_line_ind_reuse_t)(uint32_t)(packed[0] & 3)))
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C0;
+      (*unpacked).u.c0.reuse = (v3d_line_ind_reuse_t)(uint32_t)(packed[0] & 3);
+      (*unpacked).u.c0.diff1 = gfx_sext((uint32_t)(packed[0] >> 2), 6);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 7)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C1;
+      assert((uint32_t)(packed[0] & 15) == 7);
+      (*unpacked).u.c1.diff0 = gfx_sext((uint32_t)(packed[0] >> 4), 4);
+      (*unpacked).u.c1.diff1 = gfx_sext((uint32_t)(packed[1] & 15), 4);
+   }
+   else if ((uint32_t)(packed[0] & 3) == 2)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C2;
+      assert((uint32_t)(packed[0] & 3) == 2);
+      (*unpacked).u.c2.diff1 = gfx_sext((uint32_t)(packed[0] >> 2), 6);
+      (*unpacked).u.c2.idx0 = (uint32_t)packed[1] | (uint32_t)packed[2] << 8;
+   }
+   else if ((uint32_t)(packed[0] & 3) == 3 && (uint32_t)(packed[0] >> 3 & 1) == 1)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C3;
+      assert((uint32_t)(packed[0] & 3) == 3);
+      assert((uint32_t)(packed[0] >> 3 & 1) == 1);
+      (*unpacked).u.c3.diff1 = gfx_sext((uint32_t)(packed[0] >> 4), 4);
+      (*unpacked).u.c3.idx0 = (uint32_t)packed[1] | (uint32_t)packed[2] << 8 |
+         (uint32_t)packed[3] << 16;
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 4)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C4;
+      assert((uint32_t)(packed[0] & 15) == 3);
+      assert((uint32_t)(packed[0] >> 5) == 4);
+      (*unpacked).u.c4.idx0 = (uint32_t)packed[1] | (uint32_t)packed[2] << 8;
+      (*unpacked).u.c4.idx1 = (uint32_t)packed[3] | (uint32_t)packed[4] << 8;
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 5)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C5;
+      assert((uint32_t)(packed[0] & 15) == 3);
+      assert((uint32_t)(packed[0] >> 5) == 5);
+      (*unpacked).u.c5.idx0 = (uint32_t)packed[1] | (uint32_t)packed[2] << 8 |
+         (uint32_t)packed[3] << 16;
+      (*unpacked).u.c5.idx1 = (uint32_t)packed[4] | (uint32_t)packed[5] << 8 |
+         (uint32_t)packed[6] << 16;
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 2)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C6;
+      assert((uint32_t)(packed[0] & 15) == 3);
+      assert((uint32_t)(packed[0] >> 5) == 2);
+      (*unpacked).u.c6.idx0 = (uint32_t)packed[1] | (uint32_t)packed[2] << 8 |
+         (uint32_t)packed[3] << 16 | (uint32_t)packed[4] << 24;
+      (*unpacked).u.c6.idx1 = (uint32_t)packed[5] | (uint32_t)packed[6] << 8 |
+         (uint32_t)packed[7] << 16 | (uint32_t)packed[8] << 24;
+   }
+   else
+   {
+      unreachable();
+   }
+}
+#endif
+#if !V3D_HAS_PSE_WIREFRAME
 void v3d_unpack_cl_compr_ind_point(V3D_CL_COMPR_IND_POINT_T *unpacked, const uint8_t *packed)
 {
    if ((uint32_t)(packed[0] & 3) == 0)
@@ -4866,6 +5273,59 @@ void v3d_unpack_cl_compr_ind_point(V3D_CL_COMPR_IND_POINT_T *unpacked, const uin
       unreachable();
    }
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_unpack_cl_compr_ind_point(V3D_CL_COMPR_IND_POINT_T *unpacked, const uint8_t *packed)
+{
+   if ((uint32_t)(packed[0] & 3) == 0)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C0;
+      assert((uint32_t)(packed[0] & 3) == 0);
+      (*unpacked).u.c0.diff = gfx_sext((uint32_t)(packed[0] >> 2), 6);
+   }
+   else if ((uint32_t)(packed[0] & 3) == 1)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C1;
+      assert((uint32_t)(packed[0] & 3) == 1);
+      (*unpacked).u.c1.diff = gfx_sext((uint32_t)(packed[0] >> 2) |
+         (uint32_t)(packed[1] & 127) << 6, 13);
+   }
+   else if ((uint32_t)(packed[0] & 3) == 2)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C2;
+      assert((uint32_t)(packed[0] & 3) == 2);
+      (*unpacked).u.c2.diff = gfx_sext((uint32_t)(packed[0] >> 2), 6);
+      (*unpacked).u.c2.count = (uint32_t)(packed[1] & 127) + 1;
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 4)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C4;
+      assert((uint32_t)(packed[0] & 15) == 3);
+      assert((uint32_t)(packed[0] >> 5) == 4);
+      (*unpacked).u.c4.idx = (uint32_t)packed[1] | (uint32_t)packed[2] << 8;
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 5)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C5;
+      assert((uint32_t)(packed[0] & 15) == 3);
+      assert((uint32_t)(packed[0] >> 5) == 5);
+      (*unpacked).u.c5.idx = (uint32_t)packed[1] | (uint32_t)packed[2] << 8 |
+         (uint32_t)packed[3] << 16;
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 2)
+   {
+      (*unpacked).type = V3D_CL_COMPR_TYPE_C6;
+      assert((uint32_t)(packed[0] & 15) == 3);
+      assert((uint32_t)(packed[0] >> 5) == 2);
+      (*unpacked).u.c6.idx = (uint32_t)packed[1] | (uint32_t)packed[2] << 8 |
+         (uint32_t)packed[3] << 16 | (uint32_t)packed[4] << 24;
+   }
+   else
+   {
+      unreachable();
+   }
+}
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_unpack_cl_compr_xy_tri(V3D_CL_COMPR_XY_TRI_T *unpacked, const uint8_t *packed)
 {
@@ -5576,23 +6036,23 @@ void v3d_unpack_hub_ident3(V3D_HUB_IDENT3_T *unpacked, uint32_t packed0)
    (*unpacked).ip_recipient = (v3d_ip_recipient_t)(packed0 & 255);
    (*unpacked).v3d_sub_rev = packed0 >> 8 & 255;
 }
-void v3d_unpack_hub_ident(V3D_HUB_IDENT_T *unpacked, uint32_t packed0, uint32_t packed1, uint32_t packed2, uint32_t packed3)
+void v3d_unpack_hub_ident(V3D_HUB_IDENT_T *unpacked, const uint32_t *packed)
 {
-   assert(packed0 == 0x42554856);
-   (*unpacked).v3d_tech_version = packed1 & 15;
-   (*unpacked).v3d_revision = packed1 >> 4 & 15;
-   (*unpacked).num_cores = gfx_unpack_uint_0_is_max(packed1 >> 8 & 15, 4);
-   (*unpacked).num_hosts = gfx_check_urange(packed1 >> 12 & 15, 1, 15);
-   (*unpacked).has_l3c = packed1 >> 16 & 1;
-   (*unpacked).has_tfu = packed1 >> 17 & 1;
-   (*unpacked).has_tsy = packed1 >> 18 & 1;
-   (*unpacked).has_mso = packed1 >> 19 & 1;
-   (*unpacked).l3c_associativity = packed1 >> 20 & 15;
-   (*unpacked).l3c_banks = packed1 >> 24 & 15;
-   (*unpacked).l3c_size_in_multiples_of_64kb = packed2 & 255;
-   (*unpacked).has_mmu = packed2 >> 8 & 1;
-   (*unpacked).ip_recipient = (v3d_ip_recipient_t)(packed3 & 255);
-   (*unpacked).v3d_sub_rev = packed3 >> 8 & 255;
+   assert(packed[0] == 0x42554856);
+   (*unpacked).v3d_tech_version = packed[1] & 15;
+   (*unpacked).v3d_revision = packed[1] >> 4 & 15;
+   (*unpacked).num_cores = gfx_unpack_uint_0_is_max(packed[1] >> 8 & 15, 4);
+   (*unpacked).num_hosts = gfx_check_urange(packed[1] >> 12 & 15, 1, 15);
+   (*unpacked).has_l3c = packed[1] >> 16 & 1;
+   (*unpacked).has_tfu = packed[1] >> 17 & 1;
+   (*unpacked).has_tsy = packed[1] >> 18 & 1;
+   (*unpacked).has_mso = packed[1] >> 19 & 1;
+   (*unpacked).l3c_associativity = packed[1] >> 20 & 15;
+   (*unpacked).l3c_banks = packed[1] >> 24 & 15;
+   (*unpacked).l3c_size_in_multiples_of_64kb = packed[2] & 255;
+   (*unpacked).has_mmu = packed[2] >> 8 & 1;
+   (*unpacked).ip_recipient = (v3d_ip_recipient_t)(packed[3] & 255);
+   (*unpacked).v3d_sub_rev = packed[3] >> 8 & 255;
 }
 #if !V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_unpack_ident0(V3D_IDENT0_T *unpacked, uint32_t packed0)
@@ -5636,29 +6096,29 @@ void v3d_unpack_ident3(V3D_IDENT3_T *unpacked, uint32_t packed0)
 }
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-void v3d_unpack_ident(V3D_IDENT_T *unpacked, uint32_t packed0, uint32_t packed1, uint32_t packed2, uint32_t packed3)
+void v3d_unpack_ident(V3D_IDENT_T *unpacked, const uint32_t *packed)
 {
-   assert((packed0 & 0xffffff) == 0x443356);
-   (*unpacked).v3d_tech_version = packed0 >> 24;
-   (*unpacked).v3d_revision = packed1 & 15;
-   (*unpacked).num_slices = gfx_check_urange(packed1 >> 4 & 15, 1, 15);
-   (*unpacked).num_qpus_per_slice = gfx_check_urange(packed1 >> 8 & 15, 1, 15);
-   (*unpacked).num_tmus = gfx_check_urange(packed1 >> 12 & 15, 1, 15);
-   (*unpacked).vpm_size_in_multiples_of_8kb = packed1 >> 28;
-   (*unpacked).vri_size = (v3d_vri_size_t)(packed2 & 15);
-   (*unpacked).tlb_size = (v3d_tlb_size_t)(packed2 >> 4 & 15);
-   (*unpacked).tlb_double_buf_support = packed2 >> 8 & 1;
-   (*unpacked).icache_size = (v3d_iuc_size_t)(packed2 >> 12 & 15);
-   (*unpacked).ucache_size = (v3d_iuc_size_t)(packed2 >> 16 & 15);
-   (*unpacked).bigend = packed2 >> 20 & 1;
-   (*unpacked).endswp_support = packed2 >> 21 & 1;
-   (*unpacked).axi_rw_reorder_support = packed2 >> 22 & 1;
-   (*unpacked).no_earlyz_support = packed2 >> 23 & 1;
-   (*unpacked).core_index = packed2 >> 24 & 15;
-   (*unpacked).bcg_interrupt_control = packed2 >> 28 & 1;
-   (*unpacked).has_astc = packed2 >> 30 & 1;
-   (*unpacked).ip_recipient = (v3d_ip_recipient_t)(packed3 & 255);
-   (*unpacked).v3d_sub_rev = packed3 >> 8 & 255;
+   assert((packed[0] & 0xffffff) == 0x443356);
+   (*unpacked).v3d_tech_version = packed[0] >> 24;
+   (*unpacked).v3d_revision = packed[1] & 15;
+   (*unpacked).num_slices = gfx_check_urange(packed[1] >> 4 & 15, 1, 15);
+   (*unpacked).num_qpus_per_slice = gfx_check_urange(packed[1] >> 8 & 15, 1, 15);
+   (*unpacked).num_tmus = gfx_check_urange(packed[1] >> 12 & 15, 1, 15);
+   (*unpacked).vpm_size_in_multiples_of_8kb = packed[1] >> 28;
+   (*unpacked).vri_size = (v3d_vri_size_t)(packed[2] & 15);
+   (*unpacked).tlb_size = (v3d_tlb_size_t)(packed[2] >> 4 & 15);
+   (*unpacked).tlb_double_buf_support = packed[2] >> 8 & 1;
+   (*unpacked).icache_size = (v3d_iuc_size_t)(packed[2] >> 12 & 15);
+   (*unpacked).ucache_size = (v3d_iuc_size_t)(packed[2] >> 16 & 15);
+   (*unpacked).bigend = packed[2] >> 20 & 1;
+   (*unpacked).endswp_support = packed[2] >> 21 & 1;
+   (*unpacked).axi_rw_reorder_support = packed[2] >> 22 & 1;
+   (*unpacked).no_earlyz_support = packed[2] >> 23 & 1;
+   (*unpacked).core_index = packed[2] >> 24 & 15;
+   (*unpacked).bcg_interrupt_control = packed[2] >> 28 & 1;
+   (*unpacked).has_astc = packed[2] >> 30 & 1;
+   (*unpacked).ip_recipient = (v3d_ip_recipient_t)(packed[3] & 255);
+   (*unpacked).v3d_sub_rev = packed[3] >> 8 & 255;
 }
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -5703,29 +6163,29 @@ void v3d_unpack_ident3(V3D_IDENT3_T *unpacked, uint32_t packed0)
 }
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
-void v3d_unpack_ident(V3D_IDENT_T *unpacked, uint32_t packed0, uint32_t packed1, uint32_t packed2, uint32_t packed3)
+void v3d_unpack_ident(V3D_IDENT_T *unpacked, const uint32_t *packed)
 {
-   assert((packed0 & 0xffffff) == 0x443356);
-   (*unpacked).v3d_tech_version = packed0 >> 24;
-   (*unpacked).v3d_revision = packed1 & 15;
-   (*unpacked).num_slices = gfx_check_urange(packed1 >> 4 & 15, 1, 15);
-   (*unpacked).num_qpus_per_slice = gfx_check_urange(packed1 >> 8 & 15, 1, 15);
-   (*unpacked).num_tmus = gfx_check_urange(packed1 >> 12 & 15, 1, 15);
-   (*unpacked).vpm_size_in_multiples_of_8kb = packed1 >> 28;
-   (*unpacked).vri_size = (v3d_vri_size_t)(packed2 & 15);
-   (*unpacked).tlb_size = (v3d_tlb_size_t)(packed2 >> 4 & 15);
-   (*unpacked).tlb_double_buf_support = packed2 >> 8 & 1;
-   (*unpacked).icache_size = (v3d_iuc_size_t)(packed2 >> 12 & 15);
-   (*unpacked).ucache_size = (v3d_iuc_size_t)(packed2 >> 16 & 15);
-   (*unpacked).bigend = packed2 >> 20 & 1;
-   (*unpacked).endswp_support = packed2 >> 21 & 1;
-   (*unpacked).axi_rw_reorder_support = packed2 >> 22 & 1;
-   (*unpacked).no_earlyz_support = packed2 >> 23 & 1;
-   (*unpacked).core_index = packed2 >> 24 & 15;
-   (*unpacked).bcg_interrupt_control = packed2 >> 28 & 1;
-   (*unpacked).has_astc = packed2 >> 30 & 1;
-   (*unpacked).l2t_ways = packed3 & 15;
-   (*unpacked).l2t_way_depth = packed3 >> 4 & 15;
+   assert((packed[0] & 0xffffff) == 0x443356);
+   (*unpacked).v3d_tech_version = packed[0] >> 24;
+   (*unpacked).v3d_revision = packed[1] & 15;
+   (*unpacked).num_slices = gfx_check_urange(packed[1] >> 4 & 15, 1, 15);
+   (*unpacked).num_qpus_per_slice = gfx_check_urange(packed[1] >> 8 & 15, 1, 15);
+   (*unpacked).num_tmus = gfx_check_urange(packed[1] >> 12 & 15, 1, 15);
+   (*unpacked).vpm_size_in_multiples_of_8kb = packed[1] >> 28;
+   (*unpacked).vri_size = (v3d_vri_size_t)(packed[2] & 15);
+   (*unpacked).tlb_size = (v3d_tlb_size_t)(packed[2] >> 4 & 15);
+   (*unpacked).tlb_double_buf_support = packed[2] >> 8 & 1;
+   (*unpacked).icache_size = (v3d_iuc_size_t)(packed[2] >> 12 & 15);
+   (*unpacked).ucache_size = (v3d_iuc_size_t)(packed[2] >> 16 & 15);
+   (*unpacked).bigend = packed[2] >> 20 & 1;
+   (*unpacked).endswp_support = packed[2] >> 21 & 1;
+   (*unpacked).axi_rw_reorder_support = packed[2] >> 22 & 1;
+   (*unpacked).no_earlyz_support = packed[2] >> 23 & 1;
+   (*unpacked).core_index = packed[2] >> 24 & 15;
+   (*unpacked).bcg_interrupt_control = packed[2] >> 28 & 1;
+   (*unpacked).has_astc = packed[2] >> 30 & 1;
+   (*unpacked).l2t_ways = packed[3] & 15;
+   (*unpacked).l2t_way_depth = packed[3] >> 4 & 15;
 }
 #endif
 void v3d_unpack_gs_inst_fifo_thrsh(V3D_GS_INST_FIFO_THRSH_T *unpacked, uint32_t packed0)
@@ -5748,6 +6208,7 @@ void v3d_unpack_hub_intr(V3D_HUB_INTR_T *unpacked, uint32_t packed0)
    (*unpacked).mmu_pti = packed0 >> 4 & 1;
    (*unpacked).mmu_wrv = packed0 >> 5 & 1;
 }
+#if !V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
 {
    (*unpacked).render_done = packed0 & 1;
@@ -5773,6 +6234,64 @@ void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
    (*unpacked).qpu[14] = packed0 >> 30 & 1;
    (*unpacked).qpu[15] = packed0 >> 31;
 }
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_CSD
+void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).render_done = packed0 & 1;
+   (*unpacked).bin_done = packed0 >> 1 & 1;
+   (*unpacked).outomem = packed0 >> 2 & 1;
+   (*unpacked).spilluse = packed0 >> 3 & 1;
+   (*unpacked).trfb = packed0 >> 4 & 1;
+   (*unpacked).gmpv = packed0 >> 5 & 1;
+   (*unpacked).pctr = packed0 >> 6 & 1;
+   (*unpacked).qpu[0] = packed0 >> 16 & 1;
+   (*unpacked).qpu[1] = packed0 >> 17 & 1;
+   (*unpacked).qpu[2] = packed0 >> 18 & 1;
+   (*unpacked).qpu[3] = packed0 >> 19 & 1;
+   (*unpacked).qpu[4] = packed0 >> 20 & 1;
+   (*unpacked).qpu[5] = packed0 >> 21 & 1;
+   (*unpacked).qpu[6] = packed0 >> 22 & 1;
+   (*unpacked).qpu[7] = packed0 >> 23 & 1;
+   (*unpacked).qpu[8] = packed0 >> 24 & 1;
+   (*unpacked).qpu[9] = packed0 >> 25 & 1;
+   (*unpacked).qpu[10] = packed0 >> 26 & 1;
+   (*unpacked).qpu[11] = packed0 >> 27 & 1;
+   (*unpacked).qpu[12] = packed0 >> 28 & 1;
+   (*unpacked).qpu[13] = packed0 >> 29 & 1;
+   (*unpacked).qpu[14] = packed0 >> 30 & 1;
+   (*unpacked).qpu[15] = packed0 >> 31;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).render_done = packed0 & 1;
+   (*unpacked).bin_done = packed0 >> 1 & 1;
+   (*unpacked).outomem = packed0 >> 2 & 1;
+   (*unpacked).spilluse = packed0 >> 3 & 1;
+   (*unpacked).trfb = packed0 >> 4 & 1;
+   (*unpacked).gmpv = packed0 >> 5 & 1;
+   (*unpacked).pctr = packed0 >> 6 & 1;
+   (*unpacked).compute_done = packed0 >> 7 & 1;
+   (*unpacked).qpu[0] = packed0 >> 16 & 1;
+   (*unpacked).qpu[1] = packed0 >> 17 & 1;
+   (*unpacked).qpu[2] = packed0 >> 18 & 1;
+   (*unpacked).qpu[3] = packed0 >> 19 & 1;
+   (*unpacked).qpu[4] = packed0 >> 20 & 1;
+   (*unpacked).qpu[5] = packed0 >> 21 & 1;
+   (*unpacked).qpu[6] = packed0 >> 22 & 1;
+   (*unpacked).qpu[7] = packed0 >> 23 & 1;
+   (*unpacked).qpu[8] = packed0 >> 24 & 1;
+   (*unpacked).qpu[9] = packed0 >> 25 & 1;
+   (*unpacked).qpu[10] = packed0 >> 26 & 1;
+   (*unpacked).qpu[11] = packed0 >> 27 & 1;
+   (*unpacked).qpu[12] = packed0 >> 28 & 1;
+   (*unpacked).qpu[13] = packed0 >> 29 & 1;
+   (*unpacked).qpu[14] = packed0 >> 30 & 1;
+   (*unpacked).qpu[15] = packed0 >> 31;
+}
+#endif
 #if V3D_HAS_ATTR_MAX_INDEX
 void v3d_unpack_ct0cs(V3D_CT0CS_T *unpacked, uint32_t packed0)
 {
@@ -5865,8 +6384,6 @@ void v3d_unpack_tfucs(V3D_TFUCS_T *unpacked, uint32_t packed0)
 void v3d_unpack_tfusu(V3D_TFUSU_T *unpacked, uint32_t packed0)
 {
    (*unpacked).throttle = packed0 & 3;
-   (*unpacked).crc = packed0 >> 3 & 1;
-   (*unpacked).crcchain = packed0 >> 4 & 1;
    (*unpacked).fintthr = packed0 >> 8 & 63;
 }
 void v3d_unpack_tfuicfg(V3D_TFUICFG_T *unpacked, uint32_t packed0)
@@ -5920,7 +6437,7 @@ void v3d_unpack_tfucoef3(V3D_TFUCOEF3_T *unpacked, uint32_t packed0)
 #if V3D_HAS_RELAXED_THRSW
 void v3d_unpack_srqpc(V3D_SRQPC_T *unpacked, uint32_t packed0)
 {
-   (*unpacked).four_thread = packed0 & 1;
+   (*unpacked).threading = (v3d_threading_t)(packed0 & 1);
    (*unpacked).single_seg = packed0 >> 1 & 1;
    (*unpacked).propagate_nans = packed0 >> 2 & 1;
    (*unpacked).addr = packed0 >> 3 << 3;
@@ -6127,6 +6644,19 @@ void v3d_unpack_tsy_control(V3D_TSY_CONTROL_T *unpacked, uint32_t packed0)
    (*unpacked).core_enable[0] = packed0 & 1;
    (*unpacked).core_enable[1] = packed0 >> 1 & 1;
    (*unpacked).core_enable[2] = packed0 >> 2 & 1;
+   (*unpacked).core_enable[3] = packed0 >> 3 & 1;
+   (*unpacked).core_enable[4] = packed0 >> 4 & 1;
+   (*unpacked).core_enable[5] = packed0 >> 5 & 1;
+   (*unpacked).core_enable[6] = packed0 >> 6 & 1;
+   (*unpacked).core_enable[7] = packed0 >> 7 & 1;
+   (*unpacked).core_enable[8] = packed0 >> 8 & 1;
+   (*unpacked).core_enable[9] = packed0 >> 9 & 1;
+   (*unpacked).core_enable[10] = packed0 >> 10 & 1;
+   (*unpacked).core_enable[11] = packed0 >> 11 & 1;
+   (*unpacked).core_enable[12] = packed0 >> 12 & 1;
+   (*unpacked).core_enable[13] = packed0 >> 13 & 1;
+   (*unpacked).core_enable[14] = packed0 >> 14 & 1;
+   (*unpacked).core_enable[15] = packed0 >> 15 & 1;
 }
 #if !V3D_HAS_TSY_APB_FIX
 void v3d_unpack_tsy_status(V3D_TSY_STATUS_T *unpacked, uint32_t packed0)
@@ -6143,9 +6673,117 @@ void v3d_unpack_tsy_status(V3D_TSY_STATUS_T *unpacked, uint32_t packed0)
 #endif
 void v3d_unpack_tsy_tso_data(V3D_TSY_TSO_DATA_T *unpacked, uint32_t packed0)
 {
-   (*unpacked).num_waiting = packed0 & 255;
-   (*unpacked).quorum = packed0 >> 16 & 255;
+   (*unpacked).num_waiting = packed0 & 0xffff;
+   (*unpacked).quorum = packed0 >> 16;
 }
+#if V3D_HAS_CSD
+void v3d_unpack_csd_status(V3D_CSD_STATUS_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).have_queued_dispatch = packed0 & 1;
+   (*unpacked).have_current_dispatch = packed0 >> 1 & 1;
+   (*unpacked).num_active_dispatches = packed0 >> 2 & 3;
+   (*unpacked).num_completed_dispatches = packed0 >> 4 & 255;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg0(V3D_CSD_CFG0_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).wg_x_offset = packed0 & 0xffff;
+   (*unpacked).num_wgs_x = gfx_unpack_uint_0_is_max(packed0 >> 16, 16);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg1(V3D_CSD_CFG1_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).wg_y_offset = packed0 & 0xffff;
+   (*unpacked).num_wgs_y = gfx_unpack_uint_0_is_max(packed0 >> 16, 16);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg2(V3D_CSD_CFG2_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).wg_z_offset = packed0 & 0xffff;
+   (*unpacked).num_wgs_z = gfx_unpack_uint_0_is_max(packed0 >> 16, 16);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg3(V3D_CSD_CFG3_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).wg_size = gfx_unpack_uint_0_is_max(packed0 & 255, 8);
+   (*unpacked).wgs_per_sg = gfx_unpack_uint_0_is_max(packed0 >> 8 & 15, 4);
+   (*unpacked).batches_per_sg = (packed0 >> 12 & 255) + 1;
+   (*unpacked).max_sg_id = packed0 >> 20 & 63;
+   (*unpacked).overlap_with_prev = packed0 >> 26 & 1;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg4(V3D_CSD_CFG4_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).num_batches = (uint64_t)packed0 + 1;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg5(V3D_CSD_CFG5_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).threading = (v3d_threading_t)(packed0 & 1);
+   (*unpacked).single_seg = packed0 >> 1 & 1;
+   (*unpacked).propagate_nans = packed0 >> 2 & 1;
+   (*unpacked).shader_addr = packed0 >> 3 << 3;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg6(V3D_CSD_CFG6_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).unifs_addr = packed0 >> 2 << 2;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_cfg(V3D_CSD_CFG_T *unpacked, const uint32_t *packed)
+{
+   (*unpacked).wg_x_offset = packed[0] & 0xffff;
+   (*unpacked).num_wgs_x = gfx_unpack_uint_0_is_max(packed[0] >> 16, 16);
+   (*unpacked).wg_y_offset = packed[1] & 0xffff;
+   (*unpacked).num_wgs_y = gfx_unpack_uint_0_is_max(packed[1] >> 16, 16);
+   (*unpacked).wg_z_offset = packed[2] & 0xffff;
+   (*unpacked).num_wgs_z = gfx_unpack_uint_0_is_max(packed[2] >> 16, 16);
+   (*unpacked).wg_size = gfx_unpack_uint_0_is_max(packed[3] & 255, 8);
+   (*unpacked).wgs_per_sg = gfx_unpack_uint_0_is_max(packed[3] >> 8 & 15, 4);
+   (*unpacked).batches_per_sg = (packed[3] >> 12 & 255) + 1;
+   (*unpacked).max_sg_id = packed[3] >> 20 & 63;
+   (*unpacked).overlap_with_prev = packed[3] >> 26 & 1;
+   (*unpacked).num_batches = (uint64_t)packed[4] + 1;
+   (*unpacked).threading = (v3d_threading_t)(packed[5] & 1);
+   (*unpacked).single_seg = packed[5] >> 1 & 1;
+   (*unpacked).propagate_nans = packed[5] >> 2 & 1;
+   (*unpacked).shader_addr = packed[5] >> 3 << 3;
+   (*unpacked).unifs_addr = packed[6] >> 2 << 2;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_id0(V3D_CSD_ID0_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).l_idx = packed0 & 255;
+   (*unpacked).wg_in_sg = packed0 >> 8 & 15;
+   (*unpacked).wg_x = packed0 >> 16;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_id1(V3D_CSD_ID1_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).wg_y = packed0 & 0xffff;
+   (*unpacked).wg_z = packed0 >> 16;
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_unpack_csd_id(V3D_CSD_ID_T *unpacked, const uint32_t *packed)
+{
+   (*unpacked).l_idx = packed[0] & 255;
+   (*unpacked).wg_in_sg = packed[0] >> 8 & 15;
+   (*unpacked).wg_x = packed[0] >> 16;
+   (*unpacked).wg_y = packed[1] & 0xffff;
+   (*unpacked).wg_z = packed[1] >> 16;
+}
+#endif
 void v3d_unpack_umr_axi_control(V3D_UMR_AXI_CONTROL_T *unpacked, uint32_t packed0)
 {
    (*unpacked).reg_data = packed0 & 0xffff;
@@ -6317,6 +6955,7 @@ uint32_t v3d_cl_compr_ind_d3dpvsf_tri_packed_size(v3d_cl_compr_type_t type)
    default:                   unreachable(); return 0;
    }
 }
+#if !V3D_HAS_PSE_WIREFRAME
 uint32_t v3d_cl_compr_ind_line_packed_size(v3d_cl_compr_type_t type)
 {
    switch (type)
@@ -6331,6 +6970,24 @@ uint32_t v3d_cl_compr_ind_line_packed_size(v3d_cl_compr_type_t type)
    default:                   unreachable(); return 0;
    }
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+uint32_t v3d_cl_compr_ind_line_packed_size(v3d_cl_compr_type_t type)
+{
+   switch (type)
+   {
+   case V3D_CL_COMPR_TYPE_C0: return 1;
+   case V3D_CL_COMPR_TYPE_C1: return 2;
+   case V3D_CL_COMPR_TYPE_C2: return 3;
+   case V3D_CL_COMPR_TYPE_C3: return 4;
+   case V3D_CL_COMPR_TYPE_C4: return 5;
+   case V3D_CL_COMPR_TYPE_C5: return 7;
+   case V3D_CL_COMPR_TYPE_C6: return 9;
+   default:                   unreachable(); return 0;
+   }
+}
+#endif
+#if !V3D_HAS_PSE_WIREFRAME
 uint32_t v3d_cl_compr_ind_point_packed_size(v3d_cl_compr_type_t type)
 {
    switch (type)
@@ -6344,6 +7001,22 @@ uint32_t v3d_cl_compr_ind_point_packed_size(v3d_cl_compr_type_t type)
    default:                   unreachable(); return 0;
    }
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+uint32_t v3d_cl_compr_ind_point_packed_size(v3d_cl_compr_type_t type)
+{
+   switch (type)
+   {
+   case V3D_CL_COMPR_TYPE_C0: return 1;
+   case V3D_CL_COMPR_TYPE_C1: return 2;
+   case V3D_CL_COMPR_TYPE_C2: return 2;
+   case V3D_CL_COMPR_TYPE_C4: return 3;
+   case V3D_CL_COMPR_TYPE_C5: return 4;
+   case V3D_CL_COMPR_TYPE_C6: return 5;
+   default:                   unreachable(); return 0;
+   }
+}
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
 uint32_t v3d_cl_compr_xy_tri_packed_size(v3d_cl_compr_type_t type)
 {
@@ -6497,7 +7170,7 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_HAS_RELAXED_THRSW && !V3D_HAS_NO_PRIM_PACK
 void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -6548,21 +7221,102 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
    printer->vtbl->addr_field(printer, "defaults", packed[2]);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "fs", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[3] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[3] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[3] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[3] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[3] >> 3 << 3);
    printer->vtbl->addr_field(printer, "unifs_addr", packed[4]);
    printer->vtbl->end(printer);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "vs", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[5] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[5] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[5] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[5] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[5] >> 3 << 3);
    printer->vtbl->addr_field(printer, "unifs_addr", packed[6]);
    printer->vtbl->end(printer);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "cs", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[7] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[7] & 1)));
+   printer->vtbl->boolean_field(printer, "single_seg", packed[7] >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "propagate_nans", packed[7] >> 2 & 1);
+   printer->vtbl->addr_field(printer, "addr", packed[7] >> 3 << 3);
+   printer->vtbl->addr_field(printer, "unifs_addr", packed[8]);
+   printer->vtbl->end(printer);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_NO_PRIM_PACK
+void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->boolean_field(printer, "point_size_included", packed[0] & 1);
+   printer->vtbl->boolean_field(printer, "clipping", packed[0] >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "cs_vertex_id", packed[0] >> 2 & 1);
+   printer->vtbl->boolean_field(printer, "cs_instance_id", packed[0] >> 3 & 1);
+   printer->vtbl->boolean_field(printer, "cs_baseinstance", packed[0] >> 4 & 1);
+   printer->vtbl->boolean_field(printer, "vs_vertex_id", packed[0] >> 5 & 1);
+   printer->vtbl->boolean_field(printer, "vs_instance_id", packed[0] >> 6 & 1);
+   printer->vtbl->boolean_field(printer, "vs_baseinstance", packed[0] >> 7 & 1);
+   printer->vtbl->boolean_field(printer, "z_write", packed[0] >> 8 & 1);
+   printer->vtbl->boolean_field(printer, "no_ez", packed[0] >> 9 & 1);
+   printer->vtbl->boolean_field(printer, "cs_separate_blocks", packed[0] >> 10 & 1);
+   printer->vtbl->boolean_field(printer, "vs_separate_blocks", packed[0] >> 11 & 1);
+   printer->vtbl->boolean_field(printer, "sample_rate_shading",
+      packed[0] >> 13 & 1);
+   printer->vtbl->boolean_field(printer, "prim_id_used", packed[0] >> 14 & 1);
+   printer->vtbl->boolean_field(printer, "prim_id_to_fs", packed[0] >> 15 & 1);
+   printer->vtbl->boolean_field(printer, "disable_scb", packed[0] >> 16 & 1);
+   printer->vtbl->boolean_field(printer, "scb_wait_on_first_thrsw",
+      packed[0] >> 17 & 1);
+   printer->vtbl->boolean_field(printer, "disable_implicit_varys",
+      packed[0] >> 18 & 1);
+   printer->vtbl->boolean_field(printer, "no_prim_pack", packed[0] >> 19 & 1);
+   printer->vtbl->field(printer, "num_varys", "%" PRIu32 "",
+      gfx_check_urange(packed[0] >> 24, 0, 64));
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "cs_output_size", false);
+   printer->vtbl->field(printer, "sectors", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed[1] & 15, 4));
+   printer->vtbl->field(printer, "min_extra_req", "%" PRIu32 "",
+      packed[1] >> 4 & 3);
+   printer->vtbl->end(printer);
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "cs_input_size", false);
+   printer->vtbl->field(printer, "sectors", "%" PRIu32 "", packed[1] >> 8 & 15);
+   printer->vtbl->field(printer, "min_req", "%" PRIu32 "",
+      (packed[1] >> 12 & 3) + 1);
+   printer->vtbl->end(printer);
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "vs_output_size", false);
+   printer->vtbl->field(printer, "sectors", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed[1] >> 16 & 15, 4));
+   printer->vtbl->field(printer, "min_extra_req", "%" PRIu32 "",
+      packed[1] >> 20 & 3);
+   printer->vtbl->end(printer);
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "vs_input_size", false);
+   printer->vtbl->field(printer, "sectors", "%" PRIu32 "", packed[1] >> 24 & 15);
+   printer->vtbl->field(printer, "min_req", "%" PRIu32 "",
+      (packed[1] >> 28 & 3) + 1);
+   printer->vtbl->end(printer);
+   printer->vtbl->addr_field(printer, "defaults", packed[2]);
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "fs", false);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[3] & 1)));
+   printer->vtbl->boolean_field(printer, "single_seg", packed[3] >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "propagate_nans", packed[3] >> 2 & 1);
+   printer->vtbl->addr_field(printer, "addr", packed[3] >> 3 << 3);
+   printer->vtbl->addr_field(printer, "unifs_addr", packed[4]);
+   printer->vtbl->end(printer);
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "vs", false);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[5] & 1)));
+   printer->vtbl->boolean_field(printer, "single_seg", packed[5] >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "propagate_nans", packed[5] >> 2 & 1);
+   printer->vtbl->addr_field(printer, "addr", packed[5] >> 3 << 3);
+   printer->vtbl->addr_field(printer, "unifs_addr", packed[6]);
+   printer->vtbl->end(printer);
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "cs", false);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[7] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[7] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[7] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[7] >> 3 << 3);
@@ -6597,14 +7351,16 @@ void v3d_print_shadrec_gl_geom(const uint32_t *packed, struct v3d_printer *print
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "gs_bin", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[0] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[0] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[0] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[0] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[0] >> 3 << 3);
    printer->vtbl->addr_field(printer, "unifs_addr", packed[1]);
    printer->vtbl->end(printer);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "gs_render", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[2] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[2] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[2] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[2] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[2] >> 3 << 3);
@@ -6653,28 +7409,32 @@ void v3d_print_shadrec_gl_tess(const uint32_t *packed, struct v3d_printer *print
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "tcs_bin", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[0] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[0] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[0] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[0] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[0] >> 3 << 3);
    printer->vtbl->addr_field(printer, "unifs_addr", packed[1]);
    printer->vtbl->end(printer);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "tcs_render", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[2] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[2] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[2] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[2] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[2] >> 3 << 3);
    printer->vtbl->addr_field(printer, "unifs_addr", packed[3]);
    printer->vtbl->end(printer);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "tes_bin", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[4] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[4] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[4] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[4] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[4] >> 3 << 3);
    printer->vtbl->addr_field(printer, "unifs_addr", packed[5]);
    printer->vtbl->end(printer);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "tes_render", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[6] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[6] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[6] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[6] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[6] >> 3 << 3);
@@ -6958,7 +7718,8 @@ void v3d_print_shadrec_vg(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "fs", false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed[1] & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[1] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed[1] >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed[1] >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed[1] >> 3 << 3);
@@ -7006,7 +7767,6 @@ void v3d_print_tmu_param0(uint32_t packed0, struct v3d_printer *printer)
       printer->vtbl->boolean_field(printer, "gather", packed0 >> 4 & 1);
       printer->vtbl->boolean_field(printer, "bias", packed0 >> 5 & 1);
       printer->vtbl->boolean_field(printer, "bslod", packed0 >> 6 & 1);
-      printer->vtbl->boolean_field(printer, "coefficient", packed0 >> 7 & 1);
       printer->vtbl->boolean_field(printer, "shadow", packed0 >> 8 & 1);
       printer->vtbl->field(printer, "wrap_s", "%s",
          v3d_desc_tmu_wrap((v3d_tmu_wrap_t)(packed0 >> 10 & 7)));
@@ -7084,14 +7844,13 @@ void v3d_print_tmu_param1(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_TMU_LOD_QUERY
 void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->boolean_field(printer, "tmuoff_4x", packed0 & 1);
    printer->vtbl->boolean_field(printer, "bslod", packed0 >> 1 & 1);
-   printer->vtbl->field(printer, "coeff_sample", "%" PRIu32 "", packed0 >> 2 & 3);
-   printer->vtbl->boolean_field(printer, "coefficient", packed0 >> 4 & 1);
+   printer->vtbl->field(printer, "sample_num", "%" PRIu32 "", packed0 >> 2 & 3);
    printer->vtbl->field(printer, "gather_comp", "%" PRIu32 "", packed0 >> 5 & 3);
    printer->vtbl->boolean_field(printer, "gather", packed0 >> 7 & 1);
    printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "offsets", false);
@@ -7104,6 +7863,29 @@ void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
    printer->vtbl->field(printer, "op", "%s",
       v3d_desc_tmu_op((v3d_tmu_op_t)(packed0 >> 20 & 15)));
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_TMU_LOD_QUERY
+void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->boolean_field(printer, "tmuoff_4x", packed0 & 1);
+   printer->vtbl->boolean_field(printer, "bslod", packed0 >> 1 & 1);
+   printer->vtbl->field(printer, "sample_num", "%" PRIu32 "", packed0 >> 2 & 3);
+   printer->vtbl->field(printer, "gather_comp", "%" PRIu32 "", packed0 >> 5 & 3);
+   printer->vtbl->boolean_field(printer, "gather", packed0 >> 7 & 1);
+   printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "offsets", false);
+   printer->vtbl->field(printer, "0", "%" PRId32 "",
+      gfx_sext(packed0 >> 8 & 15, 4));
+   printer->vtbl->field(printer, "1", "%" PRId32 "",
+      gfx_sext(packed0 >> 12 & 15, 4));
+   printer->vtbl->field(printer, "2", "%" PRId32 "",
+      gfx_sext(packed0 >> 16 & 15, 4));
+   printer->vtbl->end(printer);
+   printer->vtbl->field(printer, "op", "%s",
+      v3d_desc_tmu_op((v3d_tmu_op_t)(packed0 >> 20 & 15)));
+   printer->vtbl->boolean_field(printer, "lod_query", packed0 >> 24 & 1);
    printer->vtbl->end(printer);
 }
 #endif
@@ -7127,13 +7909,119 @@ void v3d_print_tsy_config(uint8_t packed0, struct v3d_printer *printer)
       (uint32_t)(packed0 >> 5));
    printer->vtbl->end(printer);
 }
+#if V3D_HAS_TLB_WR_CONVERT
 void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", true);
    if ((uint32_t)(packed0 >> 6) == 3)
    {
-      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_f16", false);
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_16", false);
+      printer->vtbl->field(printer, "num_words", "%" PRIu32 "",
+         (uint32_t)(packed0 & 1) + 1);
+      printer->vtbl->boolean_field(printer, "no_swap", (uint32_t)(packed0 >> 1 & 1));
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->field(printer, "rt", "%" PRIu32 "",
+         gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed0 >> 7) == 0)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_32", false);
+      printer->vtbl->field(printer, "num_words", "%" PRIu32 "",
+         (uint32_t)(packed0 & 3) + 1);
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->field(printer, "rt", "%" PRIu32 "",
+         gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 8)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "z", false);
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->boolean_field(printer, "use_written_z",
+         (uint32_t)(packed0 >> 3 & 1));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 9)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "alpha_mask", false);
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->end(printer);
+   }
+   else
+   {
+      unreachable();
+   }
+   printer->vtbl->end(printer);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_TLB_SAMPLED_READ && !V3D_HAS_TLB_WR_CONVERT
+void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", true);
+   if ((uint32_t)(packed0 >> 6) == 3)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_16", false);
+      printer->vtbl->field(printer, "num_words", "%" PRIu32 "",
+         (uint32_t)(packed0 & 1) + 1);
+      printer->vtbl->boolean_field(printer, "no_swap", (uint32_t)(packed0 >> 1 & 1));
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->field(printer, "rt", "%" PRIu32 "",
+         gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed0 >> 7) == 0)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_32", false);
+      printer->vtbl->field(printer, "num_words", "%" PRIu32 "",
+         (uint32_t)(packed0 & 3) + 1);
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->field(printer, "rt", "%" PRIu32 "",
+         gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7));
+      printer->vtbl->boolean_field(printer, "as_int", (uint32_t)(packed0 >> 6 & 1));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 8)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "z", false);
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->boolean_field(printer, "use_written_z",
+         (uint32_t)(packed0 >> 3 & 1));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed0 >> 4) == 9)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "alpha_mask", false);
+      printer->vtbl->boolean_field(printer, "all_samples_same_data",
+         (uint32_t)(packed0 >> 2 & 1));
+      printer->vtbl->end(printer);
+   }
+   else
+   {
+      unreachable();
+   }
+   printer->vtbl->end(printer);
+   printer->vtbl->end(printer);
+}
+#endif
+#if !V3D_HAS_TLB_SAMPLED_READ
+void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", true);
+   if ((uint32_t)(packed0 >> 6) == 3)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_16", false);
       printer->vtbl->field(printer, "num_words", "%" PRIu32 "",
          (uint32_t)(packed0 & 1) + 1);
       printer->vtbl->boolean_field(printer, "no_swap", (uint32_t)(packed0 >> 1 & 1));
@@ -7174,6 +8062,7 @@ void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
+#endif
 void v3d_print_unif_branch(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7222,7 +8111,6 @@ void v3d_print_tmu_indirect(const uint32_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
    printer->vtbl->boolean_field(printer, "flipx", packed[3] >> 28 & 1);
    printer->vtbl->boolean_field(printer, "flipy", packed[3] >> 29 & 1);
-   printer->vtbl->boolean_field(printer, "etcflip", packed[3] >> 30 & 1);
    printer->vtbl->field(printer, "bcolour", "%" PRIu64 "",
       (uint64_t)packed[4] | (uint64_t)packed[5] << 32);
    printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", false);
@@ -7467,7 +8355,7 @@ void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_TL_START_UNC
+#if V3D_HAS_TL_START_UNC && !V3D_HAS_PSE_WIREFRAME
 void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7502,6 +8390,40 @@ void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->addr_field(printer, "cl_pos", packed[0]);
+   printer->vtbl->addr_field(printer, "sn_pos", packed[1]);
+   printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "prev_indices", false);
+   printer->vtbl->field(printer, "0", "%" PRIu32 "", packed[2]);
+   printer->vtbl->field(printer, "1", "%" PRIu32 "", packed[3]);
+   printer->vtbl->field(printer, "2", "%" PRIu32 "", packed[4]);
+   printer->vtbl->end(printer);
+   printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "prev_serials", false);
+   printer->vtbl->field(printer, "0", "%" PRIu32 "", packed[5]);
+   printer->vtbl->field(printer, "1", "%" PRIu32 "", packed[6]);
+   printer->vtbl->field(printer, "2", "%" PRIu32 "", packed[7]);
+   printer->vtbl->end(printer);
+   printer->vtbl->field(printer, "prev_prim_id", "%" PRIu32 "", packed[8]);
+   printer->vtbl->boolean_field(printer, "curr_xy_mode", packed[9] & 1);
+   printer->vtbl->boolean_field(printer, "in_generic_ind_list", packed[9] >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "in_prim_list", packed[9] >> 2 & 1);
+   printer->vtbl->field(printer, "ctr", "%" PRIu32 "", packed[9] >> 3 & 0xffffff);
+   printer->vtbl->field(printer, "blksize", "%s", v3d_desc_tile_alloc_block_size(
+      (v3d_tile_alloc_block_size_t)(packed[9] >> 27 & 3)));
+   printer->vtbl->boolean_field(printer, "halfwrt", packed[9] >> 29 & 1);
+   printer->vtbl->field(printer, "deferred_sn", "%" PRIu32 "",
+      packed[9] >> 30 | (packed[10] & 0x3fffff) << 2);
+   printer->vtbl->field(printer, "cur_sn_level", "%" PRIu32 "",
+      packed[10] >> 22 & 3);
+   printer->vtbl->boolean_field(printer, "tg_tess", packed[10] >> 24 & 1);
+   printer->vtbl->boolean_field(printer, "tg_geom", packed[10] >> 25 & 1);
+   printer->vtbl->boolean_field(printer, "tg_geom_inst", packed[10] >> 26 & 1);
+   printer->vtbl->end(printer);
+}
+#endif
 void v3d_print_indirect_indexed_record(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7521,6 +8443,7 @@ void v3d_print_indirect_arrays_record(const uint32_t *packed, struct v3d_printer
    printer->vtbl->field(printer, "base_instance", "%" PRIu32 "", packed[3]);
    printer->vtbl->end(printer);
 }
+#if !V3D_HAS_PSE_WIREFRAME
 void v3d_print_clip_record(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7535,6 +8458,24 @@ void v3d_print_clip_record(const uint32_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_print_clip_record(const uint32_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "xs", "%" PRId32 "", (int32_t)packed[0]);
+   printer->vtbl->field(printer, "ys", "%" PRId32 "", (int32_t)packed[1]);
+   printer->vtbl->field(printer, "zs", "%.9g", gfx_float_from_bits(packed[2]));
+   printer->vtbl->field(printer, "rw", "%.9g", gfx_float_from_bits(packed[3]));
+   printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "vcoeff", false);
+   printer->vtbl->field(printer, "0", "%.9g", gfx_float_from_bits(packed[4]));
+   printer->vtbl->field(printer, "1", "%.9g", gfx_float_from_bits(packed[5]));
+   printer->vtbl->field(printer, "2", "%.9g", gfx_float_from_bits(packed[6]));
+   printer->vtbl->end(printer);
+   printer->vtbl->field(printer, "intedges", "%" PRIu32 "", packed[7] & 7);
+   printer->vtbl->end(printer);
+}
+#endif
 void v3d_print_autochain_link(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7643,6 +8584,8 @@ void v3d_print_cl_compr_ind_common(const uint8_t *packed, struct v3d_printer *pr
       printer->vtbl->boolean_field(printer, "2", (uint32_t)(packed[1] >> 2 & 1));
       printer->vtbl->end(printer);
       printer->vtbl->boolean_field(printer, "flat_zw", (uint32_t)(packed[1] >> 3 & 1));
+      printer->vtbl->boolean_field(printer, "is_first2",
+         (uint32_t)(packed[1] >> 4 & 1));
       printer->vtbl->addr_field(printer, "addr",
          ((uint32_t)(packed[1] >> 5) | (uint32_t)packed[2] << 3 |
          (uint32_t)packed[3] << 11 | (uint32_t)packed[4] << 19) << 5);
@@ -7714,6 +8657,8 @@ void v3d_print_cl_compr_serial(const uint8_t *packed, struct v3d_printer *printe
       printer->vtbl->boolean_field(printer, "2", (uint32_t)(packed[1] >> 2 & 1));
       printer->vtbl->end(printer);
       printer->vtbl->boolean_field(printer, "flat_zw", (uint32_t)(packed[1] >> 3 & 1));
+      printer->vtbl->boolean_field(printer, "is_first2",
+         (uint32_t)(packed[1] >> 4 & 1));
       printer->vtbl->addr_field(printer, "addr",
          ((uint32_t)(packed[1] >> 5) | (uint32_t)packed[2] << 3 |
          (uint32_t)packed[3] << 11 | (uint32_t)packed[4] << 19) << 5);
@@ -8031,6 +8976,7 @@ void v3d_print_cl_compr_ind_d3dpvsf_tri(const uint8_t *packed, struct v3d_printe
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
+#if !V3D_HAS_PSE_WIREFRAME
 void v3d_print_cl_compr_ind_line(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8117,6 +9063,86 @@ void v3d_print_cl_compr_ind_line(const uint8_t *packed, struct v3d_printer *prin
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_print_cl_compr_ind_line(const uint8_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", true);
+   if (v3d_is_valid_line_ind_reuse((v3d_line_ind_reuse_t)(uint32_t)(packed[0] & 3)))
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c0", false);
+      printer->vtbl->field(printer, "reuse", "%s", v3d_desc_line_ind_reuse(
+         (v3d_line_ind_reuse_t)(uint32_t)(packed[0] & 3)));
+      printer->vtbl->field(printer, "diff1", "%" PRId32 "",
+         gfx_sext((uint32_t)(packed[0] >> 2), 6));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 7)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c1", false);
+      printer->vtbl->field(printer, "diff0", "%" PRId32 "",
+         gfx_sext((uint32_t)(packed[0] >> 4), 4));
+      printer->vtbl->field(printer, "diff1", "%" PRId32 "",
+         gfx_sext((uint32_t)(packed[1] & 15), 4));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 3) == 2)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c2", false);
+      printer->vtbl->field(printer, "diff1", "%" PRId32 "",
+         gfx_sext((uint32_t)(packed[0] >> 2), 6));
+      printer->vtbl->field(printer, "idx0", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8);
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 3) == 3 && (uint32_t)(packed[0] >> 3 & 1) == 1)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c3", false);
+      printer->vtbl->field(printer, "diff1", "%" PRId32 "",
+         gfx_sext((uint32_t)(packed[0] >> 4), 4));
+      printer->vtbl->field(printer, "idx0", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16);
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 4)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c4", false);
+      printer->vtbl->field(printer, "idx0", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8);
+      printer->vtbl->field(printer, "idx1", "%" PRIu32 "",
+         (uint32_t)packed[3] | (uint32_t)packed[4] << 8);
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 5)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c5", false);
+      printer->vtbl->field(printer, "idx0", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16);
+      printer->vtbl->field(printer, "idx1", "%" PRIu32 "",
+         (uint32_t)packed[4] | (uint32_t)packed[5] << 8 | (uint32_t)packed[6] << 16);
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 2)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c6", false);
+      printer->vtbl->field(printer, "idx0", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
+         (uint32_t)packed[4] << 24);
+      printer->vtbl->field(printer, "idx1", "%" PRIu32 "",
+         (uint32_t)packed[5] | (uint32_t)packed[6] << 8 | (uint32_t)packed[7] << 16 |
+         (uint32_t)packed[8] << 24);
+      printer->vtbl->end(printer);
+   }
+   else
+   {
+      unreachable();
+   }
+   printer->vtbl->end(printer);
+   printer->vtbl->end(printer);
+}
+#endif
+#if !V3D_HAS_PSE_WIREFRAME
 void v3d_print_cl_compr_ind_point(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8181,6 +9207,65 @@ void v3d_print_cl_compr_ind_point(const uint8_t *packed, struct v3d_printer *pri
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
+#endif
+#if V3D_HAS_PSE_WIREFRAME
+void v3d_print_cl_compr_ind_point(const uint8_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", true);
+   if ((uint32_t)(packed[0] & 3) == 0)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c0", false);
+      printer->vtbl->field(printer, "diff", "%" PRId32 "",
+         gfx_sext((uint32_t)(packed[0] >> 2), 6));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 3) == 1)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c1", false);
+      printer->vtbl->field(printer, "diff", "%" PRId32 "", gfx_sext(
+         (uint32_t)(packed[0] >> 2) | (uint32_t)(packed[1] & 127) << 6, 13));
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 3) == 2)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c2", false);
+      printer->vtbl->field(printer, "diff", "%" PRId32 "",
+         gfx_sext((uint32_t)(packed[0] >> 2), 6));
+      printer->vtbl->field(printer, "count", "%" PRIu32 "",
+         (uint32_t)(packed[1] & 127) + 1);
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 4)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c4", false);
+      printer->vtbl->field(printer, "idx", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8);
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 5)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c5", false);
+      printer->vtbl->field(printer, "idx", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16);
+      printer->vtbl->end(printer);
+   }
+   else if ((uint32_t)(packed[0] & 15) == 3 && (uint32_t)(packed[0] >> 5) == 2)
+   {
+      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "c6", false);
+      printer->vtbl->field(printer, "idx", "%" PRIu32 "",
+         (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
+         (uint32_t)packed[4] << 24);
+      printer->vtbl->end(printer);
+   }
+   else
+   {
+      unreachable();
+   }
+   printer->vtbl->end(printer);
+   printer->vtbl->end(printer);
+}
+#endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_print_cl_compr_xy_tri(const uint8_t *packed, struct v3d_printer *printer)
 {
@@ -8953,28 +10038,30 @@ void v3d_print_hub_ident3(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->field(printer, "v3d_sub_rev", "%" PRIu32 "", packed0 >> 8 & 255);
    printer->vtbl->end(printer);
 }
-void v3d_print_hub_ident(uint32_t packed0, uint32_t packed1, uint32_t packed2, uint32_t packed3, struct v3d_printer *printer)
+void v3d_print_hub_ident(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->field(printer, "v3d_tech_version", "%" PRIu32 "", packed1 & 15);
-   printer->vtbl->field(printer, "v3d_revision", "%" PRIu32 "", packed1 >> 4 & 15);
+   printer->vtbl->field(printer, "v3d_tech_version", "%" PRIu32 "", packed[1] & 15);
+   printer->vtbl->field(printer, "v3d_revision", "%" PRIu32 "",
+      packed[1] >> 4 & 15);
    printer->vtbl->field(printer, "num_cores", "%" PRIu32 "",
-      gfx_unpack_uint_0_is_max(packed1 >> 8 & 15, 4));
+      gfx_unpack_uint_0_is_max(packed[1] >> 8 & 15, 4));
    printer->vtbl->field(printer, "num_hosts", "%" PRIu32 "",
-      gfx_check_urange(packed1 >> 12 & 15, 1, 15));
-   printer->vtbl->boolean_field(printer, "has_l3c", packed1 >> 16 & 1);
-   printer->vtbl->boolean_field(printer, "has_tfu", packed1 >> 17 & 1);
-   printer->vtbl->boolean_field(printer, "has_tsy", packed1 >> 18 & 1);
-   printer->vtbl->boolean_field(printer, "has_mso", packed1 >> 19 & 1);
+      gfx_check_urange(packed[1] >> 12 & 15, 1, 15));
+   printer->vtbl->boolean_field(printer, "has_l3c", packed[1] >> 16 & 1);
+   printer->vtbl->boolean_field(printer, "has_tfu", packed[1] >> 17 & 1);
+   printer->vtbl->boolean_field(printer, "has_tsy", packed[1] >> 18 & 1);
+   printer->vtbl->boolean_field(printer, "has_mso", packed[1] >> 19 & 1);
    printer->vtbl->field(printer, "l3c_associativity", "%" PRIu32 "",
-      packed1 >> 20 & 15);
-   printer->vtbl->field(printer, "l3c_banks", "%" PRIu32 "", packed1 >> 24 & 15);
+      packed[1] >> 20 & 15);
+   printer->vtbl->field(printer, "l3c_banks", "%" PRIu32 "", packed[1] >> 24 & 15);
    printer->vtbl->field(printer, "l3c_size_in_multiples_of_64kb", "%" PRIu32 "",
-      packed2 & 255);
-   printer->vtbl->boolean_field(printer, "has_mmu", packed2 >> 8 & 1);
-   printer->vtbl->field(printer, "ip_recipient", "%s",
-      v3d_desc_ip_recipient((v3d_ip_recipient_t)(packed3 & 255)));
-   printer->vtbl->field(printer, "v3d_sub_rev", "%" PRIu32 "", packed3 >> 8 & 255);
+      packed[2] & 255);
+   printer->vtbl->boolean_field(printer, "has_mmu", packed[2] >> 8 & 1);
+   printer->vtbl->field(printer, "ip_recipient", "%s", v3d_desc_ip_recipient(
+      (v3d_ip_recipient_t)(packed[3] & 255)));
+   printer->vtbl->field(printer, "v3d_sub_rev", "%" PRIu32 "",
+      packed[3] >> 8 & 255);
    printer->vtbl->end(printer);
 }
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -9038,41 +10125,43 @@ void v3d_print_ident3(uint32_t packed0, struct v3d_printer *printer)
 }
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-void v3d_print_ident(uint32_t packed0, uint32_t packed1, uint32_t packed2, uint32_t packed3, struct v3d_printer *printer)
+void v3d_print_ident(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->field(printer, "v3d_tech_version", "%" PRIu32 "", packed0 >> 24);
-   printer->vtbl->field(printer, "v3d_revision", "%" PRIu32 "", packed1 & 15);
+   printer->vtbl->field(printer, "v3d_tech_version", "%" PRIu32 "",
+      packed[0] >> 24);
+   printer->vtbl->field(printer, "v3d_revision", "%" PRIu32 "", packed[1] & 15);
    printer->vtbl->field(printer, "num_slices", "%" PRIu32 "",
-      gfx_check_urange(packed1 >> 4 & 15, 1, 15));
+      gfx_check_urange(packed[1] >> 4 & 15, 1, 15));
    printer->vtbl->field(printer, "num_qpus_per_slice", "%" PRIu32 "",
-      gfx_check_urange(packed1 >> 8 & 15, 1, 15));
+      gfx_check_urange(packed[1] >> 8 & 15, 1, 15));
    printer->vtbl->field(printer, "num_tmus", "%" PRIu32 "",
-      gfx_check_urange(packed1 >> 12 & 15, 1, 15));
+      gfx_check_urange(packed[1] >> 12 & 15, 1, 15));
    printer->vtbl->field(printer, "vpm_size_in_multiples_of_8kb", "%" PRIu32 "",
-      packed1 >> 28);
+      packed[1] >> 28);
    printer->vtbl->field(printer, "vri_size", "%s",
-      v3d_desc_vri_size((v3d_vri_size_t)(packed2 & 15)));
+      v3d_desc_vri_size((v3d_vri_size_t)(packed[2] & 15)));
    printer->vtbl->field(printer, "tlb_size", "%s",
-      v3d_desc_tlb_size((v3d_tlb_size_t)(packed2 >> 4 & 15)));
+      v3d_desc_tlb_size((v3d_tlb_size_t)(packed[2] >> 4 & 15)));
    printer->vtbl->boolean_field(printer, "tlb_double_buf_support",
-      packed2 >> 8 & 1);
+      packed[2] >> 8 & 1);
    printer->vtbl->field(printer, "icache_size", "%s",
-      v3d_desc_iuc_size((v3d_iuc_size_t)(packed2 >> 12 & 15)));
+      v3d_desc_iuc_size((v3d_iuc_size_t)(packed[2] >> 12 & 15)));
    printer->vtbl->field(printer, "ucache_size", "%s",
-      v3d_desc_iuc_size((v3d_iuc_size_t)(packed2 >> 16 & 15)));
-   printer->vtbl->boolean_field(printer, "bigend", packed2 >> 20 & 1);
-   printer->vtbl->boolean_field(printer, "endswp_support", packed2 >> 21 & 1);
+      v3d_desc_iuc_size((v3d_iuc_size_t)(packed[2] >> 16 & 15)));
+   printer->vtbl->boolean_field(printer, "bigend", packed[2] >> 20 & 1);
+   printer->vtbl->boolean_field(printer, "endswp_support", packed[2] >> 21 & 1);
    printer->vtbl->boolean_field(printer, "axi_rw_reorder_support",
-      packed2 >> 22 & 1);
-   printer->vtbl->boolean_field(printer, "no_earlyz_support", packed2 >> 23 & 1);
-   printer->vtbl->field(printer, "core_index", "%" PRIu32 "", packed2 >> 24 & 15);
+      packed[2] >> 22 & 1);
+   printer->vtbl->boolean_field(printer, "no_earlyz_support", packed[2] >> 23 & 1);
+   printer->vtbl->field(printer, "core_index", "%" PRIu32 "", packed[2] >> 24 & 15);
    printer->vtbl->boolean_field(printer, "bcg_interrupt_control",
-      packed2 >> 28 & 1);
-   printer->vtbl->boolean_field(printer, "has_astc", packed2 >> 30 & 1);
-   printer->vtbl->field(printer, "ip_recipient", "%s",
-      v3d_desc_ip_recipient((v3d_ip_recipient_t)(packed3 & 255)));
-   printer->vtbl->field(printer, "v3d_sub_rev", "%" PRIu32 "", packed3 >> 8 & 255);
+      packed[2] >> 28 & 1);
+   printer->vtbl->boolean_field(printer, "has_astc", packed[2] >> 30 & 1);
+   printer->vtbl->field(printer, "ip_recipient", "%s", v3d_desc_ip_recipient(
+      (v3d_ip_recipient_t)(packed[3] & 255)));
+   printer->vtbl->field(printer, "v3d_sub_rev", "%" PRIu32 "",
+      packed[3] >> 8 & 255);
    printer->vtbl->end(printer);
 }
 #endif
@@ -9136,40 +10225,42 @@ void v3d_print_ident3(uint32_t packed0, struct v3d_printer *printer)
 }
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
-void v3d_print_ident(uint32_t packed0, uint32_t packed1, uint32_t packed2, uint32_t packed3, struct v3d_printer *printer)
+void v3d_print_ident(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->field(printer, "v3d_tech_version", "%" PRIu32 "", packed0 >> 24);
-   printer->vtbl->field(printer, "v3d_revision", "%" PRIu32 "", packed1 & 15);
+   printer->vtbl->field(printer, "v3d_tech_version", "%" PRIu32 "",
+      packed[0] >> 24);
+   printer->vtbl->field(printer, "v3d_revision", "%" PRIu32 "", packed[1] & 15);
    printer->vtbl->field(printer, "num_slices", "%" PRIu32 "",
-      gfx_check_urange(packed1 >> 4 & 15, 1, 15));
+      gfx_check_urange(packed[1] >> 4 & 15, 1, 15));
    printer->vtbl->field(printer, "num_qpus_per_slice", "%" PRIu32 "",
-      gfx_check_urange(packed1 >> 8 & 15, 1, 15));
+      gfx_check_urange(packed[1] >> 8 & 15, 1, 15));
    printer->vtbl->field(printer, "num_tmus", "%" PRIu32 "",
-      gfx_check_urange(packed1 >> 12 & 15, 1, 15));
+      gfx_check_urange(packed[1] >> 12 & 15, 1, 15));
    printer->vtbl->field(printer, "vpm_size_in_multiples_of_8kb", "%" PRIu32 "",
-      packed1 >> 28);
+      packed[1] >> 28);
    printer->vtbl->field(printer, "vri_size", "%s",
-      v3d_desc_vri_size((v3d_vri_size_t)(packed2 & 15)));
+      v3d_desc_vri_size((v3d_vri_size_t)(packed[2] & 15)));
    printer->vtbl->field(printer, "tlb_size", "%s",
-      v3d_desc_tlb_size((v3d_tlb_size_t)(packed2 >> 4 & 15)));
+      v3d_desc_tlb_size((v3d_tlb_size_t)(packed[2] >> 4 & 15)));
    printer->vtbl->boolean_field(printer, "tlb_double_buf_support",
-      packed2 >> 8 & 1);
+      packed[2] >> 8 & 1);
    printer->vtbl->field(printer, "icache_size", "%s",
-      v3d_desc_iuc_size((v3d_iuc_size_t)(packed2 >> 12 & 15)));
+      v3d_desc_iuc_size((v3d_iuc_size_t)(packed[2] >> 12 & 15)));
    printer->vtbl->field(printer, "ucache_size", "%s",
-      v3d_desc_iuc_size((v3d_iuc_size_t)(packed2 >> 16 & 15)));
-   printer->vtbl->boolean_field(printer, "bigend", packed2 >> 20 & 1);
-   printer->vtbl->boolean_field(printer, "endswp_support", packed2 >> 21 & 1);
+      v3d_desc_iuc_size((v3d_iuc_size_t)(packed[2] >> 16 & 15)));
+   printer->vtbl->boolean_field(printer, "bigend", packed[2] >> 20 & 1);
+   printer->vtbl->boolean_field(printer, "endswp_support", packed[2] >> 21 & 1);
    printer->vtbl->boolean_field(printer, "axi_rw_reorder_support",
-      packed2 >> 22 & 1);
-   printer->vtbl->boolean_field(printer, "no_earlyz_support", packed2 >> 23 & 1);
-   printer->vtbl->field(printer, "core_index", "%" PRIu32 "", packed2 >> 24 & 15);
+      packed[2] >> 22 & 1);
+   printer->vtbl->boolean_field(printer, "no_earlyz_support", packed[2] >> 23 & 1);
+   printer->vtbl->field(printer, "core_index", "%" PRIu32 "", packed[2] >> 24 & 15);
    printer->vtbl->boolean_field(printer, "bcg_interrupt_control",
-      packed2 >> 28 & 1);
-   printer->vtbl->boolean_field(printer, "has_astc", packed2 >> 30 & 1);
-   printer->vtbl->field(printer, "l2t_ways", "%" PRIu32 "", packed3 & 15);
-   printer->vtbl->field(printer, "l2t_way_depth", "%" PRIu32 "", packed3 >> 4 & 15);
+      packed[2] >> 28 & 1);
+   printer->vtbl->boolean_field(printer, "has_astc", packed[2] >> 30 & 1);
+   printer->vtbl->field(printer, "l2t_ways", "%" PRIu32 "", packed[3] & 15);
+   printer->vtbl->field(printer, "l2t_way_depth", "%" PRIu32 "",
+      packed[3] >> 4 & 15);
    printer->vtbl->end(printer);
 }
 #endif
@@ -9200,6 +10291,7 @@ void v3d_print_hub_intr(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->boolean_field(printer, "mmu_wrv", packed0 >> 5 & 1);
    printer->vtbl->end(printer);
 }
+#if !V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -9229,6 +10321,72 @@ void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_CSD
+void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->boolean_field(printer, "render_done", packed0 & 1);
+   printer->vtbl->boolean_field(printer, "bin_done", packed0 >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "outomem", packed0 >> 2 & 1);
+   printer->vtbl->boolean_field(printer, "spilluse", packed0 >> 3 & 1);
+   printer->vtbl->boolean_field(printer, "trfb", packed0 >> 4 & 1);
+   printer->vtbl->boolean_field(printer, "gmpv", packed0 >> 5 & 1);
+   printer->vtbl->boolean_field(printer, "pctr", packed0 >> 6 & 1);
+   printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "qpu", false);
+   printer->vtbl->boolean_field(printer, "0", packed0 >> 16 & 1);
+   printer->vtbl->boolean_field(printer, "1", packed0 >> 17 & 1);
+   printer->vtbl->boolean_field(printer, "2", packed0 >> 18 & 1);
+   printer->vtbl->boolean_field(printer, "3", packed0 >> 19 & 1);
+   printer->vtbl->boolean_field(printer, "4", packed0 >> 20 & 1);
+   printer->vtbl->boolean_field(printer, "5", packed0 >> 21 & 1);
+   printer->vtbl->boolean_field(printer, "6", packed0 >> 22 & 1);
+   printer->vtbl->boolean_field(printer, "7", packed0 >> 23 & 1);
+   printer->vtbl->boolean_field(printer, "8", packed0 >> 24 & 1);
+   printer->vtbl->boolean_field(printer, "9", packed0 >> 25 & 1);
+   printer->vtbl->boolean_field(printer, "10", packed0 >> 26 & 1);
+   printer->vtbl->boolean_field(printer, "11", packed0 >> 27 & 1);
+   printer->vtbl->boolean_field(printer, "12", packed0 >> 28 & 1);
+   printer->vtbl->boolean_field(printer, "13", packed0 >> 29 & 1);
+   printer->vtbl->boolean_field(printer, "14", packed0 >> 30 & 1);
+   printer->vtbl->boolean_field(printer, "15", packed0 >> 31);
+   printer->vtbl->end(printer);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->boolean_field(printer, "render_done", packed0 & 1);
+   printer->vtbl->boolean_field(printer, "bin_done", packed0 >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "outomem", packed0 >> 2 & 1);
+   printer->vtbl->boolean_field(printer, "spilluse", packed0 >> 3 & 1);
+   printer->vtbl->boolean_field(printer, "trfb", packed0 >> 4 & 1);
+   printer->vtbl->boolean_field(printer, "gmpv", packed0 >> 5 & 1);
+   printer->vtbl->boolean_field(printer, "pctr", packed0 >> 6 & 1);
+   printer->vtbl->boolean_field(printer, "compute_done", packed0 >> 7 & 1);
+   printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "qpu", false);
+   printer->vtbl->boolean_field(printer, "0", packed0 >> 16 & 1);
+   printer->vtbl->boolean_field(printer, "1", packed0 >> 17 & 1);
+   printer->vtbl->boolean_field(printer, "2", packed0 >> 18 & 1);
+   printer->vtbl->boolean_field(printer, "3", packed0 >> 19 & 1);
+   printer->vtbl->boolean_field(printer, "4", packed0 >> 20 & 1);
+   printer->vtbl->boolean_field(printer, "5", packed0 >> 21 & 1);
+   printer->vtbl->boolean_field(printer, "6", packed0 >> 22 & 1);
+   printer->vtbl->boolean_field(printer, "7", packed0 >> 23 & 1);
+   printer->vtbl->boolean_field(printer, "8", packed0 >> 24 & 1);
+   printer->vtbl->boolean_field(printer, "9", packed0 >> 25 & 1);
+   printer->vtbl->boolean_field(printer, "10", packed0 >> 26 & 1);
+   printer->vtbl->boolean_field(printer, "11", packed0 >> 27 & 1);
+   printer->vtbl->boolean_field(printer, "12", packed0 >> 28 & 1);
+   printer->vtbl->boolean_field(printer, "13", packed0 >> 29 & 1);
+   printer->vtbl->boolean_field(printer, "14", packed0 >> 30 & 1);
+   printer->vtbl->boolean_field(printer, "15", packed0 >> 31);
+   printer->vtbl->end(printer);
+   printer->vtbl->end(printer);
+}
+#endif
 #if V3D_HAS_ATTR_MAX_INDEX
 void v3d_print_ct0cs(uint32_t packed0, struct v3d_printer *printer)
 {
@@ -9352,8 +10510,6 @@ void v3d_print_tfusu(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->field(printer, "throttle", "%" PRIu32 "", packed0 & 3);
-   printer->vtbl->boolean_field(printer, "crc", packed0 >> 3 & 1);
-   printer->vtbl->boolean_field(printer, "crcchain", packed0 >> 4 & 1);
    printer->vtbl->field(printer, "fintthr", "%" PRIu32 "", packed0 >> 8 & 63);
    printer->vtbl->end(printer);
 }
@@ -9431,7 +10587,8 @@ void v3d_print_tfucoef3(uint32_t packed0, struct v3d_printer *printer)
 void v3d_print_srqpc(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->boolean_field(printer, "four_thread", packed0 & 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed0 & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed0 >> 1 & 1);
    printer->vtbl->boolean_field(printer, "propagate_nans", packed0 >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed0 >> 3 << 3);
@@ -9701,6 +10858,19 @@ void v3d_print_tsy_control(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->boolean_field(printer, "0", packed0 & 1);
    printer->vtbl->boolean_field(printer, "1", packed0 >> 1 & 1);
    printer->vtbl->boolean_field(printer, "2", packed0 >> 2 & 1);
+   printer->vtbl->boolean_field(printer, "3", packed0 >> 3 & 1);
+   printer->vtbl->boolean_field(printer, "4", packed0 >> 4 & 1);
+   printer->vtbl->boolean_field(printer, "5", packed0 >> 5 & 1);
+   printer->vtbl->boolean_field(printer, "6", packed0 >> 6 & 1);
+   printer->vtbl->boolean_field(printer, "7", packed0 >> 7 & 1);
+   printer->vtbl->boolean_field(printer, "8", packed0 >> 8 & 1);
+   printer->vtbl->boolean_field(printer, "9", packed0 >> 9 & 1);
+   printer->vtbl->boolean_field(printer, "10", packed0 >> 10 & 1);
+   printer->vtbl->boolean_field(printer, "11", packed0 >> 11 & 1);
+   printer->vtbl->boolean_field(printer, "12", packed0 >> 12 & 1);
+   printer->vtbl->boolean_field(printer, "13", packed0 >> 13 & 1);
+   printer->vtbl->boolean_field(printer, "14", packed0 >> 14 & 1);
+   printer->vtbl->boolean_field(printer, "15", packed0 >> 15 & 1);
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
@@ -9724,10 +10894,160 @@ void v3d_print_tsy_status(uint32_t packed0, struct v3d_printer *printer)
 void v3d_print_tsy_tso_data(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->field(printer, "num_waiting", "%" PRIu32 "", packed0 & 255);
-   printer->vtbl->field(printer, "quorum", "%" PRIu32 "", packed0 >> 16 & 255);
+   printer->vtbl->field(printer, "num_waiting", "%" PRIu32 "", packed0 & 0xffff);
+   printer->vtbl->field(printer, "quorum", "%" PRIu32 "", packed0 >> 16);
    printer->vtbl->end(printer);
 }
+#if V3D_HAS_CSD
+void v3d_print_csd_status(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->boolean_field(printer, "have_queued_dispatch", packed0 & 1);
+   printer->vtbl->boolean_field(printer, "have_current_dispatch", packed0 >> 1 & 1);
+   printer->vtbl->field(printer, "num_active_dispatches", "%" PRIu32 "",
+      packed0 >> 2 & 3);
+   printer->vtbl->field(printer, "num_completed_dispatches", "%" PRIu32 "",
+      packed0 >> 4 & 255);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg0(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "wg_x_offset", "%" PRIu32 "", packed0 & 0xffff);
+   printer->vtbl->field(printer, "num_wgs_x", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed0 >> 16, 16));
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg1(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "wg_y_offset", "%" PRIu32 "", packed0 & 0xffff);
+   printer->vtbl->field(printer, "num_wgs_y", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed0 >> 16, 16));
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg2(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "wg_z_offset", "%" PRIu32 "", packed0 & 0xffff);
+   printer->vtbl->field(printer, "num_wgs_z", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed0 >> 16, 16));
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg3(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "wg_size", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed0 & 255, 8));
+   printer->vtbl->field(printer, "wgs_per_sg", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed0 >> 8 & 15, 4));
+   printer->vtbl->field(printer, "batches_per_sg", "%" PRIu32 "",
+      (packed0 >> 12 & 255) + 1);
+   printer->vtbl->field(printer, "max_sg_id", "%" PRIu32 "", packed0 >> 20 & 63);
+   printer->vtbl->boolean_field(printer, "overlap_with_prev", packed0 >> 26 & 1);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg4(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "num_batches", "%" PRIu64 "",
+      (uint64_t)packed0 + 1);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg5(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed0 & 1)));
+   printer->vtbl->boolean_field(printer, "single_seg", packed0 >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "propagate_nans", packed0 >> 2 & 1);
+   printer->vtbl->addr_field(printer, "shader_addr", packed0 >> 3 << 3);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg6(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->addr_field(printer, "unifs_addr", packed0 >> 2 << 2);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_cfg(const uint32_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "wg_x_offset", "%" PRIu32 "", packed[0] & 0xffff);
+   printer->vtbl->field(printer, "num_wgs_x", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed[0] >> 16, 16));
+   printer->vtbl->field(printer, "wg_y_offset", "%" PRIu32 "", packed[1] & 0xffff);
+   printer->vtbl->field(printer, "num_wgs_y", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed[1] >> 16, 16));
+   printer->vtbl->field(printer, "wg_z_offset", "%" PRIu32 "", packed[2] & 0xffff);
+   printer->vtbl->field(printer, "num_wgs_z", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed[2] >> 16, 16));
+   printer->vtbl->field(printer, "wg_size", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed[3] & 255, 8));
+   printer->vtbl->field(printer, "wgs_per_sg", "%" PRIu32 "",
+      gfx_unpack_uint_0_is_max(packed[3] >> 8 & 15, 4));
+   printer->vtbl->field(printer, "batches_per_sg", "%" PRIu32 "",
+      (packed[3] >> 12 & 255) + 1);
+   printer->vtbl->field(printer, "max_sg_id", "%" PRIu32 "", packed[3] >> 20 & 63);
+   printer->vtbl->boolean_field(printer, "overlap_with_prev", packed[3] >> 26 & 1);
+   printer->vtbl->field(printer, "num_batches", "%" PRIu64 "",
+      (uint64_t)packed[4] + 1);
+   printer->vtbl->field(printer, "threading", "%s",
+      v3d_desc_threading((v3d_threading_t)(packed[5] & 1)));
+   printer->vtbl->boolean_field(printer, "single_seg", packed[5] >> 1 & 1);
+   printer->vtbl->boolean_field(printer, "propagate_nans", packed[5] >> 2 & 1);
+   printer->vtbl->addr_field(printer, "shader_addr", packed[5] >> 3 << 3);
+   printer->vtbl->addr_field(printer, "unifs_addr", packed[6] >> 2 << 2);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_id0(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "l_idx", "%" PRIu32 "", packed0 & 255);
+   printer->vtbl->field(printer, "wg_in_sg", "%" PRIu32 "", packed0 >> 8 & 15);
+   printer->vtbl->field(printer, "wg_x", "%" PRIu32 "", packed0 >> 16);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_id1(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "wg_y", "%" PRIu32 "", packed0 & 0xffff);
+   printer->vtbl->field(printer, "wg_z", "%" PRIu32 "", packed0 >> 16);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CSD
+void v3d_print_csd_id(const uint32_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->field(printer, "l_idx", "%" PRIu32 "", packed[0] & 255);
+   printer->vtbl->field(printer, "wg_in_sg", "%" PRIu32 "", packed[0] >> 8 & 15);
+   printer->vtbl->field(printer, "wg_x", "%" PRIu32 "", packed[0] >> 16);
+   printer->vtbl->field(printer, "wg_y", "%" PRIu32 "", packed[1] & 0xffff);
+   printer->vtbl->field(printer, "wg_z", "%" PRIu32 "", packed[1] >> 16);
+   printer->vtbl->end(printer);
+}
+#endif
 void v3d_print_umr_axi_control(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10008,6 +11328,9 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return V3D_CL_CLEAR_L2C_SIZE;
 #endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED: return V3D_CL_CLEAN_L1TD_DEFERRED_SIZE;
+#endif
    case V3D_CL_STENCIL_CFG: return V3D_CL_STENCIL_CFG_SIZE;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_BLEND_CFG: return V3D_CL_BLEND_CFG_SIZE;
@@ -10256,6 +11579,9 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
    case V3D_CL_FLUSH_L2T: return true;
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return true;
+#endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED: return true;
 #endif
    case V3D_CL_STENCIL_CFG: return true;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -10506,6 +11832,9 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return true;
 #endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED: return true;
+#endif
    case V3D_CL_STENCIL_CFG: return true;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_BLEND_CFG: return true;
@@ -10754,6 +12083,9 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
    case V3D_CL_FLUSH_L2T: return false;
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return false;
+#endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED: return false;
 #endif
    case V3D_CL_STENCIL_CFG: return true;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11638,7 +12970,8 @@ void v3d_cl_print_vg_inline_shader(const uint8_t *packed, struct v3d_printer *pr
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "fs", false);
-   printer->vtbl->boolean_field(printer, "four_thread", (uint32_t)(packed[0] & 1));
+   printer->vtbl->field(printer, "threading", "%s", v3d_desc_threading(
+      (v3d_threading_t)(uint32_t)(packed[0] & 1)));
    printer->vtbl->boolean_field(printer, "single_seg",
       (uint32_t)(packed[0] >> 1 & 1));
    printer->vtbl->boolean_field(printer, "propagate_nans",
@@ -11750,10 +13083,19 @@ void v3d_cl_print_flush_l2t(const uint8_t *packed, struct v3d_printer *printer)
       (uint32_t)packed[7] << 24);
    printer->vtbl->field(printer, "mode", "%s", v3d_desc_l2t_flush_mode(
       (v3d_l2t_flush_mode_t)(uint32_t)(packed[8] & 3)));
+   printer->vtbl->boolean_field(printer, "deferred",
+      (uint32_t)(packed[8] >> 2 & 1));
    printer->vtbl->end(printer);
 }
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 void v3d_cl_print_clear_l2c(const uint8_t *packed, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_CLEAN_L1TD
+void v3d_cl_print_clean_l1td_deferred(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->end(printer);
@@ -12823,6 +14165,9 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
    case V3D_CL_FLUSH_L2T: v3d_cl_print_flush_l2t(packed_instr + 1, printer); break;
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: v3d_cl_print_clear_l2c(packed_instr + 1, printer); break;
+#endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED: v3d_cl_print_clean_l1td_deferred(packed_instr + 1, printer); break;
 #endif
    case V3D_CL_STENCIL_CFG: v3d_cl_print_stencil_cfg(packed_instr + 1, printer); break;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -13901,7 +15246,7 @@ void v3d_cl_unpack_vg_inline_shader(V3D_CL_VG_INLINE_SHADER_T *unpacked, const u
 #if V3D_HAS_RELAXED_THRSW
 void v3d_cl_pack_vg_inline_shader(uint8_t *packed, const V3D_CL_VG_INLINE_SHADER_T *unpacked)
 {
-   packed[0] = (uint8_t)gfx_bits((*unpacked).fs.four_thread, 1) |
+   packed[0] = (uint8_t)gfx_bits((*unpacked).fs.threading, 1) |
       (uint8_t)(gfx_bits((*unpacked).fs.single_seg, 1) << 1) |
       (uint8_t)(gfx_bits((*unpacked).fs.propagate_nans, 1) << 2) |
       (uint8_t)(gfx_exact_lsr((*unpacked).fs.addr, 3) << 3);
@@ -13915,7 +15260,7 @@ void v3d_cl_pack_vg_inline_shader(uint8_t *packed, const V3D_CL_VG_INLINE_SHADER
 }
 void v3d_cl_unpack_vg_inline_shader(V3D_CL_VG_INLINE_SHADER_T *unpacked, const uint8_t *packed)
 {
-   (*unpacked).fs.four_thread = (uint32_t)(packed[0] & 1);
+   (*unpacked).fs.threading = (v3d_threading_t)(uint32_t)(packed[0] & 1);
    (*unpacked).fs.single_seg = (uint32_t)(packed[0] >> 1 & 1);
    (*unpacked).fs.propagate_nans = (uint32_t)(packed[0] >> 2 & 1);
    (*unpacked).fs.addr = ((uint32_t)(packed[0] >> 3) | (uint32_t)packed[1] << 5 |
@@ -14041,7 +15386,8 @@ void v3d_cl_pack_flush_l2t(uint8_t *packed, const V3D_CL_FLUSH_L2T_T *unpacked)
    packed[5] = (uint8_t)((*unpacked).end_addr >> 8);
    packed[6] = (uint8_t)((*unpacked).end_addr >> 16);
    packed[7] = (uint8_t)((*unpacked).end_addr >> 24);
-   packed[8] = (uint8_t)gfx_bits((*unpacked).mode, 2) | (uint8_t)0;
+   packed[8] = (uint8_t)gfx_bits((*unpacked).mode, 2) |
+      (uint8_t)(gfx_bits((*unpacked).deferred, 1) << 2) | (uint8_t)0;
 }
 void v3d_cl_unpack_flush_l2t(V3D_CL_FLUSH_L2T_T *unpacked, const uint8_t *packed)
 {
@@ -14050,6 +15396,7 @@ void v3d_cl_unpack_flush_l2t(V3D_CL_FLUSH_L2T_T *unpacked, const uint8_t *packed
    (*unpacked).end_addr = (uint32_t)packed[4] | (uint32_t)packed[5] << 8 |
       (uint32_t)packed[6] << 16 | (uint32_t)packed[7] << 24;
    (*unpacked).mode = (v3d_l2t_flush_mode_t)(uint32_t)(packed[8] & 3);
+   (*unpacked).deferred = (uint32_t)(packed[8] >> 2 & 1);
 }
 void v3d_cl_pack_stencil_cfg(uint8_t *packed, const V3D_CL_STENCIL_CFG_T *unpacked)
 {
@@ -15685,6 +17032,9 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: break;
 #endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED: break;
+#endif
    case V3D_CL_STENCIL_CFG: v3d_cl_pack_stencil_cfg(packed_instr + 1, &instr->u.stencil_cfg); break;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_BLEND_CFG: v3d_cl_pack_blend_cfg(packed_instr + 1, &instr->u.blend_cfg); break;
@@ -15934,6 +17284,9 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
    case V3D_CL_FLUSH_L2T: v3d_cl_unpack_flush_l2t(&instr->u.flush_l2t, packed_instr + 1); break;
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: break;
+#endif
+#if V3D_HAS_CLEAN_L1TD
+   case V3D_CL_CLEAN_L1TD_DEFERRED: break;
 #endif
    case V3D_CL_STENCIL_CFG: v3d_cl_unpack_stencil_cfg(&instr->u.stencil_cfg, packed_instr + 1); break;
 #if !V3D_VER_AT_LEAST(4,0,2,0)

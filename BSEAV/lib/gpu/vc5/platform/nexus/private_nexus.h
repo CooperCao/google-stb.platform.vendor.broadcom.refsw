@@ -28,7 +28,6 @@ typedef struct
    unsigned int               numSurfaces;
 
    bool                       initialized;
-   int                        swapInterval;
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
    /* create and delete can overlap, although exclusive access to
@@ -54,7 +53,6 @@ typedef struct
    void                      *cachedPtr;
    int                        fence;
    bool                       poisoned;
-   int                        swapInterval;
    /* the window info flows through the pipeline with the buffer and is used
       at presentation time */
    NXPL_NativeWindowInfoEXT   windowInfo;

@@ -1,0 +1,49 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Configure TAF
+#
+# Written by: Robert J. McMahon August 2013
+#
+# $Id: 1ae15f029a58e8ac5fd6f164952aa5ba675b37f8 $
+#
+
+package require UTF
+
+package provide UTF::Test::ConfigTAF 2.0
+
+UTF::Test ConfigTAF {AP args} {
+    UTF::Getopts {
+        {ebos_flags.arg "0x68" "EBOS Flags - http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/TrafficScheduler#3_0_Traffic_Allocation_Framework"}
+	{ebos_prr_threshold.arg "0xFFFFFFFF" "EBOS psuedo round robin"}
+        {ebos_prr_flags.arg "0xa61" "EBOS Flags"}
+	{taf_bypass.arg "0" "bypass taf, dynamic control"}
+	{ebos_enable.arg "1" "enable ebos, dynamic control"}
+	{disable "disable feature, nvram control"}
+    }
+    UTF::Try "TAF Config $AP" {
+	# Apply NVARM settings if needed
+	set taf_nvram [$AP nvram get [$AP wlname]_taf_enable]
+	if {$taf_nvram eq ""} {
+	    set taf_nvram 0
+	}
+	if { $(disable) && $taf_nvram} {
+	    $AP restart [$AP wlname]_taf_enable=0
+	    return
+	} elseif {!$(disable) && !$taf_nvram} {
+	    $AP restart [$AP wlname]_taf_enable=1
+	}
+	# Apply dynamic settings
+	$AP wl ebos_enable $(ebos_enable)
+	$AP wl ebos_flags $(ebos_flags)
+	$AP wl ebos_prr_flags $(ebos_prr_flags)
+	$AP wl ebos_prr_threshold $(ebos_prr_threshold)
+	$AP wl taf_bypass $(taf_bypass)
+	set output [$AP wl dump taf]
+	foreach line [split $output "\n"] {
+	    if {[regexp {please do 'dump (.+)'} $line - detail]} {
+		$AP wl dump $detail
+	    }
+	}
+    }
+}

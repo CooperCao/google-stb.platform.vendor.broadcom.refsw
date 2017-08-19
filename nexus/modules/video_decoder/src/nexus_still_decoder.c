@@ -343,7 +343,6 @@ NEXUS_StillDecoderHandle NEXUS_StillDecoder_P_Open_Avd( NEXUS_VideoDecoderHandle
 {
     NEXUS_StillDecoderHandle stillDecoder, d;
     NEXUS_StillDecoderOpenSettings defaultSettings;
-    BERR_Code rc;
 
     if (parentDecoder) {
         BDBG_WRN(("parentDecoder in NEXUS_StillDecoder_Open is deprecated and unused. please change to NULL."));
@@ -371,7 +370,7 @@ NEXUS_StillDecoderHandle NEXUS_StillDecoder_P_Open_Avd( NEXUS_VideoDecoderHandle
 
     stillDecoder = BKNI_Malloc(sizeof(*stillDecoder));
     if (!stillDecoder) {
-        rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         return NULL;
     }
     NEXUS_OBJECT_INIT(NEXUS_StillDecoder, stillDecoder);

@@ -19,13 +19,32 @@ typedef struct sched_context
 
 static sched_context s_context;
 
+static void register_sched_interface(BEGL_SchedInterface *iface)
+{
+   if (iface != NULL)
+   {
+      demand(s_context.sched_iface.QueueJobs == NULL);
+      s_context.sched_iface = *iface;                                    /* Register   */
+
+   }
+   else
+      memset(&s_context.sched_iface, 0, sizeof(BEGL_SchedInterface));    /* Unregister */
+}
+
+// Public shared library entrypoint in the GLES driver for use by NXPL
 __attribute__((visibility("default")))
 void BEGL_RegisterSchedInterface(BEGL_SchedInterface *iface)
 {
-   if (iface != NULL)
-      s_context.sched_iface = *iface;                                    /* Register   */
-   else
-      memset(&s_context.sched_iface, 0, sizeof(BEGL_SchedInterface));    /* Unregister */
+   register_sched_interface(iface);
+}
+
+// Private entrypoint for Vulkan driver library platform initialization.
+// The vulkan platform cannot use the BEGL entrypoint; if the GLES library
+// has already been loaded then it will act like an LD_PRELOAD and the wrong
+// entrypoint will be taken and the wrong static context will be set.
+void BVK_RegisterSchedInterface(BEGL_SchedInterface *iface)
+{
+   register_sched_interface(iface);
 }
 
 // ===================================================================
@@ -257,6 +276,46 @@ bcm_wait_status bcm_sched_wait_jobs_timeout(
       s_context.sched_iface.context, completed_deps, finalised_deps, timeout);
 }
 
+// ===================================================================
+// Functions to manipulate scheduler event state
+
+bcm_sched_event_id bcm_sched_new_event(void)
+{
+   demand(s_context.sched_iface.NewSchedEvent);
+   return s_context.sched_iface.NewSchedEvent(
+      s_context.sched_iface.context);
+}
+
+void bcm_sched_delete_event(bcm_sched_event_id event_id)
+{
+   demand(s_context.sched_iface.DeleteSchedEvent);
+   s_context.sched_iface.DeleteSchedEvent(
+      s_context.sched_iface.context, event_id);
+}
+
+void bcm_sched_set_event(bcm_sched_event_id event_id)
+{
+   demand(s_context.sched_iface.SetSchedEvent);
+   s_context.sched_iface.SetSchedEvent(
+      s_context.sched_iface.context, event_id);
+}
+
+void bcm_sched_reset_event(bcm_sched_event_id event_id)
+{
+   demand(s_context.sched_iface.ResetSchedEvent);
+   return s_context.sched_iface.ResetSchedEvent(
+      s_context.sched_iface.context, event_id);
+}
+
+bool bcm_sched_query_event(bcm_sched_event_id event_id)
+{
+   demand(s_context.sched_iface.QuerySchedEvent);
+   return s_context.sched_iface.QuerySchedEvent(
+      s_context.sched_iface.context, event_id);
+}
+
+// ===================================================================
+
 bool v3d_platform_init(void)
 {
    gmem_init();
@@ -299,26 +358,6 @@ void v3d_platform_shutdown(void)
    s_context.sched_iface.Close(s_context.sched_iface.context, s_context.session_id);
 
    gmem_destroy();
-}
-
-int v3d_platform_fence_create(void)
-{
-   int fence = -1;
-
-   demand(s_context.sched_iface.MakeFence != NULL);
-   s_context.sched_iface.MakeFence(s_context.sched_iface.context, &fence);
-
-   return fence;
-}
-
-void v3d_platform_fence_signal(int fence)
-{
-   if (fence < 0)
-      return;
-
-   demand(s_context.sched_iface.SignalFence != NULL);
-
-   s_context.sched_iface.SignalFence(s_context.sched_iface.context, fence);
 }
 
 void v3d_platform_fence_wait(int fence)

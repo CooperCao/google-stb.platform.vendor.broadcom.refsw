@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,7 +91,12 @@ static void BXPT_PacketSub_P_WriteAddr(
     */
     uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
 
-    BREG_Write32( hPSub->hRegister, RegAddr, RegVal );
+#if BCHP_CHIP == 7278
+    /* Address hole between XPT_PSUB_PSUB14_CTRL0 and XPT_PSUB_PSUB14_CTRL1: it should be 4 bytes, but is actually 12. */
+    if(RegAddr > BCHP_XPT_PSUB_PSUB14_CTRL0)
+        RegAddr += 8;
+#endif
+    BREG_WriteAddr( hPSub->hRegister, RegAddr, RegVal );
 }
 
 static BMMA_DeviceOffset BXPT_PacketSub_P_ReadAddr_isrsafe(
@@ -106,6 +111,11 @@ static BMMA_DeviceOffset BXPT_PacketSub_P_ReadAddr_isrsafe(
     */
     uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
 
+#if BCHP_CHIP == 7278
+    /* Address hole between XPT_PSUB_PSUB14_CTRL0 and XPT_PSUB_PSUB14_CTRL1: it should be 4 bytes, but is actually 12. */
+    if(RegAddr > BCHP_XPT_PSUB_PSUB14_CTRL0)
+        RegAddr += 8;
+#endif
     return BREG_ReadAddr( hPSub->hRegister, RegAddr );
 }
 
@@ -150,6 +160,10 @@ BERR_Code BXPT_PacketSub_GetChannelDefaultSettings(
         ChannelSettings->PacketLen = BXPT_P_PSUB_DEFAULT_PACKET_LEN;
         ChannelSettings->ForcedInsertionEn = false;
     }
+
+#ifdef BXPT_PACKETSUB_REQUIRES_FORCED_INSERTION
+    ChannelSettings->ForcedInsertionEn = true;
+#endif
 
     ChannelSettings->OutputRate = 0xBC * 1649; /* this will produce a register value of 0xBC the hardware default */
 
@@ -548,7 +562,7 @@ BERR_Code BXPT_PacketSub_CreateDesc(
 
     /* Verify that the descriptor we're creating sits on a 16-byte boundary. */
     ThisDescPhysicalAddr = hPSub->mma.offset + (unsigned)((uint8_t*)Desc - (uint8_t*)hPSub->mma.ptr); /* convert Desc -> offset */
-    BDBG_MSG(( "%s: Desc 0x%08lX -> Offset 0x%08lX", __FUNCTION__, (unsigned long) Desc, (unsigned long) ThisDescPhysicalAddr ));
+    BDBG_MSG(( "%s: Desc 0x%08lX -> Offset 0x%08lX", BSTD_FUNCTION, (unsigned long) Desc, (unsigned long) ThisDescPhysicalAddr ));
     if( ThisDescPhysicalAddr % 16 )
     {
         BDBG_ERR(( "Desc is not 32-bit aligned!" ));
@@ -638,7 +652,7 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
         LastDescriptor_Cached->NextDescAddrHi = DescPhysAddr >> 32;
 #endif
         BMMA_FlushCache(hPSub->mma.block, LastDescriptor_Cached, sizeof(BXPT_PacketSub_Descriptor));
-        BDBG_MSG(( "%s (LastDescriptor_Cached): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
+        BDBG_MSG(( "%s (LastDescriptor_Cached): Desc %p -> Offset " BDBG_UINT64_FMT "", BSTD_FUNCTION, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
         /* Wake mode should resume from last descriptor on the list. */
         Reg &= ~ ( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, WAKE_MODE ) );
@@ -666,7 +680,7 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
 
         /* This is our first descriptor, so we must load the first descriptor register */
         DescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPSub->mma.ptr); /* convert FirstDesc -> offset */
-        BDBG_MSG(( "%s (New chain): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
+        BDBG_MSG(( "%s (New chain): Desc %p -> Offset " BDBG_UINT64_FMT "", BSTD_FUNCTION, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
         /*
         ** The descriptor address field in the hardware register is wants the address
@@ -839,9 +853,9 @@ BERR_Code BXPT_PacketSub_StartChannel(
 
     if( hPSub->Running == true )
     {
-        BDBG_ERR(( "Packet Sub channel %lu cannot be started because it's already running!",
+        BDBG_WRN(( "Packet Sub channel %lu cannot be started because it's already running!",
             ( unsigned long ) hPSub->ChannelNo ));
-        ExitCode = BERR_TRACE( BXPT_ERR_CHANNEL_ALREADY_RUNNING );
+            goto Done;
     }
 
 #ifdef BCHP_PWR_RESOURCE_XPT_PACKETSUB
@@ -865,7 +879,7 @@ BERR_Code BXPT_PacketSub_StartChannel(
     }
 
     hPSub->Running = true;
-
+    Done:
     return( ExitCode );
 }
 
@@ -874,6 +888,7 @@ BERR_Code BXPT_PacketSub_StopChannel(
     )
 {
     uint32_t Reg, ChanBusy, WaitCount, OldForcedInsertionState;
+    BMMA_DeviceOffset Addr;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -899,6 +914,7 @@ BERR_Code BXPT_PacketSub_StopChannel(
     Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, RUN ) );
     BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
 
+#if 0
     WaitCount = 100;
     do
     {
@@ -926,16 +942,20 @@ BERR_Code BXPT_PacketSub_StopChannel(
     );
 #ifdef BXPT_PACKETSUB_REQUIRES_FORCED_INSERTION
     /* Do nothing. FORCED_INSERTION_EN was set above and that's the only mode supported. */
-    BSTD_UNUSED(OldForcedInsertionState);
 #else
     Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN, OldForcedInsertionState );
 #endif
     BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+#else
+    BSTD_UNUSED(ChanBusy);
+    BSTD_UNUSED(WaitCount);
+    BSTD_UNUSED(OldForcedInsertionState);
+#endif
 
     /* Clear the first desc addr (for cleaner debugging) */
-    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
-    Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
-    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Reg );
+    Addr = BXPT_PacketSub_P_ReadAddr( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
+    Addr &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
+    BXPT_PacketSub_P_WriteAddr( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Addr );
 
     hPSub->LastDescriptor_Cached = NULL;
 
@@ -984,6 +1004,11 @@ void BXPT_PacketSub_P_WriteReg(
     */
     uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
 
+#if BCHP_CHIP == 7278
+    /* Address hole between XPT_PSUB_PSUB14_CTRL0 and XPT_PSUB_PSUB14_CTRL1: it should be 4 bytes, but is actually 12. */
+    if(RegAddr > BCHP_XPT_PSUB_PSUB14_CTRL0)
+        RegAddr += 8;
+#endif
     BREG_Write32( hPSub->hRegister, RegAddr, RegVal );
 }
 
@@ -1000,6 +1025,11 @@ uint32_t BXPT_PacketSub_P_ReadReg_isrsafe(
     */
     uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
 
+#if BCHP_CHIP == 7278
+    /* Address hole between XPT_PSUB_PSUB14_CTRL0 and XPT_PSUB_PSUB14_CTRL1: it should be 4 bytes, but is actually 12. */
+    if(RegAddr > BCHP_XPT_PSUB_PSUB14_CTRL0)
+        RegAddr += 8;
+#endif
     return( BREG_Read32( hPSub->hRegister, RegAddr ));
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1252,7 +1252,6 @@ BERR_Code BUHF_IsDataReady
 )
 {
     BERR_Code   ret = BERR_SUCCESS;
-    unsigned int offset = 0;
 
     BDBG_ASSERT(hUhfr);
     BDBG_ASSERT(pFlag);
@@ -1266,7 +1265,6 @@ BERR_Code BUHF_IsDataReady
 
     BDBG_MSG(("BUHF_IsDataReady: Checking if there's data to be read ..."));
 
-    offset = hUhfr->ui32Offset;
     *pFlag = 0; /* Assume no data is ready */
 
     if (hUhfr->intFlag == 1)

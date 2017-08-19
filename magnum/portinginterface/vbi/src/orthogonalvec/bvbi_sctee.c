@@ -48,12 +48,6 @@
 #if (BVBI_NUM_SCTEE >= 1)
 #include "bchp_scte_0.h"  /* RDB info for primary SCTE encoder core */
 #endif
-#if (BVBI_NUM_SCTEE >= 2)
-#include "bchp_scte_1.h"   /* RDB info for secondary SCTE encoder core */
-#endif
-#if (BVBI_NUM_SCTEE >= 3)
-#include "bchp_scte_2.h"  /* RDB info for tertiary SCTE encoder core */
-#endif
 /* Currently, there is no 656/SCTE encoder core. */
 
 BDBG_MODULE(BVBI);
@@ -1488,12 +1482,12 @@ static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
 #endif
 #if (BVBI_NUM_SCTEE >= 2)
     case 1:
-        ulCoreOffset = (BCHP_SCTE_1_REVID - BCHP_SCTE_0_REVID);
+        ulCoreOffset = (BCHP_SCTE_1_REG_START - BCHP_SCTE_0_REG_START);
         break;
 #endif
 #if (BVBI_NUM_SCTEE >= 3)
     case 2:
-        ulCoreOffset = (BCHP_SCTE_2_REVID - BCHP_SCTE_0_REVID);
+        ulCoreOffset = (BCHP_SCTE_2_REG_START - BCHP_SCTE_0_REG_START);
         break;
 #endif
     default:

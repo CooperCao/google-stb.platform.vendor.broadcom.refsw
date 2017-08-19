@@ -991,8 +991,7 @@ typedef struct BVDC_P_WindowContext
     BVDC_P_CfcContext             astMosaicCfc[BVDC_P_CMP_CFCS]; /* mosaic cfc array */
     bool                          bCfcDirty; /* cleared only after Cfc_UpdateCfg_isr is really called */
 
-    /* This flag indicate if the bandwidth equation is symmetric or not */
-    bool                          bSclCapSymmetric;
+    bool                          bSrcSideDeinterlace;
 
     /* Fields for cadence handling. */
     BVDC_P_Window_CadenceHandling stCadHndl;
@@ -1088,7 +1087,6 @@ void BVDC_P_Window_Rts_Init
       bool                             bDispNrtStg,
 #endif
       bool                            *pbForceCapture,
-      bool                            *pbSclCapSymmetric,
       BVDC_SclCapBias                 *peSclCapBias,
       uint32_t                        *pulBandwidthDelta );
 

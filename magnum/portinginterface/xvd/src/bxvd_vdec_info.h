@@ -195,6 +195,7 @@ typedef enum BXVD_P_PPB_METADATA_TYPE
   BXVD_P_PPB_METADATA_TYPE_eDRPU,
   BXVD_P_PPB_METADATA_TYPE_eTCH_CVRI,  /* SWSTB-4182 */
   BXVD_P_PPB_METADATA_TYPE_eTCH_CRI,   /* SWSTB-4182 */
+  BXVD_P_PPB_METADATA_TYPE_eTCH_SLHDR, /* SWSTB-6121 */
 
   BXVD_P_PPB_METADATA_TYPE_eMax
 
@@ -617,7 +618,8 @@ typedef struct
  * HEVC interlaced content. For 3:2 content, indicates that the
  * third field is a repeat and can be dropped.
  * SWSTB-3950: added BXVD_P_PPB_EXT0_FLAG_META_DATA
- * SWSTB-1873: added BXVD_P_PPB_EXT0_FLAG_VIDEO_FULL_RANGE */
+ * SWSTB-1873: added BXVD_P_PPB_EXT0_FLAG_VIDEO_FULL_RANGE
+ * SWSTB-5297: added BXVD_P_PPB_EXT0_FLAG_ADJ_QP_PRESENT */
 
 #define BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE          (0x00000001)
 #define BXVD_P_PPB_EXT0_FLAG_LUMA_10_BIT_PICTURE   (0x00000002)
@@ -625,6 +627,7 @@ typedef struct
 #define BXVD_P_PPB_EXT0_FLAG_DUPLICATE_FIELD       (0x00000008)
 #define BXVD_P_PPB_EXT0_FLAG_VIDEO_FULL_RANGE      (0x00000010)
 #define BXVD_P_PPB_EXT0_FLAG_META_DATA             (0x00000020)
+#define BXVD_P_PPB_EXT0_FLAG_ADJ_QP_PRESENT        (0x00000040)
 
 #endif
 
@@ -993,7 +996,12 @@ typedef struct
     * Only valid when using luma/chroma buffers > 8 bits.  */
    uint32_t                luma_chroma_bit_width;
 
+#if BXVD_P_CORE_40BIT_ADDRESSABLE /*SWSTB-6256: to get the PPB back to 256 bytes */
+   uint32_t                ppb_reserved[27];
+#else
    uint32_t                ppb_reserved[29];
+#endif
+
    union
    {
       BXVD_P_PPB_LOG_DATA  data_log;
@@ -1013,13 +1021,13 @@ typedef struct
 /* Hercules */
 #if BXVD_P_DECODER_REVP
 /* Will be 4 for new FW memory config */
-#define  BXVD_P_CURRENT_MAJOR_VERSION 4
+#define  BXVD_P_CURRENT_MAJOR_VERSION  5 /* wea 4, new for AGP change */
 
 #elif BXVD_P_DECODER_REVN1
 #define BXVD_P_CURRENT_MAJOR_VERSION 3
 
 #elif BXVD_P_DECODER_REVT
-#define  BXVD_P_CURRENT_MAJOR_VERSION 1
+#define  BXVD_P_CURRENT_MAJOR_VERSION 2 /* wea 1, new for AGP change */
 
 #else
 #define BXVD_P_CURRENT_MAJOR_VERSION 2

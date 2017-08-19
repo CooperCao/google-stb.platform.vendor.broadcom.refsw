@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,6 +49,7 @@
 #include <string.h>
 
 BDBG_MODULE(audio_description);
+#include "nxapp_prompt.inc"
 
 #define MPEG_DESCRIPTION 0
 
@@ -140,8 +141,7 @@ int main(void)
     BDBG_ASSERT(!rc);
 
 
-    BDBG_WRN(("Press ENTER to exit"));
-    getchar();
+    nxapp_prompt("exit");
 
 
     NEXUS_Playback_Stop(playback);

@@ -49,6 +49,13 @@ typedef struct BEGL_MemoryInterface
    uint64_t       (*GetInfo)(void *context, BEGL_MemInfoType type);
 
    /*
+    * Optional init for interfaces that need resources which cannot
+    * be aquired at the point the interface itself is registered.
+    */
+   int            (*Init)(void *context);
+   void           (*Term)(void *context);
+
+   /*
     * Optional entrypoint to create a wrapper handle to manage a MMU pagetable
     * mapping for externally allocated physically contiguous memory ranges
     */

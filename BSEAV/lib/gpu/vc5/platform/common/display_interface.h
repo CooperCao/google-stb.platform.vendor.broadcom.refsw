@@ -25,14 +25,15 @@ typedef struct DisplayInterface
    Interface base;
 
    DisplayInterfaceResult (*display)(void *context, void *surface,
-         int render_fence, int *display_fence);
+         int render_fence, bool create_display_fence, int *display_fence);
    bool (*wait_sync)(void *context);
    void (*stop)(void *context);
 } DisplayInterface;
 
 DisplayInterfaceResult DisplayInterface_Display(
       const DisplayInterface *di, void *surface,
-      int render_fence, int *display_fence);
+      int render_fence, bool create_display_fence,
+      int *display_fence);
 
 bool DisplayInterface_WaitSync(const DisplayInterface *di);
 

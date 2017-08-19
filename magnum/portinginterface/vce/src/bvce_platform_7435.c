@@ -173,9 +173,6 @@ static const BVCE_Platform_P_RegisterSetting s_astViceWatchdogDisableRegisterSet
    }
 };
 
-extern const BVCE_Platform_P_Register s_astViceHardwareRegisters[];
-extern const unsigned s_uiViceHardwareRegistersCount;
-
 BERR_Code
 BVCE_Platform_P_GetConfig(
          BBOX_Handle hBox,

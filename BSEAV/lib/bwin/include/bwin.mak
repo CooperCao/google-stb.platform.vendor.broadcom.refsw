@@ -68,7 +68,8 @@ JPEG_SUPPORT = y
 LIB_DIR = $(BSEAV)/lib
 
 ZLIB_DIR = $(BSEAV)/opensource/zlib
-ZLIB_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/zlib-1.1.3
+include $(ZLIB_DIR)/zlib.inc
+ZLIB_ODIR = $(ZLIB_SOURCE_PATH)
 LIBJPEG_DIR = $(BSEAV)/opensource/jpeg
 LIBJPEG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/jpeg-6b
 
@@ -81,7 +82,7 @@ endif
 ifeq ($(PNG_SUPPORT),y)
 LIBPNG_DIR = $(BSEAV)/opensource/libpng
 include $(LIBPNG_DIR)/libpng.inc
-BWIN_LDFLAGS += -L$(LIBPNG_LIB_FOLDER) -lpng -L$(ZLIB_ODIR) -lz
+BWIN_LDFLAGS += -L$(LIBPNG_LIB_FOLDER) -lpng $(ZLIB_ODIR)/libz.a
 endif
 
 ifeq ($(JPEG_SUPPORT),y)

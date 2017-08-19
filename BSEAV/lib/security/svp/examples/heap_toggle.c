@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -156,8 +156,8 @@ static void print_heap(unsigned i, NEXUS_HeapHandle heap, const NEXUS_PlatformCo
     for (serverHeapIndex=0;serverHeapIndex<NEXUS_MAX_HEAPS;serverHeapIndex++) {
         if (platformConfig->heap[serverHeapIndex] == heap) break;
     }
-    printf("%-2d\t" BDBG_UINT64_FMT "\t%d\t0x%08x(%3dMB)@0x%08x\t%3d%%/%3d%%\t%u\t%s : %s\n",
-        i, BDBG_UINT64_ARG(status.offset), status.memcIndex, status.size, status.size/(1024*1024), (unsigned)status.addr,
+    printf("%-2d\t" BDBG_UINT64_FMT "\t%d\t0x%08x(%3dMB)@0x%09lx\t%3d%%/%3d%%\t%u\t%s : %s\n",
+        i, BDBG_UINT64_ARG(status.offset), status.memcIndex, status.size, status.size/(1024*1024), (long unsigned int)status.addr,
         size_percentage?(status.size-status.free)/size_percentage:0,
         size_percentage?status.highWatermark/size_percentage:0,
         serverHeapIndex,
@@ -202,7 +202,6 @@ static void print_secure_status(void)
     NEXUS_Error rc;
     NEXUS_HeapRuntimeSettings heapSettings;
     NEXUS_SageStatus sageStatus;
-    NEXUS_MemoryStatus status;
 
     for (i=0;i<heapInfo.number;i++)
     {
@@ -455,7 +454,7 @@ EXIT:
     printf("Exiting toggle loop (%u toggle commands)\n", count);
     printf("Worst toggle time was %u.%07u seconds\n", (unsigned int)worst.tv_sec, (unsigned int)worst.tv_usec);
 
-    return (void *)rc;
+    return (void *)((uintptr_t)rc);
 }
 
 static int scrub_verify(void)
@@ -525,7 +524,8 @@ static int scrub_verify(void)
             continue;
         }
 
-        printf("Writing test pattern to heap[%d] (0x%x @ 0x%016llx)\n", heapInfo.index[i], heapInfo.status[i].size, heapInfo.status[i].offset);
+        printf("Writing test pattern to heap[%d] (0x%x @ 0x%09lx)\n", heapInfo.index[i], heapInfo.status[i].size,
+               (long unsigned int)heapInfo.status[i].offset);
         for(j=0;j<heapInfo.status[i].size;j+=patternSize)
         {
             memcpy(&addr[j], pattern, patternSize);
@@ -593,13 +593,14 @@ static int scrub_verify(void)
 
         NEXUS_FlushCache(addr, heapInfo.status[i].size);
 
-        printf("Checking for test pattern in secure buffer (0x%x @ 0x%016llx)\n", heapInfo.status[i].size, heapInfo.status[i].offset);
+        printf("Checking for test pattern in secure buffer (0x%x @ 0x%09lx)\n", heapInfo.status[i].size,
+               (long unsigned int)heapInfo.status[i].offset);
         for(j=0;j<heapInfo.status[i].size;j+=patternSize)
         {
             int k;
             if(memcmp(&addr[j], pattern, patternSize)==0)
             {
-                printf("STALE DATA PRESENT!!!!! SCRUBBING FAILED! (0x%016llx)\n", heapInfo.status[i].offset+j);
+                printf("STALE DATA PRESENT!!!!! SCRUBBING FAILED! (0x%09lx)\n", (long unsigned int)(heapInfo.status[i].offset+j));
 
                 printf("DATA:\n\t0x");
                 for(k=0;k<patternSize;k++)
@@ -632,27 +633,30 @@ void debugOutput(void)
     for (i=0;i<heapInfo.number;i++) {
         if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION)
         {
-            printf("CRR 0x%016llx 0x%08x\n", heapInfo.status[i].offset, heapInfo.status[i].size);
+            printf("CRR 0x%09lx 0x%08x\n", (long unsigned int)heapInfo.status[i].offset, heapInfo.status[i].size);
             continue;
         }
         if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_EXPORT_REGION)
         {
-            printf("XRR 0x%016llx 0x%08x\n", heapInfo.status[i].offset, heapInfo.status[i].size);
+            printf("XRR 0x%09lx 0x%08x\n", (long unsigned int)heapInfo.status[i].offset, heapInfo.status[i].size);
             continue;
         }
         if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS)
         {
-            printf("GFX%d 0x%016llx 0x%08x\n", heapInfo.status[i].memcIndex, heapInfo.status[i].offset, heapInfo.status[i].size);
+            printf("GFX%d 0x%09lx 0x%08x\n", heapInfo.status[i].memcIndex, (long unsigned int)heapInfo.status[i].offset,
+                   heapInfo.status[i].size);
             continue;
         }
         if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)
         {
-            printf("EXT%d 0x%016llx 0x%08x\n", heapInfo.status[i].memcIndex, heapInfo.status[i].offset, heapInfo.status[i].size);
+            printf("EXT%d 0x%09lx 0x%08x\n", heapInfo.status[i].memcIndex, (long unsigned int)heapInfo.status[i].offset,
+                   heapInfo.status[i].size);
             continue;
         }
         if((heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) && (heapInfo.status[i].memoryType & NEXUS_MEMORY_TYPE_SECURE))
         {
-            printf("URR%d 0x%016llx 0x%08x\n", heapInfo.status[i].memcIndex, heapInfo.status[i].offset, heapInfo.status[i].size);
+            printf("URR%d 0x%09lx 0x%08x\n", heapInfo.status[i].memcIndex, (long unsigned int)heapInfo.status[i].offset,
+                   heapInfo.status[i].size);
             continue;
         }
     }

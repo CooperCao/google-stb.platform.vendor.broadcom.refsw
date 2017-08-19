@@ -89,6 +89,20 @@ typedef struct bcmdriver_memory_info nexus_p_memory_info;
 typedef struct bcmdriver_memory_range nexus_p_memory_range;
 #endif
 
+static void NEXUS_Platform_P_CopyReservedName(NEXUS_PlatformOsReservedRegion *osReservedRegions, const nexus_p_memory_info *info, unsigned n)
+{
+#if NEXUS_BASE_OS_linuxkernel && BRCMSTB_H_VERSION < 10
+    BSTD_UNUSED(n);
+    BSTD_UNUSED(info);
+    BKNI_Memset(osReservedRegions->tag, 0, sizeof(osReservedRegions->tag));
+#else
+    BDBG_CASSERT(sizeof(info->reserved.range_name[n].name)==sizeof(osReservedRegions->tag));
+    BKNI_Memcpy(osReservedRegions->tag, info->reserved.range_name[n].name, sizeof(osReservedRegions->tag));
+#endif
+    return;
+}
+
+
 BDBG_FILE_MODULE(nexus_platform_settings);
 
 struct nexus_linux_cma_region_info {
@@ -847,6 +861,9 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_priv(const NEXUS_Platform
 done_subindex:
 #endif /* B_REFSW_ANDROID */
         for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+            if(state->preallocated[i]) {
+                continue;
+            }
             if(heap[i].size==0) {
                 continue;
             }
@@ -1107,6 +1124,9 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
             }
         }
         rc = NEXUS_Platform_P_SetHostBmemMemoryFromInfo(info, pMemory->osRegion);
+        if(rc==NEXUS_SUCCESS) {
+            rc = NEXUS_Platform_P_SetHostReservedMemoryFromInfo(info, pMemory->osReservedRegions, true);
+        }
     }
     BKNI_Free(info);
     if(rc==NEXUS_SUCCESS) {
@@ -1199,6 +1219,7 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
     } *state;
     unsigned i, j;
 
+    BSTD_UNUSED(preInitState);
     state = BKNI_Malloc(sizeof(*state));
     if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
 

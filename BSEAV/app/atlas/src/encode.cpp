@@ -53,7 +53,7 @@ BDBG_MODULE(atlas_encode);
 
 CEncode::CEncode(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_encode, pCfg),
@@ -551,7 +551,7 @@ eRet CEncode::start()
 
     if ((_currentVideo == NULL) || _currentVideo->getVideosPath().isEmpty())
     {
-        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", __FUNCTION__));
+        BDBG_ERR(("Please setVideo(CVideo *Video) before calling %s ", BSTD_FUNCTION));
         return(eRet_ExternalError);
     }
 
@@ -739,7 +739,7 @@ error:
 } /* stop */
 
 CPid * CEncode::getPid(
-        uint16_t index,
+        unsigned index,
         ePidType type
         )
 {

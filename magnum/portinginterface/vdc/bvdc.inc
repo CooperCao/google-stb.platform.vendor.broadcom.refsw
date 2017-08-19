@@ -175,16 +175,34 @@ BVDC_SOURCES += \
 endif
 endif
 
+ifneq ($(B_PI_FOR_BOOTUPDATER),y)
+
 ##
 # DBV files selection
 #
+BCHP_DBV_HW_DEF=$(NEXUS_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER)/bchp_hdr_cmp_0_dbv.h
 BVDC_DBV_IMPL=$(MAGNUM)/portinginterface/vdc/src/dbv
+ifneq ("$(wildcard $(BCHP_DBV_HW_DEF))","")
 ifneq ("$(wildcard $(BVDC_DBV_IMPL))","")
 BVDC_DBV_SUPPORT?=y
+endif
 endif
 ifeq ($(BVDC_DBV_SUPPORT),y)
 include $(MAGNUM)/portinginterface/vdc/src/dbv/bdbv_api.inc
 BVDC_DEFINES += BVDC_DBV_SUPPORT=1
+
+##
+# DBV conformance mode:
+# 0 - BVN processing follows regular API control without DBV conformance
+# 1 - BVN filters are all disabled to conform with DBV
+# 2 - BVN filters are mostly disabled to conform with DBV
+#
+BVDC_DBV_MODE_BVN_CONFORM?=y
+ifeq ($(BVDC_DBV_MODE_BVN_CONFORM),y)
+BVDC_DEFINES += BVDC_DBV_MODE_BVN_CONFORM=1
+else
+BVDC_DEFINES += BVDC_DBV_MODE_BVN_CONFORM=0
+endif
 ifeq ($(BVDC_DBV_GEN_LUTS), y)
 BVDC_DEFINES += BVDC_DBV_GEN_LUTS=1
 ifeq ($(BVDC_DBV_ORIG_GEN_LUTS), y)
@@ -198,15 +216,6 @@ BVDC_SOURCES += \
 endif
 
 ##
-# Vec files selection
-#
-BVDC_SOURCES += \
-	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displaystg_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displayvip_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displayhandler_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displaycabledetect_priv.c
-
-##
 # TCH files selection
 #
 BVDC_TCH_IMPL=$(MAGNUM)/portinginterface/vdc/src/tch
@@ -217,6 +226,17 @@ ifeq ($(BVDC_TCH_SUPPORT),y)
 include $(MAGNUM)/portinginterface/vdc/src/tch/btch.inc
 BVDC_DEFINES += BVDC_TCH_SUPPORT=1
 endif
+
+endif ### ifneq ($(B_PI_FOR_BOOTUPDATER),y)
+
+##
+# Vec files selection
+#
+BVDC_SOURCES += \
+	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displaystg_priv.c \
+	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displayvip_priv.c \
+	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displayhandler_priv.c \
+	$(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_displaycabledetect_priv.c
 
 ##
 # For boot loder or mini-driver to keep gfx display on

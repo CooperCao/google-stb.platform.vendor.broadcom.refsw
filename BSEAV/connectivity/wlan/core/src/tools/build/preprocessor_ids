@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+while ($line = <>)
+{
+    chomp($line);
+    #
+    # While trailing \ plus optional whitespace at end of line
+    # then remove \ plus whitespace and concatente next line
+    #
+    while ( $line =~ s/\\\s*$// )
+    {
+        $line .= <>;
+        chomp($line);
+    }
+    #
+    # Remove comments, both // and /* ... */ (those don't nest)
+    #
+    $line =~ s=(/\*.*?\*/|//.*$)==g;
+    #print $line, "\n";
+    #
+    # Process one if, ifdef, ifndef and elif lines.  Allow whitespace
+    # before and after preprocessor directive initial #.
+    #
+    if ($line =~ s/^\s*?#\s*?(if|ifdef|ifndef|elif)\s//)
+    {
+        $directive = $1;                          # Remove and save # directive/verb
+        #
+        # Create filename based macro to ignore: e.g. _wlc_phy_c_
+        #
+        ($path,$filename) = $ARGV =~ m{(^.*/|^)(.*)};   # parse filename ... in case ARGV includes path
+        $filename_macro = "_" . $filename . "_";        # added surrounding _'s
+        $filename_macro =~ s/\./_/g;                    # change any .'s to _'s
+
+        #print $ARGV, " ", $filename_macro, " ",  $directive, " :";
+        #
+        # find id's: a word starting with a non digit.  Amazingly perl remembers the last
+        # position when specifying a pattern match with a "g" modifier.
+        #
+	while ($line =~ /(\b[A-Za-z_]\w*\b)/g)
+	{
+            $id = $1;
+            next if $id eq "defined";            # defined is a special keyword for the preprocessor
+            next if $id =~ /^$filename_macro$/i; # ignore filename_macro ... case insensitive
+            print $ARGV, ": ";
+            print $1, "\n";
+        }
+        #print "\n";
+    }
+}

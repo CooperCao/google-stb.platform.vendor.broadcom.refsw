@@ -44,6 +44,9 @@
 #if NEXUS_HAS_FILE
 #include "nexus_file_init.h"
 #endif
+#if NEXUS_HAS_SECURITY
+#include "nexus_security_init.h"
+#endif
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "priv/nexus_hdmi_output_priv.h"
 #endif
@@ -147,6 +150,10 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #endif
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.first = true;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.sage = true;
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[0] = 'S';
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[1] = 'R';
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[2] = 'R';
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[3] = '\0';
 #endif
 
     for(i=0;i<NEXUS_MAX_HEAPS;i++) {
@@ -281,13 +288,7 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
 #endif
 
 #if NEXUS_HAS_FILE
-    {
-        NEXUS_FileModuleSettings fileModuleSettings;
-        NEXUS_FileModule_GetDefaultSettings(&fileModuleSettings);
-        pSettings->fileModuleSettings.workerThreads = fileModuleSettings.workerThreads;
-        BDBG_CASSERT(sizeof(pSettings->fileModuleSettings.schedulerSettings) == sizeof(fileModuleSettings.schedulerSettings));
-        BKNI_Memcpy(pSettings->fileModuleSettings.schedulerSettings, fileModuleSettings.schedulerSettings, sizeof(pSettings->fileModuleSettings.schedulerSettings));
-    }
+    NEXUS_FileModule_GetDefaultSettings(&pSettings->fileModuleSettings);
 #endif
 
 #if NEXUS_HAS_SAGE
@@ -603,7 +604,7 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
             i,
             pCoreSettings->heapRegion[i].memcIndex,
             BDBG_UINT64_ARG(pCoreSettings->heapRegion[i].offset),
-            pCoreSettings->heapRegion[i].length,
+            (unsigned)pCoreSettings->heapRegion[i].length,
             NEXUS_P_PlatformHeapName(i,pSettings,buf,sizeof(buf))));
     }
 #endif

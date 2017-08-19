@@ -173,7 +173,6 @@ BERR_Code BOTF_PlatformOpen(BOTF_Handle hOtf)
     uint32_t baseptr, val;
     BMMA_Block_Handle mma;
     void *cached_addr;
-    BERR_Code rc;
 
     BDBG_MSG(("BOTF_PlatformOpen"));
 

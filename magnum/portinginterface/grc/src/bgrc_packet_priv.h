@@ -56,9 +56,7 @@
 #ifdef BCHP_M2MC1_REG_START
 #include "bchp_m2mc1.h"
 #endif
-#ifdef BCHP_M2MC_1_REG_START
-#include "bchp_m2mc_1.h"
-#endif
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,17 +66,28 @@ extern "C" {
 #define BGRC_P_VER_1                        (1)
 /*7268/7271/7278 */
 #define BGRC_P_VER_2                        (2)
+/*7278 multicontext */
+#define BGRC_P_VER_3                        (3)
 
 
-#if (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2)
+#if (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2) && (BCHP_M2MC_REVISION_MINOR_DEFAULT >=1)
 /*  HW stripe improvement
 http://jira.broadcom.com/browse/CRM2MC-28
 http://jira.broadcom.com/browse/CRM2MC-29
 http://jira.broadcom.com/browse/CRM2MC-32
 */
+#define BGRC_P_VER                          (3)
+#elif (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2)
 #define BGRC_P_VER                          (2)
 #else
 #define BGRC_P_VER                          (1)
+#endif
+
+
+#if  (BCHP_M2MC1_REG_START && (BGRC_P_VER >=3))
+#define BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT    (1)
+#else
+#define BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT    (0)
 #endif
 /****************************************************************************
 Basic concept and handling:

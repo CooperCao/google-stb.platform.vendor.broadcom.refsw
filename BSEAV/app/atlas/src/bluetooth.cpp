@@ -287,7 +287,7 @@ void CBluetooth::btDiscoveryDoneCallback()
         retNetApp = NetAppBluetoothGetDiscoveryResults(_pNetApp, &_pBtDevInfoDiscList, &_discListCount);
         CHECK_NETAPP_ERROR_GOTO("unable to get DiscoveryResults", unused, retNetApp, error);
 
-        BDBG_MSG(("%s() Received NETAPP_CB_BT_DISCOVERY_RESULTS, result=%d count=%d\n", __FUNCTION__, retNetApp, _discListCount));
+        BDBG_MSG(("%s() Received NETAPP_CB_BT_DISCOVERY_RESULTS, result=%d count=%d\n", BSTD_FUNCTION, retNetApp, _discListCount));
         updateBluetoothDeviceList();
         /*dumpDeviceList(); */
     }
@@ -373,7 +373,7 @@ static void bluetooth_callback(
     {
     case NETAPP_CB_CONNECT:
         BDBG_MSG(("%s() Received NETAPP_CB_CONNECT (%s) result=%d\n",
-                  __FUNCTION__, (tIFace == NETAPP_IFACE_WIRELESS) ? "Wireless" : "Bluetooth", tResult));
+                  BSTD_FUNCTION, (tIFace == NETAPP_IFACE_WIRELESS) ? "Wireless" : "Bluetooth", tResult));
 
         if (tIFace == NETAPP_IFACE_BLUETOOTH)
         {
@@ -399,7 +399,7 @@ static void bluetooth_callback(
 
     case NETAPP_CB_DISCONNECT:
         BDBG_MSG(("%s() Received NETAPP_CB_DISCONNECT (%s) result=%d\n",
-                  __FUNCTION__, (tIFace == NETAPP_IFACE_WIRELESS) ? "Wireless" : "Bluetooth", tResult));
+                  BSTD_FUNCTION, (tIFace == NETAPP_IFACE_WIRELESS) ? "Wireless" : "Bluetooth", tResult));
 
         if (tIFace == NETAPP_IFACE_BLUETOOTH)
         {
@@ -427,7 +427,7 @@ static void bluetooth_callback(
     case NETAPP_CB_HOTPLUG:
     {
         NETAPP_HOTPLUG_DEVICE_INFO * info = (NETAPP_HOTPLUG_DEVICE_INFO *)pvBuffer;
-        BDBG_MSG(("%s() Received NETAPP_CB_HOTPLUG, result=%d\n", __FUNCTION__, tResult));
+        BDBG_MSG(("%s() Received NETAPP_CB_HOTPLUG, result=%d\n", BSTD_FUNCTION, tResult));
 
         if (info->tType == NETAPP_HOTPLUG_DEVICE_USB_INPUT)
         {
@@ -446,7 +446,7 @@ static void bluetooth_callback(
     }
 
     case NETAPP_CB_BT_AVK_STATE:
-        BDBG_MSG(("%s() Received NETAPP_CB_BT_AVK_STATE result=%d\n", __FUNCTION__, tResult));
+        BDBG_MSG(("%s() Received NETAPP_CB_BT_AVK_STATE result=%d\n", BSTD_FUNCTION, tResult));
 
 #if 0
         if (tResult == NETAPP_SUCCESS)
@@ -469,11 +469,11 @@ static void bluetooth_callback(
         break;
 
     case NETAPP_CB_BT_BATTERY_LEVEL:
-        BDBG_MSG(("%s() Received NETAPP_CB_BT_BATTERY_LEVEL result=%d\n", __FUNCTION__, tResult));
+        BDBG_MSG(("%s() Received NETAPP_CB_BT_BATTERY_LEVEL result=%d\n", BSTD_FUNCTION, tResult));
 #if 0
         if (tResult == NETAPP_SUCCESS)
         {
-            BDBG_MSG(("%s() Bluetooth remote battery level is:%d\n", __FUNCTION__, ulData0));
+            BDBG_MSG(("%s() Bluetooth remote battery level is:%d\n", BSTD_FUNCTION, ulData0));
         }
 #endif /* if 0 */
         break;
@@ -485,7 +485,7 @@ static void bluetooth_callback(
 
 CBluetooth::CBluetooth(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CAudioCaptureClient(name, number, eBoardResource_bluetooth, pCfg),
@@ -816,11 +816,11 @@ eRet CBluetooth::updateConnectedBtList(
     BDBG_ASSERT(NULL != _pNetApp);
 
     retNetApp = NetAppBluetoothGetConnectedDevices(_pNetApp, &_pBtDevInfoConnList, &_connListCount);
-    BDBG_MSG(("%s: NetAppBluetoothGetConnectedDevices result _connListCount %d", __FUNCTION__, _connListCount));
+    BDBG_MSG(("%s: NetAppBluetoothGetConnectedDevices result _connListCount %d", BSTD_FUNCTION, _connListCount));
 
     if (_connListCount && (_pBtDevInfoConnList != NULL))
     {
-        BDBG_MSG(("%s: Connected Device List:", __FUNCTION__));
+        BDBG_MSG(("%s: Connected Device List:", BSTD_FUNCTION));
         print_debug_bt_dev_list(_pBtDevInfoConnList, _connListCount);
         *pBtDevInfo = _pBtDevInfoConnList;
         *ulCount    = _connListCount;
@@ -1058,7 +1058,7 @@ eRet CBluetooth::processAudioData(
 
     BSTD_UNUSED(buffer);
     BSTD_UNUSED(bufferSize);
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode(export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode(export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
 
     return(ret);
 } /* processAudioData */
@@ -1068,7 +1068,7 @@ eRet CBluetooth::processAudioSampleRate(unsigned sampleRate)
     eRet ret = eRet_Ok;
 
     BSTD_UNUSED(sampleRate);
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode (export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode (export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 } /* processAudioData */
 
@@ -1076,7 +1076,7 @@ eRet CBluetooth::startAV(void)
 {
     eRet ret = eRet_Ok;
 
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode (export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode (export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 } /* startAV */
 
@@ -1084,7 +1084,7 @@ eRet CBluetooth::stopAV(void)
 {
     eRet ret = eRet_Ok;
 
-    BDBG_ERR(("%s:Only supported in Atlas NxClient mode (export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", __FUNCTION__));
+    BDBG_ERR(("%s:Only supported in Atlas NxClient mode (export NEXUS_MODE=client). Implementation left as stub. Implemented in NX client version  ", BSTD_FUNCTION));
     return(ret);
 } /* stopAV */
 

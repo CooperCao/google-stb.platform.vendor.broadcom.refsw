@@ -94,7 +94,7 @@ BERR_Code BAPE_Buffer_Open(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    BDBG_MSG(("%s - userBuffer %p, size %lu", __FUNCTION__, (void *)pSettings->userBuffer, (unsigned long)pSettings->bufferSize));
+    BDBG_MSG(("%s - userBuffer %p, size %lu", BSTD_FUNCTION, (void *)pSettings->userBuffer, (unsigned long)pSettings->bufferSize));
     if ( NULL == pSettings->userBuffer )
     {
         if ( NULL == pSettings->heap )
@@ -103,7 +103,7 @@ BERR_Code BAPE_Buffer_Open(
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
-        BDBG_MSG(("%s - calling BMMA_Alloc(%p, %lu)", __FUNCTION__, (void *)pSettings->heap, (unsigned long)pSettings->bufferSize));
+        BDBG_MSG(("%s - calling BMMA_Alloc(%p, %lu)", BSTD_FUNCTION, (void *)pSettings->heap, (unsigned long)pSettings->bufferSize));
         block = BMMA_Alloc(pSettings->heap, pSettings->bufferSize, 0, NULL);
         if ( NULL == block )
         {
@@ -139,7 +139,7 @@ BERR_Code BAPE_Buffer_Open(
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
-    BDBG_MSG(("%s:%d - memset buffer %p size %lu", __FUNCTION__, __LINE__, (void *)buffer, (unsigned long)pSettings->bufferSize));
+    BDBG_MSG(("%s:%d - memset buffer %p size %lu", BSTD_FUNCTION, __LINE__, (void *)buffer, (unsigned long)pSettings->bufferSize));
     BKNI_Memset(buffer, 0, pSettings->bufferSize);
     BKNI_Memset(handle, 0, sizeof(BAPE_Buffer));
     BDBG_OBJECT_SET(handle, BAPE_Buffer);
@@ -152,7 +152,7 @@ BERR_Code BAPE_Buffer_Open(
     handle->userAllocatedBuffer = (pSettings->userBuffer != NULL);
     handle->settings = *pSettings;
 
-    BDBG_MSG(("%s - SUCCESS, returning BAPE_BufferHandle %p", __FUNCTION__, (void *)handle));
+    BDBG_MSG(("%s - SUCCESS, returning BAPE_BufferHandle %p", BSTD_FUNCTION, (void *)handle));
 
     *pHandle = handle;
     return BERR_SUCCESS;
@@ -168,10 +168,10 @@ void BAPE_Buffer_Close(
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
 
-    BDBG_MSG(("%s - ", __FUNCTION__));
+    BDBG_MSG(("%s - ", BSTD_FUNCTION));
     if ( !handle->userAllocatedBuffer )
     {
-        BDBG_MSG(("%s - calling BMMA_Free", __FUNCTION__));
+        BDBG_MSG(("%s - calling BMMA_Free", BSTD_FUNCTION));
         BMMA_Unlock(handle->block, handle->buffer);
         handle->buffer = NULL;
         BMMA_Free(handle->block);
@@ -183,7 +183,7 @@ void BAPE_Buffer_Close(
     BDBG_OBJECT_DESTROY(handle, BAPE_Buffer);
     BKNI_Free(handle);
     handle = NULL;
-    BDBG_MSG(("%s - SUCCESS, returning", __FUNCTION__));
+    BDBG_MSG(("%s - SUCCESS, returning", BSTD_FUNCTION));
 }
 
 /***************************************************************************
@@ -197,7 +197,7 @@ unsigned BAPE_Buffer_Read_isr(
 {
     unsigned size = 0;
 
-    BDBG_MSG(("%s - ", __FUNCTION__));
+    BDBG_MSG(("%s - ", BSTD_FUNCTION));
     if ( handle == NULL || pDescriptor == NULL )
     {
         return 0;

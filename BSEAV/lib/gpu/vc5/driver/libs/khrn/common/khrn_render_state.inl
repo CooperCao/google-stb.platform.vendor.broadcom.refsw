@@ -71,10 +71,11 @@ static inline GLXX_HW_RENDER_STATE_T *khrn_render_state_get_glxx(khrn_render_sta
    return &rs->data.glxx;
 }
 
-
+#if KHRN_GLES31_DRIVER
 static inline glxx_compute_render_state* khrn_render_state_get_glxx_compute(khrn_render_state* rs)
 {
    static_assrt(offsetof(khrn_render_state, data.glxx_compute) == 0);
    assert(rs->type == KHRN_RENDER_STATE_TYPE_GLXX_COMPUTE);
    return &rs->data.glxx_compute;
 }
+#endif

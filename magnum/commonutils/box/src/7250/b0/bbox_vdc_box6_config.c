@@ -71,6 +71,6 @@ void BBOX_P_Vdc_SetBox6SourceCapabilities
 void BBOX_P_Vdc_SetBox6DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
-    BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, HD,      Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
-    BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video0, INVALID, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
+    BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, HD,      false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
+    BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video0, INVALID, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
 }

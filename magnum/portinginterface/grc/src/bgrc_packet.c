@@ -111,6 +111,9 @@
 #include "bgrc_private.h"
 #include "bgrc_packet_priv.h"
 
+#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+#include "bchp_m2mc_cxt_sch.h"
+#endif
 BDBG_MODULE(BGRC);
 BDBG_FILE_MODULE(BGRC_LISTSTATUS);
 BDBG_OBJECT_ID(BGRC);
@@ -206,6 +209,9 @@ void BGRC_P_ResetDevice(
         BREG_Write32( hGrc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR, BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_1_CLEAR, m2mc1_sw_init, 1));
         BREG_Write32( hGrc->hRegister, BCHP_M2MC1_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
 
+#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+        BREG_Write32(hGrc->hRegister, BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT1, BCHP_FIELD_DATA(M2MC_CXT_SCH_WEIGHT_CONTEXT0, WEIGHT, hGrc->ulWeight));
+#endif
         /* always enable dither: HW will disable automatically if input is not 10 bits */
         #ifdef BCHP_M2MC1_DITHER_CONTROL_0
         BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_CONTROL_0,
@@ -258,6 +264,10 @@ void BGRC_P_ResetDevice(
             BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T1, B8) |
             BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T2, B12));
         #endif
+
+#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+        BREG_Write32(hGrc->hRegister, BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT0, BCHP_FIELD_DATA(M2MC_CXT_SCH_WEIGHT_CONTEXT0, WEIGHT, hGrc->ulWeight));
+#endif
     }
 #elif defined(BCHP_M2MC1_REG_START) /* old process for 40 nm chips, 28 nm chips, ... */
     if( hGrc->ulDeviceNum )
@@ -483,6 +493,10 @@ BERR_Code BGRC_Open(
     hGrc->ulOperationMax = pDefSettings ? pDefSettings->ulOperationMax : BGRC_P_DEFAULT_SETTINGS.ulOperationMax;
     hGrc->ulDeviceNum = pDefSettings ? pDefSettings->ulDeviceNum : BGRC_P_DEFAULT_SETTINGS.ulDeviceNum;
     hGrc->ulWaitTimeout = pDefSettings ? pDefSettings->ulWaitTimeout : BGRC_P_DEFAULT_SETTINGS.ulWaitTimeout;
+#if (BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT)
+    /* different number can schedule traffic to m2mc0 and m2mc1 traffice */
+    hGrc->ulWeight = BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT0_WEIGHT_DEFAULT;
+#endif
 
     /* turn on power for this m2mc engine */
     BGRC_P_SetupPower(hGrc, true, true);

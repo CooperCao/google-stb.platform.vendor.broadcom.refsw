@@ -73,14 +73,14 @@ static void NEXUS_Sage_WatchdogEventhandler(void *dummy)
 
     BSTD_UNUSED(dummy);
 
-    BDBG_MSG(("%s: Reset in progress", __FUNCTION__));
+    BDBG_MSG(("%s: Reset in progress", BSTD_FUNCTION));
 
     /* Re-Start SAGE */
     BSAGElib_Management_Reset(g_NEXUS_sageModule.hSAGElib);
     rc = NEXUS_SageModule_P_Start();
     BDBG_ASSERT(rc == NEXUS_SUCCESS);
     if(rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_SageModule_P_Start() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_SageModule_P_Start() fails %d", BSTD_FUNCTION, rc));
         /* TODO: define the watchdog error policy */
     }
 
@@ -137,7 +137,7 @@ static void NEXUS_Sage_P_WatchdogIntHandler_isr(void)
     g_NEXUS_sageModule.reset = 1;
     g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
-    BDBG_MSG(("%s: Reset interrupt", __FUNCTION__));
+    BDBG_MSG(("%s: Reset interrupt", BSTD_FUNCTION));
 
     BKNI_SetEvent_isr(g_sage_watchdog.event);
 }
@@ -152,7 +152,7 @@ NEXUS_Error NEXUS_Sage_P_WatchdogLink(NEXUS_SageHandle sage, const NEXUS_Callbac
 
     if (!watchdogCallback->callback) {
         BDBG_WRN(("%s: Cannot link Sage instance %p with a watchdog Callback",
-                  __FUNCTION__, (void *)sage));
+                  BSTD_FUNCTION, (void *)sage));
         goto end;
     }
 
@@ -187,7 +187,7 @@ NEXUS_Error NEXUS_Sage_P_WatchdogInit(void)
     BERR_Code magnumRc;
 
     if (_g_init) {
-        BDBG_ERR(("%s: already init", __FUNCTION__));
+        BDBG_ERR(("%s: already init", BSTD_FUNCTION));
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto err;
     }
@@ -214,7 +214,7 @@ NEXUS_Error NEXUS_Sage_P_WatchdogInit(void)
     magnumRc = BSAGElib_Management_Register(g_NEXUS_sageModule.hSAGElib,
                                             &g_sage_watchdog.i_management);
     if (magnumRc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: Cannot register watchdog callback (%u)", __FUNCTION__, magnumRc));
+        BDBG_ERR(("%s: Cannot register watchdog callback (%u)", BSTD_FUNCTION, magnumRc));
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto err;
     }
@@ -236,7 +236,7 @@ void NEXUS_Sage_P_WatchdogUninit(void)
     magnumRc = BSAGElib_Management_Unregister(g_NEXUS_sageModule.hSAGElib,
                                               &g_sage_watchdog.i_management);
     if (magnumRc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: Cannot Unregister watchdog callback (%u)", __FUNCTION__, magnumRc));
+        BDBG_ERR(("%s: Cannot Unregister watchdog callback (%u)", BSTD_FUNCTION, magnumRc));
         (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 

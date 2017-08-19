@@ -52,6 +52,7 @@
 #if NEXUS_HAS_VIDEO_DECODER
 #include "nexus_video_decoder_init.h"
 #include "priv/nexus_video_decoder_standby_priv.h"
+#include "priv/nexus_video_decoder_priv.h"
 #endif
 #if NEXUS_HAS_DISPLAY
 #include "nexus_display_init.h"
@@ -257,7 +258,7 @@ static void NEXUS_P_Platform_CallbackMonitor(void *context)
 #endif
 
 static NEXUS_Platform_P_ModuleInfo * NEXUS_Platform_P_AddModule(NEXUS_ModuleHandle module_handle,
-                                NEXUS_PlatformStandbyLockMode lock_mode,
+                                NEXUS_ModuleStandbyLevel standby_level,
                                 void (*uninit)(void),
                                 NEXUS_Error (*standby)(bool, const NEXUS_StandbySettings *))
 {
@@ -272,7 +273,7 @@ static NEXUS_Platform_P_ModuleInfo * NEXUS_Platform_P_AddModule(NEXUS_ModuleHand
 
     BKNI_Memset(module_info, 0, sizeof(*module_info));
     module_info->module = module_handle;
-    module_info->lock_mode = lock_mode;
+    module_info->standby_level = standby_level;
     module_info->locked = false;
     module_info->powerdown = false;
     module_info->uninit = uninit;
@@ -369,7 +370,7 @@ static void NEXUS_Platform_P_InitAudio(void *context)
     {
         BDBG_ERR(("Unable to init audio"));
     } else {
-        NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.audio, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_AudioModule_Uninit, NEXUS_AudioModule_Standby_priv);
+        NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.audio, NEXUS_ModuleStandbyLevel_eAll, NEXUS_AudioModule_Uninit, NEXUS_AudioModule_Standby_priv);
     }
 }
 #endif
@@ -521,6 +522,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_IR_INPUT
         NEXUS_IrInputModuleSettings irInputSettings;
 #endif
+#if NEXUS_HAS_INPUT_CAPTURE
+        NEXUS_InputCaptureModuleSettings inputCaptureSettings;
+#endif
 #if NEXUS_HAS_LED
         NEXUS_LedModuleSettings ledSettings;
 #endif
@@ -565,6 +569,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #endif
 #if NEXUS_HAS_SURFACE_COMPOSITOR
         NEXUS_SurfaceCompositorModuleSettings surfaceCompositorSettings;
+#endif
+#if NEXUS_HAS_INPUT_ROUTER
+        NEXUS_InputRouterModuleSettings inputRouterSettings;
 #endif
 #if NEXUS_HAS_SMARTCARD
         NEXUS_SmartcardModuleInternalSettings smartcardSettings;
@@ -673,7 +680,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     errCode = NEXUS_Platform_P_InitCore(preInitState, &g_NEXUS_platformSettings);
     if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err_core; }
 
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.core, NEXUS_PlatformStandbyLockMode_ePassiveOnly, NULL, NEXUS_CoreModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.core, NEXUS_ModuleStandbyLevel_eAlwaysOn, NULL, NEXUS_CoreModule_Standby_priv);
 
     {
         struct status {
@@ -684,8 +691,8 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         if (!status) { errCode=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_core; }
         NEXUS_Platform_GetReleaseVersion(status->platformSwVersion, sizeof(status->platformSwVersion));
         BCHP_GetInfo(g_pCoreHandles->chp, &status->info);
-        BDBG_WRN(("%s, boxmode %d, product %x %c%u", status->platformSwVersion, preInitState->boxMode,
-            status->info.productId, 'A' + (status->info.rev >> 4), (status->info.rev & 0xF)));
+        BDBG_WRN(("%s, boxmode %d, pmap %d, product %x %c%u", status->platformSwVersion, preInitState->boxMode,
+            preInitState->pMapId, status->info.productId, 'A' + (status->info.rev >> 4), (status->info.rev & 0xF)));
         BKNI_Free(status);
     }
 
@@ -735,15 +742,14 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_DMA
     BDBG_MSG((">DMA"));
     NEXUS_DmaModule_GetDefaultSettings(&state->dmaSettings);
-    state->dmaSettings.common.enabledDuringActiveStandby = true;
+    state->dmaSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
     g_NEXUS_platformHandles.dma = NEXUS_DmaModule_Init(&state->dmaSettings);
     if (!g_NEXUS_platformHandles.dma) {
         BDBG_ERR(("Unable to init Dma"));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.dma, state->dmaSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
-                   NEXUS_DmaModule_Uninit, NEXUS_DmaModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.dma, state->dmaSettings.common.standbyLevel, NEXUS_DmaModule_Uninit, NEXUS_DmaModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_TRANSPORT
@@ -752,7 +758,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     state->transportSettings.dma = g_NEXUS_platformHandles.dma;
     state->transportSettings.core = g_NEXUS_platformHandles.core;
     state->transportSettings.secureHeap = g_pCoreHandles->heap[NEXUS_VIDEO_SECURE_HEAP].nexus;
-    g_NEXUS_platformSettings.transportModuleSettings.common.enabledDuringActiveStandby = true;
     state->transportSettings.mainHeapIndex = g_pCoreHandles->defaultHeapIndex;
 #if NEXUS_HAS_SECURITY
     state->transportSettings.postInitCalledBySecurity = true;
@@ -763,8 +768,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.transport, g_NEXUS_platformSettings.transportModuleSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
-                   NEXUS_TransportModule_Uninit, NEXUS_TransportModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.transport, g_NEXUS_platformSettings.transportModuleSettings.common.standbyLevel, NEXUS_TransportModule_Uninit, NEXUS_TransportModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_SECURITY
@@ -780,10 +784,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         goto err;
     }
     NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
-    NEXUS_Security_PrintArchViolation_priv(BMRC_Monitor_HwBlock_eInvalid); /* print (and clear) any outstanding ARCH violations on boot */
+    NEXUS_Security_PrintArchViolation_priv(); /* print (and clear) any outstanding ARCH violations on boot */
     NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.security, g_NEXUS_platformSettings.securitySettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
-                   NEXUS_SecurityModule_Uninit, NEXUS_SecurityModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.security, g_NEXUS_platformSettings.securitySettings.common.standbyLevel, NEXUS_SecurityModule_Uninit, NEXUS_SecurityModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_SAGE
@@ -800,11 +803,13 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
             goto err;
         }
     }
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.sage, pSettings->sageModuleSettings.common.standbyLevel, NEXUS_SageModule_Uninit,
 #if NEXUS_POWER_MANAGEMENT
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.sage, NEXUS_PlatformStandbyLockMode_ePassiveOnly, NEXUS_SageModule_Uninit, NEXUS_SageModule_Standby_priv);
+            NEXUS_SageModule_Standby_priv
 #else
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.sage, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_SageModule_Uninit, NULL);
+            NULL
 #endif
+    );
 #endif
 
     /* init power state, which blanks display. then bring up transport via security. */
@@ -834,7 +839,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_ePassiveOnly, NEXUS_Nsk2hdiModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_Nsk2hdiModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_SCM
@@ -845,7 +850,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     } else {
-        NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.scm, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_ScmModule_Uninit, NULL);
+        NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.scm, NEXUS_ModuleStandbyLevel_eAll, NEXUS_ScmModule_Uninit, NULL);
     }
 #endif
 
@@ -853,7 +858,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     /* Init I2C */
     BDBG_MSG((">I2C"));
     NEXUS_I2cModule_GetDefaultSettings(&state->i2cSettings);
-    state->i2cSettings.common.enabledDuringActiveStandby = true;
+    state->i2cSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
     g_NEXUS_platformHandles.i2c = NEXUS_I2cModule_Init(&state->i2cSettings);
     if ( !g_NEXUS_platformHandles.i2c ) {
         BDBG_ERR(("Unable to init I2C"));
@@ -861,7 +866,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         goto err;
     }
     else {
-        NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.i2c, state->i2cSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_I2cModule_Uninit, NEXUS_I2cModule_Standby_priv);
+        NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.i2c, state->i2cSettings.common.standbyLevel, NEXUS_I2cModule_Uninit, NEXUS_I2cModule_Standby_priv);
     }
 #endif
 
@@ -882,7 +887,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.hdmiInput, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_HdmiInputModule_Uninit, NEXUS_HdmiInputModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.hdmiInput, NEXUS_ModuleStandbyLevel_eAll, NEXUS_HdmiInputModule_Uninit, NEXUS_HdmiInputModule_Standby_priv);
 #endif
 
 
@@ -905,19 +910,20 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.hdmiOutput, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_HdmiOutputModule_Uninit, NEXUS_HdmiOutputModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.hdmiOutput, NEXUS_ModuleStandbyLevel_eAll, NEXUS_HdmiOutputModule_Uninit, NEXUS_HdmiOutputModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_CEC
     BDBG_MSG((">CEC"));
     NEXUS_CecModule_GetDefaultSettings(&state->cecSettings);
+    state->cecSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
     g_NEXUS_platformHandles.cec = NEXUS_CecModule_Init(&state->cecSettings);
     if ( !g_NEXUS_platformHandles.cec) {
         BDBG_ERR(("Unable to init CEC"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.cec, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_CecModule_Uninit, NEXUS_CecModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.cec, state->cecSettings.common.standbyLevel, NEXUS_CecModule_Uninit, NEXUS_CecModule_Standby_priv);
 #endif
 
 
@@ -929,7 +935,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.hdmiDvo, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_HdmiDvoModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.hdmiDvo, NEXUS_ModuleStandbyLevel_eAll, NEXUS_HdmiDvoModule_Uninit, NULL);
 #endif
 
 
@@ -943,7 +949,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.rfm, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_RfmModule_Uninit, NEXUS_RfmModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.rfm, NEXUS_ModuleStandbyLevel_eAll, NEXUS_RfmModule_Uninit, NEXUS_RfmModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_SURFACE
@@ -957,7 +963,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.surface, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_SurfaceModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.surface, NEXUS_ModuleStandbyLevel_eAll, NEXUS_SurfaceModule_Uninit, NULL);
 #endif
 
 
@@ -965,39 +971,41 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_SPI
     BDBG_MSG((">SPI"));
     NEXUS_SpiModule_GetDefaultSettings(&state->spiSettings);
-    state->spiSettings.common.enabledDuringActiveStandby = false;
+    state->spiSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
     handle = NEXUS_SpiModule_Init(&state->spiSettings);
     if ( !handle ) {
         BDBG_ERR(("Unable to init Spi"));
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_SpiModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, state->spiSettings.common.standbyLevel, NEXUS_SpiModule_Uninit, NULL);
 #endif
 
     /* Other IO modules */
 #if NEXUS_HAS_IR_INPUT
     BDBG_MSG((">IR_INPUT"));
     NEXUS_IrInputModule_GetDefaultSettings(&state->irInputSettings);
-    state->irInputSettings.common.enabledDuringActiveStandby = true;
+    state->irInputSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
     handle = NEXUS_IrInputModule_Init(&state->irInputSettings);
     if ( !handle ) {
         BDBG_ERR(("Unable to init Ir Input"));
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_IrInputModule_Uninit, NEXUS_IrInputModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, state->irInputSettings.common.standbyLevel, NEXUS_IrInputModule_Uninit, NEXUS_IrInputModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_INPUT_CAPTURE
     BDBG_MSG((">INPUT_CAPTURE"));
-    handle = NEXUS_InputCaptureModule_Init(NULL);
+    NEXUS_InputCaptureModule_GetDefaultSettings(&state->inputCaptureSettings);
+    state->inputCaptureSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
+    handle = NEXUS_InputCaptureModule_Init(&state->inputCaptureSettings);
     if ( !handle ) {
         BDBG_ERR(("Unable to init Input Capture"));
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_InputCaptureModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, state->inputCaptureSettings.common.standbyLevel, NEXUS_InputCaptureModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_IR_BLASTER
@@ -1008,27 +1016,26 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_IrBlasterModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_IrBlasterModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_UHF_INPUT
     BDBG_MSG((">UHF_INPUT"));
     NEXUS_UhfInputModule_GetDefaultSettings(&state->uhfSettings);
-    state->uhfSettings.common.enabledDuringActiveStandby = true;
+    state->uhfSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
     handle = NEXUS_UhfInputModule_Init(&state->uhfSettings);
     if ( !handle ) {
         BDBG_ERR(("Unable to init Uhf Input"));
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, state->uhfSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
-                   NEXUS_UhfInputModule_Uninit, NEXUS_UhfInputModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, state->uhfSettings.common.standbyLevel, NEXUS_UhfInputModule_Uninit, NEXUS_UhfInputModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_GPIO
     BDBG_MSG((">GPIO"));
     NEXUS_GpioModule_GetDefaultSettings(&state->gpioSettings);
-    state->gpioSettings.common.enabledDuringActiveStandby = true;
+    state->gpioSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
     NEXUS_Platform_P_GetGpioModuleOsSharedBankSettings(&state->gpioSettings.osSharedBankSettings);
     g_NEXUS_platformHandles.gpio = NEXUS_GpioModule_Init(&state->gpioSettings);
     if ( !g_NEXUS_platformHandles.gpio ) {
@@ -1036,7 +1043,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.gpio, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_GpioModule_Uninit, NEXUS_GpioModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.gpio, state->gpioSettings.common.standbyLevel, NEXUS_GpioModule_Uninit, NEXUS_GpioModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_LED
@@ -1048,12 +1055,12 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_LedModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, state->ledSettings.common.standbyLevel, NEXUS_LedModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_KEYPAD
     NEXUS_KeypadModule_GetDefaultSettings(&state->keypadSettings);
-    state->keypadSettings.common.enabledDuringActiveStandby = true;
+    state->keypadSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
     BDBG_MSG((">KEYPAD"));
     handle = NEXUS_KeypadModule_Init(&state->keypadSettings);
     if ( !handle ) {
@@ -1061,20 +1068,19 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_KeypadModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, state->keypadSettings.common.standbyLevel, NEXUS_KeypadModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_UART
     BDBG_MSG((">UART"));
     NEXUS_UartModule_GetDefaultSettings(&state->uartSettings);
-    state->uartSettings.common.enabledDuringActiveStandby = false;
     handle = NEXUS_UartModule_Init(&state->uartSettings);
     if (!handle) {
         BDBG_ERR(("Unable to init Uart"));
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, state->uartSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_UartModule_Uninit, NEXUS_UartModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, state->uartSettings.common.standbyLevel, NEXUS_UartModule_Uninit, NEXUS_UartModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_TOUCHPAD
@@ -1085,14 +1091,14 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_TouchpadModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_TouchpadModule_Uninit, NULL);
 #endif
 #if NEXUS_HAS_FRONTEND
     BDBG_MSG((">FRONTEND"));
     NEXUS_FrontendModule_GetDefaultSettings(&state->frontendSettings);
     state->frontendSettings.i2cModule = g_NEXUS_platformHandles.i2c;
     state->frontendSettings.transport = g_NEXUS_platformHandles.transport;
-    state->frontendSettings.common.enabledDuringActiveStandby = true;
+    state->frontendSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
     g_NEXUS_platformHandles.frontend = NEXUS_FrontendModule_Init(&state->frontendSettings);
     if ( !g_NEXUS_platformHandles.frontend )
     {
@@ -1100,8 +1106,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.frontend, state->frontendSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
-                   NEXUS_FrontendModule_Uninit, NEXUS_FrontendModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.frontend, state->frontendSettings.common.standbyLevel, NEXUS_FrontendModule_Uninit, NEXUS_FrontendModule_Standby_priv);
 #endif
 
 
@@ -1130,7 +1135,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.pictureDecoder, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_PictureDecoderModule_Uninit, NEXUS_PictureDecoderModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.pictureDecoder, NEXUS_ModuleStandbyLevel_eAll, NEXUS_PictureDecoderModule_Uninit, NEXUS_PictureDecoderModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_VIDEO_DECODER
@@ -1164,7 +1169,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_ePassiveOnly, NEXUS_DvbCiModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_DvbCiModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_GRAPHICS2D
@@ -1177,7 +1182,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_Graphics2DModule_Uninit, NEXUS_Graphics2DModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_Graphics2DModule_Uninit, NEXUS_Graphics2DModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_SMARTCARD
@@ -1189,8 +1194,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, g_NEXUS_platformSettings.smartCardSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
-                   NEXUS_SmartcardModule_Uninit, NEXUS_SmartcardModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, g_NEXUS_platformSettings.smartCardSettings.common.standbyLevel, NEXUS_SmartcardModule_Uninit, NEXUS_SmartcardModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_PWM
@@ -1201,34 +1205,30 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.pwm, g_NEXUS_platformSettings.pwmSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_PwmModule_Uninit, NEXUS_PwmModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.pwm, g_NEXUS_platformSettings.pwmSettings.common.standbyLevel, NEXUS_PwmModule_Uninit, NEXUS_PwmModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_TEMP_MONITOR
     BDBG_MSG((">TEMP_MONITOR"));
     NEXUS_TempMonitorModule_GetDefaultSettings(&state->tempMonitorSettings);
-    state->tempMonitorSettings.common.enabledDuringActiveStandby = false;
     handle = NEXUS_TempMonitorModule_Init(&state->tempMonitorSettings);
     if (!handle) {
         BDBG_ERR(("NEXUS_TempMonitorModule_Init failed"));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, state->tempMonitorSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_TempMonitorModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, state->tempMonitorSettings.common.standbyLevel, NEXUS_TempMonitorModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_FILE
     BDBG_MSG((">FILE"));
-    NEXUS_FileModule_GetDefaultSettings(&state->fileModuleSettings);
-    state->fileModuleSettings.workerThreads = g_NEXUS_platformSettings.fileModuleSettings.workerThreads;
-    BKNI_Memcpy(state->fileModuleSettings.schedulerSettings, g_NEXUS_platformSettings.fileModuleSettings.schedulerSettings, sizeof(state->fileModuleSettings.schedulerSettings));
-    g_NEXUS_platformHandles.file = NEXUS_FileModule_Init(&state->fileModuleSettings);
+    g_NEXUS_platformHandles.file = NEXUS_FileModule_Init(&g_NEXUS_platformSettings.fileModuleSettings);
     if (!g_NEXUS_platformHandles.file) {
         BDBG_ERR(("Unable to init File"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.file, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_FileModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.file, g_NEXUS_platformSettings.fileModuleSettings.common.standbyLevel, NEXUS_FileModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_GRAPHICSV3D
@@ -1244,7 +1244,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_Graphicsv3dModule_Uninit, NEXUS_Graphicsv3d_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_Graphicsv3dModule_Uninit, NEXUS_Graphicsv3d_Standby_priv);
 #endif
 
 #if NEXUS_HAS_DISPLAY
@@ -1300,7 +1300,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     } else {
-        NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_SyncChannelModule_Uninit, NULL);
+        NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_SyncChannelModule_Uninit, NULL);
     }
 #endif
 
@@ -1320,10 +1320,10 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     NEXUS_DisplayModule_SetVideoDecoderModule(g_NEXUS_platformHandles.videoDecoder);
 #endif
     /* Video Decoder and Display need to go in this order */
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.videoDecoder, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_VideoDecoderModule_Uninit, NEXUS_VideoDecoderModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.videoDecoder, NEXUS_ModuleStandbyLevel_eAll, NEXUS_VideoDecoderModule_Uninit, NEXUS_VideoDecoderModule_Standby_priv);
 #endif
 #if NEXUS_HAS_DISPLAY
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.display, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_DisplayModule_Uninit, NEXUS_DisplayModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.display, NEXUS_ModuleStandbyLevel_eAll, NEXUS_DisplayModule_Uninit, NEXUS_DisplayModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -1341,7 +1341,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.videoEncoder, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_VideoEncoderModule_Uninit, NEXUS_VideoEncoderModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.videoEncoder, NEXUS_ModuleStandbyLevel_eAll, NEXUS_VideoEncoderModule_Uninit, NEXUS_VideoEncoderModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_STREAM_MUX
@@ -1357,7 +1357,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_StreamMuxModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_StreamMuxModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_ASTM
@@ -1372,7 +1372,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_AstmModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_AstmModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_PLAYBACK
@@ -1388,7 +1388,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.playback, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_PlaybackModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.playback, NEXUS_ModuleStandbyLevel_eAll, NEXUS_PlaybackModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_RECORD
@@ -1405,7 +1405,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_RecordModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, state->recordSettings.common.standbyLevel, NEXUS_RecordModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_FILE_MUX
@@ -1416,7 +1416,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_FileMuxModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_FileMuxModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_SIMPLE_DECODER
@@ -1431,7 +1431,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_SimpleDecoderModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_SimpleDecoderModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_SURFACE_COMPOSITOR
@@ -1444,18 +1444,19 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_SurfaceCompositorModule_Uninit, NEXUS_SurfaceCompositorModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_SurfaceCompositorModule_Uninit, NEXUS_SurfaceCompositorModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_INPUT_ROUTER
     BDBG_MSG((">INPUT_ROUTER"));
-    handle = NEXUS_InputRouterModule_Init(NULL);
+    NEXUS_InputRouterModule_GetDefaultSettings(&state->inputRouterSettings);
+    handle = NEXUS_InputRouterModule_Init(&state->inputRouterSettings);
     if (!handle) {
         BDBG_ERR(("Unable to init InputRouter"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_InputRouterModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, state->inputRouterSettings.common.standbyLevel, NEXUS_InputRouterModule_Uninit, NULL);
 #endif
 
     /* all modules are up, so we can bring up IPC server before opening interfaces. */
@@ -1539,7 +1540,7 @@ err_state_alloc:
     NEXUS_Platform_P_PreUninit();
 err_preinit:
     BDBG_ASSERT(errCode); /* if we've taken this path, it's only because of failure */
-    BDBG_ERR(("NEXUS_Platform_Init has failed. The system is not usable. Handles returned by NEXUS_Platform_GetConfiguration are likely to be invalid."));
+    BDBG_ERR(("NEXUS_Platform_Init has failed. The system is not usable."));
     return errCode;
 }
 
@@ -1659,7 +1660,7 @@ void NEXUS_Platform_WriteRegister( uint32_t address, uint32_t value )
 
 NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
 {
-    unsigned i;
+    unsigned i, id;
     BCHP_Info info;
 
     BDBG_ASSERT(g_NEXUS_platformModule); /* make sure NEXUS_Platform_Init was called */
@@ -1674,7 +1675,9 @@ NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
     pStatus->estimatedMemory = g_NEXUS_platformHandles.estimatedMemory;
 
     /* modify struct with board specific status */
-    NEXUS_Platform_P_AddBoardStatus(pStatus);
+    id = NEXUS_Platform_P_ReadBoardId();
+    pStatus->boardId.major = (id >> 4) & 0xF;
+    pStatus->boardId.minor = id & 0xF;
 
 #if NEXUS_HAS_DISPLAY
     if (g_NEXUS_platformHandles.display
@@ -1695,6 +1698,20 @@ NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
     }
 
     return 0;
+}
+
+void NEXUS_Platform_IsLicensedFeatureSupported(NEXUS_LicensedFeature feature, bool *pSupported)
+{
+    BERR_Code rc;
+    BDBG_CASSERT(BCHP_LicensedFeature_eMax == (BCHP_LicensedFeature)NEXUS_LicensedFeature_eMax);
+
+    if (feature >= NEXUS_LicensedFeature_eMax) {
+        *pSupported = false;
+        return;
+    }
+    rc = BCHP_HasLicensedFeature_isrsafe(g_pCoreHandles->chp, (BCHP_LicensedFeature)feature);
+    *pSupported = (rc==BERR_SUCCESS);
+    return;
 }
 
 #include "b_objdb.h"
@@ -2242,6 +2259,20 @@ NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings( NEXUS_HeapHandle heap, const 
     if(pSettings->secure!=settings.secure) {
         NEXUS_MemoryStatus status;
 
+#if NEXUS_HAS_VIDEO_DECODER
+        {
+        bool openDecoder;
+        NEXUS_Module_Lock(g_NEXUS_platformHandles.videoDecoder);
+        openDecoder = NEXUS_VideoDecoderModule_DecoderOpenInSecureHeaps_priv();
+        NEXUS_Module_Unlock(g_NEXUS_platformHandles.videoDecoder);
+        if (openDecoder) {
+            BDBG_ERR(("cannot toggle URR security with open decoder"));
+            rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto EXIT;
+        }
+        }
+#endif
+
         rc = NEXUS_Heap_GetStatus_driver_priv(heap, &status);
         if (rc != NEXUS_SUCCESS) {
             rc = BERR_TRACE(rc);
@@ -2303,6 +2334,9 @@ EXIT:
             NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
         }
     }
+#else
+    BSTD_UNUSED(callSage);
+    BSTD_UNUSED(pictureBuff);
 #endif
 
     return rc;
@@ -2329,4 +2363,9 @@ NEXUS_Error NEXUS_Platform_GetIdFromObject( NEXUS_AnyObject object, NEXUS_BaseOb
         rc = NEXUS_BaseObject_GetId(object, id);
     }
     return rc;
+}
+
+void NEXUS_Platform_GetFileModuleSettings_driver( NEXUS_FileModuleSettings *pFileModuleSettings )
+{
+    *pFileModuleSettings = g_NEXUS_platformSettings.fileModuleSettings;
 }

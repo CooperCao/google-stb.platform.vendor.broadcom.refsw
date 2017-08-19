@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c) 2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,7 @@
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Mon Jul 25 22:18:23 2016 GMT
+ *   at: Mon Jun  5 22:15:29 2017 GMT
  *   by: robinc
  *   for: Box 7445_1u3t
  *         MemC 0 (32-bit DDR3@1067MHz) w/432MHz clock
@@ -58,18 +58,18 @@
  *         MemC 2 (32-bit DDR3@1067MHz) w/432MHz clock
  *
  *   Run from /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/rts_shell_v3.pl
- *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0_sling_box14_hitemp.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0_sling_box18_hitemp.cfg
  *     xls_input/box_sling_mod.pl
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0MemoryTiming.cfg
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/MEMC_b1.3r8_timing_CLwc.lib
- *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/MEMC_b1r8_timingf_CLwc.lib
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/MEMC_b1r8_timingh_CLwc.lib
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/VideoDecoder_rQ.cfg
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/library_tools.cfg
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/Vice_v2p1c.cfg
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0BvnLib.cfg
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0Client.cfg
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0ClientMap.cfg
- *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0ClientTime_hitemp.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0ClientTime_hitemp_box18.cfg
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7445D0_Robin/BCM7445D0Display.cfg
  *
  *****************************************************************************/
@@ -80,7 +80,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20160725221823_7445_1u3t[] = {
+static const uint32_t aulMemc0_20170605221529_7445_1u3t[] = {
            0x001e7002,  /*   0: XPT_WR_RS 1134.2383107089ns */
            0x803a1062,  /*   1: XPT_WR_XC RR 2285.71428571429ns */
            0x80490009,  /*   2: XPT_WR_CDB RR 2709.90990990991ns */
@@ -203,18 +203,18 @@ static const uint32_t aulMemc0_20160725221823_7445_1u3t[] = {
            0x3ffff0ff,  /* 119: UNASSIGNED off */
            0x3ffff054,  /* 120: BVN_VFD2 off */
            0x3ffff0ff,  /* 121: UNASSIGNED off */
-           0x3ffff00a,  /* 122: BVN_VFD4 off */
-           0x3ffff00b,  /* 123: BVN_VFD5 off */
-           0x3ffff00c,  /* 124: BVN_VFD6 off */
-           0x3ffff00d,  /* 125: BVN_VFD7 off */
+           0x3ffff00d,  /* 122: BVN_VFD4 off */
+           0x3ffff00e,  /* 123: BVN_VFD5 off */
+           0x3ffff00f,  /* 124: BVN_VFD6 off */
+           0x3ffff010,  /* 125: BVN_VFD7 off */
            0x0079c02e,  /* 126: BVN_CAP0 4514.376ns */
            0x3ffff0ff,  /* 127: UNASSIGNED off */
            0x3ffff04e,  /* 128: BVN_CAP2 off */
            0x3ffff0ff,  /* 129: UNASSIGNED off */
-           0x3ffff00e,  /* 130: BVN_CAP4 off */
-           0x3ffff00f,  /* 131: BVN_CAP5 off */
-           0x3ffff010,  /* 132: BVN_CAP6 off */
-           0x3ffff011,  /* 133: BVN_CAP7 off */
+           0x3ffff011,  /* 130: BVN_CAP4 off */
+           0x3ffff00a,  /* 131: BVN_CAP5 off */
+           0x3ffff00b,  /* 132: BVN_CAP6 off */
+           0x3ffff00c,  /* 133: BVN_CAP7 off */
            0x0031d006,  /* 134: BVN_GFD0 1851ns */
            0x0167c04d,  /* 135: BVN_GFD1 13330ns */
            0x3ffff0ff,  /* 136: UNASSIGNED off */
@@ -338,7 +338,7 @@ static const uint32_t aulMemc0_20160725221823_7445_1u3t[] = {
            0xbffff0ff,  /* 254: MEMC_DRAM_INIT_ZQCS RR */
            0x00692029   /* 255: REFRESH 3900ns */
          };
-static const uint32_t aulMemc1_20160725221823_7445_1u3t[] = {
+static const uint32_t aulMemc1_20170605221529_7445_1u3t[] = {
            0x3ffff002,  /*   0: XPT_WR_RS off */
            0x3ffff062,  /*   1: XPT_WR_XC off */
            0x3ffff009,  /*   2: XPT_WR_CDB off */
@@ -461,18 +461,18 @@ static const uint32_t aulMemc1_20160725221823_7445_1u3t[] = {
            0x3ffff0ff,  /* 119: UNASSIGNED off */
            0x3ffff054,  /* 120: BVN_VFD2 off */
            0x3ffff0ff,  /* 121: UNASSIGNED off */
-           0x004fc00a,  /* 122: BVN_VFD4 2960ns */
-           0x004fc00b,  /* 123: BVN_VFD5 2960ns */
-           0x004fc00c,  /* 124: BVN_VFD6 2960ns */
-           0x004fc00d,  /* 125: BVN_VFD7 2960ns */
+           0x004fc00d,  /* 122: BVN_VFD4 2960ns */
+           0x004fc00e,  /* 123: BVN_VFD5 2960ns */
+           0x004fc00f,  /* 124: BVN_VFD6 2960ns */
+           0x004fc010,  /* 125: BVN_VFD7 2960ns */
            0x3ffff02e,  /* 126: BVN_CAP0 off */
            0x3ffff0ff,  /* 127: UNASSIGNED off */
            0x3ffff04e,  /* 128: BVN_CAP2 off */
            0x3ffff0ff,  /* 129: UNASSIGNED off */
-           0x004fc00e,  /* 130: BVN_CAP4 2960ns */
-           0x004fc00f,  /* 131: BVN_CAP5 2960ns */
-           0x004fc010,  /* 132: BVN_CAP6 2960ns */
-           0x004fc011,  /* 133: BVN_CAP7 2960ns */
+           0x004fc011,  /* 130: BVN_CAP4 2960ns */
+           0x004bc00a,  /* 131: BVN_CAP5 2812ns */
+           0x004bc00b,  /* 132: BVN_CAP6 2812ns */
+           0x004bc00c,  /* 133: BVN_CAP7 2812ns */
            0x3ffff006,  /* 134: BVN_GFD0 off */
            0x3ffff04d,  /* 135: BVN_GFD1 off */
            0x3ffff0ff,  /* 136: UNASSIGNED off */
@@ -596,7 +596,7 @@ static const uint32_t aulMemc1_20160725221823_7445_1u3t[] = {
            0xbffff0ff,  /* 254: MEMC_DRAM_INIT_ZQCS RR */
            0x00692029   /* 255: REFRESH 3900ns */
          };
-static const uint32_t aulMemc2_20160725221823_7445_1u3t[] = {
+static const uint32_t aulMemc2_20170605221529_7445_1u3t[] = {
            0x3ffff002,  /*   0: XPT_WR_RS off */
            0x3ffff062,  /*   1: XPT_WR_XC off */
            0x3ffff009,  /*   2: XPT_WR_CDB off */
@@ -719,18 +719,18 @@ static const uint32_t aulMemc2_20160725221823_7445_1u3t[] = {
            0x3ffff0ff,  /* 119: UNASSIGNED off */
            0x0359a054,  /* 120: BVN_VFD2 31770ns */
            0x3ffff0ff,  /* 121: UNASSIGNED off */
-           0x3ffff00a,  /* 122: BVN_VFD4 off */
-           0x3ffff00b,  /* 123: BVN_VFD5 off */
-           0x3ffff00c,  /* 124: BVN_VFD6 off */
-           0x3ffff00d,  /* 125: BVN_VFD7 off */
+           0x3ffff00d,  /* 122: BVN_VFD4 off */
+           0x3ffff00e,  /* 123: BVN_VFD5 off */
+           0x3ffff00f,  /* 124: BVN_VFD6 off */
+           0x3ffff010,  /* 125: BVN_VFD7 off */
            0x3ffff02e,  /* 126: BVN_CAP0 off */
            0x3ffff0ff,  /* 127: UNASSIGNED off */
            0x0174704e,  /* 128: BVN_CAP2 13800ns */
            0x3ffff0ff,  /* 129: UNASSIGNED off */
-           0x3ffff00e,  /* 130: BVN_CAP4 off */
-           0x3ffff00f,  /* 131: BVN_CAP5 off */
-           0x3ffff010,  /* 132: BVN_CAP6 off */
-           0x3ffff011,  /* 133: BVN_CAP7 off */
+           0x3ffff011,  /* 130: BVN_CAP4 off */
+           0x3ffff00a,  /* 131: BVN_CAP5 off */
+           0x3ffff00b,  /* 132: BVN_CAP6 off */
+           0x3ffff00c,  /* 133: BVN_CAP7 off */
            0x3ffff006,  /* 134: BVN_GFD0 off */
            0x3ffff04d,  /* 135: BVN_GFD1 off */
            0x3ffff0ff,  /* 136: UNASSIGNED off */
@@ -856,7 +856,7 @@ static const uint32_t aulMemc2_20160725221823_7445_1u3t[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20160725221823_7445_1u3t[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20170605221529_7445_1u3t[] = {
   {BCHP_MEMC_GEN_1_PFRI_3_THROTTLE_CONFIG,      0x80960802}, /* VICE_PFRI (gVice) 220588.24 ns/120 */
   {BCHP_MEMC_GEN_1_PFRI_3_THROTTLE_FILTER_CTRL, 0x400000c6}, /* d: 4; p: 198.529166666667 */
   {BCHP_MEMC_GEN_1_PFRI_3_THROTTLE_THRESH0,     0x000001a8}, /* 424 */
@@ -879,15 +879,15 @@ static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20160725221823_7445_1u3t[] 
   {BCHP_MEMC_GEN_2_PFRI_2_THROTTLE_THRESH1,     0x00000569}  /* 60% * 2309 */
 };
 
-static const uint32_t* const paulMemc_box18[] = { &aulMemc0_20160725221823_7445_1u3t[0], &aulMemc1_20160725221823_7445_1u3t[0], &aulMemc2_20160725221823_7445_1u3t[0]};
+static const uint32_t* const paulMemc_box18[] = { &aulMemc0_20170605221529_7445_1u3t[0], &aulMemc1_20170605221529_7445_1u3t[0], &aulMemc2_20170605221529_7445_1u3t[0]};
 
 const BBOX_Rts stBoxRts_7445_1u3t_box18 = {
-  "20160725221823_7445_1u3t_box18",
+  "20170605221529_7445_1u3t_box18",
   7445,
   18,
   3,
   256,
   (const uint32_t**)&paulMemc_box18[0],
   20,
-  stBoxRts_PfriClient_20160725221823_7445_1u3t
+  stBoxRts_PfriClient_20170605221529_7445_1u3t
 };

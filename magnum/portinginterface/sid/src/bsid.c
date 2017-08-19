@@ -697,6 +697,7 @@ void BSID_Close(
     BSID_Handle hSid
     )
 {
+    BERR_Code retCode = BERR_SUCCESS;
     BDBG_OBJECT_ASSERT(hSid, BSID_P_Context);
     BDBG_ENTER(BSID_Close);
 
@@ -711,7 +712,8 @@ void BSID_Close(
     /* ... so now we just take care of host-side resources ... */
 
 #ifdef BSID_P_CLOCK_CONTROL
-    BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
+    retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
+    BERR_TRACE(retCode);
 #endif
 
     /* destroy sid interrupt callback */
@@ -726,7 +728,8 @@ void BSID_Close(
        BKNI_DestroyEvent(hSid->sMailbox.hMailboxEvent);
 
 #ifdef BSID_P_CLOCK_CONTROL
-    BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
+    retCode = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
+    BERR_TRACE(retCode);
 #endif
 
     /* free sid memory buffer(s) */

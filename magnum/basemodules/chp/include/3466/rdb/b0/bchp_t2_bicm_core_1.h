@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Jan  4 10:49:53 2017
- *                 Full Compile MD5 Checksum  7d7ecd2f231e57c2cad54acc68aba7d0
+ * Date:           Generated on               Tue May 23 18:01:57 2017
+ *                 Full Compile MD5 Checksum  faf7ad9783d64fd3b76af19c41ef463c
  *                     (minus title and desc)
- *                 MD5 Checksum               abfa74885d525b3b66c0de72b0e964ec
+ *                 MD5 Checksum               b7c66081f7ba94771fae7095d4e08762
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1139
+ *                 RDB.pm                     1459
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -217,14 +214,14 @@
 #define BCHP_T2_BICM_CORE_1_BCH_LOCK_PARAM_GAIN_POST 0x04500640 /* [RW][32] BCH Gain of Lock Detector Parameters for L1 POST */
 #define BCHP_T2_BICM_CORE_1_BCH_LOCK_PARAM_LOSS_POST 0x04500644 /* [RW][32] BCH Loss of Lock Detector Parameters for L1 POST */
 #define BCHP_T2_BICM_CORE_1_BCH_LOCK_CFG_POST    0x04500648 /* [RW][32] BCH Lock Detector Configuration for L1 POST */
-#define BCHP_T2_BICM_CORE_1_SNR_CTL              0x0450064c /* [RW][32] "T2 SNR Estimator Control Register" */
-#define BCHP_T2_BICM_CORE_1_SNR_L1_PRE           0x04500650 /* [RO][32] "L1_PRE Error Power Estimate" */
-#define BCHP_T2_BICM_CORE_1_SNR_L1_POST          0x04500654 /* [RO][32] "L1_POST Error Power Estimate" */
-#define BCHP_T2_BICM_CORE_1_SNR_PLP0             0x04500658 /* [RO][32] "PLP0 Error Power Estimate" */
-#define BCHP_T2_BICM_CORE_1_SNR_PLP1             0x0450065c /* [RO][32] "PLP1 Error Power Estimate" */
-#define BCHP_T2_BICM_CORE_1_DISP_CFG             0x04500660 /* [RW][32] "Constellation Display Configuration" */
-#define BCHP_T2_BICM_CORE_1_DISP_READ_INDEX      0x04500664 /* [RW][32] "Constellation Display Read Index" */
-#define BCHP_T2_BICM_CORE_1_DISP_READ_DATA       0x04500668 /* [RO][32] "Constellation Display Read Data" */
+#define BCHP_T2_BICM_CORE_1_SNR_CTL              0x0450064c /* [RW][32] \"T2 SNR Estimator Control Register\" */
+#define BCHP_T2_BICM_CORE_1_SNR_L1_PRE           0x04500650 /* [RO][32] \"L1_PRE Error Power Estimate\" */
+#define BCHP_T2_BICM_CORE_1_SNR_L1_POST          0x04500654 /* [RO][32] \"L1_POST Error Power Estimate\" */
+#define BCHP_T2_BICM_CORE_1_SNR_PLP0             0x04500658 /* [RO][32] \"PLP0 Error Power Estimate\" */
+#define BCHP_T2_BICM_CORE_1_SNR_PLP1             0x0450065c /* [RO][32] \"PLP1 Error Power Estimate\" */
+#define BCHP_T2_BICM_CORE_1_DISP_CFG             0x04500660 /* [RW][32] \"Constellation Display Configuration\" */
+#define BCHP_T2_BICM_CORE_1_DISP_READ_INDEX      0x04500664 /* [RW][32] \"Constellation Display Read Index\" */
+#define BCHP_T2_BICM_CORE_1_DISP_READ_DATA       0x04500668 /* [RO][32] \"Constellation Display Read Data\" */
 #define BCHP_T2_BICM_CORE_1_TEST_CONFIG          0x0450066c /* [RW][32] BICM Test Configuration Register */
 #define BCHP_T2_BICM_CORE_1_TP_TEST_MISC0        0x04500670 /* [RW][32] BICM TP_TEST Miscellaneous register */
 #define BCHP_T2_BICM_CORE_1_TP_TEST_MISC1        0x04500674 /* [RW][32] BICM TP_TEST Miscellaneous register */

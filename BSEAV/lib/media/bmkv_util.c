@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  *******************************************************************************/
 #include "bstd.h"
 #include "bmkv_util.h"
@@ -418,7 +417,7 @@ bmkv_table_shutdown(bmkv_table *table, const bmkv_parser_desc *desc)
 	return;
 }
 
-#define B_MKV_PRINT(level, format) do { if(level==BDBG_eMsg) {BDBG_MSG(format);} else if(level==BDBG_eWrn) { BDBG_WRN(format);} else if(level==BDBG_eErr) { BDBG_ERR(format);}}while(0)
+#define B_MKV_PRINT(level, format) do { if(level==BDBG_eMsg) {BDBG_MSG(format);} else if(level==BDBG_eWrn) { BDBG_WRN(format);} else if(level==BDBG_eErr) { BDBG_ERR(format);} else if(level==BDBG_eLog) {BDBG_LOG(format);}}while(0)
 
 static void
 bmkv_table_print(const bmkv_table *table, BDBG_Level level, unsigned padding, const bmkv_parser_desc *desc)
@@ -1097,6 +1096,7 @@ static const BMKV_PARSER_BEGIN(bmkv_TrackEntryVideo_parser)
     BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideo, 0x54B3, AspectRatioType)
     BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideo, 0x2EB524, ColourSpace)
     BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideo, 0x2EB523, GammaValue)
+    BMKV_PARSER_FIELD_DATA(bmkv_TrackEntryVideo, 0x55B0, Colour)
 BMKV_PARSER_END(bmkv_TrackEntryVideo_parser);
 
 static void
@@ -1626,3 +1626,69 @@ bmkv_IsTrackAudioPcmInt(const bmkv_TrackEntry *track)
     BDBG_ASSERT(track);
     B_MKV_TEST_CODEC(track, "A_PCM/INT/LIT");
 }
+
+static const BMKV_PARSER_BEGIN(bmkv_TrackEntryVideoColourMasteringMetadata_parser)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D1, PrimaryRChromaticityX)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D2, PrimaryRChromaticityY)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D3, PrimaryGChromaticityX)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D4, PrimaryGChromaticityY)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D5, PrimaryBChromaticityX)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D6, PrimaryBChromaticityY)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D7, WhitePointChromaticityX)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D8, WhitePointChromaticityY)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55D9, LuminanceMax)
+    BMKV_PARSER_FIELD_FLOAT(bmkv_TrackEntryVideoColourMasteringMetadata, 0x55DA, LuminanceMin)
+BMKV_PARSER_END(bmkv_TrackEntryVideoColourMasteringMetadata_parser);
+
+static void
+bmkv_TrackEntryVideoColourMasteringMetadata_init(void *data)
+{
+    bmkv_TrackEntryVideoColourMasteringMetadata *metadata = data;
+
+    BKNI_Memset(metadata, 0, sizeof(*metadata));
+    return;
+}
+
+static const bmkv_parser_desc bmkv_TrackEntryVideoColourMasteringMetadata_desc = {
+    "VideoColourMasteringMetadata",
+    bmkv_TrackEntryVideoColourMasteringMetadata_parser,
+    sizeof(bmkv_TrackEntryVideoColourMasteringMetadata),
+    bmkv_TrackEntryVideoColourMasteringMetadata_init
+};
+
+
+static const BMKV_PARSER_BEGIN(bmkv_TrackEntryVideoColour_parser)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B1, MatrixCoefficients)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B2, BitsPerChannel)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B3, ChromaSubsamplingHorz)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B4, ChromaSubsamplingVert)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B5, CbSubsamplingHorz)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B6, CbSubsamplingVert)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B7, ChromaSitingHorz)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B8, ChromaSitingVert)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55B9, Range)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55BA, TransferCharacteristics)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55BB, Primaries)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55BC, MaxCLL)
+    BMKV_PARSER_FIELD_UNSIGNED(bmkv_TrackEntryVideoColour, 0x55BD, MaxFALL)
+    BMKV_PARSER_FIELD_TABLE(bmkv_TrackEntryVideoColour, 0x55D0, MasteringMetadata, bmkv_TrackEntryVideoColourMasteringMetadata_desc)
+BMKV_PARSER_END(bmkv_TrackEntryVideoColour_parser);
+
+static void
+bmkv_TrackEntryVideoColour_init(void *data)
+{
+    bmkv_TrackEntryVideoColour *colour = data;
+
+    BKNI_Memset(colour, 0, sizeof(*colour));
+    colour->MatrixCoefficients = 2;
+    colour->TransferCharacteristics = 2;
+    colour->Primaries = 2;
+    return;
+}
+
+const bmkv_parser_desc bmkv_TrackEntryVideoColour_desc = {
+    "TrackEntryVideoColour",
+    bmkv_TrackEntryVideoColour_parser,
+    sizeof(bmkv_TrackEntryVideoColour),
+    bmkv_TrackEntryVideoColour_init
+};

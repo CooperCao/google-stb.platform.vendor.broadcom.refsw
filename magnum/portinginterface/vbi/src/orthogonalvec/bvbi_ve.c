@@ -39,9 +39,6 @@
  *
  ***************************************************************************/
 
-/* For bavc.h.  This is a bit of an ugly hack. */
-#include "bchp_gfd_0.h"
-#include "bchp_gfd_1.h"
 #include "bstd.h"                       /* standard types */
 #include "bint.h"
 #include "bdbg.h"                       /* Dbglib */
@@ -133,22 +130,24 @@ BERR_Code BVBI_Encode_GetInterruptName(
         /* Interrupts to use according to VEC path */
         switch (eVbiPath)
         {
+#if (BVBI_NUM_VEC >= 1)
         case BAVC_VbiPath_eVec0:
                 aEncodeInterruptName[0] = BCHP_INT_ID_VBI_0_0_INTR;
                 aEncodeInterruptName[1] = BCHP_INT_ID_VBI_0_1_INTR;
                 break;
-#if (BVBI_NUM_VEC >= 2) /** { **/
+#endif
+#if (BVBI_NUM_VEC >= 2)
         case BAVC_VbiPath_eVec1:
                 aEncodeInterruptName[0] = BCHP_INT_ID_VBI_1_0_INTR;
                 aEncodeInterruptName[1] = BCHP_INT_ID_VBI_1_1_INTR;
                 break;
-#endif /** } (BVBI_NUM_VEC >= 2) **/
-#if (BVBI_NUM_VEC >= 3) /** { **/
+#endif
+#if (BVBI_NUM_VEC >= 3)
         case BAVC_VbiPath_eVec2:
                 aEncodeInterruptName[0] = BCHP_INT_ID_VBI_2_0_INTR;
                 aEncodeInterruptName[1] = BCHP_INT_ID_VBI_2_1_INTR;
                 break;
-#endif /** } (BVBI_NUM_VEC >= 3) **/
+#endif
 #if (BVBI_NUM_PTVEC > 0) /** { **/
         case BAVC_VbiPath_eBypass0:
 #if   (BCHP_CHIP == 7422) || (BCHP_CHIP == 7425) || (BCHP_CHIP == 7435)
@@ -196,8 +195,10 @@ BERR_Code BVBI_P_VE_Init( BVBI_P_Handle *pVbi )
         for (iCore = 0 ; iCore < BVBI_P_EncCoreType_eLAST ; ++iCore)
                 hwCoreIndex[iCore] = 0xFF;
 
+#if (BVBI_NUM_VEC >= 1)
         BVBI_P_VE_Enc_Init (pVbi->hReg, BCHP_VBI_ENC_VBI_0_INTR_CTRL);
         BVBI_P_VE_Crossbar_Program (pVbi->hReg, BAVC_VbiPath_eVec0, hwCoreIndex);
+#endif
 #if (BVBI_NUM_VEC >= 2)
         BVBI_P_VE_Enc_Init (pVbi->hReg, BCHP_VBI_ENC_VBI_1_INTR_CTRL);
         BVBI_P_VE_Crossbar_Program (pVbi->hReg, BAVC_VbiPath_eVec1, hwCoreIndex);
@@ -245,8 +246,10 @@ BERR_Code BVBI_P_VE_Enc_Program (
         /* coverity[dead_error_condition: FALSE] */
         if (!is656)
         {
+#if (BVBI_NUM_VEC >= 1)
             /* coverity[dead_error_line: FALSE] */
             ulRegAddr = BCHP_VBI_ENC_VBI_0_INTR_CTRL;
+#endif
         }
         break;
     case BAVC_VbiPath_eVec1:
@@ -370,6 +373,7 @@ BERR_Code BVBI_P_VE_Enc_Program (
     }
 
     /* Finish programming the interrupt control register */
+#if (BVBI_NUM_VEC >= 1)
     ulReg &= ~(
          BCHP_MASK      (VBI_ENC_VBI_0_INTR_CTRL, INTR1_LINE         ) |
          BCHP_MASK      (VBI_ENC_VBI_0_INTR_CTRL, INTR0_LINE         )
@@ -378,6 +382,16 @@ BERR_Code BVBI_P_VE_Enc_Program (
          BCHP_FIELD_DATA(VBI_ENC_VBI_0_INTR_CTRL, INTR1_LINE, botLine) |
          BCHP_FIELD_DATA(VBI_ENC_VBI_0_INTR_CTRL, INTR0_LINE, topLine)
     );
+#else
+    ulReg &= ~(
+         BCHP_MASK      (VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR1_LINE         ) |
+         BCHP_MASK      (VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR0_LINE         )
+    );
+    ulReg |= (
+         BCHP_FIELD_DATA(VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR1_LINE, botLine) |
+         BCHP_FIELD_DATA(VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR0_LINE, topLine)
+    );
+#endif
     BREG_Write32 (hReg, ulRegAddr, ulReg);
 
     BDBG_LEAVE(BVBI_P_VE_Enc_Program);
@@ -393,14 +407,14 @@ void BVBI_P_VE_Crossbar_Program (
     BAVC_VbiPath eDest,
     uint8_t hwCoreIndex[BVBI_P_EncCoreType_eLAST])
 {
-    bool is656;
     uint32_t ulRegMax;
-    uint32_t ulRegBase;
     uint32_t ulRegAddr;
     uint32_t iReg;
     uint32_t ulBit;
     int iCore;
     uint8_t coreIndex;
+    bool is656 = false;
+    uint32_t ulRegBase = 0xFFFFFFFF;
 
     BDBG_ENTER (BVBI_P_VE_Crossbar_Program);
 
@@ -437,8 +451,6 @@ void BVBI_P_VE_Crossbar_Program (
         break;
     #endif
     default:
-        ulRegBase = 0xFFFFFFFF;
-        is656 = false;
         break;
     }
     BDBG_ASSERT (ulRegBase != 0xFFFFFFFF);
@@ -464,31 +476,49 @@ void BVBI_P_VE_Crossbar_Program (
             switch (coreIndex)
             {
             case 0:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_CCE_ANCIL_0 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CCE_0);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_CCE_ANCIL_0;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CCE_0;
+                    #endif
+                }
                 break;
 #if (BVBI_NUM_CCE >= 2)
             case 1:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_CCE_ANCIL_1 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CCE_1);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_CCE_ANCIL_1;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CCE_1;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_CCE >= 3)
             case 2:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CCE_2);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CCE_2;
+                    #endif
+                }
                 break;
 #endif
             default:
@@ -500,31 +530,49 @@ void BVBI_P_VE_Crossbar_Program (
             switch (coreIndex)
             {
             case 0:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CGMSAE_0);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CGMSAE_0;
+                    #endif
+                }
                 break;
 #if (BVBI_NUM_CGMSAE >= 2)
             case 1:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CGMSAE_1);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CGMSAE_1;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_CGMSAE >= 3)
             case 2:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CGMSAE_2);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_CGMSAE_2;
+                    #endif
+                }
                 break;
 #endif
             default:
@@ -536,31 +584,50 @@ void BVBI_P_VE_Crossbar_Program (
             switch (coreIndex)
             {
             case 0:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_WSE_ANCIL_0 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_WSE_0);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_WSE_ANCIL_0;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_WSE_0;
+                    #endif
+                }
                 break;
 #if (BVBI_NUM_WSE >= 2)
             case 1:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_WSE_ANCIL_1 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_WSE_1);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit =
+                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_WSE_ANCIL_1 ;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_WSE_1;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_WSE >= 3)
             case 2:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_WSE_2);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_WSE_2;
+                    #endif
+                }
                 break;
 #endif
             default:
@@ -573,32 +640,50 @@ void BVBI_P_VE_Crossbar_Program (
             {
 #if (BVBI_NUM_TTE >= 1)
             case 0:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_TTE_ANCIL_0 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_TTE_0);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_TTE_ANCIL_0;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_TTE_0;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_TTE >= 2)
             case 1:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_TTE_ANCIL_1 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_TTE_1);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_TTE_ANCIL_1;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_TTE_1;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_TTE >= 3)
             case 2:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_TTE_2);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_TTE_2;
+                    #endif
+                }
                 break;
 #endif
             default:
@@ -611,32 +696,50 @@ void BVBI_P_VE_Crossbar_Program (
             {
 #if (BVBI_NUM_GSE >= 1)
             case 0:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_GSE_ANCIL_0 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_GSE_0);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_GSE_ANCIL_0;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_GSE_0;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_GSE >= 2)
             case 1:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_GSE_ANCIL_1 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_GSE_1);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_GSE_ANCIL_1;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_GSE_1;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_GSE >= 3)
             case 2:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_GSE_2);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_GSE_2;
+                    #endif
+                }
                 break;
 #endif
             default:
@@ -649,32 +752,52 @@ void BVBI_P_VE_Crossbar_Program (
             {
 #if (BVBI_NUM_AMOLE >= 1)
             case 0:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_AMOLE_ANCIL_0 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_AMOLE_0);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit =
+                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_AMOLE_ANCIL_0;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_AMOLE_0;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_AMOLE >= 2)
             case 1:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_AMOLE_ANCIL_1 :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_AMOLE_1);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit =
+                        BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_AMOLE_ANCIL_1;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_AMOLE_1;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_AMOLE >= 3)
             case 2:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_AMOLE_2);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_AMOLE_2;
+                    #endif
+                }
                 break;
 #endif
             default:
@@ -687,22 +810,34 @@ void BVBI_P_VE_Crossbar_Program (
             {
 #if (BVBI_NUM_SCTEE >= 1)
             case 0:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_SCTE_0);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_SCTE_0;
+                    #endif
+                }
                 break;
 #endif
 #if (BVBI_NUM_SCTEE >= 2)
             case 1:
-                /* coverity[dead_error_condition: FALSE] */
-                /* coverity[dead_error_line: FALSE] */
-                ulBit =
-                    (is656 ?
-                        0xFFFFFFFF :
-                        BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_SCTE_1);
+                if (is656)
+                {
+                    #if (BVBI_NUM_PTVEC >= 1)
+                    ulBit = 0xFFFFFFFF;
+                    #endif
+                }
+                else
+                {
+                    #if (BVBI_NUM_VEC >= 1)
+                    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_SCTE_1;
+                    #endif
+                }
                 break;
 #endif
             default:
@@ -728,19 +863,19 @@ void BVBI_P_VE_Crossbar_Program (
     }
 
     /* Zero out unused crossbar entries */
+    if (is656)
+    {
 #if (BVBI_NUM_PTVEC >= 1)
-    /* coverity[dead_error_condition: FALSE] */
-    /* coverity[dead_error_line: FALSE] */
-    ulBit =
-        (is656 ?
-            BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_DISABLE :
-            BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_DISABLE);
-#else
-    /* coverity[dead_error_condition: FALSE] */
-    /* coverity[dead_error_line: FALSE] */
-    BDBG_ASSERT (!is656);
-    ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_DISABLE;
+        ulBit = BCHP_VBI_ENC_VBI_ANCIL_0_CORE_0_SEL_SEL_DISABLE;
 #endif
+    }
+    else
+    {
+#if (BVBI_NUM_VEC >= 1)
+        ulBit = BCHP_VBI_ENC_VBI_0_CORE_0_SEL_SEL_DISABLE;
+#endif
+    }
+
     while (iReg < ulRegMax)
     {
         ulRegAddr = ulRegBase + 4 * iReg;
@@ -760,28 +895,39 @@ void BVBI_P_VE_Crossbar_Program (
  */
 static void BVBI_P_VE_Enc_Init (BREG_Handle hReg, uint32_t ulRegAddr)
 {
-        uint32_t topLine;
-        uint32_t botLine;
-        uint32_t ulReg;
+    uint32_t topLine;
+    uint32_t botLine;
+    uint32_t ulReg;
 
-        BDBG_ENTER(BVBI_P_VE_Enc_Init);
+    BDBG_ENTER(BVBI_P_VE_Enc_Init);
 
-        /* Cause interrupts to occur according to start of NTSC active video
-        (default) */
-        ulReg = BREG_Read32 ( hReg,  ulRegAddr );
-        topLine = 23;
-        botLine = 286;
-        ulReg &= ~(
-                 BCHP_MASK      (VBI_ENC_VBI_0_INTR_CTRL, INTR1_LINE         ) |
-                 BCHP_MASK      (VBI_ENC_VBI_0_INTR_CTRL, INTR0_LINE         )
-        );
-        ulReg |= (
-                 BCHP_FIELD_DATA(VBI_ENC_VBI_0_INTR_CTRL, INTR1_LINE, botLine) |
-                 BCHP_FIELD_DATA(VBI_ENC_VBI_0_INTR_CTRL, INTR0_LINE, topLine)
-        );
-    BREG_Write32 (hReg, ulRegAddr, ulReg);
+    /* Cause interrupts to occur according to start of NTSC active video
+    (default) */
+    ulReg = BREG_Read32 ( hReg,  ulRegAddr );
+    topLine = 23;
+    botLine = 286;
+#if (BVBI_NUM_VEC >= 1)
+    ulReg &= ~(
+         BCHP_MASK      (VBI_ENC_VBI_0_INTR_CTRL, INTR1_LINE         ) |
+         BCHP_MASK      (VBI_ENC_VBI_0_INTR_CTRL, INTR0_LINE         )
+    );
+    ulReg |= (
+         BCHP_FIELD_DATA(VBI_ENC_VBI_0_INTR_CTRL, INTR1_LINE, botLine) |
+         BCHP_FIELD_DATA(VBI_ENC_VBI_0_INTR_CTRL, INTR0_LINE, topLine)
+    );
+#else
+    ulReg &= ~(
+         BCHP_MASK      (VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR1_LINE         ) |
+         BCHP_MASK      (VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR0_LINE         )
+    );
+    ulReg |= (
+         BCHP_FIELD_DATA(VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR1_LINE, botLine) |
+         BCHP_FIELD_DATA(VBI_ENC_VBI_ANCIL_0_INTR_CTRL, INTR0_LINE, topLine)
+    );
+#endif
+BREG_Write32 (hReg, ulRegAddr, ulReg);
 
-        BDBG_LEAVE(BVBI_P_VE_Enc_Init);
+    BDBG_LEAVE(BVBI_P_VE_Enc_Init);
 }
 
 /* End of file */

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 #undef LOGE
 #undef LOGW
@@ -53,6 +54,7 @@
 #define BMP4_ISML BMP4_TYPE('i','s','m','l')
 #define BMP4_DASH BMP4_TYPE('d','a','s','h')
 #define BMP4_PIFF BMP4_TYPE('p','i','f','f')
+#define BMP4_ISOM BMP4_TYPE('i','s','o','m')
 
 BDBG_MODULE(media_parser);
 #include "dump_hex.h"
@@ -126,6 +128,9 @@ bool MediaParser::InitParser()
         m_mediaType = media_type_ePiff;
         LOGD(("PIFF(isml) file type is detected"));
     } else if (BMP4_DASH == parser_context->filetype.major_brand) {
+        m_mediaType = media_type_eCenc;
+        LOGD(("CENC(dash) detected in major brand"));
+    } else if (BMP4_ISOM == parser_context->filetype.major_brand) {
         m_mediaType = media_type_eCenc;
         LOGD(("CENC(dash) detected in major brand"));
     } else {

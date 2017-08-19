@@ -22,7 +22,7 @@ static void display_surface(DisplayFramework *df,
    void *native_surface = surface->native_surface;
 
    switch (DisplayInterface_Display(df->display_interface, native_surface,
-         surface->render_fence, &surface->display_fence))
+         surface->render_fence, (surface->swap_interval >= 1), &surface->display_fence))
    {
    case eDisplayFailed:
       /* display fence shouldn't be set */

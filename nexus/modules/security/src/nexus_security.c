@@ -90,9 +90,9 @@ typedef struct NEXUS_Security_P_KeySlotData {
         for (keyslot=BLST_S_FIRST(&g_security.keyslotList);keyslot;keyslot=BLST_S_NEXT(keyslot,next)) { \
             NEXUS_Security_P_KeySlotData *pKeySlotData = keyslot->security.data; \
             NEXUS_Security_P_PidChannelListNode *pPidChannelNode; \
-            BDBG_MSG(("%s: Keyslot [%p]",__FUNCTION__,keyslot)); \
+            BDBG_MSG(("%s: Keyslot [%p]",BSTD_FUNCTION,keyslot)); \
             for (pPidChannelNode=BLST_S_FIRST(&pKeySlotData->pidChannelList);pPidChannelNode!=NULL;pPidChannelNode=BLST_S_NEXT(pPidChannelNode,next)) { \
-                BDBG_MSG(("%s:   pidchannel [%d]",__FUNCTION__,keyslot,pPidChannelNode->pidChannelIndex)); \
+                BDBG_MSG(("%s:   pidchannel [%d]",BSTD_FUNCTION,keyslot,pPidChannelNode->pidChannelIndex)); \
             } \
         } \
     } while(0)
@@ -183,7 +183,7 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
 Description:
     Function will itterate over all ARCHes of each available MEM Controller and print any detected violations.
 */
-void NEXUS_Security_PrintArchViolation_priv( BMRC_Monitor_HwBlock excludeBlock )
+void NEXUS_Security_PrintArchViolation_priv(void)
 {
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
     BERR_Code  magnumRc;
@@ -233,10 +233,6 @@ void NEXUS_Security_PrintArchViolation_priv( BMRC_Monitor_HwBlock excludeBlock )
 
                 if( status.u.memArch.endAddress ) /* if there has been a violation */
                 {
-                    if (excludeBlock != BMRC_Monitor_HwBlock_eInvalid &&
-                        BMRC_Monitor_GetHwBlock(g_pCoreHandles->memc[memcIndex].rmm, status.u.memArch.scbClientId) == excludeBlock) {
-                        continue;
-                    }
                     BDBG_ERR(("MEMC ARCH Violation. MEMC[%u]ARCH[%u] Addr start [" BDBG_UINT64_FMT  \
                               "] end[" BDBG_UINT64_FMT "] numBlocks[%u] scbClientId[%u:%s] requestType[%#x:%s]",
                               memcIndex,
@@ -270,7 +266,7 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
 
     /* defaults number of keyslots per type. */
     pSettings->numKeySlotsForType[0] = 20;
@@ -653,7 +649,7 @@ static NEXUS_Error NEXUS_Security_AllocateKeySlotForType(  NEXUS_KeySlotHandle *
 
     *pKeyHandle = pHandle;
 
-    BDBG_MSG(("%s: Allocated keyslot %p",__FUNCTION__, (void *)pHandle ));
+    BDBG_MSG(("%s: Allocated keyslot %p",BSTD_FUNCTION, (void *)pHandle ));
 
     NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, true);
 
@@ -731,13 +727,13 @@ NEXUS_KeySlotHandle NEXUS_Security_LocateCaKeySlotAssigned(unsigned long pidchan
         NEXUS_Security_P_PidChannelListNode *pPidChannelNode = find_pid(keyslot, NULL, pidchannel);
         if (pPidChannelNode) {
             if (keyslot->keySlotNumber != keyslotNumber || keyslot->keyslotType != keyslotType) {
-                BDBG_WRN(("%s: number/type difference, keyslot tracking may be out of sync with HSM",__FUNCTION__));
+                BDBG_WRN(("%s: number/type difference, keyslot tracking may be out of sync with HSM",BSTD_FUNCTION));
             }
             return keyslot;
         }
     }
 error:
-    BDBG_WRN(("%s: PID Channel %lu is not yet associated with any key slot",__FUNCTION__,pidchannel));
+    BDBG_WRN(("%s: PID Channel %lu is not yet associated with any key slot",BSTD_FUNCTION,pidchannel));
 
     BDBG_LEAVE(NEXUS_Security_LocateCaKeySlotAssigned);
     return NULL;
@@ -1306,10 +1302,8 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     BCMD_CipherModeSelect_e          cipherMode;
     BCMD_TerminationMode_e           terminationMode;
     BCMD_IVSelect_e                  ivModeSelect;
-    BCMD_Aes128_CounterSize_e        counterSize;
     BCMD_SolitarySelect_e            solitarySelect;
     NEXUS_SecurityKeySource          keySrc;
-    bool                             bAVKeyladder = false;
     NEXUS_SecurityKeyType            keyDestEntryType;
     NEXUS_Security_P_KeySlotData *pKeySlotData;
 
@@ -1342,7 +1336,6 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     NEXUS_Security_GetHsmAlgorithmKeySetting( keyHandle, pSettings, &cryptAlg, &cipherMode, &terminationMode );
     ivModeSelect   = pSettings->ivMode;
     solitarySelect = pSettings->solitarySelect;
-    counterSize    = pSettings->aesCounterSize;
 
     blockType = mapNexus2Hsm_blockType( keyHandle, pSettings->dest );
     bConfigOddAndEven = (keyDestEntryType == NEXUS_SecurityKeyType_eOddAndEven);
@@ -1351,7 +1344,6 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     if (keySrc == NEXUS_SecurityKeySource_eAvCPCW || keySrc == NEXUS_SecurityKeySource_eAvCW)
     {
         bConfigOddAndEven = false;
-        bAVKeyladder = true;
     }
 
     configAlgorithmIO.keyDestBlckType = blockType;
@@ -2011,6 +2003,7 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
         }
 
         keyHandle->dma.pidChannelIndex = NEXUS_PidChannel_GetIndex_isrsafe( pKeySlotData->dmaPidChannelHandle );
+        keyHandle->dma.valid = true;
         NEXUS_Security_AddPidChannelToKeySlot( keyHandle, keyHandle->dma.pidChannelIndex );
         BDBG_MSG(( "Using DMA pid channel %u", keyHandle->dma.pidChannelIndex ));
     }
@@ -2088,6 +2081,8 @@ static void NEXUS_Security_P_FreeKeySlot(NEXUS_KeySlotHandle keyHandle)
     if( keyHandle->settings.keySlotEngine==NEXUS_SecurityEngine_eM2m && pKeySlotData->dmaPidChannelHandle != NULL )
     {
         NEXUS_Security_RemovePidChannelFromKeySlot( keyHandle, keyHandle->dma.pidChannelIndex );
+        keyHandle->dma.valid = false;
+
         NEXUS_PidChannel_CloseDma_Priv(pKeySlotData->dmaPidChannelHandle);
         pKeySlotData->dmaPidChannelHandle = NULL;
     }

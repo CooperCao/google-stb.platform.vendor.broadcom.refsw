@@ -44,14 +44,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri May  5 15:14:17 2017
- *                 Full Compile MD5 Checksum  43a807939e13fb7ef8bb91b0f8273d1c
+ * Date:           Generated on               Wed May 31 11:36:05 2017
+ *                 Full Compile MD5 Checksum  9adbc395b049f9d59dc6236c99470286
  *                     (minus title and desc)
- *                 MD5 Checksum               7eb8085288cc05960cc2889ffd0a57f2
+ *                 MD5 Checksum               be65de934022dbbaac2735622a046bdc
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1485
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -71,7 +71,10 @@
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
 #define BCHP_REGISTER_END                                  0x2120c000 /* V3D_QPUDBG_0 is last */
 #define BCHP_REGISTER_SIZE                                 0x00483000 /* Number of registers */
-#define BCHP_REGISTER_HAS_READONLY                                  1 /* Has RO register list */
+#define BCHP_REGISTER_HAS_RBUS7                                     1 /* Has at least one register set with RBUS7 inteface */
+#define BCHP_REGISTER_HAS_READONLY                                  0 /* Has RO register list */
+#define BCHP_REGISTER_HAS_CORE_INFO                                 1 /* Has core info list */
+#define BCHP_REGISTER_HAS_REGISTER_INFO                             1 /* Has register info list */
 #define BCHP_REGISTER_HAS_16_BIT                                    0 /* Has 16-bit wide register */
 #define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
 #define BCHP_REGISTER_HAS_64_BIT                                    1 /* Has 64-bit wide register */

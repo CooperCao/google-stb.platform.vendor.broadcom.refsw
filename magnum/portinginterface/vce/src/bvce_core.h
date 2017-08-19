@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -148,6 +148,26 @@ extern "C" {
 #define BVCE_PLATFORM_P_SUPPORTS_ITB_NAL 1
 #define BVCE_PLATFORM_P_SUPPORTS_ITB_EOS 1
 #define BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP 1
+#define BVCE_PLATFORM_P_ITB_REQUIRES_COHERENCY_WORKAROUND 1
+
+/* Core 3.0.1.2 */
+#elif ( ( BVCE_P_CORE_MAJOR == 3 ) && ( BVCE_P_CORE_MINOR == 0 ) && ( BVCE_P_CORE_SUBMINOR == 1 ) && ( BVCE_P_CORE_REVISION == 2 ) )
+#define BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS 2
+#define BVCE_PLATFORM_P_NUM_OUTPUT_CHANNELS 2
+#define BVCE_PLATFORM_P_ITB_ALIGNMENT 160
+
+#ifndef MIN_SECURE_BUFFER_SIZE_IN_BYTES
+#define MIN_SECURE_BUFFER_SIZE_IN_BYTES MIN_SECURE_BUFFER_SIZE_IN_BYTES_FOR_VICE2_V2_1
+#endif
+
+#define BVCE_PLATFORM_P_SUPPORT_MULTIPLE_SLICES 1
+
+#define CORE_VERSION BVCE_FW_P_COREVERSION_V3_0_1_2
+#define BVCE_PLATFORM_P_SUPPORTS_GROUPAGE 1
+#define BVCE_PLATFORM_P_SUPPORTS_64_BIT 1
+#define BVCE_PLATFORM_P_SUPPORTS_ITB_NAL 1
+#define BVCE_PLATFORM_P_SUPPORTS_ITB_EOS 1
+
 /* Core Unknown */
 #else
 #error Unrecognized core version

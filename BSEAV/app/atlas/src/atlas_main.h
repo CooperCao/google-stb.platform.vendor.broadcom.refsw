@@ -118,7 +118,7 @@ class CAtlas
 {
 public:
     CAtlas(
-            uint16_t      number,
+            unsigned      number,
             eAtlasMode    mode,
             CChannelMgr * pChannelMgr,
 #if DVR_LIB_SUPPORT
@@ -247,7 +247,7 @@ protected:
     CBoardResources * _pBoardResources;
     CWidgetEngine *   _pWidgetEngine;
     bwin_engine_t     _bwinEngine;
-    uint16_t          _number;
+    unsigned          _number;
     eAtlasMode        _mode;
     CChannelMgr *     _pChannelMgr;
 #if DVR_LIB_SUPPORT

@@ -2,7 +2,7 @@ BEGIN {
     total=0;
     found_beginning_of_names=0;
     name_count=0;
-    memc_count=0;
+    memc_count=1;
     line = 0;
 }
 {
@@ -65,6 +65,10 @@ BEGIN {
         ### printf "/* idx " idx "; name " client_name "; Total = "total" */\n";
         if (found_beginning_of_names == 1) {
            if (name_count==0) {
+
+              if (a1[1] == "0" || a1[1] == "") { printf("#warning DDR frequency ... " a1[1] " ... is invalid in file "FILENAME"\n"); a1[1]=800; }
+              if (a3[1] == "0" || a3[1] == "") { printf("#warning SCB frequency ... " a3[1] " ... is invalid in file "FILENAME"\n"); a3[1]=432; }
+
               printf("bmemperf_info l_bmemperf_info"boxmode"={"memc_count","a1[1]","a3[1]"};\n\n");
               printf("char *l_bmemperf_clients"boxmode"[BMEMPERF_MAX_NUM_CLIENT] = {");
            }

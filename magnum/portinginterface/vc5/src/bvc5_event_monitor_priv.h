@@ -105,13 +105,41 @@ typedef struct BVC5_P_EventBuffer
 
 #define BVC5_P_JOB_FIFO_LEN 2
 
-typedef struct BVC5_P_JobFifo
+/* only keep a limited set of state required for event tracking */
+typedef struct BVC5_P_EventInfo
 {
-   BVC5_P_InternalJob     *uiJobs[BVC5_P_JOB_FIFO_LEN];
-   uint8_t                 uiWriteIndx;
-   uint8_t                 uiReadIndx;
-   uint8_t                 uiCount;
-} BVC5_P_JobFifo;
+   uint64_t       uiTimeStamp; /* from monotonic clock */
+
+   uint32_t       uiClientId;
+   uint64_t       uiJobId;
+
+   uint16_t       uiTextureType;
+   uint32_t       uiRasterStride;
+
+   uint32_t       uiMipmapCount;
+   uint32_t       uiWidth;
+   uint32_t       uiHeight;
+
+   bool           bHasDeps;
+   BVC5_SchedDependencies sCompletedDependencies;
+} BVC5_P_EventInfo;
+
+typedef struct BVC5_P_Fifo
+{
+   BVC5_P_EventInfo       *psEventInfo[BVC5_P_JOB_FIFO_LEN];
+   uint8_t                uiWriteIndx;
+   uint8_t                uiReadIndx;
+   uint8_t                uiCount;
+} BVC5_P_Fifo;
+
+typedef struct BVC5_P_JobQueue
+{
+   /* main storage */
+   BVC5_P_EventInfo       sEventInfo[BVC5_P_JOB_FIFO_LEN];
+
+   BVC5_P_Fifo            sFreeFifo;
+   BVC5_P_Fifo            sSendFifo;
+} BVC5_P_JobQueue;
 
 typedef struct BVC5_P_EventMonitor
 {
@@ -130,11 +158,12 @@ typedef struct BVC5_P_EventMonitor
    uint32_t                uiCyclesPerUs;
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
-   BVC5_P_JobFifo          sRenderJobFifoCLE;
-   BVC5_P_JobFifo          sRenderJobFifoTLB;
-   BVC5_P_JobFifo          sBinJobFifoCLE;
-   BVC5_P_JobFifo          sBinJobFifoPTB;
-   BVC5_P_JobFifo          sFifoTFU;
+   BVC5_P_JobQueue         sRenderJobQueueCLE;
+   BVC5_P_JobQueue         sRenderJobQueueTLB;
+   BVC5_P_JobQueue         sBinJobQueueCLE;
+   BVC5_P_JobQueue         sBinJobQueuePTB;
+   BVC5_P_JobQueue         sQueueTFU;
+   BVC5_P_JobQueue         sRenderJobQueueCLELoadStats;
 #endif
 
 } BVC5_P_EventMonitor;
@@ -165,7 +194,7 @@ bool BVC5_P_AddFlushEvent(
 bool BVC5_P_AddTFUJobEvent(
    BVC5_Handle          hVC5,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob,
+   BVC5_P_EventInfo    *psEventInfo,
    uint64_t             uiTimestamp
    );
 
@@ -179,14 +208,16 @@ bool BVC5_P_AddCoreEvent(
    uint64_t       uiTimestamp
    );
 
-bool BVC5_P_AddCoreEventCJ(
-   BVC5_Handle          hVC5,
-   uint32_t             uiCore,
-   uint32_t             uiTrack,
-   uint32_t             uiEventIndex,
-   BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob,
-   uint64_t             uiTimestamp
+bool BVC5_P_AddCoreEventCJD(
+   BVC5_Handle             hVC5,
+   uint32_t                uiCore,
+   uint32_t                uiTrack,
+   uint32_t                uiEventIndex,
+   BVC5_EventType          eEventType,
+   uint32_t                uiClientId,
+   uint64_t                uiJobId,
+   BVC5_SchedDependencies *psDeps,
+   uint64_t                uiTimestamp
    );
 
 bool BVC5_P_AddCoreJobEvent(
@@ -195,7 +226,7 @@ bool BVC5_P_AddCoreJobEvent(
    uint32_t             uiTrack,
    uint32_t             uiEventIndex,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob,
+   BVC5_P_EventInfo    *psEventInfo,
    uint64_t             uiTimestamp
    );
 
@@ -210,13 +241,34 @@ void BVC5_P_EventsRemoveClient(
    uint32_t       uiClientId
    );
 
-void BVC5_P_PushJobFifo(
-   BVC5_P_JobFifo     *pFifo,
-   BVC5_P_InternalJob *pJob
+void BVC5_P_InitializeQueue(
+   BVC5_P_JobQueue    *psQueue
    );
 
-BVC5_P_InternalJob *BVC5_P_PopJobFifo(
-   BVC5_P_JobFifo *pFifo
+BVC5_P_EventInfo *BVC5_P_GetMessage(
+   BVC5_P_JobQueue    *psQueue
+   );
+
+void BVC5_P_SendMessage(
+   BVC5_P_JobQueue    *psQueue,
+   BVC5_P_EventInfo   *psEventInfo
+   );
+
+BVC5_P_EventInfo *BVC5_P_ReceiveMessage(
+   BVC5_P_JobQueue    *psQueue
+   );
+
+void BVC5_P_ReleaseMessage(
+   BVC5_P_JobQueue    *psQueue,
+   BVC5_P_EventInfo   *psEventInfo
+   );
+
+void BVC5_P_PopulateEventInfo(
+   BVC5_Handle hVC5,
+   bool bCopyDeps,
+   bool bCopyTFU,
+   BVC5_P_InternalJob *pJob,
+   BVC5_P_EventInfo *psEventInfo
    );
 
 #endif /* __BVC5_EVENT_MONITOR_PRIV_H__ */

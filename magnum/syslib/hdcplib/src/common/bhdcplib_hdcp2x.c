@@ -78,7 +78,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_CreateTimer(
 
 static BERR_Code BHDCPlib_P_Hdcp2x_DestroyTimer(
 	const BHDCPlib_Handle hHDCPlib,
-	BTMR_TimerHandle timerHandle,
+	BTMR_TimerHandle *timerHandle,
 	uint8_t timerId
 );
 
@@ -233,7 +233,8 @@ static const BHDCPlib_Hdcp2x_ResponseErrorText  hdcp2xResponseErrorTextTable[] =
 	{HDCP22_ERR_LOADING_CRYPTO_SECRET,		BDBG_STRING("Error loading crypto secret values")},
 	{HDCP22_ERR_OPEN_BINFILEMANGER_HANDLE,		BDBG_STRING("Error opening SAGE BinFileManager Handle")},
 	{HDCP22_ERR_UPSTREAM_UNAUTHENTICATED,		BDBG_STRING("Invalid Request to SendReceiverIdList. Not yet authenticated with upstream transmitter")},
-	{HDCP22_ERR_INVALID_HOST_REQUEST,		BDBG_STRING("Invalid command/request from host")}
+	{HDCP22_ERR_INVALID_HOST_REQUEST,		BDBG_STRING("Invalid command/request from host")},
+	{HDCP22_ERR_FEATURE_CERT_ERROR,		BDBG_STRING("Invalid feature certificate file from host")}
 };
 
 static const char * BHDCPlib_Hdcp2x_P_ResponseErrorToStr(
@@ -423,7 +424,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_WaitForSage(BHDCPlib_Handle hHDCPlib)
 		if (rc == BERR_TIMEOUT)
 		{
 			BDBG_ERR(("%s: Timeout (%dms) waiting for sage response from previous request",
-				__FUNCTION__, BHDCPLIB_HDCP2X_SAGERESPONSE_TIMEOUT));
+				BSTD_FUNCTION, BHDCPLIB_HDCP2X_SAGERESPONSE_TIMEOUT));
 			rc = BERR_TRACE(rc);
 			goto done;
 		}
@@ -472,7 +473,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_CreateTimer(
 
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_CreateTimer) ;
 
-	BDBG_MSG(("%s: Create BHDCPlib_P_TIMER_eNNN ID %d", __FUNCTION__, timerId)) ;
+	BDBG_MSG(("%s: Create BHDCPlib_P_TIMER_eNNN ID %d", BSTD_FUNCTION, timerId)) ;
 
 	/* create countdown timer */
 	BTMR_GetDefaultTimerSettings(&timerSettings) ;
@@ -491,7 +492,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_CreateTimer(
 
 static BERR_Code BHDCPlib_P_Hdcp2x_DestroyTimer(
 	const BHDCPlib_Handle hHDCPlib,
-	BTMR_TimerHandle timerHandle,
+	BTMR_TimerHandle *timerHandle,
 	uint8_t timerId
 )
 {
@@ -499,15 +500,16 @@ static BERR_Code BHDCPlib_P_Hdcp2x_DestroyTimer(
 
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_DestroyTimer) ;
 
-	BDBG_MSG(("%s: Destroy BHDCPlib_P_TIMER_eNNN ID %d", __FUNCTION__, timerId)) ;
+	BDBG_MSG(("%s: Destroy BHDCPlib_P_TIMER_eNNN ID %d", BSTD_FUNCTION, timerId)) ;
 
 	BSTD_UNUSED(hHDCPlib) ;
 	BSTD_UNUSED(timerId) ;
 
-	if (timerHandle)
+	if (*timerHandle)
 	{
-		rc = BTMR_DestroyTimer(timerHandle) ;
+		rc = BTMR_DestroyTimer(*timerHandle) ;
 		if (rc) {rc = BERR_TRACE(rc) ; }
+		*timerHandle = NULL;
 	}
 
 	BDBG_LEAVE(BHDCPlib_P_Hdcp2x_DestroyTimer) ;
@@ -535,12 +537,12 @@ static void BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr (BHDCPlib_Handle hHDCPl
 		goto done;
 	}
 
-	BDBG_MSG(("%s: AutoI2C HW Timer status: %s", __FUNCTION__, available?"available":"unavailable"));
+	BDBG_MSG(("%s: AutoI2C HW Timer status: %s", BSTD_FUNCTION, available?"available":"unavailable"));
 
 	if (!available)
 	{
 		/* reset HW core */
-		BDBG_WRN(("%s: Reset AutoI2C core to reset stuck HW timers - current State [%s] ", __FUNCTION__,
+		BDBG_WRN(("%s: Reset AutoI2C core to reset stuck HW timers - current State [%s] ", BSTD_FUNCTION,
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 		rc = BHDM_AUTO_I2C_Reset_isr(hHDCPlib->stDependencies.hHdm);
 		if (rc) {
@@ -575,7 +577,7 @@ static void BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr(BHDCPlib_Handle 
 	/* stop timer */
 	BTMR_StopTimer_isr(hHDCPlib->hAuthenticationTimer);
 
-	BDBG_LOG(("%s: Authentication timeout after %dms - current state %s", __FUNCTION__,
+	BDBG_LOG(("%s: Authentication timeout after %dms - current state %s", BSTD_FUNCTION,
 		BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 
 	/* update state to allow future authentication request*/
@@ -614,7 +616,7 @@ static void BHDCPlib_P_Hdcp2x_DisconnectNotifyCallback(
 
 		/* update internal state */
 		nextState = BHDCPlib_Hdcp2xState_eUnauthenticated;
-		BDBG_LOG(("%s: HPD signal pulled LOW - current state [%s] - next state [%s]", __FUNCTION__,
+		BDBG_LOG(("%s: HPD signal pulled LOW - current state [%s] - next state [%s]", BSTD_FUNCTION,
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 		hHDCPlib->currentHdcp2xState = nextState;
 	}
@@ -700,7 +702,7 @@ done:
 			BSAGElib_Rai_Module_Uninit(hHDCPlib->hSagelibRpcModuleHandle, &hHDCPlib->uiLastAsyncId);
 			BHDCPlib_P_Hdcp2x_WaitForSage(hHDCPlib);
 			BSAGElib_Rpc_RemoveRemote(hHDCPlib->hSagelibRpcModuleHandle);
-			BDBG_MSG(("%s: Uninit & remove Hdcp2x SAGE Module: assignedAsyncId [0x%x]", __FUNCTION__, hHDCPlib->uiLastAsyncId));
+			BDBG_MSG(("%s: Uninit & remove Hdcp2x SAGE Module: assignedAsyncId [0x%x]", BSTD_FUNCTION, hHDCPlib->uiLastAsyncId));
 			hHDCPlib->hSagelibRpcModuleHandle = NULL;
 		}
 	}
@@ -898,6 +900,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 		break;
 
 	case Hdcp22_CommandId_Rx_eSetBinFile:
+	case Hdcp22_CommandId_Rx_eSetSecureRxBinFile:
 	case Hdcp22_CommandId_Rx_eSendReceiverIdList:
 		break;
 
@@ -961,7 +964,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Depen
 	hHandle = BKNI_Malloc(sizeof(BHDCPlib_P_Handle));
 	if (hHandle == NULL)
 	{
-		BDBG_ERR(("%s: BKNI_malloc() failed", __FUNCTION__));
+		BDBG_ERR(("%s: BKNI_malloc() failed", BSTD_FUNCTION));
 		rc = BERR_OUT_OF_SYSTEM_MEMORY;
 		BERR_TRACE(rc);
 		goto done;
@@ -1099,13 +1102,13 @@ done:
 				BSAGElib_Rai_Platform_Close(hHandle->hSagelibRpcPlatformHandle, &hHandle->uiLastAsyncId);
 				BHDCPlib_P_Hdcp2x_WaitForSage(hHandle);
 				BSAGElib_Rpc_RemoveRemote(hHandle->hSagelibRpcPlatformHandle);
-				BDBG_MSG(("%s: Close & remove Hdcp2x SAGE platform: assignedAsyncId [0x%x]", __FUNCTION__, hHandle->uiLastAsyncId));
+				BDBG_MSG(("%s: Close & remove Hdcp2x SAGE platform: assignedAsyncId [0x%x]", BSTD_FUNCTION, hHandle->uiLastAsyncId));
 				hHandle->hSagelibRpcPlatformHandle = NULL;
 			}
 
 			/* destroy timers */
-			BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, hHandle->hTimer, BHDCPlib_P_Timer_eAutoI2c);
-			BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, hHandle->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
+			BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hTimer, BHDCPlib_P_Timer_eAutoI2c);
+			BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
 
 #if BHDCPLIB_HDR_SUPPORT
 			if (pstDependencies->eCoreType == BHDCPlib_CoreType_eRx) {
@@ -1132,14 +1135,14 @@ BERR_Code BHDCPlib_P_Hdcp2x_Close(BHDCPlib_Handle hHDCPlib)
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
 	/* destroy timers */
-	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, hHDCPlib->hTimer, BHDCPlib_P_Timer_eAutoI2c);
+	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, &hHDCPlib->hTimer, BHDCPlib_P_Timer_eAutoI2c);
 	if (rc != BERR_SUCCESS)
 	{
 		BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAutoI2c));
 		rc = BERR_TRACE(rc);
 	}
 
-	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, hHDCPlib->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
+	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, &hHDCPlib->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
 	if (rc != BERR_SUCCESS)
 	{
 		BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAuthentication));
@@ -1186,7 +1189,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_Close(BHDCPlib_Handle hHDCPlib)
 		BSAGElib_Rai_Module_Uninit(hHDCPlib->hSagelibRpcModuleHandle, &hHDCPlib->uiLastAsyncId);
 		BHDCPlib_P_Hdcp2x_WaitForSage(hHDCPlib);
 		BSAGElib_Rpc_RemoveRemote(hHDCPlib->hSagelibRpcModuleHandle);
-		BDBG_MSG(("%s: Uninit & remove Hdcp2x SAGE Module: assignedAsyncId [0x%x]", __FUNCTION__, hHDCPlib->uiLastAsyncId));
+		BDBG_MSG(("%s: Uninit & remove Hdcp2x SAGE Module: assignedAsyncId [0x%x]", BSTD_FUNCTION, hHDCPlib->uiLastAsyncId));
 		hHDCPlib->hSagelibRpcModuleHandle = NULL;
 	}
 
@@ -1196,7 +1199,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_Close(BHDCPlib_Handle hHDCPlib)
 		BSAGElib_Rai_Platform_Close(hHDCPlib->hSagelibRpcPlatformHandle, &hHDCPlib->uiLastAsyncId);
 		BHDCPlib_P_Hdcp2x_WaitForSage(hHDCPlib);
 		BSAGElib_Rpc_RemoveRemote(hHDCPlib->hSagelibRpcPlatformHandle);
-		BDBG_MSG(("%s: Close & remove Hdcp2x SAGE platform: assignedAsyncId [0x%x]", __FUNCTION__, hHDCPlib->uiLastAsyncId));
+		BDBG_MSG(("%s: Close & remove Hdcp2x SAGE platform: assignedAsyncId [0x%x]", BSTD_FUNCTION, hHDCPlib->uiLastAsyncId));
 		hHDCPlib->hSagelibRpcPlatformHandle = NULL;
 	}
 
@@ -1236,7 +1239,7 @@ BERR_Code BHDCPlib_Hdcp2x_ProcessWatchDog(BHDCPlib_Handle hHDCPlib)
 	BDBG_ENTER(BHDCPlib_Hdcp2x_ProcessWatchDog);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
-	BDBG_WRN(("%s: Process Sage Hdcp2.x recovery steps...", __FUNCTION__));
+	BDBG_WRN(("%s: Process Sage Hdcp2.x recovery steps...", BSTD_FUNCTION));
 
 	/* Free all SAGE RPC handles */
 	/* Uninitialized Sage HDCP22 Tx module */
@@ -1354,7 +1357,7 @@ done:
 			BSAGElib_Rai_Platform_Close(hHDCPlib->hSagelibRpcPlatformHandle, &hHDCPlib->uiLastAsyncId);
 			BHDCPlib_P_Hdcp2x_WaitForSage(hHDCPlib);
 			BSAGElib_Rpc_RemoveRemote(hHDCPlib->hSagelibRpcPlatformHandle);
-			BDBG_MSG(("%s: Close & remove Hdcp2x SAGE platform: assignedAsyncId [0x%x]", __FUNCTION__, hHDCPlib->uiLastAsyncId));
+			BDBG_MSG(("%s: Close & remove Hdcp2x SAGE platform: assignedAsyncId [0x%x]", BSTD_FUNCTION, hHDCPlib->uiLastAsyncId));
 			hHDCPlib->hSagelibRpcPlatformHandle = NULL;
 		}
 	}
@@ -1410,7 +1413,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 			if (hHDCPlib->currentHdcp2xEncryptionState == BHDCPlib_Hdcp2xEncryptionState_eEncrypting)
 			{
 				/* block authentication attempt */
-				BDBG_WRN(("%s: Current State [%s] - waiting for encryption to be enabled. Drop StartAuthentication request", __FUNCTION__,
+				BDBG_WRN(("%s: Current State [%s] - waiting for encryption to be enabled. Drop StartAuthentication request", BSTD_FUNCTION,
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 				rc = BERR_SUCCESS;
 				goto done;
@@ -1422,7 +1425,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 		break;
 
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
-		BDBG_WRN(("%s: Current State [%s], drop StartAuthentication request", __FUNCTION__,
+		BDBG_WRN(("%s: Current State [%s], drop StartAuthentication request", BSTD_FUNCTION,
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 		rc = BERR_SUCCESS;
 		goto done;
@@ -1433,7 +1436,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 		if (bReauthReqPending == false)
 		{
 			/* block authentication attempt */
-			BDBG_WRN(("%s: Current State [%s], drop StartAuthentication request", __FUNCTION__,
+			BDBG_WRN(("%s: Current State [%s], drop StartAuthentication request", BSTD_FUNCTION,
 				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 			rc = BERR_SUCCESS;
 			goto done;
@@ -1521,7 +1524,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
 		/* drop stopAuthentication attempt */
-		BDBG_WRN(("%s: Current State [%s], drop StopAuthentication request", __FUNCTION__,
+		BDBG_WRN(("%s: Current State [%s], drop StopAuthentication request", BSTD_FUNCTION,
 				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 		rc = BERR_SUCCESS;
 		goto done;
@@ -2030,7 +2033,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				break;
 
 			default:
-				BDBG_ERR(("%s: Invalid Hdcp2.x state - %d", __FUNCTION__, hHDCPlib->currentHdcp2xState));
+				BDBG_ERR(("%s: Invalid Hdcp2.x state - %d", BSTD_FUNCTION, hHDCPlib->currentHdcp2xState));
 				rc = BERR_INVALID_PARAMETER;
 				BERR_TRACE(rc);
 				goto done;
@@ -2100,7 +2103,7 @@ BERR_Code BHDCPlib_Hdcp2x_GetEventHandle(
 		break ;
 
 	default :
-		BDBG_ERR(("%s: Unknown Event Handle: %d", __FUNCTION__, eEventType)) ;
+		BDBG_ERR(("%s: Unknown Event Handle: %d", BSTD_FUNCTION, eEventType)) ;
 		rc = BERR_INVALID_PARAMETER ;
 		goto done ;
 	}
@@ -2182,12 +2185,12 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 
 	BDBG_ENTER(BHDCPlib_Hdcp2x_ReceiveSageResponse);
 
-	BDBG_MSG(("%s: async_id=0x%x, error %d", __FUNCTION__, sageResponseData->async_id, sageResponseData->error));
+	BDBG_MSG(("%s: async_id=0x%x, error %d", BSTD_FUNCTION, sageResponseData->async_id, sageResponseData->error));
 
 	/* Sanity check on async_id */
 	if (hHDCPlib->uiLastAsyncId != sageResponseData->async_id)
 	{
-		BDBG_WRN(("%s: Incorrect async_id received - expecting [0x%x] - received [0x%x] - current state [%s]", __FUNCTION__,
+		BDBG_WRN(("%s: Incorrect async_id received - expecting [0x%x] - received [0x%x] - current state [%s]", BSTD_FUNCTION,
 			hHDCPlib->uiLastAsyncId, sageResponseData->async_id, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 		rc = BERR_SUCCESS;
 		goto done;
@@ -2267,14 +2270,14 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
 			/* already try platform_open again */
 			if (hHDCPlib->uiInitRetryCounter) {
-				BDBG_ERR(("%s: Error opening HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", __FUNCTION__,
+				BDBG_ERR(("%s: Error opening HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", BSTD_FUNCTION,
 						sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
 						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 				eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
 				break;
 			}
 
-			BDBG_WRN(("%s: Received error opening HDCP2.x SAGE platform - error[0x%x] '%s' - current state [%s]. Try again now >> ", __FUNCTION__,
+			BDBG_WRN(("%s: Received error opening HDCP2.x SAGE platform - error[0x%x] '%s' - current state [%s]. Try again now >> ", BSTD_FUNCTION,
 							sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
 							BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 			hHDCPlib->uiInitRetryCounter++;
@@ -2287,12 +2290,12 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 							hHDCPlib->sageContainer, &hHDCPlib->hSagelibRpcPlatformHandle, /*out */
 							(void *)hHDCPlib, &hHDCPlib->uiLastAsyncId /*out */);
 			BDBG_MSG(("%s: Another attempt to open HDCP2x SAGE platform: sagePlatformHandle [0x%p], assignedAsyncId [0x%x] - current state [%s]",
-				__FUNCTION__, (void *)(hHDCPlib->hSagelibRpcPlatformHandle), hHDCPlib->uiLastAsyncId,
+				BSTD_FUNCTION, (void *)(hHDCPlib->hSagelibRpcPlatformHandle), hHDCPlib->uiLastAsyncId,
 				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 
 			if (rc != BERR_SUCCESS)
 			{
-				BDBG_ERR(("%s: Error opening SAGE HDCP22 Platform - hdcplib(0x%p), error [%x] '%s' - current state [%s]", __FUNCTION__,
+				BDBG_ERR(("%s: Error opening SAGE HDCP22 Platform - hdcplib(0x%p), error [%x] '%s' - current state [%s]", BSTD_FUNCTION,
 					(void *)hHDCPlib, rc, BSAGElib_Tools_ReturnCodeToString(rc), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 				rc = BERR_TRACE(rc);
 				goto done;
@@ -2305,7 +2308,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		case BHDCPlib_Hdcp2xState_eSagePlatformInit:
 			/* already try platform_init again */
 			if (hHDCPlib->uiInitRetryCounter) {
-				BDBG_ERR(("%s: Error initializing HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", __FUNCTION__,
+				BDBG_ERR(("%s: Error initializing HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", BSTD_FUNCTION,
 						sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
 						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 				eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
@@ -2313,7 +2316,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 			}
 
 			BDBG_WRN(("%s: Received error initializing HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]. Try again now >> ",
-				__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+				BSTD_FUNCTION, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
 				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 			hHDCPlib->uiInitRetryCounter++;
 
@@ -2323,11 +2326,11 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 			/* attempt to initialize hdcp2.x sage platform again */
 			rc = BSAGElib_Rai_Platform_Init(hHDCPlib->hSagelibRpcPlatformHandle, NULL, &hHDCPlib->uiLastAsyncId);
 			BDBG_MSG(("%s: Another attempt to nitialize Hdcp2x SAGE platform: assignedAsyncId [0x%x] - current state [%s]",
-				__FUNCTION__, hHDCPlib->uiLastAsyncId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+				BSTD_FUNCTION, hHDCPlib->uiLastAsyncId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 			if (rc != BERR_SUCCESS)
 			{
 				BDBG_ERR(("%s: Error initializing SAGE HDCP22 platform - hdcplib(0x%p) error [0x%x] '%s' - current state [%s]",
-					__FUNCTION__, (void *)hHDCPlib, rc, BSAGElib_Tools_ReturnCodeToString(rc),
+					BSTD_FUNCTION, (void *)hHDCPlib, rc, BSAGElib_Tools_ReturnCodeToString(rc),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 				rc = BERR_TRACE(rc);
 				goto done;
@@ -2341,14 +2344,14 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 			/* already try module_init again */
 			if (hHDCPlib->uiInitRetryCounter) {
 				BDBG_ERR(("%s: Error initializing HDCP2.x SAGE module - error [0x%x] '%s' - current state [%s]",
-					__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+					BSTD_FUNCTION, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 				eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
 				break;
 			}
 
 			BDBG_WRN(("%s: Received error initializing HDCP2.x SAGE module - error [0x%x] '%s' - current state [%s]. Try again now >> ",
-				__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+				BSTD_FUNCTION, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
 				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 			hHDCPlib->uiInitRetryCounter++;
 
@@ -2368,7 +2371,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		case BHDCPlib_Hdcp2xState_eAuthenticating:
 		case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 		case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
-			BDBG_ERR(("%s: Previous request to SAGE did not finished successfully - error [%x] '%s' - current state [%s]", __FUNCTION__,
+			BDBG_ERR(("%s: Previous request to SAGE did not finished successfully - error [%x] '%s' - current state [%s]", BSTD_FUNCTION,
 				sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
 				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 			rc = BERR_TRACE(BERR_OS_ERROR);
@@ -2376,7 +2379,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 			break;
 
 		default:
-			BDBG_ERR(("%s: Invalid Hdcp2.x state - %d", __FUNCTION__, hHDCPlib->currentHdcp2xState));
+			BDBG_ERR(("%s: Invalid Hdcp2.x state - %d", BSTD_FUNCTION, hHDCPlib->currentHdcp2xState));
 			rc = BERR_TRACE(BERR_INVALID_PARAMETER);
 			goto done;	/* no additional actions needed */
 			break;
@@ -2505,7 +2508,7 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 					pAuthenticationStatus->eHdcpState = BHDCPlib_State_eLinkAuthenticated;
 				}
 #else
-				BDBG_ERR(("%s: Invalid hdcp2x State %d", __FUNCTION__, hHDCPlib->currentHdcp2xState));
+				BDBG_ERR(("%s: Invalid hdcp2x State %d", BSTD_FUNCTION, hHDCPlib->currentHdcp2xState));
 #endif
 				break ;
 			}
@@ -2552,7 +2555,7 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 			break;
 
 		default:
-			BDBG_ERR(("%s: Invalid hdcp2x state %d", __FUNCTION__, hHDCPlib->currentHdcp2xState));
+			BDBG_ERR(("%s: Invalid hdcp2x state %d", BSTD_FUNCTION, hHDCPlib->currentHdcp2xState));
 			rc = BERR_TRACE(BERR_INVALID_PARAMETER);
 			pAuthenticationStatus->eHdcpState = BHDCPlib_State_eUnauthenticated;
 			break;
@@ -2563,23 +2566,37 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 }
 
 
-BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
+static BERR_Code BHDCPlib_P_Hdcp2x_SetBinFile(
 	const BHDCPlib_Handle hHDCPlib,
 	const uint8_t *pBuffer,
-	const uint32_t uiSize
+	const uint32_t uiSize,
+	Hdcp22_CommandId command
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
 	uint8_t *binFileBuffer = NULL;
 
-	BDBG_ENTER(BHDCPlib_Hdcp2x_SetBinKeys);
+	BDBG_ENTER(BHDCPlib_P_Hdcp2x_SetBinFile);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
-	if (hHDCPlib->stBinKey.pBuffer != NULL)
+	switch (command)
 	{
-		BSAGElib_Rai_Memory_Free(hHDCPlib->stDependencies.hSagelibClientHandle, hHDCPlib->stBinKey.pBuffer);
-		hHDCPlib->stBinKey.pBuffer = NULL;
-		hHDCPlib->stBinKey.uiSize = 0;
+	case Hdcp22_CommandId_Rx_eSetSecureRxBinFile:
+	case Hdcp22_CommandId_Rx_eSetBinFile:
+		break;
+	default:
+		rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+		goto done;
+	}
+
+	if (command == Hdcp22_CommandId_Rx_eSetBinFile)
+	{
+		if (hHDCPlib->stBinKey.pBuffer != NULL)
+		{
+			BSAGElib_Rai_Memory_Free(hHDCPlib->stDependencies.hSagelibClientHandle, hHDCPlib->stBinKey.pBuffer);
+			hHDCPlib->stBinKey.pBuffer = NULL;
+			hHDCPlib->stBinKey.uiSize = 0;
+		}
 	}
 
 	if (uiSize == 0)
@@ -2608,9 +2625,12 @@ BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
 
 	BKNI_Memcpy(binFileBuffer, pBuffer, uiSize);
 
-	/* Save memory location */
-	hHDCPlib->stBinKey.pBuffer = binFileBuffer;
-	hHDCPlib->stBinKey.uiSize = uiSize;
+	if (command == Hdcp22_CommandId_Rx_eSetBinFile)
+	{
+		/* Save memory location */
+		hHDCPlib->stBinKey.pBuffer = binFileBuffer;
+		hHDCPlib->stBinKey.uiSize = uiSize;
+	}
 
 	/* If this is for Rx, send SAGE command now */
 	if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eRx)
@@ -2653,15 +2673,15 @@ BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
 		/* reconfigure SageContainer for next SAGE communications */
 		BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
 
-		hHDCPlib->sageContainer->blocks[0].data.ptr = hHDCPlib->stBinKey.pBuffer;
-		hHDCPlib->sageContainer->blocks[0].len = hHDCPlib->stBinKey.uiSize;
+		hHDCPlib->sageContainer->blocks[0].data.ptr = binFileBuffer;
+		hHDCPlib->sageContainer->blocks[0].len = uiSize;
 
 		/* Send command */
 		rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
-				Hdcp22_CommandId_Rx_eSetBinFile, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
+				command, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
 
 		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x]",
-			(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Rx_eSetBinFile, hHDCPlib->uiLastAsyncId));
+			(void *)(hHDCPlib->hSagelibRpcModuleHandle), command, hHDCPlib->uiLastAsyncId));
 
 		if (rc != BERR_SUCCESS)
 		{
@@ -2681,10 +2701,27 @@ BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
 	}
 
 done:
-	BDBG_LEAVE(BHDCPlib_Hdcp2x_SetBinKeys);
+	BDBG_LEAVE(BHDCPlib_P_Hdcp2x_SetBinFile);
 	return rc;
 }
 
+BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
+	const BHDCPlib_Handle hHDCPlib,
+	const uint8_t *pBuffer,
+	const uint32_t uiSize
+)
+{
+	return BHDCPlib_P_Hdcp2x_SetBinFile(hHDCPlib, pBuffer, uiSize, Hdcp22_CommandId_Rx_eSetBinFile);
+}
+
+BERR_Code BHDCPlib_Hdcp2x_SetBinFeatCert(
+	const BHDCPlib_Handle hHDCPlib,
+	const uint8_t *pBuffer,
+	const uint32_t uiSize
+)
+{
+	return BHDCPlib_P_Hdcp2x_SetBinFile(hHDCPlib, pBuffer, uiSize, Hdcp22_CommandId_Rx_eSetSecureRxBinFile);
+}
 
 BERR_Code BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(
 	const BHDCPlib_Handle hHDCPlib,
@@ -2697,7 +2734,7 @@ BERR_Code BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
 	if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eRx) {
-		BDBG_ERR(("%s not applicable for HDCP 2.2 Receiver/Repeater", __FUNCTION__));
+		BDBG_ERR(("%s not applicable for HDCP 2.2 Receiver/Repeater", BSTD_FUNCTION));
 		rc = BERR_INVALID_PARAMETER;
 		BERR_TRACE(rc);
 		BKNI_Memset(stReceiverIdListData,0, sizeof(BHDCPlib_ReceiverIdListData));
@@ -2788,7 +2825,7 @@ BERR_Code BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(
 	BDBG_ASSERT(stReceiverIdListData);
 
 	if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx) {
-		BDBG_ERR(("%s not applicable for HDCP 2.2 Transmitter", __FUNCTION__));
+		BDBG_ERR(("%s not applicable for HDCP 2.2 Transmitter", BSTD_FUNCTION));
 		rc = BERR_INVALID_PARAMETER;
 		BERR_TRACE(rc);
 		goto done;

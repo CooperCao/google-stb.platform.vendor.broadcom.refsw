@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -221,7 +221,7 @@ static int parsePlaySpeedString(
     playSpeedStringLength = strlen(pPlaySpeed) + 1;
     if ( (playSpeedString = (char *)BKNI_Malloc(playSpeedStringLength)) == NULL)
     {
-        BDBG_ERR(("%s: BKNI_Malloc failed to allocate %d bytes string for playSpeed", __FUNCTION__, playSpeedStringLength));
+        BDBG_ERR(("%s: BKNI_Malloc failed to allocate %d bytes string for playSpeed", BSTD_FUNCTION, playSpeedStringLength));
         rc = -1;
         goto error;
     }
@@ -235,7 +235,7 @@ static int parsePlaySpeedString(
     {
         int speedNumerator, speedDenominator;
         if (B_PlaybackIp_UtilsParsePlaySpeedString(nextSpeed, &speedNumerator, &speedDenominator, NULL) < 0) {
-            BDBG_ERR(("%s: Failed to parse the playSpeedString %s", __FUNCTION__, nextSpeed));
+            BDBG_ERR(("%s: Failed to parse the playSpeedString %s", BSTD_FUNCTION, nextSpeed));
             rc = -1;
             goto error;
         }
@@ -262,10 +262,10 @@ static int parsePlaySpeedString(
     player->maxFwdSpeedIndex = i-1;
     player->maxRwdSpeedIndex = j-1;
     for (k=0; k<i;k++)
-        BDBG_MSG(("%s: +ve speed idx %d, num %d, denom %d", __FUNCTION__,
+        BDBG_MSG(("%s: +ve speed idx %d, num %d, denom %d", BSTD_FUNCTION,
                 k, player->playSpeedFwdList[k].speedNumerator, player->playSpeedFwdList[k].speedDenominator));
     for (k=0; k<j;k++)
-        BDBG_MSG(("%s: -ve speed idx %d, num %d, denom %d", __FUNCTION__,
+        BDBG_MSG(("%s: -ve speed idx %d, num %d, denom %d", BSTD_FUNCTION,
                 k, player->playSpeedRwdList[k].speedNumerator, player->playSpeedRwdList[k].speedDenominator));
 
 
@@ -597,7 +597,7 @@ static int getPlaySpeed(media_player_bip_t player, int rate, char *speedString, 
     if (abs(rate) >= NEXUS_NORMAL_DECODE_RATE)
         speedIndex = rate / NEXUS_NORMAL_DECODE_RATE;
     else {
-        BDBG_ERR(("%s: rate (%d) is not normalized in NEXUS_NORMAL_DECODE_RATE units", __FUNCTION__, rate));
+        BDBG_ERR(("%s: rate (%d) is not normalized in NEXUS_NORMAL_DECODE_RATE units", BSTD_FUNCTION, rate));
         return -1;
     }
 
@@ -611,14 +611,14 @@ static int getPlaySpeed(media_player_bip_t player, int rate, char *speedString, 
         /* -ve speeds */
         index = abs(speedIndex) - 1; /* minimum value of -ve speedIndex is 1 */
         if (index > player->maxRwdSpeedIndex) {
-            BDBG_ERR(("%s: no -ve speed at this index: %u, max %u", __FUNCTION__, index, player->maxRwdSpeedIndex));
+            BDBG_ERR(("%s: no -ve speed at this index: %u, max %u", BSTD_FUNCTION, index, player->maxRwdSpeedIndex));
             return -1;
         }
         index = player->maxRwdSpeedIndex - index; /* -ve speed index starts from the end of the list */
         snprintf(speedString, speedStringSize-1, "%d/%d", player->playSpeedRwdList[index].speedNumerator, player->playSpeedRwdList[index].speedDenominator);
     }
 
-    BDBG_MSG(("%s: rate %d, speedIndex %d, speed string %s index %d", __FUNCTION__, rate, speedIndex, speedString, index));
+    BDBG_MSG(("%s: rate %d, speedIndex %d, speed string %s index %d", BSTD_FUNCTION, rate, speedIndex, speedString, index));
     return 0;
 }
 

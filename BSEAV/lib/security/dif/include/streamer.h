@@ -62,6 +62,7 @@ typedef enum DrmType {
     drm_type_eUnknown,     /* unknown/not supported DRM Type */
     drm_type_eClear,
     drm_type_eWidevine,    /* WideVine DRM*/
+    drm_type_eWidevine3x,
     drm_type_ePlayready,   /* Playready DRM*/
     drm_type_ePlayready30,   /* Playready 3.0 DRM*/
     drm_type_eMax
@@ -74,7 +75,7 @@ class IBuffer;
 class BufferFactory
 {
 public:
-    static IBuffer* CreateBuffer(size_t size, uint8_t* nexusBuf = NULL, bool secure = false);
+    static IBuffer* CreateBuffer(uint32_t size, uint8_t* nexusBuf = NULL, bool secure = false);
     static void DestroyBuffer(IBuffer* buffer);
 };
 
@@ -86,13 +87,13 @@ public:
 
     virtual bool Initialize() = 0;
 
-    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, size_t size) = 0;
+    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, uint32_t size) = 0;
 
-    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, size_t size) = 0;
+    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, uint32_t size) = 0;
 
     virtual bool IsSecure() = 0;
 
-    virtual size_t GetSize() = 0;
+    virtual uint32_t GetSize() = 0;
 
     virtual uint8_t* GetPtr() = 0;
 };
@@ -100,7 +101,7 @@ public:
 class BaseBuffer : public IBuffer
 {
 public:
-    BaseBuffer(size_t size, uint8_t* nexusBuf) {
+    BaseBuffer(uint32_t size, uint8_t* nexusBuf) {
         m_size = size;
         m_data = nexusBuf;
         if (nexusBuf != NULL)
@@ -113,33 +114,33 @@ public:
 
     virtual bool Initialize() OVERRIDE = 0;
 
-    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, size_t size) OVERRIDE = 0;
+    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, uint32_t size) OVERRIDE = 0;
 
-    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, size_t size) OVERRIDE = 0;
+    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, uint32_t size) OVERRIDE = 0;
 
     virtual bool IsSecure() OVERRIDE { return false; }
 
-    virtual size_t GetSize() OVERRIDE { return m_size; }
+    virtual uint32_t GetSize() OVERRIDE { return m_size; }
 
     virtual uint8_t* GetPtr() OVERRIDE { return m_data; }
 
 protected:
     bool m_givenBuffer;
-    size_t m_size;
+    uint32_t m_size;
     uint8_t* m_data;
 };
 
 class Buffer : public BaseBuffer
 {
 public:
-    Buffer(size_t size, uint8_t* nexusBuf) : BaseBuffer(size, nexusBuf) {};
+    Buffer(uint32_t size, uint8_t* nexusBuf) : BaseBuffer(size, nexusBuf) {};
     virtual ~Buffer();
 
     virtual bool Initialize() OVERRIDE;
 
-    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, size_t size) OVERRIDE;
+    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, uint32_t size) OVERRIDE;
 
-    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, size_t size) OVERRIDE;
+    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, uint32_t size) OVERRIDE;
     virtual bool IsSecure() OVERRIDE { return false; }
 };
 
@@ -150,20 +151,20 @@ public:
 class SecureBuffer : public BaseBuffer
 {
 public:
-    SecureBuffer(size_t size, uint8_t* nexusBuf) : BaseBuffer(size, nexusBuf) {};
+    SecureBuffer(uint32_t size, uint8_t* nexusBuf) : BaseBuffer(size, nexusBuf) {};
     virtual ~SecureBuffer();
 
     virtual bool Initialize() OVERRIDE;
 
-    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, size_t size) OVERRIDE;
+    virtual void Copy(uint32_t offset, uint8_t* dataToCopy, uint32_t size) OVERRIDE;
 
-    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, size_t size) OVERRIDE;
+    virtual void Copy(uint32_t offset, IBuffer* bufToCopy, uint32_t size) OVERRIDE;
 
     virtual bool IsSecure() OVERRIDE { return true; }
 
     void SetDmaJob(NEXUS_DmaJobHandle dmaJob) { m_dmaJob = dmaJob; }
 private:
-    void PrivateCopy(void *pDest, const void *pSrc, size_t nSize, bool flush);
+    void PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bool flush);
 
     static int s_nAllocatedSecureBuffers;
     NEXUS_DmaHandle m_dmaHandle;
@@ -200,7 +201,7 @@ public:
         const NEXUS_PlaypumpOpenPidChannelSettings *pSettings) = 0;
 
     // Used to allocate the destination buffer
-    virtual IBuffer* GetBuffer(size_t size) = 0;
+    virtual IBuffer* GetBuffer(uint32_t size) = 0;
 
     // Used to push data to AV pipeline
     virtual bool Push(uint32_t size) = 0;
@@ -222,17 +223,17 @@ public:
         unsigned pid,
         const NEXUS_PlaypumpOpenPidChannelSettings *pSettings) OVERRIDE;
 
-    virtual IBuffer* GetBuffer(size_t size) OVERRIDE;
+    virtual IBuffer* GetBuffer(uint32_t size) OVERRIDE;
 
     virtual bool Push(uint32_t size) OVERRIDE;
 
 protected:
     virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings &playpumpOpenSettings) = 0;
     virtual bool SetupPidChannel() { return true; }
-    virtual IBuffer* CreateBuffer(size_t size, uint8_t* data) = 0;
+    virtual IBuffer* CreateBuffer(uint32_t size, uint8_t* data) = 0;
 
-    size_t m_internallyPushed;
-    size_t m_offset;
+    uint32_t m_internallyPushed;
+    uint32_t m_offset;
     NEXUS_PlaypumpHandle m_playpump;
     IBuffer* m_playpumpBuffer;
     NEXUS_PidChannelHandle m_pidChannel;
@@ -246,7 +247,7 @@ public:
 
 protected:
     virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings &playpumpOpenSettings) OVERRIDE;
-    virtual IBuffer* CreateBuffer(size_t size, uint8_t* data) OVERRIDE;
+    virtual IBuffer* CreateBuffer(uint32_t size, uint8_t* data) OVERRIDE;
 };
 
 // This class is used to get buffer and push to playpump
@@ -261,7 +262,7 @@ public:
 protected:
     virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings &playpumpOpenSettings) OVERRIDE;
     virtual bool SetupPidChannel() OVERRIDE;
-    virtual IBuffer* CreateBuffer(size_t size, uint8_t* data) OVERRIDE;
+    virtual IBuffer* CreateBuffer(uint32_t size, uint8_t* data) OVERRIDE;
     NEXUS_DmaJobHandle GetDmaJob() { return m_dmaJob; }
 
 private:

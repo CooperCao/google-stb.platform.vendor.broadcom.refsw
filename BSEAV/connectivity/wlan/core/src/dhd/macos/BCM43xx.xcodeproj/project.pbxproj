@@ -1,0 +1,2085 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		31E4B85F1B20E49A00F0781A /* dhd_debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 31E4B85D1B20E49A00F0781A /* dhd_debug.c */; };
+		31E4B8601B20E49A00F0781A /* dhd_debug.h in Headers */ = {isa = PBXBuildFile; fileRef = 31E4B85E1B20E49A00F0781A /* dhd_debug.h */; };
+		5283FC9318D3C0EE00D804B0 /* wlc_phy_types.h in Headers */ = {isa = PBXBuildFile; fileRef = 5283FC9218D3C0EE00D804B0 /* wlc_phy_types.h */; };
+		5289232E18CFDBA300B5BD49 /* siutils.h in Headers */ = {isa = PBXBuildFile; fileRef = F56AE93202942D2E01CE166C /* siutils.h */; };
+		5289232F18CFDBA300B5BD49 /* bcmutils.h in Headers */ = {isa = PBXBuildFile; fileRef = F56AE93402942D4101CE166C /* bcmutils.h */; };
+		5289233918CFDBA300B5BD49 /* bcmdevs.h in Headers */ = {isa = PBXBuildFile; fileRef = F56AE95202942E9801CE166C /* bcmdevs.h */; };
+		5289233A18CFDBA300B5BD49 /* bcmendian.h in Headers */ = {isa = PBXBuildFile; fileRef = F56AE95302942E9801CE166C /* bcmendian.h */; };
+		5289234218CFDBA300B5BD49 /* macosx_osl.h in Headers */ = {isa = PBXBuildFile; fileRef = F5A39195033796DC01CE166C /* macosx_osl.h */; };
+		5289235D18CFDBA300B5BD49 /* bcmwifi_channels.h in Headers */ = {isa = PBXBuildFile; fileRef = E2FCBAF60BEFFF0100A1B3F7 /* bcmwifi_channels.h */; };
+		5289235D18CFDBA300B5BD59 /* bcmwifi_radiotap.h in Headers */ = {isa = PBXBuildFile; fileRef = E2FCBAF60BEFFF0100A1B3F8 /* bcmwifi_radiotap.h */; };
+		528923B618CFDBA300B5BD49 /* wl_macosx.h in Headers */ = {isa = PBXBuildFile; fileRef = 52864F3218188FFC001EBACE /* wl_macosx.h */; };
+		528923C118CFDBA300B5BD49 /* (null) in Headers */ = {isa = PBXBuildFile; };
+		528923C318CFDBA300B5BD49 /* (null) in Headers */ = {isa = PBXBuildFile; };
+		528923C518CFDBA300B5BD49 /* (null) in Headers */ = {isa = PBXBuildFile; };
+		528923CA18CFDBA300B5BD49 /* macosx_osl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A39194033796DC01CE166C /* macosx_osl.cpp */; };
+		528923CB18CFDBA300B5BD49 /* wl_macosx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E29434A608BBE907005E0AC6 /* wl_macosx.cpp */; };
+		528923CC18CFDBA300B5BD49 /* bcmutils.c in Sources */ = {isa = PBXBuildFile; fileRef = F56AE93602942D7201CE166C /* bcmutils.c */; };
+		528923CF18CFDBA300B5BD49 /* siutils.c in Sources */ = {isa = PBXBuildFile; fileRef = F56AE93902942D7201CE166C /* siutils.c */; };
+		528923D918CFDBA300B5BD49 /* bcmwpa.c in Sources */ = {isa = PBXBuildFile; fileRef = D80D1B5C078CB12100D3ECCE /* bcmwpa.c */; };
+		528923F418CFDBA300B5BD49 /* bcmwifi_channels.c in Sources */ = {isa = PBXBuildFile; fileRef = E2FCBAF40BEFFEE400A1B3F7 /* bcmwifi_channels.c */; };
+		528923FA18CFDBA300B5BD49 /* aiutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E28AB54F0D91E3EE008D21C8 /* aiutils.c */; };
+		528923FB18CFDBA300B5BD49 /* sbutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E28AB5530D91E40B008D21C8 /* sbutils.c */; };
+		5289240F18CFDBA300B5BD49 /* bcmevent.c in Sources */ = {isa = PBXBuildFile; fileRef = B637DFF81087B65F00519A47 /* bcmevent.c */; };
+		5289245918CFDBA300B5BD49 /* pcie_core.c in Sources */ = {isa = PBXBuildFile; fileRef = A40F3F491875EE790063B05D /* pcie_core.c */; };
+		5289248718CFDC9500B5BD49 /* dhd_macosx_dhd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5289248618CFDC9500B5BD49 /* dhd_macosx_dhd.cpp */; };
+		5289248A18CFDD5F00B5BD49 /* dhd.h in Headers */ = {isa = PBXBuildFile; fileRef = 5289248918CFDD5F00B5BD49 /* dhd.h */; };
+		5289248C18CFDD7600B5BD49 /* dhd_ip.c in Sources */ = {isa = PBXBuildFile; fileRef = 5289248B18CFDD7600B5BD49 /* dhd_ip.c */; };
+		5289249018CFDDD500B5BD49 /* dngl_stats.h in Headers */ = {isa = PBXBuildFile; fileRef = 5289248F18CFDDD500B5BD49 /* dngl_stats.h */; };
+		5289249418CFE00000B5BD49 /* dhd_proto.h in Headers */ = {isa = PBXBuildFile; fileRef = 5289249318CFE00000B5BD49 /* dhd_proto.h */; };
+		5289249518CFE00400B5BD49 /* dhd_pcie.h in Headers */ = {isa = PBXBuildFile; fileRef = 5289249218CFDE4F00B5BD49 /* dhd_pcie.h */; };
+		5289249618CFE00900B5BD49 /* dhd_pcie.c in Sources */ = {isa = PBXBuildFile; fileRef = 5289249118CFDE4F00B5BD49 /* dhd_pcie.c */; };
+		5289249818CFE03600B5BD49 /* dhd_msgbuf.c in Sources */ = {isa = PBXBuildFile; fileRef = 5289249718CFE03600B5BD49 /* dhd_msgbuf.c */; };
+		5289249A18CFE05200B5BD49 /* dhd_common.c in Sources */ = {isa = PBXBuildFile; fileRef = 5289249918CFE05200B5BD49 /* dhd_common.c */; };
+		5289249C18CFE0C900B5BD49 /* dhd_pcie_macos.c in Sources */ = {isa = PBXBuildFile; fileRef = 5289249B18CFE0C900B5BD49 /* dhd_pcie_macos.c */; };
+		52F3DB1E18D8E5CE00C8268F /* dhd_flowring.c in Sources */ = {isa = PBXBuildFile; fileRef = 52F3DB1C18D8E5CE00C8268F /* dhd_flowring.c */; };
+		52F3DB1F18D8E5CE00C8268F /* dhd_flowring.h in Headers */ = {isa = PBXBuildFile; fileRef = 52F3DB1D18D8E5CE00C8268F /* dhd_flowring.h */; };
+		628B576C1C9C64E000FF5E58 /* bcmtlv.h in Headers */ = {isa = PBXBuildFile; fileRef = 628B576B1C9C64E000FF5E58 /* bcmtlv.h */; };
+		628B576E1C9C650600FF5E58 /* bcmxtlv.c in Sources */ = {isa = PBXBuildFile; fileRef = 628B576D1C9C650600FF5E58 /* bcmxtlv.c */; };
+		871ABA891C57FE9300486C0C /* dhd_timesync.c in Sources */ = {isa = PBXBuildFile; fileRef = 871ABA871C57FE9300486C0C /* dhd_timesync.c */; };
+		871ABA8A1C57FE9300486C0C /* dhd_timesync.h in Headers */ = {isa = PBXBuildFile; fileRef = 871ABA881C57FE9300486C0C /* dhd_timesync.h */; };
+		9BAB7C0C1D76F2E2005FE33E /* hndpmu.h in Headers */ = {isa = PBXBuildFile; fileRef = 9BAB7C0B1D76F2E2005FE33E /* hndpmu.h */; };
+		9BAB7C0E1D76F354005FE33E /* hndpmu.c in Sources */ = {isa = PBXBuildFile; fileRef = 9BAB7C0D1D76F354005FE33E /* hndpmu.c */; };
+		C8473BF21A88C7B100295873 /* hnd_pktq.c in Sources */ = {isa = PBXBuildFile; fileRef = 47A60FE718EB5E4800B9A8AF /* hnd_pktq.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		31E4B85D1B20E49A00F0781A /* dhd_debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dhd_debug.c; path = ../sys/dhd_debug.c; sourceTree = "<group>"; };
+		31E4B85E1B20E49A00F0781A /* dhd_debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dhd_debug.h; path = ../sys/dhd_debug.h; sourceTree = "<group>"; };
+		3F426A3A1373A59C003B5168 /* wlc_clm_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = wlc_clm_data.c; path = build/$CONFIGURATION/wlc_clm_data.c; sourceTree = SOURCE_ROOT; };
+		472AF3B417FF74C6001C0EBC /* wlc_iocv_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlc_iocv_types.h; sourceTree = "<group>"; };
+		472AF3B517FF74C6001C0EBC /* wlc_iocv_reg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlc_iocv_reg.h; sourceTree = "<group>"; };
+		472AF3B617FF74C6001C0EBC /* wlc_iocv_high.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlc_iocv_high.h; sourceTree = "<group>"; };
+		472AF3B717FF74C6001C0EBC /* wlc_iocv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlc_iocv.h; sourceTree = "<group>"; };
+		472AF3B917FF74C6001C0EBC /* wlc_iocv_reg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlc_iocv_reg.c; sourceTree = "<group>"; };
+		472AF3BA17FF74C6001C0EBC /* wlc_iocv_high.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlc_iocv_high.c; sourceTree = "<group>"; };
+		472AF3BB17FF74C6001C0EBC /* wlc_iocv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlc_iocv.c; sourceTree = "<group>"; };
+		472AF3BC17FF74C6001C0EBC /* wlc_iocv_if.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlc_iocv_if.h; sourceTree = "<group>"; };
+		472AF3BD17FF74C6001C0EBC /* wlc_iocv_cfg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlc_iocv_cfg.h; sourceTree = "<group>"; };
+		47A60FE218EB5E1100B9A8AF /* hnd_pktpool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hnd_pktpool.h; path = ../../include/hnd_pktpool.h; sourceTree = "<group>"; };
+		47A60FE318EB5E1100B9A8AF /* hnd_pktq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hnd_pktq.h; path = ../../include/hnd_pktq.h; sourceTree = "<group>"; };
+		47A60FE618EB5E4800B9A8AF /* hnd_pktpool.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hnd_pktpool.c; path = ../../shared/hnd_pktpool.c; sourceTree = "<group>"; };
+		47A60FE718EB5E4800B9A8AF /* hnd_pktq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hnd_pktq.c; path = ../../shared/hnd_pktq.c; sourceTree = "<group>"; };
+		5283FC9218D3C0EE00D804B0 /* wlc_phy_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wlc_phy_types.h; path = ../../../components/phy/old/wlc_phy_types.h; sourceTree = "<group>"; };
+		52864F3218188FFC001EBACE /* wl_macosx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wl_macosx.h; path = ../../wl/sys/wl_macosx.h; sourceTree = "<group>"; };
+		5289248418CFDBA300B5BD49 /* AirPortBroadcom43XX.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AirPortBroadcom43XX.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		5289248618CFDC9500B5BD49 /* dhd_macosx_dhd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dhd_macosx_dhd.cpp; path = ../sys/dhd_macosx_dhd.cpp; sourceTree = "<group>"; };
+		5289248918CFDD5F00B5BD49 /* dhd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dhd.h; path = ../../dhd/sys/dhd.h; sourceTree = "<group>"; };
+		5289248B18CFDD7600B5BD49 /* dhd_ip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dhd_ip.c; path = ../../dhd/sys/dhd_ip.c; sourceTree = "<group>"; };
+		5289248F18CFDDD500B5BD49 /* dngl_stats.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dngl_stats.h; path = ../../dongle/include/dngl_stats.h; sourceTree = "<group>"; };
+		5289249118CFDE4F00B5BD49 /* dhd_pcie.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = dhd_pcie.c; path = ../../dhd/sys/dhd_pcie.c; sourceTree = "<group>"; };
+		5289249218CFDE4F00B5BD49 /* dhd_pcie.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dhd_pcie.h; path = ../../dhd/sys/dhd_pcie.h; sourceTree = "<group>"; };
+		5289249318CFE00000B5BD49 /* dhd_proto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dhd_proto.h; path = ../../dhd/sys/dhd_proto.h; sourceTree = "<group>"; };
+		5289249718CFE03600B5BD49 /* dhd_msgbuf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dhd_msgbuf.c; path = ../../dhd/sys/dhd_msgbuf.c; sourceTree = "<group>"; };
+		5289249918CFE05200B5BD49 /* dhd_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dhd_common.c; path = ../../dhd/sys/dhd_common.c; sourceTree = "<group>"; };
+		5289249B18CFE0C900B5BD49 /* dhd_pcie_macos.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dhd_pcie_macos.c; path = ../../dhd/sys/dhd_pcie_macos.c; sourceTree = "<group>"; };
+		52F3DB1C18D8E5CE00C8268F /* dhd_flowring.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dhd_flowring.c; path = ../../dhd/sys/dhd_flowring.c; sourceTree = "<group>"; };
+		52F3DB1D18D8E5CE00C8268F /* dhd_flowring.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dhd_flowring.h; path = ../../dhd/sys/dhd_flowring.h; sourceTree = "<group>"; };
+		5A9AE3911905D5A600ED73D8 /* dhd_macosx_nic.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dhd_macosx_nic.cpp; path = ../sys/dhd_macosx_nic.cpp; sourceTree = "<group>"; };
+		628B576B1C9C64E000FF5E58 /* bcmtlv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bcmtlv.h; path = ../../include/bcmtlv.h; sourceTree = "<group>"; };
+		628B576D1C9C650600FF5E58 /* bcmxtlv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bcmxtlv.c; path = ../../shared/bcmxtlv.c; sourceTree = "<group>"; };
+		72704A0E13674C8300195116 /* bcm_mpool.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bcm_mpool.c; path = ../../shared/bcm_mpool.c; sourceTree = SOURCE_ROOT; };
+		72704A1213674C9400195116 /* bcm_mpool_pri.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bcm_mpool_pri.h; path = ../../shared/bcm_mpool_pri.h; sourceTree = SOURCE_ROOT; };
+		72704A1613674CA600195116 /* bcm_mpool_pub.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bcm_mpool_pub.h; path = ../../include/bcm_mpool_pub.h; sourceTree = SOURCE_ROOT; };
+		871ABA871C57FE9300486C0C /* dhd_timesync.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dhd_timesync.c; path = ../sys/dhd_timesync.c; sourceTree = "<group>"; };
+		871ABA881C57FE9300486C0C /* dhd_timesync.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dhd_timesync.h; path = ../sys/dhd_timesync.h; sourceTree = "<group>"; };
+		8BB3759C1772552700A0DFD9 /* PCIWireless-P2P-offload-info.plist */ = {isa = PBXFileReference; explicitFileType = text.plist; fileEncoding = 30; path = "PCIWireless-P2P-offload-info.plist"; sourceTree = "<group>"; };
+		9BAB7C0B1D76F2E2005FE33E /* hndpmu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hndpmu.h; path = ../../include/hndpmu.h; sourceTree = "<group>"; };
+		9BAB7C0D1D76F354005FE33E /* hndpmu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hndpmu.c; path = ../../shared/hndpmu.c; sourceTree = "<group>"; };
+		A40F3F491875EE790063B05D /* pcie_core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcie_core.c; path = ../../shared/pcie_core.c; sourceTree = "<group>"; };
+		B637DFF81087B65F00519A47 /* bcmevent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bcmevent.c; path = ../../shared/bcmevent.c; sourceTree = SOURCE_ROOT; };
+		C1FEDBBE079DB3DA005EABBD /* AVSHeader.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = AVSHeader.h; path = ../../wl/sys/AVSHeader.h; sourceTree = "<group>"; };
+		D80D1B5C078CB12100D3ECCE /* bcmwpa.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmwpa.c; path = ../../shared/bcmwpa.c; sourceTree = "<group>"; };
+		D810297605091E8B000001FD /* 802.11.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = 802.11.h; path = ../../../components/shared/proto/802.11.h; sourceTree = "<group>"; };
+		DB4F83C8077785EF0063C03B /* PCIWireless-info.plist */ = {isa = PBXFileReference; explicitFileType = text.plist; fileEncoding = 30; path = "PCIWireless-info.plist"; sourceTree = "<group>"; };
+		DB4F83C8077785EF0063C03C /* PCIWireless-P2P-info.plist */ = {isa = PBXFileReference; explicitFileType = text.plist; fileEncoding = 30; path = "PCIWireless-P2P-info.plist"; sourceTree = "<group>"; };
+		E21C045C09EDF1700052F7A9 /* bcmdefs.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmdefs.h; path = ../../include/bcmdefs.h; sourceTree = SOURCE_ROOT; };
+		E277C94A091C2545001BFC68 /* stripMe */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; path = stripMe; sourceTree = "<group>"; };
+		E28AB54F0D91E3EE008D21C8 /* aiutils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aiutils.c; path = ../../shared/aiutils.c; sourceTree = SOURCE_ROOT; };
+		E28AB5530D91E40B008D21C8 /* sbutils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sbutils.c; path = ../../shared/sbutils.c; sourceTree = SOURCE_ROOT; };
+		E28E004614E2C3BD00A54C75 /* wlc_ppr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wlc_ppr.h; path = ../ppr/include/wlc_ppr.h; sourceTree = SOURCE_ROOT; };
+		E29434A608BBE907005E0AC6 /* wl_macosx.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = wl_macosx.cpp; path = ../../wl/sys/wl_macosx.cpp; sourceTree = SOURCE_ROOT; };
+		E2A70D210FC050C30023A184 /* wlc_phy_hal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wlc_phy_hal.h; path = ../../../components/phy/old/wlc_phy_hal.h; sourceTree = SOURCE_ROOT; };
+		E2BA569A0A003AE100AF4FCF /* bcmwpa.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmwpa.h; path = ../../include/bcmwpa.h; sourceTree = SOURCE_ROOT; };
+		E2C298F708D23D790067FB58 /* wlc_cfg.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = wlc_cfg.h; path = ../sys/wlc_cfg.h; sourceTree = SOURCE_ROOT; };
+		E2D9A31A13679F6D00A4FBBC /* wlc_clm_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wlc_clm_data.h; path = "../../../components/clm-api/include/wlc_clm_data.h"; sourceTree = "<group>"; };
+		E2D9A31B13679F6D00A4FBBC /* bcmwifi_rates.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bcmwifi_rates.h; path = ../../shared/bcmwifi/include/bcmwifi_rates.h; sourceTree = "<group>"; };
+		E2D9A31D13679F6D00A4FBBC /* wlc_clm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wlc_clm.h; path = "../../../components/clm-api/include/wlc_clm.h"; sourceTree = "<group>"; };
+		E2FCBAF40BEFFEE400A1B3F7 /* bcmwifi_channels.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmwifi_channels.c; path = ../../shared/bcmwifi/src/bcmwifi_channels.c; sourceTree = SOURCE_ROOT; };
+		E2FCBAF60BEFFF0100A1B3F7 /* bcmwifi_channels.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmwifi_channels.h; path = ../../shared/bcmwifi/include/bcmwifi_channels.h; sourceTree = SOURCE_ROOT; };
+		E2FCBAF60BEFFF0100A1B3F8 /* bcmwifi_radiotap.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmwifi_radiotap.h; path = ../../shared/bcmwifi/include/bcmwifi_radiotap.h; sourceTree = SOURCE_ROOT; };
+		F55F6FB902FF204201CE172F /* osl.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = osl.h; path = ../../include/osl.h; sourceTree = "<group>"; };
+		F56AE93002942D1801CE166C /* hnddma.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = hnddma.h; path = ../../include/hnddma.h; sourceTree = "<group>"; };
+		F56AE93202942D2E01CE166C /* siutils.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = siutils.h; path = ../../include/siutils.h; sourceTree = "<group>"; };
+		F56AE93402942D4101CE166C /* bcmutils.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmutils.h; path = ../../include/bcmutils.h; sourceTree = "<group>"; };
+		F56AE93602942D7201CE166C /* bcmutils.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmutils.c; path = ../../shared/bcmutils.c; sourceTree = "<group>"; };
+		F56AE93702942D7201CE166C /* hnddma.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = hnddma.c; path = ../../shared/hnddma.c; sourceTree = "<group>"; };
+		F56AE93902942D7201CE166C /* siutils.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = siutils.c; path = ../../shared/siutils.c; sourceTree = "<group>"; };
+		F56AE94502942DFA01CE166C /* wlc.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = wlc.h; path = ../../wl/sys/wlc.h; sourceTree = "<group>"; };
+		F56AE94802942E0B01CE166C /* wl_dbg.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = wl_dbg.h; path = ../../wl/sys/wl_dbg.h; sourceTree = "<group>"; };
+		F56AE94902942E0B01CE166C /* wl_export.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = wl_export.h; path = ../../wl/sys/wl_export.h; sourceTree = "<group>"; };
+		F56AE95102942E9801CE166C /* wlioctl.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = wlioctl.h; path = ../../include/wlioctl.h; sourceTree = "<group>"; };
+		F56AE95102942E9801CE166D /* wlioctl_defs.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = wlioctl_defs.h; path = ../../../components/shared/devctrl_if/wlioctl_defs.h; sourceTree = "<group>"; };
+		F56AE95202942E9801CE166C /* bcmdevs.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmdevs.h; path = ../../include/bcmdevs.h; sourceTree = "<group>"; };
+		F56AE95302942E9801CE166C /* bcmendian.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmendian.h; path = ../../include/bcmendian.h; sourceTree = "<group>"; };
+		F56AE95402942E9801CE166C /* bcmnvram.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = bcmnvram.h; path = ../../include/bcmnvram.h; sourceTree = "<group>"; };
+		F56AE95502942E9801CE166C /* d11.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = d11.h; path = ../../include/d11.h; sourceTree = "<group>"; };
+		F56AE95602942E9801CE166C /* sbconfig.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = sbconfig.h; path = ../../include/sbconfig.h; sourceTree = "<group>"; };
+		F56AE95802942E9801CE166C /* typedefs.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = typedefs.h; path = ../../include/typedefs.h; sourceTree = "<group>"; };
+		F5A39194033796DC01CE166C /* macosx_osl.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = macosx_osl.cpp; path = ../../shared/macosx_osl.cpp; sourceTree = "<group>"; };
+		F5A39195033796DC01CE166C /* macosx_osl.h */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 8; lastKnownFileType = sourcecode.c.h; name = macosx_osl.h; path = ../../include/macosx_osl.h; sourceTree = "<group>"; tabWidth = 8; usesTabs = 1; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5289246C18CFDBA300B5BD49 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		089C166AFE841209C02AAC07 /* PCIWireless */ = {
+			isa = PBXGroup;
+			children = (
+				5289248818CFDD0A00B5BD49 /* DHD */,
+				F5A39192033796B201CE166C /* MacOSX */,
+				F5CC45E50231B34501CE17F9 /* Common */,
+				19C28FB6FE9D52B211CA2CBB /* Products */,
+			);
+			name = PCIWireless;
+			sourceTree = "<group>";
+		};
+		19C28FB6FE9D52B211CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5289248418CFDBA300B5BD49 /* AirPortBroadcom43XX.kext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		472AF3B217FF74C6001C0EBC /* iocv */ = {
+			isa = PBXGroup;
+			children = (
+				472AF3B317FF74C6001C0EBC /* include */,
+				472AF3B817FF74C6001C0EBC /* src */,
+			);
+			name = iocv;
+			path = ../iocv;
+			sourceTree = "<group>";
+		};
+		472AF3B317FF74C6001C0EBC /* include */ = {
+			isa = PBXGroup;
+			children = (
+				472AF3B417FF74C6001C0EBC /* wlc_iocv_types.h */,
+				472AF3B517FF74C6001C0EBC /* wlc_iocv_reg.h */,
+				472AF3B617FF74C6001C0EBC /* wlc_iocv_high.h */,
+				472AF3B717FF74C6001C0EBC /* wlc_iocv.h */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		472AF3B817FF74C6001C0EBC /* src */ = {
+			isa = PBXGroup;
+			children = (
+				472AF3B917FF74C6001C0EBC /* wlc_iocv_reg.c */,
+				472AF3BA17FF74C6001C0EBC /* wlc_iocv_high.c */,
+				472AF3BB17FF74C6001C0EBC /* wlc_iocv.c */,
+				472AF3BC17FF74C6001C0EBC /* wlc_iocv_if.h */,
+				472AF3BD17FF74C6001C0EBC /* wlc_iocv_cfg.h */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		5289248818CFDD0A00B5BD49 /* DHD */ = {
+			isa = PBXGroup;
+			children = (
+				52F3DB1C18D8E5CE00C8268F /* dhd_flowring.c */,
+				52F3DB1D18D8E5CE00C8268F /* dhd_flowring.h */,
+				871ABA881C57FE9300486C0C /* dhd_timesync.h */,
+				5289249B18CFE0C900B5BD49 /* dhd_pcie_macos.c */,
+				871ABA871C57FE9300486C0C /* dhd_timesync.c */,
+				5289249918CFE05200B5BD49 /* dhd_common.c */,
+				31E4B85D1B20E49A00F0781A /* dhd_debug.c */,
+				31E4B85E1B20E49A00F0781A /* dhd_debug.h */,
+				5289249718CFE03600B5BD49 /* dhd_msgbuf.c */,
+				5289249318CFE00000B5BD49 /* dhd_proto.h */,
+				5289249118CFDE4F00B5BD49 /* dhd_pcie.c */,
+				5289249218CFDE4F00B5BD49 /* dhd_pcie.h */,
+				5289248F18CFDDD500B5BD49 /* dngl_stats.h */,
+				5289248B18CFDD7600B5BD49 /* dhd_ip.c */,
+				5289248918CFDD5F00B5BD49 /* dhd.h */,
+			);
+			name = DHD;
+			sourceTree = "<group>";
+		};
+		F56AE95002942E4F01CE166C /* Includes */ = {
+			isa = PBXGroup;
+			children = (
+				47A60FE218EB5E1100B9A8AF /* hnd_pktpool.h */,
+				47A60FE318EB5E1100B9A8AF /* hnd_pktq.h */,
+				E21C045C09EDF1700052F7A9 /* bcmdefs.h */,
+				F56AE95202942E9801CE166C /* bcmdevs.h */,
+				F56AE95302942E9801CE166C /* bcmendian.h */,
+				F56AE95402942E9801CE166C /* bcmnvram.h */,
+				F56AE95502942E9801CE166C /* d11.h */,
+				F55F6FB902FF204201CE172F /* osl.h */,
+				F56AE95602942E9801CE166C /* sbconfig.h */,
+				F56AE95802942E9801CE166C /* typedefs.h */,
+				F56AE95102942E9801CE166C /* wlioctl.h */,
+				F56AE95102942E9801CE166D /* wlioctl_defs.h */,
+				D810297605091E8B000001FD /* 802.11.h */,
+			);
+			name = Includes;
+			sourceTree = "<group>";
+		};
+		F5A39192033796B201CE166C /* MacOSX */ = {
+			isa = PBXGroup;
+			children = (
+				5A9AE3911905D5A600ED73D8 /* dhd_macosx_nic.cpp */,
+				5289248618CFDC9500B5BD49 /* dhd_macosx_dhd.cpp */,
+				52864F3218188FFC001EBACE /* wl_macosx.h */,
+				E277C94A091C2545001BFC68 /* stripMe */,
+				F5A39195033796DC01CE166C /* macosx_osl.h */,
+				F5A39194033796DC01CE166C /* macosx_osl.cpp */,
+				C1FEDBBE079DB3DA005EABBD /* AVSHeader.h */,
+				E29434A608BBE907005E0AC6 /* wl_macosx.cpp */,
+				8BB3759C1772552700A0DFD9 /* PCIWireless-P2P-offload-info.plist */,
+				DB4F83C8077785EF0063C03B /* PCIWireless-info.plist */,
+				DB4F83C8077785EF0063C03C /* PCIWireless-P2P-info.plist */,
+			);
+			name = MacOSX;
+			sourceTree = "<group>";
+		};
+		F5CC45E50231B34501CE17F9 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				628B576D1C9C650600FF5E58 /* bcmxtlv.c */,
+				628B576B1C9C64E000FF5E58 /* bcmtlv.h */,
+				472AF3B217FF74C6001C0EBC /* iocv */,
+				A40F3F491875EE790063B05D /* pcie_core.c */,
+				3F426A3A1373A59C003B5168 /* wlc_clm_data.c */,
+				72704A1613674CA600195116 /* bcm_mpool_pub.h */,
+				72704A1213674C9400195116 /* bcm_mpool_pri.h */,
+				72704A0E13674C8300195116 /* bcm_mpool.c */,
+				B637DFF81087B65F00519A47 /* bcmevent.c */,
+				F56AE94502942DFA01CE166C /* wlc.h */,
+				E2C298F708D23D790067FB58 /* wlc_cfg.h */,
+				E2D9A31A13679F6D00A4FBBC /* wlc_clm_data.h */,
+				E2D9A31B13679F6D00A4FBBC /* bcmwifi_rates.h */,
+				E2D9A31D13679F6D00A4FBBC /* wlc_clm.h */,
+				9BAB7C0D1D76F354005FE33E /* hndpmu.c */,
+				9BAB7C0B1D76F2E2005FE33E /* hndpmu.h */,
+				E2A70D210FC050C30023A184 /* wlc_phy_hal.h */,
+				E28E004614E2C3BD00A54C75 /* wlc_ppr.h */,
+				F56AE94802942E0B01CE166C /* wl_dbg.h */,
+				F56AE94902942E0B01CE166C /* wl_export.h */,
+				F56AE93602942D7201CE166C /* bcmutils.c */,
+				F56AE93402942D4101CE166C /* bcmutils.h */,
+				E2FCBAF40BEFFEE400A1B3F7 /* bcmwifi_channels.c */,
+				E2FCBAF60BEFFF0100A1B3F7 /* bcmwifi_channels.h */,
+				E2FCBAF60BEFFF0100A1B3F8 /* bcmwifi_radiotap.h */,
+				F56AE93702942D7201CE166C /* hnddma.c */,
+				F56AE93002942D1801CE166C /* hnddma.h */,
+				F56AE93902942D7201CE166C /* siutils.c */,
+				F56AE93202942D2E01CE166C /* siutils.h */,
+				E28AB54F0D91E3EE008D21C8 /* aiutils.c */,
+				E28AB5530D91E40B008D21C8 /* sbutils.c */,
+				47A60FE618EB5E4800B9A8AF /* hnd_pktpool.c */,
+				47A60FE718EB5E4800B9A8AF /* hnd_pktq.c */,
+				D80D1B5C078CB12100D3ECCE /* bcmwpa.c */,
+				E2BA569A0A003AE100AF4FCF /* bcmwpa.h */,
+				F56AE95002942E4F01CE166C /* Includes */,
+			);
+			name = Common;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		5289232C18CFDBA300B5BD49 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5289232E18CFDBA300B5BD49 /* siutils.h in Headers */,
+				5289232F18CFDBA300B5BD49 /* bcmutils.h in Headers */,
+				628B576C1C9C64E000FF5E58 /* bcmtlv.h in Headers */,
+				5289233918CFDBA300B5BD49 /* bcmdevs.h in Headers */,
+				5289233A18CFDBA300B5BD49 /* bcmendian.h in Headers */,
+				5289234218CFDBA300B5BD49 /* macosx_osl.h in Headers */,
+				5289249418CFE00000B5BD49 /* dhd_proto.h in Headers */,
+				5283FC9318D3C0EE00D804B0 /* wlc_phy_types.h in Headers */,
+				5289235D18CFDBA300B5BD49 /* bcmwifi_channels.h in Headers */,
+				5289235D18CFDBA300B5BD59 /* bcmwifi_radiotap.h in Headers */,
+				5289249018CFDDD500B5BD49 /* dngl_stats.h in Headers */,
+				9BAB7C0C1D76F2E2005FE33E /* hndpmu.h in Headers */,
+				52F3DB1F18D8E5CE00C8268F /* dhd_flowring.h in Headers */,
+				5289249518CFE00400B5BD49 /* dhd_pcie.h in Headers */,
+				528923B618CFDBA300B5BD49 /* wl_macosx.h in Headers */,
+				871ABA8A1C57FE9300486C0C /* dhd_timesync.h in Headers */,
+				5289248A18CFDD5F00B5BD49 /* dhd.h in Headers */,
+				31E4B8601B20E49A00F0781A /* dhd_debug.h in Headers */,
+				528923C118CFDBA300B5BD49 /* (null) in Headers */,
+				528923C318CFDBA300B5BD49 /* (null) in Headers */,
+				528923C518CFDBA300B5BD49 /* (null) in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		5289232918CFDBA300B5BD49 /* PCIWireless-DHD */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5289246F18CFDBA300B5BD49 /* Build configuration list for PBXNativeTarget "PCIWireless-DHD" */;
+			buildPhases = (
+				5289232A18CFDBA300B5BD49 /* Preprocess Kext */,
+				5289232B18CFDBA300B5BD49 /* Create wlconf.h */,
+				5289232C18CFDBA300B5BD49 /* Headers */,
+				528923C818CFDBA300B5BD49 /* Run ClmCompiler */,
+				528923C918CFDBA300B5BD49 /* Sources */,
+				5289246C18CFDBA300B5BD49 /* Frameworks */,
+				5289246D18CFDBA300B5BD49 /* Rez */,
+				5289246E18CFDBA300B5BD49 /* Postprocess Kext */,
+			);
+			buildRules = (
+			);
+			comments = "Use with IO80211 family provided with non-shipping driver <<Broadcom-WL-IPTag/Private1743:>>";
+			dependencies = (
+			);
+			name = "PCIWireless-DHD";
+			productInstallPath = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+			productName = PCIWireless;
+			productReference = 5289248418CFDBA300B5BD49 /* AirPortBroadcom43XX.kext */;
+			productType = "com.apple.product-type.kernel-extension.iokit";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		089C1669FE841209C02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 0460;
+			};
+			buildConfigurationList = C1297E030870DE5F00C700E3 /* Build configuration list for PBXProject "BCM43xx" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 089C166AFE841209C02AAC07 /* PCIWireless */;
+			projectDirPath = "";
+			projectRoot = ../..;
+			targets = (
+				5289232918CFDBA300B5BD49 /* PCIWireless-DHD */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXRezBuildPhase section */
+		5289246D18CFDBA300B5BD49 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5289232A18CFDBA300B5BD49 /* Preprocess Kext */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Preprocess Kext";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "script=\"${SYSTEM_DEVELOPER_DIR}/ProjectBuilder Extras/Kernel Extension Support/KEXTPreprocess\";\nif [ -x \"$script\" ]; then\n    . \"$script\"\nfi";
+		};
+		5289232B18CFDBA300B5BD49 /* Create wlconf.h */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				../../wl/config/wltunable_macos.h,
+			);
+			name = "Create wlconf.h";
+			outputPaths = (
+				"$(DERIVED_FILES_DIR)/wlconf.h",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cp ../../wl/config/wltunable_macos.h $DERIVED_FILES_DIR/wlconf.h";
+		};
+		528923C818CFDBA300B5BD49 /* Run ClmCompiler */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			comments = "This script should update the CLM data file from the XML input file iff the XML file is present.";
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Run ClmCompiler";
+			outputPaths = (
+				$BUILD_DIR/$CONFIGURATION/wlc_clm_data.c,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "srcbase=../../..\ndata_file=${BUILD_DIR}/${CONFIGURATION}/wlc_clm_data.c\nclm_xml=wlc_clm_data.xml\nclm_conf=43xx_macos.clm\nfor up in . ..; do\n    if [[ -z \"${xml_file}\" ]] && [[ -f ${srcbase}/${up}/components/clm-private/${clm_xml} ]]; then\n        xml_file=${srcbase}/${up}/components/clm-private/${clm_xml}\n    fi\n    if [[ -z \"${clmapi_dir}\" ]] && [[ -d ${srcbase}/${up}/components/clm-api/include ]]; then\n        clmapi_dir=${srcbase}/${up}/components/clm-api/include\n    fi\n    if [[ -z \"${clm_file}\" ]] && [[ -f ${srcbase}/${up}/src/wl/clm/types/${clm_conf} ]]; then\n        clm_file=${srcbase}/${up}/src/wl/clm/types/${clm_conf}\n    fi\n    if [[ -z \"${clmcompiler}\" ]] && [[ -f ${srcbase}/${up}/components/clm-bin/ClmCompiler.py ]]; then\n        clmcompiler=${srcbase}/${up}/components/clm-bin/ClmCompiler.py\n    fi\n    if [[ -z \"${bcmwifi_dir}\" ]] && [[ -d ${srcbase}/${up}/src/shared/bcmwifi/include ]]; then\n        bcmwifi_dir=${srcbase}/${up}/src/shared/bcmwifi/include\n    fi\ndone\n\nif [ -z \"${xml_file}\" ]; then\n    if [ -f ${data_file} ]; then\n        exit 0\n    fi\n    echo \"Error: ${data_file}: No such file or directory\" >&2\n    exit 1\nfi\nif [[ -z \"${clmapi_dir}\" ]] || [[ -z \"${clm_file}\" ]] || [[ -z \"${clmcompiler}\" ]] || [[ -z \"${bcmwifi_dir}\" ]]; then\n    echo \"Error: Can't build ${data_file}: clmapi_dir=${clmapi_dir} clm_file=${clm_file} clmcompiler=${clmcompiler} bcmwifi_dir=${bcmwifi_dir}\" >&2\n    exit 1\nfi\n[[ ${data_file} -ot ${xml_file} ]] || exit 0\nset -x\n${clmcompiler} --clmapi_include_dir ${clmapi_dir} --bcmwifi_include_dir ${bcmwifi_dir} --config_file ${clm_file} --obfuscate ${xml_file} ${data_file}";
+		};
+		5289246E18CFDBA300B5BD49 /* Postprocess Kext */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Postprocess Kext";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "script=\"${SYSTEM_DEVELOPER_DIR}/ProjectBuilder Extras/Kernel Extension Support/KEXTPostprocess\";\nif [ -x \"$script\" ]; then\n    . \"$script\"\nfi";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		528923C918CFDBA300B5BD49 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C8473BF21A88C7B100295873 /* hnd_pktq.c in Sources */,
+				528923CA18CFDBA300B5BD49 /* macosx_osl.cpp in Sources */,
+				528923CB18CFDBA300B5BD49 /* wl_macosx.cpp in Sources */,
+				9BAB7C0E1D76F354005FE33E /* hndpmu.c in Sources */,
+				528923CC18CFDBA300B5BD49 /* bcmutils.c in Sources */,
+				528923CF18CFDBA300B5BD49 /* siutils.c in Sources */,
+				52F3DB1E18D8E5CE00C8268F /* dhd_flowring.c in Sources */,
+				31E4B85F1B20E49A00F0781A /* dhd_debug.c in Sources */,
+				528923D918CFDBA300B5BD49 /* bcmwpa.c in Sources */,
+				528923F418CFDBA300B5BD49 /* bcmwifi_channels.c in Sources */,
+				528923FA18CFDBA300B5BD49 /* aiutils.c in Sources */,
+				528923FB18CFDBA300B5BD49 /* sbutils.c in Sources */,
+				5289240F18CFDBA300B5BD49 /* bcmevent.c in Sources */,
+				5289249C18CFE0C900B5BD49 /* dhd_pcie_macos.c in Sources */,
+				871ABA891C57FE9300486C0C /* dhd_timesync.c in Sources */,
+				5289249818CFE03600B5BD49 /* dhd_msgbuf.c in Sources */,
+				5289248718CFDC9500B5BD49 /* dhd_macosx_dhd.cpp in Sources */,
+				5289249618CFE00900B5BD49 /* dhd_pcie.c in Sources */,
+				5289249A18CFE05200B5BD49 /* dhd_common.c in Sources */,
+				628B576E1C9C650600FF5E58 /* bcmxtlv.c in Sources */,
+				5289245918CFDBA300B5BD49 /* pcie_core.c in Sources */,
+				5289248C18CFDD7600B5BD49 /* dhd_ip.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2D821B851677DC4E006E4C83 /* Debug_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk";
+			};
+			name = Debug_10_9;
+		};
+		2D821B871677DC57006E4C83 /* Debug_Mfg_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk";
+			};
+			name = Debug_Mfg_10_9;
+		};
+		2D821B891677DC6B006E4C83 /* Release_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk";
+			};
+			name = Release_10_9;
+		};
+		2D821B8B1677DC74006E4C83 /* Release_Mfg_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk";
+			};
+			name = Release_Mfg_10_9;
+		};
+		5289247018CFDBA300B5BD49 /* Debug_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					SHOW_EVENTS,
+					BCMBUILD,
+					BCMINTERNAL,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					DHD_DEBUG,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					DBG,
+					BCMDBG,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					WLP2P_UCODE,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WLMCHAN,
+					WL_BSSCFG_TX_SUPR,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					WLDIAG,
+					ENABLE_ACPHY,
+					SCBFREELIST,
+					WLMCNX,
+					BCMCCMP,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_DYNAMIC_TEMPSENSE,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_TIMERSTATS,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_ASSOC_RECREATE,
+					WL_EXPORT_CURPOWER,
+					CCA_STATS,
+					WAR4360_UCODE,
+					PWRTHROTTLE_GPIO,
+					BCMTSTAMPEDLOGS,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM12,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug_10_10;
+		};
+		5289247118CFDBA300B5BD49 /* Debug_Mfg_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					BCMBUILD,
+					BTC2WIRE,
+					BCMDRIVER,
+					WLTEST,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL_MONITOR,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					BCMSUP_PSK,
+					BCMINTSUP,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WOWL,
+					WLSCANCACHE,
+					DBG,
+					BCMDBG,
+					WL_LOCK_CHECK,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					WLTXMONITOR,
+					IO80211P2P,
+					WLP2P_NEW_WFA_OUI,
+					BCMECICOEX,
+					ENABLE_ACPHY,
+					PPR_API,
+					SCBFREELIST,
+					DBG_BCN_LOSS,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_ANTGAIN,
+					WL_LTR,
+					WL_EXPORT_CURPOWER,
+					WLROAMPROF,
+					SURVIVE_PERST_ENAB,
+					PWRTHROTTLE_GPIO,
+					WOWL_OS_OFFLOADS,
+					AWDL_FAMILY,
+					P2PO,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					WLWFDS,
+					SR_ESSENTIALS,
+					SAVERESTORE,
+					SRFAST,
+					SR_DEBUG,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk$(KEXT_FRAMEWORK)/Versions/A/Headers";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug_Mfg_10_10;
+		};
+		5289247218CFDBA300B5BD49 /* Release_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					SHOW_EVENTS,
+					BCMBUILD,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					DHD_DEBUG,
+					BCM_BACKPLANE_TIMEOUT,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					WLP2P_UCODE,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WLMCHAN,
+					WL_BSSCFG_TX_SUPR,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					SCBFREELIST,
+					WLMCNX,
+					BCMCCMP,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_DYNAMIC_TEMPSENSE,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_ASSOC_RECREATE,
+					WL_EXPORT_CURPOWER,
+					WAR4360_UCODE,
+					PWRTHROTTLE_GPIO,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM12,
+					BCMDBG_DUMP,
+					BCMDBG_ASSERT,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release_10_10;
+		};
+		5289247318CFDBA300B5BD49 /* Release_Mfg_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					BCMBUILD,
+					BTC2WIRE,
+					WLTEST,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL_MONITOR,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					BCMSUP_PSK,
+					BCMINTSUP,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WOWL,
+					WLSCANCACHE,
+					DBG,
+					WL_LOCK_CHECK,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					WLTXMONITOR,
+					IO80211P2P,
+					WLP2P_NEW_WFA_OUI,
+					BCMECICOEX,
+					ENABLE_ACPHY,
+					PPR_API,
+					SCBFREELIST,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_ANTGAIN,
+					WL_LTR,
+					WL_EXPORT_CURPOWER,
+					WLROAMPROF,
+					SURVIVE_PERST_ENAB,
+					PWRTHROTTLE_GPIO,
+					WOWL_OS_OFFLOADS,
+					AWDL_FAMILY,
+					P2PO,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					WLWFDS,
+					SR_ESSENTIALS,
+					SAVERESTORE,
+					SRFAST,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.9.sdk$(KEXT_FRAMEWORK)/Versions/A/Headers";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release_Mfg_10_10;
+		};
+		5289247418CFDBA300B5BD49 /* Debug_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					SHOW_EVENTS,
+					BCMBUILD,
+					BCMINTERNAL,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					DHD_DEBUG,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					DBG,
+					BCMDBG,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					WLP2P_UCODE,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WLMCHAN,
+					WL_BSSCFG_TX_SUPR,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					WLDIAG,
+					ENABLE_ACPHY,
+					SCBFREELIST,
+					WLMCNX,
+					BCMCCMP,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_DYNAMIC_TEMPSENSE,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_TIMERSTATS,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_ASSOC_RECREATE,
+					WL_EXPORT_CURPOWER,
+					CCA_STATS,
+					WAR4360_UCODE,
+					PWRTHROTTLE_GPIO,
+					BCMTSTAMPEDLOGS,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM12,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug_10_9;
+		};
+		5289247518CFDBA300B5BD49 /* Debug_Mfg_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					BCMBUILD,
+					BTC2WIRE,
+					BCMDRIVER,
+					WLTEST,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					SROM12,
+					AP,
+					WLCNT,
+					WL_MONITOR,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					BCMSUP_PSK,
+					BCMINTSUP,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WOWL,
+					WLSCANCACHE,
+					DBG,
+					BCMDBG,
+					WL_LOCK_CHECK,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					WLTXMONITOR,
+					IO80211P2P,
+					WLP2P_NEW_WFA_OUI,
+					BCMECICOEX,
+					ENABLE_ACPHY,
+					PPR_API,
+					SCBFREELIST,
+					DBG_BCN_LOSS,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_ANTGAIN,
+					WL_LTR,
+					WL_EXPORT_CURPOWER,
+					OPPORTUNISTIC_ROAM,
+					SURVIVE_PERST_ENAB,
+					PWRTHROTTLE_GPIO,
+					WOWL_OS_OFFLOADS,
+					SR_ESSENTIALS,
+					SAVERESTORE,
+					SRFAST,
+					SR_DEBUG,
+					DMA_MRENAB,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug_Mfg_10_9;
+		};
+		5289247618CFDBA300B5BD49 /* Release_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					SHOW_EVENTS,
+					BCMBUILD,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					DHD_DEBUG,
+					BCM_BACKPLANE_TIMEOUT,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					WLP2P_UCODE,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WLMCHAN,
+					WL_BSSCFG_TX_SUPR,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					SCBFREELIST,
+					WLMCNX,
+					BCMCCMP,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_DYNAMIC_TEMPSENSE,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_ASSOC_RECREATE,
+					WL_EXPORT_CURPOWER,
+					WAR4360_UCODE,
+					PWRTHROTTLE_GPIO,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM12,
+					BCMDBG_DUMP,
+					BCMDBG_ASSERT,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release_10_9;
+		};
+		5289247718CFDBA300B5BD49 /* Release_Mfg_10_9 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					BCMBUILD,
+					BTC2WIRE,
+					WLTEST,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					SROM12,
+					WLCNT,
+					WL_MONITOR,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					BCMSUP_PSK,
+					BCMINTSUP,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WOWL,
+					WLSCANCACHE,
+					DBG,
+					WL_LOCK_CHECK,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					WLTXMONITOR,
+					IO80211P2P,
+					WLP2P_NEW_WFA_OUI,
+					BCMECICOEX,
+					ENABLE_ACPHY,
+					PPR_API,
+					SCBFREELIST,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_ANTGAIN,
+					WL_LTR,
+					WL_EXPORT_CURPOWER,
+					OPPORTUNISTIC_ROAM,
+					SURVIVE_PERST_ENAB,
+					PWRTHROTTLE_GPIO,
+					WOWL_OS_OFFLOADS,
+					SR_ESSENTIALS,
+					SAVERESTORE,
+					SRFAST,
+					DMA_MRENAB,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = "PCIWireless copy";
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(SDKROOT)$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders";
+				WARNING_CFLAGS = "-Wall";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release_Mfg_10_9;
+		};
+		B69C565B0EC2219900E9F9A5 /* Release_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.10.sdk";
+			};
+			name = Release_10_10;
+		};
+		B6D6B1300FD5CAEB001E1C73 /* Debug_Mfg_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.10.sdk";
+			};
+			name = Debug_Mfg_10_10;
+		};
+		B6D6B1320FD5CAFA001E1C73 /* Release_Mfg_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.10.sdk";
+			};
+			name = Release_Mfg_10_10;
+		};
+		C69C565B0EC2219900E9F9A5 /* Release_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk";
+			};
+			name = Release_10_11;
+		};
+		C69C565C0EC2219900E9F9A5 /* Release_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					DHD_AWDL,
+					SHOW_EVENTS,
+					BCMBUILD,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					WLP2P_UCODE,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WLMCHAN,
+					WL_BSSCFG_TX_SUPR,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					SCBFREELIST,
+					WLMCNX,
+					BCMCCMP,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_DYNAMIC_TEMPSENSE,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_ASSOC_RECREATE,
+					WL_EXPORT_CURPOWER,
+					WAR4360_UCODE,
+					PWRTHROTTLE_GPIO,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM14,
+					BCMDBG_DUMP,
+					BCMDBG_ASSERT,
+					WLAWDL,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/Headers";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release_10_11;
+		};
+		C6D6B1300FD5CAEB001E1C73 /* Debug_Mfg_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk";
+			};
+			name = Debug_Mfg_10_11;
+		};
+		C6D6B1310FD5CAEB001E1C73 /* Debug_Mfg_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					SHOW_EVENTS,
+					BCMBUILD,
+					WLTEST,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					DHD_DEBUG,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					DBG,
+					BCMDBG,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					ENABLE_ACPHY,
+					SCBFREELIST,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_EXPORT_CURPOWER,
+					PWRTHROTTLE_GPIO,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM14,
+					WLOTA_EN,
+					WLWFDS,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/Headers";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug_Mfg_10_11;
+		};
+		C6D6B1320FD5CAFA001E1C73 /* Release_Mfg_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk";
+			};
+			name = Release_Mfg_10_11;
+		};
+		C6D6B1330FD5CAFA001E1C73 /* Release_Mfg_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					SHOW_EVENTS,
+					BCMBUILD,
+					WLTEST,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					SCBFREELIST,
+					WLMCNX,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_EXPORT_CURPOWER,
+					PWRTHROTTLE_GPIO,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM14,
+					DBG,
+					WL_LOCK_CHECK,
+					WLROAMPROF,
+					SURVIVE_PERST_ENAB,
+					WLOTA_EN,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/Headers";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release_Mfg_10_11;
+		};
+		E2647C570E9D99030030CA26 /* Debug_10_10 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.10.sdk";
+			};
+			name = Debug_10_10;
+		};
+		F2647C570E9D99030030CA26 /* Debug_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_OTHER_PREPROCESSOR_FLAGS = "";
+				INFOPLIST_PREFIX_HEADER = ../../include/epivers.h;
+				INFOPLIST_PREPROCESS = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = BCMINTERNAL;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk";
+			};
+			name = Debug_10_11;
+		};
+		F2647C580E9D99030030CA26 /* Debug_10_11 */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SRCROOT=$(SRCROOT)",
+					"SPINWAIT_POLL_PERIOD=20",
+					MACOSX,
+					MACOSX_DHD,
+					DHD_FW_COREDUMP,
+					DHD_AWDL,
+					SHOW_EVENTS,
+					BCMBUILD,
+					BCMINTERNAL,
+					BCMPCIE,
+					BCMDONGLEHOST,
+					PCIE_FULL_DONGLE,
+					PCIE_ISR_THREAD,
+					DHD_DEBUG,
+					BTC2WIRE,
+					BCMDRIVER,
+					DMA,
+					BCMDMA64,
+					BCMDMA64OSL,
+					BCMPMU,
+					STA,
+					AP,
+					WLCNT,
+					WL11AC,
+					WLATF,
+					WL11N,
+					WL11H,
+					WLTPC,
+					WLCSA,
+					WLQUIET,
+					WL11D,
+					WLCNTRY,
+					DBAND,
+					WLAFTERBURNER,
+					CRAM,
+					WME,
+					WLWSEC,
+					WLAMPDU,
+					WLAMPDU_MAC,
+					WLAMPDU_HW,
+					WLOVERTHRUSTER,
+					WLAMSDU,
+					WLOLPC,
+					WLAMSDU_SWDEAGG,
+					__MBUF_TRANSITION_,
+					DBG,
+					BCMDBG,
+					WLEXTLOG,
+					WL_BSSLISTSORT,
+					BCMNVRAMW,
+					APSTA,
+					WLP2P_UCODE,
+					PHYCAL_CACHING,
+					SAMPLE_COLLECT,
+					WLMCHAN,
+					WL_BSSCFG_TX_SUPR,
+					WIFI_ACT_FRAME,
+					APPLEIOCIE,
+					BCMECICOEX,
+					PPR_API,
+					WLDIAG,
+					ENABLE_ACPHY,
+					SCBFREELIST,
+					WLMCNX,
+					BCMCCMP,
+					WME_PER_AC_TUNING,
+					WME_PER_AC_TX_PARAMS,
+					WL_DYNAMIC_TEMPSENSE,
+					WL_BEAMFORMING,
+					WL_SARLIMIT,
+					WL_TIMERSTATS,
+					WL_LTR,
+					WL_ANTGAIN,
+					WL_ASSOC_RECREATE,
+					WL_EXPORT_CURPOWER,
+					CCA_STATS,
+					WAR4360_UCODE,
+					PWRTHROTTLE_GPIO,
+					BCMTSTAMPEDLOGS,
+					ANQPO_DISABLED,
+					WL_EVENTQ,
+					BCM_DECODE_NO_ANQP,
+					BCM_DECODE_NO_HOTSPOT_ANQP,
+					SROM14,
+					WLAWDL,
+					DHD_DBG_DUMP,
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../common/include,
+					../../../components/shared,
+					../../../components/phy/old,
+					../../wl/ppr/include,
+					../../wl/iocv/include,
+					"../../../components/clm-api/include",
+					../../wl/sys,
+				);
+				INFOPLIST_FILE = "PCIWireless-DHD-Info.plist";
+				INSTALL_GROUP = wheel;
+				INSTALL_MODE_FLAG = "a-w,u+w,a+rX";
+				INSTALL_OWNER = root;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = "";
+				MODULE_NAME = com.apple.driver.AirPortBroadcom43XX;
+				MODULE_VERSION = 4.0;
+				PRODUCT_NAME = AirPortBroadcom43XX;
+				TOPBLDDIR = builds;
+				UNEXPORTED_SYMBOLS_FILE = stripMe;
+				USER_HEADER_SEARCH_PATHS = "$(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/PrivateHeaders $(DEVELOPER_SDK_DIR)/MacOSX10.11.sdk$(KEXT_FRAMEWORK)/Versions/A/Headers";
+				WARNING_CPPFLAGS = "-fpermissive";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug_10_11;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5289246F18CFDBA300B5BD49 /* Build configuration list for PBXNativeTarget "PCIWireless-DHD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F2647C580E9D99030030CA26 /* Debug_10_11 */,
+				C6D6B1310FD5CAEB001E1C73 /* Debug_Mfg_10_11 */,
+				C69C565C0EC2219900E9F9A5 /* Release_10_11 */,
+				C6D6B1330FD5CAFA001E1C73 /* Release_Mfg_10_11 */,
+				5289247018CFDBA300B5BD49 /* Debug_10_10 */,
+				5289247118CFDBA300B5BD49 /* Debug_Mfg_10_10 */,
+				5289247218CFDBA300B5BD49 /* Release_10_10 */,
+				5289247318CFDBA300B5BD49 /* Release_Mfg_10_10 */,
+				5289247418CFDBA300B5BD49 /* Debug_10_9 */,
+				5289247518CFDBA300B5BD49 /* Debug_Mfg_10_9 */,
+				5289247618CFDBA300B5BD49 /* Release_10_9 */,
+				5289247718CFDBA300B5BD49 /* Release_Mfg_10_9 */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug_10_10;
+		};
+		C1297E030870DE5F00C700E3 /* Build configuration list for PBXProject "BCM43xx" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F2647C570E9D99030030CA26 /* Debug_10_11 */,
+				C6D6B1300FD5CAEB001E1C73 /* Debug_Mfg_10_11 */,
+				C69C565B0EC2219900E9F9A5 /* Release_10_11 */,
+				C6D6B1320FD5CAFA001E1C73 /* Release_Mfg_10_11 */,
+				E2647C570E9D99030030CA26 /* Debug_10_10 */,
+				B6D6B1300FD5CAEB001E1C73 /* Debug_Mfg_10_10 */,
+				B69C565B0EC2219900E9F9A5 /* Release_10_10 */,
+				B6D6B1320FD5CAFA001E1C73 /* Release_Mfg_10_10 */,
+				2D821B851677DC4E006E4C83 /* Debug_10_9 */,
+				2D821B871677DC57006E4C83 /* Debug_Mfg_10_9 */,
+				2D821B891677DC6B006E4C83 /* Release_10_9 */,
+				2D821B8B1677DC74006E4C83 /* Release_Mfg_10_9 */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug_10_10;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 089C1669FE841209C02AAC07 /* Project object */;
+}

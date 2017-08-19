@@ -195,20 +195,23 @@ typedef enum NEXUS_SecurityTerminationMode
 {
     NEXUS_SecurityTerminationMode_eClear,
     NEXUS_SecurityTerminationMode_eCbcResidual,
-    NEXUS_SecurityTerminationMode_eBlock = NEXUS_SecurityTerminationMode_eCbcResidual,
-    NEXUS_SecurityTerminationMode_eScte52Term = NEXUS_SecurityTerminationMode_eCbcResidual,
-    NEXUS_SecurityTerminationMode_eReserved2,
-    NEXUS_SecurityTerminationMode_eCipherStealing = NEXUS_SecurityTerminationMode_eReserved2,
+    NEXUS_SecurityTerminationMode_eCipherStealing,
     NEXUS_SecurityTerminationMode_eCtsCpcm,
-    NEXUS_SecurityTerminationMode_eCipherStealingComcast = NEXUS_SecurityTerminationMode_eCtsCpcm,
-    NEXUS_SecurityTerminationMode_eReserved4,
+    NEXUS_SecurityTerminationMode_eFrontResidue,
     NEXUS_SecurityTerminationMode_eReserved5,
     NEXUS_SecurityTerminationMode_eReserved6,
     NEXUS_SecurityTerminationMode_eTsAndPacket,
     NEXUS_SecurityTerminationMode_ePacket,
     NEXUS_SecurityTerminationMode_eCbcMac,
     NEXUS_SecurityTerminationMode_eCmac,
-    NEXUS_SecurityTerminationMode_eMax
+    NEXUS_SecurityTerminationMode_eMax,
+
+    /* aliases */
+    NEXUS_SecurityTerminationMode_eBlock = NEXUS_SecurityTerminationMode_eCbcResidual,
+    NEXUS_SecurityTerminationMode_eScte52Term = NEXUS_SecurityTerminationMode_eCbcResidual,
+    NEXUS_SecurityTerminationMode_eCipherStealingComcast = NEXUS_SecurityTerminationMode_eCtsCpcm,
+    NEXUS_SecurityTerminationMode_eReserved2 = NEXUS_SecurityTerminationMode_eCipherStealing,
+    NEXUS_SecurityTerminationMode_eReserved4 = NEXUS_SecurityTerminationMode_eFrontResidue
 } NEXUS_SecurityTerminationMode;
 
 

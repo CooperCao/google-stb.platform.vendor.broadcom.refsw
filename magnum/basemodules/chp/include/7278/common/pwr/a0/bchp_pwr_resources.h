@@ -1,5 +1,5 @@
  /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 /***************************************************************************
@@ -94,17 +93,19 @@
 #define BCHP_PWR_RESOURCE_VDC_DAC              0x0000002b
 #define BCHP_PWR_RESOURCE_VDC_HDMI_RX_CLK0     0x0000002c
 #define BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY0     0x0000002d
-#define BCHP_PWR_RESOURCE_VDC_VEC              0x0000002e
-#define BCHP_PWR_RESOURCE_VICE                 0x0000002f
-#define BCHP_PWR_RESOURCE_VICE0                0x00000030
-#define BCHP_PWR_RESOURCE_VICE0_CLK            0x00000031
-#define BCHP_PWR_RESOURCE_XPT                  0x00000032
-#define BCHP_PWR_RESOURCE_XPT_PACKETSUB        0x00000033
-#define BCHP_PWR_RESOURCE_XPT_PARSER           0x00000034
-#define BCHP_PWR_RESOURCE_XPT_PLAYBACK         0x00000035
-#define BCHP_PWR_RESOURCE_XPT_RAVE             0x00000036
-#define BCHP_PWR_RESOURCE_XPT_REMUX            0x00000037
-#define BCHP_PWR_RESOURCE_XPT_SRAM             0x00000038
-#define BCHP_PWR_RESOURCE_XPT_XMEMIF           0x00000039
+#define BCHP_PWR_RESOURCE_VDC_STG0             0x0000002e
+#define BCHP_PWR_RESOURCE_VDC_STG1             0x0000002f
+#define BCHP_PWR_RESOURCE_VDC_VEC              0x00000030
+#define BCHP_PWR_RESOURCE_VICE                 0x00000031
+#define BCHP_PWR_RESOURCE_VICE0                0x00000032
+#define BCHP_PWR_RESOURCE_VICE0_CLK            0x00000033
+#define BCHP_PWR_RESOURCE_XPT                  0x00000034
+#define BCHP_PWR_RESOURCE_XPT_PACKETSUB        0x00000035
+#define BCHP_PWR_RESOURCE_XPT_PARSER           0x00000036
+#define BCHP_PWR_RESOURCE_XPT_PLAYBACK         0x00000037
+#define BCHP_PWR_RESOURCE_XPT_RAVE             0x00000038
+#define BCHP_PWR_RESOURCE_XPT_REMUX            0x00000039
+#define BCHP_PWR_RESOURCE_XPT_SRAM             0x0000003a
+#define BCHP_PWR_RESOURCE_XPT_XMEMIF           0x0000003b
 
 #endif

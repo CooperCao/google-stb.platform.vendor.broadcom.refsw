@@ -1,0 +1,34 @@
+			   TCP Offload Engine
+
+Related Twiki pages
+
+	Remote Sockets (full IP stack offload)
+
+		RSockOverview
+		RSockProtocol
+		RSockSimulation
+		RSockLibrary
+		DongleTcpIpStack
+
+	TCP Offload (IP checksum and SAR acceleration)
+
+		WlTcpOffload
+
+Source Layout
+
+	(All source is owned by BRCM except lwip and libusb)
+
+	include/rsock		Remote Sockets Header Files
+	lwip			Light Weight IP stack (internet freeware)
+	rserv			Remote Sockets Server
+	rserv/rserv.c			O/S independent Server
+	rserv/rte			RTE port
+	rserv/sim			Linux User Mode Simulation
+	rsock			Remote Sockets Client
+	rsock/rsock.c			Client Library
+	rsock/user			Linux User Mode
+	rsock/user/sim				Simulation
+	rsock/user/usb				libusb rsock layer
+	rsock/user/usb/libusb				libusb (LGPL)
+	rsock/exe			Utility clients (ifconfig, ttcp)
+	shared			Utility files

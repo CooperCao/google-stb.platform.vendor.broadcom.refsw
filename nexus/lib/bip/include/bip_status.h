@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2007-2015 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #ifndef BIP_STATUS_H
@@ -265,10 +261,10 @@ purposes.
 #if USE_BIP_BDBG_PRINTMSG_FOR_LOGGING
 void BIP_Status_BdbgPrintmsg(const char * func, int line, BDBG_pDebugModuleFile pModule, BDBG_Level lvl,  const char *fmt, ...);
 
-#define BIP_MSG(fmt)  BIP_Status_BdbgPrintmsg(__FUNCTION__, __LINE__, &b_dbg_module, BDBG_eMsg, fmt);
-#define BIP_WRN(fmt)  BIP_Status_BdbgPrintmsg(__FUNCTION__, __LINE__, &b_dbg_module, BDBG_eWrn, fmt);
-#define BIP_ERR(fmt)  BIP_Status_BdbgPrintmsg(__FUNCTION__, __LINE__, &b_dbg_module, BDBG_eErr, fmt);
-#define BIP_LOG(fmt)  BIP_Status_BdbgPrintmsg(__FUNCTION__, __LINE__, &b_dbg_module, BDBG_eLog, fmt);
+#define BIP_MSG(fmt)  BIP_Status_BdbgPrintmsg(BSTD_FUNCTION, __LINE__, &b_dbg_module, BDBG_eMsg, fmt);
+#define BIP_WRN(fmt)  BIP_Status_BdbgPrintmsg(BSTD_FUNCTION, __LINE__, &b_dbg_module, BDBG_eWrn, fmt);
+#define BIP_ERR(fmt)  BIP_Status_BdbgPrintmsg(BSTD_FUNCTION, __LINE__, &b_dbg_module, BDBG_eErr, fmt);
+#define BIP_LOG(fmt)  BIP_Status_BdbgPrintmsg(BSTD_FUNCTION, __LINE__, &b_dbg_module, BDBG_eLog, fmt);
 #else
 #define BIP_MSG(fmt)  BDBG_MSG(fmt)
 #define BIP_WRN(fmt)  BDBG_WRN(fmt)
@@ -302,10 +298,10 @@ Refer to the BERR_TRACE macro for details.
 #define BIP_ERR_TRACE_P(file, line, text, code)                                                           \
         (  (BIP_Status_PrintError(file, line, code) != BIP_SUCCESS)                                       \
             ?   (                                                                                         \
-                    (void)BERR_TRACE((code))                                                              \
+                    (BIP_Status)BERR_TRACE((code))                                                        \
                 )                                                                                         \
-                : (void)0                                                                                 \
-        , code)
+                : ((BIP_Status)code)                                                                      \
+        )
 
 /**
 Summary:
@@ -326,22 +322,22 @@ which will result in output like this (for BIP_MSG_PRE_STYLE == 1):
 #if  BIP_MSG_PRE_STYLE == 1         /* <Line number>: <function name>():: */
     /*   00:00:00.287 url_test: 512: main():: This is a test: 1 2 3...  */
     #define BIP_MSG_PRE_FMT  "%d: %s():: "
-    #define BIP_MSG_PRE_ARG ,__LINE__,__FUNCTION__
+    #define BIP_MSG_PRE_ARG ,__LINE__,BSTD_FUNCTION
 
 #elif  BIP_MSG_PRE_STYLE == 2        /* <Line number>: [<thread id>] <function name>():: */
     /*   00:00:00.287 url_test: 512: [b60c3450] main():: This is a test: 1 2 3...  */
     #define BIP_MSG_PRE_FMT  "%d: [%x] %s():: "
-    #define BIP_MSG_PRE_ARG ,__LINE__, BIP_Status_GetMyThreadId(),__FUNCTION__
+    #define BIP_MSG_PRE_ARG ,__LINE__, BIP_Status_GetMyThreadId(),BSTD_FUNCTION
 
 #elif  BIP_MSG_PRE_STYLE == 3        /* <Line number>: [<thread name>] <function name>():: */
     /*   00:00:00.287 url_test: 512: [BipTmr] main():: This is a test: 1 2 3...  */
     #define BIP_MSG_PRE_FMT  "%d: [%s] %s():: "
-    #define BIP_MSG_PRE_ARG ,__LINE__, B_Thread_GetMyName(),__FUNCTION__
+    #define BIP_MSG_PRE_ARG ,__LINE__, B_Thread_GetMyName(),BSTD_FUNCTION
 
 #elif  BIP_MSG_PRE_STYLE == 4        /* <Line number>: [<thread id>:<thread name>] <function name>():: */
     /*   00:00:00.287 url_test: 512: [b60c3450:BipTmr] main():: This is a test: 1 2 3...  */
     #define BIP_MSG_PRE_FMT  "%4d: [%8x:%-12s] %s():: "
-    #define BIP_MSG_PRE_ARG ,__LINE__, BIP_Status_GetMyThreadId(), B_Thread_GetMyName(),__FUNCTION__
+    #define BIP_MSG_PRE_ARG ,__LINE__, BIP_Status_GetMyThreadId(), B_Thread_GetMyName(),BSTD_FUNCTION
 
 #elif  BIP_MSG_PRE_STYLE == 5        /* <Line number>: [<thread id>|<thread name>] <function name>():: */
     /*   00:00:00.287 url_test: 512: [b60c3450:BipTmr] main():: This is a test: 1 2 3...  */
@@ -353,7 +349,7 @@ which will result in output like this (for BIP_MSG_PRE_STYLE == 1):
         B_Thread_GetMyName()==NULL ? 0 : 12,                          \
         B_Thread_GetMyName()==NULL ? 0 : 12,                          \
         B_Thread_GetMyName()==NULL ? "" : B_Thread_GetMyName(),       \
-      __FUNCTION__
+      BSTD_FUNCTION
 
 #else
     #error BIP_MSG_PRE_STYLE has not been defined!
@@ -385,7 +381,7 @@ The "errorValue" arg is evaluated and saved before doing anything else, so it is
 for the errorValue arg to have a reference to "errno", like this:
 
         dirErr = stat( pMediaFileInfoInputSettings->pInfoFilesDirectoryPath, &infoFileStats );
-        BIP_CHECK_GOTO(( dirErr>=0 ), ( "%s: Invalid Info Directory Path", __FUNCTION__ ), error, BIP_StatusFromErrno(errno), rc );
+        BIP_CHECK_GOTO(( dirErr>=0 ), ( "%s: Invalid Info Directory Path", BSTD_FUNCTION ), error, BIP_StatusFromErrno(errno), rc );
 **/
 #define BIP_CHECK_GOTO(                                                                     \
     expression,     /* Condition expected to be true for success.               */          \
@@ -399,6 +395,7 @@ for the errorValue arg to have a reference to "errno", like this:
             BIP_Status  myErrorValue = errorValue; /* in case errorValue refers to errno */ \
             BDBG_ERR(errorMessage);                                                         \
             errorVariable = BIP_ERR_TRACE(myErrorValue);                                    \
+            BSTD_UNUSED(errorVariable);                                                     \
           goto errorLabel;                                                                  \
         }                                                                                   \
     } while(0)
@@ -432,7 +429,7 @@ for the errorValue arg to have a reference to "errno", like this:
 #define BIP_CHECK_ERR_NZ_GOTO(rc, errString, errorLabel)        \
     do {                                                        \
         if ((rc) != 0) {                                        \
-            BDBG_ERR(("%s: %s ", __FUNCTION__, errString));     \
+            BDBG_ERR(("%s: %s ", BSTD_FUNCTION, errString));     \
           goto errorLabel;                                      \
         }                                                       \
     } while(0)
@@ -441,7 +438,7 @@ for the errorValue arg to have a reference to "errno", like this:
 #define BIP_CHECK_PTR_GOTO(ptr, errString, errorLabel, error)   \
     do {                                                        \
         if (ptr == NULL) {                                      \
-            BDBG_ERR(("%s: %s", __FUNCTION__, errString));      \
+            BDBG_ERR(("%s: %s", BSTD_FUNCTION, errString));      \
             BIP_ERR_TRACE(error);                               \
             goto errorLabel;                                    \
         }                                                       \
@@ -451,7 +448,7 @@ for the errorValue arg to have a reference to "errno", like this:
 #define BIP_CHECK_ERR_LZ_GOTO(rc, errString, errString2, errorLabel, error)   \
     do {                                                                      \
         if ((rc) < 0) {                                                       \
-            BDBG_ERR(("%s: %s %s", __FUNCTION__, errString, errString2));     \
+            BDBG_ERR(("%s: %s %s", BSTD_FUNCTION, errString, errString2));     \
             BIP_ERR_TRACE(error);                                             \
           goto errorLabel;                                                    \
         }                                                                     \
@@ -461,7 +458,7 @@ for the errorValue arg to have a reference to "errno", like this:
 #define BIP_CHECK_ERR_LEZ_GOTO(rc, errString, errString2, errorLabel, error)  \
     do {                                                                      \
         if ((rc) <= 0) {                                                      \
-            BDBG_ERR(("%s: %s %s", __FUNCTION__, errString, errString2));     \
+            BDBG_ERR(("%s: %s %s", BSTD_FUNCTION, errString, errString2));     \
             BIP_ERR_TRACE(error);                                             \
           goto errorLabel;                                                    \
         }                                                                     \

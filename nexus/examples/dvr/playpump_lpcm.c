@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 /* Nexus example app:
@@ -143,6 +135,7 @@ int main(int argc, const char *argv[]) {
     NEXUS_PlatformSettings platformSettings;
     bool header;
     unsigned last_depth, depth_count;
+    NEXUS_DisplayHandle display = NULL;
 
     if(argc>1) {
         filename = argv[1];
@@ -175,11 +168,18 @@ int main(int argc, const char *argv[]) {
     audio decode
     **/
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (platformConfig.outputs.audioDacs[0]) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    if (platformConfig.outputs.hdmi[0]) {
+        display = NEXUS_Display_Open(0, NULL);
+        NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
     audioProgram.codec = NEXUS_AudioCodec_ePcmWav;
     audioProgram.pidChannel = audioPidChannel;
@@ -197,7 +197,7 @@ int main(int argc, const char *argv[]) {
             fprintf(stderr,"playpump error\n");
             break;
         }
-        buffer_size -= buffer_size%2; /* make buffer 2 bytes alligned */
+        buffer_size -= buffer_size%2; /* make buffer 2 bytes aligned */
         if (buffer_size == 0) {
             BKNI_WaitForEvent(event, BKNI_INFINITE);
             continue;

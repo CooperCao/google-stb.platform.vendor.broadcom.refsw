@@ -96,6 +96,7 @@ static void print_mem(NEXUS_ClientHandle client)
     NEXUS_Platform_GetDefaultInterfaceName(&interfaceName);
     strcpy(interfaceName.name, "NEXUS_Surface");
     rc = NEXUS_Platform_GetClientObjects(client, &interfaceName, objects, MAX_OBJECTS, &num);
+    BDBG_ASSERT(!rc);
     for (i=0;i<num;i++) {
         NEXUS_SurfaceMemoryProperties prop;
         NEXUS_SurfaceStatus status;
@@ -115,6 +116,7 @@ static void print_mem(NEXUS_ClientHandle client)
     }
     strcpy(interfaceName.name, "NEXUS_MemoryBlock");
     rc = NEXUS_Platform_GetClientObjects(client, &interfaceName, objects, MAX_OBJECTS, &num);
+    BDBG_ASSERT(!rc);
     for (i=0;i<num;i++) {
         NEXUS_MemoryBlockProperties prop;
         unsigned j;

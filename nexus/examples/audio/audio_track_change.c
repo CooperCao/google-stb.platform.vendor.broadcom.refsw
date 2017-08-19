@@ -478,7 +478,7 @@ static int playback_seek(int argc, const char *argv[])
         NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
         NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
 
-        /* Tell playback that it shouldn't start immediatly */
+        /* Tell playback that it shouldn't start immediately */
         NEXUS_Playback_GetSettings(playback, &playbackSettings);
         playbackSettings.startPaused = true;
         NEXUS_Playback_SetSettings(playback, &playbackSettings);
@@ -514,7 +514,7 @@ static int playback_seek(int argc, const char *argv[])
         NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
         NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
 
-        /* Tell playback that it shouldn't start immediatly */
+        /* Tell playback that it shouldn't start immediately */
         NEXUS_Playback_GetSettings(playback, &playbackSettings);
         playbackSettings.startPaused = true;
         NEXUS_Playback_SetSettings(playback, &playbackSettings);

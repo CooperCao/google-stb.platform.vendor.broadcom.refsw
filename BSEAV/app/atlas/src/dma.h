@@ -53,7 +53,7 @@ class CDma : public CResource
 public:
     CDma(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CDma(void);

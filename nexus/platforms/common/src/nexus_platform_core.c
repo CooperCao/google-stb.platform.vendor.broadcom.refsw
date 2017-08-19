@@ -59,6 +59,7 @@
 #include "bchp_int_id_memc_l2_2_0.h"
 #endif
 #endif /* BCHP_MEMC_L2_0_REG_START */
+#include "bchp_memc_gen_0.h"
 
 #if NEXUS_HAS_SECURITY
 #include "priv/nexus_security_priv.h"
@@ -66,6 +67,8 @@
 #if NEXUS_HAS_SAGE
 #include "priv/nexus_sage_priv.h"
 #endif
+
+#include "priv/nexus_core_standby_priv.h"
 
 #ifdef DIAGS_MEM_DMA_TEST
 extern int run_dma_memory_test;
@@ -103,7 +106,6 @@ static void NEXUS_Platform_P_MemcBsp_isr(void *pParam, int iParam)
 
 static void NEXUS_Platform_P_MemcEventHandler(void * context)
 {
-    bool os64 = NEXUS_Platform_P_IsOs64();
     BSTD_UNUSED(context);
 #if NEXUS_HAS_SECURITY
     if(g_NEXUS_platformHandles.security /* if NEXUS_Platform_P_MemcEventHandler called when there is no secure module */
@@ -112,14 +114,19 @@ static void NEXUS_Platform_P_MemcEventHandler(void * context)
 #endif
       ) {
         NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
-        NEXUS_Security_PrintArchViolation_priv(os64?BMRC_Monitor_HwBlock_eCPU:BMRC_Monitor_HwBlock_eInvalid);
+        NEXUS_Security_PrintArchViolation_priv();
         NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
     }
 #endif
-    if (!os64) {
+#if NEXUS_CPU_ARM
+    {
+    uint32_t value = BREG_Read32(g_pCoreHandles->reg, BCHP_MEMC_GEN_0_CORE_REV_ID);
+    if (BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, ARCH_REV_ID) < 11 || BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, CFG_REV_ID) < 2) {
         BDBG_LOG(("Detected SECURE MEMC ARCH violation. Terminating...."));
         BKNI_Fail();
     }
+    }
+#endif
     return;
 }
 
@@ -360,7 +367,11 @@ static NEXUS_PlatformSettings *NEXUS_Platform_P_AllocSettingsForAdjacentHeaps(co
             int rc;
             unsigned picbufHeap;
             rc = NEXUS_Platform_P_GetPictureBufferForAdjacent(pSettings, i, &picbufHeap);
-            if (rc) {BERR_TRACE(rc); return NULL;}
+            if (rc) {
+                BERR_TRACE(rc);
+                if (pBmemSettings) BKNI_Free(pBmemSettings);
+                return NULL;
+            }
             if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS && pBmemSettings) {
                 /* additional memory */
                 pBmemSettings->heap[picbufHeap].size += pBmemSettings->heap[i].size;
@@ -907,6 +918,7 @@ const NEXUS_Core_PreInitState *NEXUS_Platform_P_PreInit(void)
     BBOX_GetConfig(preInitState->hBox, &preInitState->boxConfig);
 
     preInitState->pMapId = NEXUS_Platform_P_ReadPMapId();
+    preInitState->pMapSettings = NEXUS_Platform_P_ReadPMapSettings();
     g_NEXUS_preinit.refcnt++;
     return &g_NEXUS_preinit.state;
 
@@ -928,6 +940,7 @@ void NEXUS_Platform_P_PreUninit(void)
     if (!g_NEXUS_preinit.refcnt || --g_NEXUS_preinit.refcnt) return;
 
     g_pPreInitState = NULL;
+    NEXUS_Platform_P_FreePMapSettings(preInitState);
     BBOX_Close(preInitState->hBox);
     NEXUS_Platform_P_UnmapRegisters(preInitState);
     NEXUS_Platform_P_UninitOSMem();
@@ -979,7 +992,6 @@ void NEXUS_Platform_ShrinkHeap(NEXUS_HeapHandle heap, size_t continuousBytes, si
     NEXUS_MemoryStatus heapStatus;
     NEXUS_MemoryRegion *regions;
     bool continuousReserved;
-    bool recycled = false;
     unsigned numFreeBlocks;
 
     rc = NEXUS_Heap_GetStatus(heap, &heapStatus);
@@ -1022,7 +1034,6 @@ void NEXUS_Platform_ShrinkHeap(NEXUS_HeapHandle heap, size_t continuousBytes, si
         }
         if(region.boundary || region.length >= lowThreshold) {
             BDBG_MSG(("ShrinkHeap:%p Removing region " BDBG_UINT64_FMT ":%u", (void*)heap, BDBG_UINT64_ARG(region.base), (unsigned)region.length));
-            recycled = true;
             NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
             rc = NEXUS_Heap_RemoveRegion_priv(heap, region.base, region.length);
             NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);

@@ -1,0 +1,75 @@
+# Regular HCI command & event Test #1
+00000006	00000006	wl0: < HCI Command: Reset(0x3|0x3) plen 0
+00000007	00000007	 
+00000008	00000008	wl0: > HCI Event: Command Complete(0xe) plen 4
+00000009	00000009	  0000: 01 03 0c 00 
+00000010	00000010	 
+
+# 2 HCI commands, then an event Test #2
+00000014	00000014	wl0: < HCI Command: Set Event Mask Page 4(0x3|0x63) plen 0
+00000015	00000015	wl0: < HCI Command: Set Event Mask Page 2(0x3|0x63) plen 8
+00000016	00000016	  0000: ff 3f 00 00 00 00 00 00 
+00000017	00000017	 
+00000018	00000018	wl0: > HCI Event: Command Complete(0xe) plen 6
+00000019	00000019	  0000: 01 63 0c 00 ff bb
+00000020	00000020	 
+
+# Event with no data, followed by another event with data Test #3 & #4
+00000028	00000028	wl0: > HCI Event: Command Status(0xe) plen 0
+00000028	00000028	wl0: > HCI Event: Command Complete(0xe) plen 4
+00000029	00000029	  0000: 01 16 0c 00 
+00000030	00000030	 
+
+# 3 events in a row Test #5 & #6
+00000026    00000026    wl0: > HCI Event: Vendor Specific(0xff) plen 7
+00000027    00000027      0000: 06 00 90 4c 03 01 2b 
+00000028	00000028	wl0: > HCI Event: Command Complete(0xe) plen 4
+00000029	00000029	  0000: 01 16 0c 00 
+00000036	00000036	 
+00000037	00000037	wl0: > HCI Event: Command Complete(0xe) plen 34
+00000038	00000038	  0000: 01 09 14 00 01 30 75 00 00 30 75 00 00 1c 00 00 
+00000039	00000039	  0016: 00 d4 05 00 00 01 01 00 a0 02 30 75 00 00 64 00 
+00000040	00000040	  0032: 00 00 
+00000041	00000041	
+
+# event missing the terminator line, then HCI command Test #7
+00000049	00000049	wl0: > HCI Event: Command Complete(0xe) plen 40
+00000050	00000050	  0000: 01 0a 14 00 00 21 00 01 06 00 00 23 4e 3c 92 d8 
+00000051	00000051	  0016: 02 06 00 58 58 58 c9 fe 00 04 04 00 01 00 00 00 
+00000052	00000052	  0032: 05 05 00 01 0f 00 10 09 
+00000046	00000046	wl0: < HCI Command: Read Local AMP ASSOC(0x5|0xa) plen 3
+
+# event missing the terminator line, then another event Test #8 & #9
+00000063	00000063	wl0: > HCI Event: Command Status(0xf) plen 4
+00000064	00000064	  0000: 00 01 35 04 
+00000075	00000075	wl0: > HCI Event: Command Complete(0xe) plen 5
+00000076	00000076	  0000: 01 0b 14 00 10 
+00000077	00000077	 
+
+# event with wrong plen Test #10
+00000080	00000080	wl0: > HCI Event: Command Complete(0xe) plen 8
+00000081	00000081	0000: 01 0a 14 00 00 21 00 01 06 00 00
+
+# ACL data Test #11
+00000820	20.35317421	wl0: > ACL data: handle 0x0012 flags 0x03 dlen 44
+00000821	20.35319710	  0000: 00 01 02 03 04 05 06 07 08 09 aa
+00000822	20.35319711	  0000: 00 01 02 03 04 05 06 07 08 09 bb 
+00000823	20.35319712	  0000: 00 01 02 03 04 05 06 07 08 09 cc 
+00000824	20.35319713	  0000: 00 01 02 03 04 05 06 07 08 09 dd 
+00000899	00000899
+
+# ACL data with wrong plen Test #12
+00000825	20.35317421	wl0: > ACL data: handle 0x0010 flags 0x03 dlen 9
+00000826	20.35319710	  0000: 00 01 02 03 04 05 06 07 08 aa
+00000899	00000899
+
+# ACL data terminated by wlN: output Test #13
+00000827	20.35317421	wl0: > ACL data: handle 0x0010 flags 0x03 dlen 10
+00000828	20.35319710	  0000: 00 01 02 03 04 05 06 07 08 aa
+00000095        10.51423168     wl0: JOIN: association success ...
+00000096        10.51439095     wl0: JOIN: join BSS "AMP-00-1a-73-fd-0c-7b" on channel 1
+00000097        10.51440334     wl0: ROAM: roam_reason cleared to 0x0
+
+# event missing the terminator line, then get EOF Test #14
+00000080	00000080	wl0: > HCI Event: Command Complete(0xe) plen 16
+00000081	00000081	0000: 01 0a 14 00 00 21 00 01 06 00 00 23 4e 3c 92 d8 

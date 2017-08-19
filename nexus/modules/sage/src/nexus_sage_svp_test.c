@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
 
 #include "nexus_sage_module.h"
@@ -62,6 +63,9 @@
 #include "bchp_memc_arc_2.h"
 #endif
 #include "bchp_sun_gisb_arb.h"
+
+/* Macrovision (MV) Monitoring */
+#include "nexus_sage_svp_mv.h"
 
 BDBG_MODULE(nexus_sage_svp_test);
 
@@ -443,6 +447,7 @@ static void NEXUS_Sage_P_BvnMonitorThread(void *dummy)
 
         dumpGisbViolation();
 
+        /* BVN Monitoring */
         BKNI_AcquireMutex(local_info.bvnLock);
         BBVN_Monitor_Check(local_info.hBvnMonitor, &local_info.coreList, &local_info.bvnStatus);
         BKNI_ReleaseMutex(local_info.bvnLock);
@@ -451,6 +456,13 @@ static void NEXUS_Sage_P_BvnMonitorThread(void *dummy)
             BDBG_ERR(("BVN VIOLATION!"));
             dumpArcInfo();
         }
+
+        /* MV Monitoring */
+        if (MV_Monitor_Check(g_pCoreHandles->reg))
+        {
+            BDBG_ERR(("Macrovision VIOLATION!"));
+        }
+
         BKNI_Sleep(ISR_RATE);
     }
 

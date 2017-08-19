@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  Example code on how to pace MPEG-2 TS stream based on PCR's
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #include <stdint.h>
 #include <stdbool.h>
@@ -146,7 +138,7 @@ void
 b_tts_converter_init(b_tts_converter *tts, uint16_t pcr_pid)
 {
     tts->npackets = 0;
-    tts->packet_step = 0; /* don't increment ts untill have found first PCR */
+    tts->packet_step = 0; /* don't increment ts until have found first PCR */
     tts->packet_step = DEFAULT_STEP;
     tts->pcr_timestamp = 0;
     tts->prev_timestamp = tts->pcr_timestamp;

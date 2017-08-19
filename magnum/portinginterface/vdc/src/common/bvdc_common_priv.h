@@ -63,6 +63,7 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (1)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2)
 #define BVDC_P_SUPPORT_DNR                    (1)
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
 #define BVDC_P_SUPPORT_VEC_GRPD               (0)
 #define BVDC_P_SUPPORT_CAP_VER                (4)
@@ -228,6 +229,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_SCL_VER                (8) /* SCL HW version */
 #define BVDC_P_SUPPORT_HSCL_VER               (6) /* HSCL HW version */
 #define BVDC_P_SUPPORT_DNR                    (3) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_MCVP                   (3) /* Number of MCVP HW */
 #define BVDC_P_SUPPORT_MADR                   (2) /* Number of MAD-R HW */
 #define BVDC_P_SUPPORT_BOX_DETECT             (4) /* Number LBOX HW detect */
@@ -247,6 +249,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_SCL_VER                (7) /* SCL HW version */
 #define BVDC_P_SUPPORT_HSCL_VER               (5) /* HSCL HW version */
 #define BVDC_P_SUPPORT_DNR                    (2) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_MCVP                   (2) /* Number of MCVP HW */
 #define BVDC_P_SUPPORT_MADR                   (1) /* Number of MAD-R HW */
 #define BVDC_P_SUPPORT_BOX_DETECT             (3) /* Number LBOX HW detect */
@@ -383,6 +386,7 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (1)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 
 /* source */
@@ -572,6 +576,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (1) /* Has 656Out and run as master mode */
 #define BVDC_P_SUPPORT_LOOP_BACK              (2) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_CAP_VER                (5) /* CAP HW version, see bvdc_capture_priv.h */
 
@@ -713,6 +718,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_TDAC_VER               (12)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_DNR                    (4) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_BOX_DETECT             (4) /* Number LBOX HW detect */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (2)
 #define BVDC_P_SUPPORT_HDDVI_VER              (9)
@@ -851,6 +857,7 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2)
 #define BVDC_P_SUPPORT_DNR                    (1)
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
 #define BVDC_P_SUPPORT_VEC_GRPD               (0)
 
@@ -985,6 +992,7 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_VEC_GRPD               (1) /* Support GRPD hw */
 
@@ -1117,6 +1125,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_TDAC_VER               (12)/* DAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_VEC_GRPD               (1) /* Support GRPD hw */
 
@@ -1268,6 +1277,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_DNR                    (6) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect, See SW7445-782 */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
 #define BVDC_P_SUPPORT_HDDVI_VER              (11)
@@ -1404,6 +1414,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_DSCL                   (0)
 #define BVDC_P_SUPPORT_DSCL_VER               (0)
 #define BVDC_P_SUPPORT_DNR                    (4) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (10) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_F                (2) /* Number of VNET_F_DRAIN_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_VER              (2) /* DRAIN HW version */
@@ -1534,6 +1545,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_DSCL                   (0)
 #define BVDC_P_SUPPORT_DSCL_VER               (0)
 #define BVDC_P_SUPPORT_DNR                    (3) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (8) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_F                (2) /* Number of VNET_F_DRAIN_x_SRC */
 #if (BCHP_CHIP==7366)
@@ -1567,6 +1579,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_DSCL                   (1)
 #define BVDC_P_SUPPORT_DSCL_VER               (2)
 #define BVDC_P_SUPPORT_DNR                    (2) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (4) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_F                (3) /* Number of VNET_F_DRAIN_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_VER              (2) /* DRAIN HW version */
@@ -1701,6 +1714,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (1) /* Has 656Out and run as master mode */
 #define BVDC_P_SUPPORT_LOOP_BACK              (4) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (2) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_CAP_VER                (7) /* CAP HW version, see bvdc_capture_priv.h */
 
@@ -1851,6 +1865,7 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (4) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 
 /* source */
@@ -1986,12 +2001,27 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI                  (0)
 #define BVDC_P_SUPPORT_DSCL                   (1)
 #define BVDC_P_SUPPORT_DSCL_VER               (3)
+#if BCHP_VER >= BCHP_VER_B0
+#define BVDC_P_SUPPORT_DNR_VER                (1)
+#define BVDC_P_CMP_CFC_VER                    (4)
+#define BVDC_P_SUPPORT_GFD_VER                (11)
+#define BVDC_P_SUPPORT_SCL_VER                (12)
 #else
+#define BVDC_P_SUPPORT_DNR_VER                (0)
+#define BVDC_P_CMP_CFC_VER                    (2)
+#define BVDC_P_SUPPORT_GFD_VER                (10)
+#define BVDC_P_SUPPORT_SCL_VER                (11)
+#endif
+
+#else  /* 7271, 7268 */
 #if BCHP_VER >= BCHP_VER_B0
 #define BVDC_P_SUPPORT_XSRC                   (3) /* Number of stand alone XSRC HW */
+#define BVDC_P_CMP_CFC_VER                    (3)
 #else
 #define BVDC_P_SUPPORT_XSRC                   (2) /* Number of stand alone XSRC HW */
+#define BVDC_P_CMP_CFC_VER                    (2)
 #endif
+
 #define BVDC_P_SUPPORT_MADR                   (2) /* Number of MAD-R HW */
 #define BVDC_P_SUPPORT_MCVP                   (2) /* Number of MCVP HW */
 #define BVDC_P_SUPPORT_LOOP_BACK              (6) /* Number of VNET_B_LOOP_BACK_x_SRC */
@@ -1999,6 +2029,9 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI                  (1)
 #define BVDC_P_SUPPORT_DSCL                   (0)
 #define BVDC_P_SUPPORT_DSCL_VER               (0)
+#define BVDC_P_SUPPORT_DNR_VER                (0)
+#define BVDC_P_SUPPORT_GFD_VER                (10)
+#define BVDC_P_SUPPORT_SCL_VER                (11)/* SCL HW version */
 #endif
 
 #define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
@@ -2014,7 +2047,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_MADR_VER               (11)/* MAD-R HW version */
 #define BVDC_P_SUPPORT_MCVP_VER               (6) /* MCVP HW version */
 #define BVDC_P_SUPPORT_PEP_VER                (6)
-#define BVDC_P_SUPPORT_SCL_VER                (11)/* SCL HW version */
 #define BVDC_P_SUPPORT_DNR                    (2) /* Number of DNR_x core */
 #define BVDC_P_SUPPORT_DRAIN_F                (2) /* Number of VNET_F_DRAIN_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_VER              (2) /* DRAIN HW version */
@@ -2026,7 +2058,6 @@ extern "C" {
 
 /* source */
 #define BVDC_P_SUPPORT_GFD                    (2)
-#define BVDC_P_SUPPORT_GFD_VER                (10)
 #define BVDC_P_SUPPORT_GFD1_VER               (9)
 #define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
@@ -2078,12 +2109,10 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 
 #if BCHP_VER >= BCHP_VER_B0
-#define BVDC_P_CMP_CFC_VER                    (3)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (8)
 #define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (4)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #else
-#define BVDC_P_CMP_CFC_VER                    (2)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (6)
 #define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (6)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
@@ -2140,7 +2169,11 @@ extern "C" {
 
 /* source */
 #define BVDC_P_SUPPORT_GFD                    (4)
+#if BCHP_VER >= BCHP_VER_B0
+#define BVDC_P_SUPPORT_GFD_VER                (11)
+#else
 #define BVDC_P_SUPPORT_GFD_VER                (10)
+#endif
 #define BVDC_P_SUPPORT_GFD1_VER               (9)
 #define BVDC_P_SUPPORT_XSRC                   (3) /* Number of stand alone XSRC HW */
 #define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
@@ -2154,6 +2187,15 @@ extern "C" {
 #define BVDC_P_SUPPORT_MFD                    (4)
 #define BVDC_P_SUPPORT_MFD_VER                (17)/* MFD HW version */
 #define BVDC_P_SUPPORT_DNR                    (4) /* Number of DNR_x core */
+#if BCHP_VER >= BCHP_VER_B0
+#define BVDC_P_SUPPORT_DNR_VER                (1)
+#define BVDC_P_SUPPORT_SCL_VER                (12)/* SCL HW version */
+#define BVDC_P_SUPPORT_MANR_VER               (6) /* ANR in MCVP version */
+#else
+#define BVDC_P_SUPPORT_DNR_VER                (0)
+#define BVDC_P_SUPPORT_SCL_VER                (11)/* SCL HW version */
+#define BVDC_P_SUPPORT_MANR_VER               (5) /* ANR in MCVP version */
+#endif
 #define BVDC_P_SUPPORT_MTG                    (2) /* MFD Trigger Generator */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
 
@@ -2165,7 +2207,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_MADR                   (3) /* Number of MAD-R HW */
 #define BVDC_P_SUPPORT_MADR_VER               (10)/* MAD-R HW version */
 #define BVDC_P_SUPPORT_MANR                   (1) /* Number of ANR HW in MCVP */
-#define BVDC_P_SUPPORT_MANR_VER               (5) /* ANR in MCVP version */
 #define BVDC_P_SUPPORT_TNT                    (2)
 #define BVDC_P_SUPPORT_TNT_VER                (6)
 #define BVDC_P_SUPPORT_TNTD                   (0)
@@ -2178,7 +2219,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_CAP_VER                (8) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_VFD                    (4)
 #define BVDC_P_SUPPORT_SCL                    (4)
-#define BVDC_P_SUPPORT_SCL_VER                (11)/* SCL HW version */
 #define BVDC_P_SUPPORT_HSCL_VER               (7) /* HSCL HW version */
 #define BVDC_P_SUPPORT_DMISC                  (1)
 #define BVDC_P_SUPPORT_FREE_CHANNEL           (5) /* Number of VNET_F_FCH_x_SRC */
@@ -2202,7 +2242,11 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
+#if BCHP_VER >= BCHP_VER_B0
+#define BVDC_P_CMP_CFC_VER                    (4)
+#else
 #define BVDC_P_CMP_CFC_VER                    (3)
+#endif
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (8)
 #define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (4)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
@@ -2224,9 +2268,22 @@ extern "C" {
 #define BVDC_P_SUPPORT_COLOR_CLIP             (1)
 
 /* display */
+#if BCHP_VER >= BCHP_VER_B0
+#define BVDC_P_MAX_DACS                       (0)
+#define BVDC_P_NUM_SHARED_VF                  (0)
+#define BVDC_P_NUM_SHARED_SDSRC               (0)
+#define BVDC_P_NUM_SHARED_SM                  (0)
+#define BVDC_P_NUM_SHARED_SECAM               (0)
+#else
+#define BVDC_P_MAX_DACS                       (1)
+#define BVDC_P_NUM_SHARED_VF                  (1)
+#define BVDC_P_NUM_SHARED_SDSRC               (1)
+#define BVDC_P_NUM_SHARED_SM                  (1)
+#define BVDC_P_NUM_SHARED_SECAM               (1)  /* Number of VEC's SECAM HW, SECAM_x_register*/
+#endif
+
 #define BVDC_P_ORTHOGONAL_VEC_VER             (2)
 #define BVDC_P_SUPPORT_IT_VER                 (3)
-#define BVDC_P_MAX_DACS                       (1)
 #define BVDC_P_SUPPORT_4kx2k_60HZ             (1)
 #define BVDC_P_SUPPORT_VBI_ENC_656            (1)
 #define BVDC_P_SUPPORT_VEC_VF_VER             (2)
@@ -2238,7 +2295,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_VEC_GRPD               (0)
 #define BVDC_P_SUPPORT_DSCL                   (0)
 #define BVDC_P_SUPPORT_DSCL_VER               (0)
-#define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
+#define BVDC_P_SUPPORT_TDAC_VER               (13) /* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 
 #define BVDC_P_SUPPORT_HD_DAC                 (0)
@@ -2248,15 +2305,11 @@ extern "C" {
 #define BVDC_P_NUM_SHARED_DVI                 (1)
 #define BVDC_P_NUM_SHARED_RF                  (0)
 #define BVDC_P_NUM_SHARED_IT                  (2)
-#define BVDC_P_NUM_SHARED_VF                  (1)
 #define BVDC_P_NUM_SHARED_HDSRC               (0)
-#define BVDC_P_NUM_SHARED_SDSRC               (1)
-#define BVDC_P_NUM_SHARED_SM                  (1)
 /* Note, here SHARED_SECAM/HDSECAM means the secam cross bar.
  * Some secam cross bar may not have a secam module associated with it.
  */
-#define BVDC_P_NUM_SHARED_SECAM               (1)     /* Number of VEC's SECAM HW, SECAM_x_register*/
-#define BVDC_P_NUM_SHARED_SECAM_HD            (0)     /* Number of VEC's SECAM Passthru HW VEC_CFG_SECAM_x_SOURCE - BVDC_P_NUM_SHARED_SECAM*/
+#define BVDC_P_NUM_SHARED_SECAM_HD            (0)  /* Number of VEC's SECAM Passthru HW VEC_CFG_SECAM_x_SOURCE - BVDC_P_NUM_SHARED_SECAM*/
 #define BVDC_P_NUM_SHARED_DAC                 BVDC_P_MAX_DACS
 #define BVDC_P_SUPPORT_CLOCK_GATING           (1)
 #define BVDC_P_SUPPORT_MEM_PWR_GATING         (1)  /*Dynamic Memory Power Gating*/
@@ -3156,6 +3209,7 @@ typedef union
         uint32_t  bTntdBeforeScl         : 1;  /* bit 8 */
         uint32_t  bVnetCrcBeforeCap      : 1;
         uint32_t  bUseVfc                : 1;
+        uint32_t  bSrcSideDeinterlace    : 1;
 
         /* bit indicate invalid vnet */
         uint32_t  bInvalid               : 1;
@@ -3545,6 +3599,9 @@ typedef struct
 /* Able to handle HLG OOTF-Adj, bolby and TpToneMapping  */
 #define BVDC_P_CFC_VER_3                  (3) /* 7271 B0 and up */
 
+/* Added mosaic support to LMR */
+#define BVDC_P_CFC_VER_4                  (4) /* 7278 B0 and up, 7260 B0 */
+
 #define BVDC_P_CMP_NL_CFG_REGS                (BAVC_MOSAIC_MAX / 2)
 #define BVDC_P_CMP_LR_ADJ_PTS                 (8)
 
@@ -3845,6 +3902,7 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #undef BVDC_P_SUPPORT_TNTD_VER
 #undef BVDC_P_SUPPORT_MASK_DITHER
 #undef BVDC_P_SUPPORT_DNR
+#undef BVDC_P_SUPPORT_DNR_VER
 #undef BVDC_P_SUPPORT_BOX_DETECT
 #undef BVDC_P_SUPPORT_BOX_DETECT_VER
 #undef BVDC_P_SUPPORT_CAP
@@ -3918,6 +3976,7 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #define BVDC_P_SUPPORT_MFD                    (0)
 #define BVDC_P_SUPPORT_VFD                    (0)
 #define BVDC_P_SUPPORT_DNR                    (0)
+#define BVDC_P_SUPPORT_DNR_VER                (0)
 #define BVDC_P_SUPPORT_XSRC                   (0)
 #define BVDC_P_SUPPORT_VFC                    (0)
 #define BVDC_P_SUPPORT_MCVP                   (0)

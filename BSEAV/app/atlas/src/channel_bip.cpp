@@ -66,7 +66,7 @@ static void playbackCallbackERRORFromBIP(
             pWidgetEngine->syncCallback(pChannel, CALLBACK_TUNER_LOCK_STATUS_BIP);
         }
     }
-    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, (void *)pChannel));
+    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", BSTD_FUNCTION, (void *)pChannel));
 } /* playbackCallbackERRORFromBIP */
 
 static void playbackCallbackFromBIP(
@@ -87,7 +87,7 @@ static void playbackCallbackFromBIP(
             pWidgetEngine->syncCallback(pChannel, CALLBACK_TUNER_LOCK_STATUS_BIP);
         }
     }
-    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, (void *)pChannel));
+    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", BSTD_FUNCTION, (void *)pChannel));
 } /* playbackCallbackFromBIP */
 
 static void asyncCallbackFromBIP(
@@ -106,7 +106,7 @@ static void asyncCallbackFromBIP(
             pWidgetEngine->syncCallback(pChannel, CALLBACK_TUNER_LOCK_STATUS_BIP);
         }
     }
-    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, (void *)pChannel));
+    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", BSTD_FUNCTION, (void *)pChannel));
 }
 
 static void bwinTunerLockStatusCallback(
@@ -277,10 +277,6 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     BIP_PlayerStatus playerStatus;
     CModel *         pModel = getModel();
 
-#if __COVERITY__
-    __coverity_stack_depth__(100*1024);
-#endif
-
     if (_pPlayer == NULL)
     {
         goto error;
@@ -443,7 +439,12 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
                     _playerStreamInfo.transportType  = NEXUS_TransportType_eTs;
                 }
 
-                BIP_Player_SetSettings(_pPlayer, &playerSettings);
+                bipStatus = BIP_Player_SetSettings(_pPlayer, &playerSettings);
+                if (bipStatus != BIP_SUCCESS)
+                {
+                    BDBG_ERR(("BIP_Player_Prepare ( BIPD_PLAYER_SetSettings: )  Failed: URL=%s", BIP_String_GetString(_pUrl)));
+                    goto error;
+                }
             }
             else
             {
@@ -504,7 +505,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             }
 
             setState(BMediaPlayerState_eWaitingForStart);
-            BDBG_MSG(("Player state is now BMediaPlayerState_eWaitingForStart (%s)", __FUNCTION__));
+            BDBG_MSG(("Player state is now BMediaPlayerState_eWaitingForStart (%s)", BSTD_FUNCTION));
         }
         break;
     }
@@ -647,9 +648,7 @@ CChannelBip::CChannelBip(
     _pMediaInfo(NULL),
     _programNumberValid(false),
     _programNumber(0),
-    _seekRate(0),
-    _pVideoDecode(NULL),
-    _pAudioDecode(NULL)
+    _seekRate(0)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
 
@@ -676,9 +675,7 @@ CChannelBip::CChannelBip(void) :
     _enableDynamicTrackSelection(true),
     _programNumberValid(false),
     _programNumber(0),
-    _seekRate(0),
-    _pVideoDecode(NULL),
-    _pAudioDecode(NULL)
+    _seekRate(0)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
 
@@ -706,9 +703,7 @@ CChannelBip::CChannelBip(CConfiguration * pCfg) :
     _pMediaInfo(NULL),
     _programNumberValid(false),
     _programNumber(0),
-    _seekRate(0),
-    _pVideoDecode(NULL),
-    _pAudioDecode(NULL)
+    _seekRate(0)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
 
@@ -738,9 +733,7 @@ CChannelBip::CChannelBip(const CChannelBip & bipCh) :
     _playerStreamInfo(bipCh._playerStreamInfo),
     _programNumberValid(false),
     _programNumber(0),
-    _seekRate(0),
-    _pVideoDecode(NULL),
-    _pAudioDecode(NULL)
+    _seekRate(0)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
 
@@ -905,7 +898,7 @@ void CChannelBip::close()
     _pVideoDecode = NULL;
 } /* close */
 
-eRet CChannelBip::setAudioProgram(uint16_t pid)
+eRet CChannelBip::setAudioProgram(unsigned pid)
 {
     BIP_PlayerSettings playerSettings;
     CPid *             pPid   = NULL;
@@ -1070,15 +1063,14 @@ eRet CChannelBip::getChannelInfo(
 #endif
                 num_video_pids++;
                 pChanInfo->program_info[i].num_video_pids = num_video_pids;
-                BDBG_MSG((" Program pid found %d, VIDEO Pid #", pMediaInfoTrack->trackId, num_video_pids+1));
+                BDBG_MSG((" Program pid found %d, VIDEO Pid #%d", pMediaInfoTrack->trackId, num_video_pids+1));
                 break;
-
             case BIP_MediaInfoTrackType_eAudio:
                 pChanInfo->program_info[i].audio_pids[num_audio_pids].pid        = pMediaInfoTrack->trackId;
                 pChanInfo->program_info[i].audio_pids[num_audio_pids].streamType = pMediaInfoTrack->info.audio.codec;
                 num_audio_pids++;
                 pChanInfo->program_info[i].num_audio_pids = num_audio_pids;
-                BDBG_MSG(("Audio Program pid found %d, Audio Pid #", pMediaInfoTrack->trackId, num_audio_pids+1));
+                BDBG_MSG(("Audio Program pid found %d, Audio Pid #%d", pMediaInfoTrack->trackId, num_audio_pids+1));
                 break;
             case BIP_MediaInfoTrackType_ePcr:
                 pChanInfo->program_info[i].pcr_pid = pMediaInfoTrack->trackId;
@@ -1243,7 +1235,7 @@ eRet CChannelBip::tune(
         void *    id,
         CConfig * pConfig,
         bool      bWaitForLock,
-        uint16_t  index
+        unsigned  index
         )
 {
     eRet       ret       = eRet_Ok;
@@ -1668,7 +1660,7 @@ eRet CChannelBip::setTrickMode(bool fastFoward)
         }
     }
 
-    BDBG_MSG(("CChannelBip::%s: Rate (%d); ", __FUNCTION__, _trickModeRate));
+    BDBG_MSG(("CChannelBip::%s: Rate (%d); ", BSTD_FUNCTION, _trickModeRate));
 
     return(ret);
 } /* setTrickMode */
@@ -1743,8 +1735,7 @@ eRet CChannelBip::trickmode(CPlaybackTrickData * pTrickModeData)
         break;
 
     default:
-        BDBG_WRN(("Not supported"));
-        ret = eRet_NotSupported;
+        BDBG_WRN(("Not supported, going back to normal PLAY"));
         goto error;
     } /* switch */
 
@@ -1753,7 +1744,7 @@ eRet CChannelBip::trickmode(CPlaybackTrickData * pTrickModeData)
 error:
     setTrickModeRate(1);
     ret = play();
-    CHECK_ERROR("unable to start playback", ret);
+    CHECK_ERROR("unable to restart playback", ret);
 
     return(ret);
 } /* trickMode */
@@ -1887,7 +1878,7 @@ MString CChannelBip::getHost()
     return(strPath);
 }
 
-void CChannelBip::setPort(uint16_t nPort)
+void CChannelBip::setPort(unsigned nPort)
 {
     /* replace host in _url then in bip _pUrl */
 
@@ -1909,7 +1900,7 @@ void CChannelBip::setPort(uint16_t nPort)
     updateDescription();
 } /* setPort */
 
-uint16_t CChannelBip::getPort()
+unsigned CChannelBip::getPort()
 {
     MUrl mUrl(_url.s());
 

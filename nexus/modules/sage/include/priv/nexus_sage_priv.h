@@ -79,12 +79,14 @@ NEXUS_Error NEXUS_Sage_P_SvpEnterS3(void);
 NEXUS_Error NEXUS_Sage_P_SvpInit(void);
 NEXUS_Error NEXUS_Sage_P_SvpStart(void);
 void NEXUS_Sage_P_SvpStop(bool reset);
+void NEXUS_Sage_P_SvpInitDelayed(void);
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 void NEXUS_Sage_P_SvpUninit(bool reset);
 #else
 void NEXUS_Sage_P_SvpUninit(void);
 #endif
-
+NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings);
+void NEXUS_Sage_P_BP3Uninit(void);
 NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings);
 void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode);
 NEXUS_Error NEXUS_Sage_P_SystemCritRestartCheck(void *pSettings);
@@ -94,6 +96,19 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void);
 #ifdef NEXUS_SAGE_SVP_TEST
 NEXUS_Error NEXUS_Sage_P_SecureCores_test(const BAVC_CoreList *pCoreList, bool add);
 #endif
+
+typedef struct NEXUS_SageMemoryBlock {
+    size_t len;
+    void *buf;
+} NEXUS_SageMemoryBlock;
+
+typedef struct NEXUS_SageImageHolder {
+    const char *name;         /* printable name */
+    SAGE_IMAGE_FirmwareID id; /* SAGE_IMAGE_FirmwareID_eFramework or SAGE_IMAGE_FirmwareID_eBootLoader */
+    NEXUS_SageMemoryBlock *raw;
+} NEXUS_SageImageHolder;
+
+NEXUS_Error NEXUS_Sage_LoadImage_priv(NEXUS_SageImageHolder *holder);
 
 #ifdef __cplusplus
 }

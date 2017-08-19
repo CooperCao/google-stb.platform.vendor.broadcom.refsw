@@ -10,9 +10,6 @@ void v3d_tfu_regs_collect(
    V3D_TFU_COMMAND_T *cmd,
    const V3D_TFU_REGS_T *r)
 {
-   cmd->crc_gen = r->su.crc;
-   cmd->crc_chain = r->su.crcchain;
-
    cmd->interrupt_on_complete = r->i.cfg.ioc;
    cmd->src_channel_order = r->i.cfg.rgbord;
    cmd->flip_y = r->i.cfg.flipy;
@@ -52,9 +49,6 @@ void v3d_tfu_regs_uncollect(
    const V3D_TFU_COMMAND_T *cmd)
 {
    memset(r, 0, sizeof(*r));
-
-   r->su.crc = cmd->crc_gen;
-   r->su.crcchain = cmd->crc_chain;
 
    r->i.cfg.ioc = cmd->interrupt_on_complete;
    r->i.cfg.rgbord = cmd->src_channel_order;

@@ -50,8 +50,11 @@ BDBG_MODULE(atlas_config);
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 
 CConfigNx::CConfigNx() :
-    CConfig()
+    CConfig(),
+    _pResources(NULL)
 {
+    BKNI_Memset((void *) &_allocResultsMain,0,sizeof(_allocResultsMain));
+    BKNI_Memset((void *) &_allocResultsPip,0,sizeof(_allocResultsPip));
 }
 
 CConfigNx::~CConfigNx()
@@ -61,7 +64,7 @@ CConfigNx::~CConfigNx()
 eRet CConfigNx::initResources()
 {
     NxClient_AllocSettings      allocSettings;
-    uint16_t                    i                 = 0;
+    unsigned                    i                 = 0;
     NEXUS_Error                 nerror            = NEXUS_SUCCESS;
     int                         nStreamers        = GET_INT(&_cfg, RESOURCE_NUM_STREAMERS);
     int                         nOutputsHdmi      = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_HDMI);
@@ -87,7 +90,7 @@ eRet CConfigNx::initResources()
 #endif
 
     BSTD_UNUSED(pPlatformConfig);
-    BDBG_WRN(("%s()", __FUNCTION__));
+    BDBG_WRN(("%s()", BSTD_FUNCTION));
     _pResources = new CBoardResourcesNx();
     CHECK_PTR_ERROR_GOTO("unable to allocate board resources Nx!", _pResources, ret, eRet_OutOfMemory, error);
 
@@ -202,7 +205,7 @@ eRet CConfigNx::initResources()
         NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
         settings.mode = NEXUS_FrontendAcquireMode_eByIndex;
 
-        for (uint16_t i = 0; i < NEXUS_MAX_FRONTENDS; i++)
+        for (unsigned i = 0; i < NEXUS_MAX_FRONTENDS; i++)
         {
             NEXUS_FrontendHandle hFrontend = NULL;
 
@@ -225,7 +228,7 @@ eRet CConfigNx::initResources()
 
     /* query nexus for transport capabilities and add to resource lists */
     {
-        uint16_t                    numRecPumps = 0;
+        unsigned                    numRecPumps = 0;
         NEXUS_TransportCapabilities capabilities;
 
         NEXUS_GetTransportCapabilities(&capabilities);

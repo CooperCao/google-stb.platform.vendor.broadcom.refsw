@@ -74,6 +74,7 @@ public:
             eWindowType          windowType);
     virtual void disconnectDecoders(eWindowType winType);
     virtual bool checkPower(void);
+    virtual eRet setWindowGeometry(void);
 };
 
 #ifdef __cplusplus

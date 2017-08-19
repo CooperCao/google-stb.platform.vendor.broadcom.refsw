@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -139,7 +139,7 @@ void consoleAppThread( void* pParam)
         BIP_StringHandle  bsh;
         BIP_Status rc;
 
-        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: Calling recv for %zu bytes", __FUNCTION__, __LINE__, sizeof(buffer)));
+        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: Calling recv for %zu bytes", BSTD_FUNCTION, __LINE__, sizeof(buffer)));
 
         count = recv(fd, buffer, sizeof(buffer)-1, 0);
         if (count==0) {
@@ -154,7 +154,7 @@ void consoleAppThread( void* pParam)
 
         bsh = BIP_String_CreateFromPrintf("You entered: %zd bytes: \"%s\"", count, buffer);
 
-        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: You entered: %zd bytes: \"%s\"", __FUNCTION__, __LINE__, count, buffer));
+        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: You entered: %zd bytes: \"%s\"", BSTD_FUNCTION, __LINE__, count, buffer));
 
         count = send(fd, BIP_String_GetString(bsh), BIP_String_GetLength(bsh), MSG_NOSIGNAL);
         BIP_String_Destroy(bsh);

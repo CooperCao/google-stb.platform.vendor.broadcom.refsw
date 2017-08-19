@@ -1,0 +1,67 @@
+#!/bin/sh
+
+
+BASE_DIR=/projects/hnd_software/gallery/BOMS
+LIST=`ls $BASE_DIR`
+
+INDEX_FILE=/projects/hnd/software/cvsreport/Software/index.html
+
+one_day_only=0
+
+if [ "$1" = "" -o "$1" = "today" ]; then
+    DATE=`date +"%Y_%m_%d"`
+else
+    DATE=$1
+    one_day_only=1
+fi
+
+if [ "$2" = "" ]; then
+    INDEX_FILE=/projects/hnd/software/cvsreport/Software/index.html
+else
+    INDEX_FILE=$2
+fi
+match=*"$DATE".html
+
+
+parse_reports () {
+
+# parse for every branches
+for dir in $LIST; do
+    if test -d $dir; then
+	TAG=${dir/$BASE_DIR}
+	make -s LOCAL=-l DATE=$DATE TAG=$TAG -C $dir 
+    fi
+done
+}
+
+
+# collect today's reports and create a new index file
+
+make_index () {
+
+REPORTS=`find ./ -name "$match" `
+
+REPORTS=${REPORTS//.\/}
+
+cp bom_index.html tmp_bom_index.html
+
+echo "" > tmp_bom_index.html
+
+for file in $REPORTS; do
+echo $file >> tmp_bom_index.html
+done
+
+`cat bom_index.html $INDEX_FILE > tmp.txt`
+
+`$BASE_DIR/bom_make_index.awk tmp.txt > bom_index.html`
+
+}
+
+
+parse_reports
+
+if [ "$one_day_only" = "0" ]; then
+    make_index
+endif
+
+

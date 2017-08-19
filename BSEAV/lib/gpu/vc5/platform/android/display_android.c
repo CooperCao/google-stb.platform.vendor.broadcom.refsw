@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include <malloc.h>
 #include <memory.h>
@@ -20,6 +20,7 @@
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <gralloc_priv.h>
 
 #define MAX_DEQUEUE_BUFFERS   2
 
@@ -239,8 +240,9 @@ static BEGL_Error DispGetNextSurface(
 }
 
 static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow,
-      void *nativeBackBuffer, int fence)
+      void *nativeBackBuffer, int fence, int interval)
 {
+   BSTD_UNUSED(interval);
    ANativeWindow  *anw = (ANativeWindow*) nativeWindow;
    ANativeWindowBuffer_t  *buffer = (ANativeWindowBuffer_t*) nativeBackBuffer;
    BEGL_Error err = BEGL_Fail;
@@ -283,12 +285,6 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nat
    anw->cancelBuffer(anw, buffer, fence);
 
    return BEGL_Success;
-}
-
-static void DispSetSwapInterval(void *context, void *nativeWindow, int interval)
-{
-   /* Android doesn't support setting swap interval */
-   return;
 }
 
 static bool  DisplayPlatformSupported(void *context, uint32_t platform)
@@ -399,7 +395,6 @@ BEGL_DisplayInterface *CreateAndroidDisplayInterface(BEGL_SchedInterface *schedI
    disp->GetNextSurface             = DispGetNextSurface;
    disp->DisplaySurface             = DispDisplaySurface;
    disp->CancelSurface              = DispCancelSurface;
-   disp->SetSwapInterval            = DispSetSwapInterval;
    disp->PlatformSupported          = DisplayPlatformSupported;
    disp->SetDefaultDisplay          = DispSetDefaultDisplay;
    disp->WindowPlatformStateCreate  = DispWindowStateCreate;

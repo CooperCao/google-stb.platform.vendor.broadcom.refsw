@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Feb  2 13:25:16 2017
- *                 Full Compile MD5 Checksum  58abe74557319e3069fbd53a8216f666
+ * Date:           Generated on               Tue May 23 17:50:06 2017
+ *                 Full Compile MD5 Checksum  fd7a9abd827de3981c74bd26cd15bbb7
  *                     (minus title and desc)
  *                 MD5 Checksum               51a937223d1c9c36a33b87dd7a9b9e52
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1255
+ *                 RDB.pm                     1459
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   LOCAL
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -81,8 +78,8 @@
 #define BCHP_BSPI_B1_CTRL                        0x204a3220 /* [WO][32] Prefetch Buffer 1 Control Register */
 #define BCHP_BSPI_STRAP_OVERRIDE_CTRL            0x204a3224 /* [RW][32] Dual/Single Receive Mode Control Register */
 #define BCHP_BSPI_FLEX_MODE_ENABLE               0x204a3228 /* [RW][32] Flexible Control Mode Enable Register */
-#define BCHP_BSPI_BITS_PER_CYCLE                 0x204a322c /* [RW][32] Bits per cycle "b-p-c" Control Register */
-#define BCHP_BSPI_BITS_PER_PHASE                 0x204a3230 /* [RW][32] Bits per Phase "b-p-p" Control Register */
+#define BCHP_BSPI_BITS_PER_CYCLE                 0x204a322c /* [RW][32] Bits per cycle \"b-p-c\" Control Register */
+#define BCHP_BSPI_BITS_PER_PHASE                 0x204a3230 /* [RW][32] Bits per Phase \"b-p-p\" Control Register */
 #define BCHP_BSPI_CMD_AND_MODE_BYTE              0x204a3234 /* [RW][32] Command and Mode Data Register */
 #define BCHP_BSPI_BSPI_FLASH_UPPER_ADDR_BYTE     0x204a3238 /* [RW][32] Bspi FLash upper address byte register */
 #define BCHP_BSPI_BSPI_XOR_VALUE                 0x204a323c /* [RW][32] BSPI FLASH XOR Value Register */
@@ -300,7 +297,7 @@
 #define BCHP_BSPI_FLEX_MODE_ENABLE_bspi_flex_mode_enable_DEFAULT   0x00000000
 
 /***************************************************************************
- *BITS_PER_CYCLE - Bits per cycle "b-p-c" Control Register
+ *BITS_PER_CYCLE - Bits per cycle \"b-p-c\" Control Register
  ***************************************************************************/
 /* BSPI :: BITS_PER_CYCLE :: reserved0 [31:26] */
 #define BCHP_BSPI_BITS_PER_CYCLE_reserved0_MASK                    0xfc000000
@@ -339,7 +336,7 @@
 #define BCHP_BSPI_BITS_PER_CYCLE_data_bpc_select_DEFAULT           0x00000000
 
 /***************************************************************************
- *BITS_PER_PHASE - Bits per Phase "b-p-p" Control Register
+ *BITS_PER_PHASE - Bits per Phase \"b-p-p\" Control Register
  ***************************************************************************/
 /* BSPI :: BITS_PER_PHASE :: reserved0 [31:25] */
 #define BCHP_BSPI_BITS_PER_PHASE_reserved0_MASK                    0xfe000000

@@ -95,10 +95,20 @@ include $(DIF_TOP)/dif_libdir.inc
 # Custom include paths
 CFLAGS += -I./include
 ifeq ($(WIDEVINE_SUPPORT),y)
+ifeq ($(WIDEVINE3x_SUPPORT),y)
+ifneq ($(MAKECMDGOALS),clean)
+include $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/third_party/widevine/CENC3x/widevine3x.inc
+endif
+CFLAGS += -DENABLE_WIDEVINE_3x $(WIDEVINE3x_CFLAGS)
+ifeq ($(WIDEVINE_CDM_VERSION),3.2)
+CFLAGS += -DWV_CDM_V32
+endif
+else
 ifneq ($(MAKECMDGOALS),clean)
 include $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/third_party/widevine/CENC21/widevine/widevine21.inc
 endif
 CFLAGS += -DENABLE_WIDEVINE $(WIDEVINE21_CFLAGS)
+endif
 endif
 CFLAGS += -I$(SECURITY_TOP)/common_drm/include
 CFLAGS += -I$(SECURITY_TOP)/sage/srai/include
@@ -210,6 +220,14 @@ endif
 
 ifneq ($(WIDEVINE_SUPPORT),y)
 F_SRC_EXCLUDES += wv_decryptor.cpp
+endif
+
+ifeq ($(WIDEVINE3x_SUPPORT),y)
+F_SRC_EXCLUDES += android_wv_decryptor.cpp android_decryptor_factory.cpp wv_decryptor.cpp
+endif
+
+ifneq ($(WIDEVINE3x_SUPPORT),y)
+F_SRC_EXCLUDES += wv3x_decryptor.cpp
 endif
 
 F_SRCS := $(filter-out ${F_SRC_EXCLUDES}, $(notdir $(wildcard $(addsuffix /*.c*, ${SRC_DIR}))))

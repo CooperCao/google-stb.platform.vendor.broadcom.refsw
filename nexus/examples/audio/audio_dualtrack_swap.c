@@ -173,7 +173,7 @@ static int start_decode(struct context *context)
         context->audio[i].secondaryPrimer = NEXUS_AudioDecoderPrimer_Open(context->audioDecoderCompressed);
         rc = NEXUS_AudioDecoderPrimer_Start( context->audio[i].secondaryPrimer, &context->audio[i].program);
         BDBG_ASSERT(!rc);
-        /* regsiter primer with playback so on loop around primer can be flushed */
+        /* register primer with playback so on loop around primer can be flushed */
         NEXUS_Playback_GetPidChannelSettings(context->playback, context->audio[i].pidChannel, &playbackPidSettings);
         playbackPidSettings.pidTypeSettings.audio.primer = context->audio[i].primer;
         playbackPidSettings.pidTypeSettings.audio.secondaryPrimer = context->audio[i].secondaryPrimer;

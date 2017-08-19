@@ -9,7 +9,6 @@
 #define LOG_TAG "VC5"
 #include <cutils/log.h>
 #include <system/window.h>
-#include <gralloc_priv.h>
 
 #ifdef __cplusplus
 extern "C" {

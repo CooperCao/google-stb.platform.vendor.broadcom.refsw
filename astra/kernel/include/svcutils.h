@@ -46,6 +46,7 @@
 class SysCalls {
 public:
     static void init();
+    static void initSecondaryCpu();
 
     template <typename T>
     static bool copyFromUser(const T* userPtr, T* kernelPtr) {
@@ -232,9 +233,8 @@ private:
 
     static SvcPerformer dispatchTable[NUM_SYS_CALLS];
     static SvcPerformer dispatchTableExt[NUM_EXT_SYS_CALLS];
-    static TzMem::PhysAddr paramsPagePhys;
-    static TzMem::VirtAddr paramsPage;
-
+    static PerCPU<TzMem::PhysAddr> paramsPagePhys;
+    static PerCPU<TzMem::VirtAddr> paramsPage;
     static SpinLock execLock;
     static SpinLock fopsLock;
 };

@@ -1,18 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-The "exclusive display" is the fastest of all the display options.
-It supports a SINGLE native rendering window, which corresponds to the physical
-display. Only one native window can be created in this mode, with one
-eglWindowSurface attached. The framebuffers are set one at a time as the
-physical display framebuffers. No copying is done.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_nexus.h"
 #include "display_nexus.h"
 
@@ -29,6 +17,7 @@ physical display framebuffers. No copying is done.
 #include <memory.h>
 #include <assert.h>
 #include <semaphore.h>
+#include <errno.h>
 
 #define NX_MMA                   "V3D_USE_MMA"
 
@@ -92,6 +81,15 @@ typedef struct
 
 /*****************************************************************************/
 
+/* this version is not interruptible via signal */
+static int sem_wait_infinite(sem_t *sem)
+{
+   int res;
+   while ((res = sem_wait(sem)) == -1 && errno == EINTR)
+      continue;
+   return res;
+}
+
 static void InitQueue(NXPL_FenceQueue **q)
 {
    if (q != NULL)
@@ -122,7 +120,7 @@ static void PushQueue(NXPL_FenceQueue *q, int x)
 {
    if (q != NULL)
    {
-      sem_wait(&q->lock);
+      sem_wait_infinite(&q->lock);
 
       if (q->count >= MAX_QUEUE_SIZE)
          printf("NXPL : Overflow x=%d\n", x);
@@ -142,7 +140,7 @@ static int PopQueue(NXPL_FenceQueue *q)
 {
    int x;
 
-   sem_wait(&q->lock);
+   sem_wait_infinite(&q->lock);
 
    if (q->count <= 0)
       printf("NXPL : Underflow\n");
@@ -162,7 +160,7 @@ static bool QueueEmpty(NXPL_FenceQueue *q)
 {
    bool res;
 
-   sem_wait(&q->lock);
+   sem_wait_infinite(&q->lock);
    res = (q->count == 0);
    sem_post(&q->lock);
 
@@ -584,7 +582,7 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
       NXPL_WindowState *windowState = (NXPL_WindowState *)bufferAccess->windowState.platformState;
       NXPL_BufferData  *buffer = bufferAccess->buffer;
 
-      sem_wait(&windowState->throttleSemaphore);
+      sem_wait_infinite(&windowState->throttleSemaphore);
 
       data->hwInterface->FenceOpen(data->hwInterface->context, &newFence);
 

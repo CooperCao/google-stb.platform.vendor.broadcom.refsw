@@ -41,7 +41,7 @@ geometry:
   in highp int gl_InvocationID;
 
   out highp int gl_PrimitiveID;
-  out highp int gl_Layer;
+  flat out highp int gl_Layer;
 
 
 fragment:
@@ -73,7 +73,7 @@ fragment:
   in  highp   int   gl_PrimitiveID;
   in  mediump float __brcm_LineCoord;
 
-  in  highp   int  gl_Layer;
+  flat in  highp   int  gl_Layer;
   in  lowp    int  gl_SampleID;
   in  mediump vec2 gl_SamplePosition;
   in  highp   int  gl_SampleMaskIn[1];

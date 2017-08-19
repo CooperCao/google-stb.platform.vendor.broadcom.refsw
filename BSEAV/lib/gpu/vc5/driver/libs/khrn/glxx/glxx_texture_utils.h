@@ -43,7 +43,8 @@ void glxx_hw_fmts_from_api_fmt(
 
 static inline bool glxx_tex_target_is_1d(GLenum target)
 {
-   return (target == GL_TEXTURE_1D_BRCM) || (target == GL_TEXTURE_1D_ARRAY_BRCM);
+   return (target == GL_TEXTURE_1D_BRCM) || (target == GL_TEXTURE_1D_ARRAY_BRCM) ||
+      (target == GL_TEXTURE_BUFFER);
 }
 
 extern bool glxx_tex_target_valid_in_es1(GLenum target);

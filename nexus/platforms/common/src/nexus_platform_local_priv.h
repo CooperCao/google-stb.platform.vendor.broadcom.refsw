@@ -53,12 +53,6 @@ void NEXUS_Platform_P_ModulesUninit(void);
 /* nexus_platform_privilege.c */
 /* Change from privileged user (root) to unprivileged user (non-root). */
 NEXUS_Error NEXUS_Platform_P_DropPrivilege(const NEXUS_PlatformSettings *pSettings);
-/* read box mode from device tree or env variable */
-unsigned NEXUS_Platform_P_ReadBoxMode(void);
-/* read board id from proc */
-unsigned NEXUS_Platform_P_ReadBoardId(void);
-/* read pmap id from device tree or env variable */
-unsigned NEXUS_Platform_P_ReadPMapId(void);
 
 #if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
 NEXUS_Error NEXUS_Platform_P_InitWakeupDriver(void);
@@ -69,7 +63,7 @@ NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void);
 void NEXUS_Platform_P_UninitThermalMonitor(void);
 #endif
 
-#if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_POWER_MANAGEMENT
 typedef struct NEXUS_Platform_P_SchedulersSet {
     bool set[NEXUS_ModulePriority_eMax];
 } NEXUS_Platform_P_SchedulersSet;

@@ -74,6 +74,15 @@ typedef struct
 
 /*****************************************************************************/
 
+/* this version is not interruptible via signal */
+static int sem_wait_infinite(sem_t *sem)
+{
+   int res;
+   while ((res = sem_wait(sem)) == -1 && errno == EINTR)
+      continue;
+   return res;
+}
+
 static void InitQueue(NXPL_FenceQueue **q)
 {
    if (q != NULL)
@@ -104,7 +113,7 @@ static void PushQueue(NXPL_FenceQueue *q, int x)
 {
    if (q != NULL)
    {
-      sem_wait(&q->lock);
+      sem_wait_infinite(&q->lock);
 
       if (q->count >= MAX_QUEUE_SIZE)
          printf("NXPL : Overflow x=%d\n", x);
@@ -124,7 +133,7 @@ static int PopQueue(NXPL_FenceQueue *q)
 {
    int x;
 
-   sem_wait(&q->lock);
+   sem_wait_infinite(&q->lock);
 
    if (q->count <= 0)
       printf("NXPL : Underflow\n");
@@ -144,7 +153,7 @@ static bool QueueEmpty(NXPL_FenceQueue *q)
 {
    bool res;
 
-   sem_wait(&q->lock);
+   sem_wait_infinite(&q->lock);
    res = (q->count == 0);
    sem_post(&q->lock);
 
@@ -546,7 +555,7 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
       if (windowState == NULL || nw == NULL)
          return BEGL_Fail;
 
-      sem_wait(&windowState->numBuffers);
+      sem_wait_infinite(&windowState->numBuffers);
 
       data->hwInterface->FenceOpen(data->hwInterface->context, &newFence);
 

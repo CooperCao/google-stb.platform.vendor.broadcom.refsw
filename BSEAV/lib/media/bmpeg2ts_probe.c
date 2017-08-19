@@ -605,12 +605,11 @@ bmedia_timestamp_parser_t
 bmpeg2ts_pcr_parser_create(uint16_t pid, size_t packet_len)
 {
 	b_mpeg2ts_pcr_parser *parser;
-	BERR_Code rc;
 
-	if(packet_len<BMPEG2TS_PKT_LEN) { rc = BERR_TRACE(BERR_INVALID_PARAMETER);goto err_size;}
+	if(packet_len<BMPEG2TS_PKT_LEN) { BERR_TRACE(BERR_INVALID_PARAMETER);goto err_size;}
 
 	parser = BKNI_Malloc(sizeof(*parser));
-	if(!parser) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
+	if(!parser) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
 
 	BDBG_OBJECT_INIT(parser, b_mpeg2ts_pcr_parser);
 	BDBG_MSG(("bmpeg2ts_pcr_parser_create: %p pid:%#x packet_len:%u", (void *)parser, (unsigned)pid, (unsigned)packet_len));

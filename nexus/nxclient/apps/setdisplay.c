@@ -79,6 +79,8 @@ static void print_usage(void)
 #endif
     if (!formatlist[0]) {
         for (i=0;g_videoFormatStrs[i].name;i++) {
+            /* skip aliases */
+            if (i > 0 && g_videoFormatStrs[i].value == g_videoFormatStrs[i-1].value) continue;
             n += snprintf(&formatlist[n], sizeof(formatlist)-n, "%s%s", n?",":"", g_videoFormatStrs[i].name);
             if (n >= sizeof(formatlist)) break;
         }
@@ -304,6 +306,9 @@ void nxclient_callback(void *context, int param)
         NxClient_GetDisplaySettings(&settings);
         print_settings("change", &settings, NULL);
         }
+        break;
+    case 3:
+        BDBG_WRN(("audioSettingsChanges callback"));
         break;
     }
 }
@@ -600,6 +605,8 @@ int main(int argc, char **argv)  {
         settings.hdmiOutputHdcpChanged.param = 2;
         settings.displaySettingsChanged.callback = nxclient_callback;
         settings.displaySettingsChanged.param = 1;
+        settings.audioSettingsChanged.callback = nxclient_callback;
+        settings.audioSettingsChanged.param = 3;
         rc = NxClient_StartCallbackThread(&settings);
         BDBG_ASSERT(!rc);
     }

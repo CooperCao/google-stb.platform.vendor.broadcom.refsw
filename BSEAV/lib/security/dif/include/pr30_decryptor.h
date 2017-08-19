@@ -63,7 +63,8 @@ public:
     // Decryptor implementation
     virtual bool Initialize(std::string& pssh) OVERRIDE;
 
-    virtual bool GenerateKeyRequest(std::string initData) OVERRIDE;
+    virtual bool GenerateKeyRequest(std::string initData,
+        SessionType type = session_type_eTemporary) OVERRIDE;
 
     virtual std::string GetKeyRequestResponse(std::string url) OVERRIDE;
 

@@ -71,6 +71,11 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
 BERR_Code
 Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle);
 
+BERR_Code
+Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
+                         BSAGElib_InOutContainer *container,
+                         SRAI_ModuleHandle moduleHandle,
+                         uint32_t commandId);
 
 
 #endif /*UTILITY_PLATFORM_H__*/

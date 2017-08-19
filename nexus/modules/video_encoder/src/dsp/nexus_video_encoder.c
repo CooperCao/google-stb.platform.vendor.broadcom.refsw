@@ -121,7 +121,6 @@ NEXUS_VideoEncoderModule_Init(
     NEXUS_ModuleSettings moduleSettings;
     NEXUS_VideoEncoder_P_Device *device = &g_NEXUS_VideoEncoder_P_State.device;
     NEXUS_CallbackDesc watchdog;
-    BERR_Code rc;
 
     BDBG_ASSERT(pSettings);
 
@@ -137,7 +136,7 @@ NEXUS_VideoEncoderModule_Init(
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eLow; /* encoder interface is slow */
     g_NEXUS_VideoEncoder_P_State.module = NEXUS_Module_Create("video_encoder", &moduleSettings);
-    if(g_NEXUS_VideoEncoder_P_State.module == NULL) { rc = BERR_TRACE(BERR_OS_ERROR); goto error; }
+    if(g_NEXUS_VideoEncoder_P_State.module == NULL) { BERR_TRACE(BERR_OS_ERROR); goto error; }
 
     NEXUS_CallbackHandler_Init(device->watchdogCallbackHandler, NEXUS_VideoEncoder_P_Watchdog, device);
     NEXUS_CallbackHandler_PrepareCallback(device->watchdogCallbackHandler, watchdog);
@@ -186,14 +185,13 @@ void NEXUS_VideoEncoder_GetDefaultOpenSettings(NEXUS_VideoEncoderOpenSettings *p
 NEXUS_VideoEncoderHandle
 NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pSettings)
 {
-    BERR_Code rc;
     NEXUS_VideoEncoderOpenSettings settings;
     NEXUS_VideoEncoder_P_Device *device;
     NEXUS_VideoEncoderHandle encoder;
     NEXUS_RaveOpenSettings raveSettings;
     NEXUS_DspVideoEncoderOpenSettings dspOpenSettings;
 
-    if(index>=NEXUS_NUM_DSP_VIDEO_ENCODERS) {rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;}
+    if(index>=NEXUS_NUM_DSP_VIDEO_ENCODERS) {BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;}
 
     device = &g_NEXUS_VideoEncoder_P_State.device;
     encoder = &device->channels[index];
@@ -241,7 +239,7 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
     NEXUS_DspVideoEncoder_GetDefaultOpenSettings_priv(&dspOpenSettings);
     encoder->encoder = NEXUS_DspVideoEncoder_Open_priv(index, &dspOpenSettings);
     UNLOCK_AUDIO();
-    if(!encoder->encoder) {rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);goto error;}
+    if(!encoder->encoder) {BERR_TRACE(NEXUS_NOT_SUPPORTED);goto error;}
 
     encoder->started = false;
     NEXUS_VideoEncoder_GetDefaultSettings(&encoder->settings);
@@ -708,6 +706,18 @@ NEXUS_VideoEncoder_GetStatus(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncode
     return NEXUS_VideoEncoder_GetBufferStatus_priv(encoder, pStatus);
 }
 
+NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+{
+    NEXUS_Error rc;
+    LOCK_AUDIO();
+    rc = NEXUS_DspVideoEncoder_GetBufferBlocks_priv(encoder->encoder, phFrameBufferBlock, phMetadataBufferBlock);
+    UNLOCK_AUDIO();
+    if(rc!=BERR_SUCCESS) {
+        return BERR_TRACE(rc);
+    }
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_Error
 NEXUS_VideoEncoder_GetBufferStatus_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderStatus *pStatus)
 {
@@ -1009,4 +1019,13 @@ unsigned NEXUS_VideoEncoder_GetIndex_isrsafe(NEXUS_VideoEncoderHandle encoder)
 void NEXUS_VideoEncoderModule_GetStatistics( NEXUS_VideoEncoderModuleStatistics *pStats )
 {
     BKNI_Memset(pStats, 0, sizeof(*pStats));
+}
+
+NEXUS_Error NEXUS_VideoEncoder_ReadIndex(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderDescriptor *pBuffer, unsigned size, unsigned *pRead)
+{
+    BSTD_UNUSED(encoder);
+    BSTD_UNUSED(pBuffer);
+    BSTD_UNUSED(size);
+    BSTD_UNUSED(pRead);
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }

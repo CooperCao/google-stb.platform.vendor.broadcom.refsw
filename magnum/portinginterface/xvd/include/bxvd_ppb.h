@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,6 +43,10 @@
 #ifndef BXVD_PPB_H__
 #define BXVD_PPB_H__
 
+#if (BCHP_CHIP == 7278)
+#define BXVD_P_CORE_40BIT_ADDRESSABLE 1
+#endif
+
 #if BXVD_P_AVD_ARC600
 #define BXVD_PPB_EXTENDED 1
 #endif
@@ -63,7 +67,6 @@ typedef struct
 
 typedef struct
 {
-
 #if BXVD_P_CORE_40BIT_ADDRESSABLE
   uint32_t       hidden[75];
 #else

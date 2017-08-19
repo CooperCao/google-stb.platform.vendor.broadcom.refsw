@@ -1,0 +1,257 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for comparing AMPDU density for ack_ratios
+#
+#
+# $Id: 1c50d5a099b37b6e539f156cad7c69c0856f651b $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Join
+package require UTF::Multiperf
+
+UTF::Test AckRatioHeatmap {AP STA args} {
+
+    # No point unless we have a log file.
+    if {$UTF::Logfile eq ""} {
+	regsub {/} "test_$STA.log" {.} UTF::Logfile
+    }
+
+    regsub {/} $STA {.} file
+
+    # Pick defaults based on STA capabilities
+    UTF::Getopts [subst {
+	{i.arg 2 "Iperf Interval"}
+	{t.arg 6 "Iperf test time"}
+	{chanspec.arg "36l" "Chanspec"}
+	{frameburst.arg [expr {![$STA cget -noframeburst]}] "Frameburst"}
+	{window.arg [$STA cget -tcpwindow] "TCP Window"}
+	{title.arg "" "Report title"}
+	{scansuppress "Suppress scans during test run"}
+	{b.arg "0" "bandwidth - implies UDP"}
+	{u "UDP (default 1mbps)"}
+	{ampdu_mpdu.arg "" "ampdu_mpdu"}
+	{rxampdu_mpdu.arg "" "rxampdu_mpdu"}
+	{ampdu.arg "" "Change AMPDU mode"}
+	{ack_ratio.arg "" "Ack Ratio"}
+    }]
+
+    # Mimic iperf args:
+    # -b x enables UDP
+    # -u is equivalent to -b 1m
+    if {$(b) eq "0" && $(u)} {
+	set $(b) "1m"
+    }
+
+    set (ack_ratio) [UTF::Numexpand $(ack_ratio)]
+
+    set tputfile [open "tput_$file.txt" w]
+    set txdenfile [open "txden_$file.txt" w]
+    set rxdenfile [open "rxden_$file.txt" w]
+
+    if {[$AP hostis Router Vx]} {
+	APChanspec $AP $(chanspec)
+    }
+
+    # Figure out what band we're using so that we know how to set rate
+    # to "auto".  Can't just use "rate" since we may not be bandlocked.
+    if {[regexp {^\d+} $(chanspec) c] && $c > 15} {
+	set lrate a_rate
+    } else {
+	set lrate bg_rate
+    }
+
+    if {$(ampdu) ne ""} {
+	if {[$STA wl ampdu] ne $(ampdu)} {
+	    $STA wl down
+	    $STA wl ampdu $(ampdu)
+	    $STA wl up
+	}
+	set parm(ampdu) $(ampdu)
+    }
+
+    $AP wl frameburst $(frameburst)
+    $STA wl frameburst $(frameburst)
+    if {$(ampdu_mpdu) ne ""} {
+	$STA wl ampdu_mpdu $(ampdu_mpdu)
+    }
+    if {$(rxampdu_mpdu) ne ""} {
+	$AP wl ampdu_mpdu $(rxampdu_mpdu)
+    }
+    if {[$AP hostis Router Vx]} {
+	ConnectAPSTA $AP $STA
+	set LAN [$AP lan]
+    } else {
+	Join $AP $STA -chanspec $(chanspec)
+	set LAN $AP
+    }
+
+    set parm(chanspec) $(chanspec)
+    set parm(fb) $(frameburst)
+    set parm(title) $(title)
+    set parm(ampdu_mpdu) $(ampdu_mpdu)
+    set parm(ack_ratio) $(ack_ratio)
+    if {$(b) ne "0"} {
+	set parm(udp) 1
+    }
+
+    $STA wl scansuppress $(scansuppress)
+
+    # Give the first test more time to settle since we may have just
+    # changed the attenuation a long way.
+    set settletime 6
+
+    set txmax_pdu 0
+    set rxmax_pdu 0
+
+    set index 0
+
+    set parm(window) $(window)
+    if {$parm(window) eq "auto"} {
+	set parm(window) [$STA tcpautowindow]
+    }
+
+    foreach parm(ack_ratio) $(ack_ratio) {
+
+	lappend xtics "\"$parm(ack_ratio)\" $index"
+
+
+	$STA wl $lrate auto
+	set parm(rate) "auto"
+	$AP wl ack_ratio $parm(ack_ratio)
+	$STA wl ack_ratio $parm(ack_ratio)
+
+	# pretest to settle rates, etc
+	UTF::Multiperf [list $STA $LAN] -b $(b) -i 2 \
+	    -t $settletime -w $parm(window) -noping
+	set settletime 2
+
+	# Clear APMDU stats
+	$STA wl ampdu_clear_dump
+
+	set cmd [list UTF::Multiperf [list $STA $LAN] \
+		      -b $(b) -i $(i) -t $(t) -w $parm(window) -noping]
+
+	foreach ret [eval $cmd] {
+	    UTF::XPASS $AP $ret [UTF::ParmStrip parm]
+	    puts $tputfile "$index $ret"
+	}
+
+	incr index
+
+	set txdump [$STA wl dump ampdu]
+
+	UTF::ParseAMPDUDensity $txdump txden
+
+	# Track max seen so far so that we keep the data in matrix form
+	set txlden [llength $txden]
+	if {$txlden > $txmax_pdu} {
+	    set txmax_pdu $txlden
+	}
+
+	seek $txdenfile 0
+
+	# AMPDU density starts at 1, but an additional zero ampdu
+	# density line is added so that gnuplot can use single-corner
+	# coloring.  Otherwise gnuplot would have to average the
+	# corners, reducing the effective resolution by a half.
+	# lindex is off by one, so -1 is the magic number.
+
+	for {set m -1} {$m < $txmax_pdu} {incr m} {
+	    if {[set d [lindex $txden $m]] eq ""} {
+		# Fill in missing entries with zeros
+		set d 0
+	    }
+	    lappend txdenline($m) $d
+	    puts $txdenfile "0 $txdenline($m)"
+	}
+
+	set rxdump [$AP wl dump ampdu]
+
+	UTF::ParseAMPDUDensity $rxdump rxden
+
+	# Track max seen so far so that we keep the data in matrix form
+	set rxlden [llength $rxden]
+	if {$rxlden > $rxmax_pdu} {
+	    set rxmax_pdu $rxlden
+	}
+
+	seek $rxdenfile 0
+
+	# AMPDU density starts at 1, but an additional zero ampdu
+	# density line is added so that gnuplot can use single-corner
+	# coloring.  Otherwise gnuplot would have to average the
+	# corners, reducing the effective resolution by a half.
+	# lindex is off by one, so -1 is the magic number.
+
+	for {set m -1} {$m < $rxmax_pdu} {incr m} {
+	    if {[set d [lindex $rxden $m]] eq ""} {
+		# Fill in missing entries with zeros
+		set d 0
+	    }
+	    lappend rxdenline($m) $d
+	    puts $rxdenfile "0 $rxdenline($m)"
+	}
+
+	flush $tputfile
+	flush $txdenfile
+	flush $rxdenfile
+
+	# Plot
+	set G [open "$file.plot" w]
+	puts $G {set terminal png medium}
+	puts $G {set ylabel "Tput (Mb/s)"}
+	puts $G {set xlabel "ack_ratio"}
+	puts $G "set xtics rotate ([join $xtics ,])"
+	puts $G "set output \"tput_$file.png\""
+	puts $G "plot \"tput_$file.txt\" notitle, \"\" smooth unique notitle"
+	puts $G {set autoscale fix}
+	puts $G {set palette defined ( 0 "black", 500 "blue", 10000 "red", 50000 "yellow", 90000 "white")}
+	puts $G {set ylabel "TX AMPDUDens"}
+	puts $G "set output \"txden_$file.png\""
+	puts $G {set pm3d map corners2color c4}
+	puts $G "splot \"txden_$file.txt\" matrix notitle"
+	puts $G {set ylabel "RX AMPDUDens"}
+	puts $G "set output \"rxden_$file.png\""
+	puts $G {set pm3d map corners2color c4}
+	puts $G "splot \"rxden_$file.txt\" matrix notitle"
+	puts $G {quit}
+	close $G
+
+	# Change default gnuplot terminal type to prevent complaints
+	# about being run without an X11 display
+	set ::env(GNUTERM) png
+
+        # Run gnuplot on plot file.  Catch is needed because gnuplot
+        # often writes to stderr.  Report any output even if we think
+        # it was ok.
+	catch {exec $::UTF::Gnuplot "$file.plot"} ret
+	UTF::Message WARN "gnuplot" $ret
+
+	set cmd [list /usr/bin/convert \( "tput_$file.png" -trim \
+		     -pointsize 24 "label:\\n$parm(title)\\n$file Ack Ratio\\nChanspec $parm(chanspec)\\n" \
+		     +append \) \
+		     \( "txden_$file.png"  -trim "rxden_$file.png"  -trim \
+		     +append \) \
+		     -append -bordercolor white -border 2 "$file.png"]
+	UTF::Message LOG "" $cmd
+	catch {eval exec $cmd} ret
+	UTF::Message WARN "convert" $ret
+
+	file delete "tput_$file.png"
+	file delete "txden_$file.png"
+	file delete "rxden_$file.png"
+
+	continue
+    }
+
+    close $tputfile
+    close $txdenfile
+    close $rxdenfile
+
+}
+

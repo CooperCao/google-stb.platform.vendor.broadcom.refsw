@@ -1,0 +1,12 @@
+#
+MAILTO=ffang@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+#58	7,19,23	* * *	/home/ffang/unittest1.7.10/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+#05      1      * * *   unittest/cron/launch MD01STA1FC19SOFTAPNIGHTLY Test/StaNightly.test -utfconf md01 -sta '4360STA-TOT' -ap '4360SOFTAP-TOT' -perfonly -rateonly -loop 1 -title '[MD01:StaNightly:t01] 4360SOFTAP-TOT <=> 4360STA-TOT'
+

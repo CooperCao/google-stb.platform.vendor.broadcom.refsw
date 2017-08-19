@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 
         NEXUS_HdmiInput_HdcpGetDefaultKeyset(hdmiInput, &hdmiInputKeyset) ;
 
-            /* Intialize/Load HDCP Key Set	*/
+            /* Initialize/Load HDCP Key Set	*/
             hdmiInputKeyset.alg = encryptedRxKeySetAlg ;
             hdmiInputKeyset.custKeyVarL = encryptedRxKeySetKeyVar1	;
             hdmiInputKeyset.custKeyVarH = encryptedRxKeySetKeyVar2	;

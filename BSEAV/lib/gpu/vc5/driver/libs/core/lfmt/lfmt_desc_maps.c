@@ -703,6 +703,7 @@ static const struct desc_map_entry gfx_lfmt_base_channels_desc_map_entries_value
    {"R1G5B5X5", 0x00580d80},
    {"R4G4B4X4", 0x00580e00},
    {"R15X1_G15X1_B15X1_X15X1", 0x00581000},
+   {"BC1_RGBX", 0x00581300},
    {"BGRX", 0x005c0000},
    {"B32_G32_R32_X32", 0x005c0080},
    {"B16G16R16X16", 0x005c0280},
@@ -1006,6 +1007,7 @@ static const struct desc_map_entry gfx_lfmt_base_channels_desc_map_entries_desc_
    {"B8_G8_R8_X8", 0x005c0680},
    {"BC1", 0x00001300},
    {"BC1_RGBA", 0x002c1300},
+   {"BC1_RGBX", 0x00581300},
    {"BC2", 0x00001380},
    {"BC2_RGBA", 0x002c1380},
    {"BC3", 0x00001400},
@@ -1395,7 +1397,7 @@ static const struct desc_map_entry gfx_lfmt_base_channels_desc_map_entries_desc_
    {"YYUV", 0x00d00000},
 };
 const struct desc_map gfx_lfmt_base_channels_desc_map = {
-   .num_entries = 497,
+   .num_entries = 498,
    .entries_value_ordered = gfx_lfmt_base_channels_desc_map_entries_value_ordered,
    .entries_desc_ordered = gfx_lfmt_base_channels_desc_map_entries_desc_ordered};
 /* END AUTO-GENERATED CODE (desc_map_defns) */

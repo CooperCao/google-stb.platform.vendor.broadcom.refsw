@@ -1,0 +1,16 @@
+diff -pu dtc-1.4.0.orig/libfdt/libfdt_env.h dtc-1.4.0/libfdt/libfdt_env.h
+--- dtc-1.4.0.orig/libfdt/libfdt_env.h	2017-06-01 10:24:58.486419474 -0700
++++ dtc-1.4.0/libfdt/libfdt_env.h	2017-06-01 10:22:41.318426799 -0700
+@@ -52,9 +52,8 @@
+  *     EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
+-#include <stddef.h>
+-#include <stdint.h>
+-#include <string.h>
++#include <linux/string.h>
++#include "bstd.h"
+ 
+ #ifdef __CHECKER__
+ #define __force __attribute__((force))
+Only in dtc-1.4.0/libfdt/: .libfdt_env.h.swp

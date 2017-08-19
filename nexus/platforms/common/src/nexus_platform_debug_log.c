@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,7 +55,6 @@ void NEXUS_Platform_P_DebugLog_Init(NEXUS_Platform_P_DebugLog *debugLog, const c
     const char *debug_log_size;
     const char *logger;
     const char *fname=NULL;
-    int nread;
     int urc;
     BERR_Code rc;
     struct stat st;
@@ -158,8 +157,16 @@ void NEXUS_Platform_P_DebugLog_Init(NEXUS_Platform_P_DebugLog *debugLog, const c
         return;
     }
     close(pipesfd[1]);
-    nread = read(pipesfd[0],fd,1); /* wait for logger to reply */
-    if (nread < 0) goto err_fifo;
+    for(;;) {
+        urc = read(pipesfd[0],fd,1); /* wait for logger to reply */
+        if (urc < 0) {
+            if(errno == EINTR) {
+                continue;
+            }
+            goto err_pipe_read;
+        }
+        break;
+    }
     close(pipesfd[0]);
     if ( debugLog->logWriter ) {
         BDBG_Log_SetFifo(debugLog->logWriter);
@@ -167,6 +174,7 @@ void NEXUS_Platform_P_DebugLog_Init(NEXUS_Platform_P_DebugLog *debugLog, const c
 
     return;
 
+err_pipe_read:
 err_fork:
     close(pipesfd[0]);
     close(pipesfd[1]);

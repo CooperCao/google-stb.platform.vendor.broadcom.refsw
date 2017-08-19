@@ -24,7 +24,7 @@ stream[0] =
 stream[1] =
 stream[2] =
 stream[3] =
-pig = on
+usage = pig
 bg = epg1080p.png
 image = LifeOfPi.png
 commit

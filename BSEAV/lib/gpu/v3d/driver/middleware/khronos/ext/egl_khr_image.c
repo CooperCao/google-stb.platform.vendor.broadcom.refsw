@@ -353,29 +353,43 @@ static MEM_HANDLE_T egl_image_texture_new(GLXX_SHARED_T *shared, EGLenum target,
    }
 
    MEM_HANDLE_T res = MEM_HANDLE_INVALID;
-   switch (glxx_texture_check_complete(texture))
-   {
+
+   bool base_complete = false;
+   GLXX_TEXTURE_COMPLETENESS_T status = glxx_texture_check_complete_levels(texture, base_complete);
+   if (status != COMPLETE) {
+      base_complete = true;
+      status = glxx_texture_check_complete_levels(texture, base_complete);
+   }
+
+   switch (status) {
    case COMPLETE:
-   {
-      uint32_t mipmap_count = glxx_texture_get_mipmap_count(texture);
-      if (texture_level < 0 || (uint32_t)texture_level >= mipmap_count)
-         *error = EGL_BAD_PARAMETER;
-      else if (texture->binding_type == TEXTURE_STATE_BOUND_TEXIMAGE || texture->binding_type == TEXTURE_STATE_BOUND_EGLIMAGE)
-         *error = EGL_BAD_ACCESS;
-      else {
-         /* TODO: should we reject certain textures? (e.g. paletted, ETC1) */
+      {
+         uint32_t mipmap_count = glxx_texture_get_mipmap_count(texture);
+         if (texture_level < 0 || (uint32_t)texture_level >= mipmap_count)
+            *error = EGL_BAD_PARAMETER;
+         else if (texture->binding_type == TEXTURE_STATE_BOUND_TEXIMAGE || texture->binding_type == TEXTURE_STATE_BOUND_EGLIMAGE)
+            *error = EGL_BAD_ACCESS;
+         else {
+            /* TODO: should we reject certain textures? (e.g. paletted, ETC1) */
 
-         /* At this point we should succeed */
-         MEM_ASSIGN(res, glxx_texture_share_mipmap(texture, convert_texture_target(target), texture_level));
+            /* make sure there are no other mipmap levels outside base_level and
+            * num_levels */
+            unsigned num_levels = base_complete ? 1 : glxx_texture_get_mipmap_count(texture);
+            if (!glxx_texture_has_images_outside_range(texture, num_levels)) {
+               /* At this point we should succeed */
+               MEM_ASSIGN(res, glxx_texture_share_mipmap(texture, convert_texture_target(target), texture_level));
 
-         /*
-         * TODO: should we set the IMAGE_FLAG_BOUND_EGLIMAGE flag
-         * of the other mipmaps?
-         */
-         texture->binding_type = TEXTURE_STATE_BOUND_TEXIMAGE;
+               /*
+               * TODO: should we set the IMAGE_FLAG_BOUND_EGLIMAGE flag
+               * of the other mipmaps?
+               */
+               texture->binding_type = TEXTURE_STATE_BOUND_TEXIMAGE;
+            }
+            else
+               *error = EGL_BAD_PARAMETER;
+         }
       }
       break;
-   }
    case INCOMPLETE:
       *error = EGL_BAD_PARAMETER;
       break;

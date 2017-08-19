@@ -68,6 +68,13 @@
 
 #define BDSP_CIT_P_PRESENT                          ((uint32_t)(1))
 #define BDSP_CIT_P_ABSENT                           ((uint32_t)(0))
+#define BDSP_CIT_P_NODE0                            ((uint32_t)(0))
+#define BDSP_CIT_P_INVALID                          ((uint32_t)(0x7fffffff))
+#define BDSP_CIT_P_NUM_SPECIAL_NODES                ((uint32_t)(1))
+#define BDSP_CIT_P_PI_INVALID                       ((uint32_t)(-1))
+#define BDSP_CIT_MS4BITS_TO_LS4BITS_SHIFT           (uint32_t)(28)
+
+#define BDSP_AF_P_DRAM_ADDR_INVALID                 ((uint32_t)0x80000000)
 
 typedef enum BDSP_P_IO_BufferType{
     BDSP_P_IO_BufferType_IO = 0,

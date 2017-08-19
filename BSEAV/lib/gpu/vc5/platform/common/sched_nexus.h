@@ -7,6 +7,8 @@
 #include "sched_abstract.h"
 #include "gmem_abstract.h"
 
+#include "../common/fence_interface.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,6 +27,8 @@ int MakeFenceForAnyNonFinalizedJob(void *session);
 int MakeFenceForAnyJob(void *context,
    const struct bcm_sched_dependencies *completed_deps,
    const struct bcm_sched_dependencies *finalised_deps);
+
+void InitFenceInterface(FenceInterface *fi, const BEGL_SchedInterface *sched);
 
 #ifdef __cplusplus
 }

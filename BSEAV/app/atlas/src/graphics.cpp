@@ -56,7 +56,7 @@ static void setEventCallback(
 
 CSurfaceClient::CSurfaceClient(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_surfaceClient, pCfg),
@@ -206,7 +206,7 @@ error:
     return(ret);
 } /* setBlend */
 
-eRet CSurfaceClient::setZOrder(uint16_t zOrder)
+eRet CSurfaceClient::setZOrder(unsigned zOrder)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
@@ -224,7 +224,7 @@ error:
 
 CGraphics::CGraphics(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_graphics, pCfg),
@@ -441,8 +441,8 @@ error:
 } /* sync */
 
 eRet CGraphics::initGraphics(
-        uint16_t width,
-        uint16_t height
+        unsigned width,
+        unsigned height
         )
 {
     eRet                         ret    = eRet_Ok;
@@ -883,8 +883,8 @@ error:
  * the resonsibility of the calling code. */
 bwin_framebuffer_t CGraphics::createBwinFramebuffer(
         NEXUS_SurfaceHandle surface,
-        uint16_t            width,
-        uint16_t            height
+        unsigned            width,
+        unsigned            height
         )
 {
     eRet                        ret             = eRet_Ok;
@@ -893,8 +893,8 @@ bwin_framebuffer_t CGraphics::createBwinFramebuffer(
     CGraphicsData *             pGraphicsData   = NULL;
     NEXUS_SurfaceCreateSettings surfaceSettings;
     NEXUS_SurfaceMemory         surfaceMem;
-    int16_t                     newWidth  = width;
-    int16_t                     newHeight = height;
+    int                     newWidth  = width;
+    int                     newHeight = height;
 
     BDBG_ASSERT(NULL != surface);
     NEXUS_Surface_GetCreateSettings(surface, &surfaceSettings);
@@ -937,16 +937,6 @@ bwin_framebuffer_t CGraphics::createBwinFramebuffer(
 
     goto done;
 error:
-    if (NULL != bwinFramebuffer)
-    {
-        /*
-         * we will keep this error handling even tho it is dead code at this point.
-         * coverity[dead_error_begin]
-         */
-        bwin_close_framebuffer(bwinFramebuffer);
-        bwinFramebuffer = NULL;
-    }
-
     if (NULL != pGraphicsData)
     {
         delete pGraphicsData;

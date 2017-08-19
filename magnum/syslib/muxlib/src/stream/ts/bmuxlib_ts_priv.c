@@ -348,7 +348,7 @@ static BERR_Code BMUXlib_TS_P_InsertPESHeader(BMUXlib_TS_Handle hMuxTS, BMUXlib_
 static BERR_Code BMUXlib_TS_P_PopulateTransportInfoFromInputDescriptor(const BMUXlib_Input_Descriptor *pstDescriptor, BMUXlib_P_TransportInfo *pstTransportInfo);
 static BERR_Code BMUXlib_TS_P_InsertTransportDescriptor(BMUXlib_TS_Handle hMuxTS, BMUXlib_P_TransportInfo *pstTransportInfo);
 static BERR_Code BMUXlib_TS_P_InsertNULLTransportDescriptor(BMUXlib_TS_Handle hMuxTS, unsigned uiTransportChannelIndex, uint32_t uiESCR, uint32_t uiPacket2PacketDelta,
-         BMUXlib_TS_P_DataType eDataType, BMUXlib_TS_P_SourceType eSourceType, unsigned uiInputIndex);
+         BMUXlib_TS_P_DataType eDataType, BMUXlib_TS_P_SourceType eSourceType, unsigned uiInputIndex, bool bESCRValid);
 static void BMUXlib_TS_S_StallTransport(BMUXlib_TS_Handle hMuxTS, unsigned uiTransportChannelIndex, bool bStalled);
 
 uint64_t
@@ -1686,7 +1686,8 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
          uint32_t uiPacket2PacketDelta,
          BMUXlib_TS_P_DataType eDataType,
          BMUXlib_TS_P_SourceType eSourceType,
-         unsigned uiInputIndex
+         unsigned uiInputIndex,
+         bool bESCRValid
          )
 {
    /* Allocate Transport Descriptor */
@@ -1727,7 +1728,7 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
             );
 
    /* Set Buffer Info */
-   pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid = true;
+   pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid = bESCRValid;
    pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp = uiESCR;
 
    pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid = true;
@@ -1767,6 +1768,7 @@ BMUXlib_TS_P_ProcessSystemData(
    BMUXlib_TS_P_TSPacket *pstPCRPacket = NULL;
    BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) *pstCurrentTransportDescriptorEntry = NULL;
    BMUXlib_TS_TransportDescriptor *pstCurrentTransportDescriptor = NULL;
+   bool bPCRNextPacketPacingTimestampValid = true;
    BMUXlib_TS_P_TransportDescriptorMetaData *pstCurrentTransportDescriptorMetaData = NULL;
    uint32_t uiLastPendingESCR = 0xFFFFFFFF;
    bool bLastPendingESCRValid = false;
@@ -2129,7 +2131,7 @@ BMUXlib_TS_P_ProcessSystemData(
                      ) );
 
                   /* Adjust transport descriptor to not set ESCR, since ESCR is set by the BTP packet */
-                  pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid = false;
+                  bPCRNextPacketPacingTimestampValid = false;
 
                   hMuxTS->status.bBTPSent = true;
                }
@@ -2138,6 +2140,7 @@ BMUXlib_TS_P_ProcessSystemData(
 
          if ( 0 != hMuxTS->status.stStartSettings.stPCRData.uiInterval )
          {
+            pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid = bPCRNextPacketPacingTimestampValid;
             pstCurrentTransportDescriptorMetaData->uiTimestamp = hMuxTS->status.stPCRInfo.uiBase;
             BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
                hMuxTS,
@@ -2187,7 +2190,8 @@ BMUXlib_TS_P_ProcessSystemData(
                      uiPacket2PacketTimestampDelta,
                      BMUXlib_TS_P_DataType_eNULL,
                      BMUXlib_TS_P_SourceType_eSystem,
-                     0
+                     0,
+                     bPCRNextPacketPacingTimestampValid
                      ));
          }
 
@@ -2811,7 +2815,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
                         0,
                         BMUXlib_TS_P_DataType_eCDB,
                         BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )],
-                        pInputMetadata->uiInputIndex
+                        pInputMetadata->uiInputIndex,
+                        true
                         )))
                {
                   BDBG_ERR(("Transport descriptors not available.  Will be processed next time."));
@@ -3655,7 +3660,8 @@ BMUXlib_TS_P_Flush(
                               0,
                               BMUXlib_TS_P_DataType_eNULL,
                               BMUXlib_TS_P_SourceType_eUnknown,
-                              0
+                              0,
+                              true
                               ));
 
                      BDBG_MODULE_MSG( BMUXLIB_TS_EOS, ("Inserting NULL descriptor (escr=%08x) on transport[%d]", uiLastPendingESCR, uiTransportChannelIndex));

@@ -120,8 +120,20 @@ static uint8_t *gPadding = NULL;
 /* BTP buffer size for external iv support */
 #define BTP_SIZE 188
 
+#define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
+#define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
+#define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
+
+typedef struct Drm_WVOemCryptoEncDmaList
+{
+    DmaBlockInfo_t *dma_block_info;
+    uint8_t **non_sec_src;
+    uint8_t **non_sec_dst;
+    uint32_t *non_sec_len;
+}Drm_WVOemCryptoEncDmaList;
+
 /* Scatter/gather definitions */
-static DmaBlockInfo_t **gWvEncDmaBlockInfoList;
+static Drm_WVOemCryptoEncDmaList *gWvEncDmaBlockInfoList;
 static NEXUS_DmaJobBlockSettings *gWvClrDmaJobBlockSettingsList;
 
 static uint32_t gWvClrNumDmaBlocks;
@@ -133,11 +145,6 @@ static bool gWVClrQueued;
 
 static uint8_t *gWVUsageTable;
 static uint8_t gWVUsageTableDigest[SHA256_DIGEST_SIZE] = {0x00};
-
-
-#define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
-#define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
-#define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
 
 static DrmRC DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory,
                                               uint32_t *pUsageTableSharedMemorySize);
@@ -643,14 +650,14 @@ DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc)
 
     if(gWvEncDmaBlockInfoList == NULL)
     {
-        gWvEncDmaBlockInfoList = BKNI_Malloc(gNumSessions * sizeof(DmaBlockInfo_t *));
+        gWvEncDmaBlockInfoList = BKNI_Malloc(gNumSessions * sizeof(Drm_WVOemCryptoEncDmaList));
         if(gWvEncDmaBlockInfoList == NULL)
         {
             BDBG_ERR(("%s - Error allocationg memory for DMA block list", __FUNCTION__ ));
             rc = Drm_Err;
             goto ErrorExit;
         }
-        BKNI_Memset(gWvEncDmaBlockInfoList, 0x0, gNumSessions * sizeof(DmaBlockInfo_t *));
+        BKNI_Memset(gWvEncDmaBlockInfoList, 0x0, gNumSessions * sizeof(Drm_WVOemCryptoEncDmaList));
     }
 
 ErrorExit:
@@ -719,9 +726,30 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
                                           __FUNCTION__, container->basicOut[0], container->basicOut[2]));
     }
 
-    if (gWvEncDmaBlockInfoList[session] != NULL) {
-        SRAI_Memory_Free((uint8_t*)gWvEncDmaBlockInfoList[session]);
-        gWvEncDmaBlockInfoList[session] = NULL;
+ErrorExit:
+
+    if (gWvEncDmaBlockInfoList[session].dma_block_info != NULL)
+    {
+        SRAI_Memory_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].dma_block_info));
+        gWvEncDmaBlockInfoList[session].dma_block_info = NULL;
+    }
+
+    if (gWvEncDmaBlockInfoList[session].non_sec_src != NULL)
+    {
+        BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_src));
+        gWvEncDmaBlockInfoList[session].non_sec_src = NULL;
+    }
+
+    if (gWvEncDmaBlockInfoList[session].non_sec_dst != NULL)
+    {
+        BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_dst));
+        gWvEncDmaBlockInfoList[session].non_sec_dst = NULL;
+    }
+
+    if (gWvEncDmaBlockInfoList[session].non_sec_len != NULL)
+    {
+        BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_len));
+        gWvEncDmaBlockInfoList[session].non_sec_len = NULL;
     }
 
     if (gHostSessionCtx[session].btp_info.btp_sage_buffer)
@@ -732,6 +760,7 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
     }
 
     gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
+    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
 
     if(gKeySlotCacheMode == DRM_WVOEMCRYPTO_SESSION_KEY_CACHE)
     {
@@ -751,8 +780,6 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
         gHostSessionCtx[session].num_key_slots = 0;
     }
 
-
-ErrorExit:
     if(container != NULL)
     {
         SRAI_Container_Free(container);
@@ -1213,7 +1240,7 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
     uint32_t i = 0;
     uint32_t key_object_shared_block_length = 0;
     uint32_t key_array_sz = 0;
-    Drm_WVOemCryptoKeyObject* pKeyObj = NULL;
+    Drm_WVOemCryptoSageKeyObject* pKeyObj = NULL;
     Drm_WVOemCryptoKeyObject* keyArray = (Drm_WVOemCryptoKeyObject*)key_array;
     BSAGElib_InOutContainer *container = NULL;
 
@@ -1327,21 +1354,15 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
 
 
     /* allocate for sending key object data*/
-    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoKeyObject))*num_keys), SRAI_MemoryType_Shared);
-    if(container->blocks[5].data.ptr == NULL)
+    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys), SRAI_MemoryType_Shared);
+    if (container->blocks[5].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", __FUNCTION__, ((sizeof(Drm_WVOemCryptoKeyObject))*num_keys)));
+        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", __FUNCTION__, ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys)));
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
         goto ErrorExit;
     }
-    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoKeyObject))*num_keys);
-    for(i = 0, key_object_shared_block_length = 0; i < num_keys; i++)
-    {
-        key_object_shared_block_length = i * sizeof(Drm_WVOemCryptoKeyObject);
-        BKNI_Memcpy(container->blocks[5].data.ptr + key_object_shared_block_length,
-            keyArray + i, sizeof(Drm_WVOemCryptoKeyObject));
-    }
+    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys);
 
     /*
      * Allocate memory for PST (if applicable)
@@ -1421,33 +1442,35 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
 
 
 
-    pKeyObj = (Drm_WVOemCryptoKeyObject*)container->blocks[5].data.ptr;
+    pKeyObj = (Drm_WVOemCryptoSageKeyObject*)container->blocks[5].data.ptr;
 
-    for(i=0; i < num_keys; i++)
+    for (i=0; i < num_keys; i++)
     {
         BDBG_MSG(("Loop %d",i));
-        pKeyObj[i].key_id =&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
+        pKeyObj[i].key_id = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
 
         pKeyObj[i].key_id_length = keyArray[i].key_id_length;
 
-        pKeyObj[i].key_data_iv =&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_data_iv = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                                + keyArray[i].key_id_length];
 
-        pKeyObj[i].key_data = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_data = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                              + keyArray[i].key_id_length
                                                              + WVCDM_KEY_IV_SIZE];
 
         pKeyObj[i].key_data_length = keyArray[i].key_data_length;
 
-        pKeyObj[i].key_control_iv = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_control_iv = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                                    + keyArray[i].key_id_length
                                                                    + WVCDM_KEY_IV_SIZE
                                                                    + keyArray[i].key_data_length];
 
-        pKeyObj[i].key_control = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_control = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                                 + keyArray[i].key_id_length
                                                                 + (2*WVCDM_KEY_IV_SIZE)
                                                                 + keyArray[i].key_data_length];
+
+        pKeyObj[i].cipher_mode = keyArray[i].cipher_mode;
     }
 
 
@@ -1542,7 +1565,7 @@ DrmRC drm_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
     uint32_t i = 0;
     uint32_t key_object_shared_block_length = 0;
     uint32_t key_array_sz = 0;
-    Drm_WVOemCryptoKeyObject_V10* pKeyObj = NULL;
+    Drm_WVOemCryptoSageKeyObject_V10* pKeyObj = NULL;
     Drm_WVOemCryptoKeyObject_V10* keyArray_V10 = (Drm_WVOemCryptoKeyObject_V10*)key_array;
     BSAGElib_InOutContainer *container = NULL;
 
@@ -1656,21 +1679,15 @@ DrmRC drm_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
 
 
     /* allocate for sending key object data*/
-    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoKeyObject_V10))*num_keys), SRAI_MemoryType_Shared);
-    if(container->blocks[5].data.ptr == NULL)
+    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyObject_V10)) * num_keys), SRAI_MemoryType_Shared);
+    if (container->blocks[5].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", __FUNCTION__, ((sizeof(Drm_WVOemCryptoKeyObject_V10))*num_keys)));
+        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", __FUNCTION__, ((sizeof(Drm_WVOemCryptoSageKeyObject_V10)) * num_keys)));
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
         goto ErrorExit;
     }
-    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoKeyObject_V10))*num_keys);
-    for(i = 0, key_object_shared_block_length = 0; i < num_keys; i++)
-    {
-        key_object_shared_block_length = i * sizeof(Drm_WVOemCryptoKeyObject_V10);
-        BKNI_Memcpy(container->blocks[5].data.ptr + key_object_shared_block_length,
-            keyArray_V10 + i, sizeof(Drm_WVOemCryptoKeyObject_V10));
-    }
+    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyObject_V10)) * num_keys);
 
     /*
      * Allocate memory for PST (if applicable)
@@ -1748,32 +1765,30 @@ DrmRC drm_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
     }
     container->blocks[4].len = key_object_shared_block_length;
 
-
-
-    pKeyObj = (Drm_WVOemCryptoKeyObject_V10*)container->blocks[5].data.ptr;
+    pKeyObj = (Drm_WVOemCryptoSageKeyObject_V10*)container->blocks[5].data.ptr;
 
     for(i=0; i < num_keys; i++)
     {
         BDBG_MSG(("Loop %d",i));
-        pKeyObj[i].key_id =&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
+        pKeyObj[i].key_id = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
 
         pKeyObj[i].key_id_length = keyArray_V10[i].key_id_length;
 
-        pKeyObj[i].key_data_iv =&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_data_iv = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                                + keyArray_V10[i].key_id_length];
 
-        pKeyObj[i].key_data = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_data = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                              + keyArray_V10[i].key_id_length
                                                              + WVCDM_KEY_IV_SIZE];
 
         pKeyObj[i].key_data_length = keyArray_V10[i].key_data_length;
 
-        pKeyObj[i].key_control_iv = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_control_iv = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                                    + keyArray_V10[i].key_id_length
                                                                    + WVCDM_KEY_IV_SIZE
                                                                    + keyArray_V10[i].key_data_length];
 
-        pKeyObj[i].key_control = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+        pKeyObj[i].key_control = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
                                                                 + keyArray_V10[i].key_id_length
                                                                 + (2*WVCDM_KEY_IV_SIZE)
                                                                 + keyArray_V10[i].key_data_length];
@@ -1910,7 +1925,7 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
     uint32_t i = 0;
     int j = 0;
     uint32_t key_array_sz = 0;
-    Drm_WVOemCryptoKeyRefreshObject* pKeyObj = NULL;
+    Drm_WVOemCryptoSageKeyRefreshObject* pKeyObj = NULL;
     BSAGElib_InOutContainer *container = NULL;
     Drm_WVOemCryptoKeyRefreshObject* keyArray = (Drm_WVOemCryptoKeyRefreshObject*)key_array;
 
@@ -2030,15 +2045,15 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
 
 
     /* allocate for sending key object data*/
-    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoKeyRefreshObject))*num_keys), SRAI_MemoryType_Shared);
-    if(container->blocks[5].data.ptr == NULL)
+    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyRefreshObject)) * num_keys), SRAI_MemoryType_Shared);
+    if (container->blocks[5].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating memory for key object data (%u bytes)", __FUNCTION__, ((sizeof(Drm_WVOemCryptoKeyRefreshObject))*num_keys)));
+        BDBG_ERR(("%s - Error allocating memory for key object data (%u bytes)", __FUNCTION__, ((sizeof(Drm_WVOemCryptoSageKeyRefreshObject)) * num_keys)));
         rc = Drm_Err;
         goto ErrorExit;
     }
 
-    pKeyObj = (Drm_WVOemCryptoKeyRefreshObject*)container->blocks[5].data.ptr;
+    pKeyObj = (Drm_WVOemCryptoSageKeyRefreshObject*)container->blocks[5].data.ptr;
     for(i=0; i<num_keys; i++)
     {
         BDBG_MSG(("Loop %d",i));
@@ -2046,17 +2061,17 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
         {
             BDBG_MSG(("%s:Keycontrol block isencrypted",__FUNCTION__));
 
-            pKeyObj[i].key_id = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
-            dump(pKeyObj[i].key_id,keyArray[i].key_id_length,"KeyID in sage mem:");
+            pKeyObj[i].key_id = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
+            dump((const unsigned char*)pKeyObj[i].key_id,keyArray[i].key_id_length,"KeyID in sage mem:");
 
             BDBG_MSG(("key_id ptr = %p,offset=%d",(void *)pKeyObj[i].key_id,(i*container->blocks[4].len)/num_keys));
             pKeyObj[i].key_id_length = keyArray[i].key_id_length;
 
             BDBG_MSG(("key_id len =0x%x",pKeyObj[i].key_id_length));
-            pKeyObj[i].key_control_iv = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length];
+            pKeyObj[i].key_control_iv = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length];
 
             BDBG_MSG(("key_control_iv ptr =%p, offset=%d",(void *)pKeyObj[i].key_control_iv, (i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length));
-            pKeyObj[i].key_control = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys +keyArray[i].key_id_length+WVCDM_KEY_IV_SIZE];
+            pKeyObj[i].key_control = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys +keyArray[i].key_id_length+WVCDM_KEY_IV_SIZE];
 
             BDBG_MSG(("key_control ptr =%p",(void *)pKeyObj[i].key_control));
         }
@@ -2067,21 +2082,21 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
             pKeyObj[i].key_id_length = keyArray[i].key_id_length;
             if(pKeyObj[i].key_id_length == 0){
                 BDBG_MSG(("%s:one KCB for all keys has to be used",__FUNCTION__));
-                pKeyObj[i].key_id = NULL;
+                pKeyObj[i].key_id = 0;
             }
             else
             {
-                pKeyObj[i].key_id = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
-                dump(pKeyObj[i].key_id, keyArray[i].key_id_length, "KeyID in sage mem:");
+                pKeyObj[i].key_id = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
+                dump((const unsigned char*)pKeyObj[i].key_id, keyArray[i].key_id_length, "KeyID in sage mem:");
             }
-            pKeyObj[i].key_control_iv = NULL;
-            pKeyObj[i].key_control = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length];
-            dump(container->blocks[4].data.ptr,WVCDM_KEY_CONTROL_SIZE,"clear key ctrl blk:");
+            pKeyObj[i].key_control_iv = 0;
+            pKeyObj[i].key_control = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length];
+            dump((const unsigned char*)container->blocks[4].data.ptr,WVCDM_KEY_CONTROL_SIZE,"clear key ctrl blk:");
 
         }
     }
 
-    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoKeyRefreshObject))*num_keys);
+    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyRefreshObject)) * num_keys);
 
     /* map to parameters into srai_inout_container */
     container->basicIn[0] = session;
@@ -2215,9 +2230,9 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
     if(gKeySlotCacheMode == DRM_WVOEMCRYPTO_SESSION_KEY_CACHE)
     {
         if(gHostSessionCtx[session].num_key_slots < DRM_WVOEMCRYPTO_NUM_SESSION_KEY_SLOT)
-	{
+        {
             allocate_slot = true;
-	}
+        }
     }
 
     if(allocate_slot)
@@ -2257,7 +2272,7 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
                 gKeySlotCache[i].keySlotID = keyslotInfo.keySlotNumber;
 
                 gHostSessionCtx[session].key_slot_ptr[gHostSessionCtx[session].num_key_slots] = &gKeySlotCache[i];
-		gHostSessionCtx[session].num_key_slots++;
+                gHostSessionCtx[session].num_key_slots++;
 
                 gKeySlotCacheAllocated++;
 
@@ -2710,30 +2725,41 @@ static DrmRC drm_WVOemCrypto_P_Decrypt_Transfer(uint32_t session)
     }
 
     BDBG_MSG(("%s - Decrypted %d dma blocks", __FUNCTION__, dmaBlockIdx));
-    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
-
     return rc;
 }
 
 
-static DrmRC drm_WVOemCrypto_P_DecryptDMA_Secure_SG(uint8_t *data_addr,
+static DrmRC drm_WVOemCrypto_P_DecryptDMA_SG(uint8_t *data_addr,
                                                      uint8_t *out_addr,
                                                      uint32_t data_length,
                                                      uint32_t enc_subsample_flags,
                                                      uint32_t *block_offset,
-                                                     uint32_t session)
+                                                     uint32_t session,
+                                                     bool secure)
 {
+    uint8_t *pDecryptBuf = NULL;
     bool isFirstEncSubsample = false;
     bool isLastEncSubsample = false;
     DmaBlockInfo_t *blockInfo;
+    uint8_t **ppNonSecSrc;
+    uint8_t **ppNonSecDst;
+    uint32_t *pNonSecLen;
     uint32_t dmaBlockIdx;
     DrmRC rc = Drm_Success;
+    unsigned int i;
 
     isFirstEncSubsample = enc_subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE;
     isLastEncSubsample = enc_subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE;
 
+    if(*block_offset >= PADDING_SZ_16_BYTE)
+    {
+        BDBG_ERR(("%s: Invalid block offset value of %d", __FUNCTION__, *block_offset));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
     /* Allocate the dma block memory if it doesn't exist yet */
-    blockInfo = gWvEncDmaBlockInfoList[session];
+    blockInfo = gWvEncDmaBlockInfoList[session].dma_block_info;
     if (blockInfo == NULL) {
         blockInfo = (DmaBlockInfo_t *)SRAI_Memory_Allocate(sizeof(DmaBlockInfo_t) * MAX_SG_DMA_BLOCKS, SRAI_MemoryType_Shared);
         if (blockInfo == NULL)
@@ -2742,7 +2768,52 @@ static DrmRC drm_WVOemCrypto_P_DecryptDMA_Secure_SG(uint8_t *data_addr,
             rc = Drm_Err;
             goto ErrorExit;
         }
-        gWvEncDmaBlockInfoList[session] = blockInfo;
+        gWvEncDmaBlockInfoList[session].dma_block_info = blockInfo;
+    }
+
+    if(!secure)
+    {
+        ppNonSecSrc = gWvEncDmaBlockInfoList[session].non_sec_src;
+        if(ppNonSecSrc == NULL)
+        {
+            ppNonSecSrc = (uint8_t **)BKNI_Malloc(sizeof(uint8_t *) * MAX_SG_DMA_BLOCKS);
+            if(ppNonSecSrc == NULL)
+            {
+                BDBG_ERR(("%s: error allocating non secure dest memory", __FUNCTION__));
+                rc = Drm_Err;
+                goto ErrorExit;
+            }
+            BKNI_Memset(ppNonSecSrc, 0, (sizeof(uint8_t *) * MAX_SG_DMA_BLOCKS));
+            gWvEncDmaBlockInfoList[session].non_sec_src = ppNonSecSrc;
+        }
+
+        ppNonSecDst = gWvEncDmaBlockInfoList[session].non_sec_dst;
+        if(ppNonSecDst == NULL)
+        {
+            ppNonSecDst = (uint8_t **)BKNI_Malloc(sizeof(uint8_t *) * MAX_SG_DMA_BLOCKS);
+            if(ppNonSecDst == NULL)
+            {
+                BDBG_ERR(("%s: error allocating non secure dest memory", __FUNCTION__));
+                rc = Drm_Err;
+                goto ErrorExit;
+            }
+            BKNI_Memset(ppNonSecDst, 0, (sizeof(uint8_t *) * MAX_SG_DMA_BLOCKS));
+            gWvEncDmaBlockInfoList[session].non_sec_dst = ppNonSecDst;
+        }
+
+        pNonSecLen = gWvEncDmaBlockInfoList[session].non_sec_len;
+        if(pNonSecLen == NULL)
+        {
+            pNonSecLen = (uint32_t *)BKNI_Malloc(sizeof(uint32_t) * MAX_SG_DMA_BLOCKS);
+            if(pNonSecLen == NULL)
+            {
+                BDBG_ERR(("%s: error allocating non secure dest memory", __FUNCTION__));
+                rc = Drm_Err;
+                goto ErrorExit;
+            }
+            BKNI_Memset(pNonSecLen, 0, (sizeof(uint32_t) * MAX_SG_DMA_BLOCKS));
+            gWvEncDmaBlockInfoList[session].non_sec_len = pNonSecLen;
+        }
     }
 
     dmaBlockIdx = gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
@@ -2751,9 +2822,23 @@ static DrmRC drm_WVOemCrypto_P_DecryptDMA_Secure_SG(uint8_t *data_addr,
 
     if (data_addr != NULL && out_addr != NULL && data_length > 0)
     {
-        if (gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0) {
-            dmaBlockIdx = 0;
+        if (!secure)
+        {
+            /* Allocate buffer memory */
+            pDecryptBuf = SRAI_Memory_Allocate(data_length + (16 - (data_length % 16)), SRAI_MemoryType_Shared);
+            if(pDecryptBuf == NULL)
+            {
+                BDBG_ERR(("%s: %d Out of memory\n", __FUNCTION__, __LINE__));
+                rc = Drm_Err;
+                goto ErrorExit;
+            }
 
+            /* Copy over encrypted data to buffer */
+            BKNI_Memcpy(pDecryptBuf, data_addr, data_length);
+        }
+
+        if (dmaBlockIdx == 0)
+        {
             if (gHostSessionCtx[session].btp_info.btp_sage_buffer != NULL)
             {
                 /* BTP block */
@@ -2778,11 +2863,28 @@ static DrmRC drm_WVOemCrypto_P_DecryptDMA_Secure_SG(uint8_t *data_addr,
             }
         }
 
-        blockInfo[dmaBlockIdx].pDstData = out_addr;
-        blockInfo[dmaBlockIdx].pSrcData = data_addr;
+        if (!secure)
+        {
+            blockInfo[dmaBlockIdx].pDstData = pDecryptBuf;
+            blockInfo[dmaBlockIdx].pSrcData = pDecryptBuf;
+        }
+        else
+        {
+            blockInfo[dmaBlockIdx].pDstData = out_addr;
+            blockInfo[dmaBlockIdx].pSrcData = data_addr;
+        }
+
         blockInfo[dmaBlockIdx].uiDataSize = data_length;
         blockInfo[dmaBlockIdx].sg_start = (isFirstEncSubsample && *block_offset == 0);
         blockInfo[dmaBlockIdx].sg_end = false; /* End marker set on transfer execution */
+
+        if (!secure)
+        {
+            ppNonSecSrc[dmaBlockIdx] = pDecryptBuf;
+            ppNonSecDst[dmaBlockIdx] = out_addr;
+            pNonSecLen[dmaBlockIdx] = data_length;
+        }
+
         dmaBlockIdx++;
         gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = dmaBlockIdx;
     }
@@ -2797,107 +2899,40 @@ static DrmRC drm_WVOemCrypto_P_DecryptDMA_Secure_SG(uint8_t *data_addr,
         if (dmaBlockIdx > 0)
         {
             /*start M2M transfer only when it is the last subsample or blockInfo is full*/
-            gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = gWvEncDmaBlockInfoList[session];
+            gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = gWvEncDmaBlockInfoList[session].dma_block_info;
             rc = drm_WVOemCrypto_P_Decrypt_Transfer(session);
+
+            if(!secure)
+            {
+                /* Copy and free all allocated buffers */
+                for(i = 0; i < dmaBlockIdx; i++)
+                {
+                    if(ppNonSecSrc[i] != NULL && ppNonSecDst[i] != NULL)
+                    {
+                        BKNI_Memcpy(ppNonSecDst[i], ppNonSecSrc[i], pNonSecLen[i]);
+                    }
+
+                    if(ppNonSecSrc[i] != NULL)
+                    {
+                        SRAI_Memory_Free(ppNonSecSrc[i]);
+                        ppNonSecSrc[i] = NULL;
+                    }
+
+                    if(ppNonSecDst[i] != NULL)
+                    {
+                        ppNonSecDst[i] = NULL;
+                    }
+
+                    if(pNonSecLen[i] != 0)
+                    {
+                        pNonSecLen[i] = 0;
+                    }
+                }
+            }
+            gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
         }
     }
 ErrorExit:
-    return rc;
-}
-
-static DrmRC drm_WVOemCrypto_P_DecryptDMA_NonSecure(const uint8_t* cipher_data,
-                                 void* clear_data,
-                                 uint32_t cipher_data_length,
-                                 uint32_t* out_sz,
-                                 uint32_t *block_offset,
-                                 uint32_t session)
-{
-
-    uint32_t cipher_data_len_aligned = 0;
-    DrmRC  rc = Drm_Success;
-    DmaBlockInfo_t dmaBlock[2];
-    uint8_t *pDecryptBuf = NULL;
-    uint32_t dmaBlockIdx = 0;
-
-    BDBG_MSG(("%s - Entered", __FUNCTION__));
-
-
-    BDBG_MSG((" data length is %d, aligned data len is %d, block_offset =%d",cipher_data_length,cipher_data_len_aligned,*block_offset));
-
-
-    if(((cipher_data_length+*block_offset )% 16)!=0)
-    {
-        cipher_data_len_aligned = cipher_data_length+*block_offset +(16- ((cipher_data_length+*block_offset ) % 16)) ;
-    }
-    else
-    {
-        cipher_data_len_aligned = cipher_data_length+*block_offset ;
-    }
-
-    BDBG_MSG((" data length is %d, aligned data len is %d, block_offset =%d",cipher_data_length,cipher_data_len_aligned,*block_offset));
-
-
-    /* Allocate buffer memory */
-    pDecryptBuf = SRAI_Memory_Allocate(cipher_data_len_aligned, SRAI_MemoryType_Shared);
-    if(pDecryptBuf == NULL)
-    {
-        BDBG_ERR(("%s: %d Out of memory\n", __FUNCTION__, __LINE__));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    BDBG_MSG(("%s:successfully allocated memory to input",__FUNCTION__));
-
-    BKNI_Memcpy(pDecryptBuf+(*block_offset),cipher_data,cipher_data_length);
-
-    if(cipher_data_len_aligned > cipher_data_length)
-    {
-        BKNI_Memset((uint8_t *)pDecryptBuf+(*block_offset)+cipher_data_length, 0x00,cipher_data_len_aligned - cipher_data_length);
-    }
-
-    /* set DMA parameters */
-
-    BDBG_MSG(("%s: blk0 btp buff 0x%08x, size=%d",__FUNCTION__,gHostSessionCtx[session].btp_info.btp_sage_buffer,
-        gHostSessionCtx[session].btp_info.btp_sage_size));
-
-    if (dmaBlockIdx == 0 && gHostSessionCtx[session].btp_info.btp_sage_buffer != NULL)
-    {
-        dmaBlock[dmaBlockIdx].pDstData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
-        dmaBlock[dmaBlockIdx].pSrcData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
-        dmaBlock[dmaBlockIdx].uiDataSize = gHostSessionCtx[session].btp_info.btp_sage_size;
-        dmaBlock[dmaBlockIdx].sg_start = true;
-        dmaBlock[dmaBlockIdx].sg_end = true;
-        ++dmaBlockIdx;
-    }
-
-    dmaBlock[dmaBlockIdx].pDstData = pDecryptBuf;
-    dmaBlock[dmaBlockIdx].pSrcData = pDecryptBuf;
-    dmaBlock[dmaBlockIdx].uiDataSize = cipher_data_len_aligned;
-    dmaBlock[dmaBlockIdx].sg_start = true;
-    dmaBlock[dmaBlockIdx].sg_end = true;
-    ++dmaBlockIdx;
-
-    gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = dmaBlock;
-    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = dmaBlockIdx;
-
-    rc = drm_WVOemCrypto_P_Decrypt_Transfer(session);
-    if(rc != Drm_Success)
-    {
-        BDBG_ERR(("%s - Call to 'drm_WVOemCrypto_P_Decrypt_Transfer' failed", __FUNCTION__));
-        goto ErrorExit;
-    }
-
-    BKNI_Memcpy(clear_data, pDecryptBuf + *block_offset, cipher_data_length);
-
-    *out_sz = cipher_data_length;
-
-ErrorExit:
-    if(pDecryptBuf)
-    {
-        SRAI_Memory_Free(pDecryptBuf);
-    }
-
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
     return rc;
 }
 
@@ -2961,24 +2996,23 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
                 *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
                 goto ErrorExit;
             }
-
-            if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
-            {
-                 /* Last subsample is clear. Transfer the encrypted block list */
-                 if(drm_WVOemCrypto_P_DecryptDMA_Secure_SG(NULL, NULL, 0,
-                     subsample_flags, &block_offset, session) != Drm_Success)
-                 {
-                     BDBG_ERR(("%s: decryption failed for DMA SG Secure Buffer Type",__FUNCTION__));
-                     rc = Drm_Err;
-                     *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                     goto ErrorExit;
-                 }
-            }
         }
         else
         {
             BKNI_Memcpy(out_buffer,data_addr, data_length);
-            return Drm_Success;
+        }
+
+        if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
+        {
+             /* Last subsample is clear. Transfer the encrypted block list */
+             if(drm_WVOemCrypto_P_DecryptDMA_SG(NULL, NULL, 0,
+                 subsample_flags, &block_offset, session, isSecureDecrypt) != Drm_Success)
+             {
+                 BDBG_ERR(("%s: decryption failed for SG DMA",__FUNCTION__));
+                 rc = Drm_Err;
+                 *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+                 goto ErrorExit;
+             }
         }
     }
     else
@@ -3080,17 +3114,17 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         }
 
         /* Now kickoff dma */
+        if(drm_WVOemCrypto_P_DecryptDMA_SG((uint8_t *)data_addr, out_buffer,
+            data_length, subsample_flags, &block_offset, session, isSecureDecrypt) != Drm_Success)
+        {
+            BDBG_ERR(("%s: decryption failed for SG DMA",__FUNCTION__));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+            goto ErrorExit;
+        }
+
         if(isSecureDecrypt)
         {
-            if(drm_WVOemCrypto_P_DecryptDMA_Secure_SG((uint8_t *)data_addr, out_buffer,
-                data_length, subsample_flags, &block_offset, session) != Drm_Success)
-            {
-                BDBG_ERR(("%s: decryption failed for SG Secure Buffer Type",__FUNCTION__));
-                rc = Drm_Err;
-                *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                goto ErrorExit;
-            }
-
             if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
             {
                 if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, false) != Drm_Success)
@@ -3100,17 +3134,6 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
                     *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
                     goto ErrorExit;
                 }
-            }
-        }
-        else
-        {
-            if (drm_WVOemCrypto_P_DecryptDMA_NonSecure(data_addr, out_buffer, data_length,
-                out_sz, &block_offset, session) != Drm_Success)
-            {
-                BDBG_ERR(("%s: decryption failed for non-Secure Buffer Type",__FUNCTION__));
-                rc = Drm_Err;
-                *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                goto ErrorExit;
             }
         }
     }
@@ -3146,7 +3169,12 @@ ErrorExit:
 
     if(*wvRc !=SAGE_OEMCrypto_SUCCESS)
     {
+        *out_sz = 0;
         rc = Drm_Err;
+    }
+    else
+    {
+        *out_sz = data_length;
     }
 
     BDBG_LEAVE(drm_WVOemCrypto_P_DecryptPatternBlock);
@@ -3265,24 +3293,23 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
                 *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
                 goto ErrorExit;
             }
-
-            if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
-            {
-                 /* Last subsample is clear. Transfer the encrypted block list */
-                 if(drm_WVOemCrypto_P_DecryptDMA_Secure_SG(NULL, NULL, 0,
-                     subsample_flags, &block_offset, session) != Drm_Success)
-                 {
-                     BDBG_ERR(("%s: decryption failed for DMA SG Secure Buffer Type",__FUNCTION__));
-                     rc = Drm_Err;
-                     *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                     goto ErrorExit;
-                 }
-            }
         }
         else
         {
             BKNI_Memcpy(out_buffer,data_addr, data_length);
-            return Drm_Success;
+        }
+
+        if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
+        {
+             /* Last subsample is clear. Transfer the encrypted block list */
+             if(drm_WVOemCrypto_P_DecryptDMA_SG(NULL, NULL, 0,
+                 subsample_flags, &block_offset, session, isSecureDecrypt) != Drm_Success)
+             {
+                 BDBG_ERR(("%s: decryption failed for SG DMA",__FUNCTION__));
+                 rc = Drm_Err;
+                 *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+                 goto ErrorExit;
+             }
         }
     }
     else
@@ -3372,17 +3399,18 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
         }
 
         /* Now kickoff dma */
+        if(drm_WVOemCrypto_P_DecryptDMA_SG((uint8_t *)data_addr, out_buffer,
+            data_length, subsample_flags, &block_offset, session, isSecureDecrypt) != Drm_Success)
+        {
+            BDBG_ERR(("%s: decryption failed for SG DMA",__FUNCTION__));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+            goto ErrorExit;
+        }
+
+
         if(isSecureDecrypt)
         {
-            if(drm_WVOemCrypto_P_DecryptDMA_Secure_SG((uint8_t *)data_addr, out_buffer,
-                data_length, subsample_flags, &block_offset, session) != Drm_Success)
-            {
-                BDBG_ERR(("%s: decryption failed for SG Secure Buffer Type",__FUNCTION__));
-                rc = Drm_Err;
-                *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                goto ErrorExit;
-            }
-
             if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
             {
                 if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, false) != Drm_Success)
@@ -3392,17 +3420,6 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
                     *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
                     goto ErrorExit;
                 }
-            }
-        }
-        else
-        {
-            if (drm_WVOemCrypto_P_DecryptDMA_NonSecure(data_addr, out_buffer, data_length,
-                out_sz, &block_offset, session) != Drm_Success)
-            {
-                BDBG_ERR(("%s: decryption failed for non-Secure Buffer Type",__FUNCTION__));
-                rc = Drm_Err;
-                *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                goto ErrorExit;
             }
         }
     }
@@ -3439,6 +3456,11 @@ ErrorExit:
     if(*wvRc !=SAGE_OEMCrypto_SUCCESS)
     {
         rc = Drm_Err;
+        *out_sz = 0;
+    }
+    else
+    {
+        *out_sz = data_length;
     }
 
     BDBG_LEAVE(drm_WVOemCrypto_DecryptCTR_V10);

@@ -280,8 +280,8 @@ void CPanelPlayback::uninitialize()
  * it's width to maintain the given width:height proportions.  the widget
  * will also be centered based on it's original position. */
 MRect CPanelPlayback::thumbnailSetGeometryWithAspect(
-        uint16_t width,
-        uint16_t height
+        unsigned width,
+        unsigned height
         )
 {
     MRect rectThumbLabel(0, 0, 0, 0);
@@ -326,8 +326,8 @@ MRect CPanelPlayback::thumbnailSetGeometryWithAspect(
 
 MRect CPanelPlayback::thumbnailSetGeometryWithAspect(CVideo * pVideo)
 {
-    uint16_t width  = 0;
-    uint16_t height = 0;
+    unsigned width  = 0;
+    unsigned height = 0;
 
     if (NULL != pVideo)
     {
@@ -339,8 +339,8 @@ MRect CPanelPlayback::thumbnailSetGeometryWithAspect(CVideo * pVideo)
 
 MRect CPanelPlayback::thumbnailSetGeometryWithAspect(bwin_image_t bwinImage)
 {
-    uint16_t width  = 0;
-    uint16_t height = 0;
+    unsigned width  = 0;
+    unsigned height = 0;
 
     if (NULL != bwinImage)
     {
@@ -356,8 +356,8 @@ MRect CPanelPlayback::thumbnailSetGeometryWithAspect(bwin_image_t bwinImage)
 
 MRect CPanelPlayback::thumbnailSetGeometryWithAspect(bwin_framebuffer_t bwinFramebuffer)
 {
-    uint16_t width  = 0;
-    uint16_t height = 0;
+    unsigned width  = 0;
+    unsigned height = 0;
 
     if (NULL != bwinFramebuffer)
     {
@@ -378,8 +378,8 @@ void CPanelPlayback::layout()
     MRect    rectProps       = _pPropertiesMenu->getGeometry();
     MRect    rectThumbnail   = _pPropertiesMenu->getGeometry();
     MRect    rectPanel       = getGeometry();
-    uint16_t propsMargin     = 7;
-    uint16_t thumbnailMargin = 10;
+    unsigned propsMargin     = 7;
+    unsigned thumbnailMargin = 10;
     MRect    rectVideosListView;
 
     /* layout videos menu */

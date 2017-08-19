@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 struct gfx_byte_fifo
 {
@@ -84,4 +84,4 @@ static inline uint32_t gfx_byte_fifo_space_left(struct gfx_byte_fifo const* fifo
    return gfx_fifo_space_left(fifo->head, fifo->tail, fifo->size);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

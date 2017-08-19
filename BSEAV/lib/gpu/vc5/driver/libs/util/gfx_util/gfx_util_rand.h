@@ -7,7 +7,7 @@
 #include "gfx_util.h"
 #include "gfx_util_conv.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /* http://en.wikipedia.org/wiki/Xorshift */
 typedef struct
@@ -105,6 +105,6 @@ static inline uint32_t gfx_rand_ubetween_normal(GFX_RAND_STATE_T *state,
    }
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile$
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL Profile-Wide for attributes accessing SAP interface.
+*       ZCL Profile-Wide for attributes accessing SAP interface.
 *
-* $Revision$
-* $Date$
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_PROFILE_WIDE_ATTRIBUTES_H
 #define _BB_ZBPRO_ZCL_SAP_PROFILE_WIDE_ATTRIBUTES_H
@@ -61,16 +53,8 @@
 
 /************************* DEFINITIONS **************************************************/
 /**//**
- * \name    Data type for Attribute Identifier parameter.
- * \par     Documentation
- *  See ZigBee Document 075123r05, subclauses 2.4.1.1, 2.4.2.1, 2.4.3.1, 2.4.5.1, figures
- *  2-5, 2-7, 2-11, 2-13.
- */
-typedef uint16_t  ZBPRO_ZCL_AttributeId_t;
-
-
-/**//**
  * \brief   Enumeration of attribute data types.
+ * \ingroup ZBPRO_ZCL_ProfileWideAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 2.5.2, table 2-9.
  */
@@ -252,6 +236,7 @@ typedef enum _ZBPRO_ZCL_AttrDataType_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Read Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrReq
  * \note
  *  Only one parameter may be requested in the same command. Requesting multiple
  *  parameters simultaneously within one command is not supported.
@@ -276,6 +261,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdReadAttrReqParams_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Read
  *  Attributes profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrConf
  * \details
  *  This structure takes its origin from ZCL Read Attributes Response profile-wide
  *  command.
@@ -366,6 +352,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdReadAtt
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Read Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrReq
  */
 typedef struct _ZBPRO_ZCL_ProfileWideCmdReadAttrReqDescr_t  ZBPRO_ZCL_ProfileWideCmdReadAttrReqDescr_t;
 
@@ -373,6 +360,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdReadAttrReqDescr_t  ZBPRO_ZCL_ProfileWid
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Read Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -384,6 +372,7 @@ typedef void ZBPRO_ZCL_ProfileWideCmdReadAttrConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Read Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrReq
  */
 struct _ZBPRO_ZCL_ProfileWideCmdReadAttrReqDescr_t
 {
@@ -407,6 +396,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_ProfileWideCmdReadAttr
 /**//**
  * \brief   Structure for parameters of ZCL Local Indication of received Read Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrInd
  * \note
  *  Parsing of multiple Attribute Identifier array from a single payload must be performed
  *  by the handler.
@@ -439,6 +429,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdReadAtt
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Read Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrRespReq
  * \note
  *  Composing of multiple Read Attribute Status Records into a single payload must be
  *  performed by the caller.
@@ -476,6 +467,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdReadAttrResponseReqParams_t
  *  \c payload parameter of confirmed request; it also may keep this payload object alive
  *  for further processing but finally it must be dismissed by a different task arranged
  *  by this confirmation handler; ZCL layer will not take care of this payload object.
+ * \ingroup ZBPRO_ZCL_ReadAttrRespConf
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.2, figures 2-6, 2-7.
  */
@@ -499,6 +491,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdReadAtt
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Read Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrRespReq
  */
 typedef struct _ZBPRO_ZCL_ProfileWideCmdReadAttrResponseReqDescr_t  ZBPRO_ZCL_ProfileWideCmdReadAttrResponseReqDescr_t;
 
@@ -506,6 +499,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdReadAttrResponseReqDescr_t  ZBPRO_ZCL_Pr
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Read Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrRespConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -517,6 +511,7 @@ typedef void ZBPRO_ZCL_ProfileWideCmdReadAttrResponseConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Read Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_ReadAttrRespReq
  */
 struct _ZBPRO_ZCL_ProfileWideCmdReadAttrResponseReqDescr_t
 {
@@ -541,6 +536,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_ProfileWideCmdReadAttr
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Write Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrReq
  * \note
  *  Only one parameter may be specified in the same command. Assigning multiple parameters
  *  simultaneously within one command is not supported.
@@ -582,6 +578,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrReqParams_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Write
  *  Attributes profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrConf
  * \details
  *  This structure takes its origin from ZCL Write Attributes Response profile-wide
  *  command.
@@ -644,6 +641,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdWriteAt
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Write Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrReq
  */
 typedef struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrReqDescr_t  ZBPRO_ZCL_ProfileWideCmdWriteAttrReqDescr_t;
 
@@ -651,6 +649,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrReqDescr_t  ZBPRO_ZCL_ProfileWi
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Write Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -662,6 +661,7 @@ typedef void ZBPRO_ZCL_ProfileWideCmdWriteAttrConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Write Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrReq
  */
 struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrReqDescr_t
 {
@@ -685,6 +685,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_ProfileWideCmdWriteAtt
 /**//**
  * \brief   Structure for parameters of ZCL Local Indication of received Write Attributes
  *  profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrInd
  * \note
  *  Parsing of multiple Write Attribute Records from a single payload must be performed by
  *  the handler.
@@ -717,6 +718,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdWriteAt
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Write Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrRespReq
  * \note
  *  Composing of multiple Write Attribute Status Records into a single payload must be
  *  performed by the caller.
@@ -747,6 +749,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrResponseReqParams_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Write
  *  Attributes Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrRespConf
  * \details
  *  This structure takes its origin from ZCL Default Response profile-wide command.
  * \details
@@ -777,6 +780,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ProfileWideCmdWriteAt
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Write Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrRespReq
  */
 typedef struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrResponseReqDescr_t
                 ZBPRO_ZCL_ProfileWideCmdWriteAttrResponseReqDescr_t;
@@ -785,6 +789,7 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrResponseReqDescr_t
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Write Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrRespConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -796,6 +801,7 @@ typedef void ZBPRO_ZCL_ProfileWideCmdWriteAttrResponseConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Write Attributes
  *  Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_WriteAttrRespReq
  */
 struct _ZBPRO_ZCL_ProfileWideCmdWriteAttrResponseReqDescr_t
 {
@@ -819,7 +825,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_ProfileWideCmdWriteAtt
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name   Functions accept ZCL Local Requests to issue profile-wide commands.
+ * \brief   Functions accept ZCL Local Requests to issue profile-wide commands.
  * \details
  *  The caller shall specify the following obligatory parameters of request:
  *  - callback                      assign with ZCL Local Confirm handler function,
@@ -880,11 +886,11 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_ProfileWideCmdWriteAtt
  *      solicited response commands.
  */
 
-/**@{*/
-
 /**//**
  * \brief   Accepts ZCL Local Request to issue Read Attributes profile-wide command.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(
                 ZBPRO_ZCL_ProfileWideCmdReadAttrReqDescr_t *const  reqDescr);
@@ -893,7 +899,9 @@ void ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue Read Attributes Response profile-wide
  *  command.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdReadAttributesResponseReq(
                 ZBPRO_ZCL_ProfileWideCmdReadAttrResponseReqDescr_t *const  reqDescr);
@@ -901,7 +909,9 @@ void ZBPRO_ZCL_ProfileWideCmdReadAttributesResponseReq(
 
 /**//**
  * \brief   Accepts ZCL Local Request to issue Write Attributes profile-wide command.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdWriteAttributesReq(
                 ZBPRO_ZCL_ProfileWideCmdWriteAttrReqDescr_t *const  reqDescr);
@@ -910,28 +920,28 @@ void ZBPRO_ZCL_ProfileWideCmdWriteAttributesReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue Write Attributes Response profile-wide
  *  command.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdWriteAttributesResponseReq(
                 ZBPRO_ZCL_ProfileWideCmdWriteAttrResponseReqDescr_t *const  reqDescr);
 
-/**@}*/
-
 
 /**//**
- * \name   Functions handle ZCL Local Indication on reception of Read Attribute and Write
+ * \brief   Functions handle ZCL Local Indication on reception of Read Attribute and Write
  *  Attribute profile-wide commands.
  * \details
  *  The higher-level layer (application) or one of ZHA Managers shall define these
  *  callback handler functions.
  */
 
-/**@{*/
-
 /**//**
  * \brief   Handles ZCL Local Indication on reception of Read Attribute profile-wide
  *  command.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdReadAttributesInd(
                 ZBPRO_ZCL_ProfileWideCmdReadAttrIndParams_t *const  indParams);
@@ -940,12 +950,14 @@ void ZBPRO_ZCL_ProfileWideCmdReadAttributesInd(
 /**//**
  * \brief   Handles ZCL Local Indication on reception of Write Attribute profile-wide
  *  command.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ProfileWideCmdWriteAttributesInd(
                 ZBPRO_ZCL_ProfileWideCmdWriteAttrIndParams_t *const  indParams);
 
-/**@}*/
-
 
 #endif /* _BB_ZBPRO_ZCL_SAP_PROFILE_WIDE_ATTRIBUTES_H */
+
+/* eof bbZbProZclSapProfileWideAttributes.h */

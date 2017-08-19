@@ -1,0 +1,356 @@
+#!/usr/bin/expect
+# -*-tcl-*-
+#
+# $Copyright Broadcom Corporation$
+# $Id: 804a5d1160fad3a118c7a66ae47d2f480d0bfeb6 $
+#
+
+# load [ip] file
+proc load {kernel apps args} {
+
+    set quiet false
+    set erase false
+    foreach a $args {
+	switch -- $a {
+	    -quiet {
+		set quiet true
+	    }
+	    default {
+		error "usage: load kernel apps \[-quiet\]"
+	    }
+	}
+    }
+
+    global spawn_id
+    global verboseboot
+
+#    if {![file exists $kernel]} {
+#	error "$kernel: not found"
+#    }
+#    if {![file exists $os]} {
+#	error "$os: not found"
+#    }
+
+
+
+    if {!$quiet} {
+	log_user 1
+    }
+
+    # Reset any previous connections
+    exp_send "\u0003\u0004"
+    exp_send "\n"
+
+    set upgrades [list $kernel 3 $kernel 9 $apps 4 $apps 12]
+
+    expect {
+	timeout {
+	    error "Timeout\n"
+	}
+	-re {\nCM> $} {
+	    exp_send "reset\r"
+	    exp_continue
+	}
+	-re {Enter 'a' .* or 'p' \(prompt\)} {
+	    exp_send "p"
+	    expect {
+		{IP Address} {
+		    exp_send "192.168.0.1\r"
+		    exp_continue
+		}
+		{IP Mask} {
+		    exp_send "255.255.255.0\r"
+		    exp_continue
+		}
+		{Gateway} {
+		    exp_send "0.0.0.0\r"
+		    exp_continue
+		}
+		{MAC Address} {
+		    exp_send "\r"
+		    exp_continue
+		}
+		{phy?} {
+		    exp_send "i\r"
+		}
+		default {
+		    error "Unexpected prompt"
+		}
+	    }
+	    exp_continue
+	}
+	-re {Main Menu:} {
+	    if {$upgrades ne {}} {
+		exp_send "d"
+		expect -re {Board TFTP} {exp_send "192.168.0.50\r"}
+		expect -re {Enter filename .*:} {exp_send "[lindex $upgrades 0]\r"}
+		expect -re {Select destination image} \
+		    {exp_send "[lindex $upgrades 1]\r"}
+		expect -re {Store parameters} {exp_send "n\r"}
+		set upgrades [lreplace $upgrades 0 1]
+		exp_continue
+	    } else {
+		exp_send "z"
+	    }
+	}
+    }
+}
+
+proc setup {} {
+    log_user 1
+    exp_send "\r"
+    expect -re {CM> $}
+    exp_send "/doc/scan_stop\r"
+    expect -re {CM> $}
+    exp_send "/non/bfc/auto_console 1\r"
+    expect -re {CM> $}
+    exp_send "/non/bfc/write\r"
+    expect -re {CM> $}
+}
+
+proc reboot {} {
+    global verboseboot
+
+    set need_commit 0
+    set erase 0
+    set qargs {}
+    global spawn_id
+
+    log_user 1
+
+    # Reset any previous connections
+    exp_send "\r"
+    set interrupt 0
+
+    expect {
+	-re {\nCM> $} {
+	    exp_send "reset\r"
+	}
+    }
+}
+
+proc connect {} {
+    global spawn_id
+    exp_send "\r"
+    interact {
+	"\u0016\u0004" {
+	    exp_send "\u0016\u0004"
+	}
+	"\u0004" {
+	    return
+	}
+    }
+    send_user "\r"
+}
+
+proc logger {} {
+    global spawn_id
+    # don't want timeouts to interrupt logging, but if a test is still
+    # running after a day then something has gone wrong.
+    set timeout 86400
+    # May need to force reconnection, eg in synacess servers.
+    exp_send "\r"
+
+    expect {
+	-re {..*} {
+	    puts -nonewline "$expect_out(buffer)"
+	    exp_continue
+	}
+    }
+}
+
+proc usage {} {
+    puts stderr "Usage: $::argv0 \[-\](dev|ip:port) load file"
+    puts stderr "       $::argv0 \[-\](dev|ip:port) reboot \[key=value ...\]"
+    exit 1
+}
+
+# Args
+if {[llength $argv] > 0 && [set host [lindex $argv 0]] != "-man"} {
+
+    if {[info exists env(EXP_INTERNAL)]} {
+	exp_internal 1
+    } else {
+	exp_internal 0
+    }
+    log_user 0
+    set logger [regexp {^-(.*)} $host - host]
+    if {[catch {
+	if {![regexp {(.*):(.*)} $host - host port]} {
+	    set port 23
+	}
+	spawn -noecho -open [socket $host $port]
+
+	# Make sure we're using the same encoding as consolelogger
+	fconfigure $spawn_id -encoding binary
+
+	set timeout 60
+
+	if {[llength $argv] == 1} {
+	    connect
+	} else {
+	    set cmd [lindex $argv 1]
+	    if {[llength $argv] == 2} {
+		# Whole commandline probably quoted as one string
+		set argv [lreplace $cmd 0 0]
+		set cmd  [lindex $cmd 0]
+	    } else {
+		set argv [lreplace $argv 0 1]
+	    }
+	    if {$cmd == "logger"} {
+		logger
+	    } elseif {$cmd == "load"} {
+		load {*}$argv
+	    } elseif {$cmd == "setup"} {
+		setup {*}$argv
+	    } elseif {$cmd == "reboot"} {
+		reboot {*}$argv
+	    } else {
+		command $cmd {*}$argv
+	    }
+	}
+    } ret]} {
+	puts stderr $ret
+	exit 1
+    }
+    exit 0
+}
+
+# Leave this 'til last to improve performance
+lappend auto_path . /projects/hnd/tools/linux/share/unittest
+package require UTF::doc
+
+UTF::doc {
+    # [manpage_begin vxshell n 1.0]
+    # [moddesc {HND Wireless Test Framework}]
+    # [titledesc {tool for managing a Broadcom VxWorks AP}]
+    # [copyright {2005 Broadcom Corporation}]
+    # [description]
+    # [para]
+
+    # [cmd vxshell] is a command for communicating with a VxWorks AP
+    # via the serial or telnet console.  If the serial port
+    # or telnet host:port are being managed by a [cmd consolelogger]
+    # process, [cmd vxshell] will connect to the [cmd consolelogger]
+    # process instead.
+
+    # [list_begin arguments]
+
+    # [arg_def "" connection]
+
+    # Every [cmd apshell] command requires a [arg connection] argument
+    # which specifies the mechanism for communicating with the AP.
+    # Various alternative connection mechanisms are available:
+
+    # [list_begin arguments]
+
+    # [arg_def "" /dev/ttyS*]
+
+    # The name of the serial port device directly connected to the AP.
+
+    # [arg_def "" address]
+
+    # The hostname or IP address of the AP.  In this case [cmd
+    # apshell] will use the AP's [cmd telnet] interface.
+
+    # [para]
+
+    # NOTE: this will not work for [cmd load] since it does not allow
+    # access to the CFE> prompt.
+
+    # [arg_def "" address:port]
+
+    # The hostname or IP address and TCP port of a terminal server or
+    # [cmd consolelogger] session.
+
+    # [list_end]
+
+    # [para]
+
+    # If [cmd consolelogger] is not running only one [cmd apshell]
+    # process can access a device at a time.  This can cause problems
+    # when background logging processes compete with foreground
+    # command processes.  [cmd consolelogger] avoids this problem by
+    # allowing multiple [cmd vxshell] processes to access the same
+    # device.
+
+    # [para]
+
+    # [arg connection] may be prefixed with [cmd -] to indicate this
+    # is a background process and therefore requires [cmd
+    # consolelogger].  If [cmd consolelogger] is not running then
+    # attempts to connect to [arg -connection] will fail silently.
+
+    # [list_end]
+
+    # [list_begin definitions]
+
+    # [call [cmd vxshell] [arg connection] [cmd load] [arg file]]
+
+    # Load os or cfe image on AP/Router.  Requires both serial and IP
+    # access. [cmd apshell] will display console messages during the
+    # load and reboot sequence.  The AP will be queried for its
+    # current IP address.
+
+    # [list_begin arguments]
+
+    # [arg_def "" file]
+
+    # The path name of the os image file (*.trx) or cfe image file
+    # (cfe.bin of cfez.bin) to be installed.
+
+    # [list_end]
+
+    # [call [cmd vxshell] [arg connection]  [cmd reboot]
+    #	      [lb][arg {key=value ...}][rb]]
+
+    # Set and commit nvram variables and reboot.  Variables will be
+    # set at the [option {# }] prompt, if possible, otherwise they
+    # will be set at the [option {CFE> }] prompt.  [cmd vxshell] will
+    # display console messages during the reboot sequence.  Nvram
+    # variables can be completely removed using [arg key=unset].
+
+    # [call [cmd vxshell] [arg connection] [lb][cmd {cmd ...}][rb]]
+
+    # Simulates [cmd {rsh host cmd ...}] on AP/Router.  Requires
+    # serial or IP access to the AP.
+
+    # [list_begin arguments]
+
+    # [arg_def "" {cmd ...}]
+
+    # Optional command and arguments to be run.  If a command line is
+    # not specified, an interactive terminal session is started.  To
+    # disconnect from the session use ^D (however, like a regular
+    # tty. if you need to input a literal ^D to the session you can
+    # escape it by using ^V^D).
+
+    # [para]
+
+    # If a command line is specified, it will be run on the AP and the
+    # results returned.  The command line can contain arbitrary quotes
+    # and embedded newlines.  [cmd vxshell] will exit with the same
+    # exit code as the [cmd cmd].  If a username and password are
+    # required, they will be prompted for.
+
+    # [para]
+
+    # NOTE: The shell on the AP is very limited - in particular,
+    # subshells and here-documents are not supported, and bad quoting
+    # can give silent success, instead of returning error.
+
+    # [list_end]
+
+    # [list_end]
+
+    # [see_also [uri APdoc.cgi?consolelogger consolelogger]]
+    # [see_also [uri APdoc.cgi?apshell apshell]]
+    # [see_also [uri APdoc.cgi?ciscoshell ciscoshell]]
+    # [see_also [uri APdoc.cgi?linuxsimshell linuxsimshell]]
+
+    # [manpage_end]
+}
+
+UTF::man
+exit
+

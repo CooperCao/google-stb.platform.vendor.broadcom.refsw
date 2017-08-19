@@ -96,6 +96,21 @@ typedef enum secureVideo_CommandId_e {
     bvn_monitor_CommandId_eSecureRemap
 }secureVideo_CommandId_e;
 
+typedef enum secureVideo_IndicationType_e
+{
+    bvn_monitor_IndicationType_eLockdown = 1
+} secureVideo_IndicationType_e;
+
+typedef enum secureVideo_IndicationType_Lockdown_e
+{
+    bvn_monitor_Indication_Lockdown_eNone,
+    bvn_monitor_Indication_Lockdown_eGeneral,
+    bvn_monitor_Indication_Lockdown_eBvn,
+    bvn_monitor_Indication_Lockdown_eHdmiRx,
+    bvn_monitor_Indication_Lockdown_eHDR,
+    bvn_monitor_Indication_Lockdown_eMacrovision
+} secureVideo_IndicationType_Lockdown_e;
+
 #ifdef __cplusplus
 }
 #endif

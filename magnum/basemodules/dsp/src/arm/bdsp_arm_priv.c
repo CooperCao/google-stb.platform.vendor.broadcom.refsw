@@ -1147,7 +1147,7 @@ BERR_Code BDSP_Arm_P_PopulateGateOpenFMMStages(
                 case BDSP_AF_P_DistinctOpType_eMono_PCM:
                     ui32FMMContentType = BDSP_AF_P_FmmContentType_ePcm;
                     ui32FMMDstType = BDSP_AF_P_FmmDstFsRate_eBaseRate;
-                    ui32BufferDepthThreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+                    ui32BufferDepthThreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
                     break;
                 case BDSP_AF_P_DistinctOpType_eCompressed:
                 case BDSP_AF_P_DistinctOpType_eAuxilaryDataOut:
@@ -1157,7 +1157,7 @@ BERR_Code BDSP_Arm_P_PopulateGateOpenFMMStages(
                 case BDSP_AF_P_DistinctOpType_eDolbyReEncodeAuxDataOut:
                     ui32FMMContentType = BDSP_AF_P_FmmContentType_eCompressed;
                     ui32FMMDstType = BDSP_AF_P_FmmDstFsRate_eBaseRate;
-                    ui32BufferDepthThreshold = (BDSP_CIT_P_STANDARD_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+                    ui32BufferDepthThreshold = (BDSP_AF_P_STANDARD_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
                     break;
                 case BDSP_AF_P_DistinctOpType_eCompressed4x:
                 /*SW7425-6056: It is based on ui32FMMContentType that the FW decides on a type of zero fill.
@@ -1170,7 +1170,7 @@ BERR_Code BDSP_Arm_P_PopulateGateOpenFMMStages(
                         ui32FMMContentType = BDSP_AF_P_FmmContentType_eCompressed;
                     }
                     ui32FMMDstType = BDSP_AF_P_FmmDstFsRate_e4xBaseRate;
-                    ui32BufferDepthThreshold = (BDSP_CIT_P_COMPRESSED4X_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+                    ui32BufferDepthThreshold = (BDSP_AF_P_COMPRESSED4X_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
                     break;
                 case BDSP_AF_P_DistinctOpType_eCompressedHBR:
                     ui32FMMContentType = BDSP_AF_P_FmmContentType_eCompressed;
@@ -1178,11 +1178,11 @@ BERR_Code BDSP_Arm_P_PopulateGateOpenFMMStages(
                     if(pArmConnectStage->algorithm == BDSP_Algorithm_eMlpPassthrough)
                     {
                         /* Note: MLP Passthru uses a different logic for threshold and hence no need to add residual collection. The calculation is explained in the macro defination*/
-                        ui32BufferDepthThreshold = BDSP_CIT_P_COMPRESSED16X_MLP_BUFFER_THRESHOLD;
+                        ui32BufferDepthThreshold = BDSP_AF_P_COMPRESSED16X_MLP_BUFFER_THRESHOLD;
                     }
                     else
                     {
-                        ui32BufferDepthThreshold = (BDSP_CIT_P_COMPRESSED16X_BUFFER_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+                        ui32BufferDepthThreshold = (BDSP_AF_P_COMPRESSED16X_BUFFER_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
                     }
                     break;
                 default:
@@ -3491,7 +3491,7 @@ static BERR_Code BDSP_Arm_P_CalcThresholdZeroFillTimeAudOffset(
 
     BSTD_UNUSED(psCtbInput);
 
-    psCTB_OutputStructure->ui32Threshold = (BDSP_CIT_P_MINIMUM_ALGO_THRESHOLD + BDSP_CIT_P_MAXIMUM_RESIDUAL_COLLECTION);
+    psCTB_OutputStructure->ui32Threshold = (BDSP_AF_P_MAX_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING);
     psCTB_OutputStructure->ui32BlockTime = 42;
     psCTB_OutputStructure->ui32AudOffset = 128;
 
@@ -4599,7 +4599,7 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
     if( !pArmStage->settings.algorithmSupported[algorithm])
     {
         BDBG_ERR((" algorithm %s (%d) being passed in %s was not enabled during CreateStage call ",
-                    pAlgoInfo->pName,algorithm, __FUNCTION__));
+                    pAlgoInfo->pName,algorithm, BSTD_FUNCTION));
         err = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto end;
     }

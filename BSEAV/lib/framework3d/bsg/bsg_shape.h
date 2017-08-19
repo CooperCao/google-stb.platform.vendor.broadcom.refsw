@@ -426,7 +426,7 @@ private:
    void SubmitVertexData(uint32_t floatOffset, uint32_t floatCount, float *vertArray);
 
 private:
-   std::auto_ptr<ObjReader> m_reader;
+   std::unique_ptr<ObjReader> m_reader;
    std::string                m_fileName;
    GeometryHandle             m_geometry;
    MaterialHandle             m_material;

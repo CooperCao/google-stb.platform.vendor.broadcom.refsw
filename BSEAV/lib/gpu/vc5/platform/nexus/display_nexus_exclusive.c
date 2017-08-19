@@ -26,7 +26,7 @@ typedef struct display
    BKNI_MutexHandle              mutex;
 
    void                         *vsyncEvent;
-   bool                          terminating;
+   int                           terminating;
 } display;
 
 static void vsyncCallback(void *context, int param)
@@ -83,7 +83,7 @@ static void frameBufferCallback(void *context, int param)
 }
 
 static DisplayInterfaceResult display_surface(void *context, void *s,
-      int render_fence, int *display_fence)
+      int render_fence, bool create_display_fence, int *display_fence)
 {
    display *self = (display *)context;
    NXPL_Surface *nxpl_surface = (NXPL_Surface *)s;
@@ -128,7 +128,7 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
    }
 
    self->pending.surface = surface;
-   if (nxpl_surface->swapInterval != 0)
+   if (create_display_fence)
       FenceInterface_Create(
             self->fenceInterface, &self->pending.fence);
    else

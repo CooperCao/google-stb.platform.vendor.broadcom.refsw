@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  *******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -371,11 +370,6 @@ b_mkv_data_atom_free(batom_t atom, void *user)
 	BSTD_UNUSED(user);
 	return;
 }
-
-static const batom_user b_mkv_data_atom = {
-	b_mkv_data_atom_free,
-	sizeof(void **)
-};
 
 static const batom_user b_mkv_asp_data_atom = {
     b_mkv_data_atom_free,
@@ -1624,7 +1618,6 @@ b_mkv_player_map_tracks(bmkv_player_t player)
             }
         } else if(mkv_track->validate.Audio) {
             const bmkv_TrackEntryAudio *audio;
-            unsigned sampling_frequency;
             bmedia_info_aac aac_info;
 
             track->bounded_pes = true;
@@ -1638,7 +1631,6 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                 BDBG_WRN(("%s:%#lx unsupported audio information %u:'%s'", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
                 continue;
             }
-            sampling_frequency = 2*((((unsigned)audio->SamplingFrequency) + 1)/2); /* round sampling frequency */
 
             if(bmkv_IsTrackAudioMkvAac(mkv_track)) {
 
@@ -1647,12 +1639,6 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                     BDBG_WRN(("%s:%#lx MKV AAC audio track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
                     continue;
                 }
-#if 0
-                if( !(bmedia_info_aac_set_channel_configuration(&aac, audio->Channels) && bmedia_info_aac_set_sampling_frequency_index(&aac, sampling_frequency))) {
-                    BDBG_WRN(("%s:%#lx AAC audio track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
-                    continue;
-                }
-#endif
                 track->codec_type = b_mkv_codec_type_aac;
             } else if(bmkv_IsTrackAudioAac(mkv_track, &aac_info)) {
                 BDBG_MSG(("%s:%#lx AAC audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
@@ -3745,7 +3731,6 @@ b_mkv_player_cue_seek(bmkv_player_t player, bmedia_player_pos pos)
 static bmedia_player_pos
 b_mkv_player_next_rewind_refill(bmkv_player_t player, bmedia_player_pos *pbase_pos)
 {
-    int rc;
     b_mkv_key_frame_entry *key;
     bmedia_player_pos pos;
     bmedia_player_pos rewind_jump;
@@ -3776,7 +3761,6 @@ b_mkv_player_next_rewind_refill(bmkv_player_t player, bmedia_player_pos *pbase_p
         BDBG_MSG_TRACE(("%s:%#lx position:%u destination:%u", "b_mkv_player_next_rewind_refill", (unsigned long)player, (unsigned)player->status.position, (unsigned)pos));
         BDBG_ASSERT(pos>=player->status.bounds.first); /* we shall not jump outside of file limits */
         if(b_mkv_player_cue_seek(player, pos) != b_mkv_result_success) {
-            rc=-1;
             goto err_seek;
         }
 	    while(BLIFO_WRITE_PEEK(&player->trick.rewind_frames)) {
@@ -4081,7 +4065,6 @@ err_refill:
 static bmedia_player_pos
 b_mkv_player_next_fastforward_seek(bmkv_player_t player, bool *endofstream)
 {
-	int rc;
 	bmedia_player_pos pos;
     b_mkv_result result;
 
@@ -4104,7 +4087,6 @@ b_mkv_player_next_fastforward_seek(bmkv_player_t player, bool *endofstream)
             /* we reached end of the file */
             goto end_of_file;
         } else {
-            rc = -1;
             goto err_seek;
         }
     }

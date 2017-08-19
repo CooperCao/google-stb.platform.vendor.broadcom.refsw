@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -329,7 +329,7 @@ BERR_Code BHAB_312x_InitAp(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BHAB_312x_P_Handle *p312x;
-    uint32_t n, instlen, datalen, instaddr, dataaddr;
+    uint32_t n, instlen, datalen, instaddr;
     const uint8_t *pImage;
     uint8_t retries=0, count=0, buf=0, writebuf[3];
 
@@ -376,7 +376,6 @@ BERR_Code BHAB_312x_InitAp(
         if (n != 0)
         {
             instaddr = (pImage[7] << 16) | (pImage[8] << 8) | pImage[9];
-            dataaddr = (pImage[13] << 16) | (pImage[14] << 8) | pImage[15];
 
             for (retries = 0; retries < 3; retries++)
             {
@@ -2416,27 +2415,23 @@ BERR_Code BHAB_312x_GetLnaStatus(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    uint8_t buf[121] = HAB_MSG_HDR(BHAB_GET_TUNER_STATUS, 0xc, BTNR_CORE_TYPE, BHAB_CORE_ID);
-#if 0
-    uint8_t buf1[17] = HAB_MSG_HDR(BHAB_REQUEST_TUNER_STATUS, 0xc, BTNR_CORE_TYPE, BHAB_CORE_ID);
-#endif
+    uint8_t buf[57] = HAB_MSG_HDR(BHAB_GET_LNA_STATUS, 0xC, BHAB_GLOBAL_CORE_TYPE, BHAB_CORE_ID);
+    BHAB_TunerPowerState tunerPowerState;
     BHAB_312x_P_Handle *p312x;
     BDBG_ASSERT(handle);
 
     p312x = (BHAB_312x_P_Handle *)(handle->pImpl);
     BDBG_ASSERT(p312x);
-#if 0
-    BHAB_CHK_RETCODE(BHAB_SendHabCommand(handle, buf1, 17, p312x->inBuf, 0, false, true, 17));
 
-    if (BHAB_312x_P_WaitForEvent(handle, p312x->hTnrStatusReady, 1000) == BERR_TIMEOUT)
-    {
-        BDBG_WRN(("LNA Status Ready Timeout"));
-        retCode = BHAB_ERR_HAB_TIMEOUT;
-        goto done;
+    BHAB_CHK_RETCODE(BHAB_SendHabCommand(handle, buf, 17, buf, sizeof(buf), false, true, sizeof(buf)));
+    tunerPowerState = (BHAB_TunerPowerState)(buf[0xF] & 0x3);
+
+    if((tunerPowerState==BHAB_TunerPowerState_eOn))
+        pStatus->externalFixedGainLnaState = buf[0xC] >> 7;
+    else {
+        BDBG_WRN(("Tuner is Powered Off, the status returned is not Valid"));
+        return BERR_TRACE(BERR_UNKNOWN);
     }
-#endif
-    BHAB_CHK_RETCODE(BHAB_SendHabCommand(handle, buf, 17, p312x->inBuf, 121, false, true, 121));
-    pStatus->externalFixedGainLnaState = p312x->inBuf[0xc] >> 7;
 
 done:
     return retCode;

@@ -448,17 +448,20 @@ PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType *type, unsi
    }
 }
 
-void glsl_symbol_construct_type(Symbol *result, SymbolType *type) {
-   result->flavour  = SYMBOL_TYPE;
-   result->name     = type->name;
+static void symbol_construct_common(Symbol *result, SymbolFlavour f, const char *name, SymbolType *type) {
+   result->flavour  = f;
+   result->name     = name;
    result->type     = type;
+}
+
+void glsl_symbol_construct_type(Symbol *result, SymbolType *type) {
+   symbol_construct_common(result, SYMBOL_TYPE, type->name, type);
 }
 
 void glsl_symbol_construct_interface_block(Symbol *result, const char *name, SymbolType *ref_type, SymbolType *type, Qualifiers *q)
 {
-   result->flavour              = SYMBOL_INTERFACE_BLOCK;
-   result->name                 = name;
-   result->type                 = ref_type;
+   symbol_construct_common(result, SYMBOL_INTERFACE_BLOCK, name, ref_type);
+
    result->u.interface_block.sq = q->sq;
    result->u.interface_block.iq = q->iq;
    result->u.interface_block.aq = q->aq;
@@ -478,14 +481,11 @@ void glsl_symbol_construct_interface_block(Symbol *result, const char *name, Sym
 
 void glsl_symbol_construct_var_instance(Symbol *result, const char *name, SymbolType *type, Qualifiers *q, void *compile_time_value, Symbol *block_symbol)
 {
-   // Set common symbol parameters.
-   result->flavour  = SYMBOL_VAR_INSTANCE;
-   result->name     = name;
-   result->type     = type;
+   symbol_construct_common(result, SYMBOL_VAR_INSTANCE, name, type);
 
-   result->u.var_instance.layout_loc_specified  = false;
-   result->u.var_instance.layout_bind_specified = false;
-   result->u.var_instance.offset_specified = false;
+   result->u.var_instance.layout_loc_specified    = false;
+   result->u.var_instance.layout_bind_specified   = false;
+   result->u.var_instance.offset_specified        = false;
    result->u.var_instance.layout_format_specified = false;
 
    if(q->lq != NULL) {
@@ -555,12 +555,8 @@ void glsl_symbol_construct_var_instance(Symbol *result, const char *name, Symbol
 
 void glsl_symbol_construct_param_instance(Symbol *result, const char *name, SymbolType *type, StorageQualifier sq, ParamQualifier pq, MemoryQualifier mq)
 {
-   // Set common symbol parameters.
-   result->flavour  = SYMBOL_PARAM_INSTANCE;
-   result->name     = name;
-   result->type     = type;
+   symbol_construct_common(result, SYMBOL_PARAM_INSTANCE, name, type);
 
-   // Set param instance symbol parameters.
    result->u.param_instance.storage_qual = sq;
    result->u.param_instance.param_qual   = pq;
    result->u.param_instance.mem_qual     = mq;
@@ -569,9 +565,7 @@ void glsl_symbol_construct_param_instance(Symbol *result, const char *name, Symb
 void glsl_symbol_construct_function_instance(Symbol *result, const char *name, SymbolType *type,
                                              FoldingFunction folding_function, Symbol *next_overload, bool has_prototype)
 {
-   result->flavour  = SYMBOL_FUNCTION_INSTANCE;
-   result->name     = name;
-   result->type     = type;
+   symbol_construct_common(result, SYMBOL_FUNCTION_INSTANCE, name, type);
 
    result->u.function_instance.folding_function = folding_function;
    result->u.function_instance.function_def     = NULL;
@@ -587,9 +581,7 @@ Symbol *glsl_symbol_construct_temporary(SymbolType *type)
    snprintf(name, 32, "$t%i", temp_symbols_count++);
 
    Symbol *symbol = malloc_fast(sizeof(Symbol));
-   symbol->flavour  = SYMBOL_TEMPORARY;
-   symbol->name     = glsl_intern(name, true);
-   symbol->type     = type;
+   symbol_construct_common(symbol, SYMBOL_TEMPORARY, glsl_intern(name, true), type);
    return symbol;
 }
 
@@ -607,12 +599,13 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
             DataflowType type;
             switch (ret_basic_type) {
-               case PRIM_FLOAT:    type = DF_FSAMPLER; break;
-               case PRIM_INT:      type = DF_ISAMPLER; break;
-               case PRIM_UINT:     type = DF_USAMPLER; break;
-               default: assert(0); type = DF_INVALID;  break;
+               case PRIM_FLOAT:    type = DF_F_SAMP_IMG; break;
+               case PRIM_INT:      type = DF_I_SAMP_IMG; break;
+               case PRIM_UINT:     type = DF_U_SAMP_IMG; break;
+               default: assert(0); type = DF_INVALID;    break;
             }
-            scalar_values[i] = glsl_dataflow_construct_const_image(type, -1, false);
+            scalar_values[i++] = glsl_dataflow_construct_const_image(type, -1, false);
+            scalar_values[i]   = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, -1);
          } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index]))
             scalar_values[i] = glsl_dataflow_construct_const_uint(0);
          else {
@@ -620,10 +613,10 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
             DataflowType type;
             switch (ret_basic_type) {
-               case PRIM_FLOAT:    type = DF_FIMAGE;  break;
-               case PRIM_INT:      type = DF_IIMAGE;  break;
-               case PRIM_UINT:     type = DF_UIMAGE;  break;
-               default: assert(0); type = DF_INVALID; break;
+               case PRIM_FLOAT:    type = DF_F_STOR_IMG; break;
+               case PRIM_INT:      type = DF_I_STOR_IMG; break;
+               case PRIM_UINT:     type = DF_U_STOR_IMG; break;
+               default: assert(0); type = DF_INVALID;    break;
             }
             scalar_values[i] = glsl_dataflow_construct_const_image(type, -1, false);
          }

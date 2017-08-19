@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,10 +44,16 @@
 #if NEXUS_HAS_SECURITY
 #include "bhsm.h"
 #include "bhsm_keyladder.h"
+#include "breg_endian.h"
+#if (NEXUS_SECURITY_API_VERSION==2)
+#include "bhsm_hdcp1x.h"
+#endif
 #endif
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
 #include "nexus_sage.h"
+#include "priv/nexus_sage_priv.h"
+#include "nexus_sage_types.h"
 #include "bsagelib.h"
 #include "bsagelib_client.h"
 #include "priv/nexus_sage_priv.h" /* get access to NEXUS_Sage_GetSageLib_priv() */
@@ -113,7 +119,7 @@ void NEXUS_HdmiInput_P_HdcpStateChange_isr(void *context, int param2, void *data
 
 static NEXUS_Error NEXUS_HdmiInput_P_HdcpKeyLoad(NEXUS_HdmiInputHandle hdmiInput)
 {
-
+#if (NEXUS_SECURITY_API_VERSION==1) /* diversify HDCP key loading */
     NEXUS_Error errCode = NEXUS_SUCCESS ;
     BHSM_Handle hHsm ;
     uint8_t i;
@@ -152,7 +158,45 @@ static NEXUS_Error NEXUS_HdmiInput_P_HdcpKeyLoad(NEXUS_HdmiInputHandle hdmiInput
 
     UNLOCK_SECURITY();
     return errCode ;
+#else
+  #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+    BERR_Code rc = BERR_SUCCESS;
+    BHSM_Hdcp1xRouteKey hdcpConf;
+    BHSM_Handle hHsm ;
+    unsigned i = 0;
+    uint32_t otpKeyIndex;
 
+    LOCK_SECURITY();
+    NEXUS_Security_GetHsm_priv(&hHsm);
+    UNLOCK_SECURITY();
+
+    BKNI_Memset( &hdcpConf, 0, sizeof(hdcpConf) );
+    otpKeyIndex = hdmiInput->hdcpKeyset.privateKey[0].caDataLo;
+    BREG_LE32( otpKeyIndex );
+
+    hdcpConf.algorithm = BHSM_CryptographicAlgorithm_e3DesAba;
+    hdcpConf.root.type = BHSM_KeyLadderRootType_eOtpDirect;
+    hdcpConf.root.otpKeyIndex = otpKeyIndex;
+
+    for( i =0; i< NEXUS_HDMI_HDCP_NUM_KEYS; i++ )
+    {
+        hdcpConf.hdcpKeyIndex = i;
+        hdcpConf.key.high = hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyHi;
+        hdcpConf.key.low  = hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyLo;
+
+        LOCK_SECURITY();
+        rc = BHSM_Hdcp1x_RouteKey( hHsm, &hdcpConf );
+        UNLOCK_SECURITY();
+
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+    }
+
+    return BERR_SUCCESS;
+  #else
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    return BERR_SUCCESS;
+  #endif
+#endif
 }
 
 
@@ -700,7 +744,11 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
     g_hdmiInputTABlock.len = 0;
 
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
-    BDBG_LOG(("%s: allocate %u bytes for HDCP_TA buffer", __FUNCTION__, (unsigned)length));
+{
+    NEXUS_SageMemoryBlock blk = {0};
+    NEXUS_SageImageHolder holder = {"HDMIRX FC", SAGE_IMAGE_FirmwareID_eSage_HDMIRX_FC, NULL};
+
+    BDBG_LOG(("%s: allocate %u bytes for HDCP_TA buffer", BSTD_FUNCTION, (unsigned)length));
     /* use SAGE allocator */
     LOCK_SAGE();
     g_hdmiInputTABlock.buf = NEXUS_Sage_Malloc_priv(length);
@@ -708,7 +756,7 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
     if (g_hdmiInputTABlock.buf == NULL) {
         rc = BERR_OUT_OF_DEVICE_MEMORY;
         BDBG_ERR(("%s - Error allocating %u bytes memory for HDCP22_TA buffer",
-                  __FUNCTION__, (unsigned)length));
+                  BSTD_FUNCTION, (unsigned)length));
         BERR_TRACE(rc);
         goto done;
     }
@@ -716,6 +764,24 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
     /* copy the TA buffer and save for later use */
     g_hdmiInputTABlock.len = length;
     BKNI_Memcpy(g_hdmiInputTABlock.buf, buf, length);
+
+    /* If there's an HDMI Input FC, load/store that for later use */
+    holder.raw = &blk;
+    LOCK_SAGE();
+    rc = NEXUS_Sage_LoadImage_priv(&holder);
+    UNLOCK_SAGE();
+    if (rc == NEXUS_NOT_AVAILABLE) {
+        /* File is not present, not an error, it is optional */
+        rc = BERR_SUCCESS;
+        goto done;
+    } else if (rc != BERR_SUCCESS) {
+        rc = BERR_TRACE(rc);
+        goto done;
+    }
+
+    g_hdmiInputFCBlock.buf = blk.buf;
+    g_hdmiInputFCBlock.len = blk.len;
+}
 
 #else
     BSTD_UNUSED(buf);
@@ -882,6 +948,14 @@ NEXUS_Error NEXUS_HdmiInput_P_InitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
         goto err_hdcp;
     }
 
+    if (g_hdmiInputFCBlock.buf && g_hdmiInputFCBlock.len) {
+        errCode = BHDCPlib_Hdcp2x_SetBinFeatCert(hdmiInput->hdcpHandle, g_hdmiInputFCBlock.buf,
+                                                 g_hdmiInputFCBlock.len);
+        if (errCode != BERR_SUCCESS) {
+            errCode = BERR_TRACE(errCode);
+            goto err_hdcp;
+        }
+    }
 
     return NEXUS_SUCCESS;
 
@@ -1036,7 +1110,7 @@ done:
 /* The ISR callback is registered in HSI and will be fire uppon TA terminated interrupt */
 static void NEXUS_HdmiInput_P_SageTATerminatedCallback_isr(void)
 {
-    BDBG_WRN(("%s: SAGE TATerminate interrupt", __FUNCTION__));
+    BDBG_WRN(("%s: SAGE TATerminate interrupt", BSTD_FUNCTION));
 
     BKNI_SetEvent_isr(g_NEXUS_hdmiInputSageData.eventTATerminated);
 }
@@ -1049,13 +1123,13 @@ static void NEXUS_HdmiInput_P_SageWatchdogEventhandler(void *pContext)
     NEXUS_HdmiInputHandle hdmiInput = pContext;
     NEXUS_Error errCode = NEXUS_SUCCESS;
 
-    BDBG_ERR(("%s: SAGE Hdcp2.x Recovery Process - Reopen/initialize HDCPlib and sage rpc handles", __FUNCTION__));
+    BDBG_ERR(("%s: SAGE Hdcp2.x Recovery Process - Reopen/initialize HDCPlib and sage rpc handles", BSTD_FUNCTION));
 
     /* Reinitialized SAGE RPC handles (now invalid) */
     errCode = BHDCPlib_Hdcp2x_ProcessWatchDog(hdmiInput->hdcpHandle);
     if (errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: Error process recovery attempt in HDCPlib", __FUNCTION__));
+        BDBG_ERR(("%s: Error process recovery attempt in HDCPlib", BSTD_FUNCTION));
         errCode = BERR_TRACE(errCode);
         goto done;
 
@@ -1087,6 +1161,7 @@ static void NEXUS_HdmiInput_P_SageIndicationEventHandler(void *pContext)
 
         /* Now pass the callback information to HDCPlib */
         rc = BHDCPlib_Hdcp2x_ReceiveSageIndication(receivedIndication.hHDCPlib, &receivedIndication.sageIndication);
+        if (rc) BERR_TRACE(rc);
     }
 
     return;

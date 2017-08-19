@@ -28,9 +28,7 @@ SOURCES :=	\
 	../common/display_framework.c \
 	../common/display_interface.c \
 	../common/event.c \
-	../common/fence.c \
 	../common/fence_interface.c \
-	../common/fence_interface_nexus.c \
 	../common/fence_queue.c \
 	../common/memory_drm.c \
 	../common/memory_nexus.c \

@@ -16,10 +16,6 @@ VideoCore OS Abstraction Layer - basic types
 #include "vcos_attr.h"
 #include "libs/util/common.h"
 
-#ifdef __cplusplus
-#include <stdexcept>
-#endif
-
 /* Error return codes - chosen to be similar to errno values */
 typedef enum
 {
@@ -73,35 +69,6 @@ static inline const char *vcos_desc_status(VCOS_STATUS_T status)
 #define VCOS_UNLIKELY(a) (a)
 #endif
 
-#define _VCOS_MS_PER_TICK (1000/VCOS_TICKS_PER_SECOND)
-#define _VCOS_US_PER_TICK (1000000/VCOS_TICKS_PER_SECOND)
-
-/* Convert a number of milliseconds to a tick count. Internal use only - fails to
- * convert VCOS_SUSPEND correctly.
- */
-#define _VCOS_MS_TO_TICKS(ms) (((ms)+_VCOS_MS_PER_TICK-1)/_VCOS_MS_PER_TICK)
-
-#define VCOS_TICKS_TO_MS(ticks) ((ticks) * _VCOS_MS_PER_TICK)
-
-/* Convert a number of microseconds to a tick count. Internal use only - fails to
- * convert VCOS_SUSPEND correctly.
- */
-#define _VCOS_US_TO_TICKS(us) (((us)+_VCOS_US_PER_TICK-1)/_VCOS_US_PER_TICK)
-
-#define VCOS_TICKS_TO_US(ticks) ((ticks) * _VCOS_US_PER_TICK)
-
-/** VCOS version of DATESTR, from pcdisk.h. Used by the hostreq service.
- */
-typedef struct vcos_datestr
-{
-   uint8_t       cmsec;              /**< Centesimal mili second */
-   uint16_t      date;               /**< Date */
-   uint16_t      time;               /**< Time */
-
-} VCOS_DATESTR;
-
-#define vcos_countof(x) countof(x)
-
 /** Mark unused arguments/locals to keep compilers quiet */
 #define vcos_unused(x) (void)(x)
 #ifdef NDEBUG
@@ -109,8 +76,5 @@ typedef struct vcos_datestr
 #else
 #define vcos_unused_in_release(x)
 #endif
-
-#define VCOS_EXTERN_C_BEGIN  EXTERN_C_BEGIN
-#define VCOS_EXTERN_C_END    EXTERN_C_END
 
 #endif

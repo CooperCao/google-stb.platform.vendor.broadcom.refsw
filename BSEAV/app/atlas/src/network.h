@@ -88,7 +88,7 @@ class CNetwork : public CResource
 public:
     CNetwork(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CNetwork(void);

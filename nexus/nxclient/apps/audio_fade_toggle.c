@@ -152,7 +152,6 @@ int main(int argc, char **argv)
 
     const char *fname = FILE_NAME;
     unsigned i;
-    uint32_t lastPts;
 
     BSTD_UNUSED(argc);
 
@@ -249,7 +248,6 @@ int main(int argc, char **argv)
     rc = NEXUS_SimpleAudioDecoder_GetStatus(audioDecoder, &audioStatus);
     BDBG_ASSERT(!rc);
 
-    lastPts = audioStatus.pts;
     for(cur_buf=0;;) {
         int tmp;
         NEXUS_Error rc;

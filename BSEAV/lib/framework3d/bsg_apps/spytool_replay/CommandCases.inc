@@ -601,6 +601,8 @@ case cmd_eglQueryWaylandBufferWL : run_eglQueryWaylandBufferWL(); break;
 case cmd_glPolygonModeBRCM : run_glPolygonModeBRCM(); break;
 case cmd_glProvokingVertexBRCM : run_glProvokingVertexBRCM(); break;
 case cmd_glTexImage1DBRCM : run_glTexImage1DBRCM(); break;
+case cmd_glTexSubImage1DBRCM : run_glTexSubImage1DBRCM(); break;
+case cmd_glTexStorage1DBRCM : run_glTexStorage1DBRCM(); break;
 case cmd_glDrawArraysInstancedBaseInstanceEXT : run_glDrawArraysInstancedBaseInstanceEXT(); break;
 case cmd_glDrawElementsInstancedBaseInstanceEXT : run_glDrawElementsInstancedBaseInstanceEXT(); break;
 case cmd_glDrawElementsInstancedBaseVertexBaseInstanceEXT : run_glDrawElementsInstancedBaseVertexBaseInstanceEXT(); break;

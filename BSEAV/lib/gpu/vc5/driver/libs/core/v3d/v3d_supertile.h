@@ -5,7 +5,7 @@
 
 #include "vcos_types.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 // Choose sensible supertile size
 void v3d_choose_supertile_sizes(
@@ -20,4 +20,4 @@ void v3d_supertile_range(
    unsigned int num_supertiles_x, unsigned int num_supertiles_y,
    bool partition_supertiles_in_sw, bool all_cores_same_st_order);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

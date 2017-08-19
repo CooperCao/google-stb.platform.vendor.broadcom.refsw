@@ -44,17 +44,26 @@
 # Define this module #
 ######################
 NEXUS_MODULES += SECURITY
+include ${NEXUS_TOP}/modules/security/security_defs.inc
 
-##################
-# Module Options #
-##################
+ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+    NEXUS_SECURITY_API_VERSION ?= 2
+else
+    NEXUS_SECURITY_API_VERSION ?= 1
+endif
 
+ifeq ($(NEXUS_SECURITY_API_VERSION),2)
+    BHSM_API_VERSION := 2
+    include ${NEXUS_TOP}/modules/security/secv2/security.inc
+
+else # to the end of the file.
+
+BHSM_API_VERSION := 1
 
 ###################
 # Module Features #
 ###################
 
-include ${NEXUS_TOP}/modules/security/security_defs.inc
 
 NEXUS_SECURITY_EXTENSION := $(NEXUS_TOP)/extensions/security
 BHSM_SRC                 := $(MAGNUM)/portinginterface/hsm/src
@@ -129,7 +138,7 @@ NEXUS_COMMON_CRYPTO_SUPPORT ?=y
 
 
 NEXUS_SECURITY_MAGNUM_MODULES = $(MAGNUM)/portinginterface/hsm/bhsm.inc
-
+NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_API_VERSION=1
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_MAJOR=$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR)
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_MINOR=$(NEXUS_SECURITY_ZEUS_VERSION_MINOR)
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_SUBMINOR=$(NEXUS_SECURITY_ZEUS_VERSION_SUBMINOR)
@@ -516,3 +525,5 @@ ifeq ($(NEXUS_COMMON_CRYPTO_SUPPORT), y)
     NEXUS_SECURITY_PRIVATE_INCLUDES += $(COMMON_CRYPTO_INCLUDES)
     NEXUS_SECURITY_SOURCES += $(COMMON_CRYPTO_SOURCES)
 endif
+
+endif #NEXUS_SECURITY_API_VERSION==1

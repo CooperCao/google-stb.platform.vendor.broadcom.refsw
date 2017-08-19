@@ -816,7 +816,7 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
         /* Make sure input is valid */
         if (hMuxOutput->input == NULL)
         {
-            BDBG_MSG(("%s hMuxOutput(%p)->input is NULL", __FUNCTION__, (void *)hMuxOutput));
+            BDBG_MSG(("%s hMuxOutput(%p)->input is NULL", BSTD_FUNCTION, (void *)hMuxOutput));
             break;
         }
 

@@ -8,7 +8,7 @@
 
 #include <stddef.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern void gfx_strip_extension(char *filename);
 
@@ -30,6 +30,6 @@ static inline void *gfx_load_binary_file(size_t *size, const char *filename)
    return gfx_load_binary_file_range(size, filename, 0, UINT64_MAX);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

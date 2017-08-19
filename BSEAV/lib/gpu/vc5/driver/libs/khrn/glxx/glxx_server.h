@@ -125,37 +125,17 @@ typedef struct {
    GLclampf value;
 } GLXX_SAMPLE_COVERAGE_T;
 
-/*
-   structure representing OpenGL ES 1.1 material properties
-*/
-
 typedef struct {
-   GLfloat ambient[4];
-   GLfloat diffuse[4];
-   GLfloat specular[4];
-   GLfloat emission[4];
+   float ambient[4];
+   float diffuse[4];
+   float specular[4];
+   float emission[4];
 
-   GLfloat shininess;
+   float shininess;
 } GL11_MATERIAL_T;
 
-/*
-   structure representing OpenGL ES 1.1 lighting model properties
-*/
-
 typedef struct {
-   /*
-      Current light model ambient color
-
-      Khronos state variable names:
-
-      LIGHT_MODEL_AMBIENT           (0.2,0.2,0.2,1.0)
-
-      Invariant:
-
-      -  (values are unclamped)
-   */
-
-   float ambient[4];
+   float ambient[4];    /* Default (0.2, 0.2, 0.2, 1.0). (values are unclamped) */
 } GL11_LIGHTMODEL_T;
 
 /*
@@ -166,31 +146,29 @@ typedef struct {
 */
 
 typedef struct {
-   GLfloat ambient[4];
-   GLfloat diffuse[4];
-   GLfloat specular[4];
+   float ambient[4];
+   float diffuse[4];
+   float specular[4];
 
-   GLfloat position[4];
+   float position[4];
 
    struct {
-      GLfloat constant;
-      GLfloat linear;
-      GLfloat quadratic;
+      float constant;
+      float linear;
+      float quadratic;
    } attenuation;
 
    struct {
-      GLfloat direction[4];      // fourth component unused, but included so we can compute it directly using matrix_mult_col()
-      GLfloat exponent;
-      GLfloat cutoff;
+      float direction[4];      // fourth component unused, but included so we can compute it directly using matrix_mult_col()
+      float exponent;
+      float cutoff;
    } spot;
 
-   /*
-      derived values for use by HAL
-   */
+   /* derived values for use by HAL */
 
-   GLfloat position3[3];
+   float position3[3];
 
-   GLfloat cos_cutoff;
+   float cos_cutoff;
 } GL11_LIGHT_T;
 
 typedef struct {
@@ -216,11 +194,11 @@ typedef struct {
 } GL11_FOG_T;
 
 typedef struct {
-   GLfloat size_min;
-   GLfloat size_min_clamped;
-   GLfloat size_max;
-   GLfloat fade_threshold;
-   GLfloat distance_attenuation[3];
+   float size_min;
+   float size_min_clamped;
+   float size_max;
+   float fade_threshold;
+   float distance_attenuation[3];
 } GL11_POINT_PARAMS_T;
 
 typedef struct {
@@ -259,7 +237,7 @@ typedef struct {
    */
    float planes[GL11_CONFIG_MAX_PLANES][4];  /* Default (0,0,0,0) x 4 */
 
-   GLenum   shade_model;
+   GLenum shade_model;
 
    GL11_POINT_PARAMS_T point_params;
 
@@ -383,7 +361,7 @@ struct GLXX_SERVER_STATE_T_
    /* The EGL Context this state is associated with. */
    const EGL_GL_CONTEXT_T *context;
 
-   GLenum active_texture;
+   unsigned active_texture;
 
    GLenum error;
 
@@ -724,8 +702,6 @@ static inline void glxx_unlock_server_state(void)
    profile_timer_add_mt(glxx_server_locked_timer, profile_get_tick_count() - lock_time);
 #endif
 }
-
-#define GLXX_STATE_OFFSET(x) (offsetof(GLXX_SERVER_STATE_T, x)/4)
 
 /* returns the server active texture for that target;
  * sets error to GL_INVALID_ENUM if target is not a supported target */

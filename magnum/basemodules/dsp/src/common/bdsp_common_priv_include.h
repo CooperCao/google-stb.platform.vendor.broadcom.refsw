@@ -57,4 +57,6 @@
 #include "bdsp_common_cit_priv.h"
 #include "bdsp_common_priv.h"
 #include "bdsp_common_fwinterface_priv.h"
+#include "bdsp_bchp_raaga_dsp_fw_cfg.h"
+
 #endif /* BDSP_COMMON_PRIV_INCLUDE_H_ */

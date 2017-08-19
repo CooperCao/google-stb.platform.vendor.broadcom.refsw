@@ -77,7 +77,7 @@ $(filter-out ${NEXUS_SYMBOLS_OBJ}, ${MAGNUM_OBJECTS}): $(NEXUS_OBJ_DIR)/MAGNUM/%
 ifdef B_REFSW_STATIC_ANALYZER
 	@echo "[Analyze... $(notdir $<) (magnum)]"
 	${Q_}$(CC) -E -DB_REFSW_STATIC_ANALYZER=1 $(NEXUS_CFLAGS) -c $< -o $@.i
-	${Q_}${B_REFSW_STATIC_ANALYZER} ${CC} $< $@.i
+	${Q_}${B_REFSW_STATIC_ANALYZER} ${B_REFSW_STATIC_ANALYZER_OPTS} ${CC} $< $@.i
 	${Q_}${RM} $@.i
 endif
 
@@ -146,8 +146,8 @@ $(NEXUS_SHARED_LIB): $(NEXUS_OBJECTS) $(MAGNUM_LINK_OBJ) $(NEXUS_EXTRALIBS) ${MA
 	${NEXUS_BUILD_SO} -o $(abspath $@) $(NEXUS_LDFLAGS)
 ifdef B_REFSW_STATIC_ANALYZER
 	@echo "[Analyze... $(notdir $@)]"
-	${Q_}cd $(NEXUS_OBJ_DIR); ${B_REFSW_STATIC_ANALYZER} binary ${CC} $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS}))
-	${Q_}cd $(NEXUS_OBJ_DIR); ${B_REFSW_STATIC_ANALYZER} whole $(abspath $@).whole $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS}))
+	${Q_}cd $(NEXUS_OBJ_DIR); ${B_REFSW_STATIC_ANALYZER} ${B_REFSW_STATIC_ANALYZER_OPTS} binary ${CC} $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS}))
+	${Q_}cd $(NEXUS_OBJ_DIR); ${B_REFSW_STATIC_ANALYZER} ${B_REFSW_STATIC_ANALYZER_OPTS} whole $(abspath $@).whole $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS}))
 endif
 endif
 

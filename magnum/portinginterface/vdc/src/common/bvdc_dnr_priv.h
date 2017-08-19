@@ -68,6 +68,14 @@ extern "C" {
  * Private register cracking macros
  ***************************************************************************/
 #if BVDC_P_SUPPORT_DNR
+
+/* Initial DNR register org*/
+#define BVDC_P_SUPPORT_DNR_VER_0           (0)
+
+/* register re-org to optimize block writes */
+#define BVDC_P_SUPPORT_DNR_VER_1           (1) /* 7278B0, 7260B0 */
+
+
 #define BVDC_P_DNR_H_MAX_RANGE        (200)
 #define BVDC_P_DNR_MAX_HW_QP_STEPS    (100)
 
@@ -208,6 +216,7 @@ typedef struct BVDC_P_DnrContext
 
     bool                           bDnrH;
     bool                           b10BitMode;
+    bool                           bDbvMode;
     BVDC_FilterMode                eDcrMode;
 } BVDC_P_DnrContext;
 

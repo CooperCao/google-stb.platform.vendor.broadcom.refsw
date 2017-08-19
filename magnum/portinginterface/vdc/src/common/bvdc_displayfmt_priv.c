@@ -73,6 +73,7 @@ static const uint32_t* const
     BVDC_P_MAKE_DROPTBL(s_aulDtRamBVBInput_DVI_480p_Drop3_54MHz)
 };
 
+#if BVDC_P_NUM_SHARED_VF
 #if (BVDC_P_SUPPORT_VEC_VF_VER >= 2) /** { **/
 
 /* All-pass */
@@ -262,7 +263,9 @@ static const uint32_t s_aulChFilterTbl_Cr_SECAM[BVDC_P_CHROMA_TABLE_SIZE] =
 };
 
 #endif /** } VF_VER **/
+#endif /* BVDC_P_NUM_SHARED_VF */
 
+#if BVDC_P_NUM_SHARED_SDSRC
 /* SRC Control Filter Modes */
 static const uint32_t s_ulSrcControlNotRGB =
     BVDC_P_SRC_FIELD_ENUM(SRC_CONTROL, HSYNC,    Minus_6dB) |
@@ -278,6 +281,7 @@ static const uint32_t s_ulSrcControlRGB =
     BVDC_P_SRC_FIELD_ENUM(SRC_CONTROL, CH0_CLAMP, UNSIGNED) |
     BVDC_P_SRC_FIELD_ENUM(SRC_CONTROL, CH1_2,    Minus_6dB) |
     BVDC_P_SRC_FIELD_ENUM(SRC_CONTROL, CH0,   Minus_11dB);
+#endif
 
 /*
  * Definitions needed for HDMI RM table
@@ -293,12 +297,12 @@ typedef struct
 }
 BVDC_P_HdmiRmLookup;
 
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
+#if (BVDC_P_SUPPORT_DVI_40NM)
 static const BVDC_P_HdmiRmLookup s_HdmiLU[] =
 {
 #include "bvdc_hdmirm_tmds_lookup_40nm_priv.h"
 };
-#elif ((BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_6) || (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7))
+#elif (BVDC_P_SUPPORT_DVI_28NM)
 static const BVDC_P_HdmiRmLookup s_HdmiLU[] =
 {
 #include "bvdc_hdmirm_tmds_lookup_28nm_priv.h"
@@ -312,11 +316,11 @@ static const BVDC_P_HdmiRmLookup s_HdmiLU[] =
 /* HDMI Rate Manager */
 static const BVDC_P_RateInfo s_HdmiRm[] =
 {
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
+#if (BVDC_P_SUPPORT_DVI_40NM)
 
 #include "bvdc_hdmirm_40nm_priv.h"
 
-#elif ((BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_6) || (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7))
+#elif (BVDC_P_SUPPORT_DVI_28NM)
 
 #include "bvdc_hdmirm_28nm_priv.h"
 
@@ -391,6 +395,7 @@ static const uint32_t s_aulRmTable_106_5_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BV
 static const uint32_t s_aulRmTable_54[BVDC_P_RM_TABLE_SIZE]               = { BVDC_P_MAKE_RM(32766, 16383,    0, 0x400000, 0) }; /* 54Mhz for (480P or 576P) at double rate */
 static const uint32_t s_aulRmTable_54_Mul_1001[BVDC_P_RM_TABLE_SIZE]      = { BVDC_P_MAKE_RM(32032, 16000,    0, 0x401062, 0) }; /* 54Mhz for 480P at double rate */
 
+#if BVDC_P_NUM_SHARED_SM
 #define BVDC_P_MAKE_SM(pixel_frac_en, init_phase, phase_offset, u_coring_en, \
     v_coring_en, fre0, chroma_offset, comp_out_sel, combine_chroma,          \
     sin_coef_en, cos_coef_en)                                                \
@@ -493,6 +498,7 @@ static const uint32_t s_aulSmTable_Component[BVDC_P_SM_TABLE_SIZE] =
 {
     BVDC_P_MAKE_SM(OFF, 0, 0x0, 0, 0, 0, 0, COMPONENT, OFF, USE_ONE, USE_ONE),
 };
+#endif
 
 /****************************************************************
  *  Format Tables
@@ -842,6 +848,7 @@ static const BVDC_P_FormatData s_aFormatDataTable[] =
  *  when to terminate.
  ****************************************************************/
 
+#if BVDC_P_NUM_SHARED_SM
 /****************************************************************
  *  Sm Tables
  ****************************************************************/
@@ -897,7 +904,9 @@ static const BVDC_P_SmTableInfo s_aulSmTable_Tbl_Unknown[] =
 {
     {BFMT_VideoFmt_eMaxCount,           s_aulSmTable_Component}
 };
+#endif
 
+#if BVDC_P_NUM_SHARED_VF
 /****************************************************************
  *  Channel Filter Tables
  ****************************************************************/
@@ -1018,8 +1027,6 @@ static const BVDC_P_VfTableInfo s_aulSdVfTable_Tbl_Unknown[] =
     {BFMT_VideoFmt_eMaxCount, s_aulVfTable_480i}
 };
 
-
-
 #define BVDC_P_MAKE_ENVELOPGENERATOR(amp_cntl, amp_clamp, u_burst, v_burst,    \
     u_en, v_en, init_amp)                                                      \
     BVDC_P_VF_FIELD_ENUM(ENVELOPE_GENERATOR, AMP_CONTROL,       amp_cntl) | \
@@ -1036,7 +1043,6 @@ static const BVDC_P_VfTableInfo s_aulSdVfTable_Tbl_Unknown[] =
 #define BVDC_EG_PALM_YUV_SETTING  BVDC_P_MAKE_ENVELOPGENERATOR(CONSTANT,     0, NEGATIVE, POSITIVE,  ON,  ON, 0x58)
 #define BVDC_EG_SECAM_SETTING     BVDC_P_MAKE_ENVELOPGENERATOR(INC_BY_ONE, 424, NEGATIVE, NEGATIVE,  ON, OFF, 0x78)
 #define BVDC_EG_COMPONET_SETTING  BVDC_P_MAKE_ENVELOPGENERATOR(CONSTANT,     0, NEGATIVE, NEGATIVE, OFF, OFF,    0)
-
 
 /****************************************************************
  *  When adding additional formats, make sure each format is
@@ -1132,6 +1138,7 @@ static const BVDC_P_EnvelopGeneratorInfo s_aEnvelopGeneratorTable[] =
     {BVDC_P_Output_eHsync,           s_aulEG_Tbl_Hsync                    },
     {BVDC_P_Output_eUnknown,         s_aulEG_Tbl_Unknown                  }
 };
+#endif
 
 
 /****************************************************************
@@ -1184,6 +1191,7 @@ static const BVDC_P_RmTableInfo s_aRmDropRate_Tbl[] =
 };
 #define BVDC_P_DROPRATE_TBL_SIZE (sizeof(s_aRmDropRate_Tbl) / sizeof(BVDC_P_RmTableInfo))
 
+#if BVDC_P_NUM_SHARED_SM
 /****************************************************************
  *  ColorSpace Data Table
  *  This table bears an entry for every colorspace.  Each
@@ -1248,6 +1256,7 @@ static const BVDC_P_ColorSpaceData s_aColorSpaceDataTable_54MHz[] =
     {BVDC_P_Output_eSDRGB,     s_aulSmTable_Tbl_RGB,     BVDC_P_OutputFilter_eNone,      BVDC_P_OutputFilter_eSDRGB,   NULL,                       s_aulHdVfTable_Tbl_54MHz_HDYPrPb},
     {BVDC_P_Output_eUnknown,   s_aulSmTable_Tbl_Unknown, BVDC_P_OutputFilter_eNone,      BVDC_P_OutputFilter_eUnknown, NULL,                       s_aulHdVfTable_Tbl_54MHz_Unknown}
 };
+#endif
 
 /* For table size sanity check */
 #define BVDC_P_DISPLAY_FMTINFO_COUNT \
@@ -1256,6 +1265,7 @@ static const BVDC_P_ColorSpaceData s_aColorSpaceDataTable_54MHz[] =
 #define BVDC_P_DISPLAY_FMTDATA_COUNT \
     (sizeof(s_aFormatDataTable) / sizeof(BVDC_P_FormatData))
 
+#if BVDC_P_NUM_SHARED_VF
 /* Pick color space data with colorspace search */
 static const BVDC_P_ColorSpaceData* BVDC_P_GetColorSpaceData_isr(
     const BVDC_P_ColorSpaceData *paColorSpaceDataTable,
@@ -1269,6 +1279,7 @@ static const BVDC_P_ColorSpaceData* BVDC_P_GetColorSpaceData_isr(
     }
     return paSpace;
 }
+#endif
 
 /*************************************************************************
  *
@@ -1577,7 +1588,7 @@ const uint32_t* BVDC_P_Get656DtramTable_isr
     return pTable;
 }
 
-
+#if BVDC_P_NUM_SHARED_SM
 /*************************************************************************
  *  {secret}
  *  Returns pointer to appropriate SmTable for display modes.
@@ -1688,8 +1699,10 @@ BERR_Code BVDC_P_GetChFilters_isr
 
     return BERR_SUCCESS;
 }
+#endif
 
 
+#if BVDC_P_NUM_SHARED_SDSRC
 /*************************************************************************
  *  {secret}
  *  Returns appropriate SrcControl for display modes.
@@ -1705,8 +1718,10 @@ uint32_t BVDC_P_GetSrcControl_isr
 
     return ulSrcControl;
 }
+#endif
 
 
+#if BVDC_P_NUM_SHARED_VF
 /*************************************************************************
  *  {secret}
  *  Returns pointer to appropriate VfTable for display modes.
@@ -1951,6 +1966,7 @@ uint32_t BVDC_P_GetVfEnvelopGenerator_isr
 
     return ulEGSetting;
 }
+#endif
 
 /*************************************************************************
  *  {secret}
@@ -2350,6 +2366,7 @@ bool  BVDC_P_IsVidfmtSupported
 #endif
 #ifdef BVDC_P_DISPLAY_DUMP /** { **/
 
+#if BVDC_P_NUM_SHARED_VF
 void BVDC_P_Display_Dump_aulVfTable (const char* name, const uint32_t* table)
 {
     BKNI_Printf ("//%s %d\n", name, BVDC_P_VF_TABLE_SIZE+1);
@@ -2434,6 +2451,7 @@ void BVDC_Display_DumpAll_aulChFilterTbl (void)
     BVDC_P_Display_Dump_aulChFilterTbl (
         "s_aulChFilterTbl_Cr_SECAM", s_aulChFilterTbl_Cr_SECAM);
 }
+#endif
 
 void BVDC_P_Display_Dump_aulRmTable (const char* name, const uint32_t* table)
 {
@@ -2560,6 +2578,7 @@ void BVDC_Display_DumpAll_ulItConfig (void)
         "s_ulItConfig_CUSTOM_1366x768p", s_ulItConfig_CUSTOM_1366x768p);
 }
 
+#if BVDC_P_NUM_SHARED_SM
 void BVDC_P_Display_Dump_aulSmTable (const char* name, const uint32_t* table)
 {
     BKNI_Printf ("//%s %d\n", name, BVDC_P_SM_TABLE_SIZE);
@@ -2585,14 +2604,19 @@ void BVDC_Display_DumpAll_aulSmTable (void)
     BVDC_P_Display_Dump_aulSmTable (
         "s_aulSmTable_Component", s_aulSmTable_Component);
 }
+#endif
 
 void BVDC_Display_DumpTables (void)
 {
+#if BVDC_P_NUM_SHARED_VF
     BVDC_Display_DumpAll_aulVfTable();
     BVDC_Display_DumpAll_aulChFilterTbl();
+#endif
     BVDC_Display_DumpAll_aulRmTable();
     BVDC_Display_DumpAll_aulItTable();
+#if BVDC_P_NUM_SHARED_SM
     BVDC_Display_DumpAll_aulSmTable();
+#endif
 }
 #endif /** } BVDC_P_DISPLAY_DUMP **/
 #endif /** } !B_REFSW_MINIMAL **/

@@ -64,7 +64,7 @@ void NEXUS_KeypadModule_GetDefaultSettings(NEXUS_KeypadModuleSettings *pSettings
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
 }
 
 NEXUS_ModuleHandle NEXUS_KeypadModule_Init(const NEXUS_KeypadModuleSettings *pSettings)

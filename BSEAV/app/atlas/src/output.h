@@ -84,7 +84,7 @@ class COutput : public CResource
 public:
     COutput(
             const char *         name,
-            const uint16_t       number,
+            const unsigned       number,
             const eBoardResource type,
             CConfiguration *     pCfg
             );
@@ -122,7 +122,7 @@ class COutputComponent : public COutput
 public:
     COutputComponent(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputComponent(void);
@@ -155,7 +155,7 @@ class COutputSVideo : public COutput
 public:
     COutputSVideo(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputSVideo(void);
@@ -182,7 +182,7 @@ class COutputComposite : public COutput
 public:
     COutputComposite(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputComposite(void);
@@ -211,7 +211,7 @@ class COutputRFM : public COutput
 public:
     COutputRFM(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputRFM(void);
@@ -249,7 +249,7 @@ class COutputHdmi : public COutput
 public:
     COutputHdmi(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputHdmi(void);
@@ -293,7 +293,7 @@ protected:
     NEXUS_VideoFormat      _preferredVideoFormat;
     bool                   _preferredHdcp;
     bool                   _handleHdcpFailures;
-    uint16_t               _hdcpFailureRetryDelay;
+    unsigned               _hdcpFailureRetryDelay;
     CTimer                 _timerHdcpRetry;
 };
 
@@ -302,7 +302,7 @@ class COutputSpdif : public COutput
 public:
     COutputSpdif(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputSpdif(void);
@@ -326,7 +326,7 @@ class COutputAudioDac : public COutput
 public:
     COutputAudioDac(
             const char *         name,
-            const uint16_t       number,
+            const unsigned       number,
             const eBoardResource type,
             CConfiguration *     pCfg
             );
@@ -350,7 +350,7 @@ class COutputAudioDacI2s : public COutputAudioDac
 public:
     COutputAudioDacI2s(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputAudioDacI2s(void);
@@ -375,7 +375,7 @@ class COutputAudioDummy : public COutput
 public:
     COutputAudioDummy(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~COutputAudioDummy(void);

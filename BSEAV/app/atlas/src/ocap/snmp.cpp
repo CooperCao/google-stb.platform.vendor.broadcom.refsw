@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #ifdef SNMP_SUPPORT
 
@@ -916,7 +911,7 @@ void CSnmp::snmp_get_mpeg2_content_table(void *context, int param)
     PROGRAM_INFO_T * pProgramInfo = NULL;
     uint32_t ccErrorCount = 0;
     uint32_t teiErrorCount = 0;
-    uint16_t program_number = 0;
+    unsigned program_number = 0;
     bool isMain = false;
     bool isPip = false;
 
@@ -1576,9 +1571,9 @@ void CSnmp::snmp_get_card_cp_info(void *context, int param)
 
 #ifdef MPOD_SUPPORT
 static char * ccmmi_html = NULL;
-static uint16_t ccmmi_len = 0;
+static unsigned ccmmi_len = 0;
 /* To recieve the various App info thro a callback for the URLs sent  */
-static void snmp_receive_app_info_query(uint8_t *html, uint16_t len, uint8_t dialogNb, uint8_t fileStatus)
+static void snmp_receive_app_info_query(uint8_t *html, unsigned len, uint8_t dialogNb, uint8_t fileStatus)
 {
 	BSTD_UNUSED(dialogNb);
 	BSTD_UNUSED(fileStatus);
@@ -1625,7 +1620,7 @@ void CSnmp::snmp_get_cc_app_info_table(void *context, int param)
         uint8_t max_num_pages;
 		MPOD_RET_CODE err;
 		uint8_t type;
-		uint16_t version;
+		unsigned version;
 		uint8_t appLen;
 		char *appName;
 		int timeout = 20;

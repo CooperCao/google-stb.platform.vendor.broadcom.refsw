@@ -69,14 +69,6 @@ typedef struct BHDR_FE_P_InterruptCbTable
 	bool             enable ; /* debug purposes */
 } BHDR_FE_P_InterruptCbTable ;
 
-
-static const BHDR_FE_P_InterruptCbTable BHDR_FE_P_Intr[MAKE_INTR_FE_ENUM(LAST)] =
-{
-	/* 16 */   { BCHP_INT_ID_TMR_IRQ_0, BHDR_FE_INTR_eTMR_IRQ_0, true },
-	/* 17 */   { BCHP_INT_ID_TMR_IRQ_1, BHDR_FE_INTR_eTMR_IRQ_1, true }
-} ;
-
-
 static const BHDR_FE_P_InterruptCbTable BHDR_FE_P_ChannelIntr0[MAKE_INTR_ENUM(LAST)] =
 {
 #if BHDR_CONFIG_DUAL_HPD_SUPPORT
@@ -394,7 +386,7 @@ void BHDR_FE_P_Channel_isr(
 	hFeChannel = (BHDR_FE_ChannelHandle) pParam1 ;
 	BDBG_OBJECT_ASSERT(hFeChannel, BHDR_FE_P_ChannelHandle) ;
 
-	if (hFeChannel->uiHdrSel == BHDR_P_eHdrCoreIdNotAttached)
+	if (hFeChannel->uiHdrSel == BAVC_HDMI_CoreId_eNone)
 	{
 #if BHDR_CONFIG_DEBUG_FRONT_END
 		BDBG_WRN(("No HDMI Rx core (not ready) attached to frontend")) ;

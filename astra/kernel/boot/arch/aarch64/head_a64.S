@@ -132,6 +132,11 @@ el1_start:
 	add x5, x5, #(INIT_STACK_SIZE-16)
 	mov	sp, x5
 
+	mrs     x5, mpidr_el1
+	and     x5, x5, #0x3
+	cmp     x5, #0
+	bne     2f
+
 	ldr	x5, =_bss_start
 	add	x5, x5, x3
 	ldr	x6, =_bss_end

@@ -87,7 +87,7 @@ public:
 
 public:
     bool     _threadRun;
-    uint16_t _pollInterval;
+    unsigned _pollInterval;
 
 protected:
     lua_State *      _pLua;

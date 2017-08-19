@@ -205,6 +205,10 @@ typedef struct NEXUS_SimpleEncoderSettings
         NEXUS_Rect window; /* Default is 0,0,0,0, which is full screen.
                               Allows for downscale within width and height specified above. */
         NEXUS_ClipRect clip; /* Default is 0,0,0,0, which is no clip. */
+        struct {
+            bool overrideOrientation;
+            NEXUS_VideoOrientation orientation;
+        } display3DSettings;
     } video;
     NEXUS_VideoEncoderSettings videoEncoder;
     NEXUS_AudioEncoderCodecSettings audioEncoder; /* must set audioEncoder.codec to match NEXUS_SimpleEncoderStartSettings.audio.codec. */

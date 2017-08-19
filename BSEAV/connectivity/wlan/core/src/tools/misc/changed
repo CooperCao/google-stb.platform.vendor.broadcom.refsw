@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+#
+# Print the number of lines changed using the output from 'diff' on stdin.
+# Don't count modified lines twice - as deleted and added.
+# I can't believe this doesn't exist as an option to diff or friends..
+#
+# $Copyright (C) 2003 Broadcom Corporation$
+# $Id: changed,v 12.2 2005-03-02 00:10:18 nn Exp $
+
+$tot = 0;
+
+line: while (<>) {
+
+	# if there's a better way of collapsing the variations below, please improve me
+
+	# delete lines
+	if (/^(\d+)d(\d+)$/) {
+		$tot++;
+	}
+	if (/^(\d+),(\d+)d(\d+)$/) {
+		$tot += ($2 - $1) + 1;
+	}
+
+	# add lines
+	if (/^(\d+)a(\d+)$/) {
+		$tot++;
+	}
+	if (/^(\d+)a(\d+),(\d+)$/) {
+		$tot += ($3 - $2) + 1;
+	}
+
+	# change lines
+	if (/^(\d+)c(\d+)$/) {
+		$tot++;
+	}
+	if (/^(\d+)c(\d+),(\d+)$/) {
+		$tot += ($3 - $2) + 1;
+	}
+	if (/^(\d+),(\d+)c(\d+)$/) {
+		$tot += ($2 - $1) + 1;
+	}
+	if (/^(\d+),(\d+)c(\d+),(\d+)$/) {
+		$before = ($2 - $1) + 1;
+		$after = ($4 - $3) + 1;
+		if ($before > $after) {
+			$tot += $before;
+		} else {
+			$tot += $after;
+		}
+	}
+}
+
+printf "%d\n", $tot;

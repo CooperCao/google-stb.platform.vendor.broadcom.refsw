@@ -15,5 +15,15 @@ typedef struct v3d_addr_range
 
 #ifdef __cplusplus
    v3d_addr_range(v3d_addr_t begin, v3d_addr_t end) : begin(begin), end(end) {}
+
+   bool overlaps(const v3d_addr_range &other) const
+   {
+      return (begin < other.end) && (other.begin < end);
+   }
+
+   bool contains(const v3d_addr_range &other) const
+   {
+      return (begin <= other.begin) && (other.end <= end);
+   }
 #endif
 } v3d_addr_range;

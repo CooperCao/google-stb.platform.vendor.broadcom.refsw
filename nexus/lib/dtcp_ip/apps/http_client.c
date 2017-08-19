@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2008-2015 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,10 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
  *
  * Module Description:
  *  Sample Code for sending HTTP Get Request and writing received data to disk.
@@ -390,12 +386,12 @@ int main(int argc, char **argv)
 
         enc_buf_len = 2*BUF_SIZE;
         if (NEXUS_Memory_Allocate(enc_buf_len, &allocSettings, (void *)(&enc_buf))) {
-            BDBG_ERR(("%s: memory allocation failure for encrypted buffer\n", __FUNCTION__));
+            BDBG_ERR(("%s: memory allocation failure for encrypted buffer\n", BSTD_FUNCTION));
             goto dtcp_shutdown;
         }
 
         if (NEXUS_Memory_Allocate(enc_buf_len, &allocSettings, (void *)(&clr_buf))) {
-            BDBG_ERR(("%s: memory allocation failure for clear buffer\n", __FUNCTION__));
+            BDBG_ERR(("%s: memory allocation failure for clear buffer\n", BSTD_FUNCTION));
             NEXUS_Memory_Free(enc_buf);
             goto dtcp_shutdown;
         }

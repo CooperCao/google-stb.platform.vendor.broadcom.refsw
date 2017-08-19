@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -174,7 +174,7 @@ BIP_Atom_CursorPrint(batom_cursor *pCursor, const char *name)
         for(i=0;i<sizeof(buffer);i++) {
             int b = batom_cursor_next(&myCursor);
             #if 0  /* ==================== GARYWASHERE - Start of Original Code ==================== */
-            /* GARYWASHERE (other) */  BDBG_WRN(("%s:%d: i:%d b=0x%x (%c)", __FUNCTION__, __LINE__, i, b, b));
+            /* GARYWASHERE (other) */  BDBG_WRN(("%s:%d: i:%d b=0x%x (%c)", BSTD_FUNCTION, __LINE__, i, b, b));
             #endif /* ==================== GARYWASHERE - End of Modified Code   ==================== */
 
             if(b==BATOM_EOF) {
@@ -186,7 +186,7 @@ BIP_Atom_CursorPrint(batom_cursor *pCursor, const char *name)
             buffer[i] = isprint(b) ? b : '?';
         }
         #if 0  /* ==================== GARYWASHERE - Start of Original Code ==================== */
-        /* GARYWASHERE (other) */  BDBG_WRN(("%s:%d: i:%d", __FUNCTION__, __LINE__, i));
+        /* GARYWASHERE (other) */  BDBG_WRN(("%s:%d: i:%d", BSTD_FUNCTION, __LINE__, i));
         #endif /* ==================== GARYWASHERE - End of Modified Code   ==================== */
 
         BIP_String_StrcatCharN(hString, buffer, i);

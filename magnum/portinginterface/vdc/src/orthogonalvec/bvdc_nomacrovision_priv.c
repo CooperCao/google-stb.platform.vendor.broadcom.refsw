@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -97,6 +97,7 @@ uint32_t BVDC_P_GetItConfig_isr
     return BVDC_P_GetItConfigSub_isr(pDispInfo);
 }
 
+#if BVDC_P_NUM_SHARED_VF
 /*************************************************************************
  *  {secret}
  *  Returns SEC_VF_POS_SYNC_VALUES value
@@ -196,6 +197,7 @@ uint32_t BVDC_P_GetFmtAdderValue_isr
 
     return ulTable[0];
 }
+#endif
 
 /*************************************************************************
  *  {secret}

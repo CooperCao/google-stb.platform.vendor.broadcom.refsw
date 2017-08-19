@@ -145,6 +145,13 @@ typedef struct BIP_Streamer
         BIP_StreamerInputState                      inputState;                             /* Streamer sub-state for recpump input. */
         BIP_StreamerRecpumpInputSettings            inputSettings;
     } recpump;
+#if NEXUS_HAS_HDMI_INPUT
+    struct
+    {
+        BIP_StreamerInputState                      inputState;                             /* Streamer sub-state for recpump input. */
+        BIP_StreamerHdmiInputSettings               inputSettings;
+    } hdmiInput;
+#endif
     struct
     {
         BIP_StreamerProtocol                        streamerProtocol;
@@ -161,6 +168,9 @@ typedef struct BIP_Streamer
     bool                                            openedPlaypump;
     NEXUS_PlaybackHandle                            hPlayback;
     NEXUS_FilePlayHandle                            hFilePlay;
+#if NEXUS_HAS_HDMI_INPUT
+    NEXUS_HdmiInputHandle                           hHdmiInput;
+#endif
 
     NEXUS_Timebase                                  pacingTimebase;
 
@@ -203,6 +213,14 @@ typedef struct BIP_Streamer
         NEXUS_RecpumpHandle         hRecpump;
         BIP_StreamerRecpumpInputSettings *pRecpumpInputSettings;
     } recpumpInputSettingsApi;
+#if NEXUS_HAS_HDMI_INPUT
+    struct
+    {
+        BIP_ArbHandle               hArb;
+        NEXUS_HdmiInputHandle       hHdmiInput;
+        BIP_StreamerHdmiInputSettings *pHdmiInputSettings;
+    } hdmiInputSettingsApi;
+#endif
     struct
     {
         BIP_ArbHandle               hArb;

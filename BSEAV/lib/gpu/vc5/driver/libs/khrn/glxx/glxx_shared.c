@@ -105,8 +105,6 @@ bool glxx_shared_init(GLXX_SHARED_T *shared)
    if (!khrn_map_init(&shared->fencesyncs, 256))
       return false;
 
-   glxx_compute_shared_init(&shared->compute);
-
    return true;
 }
 
@@ -145,8 +143,6 @@ void glxx_shared_term(void *v, size_t size)
    khrn_map_term(&shared->buffers);
    khrn_map_term(&shared->renderbuffers);
    khrn_map_term(&shared->fencesyncs);
-
-   glxx_compute_shared_term(&shared->compute);
 }
 
 uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared)

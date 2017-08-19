@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
@@ -138,6 +137,7 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 TARGET_SRCS := ./$(target)/$(target).cpp
 TARGET_SRCS += ./$(target)/bgui.c
 INCLUDES += -I$(NEXUS_TOP)/modules/graphics2d/include
+TARGET_SINGLE_SRCS := ./$(target)/$(target)_single.cpp
 else
 TARGET_SRCS := ./$(target)/$(target)_single.cpp
 endif
@@ -150,14 +150,25 @@ INCLUDES += $(addprefix -I, ${DIF_INCLUDES})
 
 # Filter out all non c/cpp files
 TARGET_SRCS    := $(filter %.c %.cpp, $(TARGET_SRCS))
+ifeq ($(NXCLIENT_SUPPORT),y)
+TARGET_SINGLE_SRCS := $(filter %.c %.cpp, $(TARGET_SINGLE_SRCS))
+endif
 
 # Make object files to use as dependencies
 TARGET_OBJS := $(patsubst %.cpp, %.o, $(TARGET_SRCS))
 TARGET_OBJS := $(patsubst %.c, %.o, $(TARGET_OBJS))
 TARGET_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(TARGET_OBJS))
+ifeq ($(NXCLIENT_SUPPORT),y)
+TARGET_SINGLE_OBJS := $(patsubst %.cpp, %.o, $(TARGET_SINGLE_SRCS))
+TARGET_SINGLE_OBJS := $(patsubst %.c, %.o, $(TARGET_SINGLE_OBJS))
+TARGET_SINGLE_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(TARGET_SINGLE_OBJS))
+endif
 
 ifeq ($(USE_CURL),y)
-LDFLAGS := -lcurl $(CURL_LDFLAGS)
+include $(BSEAV_TOP)/opensource/curl/curl.inc
+LDFLAGS := $(CURL_LDFLAGS)
+include $(BSEAV_TOP)/opensource/zlib/zlib.inc
+LDFLAGS += $(ZLIB_LDFLAGS)
 endif
 
 ifeq ($(NXCLIENT_SUPPORT),y)
@@ -198,7 +209,7 @@ LDFLAGS += -lplayreadypk
 endif
 TARGET_LDFLAGS += $(LDFLAGS) -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/dif/$(DIF_LIBDIR) -ldif
 
-.PHONY: clean all $(target)_dif
+.PHONY: clean all $(target)_dif $(target)_dif_single
 
 .SUFFIXES: .cpp .c
 
@@ -214,7 +225,11 @@ $(OUT_ROOT_DIR)/%.o: %.cpp
 	@echo [Compiling $<]
 	${CXX} -c $(FLAGS) $(CFLAGS) $(INCLUDES) $(DEFINES) $< -o $@
 
+ifeq ($(NXCLIENT_SUPPORT),y)
+all: $(target)_dif $(target)_dif_single
+else
 all: $(target)_dif
+endif
 
 prep_dif:
 	@echo [..... prep_dif target ]
@@ -269,4 +284,10 @@ $(target)_dif: $(TARGET_OBJS) prep_dif
 	@echo "Building $@ ..."
 	@mkdir -p $(OUT_ROOT_DIR)/final/
 	$(CXX) $(CFLAGS) $(INCLUDES) $(DEFINES) $(TARGET_OBJS) $(TARGET_LDFLAGS) $(CDM_API_LDFLAGS) $(LDFLAGS_OEMCRYPTO_CDM_LIB)  -o $(OUT_ROOT_DIR)/final/$@
+	@install -m 0755 $(OUT_ROOT_DIR)/final/$@ $(NEXUS_BIN_DIR)
+
+$(target)_dif_single: $(TARGET_SINGLE_OBJS) prep_dif
+	@echo "Building $@ ..."
+	@mkdir -p $(OUT_ROOT_DIR)/final/
+	$(CXX) $(CFLAGS) $(INCLUDES) $(DEFINES) $(TARGET_SINGLE_OBJS) $(TARGET_LDFLAGS) $(CDM_API_LDFLAGS) $(LDFLAGS_OEMCRYPTO_CDM_LIB)  -o $(OUT_ROOT_DIR)/final/$@
 	@install -m 0755 $(OUT_ROOT_DIR)/final/$@ $(NEXUS_BIN_DIR)

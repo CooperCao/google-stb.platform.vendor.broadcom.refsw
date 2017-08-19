@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -584,7 +584,7 @@ int haltMode(void)
     BKNI_ReleaseMutex(mutex);
 
     printf("S3 Cold Boot\n\n");
-#if K_VERSION >= 3 && K_PATCHLEVEL >= 8
+#if LINUX_VER_GE_3_8
     system("poweroff");
 #else
     system("echo 1 > /sys/devices/platform/brcmstb/halt_mode");

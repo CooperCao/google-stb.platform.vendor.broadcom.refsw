@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "scenario_player.h"
 #include "scenario_player_priv.h"
@@ -295,11 +292,23 @@ static void scenario_player_p_set_variable(ScenarioPlayerHandle player, Scenario
     {
         pScenario->bgPath = set_string(pScenario->bgPath, value);
     }
-    else if (!strcmp(name, "pig"))
+    else if (!strcmp(name, "usage"))
     {
-        if (!strcasecmp(value, "on") || strtoul(value, NULL, 0))
+        if (!strcasecmp(value, "pig"))
         {
-            pScenario->pig = true;
+            pScenario->usageMode = PlatformUsageMode_ePictureInGraphics;
+        }
+        else if (!strcasecmp(value, "mosaic"))
+        {
+            pScenario->usageMode = PlatformUsageMode_eMosaic;
+        }
+        else if (!strcasecmp(value, "pip"))
+        {
+            pScenario->usageMode = PlatformUsageMode_eMainPip;
+        }
+        else
+        {
+            pScenario->usageMode = PlatformUsageMode_eFullScreenVideo;
         }
     }
     else if (!strcmp(name, "osd"))

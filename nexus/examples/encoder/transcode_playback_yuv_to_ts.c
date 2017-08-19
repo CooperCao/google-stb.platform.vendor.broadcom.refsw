@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -200,7 +200,7 @@ int main(int argc, const char *argv[]) {
         BDBG_ERR(("no heap found. RTS failure likely."));
     }
     BDBG_WRN(("(%s,%d): creat three surface.format %d, %dx%d, pitch %d",
-        __FUNCTION__, __LINE__,surfaceCfg.pixelFormat, surfaceCfg.width, surfaceCfg.height, surfaceCfg.pitch));
+        BSTD_FUNCTION, __LINE__,surfaceCfg.pixelFormat, surfaceCfg.width, surfaceCfg.height, surfaceCfg.pitch));
 
     for( i=0; i < queSize ; i++ ) {
         g_surface[i].handle = NEXUS_Surface_Create(&surfaceCfg);

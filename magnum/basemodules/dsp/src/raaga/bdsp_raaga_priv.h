@@ -43,6 +43,7 @@
 #include "bdsp.h"
 #include "bdsp_raaga.h"
 #include "blst_slist.h"
+#include "bdsp_raaga_cit_priv.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_types.h"
 #include "bdsp_raaga_fwinterface_priv.h"
@@ -502,7 +503,9 @@ BERR_Code BDSP_Raaga_P_StopTask(
 BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
     void *pPrimaryStageHandle,
     BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *sTaskFmmGateOpenConfig,
-    uint32_t ui32MaxIndepDelay
+    uint32_t ui32MaxIndepDelay,
+    BDSP_AF_P_BurstFillType eFMMPauseBurstType,
+	BDSP_AF_P_SpdifPauseWidth eSpdifPauseWidth
     );
 
 BERR_Code BDSP_Raaga_P_RetrieveGateOpenSettings(

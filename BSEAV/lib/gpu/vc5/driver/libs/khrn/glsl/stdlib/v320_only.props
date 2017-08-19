@@ -198,9 +198,9 @@ version32:
    in highp int gl_PrimitiveIDIn;
 
    out highp int gl_PrimitiveID;
-   out highp int gl_Layer;
+   flat out highp int gl_Layer;
 
-   in  highp   int  gl_Layer;
+   flat in  highp   int  gl_Layer;
    in  lowp    int  gl_SampleID;
    in  mediump vec2 gl_SamplePosition;
    in  highp   int  gl_SampleMaskIn[1];

@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile$
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   RF4CE GDP 2.0 Poll Service interface.
+*       RF4CE GDP 2.0 Poll Service interface.
 *
-* $Revision$
-* $Date$
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_RF4CE_ZRC_POLL_SERVICE_H
 #define _BB_RF4CE_ZRC_POLL_SERVICE_H
@@ -64,6 +56,7 @@
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief   Enumeration of Polling Methods.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  * \note    When a Poling Constraint Record is published with 'Disabled' (0x00) polling
  *  method identifier or one of reserved values (0x02-0xFF) by a prospective Poll Client
  *  in its aplPollConstraints, such a Record must be ignored by the prospective Poll
@@ -83,6 +76,7 @@ typedef enum _RF4CE_GDP2_PollingMethodId_t
 
 /**//**
  * \brief   Enumeration of Polling Triggers.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 7.5.1, table 18.
  */
@@ -125,6 +119,7 @@ typedef enum _RF4CE_GDP2_PollingTriggerId_t
  * \brief   Structure for the Polling Trigger Capabilities field of the Polling Constraint
  *  Record field array of the aplPollConstraints attribute and for the Polling Trigger
  *  Configuration field of the aplPollConfiguration attribute.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  * \note    The Poll Client may perform additional polls at any moment in time using the
  *  allowed poll method - i.e., polling on the Generic Activity trigger. There is no bit
  *  in this set corresponding to the Generic Activity trigger, because this trigger is
@@ -208,6 +203,7 @@ typedef union _RF4CE_GDP2_PollingTriggersSet_t
 /**//**
  * \brief   Structure for the Polling Constraint Record single field of the
  *  aplPollConstraints attribute.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  * \note    This structure is not binary compatible with the serialized format of the
  *  aplPollConstraints attribute. When need to (de-)serialize this structure according to
  *  the format of the aplPollConstraint attribute as it is transferred via the media by
@@ -244,7 +240,6 @@ typedef struct _RF4CE_GDP2_PollingConstraintRecord_t
     uint8_t                          maximumPollingKeyPressCounter;     /*!< Maximum polling key press counter. */
 
 } RF4CE_GDP2_PollingConstraintRecord_t;
-// TODO: Resolve potential conflict with the RF4CE_GDP2_PollConstraint_t defined in the bbRF4CEZRCAttributes.h
 
 
 /**//**
@@ -294,6 +289,7 @@ typedef struct _RF4CE_GDP2_PollingConstraintRecord_t
 
 /**//**
  * \brief   Structure for the aplPollConstraints attribute.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  * \note    This structure is not binary compatible with the serialized format of the
  *  aplPollConstraints attribute. When need to serialize this structure according to the
  *  format of the aplPollConstraint attribute as it is transferred via the media by the
@@ -320,11 +316,11 @@ typedef struct _RF4CE_GDP2_PollConstraints_t
                                                                                     supported. May have value of either
                                                                                     zero or one. */
 } RF4CE_GDP2_PollConstraints_t;
-// TODO: Resolve existing conflict with the RF4CE_GDP2_PollConstraints_t defined in the bbRF4CEZRCAttributes.h
 
 
 /**//**
  * \brief   Structure for the aplPollConfiguration attribute.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  * \note    This structure is not binary compatible with the serialized format of the
  *  aplPollConfiguration attribute. When need to (de-)serialize this structure according
  *  to the format of the aplPollConfiguration attribute as it is transferred via the media
@@ -363,6 +359,7 @@ typedef struct _RF4CE_GDP2_PollConfiguration_t
 /**//**
  * \brief   Structure for parameters of the request to assign the aplPollConstraints
  *  attribute of this node.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  * \note    The GDP 2.0 profile implements only the Heartbeat polling method. Consequently
  *  it is enough for this device to have only a single Polling Constraint Record at the
  *  most in its aplPollConstraints attribute. By this reason only single Polling
@@ -383,6 +380,7 @@ typedef struct _RF4CE_GDP2_SetPollConstraintsReqParams_t
 /**//**
  * \brief   Structure for parameters of the confirmation on request to assign the
  *  aplPollConstraints attribute of this node.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsConf
  */
 typedef struct _RF4CE_GDP2_SetPollConstraintsConfParams_t
 {
@@ -395,6 +393,7 @@ typedef struct _RF4CE_GDP2_SetPollConstraintsConfParams_t
 /**//**
  * \brief   Structure for descriptor of the request to assign the aplPollConstraints
  *  attribute of this node.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  */
 typedef struct _RF4CE_GDP2_SetPollConstraintsReqDescr_t  RF4CE_GDP2_SetPollConstraintsReqDescr_t;
 
@@ -402,6 +401,7 @@ typedef struct _RF4CE_GDP2_SetPollConstraintsReqDescr_t  RF4CE_GDP2_SetPollConst
 /**//**
  * \brief   Template for callback handler-function of the confirmation on request to
  *  assign the aplPollConstraints attribute of this node.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsConf
  * \param[in]   reqDescr        Pointer to the confirmed request descriptor.
  * \param[in]   confParams      Pointer to the confirmation parameters object.
  * \details
@@ -423,6 +423,7 @@ typedef void (*RF4CE_GDP2_SetPollConstraintsConfCallback_t)(RF4CE_GDP2_SetPollCo
 /**//**
  * \brief   Structure for descriptor of the request to assign the aplPollConstraints
  *  attribute of this node.
+ * \ingroup RF4CE_GDP2_SetPollConstraintsReq
  */
 struct _RF4CE_GDP2_SetPollConstraintsReqDescr_t
 {
@@ -433,17 +434,19 @@ struct _RF4CE_GDP2_SetPollConstraintsReqDescr_t
     /* Structured data. */
     SYS_SchedulerTaskDescriptor_t                taskDescr;     /*!< Task descriptor service object. */
 #else
-	void *context;
+    void *context;
 #endif
 
     /* Structured data. */
     RF4CE_GDP2_SetPollConstraintsReqParams_t     params;        /*!< Request parameters structured object. */
-};
+
+}; /* RF4CE_GDP2_SetPollConstraintsReqDescr_t */
 
 
 /**//**
  * \brief   Structure for parameters of the request to initiate the Poll Negotiation
  *  procedure on the Poll Client.
+ * \ingroup RF4CE_GDP2_PollNegotiationReq
  */
 typedef struct _RF4CE_GDP2_PollNegotiationReqParams_t
 {
@@ -460,6 +463,7 @@ typedef struct _RF4CE_GDP2_PollNegotiationReqParams_t
 /**//**
  * \brief   Structure for parameters of the confirmation on request to perform the Poll
  *  Negotiation procedure on the Poll Client.
+ * \ingroup RF4CE_GDP2_PollNegotiationConf
  */
 typedef struct _RF4CE_GDP2_PollNegotiationConfParams_t
 {
@@ -472,6 +476,7 @@ typedef struct _RF4CE_GDP2_PollNegotiationConfParams_t
 /**//**
  * \brief   Structure for descriptor of the request to initiate the Poll Negotiation
  *  procedure on the Poll Client.
+ * \ingroup RF4CE_GDP2_PollNegotiationReq
  */
 typedef struct _RF4CE_GDP2_PollNegotiationReqDescr_t  RF4CE_GDP2_PollNegotiationReqDescr_t;
 
@@ -479,6 +484,7 @@ typedef struct _RF4CE_GDP2_PollNegotiationReqDescr_t  RF4CE_GDP2_PollNegotiation
 /**//**
  * \brief   Template for callback handler-function of the confirmation on request to
  *  perform the Poll Negotiation procedure on the Poll Client.
+ * \ingroup RF4CE_GDP2_PollNegotiationConf
  * \param[in]   reqDescr        Pointer to the confirmed request descriptor.
  * \param[in]   confParams      Pointer to the confirmation parameters object.
  * \details
@@ -499,6 +505,7 @@ typedef void (*RF4CE_GDP2_PollNegotiationConfCallback_t)(RF4CE_GDP2_PollNegotiat
 /**//**
  * \brief   Structure for descriptor of the request to initiate the Poll Negotiation
  *  procedure on the Poll Client.
+ * \ingroup RF4CE_GDP2_PollNegotiationReq
  */
 struct _RF4CE_GDP2_PollNegotiationReqDescr_t
 {
@@ -509,17 +516,19 @@ struct _RF4CE_GDP2_PollNegotiationReqDescr_t
     /* Structured data. */
     SYS_SchedulerTaskDescriptor_t             taskDescr;    /*!< Task descriptor service object. */
 #else
-	void *context;
+    void *context;
 #endif
 
     /* Structured data. */
     RF4CE_GDP2_PollNegotiationReqParams_t     params;       /*!< Request parameters structured object. */
-};
+
+}; /* RF4CE_GDP2_PollNegotiationReqDescr_t */
 
 
 /**//**
  * \brief   Structure for parameters of the indication of the Poll Negotiation procedure
  *  started for this node as a Poll Server by a remote Poll Client.
+ * \ingroup RF4CE_GDP2_PollNegotiationInd
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 6.2.5,
  *  figures 27, 28.
@@ -538,6 +547,7 @@ typedef struct _RF4CE_GDP2_PollNegotiationIndParams_t
 /**//**
  * \brief   Structure for parameters of the request to handle a user event and fire the
  *  corresponding Poll Trigger.
+ * \ingroup RF4CE_GDP2_PollClientUserEventReq
  * \details The \c pollingTriggerId field specifies the fired trigger that will be
  *  reported to the Poll Server in the Heartbeat GDP command. All triggers are valid in
  *  general except the Time Based Polling and the Key Press Polling (these two are
@@ -564,6 +574,7 @@ typedef struct _RF4CE_GDP2_PollClientUserEventReqParams_t
 /**//**
  * \brief   Structure for parameters of the confirmation on request to handle a user event
  *  and fire the corresponding Poll Trigger.
+ * \ingroup RF4CE_GDP2_PollClientUserEventConf
  */
 typedef struct _RF4CE_GDP2_PollClientUserEventConfParams_t
 {
@@ -576,6 +587,7 @@ typedef struct _RF4CE_GDP2_PollClientUserEventConfParams_t
 /**//**
  * \brief   Structure for descriptor of the request to handle a user event and fire the
  *  corresponding Poll Trigger.
+ * \ingroup RF4CE_GDP2_PollClientUserEventReq
  */
 typedef struct _RF4CE_GDP2_PollClientUserEventReqDescr_t  RF4CE_GDP2_PollClientUserEventReqDescr_t;
 
@@ -583,6 +595,7 @@ typedef struct _RF4CE_GDP2_PollClientUserEventReqDescr_t  RF4CE_GDP2_PollClientU
 /**//**
  * \brief   Template for callback handler-function of the confirmation on request to
  *  handle a user event and fire the corresponding Poll Trigger.
+ * \ingroup RF4CE_GDP2_PollClientUserEventConf
  * \param[in]   reqDescr        Pointer to the confirmed request descriptor.
  * \param[in]   confParams      Pointer to the confirmation parameters object.
  * \details
@@ -604,6 +617,7 @@ typedef void (*RF4CE_GDP2_PollClientUserEventConfCallback_t)(RF4CE_GDP2_PollClie
 /**//**
  * \brief   Structure for descriptor of the request to handle a user event and fire the
  *  corresponding Poll Trigger.
+ * \ingroup RF4CE_GDP2_PollClientUserEventReq
  */
 struct _RF4CE_GDP2_PollClientUserEventReqDescr_t
 {
@@ -614,12 +628,13 @@ struct _RF4CE_GDP2_PollClientUserEventReqDescr_t
     /* Structured data. */
     SYS_SchedulerTaskDescriptor_t                 taskDescr;        /*!< Task descriptor service object. */
 #else
-	void *context;
+    void *context;
 #endif
 
     /* Structured data. */
     RF4CE_GDP2_PollClientUserEventReqParams_t     params;           /*!< Request parameters structured object. */
-};
+
+}; /* RF4CE_GDP2_PollClientUserEventReqDescr_t */
 
 
 /************************* PROTOTYPES ***************************************************/
@@ -651,6 +666,7 @@ void RF4CE_GDP2_SetPollConstraintsReq(RF4CE_GDP2_SetPollConstraintsReqDescr_t *c
 /*************************************************************************************//**
  * \brief   Accepts request from the application to perform the Poll Negotiation procedure
  *  as a Polling Client.
+ * \ingroup RF4CE_ZRC_Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \details
  *  This function shall be called by the application to initiate the Poll Client activity
@@ -677,7 +693,7 @@ void RF4CE_GDP2_SetPollConstraintsReq(RF4CE_GDP2_SetPollConstraintsReqDescr_t *c
  *  'Heartbeat' 0x01). In this case the Poll Negotiation procedure must be considered
  *  completed successfully but polling is disabled.
  * \par     Documentation
- *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclauses 7.2.9.1, 6.2.6.1.
+ *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclauses 7.2.9.2, 6.2.6.1.
 *****************************************************************************************/
 void RF4CE_GDP2_PollNegotiationReq(RF4CE_GDP2_PollNegotiationReqDescr_t *const reqDescr);
 
@@ -685,7 +701,8 @@ void RF4CE_GDP2_PollNegotiationReq(RF4CE_GDP2_PollNegotiationReqDescr_t *const r
 /*************************************************************************************//**
  * \brief   Notifies the application layer of the prospective Poll Server about the Poll
  *  Negotiation procedure started by a Poll Client node.
- * \param[in]   indParam        Pointer to the indication parameters object.
+ * \ingroup RF4CE_ZRC_Functions
+ * \param[in]   indParams       Pointer to the indication parameters object.
  * \details
  *  This callback function shall be provided by the application of a device that is
  *  capable to act as a Poll Server. It will be called by the GDP layer on request to
@@ -722,6 +739,7 @@ void RF4CE_GDP2_PollNegotiationInd(RF4CE_GDP2_PollNegotiationIndParams_t *const 
 /*************************************************************************************//**
  * \brief   Accepts request from the application to handle a user event and fire the
  *  corresponding Poll Trigger.
+ * \ingroup RF4CE_ZRC_Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \details
  *  This function shall be called by the application to fire one of the user event
@@ -736,3 +754,5 @@ void RF4CE_GDP2_PollClientUserEventReq(RF4CE_GDP2_PollClientUserEventReqDescr_t 
 
 
 #endif /* _BB_RF4CE_ZRC_POLL_SERVICE_H */
+
+/* EOF bbRF4CEZRCPollService.h */

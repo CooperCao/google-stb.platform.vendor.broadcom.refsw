@@ -39,6 +39,7 @@
 /* Nexus example app: Play Ready decrypt, PIFF parser, and PES conversion decode */
 
 #define LOG_NDEBUG 0
+#define VERBOSE_DEBUG   0
 /* #include <utils/Log.h> */
 
 #include "nexus_platform.h"
@@ -88,6 +89,7 @@
 
 #define CALCULATE_PTS(t)        (((uint64_t)(t) / 10000LL) * 45LL)
 
+#define BDBG_MODULE_NAME "playready_svp"
 BDBG_MODULE(playready_svp);
 
 #include "bpiff.c"
@@ -145,6 +147,9 @@ typedef app_ctx * app_ctx_t;
 static int video_decode_hdr;
 
 static int gui_init( NEXUS_SurfaceClientHandle surfaceClient );
+#if USE_SVP && defined(ANDROID)
+static bool setupRuntimeHeaps( bool secureDecoder, bool secureHeap );
+#endif
 
 static int piff_playback_dma_buffer(CommonCryptoHandle commonCryptoHandle, void *dst,
         void *src, size_t size, bool flush)
@@ -173,14 +178,6 @@ static int piff_playback_dma_buffer(CommonCryptoHandle commonCryptoHandle, void 
 
     CommonCrypto_GetDefaultJobSettings(&cryptoJobSettings);
     CommonCrypto_DmaXfer(commonCryptoHandle,  &cryptoJobSettings, &blkSettings, 1);
-
-    if (flush)
-    {
-        /* Need to flush manually the source buffer (non secure heap). We need to flush manually as soon as we copy data into
-           the secure heap. Setting blkSettings[ii].cached = true would also try to flush the destination address in the secure heap
-           which is not accessible. This would cause the whole memory to be flushed at once. */
-        NEXUS_FlushCache(blkSettings.pSrcAddr, blkSettings.blockSize);
-    }
 
     return 0;
 }
@@ -594,10 +591,6 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
 
                     CommonCrypto_GetDefaultJobSettings(&cryptoJobSettings);
                     CommonCrypto_DmaXfer(commonCryptoHandle,  &cryptoJobSettings, blkSettings, blk_idx);
-
-                    for (k = 0; k < blk_idx; k++ ) {
-                        NEXUS_FlushCache(blkSettings[k].pSrcAddr, blkSettings[k].blockSize);
-                    }
 
                     outSize += (num_enc + num_clear - decrypt_offset);
 
@@ -1627,6 +1620,15 @@ int main(int argc, char* argv[])
     NEXUS_SimpleVideoDecoderHandle videoDecoder = NULL;
     NEXUS_SimpleAudioDecoderHandle audioDecoder = NULL;
 
+#ifdef ANDROID
+    NEXUS_SurfaceComposition comp;
+    NEXUS_VideoFormatInfo videoInfo;
+    NEXUS_VideoDecoderCapabilities caps;
+    uint32_t maxDecoderWidth = 1920;
+    uint32_t maxDecoderHeight = 1080;
+    int i;
+#endif
+
     /* DRM_Prdy specific */
     DRM_Prdy_Init_t     prdyParamSettings;
     DRM_Prdy_Handle_t   drm_context;
@@ -1670,10 +1672,21 @@ int main(int argc, char* argv[])
         BDBG_ERR(("Error in NxClient_Join"));
         return -1;
     }
+
+#if VERBOSE_DEBUG
+    BDBG_SetModuleLevel( BDBG_MODULE_NAME, BDBG_eMsg );
+#endif
+
     /* print heaps on server side */
     NEXUS_Memory_PrintHeaps();
 
-
+#if USE_SVP && defined(ANDROID)
+    if ( secure_pic_buffers )
+    {
+        /* Request for Secure heap for secure decoder */
+        (void)setupRuntimeHeaps( true, true );
+    }
+#endif
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.simpleVideoDecoder = 1;
@@ -1745,6 +1758,11 @@ int main(int argc, char* argv[])
         Also, the top-level surfaceClient ID must be submitted to NxClient_ConnectSettings below. */
         surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
         videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
+#ifdef ANDROID
+        NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
+        comp.zorder = 10;   /* try to stay on top most */
+        NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
+#endif
     }
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
@@ -1756,6 +1774,23 @@ int main(int argc, char* argv[])
         * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = true;
     }
+
+#ifdef ANDROID
+    /* Check the decoder capabilities for the highest resolution. */
+    NEXUS_GetVideoDecoderCapabilities(&caps);
+    for ( i = 0; i < (int)caps.numVideoDecoders; i++ )
+    {
+        NEXUS_VideoFormat_GetInfo(caps.memory[i].maxFormat, &videoInfo);
+        if ( videoInfo.width > maxDecoderWidth ) {
+            maxDecoderWidth = videoInfo.width;
+        }
+        if ( videoInfo.height > maxDecoderHeight ) {
+            maxDecoderHeight = videoInfo.height;
+        }
+    }
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxWidth = maxDecoderWidth;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = maxDecoderHeight;
+#endif
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc)
     {
@@ -1832,3 +1867,53 @@ static int gui_init( NEXUS_SurfaceClientHandle surfaceClient )
 
     return 0;
 }
+
+#if USE_SVP && defined(ANDROID)
+static bool setupRuntimeHeaps( bool secureDecoder, bool secureHeap )
+{
+    unsigned i;
+    NEXUS_Error errCode;
+    NEXUS_PlatformConfiguration platformConfig;
+    NEXUS_PlatformSettings platformSettings;
+    NEXUS_MemoryStatus memoryStatus;
+
+    NEXUS_Platform_GetConfiguration(&platformConfig);
+    for (i = 0; i < NEXUS_MAX_HEAPS ; i++)
+    {
+       if (platformConfig.heap[i] != NULL)
+       {
+          errCode = NEXUS_Heap_GetStatus(platformConfig.heap[i], &memoryStatus);
+          if (!errCode && (memoryStatus.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS))
+          {
+             NEXUS_HeapRuntimeSettings settings;
+             bool origin, wanted;
+             NEXUS_Platform_GetHeapRuntimeSettings(platformConfig.heap[i], &settings);
+             origin = settings.secure;
+             wanted = secureHeap ? true : false;
+             if (origin != wanted)
+             {
+                settings.secure = wanted;
+                errCode = NEXUS_Platform_SetHeapRuntimeSettings(platformConfig.heap[i], &settings);
+                if (errCode)
+                {
+                   BDBG_ERR(("NEXUS_Platform_SetHeapRuntimeSettings(%i:%p, %s) on decoder %s -> failed: %d",
+                            i, platformConfig.heap[i], settings.secure?"secure":"open",
+                            secureDecoder?"secure":"open", errCode));
+                   /* Continue anyways, something may still work... */
+                   if (origin && !wanted)
+                   {
+                      BDBG_ERR(("origin %d, wanted %d combination unexpected, continue anyways", origin, wanted));
+                      return false;
+                   }
+                }
+                else
+                {
+                   BDBG_LOG(("NEXUS_Platform_SetHeapRuntimeSettings(%i:%p, %s) on decoder %s -> success", i, platformConfig.heap[i], settings.secure?"secure":"open", secureDecoder?"secure":"open"));
+                }
+             }
+          }
+       }
+    }
+    return true;
+}
+#endif

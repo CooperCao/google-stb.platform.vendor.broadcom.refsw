@@ -61,5 +61,5 @@ void BBOX_P_Vdc_SetBox3DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1, NTSC, NTSC, Invalid, Invalid, Invalid, Class0);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Gfx0,   INVALID, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Gfx0,   INVALID, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 }

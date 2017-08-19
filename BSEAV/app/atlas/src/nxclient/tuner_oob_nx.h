@@ -50,7 +50,7 @@ class CTunerOobNx : public CTunerOob
 public:
     CTunerOobNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

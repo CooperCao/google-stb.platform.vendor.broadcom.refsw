@@ -183,7 +183,7 @@ static void msa_writeTest(BREG_Handle reg, unsigned memc, NEXUS_Addr addr, void 
 }
 
 #define BLOCK_COUNT 4
-static void msa_TestOneMemmc(BREG_Handle reg, unsigned memc, NEXUS_HeapHandle heap)
+static void msa_TestOneMemc(BREG_Handle reg, unsigned memc, NEXUS_HeapHandle heap)
 {
     NEXUS_MemoryBlockHandle memBlock[BLOCK_COUNT];
     NEXUS_Addr unsecureMemory[BLOCK_COUNT];
@@ -193,7 +193,6 @@ static void msa_TestOneMemmc(BREG_Handle reg, unsigned memc, NEXUS_HeapHandle he
     unsigned i;
     NEXUS_Error rc;
     int result;
-    struct msa_data data;
 
     BDBG_LOG(("Allocating memc:%u", memc));
     for(i=0;i<BLOCK_COUNT;i++) {
@@ -214,7 +213,7 @@ static void msa_TestOneMemmc(BREG_Handle reg, unsigned memc, NEXUS_HeapHandle he
         BDBG_ASSERT(rc==NEXUS_SUCCESS);
         rc = NEXUS_MemoryBlock_LockOffset(memBlock[i], &addr);
         BDBG_ASSERT(rc==NEXUS_SUCCESS);
-        BDBG_LOG(("mcmc:%u memory[%u] at " BDBG_UINT64_FMT "(%p)", memc, i, BDBG_UINT64_ARG(addr), ptr[i]));
+        BDBG_LOG(("memc:%u memory[%u] at " BDBG_UINT64_FMT "(%p)", memc, i, BDBG_UINT64_ARG(addr), ptr[i]));
         NEXUS_MemoryBlock_UnlockOffset(memBlock[i]);
     }
 
@@ -305,6 +304,9 @@ int main(int argc, const char *argv[])
     unsigned memcCount;
     unsigned memcTestedCount;
 
+    BSTD_UNUSED(argc);
+    BSTD_UNUSED(argv);
+
     /* Bring up all modules for a platform in a default configuraiton for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
@@ -336,7 +338,7 @@ int main(int argc, const char *argv[])
                         ((status.memoryType&NEXUS_MEMORY_TYPE_APPLICATION_CACHED || status.memoryType&NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED))
                       ) {
                         if(status.free>1*1024*1024) {
-                            msa_TestOneMemmc(&reg, status.memcIndex, heap);
+                            msa_TestOneMemc(&reg, status.memcIndex, heap);
                             memcTestedCount++;
                             memcTested[status.memcIndex] = true;
                         }

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_frontend_sat.h"
@@ -56,7 +55,12 @@
 #endif
 #include "bhab.h"
 #include "bhab_45308.h"
+#if NEXUS_FRONTEND_45308_FW
 #include "bhab_45308_fw.h"
+#endif
+#if NEXUS_FRONTEND_45316_FW
+#include "bhab_45316_fw.h"
+#endif
 #include "priv/nexus_core_img.h"
 #include "priv/nexus_core_img_id.h"
 #include "bhab_satfe_img.h"
@@ -73,7 +77,7 @@ BDBG_OBJECT_ID(NEXUS_45308Device);
 #define DISABLE_45308_ASYNC_INIT 0
 
 #ifndef NEXUS_45308_MAX_FRONTEND_CHANNELS
-#define NEXUS_45308_MAX_FRONTEND_CHANNELS 8
+#define NEXUS_45308_MAX_FRONTEND_CHANNELS 16
 #endif
 
 typedef struct NEXUS_FrontendDevice45308OpenSettings
@@ -140,6 +144,7 @@ typedef struct NEXUS_45308Device
     NEXUS_GpioHandle gpioHandle;
     NEXUS_ThreadHandle deviceOpenThread;
     BIMG_Interface imgInterface;
+    const uint8_t *fw;
 } NEXUS_45308Device;
 
 #if 0
@@ -279,6 +284,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PreInitAP(NEXUS_45308Device 
 #if NEXUS_HAS_FSK
     BFSK_Handle fskHandle;
 #endif
+    NEXUS_45308ProbeResults results;
     unsigned i;
     void *regHandle;
     BERR_Code errCode;
@@ -290,17 +296,49 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PreInitAP(NEXUS_45308Device 
     }
     BKNI_Memset(pInitSettings, 0, sizeof(NEXUS_FrontendDevice_P_45308_InitSettings));
 
+    NEXUS_Frontend_Probe45308(pSettings, &results);
+    BDBG_MSG(("chipid: %x",results.chip.familyId));
+
     BHAB_45308_GetDefaultSettings(&pInitSettings->habSettings);
     {
 #if NEXUS_MODE_driver
-        if (Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_45308, &pInitSettings->habSettings.pImgContext, &pDevice->imgInterface ) == NEXUS_SUCCESS) {
+        const char *img_id = NULL;
+
+        if (results.chip.familyId == 0x45316) {
+#if NEXUS_FRONTEND_45316_FW
+            img_id = NEXUS_CORE_IMG_ID_FRONTEND_45316;
+#else
+            BDBG_ERR(("45316 detected without 45316 firmware, rebuild with NEXUS_FRONTEND_45316=y"));
+#endif
+        } else {
+#if NEXUS_FRONTEND_45308_FW
+            img_id = NEXUS_CORE_IMG_ID_FRONTEND_45308;
+#else
+            BDBG_ERR(("%x detected without 45308 firmware, rebuild with NEXUS_FRONTEND_45308=y", results.chip.familyId));
+#endif
+        }
+        if (Nexus_Core_P_Img_Create(img_id, &pInitSettings->habSettings.pImgContext, &pDevice->imgInterface ) == NEXUS_SUCCESS) {
             pInitSettings->habSettings.pImgInterface = &pDevice->imgInterface;
         } else {
             pInitSettings->habSettings.pImgContext = NULL;
         }
 #else
         pInitSettings->habSettings.pImgInterface = &BHAB_SATFE_IMG_Interface;
-        pInitSettings->habSettings.pImgContext = &BHAB_45308_IMG_Context;
+        if (results.chip.familyId == 0x45316) {
+#if NEXUS_FRONTEND_45316_FW
+            pInitSettings->habSettings.pImgContext = (void *)&BHAB_45316_IMG_Context;
+            pDevice->fw = bcm45316_ap_image;
+#else
+            BDBG_ERR(("45316 detected without 45316 firmware, rebuild with NEXUS_FRONTEND_45316=y"));
+#endif
+        } else {
+#if NEXUS_FRONTEND_45308_FW
+            pInitSettings->habSettings.pImgContext = (void *)&BHAB_45308_IMG_Context;
+            pDevice->fw = bcm45308_ap_image;
+#else
+            BDBG_ERR(("%x detected without 45308 firmware, rebuild with NEXUS_FRONTEND_45308=y", results.chip.familyId));
+#endif
+        }
 #endif
     }
 
@@ -334,11 +372,6 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PreInitAP(NEXUS_45308Device 
 
         BDBG_MSG(("i2cDevice: %p", (void *)pSettings->i2cDevice));
         BDBG_MSG(("BREG_I2C_Handle: %p", (void *)regHandle));
-        {
-            NEXUS_45308ProbeResults results;
-            NEXUS_Frontend_Probe45308(pSettings, &results);
-            BDBG_MSG(("chipid: %x",results.chip.familyId));
-        }
     } else {
         regHandle = NULL;
     }
@@ -373,6 +406,10 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PreInitAP(NEXUS_45308Device 
         }
     }
     else if(pSettings->gpioInterrupt){
+        NEXUS_GpioSettings gpioSettings;
+        NEXUS_Gpio_GetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+        NEXUS_Gpio_SetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
         BDBG_MSG(("Connecting GPIO interrupt"));
         NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt,
                                              NEXUS_Frontend_P_45308_L1_isr,
@@ -460,9 +497,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_InitAP(NEXUS_45308Device *pD
 
     BDBG_WRN(("Initializing 45308 Frontend core..."));
     /* Initialize the acquisition processor */
-#if !NEXUS_MODE_driver
-    fw = bcm45308_ap_image;
-#endif
+    fw = pDevice->fw;
     errCode = BHAB_InitAp(pDevice->satDevice->habHandle, fw);
     if ( errCode ) {
         BDBG_ERR(("Device initialization failed..."));
@@ -587,12 +622,21 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         /* open MXT */
         BMXT_Settings mxtSettings;
         BERR_Code rc;
-        uint32_t val;
+        uint32_t val=0;
         bool encryptTx = false;
 
         BDBG_MSG(("NEXUS_FrontendDevice_Open45308: configuring MXT"));
+        rc = BHAB_ReadRegister(pDevice->satDevice->habHandle, 0x7020400, &val);
+        if (rc) {
+            BERR_TRACE(rc);
+        }
 
-        BMXT_45308_GetDefaultSettings(&mxtSettings);
+        BMXT_GetDefaultSettings(&mxtSettings);
+        if (val && (((val & 0xFFFFFF00)>>8)==0x45316)) {
+            mxtSettings.chip = BMXT_Chip_e45316;
+        } else {
+            mxtSettings.chip = BMXT_Chip_e45308;
+        }
         mxtSettings.hHab = pDevice->satDevice->habHandle;
 
         NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
@@ -601,22 +645,29 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         for (i=0; i<BMXT_NUM_MTSIF; i++) {
             mxtSettings.MtsifTxCfg[i].Enable = true;
             mxtSettings.MtsifTxCfg[i].Encrypt = encryptTx;
+            mxtSettings.MtsifTxCfg[i].TxClockPolarity = 0;
         }
-
-        mxtSettings.MtsifTxCfg[0].TxClockPolarity = 0;
-        mxtSettings.MtsifTxCfg[1].TxClockPolarity = 0;
 
         mxtSettings.MtsifRxCfg[0].Enable = true;
         mxtSettings.MtsifRxCfg[0].RxClockPolarity = 1;
         NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
         mxtSettings.MtsifRxCfg[0].Decrypt = NEXUS_TransportModule_P_IsMtsifEncrypted();
         NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
-        if (!BHAB_ReadRegister(pDevice->satDevice->habHandle, 0x7020400, &val)) {
-            if (val >> 4) { /* treat any non-zero as B0. MXT only cares between A0 and B0 */
-                mxtSettings.chipRev = BMXT_ChipRev_eB0;
-            }
-            else {
+        if (val) {
+            switch (val & 0xFF) {
+            case 0x00:
                 mxtSettings.chipRev = BMXT_ChipRev_eA0;
+                break;
+            case 0x10:
+                mxtSettings.chipRev = BMXT_ChipRev_eB0;
+                break;
+            case 0x20:
+                mxtSettings.chipRev = BMXT_ChipRev_eC0;
+                break;
+            default:
+                BDBG_WRN(("Unrecognized chip revision, defaulting to C0"));
+                mxtSettings.chipRev = BMXT_ChipRev_eC0;
+                break;
             }
         }
 
@@ -787,6 +838,22 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                 val |= str;
                 e = BHAB_WriteRegister(pDevice->satDevice->habHandle, driveAddr, &val);
                 if (e) BERR_TRACE(e);
+            }
+
+            {
+                /* enable half-stagger */
+                uint32_t staggerAddr;
+
+                staggerAddr = 0x7105200 + 0x100*i;
+                val = 0x98;
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, staggerAddr, &val);
+                if (e) BERR_TRACE(e);
+
+                staggerAddr += 0x4;
+                val = 0x76543210 ;
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, staggerAddr, &val);
+                if (e) BERR_TRACE(e);
+
             }
         }
     }
@@ -1073,7 +1140,11 @@ static void NEXUS_Frontend_P_Uninit45308(NEXUS_45308Device *pDevice)
     if (pDevice->settings.isrNumber) {
         NEXUS_Core_DisconnectInterrupt(pDevice->settings.isrNumber);
     } else if (pDevice->settings.gpioInterrupt) {
+        NEXUS_GpioSettings gpioSettings;
         NEXUS_Gpio_SetInterruptCallback_priv(pDevice->settings.gpioInterrupt, NULL, NULL, 0);
+        NEXUS_Gpio_GetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+        NEXUS_Gpio_SetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
     }
 
     if (pDevice->satDevice) {
@@ -1736,7 +1807,7 @@ static uint32_t NEXUS_Platform_P_I2c_Get45308ChipId(NEXUS_I2cHandle i2cDevice, u
 #define DEBUG_SPI_READS 0
 static uint32_t NEXUS_Platform_P_Spi_Get45308ChipId(NEXUS_SpiHandle spiDevice, uint16_t spiAddr)
 {
-    uint16_t chipId=0;
+    uint32_t chipId=0;
     uint8_t wData[2], rData[8];
     NEXUS_Error rc;
 

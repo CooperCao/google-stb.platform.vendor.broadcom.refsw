@@ -3,22 +3,56 @@
  *  (-v for debugging, not needed for release).
  *  (-d to produce glsl_parser.h, NEEDED for release).
  */
-
 %{
+%}
+
+%code requires {
+   #include "glsl_common.h"
+   #include "glsl_layout.h"
+   #include "glsl_intrinsic.h"
+
+   typedef enum {
+      CALL_CONTEXT_FUNCTION,
+      CALL_CONTEXT_CONSTRUCTOR,
+      CALL_CONTEXT_INTRINSIC
+   } CallContextFlavour;
+
+   struct CallContext {
+      CallContextFlavour flavour;
+
+      union {
+         struct {
+            Symbol *symbol;
+         } function;
+
+         struct {
+            SymbolType *type;
+         } constructor;
+
+         struct {
+            glsl_intrinsic_index_t flavour;
+         } intrinsic;
+      } u;
+   };
+}
+
+%code provides {
+   extern Statement *glsl_parse_ast(ShaderFlavour flavour, int version, int sourcec, const char * const *sourcev);
+}
+
+%code {
    #include <stdlib.h>
    #include <stdio.h>
    #include <string.h>
    #include <limits.h>
    #include <assert.h>
 
-   #include "glsl_common.h"
    #include "glsl_symbols.h"
    #include "glsl_errors.h"
    #include "glsl_intern.h"
    #include "glsl_globals.h"
    #include "glsl_builders.h"
    #include "glsl_extensions.h"
-   #include "glsl_intrinsic.h"
    #include "glsl_ast.h"
    #include "glsl_ast_visitor.h"
    #include "glsl_symbol_table.h"
@@ -29,11 +63,6 @@
    #include "glsl_unique_index_queue.h"
 
    #include "glsl_quals.h"
-   #include "glsl_layout.h"
-
-   // External declaration of glsl_parse_ast(). This is hacky, but putting it in the right place (glsl_parser.h)
-   // fails due to windows/windef.h namespace conflicts.
-   #include "glsl_compiler.h"
 
    #include "prepro/glsl_prepro_token.h"
    #include "prepro/glsl_prepro_expand.h"
@@ -99,7 +128,9 @@
 
       state.dflt.buffer_layout  = LAYOUT_SHARED | LAYOUT_COLUMN_MAJOR;
       state.dflt.uniform_layout = LAYOUT_SHARED | LAYOUT_COLUMN_MAJOR;
-      state.dflt.input_size     = 0;
+      /* T+G shaders can have default sizes for in/out arrays. 0 means no default *
+       * (but one may be set via a layout qualifier)                              */
+      state.dflt.input_size     = (flavour == SHADER_TESS_CONTROL || flavour == SHADER_TESS_EVALUATION) ? 32 : 0;
       state.dflt.output_size    = 0;
 
       for (int i=0; i<GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS; i++)
@@ -297,7 +328,7 @@
       if (array_size != NULL)
          type = glsl_build_array_type(type, array_size);
 
-      Symbol *block_symbol = glsl_commit_block_type(state->symbol_table, type, &q);
+      Symbol *block_symbol = glsl_commit_block_type(state->symbol_table, &state->dflt, type, &q);
 
       if (instance_name)
          glsl_commit_var_instance(state->symbol_table, instance_name, type, &q, NULL);
@@ -306,7 +337,7 @@
 
       return glsl_statement_construct_var_decl(g_LineNumber, quals, type, block_symbol, NULL);
    }
-%}
+}
 
 // Create a reentrant, pure parser:
 %define api.pure
@@ -325,7 +356,7 @@
    struct { const char *name; Symbol *symbol; } lookup;
    Symbol *symbol;
    SymbolList *symbol_list;
-   CallContext call_context;
+   struct CallContext call_context;
    struct { const char *name; SymbolType *type; } func_proto;
    ExprFlavour expr_flavour;
    Expr *expr;
@@ -755,7 +786,8 @@ function_call
    /* Here 'force_identifier' and 'unforce_identifier' are needed to avoid a
       conflict with the third derivation rule for 'postfix_expression' */
    | postfix_expression force_identifier DOT function_identifier unforce_identifier LEFT_PAREN RIGHT_PAREN {
-       $$ = glsl_expr_construct_method_call(g_LineNumber, $1, &($4));
+       assert($4.flavour == CALL_CONTEXT_FUNCTION);
+       $$ = glsl_expr_construct_method_call(g_LineNumber, $1, $4.u.function.symbol);
    }
    ;
 

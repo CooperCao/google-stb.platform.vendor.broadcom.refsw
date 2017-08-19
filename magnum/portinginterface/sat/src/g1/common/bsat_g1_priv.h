@@ -230,6 +230,7 @@ typedef struct BSAT_g1_P_AcmStatus
 {
    BSAT_Mode mode;
    bool    bSpinv;
+   bool    bPilot;
    uint8_t modcod;
    uint8_t type;
 } BSAT_g1_P_AcmStatus;
@@ -490,6 +491,7 @@ bool BSAT_g1_P_IsSdsOn(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_SdsPowerUp(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_SdsPowerDown(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_GetAgcStatus(BSAT_ChannelHandle h, BSAT_AgcStatus *pStatus);
+BERR_Code BSAT_g1_P_ValidateAcqParams(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams);
 #ifndef BSAT_EXCLUDE_AFEC
 BERR_Code BSAT_g1_P_AfecPowerUp_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_AfecPowerDown_isrsafe(BSAT_ChannelHandle h);
@@ -671,6 +673,7 @@ BERR_Code BSAT_g1_P_GetSnr(BSAT_ChannelHandle h, uint32_t *pSnr);
 BERR_Code BSAT_g1_P_GetSnr_isr(BSAT_ChannelHandle h, uint32_t *pSnr);
 
 /* functions in bsat_g1_priv_plc.c */
+BERR_Code BSAT_g1_P_SetPlc_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t damp);
 BERR_Code BSAT_g1_P_ConfigPlc_isr(BSAT_ChannelHandle h, bool bAcq);
 
 /* functions in bsat_g1_priv_sa.c */

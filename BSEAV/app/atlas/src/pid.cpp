@@ -56,7 +56,7 @@ eRet CPid::parseAudio(MXmlElement * xmlElemPid)
     MString          strAudio;
     NEXUS_AudioCodec audioType = NEXUS_AudioCodec_eUnknown;
 
-    uint16_t audioPidNum = 0;
+    unsigned audioPidNum = 0;
 
     strAudio = xmlElemPid->attrValue(XML_ATT_AUDIOTYPE);
     if (!strAudio || !strAudio.strncmp("", 1))
@@ -123,7 +123,7 @@ eRet CPid::parseVideo(MXmlElement * xmlElemPid)
     MString              strVideo;
     NEXUS_VideoCodec     videoType      = NEXUS_VideoCodec_eUnknown;
     NEXUS_VideoFrameRate videoFrameRate = NEXUS_VideoFrameRate_eUnknown;
-    uint16_t             videoPidNum    = 0;
+    unsigned             videoPidNum    = 0;
 
     strVideo = xmlElemPid->attrValue(XML_ATT_VIDEOTYPE);
     if (!strVideo || !strVideo.strncmp("", 1))
@@ -267,7 +267,7 @@ void CPid::readXML(MXmlElement * xmlElemPid)
 } /* readXML */
 
 CPid::CPid(
-        uint16_t pid,
+        unsigned pid,
         ePidType type
         ) :
     _pid(pid),
@@ -300,7 +300,7 @@ CPid::CPid(
 }
 
 CPid::CPid(
-        uint16_t         pid,
+        unsigned         pid,
         NEXUS_VideoCodec videoCodec
         ) :
     _pid(pid),
@@ -333,7 +333,7 @@ CPid::CPid(
 }
 
 CPid::CPid(
-        uint16_t         pid,
+        unsigned         pid,
         NEXUS_AudioCodec audioCodec
         ) :
     _pid(pid),
@@ -653,7 +653,7 @@ eRet CPid::open(CPlaypump * pPlaypump)
 
     if (_pCrypto)
     {
-        BDBG_MSG(("%s About to loadKey, H ", __FUNCTION__));
+        BDBG_MSG(("%s About to loadKey, H ", BSTD_FUNCTION));
         _pCrypto->loadKey(NULL, _pidChannel);
     }
     BDBG_MSG(("pid channel %p successful", (void *)_pidChannel));
@@ -700,7 +700,7 @@ eRet CPid::open(CPlayback * pPlayback)
 
     if (_pCrypto)
     {
-        BDBG_MSG(("%s About to loadKey T", __FUNCTION__));
+        BDBG_MSG(("%s About to loadKey T", BSTD_FUNCTION));
         _pCrypto->loadKey(NULL, _pidChannel);
     }
 
@@ -838,7 +838,7 @@ eRet CPid::open(CRecord * pRecord)
 done:
     if (_pCrypto)
     {
-        BDBG_MSG(("%s About to loadKey Z ", __FUNCTION__));
+        BDBG_MSG(("%s About to loadKey Z ", BSTD_FUNCTION));
         _pCrypto->loadKey(NULL, _pidChannel);
     }
 error:
@@ -854,7 +854,7 @@ eRet CPid::close(void)
     if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        BDBG_MSG(("Key is removed %s--Regular", __FUNCTION__));
+        BDBG_MSG(("Key is removed %s--Regular", BSTD_FUNCTION));
     }
     NEXUS_PidChannel_Close(_pidChannel);
 
@@ -875,7 +875,7 @@ eRet CPid::close(CPlaypump * pPlaypump)
     if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        BDBG_MSG(("Key is removed %s(pPlaypump)", __FUNCTION__));
+        BDBG_MSG(("Key is removed %s(pPlaypump)", BSTD_FUNCTION));
     }
 
     nerror = NEXUS_Playpump_ClosePidChannel(pPlaypump->getPlaypump(), _pidChannel);
@@ -897,7 +897,7 @@ eRet CPid::close(CPlayback * pPlayback)
     if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        BDBG_MSG(("Key is removed %s(pPlayback)", __FUNCTION__));
+        BDBG_MSG(("Key is removed %s(pPlayback)", BSTD_FUNCTION));
     }
     NEXUS_Playback_ClosePidChannel(pPlayback->getPlayback(), _pidChannel);
 
@@ -922,7 +922,7 @@ eRet CPid::close(CRecord * pRecord)
     if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        BDBG_MSG(("key is removed %s(pRecord)", __FUNCTION__));
+        BDBG_MSG(("key is removed %s(pRecord)", BSTD_FUNCTION));
     }
 
 error:

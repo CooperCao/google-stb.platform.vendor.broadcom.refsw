@@ -122,11 +122,13 @@ BERR_Code BVBI_P_WSS_Init( BVBI_P_Handle *pVbi )
     BDBG_ENTER(BVBI_P_WSS_Init);
 
     /* Initialize WSS encoders */
+#if (BVBI_NUM_WSE > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_WSE ; ++hwIndex)
         BVBI_P_WSS_Enc_Init (pVbi->hReg, hwIndex);
+#endif
 #if (BVBI_NUM_WSE_656 > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_WSE_656 ; ++hwIndex)
-        BVBI_P_WSS_656_Enc_Init (pVbi->hReg, hwIndex);
+        BVBI_P_WSS_Enc_656_Init (pVbi->hReg, hwIndex);
 #endif
 
     BDBG_LEAVE(BVBI_P_WSS_Init);

@@ -54,7 +54,7 @@ class CAudioCaptureClient : public CResource
 public:
     CAudioCaptureClient(
             const char *         name,
-            const uint16_t       number,
+            const unsigned       number,
             const eBoardResource type,
             CConfiguration *     pCfg
             );

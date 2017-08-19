@@ -66,6 +66,8 @@ int           g_MegaBytes           = 0;                   /* set to 1 when user
 int           g_MegaBytesDivisor[2] = {1, 8};
 char         *g_MegaBytesStr[2] = {"Mbps", "MBps"};
 bmemperf_info g_bmemperf_info;
+bsysperf_netStatistics g_netStats[NET_STATS_MAX];
+int                    g_netStatsIdx = -1;                 /* index to entries added to g_netStats array */
 
 #define PRINTFLOG noprintf
 #define BCHP_ACQUIRE_BVN 0

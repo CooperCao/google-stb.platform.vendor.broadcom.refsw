@@ -39,7 +39,7 @@
 #ifndef __BMEMPERF_POWERPROBE_H__
 #define __BMEMPERF_POWERPROBE_H__
 
-void bmemperf_send_data( int socket_fd, const char * const Caller, int iswrite, const char *tagname, const char *data, int len);
-int  bmemperf_get_response ( const char * const Caller, int socket_fd, const char * const ExpectedResponse, char * ActualResponse, int ActualResponseLen );
+void bmemperf_send_data( int socket_fd, const char * const Caller, int iswrite, const char *tagname, const char *data, int len, const char *logfile );
+int  bmemperf_get_response ( const char * const Caller, int socket_fd, const char * const ExpectedResponse, char * ActualResponse, int ActualResponseLen, const char *logfile );
 
 #endif /* __BMEMPERF_POWERPROBE_H__ */

@@ -125,16 +125,13 @@ static void NEXUS_AudioModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
     unsigned i,j;
-    NEXUS_AudioCapabilities audioCapabilities;
-
-    NEXUS_GetAudioCapabilities(&audioCapabilities);
     BDBG_LOG(("Audio:"));
 
     BDBG_LOG((" handles: ape:%p dsp:%p", (void *)g_NEXUS_audioModuleData.apeHandle, (void *)g_NEXUS_audioModuleData.dspHandle));
     BDBG_LOG((" img ctxt:%p", (void *)g_NEXUS_audioModuleData.pImageContext));
     BDBG_LOG((" settings: wd:%d id:%d",g_NEXUS_audioModuleData.settings.watchdogEnabled,g_NEXUS_audioModuleData.settings.independentDelay));
 
-    for (i=0; i < audioCapabilities.numDecoders; i++) {
+    for (i=0; i < g_NEXUS_audioModuleData.capabilities.numDecoders; i++) {
         NEXUS_AudioDecoderStatus status;
         NEXUS_AudioDecoderHandle handle = g_decoders[i];
         if (handle) {
@@ -182,7 +179,7 @@ static void NEXUS_AudioModule_Print(void)
         }
     }
 
-    for (i=0; i < audioCapabilities.numPlaybacks; i++) {
+    for (i=0; i < g_NEXUS_audioModuleData.capabilities.numPlaybacks; i++) {
         NEXUS_AudioPlaybackHandle playbackHandle = NEXUS_AudioPlayback_P_GetPlaybackByIndex(i);
         if (playbackHandle)
         {
@@ -201,31 +198,38 @@ static void NEXUS_AudioModule_Print(void)
         }
     }
 
-    for (i=0; i < audioCapabilities.numMixers; i++) {
+    for (i=0; i < g_NEXUS_audioModuleData.capabilities.numMixers; i++) {
         NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioMixer_P_GetMixerByIndex(i);
-        NEXUS_AudioMixerSettings mixerSettings;
         if (mixerHandle)
         {
-            NEXUS_AudioMixer_GetSettings(mixerHandle, &mixerSettings);
+            NEXUS_AudioMixerSettings * pMixerSettings;
+            pMixerSettings = BKNI_Malloc(sizeof(NEXUS_AudioMixerSettings));
+            if ( pMixerSettings == NULL )
+            {
+                BDBG_ERR(("Unable to allocate memory for NEXUS_AudioMixerSettings"));
+                BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                return;
+            }
+            NEXUS_AudioMixer_GetSettings(mixerHandle, pMixerSettings);
 
             BDBG_LOG((" MIXER%d: (%p)", i, (void *)mixerHandle));
-            if (mixerSettings.mixUsingDsp)
+            if (pMixerSettings->mixUsingDsp)
             {
                 BDBG_LOG(("  type: DSP, DSP Index %d, started=%c",
-                    mixerSettings.dspIndex, NEXUS_AudioMixer_P_IsStarted(mixerHandle)?'y':'n'));
+                    pMixerSettings->dspIndex, NEXUS_AudioMixer_P_IsStarted(mixerHandle)?'y':'n'));
             }
             else
             {
                 BDBG_LOG(("  type: FMM"));
             }
+
+            BKNI_Free(pMixerSettings);
+            pMixerSettings = NULL;
         }
     }
 
-    {
-        BAPE_Capabilities apeCaps;
-        BAPE_GetCapabilities(g_NEXUS_audioModuleData.apeHandle, &apeCaps);
-        BDBG_LOG(("DSP Firmware Version %s", apeCaps.dsp.versionInfo));
-    }
+    BDBG_LOG(("DSP Firmware Version %s", g_NEXUS_audioModuleData.firmwareVersionInfo));
+
 #endif
 }
 
@@ -446,6 +450,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     for (i=0;i<NEXUS_MAX_MEMC;i++) {
         /* DSP is unable to access above region[0] on each MEMC */
         raagaSettings.memc[i].baseAddress = g_pCoreHandles->memoryLayout.memc[i].region[0].addr;
+        raagaSettings.memc[i].size = g_pCoreHandles->memoryLayout.memc[i].region[0].size;
         raagaSettings.memc[i].stripeWidth = memoryInfo.memc[i].ulStripeWidth;
     }
 
@@ -934,6 +939,8 @@ void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
 
     BKNI_Memset(pCaps, 0, sizeof(NEXUS_AudioCapabilities));
 
+    BKNI_Memcpy(&g_NEXUS_audioModuleData.firmwareVersionInfo, &apeCaps.dsp.versionInfo, sizeof(apeCaps.dsp.versionInfo));
+
     #ifdef NEXUS_NUM_HDMI_INPUTS
     pCaps->numInputs.hdmi = NEXUS_NUM_HDMI_INPUTS < apeCaps.numInputs.mai ? NEXUS_NUM_HDMI_INPUTS : apeCaps.numInputs.mai;
     #endif
@@ -1205,6 +1212,17 @@ void NEXUS_AudioModule_GetDefaultUsageSettings(
     #endif
 }
 
+typedef struct {
+    BAPE_Settings apeSettings;
+    BAPE_MemoryEstimate apeEstimate;
+    #if BAPE_DSP_SUPPORT
+    BDSP_RaagaSettings dspSettings;
+    BDSP_RaagaUsageOptions dspUsage;
+    BDSP_RaagaMemoryEstimate dspEstimate;
+    #endif
+    NEXUS_AudioModuleSettings audioModuleSettings;
+    NEXUS_AudioModuleUsageSettings usageSettings;
+} NEXUS_P_AudioMemoryEstimateData;
 /**
 Summary:
 Get Memory Estimate
@@ -1219,15 +1237,7 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     NEXUS_AudioModuleMemoryEstimate *pEstimate  /* [out] */
     )
 {
-    BAPE_Settings apeSettings;
-    BAPE_MemoryEstimate apeEstimate;
-    #if BAPE_DSP_SUPPORT
-    BDSP_RaagaSettings dspSettings;
-    BDSP_RaagaUsageOptions dspUsage;
-    BDSP_RaagaMemoryEstimate dspEstimate;
-    #endif
-    NEXUS_AudioModuleSettings audioModuleSettings;
-    NEXUS_AudioModuleUsageSettings usageSettings;
+    NEXUS_P_AudioMemoryEstimateData * pEstData = NULL;
     bool compressed4xAlgoEnabled = false;
     bool compressed16xAlgoEnabled = false;
     bool volumeLevelorEnabled = false;
@@ -1235,26 +1245,34 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
 
     BDBG_ASSERT(NULL != pSettings);
     BDBG_ASSERT(NULL != pEstimate);
+
+    pEstData = BKNI_Malloc(sizeof(NEXUS_P_AudioMemoryEstimateData));
+    if ( pEstData == NULL )
+    {
+        BDBG_ERR(("Unable to allocate memory for NEXUS_P_AudioMemoryEstimateData"));
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+
     BKNI_Memset(pEstimate, 0, sizeof(NEXUS_AudioModuleMemoryEstimate));
-    BKNI_Memcpy(&usageSettings, pSettings, sizeof(NEXUS_AudioModuleUsageSettings));
+    BKNI_Memcpy(&(pEstData->usageSettings), pSettings, sizeof(NEXUS_AudioModuleUsageSettings));
 
     /* Get defaults */
-    NEXUS_AudioModule_GetDefaultSettings(NULL, &audioModuleSettings);
-    BAPE_GetDefaultSettings(&apeSettings);
+    NEXUS_AudioModule_GetDefaultSettings(NULL, &(pEstData->audioModuleSettings));
+    BAPE_GetDefaultSettings(&(pEstData->apeSettings));
     #if BAPE_DSP_SUPPORT
-    BDSP_Raaga_GetDefaultSettings(&dspSettings);
-    BKNI_Memset(&dspUsage, 0, sizeof(BDSP_RaagaUsageOptions));
+    BDSP_Raaga_GetDefaultSettings(&(pEstData->dspSettings));
+    BKNI_Memset(&(pEstData->dspUsage), 0, sizeof(BDSP_RaagaUsageOptions));
 
     /* Enable Decoders */
     for ( i=0; i<NEXUS_AudioCodec_eMax; i++ )
     {
-        if ( usageSettings.decodeCodecEnabled[i] )
+        if ( pEstData->usageSettings.decodeCodecEnabled[i] )
         {
             BDSP_Algorithm bdspAlgo = BAPE_GetCodecAudioDecode(NEXUS_Audio_P_CodecToMagnum((NEXUS_AudioCodec)i));
             if (bdspAlgo != BDSP_Algorithm_eMax)
             {
                 /* Adjust AAC codecs to override compile defines */
-                if ( usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS12 )
+                if ( pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS12 )
                 {
                     switch ( bdspAlgo )
                     {
@@ -1278,8 +1296,8 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
                         break;
                     }
                 }
-                if ( usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS10 ||
-                     usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS11 )
+                if ( pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS10 ||
+                     pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS11 )
                 {
                     switch ( bdspAlgo )
                     {
@@ -1301,8 +1319,8 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
                         break;
                     }
                 }
-                else if ( usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eAc3 ||
-                          usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eAc3Plus )
+                else if ( pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eAc3 ||
+                          pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eAc3Plus )
                 {
                     switch ( bdspAlgo )
                     {
@@ -1324,18 +1342,18 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
                         break;
                     }
                 }
-                dspUsage.Codeclist[bdspAlgo] = true;
+                pEstData->dspUsage.Codeclist[bdspAlgo] = true;
                 BDBG_MODULE_MSG(nexus_audio_memest, ("Nexus Audio Decode Codec %d (BDSP Algo %d) enabled", i, bdspAlgo));
 
                 /* Add associated Passthrough codec if applicable */
                 bdspAlgo = BAPE_GetCodecAudioPassthrough(NEXUS_Audio_P_CodecToMagnum((NEXUS_AudioCodec)i));
                 if (bdspAlgo != BDSP_Algorithm_eMax)
                 {
-                    dspUsage.Codeclist[bdspAlgo] = true;
+                    pEstData->dspUsage.Codeclist[bdspAlgo] = true;
                 }
                 if (BAPE_CodecRequiresSrc(NEXUS_Audio_P_CodecToMagnum((NEXUS_AudioCodec)i)))
                 {
-                    usageSettings.postProcessingEnabled[NEXUS_AudioPostProcessing_eSampleRateConverter] = true;
+                    pEstData->usageSettings.postProcessingEnabled[NEXUS_AudioPostProcessing_eSampleRateConverter] = true;
                 }
                 if ( BAPE_CodecSupportsCompressed4x(NEXUS_Audio_P_CodecToMagnum((NEXUS_AudioCodec)i)) )
                 {
@@ -1354,26 +1372,26 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     /* Enable Encoders */
     for ( i=0; i<NEXUS_AudioCodec_eMax; i++ )
     {
-        if ( usageSettings.encodeCodecEnabled[i] )
+        if ( pEstData->usageSettings.encodeCodecEnabled[i] )
         {
             BDSP_Algorithm bdspAlgo = BAPE_GetCodecAudioEncode(NEXUS_Audio_P_CodecToMagnum((NEXUS_AudioCodec)i));
             if ( bdspAlgo != BDSP_Algorithm_eMax )
             {
-                dspUsage.Codeclist[bdspAlgo] = true;
+                pEstData->dspUsage.Codeclist[bdspAlgo] = true;
                 BDBG_MODULE_MSG(nexus_audio_memest, ("Nexus Audio Encode Codec %d (BDSP Algo %d) enabled", i, bdspAlgo));
             }
         }
     }
 
     /* Make this calculation internally (below) to simplify application code */
-    usageSettings.numPostProcessing = 0;
-    switch ( usageSettings.dolbyCodecVersion )
+    pEstData->usageSettings.numPostProcessing = 0;
+    switch ( pEstData->usageSettings.dolbyCodecVersion )
     {
     case NEXUS_AudioDolbyCodecVersion_eMS12:
         /* tbd */
         break;
     case NEXUS_AudioDolbyCodecVersion_eMS11:
-        usageSettings.numPostProcessing += 2; /* DDRE + DV258 */
+        pEstData->usageSettings.numPostProcessing += 2; /* DDRE + DV258 */
         volumeLevelorEnabled = true;
         break;
     default:
@@ -1384,12 +1402,12 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     /* Enable Generic Post Processing */
     for ( i=0; i<NEXUS_AudioPostProcessing_eMax; i++ )
     {
-        if ( usageSettings.postProcessingEnabled[i] )
+        if ( pEstData->usageSettings.postProcessingEnabled[i] )
         {
             BDSP_Algorithm bdspAlgo = NEXUS_Audio_P_PostProcessingToBdspAlgo(i);
             if ( bdspAlgo != BDSP_Algorithm_eMax )
             {
-                dspUsage.Codeclist[bdspAlgo] = bdspAlgo;
+                pEstData->dspUsage.Codeclist[bdspAlgo] = bdspAlgo;
 
                 /* Add to PP list? */
                 switch ( i )
@@ -1399,11 +1417,11 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
                     if ( !volumeLevelorEnabled )
                     {
                         volumeLevelorEnabled = true;
-                        usageSettings.numPostProcessing++;
+                        pEstData->usageSettings.numPostProcessing++;
                     }
                     break;
                 default:
-                    usageSettings.numPostProcessing++;
+                    pEstData->usageSettings.numPostProcessing++;
                     break;
                 }
             }
@@ -1411,11 +1429,11 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     }
 
     /* Enable Dolby Post Processing */
-    switch ( usageSettings.dolbyCodecVersion )
+    switch ( pEstData->usageSettings.dolbyCodecVersion )
     {
     case NEXUS_AudioDolbyCodecVersion_eMS11:
-        dspUsage.Codeclist[BDSP_Algorithm_eDdre] = true;
-        dspUsage.Codeclist[BDSP_Algorithm_eDv258] = true;
+        pEstData->dspUsage.Codeclist[BDSP_Algorithm_eDdre] = true;
+        pEstData->dspUsage.Codeclist[BDSP_Algorithm_eDv258] = true;
         break;
     default:
     case NEXUS_AudioDolbyCodecVersion_eMS10:
@@ -1427,75 +1445,81 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     #endif
 
     /* Set up APE usage settings */
-    apeSettings.maxIndependentDelay = usageSettings.maxIndependentDelay;
-    apeSettings.numPcmBuffers = (usageSettings.maxDecoderOutputChannels / 2) + 1;
-    apeSettings.maxPcmSampleRate = usageSettings.maxDecoderOutputSamplerate;
-    apeSettings.numCompressedBuffers = usageSettings.numPassthroughDecoders;
-    apeSettings.numCompressed4xBuffers = apeSettings.numCompressed16xBuffers = 0;
-    if ( usageSettings.numHbrPassthroughDecoders && compressed16xAlgoEnabled )
+    pEstData->apeSettings.maxIndependentDelay = pEstData->usageSettings.maxIndependentDelay;
+    pEstData->apeSettings.numPcmBuffers = (pEstData->usageSettings.maxDecoderOutputChannels / 2) + 1;
+    pEstData->apeSettings.maxPcmSampleRate = pEstData->usageSettings.maxDecoderOutputSamplerate;
+    pEstData->apeSettings.numCompressedBuffers = pEstData->usageSettings.numPassthroughDecoders;
+    pEstData->apeSettings.numCompressed4xBuffers = pEstData->apeSettings.numCompressed16xBuffers = 0;
+    if ( pEstData->usageSettings.numHbrPassthroughDecoders && compressed16xAlgoEnabled )
     {
-        apeSettings.numCompressed16xBuffers = usageSettings.numHbrPassthroughDecoders;
+        pEstData->apeSettings.numCompressed16xBuffers = pEstData->usageSettings.numHbrPassthroughDecoders;
     }
-    if ( usageSettings.numPassthroughDecoders && compressed4xAlgoEnabled && apeSettings.numCompressed16xBuffers == 0 )
+    if ( pEstData->usageSettings.numPassthroughDecoders && compressed4xAlgoEnabled && pEstData->apeSettings.numCompressed16xBuffers == 0 )
     {
-        apeSettings.numCompressed4xBuffers = usageSettings.numPassthroughDecoders;
+        pEstData->apeSettings.numCompressed4xBuffers = pEstData->usageSettings.numPassthroughDecoders;
     }
 
     BDBG_MODULE_MSG(nexus_audio_memest, ("FMM USAGE: maxIndDelay %d ms, numPcmBuffers %d, maxPcmSR %d, numCompBuffers %d, numComp16xBuffers %d, numComp4xBuffers %d",
-              apeSettings.maxIndependentDelay,
-              apeSettings.numPcmBuffers,
-              apeSettings.maxPcmSampleRate,
-              apeSettings.numCompressedBuffers,
-              apeSettings.numCompressed16xBuffers,
-              apeSettings.numCompressed4xBuffers));
+              pEstData->apeSettings.maxIndependentDelay,
+              pEstData->apeSettings.numPcmBuffers,
+              pEstData->apeSettings.maxPcmSampleRate,
+              pEstData->apeSettings.numCompressedBuffers,
+              pEstData->apeSettings.numCompressed16xBuffers,
+              pEstData->apeSettings.numCompressed4xBuffers));
 
-    BAPE_GetMemoryEstimate(&apeSettings, &apeEstimate);
-    BDBG_MODULE_MSG(nexus_audio_memest, ("FMM USAGE: %d bytes", apeEstimate.general));
+    BAPE_GetMemoryEstimate(&(pEstData->apeSettings), &(pEstData->apeEstimate));
+    BDBG_MODULE_MSG(nexus_audio_memest, ("FMM USAGE: %d bytes", pEstData->apeEstimate.general));
 
     #if BAPE_DSP_SUPPORT
     #if BDBG_DEBUG_BUILD
     for ( i=0; i<BDSP_Algorithm_eMax; i++ )
     {
-        if ( dspUsage.Codeclist[i] )
+        if ( pEstData->dspUsage.Codeclist[i] )
         {
             BDBG_MODULE_MSG(nexus_audio_memest, ("DSP ALGO %d enabled", i));
         }
     }
     #endif
 
-    dspUsage.NumAudioDecoders = usageSettings.numDecoders;
-    dspUsage.NumAudioEncoders = usageSettings.numEncoders;
-    dspUsage.NumAudioPassthru = usageSettings.numPassthroughDecoders;
-    dspUsage.NumAudioMixers = usageSettings.numDspMixers;
-    dspUsage.NumAudioPostProcesses = usageSettings.numPostProcessing;
-    dspUsage.NumAudioEchocancellers = usageSettings.numEchoCancellers;
-    dspUsage.IntertaskBufferDataType = (usageSettings.maxDecoderOutputChannels == 8) ? BDSP_DataType_ePcm7_1 : BDSP_DataType_ePcm5_1;
+    pEstData->dspUsage.NumAudioDecoders = pEstData->usageSettings.numDecoders;
+    pEstData->dspUsage.NumAudioEncoders = pEstData->usageSettings.numEncoders;
+    pEstData->dspUsage.NumAudioPassthru = pEstData->usageSettings.numPassthroughDecoders;
+    pEstData->dspUsage.NumAudioMixers = pEstData->usageSettings.numDspMixers;
+    pEstData->dspUsage.NumAudioPostProcesses = pEstData->usageSettings.numPostProcessing;
+    pEstData->dspUsage.NumAudioEchocancellers = pEstData->usageSettings.numEchoCancellers;
+    pEstData->dspUsage.IntertaskBufferDataType = (pEstData->usageSettings.maxDecoderOutputChannels == 8) ? BDSP_DataType_ePcm7_1 : BDSP_DataType_ePcm5_1;
     BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eAc3 == (int)BDSP_AudioDolbyCodecVersion_eAC3);
     BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eAc3Plus == (int)BDSP_AudioDolbyCodecVersion_eDDP);
     BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMS10 == (int)BDSP_AudioDolbyCodecVersion_eMS10);
     BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMS11 == (int)BDSP_AudioDolbyCodecVersion_eMS11);
     BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMS12 == (int)BDSP_AudioDolbyCodecVersion_eMS12);
     BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMax == (int)BDSP_AudioDolbyCodecVersion_eMax);
-    dspUsage.DolbyCodecVersion = (BDSP_AudioDolbyCodecVersion) usageSettings.dolbyCodecVersion;
+    pEstData->dspUsage.DolbyCodecVersion = (BDSP_AudioDolbyCodecVersion) pEstData->usageSettings.dolbyCodecVersion;
 
     BDBG_MODULE_MSG(nexus_audio_memest, ("DSP USAGE: numDecoders %d, numEncoders %d, numPassthrus %d, numMixers %d, numPostProcs %d, numEchoCancel %d, dolbyVer %d",
-              dspUsage.NumAudioDecoders,
-              dspUsage.NumAudioEncoders,
-              dspUsage.NumAudioPassthru,
-              dspUsage.NumAudioMixers,
-              dspUsage.NumAudioPostProcesses,
-              dspUsage.NumAudioEchocancellers,
-              dspUsage.DolbyCodecVersion));
+              pEstData->dspUsage.NumAudioDecoders,
+              pEstData->dspUsage.NumAudioEncoders,
+              pEstData->dspUsage.NumAudioPassthru,
+              pEstData->dspUsage.NumAudioMixers,
+              pEstData->dspUsage.NumAudioPostProcesses,
+              pEstData->dspUsage.NumAudioEchocancellers,
+              pEstData->dspUsage.DolbyCodecVersion));
 
-    NEXUS_AudioModule_P_PopulateRaagaOpenSettings(&preInitState->boxConfig, &audioModuleSettings, &dspSettings);
-    BDSP_Raaga_GetMemoryEstimate(&dspSettings, &dspUsage, (g_pCoreHandles!=NULL) ? g_pCoreHandles->box : NULL, &dspEstimate);
-    BDBG_MODULE_MSG(nexus_audio_memest, ("DSP USAGE: firmware %d bytes, general %d bytes, total %d bytes", dspEstimate.FirmwareMemory, dspEstimate.GeneralMemory, dspEstimate.GeneralMemory + dspEstimate.FirmwareMemory));
+    NEXUS_AudioModule_P_PopulateRaagaOpenSettings(&preInitState->boxConfig, &(pEstData->audioModuleSettings), &(pEstData->dspSettings));
+    BDSP_Raaga_GetMemoryEstimate(&(pEstData->dspSettings), &(pEstData->dspUsage), (g_pCoreHandles!=NULL) ? g_pCoreHandles->box : NULL, &(pEstData->dspEstimate));
+    BDBG_MODULE_MSG(nexus_audio_memest, ("DSP USAGE: firmware %d bytes, general %d bytes, total %d bytes", pEstData->dspEstimate.FirmwareMemory, pEstData->dspEstimate.GeneralMemory, pEstData->dspEstimate.GeneralMemory + pEstData->dspEstimate.FirmwareMemory));
 
     /* hardcode to mem controller 0 for now */
-    pEstimate->memc[0].general = apeEstimate.general + dspEstimate.GeneralMemory + dspEstimate.FirmwareMemory;
+    pEstimate->memc[0].general = pEstData->apeEstimate.general + pEstData->dspEstimate.GeneralMemory + pEstData->dspEstimate.FirmwareMemory;
     #else
-    pEstimate->memc[0].general = apeEstimate.general;
+    pEstimate->memc[0].general = pEstData->apeEstimate.general;
     #endif
+
+    if ( pEstData )
+    {
+        BKNI_Free(pEstData);
+        pEstData = NULL;
+    }
 
     return NEXUS_SUCCESS;
 }
@@ -1538,7 +1562,6 @@ static NEXUS_Error secureFirmwareAudio( BDSP_Handle hRagga )
 {
 #if BAPE_DSP_SUPPORT
     NEXUS_Error rc = NEXUS_SUCCESS;
-    uint32_t firmwareOffset;
     uint32_t firmwareSize;
     void * firmwareAddress;
     BDSP_Raaga_DownloadStatus downloadStatus;
@@ -1552,7 +1575,6 @@ static NEXUS_Error secureFirmwareAudio( BDSP_Handle hRagga )
         return BERR_TRACE( rc );
     }
 
-    firmwareOffset  = downloadStatus.physicalAddress;
     firmwareAddress = downloadStatus.pBaseAddress;
     firmwareSize    = downloadStatus.length;
     NEXUS_FlushCache( (const void*)firmwareAddress, firmwareSize );

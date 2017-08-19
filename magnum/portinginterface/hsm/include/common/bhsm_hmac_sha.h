@@ -54,7 +54,7 @@ extern "C" {
 #define BHSM_HMACSHA_KEY_LEN                (32)       /* 20 for Sha1, 28 for Sha224, 32 for Sha256 */
 #define BHSM_HMACSHA_DIGEST_LEN             (32)       /* in bytes, same as HMACSHA key length */
 
-#define BHSM_HMACSHA_INPLACE_DATA_MAX_LEN   (20)      /* Data can be passed in via memory offset or via
+#define BHSM_HMACSHA_INPLACE_DATA_MAX_LEN   (1)        /* Data can be passed in via memory offset or via
                                                          array in BHSM_UserHmacShaIO_t. This define specifies the max
                                                          length of data that can be passed in by BHSM_UserHmacShaIO_t. */
 

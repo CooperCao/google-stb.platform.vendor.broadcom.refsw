@@ -1,5 +1,5 @@
 #############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -94,7 +94,7 @@ endif
 endif
 endif
 
-ifeq ($(filter $(B_REFSW_DEBUG_LEVEL),none wrn err),$(B_REFSW_DEBUG_LEVEL))
+ifneq ($(filter $(B_REFSW_DEBUG_LEVEL),none wrn err),)
 # Release builds generate unused values. We suppress this warning.
 NEXUS_C_WARNINGS += -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function
 endif

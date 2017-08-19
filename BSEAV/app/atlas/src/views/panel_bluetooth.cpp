@@ -676,7 +676,7 @@ eRet CPanelBluetooth::connect(CPanelBluetoothProp * pBluetoothProp)
 
     {
         CBluetoothConnectionData dataConnect;
-        BDBG_MSG(("%s():connecting and the index_to_connect %d", __FUNCTION__, pBluetoothProp->getIndex()));
+        BDBG_MSG(("%s():connecting and the index_to_connect %d", BSTD_FUNCTION, pBluetoothProp->getIndex()));
         dataConnect.index            = pBluetoothProp->getIndex();
         dataConnect.pDevInfoList     = pBluetoothProp->getBtInfoList();
         dataConnect.pBluetoothDevice = pBluetoothProp->getBtDevice();
@@ -757,7 +757,7 @@ void CPanelBluetooth::onClick(bwidget_t widget)
 
             if ((false == _propList[i]->isConnected()) && (false == _propList[i]->isPaired()))
             {
-                BDBG_MSG(("%s():On click connect name %s conencted %d  paired %d index  %d ", __FUNCTION__,
+                BDBG_MSG(("%s():On click connect name %s conencted %d  paired %d index  %d ", BSTD_FUNCTION,
                           _propList[i]->getName().s(), _propList[i]->isConnected(), _propList[i]->isPaired(), _propList[i]->getIndex()));
 
                 ret = connect(_propList[i]);
@@ -766,7 +766,7 @@ void CPanelBluetooth::onClick(bwidget_t widget)
             else
             {
                 /* change to unpair  todo */
-                BDBG_MSG(("%s():On click disconnect name %s connected %d  paired %d ", __FUNCTION__,
+                BDBG_MSG(("%s():On click disconnect name %s connected %d  paired %d ", BSTD_FUNCTION,
                           _propList[i]->getName().s(), _propList[i]->isConnected(), _propList[i]->isPaired()));
                 if (false == _MsgBoxStatus->isVisible())
                 {
@@ -946,7 +946,7 @@ void CPanelBluetooth::processNotification(CNotification & notification)
         CTimer * pTimer = (CTimer *)notification.getData();
         if (&_timerUpdate == pTimer)
         {
-            BDBG_MSG(("%s():bluetooth timeout:!!!", __FUNCTION__));
+            BDBG_MSG(("%s():bluetooth timeout:!!!", BSTD_FUNCTION));
             scan();
         }
     }
@@ -955,7 +955,7 @@ void CPanelBluetooth::processNotification(CNotification & notification)
     case eNotify_BluetoothDiscoveryStarted:
     {
         CBluetooth * pBluetooth = (CBluetooth *)notification.getData();
-        BDBG_MSG(("%s(): bluetooth Discovery Started", __FUNCTION__));
+        BDBG_MSG(("%s(): bluetooth Discovery Started", BSTD_FUNCTION));
         setMenuTitleStatus("Discovering...");
         updatePropertyList(pBluetooth);
     }
@@ -969,7 +969,7 @@ void CPanelBluetooth::processNotification(CNotification & notification)
     {
         CBluetooth * pBluetooth = (CBluetooth *)notification.getData();
 
-        BDBG_MSG(("%s(): bluetooth Discovery Result", __FUNCTION__));
+        BDBG_MSG(("%s(): bluetooth Discovery Result", BSTD_FUNCTION));
         setMenuTitleStatus();
         updatePropertyList(pBluetooth);
         if (true == isVisible())
@@ -982,7 +982,7 @@ void CPanelBluetooth::processNotification(CNotification & notification)
     case eNotify_BluetoothConnectionDone:
     {
         CBluetooth * pBluetooth = (CBluetooth *)notification.getData();
-        BDBG_MSG(("%s():bluetooth Connection Done:", __FUNCTION__));
+        BDBG_MSG(("%s():bluetooth Connection Done:", BSTD_FUNCTION));
 
         setMenuTitleStatus();
         updatePropertyList(pBluetooth);
@@ -1022,7 +1022,7 @@ void CPanelBluetooth::processNotification(CNotification & notification)
         switch (pBluetooth->getConnectStatus())
         {
         case eConnectStatus_Connecting:
-            BDBG_MSG(("%s():bluetooth Connection status: ConnectING!!!", __FUNCTION__));
+            BDBG_MSG(("%s():bluetooth Connection status: ConnectING!!!", BSTD_FUNCTION));
 
             if (false == _MsgBoxStatus->isVisible())
             {
@@ -1033,7 +1033,7 @@ void CPanelBluetooth::processNotification(CNotification & notification)
         case eConnectStatus_Connected:
         {
             CBluetooth * pBluetooth = (CBluetooth *)notification.getData();
-            BDBG_MSG(("%s():bluetooth Connection status: ConnectED!!!", __FUNCTION__));
+            BDBG_MSG(("%s():bluetooth Connection status: ConnectED!!!", BSTD_FUNCTION));
 
             /* Sync up the Bluetooth Device list with the Properties */
             updatePropertyList(pBluetooth); /* should update the ones that are connected */

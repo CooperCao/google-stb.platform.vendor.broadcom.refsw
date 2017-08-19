@@ -30,14 +30,15 @@ static bool is_bstc_or_888(const khrn_image *img)
 // Drop color from mask if color is missing in both src and dest
 static GLenum validate_blit_color(GLXX_FRAMEBUFFER_T *src_fb,
                                   GLXX_FRAMEBUFFER_T *dst_fb,
+                                  glxx_context_fences *fences,
                                   bool *color_is_int)
 {
    bool src_ms;
    khrn_image *src_img = NULL, *dst_img = NULL;
    GLenum error = GL_NO_ERROR;
 
-   if (!glxx_fb_acquire_read_image(src_fb, GLXX_PREFER_DOWNSAMPLED, &src_img,
-            &src_ms))
+   if (!glxx_fb_acquire_read_image(src_fb, GLXX_PREFER_DOWNSAMPLED,
+            &src_img, &src_ms))
    {
       error = GL_OUT_OF_MEMORY;
       goto end;
@@ -52,7 +53,7 @@ static GLenum validate_blit_color(GLXX_FRAMEBUFFER_T *src_fb,
    while (glxx_fb_iterate_valid_draw_bufs(dst_fb, &i, &att_index))
    {
       const GLXX_ATTACHMENT_T *dst_att =&dst_fb->attachment[att_index];
-      if (!glxx_attachment_acquire_image(dst_att, GLXX_DOWNSAMPLED, &dst_img, NULL))
+      if (!glxx_attachment_acquire_image(dst_att, GLXX_DOWNSAMPLED, true, fences, &dst_img, NULL))
       {
          error = GL_OUT_OF_MEMORY;
          goto end;
@@ -99,18 +100,20 @@ end:
 
 // Depth and stencil buffers: Validate they are not the same, but that formats match
 static GLenum validate_aux_buffer(const GLXX_ATTACHMENT_T *src_att,
-                                  const GLXX_ATTACHMENT_T *dst_att)
+                                  const GLXX_ATTACHMENT_T *dst_att,
+                                  glxx_context_fences *fences)
 {
    khrn_image *src_img = NULL, *dst_img = NULL;
    GLenum error = GL_NO_ERROR;
 
-   if (!glxx_attachment_acquire_image(src_att, GLXX_PREFER_DOWNSAMPLED, &src_img,
-            NULL))
+   if (!glxx_attachment_acquire_image(src_att, GLXX_PREFER_DOWNSAMPLED, true,
+            fences, &src_img, NULL))
    {
       error = GL_OUT_OF_MEMORY;
       goto end;
    }
-   if (!glxx_attachment_acquire_image(dst_att, GLXX_DOWNSAMPLED, &dst_img, NULL))
+   if (!glxx_attachment_acquire_image(dst_att, GLXX_DOWNSAMPLED, true, fences,
+            &dst_img, NULL))
    {
       error = GL_OUT_OF_MEMORY;
       goto end;
@@ -175,7 +178,7 @@ static GLenum validate_blit(
    GLXX_FRAMEBUFFER_T *dst_fb = state->bound_draw_framebuffer;
    GLenum              error;
 
-   if (!glxx_fb_is_complete(src_fb) || !glxx_fb_is_complete(dst_fb))
+   if (!glxx_fb_is_complete(src_fb, &state->fences) || !glxx_fb_is_complete(dst_fb, &state->fences))
       return GL_INVALID_FRAMEBUFFER_OPERATION;
 
    bool ms_src = glxx_fb_get_ms_mode(src_fb) != GLXX_NO_MS;
@@ -205,7 +208,7 @@ static GLenum validate_blit(
    if (mask & GL_COLOR_BUFFER_BIT)
    {
       bool color_is_int;
-      error = validate_blit_color(src_fb, dst_fb, &color_is_int);
+      error = validate_blit_color(src_fb, dst_fb, &state->fences, &color_is_int);
       if (error != GL_NO_ERROR)
          return error;
 
@@ -216,7 +219,7 @@ static GLenum validate_blit(
    if (mask & GL_DEPTH_BUFFER_BIT)
    {
       error = validate_aux_buffer(&src_fb->attachment[GLXX_DEPTH_ATT],
-            &dst_fb->attachment[GLXX_DEPTH_ATT]);
+            &dst_fb->attachment[GLXX_DEPTH_ATT], &state->fences);
       if (error != GL_NO_ERROR)
          return error;
    }
@@ -224,7 +227,7 @@ static GLenum validate_blit(
    if (mask & GL_STENCIL_BUFFER_BIT)
    {
       error = validate_aux_buffer(&src_fb->attachment[GLXX_STENCIL_ATT],
-            &dst_fb->attachment[GLXX_STENCIL_ATT]);
+            &dst_fb->attachment[GLXX_STENCIL_ATT], &state->fences);
       if (error != GL_NO_ERROR)
          return error;
    }

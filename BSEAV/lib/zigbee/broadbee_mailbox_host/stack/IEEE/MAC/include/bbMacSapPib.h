@@ -1,53 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapPib.h $
-*
-* DESCRIPTION:
-*   MAC-PIB for MAC-SAP definitions.
-*
-* $Revision: 10537 $
-* $Date: 2016-03-18 12:15:44Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MAC-PIB for MAC-SAP definitions.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_SAP_PIB_H
 #define _BB_MAC_SAP_PIB_H
@@ -341,7 +335,7 @@ typedef Bool8_t                 MAC_GTSPermit_t;                    /*!< Data ty
 typedef uint8_t                 MAC_MaxCSMABackoffs_t;              /*!< Data type for macMaxCSMABackoffs. */
 typedef uint8_t                 MAC_MinBE_t;                        /*!< Data type for macMinBE. */
 /* See bbMacSapAddress.h        MAC_PanId_t;                           < Data type for macPANId. */
-typedef Bool8_t                 MAC_PromiscuousMode_t;              /*!< Data type for macPromiscuousMode. */
+typedef BitField8_t             MAC_PromiscuousMode_t;              /*!< Data type for macPromiscuousMode. */
 typedef Bool8_t                 MAC_RxOnWhenIdle_t;                 /*!< Data type for macRxOnWhenIdle. */
 typedef MAC_Addr16bit_t         MAC_ShortAddress_t;                 /*!< Data type for macShortAddress. */
 typedef uint8_t                 MAC_SuperframeOrder_t;              /*!< Data type for macSuperframeOrder. */
@@ -358,6 +352,32 @@ typedef uint8_t                 MAC_MinLIFSPeriod_t;                /*!< Data ty
 typedef uint8_t                 MAC_MinSIFSPeriod_t;                /*!< Data type for macMinSIFSPeriod. */
 typedef Bool8_t                 MAC_ThreadMode_t;                   /*!< Data type for macThreadMode. */
 /**@}*/
+
+/**//**
+ * \brief   Enumeration of values of MAC-PIB attribute macPromiscuousMode.
+ * \details The macPromiscuousMode attribute is not implemented for the case of ordinary build. This attribute returns
+ *  zero if read, and attempt to assign it is confirmed with READ_ONLY status.
+ * \details Attribute macPromiscuousMode is implemented only for the case of MAC Tester build. This attribute has a
+ *  custom bitmap format and regulates different aspects of MAC behavior:
+ *  - bit #0 - ignored, reserved for purposes of the IEEE-compliant promiscuous mode, shall be assigned with zero.
+ *  - bit #1 - disables responding with ACK frame on received unicast frame having Ack.Request flag set; disables also
+ *      responding with pending frame on received Data Request command.
+ *  - bit #2 - disables responding with Beacon frame on received Beacon Request command.
+ *  - bit #3 - disables Dst. Address filtering on reception.
+ *  - bit #4 - disables filtering DSN values on reception.
+ *  - bit #5 - disables Hardware CRC and Dst. Address filtering on reception.
+ *  - bits #6..7 - ignored, reserved for further purposes, shall be assigned with zero.
+ */
+typedef enum _MAC_PromiscuousModeCodes_t {
+    MAC_PROMISCUOUS_MODE_DISABLED           = 0,            /*!< Promiscuous mode is disabled. */
+    MAC_PROMISCUOUS_MODE_IEEE_COMPLIANT     = (1 << 0),     /*!< Enable IEEE-compliant promiscuous mode. Ignored. */
+    MAC_PROMISCUOUS_MODE_DISABLE_ACK        = (1 << 1),     /*!< Disable responding with ACK and pending frames. */
+    MAC_PROMISCUOUS_MODE_DISABLE_BEACON     = (1 << 2),     /*!< Disable responding with Beacon frame. */
+    MAC_PROMISCUOUS_MODE_DISABLE_DST_FILTER = (1 << 3),     /*!< Disable Dst. Address filtering on reception. */
+    MAC_PROMISCUOUS_MODE_DISABLE_DSN_FILTER = (1 << 4),     /*!< Disable filtering DSN values on reception. */
+    MAC_PROMISCUOUS_MODE_DISABLE_HW_FILTER  = (1 << 5),     /*!< Disable Hardware CRC and Dst. Address filtering. */
+} MAC_PromiscuousModeCodes_t;
+SYS_DbgAssertStatic(MAC_PROMISCUOUS_MODE_DISABLED == FALSE && MAC_PROMISCUOUS_MODE_IEEE_COMPLIANT == TRUE);
 
 /**//**
  * \brief   Conventional MAC-PIB attributes.
@@ -482,3 +502,5 @@ typedef MAC_PIB_PUBLIC_VARIANT  MAC_PibAttributeValue_t;
 SYS_DbgAssertStatic(sizeof(MAC_PibAttributeValue_t) == sizeof(uint64_t));
 
 #endif /* _BB_MAC_SAP_PIB_H */
+
+/* eof bbMacSapPib.h */

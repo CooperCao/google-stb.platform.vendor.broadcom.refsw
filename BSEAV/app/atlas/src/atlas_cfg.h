@@ -283,7 +283,7 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(IMAGE_PLM_ENABLED,                       string, "plm-enabled_1080.jpg",      "PLM image - disabled"),
     ATLAS_DECLARE(IMAGE_PLM_DISABLED,                      string, "plm-disabled_1080.jpg",     "PLM image - enabled"),
     ATLAS_DECLARE(IMAGE_PLM_PASSTHRU,                      string, "plm-passthru_1080.jpg",     "PLM image passthru"),
-    ATLAS_DECLARE(FORCE_HDMI_HDR_OUTPUT,                   bool,   "false",                     "Force HDMI HDR output even if TV does not support it")
+    ATLAS_DECLARE(FORCE_HDMI_HDR10_OUTPUT,                 bool,   "false",                     "Force HDMI HDR output for non-dolbyvision streams.")
 };
 
 #ifndef ATLAS_DECLARE_CONFIGSETTING_VALUES

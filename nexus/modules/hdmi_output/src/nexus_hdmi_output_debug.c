@@ -62,25 +62,60 @@ void NEXUS_HdmiOutput_PrintAudioInfoFramePacket(void)
 #if !BDBG_NO_LOG
     NEXUS_Error errCode ;
     NEXUS_HdmiOutputHandle hdmiOutput ;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus ;
-    BAVC_HDMI_AudioInfoFrame stAudioInfoFrame ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    BHDM_Status *hdmiStatus = NULL ;
+    BAVC_HDMI_AudioInfoFrame *stAudioInfoFrame = NULL ;
     uint8_t i ;
+
+    hdmiOutputStatus = BKNI_Malloc(sizeof(*hdmiOutputStatus));
+    if (hdmiOutputStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    hdmiStatus = BKNI_Malloc(sizeof(*hdmiStatus));
+    if (hdmiStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    stAudioInfoFrame = BKNI_Malloc(sizeof(*stAudioInfoFrame));
+    if (stAudioInfoFrame == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
 
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
 
-        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
+        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        if ((hdmiOutputStatus.connected) && (hdmiOutputStatus.rxPowered))
+        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
+        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+
+        if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
-            errCode = BHDM_GetAudioInfoFramePacket(hdmiOutput->hdmHandle , &stAudioInfoFrame) ;
+            errCode = BHDM_GetAudioInfoFramePacket(hdmiOutput->hdmHandle , stAudioInfoFrame) ;
             if (errCode) {BERR_TRACE(errCode) ; goto done ; }
-            BHDM_DisplayAudioInfoFramePacket(	hdmiOutput->hdmHandle, &stAudioInfoFrame) ;
+
+            BAVC_HDMI_DisplayAudioInfoFramePacket(&hdmiStatus->stPort, stAudioInfoFrame) ;
         }
      }
-done: ;
+done:
+    if (hdmiOutputStatus)
+        BKNI_Free(hdmiOutputStatus) ;
+
+    if (stAudioInfoFrame)
+        BKNI_Free(stAudioInfoFrame) ;
+
+    if (hdmiStatus)
+        BKNI_Free(hdmiStatus) ;
+
 #endif
 }
 
@@ -91,25 +126,61 @@ void NEXUS_HdmiOutput_PrintAviInfoFramePacket(void)
 #if !BDBG_NO_LOG
     NEXUS_Error errCode ;
     NEXUS_HdmiOutputHandle hdmiOutput ;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus ;
-    BAVC_HDMI_AviInfoFrame stAviInfoFrame ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    BHDM_Status *hdmiStatus = NULL ;
+    BAVC_HDMI_AviInfoFrame *stAviInfoFrame = NULL ;
     uint8_t i ;
+
+    hdmiOutputStatus = BKNI_Malloc(sizeof(*hdmiOutputStatus));
+    if (hdmiOutputStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    hdmiStatus = BKNI_Malloc(sizeof(*hdmiStatus)) ;
+    if (hdmiStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    stAviInfoFrame = BKNI_Malloc(sizeof(*stAviInfoFrame));
+    if (stAviInfoFrame == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
 
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
 
-        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
+        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        if ((hdmiOutputStatus.connected) && (hdmiOutputStatus.rxPowered))
+        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
+        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+
+        if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
-            errCode = BHDM_GetAVIInfoFramePacket(hdmiOutput->hdmHandle , &stAviInfoFrame) ;
+            errCode = BHDM_GetAVIInfoFramePacket(hdmiOutput->hdmHandle, stAviInfoFrame) ;
             if (errCode) {BERR_TRACE(errCode) ; goto done ; }
-            BHDM_DisplayAVIInfoFramePacket(hdmiOutput->hdmHandle, &stAviInfoFrame) ;
+
+            BAVC_HDMI_DisplayAVIInfoFramePacket(&hdmiStatus->stPort, stAviInfoFrame);
         }
      }
-done: ;
+
+done:
+    if (hdmiOutputStatus)
+        BKNI_Free(hdmiOutputStatus) ;
+
+    if (hdmiStatus)
+        BKNI_Free(hdmiStatus) ;
+
+    if (stAviInfoFrame)
+        BKNI_Free(stAviInfoFrame) ;
+
 #endif
 }
 
@@ -119,24 +190,60 @@ void NEXUS_HdmiOutput_PrintVendorSpecificInfoFramePacket(void)
 #if !BDBG_NO_LOG
     NEXUS_Error errCode ;
     NEXUS_HdmiOutputHandle hdmiOutput ;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus ;
-    BAVC_HDMI_VendorSpecificInfoFrame stVsInfoFrame ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    BHDM_Status *hdmiStatus = NULL ;
+    BAVC_HDMI_VendorSpecificInfoFrame *stVsInfoFrame = NULL ;
     uint8_t i ;
+
+    hdmiOutputStatus = BKNI_Malloc(sizeof(*hdmiOutputStatus));
+    if (hdmiOutputStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    hdmiStatus = BKNI_Malloc(sizeof(*hdmiStatus));
+    if (hdmiStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    stVsInfoFrame= BKNI_Malloc(sizeof(*stVsInfoFrame));
+    if (stVsInfoFrame == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
 
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
 
-        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
+        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        if ((hdmiOutputStatus.connected) && (hdmiOutputStatus.rxPowered))
+        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
+        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+
+        if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
-            BHDM_GetVendorSpecificInfoFrame(hdmiOutput->hdmHandle , &stVsInfoFrame) ;
-            BHDM_DisplayVendorSpecificInfoFrame(hdmiOutput->hdmHandle, &stVsInfoFrame) ;
+            BHDM_GetVendorSpecificInfoFrame(hdmiOutput->hdmHandle , stVsInfoFrame) ;
+
+            BAVC_HDMI_DisplayVendorSpecificInfoFrame(&hdmiStatus->stPort, stVsInfoFrame) ;
         }
      }
-done: ;
+
+done:
+    if (hdmiOutputStatus)
+        BKNI_Free(hdmiOutputStatus) ;
+
+    if (hdmiStatus)
+        BKNI_Free(hdmiStatus) ;
+
+    if (stVsInfoFrame)
+        BKNI_Free(stVsInfoFrame) ;
+
 #endif
 }
 
@@ -146,34 +253,80 @@ void NEXUS_HdmiOutput_PrintDrmInfoFramePacket(void)
 #if !BDBG_NO_LOG
     NEXUS_Error errCode ;
     NEXUS_HdmiOutputHandle hdmiOutput ;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus ;
-    BHDM_EDID_HDRStaticDB hdrdb ;
-    BAVC_HDMI_DRMInfoFrame dynamicRangeMetadataInfoFrame ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    BHDM_Status *hdmiStatus = NULL ;
+    BHDM_EDID_HDRStaticDB *hdrdb = NULL ;
+    BAVC_HDMI_DRMInfoFrame *dynamicRangeMetadataInfoFrame = NULL ;
     uint8_t i ;
+
+    hdmiOutputStatus = BKNI_Malloc(sizeof(*hdmiOutputStatus));
+    if (hdmiOutputStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    hdmiStatus = BKNI_Malloc(sizeof(*hdmiStatus));
+    if (hdmiStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    hdrdb = BKNI_Malloc(sizeof(*hdrdb));
+    if (hdrdb == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    dynamicRangeMetadataInfoFrame = BKNI_Malloc(sizeof(*dynamicRangeMetadataInfoFrame));
+    if (dynamicRangeMetadataInfoFrame == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
 
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
 
-        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
+        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        if ((hdmiOutputStatus.connected) && (hdmiOutputStatus.rxPowered))
+        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
+        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+
+        if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
             /* Display Packet - DRM (displayed if DRM Static Metadata Block exists */
             /* DRM Packets are transmitted to HDR Capable TVs Only */
-            errCode = BHDM_EDID_GetHdrStaticMetadatadb(hdmiOutput->hdmHandle, &hdrdb) ;
+            errCode = BHDM_EDID_GetHdrStaticMetadatadb(hdmiOutput->hdmHandle, hdrdb) ;
             /* if error retrieving HdrDB, trace error and continue on */
             if (errCode) {BERR_TRACE(errCode) ; }
 
-            if (hdrdb.valid)
+            if (hdrdb->valid)
             {
-                BHDM_GetDRMInfoFramePacket(hdmiOutput->hdmHandle , &dynamicRangeMetadataInfoFrame) ;
-                BHDM_DisplayDRMInfoFramePacket(hdmiOutput->hdmHandle, &dynamicRangeMetadataInfoFrame) ;
+                BHDM_GetDRMInfoFramePacket(hdmiOutput->hdmHandle , dynamicRangeMetadataInfoFrame) ;
+
+                BAVC_HDMI_DisplayDRMInfoFramePacket(&hdmiStatus->stPort, dynamicRangeMetadataInfoFrame) ;
             }
         }
      }
-done: ;
+
+done:
+    if (hdmiOutputStatus)
+        BKNI_Free(hdmiOutputStatus) ;
+
+    if (hdmiStatus)
+        BKNI_Free(hdmiStatus) ;
+
+    if (hdrdb)
+        BKNI_Free(hdrdb) ;
+
+    if (dynamicRangeMetadataInfoFrame)
+        BKNI_Free(dynamicRangeMetadataInfoFrame) ;
+
 #endif
 }
 
@@ -183,26 +336,46 @@ void NEXUS_HdmiOutput_PrintAcrPacket(void)
 #if !BDBG_NO_LOG
     NEXUS_Error errCode ;
     NEXUS_HdmiOutputHandle hdmiOutput ;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus ;
-    BHDM_Status hdmiStatus ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    BHDM_Status *hdmiStatus = NULL ;
     uint8_t i ;
+
+    hdmiOutputStatus = BKNI_Malloc(sizeof(*hdmiOutputStatus));
+    if (hdmiOutputStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    hdmiStatus = BKNI_Malloc(sizeof(*hdmiStatus));
+    if (hdmiStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
 
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
 
-        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
+        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        if ((hdmiOutputStatus.connected) && (hdmiOutputStatus.rxPowered))
-        {
-            errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus) ;
-            if (errCode) {BERR_TRACE(errCode) ; goto done ;}
-            BHDM_PACKET_ACR_DisplayConfiguration(hdmiOutput->hdmHandle, &hdmiStatus.stAcrPacketConfig) ;
+        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
+        if (errCode) {BERR_TRACE(errCode) ; goto done ;}
 
+        if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
+        {
+            BHDM_PACKET_ACR_DisplayConfiguration(hdmiOutput->hdmHandle, &hdmiStatus->stAcrPacketConfig) ;
         }
      }
-done: ;
+done:
+    if (hdmiOutputStatus)
+        BKNI_Free(hdmiOutputStatus) ;
+
+    if (hdmiStatus)
+        BKNI_Free(hdmiStatus) ;
+
 #endif
 }
 
@@ -223,7 +396,6 @@ void NEXUS_HdmiOutput_PrintRxEdid(void)
 static void NEXUS_HdmiOutput_PrintEotfSupport(void)
 {
 #if !BDBG_NO_LOG
-    NEXUS_Error errCode ;
     NEXUS_HdmiOutputHandle hdmiOutput ;
 
     /* Max EOTF Descrptior Size
@@ -250,7 +422,7 @@ static void NEXUS_HdmiOutput_PrintEotfSupport(void)
         if (!hdmiOutput)
         {
             BDBG_ERR(("Inavid HdmiOutput handle")) ;
-            errCode = BERR_TRACE(NEXUS_NOT_INITIALIZED) ;
+            (void)BERR_TRACE(NEXUS_NOT_INITIALIZED) ;
             continue ;
         }
 
@@ -291,31 +463,51 @@ void NEXUS_HdmiOutputModule_Print(void)
 #if !BDBG_NO_LOG
     NEXUS_Error errCode ;
     NEXUS_HdmiOutputHandle hdmiOutput ;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus ;
-    NEXUS_HdmiOutputHdcpStatus hdmiOutputHdcpStatus ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    NEXUS_HdmiOutputHdcpStatus *hdmiOutputHdcpStatus = NULL ;
 
     BHDM_Handle hdmHandle ;
 #if BHDM_HAS_HDMI_20_SUPPORT
-    BHDM_SCDC_StatusControlData scdcControlData ;
+    BHDM_SCDC_StatusControlData *scdcControlData = NULL ;
 #endif
     BAVC_HDMI_DRMInfoFrame dynamicRangeMetadataInfoFrame ;
     unsigned i ;
 
 
+    hdmiOutputStatus = BKNI_Malloc(sizeof(*hdmiOutputStatus));
+    if (hdmiOutputStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+    hdmiOutputHdcpStatus = BKNI_Malloc(sizeof(*hdmiOutputHdcpStatus));
+    if (hdmiOutputHdcpStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+#if BHDM_HAS_HDMI_20_SUPPORT
+    scdcControlData = BKNI_Malloc(sizeof(*scdcControlData));
+    if (scdcControlData == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+#endif
+
     for (i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = NEXUS_HdmiOutput_P_GetHandle(i) ;
+        BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
         hdmHandle = hdmiOutput->hdmHandle ;
 
-        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
+        errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        errCode = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, &hdmiOutputHdcpStatus) ;
+        errCode = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, hdmiOutputHdcpStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
-
-#if BHDM_HAS_HDMI_20_SUPPORT
-        BHDM_SCDC_GetStatusControlData(hdmHandle, &scdcControlData) ;
-#endif
 
         BDBG_LOG(("HDMI %d:%s%s%s",i,
             hdmiOutput->opened ? "o" : "-",
@@ -328,14 +520,14 @@ void NEXUS_HdmiOutputModule_Print(void)
             BDBG_LOG((" audio: t:%d o:%p md:%p p:%lu", hdmiOutput->audioConnector.objectType,(void *)hdmiOutput->audioConnector.pObjectHandle,(void *)hdmiOutput->audioConnector.pMixerData,(unsigned long)hdmiOutput->audioConnector.port));
         }
 
-        if (hdmiOutputStatus.connected)
+        if (hdmiOutputStatus->connected)
         {
-            BDBG_LOG(("Attached device: %s", hdmiOutputStatus.monitorName)) ;
+            BDBG_LOG(("Attached device: %s", hdmiOutputStatus->monitorName)) ;
 
 	        /* HARDWARE STATUS */
 	        BDBG_LOG(("  rxAttached: %c   rxPowered: %c",
-	            hdmiOutputStatus.connected ? 'Y' : 'N',
-	            hdmiOutputStatus.rxPowered ? 'Y' : 'N')) ;
+	            hdmiOutputStatus->connected ? 'Y' : 'N',
+	            hdmiOutputStatus->rxPowered ? 'Y' : 'N')) ;
 
 	        BDBG_LOG(("  txPower  Clock: %c CH2: %c CH1: %c CH0: %c",
 	            hdmiOutput->txHwStatus.clockPower ? 'Y' : 'N',
@@ -350,16 +542,13 @@ void NEXUS_HdmiOutputModule_Print(void)
 
         BDBG_LOG(("  Total RxSense Changes:   %d",
             hdmiOutput->txHwStatus.rxSenseCounter)) ;
-        /* total HP Change count is incorrect, disable */
-#if 0
         BDBG_LOG(("  Total HP Changes:        %d",
             hdmiOutput->txHwStatus.hotplugCounter)) ;
-#endif
         BDBG_LOG(("  Total Unstable Format Detected Count: %d",
             hdmiOutput->txHwStatus.unstableFormatDetectedCounter)) ;
 
 
-        if (hdmiOutputStatus.connected)
+        if (hdmiOutputStatus->connected)
         {
             BDBG_LOG(("HDMI Settings:")) ;
             BDBG_LOG(("  ColorSpace: %s",
@@ -378,14 +567,16 @@ void NEXUS_HdmiOutputModule_Print(void)
                 hdmiOutput->displaySettings.overrideColorRange ? "Yes" : "No")) ;
 
 # if BHDM_HAS_HDMI_20_SUPPORT
-            if (scdcControlData.valid)
+            BHDM_SCDC_GetStatusControlData(hdmHandle, scdcControlData) ;
+
+            if (scdcControlData->valid)
             {
                 BDBG_LOG(("SCDC rxStatus:")) ;
-                BDBG_LOG(("  Clock Detected: %c", scdcControlData.Clock_Detected ? 'Y' : 'N')) ;
+                BDBG_LOG(("  Clock Detected: %c", scdcControlData->Clock_Detected ? 'Y' : 'N')) ;
                 BDBG_LOG(("  Channel Locked? Ch0: %c  Ch1: %c  Ch2: %c  ",
-                    scdcControlData.Ch0_Locked ? 'Y' : 'N',
-                    scdcControlData.Ch1_Locked ? 'Y' : 'N',
-                    scdcControlData.Ch2_Locked ? 'Y' : 'N')) ;
+                    scdcControlData->Ch0_Locked ? 'Y' : 'N',
+                    scdcControlData->Ch1_Locked ? 'Y' : 'N',
+                    scdcControlData->Ch2_Locked ? 'Y' : 'N')) ;
 
                 BDBG_LOG(("  Tx Scramblng:   %s", hdmiOutput->txHwStatus.scrambling ? "Yes" : "No")) ;
                 BDBG_LOG(("  Rx De-Scramblng: %s", hdmiOutput->rxHwStatus.descrambling ? "Yes" : "No")) ;
@@ -401,23 +592,46 @@ void NEXUS_HdmiOutputModule_Print(void)
             /* HDCP Status */
             BDBG_LOG(("HDCP Status:")) ;
             BDBG_LOG(("  Connected device: %s",
-                hdmiOutputHdcpStatus.isHdcpRepeater ? "Repeater" : "Receiver")) ;
+                hdmiOutputHdcpStatus->isHdcpRepeater ? "Repeater" : "Receiver")) ;
             BDBG_LOG(("  Supported Version: %s",
-                hdmiOutputHdcpStatus.hdcp2_2Features ? "2.2" : "1.x")) ;
+                hdmiOutputHdcpStatus->hdcp2_2Features ? "2.2" : "1.x")) ;
 
-            if ((hdmiOutputHdcpStatus.hdcp2_2Features) && (hdmiOutputHdcpStatus.isHdcpRepeater))
+            if ((hdmiOutputHdcpStatus->hdcp2_2Features) && (hdmiOutputHdcpStatus->isHdcpRepeater))
             {
                 BDBG_LOG(("  Downstream 1.x device(s): %s",
-                hdmiOutputHdcpStatus.hdcp2_2RxInfo.hdcp1_xDeviceDownstream ? "Yes" : "No")) ;
+                hdmiOutputHdcpStatus->hdcp2_2RxInfo.hdcp1_xDeviceDownstream ? "Yes" : "No")) ;
             }
 
             BDBG_LOG(("  Authenticated: %s",
-                hdmiOutputHdcpStatus.linkReadyForEncryption ? "Yes" : "No")) ;
+                hdmiOutputHdcpStatus->linkReadyForEncryption ? "Yes" : "No")) ;
             BDBG_LOG(("  Transmitting Encrypted: %s",
-                hdmiOutputHdcpStatus.transmittingEncrypted ? "Yes" : "No")) ;
+                hdmiOutputHdcpStatus->transmittingEncrypted ? "Yes" : "No")) ;
 
-            BDBG_LOG(("  Current State: %d",  hdmiOutputHdcpStatus.hdcpState)) ;
-            BDBG_LOG(("  Last Error: %d",  hdmiOutputHdcpStatus.hdcpError)) ;
+            BDBG_LOG(("  Current State: %d   Last Error: %d",
+                hdmiOutputHdcpStatus->hdcpState, hdmiOutputHdcpStatus->hdcpError)) ;
+
+            BDBG_LOG(("  1.x Stats")) ;
+            BDBG_LOG(("    Attempts: %5d  Pass: %5d  Fail: %5d",
+                hdmiOutput->hdcpMonitor.hdcp1x.auth.attemptCounter,
+                hdmiOutput->hdcpMonitor.hdcp1x.auth.passCounter,
+                hdmiOutput->hdcpMonitor.hdcp1x.auth.failCounter)) ;
+            BDBG_LOG(("    BCaps Read Failures: %d",
+                hdmiOutput->hdcpMonitor.hdcp1x.bCapsReadFailureCounter)) ;
+
+ #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+            BDBG_LOG(("  2.2 Stats")) ;
+            BDBG_LOG(("    Attempts: %5d  Pass: %5d  Fail: %5d",
+                hdmiOutput->hdcpMonitor.hdcp22.auth.attemptCounter,
+                hdmiOutput->hdcpMonitor.hdcp22.auth.passCounter,
+                hdmiOutput->hdcpMonitor.hdcp22.auth.failCounter)) ;
+            BDBG_LOG(("    ReAuth Requests Valid: %d  Invalid: %d",
+                hdmiOutput->hdcpMonitor.hdcp22.validReauthReqCounter,
+                hdmiOutput->hdcpMonitor.hdcp22.invalidReauthReqCounter)) ;
+            BDBG_LOG(("    Watchdog Counter: %d",
+                hdmiOutput->hdcpMonitor.hdcp22.watchdogCounter)) ;
+            BDBG_LOG(("    Timeout Counter: %d",
+                hdmiOutput->hdcpMonitor.hdcp22.timeoutCounter)) ;
+ #endif
 
             BDBG_LOG(("HDR Status:")) ;
 
@@ -427,7 +641,7 @@ void NEXUS_HdmiOutputModule_Print(void)
             if (!hdmiOutput->drm.hdrdb.valid)
             {
                 BDBG_LOG(("   Attached Rx <%s> does not support HDR",
-                    hdmiOutputStatus.monitorName)) ;
+                    hdmiOutputStatus->monitorName)) ;
             }
             else
             {
@@ -490,7 +704,7 @@ void NEXUS_HdmiOutputModule_Print(void)
         {
             BDBG_LOG(("HDMI Settings Unavailable: no device attached")) ;
         }
-        if (!hdmiOutputStatus.txHardwareStatus.hotplugInterruptEnabled)
+        if (!hdmiOutputStatus->txHardwareStatus.hotplugInterruptEnabled)
         {
             BDBG_ERR(("EXCESSIVE HP INTRs (%d) were detected; HP interrupt has been DISABLED",
                 hdmiOutput->openSettings.hotplugChangeThreshold)) ;
@@ -500,6 +714,17 @@ void NEXUS_HdmiOutputModule_Print(void)
     }
 
 done:
+    if (hdmiOutputStatus)
+        BKNI_Free(hdmiOutputStatus) ;
+
+    if (hdmiOutputHdcpStatus)
+        BKNI_Free(hdmiOutputHdcpStatus) ;
+
+# if BHDM_HAS_HDMI_20_SUPPORT
+    if (scdcControlData)
+        BKNI_Free(scdcControlData) ;
+#endif
+
 #endif
 	return ;
 }

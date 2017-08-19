@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "nexus_hdmi_input_module.h"
@@ -49,37 +48,14 @@ NEXUS_HdmiInputModuleSettings g_NEXUS_hdmiInputModuleSettings;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
 NEXUS_HdmiInput_SageData g_NEXUS_hdmiInputSageData;
 NEXUS_HdmiInputMemoryBlock g_hdmiInputTABlock;
+NEXUS_HdmiInputMemoryBlock g_hdmiInputFCBlock;
 #endif
 
 /* HdmiInput global state */
-static struct {
-    NEXUS_HdmiInputModuleSettings settings;
-    BHDR_FE_Handle fe;
-    bool initInProgress;
-    NEXUS_HdmiInputHandle handle[NEXUS_NUM_HDMI_INPUTS] ;
-    NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat ;
-} g_NEXUS_hdmiInput;
+NEXUS_gHdmiInput g_NEXUS_hdmiInput;
+
 
 BDBG_MODULE(nexus_hdmi_input_module);
-
-static void NEXUS_HdmiInputModule_Print(void)
-{
-#if BDBG_DEBUG_BUILD
-    unsigned i;
-    BDBG_LOG(("HdmiInputModule:"));
-    for (i=0;i<NEXUS_NUM_HDMI_INPUTS;i++) {
-        NEXUS_HdmiInputHandle hdmiInput = g_NEXUS_hdmiInput.handle[i];
-        if (!hdmiInput) continue;
-#if NEXUS_HAS_AUDIO
-        BDBG_LOG(("hdmi_input %d: handle=%p, videoInput=%p, audioInput=%p",
-            i, (void *)hdmiInput, (void *)&hdmiInput->videoInput, (void *)&hdmiInput->audioInput));
-#endif
-        BDBG_LOG(("    videoConnected=%d, %dx%d%c, noSignal=%d, originalFormat=%d, master=%p",
-            hdmiInput->videoConnected, hdmiInput->vdcStatus.avWidth, hdmiInput->vdcStatus.avHeight, hdmiInput->vdcStatus.interlaced?'i':'p',
-            hdmiInput->vdcStatus.noSignal, hdmiInput->vdcStatus.originalFormat, (void *)hdmiInput->masterHdmiInput));
-    }
-#endif
-}
 
 void NEXUS_HdmiInputModule_GetDefaultSettings(NEXUS_HdmiInputModuleSettings *pSettings)
 {
@@ -89,7 +65,6 @@ void NEXUS_HdmiInputModule_GetDefaultSettings(NEXUS_HdmiInputModuleSettings *pSe
 NEXUS_ModuleHandle NEXUS_HdmiInputModule_Init(const NEXUS_HdmiInputModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
-    NEXUS_Error errCode ;
 
     BERR_Code rc;
     BHDR_FE_Settings feSettings;
@@ -122,13 +97,16 @@ NEXUS_ModuleHandle NEXUS_HdmiInputModule_Init(const NEXUS_HdmiInputModuleSetting
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eLow;
     moduleSettings.dbgPrint = NEXUS_HdmiInputModule_Print;
-    moduleSettings.dbgModules = "nexus_hdmi_input_module";
+    moduleSettings.dbgModules = "nexus_hdmi_input_debug";
     g_NEXUS_hdmiInputModule = NEXUS_Module_Create("hdmi_input", &moduleSettings);
     if ( NULL == g_NEXUS_hdmiInputModule )
     {
-        errCode = BERR_TRACE(BERR_OS_ERROR);
+        BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
+
+    BKNI_Memset(&g_NEXUS_hdmiInput, 0, sizeof(g_NEXUS_hdmiInput)) ;
+
     NEXUS_LockModule();
 
     rc = BHDR_FE_GetDefaultSettings(g_pCoreHandles->chp, &feSettings);
@@ -155,13 +133,21 @@ NEXUS_ModuleHandle NEXUS_HdmiInputModule_Init(const NEXUS_HdmiInputModuleSetting
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
     /* Delay the process of populating until Sage is up */
     BKNI_Memset(&g_NEXUS_hdmiInputSageData, 0, sizeof(g_NEXUS_hdmiInputSageData));
-    g_hdmiInputTABlock.buf = NULL;
-    g_hdmiInputTABlock.len = 0;
+    BKNI_Memset(&g_hdmiInputTABlock, 0, sizeof(g_hdmiInputTABlock));
+    BKNI_Memset(&g_hdmiInputFCBlock, 0, sizeof(g_hdmiInputFCBlock));
 #endif
 
     BDBG_MSG(("hdmiInput Module Init Complete...")) ;
 
+
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdr_packet_audio", "BAVC_HDMI_DEBUG", NEXUS_HdmiInput_PrintAudioInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdr_packet_avi", "BAVC_HDMI_DEBUG", NEXUS_HdmiInput_PrintAviInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdr_packet_vsi", "BAVC_HDMI_DEBUG", NEXUS_HdmiInput_PrintVendorSpecificInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdr_packet_drm", "BAVC_HDMI_DEBUG", NEXUS_HdmiInput_PrintDrmInfoFramePacket);
+    NEXUS_Module_RegisterProc(NEXUS_MODULE_SELF, "bhdr_packet_acr", "BAVC_HDMI_DEBUG", NEXUS_HdmiInput_PrintACRPacket);
+
     NEXUS_UnlockModule();
+
     return g_NEXUS_hdmiInputModule;
 
 error:
@@ -175,14 +161,25 @@ void NEXUS_HdmiInputModule_Uninit()
 {
     NEXUS_LockModule();
     BHDR_FE_Close(g_NEXUS_hdmiInput.fe);
+
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdr_packet_audio");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdr_packet_avi");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdr_packet_vsi");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdr_packet_drm");
+    NEXUS_Module_UnregisterProc(NEXUS_MODULE_SELF, "bhdr_packet_acr");
+
     NEXUS_UnlockModule();
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
     if (g_hdmiInputTABlock.buf != NULL)
     {
         NEXUS_Memory_Free(g_hdmiInputTABlock.buf);
-        g_hdmiInputTABlock.buf = NULL;
-        g_hdmiInputTABlock.len = 0;
+        BKNI_Memset(&g_hdmiInputTABlock, 0, sizeof(g_hdmiInputTABlock));
+    }
+    if (g_hdmiInputFCBlock.buf != NULL)
+    {
+        NEXUS_Memory_Free(g_hdmiInputFCBlock.buf);
+        BKNI_Memset(&g_hdmiInputFCBlock, 0, sizeof(g_hdmiInputFCBlock));
     }
 #endif
 
@@ -303,7 +300,7 @@ static NEXUS_Error NEXUS_HdmiInput_P_OpenHdmiFe(NEXUS_HdmiInputHandle hdmiInput,
     }
     frontendSettings.uiChannel = hdmiInput->index;
 
-    rc = BHDR_FE_OpenChannel(g_NEXUS_hdmiInput .fe, &hdmiInput->frontend, &frontendSettings);
+    rc = BHDR_FE_OpenChannel(g_NEXUS_hdmiInput.fe, &hdmiInput->frontend, &frontendSettings);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
 
@@ -557,9 +554,8 @@ static void NEXUS_HdmiInput_P_Finalizer(NEXUS_HdmiInputHandle hdmiInput)
 #if NEXUS_HAS_AUDIO
     if ( NULL != hdmiInput->audioInput.pMixerData )
     {
-        NEXUS_Error errCode;
         BDBG_ERR(("Audio connector is still active.  Please call NEXUS_AudioInput_Shutdown()."));
-        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return;
     }
 #endif

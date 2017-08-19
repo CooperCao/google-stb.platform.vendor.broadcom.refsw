@@ -1,0 +1,4 @@
+
+#ifdef FSH_APPS_SRC
+src/apps/fsh
+#endif

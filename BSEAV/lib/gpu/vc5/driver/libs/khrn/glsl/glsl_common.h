@@ -83,14 +83,46 @@ typedef enum
    FMT_R32F,
    FMT_RGBA8,
    FMT_RGBA8_SNORM,
+   /* Extended formats */
+   FMT_RG32F,
+   FMT_RG16F,
+   FMT_R11G11B10F,
+   FMT_R16F,
+   FMT_RGBA16,
+   FMT_RGB10A2,
+   FMT_RG16,
+   FMT_RG8,
+   FMT_R16,
+   FMT_R8,
+   FMT_RGBA16_SNORM,
+   FMT_RG16_SNORM,
+   FMT_RG8_SNORM,
+   FMT_R16_SNORM,
+   FMT_R8_SNORM,
+   /* End of extended formats */
    FMT_RGBA32I,
    FMT_RGBA16I,
    FMT_RGBA8I,
    FMT_R32I,
+   /* Extended formats */
+   FMT_RG32I,
+   FMT_RG16I,
+   FMT_RG8I,
+   FMT_R16I,
+   FMT_R8I,
+   /* End of extended formats */
    FMT_RGBA32UI,
    FMT_RGBA16UI,
    FMT_RGBA8UI,
    FMT_R32UI,
+   /* Extended formats */
+   FMT_RGB10A2UI,
+   FMT_RG32UI,
+   FMT_RG16UI,
+   FMT_RG8UI,
+   FMT_R16UI,
+   FMT_R8UI,
+   /* End of extended formats */
 } FormatQualifier;
 
 typedef enum
@@ -290,8 +322,3 @@ typedef struct _Qualifiers
    PrecisionQualifier     pq;
    MemoryQualifier        mq;
 } Qualifiers;
-
-
-// Functions.
-
-bool glsl_parsing_user_code(void);

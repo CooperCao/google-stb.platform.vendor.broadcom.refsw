@@ -84,21 +84,23 @@ void NEXUS_Frontend_GetCapabilities(
 
 NEXUS_Error NEXUS_Frontend_GetInputBandStatus(NEXUS_FrontendHandle handle, NEXUS_InputBandStatus *pStatus)
 {
-    NEXUS_FrontendUserParameters userParams;
-    NEXUS_FrontendDeviceHandle device;
+
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
 
     if (NEXUS_Frontend_P_CheckDeviceOpen(handle)) {
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
     }
 
+#if NEXUS_HAS_MXT
+{
+    NEXUS_FrontendUserParameters userParams;
+    NEXUS_FrontendDeviceHandle device;
+    BMXT_InputBandStatus ibStatus;
+    NEXUS_Error rc;
+
     device = handle->pGenericDeviceHandle;
     NEXUS_Frontend_GetUserParameters(handle, &userParams);
 
-#if NEXUS_HAS_MXT
-{
-    BMXT_InputBandStatus ibStatus;
-    NEXUS_Error rc;
     rc = BMXT_GetInputBandStatus(device->mtsifConfig.mxt, &ibStatus);
     if (rc) {
         return BERR_TRACE(rc);
@@ -211,6 +213,9 @@ NEXUS_Error NEXUS_Frontend_SetUserParameters( NEXUS_FrontendHandle handle, const
         handle->mtsif.txOut = NEXUS_FRONTEND_USER_PARAM1_GET_MTSIF_TX(pParams->param1);
         handle->mtsif.daisyTxOut = NEXUS_FRONTEND_USER_PARAM1_GET_DAISYCHAIN_MTSIF_TX(pParams->param1);
         handle->mtsif.daisyOverride = NEXUS_FRONTEND_USER_PARAM1_GET_DAISYCHAIN_OVERRIDE(pParams->param1);
+    }
+    if (handle->postSetUserParameters) {
+        handle->postSetUserParameters(handle, pParams);
     }
     return BERR_SUCCESS;
 }
@@ -781,7 +786,9 @@ static NEXUS_Error NEXUS_Frontend_P_SetTsmfInput(void *mxt, unsigned tsmfInput, 
     NEXUS_Error rc;
     BDBG_CASSERT(sizeof(NEXUS_TsmfFieldVerifyConfig) == sizeof(BMXT_TSMFFldVerifyConfig));
     BDBG_CASSERT(NEXUS_TsmfVersionChangeMode_eFrameChangeVer == (NEXUS_TsmfVersionChangeMode)BMXT_TSMFVersionChgMode_eFrameChgVer);
-    BDBG_ASSERT(tsmfSettings->sourceType==NEXUS_TsmfSourceType_eMtsif);
+
+    if(tsmfSettings->sourceType==NEXUS_TsmfSourceType_eMtsifRx)
+       return NEXUS_SUCCESS;
 
     rc = BMXT_TSMF_SetFldVerifyConfig(mxt, tsmfIndex, (const BMXT_TSMFFldVerifyConfig *)&(tsmfSettings->fieldVerifyConfig));
     if (rc) {rc = BERR_TRACE(rc);} /* keep going */
@@ -1495,15 +1502,23 @@ NEXUS_Error NEXUS_FrontendDevice_Link(NEXUS_FrontendDeviceHandle parentHandle, N
 {
     NEXUS_Error rc=NEXUS_SUCCESS;
 
-    BLST_D_INSERT_HEAD(&parentHandle->deviceChildList, childHandle, link);
-    childHandle->parent = parentHandle;
-    if (pSettings) {
-        childHandle->linkSettings = *pSettings;
+    /* parent or child can override how the link works, child first */
+    if (childHandle->deviceLink) {
+        rc = childHandle->deviceLink(parentHandle, childHandle, pSettings);
+    } else if (parentHandle->deviceLink) {
+        rc = parentHandle->deviceLink(parentHandle, childHandle, pSettings);
+    } else {
+        /* otherwise, standard chained config */
+        BLST_D_INSERT_HEAD(&parentHandle->deviceChildList, childHandle, link);
+        childHandle->parent = parentHandle;
+        if (pSettings) {
+            childHandle->linkSettings = *pSettings;
 
-        if (pSettings->mtsif==NEXUS_FrontendDeviceMtsifOutput_eDaisy) {
-            parentHandle->chainedConfig = &childHandle->mtsifConfig;
-            childHandle->chainedConfig = &parentHandle->mtsifConfig;
-            childHandle->mtsifConfig.slave = true;
+            if (pSettings->mtsif==NEXUS_FrontendDeviceMtsifOutput_eDaisy) {
+                parentHandle->chainedConfig = &childHandle->mtsifConfig;
+                childHandle->chainedConfig = &parentHandle->mtsifConfig;
+                childHandle->mtsifConfig.slave = true;
+            }
         }
     }
 
@@ -1958,6 +1973,21 @@ void NEXUS_FrontendModule_P_Print(void)
         }
 #endif
     }
+
+#if NEXUS_HAS_MXT && (defined BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT)
+    for (index=0; index<NEXUS_NUM_MTSIF; index++) {
+        uint32_t step = BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT - BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT;
+        uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT + step*index;
+        BREG_Write32(g_pCoreHandles->reg, addr, 0);
+    }
+    BKNI_Sleep(1);
+    for (index=0; index<NEXUS_NUM_MTSIF; index++) {
+        uint32_t step = BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT - BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT;
+        uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT + step*index;
+        BDBG_MODULE_LOG(nexus_frontend_proc, ("MTSIF_RX%u BAND_DETECT = %08x", index, BREG_Read32(g_pCoreHandles->reg, addr)));
+    }
+#endif
+
 done:
     for (tempHandle = BLST_D_FIRST(&g_frontendDeviceList.deviceList); tempHandle; tempHandle = BLST_D_NEXT(tempHandle, node)) {
         BLST_D_REMOVE(&g_frontendDeviceList.deviceList, tempHandle, node);
@@ -2103,6 +2133,10 @@ void NEXUS_FrontendDevice_GetDefaultOpenSettings(NEXUS_FrontendDeviceOpenSetting
     for (i=0; i < NEXUS_MAX_MTSIF; i++) {
         pSettings->mtsif[i].enabled = true;
     }
+    pSettings->cable.enabled = true;
+    pSettings->terrestrial.enabled = true;
+    pSettings->satellite.enabled = true;
+    pSettings->loadAP = true;
     NEXUS_CallbackDesc_Init(&pSettings->updateGainCallback);
 }
 
@@ -2126,7 +2160,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(unsigned index, const NEXUS
     }
     {
         unsigned familyId = probe.chip.familyId;
-        if (familyId == 0x45316) familyId = 0x45308;
+        if ((familyId == 0x45316) || (familyId == 0x45304) || (familyId == 0x45302)) familyId = 0x45308;
         if (familyId == 0x3465) familyId = 0x3466;
         BDBG_WRN(("Detected frontend %x does not have an entry in the frontend table. Was Nexus built with NEXUS_FRONTEND_%x=y set?", familyId, familyId));
     }

@@ -1,43 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *
+ *
+*******************************************************************************/
+
 #ifndef MAILBOX_ENUM
 #define MAILBOX_ENUM
 
@@ -446,6 +451,7 @@ typedef enum
     TE_ROUTING_CHANGE_REQ_FID,
 
     /* Addition API section end */
+    GET_FW_REV_FID,
     FINAL_PUBLIC_FID,
 
 } MailFID_t;
@@ -454,6 +460,7 @@ SYS_DbgAssertStatic(0x0001U == TE_RESET_FID);           //NOTE: This value hardc
 SYS_DbgAssertStatic(0x03FFU == TE_ASSERT_ERRID_FID);    //NOTE: This value hardcoded inside HAL code.
 
 #endif // #ifndef MAILBOX_ENUM
+
 
 #ifndef ANY_DIRECTION
 # define ANY_DIRECTION(function_name, enum_name, desc_mod, desc_name, params_mod, parameters_name, param_payload, confirm_mod, confirm_name, confirm_payload)
@@ -482,8 +489,8 @@ SYS_DbgAssertStatic(0x03FFU == TE_ASSERT_ERRID_FID);    //NOTE: This value hardc
 /**********************************************************************************************************************/
 /* NOTE: TE_RESET_FID must be on the first position. */
 HOST_TO_STACK(Mail_TestEngineReset, TE_RESET_FID,
-              NO_CB, NO_APPROPRIATE_TYPE,
-              NO_DATA, TE_ResetCommandReqDescr_t, payload,
+              NO_CB, TE_ResetCommandReqDescr_t,
+              NO_DATA, TE_ResetCommandReqParams_t, payload,
               NO_CONFIRM, NO_APPROPRIATE_TYPE, payload)
 
 HOST_TO_STACK(Mail_TestEnginePing, TE_PING_FID,
@@ -1619,6 +1626,37 @@ HOST_TO_STACK(ZBPRO_ZCL_ColorControlCmdStepColorTemperatureReq, ZBPRO_ZCL_COLOR_
               NO_DATA, ZBPRO_ZCL_ColorControlCmdStepColorTemperatureReqParams_t, payload,
               NO_DATA, ZBPRO_ZCL_ColorControlCmdStepColorTemperatureConfParams_t, payload)
 
+/**** OTA Upgrade cluster ****************/
+STACK_TO_HOST(ZBPRO_ZCL_OTAUCmdQueryNextImageRequestInd, ZBPRO_ZCL_OTAU_CMD_QUERY_NEXT_IMAGE_REQUEST_IND_FID,
+              NO_CB, NO_APPROPRIATE_TYPE,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdQueryNextImageRequestIndParams_t, payload,
+              NO_CONFIRM, NO_APPROPRIATE_TYPE, payload)
+
+HOST_TO_STACK(ZBPRO_ZCL_OTAUCmdQueryNextImageResponseReq, ZBPRO_ZCL_OTAU_CMD_QUERY_NEXT_IMAGE_RESPONSE_REQ_FID,
+              HAS_CB, ZBPRO_ZCL_OTAUCmdQueryNextImageResponseReqDescr_t,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdQueryNextImageResponseReqParams_t, payload,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdQueryNextImageResponseConfParams_t, payload)
+
+STACK_TO_HOST(ZBPRO_ZCL_OTAUCmdImageBlockRequestInd, ZBPRO_ZCL_OTAU_CMD_IMAGE_BLOCK_REQUEST_IND_FID,
+              NO_CB, NO_APPROPRIATE_TYPE,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdImageBlockRequestIndParams_t, payload,
+              NO_CONFIRM, NO_APPROPRIATE_TYPE, payload)
+
+HOST_TO_STACK(ZBPRO_ZCL_OTAUCmdImageBlockResponseReq, ZBPRO_ZCL_OTAU_CMD_IMAGE_BLOCK_RESPONSE_REQ_FID,
+              HAS_CB, ZBPRO_ZCL_OTAUCmdImageBlockResponseReqDescr_t,
+              HAS_DATA, ZBPRO_ZCL_OTAUCmdImageBlockResponseReqParams_t, payload,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdImageBlockResponseConfParams_t, payload)
+
+STACK_TO_HOST(ZBPRO_ZCL_OTAUCmdUpgradeEndRequestInd, ZBPRO_ZCL_OTAU_CMD_UPGRADE_END_REQUEST_IND_FID,
+              NO_CB, NO_APPROPRIATE_TYPE,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdUpgradeEndRequestIndParams_t, payload,
+              NO_CONFIRM, NO_APPROPRIATE_TYPE, payload)
+
+HOST_TO_STACK(ZBPRO_ZCL_OTAUCmdUpgradeEndResponseReq, ZBPRO_ZCL_OTAU_CMD_UPGRADE_END_RESPONSE_REQ_FID,
+              HAS_CB, ZBPRO_ZCL_OTAUCmdUpgradeEndResponseReqDescr_t,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdUpgradeEndResponseParams_t, payload,
+              NO_DATA, ZBPRO_ZCL_OTAUCmdUpgradeEndResponseConfParams_t, payload)
+
 #  endif /* WRAPPERS_ALL */
 # endif /* _MAILBOX_WRAPPERS_ZCL_ */
 #endif /* _ZBPRO_ */
@@ -1841,8 +1879,8 @@ HOST_TO_STACK(RF4CE_ZRC2_ClearPushButtonStimulusReq, RF4CE_ZRC2_CLEAR_PUSH_BUTTO
               NO_DATA, RF4CE_ZRC2_BindingConfParams_t, payload)
 
 HOST_TO_STACK(RF4CE_ZRC2_CheckValidationResp, RF4CE_ZRC2_CHECK_VALIDATION_RESP_FID,
-              NO_CB, NO_APPROPRIATE_TYPE,
-              NO_DATA, RF4CE_ZRC2_CheckValidationRespDescr_t, payload,
+              NO_CB, RF4CE_ZRC2_CheckValidationRespDescr_t,
+              NO_DATA, RF4CE_ZRC2_CheckValidationRespParams_t, payload,
               NO_CONFIRM, NO_APPROPRIATE_TYPE, payload)
 
 HOST_TO_STACK(RF4CE_ZRC2_ControlCommandPressedReq, RF4CE_ZRC2_CONTROL_COMMAND_PRESS_REQ_FID,
@@ -2136,6 +2174,12 @@ HOST_TO_STACK(TE_RoutingChangeReq, TE_ROUTING_CHANGE_REQ_FID,
               NO_DATA, TE_RoutingChangeReqParams_t, payload,
               NO_DATA, TE_RoutingChangeConfParams_t, payload)
 
+// To get the Firmware Revision numbers.
+HOST_TO_STACK(Get_FW_Rev_Req, GET_FW_REV_FID,
+              HAS_CB, Get_FW_Rev_ReqDescr_t,
+              NO_PARAMS, NO_APPROPRIATE_TYPE, payload,
+              NO_DATA, Get_FW_Rev_ConfParams_t, payload)
+
 
 // NOTE: TE_ASSERT_ERRID_FID must be on the last position.
 ANY_DIRECTION(Mail_TestEngineHaltInd, TE_ASSERT_ERRID_FID,
@@ -2143,6 +2187,11 @@ ANY_DIRECTION(Mail_TestEngineHaltInd, TE_ASSERT_ERRID_FID,
               NO_DATA, TE_AssertLogIdCommandIndParams_t, payload,
               NO_CONFIRM, NO_APPROPRIATE_TYPE, payload)
 
+
+
+
 #undef STACK_TO_HOST
 #undef HOST_TO_STACK
 #undef ANY_DIRECTION
+
+/* eof bbMailFunctionList.h */

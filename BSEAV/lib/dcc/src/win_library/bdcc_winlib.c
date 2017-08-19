@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -248,7 +248,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_Open( BDCC_WINLIB_Handle *phWinLibHandle, const 
     NEXUS_Graphics2DSettings Settings;
     int rc;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
 
     *phWinLibHandle = hWinLibHandle = (BDCC_WINLIB_Handle) BKNI_Malloc(sizeof(BDCC_WINLIB_Object));
     if(hWinLibHandle == NULL) {
@@ -284,7 +284,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_Open( BDCC_WINLIB_Handle *phWinLibHandle, const 
     hWinLibHandle->currentFrameBuffer = (hWinLibHandle->settings.flip)(hWinLibHandle->settings.context);
 
     return BDCC_WINLIB_SUCCESS;
-    
+
 error:
     if (hWinLibHandle->gfxEvent) {
         BKNI_DestroyEvent(hWinLibHandle->gfxEvent);
@@ -306,7 +306,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_Close(
     BDBG_ASSERT( hWinLibHandle->pTempRowSurface );
     BDBG_ASSERT( hWinLibHandle->pTempFlashRowSurface );
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
 
     if( hWinLibHandle->head )
     {
@@ -351,7 +351,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_CreateCaptionRow(
     width  = ( hWinLibHandle->maxGlyphWidth [BDCC_PenSize_Large] + hWinLibHandle->edgeWidth  ) * BDCC_WINLIB_CHARS_PER_ROW;
     height =   hWinLibHandle->maxGlyphHeight[BDCC_PenSize_Large] + hWinLibHandle->edgeWidth;
 
-    BDBG_MSG(("%s Width %d, Height %d", __FUNCTION__,width,height));
+    BDBG_MSG(("%s Width %d, Height %d", BSTD_FUNCTION,width,height));
 
     /*
     **  This code takes a settop api graphics handle and gets
@@ -406,7 +406,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_CreateCaptionRow(
     }
     while((!hWinLibHandle->pTempRowSurface) || (!hWinLibHandle->pTempFlashRowSurface));
 
-    BDBG_MSG(("%s %p", __FUNCTION__, (void*)*pWin));
+    BDBG_MSG(("%s %p", BSTD_FUNCTION, (void*)*pWin));
 
     return BDCC_WINLIB_SUCCESS;
 }
@@ -419,7 +419,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_DestroyCaptionRow(
 {
     BDCC_WINLIB_hRow *phRow = &(row->hWinLibHandle->head);
 
-    BDBG_MSG(("%s %p", __FUNCTION__, (void*)row));
+    BDBG_MSG(("%s %p", BSTD_FUNCTION, (void*)row));
     BDBG_ASSERT(row);
 
     /* remove row from linked list */
@@ -543,7 +543,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_ClearCaptionRow(
 {
     BDCC_WINLIB_Rect rc;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
 
     row->fillColorARGB32 = ConvertColor( opacity, color );
@@ -608,7 +608,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCaptionRowZorder(
     )
 {
     BDCC_WINLIB_hRow *phRow = &(row->hWinLibHandle->head);
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
 
     row->zorder = zorder;
@@ -651,7 +651,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCaptionRowVisibility(
     bool visible
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
 
 #ifdef DIRTY_RECTANGLE_METHOD
@@ -670,7 +670,7 @@ int BDCC_WINLIB_IsCaptionRowVisible(
     BDCC_WINLIB_hRow row
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
 
     return( row->toBeDisplayed ? (( row->clippedOut ) ? false : true ) : false);
@@ -683,7 +683,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetClipState(
     bool ClipState
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
 
     row->clippedOut = ClipState;
@@ -699,7 +699,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_GetPenPosition(
     uint32_t *pY
     )
 {
-    BDBG_MSG(("%s x=%d,y=%d", __FUNCTION__,row->penPositionx,row->penPositiony));
+    BDBG_MSG(("%s x=%d,y=%d", BSTD_FUNCTION,row->penPositionx,row->penPositiony));
     BDBG_ASSERT(row);
     BDBG_ASSERT(pX);
     BDBG_ASSERT(pY);
@@ -718,7 +718,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetPenPosition(
     uint32_t y
     )
 {
-    BDBG_MSG(("%s x=%d,y=%d", __FUNCTION__,x,y));
+    BDBG_MSG(("%s x=%d,y=%d", BSTD_FUNCTION,x,y));
     BDBG_ASSERT(row);
 
     row->penPositionx = x;
@@ -734,7 +734,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCaptionRowDispRect(
     const BDCC_WINLIB_Rect *pRect
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(pRect);
 
@@ -749,7 +749,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCaptionRowDispRect(
         (row->hWinLibHandle->pCurrentRow == row))
             extendDirtyRectangle(row->hWinLibHandle, pRect);
 
-            extendDirtyRectangle(row->hWinLibHandle, &row->dispRect);
+    extendDirtyRectangle(row->hWinLibHandle, &row->dispRect);
     }
 #endif
 
@@ -767,7 +767,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_GetCaptionRowTextRect(
 {
     uint32_t minCaptionRowHeight = row->hWinLibHandle->maxGlyphHeight[BDCC_PenSize_Small];
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(pRect);
 
@@ -790,7 +790,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCaptionRowClipRect(
     )
 {
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(pRect);
 
@@ -810,7 +810,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_GetMaxBoundingRect(
 {
     #define BDCC_WINLIB_ROW_PADDING 6
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(largestBoundingRect);
 
@@ -829,7 +829,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_GetSurfaceRect(
     uint32_t *height
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(width);
     BDBG_ASSERT(height);
@@ -847,7 +847,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_GetDisplayRect(
     BDCC_WINLIB_Rect *pRect
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(pRect);
 
@@ -864,7 +864,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCharFGColor(
     BDCC_Opacity Opacity
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(Opacity <= BDCC_Opacity_Transparent);
 
@@ -882,7 +882,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCharBGColor(
     BDCC_Opacity Opacity
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(Opacity <= BDCC_Opacity_Transparent);
 
@@ -900,7 +900,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCharEdgeColor(
     BDCC_Opacity Opacity
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(Opacity <= BDCC_Opacity_Transparent);
 
@@ -916,7 +916,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetCharEdgeType(
     BDCC_Edge edgeType
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(edgeType < BDCC_Edge_Style_Max_Value);
 
@@ -932,7 +932,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetEdgeWidth(
     uint32_t edgeWidth
     )
 {
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
 
     row->hWinLibHandle->edgeWidth = edgeWidth;
@@ -950,7 +950,7 @@ static BDCC_WINLIB_ErrCode fillRectangle(
     NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_Error error;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(row);
     BDBG_ASSERT(pRect);
 
@@ -999,7 +999,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_LoadFont(
     char charsToMeasure [] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
 
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
 
     BSTD_UNUSED(fontSize);
     BDBG_ASSERT( hWinLibHandle );
@@ -1065,7 +1065,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_UnloadFonts(
     bfont_t *pFontObj;
     bfont_t font;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(hWinLibHandle);
 
     pFontObj = (bfont_t *)&hWinLibHandle->fontFaces;
@@ -1113,7 +1113,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetFont(
     bfont_t pSelectedFont;
     BDCC_WINLIB_Handle hWinLibHandle = row->hWinLibHandle;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT( row ) ;
     BDBG_ASSERT( BDCC_FontStyle_Max_Value > fontStyle );
     BDBG_ASSERT( BDCC_PenSize_Max_Size > penSize );
@@ -1183,8 +1183,8 @@ BDCC_WINLIB_ErrCode
     BDBG_ASSERT(row);
     BDBG_ASSERT(str);
 
-    BDBG_MSG(("%s String = %s>", __FUNCTION__,(char*)str));
-    BDBG_MSG(("%s Window Posx = %d, Posy=%d",__FUNCTION__, row->penPositionx, row->penPositiony));
+    BDBG_MSG(("%s String = %s>", BSTD_FUNCTION,(char*)str));
+    BDBG_MSG(("%s Window Posx = %d, Posy=%d",BSTD_FUNCTION, row->penPositionx, row->penPositiony));
 
     /*
     ** Edges are implemented by rendering the character twice.
@@ -1373,13 +1373,13 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_UpdateScreen(
     BDCC_WINLIB_hRow hRow;
     NEXUS_SurfaceHandle nextFrameBuffer;
     NEXUS_Graphics2DFillSettings fillSettings;
-	NEXUS_Error error;
+        NEXUS_Error error;
     uint32_t framebufferDisplayWidth, framebufferDisplayHeight;
 #ifdef DIRTY_RECTANGLE_METHOD
     BDCC_WINLIB_Rect dirtyRect, intersectRect;
 #endif
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     BDBG_ASSERT(hWinLibHandle);
 
     if((!hWinLibHandle->hideDisplay)

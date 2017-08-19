@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,6 +47,7 @@ int B_PlaybackIp_UtilsWaitForSocketData(B_PlaybackIpHandle playback_ip, bool *re
 int
 B_PlaybackIp_UtilsWaitForSocketWriteReady(int fd, int timeout /* in usec */);
 int B_PlaybackIp_UtilsGetPlaypumpBuffer(B_PlaybackIpHandle playback_ip, unsigned int size);
+int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec( B_PlaybackIpHandle playback_ip, unsigned int *pDepthInMsec);
 int B_PlaybackIp_UtilsFlushAvPipeline(B_PlaybackIpHandle playback_ip);
 int B_PlaybackIp_UtilsFlushSocket(B_PlaybackIpHandle playback_ip);
 B_PlaybackIpError B_PlaybackIp_UtilsReadUdpPayloadChunk(
@@ -67,7 +68,7 @@ int B_PlaybackIp_UtilsTcpSocketWrite(volatile B_PlaybackIpState *playbackIpState
 char *B_PlaybackIp_UtilsStristr(char *str, char *subStr);
 /* enable this to track the caller of strdups */
 #if 0
-#define B_PlaybackIp_UtilsStrdup(uri) B_PlaybackIp_UtilsStrdup_Tagged(uri, __FUNCTION__, __LINE__)
+#define B_PlaybackIp_UtilsStrdup(uri) B_PlaybackIp_UtilsStrdup_Tagged(uri, BSTD_FUNCTION, __LINE__)
 #endif
 char *B_PlaybackIp_UtilsStrdup(char *src);
 char *B_PlaybackIp_UtilsRealloc(char *curBuffer, int curBufferSize, int newBufferSize);

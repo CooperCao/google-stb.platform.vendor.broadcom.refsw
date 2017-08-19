@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -121,7 +121,7 @@ B_PlaybackIpHandle B_PlaybackIp_Open(
 {
     B_PlaybackIpHandle playback_ip = NULL;
 
-    BDBG_MSG(("%s: PKTS_PER_READ %d\n", __FUNCTION__, PKTS_PER_READ));
+    BDBG_MSG(("%s: PKTS_PER_READ %d\n", BSTD_FUNCTION, PKTS_PER_READ));
     BSTD_UNUSED(pSettings);
 
     B_Os_Init();
@@ -151,11 +151,11 @@ B_PlaybackIp_Close(
     )
 {
     if (!playback_ip) {
-        BDBG_ERR(("%s: NULL playback_ip handle\n", __FUNCTION__));
+        BDBG_ERR(("%s: NULL playback_ip handle\n", BSTD_FUNCTION));
         return B_ERROR_INVALID_PARAMETER;
     }
 
-    BDBG_MSG(("%s: ", __FUNCTION__));
+    BDBG_MSG(("%s: ", BSTD_FUNCTION));
 
     switch (playback_ip->playback_state) {
     case B_PlaybackIpState_eSessionSetupInProgress:
@@ -194,11 +194,10 @@ B_PlaybackIp_SessionOpen(
     )
 {
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
-    B_PlaybackIpSocketState *socketState;
     char *pValue = NULL;
 
     if (!playback_ip || !openSettings || !openStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -210,13 +209,13 @@ B_PlaybackIp_SessionOpen(
         break;
     default:
         /* In all other states, app can't call this API */
-        BDBG_ERR(("ERROR: Can't call %s() in this state %d\n", __FUNCTION__, playback_ip->playback_state));
+        BDBG_ERR(("ERROR: Can't call %s() in this state %d\n", BSTD_FUNCTION, playback_ip->playback_state));
         return B_ERROR_NOT_SUPPORTED;
     }
 
     if (openSettings->nonBlockingMode) {
         if (!openSettings->eventCallback) {
-            BDBG_ERR(("%s: invalid param: eventCallback must be specified for nonBlockingMode operation", __FUNCTION__));
+            BDBG_ERR(("%s: invalid param: eventCallback must be specified for nonBlockingMode operation", BSTD_FUNCTION));
             return B_ERROR_INVALID_PARAMETER;
         }
 
@@ -227,7 +226,7 @@ B_PlaybackIp_SessionOpen(
 
         /* So Api is not in progress, check if it is completed, them jump to returning results to app */
         if (playback_ip->apiCompleted) {
-            BDBG_MSG(("%s: previously started session open operation completed, playback_ip %p", __FUNCTION__, (void *)playback_ip));
+            BDBG_MSG(("%s: previously started session open operation completed, playback_ip %p", BSTD_FUNCTION, (void *)playback_ip));
             goto apiDone;
         }
 
@@ -254,7 +253,7 @@ B_PlaybackIp_SessionOpen(
     playback_ip->playback_state = B_PlaybackIpState_eSessionOpenInProgress;
 
     BDBG_MSG(("%s: playback_ip %p, openSettings %p, openStatus %p, state %d, proto %d\n",
-                __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus, playback_ip->playback_state, openSettings->socketOpenSettings.protocol));
+                BSTD_FUNCTION, (void *)playback_ip, (void *)openSettings, (void *)openStatus, playback_ip->playback_state, openSettings->socketOpenSettings.protocol));
 
     playback_ip->openSettings = *openSettings;
     if (openSettings->networkTimeout) {
@@ -268,36 +267,35 @@ B_PlaybackIp_SessionOpen(
     if (openSettings->socketOpenSettings.url != NULL) {
         /* cache a copy of the URL */
         if ((playback_ip->openSettings.socketOpenSettings.url = B_PlaybackIp_UtilsStrdup(openSettings->socketOpenSettings.url)) == NULL) {
-            BDBG_ERR(("%s: Failed to duplicate URL string due to out of memory condition", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to duplicate URL string due to out of memory condition", BSTD_FUNCTION));
             goto error;
         }
     }
-    socketState = &openStatus->socketState;
     memset(openStatus, 0, sizeof(B_PlaybackIpSessionOpenStatus));
 
     /* create events */
     if (BKNI_CreateEvent(&playback_ip->playback_halt_event)) {
-        BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event\n", BSTD_FUNCTION));
         goto error;
     }
     if (BKNI_CreateEvent(&playback_ip->read_callback_event)) {
-        BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event\n", BSTD_FUNCTION));
         goto error;
     }
     if (BKNI_CreateEvent(&playback_ip->preChargeBufferEvent)) {
-        BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event\n", BSTD_FUNCTION));
         goto error;
     }
     if (BKNI_CreateEvent(&playback_ip->newJobEvent)) {
-        BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event\n", BSTD_FUNCTION));
         goto error;
     }
     if (BKNI_CreateEvent(&playback_ip->liveMediaSyncEvent)) {
-        BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event\n", BSTD_FUNCTION));
         goto error;
     }
     if (BKNI_CreateEvent(&playback_ip->sessionOpenRetryEventHandle)) {
-        BDBG_ERR(("%s: Failed to create an event (Session Open Retry Event)\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event (Session Open Retry Event)\n", BSTD_FUNCTION));
         goto error;
     }
     /* create mutex for serializing flow among different flows invoking a IP playback session */
@@ -324,7 +322,7 @@ apiDone:
         errorCode = B_PlaybackIp_RtspSessionOpen(playback_ip, openSettings, openStatus);
 #else
         errorCode = B_ERROR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: RTSP protocol requires compilation of Live Media library (build w/ LIVEMEDIA_SUPPORT=y)", __FUNCTION__));
+        BDBG_ERR(("%s: RTSP protocol requires compilation of Live Media library (build w/ LIVEMEDIA_SUPPORT=y)", BSTD_FUNCTION));
 #endif
         break;
 
@@ -333,7 +331,7 @@ apiDone:
         errorCode = B_PlaybackIp_RtpSessionOpen(playback_ip, openSettings, openStatus);
 #else
         errorCode = B_ERROR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: RTP protocol requires compilation of Live Media library (build w/ LIVEMEDIA_SUPPORT=y)", __FUNCTION__));
+        BDBG_ERR(("%s: RTP protocol requires compilation of Live Media library (build w/ LIVEMEDIA_SUPPORT=y)", BSTD_FUNCTION));
 #endif
         break;
     case B_PlaybackIpProtocol_eRtpNoRtcp:
@@ -354,7 +352,7 @@ apiDone:
     playback_ip->playback_state = B_PlaybackIpState_eSessionOpened;
     playback_ip->socketState = openStatus->socketState;
     playback_ip->settings.ipMode = openSettings->ipMode;
-    BDBG_MSG(("%s: Session Open completed: socket fd %d\n", __FUNCTION__, playback_ip->socketState.fd));
+    BDBG_MSG(("%s: Session Open completed: socket fd %d\n", BSTD_FUNCTION, playback_ip->socketState.fd));
     return B_ERROR_SUCCESS;
 
 error:
@@ -382,7 +380,7 @@ error:
     /* back to Opened state */
     playback_ip->playback_state = B_PlaybackIpState_eOpened;
     playback_ip->openSettings.eventCallback = NULL;
-    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", __FUNCTION__, (void *)playback_ip, errorCode, playback_ip->socketState.fd));
+    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", BSTD_FUNCTION, (void *)playback_ip, errorCode, playback_ip->socketState.fd));
     return errorCode;
 }
 
@@ -395,9 +393,9 @@ B_PlaybackIp_SessionSetup(
 {
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
 
-    BDBG_MSG(("%s: playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
+    BDBG_MSG(("%s: playback_ip %p, setupSettings %p, setupStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
     if (!playback_ip || !setupSettings || !setupStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -409,7 +407,7 @@ B_PlaybackIp_SessionSetup(
         break;
     default:
         /* In all other states, app can't call this API */
-        BDBG_ERR(("ERROR: Can't call %s() in this state %d\n", __FUNCTION__, playback_ip->playback_state));
+        BDBG_ERR(("ERROR: Can't call %s() in this state %d\n", BSTD_FUNCTION, playback_ip->playback_state));
         return B_ERROR_NOT_SUPPORTED;
     }
 
@@ -451,11 +449,11 @@ B_PlaybackIp_SessionSetup(
     /* now this API is successfully completed, update state to reflect that */
     playback_ip->playback_state = B_PlaybackIpState_eSessionSetup;
     playback_ip->sessionSetupCompleted = true;
-    BDBG_MSG(("%s: Session Setup completed: socket fd %d\n", __FUNCTION__, playback_ip->socketState.fd));
+    BDBG_MSG(("%s: Session Setup completed: socket fd %d\n", BSTD_FUNCTION, playback_ip->socketState.fd));
     return B_ERROR_SUCCESS;
 
 error:
-    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", __FUNCTION__, (void *)playback_ip, errorCode, playback_ip->socketState.fd));
+    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", BSTD_FUNCTION, (void *)playback_ip, errorCode, playback_ip->socketState.fd));
     playback_ip->playback_state = B_PlaybackIpState_eSessionOpened;
     return errorCode;
 }
@@ -472,7 +470,7 @@ ptsErrorCallback(void *context, int param)
     BSTD_UNUSED(param);
 
     if (playback_ip == NULL) {
-        BDBG_ERR(("%s: ERROR: playback_ip context became NULL", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: playback_ip context became NULL", BSTD_FUNCTION));
         goto out;
     }
 
@@ -495,7 +493,7 @@ ptsErrorCallback(void *context, int param)
 
     /* get pts of the last frame before disontinuity */
     if ( (http_get_current_pts(playback_ip, &currentPts) != B_ERROR_SUCCESS) || currentPts == 0) {
-        BDBG_MSG(("%s: DM either failed to return PTS or returned 0 as current PTS, use the lastUsedPts %x as the currentPts", __FUNCTION__, playback_ip->lastUsedPts));
+        BDBG_MSG(("%s: DM either failed to return PTS or returned 0 as current PTS, use the lastUsedPts %x as the currentPts", BSTD_FUNCTION, playback_ip->lastUsedPts));
         currentPts = playback_ip->lastUsedPts;
     }
 
@@ -503,13 +501,13 @@ ptsErrorCallback(void *context, int param)
         /* shouldn't happen as currentPts returned by the DM corresponds to the last frame before the discontinuity */
         /* and this whole segment should have been contigous, so something is not as we expect */
         /* note: it is confusing from the decoder status comment, but this currentPts is not the PTS corresponding to the frame after the discontinuity */
-        BDBG_ERR(("%s: ERROR: current PTS %x is smaller than firstPTS %x, nextPts %x, streamDurationUntilLastDiscontinuity %d msec", __FUNCTION__, currentPts, playback_ip->firstPts, nextPts, playback_ip->streamDurationUntilLastDiscontinuity));
+        BDBG_ERR(("%s: ERROR: current PTS %x is smaller than firstPTS %x, nextPts %x, streamDurationUntilLastDiscontinuity %d msec", BSTD_FUNCTION, currentPts, playback_ip->firstPts, nextPts, playback_ip->streamDurationUntilLastDiscontinuity));
         currentContigousStreamDuration = 0;
     }
     else if (currentPts == playback_ip->ptsDuringLastDiscontinuity) {
         /* current decoded pts still happens to be same as the one during previous discontinuity, ignore it */
         /* this can happen when we get back to back PTS discontinuities */
-        BDBG_MSG(("%s: current PTS %x is same as ptsDuringLastDiscontinuity %x, nextPts %x, streamDurationUntilLastDiscontinuity %d msec", __FUNCTION__, currentPts, playback_ip->ptsDuringLastDiscontinuity, nextPts, playback_ip->streamDurationUntilLastDiscontinuity));
+        BDBG_MSG(("%s: current PTS %x is same as ptsDuringLastDiscontinuity %x, nextPts %x, streamDurationUntilLastDiscontinuity %d msec", BSTD_FUNCTION, currentPts, playback_ip->ptsDuringLastDiscontinuity, nextPts, playback_ip->streamDurationUntilLastDiscontinuity));
         currentContigousStreamDuration = 0;
     }
     else {
@@ -517,7 +515,7 @@ ptsErrorCallback(void *context, int param)
         currentContigousStreamDuration = (currentPts - playback_ip->firstPts) / 45;
     }
     playback_ip->streamDurationUntilLastDiscontinuity += currentContigousStreamDuration;
-    BDBG_ERR(("%s: contingous segment's firstPts %x, lastPts %x, nextPts %x, total streamDurationUntilLastDiscontinuity %d msec", __FUNCTION__, playback_ip->firstPts, currentPts, nextPts, playback_ip->streamDurationUntilLastDiscontinuity));
+    BDBG_ERR(("%s: contingous segment's firstPts %x, lastPts %x, nextPts %x, total streamDurationUntilLastDiscontinuity %d msec", BSTD_FUNCTION, playback_ip->firstPts, currentPts, nextPts, playback_ip->streamDurationUntilLastDiscontinuity));
     playback_ip->firstPtsBeforePrevDiscontinuity = playback_ip->firstPts;
     playback_ip->firstPts = nextPts; /* this nextPts becomes the first PTS of segment after discontinuity */
     /* dont reset lastUsedPts to nextPts, instead to the currentPts (which is the last pts before this discontinuity */
@@ -547,7 +545,7 @@ B_PlaybackIp_ResetVideoPtsCallback(
         else
             videoDecoderSettings.firstPts.callback = NULL;
         if (NEXUS_VideoDecoder_SetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback for video decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback for video decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -559,11 +557,11 @@ B_PlaybackIp_ResetVideoPtsCallback(
         else
             videoDecoderSettings.firstPts.callback = NULL;
         if (NEXUS_SimpleVideoDecoder_SetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", BSTD_FUNCTION));
             goto error;
         }
     }
-    BDBG_MSG(("%s: ctx %p: reset video first pts callback!", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s: ctx %p: reset video first pts callback!", BSTD_FUNCTION, (void *)playback_ip));
     errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
@@ -584,7 +582,7 @@ B_PlaybackIp_ResetAudioPtsCallback(
         else
             audioDecoderSettings.streamStatusAvailable.callback = NULL;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -606,11 +604,11 @@ B_PlaybackIp_ResetAudioPtsCallback(
         errCode = NEXUS_SimpleAudioDecoder_SetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
         BKNI_Free(pAudioDecoderSettings);
         if (errCode != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
-    BDBG_MSG(("%s: ctx %p: reset audio first pts callback!", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s: ctx %p: reset audio first pts callback!", BSTD_FUNCTION, (void *)playback_ip));
     errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
@@ -637,7 +635,7 @@ firstPtsCallback(void *context, int param)
 
     /* get pts corresponding to the 1st frame */
     if ((http_get_current_pts(playback_ip, &currentPts) != B_ERROR_SUCCESS) || currentPts == 0) {
-        BDBG_MSG(("%s: DM either failed to return PTS or returned 0 as current PTS, not setting the firstPts", __FUNCTION__));
+        BDBG_MSG(("%s: DM either failed to return PTS or returned 0 as current PTS, not setting the firstPts", BSTD_FUNCTION));
         goto out;
     }
 
@@ -651,14 +649,14 @@ firstPtsCallback(void *context, int param)
         playback_ip->streamDurationUntilLastDiscontinuity = 0;
 #else
         playback_ip->streamDurationUntilLastDiscontinuity += (playback_ip->lastUsedPts-playback_ip->firstPts)/45;
-        BDBG_MSG(("%s: first pts 0x%x, last pts 0x%x, additional duration %d, total dur %d", __FUNCTION__,
+        BDBG_MSG(("%s: first pts 0x%x, last pts 0x%x, additional duration %d, total dur %d", BSTD_FUNCTION,
                     playback_ip->firstPts, playback_ip->lastUsedPts, (playback_ip->lastUsedPts-playback_ip->firstPts)/45, playback_ip->streamDurationUntilLastDiscontinuity));
 #endif
         /* if lastSeekPosition is not set, then we haven't yet done either pause/resume w/ disconnect/reconnect method, seek, or a trickplay */
         /* So this has to be the PTS corresponding to the 1st frame of this stream. We note this as firstPts for the current position calculations. */
         playback_ip->firstPts = currentPts;
         playback_ip->lastUsedPts = currentPts;
-        BDBG_MSG(("%s: first decoded pts 0x%x", __FUNCTION__, currentPts));
+        BDBG_MSG(("%s: first decoded pts 0x%x", BSTD_FUNCTION, currentPts));
     }
     else {
         /* lastSeekPosition is set, so we have done either pause/resume w/ disconnect/reconnect method, seek, or a trickplay */
@@ -693,13 +691,13 @@ firstPtsCallback(void *context, int param)
             /* two positions are differ by over a max, so there must be PTS discontinuity. Reset 1st PTS. */
             playback_ip->streamDurationUntilLastDiscontinuity = playback_ip->lastSeekPosition;
             BDBG_MSG(("%s: PTS discontinuity: Current Position %lu after trickplay using PTS calculation is off from lastSeekedPosition %lu by over %d msec, max position delta %d, reset first pts from 0x%x to 0x%x, streamDurationUntilLastDiscontinuity %d msec",
-                        __FUNCTION__, currentPositionUsingPts, playback_ip->lastSeekPosition, positionDelta, MAX_POSITION_DELTA, playback_ip->firstPts, currentPts, playback_ip->streamDurationUntilLastDiscontinuity));
+                        BSTD_FUNCTION, currentPositionUsingPts, playback_ip->lastSeekPosition, positionDelta, MAX_POSITION_DELTA, playback_ip->firstPts, currentPts, playback_ip->streamDurationUntilLastDiscontinuity));
             playback_ip->firstPts = currentPts;
             playback_ip->lastUsedPts = currentPts;
         }
         else {
             BDBG_MSG(("%s: Current Position %lu after trickplay using PTS calculation is more accurate than the one from lastSeekedPosition %lu, not resetting first pts from 0x%x to 0x%x, streamDurationUntilLastDiscontinuity %d msec",
-                        __FUNCTION__, currentPositionUsingPts, playback_ip->lastSeekPosition, playback_ip->firstPts, currentPts, playback_ip->streamDurationUntilLastDiscontinuity));
+                        BSTD_FUNCTION, currentPositionUsingPts, playback_ip->lastSeekPosition, playback_ip->firstPts, currentPts, playback_ip->streamDurationUntilLastDiscontinuity));
             playback_ip->lastUsedPts = currentPts;
         }
         /* reset lastSeekPosition */
@@ -739,14 +737,14 @@ firstPtsPassedCallback(void *context, int param)
 
     /* get pts corresponding to the 1st frame */
     if ((http_get_current_pts(playback_ip, &currentPts) != B_ERROR_SUCCESS) || currentPts == 0) {
-        BDBG_MSG(("%s: DM either failed to return PTS or returned 0 as current PTS, not setting the firstPts", __FUNCTION__));
+        BDBG_MSG(("%s: DM either failed to return PTS or returned 0 as current PTS, not setting the firstPts", BSTD_FUNCTION));
         goto out;
     }
 
     playback_ip->firstPtsPassed = true;
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s:%p first passed pts 0x%x", __FUNCTION__, (void *)playback_ip, currentPts));
+        BDBG_WRN(("%s:%p first passed pts 0x%x", BSTD_FUNCTION, (void *)playback_ip, currentPts));
 #endif
 out:
     if (playback_ip && playback_ip->appFirstPtsPassed.callback && playback_ip->appFirstPtsPassed.callback != firstPtsPassedCallback)
@@ -761,10 +759,10 @@ sourceChangedCallback(void *context, int param)
     BSTD_UNUSED(param);
     if (playback_ip->nexusHandles.videoDecoder) {
         if (NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, &status) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_VideoDecoder_GetStatus() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_VideoDecoder_GetStatus() Failed", BSTD_FUNCTION));
             goto out;
         }
-        BDBG_WRN(("%s: res: source %dx%d, coded %dx%d, display %dx%d, ar %d, fr %d, interlaced %d video format %d, muted %d", __FUNCTION__,
+        BDBG_WRN(("%s: res: source %dx%d, coded %dx%d, display %dx%d, ar %d, fr %d, interlaced %d video format %d, muted %d", BSTD_FUNCTION,
                     status.source.width, status.source.height,
                     status.coded.width, status.coded.height,
                     status.display.width, status.display.height,
@@ -779,10 +777,10 @@ sourceChangedCallback(void *context, int param)
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     else if (playback_ip->nexusHandles.simpleVideoDecoder) {
         if (NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_SimpleVideoDecoder_GetStatus() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_SimpleVideoDecoder_GetStatus() Failed", BSTD_FUNCTION));
             goto out;
         }
-        BDBG_WRN(("%s: res: source %dx%d, coded %dx%d, display %dx%d, ar %d, fr %d, interlaced %d video format %d, muted %d", __FUNCTION__,
+        BDBG_WRN(("%s: res: source %dx%d, coded %dx%d, display %dx%d, ar %d, fr %d, interlaced %d video format %d, muted %d", BSTD_FUNCTION,
                     status.source.width, status.source.height,
                     status.coded.width, status.coded.height,
                     status.display.width, status.display.height,
@@ -815,7 +813,7 @@ B_PlaybackIp_SetVideoPtsCallback(
         videoDecoderSettings.firstPts.callback = firstPtsCallback;
         videoDecoderSettings.firstPts.context = playback_ip;
         if (NEXUS_VideoDecoder_SetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback for video decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback for video decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -825,11 +823,11 @@ B_PlaybackIp_SetVideoPtsCallback(
         videoDecoderSettings.firstPts.callback = firstPtsCallback;
         videoDecoderSettings.firstPts.context = playback_ip;
         if (NEXUS_SimpleVideoDecoder_SetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", BSTD_FUNCTION));
             goto error;
         }
     }
-    BDBG_MSG(("%s: ctx %p: enabled the video first pts callback!", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s: ctx %p: enabled the video first pts callback!", BSTD_FUNCTION, (void *)playback_ip));
     errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
@@ -848,7 +846,7 @@ B_PlaybackIp_SetAudioPtsCallback(
         audioDecoderSettings.streamStatusAvailable.callback = firstPtsCallback;
         audioDecoderSettings.streamStatusAvailable.context = playback_ip;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -869,11 +867,11 @@ B_PlaybackIp_SetAudioPtsCallback(
         errCode = NEXUS_SimpleAudioDecoder_SetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
         BKNI_Free(pAudioDecoderSettings);
         if (errCode != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
-    BDBG_MSG(("%s: ctx %p: enabled the audio first pts callback!", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s: ctx %p: enabled the audio first pts callback!", BSTD_FUNCTION, (void *)playback_ip));
     errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
@@ -889,9 +887,9 @@ B_PlaybackIp_SessionStart(
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
     NEXUS_VideoDecoderSettings videoDecoderSettings;
 
-    BDBG_MSG(("%s: playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
+    BDBG_MSG(("%s: playback_ip %p, startSettings %p, startStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -903,7 +901,7 @@ B_PlaybackIp_SessionStart(
             /* SessionSetup needs to be called at least once for the HTTP/RTSP protocols */
             if (!playback_ip->sessionSetupCompleted) {
                 BDBG_ERR(("%s: ERROR: Ip_SessionSetup() needs to be called before Ip_SessionStart() for HTTP/RTSP protocols, ip state %d",
-                        __FUNCTION__, playback_ip->playback_state));
+                        BSTD_FUNCTION, playback_ip->playback_state));
                 return B_ERROR_NOT_SUPPORTED;
             }
             else {
@@ -924,7 +922,7 @@ B_PlaybackIp_SessionStart(
         break;
     default:
         /* In all other states, app can't call this API */
-        BDBG_ERR(("ERROR: Can't call %s() in this state %d\n", __FUNCTION__, playback_ip->playback_state));
+        BDBG_ERR(("ERROR: Can't call %s() in this state %d\n", BSTD_FUNCTION, playback_ip->playback_state));
         return B_ERROR_NOT_SUPPORTED;
     }
 
@@ -962,7 +960,7 @@ B_PlaybackIp_SessionStart(
         videoDecoderSettings.ptsError.callback = ptsErrorCallback;
         videoDecoderSettings.ptsError.context = playback_ip;
         if (NEXUS_VideoDecoder_SetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -990,7 +988,7 @@ B_PlaybackIp_SessionStart(
         videoDecoderSettings.ptsError.callback = ptsErrorCallback;
         videoDecoderSettings.ptsError.context = playback_ip;
         if (NEXUS_SimpleVideoDecoder_SetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -1004,7 +1002,7 @@ B_PlaybackIp_SessionStart(
         audioDecoderSettings.streamStatusAvailable.callback = firstPtsCallback;
         audioDecoderSettings.streamStatusAvailable.context = playback_ip;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -1029,7 +1027,7 @@ B_PlaybackIp_SessionStart(
         errCode = NEXUS_SimpleAudioDecoder_SetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
         BKNI_Free(pAudioDecoderSettings);
         if (errCode != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -1058,7 +1056,7 @@ checkStartStatus:
         break;
     case B_PlaybackIpProtocol_eRtpFec:
     default:
-        BDBG_MSG(("%s: Session start failed: protocol %d not supported", __FUNCTION__, playback_ip->openSettings.socketOpenSettings.protocol));
+        BDBG_MSG(("%s: Session start failed: protocol %d not supported", BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.protocol));
         errorCode = B_ERROR_INVALID_PARAMETER;
         break;
     }
@@ -1075,7 +1073,7 @@ checkStartStatus:
     else {
         playback_ip->playback_state = B_PlaybackIpState_ePlaying;
     }
-    BDBG_MSG(("%s() completed successfully, playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s() completed successfully, playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
     return B_ERROR_SUCCESS;
 
 error:
@@ -1110,20 +1108,20 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
     if (!playback_ip) return B_ERROR_INVALID_PARAMETER;
 
     currentState = playback_ip->playback_state;
-    BDBG_MSG(("%s:%p playback ip state %d\n", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
+    BDBG_MSG(("%s:%p playback ip state %d\n", BSTD_FUNCTION, (void *)playback_ip, playback_ip->playback_state));
     switch (playback_ip->playback_state) {
     case B_PlaybackIpState_eOpened:
     case B_PlaybackIpState_eSessionOpened:
     case B_PlaybackIpState_eStopping:
-        BDBG_MSG(("%s: nothing to stop in this state %d... ", __FUNCTION__, playback_ip->playback_state));
+        BDBG_MSG(("%s: nothing to stop in this state %d... ", BSTD_FUNCTION, playback_ip->playback_state));
         return (B_ERROR_SUCCESS);
     case B_PlaybackIpState_eSessionSetup:
-        BDBG_MSG(("%s: nothing to stop in this state %d... ", __FUNCTION__, playback_ip->playback_state));
+        BDBG_MSG(("%s: nothing to stop in this state %d... ", BSTD_FUNCTION, playback_ip->playback_state));
         goto out; /* Setup is complete, so we just need to go back to the stopped state. */
     case B_PlaybackIpState_eSessionOpenInProgress:
     case B_PlaybackIpState_eSessionSetupInProgress:
         BKNI_ResetEvent(playback_ip->playback_halt_event);
-        BDBG_MSG(("%s: need to abort this in progress state %d... ", __FUNCTION__, playback_ip->playback_state));
+        BDBG_MSG(("%s: need to abort this in progress state %d... ", BSTD_FUNCTION, playback_ip->playback_state));
         break;
     case B_PlaybackIpState_eSessionStartInProgress:
         BKNI_ResetEvent(playback_ip->playback_halt_event);
@@ -1136,14 +1134,14 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
         /* Continue below to Stop the IP Session */
         break;
     default:
-        BDBG_MSG(("%s: nothing to stop in this state %d... ", __FUNCTION__, playback_ip->playback_state));
+        BDBG_MSG(("%s: nothing to stop in this state %d... ", BSTD_FUNCTION, playback_ip->playback_state));
         return B_ERROR_SUCCESS;
 
     }
 
     /* change to stopping state as stopping the IP thread can take some time */
     playback_ip->playback_state = B_PlaybackIpState_eStopping;
-    BDBG_MSG(("%s:%p playback ip state changed to %d\n", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
+    BDBG_MSG(("%s:%p playback ip state changed to %d\n", BSTD_FUNCTION, (void *)playback_ip, playback_ip->playback_state));
 
     if (playback_ip->sessionOpenRetryEventHandle != NULL) {
         BKNI_SetEvent(playback_ip->sessionOpenRetryEventHandle);
@@ -1160,17 +1158,17 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
 
     rc = BKNI_WaitForEvent(playback_ip->playback_halt_event, IP_HALT_TASK_TIMEOUT_MSEC);
     if (rc == BERR_TIMEOUT) {
-        BDBG_WRN(("%s: playback_halt_event was timed out", __FUNCTION__));
+        BDBG_WRN(("%s: playback_halt_event was timed out", BSTD_FUNCTION));
     } else if (rc!=0) {
-        BDBG_ERR(("%s: failed to stop the IP thread: playback_halt_event timed out due to error rc = %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s: failed to stop the IP thread: playback_halt_event timed out due to error rc = %d", BSTD_FUNCTION, rc));
         goto error;
     }
     if (playback_ip->playbackIpThread)
         B_Thread_Destroy(playback_ip->playbackIpThread);
-    BDBG_MSG(("%s: Playback IP thread is stopped \n", __FUNCTION__));
+    BDBG_MSG(("%s: Playback IP thread is stopped \n", BSTD_FUNCTION));
 
     if (currentState < B_PlaybackIpState_eSessionSetup) {
-        BDBG_ERR(("%s:%p Skipping remaining stop processing as session wasn't started, state=%d ", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
+        BDBG_ERR(("%s:%p Skipping remaining stop processing as session wasn't started, state=%d ", BSTD_FUNCTION, (void *)playback_ip, playback_ip->playback_state));
         goto out;
     }
     switch (playback_ip->openSettings.socketOpenSettings.protocol) {
@@ -1194,7 +1192,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
 #endif
 
     default:
-        BDBG_WRN(("%s: Bad protocol", __FUNCTION__));
+        BDBG_WRN(("%s: Bad protocol", BSTD_FUNCTION));
         break;
     }
 
@@ -1204,9 +1202,9 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
         sockFilterState.filterEnable = 0;
         if (setsockopt(playback_ip->socketState.fd, SOCK_BRCM_DGRAM, STRM_SOCK_SET_FILTER_STATE, &sockFilterState, sizeof(sockFilterState)) != 0)
         {
-            BDBG_ERR(("%s: setsockopt() ERROR:", __FUNCTION__));
+            BDBG_ERR(("%s: setsockopt() ERROR:", BSTD_FUNCTION));
         }
-        BDBG_ERR(("%s: Disabled Net DMA filter\n", __FUNCTION__));
+        BDBG_ERR(("%s: Disabled Net DMA filter\n", BSTD_FUNCTION));
 #endif
     }
 
@@ -1223,7 +1221,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
         videoDecoderSettings.ptsError = playback_ip->appPtsError;
         playback_ip->appPtsError.callback = NULL;
         if (NEXUS_VideoDecoder_SetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to unset the 1st pts callback\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback\n", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -1241,7 +1239,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
         videoDecoderSettings.ptsError = playback_ip->appPtsError;
         playback_ip->appPtsError.callback = NULL;
         if (NEXUS_SimpleVideoDecoder_SetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to unset the 1st pts callback\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback\n", BSTD_FUNCTION));
             goto error;
         }
         NEXUS_SimpleVideoDecoder_GetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings);
@@ -1253,7 +1251,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
         audioDecoderSettings.streamStatusAvailable = playback_ip->streamStatusAvailable;
         playback_ip->streamStatusAvailable.callback = NULL;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to unset the 1st pts callback for audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback for audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -1276,7 +1274,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
         BKNI_Free(pAudioDecoderSettings);
 
         if (errCode != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", BSTD_FUNCTION));
             goto error;
         }
     }
@@ -1290,7 +1288,7 @@ out:
     return B_ERROR_SUCCESS;
 
 error:
-    BDBG_ERR(("%s: error", __FUNCTION__));
+    BDBG_ERR(("%s: error", BSTD_FUNCTION));
     return B_ERROR_UNKNOWN;
 }
 
@@ -1330,9 +1328,9 @@ B_PlaybackIpError B_PlaybackIp_SessionClose(
         playback_ip->playback_state = B_PlaybackIpState_eStopping;
         rc = BKNI_WaitForEvent(playback_ip->playback_halt_event, IP_HALT_TASK_TIMEOUT_MSEC);
         if (rc == BERR_TIMEOUT) {
-            BDBG_WRN(("%s: playback_halt_event was timed out", __FUNCTION__));
+            BDBG_WRN(("%s: playback_halt_event was timed out", BSTD_FUNCTION));
         } else if (rc!=0) {
-            BDBG_ERR(("%s: failed to stop the media probe thread: playback_halt_event timed out due to error rc = %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s: failed to stop the media probe thread: playback_halt_event timed out due to error rc = %d", BSTD_FUNCTION, rc));
         }
     case B_PlaybackIpState_eSessionSetup:
     case B_PlaybackIpState_eStopped:
@@ -1342,11 +1340,11 @@ B_PlaybackIpError B_PlaybackIp_SessionClose(
     default:
     case B_PlaybackIpState_eStopping:
         /* error */
-        BDBG_ERR(("ERROR: can't call %s() in this state %d as another thread is concurrently calling Ip_SessionStop()", __FUNCTION__, playback_ip->playback_state));
+        BDBG_ERR(("ERROR: can't call %s() in this state %d as another thread is concurrently calling Ip_SessionStop()", BSTD_FUNCTION, playback_ip->playback_state));
         return B_ERROR_NOT_SUPPORTED;
     }
 
-    BDBG_MSG(("%s: ip state %d proto %d", __FUNCTION__, playback_ip->playback_state, playback_ip->protocol));
+    BDBG_MSG(("%s: ip state %d proto %d", BSTD_FUNCTION, playback_ip->playback_state, playback_ip->protocol));
 
     switch (playback_ip->protocol) {
 #ifndef B_HAS_SMS_GATEWAY
@@ -1378,7 +1376,7 @@ B_PlaybackIpError B_PlaybackIp_SessionClose(
     if (playback_ip->socketState.fd > 0)
         close(playback_ip->socketState.fd);
     memset(&playback_ip->socketState, 0, sizeof(playback_ip->socketState));
-    BDBG_MSG(("%s: closed fd %d", __FUNCTION__, playback_ip->socketState.fd ));
+    BDBG_MSG(("%s: closed fd %d", BSTD_FUNCTION, playback_ip->socketState.fd ));
     playback_ip->socketState.fd = 0;
 
     /* switch to the opened state, this channel can be used for another session */
@@ -1439,7 +1437,7 @@ B_PlaybackIp_GetStatus(
     ipStatus->httpStatusCode = playback_ip->statusCode;
 
     if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &ipStatus->position) != B_ERROR_SUCCESS) {
-        BDBG_MSG(("%s: Failed to determine the current playback position, setting it to 0\n", __FUNCTION__));
+        BDBG_MSG(("%s: Failed to determine the current playback position, setting it to 0\n", BSTD_FUNCTION));
         ipStatus->position = 0;
     }
 
@@ -1448,7 +1446,7 @@ B_PlaybackIp_GetStatus(
 
 #if 0
     BDBG_MSG(("%s: buffer duration: cur %d, max %d, state %d, closed %d, offsets: last seeked %lld, end %lld, start %lld, current position %u\n",
-                __FUNCTION__, ipStatus->curBufferDuration ,ipStatus->maxBufferDuration, ipStatus->ipState, playback_ip->serverClosed, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].endOffset, playback_ip->dataCache[cacheIndex].startOffset, ipStatus->position));
+                BSTD_FUNCTION, ipStatus->curBufferDuration ,ipStatus->maxBufferDuration, ipStatus->ipState, playback_ip->serverClosed, playback_ip->lastSeekOffset, playback_ip->dataCache[cacheIndex].endOffset, playback_ip->dataCache[cacheIndex].startOffset, ipStatus->position));
 #endif
 #else
     BSTD_UNUSED(cacheIndex);
@@ -1522,7 +1520,7 @@ B_PlaybackIp_GetStatus(
     ipStatus->sessionInfo.url = (const char *)playback_ip->openSettings.socketOpenSettings.url;
     ipStatus->sessionInfo.ipAddr = (const char *)playback_ip->openSettings.socketOpenSettings.ipAddr;
 
-    BDBG_MSG(("%s:%p monitoPsi = %d", __FUNCTION__, (void *)playback_ip, playback_ip->startSettings.monitorPsi));
+    BDBG_MSG(("%s:%p monitoPsi = %d", BSTD_FUNCTION, (void *)playback_ip, playback_ip->startSettings.monitorPsi));
     B_PlaybackIp_GetPsiStreamState(playback_ip->pPsiState, &ipStatus->stream);
     rc = B_ERROR_SUCCESS;
     return rc;
@@ -1664,7 +1662,7 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
             playback_ip->nexusHandles.simpleStcChannel = pSettings->nexusHandles.simpleStcChannel;
     }
     if (pSettings->playPositionOffsetValid) {
-        BDBG_MSG(("%s:%p: Update current position=%lu to new=%lu", __FUNCTION__, (void *)playback_ip, playback_ip->lastPosition , pSettings->playPositionOffsetInMs));
+        BDBG_MSG(("%s:%p: Update current position=%lu to new=%lu", BSTD_FUNCTION, (void *)playback_ip, playback_ip->lastPosition , pSettings->playPositionOffsetInMs));
         playback_ip->lastPosition = pSettings->playPositionOffsetInMs;
         playback_ip->reOpenSocket = true;
     }
@@ -1672,58 +1670,58 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
     if (pSettings->stopAlternateAudio) {
         if (playback_ip->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eHttp && playback_ip->hlsSessionEnabled) {
-            BDBG_MSG(("%s:%p: Calling B_PlaybackIp_HlsStopAlternateRendition", __FUNCTION__, (void *)playback_ip));
+            BDBG_MSG(("%s:%p: Calling B_PlaybackIp_HlsStopAlternateRendition", BSTD_FUNCTION, (void *)playback_ip));
             B_PlaybackIp_HlsStopAlternateRendition(playback_ip);
         }
         rc = B_ERROR_SUCCESS;
     }
     else if (pSettings->startAlternateAudio) {
         if (pSettings->alternateAudio.pid == 0) {
-            BDBG_ERR(("%s: alternateAudio.pid can't be 0 if alternate audio is enabled.", __FUNCTION__));
+            BDBG_ERR(("%s: alternateAudio.pid can't be 0 if alternate audio is enabled.", BSTD_FUNCTION));
             return B_ERROR_INVALID_PARAMETER;
         }
         if (pSettings->alternateAudio.containerType == NEXUS_TransportType_eUnknown) {
-            BDBG_ERR(("%s: alternateAudio.containerType can't be unknown if alternate audio is enabled.", __FUNCTION__));
+            BDBG_ERR(("%s: alternateAudio.containerType can't be unknown if alternate audio is enabled.", BSTD_FUNCTION));
             return B_ERROR_INVALID_PARAMETER;
         }
         if (pSettings->alternateAudio.groupId == NULL) {
-            BDBG_ERR(("%s: alternateAudio.groupId can't be NULL if alternate audio is enabled.", __FUNCTION__));
+            BDBG_ERR(("%s: alternateAudio.groupId can't be NULL if alternate audio is enabled.", BSTD_FUNCTION));
             return B_ERROR_INVALID_PARAMETER;
         }
         if (pSettings->alternateAudio.language == NULL) {
-            BDBG_ERR(("%s: alternateAudio.language can't be NULL if alternate audio is enabled.", __FUNCTION__));
+            BDBG_ERR(("%s: alternateAudio.language can't be NULL if alternate audio is enabled.", BSTD_FUNCTION));
             return B_ERROR_INVALID_PARAMETER;
         }
         if ((pSettings->nexusHandlesValid && pSettings->nexusHandles.playpump2 == NULL) || (playback_ip->nexusHandles.playpump2 == NULL)) {
-            BDBG_ERR(("%s: playpump2 handle is NULL, it must be set for playing the alternate audio!", __FUNCTION__));
+            BDBG_ERR(("%s: playpump2 handle is NULL, it must be set for playing the alternate audio!", BSTD_FUNCTION));
             return B_ERROR_INVALID_PARAMETER;
         }
-        BDBG_MSG(("%s: Enabling AlternateAudio: language=%s groupId=%s pid=%d containerType=%d", __FUNCTION__,
+        BDBG_MSG(("%s: Enabling AlternateAudio: language=%s groupId=%s pid=%d containerType=%d", BSTD_FUNCTION,
                     pSettings->alternateAudio.language, pSettings->alternateAudio.groupId, pSettings->alternateAudio.pid, pSettings->alternateAudio.containerType));
         /* coverity[stack_use_local_overflow] */
         /* coverity[stack_use_overflow] */
         if (playback_ip->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eHttp && playback_ip->hlsSessionEnabled) {
             if ((rc=B_PlaybackIp_HlsStartAlternateRendition(playback_ip, &pSettings->alternateAudio)) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to enable Alternate Rendition for HLS protocol: rc=%d", __FUNCTION__, rc));
+                BDBG_ERR(("%s: Failed to enable Alternate Rendition for HLS protocol: rc=%d", BSTD_FUNCTION, rc));
                 return (rc);
             }
         }
         else {
-            BDBG_ERR(("%s: Alternate Audio is only supported for HLS protocol: requestProtocol=%d", __FUNCTION__, playback_ip->openSettings.socketOpenSettings.protocol));
+            BDBG_ERR(("%s: Alternate Audio is only supported for HLS protocol: requestProtocol=%d", BSTD_FUNCTION, playback_ip->openSettings.socketOpenSettings.protocol));
             return B_ERROR_INVALID_PARAMETER;
         }
     }
 #endif
-    BDBG_MSG(("%s:%p resumePsiMonitoring = %d", __FUNCTION__, (void *)playback_ip, pSettings->resumePsiMonitoring));
+    BDBG_MSG(("%s:%p resumePsiMonitoring = %d", BSTD_FUNCTION, (void *)playback_ip, pSettings->resumePsiMonitoring));
     if (pSettings->resumePsiMonitoring) {
         B_PlaybackIp_ResumePsiParsing(playback_ip->pPsiState);
     }
-    BDBG_MSG(("%s: preChargeBuffer %d, ipState %d", __FUNCTION__, pSettings->preChargeBuffer, playback_ip->playback_state));
+    BDBG_MSG(("%s: preChargeBuffer %d, ipState %d", BSTD_FUNCTION, pSettings->preChargeBuffer, playback_ip->playback_state));
     switch (playback_ip->playback_state) {
     case B_PlaybackIpState_ePlaying:
         if (pSettings->preChargeBuffer) {
             if (!playback_ip->psi.avgBitRate) {
-                BDBG_ERR(("%s: Can't enable Runtime Buffering since we dont know the avg stream bitrate", __FUNCTION__));
+                BDBG_ERR(("%s: Can't enable Runtime Buffering since we dont know the avg stream bitrate", BSTD_FUNCTION));
                 return B_ERROR_INVALID_PARAMETER;
             }
 
@@ -1735,13 +1733,13 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
             /* now wait for http thread to acknowledge start of buffering */
             rc = BKNI_WaitForEvent(playback_ip->preChargeBufferEvent, HTTP_PRE_CHARGE_EVENT_TIMEOUT);
             if (rc == BERR_TIMEOUT) {
-                BDBG_WRN(("%s: timed out for pre-charging complete event", __FUNCTION__));
+                BDBG_WRN(("%s: timed out for pre-charging complete event", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             } else if (rc!=0) {
-                BDBG_WRN(("%s: got error while trying to wait for pre-charging complete event, rc %d", __FUNCTION__, rc));
+                BDBG_WRN(("%s: got error while trying to wait for pre-charging complete event, rc %d", BSTD_FUNCTION, rc));
                 return B_ERROR_UNKNOWN;
             }
-            BDBG_MSG(("%s: Enabled pre-charging of network buffer", __FUNCTION__));
+            BDBG_MSG(("%s: Enabled pre-charging of network buffer", BSTD_FUNCTION));
         }
         /* can't change any settings in playing state, we ignore the settings */
         return B_ERROR_SUCCESS;
@@ -1751,20 +1749,20 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
             playback_ip->preChargeBuffer = false;
             rc = BKNI_WaitForEvent(playback_ip->preChargeBufferEvent, HTTP_PRE_CHARGE_EVENT_TIMEOUT);
             if (rc == BERR_TIMEOUT) {
-                BDBG_WRN(("%s: timed out for pre-charging complete event", __FUNCTION__));
+                BDBG_WRN(("%s: timed out for pre-charging complete event", BSTD_FUNCTION));
                 return B_ERROR_UNKNOWN;
             } else if (rc!=0) {
-                BDBG_WRN(("%s: got error while trying to wait for pre-charging complete event, rc %d", __FUNCTION__, rc));
+                BDBG_WRN(("%s: got error while trying to wait for pre-charging complete event, rc %d", BSTD_FUNCTION, rc));
                 return B_ERROR_UNKNOWN;
             }
-            BDBG_MSG(("%s: Stopped pre-charging of network buffer", __FUNCTION__));
+            BDBG_MSG(("%s: Stopped pre-charging of network buffer", BSTD_FUNCTION));
         }
         /* can't change any settings in buffering state, we ignore the settings */
         return B_ERROR_SUCCESS;
     break;
     default:
         if (pSettings->preChargeBuffer) {
-            BDBG_ERR(("%s: IP Playback Channel is not yet setup to be able to pre-charge network buffer (current state %d)\n", __FUNCTION__, playback_ip->playback_state));
+            BDBG_ERR(("%s: IP Playback Channel is not yet setup to be able to pre-charge network buffer (current state %d)\n", BSTD_FUNCTION, playback_ip->playback_state));
             return B_ERROR_INVALID_PARAMETER;
         }
         /* states other than ePlaying or eBuffering, update settings */
@@ -1819,12 +1817,12 @@ B_PlaybackIpError B_PlaybackIp_DetectTts(
     }
     if (setsockopt(playback_ip->socketState.fd, SOCK_BRCM_DGRAM, STRM_SOCK_RECV_PARAMS, &sockRecvParams, sizeof(sockRecvParams)))
     {
-        BDBG_ERR(("%s: setsockopt() ERROR:", __FUNCTION__));
+        BDBG_ERR(("%s: setsockopt() ERROR:", BSTD_FUNCTION));
         return B_ERROR_OS_ERROR;
     }
 #endif
 
-    BDBG_MSG(("%s: entering: %p", __FUNCTION__, (void *)playback_ip));
+    BDBG_MSG(("%s: entering: %p", BSTD_FUNCTION, (void *)playback_ip));
 
     if( IN_MULTICAST(ntohl(playback_ip->socketState.local_addr.sin_addr.s_addr)) ) {
         from = (struct sockaddr *) &playback_ip->socketState.remote_addr;
@@ -1838,12 +1836,12 @@ B_PlaybackIpError B_PlaybackIp_DetectTts(
     for(i=0; ; i++) {
         if  (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
             /* user changed the channel, so return */
-            BDBG_WRN(("%s: breaking out of main pre-charging loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            BDBG_WRN(("%s: breaking out of main pre-charging loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             break;
         }
         if(i>=20) {
             rc = B_ERROR_UNKNOWN;
-            BDBG_ERR(("%s: Failed to receive any data on this Live IP channel (playback_ip %p)", __FUNCTION__, (void *)playback_ip));
+            BDBG_ERR(("%s: Failed to receive any data on this Live IP channel (playback_ip %p)", BSTD_FUNCTION, (void *)playback_ip));
             goto error;
         }
 
@@ -1886,7 +1884,7 @@ wait:
         ret = select(playback_ip->socketState.fd+1, &fds, NULL, NULL, &socketTimeout);
 
         if (ret == 0) {
-            BDBG_WRN(("%s: Receive timeout", __FUNCTION__));
+            BDBG_WRN(("%s: Receive timeout", BSTD_FUNCTION));
         } else if (ret<0 && errno != EINTR) {
             BDBG_ERR(("select error"));
             rc = B_ERROR_UNKNOWN;
@@ -1986,7 +1984,7 @@ error:
 
     if (setsockopt(playback_ip->socketState.fd, SOCK_BRCM_DGRAM, STRM_SOCK_SET_FILTER_STATE, &filterState, sizeof(filterState)))
     {
-        BDBG_ERR(("%s: setsockopt() ERROR:", __FUNCTION__));
+        BDBG_ERR(("%s: setsockopt() ERROR:", BSTD_FUNCTION));
         return B_ERROR_OS_ERROR;
     }
 
@@ -1994,7 +1992,7 @@ error:
     /* throw away 1 queue size worth (~256) initial packets in B_PlaybackIp_RtpProcessing() */
 #endif
 
-    BDBG_MSG(("%s: TTS %d, rtpHeaderLength %d", __FUNCTION__, *isTts, playback_ip->rtpHeaderLength));
+    BDBG_MSG(("%s: TTS %d, rtpHeaderLength %d", BSTD_FUNCTION, *isTts, playback_ip->rtpHeaderLength));
     return rc;
 }
 

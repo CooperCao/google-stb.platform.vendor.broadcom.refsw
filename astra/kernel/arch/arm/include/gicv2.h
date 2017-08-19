@@ -104,5 +104,5 @@ void gicV2InterruptProcessed(uint32_t intrId, uint32_t sourceCPU);
 void gicV2InterruptEnable(uint32_t intrId);
 void gicV2InterruptDisable(uint32_t intrId);
 uint32_t gicV2currIntr(uint32_t *srcCpu);
-void gicV2sgiGenerate(uint32_t intrId);
+void gicV2sgiGenerate(uint8_t cpuTargetList, uint32_t intrId);
 #endif /* ARCH_AARCH64_GIC_GIC_H_ */

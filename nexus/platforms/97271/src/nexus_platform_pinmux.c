@@ -134,7 +134,7 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         }
     }
 
-    /* enable mux inside sys_ctrl to ouput the uart router to the test port */
+    /* enable mux inside sys_ctrl to output the uart router to the test port */
     reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);
     reg = BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS;
     BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);

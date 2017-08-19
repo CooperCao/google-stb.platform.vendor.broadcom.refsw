@@ -52,6 +52,7 @@
 #include "nexus_platform_ioctl.h" /* allows driver to watch for certain platform ioctls */
 #endif
 #include "nexus_client_resources.h"
+#include "bkni_track_mallocs.h"
 
 /* do not #include linux header files here. this file is generic and must compile with no OS dependency.
 if a new OS feature is needed, an API must be added. */
@@ -63,6 +64,7 @@ BDBG_MODULE(nexus_generic_driver);
 #define UNLOCK() BKNI_ReleaseMutex(nexus_driver_state.lock)
 
 static int nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, unsigned long type, bool unlocked, bool compat);
+static void nexus_driver_print_kni(void *context);
 
 /* define list of ioctl handlers */
 static const struct {
@@ -482,7 +484,7 @@ nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, un
         UNLOCK();
     }
 
-    /* Standby is handled as a special case because it needs to be syncronized with driver_close */
+    /* Standby is handled as a special case because it needs to be synchronized with driver_close */
     if (lock_standby) LOCK();
     rc = g_nexus_driver_ioctl_handlers[module].ioctl(context, cmd, arg, NEXUS_IOCTL_TYPE(cmd), unlocked, compat);
     if (lock_standby) UNLOCK();
@@ -512,12 +514,6 @@ int nexus_generic_driver_init(const struct nexus_generic_driver_init_settings *s
 
     b_memory_region_set_init(&nexus_driver_state.dynamic_memory);
 
-
-#ifdef NEXUS_CONFIG_IMAGE
-    rc = nexus_img_interfaces_init();
-    if (rc) return rc;
-#endif
-
     nexus_driver_state.settings = *settings;
 
     /* set default nexus_driver_state state */
@@ -542,9 +538,6 @@ void nexus_generic_driver_uninit(void)
     }
 
     nexus_driver_proc_done();
-#ifdef NEXUS_CONFIG_IMAGE
-    nexus_img_interfaces_shutdown();
-#endif
     b_memory_region_set_shutdown(&nexus_driver_state.dynamic_memory);
 
     BKNI_DestroyMutex(nexus_driver_state.lock);
@@ -1251,6 +1244,11 @@ static int nexus_driver_server_init_lock(unsigned pid)
     if (!nexus_driver_state.server) {
         NEXUS_ClientConfiguration config;
         struct nexus_driver_client_state *client;
+#ifdef NEXUS_CONFIG_IMAGE
+        int rc;
+        rc = nexus_img_interfaces_init();
+        if (rc) return rc;
+#endif
 
         NEXUS_Platform_GetDefaultClientConfiguration(&config);
         config.mode = NEXUS_ClientMode_eVerified;
@@ -1286,7 +1284,7 @@ static int nexus_driver_server_postinit_lock(void)
     unsigned i;
     struct nexus_driver_client_state *client = nexus_driver_state.server;
 
-    /* connect with the thunk headers now the module handles are avaiable */
+    /* connect with the thunk headers now the module handles are available */
     for (i=0;i<NEXUS_PLATFORM_P_NUM_DRIVERS-1;i++) {
         rc = g_nexus_driver_state_handlers[i].open(i);
         if (rc) { rc = BERR_TRACE(rc); break; }
@@ -1320,6 +1318,7 @@ static int nexus_driver_server_postinit_lock(void)
     }
 
     nexus_driver_proc_register_status("mma", g_NEXUS_platformHandles.core, "BMEM_ALLOCATED", NEXUS_Core_DumpHeaps_priv, NULL);
+    nexus_driver_proc_register_status("kni", g_NEXUS_platformHandles.core, "unused", nexus_driver_print_kni, NULL);
 
     return rc;
 }
@@ -1332,6 +1331,7 @@ static void nexus_driver_server_preuninit_lock(void)
     struct nexus_driver_client_state *client;
 
     nexus_driver_proc_unregister_status("mma");
+    nexus_driver_proc_unregister_status("kni");
 
     if (nexus_driver_state.uninit_in_progress) {
         /* this check is needed because the NEXUS_Platform_Uninit ioctl may fail, which would cause
@@ -1414,6 +1414,9 @@ static void nexus_driver_server_uninit_lock(void)
         nexus_driver_destroy_client_lock(client);
     }
     b_objdb_set_default_client(NULL);
+#ifdef NEXUS_CONFIG_IMAGE
+    nexus_img_interfaces_shutdown();
+#endif
     nexus_driver_state.server = NULL;
     nexus_driver_state.uninit_in_progress = false;
 
@@ -1618,3 +1621,11 @@ NEXUS_Error NEXUS_P_Driver_OutVarArg(const void *out_data, unsigned size, void *
     return NEXUS_SUCCESS;
 }
 #include "b_memory_regions.inc"
+
+static void nexus_driver_print_kni(void *context)
+{
+    BSTD_UNUSED(context);
+#if BDBG_DEBUG_BUILD
+    BKNI_DumpMallocs_WithCapture(nexus_driver_proc_print);
+#endif
+}

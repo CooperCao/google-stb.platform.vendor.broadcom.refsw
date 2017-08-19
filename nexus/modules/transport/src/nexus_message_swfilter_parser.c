@@ -720,7 +720,7 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetPesFilter(NEXUS_SwFi
     }
 
     BDBG_MSG(("%s: params->pid=%d params->buffer_size=%u params->buffer=%p",
-        __FUNCTION__,params->pid,(uint32_t)params->buffer_size,params->buffer));
+        BSTD_FUNCTION,params->pid,(uint32_t)params->buffer_size,params->buffer));
     bdemux_pes_init(&f->pes, 0); /*ignore PES stream id*/
     bdemux_ts_init(&f->pes.ts,params->pid);
     f->data_size = 0;
@@ -756,7 +756,7 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_FindPesPid(uint16_t pid
 
 void NEXUS_SwFilter_Msg_P_CopyPesData(struct NEXUS_SwFilter_FilterState *filter, const uint8_t *buffer, size_t size)
 {
-    /*printf("%s: filter->buffer=%p, filter->data_size=%d,size=%d\n",__FUNCTION__,filter->buffer,filter->data_size,size);*/
+    /*printf("%s: filter->buffer=%p, filter->data_size=%d,size=%d\n",BSTD_FUNCTION,filter->buffer,filter->data_size,size);*/
 
 
     BKNI_Memcpy((uint8_t *)filter->buffer + filter->data_size, buffer, size);
@@ -914,7 +914,7 @@ NEXUS_SwFilter_Msg_P_bdemux_ts_feed(struct NEXUS_SwFilter_FilterState *filter, c
         continuity_counter = B_GET_BITS(word, 3, 0);
         adaptation_field_control = B_GET_BITS(word, 5, 4);
 
-        /*printf("%s: continuity_counter=%d ts_continuity_counter=%d,adaptation_field_control=%d",__FUNCTION__, continuity_counter,ts_continuity_counter,adaptation_field_control);*/
+        /*printf("%s: continuity_counter=%d ts_continuity_counter=%d,adaptation_field_control=%d",BSTD_FUNCTION, continuity_counter,ts_continuity_counter,adaptation_field_control);*/
         if (continuity_counter != ts_continuity_counter) {
             goto cc_error;
         }
@@ -990,7 +990,7 @@ size_t NEXUS_SwFilter_Msg_P_FeedPes(uint8_t * buffer, size_t size)
     uint8_t * walker;
     struct NEXUS_SwFilter_FilterState* filter;
 
-    /*printf("%s: size=%d buffer[0]=0x%x",__FUNCTION__,size,buffer[0]);*/
+    /*printf("%s: size=%d buffer[0]=0x%x",BSTD_FUNCTION,size,buffer[0]);*/
 
     consumed = 0;
     walker = buffer;

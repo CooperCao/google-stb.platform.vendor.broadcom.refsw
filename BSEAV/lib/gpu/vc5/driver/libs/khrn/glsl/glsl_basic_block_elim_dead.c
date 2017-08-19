@@ -1,7 +1,6 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-
 #include "glsl_basic_block_elim_dead.h"
 
 // Remove dead edges and determine live blocks

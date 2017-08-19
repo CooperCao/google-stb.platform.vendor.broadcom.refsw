@@ -50,18 +50,28 @@ LINUX_VERSION := $(shell grep -m 1 '^VERSION = ' ${LINUX}/Makefile | awk '{print
 LINUX_PATCHLEVEL := $(shell grep -m 1 '^PATCHLEVEL = ' ${LINUX}/Makefile | awk '{print $$3}')
 LINUX_SUBLEVEL := $(shell grep -m 1 '^SUBLEVEL = ' ${LINUX}/Makefile | awk '{print $$3}')
 
+LINUX_VER_GE_4 :=  $(shell test $(LINUX_VERSION) -ge 4 && echo y)
+ifeq ($(LINUX_VER_GE_4),y)
+    LINUX_VER_GE_3_14 = y
+    LINUX_VER_GE_3_14_28 = y
+endif
 LINUX_VER_GE_3 :=  $(shell test $(LINUX_VERSION) -ge 3 && echo y)
 ifeq ($(LINUX_VER_GE_3),y)
 	LINUX_VER_GE_2_6 = y
 	LINUX_VER_GE_2_6_31 = y
 	LINUX_VER_GE_2_6_37 = y
+
+    LINUX_VER_GE_3_14 := $(shell test $(LINUX_PATCHLEVEL) -ge 14 && echo 'y')
+    ifeq ($(LINUX_VER_GE_3_14),y)
+        LINUX_VER_GE_3_14_28 := $(shell test $(LINUX_SUBLEVEL) -ge 28 && echo 'y')
+    endif
 else
-LINUX_VER_GE_2_6 ?= $(shell test $(LINUX_PATCHLEVEL) -eq 6 && echo 'y')
-ifeq ($(LINUX_VER_GE_2_6),y)
-LINUX_VER_GE_2_6_31 :=  $(shell test $(LINUX_SUBLEVEL) -ge 31 && echo y)
-LINUX_VER_GE_2_6_37 :=  $(shell test $(LINUX_SUBLEVEL) -ge 37 && echo y)
-LINUX_VER_EQ_2_6_12 := $(shell test $(LINUX_SUBLEVEL) -eq 12 && echo 'y')
-endif
+    LINUX_VER_GE_2_6 ?= $(shell test $(LINUX_PATCHLEVEL) -eq 6 && echo 'y')
+    ifeq ($(LINUX_VER_GE_2_6),y)
+        LINUX_VER_GE_2_6_31 :=  $(shell test $(LINUX_SUBLEVEL) -ge 31 && echo y)
+        LINUX_VER_GE_2_6_37 :=  $(shell test $(LINUX_SUBLEVEL) -ge 37 && echo y)
+        LINUX_VER_EQ_2_6_12 := $(shell test $(LINUX_SUBLEVEL) -eq 12 && echo 'y')
+    endif
 endif
 
 LINUX_INC ?= $(LINUX_OUT)/include
@@ -92,7 +102,24 @@ ifeq ($(LINUX_VER_GE_2_6),y)
  endif
 endif
 
-# Seperate MIPS and ARM here
+ifeq ($(filter ${B_REFSW_ARCH},arm-linux aarch64-linux),${B_REFSW_ARCH})
+ifeq ($(LINUX_VER_GE_3),y)
+    ifeq ($(LINUX_VER_GE_4),y)
+        NEXUS_CFLAGS += -DUSE_LIBFDT=1
+    else
+        ifeq ($(LINUX_VER_GE_3_14_28),y)
+            EXTRAVER := $(shell grep -e '^EXTRAVERSION = -\d*.\d*' $(LINUX)/Makefile | awk -F "-" '{print $$2}')
+            EXTRAVER_MAJOR := $(shell echo $(EXTRAVER) | awk -F "." '{print $$1}')
+            EXTRAVER_MINOR := $(shell echo $(EXTRAVER) | awk -F "." '{print $$2}')
+            ifeq ($(shell test $(EXTRAVER_MAJOR) -ge 1 && test $(EXTRAVER_MINOR) -ge 13 && echo y),y)
+                NEXUS_CFLAGS += -DUSE_LIBFDT=1
+            endif
+        endif
+    endif
+endif
+endif
+
+# Separate MIPS and ARM here
 ifneq ($(filter ${B_REFSW_ARCH}, aarch64-linux arm-linux), ${B_REFSW_ARCH})
 NEXUS_CFLAGS += -fomit-frame-pointer -G 0 -mno-abicalls -fno-pic -Wa,--trap -DMODULE -mlong-calls
 NEXUS_CFLAGS += -msoft-float -pipe

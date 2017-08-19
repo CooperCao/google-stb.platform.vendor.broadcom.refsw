@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1187,14 +1187,11 @@ b_media_probe_acquire_duration(bmedia_probe_t probe, bfile_io_read_t fd, bfile_b
     if(rc!=0) { goto error;}
 
     for(read_off_last = off_last, step_back=BMEDIA_PROBE_FEED_SIZE;step_back<B_MEDIA_PROBE_TIMESTAMP_STEP;step_back*=2) {
-        bool last_try;
 
         if(off_first+step_back<=read_off_last) {
             read_off_last = read_off_last - step_back;
-            last_try = false;
         } else {
             read_off_last = off_first+ 3*((off_last - off_first)/4);
-            last_try = true;
         }
         rc = b_media_probe_get_timestamp(probe, buf, timestamp_parser, read_off_last, &last);
         if(rc==0) { 

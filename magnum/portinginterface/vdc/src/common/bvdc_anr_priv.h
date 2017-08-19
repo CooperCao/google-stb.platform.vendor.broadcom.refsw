@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,6 +70,7 @@ extern "C" {
 #define BVDC_P_MANR_VER_3                      (3) /* 7435 */
 #define BVDC_P_MANR_VER_4                      (4) /* 7366a0, 7439a0, 74371a0 */
 #define BVDC_P_MANR_VER_5                      (5) /* 7445D mosaic mode support*/
+#define BVDC_P_MANR_VER_6                      (6) /* 7278B re-arrange order */
 
 /***************************************************************************
  * K values look-up

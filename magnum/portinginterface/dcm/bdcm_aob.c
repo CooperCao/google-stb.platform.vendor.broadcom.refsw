@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
@@ -96,7 +93,7 @@ BDCM_AobChannelHandle BDCM_Aob_OpenChannel(
 
     if(hDevice->hAob)
     {
-       BDBG_WRN(("%s: OOB channel already opened %p",__FUNCTION__,(void*)hDevice->hAob));
+       BDBG_WRN(("%s: OOB channel already opened %p",BSTD_FUNCTION,(void*)hDevice->hAob));
        return NULL;
     }
     /* Alloc memory from the system heap */
@@ -104,7 +101,7 @@ BDCM_AobChannelHandle BDCM_Aob_OpenChannel(
     if(hChannel == NULL)
     {
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("%s: BKNI_malloc() failed",__FUNCTION__));
+        BDBG_ERR(("%s: BKNI_malloc() failed",BSTD_FUNCTION));
         goto done;
     }
     BKNI_Memset(hChannel, 0x00, sizeof(struct BDCM_AobChannel));
@@ -131,12 +128,12 @@ done:
     if( retCode != BERR_SUCCESS )
     {
         if( hChannel != NULL )
-		{
-            BKNI_Free( hChannel );
+	{
             if (hChannel->mutex)
             {
                 BKNI_DestroyMutex(hChannel->mutex);
             }
+            BKNI_Free( hChannel );
             hChannel = NULL;
         }
     }
@@ -153,7 +150,7 @@ BERR_Code BDCM_Aob_CloseChannel(BDCM_AobChannelHandle hChannel)
 
     BDBG_ENTER(BDCM_Aob_CloseChannel);
 	BDBG_ASSERT( hChannel );
-    BDBG_MSG(("%s OOB channel devID %d",__FUNCTION__,hChannel->devId));
+    BDBG_MSG(("%s OOB channel devID %d",BSTD_FUNCTION,hChannel->devId));
 	Param.devId = hChannel->devId;
 	CHK_RETCODE(retCode,BRPC_CallProc(hChannel->hDevice->hRpc,
                                       BRPC_ProcId_AOB_Close,
@@ -183,7 +180,7 @@ BERR_Code BDCM_Aob_AcquireChannel(
     BDBG_ENTER(BDCM_Aob_AcquireChannel);
     BDBG_ASSERT(hChannel);
 
-    BDBG_MSG(("%s: modType=%d, symbolRate=%d", __FUNCTION__, modType, symbolRate));
+    BDBG_MSG(("%s: modType=%d, symbolRate=%d", BSTD_FUNCTION, modType, symbolRate));
     BKNI_AcquireMutex(hChannel->mutex);
     hChannel->isLock = false;
     BKNI_ReleaseMutex(hChannel->mutex);
@@ -244,7 +241,7 @@ BERR_Code BDCM_Aob_GetChannelStatus(
     pStatus->fdcChannelPower= outParam.fdcChannelPower;
     BDBG_MSG(("%s outParam.modType:%d  outParam.ifFreq:%d "
               "outParam.symbolRate:%d outParam.fdcChannelPower:%d"
-              "outParam.snrEstimate:%d",__FUNCTION__,
+              "outParam.snrEstimate:%d",BSTD_FUNCTION,
               outParam.modType,outParam.ifFreq, outParam.symbolRate,
               outParam.fdcChannelPower, outParam.snrEstimate));
 done:
@@ -399,10 +396,10 @@ BERR_Code BDCM_Aob_ProcessChannelNotification(
             {
                 (hChannel->pCallback[BDCM_AobCallback_eLockChange])(hChannel->pCallbackParam[BDCM_AobCallback_eLockChange] );
             }
-            BDBG_MSG(("%s: AOB LockStatusChanged from DOCSIS: isLock? %d",__FUNCTION__,hChannel->isLock));
+            BDBG_MSG(("%s: AOB LockStatusChanged from DOCSIS: isLock? %d",BSTD_FUNCTION,hChannel->isLock));
             break;
         default:
-            BDBG_WRN(("%s: unknown AOB event code from DOCSIS %x",__FUNCTION__,event_code));
+            BDBG_WRN(("%s: unknown AOB event code from DOCSIS %x",BSTD_FUNCTION,event_code));
             break;
     }
 

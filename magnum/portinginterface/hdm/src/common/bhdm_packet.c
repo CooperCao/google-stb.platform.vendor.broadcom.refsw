@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,6 @@ BDBG_MODULE(BHDM_PACKET) ;
 #define BHDM_P_WORDS_PER_RAM_PACKET 9
 #define BHDM_P_NUM_CONFIGURABLE_RAM_PACKETS 14
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 /*
  * As per Chris Pasqualino:
  * ========================
@@ -93,7 +92,6 @@ static const uint8_t BHDM_Packet_GamutMetadataSubPkt[] = {
 		0x92, 0x9B, 0x52, 0xF4, 0x8D,
 		0x72, 0x96, 0x8C, 0xC2, 0x92
 };
-#endif
 
 /***************************************************************************
 BHDM_P_InitializePacketRAM
@@ -466,7 +464,6 @@ done:
 #endif
 
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 /******************************************************************************
 Summary:
 Set/Enable the Gamut Metadata packet to be sent to the HDMI Rx
@@ -544,5 +541,3 @@ BERR_Code BHDM_P_SetGamutMetadataPacket(
 done:
 	return rc ;
 }
-
-#endif

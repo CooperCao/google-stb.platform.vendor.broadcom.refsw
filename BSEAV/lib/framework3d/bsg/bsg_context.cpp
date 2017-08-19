@@ -283,7 +283,7 @@ void Context::InitializeFromNativeWindow(const ApplicationOptions &options, EGLC
    if (options.GetPreserve())
       eglSurfaceAttrib(m_display, m_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
 
-      InitializeCreateContext(options, config);
+   InitializeCreateContext(options, config);
 }
 
 void Context::InitializeWithPixmap(const ApplicationOptions &options, EGLConfig config, NativePixmap *nativePixmap)

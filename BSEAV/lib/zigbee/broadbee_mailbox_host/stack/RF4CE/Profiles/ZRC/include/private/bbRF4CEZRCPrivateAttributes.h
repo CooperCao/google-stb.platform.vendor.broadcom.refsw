@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: branches/dkiselev/ZRC2/stack/RF4CE/Profiles/ZRC/include/bbRF4CEZRCAttributes.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE private ZRC profile attributes handler.
+ *      This is the header file for the RF4CE private ZRC profile attributes handler.
  *
- * $Revision: 4430 $
- * $Date: 2014-11-10 14:33:34Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef BBRF4CEZRCPRIVATEATTRIBUTES_H
 #define BBRF4CEZRCPRIVATEATTRIBUTES_H
 
@@ -146,11 +140,50 @@ struct _RF4CE_ZRC2_PullAttributesReqDescr_t
     RF4CE_NWK_RequestService_t service;             /*!< Service field */
     uint8_t pairingRef;                             /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_GetAttributesReqParams_t params;     /*!< Request parameters */
     RF4CE_ZRC2_PullAttributesReqCallback_t callback; /*!< Request callback */
 };
+
+/**//**
+ * \brief RF4CE ZRC 2.0 Configuration Complete request descriptor definition.
+ */
+typedef struct _RF4CE_ZRC2_ConfigurationCompleteReqDescr_t RF4CE_ZRC2_ConfigurationCompleteReqDescr_t;
+
+/**//**
+ * \brief RF4CE ZRC 2.0 Configuration Complete request parameters definition.
+ */
+typedef struct _RF4CE_ZRC2_ConfigurationCompleteReqParams_t
+{
+    uint8_t pairingRef;
+} RF4CE_ZRC2_ConfigurationCompleteReqParams_t;
+
+/**//**
+ * \brief RF4CE ZRC 2.0 Configuration Complete confirm parameters definition.
+ */
+typedef struct _RF4CE_ZRC2_ConfigurationCompleteConfParams_t
+{
+    uint8_t status;
+} RF4CE_ZRC2_ConfigurationCompleteConfParams_t;
+
+/**//**
+ * \brief RF4CE ZRC 2.0 Configuration Complete request callback.
+ */
+typedef void (*RF4CE_ZRC2_ConfigurationCompleteCallback_t)(RF4CE_ZRC2_ConfigurationCompleteReqDescr_t *req, RF4CE_ZRC2_ConfigurationCompleteConfParams_t *conf);
+
+/**//**
+ * \brief RF4CE ZRC 2.0 Configuration Complete request descriptor.
+ */
+struct _RF4CE_ZRC2_ConfigurationCompleteReqDescr_t
+{
+    RF4CE_NWK_RequestService_t service;             /*!< Service field */
+
+    RF4CE_ZRC2_ConfigurationCompleteReqParams_t params;     /*!< Request parameters */
+    RF4CE_ZRC2_ConfigurationCompleteCallback_t  callback; /*!< Request callback */
+};
+
+
 
 /**//**
  * \brief Init RF4CE ZRC 2.0 Attributes callback.
@@ -195,6 +228,14 @@ void rf4cezrc2PushAttributesReq(RF4CE_ZRC2_SetAttributesReqDescr_t *request);
  \return Nothing.
  ****************************************************************************************/
 void rf4cezrc2PullAttributesReq(RF4CE_ZRC2_PullAttributesReqDescr_t *request);
+
+/************************************************************************************//**
+ \brief Starts ZRC 2.0 Configuration Complete Request. Internal usage only!
+
+ \param[in] request - pointer to the request descriptor.
+ \return Nothing.
+ ****************************************************************************************/
+void rf4cezrc2ConfigurationCompleteReq(RF4CE_ZRC2_ConfigurationCompleteReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Inits ZRC 2.0 Attributes. Internal usage only!
@@ -281,7 +322,7 @@ void rf4cezrc2PullAttributesResponseInd(RF4CE_NWK_DataIndParams_t *indication, u
  \param[in] doRxDisable - true if necessary to do RX Disable.
  \return Nothing.
  ****************************************************************************************/
-void rf4cezrc2GetAttributeError(uint8_t status, bool doRxDisable);
+void rf4cezrc2GetAttributeError(uint8_t status);
 
 /************************************************************************************//**
  \brief Ends ZRC 2.0 Set Request with error.
@@ -290,7 +331,7 @@ void rf4cezrc2GetAttributeError(uint8_t status, bool doRxDisable);
  \param[in] doRxDisable - true if necessary to do RX Disable.
  \return Nothing.
  ****************************************************************************************/
-void rf4cezrc2SetAttributeError(uint8_t status, bool doRxDisable);
+void rf4cezrc2SetAttributeError(uint8_t status);
 
 /************************************************************************************//**
  \brief Ends ZRC 2.0 Push Request with error.
@@ -299,7 +340,7 @@ void rf4cezrc2SetAttributeError(uint8_t status, bool doRxDisable);
  \param[in] doRxDisable - true if necessary to do RX Disable.
  \return Nothing.
  ****************************************************************************************/
-void rf4cezrc2PushAttributeError(uint8_t status, bool doRxDisable);
+void rf4cezrc2PushAttributeError(uint8_t status);
 
 /************************************************************************************//**
  \brief Ends ZRC 2.0 Pull Request with error.
@@ -308,7 +349,16 @@ void rf4cezrc2PushAttributeError(uint8_t status, bool doRxDisable);
  \param[in] doRxDisable - true if necessary to do RX Disable.
  \return Nothing.
  ****************************************************************************************/
-void rf4cezrc2PullAttributeError(uint8_t status, bool doRxDisable);
+void rf4cezrc2PullAttributeError(uint8_t status);
+
+/************************************************************************************//**
+ \brief Ends ZRC 2.0 Configuration Complete with error.
+
+ \param[in] status - error code.
+ \param[in] doRxDisable - true if necessary to do RX Disable.
+ \return Nothing.
+ ****************************************************************************************/
+void rf4cezrc2ConfigurationCompleteError(uint8_t status);
 
 /************************************************************************************//**
  \brief Helper function to extract the next attribute from Get/Pull requests responses.
@@ -319,26 +369,6 @@ void rf4cezrc2PullAttributeError(uint8_t status, bool doRxDisable);
  \return true on success otherwise false.
  ****************************************************************************************/
 bool rf4cezrc2GetAttributeGetConf(uint8_t *const pDataEnd, RF4CE_ZRC2_GetAttributesConfId_t **ppAttribute);
-
-/************************************************************************************//**
- \brief Helper function to calculate the size of the next attribute to be written to
-        Get/Pull requests responses.
-
- \param[in] ppData - pointer to the pointer to the array. Will be updated on exit.
- \param[in] pDataEnd - pointer to the array end.
- \return size of the current attribute.
- ****************************************************************************************/
-uint32_t rf4cezrc2GetAttributeGetConfGetSize(uint8_t **ppData, uint8_t *pDataEnd);
-
-/************************************************************************************//**
- \brief Helper function to write the next attribute to Get/Pull requests responses.
-
- \param[in] ppData - pointer to the pointer to the array. Will be updated on exit.
- \param[in] pDataEnd - pointer to the array end.
- \param[in] ppAttribute - pointer to the pointer to the returning attribute structure.
- \return true on success otherwise false.
- ****************************************************************************************/
-void rf4cezrc2GetAttributeGetConfGetAttribute(uint8_t **ppData, uint8_t *pDataEnd, RF4CE_ZRC2_GetAttributesConfId_t **ppAttribute);
 
 /************************************************************************************//**
  \brief Helper function to increment the next attribute to Set/Push requests.
@@ -383,6 +413,14 @@ RF4CE_ZRC2_MappableAction_t* rf4cezrc2LocalGetAttributesMappablePointer(const ui
  ****************************************************************************************/
 void rf4cezrc2WaitForGenericResponse(Rf4cezrc2GenericResponseRxCallback_t callback);
 
+/************************************************************************************//**
+    \brief Clears a callback to be called on Generic Response reception.
+    \param[in] callback - pointer to the callback function.
+ ****************************************************************************************/
+void rf4cezrc2StopWaitingForGenericResponse(void);
+
 #endif /* defined(USE_RF4CE_PROFILE_ZRC2) */
 
 #endif // BBRF4CEZRCPRIVATEATTRIBUTES_H
+
+/* eof bbRF4CEZRCPrivateAttributes.h */

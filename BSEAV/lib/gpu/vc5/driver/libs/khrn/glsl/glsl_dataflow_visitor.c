@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "glsl_common.h"
+#include "glsl_safemem.h"
 #include "glsl_dataflow_visitor.h"
 
 void glsl_dataflow_visitor_begin(DataflowVisitor *visitor)
@@ -32,7 +32,7 @@ static void resize(DataflowVisitor *visitor, int min_size)
    memset(visitor->seen + old_array_size, 0, sizeof(Dataflow *) * (visitor->seen_array_size - old_array_size));
 }
 
-void glsl_dataflow_visitor_accept(DataflowVisitor* visitor, Dataflow* dataflow, void* data, DataflowPreVisitor dprev, DataflowPostVisitor dpostv)
+void glsl_dataflow_visitor_accept(DataflowVisitor *visitor, Dataflow *dataflow, void *data, DataflowPreVisitor dprev, DataflowPostVisitor dpostv)
 {
    if (dataflow == NULL)
       return;
@@ -63,7 +63,7 @@ void glsl_dataflow_visitor_accept(DataflowVisitor* visitor, Dataflow* dataflow, 
    }
 }
 
-void glsl_dataflow_visit_array(Dataflow** dataflow, int start, int end, void* data, DataflowPreVisitor dprev, DataflowPostVisitor dpostv)
+void glsl_dataflow_visit_array(Dataflow **dataflow, int start, int end, void *data, DataflowPreVisitor dprev, DataflowPostVisitor dpostv)
 {
    DataflowVisitor pass;
 

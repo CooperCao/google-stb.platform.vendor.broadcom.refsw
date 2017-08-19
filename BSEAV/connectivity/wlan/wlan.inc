@@ -43,20 +43,22 @@ else
 DEBUG_SUFFIX=release
 endif
 
-B_WLAN_VER?=STB7271_BRANCH_15_10
-B_WLAN_BRAND?=linux-external-stbsoc
+#B_WLAN_VER?=STB7271_BRANCH_15_10
+B_WLAN_VER?=core
+#B_WLAN_BRAND?=linux-external-stbsoc
 
 ifneq ($(B_WLAN_VER),STB7271_BRANCH_15_10)
-B_WLAN_BRAND:=linux-external-media
+#B_WLAN_BRAND:=linux-external-media
 endif
 
 #  Define the Makefile directory... probably the same dir that this file is in.
 B_WLAN_INSRC_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/connectivity/wlan)
-B_WLAN_INSRC_VER_DIR:=${B_WLAN_INSRC_DIR}/${B_WLAN_VER}/${B_WLAN_BRAND}
-B_WLAN_PLAT_INSRC_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/connectivity/wlan/wakeonwlan)
+#B_WLAN_INSRC_VER_DIR:=${B_WLAN_INSRC_DIR}/${B_WLAN_VER}/${B_WLAN_BRAND}
+B_WLAN_INSRC_VER_DIR:=${B_WLAN_INSRC_DIR}/${B_WLAN_VER}
 
 B_WLAN_OOSRC_DIR:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/connectivity/wlan)
-B_WLAN_OOSRC_VER_DIR:=${B_WLAN_OOSRC_DIR}/${B_WLAN_VER}/${B_WLAN_BRAND}
+#B_WLAN_OOSRC_VER_DIR:=${B_WLAN_OOSRC_DIR}/${B_WLAN_VER}/${B_WLAN_BRAND}
+B_WLAN_OOSRC_VER_DIR:=${B_WLAN_OOSRC_DIR}/${B_WLAN_VER}
 B_WLAN_TOP_INSTALL_DIR ?= $(abspath ${B_WLAN_OOSRC_VER_DIR})
 
 #  Define the dirs where the Broadcom wlan wrapper makefile installs things.

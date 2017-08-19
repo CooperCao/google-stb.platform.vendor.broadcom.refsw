@@ -51,7 +51,7 @@ class CInputBand : public CResource
 public:
     CInputBand(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CInputBand(void);
@@ -67,7 +67,7 @@ class CParserBand : public CResource
 public:
     CParserBand(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CParserBand(void);

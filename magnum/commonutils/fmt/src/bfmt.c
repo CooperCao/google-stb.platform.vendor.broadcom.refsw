@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2613,11 +2613,10 @@ BERR_Code BFMT_GetVideoFormatInfo
 
     if(pVideoFmtInfo)
     {
-        const BFMT_VideoInfo* info = BFMT_GetVideoFormatInfoPtr_isr(eVideoFmt);
+        const BFMT_VideoInfo *info = BFMT_GetVideoFormatInfoPtr_isrsafe(eVideoFmt);
         if (info == 0x0)
             return BERR_TRACE (BERR_INVALID_PARAMETER);
-        *pVideoFmtInfo = *((const BFMT_VideoInfo*)
-            BFMT_GetVideoFormatInfoPtr_isr(eVideoFmt));
+        *pVideoFmtInfo = *info;
     }
 
     BDBG_LEAVE(BFMT_GetVideoFormatInfo);
@@ -2628,12 +2627,12 @@ BERR_Code BFMT_GetVideoFormatInfo
 /***************************************************************************
  *
  */
-#ifndef BFMT_DO_PICK
-const BFMT_VideoInfo* BFMT_GetVideoFormatInfoPtr_isr
+const BFMT_VideoInfo* BFMT_GetVideoFormatInfoPtr_isrsafe
     ( BFMT_VideoFmt                      eVideoFmt )
 {
+#ifndef BFMT_DO_PICK
     const BFMT_VideoInfo *pVideoInfo = NULL;
-    BDBG_ENTER(BFMT_GetVideoFormatInfoPtr_isr);
+    BDBG_ENTER(BFMT_GetVideoFormatInfoPtr_isrsafe);
 
     /* Table size sanity check!  Just in case someone added new format in fmt,
      * but forgot to add the new into these table. */
@@ -2663,14 +2662,9 @@ const BFMT_VideoInfo* BFMT_GetVideoFormatInfoPtr_isr
         break;
     }
 
-    BDBG_LEAVE(BFMT_GetVideoFormatInfoPtr_isr);
+    BDBG_LEAVE(BFMT_GetVideoFormatInfoPtr_isrsafe);
     return pVideoInfo;
-}
-
 #else /* #ifndef BFMT_DO_PICK */
-const BFMT_VideoInfo* BFMT_GetVideoFormatInfoPtr_isr
-    ( BFMT_VideoFmt                      eVideoFmt )
-{
     unsigned int ii;
 
     for(ii=0; ii<BVDC_P_FMT_INFO_COUNT; ii++)
@@ -2684,7 +2678,7 @@ const BFMT_VideoInfo* BFMT_GetVideoFormatInfoPtr_isr
 
     /* printf("found no entry for videoFmt %d!!!\n", eVideoFmt);*/
     return NULL;
-}
 #endif /* #ifndef BFMT_DO_PICK */
+}
 
 /* End of File */

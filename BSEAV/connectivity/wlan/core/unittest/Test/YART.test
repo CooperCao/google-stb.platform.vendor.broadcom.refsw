@@ -1,0 +1,654 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# Yet Another Range Test.  Basic RvR, intended to be small and fast
+# enough to be embedded in StaNightly.
+# $Id: 7ee131b5be914966c1f8a154de95e3643534fe4d $
+#
+
+package require UTF
+
+package require UTF::MpduStats
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::controlchart
+
+package provide UTF::Test::YART 2.0
+
+UTF::Test YART {AP STA args}  {
+
+    # Pull out dut option since we need it before we can fetch the
+    # rest of the arguments.
+    if {[set dix [lsearch -exact $args -dut]] >= 0} {
+	set vix [expr {$dix + 1}]
+	set (dut) [lindex $args $vix]
+    } else {
+	set (dut) $STA
+    }
+
+    # If FBDefault is set, and devices support it, enable fb
+    if {[info exists ::UTF::FBDefault] &&
+	![$STA cget -noframeburst] && ![$AP cget -noframeburst]} {
+	set fbdefault 1
+    } else {
+	set fbdefault 0
+    }
+
+    # User can specify per device defaults in config.
+    set args [concat [$(dut) cget -yart] $args]
+
+    UTF::Getopts [subst {
+	{i.arg 0.5 "Interval"}
+	{s.arg 4 "Samples"}
+	{chanspec.arg "3" "Chanspec"}
+	{security.arg "open" "Security"}
+	{key.arg "" "Key"}
+	{group.arg "[lindex [concat \
+				[$STA cget -attngrp] [$AP cget -attngrp]] 0]" \
+	     "Attenuator group"}
+	{attn.arg "" "Attenuator values"}
+	{attn2g.arg "0-103" "Default attenuator values for 2g"}
+	{attn5g.arg "0-103" "Default attenuator values for 5g"}
+	{pad.arg "0" "Fixed attenuation in line with variable attenuator"}
+	{msg.arg "" "Message"}
+	{dut.arg "$(dut)" "dut"}
+	{perfcache.parg "" "Performance Cache"}
+	{perfloop.parg 1 "Performance loop"}
+	{history.parg 30 "Performance History"}
+	{nocache "Don't update performance cache"}
+	{b.arg "[$(dut) cget -udp]" "UDP data rate (0 for TCP) defaults to -udp option of dut"}
+	{l.arg "" "length of datagram"}
+	{rate.arg "" "Force TX rate"}
+	{frameburst.arg "$fbdefault" "Use frameburst"}
+	{symmetric.parg 0 "Symmetric - only test one way"}
+	{warmup.arg 1 "Initial warm-up time in seconds"}
+	{force "Run test, even if not enabled in config file"}
+	{roam_off.arg 0 "Turn off roaming altogether"}
+	{mirror "Automatically add ramp-up attn values"}
+	{ro.arg "" "Append read-only keys to XPASS lines"}
+	{apdumptxbf "Dump txbf on AP"}
+	{ibss "Use IBSS instead of STA mode"}
+	{roam_trigger.arg "-100" "Override roam_trigger"}
+	{leakcheck.arg "0" "Enable Leak Check"}
+	{counters "Dump wl counters"}
+    }]
+
+    # Include report-only parameters passed in on commandline
+    foreach {k v} $(ro) {
+	set parm($k) $v
+    }
+
+    if {!$(force) && [$(dut) cget -yart] eq ""} {
+	UTF::Message INFO $(dut) "RvR test skipped"
+	return
+    }
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    if {$(msg) eq ""} {
+	set (msg) $(dut)
+    }
+
+    set band [$AP band $(chanspec)]
+    if {$(attn) eq ""} {
+	# Check for band-specific ranges
+	if {$band eq "b"} {
+	    set (attn) $(attn2g)
+	} else {
+	    set (attn) $(attn5g)
+	}
+    }
+    set (attn) [UTF::Numexpand $(attn)]
+
+    if {$(mirror)} {
+	# Append reversed copy of attn range
+	set (attn) [concat $(attn) [lreverse $(attn)]]
+    }
+
+    # Check which end is really taking the STA role
+    if {[$STA cget -apmode]} {
+	set RSTA $AP
+	set RAP $STA
+    } else {
+	set RSTA $STA
+	set RAP $AP
+    }
+
+    set branch [$(dut) branchname]
+    set key [concat $branch yart "ch=$(chanspec)" $(key)]
+    set plotkey [concat $key $AP $STA]
+    # Sanitize key for use as a filename
+    # / cannot be used in a filename is it is a directory seperator <>
+    # are legal in filenames (but very confusing), but they will mess
+    # up any URL's that point to them.
+    regsub -all {[/<>]} $plotkey "." plotkey
+
+    if {$(b) ne "0"} {
+	set proto "UDP"
+	lappend key "udp"
+	lappend plotkey "udp"
+    } else {
+	set proto "TCP"
+    }
+    if {$(frameburst)} {
+	lappend key "fb"
+	lappend plotkey "fb"
+	set parm(fb) 1
+    }
+    if {$(ibss)} {
+	set parm(ibss) 1
+    }
+    set parm(chanspec) $(chanspec)
+    set parm(proto) $proto
+    set parm(rate) $(rate)
+
+    UTF::Try "$(msg): CH=$(chanspec): RvR $proto" {
+
+	# nativename is needed to avoid confusing gnuplot with ~ and
+	# other special path components.
+	set file [file nativename \
+		   [file join [file dir $UTF::Logfile] \
+			[file rootname $UTF::Logfile].$plotkey]]
+
+	set rxfile "${file}_rx.gpf"
+	set rxctrlfile "${file}_rx.gpc"
+	set rxplotfile_sm "${file}_rx_sm.png"
+	set rxplotfile "${file}_rx.png"
+
+	set txfile "${file}_tx.gpf"
+	set txctrlfile "${file}_tx.gpc"
+	set txplotfile_sm "${file}_tx_sm.png"
+	set txplotfile "${file}_tx.png"
+
+	set oldrt -75
+
+	if {$(group) eq ""} {
+	    error "Attenuation group not specified in config or commandline"
+	}
+	set prev [set first [lindex $(attn) 0]]
+	$(group) attn $prev
+
+	# Disassoc before re-associating, to avoid reduced range
+	# issues on some platforms.
+	catch {$STA wl disassoc}
+
+	if {$(ibss)} {
+	    package require UTF::Test::APChanspec
+	    package require UTF::Test::Join
+	    APChanspec $AP $(chanspec) -loose -nobandlock
+	    APChanspec $STA $(chanspec) -loose -nobandlock
+	    Join $AP $STA -imode ibss
+	} else {
+	    ConnectAPSTA $AP $STA -security open -chanspec $(chanspec)
+	}
+
+	set mac [$RSTA macaddr]
+	$RAP wl rssi $mac
+
+	if {$(frameburst)} {
+	    $STA wl frameburst 1
+	    $AP wl frameburst 1
+	} else {
+	    $STA wl -u frameburst 0
+	    $AP wl -u frameburst 0
+	}
+
+	regexp {roam_trigger is .*\((-\d+)\)} [$RSTA wl roam_trigger $band] \
+	    - oldrt
+	if {[catch {$RSTA wl roam_trigger $(roam_trigger) $band} ret]} {
+	    $RSTA warn $ret
+	}
+
+	if {$(roam_off)} {
+	    $RSTA wl roam_off 1
+	}
+
+	set APIP [$AP ipaddr]
+
+	set bigwindow [$STA tcpautowindow]
+
+	set txcollector [UTF::MpduStats init $STA $AP ${file}_tx]
+	set rxcollector [UTF::MpduStats init $AP $STA ${file}_rx]
+
+
+	# Pre-pretest to make sure everything's "warmed up".
+	UTF::Multiperf [list $STA $AP] -t $(warmup) -b $(b)
+
+	set rxfilefd [open $rxfile w]
+	set txfilefd [open $txfile w]
+
+	set xlist {}
+	set i -1
+
+	set check_link 0
+	set early_exit 0
+
+	# Area tracking variables.
+	# For each attn step we compute the area of the Right-angled
+	# trapezium formed between the previous and current
+	# datapoints.  This gives us a much less biased estimate than
+	# simply using the current datapoint.
+	array set sum {mean 0 min 0 max 0}; # Total area
+	array set cup {mean 0 min 0 max 0}; # Current Upstream
+	array set pup {mean 0 min 0 max 0}; # Previous Upstream
+	array set cdn {mean 0 min 0 max 0}; # Current Downstream
+	array set pdn {mean 0 min 0 max 0}; # Previous Downstream
+
+	foreach attn $(attn) {
+
+
+	    # Determine if attentuator values is going up or down.  If
+	    # previous step is the same, treat it as rampdown.
+	    if {$attn < $prev} {
+		set ramp "up"
+	    } else {
+		set ramp "down"
+	    }
+	    # Determine half-width for area calc.
+	    set w [expr {abs($attn - $prev)/2.0}]
+
+	    # Record the previous attn.
+	    set prev $attn
+
+	    # Skip until we reach target again (if ever).  If we do
+	    # reach it, reset to avoid shortcutting in unusual setups.
+	    if {[info exists skip_attn]} {
+	     	if {$attn > $skip_attn} {
+		    continue
+		} else {
+		    unset skip_attn
+		}
+	    }
+
+	    UTF::Try "$(msg): CH=$(chanspec): attn $attn" {
+
+		$(group) attn $attn
+		set pathloss [expr {$attn + $(pad)}]
+		set parm(pathloss) $pathloss
+		if {$ramp eq "up"} {
+		    # Modify key for rampup
+		    set pathloss "${pathloss}-"
+		}
+
+		incr i
+
+		if {$check_link} {
+		    set ping 5
+		} else {
+		    set ping 0
+		}
+
+		set early_exit 1
+		if {[catch {
+		    UTF::Multiperf [list $STA $AP] -t 0.5 -b $(b) -pingmax $ping
+		} ret]} {
+		    # Need a way to retrieve the appropriate CC limits
+		    # without actually doing the CC test.
+		    puts $txfilefd "$i 0 0 0 0 0"
+		    puts $rxfilefd "$i 0 0 0 0 0"
+		    return $ret
+		}
+
+		set rate [lindex [$STA wl rate] 0]
+		# Clear early_exit flag after wl rate command, in
+		# case driver went missing.
+		set early_exit 0
+		set check_link 0
+
+		lappend xlist $attn
+
+		if {$rate < 100 || $bigwindow == 0} {
+		    set window 0
+		} elseif {$rate < 400} {
+		    set window 512k
+		} else {
+		    set window $bigwindow
+		}
+		UTF::Message LOG $STA "Window: $window"
+
+		if {$(rate) ne ""} {
+		    $STA txrate $band $(rate)
+		}
+
+		# Clear stats
+		$txcollector clear
+
+		if {$(counters)} {
+		    $AP wl -u reset_cnts
+		    $STA wl -u reset_cnts
+		}
+
+		array unset CC
+		catch {
+		    controlchart [list $STA $AP] -stats CC \
+			-failcriteria "ZERO" -perfcache $(perfcache) \
+			-history $(history) -min 0 \
+			-key [concat $key up $pathloss] -i $(i) -s $(s) \
+			-window $window -l $(l) \
+			-nopretest -pingmax $ping -loop $(perfloop) -N 0 -b $(b)
+		} UpRet
+
+		$txcollector collect $attn
+
+		if {$(apdumptxbf)} {
+		    $AP wl -u dump txbf
+		}
+		if {$(counters)} {
+		    $AP wl -u counters
+		    $STA wl -u counters
+		}
+
+		if {$(rate) ne ""} {
+		    $STA txrate $band auto
+		}
+
+		regsub {^html:} $UpRet {} UpRet
+		if {[info exists CC(mmm)]} {
+		    puts $txfilefd "$i $CC(mmm) $CC(Ux) $CC(Lx)"
+		    if {[lindex $CC(mmm) 0] == 0} {
+			set check_link 1
+		    }
+		    set parm(dir) "up"
+		    foreach m $CC(mmm) {
+			UTF::XPASS $STA $m [UTF::ParmStrip parm]
+		    }
+		    UTF::XPASS $STA $CC(Ux) \
+			[concat [UTF::ParmStrip parm] data Ux]
+		    UTF::XPASS $STA $CC(Lx) \
+			[concat [UTF::ParmStrip parm] data Lx]
+		    set cup(mean) [lindex $CC(mmm) 0]
+		    set cup(min) [lindex $CC(mmm) 1]
+		    set cup(max) [lindex $CC(mmm) 2]
+		    set sum(mean) [expr {$sum(mean) + $w*($cup(mean)+$pup(mean))}]
+		    set sum(min) [expr {$sum(min) + $w*($cup(min)+$pup(min))}]
+		    set sum(max) [expr {$sum(max) + $w*($cup(max)+$pup(max))}]
+		    set pup(mean) $cup(mean)
+		    set pup(min) $cup(min)
+		    set pup(max) $cup(max)
+		}
+
+		if {$(rate) ne ""} {
+		    $AP txrate $band $(rate)
+		}
+
+		$rxcollector clear
+
+		if {$(counters)} {
+		    $AP wl -u reset_cnts
+		    $STA wl -u reset_cnts
+		}
+
+		array unset CC
+		catch {
+		    controlchart [list $AP $STA] -stats CC \
+			-failcriteria "ZERO" -perfcache $(perfcache) \
+			-history $(history) -min 0 \
+			-key [concat $key down $pathloss] -i $(i) -s $(s) \
+			-window $window -l $(l) \
+			-nopretest -pingmax $ping -loop $(perfloop) -N 0 -b $(b)
+		} DownRet
+
+		$rxcollector collect $attn
+		if {$(apdumptxbf)} {
+		    $AP wl -u dump txbf
+		}
+		if {$(counters)} {
+		    $AP wl -u counters
+		    $STA wl -u counters
+		}
+
+		if {$(rate) ne ""} {
+		    $STA txrate $band auto
+		}
+
+		regsub {^html:} $DownRet {} DownRet
+		if {[info exists CC(mmm)]} {
+		    puts $rxfilefd "$i $CC(mmm) $CC(Ux) $CC(Lx)"
+		    if {[lindex $CC(mmm) 0] == 0} {
+			set check_link 1
+		    }
+		    set parm(dir) "down"
+		    foreach m $CC(mmm) {
+			UTF::XPASS $STA $m [UTF::ParmStrip parm]
+		    }
+		    UTF::XPASS $STA $CC(Ux) \
+			[concat [UTF::ParmStrip parm] data Ux]
+		    UTF::XPASS $STA $CC(Lx) \
+			[concat [UTF::ParmStrip parm] data Lx]
+		    set cdn(mean) [lindex $CC(mmm) 0]
+		    set cdn(min) [lindex $CC(mmm) 1]
+		    set cdn(max) [lindex $CC(mmm) 2]
+		    set sum(mean) [expr {$sum(mean) + $w*($cdn(mean)+$pdn(mean))}]
+		    set sum(min) [expr {$sum(min) + $w*($cdn(min)+$pdn(min))}]
+		    set sum(max) [expr {$sum(max) + $w*($cdn(max)+$pdn(max))}]
+		    set pdn(mean) $cdn(mean)
+		    set pdn(min) $cdn(min)
+		    set pdn(max) $cdn(max)
+		}
+		set results "html: $UpRet<br />$DownRet"
+		if {$check_link} {
+		    if {[catch {$RSTA wl bssid} ret]} {
+			if {[regexp {Not Associated} $ret]} {
+			    set results "$results Not Associated"
+			    set early_exit 1
+			} else {
+			    error $ret $::errorInfo
+			}
+		    } elseif {$ret eq "00:00:00:00:00:00"} {
+			set results "$results Roaming"
+			set early_exit 1
+		    }
+		}
+
+		$STA wl nrate
+		set rate [lindex [$STA wl rate] 0]
+		$AP wl nrate
+		set arate [lindex [$AP wl rate] 0]
+		set srssi [$RSTA wl rssi]
+
+		UTF::XPASS $STA $rate \
+		    [concat [UTF::ParmStrip parm] dir "up" data rate]
+		UTF::XPASS $STA  $arate \
+		    [concat [UTF::ParmStrip parm] dir "down" data rate]
+		UTF::XPASS $STA  $srssi \
+		    [concat [UTF::ParmStrip parm] data sta_rssi]
+
+		catch {
+		    set arssi [$RAP wl rssi $mac]
+		    UTF::XPASS $STA $arssi \
+			[concat [UTF::ParmStrip parm] data ap_rssi]
+		}
+
+		catch {$STA wl -u ratedump}
+		catch {$AP wl -u ratedump}
+
+		return $results
+	    }
+	    if {$early_exit} {
+		UTF::Message INFO "" "Set skip_attn $attn"
+		set skip_attn $attn
+	    }
+	}
+	close $txfilefd
+	close $rxfilefd
+
+	if {$(leakcheck)} {
+	    # Disable leak check on STA since it's never caught one and
+	    # sometimes asserts:
+	    # SWWLAN-25226: assertion "wlc->pub->up" failed: file "wlc.c",
+	    # line 45591
+
+	    # Disassoc here, so that the STA won't try reconnecting after
+	    # we've down/up'ed the AP
+	    catch {$RSTA wl disassoc}
+
+	    if {![catch {$RAP wl assert_type} at]} {
+		UTF::Try "$RAP: Leak check" {
+		    $RAP wl assert_type 1
+		    $RAP wl down
+		    $RAP wl up
+		    # use first word of assert_type, in case it switches
+		    # to (hex) format.
+		    $RAP wl assert_type [lindex $at 0]
+		}
+	    }
+	    # uninitialize security after wl down to make sure subsequent
+	    # tests will reinstate the AP properly.
+	    $RAP configure -security ""
+	}
+
+	set xtics ""
+	set i 0
+	if {$xlist ne {}} {
+	    set interval [expr {[llength $xlist] / 20}]
+	    foreach a $xlist {
+		if {$interval == 0 || $i % $interval == 0} {
+		    lappend xtics "'$a' $i"
+		}
+		incr i
+	    }
+	    lappend xtics "'$a' [expr {$i-1}]"
+	}
+
+	# Increase width proportionally if there are too many attn
+	# points to see clearly.  We can't do anything smart with
+	# xtics because the input attn pattern could be completely
+	# arbitrary.
+	set width [expr {($i < 60)? 860 : int(860.0 * $i / 60)}]
+
+	# Plot
+	set G [open $txctrlfile w]
+	if {[UTF::GnuplotVersion] >= 5.0} {
+	    puts $G {set colors classic}
+	}
+	if {[UTF::GnuplotVersion] > 4.0} {
+	    puts $G {set terminal png transparent size 62,13}
+	    puts $G {set tmargin 0; set bmargin 0}
+	    puts $G {set lmargin 0; set rmargin 0.1}
+	} else {
+	    puts $G {set terminal png transparent; set size 0.15,0.08}
+	    # Gnuplot 4.0 loops if margins are zero - use mogrify below
+	}
+	puts $G {unset y2tics}
+	puts $G {unset ytics}
+	puts $G {unset xtics}
+	puts $G {unset key}
+	puts $G {unset border}
+	puts $G "set output '$txplotfile_sm'"
+	puts $G "plot '$txfile' using 1:5 notitle with lines lt 2, \
+		 '' using 1:6 notitle with lines lt 2, \
+		 '' using 1:2 notitle with lines lt 1"
+
+	puts $G {reset}
+	puts $G {set terminal png notransparent size 1280,1280 truecolor}
+
+	puts $G "set output '$txplotfile'"
+	set title "$(msg) Upstream $proto RvR ($(chanspec))"
+	puts $G "set multiplot title '$title'"
+	puts $G "set origin 0,0.59; set size 1.0,0.4"
+	puts $G "set title 'Tput'"
+	puts $G "set xtics ([join $xtics ,])"
+	puts $G "plot '$txfile' using 1:5 notitle with lines lt 2, \
+		 '' using 1:6 notitle with lines lt 2, \
+		 '' using 1:2:3:4 notitle with errorlines lt 1"
+	puts $G [$txcollector plotscripts]
+	puts $G {unset multiplot}
+	puts $G {quit}
+	close $G
+
+	# Run gnuplot on plot file.  Catch is needed because gnuplot
+	# often writes to stderr.  Report any output even if we think
+	# it was ok.
+	catch {exec $::UTF::Gnuplot $txctrlfile} ret
+	UTF::Message WARN "gnuplot" $ret
+
+	# Plot
+	set G [open $rxctrlfile w]
+	if {[UTF::GnuplotVersion] >= 5.0} {
+	    puts $G {set colors classic}
+	}
+	if {[UTF::GnuplotVersion] > 4.0} {
+	    puts $G {set terminal png transparent size 62,13}
+	    puts $G {set tmargin 0; set bmargin 0}
+	    puts $G {set lmargin 0; set rmargin 0.1}
+	} else {
+	    puts $G {set terminal png transparent; set size 0.15,0.08}
+	    # Gnuplot 4.0 loops if margins are zero - use mogrify below
+	}
+	puts $G {unset y2tics}
+	puts $G {unset ytics}
+	puts $G {unset xtics}
+	puts $G {unset key}
+	puts $G {unset border}
+	puts $G "set output '$rxplotfile_sm'"
+	puts $G "plot '$rxfile' using 1:5 notitle with lines lt 2, \
+		 '' using 1:6 notitle with lines lt 2, \
+		 '' using 1:2 notitle with lines lt 1"
+
+	puts $G {reset}
+	puts $G {set terminal png notransparent size 1280,1280 truecolor}
+	set title "$(msg) RvR Downstream $proto ($(chanspec))"
+	puts $G "set output '$rxplotfile'"
+	puts $G "set multiplot title '$title'"
+	puts $G "set origin 0,0.59; set size 1.0,0.4"
+	puts $G "set xtics ([join $xtics ,])"
+
+	puts $G "set title 'Tput'"
+	puts $G "plot '$rxfile' using 1:5 notitle with lines lt 2, \
+		 '' using 1:6 notitle with lines lt 2, \
+		 '' using 1:2:3:4 notitle with errorlines lt 1"
+	puts $G [$rxcollector plotscripts]
+	puts $G {unset multiplot}
+	puts $G {quit}
+	close $G
+
+	# Run gnuplot on plot file.  Catch is needed because gnuplot
+	# often writes to stderr.  Report any output even if we think
+	# it was ok.
+	catch {exec $::UTF::Gnuplot $rxctrlfile} ret
+	UTF::Message WARN "gnuplot" $ret
+
+	$txcollector destroy
+	$rxcollector destroy
+
+	# Controlchart Area under the curve
+	UTF::ControlChart CC -s $(s) \
+	    -key [concat $plotkey area [expr {$first + $(pad)}]] \
+	    -perfcache $(perfcache) -history $(history) \
+	    -title "$(msg) RvR area" -format %.0f \
+	    -ylabel "Area" -units "Mbps*dB" -norangecheck 1
+	set area [CC addsample [list $sum(mean) $sum(min) $sum(max)]]
+	if {[regexp {LOW|WIDE} $area]} {
+	    set code 1
+	} else {
+	    set code 0
+	}
+	if {[info exists ::UTF::Summary]} {
+	    set area [CC plotcontrolchart $area]
+	    regsub {^html:} $area { } area
+	}
+
+	set ret "html:<a href=\"[UTF::URI $txplotfile]\">[UTF::ThumbData $txplotfile_sm]</a> <a href=\"[UTF::URI $rxplotfile]\">[UTF::ThumbData $rxplotfile_sm]</a>$area"
+	if {[set END [lindex $UTF::TryStack end]] ne "NONE"} {
+	    set ret "$ret $END"
+	}
+
+	if {$code || $END ne "NONE"} {
+	    # Replace a cascading fail with our plots
+	    throw FAIL $ret
+	} else {
+	    return $ret
+	}
+    } finally {
+	catch {$RSTA wl disassoc}
+	catch {$RAP wl deauthenticate $mac}
+	$(group) attn default
+	if {[catch {$RSTA wl roam_trigger $oldrt $band} ret]} {
+	    $RSTA warn $ret
+	}
+	if {$(roam_off)} {
+	    $RSTA wl roam_off 0
+	}
+    }
+}

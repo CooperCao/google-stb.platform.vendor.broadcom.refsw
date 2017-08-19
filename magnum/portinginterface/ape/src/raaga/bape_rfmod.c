@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -107,7 +107,7 @@ BERR_Code BAPE_RfMod_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
 
-    BDBG_MSG(("%s: Opening RFMOD Output: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening RFMOD Output: %u", BSTD_FUNCTION, index));
 
     *pHandle = NULL;    /* Set up to return null handle in case of error. */
 

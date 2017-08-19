@@ -268,7 +268,7 @@ protected:
 #ifdef CPUTEST_SUPPORT
     CTimer _timerCpuTest;
 #endif
-    uint16_t             _channelsFound;
+    unsigned             _channelsFound;
     CWidgetModalMsgBox * _MsgBox;
     CPanelPower *        _pPowerMenu;
     CPanelKeyboard *     _pKeyboard;

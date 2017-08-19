@@ -8,6 +8,20 @@
 #include "libs/core/v3d/v3d_align.h"
 #include "libs/util/gfx_util/gfx_util.h"
 
+typedef struct gmem_to_gmem_job_data
+{
+   v3d_imgconv_gmem_tgt src;
+   v3d_imgconv_gmem_tgt dst;
+   void                 *src_ptr;
+   void                 *dst_ptr;
+   unsigned int         src_offset;
+   unsigned int         dst_offset;
+   unsigned int         width;
+   unsigned int         height;
+   unsigned int         depth;
+   unsigned int         path;
+} gmem_to_gmem_job_data;
+
 static void build_sec_info(bool secure_context, gmem_handle_t src, gmem_handle_t dst, security_info_t *sec_info)
 {
    assert(sec_info != NULL);
@@ -47,7 +61,7 @@ size_t v3d_imgconv_base_size(const struct v3d_imgconv_base_tgt *base)
    return size;
 }
 
-static void* v3d_imgconv_map_and_sync_pre_cpu_access(
+static void *v3d_imgconv_map_pre_cpu_access(
    const v3d_imgconv_gmem_tgt *tgt,
    size_t offset)
 {
@@ -55,6 +69,15 @@ static void* v3d_imgconv_map_and_sync_pre_cpu_access(
    if (!ptr)
       return NULL;
 
+   offset += tgt->offset + tgt->base.start_elem*tgt->base.array_pitch;
+
+   return (char*)ptr + offset;
+}
+
+static void v3d_imgconv_sync_pre_cpu_access(
+   const v3d_imgconv_gmem_tgt *tgt,
+   size_t offset)
+{
    offset += tgt->offset + tgt->base.start_elem*tgt->base.array_pitch;
 
    /* sync per plane range */
@@ -65,8 +88,19 @@ static void* v3d_imgconv_map_and_sync_pre_cpu_access(
          tgt->base.desc.planes[p].offset + offset,
          tgt->base.plane_sizes[p]);
    }
+}
 
-   return (char*)ptr + offset;
+static void *v3d_imgconv_map_and_sync_pre_cpu_access(
+   const v3d_imgconv_gmem_tgt *tgt,
+   size_t offset)
+{
+   void *ptr = v3d_imgconv_map_pre_cpu_access(tgt, offset);
+   if (!ptr)
+      return NULL;
+
+   v3d_imgconv_sync_pre_cpu_access(tgt, offset);
+
+   return ptr;
 }
 
 static void v3d_imgconv_sync_post_cpu_write(
@@ -185,29 +219,6 @@ static void init_conv_paths(void)
    assert(i > 0 && i <= MAX_PATHS);
 }
 
-static bool call_sync_func(convert_sync_t convert_func,
-      const struct v3d_imgconv_gmem_tgt *dst, unsigned int dst_off,
-      const struct v3d_imgconv_gmem_tgt *src, unsigned int src_off,
-      v3d_scheduler_deps *deps, unsigned int width, unsigned int height,
-      unsigned int depth)
-{
-   v3d_scheduler_wait_jobs(deps, V3D_SCHED_DEPS_COMPLETED);
-
-   void *dst_ptr = v3d_imgconv_map_and_sync_pre_cpu_access(dst, dst_off);
-   if (dst_ptr == NULL)
-      return false;
-
-   void *src_ptr = v3d_imgconv_map_and_sync_pre_cpu_access(src, src_off);
-   if (src_ptr == NULL)
-      return false;
-
-   convert_func(&dst->base, dst_ptr, &src->base, src_ptr, width, height, depth);
-
-   v3d_imgconv_sync_post_cpu_write(dst, dst_off);
-
-   return true;
-}
-
 static bool call_prep_func_gmem(convert_prep_t prep_func,
                            struct v3d_imgconv_gmem_tgt *dst,
                            const struct v3d_imgconv_gmem_tgt *src, unsigned int src_off,
@@ -260,6 +271,74 @@ done:
    return ok;
 }
 
+/* Helper for cpu based gmem to gmem conversion.
+ * Will be called from a user-mode callback on another thread.
+ */
+static void cpu_convert_gmem_to_gmem_now(void *data)
+{
+   gmem_to_gmem_job_data *d = (gmem_to_gmem_job_data*)data;
+
+   v3d_imgconv_sync_pre_cpu_access(&d->src, d->src_offset);
+   v3d_imgconv_sync_pre_cpu_access(&d->dst, d->dst_offset);
+
+   conv_path[d->path]->convert_sync(&d->dst.base, d->dst_ptr, &d->src.base, d->src_ptr,
+                                    d->width, d->height, d->depth);
+
+   v3d_imgconv_sync_post_cpu_write(&d->dst, d->dst_offset);
+
+   free(data);
+}
+
+/* Convert from gmem to gmem using the CPU.
+ * Sets a job_id to wait on for the conversion to complete.
+ * It will always schedule a user-mode job and do it asynchronously to avoid
+ * blocking here.
+ */
+static bool cpu_convert_gmem_to_gmem(
+   uint64_t *job_id,
+   const v3d_imgconv_gmem_tgt *dst,
+   const v3d_imgconv_gmem_tgt *src,
+   unsigned int dst_off,
+   unsigned int src_off,
+   unsigned int width,
+   unsigned int height,
+   unsigned int depth,
+   unsigned int path_to_use)
+{
+   /* Make a deep copy of the job parameters */
+   gmem_to_gmem_job_data *job_data = malloc(sizeof(gmem_to_gmem_job_data));
+   if (job_data == NULL)
+      return false;
+
+   v3d_scheduler_deps src_and_dst_deps;
+   v3d_scheduler_copy_deps(&src_and_dst_deps, &src->deps);
+   v3d_scheduler_merge_deps(&src_and_dst_deps, &dst->deps);
+
+   job_data->src        = *src;
+   job_data->src_offset = src_off;
+   job_data->dst        = *dst;
+   job_data->dst_offset = dst_off;
+   job_data->width      = width;
+   job_data->height     = height;
+   job_data->depth      = depth;
+   job_data->path       = path_to_use;
+
+   job_data->dst_ptr = v3d_imgconv_map_pre_cpu_access(dst, dst_off);
+   if (job_data->dst_ptr == NULL)
+      goto end;
+
+   job_data->src_ptr = v3d_imgconv_map_pre_cpu_access(src, src_off);
+   if (job_data->src_ptr == NULL)
+      goto end;
+
+   *job_id = v3d_scheduler_submit_usermode_job(&src_and_dst_deps, cpu_convert_gmem_to_gmem_now, job_data);
+   return true;
+
+end:
+   free(job_data);
+   return false;
+}
+
 /* Convert an image from gmem to gmem (can use hardware) */
 bool v3d_imgconv_convert(
       const struct v3d_imgconv_gmem_tgt *dst,
@@ -287,7 +366,7 @@ bool v3d_imgconv_convert(
       unsigned dst_off = dst->base.array_pitch * i;
       unsigned src_off = src->base.array_pitch * i;
 
-      bool  conv_done = false;
+      bool conv_done = false;
       for (unsigned p = 0; !conv_done && p < MAX_PATHS && conv_path[p]; p++)
       {
          if (!conv_path[p]->claim(&dst->base, &src->base, width, height, depth, &sec_info))
@@ -302,8 +381,8 @@ bool v3d_imgconv_convert(
             if (conv_path[p]->convert_prep != NULL)
             {
                /* Make a scratch buffer for our intermediate prep stage.
-                  * call_prep_func will create the scratch buffer of the correct format
-                  * for the following async conversion */
+                * call_prep_func will create the scratch buffer of the correct format
+                * for the following async conversion */
                struct v3d_imgconv_gmem_tgt scratch;
 
                if (!call_prep_func_gmem(conv_path[p]->convert_prep, &scratch, src, src_off,
@@ -349,14 +428,15 @@ bool v3d_imgconv_convert(
          }
          else
          {
-            v3d_scheduler_deps src_and_dst_deps;
-            v3d_scheduler_copy_deps(&src_and_dst_deps, &src->deps);
-            v3d_scheduler_merge_deps(&src_and_dst_deps, &dst->deps);
-
+            /* No direct async path available, schedule a CPU conversion */
             assert(conv_path[p]->convert_sync); /* we must have one convert fct */
-            if (!call_sync_func(conv_path[p]->convert_sync, dst, dst_off, src, src_off,
-                                 &src_and_dst_deps, width, height, depth))
+
+            uint64_t job = 0;
+            if (!cpu_convert_gmem_to_gmem(&job, dst, src, dst_off, src_off, width, height, depth, p))
                goto end;
+
+            if (job != 0)
+               v3d_scheduler_add_dep(&out_deps, job);
          }
          conv_done = true;
       }
@@ -515,6 +595,10 @@ end:
 
 /* Convert an image in CPU memory into gmem
  * (cannot use hardware without an intermediate prep stage)
+ * NOTE : Asynchronous conversion is not guaranteed.
+ * You should not call this function from the Vulkan driver.
+ * There is a potential event deadlock if the dependencies aren't
+ * satisfied and a CPU conversion path is chosen.
  */
 bool v3d_imgconv_convert_from_ptr(
    const v3d_imgconv_gmem_tgt *dst,

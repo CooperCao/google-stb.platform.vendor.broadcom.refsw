@@ -73,28 +73,28 @@ public:
 
     NEXUS_PlatformSettings *    getPlatformSettings(void);
     uint32_t                    getNumWindowsPerDisplay(void);
-    NEXUS_HdmiOutputHandle      getOutputHdmi(uint16_t number);
-    NEXUS_ComponentOutputHandle getOutputComponent(uint16_t number);
-    NEXUS_SvideoOutputHandle    getOutputSvideo(uint16_t number);
-    NEXUS_CompositeOutputHandle getOutputComposite(uint16_t number);
+    NEXUS_HdmiOutputHandle      getOutputHdmi(unsigned number);
+    NEXUS_ComponentOutputHandle getOutputComponent(unsigned number);
+    NEXUS_SvideoOutputHandle    getOutputSvideo(unsigned number);
+    NEXUS_CompositeOutputHandle getOutputComposite(unsigned number);
 #if NEXUS_HAS_RFM
-    NEXUS_RfmHandle getOutputRFM(uint16_t number);
+    NEXUS_RfmHandle getOutputRFM(unsigned number);
 #endif
-    NEXUS_I2sOutputHandle               getOutputI2sDac(uint16_t number);
-    NEXUS_AudioDacHandle                getOutputAudioDac(uint16_t number);
-    NEXUS_SpdifOutputHandle             getOutputSpdif(uint16_t number);
-    NEXUS_AudioDummyOutputHandle        getOutputAudioDummy(uint16_t number);
-    NEXUS_FrontendHandle                getFrontend(uint16_t number);
+    NEXUS_I2sOutputHandle               getOutputI2sDac(unsigned number);
+    NEXUS_AudioDacHandle                getOutputAudioDac(unsigned number);
+    NEXUS_SpdifOutputHandle             getOutputSpdif(unsigned number);
+    NEXUS_AudioDummyOutputHandle        getOutputAudioDummy(unsigned number);
+    NEXUS_FrontendHandle                getFrontend(unsigned number);
     NEXUS_MemoryConfigurationSettings * getMemSettings(void) { return(&_memSettings); }
     NEXUS_VideoFormat                   getDisplayMaxVideoFormat(int numDisplay = 0);
     NEXUS_VideoFormat                   getDecoderMaxVideoFormat(int numDecoder = 0);
 
     bool isInitialized(void) { return(_bInitialized); }
-    bool isSupportedDisplay(uint16_t number);
-    bool isSupportedVideoWindow(uint16_t numDisplay, uint16_t number);
-    bool isSupportedDecoder(uint16_t number);
-    bool isSupportedStillDecoder(uint16_t number);
-    bool isSupportedEncoder(uint16_t number);
+    bool isSupportedDisplay(unsigned number);
+    bool isSupportedVideoWindow(unsigned numDisplay, unsigned number);
+    bool isSupportedDecoder(unsigned number);
+    bool isSupportedStillDecoder(unsigned number);
+    bool isSupportedEncoder(unsigned number);
     bool isMemSettingsValid(void) { return(_bMemSettingsValid); }
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ

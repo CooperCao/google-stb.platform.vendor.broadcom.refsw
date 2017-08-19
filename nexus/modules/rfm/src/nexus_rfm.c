@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_rfm_module.h"
@@ -65,7 +57,6 @@ void NEXUS_RfmModule_GetDefaultSettings( NEXUS_RfmModuleSettings *pSettings )
 NEXUS_ModuleHandle NEXUS_RfmModule_Init( const NEXUS_RfmModuleSettings *pSettings )
 {
     NEXUS_ModuleSettings moduleSettings;
-    NEXUS_Error errCode;
     unsigned i;
 
     BDBG_ASSERT(NULL == g_NEXUS_rfmModule);
@@ -77,7 +68,7 @@ NEXUS_ModuleHandle NEXUS_RfmModule_Init( const NEXUS_RfmModuleSettings *pSetting
     g_NEXUS_rfmModule = NEXUS_Module_Create("rfm", &moduleSettings);
     if ( NULL == g_NEXUS_rfmModule )
     {
-        errCode = BERR_TRACE(BERR_OS_ERROR);
+        BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
 
@@ -389,4 +380,3 @@ NEXUS_Error NEXUS_RfmModule_Standby_priv( bool enabled, const NEXUS_StandbySetti
     return NEXUS_SUCCESS;
 #endif
 }
-

@@ -5,7 +5,7 @@
 
 #include "libs/core/lfmt/lfmt_block.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 #if WANT_THIRDPARTY
 /* Just declare functions here; they will be defined by gfx_buffer_adapter_*.cpp */
@@ -31,4 +31,4 @@ GFX_BUFFER_ADAPTER_LINKAGE void gfx_buffer_adapter_etc_decompress_block(
 GFX_BUFFER_ADAPTER_LINKAGE void gfx_buffer_adapter_astc_decompress_block(
    GFX_LFMT_BLOCK_ARR_T *pxs, const GFX_LFMT_BLOCK_T *block) GFX_BUFFER_ADAPTER_BODY(return)
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

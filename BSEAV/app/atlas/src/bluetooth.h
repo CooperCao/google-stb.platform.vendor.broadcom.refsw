@@ -96,7 +96,7 @@ class CBluetooth : public CAudioCaptureClient
 public:
     CBluetooth(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CBluetooth(void);

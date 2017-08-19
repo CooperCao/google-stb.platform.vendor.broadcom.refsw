@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacContexts.h $
-*
-* DESCRIPTION:
-*   MAC Contexts interface.
-*
-* $Revision: 3402 $
-* $Date: 2014-08-26 14:23:56Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MAC Contexts interface.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_CONTEXTS_H
 #define _BB_MAC_CONTEXTS_H
@@ -102,9 +94,8 @@ typedef enum _MacContextId_t
 #
 #
 # /* Macro for accessing to the context of the currently active request.            */
-/* TODO: Eliminate precondition; verify all cases where it is used in the code. */
 # define MAC_WITHIN_ACTIVE_CONTEXT          MacContextId_t __activeContextId = (    \
-        (NULL != MAC_MEMORY_FE_ACTIVE_REQ()) ? (MAC_MEMORY_FE_ACTIVE_REQ_CONTEXT()) : 0)
+        MAC_MEMORY_FE_ACTIVE_REQ_CONTEXT())
 # /* This macro must be the first line of the function body code block.             */
 # /* Use semicolon at the end of this instruction.                                  */
 #
@@ -163,12 +154,10 @@ typedef enum _MacContextId_t
 # define MAC_IS_FOR_ACTIVE_CONTEXT(varName)     ((varName)  &   (1 << (__activeContextId)))
 # define MAC_IS_FOR_ZBPRO_CONTEXT(varName)      ((varName)  &   (1 << MAC_ZBPRO_CONTEXT_ID))
 # define MAC_IS_FOR_RF4CE_CONTEXT(varName)      ((varName)  &   (1 << MAC_RF4CE_CONTEXT_ID))
-/* TODO: Simplify to (varName == 0x3); verify all cases where it is used in the code. */
 # define MAC_IS_FOR_BOTH_CONTEXTS(varName)      (((varName) &  ((1 << MAC_ZBPRO_CONTEXT_ID) |   \
                                                                 (1 << MAC_RF4CE_CONTEXT_ID)))   \
                                                             == ((1 << MAC_ZBPRO_CONTEXT_ID) |   \
                                                                 (1 << MAC_RF4CE_CONTEXT_ID)))
-/* TODO: Simplify to (varName == 0x0); verify all cases where it is used in the code. */
 # define MAC_IS_FOR_NO_CONTEXTS(varName)        (((varName) &  ((1 << MAC_ZBPRO_CONTEXT_ID) |   \
                                                                 (1 << MAC_RF4CE_CONTEXT_ID)))   \
                                                             ==   0x0                         )
@@ -413,3 +402,5 @@ typedef enum _MacContextId_t
 
 
 #endif /* _BB_MAC_CONTEXTS_H */
+
+/* eof bbMacContexts.h */

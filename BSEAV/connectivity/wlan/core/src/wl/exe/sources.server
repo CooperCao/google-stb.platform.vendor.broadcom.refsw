@@ -1,0 +1,40 @@
+# sources: windows build file for wl_server.exe
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources.server,v 1.6 2009-05-20 23:09:27 $
+#
+NIC_WL_EXE=wl_server
+TARGETPATH=windows/winxp/obj/server
+
+
+TARGETNAME=$(NIC_WL_EXE)
+TARGETTYPE=EXE
+SUBSYSTEM=console
+REQUIRE_WDM7600=1
+REQUIRE_SDK60=1
+
+vpath %.c $(SRCBASE)/shared $(WLAN_StdSrcDirsR) $(WLAN_ComponentSrcDirsR) 
+
+INCLUDES   = $(SRCBASE)/include $(SRCBASE)/../components/shared $(SRCBASE)/wl/sys \
+	     $(WLAN_ComponentIncDirs) $(WLAN_StdIncDirsA)
+
+TARGETLIBS =  wsock32.lib ADVAPI32.LIB $(WDM7600WDK)/lib/wxp/i386/cfgmgr32.lib
+
+TARGETLIBS += $(SRCBASE)/tools/epictrl/$(DDKBUILDENV)/bcmctrl.lib IPHlpApi.Lib 
+
+# Flags supporting RemoteWL
+C_DEFINES += -DWIN32 -DRWL_SERIAL
+
+target :: $(SRCBASE)/tools/epictrl/$(DDKBUILDENV)/bcmctrl.lib
+
+# some local rules
+$(SRCBASE)/tools/epictrl/$(DDKBUILDENV)/bcmctrl.lib : FORCE
+	$(MAKE) -C $(SRCBASE)/tools/epictrl
+
+NTICE_DBG= @echo "local Building SoftIce symbols - $(@:%.dll=%.nms) for i386"; \
+	$(NTICE)/nmsym.exe -SOURCE:. -SOURCE:$(SRCBASE)/tools/epictrl $(SI_FLAGS) $@
+
+
+SOURCES    = wlu_server_ndis.c bcmutils.c bcmwifi_channels.c bcmstdlib.c wlu_pipe.c wlu_pipe_win32.c bcmxtlv.c bcm_app_utils.c

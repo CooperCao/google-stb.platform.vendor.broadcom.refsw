@@ -22,8 +22,8 @@
 #include <EGL/eglext_wayland.h>
 #include <wayland-util.h>
 #include <wayland-server.h>
+#include <string.h>
 
-#include "../../common/fence_interface_nexus.h"
 #include "../../common/surface_interface_nexus.h"
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
@@ -85,14 +85,14 @@ static BEGL_Error WLSGetNextSurface(void *context, void *nativeWindow,
 }
 
 static BEGL_Error WLSDisplaySurface(void *context, void *nativeWindow,
-      void *nativeSurface, int fence)
+      void *nativeSurface, int fence, int interval)
 {
    UNUSED(context);
    PlatformState *state = (PlatformState *) nativeWindow;
    if (state && nativeSurface)
    {
       DisplayFramework_DisplaySurface(&state->display_framework,
-            nativeSurface, fence, state->native_window->swapInterval);
+            nativeSurface, fence, interval);
       return BEGL_Success;
    }
    else
@@ -112,14 +112,6 @@ static BEGL_Error WLSCancelSurface(void *context, void *nativeWindow,
    }
    else
       return BEGL_Fail;
-}
-
-static void WLSSetSwapInterval(void *context, void *nativeWindow, int interval)
-{
-   UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
-   if (interval >= 0)
-      state->native_window->swapInterval = interval;
 }
 
 static BEGL_Error WLSWindowPlatformStateDestroy(void *context, void *windowState)
@@ -152,12 +144,11 @@ static void *WLSWindowPlatformStateCreate(void *context, void *native)
    {
 
       nw->numSurfaces = 2;
-      nw->swapInterval = 1;
 
       state = calloc(1, sizeof(*state));
       if (state)
       {
-         FenceInteraface_InitNexus(&state->fence_interface, ctx->schedIface);
+         InitFenceInterface(&state->fence_interface, ctx->schedIface);
          SurfaceInterface_InitNexus(&state->surface_interface);
          DisplayInterface_InitNexusMulti(&state->display_interface,
                &state->fence_interface, &nw->windowInfo, ctx->displayType,
@@ -337,7 +328,6 @@ BEGL_DisplayInterface *CreateDisplayInterfaceWaylandServer(NEXUS_DISPLAYHANDLE d
       disp->GetNextSurface = WLSGetNextSurface;
       disp->DisplaySurface = WLSDisplaySurface;
       disp->CancelSurface = WLSCancelSurface;
-      disp->SetSwapInterval = WLSSetSwapInterval;
       /* disp->PlatformSupported          = use the Nexus platform function */
       /* disp->SetDefaultDisplay          = use the Nexus platform function */
       /* disp->GetDefaultDisplay          = use the Nexus platform function */

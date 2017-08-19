@@ -53,7 +53,6 @@ COMMON_SRC_FILES := \
 	libs/khrn/ext/gl_ext_copy_image.c \
 	libs/khrn/ext/gl_ext_multi_draw_indirect.c \
 	libs/khrn/ext/gl_ext_texture_border_clamp.c \
-	libs/khrn/ext/gl_brcm_texture_1d.c \
 	libs/khrn/ext/gl_brcm_polygon_mode.c \
 	libs/khrn/ext/gl_brcm_provoking_vertex.c \
 	libs/khrn/ext/gl_ext_draw_elements_base_vertex.c \
@@ -94,7 +93,6 @@ COMMON_SRC_FILES := \
 	libs/khrn/glsl/glsl_intrinsic.c \
 	libs/khrn/glsl/glsl_intern.c \
 	libs/khrn/glsl/glsl_globals.c \
-	libs/khrn/glsl/glsl_file_utils.c \
 	libs/khrn/glsl/glsl_fastmem.c \
 	libs/khrn/glsl/glsl_extensions.c \
 	libs/khrn/glsl/glsl_errors.c \
@@ -140,7 +138,6 @@ COMMON_SRC_FILES := \
 	libs/khrn/glsl/prepro/glsl_prepro_expand.c \
 	libs/khrn/glsl/prepro/glsl_prepro_token.c \
 	libs/khrn/glsl/prepro/glsl_prepro_macro.c \
-	libs/khrn/glxx/gl32_stubs.c \
 	libs/khrn/glxx/glxx_ez.c \
 	libs/khrn/glxx/glxx_hw.c \
 	libs/khrn/glxx/glxx_inner.c \
@@ -186,6 +183,7 @@ COMMON_SRC_FILES := \
 	libs/khrn/glxx/glxx_tf.c \
 	libs/khrn/glxx/glxx_debug.c \
 	libs/khrn/glxx/glxx_rect.c \
+	libs/khrn/glxx/glxx_clear_layers.c \
 	libs/util/desc_map/desc_map.c \
 	libs/util/gfx_util/gfx_util_conv.c \
 	libs/util/gfx_util/gfx_util_morton.c \
@@ -229,6 +227,7 @@ COMMON_SRC_FILES := \
 	libs/core/v3d/v3d_tlb_decimate.c \
 	libs/core/v3d/v3d_tmu.c \
 	libs/core/v3d/v3d_vpm.c \
+	libs/compute/compute.cpp \
 	libs/platform/v3d_imgconv.c \
 	libs/platform/v3d_imgconv_c.c \
 	libs/platform/v3d_imgconv_neon.c \

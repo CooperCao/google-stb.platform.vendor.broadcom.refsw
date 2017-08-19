@@ -1,24 +1,40 @@
-
-/***************************************************************************
- *     Copyright (c) 2005-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "btnr_75xxib_priv.h"
@@ -471,7 +487,7 @@ BERR_Code BTNR_7550_P_Init_TNR_Core0(BTNR_75xx_Handle h)
 	BKNI_Sleep(1);
 
 	/*Initialization Complete*/
-	BDBG_MSG((" BTNR_7550_P_Init_TNR_Core0() Complete\n"));
+	BDBG_MSG((" BTNR_7550_P_Init_TNR_Core0() Complete"));
 
   retCode = BERR_SUCCESS;
   return retCode;
@@ -717,7 +733,7 @@ BERR_Code BTNR_7550_P_Tune_TNR_Core0(BTNR_75xx_Handle h)
 	/*clear the DoneFirstTimeFlag flag*/
 	h->pTnrModeData->DoneFirstTimeFlag = BTNR_ON;
 
-	BDBG_MSG(("BTNR_7550_P_Tune_TNR_Core0() Complete: TunerAcquisitionType = %d\n",h->pTnrModeData->TunerAcquisitionType));
+	BDBG_MSG(("BTNR_7550_P_Tune_TNR_Core0() Complete: TunerAcquisitionType = %d",h->pTnrModeData->TunerAcquisitionType));
 
 	/*Tuning Complete*/
 	retCode = BERR_SUCCESS;
@@ -895,7 +911,7 @@ void BTNR_7550_P_Set_Tuner_Freq(BTNR_75xx_Handle h)
 	BDBG_MSG(("Tuner_Freq_Selection_Table[%d][%d].tunctl = %d",part60nm,j,Tuner_Freq_Selection_Table[part60nm][j].tunctl));
  
 	/*Tuning Complete*/
-	BDBG_MSG(("BTNR_7550_P_Set_Tuner_Freq() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Set_Tuner_Freq() Complete"));
 }
 
 /*******************************************************************************************
@@ -936,7 +952,7 @@ void BTNR_7550_P_Set_Tuner_DDFS(BTNR_75xx_Handle h, uint8_t ssval1)
 
 	/*Tuner DDFS Complete*/
 	BDBG_MSG(("DDFS programmed with 0x%x",ulNrmLo));
-	BDBG_MSG(("BTNR_7550_P_Set_Tuner_DDFS() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Set_Tuner_DDFS() Complete"));
 }
 
 
@@ -1014,7 +1030,7 @@ void BTNR_7550_P_Set_Tuner_VCO(BTNR_75xx_Handle h, uint8_t tunctl)
 	}
 
 	BDBG_MSG(("Final VCO Cap setting = 0x%x and VCO Tank used =0x%x",cap_cntl,tunctl));
-	BDBG_MSG(("BTNR_7550_P_Set_Tuner_VCO() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Set_Tuner_VCO() Complete"));
 }
 
 /*******************************************************************************************
@@ -1044,7 +1060,7 @@ void BTNR_7550_P_Set_Tuner_VHForUHF(BTNR_75xx_Handle h)
 		BDBG_MSG(("UHF Path Choosen, Tuner_Freq= %d, Breakpoint= %d",h->pTnrModeData->TunerFreq, VHF_UHF_BREAKPOINT));
 	}
 
-	BDBG_MSG(("BTNR_7550_P_Set_Tuner_VHForUHF() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Set_Tuner_VHForUHF() Complete"));
 }
 
 /*******************************************************************************************
@@ -1090,7 +1106,7 @@ void BTNR_7550_P_Set_Tuner_LPF(BTNR_75xx_Handle h)
 	BTNR_7550_P_WriteField(h->hRegister,DS_TUNER_ANACTL_WDATA_01, RFTRK1_BW, j);		
 	BTNR_7550_P_WriteField(h->hRegister,DS_TUNER_ANACTL_WDATA_01, RFTRK1_IN, rftrk1_in);	
 	
-	BDBG_MSG(("BTNR_7550_P_Set_Tuner_LPF() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Set_Tuner_LPF() Complete"));
 }
 
 /*******************************************************************************************************************
@@ -1124,7 +1140,7 @@ void BTNR_7550_P_Set_Tuner_IFVGA_BW(BTNR_75xx_Handle h, IFVGA_BW_t IFVGA_BW)
 
 	BTNR_7550_P_WriteField(h->hRegister, DS_QAFE_IF_0_AGC3, AGCTNBW, RF_AGC_BW);	
 	BTNR_7550_P_WriteField(h->hRegister, DS_QAFE_IF_0_AGC2, AGCIFBW, IF_AGC_BW);	
-	BDBG_MSG(("BTNR_7550_P_Set_Tuner_IFVGA_BW() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Set_Tuner_IFVGA_BW() Complete"));
 }
 
 /*******************************************************************************************************************
@@ -1202,7 +1218,7 @@ void BTNR_7550_P_Set_Tuner_DCOC_Mode(BTNR_75xx_Handle h, DCOC_Mode_t DCOC_Mode)
 			BDBG_MSG(("DCOC Frozen"));
 		}
 	}
-	BDBG_MSG(("BTNR_7550_P_Set_Tuner_DCOC_Mode() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Set_Tuner_DCOC_Mode() Complete"));
 }
 
 /*******************************************************************************************
@@ -1246,7 +1262,7 @@ void BTNR_7550_P_Tuner_Set_BB_LPF_Filter(BTNR_75xx_Handle h)
 		/*the h->pTnrModeData->TunerBw is an enum with 8 MHz = 1, 7 MHz = 2, 6 MHz = 2, and 5_MHz = 4*/
 		BDBG_MSG(("%d MHz Channel BW selected LPF Selections are IFLPF_BWR=%d   FGA_RC_CNTL=%d",(9-(uint8_t)h->pTnrModeData->TunerBw),IFLPF_BWR_Sel,FGA_RC_CNTL_Sel));
 
-	BDBG_MSG(("BTNR_7550_P_Tuner_Set_BB_LPF_Filter() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Tuner_Set_BB_LPF_Filter() Complete"));
 }
 
 /*******************************************************************************************
@@ -1287,7 +1303,7 @@ void BTNR_7550_P_Tuner_AlignAGCT(BTNR_75xx_Handle h)
 	BTNR_7550_P_WriteField(h->hRegister, DS_TUNER_ANACTL_WDATA_22, AGC_WLOAD, 0x0);
 	BTNR_7550_P_WriteField(h->hRegister, DS_TUNER_ANACTL_WDATA_22, AGC_WLOAD, 0x1);
 
-	BDBG_MSG(("BTNR_7550_P_Tuner_AlignAGCT() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Tuner_AlignAGCT() Complete"));
 }
 
 
@@ -1376,7 +1392,7 @@ void BTNR_7550_P_Tuner_AlignAGC2(BTNR_75xx_Handle h, uint8_t LNA_Gain)
 	BTNR_7550_P_WriteField(h->hRegister, DS_QDSAFE_0_CTRL1, INT_I_PGASET, ADC_PGA);		
 	BTNR_7550_P_WriteField(h->hRegister, DS_QDSAFE_0_CTRL1, INT_Q_PGASET, ADC_PGA);	
 
-	BDBG_MSG(("BTNR_7550_P_Tuner_AlignAGC2() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Tuner_AlignAGC2() Complete"));
 }
 
 /****************************************************************************************************
@@ -1616,10 +1632,10 @@ void BTNR_7550_P_Tuner_LoopVGAGainRange(BTNR_75xx_Handle h)
 			mvarAGCTI = BREG_Read32(h->hRegister, BCHP_DS_QAFE_IF_0_AGCTI);
 	
 			BDBG_MSG(("mvarAGCTI = %x",mvarAGCTI));
-			BDBG_MSG(("VGA_Gain_Range = %d,FGA_Gain = %d, LoopCounter = %d\n",VGA_Gain_Range,FGA_Gain, LoopCounter));
+			BDBG_MSG(("VGA_Gain_Range = %d,FGA_Gain = %d, LoopCounter = %d",VGA_Gain_Range,FGA_Gain, LoopCounter));
 			if (h->pTnrModeData->TunerSetup == BTNR_7550_Setup_eCable)
 			{
-				BDBG_MSG(("RF_ATT_Range = %d, RFTRK_Gain_Range = %d\n",RF_ATT_Range,RFTRK_Gain_Range));
+				BDBG_MSG(("RF_ATT_Range = %d, RFTRK_Gain_Range = %d",RF_ATT_Range,RFTRK_Gain_Range));
 			}
 		}
 	}
@@ -1655,9 +1671,9 @@ void BTNR_7550_P_Tuner_LoopVGAGainRange(BTNR_75xx_Handle h)
 	BDBG_MSG(("ADC_PGA = %x",ADC_PGA));
 	if (h->pTnrModeData->TunerSetup == BTNR_7550_Setup_eCable)
 	{
-		BDBG_MSG(("RF_ATT_Range = %d, RFTRK_Gain_Range = %d\n",RF_ATT_Range,RFTRK_Gain_Range));
+		BDBG_MSG(("RF_ATT_Range = %d, RFTRK_Gain_Range = %d",RF_ATT_Range,RFTRK_Gain_Range));
 	}
-	BDBG_MSG(("BTNR_7550_P_Tuner_LoopVGAGainRange() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Tuner_LoopVGAGainRange() Complete"));
 }
 
 /*******************************************************************************************
@@ -1689,5 +1705,5 @@ void BTNR_7550_P_Tuner_FGA_BW_Selection(BTNR_75xx_Handle h)
 	BTNR_7550_P_WriteField(h->hRegister, DS_TUNER_ANACTL_WDATA_03, FGA_RC_CNTL, FGA_RC_Selection_Table[FGA_RC_Sel][FGA_Gain].FGA_RC_CNTL);	
 
 	BDBG_MSG(("FGA_RC_CNTL = %d", FGA_RC_Selection_Table[FGA_RC_Sel][FGA_Gain].FGA_RC_CNTL));
-	BDBG_MSG(("BTNR_7550_P_Tuner_FGA_BW_Selection() Complete\n"));
+	BDBG_MSG(("BTNR_7550_P_Tuner_FGA_BW_Selection() Complete"));
 }

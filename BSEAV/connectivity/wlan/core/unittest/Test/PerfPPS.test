@@ -1,0 +1,873 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to measure packet per second forwarding performance
+#
+# Written by: Robert J. McMahon April 2011
+#
+# $Copyright Broadcom Corporation$
+#
+# Overhead estimates (slot time is 9 us):
+# o DIFS 50 us or *AIFS (3 * 9 us) = 27 us
+# o *Backoff Slot * CWmin,  9 us * rand[0,xf] (avg) = 7 * 9=63 us
+# o 5G 20 us
+# o Multimode header 20 us
+# o PLCP (symbols) 2 * 4 us = 8 us
+# o *SIFS 16 us
+# o ACK 40 us
+#
+# Even if there is no collision and the CW stays at the aCWmin, the average
+# backoff time incurred by CSMA/CA is aDIFS + aCWmin/2 * aSlotTime = 16µs
+# +(2+7.5)*9 µs = 101.5 µs for OFDM PHY, but the data rate with OFDM PHY
+# can reach 600 Mbps in 802.11n, leading to a transmission time of 20µs
+# for a 1500 byte packet.
+#
+# flow accellerator enable =2
+
+package require UTF
+package require UTF::Streams
+package require UTF::MemChart
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::UDPMaxPPSvsPktSize
+package require md5
+
+package provide UTF::Test::PerfPPS 2.0
+
+
+#
+#  Measure link pps performance
+#
+UTF::Test PerfPPS {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP under test"}
+	{sta.arg "" "STA(s) under test"}
+	{branch.arg "" "Branch override"}
+	{brand.arg "" "Brand override"}
+	{apbrand.arg "" "Router brand override"}
+	{wetbrand.arg "" "Brand override"}
+ 	{date.arg "" "Image date"}
+	{rtrdate.arg "" "Desired Router build date, format: yyyy.mm.dd"}
+	{stadate.arg "" "Desired STA build date, format: yyyy.mm.dd"}
+	{tag.arg "" "Router release tag"}
+	{rtrtag.arg "" "Router release tag"}
+	{statag.arg "" "STA release tag"}
+	{email.arg "" "Email Address"}
+	{title.arg "" "Title"}
+	{noload "Don't load images"}
+	{noapload "Don't load ap image"}
+	{norestore "Don't reset to defaults"}
+	{nostaload "Don't load STA image(s)"}
+	{trx.arg "" "Router trx"}
+	{bin.arg "" "STA image"}
+        {history.arg 30 "History size for control charts"}
+	{debug "Working in a debug mode"}
+	{key.arg "" "cc key"}
+	{tos.arg "0x0 0x20 0x80 0xC0" "ToS list to test"}
+	{dwell.arg "4"}
+	{bidirectional ""}
+	{size.arg "20" "UDP payload size"}
+	{emf ""}
+	{ampdu "" }
+	{rxbufs.arg "50000"}
+	{finegrained ""}
+	{chanspec.arg "6" "Chanspec to use"}
+	{security.arg "open" "Default security"}
+	{nounload "Don't unload driver after test"}
+	{nosta "Don't do upstream (STA->AP tests)"}
+	{scansuppress "Scan suppress setting during test run"}
+	{loglevel.arg "DISPLAY" "logging level"}
+	{nophycal "" "Disable phycal watchdog"}
+	{noudp       "Don't run udp sweep"}
+	{noproxysta  "Use WET mode instead of proxysta mode"}
+	{noframeburst "" "Disable frameburst"}
+	{nophycal "" "Disable phycal watchdog"}
+	{roamtrigger.arg "-100" "Roam trigger (default set to -100 for no roaming)"}
+	{noampdu "Disable AMPDU"}
+	{serial.arg "1" "Serial console setting"}
+	{flowaccelerator.arg "-1" "Flow Accelerator modes to test"}
+	{direction.arg "both" "Traffic direction"}
+	{aggregation.arg "0/0/0/0 1/0/0/0 0/0/1/1 0/1/1/1 1/0/1/1 1/1/1/1 0/0/1/16 0/0/1/32 0/0/1/64 0/1/1/64 1/1/1/1 1/1/1/64" "Frameburst/AMSDU/AMPDU/MPDU-density settings"}
+	{dumpampdu ""}
+	{holdtime.arg "120" "Time to hold stability tests"}
+	{graphsize.arg "640,480" "Graph size"}
+	{graphtype.arg "canvas" "set the type of graph"}
+    }
+
+    set (direction) [string toupper $(direction)]
+    if {$(finegrained)} {
+	set framerates "100 500 1000 2000 3000 4000 5000 6000 7000 7500 8000 8500 9000 9500 10000 10500 11000 1200 13000 14000 15000 17500 20000 25000 30000 15000 40000 45000 50000 51000 52000 53000 54000 55000 56000 57000 58000 59000 60000 61000 62000 63000 64000 65000 66000 67000 68000 69000 70000 75000 80000 85000 90000"
+    } else {
+	set framerates "100 500 1000 2000 3000 4000 5000 6000 7000 7500 8000 8500 9000 9500 10000 10500 11000 15000 20000 25000 30000 35000 40000 45000 50000 55000 60000 65000 70000 75000 80000 85000 90000 95000 100000 110000 120000 130000 140000 150000 175000 200000 250000 300000"
+    }
+    set hash [::md5::md5 -hex $framerates]
+    if {$(debug)} {
+	set (key) [concat $(key) $hash $(dwell) $(size) "debug"]
+    } else {
+	set (key) [concat $(key) $hash $(dwell) $(size)]
+    }
+
+    #
+    # Figure out what's being tested by parsing the sta list
+    #
+    # Note: $(sta) can contain a list inside the list, i.e.
+    # for multicast testing it would look like
+    # {43331Lx5 {iptv_br1 iptv_br2}}
+    set WETS ""
+    set STAS ""
+    set MCASTS ""
+    foreach x $(sta) {
+	if {[llength $x] > 1} {
+	    lappend MCASTS $x
+	}
+	foreach STA $x {
+	    if {[$STA hostis Router] && [lsearch $WETS $STA] == -1} {
+		lappend WETS $STA
+	    } elseif {![$STA hostis Router] && [lsearch $STAS $STA] == -1} {
+		lappend STAS $STA
+	    }
+	}
+	if {![$(ap) hostis Router]} {
+	    lappend STAS $(ap)
+	}
+    }
+    if {[$(ap) hostis Router]} {
+	set ROUTERS [concat $(ap) $WETS]
+    } else {
+	set ROUTERS $WETS
+    }
+    if {$(trx) ne ""} {
+	foreach Router $ROUTERS {
+	    $Router configure -image $(trx) -date {}
+	    lappend cckey_common "${Router}=$(trx)"
+	}
+    } elseif {$(rtrtag) ne ""} {
+	foreach Router $ROUTERS {
+	    $Router configure -tag $(rtrtag) -date {}
+	    lappend cckey_common "${Router}=$(rtrtag)"
+	}
+    } else {
+	foreach Router $ROUTERS {
+	    lappend cckey_common "${Router}=[$Router cget -tag]"
+	}
+    }
+    # In the case of no STAS, use brand
+    # to set both AP and bridges
+    if {![llength $STAS] && $(brand) ne ""} {
+	foreach Router $ROUTERS {
+	    $Router configure -brand $(brand)
+	}
+    }
+    if {$(apbrand) eq ""} {
+	lappend cckey_common [$(ap) cget -brand]
+    } else {
+	$(ap) configure -brand $(apbrand)
+	lappend cckey_common $(apbrand)
+    }
+    foreach wet $WETS {
+	if {$(wetbrand) ne ""} {
+	    $wet configure -brand $(wetbrand)
+	} elseif {$(brand) ne ""} {
+	    $wet configure -brand $(brand)
+	}
+	lappend cckey_common "${wet}=[$wet cget -brand]"
+    }
+    if {$(rtrdate) eq {} && $(stadate) eq {} && $(date) ne {} } {
+	set rtrdate $(date)
+	set stadate $(date)
+	foreach dut [concat $(ap) $WETS] {
+	    $dut configure -date $(date)
+	}
+    } else {
+	if {$(rtrdate) ne ""} {
+	    set rtrdate $(rtrdate)
+	    foreach Router $ROUTERS {
+		$Router configure -date $(rtrdate)
+	    }
+	}
+	if {$(stadate) ne ""} {
+	    set stadate $(stadate)
+	    foreach STA $STAS {
+		$STA configure -date $(stadate)
+	    }
+	}
+    }
+    foreach STA $STAS {
+	if {$(bin) ne ""} {
+	    $STA configure -image $(bin) -date {}
+	} elseif {$(statag) eq ""} {
+	    lappend cckey_common "${STA}=[$STA cget -tag]"
+	} else {
+	    $STA configure -tag $(statag)
+	    lappend cckey_common "${STA}=$(statag)"
+	}
+    }
+    UTF::stream logginglevel $(loglevel)
+    set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+    if {$(title) eq "" && $(sta) ne ""} {
+	set sta [lindex $(sta) 0]
+	if {[$sta hostis WinDHD Cygwin]} {
+	    set (title) [$sta host whatami]
+	} elseif {[$sta hostis LMAC DHD]} {
+	    set (title) "Linux Dongle"
+	} else {
+	    set (title) [$sta hostis]
+	}
+	if {[regexp {(\d+sd)} $(ap) - c]} {
+	    append (title) " with $c AP"
+	}
+    }
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $STAS $ROUTERS]]
+    set TITLE "PerfPPS $(title) ($build) (ch=$(chanspec)) (tos=$(tos))"
+    UTF::Message INFO "" $TITLE
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+    if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+	    UTF::Message WARN "" "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+    }
+    unset build
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	if {[info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+	    }
+	}
+	if {!$(noload)} {
+	    if {$(noapload)} {
+		set devices $WETS
+	    } else {
+		set devices $ROUTERS
+	    }
+	    foreach Router $devices {
+		UTF::Try "[$Router cget -name]: Find Router Image" {
+		    set date [$Router cget -date]
+		    if { ([string length $date] < 5) || ( $date == "%date%") } {
+                        set date ""
+		    }
+		    UTF::CheckImage $Router $date unknown
+		}
+		UTF::Try "[$Router cget -name]: Load Image" {
+		    $Router load
+		}
+		UTF::Try "[$Router cget -name]: Restore Defaults" {
+		    $Router restore_defaults
+		    set what [$Router whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $Router $ret
+		    }
+		    set what
+		}
+	    }
+	} elseif {!$(norestore)} {
+	    foreach Router $ROUTERS {
+		UTF::Try "[$Router cget -name]: Find Router Image" {
+		    UTF::CheckImage $Router $rtrdate unknown
+		}
+		UTF::Try "[$Router cget -name]: Restore Defaults" {
+		    $Router restore_defaults
+		    set what [$Router whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $Router $ret
+		    }
+		    set what
+		}
+	    }
+	}
+	# Load STA image(s)
+	if {!$(noload) && !$(nostaload)} {
+	    foreach STA $STAS {
+		if {$(branch) eq "auto"} {
+		    set branch [$STA branchname]
+		} else {
+		    set branch $(branch)
+		}
+		lappend cckey_common $(branch)
+		UTF::Try "[$STA cget -name]: Find STA Image" {
+		    set date [$STA cget -date]
+		    if { ([string length $date] < 5) || ( $date == "%date%") } {
+                        set date ""
+		    }
+		    UTF::CheckImage $STA $date unknown
+		}
+		UTF::Try "[$STA cget -name]: load" {
+		    $STA load
+		}
+		UTF::Try "[$STA cget -name]: defaults" {
+		    $STA services stop
+		    catch {$STA wl msglevel +error +assoc}
+		    if {![$STA cget -nomimo_bw_cap]} {
+			catch {$STA wl down}
+			# Enable 40 in 2.4, if available.
+			# Doesn't work for LMAC since LMAC is never "down"
+			$STA wl -u mimo_bw_cap 1
+			$STA wl up
+			UTF::Sleep 1
+		    }
+		    $STA wl ver
+		    set what [$STA whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $STA $ret
+		    }
+		    set what
+		}
+	    }
+	}
+	# rjm fix - should use router object in some places vs sta
+	UTF::Try "Test defaults" {
+	    # Use SoftAP for case of STA/STA
+	    if {![$(ap) hostis Router]} {
+		$(ap) configure -ap 1
+		$(ap) configure -ipaddr 192.168.1.60
+		$(ap) configure -ssid "SoftAP"
+		if {![$(sta) hostis Router]} {
+		    $(sta) configure -ipaddr 192.168.1.61
+		    $(sta) configure -wlinitcmds "ifconfig [$(sta) cget -device] 192.168.1.61"
+		}
+		$(ap) configure -wlinitcmds "ifconfig [$(ap) cget -device] 192.168.1.60"
+		set APMSG "(soft)AP"
+	    } else {
+		if {[$(ap) nvram get wl_mode] ne "ap"} {
+		    append testnvram($dut) "wl_mode=ap "
+		}
+	    }
+	    foreach STA $STAS {
+		catch {$STA lan tcptune 8M}
+		catch {$STA lan iptables -F}
+	    }
+	    catch {$(ap) lan tcptune 8M}
+	    catch {$(ap) lan iptables -F}
+	    # Set SSID to SoftAP is using a SoftAP
+	    if {![$(ap) hostis Router]} {
+		foreach WET $WETS {
+		    append testnvram($WET) "[$WET wlname]_ssid=SoftAP "
+		}
+	    }
+	    # Enable either WET or ProxySTA on the bridges,
+	    foreach WET $WETS {
+		if {![catch {$WET wl cap} output] && \
+			[regexp { psta } $output]} {
+		    append testnvram($WET) "wl_mode=psta [$WET wlname]_mode=psta "
+		} elseif {[$WET nvram get wl_mode] ne "wet"} {
+		    append testnvram($WET) "wl_mode=wet [$WET wlname]_mode=wet "
+		}
+	    }
+	    # If testing EMF, do the needed config
+	    if {$(emf)} {
+		foreach dut $ROUTERS {
+		    if {![$dut nvram get emf_enable]} {
+			append testnvram($dut) "emf_enable=1 "
+		    }
+		    # Multicast traffic needs to be tunneled over unicast
+		    # Use wmf if supported else use the WDS tunnel
+		    # (via lazywds, which is a BRCM only feature)
+		    if {[catch {$dut wl wmf_bss_enable} err]} {
+			if {![$dut nvram get wl_lazywds]} {
+			    append testnvram($dut) "wl_lazywds=1 "
+			}
+		    } else {
+			append testnvram($dut) "wl_lazywds=0 [$dut wlname]_wmf_bss_enable=1 wl_wmf_bss_enable=1 "
+		    }
+		}
+		# Either proxy sta or WET tunnel needs to be enabled
+		# so the L2 igmp reports will be forwarded by the bridge
+		# to the AP where they can be snooped by igs
+		set apneedstunnel 0
+		foreach WET $WETS {
+		    set output [$WET wl dump psta]
+		    if {!$(noproxysta) && [regexp {^psta mode:} $output]} {
+			append testnvram($WET) "[$WET wlname]_wet_tunnel=0 "
+			continue
+		    } elseif {[$WET nvram get [$WET wlname]_wet_tunnel] ne "1"} {
+			append testnvram($WET) "[$WET wlname]_wet_tunnel=1 "
+		    }
+		    set apneedstunnel 1
+		}
+		if {$apneedstunnel} {
+		    if {[$(ap) nvram get [$(ap) wlname]_wet_tunnel] ne "1"} {
+			append testnvram($(ap)) "[$(ap) wlname]_wet_tunnel=1 "
+		    }
+		} else {
+		    append testnvram($(ap)) "[$(ap) wlname]_wet_tunnel=0 "
+		}
+	    }
+	    if {[array exists testnvram]} {
+		foreach dut [array names testnvram] {
+		    UTF::Try "Apply nvram: $dut" {
+			eval [concat $dut restart $testnvram($dut)]
+		    }
+		}
+	    }
+	    if {[llength $WETS]} {
+		foreach WET $WETS {
+		    $WET rexec "brctl stp [$WET brname] 1"
+		}
+		if {[$(ap) hostis Router]} {
+		    $(ap) rexec "brctl stp [$(ap) brname] 1"
+		}
+		# Give spanning tree time to converge
+		UTF::Sleep 30
+	    }
+	    $(ap) igmp_querier enable
+	    if {$(nophycal)} {
+		foreach sta [concat $(ap) $WETS $STAS] {
+		    catch {$sta wl phy_watchdog 0}
+		}
+	    }
+	}
+	UTF::Try "Chanspec $(chanspec)" {
+	    UTF::Test::APChanspec $(ap) $(chanspec)
+	    foreach WET $WETS {
+		UTF::Test::APChanspec $WET $(chanspec) -loose
+	    }
+	}
+	UTF::Try "Security: $(security)" {
+	    UTF::Test::APConfigureSecurity $(ap) -security $(security)
+	}
+	if {$(noframeburst)} {
+	    set fb 0
+	} else {
+	    set fb 1
+	}
+	if {$(scansuppress)} {
+	    set ss 1
+	} else {
+	    set ss 0
+	}
+	if {$(roamtrigger) eq ""} {
+	    set rt "default"
+	} else {
+	    set rt $(roamtrigger)
+	}
+	if {$(noampdu)} {
+	    set ampdu 0
+	} else {
+	    set ampdu 1
+	}
+	lappend cckey_common "ss=$ss rt=$rt"
+	UTF::Try "Roam=$rt SS=$ss" {
+	    set failmsg ""
+	    if {[catch {$(ap) wl frameburst $fb} err]} {
+		UTF::Message ERROR $(ap) "wl frameburst: $err"
+		lappend failmsg "FB$(ap)=$err"
+	    }
+	    foreach STA [concat $WETS $STAS] {
+		# catch {$STA wl msglevel +psta}
+		if {[catch {$STA wl scansuppress $ss} err]} {
+		    UTF::Message ERROR $STA "wl scansuppress: $err"
+		    lappend failmsg "SS($STA)=$err"
+		}
+		if {$rt ne "default"} {
+		    if {[catch {$STA wl roam_trigger $rt all} err]} {
+			UTF::Message ERROR $STA "wl roamtrigger: $err"
+			lappend failmsg "RT($STA)=$err"
+		    }
+		}
+	    }
+	    if {$failmsg ne ""} {
+		error $failmsg
+	    } else {
+		return
+	    }
+	}
+	UTF::Try "AMSDU Enable" {
+	    UTF::Try "AP AMSDU" {
+		if {[$(ap) hostis Router]} {
+		    set wlname [$(ap) wlname]
+		    eval [concat $(ap) restart ${wlname}_amsdu=on]
+		}
+	    }
+	    UTF::Try "STA AMSDU" {
+		foreach STA $STAS {
+		    if {$STA eq $(ap)} {
+			continue
+		    }
+		    $STA wl down
+		    $STA wl amsdu 1
+		    $STA wl up
+		    $STA wl join [$(ap) wl ssid]
+		}
+	    }
+	}
+	UTF::Try "Connect APSTA" {
+	    foreach STA $STAS {
+		if {$STA eq $(ap)} {
+		    continue
+		}
+		UTF::Test::ConnectAPSTA $(ap) $STA
+		if {[catch {$(sta) wl dump wme} output] || ![regexp {AC_BE:\s+txop\s+0x[0-9a-f]+\s+cwmin\s+(0x[0-9a-f]+)\s+cwmax\s+(0x[0-9a-f]+)} $output - cwmin cwmax]} {
+		    set cwmin "unk"
+		    set cwmax "unk"
+		}
+		return "CWmin/CWmax=${cwmin}/${cwmax}"
+	    }
+	}
+	foreach FA $(flowaccelerator) {
+	    UTF::Try "PPS vs Payload Size (FlowAccel=${FA})" {
+		if {$FA ne "-1"} {
+		    eval [concat $(ap) reboot ctf_fa_mode=$FA]
+		}
+		if {![$(sta) hostis Router]} {
+		    UTF::Try "Connect STA" {
+			UTF::Test::ConnectAPSTA $(ap) $(sta)
+		    }
+		}
+		for {set ix 0} {$ix  < 5} {incr ix} {
+		    if {![catch {$(ap) mpstat}]} {
+			UTF::Sleep 1
+		    } else {
+			break
+		    }
+		}
+	    }
+	    foreach AGG $(aggregation) {
+		foreach {fb amsdu ampdu dense} [split $AGG /] {}
+		foreach CW "0 1" {
+		    if {!$CW} {
+			switch -exact $AGG {
+			    "0/0/0/0"  -
+			    "1/1/1/64" {}
+			    default {
+				# Only run modfied CWmin for AGGs above
+				continue
+			    }
+			}
+		    }
+		    set TRYTXT "FA/FB/AMS,PDU/DENSE/CW=${FA}/${AGG}/$CW"
+		    UTF::Try $TRYTXT  {
+			set needjoin 0
+			foreach DUT [concat $(sta) $(ap)] {
+			    if {[$DUT wl ampdu] ne $ampdu} {
+				$DUT wl down
+				$DUT wl -u ampdu $ampdu
+				$DUT wl up
+				set needjoin 1
+			    }
+			}
+			if {$needjoin} {
+			    $(sta) wl join [$(ap) wl ssid]
+			    UTF::Sleep 20
+			}
+			if {$ampdu} {
+			    foreach DUT [concat $(sta) $(ap)] {
+				$DUT wl ampdu_mpdu $dense
+				if {$amsdu} {
+				    $DUT wl amsdu_aggblock 0
+				} else {
+				    $DUT wl amsdu_aggblock 1
+				}
+			    }
+			}
+			foreach DUT [concat $(sta) $(ap)] {
+			    $DUT wl frameburst $fb
+			}
+			set rcvlazy  [format "0x%08x" [expr {1<<24|0}]]
+			$(sta) wl rcvlazy $rcvlazy
+			UTF::Sleep 1
+			foreach DUT [concat $(sta) $(ap)] {
+			    $DUT wl status
+			}
+			# ecwmin/max uses mumber of bits, 4 = 0xf 10 = 0x3ff
+			if {!$CW} {
+			    $(sta) wl -u wme_ac sta be txop 0 ecwmin 1 ecwmax 1
+			} else {
+			    $(sta) wl -u wme_ac sta be txop 0 ecwmin 4 ecwmax 10
+			}
+			if {[catch {$(sta) wl dump wme} output] || ![regexp {AC_BE:\s+txop\s+0x[0-9a-f]+\s+cwmin\s+(0x[0-9a-f]+)\s+cwmax\s+(0x[0-9a-f]+)} $output - cwmin cwmax]} {
+			    set cwmin "unk"
+			    set cwmax "unk"
+			}
+			return "CWmin/CWmax=${cwmin}/${cwmax}"
+		    }
+		    UTF::Try "AP->STA PPS stability ($(holdtime) s)" {
+			set udp [UTF::stream %AUTO% -name "UDP" -tx $(ap) -rx $(sta) -w 1M -pktsize 20 -pps 300000 -reportinterval 0.1]
+			$(ap) wl -u ampdu_clear_dump
+			$udp start
+			$udp linkcheck -now
+			UTF::Sleep $(holdtime)
+			$udp stop
+			$(ap) wl -u dump ampdu
+			set ppsgraph [UTF::streamgraph %AUTO% -stat pps -streams $udp -title "PPS AP->STA $TRYTXT" -graphsize $(graphsize) -outputtype $(graphtype)]
+			set latencygraph [UTF::streamgraph %AUTO% -stat pktlatency -streams $udp -title "Latency AP->STA $TRYTXT" -graphsize $(graphsize) -outputtype $(graphtype)]
+			set results "[$ppsgraph plot] [$ppsgraph plot -smoothing -append] [$latencygraph plot -append]"
+			$ppsgraph destroy
+			$udp destroy
+			$latencygraph destroy
+			return $results
+		    }
+		    if {$CW} {
+			UTF::Test::UDPMaxPPSvsPktSize -ap $(ap) -sta $(sta) -nosetup -tos $(tos) -key "$cckey_common $FA UP $AGG CWmin/CWmax=${cwmin}/${cwmax}" -direction DOWN -text "$AGG" -dumpampdu
+		    }
+		    foreach direction $(direction) {
+			UTF::Test::UDPMaxPPSvsPktSize -ap $(ap) -sta $(sta) -nosetup -tos $(tos) -key "$cckey_common $FA UP $AGG CWmin/CWmax=${cwmin}/${cwmax}" -direction $direction -text "$AGG" -dumpampdu
+		    }
+		}
+	    }
+	}
+	foreach FA $(flowaccelerator) {
+	    UTF::Try "PPS vs Offered PPS (FlowAccel=${FA})" {
+		if {$FA ne "-1"} {
+		    eval [concat $(ap) reboot ctf_fa_mode=$FA]
+		}
+		if {![$(sta) hostis Router]} {
+		    UTF::Try "Connect STA" {
+			UTF::Test::ConnectAPSTA $(ap) $(sta)
+		    }
+		}
+		for {set ix 0} {$ix  < 30} {incr ix} {
+		    catch {$(ap) mpstat}
+		    UTF::Sleep 1
+		}
+	    }
+	    UTF::Try "Streams setup (payload=$(size) bytes)" {
+		set STREAMS ""
+		set pktsize $(size)
+		set pktbufsize $(rxbufs)
+		set txmac [$(ap) macaddr]
+		set rxmac($(sta)) [$(sta) macaddr]
+		foreach TOS $(tos) {
+		    if {!$(noudp)} {
+			if {$(direction) eq "BOTH" || $(direction) eq "DOWN"} {
+			    set s [UTF::stream %AUTO% -tx $(ap) -rx $(sta) -tos $TOS -pktsize $pktsize -udprx_winpktcnt $pktbufsize -udptx_winpktcnt $pktbufsize -name DOWN -reportinterval 0.1]
+			    lappend STREAMS $s
+			}
+			if {$(direction) eq "BOTH" || $(direction) eq "UP"} {
+			    set s [UTF::stream %AUTO% -tx $(sta) -rx $(ap) -tos $TOS -pktsize $pktsize -udprx_winpktcnt $pktbufsize -udptx_winpktcnt $pktbufsize -pps 500000 -name UP -reportinterval 0.1]
+			    lappend STREAMS $s
+			}
+		    }
+		    if {$(emf)} {
+			set s [UTF::stream %AUTO% -tx $(ap) -rx $(sta) -tos $TOS -pktsize $pktsize -multicast 1 -udprx_winpktcnt $pktbufsize -udptx_winpktcnt $pktbufsize -pps 20000 -name "MCAST" -reportinterval 0.1]
+			lappend STREAMS $s
+		    }
+		}
+		UTF::Try "wl status" {
+		    foreach STA [concat $ROUTERS $STAS] {
+			UTF::Try "$STA" {
+			    $STA wl -u status
+			}
+		    }
+		}
+		UTF::Try "Test streams" {
+		    foreach STREAM $STREAMS {
+			$STREAM id
+		    }
+		}
+		set err ""
+		foreach STREAM $STREAMS {
+		    $STREAM start
+		    if {[catch {$STREAM linkcheck -loose}]} {
+			lappend err [$STREAM cget -receivesta]
+			set STREAMS [lsearch -all -not -inline $STREAMS $STREAM]
+		    }
+		    $STREAM stop
+		}
+		if {[llength $err]} {
+		    error $err
+		} else {
+		    return
+		}
+	    }
+	    foreach STREAM $STREAMS {
+		catch {unset PPS}
+		catch {unset OfferedActual}
+		catch {unset TxRF}
+		catch {unset RxRF}
+		catch {unset AP_LAN_IF}
+		if {[$STREAM cget -multicast]} {
+		    set trymsg "MCAST (tos=[$STREAM cget -tos])"
+		} elseif {[$STREAM cget -tx] eq $(ap)} {
+		    set trymsg "AP->STA (tos=[$STREAM cget -tos])"
+		} else {
+		    set trymsg "STA->AP (tos=[$STREAM cget -tos])"
+		}
+		UTF::Try "$trymsg FA=$FA" {
+		    set AP $(ap)
+		    set STA $(sta)
+		    set tryerr 0
+		    foreach framerate $framerates {
+			UTF::stream allstreams stop
+			UTF::Message INFO "" "PPS=$framerate"
+			$STREAM configure -pps $framerate
+			if {$(dumpampdu)} {
+			    $STA wl -u ampdu_clear_dump
+			    $AP wl -u ampdu_clear_dump
+			}
+			set stainfo($AP,a) [$AP wl -u sta_info $rxmac($STA)]
+			set stainfo($STA,a) [$STA wl -u sta_info $txmac]
+			if {[$AP hostis Router]} {
+			    catch {[[$(ap) cget -host] rexec ifconfig vlan1]} stainfo(lan,a)
+			}
+			set timea [clock clicks -milliseconds]
+			$STREAM start
+			$STREAM stats -clear
+			UTF::Sleep $(dwell) "sampling $framerate"
+			set txpps [$STREAM stats -txpps -mma]
+			set pps [$STREAM stats -pps -mma]
+			set OA [$STREAM stats -offeredactual -mma]
+			#			catch {$(ap) host mpstat}
+			UTF::Message STATS "" "tx=$txpps"
+			UTF::Message STATS "" "rx=$pps"
+			if {[$STREAM cget -multicast]} {
+			    set index [expr {int([lindex $txpps 0])}]
+			    set OfferedActual($index) [expr {int([lindex [lindex [lindex $OA 0] 1] 0])}]
+			    set PPS($index) [expr {int([lindex [lindex [lindex $pps 0] 1] 0])}]
+			} else {
+			    set index [expr {int([lindex $txpps 0])}]
+			    set OfferedActual($index) [expr {int([lindex $OA 0])}]
+			    set PPS($index) [expr {int([lindex $pps 0])}]
+			}
+			$STREAM stop
+			set timeb [clock clicks -milliseconds]
+			set stainfo($AP,b) [$AP wl -u sta_info $rxmac($STA)]
+			set stainfo($STA,b) [$STA wl -u sta_info $txmac]
+			if {$(dumpampdu)} {
+			    $STA wl -u dump ampdu
+			    $AP wl -u dump ampdu
+			}
+			#if {[catch {$AP wl -u dump ampdu} err]} {
+			#    UTF::Message IERROR $AP $err
+			#    set tryerr 1
+			#}
+			if {[$(ap) hostis Router]} {
+			    catch {[[$(ap) cget -host] rexec ifconfig vlan1]} stainfo(lan,b)
+			}
+			set errmsg ""
+			if {![regexp {tx pkts: ([\d]+)} $stainfo($AP,a) - rf_txpktsa]} {
+			    append errmsg "tx pkts parse miss for $AP: $stainfo($AP,a)"
+			}
+			if {![regexp {tx pkts: ([\d]+)} $stainfo($AP,b) - rf_txpktsb]}  {
+			    append errmsg "tx pkts parse miss for $AP: $stainfo($AP,b)"
+			}
+			if {$errmsg eq ""} {
+			    set rf_txpktsa [expr {$rf_txpktsa * 1.0}]
+			    set rf_txpktsb [expr {$rf_txpktsb * 1.0}]
+			    set rf_txpps [expr {int(($rf_txpktsb - $rf_txpktsa) * 1000 / ($timeb - $timea))}]
+			    set TxRF($framerate) $rf_txpps
+			} else {
+			    set rf_txpps ""
+			    UTF::Message ERROR "" $errmsg
+			}
+			set errmsg ""
+			if {![regexp {rx ucast pkts: ([\d]+)} $stainfo($STA,a) - rf_rxpktsa]} {
+			    append  errmsg "rx pkts parse miss for $STA: $stainfo($STA,a)"
+			}
+			if {![regexp {rx ucast pkts: ([\d]+)} $stainfo($STA,b) - rf_rxpktsb]} {
+			    append errmsg "rx pkts parse miss for $STA: $stainfo($STA,b)"
+			}
+			if {$errmsg eq ""} {
+			    set rf_rxpktsa [expr {$rf_rxpktsa * 1.0}]
+			    set rf_rxpktsb [expr {$rf_rxpktsb * 1.0}]
+			    set rf_rxpps [expr {int(($rf_rxpktsb - $rf_rxpktsa) * 1000 / ($timeb - $timea))}]
+			    set RxRF($framerate) $rf_rxpps
+			} else {
+			    set rf_rxpps ""
+			    UTF::Message ERROR "" $errmsg
+			}
+			if {[$(ap) hostis Router]} {
+			    set errmsg ""
+			    if {![regexp {RX packets:([\d]+)} $stainfo(lan,a) - lan_pktsa]} {
+				append errmsg "rx pkts parse miss for AP_LAN_IF: $stainfo(lan,a) "
+			    }
+			    if {![regexp {RX packets:([\d]+)} $stainfo(lan,b) - lan_pktsb]} {
+				append errmsg "rx pkts parse miss for AP_LAN_IF: $stainfo(lan,b)"
+			    }
+			    if {$errmsg ne ""} {
+				set lan_pktsa [expr {$lan_pktsa * 1.0}]
+				set lan_pktsb [expr {$lan_pktsb * 1.0}]
+				set lan_pps [expr {int(($lan_pktsb - $lan_pktsa) * 1000 / ($timeb - $timea))}]
+				set AP_LAN_IF($framerate) $lan_pps
+			    } else {
+				set lan_pps ""
+				UTF::Message ERROR "" $errmsg
+			    }
+			}
+			if {[$(ap) hostis Router]} {
+			} else {
+			    set lan_pps ""
+			}
+			UTF::Message RESULT "" "FrameRate=$framerate RF tx=$rf_txpps rx=$rf_rxpps AP_LAN_IF=$lan_pps"
+		    }
+		    if {[$STREAM cget -multicast]} {
+			set titlestr "Multicast  $(ap) -> $(sta)\\n"
+		    } else {
+			set titlestr "Unicast  $(ap) -> $(sta)\\n"
+		    }
+		    append titlestr " (payload=[$STREAM cget -pktsize] ToS=[$STREAM cget -tos] AMPDU(AP/STA)=[$(ap) wl ampdu]/[$(sta) wl ampdu] rxbuf=$pktbufsize) FA=${FA}"
+		    append titlestr "\\nAP=[$(ap) cget -tag] [$(ap) cget -brand]"
+		    append titlestr "\\nSTA=[$(sta) cget -tag] [$(sta) cget -brand]"
+		    set ppsgraph [UTF::Streamslib::grapharray PPS -title $titlestr]
+		    set htmllink $ppsgraph
+		    if {![catch {UTF::Streamslib::grapharray OfferedActual -title $titlestr -size 1024,768} offeredactual]} {
+			append htmllink [string range $offeredactual 5 end]
+		    }
+		    if {![catch {UTF::Streamslib::grapharray TxRF -title $titlestr -size 1024,768} txrfgraph]} {
+			append htmllink " [string range $txrfgraph 5 end]"
+		    } else {
+			UTF::Message ERROR TxRF "$txrfgraph"
+		    }
+		    if {![catch {UTF::Streamslib::grapharray RxRF -title $titlestr -size 1024,768} rxrfgraph]} {
+			append htmllink " [string range $rxrfgraph 5 end]"
+		    } else {
+			UTF::Message ERROR RxRF "$rxrfgraph"
+		    }
+		    if {[$(ap) hostis Router] && ![catch {UTF::Streamslib::grapharray AP_LAN_IF -title $titlestr -size 1024,768} langraph]} {
+			append htmllink " [string range $langraph 5 end]"
+		    }
+		    UTF::Try "All Graphs" {
+			return $htmllink
+		    }
+		    set cckey [concat $(key) [$STREAM cget -tos] tx $FA]
+		    UTF::MemChart cc -key $cckey -history $(history) -perfcache "" -title "PPS" -units "aggregate"
+		    set sum 0
+		    set ix 0
+		    foreach index [lsort -real [array names PPS]] {
+			incr ix
+			set sum [expr {$sum + $PPS($index)}]
+			UTF::Message STATS "PPS:$ix" "$index=$PPS($index) : $sum"
+		    }
+		    set results [cc addsample $sum]
+		    if {[regexp {(LOW|WIDE|ZERO)} $results]} {
+			set tryerr 1
+		    }
+		    if {!$tryerr} {
+			return "$ppsgraph [string range [cc plotcontrolchart $results] 5 end]"
+		    } else {
+			error "$ppsgraph [string range [cc plotcontrolchart $results] 5 end]"
+		    }
+		}
+	    }
+	}
+	if {!$(nounload)} {
+	    foreach STA [concat $ROUTERS $STAS] {
+		UTF::Try "unload $STA driver" {
+		    $STA unload
+		}
+	    }
+	}
+	UTF::stream exitstreams
+    }
+}
+

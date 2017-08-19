@@ -673,6 +673,7 @@ bool khrn_image_equal(const khrn_image *img1, const khrn_image *img2)
    if (img1->blob != img2->blob ||
        img1->level != img2->level ||
        img1->start_elem != img2->start_elem ||
+       img1->num_array_elems != img2->num_array_elems ||
        img1->start_slice != img2->start_slice ||
        img1->num_slices != img2->num_slices)
       return false;

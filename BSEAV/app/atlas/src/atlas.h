@@ -184,7 +184,7 @@ typedef enum eRet
 #define ATLAS_MEMLEAK_TRACE(str)                                       \
     do {                                                               \
         if (getenv("ATLAS_MEMORY_LEAK_DETECT")) {                      \
-            BDBG_WRN(("--> %s:%s %s", __FILE__, __FUNCTION__, (str))); \
+            BDBG_WRN(("--> %s:%s %s", __FILE__, BSTD_FUNCTION, (str))); \
         }                                                              \
     } while (0)
 
@@ -560,7 +560,7 @@ typedef enum eRet
     MString strLookup = hash.get(MString(var).s());                                               \
     if (strLookup.isNull())                                                                       \
     {                                                                                             \
-        BDBG_WRN(("%s enum:%d is missing corresponding valid string value.", __FUNCTION__, var)); \
+        BDBG_WRN(("%s enum:%d is missing corresponding valid string value.", BSTD_FUNCTION, var)); \
         strLookup = unknownValue;                                                                 \
     }                                                                                             \
     return strLookup;                                                                             \
@@ -591,7 +591,7 @@ typedef enum eRet
     MString strLookup = hash.get(str);                                                           \
     if (strLookup.isNull())                                                                      \
     {                                                                                            \
-        BDBG_WRN(("%s string:%s is missing corresponding valid enum value", __FUNCTION__, str)); \
+        BDBG_WRN(("%s string:%s is missing corresponding valid enum value", BSTD_FUNCTION, str)); \
     }                                                                                            \
     return (ntype)(strLookup.toInt());                                                           \
     }

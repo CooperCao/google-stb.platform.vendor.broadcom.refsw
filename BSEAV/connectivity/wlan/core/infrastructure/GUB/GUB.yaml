@@ -1,0 +1,3237 @@
+####################################################################################
+#    DOCUMENTATION AT http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/GubConfig
+#    Lists here should be kept in alphabetically sorted order!
+#    Requesting 'ncpus>20' is a trick to avoid VMs since all VMs have <20 cpus.
+####################################################################################
+
+VARS:
+  - LSF_JOBS_MULTIPLIER = 2.0
+  - LSF_LOAD_MULTIPLIER = 4.0
+  - LSF_AVOID_VM = ncpus > 20
+  - LSF_RESOURCE = osmajor=RHEL6 span[hosts=1]
+  - MAKE = make
+  - POPULATE_JOBS = 4
+  - REPO_JOBS = 12
+  - SERVICE_BUILDERS = hwnprebd hwndebug wlanswci
+  - STEP_TIMEOUT = 600
+
+###############################################################
+
+buildables:
+  LINUX:
+
+  UBUNTU-HOSTED:
+    VARS:
+      - MAKE = /projects/hnd/tools/linux/bin/make-3.82
+
+  UBUNTU-10.04-HOSTED:
+    VARS:
+      - COPY $[buildables/UBUNTU-HOSTED]
+      - SSH_HOST = lc-sj1-4180|lc-sj1-4181
+
+  UBUNTU-14.04-HOSTED:
+    VARS:
+      - COPY $[buildables/UBUNTU-HOSTED]
+      - LSF_HOSTGROUP = lc-sj1-3543
+      - LSF_RESOURCE =
+
+  LINUX-ROUTER:
+    VARS:
+      - COPY $[buildables/LINUX]
+      - MOGRIFY_FLAGS =
+        --quiet --file-re-extra '[^/]*[.]asp$|[^/]*defconfig.*$|wpsconfig.*|style.css$|README'
+      - MOGRIFY_ON =
+        BCM4710A0 BCM47XX BCM47XX_CHOPS BCMEMF BCMENET CONFIG_MIPS_BRCM
+        ETSRC LINUX LINUX_ROUTER PLTARM ROUTER
+      - MOGRIFY_OFF =
+        BCM33XX_CHOPS BCM42XX_CHOPS BCM4413_CHOPS BCM93310 BCM93350
+        BCM93352 BCM93725B BCM94100 BCMASSERT_LOG BCMCCX BCMDONGLEHOST
+        BCMEXTCCX BCMNODOWN BCMP2P BCMPCMCIA BCMPLC BCMROMOFFLOAD BCMSDIODEV
+        BCMSIM BCMSIMUNIFIED BCMVOIP BCMWAPI_WAI BCMWAPI_WPI BCM_USB BSPSRC
+        COMS CONFIG_BCM933XX CONFIG_BCM93725 CONFIG_BCM93725_VJ CONFIG_BCM93730
+        DSLCPE ETSIM EXT_STA ILSRC INTEL IOPOS_EMULATOR LINUXSIM MICROSOFT MSFT
+        NETGEAR NICMODE POCKET_PC PSOS USBDEVSRC VX_BSD4_3 WLBTAMP WLDPT WLFIPS WLAWDL DHD_AWDL WL_NAN
+        WLMOTOROLALJ WLNINTENDO WLNINTENDO2 WLNOKIA WLPFN_AUTO_CONNECT WL_OIDS WL_PCMCIA
+        _HNDRTE_ __ARM_ARCH_4T_ __CONFIG_L2TP__ __CONFIG_PPTP__ __IOPOS__ __klsi__ vxworks
+        WLAIBSS IBSS_PEER_DISCOVERY_EVENT IBSS_PEER_GROUP_KEY IBSS_PEER_MGMT
+        CREATE_IBSS_ON_QUIET_WITH_11H IBSS_RMC NAN_ASP_IBSS OPENSSL_BUILD_SHLIBSSL WLAIBSS_MCHAN
+        WLAIBSS_PS AWDL_FAMILY WLAWDL_LATENCY_SUPPORT WL_NATOE
+      - MOGRIFY_PATHS = $[SRCDIRS] $[MOGRIFY_WHITELIST]
+      - PACKAGE = $[ROUTER_OS]-router-$[ROUTER_VERSION_STR].tar.gz
+      - PACKAGE_OPEN = linux-open-router-$[ROUTER_VERSION_STR].tar.gz
+      - PATH :+= /projects/hnd/tools/linux/bin
+      - ROUTER_VERSION_STR = 6.30.0.0
+      - ROUTERCFG = defconfig-2.6-vista-router
+      - SRCDIRS = src components
+      - SRCFILELISTS_COMPONENTS =
+        src/tools/release/components/wps-filelist.txt
+        src/tools/release/components/wlphy-filelist.txt
+        src/tools/release/components/wlolpc-filelist.txt
+        src/tools/release/components/bcmcrypto-filelist.txt
+        src/tools/release/components/linux_router/samba-filelist.txt
+        src/tools/release/components/linux_router/wlexe-filelist.txt
+      - SYS_SRCFILELISTS_COMPONENTS =
+        src/tools/release/components/hspot-filelist.txt
+        src/tools/release/components/linux_router/wlexe-filelist.txt
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/linux-2.6.36-router
+      Router_Make:
+        VARS:
+          - FOO = bar
+      Router_Package:
+        VARS:
+          - FOO = bar
+      Validate:
+        description: Do IP Validation of release folder
+
+  # TODO - curently unused
+  LINUX-2.6-MIPS-ROUTER:
+    VARS:
+      - COPY $[buildables/LINUX-ROUTER]
+      - ARCH = mips
+      - GPL_FILELIST = src/tools/release/linux-2.6-gpl-filelist.txt
+      - LINUX_DIR = src/linux/linux-2.6
+      - LINUX_VERSION = 2_6
+      - MOGRIFY_WHITELIST =
+        src/linux/linux-2.6/Makefile
+        src/linux/linux-2.6/arch/mips/brcm-boards/bcm947xx/Makefile
+        src/linux/linux-2.6/arch/mips/brcm-boards/bcm947xx/setup.c
+        src/linux/linux-2.6/arch/mips/defconfig-2.6-bcm947xx
+        src/linux/linux-2.6/arch/mips/defconfig-2.6-bcm947xx-router
+        src/linux/linux-2.6/drivers/net/bcm57xx/Makefile
+        src/linux/linux-2.6/drivers/net/wl/wl_generic.mk
+        src/linux/linux-2.6/fs/proc/proc_misc.c
+      - PATH +:= /projects/hnd/tools/linux/hndtools-mipsel-linux-uclibc-4.2.3/bin
+      - PATH :+= /projects/hnd/tools/linux/bin
+      - PLT = mipsel
+      - ROUTER_OS = linux-2.6
+      - SRCDIRS = src
+      - SRCFILELIST = src/tools/release/linux-2.6-router-filelist.txt
+    COPY: $[buildables/LINUX-ROUTER]
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/linux26-router
+      Router_Make:
+        COPY: $[targets/LINUX-ROUTER/steps/&]
+      Router_Package:
+        COPY: $[targets/LINUX-ROUTER/steps/&]
+
+  LINUX-2.6.36-ARM-ROUTER:
+    VARS:
+      - COPY $[buildables/LINUX-ROUTER]
+      - ARCH = arm
+      - export DLNA = 1
+      - GPL_FILELIST = src/tools/release/linux-2.6.36-gpl-filelist.txt
+      - LINUX_DIR = components/opensource/linux/linux-2.6.36
+      - LINUX_VERSION = 2_6_36
+      - LSF_SLOTS = 6,12
+      - MOGRIFY_WHITELIST =
+        components/opensource/linux/linux-2.6.36/Makefile
+        components/opensource/linux/linux-2.6.36/arch/arm/defconfig-2.6-bcm947xx
+        components/opensource/linux/linux-2.6.36/arch/arm/defconfig-2.6-bcm947xx-router
+        components/opensource/linux/linux-2.6.36/arch/arm/mach-brcm-hnd/board_ns.c
+        components/opensource/linux/linux-2.6.36/arch/arm/plat-brcm/bcm5301x.c
+        components/opensource/linux/linux-2.6.36/arch/mips/brcm-boards/bcm947xx/Makefile
+        components/opensource/linux/linux-2.6.36/arch/mips/brcm-boards/bcm947xx/setup.c
+        components/opensource/linux/linux-2.6.36/drivers/net/bcm57xx/Makefile
+        components/opensource/linux/linux-2.6.36/drivers/net/wl/wl_generic.mk
+      - PATH :+= /projects/hnd_software/gallery-gclient/hnd_depot_tools
+      - PATH +:= /projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/bin
+      - PLT = arm
+      - ROUTER_OS = linux-2.6.36
+      - SRCFILELIST = src/tools/release/linux-2.6.36-router-filelist.txt
+    COPY: $[buildables/LINUX-ROUTER]
+
+  LINUX-2.6.36-ARM-DHDAP-ROUTER:
+    VARS:
+      - COPY $[buildables/LINUX-2.6.36-ARM-ROUTER]
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/linux-2.6.36-router-dhdap
+      Router_Make:
+        VARS:
+          - FOO = bar
+      Router_Package:
+        VARS:
+          - FOO = bar
+      Validate:
+        description: Do IP Validation of release folder
+
+  linux-2.6.36-arm-mfgtest-router:
+    VARS:
+      - COPY $[buildables/LINUX-2.6.36-ARM-ROUTER]
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter
+      - MOGRIFY_ON += ETSRC ENVRAM BCMWFI BCMWPS BCM_MFGTEST
+        __CONFIG_SES_CL__ __CONFIG_SES__
+      - MOGRIFY_OFF += BCMINTERNAL ROUTERSRC ILSRC WLSRC USBDEVSRC NASSRC EZCSRC SESSRC
+        BCMCCX BSPSRC BCMSDIO BCMPCMCIA POCKET_PC WL_OIDS WL_PCMCIA CTFSRC WLAWDL DHD_AWDL WL_NAN
+        BCM4331 FULL BCM4319 BCM_APSDSTD BCM4315 UNRELEASEDCHIP
+        WLAIBSS IBSS_PEER_DISCOVERY_EVENT IBSS_PEER_GROUP_KEY IBSS_PEER_MGMT
+        CREATE_IBSS_ON_QUIET_WITH_11H IBSS_RMC NAN_ASP_IBSS OPENSSL_BUILD_SHLIBSSL WLAIBSS_MCHAN
+        WLAIBSS_PS AWDL_FAMILY WLAWDL_LATENCY_SUPPORT WL_NATOE
+      - PREBUILT = REUSE_PREBUILT_WL=1
+      - ROUTERCFG = defconfig-2.6-mfgtest-router
+      - SRCFILELISTS_COMPONENTS -=
+        src/tools/release/components/linux_router/samba-filelist.txt
+      - export RWL = 1
+      - export WLTEST = 1
+      - export NO_BCMINTERNAL = 1
+    COPY: $[buildables/LINUX-2.6.36-ARM-ROUTER]
+
+  linux-2.6.36-arm-mfgtest-router-dhdap:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router]
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-dhdap
+      - MOGRIFY_OFF -= BCMDONGLEHOST
+      - ROUTERCFG = defconfig-2.6-mfgtest-router-dhdap
+      - SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_MOGRIFY_ON = _HNDRTE_ __ARM_ARCH_4T_ __CONFIG_L2TP__ __CONFIG_PPTP__ BCM_MFGTEST
+      - FW_MOGRIFY_OFF = BCM4710A0 BCM47XX BCM47XX_CHOPS BCMEMF BCMENET CONFIG_MIPS_BRCM
+        ETSRC LINUX LINUX_ROUTER PLTARM ROUTER
+        BCM33XX_CHOPS BCM42XX_CHOPS BCM4413_CHOPS BCM93310 BCM93350
+        BCM93352 BCM93725B BCM94100 BCMDONGLEHOST
+        COMS CONFIG_BCM933XX CONFIG_BCM93725 CONFIG_BCM93725_VJ CONFIG_BCM93730
+        ETSIM ILSRC INTEL IOPOS_EMULATOR LINUXSIM MICROSOFT MSFT WLAWDL WL_NAN
+        NETGEAR NICMODE POCKET_PC PSOS USBDEVSRC VX_BSD4_3
+        WLMOTOROLALJ WLNINTENDO WLNINTENDO2 WLNOKIA WL_PCMCIA
+        __IOPOS__ __klsi__ vxworks WL_NATOE
+      - SYS_SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_SRCFILELISTS_COMPONENTS =
+        src/tools/release/components/linux_router/dongle-pcie-filelist.txt
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-mfgtest-router-dhdap-atlas:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router-dhdap]
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-dhdap-atlas
+      - ROUTERCFG = defconfig-2.6-mfgtest-router-dhdap-atlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-mfgtest-router-noramdisk:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router]
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-noramdisk
+    COPY: $[buildables/linux-2.6.36-arm-mfgtest-router]
+
+  linux-2.6.36-arm-mfgtest-router-noramdisk-rsdb:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router-noramdisk]
+      - ROUTERCFG = defconfig-2.6-mfgtest-rsdb-router
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-noramdisk-rsdb
+    COPY: $[buildables/linux-2.6.36-arm-mfgtest-router-noramdisk]
+
+  linux-2.6.36-arm-mfgtest-router-noramdisk-moca:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router-noramdisk]
+      - ROUTERCFG = defconfig-2.6-mfgtest-moca-router
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-noramdisk-moca
+    COPY: $[buildables/linux-2.6.36-arm-mfgtest-router-noramdisk]
+
+  linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router-dhdap]
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-dhdap-noramdisk
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-atlas:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk]
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-dhdap-noramdisk-atlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-flatlas:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-atlas]
+      - ROUTERCFG = defconfig-2.6-mfgtest-router-dhdap-flatlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-moca:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-mfgtest-router-dhdap]
+      - ROUTERCFG = defconfig-2.6-mfgtest-router-dhdap-moca
+      - KERNELCFG = defconfig-2.6-bcm947xx-mfgrouter-dhdap-noramdisk-moca
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-internal-router:
+    VARS:
+      - COPY $[buildables/LINUX-2.6.36-ARM-ROUTER]
+      - IPTAG_MAP = release:Open,Proprietary,Vendor1001
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6
+      - MOGRIFY_ON += BCMINTERNAL BCMWFI BCMWPS WLSRC BCMDBG_MEM BCMVISTAROUTER
+        __CONFIG_SES_CL__ __CONFIG_SES__
+      - MOGRIFY_OFF += EZCSRC FULL NASSRC ROUTERSRC SESSRC BCM_MFGTEST WLAWDL DHD_AWDL WL_NAN
+        WLAIBSS IBSS_PEER_DISCOVERY_EVENT IBSS_PEER_GROUP_KEY IBSS_PEER_MGMT
+        CREATE_IBSS_ON_QUIET_WITH_11H IBSS_RMC NAN_ASP_IBSS OPENSSL_BUILD_SHLIBSSL WLAIBSS_MCHAN
+        WLAIBSS_PS AWDL_FAMILY WLAWDL_LATENCY_SUPPORT WL_NATOE
+      - PREBUILT = REUSE_PREBUILT_WL=1
+      - export RWL = 1
+    COPY: $[buildables/LINUX-2.6.36-ARM-ROUTER]
+
+  linux-2.6.36-arm-internal-router-dhdap:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap
+      - MOGRIFY_OFF -= BCMDONGLEHOST
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router
+      - SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_MOGRIFY_ON = _HNDRTE_ __ARM_ARCH_4T_ __CONFIG_L2TP__ __CONFIG_PPTP__
+      - FW_MOGRIFY_OFF = BCM4710A0 BCM47XX BCM47XX_CHOPS BCMEMF BCMENET CONFIG_MIPS_BRCM
+        ETSRC LINUX LINUX_ROUTER PLTARM ROUTER BCM_MFGTEST
+        BCM33XX_CHOPS BCM42XX_CHOPS BCM4413_CHOPS BCM93310 BCM93350
+        BCM93352 BCM93725B BCM94100 BCMDONGLEHOST
+        COMS CONFIG_BCM933XX CONFIG_BCM93725 CONFIG_BCM93725_VJ CONFIG_BCM93730
+        ETSIM ILSRC INTEL IOPOS_EMULATOR LINUXSIM MICROSOFT MSFT
+        NETGEAR NICMODE POCKET_PC PSOS USBDEVSRC VX_BSD4_3
+        WLMOTOROLALJ WLNINTENDO WLNINTENDO2 WLNOKIA WL_PCMCIA WLAWDL WL_NAN
+        __IOPOS__ __klsi__ vxworks WL_NATOE
+      - SYS_SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_SRCFILELISTS_COMPONENTS =
+        src/tools/release/components/linux_router/dongle-pcie-filelist.txt
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-internal-router-dhdap-atlas:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router-dhdap]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-atlas
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-atlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-internal-router-dhdap-flatlas:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router-dhdap-atlas]
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-flatlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-internal-router-dhdap-ram:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router-dhdap]
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-ram
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+
+  linux-2.6.36-arm-up-internal-router:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up
+    COPY: $[buildables/linux-2.6.36-arm-internal-router]
+
+  linux-2.6.36-arm-up-internal-router-dhdap:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router-dhdap]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-internal-router-dhdap-moca:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router-dhdap]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up-moca
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-moca
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-internal-router-dhdap-moca-rsdb:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-internal-router-dhdap]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up-moca-rsdb
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-moca-rsdb
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-internal-router-rsdb:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-up-internal-router]
+      - ROUTERCFG = defconfig-2.6-vista-rsdb-router
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up-rsdb
+    COPY: $[buildables/linux-2.6.36-arm-up-internal-router]
+
+  linux-2.6.36-arm-up-internal-router-moca:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-up-internal-router]
+      - ROUTERCFG = defconfig-2.6-vista-router-moca
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up-moca
+    COPY: $[buildables/linux-2.6.36-arm-up-internal-router]
+
+  linux-2.6.36-arm-external-vista-router-full-src:
+    VARS:
+      - COPY $[buildables/LINUX-2.6.36-ARM-ROUTER]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6
+      - MOGRIFY_ON += EZCSRC FULL NASSRC ROUTERSRC SESSRC WLSRC
+        BCMHSPOTAP BCMWFI BCMWPS BCMVISTAROUTER
+         __CONFIG_SES_CL__ __CONFIG_SES__
+      - MOGRIFY_OFF += BCM4315 BCM4319 BCM4331 BCMDBG_ASSERT BCMDBG_DUMP BCMDBG_MEM
+        BCMDBG_PCI BCMDBG_PKT BCMINTERNAL BCMSDIO BCM_APSDSTD BCM_MFGTEST
+        CTFSRC DPSTASRC ENVRAM UNRELEASEDCHIP WLAWDL DHD_AWDL WL_NAN
+        WLAIBSS IBSS_PEER_DISCOVERY_EVENT IBSS_PEER_GROUP_KEY IBSS_PEER_MGMT
+        CREATE_IBSS_ON_QUIET_WITH_11H IBSS_RMC NAN_ASP_IBSS OPENSSL_BUILD_SHLIBSSL WLAIBSS_MCHAN
+        WLAIBSS_PS AWDL_FAMILY WLAWDL_LATENCY_SUPPORT WL_NATOE
+      - export NO_BCMINTERNAL = 1
+    COPY: $[buildables/LINUX-2.6.36-ARM-ROUTER]
+
+  linux-2.6.36-arm-external-retail-vista-router-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-full-src]
+      - MOGRIFY_ON += WLTXBF_2G_DISABLED
+    COPY: $[buildables/linux-2.6.36-arm-external-vista-router-full-src]
+
+  linux-2.6.36-arm-external-vista-router-dhdap-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-full-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap
+      - MOGRIFY_OFF -= BCMDONGLEHOST
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router
+      - SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_MOGRIFY_ON = _HNDRTE_ __ARM_ARCH_4T_ __CONFIG_L2TP__ __CONFIG_PPTP__
+      - FW_MOGRIFY_OFF = BCMINTERNAL BCM_MFGTEST
+        BCM4710A0 BCM47XX BCM47XX_CHOPS BCMEMF BCMENET CONFIG_MIPS_BRCM
+        ETSRC LINUX LINUX_ROUTER PLTARM ROUTER
+        BCM33XX_CHOPS BCM42XX_CHOPS BCM4413_CHOPS BCM93310 BCM93350
+        BCM93352 BCM93725B BCM94100 BCMASSERT_LOG BCMDONGLEHOST
+        COMS CONFIG_BCM933XX CONFIG_BCM93725 CONFIG_BCM93725_VJ CONFIG_BCM93730
+        ETSIM ILSRC INTEL IOPOS_EMULATOR LINUXSIM MICROSOFT MSFT
+        NETGEAR NICMODE POCKET_PC PSOS USBDEVSRC VX_BSD4_3
+        WLMOTOROLALJ WLNINTENDO WLNINTENDO2 WLNOKIA WL_PCMCIA WLAWDL WL_NAN
+        __IOPOS__ __klsi__ vxworks WL_NATOE
+      - SYS_SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_SRCFILELISTS_COMPONENTS =
+        src/tools/release/components/linux_router/dongle-pcie-filelist.txt
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-full-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-atlas
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-atlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-external-vista-router-dhdap-flatlas-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src]
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-flatlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-external-vista-router-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-full-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up
+    COPY: $[buildables/linux-2.6.36-arm-external-vista-router-full-src]
+
+  linux-2.6.36-arm-up-external-vista-router-dhdap-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-full-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-external-vista-router-dhdap-moca-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-full-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up-moca
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-moca
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-external-vista-router-dhdap-moca-rsdb-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-full-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up-moca-rsdb
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-moca-rsdb
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-external-vista-router-rsdb-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-up-external-vista-router-full-src]
+      - ROUTERCFG = defconfig-2.6-vista-rsdb-router
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up-rsdb
+    COPY: $[buildables/linux-2.6.36-arm-up-external-vista-router-full-src]
+
+  linux-2.6.36-arm-up-external-vista-router-moca-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-up-external-vista-router-full-src]
+      - ROUTERCFG = defconfig-2.6-vista-router-moca
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up-moca
+    COPY: $[buildables/linux-2.6.36-arm-up-external-vista-router-full-src]
+
+  linux-2.6.36-arm-up-external-retail-vista-router-full-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-up-external-vista-router-full-src]
+      - MOGRIFY_ON += WLTXBF_2G_DISABLED
+    COPY: $[buildables/linux-2.6.36-arm-up-external-vista-router-full-src]
+
+  linux-2.6.36-arm-external-vista-router-partial-src:
+    VARS:
+      - COPY $[buildables/LINUX-2.6.36-ARM-ROUTER]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6
+      - MOGRIFY_ON += ROUTERSRC BCMWFI BCMWPS BCMVISTAROUTER
+      - MOGRIFY_OFF += BCM4315 BCM4319 BCM4331
+        BCMINTERNAL BCMSDIO BCM_APSDSTD BCM_MFGTEST
+        CTFSRC DPSTASRC ENVRAM UNRELEASEDCHIP
+        BCMHSPOTAP BCMDBG BCMDBG_ERR
+        FULL SESSRC EZCSRC NASSRC WLSRC WLAWDL DHD_AWDL WL_NAN
+        WLAIBSS IBSS_PEER_DISCOVERY_EVENT IBSS_PEER_GROUP_KEY IBSS_PEER_MGMT
+        CREATE_IBSS_ON_QUIET_WITH_11H IBSS_RMC NAN_ASP_IBSS OPENSSL_BUILD_SHLIBSSL WLAIBSS_MCHAN
+        WLAIBSS_PS AWDL_FAMILY WLAWDL_LATENCY_SUPPORT WL_NATOE
+        __CONFIG_SES_CL__ __CONFIG_SES__
+      - OPEN_SRC_PKG = True
+      - export NO_BCMINTERNAL = 1
+    COPY: $[buildables/LINUX-2.6.36-ARM-ROUTER]
+
+  linux-2.6.36-arm-external-retail-vista-router-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-partial-src]
+      - MOGRIFY_ON += WLTXBF_2G_DISABLED
+    COPY: $[buildables/linux-2.6.36-arm-external-vista-router-partial-src]
+
+  linux-2.6.36-arm-up-external-vista-router-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-partial-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up
+    COPY: $[buildables/linux-2.6.36-arm-external-vista-router-partial-src]
+
+  linux-2.6.36-arm-up-external-vista-router-moca-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-partial-src]
+      - ROUTERCFG = defconfig-2.6-vista-router-moca
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up-moca
+    COPY: $[buildables/linux-2.6.36-arm-external-vista-router-partial-src]
+
+  linux-2.6.36-arm-up-external-vista-router-rsdb-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-up-external-vista-router-partial-src]
+      - ROUTERCFG = defconfig-2.6-vista-rsdb-router
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-up-rsdb
+    COPY: $[buildables/linux-2.6.36-arm-up-external-vista-router-partial-src]
+
+  linux-2.6.36-arm-external-vista-router-dhdap-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-partial-src]
+      - GPL_FILELIST = src/tools/release/linux-2.6.36-dhdap-gpl-filelist.txt
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap
+      - MOGRIFY_OFF -= BCMDONGLEHOST
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router
+      - SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_MOGRIFY_ON = _HNDRTE_ __ARM_ARCH_4T_ __CONFIG_L2TP__ __CONFIG_PPTP__
+      - FW_MOGRIFY_OFF = BCMINTERNAL BCM_MFGTEST
+        BCM4710A0 BCM47XX BCM47XX_CHOPS BCMEMF BCMENET CONFIG_MIPS_BRCM
+        ETSRC LINUX LINUX_ROUTER PLTARM ROUTER
+        BCM33XX_CHOPS BCM42XX_CHOPS BCM4413_CHOPS BCM93310 BCM93350
+        BCM93352 BCM93725B BCM94100 BCMASSERT_LOG BCMDONGLEHOST
+        COMS CONFIG_BCM933XX CONFIG_BCM93725 CONFIG_BCM93725_VJ CONFIG_BCM93730
+        ETSIM ILSRC INTEL IOPOS_EMULATOR LINUXSIM MICROSOFT MSFT
+        NETGEAR NICMODE POCKET_PC PSOS USBDEVSRC VX_BSD4_3
+        WLMOTOROLALJ WLNINTENDO WLNINTENDO2 WLNOKIA WL_PCMCIA WLAWDL WL_NAN
+        __IOPOS__ __klsi__ vxworks WL_NATOE
+      - SYS_SRCFILELISTS_COMPONENTS +=
+        src/tools/release/components/linux_router/dhd-filelist.txt
+      - FW_SRCFILELISTS_COMPONENTS =
+        src/tools/release/components/linux_router/dongle-pcie-filelist.txt
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-external-vista-router-dhdap-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-partial-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-up-external-vista-router-dhdap-moca-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-partial-src]
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-moca
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-up-moca
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  linux-2.6.36-arm-external-vista-router-dhdap-atlas-partial-src:
+    VARS:
+      - COPY $[buildables/linux-2.6.36-arm-external-vista-router-dhdap-partial-src]
+      - KERNELCFG = defconfig-2.6-bcm947xx-router-ipv6-dhdap-atlas
+      - ROUTERCFG = defconfig-2.6-vista-dhdap-router-atlas
+    COPY: $[buildables/LINUX-2.6.36-ARM-DHDAP-ROUTER]
+
+  PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE:
+    steps:
+      Populate:
+        description: Do checkout from .../foo/DEPS if present, else foo.sparse
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+      Validate:
+        description: Do IP Validation of release folder
+
+  FREEBSD:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  freebsd-internal-media:
+    VARS:
+      - COPY $[buildables/FREEBSD]
+    COPY: $[buildables/FREEBSD]
+
+  freebsd-external-media:
+    VARS:
+      - COPY $[buildables/FREEBSD]
+    COPY: $[buildables/FREEBSD]
+
+  hndrte:
+    VARS:
+      - DEPS_OR_SPARSE = hndrte
+      - LSF_SLOTS = 4,8
+      - OUTPUT_SYNC = recurse
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  hndrte-dongle-wl:
+    VARS:
+      - DEPS_OR_SPARSE = hndrte-dongle-wl
+      - LSF_PRIORITY_DELTA = +20
+      - LSF_SLOTS = 5,12
+      - LSMAKE_DYNAMIC = 1
+      - LSMAKE_PRIORITY = 170
+      - OUTPUT_SYNC = recurse
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Mogrify:
+        VARS:
+          - MOGRIFY_FLAGS =
+            --mogrifier src/tools/build/mogrify.pl
+          - MOGRIFY_ON =
+          - MOGRIFY_OFF = LOCALBUILD
+          - MOGRIFY_PATHS = src components
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  hndrte-offloads-src:
+    VARS:
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-efi-olympic-external-dongle-pcie:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-efi-olympic-internal-dongle-pcie:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-dhd:
+    VARS:
+      - DEPS_OR_SPARSE = dhd
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-dongle-pcie:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary
+    size_tags_from:
+      - BIS715T185RC1_BRANCH_7_35
+      - BIS747T144RC2_BRANCH_7_64
+      - BIS759T5RC2_BRANCH_7_63
+      - DIN2915T165R6_BRANCH_9_41
+      - DIN2915T250RC1_BRANCH_9_30
+      - DIN2930R18_BRANCH_9_44
+    steps:
+      Populate:
+        description: Do checkout from .../foo/DEPS if present, else foo.sparse
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      FeatureSizing:
+        description: Kick off sizing analysis
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+      Validate:
+        description: Do IP Validation of release folder
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-external-dongle-pcie-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-dongle-sdio:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-external-dongle-sdio-olypatch:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-dongle-usb:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-dongle-usb-olypatch:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-dongle-usb-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = dhd-usb-media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-dongle-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = dhd-usb-media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = media
+      - LSF_SLOTS = 2,4
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-external-stbsoc:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = stbsoc
+      - LSF_SLOTS = 2
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-src
+      - IPTAG_MAP = release:Open,Proprietary
+      - LSF_SLOTS = 4
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-external-wl-combo-src:
+    VARS:
+      - DEPS_OR_SPARSE = linux-wl-combo
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-wl-media:
+    VARS:
+      - DEPS_OR_SPARSE = media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-wl-media-full-src:
+    VARS:
+      - DEPS_OR_SPARSE = media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-external-wl-portsrc-hybrid:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-src
+      - LSF_SLOTS = 8
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-internal-dongle:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-internal-dhd:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = dhd
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-internal-dongle-pcie:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-internal-dongle-usb:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-internal-dongle-usb-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = dhd-usb-media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-internal-dongle-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = dhd-usb-media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-internal-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = media
+      - LSF_SLOTS = 2,4
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-internal-stbsoc:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = stbsoc
+      - LSF_SLOTS = 2
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-internal-wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - LSF_SLOTS = 4
+      - DEPS_OR_SPARSE = wl-src
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-internal-wl-media:
+    VARS:
+      - DEPS_OR_SPARSE = media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-mfgtest-dongle-pcie:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-mfgtest-dongle-sdio:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-mfgtest-dongle-usb:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-mfgtest-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = media
+      - LSF_SLOTS = 2,4
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  linux-mfgtest-dongle-media:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = dhd-usb-media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-mfgtest-stbsoc:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = stbsoc
+      - LSF_SLOTS = 2
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-mfgtest-wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - LSF_SLOTS = 4
+      - DEPS_OR_SPARSE = wl-src
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-mfgtest-wl-media-full-src:
+    VARS:
+      - DEPS_OR_SPARSE = media
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  LODS:
+    VARS:
+      - DEPS_OR_SPARSE = hndrte-dongle-wl
+      - LSF_QUEUE = sj-wlanswbuild-olympic
+    steps:
+      Populate:
+        description: Check out the build tree
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+      ImageCmp:
+        description: Compare FW images vs hndrte-dongle-wl
+      Validate:
+        description: Do IP Validation of release folder
+
+  linux-olympic-dongle-src:
+    VARS:
+      - COPY $[buildables/LODS]
+      - LSF_PRIORITY_DELTA = +40
+      - LSMAKE_DYNAMIC = 1
+    COPY: $[buildables/LODS]
+
+  linux-olympic-dongle-src-mfg:
+    VARS:
+      - COPY $[buildables/LODS]
+    COPY: $[buildables/LODS]
+
+  COMBINED-APPS:
+    description: Build standalone applications
+    VARS:
+      - DEPS_OR_SPARSE = dhd
+      - DHDDIR = src/dhd/exe
+      - FILELISTS = src/tools/release/combined-apps-filelist.txt
+      - FILELISTS_INTERNAL = $[FILELISTS]
+      - FILELISTS_OLYMPIC = $[FILELISTS_INTERNAL]
+      - IPTAG_MAP = olympic:Open,Proprietary,Private1743
+      - MOGRIFY_ON = BCM47XX BCM47XX_CHOPS BCMCRYPTO BCMDONGLEHOST
+        BCMWPS P2P PRE_SECFRW SUPP
+      - MOGRIFY_OFF = APSTA_PINGTEST ATE_BUILD BCM33XX_CHOPS
+        BCM42XX_CHOPS BCM4315 BCM4328 BCM4331 BCM4413_CHOPS
+        BCM4710A0 BCM93310 BCM93350 BCM93352 BCM93725B BCM94100
+        BCMASSERT_SUPPORT BCMCCX BCMDBG BCMDBG_ASSERT BCMDBG_DUMP
+        BCMDBG_ERR BCMDBG_MEM BCMDBG_PKT BCMDBG_TRAP BCMDBUS
+        BCMECICOEX BCMENET BCMEXTCCX BCMHND74K BCMJTAG
+        BCMP2P BCMPERFSTATS BCMQT BCMROMBUILD BCMROMOFFLOAD
+        BCMSDIODEV BCMSIM BCMSIMUNIFIED BCMSLTGT BCMTSTAMPEDLOGS
+        BCMUSBDEV BCM_BOOTLOADER BCM_USB BINOSL COMS CONFIG_BCM4710
+        CONFIG_BCM93725 CONFIG_BCM93725_VJ CONFIG_BCRM_93725
+        CONFIG_BRCM_VJ CONFIG_MIPS_BRCM CONFIG_PCMCIA
+        CONFIG_PCMCIA_MODULE CONFIG_XIP CTFMAP CUSTOMER_HW10
+        CUSTOMER_HW2 CUSTOMER_HW3 CUSTOMER_HW4 CUSTOMER_HW5
+        DEBUG_LOST_INTERRUPTS DHD_SPROM DONGLEBUILD DOS DSLCPE
+        DSLCPE_DELAY EFI ETSIM EXT_STA ILSIM IL_BIGENDIAN INTEL
+        LINUXSIM MFGTEST NDIS NDIS60 NETGEAR NICMODE NOTYET
+        OLYMPIC_RWL OSLREGOPS PATCH_SDPCMDEV_STRUCT PCBIOS
+        PKTCTFMAP PSOS ROUTER SERDOWNLOAD SI_ENUM_BASE_VARIABLE
+        SI_SPROM_PROBE TARGETOS_nucleus UNDER_CE UNRELEASEDCHIP
+        USBAP USER_MODE VX_BSD4_3 WIN7 WLBTAMP WLC_HIGH WLC_HIGH_ONLY
+        WLC_LOW WLC_PATCH WLFIPS WLLMAC WLLMAC_ENABLED WLNINTENDO
+        WLNINTENDO2 WL_LOCATOR _CFE_ _MINOSL_ _MSC_VER
+        _RTE_ _WIN32 _WIN64 __BOB__ __ECOS __FreeBSD__ __IOPOS__
+        __NetBSD__ __klsi__ __mips__ __vxworks mips vxworks
+      - MOGRIFY_ON_OLYMPIC = $[MOGRIFY_ON] DHD_AWDL WLAWDL
+      - MOGRIFY_OFF_OLYMPIC = $[MOGRIFY_OFF] BCMINTERNAL WLTEST
+      - LOGPRINTDIR = src/tools/misc
+      - WLDIR = src/wl/exe
+    steps:
+      Populate:
+        description: Check out the build tree
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Apps_Make:
+        description: Invoke the AppsMakeStep Python class
+      Apps_Package:
+        description: Invoke the AppsPackageStep Python class
+      Validate:
+        description: Do IP Validation of release folders
+
+  android-combined-apps:
+    description: Build standalone applications on Android
+    VARS:
+      - COPY $[buildables/COMBINED-APPS]
+      - WLARGS = LINUXDIR=/tools/linux/src/linux-4.0.4-301.fc22.x86_64.full
+      - WLARGS += NL80211=1 NLHEADERS_PATH=/projects/hnd_tools/linux/android-libnl/libnl-headers-4.2
+      - WLARGS += NLSTATICLIB_PATH=/projects/hnd_tools/linux/android-libnl/libnl_2-4.2-x86.a
+      - WLARGS += TARGET_NDK=/projects/hnd_tools/linux/android-ndk-r6b
+      - WLARGS += TARGET_PREFIX=/projects/hnd_tools/linux/android-ndk-r6b/toolchains/x86-4.4.3/prebuilt/linux-x86/bin/i686-android-linux-
+      - WLARGS += TARGETARCH=x86_android_ndk_r6b TARGETENV=android_ndk_r6b TARGETOS=unix
+      - DHDARGS = $[WLARGS]
+    COPY: $[buildables/COMBINED-APPS]
+
+  linux-combined-apps:
+    description: Build standalone applications on Linux
+    VARS:
+      - COPY $[buildables/COMBINED-APPS]
+      - DHDARGS_OLYMPIC = REPORT_FATAL_TIMEOUTS=1
+    COPY: $[buildables/COMBINED-APPS]
+
+  linux-efi-combined-apps:
+    description: Build standalone EFI applications on Linux
+    VARS:
+      - COPY $[buildables/COMBINED-APPS]
+      - WLDIR = src/wl/exe/efi
+      - DHDDIR = src/dhd/exe/efi
+      - WLARGS = uefidbg
+      - DHDARGS = uefidbg
+      - MOGRIFY_OFF -= EFI
+    COPY: $[buildables/COMBINED-APPS]
+
+  macos-combined-apps:
+    description: Build standalone applications on macOS gala
+    VARS:
+      - COPY $[buildables/COMBINED-APPS]
+      - SSH_HOST = hndmacpro4
+    COPY: $[buildables/COMBINED-APPS]
+
+  win_combined_apps:
+    description: Build standalone applications on Windows
+    VARS:
+      - COPY $[buildables/COMBINED-APPS]
+      - export CYGWIN_DIRECTORY = tools/cygwin32-1.7.28
+      - FILELISTS += src/tools/release/win-dhd-filelist.txt
+      - LSF_RESOURCE = win2k8 span[hosts=1]
+      - LSF_QUEUE = sj-wlanswbuild-win
+      - LSF_HOSTGROUP = prodwin-2008-9600
+      - WLARGS = WLTEST=1
+    COPY: $[buildables/COMBINED-APPS]
+
+  linux-olympic-external-dhd-pcie:
+    description: DHD external driver which contains Olympic IP in Linux
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  linux-olympic-internal-dhd-pcie:
+    description: DHD internal driver which contains Olympic IP in Linux
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+      - IPTAG_MAP = release:Open,Proprietary
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  LINUX26-MIPS-ROUTER:
+    VARS:
+      - DEPS_OR_SPARSE = linux26-router
+    steps:
+      Populate:
+        description: Do checkout from .../foo/DEPS if present, else foo.sparse
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  linux26-external-router-mini-full-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-router-mini-partial-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-usbap-partial-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-usbap-full-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-vista-router-combo:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-vista-router-full-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-retail-vista-router-full-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-retail-vista-router-partial-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-vista-router-partial-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-external-vista-wapi-router-full-src:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-internal-router:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-internal-usbap:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-mfgtest-router:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-mfgtest-router-noramdisk:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-mfgtest-usbap:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  linux26-mfgtest-usbap-noramdisk:
+    VARS:
+      - COPY $[buildables/LINUX26-MIPS-ROUTER]
+    COPY: $[buildables/LINUX26-MIPS-ROUTER]
+
+  LINUX-STBAP:
+    VARS:
+      - DEPS_OR_SPARSE = linux-stbap
+    steps:
+      Populate:
+        description: Do checkout from .../foo/DEPS if present, else foo.sparse
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  linux-external-stbap-full-src:
+    VARS:
+      - COPY $[buildables/LINUX-STBAP]
+    COPY: $[buildables/LINUX-STBAP]
+
+  linux-internal-stbap:
+    VARS:
+      - COPY $[buildables/LINUX-STBAP]
+    COPY: $[buildables/LINUX-STBAP]
+
+  ANDROID-BRIX-HAL-UTIL:
+    VARS:
+      - HAL_UTIL_BIN = halutil
+      - PLAT = android
+      - BUILD_DIR = $[PWD]/BLDTMP/$[LOGNAME]_$[PLAT]/build
+      - HAL_SRC = $[PWD]/google_hal
+      - REL_DIR = $[PWD]/release
+      - BUILD_BIN_DIR = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/system/bin
+      - BUILD_LIB_DIR = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/system/lib
+    steps:
+      Populate:
+        treemap:
+          google_hal:
+            components/opensource/google_hal/trunk/
+      Make:
+        tasks:
+          - mkdir -p $[FRAMEWORK_DIR] &&
+            cd $[FRAMEWORK_DIR] &&
+            repo init -u $[FRAMEWORK_SRC] -b $[FRAMEWORK_TAG] --depth=1 &&
+            repo sync -j$[REPO_JOBS] &&
+            source build/envsetup.sh &&
+            lunch $[FRAMEWORK_TARGET] &&
+            $[MAKE] $[MAKEJOBS] $[MAKE_OPTION]
+          - cp -rf $[HAL_SRC] $[FRAMEWORK_DIR]/external/
+          - cd $[FRAMEWORK_DIR] &&
+            source build/envsetup.sh &&
+            lunch $[FRAMEWORK_TARGET] &&
+            mmm -B $[FRAMEWORK_DIR]/external/google_hal/
+      Package:
+        tasks:
+          - mkdir -p $[REL_DIR]
+          - cp $[FRAMEWORK_IMG] $[REL_DIR]/
+          - cp $[BUILD_BIN_DIR]/$[HAL_UTIL_BIN] $[REL_DIR]/
+          - rm -rf $[FRAMEWORK_DIR]
+
+  android-brix-kk-hal-util:
+    VARS:
+      - COPY $[buildables/ANDROID-BRIX-HAL-UTIL]
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - FRAMEWORK_SRC = ssh://hnd-swgit:29418/android/x86-kk-local/platform_manifest.git
+      - FRAMEWORK_TAG = master
+      - FRAMEWORK_DIR = $[BUILD_DIR]/x86-kk-local
+      - FRAMEWORK_TARGET = haswell_generic-eng
+      - FRAMEWORK_PRODUCT = haswell_generic
+      - FRAMEWORK_IMG = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/live.img
+      - MAKE_OPTION =
+    COPY: $[buildables/ANDROID-BRIX-HAL-UTIL]
+
+  ANDROID-BRIX-WPA-SUPP:
+    VARS:
+      - PLAT = android
+      - BUILD_DIR = $[PWD]/BLDTMP/$[LOGNAME]_$[PLAT]/build
+      - REL_DIR = $[PWD]/release
+      - LIBNL_SRC = libnl
+      - BASE_REL_DIR = $[REL_DIR]/base
+      - BASE_WAPI_REL_DIR = $[REL_DIR]/base-wapi
+      - ALL_REL_DIR = $[REL_DIR]/all
+      - BUILD_BIN_DIR = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/system/bin
+      - BUILD_LIB_DIR = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/system/lib
+      - BUILD_BINS = $[BUILD_BIN_DIR]/hostapd
+                     $[BUILD_BIN_DIR]/hostapd_cli
+                     $[BUILD_BIN_DIR]/wpa_supplicant
+                     $[BUILD_BIN_DIR]/wpa_cli
+      - BUILD_LIBS = $[BUILD_LIB_DIR]/libwpa_client.so
+                     $[BUILD_LIB_DIR]/libnl.so
+      - EXCLUDE_FILES = src/hostap/wapilib/src
+      # BRCM_HOSTAP_BUILD is a make flag which is used by the Android build. Since Android build
+      # command doesn't take arguments, we can't pass this down as an argument. Hence exporting
+      # this to the shell so that the Android build can use it.
+      - export BRCM_HOSTAP_BUILD=y
+    steps:
+      Populate:
+        treemap:
+          hostap:
+            components/opensource/hostap/$[TAGPATH]
+          libnl:
+            components/opensource/libnl/
+      Make:
+        tasks:
+          - mkdir -p $[BASE_REL_DIR]/src $[BASE_REL_DIR]/bin
+          - mkdir -p $[BASE_WAPI_REL_DIR]/src $[BASE_WAPI_REL_DIR]/bin
+          - mkdir -p $[ALL_REL_DIR]/src $[ALL_REL_DIR]/bin
+          - mkdir -p $[FRAMEWORK_DIR] &&
+            cd $[FRAMEWORK_DIR] &&
+            repo init -u $[FRAMEWORK_SRC] -b $[FRAMEWORK_TAG] --depth=1 &&
+            repo sync -j$[REPO_JOBS] &&
+            source build/envsetup.sh &&
+            lunch $[FRAMEWORK_TARGET] &&
+            $[MAKE] $[MAKEJOBS] $[MAKE_OPTION]
+          - cp -rf $[LIBNL_SRC] $[FRAMEWORK_DIR]/external/
+          - cd $[FRAMEWORK_DIR] &&
+            source build/envsetup.sh &&
+            lunch $[FRAMEWORK_TARGET] &&
+            cd $[FRAMEWORK_DIR]/external/libnl/ &&
+            mm -B &&
+            cd $[FRAMEWORK_DIR]
+          - $[MAKE] -C hostap/bcmbuild
+                    PLAT=$[PLAT]
+                    OPT=base
+                    FRAMEWORK_DIR=$[FRAMEWORK_DIR]
+                    FRAMEWORK_TARGET=$[FRAMEWORK_TARGET]
+                    FRAMEWORK_PRODUCT=$[FRAMEWORK_PRODUCT]
+                    TMPWORKDIR=$[PWD]/BLDTMP &&
+            cp -f $[BUILD_BINS] $[BUILD_LIBS] $[BASE_REL_DIR]/bin/
+          - $[MAKE] -C hostap/bcmbuild
+                    PLAT=$[PLAT]
+                    OPT=base-wapi
+                    FRAMEWORK_DIR=$[FRAMEWORK_DIR]
+                    FRAMEWORK_TARGET=$[FRAMEWORK_TARGET]
+                    FRAMEWORK_PRODUCT=$[FRAMEWORK_PRODUCT]
+                    TMPWORKDIR=$[PWD]/BLDTMP &&
+            cp -f $[BUILD_BINS] $[BUILD_LIBS] $[BASE_WAPI_REL_DIR]/bin/
+          - $[MAKE] -C hostap/bcmbuild
+                    PLAT=$[PLAT]
+                    OPT=all
+                    FRAMEWORK_DIR=$[FRAMEWORK_DIR]
+                    FRAMEWORK_TARGET=$[FRAMEWORK_TARGET]
+                    FRAMEWORK_PRODUCT=$[FRAMEWORK_PRODUCT]
+                    TMPWORKDIR=$[PWD]/BLDTMP &&
+            cp -f $[BUILD_BINS] $[BUILD_LIBS] $[ALL_REL_DIR]/bin/
+      Package:
+        tasks:
+          - cp $[FRAMEWORK_IMG] $[REL_DIR]/
+          - cp -a $[BUILD_DIR]/base/hostap $[BASE_REL_DIR]/src/
+          - cp -a $[BUILD_DIR]/base-wapi/hostap $[BASE_WAPI_REL_DIR]/src/
+          - cp -a $[BUILD_DIR]/all/hostap $[ALL_REL_DIR]/src/
+          - cd $[BASE_WAPI_REL_DIR] &&
+            rm -rf $[EXCLUDE_FILES]
+          - cd $[ALL_REL_DIR] &&
+            rm -rf $[EXCLUDE_FILES]
+          - tar -cjf $[BASE_REL_DIR]/hostap.tar.bz2 $[BASE_REL_DIR]/src/hostap
+          - tar -cjf $[BASE_WAPI_REL_DIR]/hostap.tar.bz2 $[BASE_WAPI_REL_DIR]/src/hostap
+          - tar -cjf $[ALL_REL_DIR]/hostap.tar.bz2 $[ALL_REL_DIR]/src/hostap
+          - rm -rf $[FRAMEWORK_DIR]
+
+  android-brix-kk-wpa-supp:
+    VARS:
+      - COPY $[buildables/ANDROID-BRIX-WPA-SUPP]
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - FRAMEWORK_SRC = ssh://hnd-swgit:29418/android/x86-kk-local/platform_manifest.git
+      - FRAMEWORK_TAG = master
+      - FRAMEWORK_DIR = $[BUILD_DIR]/x86-kk-local
+      - FRAMEWORK_TARGET = haswell_generic-eng
+      - FRAMEWORK_PRODUCT = haswell_generic
+      - FRAMEWORK_IMG = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/live.img
+      - MAKE_OPTION =
+    COPY: $[buildables/ANDROID-BRIX-WPA-SUPP]
+
+  android-external-dongle:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - DEPS_OR_SPARSE = hndrte_WLM_WPS
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  androidx86-kitkat:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - REPO_SRC = ssh://hnd-swgit:29418/android/x86-kk-local/platform_manifest.git
+      - KK_IMAG = out/target/product/haswell_generic/live.img
+      - KK_TAG = master
+      - SUP_OUT = out/target/product/haswell_generic/system/bin/wpa_supplicant
+      - WPACLI_OUT = out/target/product/haswell_generic/system/bin/wpa_cli
+      - HOSTAPD_OUT = out/target/product/haswell_generic/system/bin/hostapd
+      - KK_DIR = androidx86_kk.BLDTMP
+      - KK_TARGET = haswell_generic-eng
+      - SUP_BRCM = wpa_supplicant_brcm
+    steps:
+      Populate:
+        treemap:
+          wpa_supplicant_brcm:
+            components/opensource/hostap/trunk
+      Make:
+        tasks:
+          - ln -s ../src $[SUP_BRCM]/wpa_supplicant/src
+          - ln -s ../src $[SUP_BRCM]/hostapd/src
+          - mkdir -p $[KK_DIR]
+          - cd $[KK_DIR] && repo init -u $[REPO_SRC] -b $[KK_TAG] --depth=1 && repo sync -j$[REPO_JOBS]
+          - rm -rf $[KK_DIR]/external/wpa_supplicant_8 $[KK_DIR]/hardware/broadcom/wlan
+          - mv $[SUP_BRCM] $[KK_DIR]/external
+          - cd $[KK_DIR] &&
+            source build/envsetup.sh &&
+            lunch $[KK_TARGET] &&
+            $[MAKE] $[MAKEJOBS]
+          - cd $[KK_DIR]/.repo/manifests &&
+            git branch -a > taginfo.txt
+          - cp $[KK_DIR]/$[KK_IMAG] $[KK_DIR]/$[SUP_OUT] $[KK_DIR]/$[WPACLI_OUT] $[KK_DIR]/$[HOSTAPD_OUT] $[KK_DIR]/.repo/manifests/default.xml $[KK_DIR]/.repo/manifests/taginfo.txt .
+
+  android-wfds:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - REPO_SRC = ssh://hnd-swgit:29418/android/x86-kk-local/platform_manifest.git
+      - ANDROID_DIR = androidx86_kk
+      - ANDROID_TRGT = haswell_generic-eng
+      - ANDROID_PRDT = haswell_generic
+      - WFDS_SRC = wfds_src
+      - WFDS_BIN = wfds_bin
+      - HOSTAP_DIR = $[ANDROID_DIR]/external/hostap
+      - MIDDLEWARE_DIR = $[ANDROID_DIR]/external/middleware
+      - OUT_BIN = $[ANDROID_DIR]/out/target/product/$[ANDROID_PRDT]/system/bin
+      - OUT_LIB = $[ANDROID_DIR]/out/target/product/$[ANDROID_PRDT]/system/lib
+    steps:
+      Populate:
+        treemap:
+          wfds_src:
+            components/deps/$[TAGPATH]/wfds
+      Make:
+        tasks:
+          - mkdir -p $[WFDS_BIN] $[ANDROID_DIR]
+          - cd $[ANDROID_DIR] && repo init -u $[REPO_SRC] --depth=1 && repo sync -j$[REPO_JOBS]
+          - cd $[ANDROID_DIR] && source build/envsetup.sh && lunch $[ANDROID_TRGT] && $[MAKE] ${MAKEJOBS}
+          - cp -rf $[WFDS_SRC]/wfds/hostap $[WFDS_SRC]/wfds/firmware $[WFDS_SRC]/wfds/middleware $[ANDROID_DIR]/external/.
+          - $[MAKE] -f $[MIDDLEWARE_DIR]/asp/mk/wfds-feature.mk PLAT=android BUILD_BASE=$[ANDROID_DIR] FRAMEWORK_TARGET=$[ANDROID_TRGT] FRAMEWORK_PRODUCT=$[ANDROID_PRDT]
+      Package:
+        tasks:
+          - cp $[OUT_BIN]/wfds_asp_service
+               $[OUT_BIN]/asps_cli
+               $[OUT_BIN]/wlaspapp
+               $[OUT_BIN]/curl
+               $[OUT_BIN]/display_cli
+               $[OUT_BIN]/print_cli
+               $[OUT_BIN]/sends_cli
+               $[OUT_BIN]/sendservice $[WFDS_BIN]/.
+          - tar -czf wfds_rel.tar $[WFDS_BIN] $[MIDDLEWARE_DIR]
+
+  android-jb-wfds:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - BLD_SUBDIR = build_base
+      - FRAMEWORK_TGZ = /projects/hnd_swgit/android/android_framework_production/android-4.2.1_r1_prebuild.tgz
+      - ANDROID_DIR = build_base/android-4.2.1_r1_prebuild
+      - ANDROID_TRGT = full_manta-userdebug
+      - ANDROID_PRDT = manta
+      - WFDS_SRC = wfds_src
+      - WFDS_BIN = wfds_bin
+      - HOSTAP_DIR = $[ANDROID_DIR]/external/hostap
+      - MIDDLEWARE_DIR = $[ANDROID_DIR]/external/middleware
+      - OUT_BIN = $[ANDROID_DIR]/out/target/product/$[ANDROID_PRDT]/system/bin
+      - OUT_LIB = $[ANDROID_DIR]/out/target/product/$[ANDROID_PRDT]/system/lib
+    steps:
+      Populate:
+        treemap:
+          wfds_src:
+            components/deps/$[TAGPATH]/wfds
+      Make:
+        tasks:
+          - mkdir -p $[BLD_SUBDIR] $[WFDS_BIN]
+          - tar -C $[BLD_SUBDIR] -xzf $[FRAMEWORK_TGZ]
+          - chmod -R a+r $[BLD_SUBDIR]/android-4.2.1_r1_prebuild
+          - cp -rf $[WFDS_SRC]/wfds/hostap $[WFDS_SRC]/wfds/firmware $[WFDS_SRC]/wfds/middleware $[ANDROID_DIR]/external/.
+          - $[MAKE] -f $[MIDDLEWARE_DIR]/asp/mk/wfds-feature.mk PLAT=android BUILD_BASE=$[ANDROID_DIR] FRAMEWORK_TARGET=$[ANDROID_TRGT] FRAMEWORK_PRODUCT=$[ANDROID_PRDT]
+      Package:
+        tasks:
+          - cp $[OUT_BIN]/wfds_asp_service
+               $[OUT_BIN]/asps_cli
+               $[OUT_BIN]/wlaspapp
+               $[OUT_BIN]/curl
+               $[OUT_BIN]/display_cli
+               $[OUT_BIN]/print_cli
+               $[OUT_BIN]/sends_cli
+               $[OUT_BIN]/sendservice $[WFDS_BIN]/.
+          - tar -czf wfds_rel.tar $[WFDS_BIN] $[MIDDLEWARE_DIR]
+
+  android-jb-wfds-brix:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - BLD_BASE_DIR = build_base
+      - REPO_SRC = ssh://hnd-swgit:29418/android/x86-local/platform/manifests.git
+      - ANDROID_DIR = $[BLD_BASE_DIR]/android_jb
+      - ANDROID_TRGT = core_mesa-eng
+      - ANDROID_PRDT = core_mesa
+      - WFDS_SRC = wfds_src
+      - WFDS_BIN = wfds_bin
+      - HOSTAP_DIR = $[ANDROID_DIR]/external/hostap
+      - MIDDLEWARE_DIR = $[ANDROID_DIR]/external/middleware
+      - OUT_BIN = $[ANDROID_DIR]/out/target/product/$[ANDROID_PRDT]/system/bin
+      - OUT_LIB = $[ANDROID_DIR]/out/target/product/$[ANDROID_PRDT]/system/lib
+    steps:
+      Populate:
+        treemap:
+          wfds_src:
+            components/deps/$[TAGPATH]/wfds
+      Make:
+        tasks:
+          - mkdir -p $[BLD_BASE_DIR] $[ANDROID_DIR] $[WFDS_BIN]
+          - cd $[ANDROID_DIR] && repo init -u $[REPO_SRC] --depth=1 && repo sync -j$[REPO_JOBS]
+          - cd $[ANDROID_DIR] && source build/envsetup.sh && lunch $[ANDROID_TRGT] && $[MAKE] ${MAKEJOBS} allimages
+          - cp -rf $[WFDS_SRC]/wfds/hostap $[WFDS_SRC]/wfds/firmware $[WFDS_SRC]/wfds/middleware $[ANDROID_DIR]/external/.
+          - $[MAKE] -f $[MIDDLEWARE_DIR]/asp/mk/wfds-feature.mk PLAT=android BUILD_BASE=$[ANDROID_DIR] FRAMEWORK_TARGET=$[ANDROID_TRGT] FRAMEWORK_PRODUCT=$[ANDROID_PRDT]
+      Package:
+        tasks:
+          - cp $[OUT_BIN]/wfds_asp_service
+               $[OUT_BIN]/asps_cli
+               $[OUT_BIN]/wlaspapp
+               $[OUT_BIN]/curl
+               $[OUT_BIN]/display_cli
+               $[OUT_BIN]/print_cli
+               $[OUT_BIN]/sends_cli
+               $[OUT_BIN]/sendservice $[WFDS_BIN]/.
+          - tar -czf wfds_rel.tar $[WFDS_BIN] $[MIDDLEWARE_DIR]
+
+  ubuntu-external-wpa-supp:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+    steps:
+      Populate:
+        treemap:
+          src/tools/release:
+            proj/$[TAGPATH]/src/tools/release
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  android-panda-wpa-supp:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - PLAT = android
+      - BUILD_DIR = $[PWD]/BLDTMP/$[LOGNAME]_$[PLAT]/build
+      - FRAMEWORK_ARCHIVE = /projects/hnd_swgit/android/android_framework_production/android-4.2.1_r1_prebuild.tgz
+      - FRAMEWORK_DIR = $[BUILD_DIR]/android-4.2.1_r1_prebuild
+      - FRAMEWORK_TARGET = full_manta-userdebug
+      - FRAMEWORK_PRODUCT = manta
+      - REL_DIR = $[PWD]/release
+      - LIBNL_SRC = libnl
+      - BASE_REL_DIR = $[REL_DIR]/base
+      - BASE_WAPI_REL_DIR = $[REL_DIR]/base-wapi
+      - ALL_REL_DIR = $[REL_DIR]/all
+      - BUILD_BIN_DIR = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/system/bin
+      - BUILD_LIB_DIR = $[FRAMEWORK_DIR]/out/target/product/$[FRAMEWORK_PRODUCT]/system/lib
+      - BUILD_BINS = $[BUILD_BIN_DIR]/hostapd
+                     $[BUILD_BIN_DIR]/hostapd_cli
+                     $[BUILD_BIN_DIR]/wpa_supplicant
+                     $[BUILD_BIN_DIR]/wpa_cli
+      - BUILD_LIBS = $[BUILD_LIB_DIR]/libwpa_client.so
+      - EXCLUDE_FILES = src/hostap/wapilib/src
+      # BRCM_HOSTAP_BUILD is a make flag which is used by the Android build. Since Android build
+      # command doesn't take arguments, we can't pass this down as an argument. Hence exporting
+      # this to the shell so that the Android build can use it.
+      - export BRCM_HOSTAP_BUILD=y
+    steps:
+      Populate:
+        treemap:
+          hostap:
+            components/opensource/hostap/$[TAGPATH]
+          libnl:
+            components/opensource/libnl/
+      Make:
+        tasks:
+          - mkdir -p $[BASE_REL_DIR]/src $[BASE_REL_DIR]/bin
+          - mkdir -p $[BASE_WAPI_REL_DIR]/src $[BASE_WAPI_REL_DIR]/bin
+          - mkdir -p $[ALL_REL_DIR]/src $[ALL_REL_DIR]/bin
+          - mkdir -p $[BUILD_DIR] &&
+            tar -C $[BUILD_DIR] -xzf $[FRAMEWORK_ARCHIVE]
+          - cp -rf $[LIBNL_SRC] $[FRAMEWORK_DIR]/external/
+          - cd $[FRAMEWORK_DIR] &&
+            source build/envsetup.sh &&
+            lunch $[FRAMEWORK_TARGET] &&
+            cd $[FRAMEWORK_DIR]/external/libnl/ &&
+            mm -B &&
+            cd $[FRAMEWORK_DIR]
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild
+                    PLAT=$[PLAT]
+                    OPT=base
+                    FRAMEWORK_DIR=$[FRAMEWORK_DIR]
+                    FRAMEWORK_TARGET=$[FRAMEWORK_TARGET]
+                    FRAMEWORK_PRODUCT=$[FRAMEWORK_PRODUCT]
+                    TMPWORKDIR=$[PWD]/BLDTMP &&
+            cp -f $[BUILD_BINS] $[BUILD_LIBS] $[BASE_REL_DIR]/bin/
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild
+                    PLAT=$[PLAT]
+                    OPT=base-wapi
+                    FRAMEWORK_DIR=$[FRAMEWORK_DIR]
+                    FRAMEWORK_TARGET=$[FRAMEWORK_TARGET]
+                    FRAMEWORK_PRODUCT=$[FRAMEWORK_PRODUCT]
+                    TMPWORKDIR=$[PWD]/BLDTMP &&
+            cp -f $[BUILD_BINS] $[BUILD_LIBS] $[BASE_WAPI_REL_DIR]/bin/
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild
+                    PLAT=$[PLAT]
+                    OPT=all
+                    FRAMEWORK_DIR=$[FRAMEWORK_DIR]
+                    FRAMEWORK_TARGET=$[FRAMEWORK_TARGET]
+                    FRAMEWORK_PRODUCT=$[FRAMEWORK_PRODUCT]
+                    TMPWORKDIR=$[PWD]/BLDTMP &&
+            cp -f $[BUILD_BINS] $[BUILD_LIBS] $[ALL_REL_DIR]/bin/
+      Package:
+        tasks:
+          - cp -a $[BUILD_DIR]/base/hostap $[BASE_REL_DIR]/src/
+          - cp -a $[BUILD_DIR]/base-wapi/hostap $[BASE_WAPI_REL_DIR]/src/
+          - cp -a $[BUILD_DIR]/all/hostap $[ALL_REL_DIR]/src/
+          - cd $[BASE_WAPI_REL_DIR] &&
+            rm -rf $[EXCLUDE_FILES]
+          - cd $[ALL_REL_DIR] &&
+            rm -rf $[EXCLUDE_FILES]
+          - tar -cjf $[BASE_REL_DIR]/hostap.tar.bz2 $[BASE_REL_DIR]/src/hostap
+          - tar -cjf $[BASE_WAPI_REL_DIR]/hostap.tar.bz2 $[BASE_WAPI_REL_DIR]/src/hostap
+          - tar -cjf $[ALL_REL_DIR]/hostap.tar.bz2 $[ALL_REL_DIR]/src/hostap
+          - rm -rf $[FRAMEWORK_DIR]
+
+  linux-epidiag:
+    VARS:
+      - TARGETCPU = x86_64
+      - REL_DIR = release/apps/$[TARGETCPU]/epidiag
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/epidiag
+      Make:
+        tasks:
+          - $[MAKE] -C src/tools/epidiag TARGETCPU=$[TARGETCPU] EPI_64BITS_APP=1
+      Package:
+        tasks:
+          - mkdir -p $[REL_DIR]
+          - cp src/tools/epidiag/epidiag $[REL_DIR]
+    nightly_days: Sun
+
+  linux-external-wpa-supplicant:
+    VARS:
+      - SRCDIRS = hostap
+      - MOGRIFY_FLAGS = --quiet --mogrifier src/tools/build/mogrify.pl
+      - MOGRIFY_ON =
+        BRCM_CONTRIBUTE_COPYRIGHT
+      - MOGRIFY_OFF =
+        BRCM_VE BRCM_CCX WAPI BRCM_OKC BRCM_FEATURES_COPYRIGHT BCM_SDO
+        BCM_MAP_SDCMDS_2_SDOCMDS BCM_GENL CONFIG_P2P_NFC BRCM_DRV_ROAM
+        CONFIG_BRCM_DUALSTA CONFIG_BRCM_HS20
+      - MOGRIFY_PATHS = $[SRCDIRS]
+      - export CC=/tools/linux/local/cross/rhel5-64/fc19/bin/x86_64-fc19.3.9.5.301-linux-gcc -m32
+      - export CROSSTOOL_INCLUDE=-I/tools/linux/local/cross/rhel5-64/fc19/include/libnl-3.2.23/include -I/tools/linux/local/cross/rhel5-64/fc19/include/openssl-1.0.1e/include
+    steps:
+      Populate:
+        treemap:
+          src/tools/build:
+            proj/trunk/src/tools/build
+          hostap:
+            components/opensource/hostap/$[TAGPATH]
+      Mogrify:
+        tasks:
+      Make:
+        tasks:
+          - $[MAKE] -C hostap/libbcmdhd
+          - $[MAKE] -C hostap/wpa_supplicant
+      Package:
+        tasks:
+          - mkdir -p release
+          - tar -C hostap -czf release/$[BUILDABLE].tgz wpa_supplicant
+
+  linux-x86-wpa-supp:
+    VARS:
+      - PLAT = linux
+      - ARCH_32 = 32
+      - ARCH_64 = 64
+      - BUILD_DIR_32 = $[PWD]/BLDTMP/$[ARCH_32]/$[LOGNAME]_$[PLAT]/build
+      - BUILD_DIR_64 = $[PWD]/BLDTMP/$[ARCH_64]/$[LOGNAME]_$[PLAT]/build
+      - REL_DIR = $[PWD]/release
+      - BASE_REL_DIR = $[REL_DIR]/base
+      - BASE_WAPI_REL_DIR = $[REL_DIR]/base-wapi
+      - ALL_REL_DIR = $[REL_DIR]/all
+      - BUILD_BINS = hostapd/hostapd
+                     hostapd/hostapd_cli
+                     wpa_supplicant/wpa_supplicant
+                     wpa_supplicant/wpa_cli
+      - BUILD_LIBS = wapilib/lib/libwapi.a
+      - EXCLUDE_FILES = xmogrify
+                        hostap/wapilib/src
+      - CC = /tools/linux/local/cross/rhel5-64/fc19/bin/x86_64-fc19.3.9.5.301-linux-gcc
+      - CROSSTOOL_INCLUDE = -I/tools/linux/local/cross/rhel5-64/fc19/include/libnl-3.2.23/include
+                            -I/tools/linux/local/cross/rhel5-64/fc19/include/openssl-1.0.1e/include
+    steps:
+      Populate:
+        treemap:
+          hostap:
+            components/opensource/hostap/$[TAGPATH]
+      Make:
+        tasks:
+          - mkdir -p $[BASE_REL_DIR]/$[ARCH_32]/src $[BASE_REL_DIR]/$[ARCH_32]/bin
+          - mkdir -p $[BASE_REL_DIR]/$[ARCH_64]/src $[BASE_REL_DIR]/$[ARCH_64]/bin
+          - mkdir -p $[BASE_WAPI_REL_DIR]/$[ARCH_32]/src $[BASE_WAPI_REL_DIR]/$[ARCH_32]/bin
+          - mkdir -p $[BASE_WAPI_REL_DIR]/$[ARCH_64]/src $[BASE_WAPI_REL_DIR]/$[ARCH_64]/bin
+          - mkdir -p $[ALL_REL_DIR]/$[ARCH_32]/src $[ALL_REL_DIR]/$[ARCH_32]/bin
+          - mkdir -p $[ALL_REL_DIR]/$[ARCH_64]/src $[ALL_REL_DIR]/$[ARCH_64]/bin
+          #
+          # 32-bit build
+          #
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS] mogrify
+                    PLAT=$[PLAT]
+                    OPT=base
+                    TMPBUILDDIR=$[BASE_REL_DIR]/$[ARCH_32]/src
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS]
+                    PLAT=$[PLAT]
+                    OPT=base
+                    TMPWORKDIR=$[PWD]/BLDTMP/$[ARCH_32]
+                    CC="$[CC] -m$[ARCH_32]"
+                    CROSSTOOL_INCLUDE=$[CROSSTOOL_INCLUDE]
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS] mogrify
+                    PLAT=$[PLAT]
+                    OPT=base-wapi
+                    TMPBUILDDIR=$[BASE_WAPI_REL_DIR]/$[ARCH_32]/src
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS]
+                    PLAT=$[PLAT]
+                    OPT=base-wapi
+                    TMPWORKDIR=$[PWD]/BLDTMP/$[ARCH_32]
+                    CC="$[CC] -m$[ARCH_32]"
+                    CROSSTOOL_INCLUDE=$[CROSSTOOL_INCLUDE]
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS] mogrify
+                    PLAT=$[PLAT]
+                    OPT=all
+                    TMPBUILDDIR=$[ALL_REL_DIR]/$[ARCH_32]/src
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS]
+                    PLAT=$[PLAT]
+                    OPT=all
+                    TMPWORKDIR=$[PWD]/BLDTMP/$[ARCH_32]
+                    CC="$[CC] -m$[ARCH_32]"
+                    CROSSTOOL_INCLUDE=$[CROSSTOOL_INCLUDE]
+          #
+          # 64-bit build
+          #
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS] mogrify
+                    PLAT=$[PLAT]
+                    OPT=base
+                    TMPBUILDDIR=$[BASE_REL_DIR]/$[ARCH_64]/src
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS]
+                    PLAT=$[PLAT]
+                    OPT=base
+                    TMPWORKDIR=$[PWD]/BLDTMP/$[ARCH_64]
+                    CC="$[CC] -m$[ARCH_64]"
+                    CROSSTOOL_INCLUDE=$[CROSSTOOL_INCLUDE]
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS] mogrify
+                    PLAT=$[PLAT]
+                    OPT=base-wapi
+                    TMPBUILDDIR=$[BASE_WAPI_REL_DIR]/$[ARCH_64]/src
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS]
+                    PLAT=$[PLAT]
+                    OPT=base-wapi
+                    TMPWORKDIR=$[PWD]/BLDTMP/$[ARCH_64]
+                    CC="$[CC] -m$[ARCH_64]"
+                    CROSSTOOL_INCLUDE=$[CROSSTOOL_INCLUDE]
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS] mogrify
+                    PLAT=$[PLAT]
+                    OPT=all
+                    TMPBUILDDIR=$[ALL_REL_DIR]/$[ARCH_64]/src
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS]
+                    PLAT=$[PLAT]
+                    OPT=all
+                    TMPWORKDIR=$[PWD]/BLDTMP/$[ARCH_64]
+                    CC="$[CC] -m$[ARCH_64]"
+                    CROSSTOOL_INCLUDE=$[CROSSTOOL_INCLUDE]
+
+      Package:
+        tasks:
+          #
+          # 32-bit build
+          #
+          - cd $[BUILD_DIR_32]/base/hostap &&
+            cp $[BUILD_BINS] $[BASE_REL_DIR]/$[ARCH_32]/bin/
+          - cd $[BUILD_DIR_32]/base-wapi/hostap &&
+            cp $[BUILD_BINS] $[BASE_WAPI_REL_DIR]/$[ARCH_32]/bin/ &&
+            cp $[BUILD_LIBS] $[BASE_WAPI_REL_DIR]/$[ARCH_32]/src/hostap/wapilib/lib/
+          - cd $[BUILD_DIR_32]/all/hostap &&
+            cp $[BUILD_BINS] $[ALL_REL_DIR]/$[ARCH_32]/bin/ &&
+            cp $[BUILD_LIBS] $[ALL_REL_DIR]/$[ARCH_32]/src/hostap/wapilib/lib/
+          - cd $[BASE_REL_DIR]/$[ARCH_32]/src &&
+            rm -rf $[EXCLUDE_FILES]
+          - cd $[BASE_WAPI_REL_DIR]/$[ARCH_32]/src &&
+            rm -rf $[EXCLUDE_FILES]
+          - cd $[ALL_REL_DIR]/$[ARCH_32]/src &&
+            rm -rf $[EXCLUDE_FILES]
+          - tar -cjf $[BASE_REL_DIR]/$[ARCH_32]/hostap.tar.bz2 $[BASE_REL_DIR]/$[ARCH_32]/src/hostap
+          - tar -cjf $[BASE_WAPI_REL_DIR]/$[ARCH_32]/hostap.tar.bz2 $[BASE_WAPI_REL_DIR]/$[ARCH_32]/src/hostap
+          - tar -cjf $[ALL_REL_DIR]/$[ARCH_32]/hostap.tar.bz2 $[ALL_REL_DIR]/$[ARCH_32]/src/hostap
+          #
+          # 64-bit build
+          #
+          - cd $[BUILD_DIR_64]/base/hostap &&
+            cp $[BUILD_BINS] $[BASE_REL_DIR]/$[ARCH_64]/bin/
+          - cd $[BUILD_DIR_64]/base-wapi/hostap &&
+            cp $[BUILD_BINS] $[BASE_WAPI_REL_DIR]/$[ARCH_64]/bin/ &&
+            cp $[BUILD_LIBS] $[BASE_WAPI_REL_DIR]/$[ARCH_64]/src/hostap/wapilib/lib/
+          - cd $[BUILD_DIR_64]/all/hostap &&
+            cp $[BUILD_BINS] $[ALL_REL_DIR]/$[ARCH_64]/bin/ &&
+            cp $[BUILD_LIBS] $[ALL_REL_DIR]/$[ARCH_64]/src/hostap/wapilib/lib/
+          - cd $[BASE_REL_DIR]/$[ARCH_64]/src &&
+            rm -rf $[EXCLUDE_FILES]
+          - cd $[BASE_WAPI_REL_DIR]/$[ARCH_64]/src &&
+            rm -rf $[EXCLUDE_FILES]
+          - cd $[ALL_REL_DIR]/$[ARCH_64]/src &&
+            rm -rf $[EXCLUDE_FILES]
+          - tar -cjf $[BASE_REL_DIR]/$[ARCH_64]/hostap.tar.bz2 $[BASE_REL_DIR]/$[ARCH_64]/src/hostap
+          - tar -cjf $[BASE_WAPI_REL_DIR]/$[ARCH_64]/hostap.tar.bz2 $[BASE_WAPI_REL_DIR]/$[ARCH_64]/src/hostap
+          - tar -cjf $[ALL_REL_DIR]/$[ARCH_64]/hostap.tar.bz2 $[ALL_REL_DIR]/$[ARCH_64]/src/hostap
+
+  freebsd-x86-wpa-supp:
+    VARS:
+      - PLAT = freebsd
+      - BUILD_DIR = $[PWD]/BLDTMP/$[LOGNAME]_$[PLAT]/build
+      - REL_DIR = $[PWD]/release
+      - BASE_REL_DIR = $[REL_DIR]/base
+      - BUILD_BINS = wpa_supplicant/wpa_supplicant
+                     wpa_supplicant/wpa_cli
+      - EXCLUDE_FILES = xmogrify
+                        hostap/wapilib/src
+      - CC = /projects/hnd_sw_media/cross-compiler-we/freebsd-x86/copy_cross-freebsd-9.2-RELEASE/cross-freebsd-9.2-RELEASE/bin/i386-pc-freebsd9-gcc
+      - CROSSTOOL_INCLUDE = -I/projects/hnd_sw_media/cross-compiler-we/freebsd-x86/copy_cross-freebsd-9.2-RELEASE/cross-freebsd-9.2-RELEASE/i386-pc-freebsd9/src/include
+    steps:
+      Populate:
+        treemap:
+          hostap:
+            components/deps/$[TAGPATH]/media
+      Make:
+        tasks:
+          - mkdir -p $[BASE_REL_DIR]/src $[BASE_REL_DIR]/bin
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS] mogrify
+                    PLAT=$[PLAT]
+                    OPT=base
+                    TMPBUILDDIR=$[BASE_REL_DIR]/src
+          - $[MAKE] -C $[PWD]/hostap/bcmbuild $[MAKEJOBS]
+                    PLAT=$[PLAT]
+                    OPT=base
+                    TMPWORKDIR=$[PWD]/BLDTMP
+                    CC="$[CC]"
+                    CROSSTOOL_INCLUDE=$[CROSSTOOL_INCLUDE]
+
+      Package:
+        tasks:
+          - cd $[BUILD_DIR]/base/hostap &&
+            cp $[BUILD_BINS] $[BASE_REL_DIR]/bin/
+          - cd $[BASE_REL_DIR]/src &&
+            rm -rf $[EXCLUDE_FILES]
+          - tar -cjf $[BASE_REL_DIR]/hostap.tar.bz2 $[BASE_REL_DIR]/src/hostap
+
+  linux-wfds:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+      - WFDS_SRC = wfds_src
+      - WFDS_BIN = wfds_bin
+      - WFDS_BUILD = wfds_build
+      - APPS = $[WFDS_BUILD]/apps
+      - HOSTAP_OUT = $[APPS]/hostap/wpa_supplicant
+      - ASP_OUT = $[APPS]/middleware/asp
+      - export CC=/tools/linux/local/cross/rhel5-64/fc19/bin/x86_64-fc19.3.9.5.301-linux-gcc -m32
+      - export CROSSTOOL_INCLUDE=-I/tools/linux/local/cross/rhel5-64/fc19/include/libnl-3.2.23/include -I/tools/linux/local/cross/rhel5-64/fc19/include/openssl-1.0.1e/include
+    steps:
+      Populate:
+        treemap:
+          wfds_src:
+            components/deps/$[TAGPATH]/wfds
+      Make:
+        tasks:
+          - mkdir -p $[WFDS_BIN] $[WFDS_BUID] $[APPS]
+          - cp -rf $[WFDS_SRC]/wfds/firmware/src $[WFDS_BUILD]/.
+          - cp -rf $[WFDS_SRC]/wfds/hostap $[WFDS_SRC]/wfds/middleware $[APPS]/.
+          - $[MAKE] -f $[APPS]/middleware/asp/mk/wfds-feature.mk PLAT=linux BUILD_BASE=$[WFDS_BUILD]
+      Package:
+        tasks:
+          - cp $[HOSTAP_OUT]/wpa_cli
+               $[HOSTAP_OUT]/wpa_supplicant
+               $[ASP_OUT]/linux/obj/x86-debug/wfds_asp_service
+               $[ASP_OUT]/sigma/obj/x86-debug/asps_cli $[WFDS_BIN]/.
+          - tar -czf wfds_rel.tar $[WFDS_BIN]
+
+  macos-dylibwlm-cab:
+    VARS:
+      - CFG = Release
+      - DEPS_OR_SPARSE = hndrte
+      - SDK = macosx10.9
+      - SSH_HOST = hndmacbuild9
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Make:
+        tasks:
+          - cd src/wl/exe &&
+            xcodebuild -sdk $[SDK] -configuration $[CFG] -project wlm.xcodeproj &&
+            xcodebuild -sdk $[SDK] -configuration $[CFG] -project wl.xcodeproj
+
+  macos-dylibwlm:
+    VARS:
+      - CFG = Release
+      - DEPS_OR_SPARSE = hndrte
+      - SDK = macosx10.7
+      - SSH_HOST = hndmacbuild4
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Make:
+        tasks:
+          - cd src/wl/exe &&
+            xcodebuild -sdk $[SDK] -configuration $[CFG] -project wlm.xcodeproj &&
+            xcodebuild -sdk $[SDK] -configuration $[CFG] -project wl.xcodeproj
+
+  MACOS-LEGACY-MODE-CAB:
+    VARS:
+      - DEPS_OR_SPARSE = wl-src
+      - SSH_HOST = hndmacbuild9
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  macos-external-wl-cab:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-CAB]
+    COPY: $[buildables/MACOS-LEGACY-MODE-CAB]
+
+  macos-internal-wl-cab:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-CAB]
+    COPY: $[buildables/MACOS-LEGACY-MODE-CAB]
+
+  MACOS-LEGACY-MODE-SYR:
+    VARS:
+      - DEPS_OR_SPARSE = wl-src
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+      - SSH_HOST = hndmacpro1
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  macos-external-wl-syr:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-SYR]
+    COPY: $[buildables/MACOS-LEGACY-MODE-SYR]
+
+  macos-internal-wl-syr:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-SYR]
+    COPY: $[buildables/MACOS-LEGACY-MODE-SYR]
+
+  MACOS-LEGACY-MODE:
+    VARS:
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  MACOS-LEGACY-MODE-GALA:
+    VARS:
+      - DEPS_OR_SPARSE = wl-src
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+      - SSH_HOST = hndmacpro4
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  macos-external-wl-gala:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-GALA]
+      - MAKEFILE = macos-external-wl.mk
+    COPY: $[buildables/MACOS-LEGACY-MODE-GALA]
+
+  macos-internal-wl-gala:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-GALA]
+      - MAKEFILE = macos-internal-wl.mk
+    COPY: $[buildables/MACOS-LEGACY-MODE-GALA]
+
+  MACOS-LEGACY-MODE-10_12:
+    VARS:
+      - DEPS_OR_SPARSE = wl-src
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+      - SSH_HOST = hndmacpro7
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  macos-external-wl-10_12:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-10_12]
+      - MAKEFILE = macos-external-wl.mk
+    COPY: $[buildables/MACOS-LEGACY-MODE]
+
+  macos-internal-wl-10_12:
+    VARS:
+      - COPY $[buildables/MACOS-LEGACY-MODE-10_12]
+      - MAKEFILE = macos-internal-wl.mk
+    COPY: $[buildables/MACOS-LEGACY-MODE]
+
+  MACOS-DHD-LEGACY-MODE:
+    VARS:
+      - DEPS_OR_SPARSE = dhd
+      - SSH_HOST = hndmacpro4
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  macos-gala-external-dongle-pcie:
+    VARS:
+      - COPY $[buildables/MACOS-DHD-LEGACY-MODE]
+      - MAKEFILE = macos-gala-external-dongle-pcie.mk
+    COPY: $[buildables/MACOS-DHD-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  macos-gala-internal-dongle-pcie:
+    VARS:
+      - COPY $[buildables/MACOS-DHD-LEGACY-MODE]
+      - MAKEFILE = macos-gala-internal-dongle-pcie.mk
+    COPY: $[buildables/MACOS-DHD-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  netbsd-external-wl:
+    VARS:
+      - SSH_HOST = hndnetbsdbuild4-vm4|hndnetbsdbuild3-vm3|hndnetbsdbuild2-vm2|hndnetbsdbuild1-vm1
+    steps:
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  WIN2K8-LEGACY-MODE:
+    VARS:
+      - export BCMRETRYCMD_ITER = 8
+      - export BCMRETRYCMD_VERBOSE = 1
+      - export CYGWIN_DIRECTORY = tools/cygwin32-1.7.28
+      - LSF_RESOURCE = win2k8 span[hosts=1]
+      - LSF_QUEUE = sj-wlanswbuild-win
+      - LSF_HOSTGROUP = prodwin-2008-9600
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  efi-external-wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = efi
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  efi-internal-wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = efi
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  efi-external-dongle-pcie:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = efi
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  efi-internal-dongle-pcie:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = efi
+      - IPTAG_MAP = release:Open,Proprietary,Private1743
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win8_external_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win8_internal_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win8_slate_external_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win8_slate_internal_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win_external_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win_internal_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win_mfgtest_dongle_sdio:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte_MFGTEST
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win_mfgtest_dongle_usb:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = hndrte
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win_mfgtest_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build_MFGTEST
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  winblue_external_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  winblue_internal_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  # Driver for MS OS DVD inclusion, only built in MS prerelease
+  winblue_external_ms:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  winblue_internal_ms:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win7_dhdpcie_internal_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  PREPOPULATED-WIN8X-DHD-DEPS-OR-SPARSE-LEGACY-MODE:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    steps:
+      Populate:
+        description: Do checkout from .../foo/DEPS if present, else foo.sparse
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS_OR_SPARSE]
+          bcmfn2:
+            components/drivers/bcmfn2
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS = wl-build
+    steps:
+      Populate:
+        treemap:
+          .:
+            components/deps/$[TAGPATH]/$[DEPS]
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  win10_dhdpcie_external_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+
+  win10_dhdpcie_internal_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win10_dhdsdio_external_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+
+  win10_dhdsdio_internal_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+
+  win10_external_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+
+  win10_internal_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN10-DHD-DEPS-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win8x_dhdpcie_external_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN8X-DHD-DEPS-OR-SPARSE-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN8X-DHD-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win8x_dhdpcie_internal_wl:
+    VARS:
+      - COPY $[buildables/PREPOPULATED-WIN8X-DHD-DEPS-OR-SPARSE-LEGACY-MODE]
+    COPY: $[buildables/PREPOPULATED-WIN8X-DHD-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win8x_external_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win8x_internal_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+    prereqs:
+      hndrte-dongle-wl: ended
+
+  win8x_slate_external_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  win8x_slate_internal_wl:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - DEPS_OR_SPARSE = wl-build
+    COPY: $[buildables/PREPOPULATED-DEPS-OR-SPARSE-LEGACY-MODE]
+
+  wifi-display-bld-src:
+    VARS:
+      - PATH +:= /projects/hnd/tools/linux/bin
+    description: Driver + WiFiDisplay release checkout
+    steps:
+      Populate:
+        VARS:
+          - FFMPEG_VER = tags/WFDFFMPEG_REL_0_9_1_3
+          - WIFIDISPLAY_VER = branches/WIFIDISPLAY_BRANCH_1_23
+          - WL_DRIVER_VER = trunk
+        treemap:
+          ./wifi-display:
+            components/projects/specs/wifi-display/$[WIFIDISPLAY_VER]
+          ./wifi-display/display:
+            components/projects/display/$[TAGPATH]
+          ./wifi-display/ffmpeg:
+            components/opensource/ffmpeg/vendor/0.9.1/$[FFMPEG_VER]
+          ./wifi-display/sigma/tools:
+            groups/software/sigma/$[TAGPATH]/sigma/tools
+          ./wifi-display/sigma/tcl:
+            groups/software/sigma/$[TAGPATH]/sigma/tcl
+          ./wifi-display/sigma/WFD:
+            groups/software/sigma/$[TAGPATH]/sigma/WFD
+          ./wifi-display/project_tools:
+            groups/software/sigma$[TAGPATH]/sigma/project_tools
+          ./wifi-display/wl_driver:
+            proj/$[WL_DRIVER_VER]/hndrte.sparse
+          ./wifi-display/p2psrc:
+            proj/$[WL_DRIVER_VER]/p2p.sparse
+      Setup:
+        tasks:
+          - mkdir -p wifi-display/wfdp2p/src/apps
+          - cp -r wifi-display/p2psrc/* wifi-display/wl_driver
+          - rm -rf wifi-display/p2psrc
+          - ln -s ../../../wl_driver/src/apps/dhdcpd   wifi-display/wfdp2p/src/apps
+          - ln -s ../../../wl_driver/src/apps/wfd_capd wifi-display/wfdp2p/src/apps
+          - ln -s ../../wl_driver/src/bcmcrypto        wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/include          wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/p2p              wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/security         wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/shared           wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/supp             wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/wps              wifi-display/wfdp2p/src
+      Mogrify:
+        VARS:
+          - MOGRIFY_FLAGS =
+            --mogrifier wifi-display/wl_driver/src/tools/build/mogrify.pl
+          - MOGRIFY_ON =
+            LINUX CONFIG_MIPS_BRCM
+          - MOGRIFY_OFF =
+          - MOGRIFY_PATHS = wifi-display/wl_driver
+      Package:
+        tasks:
+          - mkdir -p release
+          - tar -czf release/$[BUILDABLE].tgz wifi-display
+          - rm -rf wifi-display
+
+  wifi-display-src:
+    VARS:
+      - PATH +:= /projects/hnd/tools/linux/bin
+    description: WiFiDisplay source-only release checkout
+    steps:
+      Populate:
+        VARS:
+          - FFMPEG_VER = tags/WFDFFMPEG_REL_0_9_1_3
+          - WIFIDISPLAY_VER = branches/WIFIDISPLAY_BRANCH_1_23
+          - WL_DRIVER_VER = trunk
+        treemap:
+          ./wifi-display:
+            components/projects/specs/wifi-display/$[WIFIDISPLAY_VER]
+          ./wifi-display/display:
+            components/projects/display/$[TAGPATH]
+          ./wifi-display/ffmpeg:
+            components/opensource/ffmpeg/vendor/0.9.1/$[FFMPEG_VER]
+          ./wifi-display/sigma/tools:
+            groups/software/sigma/$[TAGPATH]/sigma/tools
+          ./wifi-display/sigma/tcl:
+            groups/software/sigma/$[TAGPATH]/sigma/tcl
+          ./wifi-display/sigma/WFD:
+            groups/software/sigma/$[TAGPATH]/sigma/WFD
+          ./wifi-display/project_tools:
+            groups/software/sigma$[TAGPATH]/sigma/project_tools
+          ./wifi-display/wl_driver:
+            proj/$[WL_DRIVER_VER]/hndrte.sparse
+          ./wifi-display/p2psrc:
+            proj/$[WL_DRIVER_VER]/p2p.sparse
+          ./wifi-display/project_tools:
+            groups/software/sigma/$[TAGPATH]/sigma/project_tools
+      Setup:
+        tasks:
+          - mkdir -p wifi-display/wfdp2p/src/apps
+          - ln -s ../../../wl_driver/src/apps/dhdcpd   wifi-display/wfdp2p/src/apps
+          - ln -s ../../../wl_driver/src/apps/wfd_capd wifi-display/wfdp2p/src/apps
+          - ln -s ../../wl_driver/src/bcmcrypto        wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/include          wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/p2p              wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/security         wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/shared           wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/supp             wifi-display/wfdp2p/src
+          - ln -s ../../wl_driver/src/wps              wifi-display/wfdp2p/src
+      Mogrify:
+        VARS:
+          - MOGRIFY_FLAGS =
+            --mogrifier wifi-display/wl_driver/src/tools/build/mogrify.pl
+          - MOGRIFY_ON =
+            LINUX CONFIG_MIPS_BRCM
+          - MOGRIFY_OFF =
+          - MOGRIFY_PATHS = wifi-display
+      Package:
+        tasks:
+          - mkdir -p release
+          - tar -czf release/$[BUILDABLE].tgz wifi-display
+          - rm -rf wifi-display
+
+  blackduck:
+    description: create tgz tarball to send to blackduck team
+    steps:
+      Populate:
+        treemap:
+          ./BRCM_WLAN_Trunk_src:
+            proj/trunk/src
+          ./dhdap:
+            components/deps/$[TAGPATH]/linux-2.6.36-router-dhdap
+          ./router:
+            components/products/router/trunk
+      Package:
+        tasks:
+          - rm -rf ./BRCM_WLAN_Trunk_src/tools/build
+          - rm -rf ./BRCM_WLAN_Trunk_src/tools/release
+          - mkdir -p release
+          - tar -czf release/BRCM_WLAN_Trunk_src.tgz ./BRCM_WLAN_Trunk_src
+          - tar -czf release/dhdap_43602.tgz ./dhdap/43602
+          - tar -czf release/dhdap_dhd.tgz ./dhdap/dhd
+          - tar -czf release/dhdap_main.tgz ./dhdap/main
+          - tar -czf release/BRCM_com_product_router_trunk.tgz ./router
+
+###############################################################
+###BEGIN_TESTING_SECTION###
+# Buildable items defined here must build into the TEST area.
+
+  ubuntu-external-wpa-supp-dev:
+    VARS:
+      - COPY $[buildables/UBUNTU-10.04-HOSTED]
+    steps:
+      Brand_Makefile:
+        description: Hand off remaining work to makefile
+
+  linux-x86-wpa-supp-ci-dev-temp:
+  # This DEV build item is meant for GUBCI testing in production for a full fledged brand and to inject a failure
+    VARS:
+      - SRCDIRS = hostap
+      - MOGRIFY_FLAGS = --quiet --mogrifier src/tools/build/mogrify.pl
+      - MOGRIFY_ON =
+        BRCM_CONTRIBUTE_COPYRIGHT
+      - MOGRIFY_OFF =
+        BRCM_VE BRCM_CCX WAPI BRCM_OKC BRCM_FEATURES_COPYRIGHT BCM_SDO
+        BCM_MAP_SDCMDS_2_SDOCMDS BCM_GENL CONFIG_P2P_NFC BRCM_DRV_ROAM
+        CONFIG_BRCM_DUALSTA CONFIG_BRCM_HS20
+      - MOGRIFY_PATHS = $[SRCDIRS]
+#      - export CC=/tools/linux/local/cross/rhel5-64/fc19/bin/x86_64-fc19.3.9.5.301-linux-gcc -m32
+#      - export CROSSTOOL_INCLUDE=-I/tools/linux/local/cross/rhel5-64/fc19/include/libnl-3.2.23/include -I/tools/linux/local/cross/rhel5-64/fc19/include/openssl-1.0.1e/include
+    steps:
+      Populate:
+        treemap:
+          src/tools/build:
+            proj/trunk/src/tools/build
+          hostap:
+            components/opensource/hostap/$[TAGPATH]
+      Mogrify:
+        tasks:
+      Make:
+        tasks:
+          - $[MAKE] -C hostap/libbcmdhd
+          - $[MAKE] -C hostap/wpa_supplicant
+      Package:
+        tasks:
+          - mkdir -p release
+          - tar -C hostap -czf release/$[BUILDABLE].tgz wpa_supplicant
+
+  gub-dev:
+    description: Development/testing
+    steps:
+      Populate:
+        treemap:
+          MakefileDir:
+            proj/trunk/src/makefiles
+          GroupDir:
+            groups/software/infrastructure/library
+      Make:
+        tasks:
+          - echo Making $[BUILDABLE]
+          - hnd make -- -v
+      Package:
+        tasks:
+          - echo Packaging $[BUILDABLE]
+
+  win-gub-dev:
+    VARS:
+      - COPY $[buildables/WIN2K8-LEGACY-MODE]
+      - LSF_HOSTGROUP = sjc-wlan-evw25b
+    COPY: $[buildables/gub-dev]
+
+###############################################################
+
+tags:
+  BCM7271_BRANCH_1_1:
+    buildables:
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - dkwan
+    nightly_offset: 3.7
+
+  BISON04T_BRANCH_7_14:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-partial-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-full-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-partial-src
+      - linux-2.6.36-arm-external-vista-router-full-src
+      - linux-2.6.36-arm-external-vista-router-partial-src
+      - linux-2.6.36-arm-internal-router
+      - linux-2.6.36-arm-internal-router-dhdap
+      - linux-2.6.36-arm-internal-router-dhdap-atlas
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-atlas
+      - linux-2.6.36-arm-mfgtest-router-noramdisk
+      - linux-2.6.36-arm-up-external-vista-router-dhdap-full-src
+      - linux-2.6.36-arm-up-external-vista-router-full-src
+      - linux-2.6.36-arm-up-internal-router
+      - linux-2.6.36-arm-up-internal-router-dhdap
+      - linux-external-media
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - scottw
+      - vibes
+      - simonk
+      - pkethini
+    nightly_offset: 2.0
+
+  BISON04T_TWIG_7_14_124:
+    buildables:
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - pkethini
+      - nitinm
+    nightly_offset: 3.8
+
+  BISON04T_TWIG_7_14_131:
+    buildables:
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-partial-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-full-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-partial-src
+      - linux-2.6.36-arm-external-vista-router-full-src
+      - linux-2.6.36-arm-external-vista-router-partial-src
+      - linux-2.6.36-arm-internal-router
+      - linux-2.6.36-arm-internal-router-dhdap
+      - linux-2.6.36-arm-internal-router-dhdap-atlas
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-atlas
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - pkethini
+      - simonk
+      - haoz
+    nightly_offset: 1.8
+
+  BISON04T_TWIG_7_14_164:
+    buildables:
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-partial-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-full-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-partial-src
+      - linux-2.6.36-arm-external-vista-router-full-src
+      - linux-2.6.36-arm-external-vista-router-partial-src
+      - linux-2.6.36-arm-internal-router
+      - linux-2.6.36-arm-internal-router-dhdap
+      - linux-2.6.36-arm-internal-router-dhdap-atlas
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-atlas
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - scottw
+      - simonk
+      - pkethini
+    nightly_offset: 3.2
+
+  BISON05T_BRANCH_7_35:
+    buildables:
+      - android-external-dongle
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-mfgtest-media
+      - win8x_external_wl
+      - win8x_internal_wl
+      - win_external_wl
+      - win_internal_wl
+      - win10_external_wl
+      - win10_internal_wl
+    owner:
+      - harir
+      - mthawani
+      - scottw
+    nightly_offset: 1.6
+
+  BISON05T_TWIG_7_35_143:
+    buildables:
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - kadavath
+      - vibes
+    nightly_offset: 1.7
+
+  BISON05T_TWIG_7_35_177:
+    buildables:
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - scottw
+      - vibes
+    nightly_offset: 1.95
+
+  BISON05T_TWIG_7_35_252:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-media
+      - linux-internal-media
+      - linux-mfgtest-media
+    owner:
+      - kadavath
+    nightly_offset: 2.8
+
+  BISON06T_BRANCH_7_45:
+    buildables:
+      - android-external-dongle
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - win_mfgtest_dongle_sdio
+    owner:
+      - dimar
+    nightly_offset: 3.3
+
+  BIS120RC4_TWIG_7_15_168:
+    buildables:
+      - linux-external-dongle-sdio
+      - linux-mfgtest-dongle-sdio
+    owner:
+      - ygong
+
+  BIS715LOBO_BRANCH_7_77:
+    buildables:
+      - efi-external-wl
+      - hndrte-offloads-src
+      - linux-internal-wl
+      - macos-external-wl-10_12
+      - macos-external-wl-cab
+      - macos-external-wl-gala
+      - macos-internal-wl-10_12
+      - macos-internal-wl-cab
+      - macos-internal-wl-gala
+      - win_mfgtest_wl
+    owner:
+      - ishen
+    nightly_offset: 2.7
+
+  BIS735T255RC1_TWIG_7_47_128:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-internal-wl
+    owner:
+      - jaganlv
+
+  BIS747T144RC2_BRANCH_7_64:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-dylibwlm
+      - win_mfgtest_dongle_sdio
+    owner:
+      - baysal
+    nightly_offset: 2.9
+
+  BIS747T144RC2_TWIG_7_64_3:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-dylibwlm
+      - win_mfgtest_dongle_sdio
+    owner:
+      - baysal
+
+  BIS747T99RC11_BRANCH_7_54:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-dylibwlm
+      - win_mfgtest_dongle_sdio
+    owner:
+      - baysal
+    nightly_offset: 2.1
+
+  BIS759T5RC2_BRANCH_7_63:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-dylibwlm
+      - win_mfgtest_dongle_sdio
+    owner:
+      - baysal
+    nightly_offset: 2.2
+
+  BIS759T2RC1_BRANCH_7_61:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-dylibwlm
+      - win_mfgtest_dongle_sdio
+    owner:
+      - baysal
+
+  DHD_BRANCH_1_363:
+    buildables:
+      - android-external-dongle
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-external-media
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-mfgtest-media
+      - win_mfgtest_wl
+    owner:
+      - sbrahade
+      - harishv
+    nightly_offset: 3.4
+
+  DHD_BRANCH_1_579:
+    buildables:
+      - android-external-dongle
+      - linux-efi-olympic-external-dongle-pcie
+      - linux-efi-olympic-internal-dongle-pcie
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-internal-dongle
+      - linux-internal-dongle-pcie
+      - linux-olympic-external-dhd-pcie
+      - linux-olympic-internal-dhd-pcie
+      - macos-gala-external-dongle-pcie
+      - macos-gala-internal-dongle-pcie
+      - win10_dhdpcie_external_wl
+      - win10_dhdpcie_internal_wl
+    owner:
+      - sbrahade
+    nightly_offset: 1.3
+
+  DHD_TWIG_1_363_45:
+    buildables:
+      - linux-internal-media
+    owner:
+      - simonk
+    nightly_offset: 3.6
+
+  DHD_TWIG_1_363_110:
+    buildables:
+      - android-external-dongle
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-external-media
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-mfgtest-media
+      - win_mfgtest_wl
+    owner:
+      - vibes
+    nightly_offset: 3.5
+
+  DHD_TWIG_1_579_91:
+    description: Production DHD TWIG for SS Gear 3
+    buildables:
+      - android-external-dongle
+      - linux-external-dongle-sdio
+      - linux-internal-dongle
+    owner:
+      - sbrahade
+    nightly_offset: 1.35
+
+  DINGO_TWIG_9_10_160:
+    buildables:
+      - hndrte
+    owner:
+      - dimar
+    nightly_offset: 2.5
+
+  DINGO_TWIG_9_10_178:
+    buildables:
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk-moca
+      - linux-2.6.36-arm-mfgtest-router-noramdisk
+      - linux-2.6.36-arm-mfgtest-router-noramdisk-rsdb
+      - linux-2.6.36-arm-mfgtest-router-noramdisk-moca
+      - linux-2.6.36-arm-up-external-vista-router-dhdap-full-src
+      - linux-2.6.36-arm-up-external-vista-router-dhdap-moca-full-src
+      - linux-2.6.36-arm-up-external-vista-router-dhdap-moca-partial-src
+      - linux-2.6.36-arm-up-external-vista-router-dhdap-partial-src
+      - linux-2.6.36-arm-up-external-vista-router-full-src
+      - linux-2.6.36-arm-up-external-vista-router-moca-full-src
+      - linux-2.6.36-arm-up-external-vista-router-moca-partial-src
+      - linux-2.6.36-arm-up-external-vista-router-partial-src
+      - linux-2.6.36-arm-up-external-vista-router-rsdb-full-src
+      - linux-2.6.36-arm-up-external-vista-router-rsdb-partial-src
+      - linux-2.6.36-arm-up-internal-router
+      - linux-2.6.36-arm-up-internal-router-dhdap
+      - linux-2.6.36-arm-up-internal-router-dhdap-moca
+      - linux-2.6.36-arm-up-internal-router-moca
+      - linux-2.6.36-arm-up-internal-router-rsdb
+      - linux-internal-wl
+    owner:
+      - pkethini
+    nightly_offset: 3.1
+
+  DINGO_TWIG_9_10_178_64:
+    description: DINGO Router G3.1 support twig
+    buildables:
+      - linux-2.6.36-arm-up-external-vista-router-dhdap-moca-full-src
+      - linux-2.6.36-arm-up-external-vista-router-full-src
+      - linux-2.6.36-arm-up-external-vista-router-rsdb-full-src
+      - linux-2.6.36-arm-up-internal-router
+      - linux-2.6.36-arm-up-internal-router-dhdap-moca
+      - linux-2.6.36-arm-up-internal-router-rsdb
+    owner:
+      - pkethini
+    nightly_offset: 4.0
+
+  DIN07T48RC50_BRANCH_9_75:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+    owner:
+      - harishv
+    nightly_offset: 2.3
+
+  DIN975T155RC31_BRANCH_9_87:
+    buildables:
+      - hndrte-dongle-wl
+    owner:
+      - harishv
+      - humblejo
+    nightly_offset: 3.0
+
+  DINGO2_BRANCH_9_15:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-internal-wl-cab
+      - macos-internal-wl-syr
+    owner:
+      - jimuts
+
+  DIN2915T165R6_BRANCH_9_41:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-olympic-dongle-src
+    owner:
+      - baysal
+
+  DIN2915T250RC1_BRANCH_9_30:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+      - linux-olympic-dongle-src
+      - macos-internal-wl-cab
+      - macos-internal-wl-syr
+    owner:
+      - jimuts
+    nightly_offset: 1.2
+
+  DIN2930R18_BRANCH_9_44:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+    owner:
+      - jimuts
+    nightly_offset: 1.9
+
+  DIN2944T78R29_BRANCH_9_62:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+      - linux-olympic-dongle-src
+    owner:
+      - baysal
+    nightly_offset: 1.85
+
+  EAGLE_BRANCH_10_10:
+    buildables:
+      - hndrte
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-partial-src
+      - linux-2.6.36-arm-external-vista-router-dhdap-full-src
+      - linux-2.6.36-arm-external-vista-router-full-src
+      - linux-2.6.36-arm-internal-router
+      - linux-2.6.36-arm-internal-router-dhdap
+      - linux-2.6.36-arm-internal-router-dhdap-atlas
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk
+      - linux-2.6.36-arm-mfgtest-router-noramdisk
+      - linux-external-dongle-pcie
+      - linux-external-media
+      - linux-external-wl
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-media
+    owner:
+      - scottw
+      - simonk
+      - vibes
+    nightly_offset: 0.5
+
+  EAGLE_TWIG_10_10_69:
+    buildables:
+      - hndrte
+      - linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src
+      - linux-2.6.36-arm-internal-router
+      - linux-2.6.36-arm-internal-router-dhdap
+      - linux-2.6.36-arm-internal-router-dhdap-atlas
+      - linux-2.6.36-arm-mfgtest-router-dhdap-noramdisk
+      - linux-external-dongle-pcie
+      - linux-external-media
+      - linux-external-wl
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-media
+    owner:
+      - simonk
+    nightly_offset: 1.5
+
+  EAGLE_TWIG_10_10_122:
+    buildables:
+      - hndrte
+      - linux-2.6.36-arm-external-vista-router-full-src
+      - linux-2.6.36-arm-internal-router
+      - linux-2.6.36-arm-internal-router-dhdap
+      - linux-2.6.36-arm-internal-router-dhdap-atlas
+      - linux-external-dongle-pcie
+      - linux-external-media
+      - linux-external-wl
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-media
+    owner:
+      - simonk
+    nightly_offset: 3.9
+
+  FAL207RC70_BRANCH_5_102:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-usb
+      - linux-internal-dongle-usb
+      - linux-mfgtest-dongle-usb
+      - linux-olympic-dongle-src
+
+  FALTWIG97_BRANCH_5_93:
+    buildables:
+      - win8_slate_external_wl
+      - win8_slate_internal_wl
+
+  IGUANA_BRANCH_13_10:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-internal-wl-cab
+      - macos-internal-wl-gala
+      - macos-internal-wl-syr
+    owner:
+      - jayaramn
+    nightly_offset: 1.0
+
+  IGUANA_TWIG_13_10_69:
+    buildables:
+      - hndrte-dongle-wl
+    owner:
+      - jayaramn
+    nightly_offset: 1.25
+
+  IGUANA08T_BRANCH_13_35:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-mfgtest-dongle-pcie
+    owner:
+      - harishv
+      - gireeshh
+    nightly_offset: 1.4
+
+  IGUANA1310R307_BRANCH_13_20:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+      - macos-internal-wl-cab
+      - macos-internal-wl-gala
+      - macos-internal-wl-syr
+    owner:
+      - wendyng
+      - baysal
+      - lut
+
+  JAGUAR_BRANCH_14_10:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-internal-dongle-pcie
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+    owner:
+      - basavesh
+    nightly_offset: 1.1
+
+  IOTTEST_BRANCH_1_10:
+    buildables:
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+    owner:
+      - amoore
+
+  PHO25178RC100_BRANCH_6_50:
+    buildables:
+      - hndrte-dongle-wl
+      - linux-external-dongle-sdio
+      - linux-mfgtest-dongle-sdio
+      - linux-olympic-dongle-src
+    owner:
+      - wendyng
+    nightly_offset: 2.6
+
+  STB7271_BRANCH_15_10:
+    buildables:
+      - linux-external-media
+      - linux-external-stbsoc
+      - linux-internal-media
+      - linux-internal-stbsoc
+      - linux-mfgtest-stbsoc
+    owner:
+      - dkwan
+    nightly_offset: 2.4
+
+  HOSTAPRC128_BRANCH_1_10:
+    description: Current active production branch
+    buildables:
+      - android-brix-kk-wpa-supp
+      - android-brix-kk-hal-util
+      - android-panda-wpa-supp
+    owner:
+      - jithu
+    nightly_offset: 2.5
+
+  trunk:
+    description: Where new branches come from
+    buildables:
+      - android-brix-kk-wpa-supp
+      - android-brix-kk-hal-util
+      - android-external-dongle
+      - android-panda-wpa-supp
+      - hndrte
+      - hndrte-dongle-wl
+      - linux-2.6.36-arm-internal-router
+      - linux-2.6.36-arm-internal-router-dhdap-ram
+      - linux-2.6.36-arm-up-internal-router
+      - linux-2.6.36-arm-up-internal-router-rsdb
+      - linux-combined-apps
+      - linux-efi-combined-apps
+      - android-combined-apps
+      - linux-efi-olympic-external-dongle-pcie
+      - linux-efi-olympic-internal-dongle-pcie
+      - linux-epidiag
+      - linux-external-dhd
+      - linux-external-dongle-pcie
+      - linux-external-dongle-sdio
+      - linux-external-media
+      - linux-external-wl
+      - linux-internal-dongle-pcie
+      - linux-internal-media
+      - linux-internal-wl
+      - linux-mfgtest-dongle-pcie
+      - linux-mfgtest-dongle-sdio
+      - linux-mfgtest-media
+      - linux-x86-wpa-supp
+      - macos-combined-apps
+      - macos-dylibwlm
+      - macos-gala-external-dongle-pcie
+      - macos-gala-internal-dongle-pcie
+      - macos-internal-wl-10_12
+      - macos-internal-wl-gala
+      - win8x_dhdpcie_external_wl
+      - win8x_dhdpcie_internal_wl
+      - win8x_external_wl
+      - win8x_internal_wl
+      - win_external_wl
+      - win_internal_wl
+      - win_mfgtest_dongle_sdio
+      - win_mfgtest_wl
+      - win10_dhdpcie_external_wl
+      - win10_dhdpcie_internal_wl
+      - win10_dhdsdio_external_wl
+      - win10_dhdsdio_internal_wl
+      - win10_external_wl
+      - win10_internal_wl
+    owner: null
+    nightly_offset: 0.0
+
+###############################################################
+
+olympic:
+  release_names:
+    monarch:
+      release_date: 2015-06-11
+      starting_point: BIS715T185RC1_REL_7_35_165
+      branch: BIS715T185RC1_REL_7_35_175
+      component: '%Fire%'
+      milestone: '%Monarch%'
+      substate: 'screen'
+      state: Analyze
+    monarch2:
+      release_date: 2015-06-11
+      starting_point: BIS715T185RC1_REL_7_35_175
+      branch: BIS715T185RC1_REL_7_35_185
+      component: '%Fire%'
+      milestone: '%Monarch%'
+      substate: 'screen'
+      state: Analyze
+    gala1:
+      release_date: 2015-05-26
+      starting_point: BIS715GALA_REL_7_21_52
+      branch: BIS715GALA_REL_7_21_53
+      component: '%Fire%'
+      milestone: '%Gala%'
+      substate: 'screen'
+      state: Analyze
+  repo_map:
+      BIS715GALA_BRANCH_7_21: gala_airport
+      PHO2203RC1_TWIG_6_25_178: monarch_43342_sdio
+      PHO25178RC100_BRANCH_6_50: monarch_43342_sdio
+      PHO2203RC1_TWIG_6_25_65: monarch_4334
+      PHO2625105RC255_BRANCH_6_46: monarch_4324_43342
+      BIS747T144RC2_BRANCH_7_64: monarch_4345_4350
+      DINGO2_BRANCH_9_15: dingo2_4355_43430_4364
+      DIN2915T250RC1_BRANCH_9_30: dingo2_4355_43430_4364
+
+###############################################################
+
+partitions:
+  dynamic:
+    - /projects/hnd_swbuild_ext41
+    - /projects/hnd_swbuild_ext42
+    - /projects/hnd_swbuild_ext43
+    - /projects/hnd_swbuild_ext44
+    - /projects/hnd_swbuild_ext45
+    - /projects/hnd_swbuild_ext46
+    - /projects/hnd_swbuild_ext47
+    - /projects/hnd_swbuild_ext48
+    - /projects/hnd_swbuild_ext49
+    - /projects/hnd_swbuild_ext51
+    - /projects/hnd_swbuild_ext52
+    - /projects/hnd_swbuild_ext53
+    - /projects/hnd_swbuild_ext54
+    - /projects/hnd_swbuild_ext55
+    - /projects/hnd_swbuild_ext56
+    - /projects/hnd_swbuild_ext57
+    - /projects/hnd_swbuild_ext58
+    - /projects/hnd_swbuild_ext59
+    - /projects/hnd_swbuild_ext60
+  static:
+    - /projects/hnd_swbuild_ext2
+    - /projects/hnd_swbuild_ext4
+    - /projects/hnd_swbuild_ext5
+    - /projects/hnd_swbuild_ext7
+    - /projects/hnd_swbuild_ext8
+    - /projects/hnd_swbuild_ext9
+    - /projects/hnd_swbuild_ext10
+    - /projects/hnd_swbuild_ext11
+    - /projects/hnd_swbuild_ext12
+    - /projects/hnd_swbuild_ext13
+    - /projects/hnd_swbuild_ext14
+    - /projects/hnd_swbuild_ext15
+    - /projects/hnd_swbuild_ext16
+    - /projects/hnd_swbuild_ext17
+    - /projects/hnd_swbuild_ext18
+    - /projects/hnd_swbuild_ext19
+    - /projects/hnd_swbuild_ext20
+    - /projects/hnd_swbuild_ext21
+    - /projects/hnd_swbuild_ext22
+    - /projects/hnd_swbuild_ext25
+    - /projects/hnd_swbuild_ext27
+    - /projects/hnd_swbuild_ext28
+    - /projects/hnd_swbuild_ext35
+    - /projects/hnd_swbuild_ext37
+    - /projects/hnd_swbuild_ext38
+    - /projects/hnd_swbuild_ext40
+    - /projects/hnd_swbuild_ext41
+    - /projects/hnd_swbuild_ext42
+    - /projects/hnd_swbuild_ext43
+  precommit:
+    - /projects/wl_preco1_scratch
+    - /projects/wl_preco2_scratch
+    - /projects/wl_preco3_scratch
+    - /projects/wl_preco4_scratch
+    - /projects/wl_preco5_scratch
+    - /projects/wl_preco6_scratch
+    - /projects/wl_preco7_scratch
+    - /projects/wl_preco8_scratch
+    - /projects/wl_preco9_scratch
+    - /projects/wl_preco10_scratch
+    - /projects/wl_preco11_scratch
+    - /projects/wl_preco12_scratch
+    - /projects/wl_preco13_scratch
+    - /projects/wl_preco14_scratch
+    - /projects/wl_preco19_scratch
+    - /projects/wl_preco20_scratch
+    - /projects/wl_preco22_scratch
+    - /projects/wl_preco23_scratch
+    - /projects/wl_preco24_scratch
+    - /projects/wl_preco25_scratch
+    - /projects/wl_preco26_scratch
+    - /projects/wl_preco27_scratch
+    - /projects/wl_preco31_scratch
+    - /projects/wl_preco32_scratch
+    - /projects/wl_preco50_scratch
+    - /projects/wl_preco51_scratch
+    - /projects/wl_preco52_scratch
+  preserved:
+    - /projects/hnd_swbuild_preserve1
+    - /projects/hnd_swbuild_preserve2
+    - /projects/hnd_swbuild_preserve3
+    - /projects/hnd_swbuild_preserve4
+    - /projects/hnd_swbuild_preserve5
+    - /projects/hnd_swbuild_preserve6
+    - /projects/hnd_swbuild_preserve7
+  archive:
+    - /projects/hnd_sw_archive
+    - /projects/hnd_sw_archive_ext2
+    - /projects/hnd_sw_archive_ro_ext
+    - /projects/hnd_sw_archive_ro_ext2
+    - /projects/hnd_sw_archive_ro_ext3
+    - /projects/hnd_sw_archive_ro_ext5
+    - /projects/hnd_sw_archive_ro_ext6
+    - /projects/hnd_sw_archive_ro_ext7
+    - /projects/hnd_sw_archive_ro_ext8
+    - /projects/hnd_sw_archive_ro_ext9
+    - /projects/hnd_sw_archive_ro_ext10
+
+sizing:
+  sizing-dir: /projects/hnd_tools/sizing
+
+# vim: et:sw=2:ts=8

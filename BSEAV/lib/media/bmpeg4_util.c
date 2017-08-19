@@ -250,6 +250,7 @@ bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
         case 22:
         case 23:
             fl_flag = batom_bitstream_bit(&bs);
+            BSTD_UNUSED(fl_flag);
             delay_flag = batom_bitstream_bit(&bs);
             if(batom_bitstream_eof(&bs)) { goto error_eof; }
             if(delay_flag) 

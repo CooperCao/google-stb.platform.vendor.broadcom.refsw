@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacPibApi.h $
-*
-* DESCRIPTION:
-*   MAC-PIB API interface.
-*
-* $Revision: 10537 $
-* $Date: 2016-03-18 12:15:44Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MAC-PIB API interface.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_PIB_API_H
 #define _BB_MAC_PIB_API_H
@@ -113,7 +106,6 @@ INLINE void macPibApiSetPrngCounter(MAC_WITH_GIVEN_CONTEXT(const MAC_PrngCounter
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-/* TODO: Eliminate. It's enough to use macRxOnWhenIdle only. */
 INLINE MAC_ContextEnabled_t macPibApiGetContextEnabled(MAC_WITHIN_GIVEN_CONTEXT)
 {
     return MAC_MEMORY_PIB_PERMANENT().macContextEnabled;
@@ -125,7 +117,6 @@ INLINE MAC_ContextEnabled_t macPibApiGetContextEnabled(MAC_WITHIN_GIVEN_CONTEXT)
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-/* TODO: Eliminate. It's enough to use macRxOnWhenIdle only. */
 INLINE void macPibApiSetContextEnabled(MAC_WITH_GIVEN_CONTEXT(const MAC_ContextEnabled_t newValue))
 {
     SYS_DbgAssertComplex(MAC_ATTR_ONLYALLOWED_VALUE_CONTEXT_ENABLED == newValue,
@@ -142,7 +133,6 @@ INLINE void macPibApiSetContextEnabled(MAC_WITH_GIVEN_CONTEXT(const MAC_ContextE
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-/* TODO: Think to delete. It's enough to use MLME-START.request to set. But preserve in the MAC-PIB as private-only and read-only. */
 INLINE MAC_PanCoordinator_t macPibApiGetPanCoordinator(MAC_WITHIN_GIVEN_CONTEXT)
 {
     if (MAC_IS_ZBPRO_CONTEXT(MAC_GIVEN_CONTEXT_ID))
@@ -157,7 +147,6 @@ INLINE MAC_PanCoordinator_t macPibApiGetPanCoordinator(MAC_WITHIN_GIVEN_CONTEXT)
  * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macPanCoordinator.
  * \param[in]   newValue    New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-/* TODO: Think to delete. It's enough to use MLME-START.request to set. But preserve in the MAC-PIB as private-only and read-only. */
 INLINE void macPibApiSetPanCoordinatorZBPRO(const MAC_PanCoordinator_t newValue)
 {
     ATOMIC_SECTION_ENTER(SYS_ATOMIC_DEFAULT_UID)
@@ -177,7 +166,6 @@ INLINE void macPibApiSetPanCoordinatorZBPRO(const MAC_PanCoordinator_t newValue)
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-/* TODO: Think to move into bbMacAddress and create a kind of friend interface for APL. */
 INLINE MAC_ExtendedAddress_t macPibApiGetExtendedAddress(MAC_WITHIN_GIVEN_CONTEXT)
 {
     return MAC_MEMORY_PIB_PERMANENT().macExtendedAddress;
@@ -189,7 +177,6 @@ INLINE MAC_ExtendedAddress_t macPibApiGetExtendedAddress(MAC_WITHIN_GIVEN_CONTEX
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-/* TODO: Think to move into bbMacAddress and create a kind of friend interface for APL. */
 INLINE void macPibApiSetExtendedAddress(MAC_WITH_GIVEN_CONTEXT(const MAC_ExtendedAddress_t newValue))
 {
     ATOMIC_SECTION_ENTER(SYS_ATOMIC_DEFAULT_UID)
@@ -722,9 +709,35 @@ INLINE void macPibApiSetPanId(MAC_WITH_GIVEN_CONTEXT(const MAC_PanId_t newValue)
 *****************************************************************************************/
 INLINE MAC_PromiscuousMode_t macPibApiGetPromiscuousMode(void)
 {
+#if defined(_MAC_TESTER_)
+    return macMemoryPromiscuousMode;
+#else
     return MAC_ATTR_DEFAULT_VALUE_PROMISCUOUS_MODE;
+#endif
 }
 
+
+#if defined(_MAC_TESTER_)
+/*************************************************************************************//**
+ * \brief   Assigns a new value to the MAC-PIB attribute macPromiscuousMode.
+ * \param[in]   newValue    New value of the specified MAC-PIB attribute.
+ * \note    Attribute macPromiscuousMode is shared by both contexts for the case of dual
+ *  context MAC.
+ * \note    Attribute macPromiscuousMode has custom format and regulates different aspects
+ *  of MAC behavior.
+*****************************************************************************************/
+INLINE void macPibApiSetPromiscuousMode(const MAC_PromiscuousMode_t newValue)
+{
+    ATOMIC_SECTION_ENTER(ATM_macPibApiSetPromiscuousMode)
+        macMemoryPromiscuousMode = newValue;
+        SET_REG_FIELD(RF4CE_MAC_RX_FF_CONFIG, FRAME_FILTERING_DISABLE,
+                ((newValue & (MAC_PROMISCUOUS_MODE_DISABLE_HW_FILTER |
+                        MAC_PROMISCUOUS_MODE_DISABLE_DST_FILTER)) != 0x0));
+        SET_REG_FIELD(RF4CE_MAC_RX_FF_CONFIG, BYPASS_CRC,
+                ((newValue & MAC_PROMISCUOUS_MODE_DISABLE_HW_FILTER) != 0x0));
+    ATOMIC_SECTION_LEAVE(ATM_macPibApiSetPromiscuousMode)
+}
+#endif
 
 /*************************************************************************************//**
  * \brief   Returns value of the MAC-PIB attribute macRxOnWhenIdle.
@@ -1203,8 +1216,6 @@ INLINE void macPibApiReset(MAC_WITHIN_GIVEN_CONTEXT)
 # endif
 #endif /* ! _MAC_ZERO_SEQNUM_ON_RESET_ */
 
-    /* TODO: Perform requests to the PHY, HAL, etc. to setup hardware registers according to MAC-PIB. */
-
     /* Synchronize Hardware Frame Filter registers with MAC-PIB attributes default values. */
 #if defined(_MAC_DUAL_CONTEXT_)
     HAL_RadioFrameFilterSetPanCoord(MAC_GIVEN_CONTEXT_ID, macPibApiGetPanCoordinator(MAC_GIVEN_CONTEXT_ID));
@@ -1217,10 +1228,9 @@ INLINE void macPibApiReset(MAC_WITHIN_GIVEN_CONTEXT)
     HAL_RadioFrameFilterSetShortAddr(macPibApiGetShortAddress());
     HAL_RadioFrameFilterSetExtAddr(macPibApiGetExtendedAddress());
 #endif
-
-    /* TODO: Think how to reset macCurrentChannel and macCurrentPage attributes. */
-    /* TODO: Use macPibApiGetDefaultMaxFrameTotalWaitTime to initialize macMaxFrameTotalWaitTime for different PHYs. */
 }
 
 
 #endif /* _BB_MAC_PIB_API_H */
+
+/* eof bbMacPibApi.h */

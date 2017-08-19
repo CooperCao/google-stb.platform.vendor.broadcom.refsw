@@ -204,6 +204,14 @@ typedef struct BIP_HttpStreamer
         NEXUS_RecpumpHandle                     hRecpump;
         BIP_StreamerRecpumpInputSettings        *pRecpumpInputSettings;
     } recpumpInputSettingsApi;
+#if NEXUS_HAS_HDMI_INPUT
+    struct
+    {
+        BIP_ArbHandle                           hArb;
+        NEXUS_HdmiInputHandle                   hHdmiInput;
+        BIP_StreamerHdmiInputSettings           *pHdmiInputSettings;
+    } hdmiInputSettingsApi;
+#endif
     struct
     {
         BIP_ArbHandle                           hArb;

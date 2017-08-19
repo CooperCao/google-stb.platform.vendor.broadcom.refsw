@@ -1,0 +1,118 @@
+#
+# Created: 6/5/2014
+#
+# check if any host is unreachable
+05 08 * * * /home/cchai/bin/ping_host.pl
+
+# run at morning (generate partial reports)
+05 12 * * * /home/cchai/bin/check_logs.pl
+
+# run at midnight (generate full reports)
+#50 23 * * * /home/cchai/bin/check_logs.pl full
+
+
+###
+### mc99a
+### G1: rev3.0, sta5/sta6/sta7/sta8 (good channel)
+### G2: rev3.0, sta1/sta2/sta3/sta4 (good channel)
+###
+# 4MU chantest
+#03 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -downstreamonly -5G80only -ap "4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1 sta8x1" -udp 2000 -title "4MU Chantest 1x1 UDP" -nocache -chantest4mu
+
+03 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -downstreamonly -5G80only -ap "4366softap-mu" -sta sta5x2 -musta "sta6x2 sta7x2 sta8x2" -udp 4000 -title "4MU Chantest 2x2 UDP" -chantest4mu
+
+# mixed of su & mu
+05 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta sta6x1su -compareap -downstreamonly -udp 1000 -5G80only -title "MIX 2MU 1x1 1mu-1su UDP" -rampdownonly
+
+10 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x2 -musta sta6x2su -compareap -downstreamonly -udp 2000 -5G80only -title "MIX 2MU 2x2 1mu-1su UDP" -rampdownonly
+
+15 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1su" -compareap -downstreamonly -udp 1500 -5G80only -title "MIX 3MU 1x1 2mu-1su UDP" -rampdownonly
+
+20 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1su sta8x1su" -compareap -downstreamonly -udp 2000 -5G80only -title "MIX 4MU 1x1 2mu-2su UDP" -rampdownonly
+
+# 2x2 test
+25 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta7x2 -musta sta8x2 -compareap -downstreamonly -udp 2000 -5G80only -title "2MU 2x2 UDP"
+
+30 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x2 -musta "sta6x2 sta7x2" -compareap -downstreamonly -udp 3000 -5G80only -title "3MU 2x2 UDP" 
+
+35 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x2 -musta "sta6x2 sta7x2 sta8x2" -compareap -downstreamonly -udp 4000 -5G80only -title "4MU 2x2 UDP"
+
+# regular test
+40 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta sta6x1 -compareap -downstreamonly -udp 1000 -5G80only -title "2MU 1x1 UDP"
+
+45 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1" -compareap -downstreamonly -udp 1500 -5G80only -title "3MU 1x1 UDP"
+
+50 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1 sta8x1" -compareap -downstreamonly -udp 2000 -5G80only -title "4MU 1x1 UDP" -allattnrange "8-90 90-8"
+
+55 01 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1 sta8x1" -compareap -downstreamonly -5G80only -title "4MU 1x1 TCP" -allattnrange "8-90 90-8"
+
+# mixed of 1x1 & 2x2
+05 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta sta6x1 -compareap -downstreamonly -udp 2000 -5G80only -title "2MU 1x1 2x2 UDP" -rampdownonly
+
+10 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1" -compareap -downstreamonly -udp 3000 -5G80only -title "3MU 1x1 1x1 2x2 UDP" -rampdownonly
+
+15 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x2 sta7x2" -compareap -downstreamonly -udp 3000 -5G80only -title "3MU 1x1 2x2 2x2 UDP" -rampdownonly
+
+20 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x1 sta8x2" -compareap -downstreamonly -udp 4000 -5G80only -title "4MU 1x1 1x1 1x1 2x2 UDP" -rampdownonly
+
+25 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x1 sta7x2 sta8x2" -compareap -downstreamonly -udp 4000 -5G80only -title "4MU 1x1 1x1 2x2 2x2 UDP" -rampdownonly
+
+30 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta5x1 -musta "sta6x2 sta7x2 sta8x2" -compareap -downstreamonly -udp 4000 -5G80only -title "4MU 1x1 2x2 2x2 2x2 UDP" -rampdownonly
+
+# 4365 3x3 configuration
+35 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-3x3-su 4366softap-3x3-mu" -sta sta5x1 -musta "sta6x1 sta7x1" -compareap -downstreamonly -udp 1500 -5G80only -title "3x3 4365 3MU 1x1 UDP" -rampdownonly
+
+40 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-3x3-su 4366softap-3x3-mu" -sta sta5x2 -musta "sta6x2 sta7x2 sta8x2" -compareap -downstreamonly -udp 4000 -5G80only -title "3x3 4365 4MU 2x2 UDP" -rampdownonly
+
+45 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -attngrp2 G2 -perftime 2.5 -fb1 -window 3m -attnstep 2 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-3x3-mu" -sta sta1x1 -musta "sta2x1 sta3x1 sta4x1 sta5x1 sta6x1 sta7x1 sta8x1" -downstreamonly -udp 4000 -5G80only -title "3x3 4365 CST 1x1 UDP" -rampdownonly -noattnchange 0 -cst
+
+# trunk
+50 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-trunk-su 4366softap-trunk-mu" -sta sta5x1trunk -musta "sta6x1trunk" -compareap -downstreamonly -udp 1000 -5G80only -title "Trunk 2MU 1x1 UDP" -rampdownonly
+
+55 02 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-trunk-su 4366softap-trunk-mu" -sta sta5x1trunk -musta "sta6x1trunk sta7x1trunk sta8x1trunk" -compareap -downstreamonly -udp 2000 -5G80only -title "Trunk 4MU 1x1 UDP" -rampdownonly
+
+# client scale test (cst)
+05 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -attngrp2 G2 -perftime 2.5 -fb1 -window 3m -attnstep 2 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-mu" -sta sta1x1 -musta "sta2x1 sta3x1 sta4x1 sta5x1 sta6x1 sta7x1 sta8x1" -downstreamonly -udp 4000 -5G80only -title "CST 1x1 UDP" -rampdownonly -noattnchange 0 -cst
+
+# 8mu
+20 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -attngrp2 G2 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-su 4366softap-mu" -sta sta1x2 -musta "sta2x2 sta3x2 sta4x2 sta5x2 sta6x2 sta7x2 sta8x2" -compareap -downstreamonly -udp 8000 -5G80only -title "8MU 2x2 UDP"
+
+# mixed sweeping test (msm, mvm, mhm, mlm)
+25 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -attngrp2 G2 -perftime 2.5 -fb1 -window 3m -attnstep 2 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-msm-mu" -sta sta1x1 -musta "sta2x1 sta3x1 sta4x1 sta5x1 sta6x1 sta7x1 sta8x1" -downstreamonly -udp 4000 -5G80only -title "MSM 1x1 UDP" -rampdownonly -noattnchange 0 -msm
+
+30 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -attngrp2 G2 -perftime 2.5 -fb1 -window 3m -attnstep 2 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-mvm-mu" -sta sta1x1 -musta "sta2x1 sta3x1 sta4x1 sta5x1 sta6x1 sta7x1 sta8x1" -downstreamonly -udp 4000 -5G80only -title "MVM 1x1 UDP" -rampdownonly -noattnchange 0 -mvm
+
+35 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -attngrp2 G2 -perftime 2.5 -fb1 -window 3m -attnstep 2 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-mhm-mu" -sta sta1x1 -musta "sta2x1 sta3x1 sta4x1 sta5x1 sta6x1 sta7x1 sta8x1" -downstreamonly -udp 4000 -5G80only -title "MHM 1x1 UDP" -rampdownonly -noattnchange 0 -mhm
+
+40 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -attngrp2 G2 -perftime 2.5 -fb1 -window 3m -attnstep 2 -email "hnd-utf-list.pdl" -security aespsk2 -ap "4366softap-mlm-mu" -sta sta1x1 -musta "sta2x1 sta3x1 sta4x1 sta5x1 sta6x1 sta7x1 sta8x1" -downstreamonly -udp 4000 -5G80only -title "MLM 1x1 UDP" -rampdownonly -noattnchange 0 -mlm
+
+# dongle
+45 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -ap "4366softapfd-su 4366softapfd-mu" -sta sta5x1 -musta "sta6x1 sta7x1 sta8x1" -compareap -downstreamonly -udp 2000 -5G80only -title "Dongle 4MU 1x1 UDP"
+
+47 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -ap "4366softapfd-pf-su 4366softapfd-pf-mu" -sta sta5x1 -musta "sta6x1 sta7x1 sta8x1" -compareap -downstreamonly -udp 2000 -5G80only -title "Dongle Perf 4MU 1x1 UDP"
+
+50 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -ap "4366softapfd-su 4366softapfd-mu" -sta sta5x2 -musta sta6x2 -compareap -downstreamonly -udp 2000 -5G80only -title "Dongle 2MU 2x2 UDP"
+
+52 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99a /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99a -va af -attngrp G1 -perftime 2.5 -fb1 -window 3m -attnstep 4 -email "hnd-utf-list.pdl" -ap "4366softapfd-pf-su 4366softapfd-pf-mu" -sta sta5x2 -musta sta6x2 -compareap -downstreamonly -udp 2000 -5G80only -title "Dongle Perf 2MU 2x2 UDP"
+
+###
+### mc99b
+###
+10 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99b /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc99b -ap 4366softap-egl -sta 4357a2x2r -email hnd-utf-list.pdl -title "MC99B StaNightly 4357 Release"
+
+20 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99b -ap 4366softap-egl -sta 4357a2x2 -va af -attngrp G3 -perftime 2.5 -fb1 -window 3m -email "hnd-utf-list.pdl" -downstreamonly -attnstep 4 -udp 1000 -5G80only -title "4357 UDP"
+
+30 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99b -va af -attngrp G3 -perftime 2.5 -fb1 -window 3m -email "hnd-utf-list.pdl" -attnstep 4 -ap "4366softap-su 4366softap-mu" -sta 4357a1x1 -musta 4357b1x1 -compareap -downstreamonly -udp 1000 -5G80only -title "4357 2MU 1x1 UDP"
+
+35 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99b -va af -attngrp G3 -perftime 2.5 -fb1 -window 3m -email "hnd-utf-list.pdl" -attnstep 4 -ap "4366softap-su 4366softap-mu" -sta 4357a2x2 -musta 4357b2x2 -compareap -downstreamonly -udp 2000 -5G80only -title "4357 2MU 2x2 UDP"
+
+40 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99b -va af -attngrp G3 -perftime 2.5 -fb1 -window 3m -email "hnd-utf-list.pdl" -attnstep 4 -ap "4366softap-su 4366softap-mu" -sta 4357a2x2r -musta 4357b2x2r -compareap -downstreamonly -udp 2000 -5G80only -title "4357 2MU 2x2 UDP Release"
+
+45 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99b -va af -attngrp G3 -perftime 5 -fb1 -window 3m -email "hnd-utf-list.pdl" -attnstep 4 -ap "4366softap-su 4366softap-mu" -sta 4357a1x1 -musta 4357b1x1 -compareap -downstreamonly -5G80only -title "4357 2MU 1x1 TCP"
+
+50 03 * * * /home/cchai/src/tools/unittest/cron/launch mc99b /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc99b -va af -attngrp G3 -perftime 5 -fb1 -window 3m -email "hnd-utf-list.pdl" -attnstep 4 -ap "4366softap-su 4366softap-mu" -sta 4357a2x2r -musta 4357b2x2r -compareap -downstreamonly -5G80only -title "4357 2MU 2x2 TCP Release"
+
+
+
+# ---------------------------------------------------------------
+

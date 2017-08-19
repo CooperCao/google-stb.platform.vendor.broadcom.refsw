@@ -106,7 +106,7 @@ void meter_bwidget_draw(
     /* draw Meter if necessary*/
     if (true == pMeter->isMeterVisible())
     {
-        int16_t   level;
+        int       level;
         bwin_rect rectMeter = win_settings.rect;
         int       spacer    = label_settings->bevel + 1;
 
@@ -135,13 +135,13 @@ void meter_bwidget_draw(
         }
         else
         {
-            uint16_t yMin     = rectMeter.y;
-            uint16_t yMax     = rectMeter.y + rectMeter.height;
-            uint16_t yMid     = yMin + ((yMax - yMin) / 2);
+            unsigned yMin     = rectMeter.y;
+            unsigned yMax     = rectMeter.y + rectMeter.height;
+            unsigned yMid     = yMin + ((yMax - yMin) / 2);
             uint32_t newColor = 0;
             uint8_t  percent  = 0;
 
-            for (int line = yMin; line < yMid; line++)
+            for (unsigned line = yMin; line < yMid; line++)
             {
                 percent  = (yMid - line) * 100 / (yMid - yMin);
                 newColor = pMeter->colorConvert(pMeter->getColorTop(), pMeter->getColorMiddle(), percent);
@@ -154,7 +154,7 @@ void meter_bwidget_draw(
                         cliprect);
             }
 
-            for (int line = yMid; line < yMax; line++)
+            for (unsigned line = yMid; line < yMax; line++)
             {
                 percent  = (yMax - line) * 100 / (yMax - yMid);
                 newColor = pMeter->colorConvert(pMeter->getColorMiddle(), pMeter->getColorBottom(), percent);
@@ -255,7 +255,7 @@ void CWidgetMeter::showMeter(bool show)
 }
 
 /* sets the Meter value (range -32767-32767) */
-void CWidgetMeter::setLevel(int16_t level)
+void CWidgetMeter::setLevel(int level)
 {
     _level = level;
 

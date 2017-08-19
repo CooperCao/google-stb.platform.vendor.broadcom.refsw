@@ -62,13 +62,139 @@ CBoardResourcesNx::CBoardResourcesNx() :
 {
 }
 
+#if NEXUS_HAS_FRONTEND
+/* frontend resources may be added multiple times for a given tuner.  for example, if a tuner can do both vsb and
+ * qam, it will be added once as a vsb frontend and once as a qam frontend.  the num used for each tuner will
+ * be identical, and checking out either tuner will automatically check out the other.  This is done because
+ * only a specific tuning object knows how to tune itself - so even if a tuner can be either qam or vsb, the
+ * object that represents it can only be one or the other. */
+eRet CBoardResourcesNx::addFrontend(
+        const unsigned               numTuner,
+        CConfiguration *             pCfg,
+        NEXUS_FrontendCapabilities * pCapabilities
+        )
+{
+    eRet                       ret    = eRet_Ok;
+    CTuner *                   pTuner = NULL;
+    CPlatform *                pPlatformConfig;
+    NEXUS_FrontendCapabilities capabilities;
+
+    BDBG_ASSERT(NULL != pCfg);
+    pPlatformConfig = pCfg->getPlatformConfig();
+
+    if (NULL == pCapabilities)
+    {
+        /* no capabilities given - discover them here */
+        CHECK_PTR_ERROR_GOTO("invalid tuner number parameter", pPlatformConfig->getFrontend(numTuner), ret, eRet_InvalidParameter, error);
+        NEXUS_Frontend_GetCapabilities(pPlatformConfig->getFrontend(numTuner), &capabilities);
+    }
+    else
+    {
+        /* use given capabilities */
+        capabilities = *pCapabilities;
+    }
+
+    if (true == capabilities.analog)
+    {
+    }
+
+    if (true == capabilities.qam)
+    {
+        pTuner = new CTunerQamNx("tunerQamNx", numTuner, pCfg);
+        CHECK_PTR_ERROR_GOTO("unable to allocate tuner", pTuner, ret, eRet_OutOfMemory, error);
+
+        _tunerList.add(pTuner);
+    }
+
+    if (true == capabilities.vsb)
+    {
+        pTuner = new CTunerVsbNx("tunerVsbNx", numTuner, pCfg);
+        CHECK_PTR_ERROR_GOTO("unable to allocate tuner", pTuner, ret, eRet_OutOfMemory, error);
+
+        _tunerList.add(pTuner);
+    }
+
+    if (true == capabilities.satellite)
+    {
+        pTuner = new CTunerSatNx("tunerSatNx", numTuner, pCfg);
+        CHECK_PTR_ERROR_GOTO("unable to allocate tuner", pTuner, ret, eRet_OutOfMemory, error);
+
+        _tunerList.add(pTuner);
+    }
+
+    if (true == capabilities.ofdm)
+    {
+        pTuner = new CTunerOfdmNx("tunerOfdmNx", numTuner, pCfg);
+        CHECK_PTR_ERROR_GOTO("unable to allocate tuner", pTuner, ret, eRet_OutOfMemory, error);
+
+        _tunerList.add(pTuner);
+    }
+#ifdef MPOD_SUPPORT
+    if (true == capabilities.outOfBandModes[NEXUS_FrontendOutOfBandMode_eDvs178Qpsk])
+    {
+        CCablecard * pCableCard = NULL;
+        pCableCard = new CCablecard;
+        pTuner     = new CTunerOobNx("tunerOobNx", numTuner, pCfg);
+        CHECK_PTR_ERROR_GOTO("unable to allocate tuner", pTuner, ret, eRet_OutOfMemory, error);
+        /*pass oob tuner object to CCablecard*/
+        pCableCard->initialize((CTunerOobNx *)pTuner);
+        _tunerList.add(pTuner);
+        delete pCableCard;
+#ifdef SNMP_SUPPORT
+        CSnmp * pSnmp = NULL;
+        pSnmp = new CSnmp;
+        /* pass oob tuner object to CSnmp */
+        pSnmp->snmp_save_oob((CTunerOobNx *)pTuner);
+        delete pSnmp;
+#endif /* ifdef SNMP_SUPPORT */
+    }
+
+    if (true == capabilities.upstreamModes[NEXUS_FrontendUpstreamMode_ePodDvs178])
+    {
+        CCablecard * pCableCard = NULL;
+        pCableCard = new CCablecard;
+        pTuner     = new CTunerUpstream("tunerUpstream", numTuner, pCfg);
+        CHECK_PTR_ERROR_GOTO("unable to allocate tuner", pTuner, ret, eRet_OutOfMemory, error);
+        /*pass upstream tuner object to CCablecard*/
+        pCableCard->initializeUpstream((CTunerUpstream *)pTuner);
+        _tunerList.add(pTuner);
+        delete pCableCard;
+#ifdef SNMP_SUPPORT
+        CSnmp * pSnmp = NULL;
+        pSnmp = new CSnmp;
+        /* pass upstream tuner object to CSnmp */
+        pSnmp->snmp_save_upstream((CTunerUpstream *) pTuner);
+        delete pSnmp;
+#endif /* ifdef SNMP_SUPPORT */
+    }
+#endif /* ifdef MPOD_SUPPORT */
+
+    if (NULL != pTuner)
+    {
+        BDBG_MSG(("adding Tuner #%d (%s)", numTuner, pTuner->getFrontendId().s()));
+        BDBG_MSG(("    analog:    %d", capabilities.analog));
+        BDBG_MSG(("    ifd:       %d", capabilities.ifd));
+        BDBG_MSG(("    qam:       %d", capabilities.qam));
+        BDBG_MSG(("    vsb:       %d", capabilities.vsb));
+        BDBG_MSG(("    satellite: %d", capabilities.satellite));
+        BDBG_MSG(("    outOfBand: %d", capabilities.outOfBand));
+        BDBG_MSG(("    upstream:  %d", capabilities.upstream));
+        BDBG_MSG(("    ofdm:      %d", capabilities.ofdm));
+        BDBG_MSG(("    scan:      %d", capabilities.scan));
+    }
+
+error:
+    return(ret);
+} /* addFrontend */
+
+#endif /* if NEXUS_HAS_FRONTEND */
 /* add a number of resources to associated list */
 eRet CBoardResourcesNx::add(
         eBoardResource   resource,
-        const uint16_t   numResources,
+        const unsigned   numResources,
         const char *     name,
         CConfiguration * pCfg,
-        const uint16_t   startIndex,
+        const unsigned   startIndex,
         const unsigned   id
         )
 {
@@ -78,7 +204,7 @@ eRet CBoardResourcesNx::add(
     BDBG_ASSERT(NULL != pCfg);
     pPlatformConfig = pCfg->getPlatformConfig();
 
-    for (uint16_t i = startIndex; i < (startIndex + numResources); i++)
+    for (unsigned i = startIndex; i < (startIndex + numResources); i++)
     {
         switch (resource)
         {
@@ -136,47 +262,17 @@ eRet CBoardResourcesNx::add(
 
 #if NEXUS_HAS_FRONTEND
         case eBoardResource_frontendQam:
-        {
-            CTuner * pTuner = NULL;
-            pTuner = new CTunerQamNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
-            BDBG_ASSERT(pTuner);
-            _tunerList.add(pTuner);
-        }
-        break;
         case eBoardResource_frontendVsb:
-        {
-            CTuner * pTuner = NULL;
-            pTuner = new CTunerVsbNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
-            BDBG_ASSERT(pTuner);
-            _tunerList.add(pTuner);
-        }
-        break;
         case eBoardResource_frontendSds:
-        {
-            CTuner * pTuner = NULL;
-            pTuner = new CTunerSatNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
-            BDBG_ASSERT(pTuner);
-            _tunerList.add(pTuner);
-        }
-        break;
+        case eBoardResource_frontendIp:
         case eBoardResource_frontendOfdm:
-        {
-            CTuner * pTuner = NULL;
-            pTuner = new CTunerOfdmNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
-            BDBG_ASSERT(pTuner);
-            _tunerList.add(pTuner);
-        }
-        break;
-#ifdef MPOD_SUPPORT
         case eBoardResource_frontendOob:
+        case eBoardResource_frontendUpstream:
         {
-            CTuner * pTuner = NULL;
-            pTuner = new CTunerOobNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
-            BDBG_ASSERT(pTuner);
-            _tunerList.add(pTuner);
+            BDBG_ERR(("use addFrontend() method for adding tuners."));
+            BDBG_ASSERT(false);
         }
         break;
-#endif /* MPOD_SUPPORT */
 #endif /* if NEXUS_HAS_FRONTEND */
 
         case eBoardResource_parserBand:

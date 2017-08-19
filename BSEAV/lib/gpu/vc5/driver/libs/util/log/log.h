@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef enum
 {
@@ -122,4 +122,4 @@ static inline void log_cat_msg_v(struct log_cat *cat, log_level_t level, const c
 #define log_info_v(FMT, ARGS)    log_cat_info_v(&log_default_cat, FMT, ARGS)
 #define log_trace_v(FMT, ARGS)   log_cat_trace_v(&log_default_cat, FMT, ARGS)
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

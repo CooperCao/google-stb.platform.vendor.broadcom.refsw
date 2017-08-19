@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -191,6 +191,9 @@ static BIP_Status prepareTranscodePath(
                 hTranscode->transcodeProfile.video.settings.streamStructure.framesB
              ));
     /* Set StcChannel Settings: transportType, mode (auto/pcr/etc.), etc. */
+#if NEXUS_HAS_HDMI_INPUT
+    if (!hTranscode->prepareApi.settings.hHdmiInput)
+#endif
     {
         NEXUS_SimpleStcChannelSettings stcSettings;
 
@@ -238,56 +241,62 @@ static BIP_Status prepareTranscodePath(
         bool videoDisabled = false, audioDisabled = false;
         NEXUS_VideoDecoderSettings settings;
 
-        if ( !hTranscode->transcodeProfile.disableVideo && hTranscode->prepareApi.settings.hVideoPidChannel )
+        if ( !hTranscode->transcodeProfile.disableVideo )
         {
             nrc = NEXUS_SimpleVideoDecoder_SetStcChannel( hTranscode->nexusHandles.simple.hVideo, hTranscode->nexusHandles.simple.hStcChannel );
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_SetStcChannel Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
             BDBG_MSG(( BIP_MSG_PRE_FMT "hVideoDecoder=%p hStcChannel=%p linked" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo, (void *)hTranscode->nexusHandles.simple.hStcChannel));
 
-            NEXUS_SimpleVideoDecoder_GetDefaultStartSettings( &hTranscode->videoProgram );
-            hTranscode->videoProgram.settings.pidChannel = hTranscode->prepareApi.settings.hVideoPidChannel;
-            hTranscode->videoProgram.settings.codec = hTranscode->prepareApi.settings.videoTrack.info.video.codec;
-            hTranscode->videoProgram.maxWidth = hTranscode->prepareApi.settings.videoTrack.info.video.width;
-            hTranscode->videoProgram.maxHeight = hTranscode->prepareApi.settings.videoTrack.info.video.height;
-            BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hVideoDecoder=%p codec=%d maxWidth=%d maxHeight=%d pidChannel=%p" BIP_MSG_PRE_ARG,
-                        (void *)hTranscode->nexusHandles.simple.hVideo, hTranscode->videoProgram.settings.codec,
-                        hTranscode->videoProgram.maxWidth, hTranscode->videoProgram.maxHeight, (void *)hTranscode->prepareApi.settings.hVideoPidChannel ));
-
-            NEXUS_SimpleVideoDecoder_GetSettings( hTranscode->nexusHandles.simple.hVideo, &settings );
-            if ( hTranscode->prepareApi.settings.videoTrack.info.video.colorDepth > 8 )
+            if ( hTranscode->prepareApi.settings.hVideoPidChannel )
             {
+                NEXUS_SimpleVideoDecoder_GetDefaultStartSettings( &hTranscode->videoProgram );
+                hTranscode->videoProgram.settings.pidChannel = hTranscode->prepareApi.settings.hVideoPidChannel;
+                hTranscode->videoProgram.settings.codec = hTranscode->prepareApi.settings.videoTrack.info.video.codec;
+                hTranscode->videoProgram.maxWidth = hTranscode->prepareApi.settings.videoTrack.info.video.width;
+                hTranscode->videoProgram.maxHeight = hTranscode->prepareApi.settings.videoTrack.info.video.height;
+                BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hVideoDecoder=%p codec=%d maxWidth=%d maxHeight=%d pidChannel=%p" BIP_MSG_PRE_ARG,
+                            (void *)hTranscode->nexusHandles.simple.hVideo, hTranscode->videoProgram.settings.codec,
+                            hTranscode->videoProgram.maxWidth, hTranscode->videoProgram.maxHeight, (void *)hTranscode->prepareApi.settings.hVideoPidChannel ));
 
-                settings.colorDepth = hTranscode->prepareApi.settings.videoTrack.info.video.colorDepth;
+                NEXUS_SimpleVideoDecoder_GetSettings( hTranscode->nexusHandles.simple.hVideo, &settings );
+                if ( hTranscode->prepareApi.settings.videoTrack.info.video.colorDepth > 8 )
+                {
+
+                    settings.colorDepth = hTranscode->prepareApi.settings.videoTrack.info.video.colorDepth;
+                }
+                settings.firstPts.callback = videoFirstPtsCallback;
+                settings.firstPts.context = hTranscode;
+                settings.firstPts.param = 0;
+                settings.firstPtsPassed.callback = videoFirstPtsPassedCallback;
+                settings.firstPtsPassed.context = hTranscode;
+                settings.firstPtsPassed.param = 0;
+                settings.ptsError.callback = ptsErrorCallback;
+                settings.ptsError.context = hTranscode;
+                settings.ptsError.param = 0;
+                settings.supportedCodecs[NEXUS_VideoCodec_eH264_Svc] = false; /* xcode TODO */
+                settings.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = false; /* xcode TODO */
+                nrc = NEXUS_SimpleVideoDecoder_SetSettings( hTranscode->nexusHandles.simple.hVideo, &settings );
+                BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_SetSettings Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
             }
-            settings.firstPts.callback = videoFirstPtsCallback;
-            settings.firstPts.context = hTranscode;
-            settings.firstPts.param = 0;
-            settings.firstPtsPassed.callback = videoFirstPtsPassedCallback;
-            settings.firstPtsPassed.context = hTranscode;
-            settings.firstPtsPassed.param = 0;
-            settings.ptsError.callback = ptsErrorCallback;
-            settings.ptsError.context = hTranscode;
-            settings.ptsError.param = 0;
-            settings.supportedCodecs[NEXUS_VideoCodec_eH264_Svc] = false; /* xcode TODO */
-            settings.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = false; /* xcode TODO */
-            nrc = NEXUS_SimpleVideoDecoder_SetSettings( hTranscode->nexusHandles.simple.hVideo, &settings );
-            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_SetSettings Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
         }
         else
         {
             /* Either Transcode profile disabled the video or caller didn't add a video track as it may not be present in the stream. */
             videoDisabled = true;
         }
-        if ( !hTranscode->transcodeProfile.disableAudio && hTranscode->prepareApi.settings.hAudioPidChannel )
+        if ( !hTranscode->transcodeProfile.disableAudio )
         {
-            NEXUS_SimpleAudioDecoder_GetDefaultStartSettings( &hTranscode->audioProgram );
-            hTranscode->audioProgram.primary.pidChannel = hTranscode->prepareApi.settings.hAudioPidChannel;
-            hTranscode->audioProgram.primary.codec = hTranscode->prepareApi.settings.audioTrack.info.audio.codec;
+            if ( hTranscode->prepareApi.settings.hAudioPidChannel )
+            {
+                NEXUS_SimpleAudioDecoder_GetDefaultStartSettings( &hTranscode->audioProgram );
+                hTranscode->audioProgram.primary.pidChannel = hTranscode->prepareApi.settings.hAudioPidChannel;
+                hTranscode->audioProgram.primary.codec = hTranscode->prepareApi.settings.audioTrack.info.audio.codec;
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hAudioDecoder=%p codec=%d" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio, hTranscode->audioProgram.primary.codec ));
+            }
 
             nrc = NEXUS_SimpleAudioDecoder_SetStcChannel( hTranscode->nexusHandles.simple.hAudio, hTranscode->nexusHandles.simple.hStcChannel );
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_SetStcChannel Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
-
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hAudioDecoder=%p codec=%d" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio, hTranscode->audioProgram.primary.codec ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hAudioDecoder=%p hStcChannel=%p linked" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio, (void *)hTranscode->nexusHandles.simple.hStcChannel));
         }
         else
         {
@@ -425,6 +434,11 @@ static void stopTranscodePath(
     /* Stop Transcode. */
     if ( hTranscode->encoderStarted )
     {
+        NEXUS_SimpleEncoderSettings encoderSettings;
+
+        NEXUS_SimpleEncoder_GetSettings(hTranscode->nexusHandles.simple.hEncoder, &encoderSettings);
+        encoderSettings.stopMode = NEXUS_SimpleEncoderStopMode_eAll;
+        NEXUS_SimpleEncoder_SetSettings(hTranscode->nexusHandles.simple.hEncoder, &encoderSettings);
         NEXUS_SimpleEncoder_Stop( hTranscode->nexusHandles.simple.hEncoder );
         BDBG_MSG(( BIP_MSG_PRE_FMT "Transcode (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hEncoder ));
         hTranscode->encoderStarted = false;
@@ -433,17 +447,35 @@ static void stopTranscodePath(
     /* Stop Video Decoder. */
     if ( hTranscode->videoDecoderStarted )
     {
-        NEXUS_SimpleVideoDecoder_Stop( hTranscode->nexusHandles.simple.hVideo );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo ));
-        hTranscode->videoDecoderStarted = false;
+        if ( hTranscode->prepareApi.settings.hVideoPidChannel )
+        {
+            NEXUS_SimpleVideoDecoder_Stop( hTranscode->nexusHandles.simple.hVideo );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo ));
+            hTranscode->videoDecoderStarted = false;
+        }
+#if NEXUS_HAS_HDMI_INPUT
+        if ( hTranscode->prepareApi.settings.hHdmiInput )
+        {
+            NEXUS_SimpleVideoDecoder_StopHdmiInput( hTranscode->nexusHandles.simple.hVideo );
+        }
+#endif
     }
 
     /* Stop Audio Decoder. */
     if ( hTranscode->audioDecoderStarted )
     {
-        NEXUS_SimpleAudioDecoder_Stop( hTranscode->nexusHandles.simple.hAudio );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio ));
-        hTranscode->audioDecoderStarted = false;
+        if ( hTranscode->prepareApi.settings.hAudioPidChannel )
+        {
+            NEXUS_SimpleAudioDecoder_Stop( hTranscode->nexusHandles.simple.hAudio );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio ));
+            hTranscode->audioDecoderStarted = false;
+        }
+#if NEXUS_HAS_HDMI_INPUT
+        if ( hTranscode->prepareApi.settings.hHdmiInput )
+        {
+            NEXUS_SimpleAudioDecoder_StopHdmiInput( hTranscode->nexusHandles.simple.hAudio );
+        }
+#endif
     }
 
     if ( hTranscode->nexusHandles.simple.hStcChannel )
@@ -470,19 +502,43 @@ static BIP_Status startTranscodePath(
     /* Start Video Decoder. */
     if ( !hTranscode->transcodeProfile.disableVideo )
     {
-        nrc = NEXUS_SimpleVideoDecoder_Start( hTranscode->nexusHandles.simple.hVideo, &hTranscode->videoProgram );
-        BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
-        hTranscode->videoDecoderStarted = true;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Started" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo ));
+        if ( hTranscode->prepareApi.settings.hVideoPidChannel )
+        {
+            nrc = NEXUS_SimpleVideoDecoder_Start( hTranscode->nexusHandles.simple.hVideo, &hTranscode->videoProgram );
+            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
+            hTranscode->videoDecoderStarted = true;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Started" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo ));
+        }
+#if NEXUS_HAS_HDMI_INPUT
+        if ( hTranscode->prepareApi.settings.hHdmiInput )
+        {
+            nrc = NEXUS_SimpleVideoDecoder_StartHdmiInput(hTranscode->nexusHandles.simple.hVideo, hTranscode->prepareApi.settings.hHdmiInput, NULL);
+            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_StartHdmiInput Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
+            hTranscode->videoDecoderStarted = true;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Started w/ HdmiInput" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo ));
+        }
+#endif
     }
 
     /* Start Audio Decoder. */
     if ( !hTranscode->transcodeProfile.disableAudio )
     {
-        nrc = NEXUS_SimpleAudioDecoder_Start( hTranscode->nexusHandles.simple.hAudio, &hTranscode->audioProgram );
-        BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
-        hTranscode->audioDecoderStarted = true;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Started" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio ));
+        if ( hTranscode->prepareApi.settings.hAudioPidChannel )
+        {
+            nrc = NEXUS_SimpleAudioDecoder_Start( hTranscode->nexusHandles.simple.hAudio, &hTranscode->audioProgram );
+            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
+            hTranscode->audioDecoderStarted = true;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Started" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio ));
+        }
+#if NEXUS_HAS_HDMI_INPUT
+        if ( hTranscode->prepareApi.settings.hHdmiInput )
+        {
+            nrc = NEXUS_SimpleAudioDecoder_StartHdmiInput(hTranscode->nexusHandles.simple.hAudio, hTranscode->prepareApi.settings.hHdmiInput, NULL);
+            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_StartHdmiInput Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
+            hTranscode->audioDecoderStarted = true;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Started w/ HdmiInput" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio ));
+        }
+#endif
     }
     bipStatus = BIP_SUCCESS;
 error:
@@ -553,26 +609,48 @@ static BIP_Status acquireTranscodeHandles(
 
     /* Caller didn't provide the Nexus Handles, we will open/acquire them as needed. */
     BIP_Transcode_GetDefaultNexusHandles( &hTranscode->nexusHandles );
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: hVideoPidChannel=%p hAudioPidChannel=%p"
+                BIP_MSG_PRE_ARG,
+                (void *)hTranscode,
+                (void *) hTranscode->prepareApi.settings.hVideoPidChannel,
+                (void *) hTranscode->prepareApi.settings.hAudioPidChannel
+             ));
+#if NEXUS_HAS_HDMI_INPUT
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHdmiInput=%p" BIP_MSG_PRE_ARG, (void *)hTranscode->prepareApi.settings.hHdmiInput ));
+#endif
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
-    allocSettings.simpleVideoDecoder = hTranscode->prepareApi.settings.hVideoPidChannel ? true:false;
-    allocSettings.simpleAudioDecoder = hTranscode->prepareApi.settings.hAudioPidChannel ? true:false;
+    allocSettings.simpleVideoDecoder =
+        hTranscode->prepareApi.settings.hVideoPidChannel
+#if NEXUS_HAS_HDMI_INPUT
+        || hTranscode->prepareApi.settings.hHdmiInput
+#endif
+        ? true:false;
+    allocSettings.simpleAudioDecoder =
+        hTranscode->prepareApi.settings.hAudioPidChannel
+#if NEXUS_HAS_HDMI_INPUT
+        || hTranscode->prepareApi.settings.hHdmiInput
+#endif
+        ? true:false;
     allocSettings.simpleEncoder = true;
     nrc = NxClient_Alloc( &allocSettings, &allocResults );
     BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NxClient_Alloc Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
 
     NxClient_GetDefaultConnectSettings( &connectSettings );
-    if ( hTranscode->prepareApi.settings.hVideoPidChannel )
+    connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
+    connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
+    if ( allocResults.simpleVideoDecoder[0].id )
     {
-        connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
         connectSettings.simpleVideoDecoder[0].windowCapabilities.encoder = true;
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxWidth = hTranscode->prepareApi.settings.videoTrack.info.video.width;
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = hTranscode->prepareApi.settings.videoTrack.info.video.height;
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[hTranscode->prepareApi.settings.videoTrack.info.video.codec] = true;
-    }
-    if ( hTranscode->prepareApi.settings.hAudioPidChannel )
-    {
-        connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
+#if NEXUS_HAS_HDMI_INPUT
+        if (hTranscode->prepareApi.settings.hHdmiInput)
+        {
+            connectSettings.simpleVideoDecoder[0].decoderCapabilities.connectType = NxClient_VideoDecoderConnectType_eWindowOnly;
+        }
+#endif
     }
 
     connectSettings.simpleEncoder[0].id = allocResults.simpleEncoder[0].id;
@@ -589,10 +667,18 @@ static BIP_Status acquireTranscodeHandles(
         hTranscode->nexusHandles.simple.hVideo = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
         BIP_CHECK_GOTO(( hTranscode->nexusHandles.simple.hVideo ), ( "NEXUS_SimpleVideoDecoder_Acquire Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
     }
+    else
+    {
+        hTranscode->nexusHandles.simple.hVideo = NULL;
+    }
     if (allocResults.simpleAudioDecoder.id)
     {
         hTranscode->nexusHandles.simple.hAudio = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
         BIP_CHECK_GOTO(( hTranscode->nexusHandles.simple.hAudio ), ( "NEXUS_SimpleAudioDecoder_Acquire Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+    }
+    else
+    {
+        hTranscode->nexusHandles.simple.hAudio = NULL;
     }
     hTranscode->nexusHandles.simple.hEncoder = NEXUS_SimpleEncoder_Acquire(allocResults.simpleEncoder[0].id);
     BIP_CHECK_GOTO(( hTranscode->nexusHandles.simple.hEncoder ), ( "NEXUS_SimpleEncoder_Acquire Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
@@ -1133,12 +1219,20 @@ BIP_Status BIP_Transcode_Prepare(
     BIP_CHECK_GOTO(( pTranscodeProfile ), ( "pTranscodeProfile pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( hRecpump ), ( "hRecpump handle can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
-    if ( !pTranscodeProfile->disableVideo )
+    if ( !pTranscodeProfile->disableVideo
+#if NEXUS_HAS_HDMI_INPUT
+            && !pSettings->hHdmiInput
+#endif
+            )
     {
         BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL if video is enabled" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
         BIP_CHECK_GOTO(( pSettings->hVideoPidChannel ), ( "hVideoPidChannel && pVideoTrack can't be NULL for encoding Video." ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     }
-    if ( !pTranscodeProfile->disableAudio )
+    if ( !pTranscodeProfile->disableAudio
+#if NEXUS_HAS_HDMI_INPUT
+            && !pSettings->hHdmiInput
+#endif
+            )
     {
         BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL if audio is enabled" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
         BIP_CHECK_GOTO(( pSettings->hAudioPidChannel ), ( "hAudioPidChannel && pAudioTrack can't be NULL for encoding Audio." ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );

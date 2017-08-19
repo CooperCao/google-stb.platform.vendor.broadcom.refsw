@@ -71,6 +71,8 @@ int                  g_MegaBytes           = 0; /* set to 1 when user wants data
 int                  g_MegaBytesDivisor[2] = {1, 8};
 char                *g_MegaBytesStr[2] = {"Mbps", "MBps"};
 char                *boxmodeSourceStr[BOXMODE_SOURCES_NUM] = {"B_REFSW_BOXMODE", BOXMODE_RTS_FILE, "BROWSER"};
+bsysperf_netStatistics g_netStats[NET_STATS_MAX];
+int                    g_netStatsIdx = -1;                 /* index to entries added to g_netStats array */
 
 typedef struct
 {

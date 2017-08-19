@@ -120,7 +120,8 @@ public:
     // Decryptor implementation
     virtual bool Initialize(std::string& pssh) OVERRIDE;
 
-    virtual bool GenerateKeyRequest(std::string initData) OVERRIDE;
+    virtual bool GenerateKeyRequest(std::string initData,
+        SessionType type = session_type_eTemporary) OVERRIDE;
 
     virtual std::string GetKeyRequestResponse(std::string url) OVERRIDE;
 
@@ -166,6 +167,8 @@ protected:
     cdm::ContentDecryptionModule *m_cdm;
 
 private:
+    bool Provision();
+
     bool m_valid;
     std::string m_keySetId;
     std::string m_initData;
@@ -176,7 +179,7 @@ private:
     // Internal functions to handle certificate file
     bool CreateDeviceCertificate();
     bool ReadDeviceCertificate();
-    bool WriteDeviceCertificate(const char* buffer, size_t bytes);
+    bool WriteDeviceCertificate(const char* buffer, uint32_t bytes);
 
     FILE* m_file;
     std::string m_basePath;

@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,28 +34,9 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
-# 
 ############################################################
-# Nexus examples
 
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP := $(shell cd ../../../nexus && cd)
-else
 NEXUS_TOP := $(shell cd ../../../nexus; pwd)
-endif
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
@@ -64,30 +45,36 @@ endif
 
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+BINDIR := $(B_REFSW_OBJ_ROOT)/BSEAV/app/dual_hdmi_output
 
 # single app Makefile
 APP = dual_hdmi_output
 
 all: $(APP)
 
-LDFLAGS := -lnexus -L${NEXUS_BIN_DIR} -lpthread
-
 clean:
 	$(RM) $(APP) $(OBJS)
 
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 CFLAGS += -g
+LDFLAGS := $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 
-NXCLIENT_UTILS = $(NEXUS_TOP)/nxclient/apps/utils
-vpath %.c $(NXCLIENT_UTILS)
-CFLAGS += -I$(NXCLIENT_UTILS)
+OBJS += $(BINDIR)/dual_hdmi_output.o
 
-# namevalue
-vpath %.c $(NEXUS_TOP)/utils
-CFLAGS += -I$(NEXUS_TOP)/utils -I$(NEXUS_TOP)/../BSEAV/lib/media -I$(NEXUS_TOP)/../BSEAV/lib/utils
+include $(NEXUS_TOP)/nxclient/apps/utils/nxutils.inc
+OBJS += $(addprefix $(BINDIR)/,$(foreach src,$(NXUTILS_SINGLE_SOURCES), $(patsubst %.c,%.o,$(notdir $(src)))))
+CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES))
+vpath %.c $(foreach src,$(NXUTILS_SINGLE_SOURCES), $(dir $(src)))
 
-# link app
-$(APP): %: %.c namevalue.c media_probe.c
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
-	$(CP) $@ ${NEXUS_BIN_DIR}
+dual_hdmi_output: $(BINDIR)/dual_hdmi_output
+	$(CP) $(BINDIR)/dual_hdmi_output $(NEXUS_BIN_DIR)
+
+$(BINDIR)/dual_hdmi_output: $(OBJS)
+	$(Q_)echo [link $@]
+	@mkdir -p $(dir $@)
+	$(Q_)$(CC) -o $@ $(LDFLAGS) $(filter %.o,$^)
+
+$(BINDIR)/%.o: %.c
+	$(Q_)echo [compile $@]
+	@mkdir -p $(dir $@)
+	$(Q_)$(Q_)$(CC) -c -o $@ $(CFLAGS) $^

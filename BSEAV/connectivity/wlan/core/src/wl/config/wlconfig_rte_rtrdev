@@ -1,0 +1,26 @@
+# Broadcom 802.11abg Networking Device Driver Configuration file
+#
+# Broadcom Proprietary and Confidential. Copyright (C) 2017,
+# All Rights Reserved.
+# 
+# This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
+# the contents of this file may not be disclosed to third parties, copied
+# or duplicated in any form, in whole or in part, without the prior
+# written permission of Broadcom.
+#
+# $Id: wlconfig_rte_rtrdev,v 1.7 2009-04-15 20:05:38 $
+#
+# For RTE development: support cores from 4712 and 4320.
+# Use minimum (?) values for buffer, SCB, BSS counts.
+
+# basic common code
+WL=1
+NVRAM=1
+NVRAMVX=1
+WLLED=1
+# features
+AP=1
+BCMSIBUS=1
+WME=1
+WLAFTERBURNER=1
+CRAM=1

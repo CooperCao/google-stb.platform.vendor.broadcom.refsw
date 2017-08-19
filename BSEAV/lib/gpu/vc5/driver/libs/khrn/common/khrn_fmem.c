@@ -13,6 +13,9 @@
 #include "../egl/egl_context_gl.h"
 #include "khrn_options.h"
 #include "libs/platform/gmem.h"
+#if KHRN_GLES31_DRIVER
+#include "libs/compute/compute.h"
+#endif
 
 #include "vcos.h"
 #include <stddef.h> /* for offsetof */
@@ -24,6 +27,17 @@
 #include "libs/platform/bcm_sched_api.h"
 
 LOG_DEFAULT_CAT("khrn_fmem")
+
+#if KHRN_GLES31_DRIVER
+static uint64_t khrn_fmem_compute_jobs[2];
+#endif
+
+void khrn_fmem_static_init(void)
+{
+ #if KHRN_GLES31_DRIVER
+   memset(khrn_fmem_compute_jobs, 0, sizeof(khrn_fmem_compute_jobs));
+ #endif
+}
 
 typedef struct khrn_fmem_buffer_range
 {
@@ -55,6 +69,17 @@ static khrn_fmem_persist* persist_create(khrn_render_state *rs)
 
    khrn_fmem_pool_init(&persist->pool, rs);
 
+#if KHRN_DEBUG
+   if (!khrn_options.no_gmp)
+      persist->gmp_tables = calloc(2, V3D_GMP_TABLE_SIZE);
+
+   persist->memaccess_refs = !!khrn_options.autoclif_enabled
+                           + !!khrn_options.save_crc_enabled
+                           + !khrn_options.no_gmp;
+   if (persist->memaccess_refs != 0)
+      persist->memaccess = khrn_memaccess_create(rs);
+#endif
+
 #ifdef KHRN_GEOMD
    fmem_debug_info_init(&persist->debug_info);
 #endif
@@ -62,9 +87,26 @@ static khrn_fmem_persist* persist_create(khrn_render_state *rs)
    return persist;
 }
 
+#if KHRN_DEBUG
+static void persist_release_memaccess(khrn_fmem_persist* persist)
+{
+   assert(persist->memaccess_refs > 0 && persist->memaccess != NULL);
+   if (!--persist->memaccess_refs)
+   {
+      khrn_memaccess_destroy(persist->memaccess);
+      persist->memaccess = NULL;
+   }
+}
+#endif
+
 static void persist_destroy(khrn_fmem_persist* persist)
 {
    assert(persist != NULL);
+
+#if KHRN_DEBUG
+   khrn_memaccess_destroy(persist->memaccess);
+   free(persist->gmp_tables);
+#endif
 
    if (persist->occlusion_query_list)
       glxx_queries_release(persist->occlusion_query_list);
@@ -89,22 +131,16 @@ static void persist_destroy(khrn_fmem_persist* persist)
 
    free(persist->preprocess_buffers.data);
    free(persist->preprocess_ubo_loads.data);
+ #if KHRN_GLES31_DRIVER
+   free(persist->compute_dispatches.data);
+   compute_job_mem_delete(persist->compute_job_mem);
+ #endif
 
 #ifdef KHRN_GEOMD
    fmem_debug_info_deinit(&persist->debug_info);
 #endif
 
-#if KHRN_DEBUG
-   free(persist->gmp_tables[0]);
-   free(persist->gmp_tables[1]);
-#endif
-
    free(persist);
-}
-
-static void persist_destroy_callback(void *data, uint64_t job_id, v3d_sched_job_error error)
-{
-   persist_destroy((khrn_fmem_persist*)data);
 }
 
 static void render_completion(void *data, uint64_t job_id, v3d_sched_job_error error)
@@ -115,8 +151,13 @@ static void render_completion(void *data, uint64_t job_id, v3d_sched_job_error e
    if (persist->occlusion_query_list)
       glxx_occlusion_queries_update(persist->occlusion_query_list, true);
 
+ #if KHRN_GLES31_DRIVER
+   compute_job_mem_delete(persist->compute_job_mem);
+   persist->compute_job_mem = NULL;
+ #endif
+
 #if KHRN_DEBUG
-   if (!persist->no_destroy_after_render)
+   if (!khrn_options.save_crc_enabled)
 #endif
    {
       persist_destroy(persist);
@@ -144,14 +185,6 @@ bool khrn_fmem_init(khrn_fmem *fmem, khrn_render_state *render_state)
    fmem->persist = persist_create(fmem->render_state);
    if (!fmem->persist)
       return false;
-
-#if KHRN_DEBUG
-   if (khrn_options.autoclif_enabled || khrn_options.save_crc_enabled || !khrn_options.no_gmp)
-   {
-      fmem->memaccess = khrn_memaccess_create(render_state);
-      fmem->persist->no_destroy_after_render = true;
-   }
-#endif
 
    /* the cle and data blocks come from the same allocator */
    block_init(&fmem->cle);
@@ -230,10 +263,6 @@ void khrn_fmem_discard(khrn_fmem *fmem)
    glxx_occlusion_queries_update(fmem->persist->occlusion_query_list, false);
 #if V3D_VER_AT_LEAST(4,0,2,0)
    glxx_prim_counts_queries_update(fmem->persist->prim_counts_query_list, false);
-#endif
-
-#if KHRN_DEBUG
-   khrn_memaccess_destroy(fmem->memaccess);
 #endif
 
    persist_destroy(fmem->persist);
@@ -571,7 +600,7 @@ static inline void finalise_block(khrn_fmem_pool *pool, khrn_fmem_block *block)
  */
 static void submit_bin_render(
    khrn_fmem* fmem,
-   v3d_scheduler_deps const stage_deps[KHRN_RESOURCE_NUM_STAGES],
+   v3d_scheduler_deps stage_deps[KHRN_RESOURCE_NUM_STAGES],
    job_t stage_jobs[KHRN_RESOURCE_NUM_STAGES])
 {
 #ifdef KHRN_GEOMD
@@ -580,7 +609,12 @@ static void submit_bin_render(
 
 #if KHRN_DEBUG
    if (khrn_options.autoclif_enabled)
-      khrn_record(fmem->memaccess, &fmem->br_info);
+   {
+      // Wait for preprocess before using memaccess.
+      v3d_scheduler_wait_jobs(&stage_deps[KHRN_STAGE_PREPROCESS], V3D_SCHED_DEPS_COMPLETED);
+      khrn_record(fmem->persist->memaccess, &fmem->br_info);
+      persist_release_memaccess(fmem->persist);
+   }
 #endif
 
    {
@@ -590,18 +624,18 @@ static void submit_bin_render(
       v3d_barrier_flags rdr_flags = fmem->render_rw_flags;
 
       // Pre-bin barrier between memory and bin-readers.
-      fmem->br_info.bin_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, bin_flags, false, has_l3c);
-      fmem->br_info.bin_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
+      fmem->br_info.details.bin_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, bin_flags, false, has_l3c);
+      fmem->br_info.details.bin_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
 
       // Post-bin barrier between bin-writers and memory.
-      fmem->br_info.bin_cache_ops |= v3d_barrier_cache_cleans(bin_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
+      fmem->br_info.details.bin_cache_ops |= v3d_barrier_cache_cleans(bin_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
 
       // Pre-render barrier between memory and render-readers.
-      fmem->br_info.render_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, rdr_flags, false, has_l3c);
-      fmem->br_info.render_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
+      fmem->br_info.details.render_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, rdr_flags, false, has_l3c);
+      fmem->br_info.details.render_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
 
       // Post-render barrier between render-writers and memory.
-      fmem->br_info.render_cache_ops |= v3d_barrier_cache_cleans(rdr_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
+      fmem->br_info.details.render_cache_ops |= v3d_barrier_cache_cleans(rdr_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
    }
 
    v3d_sched_completion_fn bin_completion_fn = NULL;
@@ -625,6 +659,13 @@ static void submit_bin_render(
       bin_completion_fn, bin_completion_data,
       render_completion, fmem->persist);
 }
+
+#if KHRN_DEBUG && KHRN_GLES31_DRIVER
+static void memaccess_add_buffer(void* memaccess, gmem_handle_t buf, v3d_barrier_flags rw_flags)
+{
+   khrn_memaccess_add_buffer((khrn_memaccess*)memaccess, buf, V3D_BARRIER_NO_ACCESS, rw_flags);
+}
+#endif
 
 static void khrn_fmem_preprocess_job(void* data)
 {
@@ -651,6 +692,31 @@ static void khrn_fmem_preprocess_job(void* data)
    persist->preprocess_ubo_loads.data = NULL;
    persist->preprocess_ubo_loads.size = 0;
 
+   // Handle compute dispatches.
+ #if KHRN_GLES31_DRIVER
+   if (persist->compute_dispatches.size != 0)
+   {
+      compute_job_mem* compute_mem = glxx_compute_process_dispatches(
+         persist->compute_dispatches.data,
+         persist->compute_dispatches.size);
+
+    #if KHRN_DEBUG
+      if (compute_mem)
+      {
+         if (persist->memaccess)
+            compute_job_mem_enumerate_accesses(compute_mem, memaccess_add_buffer, persist->memaccess);
+
+         if (!khrn_options.no_gmp)
+            compute_job_mem_patch_gmp_table(compute_mem, persist->gmp_tables + V3D_GMP_TABLE_SIZE*1);
+      }
+    #endif
+
+      persist->compute_job_mem = compute_mem;
+   }
+   free(persist->compute_dispatches.data);
+   persist->compute_dispatches.data = NULL;
+ #endif
+
    // Now perform gmem_sync_cpu_post_write for all the fmem blocks.
    khrn_fmem_pool_post_cpu_write(&persist->pool);
 }
@@ -672,7 +738,7 @@ void khrn_fmem_flush(khrn_fmem *fmem)
    khrn_fmem_pool_submit(
       &fmem->persist->pool,
  #if KHRN_DEBUG
-      fmem->memaccess,
+      fmem->persist->memaccess,
  #endif
       &bin_rw_flags,
       &render_rw_flags);
@@ -682,9 +748,10 @@ void khrn_fmem_flush(khrn_fmem *fmem)
  #if KHRN_DEBUG
    if (!khrn_options.no_gmp)
    {
-      khrn_memaccess_build_gmp_tables(fmem->memaccess, fmem->persist->gmp_tables);
-      fmem->br_info.bin_gmp_table = fmem->persist->gmp_tables[0];
-      fmem->br_info.render_gmp_table = fmem->persist->gmp_tables[1];
+      khrn_memaccess_build_gmp_tables(fmem->persist->memaccess, fmem->persist->gmp_tables);
+      fmem->br_info.details.bin_gmp_table = fmem->persist->gmp_tables + V3D_GMP_TABLE_SIZE*0;
+      fmem->br_info.details.render_gmp_table = fmem->persist->gmp_tables + V3D_GMP_TABLE_SIZE*1;
+      persist_release_memaccess(fmem->persist);
    }
  #endif
 
@@ -695,15 +762,35 @@ void khrn_fmem_flush(khrn_fmem *fmem)
    get_deps_from_and_release_fences(&stage_deps[0], fmem);
    get_deps_from_resources(stage_deps, fmem);
 
+ #if KHRN_GLES31_DRIVER
+   bool has_compute = fmem->persist->compute_dispatches.size;
+ #else
+   bool has_compute = false;
+ #endif
+
    job_t stage_jobs[KHRN_RESOURCE_NUM_STAGES] = { 0, };
-   if (fmem->persist->preprocess_ubo_loads.size)
+   if (fmem->persist->preprocess_ubo_loads.size || has_compute)
    {
       // Preprocess better be the first stage.
       static_assrt(KHRN_STAGE_PREPROCESS == 1);
 
-      // Issue job to complete uniform-streams and flush CPU cache.
-      stage_jobs[0] = v3d_scheduler_submit_usermode_job(
+      // Limited the number of preprocessed, but not executed compute jobs.
+      v3d_scheduler_deps finalised_deps;
+      v3d_scheduler_deps_init(&finalised_deps);
+    #if KHRN_GLES31_DRIVER
+      if (has_compute && khrn_fmem_compute_jobs[0] != 0)
+         v3d_scheduler_add_dep(&finalised_deps, khrn_fmem_compute_jobs[0]);
+    #endif
+
+      // Issue job to complete uniform-streams, process compute dispatches
+      // and flush CPU cache.
+      // Note that this triggers potentially concurrent use of fmem->persist by
+      // the remainder of khrn_fmem_flush and khrn_fmem_preprocess_job.
+      // Specifically any further attempt to use fmem->persist->memaccess must
+      // wait for preprocess.
+      stage_jobs[0] = v3d_scheduler_submit_usermode_job2(
          &stage_deps[0],
+         &finalised_deps,
          khrn_fmem_preprocess_job,
          fmem->persist);
 
@@ -730,21 +817,26 @@ void khrn_fmem_flush(khrn_fmem *fmem)
          last_job = stage_jobs[s];
    }
 
+ #if KHRN_GLES31_DRIVER
+   // Store compute jobs for throttling purposes.
+   if (has_compute)
+   {
+      for (unsigned i = 1; i != countof(khrn_fmem_compute_jobs); ++i)
+         khrn_fmem_compute_jobs[i-1] = khrn_fmem_compute_jobs[i];
+      khrn_fmem_compute_jobs[countof(khrn_fmem_compute_jobs)-1] = last_job;
+   }
+ #endif
+
    update_resources(fmem, stage_jobs);
    update_and_release_fences(fmem, last_job);
 
 #if KHRN_DEBUG
-   if (fmem->memaccess != NULL)
+   if (khrn_options.save_crc_enabled)
    {
-      if (khrn_options.save_crc_enabled)
-         khrn_save_crc_checksums(fmem->memaccess, &fmem->br_info);
-
-      khrn_memaccess_destroy(fmem->memaccess);
-
-      // Schedule destruction of persistent data after destruction of memaccess.
-      v3d_scheduler_deps last_job_deps;
-      v3d_scheduler_deps_set(&last_job_deps, last_job);
-      v3d_scheduler_submit_null_job(&last_job_deps, persist_destroy_callback, fmem->persist);
+      // Wait for preprocess before using memaccess.
+      v3d_scheduler_wait_jobs(&stage_deps[KHRN_STAGE_PREPROCESS], V3D_SCHED_DEPS_COMPLETED);
+      khrn_save_crc_checksums(fmem->persist->memaccess, &fmem->br_info);
+      persist_destroy(fmem->persist);
    }
 #endif
 
@@ -795,7 +887,7 @@ bool khrn_fmem_is_here(khrn_fmem *fmem, uint8_t *p)
    return fmem->cle.start + fmem->cle.current == p;
 }
 
-v3d_addr_t khrn_fmem_hw_address(khrn_fmem *fmem, void *p)
+v3d_addr_t khrn_fmem_hw_address(khrn_fmem *fmem, const void *p)
 {
    return khrn_fmem_pool_hw_address(&fmem->persist->pool, p);
 }
@@ -846,8 +938,8 @@ static bool add_resource(khrn_fmem *fmem, khrn_resource *res)
    if (!khrn_resource_get_stages(res, fmem->render_state))
    {
    #if KHRN_DEBUG
-      if (fmem->memaccess)
-         khrn_memaccess_register_resource(fmem->memaccess, res);
+      if (fmem->persist->memaccess)
+         khrn_memaccess_register_resource(fmem->persist->memaccess, res);
    #endif
 
       if (!khrn_uintptr_vector_push_back(&fmem->resources, (uintptr_t)res))
@@ -958,14 +1050,14 @@ v3d_addr_t khrn_fmem_tile_state_alloc(khrn_fmem *fmem, size_t size)
    if (khrn_get_num_cores() == 1)
    {
       // Store shared object to be released on bin completion.
-      persist->bin_shared_tile_state = khrn_tile_state_alloc_shared(size, fmem->br_info.secure);
+      persist->bin_shared_tile_state = khrn_tile_state_alloc_shared(size, fmem->br_info.details.secure);
       if (!persist->bin_shared_tile_state)
          return 0;
       handle = persist->bin_shared_tile_state->handle;
    }
    else
    {
-      handle = khrn_tile_state_alloc_gmem(size, fmem->br_info.secure);
+      handle = khrn_tile_state_alloc_gmem(size, fmem->br_info.details.secure);
       if (!handle)
          return 0;
 
@@ -1002,8 +1094,8 @@ void khrn_fmem_sync(khrn_fmem *fmem, gmem_handle_t handle,
    fmem->render_rw_flags |= render_rw_flags;
 
 #if KHRN_DEBUG
-   if (fmem->memaccess)
-      khrn_memaccess_add_buffer(fmem->memaccess, handle, bin_rw_flags, render_rw_flags);
+   if (fmem->persist->memaccess)
+      khrn_memaccess_add_buffer(fmem->persist->memaccess, handle, bin_rw_flags, render_rw_flags);
 #endif
 }
 
@@ -1029,13 +1121,13 @@ bool khrn_fmem_sync_res(khrn_fmem *fmem,
    return true;
 }
 
-bool khrn_fmem_cle_barrier(khrn_fmem *fmem,
+bool khrn_fmem_cle_barrier_flush(khrn_fmem *fmem,
    v3d_barrier_flags src, v3d_barrier_flags dst,
    v3d_cache_ops *done_ops_from_src)
 {
-   v3d_cache_ops ops =
-      v3d_barrier_cache_cleans_within_core(src, dst) |
-      v3d_barrier_cache_flushes_within_core(src, dst);
+   v3d_cache_ops ops = v3d_barrier_cache_flushes_within_core(src, dst);
+   assert(!(v3d_barrier_cache_cleans_within_core(src, dst) &
+      ~(done_ops_from_src ? *done_ops_from_src : 0)));
    if (done_ops_from_src)
    {
       ops &= ~*done_ops_from_src;
@@ -1055,15 +1147,10 @@ bool khrn_fmem_cle_barrier(khrn_fmem *fmem,
    if (!instr)
       return false;
 
-#if V3D_VER_AT_LEAST(3,3,0,0)
-   assert(!(ops & V3D_CACHE_CLEAN_L1TD)); // No CLE instruction to clean L1TD! See GFXH-1303
-#endif
-
-   if (ops & (V3D_CACHE_CLEAN_L2T | V3D_CACHE_FLUSH_L2T))
+   if (ops & V3D_CACHE_FLUSH_L2T)
    {
-      v3d_cl_flush_l2t(&instr, 0, ~0,
-         (ops & V3D_CACHE_FLUSH_L2T) ? V3D_L2T_FLUSH_MODE_FLUSH : V3D_L2T_FLUSH_MODE_CLEAN);
-      ops &= ~(V3D_CACHE_CLEAN_L2T | V3D_CACHE_FLUSH_L2T);
+      v3d_cl_flush_l2t(&instr, 0, ~0, V3D_L2T_FLUSH_MODE_FLUSH, /*deferred=*/false);
+      ops &= ~V3D_CACHE_FLUSH_L2T;
    }
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)

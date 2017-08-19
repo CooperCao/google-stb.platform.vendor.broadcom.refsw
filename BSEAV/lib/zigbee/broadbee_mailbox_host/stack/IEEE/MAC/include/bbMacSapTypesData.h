@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesData.h $
-*
-* DESCRIPTION:
-*   MCPS-DATA service data types definition.
-*
-* $Revision: 10534 $
-* $Date: 2016-03-18 11:08:03Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MCPS-DATA service data types definition.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_SAP_TYPES_DATA_H
 #define _BB_MAC_SAP_TYPES_DATA_H
@@ -160,13 +153,10 @@ typedef struct _MAC_TxOptions_t
 
 /**//**
  * \brief   Structure for parameters of the MCPS-DATA.request.
+ * \ingroup DataReq
  * \details The higher layer is responsible for dismissing the dynamic memory allocated
  *  for the MSDU payload. The payload may be dismissed by the higher layer when the
  *  corresponding \c callback handler-function for MCPS-DATA.confirm is called by the MAC.
- * \note    MAC Security is not implemented. The SecurityLevel parameter is ignored; or it
- *  shall be assigned with 0x00 'None' by the higher layer if
- *  _MAC_SAP_PROCESS_REDUNDANT_PARAMS_ conditional build key is defined by the project
- *  make configuration file, otherwise UNSUPPORTED_SECURITY status will be returned.
  * \note    See also notes to the TxOptions parameter.
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 7.1.1.1.1, table 41.
@@ -194,7 +184,6 @@ typedef struct _MAC_DataReqParams_t
     MAC_TxOptions_t      txOptions;         /*!< The 3 bits (b0, b1, b2) indicate the transmission options for this
                                                 MSDU. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     /* 8-bit data. */
     MAC_SecurityLevel_t  securityLevel;     /*!< The security level to be used. */
 
@@ -229,6 +218,7 @@ typedef struct _MAC_DataReqParams_t
 
 /**//**
  * \brief   Structure for parameters of the MCPS-DATA.confirm.
+ * \ingroup DataConf
  * \details Possible values for the \c status parameter are the following:
  *  - SUCCESS                   The requested transmission was completed successfully.
  *  - CHANNEL_ACCESS_FAILURE    A transmission could not take place due to activity on the
@@ -285,12 +275,14 @@ typedef struct _MAC_DataConfParams_t
 
 /**//**
  * \brief   Structure for descriptor of the MCPS-DATA.request.
+ * \ingroup DataReq
  */
 typedef struct _MAC_DataReqDescr_t  MAC_DataReqDescr_t;
 
 
 /**//**
  * \brief   Template for the callback handler-function of the MCPS-DATA.confirm.
+ * \ingroup DataConf
  * \param[in]   reqDescr    Pointer to the confirmed request descriptor.
  * \param[in]   confParams  Pointer to the confirmation parameters object.
  * \details Call functions of this type provided by higher layers of corresponding MAC
@@ -322,6 +314,7 @@ typedef void MAC_DataConfCallback_t(MAC_DataReqDescr_t *const reqDescr, MAC_Data
 
 /**//**
  * \brief   Structure for descriptor of the MCPS-DATA.request.
+ * \ingroup DataReq
  */
 struct _MAC_DataReqDescr_t
 {
@@ -337,19 +330,13 @@ struct _MAC_DataReqDescr_t
 
 /**//**
  * \brief   Structure for parameters of the MCPS-DATA.indication.
+ * \ingroup DataInd
  * \details The \c timestamp at which the data were received is bound to the leading edge
  *  of the first chip (or the first symbol) of the PPDU.PHR field of the received frame.
  * \details The MSDU received within the Data frame is indicated to the higher layer with
  *  \c payload parameter. The MSDU length may be obtained by the higher layer from the
  *  dynamic payload object described by the \c payload. The higher layer is responsible
  *  for dismissing the dynamic memory allocated by the MAC for the MSDU payload.
- * \note    MAC Security is not implemented. The SecurityLevel parameter is left
- *  unassigned; or assigned with 0x00 'None' if _MAC_SAP_PROCESS_REDUNDANT_PARAMS_
- *  conditional build key is defined by the project make configuration file. All received
- *  secured frames are acknowledged but then dropped; in this case
- *  MLME-COMM-STATUS.indication is issued with the status UNSUPPORTED_LEGACY (except the
- *  RF4CE Controller for which a received secured frame is acknowledged and then dropped
- *  without any indication).
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 7.1.1.3.1, table 43.
  */
@@ -384,16 +371,16 @@ typedef struct _MAC_DataIndParams_t
 
     MAC_Dsn_t              dsn;                 /*!< The DSN of the received data frame. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t    securityLevel;       /*!< The security level purportedly used by the received data frame. */
 
-    MAC_SecurityParams_t   securityParams;        /*!< Security parameters. They are ignored if the SecurityLevel is
+    MAC_SecurityParams_t   securityParams;      /*!< Security parameters. They are ignored if the SecurityLevel is
                                                      set to zero. */
 } MAC_DataIndParams_t;
 
 
 /**//**
  * \brief   Template for the callback handler-function of the MCPS-DATA.indication.
+ * \ingroup DataInd
  * \param[in]   indParams   Pointer to the indication parameters object.
  * \details Call functions of this type provided by higher layers of corresponding MAC
  *  contexts, ZigBee PRO and RF4CE, from the MAC to issue the MCPS-DATA.indication to the
@@ -421,3 +408,5 @@ typedef void MAC_DataIndCallback_t(MAC_DataIndParams_t *const indParams);
 
 
 #endif /* _BB_MAC_SAP_TYPES_DATA_H */
+
+/* eof bbMacSapTypesData.h */

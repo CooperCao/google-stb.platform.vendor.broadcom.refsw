@@ -29,9 +29,9 @@ static const char * const ErrorsCustom[] =
    //00006
    "Out of memory",
    //00007
-   "case and default labels may only appear inside switches",
+   "Invalid statement",
    //00008
-   "type of init-expression in switch statement must match the type of the case labels",
+   BAD_ERROR_CODE,
    //00009
    "Identifier is not a function name. Perhaps function is hidden by variable or type name?",
    //00010
@@ -39,7 +39,7 @@ static const char * const ErrorsCustom[] =
    //00011
    "No declared overload matches function call arguments",
    //00012
-   "Discard statement can only be used in fragment shader",
+   "Function prototype not allowed within function body",
    //00013
    "Shader without 'main' function",
    //00014
@@ -61,16 +61,8 @@ static const char * const ErrorsCustom[] =
    //00022
    "Sampler type can only be used for uniform or function input parameter",
    //00023
-   "Use of break or continue outside loop or switch",
-   //00024
-   "Function prototype not allowed within function body",
-   //00025
-   BAD_ERROR_CODE,
-   //00026
-   "Invalid switch statement",
-   //00027
    "Members of array cannot be arrays",
-   //00028
+   //00024
    "Incomplete array type",
 };
 
@@ -159,9 +151,9 @@ static const char * const ErrorsLinker[] =
    //L0002
    "Out of memory",
    //L0003
-   "Too many vertex input values",
+   BAD_ERROR_CODE,
    //L0004
-   "Invalid output declaration",
+   "Invalid input/output declaration",
    //L0005
    "Too many uniform values",
    //L0006

@@ -1,0 +1,160 @@
+# Windows vista common build file for wl command line tool
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources_vista.common,v 1.12 2010-11-08 17:38:26 $
+#
+TARGETNAME=$(NIC_WL_EXE)
+TARGETTYPE=EXE
+SUBSYSTEM=console
+REQUIRE_WDM7600=1
+REQUIRE_SDK60=1
+
+RWL             ?= 1
+RWL_SOCKET  	?= 0 
+RWL_WIFI        ?= 0
+RWL_DONGLE      ?= 0
+RWL_SERIAL      ?= 0
+vpath %.c $(SRCBASE)/shared:$(SRCBASE)/tools/epictrl $(WLAN_StdSrcDirsR) $(WLAN_ComponentSrcDirsR)
+
+SOURCES		= wlu.c wlu_common.c wlu_cmd.c wlu_iov.c wlu_vista.c wlu_vista_client_server.c ir_vista.c bcmutils.c bcmwifi_channels.c bcmstdlib.c wlu_client_shared.c wlu_pipe.c wlu_pipe_win32.c miniopt.c \
+			bcmxtlv.c bcm_app_utils.c wlu_rates_matrix.c wlc_ppr.c wlu_subcounters.c
+
+INCLUDES   	= $(SRCBASE)/include $(SRCBASE)/../components/shared $(WLAN_ComponentIncDirsR) $(WLAN_StdIncDirsR)
+
+TARGETLIBS	= wsock32.lib wlanapi.lib Iphlpapi.lib Advapi32.lib
+TARGETLIBS += $(SRCBASE)/tools/epictrl/$(DDKBUILDENV)/bcmctrl.lib
+
+SOURCES += wluc_phy.c
+SOURCES += wluc_wnm.c
+SOURCES += wluc_cac.c
+SOURCES += wluc_relmcast.c
+SOURCES += wluc_rrm.c
+SOURCES += wluc_wowl.c
+SOURCES += wluc_pkt_filter.c
+SOURCES += wluc_mfp.c
+SOURCES += wluc_ota_test.c
+SOURCES += wluc_bssload.c
+SOURCES += wluc_stf.c
+SOURCES += wluc_offloads.c
+SOURCES += wluc_tpc.c
+SOURCES += wluc_toe.c
+SOURCES += wluc_arpoe.c
+SOURCES += wluc_keep_alive.c
+SOURCES += wluc_ap.c
+SOURCES += wluc_ampdu.c
+SOURCES += wluc_ampdu_cmn.c
+SOURCES += wluc_bmac.c
+SOURCES += wluc_ht.c
+SOURCES += wluc_wds.c
+SOURCES += wluc_keymgmt.c
+SOURCES += wluc_scan.c
+SOURCES += wluc_obss.c
+SOURCES += wluc_prot_obss.c
+SOURCES += wluc_lq.c
+SOURCES += wluc_seq_cmds.c
+SOURCES += wluc_btcx.c
+SOURCES += wluc_led.c
+SOURCES += wluc_interfere.c
+SOURCES += wluc_ltecx.c
+SOURCES += wluc_he.c
+
+##ifdef WL_NAN
+#C_DEFINES += -DWL_NAN
+#SOURCES += wluc_nan.c
+##endif
+
+#ifdef WLEXTLOG
+C_DEFINES += -DWLEXTLOG
+SOURCES += wluc_extlog.c
+#endif
+
+
+#ifdef WLNDOE
+C_DEFINES += -DWLNDOE
+SOURCES += wluc_ndoe.c
+#endif
+
+#ifdef WLP2P
+C_DEFINES += -DWLP2P
+SOURCES += wluc_p2p.c
+#endif
+
+#ifdef WLP2PO
+C_DEFINES += -DWLP2PO
+SOURCES += wluc_p2po.c
+#endif
+
+#idef WLANQPO
+C_DEFINES += -DWLANQPO
+SOURCES += wluc_anqpo.c
+#endif
+
+#idef WLBDO
+C_DEFINES += -DWLBDO
+SOURCES += wluc_bdo.c
+#endif
+
+#idef WLTKO
+C_DEFINES += -DWLTKO
+SOURCES += wluc_tko.c
+#endif
+
+#ifdef WLTDLS
+C_DEFINES += -DWLTDLS
+SOURCES += wluc_tdls.c
+#endif
+
+#ifdef TRAFFIC_MGMT   
+  C_DEFINES += -DTRAFFIC_MGMT   
+  SOURCES += wluc_traffic_mgmt.c
+#endif 
+
+ifeq ($(OLYMPIC_RWL),1)
+C_DEFINES += -DOLYMPIC_RWL
+C_DEFINES += -DSERDOWNLOAD
+endif
+
+ifeq ($(WL11ULB),1)
+C_DEFINES += -DWL11ULB
+endif
+
+#if any of the transport flags are set then others transports will be disabled
+ifeq ($(RWL_WIFI),1)
+C_DEFINES += -DRWL_WIFI
+RWL=0
+endif
+ifeq ($(RWL_SOCKET),1)
+C_DEFINES += -DRWL_SOCKET
+RWL=0
+endif
+ifeq ($(RWL_DONGLE),1)
+C_DEFINES += -DRWL_DONGLE
+RWL=0
+endif
+ifeq ($(RWL_SERIAL),1)
+C_DEFINES += -DRWL_SERIAL
+RWL=0
+endif
+# By default for RWL enable all transports
+ifeq ($(RWL),1)
+C_DEFINES += -DRWL_DONGLE -DRWL_SOCKET -DRWL_WIFI -DRWL_SERIAL -DSERDOWNLOAD
+endif
+
+# Use newer 11ac ratespec for wl command line
+C_DEFINES += -DD11AC_IOTYPES
+
+C_DEFINES += -DWIN32
+
+# Use opaque ppr structure for wl command line
+C_DEFINES += -DPPR_API
+
+target :: $(SRCBASE)/tools/epictrl/$(DDKBUILDENV)/bcmctrl.lib
+
+# some local rules
+$(SRCBASE)/tools/epictrl/$(DDKBUILDENV)/bcmctrl.lib : FORCE
+	$(MAKE) -C $(SRCBASE)/tools/epictrl
+
+NTICE_DBG= @echo "local Building SoftIce symbols - $(@:%.dll=%.nms) for i386"; \
+	$(NTICE)/nmsym.exe -SOURCE:. -SOURCE:$(SRCBASE)/tools/epictrl $(SI_FLAGS) $@

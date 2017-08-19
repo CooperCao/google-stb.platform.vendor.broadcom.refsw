@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -131,7 +131,7 @@ static BERR_Code NEXUS_Sage_AR_P_WaitForSage(int timeoutMsec)
     if (rc == BERR_TIMEOUT)
     {
         BDBG_ERR(("%s: Timeout (%dms) waiting for sage response from previous request",
-            __FUNCTION__, SAGERESPONSE_TIMEOUT));
+            BSTD_FUNCTION, SAGERESPONSE_TIMEOUT));
         rc = BERR_TRACE(rc);
         goto done;
     }
@@ -387,7 +387,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings)
     /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
     rc = Nexus_SageModule_P_Img_Create(NEXUS_CORE_IMG_ID_SAGE, &img_context, &img_interface);
     if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - Cannot Create IMG", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot Create IMG", BSTD_FUNCTION));
     }
     /* If chip type is ZB or customer specific, then the default IDs stand */
     if (g_NEXUS_sageModule.chipInfo.chipType == BSAGElib_ChipType_eZS) {
@@ -401,7 +401,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings)
     /* Load AR TA into memory */
     rc = NEXUS_SageModule_P_Load(&arTAImg, &img_interface, img_context);
     if(rc != NEXUS_SUCCESS) {
-        BDBG_WRN(("%s - Cannot Load IMG %s ", __FUNCTION__, arTAImg.name));
+        BDBG_WRN(("%s - Cannot Load IMG %s ", BSTD_FUNCTION, arTAImg.name));
     }
 
     /* Open sagelib client */
@@ -488,7 +488,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings)
         /* Load AR DB into memory */
         rc = NEXUS_SageModule_P_Load(&arDBImg, &img_interface, img_context);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_LOG(("%s - Cannot load AR database %s, AR will use builtin database ", __FUNCTION__, arDBImg.name));
+            BDBG_LOG(("%s - Cannot load AR database %s, AR will use builtin database ", BSTD_FUNCTION, arDBImg.name));
         }
         else
         {
@@ -499,7 +499,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings)
     }
     else
     {
-        BDBG_LOG(("%s - Skipping AR Database load, file does not exist...", __FUNCTION__));
+        BDBG_LOG(("%s - Skipping AR Database load, file does not exist...", BSTD_FUNCTION));
     }
 
     rc = BSAGElib_Rai_Platform_Init(lHandle->hSagelibRpcPlatformHandle, lHandle->sageContainer, &lHandle->uiLastAsyncId);
@@ -534,7 +534,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit(NEXUS_SageModuleSettings *pSettings)
     if (pDmaMemoryPool == NULL)
     {
         rc = NEXUS_UNKNOWN;
-        BDBG_ERR(("%s - Error calling BSAGElib_Rai_Memory_Allocate()", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling BSAGElib_Rai_Memory_Allocate()", BSTD_FUNCTION));
         goto EXIT;
     }
 

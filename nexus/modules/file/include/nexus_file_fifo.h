@@ -53,16 +53,12 @@ typedef struct NEXUS_FifoRecord *NEXUS_FifoRecordHandle;
 /*
 Summary:
 Configuration parameters for the timeshifting buffer
-
-Description:
-Those numbers are used to limit size of the timishifting buffer to be occupied on the disk.
-Usually software stack would try do not exceed soft limit of the timeshifting buffer, however
-in certain cases, for example, if bitrates of the recorded stream suddenly increases, it could
-go up to hardlimit. Once hardlimit is reached it would result in the overflow error.
 */
 typedef struct NEXUS_FifoRecordLimit {
-    off_t soft; /* soft limit of the timeshifting buffer, in bytes */
-    off_t hard; /* hard limit of the timeshifting buffer, in bytes */
+    off_t soft; /* Maximum file size in bytes. must be greater than maximum file size needed to store data recorded within "interval".
+                   For data, calculated as max bitrate of stream (Mbps) * 1024 * 1024 / 8 * interval.
+                   For index, calulated as max framerate * 32 (bytes per picture) * interval; but should be much larger because it's low bitrate. */
+    off_t hard; /* unused */
 } NEXUS_FifoRecordLimit;
 
 
@@ -71,7 +67,7 @@ Summary:
 Configuration parameters for the timeshifting file
 */
 typedef struct NEXUS_FifoRecordSettings {
-    unsigned interval; /* Size of the timeshifting buffer, in seconds */
+    unsigned interval; /* Size of the timeshifting buffer, in seconds. Must adjust NEXUS_FifoRecordLimit.soft if increasing. */
     unsigned snapshotInterval; /* interval between metadata writes, in seconds. 0 means metadata written only when file is closed */
     NEXUS_FifoRecordLimit data; /* Limits for the timeshifting data file */
     NEXUS_FifoRecordLimit index; /* Limits for the timeshifting index file */

@@ -1426,7 +1426,7 @@ static void NEXUS_AudioInput_P_CheckAddCrc(
 
         if ( hApeCrc == NULL )
         {
-            BDBG_ERR(("%s - invalid APE CRC handle (NULL)", __FUNCTION__));
+            BDBG_ERR(("%s - invalid APE CRC handle (NULL)", BSTD_FUNCTION));
             BERR_TRACE(BERR_NOT_INITIALIZED);
             return;
         }
@@ -1445,24 +1445,24 @@ static void NEXUS_AudioInput_P_CheckAddCrc(
         {
             default:
             case NEXUS_AudioCrcSourceType_eOutputPort:
-                BDBG_MSG(("%s:OP- output %p, apeMixer %p", __FUNCTION__,
+                BDBG_MSG(("%s:OP- output %p, apeMixer %p", BSTD_FUNCTION,
                     (void *)pOutputNode->pOutputConnector, (void *)pOutputNode->pMixerNode->inputMixer));
                 apeCrcInputSettings.source.outputPort.outputPort = (BAPE_OutputPort)pOutputNode->pOutputConnector->port;
                 apeCrcSourceType = BAPE_CrcSourceType_eOutputPort;
                 if ( apeCrcInputSettings.source.outputPort.outputPort == NULL )
                 {
-                    BDBG_ERR(("%s - invalid output capture settings output %p", __FUNCTION__, (void *)apeCrcInputSettings.source.outputPort.outputPort));
+                    BDBG_ERR(("%s - invalid output capture settings output %p", BSTD_FUNCTION, (void *)apeCrcInputSettings.source.outputPort.outputPort));
                 }
                 break;
             case NEXUS_AudioCrcSourceType_ePlaybackBuffer:
                 BDBG_ASSERT(input != NULL);
                 if ( crcInputSettings.input != input )
                 {
-                    BDBG_ERR(("%s - current input %p(%s), does not match requested input %p(%s)", __FUNCTION__, (void *)crcInputSettings.input, crcInputSettings.input->pName, (void *)input, input->pName));
+                    BDBG_ERR(("%s - current input %p(%s), does not match requested input %p(%s)", BSTD_FUNCTION, (void *)crcInputSettings.input, crcInputSettings.input->pName, (void *)input, input->pName));
                     return;
                 }
 
-                BDBG_MSG(("%s:PB- input %p, pMixerNode %p, output %p, apeMixer %p", __FUNCTION__,
+                BDBG_MSG(("%s:PB- input %p, pMixerNode %p, output %p, apeMixer %p", BSTD_FUNCTION,
                     (void *)input, (void *)pOutputNode->pMixerNode, (void *)pOutputNode->pOutputConnector, (void *)pOutputNode->pMixerNode->inputMixer));
                 apeCrcInputSettings.source.playbackBuffer.input = (BAPE_Connector)input->port;
                 apeCrcInputSettings.source.playbackBuffer.mixer = pOutputNode->pMixerNode->inputMixer;
@@ -1470,7 +1470,7 @@ static void NEXUS_AudioInput_P_CheckAddCrc(
                 if ( apeCrcInputSettings.source.playbackBuffer.input == NULL ||
                      apeCrcInputSettings.source.playbackBuffer.mixer == NULL )
                 {
-                    BDBG_ERR(("%s - invalid sfifo capture settings input %p, mixer %p", __FUNCTION__, (void *)apeCrcInputSettings.source.playbackBuffer.input, (void *)apeCrcInputSettings.source.playbackBuffer.mixer));
+                    BDBG_ERR(("%s - invalid sfifo capture settings input %p, mixer %p", BSTD_FUNCTION, (void *)apeCrcInputSettings.source.playbackBuffer.input, (void *)apeCrcInputSettings.source.playbackBuffer.mixer));
                 }
                 apeCrcSourceType = BAPE_CrcSourceType_ePlaybackBuffer;
                 break;
@@ -1483,7 +1483,7 @@ static void NEXUS_AudioInput_P_CheckAddCrc(
         errCode = BAPE_Crc_AddInput(hApeCrc, apeCrcSourceType, &apeCrcInputSettings);
         if ( errCode )
         {
-            BDBG_ERR(("%s - BAPE_Crc_AddInput returned %u", __FUNCTION__, errCode));
+            BDBG_ERR(("%s - BAPE_Crc_AddInput returned %u", BSTD_FUNCTION, errCode));
             BERR_TRACE(errCode);
             return;
         }
@@ -1517,7 +1517,7 @@ static void NEXUS_AudioInput_P_CheckRemoveCrc(
     hApeCrc = NEXUS_AudioCrc_P_GetPIHandle(pCrc);
     if ( hApeCrc == NULL )
     {
-        BDBG_ERR(("%s - invalid APE CRC handle (NULL)", __FUNCTION__));
+        BDBG_ERR(("%s - invalid APE CRC handle (NULL)", BSTD_FUNCTION));
         BERR_TRACE(BERR_NOT_INITIALIZED);
         return;
     }
@@ -1738,7 +1738,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
             errCode = BERR_TRACE(errCode);
             goto err_mixer_open;
         }
-        BDBG_MSG(("%s - Created BAPE FMM Mixer %p", __FUNCTION__, (void *)pMixerNode->inputMixer));
+        BDBG_MSG(("%s - Created BAPE FMM Mixer %p", BSTD_FUNCTION, (void *)pMixerNode->inputMixer));
         if ( input->objectType == NEXUS_AudioInputType_eMixer )
         {
             NEXUS_AudioUpstreamNode *pUpstreamNode;
@@ -1757,14 +1757,14 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
                 {
                     addInputSettings.sampleRateMaster = (pUpstreamNode->pUpstreamObject == pNexusMixerSettings->master) ? true : false;
                 }
-                BDBG_MSG(("%s - Add input %s to BAPE FMM Mixer %p", __FUNCTION__, pUpstreamNode->pUpstreamObject->pName, (void *)pMixerNode->inputMixer));
+                BDBG_MSG(("%s - Add input %s to BAPE FMM Mixer %p", BSTD_FUNCTION, pUpstreamNode->pUpstreamObject->pName, (void *)pMixerNode->inputMixer));
                 errCode = BAPE_Mixer_AddInput(pMixerNode->inputMixer, (BAPE_Connector)pUpstreamNode->pUpstreamObject->port, &addInputSettings);
                 if ( errCode )
                 {
                     errCode = BERR_TRACE(errCode);
                     goto err_add_input;
                 }
-                BDBG_MSG(("%s - Set input volume for input %s(%p) to BAPE FMM Mixer %p, muted %d", __FUNCTION__, pUpstreamNode->pUpstreamObject->pName, (void *)pUpstreamNode->pUpstreamObject, (void *)pMixerNode->inputMixer, pData->inputVolume.muted));
+                BDBG_MSG(("%s - Set input volume for input %s(%p) to BAPE FMM Mixer %p, muted %d", BSTD_FUNCTION, pUpstreamNode->pUpstreamObject->pName, (void *)pUpstreamNode->pUpstreamObject, (void *)pMixerNode->inputMixer, pData->inputVolume.muted));
                 errCode = BAPE_Mixer_SetInputVolume(pMixerNode->inputMixer, (BAPE_Connector)pUpstreamNode->pUpstreamObject->port, &pData->inputVolume);
                 if ( errCode )
                 {
@@ -1953,8 +1953,6 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInputHandle i
     NEXUS_AudioInputData *pData;
     NEXUS_AudioDownstreamNode *pDownstreamNode;
     NEXUS_AudioOutputNode *pOutputNode;
-    bool hasOutputs=false;
-    bool hasChildren=false;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
     pData = input->pMixerData;
@@ -1997,7 +1995,6 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInputHandle i
         {
             return BERR_TRACE(errCode);
         }
-        hasOutputs = true;
     }
 
     for ( pDownstreamNode = BLST_Q_FIRST(&pData->downstreamList);
@@ -2011,7 +2008,6 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInputHandle i
         {
             return BERR_TRACE(errCode);
         }
-        hasChildren = true;
     }
 
     switch ( input->objectType )
@@ -2021,13 +2017,6 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInputHandle i
         /* This is okay for these types - they have multiple paths */
         break;
     default:
-        #if 0 /* No longer required, APE can detect this */
-        if ( hasOutputs == false && hasChildren == false )
-        {
-            BDBG_ERR(("AudioInput %p (type=%u) is not connected to any other nodes or outputs.  This is currently not supported.", (void *)input, input->objectType));
-            return BERR_TRACE(BERR_NOT_SUPPORTED);
-        }
-        #endif
         break;
     }
 

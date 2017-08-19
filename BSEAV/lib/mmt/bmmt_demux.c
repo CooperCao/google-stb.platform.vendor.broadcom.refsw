@@ -1,41 +1,40 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  **************************************************************************/
-
 #include "bstd.h"
 #include "bmmt_demux.h"
 #include "bkni.h"
@@ -295,6 +294,8 @@ void bmmt_demux_destroy(bmmt_demux_t demux)
 void bmmt_demux_stream_config_init(bmmt_demux_stream_config *config)
 {
     BKNI_Memset(config, 0, sizeof(*config));
+    config->video_sequence_number = -1;
+    config->audio_sequence_number = -1;
     return;
 }
 
@@ -453,8 +454,67 @@ int bmmt_demux_stream_process_payload(bmmt_demux_t demux, bmmt_demux_stream_t st
     if(mpu.type==BTLV_MPU_TYPE_MFU && mpu.timed) {
         btlv_timed_mfu_data mfu[16];
         unsigned parsed_mfu;
+        if ((stream->config.stream_type == bmmt_stream_type_h265) && (int32_t)mpu.sequence_number != stream->config.video_sequence_number) {
+             stream->config.video_sample_number = 0;
+             stream->config.video_sequence_number = mpu.sequence_number;
+        }
+
+        if ((stream->config.stream_type == bmmt_stream_type_aac) && (int32_t)mpu.sequence_number != stream->config.audio_sequence_number) {
+             stream->config.audio_sample_number = 0;
+             stream->config.audio_sequence_number = mpu.sequence_number;
+        }
+
+        if ((stream->config.stream_type == bmmt_stream_type_h265) &&  !stream->config.video_sample_number && (mpu.f_i == 2 || mpu.f_i == 3))
+        {
+           BDBG_MSG(("Skipping video payload"));
+           return 0;
+        }
+
         if(btlv_parse_mpu_payload_mfu(payload, &mpu, mfu, sizeof(mfu)/sizeof(mfu[0]), &parsed_mfu)==0) {
             unsigned i;
+            if(!mpu.aggregation)
+            {
+                if (mpu.f_i == 0 || mpu.f_i == 1)
+                {
+
+                   if (stream->config.stream_type == bmmt_stream_type_h265) {
+                        mfu[0].sample_number = stream->config.video_sample_number;
+                        stream->config.video_sample_number++;
+                   }
+                   else
+                   {
+                       if (stream->config.stream_type == bmmt_stream_type_aac) {
+                           mfu[0].sample_number = stream->config.audio_sample_number;
+                           stream->config.audio_sample_number++;
+                       }
+
+                   }
+                   mfu[0].offset = 0;
+                }
+                else
+                {
+                    mfu[0].offset = 0xdead;
+                }
+            }
+            else
+            {
+
+                if (stream->config.stream_type == bmmt_stream_type_aac) {
+                    for(i=0;i<parsed_mfu;i++) {
+                        mfu[i].offset = 0;
+                        mfu[i].sample_number = stream->config.audio_sample_number;
+                        stream->config.audio_sample_number++;
+                    }
+                }
+                else{
+                    if (stream->config.stream_type == bmmt_stream_type_aac){
+                        for(i=0;i<parsed_mfu;i++)
+                            mfu[i].offset = 0xdead;
+                    }
+
+                }
+            }
+
             for(i=0;i<parsed_mfu;i++) {
                 if(mfu[i].offset==0 ) {
                     btlv_ntp_time presentation_time;
@@ -538,7 +598,7 @@ static int b_mmt_demux_process_mp_table(bmmt_demux_t demux,batom_cursor *payload
                     for(;;) {
                         btlv_mpu_timestamp_descriptor_header timestamp_descriptor_header;
                         btlv_mpu_extended_timestamp_descriptor_header extended_timestamp_descriptor_header;
-                        btlv_mpu_extended_timestamp_descriptor_entry extended_timestamp_descriptor_entry[8];
+                        btlv_mpu_extended_timestamp_descriptor_entry extended_timestamp_descriptor_entry[64];
                         unsigned extended_timestamp_descriptor_entry_enries;
                         BDBG_MSG(("asset_descriptors: %u ... %u bytes" , (unsigned)batom_cursor_pos(&asset.asset_descriptors.asset_descriptors_bytes), (unsigned)asset_descriptors_end));
                         if(batom_cursor_pos(&asset.asset_descriptors.asset_descriptors_bytes) + BMEDIA_FIELD_LEN("tag",uint16_t) + BMEDIA_FIELD_LEN("length",uint8_t) >= asset_descriptors_end) {
@@ -557,7 +617,7 @@ static int b_mmt_demux_process_mp_table(bmmt_demux_t demux,batom_cursor *payload
                                     break;
                                 }
                             }
-                        } else if(btlv_parse_mpu_extended_timestamp_descriptor(&asset.asset_descriptors.asset_descriptors_bytes, &extended_timestamp_descriptor_header, 8, extended_timestamp_descriptor_entry, &extended_timestamp_descriptor_entry_enries)==0) {
+                        } else if(btlv_parse_mpu_extended_timestamp_descriptor(&asset.asset_descriptors.asset_descriptors_bytes, &extended_timestamp_descriptor_header, 64, extended_timestamp_descriptor_entry, &extended_timestamp_descriptor_entry_enries)==0) {
                             if(0) {
                                 unsigned i;
                                 for(i=0;i<extended_timestamp_descriptor_entry_enries;i++) {

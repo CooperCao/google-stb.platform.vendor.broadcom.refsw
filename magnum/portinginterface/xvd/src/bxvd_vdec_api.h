@@ -163,6 +163,10 @@ typedef struct
    uint32_t  rave_packet_count;
    uint32_t  bvnf_intr_context_1_base;
    uint32_t  memc_sentinel_reg_start;
+#if BXVD_P_FW_40BIT_API
+   uint32_t  map8_mode_enabled;    /* Map8 mode */
+   uint32_t  xpt_interface_32bits; /* Flag indicates XPT interface is 32-bits */
+#endif
 } BXVD_Cmd_Initialize;
 
 

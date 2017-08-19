@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #ifndef BHDM_CONFIG_H__
@@ -314,15 +315,6 @@ can be disabled to allow for successful compilation
 #endif
 
 
-
-#if (BCHP_CHIP == 7601) || (BCHP_CHIP == 7420) || (BCHP_CHIP == 7125) \
-||  (BCHP_CHIP == 7340) ||  (BCHP_CHIP == 7342) \
-||  (BCHP_CHIP == 7635) || (BCHP_CHIP == 7630) || (BCHP_CHIP == 7550) \
-||  (BCHP_CHIP == 7408) || (BCHP_CHIP == 7468) || (BCHP_CHIP == 7208) \
-|| BHDM_CONFIG_40NM_SUPPORT \
-|| BHDM_CONFIG_28NM_SUPPORT
-#define BHDM_CONFIG_HDMI_1_3_SUPPORT 1
-#endif
 
 #if (BCHP_CHIP == 7425)  || (BCHP_CHIP == 7429) || (BCHP_CHIP == 7435) \
  || (BCHP_CHIP == 74295) || BHDM_CONFIG_28NM_SUPPORT
@@ -653,7 +645,6 @@ can be disabled to allow for successful compilation
 /***************************************
         CRC circuit only available in DVP_HT but not the FALCON
 ****************************************/
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 #define BHDM_CONFIG_CRC_SUPPORT 1
 
 #if BHDM_CONFIG_40NM_SUPPORT \
@@ -665,8 +656,6 @@ can be disabled to allow for successful compilation
 #define REGADDR_CRC_CHECK_STATUS_0 BCHP_DVP_HT_HDMI_TX_0_IN_DVP_CRC_CHECK_STATUS_0
 #define REGNAME_CRC_CHECK_STATUS_0 DVP_HT_HDMI_TX_0_IN_DVP_CRC_CHECK_STATUS_0
 #endif
-
-#endif  /*end BHDM_CONFIG_HDMI_1_3_SUPPORT */
 
 
 #if BHDM_CONFIG_BTMR_SUPPORT

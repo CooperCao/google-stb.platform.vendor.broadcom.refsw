@@ -5,8 +5,6 @@
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
 
-#define GLSL_SAMPLER_NONE 0xFFFFFFF    /* Note 28 bit, not 32 */
-
 static inline uint32_t backend_uniform_get_sampler(uint32_t u) {
    return (u >> 4);
 }

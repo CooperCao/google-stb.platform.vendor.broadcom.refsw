@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,6 +118,7 @@ typedef struct BODS_P_Leap_Handle
     BODS_Version verInfo;
     unsigned int mxChnNo;
     BODS_ChannelHandle hOdsChn[MAX_ODS_CHANNELS];
+    unsigned numDiversityChannels;
 } BODS_P_Leap_Handle;
 
 typedef struct BODS_P_Leap_ChannelHandle            *BODS_Leap_ChannelHandle;
@@ -200,6 +201,14 @@ static BERR_Code BODS_Leap_P_EventCallback_isr(
                 if( hImplChnDev->pCallback[BODS_Callback_eEmergencyWarningSystem] != NULL )
                 {
                     (hImplChnDev->pCallback[BODS_Callback_eEmergencyWarningSystem])(hImplChnDev->pCallbackParam[BODS_Callback_eEmergencyWarningSystem] );
+                }
+            }
+            break;
+        case BHAB_Interrupt_eNewDiversityMaster:
+            {
+                if( hImplChnDev->pCallback[BODS_Callback_eNewDiversityMaster] != NULL )
+                {
+                    ( hImplChnDev->pCallback[BODS_Callback_eNewDiversityMaster] )( hImplChnDev->pCallbackParam[BODS_Callback_eNewDiversityMaster] );
                 }
             }
             break;
@@ -830,6 +839,8 @@ BERR_Code BODS_Leap_Open(
     hImplDev->hHab = (BHAB_Handle) pDefSettings->hGeneric;    /* For this device, we need the HAB handle */
     hImplDev->devId = BHAB_DevId_eODS0; /* Here the device id is always defaulted to channel 0. */
     hImplDev->mxChnNo = MAX_ODS_CHANNELS;
+    hDev->pGetConfigSettings = (BODS_GetConfigSettingsFunc) BODS_Leap_GetConfigSettings;
+    hDev->pSetConfigSettings = (BODS_SetConfigSettingsFunc) BODS_Leap_SetConfigSettings;
 
     for( chnIdx = 0; chnIdx < MAX_ODS_CHANNELS; chnIdx++ )
     {
@@ -1469,22 +1480,11 @@ BERR_Code BODS_Leap_InstallCallback(
     switch( callbackType )
     {
         case BODS_Callback_eLockChange:
-            hImplChnDev->pCallback[callbackType] = pCallbackFunc;
-            hImplChnDev->pCallbackParam[callbackType] = pParam;
-            break;
         case BODS_Callback_eUpdateGain:
-            hImplChnDev->pCallback[callbackType] = pCallbackFunc;
-            hImplChnDev->pCallbackParam[callbackType] = pParam;
-            break;
         case BODS_Callback_eNoSignal:
-            hImplChnDev->pCallback[callbackType] = pCallbackFunc;
-            hImplChnDev->pCallbackParam[callbackType] = pParam;
-            break;
         case BODS_Callback_eAsyncStatusReady:
-            hImplChnDev->pCallback[callbackType] = pCallbackFunc;
-            hImplChnDev->pCallbackParam[callbackType] = pParam;
-            break;
         case BODS_Callback_eEmergencyWarningSystem:
+        case BODS_Callback_eNewDiversityMaster:
             hImplChnDev->pCallback[callbackType] = pCallbackFunc;
             hImplChnDev->pCallbackParam[callbackType] = pParam;
             break;
@@ -1947,6 +1947,7 @@ done:
     return retCode;
 }
 
+
 BERR_Code BODS_Leap_EnablePowerSaver(
     BODS_ChannelHandle hChn,                /* [in] Device channel handle */
     BODS_PowerSaverSettings *pwrSettings    /* [in] Power saver settings */
@@ -1963,6 +1964,7 @@ BERR_Code BODS_Leap_EnablePowerSaver(
     BSTD_UNUSED(pwrSettings);
 
     hImplChnDev = (BODS_Leap_ChannelHandle) hChn->pImpl;
+
     BDBG_ASSERT( hImplChnDev );
     BDBG_ASSERT( hImplChnDev->hHab );
 
@@ -2003,6 +2005,7 @@ BERR_Code BODS_Leap_DisablePowerSaver(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BODS_Leap_ChannelHandle hImplChnDev;
+    BODS_Leap_Handle hImplDev;
     uint8_t buf[5] = HAB_MSG_HDR(BODS_ePowerCtrlOn, 0x0, BODS_DVBC2_CORE_TYPE, BODS_CORE_ID);
     uint8_t configParams[9] = HAB_MSG_HDR(BODS_CONFIG_PARAMS_WRITE, 0x4, BODS_DVBC2_CORE_TYPE, BODS_CORE_ID);
 
@@ -2015,6 +2018,9 @@ BERR_Code BODS_Leap_DisablePowerSaver(
     hImplChnDev = (BODS_Leap_ChannelHandle) hChn->pImpl;
     BDBG_ASSERT( hImplChnDev );
     BDBG_ASSERT( hImplChnDev->hHab );
+
+    hImplDev = (BODS_Leap_Handle) hChn->hOds->pImpl;
+    BDBG_ASSERT( hImplDev );
 
     if(hImplChnDev->bPowerdown)
     {
@@ -2064,11 +2070,10 @@ BERR_Code BODS_Leap_DisablePowerSaver(
         hImplChnDev->bPowerdown = false;
     }
 
-    if(1) {/* TODO Ashwin: Fix this for all chips as 3472 and 7364 dont need it??*/
-        if(hImplChnDev->verInfo.majFwVer >= 5) {
-            CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, configParams, 9, hImplChnDev->readBuf, 0, false, true, 9));
-            }
-        }
+    configParams[3] = hImplChnDev->chnNo;
+    if(hImplDev->numDiversityChannels == 1)
+        configParams[6] |= 0x1;
+    CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, configParams, 9, hImplChnDev->readBuf, 0, false, true, 9));
 
 done:
     BDBG_LEAVE(BODS_Leap_DisablePowerSaver);
@@ -2431,5 +2436,53 @@ BERR_Code BODS_Leap_GetSelectiveAsyncStatus(
     }
 
     BDBG_LEAVE(BODS_Leap_GetSelectiveAsyncStatus);
+    return retCode;
+}
+
+BERR_Code BODS_Leap_GetConfigSettings(
+    BODS_Handle hDev,                 /* [in] Device handle */
+    BODS_ConfigSettings *settings     /* [out] ODS config settings. */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BODS_Leap_Handle hImplDev;
+
+    BDBG_ENTER(BODS_Leap_GetConfigSettings);
+    BDBG_ASSERT( hDev );
+    BDBG_OBJECT_ASSERT( hDev,BODS );
+
+    hImplDev = (BODS_Leap_Handle) hDev->pImpl;
+    BDBG_ASSERT( hImplDev );
+
+    settings->numDiversityChannels = hImplDev->numDiversityChannels;
+
+    BDBG_LEAVE(BODS_Leap_GetConfigSettings);
+    return retCode;
+}
+
+BERR_Code BODS_Leap_SetConfigSettings(
+    BODS_Handle hDev,                   /* [in] Device handle */
+    const BODS_ConfigSettings *settings /* [in] ODS config settings. */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BODS_Leap_Handle hImplDev;
+    uint8_t configParams[9] = HAB_MSG_HDR(BODS_CONFIG_PARAMS_WRITE, 0x4, BODS_DVBT2_CORE_TYPE, BODS_CORE_ID);
+
+    BDBG_ENTER(BODS_Leap_SetConfigSettings);
+    BDBG_ASSERT( hDev );
+    BDBG_OBJECT_ASSERT( hDev,BODS );
+
+    hImplDev = (BODS_Leap_Handle) hDev->pImpl;
+    BDBG_ASSERT( hImplDev );
+
+    if(settings->numDiversityChannels == 1)
+        configParams[6] = 1;
+    CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplDev->hHab, configParams, 9, configParams, 0, false, true, 9));
+
+    hImplDev->numDiversityChannels = settings->numDiversityChannels;
+
+done:
+    BDBG_LEAVE(BODS_Leap_SetConfigSettings);
     return retCode;
 }

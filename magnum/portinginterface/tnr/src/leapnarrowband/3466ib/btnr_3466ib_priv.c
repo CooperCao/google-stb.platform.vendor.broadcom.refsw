@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -66,17 +63,10 @@ BERR_Code BTNR_3466_Close(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    BTNR_3466_Handle btnr_3466_handle;
-    BTNR_P_3466_Settings btnr_3466_settings;
-
 
     BDBG_ENTER(BTNR_3466_Close);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
-
-    /* verify the handle is good before using it */
-    btnr_3466_handle = (BTNR_3466_Handle) hDev->hDevImpl;
-    btnr_3466_settings = btnr_3466_handle ->settings;
 
     hDev->magicId = 0x00;       /* clear it to catch inproper use */
     BKNI_Free( (void *) hDev->hDevImpl );
@@ -129,7 +119,10 @@ BERR_Code BTNR_3466_SetRfFreq(
 
     hab[3] = hDev->channelNo;
     hab[4] |= (bandwidth << 3);
-    hab[4] |= (BTNR_TunerApplication_eTerrestrial + 1) << 6;
+    if (pTnrImplData->std == BTNR_Standard_eQam)
+        hab[4] |= (BTNR_TunerApplication_eCable + 1) << 6;
+    else
+        hab[4] |= (BTNR_TunerApplication_eTerrestrial + 1) << 6;
     hab[5] = 0x80;
     hab[12] = (rfFreq >> 24);
     hab[13] = (rfFreq >> 16);
@@ -220,7 +213,6 @@ BERR_Code BTNR_3466_GetPowerSaver(
     BTNR_PowerSaverSettings *pwrSettings        /* [in] Power saver settings. */
     )
 {
-    BTNR_P_3466_Settings *pTnrImplData;
     BERR_Code retCode = BERR_SUCCESS;
     uint8_t hab[5] = HAB_MSG_HDR(BTNR_POWER_CTRL_READ, 0, BTNR_CORE_TYPE, BTNR_CORE_ID);
 
@@ -228,7 +220,6 @@ BERR_Code BTNR_3466_GetPowerSaver(
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
-    pTnrImplData = &hDev->settings;
     hab[3] = hDev->channelNo;
     CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab, 5, hab, 9, false, true, 9 ));
 

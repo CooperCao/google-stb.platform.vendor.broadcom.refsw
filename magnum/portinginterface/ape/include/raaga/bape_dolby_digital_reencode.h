@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -105,6 +105,7 @@ typedef struct BAPE_DolbyDigitalReencodeSettings
                                                Should be false if any input is from a dolby MS decoder (AC3/AC3+/AAC). */
     BAPE_MultichannelFormat multichannelFormat; /* Controls whether the DDRE functions with 5.1 or 7.1 pcm input/output on the multichannel path.
                                                    This is not changeable on the fly. */
+    BAPE_ChannelMode stereoOutputMode;      /* Configure the channel mode for the stereo port. e2_0, e1_0 are valid values. e2_0 is the default. */
     bool fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
                                 multichannelFormat specified. This control only applies when MS12 is enabled. */
 

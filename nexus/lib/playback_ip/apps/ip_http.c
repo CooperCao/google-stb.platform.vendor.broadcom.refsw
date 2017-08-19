@@ -785,7 +785,7 @@ parsePidsFromCsvList(char *pidListBuffer, uint16_t *pidList, int *pidListCount)
     /* now get the last pid */
     pidList[(*pidListCount)++] = strtol(tmp1, (char **)NULL, 10);
     if (*pidListCount == IP_STREAMER_MAX_PIDS_PER_PROGRAM && tmp2 != NULL /*there was still an unprocessed pid in the list */) {
-        BDBG_ERR(("%s: pidList is not big enough to store all pids, current size %d", __FUNCTION__, IP_STREAMER_MAX_PIDS_PER_PROGRAM));
+        BDBG_ERR(("%s: pidList is not big enough to store all pids, current size %d", BSTD_FUNCTION, IP_STREAMER_MAX_PIDS_PER_PROGRAM));
         return;
     }
 
@@ -813,11 +813,11 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
     }
     cfg->srcType = IpStreamerSrc_eSat;
 
-    BDBG_MSG(("%s: URL is %s", __FUNCTION__, url));
+    BDBG_MSG(("%s: URL is %s", BSTD_FUNCTION, url));
 
     /* freq=<int or fixed point num> units in MHz */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "freq=", "&")) {
-        BDBG_ERR(("%s: No Frequency Attribute found", __FUNCTION__));
+        BDBG_ERR(("%s: No Frequency Attribute found", BSTD_FUNCTION));
         return -1;
     }
     freqMHzInFixedPoint = strtof(tmpBuf, (char **)NULL);
@@ -846,7 +846,7 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
 
     /* msys=dvbs | dvbs2 */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "msys=", "&")) {
-        BDBG_ERR(("%s: Sat Modulation mode is not set", __FUNCTION__));
+        BDBG_ERR(("%s: Sat Modulation mode is not set", BSTD_FUNCTION));
         return -1;
     }
     if (strcmp(tmpBuf, "dvbs") == 0) {
@@ -855,7 +855,7 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
     else if (strcmp(tmpBuf, "dvbs2") == 0) {
         /* mtype=qpsk | 8qpsk */
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "mtype=", "&")) {
-            BDBG_ERR(("%s: Sat Modulation type is not set", __FUNCTION__));
+            BDBG_ERR(("%s: Sat Modulation type is not set", BSTD_FUNCTION));
             return -1;
         }
         if (strcmp(tmpBuf, "qpsk") == 0)
@@ -863,12 +863,12 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
         else if (strcmp(tmpBuf, "8psk") == 0)
             cfg->satMode = NEXUS_FrontendSatelliteMode_e8pskLdpc;
         else {
-            BDBG_ERR(("%s: Sat Modulation type %s is valid/supported", __FUNCTION__, tmpBuf));
+            BDBG_ERR(("%s: Sat Modulation type %s is valid/supported", BSTD_FUNCTION, tmpBuf));
             return -1;
         }
     }
     else {
-        BDBG_MSG(("%s: TODO: Sat Modulation mode %s is not yet supported", __FUNCTION__, tmpBuf));
+        BDBG_MSG(("%s: TODO: Sat Modulation mode %s is not yet supported", BSTD_FUNCTION, tmpBuf));
         return -1;
     }
     BDBG_MSG(("Sat Modulation mode %d, type %d", cfg->satMode, cfg->satMode));
@@ -880,28 +880,28 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
             cfg->pilotTone = 1;
         else
             cfg->pilotTone = 0;
-        BDBG_MSG(("%s: pilot tone is %s", __FUNCTION__, cfg->pilotTone?"on":"off"));
+        BDBG_MSG(("%s: pilot tone is %s", BSTD_FUNCTION, cfg->pilotTone?"on":"off"));
     }
 
     /* sr=2000 in kSymb/s */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "sr=", "&")) {
-        BDBG_ERR(("%s: No SymbolRate Attribute found", __FUNCTION__));
+        BDBG_ERR(("%s: No SymbolRate Attribute found", BSTD_FUNCTION));
         return -1;
     }
     cfg->symbolRate = strtol(tmpBuf, (char **)NULL, 10);
     cfg->symbolRate *= 1000;
-    BDBG_MSG(("%s: symbolRate is %d", __FUNCTION__, cfg->symbolRate));
+    BDBG_MSG(("%s: symbolRate is %d", BSTD_FUNCTION, cfg->symbolRate));
 
     /* fec=12 | 23 | 34 | 56 | 78 | 35 | 45 | 910 */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "fec=", "&")) {
-        BDBG_ERR(("%s: No fec Attribute found", __FUNCTION__));
+        BDBG_ERR(("%s: No fec Attribute found", BSTD_FUNCTION));
         return -1;
     }
     cfg->fec = strtol(tmpBuf, (char **)NULL, 10);
 
     /* pol=h | v | l | r polarization */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "pol=", "&")) {
-        BDBG_ERR(("%s: ERROR: No Polarization Attribute found", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: No Polarization Attribute found", BSTD_FUNCTION));
         return -1;
     }
     if (strcmp(tmpBuf, "v") == 0)
@@ -916,11 +916,11 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "pids=", "&") == 0) {
         if (strcmp(tmpBuf, "all") == 0) {
             /* pids=all | none */
-            BDBG_MSG(("%s: pids is set to all for MPTS streaming", __FUNCTION__));
+            BDBG_MSG(("%s: pids is set to all for MPTS streaming", BSTD_FUNCTION));
             cfg->enableAllpass = true;
         }
         else if (strcmp(tmpBuf, "none") == 0) {
-            BDBG_MSG(("%s: pids is set to all for MPTS streaming", __FUNCTION__));
+            BDBG_MSG(("%s: pids is set to all for MPTS streaming", BSTD_FUNCTION));
             cfg->noDemuxOutput = true;
         }
         else {
@@ -935,39 +935,39 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
 
     /* some sat farms have multiple sat dishes ... src=1 tells which of multiple dishes we are trying to access */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "src=", "&")) {
-        BDBG_ERR(("%s: No src Attribute found", __FUNCTION__));
+        BDBG_ERR(("%s: No src Attribute found", BSTD_FUNCTION));
         return -1;
     }
     cfg->srcPosition = strtol(tmpBuf, (char **)NULL, 10);
 
     /* some sat dishes have multiple fe in the center of the disk ... up to 4 */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "fe=", "&")) {
-        BDBG_ERR(("%s: No fe Attribute found", __FUNCTION__));
+        BDBG_ERR(("%s: No fe Attribute found", BSTD_FUNCTION));
         return -1;
     }
     cfg->srcFe = strtol(tmpBuf, (char **)NULL, 10);
 
     /* if url provided ip addr*/
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "addr=", "&")) {
-        BDBG_ERR(("%s: No ipaddr Attribute found", __FUNCTION__));
+        BDBG_ERR(("%s: No ipaddr Attribute found", BSTD_FUNCTION));
     } else {
         #if 0
         unsigned long int ipaddr = strtol(tmpBuf, (char **)NULL, 10);
         struct in_addr destinationAddr; destinationAddr.s_addr = htonl(ipaddr);
-        BDBG_MSG(("%s: addr (%lx);", __FUNCTION__, destinationAddr.s_addr ));
+        BDBG_MSG(("%s: addr (%lx);", BSTD_FUNCTION, destinationAddr.s_addr ));
         strncpy ( cfg->srcIpAddress, inet_ntoa(destinationAddr), sizeof(cfg->srcIpAddress) );
         cfg->streamingCfg.streamingIpAddress = strdup(cfg->srcIpAddress);
         #else
         cfg->streamingCfg.streamingIpAddress = strdup(tmpBuf);
         #endif
-        BDBG_MSG(("%s: IPaddr (%s)", __FUNCTION__, cfg->streamingCfg.streamingIpAddress ));
+        BDBG_MSG(("%s: IPaddr (%s)", BSTD_FUNCTION, cfg->streamingCfg.streamingIpAddress ));
     }
     /* ir url provided ip port */
     if (parseToken(url, tmpBuf, sizeof(tmpBuf), "port=", "&")) {
-        BDBG_MSG(("%s: No port Attribute found", __FUNCTION__));
+        BDBG_MSG(("%s: No port Attribute found", BSTD_FUNCTION));
     } else {
         cfg->srcPort = cfg->streamingCfg.streamingPort = strtol(tmpBuf, (char **)NULL, 10);
-        BDBG_MSG(("%s: IPport (%d)", __FUNCTION__, cfg->srcPort ));
+        BDBG_MSG(("%s: IPport (%d)", BSTD_FUNCTION, cfg->srcPort ));
     }
 
 
@@ -1031,12 +1031,12 @@ getRequestInfoFromUrl(
         char *urlCopy;
         int urlLength;
 
-        BDBG_MSG(("%s - msys= detected", __FUNCTION__ ));
+        BDBG_MSG(("%s - msys= detected", BSTD_FUNCTION ));
         if(url[0] == '?'){
             /*trellis or bcmmserver handling the request*/
             urlLength = strlen(url);
             if ((urlCopy = BKNI_Malloc(urlLength+2)) == NULL) { /* one extra char for & to be added and other one for the null char */
-                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for url copy",__FUNCTION__ , urlLength+2));
+                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for url copy",BSTD_FUNCTION , urlLength+2));
                 return -1;
             }
             strncpy(urlCopy, url, urlLength);
@@ -1044,7 +1044,7 @@ getRequestInfoFromUrl(
             urlCopy[urlLength] = '&';
             urlCopy[urlLength+1] = '\0';
             if (parseSatIpOptions(openSettings, cfg)) {
-                BDBG_ERR(("%s: Failed to parse sat-ip related parameters",__FUNCTION__));
+                BDBG_ERR(("%s: Failed to parse sat-ip related parameters",BSTD_FUNCTION));
                 BKNI_Free(urlCopy);
                 return -1;
             }
@@ -1055,20 +1055,20 @@ getRequestInfoFromUrl(
             /* http://192.168.0.3/?src=1&fe=1&freq=12226&pol=h&msys=dvbs&mtype=qpsk&sr=27500&fec=34&pids=0,16,17,18,20,260,2432,2434,280,31200,101 */
             tmpPtr = strstr(url, "\r\n");
             if (!tmpPtr) {
-                BDBG_ERR(("%s: Missing CRNL from the HTTP URL header: url is %s ", __FUNCTION__, url));
+                BDBG_ERR(("%s: Missing CRNL from the HTTP URL header: url is %s ", BSTD_FUNCTION, url));
                 return -1;
             }
             *tmpPtr = '\0';
             tmpPtr = strstr(url, " HTTP");
             if (!tmpPtr) {
-                BDBG_ERR(("%s: Incorrect HTTP URL header: url is %s ", __FUNCTION__, url));
+                BDBG_ERR(("%s: Incorrect HTTP URL header: url is %s ", BSTD_FUNCTION, url));
                 return -1;
             }
             cfg->streamingCfg.streamingProtocol = B_PlaybackIpProtocol_eHttp;
             *tmpPtr = '&';
             *(tmpPtr+1) = '\0';
             if (parseSatIpOptions(openSettings, cfg)) {
-                BDBG_ERR(("%s: Failed to parse sat-ip related parameters",__FUNCTION__));
+                BDBG_ERR(("%s: Failed to parse sat-ip related parameters",BSTD_FUNCTION));
                 return -1;
             }
             return 0;
@@ -1193,7 +1193,7 @@ getRequestInfoFromUrl(
 
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "SymbolRate=", ";") == 0) {
             cfg->symbolRate = strtol(tmpBuf, (char **)NULL, 10);
-            BDBG_MSG(("%s: symbolRate is %d", __FUNCTION__, cfg->symbolRate));
+            BDBG_MSG(("%s: symbolRate is %d", BSTD_FUNCTION, cfg->symbolRate));
         }
         else {
             switch(cfg->qamMode) {
@@ -1220,21 +1220,21 @@ getRequestInfoFromUrl(
         int adcIndex;
         cfg->srcType = IpStreamerSrc_eSat;
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "Freq=", ";")) {
-            BDBG_ERR(("%s: No Frequency Attribute found", __FUNCTION__));
+            BDBG_ERR(("%s: No Frequency Attribute found", BSTD_FUNCTION));
             return -1;
         }
         cfg->frequency = strtol(tmpBuf, (char **)NULL, 10);
         BDBG_MSG(("frequency is %d", cfg->frequency));
 
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "SymbolRate=", ";")) {
-            BDBG_ERR(("%s: No SymbolRate Attribute found", __FUNCTION__));
+            BDBG_ERR(("%s: No SymbolRate Attribute found", BSTD_FUNCTION));
             return -1;
         }
         cfg->symbolRate = strtol(tmpBuf, (char **)NULL, 10);
-        BDBG_MSG(("%s: symbolRate is %d", __FUNCTION__, cfg->symbolRate));
+        BDBG_MSG(("%s: symbolRate is %d", BSTD_FUNCTION, cfg->symbolRate));
 
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "SatMode=", ";")) {
-            BDBG_ERR(("%s: No Sat Modulation type set", __FUNCTION__));
+            BDBG_ERR(("%s: No Sat Modulation type set", BSTD_FUNCTION));
             return -1;
         }
         if (strcmp(tmpBuf, "DVB") == 0)
@@ -1250,13 +1250,13 @@ getRequestInfoFromUrl(
         else if (strcmp(tmpBuf, "DVBS28PSK") == 0)
             cfg->satMode = NEXUS_FrontendSatelliteMode_eDvbs28psk;
         else {
-            BDBG_MSG(("%s: TODO: Sat Modulation type %d is not yet supported", __FUNCTION__, cfg->satMode));
+            BDBG_MSG(("%s: TODO: Sat Modulation type %d is not yet supported", BSTD_FUNCTION, cfg->satMode));
             return -1;
         }
         BDBG_MSG(("Sat Modulation type set to %d", cfg->satMode));
 
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "DiseqcVoltage=", ";")) {
-            BDBG_ERR(("%s: ERROR: No DiseqcVoltage Attribute found", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: No DiseqcVoltage Attribute found", BSTD_FUNCTION));
             return -1;
         }
         voltage = strtol(tmpBuf, (char **)NULL, 10);
@@ -1285,7 +1285,7 @@ getRequestInfoFromUrl(
         }
 
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "AdcIndex=", ";")) {
-            BDBG_MSG(("%s: No AdcIndexFound Attribute. default to index 0", __FUNCTION__));
+            BDBG_MSG(("%s: No AdcIndexFound Attribute. default to index 0", BSTD_FUNCTION));
             cfg->newAdc =0;
             cfg->isNewAdc=false;
         }
@@ -1293,12 +1293,12 @@ getRequestInfoFromUrl(
             adcIndex = strtol(tmpBuf, (char **)NULL, 10);
             if(adcIndex < 0 || adcIndex >3 )
             {
-                BDBG_ERR(("%s: ERROR: Adc index(%d) is invalid or value looks out of range", __FUNCTION__, adcIndex));
+                BDBG_ERR(("%s: ERROR: Adc index(%d) is invalid or value looks out of range", BSTD_FUNCTION, adcIndex));
                 return -1;
             }
             else
             {
-                BDBG_MSG(("%s:  AdcIndex set to %d ", __FUNCTION__, cfg->newAdc));
+                BDBG_MSG(("%s:  AdcIndex set to %d ", BSTD_FUNCTION, cfg->newAdc));
                 cfg->newAdc = adcIndex;
                 cfg->isNewAdc=true;
             }
@@ -1312,21 +1312,21 @@ getRequestInfoFromUrl(
         /* priority=LOW|HIGH; */
         cfg->srcType = IpStreamerSrc_eOfdm;
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "Freq=", ";")) {
-            BDBG_ERR(("%s: No Frequency Attribute found", __FUNCTION__));
+            BDBG_ERR(("%s: No Frequency Attribute found", BSTD_FUNCTION));
             return -1;
         }
         cfg->frequency = strtol(tmpBuf, (char **)NULL, 10);
         BDBG_MSG(("frequency is %d", cfg->frequency));
 
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "Bandwidth=", ";")) {
-            BDBG_ERR(("%s: No Bandwidth Attribute found", __FUNCTION__));
+            BDBG_ERR(("%s: No Bandwidth Attribute found", BSTD_FUNCTION));
             return -1;
         }
         cfg->bandwidth = strtol(tmpBuf, (char **)NULL, 10);
-        BDBG_MSG(("%s: bandwidth is %d", __FUNCTION__, cfg->bandwidth));
+        BDBG_MSG(("%s: bandwidth is %d", BSTD_FUNCTION, cfg->bandwidth));
 
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "OfdmMode=", ";")) {
-            BDBG_ERR(("%s: No OFDM Mode set", __FUNCTION__));
+            BDBG_ERR(("%s: No OFDM Mode set", BSTD_FUNCTION));
             return -1;
         }
         if (strcmp(tmpBuf, "DVBT") == 0)
@@ -1338,7 +1338,7 @@ getRequestInfoFromUrl(
         else if (strcmp(tmpBuf, "ISDBT") == 0)
             cfg->ofdmMode = NEXUS_FrontendOfdmMode_eIsdbt;
         else {
-            BDBG_MSG(("%s: TODO: OFDM mode %s is not yet supported", __FUNCTION__, tmpBuf));
+            BDBG_MSG(("%s: TODO: OFDM mode %s is not yet supported", BSTD_FUNCTION, tmpBuf));
             return -1;
         }
         BDBG_MSG(("OFDM Mode set to %d", cfg->ofdmMode));
@@ -1517,7 +1517,7 @@ getRequestInfoFromUrl(
     }
     /* Transcoding String */
     if (parseTranscodeOptions(openSettings, cfg)) {
-        BDBG_ERR(("%s: Failed to parse transcode related parameters",__FUNCTION__));
+        BDBG_ERR(("%s: Failed to parse transcode related parameters",BSTD_FUNCTION));
         return -1;
     }
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -1562,7 +1562,7 @@ fileParsing:
                 cfg->mediaInfoFilesDir[rootDirLen] = '\0';
             }
             else {
-                BDBG_ERR(("%s: media file name (%s) needs to contain absolute path", __FUNCTION__, cfg->fileName));
+                BDBG_ERR(("%s: media file name (%s) needs to contain absolute path", BSTD_FUNCTION, cfg->fileName));
                 return -1;
             }
         }
@@ -1648,7 +1648,7 @@ fileParsing:
         }
 
         if (parseTranscodeOptions(openSettings, cfg)) {
-            BDBG_ERR(("%s: Failed to parse transcode related parameters",__FUNCTION__));
+            BDBG_ERR(("%s: Failed to parse transcode related parameters",BSTD_FUNCTION));
             return -1;
         }
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -1688,7 +1688,7 @@ fileParsing:
             *tmpPtr = ';';
 
         if (parseTranscodeOptions(openSettings, cfg)) {
-            BDBG_ERR(("%s: Failed to parse transcode related parameters", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to parse transcode related parameters", BSTD_FUNCTION));
             return -1;
         }
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -1741,7 +1741,7 @@ fileParsing:
         if (parseToken(url, tmpBuf, sizeof(tmpBuf), "PlaySpeed.dlna.org: speed=", "\r\n") == 0) {
             int speedNumerator =1, speedDenominator=1, direction=1;
             if (B_PlaybackIp_UtilsParsePlaySpeedString(tmpBuf, &speedNumerator, &speedDenominator, &direction) < 0) {
-                BDBG_ERR(("%s: Failed to parse the playSpeedString %s", __FUNCTION__, tmpBuf));
+                BDBG_ERR(("%s: Failed to parse the playSpeedString %s", BSTD_FUNCTION, tmpBuf));
                 return B_ERROR_UNKNOWN;
             }
             if ( abs(speedDenominator) > abs(speedNumerator) )
@@ -1826,6 +1826,6 @@ acceptNewHttpRequest(
 void
 closeHttpSession(int sd)
 {
-    BDBG_MSG(("%s: Closing socket %d", __FUNCTION__, sd));
+    BDBG_MSG(("%s: Closing socket %d", BSTD_FUNCTION, sd));
     close(sd);
 }

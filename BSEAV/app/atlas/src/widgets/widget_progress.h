@@ -62,8 +62,8 @@ public:
     void                   showProgress(bool show);
     bool                   isTextVisible(void) { return(_showText); }
     void                   showText(bool show);
-    uint16_t               getLevel(void) { return(_level); }
-    void                   setLevel(uint16_t level);
+    unsigned               getLevel(void) { return(_level); }
+    void                   setLevel(unsigned level);
     uint32_t               getColor(void) { return(_color); }
     void                   setColor(uint32_t color);
     uint32_t               getColorTop(void) { return(_colorTop); }
@@ -77,8 +77,8 @@ public:
     bwin_image_render_mode getProgressRenderMode(void)       { return(_imageRenderMode); }
     void                   setRangeIndicator(bool showRange) { _showRange = showRange; }
     bool                   isRangeIndicatorVisible(void)     { return(_showRange); }
-    void                   setRangeIndicatorSize(uint16_t size);
-    uint16_t               getRangeIndicatorSize(void) { return(_rangeSize); }
+    void                   setRangeIndicatorSize(unsigned size);
+    unsigned               getRangeIndicatorSize(void) { return(_rangeSize); }
 
 protected:
     bool                   _showProgress;
@@ -88,10 +88,10 @@ protected:
     uint32_t               _colorTop;
     uint32_t               _colorMiddle;
     uint32_t               _colorBottom;
-    uint16_t               _level;
+    unsigned               _level;
     bool                   _showRange;
     bool                   _showText;
-    uint16_t               _rangeSize;
+    unsigned               _rangeSize;
 };
 
 #ifdef __cplusplus

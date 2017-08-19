@@ -1,58 +1,80 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/Profiles/ZHA/include/bbZbProZhaCommon.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZHA Profile common definitions.
+*       ZHA Profile common definitions.
 *
-* $Revision: 7361 $
-* $Date: 2015-07-08 17:17:17Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZHA_COMMON_H
 #define _BB_ZBPRO_ZHA_COMMON_H
+
+
+/******************************** ZBPRO ZHA DOCUMENTATION STRUCTURE ***************************/
+/**//**
+ * \defgroup ZBPRO (ZigBee-PRO API)
+ @{
+ * \defgroup ZBPRO_ZHA (Home Automation API)
+ @{
+ * \defgroup ZBPRO_ZHA_Types (Home Automation Types)
+ @{
+ * \defgroup ZBPRO_ZHA_Misc (Miscellaneous ZHA Types)
+ * \defgroup ZBPRO_ZHA_EzModeReq (EZ Mode Request)
+ * \defgroup ZBPRO_ZHA_EzModeConf (EZ Mode Confirmation)
+ * \defgroup ZBPRO_ZHA_CieEnrollReq (CIE Device Enroll Request)
+ * \defgroup ZBPRO_ZHA_CieEnrollConf (CIE Device Enroll Confirmation)
+ * \defgroup ZBPRO_ZHA_CieEnrollInd (CIE Device Enroll Indication)
+ * \defgroup ZBPRO_ZHA_CieSetPanelStatusReq (CIE Set Panel Status Request)
+ * \defgroup ZBPRO_ZHA_CieSetPanelStatusConf (CIE Set Panel Status Confirmation)
+ * \defgroup ZBPRO_ZHA_CieSetPanelStatusInd (CIE Set Panel Status Indication)
+ * \defgroup ZBPRO_ZHA_CieZoneSetBypassStateReq (CIE Zone Set Bypass State Request)
+ * \defgroup ZBPRO_ZHA_CieZoneSetBypassStateConf (CIE Zone Set Bypass State Confirmation)
+ * \defgroup ZBPRO_ZHA_CieDeviceRegisterReq (CIE Device Register Request)
+ * \defgroup ZBPRO_ZHA_CieDeviceRegisterConf (CIE Device Register Confirmation)
+ * \defgroup ZBPRO_ZHA_CieDeviceUnregisterReq (CIE Device Unregister Request)
+ * \defgroup ZBPRO_ZHA_CieDeviceUnregisterConf (CIE Device Unregister Confirmation)
+ @}
+ * \defgroup ZBPRO_ZHA_Functions (Home Automation Routines)
+ @}
+ @}
+ */
 
 
 /************************* INCLUDES *****************************************************/
@@ -71,6 +93,7 @@
 
 /**//**
  * \brief   Enumeration of ZHA Devices.
+ * \ingroup ZBPRO_ZHA_Misc
  * \par     Documentation
  *  See ZigBee Document 05-3520-29, subclause 5.7, table 5.1.
  */
@@ -218,14 +241,18 @@ SYS_DbgAssertStatic(ZBPRO_ZHA_DEVICE_VERSION <= ZBPRO_APS_DEVICE_VERSION_MAX);
 /************************* PROTOTYPES ***************************************************/
 /**//**
  * \brief   Initializes ZHA Profile.
+ * \ingroup ZBPRO_ZHA_Functions
  * \details
  *  Call this function ones at application startup.
  * \details
  *  This function initializes one instance of ZCL Dispatcher with ZHA Profile Descriptor.
  * \note
  *  This implementation supports only one instance of ZHA profile.
+ * \return Nothing.
  */
 void ZBPRO_ZHA_Initialization(void);
 
 
 #endif /* _BB_ZBPRO_ZHA_COMMON_H */
+
+/* eof bbZbProZhaCommon.h */

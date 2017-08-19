@@ -75,7 +75,7 @@ BDBG_MODULE(nexus_gcb_sw);
 #define BDBG_MSG_TRACE_LOCK(x)
 #endif
 
-void dataready_callback(void *context, int param)
+static void dataready_callback(void *context, int param)
 {
     BSTD_UNUSED(context);
     BSTD_UNUSED(param);
@@ -183,7 +183,7 @@ void NEXUS_Gcb_P_Close(NEXUS_GcbSwHandle hGcb)
     BKNI_Free(hGcb);
 }
 
-NEXUS_Error NEXUS_Gcb_P_ReplicatePidChannels(NEXUS_GcbSwHandle hGcb)
+static NEXUS_Error NEXUS_Gcb_P_ReplicatePidChannels(NEXUS_GcbSwHandle hGcb)
 {
     NEXUS_P_HwPidChannel *pidChannel;
     unsigned pidList[MAX_PID_CHANNELS];
@@ -373,7 +373,7 @@ NEXUS_Error NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBan
 }
 
 /* parse ITB data and store in fifo */
-void NEXUS_Gcb_P_ProcessItb(NEXUS_GcbSwHandle hGcb)
+static void NEXUS_Gcb_P_ProcessItb(NEXUS_GcbSwHandle hGcb)
 {
     NEXUS_RecpumpHandle recpump;
     NEXUS_Error rc;
@@ -381,7 +381,7 @@ void NEXUS_Gcb_P_ProcessItb(NEXUS_GcbSwHandle hGcb)
     size_t index_buffer_size, index_buffer_size_wrap;
     const uint32_t *pitb, *pitbw;
     unsigned i, seqNum;
-    unsigned numItb, numLeft;
+    unsigned numItb;
     uintoff_t offsetCdb, offsetCdbNext;
     GcbChunk *chunk;
 
@@ -454,8 +454,9 @@ void NEXUS_Gcb_P_ProcessItb(NEXUS_GcbSwHandle hGcb)
         }
 
         if (numItb) {
-            numLeft = BFIFO_WRITE_LEFT(&hGcb->parsers[i].chunkFifo);
+            unsigned numLeft = BFIFO_WRITE_LEFT(&hGcb->parsers[i].chunkFifo);
             chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
+            BSTD_UNUSED(numLeft);
             BDBG_MSG_TRACE_ITB(("[%u] ITB +%u, seqNum %6u:%6u, offsetEnd %10u, fifo %2u/%2u", i, numItb, chunk->seqNum, seqNum, (unsigned)offsetCdbNext, CHUNK_FIFO_SIZE-numLeft, CHUNK_FIFO_SIZE));
             NEXUS_Recpump_IndexReadComplete(recpump, numItb*ITB_PAIR_SIZE);
         }
@@ -466,7 +467,7 @@ done:
 }
 
 /* create and submit MCPB descriptor chain */
-void NEXUS_Gcb_P_Submit(NEXUS_GcbSwHandle hGcb)
+static void NEXUS_Gcb_P_Submit(NEXUS_GcbSwHandle hGcb)
 {
     unsigned numChunks = MAX_DESC_LEN, numDesc;
     unsigned i, next, prevSeqNum = 0;
@@ -748,7 +749,7 @@ static void NEXUS_Gcb_P_SubmitDebug2(NEXUS_GcbSwHandle hGcb)
 }
 #endif
 
-void NEXUS_Gcb_P_Timer(void *arg)
+static void NEXUS_Gcb_P_Timer(void *arg)
 {
     NEXUS_GcbSwHandle hGcb = arg;
     NEXUS_RecpumpHandle recpump;
@@ -809,7 +810,11 @@ void NEXUS_Gcb_P_Timer(void *arg)
         if ((max<=min) || (max-min>MAX_SEQNUM_SKEW)) {
             BDBG_MSG(("Large seqNum skew detected (%u), attempting to rebase..", max-min));
             for (i=0; i<hGcb->numParsers; i++) {
-                chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
+                if (BFIFO_READ_LEFT(&hGcb->parsers[i].chunkFifo)==0) {
+                    goto done;
+                }
+            }
+            for (i=0; i<hGcb->numParsers; i++) {
                 BFIFO_READ_COMMIT(&hGcb->parsers[i].chunkFifo, 1);
             }
             goto done;
@@ -870,14 +875,12 @@ void NEXUS_Gcb_P_Timer(void *arg)
 cross_priband:
     if (hGcb->state.state==sstate_crossInit || hGcb->state.state==sstate_crossPriBand) {
         int seqNum;
-        uintoff_t offsetCdb, offsetItb;
         GcbChunk *chunk;
 
         for (i=0; i<hGcb->numParsers; i++) {
             if (hGcb->parsers[i].seqNum >= hGcb->state.seqThreshold) { continue; }
 
             seqNum = -1;
-            offsetCdb = 0, offsetItb = 0;
             while (BFIFO_READ_LEFT(&hGcb->parsers[i].chunkFifo)) {
                 chunk = BFIFO_READ(&hGcb->parsers[i].chunkFifo);
                 seqNum = chunk->seqNum;

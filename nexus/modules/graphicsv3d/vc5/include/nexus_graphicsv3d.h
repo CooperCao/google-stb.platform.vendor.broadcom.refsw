@@ -115,6 +115,9 @@ typedef enum NEXUS_Graphicsv3dJobType
    NEXUS_Graphicsv3dJobType_eTest,
    NEXUS_Graphicsv3dJobType_eUsermode,
    NEXUS_Graphicsv3dJobType_eBarrier,
+   NEXUS_Graphicsv3dJobType_eWaitOnEvent,
+   NEXUS_Graphicsv3dJobType_eSetEvent,
+   NEXUS_Graphicsv3dJobType_eResetEvent,
    NEXUS_Graphicsv3dJobType_eNumJobTypes
 } NEXUS_Graphicsv3dJobType;
 
@@ -266,6 +269,19 @@ typedef struct NEXUS_Graphicsv3dJobFenceWait
    NEXUS_Graphicsv3dJobBase            sBase;
    int32_t                             iFence;
 } NEXUS_Graphicsv3dJobFenceWait;
+
+/**
+Summary:
+A scheduler event job.
+
+Description:
+
+**/
+typedef struct NEXUS_Graphicsv3dJobSchedEvent
+{
+   NEXUS_Graphicsv3dJobBase            sBase;
+   uint64_t                            uiEventId;
+} NEXUS_Graphicsv3dJobSchedEvent;
 
 /**
 Summary:
@@ -742,6 +758,46 @@ void NEXUS_Graphicsv3d_GetPerfCounterData(
    NEXUS_Graphicsv3dCounter   *psCounters                      /* [out] attr{nelem=uiMaxCounters;nelem_out=puiCountersOut;null_allowed=y} */
    );
 
+/**
+Summary:
+Client load data returned by BV3D_GetLoadData.
+**/
+typedef struct NEXUS_Graphicsv3dClientLoadData
+{
+   uint32_t uiClientId;
+   uint32_t uiClientPID;
+   uint32_t uiNumRenders;
+   uint8_t  sRenderPercent;
+} NEXUS_Graphicsv3dClientLoadData;
+
+/**
+Summary:
+Turn load data collection on or off (defaults off).
+**/
+void NEXUS_Graphicsv3d_SetGatherLoadData(
+   bool bCollect
+   );
+
+/**
+Summary:
+Get information about the loading of individual V3D clients.
+
+Description:
+Fills in a BV3D_LoadData structure with relevant data about the 3D core.
+
+Calling with pData==NULL & uiNumClients==0 will fill in pValidClients with the number of
+clients that have data. You can then allocate enough space for the pData.
+
+Call again with a real pData array to retrieve the data.
+
+The load data statistics will be reset when the client data has been retrieved.
+**/
+NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
+   NEXUS_Graphicsv3dClientLoadData *pLoadData,     /* [out] attr{nelem=uiNumClients;nelem_out=pValidClients;null_allowed=y} */
+   uint32_t                         uiNumClients,
+   uint32_t                         *pValidClients
+   );
+
 /************************************************************************/
 /* Event timeline                                                       */
 /************************************************************************/
@@ -840,17 +896,45 @@ void NEXUS_Graphicsv3d_GetEventData(
    uint32_t                   *puiBytesCopiedOut         /* [out] */
    );
 
-/**
-Summary:
-Get milliseconds from when the module first started.  All time data
-exported from the module is in this base.
 
-Description:
-returns number of microseconds since module boot.
-**/
-void NEXUS_Graphicsv3d_GetTime(
-   uint64_t *pMicroseconds                         /* [out] time in microseconds */
-   );
+/************************************************************************/
+/* Scheduler Event Sync Object                                          */
+/************************************************************************/
+/*
+   NOTE:
+
+*/
+
+NEXUS_Error NEXUS_Graphicsv3d_QueueSchedEvent(
+      NEXUS_Graphicsv3dHandle             hGfx,
+      const NEXUS_Graphicsv3dJobSchedEvent  *schedEvent
+      );
+
+NEXUS_Error NEXUS_Graphicsv3d_NewSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
+      uint64_t                      *puiSchedEventId  /* [out] */
+      );
+
+NEXUS_Error NEXUS_Graphicsv3d_DeleteSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
+      uint64_t                      uiSchedEvent      /* [in]  */
+      );
+
+NEXUS_Error NEXUS_Graphicsv3d_SetSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
+      uint64_t                      uiSchedEvent      /* [in]  */
+      );
+
+NEXUS_Error NEXUS_Graphicsv3d_ResetSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
+      uint64_t                      uiSchedEvent      /* [in]  */
+      );
+
+NEXUS_Error NEXUS_Graphicsv3d_QuerySchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
+      uint64_t                      uiSchedEvent,     /* [in]  */
+      bool                          *bEventSet        /* [out] */
+      );
 
 #ifdef __cplusplus
 }

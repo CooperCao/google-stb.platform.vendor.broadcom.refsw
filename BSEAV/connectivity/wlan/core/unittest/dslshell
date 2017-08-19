@@ -1,0 +1,442 @@
+#!/usr/bin/expect
+# -*-tcl-*-
+#
+# $Copyright Broadcom Corporation$
+# $Id: 8e6a306fad3d6ea03e8791bdb16672e84bdde1b1 $
+#
+
+proc load {file args} {
+    global spawn_id
+
+    set quiet false
+    while {[llength $args]} {
+	set a [lindex $args 0]
+	set args [lreplace $args 0 0]
+	switch -- $a {
+	    -quiet {
+		set quiet true
+	    }
+	    default {
+		error "usage: load file \[-quiet\]"
+	    }
+	}
+    }
+
+    if {![file exists $file]} {
+	error "$file: not found"
+    }
+
+    if {!$quiet} {
+	log_user 1
+    }
+
+    set timeout 60
+
+    # Reset any previous connections
+    exp_send "\u0003\u0004"
+    sleep 0.5
+    exp_send "\n"
+
+    expect {
+	timeout {
+	    error "Timeout\n"
+	}
+	"Bye bye" {
+	    exp_send "\r"
+	    exp_continue
+	}
+	"Login:" {
+	    exp_send "admin\r"
+	    exp_continue
+	}
+	"Password:" {
+	    exp_send "admin\r"
+	    exp_continue
+	}
+	-re {Board IP address\s+:\s+([\d]+\.[\d]+\.[\d]+\.[\d])} {
+	    set ipaddr $expect_out(1,string)
+	    exp_continue
+	}
+	-re {CFE> $} {
+	    if {[info exists ipaddr]} {
+		# Upload
+		set cmd [list curl -u admin:admin -F "file=@$file;filename=file" http://$ipaddr/upgrade.cgi]
+		exp_send_user "# $cmd\n"
+		exp_send_user "[exec {*}$cmd 2>&1]\n"
+	    } else {
+		exp_send "p\r"
+		exp_continue
+	    }
+	}
+	"CFE version" {
+	    exp_send "\003"
+	    exp_continue
+	}
+	-re {[>#] $} {
+	    # Drop to CFE
+	    exp_send "reboot\r"
+	    exp_continue
+	}
+    }
+    exit 0
+}
+
+proc connect {} {
+    global spawn_id
+
+    interact {
+	"\u0016\u0004" {
+	    exp_send "\u0016\u0004"
+	}
+	"\u0004" {
+	    return
+	}
+    }
+    send_user "\r"
+}
+
+proc logger {} {
+    global spawn_id
+    # don't want timeouts to interrupt logging, but if a test is still
+    # running after a day then something has gone wrong.
+    set timeout 86400
+    # May need to force reconnection, eg in synacess servers.
+    exp_send "\r"
+
+    expect {
+	-re {..*} {
+	    puts -nonewline "$expect_out(buffer)"
+	    exp_continue
+	}
+    }
+}
+
+proc command {args} {
+    set cmd [join $args " "]
+
+    # send magic sysrq directly
+    if {[regexp {^\^} $cmd]} {
+	exp_send $cmd
+    	exit 0
+    }
+
+    # If the commandline starts wuith "dslsh" then run the command
+    # against the console shell ">", instead of the unix shell "#"
+    if {[regsub {^dslsh } $cmd {} cmd]} {
+	set dslsh 1
+    } else {
+	set dslsh 0
+    }
+
+    global spawn_id
+    set os "linux"
+    array set prompt {linux "\# \"" IPS "IPS> "}
+    exp_send "\r"
+    expect {
+	-re {\u00ff..} {
+	    # pause if we see a telnet negotiation, otherwise
+	    # expect may read an early EOF
+	    sleep 0.1
+	    exp_continue
+	}
+	"Login:" {
+	    exp_send "admin\r"
+	    exp_continue
+	}
+	"Password:" {
+	    exp_send "admin\r"
+	    exp_continue
+	}
+	"CFE> " {
+	    exp_send "r\r"
+	    exp_continue
+	}
+	"Hit enter to continue..." {
+	    exp_send "\r"
+	    exp_continue
+	}
+	-re {> $} {
+	    if {!$dslsh} {
+		exp_send "sh\r"
+		exp_continue
+	    }
+	}
+	default {
+	    puts stderr "connect failed"
+	    exit 1
+	}
+	-re {\# |\]\#} {
+	    if {$dslsh} {
+		exp_send "exit\r"
+		exp_continue
+	    }
+	}
+    }
+
+    set send_slow {5 .005}
+
+    if {$dslsh} {
+	exp_send -s -- "$cmd\r"
+	expect {
+	    -timeout 5 timeout {}
+	    -re "> "
+	}
+	# Send some data - workaround for 1-second close down bug on older
+	# versions of expect
+	exp_send "\b"
+    	exit 0
+    }
+
+    # Send command with minimal wrapper just to get return code
+    # without messing up the log file
+    regexp {^\s*(.*?)[;\s]*$} $cmd - cmd
+    append cmd ";PS1=\"\#$?\#\ \""
+    if {[string length $cmd] > 254} {
+	puts stderr "Command line too long\n"
+	exit 1
+    }
+
+    exp_send -s -- "$cmd\r"
+
+    # Skip command echo.  If we don't spot the echo quickly, ignore it
+    # and move on
+    expect {
+	-timeout 5 timeout {}
+	-re "\# \"(\r\n| \b)"
+    }
+
+    set ret_code ""
+    expect {
+	"syntax error\r\n" {
+	    exp_send_user -- $expect_out(buffer)
+	    set ret_code 255
+	}
+	-re "(.*)\#(\[-0-9\]+)\# " {
+	    exp_send_user -- $expect_out(1,string)
+	    set ret_code $expect_out(2,string)
+	}
+	-re {\# [ut]cp } {
+	    # Don't be fooled by epi_ttcp messages!
+	    exp_send_user -- "$expect_out(buffer)"
+	    exp_continue
+	}
+	-re "logout\r" {
+	    set ret_code 0
+	}
+	-ex "Hit enter to continue..." {
+	    exp_send_user -- "$expect_out(buffer)\n"
+	    exp_send "\r"
+	    set ret_code 0
+	}
+	full_buffer {
+	    exp_send_user -- $expect_out(buffer)
+	    exp_continue
+	}
+    }
+    if {$ret_code == ""} {
+	set ret_code 255
+    }
+    # Send some data - workaround for 1-second close down bug on older
+    # versions of expect
+    exp_send "\b"
+    exit $ret_code
+}
+
+proc usage {} {
+    puts stderr "Usage: $::argv0 \[-\](dev|ip:port) \[cmd \[args ...\]\]"
+    puts stderr "       $::argv0 \[-\](dev|ip:port) load file"
+    puts stderr "       $::argv0 \[-\](dev|ip:port) reboot \[key=value ...\]"
+    exit 1
+}
+
+set vru "/var/run/utf"
+
+# Args
+if {[llength $argv] > 0 && [set host [lindex $argv 0]] != "-man"} {
+
+    if {[info exists env(EXP_INTERNAL)]} {
+	exp_internal 1
+    } else {
+	exp_internal 0
+    }
+    log_user 0
+    set logger [regexp {^-(.*)} $host - host]
+    if {[catch {
+	if {[catch {
+	    # Redirect to consolelogger, if available
+	    set port \
+		[gets [open "$vru/[string map {/ _ : _} $host]"]]
+	    spawn -noecho -open [socket localhost $port]
+	} ret]} {
+	    if {[string match "*/*" $host]} {
+		# reject background (logging) processes if they try to
+		# talk to the device directly.
+		if {$logger} {
+		    exit
+		}
+		set fd [open $host {RDWR NONBLOCK}]
+		fconfigure $fd \
+		    -mode {115200,n,8,1} -buffering none -blocking 0
+		catch {fconfigure $fd -handshake xonxoff}
+		spawn -noecho -open $fd
+	    } else {
+		# Telnet gets a new session so no reset needed
+		if {![regexp {(.*):(.*)} $host - host port]} {
+		    set port 23
+		}
+		spawn -noecho -open [socket $host $port]
+	    }
+	}
+
+	# Make sure we're using the same encoding as consolelogger
+	fconfigure $spawn_id -encoding binary
+
+	set timeout 60
+
+	if {[llength $argv] == 1} {
+	    connect
+	} else {
+	    set cmd [lindex $argv 1]
+	    if {[llength $argv] == 2} {
+		# Whole commandline probably quoted as one string
+		set argv [lreplace $cmd 0 0]
+		set cmd  [lindex $cmd 0]
+	    } else {
+		set argv [lreplace $argv 0 1]
+	    }
+	    if {$cmd == "logger"} {
+		logger
+	    } elseif {$cmd == "load"} {
+		eval load $argv
+	    } else {
+		eval command $cmd $argv
+	    }
+	}
+    } ret]} {
+	puts stderr $ret
+	exit 1
+    }
+    exit 0
+}
+
+# Leave this 'til last to improve performance
+lappend auto_path . /projects/hnd/tools/linux/share/unittest
+package require UTF::doc
+
+UTF::doc {
+    # [manpage_begin apshell n 1.0]
+    # [moddesc {HND Wireless Test Framework}]
+    # [titledesc {tool for managing a Broadcom DSL Router}]
+    # [copyright {2005 Broadcom Corporation}]
+    # [description]
+    # [para]
+
+    # [cmd dslshell] is a command for communicating with a Linux
+    # AP/Router via the serial or telnet console.  If the serial port
+    # or telnet host:port are being managed by a [cmd consolelogger]
+    # process, [cmd dslshell] will connect to the [cmd consolelogger]
+    # process instead.
+
+    # [list_begin arguments]
+
+    # [arg_def "" connection]
+
+    # Every [cmd dslshell] command requires a [arg connection] argument
+    # which specifies the mechanism for communicating with the AP.
+    # Various alternative connection mechanisms are available:
+
+    # [list_begin arguments]
+
+    # [arg_def "" /dev/ttyS*]
+
+    # The name of the serial port device directly connected to the AP.
+
+    # [arg_def "" address]
+
+    # The hostname or IP address of the AP.  In this case [cmd
+    # dslshell] will use the AP's [cmd telnet] interface.
+
+    # [para]
+
+    # NOTE: this will not work for [cmd load] since it does not allow
+    # access to the CFE> prompt.
+
+    # [arg_def "" address:port]
+
+    # The hostname or IP address and TCP port of a terminal server or
+    # [cmd consolelogger] session.
+
+    # [list_end]
+
+    # [para]
+
+    # If [cmd consolelogger] is not running only one [cmd dslshell]
+    # process can access a device at a time.  This can cause problems
+    # when background logging processes compete with foreground
+    # command processes.  [cmd consolelogger] avoids this problem by
+    # allowing multiple [cmd dslshell] processes to access the same
+    # device.
+
+    # [para]
+
+    # [arg connection] may be prefixed with [cmd -] to indicate this
+    # is a background process and therefore requires [cmd
+    # consolelogger].  If [cmd consolelogger] is not running then
+    # attempts to connect to [arg -connection] will fail silently.
+
+    # [list_end]
+
+    # [list_begin definitions]
+
+    # [call [cmd dslshell] [arg connection] [cmd reboot]
+    #	      [lb][arg {key=value ...}][rb]]
+
+    # Set and commit nvram variables and reboot.  Variables will be
+    # set at the [option {# }] prompt, if possible, otherwise they
+    # will be set at the [option {CFE> }] prompt.  [cmd dslshell] will
+    # display console messages during the reboot sequence.
+
+    # [call [cmd dslshell] [arg connection] [lb][cmd {cmd ...}][rb]]
+
+    # Simulates [cmd {rsh host cmd ...}] on AP/Router.  Requires
+    # serial or IP access to the AP.
+
+    # [list_begin arguments]
+
+    # [arg_def "" {cmd ...}]
+
+    # Optional command and arguments to be run.  If a command line is
+    # not specified, an interactive terminal session is started.  To
+    # disconnect from the session use ^D (however, like a regular
+    # tty. if you need to input a literal ^D to the session you can
+    # escape it by using ^V^D).
+
+    # [para]
+
+    # If a command line is specified, it will be run on the AP and the
+    # results returned.  The command line can contain arbitrary quotes
+    # and embedded newlines.  [cmd dslshell] will exit with the same
+    # exit code as the [cmd cmd].  If a username and password are
+    # required, they will be prompted for.
+
+    # [para]
+
+    # NOTE: The shell on the AP is very limited - in particular,
+    # subshells and here-documents are not supported, and bad quoting
+    # can give silent success, instead of returning error.
+
+    # [list_end]
+
+    # [list_end]
+
+    # [see_also [uri APdoc.cgi?consolelogger consolelogger]]
+    # [see_also [uri APdoc.cgi?vxshell vxshell]]
+    # [see_also [uri APdoc.cgi?ciscoshell ciscoshell]]
+    # [see_also [uri APdoc.cgi?linuxsimshell linuxsimshell]]
+
+    # [manpage_end]
+}
+
+UTF::man
+exit
+

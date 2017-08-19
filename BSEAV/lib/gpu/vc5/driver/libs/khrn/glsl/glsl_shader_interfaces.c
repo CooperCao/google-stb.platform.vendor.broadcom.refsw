@@ -54,19 +54,24 @@ Dataflow **glsl_shader_interface_create_uniform_dataflow(const Symbol *symbol, i
       for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
          PrimitiveTypeIndex type_index = glsl_get_scalar_value_type_index(symbol->type, i);
          if (glsl_prim_is_prim_sampler_type(&primitiveTypes[type_index])) {
+            /* Sampled images must be paired up with their samplers */
+            assert(i+1 < symbol->type->scalar_count && type_index == glsl_get_scalar_value_type_index(symbol->type, i+1));
+            assert(symbol->u.var_instance.layout_format_specified == false);
+
             PrimSamplerInfo *psi = glsl_prim_get_sampler_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
             DataflowType type;
             switch (ret_basic_type) {
-               case PRIM_FLOAT:    type = DF_FSAMPLER; break;
-               case PRIM_INT:      type = DF_ISAMPLER; break;
-               case PRIM_UINT:     type = DF_USAMPLER; break;
-               default: assert(0); type = DF_INVALID;  break;
+               case PRIM_FLOAT:    type = DF_F_SAMP_IMG; break;
+               case PRIM_INT:      type = DF_I_SAMP_IMG; break;
+               case PRIM_UINT:     type = DF_U_SAMP_IMG; break;
+               default: assert(0); type = DF_INVALID;    break;
             }
             df[i] = glsl_dataflow_construct_const_image(type, ids[i],
-               /* Shadow lookups are always 16-bit */
-               !psi->shadow && (symbol->u.var_instance.prec_qual == PREC_HIGHP));
-            assert(symbol->u.var_instance.layout_format_specified == false);
+                           /* Shadow lookups are always 16-bit */
+                           !psi->shadow && (symbol->u.var_instance.prec_qual == PREC_HIGHP));
+            i++;
+            df[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, ids[i]);
          } else if (type_index == PRIM_ATOMIC_UINT) {
             df[i] = glsl_dataflow_construct_buffer(DATAFLOW_ATOMIC_COUNTER, DF_ATOMIC,
                                                    symbol->u.var_instance.layout_binding,
@@ -77,18 +82,17 @@ Dataflow **glsl_shader_interface_create_uniform_dataflow(const Symbol *symbol, i
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
             DataflowType type;
             switch (ret_basic_type) {
-               case PRIM_FLOAT:    type = DF_FIMAGE;  break;
-               case PRIM_INT:      type = DF_IIMAGE;  break;
-               case PRIM_UINT:     type = DF_UIMAGE;  break;
-               default: assert(0); type = DF_INVALID; break;
+               case PRIM_FLOAT:    type = DF_F_STOR_IMG; break;
+               case PRIM_INT:      type = DF_I_STOR_IMG; break;
+               case PRIM_UINT:     type = DF_U_STOR_IMG; break;
+               default: assert(0); type = DF_INVALID;    break;
             }
             df[i] = glsl_dataflow_construct_const_image(type, ids[i], (symbol->u.var_instance.prec_qual == PREC_HIGHP));
             assert(symbol->u.var_instance.layout_format_specified == true);
             df[i]->u.const_image.format_valid = true;
             df[i]->u.const_image.format = symbol->u.var_instance.layout_format;
-         } else {
+         } else
             df[i] = glsl_dataflow_construct_buffer(DATAFLOW_UNIFORM, glsl_prim_index_to_df_type(type_index), ids[i], 0);
-         }
       }
    } else {
       assert(symbol->flavour == SYMBOL_INTERFACE_BLOCK);
@@ -111,7 +115,11 @@ Dataflow **glsl_shader_interface_create_buffer_dataflow(const Symbol *symbol, in
 static void add_iface_ids(const SymbolList *iface, bool skip_stdlib, Map *symbol_ids) {
    int id = 0;
    for (SymbolListNode *n = iface->head; n!= NULL; n=n->next) {
-      if (skip_stdlib && glsl_stdlib_is_stdlib_symbol(n->s)) { continue; }
+      if (skip_stdlib && glsl_stdlib_is_stdlib_symbol(n->s) &&
+		      n->s != glsl_stdlib_get_variable(GLSL_STDLIB_VAR__FLAT__IN__HIGHP__INT__GL_LAYER))
+      {
+         continue;
+      }
 
       int *ids = malloc_fast(n->s->type->scalar_count * sizeof(int));
       for (unsigned i=0; i<n->s->type->scalar_count; i++) ids[i] = id++;

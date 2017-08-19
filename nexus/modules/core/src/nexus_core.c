@@ -145,12 +145,13 @@ NEXUS_Error NEXUS_SetAvsSettings( const NEXUS_AvsSettings *pSettings )
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error NEXUS_GetAvsStatus( NEXUS_AvsStatus *pStatus )
+NEXUS_Error NEXUS_GetAvsDomainStatus(
+    NEXUS_AvsDomain domain,  /* [in] index of domain to fetch status */
+    NEXUS_AvsStatus *pStatus /* [out] the current domain-specific status */
+)
 {
     BCHP_AvsData data;
     BERR_Code rc;
-
-    BDBG_ASSERT(pStatus);
 
     /* Note: if the AVS hardware is not supported this call will return an error */
     rc = BCHP_GetAvsData_isrsafe(g_NexusCore.publicHandles.chp, &data);
@@ -158,11 +159,22 @@ NEXUS_Error NEXUS_GetAvsStatus( NEXUS_AvsStatus *pStatus )
         return BERR_TRACE(rc);
     }
 
-    pStatus->voltage     = data.voltage;
-    pStatus->temperature = data.temperature;
     pStatus->enabled     = data.enabled;
     pStatus->tracking    = data.tracking;
+    switch (domain) {
+    case NEXUS_AvsDomain_eMain :
+        pStatus->voltage      = data.voltage;
+        pStatus->temperature  = data.temperature;
+        break;
 
+    case NEXUS_AvsDomain_eCpu :
+        pStatus->voltage      = data.voltage1;
+        pStatus->temperature  = data.temperature1;
+        break;
+
+    default :
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
     return rc;
 }
 
@@ -264,6 +276,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.dbgPrint = NEXUS_CoreModule_P_Print;
     moduleSettings.dbgModules = "nexus_core";
+    moduleSettings.priority = NEXUS_ModulePriority_eAlwaysOn;
     g_NexusCore.module = NEXUS_Module_Create("core", &moduleSettings);
     if(!g_NexusCore.module) {
         rc = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -294,7 +307,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 
 #if NEXUS_HAS_SAGE
     /* If SAGE is enabled but not started, then this is a fresh boot. */
-    if (!BCHP_SAGE_IsStarted(g_NexusCore.publicHandles.reg)) {
+    if (!BCHP_SAGE_HasEverStarted(g_NexusCore.publicHandles.reg)) {
         /* If GFD0 is enabled, it is splash. */
         uint32_t val = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_CMP_0_G0_SURFACE_CTRL);
         skipInitialReset = BCHP_GET_FIELD_DATA(val,CMP_0_G0_SURFACE_CTRL,ENABLE);
@@ -312,6 +325,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     openSettings.reg = g_NexusCore.publicHandles.reg;
     openSettings.memoryLayout = pSettings->memoryLayout;
     openSettings.pMapId = preInitState->pMapId;
+    openSettings.pMapSettings = preInitState->pMapSettings;
     openSettings.skipInitialReset = skipInitialReset;
     if (str) {
         openSettings.productId = NEXUS_hextoi(str);
@@ -813,15 +827,32 @@ NEXUS_KeySlot_Create(void)
 {
     NEXUS_KeySlotHandle keyslot;
     keyslot = (NEXUS_KeySlotHandle)BKNI_Malloc(sizeof(*keyslot));
-    if ( !keyslot) { BERR_Code rc; rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL; }
+    if ( !keyslot) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL; }
     NEXUS_OBJECT_INIT(NEXUS_KeySlot, keyslot);
     NEXUS_OBJECT_REGISTER(NEXUS_KeySlot, keyslot, Create);
     keyslot->settings.keySlotEngine = NEXUS_SecurityEngine_eGeneric;
     return keyslot;
 }
 
+void NEXUS_KeySlot_GetFastInfo( NEXUS_KeySlotHandle keyslot, NEXUS_KeySlotFastInfo *pInfo )
+{
+    BDBG_OBJECT_ASSERT(keyslot, NEXUS_KeySlot);
+
+    if (!pInfo){ BERR_TRACE(NEXUS_INVALID_PARAMETER); return; }
+
+    pInfo->dma.pidChannelIndex = keyslot->dma.pidChannelIndex;
+    pInfo->dma.valid = keyslot->dma.valid;
+    pInfo->keySlotNumber = keyslot->keySlotNumber;
+
+    return;
+}
+
 void NEXUS_KeySlot_GetInfo( NEXUS_KeySlotHandle keyHandle, NEXUS_SecurityKeySlotInfo *pKeyslotInfo )
 {
+  #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_API_VERSION==2)
+    (void)BERR_TRACE(NEXUS_NOT_SUPPORTED); /* use NEXUS_KeySlot_GetInfomation */
+    return;
+  #else
     BDBG_OBJECT_ASSERT(keyHandle, NEXUS_KeySlot);
     BKNI_Memset(pKeyslotInfo, 0, sizeof(*pKeyslotInfo));
     pKeyslotInfo->keySlotNumber = keyHandle->keySlotNumber;
@@ -829,7 +860,9 @@ void NEXUS_KeySlot_GetInfo( NEXUS_KeySlotHandle keyHandle, NEXUS_SecurityKeySlot
     pKeyslotInfo->keySlotType = keyHandle->settings.keySlotType;
     pKeyslotInfo->dma.pidChannelIndex = keyHandle->dma.pidChannelIndex;
     return;
+  #endif
 }
+
 
 static struct {
     BLST_S_HEAD(closed_keyslots, NEXUS_KeySlot) closed;
@@ -942,14 +975,21 @@ void NEXUS_GetDefaultCommonModuleSettings( NEXUS_CommonModuleSettings *pSettings
 
 NEXUS_ModulePriority NEXUS_AdjustModulePriority( NEXUS_ModulePriority priority, const NEXUS_CommonModuleSettings *pSettings )
 {
-    if (pSettings->enabledDuringActiveStandby) {
-        switch (priority) {
-        case NEXUS_ModulePriority_eIdle: return NEXUS_ModulePriority_eIdleActiveStandby;
-        case NEXUS_ModulePriority_eLow: return NEXUS_ModulePriority_eLowActiveStandby;
-        case NEXUS_ModulePriority_eDefault: return NEXUS_ModulePriority_eDefaultActiveStandby;
-        case NEXUS_ModulePriority_eHigh: return NEXUS_ModulePriority_eHighActiveStandby;
-        default: break;
-        }
+    switch (pSettings->standbyLevel) {
+        case NEXUS_ModuleStandbyLevel_eActive:
+            switch (priority) {
+                case NEXUS_ModulePriority_eIdle: return NEXUS_ModulePriority_eIdleActiveStandby;
+                case NEXUS_ModulePriority_eLow: return NEXUS_ModulePriority_eLowActiveStandby;
+                case NEXUS_ModulePriority_eDefault: return NEXUS_ModulePriority_eDefaultActiveStandby;
+                case NEXUS_ModulePriority_eHigh: return NEXUS_ModulePriority_eHighActiveStandby;
+                default: break;
+            }
+            break;
+        case NEXUS_ModuleStandbyLevel_eAlwaysOn:
+                return NEXUS_ModulePriority_eAlwaysOn;
+            break;
+        default:
+            break;
     }
     return priority;
 }

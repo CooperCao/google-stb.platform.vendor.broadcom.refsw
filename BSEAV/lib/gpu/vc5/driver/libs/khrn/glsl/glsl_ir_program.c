@@ -65,12 +65,12 @@ IR_PROGRAM_T *glsl_ir_program_create() {
    ret->live_attr_set = 0;
 
    ret->tess_vertices   = 0;
-   ret->tess_mode       = TESS_INVALID;
-   ret->tess_spacing    = TESS_SPACING_INVALID;
+   ret->tess_mode       = V3D_CL_TESS_TYPE_INVALID;
+   ret->tess_spacing    = V3D_CL_TESS_EDGE_SPACING_INVALID;
    ret->tess_point_mode = false;
    ret->tess_cw         = false;
 
-   ret->gs_out           = GS_OUT_INVALID;
+   ret->gs_out           = V3D_CL_GEOM_PRIM_TYPE_INVALID;
    ret->gs_n_invocations = 0;
 
    init_vary_map(&ret->tf_vary_map);
@@ -83,6 +83,7 @@ IR_PROGRAM_T *glsl_ir_program_create() {
    }
 
    for (int i=0; i<3; i++) ret->cs_wg_size[i] = 0;
+   ret->cs_shared_block_size = ~0u;
 
    return ret;
 }
