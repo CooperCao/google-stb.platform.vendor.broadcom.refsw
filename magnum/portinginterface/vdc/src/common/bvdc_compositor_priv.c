@@ -134,7 +134,7 @@ BERR_Code BVDC_P_Compositor_Create
     uint32_t i;
     BVDC_P_CompositorContext *pCompositor;
     BERR_Code eStatus = BERR_SUCCESS;
-#ifdef BCHP_CMP_0_HW_CONFIGURATION
+#if defined(BCHP_CMP_0_HW_CONFIGURATION) && !defined(BVDC_FOR_BOOTUPDATER)
     uint32_t ulHwCfg;
 #endif
 
@@ -218,6 +218,8 @@ BERR_Code BVDC_P_Compositor_Create
     pCompositor->stCfcCapability[0].stBits.bMc = 1;
     pCompositor->stCfcCapability[1].stBits.bMc = 1;
 
+#ifndef BVDC_FOR_BOOTUPDATER
+
 #ifdef BCHP_CMP_0_HW_CONFIGURATION
     ulHwCfg = BREG_Read32(hVdc->hRegister,
         BCHP_CMP_0_HW_CONFIGURATION + pCompositor->ulRegOffset);
@@ -287,9 +289,9 @@ BERR_Code BVDC_P_Compositor_Create
             pCompositor->stCfcCapability[i].stBits.bLRngAdj = BVDC_P_GET_FIELD(
                 ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_LRNG_ADJ_PRESENT);
 #endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_HLG_GAMMA_PRESENT_SHIFT
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_LMR_PRESENT_SHIFT
             pCompositor->stCfcCapability[i].stBits.bLMR = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_HLG_GAMMA_PRESENT);
+                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_LMR_PRESENT);
 #endif
 #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_TP_PRESENT_SHIFT
             pCompositor->stCfcCapability[i].stBits.bTpToneMapping = BVDC_P_GET_FIELD(
@@ -368,6 +370,8 @@ BERR_Code BVDC_P_Compositor_Create
         pCompositor->stCfcCapability[1].stBits.bMa = 1;
     }
 #endif
+
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
 #if (!defined(BCHP_CMP_0_HW_CONFIGURATION_V0_Ma_CSC_Present_SHIFT) && \
      !defined(BCHP_CMP_0_HW_CONFIGURATION_V0_NL_LUT_Present_SHIFT) && \
@@ -1143,6 +1147,9 @@ static void BVDC_P_Window_BuildDitherRul_isr
 
 #ifdef BCHP_CMP_0_V0_CSC_DITHER_CTRL
     /* CSC Dither: only with 10-bit compositor */
+#if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
+    if(!BVDC_P_CMP_OUTPUT_IPT(hCompositor))
+#endif
     if(hCompositor->bIs10BitCore &&
        hCompositor->pFeatures->ulMaxVideoWindow > eWinInCmp)
     {

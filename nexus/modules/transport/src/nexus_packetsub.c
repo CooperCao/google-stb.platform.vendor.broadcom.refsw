@@ -230,6 +230,7 @@ NEXUS_PacketSubHandle NEXUS_PacketSub_Open( unsigned index, const NEXUS_PacketSu
 
     /* set default settings to match HW/PI default */
     packetSub->settings.outputRate = channelSettings.OutputRate;
+    packetSub->settings.forcedInsertion = channelSettings.ForcedInsertionEn;
     NEXUS_CallbackDesc_Init(&packetSub->settings.finished);
     NEXUS_CallbackDesc_Init(&packetSub->settings.dataCallback);
 

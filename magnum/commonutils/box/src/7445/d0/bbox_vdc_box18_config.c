@@ -53,13 +53,13 @@ BDBG_OBJECT_ID(BBOX_VDC_BOX_PRIV_BOX18);
 void BBOX_P_Vdc_SetBox18DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display4, Video0, DISREGARD, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display4, Video0, DISREGARD, false, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
 
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display5, Video0, DISREGARD, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display5, Video0, DISREGARD, false, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
 
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display6, Video0, DISREGARD, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display6, Video0, DISREGARD, false, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
 }
 
 void BBOX_P_Vdc_SetBox18DeinterlacerCapabilities

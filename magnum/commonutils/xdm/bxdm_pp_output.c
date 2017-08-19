@@ -64,6 +64,16 @@ BDBG_FILE_MODULE(BXDM_PPOUT);
    M - muted
 */
 
+/*
+ * Local function prototypes.
+ */
+static void BXDM_PPOUT_S_HEVCInterlacedFixup_isr(
+   const BXDM_PictureProvider_Handle hXdmPP,
+   BXDM_PictureProvider_P_Picture_Context *pPictureContext,
+   BAVC_MFD_Picture* pPicture
+   );
+
+
 /*******************************************************************************
 **
 **  Local functions.
@@ -100,6 +110,12 @@ static void BXDM_PPOUT_S_UpdatePictureParameters_isr(
 
       pCachedParams->stUnifiedPicture  = *(pPictureContext->pstUnifiedPicture);
       pCachedParams->stMFDPicture      = *pMFDPicture;
+
+      /* SW7439-1235: for HEVC interlaced content, need to adjust the height being reported
+       * in the picture parameter callback.  After a picture passes TSM, the height
+       * will be adjusted in BXDM_PPOUT_P_CalculateVdcData_isr() */
+
+      BXDM_PPOUT_S_HEVCInterlacedFixup_isr( hXdmPP, pPictureContext, &(pCachedParams->stMFDPicture) );
 
       hXdmPP->stDMStatus.stPictureParameterInfo.pstUnifiedPicture = &(pCachedParams->stUnifiedPicture);
       hXdmPP->stDMStatus.stPictureParameterInfo.pstMFDPicture = &(pCachedParams->stMFDPicture);
@@ -382,7 +398,7 @@ static void BXDM_PPOUT_S_ApplySPOMPIM_isr(
    return;
 } /* end of BXDM_PPOUT_S_ApplyMPIMOverride() */
 
-BERR_Code BXDM_PPOUT_S_ApplySPOProgressive_isr(
+static BERR_Code BXDM_PPOUT_S_ApplySPOProgressive_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
    const BXDM_PictureProvider_P_LocalState* pLocalState,
    BXDM_PictureProvider_P_Picture_Context* pstPicture,
@@ -1931,6 +1947,14 @@ static void BXDM_PPOUT_S_SetStallStcAndIgnorePicture_isr(
 
       pMFDPicture->bIgnorePicture = pMFDPicture->bStallStc;
       pMFDPicture->bIgnorePicture |= pstNonRealTime->bPictureEncodedOnThisSTC;
+
+      /* SWSTB-5159: this was added to support regression testing. The intent
+       * is to only encode each frame or field once. */
+
+      if ( true == hXdmPP->stDMConfig.bCRCMode && true == pMFDPicture->bPictureRepeatFlag )
+      {
+         pMFDPicture->bIgnorePicture = true;
+      }
 
       /* Set bPictureEncodedOnThisSTC if:
        * - a picture has not already been encoded on this STC

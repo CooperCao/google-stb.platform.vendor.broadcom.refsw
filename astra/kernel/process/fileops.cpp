@@ -328,7 +328,7 @@ int TzTask::open(char *filePath, int flags, int mode) {
     files[fd].read = readFile;
     files[fd].write = writeFile;
     files[fd].closeOnExec = closeOnExec;
-    files[fd].iNo++;
+    files[fd].iNo = (uintptr_t) file;
 
     RamFS::File::open((RamFS::File *)file);
     return fd;

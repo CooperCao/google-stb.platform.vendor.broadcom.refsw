@@ -1,0 +1,43 @@
+#$Id: milosz.mc98end1
+MAILTO=milosz@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,18	* * *	/home/milosz/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+
+# move logs
+#15     23      * * *   unittest/bin/move_logs_jp_ext4 -age 30
+15     23      * * *   unittest/bin/move_logs_jp -age 180
+
+
+# 4331 Linux builds start after 4am
+10     04      * * *   unittest/cron/launch 4331-a-TOT    Test/StaNightly.test -utfconf mc98   -sta "4331fc15-TOT"   -ap '4331-a' -title "[MC98:StaNightly] 4331 AP to 4331 STA Linux  Top of Tree"
+15     04      * * *   unittest/cron/launch 4331-a-EAGLE  Test/StaNightly.test -utfconf mc98 -sta "4331fc15-EAGLE" -ap '4331-a' -title "[MC98:StaNightly] 4331 AP to 4331 STA Linux EAGLE branch"
+
+
+# 4360 Linux builds start after 3:30am
+30     03      * * *   unittest/cron/launch 4360-TOT      Test/StaNightly.test -utfconf mc98 -sta "4331fc15-TOT"   -ap '4706/4360' -title "[MC98:StaNightly] 4360 AP to 4331 STA Linux Top of Tree"
+40     03      * * *   unittest/cron/launch 4360-EAGLE    Test/StaNightly.test -utfconf mc98 -sta "4331fc15-EAGLE" -ap '4706/4360' -title "[MC98:StaNightly] 4360 AP to 4331 STA Linux EAGLE branch"
+
+
+
+# 4331 Windows builds start after 4:30am
+30     04      * * *   unittest/cron/launch Win4331-TOT      Test/StaNightly.test -utfconf mc98 -sta "W8X64-TOT"      -ap "4331-a" -title "[MC98:StaNightly] 4331 AP to 43228 STA Win8x64  Top of Tree"
+40     04      * * *   unittest/cron/launch Win4331-BISON735 Test/StaNightly.test -utfconf mc98 -sta "W8X64-BISON735" -ap "4331-a" -title "[MC98:StaNightly] 4331 AP to 43228 STA Win8x64  BISON_7_35 branch"
+
+
+# 4360 Windows builds start after 5am
+10     05      * * *   unittest/cron/launch Win4360-TOT      Test/StaNightly.test -utfconf mc98 -sta "W8X64-TOT"      -ap "4706/4360" -title "[MC98:StaNightly] 4360 AP to 43228 STA Win8x64  Top of Tree"
+20     05      * * *   unittest/cron/launch Win4360-BISON735 Test/StaNightly.test -utfconf mc98 -sta "W8X64-BISON735" -ap "4706/4360" -title "[MC98:StaNightly] 4360 AP to 43228 STA Win8x64 BISON_7_35 branch"
+
+
+
+
+# RvR
+10      00      * * *   unittest/cron/launch MC98-RVR-EAGLE  Test/RvRNightly1.test -utfconf mc98 -ap '4706/4360' -sta 4331fc15-EAGLE -va af -cycle5G80AttnRange "0-85 85-0" -cycle5G40AttnRange "0-85 85-0" -cycle5G20AttnRange "0-85 85-0" -cycle2G40AttnRange "0-85 85-0" -cycle2G20AttnRange "10-85 85-10" -title "[MC98:RvRNightly1] 4360 AP <=> 4331 STA FC15 EAGLE"
+
+

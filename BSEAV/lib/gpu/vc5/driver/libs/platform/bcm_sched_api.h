@@ -58,26 +58,43 @@ extern int bcm_sched_create_fence(
  * Returns false if all job have been finalised */
 extern bool bcm_sched_wait_for_any_non_finalised(void);
 
-/* Wait until one of the completed_deps and finalised_deps has reached
- * either completed or finalised state respectively or the function timeout */
+/* Wait until one of the completed_deps or finalised_deps has reached its
+ * corresponding state or the function times out */
 extern bcm_wait_status bcm_sched_wait_any_job_timeout(
    const struct bcm_sched_dependencies *completed_deps,
    const struct bcm_sched_dependencies *finalised_deps,
    int timeout);
 
-/* Wait until all the completed_deps and finalised_deps have
- * reached their corresponding state. */
+/* Wait until all the completed_deps and finalised_deps have reached their
+ * corresponding state. */
 extern void bcm_sched_wait_jobs(
    const struct bcm_sched_dependencies *completed_deps,
    const struct bcm_sched_dependencies *finalised_deps);
 
-
-/* Wait until all the completed_deps and finalised_deps have reached
- * either completed or finalised state respectively or the function timeout */
+/* Wait until all the completed_deps and finalised_deps have reached either
+ * completed or finalised state respectively or the function times out */
 extern bcm_wait_status bcm_sched_wait_jobs_timeout(
    const struct bcm_sched_dependencies *completed_deps,
    const struct bcm_sched_dependencies *finalised_deps,
    int timeout);
+
+/* define a return value for invalid scheduler event id */
+#define V3D_INVALID_SCHED_EVENT_ID (~(uint64_t)0)
+
+/* Creates a scheduler event and returns its id */
+extern bcm_sched_event_id bcm_sched_new_event(void);
+
+/* Delete a scheduler event using its id */
+extern void bcm_sched_delete_event(bcm_sched_event_id event_id);
+
+/* Signal an event from the host using its id */
+extern void bcm_sched_set_event(bcm_sched_event_id event_id);
+
+/* Unsignal an event from the host using its id */
+extern void bcm_sched_reset_event(bcm_sched_event_id event_id);
+
+/* Return true if the event is signalled or false otherwise */
+extern bool bcm_sched_query_event(bcm_sched_event_id event_id);
 
 #ifdef __cplusplus
 }

@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
@@ -114,12 +115,9 @@ static NEXUS_Error
 NEXUS_Display_P_SetSdrGfxToHdrApproximationAdjust(const struct NEXUS_DisplayGraphics *graphics, const NEXUS_GraphicsSettings *cfg)
 {
     BERR_Code rc;
-    BVDC_Window_Capabilities caps;
 
     /* only apply gfx sdr2hdr appx if chip doesn't have convhdr10 caps */
-    rc = BVDC_Window_GetCapabilities(graphics->windowVdc, &caps);
-    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
-    if (!caps.bConvHdr10)
+    if (!graphics->windowCaps.bConvHdr10)
     {
         rc = BVDC_Source_SetSdrGfxToHdrApproximationAdjust(graphics->source, (BVDC_Source_SdrGfxToHdrApproximationAdjust *)&cfg->sdrToHdr);
         if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
@@ -325,6 +323,9 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     rc = BVDC_Window_Create( display->compositor, &graphics->windowVdc, BVDC_WindowId_eAuto, graphics->source, &windowCfg);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_window;}
 
+    rc = BVDC_Window_GetCapabilities(graphics->windowVdc, &graphics->windowCaps);
+    if(rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);goto err_window;}
+
     rc = NEXUS_Display_P_SetGraphicsSettings(display, cfg, true);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_graphics_cfg;}
 
@@ -404,6 +405,7 @@ NEXUS_Display_P_DestroyGraphics(NEXUS_DisplayHandle display)
     struct NEXUS_DisplayGraphics *graphics = &display->graphics;
 
     if (!graphics->windowVdc) {
+        nexus_p_compression_shutdown(graphics);
         return;
     }
 

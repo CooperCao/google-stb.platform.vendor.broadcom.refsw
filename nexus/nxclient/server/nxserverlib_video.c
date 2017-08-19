@@ -288,15 +288,6 @@ static void video_decoder_p_find_decoder(struct b_connect *connect, unsigned ass
     }
 }
 
-static const char * const eotfStrings[NEXUS_VideoEotf_eMax + 1] =
-{
-    "SDR",
-    "HLG",
-    "HDR10",
-    "Invalid",
-    "unspecified"
-};
-
 #if NEXUS_HAS_HDMI_OUTPUT
 static void video_decoder_stream_changed(void * context, int param)
 {
@@ -508,19 +499,19 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         r = g_decoders[index].r;
         if (!r->used) {
             unsigned i;
-            NEXUS_VideoDecoderOpenSettings openSettings;
-            /* compare decoder capabilities, # of mosaics */
+            /* compare decoder capabilities that are only set at Open, # of mosaics */
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
                 if (linked_decoder) break; /* always recreate for linked_decoder configuration */
                 if ((connect->settings.simpleVideoDecoder[i].id!=0) != (r->connectSettings.simpleVideoDecoder[i].id!=0)) break;
                 if (connect->settings.simpleVideoDecoder[i].id) {
-                    if (BKNI_Memcmp(&connect->settings.simpleVideoDecoder[i].decoderCapabilities,
-                        &r->connectSettings.simpleVideoDecoder[i].decoderCapabilities,
-                        sizeof(connect->settings.simpleVideoDecoder[i].decoderCapabilities))) break;
-
-                        NEXUS_VideoDecoder_GetOpenSettings(r->handle[0], &openSettings);
-                        if(openSettings.cdbHeap != cdbHeap)
-                            break;
+                    NEXUS_VideoDecoderOpenSettings openSettings;
+                    const NxClient_VideoDecoderCapabilities *cap = &connect->settings.simpleVideoDecoder[i].decoderCapabilities;
+                    NEXUS_VideoDecoder_GetOpenSettings(r->handle[i], &openSettings);
+                    if ((cap->fifoSize && cap->fifoSize < openSettings.fifoSize) ||
+                        (cap->avc51Enabled != openSettings.avc51Enabled) ||
+                        (cap->secureVideo != openSettings.secureVideo) ||
+                        (cap->userDataBufferSize > openSettings.userDataBufferSize) ||
+                        (cdbHeap != openSettings.cdbHeap)) break;
                 }
             }
             if (i < NXCLIENT_MAX_IDS) {
@@ -577,6 +568,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
         openSettings.userDataBufferSize = connect->settings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize;
         openSettings.cdbHeap = cdbHeap;
+        /* if you modify openSettings here, search this file for NEXUS_VideoDecoder_GetOpenSettings where we test the cache for OpenSettings. */
 
         r->handle[0] = NEXUS_VideoDecoder_Open(index, &openSettings);
         if (!r->handle[0]) {
@@ -662,16 +654,9 @@ err_malloc:
 static void video_decoder_release(struct video_decoder_resource *r)
 {
     nxserver_t server = r->session->server;
-    bool secure = false;
-
-#if NEXUS_HAS_SAGE
-    secure = r->connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo && nxserver_p_urr_on(server);
-#endif
-
     BDBG_MSG(("video_decoder_release %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
     BDBG_OBJECT_ASSERT(r->connect, b_connect);
     if (IS_MOSAIC(r->connect) || server->settings.externalApp.enableAllocIndex[nxserverlib_index_type_video_decoder] ||
-        secure ||
         server->settings.videoDecoder.dynamicPictureBuffers ||
         r->index >= NEXUS_NUM_VIDEO_DECODERS /* SID or DSP decoder */
         )
@@ -771,7 +756,7 @@ static bool has_window(struct b_connect *connect)
     return (connect->client->session->window[connect->windowIndex].connect == connect);
 }
 
-static int resize_full_screen(struct b_session *session, unsigned displayIndex, unsigned windowIndex, bool visible, bool remainVisible)
+static int resize_full_screen(struct b_session *session, unsigned displayIndex, unsigned windowIndex, bool visible)
 {
     NEXUS_VideoWindowSettings settings;
     NEXUS_VideoWindowHandle window;
@@ -796,13 +781,11 @@ static int resize_full_screen(struct b_session *session, unsigned displayIndex, 
     else if (session->nxclient.displaySettings.display3DSettings.orientation == NEXUS_VideoOrientation_e3D_OverUnder) {
         settings.position.height /= 2;
     }
-    if (!remainVisible) {
-        settings.visible = visible;
-    }
+    settings.visible = visible;
     return NEXUS_VideoWindow_SetSettings(window, &settings);
 }
 
-static void release_video_window(struct b_connect *connect, bool remainVisible);
+static void release_video_window(struct b_connect *connect);
 static int acquire_video_window(struct b_connect *connect, bool grab)
 {
     struct b_session *session = connect->client->session;
@@ -838,7 +821,7 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
                 rc = NEXUS_NOT_AVAILABLE;
             }
             else {
-                release_video_window(prev_connect, false);
+                release_video_window(prev_connect);
                 rc = 0;
                 /* proceed with acquire */
             }
@@ -890,9 +873,10 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
                     }
                 }
             }
-            /* we need to make visible in case app doesn't use SurfaceCompositor for video window and
-            it inherits an invisible window. */
-            resize_full_screen(session, j, index, true, false);
+            if (!connect->settings.simpleVideoDecoder[0].surfaceClientId) {
+                /* we need to make full screen and visible if app doesn't use SurfaceCompositor for video window */
+                resize_full_screen(session, j, index, true);
+            }
         }
     }
 
@@ -944,11 +928,11 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
     return 0;
 
 error:
-    release_video_window(connect, false);
+    release_video_window(connect);
     return rc;
 }
 
-static void release_video_window(struct b_connect *connect, bool remainVisible)
+static void release_video_window(struct b_connect *connect)
 {
     struct b_session *session = connect->client->session;
     unsigned i, j;
@@ -988,7 +972,6 @@ static void release_video_window(struct b_connect *connect, bool remainVisible)
                 session->display[j].window[connect->windowIndex][0] = session->display[j].parentWindow[connect->windowIndex];
                 session->display[j].parentWindow[connect->windowIndex] = NULL;
             }
-            resize_full_screen(session, j, connect->windowIndex, false, remainVisible);
         }
     }
 
@@ -1198,7 +1181,6 @@ void nxserverlib_video_disconnect_display(nxserver_t server, NEXUS_DisplayHandle
 void release_video_decoders(struct b_connect *connect)
 {
     struct b_req *req;
-    bool remainVisible = false;
     struct b_session * session;
 
     BDBG_OBJECT_ASSERT(connect, b_connect);
@@ -1220,15 +1202,6 @@ void release_video_decoders(struct b_connect *connect)
                 continue;
             }
             videoDecoder = req->handles.simpleVideoDecoder[index].handle;
-
-            if (i == 0 && videoDecoder) {
-                NEXUS_VideoDecoderSettings decoderSettings;
-                NEXUS_SimpleVideoDecoder_GetSettings(videoDecoder, &decoderSettings);
-                if (decoderSettings.channelChangeMode != NEXUS_VideoDecoder_ChannelChangeMode_eMute &&
-                    decoderSettings.channelChangeMode != NEXUS_VideoDecoder_ChannelChangeMode_eMuteUntilFirstPicture) {
-                    remainVisible = true;
-                }
-            }
 
             /* disconnect regular decoder from simple decoder */
             NEXUS_SimpleVideoDecoder_GetServerSettings(session->video.server, videoDecoder, &settings);
@@ -1254,7 +1227,7 @@ void release_video_decoders(struct b_connect *connect)
         req->handles.simpleVideoDecoder[0].r = NULL;
     }
 
-    release_video_window(connect, remainVisible);
+    release_video_window(connect);
 }
 
 int video_init(nxserver_t server)

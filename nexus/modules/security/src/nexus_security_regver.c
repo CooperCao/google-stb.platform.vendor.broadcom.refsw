@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "nexus_security_module.h"
 #include "priv/nexus_security_priv.h"
 #include "priv/nexus_security_regver_priv.h"
@@ -74,7 +72,33 @@
 #define DEFAULT_RSA_KEY_INDEX                  (2)
 #define INVALID_RSA_KEY_INDEX                  (0xFFFFFFFF)
 
-/*  Region Verification module data.  */
+/* Verification data and state for one region. */
+typedef struct {
+    bool verificationSupported;               /* Region verifcation is supported for this component. */
+    NEXUS_SecurityRegverRegionID regionId;    /* The Id of this region. */
+    bool verificationRequired;                /* OTP requires region to be verifed. */
+    bool verified;                            /* Region has been verifed. */
+
+    uint8_t* pSignature;                      /* points to signature of region. Includes header at end. */
+    NEXUS_SecuritySignedAtrributes signedAttributes; /* paramters that the signature is signed against */
+
+    unsigned rsaKeyIndex;                     /* The RSA key index */
+    bool useManagedRsaKey;                    /* if true, use the RSA key managed by NEXUS. */
+    bool enableInstructionChecker;            /* Required for SAGE/BHSM_SUPPORT_HDDTA */
+    bool enableBackgroundChecker;             /* Required for SAGE */
+    unsigned scmVersion;                      /* Required for BHSM_SUPPORT_HDDTA */
+
+    uint8_t epochSelect;                      /* todo ... will be read from signature file */
+
+    NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Requried for SCPU FSBL region */
+    NEXUS_SecurityKeySource           keyLadderLayer;  /* Requried for SCPU FSBL region*/
+
+    char description[30];                     /* textual description of region. */
+    bool enforceAuthentication;               /* force verification */
+
+}regionData_t;
+
+/* Region Verification module data. */
 typedef struct {
 
     regionData_t region[NEXUS_REGVER_MAX_REGIONS];
@@ -83,8 +107,8 @@ typedef struct {
 
 }regionVerificationModuleData_t;
 
-static regionVerificationModuleData_t gRegVerModuleData; /* module data instance. */
 
+static regionVerificationModuleData_t gRegVerModuleData; /* module data instance. */
 
 BDBG_MODULE(nexus_security_verify_reg);
 
@@ -100,6 +124,10 @@ static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, co
 
 
 static NEXUS_Error loadDefaultRegionVerificationKey(void);
+
+static regionData_t* NEXUS_Security_GetRegionData_priv( NEXUS_SecurityRegverRegionID regionId );
+
+static NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region );
 
 /* load an individual predefined region signature. */
 static NEXUS_Error loadSignature( unsigned regionId,  const uint8_t *pSigData )
@@ -529,7 +557,7 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
     }
 
     if( pRegionData->verificationRequired == false ) {
-        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not required.", __FUNCTION__, regionId, pRegionData->description ));
+        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not required.", BSTD_FUNCTION, regionId, pRegionData->description ));
         return NEXUS_SUCCESS;
     }
 
@@ -571,7 +599,7 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
 
         if( pConfiguration->signature.size == NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE )
         {
-            BDBG_MSG(("[%s] Load region paramters from signature REGION[%d]", __FUNCTION__, regionId ));
+            BDBG_MSG(("[%s] Load region paramters from signature REGION[%d]", BSTD_FUNCTION, regionId ));
             parseSignatureHeader( &pRegionData->signedAttributes, pConfiguration->signature.data );
         }
     }
@@ -596,30 +624,36 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     BDBG_ENTER( NEXUS_Security_RegionVerifyEnable_priv );
     NEXUS_ASSERT_MODULE();
 
-    #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
-     NEXUS_Security_DumpFirmwareBinary_priv( regionId, regionAddress, regionSize );
-    #endif
-
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm )
-    {
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-    }
+    if( !hHsm ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
     pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
-    if( pRegionData == NULL ) {
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
+    if( pRegionData == NULL ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
+
+    #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
+    {
+        NEXUS_SecurityDumpFirmwareData dumpData;
+
+        BKNI_Memset( &dumpData, 0, sizeof(dumpData) );
+        dumpData.regionId = regionId;
+        dumpData.regionAddress = regionAddress;
+        dumpData.regionSize = regionSize;
+        dumpData.pDescription = pRegionData->description;
+        NEXUS_Security_CalculateCpuType_priv( &dumpData.cpuType, regionId );
+        dumpData.epochSelect = pRegionData->epochSelect;
+        NEXUS_Security_DumpFirmwareBinary_priv( &dumpData );
     }
+    #endif
 
     if( pRegionData->verificationRequired == false ) {
-        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not required.", __FUNCTION__, regionId, pRegionData->description ));
+        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not required.", BSTD_FUNCTION, regionId, pRegionData->description ));
         return NEXUS_SUCCESS;
     }
 
     BDBG_MSG(("REGION [0x%02X][%s] Verifying size[%d].", regionId, pRegionData->description, regionSize ));
 
     if( pRegionData->verified == true ) {
-        BDBG_WRN(("[%s] Region [0x%02X][%s] Already verified.", __FUNCTION__, regionId, pRegionData->description  ));
+        BDBG_WRN(("[%s] Region [0x%02X][%s] Already verified.", BSTD_FUNCTION, regionId, pRegionData->description  ));
         return NEXUS_SUCCESS;
     }
 
@@ -640,7 +674,7 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    loopCount = 100;
+    loopCount = 500;
     do
     {
         BKNI_Memset( &regionStatus, 0, sizeof(regionStatus) );
@@ -659,16 +693,16 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
 
         if( regionStatus.state == BHSM_RegionVerificationStatus_eInProgress ) /* in proress */
         {
-            BKNI_Sleep (5);
+            BKNI_Sleep(10);
             continue; /* go end of while loop */
         }
 
         /* fail */
         rc = BERR_TRACE( NEXUS_UNKNOWN );  /* region verification requried and not enabled. */
-        BDBG_ERR(("[%s] region[%d][%s] status[0x%02X].", __FUNCTION__, regionId, pRegionData->description, regionStatus.state ));
+        BDBG_ERR(("[%s] region[%d][%s] status[0x%02X].", BSTD_FUNCTION, regionId, pRegionData->description, regionStatus.state ));
         break;
 
-    } while( loopCount-- );
+    } while(--loopCount);
 
 
     if( loopCount == 0 )
@@ -709,12 +743,12 @@ void NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID regio
     }
 
     if( pRegionData->verificationRequired == false ) {
-        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not OTP enalbed.", __FUNCTION__, regionId, pRegionData->description ));
+        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not OTP enalbed.", BSTD_FUNCTION, regionId, pRegionData->description ));
         return;
     }
 
     if( pRegionData->verified != true ) {
-        BDBG_WRN(("[%s] Region [0x%02X][%s] Not verified.", __FUNCTION__, regionId, pRegionData->description ));
+        BDBG_WRN(("[%s] Region [0x%02X][%s] Not verified.", BSTD_FUNCTION, regionId, pRegionData->description ));
         return;
     }
 
@@ -877,7 +911,7 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Ad
     rc = BHSM_RegionVerification_Configure( hHsm, regionId, &regionConfiguration );
     if( rc == BHSM_STATUS_REGION_VERIFICATION_NOT_ENABLED )
     {
-        BDBG_MSG(("[%s] Region [0x%02X] not OTP enabled.", __FUNCTION__, regionId));
+        BDBG_MSG(("[%s] Region [0x%02X] not OTP enabled.", BSTD_FUNCTION, regionId));
         return NEXUS_SECURITY_REGION_NOT_OTP_ENABLED;
     }
     if( (rc != BERR_SUCCESS) && (rc != BHSM_STATUS_REGION_ALREADY_CONFIGURED) )
@@ -914,7 +948,7 @@ NEXUS_Error disableRegion( NEXUS_SecurityRegverRegionID regionId )
     }
 
     if( pRegionData->verificationRequired == false ) {
-        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not required.", __FUNCTION__, regionId,pRegionData->description  ));
+        BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not required.", BSTD_FUNCTION, regionId,pRegionData->description  ));
         return NEXUS_SUCCESS;
     }
 
@@ -925,7 +959,7 @@ NEXUS_Error disableRegion( NEXUS_SecurityRegverRegionID regionId )
     rc = BHSM_RegionVerification_Disable( hHsm, regionId );
     if( rc == BHSM_STATUS_REGION_VERIFICATION_NOT_ENABLED )
     {
-        BDBG_WRN(("[%s]Region [0x%02X][%s] not OTP enabled.", __FUNCTION__, regionId, pRegionData->description ));
+        BDBG_WRN(("[%s]Region [0x%02X][%s] not OTP enabled.", BSTD_FUNCTION, regionId, pRegionData->description ));
         return NEXUS_SECURITY_REGION_NOT_OTP_ENABLED;
     }
     if( rc != BERR_SUCCESS )
@@ -991,7 +1025,7 @@ NEXUS_Error NEXUS_Security_RegionQueryInformation_priv( NEXUS_SecurityRegionInfo
         return BERR_TRACE( MAKE_HSM_ERR( rc ) );
     }
 
-    BDBG_MSG(("[%s] Query Complete", __FUNCTION__ ));
+    BDBG_MSG(("[%s] Query Complete", BSTD_FUNCTION ));
 
     BDBG_CASSERT( MAX_REGION_NUMBER == NEXUS_REGVER_MAX_REGIONS );
 
@@ -1008,7 +1042,7 @@ NEXUS_Error NEXUS_Security_RegionQueryInformation_priv( NEXUS_SecurityRegionInfo
 Summary
     Determine the CPU type from the region ID
 */
-NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region )
+static NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region )
 {
     BERR_Code rc = NEXUS_SUCCESS;
 
@@ -1203,7 +1237,7 @@ static void cropDescriptionFromStr( char* pDest, unsigned destSize, char* pStr )
 Summary
     Return module data associated with region.
 */
-regionData_t* NEXUS_Security_GetRegionData_priv( NEXUS_SecurityRegverRegionID regionId )
+static regionData_t* NEXUS_Security_GetRegionData_priv( NEXUS_SecurityRegverRegionID regionId )
 {
     regionData_t* pRegionData = NULL;
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,7 +58,7 @@ BDBG_MODULE(b_playback_ip_nav_indexer);
 - PRIVATE DEFINITIONS AND GLOBALS
 ---------------------------------------------------------------*/
 #ifdef BRCM_DBG
-    #define PLAY_DBGMSG(x) { printf("%s:%d-",__FUNCTION__,__LINE__); printf x ; }
+    #define PLAY_DBGMSG(x) { printf("%s:%d-",BSTD_FUNCTION,__LINE__); printf x ; }
 #else
     #define PLAY_DBGMSG(x) ((void)0)
 #endif
@@ -82,19 +82,19 @@ static int bplay_bounds(BNAV_Player_Handle handle, void *filePointer, long *firs
     BSTD_UNUSED(handle);
     cur_pos = ftell( fp);
     if (cur_pos<0) {
-        BDBG_ERR(("%s: ftell (1) failed to provide the offset of the current position: errno %d", __FUNCTION__, errno));
+        BDBG_ERR(("%s: ftell (1) failed to provide the offset of the current position: errno %d", BSTD_FUNCTION, errno));
         cur_pos=0;
     }
 
     fseek( fp, 0 , SEEK_END);
     size = ftell(fp);
     if (size < 0) {
-        BDBG_ERR(("%s: ftell (2) failed to provide the offset of the current position: errno %d", __FUNCTION__, errno));
+        BDBG_ERR(("%s: ftell (2) failed to provide the offset of the current position: errno %d", BSTD_FUNCTION, errno));
         return -1;
     }
 
     if (fseeko( fp, cur_pos,  SEEK_SET) < 0) {
-        BDBG_ERR(("%s: fseeko failed to seek to offset: errno %d", __FUNCTION__, errno));
+        BDBG_ERR(("%s: fseeko failed to seek to offset: errno %d", BSTD_FUNCTION, errno));
         return -1;
     }
     *firstIndex = 0;
@@ -128,7 +128,7 @@ int  nav_indexer_open(
 
     BNAV_Player_GetDefaultSettings(&cfg);
 
-    BDBG_MSG(("%s\n",__FUNCTION__));
+    BDBG_MSG(("%s\n",BSTD_FUNCTION));
     cfg.filePointer = fp;
     cfg.normalPlayBufferSize = STREAMING_BUF_SIZE;
     cfg.decoderFeatures = features;
@@ -344,7 +344,7 @@ void nav_indexer_setIndexByByteOffset(void *context, uint64_t byteOffset)
     long currentIndex;
 
     currentIndex = BNAV_Player_FindIndexFromOffset(h, (unsigned int)(byteOffset>>32), (unsigned int)(byteOffset));
-    BDBG_MSG(("%s: NAV: byteOffset %"PRId64 ", current index =%ld \n", __FUNCTION__, byteOffset, currentIndex));
+    BDBG_MSG(("%s: NAV: byteOffset %"PRId64 ", current index =%ld \n", BSTD_FUNCTION, byteOffset, currentIndex));
     BNAV_Player_SetCurrentIndex(h, currentIndex);
 }
 
@@ -357,7 +357,7 @@ nav_indexer_setIndexByTimeOffset(void *context, double timeOffset)
 
     nav_indexer_pts(h, &index);
     pts = (unsigned long) index.pts + (unsigned long) (timeOffset * 45000);
-    BDBG_MSG(("%s: timeOffset %.3f, pts: 1st %lu, %lu", __FUNCTION__, timeOffset, index.pts, pts));
+    BDBG_MSG(("%s: timeOffset %.3f, pts: 1st %lu, %lu", BSTD_FUNCTION, timeOffset, index.pts, pts));
 #if 1
     nav_indexer_seek(h, pts, &duration, &first_pts);
 #else
@@ -395,12 +395,12 @@ int  nav_indexer_rewind(void *context)
     BNAV_Player_GetPlayMode(h, &mode);
     BNAV_Player_GetSettings(h, &cfg);
     if (BNAV_Player_DefaultGetBounds(h, cfg.filePointer, &firstIndex, &lastIndex) < 0) {
-        BDBG_ERR(("%s: failed to get the nav file bounds, possible nav file corruption?", __FUNCTION__));
+        BDBG_ERR(("%s: failed to get the nav file bounds, possible nav file corruption?", BSTD_FUNCTION));
         rc = -1;
         goto out;
     }
 
-    BDBG_WRN(("%s: Rewinding: firstIndex=%ld lastIndex=%ld",__FUNCTION__, firstIndex,lastIndex));
+    BDBG_WRN(("%s: Rewinding: firstIndex=%ld lastIndex=%ld",BSTD_FUNCTION, firstIndex,lastIndex));
 
     if(mode.playModeModifier > 0 )
         rc = BNAV_Player_SetCurrentIndex(h, firstIndex);
@@ -477,7 +477,7 @@ nav_indexer_mode(void *context, trick_mode_t *tm)
     mode.disableExtraBOptimization = 0;
 
     if (BNAV_Player_SetPlayMode(h, &mode) < 0) {
-        BDBG_WRN(("%s: Failed to set the play mode\n", __FUNCTION__));
+        BDBG_WRN(("%s: Failed to set the play mode\n", BSTD_FUNCTION));
         return false;
     }
 
@@ -512,7 +512,7 @@ int mpegSizeCallback(BNAV_Indexer_Handle handle, unsigned long *hi, unsigned lon
         return -1;
     *hi = o >> 32;
     *lo = o & 0xFFFFFFFF;
-    BDBG_MSG(("%s: offsets: hi %p, lo %p", __FUNCTION__, (void *)hi, (void *)lo));
+    BDBG_MSG(("%s: offsets: hi %p, lo %p", BSTD_FUNCTION, (void *)hi, (void *)lo));
     return 0;
 }
 
@@ -603,7 +603,7 @@ extractMediaFileName(
     /* now move it to the start */
     memmove(mediaFileNameBuffer, mediaFileName, strlen(mediaFileName));
     mediaFileNameBuffer[strlen(mediaFileName)] = '\0';
-    BDBG_MSG(("%s: mediaFileName %s", __FUNCTION__, mediaFileNameBuffer));
+    BDBG_MSG(("%s: mediaFileName %s", BSTD_FUNCTION, mediaFileNameBuffer));
     return mediaFileNameBuffer;
 error:
     return NULL;
@@ -627,7 +627,7 @@ buildAdaptiveStreamingPlaylistName(
     BKNI_Memset(playlistName, 0, playlistSize);
     snprintf(playlistName, playlistSize, "%s%s%s", playlistFileDirPath, mediaFileName, playlistSuffix);
 
-    BDBG_MSG(("%s: playlistName %s", __FUNCTION__, playlistName));
+    BDBG_MSG(("%s: playlistName %s", BSTD_FUNCTION, playlistName));
     return playlistName;
 error:
     return NULL;
@@ -644,13 +644,13 @@ B_Error updateTargetDurationInHlsMediaPlaylist(FILE *mediaPlaylistFp, unsigned l
 
     roundedMaxGopDuration = (int)floor(maxGopDuration/1000.);
     if (roundedMaxGopDuration > 9) {
-        BDBG_WRN(("%s: can't replace the current TARGETDURATION tag to %d as it is two digits and will need to re-write the playlist file!", __FUNCTION__, roundedMaxGopDuration));
+        BDBG_WRN(("%s: can't replace the current TARGETDURATION tag to %d as it is two digits and will need to re-write the playlist file!", BSTD_FUNCTION, roundedMaxGopDuration));
         return B_ERROR_SUCCESS;
     }
 
     playlistBuffer = BKNI_Malloc( playlistBufferSize );
     PBIP_CHECK_GOTO((playlistBuffer), ( "BKNI_Malloc Failed" ), error, B_ERROR_UNKNOWN, rc );
-    BDBG_MSG(("%s: mediaPlaylistFp %p, maxGopDuration %lu, playlistBuffer %p, playlistBufferSize %d", __FUNCTION__, (void *)mediaPlaylistFp, maxGopDuration, (void *)playlistBuffer, playlistBufferSize));
+    BDBG_MSG(("%s: mediaPlaylistFp %p, maxGopDuration %lu, playlistBuffer %p, playlistBufferSize %d", BSTD_FUNCTION, (void *)mediaPlaylistFp, maxGopDuration, (void *)playlistBuffer, playlistBufferSize));
     fflush(mediaPlaylistFp);
     rewind(mediaPlaylistFp);
     BKNI_Memset(playlistBuffer, 0, playlistBufferSize);
@@ -658,7 +658,7 @@ B_Error updateTargetDurationInHlsMediaPlaylist(FILE *mediaPlaylistFp, unsigned l
     PBIP_CHECK_GOTO((bytesRead != 1), ( "fread of playlist Failed, errno %d", errno ), error, B_ERROR_UNKNOWN, rc );
     playlistBuffer[bytesRead] = '\0';
 
-    BDBG_MSG(("%s: read playlist %s", __FUNCTION__, playlistBuffer));
+    BDBG_MSG(("%s: read playlist %s", BSTD_FUNCTION, playlistBuffer));
 
     /* search for TARGETDURATION tag */
     tmpPtr = strstr(playlistBuffer, "#EXT-X-TARGETDURATION:");
@@ -729,7 +729,7 @@ B_Error updateHlsMediaPlaylist(FILE *mediaPlaylistFp, char *playlistName, unsign
             );
     fwrite(mediaPlaylistBuffer, 1, bytesToWrite, mediaPlaylistFp);
     fflush(mediaPlaylistFp);
-    BDBG_MSG(("%s: mediaPlaylist %s", __FUNCTION__, mediaPlaylistBuffer));
+    BDBG_MSG(("%s: mediaPlaylist %s", BSTD_FUNCTION, mediaPlaylistBuffer));
 
     rc = B_ERROR_SUCCESS;
 error:
@@ -764,7 +764,7 @@ B_Error updateHlsMediaPlaylistUsingBcmPlayer(FILE *mediaPlaylistFp, char *playli
             );
     fwrite(mediaPlaylistBuffer, 1, bytesToWrite, mediaPlaylistFp);
     fflush(mediaPlaylistFp);
-    BDBG_MSG(("%s: mediaPlaylist %s", __FUNCTION__, mediaPlaylistBuffer));
+    BDBG_MSG(("%s: mediaPlaylist %s", BSTD_FUNCTION, mediaPlaylistBuffer));
 
     rc = B_ERROR_SUCCESS;
 error:
@@ -796,7 +796,7 @@ B_Error initHlsMediaPlaylist(FILE *mediaPlaylistFp, int segmentTargetDuration)
             SEGMENT_START_SEQUENCE_NUMBER
             );
     fwrite(mediaPlaylistBuffer, 1, bytesToWrite, mediaPlaylistFp);
-    BDBG_MSG(("%s: mediaPlaylist %s", __FUNCTION__, mediaPlaylistBuffer));
+    BDBG_MSG(("%s: mediaPlaylist %s", BSTD_FUNCTION, mediaPlaylistBuffer));
 
     rc = B_ERROR_SUCCESS;
 error:
@@ -820,7 +820,7 @@ B_Error generateMpdMasterPlaylist(char *hlsMasterPlaylistName, unsigned mediaDur
     PBIP_CHECK_GOTO((masterPlaylistFp), ( "fopen Failed: errno %d", errno ), error, B_ERROR_UNKNOWN, rc );
 
     relativeFileName = B_PlaybackIp_UtilsStrdup( (char *)mediaFileName );
-    PBIP_CHECK_GOTO((relativeFileName), ( "%s: strdup failed: errno %d",__FUNCTION__, errno ), error, B_ERROR_OUT_OF_MEMORY, rc );
+    PBIP_CHECK_GOTO((relativeFileName), ( "%s: strdup failed: errno %d",BSTD_FUNCTION, errno ), error, B_ERROR_OUT_OF_MEMORY, rc );
 
     /* extract the actual file name by removing the directory path prefix */
     mediaRelativeFileNamePtr = relativeFileName;
@@ -830,7 +830,7 @@ B_Error generateMpdMasterPlaylist(char *hlsMasterPlaylistName, unsigned mediaDur
         mediaRelativeFileNamePtr = tmp;
     }
     /* now mediaRelativeFileNamePtr points to the relative media file name */
-    BDBG_MSG(("%s: relativeFileName %s", __FUNCTION__, relativeFileName));
+    BDBG_MSG(("%s: relativeFileName %s", BSTD_FUNCTION, relativeFileName));
 
     /* build the master playlist */
     bytesLeft = MASTER_PLAYLIST_BUFFER_SIZE;
@@ -858,7 +858,7 @@ B_Error generateMpdMasterPlaylist(char *hlsMasterPlaylistName, unsigned mediaDur
     bytesLeft = MASTER_PLAYLIST_BUFFER_SIZE - bytesCopied;
 
     fwrite(masterPlaylistBuffer, 1, bytesCopied, masterPlaylistFp);
-    BDBG_MSG(("%s: masterPlaylist %s", __FUNCTION__, masterPlaylistBuffer));
+    BDBG_MSG(("%s: masterPlaylist %s", BSTD_FUNCTION, masterPlaylistBuffer));
 
     rc = B_ERROR_SUCCESS;
 error:
@@ -899,7 +899,7 @@ B_Error generateHlsMasterPlaylist(char *hlsMasterPlaylistName)
     }
     fwrite(masterPlaylistBuffer, 1, bytesCopied, masterPlaylistFp);
     fclose(masterPlaylistFp);
-    BDBG_MSG(("%s: masterPlaylist %s", __FUNCTION__, masterPlaylistBuffer));
+    BDBG_MSG(("%s: masterPlaylist %s", BSTD_FUNCTION, masterPlaylistBuffer));
 
     rc = B_ERROR_SUCCESS;
 error:
@@ -971,7 +971,7 @@ int generateMpdPlaylist(
     char *mpdMasterPlaylistName = NULL;
     struct stat st;
 
-    BDBG_MSG(("%s:playlistFileDirPath %s mediaFileName %s, duration %u", __FUNCTION__, playlistFileDirPath,  mediaFileName, mediaDuration));
+    BDBG_MSG(("%s:playlistFileDirPath %s mediaFileName %s, duration %u", BSTD_FUNCTION, playlistFileDirPath,  mediaFileName, mediaDuration));
 
     mediaFileName = extractMediaFileName( mediaFileNameFull );
     PBIP_CHECK_GOTO((mediaFileName), ( "extractMediaFileName Failed "), error, B_ERROR_UNKNOWN, rc );
@@ -982,7 +982,7 @@ int generateMpdPlaylist(
 
     rc = stat(mpdMasterPlaylistName, &st);
     if (rc == 0 /* success */ && st.st_size > 0) {
-        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", __FUNCTION__, mpdMasterPlaylistName, st.st_size));
+        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", BSTD_FUNCTION, mpdMasterPlaylistName, st.st_size));
         if (mediaFileName) BKNI_Free(mediaFileName);
         if (mpdMasterPlaylistName) BKNI_Free(mpdMasterPlaylistName);
         return B_ERROR_SUCCESS;
@@ -1013,7 +1013,7 @@ int generateHlsPlaylist(
     int tmpPlaylistBufferSize;
     struct stat st;
 
-    BDBG_MSG(("%s: mediaFileName %s, duration %u", __FUNCTION__, mediaFileName, mediaDuration));
+    BDBG_MSG(("%s: mediaFileName %s, duration %u", BSTD_FUNCTION, mediaFileName, mediaDuration));
 
     mediaFileName = extractMediaFileName( mediaFileNameFull );
     PBIP_CHECK_GOTO((mediaFileName), ( "extractMediaFileName Failed "), error, B_ERROR_UNKNOWN, rc );
@@ -1023,7 +1023,7 @@ int generateHlsPlaylist(
 
     rc = stat(hlsMasterPlaylistName, &st);
     if (rc == 0 /* success */ && st.st_size > 0) {
-        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", __FUNCTION__, hlsMasterPlaylistName, st.st_size));
+        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", BSTD_FUNCTION, hlsMasterPlaylistName, st.st_size));
         if (mediaFileName) BKNI_Free(mediaFileName);
         if (hlsMasterPlaylistName) BKNI_Free(hlsMasterPlaylistName);
         return B_ERROR_SUCCESS;
@@ -1111,7 +1111,7 @@ int generateHlsPlaylistUsingBcmPlayer(
     int tmpPlaylistBufferSize;
     struct stat st;
 
-    BDBG_MSG(("%s: hBcmPlayer %p, mediaFileName %s", __FUNCTION__, (void *)hBcmPlayer, mediaFileName));
+    BDBG_MSG(("%s: hBcmPlayer %p, mediaFileName %s", BSTD_FUNCTION, (void *)hBcmPlayer, mediaFileName));
     PBIP_CHECK_GOTO((hBcmPlayer), ( "NULL NAV file handle" ), error, B_ERROR_UNKNOWN, rc );
 
     mediaFileName = extractMediaFileName( mediaFileNameFull );
@@ -1122,7 +1122,7 @@ int generateHlsPlaylistUsingBcmPlayer(
 
     rc = stat(hlsMasterPlaylistName, &st);
     if (rc == 0 /* success */ && st.st_size > 0) {
-        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", __FUNCTION__, hlsMasterPlaylistName, st.st_size));
+        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", BSTD_FUNCTION, hlsMasterPlaylistName, st.st_size));
         return B_ERROR_SUCCESS;
     }
 
@@ -1183,7 +1183,7 @@ int generateHlsPlaylistUsingBcmPlayer(
             if (gopDuration < HLS_SEGMENT_DURATION)
             {
                 /* this GOP doesn't meet the GOP duration, continue to check the next one! */
-                BDBG_MSG(("%s: gop duration [%lu] msec doesn't yet meet HSL Segment duration %d: start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, gopDuration, HLS_SEGMENT_DURATION*1000, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
+                BDBG_MSG(("%s: gop duration [%lu] msec doesn't yet meet HSL Segment duration %d: start[%ld]@pts=%08x, end[%ld] pts=%08x", BSTD_FUNCTION, gopDuration, HLS_SEGMENT_DURATION*1000, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
                 continue;
             }
             else {
@@ -1192,7 +1192,7 @@ int generateHlsPlaylistUsingBcmPlayer(
 #if 1
                 if (gopDuration > HLS_TARGET_DURATION && gopDuration > 5000) /* if GOP is larger than 5 sec, it most likely is a discontinutity. This needs more thinking, for now set it to max of 9sec */
                 {
-                    BDBG_MSG(("%s: !! Discontinuity: hlsSegmentNumber %u, gop duration [%lu] msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, hlsSegmentNumber, gopDuration, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
+                    BDBG_MSG(("%s: !! Discontinuity: hlsSegmentNumber %u, gop duration [%lu] msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", BSTD_FUNCTION, hlsSegmentNumber, gopDuration, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
                     gopDuration = 5000;
                 }
 #endif
@@ -1202,7 +1202,7 @@ int generateHlsPlaylistUsingBcmPlayer(
                 }
                 if (gopDuration > maxGopDuration)
                     maxGopDuration = gopDuration;
-                BDBG_MSG(("%s: hlsSegmentNumber %u, gop duration:max %lu:%lu msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, hlsSegmentNumber, gopDuration, maxGopDuration, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
+                BDBG_MSG(("%s: hlsSegmentNumber %u, gop duration:max %lu:%lu msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", BSTD_FUNCTION, hlsSegmentNumber, gopDuration, maxGopDuration, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
                 hlsSegmentNumber++;
                 totalGopDuration += gopDuration;
                 segmentStartRapPosition = segmentEndRapPosition;
@@ -1218,7 +1218,7 @@ int generateHlsPlaylistUsingBcmPlayer(
             PBIP_CHECK_GOTO((rc==B_ERROR_SUCCESS), ("BNAV_Player_GetPositionInformation Failed" ), error, B_ERROR_UNKNOWN, rc );
             firstTime = false;
             hlsSegmentNumber = 0;
-            BDBG_MSG(("%s ##### first idx %d, pts %ul, timestamp %ul",  __FUNCTION__, (int)currentRapIndex, (unsigned int)segmentStartRapPosition.pts, (unsigned int)segmentStartRapPosition.timestamp));
+            BDBG_MSG(("%s ##### first idx %d, pts %ul, timestamp %ul",  BSTD_FUNCTION, (int)currentRapIndex, (unsigned int)segmentStartRapPosition.pts, (unsigned int)segmentStartRapPosition.timestamp));
         }
     } while (true);
 
@@ -1230,7 +1230,7 @@ error:
             rc = addEndTagToHlsMediaPlaylist(hlsProfiles[i].playlistFilePtr, &tmpPlaylistBuffer, &tmpPlaylistBufferSize);
             PBIP_CHECK_GOTO((rc==B_ERROR_SUCCESS), ("addEndTagToHlsMediaPlaylist Failed" ), error, B_ERROR_UNKNOWN, rc );
         }
-        BDBG_MSG(("%s: hlsMasterPlaylistName %s, hlsSegmentNumber %u, totalGopDuration %lu msec, maxGopDuration %lu", __FUNCTION__, hlsMasterPlaylistName, hlsSegmentNumber, totalGopDuration, maxGopDuration));
+        BDBG_MSG(("%s: hlsMasterPlaylistName %s, hlsSegmentNumber %u, totalGopDuration %lu msec, maxGopDuration %lu", BSTD_FUNCTION, hlsMasterPlaylistName, hlsSegmentNumber, totalGopDuration, maxGopDuration));
         for (i=0; i < B_PlaybackIpHlsProfilesType_eMax; i++)
         {
             if (maxGopDuration > HLS_TARGET_DURATION)
@@ -1276,22 +1276,22 @@ int nav_indexer_create(
     }
 
     if (psi->videoPid == 0) {
-        BDBG_WRN(("%s: creating index for video codec %d, container %d when video pid is 0", __FUNCTION__, psi->videoCodec, psi->mpegType));
+        BDBG_WRN(("%s: creating index for video codec %d, container %d when video pid is 0", BSTD_FUNCTION, psi->videoCodec, psi->mpegType));
     }
 
     if ((fin = fopen(mediaFileName, "rb" )) == NULL) {
-        BDBG_ERR(("%s: Unable to open input file %s\n", __FUNCTION__, mediaFileName));
+        BDBG_ERR(("%s: Unable to open input file %s\n", BSTD_FUNCTION, mediaFileName));
         goto error;
     }
 
     if ((fout = fopen(indexFileName, "wb" )) == NULL) {
-        BDBG_ERR(("%s: Unable to open output file %s\n", __FUNCTION__, indexFileName));
+        BDBG_ERR(("%s: Unable to open output file %s\n", BSTD_FUNCTION, indexFileName));
         goto error;
     }
     numBytesToRead = psi->transportTimeStampEnabled ? (192*1024) : (188*1024);
     readBuf = BKNI_Malloc(numBytesToRead);
     if (!readBuf) {
-        BDBG_ERR(("%s: memory allocation failure for %d bytes", __FUNCTION__, (int)numBytesToRead));
+        BDBG_ERR(("%s: memory allocation failure for %d bytes", BSTD_FUNCTION, (int)numBytesToRead));
         goto error;
     }
     BDBG_WRN(("Creating NAV index (%s) for video codec %d, pid %d, container format %d, TTS %d, frame rate %d",
@@ -1323,7 +1323,7 @@ int nav_indexer_create(
         settings.videoFormat, settings.sctVersion, settings.navVersion));
 
     if (BNAV_Indexer_Open(&bcmindexer, &settings)) {
-        BDBG_ERR(("%s: BNAV_Indexer_Open failed for input file %s\n", __FUNCTION__, mediaFileName));
+        BDBG_ERR(("%s: BNAV_Indexer_Open failed for input file %s\n", BSTD_FUNCTION, mediaFileName));
         goto error;
     }
 
@@ -1347,7 +1347,7 @@ int nav_indexer_create(
         tsSettings.pid, tsSettings.entry_size, tsSettings.is_avc, tsSettings.ts_packet_size));
     indexer = tsindex_allocate_ex(&tsSettings);
     if (!indexer) {
-        BDBG_ERR(("%s: tsindex_allocate_ex() failed for input file %s\n", __FUNCTION__, mediaFileName));
+        BDBG_ERR(("%s: tsindex_allocate_ex() failed for input file %s\n", BSTD_FUNCTION, mediaFileName));
         goto error;
     }
 
@@ -1356,7 +1356,7 @@ int nav_indexer_create(
         tsindex_feed(indexer, readBuf, readBytes);
     }
     rc = 0;
-    BDBG_WRN(("%s: Created NAV index (%s)", __FUNCTION__, indexFileName));
+    BDBG_WRN(("%s: Created NAV index (%s)", BSTD_FUNCTION, indexFileName));
 
 error:
     if (bcmindexer)

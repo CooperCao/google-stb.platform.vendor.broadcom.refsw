@@ -720,6 +720,10 @@ typedef struct BXDM_PictureProvider_P_Display_Dynamic_Picture_Parms
    bool bAppendedToPreviousPicture;
    BXDM_Picture_PullDown eSynthesizedPulldown;
 
+   /* SWSTB-6219: don't reset the vPTS on the second picture if the first picture
+    * was displayed due to the channel change mode being "first picture preview". */
+   bool bForceDisplay;
+
 } BXDM_PictureProvider_P_Display_Dynamic_Picture_Parms;
 
 typedef struct BXDM_PictureProvider_P_Display_Picture_Parms

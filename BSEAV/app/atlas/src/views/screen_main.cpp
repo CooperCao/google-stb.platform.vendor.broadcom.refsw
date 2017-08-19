@@ -154,7 +154,7 @@ CScreenMain::CScreenMain(
 #endif
 {
     /* set default z order */
-    setZOrder(1);
+    setZOrder(16);
     for (int i = 0; i < eWindowType_Max; i++)
     {
         _pCurrentPlmLabel[i] = NULL;
@@ -202,7 +202,7 @@ eRet CScreenMain::initialize(CModel * pModel)
         uint8_t  area      = GET_INT(_pCfg, PIP_POSITION);
         uint8_t  percent   = GET_INT(_pCfg, PIP_PERCENTAGE);
         uint8_t  border    = GET_INT(_pCfg, PIP_BORDER_PERCENTAGE);
-        uint16_t borderGap = 0;
+        unsigned borderGap = 0;
 
         borderGap = border * graphicsHeight / 1000;
 
@@ -245,9 +245,9 @@ eRet CScreenMain::initialize(CModel * pModel)
 
     /* channel banner */
     {
-        const uint16_t heightChNum  = 25;
-        const uint16_t heightChType = 15;
-        const uint16_t bevel        = 2;
+        const unsigned heightChNum  = 25;
+        const unsigned heightChType = 15;
+        const unsigned bevel        = 2;
 
         /* channel num/type/records CONTAINER object */
         _rectChannelNum.set(graphicsWidth - 210, 50, 150, heightChNum + heightChType + (bevel * 2));
@@ -438,7 +438,7 @@ eRet CScreenMain::initialize(CModel * pModel)
             SET_TRANSPARENCY((0xFF676767 + 2 * COLOR_STEP), transparency));
     _pLabelVolume->setTextColor(COLOR_EGGSHELL);
     /* keep volume popup above all other graphics */
-    _pLabelVolume->setZOrder(2);
+    _pLabelVolume->setZOrder(32);
     _pLabelVolume->show(false);
 
     /* main menu */
@@ -1307,8 +1307,7 @@ void CScreenMain::processNotification(CNotification & notification)
 #endif /* NEXUS_HAS_FRONTEND */
 
     case eNotify_PipStateChanged:
-    case eNotify_VideoDecodeStarted:
-    //TTTTTTTTTTTTT case eNotify_VideoSourceChanged:
+    case eNotify_VideoSourceChanged:
     {
         updatePip();
     }
@@ -1527,7 +1526,7 @@ eRet CScreenMain::updateTsbProgress()
     CTsb * pTsb       = _pModel->getTsb();
     CDvrMgr * pDvrMgr = _pModel->getDvrMgr();
     B_DVR_TSBServiceStatus tsbServiceStatus;
-    uint16_t level    = 0;
+    unsigned level    = 0;
     uint32_t current  = 0;
     uint32_t firstpos = 0;
     uint32_t lastpos  = 0;
@@ -1569,7 +1568,7 @@ eRet CScreenMain::updateChannelProgress()
 {
     eRet ret            = eRet_Ok;
     CChannel * pChannel = _pModel->getCurrentChannel();
-    uint16_t level      = 0;
+    unsigned level      = 0;
     uint32_t current    = 0;
     uint32_t firstpos   = 0;
     uint32_t lastpos    = 0;
@@ -1619,7 +1618,7 @@ eRet CScreenMain::updatePlaybackProgress()
     CPlayback * pPlayback = _pModel->getPlayback();
     NEXUS_PlaybackStatus nPlaybackStatus;
     NEXUS_Error nerror = NEXUS_SUCCESS;
-    uint16_t level     = 0;
+    unsigned level     = 0;
     uint32_t current   = 0;
     uint32_t firstpos  = 0;
     uint32_t lastpos   = 0;
@@ -1909,6 +1908,13 @@ eRet CScreenMain::createChannelLabel(CLabelData * pLabelData, CChannel * pChanne
         font12 = pGraphics->getFont(12);
         BDBG_ASSERT(NULL != font12);
 
+        if (true == pLabelData->_bGlobal)
+        {
+            /* label indicates geometry values are respective of the global coordinate system,
+               so adjust absolute values based on that */
+            rectGeomLabelAbsolute = SCALE_RECT_PERCENT(rectGeomGraphics, rectGeomLabelPercent);
+        }
+
         /* create image label */
         pWidgetChannelLabel = new CWidgetLabel("CScreenMain::pWidgetChannelLabel", getEngine(), this, rectGeomLabelAbsolute, font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate label widget", pWidgetChannelLabel, ret, eRet_OutOfMemory, error);
@@ -1942,12 +1948,20 @@ eRet CScreenMain::createChannelLabel(CLabelData * pLabelData, CChannel * pChanne
                 }
             }
 
-            BDBG_MSG(("LOAD Channel Label Image %s - w:%d h:%d", pLabelData->_strImagePath.s(), rectGeomLabelAbsolute.width(), rectGeomLabelAbsolute.height()));
+            BDBG_MSG(("LOAD Channel Label Image %s - x:%d y:%d w:%d h:%d", pLabelData->_strImagePath.s(), rectGeomLabelAbsolute.x(), rectGeomLabelAbsolute.y(), rectGeomLabelAbsolute.width(), rectGeomLabelAbsolute.height()));
             pWidgetChannelLabel->setGeometry(rectGeomLabelAbsolute);
 
             /* adjust label geometry if it overlaps minimum nBorder. this can happen because
                you specify x and y in percentage, and may leave width and height to actual size. */
-            adjustChannelLabelBorder(&rectGeomLabelAbsolute, rectGeomVideoWinAbsolute, nBorder);
+            if (true == pLabelData->_bGlobal)
+            {
+                adjustChannelLabelBorder(&rectGeomLabelAbsolute, rectGeomGraphics, nBorder);
+            }
+            else
+            {
+                adjustChannelLabelBorder(&rectGeomLabelAbsolute, rectGeomVideoWinAbsolute, nBorder);
+            }
+            BDBG_MSG(("ADJUST Channel Label Image %s - x:%d y:%d w:%d h:%d", pLabelData->_strImagePath.s(), rectGeomLabelAbsolute.x(), rectGeomLabelAbsolute.y(), rectGeomLabelAbsolute.width(), rectGeomLabelAbsolute.height()));
 
             ret = pWidgetChannelLabel->loadImage(pLabelData->_strImagePath, bwin_image_render_mode_maximize_down);
             //ret = pWidgetChannelLabel->loadImage(pLabelData->_strImagePath, bwin_image_render_mode_single);
@@ -2108,8 +2122,8 @@ void CScreenMain::setPlaybackStatus(CPlayback * pPlayback)
 eRet CScreenMain::addRecordEncodeIndicator(CChannel * pChannel)
 {
     eRet ret                 = eRet_Ok;
-    uint16_t indWidgetHeight = 15;
-    const uint16_t bevel     = 1;
+    unsigned indWidgetHeight = 15;
+    const unsigned bevel     = 1;
     CGraphics * pGraphics    = NULL;
     bwin_font_t font10;
     MRect rectChNum;
@@ -2502,7 +2516,7 @@ void CScreenMain::onClick(bwidget_t widget)
     }
     else
     {
-        BDBG_MSG(("Unhandled button click (%s)", __FUNCTION__));
+        BDBG_MSG(("Unhandled button click (%s)", BSTD_FUNCTION));
     }
 
     return;
@@ -2683,13 +2697,14 @@ eRet CScreenMain::addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode)
 {
     eRet          ret                = eRet_Ok;
     CDisplay *    pDisplay           = _pModel->getDisplay();
-    eDynamicRange dynamicRangeOutput = pDisplay->getOutputDynamicRange();
+    eDynamicRange dynamicRangeOutput = eDynamicRange_Unknown;
 
     /* show dynamic range indicator */
     if ((NULL == pVideoDecode) || (NULL == pDisplay))
     {
         return(ret);
     }
+    dynamicRangeOutput = pDisplay->getOutputDynamicRange();
 
     if ((eDynamicRange_SDR == dynamicRangeOutput) || (eDynamicRange_Unknown == dynamicRangeOutput))
     {
@@ -2707,7 +2722,7 @@ eRet CScreenMain::addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode)
            but createChannelLabel() will adjust it to fit */
         labelData._rectGeometryPercent = MRect(0, 1000, 0, 0);
         labelData._strImagePath = "images/";
-        labelData._zorder = 17;
+        labelData._zorder = 2;
 
         {
             eDynamicRange dynamicRange = pVideoDecode->getDynamicRange();
@@ -2758,14 +2773,17 @@ eRet CScreenMain::addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode)
 void CScreenMain::addPlmIndicator(CSimpleVideoDecode * pVideoDecode)
 {
     CDisplay * pDisplay = _pModel->getDisplay();
-    eDynamicRange dynamicRangeOutput = pDisplay->getOutputDynamicRange();
-    eWindowType winType = pVideoDecode->getWindowType();
+    eDynamicRange dynamicRangeOutput = eDynamicRange_Unknown;
+    eWindowType winType = eWindowType_Max;
 
     /* show Programmable Luminance Mapping (PLM) indicator */
     if ((NULL == pVideoDecode) || (NULL == pDisplay))
     {
         return;
     }
+
+    dynamicRangeOutput = pDisplay->getOutputDynamicRange();
+    winType = pVideoDecode->getWindowType();
 
     if ((eDynamicRange_SDR == dynamicRangeOutput) ||
         (eDynamicRange_Unknown == dynamicRangeOutput) ||
@@ -2794,7 +2812,7 @@ void CScreenMain::addPlmIndicator(CSimpleVideoDecode * pVideoDecode)
 
         BDBG_MSG(("dynamic range input:%s output:%s", videoDynamicRangeToString(dynamicRangeInput).s(), videoDynamicRangeToString(dynamicRangeOutput).s()));
 
-        if ((eDynamicRange_DolbyVision == dynamicRangeInput) &&
+        if ((eDynamicRange_DolbyVision == dynamicRangeInput) ||
             (eDynamicRange_DolbyVision == dynamicRangeOuput))
         {
             /* PLM is not used for Dolby Vision */
@@ -2822,7 +2840,7 @@ void CScreenMain::addPlmIndicator(CSimpleVideoDecode * pVideoDecode)
            result in the label being outside the bounds of the associated video window,
            but createChannelLabel() will adjust it to fit */
         labelData._rectGeometryPercent = MRect(0, 1000, 0, 0);
-        labelData._zorder = 16;
+        labelData._zorder = 1;
 
         BDBG_MSG(("video decode PLM:%s", pChannel->isPlmEnabled() ? "true" : "false"));
 

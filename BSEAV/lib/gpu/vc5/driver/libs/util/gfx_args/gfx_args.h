@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 struct gfx_args
 {
@@ -62,6 +62,6 @@ extern v3d_addr_t gfx_args_pop_addr_fancy(struct gfx_args *a,
 extern bool gfx_args_pop_bool(struct gfx_args *a);
 extern GFX_LFMT_T gfx_args_pop_lfmt(struct gfx_args *a);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

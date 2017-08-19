@@ -115,7 +115,6 @@ static void SetChannelEnable( BXPT_Handle hXpt, unsigned int PidChannelNum, bool
 static bool PidChannelHasDestination( BXPT_Handle hXpt, unsigned int PidChannelNum );
 static bool IsPidDuplicated( BXPT_Handle hXpt, unsigned int PidChannelNum );
 static void BXPT_P_ConfigArbiter(BREG_Handle hReg);
-void BXPT_Mesg_SetPid2Buff( BXPT_Handle hXpt, bool SetPid2Buff );
 static unsigned int GetParserIndex( BXPT_Handle hXpt, unsigned ParserNum );
 
 #ifndef BXPT_FOR_BOOTUPDATER

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -176,7 +176,7 @@ BIP_RtspRequest_GetMethod(
 
     BKNI_Memset ( methodName, 0, sizeof(methodName) );
 
-    BDBG_MSG(("%s: method (%s)", __FUNCTION__, &hRtspRequest->pBuffer[0] ));
+    BDBG_MSG(("%s: method (%s)", BSTD_FUNCTION, &hRtspRequest->pBuffer[0] ));
 
     for (i = 0 ; i < sizeof(methodName)-1 && i < requestMessageSize ; i++)
     {
@@ -226,7 +226,7 @@ BIP_RtspRequest_GetMethod(
     {
         *rtspRequestMethod = BIP_RtspRequestMethod_eMax;
     }
-    BDBG_MSG(("%s: hRtspRequest[%p]: method %s, enum %d", __FUNCTION__, (void *)hRtspRequest, methodName, *rtspRequestMethod));
+    BDBG_MSG(("%s: hRtspRequest[%p]: method %s, enum %d", BSTD_FUNCTION, (void *)hRtspRequest, methodName, *rtspRequestMethod));
 
     return(BIP_SUCCESS);
 } /* BIP_RtspRequest_GetMethod */

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -408,10 +408,13 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
     * picture from being displayed too early if entering back into a trick mode, e.g. pause->play->pause.
     * SW7445-491: we also don't want to reset it if the TMS result callback requested a "drop" of
     * the previous picture.
-    */
+    * SWSTB-6219: "stDynamic.bForceDisplay": also don't reset the vPTS on the second picture if the
+    * first picture was displayed due to the channel change mode being "first picture preview". */
+
    if ( ( BXDM_PictureProvider_TSMResult_ePass != pstPrevPicture->stPicParms.stTSM.stDynamic.eTsmResult )
         && ( false == hXdmPP->stDMState.stDecode.stVTSM.bTrickModeTransition )
         && ( BXDM_PictureProvider_PictureHandlingMode_eDrop != pstPrevPicture->stPicParms.stTSM.stDynamic.ePictureHandlingMode )
+        &&  ( false == pstPrevPicture->stPicParms.stDisplay.stDynamic.bForceDisplay )
       )
    {
       hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized = false;

@@ -236,7 +236,7 @@ BERR_Code BAPE_MaiOutput_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
 
-    BDBG_MSG(("%s: Opening MAI Output: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening MAI Output: %u", BSTD_FUNCTION, index));
 
     *pHandle = NULL;    /* Set up to return null handle in case of error. */
 
@@ -397,6 +397,27 @@ BERR_Code BAPE_MaiOutput_SetSettings(
     errCode = BAPE_MaiOutput_P_ApplySettings(handle, pSettings, false); /* false => don't force (only update HW for changes) */
 
     return errCode;
+}
+
+/**************************************************************************/
+
+void BAPE_MaiOutput_P_DeterminePauseBurstEnabled(
+    BAPE_MaiOutputHandle handle,
+    bool *compressed,
+    bool *burstsEnabled)
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
+
+    if ( handle->outputPort.mixer )
+    {
+        const BAPE_FMT_Descriptor *pBfd = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        *compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
+    }
+    else {
+        *compressed = false;
+    }
+    *burstsEnabled = handle->settings.underflowBurst != BAPE_SpdifBurstType_eNone;
+    return;
 }
 
 /**************************************************************************/
@@ -1606,11 +1627,11 @@ static void BAPE_MaiOutput_P_SetCbits_Legacy_isr(BAPE_MaiOutputHandle handle)
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, Compressed_SOURCE, handle->settings.channelStatus.sourceNumber);
         if ( dataType == BAPE_DataType_eIec61937x16 )
         {
-            regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, Compressed_FREQ, BAPE_P_GetSampleRateCstatCode_isr(768000));
+            regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, Compressed_FREQ, BAPE_P_GetConsumerSampleRateCstatCode_isr(768000));
         }
         else
         {
-            regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, Compressed_FREQ, BAPE_P_GetSampleRateCstatCode_isr(handle->sampleRate));
+            regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, Compressed_FREQ, BAPE_P_GetConsumerSampleRateCstatCode_isr(handle->sampleRate));
         }
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, Compressed_ACCURACY, handle->settings.channelStatus.clockAccuracy);
         BREG_Write32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, regVal);
@@ -1638,7 +1659,7 @@ static void BAPE_MaiOutput_P_SetCbits_Legacy_isr(BAPE_MaiOutputHandle handle)
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_CP, (handle->settings.channelStatus.copyright)?0:1);
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_CATEGORY, handle->settings.channelStatus.categoryCode);
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_SOURCE, handle->settings.channelStatus.sourceNumber);
-        regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_FREQ, BAPE_P_GetSampleRateCstatCode_isr(handle->sampleRate));
+        regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_FREQ, BAPE_P_GetConsumerSampleRateCstatCode_isr(handle->sampleRate));
         regVal |= BCHP_FIELD_DATA(AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, PCM_ACCURACY, handle->settings.channelStatus.clockAccuracy);
         BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_LO_1, regVal);
         regVal = BREG_Read32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_MS_CTRL_HW_CHANSTAT_HI_1);
@@ -1803,7 +1824,6 @@ static BERR_Code BAPE_MaiOutput_P_Enable_Legacy(BAPE_OutputPort output)
     unsigned streamId;
 
     BAPE_MaiOutputHandle handle;
-    BAPE_MixerHandle mixer;
     BREG_Handle regHandle;
     BAPE_Reg_P_FieldList regFieldList;
     const BAPE_FMT_Descriptor *pFormat;
@@ -1820,7 +1840,6 @@ static BERR_Code BAPE_MaiOutput_P_Enable_Legacy(BAPE_OutputPort output)
     BDBG_ASSERT(false == handle->enabled);
     BDBG_ASSERT(NULL != output->mixer);
 
-    mixer = output->mixer;
     regHandle = handle->deviceHandle->regHandle;
 
     BDBG_MSG(("Enabling %s", handle->name));
@@ -2013,8 +2032,6 @@ static BERR_Code BAPE_MaiOutput_P_Enable_Legacy(BAPE_OutputPort output)
 static void BAPE_MaiOutput_P_Disable_Legacy(BAPE_OutputPort output)
 {
     BAPE_MaiOutputHandle handle;
-    BAPE_MixerHandle mixer;
-    BREG_Handle regHandle;
     const BAPE_FMT_Descriptor *pFormat;
     unsigned i, numChannelPairs;
 
@@ -2026,9 +2043,6 @@ static void BAPE_MaiOutput_P_Disable_Legacy(BAPE_OutputPort output)
     handle = output->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
     BDBG_ASSERT(NULL != output->mixer);
-
-    mixer = output->mixer;
-    regHandle = handle->deviceHandle->regHandle;
 
     BDBG_MSG(("Disabling %s", handle->name));
     pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
@@ -2506,6 +2520,17 @@ BERR_Code BAPE_MaiOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 {
     BSTD_UNUSED(bapeHandle);
     return BERR_SUCCESS;
+}
+
+void BAPE_MaiOutput_P_DeterminePauseBurstEnabled(
+    BAPE_MaiOutputHandle handle,
+    bool *compressed,
+    bool *burstsEnabled)
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(compressed);
+    BSTD_UNUSED(burstsEnabled);
+    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 #endif

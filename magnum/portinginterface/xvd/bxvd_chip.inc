@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,10 +65,21 @@ BXVD_DEFINES += BXVD_P_AVD_ARC600
 #
 else
 
-ifeq ($(findstring $(BCHP_CHIP), 7145 7250 7260 7268 7271 7445 7364 73625 7366 74295 7439 74371 75525 75635 75845 7586 73465), $(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP), 7145 7250 7268 7271 7445 7364 73625 7366 74295 7439 74371 75525 75635 75845 7586 73465), $(BCHP_CHIP))
 BXVD_CHIP = revn0
 BXVD_DEFINES += BXVD_P_AVD_ARC600
 endif
+
+ifeq ($(findstring $(BCHP_CHIP), 7260), $(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_VER), A0), $(BCHP_VER))
+BXVD_CHIP = revn0
+BXVD_DEFINES += BXVD_P_AVD_ARC600
+else
+BXVD_CHIP = revt0
+BXVD_DEFINES += BXVD_P_AVD_ARC600
+endif
+endif
+
 
 ifeq ($(findstring $(BCHP_CHIP), 7278), $(BCHP_CHIP))
 BXVD_CHIP = revt0

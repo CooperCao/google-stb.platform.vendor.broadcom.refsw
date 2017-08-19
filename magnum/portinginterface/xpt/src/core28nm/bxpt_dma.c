@@ -75,9 +75,11 @@
 #include "bchp_xpt_wdma_rams.h"
 #endif
 
+#ifdef BXPT_DMA_HAS_PERFORMANCE_METER
 #ifndef BCHP_XPT_WDMA_REGS_PM_INTERVAL
 #include "bchp_xpt_wdma_pm_control.h"
 #include "bchp_xpt_wdma_pm_results.h"
+#endif
 #endif
 
 #include "bchp_xpt_wdma_cpu_intr_aggregator.h"
@@ -480,11 +482,11 @@ static void BXPT_Dma_P_AssertWdmaDescMem(BXPT_Dma_ContextHandle ctx, bool checkL
 #include "bxpt_dma_sage_priv.h"
 #endif
 
-BERR_Code BXPT_Dma_P_OpenChannel(BXPT_Handle hXpt, BCHP_Handle hChp, BREG_Handle hReg, BMMA_Heap_Handle hMmaHeap, BINT_Handle hInt, BXPT_Dma_Handle *phDma, unsigned channelNum, const BXPT_Dma_Settings *pSettings);
-void BXPT_Dma_Context_P_BlockSettingsDump(BXPT_Dma_ContextHandle ctx, const BXPT_Dma_ContextBlockSettings *pSettings);
-void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, bool print_warnings);
-void BXPT_Dma_P_RegDumpAll(BXPT_Dma_Handle dma);
 static void BXPT_Dma_Context_P_SetPidChannelMode(BXPT_Dma_ContextHandle hCtx);
+#if BXPT_DMA_DESC_DUMP
+static void BXPT_Dma_Context_P_BlockSettingsDump(BXPT_Dma_ContextHandle ctx, const BXPT_Dma_ContextBlockSettings *pSettings);
+static void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, bool print_warnings);
+#endif
 
 static unsigned BXPT_Dma_P_GetWdmaRun_isrsafe(BXPT_Dma_Handle dma)
 {
@@ -537,9 +539,15 @@ static unsigned BXPT_Dma_P_GetMcpbRun_isrsafe(BXPT_Dma_Handle dma)
 static void BXPT_Dma_P_SetMcpbRun_isrsafe(BXPT_Dma_Handle dma, unsigned run)
 {
     uint32_t reg = 0;
+#ifdef BCHP_XPT_MEMDMA_MCPB_CH0_RUN
+    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_RUN + dma->mcpbRegOffset);
+    BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_RUN, SET_CLEAR, run ? 1 : 0);
+    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_RUN + dma->mcpbRegOffset, reg);
+#else
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_RUN_SET_CLEAR, MCPB_CHANNEL_NUM, dma->channelNum);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_RUN_SET_CLEAR, SET_CLEAR, run);
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_RUN_SET_CLEAR, reg);
+#endif
 }
 
 #if (!B_REFSW_MINIMAL)
@@ -554,9 +562,15 @@ unsigned BXPT_Dma_P_GetMcpbWake_isrsafe(BXPT_Dma_Handle dma)
 static void BXPT_Dma_P_SetMcpbWake_isrsafe(BXPT_Dma_Handle dma, unsigned wake)
 {
     uint32_t reg = 0;
+#ifdef BCHP_XPT_MEMDMA_MCPB_CH0_RUN
+    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_WAKE_SET + dma->mcpbRegOffset);
+    BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_WAKE_SET, SET, wake ? 1 : 0);
+    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_WAKE_SET + dma->mcpbRegOffset, reg);
+#else
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_WAKE_SET, MCPB_CHANNEL_NUM, dma->channelNum);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_WAKE_SET, SET, wake);
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_WAKE_SET, reg);
+#endif
 }
 
 static unsigned BXPT_Dma_P_IncrementRunVersion_isrsafe(BXPT_Dma_Handle dma)
@@ -675,7 +689,7 @@ static void BXPT_Dma_P_OverflowCallback_isr(void *pParam1, int parm2)
            if the HW woke properly and processed the descriptors, the offset will match the HW status
            since overflow likely occurs without completion ISR, check on ctx->pp, not !ctx->pp */
         BXPT_Dma_ContextHandle ctx = dma->lastQueuedCtx;
-        BDBG_ERR(("WDMA last wake " BDBG_UINT64_FMT ", NDA " BDBG_UINT64_FMT ", CDA " BDBG_UINT64_FMT "\n", BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)),
+        BDBG_ERR(("WDMA last wake " BDBG_UINT64_FMT ", NDA " BDBG_UINT64_FMT ", CDA " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)),
             BDBG_UINT64_ARG(BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_NEXT_DESC_ADDR + dma->wdmaRamOffset)),
             BDBG_UINT64_ARG(BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset))));
         BDBG_ERR(("MCPB last wake " BDBG_UINT64_FMT ", cur " BDBG_UINT64_FMT ", NDA " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(FIRST_MCPB_DESC_OFFSET(ctx)),
@@ -947,6 +961,10 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_BTP_PACKET_GROUP_ID + dma->wdmaRamOffset, 0);
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_RUN_VERSION_CONFIG + dma->wdmaRamOffset, 0);
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_OVERFLOW_REASONS + dma->wdmaRamOffset, 0);
+
+#if BXPT_DMA_WDMA_ENDIAN_SWAP_CBIT
+    BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + dma->wdmaRamOffset, 0);
+#endif
 
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_STATUS + dma->mcpbRegOffset, 0);
     BREG_WriteAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_ADDR + dma->mcpbRegOffset, 0);
@@ -1504,7 +1522,11 @@ BXPT_Dma_P_UpdateStatus_isr(BXPT_Dma_Handle dma)
     regs[0] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_PAUSE_AT_DESC_READ_STATUS_0_31);
     regs[1] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_PAUSE_AT_DESC_END_STATUS_0_31);
     regs[2] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_PAUSE_AFTER_GROUP_PACKETS_STATUS_0_31);
+#ifdef BCHP_XPT_MEMDMA_MCPB_MICRO_PAUSE_CTRL_0_31
+    regs[3] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_MICRO_PAUSE_CTRL_0_31);
+#else
     regs[3] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_MICRO_PAUSE_STATUS_0_31);
+#endif
     regs[4] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_HW_PAUSE_STATUS_0_31);
     if (regs[0] || regs[1] || regs[2] || regs[3] || regs[4]) {
         BDBG_WRN(("%u: invalid PAUSE state %x %x %x %x %x", dma->channelNum, regs[0], regs[1], regs[2], regs[3], regs[4]));
@@ -2533,6 +2555,7 @@ void BXPT_P_Dma_Resume(BXPT_Handle hXpt)
     return;
 }
 
+#if (!B_REFSW_MINIMAL || BXPT_DMA_DESC_DUMP)
 static void BXPT_Dma_Context_P_DescCheckMcpb(BXPT_Dma_ContextHandle ctx, unsigned idx, bool link_only, uint32_t *desc)
 {
     unsigned numBlocks = ctx->numBlocks;
@@ -2601,7 +2624,6 @@ static void BXPT_Dma_Context_P_DescCheckWdma(BXPT_Dma_ContextHandle ctx, unsigne
     }
 }
 
-#if (!B_REFSW_MINIMAL || BXPT_DMA_DESC_DUMP)
 void BXPT_Dma_Context_P_BlockSettingsDump(BXPT_Dma_ContextHandle ctx, const BXPT_Dma_ContextBlockSettings *pSettings)
 {
     BSTD_UNUSED(ctx);
@@ -2736,6 +2758,7 @@ void BXPT_Dma_P_StatusDump(BXPT_Dma_Handle dma)
 
 void BXPT_Dma_P_PerfMeterDump(BXPT_Dma_Handle dma)
 {
+#ifdef BXPT_DMA_HAS_PERFORMANCE_METER
     uint32_t val[8];
 #ifdef BCHP_XPT_WDMA_REGS_PM_INTERVAL
     val[0] = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_PM_INTERVAL);
@@ -2797,6 +2820,10 @@ void BXPT_Dma_P_PerfMeterDump(BXPT_Dma_Handle dma)
     BKNI_Printf("CHAN: BYTES_TXFERED %u, DATA_STALL_CLOCKS %u\n", val[0], val[1]);
     BKNI_Printf("CHAN_PACKETS: ACCEPTED %u, REJECTED_OVERFLOW %u, REJECTED_RUN_VERSION %u\n", val[2], val[3], val[4]);
     BKNI_Printf("CHAN: READING_DESCRIPTORS %u, SLEEP %u\n", val[5], val[6]);
+#endif
+#else
+    BSTD_UNUSED(dma);
+    BDBG_WRN(("%s not supported on this chip", BSTD_FUNCTION));
 #endif
 }
 #endif

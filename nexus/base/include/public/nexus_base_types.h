@@ -61,7 +61,7 @@ Any non-zero NEXUS_Error value is a failure. Zero is success.
 Description:
 An Interface may return one of the standard codes defined below.
 It may build a custom code using NEXUS_MAKE_ERR_CODE.
-It may propogate an internal non-zero error code whose value is undefined.
+It may propagate an internal non-zero error code whose value is undefined.
 **/
 typedef unsigned NEXUS_Error;
 
@@ -169,6 +169,7 @@ typedef enum NEXUS_ModulePriority
     NEXUS_ModulePriority_eLowActiveStandby,     /* Low priority. This should be used by slow-executing modules, but remain to be active during active standby */
     NEXUS_ModulePriority_eDefaultActiveStandby, /* Medium priority. This is used by most modules, but remain to be active during active standby */
     NEXUS_ModulePriority_eHighActiveStandby,    /* The highest priority. This should only be used by fast-executing modules (no slow functions) which require it, and remain active during active standby */
+    NEXUS_ModulePriority_eAlwaysOn,    /* This should be used by modules that remain On during all standby */
     NEXUS_ModulePriority_eInternal, /* Internal scheduler. This should only be internally to NEXUS and should not be used to route callbacks to application, and remain active during active standby */
     NEXUS_ModulePriority_eMax
 } NEXUS_ModulePriority;

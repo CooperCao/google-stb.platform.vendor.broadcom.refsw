@@ -193,7 +193,10 @@ static BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h
             hChn->count3 = 0;
 
             if (hChn->tunerIfStepSize > hChn->searchRange)
-               BSAT_g1_P_DftSetState_isr(h, 6); /* do fine search */
+            {
+               hChn->tunerIfStep = 0;
+               BSAT_g1_P_DftSetState_isr(h, 4); /* do fine search */
+            }
             else
             {
                BSAT_g1_P_DftSetState_isr(h, 1);
@@ -298,7 +301,12 @@ static BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h
                if (hChn->tunerIfStepMax > (int32_t)hChn->searchRange)
                   hChn->tunerIfStepMax = (int32_t)(hChn->searchRange);
                hChn->tunerIfStepSize = hChn->acqSettings.symbolRate / 20;
-               if (hChn->tunerIfStepSize > 1000000)
+               if (hChn->tunerIfStepSize > hChn->searchRange)
+               {
+                  BSAT_g1_P_DftSetState_isr(h, 5);
+                  break;
+               }
+               else if (hChn->tunerIfStepSize > 1000000)
                   hChn->tunerIfStepSize = 1000000; /* fine step should be no more than 1MHz */
                hChn->tunerIfStep -= hChn->tunerIfStepSize;
 

@@ -2722,10 +2722,12 @@ BERR_Code BRDC_SetSyncBlockSettings_isr
         ulAddr = BCHP_RDC_itm0_sync_sel;
         ulReg = BCHP_FIELD_DATA(RDC_itm0_sync_sel, sync_sel0, pSyncBlockSettings->hSlot->ulSyncId);
         break;
+#ifdef BCHP_RDC_itm1_sync_sel
     case BRDC_SyncBlockId_eItm1:
         ulAddr = BCHP_RDC_itm1_sync_sel;
         ulReg = BCHP_FIELD_DATA(RDC_itm1_sync_sel, sync_sel0, pSyncBlockSettings->hSlot->ulSyncId);
         break;
+#endif
     }
     BRDC_P_Write32(hRdc, ulAddr, ulReg);
     BDBG_MSG(("BRDC_SyncBlockId %u selects synchronizer %d", eBlock, pSyncBlockSettings->hSlot->ulSyncId));

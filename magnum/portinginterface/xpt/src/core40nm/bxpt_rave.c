@@ -473,7 +473,7 @@ static BXPT_P_ContextHandle * allocContextHandle(
 
     if(!ThisCtx)
     {
-        BDBG_ERR(("%s malloc failed for context handle", __FUNCTION__));
+        BDBG_ERR(("%s malloc failed for context handle", BSTD_FUNCTION));
         goto Done;
     }
     BKNI_Memset(ThisCtx, 0, sizeof(*ThisCtx));
@@ -1052,7 +1052,7 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     }
 
     /* Now that we've got the resources, mark them as allocated and init them. */
-    BDBG_MSG(( "%s: referenceScdNum %u, decodeScdNum %u, referenceIndex %u, decodeIndex %u", __FUNCTION__, referenceScdNum, decodeScdNum, referenceIndex, decodeIndex ));
+    BDBG_MSG(( "%s: referenceScdNum %u, decodeScdNum %u, referenceIndex %u, decodeIndex %u", BSTD_FUNCTION, referenceScdNum, decodeScdNum, referenceIndex, decodeIndex ));
     hRave->ScdTable[ referenceScdNum ].Allocated = true;
     hRave->ScdTable[ decodeScdNum ].Allocated = true;
 
@@ -3466,7 +3466,7 @@ BERR_Code BXPT_Rave_SetAvConfig(
         ** the VCE-based transcoding tests. See SW7425-5829.
         EmulationPrevRemove = false;
         */
-        BDBG_WRN(( "%s: Config->Transcoding is no longer supported", __FUNCTION__ ));
+        BDBG_WRN(( "%s: Config->Transcoding is no longer supported", BSTD_FUNCTION ));
     }
 
     switch( Config->OutputFormat )
@@ -4303,7 +4303,7 @@ BERR_Code BXPT_Rave_RemovePidChannel(
             }
 
             /* BDBG_LOG(("%s : %d : Context: %p Found SCD in Context slot : %u ",
-                         __FUNCTION__, __LINE__, Context, ScdSlotNum   )); */
+                         BSTD_FUNCTION, __LINE__, Context, ScdSlotNum   )); */
 
             if ( ScdSlotNum < 8 )
             {
@@ -6248,7 +6248,7 @@ BERR_Code GetScdPid(
     *PidValid = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_REC_SCD_PIDS_A, Mapped_SCD_via_PID_channels_PID_CHA_VALID );
     /*
     BDBG_MSG(("%s : %d : hCtx: %p WhichScd: %u WhichScdBlock: %u Pid: %u PidValid: %u  ",
-                 __FUNCTION__, __LINE__, hCtx, WhichScd, *WhichScdBlock, *Pid, *PidValid   ));
+                 BSTD_FUNCTION, __LINE__, hCtx, WhichScd, *WhichScdBlock, *Pid, *PidValid   ));
     */
 #endif
 
@@ -6270,7 +6270,7 @@ BERR_Code ChangeScdPid(
 
     /*
     BDBG_MSG(("%s : %d : Entry: hCtx: %p, WhichScd: %u, WhichScdBlock: %u, Pid: %u, PidValid: %u ",
-                           __FUNCTION__, __LINE__ , hCtx, WhichScd, WhichScdBlock, Pid, PidValid  ));
+                           BSTD_FUNCTION, __LINE__ , hCtx, WhichScd, WhichScdBlock, Pid, PidValid  ));
     */
 
 #ifdef BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_AB

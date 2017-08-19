@@ -184,6 +184,61 @@ typedef uint8_t BAVC_HDMI_HDCP_KSV[BAVC_HDMI_HDCP_KSV_LENGTH] ;
 
 /******************************************************************************
 Summary:
+Enumerated Type of HDMI Devices
+
+Description:
+Enumeration of HDMI Devices: Tx and Rx
+
+
+See Also:
+BAVC_HDMI_CoreId
+*******************************************************************************/
+typedef enum BAVC_HDMI_Device
+{
+	BAVC_HDMI_Device_eTx,
+	BAVC_HDMI_Device_eRx
+} BAVC_HDMI_Device ;
+
+
+/******************************************************************************
+Summary:
+Enumerated Type of number of HDMI cores
+
+Description:
+Enumeration of Core IDs (0, 1, 2, n)
+Some devices have multiple cores
+
+See Also:
+BAVC_HDMI_Device
+*******************************************************************************/
+typedef enum BAVC_HDMI_CoreId
+{
+	BAVC_HDMI_CoreId_e0,
+	BAVC_HDMI_CoreId_e1,
+	BAVC_HDMI_CoreId_eNone
+} BAVC_HDMI_CoreId ;
+
+
+/******************************************************************************
+Summary:
+Stucture definition describing HDMI devices
+
+Description:
+
+
+See Also:
+BAVC_HDMI_Device
+BAVC_HDMI_CoreId
+*******************************************************************************/
+typedef struct BAVC_HDMI_Port
+{
+	BAVC_HDMI_Device eDevice ;
+	BAVC_HDMI_CoreId eCoreId ;
+} BAVC_HDMI_Port ;
+
+
+/******************************************************************************
+Summary:
 Enumerated Type of the status of a particular packet
 
 Description:
@@ -564,7 +619,7 @@ For HDMI Tx (i,e, BCM7038), some AVI field values are populated based on
 other magnum settings i.e BFMT_VideoFmt etc.
 
 ****************************************************************************/
-typedef struct _HDMI_AVI_INFOFRAME_
+typedef struct BAVC_HDMI_AviInfoFrame
 {
         /*
         --NOTE: modifications to this HDMI_AVI_INFOFRAME  structure must be
@@ -627,8 +682,6 @@ typedef struct _HDMI_AVI_INFOFRAME_
 #endif
 
 } BAVC_HDMI_AviInfoFrame ;
-
-
 
 
 /*******************************************************************************
@@ -1594,5 +1647,11 @@ const char * BAVC_HDMI_BitsPerPixelToStr(
 
 
 unsigned int BAVC_HDMI_HDCP_NumberOfSetBits(const unsigned char *bytes, int nbytes) ;
+
+void BAVC_HDMI_DisplayAVIInfoFramePacket(BAVC_HDMI_Port *pstHdmiPort, BAVC_HDMI_AviInfoFrame *pstAviInfoFrame) ;
+void BAVC_HDMI_DisplayAudioInfoFramePacket(BAVC_HDMI_Port *pstHdmiPort, BAVC_HDMI_AudioInfoFrame *pstAudioInfoFrame) ;
+void BAVC_HDMI_DisplayVendorSpecificInfoFrame(BAVC_HDMI_Port *pstHdmiPort, const BAVC_HDMI_VendorSpecificInfoFrame *pstVSI) ;
+void BAVC_HDMI_DisplayDRMInfoFramePacket(BAVC_HDMI_Port *pstHdmiPort, BAVC_HDMI_DRMInfoFrame *pstDRMInfoFrame) ;
+void BAVC_HDMI_DisplayACRData(BAVC_HDMI_Port *pstHdmiPort, BAVC_HDMI_AudioClockRegenerationPacket *pstACR) ;
 
 #endif

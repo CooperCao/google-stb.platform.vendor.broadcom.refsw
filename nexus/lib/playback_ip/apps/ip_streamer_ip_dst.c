@@ -234,7 +234,7 @@ endOfStreamCallback(void *context, int param)
 {
     BSTD_UNUSED(param);
     BSTD_UNUSED(context);
-    BDBG_MSG(("%s: CTX: %p: End of stream reached for file playback", __FUNCTION__, context));
+    BDBG_MSG(("%s: CTX: %p: End of stream reached for file playback", BSTD_FUNCTION, context));
 }
 
 static void
@@ -355,17 +355,17 @@ openNexusIpDstWithTimeshift(
     if (ipStreamerCfg->pvrEncryptionEnabled) {
         ipStreamerCtx->pvrEncKeyHandle = _createKeyHandle(NEXUS_SecurityOperation_eEncrypt);
         if (!ipStreamerCtx->pvrEncKeyHandle) {
-            BDBG_ERR(("%s: Failed to allocate enc keyslot", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to allocate enc keyslot", BSTD_FUNCTION));
             return -1;
         }
         ipStreamerCtx->pvrDecKeyHandle = _createKeyHandle(NEXUS_SecurityOperation_eDecrypt);
         if (!ipStreamerCtx->pvrDecKeyHandle) {
-            BDBG_ERR(("%s: Failed to allocate dec keyslot", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to allocate dec keyslot", BSTD_FUNCTION));
             return -1;
         }
         recordSettings.recpumpSettings.securityDma = ipStreamerCtx->globalCtx->globalCfg.dmaHandle;
         recordSettings.recpumpSettings.securityContext = ipStreamerCtx->pvrEncKeyHandle;
-        BDBG_MSG(("%s: PVR Encryption successfully setup", __FUNCTION__));
+        BDBG_MSG(("%s: PVR Encryption successfully setup", BSTD_FUNCTION));
     }
     else {
         recordSettings.recpumpSettings.securityContext = NULL;
@@ -412,15 +412,15 @@ openNexusIpDstWithTimeshift(
         if ((ipStreamerCtx->fileSrc = BKNI_Malloc(sizeof(FileSrc))) == NULL) { BDBG_ERR(("BKNI_Malloc Failure at %d", __LINE__)); return -1;}
         BKNI_Memset(ipStreamerCtx->fileSrc, 0, sizeof(FileSrc));
         if ((ipStreamerCtx->fileSrc->playpumpHandle = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL)) == NULL) {
-            BDBG_ERR(("%s: ERROR: Failed to Open a free Nexus Playpump idx", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to Open a free Nexus Playpump idx", BSTD_FUNCTION));
             return -1;
         }
         if ((ipStreamerCtx->fileSrc->playbackHandle = NEXUS_Playback_Create()) == NULL) {
-            BDBG_ERR(("%s: ERROR: Failed to create a Nexus Playback instance", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to create a Nexus Playback instance", BSTD_FUNCTION));
             return -1;
         }
         if ((ipStreamerCtx->fileSrc->timebase = NEXUS_Timebase_Open(NEXUS_ANY_ID)) == NEXUS_Timebase_eInvalid) {
-            BDBG_ERR(("%s: ERROR: NEXUS_Timebase_Open Failed to open a free Timebase", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: NEXUS_Timebase_Open Failed to open a free Timebase", BSTD_FUNCTION));
             return -1;
         }
         timebase = ipStreamerCtx->fileSrc->timebase;
@@ -429,7 +429,7 @@ openNexusIpDstWithTimeshift(
         timebaseSettings.freeze = true;
         timebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e122ppm;
         if (NEXUS_Timebase_SetSettings(timebase, &timebaseSettings)) {
-            BDBG_ERR(("%s: ERROR: NEXUS_Timebase_SetSettings Failed to open a free STC Channel %s", __FUNCTION__, ipStreamerCfg->fileName));
+            BDBG_ERR(("%s: ERROR: NEXUS_Timebase_SetSettings Failed to open a free STC Channel %s", BSTD_FUNCTION, ipStreamerCfg->fileName));
             return -1;
         }
         NEXUS_Playback_GetSettings(ipStreamerCtx->fileSrc->playbackHandle, &playbackSettings);
@@ -450,14 +450,14 @@ openNexusIpDstWithTimeshift(
         playbackSettings.playpumpSettings.allPass=true;
         playbackSettings.timeshifting = true;
         if (NEXUS_Playback_SetSettings(ipStreamerCtx->fileSrc->playbackHandle, &playbackSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_Playback_SetSettings() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_Playback_SetSettings() Failed", BSTD_FUNCTION));
             return -1;
         }
         NEXUS_Playback_GetDefaultPidChannelSettings(&pidCfg0);
         NEXUS_Playpump_GetAllPassPidChannelIndex(playbackSettings.playpump, &pidCfg0.pidSettings.pidSettings.pidChannelIndex );
         ipStreamerCtx->allPassPidChannel = NEXUS_Playback_OpenPidChannel(ipStreamerCtx->fileSrc->playbackHandle, 0x00, &pidCfg0);   /* PID is ignored in allPass mode */
         if (ipStreamerCtx->allPassPidChannel == NULL) {
-            BDBG_ERR(("%s: NEXUS_Playback_OpenPidChannel() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_Playback_OpenPidChannel() Failed", BSTD_FUNCTION));
             return -1;
         }
         NEXUS_Recpump_GetDefaultOpenSettings(&recpumpOpenSettings);
@@ -480,7 +480,7 @@ openNexusIpDstWithTimeshift(
         recpumpSettings.timestampType = NEXUS_TransportTimestampType_e32_Mod300;
         recpumpSettings.bandHold = true;
         if (NEXUS_Recpump_SetSettings(ipDst->recpumpAllpassHandle, &recpumpSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to update recpump settings", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to update recpump settings", BSTD_FUNCTION));
             return -1;
         }
         rc = NEXUS_Recpump_AddPidChannel(ipDst->recpumpAllpassHandle, ipStreamerCtx->allPassPidChannel, NULL);
@@ -505,7 +505,7 @@ openNexusIpDstWithTimeshift(
     liveStreamingSettings.hlsSegmentSize = ipStreamerCfg->hlsSegmentSize;
     if (ipStreamerCfg->appHeader.valid) {
         if (ipStreamerCfg->appHeader.length > sizeof(liveStreamingSettings.appHeader.data)) {
-            BDBG_ERR(("%s: ERROR: app header length (%d) is > data buffer in ip streamer (%d)", __FUNCTION__, ipStreamerCfg->appHeader.length, sizeof(liveStreamingSettings.appHeader.data)));
+            BDBG_ERR(("%s: ERROR: app header length (%d) is > data buffer in ip streamer (%d)", BSTD_FUNCTION, ipStreamerCfg->appHeader.length, sizeof(liveStreamingSettings.appHeader.data)));
             return -1;
         }
         liveStreamingSettings.appHeader.valid = ipStreamerCfg->appHeader.valid;
@@ -536,7 +536,7 @@ openNexusIpDstWithTimeshift(
 #endif
     liveStreamingSettings.heapHandle = ipStreamerCtx->globalCtx->globalCfg.heapHandle;
     if ((ipDst->liveStreamingHandle = B_PlaybackIp_LiveStreamingOpen(&liveStreamingSettings)) == NULL) {
-        BDBG_ERR(("%s: ERROR: Failed to open Network Streaming handle", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: Failed to open Network Streaming handle", BSTD_FUNCTION));
         return -1;
     }
 
@@ -644,8 +644,8 @@ openNexusIpDstWithoutTimeshift(
     int videoPid;
     int factor = 1; /* TODO: need to check if default rave buffer size is enough for streaming out */
 
-    BDBG_MSG(("%s: ipStreamerCtx %p", __FUNCTION__, (void *)ipStreamerCtx ));
-    BDBG_MSG(("%s: freq %u; pidListCount %u; ip (%s); port (%u); socket (%u)", __FUNCTION__, ipStreamerCtx->cfg.frequency,
+    BDBG_MSG(("%s: ipStreamerCtx %p", BSTD_FUNCTION, (void *)ipStreamerCtx ));
+    BDBG_MSG(("%s: freq %u; pidListCount %u; ip (%s); port (%u); socket (%u)", BSTD_FUNCTION, ipStreamerCtx->cfg.frequency,
               ipStreamerCtx->cfg.pidListCount, ipStreamerCtx->cfg.srcIpAddress, ipStreamerCtx->cfg.srcPort, ipStreamerCtx->cfg.streamingFd ));
     ipStreamerCtx->ipDst = NULL;
     BKNI_AcquireMutex(ipStreamerCtx->globalCtx->ipDstMutex);
@@ -700,17 +700,17 @@ openNexusIpDstWithoutTimeshift(
     if (ipStreamerCfg->pvrEncryptionEnabled) {
         ipStreamerCtx->pvrEncKeyHandle = _createKeyHandle(NEXUS_SecurityOperation_eEncrypt);
         if (!ipStreamerCtx->pvrEncKeyHandle) {
-            BDBG_ERR(("%s: Failed to allocate enc keyslot", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to allocate enc keyslot", BSTD_FUNCTION));
             return -1;
         }
         ipStreamerCtx->pvrDecKeyHandle = _createKeyHandle(NEXUS_SecurityOperation_eDecrypt);
         if (!ipStreamerCtx->pvrDecKeyHandle) {
-            BDBG_ERR(("%s: Failed to allocate dec keyslot", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to allocate dec keyslot", BSTD_FUNCTION));
             return -1;
         }
         recpumpSettings.securityDma = ipStreamerCtx->globalCtx->globalCfg.dmaHandle;
         recpumpSettings.securityContext = ipStreamerCtx->pvrEncKeyHandle;
-        BDBG_MSG(("%s: PVR Encryption successfully setup", __FUNCTION__));
+        BDBG_MSG(("%s: PVR Encryption successfully setup", BSTD_FUNCTION));
     }
     else {
         recpumpSettings.securityContext = NULL;
@@ -734,7 +734,7 @@ openNexusIpDstWithoutTimeshift(
 
     /* note: for non-timeshift case, we are not setting up the recpump overflow callback, instead live streaming thread is monitoring the buffer depths and carries out the fifo flush when overflow happens */
     if (NEXUS_Recpump_SetSettings(ipDst->recpumpHandle, &recpumpSettings) != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: Failed to update recpump settings", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to update recpump settings", BSTD_FUNCTION));
         return -1;
     }
 
@@ -745,9 +745,9 @@ openNexusIpDstWithoutTimeshift(
     if (ipStreamerCfg->streamingCfg.streamingProtocol == B_PlaybackIpProtocol_eRtp || ipStreamerCfg->streamingCfg.streamingProtocol == B_PlaybackIpProtocol_eUdp) {
         if ( &liveStreamingSettings.rtpUdpSettings !=NULL )
         {
-            BDBG_MSG(("%s: setting interface (%s)", __FUNCTION__, ipStreamerCtx->globalCtx->globalCfg.interfaceName )); fflush(stdout);
+            BDBG_MSG(("%s: setting interface (%s)", BSTD_FUNCTION, ipStreamerCtx->globalCtx->globalCfg.interfaceName )); fflush(stdout);
             liveStreamingSettings.rtpUdpSettings.interfaceName = ipStreamerCtx->globalCtx->globalCfg.interfaceName;
-            BDBG_MSG(("%s: setting port streamingPort (%u); srcPort (%u); addr (%s)", __FUNCTION__,
+            BDBG_MSG(("%s: setting port streamingPort (%u); srcPort (%u); addr (%s)", BSTD_FUNCTION,
                       ipStreamerCfg->streamingCfg.streamingPort ,ipStreamerCtx->cfg.srcPort, ipStreamerCfg->streamingCfg.streamingIpAddress  ));
             liveStreamingSettings.rtpUdpSettings.streamingPort = ipStreamerCfg->streamingCfg.streamingPort;
             strncpy(liveStreamingSettings.rtpUdpSettings.streamingIpAddress, ipStreamerCfg->streamingCfg.streamingIpAddress,
@@ -763,7 +763,7 @@ openNexusIpDstWithoutTimeshift(
     liveStreamingSettings.hlsSegmentSize = ipStreamerCfg->hlsSegmentSize;
     if (ipStreamerCfg->appHeader.valid) {
         if (ipStreamerCfg->appHeader.length > sizeof(liveStreamingSettings.appHeader.data)) {
-            BDBG_ERR(("%s: ERROR: app header length (%d) is > data buffer in ip streamer (%d)", __FUNCTION__, ipStreamerCfg->appHeader.length, sizeof(liveStreamingSettings.appHeader.data)));
+            BDBG_ERR(("%s: ERROR: app header length (%d) is > data buffer in ip streamer (%d)", BSTD_FUNCTION, ipStreamerCfg->appHeader.length, sizeof(liveStreamingSettings.appHeader.data)));
             return -1;
         }
         liveStreamingSettings.appHeader.valid = ipStreamerCfg->appHeader.valid;
@@ -808,7 +808,7 @@ openNexusIpDstWithoutTimeshift(
     }
 #endif
     if ((ipDst->liveStreamingHandle = B_PlaybackIp_LiveStreamingOpen(&liveStreamingSettings)) == NULL) {
-        BDBG_ERR(("%s: ERROR: Failed to open Network Streaming handle", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: Failed to open Network Streaming handle", BSTD_FUNCTION));
         return -1;
     }
 
@@ -832,7 +832,7 @@ openNexusIpDstWithoutTimeshift(
             }
             NEXUS_PidChannel_GetStatus( ipStreamerCtx->pidChannelList[i], &pidChannelStatus );
             BDBG_MSG(("%s: Recpump adding PidChannel (%p); pid (%-3u); parserBand (%u); transportType (%u); contErrors (%u)",
-                      __FUNCTION__, (void *)ipStreamerCtx->pidChannelList[i], pidChannelStatus.pid, pidChannelStatus.parserBand,
+                      BSTD_FUNCTION, (void *)ipStreamerCtx->pidChannelList[i], pidChannelStatus.pid, pidChannelStatus.parserBand,
                       pidChannelStatus.transportType, pidChannelStatus.continuityCountErrors ));
         }
     }
@@ -874,7 +874,7 @@ openNexusIpDstWithoutTimeshift(
             }
             if (ipStreamerCfg->hlsSession) {
                 /* enable TPIT filter for HLS Sessions so that IP library can segment the outgoing stream at the Random Access Indicator (RAI) boundary */
-                BDBG_MSG(("%s: enable TPIT filter for HLS Sessions so that IP library can segment the outgoing stream at the Key packet boundary", __FUNCTION__));
+                BDBG_MSG(("%s: enable TPIT filter for HLS Sessions so that IP library can segment the outgoing stream at the Key packet boundary", BSTD_FUNCTION));
                 NEXUS_Recpump_GetDefaultTpitFilter(&filter);
                 filter.config.mpeg.randomAccessIndicatorEnable = true;
                 filter.config.mpeg.randomAccessIndicatorCompValue = true;
@@ -1008,7 +1008,7 @@ closeNexusIpDstWithTimeshift(
     if (ipStreamerCtx->pvrDecKeyHandle && !ipStreamerCtx->cfg.pvrDecKeyHandle)
         NEXUS_Security_FreeKeySlot(ipStreamerCtx->pvrDecKeyHandle);
 #endif
-    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
+    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", BSTD_FUNCTION, (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
 }
 
 void
@@ -1036,7 +1036,7 @@ closeNexusIpDstWithoutTimeshift(
     if (ipStreamerCtx->pvrDecKeyHandle && !ipStreamerCtx->cfg.pvrDecKeyHandle)
         NEXUS_Security_FreeKeySlot(ipStreamerCtx->pvrDecKeyHandle);
 #endif
-    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
+    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", BSTD_FUNCTION, (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
 }
 
 int
@@ -1050,7 +1050,7 @@ startNexusIpDst(
     if (ipStreamerCtx->cfg.enableTimeshifting) {
         /* Even for IP Streaming, we record the live channel to Rave and stream it out from Rave buffers */
         if (NEXUS_Record_AddPlayback(ipStreamerCtx->ipDst->recordHandle, ipStreamerCtx->fileSrc->playbackHandle)) {
-            BDBG_ERR(("%s: ERROR: CTX %p: NEXUS_Record_AddPlayback Failed", __FUNCTION__, (void *)ipStreamerCtx));
+            BDBG_ERR(("%s: ERROR: CTX %p: NEXUS_Record_AddPlayback Failed", BSTD_FUNCTION, (void *)ipStreamerCtx));
             return -1;
         }
         rc = NEXUS_Record_Start(ipStreamerCtx->ipDst->recordHandle, ipStreamerCtx->ipDst->fileRecordHandle);
@@ -1066,7 +1066,7 @@ startNexusIpDst(
             }
             ipStreamerCtx->fileSrc->filePlayHandle = NEXUS_FifoPlay_Open(ipStreamerCtx->cfg.fileName, ipStreamerCtx->cfg.indexFileName, ipStreamerCtx->ipDst->fifoFileHandle);
             if (ipStreamerCtx->fileSrc->filePlayHandle == NULL) {
-                BDBG_ERR(("%s: ERROR: NEXUS_FilePlay_OpenPosix Failed to open media file %s", __FUNCTION__, ipStreamerCtx->cfg.fileName));
+                BDBG_ERR(("%s: ERROR: NEXUS_FilePlay_OpenPosix Failed to open media file %s", BSTD_FUNCTION, ipStreamerCtx->cfg.fileName));
                 return -1;
             }
             BDBG_WRN(("TODO: Add a delay to avoid initial macroblocking: need to work on this bug: Sleeping 2 sec ............\n"));
@@ -1074,14 +1074,14 @@ startNexusIpDst(
             while (count++ < 10) {
                 rc = NEXUS_Playback_Start(ipStreamerCtx->fileSrc->playbackHandle, ipStreamerCtx->fileSrc->filePlayHandle, NULL);
                 if (rc != NEXUS_SUCCESS) {
-                    BDBG_ERR(("%s: ERROR: Failed to start Nexus Playback, retrying", __FUNCTION__));
+                    BDBG_ERR(("%s: ERROR: Failed to start Nexus Playback, retrying", BSTD_FUNCTION));
                     BKNI_Sleep(100);
                     continue;
                 }
                 break;
             }
             if (rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: Failed to start Nexus Playback", __FUNCTION__));
+                BDBG_ERR(("%s: ERROR: Failed to start Nexus Playback", BSTD_FUNCTION));
                 return -1;
             }
         }
@@ -1095,7 +1095,7 @@ startNexusIpDst(
     }
 
     if (B_PlaybackIp_LiveStreamingStart(ipStreamerCtx->ipDst->liveStreamingHandle) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: Failed to start Live Streaming Session", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: Failed to start Live Streaming Session", BSTD_FUNCTION));
         return -1;
     }
     ipStreamerCtx->ipStreamingInProgress = true;

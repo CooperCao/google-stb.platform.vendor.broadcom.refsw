@@ -190,7 +190,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_EXTERNAL_OES)->name;
       return glxx_get_uint_1;
    case GL_ACTIVE_TEXTURE:
-      uints[0] = state->active_texture;
+      uints[0] = state->active_texture + GL_TEXTURE0;
       return glxx_get_uint_1;
    case GL_STENCIL_FUNC:
       uints[0] = state->stencil_func.front.func;
@@ -377,11 +377,9 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       floats[0] = state->sample_coverage.value;
       return glxx_get_float_1;
 
-#if GL_EXT_texture_filter_anisotropic
    case GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT:
       floats[0] = 16.0f;
       return glxx_get_float_1;
-#endif
    case GL_CONTEXT_ROBUST_ACCESS_EXT:
       booleans[0] = egl_context_gl_robustness(state->context);
       return glxx_get_bool_1;
@@ -474,12 +472,12 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       booleans[0] = !!(state->gl11.statebits.fragment & GL11_SAMPLE_ONE);
       return glxx_get_bool_1;
    case GL_TEXTURE_2D:
-      assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
-      booleans[0] = state->gl11.texunits[state->active_texture - GL_TEXTURE0].target_enabled_2D;
+      assert(state->active_texture < GL11_CONFIG_MAX_TEXTURE_UNITS);
+      booleans[0] = state->gl11.texunits[state->active_texture].target_enabled_2D;
       return glxx_get_bool_1;
    case GL_TEXTURE_EXTERNAL_OES:
-      assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
-      booleans[0] = state->gl11.texunits[state->active_texture - GL_TEXTURE0].target_enabled_EXTERNAL_OES;
+      assert(state->active_texture < GL11_CONFIG_MAX_TEXTURE_UNITS);
+      booleans[0] = state->gl11.texunits[state->active_texture].target_enabled_EXTERNAL_OES;
       return glxx_get_bool_1;
    case GL_ALPHA_TEST:
       booleans[0] = !!(state->gl11.statebits.f_enable & GL11_AFUNC_M);
@@ -509,8 +507,8 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       gl11_matrix_load((float*)ints, state->gl11.current_projection);
       return glxx_get_int_0 + 16;
    case GL_TEXTURE_MATRIX_FLOAT_AS_INT_BITS_OES:
-      assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
-      gl11_matrix_load((float*)ints, state->gl11.texunits[state->active_texture - GL_TEXTURE0].current_matrix);
+      assert(state->active_texture < GL11_CONFIG_MAX_TEXTURE_UNITS);
+      gl11_matrix_load((float*)ints, state->gl11.texunits[state->active_texture].current_matrix);
       return glxx_get_int_0 + 16;
    case GL_MODELVIEW_STACK_DEPTH:
       uints[0] = state->gl11.modelview.pos + 1;
@@ -519,7 +517,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       uints[0] = state->gl11.projection.pos + 1;
       return glxx_get_uint_1;
    case GL_TEXTURE_STACK_DEPTH:
-      uints[0] = state->gl11.texunits[state->active_texture - GL_TEXTURE0].stack.pos + 1;
+      uints[0] = state->gl11.texunits[state->active_texture].stack.pos + 1;
       return glxx_get_uint_1;
    case GL_MATRIX_MODE:
       uints[0] = state->gl11.matrix_mode;
@@ -697,8 +695,8 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       gl11_matrix_load(floats, state->gl11.current_projection);
       return glxx_get_float_0 + 16;
    case GL_TEXTURE_MATRIX:
-      assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
-      gl11_matrix_load(floats, state->gl11.texunits[state->active_texture - GL_TEXTURE0].current_matrix);
+      assert(state->active_texture < GL11_CONFIG_MAX_TEXTURE_UNITS);
+      gl11_matrix_load(floats, state->gl11.texunits[state->active_texture].current_matrix);
       return glxx_get_float_0 + 16;
    case GL_FOG_DENSITY:
       floats[0] = state->gl11.fog.density;
@@ -733,7 +731,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
    case GL_CURRENT_TEXTURE_COORDS:
       /* apparently we need the current texture coordinates for the _server_ active texture unit */
       for (unsigned i = 0; i < 4; i++)
-         floats[i] = state->generic_attrib[state->active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].f[i];
+         floats[i] = state->generic_attrib[state->active_texture + GL11_IX_TEXTURE_COORD].f[i];
       return glxx_get_float_0 + 4;
    case GL_POINT_SIZE:
       floats[0] = state->generic_attrib[GL11_IX_POINT_SIZE].f[0];
@@ -965,7 +963,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
    case GL_SAMPLER_BINDING:
    {
-      GLXX_TEXTURE_SAMPLER_STATE_T *sampler = state->bound_sampler[state->active_texture - GL_TEXTURE0];
+      GLXX_TEXTURE_SAMPLER_STATE_T *sampler = state->bound_sampler[state->active_texture];
       uints[0] = sampler != NULL ? sampler->id : 0u;
       return glxx_get_uint_1;
    }
@@ -1847,7 +1845,6 @@ uint32_t glxx_get_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state, GLX
 
    switch (pname)
    {
-#if GL_EXT_texture_filter_anisotropic
    case GL_TEXTURE_MAX_ANISOTROPY_EXT:
       if (!IS_GL_11(state)) {
          params[0] = sampler->anisotropy;
@@ -1857,7 +1854,6 @@ uint32_t glxx_get_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state, GLX
          result = 0;
       }
       break;
-#endif
    case GL_TEXTURE_MIN_LOD:
       if (!IS_GL_11(state)) {
          params[0] = sampler->min_lod;
@@ -1897,9 +1893,7 @@ static uint32_t glxx_get_texparameterf_internal(GLXX_SERVER_STATE_T *state, GLen
 
    if (texture) {
       switch (pname) {
-#if GL_EXT_texture_filter_anisotropic
       case GL_TEXTURE_MAX_ANISOTROPY_EXT:
-#endif
       case GL_TEXTURE_MIN_LOD:
       case GL_TEXTURE_MAX_LOD:
          result = glxx_get_texparameterf_sampler_internal(state, &texture->sampler, pname, params);

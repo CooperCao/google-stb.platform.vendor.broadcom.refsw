@@ -1,0 +1,17 @@
+# To initially install this service, copy this file to: /lib/systemd/system
+# Then type: systemctl enable consolelogger.service
+# Then type: systemctl start consolelogger.service
+# systemctl also accepts: status, stop, disable commands
+
+# For more info on this file format, type: man systemd.service
+
+[Unit]
+Description=UTF consolelogger
+
+[Service]
+ExecStart=/home/<yourname>/src/tools/unittest/consolelogger -p 40000 /dev/ttyUSB0 >/tmp/USB0.log 2>&1
+Restart=always
+RestartSec=1min
+
+[Install]
+WantedBy=multi-user.target

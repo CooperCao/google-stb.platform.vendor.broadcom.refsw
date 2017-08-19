@@ -76,7 +76,7 @@ uint32_t glxx_attachment_get_name(const GLXX_ATTACHMENT_T *att)
    return name;
 }
 
-glxx_ms_mode attachment_get_ms_mode(const GLXX_ATTACHMENT_T *att)
+static glxx_ms_mode attachment_get_ms_mode(const GLXX_ATTACHMENT_T *att)
 {
    glxx_ms_mode ms_mode = GLXX_NO_MS;
 
@@ -117,11 +117,14 @@ bool glxx_attachment_equal(const GLXX_ATTACHMENT_T *att1,
          res = att1->obj.rb == att2->obj.rb;
          break;
       case GL_TEXTURE:
-         if (att1->obj.tex_info.face == att2->obj.tex_info.face &&
+         if (att1->obj.tex_info.texture == att2->obj.tex_info.texture &&
+             att1->obj.tex_info.ms_mode == att2->obj.tex_info.ms_mode &&
              att1->obj.tex_info.level == att2->obj.tex_info.level &&
-             att1->obj.tex_info.layer == att2->obj.tex_info.layer &&
-             att1->obj.tex_info.texture == att2->obj.tex_info.texture &&
-             att1->obj.tex_info.ms_mode == att2->obj.tex_info.ms_mode)
+             att1->obj.tex_info.use_face_layer == att2->obj.tex_info.use_face_layer &&
+             (!att1->obj.tex_info.use_face_layer ||
+               (att1->obj.tex_info.face == att2->obj.tex_info.face &&
+                att1->obj.tex_info.layer == att2->obj.tex_info.layer)
+             ))
 
          {
             res = true;
@@ -254,7 +257,8 @@ void glxx_fb_detach(GLXX_FRAMEBUFFER_T *fb)
 
 void glxx_fb_attach_texture(GLXX_FRAMEBUFFER_T *fb,
       glxx_attachment_point_t att_point, GLXX_TEXTURE_T *texture,
-      unsigned face, unsigned level, unsigned layer,
+      unsigned level,
+      bool use_face_layer, unsigned face, unsigned layer,
       glxx_ms_mode ms_mode)
 {
    if (glxx_tex_target_is_multisample(texture->target))
@@ -271,8 +275,9 @@ void glxx_fb_attach_texture(GLXX_FRAMEBUFFER_T *fb,
 
       att->obj_type = GL_TEXTURE;
       KHRN_MEM_ASSIGN(att->obj.tex_info.texture, texture);
-      att->obj.tex_info.face = face;
       att->obj.tex_info.level = level;
+      att->obj.tex_info.use_face_layer = use_face_layer;
+      att->obj.tex_info.face = face;
       att->obj.tex_info.layer = layer;
 
       /* we can have ms fb but store the result in a downsampled buffer,
@@ -481,7 +486,8 @@ glxx_ms_mode glxx_fb_get_ms_mode(const GLXX_FRAMEBUFFER_T *fb)
 }
 
 bool glxx_fb_acquire_read_image(const GLXX_FRAMEBUFFER_T *fb,
-      glxx_att_img_t img_type, khrn_image **img, bool *ms)
+      glxx_att_img_t img_type,
+      khrn_image **img, bool *ms)
 {
    const GLXX_ATTACHMENT_T *att;
    *img = NULL;
@@ -490,11 +496,12 @@ bool glxx_fb_acquire_read_image(const GLXX_FRAMEBUFFER_T *fb,
    if (att == NULL)
       return true;
 
-   return glxx_attachment_acquire_image(att, img_type, img, ms);
+   return glxx_attachment_acquire_image(att, img_type, true, NULL, img, ms);
 }
 
 static bool attachment_acquire_specific_image(const GLXX_ATTACHMENT_T *att,
-      bool require_ms_img, khrn_image **img)
+      bool require_ms_img, bool use_0_if_layered, glxx_context_fences *fences,
+      khrn_image **img)
 {
    bool res = true;
    *img = NULL;
@@ -509,8 +516,25 @@ static bool attachment_acquire_specific_image(const GLXX_ATTACHMENT_T *att,
          bool is_ms_txt = tex_info->texture->ms_mode != GLXX_NO_MS;
          if (require_ms_img == is_ms_txt)
          {
-            res = glxx_texture_acquire_one_elem_slice(tex_info->texture,
-                  tex_info->face, tex_info->level, tex_info->layer, img);
+            if (tex_info->use_face_layer)
+            {
+               res = glxx_texture_acquire_one_elem_slice(tex_info->texture,
+                     tex_info->face, tex_info->level, tex_info->layer, img);
+            }
+            else
+            {
+               if (use_0_if_layered)
+               {
+                  res = glxx_texture_acquire_one_elem_slice(tex_info->texture,
+                     0, tex_info->level, 0, img);
+               }
+               else
+               {
+                  assert(fences);
+                  res = glxx_texture_acquire_level(tex_info->texture,
+                        tex_info->level, fences, img);
+               }
+            }
          }
       }
       break;
@@ -537,41 +561,21 @@ static bool attachment_acquire_specific_image(const GLXX_ATTACHMENT_T *att,
 }
 
 bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
-      glxx_att_img_t img_type, khrn_image **img, bool *is_ms)
+      glxx_att_img_t img_type, bool use_0_if_layered,
+      glxx_context_fences *fences,
+      khrn_image **img, bool *is_ms)
 {
-   bool res;
-   bool ms;
-   switch(img_type)
+   /* Try to get the image we were asked for */
+   bool ms = (img_type == GLXX_MULTISAMPLED || img_type == GLXX_PREFER_MULTISAMPLED);
+   bool res = attachment_acquire_specific_image(att, ms, use_0_if_layered,
+                        fences, img);;
+
+   /* If not found and it was only a preference then try the other image as well */
+   if (res && !*img && (img_type == GLXX_PREFER_DOWNSAMPLED || img_type == GLXX_PREFER_MULTISAMPLED))
    {
-      case GLXX_DOWNSAMPLED:
-         ms = false;
-         res = attachment_acquire_specific_image(att, ms, img);
-         break;
-      case GLXX_MULTISAMPLED:
-         ms = true;
-         res = attachment_acquire_specific_image(att, ms, img);
-         break;
-     case GLXX_PREFER_DOWNSAMPLED:
-         ms = false;
-         res = attachment_acquire_specific_image(att, ms, img);
-         if (res && !*img)
-         {
-            ms = !ms;
-            res = attachment_acquire_specific_image(att, ms, img);
-         }
-         break;
-     case GLXX_PREFER_MULTISAMPLED:
-         ms = true;
-         res = attachment_acquire_specific_image(att, ms, img);
-         if (res && !*img)
-         {
-            ms = !ms;
-            res = attachment_acquire_specific_image(att, ms, img);
-         }
-         break;
-     default:
-         unreachable();
-         res = false;
+      ms = !ms;
+      res = attachment_acquire_specific_image(att, ms, use_0_if_layered,
+            fences, img);
    }
 
    if (res && *img && is_ms)
@@ -588,7 +592,8 @@ GFX_LFMT_T glxx_attachment_get_api_fmt(const GLXX_ATTACHMENT_T *att)
 
    /* the api_fmt is the same for multisample or downsampled image, so it
     * doesn't matter what op we use */
-   if (!glxx_attachment_acquire_image(att, GLXX_PREFER_DOWNSAMPLED, &img, &img_ms))
+   if (!glxx_attachment_acquire_image(att, GLXX_PREFER_DOWNSAMPLED, true,
+            NULL, &img, &img_ms))
       return res;
 
    if (img)
@@ -643,7 +648,7 @@ typedef enum {
 } att_status_t;
 
 static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
-      glxx_renderable_cond renderable_cond)
+      glxx_renderable_cond renderable_cond, glxx_context_fences *fences)
 {
    att_status_t status = ATTACHMENT_INCOMPLETE;
    khrn_image *img = NULL;
@@ -659,7 +664,8 @@ static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
             bool is_ms;
             unsigned scale = 1;
 
-            if(!glxx_attachment_acquire_image(att, GLXX_PREFER_DOWNSAMPLED, &img, &is_ms))
+            if(!glxx_attachment_acquire_image(att, GLXX_PREFER_DOWNSAMPLED,
+                     false, fences, &img, &is_ms))
                break;
 
             if (!img)
@@ -675,6 +681,9 @@ static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
                scale = 2;
             if ((khrn_image_get_width(img)/scale) >  GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE ||
                  (khrn_image_get_height(img)/scale) > GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE )
+               break;
+            if ((khrn_image_get_depth(img) * khrn_image_get_num_elems(img))
+                  > GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS)
                break;
 
             if (image_is_gl_renderable(img, renderable_cond))
@@ -694,7 +703,8 @@ static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
 }
 
 
-glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb)
+glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb,
+      glxx_context_fences *fences)
 {
    glxx_ms_mode common_ms_mode = GLXX_NO_MS;
    bool no_attachments = true;
@@ -715,6 +725,10 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb)
    bool has_rb_att = false;
    bool has_texture_att = false;
    bool fixed_sample_loc = false;
+   bool has_layered_texture = false;
+   bool has_layered_color_texture = false;
+   /* initialise this enum just so compiler does not complain */
+   enum glxx_tex_target color_tex_target = GL_TEXTURE_1D_BRCM;
    for (unsigned b = 0; b < GLXX_ATT_COUNT; b++)
    {
       glxx_renderable_cond renderable_cond;
@@ -722,7 +736,7 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb)
       const GLXX_ATTACHMENT_T *att = &fb->attachment[b];
 
       renderable_cond = get_renderable_condition(b);
-      status = attachment_status(att, renderable_cond);
+      status = attachment_status(att, renderable_cond, fences);
 
       if (status == ATTACHMENT_MISSING)
          continue;
@@ -738,7 +752,13 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb)
          if (common_ms_mode != ms_mode)
             return GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
       }
-      no_attachments = false;
+      if (has_layered_texture)
+      {
+         /* all populated attachements must be layered */
+         if (att->obj_type != GL_TEXTURE || att->obj.tex_info.use_face_layer == true)
+            return GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
+      }
+
       switch (att->obj_type)
       {
       case GL_RENDERBUFFER:
@@ -753,6 +773,29 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb)
                has_texture_att = true;
                fixed_sample_loc = tex_fixed_sample_loc;
             }
+            if (!att->obj.tex_info.use_face_layer)
+            {
+               /* see if we already had attachments that are not layered */
+               if (no_attachments == false && has_layered_texture == false)
+                  return GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
+
+               has_layered_texture = true;
+               if (b >= GLXX_COLOR0_ATT)
+               {
+                  if (has_layered_color_texture)
+                  {
+                     /* all populated layered color attachments must be from
+                      * textures of same target type */
+                     if (color_tex_target != att->obj.tex_info.texture->target)
+                        return GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
+                  }
+                  else
+                  {
+                     has_layered_color_texture = true;
+                     color_tex_target = att->obj.tex_info.texture->target;
+                  }
+               }
+            }
             else if (tex_fixed_sample_loc != fixed_sample_loc)
                return GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
          }
@@ -760,6 +803,7 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb)
       default:
          unreachable();
       }
+      no_attachments = false;
    }
 
    if (has_rb_att && has_texture_att)
@@ -786,10 +830,10 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb)
    return GL_FRAMEBUFFER_COMPLETE;
 }
 
-bool glxx_fb_is_complete(const GLXX_FRAMEBUFFER_T* fb)
+bool glxx_fb_is_complete(const GLXX_FRAMEBUFFER_T* fb, glxx_context_fences *fences)
 {
    glxx_fb_status_t status;
-   status = glxx_fb_completeness_status(fb);
+   status = glxx_fb_completeness_status(fb, fences);
    return status == GL_FRAMEBUFFER_COMPLETE;
 }
 

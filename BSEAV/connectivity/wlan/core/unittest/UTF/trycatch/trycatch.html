@@ -1,0 +1,229 @@
+
+<html><head>
+    <title>trycatch</title>
+</head>
+
+<BODY>
+
+<h1>trycatch</h1>
+
+<h2><a name="synopsis">SYNOPSIS</a></h2>
+
+<pre>
+    package require trycatch 2.0
+    namespace import trycatch::*
+
+    try {...}
+    try {...} catch ?-msg msgVar? ?-code codeVar? ?-info infoVar? {...}
+    try {...} finally {...}
+
+    throw code message
+
+    onerr ?-code errorCode? pattern {...} pattern {...} ...
+</pre><p>
+
+<h2><a name="description">DESCRIPTION</a></h2>
+
+Most modern languages, from C++ to Java to Python, have some kind of
+exception-handling control structure, usually called something like
+"try".  In Tcl, the equivalent mechanism is the built-in "catch"
+command, which has two faults: it has an inconvenient syntax, and it
+functions at very low level.  It's really more of a tool for writing
+control structures.<p>
+
+The trycatch package defines a general purpose exception-handling
+control structure on top of the standard "catch" command.  The
+following commands are defined:<p>
+
+<dl>
+  <dt> <code>try {<i>tryscript</i>}</code>
+  <dd> The <i>tryscript</i> is executed; if an error is raised during
+       execution, it is caught and ignored.  For example,<p>
+<pre>
+proc div {a b} {
+    set quotient "NaN"
+    try {
+        set quotient [expr {$a/$b}]
+    }
+    return $quotient
+}
+</pre>
+       
+       This function will return the quotient of the two inputs, or
+       "NaN" (Not a Number) if for any reason the computation
+       failed.<p>
+
+       Note that if the <i>tryscript</i> contains "return", "break",
+       or "continue" commands, they will function as one would
+       expect.  For example, the above function could be rewritten as
+       follows:<p>
+
+<pre>
+proc div {a b} {
+    try {
+        return [expr {$a/$b}]
+    }
+    return "NaN"
+}
+</pre>
+
+       If there's no error computing the quotient, the computed value
+       will be returned; but if there is, control will continue with
+       the code following the "try", and "NaN" will be returned.<p>
+
+  <dt> <code>try {<i>tryscript</i>} catch ?options? {<i>catchscript</i>}</code>
+  <dd> Sometimes it's not enough to just ignore an error; you need to
+       take special action.  In this form, the <i>tryscript</i> is
+       executed; if it executes without error, control continues with
+       the statement after the "catch" clause.  Otherwise, the "catch"
+       clause is executed as follows:<p>
+
+       <ul>
+         <li> If the "-msg" option is given, its value is a variable
+              name; the variable is set to the raised error message.<p>
+
+         <li> If the "-code" option is given, its value is a variable
+              name; the variable is set to that of the global
+              "errorCode" variable.<p>
+
+         <li> If the "-info" option is given, its value is a variable
+              name; the variable is set to that of the global
+              "errorInfo" variable.<p>
+
+         <li> The <i>catchscript</i> is executed.  If an error is
+              raised in the <i>catchscript</i>, it propagates
+              normally; otherwise execution will continue with the
+              statement after the "try/catch" structure.<p>
+
+         <li> Any "return", "break", or "continue" commands in the
+              <i>catchscript</i> are handled as you'd expect.<p>
+       </ul><p>
+
+       For example, the division example could be written as follows:<p>
+
+<pre>
+proc div {a b} {
+    try {
+        return [expr {$a/$b}]
+    } catch -msg msg {
+        puts "Warning: arithmetic error in 'div $a $b': $msg"
+        return "NaN"
+    }
+}
+</pre>
+
+  <dt> <code>try {<i>tryscript</i>} finally {<i>finallyscript</i>}</code>
+  <dd> This form is rather different than the first two.  It executes
+       the <i>tryscript</i> as they do.  But instead of
+       catching any errors in the <i>tryscript</i>, it allows them to
+       propagate up the call-chain.  Whether there is an error or not,
+       however, the <i>finallyscript</i> is always executed.<p>
+
+       The "try/finally" form is used when a particular action
+       must be taken, no matter what else happens.  For example, suppose a
+       program opens a file and begins to write to it.  If an error occurs,
+       writing will end; but the file must be closed whether the file is
+       written successfully or not.  For example:<p>
+
+<pre>
+set f [open "foo.dat" w]
+
+try {
+    # Write various things to the file
+} finally {
+    close $f
+}
+</pre>
+
+       If an error occurs while writing, the finally clause will be executed,
+       and then the error will be propagated normally.<p>
+
+       Similarly, if the <i>tryscript</i> contains "break",
+       "continue", or "return" commands they will be handled as one
+       would expect--but the <i>finallyscript</i> will be executed first.<p>
+
+       If the <i>finallyscript</i> contains "break", "continue", or
+       "return" commands, an error will be raised.
+       Errors in the <i>finallyscript</i> will be propagated normally.<p>
+
+  <dt> throw <i>code</i> <i>message</i>
+  <dd> The usual way to raise an error in Tcl is to use the "error"
+       command.  This command signals that an error has occurred, and
+       specifies a human-readable error message; it may also specify
+       "errorInfo", used to build a traceback, and an "errorCode", a
+       machine-readable version of the error message.  There are a
+       number of standard error codes used by Tcl itself; see the
+       description of the "errorCode" variable in the Tcl
+       documentation for more information.  (Look under "tclvars".)<p>
+
+       Although it can be very useful, few Tcl packages bother to
+       include error codes when they raise errors.  The "throw"
+       command is intended to encourage this worthy practice by
+       putting the <i>code</i> first and the <i>message</i> second.
+       The <i>code</i> should be a valid Tcl list of one or more
+       elements.  A typical pattern might be for the first token to be
+       the package name, and the second to be a code identifying the
+       specific error.  Thus, for example, if the "try" command
+       detects a syntax error it might throw the following error:<p>
+
+<pre>
+throw {trycatch syntax} "syntax: try {...} ...."
+</pre>
+
+  <dt> onerr ?-code <i>errorCode</i>? <i>pattern script</i> ...
+  <dd> The onerr command is typically used within the catch clause
+       of a try/catch statement to match and handle particular
+       errors.  Suppose, for example, it's desired to divide two
+       numbers; we might wish to handle badly formed input separately
+       from divide-by-zero errors:<p>
+
+<pre>
+proc div {a b} {
+    try {
+        return [expr {$a/$b}]
+    } catch -msg msg {
+        onerr {ARITH DIVZERO} {
+            return "NaN"
+        } * {
+            error "div failed: $msg"
+        }
+    }
+}
+</pre>
+
+       The onerr command works by trying to match <i>patterns</i> against the
+       specified <i>errorCode</i>; if a pattern matches, the subsequent
+       <i>script</i> is executed.  The error code to match is the value of
+       the -code option, if any, or the value of the global variable
+       errorCode.<p>
+
+       The error code is a Tcl list; each error pattern should be a
+       Tcl list of glob-patterns (see the "string match" command for
+       more on glob-patterns).  The onerr command tries to match each
+       glob-pattern with the corresponding token in the error code; if
+       there is a mismatch, or if there are more glob-patterns than
+       error code tokens, then onerr goes on to the next pattern.<p>
+
+       It is usual to provide a default error handler, using the
+       single glob pattern "*".  This matches the first token of any
+       error code, and therefore will match any error code which
+       hasn't yet been matched.<p>
+</dl>
+<p>
+
+<h2><a name="history">HISTORY</a></h2>
+
+<code>trycatch</code> was written by William H. Duquette.<p>
+
+Version 2.0 added the "try" and "try/finally" forms of the command,
+changed the syntax of the "catch" clause, and added the "throw" and
+"onerr" commands.
+
+
+<p><hr><p>
+Copyright &copy; 2001, by William H. Duquette.  All rights reserved.<p>
+
+
+
+</body>
+</html>

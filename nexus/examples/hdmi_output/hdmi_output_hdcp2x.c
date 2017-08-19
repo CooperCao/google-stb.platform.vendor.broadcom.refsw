@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -303,7 +303,7 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
         }
     }
 
-    BDBG_LOG(("%s: state %d -- error %d", __FUNCTION__, hdcpStatus.hdcpState, hdcpStatus.hdcpError));
+    BDBG_LOG(("%s: state %d -- error %d", BSTD_FUNCTION, hdcpStatus.hdcpState, hdcpStatus.hdcpError));
 
     if (hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eUnpowered)
     {
@@ -458,7 +458,7 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
         goto end;
     }
 
-    BDBG_LOG(("%s: buff=%p, size=%u", __FUNCTION__, buffer, fileSize));
+    BDBG_LOG(("%s: buff=%p, size=%u", BSTD_FUNCTION, buffer, fileSize));
 
     NEXUS_HdmiOutput_GetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
     hdmiOutputHdcpSettings.hdcp_version = version_select;
@@ -498,7 +498,7 @@ end:
 
     if (rc)
     {
-        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%d", __FUNCTION__,  rc, fileSize, (unsigned)seekPos));
+        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%d", BSTD_FUNCTION,  rc, fileSize, (unsigned)seekPos));
         BDBG_ASSERT(false);
     }
 
@@ -752,7 +752,7 @@ int main(int argc, char **argv)
 
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
-    /* initalize HDCP settings, keys, etc. */
+    /* initialize HDCP settings, keys, etc. */
     NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &pStatus) ;
     if (!pStatus.connected || !pStatus.rxPowered) {
         BDBG_WRN(("No Receiver Device Available or Receiver is powered off - Skip InitializeHdcpSettings")) ;

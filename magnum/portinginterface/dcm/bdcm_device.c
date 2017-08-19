@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
@@ -58,7 +55,7 @@ BDCM_DeviceHandle BDCM_OpenDevice(BDCM_DeviceSettings *pSettings)
     if( hDevice == NULL )
     {
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("%s: BKNI_malloc() failed",__FUNCTION__));
+        BDBG_ERR(("%s: BKNI_malloc() failed",BSTD_FUNCTION));
         goto error_alloc;
     }
     BKNI_Memset( hDevice, 0x00, sizeof(BDCM_Device));
@@ -67,7 +64,7 @@ BDCM_DeviceHandle BDCM_OpenDevice(BDCM_DeviceSettings *pSettings)
     retCode = BRPC_Open_SocketImpl(&hDevice->hRpc, &socketSettings);
     if ( retCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: BRPC_Open_SocketImpl failed",__FUNCTION__));
+        BDBG_ERR(("%s: BRPC_Open_SocketImpl failed",BSTD_FUNCTION));
         goto error_socket_open;
     }
     hRpc = hDevice->hRpc;
@@ -106,7 +103,7 @@ BERR_Code BDCM_InitDevice(BDCM_DeviceHandle hDevice)
         #if BDBG_DEBUG_BUILD
         if (rpcInitRetryCount%20==0)
         {
-            BDBG_WRN(("%s: waiting for DOCSIS bootup",__FUNCTION__));
+            BDBG_WRN(("%s: waiting for DOCSIS bootup",BSTD_FUNCTION));
         }
         #endif
         retCode = BRPC_CallProc(hDevice->hRpc,
@@ -121,11 +118,11 @@ BERR_Code BDCM_InitDevice(BDCM_DeviceHandle hDevice)
          BKNI_Sleep(10);
          if (rpcInitRetryCount++ >= 1000)
          {
-            BDBG_ERR(("%s: timeout in RPC interface initialization",__FUNCTION__));
+            BDBG_ERR(("%s: timeout in RPC interface initialization",BSTD_FUNCTION));
             goto done;
          }
     }
-    BDBG_WRN(("%s RPC interface between DOCSIS and Host initialized",__FUNCTION__));
+    BDBG_WRN(("%s RPC interface between DOCSIS and Host initialized",BSTD_FUNCTION));
 done:
     BDBG_LEAVE(BDCM_InitDevice);
     return retCode;
@@ -221,7 +218,7 @@ BERR_Code BDCM_SetDeviceHostChannelsStatus(
     CHK_RETCODE(retCode, retVal);
     hDevice->hostChannelsStatus = lockStatus;
 done:
-    BDBG_MSG(("%s host channel status %x", __FUNCTION__, hDevice->hostChannelsStatus));
+    BDBG_MSG(("%s host channel status %x", BSTD_FUNCTION, hDevice->hostChannelsStatus));
     BDBG_LEAVE(BDCM_SetDeviceHostChannelsStatus);
     return retCode;
 }
@@ -236,7 +233,7 @@ BERR_Code BDCM_GetDeviceHostChannelsStatus(
     BDBG_ASSERT(pLockStatus);
     BDBG_ENTER(BDCM_GetDeviceHostChannelsStatus);
     *pLockStatus = hDevice->hostChannelsStatus;
-    BDBG_MSG(("%s host channel status %x", __FUNCTION__, hDevice->hostChannelsStatus));
+    BDBG_MSG(("%s host channel status %x", BSTD_FUNCTION, hDevice->hostChannelsStatus));
     BDBG_LEAVE(BDCM_GetDeviceHostChannelsStatus);
     return retCode;
 }
@@ -294,7 +291,7 @@ BERR_Code BDCM_SetDevicePowerMode(
     BDBG_ENTER(BDCM_SetDevicePowerMode);
    if (hDevice->powerMode == powerMode)
     {
-        BDBG_WRN(("%s: DOCSIS already in power Mode %u",__FUNCTION__,powerMode));
+        BDBG_WRN(("%s: DOCSIS already in power Mode %u",BSTD_FUNCTION,powerMode));
     	return retCode;
     }
 
@@ -422,7 +419,7 @@ BERR_Code BDCM_GetLnaDeviceAgcValue(
               "tilt enabled %s boost enabled %s "
               "superBoostEnabled %s output1 tilt gain %d "
               "output2 tilt gain %d",
-              __FUNCTION__, outParam.AgcVal >> 16, (long unsigned int)(0x1f & outParam.AgcVal),
+              BSTD_FUNCTION, outParam.AgcVal >> 16, (long unsigned int)(0x1f & outParam.AgcVal),
               (outParam.AgcVal & 0x00000100)?"true":"false", (outParam.AgcVal & 0x00000200)?"true":"false",
               (outParam.AgcVal & 0x00000400)?"true":"false",((outParam.AgcVal >> 14) & 0x3),
               ((outParam.AgcVal >> 12) & 0x3)));

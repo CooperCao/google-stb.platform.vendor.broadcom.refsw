@@ -47,7 +47,7 @@ BDBG_MODULE(atlas_tuner_ofdm);
 
 CTunerOfdmNx::CTunerOfdmNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTunerOfdm(name, number, pCfg)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -97,6 +97,11 @@ extern "C" {
 /* New pitch setting for mosaic */
 #define BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH   \
      (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_8)
+
+/* CRBVN-697 CAP: SCB1/2 full compression mode window size limitation */
+#if (BVDC_P_SUPPORT_CAP_VER == BVDC_P_CAP_VER_7)
+#define BVDC_P_CAP_DCXM_SCB_WORKAROUND   (1)
+#endif
 
 /***************************************************************************
  * Private register cracking macros

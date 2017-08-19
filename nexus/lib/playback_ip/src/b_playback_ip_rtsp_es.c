@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -96,7 +96,7 @@ static void rtsp_cmd_completion(
 
     BDBG_ASSERT( playback_ip );
     BKNI_SetEvent( playback_ip->liveMediaSyncEvent );
-    BDBG_MSG(( "%s: sent LiveMediaSyncEvent for eventId %d\n", __FUNCTION__, eventId ));
+    BDBG_MSG(( "%s: sent LiveMediaSyncEvent for eventId %d\n", BSTD_FUNCTION, eventId ));
 }
 
 void
@@ -134,7 +134,7 @@ static void bFeedRtpPayloadToPlaypump(
     }
 
     for (vec = BLST_SQ_FIRST( block ); vec; vec = BLST_SQ_NEXT( vec, list )) {
-        BDBG_WRN(( "%s: ES: %d %#lx", __FUNCTION__, vec->len, vec->data ));
+        BDBG_WRN(( "%s: ES: %d %#lx", BSTD_FUNCTION, vec->len, vec->data ));
         /* write data to file */
         if (playback_ip->enableRecording && fclear)
         {
@@ -202,7 +202,7 @@ static void bFeedRtpPayloadToPlaypump(
         }
     }
     //print_av_pipeline_buffering_status(playback_ip);
-    BDBG_MSG(( "%s: done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: done", BSTD_FUNCTION ));
     brtp_parser_mux_recycle( playback_ip->channels[0].mux, block );
     return;
 } /* bFeedRtpPayloadToPlaypump */
@@ -278,7 +278,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionOpen(
 
     if (!playback_ip || !openSettings || !openStatus)
     {
-        BDBG_ERR(( "%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus ));
+        BDBG_ERR(( "%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)openSettings, (void *)openStatus ));
         return( B_ERROR_INVALID_PARAMETER );
     }
 
@@ -291,7 +291,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionOpen(
     /* if SessionOpen is completed, return results to app */
     if (playback_ip->apiCompleted)
     {
-        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
+        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip ));
         goto done;
     }
 
@@ -301,7 +301,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionOpen(
     /* Neither SessionOpen is in progress nor it is completed, verify input params and then start work */
     if (openSettings->u.rtsp.additionalHeaders && !strstr( openSettings->u.rtsp.additionalHeaders, "\r\n" ))
     {
-        BDBG_ERR(( "%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is %s\n", __FUNCTION__, openSettings->u.rtsp.additionalHeaders ));
+        BDBG_ERR(( "%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is %s\n", BSTD_FUNCTION, openSettings->u.rtsp.additionalHeaders ));
         return( B_ERROR_INVALID_PARAMETER );
     }
 
@@ -328,7 +328,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionOpen(
     /* TODO: During Close Add :     NEXUS_SetEnv("nexus_watchdog","y"); */
 done:
     /* RTSP command completed, verify response */
-    BDBG_MSG(( "%s: successfully received the RTSP Response", __FUNCTION__ ));
+    BDBG_MSG(( "%s: successfully received the RTSP Response", BSTD_FUNCTION ));
     playback_ip->playback_state = B_PlaybackIpState_eOpened;
     errorCode = B_ERROR_SUCCESS;
     playback_ip->apiInProgress = false;
@@ -347,7 +347,7 @@ static void b_pkt_free(
     )
 {
     BSTD_UNUSED( source_cntx );
-    BDBG_MSG(( "%s: freeing pkt %p", __FUNCTION__, (void *)pkt ));
+    BDBG_MSG(( "%s: freeing pkt %p", BSTD_FUNCTION, (void *)pkt ));
     BKNI_Free( pkt );
     return;
 }
@@ -358,7 +358,7 @@ static void bRtpStoptRtpParser(
 {
     if (chn->parser == NULL)
         return;
-    BDBG_WRN(( "%s: ch %p parser %p, rtp %p", __FUNCTION__, (void *)chn, (void *)chn->parser, (void *)chn->rtp ));
+    BDBG_WRN(( "%s: ch %p parser %p, rtp %p", BSTD_FUNCTION, (void *)chn, (void *)chn->parser, (void *)chn->rtp ));
 
     chn->parser->stop( chn->parser );
     brtp_stop( chn->rtp );
@@ -383,7 +383,7 @@ static void bRtpStartRtpParser(
     BDBG_ASSERT( chn->parser );
     BDBG_ASSERT( chn->stream==NULL );
 
-    BDBG_WRN(( "%s: starting stream %#lx[0x%02x] parser %p offset %u", __FUNCTION__, (unsigned long)chn, chn->stream_cfg.pes_id, (void *)chn->parser, timestamp_offset ));
+    BDBG_WRN(( "%s: starting stream %#lx[0x%02x] parser %p offset %u", BSTD_FUNCTION, (unsigned long)chn, chn->stream_cfg.pes_id, (void *)chn->parser, timestamp_offset ));
 
     brtp_default_session_cfg( chn->rtp, &session_cfg );
     session_cfg.pt_mask  = 0xFF;
@@ -406,7 +406,7 @@ static void bRtpTimestampPkt(
     struct brtp_channel *chn = cntx;
     uint32_t             timestamp_offset;
 
-    BDBG_MSG(( "%s: ....", __FUNCTION__ ));
+    BDBG_MSG(( "%s: ....", BSTD_FUNCTION ));
     if (chn->sync.rtp_ts)
     {
         return;
@@ -515,7 +515,7 @@ bRtpSyncOne(void *cntx, uint32_t ntp_msw, uint32_t ntp_lsw, uint32_t timestamp_o
     ts_delta = (brtp_delta_time(video->rtp_timestamp, video->sr_timestamp)*125)/((int)video->stream_cfg.clock_rate/16);
     rtp_ts = ((ntp_delta+ts_delta)*((int)audio->stream_cfg.clock_rate/100))/10; /* calculate rtp_ts that shall bring audio back to 0 */
     timestamp_offset = audio->sr_timestamp + rtp_ts  - (uint32_t)(audio->stream_cfg.clock_rate*B_FIRST_TIMESTAMP_DELAY) ;
-    BDBG_WRN(("%s: delta:(%d) ntp:%d ts:%d, rtp_ts=%u(%u) timestamp_offset=%u (audio ts:%d)", __FUNCTION__, ntp_delta+ts_delta, ntp_delta, ts_delta, rtp_ts, audio->sr_timestamp, timestamp_offset, (brtp_delta_time(audio->rtp_timestamp, audio->sr_timestamp)*125)/((int)audio->stream_cfg.clock_rate/16)));
+    BDBG_WRN(("%s: delta:(%d) ntp:%d ts:%d, rtp_ts=%u(%u) timestamp_offset=%u (audio ts:%d)", BSTD_FUNCTION, ntp_delta+ts_delta, ntp_delta, ts_delta, rtp_ts, audio->sr_timestamp, timestamp_offset, (brtp_delta_time(audio->rtp_timestamp, audio->sr_timestamp)*125)/((int)audio->stream_cfg.clock_rate/16)));
     bRtpStartRtpParser(audio, timestamp_offset);
     return;
 }
@@ -543,7 +543,7 @@ static int bRtpEsSessionSetup(
     // It is OK one type of media (video or audio) does not exist
     // Do not assert.
     if ( !desc ) {
-        BDBG_ERR(("%s: lm_get_stream_desc failed for media (%d)", __FUNCTION__, media));
+        BDBG_ERR(("%s: lm_get_stream_desc failed for media (%d)", BSTD_FUNCTION, media));
         return -1;
     }
 
@@ -601,7 +601,7 @@ static int bRtpEsSessionSetup(
         }
 
         default:
-            BDBG_ERR(( "%s: unknown stream type %d", __FUNCTION__, desc->stream_type ));
+            BDBG_ERR(( "%s: unknown stream type %d", BSTD_FUNCTION, desc->stream_type ));
             return( -1 );
     } /* switch */
     BDBG_ASSERT( chn->parser );
@@ -653,7 +653,7 @@ static int bRtpSessionSetup(
     session = lm_connect( lm, url );
     if ( !session )
     {
-        BDBG_MSG(("%s: Failed to setup the RTSP Session w/ server for url %s", __FUNCTION__, url));
+        BDBG_MSG(("%s: Failed to setup the RTSP Session w/ server for url %s", BSTD_FUNCTION, url));
         goto error;
     }
     /* RTSP describe is complete at this point and we have the media info */
@@ -687,13 +687,13 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionSetup(
 
     if (!playback_ip || !setupSettings || !setupStatus)
     {
-        BDBG_ERR(( "%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus ));
+        BDBG_ERR(( "%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus ));
         return( B_ERROR_INVALID_PARAMETER );
     }
 
     if (setupSettings->u.rtsp.additionalHeaders && !strstr( setupSettings->u.rtsp.additionalHeaders, "\r\n" ))
     {
-        BDBG_ERR(( "%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is: %s\n", __FUNCTION__, setupSettings->u.rtsp.additionalHeaders ));
+        BDBG_ERR(( "%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is: %s\n", BSTD_FUNCTION, setupSettings->u.rtsp.additionalHeaders ));
         errorCode = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
@@ -707,7 +707,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionSetup(
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted)
     {
-        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
+        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip ));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -720,7 +720,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionSetup(
 
     if (bRtpSessionSetup( playback_ip ) < 0)
     {
-        BDBG_WRN(( "%s: Failed to setup RTSP session for playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
+        BDBG_WRN(( "%s: Failed to setup RTSP session for playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip ));
         return (B_ERROR_PROTO);
     }
 done:
@@ -734,7 +734,7 @@ done:
     audiodesc = lm_get_stream_desc(playback_ip->lmSession, blm_media_audio);
     // Do not assert. It is OK to have only audio or video.
     if ( !videodesc && !audiodesc ) {
-        BDBG_ERR(("%s: neither video nor audio exists.", __FUNCTION__));
+        BDBG_ERR(("%s: neither video nor audio exists.", BSTD_FUNCTION));
         goto error;
     }
 
@@ -760,7 +760,7 @@ done:
             default:
             {
                 setupStatus->u.rtsp.psi.videoCodec =  NEXUS_VideoCodec_eH264;
-                BDBG_ERR(( "%s: unknown stream type %d", __FUNCTION__, videodesc->stream_type ));
+                BDBG_ERR(( "%s: unknown stream type %d", BSTD_FUNCTION, videodesc->stream_type ));
             }
         } /* switch */
 
@@ -771,7 +771,7 @@ done:
         setupStatus->u.rtsp.psi.duration = videodesc->duration*1000; /* in msec */
         setupStatus->u.rtsp.psi.videoWidth = videodesc->videoWidth;
         setupStatus->u.rtsp.psi.videoHeight = videodesc->videoHeight;
-        BDBG_WRN(("%s: duration %d, w %d, h %d", __FUNCTION__, videodesc->duration, videodesc->videoWidth, videodesc->videoHeight));
+        BDBG_WRN(("%s: duration %d, w %d, h %d", BSTD_FUNCTION, videodesc->duration, videodesc->videoWidth, videodesc->videoHeight));
     }
 
     if ( audiodesc )
@@ -780,7 +780,7 @@ done:
         {
             case blm_stream_g711:
                 setupStatus->u.rtsp.psi.audioCodec     =  NEXUS_AudioCodec_eG711;
-                BDBG_WRN(("%s: blm_stream_g711 use codec:%d", __FUNCTION__, setupStatus->u.rtsp.psi.audioCodec ));
+                BDBG_WRN(("%s: blm_stream_g711 use codec:%d", BSTD_FUNCTION, setupStatus->u.rtsp.psi.audioCodec ));
                 setupStatus->u.rtsp.psi.mpegType = NEXUS_TransportType_eMpeg2Pes;
                 setupStatus->u.rtsp.psi.audioBitsPerSample = 8;
                 setupStatus->u.rtsp.psi.audioSampleRate = 8000;
@@ -804,7 +804,7 @@ done:
             default:
             {
                 setupStatus->u.rtsp.psi.audioCodec =  NEXUS_AudioCodec_eAac;
-                BDBG_ERR(( "%s: unknown stream type %d", __FUNCTION__, audiodesc->stream_type ));
+                BDBG_ERR(( "%s: unknown stream type %d", BSTD_FUNCTION, audiodesc->stream_type ));
             }
         } /* switch */
         setupStatus->u.rtsp.psi.audioPid = 0xc0;
@@ -824,12 +824,12 @@ void B_PlaybackIp_RtpEsProcessing(
     int                rc          = 0;
     B_PlaybackIpHandle playback_ip = (B_PlaybackIpHandle)data;
 
-    BDBG_WRN(( "%s: lm %p, lmSession %p, lmStop %d", __FUNCTION__, (void *)playback_ip->lm, (void *)playback_ip->lmSession, playback_ip->lmStop ));
+    BDBG_WRN(( "%s: lm %p, lmSession %p, lmStop %d", BSTD_FUNCTION, (void *)playback_ip->lm, (void *)playback_ip->lmSession, playback_ip->lmStop ));
 
     // lmStop might already be set to 1 before execution gets here if user keeps pressing start and stop. Check it before proceeding.
     if (playback_ip->lmStop != 0)
     {
-        BDBG_WRN(( "%s: lmStop (%d) not 0. Do not start lm_session_play", __FUNCTION__, playback_ip->lmStop ));
+        BDBG_WRN(( "%s: lmStop (%d) not 0. Do not start lm_session_play", BSTD_FUNCTION, playback_ip->lmStop ));
         goto done;
     }
 
@@ -838,16 +838,16 @@ void B_PlaybackIp_RtpEsProcessing(
     // Proceed only when it is not being stopped.
     if (( playback_ip->lmStop != 0 ) || ( rc != 0 ))
     {
-        BDBG_WRN(( "%s: lmStop (%d) not 0 or rc (%d) not 0. Do not start lm_run", __FUNCTION__, playback_ip->lmStop, rc ));
+        BDBG_WRN(( "%s: lmStop (%d) not 0 or rc (%d) not 0. Do not start lm_run", BSTD_FUNCTION, playback_ip->lmStop, rc ));
         goto done;
     }
 
     lm_run( playback_ip->lm, &playback_ip->lmStop ); /* doesn't return */
 
-    BDBG_WRN(( "%s: lm_run finished", __FUNCTION__ ));
+    BDBG_WRN(( "%s: lm_run finished", BSTD_FUNCTION ));
     if (playback_ip->playback_state != B_PlaybackIpState_eStopping)
     {
-        BDBG_WRN(( "%s: stopping rtsp es processing even though playback_ip state (%d) is not stopping", __FUNCTION__, playback_ip->playback_state ));
+        BDBG_WRN(( "%s: stopping rtsp es processing even though playback_ip state (%d) is not stopping", BSTD_FUNCTION, playback_ip->playback_state ));
     }
 
     BKNI_Sleep( 200 );
@@ -859,7 +859,7 @@ done:
     if (playback_ip->lm) {lm_shutdown( playback_ip->lm ); }
     brtpClose( playback_ip );
     BKNI_SetEvent( playback_ip->playback_halt_event );
-    BDBG_MSG(( "%s: finished", __FUNCTION__ ));
+    BDBG_MSG(( "%s: finished", BSTD_FUNCTION ));
 } /* B_PlaybackIp_RtpEsProcessing */
 
 void B_PlaybackIp_RtspSessionStop(
@@ -884,7 +884,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionStart(
 
     if (!playback_ip || !startSettings || !startStatus)
     {
-        BDBG_ERR(( "%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus ));
+        BDBG_ERR(( "%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)startSettings, (void *)startStatus ));
         return( B_ERROR_INVALID_PARAMETER );
     }
 
@@ -897,14 +897,14 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionStart(
     /* if SessionStart is completed, return results to app */
     if (playback_ip->apiCompleted)
     {
-        BDBG_WRN(( "%s: previously started session start operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
+        BDBG_WRN(( "%s: previously started session start operation completed, playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip ));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
     }
 
     BDBG_MSG(( "%s: RTSP Media Transport Protocol: %s, position start %d, end %d, keepAliveInterval %d",
-               __FUNCTION__, startSettings->u.rtsp.mediaTransportProtocol == B_PlaybackIpProtocol_eUdp ? "UDP" : "RTP",
+               BSTD_FUNCTION, startSettings->u.rtsp.mediaTransportProtocol == B_PlaybackIpProtocol_eUdp ? "UDP" : "RTP",
                (int)startSettings->u.rtsp.start,
                (int)startSettings->u.rtsp.end,
                startSettings->u.rtsp.keepAliveInterval
@@ -927,7 +927,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionStart(
     playback_ip->playbackIpThread = B_Thread_Create( threadName, (B_ThreadFunc)B_PlaybackIp_RtpEsProcessing, (void *)playback_ip, &settingsThread );
     if (NULL == playback_ip->playbackIpThread)
     {
-        BDBG_ERR(( "%s: Failed to create the %s thread for RTP media transport protocol\n", __FUNCTION__, threadName ));
+        BDBG_ERR(( "%s: Failed to create the %s thread for RTP media transport protocol\n", BSTD_FUNCTION, threadName ));
         goto error;
     }
 #endif /* if 0 */

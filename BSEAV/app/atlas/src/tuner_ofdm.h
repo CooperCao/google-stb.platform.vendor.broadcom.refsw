@@ -55,7 +55,7 @@ class CTunerOfdmScanData : public CTunerScanData
 public:
     CTunerOfdmScanData(
             bool     appendToChannelList = false,
-            uint16_t majorStartNum = 1
+            unsigned majorStartNum = 1
             ) :
         CTunerScanData(eBoardResource_frontendOfdm, appendToChannelList, majorStartNum),
         _bandwidth(6000000),
@@ -88,7 +88,7 @@ class CTunerOfdm : public CTuner
 public:
     CTunerOfdm(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

@@ -1,0 +1,112 @@
+
+<head>
+<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<title>Broadcom Control Panel Diagnostic Customization</title>
+<style>
+</style>
+</head>
+
+<body LINK="#0000ff" VLINK="#800080">
+
+<p><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<img SRC="BCMLogo.gif" WIDTH="200" HEIGHT="98"></p>
+
+<h1>Broadcom Control Panel Diagnostic Customization 1.00</h1>
+
+<p align="center"><b><font COLOR="red">Broadcom Corporation Confidential. For evaluation use only.</font></b>
+</p>
+
+<hr SIZE="4">
+
+The appearance of the control panel diagnostic applet can be
+customized through the windows registry.  
+There are several registry keys that can be used to modify the applet display.  
+All of the keys must appear below the following location in the registry:
+<code><pre>
+HKEY_LOCAL_MACHINE\Software\bcm42dia\
+</pre></code>
+<p>
+The keys which control the appearance of the diagnostic applet are,
+<br>
+<dl>
+<dt><code>Title</code></dt>
+<dd>Displayed in the title bar of the applet.</dd>
+<dt><code>Logo Text</code></dt>
+<dd>Displayed in a large font at the bottom of the diagnostic applet.  This value is only used if the "Logo File" is not set or is otherwise invalid.  Defaults to "Broadcom" if not set.</dd>
+<dt><code>Logo File</code></dt>
+<dd>Indicates an alternative image that should be displayed in place of the "Logo Text" in the lower-left corner of the applet.</dd>
+<dt><code>Logo Offset</code></dt>
+<dd>When set, this key indicates the pixel offset from the default logo location that the logo should actually be drawn.  Normally you would only use this if you want to make fine adjustments to the position of a logo image.  Note that this offset also affects the <code>Logo Text</code> when <code>Logo Image</code> is not used.</dd>
+<dt><code>Icon Name</code></dt>
+<dd>Replaces the default name that appears under the diagnostic applet icon in the control panel page.</dd>
+<dt><code>LegalCopyright</code></dt>
+<dd>Displayed as the first line of the "About..." dialog.</dd>
+<dt><code>Company URL</code></dt>
+<dd>Displayed as a hyperlink in second line of the  "About..." dialog.</dd>
+</dl>
+<p>
+When entered in the registry these keys would look something like this:
+<code><pre>
+REGEDIT4
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\bcm42dia]
+    &quot;Logo File&quot;=&quot;C:\\PROGRA~1\\MICROS~1\\Office\\REFEDIT.DLL,1&quot;
+    &quot;Logo Text&quot;=&quot;Broadcom&quot;
+    &quot;Logo Offset&quot;=&quot;40,-20&quot;
+    &quot;Icon Name&quot;=&quot;iLine10&quot;
+    &quot;Company URL&quot;=&quot;http://www.Broadcom.com/&quot;
+    &quot;Title&quot;=&quot;iLine10 Information and Diagnostics&quot;
+    &quot;LegalCopyright&quot;=&quot;1999-2011, All Rights Reserved.&quot;
+</pre></code>
+<p>
+Shown below is an image of the diagnostic applet 
+with most of the customizable items marked.
+The main window consists of the diagnostic applet with tabbed sub-windows.  The smaller window to the right is displayed when the user
+chose "About diagnostics..." off the system menu from the applets header.
+<p>
+<img border="0" src="images/AnnotatedCPLApplet.jpg">
+<p>
+<h2>Logo Text and Logo File</h2>
+Most of the customizable strings in the registry are pretty straight-forward.  The only ones that may need some additional explanation are <code>"Logo Text"</code> and <code>"Logo File"</code>.  These two keys are usually mutually exclusive - you would use one or the other, but usually not both.  <code>"Logo File"</code> specifies a BMP format image that is to be placed in the lower-left corner of the diagnostic window.  If <code>"Logo File"</code> is not specified, or if the image cannot be read for some other reason, then <code>"Logo Text"</code> is used put a string in place of the image.  The prevent the display of any logo, do not set <code>"Logo File"</code> and set <code>"Logo Text"</code> to the empty string, i.e. <code>""</code>.
+<p>
+<code>"Logo File"</code> can specify an image in two ways.  The simplest way is by directly specifying a BMP image file, e.g. <code>"c:\temp\mylogo.bmp"</code>.  A second method, familiar to windows programmers, is to specify a bitmap resource in a binary DLL or EXE file, e.g. 
+<code>"C:\PROGRA~1\MICROS~1\Office\REFEDIT.DLL,1"</code>
+<h3>Transparency</h3>
+<p>
+BMP format images do not provide an explicit transparency mask so it is standard practice to designate one of the non-transparent colors in the image to be a marker for the transparent pixels in the image.   The control panel diagnostic applet considers the pixel at position &lt;<i>0, 0</i>&gt; (upper-left corner) in the image to designate the transparent color in the image.  What that means is that whatever color is in the upper left corner of the Logo image will not appear when the Logo is actually drawn.  That effectively means that the logo will appear transparent wherever that color appears and the window background color will be visible at that point.
+<p>
+<img border="0" src="images/CPLtransparent.jpg">
+<h3>Placement</h3>
+<p>
+The logo image or logo text is normally placed so that the upper edge is roughly parallel with the top of the "OK" button. and with the left edge of the logo is roughly parallel with the tabbed windows inside the diagnostic applet.  That point is marked by the intersection of 2 blue lines in the image below.
+<p>
+<img border="0" src="images/imageplacement.jpg">
+<p>
+You can adjust the position of the logo through the 
+<code>"Logo Offset"</code> registry key.  Its value should be a string containing two signed integers
+separated by a comma.  This string will be parsed into an &lt;<i>X, Y</i>&gt; pixel offset from the default logo position.
+<p>
+For example, if you wanted to move the logo up and to the right, you would define a registry entry like this,
+<code><pre>
+REGEDIT4
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\bcm42dia]
+    &quot;Logo Offset&quot;=&quot;40,-10&quot;
+</pre></code>
+<p>
+<img border="0" src="images/CPLoffset.jpg">
+<p>
+Note that <code>"Logo Offset"</code> can also be used to adjust the position of the logo text when an image is not used.
+
+<h2>&nbsp;Support</h2>
+<ul>
+  <li>If you have questions, or would like to report any bugs, send email to <i>hnsupport@broadcom.com.</i></li>
+</ul>
+
+
+<hr SIZE="4">
+
+<p align="center">Copyright © 2001-2011 Broadcom Corporation</p>
+</body>
+
+

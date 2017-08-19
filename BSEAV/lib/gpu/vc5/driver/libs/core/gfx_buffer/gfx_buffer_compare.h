@@ -7,7 +7,7 @@
 #include "libs/core/lfmt/lfmt_block.h"
 #include "gfx_buffer_raw.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /*
  Description of a comparision of two pixels described as GFX_LFMT_BLOCK_T.
@@ -110,4 +110,4 @@ extern gfx_buffer_cmp_result_t gfx_buffer_compare_raw_images(GFX_BUFFER_RAW_T *r
      const GFX_BUFFER_RAW_T *lhs, const GFX_BUFFER_RAW_T *rhs,
      const GFX_BUFFER_DELTA_DESC_T *delta_desc);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

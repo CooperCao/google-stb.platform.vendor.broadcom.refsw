@@ -1,0 +1,426 @@
+<html>
+<head>
+<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-8859-1">
+<meta HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+<title>Broadcom IL_LOG Performance Measurement Tool</title>
+</head>
+
+<body LINK="#0000ff" VLINK="#800080">
+
+<p><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<img ALT="Broadcom Corportation" SRC="BCMLogo.gif" WIDTH="200" HEIGHT="98"></p>
+
+<h1>Broadcom IL_LOG Performance Measurement Tool Release 1.00</h1>
+
+<p align="center"><b><font COLOR="red">Broadcom Corporation Confidential. For evaluation use only.</font></b>
+</p>
+
+<hr SIZE="4">
+
+
+<h2>Overview</h2>
+<p>
+Our drivers come with some tools to help measure and improve their
+performance.  CPU cycle and instruction counts can be accurately
+measured on some platforms, and performance improvements can be
+tracked as changes are made to the code.
+<p>
+Measuring performance starts with our logging functions.  In our iLine
+driver, we use a macro called <code>IL_LOG()</code> to capture the
+current instruction count and cycle count.
+
+<h2>Initialization</h2> 
+The function <code>il_loginit()</code> must be
+called once to perform any platform-specific initialization.
+All logging functions are conditionally defined with the <code>BCMDBG</code> pre-processor symbol.  Unless this symbol is defined during compilation, all of the logging functions mentioned here will be NO-OPs.  Furthermore, the logging functions are enabled at runtime by setting bit 11 of the global variable 
+<code>il_msg_level</code>, defined and initialized in <code>ilc.c</code>.  
+Be sure to set <code>il_msg_level</code> before calling any logging function.
+
+<pre>
+       il_msg_level |= 2048;
+       il_loginit();
+</pre>
+
+<h2>Capturing performance info</h2>
+<p>
+The basic method is to capture counters before and after a given
+operation and subtract first measure from the second to come up with
+the cost of the operation.  For example, if we were interested in
+measuring the cost of the routine <code>il_sendup</code>, our code
+might look something like this,
+
+<pre>
+       IL_LOG("il_sendup", 0);        /* capture counters before we call il_sendup... */
+       IL_LOG("il_log", 0);           /* used to find logging overhead. */   
+       il_sendup((void*)ilc, tmp, pri);
+       IL_LOG("il_sendup ret\n", 0);  /* ...and capture counters after we call il_sendup */
+</pre>
+<p>
+When measuring performance of a routine, we will typically bracket the
+routine with two calls to IL_LOG, the first of which is tagged with
+the name of the routine or code segment, and the second of which
+repeats the name with "ret" appended to the end.  This syntax is not
+just a good idea, it is essential to the correct operation of the
+analysis tools that we run later.  In this example, the tags for
+"il_sendup" follow that format.  
+<p>
+The two arguments from <code>IL_LOG</code> are stored along with the
+performance counters captured at that point. Each call to il_log
+results in an entry in a circular buffer which can store 256 entries
+before overwriting.  When the circular buffer is dumped, the arguments
+passed to il_log are passed to printf along with the value of the
+performance counters.
+<p>
+As with the other logging functions, <code>IL_LOG</code> only works if the driver was compiled with the <code>BCMDBG</code> preprocessor symboled defined, and if <code>il_msg_level</code> has bit 11 set at the time <code>IL_LOG</code> is called.
+
+<h2>Collecting performance info</h2>
+Once you have run your sample code and presumably collected some log entries in the log buffer, you will want to dump the log buffer to see the results.
+The contents of the circular log buffer can be retrieved with a call to <code>ilc_dumplog</code>.  This routine takes a single argument which should be a pointer to a big buffer (at least 4K) into which the contents of the log buffer are be formatted.
+
+<p>
+The formatted string produced by <code>ilc_dumplog()</code> looks like this:
+
+<pre>
+	67268	2734	il_recvdma
+	248	58	il_log tot/dma/maxse
+	518	83	framelen 71
+	910	296	ilc_rateupd
+	646	188	ilc_rateupd ret
+	2770	936	il_recvdma ret
+
+	68064	2744	il_recvdma
+	248	58	il_log tot/dma/maxse
+	522	83	framelen 71
+	894	296	ilc_rateupd
+	524	199	pe_select_update_stats
+	644	389	pe_select_update_stats ret
+	446	126	ilc_rateupd ret
+	3048	936	il_recvdma ret
+
+	67008	2734	il_recvdma
+	248	58	il_log tot/dma/maxse
+	518	83	framelen 71
+	888	296	ilc_rateupd
+	660	188	ilc_rateupd ret
+	2800	936	il_recvdma ret
+
+</pre>
+<p>
+After calling <code>ilc_dumplog()</code>, the returned ASCII string can be printed to a file or to the serial console.
+<p>
+Each entry in this log consists of the number of cycles since the
+previous entry, the number of instructions since the previous entry,
+and the tag as specified by the arguments passed to the IL_LOG macro.
+Both counters may not be available on every platform, but at least one
+of these is usually available on most platforms.  
+
+<H2>Analyzing the data</H2>
+<p>
+The simplest way to analyze the performance data you have collected is
+to look at the raw log.  Each entry contains the number of instructions and
+cycles since the previous entry.  Let's look at the data for just one frame from the log above.
+
+<pre>
+	67008	2734	il_recvdma
+	248	58	il_log tot/dma/maxse
+	518	83	framelen 71
+	888	296	ilc_rateupd
+	660	188	ilc_rateupd ret
+	2800	936	il_recvdma ret
+</pre>
+<p>
+From this example we can see
+that 888 cycles and 296 instructions elapsed in the code fragement
+labelled "<code>ilc_rateupd</code>".  That means the between the previous entry for "<code>framelen</code>" and the one for "<code>ilc_rateupd</code>", 296 instructions were executed.  It does not mean that the "<code>ilc_rateupd</code>" routine itself took 296 instructions; that sort of data must be derived later using post-processing tools.
+<p>
+Finding out how many instructions were executed for all of
+"<code>ilc_rateupd</code>" is a little tricky.  To do that you
+must add up all the instructions counts for all the log entries
+between "<code>ilc_rateupd</code>" and "<code>ilc_rateupd ret</code>", not including the first one (because that represents the count from the previous tag).
+In this example there are no tags between "<code>ilc_rateupd</code>" and "<code>ilc_rateupd ret</code>", so our count is simply the count for "<code>ilc_rateupd ret</code>", <code>188</code> instructions.
+<p>
+To perform the same operation for "<code>il_recvdma</code>", we would need to add together all the instruction counts between "<code>il_recvdma</code>" and "<code>il_recvdma ret</code>", again, excluding the first entry.
+That would be <code>58+83+296+188+936=1561</code>
+instructions.  Note that you do not count the very first entry for
+"<code>il_recvdma</code>" because that pertains to the number of
+instructions since the <i>previous</i> entry.
+<p>
+One thing that our calculation has not taken into account is the
+overhead for the logging function itself.  The cost of the log
+function can be calculated simply by putting two log statements
+back-to-back in the source code, e.g.
+
+<pre>
+       IL_LOG("il_recvdma", 0);               
+       IL_LOG("il_log %s", "tot/dma/maxse");
+</pre>
+<p>
+That is what was done to create the log sample above.  The "<code>il_log</code>"  entry
+in the sample above contains just the count
+of cycles and instructions between sequential calls to the log
+function, which is actually the same as the cost of calling the log
+function itself.
+<p>
+Now we can go back and recalculate the performance of our code by
+taking into account the cost of the log function itself.  To do that
+we reproduce the log entries after subtracting the the cost of the
+"<code>il_log</code>" entry.
+
+<pre>
+	64407	2676	il_recvdma
+	0	0	il_log tot/dma/maxse
+	298	25	framelen 71
+	745	238	ilc_rateupd
+	443	130	ilc_rateupd ret
+	2679	878	il_recvdma ret
+</pre>
+<p>
+By repeating our calculation for "<code>il_recvdma</code>"
+(<code>0+25+238+130+878=1271</code>) we see that our previous
+calculation included total overhead of 22% (1561 vs. 1271).  Good
+thing we took the cost of logging into account.
+<p>
+A note about interpreting the cycle count results - We have found the
+cycle counts to be wildly variable, sometimes differing by as much as
+100% from run to run.  On the other hand, instruction counts are
+highly reliable.  For the same input under the same conditions, the
+instruction count should not vary at all from run to run.  If they do,
+it is likely that some interrupt service routine or other asynchronous
+event happened during your performance measurement.  
+<p>
+Cycle counts can be influenced by a wide set of subtle factors, like
+the speed of memory, cache misses, other applications in memory, etc.
+Over very large runs (hundreds, if not thousands) cycle counts can
+still provide a good relative of performance.  In fact
+cycle counts are sometimes the only way to reduce the number of cache
+misses if direct observation of the cache miss count is not possible.
+But the high variability of cycle counts make them useless for
+fine-grained tuning.  
+
+<H2>Advanced analysis</H2>
+<p>
+Analyzing raw log entries is a tedious and error-prone process.  That
+is why we have developed a <code>PERL</code> script to help. The
+script automates a tremendous amount of the drudgery associated with
+processing raw performance logs but it requires some specific
+conventions in order to work correctly.
+<p>
+To invoke the log processing script, you would issue a command like,
+
+<pre>
+      perl perf.pl iline.log
+</pre>
+<code>iline.log</code> is the name of a file that contains the textual data dumped from   "<code>ilc_dumplog</code>". 
+The script will produce four output files with same basename as the input file, of which only two are actually useful.  The other two contain what is essentially debugging information for the log processing script. 
+<dl>
+<dd>
+<table>
+<tr>
+    <td><code>iline.dtl</code></td><td>- Details of per packet performance.</td>
+</tr><tr>
+    <td><code>iline.tbl</code></td><td>- Packet table</td>
+</tr><tr>
+    <td><code>iline.tag</code></td><td>- Tag table</td>
+</tr><tr>
+    <td><code>iline.ptl</code></td><td>- Per-packet instruction counts</td>
+</tr>
+</table>
+</dd>
+</dl>
+
+<h3><code>iline.dtl</code> - Details</h3>
+
+<pre>
+il_intr	 892	 892	100%
+_il_recvdma	 863	 892	96%
+__*framelen	  27	 892	3%
+</pre>
+<p>
+The <code><b>Details</b></code> file contains a call graph profile of
+the logged functions.  Each line contains the tag name, the total
+instructions for that tag and its descendents, the total instructions
+for the packet, and the percentage of the total represented by this
+tag and its descendents.
+<p>
+One tag is considered to be a descendent of another if it appears within a "parent_tag/parent_tag ret" pair.
+Tags that do not have any corresponding "tag ret" entry are marked with a '\<code>*</code>'.  Each level of descendent is preceeded with an additional '<code>_</code>'.
+<p>
+There is one tag that never shows up in the detail listing, and that is the <code>il_log</code> tag.  If the <code>il_log</code> tag is present in the log for a given packet, the instruction count and cycle count for that tag are subtracted from every tag entry to account for logging overhead.
+<h3><code>iline.tbl</code> - Packet table</h3>
+<pre style="font-size: smaller">
+len     Imin    Imax    Imean   Istdev  Cmin    Cmax    Cmean   Cstdev  Arr.Rate   Samples
+70      892     902     895.8   2.4     2630    4533    3720.6  572.5   6935.22    120
+78      892     899     896.7   1.6     2560    3190    2758.6  82.1    6741.13    570
+1532    892     899     896.9   1.5     2619    4149    2845.3  129.4   1142.38    570
+</pre>
+<p>
+Perhaps the most useful type of processed output is the
+<code><b>Packet Table</b></code>.  This table summarizes instruction
+and cycle count data according to network packet size.  All data collected for
+a particular packet size is summarized into a single row in the
+packet table.  The columns of this table are arranged as follows:
+
+<pre><b>
+len   Imin  Imax  Imean  Istdev  Cmin  Cmax  Cmean  Cstdev  Arr.Rate  Samples
+</b></pre>
+<p>
+<table border=1>
+<tr>
+<td width="15%" valign=top><code><b>len</b></code></td><td>The length of the frame.  All log entries associated with the cost of processing a particular frame size will be summaried in one row.</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Imin</b></code></td><td>The minimum number of instructions needed to process frames of this size across all logged frames</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Imax</b></code></td><td>The maximum number of instructions needed to process frames of this size across all logged frames.</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Imean</b></code></td><td>The average number of instructions needed to process frames of this size across all logged frames.</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Istddev</b></code></td><td>The standard deviation of the number of instructions needed to process frames of this size across all logged frames.</td>
+
+</tr><tr>
+<td width="15%" valign=top><code><b>Cmin</b></code></td><td>The minimum number of cycles needed to process frames of this size across all logged frames</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Cmax</b></code></td><td>The maximum number of cycles needed to process frames of this size across all logged frames.</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Cmean</b></code></td><td>The average number of cycles needed to process frames of this size across all logged frames.</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Cstddev</b></code></td><td>The standard deviation of the number of cycles needed to process frames of this size across all logged frames.</td>
+
+</tr><tr>
+<td width="15%" valign=top><code><b>Arr.Rate</b></code></td><td>Average packet inter-arrival time, in milliseconds.  This can be useful in calculating the number of packets per-second that can be processed.</td>
+</tr><tr>
+<td width="15%" valign=top><code><b>Samples</b></code></td><td>Total number of packet samples of this particular size that went into these calculations.</td>
+</tr>
+</table>
+
+<h2>Porting</h2>
+There are two key routines that need to be ported to any new platform in order to make performance logging work - <code>il_loginit()</code> and <code>il_log()</code>.
+<p>
+<code>il_loginit()</code> is used to perform any necessary processor-specific initialization. 
+<br>
+<code>il_log()</code> captures performance data and calls the common routine <code>ilc_log</code>.
+<dl>
+<dt>x86</dt><dd>
+
+On x86 Pentium Pro platforms, <code>il_loginit()</code> writes a
+model-specific register to force the processor to keep track of
+instruction counts, cycle counts, or both.  See <i>Pentium Pro Family
+Developer's Manual, Vol. 2</i> or any of the numerous other Intel performance analysis documentaion for details on the usage of the <code>wrmsr</code>
+instruction.
+
+<pre>
+#define wrmsr(msr,val1,val2) \
+     __asm__ __volatile__("wrmsr" \
+			  : /* no outputs */ \
+			  : "c" (msr), "a" (val1), "d" (val2))
+
+static void
+il_loginit(void)
+{
+#if defined(BCMDBG) &amp;&amp; defined(__i386__)
+	if (il_msg_level &amp; 2048)
+		wrmsr(0x186, 0x4700c0, 0);	/* enable P6 instr counting */
+#endif /* BCMDBG &amp;&amp; __i386__ */
+}
+</pre>
+<p>
+The other routine that must be ported to each platform is <code>il_log()</code>, which collected processor-specific performancew data and calls the common log function <code>ilc_log()</code>.
+Our version of <code>il_log()</code> for the Pentium uses the <code>rdtscl</code> and <code>rdmsr</code> instructions to read the cycle count and instructions count, respectively, each time <code>il_log()</code> is called.
+
+<pre>
+/*
+ * Obtaining cycle and instruction counts is processor specific.
+ * Implement only the x86 version for now.
+ */
+void
+il_log(char *fmt, ulong a1)
+{
+#ifdef __i386__
+	static uint32 lasttsc = 0;
+	static uint32 lastinstr = 0;
+	uint32 tsc, instr, dummy;
+
+	/* read cycle counter */
+	rdtscl(tsc);
+
+	/* read ctr1 value */
+	rdmsr(0xc1, instr, dummy);	/* read P6 CTR0 register */
+
+	/* call common log handler */
+	ilc_log(tsc - lasttsc, instr - lastinstr, fmt, a1);
+
+	/* update last values */
+	lasttsc = tsc;
+	lastinstr = instr;
+#endif	/* __i386__ */
+}
+#endif	/* BCMDBG */
+</pre>
+</dd>
+<dt>MIPS</dt><dd>
+On MIPS platforms, our <code>il_loginit</code> and <code>il_log</code> routines look like this,
+
+<pre>
+void
+il_loginit(void)
+{
+#if defined(BCMDBG)
+	if (et_msg_level &amp; 2048) {
+		__u32 mode = 0x4f;		/* U,S,K,EXL,instr */
+		__asm__ __volatile__(
+			".set\tnoat\n\t"
+			"move\t$1,%0\n\t"
+			".word\t0x4081C800\n\t" /* MTPS: CPR[0,0] &lt;- GPR[1] */
+			".set\tat\n\t"
+			:
+			:"r" (mode)		
+			:"$1");
+	}
+#endif
+}
+
+
+/*
+ * Obtaining cycle and instruction counts is processor specific.
+ * Implement only the x86 version for now.
+ */
+void
+il_log(char *fmt, ulong a1)
+{
+	static uint32 lasttsc = 0;
+	static uint32 lastinstr = 0;
+	uint32 tsc, instr, dummy;
+
+	/* read cycle counter */
+	tsc = read_32bit_cp0_register(CP0_COUNT);
+	__asm__ __volatile__(
+		".set\tnoat\n\t"
+		".word\t0x4001C801\n\t"	/* MFPC: GPR[1] &lt;- CPR[0,0] */
+		"move\t%0,$1\n\t"
+		".set\tat\n\t"
+		:"=r" (instr)
+		:
+		:"$1");
+
+	/* NEC VR5432 counts backwards */
+	etc_log(tsc - lasttsc, lastinstr - instr, fmt, a1);
+
+	/* update last values */
+	lasttsc = tsc;
+	lastinstr = instr;
+}
+</pre>
+</dd>
+</dl>
+
+<h2>Support</h2>
+
+<ul>
+  <li>If you have questions, or would like to report any bugs, send email to <i>hnsupport@broadcom.com.</i></li>
+</ul>
+
+
+<hr SIZE="4">
+
+<p align="center">Copyright &copy; 2001-2011 Broadcom Corporation</p>
+</body>
+</html>

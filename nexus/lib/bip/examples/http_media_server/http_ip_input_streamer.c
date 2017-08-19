@@ -768,7 +768,7 @@ static BIP_Status initHttpServer(
         BIP_HttpServerStartSettings httpServerStartSettings;
 
         BIP_HttpServer_GetDefaultStartSettings(&httpServerStartSettings);
-        BDBG_MSG(("%s: Starting HttpServer...", __FUNCTION__));
+        BDBG_MSG(("%s: Starting HttpServer...", BSTD_FUNCTION));
         httpServerStartSettings.pPort = BIP_String_GetString( pAppCtx->hPort );
         if (pAppCtx->enableDtcpIp)
         {

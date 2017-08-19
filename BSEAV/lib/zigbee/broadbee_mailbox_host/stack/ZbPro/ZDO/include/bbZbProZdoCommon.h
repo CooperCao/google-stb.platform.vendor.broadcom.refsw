@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZDO/include/bbZbProZdoCommon.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZDO common definitions and ZDO initialization function interface.
+*       ZDO common definitions and ZDO initialization function interface.
 *
-* $Revision: 10263 $
-* $Date: 2016-02-29 18:03:06Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZDO_COMMON_H
 #define _BB_ZBPRO_ZDO_COMMON_H
@@ -60,18 +53,73 @@
 #include "bbRpc.h"
 
 
+/******************************** ZBPRO ZDO DOCUMENTATION STRUCTURE ***************************/
+/**//**
+ * \defgroup ZBPRO (ZigBee-PRO API)
+ @{
+ * \defgroup ZBPRO_ZDO (Device Object API)
+ @{
+ * \defgroup ZBPRO_ZDO_Types (Device Object Types)
+ @{
+ * \defgroup ZBPRO_ZDO_Misc (Miscellaneous ZDO Types)
+ * \defgroup ZBPRO_ZDO_ReadyInd (Ready Indication)
+ * \defgroup ZBPRO_ZDO_AddrResolvingReq (Address Resolving Request)
+ * \defgroup ZBPRO_ZDO_AddrResolvingConf (Address Resolving Confirmation)
+ * \defgroup ZBPRO_ZDO_ServerDiscoveryReq (Server Discovery Request)
+ * \defgroup ZBPRO_ZDO_ServerDiscoveryConf (Server Discovery Confirmation)
+ * \defgroup ZBPRO_ZDO_ActiveEpReq (Active Endpoint Request)
+ * \defgroup ZBPRO_ZDO_ActiveEpConf (Active Endpoint Confirmation)
+ * \defgroup ZBPRO_ZDO_MatchDescReq (Match Descriptor Request)
+ * \defgroup ZBPRO_ZDO_MatchDescConf (Match Descriptor Confirmation)
+ * \defgroup ZBPRO_ZDO_NodeDescReq (Node Descriptor Request)
+ * \defgroup ZBPRO_ZDO_NodeDescConf (Node Descriptor Confirmation)
+ * \defgroup ZBPRO_ZDO_PowerDescReq (Power Descriptor Request)
+ * \defgroup ZBPRO_ZDO_PowerDescConf (Power Descriptor Confirmation)
+ * \defgroup ZBPRO_ZDO_SimpleDescReq (Simple Descriptor Request)
+ * \defgroup ZBPRO_ZDO_SimpleDescConf (Simple Descriptor Confirmation)
+ * \defgroup ZBPRO_ZDO_StartNetworkReq (Start Network Request)
+ * \defgroup ZBPRO_ZDO_StartNetworkConf (Start Network Confirmation)
+ * \defgroup ZBPRO_ZDO_BindUnbindReq (Bind/Unbind Request)
+ * \defgroup ZBPRO_ZDO_BindUnbindConf (Bind/Unbind Confirmation)
+ * \defgroup ZBPRO_ZDO_EndDeviceBindReq (End Device Bind Request)
+ * \defgroup ZBPRO_ZDO_EndDeviceBindConf (End Device Bind Confirmation)
+ * \defgroup ZBPRO_ZDO_DeviceAnnceReq (Device Announcement Request)
+ * \defgroup ZBPRO_ZDO_DeviceAnnceConf (Device Announcement Confirmation)
+ * \defgroup ZBPRO_ZDO_DeviceAnnceInd (Device Announcement Indication)
+ * \defgroup ZBPRO_ZDO_MgmtLeaveReq (Leave Request)
+ * \defgroup ZBPRO_ZDO_MgmtLeaveConf (Leave Confirmation)
+ * \defgroup ZBPRO_ZDO_MgmtPermitJoiningReq (Permit Joining Request)
+ * \defgroup ZBPRO_ZDO_MgmtPermitJoiningConf (Permit Joining Confirmation)
+ * \defgroup ZBPRO_ZDO_MgmtBindReq (Bind Request)
+ * \defgroup ZBPRO_ZDO_MgmtBindConf (Bind Confirmation)
+ * \defgroup ZBPRO_ZDO_MgmtLqiReq (LQI Request)
+ * \defgroup ZBPRO_ZDO_MgmtLqiConf (LQI Confirmation)
+ * \defgroup ZBPRO_ZDO_MgmtNwkUpdateReq (Network Update Request)
+ * \defgroup ZBPRO_ZDO_MgmtNwkUpdateConf (Network Update Confirmation)
+ * \defgroup ZBPRO_ZDO_MgmtNwkUpdateUnsolResp (Network Update Unsolicited Response)
+ * \defgroup ZBPRO_ZDO_MgmtNwkUpdateUnsolInd (Network Update Unsolicited Indication)
+ * \defgroup ZBPRO_ZDO_MgmtNwkUpdateUnsolConf (Network Update Unsolicited Confirmation)
+ @}
+ * \defgroup ZBPRO_ZDO_Functions (Device Object Routines)
+ @}
+ @}
+ */
+
+
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief   Structure for the service field of Local Client ZDO Request object.
  * \details
  *  This structure shall be embedded as a service field into each particular Local Client
  *  ZDO Request structure.
+ * \ingroup ZBPRO_ZDO_Misc
  */
 typedef RpcLocalRequest_t  ZbProZdoLocalRequest_t;
 
 
 /**//**
  * \brief   Enumeration of ZDO/ZDP Statuses.
+ * \ingroup ZBPRO_ZDO_Misc
  * \par     Documentation
  *  See ZigBee Document 053474r20, table 2.138.
  */
@@ -142,49 +190,85 @@ typedef enum _ZBPRO_ZDO_Status_t
 
 
 /**//**
- * \name    Redefinition of different data types for ZDO layer.
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
  */
-/**@{*/
 typedef ZBPRO_NWK_Capability_t  ZBPRO_ZDO_Capability_t;     /*!< Node capabilities. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_APS_ExtAddr_t     ZBPRO_ZDO_ExtAddr_t;        /*!< Extended 64-bit MAC (IEEE) address. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_NWK_NwkAddr_t     ZBPRO_ZDO_NwkAddr_t;        /*!< Short 16-bit NWK address. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_NWK_ExtPanId_t    ZBPRO_ZDO_ExtPanId_t;       /*!< Extended 64-bit NWK PAN identifier. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_NWK_PanId_t       ZBPRO_ZDO_PanId_t;          /*!< Short 16-bit PAN identifier. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_APS_Address_t     ZBPRO_ZDO_Address_t;        /*!< Structure for storing either Short, or Extended node
                                                                 address, or Group address. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_APS_ProfileId_t   ZBPRO_ZDO_ProfileId_t;      /*!< Profile identifier. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_APS_EndpointId_t  ZBPRO_ZDO_Endpoint_t;       /*!< Endpoint identifier. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_APS_ClusterId_t   ZBPRO_ZDO_ClusterId_t;      /*!< Cluster identifier. */
 
+/**//**
+ * \brief   Redefinition of different data types for ZDO layer.
+ * \ingroup ZBPRO_ZDO_Misc
+ */
 typedef ZBPRO_NWK_DeviceType_t  ZBPRO_ZDO_DeviceType_t;     /*!< Device Type. */
 
 /**//**
  * \brief Server mask type, the node descriptor part. For more detailed please see spec R20 chapter 2.3.2.3.10 p.85
+ * \ingroup ZBPRO_ZDO_Misc
  */
 typedef union _ZBPRO_ZDO_ServerMask_t
 {
-    BitField16_t     plain;
+    BitField16_t        plain;                              /*!< Bitmask alternative. */
     struct
     {
-        BitField16_t    primaryTrustCenter : 1;
-        BitField16_t    backupTrustCenter : 1;
-        BitField16_t    primaryBindingTableCache : 1;
-        BitField16_t    backupBindingTableCache : 1;
-        BitField16_t    primaryDiscoveryCache: 1;
-        BitField16_t    backupDiscoveryCache: 1;
-        BitField16_t    networkManager: 1;
-        BitField16_t    reserved : 8;
+        BitField16_t    primaryTrustCenter : 1;             /*!< Primary Trust Center. */
+        BitField16_t    backupTrustCenter : 1;              /*!< Backup Trust Center. */
+        BitField16_t    primaryBindingTableCache : 1;       /*!< Primary binding table cache. */
+        BitField16_t    backupBindingTableCache : 1;        /*!< Backup binding table cache. */
+        BitField16_t    primaryDiscoveryCache: 1;           /*!< Primary discovery cache. */
+        BitField16_t    backupDiscoveryCache: 1;            /*!< Backup discovery cache. */
+        BitField16_t    networkManager: 1;                  /*!< Network Manager. */
+        BitField16_t    reserved : 8;                       /*!< Reserved bits. */
     };
 } ZBPRO_ZDO_ServerMask_t;
-/**@}*/
 
 
 /**//**
@@ -214,6 +298,7 @@ typedef union _ZBPRO_ZDO_ServerMask_t
  *  RPC Service identifiers in 32-bits format and may be used instead of RPC Service
  *  identifiers directly because ZDP Profile identifier (that is presented in the higher
  *  16 bits of an RPC Service identifier) equals to 0x0000.
+ * \ingroup ZBPRO_ZDO_Misc
  * \par     Documentation
  *  See ZigBee Document 053474r20, subclauses 2.4.3, 2.4.4.
  */
@@ -357,22 +442,33 @@ typedef enum _ZbProZdpServiceId_t
  */
 SYS_DbgAssertStatic(2 == sizeof(ZbProZdpServiceId_t));
 
+/**//**
+ * \brief Ready Indication parameters structure
+ * \ingroup ZBPRO_ZDO_ReadyInd
+ */
 typedef struct _ZBPRO_ZDO_ReadyIndParams_t
 {
-    ZBPRO_ZDO_Status_t status;
+    ZBPRO_ZDO_Status_t status;                              /*!< Indication status */
 } ZBPRO_ZDO_ReadyIndParams_t;
 
 /************************* FUNCTIONS PROTOTYPES *****************************************/
 /**//**
  * \brief   Initializes ZDO/ZDP, ZigBee PRO APS and NWK layers.
  * \details
- *  Call this function ones at application startup.
+ *  Call this function once at the application startup.
+ * \ingroup ZBPRO_ZDO_Functions
+ * \return Nothing.
  */
 void ZBPRO_ZDO_Initialization(void);
 
 /**//**
- * \brief Notifies upper layer when the ZDO finish initialization procedure
+ * \brief Notifies upper layer when the ZDO finishes initialization procedure
+ * \ingroup ZBPRO_ZDO_Functions
+ * \param[in]   ind       Pointer to ZDO Local Indication parameters.
+ * \return Nothing.
  */
 void ZBPRO_ZDO_ReadyInd(ZBPRO_ZDO_ReadyIndParams_t *ind);
 
 #endif /* _BB_ZBPRO_ZDO_COMMON_H */
+
+/* eof bbZbProZdoCommon.h */

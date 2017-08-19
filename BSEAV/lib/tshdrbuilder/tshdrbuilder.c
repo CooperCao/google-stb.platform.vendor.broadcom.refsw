@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2002-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ****************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "tshdrbuilder.h"
 #define TS_WRITE_32(buf,val) ((uint8_t*)buf)[0]=((uint32_t)(val)>>24)&0xFF; \
@@ -79,7 +96,7 @@ static uint32_t CRC32_mpeg(
 	crc = ~crc;
 	while (length--)
 	{
-		for (j=0; j<8; j++) 
+		for (j=0; j<8; j++)
 			crc = (crc<<1) ^ ((((*data >> (7-j)) ^ (crc >> 31)) & 1) ? 0x04c11db7 : 0);
 		data++;
 	}
@@ -130,13 +147,13 @@ void TS_PSI_descriptor_Init(
     TS_PSI_descriptor *desc,
     void *descBuf
 ) {
-    *desc = (uint8_t *) descBuf; 
+    *desc = (uint8_t *) descBuf;
 }
 
 void TS_PID_state_Init(
     TS_PID_state * state
 ) {
-    state->continuity_counter = 0; 
+    state->continuity_counter = 0;
 }
 
 void TS_PSI_header_Init(
@@ -156,12 +173,12 @@ void TS_PSI_header_Init(
 
 BERR_Code TS_buildTSHeader(
     const TS_PID_info *pidInfo,
-    TS_PID_state *pidState, 
+    TS_PID_state *pidState,
     void *tsHeaderBuf,
-    size_t tsHeaderBufSz, 
+    size_t tsHeaderBufSz,
     size_t *tsHeaderBufBuilt,
     size_t payloadSz,
-    size_t *payloadBuiltSz, 
+    size_t *payloadBuiltSz,
     unsigned packetMax
 ) {
     unsigned tsHdrBufSzLimit, plSzLimit;
@@ -171,15 +188,15 @@ BERR_Code TS_buildTSHeader(
     bool extra_adp;
 
     if(pidInfo->pcr_valid && packetMax != 1){
-        BDBG_ERR(("Invalid input parameter. packetMax must be set to 1 in order to attach PCR info\n"));
+        BDBG_ERR(("Invalid input parameter. packetMax must be set to 1 in order to attach PCR info."));
         goto TS_HDR_BUILDER_ERROR;
     }
     if(pidInfo->pointer_field && packetMax != 1) {
-        BDBG_ERR(("Invalid input parameter. packetMax must be set to 1 in order to attach pointer_field\n"));
+        BDBG_ERR(("Invalid input parameter. packetMax must be set to 1 in order to attach pointer_field."));
         goto TS_HDR_BUILDER_ERROR;
     }
     if(pidInfo->pcr_valid && pidInfo->pointer_field){
-        BDBG_ERR(("Invalid input parameter. Cannot attach PCR on a packet that has a pointer_field\n"));
+        BDBG_ERR(("Invalid input parameter. Cannot attach PCR on a packet that has a pointer_field."));
         goto TS_HDR_BUILDER_ERROR;
     }
 
@@ -191,7 +208,7 @@ BERR_Code TS_buildTSHeader(
     plSzLimit = payloadSz / 184;
     plRemainder = payloadSz - plSzLimit * 184;
     extra_adp = 0;
-    if (pidInfo->pcr_valid){ 
+    if (pidInfo->pcr_valid){
         plSzLimit += 1;
         fillingSz = (4+2+6+payloadSz < 188) ? 188-(4+2+6+payloadSz) : 0;
         tsHdrBufSzLimit = 2;
@@ -270,7 +287,7 @@ BERR_Code TS_buildTSHeader(
         *tsHeaderBufBuilt += 2 + fillingSz;
         *payloadBuiltSz += (int)-184+188-4-2-fillingSz;
     }
-    
+
     /* Pointer field customization */
     if(pidInfo->pointer_field){
         bufHdr = (uint8_t *)tsHeaderBuf;
@@ -295,12 +312,12 @@ BERR_Code TS_PAT_Init(
     size_t patBufSz
 ) {
     if( patBufSz < 13 ||                        /* Buffer too small */
-        p_header->section_length > 255 )        /* Section length > 255 is unsupported */    
+        p_header->section_length > 255 )        /* Section length > 255 is unsupported */
     {
         BDBG_ERR(("TS_PAT_Init check failed"));
         return BERR_INVALID_PARAMETER;
     }
-    
+
     pat->buf = patBuf;
     pat->bufSize = patBufSz;
 
@@ -339,7 +356,7 @@ BERR_Code TS_PAT_addProgram(
         BDBG_ERR(("TS_PAT_addProgram check failed"));
         return BERR_INVALID_PARAMETER;
     }
-    
+
     pmt->buf = pmtBuf;
     pmt->bufSize = pmtBufSz;
 
@@ -350,7 +367,7 @@ BERR_Code TS_PAT_addProgram(
 
     /* Making a PMT */
     BKNI_Memset(pmt->buf, 0xFF, 16);
-    
+
     BKNI_Memcpy(pmt->buf, pat->buf, TS_PSI_LAST_SECTION_NUMBER_OFFSET+1);               /* copy settings from PAT */
     pmt->buf[TS_PSI_TABLE_ID_OFFSET] = 0x02;                                            /* table PID */
     pmt->buf[TS_PSI_SECTION_LENGTH_OFFSET+1] = 13;                                      /* section length (no ES stream) */
@@ -386,7 +403,7 @@ BERR_Code TS_PMT_addStream(
     {
         BDBG_ERR(("TS_PMT_addStream check failed"));
         return BERR_INVALID_PARAMETER;
-    } 
+    }
     numStreams = TS_PMT_getNumStreams(pmt->buf, pmt->bufSize);
     newStream = &pmt->buf[TS_PSI_SECTION_LENGTH_OFFSET + TS_PSI_GET_SECTION_LENGTH(pmt->buf) - 2];
     newStream[0] = p_stream->stream_type;                           /* stream type */
@@ -409,7 +426,7 @@ BERR_Code TS_PMT_setDescriptor(
     unsigned streamEndOffset;
     unsigned streamNextOffset;
     unsigned oldDescLen;
-    
+
     numStreams = TS_PMT_getNumStreams(pmt->buf, pmt->bufSize);
     if( streamNum >= numStreams ||                                   /* invalid stream number */
         TS_PSI_GET_SECTION_LENGTH(pmt->buf)+descLen > 188 )         /* descriptor too long */

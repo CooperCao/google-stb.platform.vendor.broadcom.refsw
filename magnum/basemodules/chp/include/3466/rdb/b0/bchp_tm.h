@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Jan  4 10:49:53 2017
- *                 Full Compile MD5 Checksum  7d7ecd2f231e57c2cad54acc68aba7d0
+ * Date:           Generated on               Tue May 23 18:01:57 2017
+ *                 Full Compile MD5 Checksum  faf7ad9783d64fd3b76af19c41ef463c
  *                     (minus title and desc)
- *                 MD5 Checksum               abfa74885d525b3b66c0de72b0e964ec
+ *                 MD5 Checksum               b7c66081f7ba94771fae7095d4e08762
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1139
+ *                 RDB.pm                     1459
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -182,7 +179,7 @@
 /* TM :: FAMILY_ID :: FAMILY_ID [31:00] */
 #define BCHP_TM_FAMILY_ID_FAMILY_ID_MASK                           0xffffffff
 #define BCHP_TM_FAMILY_ID_FAMILY_ID_SHIFT                          0
-#define BCHP_TM_FAMILY_ID_FAMILY_ID_DEFAULT                        0x34660000
+#define BCHP_TM_FAMILY_ID_FAMILY_ID_DEFAULT                        0x34660010
 
 /***************************************************************************
  *PRODUCT_ID - Product ID
@@ -190,7 +187,7 @@
 /* TM :: PRODUCT_ID :: PRODUCT_ID [31:00] */
 #define BCHP_TM_PRODUCT_ID_PRODUCT_ID_MASK                         0xffffffff
 #define BCHP_TM_PRODUCT_ID_PRODUCT_ID_SHIFT                        0
-#define BCHP_TM_PRODUCT_ID_PRODUCT_ID_DEFAULT                      0x34660000
+#define BCHP_TM_PRODUCT_ID_PRODUCT_ID_DEFAULT                      0x34660010
 
 /***************************************************************************
  *SFT_RST0 - Soft Reset Control Register 0
@@ -2689,10 +2686,20 @@
 #define BCHP_TM_SPARE_REG0_RSVD_1_SHIFT                            4
 #define BCHP_TM_SPARE_REG0_RSVD_1_DEFAULT                          0x0f0f0f0f
 
-/* TM :: SPARE_REG0 :: RSVD [03:01] */
-#define BCHP_TM_SPARE_REG0_RSVD_MASK                               0x0000000e
-#define BCHP_TM_SPARE_REG0_RSVD_SHIFT                              1
+/* TM :: SPARE_REG0 :: RSVD [03:03] */
+#define BCHP_TM_SPARE_REG0_RSVD_MASK                               0x00000008
+#define BCHP_TM_SPARE_REG0_RSVD_SHIFT                              3
 #define BCHP_TM_SPARE_REG0_RSVD_DEFAULT                            0x00000000
+
+/* TM :: SPARE_REG0 :: MODEHV [02:02] */
+#define BCHP_TM_SPARE_REG0_MODEHV_MASK                             0x00000004
+#define BCHP_TM_SPARE_REG0_MODEHV_SHIFT                            2
+#define BCHP_TM_SPARE_REG0_MODEHV_DEFAULT                          0x00000000
+
+/* TM :: SPARE_REG0 :: ANA_2P5_COMP [01:01] */
+#define BCHP_TM_SPARE_REG0_ANA_2P5_COMP_MASK                       0x00000002
+#define BCHP_TM_SPARE_REG0_ANA_2P5_COMP_SHIFT                      1
+#define BCHP_TM_SPARE_REG0_ANA_2P5_COMP_DEFAULT                    0x00000000
 
 /* TM :: SPARE_REG0 :: MTSIF_GATEOFF [00:00] */
 #define BCHP_TM_SPARE_REG0_MTSIF_GATEOFF_MASK                      0x00000001

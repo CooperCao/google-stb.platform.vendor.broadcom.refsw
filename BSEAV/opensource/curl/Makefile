@@ -50,16 +50,17 @@ include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
 include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include curl.inc
 include $(BSEAV_TOP)/opensource/zlib/b_zlib_targets.inc
+include $(BSEAV_TOP)/opensource/zlib/zlib.inc
 
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 
 B_CURL_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)
 
-ZLIB_ODIR=$(B_REFSW_OBJ_ROOT)/BSEAV/opensource/zlib-1.1.3
+ZLIB_ODIR=$(ZLIB_SOURCE_PATH)
 
 CURL_CONFIG_CFLAGS  := -O2 -fPIC
-CURL_CONFIG_CPPFLAGS := -DCURL_MAX_WRITE_SIZE=65536 -I$(ZLIB_ODIR)/include
+CURL_CONFIG_CPPFLAGS := -DCURL_MAX_WRITE_SIZE=65536 -I$(ZLIB_ODIR)
 CURL_CONFIG_LDFLAGS := -L${B_OPENSSL_SOURCE_PATH} -L$(ZLIB_ODIR)
 
 CA_CERTS_PATH ?= /etc/ssl/certs
@@ -139,7 +140,7 @@ ${CURL_SOURCE_PATH}/.compiled : b_zlib_target_build | source
 		--enable-shared \
 		--enable-thread \
 		--without-libpsl \
-		--without-libidn \
+		--without-libidn2 \
 		--disable-ldap \
 		--disable-ldaps \
 		--with-pic \

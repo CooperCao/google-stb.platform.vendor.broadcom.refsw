@@ -50,7 +50,7 @@ class CTunerQamNx : public CTunerQam
 public:
     CTunerQamNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
 

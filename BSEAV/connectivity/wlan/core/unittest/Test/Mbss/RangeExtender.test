@@ -1,0 +1,142 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# UTF test script for MBSS-based RangeExtender (Different UI from the
+# MSSID-based version in Bears)
+# $Id: b282ce902bdce6b366eab79fa61a99d9852ac668 $
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Mbss::Connectivity
+
+package provide UTF::Test::Mbss::RangeExtender 2.0
+
+UTF::Test Mbss::RangeExtender {DOWN STA UP UPSTA args} {
+    UTF::Getopts {
+	{chanspec.arg "3" "Chanspec"}
+	{security.arg "aespsk2" "Upstream security"}
+	{downsecurity.arg "aespsk2" "Downstream security"}
+	{nocleanup "Don't clean up at the end of the test"}
+    }
+
+    set UPLAN [$UP lan]
+    if {[set WAN [$UP wan]] eq ""} {
+	set WAN $UPLAN
+    }
+
+    # Disassoc clients, to avoid roaming messages in logs.
+    $STA wl disassoc
+    $UPSTA wl disassoc
+
+    # Save lan_ip
+    set orig_lan_ip [$DOWN cget -lan_ip]
+
+    set wlname1 [$DOWN wlname]
+    set wlname2 ${wlname1}.1
+    regexp {\d+} $wlname1 unit
+
+    set GUEST [UTF::STA %AUTO% -host [$DOWN cget -host] -device $wlname2]
+
+    UTF::Record "Connect Upstream client" {
+	UTF::Test::ConnectAPSTA $UP $UPSTA \
+	    -security $(security) -chanspec $(chanspec)
+    }
+    UTF::Record "Configure DownStream" {
+	$DOWN configure -security {} \
+	    -wepkey [$UP cget -wepkey] -wpakey [$UP cget -wpakey]
+	UTF::Test::APChanspec $DOWN $(chanspec) -loose
+	UTF::Test::APConfigureSecurity $DOWN -security $(security)
+    }
+
+    try {
+
+	UTF::Record "Configure RangeExtender URE" {
+	    # Note: URE must be off when changing router_disable, even
+	    # though we're going to turn it back on.
+	    $DOWN http apply ssid.asp [list \
+					  router_disable 1 \
+					  wl_unit $unit \
+					  wl_radio 1 \
+					  wl_ure 0]
+
+	    UTF::Sleep 10 $DOWN "Allow router to reboot after URE changes"
+	    $DOWN init
+	}
+
+	UTF::Record "Configure RangeExtender Uplink" {
+	    $DOWN http apply ssid.asp [list \
+					  wl_unit $unit \
+					  wl_ure 1 \
+					  wl_sta_retry_time 5 \
+					  wl_bssid 0 \
+					  wl_mode wet \
+					  wl_bss_enabled 1 \
+					  wl_ssid [$UP cget -ssid]]
+
+	    UTF::Sleep 10 $DOWN "Allow router to reboot after URE changes"
+	    $DOWN init
+	}
+
+	UTF::Record "Configure RangeExtender Guest" {
+	    $DOWN http apply ssid.asp [list \
+					  wl_unit $unit \
+					  wl_bssid 1 \
+					  wl_bss_enabled 1 \
+					  wl_ssid DownStreamAP]
+
+	    UTF::Sleep 5
+	}
+
+	UTF::Record "Verify Upstream Relay" {
+
+	    # Pick an IP address for the downstream AP.  We can't use
+	    # DHCP because we need to know the address to talk to it
+	    # later.
+	    regsub {\.\d+$} [$UP ipaddr] {.5} apip
+
+	    $DOWN restart lan_ipaddr=$apip
+
+	    $DOWN lan ifconfig dhcp
+
+	    # Make sure we can still talk to the AP.  The lan link
+	    # seems to go deaf here temporarily.
+	    $DOWN lan ping $apip -c 60
+
+	    $DOWN ping $UP
+
+	    # update LANs routing table to include both routers
+	    $DOWN lan add_networks $DOWN $UP
+	    $DOWN lan ping $WAN
+
+	    return
+	}
+
+	UTF::Record "Connect client" {
+	    UTF::Test::ConnectAPSTA $GUEST $STA -security $(downsecurity)
+
+	    # update all endpoint routing tables to include both routers
+	    $STA add_networks $GUEST $UP
+	    $UPSTA add_networks $GUEST $UP
+	    $WAN add_networks $GUEST $UP
+	    $UP add_networks $GUEST
+
+	    UTF::Message INFO $STA "Verify Connectivity"
+	    UTF::Test::Mbss::Connectivity [list $STA $UPSTA] {} $WAN \
+		-firewall [expr {[$UP hostis Router] &&
+				 [string is false \
+				      [$UP nvram get fw_disable]]}]
+	}
+    } finally {
+	if {!$(nocleanup)} {
+	    catch {$UPSTA wl disassoc}
+	    catch {$STA wl disassoc}
+	    $GUEST destroy
+	    # Restore original -lan_ip
+	    $DOWN configure -lan_ip $orig_lan_ip
+	    $DOWN restore_defaults
+	}
+    }
+    return
+}
+

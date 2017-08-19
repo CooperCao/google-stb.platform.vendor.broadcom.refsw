@@ -58,8 +58,18 @@ struct stbsoc_context {
 static irqreturn_t wowl_isr(int irq, void *dev)
 {
     struct stbsoc_context *priv = dev;
+    char *sym_name = "wl_resume_normalmode";
+    unsigned long sym_addr = kallsyms_lookup_name(sym_name);
+    char filename[256];
+
+    strncpy(filename, (char *)sym_addr, 255);
     pm_wakeup_event(&priv->pdev->dev, 0);
     printk("#####wowl_isr######\n\n\n\n\n");
+	wl_resume_normalmode = (void*)sym_addr;
+	if(wl_resume_normalmode)
+		(*wl_resume_normalmode)();
+	else
+		printk("SYM not available \n\n");
     return 0;
 }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  ***************************************************************************/
 
 #ifndef BDBG_H
@@ -1059,10 +1056,10 @@ they can be used to avoid unused code warnings. */
 #define BDBG_MODULE_INSTANCE_MSG(module, instance, format) BDBG_NOP()
 #else
 #define BDBG_ENTER(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction(&b_dbg_module, #function)  : (void)0)
-#define BDBG_ENTER_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction(&b_dbg_module, __FUNCTION__)  : (void)0)
+#define BDBG_ENTER_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction(&b_dbg_module, BSTD_FUNCTION)  : (void)0)
 #define BDBG_MODULE_ENTER(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_EnterFunction(&b_dbg_module_##module, #function)  : (void)0)
 #define BDBG_LEAVE(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction(&b_dbg_module, #function)  : (void)0)
-#define BDBG_LEAVE_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction(&b_dbg_module, __FUNCTION__)  : (void)0)
+#define BDBG_LEAVE_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction(&b_dbg_module, BSTD_FUNCTION)  : (void)0)
 #define BDBG_MODULE_LEAVE(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_LeaveFunction(&b_dbg_module_##module, #function)  : (void)0)
 #define BDBG_MSG(format) BDBG_P_PRINTMSG(BDBG_eMsg, format)
 #define BDBG_MODULE_MSG(module, format) BDBG_P_MODULE_PRINTMSG(module, BDBG_eMsg, format)
@@ -1160,7 +1157,6 @@ const char *BDBG_P_Int64DecArg(int64_t x, char *buf, size_t buf_size);
 #define BDBG_INT64_DEC_BUF(buf)
 #define BDBG_INT64_DEC_ARG(buf,x) ""
 #endif
-
 
 #ifdef __cplusplus
 }

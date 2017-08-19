@@ -94,6 +94,12 @@ static NEXUS_Error NEXUS_AudioProcessor_P_GetPiSettings(
     case NEXUS_AudioPostProcessing_eAdvancedTsm:
         pSettings->settings.advancedTsm.mode = piSettings.settings.advTsm.mode;
         break;
+    case NEXUS_AudioPostProcessing_eAmbisonic:
+        pSettings->settings.ambisonic.contentType = piSettings.settings.ambisonic.ambisonicSource?NEXUS_AmbisonicContentType_eAmbisonic:NEXUS_AmbisonicContentType_eUnknown;
+        pSettings->settings.ambisonic.yaw = piSettings.settings.ambisonic.yaw;
+        pSettings->settings.ambisonic.pitch = piSettings.settings.ambisonic.pitch;
+        pSettings->settings.ambisonic.roll = piSettings.settings.ambisonic.roll;
+        break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", handle->type));
         errCode = BERR_NOT_SUPPORTED;
@@ -113,6 +119,7 @@ static bool NEXUS_AudioProcessor_P_SupportsMultichannelOutput(NEXUS_AudioPostPro
     case NEXUS_AudioPostProcessing_eFade:
         break;
     case NEXUS_AudioPostProcessing_eAdvancedTsm:
+    case NEXUS_AudioPostProcessing_eAmbisonic:
         return true;
         break; /* unreachable */
     }
@@ -160,6 +167,10 @@ NEXUS_AudioProcessorHandle NEXUS_AudioProcessor_Open(
         name = "ADVANCEDTSM";
         piSettings.type = BAPE_PostProcessorType_eAdvancedTsm;
         break;
+    case NEXUS_AudioPostProcessing_eAmbisonic:
+        name = "AMBISONIC";
+        piSettings.type = BAPE_PostProcessorType_eAmbisonic;
+        break;
     default:
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", pSettings->type));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -182,7 +193,7 @@ NEXUS_AudioProcessorHandle NEXUS_AudioProcessor_Open(
         goto err_ape_create;
     }
 
-    BKNI_Snprintf(handle->name, sizeof(handle->name), name);
+    b_strncpy(handle->name, name, sizeof(handle->name));
     NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eStereo], NEXUS_AudioInputType_eAudioProcessor, handle);
     NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eStereo], Open);
     handle->connectors[NEXUS_AudioConnectorType_eStereo].pName = handle->name;
@@ -282,6 +293,12 @@ NEXUS_Error NEXUS_AudioProcessor_SetSettings(
     case NEXUS_AudioPostProcessing_eAdvancedTsm:
         piSettings.settings.advTsm.mode = pSettings->settings.advancedTsm.mode;
         break;
+    case NEXUS_AudioPostProcessing_eAmbisonic:
+        piSettings.settings.ambisonic.ambisonicSource = pSettings->settings.ambisonic.contentType==NEXUS_AmbisonicContentType_eAmbisonic?true:false;
+        piSettings.settings.ambisonic.yaw = pSettings->settings.ambisonic.yaw;
+        piSettings.settings.ambisonic.pitch = pSettings->settings.ambisonic.pitch;
+        piSettings.settings.ambisonic.roll = pSettings->settings.ambisonic.roll;
+        break;
     default:
         /* it should be impossible to get here - would indicate a bug in _Open() */
         BDBG_ERR(("type %d is not currently supported by NEXUS_AudioProcessor", handle->type));
@@ -325,6 +342,7 @@ void NEXUS_AudioProcessor_GetStatus(
         switch ( handle->type )
         {
         case NEXUS_AudioPostProcessing_eKaraokeVocal:
+        case NEXUS_AudioPostProcessing_eAmbisonic:
             break;
         case NEXUS_AudioPostProcessing_eAdvancedTsm:
             BDBG_CASSERT((int)NEXUS_AudioAdvancedTsmMode_eMax == (int)BAPE_AdvancedTsmMode_eMax);
@@ -382,6 +400,7 @@ NEXUS_AudioInputHandle NEXUS_AudioProcessor_GetConnectorByType(
         {
         case NEXUS_AudioPostProcessing_eKaraokeVocal:
         case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        case NEXUS_AudioPostProcessing_eAmbisonic:
         case NEXUS_AudioPostProcessing_eFade:
             input = &handle->connectors[NEXUS_AudioConnectorType_eStereo];
             break;
@@ -393,6 +412,7 @@ NEXUS_AudioInputHandle NEXUS_AudioProcessor_GetConnectorByType(
         switch ( handle->type )
         {
         case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        case NEXUS_AudioPostProcessing_eAmbisonic:
             input = &handle->connectors[NEXUS_AudioConnectorType_eMultichannel];
             break;
         default:

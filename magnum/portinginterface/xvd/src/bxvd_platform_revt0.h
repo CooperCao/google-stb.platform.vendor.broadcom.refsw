@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
- ***************************************************************************/
+ *****************************************************************************/
 
 #ifndef _BXVD_PLATFORM_REVT0_H_
 #define _BXVD_PLATFORM_REVT0_H_
@@ -57,9 +54,7 @@
 /* UART clock frequency in mhz */
 
 #define BXVD_P_AVD_OL_CLK_FREQ 600
-#define BXVD_P_AVD_IL_CLK_FREQ 600
-
-#define  BXVD_P_MULTIPLE_HVD_PRESENT 1
+#define BXVD_P_AVD_IL_CLK_FREQ 450
 
 #define  BXVD_P_CORE_40BIT_ADDRESSABLE 1
 
@@ -78,22 +73,18 @@
 #define  BXVD_P_MULTIPLE_HVD_PRESENT 1
 #define  BXVD_P_TWO_HVD_DECODERS_PRESENT 1
 #define  BXVD_P_PICTURE_DATA_RDY_2_SUPPORTTED  1
-
-#define  BXVD_P_8N3_BUG 1
-
 #define  BXVD_MAX_INSTANCE_COUNT      2
-#define  BXVD_P_STB_REG_BASE          BCHP_HEVD_OL_CPU_REGS_0_REG_START
-
-#define  BXVD_P_USE_REV_N_RESET_METHOD 1
+#else
+#define  BXVD_MAX_INSTANCE_COUNT      1
 #endif
 
+#define  BXVD_P_STB_REG_BASE          BCHP_HEVD_OL_CPU_REGS_0_REG_START
 #define  BXVD_P_8N3_BUG 1
+#define  BXVD_P_USE_REV_N_RESET_METHOD 1
 
 #define  BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT 1
 
 #define BXVD_P_HVD_PRESENT 1
-
-#define BXVD_P_VP6_SUPPORT 1
 #define BXVD_P_ILS_BUFFERS_INTERNAL 1
 
 #include "bchp_common.h"
@@ -175,13 +166,15 @@
 #if BXVD_P_HEVD_DUAL_PIPE_PRESENT
 #include "bchp_hevd_il_cpu_debug_2_0.h"
 #include "bchp_hevd_il_cpu_regs_2_0.h"
-#include "bchp_hevd_il_cpu_debug_2_1.h"
-#include "bchp_hevd_il_cpu_regs_2_1.h"
-
 #include "bchp_hevd_pfri_2_0.h"
 #include "bchp_hevd_pcache_2_0.h"
+
+#if BXVD_P_MULTIPLE_HVD_PRESENT
+#include "bchp_hevd_il_cpu_debug_2_1.h"
+#include "bchp_hevd_il_cpu_regs_2_1.h"
 #include "bchp_hevd_pfri_2_1.h"
 #include "bchp_hevd_pcache_2_1.h"
+#endif
 #endif
 
 /* Common to all flavors */

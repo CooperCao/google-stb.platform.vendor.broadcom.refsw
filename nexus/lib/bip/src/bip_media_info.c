@@ -622,7 +622,7 @@ static BIP_Status addCaptionServiceDescriptors(
 {
     unsigned i;
     BIP_Status       rc = BIP_SUCCESS;
-    BDBG_MSG(("%s: Adding Caption Data ",__FUNCTION__));
+    BDBG_MSG(("%s: Adding Caption Data ",BSTD_FUNCTION));
     pMediaInfoVideoTrack->captionService.numberOfServices = pTrackMpeg2TS->caption_service.number_of_services;
     for(i=0; i < pTrackMpeg2TS->caption_service.number_of_services ; i++)
     {
@@ -643,13 +643,13 @@ static BIP_Status addCaptionServiceDescriptors(
             pDescriptor->descriptor.descriptor708.captionServiceNumber = pTrackMpeg2TS->caption_service.services[i].cc.caption_service_number;
             pDescriptor->descriptor.descriptor708.easyReader = pTrackMpeg2TS->caption_service.services[i].easy_reader;
             pDescriptor->descriptor.descriptor708.wideAspectRatio = pTrackMpeg2TS->caption_service.services[i].wide_aspect_ratio;
-            BDBG_MSG(("%s:pLanguage=%s captionServiceNumber=%d =========>", __FUNCTION__, pTrackMpeg2TS->caption_service.services[i].language, pTrackMpeg2TS->caption_service.services[i].cc.caption_service_number));
+            BDBG_MSG(("%s:pLanguage=%s captionServiceNumber=%d =========>", BSTD_FUNCTION, pTrackMpeg2TS->caption_service.services[i].language, pTrackMpeg2TS->caption_service.services[i].cc.caption_service_number));
         }
         else
         {
             pDescriptor->captionType = BIP_MediaInfoCaptionType_e608;
             pDescriptor->descriptor.descriptor608.line21Field = pTrackMpeg2TS->caption_service.services[i].cc.line21_field;
-            BDBG_MSG(("%s:line21Field=%d =========>", __FUNCTION__, pTrackMpeg2TS->caption_service.services[i].cc.line21_field));
+            BDBG_MSG(("%s:line21Field=%d =========>", BSTD_FUNCTION, pTrackMpeg2TS->caption_service.services[i].cc.line21_field));
         }
 
         /* Now the descripror is created add to the descriptor list of VideoTrack.*/
@@ -1546,7 +1546,7 @@ static BIP_Status populateVideoTrackFromXmlTree(
                                                                                 BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_LINE21FIELD,
                                                                                 0);
 
-                        BDBG_MSG(("%s:CaptionType=608 line2Field=%d", __FUNCTION__, pDescriptor->descriptor.descriptor608.line21Field ));
+                        BDBG_MSG(("%s:CaptionType=608 line2Field=%d", BSTD_FUNCTION, pDescriptor->descriptor.descriptor608.line21Field ));
                     }
                     else    /* 708 */
                     {
@@ -1574,7 +1574,7 @@ static BIP_Status populateVideoTrackFromXmlTree(
                                                                                 false
                                                                                 );
 
-                        BDBG_MSG(("%s:CaptionType=708 language=%s captionServiceNumber=%d", __FUNCTION__, pDescriptor->descriptor.descriptor708.pLanguage,  pDescriptor->descriptor.descriptor708.captionServiceNumber));
+                        BDBG_MSG(("%s:CaptionType=708 language=%s captionServiceNumber=%d", BSTD_FUNCTION, pDescriptor->descriptor.descriptor708.pLanguage,  pDescriptor->descriptor.descriptor708.captionServiceNumber));
                     }
                 }
                  /* Now the descripror is created add to the descriptor list of VideoTrack.*/
@@ -2301,6 +2301,7 @@ BIP_Status BIP_MediaInfo_ProbeTunerForMediaInfo(
        {
            nitFound = 1;
            /* Right now we don't use nit information, so continue */
+           BSTD_UNUSED(nitFound);
            continue;
        }
 

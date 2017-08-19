@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/common/System/src/bbSysPayload.c $
-*
-* DESCRIPTION:
-*   System Payloads implementation.
-*
-* $Revision: 3955 $
-* $Date: 2014-10-08 12:45:05Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      System Payloads implementation.
+ *
+*******************************************************************************/
 
 /************************* INCLUDES *****************************************************/
 #include "bbSysPayload.h"           /* System Payloads interface. */
@@ -101,7 +93,6 @@ bool ___RemoveMyDebugData(SYS_DataPointer_t *payload)
  */
 void SYS_SetEmptyPayload(SYS_DataPointer_t *payload)
 {
-    SYS_DbgAssertStatic(SYS_DYNAMIC_DATA_LENGTH_MAX <= UINT8_MAX);
     SYS_DbgAssert(NULL != payload, SYSPAYLOAD_SETEMPTYPAYLOAD_DA0);
 
 #if defined(_MEMORY_MANAGER_)
@@ -265,8 +256,6 @@ bool ___SYS_MemAlloc(SYS_DataPointer_t *payload, SYS_DataLength_t size)
                 /* The size is saved by the Memory Manager in its internal descriptors. */
                 return true;
             }
-//            else
-//                SYS_DbgLogId(SYSPAYLOAD_MEMALLOC_DL0);                                                                // TODO: Disabled in order not to blow the Python log.
         }
 
 #else /* ! _MEMORY_MANAGER_ */
@@ -300,7 +289,6 @@ SYS_PUBLIC void ___SYS_FreePayload(SYS_DataPointer_t *payload)
 
     if (!SYS_CheckPayload(payload))
     {
-//        SYS_DbgLogId(SYSPAYLOAD_FREEPAYLOAD_DA1);                                                                     // TODO: Disabled in order not to blow the Python log.
         SYS_SetEmptyPayload(payload);
         return;
     }
@@ -420,6 +408,7 @@ SYS_PUBLIC void SYS_CopyPayloadToPayload(SYS_DataPointer_t       *dst,
 }
 
 
+#if defined(_MEMORY_MANAGER_)
 /*
  * Appends the first Payload with data from the second Payload.
  */
@@ -428,15 +417,8 @@ void ___SYS_AppendPayload(SYS_DataPointer_t *dst, SYS_DataPointer_t *src)
     SYS_DbgAssert(NULL != dst && NULL != src, FAIL_SYS_AppendPayload_PtrPayloadIsNull);
     SYS_DbgAssert(!dst->isStatic && !src->isStatic, FAIL_SYS_AppendPayload_StaticPayloadIsNotSupported);
 
-#if defined(_MEMORY_MANAGER_)
-    const bool isSuccess = SYS_MemoryManagerAppend(&dst->block, src->block);
+    const bool isSuccess = SYS_MemoryManagerAppend(&dst->block, src->block, /*pExhaustBlockId*/ NULL);
     SYS_DbgAssert(isSuccess, HALT_SYS_AppendPayload_Failed);
-
-#else
-    SYS_DbgHalt(FAIL_SYS_AppendPayload_NotSupported);
-    (void)dst;
-    (void)src;
-#endif
 }
 
 
@@ -448,7 +430,6 @@ void ___SYS_FreePayloadHead(SYS_DataPointer_t *payload, SYS_DataLength_t count)
     SYS_DbgAssert(NULL != payload, SYSPAYLOAD_FREEPAYLAODHEAD_DA0);
     SYS_DbgAssert(!payload->isStatic, SYSPAYLOAD_FREEPAYLAODHEAD_DA1);
 
-#if defined(_MEMORY_MANAGER_)
     {
         const SYS_DataLength_t inSize = SYS_MemoryManagerGetSize(payload->block);
         SYS_DbgAssert(count <= inSize, SYSPAYLOAD_FREEPAYLAODHEAD_DA2);
@@ -456,15 +437,7 @@ void ___SYS_FreePayloadHead(SYS_DataPointer_t *payload, SYS_DataLength_t count)
         const bool isSuccess = SYS_MemoryManagerFreeHead(&payload->block, count);
         SYS_DbgAssert(isSuccess, SYSPAYLOAD_FREEPAYLAODHEAD_DA3);
     }
-#else
-    /* TODO: If we do not need this function without Memory Manager
-     * then should put it out from the Payloads API. */
-    SYS_DbgHalt(SYSPAYLOAD_FREEPAYLAODHEAD_DA4);
-    (void)payload;
-    (void)count;
-#endif
 }
-
 
 /*
  * Reduces the size of Payload to the specified value cutting its tail.
@@ -474,17 +447,9 @@ void SYS_FreePayloadTail(SYS_DataPointer_t *payload, SYS_DataLength_t newSize)
     SYS_DbgAssert(NULL != payload, SYSPAYLOAD_FREEPAYLOADTAIL_DA0);
     SYS_DbgAssert(!payload->isStatic, SYSPAYLOAD_FREEPAYLOADTAIL_DA1);
 
-#if defined(_MEMORY_MANAGER_)
     SYS_DbgAssert(newSize <= SYS_MemoryManagerGetSize(payload->block), SYSPAYLOAD_FREEPAYLOADTAIL_DA2);
     const bool isSuccess = SYS_MemoryManagerFreeTail(payload->block, newSize);
     SYS_DbgAssert(isSuccess, SYSPAYLOAD_FREEPAYLOADTAIL_DA3);
-#else
-    /* TODO: If we do not need this function without Memory Manager
-     * then should put it out from the Payloads API. */
-    SYS_DbgHalt(SYSPAYLOAD_FREEPAYLOADTAIL_DA4);
-    (void)payload;
-    (void)newSize;
-#endif
 }
 
 
@@ -499,7 +464,6 @@ bool ___SYS_DuplicatePayload(SYS_DataPointer_t *dst, const SYS_DataPointer_t *sr
     SYS_DbgAssert(!src->isStatic, SYSPAYLOAD_DUPLICATEPAYLOAD_DA3);
     SYS_DbgAssertComplex(!SYS_CheckPayload(dst), SYSPAYLOAD_DUPLICATEPAYLOAD_DA4);
 
-#if defined(_MEMORY_MANAGER_)
     {
         MM_ChunkId_t  dstBlock;     /* Memory Manager block ID for the duplicate Payload. */
         MM_ChunkId_t  srcBlock;     /* Memory Manager block ID of the original Payload. */
@@ -509,14 +473,6 @@ bool ___SYS_DuplicatePayload(SYS_DataPointer_t *dst, const SYS_DataPointer_t *sr
         SYS_DbgAssertLog(IMP(MM_BAD_BLOCK_ID != srcBlock, MM_BAD_BLOCK_ID != dstBlock), SYSPAYLOAD_DUPLICATEPAYLOAD_DL0);
         return IMP(MM_BAD_BLOCK_ID != srcBlock, MM_BAD_BLOCK_ID != dstBlock);
     }
-#else
-    /* TODO: If we do not need this function without Memory Manager
-     * then should put it out from the Payloads API. */
-    SYS_DbgHalt(SYSPAYLOAD_DUPLICATEPAYLOAD_DA5);
-    (void)dst;
-    (void)src;
-    return false;
-#endif
 }
 
 
@@ -530,33 +486,181 @@ bool ___SYS_SplitPayload(SYS_DataPointer_t *tail, SYS_DataPointer_t *head, SYS_D
     SYS_DbgAssertComplex(FALSE == SYS_CheckPayload(tail), HALT_SYS_SplitPayload_TailIsNotEmpty);
     SYS_DbgAssertComplex(offset <= SYS_GetPayloadSize(head), HALT_SYS_SplitPayload_OffsetIsGreaterThanHeadSize);
 
-#if defined(_MEMORY_MANAGER_)
-    const bool isSuccess = SYS_MemoryManagerSplit(&head->block, &tail->block, offset);
+    const bool isSuccess = SYS_MemoryManagerSplit(&head->block, &tail->block, offset, /*pInterBlockId*/ NULL);
     SYS_DbgAssertLog(isSuccess, WARN_SYS_SplitPayload_Failed);
     return isSuccess;
+}
 
+
+/*
+ * Splits the linked chain of memory blocks at the given block id.
+ */
+void SYS_SplitLinked(SYS_DataPointer_t *pChain, SYS_DataPointer_t *pTrailer)
+{
+    SYS_DbgAssert(NULL != pChain && NULL != pTrailer, HALT_SYS_SplitLinked__NullPointer);
+    SYS_DbgAssertComplex(SYS_CheckPayload(pChain), HALT_SYS_SplitLinked__EmptyChain);
+    /* Trailer is allowed to be empty. */
+
+    const SYS_DataLength_t chainLength = SYS_GetPayloadSize(pChain);
+    const SYS_DataLength_t trailerLength = SYS_GetPayloadSize(pTrailer);
+    SYS_DataPointer_t border = SYS_EMPTY_PAYLOAD;
+    const bool result = SYS_SplitPayload(/*tail*/ &border, /*head*/ pChain, /*offset*/ chainLength - trailerLength);
+    SYS_DbgAssert(result, HALT_SYS_SplitLinked__FailedToSplit);
+    SYS_DbgAssertComplex(SYS_IsEqualPayload(pTrailer, &border), HALT_SYS_SplitLinked__UnexpectedTrailer);
+}
+#endif /* defined(_MEMORY_MANAGER_) */
+
+
+/*
+ * Resizes the payload size when it does not require additional blocks.
+ */
+void SYS_ResizePayload(SYS_DataPointer_t *const pPayload, const SYS_DataLength_t size)
+{
+    SYS_DbgAssert(NULL != pPayload, HALT_SYS_ResizePayload__NullPointer);
+
+#if defined(_MEMORY_MANAGER_)
+    const bool result = SYS_MemoryManagerResize(pPayload->block, size);
+    SYS_DbgAssert(result, HALT_SYS_ResizePayload__FailedToResize);
 #else
-    if (offset >= head->size) {
-        SYS_DbgLogId(WARN_SYS_SplitPayload_OffsetIsGreaterThanPayloadSize);
-        return true;
-    }
-    if (0 == offset) {
-        *tail = *head;
-        SYS_SetEmptyPayload(head);
-        SYS_DbgLogId(WARN_SYS_SplitPayload_OffsetIsZero);
-        return true;
-    }
-    if (SYS_MemAlloc(tail, head->size - offset)) {
-        memcpy(tail->data, head->data + offset, head->size - offset);
-        head->size = offset;
-        return true;
-    }
-    else {
-        SYS_DbgLogId(WARN_SYS_SplitPayload_NotEnoughMemory);
-        return false;
-    }
+    (void)size;
+    SYS_DbgHalt(HALT_SYS_ResizePayload__NotSupported);
 #endif
 }
 
 
-/* eof bbSysPaiload.c */
+#if defined(_MEMORY_MANAGER_)
+/*
+ * Constructs a fragmentation descriptor.
+ */
+bool SYS_FragDescrConstruct(SYS_FragDescr_t *const pFragDescr)
+{
+    SYS_DbgAssert(NULL != pFragDescr, HALT_SYS_FragDescrConstruct_NullFragDescr);
+
+    memset(pFragDescr, 0, sizeof(*pFragDescr));
+
+    size_t i = 0;       /* Index over the array of preallocated blocks. */
+    do {
+        /* Try to allocate blocks each of size 1 byte. The size of 1 byte guarantees that the allocated chunk consists
+         * of exactly one block. */
+        if (MM_BAD_BLOCK_ID == (pFragDescr->interBlock[i] = SYS_MemoryManagerAlloc(1)))
+            break;
+    } while (++i < ARRAY_SIZE(pFragDescr->interBlock));
+
+    if (i < ARRAY_SIZE(pFragDescr->interBlock)) {
+        /* If not all blocks were successfully allocated, free all the preallocated blocks and return failure status.
+         * Notice that if all block were allocated, 'i' will be equal to the number of allocated blocks; otherwise, 'i'
+         * will be equal to the index of the first block that was not allocated, and blocks with indexes 0..(i-1) must
+         * be dismissed (as soon as they all were allocated). */
+        while (i > 0)
+            SYS_MemoryManagerFree(pFragDescr->interBlock[--i]);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+
+/*
+ * Destructs a fragmentation descriptor.
+ */
+void SYS_FragDescrDestruct(SYS_FragDescr_t *const pFragDescr)
+{
+    SYS_DbgAssert(NULL != pFragDescr, HALT_SYS_FragDescrDestruct_NullFragDescr);
+# ifdef _DEBUG_PAYLOAD_FRAG_
+    SYS_DbgAssert(MM_BAD_BLOCK_ID == pFragDescr->fragment, HALT_SYS_FragDescrDestruct_BusyFragDescr);
+# endif
+
+    for (size_t i = 0; i < ARRAY_SIZE(pFragDescr->interBlock); i++)
+        SYS_MemoryManagerFree(pFragDescr->interBlock[i]);
+}
+
+
+/*
+ * Extracts a fragment from a payload.
+ */
+void SYS_FragmentExtract(SYS_DataPointer_t *const pPayload, SYS_DataPointer_t *const pFragment,
+        const SYS_DataLength_t offset, const SYS_DataLength_t len, SYS_FragDescr_t *const pFragDescr)
+{
+    SYS_DbgAssert(NULL != pPayload && NULL != pFragment && NULL != pFragDescr, HALT_SYS_FragmentExtract_NullParam);
+    SYS_DbgAssertComplex(SYS_CheckPayload(pPayload), HALT_SYS_FragmentExtract_EmptyPayload);
+    SYS_DbgAssertComplex(!SYS_CheckPayload(pFragment), HALT_SYS_FragmentExtract_BusyFragment);
+    SYS_DbgAssert(len > 0, HALT_SYS_FragmentExtract_ZeroLen);
+    SYS_DbgAssertComplex(offset + len <= SYS_GetPayloadSize(pPayload), HALT_SYS_FragmentExtract_OffsetOverflow);
+# ifdef _DEBUG_PAYLOAD_FRAG_
+    SYS_DbgAssert(MM_BAD_BLOCK_ID == pFragDescr->fragment, HALT_SYS_FragmentExtract_BusyFragDescr);
+# endif
+
+    MM_ChunkId_t tailId = MM_BAD_BLOCK_ID;      /* Chunk Id of the temporary tail part. */
+    if (!(  /* All the called functions shall return TRUE. Otherwise it's a failure. */
+            SYS_MemoryManagerSplit(&pPayload->block, &pFragment->block, offset, &pFragDescr->interBlock[0]) &&
+            SYS_MemoryManagerSplit(&pFragment->block, &tailId, len, &pFragDescr->interBlock[1]) &&
+            SYS_MemoryManagerAppend(&pPayload->block, tailId, /*pExhaustBlockId*/ NULL)))
+        SYS_DbgHalt(HALT_SYS_FragmentExtract_Failed);
+
+# ifdef _DEBUG_PAYLOAD_FRAG_
+    pFragDescr->payload = pPayload->block;
+    pFragDescr->fragment = pFragment->block;
+    pFragDescr->offset = offset;
+    SYS_DbgAssertComplex(IMP(!SYS_CheckPayload(pPayload), 0 == offset), HALT_SYS_FragmentExtract_EmptyRemainingPayload);
+# endif
+}
+
+
+/*
+ * Returns a fragment back into the payload from which it was previously extracted.
+ */
+void SYS_FragmentReturn(SYS_DataPointer_t *const pPayload, SYS_DataPointer_t *const pFragment,
+        const SYS_DataLength_t offset, SYS_FragDescr_t *const pFragDescr)
+{
+    SYS_DbgAssert(NULL != pPayload && NULL != pFragment && NULL != pFragDescr, HALT_SYS_FragmentReturn_NullParam);
+    SYS_DbgAssertComplex(IMP(!SYS_CheckPayload(pPayload), 0 == offset), HALT_SYS_FragmentReturn_EmptyRemainingPayload);
+    SYS_DbgAssertComplex(SYS_CheckPayload(pFragment), HALT_SYS_FragmentReturn_EmptyFragment);
+    SYS_DbgAssertComplex(offset <= SYS_GetPayloadSize(pPayload), HALT_SYS_FragmentReturn_OffsetOverflow);
+# ifdef _DEBUG_PAYLOAD_FRAG_
+    SYS_DbgAssert(MM_BAD_BLOCK_ID != pFragDescr->fragment, HALT_SYS_FragmentExtract_IdleFragDescr);
+    SYS_DbgAssert(pPayload->block == pFragDescr->payload && pFragment->block == pFragDescr->fragment &&
+            offset == pFragDescr->offset , HALT_SYS_FragmentReturn_InvalidFragDescr);
+# endif
+
+    MM_ChunkId_t tailId = MM_BAD_BLOCK_ID;                      /* Chunk Id of the temporary tail part. */
+    MM_ChunkId_t dontAllocateInterBlock = MM_BAD_BLOCK_ID;      /* Instructs Split not to allocate the inter-block. */
+    if (!(  /* All the called functions shall return TRUE. Otherwise it's a failure. */
+            SYS_MemoryManagerSplit(&pPayload->block, &tailId, offset, /*pInterBlockId*/ &dontAllocateInterBlock) &&
+            SYS_MemoryManagerAppend(&pPayload->block, pFragment->block, &pFragDescr->interBlock[0]) &&
+            SYS_MemoryManagerAppend(&pPayload->block, tailId, &pFragDescr->interBlock[1])))
+        SYS_DbgHalt(HALT_SYS_FragmentReturn_Failed);
+    *pFragment = SYS_EMPTY_PAYLOAD;
+
+# ifdef _DEBUG_PAYLOAD_FRAG_
+    pFragDescr->payload = MM_BAD_BLOCK_ID;
+    pFragDescr->fragment = MM_BAD_BLOCK_ID;
+    pFragDescr->offset = 0;
+# endif
+}
+
+
+/*
+ * Inserts a newly received fragment into the payload composed from previously received fragments.
+ */
+void SYS_FragmentInsert(SYS_DataPointer_t *const pPayload, SYS_DataPointer_t *const pFragment,
+        const SYS_DataLength_t offset)
+{
+    SYS_DbgAssert(NULL != pPayload && NULL != pFragment, HALT_SYS_FragmentInsert_NullParam);
+    SYS_DbgAssertComplex(IMP(!SYS_CheckPayload(pPayload), 0 == offset), HALT_SYS_FragmentInsert_EmptyPayload);
+    SYS_DbgAssertComplex(SYS_CheckPayload(pFragment), HALT_SYS_FragmentInsert_EmptyFragment);
+    SYS_DbgAssertComplex(offset <= SYS_GetPayloadSize(pPayload), HALT_SYS_FragmentInsert_OffsetOverflow);
+
+    MM_ChunkId_t tailId = MM_BAD_BLOCK_ID;                      /* Chunk Id of the temporary tail part. */
+    MM_ChunkId_t dontAllocateInterBlock = MM_BAD_BLOCK_ID;      /* Instructs Split not to allocate the inter-block. */
+    if (!(  /* All the called functions shall return TRUE. Otherwise it's a failure. */
+            SYS_MemoryManagerSplit(&pPayload->block, &tailId, offset, /*pInterBlockId*/ &dontAllocateInterBlock) &&
+            SYS_MemoryManagerAppend(&pPayload->block, pFragment->block, /*pExhaustBlockId*/ NULL) &&
+            SYS_MemoryManagerAppend(&pPayload->block, tailId, /*pExhaustBlockId*/ NULL)))
+        SYS_DbgHalt(HALT_SYS_FragmentInsert_Failed);
+    *pFragment = SYS_EMPTY_PAYLOAD;
+}
+
+#endif /* _MEMORY_MANAGER_ */
+
+
+/* eof bbSysPayload.c */

@@ -1,0 +1,11 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2001 Broadcom Corporation
+#
+# $Id: sources,v 1.2 2009-05-22 19:19:19 $
+#
+
+include sources.socket
+
+OTHER_SOURCES=sources.wifi

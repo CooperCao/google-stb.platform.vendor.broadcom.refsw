@@ -1,43 +1,41 @@
-/***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "bhdr_config.h"
 #include "bhdr_debug.h"
 
@@ -71,60 +69,6 @@ do                                                \
 		goto done;							      \
 	}										      \
 } while(0)
-
-
-
-/******************************************************************************
-Summary:
-Array of BFMT_VideoFmts; indexes match the corresponding CEA-861 Video ID Codes
-*******************************************************************************/
-static const uint8_t VIC_VideoFmtTable[BAVC_HDMI_MAX_VIDEO_ID_CODES] =
-{
-	BFMT_VideoFmt_eMaxCount,      /* 00 - not used / unsupported */
-	BFMT_VideoFmt_eDVI_640x480p,  /* 01 - Default VIC Code  */
-	BFMT_VideoFmt_e480p,          /* 02 HD 480p 4:3 */
-	BFMT_VideoFmt_e480p,          /* 03 HD 480p 16:9 */
-	BFMT_VideoFmt_e720p,          /* 04 HD 720p */
-	BFMT_VideoFmt_e1080i,         /* 05 HD 1080i 4:3 */
-
-	BFMT_VideoFmt_eNTSC,          /* 06 480i, NSTC-M for North America */
-	BFMT_VideoFmt_eNTSC,          /* 07 480i, NSTC-M for North America */
-
-	BFMT_VideoFmt_eMaxCount,      /* 08 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 09 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 10 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 11 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 12 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 13 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 14 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 15 - not used / unsupported */
-	BFMT_VideoFmt_e1080p,      /* 16 - 1080p  */
-
-	BFMT_VideoFmt_e576p_50Hz,     /* 17 HD 576p 50Hz  4:3 */
-	BFMT_VideoFmt_e576p_50Hz,     /* 18 HD 576p 50Hz 16:9 */
-
-	BFMT_VideoFmt_e720p_50Hz,     /* 19 HD 720p 50Hz  */
-	BFMT_VideoFmt_e1080i_50Hz,    /* 20 HD 1080i 50Hz */
-
-	BFMT_VideoFmt_ePAL_B,         /* 21 any PAL format */
-	BFMT_VideoFmt_ePAL_B,         /* 22 any PAL format */
-
-	BFMT_VideoFmt_e576p_50Hz,     /* 23 HD 576p 50Hz  4:3 */
-	BFMT_VideoFmt_e576p_50Hz,     /* 24 HD 576p 50Hz 16:9 */
-
-	BFMT_VideoFmt_ePAL_B,         /* 25 any PAL format 4:3 */
-	BFMT_VideoFmt_ePAL_B,         /* 26 any PAL format 16:9 */
-
-	BFMT_VideoFmt_eMaxCount,      /* 27 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 28 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 29 - not used / unsupported */
-	BFMT_VideoFmt_eMaxCount,      /* 30 - not used / unsupported */
-	BFMT_VideoFmt_e1080p_50Hz,      /* 31 - 1080p 50 Hz */
-	BFMT_VideoFmt_e1080p_24Hz,      /* 32 - 1080p 24 Hz  */
-	BFMT_VideoFmt_e1080p_25Hz,      /* 33 - 1080p 25 Hz  */
-	BFMT_VideoFmt_e1080p_30Hz,      /* 34 - 1080p 30 Hz  */
-} ;
-
 
 /* create lookup table for Channel Status, MAI Format values */
 typedef struct CSBitsMaiFormatLookup
@@ -436,7 +380,7 @@ BERR_Code BHDR_Open(
 {
 	BERR_Code      rc = BERR_SUCCESS;
 	BHDR_Handle hHDR = NULL ;
-	BHDR_P_HdrCoreId eCoreId ;
+	BAVC_HDMI_CoreId eCoreId ;
 
 	uint32_t ulOffset, Register ;
 	uint8_t i ;
@@ -477,12 +421,12 @@ BERR_Code BHDR_Open(
 		goto done ;
 	}
 
- 	hHDR->hTimerDevice = pSettings->hTmr ;
+	hHDR->hTimerDevice = pSettings->hTmr ;
 
 	hHDR->DeviceSettings = *pSettings ;
 
 	eCoreId = pSettings->eCoreId ;
-	BDBG_ASSERT(eCoreId < BHDR_P_eHdrCoreIdMax) ;
+	BDBG_ASSERT(eCoreId < BHDR_MAX_CORES) ;
 	hHDR->eCoreId = eCoreId ;
 
 
@@ -563,13 +507,13 @@ BERR_Code BHDR_Open(
 	BHDR_CHECK_RC(rc, BKNI_CreateEvent(&(hHDR->BHDR_Event_AudioChannelStatusUpdate))) ;
 	BHDR_CHECK_RC(rc, BKNI_CreateEvent(&(hHDR->BHDR_Event_VBlankEnd))) ;
 
-	if (hHDR->eCoreId == BHDR_P_eHdrCoreId0)
+	if (hHDR->eCoreId == BAVC_HDMI_CoreId_e0)
 	{
 		pInterrupts = BHDR_Interrupts0 ;
 		hHDR->HdcpKeyLoadOffset = 0x0 ;
 	}
 #if BHDR_HAS_MULTIPLE_PORTS
-	else if (hHDR->eCoreId == BHDR_P_eHdrCoreId1)
+	else if (hHDR->eCoreId == BAVC_HDMI_CoreId_e1)
 	{
 		pInterrupts = BHDR_Interrupts1 ;
 		hHDR->HdcpKeyLoadOffset = 0x28 ;
@@ -2417,8 +2361,12 @@ BERR_Code BHDR_GetHdmiRxStatus(
 
 	/* default/ initialize pHdmiStatus */
 	BKNI_Memset(pHdmiStatus, 0, sizeof(*pHdmiStatus)) ;
+
 	/* default symbol loss to true  */
-	pHdmiStatus->bSymbolLoss = 	true ;
+	pHdmiStatus->bSymbolLoss = true ;
+
+	pHdmiStatus->stPort.eDevice = BAVC_HDMI_Device_eRx ;
+	pHdmiStatus->stPort.eCoreId = hHDR->eCoreId ;
 
 	if (!hHDR->hFeChannel)
 	{
@@ -3077,10 +3025,10 @@ void BHDR_P_EnableInterrupts_isr(BHDR_Handle hHDR, bool enable)
 
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
 
-	if (hHDR->eCoreId == BHDR_P_eHdrCoreId0)
+	if (hHDR->eCoreId == BAVC_HDMI_CoreId_e0)
 		pInterrupts = BHDR_Interrupts0 ;
 #if BHDR_HAS_MULTIPLE_PORTS
-	else if (hHDR->eCoreId == BHDR_P_eHdrCoreId1)
+	else if (hHDR->eCoreId == BAVC_HDMI_CoreId_e0)
 		pInterrupts = BHDR_Interrupts1 ;
 #endif
 	else

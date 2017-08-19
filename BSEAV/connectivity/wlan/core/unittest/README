@@ -1,0 +1,15 @@
+# $Id: 19b7e906284965a9dd52f945be32b28e26ddd493 $
+
+Developer Unit Test Framework
+-----------------------------
+
+src/tools/unittest contains the core scripts and modules of the
+developer unit test framework (under construction).
+
+For more details, please see:
+
+	Project Page:
+	http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/UnitTest
+
+	Manpages:
+	http://www.sj.broadcom.com/projects/hnd_software/gallery/src/tools/unittest/cgi/APdoc.cgi

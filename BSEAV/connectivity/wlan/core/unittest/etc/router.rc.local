@@ -1,0 +1,6 @@
+#! /bin/sh
+
+killall -q ushd
+
+echo "## USHD ##"
+/media/nand/ushd -d

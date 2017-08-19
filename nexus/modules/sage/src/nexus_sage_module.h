@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,7 @@
 #include "nexus_sage_init.h"
 #include "nexus_sage_types.h"
 #include "nexus_sage.h"
-
+#include "priv/nexus_sage_priv.h"
 #include "nexus_sage_message_types.h"
 
 #include "btmr.h"
@@ -72,17 +72,6 @@ extern "C" {
 #define NEXUS_MODULE_NAME sage
 #define NEXUS_MODULE_SELF g_NEXUS_sageModule.moduleHandle
 
-
-typedef struct NEXUS_SageMemoryBlock {
-    size_t len;
-    void *buf;
-} NEXUS_SageMemoryBlock;
-
-typedef struct NEXUS_SageImageHolder {
-    const char *name;         /* printable name */
-    SAGE_IMAGE_FirmwareID id; /* SAGE_IMAGE_FirmwareID_eFramework or SAGE_IMAGE_FirmwareID_eBootLoader */
-    NEXUS_SageMemoryBlock *raw;
-} NEXUS_SageImageHolder;
 
 /* SageChannel context */
 typedef struct NEXUS_SageChannel {
@@ -233,6 +222,10 @@ void NEXUS_Sage_P_PrintSvp(void);
 extern const struct NEXUS_SageSvpHwBlock {
     const char *achName;
 } g_NEXUS_SvpHwBlockTbl[];
+
+#define SAGE_ALIGN_SIZE (4096)
+#define RoundDownP2(VAL, PSIZE) ((VAL) & (~(PSIZE-1)))
+#define RoundUpP2(VAL, PSIZE)   RoundDownP2((VAL) + PSIZE-1, PSIZE)
 
 #ifdef __cplusplus
 }

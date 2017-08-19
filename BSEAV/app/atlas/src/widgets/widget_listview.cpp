@@ -161,12 +161,12 @@ void CWidgetListView::remove(CWidgetButton * pButton)
     }
 } /* remove */
 
-CWidgetButton * CWidgetListView::remove(uint16_t index)
+CWidgetButton * CWidgetListView::remove(unsigned index)
 {
     CWidgetListItem * pWidgetItem = NULL;
     CWidgetButton *   pButton     = NULL;
 
-    BDBG_ASSERT(_widgetList.total() > index);
+    BDBG_ASSERT(_widgetList.total() > (int)index);
 
     /* _widgetList is an auto list so we must retrieve/save
      * button pointer before removing. */
@@ -390,7 +390,7 @@ eRet CWidgetListView::layout(
     /* if scrolling is OFF, resize list view to fit all buttons */
     if ((false == _scroll) || (true == _autoResize))
     {
-        uint16_t totalHeight = 0;
+        unsigned totalHeight = 0;
         MRect    rectGeom;
 
         /* find height of contents */
@@ -422,7 +422,7 @@ eRet CWidgetListView::layout(
      * before we begin layout, we must determine if ALL the widgets will
      * fit in the listview. if so, then we will force topDown */
     {
-        uint16_t totalHeight = 0;
+        unsigned totalHeight = 0;
         MRect    rectGeom;
         for (pListItem = itr.first(); pListItem; pListItem = itr.next())
         {
@@ -459,11 +459,11 @@ eRet CWidgetListView::layout(
          */
         if ((false == bItemsSmallerThanList) && (0 < numActiveListItems))
         {
-            uint16_t maxListItems    = 0;
+            unsigned maxListItems    = 0;
             MRect    rectGeomItem    = itr.at(getFirstVisibleIndex())->getButton()->getGeometry();
-            uint16_t itemHeight      = rectGeomItem.height() + getSeparatorSize();
-            uint16_t maxVisibleItems = listRect.height() / itemHeight;
-            uint16_t toEndOfList     = 0;
+            unsigned itemHeight      = rectGeomItem.height() + getSeparatorSize();
+            unsigned maxVisibleItems = listRect.height() / itemHeight;
+            unsigned toEndOfList     = 0;
 
             for (pListItem = itr.at(index); pListItem; pListItem = itr.next())
             {
@@ -476,13 +476,13 @@ eRet CWidgetListView::layout(
             if (toEndOfList < maxVisibleItems)
             {
                 CWidgetListItem * pListItemAtIndex = itr.at(index);
-                uint16_t          fromEndOfList    = 0;
+                unsigned          fromEndOfList    = 0;
 
                 /* given index is on the last visible page of items so adjust
                  * index to the first item on the last visible page */
                 for (pListItem = itr.last(); pListItem != pListItemAtIndex; pListItem = itr.prev())
                 {
-                    if (true == pListItem->isActive())
+                    if (pListItem && (true == pListItem->isActive()))
                     {
                         fromEndOfList++;
                     }
@@ -769,12 +769,12 @@ bool CWidgetListView::isFastScroll(B_Time * pTimePrevKeyPress)
 }
 
 /* calculate fast scroll increment based on the number of visible items in list view */
-uint16_t CWidgetListView::getFastScrollIncrement()
+unsigned CWidgetListView::getFastScrollIncrement()
 {
     MListItr <CWidgetListItem> itr(&_widgetList);
     CWidgetListItem *          pItem      = NULL;
-    uint16_t                   numVisible = 0;
-    uint16_t                   increment  = 1;
+    int                        numVisible = 0;
+    unsigned                   increment  = 1;
 
     for (pItem = itr.first(); pItem; pItem = itr.next())
     {
@@ -823,7 +823,7 @@ eRet CWidgetListView::onKeyDown(
 
         if (0 <= index)
         {
-            uint16_t fastScrollIncrement = getFastScrollIncrement();
+            unsigned fastScrollIncrement = getFastScrollIncrement();
 
             /* widget is in list view so get next */
             if ((true == isFastScroll(&_timeLastKeyPress)) && (0 < index - fastScrollIncrement))
@@ -886,10 +886,10 @@ eRet CWidgetListView::onKeyDown(
 
         if (0 <= index)
         {
-            uint16_t fastScrollIncrement = getFastScrollIncrement();
+            unsigned fastScrollIncrement = getFastScrollIncrement();
 
             /* widget is in list view so get next */
-            if ((true == isFastScroll(&_timeLastKeyPress)) && (_widgetList.total() > index + fastScrollIncrement))
+            if ((true == isFastScroll(&_timeLastKeyPress)) && (_widgetList.total() > index + (int)fastScrollIncrement))
             {
                 /* fast scroll */
                 pWidgetNext = itr.at(index + fastScrollIncrement);

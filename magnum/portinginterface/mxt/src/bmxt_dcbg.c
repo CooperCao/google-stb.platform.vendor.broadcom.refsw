@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bstd.h"
@@ -191,7 +192,6 @@ unsigned BMXT_Dcbg_GetFreeIndex(BMXT_Handle hMxt)
 
 BERR_Code BMXT_Dcbg_Open(BMXT_Handle hMxt, BMXT_Dcbg_Handle *phDcbg, unsigned index, BMXT_Dcbg_OpenSettings *pSettings)
 {
-    BREG_Handle hReg;
     BMXT_Dcbg_Handle dcbg = NULL;
     unsigned i;
 
@@ -221,8 +221,6 @@ BERR_Code BMXT_Dcbg_Open(BMXT_Handle hMxt, BMXT_Dcbg_Handle *phDcbg, unsigned in
         BMXT_Dcbg_Reset(hMxt);
     }
 
-    hReg = hMxt->hReg;
-
     *phDcbg = NULL;
     dcbg = BKNI_Malloc(sizeof(*dcbg));
     if (dcbg == NULL) {
@@ -242,11 +240,9 @@ BERR_Code BMXT_Dcbg_Open(BMXT_Handle hMxt, BMXT_Dcbg_Handle *phDcbg, unsigned in
 
 void BMXT_Dcbg_Close(BMXT_Dcbg_Handle hDcbg)
 {
-    BREG_Handle hReg;
     unsigned i;
 
     BDBG_ASSERT(hDcbg);
-    hReg = hDcbg->hMxt->hReg;
 
     if (hDcbg->running) {
         BDBG_WRN(("%u: Close without Stop. Forcing stop...", hDcbg->index));
@@ -275,10 +271,8 @@ BERR_Code BMXT_Dcbg_AddParser(BMXT_Dcbg_Handle hDcbg, unsigned parserNum)
 {
     unsigned i, ibNum;
     BMXT_Handle hMxt;
-    BREG_Handle hReg;
     BDBG_ASSERT(hDcbg);
     hMxt = hDcbg->hMxt;
-    hReg = hDcbg->hMxt->hReg;
 
     if (parserNum >= hDcbg->hMxt->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1]) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -366,14 +360,12 @@ void BMXT_Dcbg_GetDefaultSettings(BMXT_Dcbg_Handle hDcbg, BMXT_Dcbg_Settings *pS
 BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSettings)
 {
     BMXT_Handle hMxt;
-    BREG_Handle hReg;
     uint32_t addr, val;
     unsigned i, priband, priband_ib, priband_mtsifTxSel, priband_virtualParserNum;
     BMXT_ParserConfig parserConfig;
 
     BDBG_ASSERT(hDcbg);
     hMxt = hDcbg->hMxt;
-    hReg = hDcbg->hMxt->hReg;
     hDcbg->settings = *pSettings;
     priband = pSettings->primaryBand;
 
@@ -557,19 +549,26 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
 void BMXT_Dcbg_Stop(BMXT_Dcbg_Handle hDcbg)
 {
     BMXT_Handle hMxt;
-    BREG_Handle hReg;
     uint32_t addr, val;
     unsigned priband, i;
     BDBG_ASSERT(hDcbg);
 
     hMxt = hDcbg->hMxt;
-    hReg = hDcbg->hMxt->hReg;
     priband = hDcbg->settings.primaryBand;
 
     BDBG_ASSERT(hDcbg);
     if (!hDcbg->running) {
         BDBG_WRN(("%u: already stopped", hDcbg->index));
         /* continue */
+    }
+
+    for (i=0; i<32; i++)
+    {
+        if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
+
+        addr = R(BCHP_DEMOD_XPT_FE_SLOT_MANAGEMENT_BAND0_SLOT_WATERMARK) + (i * STEP(BMXT_RESOURCE_SLOT_MANAGEMENT_BAND0_SLOTS_ALLOCATED));
+        val = BMXT_RegRead32(hMxt, addr);
+        BDBG_MSG(("SLOT_MANAGEMENT_BAND%u_SLOT_WATERMARK: %08x", i, val));
     }
 
     /* disable all bands and increment PARSER_VERSION */
@@ -640,6 +639,43 @@ void BMXT_Dcbg_Stop(BMXT_Dcbg_Handle hDcbg)
     return;
 }
 
+void BMXT_Dcbg_Reacquire(BMXT_Dcbg_Handle hDcbg)
+{
+    BMXT_Handle hMxt;
+    uint32_t addr, val;
+    unsigned i, maxWait = 10;
+    BDBG_ASSERT(hDcbg);
+
+    hMxt = hDcbg->hMxt;
+
+    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_RegRead32(hMxt, addr);
+    BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_ENABLE, 0);
+    BMXT_RegWrite32(hMxt, addr, val);
+
+    for (i=0; i<32; i++)
+    {
+        if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
+
+        addr = R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET);
+        val = BMXT_RegRead32(hMxt, addr);
+        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET, BAND_NUM, i);
+        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET, SET, 1);
+        BMXT_RegWrite32(hMxt, addr, val);
+    }
+
+    do {
+        addr = R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_STATUS);
+        val = BMXT_RegRead32(hMxt, addr);
+        if (val==0) { break; }
+    } while (--maxWait>0);
+
+    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_RegRead32(hMxt, addr);
+    BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_ENABLE, 1);
+    BMXT_RegWrite32(hMxt, addr, val);
+}
+
 void BMXT_Dcbg_GetSettings(BMXT_Dcbg_Handle hDcbg, BMXT_Dcbg_Settings *pSettings)
 {
     BDBG_ASSERT(hDcbg);
@@ -669,12 +705,10 @@ BERR_Code BMXT_Dcbg_SetSettings(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings
 BERR_Code BMXT_Dcbg_GetStatus(BMXT_Dcbg_Handle hDcbg, BMXT_Dcbg_Status *pStatus)
 {
     BMXT_Handle hMxt;
-    BREG_Handle hReg;
     uint32_t addr, val;
     BDBG_ASSERT(hDcbg);
 
     hMxt = hDcbg->hMxt;
-    hReg = hDcbg->hMxt->hReg;
 
     addr = R(BCHP_DEMOD_XPT_FE_DCBG0_STATUS) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
     val = BMXT_RegRead32(hMxt, addr);
@@ -682,6 +716,7 @@ BERR_Code BMXT_Dcbg_GetStatus(BMXT_Dcbg_Handle hDcbg, BMXT_Dcbg_Status *pStatus)
     return BERR_SUCCESS;
 }
 
+#if 0
 static void BMXT_Dcbg_AtsIssySnapshot(BMXT_Dcbg_Handle hDcbg)
 {
     uint32_t addr;
@@ -767,3 +802,4 @@ static void BMXT_P_BlockoutToggle(BMXT_Handle hMxt)
     }
     BMXT_P_RegDump(hMxt);
 }
+#endif

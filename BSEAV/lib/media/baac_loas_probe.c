@@ -290,6 +290,7 @@ b_aac_loas_probe_parse_AudioMuxElement(batom_cursor *cursor, bmedia_probe_audio 
         numSubFrames = batom_bitstream_bits(&bs, 6);
         numProgram = batom_bitstream_bits(&bs, 4);
         BDBG_MSG_TRACE(("allStreamsSameTimeFraming:%u numSubFrames:%u numProgram:%u", allStreamsSameTimeFraming, numSubFrames, numProgram));
+        BSTD_UNUSED(numSubFrames);
         for(prog = 0; prog <= numProgram; prog++) {
             unsigned numLayer;
             unsigned lay;

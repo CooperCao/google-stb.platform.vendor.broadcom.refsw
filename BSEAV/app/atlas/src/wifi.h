@@ -141,7 +141,7 @@ class CWifi : public CResource
 public:
     CWifi(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     virtual ~CWifi(void);
@@ -206,7 +206,7 @@ public:
 
 public:
     bool          _bThreadRun;
-    uint16_t      _pollInterval;
+    unsigned      _pollInterval;
     B_EventHandle _actionEvent;
 
 protected:

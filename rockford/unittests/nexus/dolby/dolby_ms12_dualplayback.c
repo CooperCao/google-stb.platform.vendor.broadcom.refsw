@@ -676,6 +676,7 @@ void audio_capture_callback (void *context, int param)
 {
     BKNI_EventHandle event = (BKNI_EventHandle)context;
 
+    BSTD_UNUSED(param);
     /*printf("Capture callback\n");*/
     BKNI_SetEvent(event);
 }
@@ -703,7 +704,7 @@ static void *capture_thread(void *pParam)
                     uint8_t * buffer = NULL;
                     uint32_t * pSrc;
                     uint32_t * pDst;
-                    unsigned size = 0;
+                    size_t size = 0;
                     unsigned pairs = 1;
                     unsigned processed;
 
@@ -1407,7 +1408,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         strcpy(dolby->audioCapture[CAPTURE_STEREO].filename, value);
     }
@@ -1415,7 +1416,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         strcpy(dolby->audioCapture[CAPTURE_MULTICH].filename, value);
     }
@@ -1423,7 +1424,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         strcpy(dolby->audioCapture[CAPTURE_COMP].filename, value);
     }
@@ -1431,7 +1432,7 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( strlen(value) > MAX_FILENAME_LEN )
         {
-            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", (int)strlen(value));
         }
         strcpy(dolby->audioCapture[CAPTURE_COMP4X].filename, value);
     }
@@ -3072,6 +3073,7 @@ static void hotplug_callback(void *pParam, int iParam)
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters *hotPlugCbParams ;
 
+    BSTD_UNUSED(iParam);
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
     hdmi = hotPlugCbParams->hdmiOutput ;
     display = hotPlugCbParams->display ;

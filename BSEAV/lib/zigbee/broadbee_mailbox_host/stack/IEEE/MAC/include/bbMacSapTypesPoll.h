@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesPoll.h $
-*
-* DESCRIPTION:
-*   MLME-POLL service data types definition.
-*
-* $Revision: 10553 $
-* $Date: 2016-03-18 14:54:19Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MLME-POLL service data types definition.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_SAP_TYPES_POLL_H
 #define _BB_MAC_SAP_TYPES_POLL_H
@@ -70,7 +63,7 @@
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief Structure for parameters of MLME-POLL.request primitive.
- * \note Security parameters are excluded because MAC security is not implemented.
+ * \ingroup PollReq
  * \par Documentation
  *  See IEEE Std 802.15.4-2006, subclause 7.1.16.1 'MLME-POLL.request'.
  */
@@ -95,6 +88,7 @@ typedef struct _MAC_PollReqParams_t
 
 /**//**
  * \brief   Structure for parameters of the MLME-POLL.confirm.
+ * \ingroup PollConf
  * \details Possible values for the \c status parameter are the following:
  *  - SUCCESS                   The requested transmission was completed successfully.
  *  - CHANNEL_ACCESS_FAILURE    A transmission could not take place due to activity on the
@@ -128,12 +122,14 @@ typedef struct _MAC_PollConfParams_t
 
 /**//**
  * \brief   Structure for descriptor of the MLME-POLL.request.
+ * \ingroup PollReq
  */
 typedef struct _MAC_PollReqDescr_t  MAC_PollReqDescr_t;
 
 
 /**//**
  * \brief   Template for the callback handler-function of the MLME-POLL.confirm.
+ * \ingroup PollConf
  * \param[in]   reqDescr    Pointer to the confirmed request descriptor.
  * \param[in]   confParams  Pointer to the confirmation parameters object.
  * \note Treat the parameters structure pointed by the \p indParams and passed into the
@@ -149,6 +145,7 @@ typedef void MAC_PollConfCallback_t(MAC_PollReqDescr_t   *const reqDescr,
 
 /**//**
  * \brief   Structure for descriptor of the MLME-POLL.request.
+ * \ingroup PollReq
  */
 struct _MAC_PollReqDescr_t
 {
@@ -164,6 +161,7 @@ struct _MAC_PollReqDescr_t
 
 /**//**
  * \brief Structure for parameters of MLME-POLL.indication primitive.
+ * \ingroup PollInd
  * \note This primitive is not a standard one, so the MCPS-DATA.indication primitive
  *  parameters are taken as the model except DSN, Dst. Address, and MSDU Payload.
  * \note Security parameters are excluded because MAC security is not implemented.
@@ -188,13 +186,14 @@ typedef struct _MAC_PollIndParams_t
 
     PHY_LQI_t              mpduLinkQuality;     /*!< LQI value measured during reception of the MPDU. */
 
-    MAC_Dsn_t              dsn;                 /* TODO: Delete this parameter. */
+    MAC_Dsn_t              dsn;                 /*!< The DSN of the received data request frame. */
 
 } MAC_PollIndParams_t;
 
 
 /**//**
  * \brief Template for callback handler-function of MLME-POLL.indication primitive.
+ * \ingroup PollInd
  * \details Call the function of this type provided by the higher layer from the MAC to
  *  issue the MLME-POLL.indication to the ZigBee PRO higher layer.
  * \param indParams Pointer to the indication parameters structure.
@@ -207,3 +206,5 @@ typedef void MAC_PollIndCallback_t(MAC_PollIndParams_t *const indParams);
 
 
 #endif /* _BB_MAC_SAP_TYPES_POLL_H */
+
+/* eof bbMacSapTypesPoll.h */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,6 +85,9 @@ static void printUsage(
             "  -enableLowLatencyMode        #   If set, low latency AV Decode settings are enabled\n"
             "  -maxIpNetworkJitterInMs      #   Set max jitter for the IP network (if known), defaults to 300msec \n"
             "  -clockRecoveryMode           #   see BIP_PlayerClockRecoveryMode_eXXXX, default is selected by BIP Player. \n"
+            "  -bufDepthInMsec          #   Informs PBIP to do the buffer depth calculations using PCR or TTS deltas. \n"
+          );
+    printf(
             "  -audioDecoderLatencyMode     #   0=Normal, 1, 2, 3=Lowest/Variable  see NEXUS_AudioDecoderLatencyMode)\n"
           );
     printf(
@@ -217,6 +220,10 @@ BIP_Status parseOptions(
         {
             pAppCtx->clockRecoveryMode = strtoul(argv[++i], NULL, 0);
         }
+        else if ( !strcmp(argv[i], "-bufDepthInMsec") )
+        {
+            pAppCtx->bufDepthInMsec = true;
+        }
         else if(!strcmp(argv[i], "-audioDecoderLatencyMode"))
         {
             pAppCtx->audioDecoderLatencyMode = strtoul(argv[++i], NULL, 0);
@@ -263,9 +270,9 @@ BIP_Status parseOptions(
         if (pAppCtx->disablePrecisionLipsync == -1) pAppCtx->disablePrecisionLipsync = true;
         /* TODO & Note: currently pAppCtx->stcSyncMode is left to default value of -1, which keeps it on, otherwise, this directly affects the TSM. */
 
-        BDBG_LOG(( BIP_MSG_PRE_FMT "LowLatencyMode Enabled: jitter=%u clockRecoveryMode=%s audioDecoderLatencyMode=%d disablePrecisionLipsync=%d stcSyncMode=%d"
+        BDBG_LOG(( BIP_MSG_PRE_FMT "LowLatencyMode Enabled: jitter=%u clockRecoveryMode=%s audioDecoderLatencyMode=%d disablePrecisionLipsync=%d stcSyncMode=%d bufDepthInMsec=%s"
                     BIP_MSG_PRE_ARG, pAppCtx->maxIpNetworkJitterInMs, BIP_ToStr_BIP_PlayerClockRecoveryMode(pAppCtx->clockRecoveryMode),
-                    pAppCtx->audioDecoderLatencyMode, pAppCtx->disablePrecisionLipsync, pAppCtx->stcSyncMode
+                    pAppCtx->audioDecoderLatencyMode, pAppCtx->disablePrecisionLipsync, pAppCtx->stcSyncMode, pAppCtx->bufDepthInMsec?"Y":"N"
                  ));
     }
 

@@ -54,7 +54,7 @@ class CIrRemoteNx : public CIrRemote
 public:
     CIrRemoteNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CIrRemoteNx(void);
@@ -80,7 +80,7 @@ class CUhfRemoteNx : public CUhfRemote
 public:
     CUhfRemoteNx(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CUhfRemoteNx(void);

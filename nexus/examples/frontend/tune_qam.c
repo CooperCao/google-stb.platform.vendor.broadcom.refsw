@@ -348,10 +348,12 @@ int main(int argc, char **argv)
     stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-    if (NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0])) {
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    if (platformConfig.outputs.audioDacs[0]) {
+        if (NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0])) {
+            NEXUS_AudioOutput_AddInput(
+                NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        }
     }
     if (NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0])) {
         NEXUS_AudioOutput_AddInput(

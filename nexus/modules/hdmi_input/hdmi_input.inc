@@ -1,5 +1,5 @@
-############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+##############################################################################
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,8 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-############################################################
 
+##############################################################################/
 #
 # Conditional Options for this Makefile
 #
@@ -61,6 +60,7 @@ NEXUS_HDMI_INPUT_PUBLIC_INCLUDES = $(NEXUS_TOP)/modules/hdmi_input/include
 ##################
 NEXUS_HDMI_INPUT_SOURCES := \
     $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_module.c \
+    $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_debug.c \
     $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input.c \
     $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_edid_ram.c \
     $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_hdcp.c

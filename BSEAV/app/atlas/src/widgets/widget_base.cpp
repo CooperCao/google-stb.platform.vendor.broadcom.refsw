@@ -224,9 +224,9 @@ void CWidgetBase::drawBackground(
                 uint32_t  colorTop    = 0;
                 uint32_t  colorMiddle = 0;
                 uint32_t  colorBottom = 0;
-                uint16_t  yMin        = rectLabel.y;
-                uint16_t  yMax        = rectLabel.y + rectLabel.height;
-                uint16_t  yMid        = yMin + ((yMax - yMin) / 2);
+                unsigned  yMin        = rectLabel.y;
+                unsigned  yMax        = rectLabel.y + rectLabel.height;
+                unsigned  yMid        = yMin + ((yMax - yMin) / 2);
                 uint32_t  newColor    = 0;
                 uint8_t   percent     = 0;
 
@@ -235,7 +235,7 @@ void CWidgetBase::drawBackground(
                 getBackgroundGradient(&colorTop, &colorMiddle, &colorBottom);
 
                 /* draw top half */
-                for (uint32_t line = yMin; line < yMid; line++)
+                for (unsigned line = yMin; line < yMid; line++)
                 {
                     percent  = (yMid - line) * 100 / (yMid - yMin);
                     newColor = colorConvert(colorTop, colorMiddle, percent);
@@ -244,7 +244,7 @@ void CWidgetBase::drawBackground(
                 }
 
                 /* draw bottom half */
-                for (int line = yMid; line < yMax; line++)
+                for (unsigned line = yMid; line < yMax; line++)
                 {
                     percent  = (yMax - line) * 100 / (yMax - yMid);
                     newColor = colorConvert(colorMiddle, colorBottom, percent);

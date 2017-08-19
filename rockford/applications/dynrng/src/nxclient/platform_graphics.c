@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "nexus_platform_client.h"
 #include "nxclient.h"
@@ -55,6 +52,7 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
     PlatformGraphicsHandle gfx;
     NEXUS_SurfaceHandle fb;
     NEXUS_SurfaceCreateSettings fbCreateSettings;
+    NEXUS_SurfaceClientSettings scSettings;
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i, j, windowCnt=0;
 
@@ -88,13 +86,17 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
     for (i=0; i<NEXUS_MAX_VIDEO_DECODERS; i++) {
         if (!platform->videoCaps.memory[i].mosaic.maxNumber) break;
         gfx->sc[i].numWindows = platform->videoCaps.memory[i].mosaic.maxNumber;
+        BDBG_MSG(("decode %d mosaics %d", i, gfx->sc[i].numWindows));
         gfx->maxMosaics += gfx->sc[i].numWindows;
-        if (gfx->maxMosaics >= MAX_MOSAICS) break;
+        if (gfx->maxMosaics >= MAX_MOSAICS) {
+            gfx->maxMosaics = MAX_MOSAICS;
+            break;
+        }
     }
     if (gfx->maxMosaics) {
         if (gfx->maxMosaics < MAX_MOSAICS) {
             BDBG_ASSERT((MAX_MOSAICS - gfx->maxMosaics) == 1); /* Can we have more than 1 pip for mosaic?? */
-            gfx->sc[i].numWindows = MAX_MOSAICS - gfx->maxMosaics ;
+            gfx->sc[i].numWindows = MAX_MOSAICS - gfx->maxMosaics;
         }
     } else {
         BDBG_ASSERT(gfx->sc[0].numWindows == 0);
@@ -102,32 +104,16 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
         BDBG_WRN(("No Mosaic Support!!"));
     }
 
-
-    for (i=0; i<(sizeof(gfx->sc)/sizeof(gfx->sc[0])); i++) {
-        if (!gfx->sc[i].numWindows) continue;
-        if (i == 0) {
-            gfx->sc[i].surfaceClient = bgui_surface_client(gfx->gui);
-            gfx->sc[i].id = bgui_surface_client_id(gfx->gui);
-        } else {
-            NxClient_AllocSettings allocSettings;
-            NxClient_AllocResults allocResults;
-            NxClient_GetDefaultAllocSettings(&allocSettings);
-            allocSettings.surfaceClient = 1; /* surface client required for video window */
-            rc = NxClient_Alloc(&allocSettings, &allocResults);
-            if (rc) BERR_TRACE(rc);
-
-            gfx->sc[i].surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
-            gfx->sc[i].id = allocResults.surfaceClient[0].id;
-        }
-
-        for (j=0; j<gfx->sc[i].numWindows; j++) {
-            gfx->video[windowCnt] = NEXUS_SurfaceClient_AcquireVideoWindow(gfx->sc[i].surfaceClient, j);
-            if(j == 0) gfx->nonMosaicWindowId = windowCnt; /* First window on the last surface client */
-            windowCnt++;
-        }
+    gfx->sc[0].surfaceClient = bgui_surface_client(gfx->gui);
+    gfx->sc[0].id = bgui_surface_client_id(gfx->gui);
+    for (j=0; j<gfx->maxMosaics; j++) {
+        gfx->video[windowCnt] = NEXUS_SurfaceClient_AcquireVideoWindow(gfx->sc[0].surfaceClient, j);
+        BDBG_ASSERT(gfx->video[windowCnt]);
+        windowCnt++;
     }
 
-    if (gfx->maxMosaics) BDBG_ASSERT(windowCnt == MAX_MOSAICS);
+    gfx->mainWindowId = 0;
+    gfx->pipWindowId = 1;
 
     platform->gfx = gfx;
     gfx->platform = platform;
@@ -349,9 +335,20 @@ const PlatformRect * platform_graphics_get_fb_rect(PlatformGraphicsHandle gfx)
     return &gfx->fbRect;
 }
 
-unsigned platform_graphics_get_non_mosaic_window_id(PlatformGraphicsHandle gfx)
+unsigned platform_graphics_get_main_window_id(PlatformGraphicsHandle gfx)
 {
     BDBG_ASSERT(gfx);
-    return gfx->nonMosaicWindowId;
+    return gfx->mainWindowId;
+}
 
+unsigned platform_graphics_get_pip_window_id(PlatformGraphicsHandle gfx)
+{
+    BDBG_ASSERT(gfx);
+    return gfx->pipWindowId;
+}
+
+unsigned platform_graphics_get_mosaic_count(PlatformGraphicsHandle gfx)
+{
+    BDBG_ASSERT(gfx);
+    return gfx->maxMosaics;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,6 +39,86 @@
 #define BDSP_RAAGA_CIT_PRIV_H__
 
 #include "bdsp_common_priv_include.h"
+#include "bdsp_raaga_types.h"
+
+typedef struct BDSP_CIT_P_FwBufInfo
+{
+    BDSP_AF_P_AlgoId    eFwExecId;
+    uint32_t            ui32InterframeBufAdr;
+    uint32_t            ui32InterframeBufSize;
+    uint32_t            ui32UserParamBufAdr;
+    uint32_t            ui32UserParamBufSize;
+    uint32_t            ui32StatusBufAdr;
+    uint32_t            ui32StatusBufSize;
+} BDSP_CIT_P_FwBufInfo;
+
+typedef struct BDSP_CIT_P_OpStgInfo{
+    BDSP_Algorithm              eAlgorithm;
+    uint32_t                    ui32TsmNodeIndex;
+    uint32_t                    ui32StartNodeIndex;
+    uint32_t                    ui32NumNodes;
+    BDSP_CIT_P_FwBufInfo        sFwOpNodeInfo[BDSP_AF_P_MAX_NUM_NODES_IN_ALGO];
+} BDSP_CIT_P_OpStgInfo;
+
+typedef struct BDSP_CIT_P_OpBranchInfo
+{
+    uint32_t                    ui32NumStages;
+    BDSP_CIT_P_OpStgInfo        sCitStgInfo[BDSP_RAAGA_MAX_STAGE_PER_BRANCH];
+} BDSP_CIT_P_OpBranchInfo;
+
+typedef struct BDSP_CIT_P_Output
+{
+    BDSP_AF_P_sTASK_CONFIG      sCit;           /* Cit Structure */
+    uint32_t                    ui32NumBranches;
+    BDSP_CIT_P_OpBranchInfo     sCitBranchInfo[BDSP_RAAGA_MAX_BRANCH];
+    BDSP_AF_P_sDRAM_BUFFER      sStackSwapBuff; /* Stack Swap Buffer */
+    BDSP_AF_P_sDRAM_BUFFER      sSpdifUserConfigAddr[BDSP_AF_P_MAX_NUM_SPDIF_PORTS];
+} BDSP_CIT_P_Output;
+
+typedef struct BDSP_CIT_P_sTaskBuffInfo
+{
+    uint32_t                ui32TaskInterFrmMemSize;
+    uint32_t                ui32TaskUsrCfgMemSize;
+    uint32_t                ui32TaskIoBuffCfgStructMemSize;
+    uint32_t                ui32TaskScratchMemSize;
+    uint32_t                ui32BranchInterStgIoMemSize;
+    uint32_t                ui32BranchInterStgGenericMemSize;
+    uint32_t                ui32TaskInterStgIoMemSize;
+    uint32_t                ui32TaskInterStgGenericMemSize;
+    uint32_t                ui32NumInterStgBuffs;
+    uint32_t                ui32MaxSizePerChannel;
+    uint32_t                ui32MaxNumChannelsSupported;
+    uint32_t                ui32TaskFwStatusBuffMemSize;
+    uint32_t                ui32TaskStackMemSize;
+    uint32_t                ui32TaskPortConfigMemSize;
+    uint32_t                ui32TaskSPDIFConfigMemSize;
+    uint32_t                ui32TaskGateOpenConfigMemSize;
+    uint32_t                ui32TaskHwFwCfgMemSize;
+    uint32_t                ui32SamplingFrequencyMapLutSize;
+    uint32_t                ui32StcTrigConfigMemSize;
+} BDSP_CIT_P_sTaskBuffInfo;
+
+typedef union BDSP_VF_P_uTASK_CONFIG
+{
+    BDSP_VF_P_sDEC_TASK_CONFIG  sVideoDecTaskConfig;
+    BDSP_VF_P_sENC_TASK_CONFIG  sVideoEncTaskConfig;
+} BDSP_VF_P_uTASK_CONFIG;
+
+typedef struct BDSP_CIT_P_VideoCITOutput
+{
+    BDSP_VF_P_uTASK_CONFIG          uVideoCit;          /* Video Cit Structure */
+    uint32_t                    ui32NumBranches;
+    BDSP_CIT_P_OpBranchInfo     sCitBranchInfo[BDSP_RAAGA_MAX_BRANCH];
+    BDSP_AF_P_sDRAM_BUFFER      sStackSwapBuff; /* Stack Swap Buffer */
+    BDSP_AF_P_sDRAM_BUFFER      sSpdifUserConfigAddr[BDSP_AF_P_MAX_NUM_SPDIF_PORTS];
+} BDSP_CIT_P_VideoCITOutput;
+
+typedef struct BDSP_CIT_P_ScmCITOutput
+{
+	BDSP_SCM_P_sTASK_CONFIG         sScmCit;                /* SCM Cit Structure */
+	uint32_t                        ui32NumBranches;
+	BDSP_CIT_P_OpBranchInfo         sCitBranchInfo[BDSP_RAAGA_MAX_BRANCH];
+}BDSP_CIT_P_ScmCITOutput;
 
 /*---------------------------------------------------*/
 /* Prototype Definition for CIT Genreation functions */

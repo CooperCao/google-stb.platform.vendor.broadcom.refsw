@@ -83,7 +83,8 @@ void BMXT_P_SetPlatform(
         case BMXT_Chip_e45216: pNum = BMXT_NUMELEM_45216; base = BMXT_REGBASE_45216; pOff = BMXT_REGOFFSETS_4538; pStep = BMXT_STEPSIZE_4538; break;
 
         /* 45308-family */
-        case BMXT_Chip_e45308: pNum = BMXT_NUMELEM_45308; base = BMXT_REGBASE_45308; pOff = BMXT_REGOFFSETS_45308; pStep = BMXT_STEPSIZE_45308;
+        case BMXT_Chip_e45308:
+        case BMXT_Chip_e45316: pNum = BMXT_NUMELEM_45308; base = BMXT_REGBASE_45308; pOff = BMXT_REGOFFSETS_45308; pStep = BMXT_STEPSIZE_45308;
             pNumDcbg = BMXT_NUMELEM_DCBG_45308; baseDcbg = BMXT_REGBASE_DCBG_45308; pOffDcbg = BMXT_REGOFFSETS_DCBG_45308; pStepDcbg = BMXT_STEPSIZE_DCBG_45308; break;
 
         /* 3158-family */

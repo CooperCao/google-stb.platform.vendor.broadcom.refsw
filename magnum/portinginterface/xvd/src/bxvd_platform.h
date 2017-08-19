@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -293,7 +293,7 @@ bool BXVD_P_VerifyWatchdogFired_##family##_isr \
 /* Rev K core */
 #define BXVD_CHIP 'K'
 
-#elif ((BCHP_CHIP == 7445)  || (BCHP_CHIP == 7145)  || (BCHP_CHIP == 7250)  || (BCHP_CHIP == 7260) ||  \
+#elif ((BCHP_CHIP == 7445)  || (BCHP_CHIP == 7145)  || (BCHP_CHIP == 7250)  || ((BCHP_CHIP == 7260) && (BCHP_VER == BCHP_VER_A0)) || \
        (BCHP_CHIP == 7268)  || (BCHP_CHIP == 7271)  || (BCHP_CHIP == 7364)  || (BCHP_CHIP == 73625) || \
        (BCHP_CHIP == 7366)  || (BCHP_CHIP == 74295) || (BCHP_CHIP == 7439)  || (BCHP_CHIP == 74371) || \
        (BCHP_CHIP == 75525) || (BCHP_CHIP == 75635) || (BCHP_CHIP == 75845) || (BCHP_CHIP == 7586)  || \
@@ -301,7 +301,7 @@ bool BXVD_P_VerifyWatchdogFired_##family##_isr \
 /* Rev N core */
 #define BXVD_CHIP 'N'
 
-#elif (BCHP_CHIP == 7278)
+#elif ((BCHP_CHIP == 7278) || ((BCHP_CHIP == 7260) && (BCHP_VER >= BCHP_VER_B0)))
 /* Rev T core */
 #define BXVD_CHIP 'T'
 

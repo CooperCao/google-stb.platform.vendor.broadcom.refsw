@@ -65,7 +65,7 @@ void NEXUS_FrontendModule_GetDefaultSettings(
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
 }
 
 /***************************************************************************
@@ -79,7 +79,6 @@ NEXUS_ModuleHandle NEXUS_FrontendModule_Init(
     )
 {
     NEXUS_ModuleSettings moduleSettings;
-    int rc = 0;
 
     BSTD_UNUSED(pSettings);
     BDBG_ASSERT(NULL != pSettings);
@@ -94,7 +93,7 @@ NEXUS_ModuleHandle NEXUS_FrontendModule_Init(
     g_NEXUS_frontendModule = NEXUS_Module_Create("frontend", &moduleSettings);
 
     if (NULL ==g_NEXUS_frontendModule) {
-        rc = BERR_TRACE(BERR_OS_ERROR);
+        BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
 

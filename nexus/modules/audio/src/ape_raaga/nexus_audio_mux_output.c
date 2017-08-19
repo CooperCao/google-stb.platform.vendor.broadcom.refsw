@@ -515,6 +515,22 @@ static NEXUS_MemoryBlockHandle NEXUS_AudioMuxOutput_P_MemoryBlockFromMma(NEXUS_A
     return handle->block[index].block;
 }
 
+NEXUS_Error NEXUS_AudioMuxOutput_GetBufferBlocks_priv(NEXUS_AudioMuxOutputHandle handle, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+{
+    BERR_Code errCode;
+    BAVC_AudioBufferStatus bufferStatus;
+
+    NEXUS_ASSERT_MODULE();
+    errCode = BAPE_MuxOutput_GetBufferStatus(handle->muxOutput, &bufferStatus);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    *phFrameBufferBlock = bufferStatus.stCommon.hFrameBufferBlock;
+    *phMetadataBufferBlock = bufferStatus.stCommon.hMetadataBufferBlock;
+    return BERR_SUCCESS;
+}
+
 /**
 Summary:
 **/
@@ -526,6 +542,7 @@ NEXUS_Error NEXUS_AudioMuxOutput_GetBufferStatus_priv(
    BERR_Code errCode;
    BAVC_AudioBufferStatus bufferStatus;
 
+   NEXUS_ASSERT_MODULE();
    BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
 
    errCode = BAPE_MuxOutput_GetBufferStatus(handle->muxOutput, &bufferStatus);

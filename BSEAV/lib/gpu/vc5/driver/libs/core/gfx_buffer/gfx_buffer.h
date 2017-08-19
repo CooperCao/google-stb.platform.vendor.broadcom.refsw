@@ -8,7 +8,7 @@
 
 #include "vcos.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /** variable naming */
 
@@ -290,4 +290,4 @@ static inline bool gfx_buffer_any_float_depth(const GFX_BUFFER_DESC_T *desc)
    return false;
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

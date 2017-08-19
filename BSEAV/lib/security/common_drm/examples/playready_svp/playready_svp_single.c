@@ -171,14 +171,6 @@ static int piff_playback_dma_buffer(CommonCryptoHandle commonCryptoHandle, void 
     CommonCrypto_GetDefaultJobSettings(&cryptoJobSettings);
     CommonCrypto_DmaXfer(commonCryptoHandle,  &cryptoJobSettings, &blkSettings, 1);
 
-    if (flush)
-    {
-        /* Need to flush manually the source buffer (non secure heap). We need to flush manually as soon as we copy data into
-           the secure heap. Setting blkSettings[ii].cached = true would also try to flush the destination address in the secure heap
-           which is not accessible. This would cause the whole memory to be flushed at once. */
-        NEXUS_FlushCache(blkSettings.pSrcAddr, blkSettings.blockSize);
-    }
-
     return 0;
 }
 
@@ -591,10 +583,6 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
 
                     CommonCrypto_GetDefaultJobSettings(&cryptoJobSettings);
                     CommonCrypto_DmaXfer(commonCryptoHandle,  &cryptoJobSettings, blkSettings, blk_idx);
-
-                    for (k = 0; k < blk_idx; k++ ) {
-                        NEXUS_FlushCache(blkSettings[k].pSrcAddr, blkSettings[k].blockSize);
-                    }
 
                     outSize += (num_enc + num_clear - decrypt_offset);
 

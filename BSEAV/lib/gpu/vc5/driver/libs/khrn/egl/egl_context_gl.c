@@ -137,20 +137,22 @@ static EGLint extract_attribs(const EGLint *attrib_list, const CLIENT_API_T **ap
       EGLint value = *attrib_list++;
 
       switch(name) {
-         case EGL_CONTEXT_MAJOR_VERSION_KHR:
+         case EGL_CONTEXT_MAJOR_VERSION:
             major = value;
             break;
-         case EGL_CONTEXT_MINOR_VERSION_KHR:
+         case EGL_CONTEXT_MINOR_VERSION:
             minor = value;
             break;
          case EGL_CONTEXT_FLAGS_KHR:
             if (value & ~supported_flags) return EGL_BAD_ATTRIBUTE;
             flags = value;
             break;
-         case EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT:
+         case EGL_CONTEXT_OPENGL_ROBUST_ACCESS:
+         case EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT:      /* These EXT versions have different numbers */
             if (value == EGL_TRUE || value == EGL_FALSE) *robustness = value;
             else return EGL_BAD_ATTRIBUTE;
             break;
+         case EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY:
          case EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT:
             if (value == EGL_NO_RESET_NOTIFICATION_EXT) *reset_notification = false;
             else if (value == EGL_LOSE_CONTEXT_ON_RESET_EXT) *reset_notification = true;

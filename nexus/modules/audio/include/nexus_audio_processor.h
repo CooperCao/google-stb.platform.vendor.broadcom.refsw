@@ -111,6 +111,7 @@ typedef struct NEXUS_AudioProcessorSettings
         NEXUS_AudioFadeSettings fade;
         NEXUS_KaraokeVocalSettings karaokeVocal;
         NEXUS_AudioAdvancedTsmSettings advancedTsm;
+        NEXUS_AmbisonicSettings ambisonic;
     } settings;
 } NEXUS_AudioProcessorSettings;
 

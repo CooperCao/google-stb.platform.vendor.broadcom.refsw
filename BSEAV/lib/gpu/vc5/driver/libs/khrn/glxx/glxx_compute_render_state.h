@@ -2,6 +2,7 @@
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
+#if KHRN_GLES31_DRIVER
 
 #include "../common/khrn_fmem.h"
 #include "glxx_render_state.h"
@@ -20,5 +21,6 @@ typedef struct glxx_compute_render_state
    };
 
    GLXX_SERVER_STATE_T* server_state;
-   uint8_t* end_render;
 } glxx_compute_render_state;
+
+#endif

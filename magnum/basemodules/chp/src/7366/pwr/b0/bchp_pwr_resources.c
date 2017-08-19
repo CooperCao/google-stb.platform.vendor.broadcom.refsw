@@ -1,21 +1,41 @@
 /***************************************************************************
-*     Copyright (c) 2006-2014, Broadcom Corporation*
-*     All Rights Reserved*
-*     Confidential Property of Broadcom Corporation*
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 /***************************************************************
@@ -1715,18 +1735,27 @@ void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
     }
 }
 
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_PLL_HVD_CH0[] = {{200,3,8},{200,3,128}};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_PLL_HVD_CH1[] = {{200,3,6},{200,3,96}};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_PLL_MOCA_CH4[] = {{200,3,7},{200,3,28}};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_PLL_RAAGA_PLL_CH0[] = {{143,2,7},{143,2,112}};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_PLL_RAAGA_PLL_CH3[] = {{143,2,11},{143,2,176}};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_PLL_V3D_CH0[] = {{60,1,8},{60,1,128}};
+const BCHP_PmapSettings BCHP_PWR_P_DefaultPMapSettings[BCHP_PWR_NUM_P_PMAPSETTINGS] = {
+    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 8),
+    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, 6),
+    PMAP(CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, 7),
+    PMAP(CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 7),
+    PMAP(CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3, 11),
+    PMAP(CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 8),
+};
+
+DIVTABLE(DV_PLL_HVD_CH0, -1, -1, 0);
+DIVTABLE(DV_PLL_HVD_CH1, -1, -1, 1);
+DIVTABLE(DV_PLL_MOCA_CH4, -1, -1, 2);
+DIVTABLE(DV_PLL_RAAGA_PLL_CH0, -1, -1, 3);
+DIVTABLE(DV_PLL_RAAGA_PLL_CH3, -1, -1, 4);
+DIVTABLE(DV_PLL_V3D_CH0, -1, -1, 5);
 
 const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[BCHP_PWR_P_NUM_DIVS] = {
-    {BCHP_PWR_DV_PLL_HVD_CH0, BCHP_PWR_P_DivTable_DV_PLL_HVD_CH0},
-    {BCHP_PWR_DV_PLL_HVD_CH1, BCHP_PWR_P_DivTable_DV_PLL_HVD_CH1},
-    {BCHP_PWR_DV_PLL_MOCA_CH4, BCHP_PWR_P_DivTable_DV_PLL_MOCA_CH4},
-    {BCHP_PWR_DV_PLL_RAAGA_PLL_CH0, BCHP_PWR_P_DivTable_DV_PLL_RAAGA_PLL_CH0},
-    {BCHP_PWR_DV_PLL_RAAGA_PLL_CH3, BCHP_PWR_P_DivTable_DV_PLL_RAAGA_PLL_CH3},
-    {BCHP_PWR_DV_PLL_V3D_CH0, BCHP_PWR_P_DivTable_DV_PLL_V3D_CH0},
+    FREQMAP(DV_PLL_HVD_CH0),
+    FREQMAP(DV_PLL_HVD_CH1),
+    FREQMAP(DV_PLL_MOCA_CH4),
+    FREQMAP(DV_PLL_RAAGA_PLL_CH0),
+    FREQMAP(DV_PLL_RAAGA_PLL_CH3),
+    FREQMAP(DV_PLL_V3D_CH0),
 };

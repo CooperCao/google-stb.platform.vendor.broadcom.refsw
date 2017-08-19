@@ -1,0 +1,493 @@
+#!/bin/env utf
+
+#
+# DVT wl script 
+#
+# To get online help, type: Test/DVT_wl.test -help
+#
+
+# $Id: d6ece59662dbcd7819dae3c649e896a89d0a58d7 $
+# $Copyright Broadcom Corporation$
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set dvtwl_help "\n\nUsage: Test/DVT_wl.test\
+    \nTests wl commands that DVT relies on.\
+    \nBy default, all AP (& clones) and all STA (& clones) will be tested.\
+    \n\nValid options:\
+    \n -utfconf path        Config file to use, default is ~/.utfconf.tcl"
+
+# Command line options string
+set dvtwl_getopts {
+    {3x3             "Add extra tests for 3x3 devices"}
+    {aps.arg ""      "AP names to use in tests, defaults to all AP & clones in the testrig"}
+    {email.arg ""    "Email address list, format: userid1 userid2 ... default is your userid"}
+    {mcs.arg 7       "MCS rate to use for pkteng"}
+    {noapload        "Dont load new AP drivers, reload the existing drivers"}
+    {noaptest        "Dont test AP at all"}
+    {nosetup         "No load/reload done, just use the testrig as is."}
+    {noskip          "Dont skip any commands, test ones that have locked up the PC"}
+    {nostaload       "Dont load new STA drivers, reload the existing drivers"}
+    {nostatest       "Dont test STA at all"}
+    {rtrdate.arg ""  "Desired Router build date, format: yyyy.mm.dd"}
+    {rtrtag.arg ""   "Router release tag, default is NIGHTLY"}
+    {stadate.arg ""  "Desired STA build date, format: yyyy.mm.dd"}
+    {statag.arg ""   "STA release tag, default is NIGHTLY"}
+    {stas.arg ""     "STA names to use in test, defaults to all STA & clones in the testrig"}
+    {title.arg ""    "Title for web report & email"}
+}
+
+# Setup online help info.
+UTF::setup_help $dvtwl_help $dvtwl_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+# Load packages
+package require UTF
+package require UTF::utils
+package provide UTF::Test::DVT_wl 2.0
+
+# Common test proc.
+proc wl_test {STA loaded noskip args} {
+
+    # gives access to unamed array from getopts
+    upvar {} {} 
+
+    # If driver didnt load, gracefully return.
+    set name [UTF::get_name $STA]
+    if {$loaded == "0"} {
+        append ::overall_synopsis " <font color=\"red\"><b>$STA driver not loaded</b></font><br>"
+        set ::overall_status FAIL
+        UTF::Try "$STA wl command tests" {
+            error "not loaded"
+        }
+        return
+    }
+
+    # Checks all the above commands are still supported.
+    set error_list ""
+    if {$noskip} {
+        set skip_list ""
+    } else {
+        # These commands have been known to lock up the PC depending on
+        # the parametes given and the wlan state, PR88629.
+        set skip_list "evm fqacurcy"
+        # Other known issues PR88950.
+        append skip_list " nvset wrvar legacylink disable_percal fem maxpower\
+        povars pkteng_start pkteng_stop"
+    }
+
+    UTF::Try "$STA wl command tests" {
+        # We need to keep one of bands available for some commands that
+        # need to be band locked.
+        set sta_band [$STA wl bands]
+        set sta_band [lindex $sta_band 0]
+        UTF::Message LOG "" "For commands that need to be band locked, will use band: $sta_band"
+
+        set i 0
+        foreach line $::dvt_wl_cmds {
+
+            # Parse out cmd, skip blanks.
+            set cmd [lindex $line 2]
+            set cmd [string trim $cmd]
+            if {$cmd == ""} {
+                continue
+            }
+            incr i 
+
+            # UTF::Message LOG $name "i=$i line=$line cmd=$cmd"
+            # Some commands dont use wl. May not be true...
+            # boardflags work with wl.
+            if {[regexp {zzzz} $cmd]} {
+                set prefix ""
+            } else {
+                set prefix "wl"
+            }
+
+            # Some commands require additional parameters.
+            set suffix ""
+            if {$cmd == "fqacurcy" || $cmd == "longtrain" ||\
+                $cmd == "phyreg"} {
+                set suffix "0"
+            } elseif {$cmd == "crsuprs"} {
+                set suffix "0"
+            } elseif {$cmd == "disassoc" && $args =="AP"} {
+                UTF::Message INFO "" "AP doesnt support $cmd"
+                continue
+            } elseif {$cmd == "evm"} {
+                # NB: "wl evm 0" has been known to lock the PC!
+                set suffix "1 2" ;# safer choice
+            } elseif {$cmd == "join"} {
+                set suffix "abcd"
+            } elseif {$cmd == "maxpower"} {
+                set suffix "maxp2ga0=0x1 maxp2ga1=0x2 maxp5ga0=0xff maxp5ga1=0xff maxp5gla0=0x3 maxp5gla1=0x4 maxp5gha0=0x5 maxp5gha1=0x6"
+            } elseif {$cmd == "pkteng_start"} {
+                # NB: interframe gap must be 15 or more
+                set suffix "00:90:00:90:00:90 tx 15 1400 0 a0:a0:a0:a0:a0:a0"
+            } elseif {$cmd == "pkteng_stop"} {
+                set suffix "tx"
+            } elseif {$cmd == "nvget"} {
+                set suffix "macaddr"
+            } elseif {$cmd == "nvset"} {
+                set suffix "a=b"
+            } elseif {$cmd == "rdvar"} {
+                set suffix "macaddr"
+            } elseif {$cmd == "rssi" && $args == "AP"} {
+                set suffix "00:90:00:90:00:90"
+            } elseif {$cmd == "srcrc"} {
+                set suffix "1234"
+            } elseif {$cmd == "wrvar"} {
+                set suffix "0 1"
+            }
+
+            # Some of the commands need the driver up & mpc.
+            if {$cmd == "curpower" || $cmd == "fem" || $cmd == "join" ||\
+                $cmd == "maxpower" || $cmd == "pkteng_start" || $cmd == "scan"} {
+                catch "$STA wl up" 
+                catch "$STA wl mpc 0"
+            }
+
+            # pkteng needs a fixed rate, not auto.
+            if {$cmd == "pkteng_start"} {
+                catch "$STA wl nrate -m $(mcs)" 
+            }
+
+            # Some commands require band locked, up & out.
+            if {$cmd == "crsuprs" || $cmd == "longtrain" || $cmd == "phyreg" ||\
+                $cmd == "tssi" || $cmd == "txinstpwr"} {
+                catch "$STA wl down"
+                catch "$STA wl band $sta_band"
+                catch "$STA wl up"
+                catch "$STA wl mpc 0"
+                catch "$STA wl out"
+            }
+
+            # For join, first do wsec.
+            if {$cmd == "join"} {
+                catch "$STA wl wsec 0" 
+            }
+
+            # For gmode auto, first do disassoc.
+            if {$cmd == "gmode auto"} {
+                catch "$STA wl disassoc"
+            }
+
+            # Some of the commands need the driver down.
+            if {$cmd == "evm" || $cmd == "fqacurcy" || $cmd == "restart"} {
+                catch "$STA wl down" 
+            }
+
+            # Ignore commands with known issues.
+            if {[lsearch -exact $skip_list $cmd] >= 0} {
+                UTF::Message WARN $name "skipped known issue: $cmd"
+
+            } else {
+                # Test the command.
+                set catch_resp [catch "$STA $prefix $cmd $suffix" catch_msg]
+                set catch_msg [string tolower $catch_msg]
+
+                # Selected cmd/response pairs are considered a pass.
+                if {($cmd == "rssi" && [regexp {not found|not sta} $catch_msg] && $args == "AP") || \
+                    ($cmd == "srcrc" && [regexp {no such file} $catch_msg])} {
+                    # These are considered a pass.
+
+                } elseif {$catch_resp != 0 || [regexp {unsupported|\s+error} $catch_msg]} {
+                    UTF::Message ERROR $name "@@@@ $prefix $cmd $suffix catch_resp=$catch_resp catch_msg=$catch_msg "
+                    lappend error_list $cmd
+                }
+
+                # If device has crashed / hung, we are toast.
+                if {[regexp {timeout|child killed|no route to host|connection refused|no wireless adapter} $catch_msg]} {
+                    # Confirm the device is responding or not.
+                    # uname -a doesnt work on Routers, so use wl ver.
+                    set catch_resp [catch "$STA wl ver" catch_msg]
+                    if {$catch_resp != 0} {
+                        append error_list " <font color=\"purple\"><b>$STA not responding anymore!</b></font>"
+                        UTF::Message ERROR $name "not responding anymore: $catch_msg"
+                        break
+                    }
+                }
+            }
+        }
+
+        # Format results.
+        set errors [llength $error_list]
+        # set errors 0 ;# test code
+        UTF::Message LOG $name "$i cmds tested, $errors errors: $error_list skipped: $skip_list"
+        if {$errors == "0"} {       
+            set result_html "<font color=\"green\"><b>$STA PASS</b></font>"
+        } else {
+            set result_html "<font color=\"red\"><b>$STA $errors errors:</b></font>$error_list"
+            set ::overall_status FAIL
+        }
+        # set skip_list "" ;# test code
+        if {$skip_list != ""} {
+            append result_html " <font color =\"orange\"><b>skipped:</b></font>$skip_list"
+        }
+        append result_html " <br>"
+        append ::overall_synopsis " $result_html" ;# update overall synopsis.
+
+        # Throw error for FAIL on web page.
+        if {$errors == "0"} {
+            return "html: $result_html"
+        } else {
+            error "html: $result_html"
+        }
+    }
+}
+
+# Start of DVT_wl test.
+UTF::Test DVT_wl {args} {
+    UTF::Getopts "$::dvtwl_getopts" "$::dvtwl_help"
+
+    # Get testbed info.
+    set ::UTF::trailer_info [UTF::setup_testbed_info $(email) ""]
+
+    # Setup email subject & report title.
+    if {![info exists ::branch_list]} {
+        set ::branch_list unknown
+    }
+    set email_subject [UTF::setup_email_subject $(title)]
+    set summaryinfo ""
+
+    # Define overall synopsis.
+    set ::overall_synopsis ""
+    set ::overall_status PASS
+
+    # Define list of wl commands to be tested.
+    set ::dvt_wl_cmds {
+        {#define WL_STATUS_COMMAND "status"}
+        {#define WL_SRDUMP_COMMAND "srdump"}
+        {#define WL_REVINFO_COMMAND "revinfo"}
+        {#define WL_UP_COMMAND "up"}
+        {#define WL_ISUP_COMMAND "isup"}
+        {#define WL_DOWN_COMMAND "down"}
+        {#define WL_OUT_COMMAND "out"}
+        {#define WL_PHYREG_COMMAND "phyreg"}
+        {#define WL_AP_COMMAND "ap"}
+        {#define WL_TXSTREAMS_COMMAND "txstreams"}
+        {#define WL_RXSTREAMS_COMMAND "rxstreams"}
+        {#define WL_CLK_COMMAND "clk"}
+        {#define WL_EVM_COMMAND "evm"}
+        {#define WL_FREQUENCY_COMMAND "fqacurcy"}
+        {#define WL_NVRAM_SOURCE "nvram_source"}
+        {#define WL_NVRAM_DUMP_COMMAND "nvram_dump"}
+        {#define WL_NVGET_COMMAND      "nvget "}
+        {#define WL_NVSET_COMMAND      "nvset "}
+        {#define WL_PAVARS_COMMAND     "pavars"}
+        {#define WL_RDVAR_COMMAND      "rdvar "}
+        {#define WL_WRVAR_COMMAND      "wrvar "}
+        {#define WL_CURPOWER_COMMAND "curpower"}
+        {#define WL_PHYTYPE_COMMAND "phytype"}
+        {#define WL_LIST_COMMAND "list"}
+        {#define WL_TXPWR1_COMMAND "txpwr1"}
+        {#define WL_TX_CHAIN_COMMAND "txchain "}
+        {#define WL_RX_CHAIN_COMMAND "rxchain "}
+        {#define WL_HW_TX_CHAIN_COMMAND "hw_txchain"}
+        {#define WL_HW_RX_CHAIN_COMMAND "hw_rxchain"}
+        {#define WL_NMODE_COMMAND "nmode"}
+        {#define WL_SRL_COMMAND "srl"}
+        {#define WL_LRL_COMMAND "lrl"}
+        {#define WL_AMPDU_COMMAND "ampdu"}
+        {#define WL_DUMP_AMPDU_COMMAND "dump ampdu"}
+        {#define WL_AMPDU_CLEAR_DUMP_COMMAND "ampdu_clear_dump"}
+        {#define WL_DISASSOC_COMMAND "disassoc"}
+        {#define WL_BI_COMMAND "bi"}
+        {#define WL_RATESET_COMMAND "rateset"}
+        {#define WL_TXANT_COMMAND "txant"}
+        {#define WL_ANTDIV_COMMAND "antdiv"}
+        {#define WL_TXINSTPWR_COMMAND "txinstpwr"}
+        {#define WL_TSSI_COMMAND  "tssi"}
+        {#define WL_BAND_COMMAND "band"}
+        {#define WL_BAND_RANGE   "band_range"}
+        {#define WL_RATE_COMMAND "rate"}
+        {#define WL_NRATE_COMMAND "nrate"}
+        {#define WL_CHANNELS_COMMAND "channels"}
+        {#define WL_CHANSPEC_COMMAND "chanspec"}
+        {#define WL_CHANSPECS_COMMAND "chanspecs"}
+        {#define WL_CHANNEL_COMMAND "channel"}
+        {#define WL_RSSI_COMMAND "rssi"}
+        {#define WL_PKTCNT_COMMAND "pktcnt"}
+        {#define WL_COUNTERS_COMMAND "counters"}
+        {#define WL_SRCRC_COMMAND "srcrc"}
+        {#define WL_MPC_COMMAND "mpc"}
+        {#define WL_LEGACYLINK_COMMAND "legacylink"}
+        {#define WL_COUNTRY_COMMAND "country"}
+        {#define WL_SPECT_COMMAND     "spect"}
+        {#define WL_GMODE_COMMAND "gmode"}
+        {#define WL_IBSS_GMODE_COMMAND "ibss_gmode"}
+        {#define WL_GMODE_AUTO_COMMAND "gmode auto"}
+        {#define WL_WSEC_COMMAND "wsec"}
+        {#define WL_STF_SS_AUTO_COMMAND "stf_ss_auto"}
+        {#define WL_MIMO_SS_STF_COMMAND "mimo_ss_stf"}
+        {#define WL_MIMO_BW_CAP_COMMAND "mimo_bw_cap"}
+        {#define WL_VER_COMMAND "ver"}
+        {#define WL_SCAN_COMMAND "scan"}
+        {#define WL_SCANSUPPRESS_COMMAND "scansuppress"}
+        {#define WL_RESTART_COMMAND "restart"}
+        {#define WL_SLOW_TIMER_MAX_COMMAND "slow_timer"}
+        {#define WL_FAST_TIMER_MAX_COMMAND "fast_timer"}
+        {#define WL_GLACIAL_TIMER_COMMAND "glacial_timer"}
+        {#define WL_DISABLE_PERCAL_COMMAND "disable_percal"}
+        {#define WL_JOIN_COMMAND "join"}
+        {#define WL_FRAMEBURST_COMMAND "frameburst"}
+        {#define WL_SHORTSLOT_OVERRIDE_COMMAND "shortslot_override"}
+        {#define WL_PM_COMMAND "PM" }
+        {#define WL_INTERFERENCE_COMMAND "interference"}
+        {#define WL_INTERFERENCE_OVERRIDE_COMMAND "interference_override" //persistent setting}
+        {#define WL_PKTENG_START_COMMAND "pkteng_start"}
+        {#define WL_PKTENG_STOP_COMMAND "pkteng_stop"}
+        {#define WL_MBSS_COMMAND "mbss"}
+        {#define WL_CARRIER_SUPPRESSION_COMMAND "crsuprs"}
+        {#define WL_SET_LONGTRAIN_COMMAND "longtrain"}
+        {#define WL_FORCE_MIMO_TX_BW "mimo_txbw"}
+        {#define WL_ASPM_COMMAND "aspm"}
+        {#define WL_POVARS_COMMAND "povars "}
+        {#define WL_ANTGAIN_COMMAND "antgain "}
+        {#define WL_FEM_COMMAND "fem "}
+        {#define WL_MAXPOWER_COMMAND "maxpower "}
+        {#define WL_BOARDFLAGS_COMMAND "boardflags"  // not issued as a command.  must be exactly this}
+        {#define WL_BOARDFLAGS2_COMMAND "boardflags2"  // not issued as a command.  must be exactly this}
+        {#define WL_SSID_COMMAND "ssid"}
+        {#define WL_MIMO_PREAMBLE "mimo_preamble"}
+        {#define WL_SGI_TX_COMMAND "sgi_tx"}
+        {#define WL_SGI_RX_COMMAND "sgi_rx"}
+        {#define WL_DISABLE_SYSTEM_WATCHDOG_COMMAND "wd_disable"}
+        {#define WL_TEMPSENSE_DISABLE_COMMAND "tempsense_disable "}
+    }
+
+    # There are some additional commands required for 3x3 devices.
+    if {$(3x3)} {
+        lappend ::dvt_wl_cmds {#define WL_STBC_TX_COMMAND "stbc_tx"}
+        lappend ::dvt_wl_cmds {#define WL_STBC_RX_COMMAND "stbc_rx"}
+        lappend ::dvt_wl_cmds {#define WL_TXCORE_COMMAND "txcore"}
+        lappend ::dvt_wl_cmds {#define WL_OBSS_COEX_COMMAND "obss_coex"}
+        lappend ::dvt_wl_cmds {#define WL_LDPC_CAP_COMMAND "ldpc_cap"}
+    }
+
+    # Start web summary page
+    UTF::WrapSummary $UTF::SummaryDir "$email_subject" "$summaryinfo" "$(email)" {
+
+        # Add a web link to the test.log file
+        UTF::Try "Link to test.log" {
+            return "html: <a href=\"./test.log\">test.log</a>"
+        }
+
+        # If no STAs specified, find all the WLAN STA in the testrig.
+        # This includes clones, if any. But not BlueTooth.
+        if {$(nostatest)} {
+            set STAs ""
+        } else {
+            set STAs [UTF::find_stas $(stas) "Cygwin DHD Linux MacOS WinDHD"]
+        }
+
+        # If no APs specified, find all the Router, Vx & BSDAP in the testrig.
+        # This includes clones, if any.
+        if {$(noaptest)} {
+            set APs ""
+        } else {
+            set APs [UTF::find_stas $(aps) "Router Vx BSDAP"]
+        }
+
+        # Log the testbed info.
+        UTF::Message INFO "" "APs=$APs STAs=$STAs"
+        UTF::Message INFO "" "$::UTF::trailer_info"
+
+        # Test all APs, which may include clones.
+        set resp ""
+        foreach ap $APs {
+
+            # We load/reload the AP one at a time in case of clones that have different
+            # builds specified for each clone.
+            if {$(nosetup) == 0} {
+                set loaded 0
+                if {$(noapload)} {
+                    UTF::Try "Reload AP $ap" {
+                        set resp [UTF::reload_rtr $ap]
+                        set loaded 1
+                        return $resp
+                    }
+    
+                } else {
+                    UTF::Try "Load AP $ap" {
+                        if {$(rtrdate) != ""} {
+                            $ap configure -date $(rtrdate)
+                        }
+                        if {$(rtrtag) != ""} {
+                            $ap configure -tag $(rtrtag)
+                        }
+                        set resp [UTF::load_rtr_retry $ap]
+                        set loaded 1
+                        return $resp
+                    }
+                }
+
+            } else {
+                # Use the testrig as is.
+                set loaded 1
+            }
+
+            # Test the AP wl commands
+            wl_test $ap $loaded $(noskip) AP
+        }
+
+        # Test all STAs, which may include clones.
+        foreach sta $STAs {
+
+            # We load/reload the STA one at a time in case of clones that
+            # have different builds specified for each clone.
+            if {$(nosetup) == 0} {
+                set loaded 0
+                if {$(nostaload)} {
+                    UTF::Try "Reload STA $sta" {
+                        set resp [UTF::reload_sta $sta]
+                        set loaded 1
+                        return $resp
+                    }
+
+                } else {
+                    UTF::Try "Load STA $sta" {
+                        if {$(stadate) != ""} {
+                            $sta configure -date $(stadate)
+                        }
+                        if {$(statag) != ""} {
+                            $sta configure -tag $(statag)
+                        }
+                        set resp [UTF::load_sta_retry $sta]
+                        set loaded 1
+                        return $resp
+                    }
+                }
+
+            } else {
+                # Use the testrig as is.
+                set loaded 1
+            }
+
+            # Test the STA wl commands.
+            wl_test $sta $loaded $(noskip)
+        }
+
+        # Show overall synopsis
+        UTF::Try "Overall synopsis" {
+            if {$::overall_synopsis == ""} {
+                set ::overall_synopsis "Nothing tested"
+                set ::overall_status FAIL
+            }
+            if {$::overall_status == "PASS"} {
+                return "html: $::overall_synopsis"
+            } else {
+                error "html: $::overall_synopsis"
+            }
+        }
+    }
+}
+
+
+

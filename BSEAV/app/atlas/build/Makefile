@@ -166,11 +166,6 @@ include $(NEXUS_TOP)/lib/playback_ip/b_playback_ip_lib.inc
 LDFLAGS += $(filter-out -lnexus,$(PLAYBACK_IP_LDFLAGS))
 CFLAGS += -DPLAYBACK_IP_SUPPORT $(PLAYBACK_IP_CFLAGS)
 
-# Add psip
-B_PSIP_TOP := $(NEXUS_TOP)/../rockford/lib/psip
-include $(B_PSIP_TOP)/b_psip_lib.inc
-CFLAGS += $(addprefix -I,$(B_PSIP_LIB_PUBLIC_INCLUDES))
-
 # Add tshdrbuilder
 include $(BSEAV)/lib/tshdrbuilder/tshdrbuilder.inc
 CFLAGS += $(addprefix -I,$(TSHDRBUILDER_INCLUDES))

@@ -5,8 +5,8 @@
 #include <string.h>
 
 #include "glsl_dataflow.h"
-#include "glsl_fastmem.h"
 #include "glsl_dataflow_simplify.h"
+#include "glsl_arenamem.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
 
@@ -32,7 +32,8 @@ typedef enum {
    DF_ARG_FLOAT      = (1 << DF_FLOAT),
    DF_ARG_BITWISE    = DF_ARG_INT | DF_ARG_UINT,
    DF_ARG_ARITH      = DF_ARG_FLOAT | DF_ARG_INT | DF_ARG_UINT,
-   DF_ARG_ANY        = DF_ARG_FLOAT | DF_ARG_INT | DF_ARG_UINT | DF_ARG_BOOL,
+   DF_ARG_ANY_EXPR   = DF_ARG_FLOAT | DF_ARG_INT | DF_ARG_UINT | DF_ARG_BOOL,
+   DF_ARG_ANY        = (1 << 30) - 1,
    DF_ARG_MATCH_ARG0 = (1 << 30), // the type must match the type of argument 0
    DF_ARG_MATCH_ARG1 = (1 << 31)  // the type must match the type of argument 1
 } DataflowArgumentTypes;
@@ -52,6 +53,7 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_EXTERNAL,            "external",             DF_RET_UNDEFINED   },
    { DATAFLOW_LOGICAL_NOT,         "logical_not",          DF_RET_BOOL,       1, { DF_ARG_BOOL } },
    { DATAFLOW_CONST_IMAGE,         "const_image",          DF_RET_UNDEFINED   },
+   { DATAFLOW_CONST_SAMPLER,       "const_sampler",        DF_RET_UNDEFINED   },
    { DATAFLOW_FTOI_TRUNC,          "ftoi_trunc",           DF_RET_INT,        1, { DF_ARG_FLOAT } },
    { DATAFLOW_FTOI_NEAREST,        "ftoi_nearest",         DF_RET_INT,        1, { DF_ARG_FLOAT } },
    { DATAFLOW_FTOU,                "ftou",                 DF_RET_UINT,       1, { DF_ARG_FLOAT } },
@@ -82,6 +84,7 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_ATOMIC_COUNTER,      "atomic_uint",          DF_RET_UNDEFINED   },
    { DATAFLOW_IN,                  "in",                   DF_RET_UNDEFINED   },
    { DATAFLOW_MUL,                 "mul",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
+   { DATAFLOW_MUL24,               "mul24",                DF_RET_MATCH_ARG0, 2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
    { DATAFLOW_DIV,                 "div",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
    { DATAFLOW_REM,                 "rem",                  DF_RET_MATCH_ARG0, 2, { (DF_ARG_INT | DF_ARG_UINT), DF_ARG_MATCH_ARG0 } },
    { DATAFLOW_ADD,                 "add",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
@@ -91,8 +94,8 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_LESS_THAN_EQUAL,     "less_than_equal",      DF_RET_BOOL,       2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
    { DATAFLOW_GREATER_THAN,        "greater_than",         DF_RET_BOOL,       2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
    { DATAFLOW_GREATER_THAN_EQUAL,  "greater_than_equal",   DF_RET_BOOL,       2, { DF_ARG_ARITH, DF_ARG_MATCH_ARG0 } },
-   { DATAFLOW_EQUAL,               "equal",                DF_RET_BOOL,       2, { DF_ARG_ANY, DF_ARG_MATCH_ARG0 }   },
-   { DATAFLOW_NOT_EQUAL,           "not_equal",            DF_RET_BOOL,       2, { DF_ARG_ANY, DF_ARG_MATCH_ARG0 }   },
+   { DATAFLOW_EQUAL,               "equal",                DF_RET_BOOL,       2, { DF_ARG_ANY_EXPR, DF_ARG_MATCH_ARG0 }   },
+   { DATAFLOW_NOT_EQUAL,           "not_equal",            DF_RET_BOOL,       2, { DF_ARG_ANY_EXPR, DF_ARG_MATCH_ARG0 }   },
    { DATAFLOW_LOGICAL_AND,         "logical_and",          DF_RET_BOOL,       2, { DF_ARG_BOOL, DF_ARG_BOOL } },
    { DATAFLOW_LOGICAL_XOR,         "logical_xor",          DF_RET_BOOL,       2, { DF_ARG_BOOL, DF_ARG_BOOL } },
    { DATAFLOW_LOGICAL_OR,          "logical_or",           DF_RET_BOOL,       2, { DF_ARG_BOOL, DF_ARG_BOOL } },
@@ -129,9 +132,12 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_TEXTURE_ADDR,        "texture_addr",         DF_RET_UNDEFINED   },
 #endif
    { DATAFLOW_TEXTURE_SIZE,        "texture_size",         DF_RET_UNDEFINED   },
+   { DATAFLOW_TEXTURE_LEVELS,      "texture_levels",       DF_RET_INT,        0 },
    { DATAFLOW_GET_VEC4_COMPONENT,  "get_vec4_component",   DF_RET_UNDEFINED   },
 
    { DATAFLOW_FRAG_GET_COL,        "frag_get_col",         DF_RET_UNDEFINED   },
+   { DATAFLOW_FRAG_GET_DEPTH,      "frag_get_depth",       DF_RET_FLOAT       },
+   { DATAFLOW_FRAG_GET_STENCIL,    "frag_get_stencil",     DF_RET_INT         },
 
    { DATAFLOW_FRAG_GET_X,          "frag_get_x",           DF_RET_FLOAT,      0 },
    { DATAFLOW_FRAG_GET_Y,          "frag_get_y",           DF_RET_FLOAT,      0 },
@@ -140,6 +146,9 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_FRAG_GET_Z,          "frag_get_z",           DF_RET_FLOAT,      0 },
    { DATAFLOW_FRAG_GET_W,          "frag_get_w",           DF_RET_FLOAT,      0 },
    { DATAFLOW_FRAG_GET_FF,         "frag_get_ff",          DF_RET_BOOL,       0 },
+
+   { DATAFLOW_COMP_GET_ID0,        "comp_get_id0",         DF_RET_UINT,       0 },
+   { DATAFLOW_COMP_GET_ID1,        "comp_get_id1",         DF_RET_UINT,       0 },
 
    { DATAFLOW_GET_THREAD_INDEX,    "get_thread_index",     DF_RET_UINT,       0 },
    { DATAFLOW_SHARED_PTR,          "shared_ptr",           DF_RET_UINT,       0 },
@@ -168,8 +177,13 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
 
    { DATAFLOW_ADDRESS,             "address",              DF_RET_UNDEFINED   },
    { DATAFLOW_BUF_SIZE,            "buf_size",             DF_RET_UNDEFINED   },
+#if !V3D_VER_AT_LEAST(4,0,2,0)
    { DATAFLOW_IMAGE_INFO_PARAM,    "image_info_param",     DF_RET_UNDEFINED   },
+#endif
+#if !V3D_HAS_LARGE_1D_TEXTURE
    { DATAFLOW_TEXBUFFER_INFO_PARAM, "texbuffer_info_param", DF_RET_UNDEFINED  },
+#endif
+   { DATAFLOW_GET_FB_MAX_LAYER,    "get_fb_max_layer"    , DF_RET_UINT,        0 },
 };
 
 void glsl_dataflow_reset_count() {
@@ -273,8 +287,7 @@ Dataflow *glsl_dataflow_construct_load(DataflowType type) {
 
 Dataflow *glsl_dataflow_construct_const_image(DataflowType type, const_value location, bool is_32bit) {
    Dataflow *dataflow = dataflow_construct_common(DATAFLOW_CONST_IMAGE, type);
-   assert(type == DF_FSAMPLER || type == DF_ISAMPLER || type == DF_USAMPLER ||
-          type == DF_FIMAGE   || type == DF_IIMAGE   || type == DF_UIMAGE);
+   assert(glsl_dataflow_type_is_sampled_image(type) || glsl_dataflow_type_is_storage_image(type));
    dataflow->u.const_image.location = location;
    dataflow->u.const_image.is_32bit = is_32bit;
    dataflow->u.const_image.format_valid = false;
@@ -424,9 +437,10 @@ Dataflow *glsl_dataflow_construct_address(Dataflow *operand) {
    return dataflow;
 }
 
-Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand) {
+Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand, const_value subtract_offset) {
    Dataflow *dataflow = dataflow_construct_common(DATAFLOW_BUF_SIZE, DF_UINT);
    dataflow->d.unary_op.operand = operand;
+   dataflow->u.constant.value   = subtract_offset;
    dataflow->dependencies_count = 1;
    return dataflow;
 }
@@ -495,14 +509,13 @@ Dataflow *glsl_dataflow_construct_get_vec4_component(uint32_t component_index,
 }
 
 void glsl_dataflow_construct_frag_get_col(Dataflow **out, DataflowType type,
-                                          uint32_t required_components,
                                           int render_target)
 {
    Dataflow *dataflow = dataflow_construct_common(DATAFLOW_FRAG_GET_COL, type);
 
    dataflow->dependencies_count = 0;
-   dataflow->u.get_col.required_components = required_components;
-   dataflow->u.get_col.render_target = render_target;
+   dataflow->u.get_col.required_components = 0;
+   dataflow->u.get_col.render_target       = render_target;
 
    for (int i=0; i<4; i++)
       out[i] = glsl_dataflow_construct_get_vec4_component(i, dataflow, type);
@@ -519,29 +532,27 @@ Dataflow *glsl_dataflow_construct_vec4(Dataflow *r, Dataflow *g, Dataflow *b, Da
    return dataflow;
 }
 
-void glsl_dataflow_construct_texture_lookup(Dataflow **r_out, Dataflow **g_out,
-                                            Dataflow **b_out, Dataflow **a_out,
+void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
                                             uint32_t bits, Dataflow *image, Dataflow *coords,
-                                            Dataflow *d, Dataflow *b, Dataflow *off,
-                                            uint32_t required_components, DataflowType component_type_index)
+                                            Dataflow *d, Dataflow *b, Dataflow *off, Dataflow *sampler,
+                                            DataflowType component_type_index)
 {
    Dataflow *dataflow = dataflow_construct_common(DATAFLOW_TEXTURE, DF_VOID);
 
-   dataflow->dependencies_count = 5;
+   dataflow->dependencies_count = 6;
 
-   dataflow->d.texture.coords = coords;
-   dataflow->d.texture.d = d;
-   dataflow->d.texture.b = b;
-   dataflow->d.texture.off = off;
-   dataflow->d.texture.image = image;
+   dataflow->d.texture.coords  = coords;
+   dataflow->d.texture.d       = d;
+   dataflow->d.texture.b       = b;
+   dataflow->d.texture.off     = off;
+   dataflow->d.texture.image   = image;
+   dataflow->d.texture.sampler = sampler;
 
-   dataflow->u.texture.required_components = required_components;
+   dataflow->u.texture.required_components = 0;  /* Set up later */
    dataflow->u.texture.bits = bits;
 
-   if (r_out) *r_out = glsl_dataflow_construct_get_vec4_component(0, dataflow, component_type_index);
-   if (g_out) *g_out = glsl_dataflow_construct_get_vec4_component(1, dataflow, component_type_index);
-   if (b_out) *b_out = glsl_dataflow_construct_get_vec4_component(2, dataflow, component_type_index);
-   if (a_out) *a_out = glsl_dataflow_construct_get_vec4_component(3, dataflow, component_type_index);
+   for (unsigned i=0; i<n_out; i++)
+      out[i] = glsl_dataflow_construct_get_vec4_component(i, dataflow, component_type_index);
 }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -561,6 +572,14 @@ Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *image,
 
    return dataflow;
 }
+#else
+Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *image, ImageInfoParam param) {
+   Dataflow *ret = dataflow_construct_common(DATAFLOW_IMAGE_INFO_PARAM, DF_UINT);
+   ret->dependencies_count = 1;
+   ret->d.image_info_param.image = image;
+   ret->u.image_info_param.param = param;
+   return ret;
+}
 #endif
 
 Dataflow *glsl_dataflow_construct_texture_size(Dataflow *image) {
@@ -570,9 +589,18 @@ Dataflow *glsl_dataflow_construct_texture_size(Dataflow *image) {
    return ret;
 }
 
-Dataflow *glsl_dataflow_construct_external(DataflowType t) {
+Dataflow *glsl_dataflow_construct_texture_num_levels(Dataflow *image) {
+   Dataflow *ret = dataflow_construct_common(DATAFLOW_TEXTURE_LEVELS, DF_INT);
+   ret->dependencies_count = 1;
+   ret->d.texture_size.image = image;
+   return ret;
+}
+
+Dataflow *glsl_dataflow_construct_external(DataflowType t, int block, int output) {
    Dataflow *d = dataflow_construct_common(DATAFLOW_EXTERNAL, t);
    d->dependencies_count = 0;
+   d->u.external.block   = block;
+   d->u.external.output  = output;
    return d;
 }
 
@@ -587,14 +615,6 @@ Dataflow *glsl_dataflow_construct_phi(Dataflow *a, int in_a, Dataflow *b, int in
    return d;
 }
 
-Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *image, ImageInfoParam param) {
-   Dataflow *ret = dataflow_construct_common(DATAFLOW_IMAGE_INFO_PARAM, DF_UINT);
-   ret->dependencies_count = 1;
-   ret->d.image_info_param.image = image;
-   ret->u.image_info_param.param = param;
-   return ret;
-}
-
 bool glsl_dataflow_affects_memory(DataflowFlavour f) {
    return f == DATAFLOW_ADDRESS_STORE || f == DATAFLOW_ATOMIC_ADD ||
           f == DATAFLOW_ATOMIC_SUB    || f == DATAFLOW_ATOMIC_MIN ||
@@ -603,6 +623,7 @@ bool glsl_dataflow_affects_memory(DataflowFlavour f) {
           f == DATAFLOW_ATOMIC_XCHG   || f == DATAFLOW_ATOMIC_CMPXCHG;
 }
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
 Dataflow *glsl_construct_texbuffer_info_param(Dataflow *image, TexBufferInfoParam param) {
    Dataflow *ret = dataflow_construct_common(DATAFLOW_TEXBUFFER_INFO_PARAM, DF_UINT);
    ret->dependencies_count = 1;
@@ -610,6 +631,7 @@ Dataflow *glsl_construct_texbuffer_info_param(Dataflow *image, TexBufferInfoPara
    ret->u.texbuffer_info_param.param = param;
    return ret;
 }
+#endif
 
 bool glsl_dataflow_tex_cfg_implies_bslod(uint32_t tex_cfg_bits) {
    return tex_cfg_bits & ( DF_TEXBITS_FETCH  | DF_TEXBITS_SAMPLER_FETCH |

@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "namevalue.h"
 
 BDBG_MODULE(crc);
 
@@ -52,9 +53,18 @@ static void print_usage(void)
         "-hdmi                   ctrl-c to exit.\n"
         "-avd FILE[:PROGRAM] ...\n"
         "-mfd FILE[:PROGRAM] ...\n"
+        "-only_mfd FILE[:PROGRAM] ...\n   like MFD, but don't set the decoder into CRC mode"
         "\n"
         "PROGRAM defaults to 0. If more than one FILE[:PROGRAM] is listed, mosaic decode will be used and CRC's will print to crc#.txt\n"
         );
+    printf(
+        "\n"
+        "Bypass media probe:\n"
+        "  -video PID\n");
+    print_list_option(
+        "  -video_type          ", g_videoCodecStrs);
+    print_list_option(
+        "  -mpeg_type           ", g_transportTypeStrs);
 }
 
 enum crc_type
@@ -85,8 +95,11 @@ int main(int argc, const char **argv)
     unsigned num_done = 0;
     unsigned displayIndex;
     unsigned i;
+    NEXUS_VideoDecoderCrcMode crcMode = NEXUS_VideoDecoderCrcMode_eDefault;
+    media_player_start_settings start_settings;
 
     memset(decoder, 0, sizeof(decoder));
+    media_player_get_default_start_settings(&start_settings);
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
             print_usage();
@@ -104,6 +117,19 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-mfd")) {
             crc_type = crc_type_mfd;
+            crcMode = NEXUS_VideoDecoderCrcMode_eMfd;
+        }
+        else if (!strcmp(argv[curarg], "-only_mfd")) {
+            crc_type = crc_type_mfd;
+        }
+        else if (!strcmp(argv[curarg], "-video") && argc>curarg+1) {
+            start_settings.video.pid = strtoul(argv[++curarg], NULL, 0);
+        }
+        else if (!strcmp(argv[curarg], "-video_type") && argc>curarg+1) {
+            start_settings.video.codec = lookup(g_videoCodecStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-mpeg_type") && argc>curarg+1) {
+            start_settings.transportType = lookup(g_transportTypeStrs, argv[++curarg]);
         }
         else {
             if (num_decodes == MAX_DECODES) {
@@ -156,7 +182,6 @@ int main(int argc, const char **argv)
         }
 
         for (i=0;i<num_decodes;i++) {
-            media_player_start_settings start_settings;
 
             {
                 /* TEMP disable CC for mosaics */
@@ -167,13 +192,13 @@ int main(int argc, const char **argv)
                 NEXUS_SimpleVideoDecoder_SetClientSettings(videoDecoder, &settings);
             }
 
-            media_player_get_default_start_settings(&start_settings);
             start_settings.stream_url = decoder[i].filename;
             start_settings.program = decoder[i].program;
             start_settings.loopMode = NEXUS_PlaybackLoopMode_ePause; /* once */
             start_settings.stcTrick = false;
-            start_settings.crcMode = (crc_type == crc_type_mfd);
+            start_settings.crcMode = crcMode;
             start_settings.sync = NEXUS_SimpleStcChannelSyncMode_eOff;
+            start_settings.audio.pid = 0; /* no audio */
             rc = media_player_start(player[i], &start_settings);
             if (rc) return rc;
 

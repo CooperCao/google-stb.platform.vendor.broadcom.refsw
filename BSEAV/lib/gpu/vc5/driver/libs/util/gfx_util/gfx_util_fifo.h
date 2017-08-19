@@ -8,7 +8,7 @@
 
 #include <stddef.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /* These functions return indices into an external buffer which actually stores
  * the FIFO data. Therefore they operate on elements, not bytes. Note that the
@@ -110,4 +110,4 @@ static inline uint32_t gfx_fifo_space_left(uint32_t head, uint32_t tail, uint32_
    return (size - 1) - gfx_fifo_size(head, tail, size);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

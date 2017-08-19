@@ -1,0 +1,19 @@
+# consolelogger startup script for Fedora 9 and above.
+# Copy to /etc/event.d/consolelogger
+
+# To control manually, use
+# initctl start consolelogger
+# initctl status consolelogger
+# initctl stop consolelogger
+
+start on stopped rc3
+start on stopped rc5
+
+stop on runlevel 0
+stop on runlevel 1
+stop on runlevel 6
+
+console none
+respawn
+exec /usr/local/bin/consolelogger -p 40000 /dev/ttyS0
+pre-start exec sleep 1

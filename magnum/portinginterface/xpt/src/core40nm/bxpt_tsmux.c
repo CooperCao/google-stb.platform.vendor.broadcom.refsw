@@ -289,7 +289,7 @@ BERR_Code BXPT_TsMux_Create(
     BXPT_TsMux_GetDefaultSettings( &lhMux->Settings );
 
     *hTsMux = lhMux;
-    BDBG_MSG(( "%s hTsMux %p", __FUNCTION__, (void *) lhMux ));
+    BDBG_MSG(( "%s hTsMux %p", BSTD_FUNCTION, (void *) lhMux ));
     return Ret;
 
     Error:
@@ -305,7 +305,7 @@ void BXPT_TsMux_Destroy(
 
     BDBG_ASSERT( hTsMux );
 
-    BDBG_MSG(( "%s hTsMux %p", __FUNCTION__, (void *) hTsMux ));
+    BDBG_MSG(( "%s hTsMux %p", BSTD_FUNCTION, (void *) hTsMux ));
     for( Index = 0; Index < BXPT_NUM_PLAYBACKS; Index++ )
     {
         if( hTsMux->Playbacks[ Index ] )
@@ -386,7 +386,7 @@ BERR_Code BXPT_TsMux_AddPlayback(
         goto Done;
     }
 
-    BDBG_MSG(( "%s hTsMux %p, hPb (channel) {bandId} %p (%u) {%u}", __FUNCTION__, (void *) hTsMux, (void *) hPb, hPb->ChannelNo, BXPT_Playback_P_GetBandId( hPb ) ));
+    BDBG_MSG(( "%s hTsMux %p, hPb (channel) {bandId} %p (%u) {%u}", BSTD_FUNCTION, (void *) hTsMux, (void *) hPb, hPb->ChannelNo, BXPT_Playback_P_GetBandId( hPb ) ));
     hTsMux->OriginalPbBandNum[ Index ] = BXPT_Playback_P_GetBandId( hPb );
     if( !hTsMux->MasterPbDefined )
     {
@@ -436,7 +436,7 @@ void BXPT_TsMux_RemovePlayback(
     BDBG_ASSERT( hTsMux );
     BDBG_ASSERT( hPb );
 
-    BDBG_MSG(( "%s hTsMux %p, hPb (channel) %p (%u)", __FUNCTION__, (void *) hTsMux, (void *) hPb, hPb->ChannelNo ));
+    BDBG_MSG(( "%s hTsMux %p, hPb (channel) %p (%u)", BSTD_FUNCTION, (void *) hTsMux, (void *) hPb, hPb->ChannelNo ));
 
     /* UpdatePlaybackMap() needs to be called before removing the hPb handles from hTsMux. */
     if( hTsMux->Settings.bAFAPMode )

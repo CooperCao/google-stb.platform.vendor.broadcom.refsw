@@ -140,6 +140,7 @@ typedef struct NEXUS_3461
     NEXUS_FrontendDevice3461OpenSettings openSettings;
     BREG_I2C_Handle i2cRegHandle;
     BREG_SPI_Handle spiRegHandle;
+    NEXUS_FrontendDeviceHandle pLinkedMtsifDevice;
 } NEXUS_3461;
 
 static BLST_S_HEAD(devList, NEXUS_3461) g_3461DevList = BLST_S_INITIALIZER(g_3461DevList);
@@ -196,6 +197,7 @@ static void NEXUS_FrontendDevice_P_3461_Close(void *handle);
 NEXUS_Error NEXUS_FrontendDevice_P_3461_GetAmplifierStatus(void *handle, NEXUS_AmplifierStatus *pStatus);
 NEXUS_Error NEXUS_FrontendDevice_P_3461_SetAmplifierStatus(void *handle, const NEXUS_AmplifierStatus *pStatus);
 #endif
+NEXUS_Error NEXUS_FrontendDevice_P_3461_Link(NEXUS_FrontendDeviceHandle parentHandle, NEXUS_FrontendDeviceHandle childHandle, const NEXUS_FrontendDeviceLinkSettings *pSettings);
 
 static uint16_t NEXUS_Frontend_P_Get3461Rev(const NEXUS_FrontendDevice3461OpenSettings *pSettings)
 {
@@ -1205,6 +1207,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3461(unsigned index, const N
     pFrontendDevice->getCapabilities = NEXUS_FrontendDevice_P_3461_GetCapabilities;
     pFrontendDevice->getTunerCapabilities = NEXUS_FrontendDevice_P_3461_GetTunerCapabilities;
 
+    pFrontendDevice->deviceLink = NEXUS_FrontendDevice_P_3461_Link;
+
 #if NEXUS_AMPLIFIER_SUPPORT
     pFrontendDevice->getAmplifierStatus = NEXUS_Frontend_P_3461_GetAmplifierStatus;
     pFrontendDevice->setAmplifierStatus = NEXUS_Frontend_P_3461_SetAmplifierStatus;
@@ -1227,7 +1231,6 @@ Summary:
  ***************************************************************************/
 NEXUS_FrontendHandle NEXUS_Frontend_Open3461(const NEXUS_3461Settings *pSettings)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_FrontendHandle frontendHandle = NULL;
     NEXUS_3461 *pDevice = NULL;
     unsigned chn_num=0;
@@ -1257,7 +1260,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3461(const NEXUS_3461Settings *pSettings
 
     /* Create a Nexus frontend handle */
     frontendHandle = NEXUS_Frontend_P_Create(pDevice);
-    if ( NULL == frontendHandle ) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
+    if ( NULL == frontendHandle ) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
 
     /* Establish device capabilities */
     frontendHandle->capabilities.ofdm = true;
@@ -1296,10 +1299,10 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3461(const NEXUS_3461Settings *pSettings
     for(chn_num=0; chn_num < NEXUS_MAX_3461_FRONTENDS; chn_num++){
 
         pDevice->lockAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->lockAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+        if ( NULL == pDevice->lockAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
         pDevice->asyncStatusAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
     }
 
     pDevice->frontendHandle = frontendHandle;
@@ -1538,7 +1541,25 @@ static NEXUS_Error NEXUS_Frontend_P_3461_TuneOfdm(void *handle, const NEXUS_Fron
     BDBG_MSG(("mode = %d, bandwidth = %d, frequency = %d", pSettings->mode, pSettings->bandwidth, pSettings->frequency));
     BDBG_MSG(("acquisitionMode = %d, spectrum = %d, spectrumMode = %d, spectralInversion = %d", pSettings->acquisitionMode, pSettings->spectrum, pSettings->spectrumMode, pSettings->spectralInversion));
 
-
+#if NEXUS_HAS_MXT
+    {
+        if (pDevice->pLinkedMtsifDevice) {
+            if (NEXUS_FrontendDevice_P_CheckOpen(pDevice->pLinkedMtsifDevice)) {
+                return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+            }
+            BDBG_MSG(("3461 mtsif linked configuration, linked device: %p", (void *)pDevice->pLinkedMtsifDevice));
+            if (pDevice->pLinkedMtsifDevice->mtsifConfig.mxt) {
+                NEXUS_FrontendDeviceHandle savedDeviceHandle = pDevice->frontendHandle->pGenericDeviceHandle;
+                pDevice->frontendHandle->pGenericDeviceHandle = pDevice->pLinkedMtsifDevice;
+                rc = NEXUS_Frontend_P_SetMtsifConfig(pDevice->frontendHandle);
+                pDevice->frontendHandle->pGenericDeviceHandle = savedDeviceHandle;
+                if (rc) { return BERR_TRACE(rc); }
+            } else {
+                BDBG_ERR(("misconfiguration: 3461 has linked device, but mxt is not initialized..."));
+            }
+        }
+    }
+#endif
     switch ( pSettings->mode )
     {
     case NEXUS_FrontendOfdmMode_eDvbt:
@@ -3188,4 +3209,20 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3461(const NEXUS_FrontendChannelSettin
         return NEXUS_Frontend_Open3461(&settings);
     }
     return NULL;
+}
+
+NEXUS_Error NEXUS_FrontendDevice_P_3461_Link(NEXUS_FrontendDeviceHandle parentHandle, NEXUS_FrontendDeviceHandle childHandle, const NEXUS_FrontendDeviceLinkSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_3461 *pDevice = NULL;
+
+    BSTD_UNUSED(pSettings);
+
+    pDevice = (NEXUS_3461 *)childHandle->pDevice;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3461);
+
+    BDBG_MSG(("NEXUS_FrontendDevice_P_3461_Link: parent: %p, child: %p", (void *)parentHandle, (void *)childHandle));
+    pDevice->pLinkedMtsifDevice = parentHandle;
+
+    return rc;
 }

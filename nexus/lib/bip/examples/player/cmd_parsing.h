@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -155,7 +155,7 @@ typedef struct AppCtx
     bool                            stressTrickModes;
     bool                            disableDynamicTrackSelection;
 
-#define MAX_IP_NETWORK_JITTER_IN_MS 300
+#define MAX_IP_NETWORK_JITTER_IN_MS 500
     uint32_t                        maxIpNetworkJitterInMs;
     bool                            enableLowLatencyMode;
     int                             clockRecoveryMode;
@@ -165,6 +165,7 @@ typedef struct AppCtx
     bool                            disableTsm;
     bool                            enableAudioPrimer;
     unsigned                        trackGroupIndex;
+    bool                            bufDepthInMsec;
 } AppCtx;
 
 void unInitAppCtx( AppCtx *pAppCtx);

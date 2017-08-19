@@ -49,7 +49,7 @@ BDBG_MODULE(BAST_g3_priv_ftm);
 /*#define BAST_FTM_ODU_RESET_RCVR*/
 /*#define BAST_FTM_USE_NEW_CORR*/
 
-#define BAST_FTM_DEBUG(x) /* x */
+#define BAST_DEBUG_FTM(x) /* x */
 
 /* private functions prototypes used by public ftm functions */
 static bool BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe(BAST_Handle);
@@ -1009,7 +1009,7 @@ static BERR_Code BAST_g3_Ftm_P_StopTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect
          break;
 
       default:
-         BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_StopTimer_isr() - should not get here!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("BAST_g3_Ftm_P_StopTimer_isr() - should not get here!")));
          return BERR_UNKNOWN;
    }
 
@@ -1063,7 +1063,7 @@ static BERR_Code BAST_g3_Ftm_P_StartTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelec
          break;
 
       default:
-         BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_StartTimer_isr() - should not get here!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("BAST_g3_Ftm_P_StartTimer_isr() - should not get here!")));
          return BERR_UNKNOWN;
    }
 
@@ -1860,7 +1860,7 @@ static BERR_Code BAST_g3_Ftm_P_SendPacket(BAST_Handle h, uint8_t *pBuf, uint8_t 
    }
    else
    {
-      BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_SendPacket - src address not in bit mask!")));
+      BAST_DEBUG_FTM(BDBG_MSG(("BAST_g3_Ftm_P_SendPacket - src address not in bit mask!")));
       hFtm->buf_status &= ~BAST_FTM_BUF_TX_NOT_EMPTY;
       retCode = BAST_g3_Ftm_P_SendErrorMessage_isrsafe(h, BAST_FTM_MSG_ERR_REREGISTER);
    }
@@ -2275,7 +2275,7 @@ static BERR_Code BAST_g3_Ftm_P_ProcessRegOfferPacket_isr(BAST_Handle h)
          hFtm->status &= ~BAST_FTM_STATUS_REG_REQ;
          BAST_CHK_RETCODE(BAST_g3_Ftm_P_GetRandomWaitTime_isrsafe(h, hFtm->rx_buffer[6], &timeout));
 
-         BAST_FTM_DEBUG(BDBG_MSG(("got reg offer: mod=%d, wait=%d", hFtm->rx_buffer[6], timeout)));
+         BAST_DEBUG_FTM(BDBG_MSG(("got reg offer: mod=%d, wait=%d", hFtm->rx_buffer[6], timeout)));
 
          if (timeout > 0)
          {
@@ -2313,7 +2313,7 @@ static BERR_Code BAST_g3_Ftm_P_ProcessRegOfferPacket_isr(BAST_Handle h)
          retCode = BAST_g3_Ftm_P_TerminateRegistration_isr(h);
 
          /* construct a "no more addresses" pkt to host */
-         BAST_FTM_DEBUG(BDBG_MSG(("no more addresses")));
+         BAST_DEBUG_FTM(BDBG_MSG(("no more addresses")));
          hFtm->rx_buffer[0] = 5;
          hFtm->rx_buffer[1] = BAST_FTM_PKT_NO_MORE_ADDRESSES;
          hFtm->rx_buffer[2] = 0x00;
@@ -2398,7 +2398,7 @@ static BERR_Code BAST_g3_Ftm_P_ProcessFtmUpPacket_isr(BAST_Handle h)
    BERR_Code retCode = BERR_SUCCESS;
 
    BDBG_ASSERT(BAST_g3_Ftm_P_IsHwAssistStopped_isrsafe(h));
-   BAST_FTM_DEBUG(BDBG_MSG(("got ftm up pkt")));
+   BAST_DEBUG_FTM(BDBG_MSG(("got ftm up pkt")));
 
    /* cancel pending packets after successful hard reset */
    if (hFtm->status & BAST_FTM_STATUS_REG_PENDING)
@@ -2750,7 +2750,7 @@ static BERR_Code BAST_g3_Ftm_P_ProcessMyPacket_isr(BAST_Handle h)
    /* ftm error processing */
    if ((hFtm->rx_packet_cmd & 0x30) == 0x30)
    {
-      BAST_FTM_DEBUG(BDBG_MSG(("FTM error: %02X(%02X|%02X|%02X)", packet_len, hFtm->rx_packet_cmd, hFtm->rx_packet_src_addr, hFtm->rx_packet_dest_addr)));
+      BAST_DEBUG_FTM(BDBG_MSG(("FTM error: %02X(%02X|%02X|%02X)", packet_len, hFtm->rx_packet_cmd, hFtm->rx_packet_src_addr, hFtm->rx_packet_dest_addr)));
 
       switch (hFtm->rx_packet_cmd & 0x3F)
       {
@@ -2782,7 +2782,7 @@ static BERR_Code BAST_g3_Ftm_P_ProcessMyPacket_isr(BAST_Handle h)
       /* check destination address for broadcast */
       if (hFtm->rx_packet_dest_addr == 0x0F)
       {
-         BAST_FTM_DEBUG(BDBG_MSG(("broadcast error")));
+         BAST_DEBUG_FTM(BDBG_MSG(("broadcast error")));
          BAST_FTM_READ(FTM_PHY_ASSIST_STS, &mb);
          bPacketSentLast = (mb & 0x0200) >> 9;
 
@@ -2815,12 +2815,12 @@ static BERR_Code BAST_g3_Ftm_P_ProcessMyPacket_isr(BAST_Handle h)
 
                hFtm->status &= ~BAST_FTM_STATUS_HARD_RESET;
                BAST_CHK_RETCODE(BAST_g3_Ftm_P_StopTimer_isr(h, BAST_Ftm_TimerSelect_eReg));
-               BAST_FTM_DEBUG(BDBG_MSG(("cancel pending hard reset")));
+               BAST_DEBUG_FTM(BDBG_MSG(("cancel pending hard reset")));
             }
             if (hFtm->status & BAST_FTM_STATUS_REG_PENDING)
             {
                BAST_CHK_RETCODE(BAST_g3_Ftm_P_TerminateRegistration_isr(h));
-               BAST_FTM_DEBUG(BDBG_MSG(("cancel pending registration")));
+               BAST_DEBUG_FTM(BDBG_MSG(("cancel pending registration")));
             }
          }
       }
@@ -2945,7 +2945,7 @@ static BERR_Code BAST_g3_Ftm_P_TimerRxIrq_isr(BAST_Handle h)
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
 
-   BAST_FTM_DEBUG(BDBG_MSG(("rx timeout")));
+   BAST_DEBUG_FTM(BDBG_MSG(("rx timeout")));
 
    /* stop rx timer */
    BAST_CHK_RETCODE(BAST_g3_Ftm_P_StopTimer_isr(h, BAST_Ftm_TimerSelect_eRx));
@@ -3075,13 +3075,13 @@ static BERR_Code BAST_g3_Ftm_P_TimerRegIrq_isr(BAST_Handle h)
       BAST_g3_Ftm_P_EnableInterrupt_isr(h, BAST_Ftm_IntID_eAssistLvl1, false);
 
       /* send hard reset if no network activity */
-      BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_TimerRegIrq_isr(): send hard reset")));
+      BAST_DEBUG_FTM(BDBG_MSG(("BAST_g3_Ftm_P_TimerRegIrq_isr(): send hard reset")));
       retCode = BAST_g3_Ftm_P_DoWhenHwAssistIdle_isr(h, BAST_g3_Ftm_P_PrepareHardReset_isr);
    }
    else if (hFtm->status & (BAST_FTM_STATUS_REG_REQ | BAST_FTM_STATUS_REG_RESP))
    {
       /* didn't get reg offer or reg resp */
-      BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_TimerRegIrq_isr(): reg timeout")));
+      BAST_DEBUG_FTM(BDBG_MSG(("BAST_g3_Ftm_P_TimerRegIrq_isr(): reg timeout")));
 
       /* terminate registration and invalidate sp pkt buffer */
       registration_timeout:
@@ -3144,7 +3144,7 @@ static BERR_Code BAST_g3_Ftm_P_TimerRegIrq_isr(BAST_Handle h)
    }
    else
    {
-      BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_TimerRegIrq_isr(): should not get here!")));
+      BAST_DEBUG_FTM(BDBG_MSG(("BAST_g3_Ftm_P_TimerRegIrq_isr(): should not get here!")));
       retCode = BERR_UNKNOWN;
    }
 
@@ -3186,29 +3186,29 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
    switch (param)
 	{
       case BAST_Ftm_IntID_eUartEnd:
-         BAST_FTM_DEBUG(BDBG_MSG(("uart end!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("uart end!")));
          BAST_g3_Ftm_P_EnableInterrupt_isr(h, param, false);  /* disable interrupt */
 
          retCode = BAST_g3_Ftm_P_TransmitDone_isr(h);
          break;
 
       case BAST_Ftm_IntID_eTimer1:
-         BAST_FTM_DEBUG(BDBG_MSG(("timer1!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("timer1!")));
          retCode = BAST_g3_Ftm_P_TimerRxIrq_isr(h);
          break;
 
       case BAST_Ftm_IntID_eTimer2:
-         BAST_FTM_DEBUG(BDBG_MSG(("timer2!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("timer2!")));
          retCode = BAST_g3_Ftm_P_TimerTxIrq_isr(h);
          break;
 
       case BAST_Ftm_IntID_eTimer3:
-         BAST_FTM_DEBUG(BDBG_MSG(("timer3!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("timer3!")));
          retCode = BAST_g3_Ftm_P_TimerRegIrq_isr(h);
          break;
 
       case BAST_Ftm_IntID_eAssistIdle:
-         BAST_FTM_DEBUG(BDBG_MSG(("hw assist idle!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("hw assist idle!")));
          BAST_g3_Ftm_P_EnableInterrupt_isr(h, param, false);  /* disable interrupt */
          if (hFtm->idle_funct_isr)
          {
@@ -3219,7 +3219,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
          break;
 
       case BAST_Ftm_IntID_eRxPktRdy:
-         BAST_FTM_DEBUG(BDBG_MSG(("rx packet ready!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("rx packet ready!")));
 
       #if defined(BAST_FTM_ODU_RESET_RCVR) && (BAST_FTM_CORE_REV == BAST_FTM_CORE_REV_1P6)
          /* reset receiver and reprogram LPF coefficient data after received packet */
@@ -3234,20 +3234,20 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
          break;
 
       case BAST_Ftm_IntID_eAssistLvl1:
-         BAST_FTM_DEBUG(BDBG_MSG(("level1!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("level1!")));
          BAST_g3_Ftm_P_EnableInterrupt_isr(h, param, false);  /* disable interrupt */
          retCode = BAST_g3_Ftm_P_NetworkPreambleDetected_isr(h);
          hFtm->options |= BAST_FTM_OPTION_PREAMBLE_DETECTED;
          break;
 
       case BAST_Ftm_IntID_eAssistLvl2:
-         BAST_FTM_DEBUG(BDBG_MSG(("level2!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("level2!")));
          BAST_g3_Ftm_P_EnableInterrupt_isr(h, param, false);  /* disable interrupt */
          hFtm->options |= BAST_FTM_OPTION_NETWORK_ACTIVITY;
          break;
 
       case BAST_Ftm_IntID_eSpPktSent:
-         BAST_FTM_DEBUG(BDBG_MSG(("sp pkt sent!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("sp pkt sent!")));
          hFtm->status &= ~BAST_FTM_STATUS_POLL_PENDING;
          BAST_CHK_RETCODE(BAST_g3_Ftm_P_TransmitDone_isr(h));
 
@@ -3275,7 +3275,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
          break;
 
       case BAST_Ftm_IntID_eFBadCrcCnt:
-         BAST_FTM_DEBUG(BDBG_MSG(("bad crc!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("bad crc!")));
 
       #if defined(BAST_FTM_ODU_RESET_RCVR) && (BAST_FTM_CORE_REV == BAST_FTM_CORE_REV_1P6)
          /* reset receiver and reprogram LPF coefficient data after received packet */
@@ -3293,14 +3293,14 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
          break;
 
       case BAST_Ftm_IntID_eRxBitMaskChg:
-         BAST_FTM_DEBUG(BDBG_MSG(("rx bit mask chg!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("rx bit mask chg!")));
          BAST_FTM_READ(FTM_PHY_ASSIST_STS, &mb);
          hFtm->rx_bit_mask = (mb >> 16) & 0xFFFF;
          retCode = BAST_g3_Ftm_P_SetRxBitMask_isr(h);
          break;
 
       case BAST_Ftm_IntID_eSerNumChg:
-         BAST_FTM_DEBUG(BDBG_MSG(("ftm sernum chg!")));
+         BAST_DEBUG_FTM(BDBG_MSG(("ftm sernum chg!")));
 
          /* skip packet processing */
          retCode = BINT_ClearCallback_isr(hFtm->cbInfo[BAST_Ftm_IntID_eRxPktRdy].hCb);
@@ -3335,7 +3335,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
          /* disable this unhandled interrupt */
          BINT_DisableCallback_isr(hFtm->cbInfo[param].hCb);
          BDBG_ASSERT(retCode == BERR_SUCCESS);
-         BAST_FTM_DEBUG(BDBG_MSG(("Unhandled FTM Interrupt ID=0x%x!", param)));
+         BAST_DEBUG_FTM(BDBG_MSG(("Unhandled FTM Interrupt ID=0x%x!", param)));
 	}
 
    done:

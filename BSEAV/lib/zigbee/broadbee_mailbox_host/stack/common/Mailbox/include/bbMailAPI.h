@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: branches/ext_xhuajun/MailboxIntegration/stack/common/Mailbox/include/bbMailAPI.h $
-*
-* DESCRIPTION:
-*       declaration of wrappers for public functions
-*
-* $Revision: 3612 $
-* $Date: 2014-09-17 09:29:25Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      declaration of wrappers for public functions
+ *
+*******************************************************************************/
+
 #ifndef _MAIL_API_H
 #define _MAIL_API_H
 
@@ -63,6 +57,7 @@
 #include "bbSysPrint.h"
 #include "bbSysDbgMm.h"
 #include "bbSysDbgProfilingEngine.h"
+#include "bbSysFwRev.h"
 
 #ifdef _ZBPRO_
 # include "bbMacSapTypesBanTable.h"
@@ -114,6 +109,7 @@
 # include "bbZbProZclSapClusterIasZone.h"
 # include "bbZbProZclSapClusterIasAce.h"
 # include "bbZbProZclSapClusterIASWD.h"
+# include "bbZbProZclSapClusterOTAU.h"
 # include "bbZbProZclSapAttributesDiscover.h"
 
 #ifdef _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
@@ -136,7 +132,7 @@
 
 #ifdef _PHY_TEST_HOST_INTERFACE_
 #include "bbPhySapTest.h"
-#include "bbPhyTest.h"
+#include "bbPhyTestHostInterface.h"
 #include "bbRF4CEDiag.h"
 #endif
 
@@ -144,8 +140,8 @@
 #include "bbExtPeScanEd.h"
 #endif
 
+#ifdef _HOST_   //#ifdef MAILBOX_UNIT_TEST
 
-#ifdef MAILBOX_UNIT_TEST
 /* */
 //extern void MailUnitTest_f1_Call(MailUnitTest_f1Descr_t *req);
 //extern void MailUnitTest_f2_Call(MailUnitTest_f2Descr_t *req);
@@ -154,8 +150,9 @@
 //extern void MailUnitTest_f5_Call(MailUnitTest_f5Descr_t *req);
 
 //extern void Mail_TestEnginePing_Call(TE_PingCommandReqDescr_t *req);
+extern void Get_FW_Rev_Req_Call(Get_FW_Rev_ReqDescr_t  *request);
 extern void Mail_TestEngineEcho_Call(TE_EchoCommandReqDescr_t *const req);
-extern void Mail_TestEngineReset_Call(TE_ResetCommandReqDescr_t *req);
+extern void Mail_TestEngineReset_Call(TE_ResetCommandReqParams_t *const req);
 //extern void Mail_SetEchoDelay_Call(TE_SetEchoDelayCommandReqDescr_t *req);
 extern void sysEventSubscribeHostHandler_Call(SYS_EventHandlerMailParams_t *req);
 //extern void Mail_Host2Uart1_Call(TE_Host2Uart1ReqDescr_t *req);
@@ -184,7 +181,7 @@ extern void ZBPRO_MAC_RxEnableReq_Call(MAC_RxEnableReqDescr_t *reqDescr);
 extern void ZBPRO_MAC_ScanReq_Call(MAC_ScanReqDescr_t *reqDescr);
 extern void ZBPRO_MAC_SetReq_Call(MAC_SetReqDescr_t *reqDescr);
 extern void ZBPRO_MAC_StartReq_Call(MAC_StartReqDescr_t *reqDescr);
-#endif
+#endif  // _ZBPRO_
 
 extern void RF4CE_MAC_DataReq_Call(MAC_DataReqDescr_t *reqDescr);
 extern void RF4CE_MAC_DataInd_Call(MAC_DataIndParams_t *indParams);
@@ -217,7 +214,7 @@ extern void RF4CE_NWK_DiscoveryInd_Call(RF4CE_NWK_DiscoveryIndParams_t *indParam
 extern void RF4CE_NWK_COMMStatusInd_Call(RF4CE_NWK_COMMStatusIndParams_t *indParams);
 extern void RF4CE_NWK_PairInd_Call(RF4CE_NWK_PairIndParams_t *indParams);
 extern void RF4CE_NWK_UnpairInd_Call(RF4CE_NWK_UnpairIndParams_t *indParams);
-extern void RF4CE_NWK_MacStatsReq_Call(RF4CE_NWK_MacStatsReqDescr_t *request);
+//extern void RF4CE_NWK_MacStatsReq_Call(RF4CE_NWK_MacStatsReqDescr_t *request);
 #ifdef ENABLE_GU_KEY_SEED_IND
 extern void RF4CE_NWK_KeySeedStartInd_Call(RF4CE_NWK_KeySeedStartIndParams_t *indication);
 #endif /* ENABLE_GU_KEY_SEED_IND */
@@ -291,14 +288,14 @@ extern void ZBPRO_ZCL_ProfileWideCmdReportAttributesInd_Call(ZBPRO_ZCL_ProfileWi
 extern void ZBPRO_ZCL_IdentifyCmdIdentifyReq_Call(ZBPRO_ZCL_IdentifyCmdIdentifyReqDescr_t *req);
 extern void ZBPRO_ZCL_IdentifyCmdIdentifyQueryReq_Call(ZBPRO_ZCL_IdentifyCmdIdentifyQueryReqDescr_t *req);
 extern void ZBPRO_ZCL_IdentifyCmdIdentifyQueryResponseIndEB_Call(ZBPRO_ZCL_IdentifyCmdIdentifyQueryResponseIndParams_t *ind);
-# if (WRAPPERS_OFF != _MAILBOX_WRAPPERS_ZCL_IDENTIFY_RELAY_)
+    #if (WRAPPERS_OFF != _MAILBOX_WRAPPERS_ZCL_IDENTIFY_RELAY_)
 extern void ZBPRO_ZCL_IdentifyCmdIdentifyInd_Call(ZBPRO_ZCL_IdentifyCmdIdentifyIndParams_t *ind);
 extern void ZBPRO_ZCL_IdentifyCmdIdentifyResponseReq_Call(ZBPRO_ZCL_IdentifyCmdIdentifyResponseReqDescr_t *req);
 extern void ZBPRO_ZCL_IdentifyCmdIdentifyQueryInd_Call(ZBPRO_ZCL_IdentifyCmdIdentifyQueryIndParams_t *ind);
 extern void ZBPRO_ZCL_IdentifyCmdIdentifyQueryResponseReq_Call(ZBPRO_ZCL_IdentifyCmdIdentifyQueryResponseReqDescr_t *req);
-# else
+    #else   // (WRAPPERS_OFF != _MAILBOX_WRAPPERS_ZCL_IDENTIFY_RELAY_)
 extern void ZBPRO_ZCL_IdentifyInd(ZBPRO_ZCL_IdentifyIndParams_t *const indParams);
-# endif
+    #endif  // (WRAPPERS_OFF != _MAILBOX_WRAPPERS_ZCL_IDENTIFY_RELAY_)
 extern void ZBPRO_ZCL_GroupsCmdAddGroupReq_Call(ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t *req);
 extern void ZBPRO_ZCL_GroupsCmdViewGroupReq_Call(ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t *req);
 extern void ZBPRO_ZCL_GroupsCmdGetGroupMembershipReq_Call(ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t *req);
@@ -376,16 +373,16 @@ extern void ZBPRO_TC_NwkKeyUpdateReq_Call(ZBPRO_TC_NwkKeyUpdateReqDescr_t *req);
 /* ZBPRO TC API unit test */
 
 /* ZBPRO ZDO ZHA unit test */
-#ifdef _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
+    #ifdef _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
 extern void ZBPRO_ZHA_EzModeReq_Call(ZBPRO_ZHA_EzModeReqDescr_t *reqDescr);
 extern void ZBPRO_ZHA_CieDeviceEnrollReq_Call(ZBPRO_ZHA_CieEnrollReqDescr_t *reqDescr);
 extern void ZBPRO_ZHA_CieDeviceSetPanelStatusReq_Call(ZBPRO_ZHA_CieSetPanelStatusReqDescr_t * const reqDescr);
 extern void ZBPRO_ZHA_CieDeviceSetPanelStatusReqInd_Call(ZBPRO_ZHA_CieSetPanelStatusIndParams_t   *const   indParams);
 extern void ZBPRO_ZHA_CieZoneSetBypassStateReq_Call(ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t   *const descr);
 extern void ZBPRO_ZHA_CieDeviceEnrollInd_Call(ZBPRO_ZHA_CieEnrollIndParams_t *const indParams);
-#endif
+    #endif  // _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
 
-#endif
+#endif  // _ZBPRO_
 
 /* RF4CE Profile manager API unit test */
 extern void RF4CE_UnpairReq_Call(RF4CE_UnpairReqDescr_t *request);
@@ -418,7 +415,7 @@ extern void RF4CE_ZRC2_EnableBindingReq_Call(RF4CE_ZRC2_BindingReqDescr_t *reque
 extern void RF4CE_ZRC2_DisableBindingReq_Call(RF4CE_ZRC2_BindingReqDescr_t *request);
 extern void RF4CE_ZRC2_SetPushButtonStimulusReq_Call(RF4CE_ZRC2_ButtonBindingReqDescr_t *request);
 extern void RF4CE_ZRC2_ClearPushButtonStimulusReq_Call(RF4CE_ZRC2_ButtonBindingReqDescr_t *request);
-extern void RF4CE_ZRC2_CheckValidationResp_Call(RF4CE_ZRC2_CheckValidationRespDescr_t *response);
+//extern void RF4CE_ZRC2_CheckValidationResp_Call(RF4CE_ZRC2_CheckValidationRespDescr_t *response);
 extern void RF4CE_ZRC2_StartValidationInd_Call(RF4CE_ZRC2_CheckValidationIndParams_t *indication);
 extern void RF4CE_ZRC2_CheckValidationInd_Call(RF4CE_ZRC2_CheckValidationIndParams_t *indication);
 extern void RF4CE_ZRC2_ControlCommandInd_Call(RF4CE_ZRC2_ControlCommandIndParams_t *indication);
@@ -478,5 +475,8 @@ extern void RF4CE_Get_Diag_Caps_Req_Call(RF4CE_Diag_Caps_ReqDescr_t *request);
 extern void RF4CE_Get_Diag_Req_Call(RF4CE_Diag_ReqDescr_t *request);
 # endif
 
-#endif /* MAILBOX_UNIT_TEST */
+#endif  // _HOST_   // MAILBOX_UNIT_TEST
+
 #endif /* _MAIL_API_H */
+
+/* eof bbMailAPI.h */

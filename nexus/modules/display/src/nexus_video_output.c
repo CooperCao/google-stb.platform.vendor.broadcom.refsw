@@ -47,6 +47,8 @@ BDBG_MODULE(nexus_video_output);
 #include "priv/nexus_rfm_priv.h"
 #endif
 
+static BERR_Code NEXUS_VideoOutput_P_SetDac(NEXUS_VideoOutput_P_Link *link, NEXUS_DisplayHandle display, bool connect);
+
 static const NEXUS_SvideoOutputSettings NEXUS_SvideoOutputDefaultSettings = {
     NEXUS_VideoDac_eNone,
     NEXUS_VideoDac_eNone
@@ -261,25 +263,22 @@ NEXUS_ComponentOutput_GetDefaultSettings(NEXUS_ComponentOutputSettings *pSetting
 NEXUS_ComponentOutputHandle
 NEXUS_ComponentOutput_Open(unsigned index, const NEXUS_ComponentOutputSettings *cfg)
 {
-    BERR_Code rc;
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     NEXUS_ComponentOutputHandle output;
     NEXUS_DisplayModule_State *state = &g_NEXUS_DisplayModule_State;
     NEXUS_ComponentOutputSettings defaultSettings;
-
-    BSTD_UNUSED(rc);
 
     if(!cfg) {
         NEXUS_ComponentOutput_GetDefaultSettings(&defaultSettings);
         cfg = &defaultSettings;
     }
     if(index>=sizeof(state->outputs.component)/sizeof(state->outputs.component[0])) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output = &state->outputs.component[index];
     if(output->opened) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output->opened = true;
@@ -291,7 +290,7 @@ NEXUS_ComponentOutput_Open(unsigned index, const NEXUS_ComponentOutputSettings *
 #else
     BSTD_UNUSED(index);
     BSTD_UNUSED(cfg);
-    rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+    BERR_TRACE(BERR_INVALID_PARAMETER);
     return NULL;
 #endif
 }
@@ -368,22 +367,20 @@ NEXUS_SvideoOutput_GetDefaultSettings(NEXUS_SvideoOutputSettings *pSettings)
 NEXUS_SvideoOutputHandle
 NEXUS_SvideoOutput_Open(unsigned index, const NEXUS_SvideoOutputSettings *cfg)
 {
-    BERR_Code rc;
 #if NEXUS_NUM_SVIDEO_OUTPUTS
     NEXUS_SvideoOutputHandle  output;
     NEXUS_DisplayModule_State *state = &g_NEXUS_DisplayModule_State;
-    BSTD_UNUSED(rc);
 
     if(!cfg) {
         cfg  = &NEXUS_SvideoOutputDefaultSettings;
     }
     if(index>=sizeof(state->outputs.svideo)/sizeof(state->outputs.svideo[0])) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output = &state->outputs.svideo[index];
     if(output->opened) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output->opened = true;
@@ -394,7 +391,7 @@ NEXUS_SvideoOutput_Open(unsigned index, const NEXUS_SvideoOutputSettings *cfg)
 #else
     BSTD_UNUSED(index);
     BSTD_UNUSED(cfg);
-    rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+    BERR_TRACE(BERR_INVALID_PARAMETER);
     return NULL;
 #endif
 }
@@ -471,23 +468,21 @@ NEXUS_CompositeOutput_GetDefaultSettings(NEXUS_CompositeOutputSettings *pSetting
 NEXUS_CompositeOutputHandle
 NEXUS_CompositeOutput_Open(unsigned index, const NEXUS_CompositeOutputSettings *cfg)
 {
-    BERR_Code rc;
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     NEXUS_CompositeOutputHandle  output;
     NEXUS_DisplayModule_State *state = &g_NEXUS_DisplayModule_State;
-    BSTD_UNUSED(rc);
 
     if(!cfg) {
         cfg  = &NEXUS_CompositeOutputDefaultSettings;
     }
 
     if(index>=sizeof(state->outputs.composite)/sizeof(state->outputs.composite[0])) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output = &state->outputs.composite[index];
     if(output->opened) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output->opened = true;
@@ -498,7 +493,7 @@ NEXUS_CompositeOutput_Open(unsigned index, const NEXUS_CompositeOutputSettings *
 #else
     BSTD_UNUSED(index);
     BSTD_UNUSED(cfg);
-    rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+    BERR_TRACE(BERR_INVALID_PARAMETER);
     return NULL;
 #endif
 }
@@ -575,22 +570,20 @@ NEXUS_Ccir656Output_GetDefaultSettings(NEXUS_Ccir656OutputSettings *pSettings)
 NEXUS_Ccir656OutputHandle
 NEXUS_Ccir656Output_Open(unsigned index, const NEXUS_Ccir656OutputSettings *cfg)
 {
-    BERR_Code rc;
 #if NEXUS_NUM_656_OUTPUTS
     NEXUS_Ccir656OutputHandle  output;
     NEXUS_DisplayModule_State *state = &g_NEXUS_DisplayModule_State;
-    BSTD_UNUSED(rc);
 
     if(!cfg) {
         cfg  = &NEXUS_Ccir656OutputDefaultSettings;
     }
     if(index>=sizeof(state->outputs.ccir656)/sizeof(state->outputs.ccir656[0])) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output = &state->outputs.ccir656[index];
     if(output->opened) {
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     output->opened = true;
@@ -601,7 +594,7 @@ NEXUS_Ccir656Output_Open(unsigned index, const NEXUS_Ccir656OutputSettings *cfg)
 #else
     BSTD_UNUSED(index);
     BSTD_UNUSED(cfg);
-    rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+    BERR_TRACE(BERR_INVALID_PARAMETER);
     return NULL;
 #endif
 }
@@ -716,6 +709,7 @@ static bool nexus_videooutput_p_allow_analog_display(NEXUS_VideoOutputType outpu
         NEXUS_DisplayHandle otherDisplay = g_NEXUS_DisplayModule_State.displays[d];
         if (!otherDisplay || otherDisplay->timingGenerator == NEXUS_DisplayTimingGenerator_eEncoder) continue;
         for (otherLink=BLST_D_FIRST(&otherDisplay->outputs);otherLink;otherLink=BLST_D_NEXT(otherLink, link)) {
+            if (!otherLink->dacsConnected) continue;
             switch (otherLink->output->type) {
             case NEXUS_VideoOutputType_eComponent:
                 analog[0] = true;
@@ -743,12 +737,74 @@ static bool nexus_videooutput_p_allow_analog_display(NEXUS_VideoOutputType outpu
         }
     }
     if (num > g_NEXUS_DisplayModule_State.vdcCapabilities.ulNumAlgPaths) {
-        BDBG_WRN(("muting %s output because of limited analog paths", g_videoOutputStr[outputType]));
-        return false;
+        /* give preference to component over svideo/composite/rfm */
+        if (outputType == NEXUS_VideoOutputType_eComponent) {
+            for (d=0;d<sizeof(g_NEXUS_DisplayModule_State.displays)/sizeof(g_NEXUS_DisplayModule_State.displays[0]);d++) {
+                NEXUS_VideoOutput_P_Link *otherLink;
+                NEXUS_DisplayHandle otherDisplay = g_NEXUS_DisplayModule_State.displays[d];
+                if (!otherDisplay || otherDisplay->timingGenerator == NEXUS_DisplayTimingGenerator_eEncoder) continue;
+                for (otherLink=BLST_D_FIRST(&otherDisplay->outputs);otherLink;otherLink=BLST_D_NEXT(otherLink, link)) {
+                    if (!otherLink->dacsConnected) continue;
+                    switch (otherLink->output->type) {
+                    case NEXUS_VideoOutputType_eSvideo:
+                    case NEXUS_VideoOutputType_eComposite:
+                    case NEXUS_VideoOutputType_eRfm:
+                        BDBG_WRN(("muting %s output because of limited analog paths", g_videoOutputStr[otherLink->output->type]));
+                        NEXUS_VideoOutput_P_SetDac(otherLink, otherDisplay, false);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
+        else {
+            BDBG_WRN(("muting %s output because of limited analog paths", g_videoOutputStr[outputType]));
+            return false;
+        }
     }
-    else {
-        return true;
+    return true;
+}
+
+/* Search all other outputs on the display. If a dac is already in use it's likely a DAC-limited chip (for example,
+only 3 DAC's shared between component and composite).
+We don't want to fail and require all apps to change, and we don't want to have to choose component or composite at compile time.
+Instead, issue a BDBG_WRN and return NEXUS_SUCCESS. Give preference to component. */
+static bool nexus_videooutput_p_mute_shared_dac(NEXUS_VideoOutput_P_Link *link)
+{
+    unsigned d, i, j;
+    NEXUS_Error rc;
+    for (d=0;d<sizeof(g_NEXUS_DisplayModule_State.displays)/sizeof(g_NEXUS_DisplayModule_State.displays[0]);d++) {
+        NEXUS_VideoOutput_P_Link *otherLink;
+        if (!g_NEXUS_DisplayModule_State.displays[d]) continue;
+        for (otherLink=BLST_D_FIRST(&g_NEXUS_DisplayModule_State.displays[d]->outputs);otherLink;otherLink=BLST_D_NEXT(otherLink, link)) {
+            if (otherLink == link || !otherLink->dacsConnected) continue;
+            for (i=0;i<NEXUS_P_MAX_DACS;i++) {
+                if (!otherLink->dac[i].dac) continue;
+                for (j=0;j<NEXUS_P_MAX_DACS;j++) {
+                    if (otherLink->dac[i].dac == link->dac[j].dac) {
+                        NEXUS_VideoOutput_P_Link *muteLink = link;
+                        /* give preference to component */
+                        if (link->output->type == NEXUS_VideoOutputType_eComponent) {
+                            NEXUS_VideoOutput_P_SetDac(otherLink, otherLink->display, false);
+                            muteLink = otherLink;
+                            rc = BVDC_ApplyChanges(g_NEXUS_DisplayModule_State.vdc);
+                            if (rc) {rc = BERR_TRACE(rc);} /* report */
+                        }
+                        BDBG_WRN(("DAC %u already in use. Muting %s output.", otherLink->dac[i].dac - NEXUS_VideoDac_e0,
+                            g_videoOutputStr[muteLink->output->type]));
+                        if (link->output->type != NEXUS_VideoOutputType_eComponent) {
+                            return false;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
+    return true;
 }
 
 static BERR_Code
@@ -757,48 +813,13 @@ NEXUS_VideoOutput_P_SetDac(NEXUS_VideoOutput_P_Link *link, NEXUS_DisplayHandle d
     BERR_Code rc;
     unsigned i, j;
 
-    if ((connect == false) && (link->dacsConnected == false))
-		return NEXUS_SUCCESS;
+    if ((connect == false) && (link->dacsConnected == false)) {
+        return NEXUS_SUCCESS;
+    }
 
     if (connect && !nexus_videooutput_p_allow_analog_display(link->output->type, display)) return NEXUS_SUCCESS;
 
-    if (connect) {
-        /* Search all other outputs on the display. If a dac is already in use it's likely a DAC-limited chip (for example,
-        only 3 DAC's shared between component and composite).
-        We don't want to fail and require all apps to change, and we don't want to have to choose component or composite at compile time.
-        Instead, issue a BDBG_WRN and return NEXUS_SUCCESS. Give preference to component. */
-        NEXUS_VideoOutput_P_Link *otherLink;
-        unsigned d;
-        for (d=0;d<sizeof(g_NEXUS_DisplayModule_State.displays)/sizeof(g_NEXUS_DisplayModule_State.displays[0]);d++) {
-            if (!g_NEXUS_DisplayModule_State.displays[d]) continue;
-            for (otherLink=BLST_D_FIRST(&g_NEXUS_DisplayModule_State.displays[d]->outputs);otherLink;otherLink=BLST_D_NEXT(otherLink, link)) {
-                if (otherLink == link || !otherLink->dacsConnected) continue;
-                for (i=0;i<NEXUS_P_MAX_DACS;i++) {
-                    if (!otherLink->dac[i].dac) continue;
-                    for (j=0;j<NEXUS_P_MAX_DACS;j++) {
-                        if (otherLink->dac[i].dac == link->dac[j].dac) {
-                            NEXUS_VideoOutput_P_Link *muteLink = link;
-                            /* give preference to component */
-                            if (link->output->type == NEXUS_VideoOutputType_eComponent) {
-                                NEXUS_VideoOutput_P_SetDac(otherLink, otherLink->display, false);
-                                muteLink = otherLink;
-                                rc = BVDC_ApplyChanges(g_NEXUS_DisplayModule_State.vdc);
-                                if (rc) {rc = BERR_TRACE(rc);} /* report */
-                            }
-                            BDBG_WRN(("DAC %u already in use. Muting %s output.", otherLink->dac[i].dac - NEXUS_VideoDac_e0,
-                                g_videoOutputStr[muteLink->output->type]));
-                            if (link->output->type != NEXUS_VideoOutputType_eComponent) {
-                                return NEXUS_SUCCESS;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    if (connect && !nexus_videooutput_p_mute_shared_dac(link)) return NEXUS_SUCCESS;
 
     for (i=0;i<NEXUS_P_MAX_DACS;i++) {
         if (!link->dac[i].dac) continue;
@@ -1175,6 +1196,83 @@ error:
     return rc;
 }
 
+static void NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(const BVDC_Window_Capabilities * pVdc, NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities * pNexus)
+{
+    BKNI_Memset(pNexus, 0, sizeof(*pNexus));
+    pNexus->typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_ePlm] = pVdc->bConvHdr10;
+    pNexus->typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eDolbyVision] = pVdc->bDolby;
+    pNexus->typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eTechnicolorPrime] = pVdc->bTchInput;
+}
+
+static const char * const dynrngProcessingStrings[] =
+{
+    "PLM",
+    "DBV",
+    "TCH",
+    NULL
+};
+
+NEXUS_Error NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(NEXUS_DisplayHandle display)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+#if NEXUS_NUM_HDMI_OUTPUTS
+    unsigned i;
+    unsigned j;
+    bool openWindows;
+    NEXUS_HdmiOutputHandle hdmiOutput = display->hdmi.outputNotify;
+    NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities caps;
+    NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities mergedCaps;
+
+    if (!hdmiOutput) return NEXUS_SUCCESS;
+
+    /* set them all supported at first */
+    for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
+    {
+        mergedCaps.typesSupported[j] = true;
+    }
+    openWindows = false;
+
+    for (i = 0; i < NEXUS_NUM_VIDEO_WINDOWS; i++)
+    {
+        if (display->windows[i].vdcState.window)
+        {
+            openWindows = true;
+            NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(&display->windows[i].vdcState.caps, &caps);
+            /* if any window active on this display *doesn't* support, then mergedCaps should also not support */
+            for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
+            {
+                BDBG_MSG(("window%d %s support: %s", i, dynrngProcessingStrings[j], caps.typesSupported[j] ? "yes" : "no"));
+                mergedCaps.typesSupported[j] = mergedCaps.typesSupported[j] && caps.typesSupported[j];
+            }
+        }
+    }
+
+    if (!openWindows)
+    {
+        BDBG_MSG(("No windows attached to this display, dynrng caps not reported"));
+        for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
+        {
+            mergedCaps.typesSupported[j] = false;
+        }
+    }
+    else
+    {
+        for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
+        {
+            BDBG_MSG(("display %s support: %s", dynrngProcessingStrings[j], mergedCaps.typesSupported[j] ? "yes" : "no"));
+        }
+    }
+
+    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
+        rc = NEXUS_HdmiOutput_SetDisplayDynamicRangeProcessingCapabilities_priv(hdmiOutput, &mergedCaps);
+    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
+    if (rc) { BERR_TRACE(rc); goto error; }
+
+error:
+#endif
+    return rc;
+}
+
 /*
 three entry points:
 1) NEXUS_HdmiOutput_SetSettings
@@ -1351,8 +1449,8 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
 
             if (!colorimetry_supported)
             {
-                BDBG_WRN(("Requested video format/colorimetry %d/%d is not supported by the attached receiver",
-                    format, nexusMatrixCoefficients)) ;
+                BDBG_WRN(("Requested video format/colorimetry %s/%d is not supported by the attached receiver",
+                    NEXUS_P_VideoFormat_ToStr_isrsafe(format), nexusMatrixCoefficients)) ;
                 /* Keep going, they asked for it... */
             }
 
@@ -1749,7 +1847,6 @@ NEXUS_VideoOutput_P_OpenRfm(NEXUS_VideoOutputHandle output)
 NEXUS_VideoOutput_P_Link *
 NEXUS_P_VideoOutput_Link(NEXUS_VideoOutputHandle output)
 {
-    BERR_Code rc;
     BDBG_ASSERT(output->destination==NULL);
     switch(output->type) {
 #if NEXUS_NUM_HDMI_DVO
@@ -1773,7 +1870,7 @@ NEXUS_P_VideoOutput_Link(NEXUS_VideoOutputHandle output)
     case NEXUS_VideoOutputType_eCcir656:
         return NEXUS_VideoOutput_P_OpenCcir656(output);
     default:
-        rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
         return NULL;
     }
 }

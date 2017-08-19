@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/ZRC/include/bbRF4CEZRCBind.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE ZRC profile Binding functionality.
+ *      This is the header file for the RF4CE ZRC profile Binding functionality.
  *
- * $Revision: 2512 $
- * $Date: 2014-05-26 11:58:18Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_ZRC_BIND_H
 #define _RF4CE_ZRC_BIND_H
 
@@ -98,16 +92,18 @@ typedef enum _RF4CE_ZRC2_BindDuplicateClassNumberHandling_t
 /************************* TYPES *******************************************************/
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Bind confirmation parameters.
+ * \ingroup RF4CE_ZRC2_BindConf
  */
 typedef struct _RF4CE_ZRC2_BindConfParams_t
 {
     uint8_t status;     /*!< The status of binding. See RF4CE_ZRC2_BindStatus_t. */
     uint8_t pairingRef; /*!< The pairing reference on successful binding. */
-    uint8_t profileId;  /*!< Actual profile the node is bound to: RF4CE_ZRC_GDP1_COMPLIANT or RF4CE_ZRC_GDP2_COMPLIANT */
+    uint8_t profileId;  /*!< Actual profile the node is bound to: RF4CE_ZRC_GDP1_COMPLIANT_PROTOCOL_ID or RF4CE_ZRC_GDP2_COMPLIANT_PROTOCOL_ID */
 } RF4CE_ZRC2_BindConfParams_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Bind notification parameters.
+ * \ingroup RF4CE_ZRC2_BindInd
  */
 typedef struct _RF4CE_ZRC2_BindingFinishedNtfyIndParams_t
 {
@@ -118,29 +114,33 @@ typedef struct _RF4CE_ZRC2_BindingFinishedNtfyIndParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Bind request declaration.
+ * \ingroup RF4CE_ZRC2_BindReq
  */
 typedef struct _RF4CE_ZRC2_BindReqDescr_t RF4CE_ZRC2_BindReqDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Bind callback.
+ * \ingroup RF4CE_ZRC2_BindConf
  */
 typedef void (*RF4CE_ZRC2_BindCallback_t)(RF4CE_ZRC2_BindReqDescr_t *req, RF4CE_ZRC2_BindConfParams_t *conf);
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Bind request.
+ * \ingroup RF4CE_ZRC2_BindReq
  */
 typedef struct _RF4CE_ZRC2_BindReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;  /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_BindCallback_t callback; /*!< Callback on request completion. */
 } RF4CE_ZRC2_BindReqDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Proxy Bind request parameters.
+ * \ingroup RF4CE_ZRC2_ProxyBindReq
  */
 typedef struct _RF4CE_ZRC2_ProxyBindReqParams_t
 {
@@ -149,30 +149,34 @@ typedef struct _RF4CE_ZRC2_ProxyBindReqParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Proxy Bind request declaration.
+ * \ingroup RF4CE_ZRC2_ProxyBindReq
  */
 typedef struct _RF4CE_ZRC2_ProxyBindReqDescr_t RF4CE_ZRC2_ProxyBindReqDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Proxy Bind callback.
+ * \ingroup RF4CE_ZRC2_ProxyBindConf
  */
 typedef void (*RF4CE_ZRC2_ProxyBindCallback_t)(RF4CE_ZRC2_ProxyBindReqDescr_t *req, RF4CE_ZRC2_BindConfParams_t *conf);
 
 /**//**
- * \brief RF4CE ZRC 2.0 GDP 2.0 Bind request.
+ * \brief RF4CE ZRC 2.0 GDP 2.0 Proxy Bind request.
+ * \ingroup RF4CE_ZRC2_ProxyBindReq
  */
 struct _RF4CE_ZRC2_ProxyBindReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;      /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_ProxyBindReqParams_t params;  /*!< Request parameters. */
     RF4CE_ZRC2_ProxyBindCallback_t callback; /*!< Callback on request completion. */
 };
 
 /**//**
- * \brief RF4CE ZRC 2.0 GDP 2.0 Binding Commmon confirmation parameters.
+ * \brief RF4CE ZRC 2.0 GDP 2.0 Binding Common confirmation parameters.
+ * \ingroup RF4CE_ZRC2_ButtonBindingConf
  */
 typedef struct _RF4CE_ZRC2_BindingConfParams_t
 {
@@ -181,6 +185,7 @@ typedef struct _RF4CE_ZRC2_BindingConfParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Button Enabled Binding request parameters.
+ * \ingroup RF4CE_ZRC2_ButtonBindingReq
  */
 typedef struct _RF4CE_ZRC2_ButtonBindingReqParams_t
 {
@@ -189,23 +194,26 @@ typedef struct _RF4CE_ZRC2_ButtonBindingReqParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Button Enabled Binding request descriptor declaration.
+ * \ingroup RF4CE_ZRC2_ButtonBindingReq
  */
 typedef struct _RF4CE_ZRC2_ButtonBindingReqDescr_t RF4CE_ZRC2_ButtonBindingReqDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Button Enabled Binding callback.
+ * \ingroup RF4CE_ZRC2_ButtonBindingConf
  */
 typedef void (*RF4CE_ZRC2_ButtonBindingCallback_t)(RF4CE_ZRC2_ButtonBindingReqDescr_t *req, RF4CE_ZRC2_BindingConfParams_t *conf);
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Button Enabled Binding request descriptor.
+ * \ingroup RF4CE_ZRC2_ButtonBindingReq
  */
 struct _RF4CE_ZRC2_ButtonBindingReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;          /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_ButtonBindingReqParams_t params;  /*!< Request parameters. */
     RF4CE_ZRC2_ButtonBindingCallback_t callback; /*!< Pointer to the callback  */
@@ -213,23 +221,26 @@ struct _RF4CE_ZRC2_ButtonBindingReqDescr_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Binding request descriptor declaration.
+ * \ingroup RF4CE_ZRC2_ButtonBindingReq
  */
 typedef struct _RF4CE_ZRC2_BindingReqDescr_t RF4CE_ZRC2_BindingReqDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Binding callback.
+ * \ingroup RF4CE_ZRC2_ButtonBindingConf
  */
 typedef void (*RF4CE_ZRC2_BindingCallback_t)(RF4CE_ZRC2_BindingReqDescr_t *req, RF4CE_ZRC2_BindingConfParams_t *conf);
 
 /**//**
  * \brief RF4CE ZRC 2.0 GDP 2.0 Binding request descriptor.
+ * \ingroup RF4CE_ZRC2_ButtonBindingReq
  */
 struct _RF4CE_ZRC2_BindingReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;      /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_BindingCallback_t callback;   /*!< Pointer to the callback  */
 };
@@ -237,6 +248,7 @@ struct _RF4CE_ZRC2_BindingReqDescr_t
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Starts asynchronous Binding Procedure.
+ \ingroup RF4CE_ZRC_Functions
 
  \param[in] request - pointer to the request.
  \return Nothing.
@@ -245,6 +257,7 @@ void RF4CE_ZRC2_BindReq(RF4CE_ZRC2_BindReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Starts asynchronous Proxy Binding Procedure.
+ \ingroup RF4CE_ZRC_Functions
 
  \param[in] request - pointer to the request.
  \return Nothing.
@@ -253,36 +266,58 @@ void RF4CE_ZRC2_ProxyBindReq(RF4CE_ZRC2_ProxyBindReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Enables Binding Procedure on the Target.
+ \ingroup RF4CE_ZRC_Functions
+
+ \param[in] request - pointer to the request.
+ \return Nothing.
  ****************************************************************************************/
 void RF4CE_ZRC2_EnableBindingReq(RF4CE_ZRC2_BindingReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Disables Binding Procedure on the Target.
+ \ingroup RF4CE_ZRC_Functions
+
+ \param[in] request - pointer to the request.
+ \return Nothing.
  ****************************************************************************************/
 void RF4CE_ZRC2_DisableBindingReq(RF4CE_ZRC2_BindingReqDescr_t *request);
 
 /************************************************************************************//**
-    \brief Sets Push Button Stimulus flag on the Target.
-    \param[in] request - pointer to the request.
+ \brief Sets Push Button Stimulus flag on the Target.
+ \ingroup RF4CE_ZRC_Functions
+
+ \param[in] request - pointer to the request.
+ \return Nothing.
  ****************************************************************************************/
 void RF4CE_ZRC2_SetPushButtonStimulusReq(RF4CE_ZRC2_ButtonBindingReqDescr_t *request);
 
 /************************************************************************************//**
-    \brief Clears Push Button Stimulus flag on the Target.
-    \param[in] request - pointer to the request.
+ \brief Clears Push Button Stimulus flag on the Target.
+ \ingroup RF4CE_ZRC_Functions
+
+ \param[in] request - pointer to the request.
+ \return Nothing.
  ****************************************************************************************/
 void RF4CE_ZRC2_ClearPushButtonStimulusReq(RF4CE_ZRC2_ButtonBindingReqDescr_t *request);
 
 /************************************************************************************//**
-    \brief Pair notification callback.
-    \param[in] indication - pairing parameters.
+ \brief Pair notification callback.
+ \ingroup RF4CE_ZRC_Functions
+
+ \param[in] indication - pairing parameters.
+ \return Nothing.
  ****************************************************************************************/
 void RF4CE_ZRC2_PairNtfyInd(RF4CE_PairingIndParams_t *indication);
 
 /************************************************************************************//**
-    \brief Binding notification callback.
-    \param[in] indication - binding procedure parameters.
+ \brief Binding notification callback.
+ \ingroup RF4CE_ZRC_Functions
+
+ \param[in] indication - binding procedure parameters.
+ \return Nothing.
  ****************************************************************************************/
 void RF4CE_ZRC2_BindingFinishedNtfyInd(RF4CE_ZRC2_BindingFinishedNtfyIndParams_t *indication);
 
 #endif /* _RF4CE_ZRC_BIND_H */
+
+/* eof bbRF4CEZRCBind.h */

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "nexus_types.h"
 #include "nexus_platform_priv.h"
@@ -49,6 +48,7 @@ BDBG_MODULE(nexus_platform_pinmux);
 
 #define SV_BOARD_ID 1
 #define DV_BOARD_ID 2
+#define HB_BOARD_ID 6
 
 #if NEXUS_HAS_SAGE
 static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
@@ -72,7 +72,7 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
         default:
         {
-            /* USFF and HB boards don't have anything other than UART 0 headers */
+            /* USFF boards don't have anything other than UART 0 headers */
             BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
             break;
         }
@@ -135,6 +135,7 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
             break;
         }
+        case HB_BOARD_ID:
         case DV_BOARD_ID:
         {
             /* UART 1 */
@@ -166,7 +167,7 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
     }
 
-    /* Enable mux inside sys_ctrl to ouput the uart router to the test port */
+    /* Enable mux inside sys_ctrl to output the uart router to the test port */
     reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);
     reg = BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS;
     BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);

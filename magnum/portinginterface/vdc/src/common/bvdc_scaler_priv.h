@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,17 +53,21 @@ extern "C" {
 #endif
 
     /* Core revs to track increatmental changes! */
+#if 0
+/* The following are legacy chips */
 #define BVDC_P_SUPPORT_SCL_VER_1              (1) /* 7400 - Ax, Bx, Cx */
 #define BVDC_P_SUPPORT_SCL_VER_2              (2) /* 7400 - Dx, Ex, others */
 #define BVDC_P_SUPPORT_SCL_VER_3              (3) /* 3548 Ax */
 #define BVDC_P_SUPPORT_SCL_VER_4              (4) /* 7420 */
 #define BVDC_P_SUPPORT_SCL_VER_5              (5) /* 3548 B0 */
 #define BVDC_P_SUPPORT_SCL_VER_6              (6) /* 7550: no HORIZ_*_04_05 from ver_4*/
+#endif
 #define BVDC_P_SUPPORT_SCL_VER_7              (7) /* 7422 */
 #define BVDC_P_SUPPORT_SCL_VER_8              (8) /* 7231B0, 7344B0, 7346B0, 7425B0, Added more derring knobs */
 #define BVDC_P_SUPPORT_SCL_VER_9              (9) /* 7429B HW7420-976 fixed SCL rev equal to 0.3.0.5 */
 #define BVDC_P_SUPPORT_SCL_VER_10             (10)/* 7445, 7145 */
 #define BVDC_P_SUPPORT_SCL_VER_11             (11)/* 7364A, 7366B 7445D*/
+#define BVDC_P_SUPPORT_SCL_VER_12             (12)/* 7278B, 7260B */
 
 
     /***************************************************************************
@@ -727,6 +731,9 @@ typedef struct BVDC_P_ScalerContext
     bool                           bDeJagging;
     bool                           bDeRinging;
 
+    bool                           bIs10BitCore;
+    bool                           bIs2xClk;
+
     /* src width alignment: 1 for 444 format internally, 2 for 422 format internally */
     uint32_t                       ulSrcHrzAlign;
 
@@ -743,6 +750,9 @@ BERR_Code BVDC_P_Scaler_Create
       BREG_Handle                      hReg );
 
 void BVDC_P_Scaler_Destroy
+    ( BVDC_P_Scaler_Handle             hScaler );
+
+void BVDC_P_Scaler_Init
     ( BVDC_P_Scaler_Handle             hScaler );
 
 void BVDC_P_Scaler_Init_isr

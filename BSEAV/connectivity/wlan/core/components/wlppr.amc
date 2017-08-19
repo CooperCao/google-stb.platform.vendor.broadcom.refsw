@@ -1,0 +1,5 @@
+# Directories and files included in this component.
+component_paths = [
+    'src/tools/release/components/wlppr-filelist.txt',
+    'src/wl/ppr/',
+]

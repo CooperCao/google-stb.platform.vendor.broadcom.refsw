@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -106,6 +106,23 @@ typedef enum NEXUS_IrInputMode
 } NEXUS_IrInputMode;
 
 /***************************************************************************
+ Summary:
+IR receiver on the board
+***************************************************************************/
+typedef enum NEXUS_IrInputReceiver
+{
+    NEXUS_IrInputReceiver_eDefault, /* don't change current IR receiver mapping */
+    NEXUS_IrInputReceiver_eInput0,
+    NEXUS_IrInputReceiver_eInput1,
+    NEXUS_IrInputReceiver_eUhf,
+    NEXUS_IrInputReceiver_eGpio, /* GPIO # varies per board, see schematic */
+    NEXUS_IrInputReceiver_eNone,
+    NEXUS_IrInputReceiver_eMax
+} NEXUS_IrInputReceiver;
+
+/***************************************************************************/
+
+/***************************************************************************
 Summary:
 IR Input Device Settings
 
@@ -121,6 +138,8 @@ typedef struct NEXUS_IrInputSettings
     NEXUS_IrInputMode mode;         /* IR Mode (default is eRemoteA) */
     unsigned channel_number;        /* IR Channel Number (default is 0). See NEXUS_IrInput_Open for information about using channel_number
                                        and multiple IR inputs. */
+    NEXUS_IrInputReceiver receiver; /* Mapping of IR channel to an IR receiver on the board.
+                                       If there are multiple NEXUS_IrInputs for the same channel_number, they must have the same NEXUS_IrInputReceiver setting. */
     bool useCustomSettings;         /* Set this to true to use customSettings for the above-specified 'mode'.
                                        See NEXUS_IrInput_GetCustomSettingsForMode */
     NEXUS_IrInputCustomSettings customSettings; /* NOTE: This is a large structure (currently 248 bytes). Please malloc
@@ -333,4 +352,3 @@ NEXUS_Error NEXUS_IrInput_SetDataFilter(
 #endif
 
 #endif /* #ifndef NEXUS_IR_INPUT_H__ */
-

@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZCL/include/bbZbProZclSapClusterScenes.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL Scenes cluster SAP interface.
+*       ZCL Scenes cluster SAP interface.
 *
-* $Revision: 7638 $
-* $Date: 2015-07-22 10:21:58Z $
-*
-*****************************************************************************************/
+*******************************************************************************/
 
 #ifndef BBZBPROZCLSAPCLUSTERSCENES_H
 #define BBZBPROZCLSAPCLUSTERSCENES_H
@@ -58,17 +51,18 @@
 
 
 /************************* DEFINITIONS **************************************************/
+#define ZBPRO_ZCL_SCENE_MANAGEMENT_INFORMATION 0x0000
+#define ZBPRO_ZCL_SCENE_MAKE_ATTRIBUTE_ID(set, id) (((set) << 4) | ((id) & 0xF))
 /**//**
  * \brief   Enumeration of attributes of Scenes ZCL cluster Server side.
  * \details
  *  These attributes are provided by Server side of the cluster.
  * \details
  *  Identify ZCL cluster has no attributes provided by Client side.
+ * \ingroup ZBPRO_ZCL_ScenesAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.2, 3.7.2.2.1, tables 3-36 3-37.
  */
-#define ZBPRO_ZCL_SCENE_MANAGEMENT_INFORMATION 0x0000
-#define ZBPRO_ZCL_SCENE_MAKE_ATTRIBUTE_ID(set, id) (((set) << 4) | ((id) & 0xF))
 typedef enum _ZBPRO_ZCL_SapScenesServerAttributeId_t
 {
     ZBPRO_ZCL_SAP_SCENE_ATTR_ID_SCENE_COUNT        = ZBPRO_ZCL_SCENE_MAKE_ATTRIBUTE_ID(ZBPRO_ZCL_SCENE_MANAGEMENT_INFORMATION, 0x0000),       /*!< SceneCount. */
@@ -82,27 +76,60 @@ typedef enum _ZBPRO_ZCL_SapScenesServerAttributeId_t
 
 
 /**//**
- * \name    Data types shared by attributes and command parameters of Scenes cluster.
+ * \brief   Data types shared by attributes and command parameters of Scenes cluster.
  * \par     Documentation
+ * \ingroup ZBPRO_ZCL_ScenesAttr
  *  See ZigBee Document 075123r05, subclause 3.7.2.2.1,
  */
-
-/**@{*/
-
 typedef uint8_t  ZBPRO_ZCL_SapSceneParamSceneCount_t;
+
+/**//**
+ * \brief   Data types shared by attributes and command parameters of Scenes cluster.
+ * \par     Documentation
+ * \ingroup ZBPRO_ZCL_ScenesAttr
+ *  See ZigBee Document 075123r05, subclause 3.7.2.2.1,
+ */
 typedef uint8_t  ZBPRO_ZCL_SapSceneParamCurrentScene_t;
+
+/**//**
+ * \brief   Data types shared by attributes and command parameters of Scenes cluster.
+ * \par     Documentation
+ * \ingroup ZBPRO_ZCL_ScenesAttr
+ *  See ZigBee Document 075123r05, subclause 3.7.2.2.1,
+ */
 typedef uint16_t  ZBPRO_ZCL_SapSceneParamCurrentGroup_t;
+
+/**//**
+ * \brief   Data types shared by attributes and command parameters of Scenes cluster.
+ * \par     Documentation
+ * \ingroup ZBPRO_ZCL_ScenesAttr
+ *  See ZigBee Document 075123r05, subclause 3.7.2.2.1,
+ */
 typedef Bool8_t  ZBPRO_ZCL_SapSceneParamSceneValid_t;
+
+/**//**
+ * \brief   Data types shared by attributes and command parameters of Scenes cluster.
+ * \par     Documentation
+ * \ingroup ZBPRO_ZCL_ScenesAttr
+ *  See ZigBee Document 075123r05, subclause 3.7.2.2.1,
+ */
 typedef uint8_t  ZBPRO_ZCL_SapSceneParamNameSupport_t;
+
+/**//**
+ * \brief   Data types shared by attributes and command parameters of Scenes cluster.
+ * \par     Documentation
+ * \ingroup ZBPRO_ZCL_ScenesAttr
+ *  See ZigBee Document 075123r05, subclause 3.7.2.2.1,
+ */
 typedef uint64_t  ZBPRO_ZCL_SapSceneParamLastConfiguredBy_t;
 
-/**@}*/
 
 /**//**                                                                                                                 // TODO: Move to private header.
  * \brief   Enumeration of client-to-server commands specific to Scenes ZCL cluster.
  * \details
  *  These commands are generated by Scenes ZCL cluster Client side and received by
  *  Server side.
+ * \ingroup ZBPRO_ZCL_ScenesAttr
  * \note
  *  This implementation of Scenes ZCL cluster doesn't provide generation and reception
  *  of any of the optional commands, it's able to generate and receive only the following
@@ -139,6 +166,7 @@ typedef enum _ZBPRO_ZCL_SapScenesClientToServerCommandId_t
  * \details
  *  These commands are generated by Scenes ZCL cluster Server side and received by
  *  Client side.
+ * \ingroup ZBPRO_ZCL_ScenesAttr
  * \note
  *  This implementation of Scenes ZCL cluster doesn't provide generation and reception
  *  of any of the optional commands, it's able to generate and receive only the following
@@ -172,6 +200,7 @@ typedef enum _ZBPRO_ZCL_SapScenesServerToClientCommandId_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Scenes command AddScene
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_AddSceneReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 3.7.2.4.2.1, figure 3-18.
  */
@@ -199,6 +228,7 @@ typedef struct _ZBPRO_ZCL_ScenesCmdAddSceneReqParams_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Scenes commands ViewScene,
  *  RemoveScene, StoreScene, RecallScene specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupIdSceneIdReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.4.3.1, 3.7.2.4.4.1, 3.7.2.4.6.1, 3.7.2.4.7.1,
  *  figures 3-19, 3-20, 3-22, 3-23.
@@ -216,14 +246,34 @@ typedef struct _ZBPRO_ZCL_ScenesCmdGroupIdSceneIdReqParams_t
 
 } ZBPRO_ZCL_ScenesCmdGroupIdSceneIdReqParams_t;
 
+/**//**
+ * \brief   Structure for parameters of ZCL Local Request to issue ViewScene command.
+ * \ingroup ZBPRO_ZCL_ViewSceneReq
+ */
 typedef  ZBPRO_ZCL_ScenesCmdGroupIdSceneIdReqParams_t  ZBPRO_ZCL_ScenesCmdViewSceneReqParams_t;
+
+/**//**
+ * \brief   Structure for parameters of ZCL Local Request to issue RemoveScene command.
+ * \ingroup ZBPRO_ZCL_RemoveSceneReq
+ */
 typedef  ZBPRO_ZCL_ScenesCmdGroupIdSceneIdReqParams_t  ZBPRO_ZCL_ScenesCmdRemoveSceneReqParams_t;
+
+/**//**
+ * \brief   Structure for parameters of ZCL Local Request to issue StoreScene command.
+ * \ingroup ZBPRO_ZCL_StoreSceneReq
+ */
 typedef  ZBPRO_ZCL_ScenesCmdGroupIdSceneIdReqParams_t  ZBPRO_ZCL_ScenesCmdStoreSceneReqParams_t;
+
+/**//**
+ * \brief   Structure for parameters of ZCL Local Request to issue RecallScene command.
+ * \ingroup ZBPRO_ZCL_RecallSceneReq
+ */
 typedef  ZBPRO_ZCL_ScenesCmdGroupIdSceneIdReqParams_t  ZBPRO_ZCL_ScenesCmdRecallSceneReqParams_t;
 
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Scenes commands RemoveAllScenes,
  *  GetSceneMembership specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupIdReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.4.5.1, 3.7.2.4.8.1,
  *  figures 3-21, 3-24.
@@ -240,7 +290,16 @@ typedef struct _ZBPRO_ZCL_ScenesCmdGroupIdReqParams_t
 
 } ZBPRO_ZCL_ScenesCmdGroupIdReqParams_t;
 
+/**//**
+ * \brief   Structure for parameters of ZCL Local Request to issue Scenes commands RemoveAllScenes.
+ * \ingroup ZBPRO_ZCL_RemoveAllScenesReq
+ */
 typedef  ZBPRO_ZCL_ScenesCmdGroupIdReqParams_t  ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqParams_t;
+
+/**//**
+ * \brief   Structure for parameters of ZCL Local Request to issue Scenes commands GetSceneMembership.
+ * \ingroup ZBPRO_ZCL_GetSceneMembershipReq
+ */
 typedef  ZBPRO_ZCL_ScenesCmdGroupIdReqParams_t  ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqParams_t;
 
 /**//**
@@ -250,6 +309,7 @@ typedef  ZBPRO_ZCL_ScenesCmdGroupIdReqParams_t  ZBPRO_ZCL_ScenesCmdGetSceneMembe
  * \p zclObligatoryPart.overhallStatus contains the status of the operation.
  * \details
  *  This structure takes its origin from ZCL AddScene Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_AddSceneInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.5.1.1, figure 3-27.
  */
@@ -266,6 +326,10 @@ typedef struct _ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t
 
 } ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t;
 
+/**//**
+ * \brief   Structure for parameters of ZCL Confirmation.
+ * \ingroup ZBPRO_ZCL_AddSceneConf
+ */
 typedef  ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t  ZBPRO_ZCL_ScenesCmdAddSceneConfParams_t;
 
 /**//**
@@ -275,6 +339,7 @@ typedef  ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t  ZBPRO_ZCL_ScenesCmdAddS
  * \p zclObligatoryPart.overhallStatus contains the status of the operation.
  * \details
  *  This structure takes its origin from ZCL ViewScene Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_ViewSceneInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.5.2.1, figure 3-28.
  */
@@ -299,6 +364,10 @@ typedef struct _ZBPRO_ZCL_ScenesCmdViewSceneResponseIndParams_t
 
 } ZBPRO_ZCL_ScenesCmdViewSceneResponseIndParams_t;
 
+/**//**
+ * \brief   Structure for parameters of ZCL Confirmation.
+ * \ingroup ZBPRO_ZCL_ViewSceneConf
+ */
 typedef  ZBPRO_ZCL_ScenesCmdViewSceneResponseIndParams_t  ZBPRO_ZCL_ScenesCmdViewSceneConfParams_t;
 
 /**//**
@@ -308,10 +377,17 @@ typedef  ZBPRO_ZCL_ScenesCmdViewSceneResponseIndParams_t  ZBPRO_ZCL_ScenesCmdVie
  * \p zclObligatoryPart.overhallStatus contains the status of the operation.
  * \details
  *  This structure takes its origin from ZCL RemoveScene Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_RemoveSceneInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.5.3.1, figure 3-29.
  */
 typedef ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t ZBPRO_ZCL_ScenesCmdRemoveSceneResponseIndParams_t;
+
+/**//**
+ * \brief   Structure for parameters of ZCL Confirmation when RemoveSceneResponse command
+ *  is issued.
+ * \ingroup ZBPRO_ZCL_RemoveSceneConf
+ */
 typedef ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t ZBPRO_ZCL_ScenesCmdRemoveSceneConfParams_t;
 
 /**//**
@@ -321,6 +397,7 @@ typedef ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t ZBPRO_ZCL_ScenesCmdRemove
  * \p zclObligatoryPart.overhallStatus contains the status of the operation.
  * \details
  *  This structure takes its origin from ZCL RemoveAllScenes Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_RemoveAllScenesInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.5.4.1, figure 3-30.
  */
@@ -336,6 +413,11 @@ typedef struct _ZBPRO_ZCL_ScenesCmdRemoveAllScenesResponseIndParams_t
 
 } ZBPRO_ZCL_ScenesCmdRemoveAllScenesResponseIndParams_t;
 
+/**//**
+ * \brief   Structure for parameters of ZCL Confirmation when RemoveAllScenesResponse command
+ *  is issued.
+ * \ingroup ZBPRO_ZCL_RemoveAllScenesConf
+ */
 typedef  ZBPRO_ZCL_ScenesCmdRemoveAllScenesResponseIndParams_t  ZBPRO_ZCL_ScenesCmdRemoveAllScenesConfParams_t;
 
 /**//**
@@ -345,10 +427,17 @@ typedef  ZBPRO_ZCL_ScenesCmdRemoveAllScenesResponseIndParams_t  ZBPRO_ZCL_Scenes
  * \p zclObligatoryPart.overhallStatus contains the status of the operation.
  * \details
  *  This structure takes its origin from ZCL StoreScene Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_StoreSceneInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.5.5.1, figure 3-31.
  */
 typedef ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t ZBPRO_ZCL_ScenesCmdStoreSceneResponseIndParams_t;
+
+/**//**
+ * \brief   Structure for parameters of ZCL Confirmation when StoreScenesResponse command
+ *  is issued.
+ * \ingroup ZBPRO_ZCL_StoreSceneConf
+ */
 typedef ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t ZBPRO_ZCL_ScenesCmdStoreSceneConfParams_t;
 
 /**//**
@@ -358,6 +447,7 @@ typedef ZBPRO_ZCL_ScenesCmdAddSceneResponseIndParams_t ZBPRO_ZCL_ScenesCmdStoreS
  * \p zclObligatoryPart.overhallStatus contains the status of the operation.
  * \details
  *  This structure takes its origin from ZCL GetSceneMembership Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_GetSceneMembershipInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.7.2.5.6.1, figure 3-32.
  */
@@ -380,6 +470,7 @@ typedef struct _ZBPRO_ZCL_ScenesCmdGetSceneMembershipResponseIndParams_t
  *  Scenes Cluster commands.
  * \details
  *  This structure takes its origin from ZCL Default Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_ScenesConf
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.12, figure 2-25.
  */
@@ -409,12 +500,18 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ScenesCmdGetSceneMemb
 ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_ScenesCmdConfParams_t);
 
 /**//**
+ * \brief   Typedef for AddScene command.
+ * \ingroup ZBPRO_ZCL_AddSceneReq
+ */
+typedef struct _ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t;
+
+/**//**
  * \brief   Data type for ZCL Local Confirmation callback function of AddScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_AddSceneConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
-typedef struct _ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t;
 typedef void ZBPRO_ZCL_ScenesCmdAddSceneConfCallback_t(
                 ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t   *const  reqDescr,
                 ZBPRO_ZCL_ScenesCmdAddSceneConfParams_t *const  confParams);
@@ -422,6 +519,7 @@ typedef void ZBPRO_ZCL_ScenesCmdAddSceneConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue AddScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_AddSceneReq
  */
 struct _ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t
 {
@@ -431,12 +529,18 @@ struct _ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t
 };
 
 /**//**
+ * \brief   Typedef for ViewScene command.
+ * \ingroup ZBPRO_ZCL_ViewSceneReq
+ */
+typedef struct _ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t;
+
+/**//**
  * \brief   Data type for ZCL Local Confirmation callback function of ViewScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ViewSceneConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
-typedef struct _ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t;
 typedef void ZBPRO_ZCL_ScenesCmdViewSceneConfCallback_t(
                 ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t   *const  reqDescr,
                 ZBPRO_ZCL_ScenesCmdViewSceneConfParams_t *const  confParams);
@@ -444,6 +548,7 @@ typedef void ZBPRO_ZCL_ScenesCmdViewSceneConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue ViewScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ViewSceneReq
  */
 struct _ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t
 {
@@ -453,12 +558,18 @@ struct _ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t
 };
 
 /**//**
+ * \brief   Typedef for StoreScene command.
+ * \ingroup ZBPRO_ZCL_StoreSceneReq
+ */
+typedef struct _ZBPRO_ZCL_ScenesCmdStoreSceneReqDescr_t ZBPRO_ZCL_ScenesCmdStoreSceneReqDescr_t;
+
+/**//**
  * \brief   Data type for ZCL Local Confirmation callback function of StoreScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StoreSceneConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
-typedef struct _ZBPRO_ZCL_ScenesCmdStoreSceneReqDescr_t ZBPRO_ZCL_ScenesCmdStoreSceneReqDescr_t;
 typedef void ZBPRO_ZCL_ScenesCmdStoreSceneConfCallback_t(
                 ZBPRO_ZCL_ScenesCmdStoreSceneReqDescr_t   *const  reqDescr,
                 ZBPRO_ZCL_ScenesCmdStoreSceneConfParams_t *const  confParams);
@@ -466,6 +577,7 @@ typedef void ZBPRO_ZCL_ScenesCmdStoreSceneConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue StoreScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_StoreSceneReq
  */
 struct _ZBPRO_ZCL_ScenesCmdStoreSceneReqDescr_t
 {
@@ -497,12 +609,18 @@ struct _ZBPRO_ZCL_ScenesCmdRemoveSceneReqDescr_t
 };
 
 /**//**
+ * \brief   Typedef for RemoveAllScenes command.
+ * \ingroup ZBPRO_ZCL_RemoveAllScenesReq
+ */
+typedef struct _ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t;
+
+/**//**
  * \brief   Data type for ZCL Local Confirmation callback function of RemoveAllScenes command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_RemoveAllScenesConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
-typedef struct _ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t;
 typedef void ZBPRO_ZCL_ScenesCmdRemoveAllScenesConfCallback_t(
                 ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t   *const  reqDescr,
                 ZBPRO_ZCL_ScenesCmdRemoveAllScenesConfParams_t *const  confParams);
@@ -510,6 +628,7 @@ typedef void ZBPRO_ZCL_ScenesCmdRemoveAllScenesConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue RemoveAllScenes command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_RemoveAllScenesReq
  */
 struct _ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t
 {
@@ -519,12 +638,18 @@ struct _ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t
 };
 
 /**//**
+ * \brief   Typedef for RecallScene command.
+ * \ingroup ZBPRO_ZCL_RecallSceneReq
+ */
+typedef struct _ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t;
+
+/**//**
  * \brief   Data type for ZCL Local Confirmation callback function of RecallScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_RecallSceneConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
-typedef struct _ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t;
 typedef void ZBPRO_ZCL_ScenesCmdRecallSceneConfCallback_t(
                 ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t *const  reqDescr,
                 ZBPRO_ZCL_ScenesCmdConfParams_t          *const  confParams);
@@ -532,6 +657,7 @@ typedef void ZBPRO_ZCL_ScenesCmdRecallSceneConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue RecallScene command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_RecallSceneReq
  */
 struct _ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t
 {
@@ -541,12 +667,18 @@ struct _ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t
 };
 
 /**//**
+ * \brief   Typedef for GetSceneMembership command.
+ * \ingroup ZBPRO_ZCL_GetSceneMembershipReq
+ */
+typedef struct _ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqDescr_t ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqDescr_t;
+
+/**//**
  * \brief   Data type for ZCL Local Confirmation callback function of GetSceneMembership command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GetSceneMembershipConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
-typedef struct _ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqDescr_t ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqDescr_t;
 typedef void ZBPRO_ZCL_ScenesCmdGetSceneMembershipConfCallback_t(
                 ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqDescr_t *const  reqDescr,
                 ZBPRO_ZCL_ScenesCmdConfParams_t                 *const  confParams);
@@ -554,6 +686,7 @@ typedef void ZBPRO_ZCL_ScenesCmdGetSceneMembershipConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue GetSceneMembership command
  *  specific to Scenes ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GetSceneMembershipReq
  */
 struct _ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqDescr_t
 {
@@ -576,7 +709,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_ScenesCmdGetSceneMembe
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name   Functions accept ZCL Local Requests to issue AddScene, ViewScene, StoreScene,
+ * \brief  Functions accept ZCL Local Requests to issue AddScene, ViewScene, StoreScene,
  *  RemoveScene, RemoveAllScenes, RecalleScene and GetSceneMembership commands specific
  *  to Scenes ZCL cluster.
  * \details
@@ -605,12 +738,12 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_ScenesCmdGetSceneMembe
  *      ZCL-based profile as for the Local Endpoint.
  */
 
-/**@{*/
-
 /**//**
  * \brief   Accepts ZCL Local Request to issue AddScene command specific to Scenes ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdAddSceneReq(
                 ZBPRO_ZCL_ScenesCmdAddSceneReqDescr_t *const  reqDescr);
@@ -619,7 +752,9 @@ void ZBPRO_ZCL_ScenesCmdAddSceneReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue ViewScene command specific to Scenes ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdViewSceneReq(
                 ZBPRO_ZCL_ScenesCmdViewSceneReqDescr_t *const  reqDescr);
@@ -627,7 +762,9 @@ void ZBPRO_ZCL_ScenesCmdViewSceneReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue StoreScene command specific to Scenes ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdStoreSceneReq(
                 ZBPRO_ZCL_ScenesCmdStoreSceneReqDescr_t *const  reqDescr);
@@ -635,7 +772,9 @@ void ZBPRO_ZCL_ScenesCmdStoreSceneReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue RecallScene command specific to Scenes ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdRecallSceneReq(
                 ZBPRO_ZCL_ScenesCmdRecallSceneReqDescr_t *const  reqDescr);
@@ -643,7 +782,9 @@ void ZBPRO_ZCL_ScenesCmdRecallSceneReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue RemoveScene command specific to Scenes ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdRemoveSceneReq(
                 ZBPRO_ZCL_ScenesCmdRemoveSceneReqDescr_t *const  reqDescr);
@@ -651,7 +792,9 @@ void ZBPRO_ZCL_ScenesCmdRemoveSceneReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue RemoveAllScenes command specific to Scenes ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdRemoveAllScenesReq(
                 ZBPRO_ZCL_ScenesCmdRemoveAllScenesReqDescr_t *const  reqDescr);
@@ -659,7 +802,9 @@ void ZBPRO_ZCL_ScenesCmdRemoveAllScenesReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue GetSceneMembership command specific to Scenes ZCL
  *  cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdGetSceneMembershipReq(
                 ZBPRO_ZCL_ScenesCmdGetSceneMembershipReqDescr_t *const  reqDescr);
@@ -667,9 +812,13 @@ void ZBPRO_ZCL_ScenesCmdGetSceneMembershipReq(
 /**//**
  * \brief   Handles ZCL Local Scenes on reception of GetSceneMembershipResponse command specific to
  *  Identify ZCL cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_ScenesCmdGetSceneMembershipResponseInd(
                 ZBPRO_ZCL_ScenesCmdGetSceneMembershipResponseIndParams_t *const  indParams);
 
 #endif // BBZBPROZCLSAPCLUSTERSCENES_H
+
+/* eof bbZbProZclSapClusterScenes.h */

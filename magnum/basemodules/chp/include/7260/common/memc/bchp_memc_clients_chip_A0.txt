@@ -95,8 +95,6 @@ UBUS_WR	        209
 			
 			
 HVD0_MOCOMP	216		HVD0 PFRI / MOCOMP
-HVD1_MOCOMP	217		HVD1 PFRI / MOCOMP
-VICE_PFRI	218		VICE2v2 instance 0 PFRI (required + optional)
 			
 			219:231 Reserved for additional PFRI clients
 			

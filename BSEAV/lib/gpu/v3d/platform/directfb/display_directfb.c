@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010-11 Broadcom.
-All rights reserved.
-
-Project  :  Default DirectFB platform API for EGL driver
-Module   :  DirectFB platform on NEXUS
-
-FILE DESCRIPTION
-DFB platform layer
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <memory.h>
 #include <assert.h>
 #include <semaphore.h>
@@ -422,7 +415,7 @@ BEGL_DisplayInterface *DBPL_CreateDisplayInterface(IDirectFB *dfb,
    return disp;
 }
 
-DBPL_DestroyDisplayInterface(BEGL_DisplayInterface * disp)
+void DBPL_DestroyDisplayInterface(BEGL_DisplayInterface *disp)
 {
    if (disp)
    {

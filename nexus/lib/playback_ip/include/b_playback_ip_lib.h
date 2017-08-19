@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1065,6 +1065,7 @@ typedef struct B_PlaybackIp_TtsThrottle_Params {
     void (*bufDepthViolationCallback)(void *context, bool isMax); /* function will be called if max/min buffer depth is violated */
     void *bufDepthViolationCbContext;   /* context passed into buf_depth_violation_callback */
     bool scatterGatherPlaypump;         /* true if playpump used in scatter-gather mode */
+    bool bufDepthInMsec;                /* if true, buffer depth is calculated in msec (instead of bytes) using the TTS(if present) or PCR. */
 } B_PlaybackIp_TtsThrottle_Params;
 
 typedef struct B_PlaybackIp_TtsParams {

@@ -42,6 +42,10 @@
 #include "bchp_common.h"
 #include "bchp_memc_clients.h"
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 typedef enum tracelog_FilterMode {
     tracelog_FilterMode_eTrigger,
     tracelog_FilterMode_eTriggerAndCapture,
@@ -174,6 +178,11 @@ typedef struct tracelog_MemoryBuffer {
     unsigned size;
 } tracelog_MemoryBuffer;
 
+typedef struct tracelog_CalibrationData {
+    bool valid;
+    unsigned frequency;
+} tracelog_CalibrationData;
+
 typedef struct tracelog_StartSettings {
     struct {
         tracelog_TriggerMode mode;
@@ -260,6 +269,10 @@ typedef enum tracelog_IoHwBlock {
 
 
 BDBG_FILE_MODULE(TRACELOG);
+#if BCHP_CHIP==7260
+/*  The 7260 TraceLog cannot do GISB snooping. Unfortunate. */
+#undef BCHP_MEMC_TRACELOG_0_0_REG_START
+#endif
 
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
 static bool tracelog_Supported(void)
@@ -274,9 +287,17 @@ static bool tracelog_Supported(void)
 }
 #endif
 
+#define TRACELOG_MIN_BUFFER_ALIGNMENT 256
+#if BCHP_CHIP==7250
+#define TRACELOG_IO_RD_DATA_SUPPORTED  0
+#else
+#define TRACELOG_IO_RD_DATA_SUPPORTED  1
+#endif
+
 
 static BERR_Code tracelog_P_GetOffset(unsigned memc, unsigned *offset)
 {
+    BSTD_UNUSED(offset);
     switch(memc) {
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
     case 0: *offset = 0; break;
@@ -374,6 +395,7 @@ static BERR_Code tracelog_Reset(BREG_Handle reg, unsigned memc)
     unsigned i;
     uint32_t data;
 
+    BSTD_UNUSED(data);
     rc = tracelog_P_GetOffset(memc, &offset);
     if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
 
@@ -381,11 +403,12 @@ static BERR_Code tracelog_Reset(BREG_Handle reg, unsigned memc)
         tracelog_P_SetFilter(reg, offset, i, false, false);
     }
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
-#if defined(BCHP_MEMC_TRACELOG_0_0_CONTROL_CLOCK_GATE_MASK)
     data = tracelog_P_Read(CONTROL);
+    BCHP_SET_FIELD_CONST_DATA(data, MEMC_TRACELOG_0_0_CONTROL, GISB_FULL_SNOOP, 1);
+#if defined(BCHP_MEMC_TRACELOG_0_0_CONTROL_CLOCK_GATE_MASK)
     BCHP_SET_FIELD_CONST_DATA(data, MEMC_TRACELOG_0_0_CONTROL, CLOCK_GATE, 0);
-    tracelog_P_Write(CONTROL, data);
 #endif
+    tracelog_P_Write(CONTROL, data);
     data = BCHP_FIELD_CONST_DATA(MEMC_TRACELOG_0_0_COMMAND, CLEAR, 1);
     tracelog_P_Write(COMMAND, data);
 #endif
@@ -480,7 +503,6 @@ static void tracelog_P_SetAddress(BREG_Handle reg, unsigned offset, unsigned fil
 static void tracelog_P_SetClientList(BREG_Handle reg, unsigned offset, unsigned filter, const tracelog_ClientList *list, bool exclusive)
 {
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
-    unsigned i;
     tracelog_P_WriteFilter(CLIENT_0_MASKi_ARRAY_BASE, exclusive ? list->bits[0] : ~list->bits[0]);
     tracelog_P_WriteFilter(CLIENT_1_MASKi_ARRAY_BASE, exclusive ? list->bits[1] : ~list->bits[1]);
     tracelog_P_WriteFilter(CLIENT_2_MASKi_ARRAY_BASE, exclusive ? list->bits[2] : ~list->bits[2]);
@@ -669,7 +691,6 @@ static BERR_Code tracelog_SetMemoryHwBlock(tracelog_MemoryFilter *filter, tracel
         {BCHP_MemcClient_eMax, tracelog_MemoryHwBlock_eMax}
     };
     unsigned i;
-    BERR_Code rc;
     bool set;
 
     for(i=0;i<sizeof(clients)/sizeof(clients[0]) - 1;i++) {
@@ -732,7 +753,6 @@ static BERR_Code tracelog_SetIoHwBlock(tracelog_IoFilter *filter, tracelog_IoHwB
         {tracelog_IoClient_eUnused, tracelog_IoHwBlock_eMax}
     };
     int i;
-    BERR_Code rc;
     bool set;
 
     for(i=0;i<(int)(sizeof(clients)/sizeof(clients[0]) - 1);i++) {
@@ -748,6 +768,21 @@ static BERR_Code tracelog_SetIoHwBlock(tracelog_IoFilter *filter, tracelog_IoHwB
     return BERR_SUCCESS;
 }
 
+static uint64_t tracelog_P_ReadTime(BREG_Handle reg, unsigned offset)
+{
+    uint64_t clock = 0;
+#ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
+    uint32_t data;
+    clock = tracelog_P_Read(ELAPSED_TIME_LOWER);
+    data = tracelog_P_Read(ELAPSED_TIME_UPPER);
+    data = BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_ELAPSED_TIME_UPPER, TIME_UPPER);
+    clock |= ((uint64_t) data)<<32;
+#else
+    BSTD_UNUSED(reg);
+    BSTD_UNUSED(offset);
+#endif
+    return clock;
+}
 
 static BERR_Code tracelog_GetStatus(BREG_Handle reg, unsigned memc, tracelog_Status *status)
 {
@@ -755,10 +790,13 @@ static BERR_Code tracelog_GetStatus(BREG_Handle reg, unsigned memc, tracelog_Sta
     unsigned offset;
     uint32_t data;
 
+    BSTD_UNUSED(offset);
+    BSTD_UNUSED(memc);
+
+#ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
     rc = tracelog_P_GetOffset(memc, &offset);
     if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
 
-#ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
     data = tracelog_P_Read(STATUS);
     status->blocked.all = BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_STATUS, BLOCK_ALL);
     status->blocked.secure = BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_STATUS, BLOCK_SECURE);
@@ -769,9 +807,7 @@ static BERR_Code tracelog_GetStatus(BREG_Handle reg, unsigned memc, tracelog_Sta
     status->triggered = BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_STATUS, TRIGGERED);
     status->active = BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_STATUS, ACTIVE);
 
-    data = tracelog_P_Read(ELAPSED_TIME_UPPER);
-    status->time.elapsed = tracelog_P_Read(ELAPSED_TIME_LOWER);
-    status->time.elapsed |= (((uint64_t) BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_ELAPSED_TIME_UPPER, TIME_UPPER))<<32);
+    status->time.elapsed = tracelog_P_ReadTime(reg, offset);
 
     status->events.total = tracelog_P_Read(COUNT_TRANS_TOTAL);
     status->events.trigger = tracelog_P_Read(COUNT_TRIGGER_EVENTS);
@@ -779,6 +815,11 @@ static BERR_Code tracelog_GetStatus(BREG_Handle reg, unsigned memc, tracelog_Sta
     status->events.dropped = tracelog_P_Read(COUNT_MATCHES_DROPPED);
     status->events.preTrigger = tracelog_P_Read(COUNT_MATCHES_PRE_TRIGGER);
     status->events.postTrigger = tracelog_P_Read(COUNT_MATCHES_POST_TRIGGER);
+#else
+    BSTD_UNUSED(data);
+    BSTD_UNUSED(reg);
+    BSTD_UNUSED(status);
+    rc = BERR_TRACE(BERR_NOT_SUPPORTED);
 #endif
 
     return rc;
@@ -828,7 +869,7 @@ static void  tracelog_P_ParseLog128(const uint32_t *data, struct tracelog_P_Log1
     if(!log16->valid) {
         return;
     }
-    tmp = B_GET_BITS(data[3], 31, 15);
+    tmp = B_GET_BITS(data[3], 31, 16);
     log128->timestamp = data[2] | (((uint64_t)tmp)<<32);
     if(log16->io) {
         log128->data.io.addr = data[1];
@@ -866,7 +907,6 @@ static int tracelog_P_FormatMemcSizeAndComamnd(char *buf, size_t size, uint8_t c
 {
     const char *name;
     bool linear = false;
-    bool non_data = false;
     switch(command) {
     case 1: name="Linear";linear=true; break;
     case 2: name="Cache"; linear=true; break;
@@ -885,17 +925,121 @@ static int tracelog_P_FormatMemcSizeAndComamnd(char *buf, size_t size, uint8_t c
     return 0;
 }
 
-static int tracelog_P_FormatLog128(char *buf, size_t size, const struct tracelog_P_Log16 *log16, const struct tracelog_P_Log128 *log128)
+/*
+ * this macro builds a function that does a binary search in a sorted array ([0] smallest value)
+ * it returns either index of located entry or if result is negative
+ * -(off+1), where off is offset to largest address in array that is smaller
+ *  then address
+ */
+#define B_BIN_SEARCH(name, type, key)  \
+int name(const type *a, size_t nentries, uint32_t v) { \
+	int right = nentries-1; int left = 0; int mid; \
+	while(left <= right) { \
+		mid = (left+right) / 2; \
+		if (v > a[mid].key) { left = mid+1; } \
+		else if (v < a[mid].key) { right = mid-1; } \
+		else { return mid; } \
+	} return -(left+1);  \
+}
+
+#if BCHP_REGISTER_HAS_REGISTER_INFO && BCHP_REGISTER_HAS_CORE_INFO
+enum tracelog_P_Core {
+#define BCHP_CORE(min, max, rbus, name) tracelop_P_Core_##name,
+#include "bchp_core_info.h"
+#undef BCHP_CORE
+tracelop_P_Core__MAX
+};
+
+struct tracelog_P_RegisterOffset {
+    uint32_t offset;
+};
+
+struct tracelog_P_RegisterCoreName {
+    const char *name;
+};
+
+static B_BIN_SEARCH(tracelog_P_FindRegister, struct tracelog_P_RegisterOffset, offset)
+#endif
+
+static int tracelog_P_FormatIoAddr(char *buf, size_t size, uint32_t addr)
+{
+#if BCHP_REGISTER_HAS_CORE_INFO
+#if BCHP_REGISTER_HAS_REGISTER_INFO && !TRACELOG_COMPACT
+    if(addr >= BCHP_PHYSICAL_OFFSET && addr <= (BCHP_REGISTER_END+BCHP_PHYSICAL_OFFSET)) {
+        static const struct tracelog_P_RegisterOffset offsets[] = {
+#define BCHP_REGISTER_ALIAS(n, offset, width,type, core, reg)
+#define BCHP_REGISTER(offset, width,type, core, reg)  {BCHP_PHYSICAL_OFFSET+offset},
+#include "bchp_register_info.h"
+#undef BCHP_REGISTER
+            {BCHP_REGISTER_END+BCHP_PHYSICAL_OFFSET+4}
+        };
+        static const char * const core_names[] = {
+#define BCHP_CORE(min, max, rbus, name) #name,
+#include "bchp_core_info.h"
+#undef BCHP_CORE
+            NULL
+        };
+        static const char * const register_names[] = {
+#define BCHP_REGISTER(offset, width,type, core, reg)  #reg,
+#include "bchp_register_info.h"
+#undef BCHP_REGISTER
+            NULL
+        };
+        static const uint16_t register_cores[] = {
+#define BCHP_REGISTER(offset, width,type, core, reg)  tracelop_P_Core_##core,
+#include "bchp_register_info.h"
+#undef BCHP_REGISTER
+            tracelop_P_Core__MAX
+        };
+#undef BCHP_REGISTER_ALIAS
+        int index = tracelog_P_FindRegister(offsets, sizeof(offsets)/sizeof(offsets[0]), addr);
+        if(index>=0) {
+            return BKNI_Snprintf(buf, size, "%s_%s(%#x)", core_names[register_cores[index]], register_names[index], (unsigned)addr);
+        }
+    }
+#endif
+    if(addr >= BCHP_PHYSICAL_OFFSET && addr <= (BCHP_REGISTER_END+BCHP_PHYSICAL_OFFSET)) {
+        const char *core=NULL;
+        uint32_t base=0;
+        if(0) {
+        }
+#define BCHP_CORE(min, max, rbus, name) else if(addr >= (BCHP_PHYSICAL_OFFSET+min) && addr <= (BCHP_PHYSICAL_OFFSET+max)) { base = BCHP_PHYSICAL_OFFSET+min; core = #name;}
+#include "bchp_core_info.h"
+#undef BCHP_CORE
+        if(core) {
+            return BKNI_Snprintf(buf, size, "0x%08x(%s+%u)", (unsigned)addr, core, (unsigned)(addr-base));
+        }
+    }
+#endif /* #if BCHP_REGISTER_HAS_CORE_INFO */
+    return BKNI_Snprintf(buf, size, "%08x", (unsigned)addr);
+}
+
+static int tracelog_P_FormatLog128(char *buf, size_t size, const tracelog_CalibrationData *calibrationData, const struct tracelog_P_Log16 *log16, const struct tracelog_P_Log128 *log128, const struct tracelog_P_Log128 *log128_hi)
 {
     int rc;
     unsigned offset = 0;
-    uint64_t addr;
+    char addr_str[64];
 
     if(!log16->valid) {
         return tracelog_P_FormatLog16(buf, size, log16);
     }
-    addr = log16->io ? log128->data.io.addr : log128->data.memory.addr;
-    rc = BKNI_Snprintf(buf+offset, size-offset, "T:" BDBG_UINT64_FMT " A:" BDBG_UINT64_FMT " ", BDBG_UINT64_ARG(log128->timestamp), BDBG_UINT64_ARG(addr));
+    if(log16->io) {
+        tracelog_P_FormatIoAddr(addr_str, sizeof(addr_str), log128->data.io.addr);
+    } else {
+        BKNI_Snprintf(addr_str, sizeof(addr_str), BDBG_UINT64_FMT, BDBG_UINT64_ARG(log128->data.memory.addr));
+    }
+    if(calibrationData->valid) {
+        uint64_t nsec=(log128->timestamp*((1000*1000*1000)/1024))/(calibrationData->frequency/1024);
+        unsigned msec=nsec/(1000*1000);
+        unsigned sec=msec/1000;
+        unsigned minutes=sec/60;
+        nsec = nsec%(1000*1000);
+        msec = msec%1000;
+        sec =  sec%60;
+        rc = BKNI_Snprintf(buf+offset, size-offset, "%02u:%02u:%03u.%06u A:%s ", minutes, sec, msec, (unsigned)nsec, addr_str);
+    } else {
+        rc = BKNI_Snprintf(buf+offset, size-offset, "T:" BDBG_UINT64_FMT " A:%s ", BDBG_UINT64_ARG(log128->timestamp), addr_str);
+    }
     if(rc<0) {
         return rc;
     } else if(rc+offset>=size) {
@@ -914,8 +1058,12 @@ static int tracelog_P_FormatLog128(char *buf, size_t size, const struct tracelog
     }
 
     if(log16->io) {
-        if(log16->write) {
-            rc = BKNI_Snprintf(buf+offset, size-offset, "D: %#x", log128->data.io.data);
+        if(TRACELOG_IO_RD_DATA_SUPPORTED || log16->write) {
+            if(log128_hi) {
+                rc = BKNI_Snprintf(buf+offset, size-offset, "D: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(log128->data.io.data | ((uint64_t)log128_hi->data.io.data)<<32));
+            } else {
+                rc = BKNI_Snprintf(buf+offset, size-offset, "D: %#x", log128->data.io.data);
+            }
         } else {
             rc = 0;
         }
@@ -949,6 +1097,10 @@ static BERR_Code tracelog_P_ReadInternalLog(BREG_Handle reg, unsigned offset, un
     unsigned jword = 32;
     BDBG_ASSERT(log_offset%sizeof(uint32_t)==0);
 
+    BSTD_UNUSED(reg);
+    BSTD_UNUSED(offset);
+    BSTD_UNUSED(buffer);
+    BSTD_UNUSED(i);
     align = log_offset % jword; /* JWORD read-out buffer */
     data = log_offset - align;
     if(align+words*sizeof(uint32_t) > jword) {
@@ -984,16 +1136,17 @@ static BERR_Code tracelog_IterateLog(BREG_Handle reg, unsigned memc, const trace
     bool external = false;
     unsigned max_entries;
     bool format16;
-    tracelog_Status status;
     tracelog_MemoryBuffer defaultMemoryBuffer;
+    unsigned first_entry;
+    unsigned totalCount;
 
+    BSTD_UNUSED(tmp);
+    BSTD_UNUSED(afterTriger);
+    BSTD_UNUSED(beforeTriger);
     if(buffer==NULL) {
         tracelog_GetDefaultMemoryBuffer(&defaultMemoryBuffer);
         buffer = &defaultMemoryBuffer;
     }
-
-    tracelog_GetStatus(reg, memc, &status);
-    tracelog_PrintStatus(&status);
 
     rc = tracelog_P_GetOffset(memc, &offset);
     if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
@@ -1001,9 +1154,11 @@ static BERR_Code tracelog_IterateLog(BREG_Handle reg, unsigned memc, const trace
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
     beforeTriger = tracelog_P_Read(COUNT_MATCHES_PRE_TRIGGER);
     afterTriger = tracelog_P_Read(COUNT_MATCHES_POST_TRIGGER);
+
     tmp = tracelog_P_Read(CONTROL);
     format16 = BCHP_GET_FIELD_DATA(tmp, MEMC_TRACELOG_0_0_CONTROL, FORMAT16) != 0;
     external = BCHP_GET_FIELD_DATA(tmp, MEMC_TRACELOG_0_0_CONTROL, BUFFER_DRAM) != 0;
+
     if(external){
         BSTD_DeviceOffset buffer_base;
 
@@ -1019,10 +1174,18 @@ static BERR_Code tracelog_IterateLog(BREG_Handle reg, unsigned memc, const trace
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
     }
+    totalCount = beforeTriger + afterTriger;
 
-    count = beforeTriger + afterTriger;
+    tmp = tracelog_P_Read(BUFFER_WR_PTR);
+    first_entry = BCHP_GET_FIELD_DATA(tmp, MEMC_TRACELOG_0_0_BUFFER_WR_PTR, BUFFER_PTR);
+    if(format16) {
+        first_entry /= 2;
+    } else {
+        first_entry /= 16;
+    }
 #else
-    count = 0;
+    first_entry = 0;
+    totalCount = 0;
     format16 = true;
 #endif
     if(format16) {
@@ -1030,29 +1193,33 @@ static BERR_Code tracelog_IterateLog(BREG_Handle reg, unsigned memc, const trace
     } else {
         max_entries= buffer_size/(4*sizeof(uint32_t));
     }
+    count = totalCount;
     if(count>max_entries) {
         count = max_entries;
+    } else {
+        first_entry = 0;
     }
 
     for(i=0;i<count;i++) {
         uint32_t data[4];
         struct tracelog_P_Log16 log16;
         struct tracelog_P_Log128 log128;
+        unsigned entry = (i+first_entry)%max_entries;
 
         if(external) {
             if(format16) {
-                data[0] = ((uint32_t *)buffer->ptr)[i];
+                data[0] = ((uint32_t *)buffer->ptr)[entry];
             } else {
                 unsigned j;
                 for(j=0;j<4;j++) {
-                    data[j] = ((uint32_t *)buffer->ptr)[4*i+j];
+                    data[j] = ((uint32_t *)buffer->ptr)[4*entry+j];
                 }
             }
         } else {
             if(format16) {
-                rc = tracelog_P_ReadInternalLog(reg, 0, i*sizeof(data[0]), 1, data);
+                rc = tracelog_P_ReadInternalLog(reg, offset, entry*sizeof(data[0]), 1, data);
             } else {
-                rc = tracelog_P_ReadInternalLog(reg, 0, i*sizeof(data), sizeof(data)/sizeof(data[0]), data);
+                rc = tracelog_P_ReadInternalLog(reg, offset, entry*sizeof(data), sizeof(data)/sizeof(data[0]), data);
             }
             if(rc!=BERR_SUCCESS) { return BERR_TRACE(rc); }
         }
@@ -1062,45 +1229,86 @@ static BERR_Code tracelog_IterateLog(BREG_Handle reg, unsigned memc, const trace
             BKNI_Memset(&log128, 0, sizeof(log128));
             tracelog_P_ParseLog128(data, &log16, &log128);
         }
-        if(!iterator(context, count, i, &log16, format16?NULL:&log128)) {
+        if(!iterator(context, totalCount, i+(totalCount-count), &log16, format16?NULL:&log128)) {
             break;
         }
     }
+    iterator(context, totalCount, 0, NULL, NULL);
     return BERR_SUCCESS;
 }
 
 struct tracelog_P_PrintOneEntryState {
+    unsigned memc;
+    tracelog_CalibrationData calibrationData;
+    struct {
+        struct tracelog_P_Log16 log16;
+        struct tracelog_P_Log128 log128;
+        unsigned n;
+    } prev_io_64;
+    bool prev_io_64_valid;
     bool trigger;
 };
 
-static  bool tracelog_P_PrintOneEntry(void *context, unsigned count, unsigned n, const struct tracelog_P_Log16 *log16, const struct tracelog_P_Log128 *log128)
+static  void tracelog_P_PrintOneEntrySimple(const struct tracelog_P_PrintOneEntryState *state, unsigned count, unsigned n, const struct tracelog_P_Log16 *log16, const struct tracelog_P_Log128 *log128, const struct tracelog_P_Log128 *log128_hi)
 {
     char buf[128];
-    struct tracelog_P_PrintOneEntryState *state = context;
-
-    BDBG_ASSERT(log16);
-    BSTD_UNUSED(context);
-    if(log16->postTrigger && !state->trigger) {
-        state->trigger = true;
-        BDBG_LOG(("TRACELOG:-=-=-= TRIGER =-=-=-"));
-    }
     if(log128) {
-        tracelog_P_FormatLog128(buf, sizeof(buf), log16, log128);
+        tracelog_P_FormatLog128(buf, sizeof(buf), &state->calibrationData, log16, log128, log128_hi);
     } else {
         tracelog_P_FormatLog16(buf, sizeof(buf), log16);
     }
-    BDBG_LOG(("TRACELOG:%u/%u %s", n, count, buf));
-    if(!log16->valid) {
-        /* return false; */
+    BDBG_LOG(("TRACELOG%u:%u/%u %s", state->memc, n, count, buf));
+    return;
+}
+
+static  bool tracelog_P_PrintOneEntry(void *context, unsigned count, unsigned n, const struct tracelog_P_Log16 *log16, const struct tracelog_P_Log128 *log128)
+{
+    struct tracelog_P_PrintOneEntryState *state = context;
+
+    if(log16 == NULL) {
+        if(state->prev_io_64_valid) {
+            tracelog_P_PrintOneEntrySimple(state, count, state->prev_io_64.n, &state->prev_io_64.log16, &state->prev_io_64.log128, NULL);
+        }
+        goto done;
     }
+    if(log16->postTrigger && !state->trigger) {
+        state->trigger = true;
+        BDBG_LOG(("TRACELOG%u:-=-=-= TRIGER =-=-=-", state->memc));
+    }
+
+    if(log128) {
+        if(state->prev_io_64_valid) {
+            state->prev_io_64_valid = false;
+            if(log16->io && log16->data.io._64bit && (log128->data.io.addr == state->prev_io_64.log128.data.io.addr)) {
+                tracelog_P_PrintOneEntrySimple(state, count, state->prev_io_64.n, &state->prev_io_64.log16, &state->prev_io_64.log128, log128);
+                goto done;
+            } else {
+                tracelog_P_PrintOneEntrySimple(state, count, state->prev_io_64.n, &state->prev_io_64.log16, &state->prev_io_64.log128, NULL);
+            }
+        } else if(log16->io && log16->data.io._64bit) {
+            state->prev_io_64_valid = true;
+            state->prev_io_64.n = n;
+            state->prev_io_64.log16 = *log16;
+            state->prev_io_64.log128 = *log128;
+            goto done;
+        }
+    }
+    tracelog_P_PrintOneEntrySimple(state, count, n, log16, log128, NULL);
+done:
     return true;
 }
 
 
-static BERR_Code tracelog_PrintLog(BREG_Handle reg, unsigned memc, const tracelog_MemoryBuffer *buffer)
+static BERR_Code tracelog_PrintLog(BREG_Handle reg, unsigned memc, const tracelog_MemoryBuffer *buffer, const tracelog_CalibrationData *calibration)
 {
     struct tracelog_P_PrintOneEntryState state;
+    state.memc = memc;
     state.trigger = false;
+    state.prev_io_64_valid = false;
+    state.calibrationData.valid = false;
+    if(calibration) {
+        state.calibrationData = *calibration;
+    }
     return tracelog_IterateLog(reg, memc, buffer, tracelog_P_PrintOneEntry, &state);
 }
 
@@ -1121,6 +1329,8 @@ static BERR_Code tracelog_Start(BREG_Handle reg, unsigned memc, tracelog_StartSe
     uint32_t data;
     tracelog_StartSettings defaultSettings;
 
+    BSTD_UNUSED(reg);
+    BSTD_UNUSED(data);
     if(settings==NULL) {
         tracelog_GetDefaultStartSettings(&defaultSettings);
         settings = &defaultSettings;
@@ -1181,7 +1391,7 @@ static BERR_Code tracelog_Start(BREG_Handle reg, unsigned memc, tracelog_StartSe
 #if defined(BCHP_MEMC_MEMC_TRACELOG_0_0_CONTROL_CLOCK_GATE_MASK)
     BCHP_SET_FIELD_CONST_DATA(data, MEMC_TRACELOG_0_0_CONTROL, CLOCK_GATE, 0);
 #endif
-    BCHP_SET_FIELD_CONST_DATA(data, MEMC_TRACELOG_0_0_CONTROL, GISB_FULL_SNOOP, 0);
+    BCHP_SET_FIELD_CONST_DATA(data, MEMC_TRACELOG_0_0_CONTROL, GISB_FULL_SNOOP, TRACELOG_IO_RD_DATA_SUPPORTED);
     if(settings->buffer.size==0) {
         BCHP_SET_FIELD_CONST_DATA(data, MEMC_TRACELOG_0_0_CONTROL, BUFFER_DRAM, 0);
     } else {
@@ -1189,10 +1399,10 @@ static BERR_Code tracelog_Start(BREG_Handle reg, unsigned memc, tracelog_StartSe
         if(settings->buffer.base==9) {
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
-        if(settings->buffer.base%256 != 0) {
+        if(settings->buffer.base%TRACELOG_MIN_BUFFER_ALIGNMENT != 0) {
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
-        if(settings->buffer.size%256 != 0) {
+        if(settings->buffer.size%TRACELOG_MIN_BUFFER_ALIGNMENT != 0) {
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
@@ -1218,18 +1428,22 @@ static BERR_Code tracelog_Trigger(BREG_Handle reg, unsigned memc)
 {
     BERR_Code rc;
     unsigned offset;
-    uint32_t data;
+
+    BSTD_UNUSED(reg);
 
     rc = tracelog_P_GetOffset(memc, &offset);
     if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
 
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
-    data = tracelog_P_Read(TRIGGER_MODE);
-    if(BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_TRIGGER_MODE, EVENT_MODE) !=0) {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    {
+        uint32_t data;
+        data = tracelog_P_Read(TRIGGER_MODE);
+        if(BCHP_GET_FIELD_DATA(data, MEMC_TRACELOG_0_0_TRIGGER_MODE, EVENT_MODE) !=0) {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        data = BCHP_FIELD_DATA(MEMC_TRACELOG_0_0_COMMAND, TRIGGER, 1);
+        tracelog_P_Write(COMMAND, data);
     }
-    data = BCHP_FIELD_DATA(MEMC_TRACELOG_0_0_COMMAND, TRIGGER, 1);
-    tracelog_P_Write(COMMAND, data);
 #endif
     return BERR_SUCCESS;
 }
@@ -1238,14 +1452,55 @@ static BERR_Code tracelog_Stop(BREG_Handle reg, unsigned memc)
 {
     BERR_Code rc;
     unsigned offset;
-    uint32_t data;
 
+    BSTD_UNUSED(reg);
     rc = tracelog_P_GetOffset(memc, &offset);
     if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
 
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
-    data = BCHP_FIELD_DATA(MEMC_TRACELOG_0_0_COMMAND, STOP, 1);
-    tracelog_P_Write(COMMAND, data);
+    {
+        uint32_t data;
+        data = BCHP_FIELD_DATA(MEMC_TRACELOG_0_0_COMMAND, STOP, 1);
+        tracelog_P_Write(COMMAND, data);
+    }
+#endif
+    return BERR_SUCCESS;
+}
+
+
+static BERR_Code tracelog_Calibrate(BREG_Handle reg, unsigned memc, tracelog_CalibrationData *data)
+{
+    BERR_Code rc;
+    unsigned offset;
+
+    BSTD_UNUSED(reg);
+    BKNI_Memset(data, 0, sizeof(*data));
+    rc = tracelog_P_GetOffset(memc, &offset);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+#ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
+    {
+        uint64_t clock[9];
+        /* unsigned clock_diff[sizeof(clock)/sizeof(clock[0])-1]; */
+        unsigned i;
+        uint64_t tmp;
+        unsigned delay_us=1024;
+        unsigned total_time = (delay_us*(sizeof(clock)/sizeof(clock[0]) - 1));
+
+        for(i=0;i<sizeof(clock)/sizeof(clock[0]);i++) {
+            if(i!=0) {
+                BKNI_Delay(delay_us);
+            }
+            clock[i] = tracelog_P_ReadTime(reg, offset);
+        }
+        for(tmp=0,i=1;i<sizeof(clock)/sizeof(clock[0]);i++) {
+            unsigned diff = clock[i] - clock[i-1];
+            tmp += diff;
+            BDBG_LOG(("clock:%#x diff:%u freq(%u,%u)", (unsigned)clock[i], diff, (unsigned)((diff*(uint64_t)1000*1000)/delay_us), (unsigned)((tmp*1000*1000)/(delay_us*i))));
+        }
+        data->frequency = (unsigned)((tmp*1000*1000)/total_time);
+        data->valid = data->frequency > 1000;
+        BDBG_LOG(("freq:%u ticks:%u time:%u", data->frequency, (unsigned)tmp, total_time));
+    }
 #endif
     return BERR_SUCCESS;
 }

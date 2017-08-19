@@ -453,6 +453,7 @@ eRet CChannelMgr::addChannel(CChannel * pChannel)
 eRet CChannelMgr::removeOtherMajorChannels(CChannel * pChannel)
 {
     CChannel * pCh = NULL;
+    eRet       ret = eRet_Ok;
 
     /* search for matching channel in channel list */
     for (int i = 0; i < eWindowType_Max; i++)
@@ -478,6 +479,8 @@ eRet CChannelMgr::removeOtherMajorChannels(CChannel * pChannel)
             }
         }
     }
+
+    return ret;
 }
 
 /* find channel based on channel number */
@@ -486,8 +489,8 @@ CChannel * CChannelMgr::findChannel(
         eWindowType  windowType
         )
 {
-    uint16_t   major         = 0;
-    uint16_t   minor         = 1;
+    unsigned   major         = 0;
+    unsigned   minor         = 1;
     int        dotIndex      = 0;
     CChannel * ptr           = NULL;
     CChannel * pChannelFound = NULL;
@@ -503,15 +506,15 @@ CChannel * CChannelMgr::findChannel(
     if ((0 > dotIndex) ||                      /* no dot in channel num */
         ((dotIndex + 1) == strChNum.length())) /* dot exists but no minor channel num */
     {
-        major = (uint16_t)strChNum.toInt();
+        major = (unsigned)strChNum.toInt();
         /* mark minor channel as missing so we will ignore it during channel search */
         minorMissing = true;
     }
     else
     {
         /* parse major/minor numbers */
-        major = (uint16_t)strChNum.left(dotIndex).toInt();
-        minor = (uint16_t)MString(strChNum.mid(dotIndex + 1)).toInt();
+        major = (unsigned)strChNum.left(dotIndex).toInt();
+        minor = (unsigned)MString(strChNum.mid(dotIndex + 1)).toInt();
     }
 
     {
@@ -644,8 +647,8 @@ eRet CChannelMgr::loadChannelList(
 
     /* check xml version number */
     {
-        uint16_t major = 1;
-        uint16_t minor = 0;
+        int major = 1;
+        int minor = 0;
 
         xmlElemAtlas = xmlElemTop->findChild(XML_TAG_ATLAS);
         if (xmlElemAtlas)
@@ -653,10 +656,10 @@ eRet CChannelMgr::loadChannelList(
             strVersion = xmlElemAtlas->attrValue(XML_ATT_VERSION);
             if (false == strVersion.isEmpty())
             {
-                uint16_t dotIndex = strVersion.find('.');
+                unsigned dotIndex = strVersion.find('.');
 
-                major = (uint16_t)strVersion.left(dotIndex).toInt();
-                minor = (uint16_t)MString(strVersion.mid(dotIndex + 1)).toInt();
+                major = strVersion.left(dotIndex).toInt();
+                minor = MString(strVersion.mid(dotIndex + 1)).toInt();
             }
         }
 
@@ -884,8 +887,8 @@ eRet CChannelMgr::verifyChannelListFile(const char * fileName)
 
     /* check xml version number */
     {
-        uint16_t major = 1;
-        uint16_t minor = 0;
+        int major = 1;
+        int minor = 0;
 
         xmlElemAtlas = xmlElemTop->findChild(XML_TAG_ATLAS);
         if (xmlElemAtlas)
@@ -893,10 +896,10 @@ eRet CChannelMgr::verifyChannelListFile(const char * fileName)
             strVersion = xmlElemAtlas->attrValue(XML_ATT_VERSION);
             if (false == strVersion.isEmpty())
             {
-                uint16_t dotIndex = strVersion.find('.');
+                unsigned dotIndex = strVersion.find('.');
 
-                major = (uint16_t)strVersion.left(dotIndex).toInt();
-                minor = (uint16_t)MString(strVersion.mid(dotIndex + 1)).toInt();
+                major = strVersion.left(dotIndex).toInt();
+                minor = MString(strVersion.mid(dotIndex + 1)).toInt();
             }
         }
 

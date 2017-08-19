@@ -63,7 +63,7 @@ class CVideoWindow
 {
 public:
     CVideoWindow(
-            const uint16_t   number,
+            const unsigned   number,
             CDisplay *       pDisplay,
             CConfiguration * pCfg
             );
@@ -72,25 +72,25 @@ public:
     eRet                         open(void);
     void                         close(void);
     eRet                         addInput(CVideoDecode * pVideoDecode);
-    uint16_t                     getNumber(void) { return(_number); }
+    unsigned                     getNumber(void) { return(_number); }
     NEXUS_VideoWindowHandle      getWindow(void) { return(_videoWindow); }
     eRet                         setContentMode(NEXUS_VideoWindowContentMode contentMode);
     NEXUS_VideoWindowContentMode getContentMode(void);
     eRet                         setDeinterlacer(bool bDeinterlacer);
     eRet                         setBoxDetect(bool bBoxDetect);
-    eRet                         setPosition(MRect rect, uint16_t zorder = 0);
-    void                         getPosition(MRect * pRect, uint16_t * pZorder);
-    eRet                         setZorder(uint16_t zorder);
+    eRet                         setPosition(MRect rect, unsigned zorder = 0);
+    void                         getPosition(MRect * pRect, unsigned * pZorder);
+    eRet                         setZorder(unsigned zorder);
     eRet                         setVisible(bool bVisible = true);
     bool                         isVisible(void);
-    eRet                         setGeometryPercent(MRect rect, uint16_t percent = 1000, eWinArea area = eWinArea_UpperLeft, uint16_t border = 0, uint16_t zorder = 0);
+    eRet                         setGeometryPercent(MRect rect, unsigned percent = 1000, eWinArea area = eWinArea_UpperLeft, unsigned border = 0, unsigned zorder = 0);
     void                         setType(eWindowType type)      { _type = type; }
     eWindowType                  getType(void)                  { return(_type); }
     bool                         isCheckedOut()                 { return(_checkedOut); }
     void                         setCheckedOut(bool checkedOut) { _checkedOut = checkedOut; }
 
 protected:
-    uint16_t                _number;
+    unsigned                _number;
     NEXUS_VideoWindowHandle _videoWindow;
     CDisplay *              _pDisplay;
     CConfiguration *        _pCfg;
@@ -100,10 +100,10 @@ protected:
 
     /* DTT these can probably be replaced with NEXUS_VideoWindowSettings variable?! */
     MRect    _position;
-    uint16_t _zOrder;
+    unsigned _zOrder;
     bool     _deinterlacer;
     bool     _playbackDeinterlacer;
-    uint16_t _sharpness;
+    unsigned _sharpness;
 };
 
 #ifdef __cplusplus

@@ -442,6 +442,28 @@ NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings(
 
 #define NEXUS_Platform_UninitInterrupts()
 
+
+/**
+Summary:
+Licensed feature types
+**/
+typedef enum NEXUS_LicensedFeature {
+    NEXUS_LicensedFeature_eMacrovision,
+    NEXUS_LicensedFeature_eDolbyVision,
+    NEXUS_LicensedFeature_eTchPrime,
+    NEXUS_LicensedFeature_eItm,
+    NEXUS_LicensedFeature_eMax
+} NEXUS_LicensedFeature;
+
+/**
+Summary:
+Discover if a licensed feature is supported
+**/
+void NEXUS_Platform_IsLicensedFeatureSupported(
+    NEXUS_LicensedFeature feature,
+    bool *pSupported
+    );
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -80,17 +80,16 @@ void NEXUS_SidVideoDecoder_GetDefaultOpenSettings_priv( NEXUS_SidVideoDecoderOpe
 NEXUS_SidVideoDecoderHandle NEXUS_SidVideoDecoder_Open_priv(unsigned index, const NEXUS_SidVideoDecoderOpenSettings *openSettings)
 {
     NEXUS_SidVideoDecoderHandle  decoder;
-    NEXUS_Error rc;
 
     NEXUS_ASSERT_MODULE();
     BSTD_UNUSED(openSettings);
-    if(index>=NEXUS_NUM_SID_VIDEO_DECODERS) { rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_args;}
+    if(index>=NEXUS_NUM_SID_VIDEO_DECODERS) { BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_args;}
 
     decoder = &g_decoders[index];
     if ( decoder->opened )
     {
         BDBG_ERR(("SID Video Decoder %u already opened", index));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         goto err_args;
     }
 
@@ -119,7 +118,7 @@ NEXUS_SidVideoDecoderHandle NEXUS_SidVideoDecoder_Open_priv(unsigned index, cons
         if (retCode != BERR_SUCCESS)
         {
             BDBG_ERR(("BSID_OpenChannel failed err=0x%x", retCode));
-            rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+            BERR_TRACE(BERR_INVALID_PARAMETER);
             goto err_args;
         }
     }

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -268,12 +268,12 @@ done:
         {
             BKNI_Free( hDev );
         }
-        if( hImplDev->habBuffer != NULL )
-        {
-            BKNI_Free( hImplDev->habBuffer );
-        }
         if( hImplDev != NULL )
         {
+            if( hImplDev->habBuffer != NULL )
+            {
+                BKNI_Free( hImplDev->habBuffer );
+            }
             BKNI_Free( hImplDev );
         }
         *pAds = NULL;
@@ -292,16 +292,15 @@ BERR_Code BADS_Leap_Close(
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
-    hImplDev = (BADS_Leap_Handle) hDev->pImpl;
-
-    if( (void *)hImplDev->habBuffer )
-        BKNI_Free( (void *)hImplDev->habBuffer );
-    if( hDev->pImpl )
-        BKNI_Free( (void *) hDev->pImpl );
-    hDev->magicId = 0x00;       /* clear it to catch improper use */
-    if( hDev )
+    if( hDev ) {
+        hImplDev = (BADS_Leap_Handle) hDev->pImpl;
+        if(hImplDev) {
+            if( (void *)hImplDev->habBuffer )
+                BKNI_Free( (void *)hImplDev->habBuffer );
+            BKNI_Free( (void *)hImplDev );
+        }
         BKNI_Free( (void *) hDev );
-
+    }
     BDBG_LEAVE(BADS_Leap_Close);
     return retCode;
 }
@@ -651,10 +650,6 @@ BERR_Code BADS_Leap_SetAcquireParams(
     BDBG_ASSERT( hImplChnDev->hHab );
     BDBG_ASSERT( ibParams );
 
-    BKNI_AcquireMutex(hImplChnDev->mutex);
-    hImplChnDev->isLock = false;
-    BKNI_ReleaseMutex(hImplChnDev->mutex);
-
     if(hImplChnDev->bPowerdown)
     {
         BDBG_ERR(("ADS core %d Powered Off", hImplChnDev->chnNo));
@@ -768,13 +763,10 @@ BERR_Code BADS_Leap_GetAcquireParams(
     BDBG_ASSERT( hImplChnDev->hHab );
     BDBG_ASSERT( ibParams );
 
-    BKNI_AcquireMutex(hImplChnDev->mutex);
-    hImplChnDev->isLock = false;
-    BKNI_ReleaseMutex(hImplChnDev->mutex);
-
     if(hImplChnDev->bPowerdown)
     {
         BDBG_ERR(("ADS core %d Powered Off", hImplChnDev->chnNo));
+        *ibParams = defInbandParams;
         retCode = BERR_TRACE(BADS_ERR_POWER_DOWN);
     }
     else
@@ -867,10 +859,6 @@ BERR_Code BADS_Leap_Acquire(
     BDBG_ASSERT( hImplChnDev->hHab );
     BSTD_UNUSED( ibParam );
 
-    BKNI_AcquireMutex(hImplChnDev->mutex);
-    hImplChnDev->isLock = false;
-    BKNI_ReleaseMutex(hImplChnDev->mutex);
-
     if(hImplChnDev->bPowerdown)
     {
         BDBG_ERR(("ADS core %d Powered Off", hImplChnDev->chnNo));
@@ -953,7 +941,6 @@ BERR_Code BADS_Leap_GetAsyncStatus(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
-    uint8_t val = 0;
 #if BADS_CHIP==3158
     uint8_t buf[133] = HAB_MSG_HDR(BADS_eGetAsyncStatus, 0, BADS_CORE_TYPE);
 #else
@@ -966,6 +953,8 @@ BERR_Code BADS_Leap_GetAsyncStatus(
     hImplChnDev = (BADS_Leap_ChannelHandle) hChn->pImpl;
     BDBG_ASSERT( hImplChnDev );
     BDBG_ASSERT( hImplChnDev->hHab );
+
+    BKNI_Memset( pStatus, 0x00, sizeof( BADS_Status ) );
 
     if(hImplChnDev->bPowerdown)
     {
@@ -982,8 +971,6 @@ BERR_Code BADS_Leap_GetAsyncStatus(
 #endif
 
         pStatus->isPowerSaverEnabled = false;
-
-        val = (buf[4] & 0x7);
 
         pStatus->ifFreq = 0; /* Not supported */
         pStatus->symbolRate = (int32_t)((buf[0x1C] << 24) | (buf[0x1D] << 16) | (buf[0x1E] << 8) | buf[0x1F]);
@@ -1041,6 +1028,8 @@ BERR_Code BADS_Leap_GetScanStatus(
     hImplChnDev = (BADS_Leap_ChannelHandle) hChn->pImpl;
     BDBG_ASSERT( hImplChnDev );
     BDBG_ASSERT( hImplChnDev->hHab );
+
+    BKNI_Memset( pScanStatus, 0x00, sizeof( BADS_ScanStatus ) );
 
     if(hImplChnDev->bPowerdown)
     {
@@ -1218,6 +1207,7 @@ BERR_Code BADS_Leap_GetSoftDecision(
     if(hImplChnDev->bPowerdown)
     {
         BDBG_ERR(("ADS core %d Powered Off", hImplChnDev->chnNo));
+        *nbrGotten = 0;
         retCode = BERR_TRACE(BADS_ERR_POWER_DOWN);
     }
     else

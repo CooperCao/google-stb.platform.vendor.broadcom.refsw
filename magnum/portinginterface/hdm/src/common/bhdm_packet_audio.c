@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,52 +44,6 @@
 BDBG_MODULE(BHDM_PACKET_AUDIO) ;
 
 #define BHDM_REFER_TO_STREAM_HEADER 0
-
-/******************************************************************************
-Summary:
-Set/Enable the Audio Info Frame packet to be sent to the HDMI Rx
-*******************************************************************************/
-void BHDM_DisplayAudioInfoFramePacket(
-   const BHDM_Handle hHDMI,		  /* [in] HDMI handle */
-   BAVC_HDMI_AudioInfoFrame *pstAudioInfoFrame
-)
-{
-#if !BDBG_NO_LOG
-	BDBG_LOG(("*** AUDIO INFOFRAME")) ;
-	BDBG_LOG(("Tx%d: Audio Coding Type     %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_CodingTypeToStr(pstAudioInfoFrame->CodingType))) ;
-
-	BDBG_LOG(("Tx%d: Audio Channel Count   %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_ChannelCountToStr(pstAudioInfoFrame->ChannelCount))) ;
-
-	BDBG_LOG(("Tx%d: Sampling Frequency    %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_SampleFrequencyToStr(pstAudioInfoFrame->SampleFrequency))) ;
-
-	BDBG_LOG(("Tx%d: Sample Size           %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_SampleSizeToStr(pstAudioInfoFrame->SampleSize))) ;
-
-	BDBG_LOG(("Tx%d: Speaker Allocation    %02x", hHDMI->eCoreId,
-		pstAudioInfoFrame->SpeakerAllocation)) ;
-
-	BDBG_LOG(("Tx%d: Level Shift           %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_LevelShiftToStr(pstAudioInfoFrame->LevelShift))) ;
-
-	BDBG_LOG(("Tx%d: Down-mix Inhibit Flag %s", hHDMI->eCoreId,
-		BAVC_HDMI_AudioInfoFrame_DownMixInhibitToStr(pstAudioInfoFrame->DownMixInhibit))) ;
-
-	BDBG_LOG(("Tx%d: Data Bytes: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-		hHDMI->eCoreId,
-		hHDMI->PacketBytes[1], hHDMI->PacketBytes[2], hHDMI->PacketBytes[3],
-		hHDMI->PacketBytes[4], hHDMI->PacketBytes[5], hHDMI->PacketBytes[6],
-		hHDMI->PacketBytes[7], hHDMI->PacketBytes[8], hHDMI->PacketBytes[9],
-		hHDMI->PacketBytes[10])) ;
-	BDBG_LOG((" ")) ;
-#else
-	BSTD_UNUSED(hHDMI) ;
-	BSTD_UNUSED(pstAudioInfoFrame) ;
-#endif
-}
-
 
 /******************************************************************************
 Summary:
@@ -167,23 +121,6 @@ BERR_Code BHDM_SetAudioInfoFramePacket(
 	/* update current device settings with new information on AudioInfoFrame (if external) */
 		BKNI_Memcpy(&hHDMI->DeviceSettings.stAudioInfoFrame, pstAudioInfoFrame,
 			sizeof(BAVC_HDMI_AudioInfoFrame)) ;
-
-
-#if BDBG_DEBUG_BUILD
-	{
-		BDBG_Level level ;
-
-		BDBG_GetModuleLevel("BHDM_PACKET_AUDIO", &level) ;
-		if (level == BDBG_eMsg)
-		{
-			BDBG_LOG(("Tx%d: Audio IF Packet Type: 0x%02x  Version %d  Length: %d", hHDMI->eCoreId,
-				PacketType, PacketVersion, PacketLength)) ;
-			BDBG_LOG(("Tx%d: Checksum            %#02x", hHDMI->eCoreId,
-				hHDMI->PacketBytes[0])) ;
-			BHDM_DisplayAudioInfoFramePacket( hHDMI, pstAudioInfoFrame) ;
-		}
-	}
-#endif
 
 
 done:

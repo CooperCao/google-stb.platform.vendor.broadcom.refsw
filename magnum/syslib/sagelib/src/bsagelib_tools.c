@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -94,12 +94,12 @@ BSAGElib_Tools_ContainerOffsetToAddress(
     containerAddr = _iOffsetToAddr(containerOffset, sizeof(*containerAddr));
     if (!containerAddr) {
         BDBG_ERR(("%s: Cannot convert container @ offset=" BDBG_UINT64_FMT "",
-                  __FUNCTION__, BDBG_UINT64_ARG(containerOffset)));
+                  BSTD_FUNCTION, BDBG_UINT64_ARG(containerOffset)));
         goto end;
     }
 
     BDBG_MSG(("%s: container @ offset=" BDBG_UINT64_FMT " --> addr=%p",
-              __FUNCTION__, BDBG_UINT64_ARG(containerOffset), (void *)containerAddr));
+              BSTD_FUNCTION, BDBG_UINT64_ARG(containerOffset), (void *)containerAddr));
 
     /* force read from physical memory */
     i_memory_sync->invalidate((const void *)containerAddr, sizeof(*containerAddr));
@@ -111,7 +111,7 @@ BSAGElib_Tools_ContainerOffsetToAddress(
             /* convert physical addresses to local (virtual) addresses */
             addr = (uint8_t *)_iOffsetToAddr(block->data.offset, block->len);
             BDBG_MSG(("%s: #%i %d length block @ offset=" BDBG_UINT64_FMT " --> addr=%p",
-                      __FUNCTION__, i, block->len, BDBG_UINT64_ARG(block->data.offset), (void *)addr));
+                      BSTD_FUNCTION, i, block->len, BDBG_UINT64_ARG(block->data.offset), (void *)addr));
             block->data.ptr = addr;
             /* force read from physical memory */
             i_memory_sync->invalidate((const void *)block->data.ptr, block->len);
@@ -151,7 +151,7 @@ BSAGElib_Tools_ContainerAddressToOffset(
         if (block->data.ptr) {
             uint64_t offset;
             if (!block->len) {
-                BDBG_WRN(("%s: will not convert empty block address", __FUNCTION__));
+                BDBG_WRN(("%s: will not convert empty block address", BSTD_FUNCTION));
                 continue;
             }
             /* sync physical memory */
@@ -159,7 +159,7 @@ BSAGElib_Tools_ContainerAddressToOffset(
 
             offset = _iAddrToOffset((const void *)block->data.ptr, block->len);
             BDBG_MSG(("%s: #%i %d length block @ addr=%p --> offset=" BDBG_UINT64_FMT "",
-                      __FUNCTION__, i, block->len, block->data.ptr, BDBG_UINT64_ARG(offset)));
+                      BSTD_FUNCTION, i, block->len, block->data.ptr, BDBG_UINT64_ARG(offset)));
             block->data.offset = offset;
         }
     }
@@ -168,7 +168,7 @@ BSAGElib_Tools_ContainerAddressToOffset(
     i_memory_sync->flush(containerAddr, sizeof(*containerAddr));
     containerOffset = _iAddrToOffset(containerAddr, sizeof(*containerAddr));
     BDBG_MSG(("%s: container @ addr=%p --> offset=" BDBG_UINT64_FMT "",
-              __FUNCTION__, (void *)containerAddr, BDBG_UINT64_ARG(containerOffset)));
+              BSTD_FUNCTION, (void *)containerAddr, BDBG_UINT64_ARG(containerOffset)));
 
 end:
     BDBG_LEAVE(BSAGElib_Tools_ContainerAddressToOffset);
@@ -229,7 +229,7 @@ BSAGElib_Tools_ContainerCache_SetMax_UNLOCKED(
         if (!item) {
             /* bug: nb > max >= 0 so FIRST cannot be null */
             BDBG_ERR(("%s: container cache inconsitent cache.nb=%u, max=%u, FIRST=NULL",
-                      __FUNCTION__, hContainerCache->nb, max));
+                      BSTD_FUNCTION, hContainerCache->nb, max));
             break;
         }
         BLST_S_REMOVE_HEAD(&hContainerCache->head, link);
@@ -300,7 +300,7 @@ BSAGElib_Tools_ContainerCache_Allocate(
     /* i_sync_cache lock is released. */
 
     if (!item) {
-        BDBG_ERR(("%s: cannot allocate container item", __FUNCTION__));
+        BDBG_ERR(("%s: cannot allocate container item", BSTD_FUNCTION));
         goto end;
     }
 
@@ -343,7 +343,7 @@ BSAGElib_Tools_ContainerCache_Free(
 
 const char *BSAGElib_Tools_ReturnCodeToString(BERR_Code returnCode)
 {
-    BDBG_MSG(("%s: return code = 0x%08x", __FUNCTION__, returnCode));
+    BDBG_MSG(("%s: return code = 0x%08x", BSTD_FUNCTION, returnCode));
 
     switch (returnCode)
     {

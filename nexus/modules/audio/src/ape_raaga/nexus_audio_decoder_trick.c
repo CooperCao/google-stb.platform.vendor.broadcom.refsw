@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,7 +62,6 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
 {
     NEXUS_Error rc;
     NEXUS_AudioDecoderTrickState oldState;
-    bool rateChanged;
     bool dspMixerAttached = false;
     bool wasPaused = false;
     bool trick = false;
@@ -98,7 +97,6 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    rateChanged = (decoder->trickState.rate != pTrickState->rate) ?true:false;
     rc = NEXUS_AudioDecoder_P_IsDspMixerAttached(decoder, &dspMixerAttached);
     if(rc!=NEXUS_SUCCESS)
     {
@@ -383,4 +381,3 @@ void NEXUS_AudioDecoder_P_TrickReset( NEXUS_AudioDecoderHandle decoder)
         NEXUS_AudioDecoder_ApplySettings_priv(decoder);
     }
 }
-

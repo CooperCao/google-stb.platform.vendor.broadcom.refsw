@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"
@@ -166,14 +165,14 @@ _P_IsSdlValid(
                 rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
                 if (rc != true) {
                     BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
-                              __FUNCTION__, pHeader->ucSsfVersion[0],
+                              BSTD_FUNCTION, pHeader->ucSsfVersion[0],
                               pHeader->ucSsfVersion[1],
                               pHeader->ucSsfVersion[2],
                               pHeader->ucSsfVersion[3]));
                     BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
-                              __FUNCTION__));
+                              BSTD_FUNCTION));
                     BDBG_ERR(("%s: The SDL must be recompiled using SAGE version %u.%u.%u.%u SDK",
-                              __FUNCTION__, hSAGElib->frameworkInfo.version[0],
+                              BSTD_FUNCTION, hSAGElib->frameworkInfo.version[0],
                               hSAGElib->frameworkInfo.version[1],
                               hSAGElib->frameworkInfo.version[2],
                               hSAGElib->frameworkInfo.version[3]));
@@ -181,17 +180,17 @@ _P_IsSdlValid(
                 }
             }
             else {
-                BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", __FUNCTION__));
+                BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", BSTD_FUNCTION));
             }
 
             BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
-                      __FUNCTION__, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
+                      BSTD_FUNCTION, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
             BDBG_ERR(("%s: The SDL must be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
-                      __FUNCTION__));
+                      BSTD_FUNCTION));
             goto end;
         }
     } else {
-        BDBG_MSG(("%s: Trusted App THL signature indicates Load-Time-Resolution", __FUNCTION__));
+        BDBG_MSG(("%s: Trusted App THL signature indicates Load-Time-Resolution", BSTD_FUNCTION));
         rc = true;
     }
 
@@ -226,6 +225,7 @@ _P_LookupPlatformName(uint32_t platformId)
     CASE_PLATFORM_NAME_TO_STRING(MIRACAST);
     CASE_PLATFORM_NAME_TO_STRING(MARLIN);
     CASE_PLATFORM_NAME_TO_STRING(EDRM);
+    CASE_PLATFORM_NAME_TO_STRING(BP3);
     default:
       break;
   }
@@ -248,7 +248,7 @@ BSAGElib_Rai_Platform_Install(
 
     if (binSize < sizeof(BSAGElib_SDLHeader)) {
         BDBG_ERR(("%s: The binary size for TA 0x%X is less than the SDL header structure",
-                  __FUNCTION__, platformId));
+                  BSTD_FUNCTION, platformId));
         goto err;
     }
     pHeader = (BSAGElib_SDLHeader *)binBuff;
@@ -279,8 +279,8 @@ BSAGElib_Rai_Platform_Install(
                   pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
                   ));
     }
-    BDBG_MSG(("%s: Platform %x %p %d",__FUNCTION__, platformId, binBuff,binSize  ));
-    BDBG_MSG(("%s: System Platform %p %p",__FUNCTION__, (void *)hSAGElibClient->system_platform, (void*)hSAGElibClient->system_module ));
+    BDBG_MSG(("%s: Platform %x %p %d",BSTD_FUNCTION, platformId, binBuff,binSize  ));
+    BDBG_MSG(("%s: System Platform %p %p",BSTD_FUNCTION, (void *)hSAGElibClient->system_platform, (void*)hSAGElibClient->system_module ));
 
     if(hSAGElibClient->system_platform == NULL){
 
@@ -303,7 +303,7 @@ BSAGElib_Rai_Platform_Install(
             rc = BERR_TRACE(rc);
             goto err;
         }
-        BDBG_MSG(("%s: System Platform %p ",__FUNCTION__, (void *)hSAGElibClient->system_platform ));
+        BDBG_MSG(("%s: System Platform %p ",BSTD_FUNCTION, (void *)hSAGElibClient->system_platform ));
 
         if(container->basicOut[0] != BSAGElib_State_eInit){
 
@@ -343,13 +343,13 @@ BSAGElib_Rai_Platform_Install(
             if (rc != BERR_SUCCESS) {
                 goto err;
             }
-            BDBG_MSG(("%s: System Platform Module %p ",__FUNCTION__, (void *)hSAGElibClient->system_module ));
+            BDBG_MSG(("%s: System Platform Module %p ",BSTD_FUNCTION, (void *)hSAGElibClient->system_module ));
 
         }
     }
 
 
-    BDBG_MSG(("%s: Anti-rollback Platform %p %p",__FUNCTION__, (void *)hSAGElibClient->antirollback_platform, (void*)hSAGElibClient->antirollback_module ));
+    BDBG_MSG(("%s: Anti-rollback Platform %p %p",BSTD_FUNCTION, (void *)hSAGElibClient->antirollback_platform, (void*)hSAGElibClient->antirollback_module ));
 
     if((platformId != BSAGE_PLATFORM_ID_ANTIROLLBACK) && (hSAGElibClient->antirollback_platform == NULL)) {
 
@@ -370,7 +370,7 @@ BSAGElib_Rai_Platform_Install(
             rc = BERR_TRACE(rc);
             goto err;
         }
-        BDBG_MSG(("%s: Anti-rollback Platform %p ",__FUNCTION__, (void *)hSAGElibClient->antirollback_platform ));
+        BDBG_MSG(("%s: Anti-rollback Platform %p ",BSTD_FUNCTION, (void *)hSAGElibClient->antirollback_platform ));
 
         if(container->basicOut[0] != BSAGElib_State_eInit){
 
@@ -411,7 +411,7 @@ BSAGElib_Rai_Platform_Install(
             else if (rc != BERR_SUCCESS) {
                 goto err;
             }
-            BDBG_MSG(("%s: Anti-rollback Platform Module %p ",__FUNCTION__, (void *)hSAGElibClient->antirollback_module ));
+            BDBG_MSG(("%s: Anti-rollback Platform Module %p ",BSTD_FUNCTION, (void *)hSAGElibClient->antirollback_module ));
 
         }
     }
@@ -420,7 +420,7 @@ BSAGElib_Rai_Platform_Install(
     /* do it after the system platform open so we are sure the SAGE-side is booted
        and the status info are valid */
     if (!_P_IsSdlValid(hSAGElibClient->hSAGElib, pHeader)) {
-        BDBG_ERR(("%s: Cannot install incompatible SDL", __FUNCTION__));
+        BDBG_ERR(("%s: Cannot install incompatible SDL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto err;
     }
@@ -439,7 +439,7 @@ BSAGElib_Rai_Platform_Install(
                                                 &async_id);
         if (rc != BERR_SUCCESS) {
             /* If message to Load failed then SAGE might be reset so clean up Anti-rollback Platform Handles */
-            BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",__FUNCTION__,rc));
+            BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",BSTD_FUNCTION,rc));
             hSAGElibClient->antirollback_platform = NULL;
             hSAGElibClient->antirollback_module = NULL;
             rc = BERR_TRACE(rc);
@@ -450,13 +450,13 @@ BSAGElib_Rai_Platform_Install(
         if(rc == BSAGE_ERR_MODULE_COMMAND_ID)
         {
             /* In SAGE 3.1.x, AR TA did not support RegisterTa command. Just ignore the request. */
-            BDBG_MSG(("%s: Anti-rollback TA does not support the RegisterTa command. Ignoring the error.", __FUNCTION__));
+            BDBG_MSG(("%s: Anti-rollback TA does not support the RegisterTa command. Ignoring the error.", BSTD_FUNCTION));
             rc = BERR_SUCCESS;
         }
         else if((rc != BERR_SUCCESS) || (container->basicOut[0] != BERR_SUCCESS))
         {
             rc = BERR_UNKNOWN;
-            BDBG_ERR(("%s: Cannot register TA to the Anti-rollback TA\n", __FUNCTION__));
+            BDBG_ERR(("%s: Cannot register TA to the Anti-rollback TA\n", BSTD_FUNCTION));
             goto err;
         }
     }
@@ -473,16 +473,16 @@ BSAGElib_Rai_Platform_Install(
         BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)binBuff;
         if(pHeader->ucSageImageSigningScheme == BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_SINGLE)
         {
-            BDBG_MSG(("%s: Single signed image detected ^^^^^", __FUNCTION__)); /* TODO: change to MSG */
+            BDBG_MSG(("%s: Single signed image detected ^^^^^", BSTD_FUNCTION)); /* TODO: change to MSG */
             container->basicIn[1] = 0;
         }
         else if(pHeader->ucSageImageSigningScheme == BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_TRIPLE)
         {
-            BDBG_MSG(("%s: Triple signed image detected ^^^^^", __FUNCTION__)); /* TODO: change to MSG */
+            BDBG_MSG(("%s: Triple signed image detected ^^^^^", BSTD_FUNCTION)); /* TODO: change to MSG */
             container->basicIn[1] = 1;
         }
         else{
-            BDBG_ERR(("%s: invalida Image Siging Scheme value (0x%02x) detected", __FUNCTION__, pHeader->ucSageImageSigningScheme));
+            BDBG_ERR(("%s: invalida Image Siging Scheme value (0x%02x) detected", BSTD_FUNCTION, pHeader->ucSageImageSigningScheme));
             rc = BERR_INVALID_PARAMETER;
             goto end;
         }
@@ -495,7 +495,7 @@ BSAGElib_Rai_Platform_Install(
 
     if (rc != BERR_SUCCESS) {
         /* If message to Load failed then SAGE might be reset so clean up System Platform Handles */
-        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",__FUNCTION__,rc));
+        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",BSTD_FUNCTION,rc));
         hSAGElibClient->system_platform = NULL;
         hSAGElibClient->system_module = NULL;
         rc = BERR_TRACE(rc);
@@ -508,7 +508,7 @@ BSAGElib_Rai_Platform_Install(
         rc = BERR_TRACE(rc);
         goto err;
     }
-    BDBG_MSG(("%s Output Status %x",__FUNCTION__,container->basicOut[0]));
+    BDBG_MSG(("%s Output Status %x",BSTD_FUNCTION,container->basicOut[0]));
 
     if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED)){
         rc = BERR_SUCCESS;
@@ -546,7 +546,7 @@ BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
 
     container->basicIn[0] = platformId;
 
-    BDBG_MSG(("%s: System Platform %p %p",__FUNCTION__, (void *)hSAGElibClient->system_platform, (void*)hSAGElibClient->system_module ));
+    BDBG_MSG(("%s: System Platform %p %p",BSTD_FUNCTION, (void *)hSAGElibClient->system_platform, (void*)hSAGElibClient->system_module ));
 
     rc = BSAGElib_Rai_Module_ProcessCommand(hSAGElibClient->system_module,
                                             DynamicLoadModule_CommandId_eUnLoadSDL,
@@ -555,7 +555,7 @@ BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
 
     if (rc != BERR_SUCCESS) {
         /* If message to Unload failed then SAGE might be reset so clean up System Platform Handles */
-        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",__FUNCTION__,rc));
+        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",BSTD_FUNCTION,rc));
         hSAGElibClient->system_platform = NULL;
         hSAGElibClient->system_module = NULL;
         goto err;
@@ -567,7 +567,7 @@ BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
         goto err;
     }
 
-    BDBG_MSG(("%s Output Status %d",__FUNCTION__,container->basicOut[0]));
+    BDBG_MSG(("%s Output Status %d",BSTD_FUNCTION,container->basicOut[0]));
 
     /* Uninitialize the Anti-Rollback module */
     if (hSAGElibClient->antirollback_module != NULL) {
@@ -642,7 +642,7 @@ BSAGElib_Rai_Platform_EnableCallbacks(
 #ifndef SAGE_KO
     if (platform->callbacks.container != NULL) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: already enabled", __FUNCTION__));
+        BDBG_ERR(("%s: already enabled", BSTD_FUNCTION));
         goto end;
     }
 #endif
@@ -651,13 +651,13 @@ BSAGElib_Rai_Platform_EnableCallbacks(
 
     if (BSAGElib_iRpcCallbackRequest_isr == NULL) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: client does not support callback requests", __FUNCTION__));
+        BDBG_ERR(("%s: client does not support callback requests", BSTD_FUNCTION));
         goto end;
     }
 
     container = BSAGElib_Rai_Container_Allocate(platform->hSAGElibClient);
     if (container == NULL) {
-        BDBG_ERR(("%s: BSAGElib_Rai_Container_Allocate() failure (%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: BSAGElib_Rai_Container_Allocate() failure (%u)", BSTD_FUNCTION, rc));
         rc = BERR_OUT_OF_DEVICE_MEMORY;
         goto end;
     }
@@ -665,7 +665,7 @@ BSAGElib_Rai_Platform_EnableCallbacks(
                                                                   sizeof(*message),
                                                                   BSAGElib_MemoryType_Global);
     if (message == NULL) {
-        BDBG_ERR(("%s: BSAGElib_Rai_Memory_Allocate() failure to allocate message (%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: BSAGElib_Rai_Memory_Allocate() failure to allocate message (%u)", BSTD_FUNCTION, rc));
         rc = BERR_OUT_OF_DEVICE_MEMORY;
         goto end;
     }
@@ -679,7 +679,7 @@ BSAGElib_Rai_Platform_EnableCallbacks(
     command.systemCommandId = BSAGElib_SystemCommandId_ePlatformEnableCallbacks;
     rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", BSTD_FUNCTION, rc));
         goto end;
     }
 #ifndef SAGE_KO
@@ -724,11 +724,11 @@ BSAGElib_Rai_Platform_Open(
     BDBG_OBJECT_ASSERT(hSAGElibClient, BSAGElib_P_Client);
     hSAGElib = hSAGElibClient->hSAGElib;
 
-    BDBG_MSG(("%s: Platform %x ",__FUNCTION__, platformId));
+    BDBG_MSG(("%s: Platform %x ",BSTD_FUNCTION, platformId));
 
     if (!pPlatform) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: pPlatform is NULL", __FUNCTION__));
+        BDBG_ERR(("%s: pPlatform is NULL", BSTD_FUNCTION));
         goto end;
     }
 
@@ -738,7 +738,7 @@ BSAGElib_Rai_Platform_Open(
                                                                       &hSAGElib->i_memory_map);
     if (!command.containerOffset) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid container %p", __FUNCTION__, (void *)container));
+        BDBG_ERR(("%s: invalid container %p", BSTD_FUNCTION, (void *)container));
         goto end;
     }
 
@@ -755,7 +755,7 @@ BSAGElib_Rai_Platform_Open(
     command.systemCommandId = BSAGElib_SystemCommandId_ePlatformOpen;
     rc = BSAGElib_Rpc_SendCommand(new_platform, &command, pAsync_id);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%d)", __FUNCTION__, (int)rc));
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%d)", BSTD_FUNCTION, (int)rc));
         BSAGElib_Rpc_RemoveRemote(new_platform);
         goto end;
     }
@@ -784,7 +784,7 @@ BSAGElib_Rai_Platform_Init(
     BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
     hSAGElib = platform->hSAGElibClient->hSAGElib;
 
-    BDBG_MSG(("%s Platform id %x Module id %x",__FUNCTION__,platform->platformId,platform->moduleId));
+    BDBG_MSG(("%s Platform id %x Module id %x",BSTD_FUNCTION,platform->platformId,platform->moduleId));
 
     /* Convert and sync virtual <--> physical memory */
     command.containerOffset = BSAGElib_Tools_ContainerAddressToOffset(container,
@@ -795,7 +795,7 @@ BSAGElib_Rai_Platform_Init(
     command.systemCommandId = BSAGElib_SystemCommandId_ePlatformInit;
     rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -816,7 +816,7 @@ BSAGElib_Rai_Platform_Close(
 
     BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
 
-    BDBG_MSG(("%s Platform id %x Module id %x",__FUNCTION__,platform->platformId,platform->moduleId));
+    BDBG_MSG(("%s Platform id %x Module id %x",BSTD_FUNCTION,platform->platformId,platform->moduleId));
 
 #ifndef SAGE_KO
     if (platform->valid) {
@@ -827,13 +827,13 @@ BSAGElib_Rai_Platform_Close(
         command.systemCommandId = BSAGElib_SystemCommandId_ePlatformClose;
         rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
         if (rc != BERR_SUCCESS) {
-            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
+            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", BSTD_FUNCTION, rc));
             /* keep going */
         }
 #ifndef SAGE_KO
     }
     else {
-        BDBG_WRN(("%s: platform is not valid anymore, skip command send", __FUNCTION__));
+        BDBG_WRN(("%s: platform is not valid anymore, skip command send", BSTD_FUNCTION));
     }
 #endif
     platform->hSAGElibClient->platformNum--;
@@ -865,7 +865,7 @@ BSAGElib_Rai_Module_Init(
     hSAGElib = platform->hSAGElibClient->hSAGElib;
 
     if (!pModule) {
-        BDBG_ERR(("%s: pModule is NULL", __FUNCTION__));
+        BDBG_ERR(("%s: pModule is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
@@ -873,7 +873,7 @@ BSAGElib_Rai_Module_Init(
     new_module = BSAGElib_Rpc_AddRemote(platform->hSAGElibClient, platform->platformId, moduleId, async_argument);
     if (!new_module) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: BSAGElib_Rpc_AddRemote failure", __FUNCTION__));
+        BDBG_ERR(("%s: BSAGElib_Rpc_AddRemote failure", BSTD_FUNCTION));
         goto end;
     }
 
@@ -886,7 +886,7 @@ BSAGElib_Rai_Module_Init(
     rc = BSAGElib_Rpc_SendCommand(new_module, &command, pAsync_id);
     if (rc != BERR_SUCCESS) {
         BSAGElib_Rpc_RemoveRemote(new_module);
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -920,13 +920,13 @@ BSAGElib_Rai_Module_Uninit(
         command.systemCommandId = BSAGElib_SystemCommandId_eModuleUninit;
         rc = BSAGElib_Rpc_SendCommand(module, &command, pAsync_id);
         if (rc != BERR_SUCCESS) {
-            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
+            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", BSTD_FUNCTION, rc));
             /* keep going */
         }
 #ifndef SAGE_KO
     }
     else {
-        BDBG_WRN(("%s: module is not valid anymore, skip command send", __FUNCTION__));
+        BDBG_WRN(("%s: module is not valid anymore, skip command send", BSTD_FUNCTION));
     }
 #endif
     module->hSAGElibClient->moduleNum--;
@@ -959,7 +959,7 @@ BSAGElib_Rai_Module_ProcessCommand(
     command.systemCommandId = BSAGElib_SystemCommandId_eModuleProcessCommand;
     rc = BSAGElib_Rpc_SendCommand(module, &command, pAsync_id);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%d)", __FUNCTION__, (int)rc));
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%d)", BSTD_FUNCTION, (int)rc));
         goto end;
     }
 
@@ -982,11 +982,6 @@ BSAGElib_Rai_Memory_Allocate(
     BDBG_OBJECT_ASSERT(hSAGElibClient, BSAGElib_P_Client);
     hSAGElib = hSAGElibClient->hSAGElib;
 
-    /* size is rounded up to a multiple of 4096 bytes for SAGE-side concerns. */
-    if (size & 0xFFF) {
-        size = (size | 0xFFF) + 1;
-    }
-
     switch (memoryType) {
     case BSAGElib_MemoryType_Restricted:
         ret = BSAGElib_iMallocRestricted(size);
@@ -995,7 +990,7 @@ BSAGElib_Rai_Memory_Allocate(
         ret = BSAGElib_iMalloc(size);
         break;
     default:
-        BDBG_ERR(("%s: bad memory type %u", __FUNCTION__, memoryType));
+        BDBG_ERR(("%s: bad memory type %u", BSTD_FUNCTION, memoryType));
         ret = NULL;
         break;
     }

@@ -492,6 +492,14 @@ int main(int argc, char *argv[])
             {
                 pAppCtx->playerStreamInfo.usePlaypump = true;
             }
+            if (pAppCtx->bufDepthInMsec)
+            {
+                playerSettings.ttsParams.bufDepthInMsec = true;
+                playerSettings.ttsParams.initBufDepth = pAppCtx->maxIpNetworkJitterInMs + 100;
+                playerSettings.ttsParams.maxBufDepth = 2 * pAppCtx->maxIpNetworkJitterInMs;
+                playerSettings.ttsParams.minBufDepth = playerSettings.ttsParams.initBufDepth - pAppCtx->maxIpNetworkJitterInMs;
+                BDBG_WRN(("bufferDepth: max=%u min=%u msec", playerSettings.ttsParams.maxBufDepth, playerSettings.ttsParams.minBufDepth ));
+            }
             playerSettings.enableDynamicTrackSelection = !pAppCtx->disableDynamicTrackSelection;
             bipStatus = BIP_Player_Prepare(hPlayer, &prepareSettings, &playerSettings, NULL/*&probeSettings*/, &pAppCtx->playerStreamInfo, &prepareStatus);
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Prepare Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );

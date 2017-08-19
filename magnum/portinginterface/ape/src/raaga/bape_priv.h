@@ -492,6 +492,9 @@ typedef struct BAPE_Device
 #if BAPE_CHIP_MAX_PLLS > 0
     BTMR_TimerHandle pllTimer[BAPE_CHIP_MAX_PLLS];
 #endif
+#if BAPE_CHIP_MAX_NCOS > 0
+    BTMR_TimerHandle ncoTimer[BAPE_CHIP_MAX_NCOS];
+#endif
 
 } BAPE_Device;
 
@@ -1192,9 +1195,15 @@ BERR_Code BAPE_P_SetDfifoOverflowInterrupt(
 
 /***************************************************************************
 Summary:
-Helper to get the SPDIF channel status code for a sample rate (IEC60958-3)
+Helper to get the SPDIF channel status code for a sample rate in consumer mode (IEC60958-3)
 ***************************************************************************/
-unsigned BAPE_P_GetSampleRateCstatCode_isr(unsigned sampleRate);
+unsigned BAPE_P_GetConsumerSampleRateCstatCode_isr(unsigned sampleRate);
+
+/***************************************************************************
+Summary:
+Helper to get the SPDIF channel status code for a sample rate in professional mode (AES/EBU-3250)
+***************************************************************************/
+unsigned BAPE_P_GetProfessionalSampleRateCstatCode_isr(unsigned sampleRate);
 
 /***************************************************************************
 Summary:
@@ -1306,19 +1315,20 @@ Summary:
 Attach a mixer to a PLL
 ***************************************************************************/
 void BAPE_P_AttachMixerToPll(BAPE_MixerHandle mixer, BAPE_Pll pll);
+void BAPE_P_AttachMixerToPll_isr(BAPE_MixerHandle mixer, BAPE_Pll pll);
 
 /***************************************************************************
 Summary:
 Detach a mixer from a PLL
 ***************************************************************************/
-void BAPE_P_DetachMixerFromPll(BAPE_MixerHandle mixer, BAPE_Pll pll);
+void BAPE_P_DetachMixerFromPll_isrsafe(BAPE_MixerHandle mixer, BAPE_Pll pll);
 
 /***************************************************************************
 Summary:
 Attach an input port to a NCO
 ***************************************************************************/
 void BAPE_P_AttachInputPortToPll(BAPE_InputPort input, BAPE_Pll pll);
-void BAPE_P_AttachInputPortToPll_isrsafe(BAPE_InputPort input, BAPE_Pll pll);
+void BAPE_P_AttachInputPortToPll_isr(BAPE_InputPort input, BAPE_Pll pll);
 
 /***************************************************************************
 Summary:
@@ -1340,22 +1350,29 @@ void BAPE_P_VerifyPllCallback_isr(void *pParam1, int param2);
 
 /***************************************************************************
 Summary:
+Verify that after updates shared NCOs aren't running a different rates
+***************************************************************************/
+void BAPE_P_VerifyNcoCallback_isr(void *pParam1, int param2);
+
+/***************************************************************************
+Summary:
 Attach a mixer to a NCO
 ***************************************************************************/
 void BAPE_P_AttachMixerToNco(BAPE_MixerHandle mixer, BAPE_Nco nco);
+void BAPE_P_AttachMixerToNco_isr(BAPE_MixerHandle mixer, BAPE_Nco nco);
 
 /***************************************************************************
 Summary:
 Detach a mixer from a NCO
 ***************************************************************************/
-void BAPE_P_DetachMixerFromNco(BAPE_MixerHandle mixer, BAPE_Nco nco);
+void BAPE_P_DetachMixerFromNco_isrsafe(BAPE_MixerHandle mixer, BAPE_Nco nco);
 
 /***************************************************************************
 Summary:
 Attach an input port to a NCO
 ***************************************************************************/
 void BAPE_P_AttachInputPortToNco(BAPE_InputPort input, BAPE_Nco nco);
-void BAPE_P_AttachInputPortToNco_isrsafe(BAPE_InputPort input, BAPE_Nco nco);
+void BAPE_P_AttachInputPortToNco_isr(BAPE_InputPort input, BAPE_Nco nco);
 
 /***************************************************************************
 Summary:
@@ -1571,6 +1588,8 @@ typedef struct BAPE_Decoder
     bool simul;
     bool stereoOnMultichannel;
     bool stereoOnCompressed;
+    bool disablePauseBursts; /* If at least one compressed output requests no pause bursts
+                                then disable decoder pause bursts */
 
     BAPE_DecoderType type;
     BAPE_PathNodeOutputStatus outputStatus;
@@ -1974,6 +1993,22 @@ void BAPE_P_MapSpdifChannelStatusToBits_isr(
     BAPE_Spdif_P_ChannelStatusBits *pBits           /* [out] */
     );
 #endif
+
+/***************************************************************************
+Summary:
+Returns if pause bursts are enabled
+***************************************************************************/
+void BAPE_SpdifOutput_P_DeterminePauseBurstEnabled(
+    BAPE_SpdifOutputHandle handle,
+    bool *compressed, /* [out] */
+    bool *burstsEnabled /* [out] */
+    );
+
+void BAPE_MaiOutput_P_DeterminePauseBurstEnabled(
+    BAPE_MaiOutputHandle handle,
+    bool *compressed, /* [out] */
+    bool *burstsEnabled /* [out] */
+    );
 
 typedef struct BAPE_ItbEntry
 {

@@ -45,7 +45,7 @@ BDBG_MODULE(atlas_dma);
 
 CDma::CDma(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_dma, pCfg),

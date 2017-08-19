@@ -1,0 +1,8 @@
+# $Id: 7d66e2e6e734330972fa0599c797c137f9357538 $
+
+Developer Unit Test Framework etc
+----------------------------- ---
+
+src/tools/unittest/etc contains additional configuration and scripts
+for the developer unit test framework.
+

@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include "libs/util/log/log.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef enum
 {
@@ -162,6 +162,6 @@ extern void v3d_basic_string_printer_line(struct v3d_basic_printer *root, const 
 extern void v3d_basic_string_printer_init(struct v3d_basic_string_printer *p,
    char *buf, size_t buf_size, size_t offset);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

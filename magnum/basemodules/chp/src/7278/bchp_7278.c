@@ -67,7 +67,11 @@ static const struct BCHP_P_Info s_aChipInfoTable[] =
 {
     /* Chip Family contains the major and minor revs */
 #if BCHP_VER == BCHP_VER_A0
+    /* A0 code will run on A0 */
     {0x72780000},
+#elif BCHP_VER == BCHP_VER_B0
+    /* B0 code will run on B0 */
+    {0x72780010},
 #else
     #error "Port required"
 #endif
@@ -144,10 +148,6 @@ static BERR_Code BCHP_P_GetFeature
 
     BDBG_OBJECT_ASSERT(hChip, BCHP);
 
-    /* read bond-out status common for many features */
-    ulBondStatus = BREG_Read32(hChip->regHandle,
-        BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0);
-
     /* which feature? */
     switch (eFeature)
     {
@@ -162,14 +162,22 @@ static BERR_Code BCHP_P_GetFeature
         *(bool *)pFeatureValue = false;
         rc = BERR_SUCCESS;
         break;
-
+    /* BP3 Do NOT Modify Start */
     case BCHP_Feature_eMacrovisionCapable:
         /* macrovision capable? (bool) */
+
+#ifndef BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0_otp_option_macrovision_disable_MASK
+        *(bool *)pFeatureValue = (BERR_SUCCESS == BCHP_HasLicensedFeature_isrsafe(hChip, BCHP_LicensedFeature_eMacrovision)) ? true : false;
+        BSTD_UNUSED(ulBondStatus);
+#else
+        /* read bond-out status common for many features */
+        ulBondStatus = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0);
         *(bool *)pFeatureValue = BCHP_GET_FIELD_DATA(ulBondStatus,
             SUN_TOP_CTRL_OTP_OPTION_STATUS_0, otp_option_macrovision_disable) ? false : true;
+#endif
         rc = BERR_SUCCESS;
         break;
-
+    /* BP3 Do NOT Modify End */
     case BCHP_Feature_eMpegDecoderCount:
         /* number of MPEG decoders (int) */
         *(int *)pFeatureValue = 2;
@@ -178,8 +186,15 @@ static BERR_Code BCHP_P_GetFeature
 
     case BCHP_Feature_eHdcpCapable:
         /* HDCP capable? (bool) */
+#if BCHP_VER == BCHP_VER_A0
+        ulBondStatus = BREG_Read32(hChip->regHandle,BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0);
         *(bool *)pFeatureValue = BCHP_GET_FIELD_DATA(ulBondStatus,
             SUN_TOP_CTRL_OTP_OPTION_STATUS_0, otp_option_hdcp_disable ) ? false : true;
+#else
+        ulBondStatus = BREG_Read32(hChip->regHandle,BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_1);
+        *(bool *)pFeatureValue = BCHP_GET_FIELD_DATA(ulBondStatus,
+            SUN_TOP_CTRL_OTP_OPTION_STATUS_1, otp_option_hdcp_disable ) ? false : true;
+#endif
         rc = BERR_SUCCESS;
         break;
 

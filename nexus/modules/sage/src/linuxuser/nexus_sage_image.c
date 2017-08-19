@@ -49,21 +49,26 @@
 #include "nexus_base_image.h"
 #include "../nexus_sage_image.h"
 
-
 BDBG_MODULE(nexus_sage_image);
 
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
 {
-    "sage_bl_dev.bin",                /* SAGE boot loader for development (ZS) chip */
-    "sage_framework_dev.bin",         /* SAGE kernel for development (ZS)c hip*/
-    "sage_bl.bin",                    /* SAGE boot loader for production (ZB or customer specific) chip */
-    "sage_framework.bin",             /* SAGE kernel for production (ZB or custoemr specific) chip */
-    "sage_ta_secure_video_dev.bin",   /* SAGE SVP TA binary for development (ZS) chip */
-    "sage_ta_secure_video.bin",       /* SAGE SVP TA binary for production (ZB or customer specific) chip */
-    "sage_ta_antirollback_dev.bin",   /* SAGE AntiRollback TA binary for development (ZS) chip */
-    "sage_ta_antirollback.bin",        /* SAGE AntiRollback TA binary for production (ZB or customer specific) chip */
-    "sage_fc_antirollback_database.bin" /*Anti-Rollback Database (universal across chip variants dev/non dev)*/
+    "sage_bl_dev.bin",                  /* SAGE boot loader for development (ZS) chip */
+    "sage_framework_dev.bin",           /* SAGE kernel for development (ZS)c hip*/
+    "sage_bl.bin",                      /* SAGE boot loader for production (ZB or customer specific) chip */
+    "sage_framework.bin",               /* SAGE kernel for production (ZB or custoemr specific) chip */
+    "sage_ta_secure_video_dev.bin",     /* SAGE SVP TA binary for development (ZS) chip */
+    "sage_ta_secure_video.bin",         /* SAGE SVP TA binary for production (ZB or customer specific) chip */
+    "sage_ta_antirollback_dev.bin",     /* SAGE AntiRollback TA binary for development (ZS) chip */
+    "sage_ta_antirollback.bin",         /* SAGE AntiRollback TA binary for production (ZB or customer specific) chip */
+    "sage_ta_hdcp22_dev.bin",           /* hdcp22 TA for development (ZS/ZD) chip */
+    "sage_ta_hdcp22.bin",               /* hdcp22 TA for production ZB/customer chip*/
+    "sage_fc_antirollback_database.bin",/* Anti-Rollback Database (universal across chip variants dev/non dev) */
+    "sage_fc_HdmiRx.bin",               /* HDMI Rx FC (universal across chip variants dev/non dev) */
+    "sage_ta_bp3_dev.bin",              /* SAGE BP3 TA binary for development (ZS) chip */
+    "sage_ta_bp3.bin",                  /* SAGE BP3 TA binary for production (ZB or customer specific) chip */
+    "bp3.bin"                           /* BP3 data file */
 };
 #else
 static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
@@ -71,7 +76,7 @@ static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
     "sage_bl_dev.bin",             /* SAGE boot loader for development (ZS) chip */
     "sage_os_app_dev.bin",         /* SAGE kernel for development (ZS)c hip*/
     "sage_bl.bin",                 /* SAGE boot loader for production (ZB or customer specific) chip */
-    "sage_os_app.bin"             /* SAGE kernel for production (ZB or custoemr specific) chip */
+    "sage_os_app.bin"              /* SAGE kernel for production (ZB or custoemr specific) chip */
 };
 #endif
 
@@ -84,7 +89,14 @@ static NEXUS_Error sage_image_open(void *context, void **image, unsigned image_i
     BDBG_ENTER(sage_image_open);
     BDBG_ASSERT(context == firmware_images);
     BDBG_ASSERT(image_id < SAGE_IMAGE_FirmwareID_Max);
-    error = NEXUS_BaseImage_Open(image, firmware_images[image_id], NEXUS_GetEnv("SAGEBIN_PATH"));
+    if (image_id == SAGE_IMAGE_FirmwareID_eSage_BP3_BIN)
+    {
+        error = NEXUS_BaseImage_Open(image, bp3_bin_file_name, bp3_bin_file_path);
+    }
+    else
+    {
+        error = NEXUS_BaseImage_Open(image, firmware_images[image_id], NEXUS_GetEnv("SAGEBIN_PATH"));
+    }
     if (error) error = BERR_TRACE(error);
     BDBG_LEAVE(sage_image_open);
 
@@ -142,17 +154,17 @@ static bool file_exists(const char *filename, const char *env_path)
     filepath = BKNI_Malloc(filepath_len);
     if (!filepath)
     {
-        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", __FUNCTION__, (unsigned)filepath_len));
+        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", BSTD_FUNCTION, (unsigned)filepath_len));
         goto error;
     }
 
     if (BKNI_Snprintf(filepath, filepath_len, "%s/%s", env_path, filename) != (int)(filepath_len-1))
     {
-        BDBG_ERR(("%s - Cannot build final binary path", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot build final binary path", BSTD_FUNCTION));
         goto error;
     }
 
-    file = fopen(filename, "r");
+    file = fopen(filepath, "r");
     if (file)
     {
         fclose(file);
@@ -174,9 +186,21 @@ void NEXUS_SageImage_SetImageExists_priv(NEXUS_SageModuleSettings *pSettings)
     for (i = 0; i < SAGE_IMAGE_FirmwareID_Max; i++)
     {
         if(firmware_images[i])
-            pSettings->imageExists[i] = file_exists(firmware_images[i], NEXUS_GetEnv("SAGEBIN_PATH"));
+        {
+            if (i == SAGE_IMAGE_FirmwareID_eSage_BP3_BIN)
+            {
+                pSettings->imageExists[i] = file_exists(bp3_bin_file_name, bp3_bin_file_path);
+            }
+            else
+            {
+                pSettings->imageExists[i] = file_exists(firmware_images[i], NEXUS_GetEnv("SAGEBIN_PATH"));
+            }
+        }
         else
+        {
             pSettings->imageExists[i] = false;
+        }
+        BDBG_MSG(("%s %s", firmware_images[i], pSettings->imageExists[i] ? "FOUND" : "MISSING"));
     }
 }
 

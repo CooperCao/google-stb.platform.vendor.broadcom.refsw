@@ -51,6 +51,9 @@ BIP_SETTINGS_ID(BIP_StreamerCreateSettings);
 BIP_SETTINGS_ID(BIP_StreamerTunerInputSettings);
 BIP_SETTINGS_ID(BIP_StreamerIpInputSettings);
 BIP_SETTINGS_ID(BIP_StreamerRecpumpInputSettings);
+#if NEXUS_HAS_HDMI_INPUT
+BIP_SETTINGS_ID(BIP_StreamerHdmiInputSettings);
+#endif
 BIP_SETTINGS_ID(BIP_StreamerTrackSettings);
 BIP_SETTINGS_ID(BIP_StreamerOutputSettings);
 BIP_SETTINGS_ID(BIP_StreamerPrepareSettings);
@@ -980,7 +983,7 @@ static void dataReadyCallbackFromRecpump(
 
 } /* dataReadyCallbackFromRecpump */
 
-static BIP_Status startNexusRecpump(
+static BIP_Status updateNexusRecpumpSettings(
     BIP_StreamerHandle hStreamer
     )
 {
@@ -990,8 +993,38 @@ static BIP_Status startNexusRecpump(
 
     /* Configure and start Recpump */
     NEXUS_Recpump_GetSettings( hStreamer->hRecpump, &recpumpSettings );
-    recpumpSettings.timestampType = hStreamer->output.settings.mpeg2Ts.enableTransportTimestamp?
-        NEXUS_TransportTimestampType_e32_Binary:NEXUS_TransportTimestampType_eNone;
+    if (hStreamer->streamerStreamInfo.transportTimeStampEnabled ||  hStreamer->output.settings.mpeg2Ts.enableTransportTimestamp)
+    {
+        recpumpSettings.timestampType = NEXUS_TransportTimestampType_e32_Binary;
+#if 0
+        /* Adjust timestamps using the incoming PCRs. */
+        /* This code is commented out due a h/w bug where TTS gets reset if incoming stream contains a marked discontinuity set & */
+        /* and TTS value is about to wrap. */
+        {
+            BIP_StreamerTrackListEntryHandle hTrackEntry;
+
+            recpumpSettings.adjustTimestampUsingPcrs = true;
+
+            bipStatus = BIP_Streamer_GetTrackEntry_priv( hStreamer, BIP_MediaInfoTrackType_ePcr, &hTrackEntry );
+            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Streamer_GetTrackEntry_priv Failed to find the PCR track, needed to generate timestamps locked to the PCRs" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+            if (!hTrackEntry || !hTrackEntry->hPidChannel)
+            {
+                bipStatus = BIP_Streamer_GetTrackEntry_priv( hStreamer, BIP_MediaInfoTrackType_eVideo, &hTrackEntry );
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Streamer_GetTrackEntry_priv Failed to find the PCR track, needed to generate timestamps locked to the PCRs" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+            }
+            BDBG_ASSERT(hTrackEntry);
+            BDBG_ASSERT(hTrackEntry->hPidChannel);
+            recpumpSettings.pcrPidChannel = hTrackEntry->hPidChannel;
+        }
+#else
+        recpumpSettings.adjustTimestampUsingPcrs = false;
+#endif
+    }
+    else
+    {
+        recpumpSettings.timestampType = NEXUS_TransportTimestampType_eNone;
+    }
+
     if ( hStreamer->inputType != BIP_StreamerInputType_eTuner )
     {
         recpumpSettings.bandHold = true;
@@ -1004,6 +1037,20 @@ static BIP_Status startNexusRecpump(
 #endif
     BIP_CHECK_GOTO(( !nrc ), ( "NEXUS_Recpump_SetSettings Failed!" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: NEXUS_Recpump settings are updated!" BIP_MSG_PRE_ARG, (void *)hStreamer));
+    bipStatus = BIP_SUCCESS;
+
+error:
+    return ( bipStatus );
+} /* updateNexusRecpumpSettings */
+
+static BIP_Status startNexusRecpump(
+    BIP_StreamerHandle hStreamer
+    )
+{
+    BIP_Status bipStatus = BIP_ERR_NEXUS;
+    NEXUS_Error nrc = NEXUS_SUCCESS;
+
     nrc = NEXUS_Recpump_Start( hStreamer->hRecpump);
     BIP_CHECK_GOTO(( !nrc ), ( "NEXUS_Recpump_Start Failed!" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
@@ -1012,9 +1059,9 @@ static BIP_Status startNexusRecpump(
 
 error:
     return ( bipStatus );
-}
+} /* startNexusRecpump */
 
-static BIP_Status startNexusPlayback(
+static BIP_Status updateNexusPlaybackSettings(
     BIP_StreamerHandle  hStreamer,
     bool                seekPositionValid,
     unsigned            seekPositionInMs
@@ -1024,7 +1071,6 @@ static BIP_Status startNexusPlayback(
     NEXUS_Error nrc;
     int playSpeed;
     NEXUS_PlaybackSettings playbackSettings;
-    NEXUS_PlaybackStartSettings playbackStartSettings;
     BIP_StreamerTrackListEntryHandle hTrackEntry = NULL;
 
     /* Start Playback so that it can feed file in for file case. */
@@ -1036,22 +1082,31 @@ static BIP_Status startNexusPlayback(
     if (hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eTs && playSpeed == 1 && hStreamer->transcode.profileState == BIP_StreamerOutputState_eNotSet &&
             (BIP_Streamer_GetTrackEntry_priv( hStreamer, BIP_MediaInfoTrackType_ePcr, &hTrackEntry ) == BIP_SUCCESS) && hStreamer->file.inputSettings.enableHwPacing == true)
     {
-        /* For TS streams being played via Playback path w/o transcode enabled, turn on PCR Pacing if PCR track is present in the stream. */
+        /* For TS streams being played via Playback path w/o transcode enabled, and w/ PCR track present in the stream, */
+        /* determine between TTS or PCR based pacing. */
         playbackSettings.playpumpSettings.timestamp.pacing = true;
-        playbackSettings.playpumpSettings.timestamp.pcrPacingPid = hTrackEntry->streamerTrackInfo.trackId;
-        playbackSettings.playpumpSettings.timestamp.pacingMaxError = 0xffff;
-#if 0
-        /*TODO: Doesn't seem like we have to set the specific timebase for PCR pacing but need to confirm this! */
-        playbackSettings.playpumpSettings.timestamp.type = NEXUS_TransportTimestampType_eNone;
-        playbackSettings.playpumpSettings.timestamp.timebase = hStreamer->pacingTimebase;
         playbackSettings.playpumpSettings.timestamp.pacingOffsetAdjustDisable = true;
         playbackSettings.playpumpSettings.timestamp.resetPacing = true;
         playbackSettings.playpumpSettings.timestamp.parityCheckDisable = true;
-        playbackSettings.playpumpSettings.maxDataRate = (16*1024*1024);
-#endif
-        BDBG_MSG((BIP_MSG_PRE_FMT "hStreamer %p: PlaybackSettings: pacingMaxError %d, PCR# %d, PlaySpeed %d" BIP_MSG_PRE_ARG, (void *)hStreamer,
-                    playbackSettings.playpumpSettings.timestamp.pacingMaxError,
-                    playbackSettings.playpumpSettings.timestamp.pcrPacingPid, playSpeed));
+        playbackSettings.playpumpSettings.timestamp.pacingMaxError = 5273; /* 1/10th of a sec. */
+        playbackSettings.playpumpSettings.timestamp.forceRestamping = false;
+
+        if (hStreamer->streamerStreamInfo.transportTimeStampEnabled ||  hStreamer->output.settings.mpeg2Ts.enableTransportTimestamp)
+        {
+            /* TTS stream, setup TTS based pacing. */
+            playbackSettings.playpumpSettings.timestamp.type = NEXUS_TransportTimestampType_e32_Binary;
+            BDBG_MSG((BIP_MSG_PRE_FMT "hStreamer %p: TTS based pacing: pacingMaxError=%d, timestampType=%d" BIP_MSG_PRE_ARG, (void *)hStreamer,
+                        playbackSettings.playpumpSettings.timestamp.pacingMaxError,
+                        playbackSettings.playpumpSettings.timestamp.type));
+        }
+        else
+        {
+            /* Or setup PCR based pacing. */
+            playbackSettings.playpumpSettings.timestamp.pcrPacingPid = hTrackEntry->streamerTrackInfo.trackId;
+            BDBG_MSG((BIP_MSG_PRE_FMT "hStreamer %p: PCR based pacing: pacingMaxError %d, PCR# %d, PlaySpeed %d" BIP_MSG_PRE_ARG, (void *)hStreamer,
+                        playbackSettings.playpumpSettings.timestamp.pacingMaxError,
+                        playbackSettings.playpumpSettings.timestamp.pcrPacingPid, playSpeed));
+        }
     }
     else if ( (hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eTs && playSpeed != 1) || seekPositionValid )
     {
@@ -1063,11 +1118,31 @@ static BIP_Status startNexusPlayback(
     nrc = NEXUS_Playback_SetSettings( hStreamer->hPlayback, &playbackSettings );
     BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Playback_SetSettings Failed!" ), error, BIP_ERR_INTERNAL, bipStatus );
 
+    bipStatus = BIP_SUCCESS;
+    BDBG_WRN(( BIP_MSG_PRE_FMT "hStreamer %p: Updated Playback settings from inputType %d: playSpeed=%d seekPositionInMs=%u" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->inputType, playSpeed, seekPositionInMs ));
+
+error:
+    return ( bipStatus );
+} /* updateNexusPlaybackSettings */
+
+static BIP_Status startNexusPlayback(
+    BIP_StreamerHandle  hStreamer,
+    bool                seekPositionValid,
+    unsigned            seekPositionInMs
+    )
+{
+    BIP_Status bipStatus = BIP_ERR_NEXUS;
+    NEXUS_Error nrc;
+    int playSpeed;
+    NEXUS_PlaybackStartSettings playbackStartSettings;
+
+    /* Start Playback so that it can feed file in for file case. */
     NEXUS_Playback_GetDefaultStartSettings( &playbackStartSettings );
     nrc = NEXUS_Playback_Start( hStreamer->hPlayback, hStreamer->hFilePlay, &playbackStartSettings);
     BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEUS_Playback_Start Failed!" ), error, BIP_ERR_INTERNAL, bipStatus );
 
     /* TODO: add logic here for the file streaming byte/time seek case. */
+    playSpeed = convertPlaySpeedToInt(BIP_String_GetString(hStreamer->file.hPlaySpeed));
     if (playSpeed != 1)
     {
         /* TODO: may need to refine some of these settings! */
@@ -1155,7 +1230,11 @@ static BIP_Status prepareTranscode(
         BIP_Transcode_GetDefaultPrepareSettings( &xcodePrepareSettings );
 
         /* Fill-up Video PidChannel & Track Info if Video is enabled in the caller's transcode profile. */
-        if ( !pTranscodeProfile->disableVideo )
+        if ( !pTranscodeProfile->disableVideo
+#if NEXUS_HAS_HDMI_INPUT
+                && inputType != BIP_StreamerInputType_eHdmi
+#endif
+                )
         {
             bipStatus = BIP_Streamer_GetTrackEntry_priv( hStreamer, BIP_MediaInfoTrackType_eVideo, &hTrackEntry);
             if ( bipStatus == BIP_SUCCESS )
@@ -1174,7 +1253,11 @@ static BIP_Status prepareTranscode(
         }
 
         /* Fill-up Audio PidChannel & Track Info if Audio is enabled in the caller's transcode profile. */
-        if ( bipStatus == BIP_SUCCESS && !pTranscodeProfile->disableAudio )
+        if ( bipStatus == BIP_SUCCESS && !pTranscodeProfile->disableAudio
+#if NEXUS_HAS_HDMI_INPUT
+                && inputType != BIP_StreamerInputType_eHdmi
+#endif
+                )
         {
             bipStatus = BIP_Streamer_GetTrackEntry_priv( hStreamer, BIP_MediaInfoTrackType_eAudio, &hTrackEntry);
             if ( bipStatus == BIP_SUCCESS )
@@ -1233,6 +1316,10 @@ static BIP_Status prepareTranscode(
         if ( bipStatus == BIP_SUCCESS )
         {
             xcodePrepareSettings.hPlayback = hStreamer->hPlayback;
+#if NEXUS_HAS_HDMI_INPUT
+            xcodePrepareSettings.hHdmiInput = hStreamer->hHdmiInput;
+            if (hStreamer->hHdmiInput) nonRealTime = false;
+#endif
             if (hStreamer->transcode.handlesState == BIP_StreamerOutputState_eSet )
             {
                 xcodePrepareSettings.pNexusHandles = &hStreamer->setTranscodeHandlesApi.transcodeNexusHandles;
@@ -1333,17 +1420,24 @@ static BIP_Status updateStreamerSettings(
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Transcode_SetSettings Failed!" ), error, bipStatus, bipStatus );
         }
 
-        /* Start Recpump. */
+        /* Update Recpump & Playback Settings. */
+        {
+            bipStatus = updateNexusRecpumpSettings( hStreamer );
+            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "updateNexusRecpumpSettings Failed!" ), error, bipStatus, bipStatus );
+
+            bipStatus = updateNexusPlaybackSettings( hStreamer, true /* seekPositionValid */, pSettings->seekPositionInMs );
+            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "updateNexusPlaybackSettings Failed!" ), error, bipStatus, bipStatus );
+        }
+
+        /* Start Recpump & Playback from new position. */
         {
             bipStatus = startNexusRecpump( hStreamer );
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "startNexusRecpump Failed!" ), error, bipStatus, bipStatus );
-        }
 
-        /* Start Playback from new position. */
-        {
             bipStatus = startNexusPlayback( hStreamer, true /* seekPositionValid */, pSettings->seekPositionInMs );
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "startNexusPlayback Failed!" ), error, bipStatus, bipStatus );
         }
+
     }
     else if ( updateTranscodeProfile )
     {
@@ -1407,8 +1501,13 @@ static BIP_Status prepareStreamerForRecpumpInput(
      *  - Recpump -> Network
      */
 
-    /* Start Recpump. */
-    bipStatus = startNexusRecpump( hStreamer );
+    bipStatus = updateNexusRecpumpSettings( hStreamer );
+    if (bipStatus == BIP_SUCCESS)
+    {
+        /* Start Recpump. */
+        bipStatus = startNexusRecpump( hStreamer );
+    }
+
     if (bipStatus == BIP_SUCCESS)
     {
         hStreamer->state = BIP_StreamerState_ePrepared;
@@ -1418,6 +1517,95 @@ static BIP_Status prepareStreamerForRecpumpInput(
 
     return ( bipStatus );
 } /* prepareStreamerForRecpumpInput */
+
+#if NEXUS_HAS_HDMI_INPUT
+static BIP_Status prepareStreamerForHdmiInput(
+    BIP_StreamerHandle hStreamer
+    )
+{
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+    /*
+     * BIP will use following path for streaming from HDMI input:
+     *  HDMI Input -> NxClient Encode -> Recpump -> Network
+     */
+
+    /* Open Nexus Recpump as its common for both Xcode & Non-Xcode paths. */
+    bipStatus = openNexusRecpump( hStreamer );
+    if ( bipStatus == BIP_SUCCESS )
+    {
+        BIP_TranscodeProfile *pTranscodeProfile;
+        /*
+         * Then connect the PidChannels to either AV Decoders for Xcode Path or to Recpump for non-Xcode case.
+         * Either Configure the Transcode Path: Simple Decoders, Simple Transcode.
+         */
+        BDBG_ASSERT( hStreamer->transcode.profileState == BIP_StreamerOutputState_eSet );
+        {
+            /* Xcode Path: PidChannels are connected to AV Decoders. */
+            if ( hStreamer->prepareSettings.pTranscodeProfile )
+            {
+                /* Use the caller provided specific transcode profile. */
+                pTranscodeProfile = hStreamer->prepareSettings.pTranscodeProfile;
+            }
+            else
+            {
+                /* Pick the first one from our list. */
+                BIP_StreamerTranscodeProfileListEntry *pTranscodeProfileEntry;
+
+                pTranscodeProfileEntry = BLST_Q_FIRST( &hStreamer->transcode.profileListHead);
+                pTranscodeProfile = &pTranscodeProfileEntry->transcodeProfile;
+            }
+            bipStatus = prepareTranscode( hStreamer, hStreamer->inputType, pTranscodeProfile );
+            if ( bipStatus == BIP_SUCCESS )
+            {
+                /*
+                 * Note:
+                 * We start the transcode path before the Streamer_Start() as it takes time to prime the whole transcode path.
+                 * Usually there is initial latency of ~1sec in this setup.
+                 */
+                bipStatus = BIP_Transcode_Start( hStreamer->transcode.hTranscode, NULL );
+            }
+        }
+        if ( bipStatus == BIP_SUCCESS )
+        {
+            bipStatus = updateNexusRecpumpSettings( hStreamer );
+        }
+
+        /* Start Recpump. */
+        if ( bipStatus == BIP_SUCCESS )
+        {
+            bipStatus = startNexusRecpump( hStreamer );
+        }
+    /*
+     * Note:
+     * we DONT setup the PBIP or other streamer sub-modules (like ASP) as
+     * we dont know the Socket information until _Streamer_Start().
+     */
+    }
+
+    /* Check if resources are successfully acquired and then continue w/ the remaining streaming related setup. */
+    if (bipStatus == BIP_SUCCESS)
+    {
+        hStreamer->state = BIP_StreamerState_ePrepared;
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: Nexus Resources are successfully prepared. "
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+    }
+    else
+    {
+        if ( hStreamer->transcode.hTranscode )
+        {
+            BIP_Transcode_Stop( hStreamer->transcode.hTranscode );
+            BIP_Transcode_Destroy( hStreamer->transcode.hTranscode );
+            hStreamer->transcode.hTranscode = NULL;
+        }
+
+        /* Note: these functions only close the resources if they were valid & successfully acquired. */
+        closeNexusResources( hStreamer );
+    }
+
+    return ( bipStatus );
+} /* prepareStreamerForHdmiInput */
+#endif
 
 static BIP_Status prepareStreamerForTunerInput(
     BIP_StreamerHandle hStreamer
@@ -1482,9 +1670,13 @@ static BIP_Status prepareStreamerForTunerInput(
             bipStatus = addPidChannelToRecpump( hStreamer );
         }
         /* Both Xcode & Non-Xcode Paths are setup in terms of PidChannels & Xcode resources. */
+        /* Start Recpump. */
         if ( bipStatus == BIP_SUCCESS )
         {
-            /* Start Recpump. */
+            bipStatus = updateNexusRecpumpSettings( hStreamer );
+        }
+        if ( bipStatus == BIP_SUCCESS )
+        {
             bipStatus = startNexusRecpump( hStreamer );
         }
     /*
@@ -1603,9 +1795,13 @@ static BIP_Status prepareStreamerForIpInput(
             bipStatus = addPidChannelToRecpump( hStreamer );
         }
         /* Both Xcode & Non-Xcode Paths are setup in terms of PidChannels & Xcode resources. */
+        /* Start Recpump. */
         if ( bipStatus == BIP_SUCCESS )
         {
-            /* Start Recpump. */
+            bipStatus = updateNexusRecpumpSettings( hStreamer );
+        }
+        if ( bipStatus == BIP_SUCCESS )
+        {
             bipStatus = startNexusRecpump( hStreamer );
         }
         if ( bipStatus == BIP_SUCCESS )
@@ -1787,14 +1983,25 @@ static BIP_Status prepareStreamerForFileInput(
                     bipStatus = addPidChannelToRecpump( hStreamer );
                 }
                 /* Both Xcode & Non-Xcode Paths are setup in terms of PidChannels & Xcode resources. */
+
+                /* Update Recpump & Playback Settings first. */
                 if ( bipStatus == BIP_SUCCESS )
                 {
-                    /* Start the Playback & Recpump. */
+                    bipStatus = updateNexusRecpumpSettings( hStreamer );
+                }
+                if ( bipStatus == BIP_SUCCESS )
+                {
+                    bipStatus = updateNexusPlaybackSettings( hStreamer, hStreamer->prepareApi.pSettings->seekPositionValid, hStreamer->prepareApi.pSettings->seekPositionInMs );
+                }
+
+                /* Now start Recpump & Playback. */
+                if ( bipStatus == BIP_SUCCESS )
+                {
                     bipStatus = startNexusRecpump( hStreamer );
-                    if ( bipStatus == BIP_SUCCESS )
-                    {
-                        bipStatus = startNexusPlayback( hStreamer, hStreamer->prepareApi.pSettings->seekPositionValid, hStreamer->prepareApi.pSettings->seekPositionInMs );
-                    }
+                }
+                if ( bipStatus == BIP_SUCCESS )
+                {
+                    bipStatus = startNexusPlayback( hStreamer, hStreamer->prepareApi.pSettings->seekPositionValid, hStreamer->prepareApi.pSettings->seekPositionInMs );
                 }
             }
             /*
@@ -2070,6 +2277,36 @@ void processStreamerState(
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus );
         }
     }
+#if NEXUS_HAS_HDMI_INPUT
+    else if (BIP_Arb_IsNew(hArb = hStreamer->hdmiInputSettingsApi.hArb))
+    {
+        if (hStreamer->state != BIP_StreamerState_eIdle)
+        {
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_Streamer_SetHdmiInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+            hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
+            BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
+        }
+        else
+        {
+            BIP_Arb_AcceptRequest(hArb);
+
+            /* Reset any previously set inputs. */
+            resetStreamerState(hStreamer);
+
+            /* We cache the settings into streamer object.  API side code has already verified the Settings. */
+            hStreamer->hHdmiInput = hStreamer->hdmiInputSettingsApi.hHdmiInput;
+            hStreamer->hdmiInput.inputSettings = *hStreamer->hdmiInputSettingsApi.pHdmiInputSettings;
+            hStreamer->inputType = BIP_StreamerInputType_eHdmi;
+            hStreamer->hdmiInput.inputState = BIP_StreamerInputState_eSet;
+
+            hStreamer->completionStatus = BIP_SUCCESS;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: SetHdmiInputSettings Arb request is complete : state %s hHdmiInput=%p"
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), (void *)hStreamer->hHdmiInput ));
+            BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus );
+        }
+    }
+#endif
     else if (BIP_Arb_IsNew(hArb = hStreamer->outputSettingsApi.hArb))
     {
         /*
@@ -2243,6 +2480,16 @@ void processStreamerState(
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
+#if NEXUS_HAS_HDMI_INPUT
+        else if (hStreamer->hdmiInput.inputState == BIP_StreamerInputState_eSet &&
+                 hStreamer->transcode.profileState == BIP_StreamerOutputState_eNotSet
+                )
+        {
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare() is not allowed if transcode profile is not set via BIP_Streamer_AddTranscodeProfile()!." BIP_MSG_PRE_ARG, (void *)hStreamer ));
+            hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
+            BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
+        }
+#endif
         else
         {
             BIP_Arb_AcceptRequest(hArb);
@@ -2277,6 +2524,12 @@ void processStreamerState(
             {
                 hStreamer->completionStatus = prepareStreamerForRecpumpInput( hStreamer );
             }
+#if NEXUS_HAS_HDMI_INPUT
+            else if ( hStreamer->hdmiInput.inputState == BIP_StreamerInputState_eSet )
+            {
+                hStreamer->completionStatus = prepareStreamerForHdmiInput( hStreamer );
+            }
+#endif
             if ( hStreamer->completionStatus == BIP_SUCCESS )
             {
                 hStreamer->state = BIP_StreamerState_ePrepared;
@@ -2415,6 +2668,9 @@ static void streamerDestroy(
     if (hStreamer->prepareApi.hArb) BIP_Arb_Destroy(hStreamer->prepareApi.hArb);
     if (hStreamer->stopApi.hArb) BIP_Arb_Destroy(hStreamer->stopApi.hArb);
     if (hStreamer->destroyApi.hArb) BIP_Arb_Destroy(hStreamer->destroyApi.hArb);
+#if NEXUS_HAS_HDMI_INPUT
+    if (hStreamer->hdmiInputSettingsApi.hArb) BIP_Arb_Destroy(hStreamer->hdmiInputSettingsApi.hArb);
+#endif
 
     if (hStreamer->file.hMediaFileAbsolutePathName) BIP_String_Destroy( hStreamer->file.hMediaFileAbsolutePathName );
     if (hStreamer->file.hPlaySpeed) BIP_String_Destroy(hStreamer->file.hPlaySpeed);
@@ -2535,6 +2791,11 @@ BIP_StreamerHandle BIP_Streamer_Create(
 
     hStreamer->ipInputSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
     BIP_CHECK_GOTO(( hStreamer->ipInputSettingsApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+#if NEXUS_HAS_HDMI_INPUT
+    hStreamer->hdmiInputSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
+    BIP_CHECK_GOTO(( hStreamer->hdmiInputSettingsApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+#endif
 
     hStreamer->recpumpInputSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
     BIP_CHECK_GOTO(( hStreamer->recpumpInputSettingsApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
@@ -2969,6 +3230,59 @@ error:
 
     return( bipStatus );
 } /* BIP_Streamer_SetRecpumpInputSettings */
+
+#if NEXUS_HAS_HDMI_INPUT
+BIP_Status BIP_Streamer_SetHdmiInputSettings(
+    BIP_StreamerHandle                  hStreamer,
+    NEXUS_HdmiInputHandle               hHdmiInput,
+    BIP_StreamerHdmiInputSettings       *pHdmiInputSettings
+    )
+{
+    BIP_Status bipStatus = BIP_SUCCESS;
+    BIP_ArbHandle hArb;
+    BIP_ArbSubmitSettings arbSettings;
+    BIP_StreamerHdmiInputSettings defaultSettings;
+
+    BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
+    BDBG_ASSERT( pHdmiInputSettings );
+    BIP_SETTINGS_ASSERT(pHdmiInputSettings, BIP_StreamerHdmiInputSettings);
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
+
+    BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( hHdmiInput ), ( "hHdmiInput can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+
+    /* Serialize access to Settings state among another thread calling the same API. */
+    hArb = hStreamer->hdmiInputSettingsApi.hArb;
+    bipStatus = BIP_Arb_Acquire(hArb);
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+
+    if ( pHdmiInputSettings == NULL )
+    {
+        BIP_Streamer_GetDefaultHdmiInputSettings( &defaultSettings );
+        pHdmiInputSettings = &defaultSettings;
+    }
+
+    /* Move the API arguments into it's argument list so the state machine can find them. */
+    hStreamer->hdmiInputSettingsApi.pHdmiInputSettings = pHdmiInputSettings;
+    hStreamer->hdmiInputSettingsApi.hHdmiInput = hHdmiInput;
+
+    /* Get ready to run the state machine. */
+    BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
+    arbSettings.hObject = hStreamer;
+    arbSettings.arbProcessor = processStreamerState;
+    arbSettings.waitIfBusy = true;;
+
+    /* Invoke state machine via the Arb Submit API */
+    bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_SetHdmiInputSettings" ), error, bipStatus, bipStatus );
+
+error:
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
+
+    return( bipStatus );
+} /* BIP_Streamer_SetHdmiInputSettings */
+#endif
 
 BIP_Status BIP_Streamer_AddTrack(
     BIP_StreamerHandle hStreamer,

@@ -160,6 +160,7 @@ static const BXVD_ChannelSettings s_stDefaultChannelSettings =
    false,
    false,
    false,
+   0,
    NULL, 0, 0,
    NULL, 0, 0,
    NULL, 0, 0,
@@ -251,7 +252,7 @@ static const BXVD_DeviceVdcInterruptSettings  s_stDefaultDevVdcIntrSettings =
    Buffer Configuration Modes */
 static const BAVC_CdbItbConfig sCdbItbCfg[] =
 {
-   { { 0x00000000, 8, false }, {          0, 8, false }, false }   /*  BXVD_DecodeMode_eCustom         */
+   { { 0x00000000, 8, false }, {          0, 7, false }, false }   /*  BXVD_DecodeMode_eCustom         */
 };
 
 #if BDBG_DEBUG_BUILD
@@ -1204,13 +1205,7 @@ static BERR_Code BXVD_S_GetDecodeDefaultSettings
    pDecodeDefSettings->uiSignature = BXVD_DECODESETTINGS_SIGNATURE;        /* indicates BXVD_S_GetDecodeDefaultSettings has been called */
 
    /* SWSTB-3450: get the default XDM settings. */
-   if ( NULL != hXvdCh->hPictureProvider )
-   {
-      BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
-         hXvdCh->hPictureProvider,
-         &(pDecodeDefSettings->stXDMSettings)
-         );
-   }
+   BXDM_PictureProvider_GetDefaultStartSettings_isrsafe( &(pDecodeDefSettings->stXDMSettings) );
 
    /* AVD0 should use STC0 and AVD1 should use STC1 to maintain
     * backwards compatibility with pre-mosaic firmware */
@@ -1785,6 +1780,7 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
                pChDefSettings->peVideoCmprStdList,
                pChDefSettings->uiVideoCmprCount * sizeof(BAVC_VideoCompressionStd));
 
+
    pXvdCh->sChSettings.uiVideoCmprCount = pChDefSettings->uiVideoCmprCount;
 
    /* Setup default channel heaps.
@@ -1914,7 +1910,7 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
 
    BXVD_DBG_MSG(pXvdCh, ("BXVD_OpenChannel() - BXVD_ChannelSettings.bSplitPictureBuffersEnable = %d", pXvdCh->sChSettings.bSplitPictureBuffersEnable));
    BXVD_DBG_MSG(pXvdCh, ("BXVD_OpenChannel() - BXVD_ChannelSettings.bb10BitBuffersEnable = %d", pXvdCh->sChSettings.b10BitBuffersEnable));
-
+   BXVD_DBG_MSG(pXvdCh, ("BXVD_OpenChannel() - BXVD_ChannelSettings.uiExtraPictureMemoryAtoms = %d", pXvdCh->sChSettings.uiExtraPictureMemoryAtoms));
    BXVD_DBG_MSG(pXvdCh, ("BXVD_OpenChannel() - BXVD_ChannelSettings.hChannelGeneralBlock = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvdCh->sChSettings.hChannelGeneralBlock));
    BXVD_DBG_MSG(pXvdCh, ("BXVD_OpenChannel() - BXVD_ChannelSettings.uiChannelGeneralBlockOffset = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvdCh->sChSettings.uiChannelGeneralBlockOffset));
    BXVD_DBG_MSG(pXvdCh, ("BXVD_OpenChannel() - BXVD_ChannelSettings.uiChannelGeneralBlockSize = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvdCh->sChSettings.uiChannelGeneralBlockSize));
@@ -2599,7 +2595,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    }
 
    /* SWSTB-439:  the error handling level. */
-   BXVD_DBG_MSG(pXvdCh, ("%s() - BXVD_DecodeSettings.uiErrorThreshold = %d", __FUNCTION__, pXvdCh->sDecodeSettings.uiErrorThreshold));
+   BXVD_DBG_MSG(pXvdCh, ("%s() - BXVD_DecodeSettings.uiErrorThreshold = %d", BSTD_FUNCTION, pXvdCh->sDecodeSettings.uiErrorThreshold));
 
    if (pXvdCh->sDecodeSettings.eFrameRateDetectionMode <= BXVD_FrameRateDetectionMode_eStable)
    {
@@ -5578,6 +5574,7 @@ BERR_Code BXVD_GetChannelMemoryConfig( BXVD_Handle                hXvd,         
    BDBG_MSG(("BXVD_GetChannelMemoryConfig() - BXVD_ChannelSettings.bb10BitBuffersEnable = %d", pChSettings->b10BitBuffersEnable));
    BDBG_MSG(("BXVD_GetChannelMemoryConfig() - BXVD_ChannelSettings.uiVideoCmprCount = %d", pChSettings->uiVideoCmprCount));
    BDBG_MSG(("BXVD_GetChannelMemoryConfig() - BXVD_ChannelSettings.peVideoCmprStdList = %p",(void *)pChSettings->peVideoCmprStdList));
+   BDBG_MSG(("BXVD_GetChannelMemoryConfig() - BXVD_ChannelSettings.uiExtraPictureMemoryAtoms = %d", pChSettings->uiExtraPictureMemoryAtoms));
 
    if (pChSettings->peVideoCmprStdList)
    {
@@ -11608,7 +11605,7 @@ BERR_Code BXVD_SetTrickModeSettings(
    if ( pstTrickModeSettings->stGopTrickMode.eMode >= BXVD_DQTTrickMode_eMax )
    {
       BXVD_DBG_ERR( hXvdCh, ("%s:: eMode of %d is >= BXVD_DQTTrickMode_eMax",
-                                 __FUNCTION__,
+                                 BSTD_FUNCTION,
                                  pstTrickModeSettings->stGopTrickMode.eMode ));
 
       rc = BERR_INVALID_PARAMETER;
@@ -11616,7 +11613,7 @@ BERR_Code BXVD_SetTrickModeSettings(
    else if ( pstTrickModeSettings->stGopTrickMode.eTargetPTSType >= BXVD_PTSType_eMaxPTSType )
    {
       BXVD_DBG_ERR( hXvdCh, ("%s:: eTargetPTSType of %d is >= BXVD_PTSType_eMaxPTSType",
-                                 __FUNCTION__,
+                                 BSTD_FUNCTION,
                                  pstTrickModeSettings->stGopTrickMode.eTargetPTSType ));
 
       rc = BERR_INVALID_PARAMETER;

@@ -130,7 +130,7 @@ initNexusVsbSrcList(
         NEXUS_FrontendCapabilities capabilities;
         frontendHandle = platformConfig.frontend[i];
         if (!frontendHandle) {
-            BDBG_MSG(("%s: NULL Frontend (# %d)" ,__FUNCTION__, i));
+            BDBG_MSG(("%s: NULL Frontend (# %d)" ,BSTD_FUNCTION, i));
             continue;
         }
         NEXUS_Frontend_GetCapabilities(frontendHandle, &capabilities);
@@ -411,7 +411,7 @@ setupAndAcquirePsiInfoVsbSrc(
             BKNI_ReleaseMutex(vsbSrc->lock);
             BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
             if (BKNI_WaitForEvent(vsbSrc->psiAcquiredEvent, 60000)) {
-                BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
+                BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", BSTD_FUNCTION));
                 return -1;
             }
         }
@@ -499,7 +499,7 @@ int initNexusVsbSrcList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     /* note: we let the init call succeed, but we will fail the open call */
     /* this way app wont fail during startup, but will fail a client request to open/start a recording */
     return 0; 
@@ -508,21 +508,21 @@ void unInitNexusVsbSrcList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
 }
 int openNexusVsbSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1; 
 }
 void closeNexusVsbSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
 }
 int setupAndAcquirePsiInfoVsbSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx, B_PlaybackIpPsiInfo *psiOut)
 {
@@ -530,21 +530,21 @@ int setupAndAcquirePsiInfoVsbSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx 
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1; 
 }
 int startNexusVsbSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 int stopNexusVsbSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from VSB Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 #endif /* NEXUS_HAS_FRONTEND */

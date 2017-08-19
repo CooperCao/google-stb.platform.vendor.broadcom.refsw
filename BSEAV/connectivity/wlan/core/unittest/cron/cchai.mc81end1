@@ -1,0 +1,70 @@
+#MAILTO=cchai@broadcom.com
+#
+# MC81TST1 (FC15)
+#  43228 (11n 2x2 MIMO)
+#  43142_A516 (11n 1x1 SISO BT Combo 2G only)
+# MC81TST2 (FC15)
+#  4360mc_P161  (11ac 3x3 MIMO 5G only)
+#  4352hmb_P338 (11ac 2x2 MIMO 5G only BT Combo)
+#
+
+# +++++++++++++++++++++++++++++
+# MORNING TEST - TOB ONLY
+# +++++++++++++++++++++++++++++
+
+#===============================================
+# MC81TST2 FC15 11ac testing
+#===============================================
+#-->> StaNightly 4360 4352
+10 01 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc81 -ap 4706ap2 -sta "4360b 4352b" -title "MC81 StaNightly 4360b 4352b" -email hnd-utf-list
+
+#-->> RvR 4352
+15 01 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4706ap2 -sta 4352b -va af -no2G20 -no2G40 -no5G20 -no5G40 -perftime 2.5 -fb1 -title 4352b -email hnd-utf-list -chan5G80 36/80 -window 4M -nosymmetry
+
+#-->> RvR 4360
+25 01 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4706ap2 -sta 4360b -va af -no2G20 -no2G40 -no5G20 -no5G40 -perftime 2.5 -fb1 -title 4360b -email hnd-utf-list -chan5G80 36/80 -window 4M -max 900 -nosymmetry
+
+#=============================================
+# MC81TST1 FC15 11n testing
+#=============================================
+#-->> StaNightly 43228 43142
+30 01 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc81 -ap 4717 -sta "43228b 43142b" -title "MC81 StaNightly 43228b 43142b" -email hnd-utf-list
+
+#-->> RvR 43142
+35 01 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4717 -sta 43142b -va af -perftime 2.5 -fb1 -title 43142b -email hnd-utf-list -nosymmetry
+
+#-->> RvR 43228
+40 01 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4717 -sta 43228b -va af -no2G20 -no2G40 -no5G20 -perftime 2.5 -fb1 -title 43228b -email hnd-utf-list -nosymmetry
+
+#-->> Pingpong TOB 43142nic AARDVARK
+#45 03 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4717 -sta 43142f15-avk -va af -nocontrvr -no2G40 -perftime 2.5 -fb1 -title "TOB RvR Pingpong 43142f15" -email hnd-utf-list -steplist "10 63" -steploop 5 -pingmax 10 -upstreamonly -nosymmetry
+
+
+# +++++++++++++++++++++++++++++
+# EVEVING TEST - TOT
+# +++++++++++++++++++++++++++++
+
+#===============================================
+# MC81TST2 FC15 11ac testing
+#===============================================
+#-->> StaNightly TOT 4352 4360
+35 19 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc81 -ap "4706ap1 4706ap2" -sta "4360t 4352t" -title "MC81 StaNightly 4360t 4352t" -email hnd-utf-list
+
+#-->> RvR TOT 4352
+45 19 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4706ap2 -sta 4352t -va af -no2G20 -no2G40 -no5G20 -no5G40 -perftime 2.5 -fb1 -title 4352t -email hnd-utf-list -chan5G80 36/80 -window 4M -nosymmetry
+
+#-->> RvR TOT 4360
+50 19 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4706ap2 -sta 4360t -va af -no2G20 -no2G40 -no5G20 -no5G40 -perftime 2.5 -fb1 -title 4360t -email hnd-utf-list -chan5G80 36/80 -window 4M -max 900 -nosymmetry
+
+#=============================================
+# MC81TST1 FC15 11n testing
+#=============================================
+#-->> StaNightly TOT 43228 43142
+55 19 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/StaNightly.test -utfconf mc81 -ap 4717 -sta "43228t 43142t" -title "MC81 StaNightly 43228t 43142t" -email hnd-utf-list
+
+#-->> RvR TOT 43142
+05 20 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4717 -sta 43142t -va af -perftime 2.5 -fb1 -title 43142t -email hnd-utf-list -nosymmetry
+
+#-->> RvR TOT 43228
+15 20 * * *  /home/cchai/src/tools/unittest/cron/launch mc81 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -utfconf mc81 -ap 4717 -sta 43228t -va af -no2G20 -no2G40 -no5G20 -perftime 2.5 -fb1 -title 43228t -email hnd-utf-list -nosymmetry
+

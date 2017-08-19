@@ -303,6 +303,19 @@ NEXUS_Error NEXUS_DolbyDigitalReencode_SetSettings(
     piSettings.stereoMode = pSettings->stereoDownmixMode;
     piSettings.dualMonoMode = pSettings->dualMonoMode;
     piSettings.fixedEncoderFormat = pSettings->fixedEncoderFormat;
+    switch ( pSettings->stereoOutputMode )
+    {
+    default:
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        break; /* unreachable */
+    case NEXUS_AudioMode_eAuto:
+    case NEXUS_AudioMode_e2_0:
+        piSettings.stereoOutputMode = BAPE_ChannelMode_e2_0;
+        break;
+    case NEXUS_AudioMode_e1_0:
+        piSettings.stereoOutputMode = BAPE_ChannelMode_e1_0;
+        break;
+    }
 
     errCode = BAPE_DolbyDigitalReencode_SetSettings(handle->apeHandle, &piSettings);
     if ( errCode )

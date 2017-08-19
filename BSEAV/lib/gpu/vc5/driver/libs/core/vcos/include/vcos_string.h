@@ -8,37 +8,13 @@ VideoCore OS Abstraction Layer - public header file
 #ifndef VCOS_STRING_H
 #define VCOS_STRING_H
 
-#if __VECTORC__
-#undef _GNU_SOURCE
-#endif
-
-/**
-  * \file
-  *
-  * String functions.
-  *
-  */
-
-#include "vcos_types.h"
-#include "vcos_platform.h"
+#include "libs/util/common.h"
 
 #include <string.h>
 #include <stdarg.h>
-#ifdef _GNU_SOURCE
 #include <stdio.h> /* For asprintf/vasprintf */
-#endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/** Case insensitive string comparison.
-  *
-  */
-
-static inline int vcos_strcasecmp(const char *s1, const char *s2);
-
-static inline int vcos_strncasecmp(const char *s1, const char *s2, size_t n);
+EXTERN_C_BEGIN
 
 /** Just like http://linux.die.net/man/3/asprintf */
 #ifdef _GNU_SOURCE
@@ -46,7 +22,7 @@ static inline int vcos_strncasecmp(const char *s1, const char *s2, size_t n);
 #define vcos_asprintf asprintf
 #else
 int vcos_vasprintf(char **strp, const char *fmt, va_list ap);
-int vcos_asprintf(char **strp, const char *fmt, ...) VCOS_FORMAT_ATTR_(printf, 2, 3);
+int ATTRIBUTE_FORMAT(printf, 2, 3) vcos_asprintf(char **strp, const char *fmt, ...);
 #endif
 
 /** Like vsnprintf, except it places the output at the specified offset.
@@ -62,7 +38,7 @@ size_t vcos_safe_vsprintf(char *buf, size_t buflen, size_t offset, const char *f
   * Output is truncated to fit in buflen bytes, and is guaranteed to be NUL-terminated.
   * Returns the string length before/without truncation.
   */
-size_t vcos_safe_sprintf(char *buf, size_t buflen, size_t offset, const char *fmt, ...) VCOS_FORMAT_ATTR_(printf, 4, 5);
+size_t ATTRIBUTE_FORMAT(printf, 4, 5) vcos_safe_sprintf(char *buf, size_t buflen, size_t offset, const char *fmt, ...);
 
 /* The Metaware compiler currently has a bug in its variadic macro handling which
    causes it to append a spurious command to the end of its __VA_ARGS__ data.
@@ -93,7 +69,6 @@ size_t vcos_safe_strcpy(char *dst, const char *src, size_t dstlen, size_t offset
       assert(offset_ < sizeof(BUF_NAME)); /* Or we truncated it */    \
    } while (0)
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
+
 #endif

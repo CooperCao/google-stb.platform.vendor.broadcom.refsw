@@ -121,9 +121,6 @@ static const BVCE_Platform_P_RegisterSetting s_astViceWatchdogDisableRegisterSet
  { "Arc[1] Watchdog Enable",    BCHP_VICE2_ARCSS_ESS_CTRL_1_INIT_SYS_WATCHDOG_CTRL,                             0x00000000,             BCHP_VICE2_ARCSS_ESS_CTRL_0_INIT_SYS_WATCHDOG_CTRL_ENABLE_MASK },
 };
 
-extern const BVCE_Platform_P_Register s_astViceHardwareRegisters[];
-extern const unsigned s_uiViceHardwareRegistersCount;
-
 BERR_Code
 BVCE_Platform_P_GetConfig(
          BBOX_Handle hBox,

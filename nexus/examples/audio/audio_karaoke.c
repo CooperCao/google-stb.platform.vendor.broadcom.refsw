@@ -321,16 +321,16 @@ int main(int argc, char **argv)
 
     /* Connect input vocal source to Karaoke Vocal PP */
     NEXUS_AudioProcessor_AddInput(karaokeVocal,
-                                  NEXUS_AudioDecoder_GetConnector(inputDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+                                  NEXUS_AudioDecoder_GetConnector(inputDecoder, NEXUS_AudioConnectorType_eStereo));
 
     /* Connect inputs to FMM mixer */
     NEXUS_AudioMixer_AddInput(mixer,
-                              NEXUS_AudioProcessor_GetConnector(karaokeVocal));
+                              NEXUS_AudioProcessor_GetConnectorByType(karaokeVocal, NEXUS_AudioConnectorType_eStereo));
     NEXUS_AudioMixer_AddInput(mixer,
-                              NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+                              NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioConnectorType_eStereo));
 
     NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
-    mixerSettings.master = NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo);
+    mixerSettings.master = NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioConnectorType_eStereo);
     NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
 
     /* connect audio outputs */
@@ -416,7 +416,7 @@ int main(int argc, char **argv)
     hdmiSettings.hotplugCallback.context = &hotPlugCbParams;
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
-    /* initalize HDCP settings, keys, etc. */
+    /* initialize HDCP settings, keys, etc. */
     initializeHdmiOutputHdcpSettings() ;
 
     /* Force a hotplug to switch to preferred format */

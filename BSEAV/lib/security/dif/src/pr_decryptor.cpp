@@ -82,7 +82,7 @@ static void ParsePssh(std::string* pssh, std::string* wrmheader)
     //   finally, the blob of data
     uint32_t* ptr32 = (uint32_t*)pssh->data();
     if (*ptr32 != pssh->size()) {
-        LOGE(("%s: pssh length doesn't match: psshLen=%lu pssh.size=%u", __FUNCTION__, (long unsigned)*ptr32, pssh->size()));
+        LOGE(("%s: pssh length doesn't match: psshLen=%lu pssh.size=%u", __FUNCTION__, (long unsigned)*ptr32, (uint32_t)pssh->size()));
         return;
     }
 
@@ -233,9 +233,10 @@ bool PlayreadyDecryptor::Initialize(std::string& pssh)
     return true;
 }
 
-bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData)
+bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::SessionType type)
 {
     BSTD_UNUSED(initData);
+    BSTD_UNUSED(type);
     uint32_t challengeSize;
     char     *pCh_url = NULL;
     uint32_t pUrl_len;
@@ -255,10 +256,10 @@ bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData)
         return false;
     }
 
-    LOGD(("challengeSize:%d, challenge.size:%d\n", challengeSize, challenge.size()));
+    LOGD(("challengeSize:%d, challenge.size:%d\n", challengeSize, (uint32_t)challenge.size()));
     // Now get the challenge.
     challenge.resize(challengeSize);
-    LOGD(("challengeSize:%d, challenge.resize:%d, pUrl_len:%d\n", challengeSize, challenge.size(), pUrl_len));
+    LOGD(("challengeSize:%d, challenge.resize:%d, pUrl_len:%d\n", challengeSize, (uint32_t)challenge.size(), pUrl_len));
 
     if (pUrl_len != 0)
         pCh_url = (char*)(BKNI_Malloc(pUrl_len));
@@ -285,14 +286,14 @@ bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData)
 
         if (challenge[0]) {
             m_defaultUrl.assign(pCh_url, pUrl_len);
-            LOGD(("default url(%d): %s\n", m_defaultUrl.size(), m_defaultUrl.c_str()));
+            LOGD(("default url(%d): %s\n", (uint32_t)m_defaultUrl.size(), m_defaultUrl.c_str()));
         }
 
         if ((challenge[0]) && (challengeSize)) {
             m_keyMessage.assign((const char*)&challenge[0], challengeSize);
         }
 
-        LOGD(("GenerateKeyRequest: keyMessage(%d): %s", m_keyMessage.size(), m_keyMessage.c_str()));
+        LOGD(("GenerateKeyRequest: keyMessage(%d): %s", (uint32_t)m_keyMessage.size(), m_keyMessage.c_str()));
 
         uint32_t numDeleted;
         DRM_Prdy_Error_e rc;
@@ -318,7 +319,7 @@ bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData)
 #include <curl/curl.h>
 std::string s_prBuffer;
 
-static size_t curl_writeback( void *ptr, size_t size, size_t nmemb, void *stream)
+static uint32_t curl_writeback( void *ptr, uint32_t size, uint32_t nmemb, void *stream)
 {
     BSTD_UNUSED(stream);
     s_prBuffer.append((char*)ptr, size * nmemb);
@@ -360,7 +361,7 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
     res = curl_easy_perform(curl);
-    LOGW(("%s: s_prBuffer(%d): %s, res: %d", __FUNCTION__, s_prBuffer.size(), s_prBuffer.c_str(), res));
+    LOGW(("%s: s_prBuffer(%d): %s, res: %d", __FUNCTION__, (uint32_t)s_prBuffer.size(), s_prBuffer.c_str(), res));
 
     if (res != 0) {
         LOGE(("%s: curl error %d", __FUNCTION__, res));
@@ -384,7 +385,7 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
         drm_msg = s_prBuffer.substr(body_head);
     }
 
-    LOGD(("HTTP response body: (%u bytes): %s", drm_msg.size(), drm_msg.c_str()));
+    LOGD(("HTTP response body: (%u bytes): %s", (uint32_t)drm_msg.size(), drm_msg.c_str()));
     curl_easy_cleanup(curl);
     return drm_msg;
 }
@@ -524,8 +525,8 @@ uint32_t PlayreadyDecryptor::DecryptSample(
     uint8_t i = 0;
     uint32_t bytes_processed = 0;
 
-    size_t clearSize = 0;
-    size_t encSize = 0;
+    uint32_t clearSize = 0;
+    uint32_t encSize = 0;
     for (i = 0; i < pSample->nbOfEntries; i++) {
 #ifdef USE_PR_DECRYPT_OPAQUE
         // Transfer clear data

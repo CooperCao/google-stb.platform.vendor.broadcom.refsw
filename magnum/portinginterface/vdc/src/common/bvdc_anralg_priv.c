@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -850,7 +850,7 @@ static int BVDC_P_Anr_GetFilterParam_isr
             pKValue->ulMcAdj, pKValue->ulNonMcAdj));
 
     }
-    else if(hAnr->pAnrSetting->iSnDbAdjust == 0)
+    else if(hAnr->pAnrSetting->iSnDbAdjust<= 100)
     {
         pKValue->ulMctfSetting = 1;
         pKValue->ulMcK0     = s_lut1_mc_iir_k0[ulIdx];   /* K0 */
@@ -886,7 +886,7 @@ static int BVDC_P_Anr_GetFilterParam_isr
             pKValue->ulMcAdj, pKValue->ulNonMcAdj));
 
     }
-    else if(hAnr->pAnrSetting->iSnDbAdjust <= 50)
+    else if(hAnr->pAnrSetting->iSnDbAdjust <= 130)
     {
         pKValue->ulMctfSetting = 2;
         pKValue->ulMcK0     = s_lut2_mc_iir_k0[ulIdx];   /* K0 */
@@ -922,7 +922,7 @@ static int BVDC_P_Anr_GetFilterParam_isr
             pKValue->ulMcAdj, pKValue->ulNonMcAdj));
 
     }
-    else if(hAnr->pAnrSetting->iSnDbAdjust <= 100)
+    else if(hAnr->pAnrSetting->iSnDbAdjust <= 160)
     {
         pKValue->ulMctfSetting = 3;
         pKValue->ulMcK0     = s_lut3_mc_iir_k0[ulIdx];   /* K0 */
@@ -958,7 +958,7 @@ static int BVDC_P_Anr_GetFilterParam_isr
             pKValue->ulMcAdj, pKValue->ulNonMcAdj));
 
     }
-    else if(hAnr->pAnrSetting->iSnDbAdjust <= 150)
+    else if(hAnr->pAnrSetting->iSnDbAdjust <= 190)
     {
         pKValue->ulMctfSetting = 4;
         pKValue->ulMcK0     = s_lut4_mc_iir_k0[ulIdx];   /* K0 */
@@ -1322,7 +1322,7 @@ static int BVDC_P_Anr_GetFilterParameters_isr
 
     /* Set MCTF filtering parameters to process the next picture.  In the following comments:
       Using the MCTF parameter notation K0 ' K5 described in Section 4 of the MCTF doc */
-    if(hAnr->pAnrSetting->iSnDbAdjust == -12)
+    if(hAnr->pAnrSetting->iSnDbAdjust <= -12)
     {
         pKValue->ulMcK0     = s_low_mc_iir_k0[ulIdx];   /* K0 */
 
@@ -1357,7 +1357,7 @@ static int BVDC_P_Anr_GetFilterParameters_isr
             pKValue->ulMcAdj, pKValue->ulNonMcAdj));
 
     }
-    else if(hAnr->pAnrSetting->iSnDbAdjust == -6)
+    else if(hAnr->pAnrSetting->iSnDbAdjust <= -6)
     {
         pKValue->ulMcK0     = s_medlo_mc_iir_k0[ulIdx];   /* K0 */
 
@@ -1427,7 +1427,7 @@ static int BVDC_P_Anr_GetFilterParameters_isr
             pKValue->ulMcAdj, pKValue->ulNonMcAdj));
 
     }
-    else if(hAnr->pAnrSetting->iSnDbAdjust == 6)
+    else if(hAnr->pAnrSetting->iSnDbAdjust <= 6)
     {
         pKValue->ulMcK0     = s_medhi_mc_iir_k0[ulIdx];   /* K0 */
 

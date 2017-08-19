@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "stream_player.h"
 #include "stream_player_priv.h"
@@ -149,7 +146,7 @@ void stream_player_print(StreamPlayerHandle player)
     printf("Currently playing '%s' (%s)\n", file_switcher_get_path(player->pCurrentSource->switcher), eotfStrings[player->pCurrentSource->eotf]);
 }
 
-void stream_player_next(StreamPlayerHandle player, bool mosaic)
+void stream_player_next(StreamPlayerHandle player, PlatformUsageMode usageMode)
 {
     assert(player);
 
@@ -169,10 +166,10 @@ void stream_player_next(StreamPlayerHandle player, bool mosaic)
         } while (!file_switcher_get_count(player->pCurrentSource->switcher));
         file_switcher_first(player->pCurrentSource->switcher);
     }
-    stream_player_start(player, mosaic);
+    stream_player_start(player, usageMode);
 }
 
-void stream_player_prev(StreamPlayerHandle player, bool mosaic)
+void stream_player_prev(StreamPlayerHandle player, PlatformUsageMode usageMode)
 {
     assert(player);
 
@@ -189,10 +186,10 @@ void stream_player_prev(StreamPlayerHandle player, bool mosaic)
             file_switcher_last(player->pCurrentSource->switcher);
         }
     }
-    stream_player_start(player, mosaic);
+    stream_player_start(player, usageMode);
 }
 
-void stream_player_first(StreamPlayerHandle player, bool mosaic)
+void stream_player_first(StreamPlayerHandle player, PlatformUsageMode usageMode)
 {
     assert(player);
 
@@ -202,7 +199,7 @@ void stream_player_first(StreamPlayerHandle player, bool mosaic)
     {
         file_switcher_first(player->pCurrentSource->switcher);
     }
-    stream_player_start(player, mosaic);
+    stream_player_start(player, usageMode);
 }
 
 unsigned stream_player_get_count(StreamPlayerHandle player)
@@ -216,7 +213,7 @@ unsigned stream_player_get_count(StreamPlayerHandle player)
     return count;
 }
 
-static void stream_player_p_play_stream(StreamPlayerHandle player, StreamSource * pSource, int streamIndex, bool mosaic, bool forceRestart)
+static void stream_player_p_play_stream(StreamPlayerHandle player, StreamSource * pSource, int streamIndex, PlatformUsageMode usageMode, bool forceRestart)
 {
     StreamSource * pOldSource = NULL;
     int oldPosition = -1;
@@ -227,7 +224,7 @@ static void stream_player_p_play_stream(StreamPlayerHandle player, StreamSource 
         oldPosition = file_switcher_get_position(pOldSource->switcher);
     }
 
-    if (!forceRestart && ((pOldSource != pSource) || (oldPosition != streamIndex)))
+    if (forceRestart || ((pOldSource != pSource) || (oldPosition != streamIndex)))
     {
         stream_player_stop(player);
         player->pCurrentSource = pSource;
@@ -237,11 +234,14 @@ static void stream_player_p_play_stream(StreamPlayerHandle player, StreamSource 
             player->pCurrentUrl = set_string(player->pCurrentUrl, file_switcher_get_path(pSource->switcher));
             printf("stream_player: playing stream '%s'\n", player->pCurrentUrl);
         }
-        stream_player_start(player, mosaic);
+    }
+    if (!player->started)
+    {
+        stream_player_start(player, usageMode);
     }
 }
 
-void stream_player_play_stream_by_index(StreamPlayerHandle player, int streamIndex, bool mosaic, bool forceRestart)
+void stream_player_play_stream_by_index(StreamPlayerHandle player, int streamIndex, PlatformUsageMode usageMode, bool forceRestart)
 {
     StreamSource * pSource = NULL;
     unsigned count = 0;
@@ -257,10 +257,10 @@ void stream_player_play_stream_by_index(StreamPlayerHandle player, int streamInd
         streamIndex -= count;
     }
 
-    stream_player_p_play_stream(player, pSource, streamIndex, mosaic, forceRestart);
+    stream_player_p_play_stream(player, pSource, streamIndex, usageMode, forceRestart);
 }
 
-void stream_player_p_play_stream_by_path(StreamPlayerHandle player, const char * streamPath, bool mosaic, bool forceRestart)
+void stream_player_p_play_stream_by_path(StreamPlayerHandle player, const char * streamPath, PlatformUsageMode usageMode, bool forceRestart)
 {
     StreamSource * pSource = NULL;
     int streamIndex = -1;
@@ -276,10 +276,10 @@ void stream_player_p_play_stream_by_path(StreamPlayerHandle player, const char *
 
     if (streamIndex == -1) { printf("stream_player: stream path '%s' not found\n", streamPath); return; }
 
-    stream_player_p_play_stream(player, pSource, streamIndex, mosaic, forceRestart);
+    stream_player_p_play_stream(player, pSource, streamIndex, usageMode, forceRestart);
 }
 
-void stream_player_play_stream_by_url(StreamPlayerHandle player, const char * streamUrl, bool mosaic, bool forceRestart)
+void stream_player_play_stream_by_url(StreamPlayerHandle player, const char * streamUrl, PlatformUsageMode usageMode, bool forceRestart)
 {
     if (!streamUrl) { printf("stream_player: NULL stream url\n"); return; }
 
@@ -292,11 +292,11 @@ void stream_player_play_stream_by_url(StreamPlayerHandle player, const char * st
         }
         player->pCurrentUrl = set_string(player->pCurrentUrl, streamUrl);
         printf("stream_player: playing stream '%s'\n", player->pCurrentUrl);
-        stream_player_start(player, mosaic);
+        stream_player_start(player, usageMode);
     }
     else
     {
-        stream_player_p_play_stream_by_path(player, streamUrl, mosaic, forceRestart);
+        stream_player_p_play_stream_by_path(player, streamUrl, usageMode, forceRestart);
     }
 }
 
@@ -312,12 +312,12 @@ void stream_player_stop(StreamPlayerHandle player)
     player->started = false;
 }
 
-void stream_player_start(StreamPlayerHandle player, bool mosaic)
+void stream_player_start(StreamPlayerHandle player, PlatformUsageMode usageMode)
 {
     int rc;
     assert(player);
     if (!player->pCurrentUrl) { printf("start: no current stream\n"); return; }
-    rc = platform_media_player_start(player->platformPlayer, player->pCurrentUrl, mosaic);
+    rc = platform_media_player_start(player->platformPlayer, player->pCurrentUrl, usageMode);
     if (!rc) { stream_player_print(player); }
     player->started = true;
 }
@@ -406,9 +406,9 @@ void stream_player_toggle_pause(StreamPlayerHandle player)
     }
 }
 
-void stream_player_frame_advance(StreamPlayerHandle player, bool mosaic)
+void stream_player_frame_advance(StreamPlayerHandle player, PlatformUsageMode usageMode)
 {
     assert(player);
-    platform_media_player_frame_advance(player->platformPlayer, mosaic);
+    platform_media_player_frame_advance(player->platformPlayer, usageMode);
     printf("stream_player: frame advanced\n");
 }

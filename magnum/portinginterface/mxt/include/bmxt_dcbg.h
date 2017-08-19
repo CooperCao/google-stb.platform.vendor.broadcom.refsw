@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #ifndef BMXT_DCBG_H__
@@ -116,6 +117,10 @@ BERR_Code BMXT_Dcbg_Start(
     );
 
 void BMXT_Dcbg_Stop(
+    BMXT_Dcbg_Handle hDcbg
+    );
+
+void BMXT_Dcbg_Reacquire(
     BMXT_Dcbg_Handle hDcbg
     );
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -83,7 +75,7 @@ int NEXUS_Scm_P_IsHeapValid(NEXUS_HeapHandle heap, NEXUS_MemoryType memoryType)
         && status.memcIndex == 0                    /* on Zeus30 chips, SCM-side can only access MEMC0 */
 #endif
         ) {
-        BDBG_MSG(("%s: VALID heap=%p [offset=%u, size=%u]\n", __FUNCTION__, heap, status.offset, status.size));
+        BDBG_MSG(("%s: VALID heap=%p [offset=%u, size=%u]\n", BSTD_FUNCTION, heap, status.offset, status.size));
         return 1; /* the heap is valid */
     }
 
@@ -102,7 +94,7 @@ static NEXUS_Error NEXUS_Scm_P_GetHeapConfig(NEXUS_MemoryType memoryType, uint32
     }
     else {/* default is not valid, fall back to heap search */
         int i;
-        BDBG_WRN(("%s: default heap is not compatible. do a heap search.", __FUNCTION__));
+        BDBG_WRN(("%s: default heap is not compatible. do a heap search.", BSTD_FUNCTION));
         for (i = 0; i < NEXUS_MAX_HEAPS; i++) {
             heap = g_pCoreHandles->heap[i].nexus;
             if (NEXUS_Scm_P_IsHeapValid(heap, memoryType)) {
@@ -118,7 +110,7 @@ static NEXUS_Error NEXUS_Scm_P_GetHeapConfig(NEXUS_MemoryType memoryType, uint32
         allocSettings->alignment = 16;
     }
     else {
-        BDBG_ERR(("%s: Cannot find default heap of type %u", __FUNCTION__, memoryType));
+        BDBG_ERR(("%s: Cannot find default heap of type %u", BSTD_FUNCTION, memoryType));
         rc = NEXUS_NOT_INITIALIZED;
     }
 
@@ -133,7 +125,7 @@ NEXUS_Error NEXUS_Scm_P_ConfigureAlloc(void)
                                     NEXUS_MEMC0_MAIN_HEAP,
                                     &g_sage_utils.defaultAllocSettings);
     if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: Cannot get global heap config (error=%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: Cannot get global heap config (error=%u)", BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -142,7 +134,7 @@ NEXUS_Error NEXUS_Scm_P_ConfigureAlloc(void)
                                     NEXUS_VIDEO_SECURE_HEAP,
                                     &g_sage_utils.restrictedAllocSettings);
     if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: Cannot get restricted heap config (error=%u)", __FUNCTION__, rc));
+        BDBG_ERR(("%s: Cannot get restricted heap config (error=%u)", BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -151,7 +143,7 @@ NEXUS_Error NEXUS_Scm_P_ConfigureAlloc(void)
         rc = NEXUS_Heap_GetStatus(g_sage_utils.restrictedAllocSettings.heap,
                                   &status);
         if (rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Cannot get restricted heap status     (error=%u)", __FUNCTION__, rc));
+            BDBG_ERR(("%s: Cannot get restricted heap status     (error=%u)", BSTD_FUNCTION, rc));
             goto end;
         }
         g_sage_utils.restrictedAddrStart = (uint8_t *)status.addr;

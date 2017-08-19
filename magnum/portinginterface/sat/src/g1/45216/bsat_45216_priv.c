@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bsat.h"
@@ -452,6 +444,28 @@ BERR_Code BSAT_g1_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
    *totalChannels = i;
 #endif
 
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_ValidateAcqParams()
+******************************************************************************/
+BERR_Code BSAT_g1_P_ValidateAcqParams(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams)
+{
+   BSTD_UNUSED(h);
+
+   if (((pParams->mode >= BSAT_Mode_eDvbs2_16apsk_2_3) && (pParams->mode <= BSAT_Mode_eDvbs2_32apsk_9_10)) || (pParams->mode == BSAT_Mode_eDvbs2_ACM))
+   {
+      return (BERR_TRACE(BERR_NOT_SUPPORTED));
+   }
+   if (BSAT_MODE_IS_DVBS2X(pParams->mode))
+   {
+      BDBG_ERR(("DVB-S2X not supported"));
+      return (BERR_TRACE(BERR_NOT_SUPPORTED));
+   }
+   if ((pParams->options & BSAT_ACQ_NYQUIST_MASK) == BSAT_ACQ_NYQUIST_5)
+      return (BERR_TRACE(BERR_NOT_SUPPORTED));
    return BERR_SUCCESS;
 }
 

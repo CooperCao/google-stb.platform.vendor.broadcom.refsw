@@ -92,6 +92,18 @@ typedef struct BAPE_AdvancedTsmSettings
 
 /***************************************************************************
 Summary:
+Ambisonic Settings
+***************************************************************************/
+typedef struct BAPE_AmbisonicSettings
+{
+    bool ambisonicSource;       /* If true, content is Ambisonic content */
+    unsigned yaw;               /* 0 - 359 degrees (z axis) */
+    unsigned pitch;             /* 0 - 359 degrees (x axis) */
+    unsigned roll;              /* 0 - 359 degrees (y axis) */
+} BAPE_AmbisonicSettings;
+
+/***************************************************************************
+Summary:
 Processor Settings
 ***************************************************************************/
 typedef struct BAPE_ProcessorSettings
@@ -101,6 +113,7 @@ typedef struct BAPE_ProcessorSettings
         BAPE_FadeSettings fade;
         BAPE_KaraokeVocalSettings karaokeVocal;
         BAPE_AdvancedTsmSettings advTsm;
+        BAPE_AmbisonicSettings ambisonic;
     } settings;
 } BAPE_ProcessorSettings;
 

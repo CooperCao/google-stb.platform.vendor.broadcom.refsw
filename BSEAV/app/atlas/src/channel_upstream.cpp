@@ -97,7 +97,7 @@ eRet CChannelUpstream::tune(
         void *    id,
         CConfig * pConfig,
         bool      bWaitForLock,
-        uint16_t  index
+        unsigned  index
         )
 {
     eRet                         ret    = eRet_Ok;

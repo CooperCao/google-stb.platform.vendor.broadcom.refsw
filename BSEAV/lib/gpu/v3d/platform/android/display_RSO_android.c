@@ -1,17 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  platform layer
-Module   :
-
-FILE DESCRIPTION
-Android platform layer for composition
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <memory.h>
 #include <assert.h>
 #include <semaphore.h>
 #include <time.h>
+#include <errno.h>
 
 #include "default_RSO_android.h"
 
@@ -531,7 +525,8 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
    client_unlock_api();
 
    /* just a block to wait for a semaphore from the display thread */
-   sem_wait(&windowState->sync);
+   while (sem_wait(&windowState->sync) == -1 && errno == EINTR)
+      continue;
 
    client_lock_api();
 

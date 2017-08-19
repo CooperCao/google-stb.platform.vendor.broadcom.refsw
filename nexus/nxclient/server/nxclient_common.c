@@ -143,6 +143,11 @@ static void *nxclient_p_callback_thread(void *context)
     while (!g_callbackThread.done) {
         int rc;
         NxClient_CallbackStatus status;
+        NxClient_StandbyStatus standbyStatus;
+
+        NxClient_GetStandbyStatus(&standbyStatus);
+        if (standbyStatus.settings.mode != NEXUS_PlatformStandbyMode_eOn) goto sleep;
+
         rc = NxClient_GetCallbackStatus(&status);
         if (rc) {
             BERR_TRACE(rc);
@@ -157,8 +162,12 @@ static void *nxclient_p_callback_thread(void *context)
             if (g_callbackThread.settings.displaySettingsChanged.callback && status.displaySettingsChanged != g_callbackThread.lastStatus.displaySettingsChanged) {
                 (g_callbackThread.settings.displaySettingsChanged.callback)(g_callbackThread.settings.displaySettingsChanged.context, g_callbackThread.settings.displaySettingsChanged.param);
             }
+            if (g_callbackThread.settings.audioSettingsChanged.callback && status.audioSettingsChanged != g_callbackThread.lastStatus.audioSettingsChanged) {
+                (g_callbackThread.settings.audioSettingsChanged.callback)(g_callbackThread.settings.audioSettingsChanged.context, g_callbackThread.settings.audioSettingsChanged.param);
+            }
             g_callbackThread.lastStatus = status;
         }
+sleep:
         BKNI_Sleep(g_callbackThread.settings.interval);
     }
     return NULL;

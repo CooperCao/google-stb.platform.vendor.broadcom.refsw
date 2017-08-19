@@ -1,0 +1,53 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for retrieving security settings from an AP.
+#
+# $Id: b92910977084d6c6b7a8ddad0b0a1fc6d4706574 $
+#
+# Usage:  APRetrieveSecurity AP
+#
+# Security settings are stored in the AP object for later retrieval by
+# ConnectAPSTA.
+#
+# Note that in real tests it is better to use APConfigureSecurity,
+# since a test should not trust the DUT to remain consistent, however
+# this provides a useful fallback when running partial tests by hand.
+
+package require -exact UTF 1.262
+
+package provide UTF::Test::APRetrieveSecurity_CM 2.0
+
+UTF::Test APRetrieveSecurity_CM	{AP} {
+
+    set wlname [$AP wlname]
+    $AP configure -ssid [$AP nvram get ${wlname}_ssid]
+    $AP configure -wepkey [$AP nvram get ${wlname}_key1]
+    set index [$AP nvram get ${wlname}_key]
+    if {$index eq ""} {
+	set index 1
+    }
+    $AP configure -wepidx [expr {$index -1}]
+    $AP configure -wpakey [$AP nvram get ${wlname}_wpa_psk]
+
+    $AP configure -wep [$AP nvram get ${wlname}_wep]
+
+    $AP configure -radius [$AP nvram get ${wlname}_radius]
+    $AP configure -radiusport [$AP nvram get ${wlname}_radiusport]
+    $AP configure -radiuskey [$AP nvram get ${wlname}_radiuskey]
+
+    set auth [$AP nvram get ${wlname}_auth]
+    set auth_mode [$AP nvram get ${wlname}_auth_mode]
+    set wep [$AP nvram get ${wlname}_wep]
+    set akm [string trim [$AP nvram get ${wlname}_akm]]
+    set crypto [$AP nvram get ${wlname}_crypto]
+
+    #Security Settings
+    $AP configure -auth $auth
+    $AP configure -auth_mode $auth_mode
+    $AP configure -wep $wep
+    $AP configure -akm "$akm"
+    $AP configure -crypto $crypto
+
+    UTF::Message INFO $AP "Security Settings: auth=$auth, auth_mode=$auth_mode, wep=$wep akm=\"$akm\", crypto=$crypto"
+}

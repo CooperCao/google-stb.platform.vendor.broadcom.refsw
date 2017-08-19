@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -128,7 +128,7 @@
 #define BVDC_P_MAKE_HDMIRM(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) \
     BVDC_P_MAKE_HDMIRM_(BVDC_PICK_TMDS_##a, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)
 
-#elif (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_6) || (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7)
+#elif (BVDC_P_SUPPORT_DVI_28NM)
 #include "bvdc_hdmirm_lupick_28nm.h"
 #define BVDC_P_MAKE_HDMIRM_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)
 #define BVDC_P_MAKE_HDMIRM_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) \

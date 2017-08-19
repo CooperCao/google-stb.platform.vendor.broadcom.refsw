@@ -47,7 +47,6 @@
 
 #include "resource.h"
 #include "pid.h"
-#include "videolist.h"
 #include "mvc.h"
 #include "pidmgr.h"
 #include "mlist.h"
@@ -66,6 +65,8 @@ extern "C" {
 class CControl;
 class CBoardResources;
 class CStc;
+class CVideo;
+class CPlaybackList;
 
 typedef enum ePlaybackTrick
 {
@@ -140,7 +141,7 @@ class CPlaypump : public CResource
 public:
     CPlaypump(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CPlaypump(void);
@@ -162,8 +163,8 @@ public:
     void                       setVideo(CVideo * video)                                     { _currentVideo = video; }
     CVideo *                   getVideo(void)                                               { return(_currentVideo); }
     MString                    getVideoName(void);
-    CPid *                     getPid(uint16_t index, ePidType type);
-    CPid *                     findPid(uint16_t pidNum, ePidType type);
+    CPid *                     getPid(unsigned index, ePidType type);
+    CPid *                     findPid(unsigned pidNum, ePidType type);
     void                       printPids(void);
     bool                       hasIndex(void);
     void                       dump(void);
@@ -197,7 +198,7 @@ class CPlayback : public CResource
 public:
     CPlayback(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CPlayback(void);
@@ -232,8 +233,8 @@ public:
     ePlaybackTrick         getTrickModeState(void) { return(_trickModeState); }
     MString                getTimeString(void);
     uint32_t               getMaxDataRate(void);
-    CPid *                 getPid(uint16_t index, ePidType type);
-    CPid *                 findPid(uint16_t pidNum, ePidType type);
+    CPid *                 getPid(unsigned index, ePidType type);
+    CPid *                 findPid(unsigned pidNum, ePidType type);
     void                   printPids(void);
     bool                   hasIndex(void);
     bool                   isActive(void);

@@ -96,7 +96,7 @@ BERR_Code BAPE_AudioReturnChannel_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
 
-    BDBG_MSG(("%s: Opening AudioReturnChannel Output: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening AudioReturnChannel Output: %u", BSTD_FUNCTION, index));
 
     *pHandle = NULL;    /* Set up to return null handle in case of error. */
 

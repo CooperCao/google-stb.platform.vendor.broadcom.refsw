@@ -1,0 +1,25 @@
+#
+MAILTO=sunnyc@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/sunnyc/src/tools/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+45      1      * * *   src/tools/unittest/cron/launch MacX29b Test/StaNightly.test -utfconf mc68 -sta 'MacX29b MacX29d 4331FC15 MacX19c MacX29b-BISON MacX29d-BISON 4331FC15-BISON MacX33-BISON MacX19c-BISON 4331FC15-BISON-REL-TAG MacX29b-BISON-REL-TAG MacX29d-BISON-REL-TAG' -ap '43311' -loop 1 -title 'MC68 - MacX29b MacX29d 4331FC15 MacX33 MacX19c'
+
+31      19      * * *   src/tools/unittest/cron/launch MacX29bBISONRVR Test/RvRNightly1.test -utfconf mc68 -ap '43311' -sta 'MacX29b-BISON' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC68 - RvR Test - MacX29b' -perftime 5
+
+33      19      * * *   src/tools/unittest/cron/launch MacX29bBISONREL Test/RvRNightly1.test -utfconf mc68 -ap '43311' -sta 'MacX29b-BISON-REL-TAG' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC68 - RvR Test - MacX29b' -perftime 5
+
+01      20      * * *   src/tools/unittest/cron/launch MacX29dBISON Test/RvRNightly1.test -utfconf mc68 -ap '43311' -sta 'MacX29d-BISON' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC68 - RvR Test - MacX29d BISON' -perftime 5
+
+31      20      * * *   src/tools/unittest/cron/launch 4331FC15BISON Test/RvRNightly1.test -utfconf mc68 -ap '43311' -sta '4331FC15-BISON' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC68 - RvR Test - 4331FC15' -perftime 2.5
+
+01      21      * * *   src/tools/unittest/cron/launch MacX33BISON Test/RvRNightly1.test -utfconf mc68 -ap '43311' -sta 'MacX33-BISON' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC68 - RvR Test - MacX33' -perftime 5
+
+##31      21      * * *   src/tools/unittest/cron/launch MacX19cBISON Test/RvRNightly1.test -utfconf mc68 -ap '43311' -sta 'MacX19c-BISON' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC68 - RvR Test - MacX19c' -perftime 5
+
+

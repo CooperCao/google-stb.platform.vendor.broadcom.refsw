@@ -759,6 +759,8 @@ typedef struct BXPT_Spid_eChannelFilter
 
 }BXPT_Spid_eChannelFilter;
 
+void ConfigPid2BufferMap( BXPT_Handle hXpt, unsigned int PidChannelNum, unsigned int BufferNumber, bool enableIt);
+
 /***************************************************************************
 Set the configuration for the given secondary PID channel stream filter
 based on various stream id combinations. Used during DVD playback mode.

@@ -2323,14 +2323,21 @@ BERR_Code BAST_g3_P_TunerGetLnaStatus(BAST_ChannelHandle h, BAST_TunerLnaStatus 
 {
    /* BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl; */
    BAST_ChannelHandle hChn0 = (BAST_ChannelHandle)(h->pDevice->pChannels[0]);
+   BAST_ChannelHandle hChn1 = (BAST_ChannelHandle)(h->pDevice->pChannels[1]);
    BAST_g3_P_ChannelHandle *hChn0Impl = (BAST_g3_P_ChannelHandle *)(hChn0->pImpl);
    uint32_t val;
 
    pStatus->status = hChn0Impl->tunerLnaStatus;
    pStatus->outCfg = (h->channel == 0) ? hChn0Impl->tunerLnaSettings.out0 : hChn0Impl->tunerLnaSettings.out1;
 
-   /* read LNA AGC */
-   BAST_g3_P_TunerIndirectRead_isrsafe(h, BAST_TunerIndirectRegGroup_eRfagc, 0x5, &val);
+   /* read LNA AGC corresponding to mapped input */
+   if (pStatus->outCfg == BAST_TunerLnaOutputConfig_eIn0)
+      BAST_g3_P_TunerIndirectRead_isrsafe(hChn0, BAST_TunerIndirectRegGroup_eRfagc, 0x5, &val);
+   else if (pStatus->outCfg == BAST_TunerLnaOutputConfig_eIn1)
+      BAST_g3_P_TunerIndirectRead_isrsafe(hChn1, BAST_TunerIndirectRegGroup_eRfagc, 0x5, &val);
+   else
+      val = 0;
+
    pStatus->lnaAgc = val;
 
    /* read BB AGC */

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -192,14 +192,6 @@ typedef struct BHDR_P_CallbackFunc
 #define BHDR_P_GET_REG_OFFSET(eHdrId, ulPriReg, ulSecReg) \
 	((BHDR_P_eHdrCoreId0 == (eCoreId)) ? 0 : ((ulSecReg) - (ulPriReg)))
 
-typedef enum BHDR_P_HdrCoreId
-{
-	BHDR_P_eHdrCoreId0 = 0,
-	BHDR_P_eHdrCoreId1,
-	BHDR_P_eHdrCoreIdMax,
-	BHDR_P_eHdrCoreIdNotAttached = BHDR_P_eHdrCoreIdMax
-
-} BHDR_P_HdrCoreId ;
 
 #if BHDR_CONFIG_SYMBOL_LOSS_SM
 
@@ -227,7 +219,7 @@ BDBG_OBJECT_ID_DECLARE(BHDR_P_Handle);
 typedef struct BHDR_P_Handle
 {
 	BDBG_OBJECT(BHDR_P_Handle)
-	BHDR_P_HdrCoreId eCoreId ;
+	BAVC_HDMI_CoreId eCoreId ;
 	uint32_t             ulOffset ;
 
 	BHDR_FE_ChannelHandle hFeChannel ;

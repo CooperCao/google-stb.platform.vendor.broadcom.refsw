@@ -547,7 +547,6 @@ typedef struct BVDC_P_SourceContext
     bool                      bMtgIsPresent; /* this MFD has MTG hw via MFD_0_HW_CONFIGURATION.MFD_TRIGGER */
     bool                      bGfxSrc; /* this MFD src is used to feed gfx surface */
     bool                      bMtgSrc; /* this MFD src uses MTG */
-    bool                      b10BitInterlacedScan; /* this flag is set(give a warning) when 10-bit source is scanned out as interlaced */
 
     /* frameRateCode for MFD */
     uint32_t                  ulDefMfdVertRefRate;

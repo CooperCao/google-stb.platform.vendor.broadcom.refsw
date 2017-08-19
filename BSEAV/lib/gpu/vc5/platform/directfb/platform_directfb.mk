@@ -97,6 +97,7 @@ LDFLAGS += -L$(LIBDIR) -lv3ddriver
 SOURCES =   default_directfb.c \
             ../common/memory_nexus.c\
             ../common/sched_nexus.c\
+            ../common/fence_interface.c\
             display_directfb.c
 
 ifeq ($(BUILD_DYNAMIC),1)

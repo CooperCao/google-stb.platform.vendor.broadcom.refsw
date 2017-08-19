@@ -92,7 +92,7 @@ bool gfx_lfmt_maybe_from_desc(GFX_LFMT_T *lfmt_out, const char *desc)
       const char *longest_remainder = desc; /* desc after longest matching part */
       GFX_LFMT_T longest_lfmt = GFX_LFMT_NONE; /* lfmt of longest matching part */
       uint32_t longest_mask = 0; /* Mask of fields specified by longest matching part */
-      for (size_t i = 0; i != vcos_countof(PARTS); ++i)
+      for (size_t i = 0; i != countof(PARTS); ++i)
       {
          uint32_t part_lfmt;
          const char *part_remainder = desc_map_past_longest_prefix(

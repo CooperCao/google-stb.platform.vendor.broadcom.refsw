@@ -81,7 +81,7 @@ static inline Backflow *tr_uniform_address(uint32_t row, uint32_t offset) {
    assert( (row >> 16) == 0 && (offset >> 16) == 0);
    return tr_typed_uniform(BACKEND_UNIFORM_ADDRESS, row | (offset << 16));
 }
-static inline Backflow *tr_block_address(BackendUniformFlavour f, uint32_t index, uint32_t offset) {
+static inline Backflow *tr_buffer_unif(BackendUniformFlavour f, uint32_t index, uint32_t offset) {
    assert( (index >> 5) == 0 && (offset >> 27) == 0);
    return tr_typed_uniform(f, index | (offset << 5));
 }
@@ -99,8 +99,8 @@ static inline Backflow *bitor(Backflow *a, Backflow *b)  { return tr_binop(BACKF
 static inline Backflow *shl(Backflow *a, uint32_t b)     { return tr_binop(BACKFLOW_SHL,  a, tr_const(b)); }
 static inline Backflow *shr(Backflow *a, uint32_t b)     { return tr_binop(BACKFLOW_SHR,  a, tr_const(b)); }
 static inline Backflow *asr(Backflow *a, uint32_t b)     { return tr_binop(BACKFLOW_ASHR, a, tr_const(b)); }
-static inline Backflow *imin(Backflow *a, Backflow *b)     { return tr_binop(BACKFLOW_MIN, a, b); }
-static inline Backflow *imax(Backflow *a, Backflow *b)     { return tr_binop(BACKFLOW_MAX, a, b); }
+static inline Backflow *imin(Backflow *a, Backflow *b)   { return tr_binop(BACKFLOW_MIN, a, b); }
+static inline Backflow *imax(Backflow *a, Backflow *b)   { return tr_binop(BACKFLOW_MAX, a, b); }
 
 static inline Backflow *recip(Backflow *x) { return tr_mov_to_reg(REG_MAGIC_RECIP, x); }
 static inline Backflow *absf(Backflow *x)  { return create_node(BACKFLOW_FMOV, UNPACK_ABS, SETF_NONE, NULL, x, NULL, NULL); }
@@ -118,16 +118,10 @@ static inline Backflow *glsl_backflow_tmuwt(void) { return tr_nullary(BACKFLOW_T
 static inline Backflow *glsl_backflow_dummy(void) { return tr_nullary(BACKFLOW_DUMMY); }
 
 
-static inline bool is_plain_unif(const Backflow *b) {
-   return (b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF &&
-           b->unif_type == BACKEND_UNIFORM_PLAIN         );
-}
+static inline bool is_unif(const Backflow *b) { return b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF; }
 
-static inline bool is_const(const Backflow *b) {
-   return (b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF &&
-           b->unif_type == BACKEND_UNIFORM_LITERAL         );
-}
+static inline bool is_plain_unif(const Backflow *b) { return is_unif(b) && b->unif_type == BACKEND_UNIFORM_PLAIN;       }
+static inline bool is_const(const Backflow *b)      { return is_unif(b) && b->unif_type == BACKEND_UNIFORM_LITERAL;     }
+static inline bool is_ubo_addr(const Backflow *b)   { return is_unif(b) && b->unif_type == BACKEND_UNIFORM_UBO_ADDRESS; }
 
-static inline bool is_const_zero(const Backflow *b) {
-   return (is_const(b) && b->unif == 0);
-}
+static inline bool is_const_zero(const Backflow *b) { return (is_const(b) && b->unif == 0); }

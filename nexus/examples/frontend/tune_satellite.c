@@ -336,13 +336,13 @@ int main(int argc, char **argv)
             NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
             NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
-    if (NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0])) {
+    if (platformConfig.outputs.spdif[0]) {
         NEXUS_AudioOutput_AddInput(
             NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
             NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
 #if NEXUS_HAS_HDMI_OUTPUT
-    if (NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0])) {
+    if (platformConfig.outputs.hdmi[0]) {
         NEXUS_AudioOutput_AddInput(
             NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
             NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));

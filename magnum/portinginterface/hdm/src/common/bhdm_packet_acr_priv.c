@@ -942,7 +942,7 @@ void BHDM_PACKET_ACR_DisplayConfiguration(
 		pstAcrPacketConfig->CTS_0_REPEAT, pstAcrPacketConfig->CTS_0)) ;
 	BDBG_LOG(("Tx%d: CTS 1 Repeat: %d Period: %d", hHDMI->eCoreId,
 		pstAcrPacketConfig->CTS_1_REPEAT, pstAcrPacketConfig->CTS_1)) ;
-	BDBG_LOG((" ")) ;
+	BDBG_LOG(("END ACR Packet Configuration")) ;
 #else
 	BSTD_UNUSED(hHDMI) ;
 	BSTD_UNUSED(pstAcrPacketConfig) ;

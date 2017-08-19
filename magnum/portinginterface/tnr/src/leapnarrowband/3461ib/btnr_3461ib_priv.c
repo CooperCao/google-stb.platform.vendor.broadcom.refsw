@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -66,17 +63,10 @@ BERR_Code BTNR_3461_Close(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    BTNR_3461_Handle btnr_3461_handle;
-    BTNR_P_3461_Settings btnr_3461_settings;
-
 
     BDBG_ENTER(BTNR_3461_Close);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
-
-    /* verify the handle is good before using it */
-    btnr_3461_handle = (BTNR_3461_Handle) hDev->hDevImpl;
-    btnr_3461_settings = btnr_3461_handle ->settings;
 
     hDev->magicId = 0x00;       /* clear it to catch inproper use */
     BKNI_Free( (void *) hDev->hDevImpl );
@@ -219,15 +209,12 @@ BERR_Code BTNR_3461_GetPowerSaver(
     BTNR_PowerSaverSettings *pwrSettings        /* [in] Power saver settings. */
     )
 {
-    BTNR_P_3461_Settings *pTnrImplData;
     BERR_Code retCode = BERR_SUCCESS;
     uint8_t hab[5] = HAB_MSG_HDR(BTNR_POWER_CTRL_READ, 0, BTNR_CORE_TYPE, BTNR_CORE_ID);
 
     BDBG_ENTER(BTNR_3461_GetPowerSaver);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
-
-    pTnrImplData = &hDev->settings;
 
     CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab, 5, hab, 9, false, true, 9 ));
 

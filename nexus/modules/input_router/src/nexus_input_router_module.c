@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2012 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_input_router_module.h"
@@ -57,7 +49,7 @@ void NEXUS_InputRouterModule_GetDefaultSettings( NEXUS_InputRouterModuleSettings
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
 }
 
 NEXUS_ModuleHandle NEXUS_InputRouterModule_Init( const NEXUS_InputRouterModuleSettings *pSettings )
@@ -73,7 +65,7 @@ NEXUS_ModuleHandle NEXUS_InputRouterModule_Init( const NEXUS_InputRouterModuleSe
     }
 
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
-    moduleSettings.priority = NEXUS_AdjustModulePriority(NEXUS_ModulePriority_eDefault, &pSettings->common);
+    moduleSettings.priority = NEXUS_AdjustModulePriority(moduleSettings.priority, &pSettings->common);
     g_NEXUS_inputRouterModule = NEXUS_Module_Create("input_router", &moduleSettings);
     return g_NEXUS_inputRouterModule;
 }

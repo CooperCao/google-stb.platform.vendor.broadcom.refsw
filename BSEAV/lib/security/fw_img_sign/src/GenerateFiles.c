@@ -175,7 +175,7 @@ void Generate_C_Array(unsigned char *data_file_name,
     char FileName[FILENAME_LEN] = {0};
     char * Token;
     FILE * pOut;
-    unsigned int i;
+    unsigned int i = 0;
     unsigned char Byte;
 
     FILE *fp = fopen(data_file_name,"rb");
@@ -535,7 +535,6 @@ void Generate_BIN_file(unsigned char *data,
     unsigned int Append)
 {
     FILE * pOut;
-    unsigned int i;
 
     if (1 == Append)
     {

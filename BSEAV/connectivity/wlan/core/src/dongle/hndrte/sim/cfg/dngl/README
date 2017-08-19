@@ -1,0 +1,30 @@
+This directory contains four text files used to configure the Armulator
+in order to allow it to use the cheeseball (WLAN chip simulator)
+peripheral model.
+
+The model also includes support for socket-simulated bus (USB/SDIO)
+interface and socket-simulated wireless interface.
+
+These files are normally found in $ARMHOME/linux/bin:
+	peripheral.ami
+	peripheral.dsc
+	default.ami
+	ARMulator.cnf
+
+The first three are needed to run armsd using the dngl.so plug-in
+peripheral model, and the fourth is needed to run rdi-stub for remote
+debugging.
+
+Add the directory containing these files to the front of your ARMCONF
+path:
+
+(tcsh)
+	setenv ARMCONF $SRCBASE/src/dongle/rte/sim/cfg/dngl:$ARMCONF
+
+(bash)
+	ARMCONF=$SRCBASE/src/dongle/rte/sim/cfg/dngl:$ARMCONF
+	export ARMCONF
+
+For more information, please see:
+http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/ArmulatorCheeseball 
+http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/RSockSimulation

@@ -176,6 +176,7 @@ NEXUS_P_Thread_Create(const char *pThreadName, void (*pThreadFunc)(void *), void
     thread = BKNI_Malloc(sizeof(*thread));
     if(!thread) {
         mrc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BSTD_UNUSED(mrc);
         goto err_alloc;
     }
     
@@ -244,6 +245,11 @@ NEXUS_Thread_Destroy(NEXUS_ThreadHandle thread)
     return;
 }
 
+#if __GNUC__ >= 6
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 static void
 NEXUS_P_Base_Os_MarkThread_locked(const char *name)
 {
@@ -295,6 +301,9 @@ NEXUS_P_Base_Os_MarkThread_locked(const char *name)
 #endif
     return;
 }
+#if __GNUC__ >= 6
+#pragma GCC diagnostic pop
+#endif
 
 /**
 NEXUS_P_Base_Os_MarkThread allows nexus to store bookkeeping information

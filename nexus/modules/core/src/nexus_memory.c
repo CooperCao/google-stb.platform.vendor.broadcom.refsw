@@ -905,10 +905,9 @@ void NEXUS_MemoryBlock_GetDefaultAllocationSettings(NEXUS_MemoryBlockAllocationS
 NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_P_CreateFromMma_priv(BMMA_Block_Handle mma_block)
 {
     NEXUS_MemoryBlockHandle block;
-    BERR_Code rc;
 
     block = BMMA_PoolAllocator_Alloc(g_NexusCore.memoryBlockPool);
-    if(block==NULL) {rc=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
+    if(block==NULL) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
     NEXUS_OBJECT_INIT(NEXUS_MemoryBlock, block);
     BKNI_Memset(&block->state, 0, sizeof(block->state));
     block->block = mma_block;

@@ -91,6 +91,7 @@ struct NEXUS_SimpleStcChannel
         NEXUS_AstmHandle handle;
         BLST_Q_HEAD(NEXUS_FreeAudioDecoderQueue, NEXUS_AudioDecoderQueueEntry) freeAudioDecoderEntries;
         BLST_Q_HEAD(NEXUS_ConnectedAudioDecoderQueue, NEXUS_AudioDecoderQueueEntry) connectedAudioDecoders;
+        NEXUS_AstmSettings settings;
     } astm;
 #endif
 #if NEXUS_HAS_SYNC_CHANNEL
@@ -99,6 +100,7 @@ struct NEXUS_SimpleStcChannel
         NEXUS_SyncChannelHandle handle;
         BLST_Q_HEAD(NEXUS_FreeAudioInputQueue, NEXUS_AudioInputQueueEntry) freeAudioInputEntries;
         BLST_Q_HEAD(NEXUS_ConnectedAudioInputQueue, NEXUS_AudioInputQueueEntry) connectedAudioInputs;
+        NEXUS_SyncChannelSettings settings;
     } sync;
 #endif
     NEXUS_TimebaseHandle timebase; /* internally allocated timebase for high jitter */
@@ -141,13 +143,12 @@ void NEXUS_SimpleStcChannel_SetDefaultAstmSettings_priv( const NEXUS_AstmSetting
 static NEXUS_Error set_astm_control(NEXUS_SimpleStcChannelHandle handle, bool enabled)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_AstmSettings settings;
 
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleStcChannel, handle);
 
-    NEXUS_Astm_GetSettings(handle->astm.handle, &settings);
-    settings.enabled = enabled;
-    rc = NEXUS_Astm_SetSettings(handle->astm.handle, &settings);
+    NEXUS_Astm_GetSettings(handle->astm.handle, &handle->astm.settings);
+    handle->astm.settings.enabled = enabled;
+    rc = NEXUS_Astm_SetSettings(handle->astm.handle, &handle->astm.settings);
 
     return rc;
 }
@@ -155,13 +156,12 @@ static NEXUS_Error set_astm_control(NEXUS_SimpleStcChannelHandle handle, bool en
 static NEXUS_Error set_astm_stc(NEXUS_SimpleStcChannelHandle handle, NEXUS_StcChannelHandle stcChannel)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_AstmSettings settings;
 
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleStcChannel, handle);
 
-    NEXUS_Astm_GetSettings(handle->astm.handle, &settings);
-    settings.stcChannel = stcChannel;
-    rc = NEXUS_Astm_SetSettings(handle->astm.handle, &settings);
+    NEXUS_Astm_GetSettings(handle->astm.handle, &handle->astm.settings);
+    handle->astm.settings.stcChannel = stcChannel;
+    rc = NEXUS_Astm_SetSettings(handle->astm.handle, &handle->astm.settings);
 
     return rc;
 }
@@ -170,7 +170,7 @@ static void create_astm(NEXUS_SimpleStcChannelHandle handle)
 {
     unsigned i = 0;
     NEXUS_AudioDecoderQueueEntry *pEntry = NULL;
-    NEXUS_AstmSettings settings;
+    NEXUS_AstmSettings * pSettings = &handle->astm.settings;
 
     /* disabled by default */
     handle->astm.enabled = false;
@@ -179,10 +179,10 @@ static void create_astm(NEXUS_SimpleStcChannelHandle handle)
         NEXUS_Astm_GetDefaultSettings(&g_NEXUS_defaultAstmSettings.settings);
         g_NEXUS_defaultAstmSettings.set = true;
     }
-    settings = g_NEXUS_defaultAstmSettings.settings;
-    settings.enableAutomaticLifecycleControl = true;
-    settings.enabled = handle->astm.enabled;
-    handle->astm.handle = NEXUS_Astm_Create(&settings);
+    *pSettings = g_NEXUS_defaultAstmSettings.settings;
+    pSettings->enableAutomaticLifecycleControl = true;
+    pSettings->enabled = handle->astm.enabled;
+    handle->astm.handle = NEXUS_Astm_Create(pSettings);
     if (!handle->astm.handle)
     {
         BDBG_WRN(("Could not create ASTM instance. ASTM is disabled for stc channel %p", (void *)handle));
@@ -212,17 +212,17 @@ static void destroy_astm(NEXUS_SimpleStcChannelHandle handle)
 
     if (handle->astm.handle)
     {
-        NEXUS_AstmSettings settings;
+        NEXUS_AstmSettings * pSettings = &handle->astm.settings;
         /*
          * need to explicitly clear handles here because Destroy
          * doesn't do a blocking call on finalize
          */
-        NEXUS_Astm_GetSettings(handle->astm.handle, &settings);
-        settings.stcChannel = NULL;
-        settings.videoDecoder = NULL;
-        settings.audioDecoder[0] = NULL;
-        settings.audioDecoder[1] = NULL;
-        (void)NEXUS_Astm_SetSettings(handle->astm.handle, &settings);
+        NEXUS_Astm_GetSettings(handle->astm.handle, pSettings);
+        pSettings->stcChannel = NULL;
+        pSettings->videoDecoder = NULL;
+        pSettings->audioDecoder[0] = NULL;
+        pSettings->audioDecoder[1] = NULL;
+        (void)NEXUS_Astm_SetSettings(handle->astm.handle, pSettings);
 
         NEXUS_Astm_Destroy(handle->astm.handle);
     }
@@ -247,22 +247,22 @@ static void destroy_astm(NEXUS_SimpleStcChannelHandle handle)
 static NEXUS_Error set_sync_mode(NEXUS_SimpleStcChannelHandle handle, NEXUS_SimpleStcChannelSyncMode sync)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_SyncChannelSettings settings;
+    NEXUS_SyncChannelSettings * pSettings = &handle->sync.settings;
 
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleStcChannel, handle);
 
-    NEXUS_SyncChannel_GetSettings(handle->sync.handle, &settings);
+    NEXUS_SyncChannel_GetSettings(handle->sync.handle, pSettings);
     switch (sync)
     {
         case NEXUS_SimpleStcChannelSyncMode_eNoAdjustmentConcealment:
         case NEXUS_SimpleStcChannelSyncMode_eAudioAdjustmentConcealment:
-            settings.enableMuteControl = false;
+            pSettings->enableMuteControl = false;
             break;
         default:
-            settings.enableMuteControl = true;
+            pSettings->enableMuteControl = true;
             break;
     }
-    rc = NEXUS_SyncChannel_SetSettings(handle->sync.handle, &settings);
+    rc = NEXUS_SyncChannel_SetSettings(handle->sync.handle, pSettings);
     if (rc) BERR_TRACE(rc);
 
     return rc;
@@ -307,16 +307,16 @@ static void destroy_sync(NEXUS_SimpleStcChannelHandle handle)
 
     if (handle->sync.handle)
     {
-        NEXUS_SyncChannelSettings settings;
+        NEXUS_SyncChannelSettings * pSettings = &handle->sync.settings;
         /*
          * need to explicitly clear handles here because Destroy
          * doesn't do a blocking call on finalize
          */
-        NEXUS_SyncChannel_GetSettings(handle->sync.handle, &settings);
-        settings.videoInput = NULL;
-        settings.audioInput[0] = NULL;
-        settings.audioInput[1] = NULL;
-        (void)NEXUS_SyncChannel_SetSettings(handle->sync.handle, &settings);
+        NEXUS_SyncChannel_GetSettings(handle->sync.handle, pSettings);
+        pSettings->videoInput = NULL;
+        pSettings->audioInput[0] = NULL;
+        pSettings->audioInput[1] = NULL;
+        (void)NEXUS_SyncChannel_SetSettings(handle->sync.handle, pSettings);
         NEXUS_SyncChannel_Destroy(handle->sync.handle);
     }
 
@@ -658,6 +658,11 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
             manualTimebaseConfig = true;
             goto set_settings;
         }
+        if (videoStatus.primer) {
+            settings.timebase = NEXUS_Timebase_eInvalid;
+            settings.autoConfigTimebase = false;
+            goto set_settings;
+        }
     }
 
     /* now customize the stcSettings based on the mode */
@@ -696,6 +701,42 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
                     manualTimebaseConfig = true;
                     /* now configure the STC */
                     configureHighJitterStc(settings.timebase, pSettings, &settings);
+                    break;
+                case NEXUS_SimpleStcChannelHighJitterMode_eTtsPacing:
+                case NEXUS_SimpleStcChannelHighJitterMode_ePcrPacing:
+                    /* Incoming stream has jitter, but app removes the jitter using a rate smoothing dejitter buffer. */
+                    /* So this configuration is similar to the NEXUS_SimpleStcChannelHighJitterMode_eNone where */
+                    /* we use the same timebase for both decode & display path. */
+                    /* However, both timebase & stc channel are configured slightly differently */
+                    /* w/ certain jitter settings disabled. */
+                    if (handle->video && videoStatus.mainWindow) {
+                        settings.timebase = NEXUS_Timebase_e0;
+                    }
+                    else {
+                        rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
+                        if (rc) return BERR_TRACE(rc);
+                    }
+
+                    NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);
+                    timebaseSettings.sourceType = NEXUS_TimebaseSourceType_ePcr;
+                    timebaseSettings.freeze = false;
+                    timebaseSettings.sourceSettings.pcr.pidChannel = pSettings->modeSettings.pcr.pidChannel;
+                    timebaseSettings.sourceSettings.pcr.maxPcrError = 255;
+                    timebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e244ppm;
+                    timebaseSettings.sourceSettings.pcr.jitterCorrection = NEXUS_TristateEnable_eDisable;
+                    manualTimebaseConfig = true;
+
+                    settings.mode = NEXUS_StcChannelMode_ePcr;
+                    settings.modeSettings.pcr.offsetThreshold = 8;
+                    settings.modeSettings.pcr.maxPcrError = 255;
+                    settings.modeSettings.pcr.pidChannel = pSettings->modeSettings.pcr.pidChannel;
+                    settings.modeSettings.pcr.disableJitterAdjustment = true;
+                    settings.modeSettings.pcr.disableTimestampCorrection = true;
+                    settings.autoConfigTimebase = false;
+
+                    BDBG_MSG(("Configuring SimpleStc Channel in %s mode",
+                            pSettings->modeSettings.highJitter.mode == NEXUS_SimpleStcChannelHighJitterMode_eTtsPacing ?
+                                "NEXUS_SimpleStcChannelHighJitterMode_eTtsPacing": "NEXUS_SimpleStcChannelHighJitterMode_ePcrPacing"));
                     break;
                 default:
                     BDBG_ERR(("NEXUS SimpleStcChannelHighJitterMode_eDirect requires caller to specify non-zero highJitterThreshold"));
@@ -1167,19 +1208,18 @@ static NEXUS_Error setAstmSettingsFromAudioQueue(NEXUS_SimpleStcChannelHandle ha
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i = 0;
     NEXUS_AudioDecoderQueueEntry * pEntry = NULL;
-    NEXUS_AstmSettings astmSettings;
 
-    NEXUS_Astm_GetSettings(handle->astm.handle, &astmSettings);
+    NEXUS_Astm_GetSettings(handle->astm.handle, &handle->astm.settings);
     for (i = 0; i < NEXUS_ASTM_AUDIO_DECODERS; i++)
     {
-        astmSettings.audioDecoder[i] = NULL;
+        handle->astm.settings.audioDecoder[i] = NULL;
     }
     for (pEntry = BLST_Q_FIRST(&handle->astm.connectedAudioDecoders), i = 0; (pEntry != NULL) && (i < NEXUS_ASTM_AUDIO_DECODERS); pEntry = BLST_Q_NEXT(pEntry, link), i++)
     {
         BDBG_MSG(("Setting audio decoder %p as astm audio index %d", (void *)pEntry->audioDecoder, i));
-        astmSettings.audioDecoder[i] = pEntry->audioDecoder;
+        handle->astm.settings.audioDecoder[i] = pEntry->audioDecoder;
     }
-    rc = NEXUS_Astm_SetSettings(handle->astm.handle, &astmSettings);
+    rc = NEXUS_Astm_SetSettings(handle->astm.handle, &handle->astm.settings);
 
     return rc;
 }
@@ -1248,11 +1288,11 @@ NEXUS_Error NEXUS_SimpleStcChannel_SetSyncVideo_priv(NEXUS_SimpleStcChannelHandl
 
     if (handle->sync.enabled)
     {
-        NEXUS_SyncChannelSettings syncSettings;
+        NEXUS_SyncChannelSettings * pSyncSettings = &handle->sync.settings;
         BDBG_MSG(("Setting sync %p video input to %p", (void *)handle->sync.handle, (void *)videoInput));
-        NEXUS_SyncChannel_GetSettings(handle->sync.handle, &syncSettings);
-        syncSettings.videoInput = videoInput;
-        rc = NEXUS_SyncChannel_SetSettings(handle->sync.handle, &syncSettings);
+        NEXUS_SyncChannel_GetSettings(handle->sync.handle, pSyncSettings);
+        pSyncSettings->videoInput = videoInput;
+        rc = NEXUS_SyncChannel_SetSettings(handle->sync.handle, pSyncSettings);
     }
 
     return rc;
@@ -1328,20 +1368,20 @@ static NEXUS_Error setSyncSettingsFromAudioQueue(NEXUS_SimpleStcChannelHandle ha
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i = 0;
     NEXUS_AudioInputQueueEntry * pEntry = NULL;
-    NEXUS_SyncChannelSettings syncSettings;
+    NEXUS_SyncChannelSettings * pSyncSettings = &handle->sync.settings;
 
-    NEXUS_SyncChannel_GetSettings(handle->sync.handle, &syncSettings);
+    NEXUS_SyncChannel_GetSettings(handle->sync.handle, pSyncSettings);
     for (i = 0; i < NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS; i++)
     {
         BDBG_MSG(("Setting sync %p audio index %d to %p", (void *)handle->sync.handle, i, NULL));
-        syncSettings.audioInput[i] = NULL;
+        pSyncSettings->audioInput[i] = NULL;
     }
     for (pEntry = BLST_Q_FIRST(&handle->sync.connectedAudioInputs), i = 0; (pEntry != NULL) && (i < NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS); pEntry = BLST_Q_NEXT(pEntry, link), i++)
     {
         BDBG_MSG(("Setting sync %p audio index %d to %p", (void *)handle->sync.handle, i, (void *)pEntry->audioInput));
-        syncSettings.audioInput[i] = pEntry->audioInput;
+        pSyncSettings->audioInput[i] = pEntry->audioInput;
     }
-    rc = NEXUS_SyncChannel_SetSettings(handle->sync.handle, &syncSettings);
+    rc = NEXUS_SyncChannel_SetSettings(handle->sync.handle, pSyncSettings);
 
     return rc;
 }

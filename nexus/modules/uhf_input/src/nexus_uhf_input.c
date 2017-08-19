@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -98,7 +98,7 @@ void NEXUS_UhfInputModule_GetDefaultSettings(NEXUS_UhfInputModuleSettings *pSett
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
 }
 
 NEXUS_ModuleHandle NEXUS_UhfInputModule_Init(const NEXUS_UhfInputModuleSettings *pSettings)
@@ -107,7 +107,7 @@ NEXUS_ModuleHandle NEXUS_UhfInputModule_Init(const NEXUS_UhfInputModuleSettings 
     NEXUS_UhfInputModuleSettings defaultSettings;
 
     BDBG_ASSERT(!g_NEXUS_uhfInputModule);
-    
+
     if (!pSettings) {
         NEXUS_UhfInputModule_GetDefaultSettings(&defaultSettings);
         pSettings = &defaultSettings;
@@ -136,12 +136,12 @@ NEXUS_Error NEXUS_UhfInputModule_Standby_priv(bool enabled, const NEXUS_StandbyS
 #if NEXUS_POWER_MANAGEMENT
     BUHF_StandbySettings standbySettings;
     bool wakeup = pSettings->wakeupSettings.uhf;
-    BERR_Code rc;        
-    
+    BERR_Code rc;
+
     /* If module or device isn't open then nothing to do here. */
     if (!g_NEXUS_uhfInput.uhfInput || !g_NEXUS_uhfInput.uhfInput->uhf)
         return 0;
-    
+
     /* In S3 the UHF module loses power and all of its registers settings.  This is not preserved
     ** by the module.  So for S3 modes we need to close and re-open the device (using the original
     ** settings) instead of just using standby and resume interfaces.
@@ -152,7 +152,7 @@ NEXUS_Error NEXUS_UhfInputModule_Standby_priv(bool enabled, const NEXUS_StandbyS
             standbySettings.bEnableWakeup = wakeup;
             rc = BUHF_Standby(g_NEXUS_uhfInput.uhfInput->uhf, &standbySettings);
             if (rc) { return BERR_TRACE(rc); }
-        } 
+        }
         else {
             BUHF_UnregisterCallback(g_NEXUS_uhfInput.uhfInput->uhf);
             BUHF_Close(g_NEXUS_uhfInput.uhfInput->uhf);
@@ -178,7 +178,7 @@ NEXUS_Error NEXUS_UhfInputModule_Standby_priv(bool enabled, const NEXUS_StandbyS
     BSTD_UNUSED(enabled);
     BSTD_UNUSED(pSettings);
 #endif
-  
+
   return NEXUS_SUCCESS;
 }
 
@@ -197,7 +197,7 @@ static void NEXUS_UhfInput_P_DataReady_isr(BUHF_Handle uhf, void *context)
     NEXUS_Time time;
     unsigned time_diff;
 
-    BDBG_MSG(("Data received at UHFR: %s (context=%x)", __FUNCTION__, (unsigned)context));
+    BDBG_MSG(("Data received at UHFR: %s (context=%x)", BSTD_FUNCTION, (unsigned)context));
 
     BKNI_Memset(&event, 0, sizeof(event));
 

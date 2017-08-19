@@ -111,7 +111,8 @@ void GIC::secondaryCpuInit() {
 void GIC::intrDisable(int irq) {
 	SpinLocker locker(&lock);
 
-	if ((irq != ARCH_SPECIFIC_TIMER_INTERRUPT) && (irq != TZ_SGI_IRQ)) {
+	if ((irq != ARCH_SPECIFIC_TIMER_INTERRUPT) && (irq != TZ_SGI_IRQ)
+		&& (irq != TZ_SECURE_SGI_IRQ)) {
 		err_msg("TZ: Attempt to disable a normal world interrupt disallowed\n");
 		return;
 	}
@@ -123,7 +124,8 @@ void GIC::intrDisable(int irq) {
 void GIC::intrEnable(int irq) {
 	SpinLocker locker(&lock);
 
-	if ((irq != ARCH_SPECIFIC_TIMER_INTERRUPT) && (irq != TZ_SGI_IRQ)) {
+	if ((irq != ARCH_SPECIFIC_TIMER_INTERRUPT) && (irq != TZ_SGI_IRQ)
+		&& (irq != TZ_SECURE_SGI_IRQ)) {
 		err_msg("TZ: Attempt to enable a normal world interrupt disallowed\n");
 		return;
 	}
@@ -132,8 +134,8 @@ void GIC::intrEnable(int irq) {
 
 }
 
-void GIC::sgiGenerate(int irq) {
-	gicV2sgiGenerate(irq);
+void GIC::sgiGenerate(uint8_t cpuTargetList, int irq) {
+	gicV2sgiGenerate(cpuTargetList, irq);
 }
 
 int GIC::currIntr(int *srcCpu) {

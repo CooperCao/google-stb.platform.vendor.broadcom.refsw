@@ -182,7 +182,7 @@ void CChannelPlayback::setStc(CStc * pStc)
 }
 
 CPid * CChannelPlayback::getPid(
-        uint16_t index,
+        unsigned index,
         ePidType type
         )
 {
@@ -195,7 +195,7 @@ CPid * CChannelPlayback::getPid(
 }
 
 CPid * CChannelPlayback::findPid(
-        uint16_t pidNum,
+        unsigned pidNum,
         ePidType type
         )
 {
@@ -311,7 +311,7 @@ eRet CChannelPlayback::tune(
         void *    id,
         CConfig * pConfig,
         bool      bWaitForLock,
-        uint16_t  index
+        unsigned  index
         )
 {
     eRet              ret             = eRet_Ok;

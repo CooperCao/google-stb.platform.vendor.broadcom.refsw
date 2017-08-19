@@ -1,0 +1,906 @@
+
+vxWorks Notes                                                11-28-01
+
+Copyright 2008-2011, Broadcom Corporation
+
+
+Notes on vxWorks that can be shared with customers.
+
+
+-----------------------------------------------------
+Info
+
+ CrossWind (gdb) debugger setting:
+
+   The default setting for CrossWind (gdb) debugger is the same as
+   target/config/all/configAll.h:
+
+     #define WDB_COMM_TYPE WDB_COMM_NETWORK 
+
+   That is, debug over network link.  Note that this setting only supports
+   Task Mode Debug; it does not support System Mode Debug.
+
+   To configure for System Mode Debug, change SERIAL_SYS_MODE_DEBUG in config.h
+   from
+     #undef SERIAL_SYS_MODE_DEBUG
+   to
+     #define SERIAL_SYS_MODE_DEBUG
+
+   With serial link, you can perform both System Mode Debug and Task Mode Debug.
+
+
+ Tornado versions:
+                                                              Under WindSh, run:
+                ccmips --version                              version
+                -------------------------------------------   ------------------
+ Tornado 2.0    cygnus-2.7.2-960126 egcs-971225 tornado 2.0   vxWorks 5.4
+
+ Tornado 2.0.2  cygnus-2.7.2-960126 egcs-971225 tornado 2.0   vxWorks 5.4.2
+
+ Tornado 2.1    gcc-2.96                                      vxWorks 5.4.2
+
+-----------------------------------------------------
+To setup and launch target server:
+                                                                    10/30/01
+ Target server is required by:
+ - WindView (a profiler ...almost as fancy as a software logic analyzer)
+ - Debugger (aka CrossWind); it is gdb plus WindRiver's debugger GUI
+ - host side WindShell
+
+ FYI: the default wdb is via network (wdbrpc).  wdb is the WindRiver Debugger
+ protocol used for the communication between target server (on the host) and
+ target.
+
+ At Tornado main window,
+  Tools>Target Server>Configure
+
+   Click the "New" button if there are no existing entries to base on.
+
+   Description: anything
+
+   Scroll down the "Target Server Properties" scroll bar to select "Back End"
+    Available Back Ends
+     wdbrpc               # for task mode debug
+      Target Name/IP Address 192.168.1.1
+
+                          Note that R4 is configured with wdb on ethernet
+                          interface et0 of target.
+                          Find out the ip addr. of et0 by typing "ifShow" on
+                          WindShell of target.
+     or
+     wdbserial            # for system mode debug
+                 Serial Port    Speed (bps)
+                 COM1           115200
+
+   Scroll down the "Target Server Properties" scroll bar to select
+                                                         "Core File and Symbols"
+    . File: d:\t2\target\config\bcm47xx\vxWorks.st
+                . All Symbols         # to include locals
+
+   Launch
+    will see a target icon created in the system tray.
+    Double click it to check if target server is running successfully:
+
+     tgtsvr (10.19.13.1@pcsjce-longc): Mon Sep 17 19:12:42 2001
+         Wind River Systems Target Server: NT/Win95 version
+         Connecting to target agent... succeeded.
+         Attaching C++ interface... succeeded.
+         Attaching elf OMF reader for MIPS CPU family... succeeded.
+
+ Test the target server by launching the host side WindShell:
+
+   First selecting the target server in the drop-down combo box in 
+   the main window.  For example, "192.168.1.1@pcsjce-longc"
+   Notice that the host side WindShell button "->i" and others will change from
+   "grayed out" to "visible".  
+
+   Next launch the host side WindShell by:
+
+     clicking the "->i" button
+
+   or
+
+     Tools>Shell
+ 
+-----------------------------------------------------
+Loading of .o module
+
+ Since 4710 does not have a file system, the wdb path between target server and
+ real target can be used to load a module into the target for execution.
+
+ First launch target server to connect to target via network (wdbrpc).
+
+ Next launch the host side WindShell by:
+
+    Tools>Shell
+
+ cd "c:/tmp/demo"
+
+ ld < demo.o
+
+ demo
+
+ Ctrl-C to kill demo
+
+-----------------------------------------------------
+Turning Cache ON or OFF on 4710 vx:
+                                                                    9/27/01
+ readConfig              reads MIPS32 config register:
+                           0x80008083 means cache is ON
+                           0x80008082 means cache is OFF
+
+ cacheDisable
+
+ cacheEnable
+
+-----------------------------------------------------
+Running CrossWind (gdb) -- for system mode debugging
+PART I
+                                                                    11/28/01
+ This tutorial illustrates source level debug of et_vx ethernet driver during
+ operation.  The next PART II tutorial section illustrates the slightly more
+ involved procedure of debugging the initialization of et_vx ethernet driver.
+
+ System mode debugging requires serial (or uart) link, because serial link
+ comes up early on and thus facilitates debugging of other system code (i.e.
+ network code).  Another term Wind River calls system mode debugging is external
+ mode debugging (EXTERN for short).
+
+ Note that R4 has only one serial port.  During power on, PMON and the startup 
+ of vxWorks both print to the serial port.  Once WDB comes up ready, you will
+ need to exit PC's Hyperterminal so that Tornado target server can grab PC's
+ COM port to connect to target's WDB.
+
+ CrossWind works for both Tornado 2 and 2.1.
+
+
+Setup:
+
+ To configure for System Mode Debug, change SERIAL_SYS_MODE_DEBUG in config.h
+ from
+   #undef SERIAL_SYS_MODE_DEBUG
+ to
+   #define SERIAL_SYS_MODE_DEBUG
+
+ For the files that you want to do source level debug, they must be compiled
+ with "-g" so that debug symbols are included.  It is desirable to turn off 
+ optimization during the compile so that one outcome is that local variables
+ do exist; compile with "-O0" option.  So add the following line to the Makefile
+
+   ADDED_CFLAGS = -g -O0
+
+ For target server setup, refer to its section above.
+
+
+Run:
+
+ Initially your PC's hypertrm.exe (Hyperterminal program) is used to display
+ R4's power on screen showing PMON starting, and then PMON loading vxWorks
+ (indicated by the message, "Boot os from the flash").
+ Finally "WDB READY" is displayed.
+
+   PMON version 5.3.22 [EB], LSI LOGIC Corp. and Broadcom Corp.
+   Compiled on Sun Nov 18 01:13:35 2001
+   ...
+   ...
+   Boot os from the flash
+   CRC OK
+   Doing command call 80001000
+   WDB READY
+
+ Exit hypertrm.exe
+
+ Launch target server to connect to target; see the target server section above.
+
+ First select the target server in the drop-down combo box in the main window.
+ For example, "192.168.1.1@pcsjce-longc"
+ Notice that the host side WindShell button "->i" and others will change from
+ "grayed out" to "visible".  
+
+ Next launch the host side WindShell by:
+
+   clicking the "->i" button
+
+ or
+
+   Tools>Shell
+ 
+ Launch Debugger by:
+
+    Tools>Debugger
+ or
+    Pressing the "Launch Debugger" button.
+ 
+ Ensure that Debugger's command-line window is invoked.  Otherwise:
+
+    Debug>Debugger Windows>Debug Command-line
+
+ Before we start debugging, on your PC, ping the target.  Verify ping works.
+
+ The Debugger can list et_vx driver's send routine, et_send
+ Just type the following in the bottom most line of the 
+ Debug Command-line window:
+
+    l et_send 
+
+ Notice that an editor window of et_vx.c file is automatically displayed!
+ Yes, true gdb source level debug!
+
+ Now click on anywhere on a line in this function that you would like to set a
+ breakpoint on.  Notice that the line number is indicated by the lowest right 
+ corner of Tornado window as "Ln 851, Col 17" (these values are just 
+ illustrative).  Then set a breakpoint on that line by clicking the hand button
+ (titled Toggle Breakpoint).  You will see a brown triangle icon displayed on 
+ the left column of that line, indicating a breakpoint set on that line.  
+ Setting breakpoint could have been done by typing the regular gdb command in 
+ the bottom most command line, like: b 851
+
+ To show the list of all breakpoints, type:
+
+    info b
+
+ Attach to the system:
+
+    attach system
+
+ If you go back to WindShell and type:
+
+    i
+
+ the end of this task list will show vxWorks is now suspended, and in system
+ mode for debug (aka. Extern):
+
+    Agent mode     : Extern
+    System context : Suspended
+
+ Now we want to continue target.  Go back to the Debug Command-line window and
+ type:
+
+    c
+
+ Now on your PC, ping target again.  Ping causes target to send response and
+ hence breaks into the set breakpoint in et_send.  You will see a yellow 
+ triangle pointer displayed on the left of the set breakpoint.
+
+ The "i" command on WindShell will again indicate "System context : Suspended".
+ And the PC shows ping timeouts.
+
+ You can examine the pass-in et pointer by typing in the Debug Command-line 
+ window:
+
+    p et
+
+ You can step by:
+
+    s
+
+ Unfortunately most of the time the annoying WindRiver Tornado window scheme 
+ places the focus on the editor.  And if you type another "s", this s gets 
+ entered into the et_vx.c file!  So later on when prompted if the changed file 
+ should be saved, answer no.
+
+ Click the focus on the Debug Command-line, and then type the next command:
+
+    d 1
+
+ to delete breakpoint 1.
+
+ Continue target by typing:
+
+    c
+
+ Now on PC you can successfully ping target.
+
+ To detach from the system:
+
+    detach system
+
+            The successful detach will be indicated by "Ok".  
+
+ To exit the Debugger, click the "Stop Debugging" button.
+
+-----------------------------------------------------
+Running CrossWind (gdb) -- for system mode debugging
+PART II
+                                                                    11/28/01
+ This tutorial illustrates source level debug of et_vx ethernet driver during
+ initialization.  Reader should have browsed/tried the PART I tutorial section 
+ that illustrates debugging the operation of et_vx ethernet driver.
+
+
+Setup:
+
+ To configure for System Mode Debug, change SERIAL_SYS_MODE_DEBUG in config.h
+ from
+   #undef SERIAL_SYS_MODE_DEBUG
+ to
+   #define SERIAL_SYS_MODE_DEBUG
+
+ For the files that you want to do source level debug, they must be compiled
+ with "-g" so that debug symbols are included.  It is desirable to turn off 
+ optimization during the compile so that one outcome is that local variables
+ do exist; compile with "-O0" option.  So add the following line to the Makefile
+
+   ADDED_CFLAGS = -g -O0
+
+ For target server setup, refer to its section above.
+
+ For this tutorial to illustrate debugging of et_vx during its init, we need to
+ customize usrConfig.c because the standard usrConfig.c executes wdbConfig()
+ many lines "after" usrNetInit()
+ This is because the default link for CrossWind is Ethernet.
+ But we want to intercept execution (i.e. to halt) prior to usrNetInit()
+ So we need to disable the call of wdbConfig(), and add a newline of calling
+ wdbConfig() prior to wdbConfig()
+ We also need to add a newline between wdbConfig() and usrNetInit() of calling
+ wdbSystemSuspend() which puts vxWorks into the suspended state.
+
+ One example of customizing usrConfig.c is as follows:
+
+   copy target/config/all/usrConfig.c  target/config/bcm47xx
+   cd target/config/bcm47xx
+   edit usrConfig.c
+
+   - find wdbConfig() and disable it by surrounding it with 
+     #ifndef SERIAL_SYS_MODE_DEBUG, like:
+
+         #ifndef SERIAL_SYS_MODE_DEBUG
+             wdbConfig();
+         #endif
+
+   - find usrNetInit() and add 4 newlines before it, like:
+
+         #ifdef SERIAL_SYS_MODE_DEBUG
+             wdbConfig();
+             wdbSystemSuspend();
+         #endif
+         usrNetInit (BOOT_LINE_ADRS);      /* .... */
+
+   edit bcm47xx.mk to add this line:
+     USRCONFIG       = usrConfig.c
+
+   rebuild R4 router code.
+
+
+Run:
+
+ Initially your PC's hypertrm.exe (Hyperterminal program) is used to display
+ R4's power on screen showing PMON starting, and then PMON loading vxWorks
+ (indicated by the message, "Boot os from the flash").
+ Finally "WDB READY" is displayed.
+
+   PMON version 5.3.22 [EB], LSI LOGIC Corp. and Broadcom Corp.
+   Compiled on Sun Nov 18 01:13:35 2001
+   ...
+   ...
+   Boot os from the flash
+   CRC OK
+   Doing command call 80001000
+   WDB READY
+
+ Exit hypertrm.exe
+
+ Launch target server to connect to target; see the target server section above.
+
+ First select the target server in the drop-down combo box in the main window.
+ For example, "192.168.1.1@pcsjce-longc"
+ Notice that the host side WindShell button "->i" and others will change from
+ "grayed out" to "visible".  
+
+ Next launch the host side WindShell by:
+
+   clicking the "->i" button
+
+ or
+
+   Tools>Shell
+ 
+ Launch Debugger by:
+
+    Tools>Debugger
+ or
+    Pressing the "Launch Debugger" button.
+ 
+ Ensure that Debugger's command-line window is invoked.  Otherwise:
+
+    Debug>Debugger Windows>Debug Command-line
+
+ Before we start debugging, on your PC, ping the target.  Verify ping works.
+
+ The Debugger can list et_vx driver's entry routine, et_load
+ Just type the following in the bottom most line of the 
+ Debug Command-line window:
+
+    l et_load 
+
+ Notice that an editor window of et_vx.c file is automatically displayed!
+ Yes, true gdb source level debug!
+
+ Click on a line in this function that you would like to set a breakpoint on.
+ Then set a breakpoint on that line by clicking the hand button (titled
+ Toggle Breakpoint).
+
+ To show the list of all breakpoints, type:
+
+    info b
+
+ Attach to the system:
+
+    attach system
+
+ If you go back to WindShell and type:
+
+    i
+
+ the end of this task list will show vxWorks is now suspended:
+
+    Agent mode     : Extern
+    System context : Suspended
+
+ Continue vxWorks by typing in the Debug Command-line:
+
+    c
+
+ You will notice et_vx.c file pops up to the focus with a yellow triangle
+ pointer on the line that you previously set a breakpoint on.
+
+ You can examine the local et pointer by typing:
+
+    p et
+
+ You can step by:
+
+    s
+
+ Unfortunately, the annoying WindRiver Debugger places the focus on the editor
+ and if you type another "s", this s gets entered into the et_vx.c file!
+ So later on when prompted if the changed file should be saved, answer no.
+
+ Continue target by typing:
+
+    c
+
+ and after a couple of seconds, the yellow triangle pointer appears again on 
+ the breakpoint.
+
+ If you ping target again, ping will fail because target has not finished
+ network initialization.
+
+ After you are done stepping/examining, you can finish network init by typing:
+
+    c
+
+ The completion of network init is indicated by the lack of yellow triangle
+ pointer.  Another indication is by pinging the target again, and ping works.
+
+ To detach from the system:
+
+    detach system
+
+            The successful detach will be indicated by "Ok".  
+
+ To exit the Debugger, click the "Stop Debugging" button.
+
+-----------------------------------------------------
+Running CrossWind (gdb) -- for task mode debugging
+                                                                    10/31/01
+ Task mode debugging defaults on ethernet link -- fast.
+
+ CrossWind works for both Tornado 2 and 2.1.
+
+ This tutorial on running CrossWind on vxWorks target is illustrated by the
+ following demo function:
+
+           ------------- 0 ---------------
+/* Demo program derived from page 17 of
+ * VxSim User's Guide 5.3.1 (under Tornado 1.0.1)
+ *
+ * Print its task name and startup param.
+ */
+
+#include "vxWorks.h"
+#include "taskLib.h"
+#include "stdio.h"
+#include "sysLib.h"    /* sysClkRateGet() */
+
+void demo (int param)
+{
+    int i;
+
+    i = 6;
+    printf ("Hello from task (%s).  Startup param was %d. i=%d\n",
+            taskName(0), param, i);
+    while (1)
+    {
+        param++;
+        i++;
+        printf ("param=%d i=%d\n", param, i);
+        taskDelay(2*sysClkRateGet());
+    }
+}
+           ------------- 0 ---------------
+
+ It can be in a file such as:
+
+    c:\tmp\demo\demo.c
+
+ along with its Makefile whose content is:
+
+           ------------- 0 ---------------
+# Same Makefile as that on page 363 (Section 8 Configuration and Build)
+# of VxWorks 5.4 Programmer's Guide.
+
+CPU              = RC32364
+#For Tornado 2.1 use MIPS32 as CPU:
+#CPU              = MIPS32
+TOOL             = sfgnu
+
+EXTRA_DEFINE =
+ADDED_CFLAGS = -g -O0
+# -g is required for gdb
+# -O0 is to turn off optimizaton; e.g. local variables do exist.
+
+include $(WIND_BASE)/target/h/make/defs.bsp
+include $(WIND_BASE)/target/h/make/make.$(CPU)$(TOOL)
+include $(WIND_BASE)/target/h/make/defs.$(WIND_HOST_TYPE)
+
+exe:    demo.o
+           ------------- 0 ---------------
+
+ To compile demo.c with T2:
+
+  cd /d d:\T2\host\x86-win32\bin
+  torVars.bat
+
+  cd /d c:\tmp\demo
+  set TGT_DIR=d:\t2
+  make                   # makes demo.o
+
+ Launch target server to connect to target via network (wdbrpc).
+
+ First selecting the target server in the drop-down combo box in 
+ the main window.  For example, "192.168.1.1@pcsjce-longc"
+ Notice that the host side WindShell button "->i" and others will change from
+ "grayed out" to "visible".  
+
+ Next launch the host side WindShell by:
+
+   clicking the "->i" button
+
+ or
+
+   Tools>Shell
+ 
+ cd "c:/tmp/demo"
+
+ ld < demo.o
+
+ Launch Debugger by:
+
+    Tools>Debugger
+ or
+    Pressing the "Launch Debugger" button.
+ 
+ Ensure that Debugger's command-line window is invoked.  Otherwise:
+
+    Debug>Debugger Windows>Debug Command-line
+
+ Since demo.o has been loaded by WindShell, the Debugger can list the demo
+ function; by typing the following in the bottom most line of the 
+ Debug Command-line window:
+
+    l demo 
+
+ Notice that an editor window of demo.c file is automatically displayed!
+ Yes, true gdb source level debug!
+
+ Now click any where on line 21 (indicated by the lowest right corner of
+ Tornado window as "Ln 21, Col xx") of demo.c which is "param++".
+ Then set a breakpoint on line 21 by clicking the hand button (titled
+ Toggle Breakpoint).  You will see a brown triangle icon displayed on the left
+ column of line 21 to indicate breakpoint set on this line.  Setting breakpoint
+ could have been done by typing the regular gdb command in the bottom most 
+ command line, like: b 21
+
+ To show the list of all breakpoints, type:
+
+    info b
+
+ Now go to WindShell to spawn a task to run the demo function:
+
+    sp demo,6
+
+ giving it a parameter value of 6.
+ The spawn command prints "id = 802c2ea0, name = s1u0" which are the task id
+ and task name of the spawned task.
+ You will notice print out on the serial console of the target, displaying
+ incrementing values of param and local variable, i.
+
+ Now switch to the bottom most gdb command line, and type:
+
+    attach 0x802c2ea0
+
+ to attach gdb to that task.  After attach, you will notice the print out halts.
+
+ Single step by typing:
+
+    s
+
+ You will notice a yellow triangle pointing to line where the single stepping
+ has reached.
+ Unfortunately, the annoying WindRiver Debugger places the focus on the editor
+ and if you type another "s", this s gets entered into the demo.c file!
+ So later on when prompted if the changed file should be saved, answer no.
+ Click the focus on the gdb command line, and then type the next command:
+
+    p param
+
+ to print the value of param.  You can also print the value of the local
+ variable, i:
+
+    p i
+
+ Type "c"ontinue command, and it will continue one more iteration and halts
+ at the same breakpoint on line 21:
+
+    c
+
+ You may want to try the "n"ext stepping command, etc.
+
+ To delete breakpoint 1, type:
+
+    d 1
+
+ Now after you type "c"ontinue, the print out will resume with incrementing
+ values.
+
+ To delete the task, go to WindShell and type:
+
+    td s1u0
+
+ To exit Debugger, click on the "Stop Debugging" button.
+
+ To exit WindShell, either click its upper right corner X button or type "exit".
+
+
+ FYI: if you hate WindRiver's GUI of debugging, you can run gdbmips on a DOS
+ window, and then connect to the target by typing the target command:
+
+(gdb) target wtx 192.168.1.1@pcsjce-longc
+Connecting to target server...
+
+C++ Constructors/Destructors Strategy is AUTOMATIC
+
+Connected to 192.168.1.1@pcsjce-longc
+Attached to target server 192.168.1.1@pcsjce-longc, CPU is RC32364.
+Looking for all loaded modules:
+        c:\wd\src\vxworks\target\config\bcm47xx/vxWorks: ok
+        D:/tmp/demo/demo.o: ok
+Done.
+(gdb)
+
+
+ See also: "8 Debugger" in Tornado User's Guide (Windows Version)
+
+-----------------------------------------------------
+To setup and use WindView:
+                                                                    9/26/01
+ In config.h, you need:
+#define INCLUDE_WINDVIEW
+#define INCLUDE_TIMESTAMP
+#define INCLUDE_TRIGGERING
+
+ First launch target server to connect to target via network (wdbrpc).
+
+ Select the target server in the drop-down combo box in the main window.
+ Notice that the WindView button and others will change from "grayed out" to
+ "visible".  Press the WindView button to launch it.
+
+ Read WindView User's Guide; at least:
+ - Chapter 1 Introduction
+ - Chapter 2 Getting Started
+ - Chapter 3 Configuring Data Collection
+ - Chapter 4 Configuring Data Upload
+ - Chapter 5 Data Display
+ - Chapter 6 Triggering
+
+ FYI:
+ - Timestamp driver consists of a set of sysTimestampXXX routines in sysLib.c
+   The sb (silicon backplane) clock of 100MHz/2 (i.e. 20 ns) is used via the
+   timer interrupt (interrupt 5) line of MIPS32 core.
+
+ - Currently, T2.1 (with its current install key) is missing WindView 
+   instrumentation library (i.e. target side).  The symptom is that during
+   target build when INCLUDE_WINDVIEW is defined in config.h, there are many
+   WindView undefines.
+
+-----------------------------------------------------
+To setup and use spy:
+
+ spy is a simple WindRiver provided library for showing CPU utilization.
+
+ If et1 is not use, use its timer as the aux_timer.
+   sysAuxClkConnect() in sysLib.c should use INT_VEC_IORQ4 (69) like:
+    (void) intConnect (INUM_TO_IVEC(INT_VEC_IORQ4), sysAuxClkInt, 0);
+   config.h should have ET1 defined and INCLUDE_SPY like:
+    #define INCLUDE_ET1_END
+    #define INCLUDE_SPY
+   User types in:
+    set_auxtimer(0xb8008000)
+    spy 10, 123                # spyReport is automatically invoked every 10 sec
+                               # 123 ticks per sec.
+    spyStop
+
+-----------------------------------------------------
+Debug commands
+
+ To display ET_LOG lines:
+  et_msg_level |= 2048
+  <do some net transfer>
+  dump_etlog
+                          et_msg_level             see et\sys\et_dbg.h
+                               1         ET_ERROR
+                               2         ET_TRACE
+                               4         ET_PRHDR
+                               8         ET_PRPKT
+                            2048         ET_LOG
+
+ dump_etstats
+ 
+ ttcp("ttcp -rsu")     d:\tmp\epi_ttcp -tsufm -n 2 192.168.1.1
+ ttcp("ttcp -rsu -n 2048")    d:\tmp\epi_ttcp -tsufm -n 2048 -S 2 192.168.1.1
+
+ ttcp("ttcp -rs")             d:\tmp\epi_ttcp -tsfm 192.168.1.1
+ ttcp("ttcp -ts 192.168.1.2") d:\tmp\epi_ttcp -rsfm
+
+ netStackDataPoolShow
+ netStackSysPoolShow
+
+ ifAddrSet("et1", "192.168.1.5")      # if -1 returned, it doesn't take effect.
+ 
+ i                               to show task priority, task id
+ taskPrioritySet(0x801d5b50, 0)  set tNetTask to priority 0 (highest)
+
+ sp ping,"192.168.1.2"    spawn ping as a separate task
+                 i        to show task name, e.g. t1
+                 td t1    task delete t1
+
+ checkStack
+
+-----------------------------------------------------
+To add dump_ilc_dumpscb()
+
+ Add in il\sys\il_vx.c
+  void dump_ilc_dumpscb(int unit) {
+        ilc_dumpscb(il_global[unit]->ilc, buf1, 4096);
+        printf("%s", buf1);
+  }
+ Change from static to global in il\sys\ilc.c -- 2 places:
+  void ilc_dumpscb(ilc_info_t *ilc, uchar *buf, int size);
+ Change the following from static to global in et\sys\et_vx.c:
+  et_info_t *et_global[MAXUNITS];
+
+
+To compile ipProto.c:
+ vi p:\wd\src\vxWorks\target\src\netwrs\ipProto.c
+ P:\wd\src\vxWorks\target\config\bcm47xx>
+                     make -C ../../src/netwrs -f Makefile CPU=RC32364 TOOL=sfgnu
+
+-----------------------------------------------------
+ttcp on vx, the other end is the same ttcp on PC:
+                                                                9/27/01
+ cd target\config\bcm47xx
+ Drop ttcp.c into this dir
+ vi bcm47xx.mk to add
+  #ifdef BCMINTERNAL
+  BCMFILES.C    += ttcp.c
+  #endif
+ make
+
+-----------------------------------------------------
+To verify no stray interrupts:
+
+ In sysLib.c, add count of dummyISR invocations:
+int dummyc = 0;
+static void dummyISR(void) {
+    /* do nothing */
+    dummyc++;
+    return;
+
+ Don't share IORQ0; dedicate it for uart:
+  In sysHwInit2() of sysLib.c, comment out
+    (void) intConnect (INUM_TO_IVEC(IV_IORQ0_VEC), sharedInt0, 0);
+  In sysSerialHwInit2 of sysSerial.c replace
+    intConnect (INUM_TO_IVEC (IV_EXT_ALT1_VEC), sysSerialInt, 0);
+  with
+    intConnect (INUM_TO_IVEC (IV_IORQ0_VEC), sysSerialInt, 0);
+}
+
+-----------------------------------------------------
+Customer Build of 4710 vx router                             11/28/01
+
+ Assuming:
+ - T2.1 has been installed in d:\t2.1 ...
+ - 4710 vx release tree is    NIGHTLY\vx-router_011126_0\release\bcm47xx
+
+ Follow the build instructions in readme.txt which is in the bsp subdirectory.
+
+ # Copy the release tree to the standard location under d:\t2.1
+ cp -fr NIGHTLY/vx-router_011126_0/release/bcm47xx d:/T2.1/target/config
+
+ # Rework the way that dependecies are calculated and included into the
+ # makefiles so that dependencies are not built when making targets such
+ # as 'clean'.
+ cd /d d:\T2.1\target\h\make
+ ren rules.library rules.library.ori
+ copy d:\wd\src\vxWorks\target\h\make\rules.library .
+
+ mkdir d:\T2.1\target\lib\HTTPS_objMIPS32sfgnuvx
+ mkdir d:\T2.1\target\lib\objnatMIPS32sfgnuvx
+
+ # Turn off more than three thousand warnings of 
+ # implicitly declared int functions in symTbl.c
+ # by editing defs.bsp
+ cd /d d:\T2.1\target\h\make
+ copy defs.bsp defs.bsp.ori
+ vi defs.bsp
+   Change from
+     CC_WARNINGS_ALL        = -Wall
+   To
+     CC_WARNINGS_ALL = -Wall -Wno-implicit
+
+ # Remove -ansi to support C++ // comment
+ # by editing make.MIPS32sfgnu
+ cd /d d:\T2.1\target\h\make
+ copy make.MIPS32sfgnu make.MIPS32sfgnu.ori
+ vi make.MIPS32sfgnu
+   Change from
+     CC_COMPILER    = -ansi -fno-builtin
+   To
+     CC_COMPILER     = -fno-builtin
+
+
+ cd /d d:\T2.1\host\x86-win32\bin
+ torVars.bat
+
+ cd /d d:\T2.1\target\config\bcm47xx\bsp
+ make clean
+ make 
+                                    # For Tornado 2.02, type:
+                                    make CPU=RC32364 clean
+                                    make CPU=RC32364
+
+ c:\winnt\system32\tftp.exe -i 10.19.13.1 PUT vx.trx
+
+-----------------------------------------------------
+T2 Install, RC32364 Install, 4710 vx Release 3.00 RC 2.3
+
+ This procedure only shows vx BSP build.
+
+ T2 installed to d:\t2
+
+ T2 install must be followed by RC32364 BSP install:
+     z:\projects\hnd\archives\windriver\rc32364_BspCdRom.zip
+                                        readme_RC32364.txt
+
+ copy z:\projects\hnd\swbuild\build_window\ILINE10_REL_3_00_RC2\vxbcm47xx_ILINE10_REL_3_00_RC2_3\release\bcm47xx   tree to d:\t2\target\config\bcm47xx
+
+ Need to add flags for ET_TRACE, ET_LOG, etc.  This is done by adding the
+ following in bcm47xx.mk:
+#ifdef BCMINTERNAL
+BCM47XX_FLAGS += -DBCMINTERNAL -DBCMDBG
+#endif
+
+ cd /d d:\T2\host\x86-win32\bin
+ torVars.bat
+ cd \t2\target\config\bcm47xx
+ set WIND_HOST=d:\t2
+ make clean
+ make
+p:/wd/src/vxWorks/host/x86-win32/bin/objcopymips21 -O binary vxWorks.st vxWorks.bin
+trx -be -os vxWorks.bin vxtrx.bin
+c:\winnt\system32\tftp.exe -i 10.19.13.1 PUT vxtrx.bin
+
+-----------------------------------------------------
+
+END.

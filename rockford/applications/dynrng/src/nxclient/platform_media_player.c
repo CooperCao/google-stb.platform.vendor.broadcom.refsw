@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "nexus_platform_client.h"
 #include "nxclient.h"
@@ -57,7 +54,8 @@ PlatformMediaPlayerContext gPlayerContext =
 {
     { 0, 0, 0, 0 },
     0,
-    { false, { 0, 0 }, NEXUS_VideoFormat_eUnknown, 0, 0, 0 },
+    0,
+    { false, { 0, 0 }, { false }, NEXUS_VideoFormat_eUnknown, 0, 0, 0 },
     0
 };
 
@@ -66,12 +64,15 @@ const int PLATFORM_TRICK_RATE_1X = NEXUS_NORMAL_DECODE_RATE;
 PlatformMediaPlayerHandle platform_media_player_create(PlatformHandle platform, PlatformCallback streamInfoCallback, void * streamInfoContext)
 {
     PlatformMediaPlayerHandle player;
+    unsigned mosaicCount;
 
     BDBG_ASSERT(platform);
     BDBG_ASSERT(platform->gfx);
 
-    if(gPlayerContext.count >= MAX_MOSAICS) {
-        BDBG_ERR(("Failed to create platform media player. Max number (%d) of players already created.", MAX_MOSAICS));
+    mosaicCount = platform_graphics_get_mosaic_count(platform->gfx);
+
+    if (gPlayerContext.count >= mosaicCount) {
+        BDBG_ERR(("Failed to create platform media player. Max number (%d) of players already created.", mosaicCount));
         return NULL;
     }
 
@@ -86,18 +87,17 @@ PlatformMediaPlayerHandle platform_media_player_create(PlatformHandle platform, 
     player->streamInfo.context = streamInfoContext;
 
     if(!gPlayerContext.count) {
-        unsigned i;
         media_player_get_default_create_settings(&gPlayerContext.nxCreateSettings);
-        for (i=0; i<(sizeof(platform->gfx->sc)/sizeof(platform->gfx->sc[0])); i++) {
-            if (platform->gfx->sc[i].numWindows <= 1) break;
-            gPlayerContext.nxCreateSettings.window.surfaceClientId = platform->gfx->sc[i].id;
-            media_player_create_mosaics(gPlayerContext.nxPlayerMosaic, platform->gfx->sc[i].numWindows, &gPlayerContext.nxCreateSettings);
-            BDBG_ASSERT(gPlayerContext.nxPlayerMosaic[0]);
-        }
-        if (platform->gfx->sc[i].numWindows)
-            gPlayerContext.nxCreateSettings.window.surfaceClientId = platform->gfx->sc[i].id;
+        gPlayerContext.nxCreateSettings.window.surfaceClientId = platform->gfx->sc[0].id;
+        /* window.id not necessary, mosaics are assumed 0 to n - 1 */
+        media_player_create_mosaics(gPlayerContext.nxPlayerMosaic, mosaicCount, &gPlayerContext.nxCreateSettings);
+        BDBG_ASSERT(gPlayerContext.nxPlayerMosaic[0]);
+        gPlayerContext.nxCreateSettings.window.id = 1;
+        gPlayerContext.nxPlayerPip = media_player_create(&gPlayerContext.nxCreateSettings);
+        BDBG_ASSERT(gPlayerContext.nxPlayerPip);
         gPlayerContext.nxCreateSettings.maxWidth = 3840;
         gPlayerContext.nxCreateSettings.maxHeight = 2160;
+        gPlayerContext.nxCreateSettings.window.id = 0;
         gPlayerContext.nxPlayer = media_player_create(&gPlayerContext.nxCreateSettings);
         BDBG_ASSERT(gPlayerContext.nxPlayer);
     }
@@ -128,15 +128,46 @@ void platform_media_player_destroy(PlatformMediaPlayerHandle player)
     gPlayerContext.count--;
     if (!gPlayerContext.count) {
         media_player_destroy_mosaics(gPlayerContext.nxPlayerMosaic, player->platform->gfx->sc[0].numWindows);
+        media_player_destroy(gPlayerContext.nxPlayerPip);
         media_player_destroy(gPlayerContext.nxPlayer);
     }
 }
 
-int platform_media_player_start(PlatformMediaPlayerHandle player, const char * url, bool mosaic)
+static void platform_media_player_p_update_player_impl(PlatformMediaPlayerHandle player, PlatformUsageMode usageMode, bool * pip_required)
+{
+    switch (usageMode)
+    {
+        case PlatformUsageMode_eMosaic:
+            if (player->index < player->platform->gfx->maxMosaics) {
+                BDBG_ERR(("player %d using mosaic", player->index));
+                player->nxPlayer = gPlayerContext.nxPlayerMosaic[player->index];
+            } else {
+                BDBG_ERR(("player %d using pip", player->index));
+                player->nxPlayer = gPlayerContext.nxPlayerPip;
+                if (pip_required) *pip_required = true;
+            }
+            break;
+        case PlatformUsageMode_eMainPip:
+            if (player->index == 1) {
+                BDBG_ERR(("player %d using pip", player->index));
+                player->nxPlayer = gPlayerContext.nxPlayerPip;
+                if (pip_required) *pip_required = true;
+            } else {
+                BDBG_ERR(("player %d using main", player->index));
+                player->nxPlayer = gPlayerContext.nxPlayer;
+            }
+            break;
+        default:
+            BDBG_ERR(("player %d using main", player->index));
+            player->nxPlayer = gPlayerContext.nxPlayer;
+            break;
+    }
+}
+
+int platform_media_player_start(PlatformMediaPlayerHandle player, const char * url, PlatformUsageMode usageMode)
 {
     NEXUS_SimpleVideoDecoderHandle videoDecoder;
     NEXUS_SimpleVideoDecoderClientSettings settings;
-    NEXUS_VideoDecoderExtendedSettings extendedSettings;
     NEXUS_VideoDecoderSettings decoderSettings;
     bool pip_required = false;
     int rc;
@@ -145,15 +176,7 @@ int platform_media_player_start(PlatformMediaPlayerHandle player, const char * u
 
     BKNI_AcquireMutex(player->mutex);
 
-    if (mosaic)
-        if (player->index < player->platform->gfx->maxMosaics) {
-            player->nxPlayer = gPlayerContext.nxPlayerMosaic[player->index];
-         } else {
-            player->nxPlayer = gPlayerContext.nxPlayer;
-            pip_required = true;
-         }
-    else
-        player->nxPlayer = gPlayerContext.nxPlayer;
+    platform_media_player_p_update_player_impl(player, usageMode, &pip_required);
 
     /* TEMP disable CC for mosaics */
     videoDecoder = media_player_get_video_decoder(player->nxPlayer);
@@ -164,14 +187,6 @@ int platform_media_player_start(PlatformMediaPlayerHandle player, const char * u
     NEXUS_SimpleVideoDecoder_GetSettings(videoDecoder, &decoderSettings);
     decoderSettings.channelChangeMode = NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilTsmLock;
     NEXUS_SimpleVideoDecoder_SetSettings(videoDecoder, &decoderSettings);
-
-    NEXUS_SimpleVideoDecoder_GetExtendedSettings(videoDecoder, &extendedSettings);
-    if (strstr(url, "/hdr/") && strstr(url, ".webm")) {
-        extendedSettings.eotf = NEXUS_VideoEotf_eHdr10;
-    } else {
-        extendedSettings.eotf = NEXUS_VideoEotf_eInvalid;
-    }
-    NEXUS_SimpleVideoDecoder_SetExtendedSettings(videoDecoder, &extendedSettings);
 
     media_player_get_default_start_settings(&player->nxStartSettings);
     player->nxStartSettings.stream_url = url;
@@ -225,19 +240,11 @@ void platform_media_player_trick(PlatformMediaPlayerHandle player, int rate)
     BKNI_ReleaseMutex(player->mutex);
 }
 
-void platform_media_player_frame_advance(PlatformMediaPlayerHandle player, bool mosaic)
+void platform_media_player_frame_advance(PlatformMediaPlayerHandle player, PlatformUsageMode usageMode)
 {
     BDBG_ASSERT(player);
     BKNI_AcquireMutex(player->mutex);
-    if (mosaic)
-        if (player->index < player->platform->gfx->maxMosaics) {
-            player->nxPlayer = gPlayerContext.nxPlayerMosaic[player->index];
-         } else {
-            player->nxPlayer = gPlayerContext.nxPlayer;
-         }
-    else
-        player->nxPlayer = gPlayerContext.nxPlayer;
-
+    platform_media_player_p_update_player_impl(player, usageMode, NULL);
     media_player_frame_advance(player->nxPlayer, true);
     BKNI_ReleaseMutex(player->mutex);
 }
@@ -292,6 +299,7 @@ void platform_media_player_p_scheduler_callback(void * pContext, int param)
     PlatformMediaPlayerHandle player = pContext;
 
     BDBG_ASSERT(player);
+    (void)param;
 
     if (platform_media_player_p_get_stream_info(player))
     {

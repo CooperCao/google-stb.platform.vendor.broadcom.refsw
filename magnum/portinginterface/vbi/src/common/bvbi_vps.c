@@ -138,6 +138,7 @@ BERR_Code BVBI_Field_SetVPSData_isr( BVBI_Field_Handle fieldHandle,
 ***************************************************************************/
 
 
+#if BVBI_NUM_WSE > 0
 BERR_Code BVBI_P_VPS_Init( BVBI_P_Handle *pVbi )
 {
     uint8_t hwIndex;
@@ -152,6 +153,7 @@ BERR_Code BVBI_P_VPS_Init( BVBI_P_Handle *pVbi )
     BDBG_LEAVE(BVBI_P_VPS_Init);
     return eErr;
 }
+#endif
 
 
 /***************************************************************************

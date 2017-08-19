@@ -25,6 +25,7 @@
 #include "glxx_server.h"
 #include "glxx_tmu_blit.h"
 #include "glxx_ds_to_color.h"
+#include "libs/core/lfmt/lfmt_translate_v3d.h"
 
 typedef GLfloat fpoint_t[2];
 struct fbox
@@ -130,8 +131,7 @@ struct src
 static bool init_target_buf(struct target_buf *tb,
                             enum buf_type buf_type,
                             unsigned render_target, /* valid only for COLOR buf_type */
-                            EGLContext ctx,
-                            GLenum filter);
+                            EGLContext ctx);
 
 static void apply_context(const struct context *context)
 {
@@ -271,12 +271,12 @@ static GLuint create_program(enum cmp_type cmp_type)
 
    static const char *vshader_source =
       "#version 310 es\n"
-      "in vec4 vertex;\n"
+      "in vec2 vertex;\n"
       "in vec2 tex_coord;\n"
       "out vec2 vtex_coord;\n"
       "void main(void)\n"
       "{\n"
-      "   gl_Position = vertex;\n"
+      "   gl_Position = vec4(vertex, 0, 1);\n"
       "   vtex_coord = tex_coord;\n"
       "}\n";
 
@@ -633,8 +633,7 @@ static void query_texture(struct target_buf *out, GLint attachment)
    }
 }
 
-static bool init_color_target(struct target *target, EGLContext ctx,
-      GLenum filter)
+static bool init_color_target(struct target *target, EGLContext ctx)
 {
    memset(target, 0, sizeof *target);
    target->buf_type = COLOR;
@@ -668,7 +667,7 @@ static bool init_color_target(struct target *target, EGLContext ctx,
             GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *) &tb->name);
          break;
       case GL_FRAMEBUFFER_DEFAULT:
-         if (!init_target_buf(tb, COLOR, i, ctx, filter))
+         if (!init_target_buf(tb, COLOR, i, ctx))
             return false;
          assert(tb->type == GL_TEXTURE);
          break;
@@ -684,7 +683,7 @@ static bool init_aux_target(struct target *target, enum buf_type buf_type, EGLCo
 {
    memset(target, 0, sizeof *target);
 
-   if (!init_target_buf(&target->buffers[0], buf_type, 0, ctx, GL_NEAREST))
+   if (!init_target_buf(&target->buffers[0], buf_type, 0, ctx))
       return false;
 
    target->buf_type = buf_type;
@@ -726,8 +725,7 @@ static void destroy_target(struct target *target)
 static bool init_target_buf(struct target_buf *tb,
                             enum buf_type buf_type,
                             unsigned render_target, /* valid only for COLOR buf_type */
-                            EGLContext ctx,
-                            GLenum filter)
+                            EGLContext ctx)
 {
    EGL_IMAGE_T *egl_image = NULL;
    EGLint attribs[] =
@@ -786,7 +784,7 @@ static bool init_target_buf(struct target_buf *tb,
 
    egl_image_refdec(egl_image);
 
-   tb->name = texture_from_image(tb->image, filter);
+   tb->name = texture_from_image(tb->image, GL_NEAREST);
    if (tb->name == 0) goto end;
    tb->type = GL_TEXTURE;
    tb->tex.target = GL_TEXTURE_2D;
@@ -965,7 +963,6 @@ void glxx_tmu_blit_framebuffer(
    struct src src;
    struct target dst[N_BUF_TYPES];
    struct gl_state *gl = &g_persist.gl_state;
-   bool multisampled_read_framebuffer;
 
    /*
     * The "outside" context is the one in which glBlitFramebuffer was called.
@@ -975,14 +972,42 @@ void glxx_tmu_blit_framebuffer(
     * when we return from glBlitFramebuffer
     */
    struct context outside, *inside;
+   GLenum colour_filter = filter;
 
    src.count = 0;/* In case we break early to the fail label. */
    memset(dst, 0 , N_BUF_TYPES * sizeof(struct target));
 
    {
       GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
-      // Get the value of GL_SAMPLE_BUFFERS for the read framebuffer.
-      multisampled_read_framebuffer = glxx_fb_get_ms_mode(state->bound_read_framebuffer) != GLXX_NO_MS;
+
+      const GLXX_FRAMEBUFFER_T *src_fb = state->bound_read_framebuffer;
+      bool ms_src_fb = glxx_fb_get_ms_mode(src_fb);
+      if (ms_src_fb)
+      {
+         srcX0 *= 2;
+         srcY0 *= 2;
+         srcX1 *= 2;
+         srcY1 *= 2;
+
+         if (mask & GL_COLOR_BUFFER_BIT)
+         {
+            khrn_image *src_img = NULL;
+            /* use LINEAR filter if fmt is UNORM or F16, NEAREST otherwise */
+            if (!glxx_fb_acquire_read_image(src_fb, GLXX_PREFER_MULTISAMPLED, &src_img, NULL))
+            {
+               glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+               glxx_unlock_server_state();
+               return;
+            }
+            assert(src_img);
+            if (glxx_is_texture_filterable_api_fmt(src_img->api_fmt))
+               colour_filter = GL_LINEAR;
+            else
+               colour_filter = GL_NEAREST;
+            KHRN_MEM_ASSIGN(src_img, NULL);
+         }
+
+      }
       glxx_unlock_server_state();
    }
 
@@ -996,17 +1021,9 @@ void glxx_tmu_blit_framebuffer(
    /* we've decided to do the blit, we must have something in the src */
    assert(src.count != 0);
 
-   if(multisampled_read_framebuffer)
-   {
-      srcX0 *= 2;
-      srcY0 *= 2;
-      srcX1 *= 2;
-      srcY1 *= 2;
-   }
-
    if (mask & GL_COLOR_BUFFER_BIT)
    {
-      if (!init_color_target(&dst[COLOR], outside.context, filter))
+      if (!init_color_target(&dst[COLOR], outside.context))
          goto end;
    }
 
@@ -1038,13 +1055,19 @@ void glxx_tmu_blit_framebuffer(
 
    /* Do the blitting. */
    if (mask & GL_COLOR_BUFFER_BIT)
-      blit_src(gl, &dst[COLOR], &src, filter);
+      blit_src(gl, &dst[COLOR], &src, colour_filter);
 
    if (mask & GL_DEPTH_BUFFER_BIT)
+   {
+      assert(filter == GL_NEAREST);
       blit_src(gl, &dst[DEPTH], &src, filter);
+   }
 
    if (mask & GL_STENCIL_BUFFER_BIT)
+   {
+      assert(filter == GL_NEAREST);
       blit_src(gl, &dst[STENCIL], &src, filter);
+   }
 
    destroy_gl_persistent_resources(&g_persist.gl_state);
 

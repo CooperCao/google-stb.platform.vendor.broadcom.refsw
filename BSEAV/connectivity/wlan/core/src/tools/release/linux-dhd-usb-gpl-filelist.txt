@@ -1,0 +1,77 @@
+#
+# USB LINUX DHD driver "OPEN SRC" source release filter which need extra cleanup
+#
+# Note that this is an direct filter file and used by mainly by mogrifier and not
+# for build purposes
+#
+# Usage:
+#
+# find src | \
+# perl src/tools/build/srcfilter.pl -v src/tools/release/linux-dhd-gpl-filelist.txt | \
+# xargs mogrify.pl -DESTA_OPENSRC_CLEANUP_LIST
+#
+# Broadcom Proprietary and Confidential. Copyright (C) 2017,
+# All Rights Reserved.
+# 
+# This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
+# the contents of this file may not be disclosed to third parties, copied
+# or duplicated in any form, in whole or in part, without the prior
+# written permission of Broadcom.
+#
+# $Id$
+#
+# NOTE: Wildcards are NOT allowed in any filelist. List actual file/dir names
+
+#ifdef ESTA_OPENSRC_CLEANUP_LIST_SRC
+
+src/include/epivers.h
+src/include/bcm_cfg.h
+src/include/bcmdefs.h
+src/include/bcmendian.h
+src/include/bcmutils.h
+src/include/bcmiov.h
+src/include/bcmtlv.h
+src/include/rte_ioctl.h
+src/include/hnd_pktq.h
+src/include/hnd_pktpool.h
+src/shared/bcmwifi/include/bcmwifi_channels.h
+src/shared/bcmwifi/include/bcmwifi_rclass.h
+src/shared/bcmwifi/include/bcmwifi_rates.h
+src/include/linux_osl.h
+src/include/linux_pkt.h
+src/include/linuxver.h
+src/include/pcicfg.h
+src/include/typedefs.h
+src/include/packed_section_end.h
+src/include/packed_section_start.h
+components/shared/devctrl_if/wlioctl_defs.h
+components/shared/devctrl_if/wlioctl.h
+src/include/wlioctl.h
+src/include/bcm_mpool_pub.h
+components/shared/proto/802.11.h
+components/shared/proto/802.1d.h
+components/shared/proto/802.11r.h
+components/shared/proto/bcmeth.h
+components/shared/proto/bcmevent.h
+components/shared/proto/ethernet.h
+components/shared/proto/wpa.h
+src/include/osl.h
+src/include/osl_ext.h
+src/include/osl_decl.h
+src/include/bcmdevs.h
+src/include/bcmnvram.h
+src/include/bcmcdc.h
+src/include/sbpcmcia.h
+components/shared/proto/vlan.h
+components/shared/proto/bcmip.h
+components/shared/proto/bcmudp.h
+components/shared/proto/bcmdhcp.h
+src/shared/linux_osl.c
+src/shared/linux_pkt.c
+src/shared/linux_osl_priv.h
+src/shared/bcmwifi/src/bcmwifi_channels.c
+src/shared/bcmwifi/src/bcmwifi_rclass.c
+src/wl/sys/wl_iw.c
+src/wl/sys/wl_iw.h
+
+#endif /*  ESTA_OPENSRC_CLEANUP_LIST_SRC */

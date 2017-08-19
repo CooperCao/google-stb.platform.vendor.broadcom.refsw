@@ -52,7 +52,7 @@ class CTimebase : public CResource
 public:
     CTimebase(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CTimebase(void);

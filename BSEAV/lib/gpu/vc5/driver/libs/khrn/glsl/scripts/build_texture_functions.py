@@ -135,9 +135,9 @@ if __name__ == "__main__":
                          else:
                             size_swizzle = ''
                          if dim == 'Cube' or dim == 'CubeArray':
-                             lodval = '__brcm_lod_from_cube_grads(textureSize(sampler, 0)' + size_swizzle + ', coord.xyz, dPdx, dPdy)'
+                             lodval = '__brcm_lod_from_cube_grads($$textureSize(sampler)' + size_swizzle + ', coord.xyz, dPdx, dPdy)'
                          else:
-                             lodval = '__brcm_lod_from_grads(textureSize(sampler, 0)' + size_swizzle + ', dPdx, dPdy)'
+                             lodval = '__brcm_lod_from_grads($$textureSize(sampler)' + size_swizzle + ', dPdx, dPdy)'
                          bits |= 1<<3         # We've changed this to a lod, so OR in the lod bits
                       else:
                          assert(0)

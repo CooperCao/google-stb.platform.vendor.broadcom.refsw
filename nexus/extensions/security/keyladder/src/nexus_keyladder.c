@@ -775,7 +775,7 @@ NEXUS_OBJECT_CLASS_MAKE( NEXUS_VirtualKeyLadder, NEXUS_Security_FreeVKL );
 static void NEXUS_VirtualKeyLadder_P_Finalizer( NEXUS_VirtualKeyLadderHandle vklHandle )
 {
     BHSM_Handle hHsm;
-    BERR_Code hsmRc;
+    BERR_Code hsmRc = BERR_SUCCESS;
     BHSM_InvalidateVkl_t invalidate;
 
     BDBG_ENTER( NEXUS_VirtualKeyLadder_P_Finalizer );
@@ -786,7 +786,6 @@ static void NEXUS_VirtualKeyLadder_P_Finalizer( NEXUS_VirtualKeyLadderHandle vkl
     if( !hHsm ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
 
     BKNI_Memset( &invalidate, 0, sizeof(invalidate) );
-
     invalidate.bInvalidateVkl = true;           /* for Zeus4+*/
     invalidate.keyLayer = BCMD_KeyRamBuf_eKey3; /* For Zeus1/2/3 */
     invalidate.virtualKeyLadderID = vklHandle->vkl;

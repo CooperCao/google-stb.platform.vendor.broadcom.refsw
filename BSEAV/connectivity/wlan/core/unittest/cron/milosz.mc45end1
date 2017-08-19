@@ -1,0 +1,27 @@
+#$Id: milosz.mc45end1
+MAILTO=milosz@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/milosz/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+
+10      03      * * *   unittest/cron/launch tst1-tot-m48   Test/StaNightly.test -utfconf mc45 -sta "4352FC15"                -ap 47172        -title "MC45: 4352FC15-47172-MILLAU-5_70_48"
+15      03      * * *   unittest/cron/launch tst1-eagle-m48 Test/StaNightly.test -utfconf mc45 -sta "4352FC15-EAGLE"          -ap 47172        -title "MC45: 4352FC15-EAGLE-47172-MILLAU-5_70_48"
+20      03      * * *   unittest/cron/launch tst1-m55       Test/StaNightly.test -utfconf mc45 -sta "4352FC15 4352FC15-EAGLE" -ap 47172-MILLAU -title "MC45: 4352FC15 TOT/EAGLE-47172-MILLAU-5_70_55"
+
+
+30      03      * * *   unittest/cron/launch tst4-tot-m48 Test/StaNightly.test -utfconf mc45 -sta "4352WIN10"          -ap 47172 -title "MC45: 4352WIN10 TOT-47172-MILLAU-5_70_48"
+35      03      * * *   unittest/cron/launch tst4-b35-m48 Test/StaNightly.test -utfconf mc45 -sta "4352WIN10-BISON735" -ap 47172 -title "MC45: 4352WIN10 BISON735-47172-MILLAU-5_70_48"
+#40      03      * * *   unittest/cron/launch tst3-tot-m48 Test/StaNightly.test -utfconf mc45 -sta "43228WIN7"          -ap 47172 -title "MC45: 43228WIN7 TOT-47172-MILLAU-5_70_48"
+#45      03      * * *   unittest/cron/launch tst3-b35-m48 Test/StaNightly.test -utfconf mc45 -sta "43228WIN7-BISON735" -ap 47172 -title "MC45: 43228WIN7 BISON735-47172-MILLAU-5_70_48"
+40      03      * * *   unittest/cron/launch tst3-m48 Test/StaNightly.test -utfconf mc45 -sta "43228WIN7 43228WIN7-BISON735" -ap 47172 -title "MC45: 43228WIN7 TOT/BISON735-47172-MILLAU-5_70_48"
+
+50      03      * * *   unittest/cron/launch tst4-m55 Test/StaNightly.test -utfconf mc45 -sta "4352WIN10 4352WIN10-BISON735" -ap 47172-MILLAU -title "MC45: 4352WIN10 TOT/BISON735-47172-MILLAU-5_70_55"
+55      03      * * *   unittest/cron/launch tst3-m55 Test/StaNightly.test -utfconf mc45 -sta "43228WIN7 43228WIN7-BISON735" -ap 47172-MILLAU -title "MC45: 43228WIN7 TOT/BISON735-47172-MILLAU-5_70_55"
+
+00      04      * * *   unittest/cron/launch tst4-m55-wdi Test/StaNightly.test -utfconf mc45 -sta "4352WIN10-WDI-BISON735" -ap 47172-MILLAU -title "MC45: 4352WIN10 WDI BISON735-47172-MILLAU-5_70_55"
+

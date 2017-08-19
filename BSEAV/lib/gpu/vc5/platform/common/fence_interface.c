@@ -32,7 +32,7 @@ bool FenceInterface_Keep(const FenceInterface *fi, int fence)
    assert(fi != NULL);
 
    return fi->keep && fence != fi->invalid_fence ?
-         fi->keep(fi->base.context, fence) : false;
+      fi->keep(fi->base.context, fence) : false;
 }
 
 bool FenceInterface_Wait(const FenceInterface *fi, int fence,

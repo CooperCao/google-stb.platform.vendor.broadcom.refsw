@@ -1,0 +1,299 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to verify channel switch announcment (CSA)
+#
+# Written by: Robert J. McMahon February 2013
+#
+# $Id: 2c006a59bb2d3b98d4aecbe0e511f9cacbddb2fd $
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Streamslib
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::ConfigBridge
+package require UTF::Test::BridgeCheck
+package require UTF::Test::ConfigTXBF
+package require UTF::ControlChart
+package require UTF::Test::ACSD
+package require UTF::Test::DeviceMode
+
+package provide UTF::Test::CSA 2.0
+
+UTF::Test CSA {args} {
+    UTF::Getopts {
+	{ap.arg "4708ap_twign" "APs under test"}
+	{sta.arg "4360br2_twign" "STA/Bridge(s) under test"}
+	{date.arg "" "Image date"}	{email.arg "" "Email Address"}
+	{title.arg "" "Title"}
+	{chanspec.arg "36/80" "default chanspec"}
+	{offered.arg "40M" "Offered load"}
+	{csa.arg "36/80 149/80"}
+	{holdtime.arg "10" "hold time in seconds"}
+	{count.arg "2" "number of times to iterate the CSA list"}
+	{protocol.arg "tcp udp" "ip protocol"}
+	{pspretends.arg "" "pspretend values"}
+	{rssi.arg "" "weak link rssi"}
+	{txbf "test txbeamforming"}
+	{bk "enable background stream"}
+	{loop.arg "1" "loop the test"}
+	{debugging "Test is for debugging purposes only"}
+	{nocache "don't cache results"}
+	{noload "Don't load images"}
+	{security.arg "open" "Default security"}
+	{chanspec.arg "36/80" "Chanspec list to test"}
+	{testdefaults "Apply test defaults"}
+	{acs "Enable automatic channel selection (acs/fcs)"}
+	{nosetuptestbed "Don't run Setup Testbed hooks"}
+    }
+    if { $(pspretends) eq ""} {
+	set pspretends "0"
+    } else {
+	set pspretends $(pspretends)
+    }
+    if {$(txbf)} {
+	set txbfs "0 1"
+    } else {
+	set txbfs "default"
+    }
+    if {$(debugging)} {
+	append UTF::SummaryDir "-debugging"
+    }
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+	set ::UTF::MemChart::readonly 1
+    }
+    # Discover and separate STAs from Bridges
+    set BRIDGES ""
+    set stas ""
+    foreach STA $(sta) {
+	if {[$STA hostis Router] && [lsearch $BRIDGES $STA] == -1} {
+	    lappend BRIDGES $STA
+	} elseif {![$STA hostis Router] && [lsearch $stas $STA] == -1} {
+	    lappend stas $STA
+	}
+    }
+    set STAS $stas
+    # Override default tags, stat initializing the key for control charts
+    if {$(debugging)} {
+	set cckey_common "DEBUG"
+    } else {
+	set cckey_common {}
+    }
+    lappend cckey_common [concat $(ap) $(sta)]
+    set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+    set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(ap) $(sta)]]
+    set TITLE "UTF CSA $(title) ($build)"
+    unset build
+    UTF::Message INFO "" $TITLE
+    set Routers [concat $(ap) $BRIDGES]
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	if {!$(noload)} {
+	    foreach Router $Routers {
+		UTF::Try "[$Router cget -name]: Find Router Image" {
+		    set date [$Router cget -date]
+		    if {$date eq ""} {
+			set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+		    }
+		    UTF::CheckImage $Router $date unknown
+		}
+		UTF::Try "[$Router cget -name]: Load Image" {
+		    $Router load
+		}
+		UTF::Try "[$Router cget -name]: Restore Defaults" {
+		    $Router restore_defaults
+		    set what [$Router whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $Router $ret
+		    }
+		    set what
+		}
+	    }
+	}
+	if {!$(nosetuptestbed)} {
+	    UTF::Try "Streams clean" {
+		::UTF::Streamslib::force_cleanup [concat $(ap) $(sta)]
+	    }
+	    if {[info exists ::UTF::SetupTestBed]} {
+		UTF::Try "Setup testbed" {
+		    eval $::UTF::SetupTestBed
+		}
+	    }
+	    UTF::Try "CHAN=$(chanspec) security=$(security)" {
+		UTF::Test::APChanspec $(ap) $(chanspec)
+		UTF::Test::APConfigureSecurity $(ap) -security $(security)
+		if {[llength $BRIDGES]} {
+		    UTF::Test::ConfigBridge -ap $(ap) -br $BRIDGES -security $(security) -chanspec $(chanspec) -linkcheck
+		}
+	    }
+	}
+	if $(acs) {
+	    set acsmode 1
+	} else {
+	    set acsmode 0
+	}
+	UTF::Try "ACSD enable" {
+	    UTF::Try "[$(ap) cget -name]: Device Mode 1" {
+		UTF::Test::DeviceMode -ap $(ap) -mode 1
+	    }
+	    UTF::Test::ACSD -ap $(ap) -sta $(sta) -configonly
+	    if {[llength $BRIDGES]} {
+		UTF::Test::BridgeCheck -ap $(ap) -br $BRIDGES
+	    }
+	    if {[llength $STAS]} {
+		UTF::Test::ConnectAPSTA $(ap) $STAS
+	    }
+	}
+	if {[llength $(sta)] == 1} {
+	    UTF::Try "$(sta) hunt $(offered) lossless boundary" {
+		UTF::stream udp -rx $(ap) -tx $(sta) -pktsize 1470 -rate $(offered) -w 1M -reportinterval 2
+		set STAATTNGRP [$(sta) cget -attngrp]
+		$STAATTNGRP attn 0
+		$(sta) wl scansuppress 1
+		udp start;
+		udp linkcheck -now
+		while {![catch {udp linkcheck -txstrict -now}]} {
+		    $STAATTNGRP incr +1
+		}
+		$STAATTNGRP incr -5
+		udp stop
+		$(sta) wl scansuppress 0
+		while {[lindex [$STAATTNGRP attn?] 0] >= 0} {
+		    # Force a new socket
+		    udp incr_dstport
+		    udp start
+		    if {![catch {udp linkcheck -now} err]} {
+			set aid [after [expr {4 * $(holdtime) * 1000}] {}]
+			while {![catch {after info $aid}] && ![catch {udp linkcheck -strict -now}]} {
+			    UTF::Sleep 0 quiet
+			}
+			# If aid expired this is a lossless UDP stream
+			if {[catch {after info $aid}]} {
+			    break
+			}
+		    } else {
+			UTF::Message ERROR "" $err
+		    }
+		    catch {after cancel $aid}
+		    $STAATTNGRP incr -1
+		    udp stop
+		    UTF::Sleep 2
+		}
+		udp stop
+		udp configure -reportinterval $(reportinterval)
+		set STAEDGEATTN [lindex [$STAATTNGRP attn?] 0]
+		return  "STA EDGE=$STAEDGEATTN"
+	    }
+	    catch {udp destroy}
+	}
+	foreach protocol $(protocol) {
+	    UTF::Try "Setup Stream [string toupper $protocol] $(offered)" {
+		UTF::stream allstreams destroy
+		foreach sta $(sta) {
+		    if {[string toupper $protocol] eq "TCP"} {
+			set traffic($sta) [UTF::stream "dvr${(offered)}_$sta" -protocol tcp -tx $(ap) -rx $sta -rate $(offered)]
+		    } else {
+			set traffic($sta) [UTF::stream "udp${(offered)}_$sta" -protocol udp -tx $(ap) -rx $sta -rate $(offered) -pktsize 1460]
+		    }
+		    $traffic($sta) id
+		}
+		if {$(bk)} {
+		    set traffic(bk) [UTF::stream bk -protocol udp -tx $(ap) -rx [lindex $(rx)0]]
+		}
+		UTF::Sleep 10
+		UTF::stream allstreams start
+		UTF::stream allstreams linkcheck -now
+		# $(ap) wl csa 1 2 [lindex $(csa) end] u
+		if {$(rssi) ne ""} {
+		    set wlrssi [[lindex $(br) end] wl rssi]
+		    set adj [expr {$(rssi) + $wlrssi}]
+		    [[lindex $(br) end] cget -attngrp] incr $adj
+		}
+		set RSSITXT {}
+		foreach STA $(sta) {
+		    $STA wl -u status
+		    $STA wl -u dump rssi
+		    append RSSITXT "${STA}:[$STA wl rssi]dB "
+		    $STA wl -u dump txbf
+		}
+		return $RSSITXT
+	    }
+	    foreach txbf $txbfs {
+		if {[string is integer $txbf]} {
+		    UTF::Test::ConfigTXBF -ap $(ap) -sta $(sta) -value $txbf -soundcheck
+		}
+		set streams [UTF::stream info instances]
+		for {set jx 0} {$jx < $(loop)} {incr jx} {
+		    foreach pspretend $pspretends {
+			if {$(pspretends) ne ""} {
+			    set PSTXT "PSP=$pspretend"
+			} else {
+			    set PSTXT ""
+			}
+			UTF::Try "CSA loop $PSTXT [string toupper $protocol]" {
+			    if {$(pspretends) ne ""} {
+				$(ap) wl ampdu_ps_retry_limit $pspretend
+			    }
+			    set g [UTF::streamgraph %AUTO% -stat rate -graphsize 1024,768 -yticsynch 1 -yrange "0 50000000 10000000 0" -title "Thruput [string toupper $protocol] $(offered) $RSSITXT $PSTXT" -outputtype "canvas"]
+			    set l [UTF::streamgraph %AUTO% -stat lost -graphsize 1024,768 -yticsynch 1 -title "LOST [string toupper $protocol] $(offered) $RSSITXT $PSTXT" -with "impulses"]
+			    set latency [UTF::streamgraph %AUTO% -stat pktlatency -graphsize 1024,768 -title "Latency [string toupper $protocol] $(offered) $RSSITXT $PSTXT" -outputtype "canvas"]
+			    UTF::stream allstreams stats -clear
+			    set starttime [UTF::stream clock]
+			    UTF::Sleep $(holdtime)
+			    set events {}
+			    array set sums {}
+			    for {set ix 0} {$ix < $(count)} {incr ix} {
+				foreach CSA $(csa) {
+				    $(ap) wl csa 1 2 $CSA u
+				    set now [UTF::stream clock]
+				    lappend events [list "c" [expr {$now - $starttime}]]
+				    foreach stream $streams {
+					lappend sums([$stream id]) [$stream stats -rate -include $starttime $now -sum]
+				    }
+				    UTF::Sleep $(holdtime)
+				    foreach STA $(sta) {
+					$STA wl -u status
+					$STA wl -u dump rssi
+				    }
+				}
+			    }
+			    foreach stream $streams {
+				set id [$stream id]
+				set cc [UTF::ControlChart %AUTO% -s $(count) -key "[concat $cckey_common [$stream id]]" -norangecheck 1 -title "Bytes Xfered" -units ""]
+				UTF::Message STATS "" "Sums:$sums($id)"
+				set boundsresults [$cc addsample [UTF::MeanMinMax $sums($id)]]
+				set ccplots($stream) [$cc plotcontrolchart "$boundsresults"]
+				$cc destroy
+			    }
+			    set cclink {}
+			    foreach ccplot [array names ccplots] {
+				append cclink " [string range $ccplots($ccplot) 5 end]"
+			    }
+			    if {[string toupper $protocol] eq "TCP"} {
+				$g configure -xtics $events
+				return "[$g plot] $cclink"
+			    } else {
+				$g configure -xtics $events
+				$l configure -xtics $events
+				return "[$g plot][$l plot -append][$latency plot -append] $cclink"
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+    UTF::stream exitstreams
+}
+

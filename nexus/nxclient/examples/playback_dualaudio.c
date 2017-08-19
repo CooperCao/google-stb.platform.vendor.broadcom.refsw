@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,6 +46,7 @@
 #include <string.h>
 
 BDBG_MODULE(playback);
+#include "nxapp_prompt.inc"
 
 /* This stream has two audio pids in a single program.
 Stream is located at \\brcm-irv.broadcom.com\dfs\projects\stbdevstream_scratch\streams\playback inside Broadcom.
@@ -183,8 +184,7 @@ int main(void)
     while (1) {
         NxClient_ReconfigSettings reconfig;
 
-        BDBG_WRN(("Decoding %s. Press ENTER to switch.", audioConnect==1?"English":"Spanish"));
-        getchar();
+        nxapp_prompt("toggle");
 
         NxClient_GetDefaultReconfigSettings(&reconfig);
         reconfig.command[0].connectId1 = track[1].connectId;

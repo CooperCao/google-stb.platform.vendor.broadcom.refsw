@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -183,7 +183,7 @@ static void NEXUS_Frontend_P_GetType3255Channel(void *handle,NEXUS_FrontendType 
     retCode = BRPC_CallProc(deviceHandle->rpc_handle, BRPC_ProcId_ADS_GetVersion, (const uint32_t *)&Param, sizeof(Param)/4, (uint32_t *)&outVerParam, sizeInLong(outVerParam), &retVal);
     if(retCode != BERR_SUCCESS || retVal != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: unable to get version",__FUNCTION__));
+        BDBG_ERR(("%s: unable to get version",BSTD_FUNCTION));
         goto error;
     }
     /* assigning chip ID as family ID */
@@ -191,7 +191,7 @@ static void NEXUS_Frontend_P_GetType3255Channel(void *handle,NEXUS_FrontendType 
     type->chip.id = outVerParam.majVer >> 16;
     type->chip.version.major = outVerParam.majVer & 0x0000000f;
     type->chip.version.minor = 0;
-    BDBG_MSG(("%s %#x  %#x ",__FUNCTION__,type->chip.familyId,type->chip.version.major));
+    BDBG_MSG(("%s %#x  %#x ",BSTD_FUNCTION,type->chip.familyId,type->chip.version.major));
 error:
     return;
 }
@@ -477,7 +477,7 @@ static void NEXUS_Frontend_P_3255_Reacquire(void *context)
     if (rc!=BERR_SUCCESS) { BERR_TRACE(rc); return; }
     if (lockStatus == BADS_LockStatus_eUnlocked)
     {
-        BDBG_MSG(("%s() unlocked, reacquiring.",__FUNCTION__));
+        BDBG_MSG(("%s() unlocked, reacquiring.",BSTD_FUNCTION));
         BKNI_Memset(&params, 0, sizeof(params));
 
         if ( pSettings->annex == NEXUS_FrontendQamAnnex_eA )
@@ -550,7 +550,7 @@ static void NEXUS_Frontend_P_Check3255ChannelReacquireStatus(void *context)
     BDBG_OBJECT_ASSERT(deviceHandle, NEXUS_3255Device);
     BDBG_ASSERT(NULL != pSettings);
 
-    BDBG_MSG(("%s() calling firing lockAppCallback.",__FUNCTION__));
+    BDBG_MSG(("%s() calling firing lockAppCallback.",BSTD_FUNCTION));
     NEXUS_TaskCallback_Fire(channelHandle->lockAppCallback);
 
     if (deviceHandle->deviceStatus != NEXUS_3255DeviceStatus_eOperational) return;
@@ -564,7 +564,7 @@ static void NEXUS_Frontend_P_Check3255ChannelReacquireStatus(void *context)
         {
             NEXUS_CancelTimer(channelHandle->retuneTimer);
         }
-        BDBG_MSG(("%s() unlocked, schedule a timer to reacquire.",__FUNCTION__));
+        BDBG_MSG(("%s() unlocked, schedule a timer to reacquire.",BSTD_FUNCTION));
         channelHandle->retuneTimer= NEXUS_ScheduleTimer(2000, NEXUS_Frontend_P_3255_Reacquire, context);
     }
 }
@@ -3062,7 +3062,7 @@ NEXUS_Error NEXUS_Frontend_Get3255ChannelAgcConfig(
     pStatus->gainBoostEnabled = (outParam.AgcVal & 0x00000200)?true:false;
     pStatus->tiltEnabled = (outParam.AgcVal & 0x00000100)?true:false;
     BDBG_MSG((" %s  AGC is 0x%x LNA Chip ID 0x%x Tilt %d Boost %d SuperBoost %d Output1 Stage2 Tilt %d Output2 Stage2 Tilt %d",
-              __FUNCTION__, pStatus->agcValue, pStatus->lnaChipId, pStatus->tiltEnabled, pStatus->gainBoostEnabled,
+              BSTD_FUNCTION, pStatus->agcValue, pStatus->lnaChipId, pStatus->tiltEnabled, pStatus->gainBoostEnabled,
               pStatus->superBoostEnabled, pStatus->output1TiltGain, pStatus->output2TiltGain));
     return NEXUS_SUCCESS;
 

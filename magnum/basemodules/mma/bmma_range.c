@@ -203,7 +203,7 @@ void BMMA_RangeAllocator_Verify(BMMA_RangeAllocator_Handle a, bool printAllocati
 }
 
 #define BMMA_P_WHEN_PRINT_HEAP(x) (0 && ((x)->status.allocatedBlocks + (x)->status.freeBlocks) % 1000 == 0)
-#define BMMA_P_STATUS(x)  do {BDBG_MSG(("%s:%p allocated:%u,%u free:%u,%u", __FUNCTION__, (void *)x, x->status.allocatedBlocks, (unsigned)x->status.allocatedSpace, x->status.freeBlocks, (unsigned)x->status.freeSpace));if(BMMA_P_WHEN_PRINT_HEAP(x)){BMMA_RangeAllocator_Verify(x,true);}}while(0)
+#define BMMA_P_STATUS(x)  do {BDBG_MSG(("%s:%p allocated:%u,%u free:%u,%u", BSTD_FUNCTION, (void *)x, x->status.allocatedBlocks, (unsigned)x->status.allocatedSpace, x->status.freeBlocks, (unsigned)x->status.freeSpace));if(BMMA_P_WHEN_PRINT_HEAP(x)){BMMA_RangeAllocator_Verify(x,true);}}while(0)
 
 static BMMA_DeviceOffset BMMA_P_RangeAllocator_Align(BMMA_DeviceOffset v, unsigned alignment)
 {
@@ -594,7 +594,8 @@ static BMMA_RangeAllocator_Block_Handle BMMA_RangeAllocator_P_AllocCustom(BMMA_R
             nFreeBlocks = BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS-1;
         }
     }
-    if(nFreeBlocks) {
+    while(nFreeBlocks>0) {
+        unsigned i;
         /* call custom allocator when all blocks were visited */
         int allocated = a->settings.allocator(a->settings.context, freeRegions, nFreeBlocks, size, settings, &block);
         if(allocated>=0) {
@@ -602,6 +603,11 @@ static BMMA_RangeAllocator_Block_Handle BMMA_RangeAllocator_P_AllocCustom(BMMA_R
             b = freeBlocks[allocated];
             BMMA_RangeAllocator_P_PlaceAllocation(a, &b->region, &block, settings, allocation);
             return b;
+        }
+        nFreeBlocks--;
+        for(i=0;i<nFreeBlocks;i++) {
+            freeRegions[i] = freeRegions[i+1];
+            freeBlocks[i] = freeBlocks[i+1];
         }
     }
     return NULL;

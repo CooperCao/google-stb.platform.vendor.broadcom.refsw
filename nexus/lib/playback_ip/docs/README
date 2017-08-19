@@ -30,8 +30,6 @@ Set following additional flags in your build environment for IP support:
 Here are the optional flags which are set by default:
     export LIVEMEDIA_SUPPORT=y      # enables Livemedia library usage for RTCP & RTSP support
                                     # set if PLAYBACK_IP_SUPPORT is set
-    export NETACCEL_SUPPORT=n       # enables usage of Broadcom's Accelerated Sockets for high performance
-                                    # useful for receiving Live RTP/UDP IP Channels (disabled by default)
 
 Here are the additional optional flags which can be set:
     export HLS_PROTOCOL_SUPPORT=y   # enables receiving AV streaming using HTTP Live Streaming (HLS) Protocol
@@ -54,7 +52,6 @@ After successful build, binaries (ip_client & ip_streamer) & needed libraries sh
 Copy these binaries over to your runtime directory on the STB Or NFS mount your vobs/nexus/bin directory on your STB
     cp -f ../../../../nexus/bin/*.so <bin-directory-from-where-to-run>
     cp -f ../../../../nexus/bin/bcmdriver.ko <bin-directory-from-where-to-run>
-    cp -f ../../../../BSEAV/bin/bcmnetaccel.ko <bin-directory-from-where-to-run>    #optional
     cp -f <tool-chain-directory>/mipsel-uclibc-gcc/libstdc++.so.6 <bin-directory-from-where-to-run>
     cp -f ../../../../BSEAV/bin/ip_client <bin-directory-from-where-to-run>
     cp -f ../../../../BSEAV/bin/ip_streamer <bin-directory-from-where-to-run>
@@ -99,8 +96,6 @@ Copy the media files to your server's HDD, default folder is /data/videos.
 After the binaries are copied on your target STB (or NFS mounted), you can start server using following command:
     export LD_LIBRARY_PATH=.        #set it to where all the libraries & binaries are copied 
     insmod bcmdriver.ko
-    insmod bcmnetaccel.ko           #only needed if built w/ NETACCEL_SUPPORT on. 
-                                    #this driver is not built part of your build, so if you are using different kernel version,
     ./nexus ip_streamer
 
 Currently defined options are:
@@ -136,9 +131,6 @@ Running IP Applib Client example App:
 After the binaries are copied on your target STB (or NFS mounted), you can start client using following command:
     export LD_LIBRARY_PATH=.        #set it to where all the libraries & binaries are copied 
     insmod bcmdriver.ko
-    insmod bcmnetaccel.ko           #only needed if built w/ NETACCEL_SUPPORT on. 
-                                    #this driver is not built part of your build, so if you are using different kernel version,
-                                    #it may fail to load. Please contact chiplead of your platform for the driver matching your kernel.
     ./ip_client <options>      
     ./ip_client -h             #-h prints different options
 

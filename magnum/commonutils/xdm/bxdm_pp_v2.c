@@ -65,8 +65,6 @@ BDBG_FILE_MODULE(BXDM_PPV2);
 BDBG_FILE_MODULE(BXDM_PPQM);
 BDBG_FILE_MODULE(BXDM_PPDBG);
 
-extern uint32_t BXDM_PPTMR_lutVsyncsPersSecond[];
-
 /*
 ** Local function prototypes.
 */
@@ -879,7 +877,7 @@ static void BXDM_PP_S_SnapShotXvdState_isr(
 
             hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC.uiWhole += hXdmPP->stDMConfig.uiPTSOffset;
 
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] entering trick mode, virtual STC was reset: uiSlowMotionRate:%08x vSTC:%08x",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] entering trick mode, virtual STC was reset: uiSlowMotionRate:%08x vSTC:%08x",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                        pLocalState->uiSlowMotionRate,
@@ -1665,9 +1663,14 @@ static void BXDM_PP_S_SelectPicture_isr(
             pstNextPTSInfo->bPcrOffsetValid = false;
             pstNextPTSInfo->bPcrDiscontinuity = false;
 
-            /* We need to see if the decoder supports drop@decode */
+            /* SW7445-3664: only generate a drop request if:
+             * - a requestPictureDrop_isr callback has been registered
+             * - AND a getPictureDropPendingCount_isr callback has been registered.
+             * - AND the system is in live mode */
+
             if ( ( NULL != hXdmPP->stDMConfig.stDecoderInterface.requestPictureDrop_isr )
                  && ( NULL != hXdmPP->stDMConfig.stDecoderInterface.getPictureDropPendingCount_isr )
+                 && ( false == hXdmPP->stDMConfig.bPlayback )
                )
             {
             /* In an attempt to catch up, we start dropping late
@@ -1861,7 +1864,7 @@ static void BXDM_PP_S_SelectPicture_isr(
                 */
                pstPictureUnderEvaluation->stPicParms.uiNumTimesWait++;
 
-               if ( pstPictureUnderEvaluation->stPicParms.uiNumTimesWait >= BXDM_PPTMR_lutVsyncsPersSecond[ hXdmPP->stDMConfig.eMonitorRefreshRate ] )
+               if ( pstPictureUnderEvaluation->stPicParms.uiNumTimesWait >= BXDM_P_VsyncsPerSecondLUT[ hXdmPP->stDMConfig.eMonitorRefreshRate ] )
                {
                   BXDM_PPDBG_P_PrintUnifiedPicture_isr( hXdmPP, pLocalState, pstPictureUnderEvaluation );
                   pstPictureUnderEvaluation->stPicParms.uiNumTimesWait = 0;
@@ -1956,6 +1959,12 @@ static void BXDM_PP_S_SelectPicture_isr(
              * with interlaced content on non-MAD display path
              */
             pstPictureUnderEvaluation->stPicParms.stDisplay.stDynamic.bHolding = true;
+
+            /* SWSTB-6219: don't reset the vPTS on the second picture if the first picture
+             * was displayed due to the channel change mode being "first picture preview". */
+
+             pstPictureUnderEvaluation->stPicParms.stDisplay.stDynamic.bForceDisplay = true;
+
          }
 
          BXDM_PPTMR_P_SnapshotFunctionEndTime_isr( hXdmPP, BXDM_PPTIMER_P_Function_eSelPic2 );
@@ -2325,7 +2334,7 @@ BXDM_PictureProvider_StartDecode_isr(
 
    BDBG_ENTER(BXDM_PictureProvider_StartDecode_isr);
 
-   BXDM_PictureProvider_GetDefaultStartSettings_isrsafe( hXdmPP, &stStartSettings );
+   BXDM_PictureProvider_GetDefaultStartSettings_isrsafe( &stStartSettings );
    BXDM_PictureProvider_Start_isr( hXdmPP, &stStartSettings );
 
    BDBG_LEAVE(BXDM_PictureProvider_StartDecode_isr);
@@ -2381,7 +2390,7 @@ BXDM_PictureProvider_Start_isr(
                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                              hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF,
-                             __FUNCTION__ ));
+                             BSTD_FUNCTION ));
 
          BXDM_PPQM_P_ReleasePicture_isr( hXdmPP, &hXdmPP->stDMState.stChannel.stSelectedPicture );
       }
@@ -2555,7 +2564,7 @@ BXDM_PictureProvider_Stop_isr(
                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                              hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF,
-                             __FUNCTION__  ));
+                             BSTD_FUNCTION  ));
 
          BXDM_PPQM_P_ReleasePicture_isr( hXdmPP, &hXdmPP->stDMState.stChannel.stSelectedPicture );
       }
@@ -2576,7 +2585,7 @@ BXDM_PictureProvider_Stop_isr(
                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                           hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF,
-                          __FUNCTION__  ));
+                          BSTD_FUNCTION  ));
    }
 
    /* PR55616: setting "bFirstPPBSeen" to false will disable the

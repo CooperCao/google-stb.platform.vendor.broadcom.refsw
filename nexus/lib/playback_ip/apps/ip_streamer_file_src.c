@@ -105,7 +105,7 @@ closeNexusFileSrc(
     if (!ipStreamerCtx || !ipStreamerCtx->fileSrc)
         return;
 
-    BDBG_MSG(("%s: CTX %p: closing file Src %p", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc));
+    BDBG_MSG(("%s: CTX %p: closing file Src %p", BSTD_FUNCTION, (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc));
 #ifdef NEXUS_HAS_VIDEO_ENCODER
     if (ipStreamerCtx->transcoderDst /*&& ipStreamerCtx->transcoderDst->refCount != 0*/) {
         BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -159,7 +159,7 @@ openNexusFileSrc(
          * coverity[stack_use_overflow]
          */
         if ((ipStreamerCtx->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
-            BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to open the transcoder pipe", BSTD_FUNCTION));
             BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
             goto error;
         }
@@ -179,20 +179,20 @@ openNexusFileSrc(
             NEXUS_Platform_GetClientConfiguration(&clientConfig);
             playpumpOpenSettings.heap = clientConfig.heap[1]; /* playpump requires heap with eFull mapping */
         }
-        BDBG_MSG(("%s: increasing the playpump FIFO from %d to %d", __FUNCTION__, playpumpOpenSettings.fifoSize, playpumpOpenSettings.fifoSize*2));
+        BDBG_MSG(("%s: increasing the playpump FIFO from %d to %d", BSTD_FUNCTION, playpumpOpenSettings.fifoSize, playpumpOpenSettings.fifoSize*2));
         playpumpOpenSettings.fifoSize = playpumpOpenSettings.fifoSize*2;
 
         if ((ipStreamerCtx->fileSrc->playpumpHandle = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings)) == NULL) {
-            BDBG_ERR(("%s: ERROR: Failed to Open a free Nexus Playpump idx", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to Open a free Nexus Playpump idx", BSTD_FUNCTION));
             goto error;
         }
         if ((ipStreamerCtx->fileSrc->playbackHandle = NEXUS_Playback_Create()) == NULL) {
-            BDBG_ERR(("%s: ERROR: Failed to create a Nexus Playback instance", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to create a Nexus Playback instance", BSTD_FUNCTION));
             goto error;
         }
         indexFileName = buildInfoFileName(ipStreamerCfg->mediaInfoFilesDir, ipStreamerCfg->fileName, 0);
         if (indexFileName == NULL) {
-            BDBG_ERR(("%s: ERROR: Failed to build info file name %s for", __FUNCTION__, ipStreamerCfg->fileName));
+            BDBG_ERR(("%s: ERROR: Failed to build info file name %s for", BSTD_FUNCTION, ipStreamerCfg->fileName));
             goto error;
         }
         /* now replace the .info extension w/ .nav */
@@ -203,7 +203,7 @@ openNexusFileSrc(
         strncat(indexFileName, ".nav", indexFileLength);
         BDBG_MSG(("index file name is %s", indexFileName));
         if ((ipStreamerCtx->fileSrc->filePlayHandle = NEXUS_FilePlay_OpenPosix(ipStreamerCfg->fileName, indexFileName)) == NULL) {
-            BDBG_ERR(("%s: ERROR: NEXUS_FilePlay_OpenPosix Failed to open media file %s", __FUNCTION__, ipStreamerCfg->fileName));
+            BDBG_ERR(("%s: ERROR: NEXUS_FilePlay_OpenPosix Failed to open media file %s", BSTD_FUNCTION, ipStreamerCfg->fileName));
             goto error;
         }
         if (indexFileName)
@@ -215,7 +215,7 @@ openNexusFileSrc(
             stcSettings.timebase = NEXUS_Timebase_e0 + NEXUS_NUM_VIDEO_DECODERS;
             stcSettings.mode = NEXUS_StcChannelMode_eAuto;
             if ((ipStreamerCtx->fileSrc->playbackStcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings)) == NULL) {
-                BDBG_ERR(("%s: ERROR: NEXUS_StcChannel_Open Failed to open a free STC Channel %s", __FUNCTION__, ipStreamerCfg->fileName));
+                BDBG_ERR(("%s: ERROR: NEXUS_StcChannel_Open Failed to open a free STC Channel %s", BSTD_FUNCTION, ipStreamerCfg->fileName));
                 goto error;
             }
         }
@@ -233,7 +233,7 @@ openNexusFileSrc(
     fileStreamingSettings.mediaProbeOnly = ipStreamerCfg->mediaProbeOnly;
     if (ipStreamerCfg->appHeader.valid) {
         if (ipStreamerCfg->appHeader.length > sizeof(fileStreamingSettings.appHeader.data)) {
-            BDBG_ERR(("%s: ERROR: app header length (%d) is > data buffer in ip streamer (%d)", __FUNCTION__, ipStreamerCfg->appHeader.length, sizeof(fileStreamingSettings.appHeader.data)));
+            BDBG_ERR(("%s: ERROR: app header length (%d) is > data buffer in ip streamer (%d)", BSTD_FUNCTION, ipStreamerCfg->appHeader.length, sizeof(fileStreamingSettings.appHeader.data)));
             goto error;
         }
         fileStreamingSettings.appHeader.valid = ipStreamerCfg->appHeader.valid;
@@ -274,10 +274,10 @@ openNexusFileSrc(
             /* app didn't specify the pvrDecKeyHandle, create one */
             ipStreamerCtx->pvrDecKeyHandle = _createKeyHandle(NEXUS_SecurityOperation_eDecrypt);
             if (!ipStreamerCtx->pvrDecKeyHandle) {
-                BDBG_ERR(("%s: Failed to allocate dec keyslot", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to allocate dec keyslot", BSTD_FUNCTION));
                 goto error;
             }
-            BDBG_MSG(("%s: PVR Decryption successfully setup", __FUNCTION__));
+            BDBG_MSG(("%s: PVR Decryption successfully setup", BSTD_FUNCTION));
         }
         fileStreamingSettings.securitySettings.enableDecryption = true;
         fileStreamingSettings.securitySettings.dmaHandle = ipStreamerCtx->globalCtx->globalCfg.dmaHandle;
@@ -298,7 +298,7 @@ openNexusFileSrc(
     fileStreamingSettings.disableIndexGeneration = false;
 #endif
     if ((ipStreamerCtx->fileSrc->fileStreamingHandle = B_PlaybackIp_FileStreamingOpen(&fileStreamingSettings)) == NULL) {
-        BDBG_ERR(("%s: ERROR: Failed to open File Streaming handle", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: Failed to open File Streaming handle", BSTD_FUNCTION));
         goto error;
     }
 
@@ -329,7 +329,7 @@ endOfStreamCallback(void *context, int param)
 {
     BSTD_UNUSED(param);
     BSTD_UNUSED(context);
-    BDBG_MSG(("%s: CTX: %p: End of stream reached for file playback", __FUNCTION__, context));
+    BDBG_MSG(("%s: CTX: %p: End of stream reached for file playback", BSTD_FUNCTION, context));
 }
 
 void
@@ -337,7 +337,7 @@ closeNexusFileSrcPidChannels(
     IpStreamerCtx *ipStreamerCtx
     )
 {
-    BDBG_MSG(("%s: Closing all pid ch", __FUNCTION__));
+    BDBG_MSG(("%s: Closing all pid ch", BSTD_FUNCTION));
 #ifndef DMS_CROSS_PLATFORMS
     if (ipStreamerCtx->fileSrc->playbackHandle) {
         NEXUS_Playback_CloseAllPidChannels(ipStreamerCtx->fileSrc->playbackHandle);
@@ -353,7 +353,7 @@ closeNexusFileSrcPidChannels(
         NEXUS_Playpump_ClosePidChannel(ipStreamerCtx->transcoderDst->playpumpTranscodeSystemData, ipStreamerCtx->transcodePmtPidChannel);
         ipStreamerCtx->transcodePmtPidChannel = NULL;
     }
-    BDBG_MSG(("%s: Closed all pid ch", __FUNCTION__));
+    BDBG_MSG(("%s: Closed all pid ch", BSTD_FUNCTION));
 #endif
 }
 
@@ -394,7 +394,7 @@ openNexusFileSrcPidChannels(
     if (ipStreamerCfg->beginTimeOffset)
         playbackSettings.startPaused = true;
     if (NEXUS_Playback_SetSettings(ipStreamerCtx->fileSrc->playbackHandle, &playbackSettings) != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s: NEXUS_Playback_SetSettings() Failed", __FUNCTION__));
+        BDBG_ERR(("%s: NEXUS_Playback_SetSettings() Failed", BSTD_FUNCTION));
         return -1;
     }
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
@@ -468,7 +468,7 @@ openNexusFileSrcPidChannels(
             playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
             ipStreamerCtx->pmtPidChannel = NEXUS_Playback_OpenPidChannel(ipStreamerCtx->fileSrc->playbackHandle, psi->pmtPid, &playbackPidSettings);
         }
-        BDBG_MSG(("%s: playback pid channels (v %p, a %p, pat %p, pmt %p) are created...", __FUNCTION__,
+        BDBG_MSG(("%s: playback pid channels (v %p, a %p, pat %p, pmt %p) are created...", BSTD_FUNCTION,
                     (void *)ipStreamerCtx->videoPidChannel,
                     (void *)ipStreamerCtx->audioPidChannel,
                     (void *)ipStreamerCtx->patPidChannel,
@@ -476,11 +476,11 @@ openNexusFileSrcPidChannels(
     }
 #ifdef NEXUS_HAS_VIDEO_ENCODER
     else {
-        BDBG_MSG(("%s: playback pid channels (v %p, a %p) are created...", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->videoPidChannel, (void *)ipStreamerCtx->transcoderDst->audioPidChannel));
+        BDBG_MSG(("%s: playback pid channels (v %p, a %p) are created...", BSTD_FUNCTION, (void *)ipStreamerCtx->transcoderDst->videoPidChannel, (void *)ipStreamerCtx->transcoderDst->audioPidChannel));
     }
     if (ipStreamerCfg->transcodeEnabled) {
         if (setupNexusTranscoderPidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
-            BDBG_ERR(("%s: setupNexusTranscoderPidChannels() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: setupNexusTranscoderPidChannels() Failed", BSTD_FUNCTION));
             return -1;
         }
     }
@@ -514,25 +514,25 @@ startNexusFileSrc(
 #endif
         playbackSettings.stcChannel = ipStreamerCtx->fileSrc->playbackStcChannel;
         if (NEXUS_Playback_SetSettings(ipStreamerCtx->fileSrc->playbackHandle, &playbackSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_Playback_SetSettings() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_Playback_SetSettings() Failed", BSTD_FUNCTION));
             return -1;
         }
         NEXUS_Playback_GetDefaultStartSettings(&startSettings);
         startSettings.mpeg2TsIndexType = NEXUS_PlaybackMpeg2TsIndexType_eNav;
         if (NEXUS_Playback_Start(ipStreamerCtx->fileSrc->playbackHandle, ipStreamerCtx->fileSrc->filePlayHandle, &startSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", BSTD_FUNCTION));
             return -1;
         }
         if (ipStreamerCtx->cfg.beginTimeOffset) {
             int seekOffsetSec = (int)ipStreamerCtx->cfg.beginTimeOffset;
             BDBG_WRN(("Seeking Playback by %d msec\n", seekOffsetSec * 1000));
             if (NEXUS_Playback_Seek(ipStreamerCtx->fileSrc->playbackHandle, seekOffsetSec*1000) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: Nexus Playback Seek failed to seek to %d msec offset", __FUNCTION__, seekOffsetSec));
+                BDBG_ERR(("%s: ERROR: Nexus Playback Seek failed to seek to %d msec offset", BSTD_FUNCTION, seekOffsetSec));
                 return -1;
             }
             BDBG_WRN(("Seeked Playback by %d msec\n", seekOffsetSec*1000));
             if (NEXUS_Playback_Play(ipStreamerCtx->fileSrc->playbackHandle) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: Nexus Playback Play failed after seeking to %f msec offset", __FUNCTION__, ipStreamerCtx->cfg.beginTimeOffset));
+                BDBG_ERR(("%s: ERROR: Nexus Playback Play failed after seeking to %f msec offset", BSTD_FUNCTION, ipStreamerCtx->cfg.beginTimeOffset));
                 return -1;
             }
         }
@@ -540,7 +540,7 @@ startNexusFileSrc(
     }
 #endif
     if (B_PlaybackIp_FileStreamingStart(ipStreamerCtx->fileSrc->fileStreamingHandle) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", BSTD_FUNCTION));
         return -1;
     }
     ipStreamerCtx->fileStreamingInProgress = true;

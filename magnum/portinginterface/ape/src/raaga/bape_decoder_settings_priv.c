@@ -605,7 +605,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
     }
     else
     {
-        BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
+        BDBG_ERR(("%s, No Valid Output Port found!", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -805,7 +805,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
             }
             else
             {
-                BDBG_ERR(("%s Invalid value(%u) for customTargetLevel.  Default to Line", __FUNCTION__, pSettings->customTargetLevel));
+                BDBG_ERR(("%s Invalid value(%u) for customTargetLevel.  Default to Line", BSTD_FUNCTION, pSettings->customTargetLevel));
                 handle->userConfig.ddp.sUserOutputCfg[multichOutputPort].i32CompMode = 2;
             }
             break;
@@ -860,7 +860,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
             }
             else
             {
-                BDBG_ERR(("%s Invalid value(%u) for customTargetLevelDownmix.  Default to RF", __FUNCTION__, pSettings->customTargetLevelDownmix));
+                BDBG_ERR(("%s Invalid value(%u) for customTargetLevelDownmix.  Default to RF", BSTD_FUNCTION, pSettings->customTargetLevelDownmix));
                 handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode = 3;
             }
             break;
@@ -989,7 +989,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
 
     if ( ports == 0 )
     {
-        BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
+        BDBG_ERR(("%s, No Valid Output Port found!", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1497,7 +1497,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMs10AacSettings(
     }
     else
     {
-        BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
+        BDBG_ERR(("%s, No Valid Output Port found!", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1744,7 +1744,7 @@ static BERR_Code BAPE_Decoder_P_ApplyLegacyAacSettings(
     }
     else
     {
-        BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
+        BDBG_ERR(("%s, No Valid Output Port found!", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 

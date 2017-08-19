@@ -43,6 +43,14 @@
 #include "bvc5_jobq_priv.h"
 #include "bvc5_activeq_priv.h"
 #include "bvc5_usermode_priv.h"
+#include "bvc5_scheduler_event_priv.h"
+
+typedef struct BVC5_P_LoadStats
+{
+   uint64_t       uiLastCollectedTime;
+   int64_t        iRenderTimeUs;
+   uint32_t       uiRenderCount;
+} BVC5_P_LoadStats;
 
 /* BVC5_P_Client
 
@@ -58,9 +66,13 @@ typedef struct BVC5_P_Client
 {
    BVC5_Handle       hVC5;
    uint32_t          uiClientId;
+   uint32_t          uiClientPID;
    uint64_t          uiPlatformToken;
 
    void             *pContext;      /* Pointer to calling context (e.g. a Nexusv3d handle) */
+
+   /* Scheduler Events Sync Object Array */
+   BVC5_EventArrayHandle     hEvents;           /* holds the event pool                                                 */
 
    /* Lifetime of a job:
     *
@@ -102,7 +114,9 @@ typedef struct BVC5_P_Client
    uint64_t             uiMaxJobId;             /* max job ID submitted                */
 
    uint32_t             uiWorkWanted;           /* Scheduler uses these to keep track  */
-   uint32_t             uiWorkGiven;            /* of who has beeen given what work    */
+   uint32_t             uiWorkGiven;            /* of who has been given what work    */
+
+   BVC5_P_LoadStats     sLoadStats;
 
    BLST_S_ENTRY(BVC5_P_Client) sChain;
 } BVC5_P_Client;
@@ -121,18 +135,6 @@ typedef struct BVC5_P_ClientMap  *BVC5_ClientMapHandle;
 /***************************************************************************/
 /* CLIENT                                                                  */
 /***************************************************************************/
-
-/* BVC5_P_ClientCreate
-
- * Create a new client structure and return the handle
-
- */
-BERR_Code BVC5_P_ClientCreate(
-   BVC5_Handle        hVC5,
-   BVC5_ClientHandle *phClient,
-   uint32_t           uiClientId,
-   uint64_t           uiPlatformToken
-);
 
 /***************************************************************************/
 
@@ -199,7 +201,8 @@ BERR_Code BVC5_P_ClientMapCreateAndInsert(
    BVC5_ClientMapHandle    hClientMap,
    void                   *pContext,
    uint32_t                uiClientId,
-   uint64_t                uiPlatformToken
+   uint64_t                uiPlatformToken,
+   uint32_t                uiClientPID
 );
 
 /***************************************************************************/
@@ -223,6 +226,23 @@ BERR_Code BVC5_P_ClientMapRemoveAndDestroy(
  */
 uint32_t BVC5_P_ClientMapSize(
    BVC5_ClientMapHandle hClientMap
+);
+
+/***************************************************************************/
+
+BERR_Code BVC5_P_ClientMapGetStats(
+   BVC5_ClientMapHandle    hClientMap,
+   BVC5_ClientLoadData    *pLoadData,
+   uint32_t                uiNumClients,
+   uint32_t               *pValidClients,
+   bool                    bReset
+);
+
+/***************************************************************************/
+BERR_Code BVC5_P_ClientMapUpdateStats(
+   BVC5_ClientMapHandle    hClientMap,
+   uint32_t                uiClientId,
+   uint64_t                uiTimeInRendererUs
 );
 
 /***************************************************************************/
@@ -378,6 +398,40 @@ void BVC5_P_ClientSetGiven(
 
 bool BVC5_P_ClientHasHardJobs(
    BVC5_ClientHandle hClient
+);
+
+/****************************************************************************/
+/* Scheduler Event Sync Object
+ *                                                                          */
+
+BERR_Code BVC5_P_ClientNewSchedEvent(
+      BVC5_ClientHandle hClient,
+      uint64_t *pSchedEventId
+);
+
+void BVC5_P_ClientDeleteSchedEvent(
+      BVC5_ClientHandle hClient,
+      uint64_t uiSchedEventId
+);
+
+void BVC5_P_ClientSetSchedEvent(
+      BVC5_ClientHandle hClient,
+      uint64_t uiSchedEventId
+);
+
+void BVC5_P_ClientResetSchedEvent(
+      BVC5_ClientHandle hClient,
+      uint64_t uiSchedEventId
+);
+
+bool BVC5_P_ClientQuerySchedEvent(
+      BVC5_ClientHandle hClient,
+      uint64_t uiSchedEventId
+);
+
+bool BVC5_P_ClientWaitOnSchedEventDone(
+      BVC5_ClientHandle hClient,
+      uint64_t uiSchedEventId
 );
 
 #endif /* BVC5_CLIENT_H__ */

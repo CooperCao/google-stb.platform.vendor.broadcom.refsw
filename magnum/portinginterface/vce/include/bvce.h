@@ -580,6 +580,30 @@ BVCE_Output_ConsumeBufferDescriptors(
    size_t uiNumBufferDescriptors
    );
 
+/* BVCE_Output_ReadIndex -
+ * Populates one video buffer descriptor for each frame into
+ * the provided BAVC_VideoBufferDescriptor array. Each frame
+ * will only be returned once. I.e. Subsequent calls to ReadIndex
+ * will return only descriptors that weren't read previously.
+ *
+ * ReadIndex does not modify the ITB/CDB read pointers, so can
+ * be called in conjunction with an ITB/CDB consumer.
+ *
+ * The index is implemented as a circular FIFO, so will always
+ * return the newest descriptors when called. To ensure no
+ * descriptors are missed, ReadIndex must be called periodically
+ * and repeatedly until *puiNumDescriptorsRead < uiNumDescriptorsMax.
+ *
+ * See Also: BVCE_Channel_Output_ReadIndex
+ */
+BERR_Code
+BVCE_Output_ReadIndex(
+   BVCE_Output_Handle hVceOutput,
+   BAVC_VideoBufferDescriptor *astDescriptors,
+   unsigned uiNumDescriptorsMax,
+   unsigned *puiNumDescriptorsRead
+   );
+
 /* BVCE_Output_GetBufferStatus -
  * Returns the output buffer status (e.g. the base virtual address)
  */
@@ -1243,6 +1267,17 @@ BERR_Code
 BVCE_Channel_Output_ConsumeBufferDescriptors(
    BVCE_Channel_Handle hVceCh,
    size_t uiNumBufferDescriptors
+   );
+
+/* BVCE_Channel_Output_ReadIndex -
+ * See BVCE_Output_ReadIndex
+ */
+BERR_Code
+BVCE_Channel_Output_ReadIndex(
+   BVCE_Channel_Handle hVceCh,
+   BAVC_VideoBufferDescriptor *astDescriptors,
+   unsigned uiNumDescriptorsMax,
+   unsigned *puiNumDescriptorsRead
    );
 
 /* BVCE_Output_GetBufferStatus -

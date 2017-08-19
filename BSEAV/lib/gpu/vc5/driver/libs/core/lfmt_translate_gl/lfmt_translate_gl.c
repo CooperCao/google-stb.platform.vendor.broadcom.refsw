@@ -141,7 +141,7 @@ GFX_LFMT_T gfx_lfmt_from_externalformat(GLenum format, GLenum type, GLenum inter
 GFX_LFMT_T gfx_lfmt_from_format_type(GLenum format, GLenum type, bool is_dst_srgb)
 {
    const FORMAT_TYPE_LFMT_T *map = is_dst_srgb ? gl_to_lfmt_map_srgb : gl_to_lfmt_map;
-   size_t map_count = is_dst_srgb ? vcos_countof(gl_to_lfmt_map_srgb) : vcos_countof(gl_to_lfmt_map);
+   size_t map_count = is_dst_srgb ? countof(gl_to_lfmt_map_srgb) : countof(gl_to_lfmt_map);
 
    for (size_t i=0; i<map_count; ++i)
    {
@@ -164,7 +164,7 @@ void gfx_lfmt_to_format_type_maybe(GLenum *format, GLenum *type, GFX_LFMT_T lfmt
    /* format+type have no notion of srgb */
    fmt = gfx_lfmt_srgb_to_unorm(fmt);
 
-   for (i = 0; i != vcos_countof(gl_to_lfmt_map); ++i) {
+   for (i = 0; i != countof(gl_to_lfmt_map); ++i) {
       FORMAT_TYPE_LFMT_T entry = gl_to_lfmt_map[i];
       if (entry.src_lfmt == fmt) {
          *format = entry.format; *type = entry.type;
@@ -299,19 +299,12 @@ static const UNSIZED_INTERNALFORMAT_LFMT_T unsized_internalformat_to_lfmt_map[] 
 #if GL_EXT_texture_format_BGRA8888
    { GL_BGRA_EXT,            GFX_LFMT_B8_G8_R8_A8_UNORM },
 #endif
-
-   /*
-   * OES_packed_depth_stencil:
-   * DEPTH_STENCIL_OES Accepted by the <format> parameter of TexImage2D and TexSubImage2D and by the
-   <internalformat> parameter of TexImage2D:
-   */
-   { GL_DEPTH_STENCIL,       GFX_LFMT_S8D24_UINT_UNORM },
 };
 
 /* return GFX_LFMT_NONE if not a sized internalformat. */
 GFX_LFMT_T gfx_api_fmt_from_sized_internalformat_maybe(GLenum internalformat)
 {
-   for (size_t i = 0; i != vcos_countof(sized_internalformat_to_lfmt_map); ++i)
+   for (size_t i = 0; i != countof(sized_internalformat_to_lfmt_map); ++i)
    {
       const SIZED_INTERNALFORMAT_LFMT_T *entry = &sized_internalformat_to_lfmt_map[i];
       if (entry->sized_internalformat == internalformat)
@@ -323,7 +316,7 @@ GFX_LFMT_T gfx_api_fmt_from_sized_internalformat_maybe(GLenum internalformat)
 
 GLenum gfx_sized_internalformat_from_api_fmt_maybe(GFX_LFMT_T api_fmt)
 {
-   for (size_t i=0; i!=vcos_countof(sized_internalformat_to_lfmt_map); ++i)
+   for (size_t i=0; i!=countof(sized_internalformat_to_lfmt_map); ++i)
    {
       SIZED_INTERNALFORMAT_LFMT_T entry = sized_internalformat_to_lfmt_map[i];
       if (entry.lfmt == api_fmt) return entry.sized_internalformat;
@@ -333,7 +326,7 @@ GLenum gfx_sized_internalformat_from_api_fmt_maybe(GFX_LFMT_T api_fmt)
 
 GLenum gfx_unsized_internalformat_from_api_fmt_maybe(GFX_LFMT_T api_fmt)
 {
-   for (size_t i = 0; i != vcos_countof(unsized_internalformat_to_lfmt_map); ++i)
+   for (size_t i = 0; i != countof(unsized_internalformat_to_lfmt_map); ++i)
    {
       UNSIZED_INTERNALFORMAT_LFMT_T entry = unsized_internalformat_to_lfmt_map[i];
       if (entry.lfmt == api_fmt) return entry.unsized_internalformat;
@@ -406,7 +399,6 @@ bool gfx_gl_is_unsized_internalformat(GLenum internalformat)
 #if GL_EXT_texture_format_BGRA8888
    case GL_BGRA_EXT:
 #endif
-   case GL_DEPTH_STENCIL:  /* OES_packed_depth_stencil */
       return true;
    default:
       return false;
@@ -482,7 +474,7 @@ unsigned int gfx_compressed_format_enumerate(GLenum *formats, gfx_lfmt_translate
    unsigned count = 0;
 
    for (const COMPRESSED_FORMAT_LFMT_T *entry = gfx_compressed_format_lfmt_map;
-      entry != gfx_compressed_format_lfmt_map + vcos_countof(gfx_compressed_format_lfmt_map);
+      entry != gfx_compressed_format_lfmt_map + countof(gfx_compressed_format_lfmt_map);
       ++entry)
    {
       if (is_subset_of(entry->required_exts, exts))
@@ -499,7 +491,7 @@ unsigned int gfx_compressed_format_enumerate(GLenum *formats, gfx_lfmt_translate
 GFX_LFMT_T gfx_lfmt_from_compressed_internalformat_maybe(gfx_lfmt_translate_gl_ext_t exts, GLenum internalformat)
 {
    for (const COMPRESSED_FORMAT_LFMT_T *entry = gfx_compressed_format_lfmt_map;
-      entry != gfx_compressed_format_lfmt_map + vcos_countof(gfx_compressed_format_lfmt_map);
+      entry != gfx_compressed_format_lfmt_map + countof(gfx_compressed_format_lfmt_map);
       ++entry)
    {
       if (is_subset_of(entry->required_exts, exts) && (entry->internalformat == internalformat))
@@ -511,7 +503,7 @@ GFX_LFMT_T gfx_lfmt_from_compressed_internalformat_maybe(gfx_lfmt_translate_gl_e
 
 GLenum gfx_compressed_internalformat_from_api_fmt_maybe(GFX_LFMT_T api_fmt)
 {
-   for (unsigned i = 0; i < vcos_countof(gfx_compressed_format_lfmt_map); ++i)
+   for (unsigned i = 0; i < countof(gfx_compressed_format_lfmt_map); ++i)
    {
       const COMPRESSED_FORMAT_LFMT_T *entry = &gfx_compressed_format_lfmt_map[i];
       if (entry->lfmt == api_fmt)
@@ -635,13 +627,6 @@ static const FORMAT_TYPE_INTERNALFORMAT_T valid_format_type_internalformat_combi
    { GL_BGRA_EXT,         GL_UNSIGNED_BYTE,                   GL_BGRA_EXT},
 #endif
 
-   /*
-    * OES_packed_depth_stencil:
-    * DEPTH_STENCIL_OES Accepted by the <format> parameter of TexImage2D and TexSubImage2D and by the
-       <internalformat> parameter of TexImage2D:
-    */
-   { GL_DEPTH_STENCIL,    GL_UNSIGNED_INT_24_8,               GL_DEPTH_STENCIL},
-
    /* OES_texture_stencil8 */
    { GL_STENCIL_INDEX,    GL_UNSIGNED_BYTE,                   GL_STENCIL_INDEX8},
 };
@@ -651,7 +636,7 @@ bool gfx_lfmt_gl_format_type_internalformat_combination_valid(
    GLenum format, GLenum type, GLenum internalformat)
 {
    for (const FORMAT_TYPE_INTERNALFORMAT_T *entry = valid_format_type_internalformat_combinations;
-      entry != valid_format_type_internalformat_combinations + vcos_countof(valid_format_type_internalformat_combinations);
+      entry != valid_format_type_internalformat_combinations + countof(valid_format_type_internalformat_combinations);
       ++entry)
    {
       if ((entry->format == format) && (entry->type == type) && (entry->internalformat == internalformat))
@@ -671,7 +656,7 @@ bool gfx_lfmt_gl_format_type_internalformat_valid_enums(
    bool internalformat_ok = false;
 
    for (const FORMAT_TYPE_INTERNALFORMAT_T *entry = valid_format_type_internalformat_combinations;
-      entry != valid_format_type_internalformat_combinations + vcos_countof(valid_format_type_internalformat_combinations);
+      entry != valid_format_type_internalformat_combinations + countof(valid_format_type_internalformat_combinations);
       ++entry)
    {
       format_ok = format_ok || (entry->format == format);
@@ -693,7 +678,7 @@ bool gfx_lfmt_gl_format_type_internalformat_valid_enums(
 bool gfx_gl_format_type_combination_valid(GLenum format, GLenum type)
 {
    for (const FORMAT_TYPE_INTERNALFORMAT_T *entry = valid_format_type_internalformat_combinations;
-      entry != valid_format_type_internalformat_combinations + vcos_countof(valid_format_type_internalformat_combinations);
+      entry != valid_format_type_internalformat_combinations + countof(valid_format_type_internalformat_combinations);
       ++entry)
    {
       if ((entry->format == format) && (entry->type == type))
@@ -709,7 +694,7 @@ bool gfx_gl_format_type_valid_enums(GLenum format, GLenum type)
    bool type_ok = false;
 
    for (const FORMAT_TYPE_INTERNALFORMAT_T *entry = valid_format_type_internalformat_combinations;
-      entry != valid_format_type_internalformat_combinations + vcos_countof(valid_format_type_internalformat_combinations);
+      entry != valid_format_type_internalformat_combinations + countof(valid_format_type_internalformat_combinations);
       ++entry)
    {
       format_ok = format_ok || (entry->format == format);
@@ -730,7 +715,7 @@ assumes non-srgb.
 GLenum gfx_lfmt_gl_format_type_to_internalformat(GLenum format, GLenum type)
 {
    for (const FORMAT_TYPE_INTERNALFORMAT_T *entry = valid_format_type_internalformat_combinations;
-      entry != valid_format_type_internalformat_combinations + vcos_countof(valid_format_type_internalformat_combinations);
+      entry != valid_format_type_internalformat_combinations + countof(valid_format_type_internalformat_combinations);
       ++entry)
    {
       if ((entry->format == format) && (entry->type == type))
@@ -744,7 +729,7 @@ GLenum gfx_lfmt_gl_format_type_to_internalformat(GLenum format, GLenum type)
 bool gfx_gl_is_texture_internalformat(GLenum internalformat)
 {
    for (const FORMAT_TYPE_INTERNALFORMAT_T *entry = valid_format_type_internalformat_combinations;
-      entry != valid_format_type_internalformat_combinations + vcos_countof(valid_format_type_internalformat_combinations);
+      entry != valid_format_type_internalformat_combinations + countof(valid_format_type_internalformat_combinations);
       ++entry)
    {
       if (entry->internalformat == internalformat)
@@ -757,7 +742,7 @@ bool gfx_gl_is_texture_internalformat(GLenum internalformat)
 void gfx_gl_sizedinternalformat_to_format_type(GLenum sizedinternalformat, GLenum *format, GLenum *type)
 {
    for (const FORMAT_TYPE_INTERNALFORMAT_T *entry = valid_format_type_internalformat_combinations;
-      entry != valid_format_type_internalformat_combinations + vcos_countof(valid_format_type_internalformat_combinations);
+      entry != valid_format_type_internalformat_combinations + countof(valid_format_type_internalformat_combinations);
       ++entry)
    {
       if (entry->internalformat == sizedinternalformat)

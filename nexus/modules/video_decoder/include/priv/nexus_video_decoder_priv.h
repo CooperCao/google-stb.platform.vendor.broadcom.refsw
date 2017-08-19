@@ -296,8 +296,7 @@ void NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(NEXUS_VideoDecoderSettings 
 void NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(NEXUS_VideoDecoderPlaybackSettings *pSettings);
 void NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(NEXUS_VideoDecoderExtendedSettings *pSettings);
 
-/* must be called before Start to have effect */
-void NEXUS_VideoDecoder_EnableCrcMode_priv(NEXUS_VideoDecoderHandle handle);
+bool NEXUS_VideoDecoderModule_DecoderOpenInSecureHeaps_priv(void);
 
 #ifdef __cplusplus
 }

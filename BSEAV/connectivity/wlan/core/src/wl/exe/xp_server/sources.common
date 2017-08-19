@@ -1,0 +1,28 @@
+# Windows common build file for wl command line tool
+#
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources.common,v 1.3 2009-05-22 19:19:19 $
+#
+
+TARGETNAME=$(NIC_WL_EXE)
+TARGETTYPE     :=PROGRAM
+EXEENTRY       :=main  /SUBSYSTEM:CONSOLE
+REQUIRE_WDM7600:=1
+REQUIRE_SDK60  :=1
+
+vpath %.c $(SRCBASE)/wl/exe $(SRCBASE)/shared $(SRCBASE)/tools/epictrl $(SRCBASE)/tools/misc $(WLAN_StdSrcDirsA) $(WLAN_ComponentSrcDirs)
+
+INCLUDES   = $(SRCBASE)/include $(SRCBASE)/../components/shared $(SRCBASE)/wl/sys $(WLAN_ComponentIncDirs) $(WLAN_StdIncDirsA)
+
+TARGETPATH = obj/$(SERVER)/
+
+TARGETLIBS =  wsock32.lib ADVAPI32.LIB $(WDM7600WDK)/lib/wxp/i386/cfgmgr32.lib
+
+TARGETLIBS += $(SRCBASE)/tools/epictrl/$(DDKBUILDENV)/bcmctrl.lib IPHlpApi.Lib
+
+
+#ifdef BCMWPA2
+C_DEFINES += -DBCMWPA2
+#endif

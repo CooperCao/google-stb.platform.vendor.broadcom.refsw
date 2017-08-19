@@ -43,6 +43,9 @@
 
 #include "bhsm.h"
 #include "bhsm_keyladder.h"
+#if (BHSM_API_VERSION==2)
+#include "bhsm_hdcp1x.h"
+#endif
 
 
 #define BHDCPLib_KEY_OFFSET 0x80
@@ -54,6 +57,7 @@ BDBG_MODULE(BHDCPLIB_KEYLOADER) ;
 BERR_Code BHDCPlib_FastLoadEncryptedHdcpKeys(
 	BHDCPlib_Handle hHDCPlib)
 {
+#if (BHSM_API_VERSION==1)
 	BERR_Code errCode = BERR_SUCCESS;
 	uint8_t i;
 	BHSM_EncryptedHdcpKeyStruct * EncryptedHdcpKeys ;
@@ -92,5 +96,40 @@ BERR_Code BHDCPlib_FastLoadEncryptedHdcpKeys(
 	}
 
 	return( errCode );
-}
+#else  /* secv2 */
+  #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+	BERR_Code rc = BERR_SUCCESS;
+    BHSM_Hdcp1xRouteKey hdcpConf;
+    unsigned i = 0;
+    uint32_t otpKeyIndex;
 
+    BKNI_Memset( &hdcpConf, 0, sizeof(hdcpConf) );
+
+    otpKeyIndex = hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].CaDataLo;
+    BREG_LE32( otpKeyIndex );
+
+    hdcpConf.algorithm = BHSM_CryptographicAlgorithm_e3DesAba;
+    hdcpConf.root.type = BHSM_KeyLadderRootType_eOtpDirect;
+    hdcpConf.root.otpKeyIndex = otpKeyIndex;
+
+	for( i =0; i< BAVC_HDMI_HDCP_N_PRIVATE_KEYS; i++ )
+    {
+        hdcpConf.hdcpKeyIndex  = i;
+        hdcpConf.key.high = hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[i].HdcpKeyHi;
+        hdcpConf.key.low  = hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[i].HdcpKeyLo;
+
+		hHDCPlib->stDependencies.lockHsm();
+        rc = BHSM_Hdcp1x_RouteKey( hHDCPlib->stDependencies.hHsm, &hdcpConf );
+		hHDCPlib->stDependencies.unlockHsm();
+
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+    }
+
+    return BERR_SUCCESS;
+  #else
+    BSTD_UNUSED(hHDCPlib);
+    BERR_TRACE( BERR_NOT_SUPPORTED );
+    return BERR_SUCCESS;
+  #endif
+#endif
+}

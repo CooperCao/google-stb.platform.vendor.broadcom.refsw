@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,12 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #ifndef NXAPPS_CRYPTO_TYPES_H__
 #define NXAPPS_CRYPTO_TYPES_H__
 
 /* if security not included, have consistent stub */
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
 #include "nexus_security_datatypes.h"
 #else
 typedef unsigned NEXUS_SecurityAlgorithm;

@@ -44,7 +44,7 @@
 BDBG_MODULE(atlas_video_window);
 
 CVideoWindow::CVideoWindow(
-        const uint16_t   number,
+        const unsigned   number,
         CDisplay *       pDisplay,
         CConfiguration * pCfg
         ) :
@@ -174,7 +174,7 @@ error:
 
 eRet CVideoWindow::setPosition(
         MRect    rect,
-        uint16_t zorder
+        unsigned zorder
         )
 {
     NEXUS_VideoWindowSettings settings;
@@ -196,7 +196,7 @@ error:
 
 void CVideoWindow::getPosition(
         MRect *    pRect,
-        uint16_t * pZorder
+        unsigned * pZorder
         )
 {
     NEXUS_VideoWindowSettings settings;
@@ -212,7 +212,7 @@ void CVideoWindow::getPosition(
     *pZorder = settings.zorder;
 } /* getPosition */
 
-eRet CVideoWindow::setZorder(uint16_t zorder)
+eRet CVideoWindow::setZorder(unsigned zorder)
 {
     NEXUS_VideoWindowSettings settings;
     eRet                      ret    = eRet_Ok;
@@ -253,14 +253,14 @@ bool CVideoWindow::isVisible()
 /* percent and border are expressed in terms: 0-1000 = 0-100.0% */
 eRet CVideoWindow::setGeometryPercent(
         MRect    rect,
-        uint16_t percent,
+        unsigned percent,
         eWinArea area,
-        uint16_t border,
-        uint16_t zorder
+        unsigned border,
+        unsigned zorder
         )
 {
     eRet     ret       = eRet_Ok;
-    uint16_t borderGap = 0;
+    unsigned borderGap = 0;
     MRect    rectScaled;
 
     BDBG_ASSERT(1000 >= percent);

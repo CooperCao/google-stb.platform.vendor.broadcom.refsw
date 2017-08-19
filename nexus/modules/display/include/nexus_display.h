@@ -42,6 +42,7 @@
 #include "nexus_surface.h"
 #include "nexus_display_types.h"
 #include "nexus_display_custom.h"
+#include "nexus_display_utils.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -303,6 +304,7 @@ typedef struct NEXUS_DisplayStatus
     unsigned numWindows; /* number of video windows supported by this display. may be less than NEXUS_NUM_VIDEO_WINDOWS. */
     bool graphicsSupported; /* true if graphics is supported */
     NEXUS_DisplayTimingGenerator timingGenerator;
+    NEXUS_VideoBufferType lastVsyncType;
 } NEXUS_DisplayStatus;
 
 /**
@@ -649,44 +651,6 @@ NEXUS_Error NEXUS_Display_SetStgSettings(
     const NEXUS_DisplayStgSettings *pSettings
     );
 
-typedef enum NEXUS_GraphicsCompression
-{
-    NEXUS_GraphicsCompression_eNone,
-    NEXUS_GraphicsCompression_eAllowed,
-    NEXUS_GraphicsCompression_eRequired,
-    NEXUS_GraphicsCompression_eMax
-} NEXUS_GraphicsCompression;
-
-/**
-Summary:
-display module capabilities
-**/
-typedef struct NEXUS_DisplayCapabilities
-{
-    unsigned numDisplays; /* Deprecated. The display list is not packed, so you can't assume 0..numDisplays-1 can be opened.
-                             Instead, check display[].numVideoWindows > 0. */
-    struct {
-        unsigned numVideoWindows; /* if 0, display is not usable */
-        struct {
-            unsigned width, height; /* if 0, graphics is not usable */
-            NEXUS_GraphicsCompression compression;
-        } graphics; /* max capability */
-        struct {
-            unsigned maxWidthPercentage, maxHeightPercentage;
-        } window[NEXUS_MAX_VIDEO_WINDOWS];
-    } display[NEXUS_MAX_DISPLAYS];
-    bool displayFormatSupported[NEXUS_VideoFormat_eMax]; /* is NEXUS_DisplaySettings.format supported by any display in the system? */
-    unsigned numLetterBoxDetect; /* see NEXUS_VideoWindowSettings.letterBoxDetect */
-} NEXUS_DisplayCapabilities;
-
-/**
-Summary:
-get display module capabilities
-**/
-void NEXUS_GetDisplayCapabilities(
-    NEXUS_DisplayCapabilities *pCapabilities /* [out] */
-    );
-
 /**
 Summary:
 Module status returned in NEXUS_PlatformStatus
@@ -700,17 +664,6 @@ typedef struct NEXUS_DisplayModuleStatus
         size_t elementSize; /* BDBG_Fifo elementSize */
     } rulCapture;
 } NEXUS_DisplayModuleStatus;
-
-typedef struct NEXUS_DisplayMaxMosaicCoverage
-{
-    unsigned maxCoverage; /* percentage of screen that can be covered with mosaic windows */
-} NEXUS_DisplayMaxMosaicCoverage;
-
-NEXUS_Error NEXUS_Display_GetMaxMosaicCoverage(
-    unsigned displayIndex, /* for now, only displayIndex 0 is supported */
-    unsigned numMosaics,
-    NEXUS_DisplayMaxMosaicCoverage *pCoverage
-    );
 
 #ifdef __cplusplus
 }

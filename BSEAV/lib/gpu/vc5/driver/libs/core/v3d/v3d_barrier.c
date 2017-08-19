@@ -21,7 +21,7 @@
  | (V3D_VER_AT_LEAST(3,3,0,0) ? V3D_BARRIER_QPU_INSTR_READ : 0)\
  | (V3D_VER_AT_LEAST(3,3,0,0) ? V3D_BARRIER_QPU_UNIF_READ : 0)\
  | (V3D_VER_AT_LEAST(3,3,0,0) ? V3D_BARRIER_TMU_CONFIG_READ : 0)\
- | (V3D_VER_AT_LEAST(3,4,0,6) ? V3D_BARRIER_CLE_READ : 0))
+ | (V3D_VER_AT_LEAST(4,0,2,0) ? V3D_BARRIER_CLE_READ : 0))
 
 v3d_cache_ops v3d_barrier_cache_cleans(
    v3d_barrier_flags src,

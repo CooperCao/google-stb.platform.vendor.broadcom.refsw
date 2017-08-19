@@ -155,7 +155,7 @@ public:
     void  processNotification(CNotification & notification);
     void  refreshPlaybackButtonList(void);
     void  layout(void);
-    MRect thumbnailSetGeometryWithAspect(uint16_t width, uint16_t height);
+    MRect thumbnailSetGeometryWithAspect(unsigned width, unsigned height);
     MRect thumbnailSetGeometryWithAspect(CVideo * pVideo);
     MRect thumbnailSetGeometryWithAspect(bwin_image_t bwinImage);
     MRect thumbnailSetGeometryWithAspect(bwin_framebuffer_t bwinFramebuffer);

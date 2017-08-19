@@ -128,13 +128,13 @@ static void popup_list_bwidget_draw(
             rectLabel.height = rect.height();
 
             /* give drawing priority to background gradient if enabled */
-            uint16_t yMin     = rectLabel.y;
-            uint16_t yMax     = rectLabel.y + rectLabel.height;
-            uint16_t yMid     = yMin + ((yMax - yMin) / 2);
+            unsigned yMin     = rectLabel.y;
+            unsigned yMax     = rectLabel.y + rectLabel.height;
+            unsigned yMid     = yMin + ((yMax - yMin) / 2);
             uint32_t newColor = 0;
             uint8_t  percent  = 0;
 
-            for (int line = yMin; line < yMid; line++)
+            for (unsigned line = yMin; line < yMid; line++)
             {
                 percent  = (yMid - line) * 100 / (yMid - yMin);
                 newColor = pButton->colorConvert(colorTop, colorMiddle, percent);
@@ -153,7 +153,7 @@ static void popup_list_bwidget_draw(
                 width -= 2;
             }
 
-            for (int line = yMid; 0 < width; line++)
+            for (unsigned line = yMid; 0 < width; line++)
             {
                 percent  = (yMax - line) * 100 / (yMax - yMid);
                 newColor = pButton->colorConvert(colorMiddle, colorBottom, percent);
@@ -361,8 +361,8 @@ void CWidgetPopupList::setGeometry(MRect geometry)
 
 CWidgetCheckButton * CWidgetPopupList::addButton(
         const char * name,
-        uint16_t     width,
-        uint16_t     height
+        unsigned     width,
+        unsigned     height
         )
 {
     eRet                 ret     = eRet_Ok;

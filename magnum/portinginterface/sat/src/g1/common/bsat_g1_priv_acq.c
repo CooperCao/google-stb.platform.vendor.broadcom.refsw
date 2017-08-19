@@ -221,6 +221,7 @@ BERR_Code BSAT_g1_P_InitChannelHandle(BSAT_ChannelHandle h)
    hChn->turboSettings.scanModes = BSAT_SCAN_MODE_TURBO_ALL;
    hChn->turboSettings.ctl = 0;
    hChn->turboSettings.tzsyOverride = 0x0420040F;
+   hChn->turboSettings.flbwOverride = 25000;
 #ifndef BSAT_EXCLUDE_AFEC
    hChn->scramblingSeq.xseed = 0x100;
    hChn->scramblingSeq.plhdrscr1 = 0;
@@ -1618,10 +1619,18 @@ BERR_Code BSAT_g1_P_SetBaudBw_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t da
 ******************************************************************************/
 BERR_Code BSAT_g1_P_SetCarrierBw_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t damp)
 {
+   BERR_Code retCode = BERR_SUCCESS;
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t lval1, lval2, P_hi, P_lo, x, mb, stfllc;
    static const uint32_t int_scale[7] = {1, 4, 16, 64, 256, 1024, 4096};
    static const uint32_t lin_scale[5] = {1, 4, 16, 64, 256};
+
+#ifdef BSAT_HAS_CONTEXT_SWITCH
+    if (BSAT_MODE_IS_LEGACY_QPSK(hChn->acqSettings.mode))
+    {
+       retCode = BSAT_g1_P_SetPlc_isr(h, bw, damp*2);
+    }
+#endif /* BSAT_HAS_CONTEXT_SWITCH */
 
    for (x = 0; x < 5; x++)
    {
@@ -1664,7 +1673,7 @@ BERR_Code BSAT_g1_P_SetCarrierBw_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLLC1, stfllc);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLIC1, mb);
    /* BDBG_MSG(("BSAT_g1_P_SetCarrierBw_isr(): bw=%d, damp*4=%d, fllc=0x%X, flic=0x%X", bw, damp, stfllc, mb)); */
-   return BERR_SUCCESS;
+   return retCode;
 }
 
 
@@ -2089,10 +2098,11 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
             vco_ref_clock, vco_base, vco_residue, m1div, ndiv_frac, P_hi, P_lo, Q_hi, Q_lo,
             vco_freq, ki;
 
-   if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
+   if ((hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM) && ((hChn->acqSettings.options & BSAT_ACQ_CHAN_BOND) == 0))
    {
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OPLL, 0x80000000);
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OPLL2, 0x80000000);
+
       val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL01);
       val &= ~BCHP_SDS_OI_0_OIFCTL01_byt_clk_sel_MASK;
       val &= ~BCHP_SDS_OI_0_OIFCTL01_out_data_dec_MASK;
@@ -2248,6 +2258,16 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
       val |= 0x400000;
    if (hChn->xportSettings.bSync1)
       val |= 0x200000;
+#if (BCHP_CHIP==45308) && (BSAT_CHIP_FAMILY==45316)
+   if (BSAT_MODE_IS_LEGACY_QPSK(hChn->actualMode))
+   {
+      if ((h->channel & 1) == 0)
+      {
+         /* Legacy QPSK on even channel */
+         val |= 0x100; /* tfec_afec_sel=1 */
+      }
+   }
+#endif
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, val);
    val &= ~1; /* toggle OIF reset */
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, val);
@@ -2325,6 +2345,7 @@ BERR_Code BSAT_g1_P_NonLegacyModeAcquireInit_isr(BSAT_ChannelHandle h)
 {
    BERR_Code retCode;
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   uint32_t bw;
 
    BSAT_CHK_RETCODE(BSAT_g1_P_SetFfeMainTap_isr(h));
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_MIXCTL, 3);
@@ -2350,7 +2371,16 @@ BERR_Code BSAT_g1_P_NonLegacyModeAcquireInit_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLFBCTL, 0xFFFF0000, 0x02); /* fwd loop frz, backward loop frz */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, 0xFFFF00FF, 0x0000DB00);
 
+#if 0
    BSAT_g1_P_SetCarrierBw_isr(h, 25000, 2*4); /* updated by Xiaofen */
+#else
+   if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode) && (hChn->turboSettings.ctl & BSAT_TURBO_CTL_OVERRIDE_FLBW))
+      bw = hChn->turboSettings.flbwOverride;
+   else
+      bw = ((hChn->acqSettings.symbolRate / 1000) * 104) / 100;
+
+   BSAT_g1_P_SetCarrierBw_isr(h, bw, 2*4);
+#endif
 
    done:
    return retCode;
@@ -2422,8 +2452,6 @@ BERR_Code BSAT_g1_P_PrepareNewAcquisition(BSAT_ChannelHandle h)
    BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
-
-   hChn->bAbortAcq = true;
 
    /* reset last locked status */
    hChn->bLastLocked = false;
@@ -2578,7 +2606,7 @@ static void BSAT_g1_P_InitEqTaps_isr(BSAT_ChannelHandle h)
 static BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   uint32_t val;
+   uint32_t val, val2;
    BERR_Code retCode;
 
    BSAT_CHK_RETCODE(BSAT_g1_P_SetDecimationFilters_isr(h));
@@ -2610,15 +2638,26 @@ static BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 #ifdef BCHP_SDS_EQ_0_ACM_FIFO
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_ACM_FIFO, 0x0000100C); /* acm_fifo_byp=1, buf_delay=0xC */
 #endif
+
+   val2 = 0x00000003;
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode) || (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode)))
       val = 0x0C801063; /* per Xiaofen */
    else if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
       val = 0x0C881073;
    else
       val = 0x08881073;
+
+#ifdef BSAT_HAS_CONTEXT_SWITCH
+   if (BSAT_MODE_IS_LEGACY_QPSK(hChn->acqSettings.mode))
+   {
+      val = 0x08801063;   /* bit4 clen=0, bit19 cl_en_rcvr_lf=0 */
+      val2 = 0x00001001;
+   }
+#endif /* BSAT_HAS_CONTEXT_SWITCH */
+
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, val);
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x00000003); /* clear carrier loop reset bit */
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00000003);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, val2);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLFFCTL, 0x02);  /* bypass fine mixer */
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_PLDCTL, 0x0000800a);   /* bypass rescrambler/descrambler */
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLC, 0x06080518);

@@ -89,6 +89,7 @@ typedef enum BMXT_Chip
     BMXT_Chip_e4548,
     BMXT_Chip_e45216,
     BMXT_Chip_e45308,
+    BMXT_Chip_e45316,
     BMXT_Chip_e7145,
     BMXT_Chip_e7366,
     BMXT_Chip_e7364,
@@ -200,6 +201,7 @@ typedef struct BMXT_MtsifStatus
         unsigned interfaceWidth;
         unsigned clockPolarity;
         bool enabled;
+        bool encrypted;
     } tx[BMXT_MAX_NUM_MTSIF_TX], rx[BMXT_MAX_NUM_MTSIF_RX];
 } BMXT_MtsifStatus;
 

@@ -410,6 +410,7 @@ BERR_Code BBCP_GetDefaultSettings(
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BBCP_GetTotalChannels(
     BBCP_Handle hDev,                   /* Device handle */
     unsigned int *totalChannels         /* [output] Returns total number downstream channels supported */
@@ -424,6 +425,7 @@ BERR_Code BBCP_GetTotalChannels(
 
     return( retCode );
 }
+#endif
 
 BERR_Code BBCP_GetChannelDefaultSettings(
     BBCP_Handle hDev,                   /* Device handle */
@@ -546,6 +548,7 @@ BERR_Code BBCP_CloseChannel(
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BBCP_GetDevice(
     BBCP_ChannelHandle hChn,            /* Device channel handle */
     BBCP_Handle *phDev                  /* [output] Returns Device handle */
@@ -561,6 +564,7 @@ BERR_Code BBCP_GetDevice(
 
     return( retCode );
 }
+#endif
 
 #ifdef SINGLE_EVENT
 BERR_Code BBCP_GetEventHandle(
@@ -578,6 +582,7 @@ BERR_Code BBCP_GetEventHandle(
 }
 #endif
 
+#if !B_REFSW_MINIMAL
 bool BBCP_IntMode(
     BBCP_Handle hDev                    /* Device handle */
     )
@@ -587,6 +592,7 @@ bool BBCP_IntMode(
 
     return ( hDev->intMode ? true : false );
 }
+#endif
 
 BERR_Code BBCP_GetEdge(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
@@ -649,6 +655,7 @@ BERR_Code BBCP_SetEdge(
 
     return( retCode );
 }
+#if !B_REFSW_MINIMAL
 
 BERR_Code BBCP_SetToutClkDiv(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
@@ -901,6 +908,7 @@ BERR_Code BBCP_GetBicapEnable(
 
     return( retCode );
 }
+#endif
 
 BERR_Code BBCP_SetBicapEnable(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
@@ -1042,6 +1050,7 @@ BERR_Code BBCP_SetTimeout(
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BBCP_GetFifoInactTimeout(
     BBCP_Handle         hDev,           /* [in] Device handle */
     BBCP_FifoInactTimeout_Settings *inact
@@ -1117,6 +1126,7 @@ BERR_Code BBCP_GetFifoData(
 
     return( retCode );
 }
+#endif
 
 BERR_Code BBCP_GetOneFifoData(
     BBCP_Handle         hDev,           /* [in] Device handle */
@@ -1145,6 +1155,7 @@ BERR_Code BBCP_GetOneFifoData(
     return( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BBCP_GetFifo(
     BBCP_Handle         hDev,           /* [in] Device handle */
     uint32_t            *fifo_depth,    /* [out] size of the fifo */
@@ -1180,6 +1191,7 @@ BERR_Code BBCP_SetFifo(
     BREG_Write32(hDev->hRegister, BCHP_BICAP_FIFO_CONTROL, lval);
     return( retCode );
 }
+#endif
 
 BERR_Code BBCP_SetFifoTrigLevel(
     BBCP_Handle         hDev,           /* [in] Device handle */
@@ -1199,6 +1211,7 @@ BERR_Code BBCP_SetFifoTrigLevel(
     return ( retCode );
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BBCP_ResetFifo(
     BBCP_ChannelHandle  hChn            /* [in] Device channel handle */
     )
@@ -1217,6 +1230,7 @@ BERR_Code BBCP_ResetFifo(
     BREG_Write32(hDev->hRegister, BCHP_BICAP_FIFO_CONTROL, lval);
     return ( retCode );
 }
+#endif
 
 #if 0
 uint16_t BBCP_GetFifoCount(
@@ -1233,6 +1247,7 @@ uint16_t BBCP_GetFifoCount(
 }
 #endif
 
+#if !B_REFSW_MINIMAL
 void BBCP_EnableRC6(
     BBCP_ChannelHandle  hChn,           /* Device channel handle */
     BBCP_Callback pCallback             /* Pointer to completion callback. */
@@ -1280,6 +1295,7 @@ void BBCP_GetIntCount(
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
     *data = hDev->isrCount;
 }
+#endif
 
 /*******************************************************************************
 *

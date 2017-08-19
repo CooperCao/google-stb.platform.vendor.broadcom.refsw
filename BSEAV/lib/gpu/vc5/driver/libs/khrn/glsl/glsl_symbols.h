@@ -286,31 +286,6 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol);
 // Function call metadata.
 //
 
-typedef enum {
-   CALL_CONTEXT_FUNCTION,
-   CALL_CONTEXT_CONSTRUCTOR,
-   CALL_CONTEXT_INTRINSIC
-} CallContextFlavour;
-
-struct _CallContext {
-   CallContextFlavour flavour;
-
-   union {
-      struct {
-         Symbol *symbol;
-      } function;
-
-      struct {
-         SymbolType *type;
-      } constructor;
-
-      struct {
-         glsl_intrinsic_index_t flavour;
-      } intrinsic;
-   } u;
-};
-
-
 typedef struct _SymbolListNode {
    Symbol *s;
    struct _SymbolListNode *prev;

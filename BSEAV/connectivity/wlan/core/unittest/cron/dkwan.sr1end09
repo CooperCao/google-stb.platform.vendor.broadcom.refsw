@@ -1,0 +1,16 @@
+#
+# $Id: fc9212a7dd25e88b984d47e02695b2da13e40150 $
+#
+MAILTO=david.kwan@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	src/tools/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+45	3	* * *	src/tools/unittest/cron/launch mc35a Test/StaNightly.test -utfconf mc35a -title 'mc35a: 7445' -ap 43602 -sta '7445/43602 7445/43602fb35x 7445/43602fb35'
+45	4	* * *	src/tools/unittest/cron/launch mc35b Test/StaNightly.test -utfconf mc35b -title 'mc35b: 7425/4360' -ap 4360 -sta '7425/4360 7425/4360b14'
+15	5	* * *	src/tools/unittest/cron/launch mc35c Test/StaNightly.test -utfconf mc35c -title 'mc35c: 7271' -ap 4366 -sta '15_10'

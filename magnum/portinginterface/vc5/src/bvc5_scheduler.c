@@ -78,9 +78,20 @@ static void BVC5_P_ProcessInterrupt(
             if (pJob != NULL)
             {
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-               BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK,
-                                      BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventEnd,
-                                      pJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+               {
+                  BVC5_P_EventInfo sEventInfo;
+                  BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/false, pJob, &sEventInfo);
+                  BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK,
+                                         BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventEnd,
+                                         &sEventInfo, BVC5_P_GetEventTimestamp());
+               }
+               if (hVC5->bCollectLoadStats)
+               {
+                  uint64_t uiRenderEnd, uiRenderTime;
+                  BVC5_P_GetTime_isrsafe(&uiRenderEnd);
+                  uiRenderTime = uiRenderEnd - pJob->uiRenderStart;
+                  BVC5_P_ClientMapUpdateStats(hVC5->hClientMap, pJob->uiClientId, uiRenderTime);
+               }
 #endif
 
                BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_RENDER_JOBS_COMPLETED, 1);
@@ -108,8 +119,12 @@ static void BVC5_P_ProcessInterrupt(
       if (pJob != NULL)
       {
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-         BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,
-                                 BVC5_EventEnd, pJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+         {
+            BVC5_P_EventInfo sEventInfo;
+            BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/false, pJob, &sEventInfo);
+            BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,
+                                    BVC5_EventEnd, &sEventInfo, BVC5_P_GetEventTimestamp());
+         }
 #endif
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_JOBS_COMPLETED, 1);
@@ -147,7 +162,7 @@ static void BVC5_P_ProcessInterrupt(
 #if !V3D_VER_AT_LEAST(3,3,0,0)
          BVC5_P_AddCoreEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, pJob->uiJobId,
                              BVC5_P_EVENT_MONITOR_BOOM, BVC5_EventOneshot,
-                             BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+                             BVC5_P_GetEventTimestamp());
 #endif
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_OOMS, 1);
@@ -191,8 +206,12 @@ static void BVC5_P_ProcessInterrupt(
       if (pJob != NULL)
       {
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-         BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventEnd, pJob,
-                               BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+         {
+            BVC5_P_EventInfo sTFUJobEventInfo;
+            BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/true, pJob, &sTFUJobEventInfo);
+            BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventEnd, &sTFUJobEventInfo,
+                                  BVC5_P_GetEventTimestamp());
+         }
 #endif
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_TFU_JOBS_COMPLETED, 1);
@@ -249,24 +268,26 @@ static void BVC5_P_WatchdogTimeout(
 
             if (uiStalled & BVC5_P_HardwareUnit_eBinner)
             {
-               BVC5_P_AddCoreEventCJ(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
+               BVC5_P_InternalJob *pJob = psCoreState->sBinnerState.psJob;
+               BVC5_P_AddCoreEventCJD(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
                                      BVC5_P_EVENT_MONITOR_BIN_LOCKUP, BVC5_EventOneshot,
-                                     psCoreState->sBinnerState.psJob,
-                                     BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+                                     pJob->uiClientId, pJob->uiJobId, NULL,
+                                     BVC5_P_GetEventTimestamp());
             }
             if (uiStalled & BVC5_P_HardwareUnit_eRenderer)
             {
-               BVC5_P_AddCoreEventCJ(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
+               BVC5_P_InternalJob *pJob = psCoreState->sRenderState.psJob[0/* SAH TODO */];
+               BVC5_P_AddCoreEventCJD(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
                                      BVC5_P_EVENT_MONITOR_RENDER_LOCKUP, BVC5_EventOneshot,
-                                     psCoreState->sRenderState.psJob[0/* SAH TODO */],
-                                     BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+                                     pJob->uiClientId, pJob->uiJobId, NULL,
+                                     BVC5_P_GetEventTimestamp());
             }
             if (uiStalled & BVC5_P_HardwareUnit_eTFU)
             {
                /*
                BVC5_P_AddEvent(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK, 0,
                                  BVC5_P_EVENT_MONITOR_TFU_LOCKUP, BVC5_EventOneshot,
-                                 BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+                                 BVC5_P_GetEventTimestamp());
                */
             }
 
@@ -278,6 +299,7 @@ static void BVC5_P_WatchdogTimeout(
                {
                   /* Reset the core - sledgehammer time */
                   BVC5_P_HardwareResetCoreAndState(hVC5, uiCoreIndex);
+                  BVC5_P_MarkJobsFlushedV3D(hVC5, uiCoreIndex);
 
                   /* Mark jobs as abandoned -- MUST be done after reset as the reset clears the interrupt reasons */
                   BVC5_P_HardwareAbandonJobs(hVC5, uiCoreIndex);
@@ -321,6 +343,17 @@ static bool BVC5_P_ScheduleSoftJobsForClient(
 
    while (pJob != NULL)
    {
+      switch(pJob->pBase->eType)
+      {
+      case BVC5_JobType_eSetEvent:
+         BVC5_P_ClientSetSchedEvent(hClient, pJob->jobData.sEvent.eventId);
+         break;
+      case BVC5_JobType_eResetEvent:
+         BVC5_P_ClientResetSchedEvent(hClient, pJob->jobData.sEvent.eventId);
+         break;
+      default:
+         break;
+      }
       /* Add to completed queue (for this client) and remove from map */
       BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
 
@@ -862,6 +895,7 @@ static bool BVC5_P_AreDepsFinalizersDone(
 /* Test if a job's other prerequisites have been satisified */
 static bool BVC5_P_IsRunnable(
    BVC5_Handle          hVC5,
+   BVC5_ClientHandle    hClient,
    BVC5_P_InternalJob  *pInternalJob
 )
 {
@@ -887,6 +921,10 @@ static bool BVC5_P_IsRunnable(
       }
 
       bIsRunnable = pInternalJob->jobData.sWait.signaled;
+      break;
+
+   case BVC5_JobType_eWaitOnEvent:
+      bIsRunnable = BVC5_P_ClientWaitOnSchedEventDone(hClient, pInternalJob->jobData.sEvent.eventId);
       break;
 
    default:
@@ -916,7 +954,7 @@ static bool BVC5_P_ProcessWaitQJob(
    BDBG_ASSERT(hClient != NULL);
 
    if (BVC5_P_AreDepsResolved(hClient, psJob) &&
-       BVC5_P_IsRunnable(hVC5, psJob))
+       BVC5_P_IsRunnable(hVC5, hClient, psJob))
    {
       BDBG_MSG(("BVC5_P_ProcessWaitQJob jobID="BDBG_UINT64_FMT" clientID=%d", BDBG_UINT64_ARG(psJob->uiJobId), psJob->uiClientId));
 
@@ -1106,6 +1144,7 @@ void BVC5_Scheduler(
          break;
       }
 
+      /* coverity[double_lock] */
       BKNI_AcquireMutex(hVC5->hModuleMutex);
 
       /* Process the event or timeout */
@@ -1162,6 +1201,7 @@ void BVC5_P_WaitForJobCompletion(
       BDBG_MSG(("Client died with active hardware jobs"));
       BKNI_ReleaseMutex(hVC5->hModuleMutex);
       BKNI_Sleep(1);
+      /* coverity[double_lock] */
       BKNI_AcquireMutex(hVC5->hModuleMutex);
    }
 }

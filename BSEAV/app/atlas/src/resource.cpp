@@ -42,7 +42,7 @@ BDBG_MODULE(atlas_resource);
 
 CResource::CResource(
         const char *         name,
-        const uint16_t       number,
+        const unsigned       number,
         const eBoardResource type,
         CConfiguration *     pCfg
         ) :

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2015 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 #include "nxclient.h"
 #include "bstd.h"
@@ -48,6 +47,7 @@
 #include "nexus_cec.h"
 
 BDBG_MODULE(cec);
+#include "nxapp_prompt.inc"
 
 static NEXUS_CecHandle hCec;
 static bool deviceReady = false;
@@ -204,8 +204,7 @@ int main(void)
     transmitMessage.buffer[0] = 0x04;
     rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
     BDBG_ASSERT(!rc);
-    BDBG_WRN(("Press <ENTER> to continue"));
-    getchar();
+    nxapp_prompt("continue");
 
 
     BDBG_WRN(("*************************"));
@@ -215,8 +214,7 @@ int main(void)
     transmitMessage.buffer[0] = 0x36;
     rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
     BDBG_ASSERT(!rc);
-    BDBG_WRN(("Press <ENTER> to continue"));
-    getchar();
+    nxapp_prompt("continue");
 
 
     BDBG_WRN(("*************************"));
@@ -228,8 +226,7 @@ int main(void)
     if (rc) {
         BDBG_WRN(("Error Transmitting <Image View On> Message %d", rc));
     }
-    BDBG_WRN(("Press <ENTER> to continue"));
-    getchar();
+    nxapp_prompt("continue");
 
     loops = 10;
     while (--loops)

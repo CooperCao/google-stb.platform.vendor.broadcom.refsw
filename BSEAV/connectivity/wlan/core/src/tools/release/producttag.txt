@@ -1,0 +1,3 @@
+# Uncomment to override tag for epivers.sh
+#CVSTAG=F16_BRANCH_5_80
+#TAG=F16_BRANCH_5_80

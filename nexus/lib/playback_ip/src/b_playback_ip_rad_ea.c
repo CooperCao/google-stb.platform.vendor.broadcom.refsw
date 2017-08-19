@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: RAD/EA module
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #if defined(LINUX) || defined(__vxworks)
@@ -162,7 +154,7 @@ static bool verifyHeaders(B_PlaybackIpRadEaCtx *radEaCtx, char *radHeader, char 
 
   if( strcmp( temp, "TULI" ) != 0 )
   {
-        BDBG_ERR(("%s: did not find TULI", __FUNCTION__));
+        BDBG_ERR(("%s: did not find TULI", BSTD_FUNCTION));
         goto verifyHeaders_done;
   }
 
@@ -172,7 +164,7 @@ static bool verifyHeaders(B_PlaybackIpRadEaCtx *radEaCtx, char *radHeader, char 
 
   if( strcmp( temp, "RAD_" ) != 0 )
   {
-        BDBG_ERR(("%s: did not find RAD_", __FUNCTION__));
+        BDBG_ERR(("%s: did not find RAD_", BSTD_FUNCTION));
         goto verifyHeaders_done;
   }
 
@@ -242,7 +234,7 @@ static bool verifyHeaders(B_PlaybackIpRadEaCtx *radEaCtx, char *radHeader, char 
 
   if( strcmp( temp, "TULI" ) != 0 )
   {
-        BDBG_ERR(("%s: did not find TULI", __FUNCTION__));
+        BDBG_ERR(("%s: did not find TULI", BSTD_FUNCTION));
         goto verifyHeaders_done;
   }
 
@@ -252,7 +244,7 @@ static bool verifyHeaders(B_PlaybackIpRadEaCtx *radEaCtx, char *radHeader, char 
 
   if( strcmp( temp, "EA__" ) != 0 )
   {
-        BDBG_ERR(("%s: did not find EA__", __FUNCTION__));
+        BDBG_ERR(("%s: did not find EA__", BSTD_FUNCTION));
         goto verifyHeaders_done;
   }
 
@@ -319,7 +311,7 @@ _https_socket_select(B_PlaybackIpState *playbackIpState, int fd)
     while (true) {
         if ((*playbackIpState == B_PlaybackIpState_eStopping) || (*playbackIpState == B_PlaybackIpState_eStopped)) {
             /* user changed the channel, so return */
-            BDBG_WRN(("%s: breaking out of select loop due to state (%d) change\n", __FUNCTION__, *playbackIpState));
+            BDBG_WRN(("%s: breaking out of select loop due to state (%d) change\n", BSTD_FUNCTION, *playbackIpState));
             return -1;
         }
         FD_ZERO(&rfds);
@@ -330,16 +322,16 @@ _https_socket_select(B_PlaybackIpState *playbackIpState, int fd)
         rc = select(fd +1, &rfds, NULL, NULL, &tv);
         if (rc < 0) {
             if (errno == EINTR) {
-                BDBG_WRN(("%s: select System Call interrupted, retrying\n", __FUNCTION__));
+                BDBG_WRN(("%s: select System Call interrupted, retrying\n", BSTD_FUNCTION));
                 continue;
             }
-            BDBG_ERR(("%s: ERROR: select(): errno = %d", __FUNCTION__, errno));
+            BDBG_ERR(("%s: ERROR: select(): errno = %d", BSTD_FUNCTION, errno));
             return -1;
         }
 
         if (rc == 0 || !FD_ISSET(fd, &rfds)) {
             /* select timeout or some select event but our FD not set: No more data - wait */
-            BDBG_ERR(("%s: ERROR: select timed out after %d sec\n", __FUNCTION__, HTTP_SELECT_TIMEOUT));
+            BDBG_ERR(("%s: ERROR: select timed out after %d sec\n", BSTD_FUNCTION, HTTP_SELECT_TIMEOUT));
             return -1;
         }
         /* ready ready event on socket, return succcess */
@@ -384,7 +376,7 @@ static int read_data( B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState* playbac
         if ((*playbackIpState == B_PlaybackIpState_eStopping) || (*playbackIpState == B_PlaybackIpState_eStopped))
         {
             /* user changed the channel, so return */
-            BDBG_WRN(("%s: breaking out of read loop due to state (%d) change\n", __FUNCTION__, *playbackIpState));
+            BDBG_WRN(("%s: breaking out of read loop due to state (%d) change\n", BSTD_FUNCTION, *playbackIpState));
             return -1;
         }
 
@@ -393,19 +385,19 @@ static int read_data( B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState* playbac
       {
         if (errno == EINTR || errno == EAGAIN)
         {
-          BDBG_ERR(("%s: Read System Call interrupted or timed out, retrying (errno %d)\n", __FUNCTION__, errno));
+          BDBG_ERR(("%s: Read System Call interrupted or timed out, retrying (errno %d)\n", BSTD_FUNCTION, errno));
           continue;
         }
-        BDBG_ERR(("%s: read ERROR:%d", __FUNCTION__, errno));
+        BDBG_ERR(("%s: read ERROR:%d", BSTD_FUNCTION, errno));
         return rc;
       }
       else if (rc == 0)
       {
-        BDBG_ERR(("%s: WWW Reached EOF, server closed the connection!\n", __FUNCTION__));
+        BDBG_ERR(("%s: WWW Reached EOF, server closed the connection!\n", BSTD_FUNCTION));
         return rc;
       }
 
-      BDBG_MSG_FLOW(("%s: bytes read %d\n", __FUNCTION__, rc));
+      BDBG_MSG_FLOW(("%s: bytes read %d\n", BSTD_FUNCTION, rc));
       return rc;
     }
 
@@ -420,7 +412,7 @@ static char* radea_url_encode( char *inputStr, char *outputStr, int outputStrLen
   char *unRestrictedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
   int tempChr;
 
-  RADEA_PRINTF("->%s: input = %s\n", __FUNCTION__, inputStr);
+  RADEA_PRINTF("->%s: input = %s\n", BSTD_FUNCTION, inputStr);
   /* account for the 0 at the end */
   outputStrLength--;
 
@@ -487,7 +479,7 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
 
   if ((rc = B_PlaybackIp_UtilsTcpSocketConnect(radEaCtx->eaSessionOpenSettings.socketOpenSettings.ipAddr, radEaCtx->eaSessionOpenSettings.socketOpenSettings.port, true, &(radEaCtx->ea_sd))) != B_ERROR_SUCCESS)
   {
-    BDBG_ERR(("%s: ERROR: failed to Setup Socket Connection to Server: %s:%d\n", __FUNCTION__, radEaCtx->eaSessionOpenSettings.socketOpenSettings.ipAddr, radEaCtx->eaSessionOpenSettings.socketOpenSettings.port));
+    BDBG_ERR(("%s: ERROR: failed to Setup Socket Connection to Server: %s:%d\n", BSTD_FUNCTION, radEaCtx->eaSessionOpenSettings.socketOpenSettings.ipAddr, radEaCtx->eaSessionOpenSettings.socketOpenSettings.port));
     goto read_ea_data_error1;
   }
 
@@ -496,11 +488,11 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
   /* sslOpenOutputParams.byteRangeOffset = 0; - not needed */
   if ((rc = B_PlaybackIp_SslSessionOpen(&radEaCtx->eaSessionOpenSettings, radEaCtx->ea_sd, &sslOpenOutputParams) ) != B_ERROR_SUCCESS)
   {
-    BDBG_ERR(("%s: ERROR: B_PlaybackIp_SslSessionOpen failed \n", __FUNCTION__));
+    BDBG_ERR(("%s: ERROR: B_PlaybackIp_SslSessionOpen failed \n", BSTD_FUNCTION));
     goto read_ea_data_error2;
   }
 
-  RADEA_PRINTF("%s composing url with offset = %d\n", __FUNCTION__, offset);
+  RADEA_PRINTF("%s composing url with offset = %d\n", BSTD_FUNCTION, offset);
 
   if( radEaCtx->eaSessionOpenSettings.security.settings.radEa.radioChannel == true )
   {
@@ -593,10 +585,10 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
   rc = radEaCtx->sslNetIo.write(radEaCtx->sslSecurityHandle, playbackIpState, radEaCtx->ea_sd, request, strlen(request));
   if (rc < 0 )
   {
-    BDBG_ERR(("%s: write System Call interrupted or timed out, retrying (rc %d, errno %d)\n", __FUNCTION__, rc, errno));
+    BDBG_ERR(("%s: write System Call interrupted or timed out, retrying (rc %d, errno %d)\n", BSTD_FUNCTION, rc, errno));
     goto read_ea_data_error;
   }
-  RADEA_PRINTF("%s request written\n", __FUNCTION__);
+  RADEA_PRINTF("%s request written\n", BSTD_FUNCTION);
 
   /* Allocate buffer for ea data. HTTP_HEADER_LENGTH + 2  for the brackets, rbuf_len * 5 is for the ea data */
   eaDataLength = 2 + (rbuf_len * 5);
@@ -615,7 +607,7 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
     radEaCtx->tempBuffer = (char*)BKNI_Malloc(allocatedSize);
     if (!radEaCtx->tempBuffer)
     {
-      BDBG_ERR(("%s: memory allocation failure\n", __FUNCTION__));
+      BDBG_ERR(("%s: memory allocation failure\n", BSTD_FUNCTION));
       rc = -1;
       goto read_ea_data_error;
     }
@@ -630,17 +622,17 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
   {
     if(_https_socket_select(playbackIpState, radEaCtx->ea_sd))
     {
-      BDBG_ERR(("%s: select ERROR:%d\n", __FUNCTION__, errno));
+      BDBG_ERR(("%s: select ERROR:%d\n", BSTD_FUNCTION, errno));
       rc = -1;
       goto read_ea_data_error;
     }
 
-    RADEA_PRINTF("%s select succeeded\n", __FUNCTION__);
+    RADEA_PRINTF("%s select succeeded\n", BSTD_FUNCTION);
     /* Read EA data */
     if ((*playbackIpState == B_PlaybackIpState_eStopping) || (*playbackIpState == B_PlaybackIpState_eStopped))
     {
       /* user changed the channel, so return */
-      BDBG_WRN(("%s: breaking out of select loop due to state (%d) change\n", __FUNCTION__, *playbackIpState));
+      BDBG_WRN(("%s: breaking out of select loop due to state (%d) change\n", BSTD_FUNCTION, *playbackIpState));
       rc = -1;
       goto read_ea_data_error;
     }
@@ -651,17 +643,17 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
     {
       if (errno == EINTR || errno == EAGAIN)
         continue;
-      BDBG_ERR(("%s: read ERROR:%d", __FUNCTION__, errno));
+      BDBG_ERR(("%s: read ERROR:%d", BSTD_FUNCTION, errno));
       goto read_ea_data_error;
     }
     else if (rc == 0)
     {
-      BDBG_ERR(("%s: SSSSS  Reached EOF, server closed the connection! \n", __FUNCTION__));
+      BDBG_ERR(("%s: SSSSS  Reached EOF, server closed the connection! \n", BSTD_FUNCTION));
       break;
     }
 
     /* we read some data */
-    BDBG_MSG_FLOW(("%s: bytes read %d\n", __FUNCTION__, rc));
+    BDBG_MSG_FLOW(("%s: bytes read %d\n", BSTD_FUNCTION, rc));
     RADEA_PRINTF("bytes read = %d, headerProcessed = %d\n", rc, headerProcessed);
 
     bufferSize += rc;
@@ -675,20 +667,20 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
         switch (httpFields.parsingResult) {
         case B_PlaybackIpHttpHdrParsingResult_eIncompleteHdr:
             BDBG_WRN(("%s: Haven't yet received complete HTTP message header (bytesRead %d), reading more data into buffer of size %d\n",
-                        __FUNCTION__, bufferSize, tempBufferSize));
+                        BSTD_FUNCTION, bufferSize, tempBufferSize));
             if (bufferSize >= DLNA_MAX_HTTP_RESP_SIZE + eaDataLength)
             {
-              BDBG_ERR(("%s: ERROR: Did not receive complete HTTP Header Response in max allowed size (bytes read %d)\n", __FUNCTION__, bytesRead));
+              BDBG_ERR(("%s: ERROR: Did not receive complete HTTP Header Response in max allowed size (bytes read %d)\n", BSTD_FUNCTION, bytesRead));
               rc = -1;
               goto read_ea_data_error;
             }
 
             allocatedSize = (allocatedSize - eaDataLength)*2 + eaDataLength;
             BDBG_WRN(("%s: current buffer size (%d) not big enough to read complete HTTP response message, reallocing it to total of %d bytes\n",
-                        __FUNCTION__, tempBufferSize, allocatedSize));
+                        BSTD_FUNCTION, tempBufferSize, allocatedSize));
             if ( (radEaCtx->tempBuffer = realloc(radEaCtx->tempBuffer, allocatedSize)) == NULL)
             {
-              BDBG_ERR(("%s: Failed to reallocate memory by %d amount, errno = %d\n", __FUNCTION__, tempBufferSize, errno));
+              BDBG_ERR(("%s: Failed to reallocate memory by %d amount, errno = %d\n", BSTD_FUNCTION, tempBufferSize, errno));
               radEaCtx->tempBufferSize = 0;
               rc = -1;
               goto read_ea_data_error;
@@ -701,12 +693,12 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
             continue;
 
         case B_PlaybackIpHttpHdrParsingResult_eStatusNotSupported:
-            BDBG_ERR(("%s: ERROR: Unsupported HTTP Message status code %d in HTTP Response!!\n", __FUNCTION__, httpFields.statusCode));
+            BDBG_ERR(("%s: ERROR: Unsupported HTTP Message status code %d in HTTP Response!!\n", BSTD_FUNCTION, httpFields.statusCode));
             rc = -1;
             goto read_ea_data_error;
 
         case B_PlaybackIpHttpHdrParsingResult_eReadNextHdr:
-            BDBG_ERR(("%s: Received HTTP 1xx status code (%d), going back to receiving next response\n", __FUNCTION__, httpFields.statusCode));
+            BDBG_ERR(("%s: Received HTTP 1xx status code (%d), going back to receiving next response\n", BSTD_FUNCTION, httpFields.statusCode));
             if(tempBufferSize < DLNA_MAX_HTTP_RESP_SIZE + eaDataLength)
             {
               memset(radEaCtx->tempBuffer, 0, tempBufferSize);
@@ -721,7 +713,7 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
             }
         case B_PlaybackIpHttpHdrParsingResult_eIncorrectHdr:
         default:
-            BDBG_ERR(("%s: received Incorrect/Invalid Header\n", __FUNCTION__));
+            BDBG_ERR(("%s: received Incorrect/Invalid Header\n", BSTD_FUNCTION));
             rc = -1;
             goto read_ea_data_error;
         }
@@ -797,7 +789,7 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
       }
 
       rc = bytesRead;
-      RADEA_PRINTF("%s: Returning %d bytes\n", __FUNCTION__, bytesRead );
+      RADEA_PRINTF("%s: Returning %d bytes\n", BSTD_FUNCTION, bytesRead );
       if( bytesRead == 0 )
       {
         RADEA_PRINTF("returned HTTP data = %s\n", radEaCtx->tempBuffer);
@@ -836,19 +828,19 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
     }
     else if(bufferPtr[0] == 0x0d)
     {
-      BDBG_WRN(("%s: Unexpected character in input %02x\n", __FUNCTION__, ((int)bufferPtr[0])&0xff));
+      BDBG_WRN(("%s: Unexpected character in input %02x\n", BSTD_FUNCTION, ((int)bufferPtr[0])&0xff));
       bufferPtr++;
       bufferSize--;
     }
     else if(bufferPtr[0] == 0x0a)
     {
-      BDBG_WRN(("%s: Unexpected character in input %02x\n", __FUNCTION__, ((int)bufferPtr[0])&0xff));
+      BDBG_WRN(("%s: Unexpected character in input %02x\n", BSTD_FUNCTION, ((int)bufferPtr[0])&0xff));
       /* ignore the data from 0x0a to 0x0a */
       bufferPtr++;
       bufferSize--;
       while( *bufferPtr != 0x0a )
       {
-        BDBG_WRN(("%s: Ignoring characters in input %02x\n", __FUNCTION__, ((int)bufferPtr[0])&0xff));
+        BDBG_WRN(("%s: Ignoring characters in input %02x\n", BSTD_FUNCTION, ((int)bufferPtr[0])&0xff));
         bufferPtr++;
         bufferSize--;
       }
@@ -858,7 +850,7 @@ static int read_ea_data(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState *playb
     }
     else
     {
-      BDBG_ERR(("%s: Unexpected character in input %02x\n", __FUNCTION__, ((int)bufferPtr[0])&0xff));
+      BDBG_ERR(("%s: Unexpected character in input %02x\n", BSTD_FUNCTION, ((int)bufferPtr[0])&0xff));
       payload[payloadSize-1] = 0;
       RADEA_PRINTF("Buffer is %sDONE\n", payload);
       BDBG_ASSERT(0);
@@ -884,13 +876,13 @@ static int read_radea_headers(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState 
   /* read the EA header */
   if( (rc = read_ea_data(radEaCtx, playbackIpState, 0, eaHeader, EA_HEADER_SIZE )) <= 0 )
   {
-    BDBG_ERR(("%s: read_ea_data failed with error code %d\n", __FUNCTION__, rc));
+    BDBG_ERR(("%s: read_ea_data failed with error code %d\n", BSTD_FUNCTION, rc));
     goto read_radea_headers_done;
   }
 
   if( rc < EA_HEADER_SIZE )
   {
-    BDBG_ERR(("%s: Failed to read entire EA header\n", __FUNCTION__));
+    BDBG_ERR(("%s: Failed to read entire EA header\n", BSTD_FUNCTION));
     rc = -1;
     goto read_radea_headers_done;
   }
@@ -916,13 +908,13 @@ static int read_radea_headers(B_PlaybackIpRadEaCtx *radEaCtx, B_PlaybackIpState 
     /* let's read the RAD header */
     if( (rc = read_data( radEaCtx, playbackIpState, radHeaderPtr, headerSize )) <= 0 )
     {
-      BDBG_ERR(("%s: read_data failed with error code %d\n", __FUNCTION__, rc));
+      BDBG_ERR(("%s: read_data failed with error code %d\n", BSTD_FUNCTION, rc));
       goto read_radea_headers_done;
     }
 
     if( rc < RAD_HEADER_SIZE )
     {
-      BDBG_ERR(("%s: Failed to read entire EA header\n", __FUNCTION__));
+      BDBG_ERR(("%s: Failed to read entire EA header\n", BSTD_FUNCTION));
       rc = -1;
       goto read_radea_headers_done;
     }
@@ -1012,17 +1004,17 @@ read_start:
   readBufferPtr = rbuf;
   skipValidation = 0;
 
-  RADEA_PRINTF("%s called context = %p, buffer size = %d\n", __FUNCTION__, radEaCtx, rbuf_len);
+  RADEA_PRINTF("%s called context = %p, buffer size = %d\n", BSTD_FUNCTION, radEaCtx, rbuf_len);
 
   if ( (rbuf == NULL) || (rbuf_len <= 0) || (radEaCtx == NULL) )
   {
-    BDBG_ERR(("%s: invalid parameters to read, rbuf %p, rbuf_len %d, radEaCtx %p\n", __FUNCTION__, rbuf, rbuf_len, radEaCtx));
+    BDBG_ERR(("%s: invalid parameters to read, rbuf %p, rbuf_len %d, radEaCtx %p\n", BSTD_FUNCTION, rbuf, rbuf_len, radEaCtx));
     return -1;
   }
 
   BDBG_ASSERT( sd == radEaCtx->sd );
 
-  RADEA_PRINTF("%s enableDecryption = %d\n", __FUNCTION__, radEaCtx->radSessionOpenSettings.security.enableDecryption);
+  RADEA_PRINTF("%s enableDecryption = %d\n", BSTD_FUNCTION, radEaCtx->radSessionOpenSettings.security.enableDecryption);
 
   /* The http header for the RAD data is in the clear and parsed by the IP playback library.
      The mechanism is as follows:
@@ -1035,15 +1027,15 @@ read_start:
   {
     if( (rc = read_data( radEaCtx, playbackIpState, rbuf, rbuf_len )) <= 0 )
     {
-      BDBG_ERR(("%s: read_data failed with error code %d\n", __FUNCTION__, rc));
+      BDBG_ERR(("%s: read_data failed with error code %d\n", BSTD_FUNCTION, rc));
     }
 
     return rc;
   }
 
-  RADEA_PRINTF("%s decryption is enabled, buf len = %d, overflow = %d\n", __FUNCTION__, rbuf_len, radEaCtx->initialPayloadLength);
+  RADEA_PRINTF("%s decryption is enabled, buf len = %d, overflow = %d\n", BSTD_FUNCTION, rbuf_len, radEaCtx->initialPayloadLength);
 
-  RADEA_PRINTF("%s decrypted audio length = %d\n", __FUNCTION__, radEaCtx->decryptedAudioLength);
+  RADEA_PRINTF("%s decrypted audio length = %d\n", BSTD_FUNCTION, radEaCtx->decryptedAudioLength);
   /* there could be decrypted data from the last read call that still needs to be sent */
   if( rbuf_len < radEaCtx->decryptedAudioLength )
   {
@@ -1060,7 +1052,7 @@ read_start:
     write_file( "music.mp3", rbuf, rbuf_len );
     goto read_start;
 #else
-    RADEA_PRINTF("%s:%d returning %d\n", __FUNCTION__, __LINE__, rbuf_len);
+    RADEA_PRINTF("%s:%d returning %d\n", BSTD_FUNCTION, __LINE__, rbuf_len);
     return rbuf_len;
 #endif
   }
@@ -1083,7 +1075,7 @@ read_start:
 
   BDBG_ASSERT( numRadEaPackets <= MAX_EA_PACKETS );
 
-  RADEA_PRINTF("%s radea packets required = %d, position = %d\n", __FUNCTION__, numRadEaPackets, radEaCtx->eaPosition);
+  RADEA_PRINTF("%s radea packets required = %d, position = %d\n", BSTD_FUNCTION, numRadEaPackets, radEaCtx->eaPosition);
 
   /* read the headers */
   if( radEaCtx->eaPosition == 0 )
@@ -1091,27 +1083,27 @@ read_start:
     skipValidation = 4; /* skip the validation data */
     if( (rc = read_radea_headers(radEaCtx, playbackIpState)) <= 0 )
     {
-      BDBG_ERR(("%s: read_radea_headers failed with error code %d\n", __FUNCTION__, rc));
+      BDBG_ERR(("%s: read_radea_headers failed with error code %d\n", BSTD_FUNCTION, rc));
       return rc;
     }
   }
 
-  RADEA_PRINTF("%s finished reading radea headers\n", __FUNCTION__);
+  RADEA_PRINTF("%s finished reading radea headers\n", BSTD_FUNCTION);
 
   /* read the EA data */
   if( (rc = read_ea_data(radEaCtx, playbackIpState, radEaCtx->eaPosition, radEaCtx->eaBuffer, numRadEaPackets*EA_PACKET_SIZE)) <= 0)
   {
-    BDBG_ERR(("%s: read_ea_data failed with error code %d\n", __FUNCTION__, rc));
+    BDBG_ERR(("%s: read_ea_data failed with error code %d\n", BSTD_FUNCTION, rc));
     return rc;
   }
 
   availableEaPackets = rc/EA_PACKET_SIZE;
-  RADEA_PRINTF("%s: available EA packets = %d\n", __FUNCTION__, availableEaPackets);
+  RADEA_PRINTF("%s: available EA packets = %d\n", BSTD_FUNCTION, availableEaPackets);
   BDBG_ASSERT(availableEaPackets > 0);
 
   if( availableEaPackets < numRadEaPackets )
   {
-    BDBG_WRN(("%s: Detected end of file\n", __FUNCTION__));
+    BDBG_WRN(("%s: Detected end of file\n", BSTD_FUNCTION));
     numRadEaPackets = availableEaPackets;
   }
 
@@ -1129,11 +1121,11 @@ read_start:
     radEaCtx->initialPayloadLength = 0;
   }
 
-  RADEA_PRINTF("%s: reading RAD packet\n", __FUNCTION__);
+  RADEA_PRINTF("%s: reading RAD packet\n", BSTD_FUNCTION);
 
   if( (rc = read_data( radEaCtx, playbackIpState, radBuffer, radBufferSize )) <= 0 )
   {
-    BDBG_ERR(("%s: read_data failed with error code %d\n", __FUNCTION__, rc));
+    BDBG_ERR(("%s: read_data failed with error code %d\n", BSTD_FUNCTION, rc));
     return rc;
   }
 
@@ -1147,7 +1139,7 @@ read_start:
     radBufferSize = RAD_PACKET_SIZE;
   }
 
-  RADEA_PRINTF("%s: RAD buffer size = %d, eaPosition = %u\n", __FUNCTION__, radBufferSize, radEaCtx->eaPosition);
+  RADEA_PRINTF("%s: RAD buffer size = %d, eaPosition = %u\n", BSTD_FUNCTION, radBufferSize, radEaCtx->eaPosition);
 
 
   /* decrypt into a temporary buffer */
@@ -1164,13 +1156,13 @@ read_start:
     /* validate the data */
     if( memcmp( validationData, radEaCtx->eaValidationData, 4 ) != 0 )
     {
-      BDBG_ERR(("%s: validation data did not match\n", __FUNCTION__));
+      BDBG_ERR(("%s: validation data did not match\n", BSTD_FUNCTION));
       RADEA_PRINTF("EA data = %02x %02x %02x %02x\n", radEaCtx->eaValidationData[0], radEaCtx->eaValidationData[1], radEaCtx->eaValidationData[2], radEaCtx->eaValidationData[3]);
       RADEA_PRINTF("RAD data = %02x %02x %02x %02x\n", validationData[0], validationData[1], validationData[2], validationData[3]);
       BDBG_ASSERT(NULL);
     }
 
-    BDBG_WRN(("%s: validation data matches\n", __FUNCTION__));
+    BDBG_WRN(("%s: validation data matches\n", BSTD_FUNCTION));
   }
 
   radEaCtx->eaPosition += EA_PACKET_SIZE;
@@ -1210,7 +1202,7 @@ read_start:
     write_file( "music.mp3", rbuf, bytesRead );
     goto read_start;
 #else
-    RADEA_PRINTF("%s:%d returning %d\n", __FUNCTION__, __LINE__, bytesRead);
+    RADEA_PRINTF("%s:%d returning %d\n", BSTD_FUNCTION, __LINE__, bytesRead);
     return bytesRead;
 #endif
   }
@@ -1218,12 +1210,12 @@ read_start:
 
   if( radBufferSize < (RADEA_PACKET_SIZE-skipValidation) )
   {
-    BDBG_WRN(("%s: reached end of file?\n", __FUNCTION__));
+    BDBG_WRN(("%s: reached end of file?\n", BSTD_FUNCTION));
 #ifdef WRITE_FILE
     write_file( "music.mp3", rbuf, bytesRead );
     return bytesRead;
 #else
-    RADEA_PRINTF("%s:%d returning %d\n", __FUNCTION__, __LINE__, bytesRead);
+    RADEA_PRINTF("%s:%d returning %d\n", BSTD_FUNCTION, __LINE__, bytesRead);
     return bytesRead;
 #endif
   }
@@ -1233,7 +1225,7 @@ read_start:
   {
     if( (rc = read_data( radEaCtx, playbackIpState, radEaCtx->radBuffer, RAD_PACKET_SIZE )) <= 0 )
     {
-      BDBG_ERR(("%s: read_data failed with error code %d\n", __FUNCTION__, rc));
+      BDBG_ERR(("%s: read_data failed with error code %d\n", BSTD_FUNCTION, rc));
       return rc;
     }
 
@@ -1254,12 +1246,12 @@ read_start:
       if( radBufferSize < RADEA_PACKET_SIZE )
       {
         /* we are out of data */
-        BDBG_WRN(("%s: reached end of file?\n", __FUNCTION__));
+        BDBG_WRN(("%s: reached end of file?\n", BSTD_FUNCTION));
 #ifdef WRITE_FILE
         write_file( "music.mp3", rbuf, bytesRead );
         return bytesRead;
 #else
-        RADEA_PRINTF("%s:%d returning %d\n", __FUNCTION__, __LINE__, bytesRead);
+        RADEA_PRINTF("%s:%d returning %d\n", BSTD_FUNCTION, __LINE__, bytesRead);
         return bytesRead;
 #endif
       }
@@ -1297,13 +1289,13 @@ read_start:
       write_file( "music.mp3", rbuf, bytesRead );
       goto read_start;
 #else
-      RADEA_PRINTF("%s:%d returning %d\n", __FUNCTION__, __LINE__, bytesRead);
+      RADEA_PRINTF("%s:%d returning %d\n", BSTD_FUNCTION, __LINE__, bytesRead);
       return bytesRead;
 #endif
     }
   }
 
-  BDBG_WRN(("%s: we should not have got here\n", __FUNCTION__));
+  BDBG_WRN(("%s: we should not have got here\n", BSTD_FUNCTION));
   BDBG_ASSERT(0);
   return -1;
 }
@@ -1314,13 +1306,13 @@ int B_PlaybackIp_RadEaDecryptionEnable( void *securityHandle, char *initialPaylo
 
   if (!radEaCtx)
   {
-    BDBG_ERR(("%s: invalid radEaCtx %p\n", __FUNCTION__, radEaCtx));
+    BDBG_ERR(("%s: invalid radEaCtx %p\n", BSTD_FUNCTION, radEaCtx));
     return -1;
   }
 
   /* set flag to enable decryption */
   radEaCtx->radSessionOpenSettings.security.enableDecryption = true;
-  BDBG_WRN(("%s: initialPayloadLength = %d\n", __FUNCTION__, initialPayloadLength));
+  BDBG_WRN(("%s: initialPayloadLength = %d\n", BSTD_FUNCTION, initialPayloadLength));
   if( initialPayloadLength > 0 )
   {
       /* for now assume that the extra data is going to be less than one RAD packet */
@@ -1330,7 +1322,7 @@ int B_PlaybackIp_RadEaDecryptionEnable( void *securityHandle, char *initialPaylo
       radEaCtx->initialPayload = BKNI_Malloc(initialPayloadLength*sizeof(char));
       if (!radEaCtx->initialPayload)
       {
-        BDBG_ERR(("%s: memory allocation failure\n", __FUNCTION__));
+        BDBG_ERR(("%s: memory allocation failure\n", BSTD_FUNCTION));
         return -1;
       }
 
@@ -1377,7 +1369,7 @@ int B_PlaybackIp_RadEaSessionOpen(
     B_PlaybackIpSecurityOpenSettings *securityOpenSettings;  /* provides initial security context & other info */
 
     if (openSettings == NULL) {
-        BDBG_ERR(("%s: Invalid parameters, Open Settings: %p\n", __FUNCTION__, openSettings));
+        BDBG_ERR(("%s: Invalid parameters, Open Settings: %p\n", BSTD_FUNCTION, openSettings));
         goto sessionOpen_error;
     }
 
@@ -1396,23 +1388,23 @@ int B_PlaybackIp_RadEaSessionOpen(
 
     securityOpenSettings = &openSettings->security;
     if (sd <= 0) {
-        BDBG_ERR(("%s: invalid socket, sd = %d", __FUNCTION__, sd));
+        BDBG_ERR(("%s: invalid socket, sd = %d", BSTD_FUNCTION, sd));
         goto sessionOpen_error;
     }
 
     if (securityOpenSettings->securityProtocol != B_PlaybackIpSecurityProtocol_RadEa) {
-        BDBG_ERR(("%s: invoking RAD/EA module with incorrect security protocol %d", __FUNCTION__, securityOpenSettings->securityProtocol));
+        BDBG_ERR(("%s: invoking RAD/EA module with incorrect security protocol %d", BSTD_FUNCTION, securityOpenSettings->securityProtocol));
         goto sessionOpen_error;
     }
 
     if (securityOpenSettings->initialSecurityContext == NULL) {
-        BDBG_ERR(("%s: SSL Handle is not provided by app\n", __FUNCTION__));
+        BDBG_ERR(("%s: SSL Handle is not provided by app\n", BSTD_FUNCTION));
         goto sessionOpen_error;
     }
 
     radEaCtx = BKNI_Malloc(sizeof(B_PlaybackIpRadEaCtx));
     if (!radEaCtx) {
-        BDBG_ERR(("%s: memory allocation failure\n", __FUNCTION__));
+        BDBG_ERR(("%s: memory allocation failure\n", BSTD_FUNCTION));
         goto sessionOpen_error;
     }
     memset(radEaCtx, 0, sizeof(B_PlaybackIpRadEaCtx));
@@ -1439,7 +1431,7 @@ int B_PlaybackIp_RadEaSessionOpen(
     radEaCtx->eaSessionOpenSettings.security.initialSecurityContext = openSettings->security.initialSecurityContext;
     strcpy(radEaCtx->eaSessionOpenSettings.socketOpenSettings.ipAddr, "secure-direct.rhapsody.com");
     if ((radEaCtx->eaSessionOpenSettings.socketOpenSettings.url = BKNI_Malloc(512)) == NULL) {
-        BDBG_ERR(("%s: Failed to allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to allocate memory", BSTD_FUNCTION));
         goto sessionOpen_error;
     }
     strcpy(radEaCtx->eaSessionOpenSettings.socketOpenSettings.url, "");
@@ -1448,22 +1440,22 @@ int B_PlaybackIp_RadEaSessionOpen(
 #if 0
     if ((rc = B_PlaybackIp_UtilsTcpSocketConnect(radEaCtx->eaSessionOpenSettings.ipAddr, radEaCtx->eaSessionOpenSettings.port, &(radEaCtx->ea_sd))) != B_ERROR_SUCCESS)
     {
-      BDBG_ERR(("%s: ERROR: failed to Setup Socket Connection to Server: %s:%d\n", __FUNCTION__, radEaCtx->eaSessionOpenSettings.ipAddr, radEaCtx->openSettings.port));
+      BDBG_ERR(("%s: ERROR: failed to Setup Socket Connection to Server: %s:%d\n", BSTD_FUNCTION, radEaCtx->eaSessionOpenSettings.ipAddr, radEaCtx->openSettings.port));
       goto sessionOpen_error;
     }
 
     if ((rc = B_PlaybackIp_SslSessionOpen(&radEaCtx->eaSessionOpenSettings, radEaCtx->ea_sd, &radEaCtx->sslNetIo, &radEaCtx->sslSecurityHandle) ) != B_ERROR_SUCCESS)
     {
-      BDBG_ERR(("%s: ERROR: B_PlaybackIp_SslSessionOpen failed \n", __FUNCTION__));
+      BDBG_ERR(("%s: ERROR: B_PlaybackIp_SslSessionOpen failed \n", BSTD_FUNCTION));
       goto sessionOpen_error;
     }
 #endif
 
-    BDBG_WRN(("%s: setting up the netIo interface for socket read \n", __FUNCTION__));
+    BDBG_WRN(("%s: setting up the netIo interface for socket read \n", BSTD_FUNCTION));
     securityOpenOutputParams->netIoPtr->read = _http_rad_ea_socket_read;
     securityOpenOutputParams->netIoPtr->close = B_PlaybackIp_RadEaSessionClose;
     securityOpenOutputParams->netIoPtr->suspend = NULL;
-    BDBG_WRN(("%s: returning context %p \n", __FUNCTION__, radEaCtx));
+    BDBG_WRN(("%s: returning context %p \n", BSTD_FUNCTION, radEaCtx));
 
     *securityOpenOutputParams->securityHandle = (void *)radEaCtx;
     return 0;
@@ -1491,13 +1483,13 @@ int B_PlaybackIp_RadEaCloneSessionOpen(
     B_PlaybackIpRadEaCtx *radEaCtx = (B_PlaybackIpRadEaCtx *)sourceSecurityHandle;
 
     if (!radEaCtx || sd <=0 || !targetSecurityHandle ) {
-        BDBG_ERR(("%s: invalid radEaCtx %p or sd %d\n", __FUNCTION__, radEaCtx, sd));
+        BDBG_ERR(("%s: invalid radEaCtx %p or sd %d\n", BSTD_FUNCTION, radEaCtx, sd));
         return -1;
     }
 
     newSecurityCtx = BKNI_Malloc(sizeof(B_PlaybackIpRadEaCtx));
     if (!newSecurityCtx) {
-        BDBG_ERR(("%s: memory allocation failure\n", __FUNCTION__));
+        BDBG_ERR(("%s: memory allocation failure\n", BSTD_FUNCTION));
         return -1;
     }
 
@@ -1525,11 +1517,11 @@ void *B_PlaybackIp_RadEaInit(B_PlaybackIpSslInitSettings *initSettings)
         gRadEaInitRefCnt++;
         /* Global system initialization for RadEa library */
         if ( (gRadEaInitCtx = B_PlaybackIp_SslInit(initSettings)) == NULL ) {
-            BDBG_ERR(("%s: SslInit Failed for RAD/EA sessions\n", __FUNCTION__));
+            BDBG_ERR(("%s: SslInit Failed for RAD/EA sessions\n", BSTD_FUNCTION));
             goto radEaInit_error;
         }
 
-        BDBG_WRN(("%s: RAD/EA CTX for RAD/EA session = %p \n", __FUNCTION__, gRadEaInitCtx));
+        BDBG_WRN(("%s: RAD/EA CTX for RAD/EA session = %p \n", BSTD_FUNCTION, gRadEaInitCtx));
         return gRadEaInitCtx;
     }
 
@@ -1556,7 +1548,7 @@ void B_PlaybackIp_RadEaUnInit(void *ctx)
           /* Global system un-initialization for RadEa library */
           BDBG_ASSERT(gRadEaInitCtx != NULL);
           B_PlaybackIp_SslUnInit(gRadEaInitCtx);
-          BDBG_WRN(("%s: done\n", __FUNCTION__));
+          BDBG_WRN(("%s: done\n", BSTD_FUNCTION));
     }
 }
 

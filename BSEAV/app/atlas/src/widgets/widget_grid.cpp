@@ -93,7 +93,7 @@ void grid_bwidget_draw(
     /* Draw X/Y Coordiantes */
     {
         int32_t w, h, i, max;
-        int16_t gridx, gridy;
+        int     gridx, gridy;
 
         max = pGrid->getNumPoints();
 
@@ -204,7 +204,7 @@ void CWidgetGrid::showMeter(bool show)
 }
 
 /* sets the Meter value (range -32767-32767) */
-void CWidgetGrid::setLevel(int16_t level)
+void CWidgetGrid::setLevel(int level)
 {
     _level = level;
 
@@ -213,8 +213,8 @@ void CWidgetGrid::setLevel(int16_t level)
 
 /* Add an X,Y pair */
 void CWidgetGrid::addCoordinate(
-        int16_t x,
-        int16_t y
+        int x,
+        int y
         )
 {
     gridPoints * gridPts = new gridPoints;
@@ -230,9 +230,9 @@ void CWidgetGrid::addCoordinate(
 
 /* Get Coordinates */
 void CWidgetGrid::getCoordinate(
-        int16_t * x,
-        int16_t * y,
-        int       i
+        int * x,
+        int * y,
+        int   i
         )
 {
     MListItr<gridPoints> itr(&_gridPoints);

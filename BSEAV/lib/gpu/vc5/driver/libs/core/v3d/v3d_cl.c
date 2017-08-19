@@ -235,9 +235,15 @@ v3d_pixel_format_t v3d_raw_mode_pixel_format(
 }
 #endif
 
-void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
+void v3d_pack_clear_color(uint32_t packed[4], const uint32_t c[4],
    const V3D_RT_FORMAT_T *rt_format)
 {
+   uint32_t col[4] = { c[0], c[1], c[2], c[3] };
+#if V3D_HAS_RT_INT_CLAMP
+   for (int i=0; i<4; i++)
+      col[i] = v3d_apply_rt_int_clamp(col[i], rt_format->type, rt_format->clamp);
+#endif
+
    memset(packed, 0, 4 * sizeof(uint32_t));
    switch (rt_format->type)
    {
@@ -349,6 +355,28 @@ void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
 }
 
 #if V3D_HAS_RT_CLAMP
+# if V3D_HAS_RT_INT_CLAMP
+uint32_t v3d_apply_rt_int_clamp(uint32_t wr, v3d_rt_type_t rt_type, v3d_rt_clamp_t clamp)
+{
+   /* All non-int clamp modes are handled later */
+   if (clamp != V3D_RT_CLAMP_INT)
+      return wr;
+
+   switch(rt_type)
+   {
+   case V3D_RT_TYPE_8I:   return gfx_sclamp(wr, INT8_MIN,  INT8_MAX);
+   case V3D_RT_TYPE_8UI:  return gfx_uclamp(wr, 0,         UINT8_MAX);
+   case V3D_RT_TYPE_16I:  return gfx_sclamp(wr, INT16_MIN, INT16_MAX);
+   case V3D_RT_TYPE_16UI: return gfx_uclamp(wr, 0,         UINT16_MAX);
+
+   case V3D_RT_TYPE_32I:
+   case V3D_RT_TYPE_32UI:
+      return wr;
+   default: unreachable(); return 0;
+   }
+}
+# endif
+
 uint32_t v3d_apply_rt_clamp(uint32_t w, v3d_rt_type_t type, v3d_rt_clamp_t clamp)
 {
    switch (clamp)
@@ -365,7 +393,7 @@ uint32_t v3d_apply_rt_clamp(uint32_t w, v3d_rt_type_t type, v3d_rt_clamp_t clamp
          float f = gfx_float16_to_float(gfx_pick_16(w, i));
          switch (clamp)
          {
-         case V3D_RT_CLAMP_NORM: f = gfx_fclamp(f, 0.0f, 1.0f); break;
+         case V3D_RT_CLAMP_NORM: f = gfx_fclamp(gfx_nan_to_inf(f), 0.0f, 1.0f); break;
          case V3D_RT_CLAMP_POS:  f = gfx_sign_bit_set(f) ? 0.0f : f; break; // Don't use fmaxf; want to preserve +ve NaNs
          default:                unreachable();
          }
@@ -373,6 +401,10 @@ uint32_t v3d_apply_rt_clamp(uint32_t w, v3d_rt_type_t type, v3d_rt_clamp_t clamp
       }
       return res;
    }
+#if V3D_HAS_RT_INT_CLAMP
+   case V3D_RT_CLAMP_INT:
+      return w;   /* This has been handled earlier */
+#endif
    default:
       unreachable();
       return 0;

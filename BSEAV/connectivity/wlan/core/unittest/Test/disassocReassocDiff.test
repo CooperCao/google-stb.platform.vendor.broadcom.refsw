@@ -1,0 +1,653 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing disassociation and reassociation
+# of different MU-MIMO STAs 
+# Designed & written by: Kelvin Shum 
+# $Id: b273d31536adacf308af4f39689c054c69a2e2c4 $
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Streams
+package require UTF::Streamslib
+package require UTF::Test::rssinoise
+
+package provide UTF::Test::disassocReassocDiff 2.0
+
+proc getDumps {dut} {
+    $dut [$dut cget -wl] -u svmp_mem 0x20300 32
+    $dut [$dut cget -wl] -u svmp_mem 0x20700 32
+    $dut [$dut cget -wl] -u svmp_mem 0x20b00 32
+
+    foreach dump "wlc txbf mutx vasip_counters ampdu amsdu" {
+        $dut [$dut cget -wl] -u dump $dump
+    }
+    set cnt [$dut wl_counter reinit]
+    $dut et counters
+    $dut dhd -i eth1 cons mu
+    $dut dhd -i eth1 dump
+    foreach cmd "ampdu_clear_dump assoclist counters nrate\
+    rate ratedump pktq_stats mu_features txbf_mutimer mu_rate\
+    reset_cnts" {
+        $dut [$dut cget -wl] -u $cmd
+    }
+    $dut [$dut cget -wl] -u pmac shmx 0x80 -n 32
+    catch {
+        lan ifconfig
+        lan iperf -v
+        lan ps -f | grep iperf
+    }
+
+    return $cnt
+}
+
+proc getSmallDumps {dut} {
+    foreach dump "vasip_counters" {
+        $dut [$dut cget -wl] -u dump $dump
+    }
+    foreach cmd "mu_rate mu_group" {
+        $dut [$dut cget -wl] -u $cmd
+    }
+}
+
+proc unitscalefactor {units} {
+	switch -exact $units {
+	    "M" {
+		return 1000000.0
+	    }
+	    "K" {
+		return 1000.0
+	    }
+	    "" {
+		return 1
+	    }
+	    "G" {
+		return 1000000000.0
+	    }
+	    default {
+		error "Unknown units $units"
+	    }
+	}
+}
+
+proc rate2numeric {value} {
+	if {$value eq "-1"} {
+	    return 1000000
+	}
+	if {[string is double $value]} {
+	    return [format %0.0f $value]
+	}
+	set scale [unitscalefactor [string index $value end]]
+	set numeric [string range $value 0 end-1]
+	return [expr {$scale * $numeric}]
+}
+
+proc genStream {src dst STA direction protocol rate pktsize fb scansuppress\
+notcprate reportinterval} {
+    if {$scansuppress} {
+        $STA wl scansuppress 1
+    }
+
+    #get tcp window size
+    set tcpwindow [$STA cget -tcpwindow]
+    if {$tcpwindow eq ""} {
+        set tcpwindow 2M
+    }
+    if {$fb} {$src wl frameburst 1}
+    # UTF::stream will auto increment the destination
+    # port amongst other things.
+
+    if {[regexp -nocase "tcp" $protocol] && $notcprate} {
+        set traffic($STA) [UTF::stream %AUTO% -rx $dst -tx $src -pktsize $pktsize \
+             -w $tcpwindow -protocol [string tolower $protocol] \
+             -reportinterval $reportinterval -txstart_timeout 5000 \
+             -name ${src}-${dst}-$protocol-$direction]
+    } else {
+        set traffic($STA) [UTF::stream %AUTO% -rx $dst -tx $src -pktsize $pktsize \
+             -rate $rate -protocol [string tolower $protocol] \
+             -reportinterval $reportinterval -txstart_timeout 5000 \
+             -name ${src}-${dst}-$protocol-$direction]
+    }
+    $traffic($STA) id
+
+    return $traffic($STA)
+}
+
+UTF::Test disassocReassocDiff { args } {
+    UTF::Getopts {
+	{branch.arg "" "branch name"}
+	{title.arg "" "title of report"}
+	{email.arg "" "email alias the report sent to"}
+	{appair.arg "" "AP pair for comparison"}
+	{stas.arg "" "STAs"}
+	{direction.arg "DOWN" "traffic direction: up or down or bidir"}
+	{protocol.arg "TCP" "traffic stream type can be UDP or TCP"}
+	{pktsize.arg "1470" "Packet size"}
+	{rate.arg "1.5G" "Traffic rate"}
+	{notcprate "Don't specify tcp stream rate"}
+	{fb.arg "1" "enable/disable frameburst"}
+	{scansuppress "1" "to turn on scansuppress"}
+	{chanspecs.arg "1 1l 36 36l 36/80" "List of chanspecs to test"}
+	{no2g "to exclude 2G channels"}
+	{duration.arg "30" "timer to check traffic loss"}
+ 	{reportinterval.arg "0.1" "Desired reportinterval"}
+	{stats.arg "rate" "List of stream stat types to be gathered"}
+	{graphtype.arg "png" "Graph type"}
+	{graphsize.arg "640,480" "Graph size"}
+	{smoothing.arg "3" ""}
+	{nocleanup "Don't cleanup testbed after test complete"}
+	{norestore "Don't call restore_defaults for router" }
+	{noload "Don't load test rig."}
+	{attnlist.arg "" "attenuation between AP and each STA"}
+    {security.arg "aespsk2" "security"}
+	{history.arg "30" "Control chart history"}
+    }
+
+    if {$(graphtype) eq ""} {
+        set (graphtype) png
+    }
+    if {$(graphsize) eq ""} {
+        set (graphsize) "1024,768"
+    }
+    if {$(duration) eq ""} {
+        set (duration) 30 
+    }
+    if {$(notcprate) eq ""} {
+        set (notcprate) 1
+    }
+    if {$(attnlist) eq ""} {
+        foreach STA $(stas) {
+		    lappend (attnlist) [[$STA cget -attngrp] cget -default]
+        }
+    }
+    if {$(history) eq ""} {
+        set (history) 30 
+    }
+    if {[llength $(appair)] != 2} {
+	    error "One pair of APs is needed for this test"
+    }
+    if {[expr fmod([llength $(stas)],4)] != 0} {
+	    error "At least four STAs are needed for this test"
+    }
+    if {[llength $(stas)] != [llength $(attnlist)]} {
+	    error "STAs: $(stas) ATTNs: $(attnlist)\nThe number of STAs\
+        does not match the number of STA attenuations."
+    }
+    if {$(chanspecs) eq ""} {
+        error "Chanspecs cannot be empty.  Please specify the chanspecs."
+    }
+    
+    set build [UTF::BuildTitle [lindex $(appair) 0]]
+
+    set TITLE "UTF $(title) - $(branch) $build"
+    UTF::Message INFO "" $TITLE
+
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+
+    if {$(branch) eq ""} {
+        if {[regexp {/} $build]} {
+            error "Unable to determine branch name from build.  Please specify -branch"
+        }
+        set (branch) $build
+    }
+    unset build
+
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+    if {[regexp -nocase "TCP" $(protocol)] && [regexp -nocase "UDP" $(protocol)]} {
+        error "Invalid protocol $(protocol). It has to be TCP or UDP."
+    }
+    if {[regexp -nocase "UP" $(direction)]  && [regexp -nocase "DOWN" $(direction)] \
+	    && [regexp -nocase "BIDIR" $(direction)]} {
+        error "Invalid traffic direction $(direction). It has to be UP, DOWN or BIDIR."
+    }
+
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+    # Create empty summary table. If there is a higher level calling script,
+    # UTF will keep the existing summary table & related object and ignore this script.
+    set ::summaryinfo [UTF::setup_report_table]
+    append ::summaryinfo "</table>"
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE $::summaryinfo $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+    foreach ap $(appair) {
+	    foreach chanspec $(chanspecs) {
+        set aggRates_${ap}_$chanspec {}
+        set reinitCnts_${ap}_$chanspec {} 
+        }
+    }
+
+    foreach ap $(appair) {
+    set imageLoaded 0
+	UTF::Try "Image loading on STAs" {
+	    foreach STA $(stas) {
+        if {!$(noload)} {
+            UTF::Try "Find STA Image for $STA" {
+                #UTF::CheckImage $STA unknown
+                set resp [catch {$STA findimages} msg]
+                if {$resp} {                                                              
+                    error $msg                                                                                    
+                } else {                                                                                          
+                    $STA configure -image $msg                                                                    
+                    return $msg                                                                                   
+                }       
+            };#Try Find STA Image
+            # Add report summary table row for STA.
+            set id [UTF::get_build_id $msg]
+            set notes [UTF::get_build_notes $msg]
+            set status [UTF::get_build_status $msg $resp]
+            set ::summaryinfo [UTF::update_report_add $::summaryinfo $STA ""\
+            "" "" $id $notes $status]
+
+            UTF::Try "Image loading on $STA" {
+                $STA load
+            }
+            # Update report header table with actual OS and HW versions.
+            set ::summaryinfo [UTF::update_report_hwinfo $::summaryinfo]
+            # Update report title with actual TAG numbers.
+            UTF::update_report_title $STA
+        };#if !noload
+
+        };#foreach STA
+    };# Image loading on STAs
+
+	UTF::Try "Image loading on AP" {
+        if {!$(noload)} {
+            #only do reload and restore_defaults once 
+            UTF::Try "Find AP Image for $ap" {
+                #UTF::CheckImage $ap unknown
+                set resp [catch {$ap findimages} msg]
+                if {$resp} {
+                    error $msg
+                } else {
+                    $ap configure -image $msg
+                    return $msg
+                }
+            };#Try Find AP Image
+            # Add report summary table row for AP.
+            set id [UTF::get_build_id $msg]
+            set notes [UTF::get_build_notes $msg]
+            set status [UTF::get_build_status $msg $resp]
+            set ::summaryinfo [UTF::update_report_add $::summaryinfo $ap ""\
+            "" "" $id $notes $status]
+
+            UTF::Try "Image loading on $ap" {
+                $ap load
+                set imageLoaded 1 
+            }
+        };#if !noload
+        # Update report header table with actual OS and HW versions.
+        set ::summaryinfo [UTF::update_report_hwinfo $::summaryinfo]
+        # Update report title with actual TAG numbers.
+        UTF::update_report_title $ap
+
+        if {[$ap hostis Router] && !$(norestore)} {
+            UTF::Try "restore_defaults on $ap" {
+                $ap restore_defaults
+            }
+        }
+
+	};# Image loading on AP
+
+    if {$imageLoaded || $(noload)} {
+	foreach chanspec $(chanspecs) {
+	UTF::Try "+Chanspec $chanspec disassoc/reassoc different STA from $ap" {
+
+        UTF::Try "Iperf cleans" {
+		    foreach STA $(stas) { 
+                UTF::Streamslib::force_cleanup "$ap $STA" 
+            }
+        }        
+
+        set testplots ""
+        set testresults ""
+        set reinitCnt 0
+        set assocSTAs {}
+        set toggle 1
+        set 1hSTAs [lrange $(stas) 0 [expr [llength $(stas)]/2-1]] 
+        set 2hSTAs [lrange $(stas) [expr [llength $(stas)]/2] end] 
+        set 1hAttns [lrange $(attnlist) 0 [expr [llength $(attnlist)]/2-1]] 
+        set 2hAttns [lrange $(attnlist) [expr [llength $(attnlist)]/2] end] 
+		# Associate first half of STAs 
+		UTF::Try "$ap $1hSTAs Connections on $chanspec" {
+		foreach STA $1hSTAs attn $1hAttns {
+            UTF::Message INFO "$STA" "Set $STA attenuation to $attn"
+			set attngrp [$STA cget -attngrp]
+			if {$attngrp eq ""} {
+			    UTF::Message WARNING "" "Attenuation group not found for $STA"
+			} else {
+			    catch {$attngrp attn $attn}
+            }
+			catch {$STA wl -u disassoc}
+
+			#STA can be PSTA as well
+			if {[$STA hostis Router]} {
+			    package require UTF::Test::ConfigBridge
+			    UTF::Test::ConfigBridge -ap $ap -br $STA -chanspec $chanspec -linkcheck -proxysta
+			} else {
+			    for {set i 1} {$i < 4} {incr i} {
+                    UTF::Message INFO "$STA" "$(security) Association Try: $i"
+                    if {![catch {UTF::Test::ConnectAPSTA $ap $STA -chanspec $chanspec\
+                        -security $(security)}]} {
+                        break
+                    }
+                }
+			}
+            if {$i == 4} {
+                error "$STA could not associate to $ap"
+            }
+			$STA wl status
+			$STA wl rssi
+			catch {$ap cget -device}
+		    $ap wl -u status
+		    $ap wl -u assoclist 
+            lappend assocSTAs $STA
+			$STA wl -u status
+            set rn [UTF::Test::rssinoise $ap $STA -chanspec $chanspec -security $(security)]
+            if {[regexp -line {RSSI:\s+(-?[\d]+)\s+dBm} [$STA wl_escanresults] - rssi]} {
+                set lrssi "$STA: AP<->STA RSSI=$rn, STA Scan RSSI=$rssi, ch${chanspec}"
+            } else {
+                set lrssi "$STA: AP<->STA RSSI=$rn, STA Scan RSSI=N/A, ch${chanspec}"
+            }              
+        };# foreach STA
+		};# Try connection
+
+        if {[llength $assocSTAs] == [llength $1hSTAs]} {
+		set graphtitle "Add Title" 
+		UTF::Try "Traffic streams generation for $1hSTAs" {
+
+        #divide up the rate between the streams
+        set sRate [expr [rate2numeric $(rate)]/[llength $1hSTAs]]
+
+		foreach STA $1hSTAs {
+		    set msg " [string toupper $(protocol)] [string toupper $(direction)] CHAN $chanspec \\n"
+		    if {[regexp -nocase "udp" $(protocol)]} {
+			append msg " (per stream tx=$sRate)"
+			append msg " pktsize=$(pktsize) \\n"
+		    }
+		    set graphtitle $msg
+            if {[regexp -nocase "UP" $(direction)]} {
+                set src $STA
+                set dst $ap
+            } else {
+                set src $ap
+                set dst $STA
+            }
+			append msg "$src -> $dst \\n"
+
+			$STA wl status
+			$STA wl -u rssi
+			$STA wl -u dump rssi
+
+			set traffic($STA) [genStream $src $dst $STA $(direction) $(protocol)\
+            $sRate $(pktsize) $(fb) $(scansuppress) $(notcprate) $(reportinterval)]
+
+		    foreach dut "$ap $STA" {
+                foreach cmd [$dut cget -pre_perf_hook] {
+                    if {[catch [string map [list %S $dut] $cmd] ret]} {
+                        UTF::Message WARN $dut $ret
+                    }
+                }
+            }
+		    $traffic($STA) start
+
+            if {$toggle} {
+                UTF::StreamStatAggregate rate 
+                rate clear
+                set toggle 0
+            }
+		    $traffic($STA) stats -rate -clear -meanminmax 
+		};# foreach STA
+        $ap [$ap cget -wl] -u dump txbf
+        $ap [$ap cget -wl] -u dump mutx 
+        set gids {}
+        set output [$ap [$ap cget -wl] -u mu_group]
+        foreach line [split $output \n] {
+            if {[regexp -- {Group [\d+]:} $line - gid]} {
+                lappend gids $line
+            }
+        }
+        return $gids
+        };# Try traffic
+        UTF::Message INFO $ap "Wait $(duration) seconds before disassociating a STA" 
+        set tstop [expr $(duration)+[clock seconds]]
+        while {[clock seconds] <= $tstop} {
+            catch {getSmallDumps $ap}
+            UTF::Sleep 5 
+        } 
+
+        set assocSTAs {}
+		foreach dSTA $1hSTAs STA $2hSTAs attn $2hAttns {
+        set setup 0
+		UTF::Try "Disassociate $dSTA and associate $STA" {
+            UTF::Message INFO $dSTA "Disassociate $dSTA" 
+			$dSTA wl -u disassoc
+
+            UTF::Message INFO $STA "Set $STA attenuation to $attn"
+			set attngrp [$STA cget -attngrp]
+			if {$attngrp eq ""} {
+			    UTF::Message WARNING "" "Attenuation group not found for $STA"
+			} else {
+			    catch {$attngrp attn $attn}
+            }
+
+            for {set i 0} {$i < 5} {incr i} {
+            if {[regexp -line {RSSI:\s+(-?[\d]+)\s+dBm} [$STA wl_escanresults] - rssi]} {
+                UTF::Message INFO $STA "$STA Scan RSSI=$rssi on ch${chanspec}"
+                break
+            } else {
+                UTF::Message INFO $STA "$STA is not ready.  Will retry after 2 seconds." 
+                UTF::Sleep 2
+            }              
+            }
+
+			#STA can be PSTA as well
+            UTF::Message INFO $STA "Associate $STA" 
+			if {[$STA hostis Router]} {
+			    package require UTF::Test::ConfigBridge
+			    UTF::Test::ConfigBridge -ap $ap -br $STA -chanspec $chanspec -linkcheck -proxysta
+			} else {
+			    for {set i 1} {$i < 3} {incr i} {
+                    UTF::Message INFO "$STA" "$(security) Association Try: $i"
+                    if {![catch {UTF::Test::ConnectAPSTA $ap $STA -chanspec $chanspec\
+                        -security $(security)}]} {
+                        break
+                    }
+                }
+			}
+			$ap wl -u status
+			$ap wl -u assoclist 
+            UTF::Test::rssinoise $ap $STA -chanspec $chanspec -security $(security)
+            if {$i == 4} {
+                error "$STA could not associate to $ap"
+            }
+            lappend assocSTAs $STA
+            $ap [$ap cget -wl] -u dump mutx 
+            set gids {}
+            set output [$ap [$ap cget -wl] -u mu_group]
+            foreach line [split $output \n] {
+                if {[regexp -- {Group [\d+]:} $line - gid]} {
+                    lappend gids $line
+                }
+            }
+            return $gids
+		};# Try Disassoc/reassoc 
+
+		UTF::Try "Traffic stream generation for $STA" {
+		    set msg " [string toupper $(protocol)] [string toupper $(direction)] CHAN $chanspec \\n"
+		    if {[regexp -nocase "udp" $(protocol)]} {
+			append msg " (per stream tx=$(rate))"
+			append msg " pktsize=$(pktsize) \\n"
+		    }
+		    set graphtitle $msg
+
+            if {[regexp -nocase "UP" $(direction)]} {
+                set src $STA
+                set dst $ap
+            } else {
+                set src $ap
+                set dst $STA
+            }
+			append msg "$src -> $dst \\n"
+
+			$STA wl status
+			$STA wl -u rssi
+			$STA wl -u dump rssi
+
+			set traffic($STA) [genStream $src $dst $STA $(direction) $(protocol)\
+            $(rate) $(pktsize) $(fb) $(scansuppress) $(notcprate) $(reportinterval)]
+		    foreach dut "$STA" {
+                foreach cmd [$dut cget -pre_perf_hook] {
+                    if {[catch [string map [list %S $dut] $cmd] ret]} {
+                        UTF::Message WARN $dut $ret
+                    }
+                }
+            }
+            $STA ping [lan ipaddr] -c 5 
+		    $traffic($STA) start
+            UTF::Sleep 3 
+            $ap [$ap cget -wl] -u dump mutx 
+            set gids {}
+            set output [$ap [$ap cget -wl] -u mu_group]
+            foreach line [split $output \n] {
+                if {[regexp -- {Group [\d+]:} $line - gid]} {
+                    lappend gids $line
+                }
+            }
+            return $gids
+
+        };#Try Traffic
+
+        UTF::Message INFO $ap "Wait $(duration) seconds before disassociating the next STA" 
+        set tstop [expr $(duration)+[clock seconds]]
+        while {[clock seconds] <= $tstop} {
+            catch {getSmallDumps $ap}
+            UTF::Sleep 5 
+        } 
+		};# foreach dSTA
+        catch {incr reinitCnt [getDumps $ap]}
+
+        if {[llength $assocSTAs]} {
+		UTF::Try "Chanspec $chanspec throughput measurement" {
+		    UTF::stream allstreams stop
+		    rate stop
+
+            catch {incr reinitCnt [getDumps $ap]}
+
+            set testplots [rate plot -title "Aggregate $msg" -graphsize $(graphsize)]
+            set mmm [rate stats -meanminmax]
+		    catch {CC destroy}
+            set mykey "disassocReassocDiff $ap [$ap branchname] [$ap cget -brand] $chanspec\
+            $(protocol) $(direction)" 
+		    UTF::ControlChart CC -key $mykey -history $(history) -allowzero true\
+            -norangecheck true -title "$ap Aggregate Throughput" -units "bs"
+    		set ccVal [CC addsample $mmm]
+		    set ccplot [CC plotcontrolchart $ccVal]
+            set testresults $ccplot
+            set aggMean [lindex $mmm 0] 
+            set mmmHuman [UTF::stream hformat $aggMean] 
+            UTF::Message INFO "" "Aggregate Tput=$mmmHuman"
+            append testresults ", Aggregate Tput=$mmmHuman"
+
+		    foreach dut "$ap $(stas)" {
+                foreach cmd [$dut cget -post_perf_hook] {
+                    if {[catch [string map [list %S $dut] $cmd] ret]} {
+                        UTF::Message WARN $dut $ret
+                    }
+                }
+		    }
+            catch {rate destroy}
+            UTF::Message INFO $ap "Reinit Count = $reinitCnt"
+
+            lappend aggRates_${ap}_$chanspec $aggMean
+            lappend reinitCnts_${ap}_$chanspec $reinitCnt
+            append testresults ", Reinit Count = $reinitCnt "
+		    if {[regexp {(HIGH|LOW|WIDE|ZERO)} $ccVal]} {
+		        throw FAIL $testresults
+		    } else {
+                return $testresults
+		    }
+		};# Try Throughput Measurement
+
+        UTF::Try "Chanspec $chanspec throughput report" {
+            foreach STAT $(stats) {
+            set sg($STAT) [UTF::streamgraph %AUTO% -title $graphtitle -stat $STAT -graphsize $(graphsize)]
+            }
+
+            foreach STAT $(stats) {
+                append testplots "[$sg($STAT) plot -append] "
+            }
+            return $testplots
+        }
+        foreach STA $(stas) {
+            UTF::Try "$STA Control Chart" {
+                set mykey "disassocAssocDiff $STA $ap [$ap branchname] [$ap cget -brand] $chanspec $(security)\
+                $(protocol) $(direction)" 
+                set ret [$traffic($STA) controlchart -stat rate -history $(history) -key $mykey] 
+                if {[$traffic($STA) getcctests rate] eq "PASS"} {
+                    return $ret
+                } else {
+                    throw FAIL $ret 
+                }
+            }
+        }
+
+        catch {UTF::stream allstreams destroy}
+        };# llength STAs 
+        };# assoc STAs 
+        return $testresults
+	} finally {
+	    catch {UTF::stream exitstreams}
+        catch {rate destroy}
+
+	    if {!$(nocleanup)} {
+		foreach STA $(stas) {
+		    if {$(scansuppress)} {
+			$STA wl scansuppress 0
+		    }
+		    $STA wl disassoc
+		    $STA unload
+		}
+	    }
+    }
+	};# foreach chanspec 
+    };# imageLoaded
+    };#foreach appair
+    for {set i 0} {$i < [expr [llength $(appair)]/2]} {incr i} {
+        set ap1 [lindex $(appair) $i]
+        set ap2 [lindex $(appair) [expr $i+1]]
+        foreach chanspec $(chanspecs) {
+        set ap1Rates [set aggRates_${ap1}_$chanspec]
+        set ap2Rates [set aggRates_${ap2}_$chanspec]
+        set ap1reinitCnts [set reinitCnts_${ap1}_$chanspec]
+        set ap2reinitCnts [set reinitCnts_${ap2}_$chanspec]
+        UTF::Message DBG $ap1 "ap1Rates: $ap1Rates"
+        UTF::Message DBG $ap2 "ap2Rates: $ap2Rates"
+        foreach ap1Rate $ap1Rates ap2Rate $ap2Rates \
+        rc1 $ap1reinitCnts rc2 $ap2reinitCnts {
+            UTF::Try "Chanspec $chanspec MU-Gain" {
+            if {[llength $ap1Rate] == 0 || !$ap1Rate} {
+                UTF::Message DBG $ap1 "Calc failed: SU mean thruput is zero"
+                set gain "NA"
+            } else {
+                set gain [format %0.1f [expr (($ap2Rate-$ap1Rate)/$ap1Rate)*100]]
+            }
+            set suRate [UTF::stream hformat $ap1Rate]
+            set muRate [UTF::stream hformat $ap2Rate]
+            return "SU=$suRate,reinit cnt=$rc1; MU=$muRate,\
+            reinit cnt=$rc2; MU Gain=${gain}%"
+            };# Try
+        };#foreach ap1Rate
+        };#foreach chanspec
+    };# for
+    };#WrapSummary
+}

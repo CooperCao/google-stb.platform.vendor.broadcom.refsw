@@ -158,7 +158,7 @@ eRet CWidgetEdit::onKeyDown(
         break;
 
     case bwidget_key_right:
-        if (getPosition() < MString(_pText).length())
+        if ((int)getPosition() < MString(_pText).length())
         {
             if (labelSettings.text_justify_horiz == bwidget_justify_horiz_right)
             {
@@ -185,7 +185,7 @@ eRet CWidgetEdit::onKeyDown(
     return(ret);
 } /* onKeyDown */
 
-void CWidgetEdit::setPosition(uint16_t position)
+void CWidgetEdit::setPosition(unsigned position)
 {
     _position = position;
     bwin_repaint(bwidget_win(getWidget()), NULL);
@@ -193,7 +193,7 @@ void CWidgetEdit::setPosition(uint16_t position)
 
 void CWidgetEdit::addChar(
         char       ch,
-        uint16_t * pPosition
+        unsigned * pPosition
         )
 {
     int length = MString(_pText).length();
@@ -201,7 +201,7 @@ void CWidgetEdit::addChar(
     if (length < (EDIT_MAX_TEXT - 1))
     {
         /* shift letters right to make room for new char */
-        for (int i = length; i >= *pPosition; i--)
+        for (int i = length; i >= (int)*pPosition; i--)
         {
             _pText[i + 1] = _pText[i];
         }
@@ -214,7 +214,7 @@ void CWidgetEdit::addChar(
 } /* addChar */
 
 void CWidgetEdit::removeChar(
-        uint16_t * pPosition,
+        unsigned * pPosition,
         bool       right
         )
 {
@@ -222,7 +222,7 @@ void CWidgetEdit::removeChar(
 
     if (true == right)
     {
-        if (*pPosition < length)
+        if ((int)(*pPosition) < length)
         {
             /* shift letters from position to length forward */
             for (int i = *pPosition; i < length; i++)
@@ -328,7 +328,7 @@ void CWidgetEdit::drawText(
         }
 
         /* draw text after cursor */
-        if ((drawText.length() > getPosition()) && drawText.length())
+        if ((drawText.length() > (int)getPosition()) && drawText.length())
         {
             bwin_draw_text(win, pLabelSettings->font, x + drawWidth, y,
                     ((const char *)pLabelSettings->text) + getPosition(),

@@ -7,7 +7,7 @@
 #include "libs/util/gfx_util/gfx_util_conv.h"
 #include "gfx_buffer.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /** Individual transform functions */
 
@@ -372,4 +372,4 @@ static inline void gfx_buffer_apply_xform_seq_single_block(
    gfx_lfmt_block_arr_single_get(out, &out_arr);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

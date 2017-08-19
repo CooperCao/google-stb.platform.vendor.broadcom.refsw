@@ -1,56 +1,49 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/common/System/src/bbSysMemMan.c $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
  *
  * DESCRIPTION:
- *   This is the source file for the Memory Manager component.
+ *      Memory Manager implementation.
  *
- * $Revision: 8515 $
- * $Date: 2015-09-29 12:22:36Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
 
-/************************* INCLUDES ****************************************************/
+/************************* INCLUDES ***********************************************************************************/
 #include "bbSysMemMan.h"
 
 /************************* DEBUG CONFIGURATION ************************************************************************/
@@ -229,7 +222,7 @@ SYS_STATIC void mmSetNextBlock(const size_t  blockId, const size_t  nextBlockId)
 
 /**//**
  * \brief   Sets the Leading Block flag for the specified block.
- * \param[in]   blockId         Identifier of the nonleading block block to be made leading.
+ * \param[in]   blockId         Identifier of the nonleading block to be made leading.
  * \details The Leading Block flag is stored in the bit #7 of the Size & Status field of the block.
  */
 #if !DF()
@@ -240,7 +233,7 @@ SYS_STATIC void mmMakeLeading(const size_t  blockId);
 
 /**//**
  * \brief   Clears the Leading Block flag for the specified block.
- * \param[in]   blockId         Identifier of the leading block block to be made nonleading.
+ * \param[in]   blockId         Identifier of the leading block to be made nonleading.
  * \details The Leading Block flag is stored in the bit #7 of the Size & Status field of the block.
  */
 #if !DF()
@@ -260,6 +253,8 @@ SYS_STATIC void mmMakeNonleading(const size_t  blockId);
  *  for the global queue of all free blocks) it means that such block belongs to the queue of free blocks; freeing or
  *  forcedly linking such block to a different block would brake the queue of free blocks and originate a linkage loop
  *  or multiple linkage.
+ * \note    This function is provided only for debugging purposes. It must not be used in algorithms other than
+ *  evaluation of asserted expressions having the severity level 'FAIL' (internal failure).
  */
 #if !DF()
 SYS_STATIC bool mmIsLinkedBlock(const size_t  blockId);
@@ -298,6 +293,22 @@ SYS_STATIC void mmPreallocBlock(const size_t  blockId, const MM_Size_t  size);
 #endif
 
 /**//**
+ * \brief   Extends the specified block.
+ * \param[in]   blockId     Identifier of the busy block to be extended.
+ * \param[in]   newSize     New size to be set for the extended block, in bytes.
+ * \details The new size must be less or equal to the full block size but not less than the original size of the
+ *  extended block. It's allowed for the new size to be equal to the original size.
+ * \details This function preserves the Leading Block flag of the block.
+ * \details Only busy block may be extended. The Null Block is not allowed for this function.
+ */
+#if !DF()
+SYS_STATIC void mmExtendBlock(const size_t  blockId, const MM_Size_t  newSize);
+#else
+# define mmExtendBlock(blockId, newSize)\
+        do { mmSizes[blockId] = (newSize | (mmSizes[blockId] & (MM_LEADING_FLAG_MASK))); } while (0)
+#endif
+
+/**//**
  * \brief   Shrinks the specified block.
  * \param[in]   blockId     Identifier of the busy block to be shrunk.
  * \param[in]   newSize     New size to be set for the shrunk block, in bytes.
@@ -309,8 +320,7 @@ SYS_STATIC void mmPreallocBlock(const size_t  blockId, const MM_Size_t  size);
 #if !DF()
 SYS_STATIC void mmShrinkBlock(const size_t  blockId, const MM_Size_t  newSize);
 #else
-# define mmShrinkBlock(blockId, newSize)\
-        do { mmSizes[blockId] = (newSize | (mmSizes[blockId] & (MM_LEADING_FLAG_MASK))); } while (0)
+# define mmShrinkBlock(blockId, newSize)    mmExtendBlock(blockId, newSize)
 #endif
 
 /**//**
@@ -356,7 +366,7 @@ SYS_STATIC size_t mmGrantChain(const size_t  lastBlockId);
 SYS_STATIC void mmCollectChain(const size_t  firstBlockId, const size_t  lastBlockId);
 
 /**//**
- * \brief   Rollbacks the memory chunk allocation.
+ * \brief   Rolls back the memory chunk allocation.
  * \details This function is called in the case of lack of dynamic memory discovered during the blocks chain
  *  preallocation step. It must be called prior the preallocated chain is detached from the global queue of free blocks.
  */
@@ -369,7 +379,7 @@ SYS_STATIC void mmRollbackAlloc(void);
  *  #MM_MAX_BLOCK_ID, the entry point will be shifted to one block. This virtual block #0 will not be used; zero
  *  Block Id is used as the identifier of the Null Block.
  */
-SYS_MEMDEF MmBlock_t  mmBlocksArray[MM_MAX_BLOCK_ID];
+SYS_MEMDEF MmBlock_t    mmBlocksArray[MM_MAX_BLOCK_ID];
 
 /**//**
  * \brief   Static array of packed Block Ids used for linking blocks into chains forming memory chunks.
@@ -397,7 +407,7 @@ SYS_MEMDEF MM_Link_t    mmLinksArray[1 + MM_MAX_BLOCK_ID];
  * \details Actual size of a block is stored in the Size & Status field bits #0..#6, while the bit #7 stores the Leading
  *  Block flag.
  */
-SYS_MEMDEF MmSize_t  mmSizesArray[MM_MAX_BLOCK_ID];
+SYS_MEMDEF MmSize_t     mmSizesArray[MM_MAX_BLOCK_ID];
 
 /************************* STATIC CONSTANTS ***************************************************************************/
 /**//**
@@ -406,7 +416,7 @@ SYS_MEMDEF MmSize_t  mmSizesArray[MM_MAX_BLOCK_ID];
  * \details Index zero must not be used as the Block Id; zero Block Id is used as the Null Block Identifier. There are
  *  no static memory allocated for the Null Block.
  */
-SYS_STATIC MmBlock_t *const  mmBlocks = (((MmBlock_t*)mmBlocksArray) - 1);
+SYS_STATIC MmBlock_t *const     mmBlocks = (((MmBlock_t*)mmBlocksArray) - 1);
 
 /**//**
  * \brief   Entry point to the array of inter-block links.
@@ -431,7 +441,7 @@ SYS_STATIC MM_Link_t *const     mmLinks = (mmLinksArray);
  *  free blocks the Size & Status field is set to zero. Leading Blocks have bit #7 set to one in their Size & Status
  *  field. The actual size of a block, in bytes, is stored in bits #0..#6.
  */
-SYS_STATIC MmSize_t *const  mmSizes = (((MmSize_t*)mmSizesArray) - 1);
+SYS_STATIC MmSize_t *const      mmSizes = (((MmSize_t*)mmSizesArray) - 1);
 
 /************************* IMPLEMENTATION *****************************************************************************/
 /* ---------------------------------------------------------------------------------------------------------------------
@@ -700,7 +710,7 @@ SYS_PUBLIC bool SYS_MemoryManagerFreeTail(const MM_ChunkId_t  chunkId, const MM_
  * Splits the given memory chunk at the specified offset and returns Ids of the detached head and tail parts.
  */
 SYS_PUBLIC bool SYS_MemoryManagerSplit(MM_ChunkId_t *const  pHeadChunkId, MM_ChunkId_t *const  pTailChunkId,
-        const MM_Size_t  headSize)
+        const MM_Size_t  headSize, MM_ChunkId_t *const  pInterBlockId)
 {
     SYS_DbgAssert(DF(NULL != pTailChunkId && NULL != pHeadChunkId), FAIL_SYS_MemoryManagerSplit_PtrChunkIdIsNull);
 
@@ -709,7 +719,8 @@ SYS_PUBLIC bool SYS_MemoryManagerSplit(MM_ChunkId_t *const  pHeadChunkId, MM_Chu
 
     const size_t  headChunkId = *pHeadChunkId;          /* Identifier of the memory chunk to be split. */
     if (MM_BAD_BLOCK_ID == headChunkId) {
-        SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerSplit_HeadChunkIsNull);
+        SYS_DbgAssertLog(DW(0 == headSize), WARN_SYS_MemoryManagerSplit_HeadSizeIsGreaterThanZeroWhileHeadIsNull);
+        SYS_DbgAssertLog(DI(0 != headSize), INFO_SYS_MemoryManagerSplit_HeadChunkIsNull);
         return TRUE;
     }
     if (!mmIsValidBlockId(headChunkId)) {
@@ -730,7 +741,7 @@ SYS_PUBLIC bool SYS_MemoryManagerSplit(MM_ChunkId_t *const  pHeadChunkId, MM_Chu
         SYS_DbgAssert(DF(!mmIsLinkedBlock(headChunkId)), FAIL_SYS_MemoryManagerSplit_HeadLeadingBlockIsLinked);
         *pTailChunkId = headChunkId;
         *pHeadChunkId = MM_BAD_BLOCK_ID;
-        SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerSplit_HeadSizeIsZero);
+        SYS_DbgAssertLog(DI(), INFO_SYS_MemoryManagerSplit_HeadSizeIsZero);
         return TRUE;
     }
 
@@ -758,14 +769,33 @@ SYS_PUBLIC bool SYS_MemoryManagerSplit(MM_ChunkId_t *const  pHeadChunkId, MM_Chu
         else {
             const MM_Size_t  headPartSize = remSize;                    /* Size of the head part of the split block. */
             const MM_Size_t  tailPartSize = (blockSize - remSize);      /* Size of the tail part of the split block. */
-            const size_t  newBlockId = SYS_MemoryManagerAlloc(tailPartSize);    /* Id of the additional tail block. */
-            if (MM_BAD_BLOCK_ID == newBlockId) {
-                SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerSplit_NotEnoughMemory);
-                return FALSE;
+            size_t  interBlockId;       /* Id of the inter-block - the additional tail block. */
+            if (NULL == pInterBlockId) {
+                interBlockId = SYS_MemoryManagerAlloc(tailPartSize);
+                if (MM_BAD_BLOCK_ID == interBlockId) {
+                    SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerSplit_NotEnoughMemory);
+                    return FALSE;
+                }
+            } else {
+                interBlockId = *pInterBlockId;
+                if (MM_BAD_BLOCK_ID == interBlockId) {
+                    SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerSplit_InterBlockIsNull);
+                    return FALSE;
+                }
+                if (1 != SYS_MemoryManagerGetSize(interBlockId)) {
+                    SYS_DbgAssert(DH(), HALT_SYS_MemoryManagerSplit_InterBlockIsInvalid);
+                    return FALSE;
+                }
+                if (!mmIsLeadingBlock(mmGetSizeStatus(interBlockId))) {
+                    SYS_DbgAssert(DH(), HALT_SYS_MemoryManagerSplit_InterBlockIsNotLeading);
+                    return FALSE;
+                }
+                *pInterBlockId = MM_BAD_BLOCK_ID;
+                mmExtendBlock(interBlockId, tailPartSize);
             }
-            *pTailChunkId = newBlockId;
-            memcpy(mmBlocks[newBlockId], &(mmBlocks[eachBlockId][headPartSize]), tailPartSize);
-            mmSetNextBlock(newBlockId, mmGetNextBlock(eachBlockId));
+            *pTailChunkId = interBlockId;
+            memcpy(mmBlocks[interBlockId], &(mmBlocks[eachBlockId][headPartSize]), tailPartSize);
+            mmSetNextBlock(interBlockId, mmGetNextBlock(eachBlockId));
             mmShrinkBlock(eachBlockId, headPartSize);
         }
         mmSetNextBlock(eachBlockId, MM_BAD_BLOCK_ID);
@@ -779,7 +809,8 @@ SYS_PUBLIC bool SYS_MemoryManagerSplit(MM_ChunkId_t *const  pHeadChunkId, MM_Chu
 /* ---------------------------------------------------------------------------------------------------------------------
  * Appends the tail memory chunk to the head memory chunk.
  */
-SYS_PUBLIC bool SYS_MemoryManagerAppend(MM_ChunkId_t *const  pHeadChunkId, const MM_ChunkId_t  tailChunkId)
+SYS_PUBLIC bool SYS_MemoryManagerAppend(MM_ChunkId_t *const  pHeadChunkId, const MM_ChunkId_t  tailChunkId,
+        MM_ChunkId_t *const  pExhaustBlockId)
 {
     SYS_DbgAssert(DF(NULL != pHeadChunkId), FAIL_SYS_MemoryManagerAppend_PtrChunkIdIsNull);
 
@@ -851,10 +882,83 @@ SYS_PUBLIC bool SYS_MemoryManagerAppend(MM_ChunkId_t *const  pHeadChunkId, const
         eachTailBlockId = mmGetNextBlock(eachTailBlockId);
     } while (MM_BAD_BLOCK_ID != eachTailBlockId);
     SYS_DbgAssert(DF(lastHeadBlockId != lastTailBlockId), FAIL_SYS_MemoryManagerAppend_HeadAndTailChainsIntersect);
+    SYS_DbgAssert(DH(lastHeadBlockId != lastTailBlockId), HALT_SYS_MemoryManagerAppend_HeadAndTailChainsIntersect);
 #endif
 
-    mmMakeNonleading(tailChunkId);
-    mmSetNextBlock(lastHeadBlockId, tailChunkId);
+    if (NULL == pExhaustBlockId || MM_BAD_BLOCK_ID != *pExhaustBlockId) {
+        mmMakeNonleading(tailChunkId);
+        mmSetNextBlock(lastHeadBlockId, tailChunkId);
+    } else /* if (MM_BAD_BLOCK_ID == *pExhaustBlockId) */ {
+        const MM_Size_t  lastHeadBlockSize =                            /* Size of the first combined block. */
+                mmExtractSize(mmGetSizeStatus(lastHeadBlockId));
+        const MM_Size_t  firstTailBlockSize =                           /* Size of the second combined block. */
+                mmExtractSize(mmGetSizeStatus(tailChunkId));
+        SYS_DbgAssert(DH(lastHeadBlockSize + firstTailBlockSize <= MM_BLOCK_SIZE),
+                HALT_SYS_MemoryManagerAppend_FailedToCombineBlocks);
+        mmExtendBlock(lastHeadBlockId, lastHeadBlockSize + firstTailBlockSize);
+        memcpy(&(mmBlocks[lastHeadBlockId][lastHeadBlockSize]), mmBlocks[tailChunkId], firstTailBlockSize);
+        mmShrinkBlock(tailChunkId, 1);
+        mmSetNextBlock(lastHeadBlockId, mmGetNextBlock(tailChunkId));
+        mmSetNextBlock(tailChunkId, MM_BAD_BLOCK_ID);
+        *pExhaustBlockId = tailChunkId;
+    }
+    return TRUE;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------------
+ * Resizes the memory chunk within its trailing block.
+ */
+SYS_PUBLIC bool SYS_MemoryManagerResize(const MM_ChunkId_t  chunkId, const MM_Size_t  size)
+{
+    if (MM_BAD_BLOCK_ID == chunkId) {
+        SYS_DbgAssertLog(DH(), HALT_SYS_MemoryManagerResize_ChunkIsNull);
+        return FALSE;
+    }
+    if (!mmIsValidBlockId(chunkId)) {
+        SYS_DbgAssert(DH(), HALT_SYS_MemoryManagerResize_ChunkIdIsInvalid);
+        return FALSE;
+    }
+    if (MM_FREE_BLOCK == mmGetSizeStatus(chunkId)) {
+        SYS_DbgAssert(DH(), HALT_SYS_MemoryManagerResize_FirstBlockIsFree);
+        return FALSE;
+    }
+
+#if !DF()
+    size_t  countBlocks = MM_MAX_BLOCK_ID;          /* Down-counter of blocks in the chunk. */
+#endif
+    size_t  eachBlockId = chunkId;      /* Iterates over blocks in the chunk. */
+    size_t  lastBlockId;                /* Finally will contain the chunk last block Id. */
+    MM_Size_t  chunkSize = 0;           /* Current size of the chunk, in bytes. */
+    MM_Size_t  lastBlockSize;           /* Size of the last block in the chunk, in bytes. */
+    do {
+        SYS_DbgAssert(DF(countBlocks-- > 0), FAIL_SYS_MemoryManagerResize_LoopFoundInChunk);
+        const MmSize_t  blockSizeStatus = mmGetSizeStatus(eachBlockId);         /* Size & Status of current block. */
+        SYS_DbgAssert(DF(MM_FREE_BLOCK != blockSizeStatus), FAIL_SYS_MemoryManagerResize_FreeIntermediateBlock);
+        lastBlockSize = mmExtractSize(blockSizeStatus);
+        chunkSize += lastBlockSize;
+        lastBlockId = eachBlockId;
+        eachBlockId = mmGetNextBlock(eachBlockId);
+    } while (MM_BAD_BLOCK_ID != eachBlockId);
+
+    if (size > chunkSize) {
+        const MM_Size_t  sizeChange = (size - chunkSize);               /* Change in the chunk size, in bytes. */
+        const MM_Size_t  maxExtend = (MM_BLOCK_SIZE - lastBlockSize);   /* Limit for the last block extension. */
+        if (sizeChange > maxExtend) {
+            SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerResize_SizeOvercomesBlockUpperLimit);
+            return FALSE;
+        }
+        mmExtendBlock(lastBlockId, lastBlockSize + sizeChange);
+    } else if (size < chunkSize) {
+        const MM_Size_t  sizeChange = (chunkSize - size);               /* Change in the chunk size, in bytes. */
+        const MM_Size_t  maxShrink = (lastBlockSize - 1);               /* Limit for the last block shrinkage. */
+        if (sizeChange > maxShrink) {
+            SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerResize_SizeOvercomesBlockLowerLimit);
+            return FALSE;
+        }
+        mmShrinkBlock(lastBlockId, lastBlockSize - sizeChange);
+    } /* else if (size == chunkSize)
+        do nothing; */
+
     return TRUE;
 }
 
@@ -879,7 +983,7 @@ SYS_PUBLIC MM_Size_t SYS_MemoryManagerGetSize(const MM_ChunkId_t  chunkId)
 #if !DF()
     size_t  countBlocks = MM_MAX_BLOCK_ID;          /* Down-counter of blocks in the chunk. */
 #endif
-    size_t  eachBlockId = chunkId;
+    size_t  eachBlockId = chunkId;      /* Iterates over blocks in the chunk. */
     MM_Size_t  totalSize = 0;           /* Accumulator for the memory chunk total size calculation, in bytes. */
     do {
         SYS_DbgAssert(DF(countBlocks-- > 0), FAIL_SYS_MemoryManagerGetSize_LoopFoundInChunk);
@@ -1124,6 +1228,24 @@ SYS_STATIC void mmPreallocBlock(const size_t  blockId, const MM_Size_t  size)
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------
+ * Extends the specified block.
+ */
+SYS_STATIC void mmExtendBlock(const size_t  blockId, const MM_Size_t  newSize)
+{
+    SYS_DbgAssert(mmIsValidBlockId(blockId), FAIL_mmExtendBlock_BlockIdIsInvalid);
+    SYS_DbgAssert(MM_BAD_BLOCK_ID != blockId, FAIL_mmExtendBlock_NullBlockMustNotBeUsed);
+    const MmSize_t  sizeStatus = mmSizes[blockId];
+    SYS_DbgAssert(MM_FREE_BLOCK != sizeStatus, FAIL_mmExtendBlock_BlockIsFree);
+    const MM_Size_t  size = mmExtractSize(sizeStatus);
+    SYS_DbgAssert(mmIsValidSize(size), FAIL_mmExtendBlock_BlockSizeIsBroken);
+    SYS_DbgAssert(MM_FREE_BLOCK != newSize, FAIL_mmExtendBlock_NewSizeIsZero);
+    SYS_DbgAssert(mmIsValidSize(newSize), FAIL_mmExtendBlock_NewSizeIsInvalidOrAttemptToSetLeadingFlag);
+    SYS_DbgAssert(newSize >= size, FAIL_mmExtendBlock_NewSizeIsLessThanCurrent);
+    SYS_DbgAssert(newSize <= MM_BLOCK_SIZE, FAIL_mmExtendBlock_NewSizeIsGreaterThanFullBlockSize);
+    mmSizes[blockId] = (newSize | (sizeStatus & (MM_LEADING_FLAG_MASK)));
+}
+
+/* ---------------------------------------------------------------------------------------------------------------------
  * Shrinks the specified block.
  */
 SYS_STATIC void mmShrinkBlock(const size_t  blockId, const MM_Size_t  newSize)
@@ -1182,7 +1304,7 @@ SYS_STATIC void mmCollectChain(const size_t  firstBlockId, const size_t  lastBlo
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------
- * Rollbacks the memory chunk allocation.
+ * Rolls back the memory chunk allocation.
  */
 SYS_STATIC void mmRollbackAlloc(void)
 {

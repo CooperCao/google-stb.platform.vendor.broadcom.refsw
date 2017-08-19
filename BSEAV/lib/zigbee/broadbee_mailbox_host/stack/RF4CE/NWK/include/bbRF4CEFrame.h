@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CEFrame.h $
-*
-* DESCRIPTION:
-*   RF4CE NWK Frames related data.
-*
-* $Revision: 1195 $
-* $Date: 2014-01-23 13:03:59Z $
-*
-****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      RF4CE NWK Frames related data.
+ *
+*******************************************************************************/
+
 #ifndef _RF4CE_FRAME_H
 #define _RF4CE_FRAME_H
 /************************* INCLUDES ****************************************************/
@@ -56,14 +50,12 @@
 #include "bbSysBasics.h"
 #include "bbSysMemMan.h"
 
+#include "bbRF4CENWKConstants.h"
+
 /************************* DEFINITIONS *************************************************/
 /**//**
  * \brief RF4CE NWK Frame Control definitions.
  */
-#define RF4CE_NWK_FRAME_RESERVED   0x00
-#define RF4CE_NWK_FRAME_STANDARD   0x01
-#define RF4CE_NWK_FRAME_COMMAND    0x02
-#define RF4CE_NWK_FRAME_VENDOR     0x03
 #define RF4CE_NWK_FRAME_NO_CHANNEL 0x00
 #define RF4CE_NWK_FRAME_CHANNEL_15 0x01
 #define RF4CE_NWK_FRAME_CHANNEL_20 0x02
@@ -78,6 +70,14 @@
 #define RF4CE_NWK_FRAME_SET_RESERVED(control) ((control) | 0x20)
 #define RF4CE_NWK_FRAME_GET_CHANNEL(control) (((control) >> 6) & 0x03)
 #define RF4CE_NWK_FRAME_SET_CHANNEL(control, value) (((control) & 0x3f) | (((value) & 0x03) << 6))
+
+typedef enum _RF4CE_NWK_Frame_type_t
+{
+    RF4CE_NWK_FRAME_RESERVED = 0x00,
+    RF4CE_NWK_FRAME_STANDARD,
+    RF4CE_NWK_FRAME_COMMAND,
+    RF4CE_NWK_FRAME_VENDOR
+} RF4CE_NWK_Frame_type_t;
 
 /**//**
  * \brief RF4CE NWK commands supported.
@@ -137,6 +137,15 @@ typedef struct PACKED _RF4CE_NWK_VendorFrameHeader_t
 } RF4CE_NWK_VendorFrameHeader_t;
 
 /**//**
+ * \brief Vendor specific data frame body.
+  */
+typedef struct PACKED _VendorFrameBody_t
+{
+    uint8_t profileId;                        /*!< Profile identification. */
+    uint16_t vendorId;                       /*!< Vendor identification. */
+} VendorFrameBody_t;
+
+/**//**
  * \brief Discovery request frame header.
   */
 typedef struct PACKED _DiscoveryRequestFrameHeader_t
@@ -147,6 +156,18 @@ typedef struct PACKED _DiscoveryRequestFrameHeader_t
    uint8_t vendorString[RF4CE_NWK_VENDOR_STRING_LENGTH]; /*!< Vendor string. */
    uint8_t applicationCapabilities;       /*!< Application capabilities. */
 } DiscoveryRequestFrameHeader_t;
+
+/**//**
+ * \brief Discovery request frame body.
+  */
+typedef struct PACKED _DiscoveryRequestFrameBody_t
+{
+   uint8_t command;                       /*!< NWK command identification. */
+   uint8_t nodeCapabilities;              /*!< Node capabilities. */
+   uint16_t vendorId;                     /*!< Vendor ID. */
+   uint8_t vendorString[RF4CE_NWK_VENDOR_STRING_LENGTH]; /*!< Vendor string. */
+   uint8_t applicationCapabilities;       /*!< Application capabilities. */
+} DiscoveryRequestFrameBody_t;
 
 /**//**
  * \brief Discovery request frame footer.
@@ -170,6 +191,19 @@ typedef struct PACKED _DiscoveryResponseFrameHeader_t
 } DiscoveryResponseFrameHeader_t;
 
 /**//**
+ * \brief Discovery response frame body.
+  */
+typedef struct PACKED _DiscoveryResponseFrameBody_t
+{
+   uint8_t command;                       /*!< NWK command identification. */
+   uint8_t status;                        /*!< Node status. */
+   uint8_t nodeCapabilities;              /*!< Node capabilities. */
+   uint16_t vendorId;                     /*!< Vendor ID. */
+   uint8_t vendorString[RF4CE_NWK_VENDOR_STRING_LENGTH]; /*!< Vendor string. */
+   uint8_t applicationCapabilities;       /*!< Application capabilities. */
+} DiscoveryResponseFrameBody_t;
+
+/**//**
  * \brief Discovery response frame footer.
   */
 typedef struct PACKED _DiscoveryResponseFrameFooter_t
@@ -183,12 +217,25 @@ typedef struct PACKED _DiscoveryResponseFrameFooter_t
 typedef struct PACKED _PairRequestFrameHeader_t
 {
    RF4CE_NWK_CommandFrameHeader_t header; /*!< NWK command header is included. */
-   MAC_Addr16bit_t shortAddress;          /*! Short address. For controller mus be 0xfffe */
+   MAC_Addr16bit_t shortAddress;          /*!< Short address. For controller must be 0xfffe */
    uint8_t nodeCapabilities;              /*!< Node capabilities. */
    uint16_t vendorId;                     /*!< Vendor ID. */
    uint8_t vendorString[RF4CE_NWK_VENDOR_STRING_LENGTH]; /*!< Vendor string. */
    uint8_t applicationCapabilities;       /*!< Application capabilities. */
 } PairRequestFrameHeader_t;
+
+/**//**
+ * \brief Pair request frame body.
+  */
+typedef struct PACKED _PairRequestFrameBody_t
+{
+   uint8_t command;                       /*!< NWK command identification. */
+   MAC_Addr16bit_t shortAddress;          /*!< Short address. For controller must be 0xfffe */
+   uint8_t nodeCapabilities;              /*!< Node capabilities. */
+   uint16_t vendorId;                     /*!< Vendor ID. */
+   uint8_t vendorString[RF4CE_NWK_VENDOR_STRING_LENGTH]; /*!< Vendor string. */
+   uint8_t applicationCapabilities;       /*!< Application capabilities. */
+} PairRequestFrameBody_t;
 
 /**//**
  * \brief Pair request frame footer.
@@ -204,9 +251,9 @@ typedef struct PACKED _PairRequestFrameFooter_t
 typedef struct PACKED _PairResponseFrameHeader_t
 {
    RF4CE_NWK_CommandFrameHeader_t header; /*!< NWK command header is included. */
-   uint8_t status;                        /*! Status of the corresponding request */
-   MAC_Addr16bit_t allocatedShortAddress; /*! Allocated by the issuer short address for the node */
-   MAC_Addr16bit_t shortAddress;          /*! Short address of the issuer. */
+   uint8_t status;                        /*!< Status of the corresponding request */
+   MAC_Addr16bit_t allocatedShortAddress; /*!< Allocated by the issuer short address for the node */
+   MAC_Addr16bit_t shortAddress;          /*!< Short address of the issuer. */
    uint8_t nodeCapabilities;              /*!< Node capabilities. */
    uint16_t vendorId;                     /*!< Vendor ID. */
    uint8_t vendorString[RF4CE_NWK_VENDOR_STRING_LENGTH]; /*!< Vendor string. */
@@ -214,14 +261,40 @@ typedef struct PACKED _PairResponseFrameHeader_t
 } PairResponseFrameHeader_t;
 
 /**//**
+ * \brief Pair response frame body.
+  */
+typedef struct PACKED _PairResponseFrameBody_t
+{
+   uint8_t command;                       /*!< NWK command identification. */
+   uint8_t status;                        /*!< Status of the corresponding request */
+   MAC_Addr16bit_t allocatedShortAddress; /*!< Allocated by the issuer short address for the node */
+   MAC_Addr16bit_t shortAddress;          /*!< Short address of the issuer. */
+   uint8_t nodeCapabilities;              /*!< Node capabilities. */
+   uint16_t vendorId;                     /*!< Vendor ID. */
+   uint8_t vendorString[RF4CE_NWK_VENDOR_STRING_LENGTH]; /*!< Vendor string. */
+   uint8_t applicationCapabilities;       /*!< Application capabilities. */
+} PairResponseFrameBody_t;
+
+/**//**
  * \brief Key seed frame.
   */
 typedef struct PACKED _KeySeedFrame_t
 {
    RF4CE_NWK_CommandFrameHeader_t header; /*!< NWK command header is included. */
-   uint8_t sequenceNumber;                /*! Key seed sequence number */
-   SecurityKey_t seedData[KEY_SEED_SIZE]; /*! Key seed data */
+   uint8_t sequenceNumber;                /*!< Key seed sequence number */
+   SecurityKey_t seedData[KEY_SEED_SIZE]; /*!< Key seed data */
 } KeySeedFrame_t;
+
+/**//**
+ * \brief Key seed frame body.
+  */
+typedef struct PACKED _KeySeedFrameBody_t
+{
+   uint8_t command;                       /*!< NWK command identification. */
+   uint8_t sequenceNumber;                /*!< Key seed sequence number */
+   SecurityKey_t seedData[KEY_SEED_SIZE]; /*!< Key seed data */
+} KeySeedFrameBody_t;
+
 
 /**//**
  * \brief Ping request/response frame header.
@@ -229,15 +302,26 @@ typedef struct PACKED _KeySeedFrame_t
 typedef struct PACKED _PingRequestResponseFrameHeader_t
 {
    RF4CE_NWK_CommandFrameHeader_t header; /*!< NWK command header is included. */
-   uint8_t pingOptions;                   /*! Ping options */
+   uint8_t pingOptions;                   /*!< Ping options */
 } PingRequestFrameHeader_t, PingResponseFrameHeader_t;
+
+/**//**
+ * \brief Ping request/response frame body.
+  */
+typedef struct PACKED _PingRequestResponseFrameBody_t
+{
+   uint8_t command;                       /*!< NWK command identification. */
+   uint8_t pingOptions;                   /*!< Ping options */
+} PingRequestFrameBody_t, PingResponseFrameBody_t;
 
 /**//**
  * \brief Ping response frame footer.
   */
 typedef struct PACKED _EncryptedFrameFooter_t
 {
-   uint32_t nfr;                  /*! Ping NFR fields */
+   uint32_t nfr;                  /*!< Ping NFR fields */
 } EncryptedFrameFooter_t;
 
 #endif /* _RF4CE_FRAME_H */
+
+/* eof bbRF4CEFrame.h */

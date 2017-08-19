@@ -262,7 +262,9 @@ BERR_Code BVDC_P_Display_Create
 void BVDC_P_Display_Init
     ( BVDC_Display_Handle              hDisplay )
 {
+#if BVDC_P_MAX_DACS
     uint32_t i;
+#endif
     /* coverity[result_independent_of_operands: FALSE] */
     BVDC_P_CscCoeffs stIdentity = BVDC_P_MAKE_DVO_CSC
         (1.0000, 0.0000, 0.0000, 0.0000,
@@ -292,10 +294,12 @@ void BVDC_P_Display_Init
     hDisplay->stNewInfo.stDirty.stBits.bTimeBase = BVDC_P_DIRTY;
 
     /* Default Dacs to unused */
+#if BVDC_P_MAX_DACS
     for(i=0; i < BVDC_P_MAX_DACS; i++)
     {
         hDisplay->stNewInfo.aDacOutput[i] = BVDC_DacOutput_eUnused;
     }
+#endif
     hDisplay->stNewInfo.stDirty.stBits.bDacSetting = BVDC_P_DIRTY;
     hDisplay->stNewInfo.stDirty.stBits.bAcp        = BVDC_P_DIRTY;
 
@@ -540,6 +544,12 @@ void BVDC_P_Display_Destroy
 #if (BVDC_P_STG_RUL_DELAY_WORKAROUND)
     BRDC_FreeScratchReg(hDisplay->hVdc->hRdc, hDisplay->ulScratchDummyAddr);
 #endif
+#if (BVDC_P_MV_BLOCKING_SUPPORT)
+    if(hDisplay->ulMVQueryTmpAddr != 0)
+    {
+        BRDC_FreeScratchReg(hDisplay->hVdc->hRdc, hDisplay->ulMVQueryTmpAddr);
+    }
+#endif
 
 #if DCS_SUPPORT
 #if 0
@@ -659,10 +669,11 @@ void BVDC_P_Vec_Init_Misc_isr
     ( BVDC_P_Context           *pVdc )
 {
     uint32_t ulReg;
-    uint32_t ulOffset;
+#if BVDC_P_MAX_DACS
     int i;
 #if (BVDC_P_SUPPORT_TDAC_VER >= BVDC_P_SUPPORT_TDAC_VER_9)
     uint32_t target_val, plugout_thrsh;
+#endif
 #endif
 
     BDBG_ENTER(BVDC_P_Vec_Init_Misc_isr);
@@ -672,6 +683,7 @@ void BVDC_P_Vec_Init_Misc_isr
 
     ulReg = BCHP_FIELD_DATA(VEC_CFG_SW_INIT_VEC_MISC, INIT, 0);
     BREG_Write32(pVdc->hRegister, BCHP_VEC_CFG_SW_INIT_VEC_MISC, ulReg);
+#if BVDC_P_MAX_DACS
 #if (BVDC_P_SUPPORT_TDAC_VER >= BVDC_P_SUPPORT_TDAC_VER_11)
     ulReg = BCHP_FIELD_DATA(VEC_CFG_SW_INIT_CABLE_DETECT_0, INIT, 1);
     BREG_Write32(pVdc->hRegister, BCHP_VEC_CFG_SW_INIT_CABLE_DETECT_0, ulReg);
@@ -704,6 +716,7 @@ void BVDC_P_Vec_Init_Misc_isr
     /* power down each dac */
     for(i = 0; i < BVDC_P_MAX_DACS; i++)
     {
+        uint32_t ulOffset;
 #ifdef BCHP_MISC_DAC_1_CFG
         ulOffset = (BCHP_MISC_DAC_1_CFG - BCHP_MISC_DAC_0_CFG) * i;
 #else
@@ -781,6 +794,7 @@ void BVDC_P_Vec_Init_Misc_isr
         BCHP_FIELD_DATA(MISC_DAC_INST_BIAS_CTRL_0, PWRDN, 1);
     BREG_Write32(pVdc->hRegister, BCHP_MISC_DAC_INST_BIAS_CTRL_0, ulReg);
 #endif
+#endif /* BVDC_P_MAX_DACS */
 
     BDBG_LEAVE(BVDC_P_Vec_Init_Misc_isr);
     return;
@@ -1040,12 +1054,15 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
     ( BVDC_Display_Handle              ahDisplay[] )
 {
     BERR_Code                 err = BERR_SUCCESS;
-    int i, j;
+    int i;
     BVDC_Handle               hVdc=NULL;
     BVDC_Display_Handle       hDisplay = NULL;
     BVDC_P_DisplayInfo       *pNewInfo=NULL;
     BVDC_P_DisplayInfo       *pCurInfo=NULL;
+#if BVDC_P_MAX_DACS
     BVDC_DacOutput            aNewUsedDac[BVDC_P_MAX_DACS];
+    int                       j;
+#endif
     uint32_t                  ulDacMask;
     uint32_t                  ulHdDacCnt = 0;
     uint32_t                  aulCurAnalogChan[BVDC_P_MAX_DISPLAY_COUNT * 2];
@@ -1054,10 +1071,12 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
     BDBG_ENTER(BVDC_P_Display_ValidateDacSettings);
 
     /* Initialized */
+#if BVDC_P_MAX_DACS
     for(i = 0; i < BVDC_P_MAX_DACS; i++)
     {
         aNewUsedDac[i] = BVDC_DacOutput_eUnused;
     }
+#endif
     for(i = 0; i < BVDC_P_MAX_DISPLAY_COUNT * 2; i++)
     {
         aulCurAnalogChan[i] = aulNewAnalogChan[i] = 0;
@@ -1091,6 +1110,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                 pNewInfo->bCvbs = true;
             }
 
+#if BVDC_P_MAX_DACS
             for(j = 0; j < BVDC_P_MAX_DACS; j++)
             {
                 /* Checking for duplicated use of DACs accross all displays */
@@ -1157,6 +1177,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                     } /* end of switch */
                 }
             } /* end of MAX_DACS looping */
+#endif
 
             /* Checking for valid DAC grouping */
             if(pNewInfo->bYPrPb && (ulDacMask & BVDC_P_Dac_Mask_YPrPb) != BVDC_P_Dac_Mask_YPrPb)
@@ -1419,7 +1440,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                 }
 
                 BDBG_MSG(("D%d Acquire new resource for Chan_%d", hDisplay->eId, (i & 0x1)));
-                err = BVDC_P_AllocITResources(hVdc->hResource, hDisplay->eId * 2 + (i & 0x1), pstChan,
+                err = BVDC_P_AllocITResources(hVdc->hResource, hDisplay, hDisplay->eId * 2 + (i & 0x1), pstChan,
                             hDisplay->stAnlgChan_0.ulIt);
                 err |= BVDC_P_AllocAnalogChanResources(hVdc->hResource, hDisplay->eId * 2 + (i & 0x1), pstChan,
                             (!(ulMask & BVDC_P_Dac_Mask_SD) && hDisplay->bHdCap) ? true : false ,
@@ -1519,6 +1540,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
     }
     BKNI_LeaveCriticalSection();
 
+#if BVDC_P_MAX_DACS
     /* Now aggregate the DAC assignment from all the display handle to a central place */
     BKNI_EnterCriticalSection();
     for (i = 0; i < BVDC_P_MAX_DACS; i++ )
@@ -1537,6 +1559,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
         }
     }
     BKNI_LeaveCriticalSection();
+#endif
 
     BKNI_EnterCriticalSection();
     for(i = 0; i < BVDC_P_MAX_DISPLAY_COUNT; i++)
@@ -1568,6 +1591,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
     BKNI_LeaveCriticalSection();
 
 #ifdef BCHP_PWR_RESOURCE_VDC_DAC
+#if BVDC_P_MAX_DACS
     for (i = 0; i < BVDC_P_MAX_DACS; i++ )
     {
         if(hVdc->aDacDisplay[i] != UINT32_C(-1))
@@ -1582,6 +1606,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
             }
         }
     }
+#endif
 #endif
 
     BDBG_LEAVE(BVDC_P_Display_ValidateDacSettings);
@@ -2072,7 +2097,7 @@ static void BVDC_P_Vec_BuildGameMode_isr
             hDisplay->bRmAdjusted = false;
         }
     }
-    else if(hDisplay->bRmAdjusted) /* restore */
+    else if(hDisplay->bRmAdjusted && hDisplay->pRmTable) /* restore */
     {
         /* PRIM_RM_PHASE_INC (RW) */
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -2113,6 +2138,7 @@ void BVDC_P_Vec_BuildVsync_isr
         BVDC_P_Vec_BuildGameMode_isr(hDisplay, pList);
     }
 
+#if BVDC_P_NUM_SHARED_VF
 #if DCS_SUPPORT /** { **/
 
     /* Execute DCS no-glitch transition, if any. */
@@ -2151,6 +2177,7 @@ void BVDC_P_Vec_BuildVsync_isr
     }
     else
 #endif /* } DCS_SUPPORT **/
+#endif /* BVDC_P_NUM_SHARED_VF */
     {
         /* Build a nop RUL to make RDC sanity check happy.  */
         *pList->pulCurrent++ = BRDC_OP_NOP();
@@ -2182,6 +2209,7 @@ void BVDC_P_Vec_BuildVsync_isr
         *pList->pulCurrent++ = hDisplay->stNewInfo.ulArtificialVsyncMask;
     }
 
+#if BVDC_P_MAX_DACS
 #if (BVDC_P_SUPPORT_TDAC_VER >= BVDC_P_SUPPORT_TDAC_VER_9)
     /* Read DAC detection status register */
     if(hDisplay->hVdc->bDacDetectionEnable && pCurInfo->uiNumDacsOn > 0)
@@ -2227,6 +2255,7 @@ void BVDC_P_Vec_BuildVsync_isr
 #endif /* BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND */
     }
 #endif /* BVDC_P_SUPPORT_TDAC_VER >= BVDC_P_SUPPORT_TDAC_VER_9 */
+#endif /* BVDC_P_MAX_DACS */
 
     /* Display callback installed? */
     if (pCurInfo->pfGenericCallback)
@@ -2304,6 +2333,7 @@ void BVDC_P_Vec_BuildVsync_isr
             pCbData->stMask.bStgPictureId = 0;
         }
 
+#if BVDC_P_MAX_DACS
         if (pCurInfo->stCallbackSettings.stMask.bCableDetect)
         {
             /* TODO: move this to a seperate function in bvdc_displaycabledetect_priv.c */
@@ -2338,6 +2368,7 @@ void BVDC_P_Vec_BuildVsync_isr
         {
             pCbData->stMask.bCableDetect = 0;
         }
+#endif
 
         if(hDisplay->bCallbackInit)
             hDisplay->bCallbackInit = false;
@@ -2716,12 +2747,14 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
       uint32_t                        *pulSumOfTapsBits,
       bool                            *pbOverride)
 {
+#if BVDC_P_NUM_SHARED_VF
     int32_t lChannel;
+    uint32_t ulSumOfTaps2 = 0;
+#endif
     BVDC_P_Output eOutputColorSpace     = BVDC_P_Output_eNone;
     BVDC_P_Output eOutputColorSpaceCo   = BVDC_P_Output_eNone;
     BVDC_P_Output eOutputColorSpaceCvbs = BVDC_P_Output_eNone;
     uint32_t ulSumOfTaps = 0;
-    uint32_t ulSumOfTaps2 = 0;
     bool bOverride = false;
 
     BDBG_ENTER(BVDC_P_GetVfFilterSumOfTapsBits_isr);
@@ -2754,6 +2787,7 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
         eOutputColorSpaceCvbs = eOutputColorSpace;
     }
 
+#if BVDC_P_NUM_SHARED_VF
     for (lChannel = 0 ; lChannel < BVDC_P_VEC_CH_NUM ; ++lChannel)
     {
         if (eDisplayOutput == BVDC_DisplayOutput_eComponent)
@@ -2795,6 +2829,10 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
             return BERR_INVALID_PARAMETER;
         }
     }
+#else
+    BSTD_UNUSED(eOutputColorSpaceCo);
+    BSTD_UNUSED(eOutputColorSpaceCvbs);
+#endif
 
     if (pulSumOfTapsBits) *pulSumOfTapsBits = ulSumOfTaps;
     if (pbOverride)       *pbOverride       = bOverride;

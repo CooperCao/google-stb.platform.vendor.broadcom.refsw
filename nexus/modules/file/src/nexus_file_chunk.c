@@ -454,7 +454,6 @@ NEXUS_ChunkedFilePlay_Open(const char *fname, const char *indexname, const NEXUS
     struct bfile_in_chunk *file;
     char name[B_MAX_FILE_LEN];
     NEXUS_ChunkedFilePlayOpenSettings openSettings;
-    off_t first, last;
 
     if (!fname) {
         BERR_TRACE(NEXUS_INVALID_PARAMETER);

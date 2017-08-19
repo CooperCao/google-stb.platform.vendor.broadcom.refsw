@@ -497,7 +497,7 @@ BERR_Code BAPE_InputCapture_Start(
     numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&handle->inputPortFormat);
 
     /* Check for DSP mixer downstream to compare buffer requirements */
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
 
     if (numFound != 0 && (handle->inputPortFormat.type != BAPE_DataType_ePcmMono && handle->inputPortFormat.type != BAPE_DataType_ePcmStereo) ) {
         BDBG_WRN(("Unable to start Input Capture due to DSP Mixer attached and input format %s", BAPE_FMT_P_GetTypeName_isrsafe(&handle->inputPortFormat)));
@@ -608,7 +608,7 @@ BERR_Code BAPE_InputCapture_Start(
         BAPE_Mixer_P_PrintMixers(handle->deviceHandle);
     #endif
 
-    BDBG_ERR(("InputCapture %p (%d) Start Downstream", (void *)handle, handle->index));
+    BDBG_MSG(("InputCapture %p (%d) Start Downstream", (void *)handle, handle->index));
     /* Start */
     errCode = BAPE_PathNode_P_StartPaths(&handle->node);
     if ( errCode )
@@ -804,7 +804,7 @@ static BERR_Code BAPE_InputCapture_P_AllocatePathFromInput(
 
     pSink = pConnection->pSink;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     if ( NULL == handle->pMasterConnection )
     {
         handle->pMasterConnection = pConnection;
@@ -890,7 +890,7 @@ static BERR_Code BAPE_InputCapture_P_FreePathFromInput(
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_InputCapture);
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     if ( NULL != handle->pMasterConnection )
     {
         unsigned i;
@@ -924,7 +924,7 @@ static BERR_Code BAPE_InputCapture_P_ConfigPathToOutput(
 
     pSource = pConnection->pSource;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
 
     if ( handle->sfifoRequired )
     {
@@ -1112,7 +1112,7 @@ static BERR_Code BAPE_InputCapture_P_InputFormatChange_isr(
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_InputCapture);
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
 
     /* On the fly format changes are not possible */
     if ( inputPort->format.type != handle->inputPortFormat.type )

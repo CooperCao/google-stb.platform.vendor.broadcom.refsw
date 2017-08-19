@@ -49,12 +49,15 @@
 BDBG_MODULE(BVBI);
 
 /* This is better than having many ifdefs scattered throughout the file */
+#if (BVBI_NUM_VEC > 0)
 #define BCHP_VEC_CFG_SW_RESET_CCE_0        BCHP_VEC_CFG_SW_INIT_CCE_0
 #define BCHP_VEC_CFG_SW_RESET_WSE_0        BCHP_VEC_CFG_SW_INIT_WSE_0
 #define BCHP_VEC_CFG_SW_RESET_TTE_0        BCHP_VEC_CFG_SW_INIT_TTE_0
 #define BCHP_VEC_CFG_SW_RESET_GSE_0        BCHP_VEC_CFG_SW_INIT_GSE_0
 #define BCHP_VEC_CFG_SW_RESET_AMOLE_0      BCHP_VEC_CFG_SW_INIT_AMOLE_0
 #define BCHP_VEC_CFG_SW_RESET_CGMSAE_0     BCHP_VEC_CFG_SW_INIT_CGMSAE_0
+#endif
+#if (BVBI_NUM_PTVEC > 0)
 #define BCHP_VEC_CFG_SW_RESET_CCE_ANCIL_0   BCHP_VEC_CFG_SW_INIT_CCE_ANCIL_0
 #define BCHP_VEC_CFG_SW_RESET_WSE_ANCIL_0   BCHP_VEC_CFG_SW_INIT_WSE_ANCIL_0
 #define BCHP_VEC_CFG_SW_RESET_TTE_ANCIL_0   BCHP_VEC_CFG_SW_INIT_TTE_ANCIL_0
@@ -63,6 +66,7 @@ BDBG_MODULE(BVBI);
     BCHP_VEC_CFG_SW_INIT_AMOLE_ANCIL_0
 #define BCHP_VEC_CFG_SW_RESET_ANCI656_ANCIL_0                           \
     BCHP_VEC_CFG_SW_INIT_ANCI656_ANCIL_0
+#endif
 
 /* This will make code more legible, in special cases. Like, chipsets that do
  * not support 656 output.
@@ -103,83 +107,121 @@ BDBG_MODULE(BVBI);
 ***************************************************************************/
 
 BERR_Code BVBI_P_VIE_SoftReset_isr (
-        BREG_Handle hReg,
-        bool is656,
-        uint8_t hwCoreIndex,
-        uint32_t whichStandard)
+    BREG_Handle hReg,
+    bool is656,
+    uint8_t hwCoreIndex,
+    uint32_t whichStandard)
 {
-        uint32_t ulRegBase;
-        uint32_t ulRegAddr;
+    uint32_t ulRegAddr;
+    uint32_t ulRegBase = 0xFFFFFFFF;
 
-        BDBG_ENTER(BVBI_P_VIE_SoftReset_isr);
+    BDBG_ENTER(BVBI_P_VIE_SoftReset_isr);
 
-        switch (whichStandard)
+    switch (whichStandard)
+    {
+    case BVBI_P_SELECT_CC:
+        if (is656)
         {
-        case BVBI_P_SELECT_CC:
-                ulRegBase =
-                        (is656 ?
-                                BCHP_VEC_CFG_SW_RESET_CCE_ANCIL_0 :
-                                BCHP_VEC_CFG_SW_RESET_CCE_0);
-                break;
+            #if (BVBI_NUM_PTVEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_CCE_ANCIL_0;
+            #endif
+        }
+        else
+        {
+            #if (BVBI_NUM_VEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_CCE_0;
+            #endif
+        }
+        break;
 #if (BVBI_NUM_TTE > 0) || (BVBI_NUM_TTE_656 > 0)
-        case BVBI_P_SELECT_TT:
-                ulRegBase =
-                        (is656 ?
-                                BCHP_VEC_CFG_SW_RESET_TTE_ANCIL_0 :
-                                BCHP_VEC_CFG_SW_RESET_TTE_0);
-                break;
+    case BVBI_P_SELECT_TT:
+        if (is656)
+        {
+            #if (BVBI_NUM_PTVEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_TTE_ANCIL_0;
+            #endif
+        }
+        else
+        {
+            #if (BVBI_NUM_VEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_TTE_0;
+            #endif
+        }
+        break;
 #endif
-        case BVBI_P_SELECT_WSS:
-                ulRegBase =
-                        (is656 ?
-                                BCHP_VEC_CFG_SW_RESET_WSE_ANCIL_0 :
-                                BCHP_VEC_CFG_SW_RESET_WSE_0);
-                break;
+    case BVBI_P_SELECT_WSS:
+        if (is656)
+        {
+            #if (BVBI_NUM_PTVEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_WSE_ANCIL_0;
+            #endif
+        }
+        else
+        {
+            #if (BVBI_NUM_VEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_WSE_0;
+            #endif
+        }
+            break;
 #if (BVBI_NUM_GSE > 0)
-        case BVBI_P_SELECT_GS:
-                ulRegBase =
-                        (is656 ?
-                                BCHP_VEC_CFG_SW_RESET_GSE_ANCIL_0 :
-                                BCHP_VEC_CFG_SW_RESET_GSE_0);
-                break;
+    case BVBI_P_SELECT_GS:
+        if (is656)
+        {
+            #if (BVBI_NUM_PTVEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_GSE_ANCIL_0;
+            #endif
+        }
+        else
+        {
+            #if (BVBI_NUM_VEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_GSE_0;
+            #endif
+        }
+            break;
 #endif
 #if (BVBI_NUM_AMOLE > 0)
-        case BVBI_P_SELECT_AMOL:
-                ulRegBase =
-                        (is656 ?
-                                BCHP_VEC_CFG_SW_RESET_AMOLE_ANCIL_0 :
-                                BCHP_VEC_CFG_SW_RESET_AMOLE_0);
-                break;
-#endif
-        case BVBI_P_SELECT_CGMSA:
-        case BVBI_P_SELECT_CGMSB:
-                ulRegBase = BCHP_VEC_CFG_SW_RESET_CGMSAE_0;
-                break;
-#if (BVBI_NUM_SCTEE > 0)
-        case BVBI_P_SELECT_SCTE:
-                ulRegBase = BCHP_VEC_CFG_SW_RESET_SCTE_0;
-                break;
-#endif
-        default:
-                /* This should never happen! */
-                ulRegBase = 0xFFFFFFFF;
-                break;
-        }
-
-        /* Take care of errors above */
-        if (ulRegBase == 0xFFFFFFFF)
+    case BVBI_P_SELECT_AMOL:
+        if (is656)
         {
-                BDBG_LEAVE(BVBI_P_VIE_SoftReset_isr);
-                return BERR_TRACE(BERR_INVALID_PARAMETER);
+            #if (BVBI_NUM_PTVEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_AMOLE_ANCIL_0;
+            #endif
         }
+        else
+        {
+            #if (BVBI_NUM_VEC >= 1)
+            ulRegBase = BCHP_VEC_CFG_SW_RESET_AMOLE_0;
+            #endif
+        }
+            break;
+#endif
+    #if (BVBI_NUM_VEC >= 1)
+    case BVBI_P_SELECT_CGMSA:
+    case BVBI_P_SELECT_CGMSB:
+        ulRegBase = BCHP_VEC_CFG_SW_RESET_CGMSAE_0;
+        break;
+    #endif
+#if (BVBI_NUM_SCTEE > 0)
+    case BVBI_P_SELECT_SCTE:
+        ulRegBase = BCHP_VEC_CFG_SW_RESET_SCTE_0;
+        break;
+#endif
+    }
 
-        /* Finally, program the soft reset register */
-        ulRegAddr = ulRegBase + 4 * hwCoreIndex;
-        BREG_Write32 (hReg, ulRegAddr, 0x1);
-        BREG_Write32 (hReg, ulRegAddr, 0x0);
-
+    /* Take care of errors above */
+    if (ulRegBase == 0xFFFFFFFF)
+    {
         BDBG_LEAVE(BVBI_P_VIE_SoftReset_isr);
-        return BERR_SUCCESS;
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    /* Finally, program the soft reset register */
+    ulRegAddr = ulRegBase + 4 * hwCoreIndex;
+    BREG_Write32 (hReg, ulRegAddr, 0x1);
+    BREG_Write32 (hReg, ulRegAddr, 0x0);
+
+    BDBG_LEAVE(BVBI_P_VIE_SoftReset_isr);
+    return BERR_SUCCESS;
 }
 
 #if (BVBI_NUM_ANCI656_656 > 0)

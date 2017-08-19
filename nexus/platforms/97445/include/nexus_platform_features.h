@@ -41,7 +41,7 @@
 #include "bstd.h"
 
 /* Transport Features */
-#define NEXUS_NUM_PARSER_BANDS 24    /* Was 6. There are 24 avaliable */
+#define NEXUS_NUM_PARSER_BANDS 24    /* Was 6. There are 24 available */
 #define NEXUS_NUM_PID_CHANNELS 768
 #define NEXUS_NUM_VCXOS 3
 #define NEXUS_NUM_MESSAGE_FILTERS 256

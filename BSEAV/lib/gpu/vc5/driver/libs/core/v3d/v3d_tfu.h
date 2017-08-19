@@ -6,7 +6,7 @@
 #include "v3d_gen.h"
 #include "libs/core/gfx_buffer/gfx_buffer_slow_conv.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 static inline v3d_tfu_rgbord_t v3d_tfu_reverse_rgbord(v3d_tfu_rgbord_t rgbord)
 {
@@ -230,8 +230,6 @@ typedef struct {
    bool interrupt_on_complete;
    bool disable_main_texture_write;
    bool use_programmable_yuv_coef;
-   bool crc_gen;
-   bool crc_chain;
    v3d_tfu_rgbord_t src_channel_order;
    bool flip_y;
    bool srgb;
@@ -304,4 +302,4 @@ void v3d_tfu_calc_dst_descs(
    v3d_addr_t *base_addr, GFX_BUFFER_DESC_T *descs,
    const V3D_TFU_COMMAND_T *cmd);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

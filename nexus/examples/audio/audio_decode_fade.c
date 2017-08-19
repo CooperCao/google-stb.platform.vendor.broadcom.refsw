@@ -311,13 +311,13 @@ int main(int argc, char **argv)
 
     /* Connect Decoder -> Effects -> Mixer */
     NEXUS_AudioProcessor_AddInput(fade[0],
-                                NEXUS_AudioDecoder_GetConnector(pcmDecoder[0], NEXUS_AudioDecoderConnectorType_eStereo));
+                                NEXUS_AudioDecoder_GetConnector(pcmDecoder[0], NEXUS_AudioConnectorType_eStereo));
     NEXUS_AudioProcessor_AddInput(fade[1],
-                                NEXUS_AudioDecoder_GetConnector(pcmDecoder[1], NEXUS_AudioDecoderConnectorType_eStereo));
+                                NEXUS_AudioDecoder_GetConnector(pcmDecoder[1], NEXUS_AudioConnectorType_eStereo));
     NEXUS_AudioMixer_AddInput(mixer,
-                              NEXUS_AudioProcessor_GetConnector(fade[0]));
+                              NEXUS_AudioProcessor_GetConnectorByType(fade[0], NEXUS_AudioConnectorType_eStereo));
     NEXUS_AudioMixer_AddInput(mixer,
-                              NEXUS_AudioProcessor_GetConnector(fade[1]));
+                              NEXUS_AudioProcessor_GetConnectorByType(fade[1], NEXUS_AudioConnectorType_eStereo));
 
     /* connect audio outputs */
     /* Output PCM to DAC, SPDIF, and HDMI by default */
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
     hdmiSettings.hotplugCallback.context = &hotplug_context;
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
-    /* initalize HDCP settings, keys, etc. */
+    /* initialize HDCP settings, keys, etc. */
     initializeHdmiOutputHdcpSettings() ;
 
     /* Force a hotplug to switch to preferred format */

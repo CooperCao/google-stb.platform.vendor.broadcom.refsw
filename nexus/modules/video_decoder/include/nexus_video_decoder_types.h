@@ -107,6 +107,13 @@ typedef enum NEXUS_VideoDecoderTimestampMode
     NEXUS_VideoDecoderTimestampMode_eMax
 } NEXUS_VideoDecoderTimestampMode;
 
+typedef enum NEXUS_VideoDecoderCrcMode
+{
+    NEXUS_VideoDecoderCrcMode_eDefault, /* no special CRC mode */
+    NEXUS_VideoDecoderCrcMode_eMfd,     /* Special mode in display manager for MFD CRC's (NEXUS_VideoInput_GetCrcData).
+                                           Not needed for HVD CRC's (NEXUS_VideoDecoder_GetCrcData). */
+    NEXUS_VideoDecoderCrcMode_eMax
+} NEXUS_VideoDecoderCrcMode;
 
 /*
 Summary:
@@ -151,10 +158,16 @@ typedef struct NEXUS_VideoDecoderStartSettings
     NEXUS_ColorPrimaries defaultColorPrimaries; /* if NEXUS_ColorPrimaries is eUnknown, assign this before sending a picture to the display. */
     NEXUS_TransferCharacteristics defaultTransferCharacteristics; /* if NEXUS_TransferCharacteristics is eUnknown, assign this before sending a picture to the display. */
 
+    NEXUS_VideoEotf eotf;                 /* User-specified color grading / expected electro-optical transfer function.
+                                             Forces color override if not set to invalid */
+    NEXUS_ContentLightLevel contentLightLevel; /* User-specified content light level.  Applies if eotf above is not invalid. */
+    NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume; /* User-specified content light level. Applies if eotf above is not invalid. */
+
     /* See NEXUS_VideoDecoderExtendedSettings for settings used for streams with special encoding characterisitcs. */
     bool nonRealTime; /* Normal operation for decoding is real time, if this is set to 'true' then decoding is used as source for non-realtime transcode operation */
     bool appDisplayManagement;  /* Application Display Management Mode.  If enabled, the application must use NEXUS_VideoDecoder_GetDecodedFrames and
                                    NEXUS_VideoDecoder_ReturnDecodedFrames to manage the decoded picture queue */
+    NEXUS_VideoDecoderCrcMode crcMode;
 } NEXUS_VideoDecoderStartSettings;
 
 /**
@@ -354,9 +367,26 @@ NEXUS_VideoDecoderStatus.avdStatusBlock bitmask.
 Description:
 See bxvd.h comments and BXVD_CHANNELSTATUS_AVD_XXX macros for more values.
 **/
+
+/* RAP_NOT_DETECTED - decode not started because random access point not detected */
 #define NEXUS_CHANNELSTATUS_AVD_RAP_NOT_DETECTED              0x100
+
+/* UNSUPPORTED_FEATURE_DETECTED - unsupported feature resulting in no decoding */
 #define NEXUS_CHANNELSTATUS_AVD_UNSUPPORTED_FEATURE_DETECTED  0x200
+
+/* IMAGE_SIZE_TOO_BIG - the source resolution (width and height) exceeds the maximum
+configuration for this decoder. */
 #define NEXUS_CHANNELSTATUS_AVD_IMAGE_SIZE_TOO_BIG            0x400
+
+/* 10_BIT_UNSUPPORTED - the source is 10 bit, but the decoder is only configured
+for or capable of decoding 8 bit. */
+#define NEXUS_CHANNELSTATUS_AVD_10_BIT_UNSUPPORTED            0x20000
+
+/* INPUT_OVERFLOW - RAVE CDB/ITB overflow on live decode */
+#define NEXUS_CHANNELSTATUS_AVD_INPUT_OVERFLOW                0x4000
+
+/* BAD_STREAM - stream contains illegal syntax */
+#define NEXUS_CHANNELSTATUS_AVD_BAD_STREAM                    0x800
 
 /***************************************************************************
 Summary:
@@ -729,12 +759,6 @@ typedef struct NEXUS_VideoDecoderExtendedSettings
     unsigned crcFifoSize;                 /* Defaults to zero, which disables CRC. If non-zero, CRC's will be captured and can be retrieved with NEXUS_VideoDecoder_GetCrc. */
     NEXUS_VideoDecoderLowLatencySettings lowLatencySettings; /* settings which
         control low latency behavior of the display queue */
-
-    NEXUS_VideoEotf eotf;                 /* User-specified color grading / expected electro-optical transfer function.
-                                             Forces color override if not set to invalid .
-                                             This must be set before NEXUS_VideoDecoder_Start() is called to take effect. */
-    NEXUS_ContentLightLevel contentLightLevel;
-    NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume;
 } NEXUS_VideoDecoderExtendedSettings;
 
 /**
@@ -938,6 +962,7 @@ typedef struct NEXUS_VideoDecoderMemory
     bool supportedCodecs[NEXUS_VideoCodec_eMax];
     NEXUS_VideoFormat maxFormat; /* max source format for this channel. if channel is unused, leave it as eNone */
     unsigned colorDepth; /* 8 or 10 bit decode */
+    unsigned extraPictureBuffers; /* Additional picture buffer atoms.  This can be increased up to 2 to allow extra uncompressed buffering after decode. */
     struct {
         unsigned maxNumber;
         unsigned maxWidth, maxHeight;
@@ -1037,6 +1062,7 @@ typedef struct NEXUS_VideoDecoderPrimerCreateSettings
 {
     unsigned fifoSize;
     unsigned maximumGops; /* unused */
+    NEXUS_HeapHandle cdbHeap; /* Heap for CDB. For compressed restricted region (CRR), set to heap[NEXUS_VIDEO_SECURE_HEAP]. */
 } NEXUS_VideoDecoderPrimerCreateSettings;
 
 #ifdef __cplusplus

@@ -254,6 +254,21 @@ BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
 	const uint32_t uiSize
 );
 
+/******************
+Summary:
+	Set Hdcp2.x Rx feature certificate file
+
+Input:
+	hHDCPlib - HDCPlib handle that was previously open by BHDCPlib_Open
+	pBuffer - pointer to buffer containing the feature certificate
+	uiSize - size of buffer
+
+******************/
+BERR_Code BHDCPlib_Hdcp2x_SetBinFeatCert(
+	const BHDCPlib_Handle hHDCPlib,
+	const uint8_t *pBuffer,
+	const uint32_t uiSize
+);
 
 /******************
 Summary: Retrieve Hdcp2.x ReceiverIdList

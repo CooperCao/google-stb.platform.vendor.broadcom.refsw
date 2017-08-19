@@ -1,0 +1,973 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF script to test ZPL and other customer scenarios
+# zhuj
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::Connectivity
+package require UTF::Streams
+package require UTF::Streamslib
+package require UTF::Test::TrafficScheduling
+
+package provide UTF::Test::PacketLoss 2.0
+
+namespace eval UTF::Test::PacketLoss {
+
+    proc _DumpCallback {} {
+	uplevel {
+	    foreach s $stas {
+		if {[$s wl -u isup]} {
+		    $s wl -u status
+		    $s wl -u dump rssi
+		    $s wl -u dump murx
+		    #lappend sta_mac_list $s
+		    #lappend sta_mac_list [$s macaddr]
+		}
+	    }
+	    $AP wl -u atf
+	    $AP wl -u chanspec
+	    $AP wl -u dump rssi
+	    #set assoclist [$AP wl -u authe_sta_list]
+	    set assoclist [$AP wl -u assoclist]
+	    regsub -all -nocase "assoclist " $assoclist "" assoclist
+	    foreach mac $assoclist {
+		$AP wl -u rssi $mac
+	    }
+	    #$AP wl -u phy_tempsense
+	    #$AP wl -u dump scb
+	    #foreach {s mac} $sta_mac_list {
+	    #UTF::Message INFO "" "$s<->$mac"
+	    #}
+	    $AP wl -u dump txbf
+	    $AP wl -u dump mutx
+	    unset s
+	    catch {unset mac assoclist}
+	}
+    }
+
+    proc _SetupMBSS {AP STAS} {
+	UTF::Try "SetupMBSS" {
+	    if {![regexp {\mmbss(\d+)\M} [$AP wl cap] - hasmbss]} {
+		error "No mbss capability"
+	    } else {
+		UTF::Message INFO "" ""
+		set num [llength $STAS]
+		if {[expr {$num -1 }] > $hasmbss} {
+		    error "Not enough number of mbss interfaces supported"
+		} else {
+		    for {set i 1} {$i < $num} {incr i} {
+			if {[info commands $AP.$i] ne ""} {
+			    lappend mbsses $AP.$i
+			}
+		    }
+		    if {![info exists mbsses]} {
+			error "No MBSS interfaces defined in config file"
+		    }
+		}
+	    }
+	    Mbss::APAddInterface -lan {*}$mbsses
+	    if {![$AP wl mbss]} {
+		error "MBSS is not enabled!"
+	    }
+	}
+	if {[info exists mbsses]} {
+	    return $mbsses
+	} else {
+	    return {}
+	}
+    }
+
+    proc _BaseTest {AP stas ts args} {
+	upvar {} {}
+	UTF::Getopts {
+	    {txt.arg "" "UTF try block title"}
+ 	    {tos.arg {} "array of tosbits"}
+	    {warmup.arg "0" ""}
+ 	}
+	upvar 1 $(tos) mytos
+	set MSG [namespace tail [lindex [info level 0] 0]]
+	set code 0
+	foreach sta $stas {
+	    dict set TS $AP $ts $sta
+	    UTF::Try "$(txt) $sta " {
+		if {[catch {UTF::Test::TrafficScheduling::Scheduler $TS -tos mytos -warmup $(warmup) \
+				-modes $(modes) -flows $(flows) -rate $(rate) -fb $(fb) -w $(w) \
+				-pktsize $(pktsize) -vopktsize $(vopktsize) \
+				-callback _DumpCallback} lret]} {
+		    set code 1
+		    throw FAIL $lret
+		}
+		set dictret [lindex $lret 0]
+		UTF::Message INFO "" "$MSG: dictret=$dictret"
+		for {set j 1} {$j <= $(flows)} {incr j} {
+		    if {[catch {dict get $dictret $sta rate $j} meanminmax($sta,$j)]} {
+			UTF::Message ERROR "" "$MSG: $meanminmax($sta,$j)"
+			set code 1
+		    }
+		    UTF::Message INFO "" "$MSG: $meanminmax($sta,$j)"
+		    dict unset dictret $sta rate $j
+		}
+		return [lindex $lret 1]
+	    }
+	    dict unset TS $AP $ts
+	    if {$code} {
+		UTF::Message ERROR "" "$MSG: Failed to get baseline info for $sta."
+		break
+	    }
+	}
+	if {$code} {
+	    array set meanminmax {}
+	}
+	return -code $code [array get meanminmax]
+    }
+
+    proc _SimultaneousTrafficTest {AP stas ts args} {
+	upvar {} {}
+	UTF::Getopts {
+	    {txt.arg "" "UTF try block title"}
+	    {rates.arg {} "array of rates"}
+ 	    {tos.arg {} "array of tosbits"}
+	    {g.arg "" "attengrp or sta obj to attenuate"}
+	    {attninterval.arg "3" ""}
+	    {warmup.arg "1" "by default to warmup before collecting data"}
+	}
+	set MSG [namespace tail [lindex [info level 0] 0]]
+	upvar $(rates) myrates
+	upvar $(tos) mytos
+	dict set TS $AP $ts $stas
+	if {$(txt) eq ""} {
+	    set txt "UDP PL Simutaneous Traffic [array get tos]"
+	} else {
+	    set txt $(txt)
+	}
+	set g $(g)
+	if {$(g) ne ""} {
+	    append txt "\nAttenuating $(g)"
+	    if {[$(g) info type] eq "::UTF::STA"} {
+		set g [$(g) cget -attngrp]
+	    }
+	}
+	UTF::Try $txt {
+	    if {[catch {UTF::Test::TrafficScheduling::Scheduler $TS -rates myrates -g $g -attnstep $(attnstep) \
+			    -attninterval $(attninterval) \
+			    -tos mytos -modes $(modes) -flows $(flows) \
+			    -warmup $(warmup) \
+			    -holdtime $(holdtime) -atf $(atf) -fb $(fb) -rate $(rate) -w $(w) \
+			    -callback _DumpCallback} lret]} {
+		    throw FAIL $lret
+	    }
+
+	    set dictret [lindex $lret 0]
+
+	    UTF::Message INFO "" "$MSG: dictret=$dictret"
+	    dict for {sta stats} $dictret {
+		for {set j 1} {$j <= $(flows)} {incr j} {
+		    if {[catch {dict get $stats lost} lostcount($sta,$j)] || [lindex $lostcount($sta,$j) 0] } {
+			set f 1
+		    }
+		    UTF::Message INFO "" "$MSG: lostcount($sta,$j)=$lostcount($sta,$j)"
+		}
+		for {set j 1} {$j <= $(flows)} {incr j} {
+		    if {[catch {dict get $stats rate $j} meanminmax($sta,$j)] || $meanminmax($sta,$j) eq ""} {
+			set f 1
+		    }
+		    UTF::Message INFO "" "$MSG: meanminmax($sta,$j)=$meanminmax($sta,$j)"
+		}
+	    }
+	    if {[info exists f] && $(g) eq ""} {
+		throw FAIL [lindex $lret 1]
+	    } else {
+		return [lindex $lret 1]
+	    }
+	}
+	dict unset TS $AP $ts
+	if {[array exists meanminmax]} {
+	    #UTF::Message INFO "" "$MSG: meanminmax=[parray meanminmax]"
+	    return [array get meanminmax]
+	} else {
+	    return error
+	}
+    }
+
+    proc _SequentialTrafficTest {AP stas ts args} {
+	upvar {} {}
+	UTF::Getopts {
+	    {txt.arg "" "UTF try block title"}
+	    {rates.arg {} "array of rates"}
+ 	    {tos.arg {} "array of tosbits"}
+	    {warmup.arg "1" "by default to warmup before collecting data"}
+ 	}
+	upvar $(tos) mytos
+	upvar $(rates) myrates
+	set MSG [namespace tail [lindex [info level 0] 0]]
+	set uut [lindex $stas 0]
+	set len [llength $stas]
+	set seq $stas
+	for {set i 1} {$i <= $len} {incr i} {
+	    set 1st [lindex $seq 0]
+	    set delays ""
+	    if {$(txt) eq ""} {
+		set txt "UDP PL Sequential Traffic"
+	    } else {
+		set txt $(txt)
+	    }
+	    if {$len>1} {
+		append txt " $seq"
+		if {$(delayseq) eq ""} {
+		    for {set j 1} { $j < [llength $seq]} {incr j} {
+			set delays [concat $delays [lindex $seq $j] [expr $j*$(delay)]]
+		    }
+		} else {
+		    set delays $(delayseq)
+		}
+	    } else {
+		append delays "$stas $(delay)"
+		set (seqorder) 0
+	    }
+	    UTF::Try $txt {
+		if {$(mbss)} {
+		    set APS [_SetupMBSS $AP $stas]
+		    if {$APS eq {}} {
+			error "MBSS setup failed on $AP"
+		    }
+		    lappend APS $AP
+		    foreach mbss $APS sta $stas {
+			dict set TS $mbss $ts $sta
+		    }
+		} else {
+		    dict set TS $AP $ts $stas
+		}
+
+		if {[catch {UTF::Test::TrafficScheduling::Scheduler $TS -delays $delays -rates myrates -key $i -tos mytos \
+				-modes $(modes) -flows $(flows) -warmup $(warmup) \
+			        -holdtime $(holdtime) -atf $(atf) -fb $(fb) -rate $(rate) -w $(w) \
+				-callback _DumpCallback } lret]} {
+		    throw FAIL $lret
+		}
+		set dictret [lindex $lret 0]
+		UTF::Message INFO "" "$MSG: dictret=$dictret"
+		dict for {sta stats} $dictret {
+		    for {set j 1} {$j <= $(flows)} {incr j} {
+			if {[catch {dict get $stats lost $j} lostcount($sta,$j)] || [lindex $lostcount($sta,$j) 0] eq "" || [lindex $lostcount($sta,$j) 0]} {
+
+			    #if {$sta eq $1st} {
+			    #set f 1
+			    #}
+			    #packet loss in any VO streams, VI streams or the 1st stream
+			    if {$mytos($sta) eq "VO" || $mytos($sta) eq "VI" || $sta eq $1st} {
+				set f 1
+			    }
+			}
+			UTF::Message INFO "" "$MSG: lostcount($sta,$j)=$lostcount($sta,$j)"
+		    }
+		    for {set j 1} {$j <= $(flows)} {incr j} {
+			if {[catch {dict get $stats rate $j} meanminmax($sta,$j)] || $meanminmax($sta,$j) eq ""} {
+			    set f 1
+			}
+			UTF::Message INFO "" "$MSG: meanminmax($sta,$j)=$meanminmax($sta,$j)"
+		    }
+		}
+		#if {[catch {dict get $dictret $uut lost} lostcount] || [lindex $lostcount 0]} {
+		#    UTF::Message INFO "" "$MSG: lostcount=$lostcount"
+		#    set f 1
+		# }
+		if {[info exists f]} {
+		    throw FAIL [lindex $lret 1]
+		} else {
+		    return [lindex $lret 1]
+		}
+	    }
+	    #Don't repeat the test by sending traffic streams in different order
+	    if {!$(seqorder)} {
+		break
+	    }
+	    if {$len>1} {
+		set seq [lreplace $seq 0 0]
+		lappend seq $1st
+	    }
+	}
+	if {$(mbss)} {
+	    foreach mbss $APS {
+		dict unset TS $mbss $ts
+	    }
+
+	} else {
+	    dict unset TS $AP $ts
+	}
+    }
+}
+UTF::Test PacketLoss { args } {
+
+    UTF::Getopts {
+	{aps.arg "" "APs under test"}
+	{stas.arg "" "STAs under test"}
+	{attn.arg "10" "Attenuation between AP and STAS"}
+	{attnstep.arg "1" ""}
+	{distances.arg "" "Pairs of attenuation group and value to set"}
+	{trx.arg "" "Router private image"}
+	{bin.arg "" "STA private image"}
+	{date.arg "" "Router Image date"}
+	{stadate.arg "" "STA Image date"}
+	{build.arg "" "build name"}
+	{branch.arg "" "branch name"}
+	{stabranch.arg "" "stabranch name"}
+	{tag.arg "" "tag override"}
+	{dhd_tag.arg "" "dhd tag override"}
+	{statag.arg "" "statag override"}
+	{title.arg "" "title of report"}
+	{email.arg "" "email alias the report sent to"}
+	{key.arg "" ""}
+	{history.arg "30" "Control Chart history"}
+	{nocache "Don't update control chart cache"}
+	{direction.arg "DOWN" "traffic direction: up or down"}
+	{ltosbits.arg "BE VI" ""}
+	{multipliers.arg {{1 .2} {.8 .2} {.6 .2} {.2 .6} {.2 .8} {.2 1} {.5 .5} {.4 .4} {.3 .3} {.25 .25}} "list of multipliers of actual tput for offered rate"}
+	{flows.arg "1" "number of traffic flows per sta"}
+	{atf.arg "1" "enable/disable ATF. By default ATF is enabled in driver."}
+	{fb.arg "1" "enable/disable frameburst"}
+	{w.arg "1M" "UDP buffer size"}
+	{rate.arg "1G" "offered rate for non-VO traffic"}
+	{vorate.arg "500M" "offered rate for VO traffic"}
+	{pktsize.arg "1470" "Packet size for UDP BE/BK/VI"}
+	{vopktsize.arg "200" "Packet size for UDP VO"}
+	{holdtime.arg "20" "timer to check traffic"}
+	{delay.arg "5" "time (seconds) to wait to send next traffic stream"}
+	{seqorder.arg "0" "order change when sending traffic stream in sequential test"}
+	{delayseq.arg "" "a list of {<sta> <delay in seconds>}"}
+	{chanspecs.arg {36/80} "List of chanspecs to test"}
+	{modes.arg "" ""}
+	{noload "not to load AP"}
+	{nostaload "not to load STA"}
+	{norestore "not to call restore_defaults after loading"}
+	{noptp "not to setup ptp"}
+	{scb "enable host memory allocation for SCB"}
+	{no1sta "don't run pl test with 1 sta"}
+	{nomstas "don't run pl test on multiple stas"}
+	{nomstasdifftos "don't run pl test on multiple stas with different tos"}
+	{nomstassametos "don't run pl test on multiple stas with same tos"}
+	{nosequential "don't run test to send traffic sequentially"}
+	{nosimultaneous "don't run test to send traffic simultaneously"}
+	{noattn "don't run test with attenuation"}
+	{mbss "test with mbss"}
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+    if {[llength $(aps)] > 2} {
+	error "Expected 1 or 2 APs. "
+    }
+    if {![regexp -nocase "UP" $(direction)]  && ![regexp -nocase "DOWN" $(direction)] \
+	    && ![regexp -nocase "BIDIR" $(direction)]} {
+	error "Invalid traffic direction $(direction). Expecting UP, DOWN or BIDIR."
+    }
+    foreach t $(ltosbits) {
+	if {![regexp -nocase (BE|BK|VI|VO) $t]} {
+	    error "Invalid tosbits $t. Expecting list of BK,BE,VI and VO."
+	}
+    }
+    #res used to decide whether to exit the script execution
+    set res 0
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+    if {$(date) eq ""} {
+	set date $today
+    } else {
+	set date $(date)
+    }
+
+    if {$(trx) ne ""} {
+	foreach AP "$(aps)" {
+	    $AP configure -image $(trx) -date {}
+	}
+    } elseif {$(tag) ne ""} {
+	foreach AP "$(aps)" {
+	    $AP configure -tag $(tag) -date {}
+	}
+    }
+    if {$(bin) ne ""} {
+	foreach STA $(stas) {
+	    $STA configure -image $(bin) -date {}
+	}
+    } elseif {$(statag) ne ""} {
+	foreach STA $(stas) {
+	    $STA configure -tag $(statag) -date {}
+	}
+    }
+    if {$(dhd_tag) ne ""} {
+	foreach STA "$(aps) $(stas)" {
+	    if {[$STA hostis DHD]} {
+		$STA configure -dhd_tag $(dhd_tag)
+	    }
+	}
+    }
+
+    if {$(date) ne ""} {
+	foreach AP "$(aps)" {
+	    $AP configure -date $(date)
+	    if {[$AP hostis DHD]} {
+		$AP configure -dhd_date $(date)
+	    }
+	}
+    }
+    if {$(stadate) ne ""} {
+	set stadate $(stadate)
+	foreach STA $(stas) {
+	    $STA configure -date $(stadate)
+	    if {[$STA hostis DHD]} {
+		$STA configure -dhd_date $(stadate)
+	    }
+	}
+    } else {
+	set stadate $today
+    }
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(aps) $(stas)]]
+    set TITLE "$(title) ($build) (ch=${(chanspecs)})"
+    UTF::Message INFO "" $TITLE
+    unset build
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+	set comments {
+	if {[llength $(aps)] > 1} {
+
+	    UTF::Try "Validating Host and device of $(aps)" {
+		#mbsses (aps) will have same host
+		#but different wl interface
+		foreach AP $(aps) {
+		    set h [$AP cget -host]
+		    set d [$AP cget -device]
+		    lappend l $d
+		    if {![info exists host]} {
+			set host $h
+		    } elseif {$h ne $host} {
+			set res 1
+			error "Usage: All MBSS $(aps) must belong to the same host"
+		    }
+		    if {![info exists dev]} {
+			set dev $d
+		    } elseif {$d eq $dev} {
+			error "Usage: All MBSS $(aps) must have different devices."
+		    }
+		}
+		return "host=$host; devices=$l"
+	    }
+	    #exit script if anything failed in above Try block
+	    if {$res} {
+		UTF::Message INFO "" "Exiting due to host/device validation failed."
+		exit $res
+	    }
+	} else {
+	    set host [$(aps) cget -host]
+	}
+	}
+	#------------------------------
+	#Image Loading
+	#------------------------------
+	set Router [lindex $(aps) 0]
+	if {!$(noload)} {
+	    UTF::Try "[$Router cget -name]: Find Router Image" {
+		# Locate image and add report header
+		UTF::CheckImage $Router $date unknown
+	    }
+
+	    UTF::Try "[$Router cget -name]: Load Image" {
+		if {$(norestore)} {
+		    $Router load
+		} else {
+		    $Router load -erase
+		}
+	    }
+
+	    # Bail out rather than continue with whatever happens to
+	    # be on the router.
+	    if {[$Router cget -_path] eq ""} {
+		UTF::Message ERROR "" "No image found for router $Router,exiting."
+		exit 1
+	    }
+	}
+	if {!$(norestore)} {
+	    UTF::Try "$Router: Restore Defaults" {
+		if {$(noload)} {
+		    $Router restore_defaults
+		} else {
+		    $Router restore_defaults -noerase
+		}
+		# Collect HW info and update report header + DB
+		UTF::ReportWhatami $Router -role DUT -noload $(noload)
+	    }
+	}
+	unset Router
+	foreach STA $(stas) {
+	    if {!$(nostaload)} {
+		UTF::Try "$STA: Find STA Image" {
+		    # Check primary image and start report header
+		    UTF::CheckImage $STA $stadate unknown
+		}
+		UTF::Try "$STA: load" {
+		    if {[catch {$STA load} err]} {
+			UTF::Message ERROR "" "No image found for sta $STA, exiting."
+			exit 1
+		    }
+		}
+		# Check secondary driver and update report header
+		UTF::ReportDriver $STA $stadate
+	    } elseif {[catch {$STA wl ver}]} {
+		# If there is no driver, exit
+		UTF::Message ERROR "" "No image running for sta $STA, exiting."
+		exit 1
+	    }
+
+	    UTF::Try "$STA: HW Info" {
+		# Collect HW info and update report header + DB
+		UTF::ReportWhatami $STA -role REF -noload $(nostaload)
+	    }
+	}
+	#------------------------
+	#End of Image Loading
+	#------------------------
+
+	UTF::Try "Common Setup" {
+	    UTF::Try "Initial Cleanup" {
+		UTF::Streamslib::force_cleanup [concat $(aps) $(stas)]
+		UTF::stream allstreams destroy
+	    }
+
+	    #for Fedora19, need to setup ptpd2. The proc and array are in config file
+	    #for Fedora22, ptpd2 should be running already
+	    if {[info procs ::enable_ptp] ne "" && !$(noptp)} {
+		UTF::Try "PTP setup" {
+		    if {[array exists ::ptpinterfaces]} {
+			UTF::Message INFO "" "[array get ::ptpinterfaces]"
+			::enable_ptp
+		    }
+		}
+	    }
+
+	    #if ::UTF::SetupTestBed is defined in config file
+	    #run the setup
+	    if {[info exists ::UTF::SetupTestBed]} {
+		UTF::Try "SetupTestBed" {
+		    eval $::UTF::SetupTestBed
+		}
+	    } else {
+		foreach STA $(stas) {
+		    UTF::Try "$STA Disassoc" {
+			catch {$STA wl -u disassoc}
+		    }
+		}
+	    }
+	    set AP [lindex $(aps) 0]
+	    if {[$AP hostis Router]} {
+		UTF::Try "Turn on the radio on $AP" {
+		    set wlname [$AP wlname]
+		    regsub {\.\d+} $wlname {} wlbase
+		    if {[$AP nvram get ${wlbase}_radio] ne "1"} {
+			lappend nv ${wlbase}_radio=1
+		    }
+
+		    if {[info exists nv]} {
+			UTF::Message INFO "" "nv: $nv"
+			$AP restart $nv
+			UTF::Sleep 1
+			unset nv
+		    }
+		}
+	    }
+
+	    UTF::Try "Attenuation Setup" {
+		#all STAs at about the same distance from AP
+		#set AP attn to 0
+		#MBSS has the same attngroup
+		set AP [lindex $(aps) 0]
+		set lattn {}
+		if {$(distances) eq ""} {
+		    foreach STA $(stas) {
+			set attngrp [$STA cget -attngrp]
+			UTF::Message INFO "" "$STA attngrp=$attngrp"
+			if {$attngrp eq ""} {
+			    set attngrp [$AP cget -attngrp]
+			} else {
+			    set apattngrp [$AP cget -attngrp]
+			    if {$apattngrp ne ""} {
+				$apattngrp attn 0
+			    }
+			    UTF::Message INFO "" "$apattngrp attn?"
+			}
+			if {$attngrp eq ""} {
+			    UTF::Message WARNING "" "Attenuation group not found for $AP and $STA"
+			} else {
+			    catch {$attngrp attn $(attn)}
+			}
+			lappend lattn "$STA [$attngrp attn?]"
+		    }
+		} else {
+		    foreach {G V} $(distances) {
+			if {[$G info type] eq "::UTF::STA"} {
+			    set G [$G cget -attngrp]
+			}
+			if {$G ne ""} {
+			    if {[catch {$G attn $V} catch_msg]} {
+				UTF::Message WARNING "" "$catch_msg"
+			    }
+			    lappend lattn "$G [$G attn?]"
+			} else {
+			    UTF::Message WARNING "" "Attenuation group $G not found"
+			    continue
+			}
+		    }
+		}
+		return $lattn
+	    }
+
+#--------------------------------------------------------
+    set comment {
+	#temporally comment out. will re-visit for DHD scb related testing
+	    #SCB test needs following nvram settings:
+	    #http://hwnbu-twiki.sj.broadcom.com/bin/view/Mwgroup/PcieFullDongleScbExpand#4-1_Architecture_overview
+	    #-nvram {
+	    #    wl0_scb_alloc=1   <--- global nvram var to enable scb allocation in host memory for dongle routers
+	    #    wl0_bsscfg_class=0 <--- wl0 bsscfg is for data service (private SCBs)
+	    #    wl0.x_bsscfg_class=1 <--- wl0.x bsscfg is for public service (public SCBs)
+	    #    wl0_scb_alloc_class=1 <--- public SCBs are allocated from host memory
+	    #}
+	    #if above not set in utfconf file, script will set them and apply nvram settings
+	    UTF::Try "nvram Settings" {
+		set addinf "UTF::Test::Mbss::APAddInterface"
+		foreach AP $(aps) {
+		    set res 0
+		    set wlname [$AP wlname]
+		    UTF::Message INFO "" "$AP wlname=$wlname"
+		    if {![info exists w]} {
+			set w $wlname
+		    } else {
+			if {$w eq $wlname} {
+			    set res 1
+			    error "Usage: All MBSS $(aps) must have different mbss interface."
+			}
+		    }
+
+		    if {[regsub {\.\d+} $wlname {} wlbase]} {
+			set addinf [join [list $addinf "-lan1" $AP]]
+			if {$(scb)} {
+			    if {[$AP nvram get ${wlname}_bsscfg_class] ne "1"} {
+				lappend nv "${wlname}_bsscfg_class=1"
+			    }
+			}
+		    } else {
+			set addinf [join [list $addinf "-lan" $AP]]
+		    }
+
+		    if {$(scb)} {
+			if {[$AP nvram get ${wlbase}_scb_alloc_class] ne "1"} {
+			    lappend nv "${wlbase}_scb_alloc_class=1"
+			}
+			if {[$AP nvram get ${wlbase}_scb_alloc] ne "1"} {
+			    lappend nv "${wlbase}_scb_alloc=1"
+			}
+			if {[$AP nvram get ${wlbase}_bsscfg_class] ne "0"} {
+			    lappend nv "${wlbase}_bsscfg_class=0"
+			}
+		    }
+		    #disable firewall
+		    if {[$AP nvram get fw_disable] ne "1"} {
+			lappend nv "fw_disable=1"
+		    }
+		    # Make sure base radio is on, otherwise nothing will
+		    # happen
+		    if {[$AP nvram get ${wlbase}_radio] ne "1"} {
+			lappend nv ${wlbase}_radio=1
+		    }
+
+
+		    UTF::Message INFO "" "AP=$AP; res = $res"
+		}
+		if {[info exists nv]} {
+		    UTF::Message INFO "" "nv: $nv"
+		    #$host restart {*}$nv
+		    $AP restart $nv
+		    UTF::Sleep 1
+		}
+	    }
+	    if {$res} {
+		UTF::Message INFO "" "Exiting due to error $err"
+		exit $res
+	    }
+	    UTF::Try "APAddInterface" {
+		catch {$AP wl -i [$AP cget -device] up} status
+		UTF::Message INFO "" "$status"
+		UTF::Message INFO "" "APAddInterfaces cmd=$addinf"
+		if {[catch {eval $addinf} err]} {
+		    set res 1
+		    return $err
+		}
+	    }
+	    if {$res} {
+		UTF::Message INFO "" "Exiting due to error $err"
+		exit $res
+	    }
+	}
+    }
+#-----------------------------------
+	set flows $(flows)
+	set key $(key)
+	set ptxt "Simultaneous"
+	set stxt "Sequential"
+	set (notaf) 1
+	foreach AP $(aps) {
+	    foreach ch $(chanspecs) {
+		if {[$AP wl -u chanspec] ne $ch} {
+		    package require UTF::Test::APChanspec
+		    APChanspec $AP $ch
+		}
+
+		set uniquetosbits {}
+		lappend uniquetosbits [lindex $(ltosbits) 0]
+		foreach currenttos $(ltosbits) {
+		    if {[lsearch $uniquetosbits $currenttos] eq "-1"} {
+			lappend uniquetosbits $currenttos
+		    }
+		}
+		#get actual baseline tput for each sta with each unique tos
+		array set base {}
+		foreach currenttos $uniquetosbits {
+		    set txt " Baseline $ch \{$currenttos\} $(flows) flows/STA"
+		    foreach sta $(stas) {
+			set tos($sta) $currenttos
+		    }
+		    set (key) "$key pl baseline $ch $currenttos $(flows) flows $(stas)"
+		    if {[catch {array set meanminmax [_BaseTest $AP "$(stas)" "na" -tos tos -txt $txt]} msg] \
+			    || [array get meanminmax] eq {}} {
+			set BASELINE_FAILURE 1
+			UTF::Message ERROR "" "Failed to get baseline tput: $msg"
+			exit
+		    }
+
+		    foreach sta $(stas) {
+			set tput 0
+			for {set j 1} {$j <= $(flows)} {incr j} {
+			    if {[llength $meanminmax($sta,$j)]} {
+				set tput [expr {int($tput + [lindex $meanminmax($sta,$j) 0])}]
+				UTF::Message INFO "" "meanminmax($sta,$j)=$meanminmax($sta,$j), tput=$tput"
+			    } else {
+				set BASELINE_FAILURE 1
+				UTF::Message ERROR ""  "Failed to get baseline tput for $sta"
+				exit
+			    }
+			}
+			set base($sta,$currenttos) $tput
+			UTF::Message INFO "" "base($sta,$currenttos)=$base($sta,$currenttos)"
+		    }
+		    UTF::Message INFO "" "t=$currenttos"
+		    array unset meanminmax
+		    array unset tos
+		}
+
+		#calculate offered rates based on $(multipliers)
+		set testrates {}
+		foreach entry $(multipliers) {
+		    for {set i 0} {$i < [llength $entry]} {incr i} {
+			foreach  sta $(stas) {
+			    foreach currenttos $uniquetosbits {
+				if {![dict exists $testrates $sta $currenttos [lindex $entry $i]]} {
+				    dict set testrates $sta $currenttos [lindex $entry $i] [expr {int([lindex $entry $i] * $base($sta,$currenttos))}]
+				}
+			    }
+			}
+		    }
+		}
+		UTF::Message INFO "" "testrates= \n [dict get $testrates]"
+		#only 1-sta cases
+		if {!$(no1sta)} {
+
+		    foreach sta $(stas) {
+			set tos($sta) $(ltosbits)
+			set len [llength $(ltosbits)]
+			if {!$(nosimultaneous)} {
+			    foreach entry $(multipliers) {
+				for {set i 0} {$i < [llength $entry]} {incr i} {
+				    if {$len > $i} {
+					set currenttos [lindex $(ltosbits) $i]
+				    } else {
+					set currenttos "BE"
+				    }
+				    lappend rates($sta) [dict get $testrates $sta $currenttos [lindex $entry $i]]
+				    UTF::Message INFO "" "\[$i\]:rates($sta) = $rates($sta)"
+				}
+				set ctxt "PL \{$ch\} \{[array get tos]\} \{$entry\}"
+				set ck "$key $ctxt"
+				set (key) "$ck $ptxt"
+				set (flows) $len
+				if {[catch {_SimultaneousTrafficTest $AP "$sta" "na" -tos tos \
+						-txt "$ctxt $ptxt" -rates rates} msg]} {
+				    UTF::Message ERROR "" "$msg"
+				}
+				array unset rates
+			    }
+			}
+			if {!$(nosequential)} {
+			    foreach entry $(multipliers) {
+				for {set i 0} {$i < [llength $entry]} {incr i} {
+				    if {$len > $i} {
+					set currenttos [lindex $(ltosbits) $i]
+				    } else {
+					set currenttos "BE"
+				    }
+				    lappend rates($sta) [dict get $testrates $sta $currenttos [lindex $entry $i]]
+				    UTF::Message INFO "" "\[$i\]:rates($sta) = $rates($sta)"
+				}
+				set ctxt "PL \{$ch\} \{[array get tos]\} \{$entry\}"
+				set ck "$key $ctxt"
+				set (key) "$ck $stxt"
+				_SequentialTrafficTest $AP "$sta" "na" \
+				    -tos tos -txt "$ctxt $stxt"  -rates rates
+				array unset rates
+			    }
+			}
+			array unset tos
+		    }
+		}
+
+		#change (flows) back to its original value for following tests
+		set (flows) $flows
+
+		#only m-sta cases
+		if {!$(nomstas)} {
+		    set ltosbits {}
+		    if {!$(nomstasdifftos)} {
+			lappend ltosbits $(ltosbits)
+		    }
+		    if {!$(nomstassametos)} {
+			foreach currenttos $(ltosbits) {
+			    if {[lsearch $ltosbits $currenttos] eq "-1"} {
+			    	lappend ltosbits $currenttos
+			    }
+			}
+		    }
+		    UTF::Message INFO "" "ltosbits=$ltosbits"
+		    set staindex 0
+		    foreach currenttos $ltosbits {
+			set tostxt ""
+			set len [llength $currenttos]
+
+			if { $len eq 1} {
+			    #all stas have same tos set
+			    foreach sta $(stas) {
+				set tos($sta) $currenttos
+			    }
+			} else {
+			    #stas have different tos set
+			    #if not specified, by default use "BE"
+			    foreach sta $(stas) {
+				if {$staindex >= $len} {
+				    set tos($sta) "BE"
+				} else {
+				    set tos($sta) [lindex $currenttos $staindex]
+				}
+				incr staindex
+			    }
+			}
+			#---------------------------------------------------
+			#Note 1: using multiple seperate loops below in order to
+			#group same scenarios together in summary report
+			#
+			#Note 2: [array get tos] returns a list in random order, so doesn't always
+			# match multipliers properly in summary report, thus store the info in a list
+			# for controlled display
+			foreach sta $(stas) {
+			    lappend tostxt "$sta $tos($sta)"
+			}
+			set ctxt "PL \{$ch\} \{$tostxt\}"
+			set ck "$key $ctxt"
+			if {!$(nosimultaneous)} {
+			    foreach entry $(multipliers) {
+				for {set i 0} {$i < [llength $entry]} {incr i} {
+				    if {$i < [llength $(stas)]} {
+					set sta [lindex $(stas) $i]
+				    }
+				    lappend rates($sta) [dict get $testrates $sta $tos($sta) [lindex $entry $i]]
+				    UTF::Message INFO "" "\[$i\]:rates($sta) = $rates($sta)"
+				}
+
+				set (key) "$ck \{$entry\} $ptxt"
+				if {[catch {_SimultaneousTrafficTest $AP $(stas) "na" -rates rates -tos tos \
+						-txt "$ctxt \{$entry\} $ptxt"} msg]} {
+				    UTF::Message ERROR "" "$msg"
+				}
+				array unset rates
+			    }
+			}
+			if {!$(nosequential)} {
+			    foreach entry $(multipliers) {
+				for {set i 0} {$i < [llength $entry]} {incr i} {
+				    if {$i < [llength $(stas)]} {
+					set sta [lindex $(stas) $i]
+				    }
+				    lappend rates($sta) [dict get $testrates $sta $tos($sta) [lindex $entry $i]]
+				    UTF::Message INFO "" "\[$i\]:rates($sta) = $rates($sta)"
+				}
+
+				set (key) "$ck \{$entry\} $stxt"
+				#[expr {int($(holdtime)/2)}]
+				_SequentialTrafficTest $AP $(stas) "na" \
+				    -rates rates -tos tos -txt "$ctxt \{$entry\} $stxt"
+				array unset rates
+			    }
+			}
+			if {!$(noattn)} {
+			    foreach entry $(multipliers) {
+				for {set i 0} {$i < [llength $entry]} {incr i} {
+				    foreach sta $(stas) {
+					if {$i < [llength $(stas)]} {
+					    set sta [lindex $(stas) $i]
+					}
+				    }
+				    lappend rates($sta) [dict get $testrates $sta $tos($sta) [lindex $entry $i]]
+				    UTF::Message INFO "" "\[$i\]:rates($sta) = $rates($sta)"
+				}
+				foreach g "[lindex $(stas) 0] [lindex $(stas) 1]" {
+				    #incr testno
+				    set (key) "$ck \{$entry\} $ptxt"
+				    if {[catch {_SimultaneousTrafficTest $AP $(stas) "na" -rates rates  \
+						    -g $g  -tos tos \
+						    -txt "$ctxt \{$entry\} $ptxt"} msg]} {
+					UTF::Message ERROR "" "$msg"
+				    }
+				}
+				array unset rates
+			    }
+			}
+			if {$(mbss)} {
+			    foreach entry $(multipliers) {
+				for {set i 0} {$i < [llength $entry]} {incr i} {
+				    if {$i < [llength $(stas)]} {
+					set sta [lindex $(stas) $i]
+				    }
+				    lappend rates($sta) [dict get $testrates $sta $tos($sta) [lindex $entry $i]]
+				    UTF::Message INFO "" "\[$i\]:rates($sta) = $rates($sta)"
+				}
+
+				set (key) "$ck mbss \{$entry\} $stxt"
+				catch {_SequentialTrafficTest $AP $(stas) "na" \
+					   -rates rates -tos tos -txt "MBSS $ctxt \{$entry\} $stxt"} catch_msg
+				UTF::Message INFO "" "$catch_msg"
+				array unset rates
+			    }
+			}
+			array unset tos
+		    }
+		}
+	    }
+
+	    set (notaf) 0
+	}
+
+    }
+}

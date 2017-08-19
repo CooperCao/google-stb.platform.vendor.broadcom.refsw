@@ -1,0 +1,12 @@
+#ifdef WFI_SRC
+
+#ifdef LINUX_SRC
+src/apps/wfi/linux/include/wfi_api.h
+src/apps/wfi/linux/include/wfi_utils.h
+src/apps/wfi/linux/wfi_api/makefile
+src/apps/wfi/linux/wfi_api/wfi_api.c
+src/apps/wfi/linux/wfi_api/wfi_api_tester.c
+src/apps/wfi/linux/wfi_api/wfi_utils.c
+#endif
+
+#endif

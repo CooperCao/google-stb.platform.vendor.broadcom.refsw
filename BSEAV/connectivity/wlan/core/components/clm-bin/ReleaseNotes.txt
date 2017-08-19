@@ -1,0 +1,2177 @@
+17-January-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.37.4
+
+2. ClmImport bugfix. ClmImport was trying to get version string from first page, even if it was ignored (starting with "__"). This is now fixed: version string is now being taken from first nonignored page
+
+---------------------------------------------------------
+
+24-October-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.37.2
+
+2. ClmCompiler. Bugfix. Rate sets splitting was performed when number of rate sets exceeded 256, but single-rate BLOB was generated when number of rate sets exceeded 255. Thus when number of rate sets was exactly 256 rate sets spliitin was not performed, BLOB was generated in single-rate mode and it size become 10 times bigger than usual. Thsi is now fixed: single-rate is used only if number of rate sets exceeds 256.
+
+---------------------------------------------------------
+
+19-October-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.37.1
+
+2. ClmCompiler. Rate sets' splitting severed and reimplemented to handle recent growth of rate sets' quantity in NIC builds
+
+---------------------------------------------------------
+
+03-October-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.37.0
+
+2. ClmCompiler. Memory performance optimization: Most numerous objects (belonging to ChannelType, ChannelRange, Locale.Power, rate set) made immutable and singular (only one instance of every unique value present in memory). Thus class constructors replace by create() factories, rate sets become normally frozen (each unique frozenset made to be stored in singel instance) and unfrozen only during locale modifications.
+
+3. ClmCompiler. Network/memory optimization: when ClmCompiler detects that target BLOB located, possibly, on network drive, it spawns a ClmCompiler processor that generates it in temporary directory (thsu using a lot od memory, but only briefly) and then copies it to network drive (thus keeping low memory profiile in potentially long file operation).
+
+4. ClmQuery. Changes in ClmCompiler accommodated.
+
+5. ClmQuery. Unbreakable server operation under Windows fixed: using of timeout listen socket server is now cancelable with Ctrl+C
+
+6. OlympicLimits. New checks added:
+  - Columns not covered by rules are now detected
+  - Powers not covered by columns/rules are now detected
+
+---------------------------------------------------------
+
+15-September-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.36.3
+
+2. ClmImport. --checkversion does not perform complete spreadsheet import if output file not specified - in this situation it only checks version
+
+3. ClmImport. --autogen operation sped up; minimum region generation progress messages added
+
+4. ClmCompiler. Ditched BLOB format 19.0 (with dimensions structure - used by BLOB offloading to host).
+
+5. OlympicLimits.py. Fixed a bug that prevented processing of last column in Olympic power tables
+
+6. OlympicLimits.py. Support for DISABLED power level introduced
+
+---------------------------------------------------------
+
+07-September-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.36.2
+
+2. ClmImport updated (compiled from sources with added support for ChSprWar2)
+
+3. ClmCompiler.py and ClmQuery.py untabified
+
+4. ClmCompiler. --all_data_no_ulb and related stuff removed
+
+---------------------------------------------------------
+
+31-August-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.36.1
+
+2. ClmAPI, ClmCompiler, ClmQuery, ClmImport have got support for ChSprWar2 flag:
+  - CLM Spreadsheet have got "CHSPRWAR2" region flag
+  - CLM XML have got <chsprwar2/> region tag
+  - CLM BLOB have got CLM_DATA_FLAG_2_REG_CHSPRWAR2 bit in second region flag byte
+  - ClmAPI clm_country_flags() have got new return flag -CLM_DATA_FLAG_2_REG_CHSPRWAR2
+
+3. New BLOB format 18.2, that supports ChSprWar2, is introduced
+
+---------------------------------------------------------
+
+15-August-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.36.0
+
+2. ClmImport. --deleteregions and --renameregions added
+
+3. ClmCompiler. BLOB format 19.0 added. It contains 'dimensions' record that specifies allocation size for per-region data if Host Offload is in use. ClmApi that accepts this format not yet added to SVN, but since in makefiles ClmCompiler uses BLOB format, supported by ClmAPI being used, this should not lead to any problems
+
+4. ClmQueryRegions. Output file name parameter and --max_lines switch added
+
+---------------------------------------------------------
+
+22-July-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.34.1
+
+2. ClmImport. Bugfix: TXBF inconsistecy errors (M1036, M1037, M1038) were reported not for all locales. This is now fixed. To avoid spoiling already released spreadsheets, these errors become MsgLevel 4, also M1038 become disablable for a region)
+
+---------------------------------------------------------
+
+15-July-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.34.0
+
+2. ClmImport. --split command line switch introduced to facilitate creation of single-customer spreadsheet
+
+3. ClmCompiler. Extended rate sets' split is performed when number of extended rates exceed limits (that happened at around CLM 9.8.6 for --all_data)
+
+4. ClmCompiler.py, ClmQuery.py - pylint fixes
+
+---------------------------------------------------------
+
+29-June-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.33.0
+
+2. ClmImport. Rewritten from VSTO to NPOI
+   Previously used approach of excel spreadsheet date retrieval (using Excel API, named VSTO) reached its limits: spreadsheet data is so big that it doesn't fit into clipboard, also modern MS Office distributios no longer provide VSTO (for security reasons).
+   NPOI library (Apache license) is now used to read/write excel spreadsheets.
+
+3. ClmImport. ClmImport64.exe introduced
+   Despite some memory optimizations were made, 32 bit address space is not enough for (rare) operations that involve spreadsheet generation (like --convert, etc.), thus 64-bit ClmImport64.exe was introduced. It does not have memory limitations, but it would not run on computers with 32-bit Windows installed - thus ClmImport.exe was preserved
+4. ClmImport. --checkversion switch introduced. It checks corespondence bwtween CLM spreadsheet file name and CLM version it contains. This is better be used during CLM spreadsheet release process
+
+5. ClmImport. --excel switch introduced. It works old way, using VSTO (Excel executable) to retrieve spreadsheet data. It is not very useful, as, like said above, Excel is useless on recent full spreadsheets.
+
+6. OlympicLimits. "Rule" page may now have names "Rules", "Global Rules"
+
+7. OlympicLimits.py. Bugfix: log file is now opened for overwriting, not for append
+
+
+---------------------------------------------------------
+
+22-April-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.32.3
+
+2. ClmImport. Now generates error on absence of 1024QAM flags for regions with explicitly defined VHT10-11 rates even for 2.4GHz channels
+
+---------------------------------------------------------
+
+19-April-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.32.2
+
+2. ClmCompiler. If number of channel ranges exceeds limit of 255 (e.g. in NIC BLOB) - they are split (for now only by 5GHz 20MHz channel 100). This decreases number of channel ranges at a cost of some increase in BLOB size
+
+---------------------------------------------------------
+
+14-April-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.32.1
+
+2. ClmCompiler. Obfuscation is now default behavior. Thus --obfuscayte is obsoleted (supported but emits warning), --noobfuscate introduced to generate nonobfuscated BLOB
+
+3. ClmCompiler. Bugfix: number of reserved channel ranges changed from 0 to 1, as restricted set use reserved channel raneg index. Luckily for now it backfired only in my internal tests
+
+4. ClmCompiler. Enhancement - BLOB version information printing made prettier
+
+---------------------------------------------------------
+
+28-March-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.32.0
+
+2. ClmImport: Support for "Override Restricted Set" autogen column added
+
+3. ClmImport: Support for 20MHz channels 169, 173, 177 and all derived added
+
+---------------------------------------------------------
+
+16-March-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.8
+
+2. ClmQuery. --version printed customization version (if present) always locally, thus in client-server mode version was not printed on client side (it was printed on server side). This is now fixed
+
+---------------------------------------------------------
+
+12-March-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.7
+
+2. ClmCompiler. "-Wmissing-field-initializers" in generated BLOB is now disabled wherever __GNUC__ enabled. Warnings are not restored at end of generated BLOB
+
+3. ClmImport. for M1231, M1188, M1219, M1227, M1229 moved to MsgLevel 4 (as not yet fully fixed in latest CLM spreadsheet, that will soon be switched to MagLevel 3)
+
+---------------------------------------------------------
+
+11-March-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.6
+
+2. ClmImport. Bugfix. Single-band minimum regions (pseudocountries) werer generated incorerctly. This is now fixed
+
+3. ClmImport. Bugfix. Detection of regions that define (n+1)TX limits whereas nTX limits are undefined for situation where n and n+1 belong to different locales was not actually performed. This is now fixed, couple of regions violating this rule were detected, thus this error become MsgLevel 3.
+
+---------------------------------------------------------
+
+07-March-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.4
+
+2. ClmImport. Forces conversion of all pages to General format before importing. This allows to avoid misinterpretation of numbers in various non-US locales
+
+3. ClmCompiler.py, ClmQuery.py. Copyright notices added
+
+---------------------------------------------------------
+
+12-February-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.3
+
+2. ClmImport. Errors M1040 and M1231 (different measures in same region) made per-region disabllable
+
+---------------------------------------------------------
+
+09-February-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.2
+
+2. ClmImport bugfix: <channel_rate_power> tags without power were generated because of NS spreadsheet entries. Such tags are not generated anymore 
+
+---------------------------------------------------------
+
+08-February-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.1
+
+2. ClmImport bugfix: strange nbsp-like character, exported from Japanese Windows/Excel is now ignored
+
+3. ClmImport bugfix: duplicated power reading from old-style CLM spreadsheets fixed
+
+4. ClmImport bugfix: Channels with NS powers were checked for presence of their 20MHz subchannels on Locales page - not anymore
+
+---------------------------------------------------------
+
+02-February-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.31.0
+
+2. ClmImport bugfix: autogenerated regions were allowed as source regions - not anymore
+
+3. ClmImport. Pages with names prefixed by "__" are ignored
+
+4. Power value may be set to NS (stands for "not specified"). Such power considered to be not specified (i.e., unlike disabled, does not affect subchannel power computation) and yet does not allow other definitions of power for same rate
+
+5. Errors generated if tables have extra empty outer rows/columns
+
+6. Widths of some pages determined more precisely
+
+7. ClmImport. --dumphtml switch introduced - it dumps HTML replicas of spreadsheet pages. Do be used for debugging
+
+---------------------------------------------------------
+
+21-January-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.30.0
+
+2. ClmImport have got support for LoGainNBCAL region flag. It puts it to XML as <lo_gain_nbcal /> tag
+
+3. ClmCompiler have got support for LoGainNBCAL region flag:
+   - Default BLOB format bumped to 18.1
+   - lo_gain_nbcal tag is put to second region flag byte as CLM_DATA_FLAG_2_REG_LO_GAIN_NBCAL flag
+   - REGION() macro generated by ClmCompiler have got 'flags2' paraeter if any of included regions have flags for second region byte
+
+4. ClmQuery have got support for LoGainNBCAL region flag:
+   - In singular verbose regulatory query it si printed as LoGainNBCAL: yes/no flag
+   - In table requlator query it is printed as last column, named LoGainNBCAL
+   - In region list output it is printed among other region flags as LoGainNBCAL
+
+5. ClmAPI have got support for LoGainNBCAL region flag (in a separate check-in):
+   - Current BLOB format version bumped to 18.1
+   - Flag is retrievable as clm_country_flags() as CLM_FLAG_LO_GAIN_NBCAL
+
+---------------------------------------------------------
+
+08-January-2016
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.26
+
+2. ClmImport bugfix. New column on Autogen page caused entire page to be silently ignored (only a verbose error was issued). It is changed to output of normal error
+
+---------------------------------------------------------
+
+23-November-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.25
+
+2. ClmCompiler. Bugfix: ULB channel comb sets (empty) were generated even when --ulb was not specified - this caused undesirabel warning on unused static variables. They are not generated anymore
+
+---------------------------------------------------------
+
+08-November-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.24
+
+2. ClmImport. Correctness of power number format on TX pages was not properly checked - as a result ClmImport was crashing on improperly formatted numbers (e.g. 12..25) without proper diagnostics. This is now fixed - proper dagnostics is printed
+
+---------------------------------------------------------
+
+30-October-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.23
+
+2. ClmImport. Some tags (channel_rate_power, regulatory_power_list*, locale_ref_list, tags, mapping_list, channel_notes*, common_note_ref_list, channel*) are 'unfolded' (put to XML without as one-liners). This results in 6 times decrease of line count, which improves RB and precommit performance
+
+---------------------------------------------------------
+
+13-October-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.22
+
+2. ClmCompiler. Changes to support ClmQuery-type utilities:
+   -- Locale.Power.get_min_power() changed to Locale.Power.get_extreme_power() to retrieve both minimum and maximum power
+   -- ClmData.get_rate_power_dict() bugfix - power for subchannels of absent channel not returned anymore
+   Both these changes do not affect (because not used in) BLOB generation functionality
+
+3. ClmQueryMinMax.py added - it prints minimum/maximum power in a group of regions
+
+4. ClmQueryDiff.py, ClmQueryRegions.py - PEP8 compliance changes
+
+---------------------------------------------------------
+
+08-October-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.21
+
+2. ClmImport. Backoff to slow (VSTO) mode not counted as warning anymore. Number of clipboard acquiring attempts inceased
+
+3. ClmCompiler.py, ClmQuery.py, OlympicLimits.py, ClmQueryRegions.py. PEP8 compliance restored
+
+---------------------------------------------------------
+
+02-September-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.20
+
+2. ClmImport. Check for multimeasure locales was incomplete - this is fixed
+
+3. ClmImport. Performance optimizations
+
+---------------------------------------------------------
+
+30-July-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.19
+
+2. ClmImport. TXBF bracket rules were applied to nonTXBF locales. This is fixed.
+
+---------------------------------------------------------
+
+29-July-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.18
+
+2. ClmImport. Autogen source region is now allowed to have nongenuine CC - in this case it is not added to autogenerated lookaside table
+
+---------------------------------------------------------
+
+06-July-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.17
+
+2. ClmImport. --regrevusage switch added. It outputs tags and CCs used by each regrev
+
+---------------------------------------------------------
+
+24-June-2015
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.16
+
+2. ClmImport. Number of clipboard retries (before fallback to slow mode) increased from 10 to 40
+
+3. ClmImport. Verification of 11d limits to be integer added. Error message is Verbose level 3
+
+4. ClmImport. Verification that text and inner representation shall match added. Error message is Verbose level 3
+
+---------------------------------------------------------
+
+16-June-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.15
+
+2. ClmCompiler. Enum declarations and simple vector initializations made multicolumn to reduce wlc_clm_data*.c line count
+
+---------------------------------------------------------
+
+15-June-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.14
+
+2. ClmImport. Support for rate type specification in Autogen rules added
+
+---------------------------------------------------------
+
+26-May-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.13
+
+2. ClmImport. Support fo rnegative power limits added
+
+3. ClmAPI. clm_regulatory_limit() worked incorrectly with negative limits. This is fixed
+
+4. Default implementatoin for BCMRAMFN() macro added - to make it possible to use trunk ClmAPI in older (e.g. Phoenix) branches
+
+---------------------------------------------------------
+
+15-May-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.12
+
+2. ClmCompiler. Increment-less subchannel rules' structures are used in BLOB when CLM data does not contain subchannekl increments - even if --scr_inc(2) (or BLOB format that supports power increment) is sused. Done to allow for corect operation in situation when it is not known what shims are enabled in ClmAPI.
+
+---------------------------------------------------------
+
+11-May-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.11
+
+2. ClmImport. New list of European countries (countries wher eEDCRS_EU is recommended) established.
+
+3. ClmCompiler. Bug in --loc_idx12 implementation fixed (10-bit special indices are not reused)
+
+4. ClmCompiler. ULB channels allowed in BLOB format 12
+
+---------------------------------------------------------
+
+6-May-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.10
+
+2. ClmCompiler. Support for --loc_idx12 switch added (adding 12-bit locale indices to properly shimmed old versions of ClmAPI). Stored in BLOB in a way I named 'flag-swap', to minimize required shimming
+
+3. ClmAPI. Support for 'flag-swap' 12-bit locale indices added - for backward compatibility with BLOB format that use them. BLOB format version not changed
+
+---------------------------------------------------------
+
+30-April-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.9
+
+2. ClmAPI. Subchannel rules' power offsets that were declared as unsigned characters redeclared as signed (because semantically they are signed). This does not affect operation (as arithmetic is 8-bit all the way), but semantically is more correct and will save from potential compiler warnings for initialization of unsigned raays with negative values)
+
+3. ClmCompiler. Subchannel rules' power offsets in BLOB redeclared as signed character vectors.
+
+4. ClmCompiler. Subchannel rules' power offsets printed prettier - one line per channel range (i.e. per rule)
+
+---------------------------------------------------------
+
+27-April-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.8
+
+2. ClmImport. Limit on number of columne on rules page removed
+
+3. ClmImport. Support for "Autogen templates" added
+
+---------------------------------------------------------
+
+24-April-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.7
+
+2. ClmCompiler. Have got support for 8-bit subchannel index and new 'separated' format of subchannel increments (offsets). These changes led to new BLOB format: 18.0
+
+3. ClmCompiler. For supporting 8-bit subchannel index and new format of subchannel rules in older BLOB formats (e.g. implemented in ClmAPI as shims) --scr_idx8 and --scr_inc2 command line switches were added.
+
+4. ClmAPI. Support of BLOB format 18.0 (8-bit subchannel index and new 'separated' format of subchannel increments (offsets)) added.
+
+5. ClmCompiler. List of european countries (CCs whose regions need EDCRS-EU flag or an explicit excmption of it) changed per Pin request
+
+---------------------------------------------------------
+
+06-April-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.6
+
+2. ClmCompiler. Prints extended length diagnostics on --verbose. It is used by blob_size_report.py
+
+3. ClmImport. Error on unspecified EDCRS in EU country added. This error is MsgLevel 3 and can be disabled per region. List of countries may be changed in future
+
+4. ClmImport. Error on unspecified DFS for locale that contains DFS channels added. This error is MsgLevel 3 and can be disabled per region
+
+5. ClmImport. Error oon missing 1024 QAM flag for region that has explicitly specified power limit added. This error is MsgLevel 3 and can be disabled per region
+
+---------------------------------------------------------
+
+27-March-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.5
+
+2. ClmCompiler. --bcmwifi_include_dir switch now copes with very old variations of bcmwifi_rates.h. Added support for lack of TXBF, VHT, TXBF0, 1024_QAM rates
+
+---------------------------------------------------------
+
+18-March-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.4
+
+2. ClmCompiler. --bcmwifi_include_dir switch added for autodetection of default maximum TX chains. This will help using universal .clm files (like router.clm) without setting "--max_chains 3" on twigs that do not have 4TX bcmwifi_rates.h
+
+---------------------------------------------------------
+
+16-March-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.3
+
+2. ClmCompiler. Changes from 1.29.2 undone
+
+---------------------------------------------------------
+
+16-March-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.2
+
+2. ClmCompiler. Olympic-related pragmas in generated BLOB became protected by "#if defined(MACOSX) || defined(EFI)" (previously by "#ifdef MACOSX" only)
+
+---------------------------------------------------------
+
+16-March-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.1
+
+2. ClmImport. "Tx Power Input" page is ignored
+
+---------------------------------------------------------
+
+12-March-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.29.0
+
+2. ClmImport. Support for power increments in subchannel tables added
+
+3. ClmCompiler. Support for power increments in subchannel tables added. BLOB format incremented to 17.0
+
+4. ClmCompiler. --clmapi_include_dir switch was added. It allows to convey to ClmCompiler the maximum allowed BLOB format to generate
+
+5. ClmAPI. Support for BLOB format 17.0 (power increments in subchannel tables) was added 
+
+---------------------------------------------------------
+
+2-March-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.28.1
+
+2. ClmCompiler. '#pragma clang diagnostic ignored "-Wmissing-field-initializers"' was added for MACOSX
+
+---------------------------------------------------------
+
+27-January-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.27.6
+
+2. ClmCompiler. --scr_idx4 switch added to generate BLOBs with 4-bit subchannel index in BLOB formats that normally do not support them (e.g. for Dingo and Bison branches)
+
+3. ClmCompiler. Bugfix. Checking for some bitfield-width caused limits were 1-off, they are fixed
+
+4. ClmAPI. Bug in 4-bit subchannel indices processing fixed
+
+5. ClmAPI. BLOB version checking moved to separate function is_blob_version_supported(), to avoid data_init() invalidation in those products that put wlc_clm.c into ROM (which is still bad idea)
+
+---------------------------------------------------------
+
+26-January-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.27.5
+
+2. ClmCompiler. Bugfix: 1.27.4 still had a restriction of 6 subchannel rules per BLOB. This is now fixed
+
+---------------------------------------------------------
+
+24-January-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.27.4
+
+2. ClmCompiler, ClmAPI. BLOB format 16.0 introduced. In it maximum number of subchannel rules per BLOB is 15 (was 6). Well, in fact for now limit is 14 due to bug in ClmCompiler disgnostics - it will be fixed in next release
+
+---------------------------------------------------------
+
+23-January-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.27.3
+
+2. ClmImport. Maximum column for Rules page changed from "K" to "U"
+
+---------------------------------------------------------
+
+21-January-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.27.2
+
+2. ClmCompiler. Includes BLOB name into --print_options and BLOB file comments
+
+---------------------------------------------------------
+
+16-January-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.27.1
+
+2. ClmImport. MsgLevel 3 error was introduced for HT+HT3 locales not mentioned in HT3 columns. This error may be disabled per region
+
+3. ClmImport. Optional "Disable Errors" column added to Autogen page
+
+4. ClmCompiler. Regrev remap become ordered
+
+---------------------------------------------------------
+
+13-January-2015
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.27.0
+
+2. ClmCompiler now adds IP tag to generated wlc_clm_data.c - Proprietary when --obfuscate specified, Secret when it is not specified
+
+3. ClmCompiler, ClmQuery were spellchecked.
+
+4. ClmCompiler. Code for moving HT20 data to base locales created, but not currently used
+
+5. ClmImport have got orphane Excel manager and clipboard lock mechanisms to be used in next release or ClmImport regression suite
+
+---------------------------------------------------------
+
+11-December-2014
+
+1. ClmAPI. clm_valid_channels() function (and accompanying clm_channels_params_init() function and clm_channels_params_t data structure) introduced. It is intened to supersede clm_valid_channels_5g().
+
+2. ClmAPI. BLOBs with remapped regrevs are fully supported (previously they were rejected)
+
+3. ClmAPI. Some spellchecking in comments done
+
+---------------------------------------------------------
+
+5-December-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.12
+
+2. ClmImport. Minor improvements:
+   - Brackets spage. Recognizes space between rate name and modifier
+   - Brackets page. More accurately measures width of table (countering accidentally inserted columns)
+   - Countries page. Recognizes 2/4TX in heading of HT3 locales' columns
+3. ClmCompiler. Allows (and ignores) --regrev_remap when generating native 16-bit regrev BLOBs - this is preparation to forthcoming ClmAPI that accepts both remapped and natively 16-bit BLOBs
+
+4. ClmCompiler. --single_regrev switch introduced. It generates an error when BLOB contains more than one regrev per CC. This is preparation to forthcoming ClmAPI that can perform regrev-less lookup for region and aggregation
+
+5. ClmAPI. Comments and function declarations truncated to 80 characters
+
+---------------------------------------------------------
+
+25-November-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.11
+
+2. ClmImport. Syntax for autogen power increase/decrease columns changed:
+  - Besides amount of increase/decrease 'DROP' and 'DISABLE' words can be used - they remove power limits for matching channels/rates and disables them respectively
+  - Besides channel numbers following qualifiers are allowed: 
+     - <chains>TX (like 1TX, 2TX, 2-4TX). Matches rates with this number of postexpamnsion chains
+     - TXBF matches only TXBF rates
+     - TXBF<exp> (like TXBF0, TXBF1-2). Matches TXBF rates that have given expansion (number of postexpansion minus number of preexpansion chains). 
+    Several qiualifiers may be specified for one increase/decrease specifier. Similar qualifiers are logically or-ed, different - logically and-ed. E.g. +3(36, 40, TXBF0-1, 2TX, 4TX) increases limit by 3db for limits on channels 36 and 40 for 2TX and 4TX TXBF0 and TXBF1 rates.
+    
+3. Alternative (and preferred) names introduced fo rpages with ULB channels: ULB2.5, ULB5, ULB10.
+
+4. ClmImport. Allows use of autogenerated region defined only for one band.
+
+5. ClmCompiler. --all_data command line switch introduced - for testing purposes only. It passes all CLM data to BLOB (eqiuvalent to evergrowing specifier --ccrev all --txbf --ulb...)
+
+6. Tests updated appropriately    
+
+---------------------------------------------------------
+
+15-November-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.10
+
+2. ClmCompiler. Bugfix: incorrect pragma was put to BLOB end
+
+---------------------------------------------------------
+
+14-November-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.9
+
+2. ClmCompiler. Regrev remap implementation changed. Nonremapped base does not generate full incremental BLOB anymore. Regrev remap made available for BLOB formats starting from 7.0
+
+3. ClmCompiler. missing-field-initializers disabled at top of generated BLOB and re-enabled at bottom
+
+4. ClmCompiler. Parameters may now also be specified in CLM_COMPILER_OPTIONS environment variable. Useful for setting parameters like --verbose or --print_options for makefile debug purposes
+
+5. ClmAPI. Regrev-remap-related structures added to wlc_clm_data.h - they are not plenned to be used in trunk, but just in case, for BLOB cross-compilability
+
+6. ClmAPI. Missing initializers added to data_sources in hope to appease GNU warnings 
+
+7. Tests updated appropriately
+
+---------------------------------------------------------
+
+11-November-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.8
+
+2. ClmCompiler. Disables missing-field-initializers for GCC (if __GNUC__ defined) in generated BLOB
+
+3. ClmCompiler. From now on will ensure that it fills all fields of all BLOB structure, belonging to same CLM release. Done for now (regrev_remap field is always filled - even if not used).
+
+4. ClmQueryDiff. Was broken by latest changes in ClmCompiler. Restored.
+
+5. Tests updated appropriately
+
+---------------------------------------------------------
+
+10-November-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.7
+
+2. ClmCompiler. Regrev remap invocation changed. It is not special BLOB format version, but --regrev_remap switch
+
+3. ClmCompiler. --print_options switch introduced. It prints all parametes passed to ClmCompiler - through command line and in config files.
+
+4. ClmCompiler. Bugfix: --blob_format version may now be separately provided for base and incremental BLOBs
+
+5. ClmAPI. Were mistakenly omitted from 1.26.6 checkin (style changes, fixing bug with 4TX per antenna limit support)
+
+6. Tests updated appropriately
+
+---------------------------------------------------------
+
+7-November-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.6
+
+2. ClmCompiler. Regrev remap implemented as a method of 16-bit regrevs support.. It is used in BLOB format 13.0
+
+3. Trunk ClmAPI. Stylistic changes towards coding style guide: function names moved to line beginnings, continuation lines double-indented
+
+4. Trunk ClmAPI. Potential data overrun on 4TX per-antenna limits fixed
+
+5. 1.24 ClmApi. 16-bit regrevs implemented via egrev remap. Not yet released.
+
+6. ClmImport. CDATA with <<Broadcom-WL-IPTag/Secret: >> added to generated CLM XML (in <ip> tag under root element)
+
+7. ClmImport. Use of autogenerated and source regions in computation of more than on esource region allowed
+
+8. ClmImport. Bugfix: Empty autogen source locales caused ClmImport crash. Not anymore
+
+9. ClmImport. Bugfix: MsgLevel 3 has internal identifier same as MsgLevel 2 - not anymore
+
+10. Tests updated appropriately
+
+---------------------------------------------------------
+
+31-October-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.5
+
+2. ClmImport. Empty columns pruned from --autogen agregation table, preventing it from reaching 256 columns limit
+
+---------------------------------------------------------
+
+28-October-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.4
+
+2. ClmImport bug fixed: channels removed from minimum regions were not removed from its list of regulatory channels
+
+---------------------------------------------------------
+
+17-October-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.26.3
+
+2. ClmImport. Support for ULB channels (10MHz, 5MHz, 2.5MHz) aligned to centers of existing 20MHz channels added. Limits for them shall be put to 10MHz, 5MHz, 2.5MHz pages, limit sshall be specified for HT and HT3 locales
+
+3. ClmImport. Support for new rates (4TX, VHT10-11, VHT_TXBF0) added. Use of VHT10-11, VHT_TXBF0 shall be explicitly enabled per-region by means of 1024QAM and VHTTXBF0 region flags.
+
+4. ClmCompiler. BLOB format 15.0 introduced. This BLOB format supports 12-bit locale indices, 16-bit regrevs, putting all channels to BLOB (i.e. for not using channels hardcoded into wlc_clm.c), ULB channels, new rates (4TX, VHT10-11, VHT_TXBF0), extended rate sets (a mechanism for handling rate situation when number of rate sets exceeds 255 or when 4TX rates (whose indices are wider than 8-bit) are used).
+
+5. ClmCompiler. --ulb, --1024_qam, --vht_txbf0 switches introduced. They enable putting to BLOB limits for ULB channels, VHT10-11... rates, VHT,,,_TXBF0 rates respectively
+
+6. ClmQuery. Format of output for '--list region' changed - region flags (from CLM spreadsheet) are now printed
+
+7. Tests. import_regression.py/.yaml introduced for ClmImport regression tests
+
+8. Other tests updated appropriately
+
+---------------------------------------------------------
+
+23-October-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.12
+
+2. ClmImport bug fixed: channels removed from minimum region swere not removed from it slist of regulatory channels
+
+---------------------------------------------------------
+
+23-October-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.11
+
+2. ClmCompiler crashes on empty 'Region' in Locale. This is fixed in ClmImport for backward XML compatibility.
+
+---------------------------------------------------------
+
+19-August-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.9
+
+2. ClmImport. --convert bugfixes:
+   - Columns on Countries page were replicated incorrectly. Now they ar ereplicated correctly
+   - Source order of locales, countries and aggregations restored (partially): locales on all pages put in same order as on Locales page of source spreadsheet (individual orders from 11d/TX pages of source spreadsheet, if there were any, is not preserved), regions are put in same order as on Countries page of source spreadsheet (but multiple definitions of one region are merged), order of aggregations and pseudocountries is same as in source spreadsheet.
+   
+3. Apple/ROW spreadsheet preliminarily implemented
+
+---------------------------------------------------------
+
+11-August-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.8
+
+2. ClmImport. --convert switch upgraded to fully support current CLM spreadsheet format. It may be used to remove cross-subband channel ranges (in generated spreadsheet all ranges will be in-subband)
+
+3. ClmImport. Annotation for minimum regions' powers aded to spreadsheet generated by --autogen option
+
+4. ClmImport. Spreadsheet import reworked so that all strings now imported exactly as they are specified in Excel - inconsistencies with number of spaces resolved
+
+5. ClmImport. Error backward compatibility made strict
+
+6. ClmCompilerQueryTest\check_conv.py script introduced that verifies that ClmImport --convert preserves all CLM (used in BLOB) information during conversion
+
+---------------------------------------------------------
+
+14-July-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.7
+
+2. ClmImport. Bugfix: Drop 5GHz 40MHz column on Autogen page was ignored. Not anymore
+---------------------------------------------------------
+
+7-July-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.6
+
+2. ClmImport. "Aggregation Definition" enamed to "Lookaside Definition". and may contain more than one CC (to allow sharing autogenerated regions between aggregations). Because of this "Project Name" column is not required to 1-1 correspond to autogenerated aggregations - it become a comment.
+
+3. ClmImport. "Use in Pseudo Country Creation" column added. It specifies which minimum countries shall be computed from source and autogenerated countries defined in row.
+
+4. ClmImport. Minimum regions are generated only for autogenerated aggregations named in second table. Other aggregations are required to have computed or predefined autogenerated default region.
+
+---------------------------------------------------------
+
+10-June-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.5
+
+2. ClmImport. Message on absence of EU/0 made MsgLevel 2
+
+---------------------------------------------------------
+
+5-June-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.4
+
+2. ClmCompiler, ClmImport bugfix: EU is again become treated as genuine EU
+
+---------------------------------------------------------
+
+1-June-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.3
+
+2. ClmCompiler bugfix: EU is not treated as genuine country code anymore. As a result --full_set do not add EU/0 to BLOB anymore
+
+---------------------------------------------------------
+
+23-May-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.2
+
+2. ClmQuery bugfix: channel 144 added to list of radar channels (actual change made in ClmCompiler.py)
+
+3. ClmImport bugfix: misalignment of country names in generated Lookaside page fixed
+
+4. ClmImport. Missing country names put to header row of generated Lookaside page
+
+5. ClmImport. Added error message on more than one CC in column of Lookaside page
+
+---------------------------------------------------------
+
+12-May-2014
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.1
+
+2. ClmImport bugfix: in previous release wrong version of ClmImport was checked in. Now it is fixed.
+
+---------------------------------------------------------
+
+8-May-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.24.0
+
+2. ClmAPI, ClmCompiler, ClmQuery, ClmImport have got support for EDCRS-EU flag:
+  - ClmImport. EDCRS-EU flag may be specified in "11ac Flags" column on Countries" and "Autogen" pages (see however #3)
+  - ClmAPI have got CLM_FLAG_EDCRS_EU country flag
+  - ClmQuery have got EDCRS column in regulatory power table and EDCRS line in singular regulatory power query. Possible values: EU, None
+
+3. ClmImport have got MsgLevel 2 warnings that "11ac Flags" on "Countries" page shall be renamed to "Flags", "11ac Flags" on "Autogen" page shall be renamed to "Region Flags"
+
+4. BLOB format version set to 5.8
+
+5. BLOB format version set to 12.2
+
+6. Tests updated appropriately
+
+---------------------------------------------------------
+
+1-April-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.23.0
+
+2. ClmImport. Rev of up to 65535 are now allowed. Regions and aggregations with such rev are now put to CLM but are 'invisible' for existing ClmImport and ClmCompiler (where support will be added later)
+
+3. ClmImport. Support for odd Ukrainian channels added (albeit intersecting 40MHz channels will probably cause further changes). Power targets for these channels are now put to CLM but are 'invisible' for existing ClmImport and ClmCompiler (where support will be added later).
+
+4. ClmImport. Support for nontxbf-nonvht-non11b keyword added.
+
+5. ClmImport. Error message on cross-subband channel ranges added. ~2000 errors generated
+
+6. ClmImport. Error messages on wrong 2.4GHz channel ranges expanded (each combination of modulation/TXBF is checked separately, correspondence between 40MHz and 20MHz ranges is checked for each combination of modulation/TXBF)
+
+7. ClmImport. Error message on lack of correspondence between 2TX and 3TX power targets added
+
+8. ClmCompiler. There was a bug that placed wrong (empty) subchannel table to regions where only HT3 locales define 80+MHz power targets (which is probably an error anyway). Bug is fixed, error messages added to ClmCompiler.
+
+---------------------------------------------------------
+
+2-March-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.22.1
+
+2. ClmImport. Rate groups (e.g. "nontxbf") are now allowed in the same cell as normal rates and rate ranges.
+
+3. ClmImport. Small bugfixes for extended backward compatibility
+
+---------------------------------------------------------
+
+17-February-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.22.0
+
+2. ClmImport. --zeroregions switch added. It causes ClmImport to generate spreadsheet that contaisn all CC/0 regions for 'real country' CCs. It can be combined with --defaultregions (in this case generated spreadsheet contrains both /0 and default regions).
+
+---------------------------------------------------------
+
+10-February-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.21.1
+
+2. ClmImport. Crash fixed. It was caused by a new situation when some countries present only as autogenerated
+
+3. ClmImport. Default country names are introduced to be used in case when country names can't be derived from CLM data (e.g. when country presnet only as autogenerated)
+
+---------------------------------------------------------
+
+30-January-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.21.0
+
+2. ClmImport. Support for 'tidied up' Autogen page format added:
+ - Optional "Project name" column added to both region and pseudoregion tables. One-to-one correspondence between project name (if nonempty) and autogenerated aggregation (if specified) is required
+ - Comments on Autogen page semantics are moved from third to first column
+ - Support for optional "Disabled Errors" column added to pseudocountry table. For now it is not needed, but may become useful in future
+Support for previous format of Autogen page is retained
+ 
+3. ClmImport. Presence of external links in spreadsheet is detected and reported as error
+
+---------------------------------------------------------
+
+23-January-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.20.0
+
+2. ClmCompiler. --user switch is introduced. It allows to embed user-defined string to BLOB being generated. This string is also placed to comments in header of generated BLOB C file. If switch is not specified BLOB user string set ro generation time/date in "YYY-MM-DD HH:MM:SS" format
+
+3. ClmAPI. clm_get_string() function is introduced. It allows to get any string (user string, CLM version, CLM apps version, pClmCompiler version, name and version of program that generated CLM XML) stored in any (base, incremental) loaded BLOB. clm_string_type_t and clm_string_source_t enums are introduced to be used a sparameter of that function
+
+4. BLOB format version set  to 12.1
+
+5. Tests updated appropriately
+
+---------------------------------------------------------
+
+9-January-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.19.6
+
+2. ClmImport. Bugfix: some noncommon regulatory channels were omitted from minimum region definition.
+
+3. ClmImport. Channel comments for autogenerated locales added to 11d page
+
+---------------------------------------------------------
+
+8-January-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.19.5
+
+2. ClmImport. Bugfix: some noncommon channels were omitted from minimum region definition.
+
+---------------------------------------------------------
+
+8-January-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.19.4
+
+2. ClmCompiler. Bugfix: fixed crash on attempt to write to BLOB locale or region with Unicode comment (some ASCII looking characters in Excel, like quotes, are in fact Unicode).
+
+---------------------------------------------------------
+
+8-January-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.19.3
+
+2. ClmImport. Bugfixes in "Autogen": empty region selection logic fixed, per-channel power increases for 40+MHz channels fixed
+
+3. ClmImport. --autogen now outputs all source countries (not only those that were included into autogenerated aggregations)
+
+---------------------------------------------------------
+
+2-January-2014
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.19.2
+
+2. ClmImport. "Autogen" page and functionality updates:
+ - Columns for dropping channel 144, 5GHz 40MHz, 5GHz 80+MHz renamed to "CH144, 142, 138 Restrict", "Drop 5GHz 40MHz", "Drop 5GHz 80MHz" respectively, they all become meaningful, two latter become mandatory ("CH144 Restrict" is optional because channel may be dropped in "Drop Channels" column)
+ - Default values for all Yes/No columns are "No"
+ - Per-channel power increase is introduced
+ - Table for minimum region's parameters introduced. If minimum region does not have entry in this tabel its parameters are derived from autogenerated aggregation's regions (error is printed if regions of autogenerated aggregation have contradictory parameters)
+ - All source regions are added to autogenerated aggregation and thus, in particular, participate in minimum region's power computations
+ - Minimum region's power computation logic changed: each rate defined in at least one region is defined in minimum region
+
+---------------------------------------------------------
+
+17-November-2013
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.19.1
+
+2. ClmImport. "Autogen" page have got "Power increase" columns. Generation of autogenerated aggregations. Below is a text that I suggest to put to bottom of Autogen" page:
+This page contains recipes for generating new regions and aggregations
+In each row "Source" cell contains CC/rev of region (defined on "Countries" page) used as source of CLM data. Rev of this region is used in all generated regions and agregations
+"Dest" cell contains list of CCs for regions that will be created - they'll have same 'rev' as source region. Leave "Dest" cell empty to include source region into generated aggregation (see below). Note that source region may only be included unmodified, thus if "Dest" is empty then "Band" cell shall be "2.4, 5", "Power increase" and "Drop Channels" shall be empty, "Drop 2.4G 40MHz" shall be "No".
+"Band" cell contains band(s) of source region that will be used in generated regions. This makes it possible (but not mandatory) for generated regions to use of 2.4GHz data from one source region and 5GHz data from another
+"Power increase" cells allows to increase TX power levels in generated regions compared to base regions. Increase applies to all enabled power TX power targets for all bandwidth and postexpansion chain counts. Increase not applied to regulatory (11d) power levels
+"Drop channels" cell contains 20MHz channels from source region that shall not be included into generated regions. Affected 40, 80, 160, 80+80 channels are also dropped
+"Aggregate" cell specifies CC of aggregation to put generated region to. Aggregation uses rev of source region. Aggregation created anew, it shall not be defined on "Lookaside" page. Beside aggregation also a 'minimum' region is created, bearing the same CC/rev as aggregation - it contains common/minimum power targets from all regions contained in aggregation
+Autogeneration result may be looked at by specifying "--autogenerated" switch to ClmImport: it generates CLM spreadsheet that only contains autogenerated regions and aggregations (and only locales pertinent to them)
+
+3. ClmImport now accepts alphanumeric CLM versions (previously it accepted only numeric versions)
+
+4. ClmImport. From now on set of suppressed messages will be determined by MsgLevel value specified in first row in first page of CLM data. Previously set of suppressed messages was determined by CLM data version and this becomes irrelevant with introduction of multiple independent CLM spreadsheets.
+
+5. ClmImport. Message on absence of DSSS rates when OFDM rates defined become disablable per region - separately fro 2TX and 3TX DSSS rates (error codes M1187 and 1188 respectively) 
+
+---------------------------------------------------------
+
+25-October-2013
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.19.0
+
+2. ClmImport's checking on correspondence of channels on Locales, 11d and TX pages was incomplete. This is now fixed.
+
+3. ClmImport now supports "nontxbf-nonvht" and "nonvht-nontxbf" rate specifications
+
+4. ClmImport now checks for (near)zero-row height in spreadsheet.
+
+5. ClmImport have got support for "Autogen" page that produces new regions from existing and creates aggregations from produced 
+
+regions. Also --autogenerated command line switch is introduced. It causes output of .XLS file with created new regions and 
+
+aggregations
+
+6. ClmImport have got --defaultregions command line switch that causes output of .XLS files that contains regions marked as default 
+
+or their codes (X in "Default ccode/regrev" column on "Countries")
+
+7. Suport for 80+80 channels added to ClmTools:
+   - ClmImport have got "80+80MHz" page
+   - XML version advanced to 5.7
+   - ClmCompiler have got "80+80" value for --maxbandwidth switch. When specified it includes 80+80 (as well as 80, 40, 20) MHz 
+
+power targets to BLOB. Value of 160 also includes 80+80 power targets to BLOB (as well as 160, 80, 40, 20 of course)
+   - Changes in ClmQuery:
+      - "80+80" value for --bandwidth switch introduced.
+      - Special syntax is used for 80+80 channels. It's similar to Excel syntax: <low channel>p<high channel>{L|U}, e.g. 42p58U. 
+
+ClmQuery treats 80+80 channel pair as two separate channels U and L. If --channel 42p58 will be specified then ClmQuery will print 
+
+data for L and U channels separately.
+   - BLOB format version advanced to 12.0
+   - Changes in wlc_clm.h:
+      - CLM_BW_80_80 bandwidth introduced to use in call to clm_limits() to obtain 80+80 power targets.
+      - clm_limits_params have got 'other_80_80_chan' field
+      - clm_limits returns power for either L or U subchannel for one call. To get power for 42p58U subchannel:
+         - param->bw shall be set to CLM_BW_80_80
+         - 58 shall be passed as channel parameter
+         - param->other_80_80_chan shall be set to 42
+        to get power for 42p58L 'channel' parameter shall be 42, 'power->other_80_80_chan' shall be 58
+
+8. New BLOB format uses per-band (in addition to per-bandwidth) grouping of rate sets. This allowed to lower maximum number of rate 
+
+sets from 234 to 174 (as per CLM 7.9.2 with "--ccrev all --txbf") with limit of 255.
+
+9. Support for previous BLOB format is retained through "--blob_format 11.0" command line switch of ClmCompiler.
+
+10. ClmCompiler bug that caused underestimation of BLOB size for previous BLOB format is now fixed.
+
+11. Tests updated appropriately
+
+17-July-2013
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.18.2
+
+2. ClmImport --convert: MCS rate groups with ambiguous modifiers (like MCS8-23(SPEXP)) are output in disjoint way (MCS8-15(SPEXP), MCS16-23(SDM))
+
+---------------------------------------------------------
+
+16-July-2013
+
+1. ClmImport, ClmQuery, ClmCompiler versions set to 1.18.2
+
+2. ClmImport now supports "Disabled Errors" column on Countries page. This column (that shall be located between "11ac Flags" and "Spectrum Notes" columns) allows to disable certain error messages for specific regions.
+   To facilitate this disabking all ClmImport error/warning/info messages have got unique message numbers
+
+2. ClmImport now supports unified "20MHz", "40MHz", "80MHz" and "160MHz" columns that contains HT/VHT power targets for specific channel bandwidths.
+   Also ClmImport temporarily have got --convert switch that allows to comvert spreadsheet in present format (with distinct HT/VHT columns) to new one with unified columns.
+
+3. ClmImport now supports "Brackets" page used for locale power cross-checks. Error messages from these checks are suppressed for now (i.e. printed only if --verbosse switch is specified).
+
+4. ClmImport have got some more checks: subchannels defined => encompassing channel shall be defined; channel defined => it shall have enabled power targets; subchannels define power for some rate => encompassing channel shall define power for this rate; 1TX DSSS + 2TX OFDM => 2TX OFDM. Error messages from these checks are suppressed for now
+
+5. ClmImport hangup on reportedly-too-wide pages fixed.
+
+6. Error checks introduced in previous releases are un-suppressed.
+
+---------------------------------------------------------
+
+25-June-2013
+
+1. ClmQuery, ClmImport versions set to 1.17.8
+
+2. ClmQuery bugfix: Disabled power targets are now reported as "Disabled" (previously they were reported as empty strings
+
+
+---------------------------------------------------------
+
+22-May-2013
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.17.0
+
+2. ClmCompiler, ClmApi. New BLOB format (v11.0) introduced. It increases BLOB capacity by storing channel ranges and rate sets separately for each bandwidth - thus "--ccrev all" may again be used on latets CLM data.
+BLOB of previous format (v10.0) may be generated by means of "--blob_format 10.0" ClmCompiler switch. This might be useful for generating incremental BLOB for ROM-ed ClmAPI that uses this previous BLOB format - AFAIK this related to 4335b0 boards.
+wlc_clm.c continues to be backward-compatible with BLOB formats starting from v7.0
+ClmCompiler 'patches' pre-v11.0 BLOBs so that subchannel rules for LL/L subchannels of 80mHz channel 42 are fixed to 20/40 MHz respectively (instead of 'lower of' as used in CLM data). This allows to circumvent problems caused by absence of disabled power sin pre-v11.0 BLOBs 
+BLOB format v11.0 also supports disabled powers and default regions - more on this below
+
+3. ClmCompiler and ClmAPI start supporting storing disabled powers in BLOB. This is needed for correct processing of multibandwidth subchannel rules (previously disabling rate on one bandwidth participating in multibandwidth rule did not caused disabling this rate on subchannel)
+
+4. ClmCompiler 'trims' 2-chain regions that use locales with 3-chain power targets to 2-chain
+
+5. ClmImport, ClmCompiler and ClmAPI start supporting the notion of 'default region' as follows:
+ClmImport supports "Default ccode/regrev" column on "Countries" page and puts information from it to XML.
+ClmCompiler marks default region with special flag in BLOB. Region selection based on this flag is not yet supported (since nobody peeked up my attempt to discussion on it). Yet I believe that this selection will need to be supported eventually
+ClmAPI returns CLM_FLAG_DEFAULT_FOR_CC flag from clm_country_flags() for regions marked as default. No special API for discovering default regions for given CC was added yet. Maybe such API is not necessary and looping over regions with clm_country_iter() and checking for mentioned flag would be enough.
+ClmQuery does not yet allow to check which region is default. If it is necessary this need to be discussed first.
+
+6. ClmImport have got some new checks:
+TX Power values are now checked to be a multiple of 0.25dBm
+Ranges of DSSS channels are now checked for 20 and 40 MHz channels
+HT3 locales checking on country page made stricter: locale in HT3 column must contain 3TX power targets (or be empty); locale in HT3 column must be either 3TX-only, or the same as HT locale; locale in HT column must either not contain 3TX power targets or be mentioned in HT3 column
+Stricter checking was added regarding used channels: only locales mentioned in Locales page (or their 40/80/160 superchannels) may be used on other pages. Base locales shall have on 11d page exactly the same channels as on Locales page. Previously some of these rules were checked, but not completely.
+Experimental power-level-brackets and spectrum availability spreadsheet checks added
+
+7. ClmImport errors have got 'fix version' attribute. It is CLM spreadsheet version when error was first time fixed. When older CLM spreadsheet is processed errors are printed in verbose mode only.
+
+8. In ClmImport some error messages are now grouped by locales and channel ranges. This allows to shorten the number of error messages.
+
+9. Tests updated appropriately
+
+---------------------------------------------------------
+
+8-February-2013
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.16.0
+
+2. ClmQuery. --list region --list srom CC/rev prints list of regions belonging to aggregation CC/rev
+
+3. ClmQueryDiff added. It prints power difference between two regions
+
+4. ClmImport now allows power targets on wide channels where power targets on subchannels are explicitly disabled
+
+5. ClmCompiler Progress print added for --apitest (performed when --verbose specified)
+
+6. Tests updated appropriately
+
+---------------------------------------------------------
+
+16-November-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.15.3
+
+2. ClmCompiler. New column headings on "Countries" page are now supported
+
+---------------------------------------------------------
+
+3-November-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.15.2
+
+2. ClmCompiler. Fixed bug that caused wrong incremental BLOB generation. So far only EU/13 region was slightly affected
+
+3. ClmCompiler. --no_per_antenna switch added that disables generation of per-antenna power targets (per-antenna targets set to power for first antenna)
+
+4. ClmApi. Bugfix: subchannel rules were previously computed as locale (not region) attribute that sometimes caused base region's rules use despite presence of (different) incremental region's rules. From now on region rules are computed separately
+
+To implement this fix additional field was added to struct clm_country_locales defined in wlc_clm.h. This field is opaque and it did not changed sizeof(struct clm_country_locales).
+
+6. Tests updated appropriately. Full coverage restored. Tests are now performed using Python 2.7
+
+---------------------------------------------------------
+
+30-August-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.15.1
+
+2. ClmImport. XML format version set to 5.5.
+
+3. ClmCompiler, ClmQuery, ClmAPI - full support for 160MHz power targets and subchannel rules added
+
+4. BLOB format version set to 10.0
+
+5. Tests updated appropriately. There are 5 noncovered lines - full coverage will be restored later
+
+---------------------------------------------------------
+
+28-August-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.15.0
+
+2. ClmImport. Support for 160MHz added: VHT160 page is allowed, 160MHz subchannel rules are allowed on Rules page.
+To preserve backward compatibility at XML level, XML elements containing 160MHz data surrounded by new tags.
+All 160MHz-related XML elements are already generated, so subsequent re-running of ClmImport will not be neccessary (hopefully)
+XML format version not yet incremented to avoid ClmCompiler warning messages.
+
+3. Tests updated appropriately
+
+---------------------------------------------------------
+
+19-August-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.14.2
+
+2. ClmImport. nontxf, non11b and nontxbf-non11b rate groups may now be used in same cell as other rates (comma separated). E.g. rate specification like  "nontxbf, OFDM(TXBF)" became allowed
+
+---------------------------------------------------------
+
+15-August-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.14.1
+
+2. ClmImport. Crash on power target duplication fixed
+
+3. ClmImport. 'non-txbf' pseudorate renamed to 'nontxbf'. 'nontxbf-non11b' pseudorate left as is
+
+4. Tests updated appropriately
+
+---------------------------------------------------------
+
+14-August-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.14.0
+
+2. ClmImport. non-txbf and nontxbf-non11b pseudorates added.
+
+3. Tests updated appropriately
+
+---------------------------------------------------------
+
+12-August-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.13.1
+
+2. ClmImport. Major internal rework - TX power targets are now stored as per-channel data instead of as per-channel range data
+
+3. ClmImport now performs check of per-antenna limits consistency at rate granularity (instead of locale granularity).
+
+4. ClmImport now issues warnings when 'non11b' pseudorate is used on VHT pages
+
+5. Tests updated appropriately
+
+---------------------------------------------------------
+
+7-August-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.13.0
+
+2. ClmImport generates <txbf> tag for TXBF-enabled regions instead of <no_beamforming> for txbf-disabled regions. Because of this XML format version changed to 5.4
+
+3. ClmCompiler marks TXBF-enabled regions with CLM_DATA_FLAG_REG_TXBF instead of marking TXBF-disabled rgions with CLM_DATA_FLAG_REG_NO_BF flag as previously. 
+
+4. ClmAPI: In wlc_clm_data.h CLM_DATA_FLAG_REG_NO_BF replaced by CLM_DATA_FLAG_REG_TXBF. In wlc_clm.h CLM_FLAG_NO_BF replaced byCLM_FLAG_TXBF. Of course in both cases flag semantics reversed.
+
+5. ClmCompiler: if --txbf not specified regions' difference by TXBF region flag is ignored
+
+6. Tests updated appropriately
+
+---------------------------------------------------------
+
+30-July-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.12.2
+
+2. ClmCompiler from now on puts power targets for TXBF rates only to locales used in regions marked by TXBF flag.
+
+3. Tests and ClmQuery updated appropriately
+
+---------------------------------------------------------
+
+25-July-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.12.1
+
+2. ClmImport: NoBF region flag replaced by TXBF flag. So regions became TXBF-inacapable by default. For now this flag does not affect BLOB size (i.e. TXBF power targets generated anyway), this will be implemented in next release. Corresonded ClmAPI flag remained unchanged (it is still named CLM_FLAG_NO_BF and its semantics is the same). XML schema also remained unchanged
+
+3. ClmImport: power targets for 1-chain rates may now have 3 per-antenna limits. I.e. 1-in-3 antenna diversity per-antenna power targets are now supported
+
+4. ClmImport: locale-level MIMO vs Diversity error message disabled. Finer validity check will be implemented later
+
+5. ClmQuery: "--list rate" may now output total list of rates (if region not specified), list of rates for group of region's channels (all region's channels if --channel not specified, all band's channels if --band specified, all bandwidths' channels if --bandwidth specified)
+
+6. Tests updated appropriately
+
+---------------------------------------------------------
+
+18-July-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.12.0
+
+2. ClmImport: support for per-antenna TX power limits, expanded in nonreleased version 1.10.0 now may be used. Per-antenna TX power limits (as previously) are specified as slash-separated lists. 1-chain rates (as previously) may have 2 per antenna limits (used for 1 in 2 TX diversity). 2-chain rates may have 2 per-antenna limits (used for MIMO transmission) or 3 per-antenna limits (used for 2 in 3 TX diversity). 3-chain rates may have 3-per antenna limits (used for MIMO transmission).
+
+3. ClmQuery: support for per-antenna TX power limits expanded. Per-antenna limits (as previously) are printed as slash-separated values. Since one per-antenna limit may include up to 3 values, output in table form may now be wider than 80 characters (both narrow and wide formats are supported - latter used obly when needed)
+
+4. ClmQuery: Help message updated to include TXBF rate names
+
+5. ClmCompiler: per-antenna limits are now put to BLOB.
+
+6. ClmAPI: support for per-antenna limits added:
+   - clm_limits_params structure have got antenna_idx field (allowed values: 0, 1, 2) that specifies antenna for which clm_limits() function provides TX limits (see comments to this field for more details).
+   - clm_country_flags() have got CLM_FLAG_PER_ANTENNA flag, returned for regions that contain per-antenna targets. For all other regions it is sufficient to call clm_limits() with clm_limits_params::antenna_idx set to 0, since resulted TX limits is the same for all antennas.
+
+7. BLOB format version changed to 9.0. This means that ClmAPI and Python ClmTools shall be checked in synchronously
+
+8. Tests updated appropriately 
+
+9. ClmQuery: Known bug: "--list rate" crashes when "--channel all" parameter specified. Will be fixed in next bugfix release
+
+10. ClmImport: Known bug: locales containing both MIMO and diversity per-chain limits are not allowed. This limitation will be relaxed in next bugfix release.
+
+---------------------------------------------------------
+
+17-July-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.11.2
+
+2. ClmCompiler: error message printed if base locale name used in HT/HT3 column on Countries page or if HT/HT3 locale name used in Base column
+
+3. Tests on ClmCompiler 1.6.5 backward compatibility added
+
+---------------------------------------------------------
+
+11-July-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.11.1
+
+2. ClmCompiler: --no_txbf switch replaced by --txbf. So from now on by default ClmCompiler generates BLOB without TXBF rates.
+
+3. Tests updated appropriately
+
+---------------------------------------------------------
+
+10-July-2012
+
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.11.0
+
+2. ClmImport: Support for TXBF rates added. XML format version set to 5.3. From now on all attempts will be made to leave XML format version at 5.x. To achieve this new/changed features that break backward compatibility will be added under new tag/attribute names (existing tag/attribute names will not be reused).
+
+TXBF rates are designated by (TXBF) modifier. It is important that previously optional (SDM)/(SPEXP) rate modifiers became meaningful - because limit to rate without modifier applied to both TXBF and non-TXBF rates, whereas limit with (SDM)/(SPEXP)/(CDD)/(STBC) modifier applied to non-TXBF rates only (so presence of modifier, other than (TXBF), means that limit is applied to non-TXBF rates)
+
+3. ClmImport: Support for per-antenna limits, left from unreleased 1.10.0, remained in place but moved to new tag names - so ClmCompiler would not recognize them.
+
+4. ClmCompiler: Support for TXBF rates added. This support does not alter BLOB structure, but since TXBF rates use new rate codes (defined in new bcmwifi_rates.h), BLOB format version changed to 8.0.
+
+5. ClmCompiler: --no_txbf switch added. It prevents adding TXBF limits to BLOB
+
+6. ClmCompiler: --blob_version 7.0 added. This BLOB version has support for VHT rates and 80MHz bandwidth, but does not have subchannels and any form of beamforming support.
+
+7. CllCompiler, ClmQuery: Support for per-antenna limits, left from unreleased 1.10.0, remained in place but inactive because ClmImport switched for new tags for them, whereas ClmCompiler does not yet recognize these tags. Support for new tags will be added in next release.
+
+8. ClmAPI: Support for TXBF rates added. Codes for TXBF rates are added to bcmwifi_rates.h to the end of existing rate list, so forward-compatibility with 7.0 binary BLOBs fully preserved, whereas 5.1 BLOBs may be used only if compiled with bcmwifi_rates.h with VHT rates (effectively this probably means that 5.1 binary BLOBs are not supported).
+
+9. wlc_clm.c made source-code (i.e. compile-time) compatible with all existing versions of bcmwifi_rates (ones with 100, 116, 178 rates). Run-time compatibility however is more limited (see previous note).
+
+10. wlc_clm.c: rate_type now generated at run time, so it moved from ROM to RAM. It became bitfield-based, so its new size is 44 bits.
+
+11. Tests updated appropriately. Coverage is 99%, because per-antenna-related code that left in ClmCompiler and ClmImport from unreleased version 1.10.0 is unavailable until next revision.
+
+---------------------------------------------------------
+
+3-July-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.7
+
+2. ClmImport: bug in processing of [DELETE:] mark fixed. [DELETE:...] and [NOTUSE:] became case-insensitive.
+
+
+---------------------------------------------------------
+
+3-July-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.6
+
+2. ClmImport: error is now printed if region defines 3TX power targets for certain band in more than one locale, warning is now printed if region defines 3TX targets but 3x3 column is empty
+
+---------------------------------------------------------
+
+14-June-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.5
+
+2. ClmImport bugfix: rate inference rules were inappropriately applied to certain rates. This bug only affected locale "19ln-9", that was introduced in CLM 6.3.
+
+3. ClmQuery bugfix: MCS rate groups were not accepted as --rate argument - this is now fixed
+
+4. ClmCompiler does not print BLOB file as part of command line comment on top of BLOB.
+
+5. Tests updated appropriately
+
+
+---------------------------------------------------------
+
+18-May-2012
+
+1. BuildBlob.py: src/include added to lit of default include directories
+
+2. BuildBlob.py: note on what what to do in case of 'WL_RATE_..._VHT... undefined' error messages added
+
+---------------------------------------------------------
+
+25-April-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.4
+
+2. ClmImport bugfix: '+' became disallowed in tag names, whereas '&' became allowed
+
+3. ClmQuery bugfix: crash on incorrect rate, bandwidth and chain count fixed.
+
+4. ClmQuery: rate names in lowercase became allowed
+
+5. ClmCompiler: --force_section switch added. It forces all data in BLOB to be placed to specific section - and does it in GCC syntax. Thsi switch is to be used for binary BLOB generation
+
+6. ClmCompiler: --list regions in presence of --ccref, --include, --region, --agg prints list of regions that passes filtering specified by these switches (in absence of these switches --list region as previously prints list of all regions)
+
+7. Tests updated appropriately
+
+---------------------------------------------------------
+
+4-April-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.3
+
+2. ClmImport bugfix: on most of sheets processing was ended on first empty (or marked as deleted) row. Now all rows are processed (rows marked as deleted are skipped)
+
+3. ClmCompiler bugfix: Advertised CC reference was generated incorrectly if the only difference was deleted advertised CCs
+
+4. ClmCompiler --apitest, apitest now print BLOB version on top of listing - tests updated appropriately
+
+---------------------------------------------------------
+
+16-March-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.2
+
+2. ClmCompiler now uses special BLOB generateion mode when number of rate sets exceeds 256 (BLOB format remains the same). This mode is intended for chip testing purposes only: it causes significant increase of BLOB size - warning is printed about it.
+
+3. Tests updated appropriately
+
+4. ClmImport sources that were not checked in in previous release - checked in now
+
+---------------------------------------------------------
+
+23-February-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.1
+
+2. ClmCompiler, ClmQuery, ClmAPI have got support for BF/NO_BF flag:
+ClmQuery returns it in singular regulatory queries like this:
+ClmQuery v1.9.1
+17 dBm
+WAR1: No
+Restricted: No
+Dfs: US
+Radar: No
+Beamforming: Yes
+
+In table regulatory queries it is returned like this:
+ClmQuery v1.9.1
+Region Band Chan Power(dBm) WAR1 Restr  DFS Radar  BF
+Q1/27   5G   36     17        No   No    US    No Yes
+...
+
+ClmAPI returns flag CLM_FLAG_NO_BF bit in return parameter of clm_country_flags()
+
+3. BLOB format version set to 7.2
+
+4. Tests updated appropriately
+
+---------------------------------------------------------
+
+16-February-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.9.0
+
+2. ClmImport accepts NoBF flag in "11as Flags" column of "Countries" sheet. If this flag is set <no_beamforming/> subelement is added to <region> element. Support for this flag in ClmCompiler and ClmAPI will be added in next release
+
+3. Because of #2 XML format version changed to 5.2
+
+4. ClmImport now allows 3TX power target to be added to HT (non-/3n) locales. 1TX and 2TX targets in HT3 locales are remain to be prohibited.
+
+5. ClmImport now switches to old-style cell-by-cell spreadsheet access if new-style HTML-to-clipboard doesn't work. This will hopefully eliminate spreadsheet retrieval errors, but at a cost of processing time that will be tens of minutes. So when ClmImports switches to this mode it might be useful to cancel it, close all running Excels and kills those that run in background using Task manager - maybe this will improve the situation.
+
+6. ClmImport does not remove channel 144 from CLM versions 0.x, 1.x, 6+.x and when CLM version not specified
+
+7. ClmImport now issues warning when MCS0-7 CDD/STBC power target is defined whereas OFDM power target not defined
+
+8. ClmCompiler bugfix - locale comparison does not gives false negatives anymore
+
+9. ClmTools coverage tests rewritten to reflect changes in ClmCompiler
+
+---------------------------------------------------------
+
+13-February-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.8.3
+
+2. ClmImport bugfix: per-rate power targets declared across several lines sometimes caused error messages on incomplete power target group definitions
+
+3. ClmImport bugfix: VHT SS2/3 rates specified with CDD or STBC modifiers were accepted and silently ignored
+
+4. ClmImport now accepts empty or 'None' value in Channels column on Tx power target pages
+
+5. ClmImport bugfix: error message on wrong modulation corected
+
+6. ClmCompiler: --agg and --region un-deprecated
+
+7. ClmCompiler bugfixes: some small bugs in incremental comparison detalization messages fixed
+
+8. Tests: ClmCompiler and ClmQuery are now 100% covered
+
+---------------------------------------------------------
+
+3-February-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.8.1
+
+2. ClmImport bugfix: error was printed on [DELETE:]'d TX power info. Not anymore
+
+3. ClmQuery: --verbose switch now causes lines with VHT/MCS rates to be printed in two rate name notations: MCS and VHT
+
+---------------------------------------------------------
+
+30-January-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.8.0
+
+2. ClmImport, ClmAPI have got support for 20MHz channel 144, 40MHz channel 142, 80MHz channel 138
+
+3. ClmImport have got --no144 switch that removes implicitly added channel 144 and its derivatives from ranges that contain them. This action is implicitly performed over pre-6.0 CLM data
+
+4. ClmImport have changed power target's sorting algorithm to compact BLOB size
+
+5. ClmQuery bugfix: MCS/VHT rates for subchannels of 80MHz channel are now printed in MCS notation (for full channel they are still printed in VHT notation)
+
+6. ClmImport now checks that set of 11d channels shall be exactly the same as set of TX channels for base locale
+
+7. Tests updated. Coverage 98%
+
+---------------------------------------------------------
+
+26-January-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.7.4
+
+2. ClmImport bugfix: fixed crash on HT/VHT pages that happens when inityial row can't be found
+
+3. ClmCompiler bugfixes for crashes in --compare and in --verbose output for incremental BLOB generation
+
+4. ClmQuery bugfix: fixed bugs in parse of --sub_chan switch
+
+---------------------------------------------------------
+
+25-January-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.7.3
+
+2. ClmImport bugfix: OFDM rates are now allowed on VHT80 page
+
+---------------------------------------------------------
+
+24-January-2012
+1. ClmCompiler, ClmQuery, ClmImport versions set to 1.7.2
+
+2. ClmCompiler bugfix: detection of unchanged regins worked incorectly on regions with truncated locales (--abg, --chains 1, --band, etc.). It did not affect ClmApi operation but led to unnecessary increase of incremental CLM data size.
+
+3. ClmCompiler now always delete output file before creation
+
+4. ClmCompiler now prints more detailed diagnostics on reasons for regions and aggregations inclusion/exclusion from incremental BLOB
+
+---------------------------------------------------------
+
+20-January-2012
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.7.1
+
+2. ClmCompiler have got support for subchannel rules for 20/40-in-80 subchannels. It puts rules to BLOB (when necessary), uses them in --apitest listing generation
+
+3. ClmQuery have got --sub_chan parameter that allows to get power targets for subcannels (20/40-in-40/80 channels)
+
+4. ClmCompiler and ClmQuery have got support for customization string. They print it in --version output, also ClmCompiler puts it to BLOB
+
+5. BLOB format version changed to 7.1, because support for subchannel rules and customization string were added to it. New BLOB format is binary backward compatible with existing format, but source code incompatible.
+
+6. Existing tests run without errrors, but new features (subchannel rules, customization string) not covered yet. Updates that restores full coverage will be released soon.
+Note that new ClmImport and ClmCompiler genarate XML and BLOB textually different from previous version. However ClmApi output from this BLOB is the same (as was tested ith apitets test harness).
+
+---------------------------------------------------------
+
+19-January-2012
+1. ClmImport version set to 1.7.0
+
+2. ClmImport now interpretes Subchannel (aka subband) rules on Rules page. References to rules shall be set in 11ac column on Countries page for regions that use 80MHz power targets
+
+3. ClmImport now support SW Apps version specification
+
+4. Xml format version set to 5.1 (because of subchannel rules and SW Apps addition)
+
+5. subchannel and SW Aapps version support will be released later under different version number, simultaneously with ClmAPI updates in driver. 
+
+---------------------------------------------------------
+
+
+22-December-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.6.3
+
+2. ClmImport: Message on absent /0 region converted from error to warning
+
+---------------------------------------------------------
+
+
+19-December-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.6.2
+
+2. ClmImport: Bug in wording for errors on regulatory data in HT locales fixed - they now state that base locale data will be used
+
+3. ClmImport: Now correctly interpretes spreadsheet pages with autofilters enabled
+
+4. ClmImport: Messages on regulatory data in HT locales became warnings, messages on resulted inconsistencies remain to be errors
+
+5. ClmImport: Error messages on absent CC/0 regions added
+
+---------------------------------------------------------
+
+08-December-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.6.0
+
+2. ClmCompiler have got --compare switch that prints comparison log for base and final CLM data used in incremental BLOB generation
+
+3. ClmImport bug in --inferXX switches implementation fixed: enforced MCS->OFDM inference removed
+
+4. ClmImport have got --dualmeasurement flag for backward compatibility
+
+5. ClmImport generates and processes new style CLM spredsheets
+
+6. ClmImport bug in duplicated locale definition fixed. Duplicated locael definition found as a result
+
+7. ClmImport now works 17 times faster
+
+8. XML format version set to 5.0 (to support "disabled" power targets)
+
+9. Optional 11ac column added to "Country map" page. It is for now not yet interpreted
+
+10. ClmImport recognizes but does not yet interpret Rules page
+
+11. Tests updated appropriately
+
+---------------------------------------------------------
+
+28-October-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.4.0
+
+2. ClmQuery. Full support for 80MHz and VHT rates implemented
+
+3. ClmQuery. --bandwidth switch now also accepts list of bandwidths
+
+4. ClmQuery. --chains switch added
+
+5. ClmCompiler. BLOB format version changed to 7.0: locale index overflow byte become mandatory, region flags field added, VHT rates and 80MHz bandwidths and channels added. Note that BLOB, generated by new ClmCompiler would not work with old ClmApi and new ClmApi would not work with old BLOBs (except 5.1, which are accepted).
+
+6. ClmCompiler. Full support for 80MHz and VHT rates implemented
+
+7. ClmCompiler. --max_bandwidth (do not include power targets for channel widths above specified) and --abgn (do not include 802.11ac power targets) switches added
+
+8. ClmCompiler. In incremental BLOB generation filtered-out but unchanged regiosn are not marked as deleted. This measure minimizes incremental BLOB size.
+
+9. Tests. Tests that cover new functionality added
+
+10. ClmImport. Generates an error if more than one rate specified in Rate cell on VHT page
+
+11. ClmApi. Support for BLOB format 7.0 added. BLOB format 6.0 not supported anymore. CLM API update will go separately and will need to be committed synchronously.
+
+---------------------------------------------------------
+
+23-October-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.3.1
+
+2. ClmCompiler. Crash on 80MHz power targets fixed
+
+3. ClmImport. VH0-7 rates are now allowed on VHT80 page
+
+4. ClmImport. CLM data integrity tests reworked, some error messages on DebugA/3n locale resulted
+
+---------------------------------------------------------
+
+17-October-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.3.0
+
+2. Version of CLM XML, generated by ClmImport changed to 4.0. Thus old (pre 1.3.0) CLM tools would not work with new CLM XML files. On the other hand new tools would work with old (pre 4.0) CLM XML files.
+
+3. ClmCompiler: Prints --region and --agg deprecation warning only if switches are used outside of base config file
+
+4. ClmCompiler: Uses CLMATTACHDATA for all incremental BLOB data structures it was not used before
+
+5. ClmImport: VHT20/VHT40/VHT80 sheets are now supported - as places for VHT power targets
+
+6. ClmImport: --addvht switch added. It fills-in VHT20 and VHT40 sheets based on corresponded MCS power targets
+
+7. ClmImport: message on regionless aggregation become verbose warning
+
+8. ClmImport: inference rules on 3TX MCS CDD->STBC removed
+
+9. ClmImport: syntax of inference rules, specified as command line switches changed
+
+10. ClmImport: empty lines (up to 2) allowed in the middle of regions' list
+
+11. ClmImport: warnings on not all power targets defined added
+
+12. Tests: Tests supporting abovemntioned ClmCompiler changes added
+
+---------------------------------------------------------
+
+29-September-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.2.0.
+
+2. ClmCompiler now understands --include and --ccrev switches. --region and --agg switches are deprecated but retained for use in incremental BLOB generation
+
+3. --agg_silicon, --agg_platform, --agg_customer, --tag are not supported anymore
+
+4. ClmCompiler: --list now understand 'tag' and 'region' options. Old set of options and their format (prefixed with --) are no longer supported
+
+5. ClmImport: generates an error for aggregations that do not have regions, corresponded to their SROM CC/rev
+
+6. ClmImport: 3TX MCS0-7 CDD->STBC inference rules removed
+
+7. ClmImport: "Rules" sheet accepted - and ignored
+
+8. ClmQuery: HT-HT3 locale merging not performed anymore. This improves ClmQuery performance, but changes some verbose printouts
+
+9. ClmCompiler, ClmQuery: Lot of syntax and performance improvements
+
+---------------------------------------------------------
+
+22-September-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 1.1.0. It is planned that in future tool versions will be 3-digit. This does not create problems for CLM tools, please let me know if this create problems with 'wl' or some other tools
+
+2. Xml format version set to 3.1. Platform/OEM/Silicon/Customer elements of Locale/Region/Aggregation removed, format of tags representation changed to new Segment/Customer/ChipBoard/Misc format. Formally this change is backward-incompatible, but since these elements were derived mostly incorrectly and were not actually used this change is in fact quite backward-compatible.
+
+CLM tools may process both old and new format of XML.
+
+3. ClmImport: May now process spreadsheet in new format - with renamed sheets, swapped columns on Aggregations sheet, Tags sheet, tags on Country Map sheet. VHT sheets are not supported yet. 
+
+ClmImport may process spreadsheets in both old and new format
+
+4. ClmCompiler: BLOB file name is now optional. Thus BLOB contents report (--verbose switch) and CLM data listing (--apitest switch) may now be used without specifying BLOB file name (it does not save any time though).
+
+5. Tests: Tests on --agg_... switches removed since these switches are deprecated. As a result 3 noncovered lines appeared - this will be fixed soon.
+
+---------------------------------------------------------
+
+13-September-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.55
+
+2. ClmCompiler: --base_config_file switch is introduced
+
+3. Tests: Tests related to --base_config_file added
+
+4. All Python files were edited to be closer to PEP8
+
+---------------------------------------------------------
+
+7-September-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.54
+
+2. ClmCompiler: "--blob_format old_version" output produces BLOB that is compilable with both recent and "old_version" header files
+
+3. ClmCompiler: Top limits for number of locales corrected to 253/1021 for 8/10 bit locale indices
+
+4. ClmCompiler: --apitest output now prints 20-in-40 power information. This is for unit test pirposes
+
+5. ClmCompiler: Check for region revision not exceeded 254 added
+
+6. ClmCompiler, ClmQuery: Regions and aggegations may now be specified in CC/all form. This is for unit test purposes only and barely has any practical value
+
+7. Tests: Tests for "--blob_format 5.1" added: compilability (use as main BLOB) with ClmAPI 5.1 and 6.0 sources, use of output as incremental BLOB for ClmAPI 5.1 and 6.0, wrong format version added
+
+8. Tests: tests for 8 and 10 bit locale indices added
+
+9. Tests: Format changes, related to 5.1->6.0 transition accomodated
+
+10. Tests: apitest.c now prints 20-in-40 power data
+
+11. Tests: Script for running tests on Linux updated. Due to some strange reasons for now it yields incorrect coverage results (was tried on python 2.7) - in windows results are correct
+
+12. Trailing spaces in all source files removed
+
+13. Tests: Trailing spaces and semicolons removed in test control scripts
+
+14. Tests: Enhancements towards Linux and Python 2.7 compatibility added
+
+---------------------------------------------------------
+
+21-August-2011
+1. ClmCompiler, ClmQuery, version set to 0.53
+
+2. ClmQuery: Resolved PR99146 ClmQuery crashes when quieried for the regulatory information in all channels in EU/14
+
+---------------------------------------------------------
+30-August-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.52
+
+2. ClmCompiler/ClmApi: BLOB format version changed to 6.0. New ClmAPI sources (will be sent to Mike shortly) needed to work with this new format. New ClmApi accepts 'old' 5.1 binary format as well as current (6.0)
+
+3. ClmCompiler: Locale indices in region records became 10-bit. This allows to overcome previous limit of 223 locales of one type
+
+4. ClmCompiler: --blob_format switch introduced. It allows to generate BLOB data binary compatible with previous BLOB formats. This may be used to load incremental binary BLOBs to devices with old firmware
+For now the this switc accepts only "5.1" value (this format is binary compatible with 4334b0 devices).
+Note that ClmAPI accepts BLOB data both in current (6.0) and in 5.1 format.
+Note that there is no sense in using this switch for saving BLOB space: 8/10 bit selection in new format is performed automagically, based on number of locales included into BLOB
+
+5. ClmImport: Bugfix: trailing dot removed from locale comment strings
+
+6. ClmImport: XML RegRev records sort order order changed
+
+7. ClmImport: Major internal overhaul for sharing code with ClmEditor
+
+---------------------------------------------------------
+26-July-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.51
+
+2. ClmImport: Bug fixed - ClmImport crashed on CLM 5.3.3 data
+
+---------------------------------------------------------
+25-July-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.50
+
+2. ClmQuery: Bugfixes: crash in --list rate and in --server_port, sorting in --list country, incorerct error messages.
+
+3. ClmQuery: --server_stop switch introduced (for test purposes, but might also be useful for automated operation)
+
+4. Tests: ClmCompiler and ClmQuery covered. 12 hard to reach lines excluded from coverage
+
+---------------------------------------------------------
+12-July-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.49
+
+2. ClmImport: --experimental switch introduced. It affects how --convert works. Currently it generates "TX Limits" page in alternative format
+
+---------------------------------------------------------
+11-July-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.48
+
+2. ClmImport: Sorting of named entities (e.g. locales, notes) in output XML and XLS changed: numbers embedded into names are sorted as numbers, not as strings
+
+3. ClmImport: Conversion (canonical XLS generation) significantly reworked
+
+4. ClmImport: Conversion support for arbitrary rate ranges added
+
+5. ClmImport: Rate ranges sorting bug fixed. This does not affect CLM tools operation, it only reorders contents of generated XML and XLS files.
+
+6. ClmCompiler: Small bugfixes, resulted from coverage testing
+
+7. Tests: ClmCompiler 99% covered (rest will be covered during ClmQuery coverage)
+
+8. Tests: Use of generated BLOB files as references removed
+
+---------------------------------------------------------
+08-July-2011
+1. ClmCompiler, ClmQuery version set to 0.47
+
+2. ClmQuery: Fix crash when requesting all channels for a locale that doesn't include one or more channel types.
+
+---------------------------------------------------------
+30-June-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.46
+
+2. ClmImport: /convert functionality changed: dual powers (port0/port1) introduced, 40 MHz column annd HT rows removed from 11d page, 20in40 powers removed from 20MHz lines on TX limits page, OFDM measurement column added to Locale Info page. Speed improved
+
+3. ClmCompiler: Named constants introduced for rate sets and channel sets - instead of numeric indices. This does not affect wlc_clm operaion.
+
+4. Tests updated. Coverage is 96%
+
+---------------------------------------------------------
+27-June-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.45
+
+2. ClmImport, ClmCompiler, ClmQuer: Format of restricted set representation in CLM XML changed. Because of this:
+- CLM XML format version changed to 3.0
+- Old (pre 0.45) CLM tools would refuse to with new CLM XML files
+- New CLM tools would work with both old and new format of CLM XML
+
+3. Tests updated appropriately
+
+---------------------------------------------------------
+27-June-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.44
+
+2. ClmImport: /convert functionality restored
+
+---------------------------------------------------------
+23-June-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.43
+
+2. ClmImport: Crash fixed
+
+3. ClmImport: --infer20 and --infer40 command lien switches added - they allow to explicitly control inference rules
+
+4. ClmImport: dual-measurement information not derived from column H anymore. This means that dual-measurement infrastructure is remained in place but no dual-measurement locales will be contained in generated CLM XML files.
+
+---------------------------------------------------------
+22-June-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.42
+
+2. ClmCompiler, ClmQuery: Cosmetic changes
+
+3. ClmImport: Rate and inference radically reworked. Main functionality reatined, but XLS generation for now is disabled. Will be restored soon.
+
+4.ClmImport: OFDM and DSSS rates may be now specified in nonbase MIMO locales. Syntax is similar to MCS (e.g. OFDM or DSSS 2-5)
+
+5. ClmImport: OFDM 40MHz rates became allowed, power derived from corresponded MCS 0-7 rates (if not specified explicitly).
+
+6. ClmImport: bugfix CDD rates (including OFDM) was mistakenly derived from STBC rates - not anymore.
+
+7. ClmImport: Warning about unused locales became verbose (not orinted if not asked explicitly).
+
+8. ClmImport internals: all inferences became explicit and moved to single place: Locales.InferRates()
+
+9. ClmImport: Support for new format of restricted sets not yet implemented - will be in next release
+
+---------------------------------------------------------
+21-June-2011
+1. ClmCompiler, ClmQuery version set to 0.41
+
+2. Add --sar2, --sar5 and --ant_gain arguments to ClmQuery
+
+---------------------------------------------------------
+15-June-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.40
+
+2. ClmImport: Uses "Spectrum Notes and References" instead of "Country Map" as source of locael information
+
+3. ClmImport: Merged with converter to new XLS format
+
+4. ClmCompiler: Error/warning messages made single-line.
+
+5. ClmCompiler: Lot of unused stuff (revealed during coverage) removed
+
+6. Tests: ClmCompiler is 94% covered
+
+---------------------------------------------------------
+10-June-2011
+1. ClmCompiler, ClmQuery version set to 0.39
+
+2. ClmCompiler: All BLOB output is now sorted to facilitate repeatabel test results
+
+3. ClmQuery: OFDM->HT20 SISO derivation is performed for CLM data prior to 5.2
+
+4. ClmImport: warnings are issued on unused locales and noncomma locale name separators (still both are processed as previously)
+
+5. ClmImport: Bugfix: in certain cases OFDM 40MHz rates were generated. Not anymore
+
+6. Test patterns updated to match sorting, performed by ClmCompiler
+
+---------------------------------------------------------
+6-June-2011
+1. ClmCompiler, ClmQuery version set to 0.38
+
+2. ClmCompiler: Wrap the incremental data structures with CLMATTACHDATA
+
+---------------------------------------------------------
+5-June-2011
+1. ClmCompiler, ClmQuery, ClmImport version set to 0.37
+
+2. ClmCompiler: maintenance release, major overhaul to facilitate unittest testing (global variables moved to Options object)
+
+3. ClmCompiler: small bugfixes, revealed during coverage testing
+
+4. ClmImport: Error message on HT20 channels covered by HT40 powers only clarified
+
+5. test/ClmCompilerQueryTests directory with unittest tests added (test set is not yet completed)
+
+---------------------------------------------------------
+26-May-2011
+1. ClmCompiler, ClmQuery version set to 0.36
+
+2. Blob version set to 5.1
+
+3. Added generator_version field to clm_data_header_t
+
+---------------------------------------------------------
+25-May-2011
+1. ClmCompiler, ClmQuery version set to 0.35
+
+2. ClmCompiler: Fix crash issue with the --config_file option.
+
+---------------------------------------------------------
+24-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.34
+
+2. ClmImport, ClmCompiler do not support 40MHz OFDM rates anymore
+
+3. ClmImport: Message on regulatory power discrepancy clarified (power value are now printed)
+
+---------------------------------------------------------
+22-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.33
+
+2. ClmCompiler, ClmQuery. All warning and error messages are now printed to stdderr
+
+3. ClmCompiler. Typo in message about wrong python version fixed
+
+4. ClmCompiler. Some details on config file format added to help message
+
+5. ClmQuery. u/l notation for 40MHz zhannel specification is now supported (e.g. 48u is the same thing as 46).
+
+6. --derive_ht20_siso switch added as a temporary aid fro HT20 SISO rates absent in CLM spreadsheet. This makes ClmQuery output more compatible with ClmAPI output
+
+7. ClmImport. (SISO) rate specification is now allowed (and silently ignored)
+
+8. ClmImport. Bugfix: duplicated rate element eliminated
+
+9. ClmImport. 40MHz SISO OFDM powers are now supported
+
+---------------------------------------------------------
+19-May-2011
+1. ClmCompiler, ClmQuery version set to 0.32
+
+2. ClmCompiler: Extended --config_file option to support quoting and escaping.
+
+3. ClmCompiler: Corrected minor problems with command line errors.
+
+---------------------------------------------------------
+18-May-2011
+1. ClmCompiler, ClmQuery version set to 0.31
+
+2. ClmCompiler: Added --config_file option that will read command line arguments from a text file.
+
+---------------------------------------------------------
+10-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.30
+
+2. CLM XML format version set to 2.3, because CLM XML shall now contain HT20 SISO power information.
+
+3. ClmImport now allows HT20 SISO power specifications and generates error if power for HT20 SISO power not specified whereas HT20 MIMO powers or power for HT40 rates that use channel is specified.
+
+4. ClmCompiler now supports quoted lists of arguments like this --region "X0/0 US/1" (old syntax is --region X0/0 --region US/1 and it is still supported)
+
+5. ClmCompiler: bug in --list fixed
+
+6. ClmQuery: --version now works along with (not instead of) other switches. I.e. python.exe ClmQuery.py --version --region X0/9 --channel 36 --rate all ..\clm.xml will print version on top of other output.
+
+---------------------------------------------------------
+10-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.29
+
+2. ClmCompiler in messages of absence of something in CLM file now prints version of CLM data in this file
+
+---------------------------------------------------------
+10-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.28
+
+2. ClmImport does not halt anymore on incorrect number of chains in MCS rate. It issues error and continues to work.
+
+3. ClmImport does not treat locales with single channel range and no power information as error anymore.
+
+4. ClmImport does not use absence of power in 20 and 40 MHz columns as a means to recover from line wraps. It just issues an error if it suspects line wrap without a recovery attempt.
+
+5. ClmImport starts using explicitly specified regulatory power where it is specified along with dBm/MHz or mW/MHz. Warnings about regulatory power derivation became nonverbose.
+
+6. Bug in ClmCompiler fixed: ClmImport crashed if region explicitly specified in command line was absent in CLM XML file.
+
+---------------------------------------------------------
+7-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.27
+
+2. ClmImport now correctly processes recently introduced "Locales Legacy SISO" and "Locales 11n SISO".
+
+3. ClmImport now checks if specified MCS ranges correspond to nominal number of TX chains.
+
+4. ClmCompiler prints its version to header comment of BLOB
+
+5. ClmCompiler names incremental BLOB data as clm_inc_... (as opposed to normal BLOB data that is still named as clm_...)
+
+---------------------------------------------------------
+4-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.26
+
+2. ClmImport, ClmQuery, ClmCompiler. Error/Warning/Info message prefix changed. It now contains utility name and uses pascal (instead of upper) case. It looks like this:
+ClmImport: Error: <Error text here>
+
+3. ClmImport now accepts 40 MHz powers specified without 20MHz powers (on SISO page only) and generates errors if 20MHz power is specifed for SISO MCS rates.
+
+---------------------------------------------------------
+1-May-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.25
+
+2. ClmCompiler, ClmQuery now check for Python version at the top of script. Allowed versions are 2.6 and leter (3.* are not allowed)
+
+3. ClmImport now applies all implicit intralocale rate interpolation rules internally. Therefore generated XML from now on expected to contain all interpolated rates. The only rue that is not applied id OFDM->MCS0-7 rule because it is interlocale. Therefore:
+
+3.1. CLM.XML format version incremented to 2.2 (because semantics of contained data changed)
+
+3.2. ClmCompiler/ClmQuery may work with both old-style (2.0, 2.1 - without interpolated rates) and new-style (2.2+ - with interpolated rates) CLM XML files (in former case rate interpolation performed inside ClmCompiler, ClmQuery). There's no need to re-import existing XML files.
+
+3.3. Semantics of data contained in BLOB also changed, but I decided not to changed BLOB format version, because this semantics change can harm only in case of old blob plus new ClmAPI which is probably shall never happen.
+
+3.4. Corresponded changes in ClmAPI (wlc_clm.c)  will be released separately
+
+4. ClmImport now generates an error/warning for locales that define power for 40MHz 2 TX chain rates and not define it for 1 TX rates (i.e. HT locales present on 2TX page and absent on SISO page). Unfortunately there are nearly 200 such locales - all used in region definitions.
+
+---------------------------------------------------------
+28-Apr-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.24
+
+2. ClmImport prints legible warning message if can't start Excel
+
+---------------------------------------------------------
+28-Apr-2011
+1. ClmImport, ClmCompiler, ClmQuery version set to 0.23 (they'll have unified version number in future)
+
+2. CLM XML file have got <generated_by> element with two subelements: <tool_name> and <tool_version>. These elements contain information about tool that generated XML file (ClmImport for now).
+
+3. Correspondingly CLM XML format version set to 2.1
+
+4. ClmCompiler and ClmQuery have got --version switch that causes printing of version information, pertinent to CLM XML file and tool capabilities.
+
+5. ClmCompiler bugfix: --band switch that previously had no effect now works.
+
+6. ClmCompiler now generates error if generated nonincremental BLOB contains no data
+
+7. ClmCompiler now prints rate sets in comments in form of rate ranges instead of as individual rates
+
+8. ClmCompiler now issues warning if minor version of CLM data file format is greater than minor version of supported format
+
+---------------------------------------------------------
+22-April-2011
+1. New versions are: ClmCompiler - 0.22
+
+2. ClmCompiler. Typos in help message fixed.
+
+---------------------------------------------------------
+22-April-2011
+1. New versions are: ClmImport - 0.17
+
+2. ClmImport. Eliminated warning on FiltWAR1 inconsistency when in fact its use is consistent.
+
+---------------------------------------------------------
+20-April-2011
+1. New versions are: ClmQuery - 0.9
+
+2. ClmQuery. Single-answer queries did not work if --bandwidth 40 specified. Fixed.
+
+---------------------------------------------------------
+20-April-2011
+1. New versions are: ClmImport - 0.16, ClmCompiler - 0.21, ClmQuery - 0.8
+
+2. ClmImport now supports '#' in country/aggregation names
+
+3. ClmImport now uses LF (not CR LF as previously) for generated CLM XML file
+
+4. ClmImport now prinst messages on invalid channel ranges as errors (previously they were verbose-mode warnings) as they acutely affect contents of generated CLM XML file
+
+5. ClmImport now expects FiltWAR1 flag to be in column H. Placement of this flag to column G is stil lallowed, but emits warning
+
+6. ClmCompiler have got --obfuscate command lien switch that strips locale and region comments from generated BLOB
+
+7. ClmQuery now prints radar-sensitive channel information if --regulatory switch specified. It is additional column in list mode and additional line in single-answer mode.
+
+Channel considered to be radar sensitive if it is valid, its base locale has DFS defined (i.e. set to US or EU) and it belongs to 52-64 or 100-140 range (these ranges are hardcoded to ClmCompiler.py)
+
+---------------------------------------------------------
+18-April-2011
+1. New versions are: ClmImport - 0.15, ClmCompiler - 0.20, ClmQuery - 0.7.
+
+2. ClmImport's crash on CLM v4.10.3 fixed. Some illegal channel ranges are reported for CLM v4.10.3  - including (but not limited to) those that unfortunately were not detected previously
+
+3. ClmCompiler from now on writes command line switches and (in case of increment generation) version of base (inc-from) CLM data to header comment of generated BLOB.
+
+4. ClmQuery prints DFS and restricted channel data if --regulatory switch is specified. In list mode these are two additional columns, in single-answer mode this is two additional outpit lines
+
+5. ClmQuery now supports TCP/IP-based (not file-based as it was previously) client-server operation. It works like this:
+In one console window server is executed by means of --server switch:
+python ClmQuery.py --server clm.xml
+
+After this clients may use it by means of --client <server_name> switch. If client and server are on same computer 'localhost' may be used as server name:
+python ClmQuery.py --client localhost --channel 1 --regulatory --bandwidth 20 --rate DSSS1 --region AR/6
+
+Note that in case of client/server operation CLM xml file name is specified only for server (if it is specified for client it will be silently ignored)
+
+Client/server mode of operation by default uses port 17233. If this port is not good it might be changed permanently in ClmQuery.py or temporarily by means of --server_port switch (not ethat this switch shall be specified both on client and server).
+
+Standalone mode of operation (when neither --client nor --server switch is specified) is retained of course. But it is as slow as it was.
+

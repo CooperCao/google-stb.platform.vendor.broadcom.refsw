@@ -46,7 +46,7 @@
 BDBG_MODULE(atlas_main);
 
 CAtlas::CAtlas(
-        uint16_t      number,
+        unsigned      number,
         eAtlasMode    mode,
         CChannelMgr * pChannelMgr,
 #if DVR_LIB_SUPPORT

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,34 +35,29 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include <stdio.h>
+#include <stdlib.h>
 #include "bstd.h"
 #include "nexus_types.h"
 #include "nexus_platform.h"
 
 BDBG_MODULE(boot);
 
-int main(void)
+int main(int argc, char *argv[])
 {
     NEXUS_Error rc;
+    unsigned loops = 0, maxLoops = 0;
 
-    while (1) {
+    if (argc > 1) {
+        maxLoops = atoi(argv[1]);
+    }
+    while ((maxLoops == 0) || (loops < maxLoops)) {
         NEXUS_PlatformStatus platformStatus;
         char versionString[256];
 
         /* NOTE: can't use KNI or DBG before NEXUS_Platform_Init or after NEXUS_Platform_Uninit. Nexus/magnum stack must be up. */
-        fprintf(stderr, "Ready to initialize\n");
+        fprintf(stderr, "Ready to initialize [Attempt #%u]\n", ++loops);
 
         rc = NEXUS_Platform_Init(NULL);
         if ( rc ) {
@@ -74,20 +69,26 @@ int main(void)
         BDBG_ASSERT(!rc);
         NEXUS_Platform_GetReleaseVersion(versionString, 256);
 
-        BDBG_WRN(("Initialization of BCM%04x %c%c Nexus, release %s, complete. Press ENTER to uninit.",
+        BDBG_WRN(("Initialization of BCM%04x %c%c Nexus, release %s, complete.",
             platformStatus.chipId,
             ((platformStatus.chipRevision>>4)&0xF) + 'A' - 1,
             ((platformStatus.chipRevision)&0xF) + '0',
             versionString));
         BDBG_WRN(("Board ID: %d.%d", platformStatus.boardId.major, platformStatus.boardId.minor));
-        getchar();
+
+        if (!maxLoops) {
+            fprintf(stderr, "Press ENTER to uninit.\n");
+            getchar();
+        }
 
         NEXUS_Platform_Uninit();
 
-        fprintf(stderr, "Uninit complete. Press ENTER to init again.\n");
-        getchar();
+        fprintf(stderr, "Uninit complete.\n");
+        if (!maxLoops) {
+            fprintf(stderr, "Press ENTER to init again.\n");
+            getchar();
+        }
     }
 
     return 0;
 }
-

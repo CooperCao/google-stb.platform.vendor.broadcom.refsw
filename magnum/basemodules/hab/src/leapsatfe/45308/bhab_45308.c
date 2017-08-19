@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -218,4 +218,17 @@ BERR_Code BHAB_45308_BscRead(
    }
 
    return retCode;
+}
+
+
+/******************************************************************************
+ BHAB_45308_InitXp()
+******************************************************************************/
+BERR_Code BHAB_45308_InitXp(BHAB_Handle h, uint8_t x)
+{
+   uint32_t hab[3];
+
+   hab[0] = BHAB_45308_InitHeader(0x3D, 0, 0, 0);
+   hab[1] = x;
+   return BHAB_45308_P_SendCommand(h, hab, 3);
 }

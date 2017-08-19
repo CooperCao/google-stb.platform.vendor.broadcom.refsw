@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -86,6 +86,32 @@ static void NEXUS_Frontend_P_3466_AsyncStatusCallback_isr(void *pParam)
     }
 }
 
+static void NEXUS_Frontend_P_3466_newDiversityMasterCallback(void *pParam)
+{
+    BDBG_ASSERT(NULL != pParam);
+    BDBG_WRN(("NEXUS_Frontend_P_3466_newDiversityMasterCallback: %p", (void *)pParam));
+    BKNI_SetEvent((BKNI_EventHandle)pParam);
+}
+
+static void NEXUS_Frontend_P_3466_diversityEventCallback(void *pParam)
+{
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    NEXUS_3466Channel *pChannel;
+    NEXUS_3466Device *pDevice;
+    BDBG_ASSERT(NULL != pParam);
+    pChannel = ((NEXUS_3466Channel *)pParam);
+    pDevice = pChannel->pDevice;
+
+    pDevice->terrestrial.currentDiversityChannel = 1 - pDevice->terrestrial.currentDiversityChannel;
+    pDevice->frontendHandle[pChannel->chn_num]->mtsif.inputBand = NEXUS_FRONTEND_3466_OFDM_INPUT_BAND + pDevice->terrestrial.currentDiversityChannel;
+
+    rc = NEXUS_Frontend_P_3466_SetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
+    if (rc){rc = BERR_TRACE(rc);  goto done;}
+
+done:
+    return;
+}
+
 static void NEXUS_Frontend_P_3466_callback_isr(void *pParam)
 {
     NEXUS_FrontendHandle frontendHandle = NULL;
@@ -112,242 +138,21 @@ static void NEXUS_Frontend_P_3466_callback_isr(void *pParam)
     }
 }
 
-#if NEXUS_HAS_GPIO
-/***************************************************************************
-Summary:
-    Enable/Disable interrupts for a 3466 device
- ***************************************************************************/
-static void NEXUS_Frontend_P_3466_GpioIsrControl_isr(bool enable, void *pParam)
+
+void NEXUS_FrontendDevice_P_Uninit_3466_Hab_Terrestrial(NEXUS_3466Device *pDevice)
 {
-    NEXUS_GpioHandle gpioHandle;
-    BDBG_ASSERT(NULL != pParam);
-    gpioHandle = (NEXUS_GpioHandle)pParam;
+    BSTD_UNUSED(pDevice);
 
-#if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("%s 3466 Gpio Interrupt %p", enable ? "Enable" : "Disable", (void *)gpioHandle));
-#endif
-    NEXUS_Gpio_SetInterruptEnabled_isr(gpioHandle, enable);
-}
-#endif
-
-static void NEXUS_Frontend_P_3466_IsrControl_isr(bool enable, void *pParam)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    unsigned *isrNumber = (unsigned *)pParam;
-    BDBG_ASSERT(NULL != pParam);
-
-    if ( enable )
-    {
-#if NEXUS_FRONTEND_DEBUG_IRQ
-        BDBG_MSG(("Enable 3466 Interrupt %u", *isrNumber));
-#endif
-        rc = NEXUS_Core_EnableInterrupt_isr(*isrNumber);
-        if(rc) BERR_TRACE(rc);
-    }
-    else
-    {
-#if NEXUS_FRONTEND_DEBUG_IRQ
-        BDBG_MSG(("Disable 3466 Interrupt %u", *isrNumber));
-#endif
-        NEXUS_Core_DisableInterrupt_isr(*isrNumber);
-    }
-}
-
-static void NEXUS_Frontend_P_3466_L1_isr(void *pParam1, int pParam2)
-{
-    NEXUS_3466Device *pDevice = (NEXUS_3466Device *)pParam1;
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    BHAB_Handle hab;
-    BDBG_ASSERT(NULL != pParam1);
-    hab = (BHAB_Handle)pDevice->hab;
-    BSTD_UNUSED(pParam2);
-
-#if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("3466 L1 ISR (hab: %p)", (void *)hab));
-#endif
-    if(hab != NULL){
-        rc = BHAB_HandleInterrupt_isr(hab);
-        if(rc){rc = BERR_TRACE(rc);}
-    }
-#if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("Done: 3466 L1 ISR (hab: %p)", (void *)hab));
-#endif
-}
-
-static void NEXUS_Frontend_P_3466_IsrEvent(void *pParam)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    BHAB_Handle hab;
-    BDBG_ASSERT(NULL != pParam);
-    hab = (BHAB_Handle)pParam;
-
-#if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("3466 ISR Callback (hab: %p)", (void *)hab));
-#endif
-    if(hab != NULL){
-        rc = BHAB_ProcessInterruptEvent(hab);
-        if(rc) BERR_TRACE(rc);
-    }
-}
-
-static NEXUS_Error NEXUS_Frontend_P_3466_WriteRegister(void *handle, unsigned address, uint32_t value)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
-    NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(NULL != handle);
-
-    pDevice = pChannel->pDevice;
-    rc = BHAB_WriteRegister(pDevice->hab, address, &value);
-    if(rc){rc = BERR_TRACE(rc);}
-
-    return rc;
-}
-static NEXUS_Error NEXUS_Frontend_P_3466_ReadRegister(void *handle, unsigned address, uint32_t *value   )
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
-    NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(NULL != handle);
-
-    pDevice = pChannel->pDevice;
-    rc = BHAB_ReadRegister(pDevice->hab, address, value);
-    if(rc){rc = BERR_TRACE(rc);}
-
-    return rc;
-}
-
-void NEXUS_FrontendDevice_P_Uninit_3466_Hab(NEXUS_3466Device *pDevice)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_GpioSettings gpioSettings;
-
-    if(pDevice->isrNumber) {
-        NEXUS_Core_DisconnectInterrupt(pDevice->isrNumber);
-    }
-    else if(pDevice->gpioInterrupt){
-        NEXUS_Gpio_SetInterruptCallback_priv(pDevice->gpioInterrupt, NULL, NULL, 0);
-        NEXUS_Gpio_GetSettings(pDevice->gpioInterrupt,  &gpioSettings);
-        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
-        gpioSettings.interrupt.callback = NULL;
-        NEXUS_Gpio_SetSettings(pDevice->gpioInterrupt, &gpioSettings);
-        if(rc){rc = BERR_TRACE(rc); goto done;}
-    }
-    if (pDevice->cbHandle) {
-        BINT_EnableCallback(pDevice->cbHandle);
-        BINT_DestroyCallback(pDevice->cbHandle);
-        pDevice->cbHandle = NULL;
-    }
-
-    if(pDevice->terrestrial.isrEvent) pDevice->terrestrial.isrEvent = NULL;
-    if(pDevice->terrestrial.isrEventCallback) NEXUS_UnregisterEvent(pDevice->terrestrial.isrEventCallback);
-    pDevice->terrestrial.isrEventCallback = NULL;
-    if(pDevice->hab) {
-        rc = BHAB_Close(pDevice->hab);
-        if(rc){rc = BERR_TRACE(rc); goto done;}
-    }
-    pDevice->hab = NULL;
-
-    if (pDevice->leapBuffer) {
-        NEXUS_Memory_Free(pDevice->leapBuffer);
-        pDevice->leapBuffer = NULL;
-    }
-
-done:
     return;
 }
 
-NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab(NEXUS_3466Device *pDevice, const NEXUS_FrontendDeviceOpenSettings *pSettings)
+NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab_Terrestrial(NEXUS_3466Device *pDevice, const NEXUS_FrontendDeviceOpenSettings *pSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    BHAB_Settings habSettings;
-    uint32_t  familyId;
-    BHAB_Handle habHandle;
 
-    void *regHandle;
+    BSTD_UNUSED(pDevice);
+    BSTD_UNUSED(pSettings);
 
-    rc = BHAB_3466_GetDefaultSettings(&habSettings);
-    if(rc){rc = BERR_TRACE(rc); goto done;}
-
-    if (pSettings->spiDevice) {
-        BDBG_MSG(("Configuring for SPI"));
-        habSettings.chipAddr = 0x24;
-        habSettings.isSpi = true;
-        regHandle = (void *)NEXUS_Spi_GetRegHandle(pSettings->spiDevice);
-    } else if (pSettings->i2cDevice) {
-        BDBG_MSG(("Configuring for I2C"));
-        habSettings.chipAddr = pSettings->i2cAddress;
-        habSettings.isSpi = false;
-        regHandle = (void *)NEXUS_I2c_GetRegHandle(pSettings->i2cDevice, NEXUS_MODULE_SELF);
-    } else {
-        regHandle = NULL;
-    }
-    habSettings.isMtsif = true;
-
-    if(pSettings->isrNumber) {
-        BDBG_MSG(("Configuring for external interrupt"));
-        habSettings.interruptEnableFunc = NEXUS_Frontend_P_3466_IsrControl_isr;
-        habSettings.interruptEnableFuncParam = (void*)&pDevice->openSettings.isrNumber;
-    }
-    else if(pSettings->gpioInterrupt){
-        BDBG_MSG(("Configuring for GPIO interrupt"));
-        habSettings.interruptEnableFunc = NEXUS_Frontend_P_3466_GpioIsrControl_isr;
-        habSettings.interruptEnableFuncParam = (void*)pSettings->gpioInterrupt;
-    }
-    BDBG_ASSERT(regHandle);
-
-    if(pSettings->isrNumber) {
-        BDBG_MSG(("Connecting external interrupt"));
-        rc = NEXUS_Core_ConnectInterrupt(pSettings->isrNumber,
-                                             NEXUS_Frontend_P_3466_L1_isr,
-                                             (void *)pDevice,
-                                             0);
-        if (rc) { BERR_TRACE(rc); goto done; }
-    }
-    else if(pSettings->gpioInterrupt){
-        BDBG_MSG(("Connecting GPIO interrupt"));
-        NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt,
-                                             NEXUS_Frontend_P_3466_L1_isr,
-                                             (void *)pDevice,
-                                             0);
-    }
-
-        BDBG_MSG(("Calling BHAB_Open"));
-        rc = BHAB_Open(&habHandle, regHandle, &habSettings);
-        BDBG_MSG(("Calling BHAB_Open...Done: hab: %p",(void *)habHandle));
-        if (rc) { BERR_TRACE(rc); goto done; }
-
-        pDevice->hab = habHandle;
-
-    /* Get events and register callbacks */
-    rc = BHAB_GetInterruptEventHandle(pDevice->hab, &pDevice->terrestrial.isrEvent);
-    if(rc){rc = BERR_TRACE(rc); goto done;}
-
-    pDevice->terrestrial.isrEventCallback = NEXUS_RegisterEvent(pDevice->terrestrial.isrEvent, NEXUS_Frontend_P_3466_IsrEvent, pDevice->hab);
-    if ( NULL == pDevice->terrestrial.isrEventCallback ){rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done; }
-
-    rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_FAMILY_ID, &familyId);
-    if(rc){rc = BERR_TRACE(rc);}
-
-    if (pSettings->loadAP)
-    {
-        if((familyId >> 16) == 0x3466) {
-            rc = BHAB_InitAp(pDevice->hab, bcm3466_leap_image);
-            if(rc){rc = BERR_TRACE(rc); goto done;}
-        }
-        else if((familyId >> 16) == 0x3465) {
-            rc = BHAB_InitAp(pDevice->hab, bcm3465_leap_image);
-            if(rc){rc = BERR_TRACE(rc); goto done;}
-        }
-        else {
-            BDBG_WRN(("Invalid Frontend Chip"));
-            goto done;
-        }
-    }
-    return BERR_SUCCESS;
-
-done:
-    NEXUS_FrontendDevice_P_Uninit_3466_Hab(pDevice);
     return rc;
 }
 
@@ -357,22 +162,23 @@ void NEXUS_FrontendDevice_P_Uninit3466(NEXUS_3466Device *pDevice)
     unsigned int i;
     BTNR_PowerSaverSettings pwrSettings;
 
-    for ( i = 0; i < NEXUS_MAX_3466_T_FRONTENDS && NULL != pDevice->terrestrial.tnr[i]; i++) {
-        if(pDevice->terrestrial.tnr[i]){
-            if(pDevice->terrestrial.isTunerPoweredOn[i]){
+    for ( i = 0; i < NEXUS_MAX_3466_T_FRONTENDS && NULL != pDevice->tnr[i]; i++) {
+        if(pDevice->tnr[i]){
+            if(pDevice->isTunerPoweredOn[i]){
                 pwrSettings.enable = true;
-                rc = BTNR_SetPowerSaver(pDevice->terrestrial.tnr[i], &pwrSettings);
+                rc = BTNR_SetPowerSaver(pDevice->tnr[i], &pwrSettings);
                 if(rc){rc = BERR_TRACE(rc);}
             }
-            rc = BTNR_Close(pDevice->terrestrial.tnr[i]);
+            rc = BTNR_Close(pDevice->tnr[i]);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            pDevice->terrestrial.tnr[i] = NULL;
+            pDevice->tnr[i] = NULL;
         }
     }
     for ( i = 0; i < NEXUS_MAX_3466_T_FRONTENDS && NULL != pDevice->terrestrial.ods_chn[i]; i++) {
         if(pDevice->terrestrial.ods_chn[i]){
-            BODS_InstallCallback(pDevice->terrestrial.ods_chn[i], BODS_Callback_eLockChange, NULL, (void*)&pDevice->terrestrial.frontendHandle[i]);
-            BODS_InstallCallback(pDevice->terrestrial.ods_chn[i], BODS_Callback_eAsyncStatusReady, NULL, (void*)&pDevice->terrestrial.frontendHandle[i]);
+            BODS_InstallCallback(pDevice->terrestrial.ods_chn[i], BODS_Callback_eLockChange, NULL, (void*)&pDevice->frontendHandle[i]);
+            BODS_InstallCallback(pDevice->terrestrial.ods_chn[i], BODS_Callback_eAsyncStatusReady, NULL, (void*)&pDevice->frontendHandle[i]);
+            BODS_InstallCallback(pDevice->terrestrial.ods_chn[i], BODS_Callback_eNewDiversityMaster, NULL, (void*)&pDevice->frontendHandle[i]);
         }
 
         if ( pDevice->terrestrial.lockAppCallback[i] ){
@@ -382,6 +188,14 @@ void NEXUS_FrontendDevice_P_Uninit3466(NEXUS_3466Device *pDevice)
         if ( pDevice->terrestrial.asyncStatusAppCallback[i] ){
              NEXUS_IsrCallback_Destroy(pDevice->terrestrial.asyncStatusAppCallback[i]);
              pDevice->terrestrial.asyncStatusAppCallback[i] = NULL;
+        }
+        if (pDevice->terrestrial.diversityEventCallback) {
+            NEXUS_UnregisterEvent(pDevice->terrestrial.diversityEventCallback);
+            pDevice->terrestrial.diversityEventCallback = NULL;
+        }
+        if (pDevice->terrestrial.diversityEvent) {
+            BKNI_DestroyEvent(pDevice->terrestrial.diversityEvent);
+            pDevice->terrestrial.diversityEvent = NULL;
         }
         if(pDevice->terrestrial.ods_chn[i]){
             rc = BODS_CloseChannel(pDevice->terrestrial.ods_chn[i]);
@@ -395,15 +209,6 @@ void NEXUS_FrontendDevice_P_Uninit3466(NEXUS_3466Device *pDevice)
         pDevice->terrestrial.ods = NULL;
     }
 
-#if NEXUS_HAS_MXT
-    if (pDevice->pGenericDeviceHandle) {
-        if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
-            BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
-            pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
-        }
-        BKNI_Memset((void *)&pDevice->pGenericDeviceHandle->mtsifConfig, 0, sizeof(pDevice->pGenericDeviceHandle->mtsifConfig));
-    }
-#endif
 done:
     return;
 }
@@ -412,12 +217,8 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init3466(NEXUS_3466Device *pDevice)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned int i;
-    BTNR_3466_Settings tnr3466_cfg;
     BODS_Settings odsCfg;
     BODS_ChannelSettings odsChnCfg;
-#if NEXUS_HAS_MXT
-    BMXT_Settings mxtSettings;
-#endif
 
     rc =  BHAB_GetTunerChannels(pDevice->hab, &pDevice->capabilities.totalTunerChannels);
     if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -442,6 +243,10 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init3466(NEXUS_3466Device *pDevice)
     rc = BODS_Init(pDevice->terrestrial.ods);
     if(rc){rc = BERR_TRACE(rc); goto done;}
 
+    /* Create device events, etc. */
+    rc = BKNI_CreateEvent(&pDevice->terrestrial.diversityEvent);
+    if (rc) { rc = BERR_TRACE(rc); goto done; }
+
     rc = BODS_GetChannelDefaultSettings( pDevice->terrestrial.ods, BTNR_Standard_eDvbt, &odsChnCfg);
     if(rc){rc = BERR_TRACE(rc); goto done;}
 
@@ -457,32 +262,6 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init3466(NEXUS_3466Device *pDevice)
             pDevice->terrestrial.maxDvbtChannels++;
     }
 
-    for (i=0;i<NEXUS_MAX_3466_T_FRONTENDS;i++) {
-        rc = BTNR_3466_GetDefaultSettings(&tnr3466_cfg);
-        if(rc){rc = BERR_TRACE(rc); goto done;}
-        tnr3466_cfg.channelNo = i;
-        rc =  BTNR_3466_Open(&pDevice->terrestrial.tnr[i],&tnr3466_cfg, pDevice->hab);
-        if(rc){rc = BERR_TRACE(rc); goto done;}
-    }
-#if NEXUS_HAS_MXT
-    /* open MXT */
-    BMXT_GetDefaultSettings(&mxtSettings);
-    mxtSettings.chip = BMXT_Chip_e3466;
-    mxtSettings.chipRev = BMXT_ChipRev_eA0;
-    for (i=0; i < BMXT_NUM_MTSIF; i++) {
-        mxtSettings.MtsifTxCfg[i].TxClockPolarity = 0;
-        mxtSettings.MtsifTxCfg[i].Enable = true;
-        NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
-        mxtSettings.MtsifTxCfg[i].Encrypt = NEXUS_TransportModule_P_IsMtsifEncrypted();
-        NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
-    }
-    mxtSettings.hHab = pDevice->hab;
-    rc = BMXT_Open(&pDevice->pGenericDeviceHandle->mtsifConfig.mxt, NULL, NULL, &mxtSettings);
-    if (rc!=BERR_SUCCESS) goto done;
-
-    rc = NEXUS_Frontend_P_InitMtsifConfig(&pDevice->pGenericDeviceHandle->mtsifConfig, &mxtSettings);
-    if (rc!=BERR_SUCCESS) goto done;
-#endif
     return BERR_SUCCESS;
 
 done:
@@ -493,9 +272,11 @@ done:
 static void NEXUS_Frontend_P_3466_UnTune(void *handle)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Device *pDevice = (NEXUS_3466Device *)handle;
-    NEXUS_3466Channel *pChannel;
     BODS_PowerSaverSettings pwrSettings;
+    NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     BDBG_ASSERT(NULL != handle);
     pChannel = (NEXUS_3466Channel *)handle;
@@ -507,7 +288,7 @@ static void NEXUS_Frontend_P_3466_UnTune(void *handle)
     {
     case NEXUS_3466_DVBT2_CHN:
     case NEXUS_3466_DVBT_CHN:
-        NEXUS_Frontend_P_UnsetMtsifConfig(pDevice->terrestrial.frontendHandle[pChannel->chn_num]);
+        NEXUS_Frontend_P_3466_UnsetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
         if(pDevice->terrestrial.isPoweredOn[pChannel->chn_num]) {
             rc = BODS_EnablePowerSaver(pDevice->terrestrial.ods_chn[pChannel->chn_num], &pwrSettings);
             if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -537,22 +318,13 @@ static void NEXUS_Frontend_P_3466_Close(NEXUS_FrontendHandle handle)
             NEXUS_Frontend_P_3466_UnTune(pDevice);
         }
     }
-
-    NEXUS_Frontend_P_Destroy(handle);
-
-    if (pChannel) {
-        pDevice->terrestrial.frontendHandle[pChannel->chn_num] = NULL;
-        BKNI_Memset(pChannel, 0, sizeof(*pChannel));
-        BKNI_Free(pChannel);
-    }
 }
 
 NEXUS_Error NEXUS_FrontendDevice_P_Init3466_Terrestrial(NEXUS_3466Device *pDevice)
 {
     NEXUS_Error rc;
-    rc = NEXUS_FrontendDevice_P_Init_3466_Hab(pDevice, &pDevice->openSettings);
-    if (!rc)
-        rc = NEXUS_FrontendDevice_P_Init3466(pDevice);
+
+    rc = NEXUS_FrontendDevice_P_Init3466(pDevice);
 
     /* restore LNA */
     {
@@ -575,9 +347,7 @@ done:
 
 void NEXUS_FrontendDevice_P_Uninit3466_Terrestrial(NEXUS_3466Device *pDevice)
 {
-    NEXUS_FrontendDevice_P_3466_UninstallCallbacks(pDevice);
     NEXUS_FrontendDevice_P_Uninit3466(pDevice);
-    NEXUS_FrontendDevice_P_Uninit_3466_Hab(pDevice);
 }
 
 static NEXUS_FrontendLockStatus  NEXUS_Frontend_P_GetLockStatus(unsigned lockStatus)
@@ -601,11 +371,18 @@ static NEXUS_FrontendLockStatus  NEXUS_Frontend_P_GetLockStatus(unsigned lockSta
 static NEXUS_Error NEXUS_Frontend_P_3466_GetFastStatus(void *handle, NEXUS_FrontendFastStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
     unsigned lock;
 
-    pDevice = pChannel->pDevice;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
+    pDevice = (NEXUS_3466Device *)pChannel->pDevice;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+
+    pStatus->lockStatus = NEXUS_FrontendLockStatus_eUnknown;
+
     rc = BODS_GetLockStatus(pDevice->terrestrial.ods_chn[pChannel->chn_num],  &lock);
     if(rc){rc = BERR_TRACE(rc); goto done;}
     pStatus->lockStatus = NEXUS_Frontend_P_GetLockStatus(lock);
@@ -619,8 +396,10 @@ done:
 
 static void NEXUS_FrontendDevice_P_3466_UninstallCallbacks(void *handle)
 {
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     pDevice = pChannel->pDevice;
     if(pDevice->terrestrial.lockAppCallback[pChannel->chn_num])NEXUS_IsrCallback_Set(pDevice->terrestrial.lockAppCallback[pChannel->chn_num], NULL);
@@ -662,10 +441,12 @@ static BODS_SelectiveAsyncStatusType NEXUS_Frontend_P_3466_t2StatusTypeToOds(NEX
 static NEXUS_Error NEXUS_Frontend_P_3466_RequestDvbt2AsyncStatus(void *handle, NEXUS_FrontendDvbt2StatusType type)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
-    NEXUS_3466Device *pDevice;
     BODS_SelectiveAsyncStatusType statusType;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
+
     pDevice = pChannel->pDevice;
 
     statusType = NEXUS_Frontend_P_3466_t2StatusTypeToOds(type);
@@ -681,9 +462,10 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncStatusReady(void *handle, 
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
     BODS_SelectiveAsyncStatusReadyType readyType;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
     pDevice = pChannel->pDevice;
 
     BKNI_Memset(pStatusReady, 0, sizeof(NEXUS_FrontendDvbt2StatusReady));
@@ -710,9 +492,10 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncFecStatistics(void *handle
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
     BODS_SelectiveAsyncStatusType statusType;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
     pDevice = pChannel->pDevice;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -758,9 +541,10 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncL1PreStatus(void *handle, NEXUS_FrontendDvbt2L1PreStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
     pDevice = pChannel->pDevice;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -805,9 +589,10 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncL1PostConfigurableStatus(void *handle, NEXUS_FrontendDvbt2L1PostConfigurableStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
     pDevice = pChannel->pDevice;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -873,9 +658,10 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncPostDynamicStatus(void *handle, NEXUS_FrontendDvbt2L1PostDynamicStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
     pDevice = pChannel->pDevice;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -910,9 +696,10 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncL1PlpStatus(void *handle, 
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
     unsigned i=0;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
     pDevice = pChannel->pDevice;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -940,9 +727,10 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncBasicStatus(void *handle, NEXUS_FrontendDvbt2BasicStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
-    BDBG_ASSERT(handle != NULL);
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
     pDevice = pChannel->pDevice;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -1084,10 +872,11 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetOfdmAsyncStatus(void *handle, NEXUS_
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
     NEXUS_FrontendDvbt2StatusReady t2StatusReady;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
-    NEXUS_3466Device *pDevice;
-    unsigned chn_num;
     NEXUS_FrontendDvbt2BasicStatus basic;
+    NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
@@ -1142,7 +931,6 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetOfdmAsyncStatus(void *handle, NEXUS_
         rc = BODS_GetSelectiveAsyncStatus(pDevice->terrestrial.ods_chn[NEXUS_3466_DVBT_CHN], BODS_SelectiveAsyncStatusType_eDvbt, &pDevice->terrestrial.odsStatus);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
-        chn_num = NEXUS_3466_DVBT_CHN;
         pStatus->receiverLock = pDevice->terrestrial.odsStatus.status.dvbt.receiverLock;
         pStatus->fecLock = pDevice->terrestrial.odsStatus.status.dvbt.fecLock;
         pStatus->noSignalDetected = pDevice->terrestrial.odsStatus.status.dvbt.noSignalDetected;
@@ -1181,8 +969,10 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_3466_RequestOfdmAsyncStatus(void *handle)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     pDevice = pChannel->pDevice;
 
@@ -1215,8 +1005,10 @@ NEXUS_Error NEXUS_Tuner_P_3466_GetNSetGain(void *handle)
     NEXUS_GainParameters params;
     NEXUS_InternalGainSettings settings;
     NEXUS_ExternalGainSettings externalGainSettings;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     BKNI_Memset(&externalGainSettings, 0, sizeof(externalGainSettings));
 
@@ -1309,8 +1101,11 @@ static NEXUS_FrontendOfdmModulation NEXUS_Frontend_P_HierarchyToDvbt(NEXUS_Front
 static NEXUS_Error NEXUS_Frontend_P_3466_RequestDvbtAsyncStatus(void *handle, NEXUS_FrontendDvbtStatusType type)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
+    pChannel = (NEXUS_3466Channel *)handle;
     BSTD_UNUSED(type);
 
     pDevice = pChannel->pDevice;
@@ -1325,8 +1120,10 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbtAsyncStatusReady(void *handle, NEXUS_FrontendDvbtStatusReady *pAsyncStatusReady)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     pDevice = pChannel->pDevice;
     if(pDevice->terrestrial.isStatusReady[pChannel->chn_num]){
@@ -1342,8 +1139,10 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbtAsyncStatusReady(void *handle, N
 static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbtAsyncStatus(void *handle, NEXUS_FrontendDvbtStatusType type, NEXUS_FrontendDvbtStatus *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     pDevice = pChannel->pDevice;
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -1391,8 +1190,6 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_3466_TuneOfdm(void *handle, const NEXUS_FrontendOfdmSettings *pSettings)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
-    NEXUS_3466Device *pDevice;
     BODS_AcquireParams odsParam;
     BTNR_Settings tnrSettings;
     unsigned temp_frequency;
@@ -1400,8 +1197,13 @@ static NEXUS_Error NEXUS_Frontend_P_3466_TuneOfdm(void *handle, const NEXUS_Fron
     BODS_PowerSaverSettings odsPwrSettings;
     BTNR_PowerSaverSettings tnrPwrSettings;
     BODS_ChannelSettings odsChnCfg;
+    NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     pDevice = pChannel->pDevice;
+    pDevice->lastTuneQam = false;
 
     rc = BODS_GetChannelDefaultSettings( pDevice->terrestrial.ods, BODS_Standard_eDvbt2, &odsChnCfg);
     if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -1431,13 +1233,24 @@ static NEXUS_Error NEXUS_Frontend_P_3466_TuneOfdm(void *handle, const NEXUS_Fron
         }
     }
 
-    rc = BODS_InstallCallback(pDevice->terrestrial.ods_chn[pChannel->chn_num], BODS_Callback_eLockChange, (BODS_CallbackFunc)NEXUS_Frontend_P_3466_callback_isr, (void*)&pDevice->terrestrial.frontendHandle[pChannel->chn_num]);
+    rc = BODS_InstallCallback(pDevice->terrestrial.ods_chn[pChannel->chn_num], BODS_Callback_eLockChange, (BODS_CallbackFunc)NEXUS_Frontend_P_3466_callback_isr, (void*)&pDevice->frontendHandle[pChannel->chn_num]);
     if(rc){rc = BERR_TRACE(rc); goto done;}
-    rc = BODS_InstallCallback(pDevice->terrestrial.ods_chn[pChannel->chn_num], BODS_Callback_eAsyncStatusReady, (BODS_CallbackFunc)NEXUS_Frontend_P_3466_AsyncStatusCallback_isr, (void*)&pDevice->terrestrial.frontendHandle[pChannel->chn_num]);
+    rc = BODS_InstallCallback(pDevice->terrestrial.ods_chn[pChannel->chn_num], BODS_Callback_eAsyncStatusReady, (BODS_CallbackFunc)NEXUS_Frontend_P_3466_AsyncStatusCallback_isr, (void*)&pDevice->frontendHandle[pChannel->chn_num]);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+    rc = BODS_InstallCallback(pDevice->terrestrial.ods_chn[pChannel->chn_num], BODS_Callback_eNewDiversityMaster, (BODS_CallbackFunc)NEXUS_Frontend_P_3466_newDiversityMasterCallback, (void*)pDevice->terrestrial.diversityEvent);
     if(rc){rc = BERR_TRACE(rc); goto done;}
 
-    pDevice->terrestrial.frontendHandle[pChannel->chn_num]->mtsif.inputBand = NEXUS_FRONTEND_3466_OFDM_INPUT_BAND+pChannel->chn_num;
-    rc = NEXUS_Frontend_P_SetMtsifConfig(pDevice->terrestrial.frontendHandle[pChannel->chn_num]);
+    if(pDevice->terrestrial.diversityEventCallback == NULL) {
+        pDevice->terrestrial.diversityEventCallback = NEXUS_RegisterEvent(pDevice->terrestrial.diversityEvent, NEXUS_Frontend_P_3466_diversityEventCallback, pChannel);
+        if ( NULL == pDevice->terrestrial.diversityEventCallback ){rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done; }
+    }
+
+    if (!pDevice->pLinkedMtsifDevice) {
+        BDBG_MSG(("Current mtsif input band: %d, channel: %d", pDevice->frontendHandle[pChannel->chn_num]->mtsif.inputBand, pChannel->chn_num));
+        pDevice->frontendHandle[pChannel->chn_num]->mtsif.inputBand = NEXUS_FRONTEND_3466_OFDM_INPUT_BAND+pChannel->chn_num;
+        BDBG_MSG(("NEW mtsif input band: %d, channel: %d", pDevice->frontendHandle[pChannel->chn_num]->mtsif.inputBand, pChannel->chn_num));
+    }
+    rc = NEXUS_Frontend_P_3466_SetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
 
     rc = BODS_GetDefaultAcquireParams(pDevice->terrestrial.ods_chn[pChannel->chn_num], &odsParam);
     if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -1445,7 +1258,7 @@ static NEXUS_Error NEXUS_Frontend_P_3466_TuneOfdm(void *handle, const NEXUS_Fron
     NEXUS_IsrCallback_Set(pDevice->terrestrial.lockAppCallback[pChannel->chn_num], &(pSettings->lockCallback));
     NEXUS_IsrCallback_Set(pDevice->terrestrial.asyncStatusAppCallback[pChannel->chn_num], &(pSettings->asyncStatusReadyCallback));
 
-    if(!pDevice->terrestrial.isPoweredOn[pChannel->chn_num] || !pDevice->terrestrial.isTunerPoweredOn[pChannel->chn_num])
+    if(!pDevice->terrestrial.isPoweredOn[pChannel->chn_num] || !pDevice->isTunerPoweredOn[pChannel->chn_num])
         goto full_acquire;
 
     if((pSettings->acquisitionMode == NEXUS_FrontendOfdmAcquisitionMode_eScan) && (pDevice->terrestrial.lastAcquisitionMode[pChannel->chn_num] == NEXUS_FrontendOfdmAcquisitionMode_eScan)){
@@ -1455,13 +1268,13 @@ static NEXUS_Error NEXUS_Frontend_P_3466_TuneOfdm(void *handle, const NEXUS_Fron
         pDevice->terrestrial.last_ofdm[pChannel->chn_num].mode = pSettings->mode;
 
         if(!BKNI_Memcmp(pSettings, &pDevice->terrestrial.last_ofdm[pChannel->chn_num], sizeof(NEXUS_FrontendOfdmSettings))) {
-            if (pDevice->terrestrial.tnr[pChannel->chn_num])
+            if (pDevice->tnr[pChannel->chn_num])
             {
                 pDevice->terrestrial.acquireInProgress[pChannel->chn_num] = true;
                 pDevice->terrestrial.last_ofdm[pChannel->chn_num] = *pSettings;
                 pDevice->lastChannel = pChannel->chn_num;
                 pDevice->terrestrial.lastAcquisitionMode[pChannel->chn_num] = pSettings->acquisitionMode;
-                rc = BTNR_SetTunerRfFreq(pDevice->terrestrial.tnr[pChannel->chn_num], pSettings->frequency, BTNR_TunerMode_eDigital);
+                rc = BTNR_SetTunerRfFreq(pDevice->tnr[pChannel->chn_num], pSettings->frequency, BTNR_TunerMode_eDigital);
                 if(rc){rc = BERR_TRACE(rc); goto retrack;}
 
                 return rc;
@@ -1608,13 +1421,13 @@ full_acquire:
         break;
     }
 
-    if (pDevice->terrestrial.tnr[pChannel->chn_num])
+    if (pDevice->tnr[pChannel->chn_num])
     {
-        if(!pDevice->terrestrial.isTunerPoweredOn[pChannel->chn_num]){
+        if(!pDevice->isTunerPoweredOn[pChannel->chn_num]){
             tnrPwrSettings.enable = false;
-            rc = BTNR_SetPowerSaver(pDevice->terrestrial.tnr[pChannel->chn_num], &tnrPwrSettings);
+            rc = BTNR_SetPowerSaver(pDevice->tnr[pChannel->chn_num], &tnrPwrSettings);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            pDevice->terrestrial.isTunerPoweredOn[pChannel->chn_num] = true;
+            pDevice->isTunerPoweredOn[pChannel->chn_num] = true;
         }
         if(!pDevice->terrestrial.isPoweredOn[pChannel->chn_num]){
             rc = BODS_DisablePowerSaver(pDevice->terrestrial.ods_chn[pChannel->chn_num], &odsPwrSettings);
@@ -1625,7 +1438,7 @@ full_acquire:
         rc = BODS_SetAcquireParams( pDevice->terrestrial.ods_chn[pChannel->chn_num], &odsParam );
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
-        rc = BTNR_GetSettings(pDevice->terrestrial.tnr[pChannel->chn_num], &tnrSettings);
+        rc = BTNR_GetSettings(pDevice->tnr[pChannel->chn_num], &tnrSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
         if(pSettings->mode == NEXUS_FrontendOfdmMode_eDvbt2){
@@ -1636,10 +1449,10 @@ full_acquire:
         }
         tnrSettings.bandwidth = pSettings->bandwidth;
 
-        rc = BTNR_SetSettings(pDevice->terrestrial.tnr[pChannel->chn_num], &tnrSettings);
+        rc = BTNR_SetSettings(pDevice->tnr[pChannel->chn_num], &tnrSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
-        rc = BTNR_SetTunerRfFreq(pDevice->terrestrial.tnr[pChannel->chn_num], pSettings->frequency, BTNR_TunerMode_eDigital);
+        rc = BTNR_SetTunerRfFreq(pDevice->tnr[pChannel->chn_num], pSettings->frequency, BTNR_TunerMode_eDigital);
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
 
@@ -1670,8 +1483,10 @@ done:
 static void NEXUS_Frontend_P_3466_ResetStatus(void *handle)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
     NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     pDevice = pChannel->pDevice;
     switch ( pDevice->lastChannel )
@@ -1699,11 +1514,13 @@ static NEXUS_Error NEXUS_Frontend_P_3466_ReadSoftDecisions(void *handle, NEXUS_F
     size_t i;
     NEXUS_Error rc = NEXUS_SUCCESS;
     int16_t return_length;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
+    NEXUS_3466Channel *pChannel;
     NEXUS_3466Device *pDevice;
     int16_t d_i[TOTAL_SOFTDECISIONS], d_q[TOTAL_SOFTDECISIONS];
 
-    pDevice = pChannel->pDevice;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
+    pDevice = (NEXUS_3466Device *)pChannel->pDevice;
     BKNI_Memset(pDecisions, 0, (sizeof(NEXUS_FrontendSoftDecision) * length));
 
     switch ( pDevice->lastChannel )
@@ -1730,35 +1547,20 @@ done:
 }
 /* End of terrestrial-specific function declarations */
 
-NEXUS_Error NEXUS_Frontend_P_3466_ReapplyTransportSettings(void *handle)
-{
-#if NEXUS_HAS_MXT
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
-    NEXUS_3466Device *pDevice;
-    NEXUS_Error rc;
-
-    pDevice = pChannel->pDevice;
-    BDBG_ASSERT(pDevice);
-    rc = NEXUS_Frontend_P_SetMtsifConfig(pDevice->terrestrial.frontendHandle[pChannel->chn_num]);
-    if (rc) { return BERR_TRACE(rc); }
-#else
-    BSTD_UNUSED(handle);
-#endif
-
-    return NEXUS_SUCCESS;
-}
-
 /* Terrestrial frontend device implementation */
 NEXUS_Error NEXUS_FrontendDevice_Open3466_Terrestrial(NEXUS_3466Device *pDevice)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
-    rc = NEXUS_FrontendDevice_P_Init_3466_Hab(pDevice, &pDevice->openSettings);
-    if(rc){rc = BERR_TRACE(rc); goto done;}
-
     /* Initialize THD and T2 channels*/
     rc = NEXUS_FrontendDevice_P_Init3466(pDevice);
     if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    pDevice->terrestrial.api.getFastStatus = NEXUS_Frontend_P_3466_GetFastStatus;
+    pDevice->terrestrial.api.readSoftDecisions = NEXUS_Frontend_P_3466_ReadSoftDecisions;
+    pDevice->terrestrial.api.untune = NEXUS_Frontend_P_3466_UnTune;
+    pDevice->terrestrial.api.close = NEXUS_Frontend_P_3466_Close;
+    pDevice->terrestrial.api.uninstallCallbacks = NEXUS_FrontendDevice_P_3466_UninstallCallbacks;
 
 done:
     return rc;
@@ -1766,35 +1568,12 @@ done:
 /* End terrestrial frontend device implementation */
 
 /* Terrestrial implementation */
-NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Terrestrial(const NEXUS_FrontendChannelSettings *pSettings)
+NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Terrestrial(const NEXUS_FrontendChannelSettings *pSettings, NEXUS_FrontendHandle frontendHandle)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_FrontendHandle frontendHandle = NULL;
     NEXUS_3466Device *p3466Device;
-    NEXUS_3466Channel *pChannel;
     NEXUS_FrontendDevice *pFrontendDevice = NULL;
 
-    if (pSettings->device == NULL) {
-        BDBG_WRN(("No device..."));
-        return NULL;
-    }
-
-    pFrontendDevice = pSettings->device;
-    p3466Device = (NEXUS_3466Device *)pFrontendDevice->pDevice;
-
-    /* If already opened, return the previously opened handle */
-    if ( p3466Device->terrestrial.frontendHandle[pSettings->channelNumber] != NULL )
-    {
-        return p3466Device->terrestrial.frontendHandle[pSettings->channelNumber];
-    }
-
-    pChannel = (NEXUS_3466Channel*)BKNI_Malloc(sizeof(*pChannel));
-    if ( NULL == pChannel ) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
-    BKNI_Memset(pChannel, 0, sizeof(*pChannel));
-
-    /* Create a Nexus frontend handle */
-    frontendHandle = NEXUS_Frontend_P_Create(pChannel);
-    if ( NULL == frontendHandle) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
+    p3466Device = (NEXUS_3466Device *)pSettings->device->pDevice;
 
     /* Establish device capabilities */
     frontendHandle->capabilities.ofdm = true;
@@ -1815,45 +1594,25 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Terrestrial(const NEXUS_FrontendCha
     frontendHandle->requestOfdmAsyncStatus = NEXUS_Frontend_P_3466_RequestOfdmAsyncStatus;
     frontendHandle->getOfdmAsyncStatus = NEXUS_Frontend_P_3466_GetOfdmAsyncStatus;
     frontendHandle->tuneOfdm = NEXUS_Frontend_P_3466_TuneOfdm;
-    frontendHandle->untune = NEXUS_Frontend_P_3466_UnTune;
     frontendHandle->resetStatus = NEXUS_Frontend_P_3466_ResetStatus;
-    frontendHandle->readSoftDecisions = NEXUS_Frontend_P_3466_ReadSoftDecisions;
     frontendHandle->reapplyTransportSettings = NEXUS_Frontend_P_3466_ReapplyTransportSettings;
-    frontendHandle->close = NEXUS_Frontend_P_3466_Close;
-    frontendHandle->getFastStatus = NEXUS_Frontend_P_3466_GetFastStatus;
-    frontendHandle->writeRegister = NEXUS_Frontend_P_3466_WriteRegister;
-    frontendHandle->readRegister = NEXUS_Frontend_P_3466_ReadRegister;
-    frontendHandle->uninstallCallbacks = NEXUS_FrontendDevice_P_3466_UninstallCallbacks;
 
     frontendHandle->pGenericDeviceHandle = pFrontendDevice;
 
     /* Create app callbacks */
     p3466Device->terrestrial.lockAppCallback[pSettings->channelNumber] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-    if ( NULL == p3466Device->terrestrial.lockAppCallback[pSettings->channelNumber] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+    if ( NULL == p3466Device->terrestrial.lockAppCallback[pSettings->channelNumber] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
     p3466Device->terrestrial.asyncStatusAppCallback[pSettings->channelNumber] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-    if ( NULL == p3466Device->terrestrial.asyncStatusAppCallback[pSettings->channelNumber] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+    if ( NULL == p3466Device->terrestrial.asyncStatusAppCallback[pSettings->channelNumber] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
-    frontendHandle->userParameters.isMtsif = true;
-    frontendHandle->mtsif.inputBand = NEXUS_FRONTEND_3466_OFDM_INPUT_BAND+pSettings->channelNumber;
+    p3466Device->terrestrial.api.standby = NEXUS_Frontend_P_3466_Terrestrial_Standby;
 
-    frontendHandle->standby = NEXUS_Frontend_P_3466_Terrestrial_Standby;
-
-    p3466Device->terrestrial.frontendHandle[pSettings->channelNumber] = frontendHandle;
-    /* save channel number in pChannel*/
-    pChannel->chn_num = pSettings->channelNumber;
-    pChannel->pDevice = p3466Device;
-    frontendHandle->chip.familyId = 0x3466;
-    frontendHandle->chip.id = 0x3466;
     return frontendHandle;
 
 err_cbk_create:
     if ( p3466Device->terrestrial.lockAppCallback[pSettings->channelNumber] ) NEXUS_IsrCallback_Destroy(p3466Device->terrestrial.lockAppCallback[pSettings->channelNumber]);
     if ( p3466Device->terrestrial.asyncStatusAppCallback[pSettings->channelNumber] ) NEXUS_IsrCallback_Destroy(p3466Device->terrestrial.asyncStatusAppCallback[pSettings->channelNumber]);
-    if ( frontendHandle ) BKNI_Free(frontendHandle);
-err_alloc:
-    NEXUS_FrontendDevice_P_Uninit3466(p3466Device);
-    if (pChannel) BKNI_Free(pChannel);
     return NULL;
 }
 /* End of Terrestrial channel open implementation */
@@ -1862,11 +1621,6 @@ void NEXUS_FrontendDevice_Close3466_Terrestrial(NEXUS_3466Device *pDevice)
 {
     /* Terrestrial teardown */
     NEXUS_FrontendDevice_P_Uninit3466(pDevice);
-    NEXUS_FrontendDevice_P_Uninit_3466_Hab(pDevice);
-
-    if(pDevice->capabilities.channelCapabilities)
-        BKNI_Free(pDevice->capabilities.channelCapabilities);
-    pDevice->capabilities.channelCapabilities = NULL;
 
     return;
     /* End of terrestrial teardown */
@@ -1875,20 +1629,23 @@ void NEXUS_FrontendDevice_Close3466_Terrestrial(NEXUS_3466Device *pDevice)
 static NEXUS_Error NEXUS_Frontend_P_3466_Terrestrial_Standby(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    NEXUS_3466Channel *pChannel = (NEXUS_3466Channel *)handle;
-    NEXUS_3466Device *pDevice;
     BTNR_PowerSaverSettings pwrSettings;
     BODS_PowerSaverSettings odsPwrSettings;
+    NEXUS_3466Device *pDevice;
+    NEXUS_3466Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
 
     BSTD_UNUSED(enabled);
 
+    NEXUS_FrontendDevice_P_3466_UninstallCallbacks(handle);
     pDevice = pChannel->pDevice;
     if (pSettings->mode < NEXUS_StandbyMode_ePassive) {
-        if (!pDevice->terrestrial.isTunerPoweredOn[pChannel->chn_num]) {
+        if (!pDevice->isTunerPoweredOn[pChannel->chn_num]) {
             pwrSettings.enable = false;
-            rc = BTNR_SetPowerSaver(pDevice->terrestrial.tnr[pChannel->chn_num], &pwrSettings);
+            rc = BTNR_SetPowerSaver(pDevice->tnr[pChannel->chn_num], &pwrSettings);
             if (rc) { rc = BERR_TRACE(rc); }
-            pDevice->terrestrial.isTunerPoweredOn[pChannel->chn_num] = true;
+            pDevice->isTunerPoweredOn[pChannel->chn_num] = true;
         }
         switch (pDevice->lastChannel)
         {
@@ -1922,11 +1679,11 @@ static NEXUS_Error NEXUS_Frontend_P_3466_Terrestrial_Standby(void *handle, bool 
             rc = BERR_TRACE(BERR_NOT_SUPPORTED);
             break;
         }
-        if (pDevice->terrestrial.isTunerPoweredOn[pChannel->chn_num]) {
+        if (pDevice->isTunerPoweredOn[pChannel->chn_num]) {
             pwrSettings.enable = true;
-            rc = BTNR_SetPowerSaver(pDevice->terrestrial.tnr[pChannel->chn_num], &pwrSettings);
+            rc = BTNR_SetPowerSaver(pDevice->tnr[pChannel->chn_num], &pwrSettings);
             if (rc) { rc = BERR_TRACE(rc); goto done; }
-            pDevice->terrestrial.isTunerPoweredOn[pChannel->chn_num] = false;
+            pDevice->isTunerPoweredOn[pChannel->chn_num] = false;
         }
     }
 

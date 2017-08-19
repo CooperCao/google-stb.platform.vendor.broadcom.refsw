@@ -8,9 +8,12 @@
 #include "default_directfb.h"
 #include "private_directfb.h"
 
+#include "../common/fence_interface.h"
+
 #include "nexus_memory.h"
 #include "nexus_platform.h"
 #include "nexus_base_mmap.h"
+#include "sched_nexus.h"
 
 #include <bkni.h>
 
@@ -27,6 +30,7 @@ typedef struct
 {
    IDirectFB               *dfb;
    BEGL_SchedInterface     *schedIface;
+   FenceInterface          fenceIface;
 } DBPL_DisplayContext;
 
 /* DBPL_DisplatQueueItem */
@@ -34,6 +38,7 @@ typedef struct
 {
    bool                 endDisplayProcess;
    int                  isRenderedFence;
+   int                  interval;
 } DBPL_DisplayQueueItem;
 
 /* DBPL_SurfaceContainer */
@@ -61,7 +66,6 @@ typedef struct {
    DBPL_DisplayQueueItem   displayQueue[DISPLAY_QUEUE_SIZE];   /* The display queue                      */
    volatile unsigned int   displayQueueEntries;                /* Number of entries in the display queue */
    volatile unsigned int   owners;                             /* Count of threads that own this window  */
-   int                     swapInterval;
    volatile unsigned int   vsyncCount;
    BEGL_BufferFormat       format;
 
@@ -97,29 +101,14 @@ typedef struct
           }                                                           \
      }
 
-static void MakeFence(DBPL_DisplayContext *ctx, int *fence)
-{
-   assert(ctx->schedIface != NULL);
-   ctx->schedIface->MakeFence(ctx->schedIface->context, fence);
-}
-
-static void SignalFence(DBPL_DisplayContext *ctx, int fence)
-{
-   if (fence < 0)
-      return;
-
-   assert(ctx->schedIface != NULL);
-   ctx->schedIface->SignalFence(ctx->schedIface->context, fence);
-}
-
 static void WaitFence(DBPL_DisplayContext *ctx, int fence)
 {
    if (fence < 0)
       return;
 
    assert(ctx->schedIface != NULL);
-   ctx->schedIface->WaitFenceTimeout(ctx->schedIface->context, fence, 2000);
-   ctx->schedIface->CloseFence(ctx->schedIface->context, fence);
+   FenceInterface_Wait(&ctx->fenceIface, fence, 2000);
+   FenceInterface_Destroy(&ctx->fenceIface, &fence);
 }
 
 static bool DirectFBToBeglFormat(DFBSurfacePixelFormat dfbFormat, BEGL_BufferFormat *bufferFormat)
@@ -240,7 +229,8 @@ static void *RunDisplayThread(void *p)
       nw->numSurfacesGivenAway--;
       BKNI_SetEvent(nw->referenceDecEvent);
 
-      if (nw->swapInterval > 0)
+      /* only >=1 or 0 */
+      if (nw->displayQueue[nw->displayQueueReadPt].interval > 0)
       {
          DFBCHECK(surface->Flip( surface, NULL, DSFLIP_WAITFORSYNC ));
       }
@@ -267,7 +257,7 @@ static void *RunDisplayThread(void *p)
       {
          int   onDisplayFence = nw->surfaces[i].availableToRenderFence;
 
-         SignalFence(ctx, onDisplayFence);
+         FenceInterface_Signal(&ctx->fenceIface, onDisplayFence);
       }
    }
 
@@ -414,7 +404,7 @@ static BEGL_Error DispGetNextSurface(
    return BEGL_Success;
 }
 
-static BEGL_Error QueueSurface(void *context, void *nativeWindow, void *nativeSurface, int fence, bool endDisplayProcess)
+static BEGL_Error QueueSurface(void *context, void *nativeWindow, void *nativeSurface, int fence, int interval, bool endDisplayProcess)
 {
    DBPL_NativeWindow       *nw = (DBPL_NativeWindow*)nativeWindow;
    DBPL_SurfaceContainer   *nc = (DBPL_SurfaceContainer*)nativeSurface;
@@ -440,8 +430,8 @@ static BEGL_Error QueueSurface(void *context, void *nativeWindow, void *nativeSu
 
    /* Push to display queue */
    nw->displayQueue[nw->displayQueueWritePt].endDisplayProcess = endDisplayProcess;
-
    nw->displayQueue[nw->displayQueueWritePt].isRenderedFence = fence;
+   nw->displayQueue[nw->displayQueueWritePt].interval = interval;
 
    nw->displayQueueEntries++;
 
@@ -457,9 +447,10 @@ static BEGL_Error QueueSurface(void *context, void *nativeWindow, void *nativeSu
 }
 
 
-static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *nativeSurface, int fence)
+static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *nativeSurface, int fence, int interval)
 {
-   return QueueSurface(context, nativeWindow, nativeSurface, fence, false);
+   BSTD_UNUSED(context);
+   return QueueSurface(context, nativeWindow, nativeSurface, fence, interval, false);
 }
 
 /* This is called only once per native window */
@@ -584,7 +575,6 @@ static void *DispWindowStateCreate(void *context, void *nativeWindow)
 
       nw->windowsurface          = dfbSurface;
       nw->owners                 = 1;
-      nw->swapInterval           = 1;
       nw->numSurfacesGivenAway   = 0;
 
       if (CreateSwapChainSurfaces(ctx, nw) != BEGL_Success)
@@ -653,7 +643,7 @@ static BEGL_Error DispWindowStateDestroy(void *context, void *windowState)
 
 static BEGL_Error PostPoison(void *context, void *nativeWindow)
 {
-   return QueueSurface(context, nativeWindow, NULL, -1, true);
+   return QueueSurface(context, nativeWindow, NULL, -1, 1, true);
 }
 
 static BEGL_Error DispCancelSurface(void *context, void *nativeWindow,
@@ -675,16 +665,6 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow,
       pthread_join(nw->displayThread, NULL);
 
    return BEGL_Success;
-}
-
-static void DispSetSwapInterval(void *context, void *nativeWindow, int interval)
-{
-   DBPL_NativeWindow  *nw = (DBPL_NativeWindow*)nativeWindow;
-
-   if (interval < 0)
-      return;
-
-   nw->swapInterval = interval;
 }
 
 static bool  DisplayPlatformSupported(void *context, uint32_t platform)
@@ -731,7 +711,6 @@ BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
          disp->GetNextSurface             = DispGetNextSurface;
          disp->DisplaySurface             = DispDisplaySurface;
          disp->CancelSurface              = DispCancelSurface;
-         disp->SetSwapInterval            = DispSetSwapInterval;
          disp->PlatformSupported          = DisplayPlatformSupported;
          disp->SetDefaultDisplay          = DispSetDefaultDisplay;
          disp->WindowPlatformStateCreate  = DispWindowStateCreate;
@@ -740,6 +719,8 @@ BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
 
          /* stash the dfb */
          context->dfb = dfb;
+
+         InitFenceInterface(&context->fenceIface, schedIface);
       }
       else
       {
@@ -747,6 +728,7 @@ BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
          return NULL;
       }
    }
+
    return disp;
 }
 

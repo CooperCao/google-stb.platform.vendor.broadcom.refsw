@@ -291,7 +291,7 @@ BERR_Code BAPE_SfifoGroup_P_Start(
     deviceHandle = handle->deviceHandle;
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
 
-    BDBG_MODULE_MSG(bape_sfifo, ("%s", __FUNCTION__));
+    BDBG_MODULE_MSG(bape_sfifo, ("%s", BSTD_FUNCTION));
 
     /* Program each SFIFO */
     for ( i = 0; i < handle->numChannelPairs; i++ )
@@ -445,7 +445,7 @@ BERR_Code BAPE_SfifoGroup_P_Start(
                         break;
 
                     default:
-                        BDBG_WRN(("%s invalid data width value(%d)",__FUNCTION__,handle->settings.dataWidth));
+                        BDBG_WRN(("%s invalid data width value(%d)",BSTD_FUNCTION,handle->settings.dataWidth));
                         BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_SOURCECH_BYTE_REORDERi, BYTE_REORDER_ENABLE, 0);
                         BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_SOURCECH_BYTE_REORDERi, BYTE_3_SEL, 3);
                         BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_SOURCECH_BYTE_REORDERi, BYTE_2_SEL, 2);
@@ -1483,7 +1483,7 @@ BERR_Code BAPE_DfifoGroup_P_Create(
     /* If none found, return error */
     if ( NULL == handle )
     {
-        BDBG_ERR(("%s: No free Dfifos.", __FUNCTION__));
+        BDBG_ERR(("%s: No free Dfifos.", BSTD_FUNCTION));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -1587,7 +1587,7 @@ static void BAPE_DfifoGroup_P_ApplySettings(
 
     regHandle = handle->deviceHandle->regHandle;
 
-    BDBG_MODULE_MSG(bape_dfifo, ("%s", __FUNCTION__));
+    BDBG_MODULE_MSG(bape_dfifo, ("%s", BSTD_FUNCTION));
     if ( NULL == handle->settings.linkedSfifo )
     {
         /* No SFIFO was provided.  This should capture to memory only. */
@@ -2479,7 +2479,7 @@ BERR_Code BAPE_FciSplitterGroup_P_SetSettings(
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
 
-    BDBG_MODULE_MSG(bape_fcisp, ("%s", __FUNCTION__));
+    BDBG_MODULE_MSG(bape_fcisp, ("%s", BSTD_FUNCTION));
 
     running = BAPE_FciSplitterGroup_P_GetRunningOutputGroupIndexes(handle);
     if ( running )
@@ -2574,7 +2574,7 @@ BERR_Code BAPE_FciSplitterGroup_P_Start(
         BAPE_FciSplitterGroup_P_Stop(handle);
     }
 
-    BDBG_MODULE_MSG(bape_fcisp, ("%s %p", __FUNCTION__, (void*)handle));
+    BDBG_MODULE_MSG(bape_fcisp, ("%s %p", BSTD_FUNCTION, (void*)handle));
 
     connected = BAPE_FciSplitterGroup_P_GetConnectedOutputGroupIndexes(handle);
     if ( !connected )
@@ -2614,7 +2614,7 @@ void BAPE_FciSplitterGroup_P_Stop(
         return;
     }
 
-    BDBG_MODULE_MSG(bape_fcisp, ("%s %p", __FUNCTION__, (void*)handle));
+    BDBG_MODULE_MSG(bape_fcisp, ("%s %p", BSTD_FUNCTION, (void*)handle));
 
     BAPE_FciSplitterGroup_P_StopOutputGroups(handle);
 
@@ -2760,8 +2760,8 @@ static BERR_Code BAPE_FciSplitterOutputGroup_P_Start(
 
     if ( handle->numChannelPairs != handle->spHandle->numChannelPairs )
     {
-        BDBG_MODULE_MSG(bape_fcisp, ("%s: output group and fci splitter must have the same number of channel pairs.", __FUNCTION__));
-        BDBG_MODULE_MSG(bape_fcisp, ("%s: output group numChPairs %lu, fci splitter numChPairs %lu", __FUNCTION__, (unsigned long)handle->numChannelPairs, (unsigned long)handle->spHandle->numChannelPairs));
+        BDBG_MODULE_MSG(bape_fcisp, ("%s: output group and fci splitter must have the same number of channel pairs.", BSTD_FUNCTION));
+        BDBG_MODULE_MSG(bape_fcisp, ("%s: output group numChPairs %lu, fci splitter numChPairs %lu", BSTD_FUNCTION, (unsigned long)handle->numChannelPairs, (unsigned long)handle->spHandle->numChannelPairs));
         return BERR_SUCCESS;
     }
 

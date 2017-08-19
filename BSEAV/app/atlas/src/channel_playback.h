@@ -55,14 +55,14 @@ public:
     ~CChannelPlayback(void);
     CChannel * createCopy(CChannel * pChannel);
 
-    virtual eRet   tune(void * id, CConfig * pConfig, bool bWaitForLock, uint16_t index = ANY_INDEX);
+    virtual eRet   tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
     virtual eRet   unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
     virtual eRet   readXML(MXmlElement * xmlElemChannel);
     virtual void   writeXML(MXmlElement * xmlElemChannel);
     virtual void   setStc(CStc * pStc);
     virtual CStc * getStc(void) { return(_pStc); }
-    virtual CPid * getPid(uint16_t index, ePidType type);
-    virtual CPid * findPid(uint16_t pidNum, ePidType type);
+    virtual CPid * getPid(unsigned index, ePidType type);
+    virtual CPid * findPid(unsigned pidNum, ePidType type);
     virtual bool   isRecordEnabled(void) { return(false); }
     virtual eRet   getChannelInfo(
             CHANNEL_INFO_T * pChanInfo,
@@ -84,15 +84,15 @@ public:
     void     updateDescription();
     uint32_t getFrequency(void) { return(_nFrequency); }
     void     setFrequency(uint32_t frequency);
-    int16_t  getProgramNum(void)                  { return(_nProgram); }
-    void     setProgramNum(int16_t nProgram = -1) { _nProgram = nProgram; }
+    int      getProgramNum(void)                  { return(_nProgram); }
+    void     setProgramNum(int nProgram = -1) { _nProgram = nProgram; }
 
 protected:
     CPlayback * _pPlayback;
     uint32_t    _nFrequency;
     MString     _strType;
     MString     _strFilename;
-    int16_t     _nProgram;
+    int         _nProgram;
 };
 
 #endif /* CHANNEL_PLAYBACK_H__ */

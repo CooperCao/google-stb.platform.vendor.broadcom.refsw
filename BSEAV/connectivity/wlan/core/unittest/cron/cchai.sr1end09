@@ -1,0 +1,78 @@
+# These cron jobs are epected to be manually installed on sr1end09 for userid cchai.
+# These cron jobs do NOT self update and do NOT update CVS.
+
+#
+# Morning tests - high priority items carefully timed for specific build completion
+# 
+#
+# TOT Router is last build to arrive, often 2AM or later
+30 02 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -rtrtag NIGHTLY -statag NIGHTLY -email hnd-utf-list -title \"43224 F15 43236USB F15\" -conn0 \"4717int 43224reg 43236bmac\" -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp -dvtwl
+
+# TOB P2P 43236 BMAC dongle, first as GO, then as GC
+05 03 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/P2PNightly1.test -ap 4717_1 -gc_wlan 43224nic -go_wlan 43236p2pbmac -apconnect GO -title \"P2P GO 43236USB BMAC F15\" -email hnd-utf-list -rtrdate \"\*\" -stadate \"\*\" -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only
+30 03 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/P2PNightly1.test -ap 4717_1 -gc_wlan 43236p2pbmac -go_wlan 43224nic -apconnect GC -title \"P2P GC 43236USB BMAC F15\" -email hnd-utf-list -rtrdate \"\*\" -stadate \"\*\" -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only
+
+# FALCON TWIG P2P 43236 FULL dongle first as GO, then as GC
+#   Raghav suggested on 7/12/2012 that we can stop testing on FALCOM TWIG
+#34 04 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/P2PNightly1.test -ap 4717int -gc_wlan 43224nic -go_wlan 43236p2pfulltwig -apconnect GO -title \"P2P GO 43236USB FULL F15\" -email hnd-utf-list -rtrdate \"\*\" -stadate \"\*\" -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nodnoa -nom -nosopp -nosnoa -fb1only
+#36 04 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/P2PNightly1.test -ap 4717int -gc_wlan 43236p2pfulltwig -go_wlan 43224nic -apconnect GC -title \"P2P GC 43236USB FULL F15\" -email hnd-utf-list -rtrdate \"\*\" -stadate \"\*\" -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nodnoa -nom -nosopp -nosnoa -fb1only 
+
+# COEX 4330
+05 04 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Coex.test -title \"4330B2 F15\" -email hnd-utf-list -rtrdate \"\*\" -stadate \"\*\" -noslave -diagping
+
+
+#
+# Morning tests - best effort items after above high priority items are done
+#
+# 43236 & 43224 TDLS
+30 04 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43236USB 43224NIC TDLS F15\" -conn0 \"4717_1 43236tdls 43224tdls\" -rtrdate \"\*\" -stadate \"\*\" -nocompat -norvr -noqtp -tdls
+
+# SoftAP 43236 BMAC & 43224
+05 05 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"SoftAP 43236USB BMAC F15\" -conn0 \"43236apbmac 43224nic\" -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -nocompat -norvr -noqtp -softap -short
+
+# FALCON TOB 43236 FULL dongle
+#   Raghav suggested on 7/12/2012 that we can stop the test
+#44 04 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43236USB FULL F15\" -conn0 \"4717int 43236full\" -rtrdate \"\*\" -stadate \"\*\" -nocompat -norvr -noqtp
+
+# AARDVARK TAGGED
+30 05 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -statag \"AARDVARK_REL_6_30_\?\?\" -title \"43224 F15 43236USB F15\" -conn0 \"4717_1 43224reg 43236bmac\" -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp -dvtwl -nocache
+
+
+#
+# Evening tests - use builds from earlier in the day
+#
+# preserved build tests
+05 19 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/preserved.test -email hnd-utf-list -noaptest -n
+
+# FALCON TWIG RvR 43236 FULL
+20 19 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -rtrdate \"\*\" -email hnd-utf-list -title \"RvR 43236USB FULL F15\" -conn0 \"4717int 43236fulltwig\" -rtrdate \"\*\" -stadate \"\*\" -noembed -noperf -noping -nocompat -noqtp -nocontrvr -no2G40rvr -no5G20rvr -nosniffer -fastrampup 
+
+# FALCON TWIG RvR 43236 FULL + Interference
+# 05 18 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -rtrdate \"\*\" -email hnd-utf-list -title \"RvR 43236USB FULL F15 + Interference\" -conn0 \"4717int 43236fulltwig\" -rtrdate \"\*\" -stadate \"\*\" -noembed -noperf -noping -nocompat -noqtp -nocontrvr -no2G40rvr -no5G20rvr -nosniffer -fastrampup -intsta 43224reg 
+
+# FALCON RvR 4330
+30 19 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -rtrdate \"\*\" -email hnd-utf-list -title \"RvR 4330 F15\" -conn0 \"4717int 4330sdio\" -rtrdate \"\*\" -stadate \"\*\" -noembed -noperf -noping -nocompat -noqtp -nocontrvr -no2G40rvr -no5G40rvr -nosniffer -fastrampup 
+
+# FALCON TWIG 43236 FULL dongle
+05 20 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43236USB FULL F15\" -conn0 \"4717int 43236fulltwig\" -rtrdate \"\*\" -stadate \"\*\" -nocompat -norvr -noqtp
+
+# 15 minute test on FALCON TWIG 43236 FULL dongle
+30 20 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -15min -conn0 \"4717int 43236fulltwig\" -title \"15-minute stress tests 43236USB FULL F15\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -nocompat  -norvr -noqtp
+
+# PHOENIX2 TOB 43236 P2P BMAC dongle 
+40 20 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43236USB BMAC F15\" -conn0 \"4717_1 43236p2pbmacph2\" -statag \"PHOENIX2_BRANCH_6_10\" -nocompat -norvr -noqtp
+
+# 15 minute test on PHOENIX2 TOB 43236 P2P BMAC dongle
+05 21 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -15min -conn0 \"4717_1 43236p2pbmacph2\" -title \"15-minute stress tests 43236USB BMAC F15\" -email hnd-utf-list -nosetup -noping -noperf -statag \"PHOENIX2_BRANCH_6_10\" -nocompat -norvr -noqtp
+
+# 15 minute test on 43224NIC Linux & Linksys E3200 43236 router
+30 21 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -15min -conn0 \"5g_43236 43224nic\" -title \"15-minute stress tests E3200 43236 + 43224NIC F15\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -nocompat -norvr -noqtp
+
+# 43224NIC + E3200 embedded
+40 21 * * * /home/cchai/src/tools/unittest/utf_qsub pb4a /home/cchai/src/tools/unittest/Test/Sanity.test -conn0 \"5g_43236 43224nic\" -title \"E3200 43236 + 43224NIC F15\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -nocompat -norvr -noqtp -rtrtag NIGHTLY
+
+# Run job to replace BT COEX files on IT Server that keep getting infected with virus
+0 * * * * /home/cchai/bin/fix_virus.sh
+
+# Move older UTF log files for MC07, MC13, PB4A
+00 13 * * * /home/cchai/bin/move_logs_ext3 -age 60

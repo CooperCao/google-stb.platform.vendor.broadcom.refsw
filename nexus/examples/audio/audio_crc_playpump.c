@@ -171,20 +171,20 @@ int main(void)
             NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
 
-    printf("%s: pcmStereo  %p\n", __FUNCTION__, (void*)NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    printf("%s: pcmMch     %p\n", __FUNCTION__, (void*)NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eMultichannel));
-    printf("%s: compressed %p\n", __FUNCTION__, (void*)NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+    printf("%s: pcmStereo  %p\n", BSTD_FUNCTION, (void*)NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    printf("%s: pcmMch     %p\n", BSTD_FUNCTION, (void*)NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eMultichannel));
+    printf("%s: compressed %p\n", BSTD_FUNCTION, (void*)NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
 
     if (audioSpdifHandle) {
-        printf("%s: SPDIF %p\n", __FUNCTION__, (void*)audioSpdifHandle);
+        printf("%s: SPDIF %p\n", BSTD_FUNCTION, (void*)audioSpdifHandle);
     }
     #if NEXUS_NUM_HDMI_OUTPUTS
     if (audioHdmiHandle) {
-        printf("%s: HDMI  %p\n", __FUNCTION__, (void*)audioHdmiHandle);
+        printf("%s: HDMI  %p\n", BSTD_FUNCTION, (void*)audioHdmiHandle);
     }
     #endif
     if (audioDacHandle) {
-        printf("%s: DAC   %p\n", __FUNCTION__, (void*)audioDacHandle);
+        printf("%s: DAC   %p\n", BSTD_FUNCTION, (void*)audioDacHandle);
     }
 
     if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
@@ -427,7 +427,7 @@ static void Crc_PrintCrcData (char * name, NEXUS_AudioCrcHandle handle, unsigned
     err = NEXUS_AudioCrc_GetCrcData(handle, entries, CRC_MAX_READ, &numEntries);
     if ( err != BERR_SUCCESS || numEntries == 0 )
     {
-        printf("%s - no data\n", __FUNCTION__);
+        printf("%s - no data\n", BSTD_FUNCTION);
         return;
     }
 

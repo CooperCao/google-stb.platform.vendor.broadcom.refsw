@@ -65,6 +65,9 @@ BERR_Code BBOX_P_Vdc_SelfCheck
     ( const BBOX_MemConfig          *pMemConfig,
       const BBOX_Vdc_Capabilities   *pVdcCap );
 
+BERR_Code BBOX_P_Vdc_ValidateBoxModes
+    ( BBOX_Handle                 hBox );
+
 BERR_Code BBOX_P_Vce_SetBoxMode
    ( uint32_t               ulBoxId,
      BBOX_Vce_Capabilities *pBoxVce );

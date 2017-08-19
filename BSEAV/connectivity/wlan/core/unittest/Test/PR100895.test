@@ -1,0 +1,29 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# PR#100895 UTF: 4334b0 HSIC ping -s 2447 causes HSIC timeouts
+#
+# $Id: 7ce0ac6621e22748b65f3988df57bdfc4e6a3a1c $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+UTF::Test PR100895 {AP STA args} {
+    UTF::Getopts {
+	{start.arg 1 "Start"}
+	{end.arg 2447 "End"}
+    }
+    set APIP [$AP ipaddr]
+    ConnectAPSTA $AP $STA -chanspec 3
+
+    for {set i $(start)} {$i<$(end)} {incr i} {
+	if {[catch {$STA rexec ping $APIP -c 1 -s $i}]} {
+	    UTF::Message XPASS [$STA cget -name] "$i"
+	    $STA reload
+	    ConnectAPSTA $AP $STA
+	}
+    }
+}

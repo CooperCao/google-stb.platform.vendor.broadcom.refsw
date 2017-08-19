@@ -111,26 +111,10 @@ static NEXUS_Error NEXUS_Dma_P_ApplySettings(
 {
     NEXUS_DmaJobHandle pJob;
     BXPT_Dma_ContextSettings ctxSettings;
-    BXPT_Dma_SwapMode swapMode;
     BERR_Code rc;
     
     BDBG_OBJECT_ASSERT(handle, NEXUS_Dma);
     BDBG_ASSERT(pSettings);
-
-    switch (pSettings->swapMode) {
-        case NEXUS_DmaSwapMode_eNone:
-            swapMode = BXPT_Dma_SwapMode_eNone;
-            break;
-        case NEXUS_DmaSwapMode_eWord:
-            swapMode = BXPT_Dma_SwapMode_eWord;
-            break;
-        case NEXUS_DmaSwapMode_eByte:
-            swapMode = BXPT_Dma_SwapMode_eByte;
-            break;
-        default:
-            swapMode = BXPT_Dma_SwapMode_eMax;
-            break;
-    }
 
     /* apply settings to all XPT_Dma contexts */
     for (pJob=BLST_S_FIRST(&handle->jobList); pJob; pJob=BLST_S_NEXT(pJob, jobNode)) {
@@ -233,7 +217,7 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
         unsigned newIndex = NEXUS_NUM_DMA_CHANNELS - 1 - index;
         if (pTransport->playpump[newIndex].playpump) {
             BDBG_ERR(("DMA channel %u's MCPB channel is already used by playback", index));
-            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
             return NULL;
         }
         BDBG_MSG(("Using DMA index %u -> %u", index, newIndex));
@@ -243,7 +227,7 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
 
     if (index>=NEXUS_NUM_DMA_CHANNELS) {
         BDBG_ERR(("DMA channel %d is not supported on this chipset", index));
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
     }
 
@@ -253,7 +237,7 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
     }
 
     if (pSettings->coreType!=NEXUS_DmaCoreType_eM2m) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;        
     }
 
@@ -262,7 +246,7 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
         BXPT_Dma_GetDefaultSettings(&dmaSettings);
         rc = BXPT_Dma_OpenChannel(pTransport->xpt, &pTransport->dmaChannel[index].dma, index, &dmaSettings);
         if (rc) {
-            rc = BERR_TRACE(rc);
+            BERR_TRACE(rc);
             return NULL;
         }
     }
@@ -270,14 +254,14 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
     rc = NEXUS_CLIENT_RESOURCES_ACQUIRE(dma,Count,NEXUS_ANY_ID);
     if (rc) { 
         BXPT_Dma_CloseChannel(pTransport->dmaChannel[index].dma);
-        rc = BERR_TRACE(rc); 
+        BERR_TRACE(rc);
         return NULL; 
     }
 
     dma = BKNI_Malloc(sizeof(*dma));
     if (!dma) {
         NEXUS_CLIENT_RESOURCES_RELEASE(dma,Count,NEXUS_ANY_ID);
-        rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         return NULL;
     }
 
@@ -336,7 +320,8 @@ void NEXUS_DmaJob_GetDefaultSettings(
 
 static NEXUS_Error NEXUS_Dma_P_ApplyJobSettings(
     NEXUS_DmaJobHandle handle, 
-    const NEXUS_DmaJobSettings *pSettings
+    const NEXUS_DmaJobSettings *pSettings,
+    bool setChannelSettings
     )
 {
     NEXUS_Error rc;
@@ -386,25 +371,24 @@ static NEXUS_Error NEXUS_Dma_P_ApplyJobSettings(
         ctxSettings.pidChannelNum = NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(pSettings->bypassKeySlot);
     }
     else {
-        NEXUS_SecurityKeySlotInfo keySlotInfo;
+        NEXUS_KeySlotFastInfo keySlotInfo;
 
-        NEXUS_KeySlot_GetInfo(pSettings->keySlot, &keySlotInfo);
-        if (keySlotInfo.keySlotEngine!=NEXUS_SecurityEngine_eM2m) {
-            rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-            goto error;
-        }
+        NEXUS_KeySlot_GetFastInfo(pSettings->keySlot, &keySlotInfo);
+        if (!keySlotInfo.dma.valid) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto error; }
         ctxSettings.pidChannelNum = keySlotInfo.dma.pidChannelIndex;
     }
 
     ctxSettings.useRPipe = pSettings->useRPipe;
 
-    BXPT_Dma_GetSettings(xdma, &chnSettings);
-    chnSettings.scramMode = scramMode;
-    chnSettings.timestampEnabled = pSettings->timestampType!=NEXUS_TransportTimestampType_eNone;
-    rc = BXPT_Dma_SetSettings(xdma, &chnSettings);
-    if (rc!=BERR_SUCCESS) {
-        rc = BERR_TRACE(NEXUS_UNKNOWN);
-        goto error;
+    if (setChannelSettings) {
+        BXPT_Dma_GetSettings(xdma, &chnSettings);
+        chnSettings.scramMode = scramMode;
+        chnSettings.timestampEnabled = pSettings->timestampType!=NEXUS_TransportTimestampType_eNone;
+        rc = BXPT_Dma_SetSettings(xdma, &chnSettings);
+        if (rc!=BERR_SUCCESS) {
+            rc = BERR_TRACE(NEXUS_UNKNOWN);
+            goto error;
+        }
     }
     
     rc = BXPT_Dma_Context_SetSettings(handle->ctx, &ctxSettings);
@@ -486,6 +470,7 @@ NEXUS_DmaJobHandle NEXUS_DmaJob_Create(
     NEXUS_Error rc;
     BXPT_Dma_ContextSettings ctxSettings;
     NEXUS_HeapHandle heap;
+    bool isFirstJob = true;
 
     BDBG_OBJECT_ASSERT(dmaHandle, NEXUS_Dma);
 
@@ -550,6 +535,7 @@ NEXUS_DmaJobHandle NEXUS_DmaJob_Create(
         for (d=BLST_S_FIRST(&pTransport->dmaChannel[dmaHandle->index].dmaHandles); d; d=BLST_S_NEXT(d, link)) {
             pFirstJob = BLST_S_FIRST(&d->jobList);
             if (pFirstJob) {
+                isFirstJob = false;
                 if ((pFirstJob->settings.dataFormat != pSettings->dataFormat) || pFirstJob->settings.timestampType != pSettings->timestampType) {
                     BDBG_ERR(("NEXUS_DmaDataFormat and TimestampType must match for all jobs created against channel %u", dmaHandle->index));
                     rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -560,7 +546,7 @@ NEXUS_DmaJobHandle NEXUS_DmaJob_Create(
         }
     }
 
-    rc = NEXUS_Dma_P_ApplyJobSettings(pJob, pSettings);
+    rc = NEXUS_Dma_P_ApplyJobSettings(pJob, pSettings, isFirstJob);
     if (rc!=NEXUS_SUCCESS) {
         BXPT_Dma_Context_Destroy(pJob->ctx);
         goto error;
@@ -615,7 +601,7 @@ NEXUS_Error NEXUS_DmaJob_SetSettings(
         }
     }
 
-    return NEXUS_Dma_P_ApplyJobSettings(handle, pSettings);
+    return NEXUS_Dma_P_ApplyJobSettings(handle, pSettings, true);
 }
 
 void NEXUS_DmaJob_GetDefaultBlockSettings(
@@ -672,6 +658,26 @@ NEXUS_Error NEXUS_DmaJob_GetStatus(
     }
     BDBG_MSG_TRACE(("NEXUS_DmaJob_GetStatus<:%#lx", (unsigned long)handle));
     return BERR_SUCCESS;
+}
+
+NEXUS_Error NEXUS_DmaJob_P_Wait(NEXUS_DmaJobHandle handle)
+{
+    unsigned i;
+    for(i=0;i<100;i++) {
+        BXPT_Dma_ContextStatus ctxStatus;
+        NEXUS_Error rc;
+        rc = BXPT_Dma_Context_GetStatus(handle->ctx, &ctxStatus);
+        if (rc) return BERR_TRACE(rc);
+        if (ctxStatus.state == BXPT_Dma_ContextState_eIdle) {
+            return NEXUS_SUCCESS;
+        }
+        if (i % 20 == 19) {
+            BDBG_WRN(("NEXUS_Recpump_StopData: %p waiting for DMA to complete", (void*)handle));
+        }
+        BKNI_Sleep(1);
+    }
+    BDBG_ERR(("NEXUS_Recpump_StopData: %p timed out waiting for DMA to complete", (void*)handle));
+    return BERR_TRACE(NEXUS_TIMEOUT);
 }
 
 static void NEXUS_Dma_P_CompleteEvent(void* context)

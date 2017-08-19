@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- **************************************************************************/
+
+ ******************************************************************************/
 #ifndef NEXUS_DISPLAY_PRIV_H__
 #define NEXUS_DISPLAY_PRIV_H__
 
@@ -58,12 +56,21 @@
 extern "C" {
 #endif
 
+#if BCHP_CHIP == 7366 /* workaround CRBVN-496 */
+#define NEXUS_P_CRBVN_496_WORKAROUND    1
+#endif
+
 NEXUS_Error NEXUS_DisplayModule_SetUpdateMode_priv(
     NEXUS_DisplayUpdateMode updateMode,
     NEXUS_DisplayUpdateMode *pPrevUpdateMode /* optional */
     );
 
 #if NEXUS_HAS_VIDEO_ENCODER
+#if NEXUS_P_CRBVN_496_WORKAROUND
+void NEXUS_DisplayModule_ClearDisplay_Prepare_priv(
+        NEXUS_DisplayHandle display
+        );
+#endif
 void NEXUS_DisplayModule_ClearDisplay_priv(
         NEXUS_DisplayHandle display
         );

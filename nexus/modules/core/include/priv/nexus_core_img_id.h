@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,6 +54,7 @@
 #define NEXUS_CORE_IMG_ID_FRONTEND_4538 "FE_4538"
 #define NEXUS_CORE_IMG_ID_FRONTEND_45216 "FE_45216"
 #define NEXUS_CORE_IMG_ID_FRONTEND_45308 "FE_45308"
+#define NEXUS_CORE_IMG_ID_FRONTEND_45316 "FE_45316"
 #define NEXUS_CORE_IMG_ID_FRONTEND_7364 "FE_7364"
 #define NEXUS_CORE_IMG_ID_FRONTEND_3128 "FE_3128"
 #define NEXUS_CORE_IMG_ID_FRONTEND_3158 "FE_3158"

@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -47,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 16:49:49 2016
- *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
+ * Date:           Generated on               Fri May 26 16:11:43 2017
+ *                 Full Compile MD5 Checksum  8c230d97c39689d89acc0c1449db095c
  *                     (minus title and desc)
- *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
+ *                 MD5 Checksum               eff2f87cd93911aa218f4261afc2e49b
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1481
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -86,26 +83,44 @@
 #define BCHP_PM_AON_CONFIG_bicap1_sel_MASK                         0x00000300
 #define BCHP_PM_AON_CONFIG_bicap1_sel_SHIFT                        8
 #define BCHP_PM_AON_CONFIG_bicap1_sel_DEFAULT                      0x00000000
+#define BCHP_PM_AON_CONFIG_bicap1_sel_IR_IN0                       0
+#define BCHP_PM_AON_CONFIG_bicap1_sel_IR_IN1                       1
+#define BCHP_PM_AON_CONFIG_bicap1_sel_NONE                         2
 
 /* PM_AON :: CONFIG :: bicap0_sel [07:06] */
 #define BCHP_PM_AON_CONFIG_bicap0_sel_MASK                         0x000000c0
 #define BCHP_PM_AON_CONFIG_bicap0_sel_SHIFT                        6
 #define BCHP_PM_AON_CONFIG_bicap0_sel_DEFAULT                      0x00000000
+#define BCHP_PM_AON_CONFIG_bicap0_sel_IR_IN0                       0
+#define BCHP_PM_AON_CONFIG_bicap0_sel_IR_IN1                       1
+#define BCHP_PM_AON_CONFIG_bicap0_sel_NONE                         2
 
 /* PM_AON :: CONFIG :: irr2_in [05:04] */
 #define BCHP_PM_AON_CONFIG_irr2_in_MASK                            0x00000030
 #define BCHP_PM_AON_CONFIG_irr2_in_SHIFT                           4
 #define BCHP_PM_AON_CONFIG_irr2_in_DEFAULT                         0x00000000
+#define BCHP_PM_AON_CONFIG_irr2_in_NONE                            0
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_17                     1
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN0                          2
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN1                          3
 
 /* PM_AON :: CONFIG :: irr1_in [03:02] */
 #define BCHP_PM_AON_CONFIG_irr1_in_MASK                            0x0000000c
 #define BCHP_PM_AON_CONFIG_irr1_in_SHIFT                           2
 #define BCHP_PM_AON_CONFIG_irr1_in_DEFAULT                         0x00000000
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1                          0
+#define BCHP_PM_AON_CONFIG_irr1_in_NONE                            1
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_17                     2
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0                          3
 
 /* PM_AON :: CONFIG :: irr0_in [01:00] */
 #define BCHP_PM_AON_CONFIG_irr0_in_MASK                            0x00000003
 #define BCHP_PM_AON_CONFIG_irr0_in_SHIFT                           0
 #define BCHP_PM_AON_CONFIG_irr0_in_DEFAULT                         0x00000000
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN0                          0
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN1                          1
+#define BCHP_PM_AON_CONFIG_irr0_in_NONE                            2
+#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_17                     3
 
 /***************************************************************************
  *CLK_CTRL - UPG Clock control register

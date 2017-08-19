@@ -96,6 +96,7 @@ typedef struct BXUD_StdInfo
     bool synced;
     struct
     {
+       unsigned uiShadowWriteOffset;
        unsigned uiWriteOffset;
        unsigned uiReadOffset;
        BXUD_CCData *astCCData;
@@ -198,8 +199,15 @@ BXUDlib_Create(BXUDlib_Handle *phXud, const BXUDlib_CreateSettings *pstXudCreate
        }
     }
 
+    {
+#if BXUDLIB_P_DUMP_INPUT_CC || BXUDLIB_P_DUMP_OUTPUT_CC
+    char fname[256];
+    static unsigned uiInstance = 0;
+#endif
+
 #if BXUDLIB_P_DUMP_INPUT_CC
-    pContext->hInputCCDump = (FILE*) fopen("BXUDLIB_USERDATA_INPUT.csv", "wb");
+    sprintf(fname, "BXUDLIB_USERDATA_INPUT_%02d.csv", uiInstance);
+    pContext->hInputCCDump = (FILE*) fopen(fname, "wb");
     if ( NULL == pContext->hInputCCDump )
     {
        BDBG_ERR(("Error opening input CC dump file"));
@@ -215,7 +223,8 @@ BXUDlib_Create(BXUDlib_Handle *phXud, const BXUDlib_CreateSettings *pstXudCreate
 #endif
 
 #if BXUDLIB_P_DUMP_OUTPUT_CC
-    pContext->hOutputCCDump = (FILE*) fopen("BXUDLIB_USERDATA_OUTPUT.csv", "wb");
+    sprintf(fname, "BXUDLIB_USERDATA_OUTPUT_%02d.csv", uiInstance);
+    pContext->hOutputCCDump = (FILE*) fopen(fname, "wb");
     if ( NULL == pContext->hOutputCCDump )
     {
        BDBG_ERR(("Error opening output CC dump file"));
@@ -223,6 +232,11 @@ BXUDlib_Create(BXUDlib_Handle *phXud, const BXUDlib_CreateSettings *pstXudCreate
 
     fprintf(pContext->hOutputCCDump, "stg_pic_id,stg_decode_pic_id,stg_polarity,queue_entry,descriptor_index,decode_pic_id,format,analog,polarity,valid,line_offset,type,data_0,data_1,notes,608_read,608_write,708_read,708_write\n");
 #endif
+
+#if BXUDLIB_P_DUMP_INPUT_CC || BXUDLIB_P_DUMP_OUTPUT_CC
+    uiInstance++;
+#endif
+    }
 
     *phXud = (BXUDlib_Handle)pContext;
     return BERR_SUCCESS;
@@ -565,17 +579,36 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
               if ( NULL != pstdInfo )
               {
                  unsigned uiType = ccData[uiIndex].bIsAnalog ? 0 : 1;
+                 bool bDrop = false;
 
-                 unsigned uiTempWriteOffset = (pstdInfo->type[uiType].uiWriteOffset + 1) % pContext->createSettings.queueSize;
-                 pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiWriteOffset].uiDecodePictureId = pstUserData->ulDecodePictureId;
-                 pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiWriteOffset].ccData = ccData[uiIndex];
-                 pstdInfo->type[uiType].uiWriteOffset = uiTempWriteOffset;
-
-                 /* If the queue is full, we discard the oldest data in the queue */
-                 if ( uiTempWriteOffset == pstdInfo->type[uiType].uiReadOffset )
+                 if ( false == ccData[uiIndex].bIsAnalog )
                  {
-                    BDBG_MSG(("User Data Queue[%d] Overflow. Dropping older data", ccData[uiIndex].format));
-                    pstdInfo->type[uiType].uiReadOffset = (pstdInfo->type[uiType].uiReadOffset + 1) % pContext->createSettings.queueSize;
+                    if ( ( 0 == ccData[uiIndex].cc_valid )
+                          || ( 3 == ccData[uiIndex].seq.cc_type ) )
+                    {
+                       pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+                    }
+                 }
+
+                 if ( 0 != ccData[uiIndex].cc_valid )
+                 {
+                    unsigned uiTempWriteOffset = (pstdInfo->type[uiType].uiShadowWriteOffset + 1) % pContext->createSettings.queueSize;
+                    pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiShadowWriteOffset].uiDecodePictureId = pstUserData->ulDecodePictureId;
+                    pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiShadowWriteOffset].ccData = ccData[uiIndex];
+                    pstdInfo->type[uiType].uiShadowWriteOffset = uiTempWriteOffset;
+                    if ( true == ccData[uiIndex].bIsAnalog ) pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+
+                    /* If the queue is full, we discard the oldest data in the queue */
+                    if ( uiTempWriteOffset == pstdInfo->type[uiType].uiReadOffset )
+                    {
+                       BDBG_MSG(("User Data Queue[%d] Overflow. Dropping older data", ccData[uiIndex].format));
+                       pstdInfo->type[uiType].uiReadOffset = (pstdInfo->type[uiType].uiReadOffset + 1) % pContext->createSettings.queueSize;
+                       bDrop = true;
+                    }
+                 }
+                 else
+                 {
+                    bDrop = true;
                  }
 
 #if BXUDLIB_P_DUMP_INPUT_CC
@@ -589,7 +622,7 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
 
                     fprintf(pContext->hInputCCDump, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                        pstUserData->ulDecodePictureId,
-                       ( uiTempWriteOffset == pstdInfo->type[uiType].uiReadOffset ),
+                       bDrop,
                        ccData[uiIndex].format,
                        ccData[uiIndex].bIsAnalog,
                        ccData[uiIndex].polarity,
@@ -879,6 +912,11 @@ BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format fo
                         /* Don't process 708 if there's corresponding 608 data for this picture id to be processed */
                         bDone = true;
                      }
+                     else if ( ( (int) ( pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiReadOffset].uiDecodePictureId - pContext->decodeId ) ) > 0 )
+                     {
+                        /* Don't process 708 if it's decode ID is greater than the current picture's decode ID */
+                        bDone = true;
+                     }
                      else
                      {
                         if ( output708Count < B_MAX_708_CC_COUNT )
@@ -1028,8 +1066,8 @@ BXUDlib_DisplayInterruptHandler_isr(BXUDlib_Handle hXud, const BVDC_Display_Call
     }
 
     /* assume XUD input data queue is already converted to 60hz */
+    pContext->decodeId = pstDisplayCallbackData->ulDecodePictureId;
     for(i = 0; i < pContext->repCnt; i++) {
-        pContext->decodeId = pstDisplayCallbackData->ulDecodePictureId;
         if( pstDisplayCallbackData->ePolarity == BAVC_Polarity_eFrame )
         {
             /* just toggle the field */
@@ -1049,7 +1087,6 @@ BXUDlib_DisplayInterruptHandler_isr(BXUDlib_Handle hXud, const BVDC_Display_Call
         }
 
         pContext->numPacketDescriptors = 0;
-        pContext->decodeId = pstDisplayCallbackData->ulDecodePictureId;
         BDBG_MSG(("Current field = %d", pContext->currentPolarity));
 
         BXUDlib_P_Add_UserData_isr(pContext, BUDP_DCCparse_Format_DVS157, &pContext->stdInfo[BXUD_EncapsulationStd_Scte20], pstDisplayCallbackData);
@@ -1057,6 +1094,7 @@ BXUDlib_DisplayInterruptHandler_isr(BXUDlib_Handle hXud, const BVDC_Display_Call
         BXUDlib_P_Add_UserData_isr(pContext, BUDP_DCCparse_Format_ATSC53, &pContext->stdInfo[BXUD_EncapsulationStd_A53], pstDisplayCallbackData);
 
         BXUDlib_P_OutputUserData_isr(pContext, pstDisplayCallbackData->ulStgPictureId);
+        pContext->decodeId++;
     }
     pContext->initialSync = false;
 

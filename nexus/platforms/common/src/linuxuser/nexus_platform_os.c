@@ -53,6 +53,7 @@
 #include <stdlib.h>
 #include <sys/prctl.h>
 #include <signal.h>
+#include <dirent.h>
 #include "nexus_base_statistics.h"
 
 #if NEXUS_HAS_GPIO
@@ -117,7 +118,7 @@ typedef struct NEXUS_Platform_Os_State {
     int memFd;
     int memFdCached;
     pthread_mutex_t lockUpdate32;
-    int devZero;
+    bool devZeroMaped;
 } NEXUS_Platform_Os_State;
 
 static NEXUS_Platform_Os_State g_NEXUS_Platform_Os_State;
@@ -401,7 +402,6 @@ struct proc {
     BLST_S_ENTRY(proc) link;
     const char *filename;
     NEXUS_ModuleHandle module;
-    const char *module_name;
     void (*dbgPrint)(void);
 };
 static BLST_S_HEAD(proclist, proc) g_NEXUS_procNodes;
@@ -410,9 +410,9 @@ NEXUS_Error nexus_platform_p_add_proc(NEXUS_ModuleHandle module, const char *fil
 {
     struct proc *proc = BKNI_Malloc(sizeof(*proc));
     if (!proc) return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    BSTD_UNUSED(module_name);
     proc->filename = filename;
     proc->module = module;
-    proc->module_name = module_name;
     proc->dbgPrint = dbgPrint;
     BLST_S_INSERT_HEAD(&g_NEXUS_procNodes, proc, link);
     return NEXUS_SUCCESS;
@@ -452,10 +452,15 @@ static void nexus_p_call_proc(const char *filename)
     else {
         struct proc *proc = nexus_p_find_proc(filename);
         if (proc) {
-            /* We cannot lock platform, because this callback is from timer context with platform module already locked */
-            if (proc->module != NEXUS_MODULE_SELF) NEXUS_Module_Lock(proc->module);
-            proc->dbgPrint();
-            if (proc->module != NEXUS_MODULE_SELF) NEXUS_Module_Unlock(proc->module);
+            if (NEXUS_Platform_P_ModuleInStandby(proc->module)) {
+                BDBG_LOG(("%s in standby", NEXUS_Module_GetName(proc->module)));
+            }
+            else {
+                /* We cannot lock platform, because this callback is from timer context with platform module already locked */
+                if (proc->module != NEXUS_MODULE_SELF) NEXUS_Module_Lock(proc->module);
+                proc->dbgPrint();
+                if (proc->module != NEXUS_MODULE_SELF) NEXUS_Module_Unlock(proc->module);
+            }
         }
     }
 }
@@ -526,7 +531,7 @@ static void NEXUS_Platform_P_DebugTimer(void *context)
             debug_list = end+1;
         }
     }
-    state->debugTimer = NEXUS_ScheduleTimer(500, NEXUS_Platform_P_DebugTimer, NULL);
+    state->debugTimer = NEXUS_ScheduleTimerByPriority(Internal, 500, NEXUS_Platform_P_DebugTimer, NULL);
 #if NEXUS_P_STACKDEPTH_STATS
     {
         static int timer_tick = 0;
@@ -645,7 +650,7 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
         rc = BERR_TRACE(BERR_OS_ERROR);
         goto err_bcmdriver_open;
     }
-    g_NEXUS_Platform_Os_State.devZero = -1;
+    g_NEXUS_Platform_Os_State.devZeroMaped = false;
 #if !B_REFSW_SYSTEM_MODE_CLIENT
     {
         struct bcmdriver_version get_version;
@@ -666,14 +671,17 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
             if(os_cfg.os_64bit) {
                 void *addr;
                 size_t length = 128 * 1024 * 1024;
-                g_NEXUS_Platform_Os_State.devZero = open("/dev/zero", O_RDONLY);
-                if(g_NEXUS_Platform_Os_State.devZero == -1) {
+                int devZero;
+                devZero = open("/dev/zero", O_RDONLY);
+                if(devZero == -1) {
                     rc = BERR_TRACE(BERR_OS_ERROR);return rc;
                 }
-                addr = mmap64(0, length, PROT_NONE, MAP_PRIVATE, g_NEXUS_Platform_Os_State.devZero, 0);
+                addr = mmap64(0, length, PROT_NONE, MAP_PRIVATE, devZero, 0);
                 if(addr==MAP_FAILED) {
                     rc = BERR_TRACE(BERR_OS_ERROR);return rc;
                 }
+                close(devZero);
+                g_NEXUS_Platform_Os_State.devZeroMaped = true;
                 g_NEXUS_P_CpuNotAccessibleRange.start = addr;
                 g_NEXUS_P_CpuNotAccessibleRange.length = length;
             }
@@ -739,7 +747,7 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
     pthread_mutex_init(&state->lockUpdate32, NULL);
 
 #if !B_REFSW_SYSTEM_MODE_SERVER
-    state->debugTimer = NEXUS_ScheduleTimer(500, NEXUS_Platform_P_DebugTimer, NULL);
+    state->debugTimer = NEXUS_ScheduleTimerByPriority(Internal, 500, NEXUS_Platform_P_DebugTimer, NULL);
 #endif
 
 #if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
@@ -779,9 +787,9 @@ NEXUS_Error NEXUS_Platform_P_UninitOS(void)
         NEXUS_Platform_P_UninitWakeupDriver();
     }
 #endif
-    if(g_NEXUS_Platform_Os_State.devZero>=0) {
-        close(g_NEXUS_Platform_Os_State.devZero);
-        g_NEXUS_Platform_Os_State.devZero = -1;
+
+    if(g_NEXUS_Platform_Os_State.devZeroMaped) {
+        munmap(g_NEXUS_P_CpuNotAccessibleRange.start, g_NEXUS_P_CpuNotAccessibleRange.length);
     }
 
 #if !B_REFSW_SYSTEM_MODE_SERVER
@@ -1245,14 +1253,242 @@ void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
     return;
 }
 
-#if !B_REFSW_SYSTEM_MODE_SERVER
-void NEXUS_Platform_P_AddBoardStatus(NEXUS_PlatformStatus *pStatus)
+#define BUF_SIZE 256
+
+#if !NEXUS_PLATFORM_P_READ_BOX_MODE
+#ifndef NEXUS_Platform_P_ReadBoxMode
+static unsigned NEXUS_Platform_P_ReadDeviceTreeStr(const char *path, const char *prop)
 {
-    unsigned id = NEXUS_Platform_P_ReadBoardId();
-    pStatus->boardId.major = id >> 28;
-    pStatus->boardId.minor = (id >> 24) & 0xF;
+    unsigned id = 0;
+    char str[BUF_SIZE];
+    FILE *f = NULL;
+
+    BKNI_Snprintf(str, sizeof(str), "%s/%s", path, prop);
+    f = fopen(str, "r");
+    if (f) {
+        char buf[64];
+        if (fgets(buf, sizeof(buf), f)) {
+            id = atoi(buf);
+        }
+        fclose(f);
+    }
+    return id;
 }
 #endif
+#endif
+
+static unsigned NEXUS_Platform_P_ReadDeviceTreeInt(const char *path, const char *prop)
+{
+    unsigned id = 0;
+    char str[BUF_SIZE];
+    FILE *f = NULL;
+
+    BKNI_Snprintf(str, sizeof(str), "%s/%s", path, prop);
+    f = fopen(str, "r");
+    if (f) {
+        uint8_t buf[4];
+        if (fread(buf, sizeof(buf), 1, f) != 1) {
+            id = 0;
+        } else {
+            id = buf[0]<<24 | buf[1]<<16 | buf[2]<<8 | buf[3];
+        }
+        fclose(f);
+    }
+    return id;
+}
+
+#if !NEXUS_PLATFORM_P_READ_BOX_MODE
+#ifndef NEXUS_Platform_P_ReadBoxMode
+unsigned NEXUS_Platform_P_ReadBoxMode(void)
+{
+    unsigned boxMode = 0;
+    const char *override;
+    override = NEXUS_GetEnv("B_REFSW_BOXMODE");
+    if (override) {
+        boxMode = atoi(override);
+    }
+    if (!boxMode) {
+        boxMode = NEXUS_Platform_P_ReadDeviceTreeStr("/proc/device-tree/bolt", "box");
+    }
+    return boxMode;
+}
+#endif
+#endif
+
+unsigned NEXUS_Platform_P_ReadBoardId(void)
+{
+    return NEXUS_Platform_P_ReadDeviceTreeInt("/proc/device-tree/bolt", "board-id");
+}
+
+unsigned NEXUS_Platform_P_ReadPMapId(void)
+{
+    return NEXUS_Platform_P_ReadDeviceTreeInt("/proc/device-tree/bolt", "pmap");
+}
+
+static bool NEXUS_Platform_P_CheckCompatible(const char *path, const char *compatible)
+{
+    char buf[BUF_SIZE];
+    struct stat st;
+    unsigned len;
+    bool match = false;
+
+    if(compatible == NULL) { return true;} /* No compatible check. Parse all nodes */
+
+    len = strlen(compatible);
+    BKNI_Memset(buf, 0, BUF_SIZE);
+    BKNI_Snprintf(buf, BUF_SIZE, "%s/%s", path, "compatible");
+
+    /* coverity[fs_check_call: FALSE] */
+    if (!lstat(buf, &st)) {
+        FILE *pFile;
+        pFile = fopen(buf, "rb");
+        if (pFile) {
+            char val[BUF_SIZE];
+            if (fread(val, st.st_size, 1, pFile) != 1) {
+                BDBG_WRN(("Failed to read file %s", buf));
+            } else {
+                if (!strncmp(val, compatible, len)) {
+                    match = true;
+                }
+            }
+            fclose(pFile);
+        }
+    }
+
+    return match;
+}
+
+static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(NEXUS_Platform_P_DtNodeList *nodeList, const char *path, const char *compatible)
+{
+    DIR * dir;
+    struct dirent *ent;
+    bool compat;
+    unsigned cnt = 0;
+    NEXUS_Platform_P_DtNode *node = NULL;
+
+    dir = opendir(path);
+    if (!dir) {
+        BDBG_MSG(("Cannot open dir %s", path));
+        goto done;
+    }
+
+    compat = NEXUS_Platform_P_CheckCompatible(path, compatible);
+    if (compat) {
+        char *str = strrchr(path, '@');
+        node = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtNode));
+        if(node==NULL) {
+            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto done;
+        }
+        BLST_Q_INIT(&node->properties);
+        BKNI_Memcpy(node->name, str, sizeof(node->name));
+        BLST_Q_INSERT_HEAD(&nodeList->nodes, node, link);
+        cnt++;
+    }
+
+    while ((ent = readdir(dir)) != NULL) {
+        char buf[BUF_SIZE];
+        struct stat st;
+
+        if (!strncmp(ent->d_name, ".", 1) || !strncmp(ent->d_name, "..", 2))
+			continue;
+
+        BKNI_Memset(buf, 0, BUF_SIZE);
+        BKNI_Snprintf(buf, BUF_SIZE, "%s/%s", path, ent->d_name);
+
+        /* coverity[fs_check_call: FALSE] */
+        if (lstat(buf, &st) < 0) { continue; }
+
+        if (S_ISREG(st.st_mode)) {
+			FILE *pFile;
+
+            if (!node) { continue; }
+
+            /* Ignore these properties for now */
+            if(!strncmp(ent->d_name, "compatible", 10) || !strncmp(ent->d_name, "name", 4)) {
+                continue;
+            }
+
+            pFile = fopen(buf, "rb");
+            if (pFile) {
+                char val[4]; /* Assuming 4 byte value. TODO : Fix for larger properties */
+                if (fread(val, st.st_size, 1, pFile) != 1) {
+                    BDBG_WRN(("Failed to read file %s", buf));
+                } else {
+                    NEXUS_Platform_P_DtProperty *prop;
+                    prop = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtProperty));
+                    BKNI_Memcpy(prop->name, ent->d_name, sizeof(prop->name));
+                    prop->value = val[0]<<24 | val[1]<<16 | val[2]<<8 | val[3];
+                    BLST_Q_INSERT_HEAD(&node->properties, prop, link);
+                }
+                fclose(pFile);
+            } else {
+                BDBG_WRN(("Could not open file %s", buf));
+            }
+		} else if (S_ISDIR(st.st_mode)) {
+			cnt += NEXUS_Platform_P_ParseDeviceTreeCompatible(nodeList, buf, compatible);
+		}
+    }
+    closedir(dir);
+
+done:
+    return cnt;
+}
+
+BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void)
+{
+    BCHP_PmapSettings *pMapSettings = NULL;
+    unsigned cnt = 0, size, i;
+    NEXUS_Platform_P_DtNodeList nodeList;
+    NEXUS_Platform_P_DtNode *node;
+
+    BLST_Q_INIT(&nodeList.nodes);
+    cnt = NEXUS_Platform_P_ParseDeviceTreeCompatible(&nodeList, "/proc/device-tree/rdb/brcmstb-clks", "brcm,pmap-");
+    BDBG_MSG(("Found %d compatible nodes", cnt));
+
+    if (!cnt) return NULL;
+
+    size = (cnt+1)*sizeof(BCHP_PmapSettings); /* One extra to indicate end data */
+    pMapSettings = BKNI_Malloc(size);
+    if(!pMapSettings) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL; }
+
+    BKNI_Memset(pMapSettings, 0, size);
+
+    i = 0;
+    while(NULL != (node = BLST_Q_FIRST(&nodeList.nodes))) {
+        NEXUS_Platform_P_DtProperty *prop;
+        BDBG_MSG(("Node %s", node->name));
+        while(NULL != (prop = BLST_Q_FIRST(&node->properties))) {
+            BDBG_MSG(("\t%s : %x", prop->name, prop->value));
+            if (!strncmp(prop->name, "brcm,value", 10)) {
+                pMapSettings[i].value = prop->value;
+            } else if (!strncmp(prop->name, "bit-shift", 9)) {
+                pMapSettings[i].shift = prop->value;
+            } else if (!strncmp(prop->name, "bit-mask", 8)) {
+                pMapSettings[i].mask = prop->value;
+            } else if (!strncmp(prop->name, "reg", 3)) {
+                pMapSettings[i].reg = prop->value;
+            } else {
+                BDBG_WRN(("Unknown Device Tree Property"));
+            }
+            BLST_Q_REMOVE_HEAD(&node->properties, link);
+            BKNI_Free(prop);
+        }
+        BLST_Q_REMOVE_HEAD(&nodeList.nodes, link);
+        BKNI_Free(node);
+        i++;
+    }
+    BDBG_ASSERT(cnt==i);
+
+    return pMapSettings;
+}
+
+void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState)
+{
+    if (preInitState->pMapSettings) {
+        BKNI_Free(preInitState->pMapSettings);
+        preInitState->pMapSettings = NULL;
+    }
+}
 
 NEXUS_Error NEXUS_Platform_P_SetStandbyExclusionRegion(unsigned heapIndex)
 {

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 
 #include "nexus_transport_module.h"
@@ -180,6 +172,13 @@ NEXUS_Error NEXUS_Message_SetSamSettings(
     NEXUS_ASSERT_STRUCTURE(NEXUS_MessageSamSettings, BXPT_SAM_Enables);
     
     BKNI_Memcpy(&enables, pSettings, sizeof(NEXUS_MessageSamSettings));
+    if(( enables.PhysicalEn == true || enables.NetworkEn == true || enables.M40En == true ||
+enables.M24En == true || enables.M16En == true || enables.IdRejectEn == true) && handle->startSettings.format != NEXUS_MessageFormat_ePsi)
+    {
+        BDBG_ERR(("Attempting SAM filtering on non-PSI message."));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
     BXPT_SAM_DoFiltering(pTransport->xpt, handle->MesgBufferNum, &enables);
     return NEXUS_SUCCESS;
 #else
@@ -188,4 +187,3 @@ NEXUS_Error NEXUS_Message_SetSamSettings(
     return NEXUS_NOT_SUPPORTED;
 #endif
 }
-

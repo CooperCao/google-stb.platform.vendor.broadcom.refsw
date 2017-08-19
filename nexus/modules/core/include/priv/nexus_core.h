@@ -347,7 +347,7 @@ NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(
     NEXUS_TransferCharacteristics tc,
     NEXUS_TransferCharacteristics preferredTc);
 void NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(
-    NEXUS_ContentLightLevel * pCll,
+    const NEXUS_ContentLightLevel * pCll,
     uint32_t *ulMaxContentLight,
     uint32_t *ulAvgContentLight);
 void NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
@@ -511,6 +511,7 @@ NEXUS_ModulePriority NEXUS_AdjustModulePriority(
     );
 
 void NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_VideoFormat videoFormat, NEXUS_VideoFormatInfo *pInfo);
+const char *NEXUS_P_VideoFormat_ToStr_isrsafe(NEXUS_VideoFormat format);
 
 NEXUS_Error NEXUS_Core_HeapMemcIndex_isrsafe(unsigned heapIndex, unsigned *pMemcIndex);
 

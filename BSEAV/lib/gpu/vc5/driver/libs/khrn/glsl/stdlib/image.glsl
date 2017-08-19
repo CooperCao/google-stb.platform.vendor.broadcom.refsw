@@ -1,21 +1,21 @@
-highp ivec2 imageSize(readonly writeonly  image2D image) { return $$imageSize(image); }
-highp ivec2 imageSize(readonly writeonly iimage2D image) { return $$imageSize(image); }
-highp ivec2 imageSize(readonly writeonly uimage2D image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly  image3D image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly iimage3D image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly uimage3D image) { return $$imageSize(image); }
-highp ivec2 imageSize(readonly writeonly  imageCube image) { return $$imageSize(image); }
-highp ivec2 imageSize(readonly writeonly iimageCube image) { return $$imageSize(image); }
-highp ivec2 imageSize(readonly writeonly uimageCube image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly  image2DArray image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly iimage2DArray image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly uimage2DArray image) { return $$imageSize(image); }
-highp int imageSize(readonly writeonly  imageBuffer  image) { return $$imageSize(image); }
-highp int imageSize(readonly writeonly iimageBuffer  image) { return $$imageSize(image); }
-highp int imageSize(readonly writeonly uimageBuffer  image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly  imageCubeArray image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly iimageCubeArray image) { return $$imageSize(image); }
-highp ivec3 imageSize(readonly writeonly uimageCubeArray image) { return $$imageSize(image); }
+highp ivec2 imageSize(readonly writeonly  image2D        image) { return $$textureSize(image); }
+highp ivec2 imageSize(readonly writeonly iimage2D        image) { return $$textureSize(image); }
+highp ivec2 imageSize(readonly writeonly uimage2D        image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly  image3D        image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly iimage3D        image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly uimage3D        image) { return $$textureSize(image); }
+highp ivec2 imageSize(readonly writeonly  imageCube      image) { return $$textureSize(image); }
+highp ivec2 imageSize(readonly writeonly iimageCube      image) { return $$textureSize(image); }
+highp ivec2 imageSize(readonly writeonly uimageCube      image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly  image2DArray   image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly iimage2DArray   image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly uimage2DArray   image) { return $$textureSize(image); }
+highp int   imageSize(readonly writeonly  imageBuffer    image) { return $$textureSize(image); }
+highp int   imageSize(readonly writeonly iimageBuffer    image) { return $$textureSize(image); }
+highp int   imageSize(readonly writeonly uimageBuffer    image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly  imageCubeArray image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly iimageCubeArray image) { return $$textureSize(image); }
+highp ivec3 imageSize(readonly writeonly uimageCubeArray image) { return $$textureSize(image); }
 
 highp  vec4 imageLoad(readonly  image2D image, ivec2 coord) { return $$texture(2, image, coord, 0); }
 highp ivec4 imageLoad(readonly iimage2D image, ivec2 coord) { return $$texture(2, image, coord, 0); }

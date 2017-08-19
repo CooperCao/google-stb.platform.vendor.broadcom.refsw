@@ -1,0 +1,140 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+#
+# UTF test script to test a single udp stream and capture it using tcpdump
+#
+# Author Robert J. McMahon
+# October 2013
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::wlstats
+
+package provide UTF::Test::UDPsinglestream 2.0
+
+UTF::Test UDPsinglestream {args} {
+    UTF::Getopts {
+	{email.arg "" "Email Address"}
+	{title.arg "" "UTF title"}
+	{ap.arg "4708ap" "AP under test"}
+	{sta.arg "4360br1" "STA for test"}
+	{holdtime.arg "300" "time to hold traffic in seconds"}
+	{pps.arg "10" "packets per second"}
+	{pollfrequency.arg "1" "interval to poll stats"}
+	{nopktqstats "disable pktqstat polling"}
+    }
+    proc show_neighbors {} {
+	upvar {} {}
+	$(ap) lan rexec arp -an
+	$(sta) lan rexec arp -an
+	$(ap) lan ip neighbor show
+	$(sta) lan ip neighbor show
+    }
+    proc show_mac_tables {} {
+	upvar {} {}
+	$(ap) wl assoclist
+	set host [$(ap) lan]
+	set addrs($(ap)) [$(ap) macaddr]
+	set addrs(${(ap)}/$host) [$host macaddr]
+	if {[$(sta) hostis Router]} {
+	    set BRIDGE $(sta)
+	    set host [$BRIDGE lan]
+	    if {![catch {$host macaddr} hwaddr]} {
+		set addrs(${host}/${BRIDGE}) $hwaddr
+	    } else {
+		UTF::Message WARN $BRIDGE $hwaddr
+	    }
+	    if {![catch {$BRIDGE macaddr} hwaddr]} {
+		set addrs($BRIDGE) $hwaddr
+	    } else {
+		UTF::Message WARN $BRIDGE $hwaddr
+	    }
+	    catch {$BRIDGE brctl showmacs [$BRIDGE brname]}
+	    catch {$BRIDGE wl dump psta}
+	} else {
+	    set addrs($(sta)) [$(sta) macaddr]
+	}
+	catch {$(ap) brctl showmacs [$(ap) brname]}
+	foreach index [array names addrs] {
+	    UTF::Message MAC "ADDR" "$addrs($index) : ${index}"
+	}
+    }
+    ## Setting the title.
+    set TITLE "UTF UDP PER $(title)"
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	UTF::Message INFO "" $TITLE
+	UTF::Try "Instantiate/sniff UDP flow ($(pps) pps)" {
+	    set flow [UTF::stream %AUTO% -tx $(ap) -rx $(sta) -name "UDP-$(pps)" -pps $(pps)]
+	    set skey [$flow id]
+	    $flow sniff on -threshold 10 -period 1 -mac
+	    $(ap) lan rexec iptables -F
+	    if {!$(nopktqstats)} {
+		$(sta) wl msglevel +time
+		$(ap) wl msglevel +time
+		set pktqstats($(sta)) [UTF::wlstats::pktqstat %AUTO% -key "sta,$skey" -wlcmd "$(sta) wl pktq_stats" -name $(sta)]
+		set pktqstats(${(ap)},$(sta)) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$(ap) wl pktq_stats a:[[$(sta) lan] macaddr]" -name $(ap)]
+	    }
+	    return
+	}
+	UTF::Try "Clear/show neighbor entries" {
+	    catch {$(ap) lan rexec ip neighbor del [$(sta) lan ipaddr] dev [$(ap) lan cget -device]}
+	    catch {$(sta) lan rexec ip neighbor del [$(ap) lan ipaddr] dev [$(sta) lan cget -device]}
+	    catch {$(sta) lan rexec arp -d [$(ap) lan ipaddr]}
+	    catch {$(ap) lan rexec arp -d [$(sta) lan ipaddr]}
+	    if {[$(sta) hostis Router]} {
+		catch {$(ap) lan rexec ip neighbor del [$(sta) ipaddr] dev [$(ap) lan cget -device]}
+	    }
+	    if {[$(ap) hostis Router]} {
+		catch {$(sta) lan rexec ip neighbor del [$(ap) ipaddr] dev [$(sta) lan cget -device]}
+	    }
+	    show_neighbors
+	    return
+	}
+	UTF::Try "Test for $(holdtime) seconds" {
+	    show_neighbors
+	    $flow stats -clear
+	    $flow start
+	    $flow linkcheck -now
+	    show_neighbors
+	    show_mac_tables
+	    $flow stats -clear
+	    set start [clock clicks -milliseconds]
+	    while {[expr {[clock clicks -milliseconds] - $start}] <= [expr {int($(holdtime) * 1000)}]} {
+		set wlcmdstart [clock clicks -milliseconds]
+		foreach STAT [array names pktqstats] {
+		    $pktqstats($STAT) sample
+		}
+		show_neighbors
+		show_mac_tables
+		set adj [expr {([clock clicks -milliseconds] - $wlcmdstart) / 1000.0}]
+		if {[$flow stats -per] > 0} {
+		    $flow stats -lost
+		    set uptime [$flow stats -uptime]
+		    foreach STAT [array names pktqstats] {
+			$pktqstats($STAT) sample
+		    }
+		    show_neighbors
+		    show_mac_tables
+		    error "PER non-zero, uptime $uptime"
+		}
+		UTF::Sleep [expr {$(pollfrequency) - $adj}]
+	    }
+	    return
+	}
+	UTF::Try "MAC tables/addrs" {
+	    show_mac_tables
+	}
+	UTF::Try "Stop trfc/show neighbor entries" {
+	    show_neighbors
+	    show_mac_tables
+	    $flow destroy
+	    show_neighbors
+	    show_mac_tables
+	    return
+	}
+	UTF::stream exitstreams
+    }
+}

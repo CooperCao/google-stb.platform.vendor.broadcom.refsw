@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesStart.h $
-*
-* DESCRIPTION:
-*   MLME-START service data types definition.
-*
-* $Revision: 10263 $
-* $Date: 2016-02-29 18:03:06Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      MLME-START service data types definition.
+ *
+*******************************************************************************/
 
 #ifndef _BB_MAC_SAP_TYPES_START_H
 #define _BB_MAC_SAP_TYPES_START_H
@@ -61,6 +54,7 @@
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief   Structure for parameters of the MLME-START.request.
+ * \ingroup StartReq
  * \note    The following parameters are expected to be equal to the following values:
  *  - BeaconOrder                   15, means nonbeacon-enabled PAN,
  *  - CoordRealignment              FALSE, is not used by ZigBee PRO and RF4CE,
@@ -83,7 +77,6 @@
  */
 typedef struct _MAC_StartReqParams_t
 {
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     /* 32-bit data. */
     HAL_Symbol__Tstamp_t    startTime;                      /*!< The time at which to begin transmitting beacons. */
 
@@ -97,32 +90,26 @@ typedef struct _MAC_StartReqParams_t
     PHY_Page_t              channelPage;                    /*!< The channel page on which to begin using the new
                                                                 superframe configuration. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_BeaconOrder_t       beaconOrder;                    /*!< How often the beacon is to be transmitted. A value of
                                                                 15 indicates that the coordinator will not transmit
                                                                 periodic beacons. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SuperframeOrder_t   superframeOrder;                /*!< The length of the active portion of the superframe,
                                                                 including the beacon frame. */
 
     MAC_PanCoordinator_t    panCoordinator;                 /*!< If this value is TRUE, the device will become the PAN
                                                                 coordinator of a new PAN. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_BattLifeExt_t       batteryLifeExtension;           /*!< If this value is FALSE, the receiver of the beaconing
                                                                 device remains enabled for the entire CAP. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     Bool8_t                 coordRealignment;               /*!< TRUE if a coordinator realignment command is to be
                                                                 transmitted prior to changing the superframe
                                                                 configuration or FALSE otherwise. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t     coordRealignSecurityLevel;      /*!< The security level to be used for coordinator
                                                                 realignment command frames. */
 
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t     beaconSecurityLevel;            /*!< The security level to be used for beacon frames. */
 
 } MAC_StartReqParams_t;
@@ -130,6 +117,7 @@ typedef struct _MAC_StartReqParams_t
 
 /**//**
  * \brief   Structure for parameters of the MLME-START.confirm.
+ * \ingroup StartConf
  * \details Possible values for the \c status parameter are the following:
  *  - SUCCESS                   The requested operation was completed successfully.
  *  - INVALID_PARAMETER         A parameter in the primitive is either not supported or is
@@ -162,12 +150,14 @@ typedef struct _MAC_StartConfParams_t
 
 /**//**
  * \brief   Structure for descriptor of the MLME-START.request.
+ * \ingroup StartReq
  */
 typedef struct _MAC_StartReqDescr_t  MAC_StartReqDescr_t;
 
 
 /**//**
  * \brief   Template for callback handler-function of the MLME-START.confirm.
+ * \ingroup StartConf
  * \param[in]   reqDescr    Pointer to the confirmed request descriptor.
  * \param[in]   confParams  Pointer to the confirmation parameters object.
  * \details Call functions of this type provided by higher layers of corresponding MAC
@@ -192,6 +182,7 @@ typedef void MAC_StartConfCallback_t(MAC_StartReqDescr_t *const reqDescr, MAC_St
 
 /**//**
  * \brief   Structure for descriptor of the MLME-START.request.
+ * \ingroup StartReq
  */
 struct _MAC_StartReqDescr_t
 {
@@ -206,3 +197,5 @@ struct _MAC_StartReqDescr_t
 
 
 #endif /* _BB_MAC_SAP_TYPES_START_H */
+
+/* eof bbMacSapTypesStart.h */

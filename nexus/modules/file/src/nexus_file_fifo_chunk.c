@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ***************************************************************************/
 #include "nexus_file_module.h"
 #include "bstd.h"
@@ -77,7 +76,9 @@ static void bfile_fifo_write_snapshot_locked(struct NEXUS_ChunkedFifoRecord *fil
 struct bpvrfifo_header {
     /* we use dual lock scheme, lock is acquired every time when header table is accessed,  and busy flag is set wherever there is an active transaction, in this manner we allow simultaneous read and write transactions, and effectively serialize trim with both read and write */
     BKNI_MutexHandle lock;
-    unsigned busy; /* busy counter, if busy > 0 then there is an active write or read, and trim has to fail */
+    unsigned busy; /* if > 0 then there is an active write or read, so trim cannot proceed */
+    bool busy_waiting; /* if true, trim is waiting on busy_event. */
+    BKNI_EventHandle busy_event; /* trim waits for refcnt to drop to 0 */
     unsigned prev_trim;     /* previously trimmed value */
     unsigned trim_gap;      /* Gap between real start of file and next trim point */
     bool chunked;
@@ -289,14 +290,14 @@ b_pvrfifo_write_next_unit(struct bfile_io_write_fifo *file)
                     entry->size = 0;
                     entry->no = file->next_chunk;
                 } else {
-                    BDBG_MSG(("bpvrfifo_write: %#lx no space at the end of file", (unsigned long)file));
+                    BDBG_ERR(("bpvrfifo_write: %#lx no space at the end of index", (unsigned long)file));
                     entry = NULL;
                }
                break;
             }
         }
         if(!entry) {
-            BDBG_MSG(("bpvrfifo_write: %#lx overflow", (unsigned long)file));
+            BDBG_ERR(("bpvrfifo_write: %#lx index overflow", (unsigned long)file));
         }
     } else {
         BDBG_MSG_IO(file, ("write wraparound"));
@@ -381,6 +382,16 @@ b_pvrfifo_write_next_chunk(struct bfile_io_write_fifo *file)
         }
     }
     return;
+}
+
+static void bpvrfifo_dec_busy(struct bpvrfifo_header *header)
+{
+    if (--header->busy == 0 && header->busy_waiting) {
+        BKNI_SetEvent(header->busy_event);
+        BKNI_ReleaseMutex(header->lock);
+        BKNI_Sleep(10); /* increase chances that trim gets lock now */
+        BKNI_AcquireMutex(header->lock);
+    }
 }
 
 static ssize_t
@@ -505,7 +516,7 @@ bpvrfifo_write(bfile_io_write_t fd, const void *buf_, size_t length)
             }
         }
     }
-    file->header->busy--;
+    bpvrfifo_dec_busy(file->header);
     B_DUMP_ENTRYS(file);
     BDBG_MSG_IO(file, ("<write: %s %u %lld:%u", file->header->chunked?"chunked":"", file->header->busy, file->offset, (unsigned)length ));
     if(file->writeSnapshotFile) {
@@ -634,7 +645,7 @@ bpvrfifo_read(bfile_io_read_t fd, void *buf_, size_t length)
         length -= (size_t) rc;
         file->cur_pos = file->cur_pos + rc;
     }
-    file->header->busy--;
+    bpvrfifo_dec_busy(file->header);
     B_DUMP_ENTRYS(file);
     BDBG_MSG_IO(file, ("<read:%u %lld:%u=%d", file->header->busy, file->cur_pos, (unsigned)length, (int)result));
 
@@ -643,7 +654,7 @@ bpvrfifo_read(bfile_io_read_t fd, void *buf_, size_t length)
 }
 
 
-static int
+static void
 bpvrfifo_bounds_locked(const struct bfile_io_read_fifo *file, off_t *first, off_t *last)
 {
     unsigned i;
@@ -672,24 +683,21 @@ bpvrfifo_bounds_locked(const struct bfile_io_read_fifo *file, off_t *first, off_
     if( file->header->trim_gap ) {
         *first += (off_t)(file->header->trim_gap);
     }
-
-    return 0;
 }
 
 static int
 bpvrfifo_bounds(bfile_io_read_t fd, off_t *first, off_t *last )
 {
     struct bfile_io_read_fifo *file = (struct bfile_io_read_fifo *) fd;
-    int rc;
 
     BDBG_ASSERT(file->header);
     b_lock(file); /* don't need to set busy because lock isn't released */
 
     BDBG_MSG_IO(file, (">bounds"));
-    rc = bpvrfifo_bounds_locked(file, first, last);
+    bpvrfifo_bounds_locked(file, first, last);
     BDBG_MSG_IO(file, ("<bounds: %lld..%lld", *first, *last));
     b_unlock(file);
-    return rc;
+    return 0;
 }
 
 static off_t
@@ -707,7 +715,17 @@ bpvrfifo_trim(bfile_io_write_t fd, off_t trim_pos)
     file->header->active = true;
     result = 0;
     if (file->header->busy) {
-        goto done;
+        int rc;
+        BKNI_ResetEvent(file->header->busy_event);
+        file->header->busy_waiting = true;
+        b_unlock(file);
+        rc = BKNI_WaitForEvent(file->header->busy_event, 500);
+        if (rc) (void)BERR_TRACE(rc); /* keep going, we will check busy */
+        b_lock(file);
+        file->header->busy_waiting = false;
+        if (file->header->busy) {
+            goto done;
+        }
     }
 
     /* trim_pos = (trim_pos) & (~(4096-1)); */
@@ -818,7 +836,6 @@ bpvrfifo_seek(bfile_io_read_t fd, off_t offset, int whence)
 {
     struct bfile_io_read_fifo *file = (struct bfile_io_read_fifo *) fd;
     off_t size,begin;
-    int rc;
 
     BDBG_MSG_IO(file,(">seek: %lld %d", offset, whence));
     b_lock(file);
@@ -828,11 +845,8 @@ bpvrfifo_seek(bfile_io_read_t fd, off_t offset, int whence)
         offset = file->cur_pos;
         goto done;
     }
-    rc = bpvrfifo_bounds_locked(file, &begin, &size);
-    if (rc<0) {
-        offset = -1;
-        goto error;
-    }
+    bpvrfifo_bounds_locked(file, &begin, &size);
+
     /* locate where file begins */
     switch(whence) {
     case SEEK_CUR:
@@ -931,6 +945,10 @@ bpvrfifo_write_open(const char *fname, bool direct, off_t start, struct bfile_io
     if (rc!=BERR_SUCCESS) {
         goto err_lock;
     }
+    rc = BKNI_CreateEvent(&file->header->busy_event);
+    if (rc!=BERR_SUCCESS) {
+        goto err_event;
+    }
 
     file->data = file->data_;
     file->chunk_data = file->chunk_data_;
@@ -958,6 +976,8 @@ bpvrfifo_write_open(const char *fname, bool direct, off_t start, struct bfile_io
     return file;
 
 err_open_data:
+    BKNI_DestroyEvent(file->header->busy_event);
+err_event:
     BKNI_DestroyMutex(file->header->lock);
 err_lock:
     BKNI_Free(file);
@@ -986,6 +1006,7 @@ bpvrfifo_write_release(struct bfile_io_write_fifo *file)
     BDBG_ASSERT(!last || file->header->busy==0);
     b_unlock(file);
     if (last) {
+        BKNI_DestroyEvent(file->header->busy_event);
         BKNI_DestroyMutex(file->header->lock);
         BKNI_Free(file);
     }
@@ -1051,6 +1072,10 @@ bpvrfifo_read_open(const char *fname, bool direct, struct bfile_io_write_fifo *w
             BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
             goto err_lock;
         }
+        rc = BKNI_CreateEvent(&file->header->busy_event);
+        if (rc!=BERR_SUCCESS) {
+            goto err_event;
+        }
         rc_off = b_pvrfifo_io_rseek(&meta->data, meta_off, SEEK_SET);
         if(rc_off!=meta_off) {
             BERR_TRACE(NEXUS_UNKNOWN);
@@ -1071,8 +1096,12 @@ bpvrfifo_read_open(const char *fname, bool direct, struct bfile_io_write_fifo *w
 
 err_meta:
 err_rseek:
+err_event:
 err_lock:
     if(!writer) {
+        if (file->header->busy_event) {
+            BKNI_DestroyEvent(file->header->busy_event);
+        }
         if (file->header->lock) {
             BKNI_DestroyMutex(file->header->lock);
         }
@@ -1105,6 +1134,7 @@ bpvrfifo_read_close(struct bfile_io_read_fifo *file)
     if(file->writer) {
         bpvrfifo_write_release(file->writer);
     } else {
+        BKNI_DestroyEvent(file->header->busy_event);
         BKNI_DestroyMutex(file->header->lock);
         BKNI_Free(file->header);
     }
@@ -1210,12 +1240,11 @@ b_pvrfifo_trim_bp_bounds( BNAV_Player_Handle handle, void *fp, long *firstIndex,
     bfile_io_read_t fd = GET_INDEX_FILEIO(fp);
     off_t first, last;
     unsigned index_entrysize = b_pvrfifo_get_index_entrysize((NEXUS_ChunkedFifoRecordHandle)fp);
-    int rc;
 
     struct bfile_io_read_fifo *file = (struct bfile_io_read_fifo *)fd;
     BDBG_ASSERT(file->header);
     b_lock(file);
-    rc = bpvrfifo_bounds_locked(file, &first, &last );
+    bpvrfifo_bounds_locked(file, &first, &last );
     if( file->header->trim_gap ) {
         /* Untrimmed file start is first offset minus trim gap */
         first -= (off_t)(file->header->trim_gap);
@@ -1293,13 +1322,12 @@ NEXUS_FilePlayHandle
 NEXUS_ChunkedFifoPlay_Open(const char *fname, const char *indexname, NEXUS_ChunkedFifoRecordHandle writer)
 {
     struct bfile_in_fifo *file;
-    NEXUS_Error rc;
 
-    if (fname==NULL) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
-    if (indexname==NULL) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
+    if (fname==NULL) { BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
+    if (indexname==NULL) { BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
 
     file = BKNI_Malloc(sizeof(*file));
-    if (!file) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_alloc; }
+    if (!file) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_alloc; }
     BKNI_Memset(file, 0, sizeof(*file));
 
     file->index = bpvrfifo_read_open(indexname, false, writer?writer->index.file:NULL, NULL, 0);
@@ -1316,7 +1344,7 @@ NEXUS_ChunkedFifoPlay_Open(const char *fname, const char *indexname, NEXUS_Chunk
         b_pvrfifo_io_rseek(&file->index->data, 0, SEEK_SET);
         rc = b_pvrfifo_io_read(&file->index->data, &buf->data, sizeof(buf->data));
         if (rc!=sizeof(buf->data) || buf->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
-            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto err_meta;
         }
 
@@ -1324,7 +1352,7 @@ NEXUS_ChunkedFifoPlay_Open(const char *fname, const char *indexname, NEXUS_Chunk
         b_pvrfifo_io_rseek(&file->index->data, sizeof(buf->data), SEEK_SET);
         rc = b_pvrfifo_io_read(&file->index->data, &buf->data, sizeof(buf->data));
         if (rc!=sizeof(buf->data) || buf->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
-            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto err_meta;
         }
     }
@@ -1576,17 +1604,33 @@ done:
     return;
 }
 
+static void NEXUS_File_P_CheckFifoRecordSettings(const NEXUS_ChunkedFifoRecordSettings *pSettings)
+{
+    /* max and soft are in x10 units for decimal printing */
+    unsigned max = pSettings->interval ? (unsigned)((pSettings->data.soft * 8 / pSettings->interval) / (1024 * 1024 / 10)) : 0;
+    unsigned soft = pSettings->data.soft/(1024*1024/10);
+    if (max < 300) {
+        BDBG_WRN(("FileFifo only supports max bitrate of %u.%u Mbps (data.soft %u.%u MB * 8 / interval %d seconds)",
+            max/10, max%10, soft/10, soft%10, pSettings->interval));
+    }
+
+    max = pSettings->interval ? pSettings->index.soft / 32 / pSettings->interval : 0;
+    if (max < 240) {
+        BDBG_WRN(("FileFifo only supports max framerate of %u fps (index.soft %u / 32 / interval %d seconds)",
+            max, (unsigned)pSettings->index.soft, pSettings->interval));
+    }
+}
+
 NEXUS_ChunkedFifoRecordHandle
 NEXUS_ChunkedFifoRecord_Create(const char *fname, const char *indexname)
 {
     NEXUS_ChunkedFifoRecordHandle file;
-    NEXUS_Error rc;
 
-    if (fname==NULL) { rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
-    if (indexname==NULL) { rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
+    if (fname==NULL) { BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
+    if (indexname==NULL) { BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
 
     file = BKNI_Malloc(sizeof(*file));
-    if (!file) { rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_alloc; }
+    if (!file) { BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_alloc; }
 
     BKNI_Memset(file, 0, sizeof *file);
 
@@ -1614,7 +1658,7 @@ NEXUS_ChunkedFifoRecord_Create(const char *fname, const char *indexname)
                 b_pvrfifo_io_rseek(&rd_index->data, 0, SEEK_SET);
                 rc = b_pvrfifo_io_read(&rd_index->data, &index_header->data, sizeof(index_header->data));
                 if (rc!=sizeof(index_header->data) || index_header->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
-                    rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    BERR_TRACE(NEXUS_INVALID_PARAMETER);
                     BDBG_MSG(("Index file exists, unable to match signature"));
                     read_error = true;
                 }
@@ -1626,7 +1670,7 @@ NEXUS_ChunkedFifoRecord_Create(const char *fname, const char *indexname)
                 b_pvrfifo_io_rseek(&rd_index->data, sizeof(data_header->data), SEEK_SET);
                 rc = b_pvrfifo_io_read(&rd_index->data, &data_header->data, sizeof(data_header->data));
                 if (rc!=sizeof(data_header->data) || data_header->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
-                    rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    BERR_TRACE(NEXUS_INVALID_PARAMETER);
                     BDBG_MSG(("Index file exists, unable to match signature"));
                     read_error = true;
                 }
@@ -1660,6 +1704,7 @@ NEXUS_ChunkedFifoRecord_Create(const char *fname, const char *indexname)
 
     /* Continue with chunked fifo record creation */
     NEXUS_ChunkedFifoRecord_GetDefaultSettings(&file->cfg);
+    NEXUS_File_P_CheckFifoRecordSettings(&file->cfg);
     b_strncpy(file->filename, fname, sizeof(file->filename));
     b_strncpy(file->indexname, indexname, sizeof(file->indexname));
 
@@ -1828,6 +1873,8 @@ NEXUS_ChunkedFifoRecord_SetSettings(NEXUS_ChunkedFifoRecordHandle file, const NE
     file->cfg.data.soft -= file->cfg.data.soft % B_DATA_ALIGN;
     file->cfg.data.hard -= file->cfg.data.hard % B_DATA_ALIGN;
     BDBG_INSTANCE_MSG(file, ("fifo_out_set: %u index(%lu:%lu) data(%lu:%lu)", file->cfg.interval, (unsigned long)file->cfg.data.soft, (unsigned long)file->cfg.data.hard, (unsigned long)file->cfg.index.soft, (unsigned long)file->cfg.index.hard));
+    NEXUS_File_P_CheckFifoRecordSettings(&file->cfg);
+
     /* XXX we should truncate file somewhere, sometime */
     if (file->index.file) {
         b_lock(file->index.file);
@@ -2116,6 +2163,7 @@ bpvrfifo_open_readonly_file(const char *fname, off_t start )
     struct bfile_io_write_fifo *file;
     BERR_Code rc;
 
+    BSTD_UNUSED(start);
     /* open the minimum state for export */
     file = BKNI_Malloc(sizeof(*file));
     if (!file) {

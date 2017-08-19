@@ -442,10 +442,7 @@ BHSM_P_DONE_LABEL:
 BERR_Code BHSM_InitialiseBypassKeyslots_sage( BHSM_Handle hHsm )
 {
     BERR_Code rc = BERR_SUCCESS;
-    BHSM_InvalidateKeyIO_t  resetKeySlot;
-    BHSM_ConfigAlgorithmIO_t algorithmConfig;
-    BHSM_LoadRouteUserKeyIO_t userKey;
-    BHSM_KeySlotGlobalCntrlWord_t keySlotControlWord;
+    BHSM_InvalidateKeyIO_t invalidateKeySlot;
 
     BDBG_ENTER( BHSM_InitialiseBypassKeyslots_sage );
 
@@ -454,103 +451,23 @@ BERR_Code BHSM_InitialiseBypassKeyslots_sage( BHSM_Handle hHsm )
         return BERR_TRACE( BHSM_STATUS_FAILED ); /* Function can only be called from SAGE context. */
     }
 
-    /* Invalidate both bypass filters keyslot. */
-    BKNI_Memset( &resetKeySlot, 0, sizeof(resetKeySlot) );
-    resetKeySlot.caKeySlotType      = BHSM_BYPASS_KEYSLOT_TYPE;
-    resetKeySlot.unKeySlotNum       = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
-    resetKeySlot.keyDestBlckType    = BCMD_KeyDestBlockType_eCPScrambler;
-    resetKeySlot.invalidKeyType     = BCMD_InvalidateKey_Flag_eDestKeyOnly;
-    resetKeySlot.keyDestEntryType   = BCMD_KeyDestEntryType_eOddKey;
-    resetKeySlot.virtualKeyLadderID = 0; /* Not used ... BCMD_InvalidateKey_Flag_eDestKeyOnly */
-    resetKeySlot.bInvalidateAllEntries = true;
-    if( ( rc = BHSM_InvalidateKey( hHsm, &resetKeySlot ) ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(("%s BHSM_InvalidateKey for GRG keyslot failed\n", __FUNCTION__ ));
-        goto BHSM_P_DONE_LABEL;
-    }
+    /* Configure first bypass keyslot ... g2gr */
+    BKNI_Memset( &invalidateKeySlot, 0, sizeof(invalidateKeySlot) );
+    invalidateKeySlot.caKeySlotType         = BHSM_BYPASS_KEYSLOT_TYPE;
+    invalidateKeySlot.unKeySlotNum          = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
+    invalidateKeySlot.invalidKeyType        = BCMD_InvalidateKey_Flag_eDestKeyOnly;
+    invalidateKeySlot.bInvalidateAllEntries = true;
+    invalidateKeySlot.bypassConfiguraion    = BCMD_ByPassKTS_eFromGToRG;
+    invalidateKeySlot.virtualKeyLadderID = BCMD_VKL_KeyRam_eMax; /*Not used. Setting to invalid value to avoid collision with VKL in use*/
+    rc = BHSM_InvalidateKey( hHsm, &invalidateKeySlot );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc );  goto BHSM_P_DONE_LABEL; }
 
-    resetKeySlot.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
-    if( ( rc = BHSM_InvalidateKey( hHsm, &resetKeySlot ) ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(("%s BHSM_InvalidateKey for RG2R keyslot failed\n", __FUNCTION__ ));
-        goto BHSM_P_DONE_LABEL;
-    }
+    /* Configure second bypass keyslot. */
+    invalidateKeySlot.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
+    invalidateKeySlot.bypassConfiguraion = BCMD_ByPassKTS_eFromRGToR;
 
-    /* Set G2RG keyslot globals */
-    BKNI_Memset( &keySlotControlWord, 0, sizeof(keySlotControlWord) );
-    keySlotControlWord.caKeySlotType     = BHSM_BYPASS_KEYSLOT_TYPE;
-    keySlotControlWord.unKeySlotNum      = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
-    keySlotControlWord.encryptBeforeRAVE = 0;
-    keySlotControlWord.inputRegion   = BHSM_REGION_GLR;
-    keySlotControlWord.RpipeOutput   = BHSM_REGION_GLR | BHSM_REGION_CRR;
-    keySlotControlWord.GpipeOutput   = BHSM_REGION_GLR | BHSM_REGION_CRR;
-
-    if( ( rc = BHSM_ConfigKeySlotGlobalCntrlWord( hHsm, &keySlotControlWord ) ) != BERR_SUCCESS )
-    {
-        BERR_TRACE( rc );
-        goto BHSM_P_DONE_LABEL;
-    }
-
-    keySlotControlWord.inputRegion       = BHSM_REGION_CRR | BHSM_REGION_GLR;
-    keySlotControlWord.RpipeOutput       = BHSM_REGION_CRR;
-    keySlotControlWord.GpipeOutput       = BHSM_REGION_CRR;
-    keySlotControlWord.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
-    if( ( rc = BHSM_ConfigKeySlotGlobalCntrlWord( hHsm, &keySlotControlWord ) ) != BERR_SUCCESS )
-    {
-        BERR_TRACE( rc );
-        goto BHSM_P_DONE_LABEL;
-    }
-
-    /* Configure G2GR keyslot */
-    BKNI_Memset( &algorithmConfig, 0, sizeof (algorithmConfig) );
-    algorithmConfig.keyDestBlckType     = BHSM_BYPASS_KEYSLOT_BLOCK;
-    algorithmConfig.keyDestEntryType    = BHSM_BYPASS_KEYSLOT_POLARITY;
-    algorithmConfig.caKeySlotType       = BHSM_BYPASS_KEYSLOT_TYPE;
-    algorithmConfig.unKeySlotNum        = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
-    algorithmConfig.cryptoAlg.cryptoOp  = BHSM_M2mAuthCtrl_ePassThrough;
-    algorithmConfig.cryptoAlg.xptSecAlg          = BCMD_XptM2MSecCryptoAlg_eAes128;
-    algorithmConfig.cryptoAlg.cipherDVBCSA2Mode  = BCMD_CipherModeSelect_eECB;
-    algorithmConfig.cryptoAlg.termCounterMode    = BCMD_TerminationMode_eCLEAR;
-    algorithmConfig.cryptoAlg.bUseExtKey   = false;
-    algorithmConfig.cryptoAlg.bUseExtIV    = false;
-    algorithmConfig.cryptoAlg.bGpipeEnable = false; /* bypass G */
-    algorithmConfig.cryptoAlg.bRpipeEnable = false; /* bypass R */
-    if( ( rc = BHSM_ConfigAlgorithm ( hHsm, &algorithmConfig ) ) != BERR_SUCCESS )
-    {
-        BERR_TRACE( rc );
-        goto BHSM_P_DONE_LABEL;
-    }
-
-    /* Configure RG2R keyslot  */
-    algorithmConfig.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
-    if( ( rc = BHSM_ConfigAlgorithm ( hHsm, &algorithmConfig ) ) != BERR_SUCCESS )
-    {
-        BERR_TRACE( rc );
-        goto BHSM_P_DONE_LABEL;
-    }
-
-    /* Route keyslot configuration G2GR */
-    BKNI_Memset( &userKey, 0, sizeof(userKey) );
-    userKey.bIsRouteKeyRequired = true;
-    userKey.keyDestBlckType     = BHSM_BYPASS_KEYSLOT_BLOCK;
-    userKey.keySize.eKeySize    = BCMD_KeySize_e128;
-    userKey.bIsRouteKeyRequired = true;
-    userKey.keyDestEntryType    = BHSM_BYPASS_KEYSLOT_POLARITY;
-    userKey.caKeySlotType       = BHSM_BYPASS_KEYSLOT_TYPE;
-    userKey.unKeySlotNum        = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
-    userKey.keyMode             = BCMD_KeyMode_eRegular;
-    if( ( rc = BHSM_LoadRouteUserKey( hHsm, &userKey ) ) != BERR_SUCCESS )
-    {
-        BERR_TRACE( rc );
-        goto BHSM_P_DONE_LABEL;
-    }
-    /* Route keyslot configuration GR2R */
-    userKey.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
-    if( ( rc = BHSM_LoadRouteUserKey( hHsm, &userKey ) ) != BERR_SUCCESS )
-    {
-        BERR_TRACE( rc );
-        goto BHSM_P_DONE_LABEL;
-    }
+    rc = BHSM_InvalidateKey( hHsm, &invalidateKeySlot );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
 BHSM_P_DONE_LABEL:
 
@@ -748,13 +665,13 @@ BERR_Code BHSM_InitKeySlot( BHSM_Handle hHsm, BHSM_InitKeySlotIO_t *pInitKeySlot
        #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,0)
         case 0x20:
         {
-            BDBG_WRN(("%s Keyslots already initialised. [0x%X]", __FUNCTION__, status ));
+            BDBG_WRN(("%s Keyslots already initialised. [0x%X]", BSTD_FUNCTION, status ));
             break;
         }
        #endif
         default:
         {
-           BDBG_ERR(("%s  KeySlot initialisation failed [0x%X]", __FUNCTION__, status ));
+           BDBG_ERR(("%s  KeySlot initialisation failed [0x%X]", BSTD_FUNCTION, status ));
            goto BHSM_P_DONE_LABEL;
         }
     }
@@ -987,7 +904,7 @@ static BERR_Code ConfigPidKeyPointerTable (
     if( status != 0 )
     {
         errCode = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -1017,7 +934,7 @@ BERR_Code BHSM_ConfigPidKeyPointerTable (
 
     BDBG_ENTER( BHSM_ConfigPidKeyPointerTable );
 
-    BDBG_MSG(("%s Type[%d] keySlot[%d]", __FUNCTION__, pPidChannelConf->ucKeySlotType, pPidChannelConf->unKeySlotNum ));
+    BDBG_MSG(("%s Type[%d] keySlot[%d]", BSTD_FUNCTION, pPidChannelConf->ucKeySlotType, pPidChannelConf->unKeySlotNum ));
 
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
     pPidChannelConf->setMultiplePidChannels = false;
@@ -1118,7 +1035,7 @@ BERR_Code BHSM_AllocateCAKeySlot ( /* Zeus 4 */
 
     if( pKeyslot == NULL )  /* we STILL did not find a slot. */
     {
-        BDBG_ERR(("%s Failed to find a free slot. type[%d] offset[%d] max[%d]", __FUNCTION__, keySlotType, keySlotOffset, i ));
+        BDBG_ERR(("%s Failed to find a free slot. type[%d] offset[%d] max[%d]", BSTD_FUNCTION, keySlotType, keySlotOffset, i ));
         errCode = BERR_TRACE( BHSM_STATUS_FAILED );
         goto BHSM_P_DONE_LABEL;
     }
@@ -1140,7 +1057,7 @@ BERR_Code BHSM_AllocateCAKeySlot ( /* Zeus 4 */
         errCode = BHSM_InvalidateKey( hHsm, &resetKeySlot );
         if( errCode != BERR_SUCCESS )
         {
-            BDBG_ERR(("%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", __FUNCTION__, keySlotType, keySlotNum ));
+            BDBG_ERR(("%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", BSTD_FUNCTION, keySlotType, keySlotNum ));
             goto BHSM_P_DONE_LABEL;
         }
     }
@@ -1214,7 +1131,7 @@ BERR_Code BHSM_FreeCAKeySlot ( /* Zeus 4 */
     /* Return if the key slot is already empty */
     if( pKeyslot->bIsUsed == false )
     {
-        BDBG_ERR(("%s  slot is already free type[%d] slotNum[%d]", __FUNCTION__, pKeySlotConf->keySlotType,  pKeySlotConf->keySlotNum ));
+        BDBG_ERR(("%s  slot is already free type[%d] slotNum[%d]", BSTD_FUNCTION, pKeySlotConf->keySlotType,  pKeySlotConf->keySlotNum ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -1235,7 +1152,7 @@ BERR_Code BHSM_FreeCAKeySlot ( /* Zeus 4 */
         errCode = BHSM_InvalidateKey( hHsm, &resetKeySlot );
         if( errCode != BERR_SUCCESS )
         {
-           BDBG_ERR(( "%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
+           BDBG_ERR(( "%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
            goto BHSM_P_DONE_LABEL;
         }
     }
@@ -1261,19 +1178,19 @@ BERR_Code BHSM_FreeCAKeySlot ( /* Zeus 4 */
         }
         case BHSM_KeySlotOwner_eSAGE:
         {
-            BDBG_WRN(("%s SAGE did not invalidate Keyslot type[%d] num[%d]", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
+            BDBG_WRN(("%s SAGE did not invalidate Keyslot type[%d] num[%d]", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
 
             /*We do expect the keyslot client to be SAGE */
             if( pKeyslot->client != BHSM_ClientType_eSAGE )
             {
-                BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client[%d]", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
+                BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client[%d]", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
             }
             pKeyslot->client = BHSM_ClientType_eSAGE;
             break;
         }
         case BHSM_KeySlotOwner_eSHARED:
         {
-            BDBG_WRN(( "%s HOST Keyslot invalidate failed. type[%d] num[%d]", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
+            BDBG_WRN(( "%s HOST Keyslot invalidate failed. type[%d] num[%d]", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
             pKeyslot->client = BHSM_ClientType_eHost;
             break;
         }
@@ -1353,7 +1270,7 @@ BERR_Code BHSM_AllocateM2MKeySlot (   /*  Zeus 4 */
     /*  Call BHSM_AllocateCAKeySlot with the requested key slot type */
     errCode = BHSM_AllocateCAKeySlot( hHsm, &XptKeySlotIO );
 
-    BDBG_MSG(("%s  Client[%d] Type[%d] Slot[%d]" ,  __FUNCTION__,  pM2mKeySlot->client,  pM2mKeySlot->keySlotType, XptKeySlotIO.keySlotNum ));
+    BDBG_MSG(("%s  Client[%d] Type[%d] Slot[%d]" ,  BSTD_FUNCTION,  pM2mKeySlot->client,  pM2mKeySlot->keySlotType, XptKeySlotIO.keySlotNum ));
 
     pM2mKeySlot->unStatus   = errCode;
     pM2mKeySlot->keySlotNum = XptKeySlotIO.keySlotNum;
@@ -1401,7 +1318,7 @@ BERR_Code BHSM_FreeM2MKeySlot ( /* Zeus 4 */
 
     errCode = BHSM_FreeCAKeySlot(hHsm, &XptKeySlotIO);
 
-    BDBG_MSG(("%s Client[%d] Type[%d] Slot[%d]",  __FUNCTION__, pM2mKeySlot->client, pM2mKeySlot->keySlotType, pM2mKeySlot->keySlotNum ));
+    BDBG_MSG(("%s Client[%d] Type[%d] Slot[%d]",  BSTD_FUNCTION, pM2mKeySlot->client, pM2mKeySlot->keySlotType, pM2mKeySlot->keySlotNum ));
 
     BDBG_LEAVE(BHSM_FreeM2MKeySlot);
     return errCode;
@@ -1495,7 +1412,7 @@ BERR_Code BHSM_AllocateCAKeySlot_v2 ( /* pre Zeus 4 */
 
     if( pKeyslot == NULL )  /* we STILL did not find a slot. */
     {
-        BDBG_ERR(("%s Failed to find a free slot. type[%d] offset[%d] max[%d]", __FUNCTION__, keySlotType, keySlotOffset, i ));
+        BDBG_ERR(("%s Failed to find a free slot. type[%d] offset[%d] max[%d]", BSTD_FUNCTION, keySlotType, keySlotOffset, i ));
         errCode = BERR_TRACE( BHSM_STATUS_FAILED );
         goto BHSM_P_DONE_LABEL;
     }
@@ -1517,7 +1434,7 @@ BERR_Code BHSM_AllocateCAKeySlot_v2 ( /* pre Zeus 4 */
         errCode = BHSM_InvalidateKey( hHsm, &resetKeySlot );
         if( errCode != BERR_SUCCESS )
         {
-            BDBG_ERR(("%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", __FUNCTION__, keySlotType, keySlotNum ));
+            BDBG_ERR(("%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", BSTD_FUNCTION, keySlotType, keySlotNum ));
             goto BHSM_P_DONE_LABEL;
         }
     }
@@ -1593,7 +1510,7 @@ BERR_Code BHSM_FreeCAKeySlot_v2 ( /* pre Zeus 4 */
     /* Return if the key slot is already empty */
     if( pKeyslot->bIsUsed == false )
     {
-        BDBG_ERR(("%s  slot is already free type[%d] slotNum[%d]", __FUNCTION__, pKeySlotConf->keySlotType,  pKeySlotConf->keySlotNum ));
+        BDBG_ERR(("%s  slot is already free type[%d] slotNum[%d]", BSTD_FUNCTION, pKeySlotConf->keySlotType,  pKeySlotConf->keySlotNum ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -1612,7 +1529,7 @@ BERR_Code BHSM_FreeCAKeySlot_v2 ( /* pre Zeus 4 */
         errCode = BHSM_InvalidateKey( hHsm, &resetKeySlot );
         if( errCode != BERR_SUCCESS )
         {
-           BDBG_ERR(( "%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
+           BDBG_ERR(( "%s BHSM_InvalidateKey failed type[%d] num[%d] continuing", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
            goto BHSM_P_DONE_LABEL;
         }
     }
@@ -1643,19 +1560,19 @@ BERR_Code BHSM_FreeCAKeySlot_v2 ( /* pre Zeus 4 */
             }
             case BHSM_KeySlotOwner_eSAGE:
             {
-                BDBG_WRN(("%s SAGE did not invalidate Keyslot type[%d] num[%d]", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
+                BDBG_WRN(("%s SAGE did not invalidate Keyslot type[%d] num[%d]", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
 
                 /*We do expect the keyslot client to be SAGE */
                 if( pKeyslot->client != BHSM_ClientType_eSAGE )
                 {
-                    BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client(%u)", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
+                    BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client(%u)", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
                 }
                 pKeyslot->client = BHSM_ClientType_eSAGE;
                 break;
             }
             case BHSM_KeySlotOwner_eSHARED:
             {
-                BDBG_WRN(( "%s HOST Keyslot invalidate failed. type[%d] num[%d]", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
+                BDBG_WRN(( "%s HOST Keyslot invalidate failed. type[%d] num[%d]", BSTD_FUNCTION, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum ));
                 pKeyslot->client = BHSM_ClientType_eHost;
                 break;
             }
@@ -1831,7 +1748,7 @@ BERR_Code BHSM_FreeM2MKeySlot ( /* Pre Zeus 4 */
         return BERR_TRACE(BHSM_STATUS_INPUT_PARM_ERR);
     }
 
-    BDBG_MSG(("%s  key slot = %d", __FUNCTION__,  pM2mKeySlot->keySlotNum ));
+    BDBG_MSG(("%s  key slot = %d", BSTD_FUNCTION,  pM2mKeySlot->keySlotNum ));
 
     pKeyslot = &hHsm->aunM2MKeySlotInfo[pM2mKeySlot->keySlotNum];
 
@@ -2005,7 +1922,7 @@ BERR_Code BHSM_SetKeySlotOwnership(
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error type[%d] num[%d]", __FUNCTION__, status, pConfig->keySlotType, pConfig->keySlotNumber ));
+        BDBG_ERR(("%s BSP status[0x%02X] error type[%d] num[%d]", BSTD_FUNCTION, status, pConfig->keySlotType, pConfig->keySlotNumber ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -2087,7 +2004,7 @@ BERR_Code BHSM_GetKeySlotOwnership( BHSM_Handle               hHsm,
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -2197,7 +2114,7 @@ BERR_Code BHSM_LoadRouteUserKey (
             pXPTKeySlotAlgorithm = &(pKeyslot->aKeySlotAlgorithm[inoutp_loadRouteUserKeyIO->keyDestEntryType]);
 
             BDBG_MSG(("%s  keySlot[%d] ks-type[%d] destType[%d]"  \
-                                , __FUNCTION__ \
+                                , BSTD_FUNCTION \
                                 , inoutp_loadRouteUserKeyIO->unKeySlotNum \
                                 , inoutp_loadRouteUserKeyIO->caKeySlotType \
                                 , inoutp_loadRouteUserKeyIO->keyDestEntryType \
@@ -2360,7 +2277,7 @@ BERR_Code BHSM_LoadRouteUserKey (
     if( status != BERR_SUCCESS )
     {
         errCode = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -2463,7 +2380,7 @@ BERR_Code BHSM_InvalidateKey (
     inoutp_invalidateKeyIO->unStatus =  (uint32_t)status;
     if( status != 0 )
     {
-        BDBG_ERR(("%s BSP error status[0x%02X]. block[%d] type[%d] number[%d]", __FUNCTION__, status,
+        BDBG_ERR(("%s BSP error status[0x%02X]. block[%d] type[%d] number[%d]", BSTD_FUNCTION, status,
                                             inoutp_invalidateKeyIO->keyDestBlckType,
                                             inoutp_invalidateKeyIO->caKeySlotType,
                                             inoutp_invalidateKeyIO->unKeySlotNum ));
@@ -2625,7 +2542,7 @@ BERR_Code BHSM_ConfigAlgorithm (
     #endif  /* HSM_IS_ASKM_28NM_ZEUS_4_1 */
 
     BDBG_MSG(("%s keySlot[%d] offset[%d] caKeySlotType[%d] keyDestBlckType[%d] keyDestEntryType[%d] xptCntrlWordLo = 0x%x, xptCntrlWordHi = 0x%x"
-                                            , __FUNCTION__
+                                            , BSTD_FUNCTION
                                             , pConfig->unKeySlotNum
                                             , offset
                                             , pConfig->caKeySlotType
@@ -3233,7 +3150,7 @@ BERR_Code BHSM_ConfigKeySlotIDData (
 
             if( unKeySlotNum >= BCMD_MAX_M2M_KEY_SLOT )
             {
-                BDBG_ERR(("%s unKeySlotNum[%d]", __FUNCTION__, unKeySlotNum ));
+                BDBG_ERR(("%s unKeySlotNum[%d]", BSTD_FUNCTION, unKeySlotNum ));
                 errCode = BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
                 goto BHSM_P_DONE_LABEL;
             }
@@ -3365,7 +3282,7 @@ BERR_Code BHSM_ConfigMulti2 (
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -3466,7 +3383,7 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot(
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -3745,7 +3662,7 @@ BERR_Code BHSM_QueryKeySlotsStatus ( BHSM_Handle hHsm, BHSM_KeySlotsStatus_t * p
     if ( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR ( ( "%s BSP status[0x%02X] error", __FUNCTION__, status ) );
+        BDBG_ERR ( ( "%s BSP status[0x%02X] error", BSTD_FUNCTION, status ) );
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -3865,7 +3782,7 @@ BERR_Code  loadBspVersion( BHSM_Handle hHsm )
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 

@@ -383,6 +383,9 @@ BERR_Code BCHP_P_AvsGetData (
     temperature = BCHP_GET_FIELD_DATA(temperature, AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS, data);
     pData->temperature = 418000 - (556 * temperature);
 
+    pData->voltage1 = 0;
+    pData->temperature1 = 0;
+
     /* If the DAC is non-zero then CFE enabled AVS */
     pData->enabled = hHandle->enabled;
 

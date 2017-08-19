@@ -54,7 +54,7 @@ static int numInterruptLines;
 static int numCpuInterfaces;
 
 #define ARM_CORTEX_A15_SECURE_TIMER_IRQ   29
-
+#define TZ_SECURE_SGI_IRQ   14
 
 static inline void regWrite32(void *location, uint32_t value) {
 	volatile uint32_t *ptr = (volatile uint32_t *)location;
@@ -246,12 +246,16 @@ void gicV2InterruptDisable(uint32_t intrId) {
 	regWrite32(distributor+GICD_ICENABLER+isenableWordNum, mask);
 }
 
-void gicV2sgiGenerate(uint32_t intrId) {
+void gicV2sgiGenerate(uint8_t cpuTargetList, uint32_t intrId) {
 	uint32_t sgir = intrId & 0xf;
 
-	// SGI to CPU 0 only
-	sgir |= ((1 << 0) & 0xff) << 16;
-	sgir |= 1 << 15;
+	// SGI to CPU Target List
+	sgir |= ((cpuTargetList) & 0xff) << 16;
+
+	if (TZ_SECURE_SGI_IRQ == intrId)
+		sgir |= 0 << 15;
+	else
+		sgir |= 1 << 15;
 
 	ARCH_SPECIFIC_DMB;
 	regWrite32(distributor+GICD_SGIR, sgir);

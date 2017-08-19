@@ -42,8 +42,10 @@
 #include "objalloc.h"
 #include "lib_string.h"
 #include "pgtable.h"
-#include "atomic.h"
 #include "system.h"
+#include "atomic.h"
+#include "tzmman.h"
+
 
 const char ElfImage::loaderName32bit[MAX_PATH] = MUSL_LINKER_NAME;
 
@@ -66,11 +68,11 @@ void ElfImage::ElfSection::operator delete(void *section) {
 	elfSectionAllocator.free((ElfSection *)section);
 }
 
-ElfImage::ElfImage(int procId,  IFile *file) : userPageTable(*PageTable::kernelPageTable(), procId), pid(procId) {
+ElfImage::ElfImage(int procId,  IFile *file) : userPageTable(procId), pid(procId) {
 	parseImage(procId, file, (const char *)NULL);
 }
 
-ElfImage::ElfImage(int procId,  IFile *file, const char *name) : userPageTable(*PageTable::kernelPageTable(), procId), pid(procId) {
+ElfImage::ElfImage(int procId,  IFile *file, const char *name) : userPageTable(procId), pid(procId) {
 	parseImage(procId, file, name);
 }
 
@@ -307,24 +309,33 @@ bool ElfImage::staticLinkedElf(const Elf_Phdr& phdr, IFile *file, const char *fi
 		//printf("----> Mapping userVA %p numPages %d (%p)\n", userVA, segmentNumPages,
 		//			(char *)userVA+segmentNumPages*4096);
 
-		TzMem::VirtAddr va = allocAndMap(userVA, segmentNumPages, segmentFlags);
-		if (va == nullptr)
-			status = OutOfMemory;
+		if ((segmentFlags & PROT_WRITE)) {
+			TzMem::VirtAddr va = allocAndMap(userVA, segmentNumPages, segmentFlags);
+			if (va == nullptr)
+				status = OutOfMemory;
 
-		int pageOffset = (unsigned long)userVA % PAGE_SIZE_4K_BYTES;
-		uint8_t *readAt = (uint8_t *)va + pageOffset;
-		int nr = file->read(readAt, fileImgSize, segmentPos);
-		if (nr < fileImgSize)
-			status = IncompleteFile;
+			int pageOffset = (unsigned long)userVA % PAGE_SIZE_4K_BYTES;
+			uint8_t *readAt = (uint8_t *)va + pageOffset;
+			int nr = file->read(readAt, fileImgSize, segmentPos);
+			if (nr < fileImgSize)
+				status = IncompleteFile;
 
-		TzMem::cacheFlush(va, segmentSize);
-		kernelUnmap(va, segmentNumPages);
+			TzMem::cacheFlush(va, segmentSize);
+			kernelUnmap(va, segmentNumPages);
 
-		ElfSection *section = new ElfSection;
-		section->vaddr = (TzMem::VirtAddr)((unsigned long)userVA & PAGE_MASK);//userVA;
-		section->numPages = segmentNumPages;
-		section->refCount = 1;
-		sections.pushBack(section);
+			ElfSection *section = new ElfSection;
+			section->vaddr = (TzMem::VirtAddr)((unsigned long)userVA & PAGE_MASK);//userVA;
+			section->numPages = segmentNumPages;
+			section->refCount = 1;
+			sections.pushBack(section);
+		}
+		else {
+			TzMem::VirtAddr va;
+			int rv = file->mmap(PAGE_START_4K(userVA), &va, segmentSize, segmentFlags, MAP_SHARED, segmentPos, &userPageTable);
+			if (rv != 0) {
+				status = IncompleteFile;
+			}
+		}
 
 		uint8_t *segEnd = (uint8_t *)userVA + (segmentNumPages * PAGE_SIZE_4K_BYTES);
 		segEnd = (uint8_t *)PAGE_START_4K(segEnd) + PAGE_SIZE_4K_BYTES;
@@ -673,4 +684,50 @@ ERR:
         delete image;
     }
     return NULL;
+}
+
+void ElfImage::allocAndCopyFrom(const PageTable *srcPt, TzMem::VirtAddr srcVa, TzMem::VirtAddr dstVa, const int numPages) {
+    PageTable *kernelPageTable = PageTable::kernelPageTable();
+
+    TzMem::VirtAddr srcKernelVa = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (nullptr == srcKernelVa) {
+        status = OutOfAddressSpace;
+        return;
+    }
+
+    TzMem::VirtAddr dstKernelVa = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (nullptr == dstKernelVa) {
+        status = OutOfAddressSpace;
+        return;
+    }
+
+    uint8_t *currSrcKernelVa = (uint8_t *)srcKernelVa;
+    uint8_t *currdstKernelVa = (uint8_t *)dstKernelVa;
+    uint8_t *currSrcVa = (uint8_t *)srcVa;
+    uint8_t *currDstVa = (uint8_t *)dstVa;
+
+    for (int i = 0; i < numPages; i++) {
+        TzMem::PhysAddr pa = TzMem::allocPage(pid);
+        if (pa == nullptr) {
+            err_msg("%s: alloc failure !\n", __PRETTY_FUNCTION__);
+            status = OutOfMemory;
+            return;
+        }
+
+        TzMem::PhysAddr srcPa = srcPt->lookUp(currSrcVa);
+        kernelPageTable->mapPage(currSrcKernelVa, srcPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+
+        kernelPageTable->mapPage(currdstKernelVa, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+
+        memcpy(currdstKernelVa, currSrcKernelVa, PAGE_SIZE_4K_BYTES);
+
+        userPageTable.mapPage(currDstVa, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_USER, true);
+
+        currSrcVa += PAGE_SIZE_4K_BYTES;
+        currDstVa += PAGE_SIZE_4K_BYTES;
+    }
+
+    kernelUnmap(srcKernelVa, 1);
+    kernelUnmap(currdstKernelVa, 1);
+
 }

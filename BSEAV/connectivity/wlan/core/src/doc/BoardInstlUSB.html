@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<!-- Copyright 1999-2011, Broadcom Corporation $ -->
+<!-- $Id: BoardInstlUSB.html,v 1.24 2011-01-11 18:16:40 willfeng Exp $ -->
+<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<title>Broadcom iLine10 Network Drivers Board Installation</title>
+<style>
+<!--
+BODY	{font-family: Arial}
+H1,H2,H3{font-family: Arial; color: black}
+H4	{font-family: Arial; color: black; font-weight: light; font-style: italic}
+UL,P,TD,OL{font-family: Arial; font-size: 12pt}
+-->
+</style>
+</head>
+
+<body LINK="#0000ff" VLINK="#800080">
+
+<p><img SRC="BCMLogo.gif" WIDTH="200" HEIGHT="98"></p>
+
+<h1>Broadcom USB iLine10&#153; Network Drivers<br>
+</h1>
+
+<p align="center"><b><font COLOR="red">Broadcom Corporation Confidential. For evaluation use only.</font></b>
+</p>
+
+<hr SIZE="4">
+
+<h2>Board Installation</h2>
+
+<P>To begin using a new board it is necessary to program its i2c with
+the proper descriptors and download code. For boards that are assumed
+to work, use the <A HREF="MACProgUSB.html">MAC Programmimg</A> procedure.
+
+<P>When a new board is being brought up, you can debug the installation using
+the serial tools in the qta directory of the distribution. To run the tools,
+execute qtenv.bat in the qta directory, it will add C:\bcm42xu\qta to the
+path. If you used a different install directory, you must edit this
+file first. The tools communicate with the target over a serial port, by
+default COM1 is used; if you need to use a different serial port, you must 
+edit the file "qtserial.ini" and replace com1 with the proper port.
+
+
+<h3>Board Bringup</h3>
+
+<OL>
+<LI>First, make sure that you start with a blank i2c. The following
+command will clear them:
+
+<UL>
+<BR>C:\bcm42xu\> qtsi2c zero.bin
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P><LI>Disconnect/reconnect.
+
+<P>The arena should look like:
+
+<UL>
+<BR>C:\bcm42xu\> qtsarena
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>start 02fa size 0902 Empty
+<BR>start 0c00 size f400 Used
+<BR>
+</UL>
+
+<P><LI>Now program the i2c. Use the following command:
+
+<UL>
+<BR>C:\bcm42xu\> qtsi2c i2cimg.bin
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P><LI>Wait 45 seconds after qtsi2c command returns to allow KLSI to finish
+programing i2c (measuring it takes about 30 seconds; 45 seconds
+should allow for any variability), then disconnect/reconnect.
+
+<P>The arena should look like (last line depends on strin sizes):
+
+<UL>
+<BR>C:\bcm42xu\> qtsarena
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>start 02fa size 05c8 Used
+<BR>start 08c6 size b670 Empty
+<BR>start bf3a size 40c6 Used
+<BR>
+</UL>
+
+<P><LI>This is already an indication that the memory is mostly working. Run blink:
+
+<UL>
+<BR>C:\bcm42xu\> qtsload blink
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P>You should have LED1 blinking with a period of 800 milliseconds. This
+indicates basic communication with the D-chip is working. If the software
+detects an error, you'll have a fast blink (100 millisecond period) instead.
+
+<P><LI>Disconnect/reconnect to reset it. Run memtest:
+
+<UL>
+<BR>C:\bcm42xu\> qtsload memtest
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P>You should now have a slow blinking LED1 if everything is OK or a fast
+blinking one if a test fails. The program tests by filling and then checking
+for zeroes, all-ones, 0x5555, 0xaaaa, and with increasing and then decreasing
+values starting with 1, 2, 4, 8, etc. up to 0x8000. It then repeats all over.
+
+<P><LI>Disconnect/reconnect to reset it. Run blast:
+
+<UL>
+<BR>C:\bcm42xu\> qtsload blast
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P>You should now have the Tx LED (LED2), on almost continuously, and packets
+coming out on the phone line at a very high rate. The LI LED (LED1) toggles
+every 256 packets transmitted. Packets are a few hundred millivolts
+peek-to-peek, and about 2.2 ms long.
+
+<P>You can use a second dongle to receive the packets by running sink on it:
+
+<UL>
+<BR>C:\bcm42xu\> qtsload sink
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P>Sink receives packets and discards them so this dongle should have the
+Rx LED (LED3) on continuously. The LI LED toggles every 256 packets received.
+
+<P>This process can be repeated with blink4 and blink8, which are just like
+blink, but they send the packets at 4 and 8 bits per baud respectively (instead 
+of the 2 bits per baud that blast does). The sink program can be used to receive 
+packets from any of them.
+
+<P><LI>Disconnect/reconnect to reset it. Run loopbk:
+
+<UL>
+<BR>C:\bcm42xu\> qtsload loopbk
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P>Although this program behaves just like blink, slowly flashing LED1, it
+actually exercises a lot more of the iLine10 chip, sending and receiving
+packets in loopback mode.
+
+<P><LI>Disconnect/reconnect to reset it. Run fttest:
+
+<UL>
+<BR>C:\bcm42xu\> qtsload fttest
+<BR>com1: baud=14400 parity=N data=8 stop=1
+<BR>
+</UL>
+
+<P>This program also seems to just blink, but it is sending and receiving
+packets in loopback mode, while at the same time changing the filter
+contents to make sure that the filter memory and function are working
+correctly.
+
+<P><LI>Disconnect/reconnect to reset it. Now <A HREF="MACProgUSB.html">program</A>
+the correct MAC address on the device.
+
+</OL>
+
+<h3>Links</h3>
+
+<UL>
+<LI><A HREF="ReleaseNotesUSB.html">Release Notes</A>
+
+<LI><A HREF="RelContentsUSB.html">Release Contents</A>
+
+<LI><A HREF="MACProgUSB.html">MAC Programming</A>
+</UL>
+
+<hr SIZE="4">
+
+<p align="center">Copyright © 2001-2011 Broadcom Corporation</p>
+</body>
+</html>

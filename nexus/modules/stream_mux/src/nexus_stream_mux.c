@@ -61,8 +61,6 @@ NEXUS_StreamMuxModule_GetDefaultSettings( NEXUS_StreamMuxModuleSettings *pSettin
 NEXUS_ModuleHandle
 NEXUS_StreamMuxModule_Init( const NEXUS_StreamMuxModuleSettings *pSettings)
 {
-    NEXUS_Error rc;
-
     NEXUS_ModuleSettings moduleSettings;
     BDBG_ASSERT(g_NEXUS_StreamMux_P_State.module==NULL);
     BDBG_ASSERT(pSettings->transport);
@@ -74,7 +72,7 @@ NEXUS_StreamMuxModule_Init( const NEXUS_StreamMuxModuleSettings *pSettings)
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eHigh;
     g_NEXUS_StreamMux_P_State.module = NEXUS_Module_Create("stream_mux", &moduleSettings);
-    if(g_NEXUS_StreamMux_P_State.module == NULL) { rc = BERR_TRACE(BERR_OS_ERROR); goto error; }
+    if(g_NEXUS_StreamMux_P_State.module == NULL) { BERR_TRACE(BERR_OS_ERROR); goto error; }
 
     return g_NEXUS_StreamMux_P_State.module;
 
@@ -310,15 +308,11 @@ static BERR_Code
 NEXUS_StreamMux_P_GetVideoBufferStatus( void *context, BMUXlib_CompressedBufferStatus *status)
 {
     NEXUS_P_StreamMux_VideoEncoderState *state = context;
-    NEXUS_VideoEncoderStatus encoderStatus;
-
     NEXUS_ASSERT_MODULE();
     BDBG_ASSERT(status);
-    NEXUS_VideoEncoder_GetBufferStatus_priv(state->videoEncoder, &encoderStatus);
-    BKNI_Memset(status,0,sizeof(*status));
-    status->hFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.bufferBlock);
-    status->hMetadataBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.metadataBufferBlock);
-
+    NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.videoEncoder);
+    NEXUS_VideoEncoder_GetBufferBlocks_priv(state->videoEncoder, &status->hFrameBufferBlock, &status->hMetadataBufferBlock);
+    NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.videoEncoder);
     return BERR_SUCCESS;
 }
 
@@ -361,15 +355,12 @@ NEXUS_StreamMux_P_GetAudioBufferStatus(
    BMUXlib_CompressedBufferStatus *status
    )
 {
-    NEXUS_AudioMuxOutputStatus encoderStatus;
     NEXUS_P_StreamMux_AudioEncoderState *state = context;
-
     NEXUS_ASSERT_MODULE();
     BDBG_ASSERT(status);
-    NEXUS_AudioMuxOutput_GetBufferStatus_priv(state->audioMuxOutput, &encoderStatus);
-    BKNI_Memset(status,0,sizeof(*status));
-    status->hFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.bufferBlock);
-    status->hMetadataBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.metadataBufferBlock);
+    NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.audio);
+    NEXUS_AudioMuxOutput_GetBufferBlocks_priv(state->audioMuxOutput, &status->hFrameBufferBlock, &status->hMetadataBufferBlock);
+    NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.audio);
     return BERR_SUCCESS;
 }
 

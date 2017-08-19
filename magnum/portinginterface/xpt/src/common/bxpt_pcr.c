@@ -916,6 +916,8 @@ BERR_Code BXPT_PCR_GetIntId(
     {
         case BXPT_PCR_IntName_ePhaseCompare:
         case BXPT_PCR_IntName_eTwoPcrErrors:
+        case BXPT_PCR_IntName_eOnePcrError:
+        case BXPT_PCR_IntName_ePhaseSaturation:
         RegAddr = BCHP_XPT_DPCR0_INTR_STATUS_REG + ( WhichPcr * BXPT_PCR_P_REGOFFSET );
         *IntId = BCHP_INT_ID_CREATE( RegAddr, Name );
         break;

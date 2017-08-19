@@ -1,42 +1,39 @@
-/********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *                     DO NOT EDIT THIS FILE DIRECTLY
@@ -44,20 +41,22 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Mar  1 17:00:54 2016
- *                 Full Compile MD5 Checksum  2dfd77c3e5e7746499b6247ed75dfff9
+ * Date:           Generated on               Fri May 26 15:56:42 2017
+ *                 Full Compile MD5 Checksum  f5e63307e5dcf1369c866f7e71f68daa
  *                     (minus title and desc)
- *                 MD5 Checksum               26cb436362fbf72e4c53c59b91215898
+ *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
- * lock_release:   n/a
+ * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     827
+ *                 RDB.pm                     1481
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -68,65 +67,65 @@
 /***************************************************************************
  *MFD_1 - MPEG HD  Feeder 1 Registers
  ***************************************************************************/
-#define BCHP_MFD_1_REVISION_ID                   0x20600400 /* [RO] Feeder Revision ID */
-#define BCHP_MFD_1_HW_CONFIGURATION              0x20600404 /* [RO] Hardware Configuration Status */
-#define BCHP_MFD_1_FEEDER_CNTL                   0x20600408 /* [CFG] Feeder Control */
-#define BCHP_MFD_1_LAC_CNTL                      0x2060040c /* [CFG] LAC Control */
-#define BCHP_MFD_1_FIXED_COLOUR                  0x20600410 /* [CFG] Fixed Colour Value */
-#define BCHP_MFD_1_STRIDE                        0x20600414 /* [CFG] Line Stride */
-#define BCHP_MFD_1_DISP_HSIZE                    0x20600418 /* [CFG] Horizontal Display Size */
-#define BCHP_MFD_1_DISP_VSIZE                    0x2060041c /* [CFG] Vertical Display Size */
-#define BCHP_MFD_1_DATA_MODE                     0x20600420 /* [CFG] Data Mode */
-#define BCHP_MFD_1_DITHER_CTRL                   0x20600424 /* [CFG] Dither CTRL */
-#define BCHP_MFD_1_DITHER_LFSR_INIT              0x20600428 /* [CFG] Dither LFSR Init Value and Control */
-#define BCHP_MFD_1_DITHER_LFSR_CTRL              0x2060042c /* [CFG] Dither LFSR Control */
-#define BCHP_MFD_1_COMP_ORDER                    0x20600430 /* [CFG] YCbCr Pixel Component Order */
-#define BCHP_MFD_1_PICTURE0_LINE_ADDR_0          0x20600434 /* [CFG] Line Address0 */
-#define BCHP_MFD_1_PICTURE0_LINE_ADDR_0_R        0x20600438 /* [CFG] Line Address0 Right */
-#define BCHP_MFD_1_PICTURE0_LINE_ADDR_1          0x2060043c /* [CFG] Line Address1 */
-#define BCHP_MFD_1_PICTURE0_LINE_ADDR_1_R        0x20600440 /* [CFG] Line Address1 Right */
-#define BCHP_MFD_1_PICTURE1_LINE_ADDR_0          0x20600444 /* [CFG] Bottom Line Address0 */
-#define BCHP_MFD_1_PICTURE1_LINE_ADDR_0_R        0x20600448 /* [CFG] Bottom Line Address0 Right */
-#define BCHP_MFD_1_PICTURE1_LINE_ADDR_1          0x2060044c /* [CFG] Bottom Line Address1 */
-#define BCHP_MFD_1_PICTURE1_LINE_ADDR_1_R        0x20600450 /* [CFG] Bottom Line Address1 Right */
-#define BCHP_MFD_1_LUMA_NMBY                     0x20600454 /* [CFG] Luma NMBY Size */
-#define BCHP_MFD_1_CHROMA_NMBY                   0x20600458 /* [CFG] Chroma NMBY Size */
-#define BCHP_MFD_1_PIC_OFFSET                    0x2060045c /* [CFG] Picture Offset */
-#define BCHP_MFD_1_RANGE_EXP_REMAP_CNTL          0x20600460 /* [CFG] Range Expansion / Remapping Control */
-#define BCHP_MFD_1_CHROMA_SAMPLING_CNTL          0x20600464 /* [CFG] Chroma Sampling Control */
-#define BCHP_MFD_1_CHROMA_REPOSITION_DERING_ENABLE 0x20600468 /* [CFG] Chroma Reposition Dering Enable */
-#define BCHP_MFD_1_PIC_FEED_CMD                  0x2060046c /* [RW] Picture Feed Command */
-#define BCHP_MFD_1_FEED_STATUS                   0x20600470 /* [RO] Feed Status */
-#define BCHP_MFD_1_LAC_LINE_ADDR_0_STATUS        0x20600474 /* [RO] Line Address Computer Line Address0 Status */
-#define BCHP_MFD_1_LAC_LINE_ADDR_1_STATUS        0x20600478 /* [RO] Line Address Computer Line Address1 Status */
-#define BCHP_MFD_1_PICTURE0_LAC_CHROMA_VERT_FILTER_STATUS 0x2060047c /* [RO] Line Address Computer Chroma Vertical Filter Configuration Status */
-#define BCHP_MFD_1_LINE_FEED_STATUS              0x20600480 /* [RO] Line Address Computer Line Feed Control Status */
-#define BCHP_MFD_1_FEEDER_TIMEOUT_REPEAT_PIC_CNTL 0x20600484 /* [CFG] Feeder Timeout and Repeat Picture Control */
-#define BCHP_MFD_1_BVB_RX_STALL_TIMEOUT_CNTL     0x20600488 /* [CFG] BVB Receiver Stall Timeout Control */
-#define BCHP_MFD_1_FEEDER_ERROR_INTERRUPT_STATUS 0x2060048c /* [RO] Feeder Error Interrupt Status */
-#define BCHP_MFD_1_FEEDER_ERROR_INTERRUPT_STATUS_CLR 0x20600490 /* [WO] Feeder Error Interrupt Status Clear */
-#define BCHP_MFD_1_FEEDER_BVB_STATUS             0x20600494 /* [RO] BVB Status */
-#define BCHP_MFD_1_FEEDER_BVB_STATUS_CLR         0x20600498 /* [WO] BVB Status Clear */
-#define BCHP_MFD_1_TEST_MODE_CNTL                0x2060049c /* [CFG] Test Mode Control */
-#define BCHP_MFD_1_BVB_SAMPLE_DATA               0x206004a0 /* [RO] BVB Output Sample Data Value */
-#define BCHP_MFD_1_TEST_PORT_CNTL                0x206004a4 /* [CFG] Test Port Control */
-#define BCHP_MFD_1_TEST_PORT_DATA                0x206004a8 /* [RO] Test Port Data Value */
-#define BCHP_MFD_1_SCB_STATUS                    0x206004ac /* [RO] SCB Status */
-#define BCHP_MFD_1_DEMO_SETTING                  0x206004b0 /* [CFG] Demo Setting */
-#define BCHP_MFD_1_CCA_CONFIG                    0x206005b8 /* [CFG] CCA Configuration */
-#define BCHP_MFD_1_CRC_CTRL                      0x206005c0 /* [CFG] CRC Control */
-#define BCHP_MFD_1_CRC_SEED                      0x206005c4 /* [CFG] CRC Seed */
-#define BCHP_MFD_1_LUMA_CRC                      0x206005c8 /* [RO] Luma CRC Status */
-#define BCHP_MFD_1_CHROMA_CRC                    0x206005cc /* [RO] Chroma CRC Status */
-#define BCHP_MFD_1_CHROMA_1_CRC                  0x206005d0 /* [RO] Chroma CRC Status */
-#define BCHP_MFD_1_LUMA_CRC_R                    0x206005d4 /* [RO] Luma CRC Status */
-#define BCHP_MFD_1_CHROMA_CRC_R                  0x206005d8 /* [RO] Chroma CRC Status */
-#define BCHP_MFD_1_CHROMA_1_CRC_R                0x206005dc /* [RO] Chroma CRC Status */
-#define BCHP_MFD_1_MTG_FRAME_SIZE                0x206005ec /* [CFG] MFD Trigger Generator Frame Size */
-#define BCHP_MFD_1_MTG_FORCE                     0x206005f0 /* [WO] MFD Trigger Generator Force Control */
-#define BCHP_MFD_1_MTG_CONTROL                   0x206005f4 /* [RW] MFD Trigger Generator Control */
-#define BCHP_MFD_1_SCRATCH_REGISTER_0            0x206005f8 /* [CFG] Scratch Register 0 */
-#define BCHP_MFD_1_SCRATCH_REGISTER_1            0x206005fc /* [CFG] Scratch Register 1 */
+#define BCHP_MFD_1_REVISION_ID                   0x20600400 /* [RO][32] Feeder Revision ID */
+#define BCHP_MFD_1_HW_CONFIGURATION              0x20600404 /* [RO][32] Hardware Configuration Status */
+#define BCHP_MFD_1_FEEDER_CNTL                   0x20600408 /* [CFG][32] Feeder Control */
+#define BCHP_MFD_1_LAC_CNTL                      0x2060040c /* [CFG][32] LAC Control */
+#define BCHP_MFD_1_FIXED_COLOUR                  0x20600410 /* [CFG][32] Fixed Colour Value */
+#define BCHP_MFD_1_STRIDE                        0x20600414 /* [CFG][32] Line Stride */
+#define BCHP_MFD_1_DISP_HSIZE                    0x20600418 /* [CFG][32] Horizontal Display Size */
+#define BCHP_MFD_1_DISP_VSIZE                    0x2060041c /* [CFG][32] Vertical Display Size */
+#define BCHP_MFD_1_DATA_MODE                     0x20600420 /* [CFG][32] Data Mode */
+#define BCHP_MFD_1_DITHER_CTRL                   0x20600424 /* [CFG][32] Dither CTRL */
+#define BCHP_MFD_1_DITHER_LFSR_INIT              0x20600428 /* [CFG][32] Dither LFSR Init Value and Control */
+#define BCHP_MFD_1_DITHER_LFSR_CTRL              0x2060042c /* [CFG][32] Dither LFSR Control */
+#define BCHP_MFD_1_COMP_ORDER                    0x20600430 /* [CFG][32] YCbCr Pixel Component Order */
+#define BCHP_MFD_1_PICTURE0_LINE_ADDR_0          0x20600434 /* [CFG][32] Line Address0 */
+#define BCHP_MFD_1_PICTURE0_LINE_ADDR_0_R        0x20600438 /* [CFG][32] Line Address0 Right */
+#define BCHP_MFD_1_PICTURE0_LINE_ADDR_1          0x2060043c /* [CFG][32] Line Address1 */
+#define BCHP_MFD_1_PICTURE0_LINE_ADDR_1_R        0x20600440 /* [CFG][32] Line Address1 Right */
+#define BCHP_MFD_1_PICTURE1_LINE_ADDR_0          0x20600444 /* [CFG][32] Bottom Line Address0 */
+#define BCHP_MFD_1_PICTURE1_LINE_ADDR_0_R        0x20600448 /* [CFG][32] Bottom Line Address0 Right */
+#define BCHP_MFD_1_PICTURE1_LINE_ADDR_1          0x2060044c /* [CFG][32] Bottom Line Address1 */
+#define BCHP_MFD_1_PICTURE1_LINE_ADDR_1_R        0x20600450 /* [CFG][32] Bottom Line Address1 Right */
+#define BCHP_MFD_1_LUMA_NMBY                     0x20600454 /* [CFG][32] Luma NMBY Size */
+#define BCHP_MFD_1_CHROMA_NMBY                   0x20600458 /* [CFG][32] Chroma NMBY Size */
+#define BCHP_MFD_1_PIC_OFFSET                    0x2060045c /* [CFG][32] Picture Offset */
+#define BCHP_MFD_1_RANGE_EXP_REMAP_CNTL          0x20600460 /* [CFG][32] Range Expansion / Remapping Control */
+#define BCHP_MFD_1_CHROMA_SAMPLING_CNTL          0x20600464 /* [CFG][32] Chroma Sampling Control */
+#define BCHP_MFD_1_CHROMA_REPOSITION_DERING_ENABLE 0x20600468 /* [CFG][32] Chroma Reposition Dering Enable */
+#define BCHP_MFD_1_PIC_FEED_CMD                  0x2060046c /* [RW][32] Picture Feed Command */
+#define BCHP_MFD_1_FEED_STATUS                   0x20600470 /* [RO][32] Feed Status */
+#define BCHP_MFD_1_LAC_LINE_ADDR_0_STATUS        0x20600474 /* [RO][32] Line Address Computer Line Address0 Status */
+#define BCHP_MFD_1_LAC_LINE_ADDR_1_STATUS        0x20600478 /* [RO][32] Line Address Computer Line Address1 Status */
+#define BCHP_MFD_1_PICTURE0_LAC_CHROMA_VERT_FILTER_STATUS 0x2060047c /* [RO][32] Line Address Computer Chroma Vertical Filter Configuration Status */
+#define BCHP_MFD_1_LINE_FEED_STATUS              0x20600480 /* [RO][32] Line Address Computer Line Feed Control Status */
+#define BCHP_MFD_1_FEEDER_TIMEOUT_REPEAT_PIC_CNTL 0x20600484 /* [CFG][32] Feeder Timeout and Repeat Picture Control */
+#define BCHP_MFD_1_BVB_RX_STALL_TIMEOUT_CNTL     0x20600488 /* [CFG][32] BVB Receiver Stall Timeout Control */
+#define BCHP_MFD_1_FEEDER_ERROR_INTERRUPT_STATUS 0x2060048c /* [RO][32] Feeder Error Interrupt Status */
+#define BCHP_MFD_1_FEEDER_ERROR_INTERRUPT_STATUS_CLR 0x20600490 /* [WO][32] Feeder Error Interrupt Status Clear */
+#define BCHP_MFD_1_FEEDER_BVB_STATUS             0x20600494 /* [RO][32] BVB Status */
+#define BCHP_MFD_1_FEEDER_BVB_STATUS_CLR         0x20600498 /* [WO][32] BVB Status Clear */
+#define BCHP_MFD_1_TEST_MODE_CNTL                0x2060049c /* [CFG][32] Test Mode Control */
+#define BCHP_MFD_1_BVB_SAMPLE_DATA               0x206004a0 /* [RO][32] BVB Output Sample Data Value */
+#define BCHP_MFD_1_TEST_PORT_CNTL                0x206004a4 /* [CFG][32] Test Port Control */
+#define BCHP_MFD_1_TEST_PORT_DATA                0x206004a8 /* [RO][32] Test Port Data Value */
+#define BCHP_MFD_1_SCB_STATUS                    0x206004ac /* [RO][32] SCB Status */
+#define BCHP_MFD_1_DEMO_SETTING                  0x206004b0 /* [CFG][32] Demo Setting */
+#define BCHP_MFD_1_CCA_CONFIG                    0x206005b8 /* [CFG][32] CCA Configuration */
+#define BCHP_MFD_1_CRC_CTRL                      0x206005c0 /* [CFG][32] CRC Control */
+#define BCHP_MFD_1_CRC_SEED                      0x206005c4 /* [CFG][32] CRC Seed */
+#define BCHP_MFD_1_LUMA_CRC                      0x206005c8 /* [RO][32] Luma CRC Status */
+#define BCHP_MFD_1_CHROMA_CRC                    0x206005cc /* [RO][32] Chroma CRC Status */
+#define BCHP_MFD_1_CHROMA_1_CRC                  0x206005d0 /* [RO][32] Chroma CRC Status */
+#define BCHP_MFD_1_LUMA_CRC_R                    0x206005d4 /* [RO][32] Luma CRC Status */
+#define BCHP_MFD_1_CHROMA_CRC_R                  0x206005d8 /* [RO][32] Chroma CRC Status */
+#define BCHP_MFD_1_CHROMA_1_CRC_R                0x206005dc /* [RO][32] Chroma CRC Status */
+#define BCHP_MFD_1_MTG_FRAME_SIZE                0x206005ec /* [CFG][32] MFD Trigger Generator Frame Size */
+#define BCHP_MFD_1_MTG_FORCE                     0x206005f0 /* [WO][32] MFD Trigger Generator Force Control */
+#define BCHP_MFD_1_MTG_CONTROL                   0x206005f4 /* [RW][32] MFD Trigger Generator Control */
+#define BCHP_MFD_1_SCRATCH_REGISTER_0            0x206005f8 /* [CFG][32] Scratch Register 0 */
+#define BCHP_MFD_1_SCRATCH_REGISTER_1            0x206005fc /* [CFG][32] Scratch Register 1 */
 
 /***************************************************************************
  *REVISION_ID - Feeder Revision ID

@@ -56,12 +56,15 @@ done:
     NEXUS_Module_Unlock(module_header->module);
     return rc;
 
+/* coverity[unreachable] */
 err_fault:
     rc = BERR_OS_ERROR;
     goto done;
+/* coverity[unreachable] */
 err_invalid_ipc:
     rc = -1;
     goto done;
+/* coverity[unreachable] */
 err_alloc:
     rc = -1;
     goto done;

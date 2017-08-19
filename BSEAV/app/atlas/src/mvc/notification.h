@@ -245,6 +245,7 @@ typedef enum eNotification
     eNotify_DisplayRf4ceRemotes,
     eNotify_RemoveRf4ceRemote,
 #endif
+    eNotify_EnableRemoteIr, /* status - enable/disable ir remote handling */
     eNotify_Invalid,
     eNotify_Max
 } eNotification;

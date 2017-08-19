@@ -74,7 +74,7 @@ typedef struct GL20_PROGRAM_COMMON_T_ {
 
 typedef struct GL20_PROGRAM_T_ {
    uint32_t            sig;
-   int32_t             refs;
+   uint32_t            refs;
    int32_t             name;
 
    bool                deleted;

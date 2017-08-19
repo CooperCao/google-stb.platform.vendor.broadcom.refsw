@@ -1,0 +1,109 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing rxchain_pwrsave
+#
+# Initial implementation is a simple stress test - forcing in and out
+# of power save while traffic is flowing.  This is causing several
+# STA-side asserts.
+#
+# $Id: d41caebf5755055d434b8fb0034799af58bb302a $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::rxchain_pwrsave 2.0
+
+namespace eval UTF::Test::rxchain_pwrsave {
+
+    proc nratenss {S} {
+	switch -regexp -matchvar m [$S wl nrate] {
+	    {Nss (\d)} {
+		return [lindex $m 1]
+	    }
+	    {index 10[12]} {
+		return 3
+	    }
+	    {index (99|100)} {
+		return 2
+	    }
+	    {index 32} {
+		return 1
+	    }
+	    {index (\d+)} {
+		set mcs [lindex $m 1]
+		return [expr {1+($mcs/8)}]
+	    }
+	    default {
+		return 1
+	    }
+	}
+    }
+
+}
+
+
+UTF::Test rxchain_pwrsave {AP STA} {
+
+    if {[lsearch [$AP wl cap] rxchain_pwrsave] < 0} {
+	UTF::Message LOG "" "rxchain_pwrsave not available"
+	return "rxchain_pwrsave not available"
+    }
+
+    UTF::Try "$AP: rxchain_pwrsave" {
+	if {[catch {$STA ping $AP}]} {
+	    ConnectAPSTA $AP $STA -security open
+	}
+
+	#$AP wl msglevel +info
+	UTF::Message INFO $AP "NSS [nratenss $AP]x[nratenss $STA]"
+
+	# Some APs disable pwrsave if there are STAs associated.
+	$AP wl rxchain_pwrsave_stas_assoc_check 0
+	$AP wl rxchain_pwrsave_pps 20
+	$AP wl rxchain_pwrsave_quiet_time 2; # short trigger
+	$AP wl rxchain_pwrsave_enable 1
+	for {set i 0} {$i < 5} {incr i} {
+	    # Wait at least qt+1 sec
+	    UTF::Sleep 4
+	    $STA ping $AP
+	    UTF::Message INFO $AP "NSS [nratenss $AP]x[nratenss $STA]"
+	    $STA wl rxchain
+	    $STA wl txchain
+	    $AP wl rxchain
+	    $AP wl txchain
+	    if {[$AP wl rxchain_pwrsave] ne 1} {
+		set ret "AP failed to enter rxchain power save"
+		UTF::Message FAIL $AP $ret
+		throw FAIL $ret
+	    }
+
+	    # send some data to wake up the AP
+	    UTF::Multiperf [list $STA $AP] -t 1
+	    # Must check within qt-1 sec
+	    set state [$AP wl rxchain_pwrsave]
+	    UTF::Message INFO $AP "NSS [nratenss $AP]x[nratenss $STA]"
+	    $STA wl rxchain
+	    $STA wl txchain
+	    $AP wl rxchain
+	    $AP wl txchain
+	    catch {
+		# Dump stats if available
+		$AP wl dump rxchain_pwrsave
+	    }
+	    if {$state ne 0} {
+		set ret "AP failed to leave rxchain power save"
+		UTF::Message FAIL $AP $ret
+		throw FAIL $ret
+	    }
+	}
+
+    } finally {
+	# revert rxchain_pwrsave feature back to defaults.
+	$AP restart
+    }
+
+}
+

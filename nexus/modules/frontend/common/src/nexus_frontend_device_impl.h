@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,6 +110,7 @@ static struct {
     NEXUS_PLATFORM_P_FRONTEND_SUPPORT(45308)
     NEXUS_PLATFORM_P_FRONTEND_SUPPORT_FAMILY(45316,45308)
     NEXUS_PLATFORM_P_FRONTEND_SUPPORT_FAMILY(45302,45308)
+    NEXUS_PLATFORM_P_FRONTEND_SUPPORT_FAMILY(45304,45308)
 #endif
 #if NEXUS_FRONTEND_7364
     NEXUS_PLATFORM_P_FRONTEND_SUPPORT(7364)

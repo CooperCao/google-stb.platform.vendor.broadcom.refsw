@@ -1,0 +1,27 @@
+#
+MAILTO=milosz@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,18	* * *	/home/milosz/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+
+05     04      * * *    unittest/cron/launch mc30-4717-43227-TOT      Test/StaNightly.test -utfconf mc30 -sta 43227WIN7          -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43227 STA Win7  Top of Tree"
+10     04      * * *    unittest/cron/launch mc30-4717-43227-BISON735 Test/StaNightly.test -utfconf mc30 -sta 43227WIN7-BISON735 -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43227 STA Win7  BISON735"
+
+15     04      * * *    unittest/cron/launch mc30-4717-43228-TOT      Test/StaNightly.test -utfconf mc30 -sta 43228WIN7-TOT      -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43228 STA Win7  Top of Tree"
+20     04      * * *    unittest/cron/launch mc30-4717-43228-BISON735 Test/StaNightly.test -utfconf mc30 -sta 43228WIN7-BISON735 -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43228 STA Win7  BISON735"
+
+#25     04      * * *    unittest/cron/launch mc30-4717-43236-TOT      Test/StaNightly.test -utfconf mc30 -sta 43236WIN7-TOT      -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43236 DHD Win7  Top of Tree"
+30     04      * * *    unittest/cron/launch mc30-4717-43236-BISON735 Test/StaNightly.test -utfconf mc30 -sta 43236WIN7-BISON735 -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43236 DHD Win7  BISON735"
+
+35     04      * * *    unittest/cron/launch mc30-4717-43142-TOT     Test/StaNightly.test -utfconf mc30 -sta 43142FC15-TOT      -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43142 STA FC15  Top of Tree"
+40     04      * * *    unittest/cron/launch mc30-4717-43142-EAGLE   Test/StaNightly.test -utfconf mc30 -sta 43142FC15-EAGLE    -ap 47171 -title "[MC30:StaNightly] 4717 AP to 43142 STA FC15  EAGLE"
+
+# RVR
+05      00      * * *   unittest/cron/launch mc30-43228-TOT-RVR       Test/RvRNightly1.test -utfconf mc30 -ap 47171 -sta 43228WIN7-TOT      -va af -cycle5G80AttnRange "0-70 70-0" -cycle5G40AttnRange "0-80 80-0" -cycle5G20AttnRange "0-80 80-0" -cycle2G40AttnRange "0-80 80-0" -cycle2G20AttnRange "10-85 85-10" -title "[MC30:RvRNightly1] 4717 <=> Win7 43228 TOT"
+10      00      * * *   unittest/cron/launch mc30-43227-BISON735-RVR Test/RvRNightly1.test -utfconf mc30 -ap 47171 -sta 43227WIN7-BISON735 -va af -cycle5G80AttnRange "0-70 70-0" -cycle5G40AttnRange "0-80 80-0" -cycle5G20AttnRange "0-80 80-0" -cycle2G40AttnRange "0-80 80-0" -cycle2G20AttnRange "10-85 85-10" -title "[MC30:RvRNightly1] 4717 <=> Win7 43227 BISON 735"
+

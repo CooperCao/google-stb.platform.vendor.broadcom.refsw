@@ -1,52 +1,49 @@
 /*******************************************************************************
  * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
 #define BDSP_IMG_AACHEADTS_IDS_INTER_FRAME_SIZE                      ((uint32_t)16876)
 #define BDSP_IMG_AACHEADTS_IDS_SIZE                                  ((uint32_t)3772)
 #define BDSP_IMG_AACHELOAS_IDS_INTER_FRAME_SIZE                      ((uint32_t)16876)
-#define BDSP_IMG_AACHELOAS_IDS_SIZE                                  ((uint32_t)4388)
-#define BDSP_IMG_AACHE_DECODE_INTER_FRAME_SIZE                       ((uint32_t)184316)
-#define BDSP_IMG_AACHE_DECODE_SIZE                                   ((uint32_t)189544)
-#define BDSP_IMG_AACHE_DECODE_TABLES_SIZE                            ((uint32_t)70496)
+#define BDSP_IMG_AACHELOAS_IDS_SIZE                                  ((uint32_t)5096)
+#define BDSP_IMG_AACHE_DECODE_INTER_FRAME_SIZE                       ((uint32_t)196704)
+#define BDSP_IMG_AACHE_DECODE_SIZE                                   ((uint32_t)215080)
+#define BDSP_IMG_AACHE_DECODE_TABLES_SIZE                            ((uint32_t)83976)
 #define BDSP_IMG_AACHE_ENCODE_INTER_FRAME_SIZE                       ((uint32_t)178812)
 #define BDSP_IMG_AACHE_ENCODE_SIZE                                   ((uint32_t)330336)
 #define BDSP_IMG_AACHE_ENCODE_TABLES_SIZE                            ((uint32_t)23944)
@@ -69,6 +66,9 @@
 #define BDSP_IMG_ALS_DECODE_TABLES_SIZE                              ((uint32_t)928)
 #define BDSP_IMG_ALS_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_ALS_IDS_SIZE                                        ((uint32_t)17624)
+#define BDSP_IMG_AMBISONICS_CODE_SIZE                                ((uint32_t)8)
+#define BDSP_IMG_AMBISONICS_INTER_FRAME_SIZE                         ((uint32_t)77856)
+#define BDSP_IMG_AMBISONICS_TABLES_SIZE                              ((uint32_t)111024)
 #define BDSP_IMG_AMRWB_DECODE_INTER_FRAME_SIZE                       ((uint32_t)12332)
 #define BDSP_IMG_AMRWB_DECODE_SIZE                                   ((uint32_t)68720)
 #define BDSP_IMG_AMRWB_DECODE_TABLES_SIZE                            ((uint32_t)24268)
@@ -90,7 +90,7 @@
 #define BDSP_IMG_BTSCENC_CODE_SIZE                                   ((uint32_t)19312)
 #define BDSP_IMG_BTSCENC_INTER_FRAME_SIZE                            ((uint32_t)1564)
 #define BDSP_IMG_BTSCENC_TABLES_SIZE                                 ((uint32_t)2568)
-#define BDSP_IMG_CDB_PASSTHRU_CODE_SIZE                              ((uint32_t)33160)
+#define BDSP_IMG_CDB_PASSTHRU_CODE_SIZE                              ((uint32_t)33420)
 #define BDSP_IMG_CDB_PASSTHRU_INTER_FRAME_SIZE                       ((uint32_t)852)
 #define BDSP_IMG_CDB_PASSTHRU_TABLES_SIZE                            ((uint32_t)176)
 #define BDSP_IMG_CUSTOMVOICE_CODE_SIZE                               ((uint32_t)26392)
@@ -158,7 +158,7 @@
 #define BDSP_IMG_FLAC_DECODE_TABLES_SIZE                             ((uint32_t)772)
 #define BDSP_IMG_FLAC_IDS_INTER_FRAME_SIZE                           ((uint32_t)16876)
 #define BDSP_IMG_FLAC_IDS_SIZE                                       ((uint32_t)4344)
-#define BDSP_IMG_FW_MIXER_CODE_SIZE                                  ((uint32_t)36664)
+#define BDSP_IMG_FW_MIXER_CODE_SIZE                                  ((uint32_t)36800)
 #define BDSP_IMG_FW_MIXER_INTER_FRAME_SIZE                           ((uint32_t)33464)
 #define BDSP_IMG_FW_MIXER_TABLES_SIZE                                ((uint32_t)4780)
 #define BDSP_IMG_G711_G726_DECODE_INTER_FRAME_SIZE                   ((uint32_t)8808)
@@ -278,7 +278,7 @@
 #define BDSP_IMG_SRS_TVOL_CODE_SIZE                                  ((uint32_t)29528)
 #define BDSP_IMG_SRS_TVOL_INTER_FRAME_SIZE                           ((uint32_t)7344)
 #define BDSP_IMG_SRS_TVOL_TABLES_SIZE                                ((uint32_t)4624)
-#define BDSP_IMG_SYSLIB_CODE_SIZE                                    ((uint32_t)17408)
+#define BDSP_IMG_SYSLIB_CODE_SIZE                                    ((uint32_t)17560)
 #define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)66576)
 #define BDSP_IMG_TRUEHD_DECODE_INTER_FRAME_SIZE                      ((uint32_t)5108)
 #define BDSP_IMG_TRUEHD_DECODE_SIZE                                  ((uint32_t)74952)

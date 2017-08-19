@@ -164,45 +164,56 @@ DRM_Prdy_Error_e convertDrmResult(DRM_RESULT result)
 static
 DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
 {
-    switch (result) {
-        case DRM_SUCCESS:
+    if(result == DRM_SUCCESS) {
             return DRM_Prdy_ok;
-        case DRM_E_FAIL:
+    }
+    else if(result == DRM_E_FAIL) {
             return DRM_Prdy_fail;
-        case DRM_E_BUFFERTOOSMALL:
+    }
+    else if(result == DRM_E_BUFFERTOOSMALL) {
             return DRM_Prdy_buffer_size;
-        case DRM_E_INVALIDARG:
+    }
+    else if(result == DRM_E_INVALIDARG) {
             return DRM_Prdy_invalid_parameter;
+    }
+    else if(result == DRM_E_LICENSE_NOT_FOUND) {
+        return DRM_Prdy_license_not_found;
+    }
+    else if(result == DRM_E_LICENSE_EXPIRED) {
+        return DRM_Prdy_license_expired;
+    }
+    else if(result == DRM_E_RIV_TOO_SMALL || result == DRM_E_LICEVAL_REQUIRED_REVOCATION_LIST_NOT_AVAILABLE ) {
+        return DRM_Prdy_revocation_package_expired;
+    }
+    else if(result == DRM_E_CH_INVALID_HEADER) {
+        return DRM_Prdy_invalid_header;
+    }
+    else if(result == DRM_E_XMLNOTFOUND) {
+        return DRM_Prdy_xml_not_found;
+    }
+    else if(result == DRM_E_HEADER_NOT_SET) {
+        return DRM_Prdy_header_not_set;
+    }
+    else if(result <= DRM_E_CPRMEXP_CLOCK_REQUIRED ) {
+        switch (result) {
+        case DRM_S_MORE_DATA:
+            return DRM_Prdy_more_data;
+        case DRM_E_CPRMEXP_NOERROR:
+            return DRM_Prdy_cprmexp_noerror;
+        case DRM_S_TEST_SKIP_FILE:
+            return DRM_Prdy_test_skip_file;
+        case DRM_S_TEST_CONVERTED_FILE:
+            return DRM_Prdy_test_converted_file;
         case DRM_E_OUTOFMEMORY:
             return DRM_Prdy_outofmemory;
         case DRM_E_NOTIMPL:
             return DRM_Prdy_notimpl;
         case DRM_E_POINTER:
             return DRM_Prdy_pointer;
-        case DRM_E_WIN32_FILE_NOT_FOUND:
-            return DRM_Prdy_win32_file_not_found;
-        case DRM_E_HANDLE:
-            return DRM_Prdy_handle;
-        case DRM_E_WIN32_NO_MORE_FILES:
-            return DRM_Prdy_win32_no_more_files;
-        case DRM_E_NOMORE:
-            return DRM_Prdy_nomore;
-        case DRM_E_ARITHMETIC_OVERFLOW:
-            return DRM_Prdy_arithmetic_overflow;
-        case DRM_E_NOT_FOUND:
-            return DRM_Prdy_not_found;
-        case DRM_E_INVALID_COMMAND_LINE:
-            return DRM_Prdy_invalid_command_line;
         case DRM_E_FILENOTFOUND:
             return DRM_Prdy_filenotfound;
         case DRM_E_FILEOPEN:
             return DRM_Prdy_fileopen;
-        case DRM_E_PARAMETERS_MISMATCHED:
-            return DRM_Prdy_parameters_mismatched;
-        case DRM_E_FAILED_TO_STORE_LICENSE:
-            return DRM_Prdy_failed_to_store_license;
-        case DRM_E_NOT_ALL_STORED:
-            return DRM_Prdy_not_all_stored;
         case DRM_E_VERIFICATION_FAILURE:
             return DRM_Prdy_verification_failure;
         case DRM_E_RSA_SIGNATURE_ERROR:
@@ -223,8 +234,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_p256_ecdsa_signing_error;
         case DRM_E_P256_HMAC_KEYGEN_FAILURE:
             return DRM_Prdy_p256_hmac_keygen_failure;
-        case DRM_E_CH_BASECODE:
-            return DRM_Prdy_ch_basecode;
         case DRM_E_CH_VERSION_MISSING:
             return DRM_Prdy_ch_version_missing;
         case DRM_E_CH_KID_MISSING:
@@ -249,18 +258,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_ch_incompatible_header_type;
         case DRM_E_HEADER_ALREADY_SET:
             return DRM_Prdy_header_already_set;
-        case DRM_E_LIC_BASECODE:
-            return DRM_Prdy_lic_basecode;
         case DRM_E_LIC_PARAM_NOT_OPTIONAL:
             return DRM_Prdy_lic_param_not_optional;
         case DRM_E_LIC_INVALID_LICENSE:
             return DRM_Prdy_lic_invalid_license;
         case DRM_E_LIC_UNSUPPORTED_VALUE:
             return DRM_Prdy_lic_unsupported_value;
-        case DRM_E_CPRMEXP_BASECODE:
-            return DRM_Prdy_cprmexp_basecode;
-        case DRM_E_CPRMEXP_NOERROR:
-            return DRM_Prdy_cprmexp_noerror;
         case DRM_E_CPRMEXP_NO_OPERANDS_IN_EXPRESSION:
             return DRM_Prdy_cprmexp_no_operands_in_expression;
         case DRM_E_CPRMEXP_INVALID_TOKEN:
@@ -307,8 +310,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_cprmexp_unsupported_function;
         case DRM_E_CPRMEXP_CLOCK_REQUIRED:
             return DRM_Prdy_cprmexp_clock_required;
-        case DRM_E_LEGACY_BASECODE:
-            return DRM_Prdy_legacy_basecode;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_LEGACY_BASECODE && result <=DRM_E_OUTDATED_REVOCATION_LIST ) {
+        switch (result) {
         case DRM_E_LIC_KEY_DECODE_FAILURE:
             return DRM_Prdy_lic_key_decode_failure;
         case DRM_E_LIC_SIGNATURE_FAILURE:
@@ -371,6 +378,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_devcert_model_mismatch;
         case DRM_E_OUTDATED_REVOCATION_LIST:
             return DRM_Prdy_outdated_revocation_list;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_DEVICE_NOT_INITIALIZED && result <=DRM_E_LICENSE_REALTIME_EXPIRED ) {
+        switch (result) {
         case DRM_E_DEVICE_NOT_INITIALIZED:
             return DRM_Prdy_device_not_initialized;
         case DRM_E_DRM_NOT_INITIALIZED:
@@ -381,8 +394,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_invalid_license;
         case DRM_E_CONDITION_NOT_SUPPORTED:
             return DRM_Prdy_condition_not_supported;
-        case DRM_E_LICENSE_EXPIRED:
-            return DRM_Prdy_license_expired;
         case DRM_E_RIGHTS_NOT_AVAILABLE:
             return DRM_Prdy_rights_not_available;
         case DRM_E_LICENSE_MISMATCH:
@@ -395,8 +406,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_hash_mismatch;
         case DRM_E_LICENSESTORE_NOT_FOUND:
             return DRM_Prdy_licensestore_not_found;
-        case DRM_E_LICENSE_NOT_FOUND:
-            return DRM_Prdy_license_not_found;
         case DRM_E_LICENSE_VERSION_NOT_SUPPORTED:
             return DRM_Prdy_license_version_not_supported;
         case DRM_E_UNSUPPORTED_ALGORITHM:
@@ -459,8 +468,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_dst_exclusive_lock_only;
         case DRM_E_V1_NOT_SUPPORTED:
             return DRM_Prdy_v1_not_supported;
-        case DRM_E_HEADER_NOT_SET:
-            return DRM_Prdy_header_not_set;
         case DRM_E_NEED_DEVCERT_INDIV:
             return DRM_Prdy_need_devcert_indiv;
         case DRM_E_MACHINE_ID_MISMATCH:
@@ -583,8 +590,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_activation_client_already_current;
         case DRM_E_LICENSE_REALTIME_EXPIRED:
             return DRM_Prdy_license_realtime_expired;
-        case DRM_E_LICEVAL_BASECODE:
-            return DRM_Prdy_liceval_basecode;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_LICEVAL_LICENSE_NOT_SUPPLIED && result <=DRM_E_TEST_CLEANUP_FAIL ) {
+        switch (result) {
         case DRM_E_LICEVAL_LICENSE_NOT_SUPPLIED:
             return DRM_Prdy_liceval_license_not_supplied;
         case DRM_E_LICEVAL_KID_MISMATCH:
@@ -597,8 +608,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_liceval_required_revocation_list_not_available;
         case DRM_E_LICEVAL_INVALID_PRND_LICENSE:
             return DRM_Prdy_liceval_invalid_prnd_license;
-        case DRM_E_XMR_BASECODE:
-            return DRM_Prdy_xmr_basecode;
         case DRM_E_XMR_OBJECT_ALREADY_EXISTS:
             return DRM_Prdy_xmr_object_already_exists;
         case DRM_E_XMR_OBJECT_NOT_FOUND:
@@ -613,12 +622,8 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_xmr_license_not_bindable;
         case DRM_E_XMR_UNSUPPORTED_XMR_VERSION:
             return DRM_Prdy_xmr_unsupported_xmr_version;
-        case DRM_E_CERT_BASECODE:
-            return DRM_Prdy_cert_basecode;
         case DRM_E_INVALID_DEVCERT_ATTRIBUTE:
             return DRM_Prdy_invalid_devcert_attribute;
-        case DRM_E_TEST_BASECODE:
-            return DRM_Prdy_test_basecode;
         case DRM_E_TEST_PKCRYPTO_FAILURE:
             return DRM_Prdy_test_pkcrypto_failure;
         case DRM_E_TEST_PKSIGN_VERIFY_ERROR:
@@ -737,6 +742,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_test_net_fail;
         case DRM_E_TEST_CLEANUP_FAIL:
             return DRM_Prdy_test_cleanup_fail;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_LOGICERR && result <=DRM_E_INITIATORS_MISSING_METERCERT_URL ) {
+        switch (result) {
         case DRM_E_LOGICERR:
             return DRM_Prdy_logicerr;
         case DRM_E_INVALID_REV_INFO:
@@ -761,8 +772,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_revocation_invalid_package;
         case DRM_E_HWID_ERROR:
             return DRM_Prdy_hwid_error;
-        case DRM_E_DOMAIN_BASECODE:
-            return DRM_Prdy_domain_basecode;
         case DRM_E_DOMAIN_INVALID_GUID:
             return DRM_Prdy_domain_invalid_guid;
         case DRM_E_DOMAIN_INVALID_CUSTOM_DATA_TYPE:
@@ -787,12 +796,8 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_domain_invalid_domkeyxmr_data;
         case DRM_E_DOMAIN_STORE_INVALID_KEY_RECORD:
             return DRM_Prdy_domain_store_invalid_key_record;
-        case DRM_E_PC_BASECODE:
-            return DRM_Prdy_pc_basecode;
         case DRM_E_DEVICE_DOMAIN_JOIN_REQUIRED:
             return DRM_Prdy_device_domain_join_required;
-        case DRM_E_SERVER_BASECODE:
-            return DRM_Prdy_server_basecode;
         case DRM_E_SERVER_INTERNAL_ERROR:
             return DRM_Prdy_server_internal_error;
         case DRM_E_SERVER_INVALID_MESSAGE:
@@ -827,18 +832,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_server_invalid_licenseid;
         case DRM_E_SERVER_MAXIMUM_LICENSEID_EXCEEDED:
             return DRM_Prdy_server_maximum_licenseid_exceeded;
-        case DRM_E_SERVICES_BASECODE:
-            return DRM_Prdy_services_basecode;
-        case DRM_E_LICACQ_BASECODE:
-            return DRM_Prdy_licacq_basecode;
         case DRM_E_LICACQ_TOO_MANY_LICENSES:
             return DRM_Prdy_licacq_too_many_licenses;
         case DRM_E_LICACQ_ACK_TRANSACTION_ID_TOO_BIG:
             return DRM_Prdy_licacq_ack_transaction_id_too_big;
         case DRM_E_LICACQ_ACK_MESSAGE_NOT_CREATED:
             return DRM_Prdy_licacq_ack_message_not_created;
-        case DRM_E_INITIATORS_BASECODE:
-            return DRM_Prdy_initiators_basecode;
         case DRM_E_INITIATORS_UNKNOWN_TYPE:
             return DRM_Prdy_initiators_unknown_type;
         case DRM_E_INITIATORS_INVALID_SERVICEID:
@@ -855,8 +854,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_initiators_missing_laurl_in_content_header;
         case DRM_E_INITIATORS_MISSING_METERCERT_URL:
             return DRM_Prdy_initiators_missing_metercert_url;
-        case DRM_E_BCERT_BASECODE:
-            return DRM_Prdy_bcert_basecode;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_BCERT_INVALID_SIGNATURE_TYPE && result <=DRM_E_BCERT_INVALID_WARNING_DAYS ) {
+        switch (result) {
         case DRM_E_BCERT_INVALID_SIGNATURE_TYPE:
             return DRM_Prdy_bcert_invalid_signature_type;
         case DRM_E_BCERT_CHAIN_TOO_DEEP:
@@ -969,8 +972,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_bcert_objectheader_len_too_small;
         case DRM_E_BCERT_INVALID_WARNING_DAYS:
             return DRM_Prdy_bcert_invalid_warning_days;
-        case DRM_E_XMLSIG_BASECODE:
-            return DRM_Prdy_xmlsig_basecode;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_XMLSIG_ECDSA_VERIFY_FAILURE && result <=DRM_E_COPY_DENIED ) {
+        switch (result) {
         case DRM_E_XMLSIG_ECDSA_VERIFY_FAILURE:
             return DRM_Prdy_xmlsig_ecdsa_verify_failure;
         case DRM_E_XMLSIG_SHA_VERIFY_FAILURE:
@@ -985,14 +992,10 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_xmlsig_sha_hash_size;
         case DRM_E_XMLSIG_ECDSA_SIGNATURE_SIZE:
             return DRM_Prdy_xmlsig_ecdsa_signature_size;
-        case DRM_E_UTF_BASECODE:
-            return DRM_Prdy_utf_basecode;
         case DRM_E_UTF_UNEXPECTED_END:
             return DRM_Prdy_utf_unexpected_end;
         case DRM_E_UTF_INVALID_CODE:
             return DRM_Prdy_utf_invalid_code;
-        case DRM_E_SOAPXML_BASECODE:
-            return DRM_Prdy_soapxml_basecode;
         case DRM_E_SOAPXML_INVALID_STATUS_CODE:
             return DRM_Prdy_soapxml_invalid_status_code;
         case DRM_E_SOAPXML_XML_FORMAT:
@@ -1005,8 +1008,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_soapxml_protocol_not_supported;
         case DRM_E_SOAPXML_DATA_NOT_FOUND:
             return DRM_Prdy_soapxml_data_not_found;
-        case DRM_E_CRYPTO_BASECODE:
-            return DRM_Prdy_crypto_basecode;
         case DRM_E_CRYPTO_PUBLIC_KEY_NOT_MATCH:
             return DRM_Prdy_crypto_public_key_not_match;
         case DRM_E_UNABLE_TO_RESOLVE_LOCATION_TREE:
@@ -1061,8 +1062,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_asf_not_accepting;
         case DRM_E_ASF_UNEXPECTED:
             return DRM_Prdy_asf_unexpected;
-        case DRM_E_NONCE_STORE_BASECODE:
-            return DRM_Prdy_nonce_store_basecode;
         case DRM_E_NONCE_STORE_TOKEN_NOT_FOUND:
             return DRM_Prdy_nonce_store_token_not_found;
         case DRM_E_NONCE_STORE_OPEN_STORE:
@@ -1071,14 +1070,10 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_nonce_store_close_store;
         case DRM_E_NONCE_STORE_ADD_LICENSE:
             return DRM_Prdy_nonce_store_add_license;
-        case DRM_E_POLICYSTATE_BASECODE:
-            return DRM_Prdy_policystate_basecode;
         case DRM_E_POLICYSTATE_NOT_FOUND:
             return DRM_Prdy_policystate_not_found;
         case DRM_E_POLICYSTATE_CORRUPTED:
             return DRM_Prdy_policystate_corrupted;
-        case DRM_E_MOVE_BASECODE:
-            return DRM_Prdy_move_basecode;
         case DRM_E_MOVE_DENIED:
             return DRM_Prdy_move_denied;
         case DRM_E_INVALID_MOVE_RESPONSE:
@@ -1099,8 +1094,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_move_signature_invalid;
         case DRM_E_COPY_DENIED:
             return DRM_Prdy_copy_denied;
-        case DRM_E_XB_BASECODE:
-            return DRM_Prdy_xb_basecode;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_XB_OBJECT_NOTFOUND && result <=DRM_E_OEMHAL_SAMPLE_ENCRYPTION_MODE_NOT_PERMITTED ) {
+        switch (result) {
         case DRM_E_XB_OBJECT_NOTFOUND:
             return DRM_Prdy_xb_object_notfound;
         case DRM_E_XB_INVALID_OBJECT:
@@ -1111,8 +1110,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_xb_required_object_missing;
         case DRM_E_XB_UNKNOWN_ELEMENT_TYPE:
             return DRM_Prdy_xb_unknown_element_type;
-        case DRM_E_KEYFILE_BASECODE:
-            return DRM_Prdy_keyfile_basecode;
         case DRM_E_KEYFILE_INVALID_PLATFORM:
             return DRM_Prdy_keyfile_invalid_platform;
         case DRM_E_KEYFILE_TOO_LARGE:
@@ -1143,10 +1140,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_keyfile_format_invalid;
         case DRM_E_KEYFILE_UPDATE_NOT_ALLOWED:
             return DRM_Prdy_keyfile_update_not_allowed;
-        case DRM_E_SERVICES_BASECODE_EX:
-            return DRM_Prdy_services_basecode_ex;
-        case DRM_E_PRND_BASECODE:
-            return DRM_Prdy_prnd_basecode;
         case DRM_E_PRND_MESSAGE_VERSION_INVALID:
             return DRM_Prdy_prnd_message_version_invalid;
         case DRM_E_PRND_MESSAGE_WRONG_TYPE:
@@ -1183,8 +1176,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_prnd_license_request_invalid_action;
         case DRM_E_PRND_TRANSMITTER_UNAUTHORIZED:
             return DRM_Prdy_prnd_transmitter_unauthorized;
-        case DRM_E_OEMHAL_BASECODE:
-            return DRM_Prdy_oemhal_basecode;
         case DRM_E_OEMHAL_NOT_INITIALIZED:
             return DRM_Prdy_oemhal_not_initialized;
         case DRM_E_OEMHAL_OUT_OF_KEY_REGISTERS:
@@ -1207,8 +1198,12 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_oemhal_buffer_too_large;
         case DRM_E_OEMHAL_SAMPLE_ENCRYPTION_MODE_NOT_PERMITTED:
             return DRM_Prdy_oemhal_sample_encryption_mode_not_permitted;
-        case DRM_E_M2TS_BASECODE:
-            return DRM_Prdy_m2ts_basecode;
+            default:
+                goto ErrorExit;
+        }
+    }
+    else if(result>=DRM_E_M2TS_PAT_PID_IS_NOT_ZERO ) {
+        switch (result) {
         case DRM_E_M2TS_PAT_PID_IS_NOT_ZERO:
             return DRM_Prdy_m2ts_pat_pid_is_not_zero;
         case DRM_E_M2TS_PTS_NOT_EXIST:
@@ -1279,8 +1274,6 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_m2ts_ecm_payload_over_limit;
         case DRM_E_M2TS_SET_CA_PID_FAILED:
             return DRM_Prdy_m2ts_set_ca_pid_failed;
-        case DRM_E_LICGEN_BASECODE:
-            return DRM_Prdy_licgen_basecode;
         case DRM_E_LICGEN_CANNOT_PERSIST_LICENSE:
             return DRM_Prdy_licgen_cannot_persist_license;
         case DRM_E_LICGEN_PERSISTENT_REMOTE_LICENSE:
@@ -1299,9 +1292,37 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
             return DRM_Prdy_licgen_duplicate_play_enabler;
         case DRM_E_HDCP_ERR:
             return DRM_Prdy_hdcp_err;
+        case DRM_E_WIN32_FILE_NOT_FOUND:
+            return DRM_Prdy_win32_file_not_found;
+        case DRM_E_HANDLE:
+            return DRM_Prdy_handle;
+        case DRM_E_WIN32_NO_MORE_FILES:
+            return DRM_Prdy_win32_no_more_files;
+        case DRM_E_BUFFERTOOSMALL:
+            return DRM_Prdy_buffertoosmall;
+        case DRM_E_NOMORE:
+            return DRM_Prdy_nomore;
+        case DRM_E_ARITHMETIC_OVERFLOW:
+            return DRM_Prdy_arithmetic_overflow;
+        case DRM_E_NOT_FOUND:
+            return DRM_Prdy_not_found;
+        case DRM_E_INVALID_COMMAND_LINE:
+            return DRM_Prdy_invalid_command_line;
+        case DRM_E_FAILED_TO_STORE_LICENSE:
+            return DRM_Prdy_failed_to_store_license;
+        case DRM_E_PARAMETERS_MISMATCHED:
+            return DRM_Prdy_parameters_mismatched;
+        case DRM_E_NOT_ALL_STORED:
+            return DRM_Prdy_not_all_stored;
         default:
-            return DRM_Prdy_fail;
+            goto ErrorExit;
     }
+}
+
+ErrorExit:
+    BDBG_WRN(("[WARNING] %s Error Code(%x) is not defined or could not be found \n",__FUNCTION__,result));
+    return DRM_Prdy_fail;
+
 }
 
 static
@@ -1839,12 +1860,6 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
 
     BDBG_MSG(("%s - entering", __FUNCTION__));
 
-    if( Drm_Prdy_Error == NULL ) {
-        BDBG_ERR(("%s: invalid argument\n", __FUNCTION__));
-        dr = DRM_E_INVALIDARG;
-        goto ErrorExit;
-    }
-
     /* initialize the PRDY_APP_CONTEXT */
     pPrdyCxt = Oem_MemAlloc(sizeof(PRDY_APP_CONTEXT));
     if( pPrdyCxt == NULL ) {
@@ -1860,6 +1875,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
 
     /* initialize the DRM_APP_CONTEXT */
     pPrdyCxt->pDrmAppCtx = Oem_MemAlloc(SIZEOF(DRM_APP_CONTEXT));
+    BDBG_MSG(("%s: allocated DrmAppCtx %p size %u",__FUNCTION__,pPrdyCxt->pDrmAppCtx,(SIZEOF(DRM_APP_CONTEXT))));
     ChkMem(pPrdyCxt->pDrmAppCtx);
     ZEROMEM( ( uint8_t * )pPrdyCxt->pDrmAppCtx, SIZEOF( DRM_APP_CONTEXT));
 
@@ -1868,6 +1884,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.binFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated binFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.binFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->binFileName, pPrdyCxt->oemSettings.binFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.binFileName);
@@ -1879,6 +1896,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated keyFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyFileName, pPrdyCxt->oemSettings.keyFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyFileName);
@@ -1890,6 +1908,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyHistoryFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated keyHistoryFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyHistoryFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyHistoryFileName, pPrdyCxt->oemSettings.keyHistoryFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyHistoryFileName);
@@ -1901,6 +1920,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.defaultRWDirName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated defaultRWDirName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.defaultRWDirName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->defaultRWDirName, pPrdyCxt->oemSettings.defaultRWDirName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.defaultRWDirName);
@@ -1913,6 +1933,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     if (platformConfig.heap[NXCLIENT_FULL_HEAP])
     {
         NEXUS_HeapHandle heap = platformConfig.heap[NXCLIENT_FULL_HEAP];
+        BDBG_MSG(("%s: heap = %p",__FUNCTION__,heap));
         NEXUS_MemoryStatus heapStatus;
         NEXUS_Heap_GetStatus(heap, &heapStatus);
         if (heapStatus.memoryType & NEXUS_MemoryType_eFull)
@@ -1922,6 +1943,16 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     }
 
     pPrdyCxt->oemSettings.heap = heapSettings.heap;
+#ifdef PLAYREADY_HOST_IMPL
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
+#ifdef USE_UNIFIED_COMMON_DRM
+    pPrdyCxt->oemSettings.drmType = 0;
+#else
+    pPrdyCxt->oemSettings.drmType = BSAGElib_BinFileDrmType_ePlayready;
+#endif
+    BDBG_MSG(("%s:drmType 0x%x", __FUNCTION__,pPrdyCxt->oemSettings.drmType));
+#endif
+#endif
     pPrdyCxt->pOEMContext = Drm_Platform_Initialize(&pPrdyCxt->oemSettings);
     ChkMem(pPrdyCxt->pOEMContext);
 
@@ -1929,6 +1960,9 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     pPrdyCxt->cbOpaqueBuffer = MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE;
     ChkMem( pPrdyCxt->pbOpaqueBuffer = ( uint8_t * )Oem_MemAlloc(MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
     ChkMem( pPrdyCxt->pbRevocationBuffer = ( uint8_t * )Oem_MemAlloc( REVOCATION_BUFFER_SIZE));
+
+    BDBG_MSG(("%s: allocated OpaqueBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbOpaqueBuffer, MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
+    BDBG_MSG(("%s: allocated RevocationBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbRevocationBuffer, REVOCATION_BUFFER_SIZE));
 
     /* Drm_Initialize */
     sDstrHDSPath.pwszString = sRgwchHDSPath;
@@ -1957,14 +1991,14 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
             goto ErrorExit;
         }
     }
-
+   BDBG_MSG(("%s calling Drm_Initialize DrmAppCtx %p pOEMContext %p ",__FUNCTION__,pPrdyCxt->pDrmAppCtx, pPrdyCxt->pOEMContext));
    /* TODO: perform synchronous activation if Drm_Initialize fails */
    ChkDR( Drm_Initialize( pPrdyCxt->pDrmAppCtx,
                           pPrdyCxt->pOEMContext,
                           pPrdyCxt->pbOpaqueBuffer,
                           pPrdyCxt->cbOpaqueBuffer,
                           &sDstrHDSPath) );
-
+   BDBG_MSG(("%s calling Drm_Revocation_SetBuffer pPrdyCxt->pDrmAppCtx %p",__FUNCTION__,pPrdyCxt->pDrmAppCtx));
    ChkDR( Drm_Revocation_SetBuffer( pPrdyCxt->pDrmAppCtx,
                                     pPrdyCxt->pbRevocationBuffer,
                                     REVOCATION_BUFFER_SIZE ) );
@@ -2002,6 +2036,7 @@ ErrorExit:
        DRM_Prdy_Uninitialize( pPrdyCxt);
    return NULL;
 }
+
 
 DRM_Prdy_Error_e DRM_Prdy_Uninitialize(DRM_Prdy_Handle_t  pPrdyContext)
 {

@@ -64,7 +64,7 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
       return true;
 
    GLXX_HW_FRAMEBUFFER_T hw_fb;
-   if (!glxx_init_hw_framebuffer(fb, &hw_fb))
+   if (!glxx_init_hw_framebuffer(fb, &hw_fb, &state->fences))
       return false;
 
    // Intersect FB rect with scissor rect
@@ -129,6 +129,8 @@ no_discard:
 
    khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
+   rs->num_used_layers = rs->installed_fb.layers;
+
    // Try doing HW clears
    bool use_draw_rect = false;
    for (uint32_t b = 0, mask = clear->color_buffer_mask; mask; ++b, mask >>= 1)
@@ -155,6 +157,14 @@ no_discard:
       else
          use_draw_rect = true;
    }
+#if !V3D_HAS_GFXH1461_FIX
+   /* Fast-clearing depth & loading stencil (or vice-versa) does not work
+    * properly (see GFXH-1461).
+    * Fall back to draw-rect clear if we might hit that case... */
+   if ((clear->stencil && glxx_bufstate_might_need_load(rs->depth_buffer_state)) ||
+         (clear->depth && glxx_bufstate_might_need_load(rs->stencil_buffer_state)))
+      use_draw_rect = true;
+#endif
 
    log_trace("%s color_mask=0x%x%s%s", use_draw_rect ? "draw_rect" : "fast",
       clear->color_buffer_mask, clear->depth ? " depth" : "", clear->stencil ? " stencil" : "");

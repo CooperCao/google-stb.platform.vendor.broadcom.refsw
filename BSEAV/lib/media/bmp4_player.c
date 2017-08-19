@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -866,6 +866,14 @@ b_mp4_player_prepare_track(bmp4_player_t player, b_mp4_track *track)
             waveformat.wFormatTag = 0x00FF; /* RAW AAC */
             waveformat.nChannels = mp4a->audio.channelcount;
             waveformat.nSamplesPerSec = mp4a->audio.samplerate>>16;
+            if(waveformat.nSamplesPerSec==0) {
+                if(mp4a->mpeg4.decoder.iso_14496_3.samplingFrequencyIndex!=0x0F) {
+                    waveformat.nSamplesPerSec = bmedia_info_aac_sampling_frequency_from_index(mp4a->mpeg4.decoder.iso_14496_3.samplingFrequencyIndex);
+                } else {
+                    waveformat.nSamplesPerSec = mp4a->mpeg4.decoder.iso_14496_3.samplingFrequency;
+                }
+            }
+
             waveformat.nBlockAlign = 1;
             waveformat.wBitsPerSample = mp4a->audio.samplesize;
             waveformat.cbSize = mp4a->mpeg4.decoder.iso_14496_3.aac_info_size;
@@ -954,6 +962,7 @@ b_mp4_player_prepare_track(bmp4_player_t player, b_mp4_track *track)
     case bmp4_sample_type_dts:
     case bmp4_sample_type_ac3:
     case bmp4_sample_type_eac3:
+    case bmp4_sample_type_ac4:
     default:
         break;
     }
@@ -967,7 +976,7 @@ b_mp4_player_feed_single_block(bmp4_player_t player, bmp4_parser_t mp4, batom_pi
     ssize_t read_result;
     size_t mp4_result=-1;
 	batom_t atom;
-	BERR_Code mrc;
+	BERR_Code mrc = BERR_SUCCESS;
 	const size_t len = 4096;
 	bfile_io_read_t fd = player->fd;
 	batom_factory_t factory=player->factory;
@@ -1009,6 +1018,7 @@ err_atom:
 err_read:
     BKNI_Free(buf);
 err_alloc:
+    mrc = BERR_TRACE(mrc);
     return mp4_result;
 }
 
@@ -1326,7 +1336,6 @@ b_mp4_player_open_file(bmp4_player_t player)
     batom_pipe_t pipe_mp4;
     bmp4_parser_cfg cfg;
     bmp4_parser_t  mp4;
-    enum {b_mp4_player_open_state_movi, b_mp4_player_open_state_idx} state;
     int rc=-1;
     batom_factory_t factory=player->factory;
     BERR_Code mrc;
@@ -1336,7 +1345,6 @@ b_mp4_player_open_file(bmp4_player_t player)
 
     BSTD_UNUSED(mrc);
     BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-    state = b_mp4_player_open_state_movi;
     BLST_SQ_INIT(&player->movie.tracks);
     player->eof_reached = false;
     player->movie.ntracks = 0;
@@ -1582,21 +1590,6 @@ bmp4_player_destroy(bmp4_player_t player)
 
 	return;
 }
-
-
-static void 
-b_mp4_data_atom_free(batom_t atom, void *user)
-{
-	BDBG_MSG_TRACE(("b_mp4_data_atom_free:%#lx", (unsigned long)atom));
-	BSTD_UNUSED(atom);
-	BSTD_UNUSED(user);
-	return;
-}
-
-static const batom_user b_mp4_data_atom = {
-	b_mp4_data_atom_free,
-	sizeof(void **)
-};
 
 static void
 b_mp4_player_data_error(bmp4_player_t player)
@@ -2027,6 +2020,35 @@ b_mp4_process_sample_mjpeg(bmp4_player_t player, b_mp4_track *track, batom_t ato
 }
 
 static batom_t
+b_mp4_process_sample_ac4(bmp4_player_t player, b_mp4_track *track, batom_t atom)
+{
+    batom_accum_t dst = player->accum_dest;
+    size_t len = batom_len(atom);
+    uint8_t *buf = track->hdr_buf;
+    unsigned header = 4;
+
+    BDBG_ASSERT(batom_accum_len(dst)==0);
+
+    /* ETSI TS 103 190-2 V1.1.1
+       Annex C (normative): AC-4 Sync Frame  */
+
+    B_MEDIA_SAVE_UINT16_BE(buf, 0xAC40);
+    if(len <= 63 * 1024) {
+        B_MEDIA_SAVE_UINT16_BE(buf+2, len);
+    } else {
+        B_MEDIA_SAVE_UINT16_BE(buf+2, 0xFFFF);
+        B_MEDIA_SAVE_UINT32_BE(buf+4, len);
+        header += 4;
+    }
+
+    batom_accum_add_range(dst, buf, header);
+    batom_accum_add_atom(dst, atom);
+    batom_release(atom);
+
+    return batom_from_accum(dst, NULL, NULL);
+}
+
+static batom_t
 b_mp4_process_sample_generic(bmp4_player_t player, b_mp4_track *track, batom_t atom)
 {
     BSTD_UNUSED(player);
@@ -2173,6 +2195,9 @@ b_mp4_player_process_sample(bmp4_player_t player, b_mp4_track *track, batom_t at
         case bmp4_sample_type_eac3:
         case bmp4_sample_type_dts:
             atom = b_mp4_process_sample_generic(player, track, atom);
+            break;
+        case bmp4_sample_type_ac4:
+            atom = b_mp4_process_sample_ac4(player, track, atom);
             break;
         case bmp4_sample_type_samr:
         case bmp4_sample_type_sawb:

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -950,7 +950,7 @@ B_PlaybackIp_IsMpegDashSession (
      *  Assume DASH if file name ends w/ ".mpd" and/or HTTP Content-type is "application/dash+xml"
      */
     if (B_PlaybackIp_UtilsStristr(mpdUri, ".mpd") != NULL) {
-        PRINTMSG_SESSION(("%s: MPEG-DASH MPD file URI: %s", __FUNCTION__, mpdUri));
+        PRINTMSG_SESSION(("%s: MPEG-DASH MPD file URI: %s", BSTD_FUNCTION, mpdUri));
         return true;
     }
 
@@ -958,7 +958,7 @@ B_PlaybackIp_IsMpegDashSession (
         contentType += strlen("Content-Type: ");
 
         if (B_PlaybackIp_UtilsStristr(contentType, "application/dash+xml")) {
-            PRINTMSG_SESSION(("%s: MPEG-DASH MPD file URI %s, contentType %s", __FUNCTION__, mpdUri, contentType));
+            PRINTMSG_SESSION(("%s: MPEG-DASH MPD file URI %s, contentType %s", BSTD_FUNCTION, mpdUri, contentType));
             return true;
         }
     }
@@ -1029,10 +1029,10 @@ B_PlaybackIp_MpegDashSegmentBufferSetup(
     mpegDashSession->segmentBuffer[0].bufferSize = playback_ip->indexCacheSize;
     mpegDashSession->segmentBuffer[0].bufferDepth = 0;
     if (BKNI_CreateMutex(&mpegDashSession->segmentBuffer[0].lock) != 0) {
-        BDBG_ERR(("%s: Failed to create BKNI mutex at %d", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s: Failed to create BKNI mutex at %d", BSTD_FUNCTION, __LINE__));
         goto error;
     }
-    PRINTMSG_SESSION(("%s: Using index cache (%u KB) as segment buffer # 0", __FUNCTION__, (unsigned)(mpegDashSession->segmentBuffer[0].bufferSize / 1000)));
+    PRINTMSG_SESSION(("%s: Using index cache (%u KB) as segment buffer # 0", BSTD_FUNCTION, (unsigned)(mpegDashSession->segmentBuffer[0].bufferSize / 1000)));
 
     mpegDashSession->segmentBuffer[1].allocated = false;
     mpegDashSession->segmentBuffer[1].filled    = false;
@@ -1040,10 +1040,10 @@ B_PlaybackIp_MpegDashSegmentBufferSetup(
     mpegDashSession->segmentBuffer[1].bufferSize = playback_ip->dataCache[0].size;
     mpegDashSession->segmentBuffer[1].bufferDepth = 0;
     if (BKNI_CreateMutex(&mpegDashSession->segmentBuffer[1].lock) != 0) {
-        BDBG_ERR(("%s: Failed to create BKNI mutex at %d", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s: Failed to create BKNI mutex at %d", BSTD_FUNCTION, __LINE__));
         goto error;
     }
-    PRINTMSG_SESSION(("%s: Using data cache (%u KB) as segment buffer # 1", __FUNCTION__, (unsigned)(mpegDashSession->segmentBuffer[1].bufferSize / 1000)));
+    PRINTMSG_SESSION(("%s: Using data cache (%u KB) as segment buffer # 1", BSTD_FUNCTION, (unsigned)(mpegDashSession->segmentBuffer[1].bufferSize / 1000)));
 
     return 0;
 error:
@@ -1062,7 +1062,6 @@ B_PlaybackIp_MpegDashBuildAbsoluteUri(char *server, int port, char *baseUri, cha
     char *tmp1, *tmp2 = NULL;
     int baseUriLength;
     char *baseUriCopy = NULL;
-    int count;
 
     BDBG_ASSERT(server);
     BDBG_ASSERT(baseUri);
@@ -1081,7 +1080,7 @@ B_PlaybackIp_MpegDashBuildAbsoluteUri(char *server, int port, char *baseUri, cha
     if (tmp2) {
         baseUriLength = tmp2 - baseUri + 1 + 1; /* one for / char, one for NULL char */
         if ((baseUriCopy = (char *)BKNI_Malloc(baseUriLength)) == NULL) {
-            BDBG_ERR(("%s: ERROR: failed to allocate %d bytes of memory at %d\n", __FUNCTION__, baseUriLength, __LINE__));
+            BDBG_ERR(("%s: ERROR: failed to allocate %d bytes of memory at %d\n", BSTD_FUNCTION, baseUriLength, __LINE__));
             return NULL;
         }
         strncpy(baseUriCopy, baseUri, baseUriLength-1);
@@ -1097,12 +1096,12 @@ B_PlaybackIp_MpegDashBuildAbsoluteUri(char *server, int port, char *baseUri, cha
     if ((uri = (char *)BKNI_Malloc(uriLength)) == NULL) {
         if (baseUriCopy)
             BKNI_Free(baseUriCopy);
-        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for building uri", __FUNCTION__, uriLength));
+        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for building uri", BSTD_FUNCTION, uriLength));
         return NULL;
     }
-    count = snprintf(uri, uriLength, "http://%s:%s%s%s", server, portString, baseUriLength ? baseUriCopy : "", fileName);
+    snprintf(uri, uriLength, "http://%s:%s%s%s", server, portString, baseUriLength ? baseUriCopy : "", fileName);
     uri[uriLength-1] = '\0';
-    PRINTMSG_URL(("%s: server %s port %s ", __FUNCTION__, server, portString));
+    PRINTMSG_URL(("%s: server %s port %s ", BSTD_FUNCTION, server, portString));
     PRINTMSG_URL(("base uri %s", baseUriLength ? baseUri : ""));
     PRINTMSG_URL(("file %s", fileName));
     PRINTMSG_URL(("Absolute uri %s", uri));
@@ -1129,17 +1128,17 @@ B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, 
 
     BDBG_ENTER(B_PlaybackIp_MpegDashFinishFileDownload);
 
-    PRINTMSG_DOWNLOAD(("%s: Continuing download, currently read %d", __FUNCTION__, *totalBytesRead));
+    PRINTMSG_DOWNLOAD(("%s: Continuing download, currently read %d", BSTD_FUNCTION, *totalBytesRead));
     while (true) {
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode)) {
-            PRINTMSG_DOWNLOAD(("%s: breaking file download loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            PRINTMSG_DOWNLOAD(("%s: breaking file download loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             break;
         }
 
         if (playback_ip->contentLength > 0 && *totalBytesRead >= (int)playback_ip->contentLength) {
             /* we have read all the bytes that server had indicated via contentLength, so instead of trying another read and waiting for server to close the connection */
             /* consider this as server closed event and break out of the read loop */
-            PRINTMSG_DOWNLOAD(("%s: breaking out of read loop as we have read %d upto the content length %lld", __FUNCTION__, *totalBytesRead, (long long)playback_ip->contentLength));
+            PRINTMSG_DOWNLOAD(("%s: breaking out of read loop as we have read %d upto the content length %lld", BSTD_FUNCTION, *totalBytesRead, (long long)playback_ip->contentLength));
             serverClosed = true;
             break;
         }
@@ -1172,19 +1171,19 @@ B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, 
 
         /* make sure there is enough space in the read buffer */
         if ((*totalBytesRead + bytesToRead) > bufferSize) {
-            PRINTMSG_DOWNLOAD(("%s: need bigger buffer to hold the complete downloaded file: totalBytesRead %d, size %d, returning what is read", __FUNCTION__, *totalBytesRead, bufferSize));
+            PRINTMSG_DOWNLOAD(("%s: need bigger buffer to hold the complete downloaded file: totalBytesRead %d, size %d, returning what is read", BSTD_FUNCTION, *totalBytesRead, bufferSize));
             break;
         }
 
         if ((bytesRead = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, fd, buffer+*totalBytesRead, bytesToRead, playback_ip->networkTimeout)) <= 0) {
             if (playback_ip->selectTimeout) {
                 PRINTMSG_DOWNLOAD(("%s: socket error, retry read: size %d, errno :%d, state %d, select timeout %d, server closed %d",
-                                   __FUNCTION__, (int)(*totalBytesRead+bytesRead), errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
+                                   BSTD_FUNCTION, (int)(*totalBytesRead+bytesRead), errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
                 continue;
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, (int)bytesRead, playback_ip->playback_state));
+                BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", BSTD_FUNCTION, (int)bytesRead, playback_ip->playback_state));
 #endif
             serverClosed = true;
             break;
@@ -1193,7 +1192,7 @@ B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, 
         /* Received some data, increment the count. */
         *totalBytesRead += bytesRead;
     }
-    PRINTMSG_DOWNLOAD(("%s: finished downloading file: errno %d, size %d, state %d, server closed %d on socket %d", __FUNCTION__, errno, *totalBytesRead, playback_ip->playback_state, serverClosed, fd));
+    PRINTMSG_DOWNLOAD(("%s: finished downloading file: errno %d, size %d, state %d, server closed %d on socket %d", BSTD_FUNCTION, errno, *totalBytesRead, playback_ip->playback_state, serverClosed, fd));
     if (serverClosed) {
         /* close security context and socket */
         if (playback_ip->securityHandle) {
@@ -1210,7 +1209,7 @@ B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, 
                 buffer[*totalBytesRead] = '\0'; /* null terminate the downloaded file */
         }
         else {
-            BDBG_ERR(("%s: increase the file buffer size from %d, it is not big enough", __FUNCTION__, bufferSize));
+            BDBG_ERR(("%s: increase the file buffer size from %d, it is not big enough", BSTD_FUNCTION, bufferSize));
             BDBG_LEAVE(B_PlaybackIp_MpegDashFinishFileDownload);
             return false;
         }
@@ -1258,19 +1257,19 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
 
     if (totalBytesLeftToRead > segmentBuffer->bufferSize - segmentBuffer->bufferDepth) {
         BDBG_ERR(("%s:%d: Segment Buffer is too small! Downloading %d bytes but buffer is only %d bytes",
-                  __FUNCTION__, __LINE__,
+                  BSTD_FUNCTION, __LINE__,
                   (int)downloadContext->totalBytesExpected,
                   (int)(segmentBuffer->bufferSize - segmentBuffer->bufferDepth - downloadContext->totalBytesReadSoFar)));
         *serverClosed = true;
         rc = false;
     }
 
-    PRINTMSG_SESSION(("%s: start downloading file: contentLength %lld, uri %s", __FUNCTION__, (long long)playback_ip->contentLength, playback_ip->openSettings.socketOpenSettings.url));
+    PRINTMSG_SESSION(("%s: start downloading file: contentLength %lld, uri %s", BSTD_FUNCTION, (long long)playback_ip->contentLength, playback_ip->openSettings.socketOpenSettings.url));
     /* start a timer to note the network b/w */
     B_Time_Get(&beginTime);
     while ( !*serverClosed) {
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode)) {
-            PRINTMSG_SESSION(("%s: breaking file download loop due to state (%d) change", __FUNCTION__, playback_ip->playback_state));
+            PRINTMSG_SESSION(("%s: breaking file download loop due to state (%d) change", BSTD_FUNCTION, playback_ip->playback_state));
             break;
         }
 
@@ -1279,7 +1278,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
              * trying another read and waiting for server to close the
              * connection, consider this as server closed event and break
                out of the read loop */
-            PRINTMSG_SESSION(("%s: breaking out of read loop as we have read %d upto the content length %lld", __FUNCTION__, (int)downloadContext->totalBytesReadSoFar, (long long)playback_ip->contentLength));
+            PRINTMSG_SESSION(("%s: breaking out of read loop as we have read %d upto the content length %lld", BSTD_FUNCTION, (int)downloadContext->totalBytesReadSoFar, (long long)playback_ip->contentLength));
             *serverClosed = true;
             break;
         }
@@ -1298,12 +1297,12 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
                                                   playback_ip->networkTimeout)) <= 0) {
             if (playback_ip->selectTimeout) {
                 PRINTMSG_SESSION(("%s: socket error, retry read: size %d, errno :%d, state %d, select timeout %d, server closed %d",
-                                  __FUNCTION__, (int)(downloadContext->totalBytesReadSoFar + bytesRead), errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
+                                  BSTD_FUNCTION, (int)(downloadContext->totalBytesReadSoFar + bytesRead), errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
                 continue;
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, (int)bytesRead, playback_ip->playback_state));
+                BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", BSTD_FUNCTION, (int)bytesRead, playback_ip->playback_state));
 #endif
             *serverClosed = true;
             break;
@@ -1330,15 +1329,15 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
     B_Time_Get(&endTime);
     totalDownloadTime = B_Time_Diff(&endTime, &downloadContext->beginTime);
 
-    BDBG_NUL(("%s:%d: totalDownloadTime=%u", __FUNCTION__, __LINE__, totalDownloadTime));
-    BDBG_NUL(("%s:%d: totalBytesRead=   %u", __FUNCTION__, __LINE__, downloadContext->totalBytesReadSoFar));
+    BDBG_NUL(("%s:%d: totalDownloadTime=%u", BSTD_FUNCTION, __LINE__, totalDownloadTime));
+    BDBG_NUL(("%s:%d: totalBytesRead=   %u", BSTD_FUNCTION, __LINE__, downloadContext->totalBytesReadSoFar));
 
     if (totalDownloadTime == 0) totalDownloadTime = 1;
 
     downloadContext->elapsedTimeInMs = totalDownloadTime;
 
     PRINTMSG_SESSION(("%s: finished downloading (fd %d): errno %d, bytesRead: %d, state %d, select timeout %d, server closed %d",
-                      __FUNCTION__, downloadContext->socketFd, errno, (int)downloadContext->totalBytesReadSoFar, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
+                      BSTD_FUNCTION, downloadContext->socketFd, errno, (int)downloadContext->totalBytesReadSoFar, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
 
     /* downloaded the file into the buffer, now check if we need to decrypt this segment */
 
@@ -1367,7 +1366,7 @@ mpegDash_parse_absolute_url(B_PlaybackIpProtocol *protocol, char **server, unsig
         *portPtr = 443;
     }
     else {
-        BDBG_ERR(("%s: unsupported protocol in the given URL %s", __FUNCTION__, absoluteUri));
+        BDBG_ERR(("%s: unsupported protocol in the given URL %s", BSTD_FUNCTION, absoluteUri));
         return false;
     }
     /* http protocol is being used, parse it further */
@@ -1376,7 +1375,7 @@ mpegDash_parse_absolute_url(B_PlaybackIpProtocol *protocol, char **server, unsig
     tmp2 = strstr(tmp1, "/");
     if (tmp2) {
         if ((*server = (char *)BKNI_Malloc(tmp2-tmp1+1)) == NULL) {
-            BDBG_ERR(("%s: ERROR: failed to allocate %d bytes of memory at %d\n", __FUNCTION__, (int)(tmp2-tmp1), __LINE__));
+            BDBG_ERR(("%s: ERROR: failed to allocate %d bytes of memory at %d\n", BSTD_FUNCTION, (int)(tmp2-tmp1), __LINE__));
             return false;
         }
         strncpy(*server, tmp1, tmp2-tmp1);
@@ -1392,11 +1391,11 @@ mpegDash_parse_absolute_url(B_PlaybackIpProtocol *protocol, char **server, unsig
 
         /* now get the uri */
         *uri = tmp2;
-        PRINTMSG_URL(("%s: server %s, port %d, protocol %d, url %s", __FUNCTION__, *server, *portPtr, *protocol, *uri));
+        PRINTMSG_URL(("%s: server %s, port %d, protocol %d, url %s", BSTD_FUNCTION, *server, *portPtr, *protocol, *uri));
         return true;
     }
     else {
-        BDBG_ERR(("%s: Incorrect URL: Failed to find the server part in %s", __FUNCTION__, absoluteUri));
+        BDBG_ERR(("%s: Incorrect URL: Failed to find the server part in %s", BSTD_FUNCTION, absoluteUri));
         return false;
     }
 }
@@ -1480,7 +1479,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
     }
     protocol = mediaFileSegmentInfo->protocol;
     uri = &mediaFileSegmentInfo->uri;
-    PRINTMSG_SESSION(("%s: URI: http://%s:%d%s", __FUNCTION__, server, port, *uri));
+    PRINTMSG_SESSION(("%s: URI: http://%s:%d%s", BSTD_FUNCTION, server, port, *uri));
 
     /* reset previous content length */
     playback_ip->contentLength = 0;
@@ -1489,7 +1488,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
     responseMessage = (char *) BKNI_Malloc(TMP_BUF_SIZE+1);
     requestMessage = (char *)BKNI_Malloc(TMP_BUF_SIZE+1);
     if (!responseMessage || !requestMessage) {
-        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: failed to allocate memory\n", BSTD_FUNCTION));
         goto error;
     }
     memset(&openSettings, 0, sizeof(openSettings));
@@ -1502,7 +1501,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
 
         /* setup the socket connection to the server & send GET request */
         if (B_PlaybackIp_UtilsTcpSocketConnect(&playback_ip->playback_state, server, port, false,  playback_ip->networkTimeout, socketFd) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to send Socket Connect Request to Server: %s:%d\n", __FUNCTION__, server, port));
+            BDBG_ERR(("%s: ERROR: failed to send Socket Connect Request to Server: %s:%d\n", BSTD_FUNCTION, server, port));
             goto error;
         }
         downloadContext->socketFd = *socketFd;
@@ -1533,16 +1532,16 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
                 openSettings.security.securityProtocol = B_PlaybackIpSecurityProtocol_None;
         }
         if (B_PlaybackIp_SecuritySessionOpen(playback_ip, &openSettings, *socketFd, &playback_ip->securityHandle) < 0) {
-            BDBG_ERR(("%s: ERROR: failed to setup the security session", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to setup the security session", BSTD_FUNCTION));
             goto error;
         }
 
         /* and then send the HTTP Get request */
         if (playback_ip->netIo.write(playback_ip->securityHandle, &playback_ip->playback_state, *socketFd, requestMessage, strlen(requestMessage)) < 0) {
-            BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", __FUNCTION__, server, port));
+            BDBG_ERR(("%s: ERROR: failed to send HTTP Get request to Server: %s:%d\n", BSTD_FUNCTION, server, port));
             goto error;
         }
-        PRINTMSG_SESSION(("%s: Sent HTTP Get Request (socket %d) --->:\n %s", __FUNCTION__, *socketFd, requestMessage));
+        PRINTMSG_SESSION(("%s: Sent HTTP Get Request (socket %d) --->:\n %s", BSTD_FUNCTION, *socketFd, requestMessage));
 
         playback_ip->chunkEncoding = false;
         playback_ip->serverClosed = false;
@@ -1550,25 +1549,25 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
 
         /* now read and process the HTTP Response headers */
         if (http_read_response(playback_ip, playback_ip->securityHandle, *socketFd, &responseMessage, TMP_BUF_SIZE, &http_hdr, &http_payload, &playback_ip->initial_data_len) < 0) {
-            BDBG_ERR(("%s: ERROR: failed to receive valid HTTP response\n", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to receive valid HTTP response\n", BSTD_FUNCTION));
             goto error;
         }
 
-        PRINTMSG_SESSION(("%s: http_hdr Offset: %d", __FUNCTION__, (int)(http_hdr - responseMessage)));
-        PRINTMSG_SESSION(("%s: http_payload Offset: %d", __FUNCTION__, (int)(http_payload - responseMessage)));
-        PRINTMSG_SESSION(("%s: initial_data_len: %d", __FUNCTION__, playback_ip->initial_data_len));
+        PRINTMSG_SESSION(("%s: http_hdr Offset: %d", BSTD_FUNCTION, (int)(http_hdr - responseMessage)));
+        PRINTMSG_SESSION(("%s: http_payload Offset: %d", BSTD_FUNCTION, (int)(http_payload - responseMessage)));
+        PRINTMSG_SESSION(("%s: initial_data_len: %d", BSTD_FUNCTION, playback_ip->initial_data_len));
 
 
         http_url_type = http_get_url_type(http_hdr, *uri);
-        PRINTMSG_SESSION(("%s: http url type %d", __FUNCTION__, http_url_type));
+        PRINTMSG_SESSION(("%s: http url type %d", BSTD_FUNCTION, http_url_type));
         if (http_url_type == HTTP_URL_IS_REDIRECT) {
             /* parse HTTP redirect and extract the new URI & server:port info */
             if ((serverRedirect = (char *)BKNI_Malloc(512)) == NULL) {
-                BDBG_ERR(("%s: failed to allocate memory for redirectServer", __FUNCTION__));
+                BDBG_ERR(("%s: failed to allocate memory for redirectServer", BSTD_FUNCTION));
                 goto error;
             }
             if (http_parse_redirect(serverRedirect, &port, &protocol, &uriRedirect, &playback_ip->cookieFoundViaHttpRedirect, http_hdr) != 0) {
-                BDBG_ERR(("%s: Incorrect HTTP Redirect response or parsing error", __FUNCTION__));
+                BDBG_ERR(("%s: Incorrect HTTP Redirect response or parsing error", BSTD_FUNCTION));
                 goto error;
             }
             /* previous function gets the new URL & server information and we send another GET request to this server */
@@ -1582,13 +1581,13 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
                 openSettings.security.securityProtocol = B_PlaybackIpSecurityProtocol_Ssl;
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: HTTP redirect case, caching the redirected URL: http://%s:%d%s", __FUNCTION__, server, port, *uri));
+                BDBG_WRN(("%s: HTTP redirect case, caching the redirected URL: http://%s:%d%s", BSTD_FUNCTION, server, port, *uri));
 #endif
             continue;
         }
         else {
             /* actual content URL, get the content attributes from HTTP response header */
-            PRINTMSG_SESSION(("%s: GOT ACTUAL CONTENT: sock fd %d", __FUNCTION__, *socketFd));
+            PRINTMSG_SESSION(("%s: GOT ACTUAL CONTENT: sock fd %d", BSTD_FUNCTION, *socketFd));
             break;
         }
     }
@@ -1600,10 +1599,10 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
     if (openSettings.security.securityProtocol == B_PlaybackIpSecurityProtocol_Aes128) {
         /* enable AES encryption as HTTP header processing (which is in clear) is done now */
         if (B_PlaybackIp_AesDecryptionEnable(playback_ip->securityHandle, http_payload, playback_ip->initial_data_len) < 0) {
-            BDBG_ERR(("%s: ERROR: failed to enable the security decryption", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to enable the security decryption", BSTD_FUNCTION));
             goto error;
         }
-        PRINTMSG_SESSION(("%s: security context is enabled for media segment %p, seq # %d, sec protocol %d, initial encrypted bytes %d", __FUNCTION__, (void *)mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence, openSettings.security.securityProtocol, playback_ip->initial_data_len));
+        PRINTMSG_SESSION(("%s: security context is enabled for media segment %p, seq # %d, sec protocol %d, initial encrypted bytes %d", BSTD_FUNCTION, (void *)mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence, openSettings.security.securityProtocol, playback_ip->initial_data_len));
         playback_ip->initial_data_len = 0; /* initial payload is now given to security layer for later decryption during the read call */
     }
 #endif /* B_HAS_HTTP_AES_SUPPORT */
@@ -1629,7 +1628,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
         memcpy(segmentBuffer->buffer + segmentBuffer->bufferDepth, http_payload, bytesToCopy);
         segmentBuffer->bufferDepth += bytesToCopy;
         downloadContext->totalBytesReadSoFar += bytesToCopy;
-        PRINTMSG_SESSION(("%s: completed, %d bytes of initial data read", __FUNCTION__, playback_ip->initial_data_len));
+        PRINTMSG_SESSION(("%s: completed, %d bytes of initial data read", BSTD_FUNCTION, playback_ip->initial_data_len));
     }
     rc = true;
 
@@ -1660,12 +1659,12 @@ error:
  *****************************************************************************/
 #define MPEGDASH_CREATE_ALLOCATE( destPtr, xmlElem, structType)                                                                             \
     do {                                                                                                                                    \
-        PRINT_XML_DEBUG(("%s: Creating %s Object (%u bytes) for xmlElem: %p", __FUNCTION__, #structType, (int)sizeof (structType), (void *)xmlElem), xmlElem ); \
-        PRINTMSG_OBJECTS(("%s: Creating %s Object (%u bytes) for xmlElem: %p", __FUNCTION__, #structType, (int)sizeof (structType), (void *)xmlElem)); \
+        PRINT_XML_DEBUG(("%s: Creating %s Object (%u bytes) for xmlElem: %p", BSTD_FUNCTION, #structType, (int)sizeof (structType), (void *)xmlElem), xmlElem ); \
+        PRINTMSG_OBJECTS(("%s: Creating %s Object (%u bytes) for xmlElem: %p", BSTD_FUNCTION, #structType, (int)sizeof (structType), (void *)xmlElem)); \
                                                                                                                                             \
         /* Allocate a new Info structure */                                                                                                 \
         if ((destPtr = (structType *)BKNI_Malloc(sizeof (structType))) == NULL) {                                                           \
-            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Info structure", __FUNCTION__, (int)sizeof (structType) )); \
+            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Info structure", BSTD_FUNCTION, (int)sizeof (structType) )); \
             return NULL;                                                                                                                    \
         }                                                                                                                                   \
         memset(destPtr, 0, sizeof (structType) );                                                                                           \
@@ -1687,7 +1686,7 @@ error:
     do {                                                                                                                           \
         B_PlaybackIp_XmlElement xmlElemChild = NULL; /* start with first child element */                                          \
                                                                                                                                    \
-        PRINTMSG_OBJECTS(("%s: Creating Subelement list for %s Objects", __FUNCTION__, #structTypeChild));                         \
+        PRINTMSG_OBJECTS(("%s: Creating Subelement list for %s Objects", BSTD_FUNCTION, #structTypeChild));                         \
                                                                                                                                    \
         BLST_Q_INIT(&listHead);                                                                                                    \
         for (;;)                                                                                                                   \
@@ -1698,7 +1697,7 @@ error:
             xmlElemChild = B_PlaybackIp_XmlElem_FindNextChildSameTag(xmlElemParent, xmlElemChild, xmlTagChild);                    \
             if ( !xmlElemChild) break;    /* No more children... all done. */                                                      \
                                                                                                                                    \
-            PRINT_XML_DEBUG(("%s: Adding %s: %p", __FUNCTION__, #structTypeChild, (void *)xmlElemChild), (void *)xmlElemChild );                   \
+            PRINT_XML_DEBUG(("%s: Adding %s: %p", BSTD_FUNCTION, #structTypeChild, (void *)xmlElemChild), (void *)xmlElemChild );                   \
                                                                                                                                    \
             pNewChild = constructorChild(playback_ip, xmlElemChild);                                                               \
             if (!pNewChild)  goto errorLabel;                                                                                      \
@@ -1718,12 +1717,12 @@ error:
     do {                                                                                                                  \
         B_PlaybackIp_XmlElement xmlElemChild = NULL; /* start with first child element */                                 \
                                                                                                                           \
-        PRINTMSG_OBJECTS(("%s: Creating Subelement for %s Object", __FUNCTION__, #structTypeChild));                      \
+        PRINTMSG_OBJECTS(("%s: Creating Subelement for %s Object", BSTD_FUNCTION, #structTypeChild));                      \
                                                                                                                           \
         xmlElemChild = B_PlaybackIp_XmlElem_FindChild( xmlElemParent, xmlTagChild);                                       \
         if ( xmlElemChild)                                                                                                \
         {                                                                                                                 \
-            PRINT_XML_DEBUG(("%s: Adding %s: %p", __FUNCTION__, #structTypeChild, (void *)xmlElemChild), (void *)xmlElemChild );          \
+            PRINT_XML_DEBUG(("%s: Adding %s: %p", BSTD_FUNCTION, #structTypeChild, (void *)xmlElemChild), (void *)xmlElemChild );          \
             destPtr = constructorChild(playback_ip, xmlElemChild);                                                        \
             if (!destPtr) goto errorLabel;                                                                                \
         }                                                                                                                 \
@@ -1743,7 +1742,7 @@ error:
         for(childInfo = BLST_Q_FIRST(&listHead) ; childInfo ; childInfo = BLST_Q_NEXT(childInfo, linkChild) ) \
         {                                                                                                     \
             childInfo->parentObj = parent;                                                                    \
-            PRINTMSG_OBJECTS(("%s: Set parentObj for %s element", __FUNCTION__, #structTypeChild ));          \
+            PRINTMSG_OBJECTS(("%s: Set parentObj for %s element", BSTD_FUNCTION, #structTypeChild ));          \
         }                                                                                                     \
     } while(0)
 
@@ -1758,7 +1757,7 @@ error:
                                                                                                                                     \
         if (myPtr) {                                                                                                                \
             /* Deallocate the object's structure. */                                                                                \
-            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p, freeing %u bytes", __FUNCTION__, #structType, (void *)myPtr, (int)sizeof (structType))); \
+            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p, freeing %u bytes", BSTD_FUNCTION, #structType, (void *)myPtr, (int)sizeof (structType))); \
             BKNI_Free( myPtr);                                                                                                      \
             myPtr = NULL;                                                                                                           \
         }                                                                                                                           \
@@ -1776,7 +1775,7 @@ error:
         /* Destroy each subelement */                                                                           \
         for(childInfo = BLST_Q_FIRST(&listHead) ; childInfo ; childInfo = BLST_Q_FIRST(&listHead))              \
         {                                                                                                       \
-            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", __FUNCTION__, #structTypeChild, (void *)childInfo ));  \
+            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", BSTD_FUNCTION, #structTypeChild, (void *)childInfo ));  \
             BLST_Q_REMOVE(&listHead, childInfo, linkChild);                                                     \
                                                                                                                 \
             destructorChild(childInfo);                                                                         \
@@ -1793,13 +1792,13 @@ error:
         structTypeChild   * myPtr = destPtr;                                                               \
         /* Destroy the subelement if it exists */                                                          \
         if (myPtr) {                                                                                       \
-            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", __FUNCTION__, #structTypeChild, (void *)myPtr )); \
+            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", BSTD_FUNCTION, #structTypeChild, (void *)myPtr )); \
             destructorChild(myPtr);                                                                        \
             myPtr = NULL;                                                                                  \
         }                                                                                                  \
         else                                                                                               \
         {                                                                                                  \
-            PRINTMSG_OBJECTS(("%s: No %s subelements to destroy", __FUNCTION__, #structTypeChild ));       \
+            PRINTMSG_OBJECTS(("%s: No %s subelements to destroy", BSTD_FUNCTION, #structTypeChild ));       \
         }                                                                                                  \
     } while(0)
 
@@ -2692,7 +2691,7 @@ B_PlaybackIp_MpegDashTemplateStrcpy(
 
     count = strlen(str);
     if (count >= *resultLength) {
-        BDBG_ERR(("%s: URL format buffer overflow for token: %s", __FUNCTION__, pToken));
+        BDBG_ERR(("%s: URL format buffer overflow for token: %s", BSTD_FUNCTION, pToken));
         goto error;
     }
 
@@ -2906,7 +2905,7 @@ B_PlaybackIp_MpegDashCreateUrlFromTemplate(
         }
         else
         {
-            BDBG_ERR(("%s: Unrecognized token in template: \"%s\"", __FUNCTION__, pChar));
+            BDBG_ERR(("%s: Unrecognized token in template: \"%s\"", BSTD_FUNCTION, pChar));
             goto error;
         }
     }
@@ -2915,7 +2914,7 @@ B_PlaybackIp_MpegDashCreateUrlFromTemplate(
      * and malloc it. */
     resultString = (char *)BKNI_Malloc(resultLength);
     if (resultString == NULL) {
-        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for template substitution uri", __FUNCTION__, resultLength));
+        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for template substitution uri", BSTD_FUNCTION, resultLength));
         goto error;
     }
 
@@ -2983,7 +2982,7 @@ B_PlaybackIp_MpegDashCreateUrlFromTemplate(
         }
         else
         {
-            BDBG_ERR(("%s: Unrecognized token in template: \"%s\"", __FUNCTION__, templateStr));
+            BDBG_ERR(("%s: Unrecognized token in template: \"%s\"", BSTD_FUNCTION, templateStr));
             goto error;
         }
     } /* end while */
@@ -2993,7 +2992,7 @@ B_PlaybackIp_MpegDashCreateUrlFromTemplate(
     {
         int fragmentLength = strlen(pChar);
         if (fragmentLength >= resultLength) {
-            BDBG_ERR(("%s: URL format buffer overflow for fragment: %s", __FUNCTION__, pChar));
+            BDBG_ERR(("%s: URL format buffer overflow for fragment: %s", BSTD_FUNCTION, pChar));
             goto error;
         }
         else if (fragmentLength > 0) {
@@ -3009,7 +3008,7 @@ B_PlaybackIp_MpegDashCreateUrlFromTemplate(
     resultLength -= 1;
 
     if (resultLength != 0) {
-        BDBG_ERR(("%s: Unexpected non-zero resultLength=%d for URL template: %s", __FUNCTION__, resultLength, templateStr));
+        BDBG_ERR(("%s: Unexpected non-zero resultLength=%d for URL template: %s", BSTD_FUNCTION, resultLength, templateStr));
     }
 
     return resultString;
@@ -3043,38 +3042,38 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashR
     if (!http_absolute_uri(url)) {
         MpegDashBaseUrlInfo        * baseUrl;
 
-        PRINTMSG_URL(("%s:%d: Non-absolute URI, looking for baseUrl", __FUNCTION__, __LINE__));
+        PRINTMSG_URL(("%s:%d: Non-absolute URI, looking for baseUrl", BSTD_FUNCTION, __LINE__));
 
         /* Look for a BaseUrl in the Representation. */
         baseUrl = BLST_Q_FIRST(&representationInfo->mpegDashBaseUrlInfoHead);
-        if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in Representation: %s", __FUNCTION__, __LINE__, baseUrl->childData));
+        if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in Representation: %s", BSTD_FUNCTION, __LINE__, baseUrl->childData));
 
         if (!baseUrl) {
             MpegDashAdaptationSetInfo   * adaptationSetInfo = representationInfo->parentObj;
 
             /* Look for a BaseUrl in the AdaptationSet. */
             baseUrl = BLST_Q_FIRST(&adaptationSetInfo->mpegDashBaseUrlInfoHead);
-            if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in AdaptationSet: %s", __FUNCTION__, __LINE__, baseUrl->childData));
+            if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in AdaptationSet: %s", BSTD_FUNCTION, __LINE__, baseUrl->childData));
 
             if (!baseUrl) {
                 MpegDashPeriodInfo      * periodInfo = adaptationSetInfo->parentObj;
 
                 /* Look for a BaseUrl in the Period. */
                 baseUrl = BLST_Q_FIRST(&periodInfo->mpegDashBaseUrlInfoHead);
-                if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in Period: %s", __FUNCTION__, __LINE__, baseUrl->childData));
+                if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in Period: %s", BSTD_FUNCTION, __LINE__, baseUrl->childData));
 
                 if (!baseUrl) {
                     MpegDashMpdInfo      * mpdInfo = periodInfo->parentObj;
 
                     /* Look for a BaseUrl in the MPD. */
                     baseUrl = BLST_Q_FIRST(&mpdInfo->mpegDashBaseUrlInfoHead);
-                    PRINTMSG_URL(("%s:%d: baseUrl from MPD: %p", __FUNCTION__, __LINE__, (void *)baseUrl));
-                    if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in MPD: %s", __FUNCTION__, __LINE__, baseUrl->childData));
+                    PRINTMSG_URL(("%s:%d: baseUrl from MPD: %p", BSTD_FUNCTION, __LINE__, (void *)baseUrl));
+                    if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in MPD: %s", BSTD_FUNCTION, __LINE__, baseUrl->childData));
                 }
             }
         }
 
-        if (!baseUrl)   PRINTMSG_URL(("%s:%d: No baseUrl specified", __FUNCTION__, __LINE__));
+        if (!baseUrl)   PRINTMSG_URL(("%s:%d: No baseUrl specified", BSTD_FUNCTION, __LINE__));
 
 
         /* If we found a BaseUrl, apply it to the current URI. */
@@ -3083,31 +3082,31 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashR
 
             /* build complete url using baseUrl. */
 
-            PRINTMSG_URL(("%s:%d: Found BaseUrl=%p", __FUNCTION__, __LINE__, (void *)baseUrl));
-            PRINTMSG_URL(("%s:%d: baseUrl->byteRange=%s", __FUNCTION__, __LINE__, baseUrl->byteRange));
-            PRINTMSG_URL(("%s:%d: baseUrl->serviceLocation=%s", __FUNCTION__, __LINE__, baseUrl->serviceLocation));
-            PRINTMSG_URL(("%s:%d: baseUrl->childData=%s", __FUNCTION__, __LINE__, baseUrl->childData));
+            PRINTMSG_URL(("%s:%d: Found BaseUrl=%p", BSTD_FUNCTION, __LINE__, (void *)baseUrl));
+            PRINTMSG_URL(("%s:%d: baseUrl->byteRange=%s", BSTD_FUNCTION, __LINE__, baseUrl->byteRange));
+            PRINTMSG_URL(("%s:%d: baseUrl->serviceLocation=%s", BSTD_FUNCTION, __LINE__, baseUrl->serviceLocation));
+            PRINTMSG_URL(("%s:%d: baseUrl->childData=%s", BSTD_FUNCTION, __LINE__, baseUrl->childData));
 
             if (baseUrl->childData) {
                 returnCode = mpegDash_parse_absolute_url(&protocol, &server, &port, &partialUri, (char *)baseUrl->childData);
                 if (returnCode == false) {
-                    BDBG_ERR(("%s:%d Failed to parse BaseUrl: %s", __FUNCTION__, __LINE__, baseUrl->childData ));
+                    BDBG_ERR(("%s:%d Failed to parse BaseUrl: %s", BSTD_FUNCTION, __LINE__, baseUrl->childData ));
                     goto error;
                 }
                 if (protocol != B_PlaybackIpProtocol_eHttp && protocol != B_PlaybackIpProtocol_eHttps) {
-                    BDBG_ERR(("%s:%d BaseUrl has non-HTTP protocol: %s", __FUNCTION__, __LINE__, baseUrl->childData));
+                    BDBG_ERR(("%s:%d BaseUrl has non-HTTP protocol: %s", BSTD_FUNCTION, __LINE__, baseUrl->childData));
                     goto error;
                 }
 
-                PRINTMSG_URL(("%s: Using BaseUrl: %s", __FUNCTION__, baseUrl->childData ));
+                PRINTMSG_URL(("%s: Using BaseUrl: %s", BSTD_FUNCTION, baseUrl->childData ));
                 if ((newUri = B_PlaybackIp_MpegDashBuildAbsoluteUri(server, port, partialUri,  url)) == NULL) {
-                    BDBG_ERR(("Failed to build URI at %s:%d", __FUNCTION__, __LINE__));
+                    BDBG_ERR(("Failed to build URI at %s:%d", BSTD_FUNCTION, __LINE__));
                     goto error;
                 }
                 BKNI_Free(url);
                 url = newUri;
 
-                PRINTMSG_URL(("%s: Used BaseUrl to build Absolute Uri: %s", __FUNCTION__, url ));
+                PRINTMSG_URL(("%s: Used BaseUrl to build Absolute Uri: %s", BSTD_FUNCTION, url ));
             }
         }
 
@@ -3116,15 +3115,15 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashR
             char *  newUri;
 
             /* relative url, build complete url using server ip address & port # */
-            PRINTMSG_URL(("%s: media segment URI is not absolute URI, using server and port from MPD URL.", __FUNCTION__));
+            PRINTMSG_URL(("%s: media segment URI is not absolute URI, using server and port from MPD URL.", BSTD_FUNCTION));
             if ((newUri = B_PlaybackIp_MpegDashBuildAbsoluteUri(mpegDashSession->server, mpegDashSession->port, mpegDashSession->uri, url)) == NULL) {
-                BDBG_ERR(("Failed to build URI at %s:%d", __FUNCTION__, __LINE__));
+                BDBG_ERR(("Failed to build URI at %s:%d", BSTD_FUNCTION, __LINE__));
                 goto error;
             }
             BKNI_Free(url);
             url = newUri;
 
-            PRINTMSG_URL(("%s: Used MPD server/port/url to build Absolute Uri: %s", __FUNCTION__, url ));
+            PRINTMSG_URL(("%s: Used MPD server/port/url to build Absolute Uri: %s", BSTD_FUNCTION, url ));
         }
     }
 
@@ -3160,7 +3159,7 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
 
         /* GARYWASHERE: Add handling for SegmentBase segments. */
 
-        BDBG_ERR(("%s: Can't handle SegmentBase segments yet!", __FUNCTION__));
+        BDBG_ERR(("%s: Can't handle SegmentBase segments yet!", BSTD_FUNCTION));
         goto error;
     }
     else if (segmentList) {
@@ -3194,7 +3193,7 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
         }
         else
         {
-            BDBG_ERR(("%s: Invalid urlKind: %u", __FUNCTION__, urlKind));
+            BDBG_ERR(("%s: Invalid urlKind: %u", BSTD_FUNCTION, urlKind));
             goto error;
         }
 
@@ -3207,11 +3206,11 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
                                                              0,
                                                              0);
 
-            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", __FUNCTION__, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", BSTD_FUNCTION, __LINE__, url));
 
             url = B_PlaybackIp_MpegDashCreateAbsoluteUrl(playback_ip, representationSeekCtx->representationInfo,  url);
 
-            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", __FUNCTION__, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", BSTD_FUNCTION, __LINE__, url));
         }
 
     }
@@ -3249,7 +3248,7 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
         }
         else
         {
-            BDBG_ERR(("%s: Invalid urlKind: %u", __FUNCTION__, urlKind));
+            BDBG_ERR(("%s: Invalid urlKind: %u", BSTD_FUNCTION, urlKind));
             goto error;
         }
 
@@ -3260,7 +3259,7 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
 
         if (templateUrl) {
             /* Start by building a URI by substituting the appropriate values into the template. */
-            PRINTMSG_URL(("%s:%d: TemplateUrl=%s", __FUNCTION__, __LINE__, templateUrl));
+            PRINTMSG_URL(("%s:%d: TemplateUrl=%s", BSTD_FUNCTION, __LINE__, templateUrl));
 
             url = B_PlaybackIp_MpegDashCreateUrlFromTemplate(playback_ip,
                                                              templateUrl,
@@ -3269,16 +3268,16 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
                                                              representationSeekCtx->representationInfo->bandwidthNumeric,
                                                              representationSeekCtx->segmentTimelineTime);
 
-            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", __FUNCTION__, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", BSTD_FUNCTION, __LINE__, url));
 
             url = B_PlaybackIp_MpegDashCreateAbsoluteUrl(playback_ip, representationSeekCtx->representationInfo,  url);
 
-            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", __FUNCTION__, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", BSTD_FUNCTION, __LINE__, url));
         }
     }
     else
     {
-        BDBG_ERR(("%s: Representation has no segmentBase, segmentList, or segmentTemplate!", __FUNCTION__));
+        BDBG_ERR(("%s: Representation has no segmentBase, segmentList, or segmentTemplate!", BSTD_FUNCTION));
         goto error;
     }
 
@@ -3304,7 +3303,7 @@ B_PlaybackIp_MpegDashFreeMediaFileSegmentInfo(MediaFileSegmentInfo *mediaFileSeg
         BKNI_Free(mediaFileSegmentInfo->server);
         mediaFileSegmentInfo->server = NULL;
     }
-    PRINTMSG_DOWNLOAD(("%s: freed mediaFileSegmentInfo entry %p", __FUNCTION__, (void *)mediaFileSegmentInfo));
+    PRINTMSG_DOWNLOAD(("%s: freed mediaFileSegmentInfo entry %p", BSTD_FUNCTION, (void *)mediaFileSegmentInfo));
     BKNI_Free(mediaFileSegmentInfo);
 }
 
@@ -3326,11 +3325,11 @@ B_PlaybackIp_MpegDashCreateMediaFileSegmentInfoFromSeek(B_PlaybackIpHandle playb
     /* Create a MediaFileSegmentInfo struct using the info from the requestSeekCtx. */
     mediaFileSegmentInfo = (MediaFileSegmentInfo *)BKNI_Malloc(sizeof(MediaFileSegmentInfo));
     if (mediaFileSegmentInfo  == NULL) {
-        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for media segment info structure", __FUNCTION__, (int)sizeof(MediaFileSegmentInfo)));
+        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for media segment info structure", BSTD_FUNCTION, (int)sizeof(MediaFileSegmentInfo)));
         goto error;
     }
 
-    PRINTMSG_SEEK(("%s: allocated %d bytes of memory for media segment info: %p", __FUNCTION__, (int)sizeof(MediaFileSegmentInfo), (void *)mediaFileSegmentInfo));
+    PRINTMSG_SEEK(("%s: allocated %d bytes of memory for media segment info: %p", BSTD_FUNCTION, (int)sizeof(MediaFileSegmentInfo), (void *)mediaFileSegmentInfo));
 
     memset(mediaFileSegmentInfo, 0, sizeof(MediaFileSegmentInfo));
 
@@ -3344,8 +3343,8 @@ B_PlaybackIp_MpegDashCreateMediaFileSegmentInfoFromSeek(B_PlaybackIpHandle playb
             /* Convert duration from timescale units to milliseconds. */
             mediaFileSegmentInfo->duration = (representationSeekCtx->durationInTimescaleUnits * 1000) / representationSeekCtx->timescale;
 
-            PRINTMSG_SEEK(("%s:%d: mediaFileSegmentInfo->mediaSequence=%d", __FUNCTION__, __LINE__, mediaFileSegmentInfo->mediaSequence));
-            PRINTMSG_SEEK(("%s:%d: mediaFileSegmentInfo->duration=%lu", __FUNCTION__, __LINE__, mediaFileSegmentInfo->duration));
+            PRINTMSG_SEEK(("%s:%d: mediaFileSegmentInfo->mediaSequence=%d", BSTD_FUNCTION, __LINE__, mediaFileSegmentInfo->mediaSequence));
+            PRINTMSG_SEEK(("%s:%d: mediaFileSegmentInfo->duration=%lu", BSTD_FUNCTION, __LINE__, mediaFileSegmentInfo->duration));
 
             break;
 
@@ -3359,7 +3358,7 @@ B_PlaybackIp_MpegDashCreateMediaFileSegmentInfoFromSeek(B_PlaybackIpHandle playb
     mediaFileSegmentInfo->absoluteUri = B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(playback_ip, representationSeekCtx, urlKind);
 
     if (!mediaFileSegmentInfo->absoluteUri) {
-        PRINTMSG_SEEK(("%s: Could not build URI for current seek context", __FUNCTION__));
+        PRINTMSG_SEEK(("%s: Could not build URI for current seek context", BSTD_FUNCTION));
         goto error;
     }
 
@@ -3369,18 +3368,18 @@ B_PlaybackIp_MpegDashCreateMediaFileSegmentInfoFromSeek(B_PlaybackIpHandle playb
                                  &mediaFileSegmentInfo->uri,
                                  mediaFileSegmentInfo->absoluteUri) == false )
     {
-        BDBG_ERR(("%s: Failed to parse URI", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to parse URI", BSTD_FUNCTION));
         goto error;
     }
 
     if ( mediaFileSegmentInfo->protocol != B_PlaybackIpProtocol_eHttp &&
          mediaFileSegmentInfo->protocol != B_PlaybackIpProtocol_eHttps )
     {
-        BDBG_ERR(("%s:%d URI is for non-HTTP(S) protocol", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s:%d URI is for non-HTTP(S) protocol", BSTD_FUNCTION, __LINE__));
         goto error;
     }
 
-    PRINTMSG_SEEK(("%s:%d : Built mediaFileSegmentInfo: uri: %s ", __FUNCTION__, __LINE__, mediaFileSegmentInfo->absoluteUri   ));
+    PRINTMSG_SEEK(("%s:%d : Built mediaFileSegmentInfo: uri: %s ", BSTD_FUNCTION, __LINE__, mediaFileSegmentInfo->absoluteUri   ));
     return mediaFileSegmentInfo;
 
 error:
@@ -3420,7 +3419,7 @@ b_segment_buffer_random_write_write(bfile_io_random_write_t fd, const void *buf,
     size_t myLength;
 
     BDBG_OBJECT_ASSERT(f, bfile_io_random_write_segment_buffer);
-    PRINTMSG_SEGBUF_WRITE(("%s:%d:  %#lx %lu:%u", __FUNCTION__, __LINE__, (unsigned long)fd, (unsigned long)(f->pos), (unsigned)length));
+    PRINTMSG_SEGBUF_WRITE(("%s:%d:  %#lx %lu:%u", BSTD_FUNCTION, __LINE__, (unsigned long)fd, (unsigned long)(f->pos), (unsigned)length));
 
     if(!f->segmentBuffer)  return -1;
 
@@ -3725,7 +3724,7 @@ B_PlaybackIp_MpegDashCreateSubboxAtom(B_PlaybackIpHandle playback_ip, batom_t pa
 
     batom_cursor_from_atom(&cursor, parentAtom);
 
-    PRINTMSG_PROBE(("%s:%d : Looking for "B_MP4_TYPE_FORMAT" box...", __FUNCTION__, __LINE__ , B_MP4_TYPE_ARG(subboxType)));
+    PRINTMSG_PROBE(("%s:%d : Looking for "B_MP4_TYPE_FORMAT" box...", BSTD_FUNCTION, __LINE__ , B_MP4_TYPE_ARG(subboxType)));
     for(;;)
     {
         bmp4_box        box;
@@ -3737,7 +3736,7 @@ B_PlaybackIp_MpegDashCreateSubboxAtom(B_PlaybackIpHandle playback_ip, batom_t pa
         }
 
         if(box.type == subboxType) {
-            PRINTMSG_PROBE(("%s:%d : Found "B_MP4_TYPE_FORMAT" box! Size: %"PRIu64, __FUNCTION__, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
+            PRINTMSG_PROBE(("%s:%d : Found "B_MP4_TYPE_FORMAT" box! Size: %"PRIu64, BSTD_FUNCTION, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
 
             batom_cursor_clone(&cursor_end, &cursor);
             batom_cursor_skip(&cursor_end, box.size - box_hdr_size);
@@ -3748,10 +3747,10 @@ B_PlaybackIp_MpegDashCreateSubboxAtom(B_PlaybackIpHandle playback_ip, batom_t pa
         /* Not the box we want, skip it and look at next one. */
         if(box.size>box_hdr_size) {
             size_t  skipcount = box.size - box_hdr_size;
-            PRINTMSG_PROBE(("%s:%d : Found "B_MP4_TYPE_FORMAT" box. Size: %"PRIu64", Skipping...", __FUNCTION__, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
+            PRINTMSG_PROBE(("%s:%d : Found "B_MP4_TYPE_FORMAT" box. Size: %"PRIu64", Skipping...", BSTD_FUNCTION, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
 
             if (skipcount != batom_cursor_skip(&cursor, skipcount) ) {
-                BDBG_WRN(("%s:%d : Can't find "B_MP4_TYPE_FORMAT" box", __FUNCTION__, __LINE__,B_MP4_TYPE_ARG(subboxType) ));
+                BDBG_WRN(("%s:%d : Can't find "B_MP4_TYPE_FORMAT" box", BSTD_FUNCTION, __LINE__,B_MP4_TYPE_ARG(subboxType) ));
                 break;
             }
         }
@@ -3789,7 +3788,7 @@ B_PlaybackIp_MpegDashParseMvhdForStream(B_PlaybackIpHandle playback_ip, MpegDash
 
     if (!atom_mvhd)
     {
-        BDBG_ERR(("%s: Can't find Movie Header (mvhd) box in Movie (moov) box!", __FUNCTION__));
+        BDBG_ERR(("%s: Can't find Movie Header (mvhd) box in Movie (moov) box!", BSTD_FUNCTION));
         batom_dump(atom_moov, "moov box");
         goto error;
     }
@@ -3797,7 +3796,7 @@ B_PlaybackIp_MpegDashParseMvhdForStream(B_PlaybackIpHandle playback_ip, MpegDash
     /* Parse the Movie Header box into the caller's buffer. */
     if (!bmp4_parse_movieheader(atom_mvhd, movieheader))
     {
-        BDBG_ERR(("%s: Can't parse Movie Header (mvhd) box!", __FUNCTION__));
+        BDBG_ERR(("%s: Can't parse Movie Header (mvhd) box!", BSTD_FUNCTION));
         batom_dump(atom_mvhd, "mvhd box");
         goto error;
     }
@@ -3839,7 +3838,7 @@ B_PlaybackIp_MpegDashParseMdhdForTrackid(B_PlaybackIpHandle playback_ip, MpegDas
     /* Parse the Media Header box into the caller's buffer. */
     if (!bmp4_parse_mediaheader(atom_mdhd, mediaheader))
     {
-        BDBG_ERR(("%s: Can't parse Media Header (mdhd) box for trackID: %u!", __FUNCTION__, trackId));
+        BDBG_ERR(("%s: Can't parse Media Header (mdhd) box for trackID: %u!", BSTD_FUNCTION, trackId));
         batom_dump(atom_mdhd, "mdhd box");
         goto error;
     }
@@ -3879,7 +3878,7 @@ B_PlaybackIp_MpegDashParseTrexForTrackid(B_PlaybackIpHandle playback_ip, MpegDas
      * box for the Track_ID that we're interested in. */
     batom_cursor_from_atom(&cursor, atom_mvex);
 
-    PRINTMSG_PROBE(("%s:%d : Looking for Track Extends (trex) box...", __FUNCTION__, __LINE__));
+    PRINTMSG_PROBE(("%s:%d : Looking for Track Extends (trex) box...", BSTD_FUNCTION, __LINE__));
     for(;;)
     {
         bmp4_box                box;
@@ -3893,7 +3892,7 @@ B_PlaybackIp_MpegDashParseTrexForTrackid(B_PlaybackIpHandle playback_ip, MpegDas
 
         if(box.type == BMP4_TYPE('t','r','e','x'))
         {
-            PRINTMSG_PROBE(("%s:%d : Found a "B_MP4_TYPE_FORMAT" box! Size: %"PRIu64, __FUNCTION__, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
+            PRINTMSG_PROBE(("%s:%d : Found a "B_MP4_TYPE_FORMAT" box! Size: %"PRIu64, BSTD_FUNCTION, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
 
             /* We have the trex box.  Now make it into a batom so we can
              * parse it. */
@@ -3905,7 +3904,7 @@ B_PlaybackIp_MpegDashParseTrexForTrackid(B_PlaybackIpHandle playback_ip, MpegDas
             {
                 /* We can't parse this trex box, but don't give up... it might
                  * not be the one that we're looking for, so keep looking. */
-                BDBG_ERR(("%s: Can't parse Track Extends (trex) box!", __FUNCTION__));
+                BDBG_ERR(("%s: Can't parse Track Extends (trex) box!", BSTD_FUNCTION));
                 batom_dump(atom_trex, "trex box");
             }
             else
@@ -3915,7 +3914,7 @@ B_PlaybackIp_MpegDashParseTrexForTrackid(B_PlaybackIpHandle playback_ip, MpegDas
                  * looking at any other trex boxes. */
                 if (my_track_extends.track_ID == track_ID)
                 {
-                    PRINTMSG_PROBE(("%s:%d : Found the Track Extends (trex) box for track ID: %u! Size: %"PRIu64, __FUNCTION__, __LINE__ , track_ID, box.size - box_hdr_size  ));
+                    PRINTMSG_PROBE(("%s:%d : Found the Track Extends (trex) box for track ID: %u! Size: %"PRIu64, BSTD_FUNCTION, __LINE__ , track_ID, box.size - box_hdr_size  ));
                     BKNI_Memcpy(trackextends, &my_track_extends, sizeof *trackextends);
                     break;
                 }
@@ -3924,7 +3923,7 @@ B_PlaybackIp_MpegDashParseTrexForTrackid(B_PlaybackIpHandle playback_ip, MpegDas
 
         if(box.size>box_hdr_size) {
             size_t  skipcount = box.size - box_hdr_size;
-            PRINTMSG_PROBE(("%s:%d : Found "B_MP4_TYPE_FORMAT" box. Size: %"PRIu64", Skipping...", __FUNCTION__, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
+            PRINTMSG_PROBE(("%s:%d : Found "B_MP4_TYPE_FORMAT" box. Size: %"PRIu64", Skipping...", BSTD_FUNCTION, __LINE__ , B_MP4_TYPE_ARG(box.type), box.size - box_hdr_size));
 
             if (skipcount != batom_cursor_skip(&cursor, skipcount) ) {
                 goto error;
@@ -3936,7 +3935,7 @@ B_PlaybackIp_MpegDashParseTrexForTrackid(B_PlaybackIpHandle playback_ip, MpegDas
     return true;
 
 error:
-    BDBG_WRN(("%s:%d : Can't find Track Extends (trex) box for track_ID:%u", __FUNCTION__, __LINE__, track_ID));
+    BDBG_WRN(("%s:%d : Can't find Track Extends (trex) box for track_ID:%u", BSTD_FUNCTION, __LINE__, track_ID));
     if (atom_mvex) {batom_release(atom_mvex);}
     if (atom_trex) {batom_release(atom_trex);}
     return false;
@@ -3989,7 +3988,7 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
         handler_type = BMP4_HANDLER_AUDIO;
         break;
     default:
-        BDBG_ERR(("%s: Track is not audio or video!", __FUNCTION__));
+        BDBG_ERR(("%s: Track is not audio or video!", BSTD_FUNCTION));
         goto error;
     }
 
@@ -3997,14 +3996,14 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
      * sub-boxes into a bmp4_sampleentry structure. */
     if (!bmp4_parse_sample_info(atom_stsd, &sample_info, handler_type))
     {
-        BDBG_ERR(("%s: Can't parse Sample Description (stsd) box!", __FUNCTION__));
+        BDBG_ERR(("%s: Can't parse Sample Description (stsd) box!", BSTD_FUNCTION));
         batom_dump(atom_stsd, "stsd box");
         goto error;
     }
     sample_info_valid = true;
     sampleentry = sample_info.entries[0];
 
-    PRINTMSG_PROBE(("%s:%d : Getting Decoder Specific Data for Sample Entry: "B_MP4_TYPE_FORMAT, __FUNCTION__, __LINE__, B_MP4_TYPE_ARG(sampleentry->type) ));
+    PRINTMSG_PROBE(("%s:%d : Getting Decoder Specific Data for Sample Entry: "B_MP4_TYPE_FORMAT, BSTD_FUNCTION, __LINE__, B_MP4_TYPE_ARG(sampleentry->type) ));
 
     /* Extract the Decoder Specific Info according to the sample
      * type. */
@@ -4018,7 +4017,7 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
         case bmp4_sample_type_avc:
         case bmp4_sample_type_hevc:
         {
-            PRINTMSG_PROBE(("%s:%d: SampleType: AVC/HEVC", __FUNCTION__, __LINE__));
+            PRINTMSG_PROBE(("%s:%d: SampleType: AVC/HEVC", BSTD_FUNCTION, __LINE__));
 
             /* Use a cursor to find the start of the avcC or hvcC box. */
             batom_cursor_from_atom(&cursor, atom_stsd);
@@ -4034,7 +4033,7 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
             decSpecInfoAddr = BATOM_CONTINUOUS(&cursor, decSpecInfoLen );
             if (!decSpecInfoAddr)
             {
-                BDBG_ERR(("%s: Can't get address of Decoder Specific Info for track %u!", __FUNCTION__, trackId));
+                BDBG_ERR(("%s: Can't get address of Decoder Specific Info for track %u!", BSTD_FUNCTION, trackId));
                 goto error;
             }
             break;
@@ -4046,7 +4045,7 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
         {
             bmpeg4_es_descriptor  *descriptor = &sampleentry->codec.mp4a.mpeg4;
 
-            PRINTMSG_PROBE(("%s:%d: SampleType: mp4a", __FUNCTION__, __LINE__));
+            PRINTMSG_PROBE(("%s:%d: SampleType: mp4a", BSTD_FUNCTION, __LINE__));
 
             if (descriptor->objectTypeIndication == BMPEG4_Audio_ISO_IEC_14496_3 ||
                 descriptor->objectTypeIndication == BMPEG4_Audio_ISO_IEC_13818_7)
@@ -4075,7 +4074,7 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
     if (decSpecInfoLen > 0 && *pDecSpecInfoLen == 0) {
         *pDecSpecInfoAddr = BKNI_Malloc(decSpecInfoLen);
         if (!*pDecSpecInfoAddr) {
-            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Decoder Specific Info", __FUNCTION__, (int)decSpecInfoLen));
+            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Decoder Specific Info", BSTD_FUNCTION, (int)decSpecInfoLen));
             goto error;
         }
         *pDecSpecInfoLen = decSpecInfoLen;
@@ -4096,7 +4095,7 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
                ((sampleentry->type <<  8) & 0x00ff0000) |
                ((sampleentry->type << 24) & 0xff000000);
 
-    PRINTMSG_PROBE(("%s:%d : Sample Type: "B_MP4_TYPE_FORMAT" fourcc: "BMEDIA_FOURCC_FORMAT, __FUNCTION__, __LINE__, B_MP4_TYPE_ARG(sampleentry->type), BMEDIA_FOURCC_ARG(*pFourcc)));
+    PRINTMSG_PROBE(("%s:%d : Sample Type: "B_MP4_TYPE_FORMAT" fourcc: "BMEDIA_FOURCC_FORMAT, BSTD_FUNCTION, __LINE__, B_MP4_TYPE_ARG(sampleentry->type), BMEDIA_FOURCC_ARG(*pFourcc)));
 
 
     if (sample_info_valid){bmp4_free_sample_info(&sample_info);}
@@ -4570,7 +4569,7 @@ B_PlaybackIp_MpegDashSelectPeriod(B_PlaybackIpHandle playback_ip, MpegDashMpdInf
 
         if (!thisPeriodStartIsValid )
         {
-            BDBG_WRN(("%s:%d : Skipping period: index: %d, id: %s. Can't determine start time.", __FUNCTION__, __LINE__, periodIdx, periodInfo->id ));
+            BDBG_WRN(("%s:%d : Skipping period: index: %d, id: %s. Can't determine start time.", BSTD_FUNCTION, __LINE__, periodIdx, periodInfo->id ));
         }
 
         /* We may have chosen a Period from a prior iteration, but it might
@@ -4798,7 +4797,7 @@ B_PlaybackIp_MpegDashSelectRepresentation(B_PlaybackIpHandle playback_ip, MpegDa
 
     unsigned                    availableNetworkBandwidth = availableNetworkBandwidthInKbps * 1000;
 
-    BDBG_NUL(("%s:%d: Entry: availableNetworkBandwidth=%u", __FUNCTION__, __LINE__, availableNetworkBandwidth));
+    BDBG_NUL(("%s:%d: Entry: availableNetworkBandwidth=%u", BSTD_FUNCTION, __LINE__, availableNetworkBandwidth));
     /* Iterate through Representations in this AdaptationSet */
     for(representationInfo = BLST_Q_FIRST(&adaptationSetInfo->mpegDashRepresentationInfoHead) ; representationInfo ; representationInfo = BLST_Q_NEXT(representationInfo, nextRepresentationInfo))
     {
@@ -4850,7 +4849,7 @@ B_PlaybackIp_MpegDashSelectRepresentation(B_PlaybackIpHandle playback_ip, MpegDa
 
     if ( ! bestRepresentationInfo)
     {
-        BDBG_ERR(("%s: Can't find any usable Representations under AdaptationSet element", __FUNCTION__));
+        BDBG_ERR(("%s: Can't find any usable Representations under AdaptationSet element", BSTD_FUNCTION));
     }
     else
     {
@@ -4895,31 +4894,31 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
 
         if (count  < 12) {      /* From 0 to 7 secs, Starz logo and Cars 2 title screen. */
             availableBandwidthInKbps = 1000;
-            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else if (count  < 18) { /* From 7 to 14 secs, Finn McMissile swings down, drives around, ends when he meets the green Gremlin. */
             availableBandwidthInKbps = 300;
-            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else if (count  < 32) { /* From 14 to 28 secs, Finn chases Gremlin, ends with Gremlin about to fly out of the parking garage. */
             availableBandwidthInKbps = 2000;
-            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else if (count  < 38) { /* After 28 seconds, starts with Gremlin flying out of the parking garage, Finn continues up, releases barrels, things explode. */
             availableBandwidthInKbps = 300;
-            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else if (count  < 50) {
             availableBandwidthInKbps = 300;
-            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else if (count  < 60) {
             availableBandwidthInKbps = 300;
-            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else {
             availableBandwidthInKbps = 300;
-            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_LOG(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
     }
 #elif 0  /* ==================== GARYWASHERE - Start of Modified Code ==================== */
@@ -4937,15 +4936,15 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
 
         if (count%12 < 4 ) {
             availableBandwidthInKbps = 1000;
-            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else if (count%12 < 8) {
             availableBandwidthInKbps = 1000;
-            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
         else {
             availableBandwidthInKbps = 300;
-            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
         }
     }
 
@@ -4957,15 +4956,15 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
 
         if (count <= 4) {
             availableBandwidthInKbps = 7200;
-            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps (count:%u)", __FUNCTION__, __LINE__, availableBandwidthInKbps, count  ));
+            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps (count:%u)", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps, count  ));
         }
         else if (count <= 5) {
             availableBandwidthInKbps = 2400;
-            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps (count:%u)", __FUNCTION__, __LINE__, availableBandwidthInKbps, count  ));
+            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps (count:%u)", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps, count  ));
         }
         else {
             availableBandwidthInKbps = 2400;
-            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps (count:%u)", __FUNCTION__, __LINE__, availableBandwidthInKbps, count  ));
+            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps (count:%u)", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps, count  ));
         }
     }
 
@@ -4976,7 +4975,7 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
             availableBandwidthInKbps = 10000;  /* badminton 2560x1440 */
             availableBandwidthInKbps = 22000;  /* badminton 3200x1800 */
             availableBandwidthInKbps = 30000;  /* badminton 3840x2160 */
-            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
+            BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", BSTD_FUNCTION, __LINE__, availableBandwidthInKbps   ));
     }
 
 #endif /* ==================== GARYWASHERE - End of Modified Code   ==================== */
@@ -4986,14 +4985,14 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
 
     if (!audioAdaptationSet && !videoAdaptationSet) {
         /* If neither audio nor video, there's nothing we can do, must be an error. */
-        BDBG_ERR(("%s: No audio or video representation... Can't seek!", __FUNCTION__));
+        BDBG_ERR(("%s: No audio or video representation... Can't seek!", BSTD_FUNCTION));
         goto selectError;
     }
     else if (audioAdaptationSet && !videoAdaptationSet) {
         /* If only audio, choose an audio Representation using all available bandwidth. */
         audioRepresentationInfo = B_PlaybackIp_MpegDashSelectRepresentation(playback_ip, audioAdaptationSet, availableBandwidthInKbps);
         if (!audioRepresentationInfo) {
-            BDBG_ERR(("%s: Can't find any usable Audio Representations", __FUNCTION__));
+            BDBG_ERR(("%s: Can't find any usable Audio Representations", BSTD_FUNCTION));
             goto selectError;
         }
     }
@@ -5001,7 +5000,7 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
         /* If only video, choose a video Representation using all available bandwidth. */
         videoRepresentationInfo = B_PlaybackIp_MpegDashSelectRepresentation(playback_ip, videoAdaptationSet, availableBandwidthInKbps);
         if (!videoRepresentationInfo) {
-            BDBG_ERR(("%s: Can't find any usable Audio Representations", __FUNCTION__));
+            BDBG_ERR(("%s: Can't find any usable Audio Representations", BSTD_FUNCTION));
             goto selectError;
         }
     }
@@ -5013,7 +5012,7 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
              * Representation from it and use it for both. */
             videoRepresentationInfo = B_PlaybackIp_MpegDashSelectRepresentation(playback_ip, videoAdaptationSet, availableBandwidthInKbps);
             if (!videoRepresentationInfo) {
-                BDBG_ERR(("%s: Can't find any usable Audio Representations", __FUNCTION__));
+                BDBG_ERR(("%s: Can't find any usable Audio Representations", BSTD_FUNCTION));
                 goto selectError;
             }
             audioRepresentationInfo = videoRepresentationInfo;
@@ -5027,7 +5026,7 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
 
             audioRepresentationInfo = B_PlaybackIp_MpegDashSelectRepresentation(playback_ip, audioAdaptationSet, audioBandwidthInKbps);
             if (!audioRepresentationInfo) {
-                BDBG_ERR(("%s: Can't find any usable audio Representations", __FUNCTION__));
+                BDBG_ERR(("%s: Can't find any usable audio Representations", BSTD_FUNCTION));
                 goto selectError;
             }
 
@@ -5042,7 +5041,7 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
              * audio Representation from it's AdaptationSet.   */
             videoRepresentationInfo = B_PlaybackIp_MpegDashSelectRepresentation(playback_ip, videoAdaptationSet, availableBandwidthInKbps);
             if (!videoRepresentationInfo) {
-                BDBG_ERR(("%s: Can't find any usable video Representations", __FUNCTION__));
+                BDBG_ERR(("%s: Can't find any usable video Representations", BSTD_FUNCTION));
                 goto selectError;
             }
         }
@@ -5098,7 +5097,7 @@ B_PlaybackIp_MpegDashParseMpd(B_PlaybackIpHandle playback_ip, MpegDashMpdInfo **
     PRINT_XML_DEBUG(("XML Root Node: %p", (void *)xmlElemRoot), xmlElemRoot );
     if (!xmlElemRoot)
     {
-        BDBG_ERR(("%s: XML Parser Failed to parse the MPD file", __FUNCTION__));
+        BDBG_ERR(("%s: XML Parser Failed to parse the MPD file", BSTD_FUNCTION));
         goto mpd_parse_failed;
     }
 
@@ -5107,7 +5106,7 @@ B_PlaybackIp_MpegDashParseMpd(B_PlaybackIpHandle playback_ip, MpegDashMpdInfo **
     PRINT_XML_DEBUG(("MPD Element: %p", (void *)xmlElemMpd), xmlElemMpd );
     if (!xmlElemMpd)
     {
-        BDBG_ERR(("%s: Can't find top-level MPD element", __FUNCTION__));
+        BDBG_ERR(("%s: Can't find top-level MPD element", BSTD_FUNCTION));
         goto mpd_parse_failed;
     }
 
@@ -5122,12 +5121,12 @@ B_PlaybackIp_MpegDashParseMpd(B_PlaybackIpHandle playback_ip, MpegDashMpdInfo **
 
     *pMpdInfo = mpdInfo;    /* Give caller the pointer to the new MPD object. */
 
-    PRINTMSG_XML(("%s: finished parsing MPD file", __FUNCTION__));
+    PRINTMSG_XML(("%s: finished parsing MPD file", BSTD_FUNCTION));
     BDBG_LEAVE(B_PlaybackIp_MpegDashParseMpd);
     return true;    /* true => success return code */
 
 mpd_parse_failed:
-    BDBG_ERR(("%s: Abandoning MPD processing!", __FUNCTION__));
+    BDBG_ERR(("%s: Abandoning MPD processing!", BSTD_FUNCTION));
     /* fall through to "error:" return. */
 
     BDBG_LEAVE(B_PlaybackIp_MpegDashParseMpd);
@@ -5188,7 +5187,7 @@ B_PlaybackIp_MpegDashSegmentTimelineLookup(
 
         BDBG_NUL(("Iterating...  "  MPEG_DASH_SEGMENTTIMELINEELEM_TO_PRINTF_ARGS(segmentTimelineElem)   ));
 
-        BDBG_NUL(("%s:%d : SegmentNumber: %ld  PeriodTime: %"PRIu64"  EPT: %"PRIu64"", __FUNCTION__, __LINE__ , elemsSegmentNumber, elemsPeriodTimeInTimescaleUnits, elemsEptInTimescaleUnits   ));
+        BDBG_NUL(("%s:%d : SegmentNumber: %ld  PeriodTime: %"PRIu64"  EPT: %"PRIu64"", BSTD_FUNCTION, __LINE__ , elemsSegmentNumber, elemsPeriodTimeInTimescaleUnits, elemsEptInTimescaleUnits   ));
 
         /* Check to see if this element spans the period time we're
          * looking for. */
@@ -5624,7 +5623,7 @@ NEXUS_PlaypumpHandle B_PlaybackIp_MpegDashGetPlaypumpHandle(
     }
     else
     {
-        BDBG_ERR(("%s: Invalid PidType=%d, Can't determine playpump handle!", __FUNCTION__, pidType));
+        BDBG_ERR(("%s: Invalid PidType=%d, Can't determine playpump handle!", BSTD_FUNCTION, pidType));
         return NULL;
     }
 
@@ -5954,13 +5953,11 @@ static B_PlaybackIpError
 B_PlaybackIp_MpegDashSeekSwitchAdaptationSet(B_PlaybackIpHandle playback_ip, MpegDashSeekContext * requestSeekCtx)
 {
     char                               * myFuncName = "SwitchAdaptationSet";
-    MpegDashRepresentationInfo         * representationInfo;
     MpegDashRepresentationSeekContext  * representationSeekCtx;
 
     BSTD_UNUSED(playback_ip);
 
     representationSeekCtx = requestSeekCtx->currentRepresentationSeekContext;
-    representationInfo    = representationSeekCtx->representationInfo;
 
     PRINTMSG_SEEK(("%s:%d: Entry: Seek is at Repr:%p id:%s timeInTs:%"PRIu64" timeInMs:%"PRIu64" status:%s",
                    myFuncName, __LINE__,
@@ -6120,7 +6117,7 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
 
     mpdSeekTimeInMs = seekTimeInMs;
 
-    PRINTMSG_SEEK(("%s:%d: mpdSeekTimeInMs=%"PRIu64, __FUNCTION__, __LINE__, mpdSeekTimeInMs ));
+    PRINTMSG_SEEK(("%s:%d: mpdSeekTimeInMs=%"PRIu64, BSTD_FUNCTION, __LINE__, mpdSeekTimeInMs ));
 
     /* For "dynamic" MPDs, we need to convert the seek time from being
      * relative to the start of the timeshift buffer to being relative to the
@@ -6142,7 +6139,7 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
          PRINTMSG_SEEK(("availabilityStartTime:     " MPEG_DASH_DATETIME_TO_PRINTF_ARGS((&mpdInfo->cooked.availabilityStartTime))  ));
          PRINTMSG_SEEK(("durationSinceMpdAvailable: " MPEG_DASH_DURATION_TO_PRINTF_ARGS((&durationSinceMpdAvailable))  ));
          PRINTMSG_SEEK(("SeekToMpdTime:  " MPEG_DASH_DURATION_TO_PRINTF_ARGS((&durationSinceMpdAvailable))  ));
-         PRINTMSG_SEEK(("%s:%d: mostRecentContentTimeInMs=%"PRIu64, __FUNCTION__, __LINE__, mostRecentContentTimeInMs ));
+         PRINTMSG_SEEK(("%s:%d: mostRecentContentTimeInMs=%"PRIu64, BSTD_FUNCTION, __LINE__, mostRecentContentTimeInMs ));
 
          /* Subtract the duration of the timeshift buffer. */
          if (mpdInfo->cooked.timeShiftBufferDepth.valid) {
@@ -6151,7 +6148,7 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
          else {
              timeShiftBufferDepthInMs = mostRecentContentTimeInMs;  /* If not specified, assume infinite. */
          }
-         PRINTMSG_SEEK(("%s:%d: timeShiftBufferDepthInMs=%"PRIu64, __FUNCTION__, __LINE__, timeShiftBufferDepthInMs ));
+         PRINTMSG_SEEK(("%s:%d: timeShiftBufferDepthInMs=%"PRIu64, BSTD_FUNCTION, __LINE__, timeShiftBufferDepthInMs ));
 
          if (mostRecentContentTimeInMs <= timeShiftBufferDepthInMs) {
              earliestContentTimeInMs = 0;   /* Not enough to fill timeshift buffer yet. */
@@ -6159,7 +6156,7 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
          else {
              earliestContentTimeInMs = mostRecentContentTimeInMs - timeShiftBufferDepthInMs;
          }
-         PRINTMSG_SEEK(("%s:%d: earliestContentTimeInMs=%"PRIu64, __FUNCTION__, __LINE__, earliestContentTimeInMs ));
+         PRINTMSG_SEEK(("%s:%d: earliestContentTimeInMs=%"PRIu64, BSTD_FUNCTION, __LINE__, earliestContentTimeInMs ));
 
          /* And finally, since this function is called for seeking from
           * the external world (as opposed to internally generated
@@ -6185,7 +6182,7 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
              mostRecentContentTimeInMs = earliestContentTimeInMs;
          }
 
-         PRINTMSG_SEEK(("%s:%d: suggestedPresentationDelayInMs=%"PRIu64" adjusted mostRecentContentTimeInMs=%"PRIu64"", __FUNCTION__, __LINE__, suggestedPresentationDelayInMs, mostRecentContentTimeInMs ));
+         PRINTMSG_SEEK(("%s:%d: suggestedPresentationDelayInMs=%"PRIu64" adjusted mostRecentContentTimeInMs=%"PRIu64"", BSTD_FUNCTION, __LINE__, suggestedPresentationDelayInMs, mostRecentContentTimeInMs ));
 
          mpdSeekTimeInMs += earliestContentTimeInMs;
          if (mpdSeekTimeInMs > mostRecentContentTimeInMs) {
@@ -6193,11 +6190,11 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
          }
     }
 
-    PRINTMSG_SEEK(("%s:%d: Seeking to mpdSeekTimeInMs=%"PRIu64, __FUNCTION__, __LINE__, mpdSeekTimeInMs ));
+    PRINTMSG_SEEK(("%s:%d: Seeking to mpdSeekTimeInMs=%"PRIu64, BSTD_FUNCTION, __LINE__, mpdSeekTimeInMs ));
 
     periodInfo = B_PlaybackIp_MpegDashSelectPeriod(playback_ip, mpdInfo, mpdSeekTimeInMs);
     if (!periodInfo)  {   /* Didn't find a usable Period */
-        BDBG_ERR(("%s: Can't find a usable Period", __FUNCTION__));
+        BDBG_ERR(("%s: Can't find a usable Period", BSTD_FUNCTION));
         errCode = B_ERROR_INVALID_PARAMETER;    /* Seek time is out of range. */
         goto seekError;
     }
@@ -6207,15 +6204,15 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
      * Period.  */
     periodSeekTimeInMs = mpdSeekTimeInMs - periodInfo->periodStartInMs;
 
-    PRINTMSG_SEEK(("%s:%d: periodInfo->periodStartInMs=%"PRIu64"", __FUNCTION__, __LINE__, periodInfo->periodStartInMs));
-    PRINTMSG_SEEK(("%s:%d: Seeking to periodSeekTimeInMs=%"PRIu64, __FUNCTION__, __LINE__, periodSeekTimeInMs ));
+    PRINTMSG_SEEK(("%s:%d: periodInfo->periodStartInMs=%"PRIu64"", BSTD_FUNCTION, __LINE__, periodInfo->periodStartInMs));
+    PRINTMSG_SEEK(("%s:%d: Seeking to periodSeekTimeInMs=%"PRIu64, BSTD_FUNCTION, __LINE__, periodSeekTimeInMs ));
 
     /* Then select audio and video AdaptationSets from the Period. */
     if (!B_PlaybackIp_MpegDashSelectAdaptationSets(
                 playback_ip, periodInfo, &videoAdaptationSet, &audioAdaptationSet)) goto seekError;
 
     if (!videoAdaptationSet && !audioAdaptationSet) {   /* Didn't find any usable AdaptationSets */
-        BDBG_ERR(("%s: Can't find any usable AdaptationSets", __FUNCTION__));
+        BDBG_ERR(("%s: Can't find any usable AdaptationSets", BSTD_FUNCTION));
         errCode = BERR_TRACE(B_ERROR_UNKNOWN);
         goto seekError;
     }
@@ -6226,7 +6223,7 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
                                                     audioAdaptationSet, videoAdaptationSet,
                                                     &audioRepresentationInfo, &videoRepresentationInfo,
                                                     availableBandwidthInKbps) ) {
-        BDBG_ERR(("%s: Can't find any usable Audio Representations", __FUNCTION__));
+        BDBG_ERR(("%s: Can't find any usable Audio Representations", BSTD_FUNCTION));
         errCode = BERR_TRACE(B_ERROR_UNKNOWN);
         goto seekError;
     }
@@ -6246,10 +6243,10 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
     if (videoRepresentationInfo) {
         MpegDashRepresentationSeekContext  * representationSeekCtx = &requestSeekCtx->video;
 
-        PRINTMSG_SEEK(("%s:%d: Seeking in Video Representation %s for periodSeekTimeInMs=%"PRIu64"", __FUNCTION__, __LINE__, videoRepresentationInfo->id, periodSeekTimeInMs));
+        PRINTMSG_SEEK(("%s:%d: Seeking in Video Representation %s for periodSeekTimeInMs=%"PRIu64"", BSTD_FUNCTION, __LINE__, videoRepresentationInfo->id, periodSeekTimeInMs));
         errCode = B_PlaybackIp_MpegDashSeekInRepresentationByMs(playback_ip, videoRepresentationInfo, representationSeekCtx, periodSeekTimeInMs);
         if (errCode) {
-            BDBG_ERR(("%s: Can't find seek time in Representation", __FUNCTION__));
+            BDBG_ERR(("%s: Can't find seek time in Representation", BSTD_FUNCTION));
             errCode = BERR_TRACE(errCode);
             goto seekError;
         }
@@ -6260,10 +6257,10 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
     if (audioRepresentationInfo && audioRepresentationInfo != videoRepresentationInfo) {
         MpegDashRepresentationSeekContext  * representationSeekCtx = &requestSeekCtx->audio;
 
-        PRINTMSG_SEEK(("%s:%d: Seeking in Audio Representation %s for periodSeekTimeInMs=%"PRIu64"", __FUNCTION__, __LINE__, audioRepresentationInfo->id, periodSeekTimeInMs));
+        PRINTMSG_SEEK(("%s:%d: Seeking in Audio Representation %s for periodSeekTimeInMs=%"PRIu64"", BSTD_FUNCTION, __LINE__, audioRepresentationInfo->id, periodSeekTimeInMs));
         errCode = B_PlaybackIp_MpegDashSeekInRepresentationByMs(playback_ip, audioRepresentationInfo, representationSeekCtx, periodSeekTimeInMs);
         if (errCode) {
-            BDBG_ERR(("%s: Can't find seek time in Representation", __FUNCTION__));
+            BDBG_ERR(("%s: Can't find seek time in Representation", BSTD_FUNCTION));
             errCode = BERR_TRACE(errCode);
             goto seekError;
         }
@@ -6271,18 +6268,18 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
         if (!requestSeekCtx->currentRepresentationSeekContext ) requestSeekCtx->currentRepresentationSeekContext = representationSeekCtx;
     }
 
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.representationId=%s", __FUNCTION__, __LINE__, requestSeekCtx->video.representationId));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.periodTime=%"PRIu64, __FUNCTION__, __LINE__, requestSeekCtx->video.periodTimeInMs));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.byteOffset=%u", __FUNCTION__, __LINE__, requestSeekCtx->video.byteOffset));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.segmentNumber=%u", __FUNCTION__, __LINE__, requestSeekCtx->video.segmentNumber));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.segmmentUrlInfo=%p", __FUNCTION__, __LINE__, (void *)requestSeekCtx->video.segmentUrlInfo));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.representationId=%s", BSTD_FUNCTION, __LINE__, requestSeekCtx->video.representationId));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.periodTime=%"PRIu64, BSTD_FUNCTION, __LINE__, requestSeekCtx->video.periodTimeInMs));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.byteOffset=%u", BSTD_FUNCTION, __LINE__, requestSeekCtx->video.byteOffset));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.segmentNumber=%u", BSTD_FUNCTION, __LINE__, requestSeekCtx->video.segmentNumber));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.segmmentUrlInfo=%p", BSTD_FUNCTION, __LINE__, (void *)requestSeekCtx->video.segmentUrlInfo));
 
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.representationId=%s", __FUNCTION__, __LINE__, requestSeekCtx->audio.representationId));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.periodTime=%"PRIu64, __FUNCTION__, __LINE__, requestSeekCtx->audio.periodTimeInMs));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.byteOffset=%u", __FUNCTION__, __LINE__, requestSeekCtx->audio.byteOffset));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.segmentNumber=%u", __FUNCTION__, __LINE__, requestSeekCtx->audio.segmentNumber));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.segmmentUrlInfo=%p", __FUNCTION__, __LINE__, (void *)requestSeekCtx->audio.segmentUrlInfo));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->currentRepresentation=%p", __FUNCTION__, __LINE__, (void *)requestSeekCtx->currentRepresentationSeekContext));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.representationId=%s", BSTD_FUNCTION, __LINE__, requestSeekCtx->audio.representationId));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.periodTime=%"PRIu64, BSTD_FUNCTION, __LINE__, requestSeekCtx->audio.periodTimeInMs));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.byteOffset=%u", BSTD_FUNCTION, __LINE__, requestSeekCtx->audio.byteOffset));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.segmentNumber=%u", BSTD_FUNCTION, __LINE__, requestSeekCtx->audio.segmentNumber));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.segmmentUrlInfo=%p", BSTD_FUNCTION, __LINE__, (void *)requestSeekCtx->audio.segmentUrlInfo));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->currentRepresentation=%p", BSTD_FUNCTION, __LINE__, (void *)requestSeekCtx->currentRepresentationSeekContext));
 
     return B_ERROR_SUCCESS;
 
@@ -6418,13 +6415,11 @@ B_PlaybackIp_MpegDashSessionStop(B_PlaybackIpHandle playback_ip)
 
     MpegDashSlavePidEntry         * slavePidEntry;
     struct mpegDashSlavePidHead   * slavePidHead;
-    NEXUS_PidChannelHandle          masterPidChannel;
     NEXUS_PidType                   pidType;
 
     /* Close all existing audio slave PidChannels. */
     pidType = NEXUS_PidType_eAudio;
     slavePidHead = &mpegDashSession->audioSlavePidHead;
-    masterPidChannel   = playback_ip->nexusHandles.audioPidChannel;
 
     /* coverity[use_after_free] */
     for(slavePidEntry = BLST_Q_FIRST(slavePidHead) ; slavePidEntry ; slavePidEntry = BLST_Q_FIRST(slavePidHead) )
@@ -6435,7 +6430,6 @@ B_PlaybackIp_MpegDashSessionStop(B_PlaybackIpHandle playback_ip)
     /* Close all existing video slave PidChannels. */
     pidType = NEXUS_PidType_eVideo;
     slavePidHead = &mpegDashSession->videoSlavePidHead;
-    masterPidChannel   = playback_ip->nexusHandles.videoPidChannel;
 
     /* coverity[use_after_free] */
     for(slavePidEntry = BLST_Q_FIRST(slavePidHead) ; slavePidEntry ; slavePidEntry = BLST_Q_FIRST(slavePidHead) )
@@ -6463,17 +6457,17 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
     BDBG_ENTER(B_PlaybackIp_MpegDashSessionSetup);
 
     if (B_PlaybackIp_IsMpegDashSession(playback_ip->openSettings.socketOpenSettings.url, http_hdr) != true) {
-        PRINTMSG_SESSION(("%s: Not an MPEG-DASH Streaming Session", __FUNCTION__));
+        PRINTMSG_SESSION(("%s: Not an MPEG-DASH Streaming Session", BSTD_FUNCTION));
         BDBG_LEAVE(B_PlaybackIp_MpegDashSessionSetup);
         return 0;
     }
 
     /* Now we know (or think) it is an MPEG-DASH session */
-    PRINTMSG_SESSION(("%s: MPEG-DASH Session: download & parse MPD file", __FUNCTION__));
+    PRINTMSG_SESSION(("%s: MPEG-DASH Session: download & parse MPD file", BSTD_FUNCTION));
 
     /* allocate MPEG-DASH session state */
     if ((playback_ip->mpegDashSessionState = (MpegDashSessionState *)BKNI_Malloc(sizeof(MpegDashSessionState))) == NULL) {
-        BDBG_ERR(("%s: failed to allocate %d bytes for MPEG-DASH Session state", __FUNCTION__, (int)sizeof(MpegDashSessionState)));
+        BDBG_ERR(("%s: failed to allocate %d bytes for MPEG-DASH Session state", BSTD_FUNCTION, (int)sizeof(MpegDashSessionState)));
         goto error;
     }
     mpegDashSession = playback_ip->mpegDashSessionState;
@@ -6481,7 +6475,7 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
 
     /* allocate a buffer where MPD file will be completely downloaded */
     if ((mpegDashSession->mpdParseBuffer = (char *)BKNI_Malloc(MPEG_DASH_MPD_FILE_SIZE)) == NULL) {
-        BDBG_ERR(("%s: failed to allocate %d bytes for downloading the MPD file", __FUNCTION__, MPEG_DASH_MPD_FILE_SIZE));
+        BDBG_ERR(("%s: failed to allocate %d bytes for downloading the MPD file", BSTD_FUNCTION, MPEG_DASH_MPD_FILE_SIZE));
         goto error;
     }
     mpegDashSession->mpdParseBufferSize = MPEG_DASH_MPD_FILE_SIZE;
@@ -6496,7 +6490,7 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
     if (!pValue || mpegDashSession->maxNetworkBandwidth == 0) {
         mpegDashSession->maxNetworkBandwidth = PLAYBACK_IP_MAX_NETWORK_BANDWIDTH;
     }
-    PRINTMSG_SESSION(("%s: max network bandwidth set to %d", __FUNCTION__, mpegDashSession->maxNetworkBandwidth));
+    PRINTMSG_SESSION(("%s: max network bandwidth set to %d", BSTD_FUNCTION, mpegDashSession->maxNetworkBandwidth));
 
 
     /* copy any initial payload data (read part of the initial HTTP response) into the MPD buffer */
@@ -6511,20 +6505,20 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
         mpegDashSession->mpdParseBufferDepth = 0;
     }
 
-    PRINTMSG_SESSION(("%s:%d: mpegDashSession->mpdParseBufferDepth=%d", __FUNCTION__, __LINE__, mpegDashSession->mpdParseBufferDepth));
-    PRINTMSG_SESSION(("%s:%d: mpegDashSession->mpdParseBufferSize=%d", __FUNCTION__, __LINE__, mpegDashSession->mpdParseBufferSize));
-    PRINTMSG_SESSION(("%s:%d: playback_ip->socketState.fd=%d", __FUNCTION__, __LINE__, playback_ip->socketState.fd));
+    PRINTMSG_SESSION(("%s:%d: mpegDashSession->mpdParseBufferDepth=%d", BSTD_FUNCTION, __LINE__, mpegDashSession->mpdParseBufferDepth));
+    PRINTMSG_SESSION(("%s:%d: mpegDashSession->mpdParseBufferSize=%d", BSTD_FUNCTION, __LINE__, mpegDashSession->mpdParseBufferSize));
+    PRINTMSG_SESSION(("%s:%d: playback_ip->socketState.fd=%d", BSTD_FUNCTION, __LINE__, playback_ip->socketState.fd));
 
     /* Download the remainder of the MPD file into the mpdParseBuffer */
     if (B_PlaybackIp_MpegDashFinishFileDownload(playback_ip, playback_ip->socketState.fd, mpegDashSession->mpdParseBuffer, mpegDashSession->mpdParseBufferSize, &mpegDashSession->mpdParseBufferDepth, true) != true) {
-        BDBG_ERR(("%s: failed to download the MPD file", __FUNCTION__));
+        BDBG_ERR(("%s: failed to download the MPD file", BSTD_FUNCTION));
         goto error;
     }
-    PRINTMSG_SESSION(("%s: Finished downloading MPD file of %d bytes", __FUNCTION__, mpegDashSession->mpdParseBufferDepth));
+    PRINTMSG_SESSION(("%s: Finished downloading MPD file of %d bytes", BSTD_FUNCTION, mpegDashSession->mpdParseBufferDepth));
 
     /* Create the session lock mutex. */
     if (BKNI_CreateMutex(&mpegDashSession->lock) != 0) {
-        BDBG_ERR(("%s: Failed to create BKNI mutex at %d", __FUNCTION__, __LINE__));
+        BDBG_ERR(("%s: Failed to create BKNI mutex at %d", BSTD_FUNCTION, __LINE__));
         goto error;
     }
 
@@ -6532,7 +6526,7 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
      * probing/parsing. */
     mpegDashSession->factory = batom_factory_create(bkni_alloc, 16);
     if( ! mpegDashSession->factory) {
-        BDBG_ERR(("%s: Failed to create a batom_factory", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create a batom_factory", BSTD_FUNCTION));
         goto error;
     }
 
@@ -6545,27 +6539,27 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
     BLST_Q_INIT(&mpegDashSession->audioSlavePidHead);
     BLST_Q_INIT(&mpegDashSession->videoSlavePidHead);
 
-    PRINTMSG_SESSION(("%s:%d: Before: mpegDashSession->absoluteUri=%s", __FUNCTION__, __LINE__, mpegDashSession->absoluteUri));
-    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.url=%s", __FUNCTION__, __LINE__, playback_ip->openSettings.socketOpenSettings.url));
-    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.port=%u", __FUNCTION__, __LINE__, playback_ip->openSettings.socketOpenSettings.port));
-    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.ipAddr=%s", __FUNCTION__, __LINE__, playback_ip->openSettings.socketOpenSettings.ipAddr));
+    PRINTMSG_SESSION(("%s:%d: Before: mpegDashSession->absoluteUri=%s", BSTD_FUNCTION, __LINE__, mpegDashSession->absoluteUri));
+    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.url=%s", BSTD_FUNCTION, __LINE__, playback_ip->openSettings.socketOpenSettings.url));
+    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.port=%u", BSTD_FUNCTION, __LINE__, playback_ip->openSettings.socketOpenSettings.port));
+    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.ipAddr=%s", BSTD_FUNCTION, __LINE__, playback_ip->openSettings.socketOpenSettings.ipAddr));
 
 
     /* build the uri of the MPD file from the playback_ip open settings */
     if ((mpegDashSession->absoluteUri = B_PlaybackIp_MpegDashBuildAbsoluteUri(playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, ""/* empty base uri*/, playback_ip->openSettings.socketOpenSettings.url)) == NULL) {
-        BDBG_ERR(("Failed to build URI at %s:%d", __FUNCTION__, __LINE__));
+        BDBG_ERR(("Failed to build URI at %s:%d", BSTD_FUNCTION, __LINE__));
         goto error;
     }
 
-    PRINTMSG_SESSION(("%s:%d: After: mpegDashSession->absoluteUri=%s", __FUNCTION__, __LINE__, mpegDashSession->absoluteUri));
-    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.url=%s", __FUNCTION__, __LINE__, playback_ip->openSettings.socketOpenSettings.url));
-    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.port=%u", __FUNCTION__, __LINE__, playback_ip->openSettings.socketOpenSettings.port));
-    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.ipAddr=%s", __FUNCTION__, __LINE__, playback_ip->openSettings.socketOpenSettings.ipAddr));
+    PRINTMSG_SESSION(("%s:%d: After: mpegDashSession->absoluteUri=%s", BSTD_FUNCTION, __LINE__, mpegDashSession->absoluteUri));
+    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.url=%s", BSTD_FUNCTION, __LINE__, playback_ip->openSettings.socketOpenSettings.url));
+    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.port=%u", BSTD_FUNCTION, __LINE__, playback_ip->openSettings.socketOpenSettings.port));
+    PRINTMSG_SESSION(("%s:%d: playback_ip->openSettings.socketOpenSettings.ipAddr=%s", BSTD_FUNCTION, __LINE__, playback_ip->openSettings.socketOpenSettings.ipAddr));
 
 
     /* Now parse that uri into components and put them into the mpegDashSession structure */
     if ((mpegDash_parse_absolute_url(&mpegDashSession->protocol, &mpegDashSession->server, &mpegDashSession->port, &mpegDashSession->uri, mpegDashSession->absoluteUri) == false) || mpegDashSession->protocol != B_PlaybackIpProtocol_eHttp) {
-        BDBG_ERR(("Failed to parse URI at %s:%d", __FUNCTION__, __LINE__));
+        BDBG_ERR(("Failed to parse URI at %s:%d", BSTD_FUNCTION, __LINE__));
         goto error;
     }
 
@@ -6575,14 +6569,14 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
 
     /* Parse the MPD file into an XML object tree, then from there into our C-based object tree. */
     if (!B_PlaybackIp_MpegDashParseMpd(playback_ip, &mpdInfo)) {
-        BDBG_ERR(("%s: Failed to parse MPD file", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to parse MPD file", BSTD_FUNCTION));
         goto error;
     }
     mpegDashSession->mpdInfo = mpdInfo;
 
     /* Position ourselves to the correct Period and Segment for the desired start time. */
     if (B_PlaybackIp_MpegDashSeekToMpdTime(playback_ip, &mpegDashSession->requestSeekCtx, 0)) {
-        BDBG_ERR(("%s: Failed to seek to initial position", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to seek to initial position", BSTD_FUNCTION));
         goto error;
     }
 
@@ -6591,13 +6585,13 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
          * allocate should never fail here. */
         segmentBuffer = B_PlaybackIp_MpegDashSegmentBufferAlloc(playback_ip);
         if (!segmentBuffer) {
-            BDBG_ERR(("%s: Failed to allocate segmentBuffer for probing stream info!", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to allocate segmentBuffer for probing stream info!", BSTD_FUNCTION));
             goto error;
         }
 
         /* We need to probe the video content so we can get the PSI info.  */
         if (!B_PlaybackIp_MpegDashProbeForRepresentationStreamInfo(playback_ip, &mpegDashSession->requestSeekCtx.video, segmentBuffer)) {
-            BDBG_ERR(("%s: Failed to probe for Representation's stream info", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to probe for Representation's stream info", BSTD_FUNCTION));
             goto error;
         }
 
@@ -6613,13 +6607,13 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
     if (mpegDashSession->requestSeekCtx.audio.representationInfo) {
         segmentBuffer = B_PlaybackIp_MpegDashSegmentBufferAlloc(playback_ip);
         if (!segmentBuffer) {
-            BDBG_ERR(("%s: Failed to allocate segmentBuffer for probing stream info!", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to allocate segmentBuffer for probing stream info!", BSTD_FUNCTION));
             goto error;
         }
 
         /* We need to probe the audio content so we can get the PSI info.  */
         if (!B_PlaybackIp_MpegDashProbeForRepresentationStreamInfo(playback_ip, &mpegDashSession->requestSeekCtx.audio, segmentBuffer)) {
-            BDBG_ERR(("%s: Failed to probe for Representation's stream info", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to probe for Representation's stream info", BSTD_FUNCTION));
             goto error;
         }
 
@@ -6650,13 +6644,13 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
             }
         }
         psi->usePlaypump2ForAudio = usePlaypump2ForAudio;
-        PRINTMSG_SESSION(("%s:%d: usePlaypump2ForAudio: %s", __FUNCTION__, __LINE__, usePlaypump2ForAudio ? "True" : "False" ));
+        PRINTMSG_SESSION(("%s:%d: usePlaypump2ForAudio: %s", BSTD_FUNCTION, __LINE__, usePlaypump2ForAudio ? "True" : "False" ));
     }
 
 
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: finished parsing the MPD file, now setup for media probing", __FUNCTION__));
+        BDBG_WRN(("%s: finished parsing the MPD file, now setup for media probing", BSTD_FUNCTION));
 #endif
 
     /* reset the content length, otherwise media probe takes way too long */
@@ -6664,44 +6658,44 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
     playback_ip->contentLength = 0;
 
     if (BKNI_CreateEvent(&mpegDashSession->downloadThreadWakeEvent)) {
-        BDBG_ERR(("%s: Failed to create an event", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event", BSTD_FUNCTION));
         goto error;
     }
 
     if (BKNI_CreateEvent(&mpegDashSession->playbackThreadWakeEvent)) {
-        BDBG_ERR(("%s: Failed to create an event", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event", BSTD_FUNCTION));
         goto error;
     }
 
     if (BKNI_CreateEvent(&mpegDashSession->reDownloadMpdEvent)) {
-        BDBG_ERR(("%s: Failed to create an event", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event", BSTD_FUNCTION));
         goto error;
     }
 
     if (BKNI_CreateEvent(&mpegDashSession->segDownloadThreadPausedEvent)) {
-        BDBG_ERR(("%s: Failed to create an event", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event", BSTD_FUNCTION));
         goto error;
     }
 
     if (BKNI_CreateEvent(&mpegDashSession->playbackThreadPausedEvent)) {
-        BDBG_ERR(("%s: Failed to create an event", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event", BSTD_FUNCTION));
         goto error;
     }
 
     if (BKNI_CreateEvent(&mpegDashSession->segDownloadThreadPauseDoneEvent)) {
-        BDBG_ERR(("%s: Failed to create an event", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event", BSTD_FUNCTION));
         goto error;
     }
 
     if (BKNI_CreateEvent(&mpegDashSession->playbackThreadPauseDoneEvent)) {
-        BDBG_ERR(("%s: Failed to create an event", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to create an event", BSTD_FUNCTION));
         goto error;
     }
 
     playback_ip->mpegDashSessionEnabled = true;
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: Complete, now media probing will start.", __FUNCTION__));
+        BDBG_WRN(("%s: Complete, now media probing will start.", BSTD_FUNCTION));
 #endif
 
     /* the actual media probe operation happens in the caller function of http module */
@@ -6734,7 +6728,7 @@ B_PlaybackIp_MpegDashSessionStart(
     B_PlaybackIpError        errorCode = B_ERROR_PROTO;
 
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
@@ -6889,7 +6883,7 @@ B_PlaybackIp_PauseMpegDash(
 {
     BSTD_UNUSED(ipTrickModeSettings);
     if (!playback_ip->mpegDashSessionState) {
-        BDBG_ERR(("%s: ERROR: MpegDashSessionState is NULL", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: MpegDashSessionState is NULL", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
 
@@ -6898,7 +6892,7 @@ B_PlaybackIp_PauseMpegDash(
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     if (playback_ip->nexusHandles.simpleStcChannel) {
         if (NEXUS_SimpleStcChannel_SetRate(playback_ip->nexusHandles.simpleStcChannel, 0, 0 ) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to pause by setting stc rate to 0", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to pause by setting stc rate to 0", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
     }
@@ -6906,12 +6900,12 @@ B_PlaybackIp_PauseMpegDash(
 #endif
     if (playback_ip->nexusHandles.stcChannel) {
         if (NEXUS_StcChannel_SetRate(playback_ip->nexusHandles.stcChannel, 0, 0 ) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to pause by setting stc rate to 0", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to pause by setting stc rate to 0", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
     }
     else {
-        BDBG_ERR(("%s: ERROR: neither simpleStcChannel or stcChannel is set", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: neither simpleStcChannel or stcChannel is set", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
     return B_ERROR_SUCCESS;
@@ -6930,7 +6924,7 @@ B_PlaybackIp_PlayMpegDash(
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     if (playback_ip->nexusHandles.simpleStcChannel) {
         if (NEXUS_SimpleStcChannel_SetRate(playback_ip->nexusHandles.simpleStcChannel, 1, 0 ) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to un-pause by setting stc rate to 0", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to un-pause by setting stc rate to 0", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
     }
@@ -6938,12 +6932,12 @@ B_PlaybackIp_PlayMpegDash(
 #endif
     if (playback_ip->nexusHandles.stcChannel) {
         if (NEXUS_StcChannel_SetRate(playback_ip->nexusHandles.stcChannel, 1, 0 ) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: failed to un-pause by setting stc rate to 0", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: failed to un-pause by setting stc rate to 0", BSTD_FUNCTION));
             return B_ERROR_UNKNOWN;
         }
     }
     else {
-        BDBG_ERR(("%s: ERROR: neither simpleStcChannel or stcChannel is set", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: neither simpleStcChannel or stcChannel is set", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
     return B_ERROR_SUCCESS;
@@ -6964,18 +6958,18 @@ B_PlaybackIp_SeekMpegDash(
     BERR_Code rc;
     int i;
 
-    PRINTMSG_SEEK(("%s: Validating seekPosition: %lu", __FUNCTION__, seekPosition));
+    PRINTMSG_SEEK(("%s: Validating seekPosition: %lu", BSTD_FUNCTION, seekPosition));
 
     {
         MpegDashSeekContext   requestSeekCtx;
 
         if (B_PlaybackIp_MpegDashSeekToMpdTime(playback_ip, &requestSeekCtx, seekPosition)) {
-            BDBG_ERR(("%s: Incorrect seekPosition %lu", __FUNCTION__, seekPosition));
+            BDBG_ERR(("%s: Incorrect seekPosition %lu", BSTD_FUNCTION, seekPosition));
             return B_ERROR_INVALID_PARAMETER;
         }
     }
 
-    PRINTMSG_SEEK(("%s:%d : Seek position seems valid", __FUNCTION__, __LINE__   ));
+    PRINTMSG_SEEK(("%s:%d : Seek position seems valid", BSTD_FUNCTION, __LINE__   ));
 
     /* save the current state */
     currentState = playback_ip->playback_state;
@@ -6988,57 +6982,57 @@ B_PlaybackIp_SeekMpegDash(
     playback_ip->playback_state = B_PlaybackIpState_eWaitingToEnterTrickMode;
     if (mpegDashSession->downloadThreadWakeEvent)
     {
-        PRINTMSG_DOWNLOAD((":%d %s(): Setting downloadThreadWakeEvent.", __LINE__, __FUNCTION__));
+        PRINTMSG_DOWNLOAD((":%d %s(): Setting downloadThreadWakeEvent.", __LINE__, BSTD_FUNCTION));
         BKNI_SetEvent(mpegDashSession->downloadThreadWakeEvent); /* Wake download thread so it sees the trickmode request */
     }
 
-    PRINTMSG_SEEK(("%s:%d : Waiting for Download thread to pause", __FUNCTION__, __LINE__   ));;
+    PRINTMSG_SEEK(("%s:%d : Waiting for Download thread to pause", BSTD_FUNCTION, __LINE__   ));;
 
     rc = BKNI_WaitForEvent(mpegDashSession->segDownloadThreadPausedEvent, 10*MPEG_DASH_EVENT_TIMEOUT_MSEC);
     if (rc == BERR_TIMEOUT) {
-        BDBG_ERR(("%s: EVENT timeout: failed to receive event from MPEG-DASH Segment download thread indicating its paused", __FUNCTION__));
+        BDBG_ERR(("%s: EVENT timeout: failed to receive event from MPEG-DASH Segment download thread indicating its paused", BSTD_FUNCTION));
         return B_ERROR_TIMEOUT;
     } else if (rc!=0) {
-        BDBG_ERR(("%s: failed to wait for event from MPEG-DASH Segment download thread indicating its paused, rc = %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s: failed to wait for event from MPEG-DASH Segment download thread indicating its paused, rc = %d", BSTD_FUNCTION, rc));
         return B_ERROR_UNKNOWN;
     }
 
-    PRINTMSG_SEEK(("%s:%d : Download thread seems to be paused ", __FUNCTION__, __LINE__   ));
+    PRINTMSG_SEEK(("%s:%d : Download thread seems to be paused ", BSTD_FUNCTION, __LINE__   ));
 
     if (mpegDashSession->playbackThreadWakeEvent)
     {
-        PRINTMSG_PLAYBACK(("%s:%d: Setting playbackThreadWakeEvent so it can see trickmode request.", __FUNCTION__, __LINE__));
+        PRINTMSG_PLAYBACK(("%s:%d: Setting playbackThreadWakeEvent so it can see trickmode request.", BSTD_FUNCTION, __LINE__));
         BKNI_SetEvent(mpegDashSession->playbackThreadWakeEvent); /* Wake download thread so it sees the trickmode request */
     }
     /* now pause the playpump feeder thread */
     rc = BKNI_WaitForEvent(mpegDashSession->playbackThreadPausedEvent, 10*MPEG_DASH_EVENT_TIMEOUT_MSEC);
     if (rc == BERR_TIMEOUT) {
-        BDBG_ERR(("%s: EVENT timeout: failed to receive event from MPEG-DASH Playpump feeder thread indicating its paused", __FUNCTION__));
+        BDBG_ERR(("%s: EVENT timeout: failed to receive event from MPEG-DASH Playpump feeder thread indicating its paused", BSTD_FUNCTION));
         return B_ERROR_TIMEOUT;
     } else if (rc!=0) {
-        BDBG_ERR(("%s: failed to wait for event from MPEG-DASH Playpump feeder thread indicating its paused, rc = %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s: failed to wait for event from MPEG-DASH Playpump feeder thread indicating its paused, rc = %d", BSTD_FUNCTION, rc));
         return B_ERROR_UNKNOWN;
     }
 
-    PRINTMSG_SEEK(("%s:%d : Download and Playback threads seem to be paused ", __FUNCTION__, __LINE__   ));
+    PRINTMSG_SEEK(("%s:%d : Download and Playback threads seem to be paused ", BSTD_FUNCTION, __LINE__   ));
 
-    PRINTMSG_SEEK(("%s:%d : Starting seek in MPD", __FUNCTION__, __LINE__   ));
+    PRINTMSG_SEEK(("%s:%d : Starting seek in MPD", BSTD_FUNCTION, __LINE__   ));
     if (B_PlaybackIp_MpegDashSeekToMpdTime(playback_ip, &mpegDashSession->requestSeekCtx, seekPosition)) {
-        BDBG_ERR(("%s: Incorrect seekPosition %lu", __FUNCTION__, seekPosition));
+        BDBG_ERR(("%s: Incorrect seekPosition %lu", BSTD_FUNCTION, seekPosition));
         return B_ERROR_INVALID_PARAMETER;
     }
 
     mpegDashSession->downloadedAllSegmentsInCurrentRepresentation = false;
 
-    PRINTMSG_SEEK(("%s:%d : Finished seek in MPD, flushing A/V pipeline", __FUNCTION__, __LINE__   ));
+    PRINTMSG_SEEK(("%s:%d : Finished seek in MPD, flushing A/V pipeline", BSTD_FUNCTION, __LINE__   ));
 
     /* flush the current pipeline so we resume from the new seek location */
     if (B_PlaybackIp_UtilsFlushAvPipeline(playback_ip)) {
-        BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", __FUNCTION__));
+        BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", BSTD_FUNCTION));
         return B_ERROR_UNKNOWN;
     }
 
-    PRINTMSG_SEEK(("%s:%d : Freeing all segment buffers", __FUNCTION__, __LINE__   ));
+    PRINTMSG_SEEK(("%s:%d : Freeing all segment buffers", BSTD_FUNCTION, __LINE__   ));
     for (i=0; i<MPEG_DASH_NUM_SEGMENT_BUFFERS; i++) {
         B_PlaybackIp_MpegDashSegmentBufferFree(playback_ip, &mpegDashSession->segmentBuffer[i]);
     }
@@ -7046,14 +7040,14 @@ B_PlaybackIp_SeekMpegDash(
     playback_ip->playback_state = currentState;
 
     /* Resume the Download and Playback threads. */
-    PRINTMSG_SEEK(("%s:%d : Resuming Download and Playback threads", __FUNCTION__, __LINE__   ));
+    PRINTMSG_SEEK(("%s:%d : Resuming Download and Playback threads", BSTD_FUNCTION, __LINE__   ));
     BKNI_SetEvent(mpegDashSession->segDownloadThreadPauseDoneEvent);
     BKNI_SetEvent(mpegDashSession->playbackThreadPauseDoneEvent);
 
     playback_ip->lastSeekPosition = mpegDashSession->requestSeekCtx.periodSeekTimeInMs;
     /* GARYWASHERE: is this right??? Maybe it needs to use PTS time?  */
 
-    PRINTMSG_SEEK(("%s: B_PlaybackIp_SeekMpegDash successful to %lu msec", __FUNCTION__, playback_ip->lastSeekPosition));
+    PRINTMSG_SEEK(("%s: B_PlaybackIp_SeekMpegDash successful to %lu msec", BSTD_FUNCTION, playback_ip->lastSeekPosition));
     return B_ERROR_SUCCESS;
 }
 
@@ -7068,7 +7062,7 @@ B_PlaybackIp_MpegDashPlaypumpCallback(void *context, int param)
     B_PlaybackIpHandle playback_ip = (B_PlaybackIpHandle)context;
     BSTD_UNUSED(param);
 
-    PRINTMSG_PLAYBACK(("%s:%d: Setting playbackThreadWakeEvent because Playpump now has room for more.", __FUNCTION__, __LINE__));
+    PRINTMSG_PLAYBACK(("%s:%d: Setting playbackThreadWakeEvent because Playpump now has room for more.", BSTD_FUNCTION, __LINE__));
     BKNI_SetEvent(playback_ip->mpegDashSessionState->playbackThreadWakeEvent);
 }
 
@@ -7107,7 +7101,7 @@ bool B_PlaybackIp_MpegDashParseSegment(MpegDashSegmentBuffer  * segmentBuffer, u
         if(box.size>box_hdr_size) {
             size_t  skipcount = box.size - box_hdr_size;
             if (skipcount != batom_cursor_skip(&cursor, skipcount) ) {
-                PRINTMSG_DOWNLOAD(("%s:%d : Can't find \"sidx\" box", __FUNCTION__, __LINE__ ));
+                PRINTMSG_DOWNLOAD(("%s:%d : Can't find \"sidx\" box", BSTD_FUNCTION, __LINE__ ));
                 return false;
             }
         }
@@ -7115,18 +7109,19 @@ bool B_PlaybackIp_MpegDashParseSegment(MpegDashSegmentBuffer  * segmentBuffer, u
 
     /* Since the sidx box is a "FullBox", parse it to get the version and flags. */
     if (!bmp4_parse_fullbox(&cursor, &fullbox)) {
-        BDBG_ERR(("%s:%d : Failed to parse \"sidx\" fullbox", __FUNCTION__, __LINE__ ));
+        BDBG_ERR(("%s:%d : Failed to parse \"sidx\" fullbox", BSTD_FUNCTION, __LINE__ ));
         return false;
     }
 
     reference_id = batom_cursor_uint32_be (&cursor);
+    BSTD_UNUSED(reference_id);
     timescale   =  batom_cursor_uint32_be (&cursor);
 
     /* The next two fields can be 32 or 64-bit, depending on the version of the "sidx" box. */
     if (fullbox.version == 0) {
         earliest_presentation_time = batom_cursor_uint32_be (&cursor);
         first_offset = batom_cursor_uint32_be (&cursor);
-
+        BSTD_UNUSED(first_offset);
     }
     else {
         earliest_presentation_time = batom_cursor_uint64_be (&cursor);
@@ -7159,7 +7154,7 @@ B_PlaybackIp_MpegDashAllocateSegmentBoxPrefix( MpegDashSegmentBuffer  * segmentB
         codecSpecificSize = representationInfo->codecSpecificSizeForVideo;
     }
     else {
-        BDBG_ERR(("%s: Unable to determine media type of segment!", __FUNCTION__));
+        BDBG_ERR(("%s: Unable to determine media type of segment!", BSTD_FUNCTION));
         goto error;
     }
 
@@ -7241,7 +7236,7 @@ B_PlaybackIp_MpegDashBuildSegmentBoxPrefix( MpegDashSegmentBuffer  * segmentBuff
         startTimeInMdhdTimescale =  (requestSeekCtx->currentRepresentationSeekContext->periodTimeInTimescaleUnits * mdhdTimescale ) / requestSeekCtx->currentRepresentationSeekContext->timescale;
     }
     else {
-        BDBG_ERR(("%s: Unable to determine media type of segment!", __FUNCTION__));
+        BDBG_ERR(("%s: Unable to determine media type of segment!", BSTD_FUNCTION));
         goto error;
     }
 
@@ -7263,16 +7258,16 @@ B_PlaybackIp_MpegDashBuildSegmentBoxPrefix( MpegDashSegmentBuffer  * segmentBuff
 
     mp4_box_offset = start_mp4_box(fout, "bmp4");
 
-    PRINTMSG_DOWNLOAD(("%s:%d: Creating bhed box... timescale: %lu start_time: %u fourcc: "BMEDIA_FOURCC_FORMAT, __FUNCTION__, __LINE__,
+    PRINTMSG_DOWNLOAD(("%s:%d: Creating bhed box... timescale: %lu start_time: %u fourcc: "BMEDIA_FOURCC_FORMAT, BSTD_FUNCTION, __LINE__,
                              mdhdTimescale, (uint32_t)startTimeInMdhdTimescale, BMEDIA_FOURCC_ARG(fourcc)));
     write_bhed_box(    fout, mdhdTimescale,           startTimeInMdhdTimescale, fourcc);
 
-    PRINTMSG_DOWNLOAD(("%s:%d: Creating bdat box... data: %p data_len: %u", __FUNCTION__, __LINE__,
+    PRINTMSG_DOWNLOAD(("%s:%d: Creating bdat box... data: %p data_len: %u", BSTD_FUNCTION, __LINE__,
                        (void *)codecSpecificAddr, (unsigned)codecSpecificSize ));
     write_bdat_box(fout,   codecSpecificAddr, codecSpecificSize);
 
     PRINTMSG_DOWNLOAD(("%s:%d: Creating trex box... track_ID: %lu, default_sample_description_index:%lu  default_sample_duration:%lu  default_sample_size:%lu  default_sample_flags:%lu",
-                       __FUNCTION__, __LINE__,
+                       BSTD_FUNCTION, __LINE__,
                           trackId, trexDefaultSampleDescriptionIndex, trexDefaultSampleDuration, trexDefaultSampleFlags, trexDefaultSampleSize));
     write_trex_box( fout, trackId, trexDefaultSampleDescriptionIndex, trexDefaultSampleDuration, trexDefaultSampleFlags, trexDefaultSampleSize);
 
@@ -7879,7 +7874,7 @@ B_PlaybackIp_MpegDashEndOfStream(
     if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped || playback_ip->psi.liveChannel) {
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: %s (playback ip state %d), so return immediately", __FUNCTION__, playback_ip->psi.liveChannel ? "live channel":"app has issued stop", playback_ip->playback_state));
+            BDBG_WRN(("%s: %s (playback ip state %d), so return immediately", BSTD_FUNCTION, playback_ip->psi.liveChannel ? "live channel":"app has issued stop", playback_ip->playback_state));
 #endif
         return true;
     }
@@ -7893,7 +7888,7 @@ B_PlaybackIp_MpegDashEndOfStream(
         }
 
         if(playpumpStatus.fifoDepth > 0) {
-           BDBG_NUL(("%s:%d: playpumpStatus.fifoDepth=%u", __FUNCTION__, __LINE__, playpumpStatus.fifoDepth));
+           BDBG_NUL(("%s:%d: playpumpStatus.fifoDepth=%u", BSTD_FUNCTION, __LINE__, playpumpStatus.fifoDepth));
             return false;       /* Playpump still has data, not done yet. */
         }
     }
@@ -7906,7 +7901,7 @@ B_PlaybackIp_MpegDashEndOfStream(
             return false;       /* Shouldn't happen */
         }
         if(decoderStatus.queueDepth > 0) {
-            BDBG_NUL(("%s:%d: decoderStatus.queueDepth=%u", __FUNCTION__, __LINE__, decoderStatus.queueDepth));
+            BDBG_NUL(("%s:%d: decoderStatus.queueDepth=%u", BSTD_FUNCTION, __LINE__, decoderStatus.queueDepth));
             return false;       /* Video decoder still has data, not done yet. */
         }
     }
@@ -7949,7 +7944,7 @@ int B_PlaybackIp_MpegDashGetPlaypumpBuffer(
         else if(playback_ip->buffer_size >= size) {
             /* constrain the amount of data we're going to read from the socket */
             playback_ip->buffer_size = size;
-            BDBG_MSG(("%s: got buffer of size %d from the playpump\n", __FUNCTION__, size));
+            BDBG_MSG(("%s: got buffer of size %d from the playpump\n", BSTD_FUNCTION, size));
             break;
         }
         BDBG_MSG_FLOW(("skip buffer %d", playback_ip->buffer_size));
@@ -8494,9 +8489,10 @@ error:
         B_PlaybackIpEventIds eventId;
         if (playback_ip->serverClosed)
             eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
-        else
+        else {
             eventId = B_PlaybackIpEvent_eErrorDuringStreamPlayback;
             eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
+        }
         playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, eventId);
     }
 #ifdef BDBG_DEBUG_BUILD

@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 #
@@ -104,6 +103,12 @@ BADS_DEFINES += BADS_3158_SUPPORT
 BADS_DEFINES += BADS_CHIP=3158
 BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/leap/bads_leap_priv.c
 BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/leap/3158/bads_3158.c
+endif
+
+ifneq ($(BADS_3466_SUPPORT),)
+BADS_DEFINES += BADS_3466_SUPPORT
+BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/leap/bads_3466_priv.c
+BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/leap/3466/bads_3466.c
 endif
 
 ifneq ($(BADS_7584_SUPPORT),)
@@ -185,4 +190,3 @@ endif
 ifeq ($(BADS_CHIP),3255)
     BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/docsis/bads_docsis_priv.c
 endif
-

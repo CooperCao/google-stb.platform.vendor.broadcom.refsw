@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,7 +40,6 @@
  ***************************************************************************/
 #ifndef BRDC_H__
 #define BRDC_H__
-
 
 #include "bchp.h"                /* Chip information */
 #include "berr_ids.h"            /* Error codes */
@@ -1767,6 +1766,14 @@ See Also:
 #define BRDC_WriteScratch_isrsafe BREG_WriteAddr_isrsafe
 #define BRDC_ReadScratch          BREG_ReadAddr
 #define BRDC_WriteScratch         BREG_WriteAddr
+
+#if BRDC_64BIT_SUPPORT /* 64-bit RDC has separate 64-bit scratch registers */
+#define BRDC_GET_MV_BLOCK_REG(id) \
+    (BCHP_RDC_scratch64_i_ARRAY_BASE + ((BCHP_RDC_scratch64_i_ARRAY_END - (id)) * sizeof(uint64_t)))
+#else
+#define BRDC_GET_MV_BLOCK_REG(id) \
+    (BCHP_RDC_scratch_i_ARRAY_BASE + ((BCHP_RDC_scratch_i_ARRAY_END - (id)) * sizeof(uint32_t)))
+#endif
 
 #define BRDC_AllocScratchReg(hRdc) \
     BRDC_P_AllocScratchReg(hRdc, __FILE__, __LINE__);

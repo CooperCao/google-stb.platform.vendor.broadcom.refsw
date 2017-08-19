@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2005-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef BODS_PRIV_H__
 #define BODS_PRIV_H__
@@ -31,15 +51,45 @@ BDBG_OBJECT_ID_DECLARE(BODS_CHANNEL);
 extern "C" {
 #endif
 
+/***************************************************************************
+Summary:
+    This function gets the current ODS config settings.
+
+Description:
+    This function returns the current ODS Config Settings.
+
+See Also:
+
+****************************************************************************/
+typedef BERR_Code (*BODS_GetConfigSettingsFunc)(
+    BODS_Handle hDev,                 /* [in] Device handle */
+    BODS_ConfigSettings *settings     /* [out] ODS config settings. */
+    );
 
 /***************************************************************************
 Summary:
-	The handle for ODS module.
+    This function sets the ODS config  settings.
+
+Description:
+    This function sets the current ODS Config Settings.
+
+
+See Also:
+
+****************************************************************************/
+typedef BERR_Code (*BODS_SetConfigSettingsFunc)(
+    BODS_Handle hDev,                   /* [in] Device handle */
+    const BODS_ConfigSettings *settings /* [in] ODS config settings. */
+    );
+
+/***************************************************************************
+Summary:
+    The handle for ODS module.
 
 Description:
 
 See Also:
-	BODS_Open()
+    BODS_Open()
 
 ****************************************************************************/
 typedef struct BODS_P_Handle
@@ -47,16 +97,18 @@ typedef struct BODS_P_Handle
     BDBG_OBJECT(BODS)
     BODS_Settings settings; /* ODS Settings */
     void *pImpl;            /* Device specific structure */
+    BODS_GetConfigSettingsFunc pGetConfigSettings;  /* ptr to Get Config Settings function */
+    BODS_SetConfigSettingsFunc pSetConfigSettings;  /* ptr to Set Config Settings function */
 } BODS_P_Handle;
 
 /***************************************************************************
 Summary:
-	The handle for ODS module channel handle
+   The handle for ODS module channel handle
 
 Description:
 
 See Also:
-	BODS_OpenChannel()
+    BODS_OpenChannel()
 
 ****************************************************************************/
 typedef struct BODS_P_ChannelHandle
@@ -67,9 +119,8 @@ typedef struct BODS_P_ChannelHandle
     void *pImpl;                            /* Device specific structure */
 } BODS_P_ChannelHandle;
 
-
 #ifdef __cplusplus
 }
 #endif
- 
+
 #endif

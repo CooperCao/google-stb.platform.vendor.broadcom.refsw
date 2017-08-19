@@ -97,7 +97,7 @@ public:
         _windowType(eWindowType_Max) {}
 public:
     MString     _strChannel;
-    uint16_t    _tunerIndex;
+    unsigned    _tunerIndex;
     CChannel *  _pChannel;
     eWindowType _windowType;
 };
@@ -106,12 +106,14 @@ class CLabelData
 {
 public:
     CLabelData() :
-        _zorder(0) {};
+        _zorder(0),
+        _bGlobal(false) {};
     bool operator ==(const CLabelData &other)
     {
         if ((_strImagePath == other._strImagePath) &&
             (_strText == other._strText) &&
-            (_rectGeometryPercent == other._rectGeometryPercent))
+            (_rectGeometryPercent == other._rectGeometryPercent) &&
+            (_bGlobal == other._bGlobal))
         {
             return(true);
         }
@@ -123,6 +125,7 @@ public:
     MString _strText;
     MRect   _rectGeometryPercent; /* 0-1000 where 1000 == 100.0% */
     int32_t _zorder;
+    bool    _bGlobal;
 };
 
 class CChannel : public CMvcModel
@@ -140,7 +143,7 @@ public:
     virtual CChannel *      createCopy(CChannel * pChannel)           = 0;
     virtual eRet            initialize(PROGRAM_INFO_T * pProgramInfo) = 0;
     virtual bool            verify(PROGRAM_INFO_T * pProgramInfo);
-    virtual eRet            tune(void * id, CConfig * pResourceLibrary, bool bWaitForLock, uint16_t index = ANY_INDEX) = 0;
+    virtual eRet            tune(void * id, CConfig * pResourceLibrary, bool bWaitForLock, unsigned index = ANY_INDEX) = 0;
     virtual eRet            unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true) = 0;
     virtual eRet            readXML(MXmlElement * xmlElemChannel);
     virtual void            writeXML(MXmlElement * xmlElemChannel);
@@ -164,18 +167,18 @@ public:
     virtual eRet            start(CSimpleAudioDecode * pAudioDecode = NULL, CSimpleVideoDecode * pVideoDecode = NULL);
     virtual eRet            finish(void);
     virtual CPid * getPid(
-            uint16_t index,
+            unsigned index,
             ePidType type
             ) { return(_pidMgr.getPid(index, type)); } /* Get Pid */
     virtual CPid * findPid(
-            uint16_t pidNum,
+            unsigned pidNum,
             ePidType type
             ) { return(_pidMgr.findPid(pidNum, type)); }
     virtual bool     isRecordEnabled(void)      { return(true); }
-    virtual uint16_t getWidth(void)             { return(_width); }
-    virtual void     setWidth(uint16_t width)   { _width = width; }
-    virtual uint16_t getHeight(void)            { return(_height); }
-    virtual void     setHeight(uint16_t height) { _height = height; }
+    virtual unsigned getWidth(void)             { return(_width); }
+    virtual void     setWidth(unsigned width)   { _width = width; }
+    virtual unsigned getHeight(void)            { return(_height); }
+    virtual void     setHeight(unsigned height) { _height = height; }
     virtual MRect    getVideoWindowGeometryPercent(void) { return(_geomVideoWindowPercent); }
     virtual void     setVideoWindowGeometryPercent(unsigned percentX, unsigned percentY, unsigned percentW, unsigned percentH);
     virtual void     setVideoWindowGeometryPercent(MRect * pRectPercent);
@@ -186,7 +189,7 @@ public:
     virtual bool operator ==(CChannel &other);
 
     /* Playback IP Channels support */
-    virtual eRet         setAudioProgram(uint16_t pid)         { return(eRet_NotSupported); }
+    virtual eRet         setAudioProgram(unsigned pid)         { return(eRet_NotSupported); }
     virtual MString      getTimeString(void)                   { return(MString("")); }
     virtual bool         timelineSupport(void)                 { return(false); }
     virtual unsigned int getLastPosition(void)                 { return(0); }
@@ -213,12 +216,12 @@ public:
     virtual MString getDescriptionShort(void)                      { return(_strDescriptionShort); }
     eBoardResource  getType(void)                                  { return(_type); }
     void            setType(eBoardResource resourceType)           { _type = resourceType; }
-    void            setMajor(uint16_t major)                       { _major = major; }
-    uint16_t        getMajor(void)                                 { return(_major); }
-    void            setMinor(uint16_t minor)                       { _minor = minor; }
-    uint16_t        getMinor(void)                                 { return(_minor); }
-    void            setProgramNum(uint16_t programNum)             { _programNum = programNum; }
-    uint16_t        getprogramNum(void)                            { return(_programNum); }
+    void            setMajor(unsigned major)                       { _major = major; }
+    unsigned        getMajor(void)                                 { return(_major); }
+    void            setMinor(unsigned minor)                       { _minor = minor; }
+    unsigned        getMinor(void)                                 { return(_minor); }
+    void            setProgramNum(unsigned programNum)             { _programNum = programNum; }
+    unsigned        getProgramNum(void)                            { return(_programNum); }
     MString         getChannelNum(void)                            { return(MString(_major) + MString(".") + MString(_minor)); }
     void            setInputBand(CInputBand * pInputBand)          { _pInputBand = pInputBand; }
     CInputBand *    getInputBand()                                 { return(_pInputBand); }
@@ -242,10 +245,10 @@ public:
     uint32_t        getNumSubChannels(void)       { return(_numSubChannels); }
     CChannel *      getParent(void)               { return(_pParent); }
     void            setParent(CChannel * pParent) { _pParent = pParent; }
-    CLabelData *    getLabelData(uint32_t index) { if (_labelList.total() > (int)index) return(_labelList[index]); }
+    CLabelData *    getLabelData(uint32_t index) { if (_labelList.total() > (int)index) return(_labelList[index]); else return NULL; }
     CSimpleVideoDecode * getVideoDecode(void) { return(_pVideoDecode); }
     CSimpleAudioDecode * getAudioDecode(void) { return(_pAudioDecode); }
-    eRet                 addImageLabel(MString strImagePath, MRect rectGeometryPercent = MRect(0, 0, 0, 0), unsigned zOrder = 1, MString strText = "");
+    eRet                 addImageLabel(MString strImagePath, MRect rectGeometryPercent = MRect(0, 0, 0, 0), unsigned zOrder = 1, MString strText = "", MString strGlobal = "false");
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     eDynamicRange        getDynamicRange(void) { return(_dynamicRange); }
     void                 setDynamicRange(eDynamicRange dynamicRange) { _dynamicRange = dynamicRange; }
@@ -289,12 +292,12 @@ public:
 
 protected:
     eBoardResource _type;
-    uint16_t       _major;
-    uint16_t       _minor;
+    unsigned       _major;
+    unsigned       _minor;
     MString        _strDescription;
     MString        _strDescriptionLong;
     MString        _strDescriptionShort;
-    uint16_t       _programNum;
+    unsigned       _programNum;
 #ifdef MPOD_SUPPORT
     uint32_t _sourceId;
 #ifdef NEXUS_HAS_SECURITY
@@ -325,8 +328,8 @@ protected:
     int                   _trickModeRate;
     eChannelTrick         _trickModeState;
     bool                  _bTunerRequired;
-    uint16_t              _width;
-    uint16_t              _height;
+    unsigned         _width;
+    unsigned         _height;
     uint64_t              _durationInMsecs;
     bool                  _bStopAllowed;
     bool                  _bPipSwapSupported;

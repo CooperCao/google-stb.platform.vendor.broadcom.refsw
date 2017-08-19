@@ -6,6 +6,8 @@
 
 #include "wl_client.h"
 #include "display_helpers.h"
+#include "fence_interface.h"
+#include "surface_interface.h"
 
 #include <EGL/begl_memplatform.h>
 #include <EGL/begl_schedplatform.h>
@@ -15,9 +17,11 @@
 
 typedef struct WaylandClientPlatform
 {
-   struct WaylandClient client;
-   bool joined;
-   bool drm;
+   struct WaylandClient    client;
+   FenceInterface          fence_interface;
+   SurfaceInterface        surface_interface;
+   bool                    joined;
+   bool                    drm;
    BEGL_MemoryInterface    *memoryInterface;
    BEGL_SchedInterface     *schedInterface;
    BEGL_DisplayInterface   *displayInterface;

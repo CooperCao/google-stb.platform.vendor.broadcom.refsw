@@ -44,12 +44,14 @@
 #if NEXUS_NUM_HDMI_OUTPUTS
 #include "nexus_hdmi_output.h"
 #include "priv/nexus_hdmi_output_priv.h"
-static struct
+static struct NEXUS_AudioOutputHdmiMapping
 {
     NEXUS_AudioOutputHandle output;
     BAPE_MaiOutputHandle handle;
     BKNI_EventHandle settingsChangedEvent;
     NEXUS_EventCallbackHandle settingsChangedCallback;
+    NEXUS_HdmiOutputAudioStatus status;
+    NEXUS_HdmiOutputSettings settings;
 } g_hdmiMapping[NEXUS_NUM_HDMI_OUTPUTS];
 
 static void NEXUS_AudioOutput_P_HdmiSettingsChanged(void *pOutput);
@@ -236,12 +238,14 @@ static NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
 
     for ( i = 0; i < NEXUS_NUM_HDMI_OUTPUTS; i++ )
     {
-        if ( g_hdmiMapping[i].output == output )
+        struct NEXUS_AudioOutputHdmiMapping * pHdmiMapping = &g_hdmiMapping[i];
+
+        if ( pHdmiMapping->output == output )
         {
             BAPE_MaiOutputSettings curMaiOutputSettings, maiOutputSettings;
-            NEXUS_HdmiOutputSettings hdmiSettings;
-            NEXUS_HdmiOutputStatus hdmiStatus;
-            BAPE_MaiOutput_GetSettings(g_hdmiMapping[i].handle, &maiOutputSettings);
+            NEXUS_HdmiOutputSettings * pHdmiSettings = &pHdmiMapping->settings;
+            NEXUS_HdmiOutputAudioStatus * pHdmiStatus = &pHdmiMapping->status;
+            BAPE_MaiOutput_GetSettings(pHdmiMapping->handle, &maiOutputSettings);
             BKNI_Memcpy(&curMaiOutputSettings, &maiOutputSettings, sizeof(maiOutputSettings));
 
             switch ( pSettings->channelMode )
@@ -262,43 +266,41 @@ static NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
             }
 
             /* Remaining settings need to be pulled from the HDMI output */
-            NEXUS_HdmiOutput_GetSettings(output->pObjectHandle, &hdmiSettings);
-            errCode = NEXUS_HdmiOutput_GetStatus(output->pObjectHandle, &hdmiStatus);
-            if (errCode == BERR_SUCCESS) {
-                if (hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eAc3])
-                {
-                    maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Passive;
-                }
-                else
-                {
-                    maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
-                }
-            }
-            else {
-                /* Unable to get HDMI status default to active */
-                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
-            }
+            NEXUS_HdmiOutput_GetSettings(output->pObjectHandle, pHdmiSettings);
 
-            if (hdmiSettings.loudnessDeviceMode == NEXUS_AudioLoudnessDeviceMode_eActive)
-            {
-                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
-            }
-            else if (hdmiSettings.loudnessDeviceMode == NEXUS_AudioLoudnessDeviceMode_ePassive)
+            NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
+            NEXUS_HdmiOutput_GetAudioStatus_priv(output->pObjectHandle, pHdmiStatus);
+            NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
+
+            if (pHdmiStatus->ac3Supported)
             {
                 maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Passive;
             }
-            maiOutputSettings.channelStatus.professional = hdmiSettings.audioChannelStatusInfo.professionalMode;
-            maiOutputSettings.channelStatus.copyright = hdmiSettings.audioChannelStatusInfo.swCopyRight;
-            maiOutputSettings.channelStatus.categoryCode = hdmiSettings.audioChannelStatusInfo.categoryCode;
-            maiOutputSettings.channelStatus.clockAccuracy = hdmiSettings.audioChannelStatusInfo.clockAccuracy;
-            maiOutputSettings.channelStatus.separateLeftRight = hdmiSettings.audioChannelStatusInfo.separateLRChanNum;
-            maiOutputSettings.ditherEnabled = hdmiSettings.audioDitherEnabled;
-            maiOutputSettings.underflowBurst = hdmiSettings.audioBurstType;
-            maiOutputSettings.burstPadding = hdmiSettings.audioBurstPadding;
+            else
+            {
+                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
+            }
+
+            if (pHdmiSettings->loudnessDeviceMode == NEXUS_AudioLoudnessDeviceMode_eActive)
+            {
+                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
+            }
+            else if (pHdmiSettings->loudnessDeviceMode == NEXUS_AudioLoudnessDeviceMode_ePassive)
+            {
+                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Passive;
+            }
+            maiOutputSettings.channelStatus.professional = pHdmiSettings->audioChannelStatusInfo.professionalMode;
+            maiOutputSettings.channelStatus.copyright = pHdmiSettings->audioChannelStatusInfo.swCopyRight;
+            maiOutputSettings.channelStatus.categoryCode = pHdmiSettings->audioChannelStatusInfo.categoryCode;
+            maiOutputSettings.channelStatus.clockAccuracy = pHdmiSettings->audioChannelStatusInfo.clockAccuracy;
+            maiOutputSettings.channelStatus.separateLeftRight = pHdmiSettings->audioChannelStatusInfo.separateLRChanNum;
+            maiOutputSettings.ditherEnabled = pHdmiSettings->audioDitherEnabled;
+            maiOutputSettings.underflowBurst = pHdmiSettings->audioBurstType;
+            maiOutputSettings.burstPadding = pHdmiSettings->audioBurstPadding;
 
             if ( BKNI_Memcmp(&curMaiOutputSettings, &maiOutputSettings, sizeof(maiOutputSettings)) != 0 )
             {
-                errCode = BAPE_MaiOutput_SetSettings(g_hdmiMapping[i].handle, &maiOutputSettings);
+                errCode = BAPE_MaiOutput_SetSettings(pHdmiMapping->handle, &maiOutputSettings);
                 if ( errCode )
                 {
                     return BERR_TRACE(errCode);
@@ -800,70 +802,73 @@ NEXUS_AudioOutputData *NEXUS_AudioOutput_P_CreateData(NEXUS_AudioOutputHandle ou
             #if NEXUS_NUM_HDMI_OUTPUTS  /* TODO */
             case NEXUS_AudioOutputType_eHdmi:
                 {
-                    NEXUS_HdmiOutputStatus hdmiStatus;
                     NEXUS_Error errCode;
-                    errCode = NEXUS_HdmiOutput_GetStatus(output->pObjectHandle, &hdmiStatus);
-                    if (errCode == BERR_SUCCESS) {
-                        BAPE_OutputPort mixerOutput;
-                        BAPE_MaiOutputInterruptHandlers interrupts;
+                    NEXUS_HdmiOutputAudioStatus hdmiStatus;
+                    BAPE_OutputPort mixerOutput;
+                    BAPE_MaiOutputInterruptHandlers interrupts;
+                    struct NEXUS_AudioOutputHdmiMapping * pHdmiMapping = NULL;
 
-                        BDBG_ASSERT(g_hdmiMapping[hdmiStatus.index].output == NULL);
+                    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
+                    NEXUS_HdmiOutput_GetAudioStatus_priv(output->pObjectHandle, &hdmiStatus);
+                    NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
+                    pHdmiMapping = &g_hdmiMapping[hdmiStatus.index];
 
-                        BDBG_MSG(("Creating MAI handle"));
-                        errCode = BAPE_MaiOutput_Open(NEXUS_AUDIO_DEVICE_HANDLE, hdmiStatus.index, NULL, &g_hdmiMapping[hdmiStatus.index].handle);
-                        if ( errCode )
-                        {
-                            BDBG_ERR(("Unable to open MAI Output"));
-                            BKNI_Free(output->pMixerData);
-                            output->pMixerData = NULL;
-                            return NULL;
-                        }
+                    BDBG_ASSERT(pHdmiMapping->output == NULL);
 
-                        errCode = BKNI_CreateEvent(&g_hdmiMapping[hdmiStatus.index].settingsChangedEvent);
-                        if ( errCode )
-                        {
-                            errCode = BERR_TRACE(errCode);
-                            BAPE_MaiOutput_Close(g_hdmiMapping[hdmiStatus.index].handle);
-                            BKNI_Free(output->pMixerData);
-                            output->pMixerData = NULL;
-                            return NULL;
-                        }
-
-                        g_hdmiMapping[hdmiStatus.index].settingsChangedCallback = NEXUS_RegisterEvent(g_hdmiMapping[hdmiStatus.index].settingsChangedEvent, NEXUS_AudioOutput_P_HdmiSettingsChanged, output);
-                        if ( NULL == g_hdmiMapping[hdmiStatus.index].settingsChangedCallback )
-                        {
-                            errCode = BERR_TRACE(errCode);
-                            BKNI_DestroyEvent(g_hdmiMapping[hdmiStatus.index].settingsChangedEvent);
-                            BAPE_MaiOutput_Close(g_hdmiMapping[hdmiStatus.index].handle);
-                            BKNI_Free(output->pMixerData);
-                            output->pMixerData = NULL;
-                            return NULL;
-                        }
-
-                        BAPE_MaiOutput_GetInterruptHandlers(g_hdmiMapping[hdmiStatus.index].handle, &interrupts);
-                        interrupts.sampleRate.pCallback_isr = NEXUS_AudioOutput_P_HdmiSampleRateChange_isr;
-                        interrupts.sampleRate.pParam1 = output;
-                        interrupts.sampleRate.param2 = 0;
-                        errCode = BAPE_MaiOutput_SetInterruptHandlers(g_hdmiMapping[hdmiStatus.index].handle, &interrupts);
-                        if ( errCode )
-                        {
-                            BDBG_ERR(("Unable to register sample rate interrupt"));
-                            NEXUS_UnregisterEvent(g_hdmiMapping[hdmiStatus.index].settingsChangedCallback);
-                            BKNI_DestroyEvent(g_hdmiMapping[hdmiStatus.index].settingsChangedEvent);
-                            BAPE_MaiOutput_Close(g_hdmiMapping[hdmiStatus.index].handle);
-                            BKNI_Free(output->pMixerData);
-                            output->pMixerData = NULL;
-                            return NULL;
-                        }
-                        g_hdmiMapping[hdmiStatus.index].output = output;
-                        BAPE_MaiOutput_GetOutputPort(g_hdmiMapping[hdmiStatus.index].handle, &mixerOutput);
-                        output->port = (size_t)mixerOutput;
-
-                        NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
-                        NEXUS_HdmiOutput_SetNotifyAudioEvent_priv(output->pObjectHandle, g_hdmiMapping[hdmiStatus.index].settingsChangedEvent);
-                        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
-                        NEXUS_AudioOutput_P_HdmiSettingsChanged(output);
+                    BDBG_MSG(("Creating MAI handle"));
+                    errCode = BAPE_MaiOutput_Open(NEXUS_AUDIO_DEVICE_HANDLE, hdmiStatus.index, NULL, &pHdmiMapping->handle);
+                    if ( errCode )
+                    {
+                        BDBG_ERR(("Unable to open MAI Output"));
+                        BKNI_Free(output->pMixerData);
+                        output->pMixerData = NULL;
+                        return NULL;
                     }
+
+                    errCode = BKNI_CreateEvent(&pHdmiMapping->settingsChangedEvent);
+                    if ( errCode )
+                    {
+                        errCode = BERR_TRACE(errCode);
+                        BAPE_MaiOutput_Close(pHdmiMapping->handle);
+                        BKNI_Free(output->pMixerData);
+                        output->pMixerData = NULL;
+                        return NULL;
+                    }
+
+                    pHdmiMapping->settingsChangedCallback = NEXUS_RegisterEvent(pHdmiMapping->settingsChangedEvent, NEXUS_AudioOutput_P_HdmiSettingsChanged, output);
+                    if ( NULL == pHdmiMapping->settingsChangedCallback )
+                    {
+                        errCode = BERR_TRACE(errCode);
+                        BKNI_DestroyEvent(pHdmiMapping->settingsChangedEvent);
+                        BAPE_MaiOutput_Close(pHdmiMapping->handle);
+                        BKNI_Free(output->pMixerData);
+                        output->pMixerData = NULL;
+                        return NULL;
+                    }
+
+                    BAPE_MaiOutput_GetInterruptHandlers(pHdmiMapping->handle, &interrupts);
+                    interrupts.sampleRate.pCallback_isr = NEXUS_AudioOutput_P_HdmiSampleRateChange_isr;
+                    interrupts.sampleRate.pParam1 = output;
+                    interrupts.sampleRate.param2 = 0;
+                    errCode = BAPE_MaiOutput_SetInterruptHandlers(pHdmiMapping->handle, &interrupts);
+                    if ( errCode )
+                    {
+                        BDBG_ERR(("Unable to register sample rate interrupt"));
+                        NEXUS_UnregisterEvent(pHdmiMapping->settingsChangedCallback);
+                        BKNI_DestroyEvent(pHdmiMapping->settingsChangedEvent);
+                        BAPE_MaiOutput_Close(pHdmiMapping->handle);
+                        BKNI_Free(output->pMixerData);
+                        output->pMixerData = NULL;
+                        return NULL;
+                    }
+                    pHdmiMapping->output = output;
+                    BAPE_MaiOutput_GetOutputPort(pHdmiMapping->handle, &mixerOutput);
+                    output->port = (size_t)mixerOutput;
+
+                    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
+                    NEXUS_HdmiOutput_SetNotifyAudioEvent_priv(output->pObjectHandle, pHdmiMapping->settingsChangedEvent);
+                    NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
+                    NEXUS_AudioOutput_P_HdmiSettingsChanged(output);
                 }
                 break;
             #endif
@@ -895,8 +900,7 @@ NEXUS_AudioOutputData *NEXUS_AudioOutput_P_CreateData(NEXUS_AudioOutputHandle ou
         }
         else
         {
-            NEXUS_Error errCode;
-            errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
             return NULL;
         }
     }
@@ -1032,28 +1036,6 @@ NEXUS_Error NEXUS_AudioOutput_P_SetCompressedMute(
     return NEXUS_SUCCESS;
 }
 
-/***************************************************************************
-Summary:
-    Determine if an output is connected to any inputs
- ***************************************************************************/
-static bool NEXUS_AudioOutput_P_IsConnected(
-    NEXUS_AudioOutputHandle output
-    )
-{
-    NEXUS_AudioOutputData *pData;
-
-    BDBG_ASSERT(NULL != output);
-
-    pData = output->pMixerData;
-    if ( NULL != pData && NULL != pData->input )
-    {
-        BDBG_OBJECT_ASSERT(pData, NEXUS_AudioOutputData);
-        return true;
-    }
-
-    return false;
-}
-
 #if NEXUS_NUM_HDMI_OUTPUTS
 static void NEXUS_AudioOutput_P_HdmiSampleRateChange_isr(void *pParam1, int param2, unsigned sampleRate)
 {
@@ -1067,7 +1049,7 @@ static void NEXUS_AudioOutput_P_HdmiSampleRateChange_isr(void *pParam1, int para
     avcRate = NEXUS_AudioOutput_P_GetSampleRateEnum_isr(sampleRate);
     output=(NEXUS_AudioOutputHandle)pParam1;
     BDBG_OBJECT_ASSERT(output, NEXUS_AudioOutput);
-    BDBG_MSG(("%s - HDMI Sample Rate Change %u, output %p", __FUNCTION__, sampleRate, (void *)output));
+    BDBG_MSG(("%s - HDMI Sample Rate Change %u, output %p", BSTD_FUNCTION, sampleRate, (void *)output));
     pData = output->pMixerData;
     BDBG_ASSERT(NULL != pData);
     pData->sampleRate = avcRate;
@@ -1209,7 +1191,7 @@ static NEXUS_Error NEXUS_AudioOutput_P_ValidateClockConfig(
     bool supportsPll,
     bool supportsNco,
     char *output)
-{    
+{
 
     if (outputFamily == NEXUS_AUDIO_NO_TIMEBASE)
     {
@@ -1217,9 +1199,9 @@ static NEXUS_Error NEXUS_AudioOutput_P_ValidateClockConfig(
     }
 
     if (outputFamily >= NEXUS_AUDIO_MAX_TIMEBASES)
-    {        
-        BDBG_ERR(("%s output %s outputFamily(%d) exceeds NEXUS_AUDIO_MAX_TIMEBASES (%d)",__FUNCTION__,output,outputFamily,NEXUS_AUDIO_MAX_TIMEBASES));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);         
+    {
+        BDBG_ERR(("%s output %s outputFamily(%d) exceeds NEXUS_AUDIO_MAX_TIMEBASES (%d)",BSTD_FUNCTION,output,outputFamily,NEXUS_AUDIO_MAX_TIMEBASES));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     if (supportsNco && outputFamily && suggestions[outputFamily].nco == NEXUS_AudioOutputNco_eMax &&
@@ -1240,34 +1222,31 @@ static NEXUS_Error NEXUS_AudioOutput_P_ValidateClockConfig(
     {
         config->pll = NEXUS_AudioOutputPll_e0+*allocatedPll;
         suggestions[outputFamily].pll = NEXUS_AudioOutputPll_e0+*allocatedPll;
-        *allocatedPll += 1; 
+        *allocatedPll += 1;
         return BERR_SUCCESS;
-    } 
+    }
     else if (supportsPll && outputFamily && suggestions[outputFamily].pll != NEXUS_AudioOutputPll_eMax)
     {
         config->pll = suggestions[outputFamily].pll;
         return BERR_SUCCESS;
     }
 
-    BDBG_ERR(("%s: could not allocate a resource for %s:",__FUNCTION__,output));
+    BDBG_ERR(("%s: could not allocate a resource for %s:",BSTD_FUNCTION,output));
     BDBG_ERR(("output supports nco %d - output supports pll %d", supportsNco, supportsPll));
     BDBG_ERR(("NCOs allocated %d - PLL's allocated %d", *allocatedNco, *allocatedPll));
     BDBG_ERR(("System Supports NCOs %d PLL %d Outputs %d", capabilities->numNcos, capabilities->numPlls, NEXUS_AUDIO_MAX_TIMEBASES));
     return BERR_TRACE(BERR_NOT_SUPPORTED);
-}    
+}
 
 
 NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
     const NEXUS_AudioOutputEnabledOutputs *outputs,
     NEXUS_AudioOutputClockConfig *config)
-{     
+{
      NEXUS_AudioCapabilities capabilities;
      unsigned totalResources = 0;
-     unsigned totalRequests = 0;
-     unsigned requestedPll = 0;
      unsigned requestedSpdif = 0;
      unsigned requestedI2S = 0;
-     unsigned requestedMultiI2S = 0;
      unsigned requstedDummy = 0;
      unsigned requestedHDMI = 0;
      unsigned allocatedPll = 0;
@@ -1301,7 +1280,7 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
      }
      for(i=0;i<capabilities.numOutputs.i2s;i++)
      {
-         requestedI2S += outputs->i2s[i]?1:0;         
+         requestedI2S += outputs->i2s[i]?1:0;
          config->i2s[i].pll=NEXUS_AudioOutputPll_eMax;
          config->i2s[i].nco=NEXUS_AudioOutputNco_eMax;
      }
@@ -1319,8 +1298,6 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
 
      }
 
-     totalRequests = requestedHDMI + requestedMultiI2S + requestedI2S + requestedSpdif + requstedDummy + requestedCapture;
-     requestedPll = requestedMultiI2S + requestedI2S + requestedSpdif;
      BDBG_MSG(("Resources available %d", totalResources));
      BDBG_MSG(("Requested HDMI(%d) Spdif(%d) I2S (%d) Dummy(%d) AudioCapture(%d)",
                requestedHDMI, requestedSpdif, requestedI2S, requstedDummy, requestedCapture));

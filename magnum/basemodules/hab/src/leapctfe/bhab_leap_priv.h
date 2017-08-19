@@ -86,6 +86,13 @@
 
 #define BHAB_COMMAND_BUF_SIZE   80
 
+typedef enum BHAB_TunerPowerState
+{
+    BHAB_TunerPowerState_eOff,
+    BHAB_TunerPowerState_eOn,
+    BHAB_TunerPowerState_eMax
+} BHAB_TunerPowerState;
+
 typedef enum BHAB_LockStatus
 {
     BBHAB_LockStatus_eLocked=1,
@@ -174,6 +181,7 @@ typedef enum BHAB_CoreType
 #define BHAB_SET_CPPM_SETTINGS      0x27
 #define BHAB_AVS_DATA               0x273
 #define BHAB_SET_STANDYBY_MODE      0x38
+#define BHAB_GET_LNA_STATUS         0x41
 #if BHAB_STANDALONE_FRONTEND
 #define BTNR_CORE_TYPE              0xE
 #else

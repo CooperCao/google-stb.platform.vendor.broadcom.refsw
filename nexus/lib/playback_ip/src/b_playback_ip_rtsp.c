@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,7 +66,7 @@ rtsp_cmd_completion(void *appCtx, B_PlaybackIpEventIds eventId)
 
     BDBG_ASSERT(playback_ip);
     BKNI_SetEvent(playback_ip->liveMediaSyncEvent);
-    BDBG_MSG(("%s: sent LiveMediaSyncEvent for eventId %d\n", __FUNCTION__, eventId));
+    BDBG_MSG(("%s: sent LiveMediaSyncEvent for eventId %d\n", BSTD_FUNCTION, eventId));
 }
 #endif /* LIVEMEDIA_SUPPORT=y */
 
@@ -86,7 +86,7 @@ B_PlaybackIp_RtspSessionClose(
         /* destroy thread that was created during 1st non-blocking trickmode call and re-used for all subsequent trickmode calls */
         B_Thread_Destroy(playback_ip->trickModeThread);
         playback_ip->trickModeThread = NULL;
-        BDBG_MSG(("%s: destroying temporary thread created during HTTP session setup", __FUNCTION__));
+        BDBG_MSG(("%s: destroying temporary thread created during HTTP session setup", BSTD_FUNCTION));
     }
     if (playback_ip->newTrickModeJobEvent) {
         BKNI_DestroyEvent(playback_ip->newTrickModeJobEvent);
@@ -114,7 +114,7 @@ B_PlaybackIp_RtspSessionOpen(
     B_PlaybackIpSocketState *socketState;
 
     if (!playback_ip || !openSettings || !openStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -125,13 +125,13 @@ B_PlaybackIp_RtspSessionOpen(
 
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_WRN(("%s: previously started session open operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
+        BDBG_WRN(("%s: previously started session open operation completed, playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
         goto done;
     }
 
     /* Neither SessionSetup is in progress nor it is completed, verify input params and then start work */
     if (openSettings->u.rtsp.additionalHeaders && !strstr(openSettings->u.rtsp.additionalHeaders, "\r\n")) {
-        BDBG_ERR(("%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is %s\n", __FUNCTION__, openSettings->u.rtsp.additionalHeaders));
+        BDBG_ERR(("%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is %s\n", BSTD_FUNCTION, openSettings->u.rtsp.additionalHeaders));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -157,20 +157,20 @@ B_PlaybackIp_RtspSessionOpen(
             return B_ERROR_IN_PROGRESS;
 
         /* app is in the blocking mode, so wait for command completion */
-        BDBG_MSG(("%s: waiting for for Live Media Session Open Command Completion event", __FUNCTION__));
+        BDBG_MSG(("%s: waiting for for Live Media Session Open Command Completion event", BSTD_FUNCTION));
         rc = BKNI_WaitForEvent(playback_ip->liveMediaSyncEvent, LIVEMEDIA_LIB_API_WAIT_TIME  /* msec */);
         if (rc == BERR_TIMEOUT) {
-            BDBG_WRN(("%s: timed out for Live Media Session Open Command Completion event", __FUNCTION__));
+            BDBG_WRN(("%s: timed out for Live Media Session Open Command Completion event", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
             goto error;
         } else if (rc!=0) {
-            BDBG_WRN(("%s: Got error while waiting for Live Media Session Open Command Completion event", __FUNCTION__));
+            BDBG_WRN(("%s: Got error while waiting for Live Media Session Open Command Completion event", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
             goto error;
         }
 
         /* session open completed successfully, continue below at done label */
-        BDBG_MSG(("%s: Session Open Command completed: socket %d", __FUNCTION__, socketState->fd));
+        BDBG_MSG(("%s: Session Open Command completed: socket %d", BSTD_FUNCTION, socketState->fd));
     }
     else if (errorCode != B_ERROR_SUCCESS) {
         goto error;
@@ -180,10 +180,10 @@ done:
     /* RTSP command completed, verify response */
     openStatus->u.rtsp = playback_ip->openStatus.u.rtsp;    /* filled in by the liveMediaSessionOpen call */
     if (playback_ip->openStatus.u.rtsp.statusCode != 200) {
-        BDBG_ERR(("%s: Live Media Session Open Failed ", __FUNCTION__));
+        BDBG_ERR(("%s: Live Media Session Open Failed ", BSTD_FUNCTION));
         goto error;
     }
-    BDBG_MSG(("%s: successfully received the RTSP Response", __FUNCTION__));
+    BDBG_MSG(("%s: successfully received the RTSP Response", BSTD_FUNCTION));
     playback_ip->playback_state = B_PlaybackIpState_eOpened;
 
     /* Since we dont yet know the media transport protocol, as assume it to be RTP and do the RTP session setup */
@@ -220,10 +220,10 @@ B_PlaybackIp_RtspLiveMediaSessionStart(B_PlaybackIpHandle playback_ip, bool nonB
         /* app is in the blocking mode, so wait for command completion */
         rc = BKNI_WaitForEvent(playback_ip->liveMediaSyncEvent, LIVEMEDIA_LIB_API_WAIT_TIME /* msec */);
         if (rc == BERR_TIMEOUT) {
-            BDBG_WRN(("%s: timed out for Live Media Session Start Command Completion event", __FUNCTION__));
+            BDBG_WRN(("%s: timed out for Live Media Session Start Command Completion event", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
         } else if (rc!=0) {
-            BDBG_WRN(("%s: Got error while waiting for Live Media Session Start Command Completion event", __FUNCTION__));
+            BDBG_WRN(("%s: Got error while waiting for Live Media Session Start Command Completion event", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
         }
         else {
@@ -233,7 +233,7 @@ B_PlaybackIp_RtspLiveMediaSessionStart(B_PlaybackIpHandle playback_ip, bool nonB
     }
 
 out:
-    BDBG_MSG(("%s: errorCode %d", __FUNCTION__, errorCode));
+    BDBG_MSG(("%s: errorCode %d", BSTD_FUNCTION, errorCode));
     return errorCode;
 }
 #endif /* LIVEMEDIA_SUPPORT=y */
@@ -249,12 +249,12 @@ B_PlaybackIp_RtspSessionSetup(
 #ifdef LIVEMEDIA_SUPPORT
 
     if (!playback_ip || !setupSettings || !setupStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
     if (setupSettings->u.rtsp.additionalHeaders && !strstr(setupSettings->u.rtsp.additionalHeaders, "\r\n")) {
-        BDBG_ERR(("%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is: %s\n", __FUNCTION__, setupSettings->u.rtsp.additionalHeaders));
+        BDBG_ERR(("%s: additional RTSP header is NOT properly terminated (missing \\r\\n), header is: %s\n", BSTD_FUNCTION, setupSettings->u.rtsp.additionalHeaders));
         errorCode = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
@@ -266,7 +266,7 @@ B_PlaybackIp_RtspSessionSetup(
 
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_WRN(("%s: previously started session setup operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
+        BDBG_WRN(("%s: previously started session setup operation completed, playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -293,17 +293,17 @@ B_PlaybackIp_RtspSessionSetup(
         /* app is in the blocking mode, so wait for command completion */
         rc = BKNI_WaitForEvent(playback_ip->liveMediaSyncEvent, LIVEMEDIA_LIB_API_WAIT_TIME /* msec */);
         if (rc == BERR_TIMEOUT) {
-            BDBG_WRN(("%s: timed out for Live Media Session Setup Command Completion event", __FUNCTION__));
+            BDBG_WRN(("%s: timed out for Live Media Session Setup Command Completion event", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
             goto error;
         } else if (rc!=0) {
-            BDBG_WRN(("%s: Got error while waiting for Live Media Session Setup Command Completion event", __FUNCTION__));
+            BDBG_WRN(("%s: Got error while waiting for Live Media Session Setup Command Completion event", BSTD_FUNCTION));
             errorCode = B_ERROR_UNKNOWN;
             goto error;
         }
 
         /* session setup completed */
-        BDBG_MSG(("%s: Live Media Session Setup Command Response\n %s", __FUNCTION__, playback_ip->setupStatus.u.rtsp.responseHeaders));
+        BDBG_MSG(("%s: Live Media Session Setup Command Response\n %s", BSTD_FUNCTION, playback_ip->setupStatus.u.rtsp.responseHeaders));
     }
     else if (errorCode != B_ERROR_SUCCESS) {
         goto error;
@@ -323,13 +323,13 @@ done:
         }
         else {
             errorCode = B_ERROR_PROTO;
-            BDBG_ERR(("%s: Live Media Session Setup Failed ", __FUNCTION__));
+            BDBG_ERR(("%s: Live Media Session Setup Failed ", BSTD_FUNCTION));
             goto error;
         }
 
         /* We are done if caller doesn't want us to probe the media. */
         if (setupSettings->u.rtsp.skipPsiParsing) {
-            BDBG_WRN(("%s: App asked us to skip PSI parsing...", __FUNCTION__));
+            BDBG_WRN(("%s: App asked us to skip PSI parsing...", BSTD_FUNCTION));
             goto out;
         }
 
@@ -353,7 +353,7 @@ done:
         }
 
 
-        BDBG_WRN(("%s: App asked us to do PSI parsing, so internaly starting LM layer", __FUNCTION__));
+        BDBG_WRN(("%s: App asked us to do PSI parsing, so internaly starting LM layer", BSTD_FUNCTION));
         /* For us to get the PSI info, we will need to quickly start the session, so that server can start streaming */
         errorCode = B_PlaybackIp_RtspLiveMediaSessionStart(playback_ip, playback_ip->openSettings.nonBlockingMode);
         playback_ip->rtspLmStartDone = true;
@@ -369,7 +369,7 @@ done:
         playback_ip->apiCompleted = false;
 
         /* Now RtspLiveMediaSessionStart() is complete, so start the media probe process. This is done inline. */
-        BDBG_WRN(("%s: LM layer started, now starting the probe", __FUNCTION__));
+        BDBG_WRN(("%s: LM layer started, now starting the probe", BSTD_FUNCTION));
 #if 0
         B_PlaybackIp_UtilsMediaProbeCreate(playback_ip);
 #endif
@@ -391,7 +391,7 @@ done:
 
     /* check the success of probing function */
     if (!playback_ip->psi.psiValid) {
-        BDBG_ERR(("%s: Failed to acquire PSI info via media probe\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to acquire PSI info via media probe\n", BSTD_FUNCTION));
         errorCode = B_ERROR_UNKNOWN;
         B_PlaybackIp_UtilsMediaProbeDestroy(playback_ip);
         goto error;
@@ -404,7 +404,7 @@ out:
 error:
     if (errorCode != B_ERROR_SUCCESS)
     {
-        BDBG_WRN(("%s: Failed", __FUNCTION__));
+        BDBG_WRN(("%s: Failed", BSTD_FUNCTION));
         B_PlaybackIp_RtpSessionClose(playback_ip);
     }
     playback_ip->apiInProgress = false;
@@ -443,7 +443,7 @@ B_PlaybackIp_RtspSessionStart(
 
 #ifdef LIVEMEDIA_SUPPORT
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", BSTD_FUNCTION, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -453,14 +453,14 @@ B_PlaybackIp_RtspSessionStart(
 
     /* if SessionStart is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_WRN(("%s: previously started session start operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
+        BDBG_WRN(("%s: previously started session start operation completed, playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
     }
 
     BDBG_MSG(("%s: RTSP Media Transport Protocol: %s, position start %d, end %d, keepAliveInterval %d",
-                __FUNCTION__, startSettings->u.rtsp.mediaTransportProtocol == B_PlaybackIpProtocol_eUdp ? "UDP" : "RTP",
+                BSTD_FUNCTION, startSettings->u.rtsp.mediaTransportProtocol == B_PlaybackIpProtocol_eUdp ? "UDP" : "RTP",
                 (int)startSettings->u.rtsp.start,
                 (int)startSettings->u.rtsp.end,
                 startSettings->u.rtsp.keepAliveInterval
@@ -477,7 +477,7 @@ B_PlaybackIp_RtspSessionStart(
         goto error;
 
 done:
-    BDBG_WRN(("%s: Live Media Session Start Command Response\n %s", __FUNCTION__, playback_ip->startStatus.u.rtsp.responseHeaders));
+    BDBG_WRN(("%s: Live Media Session Start Command Response\n %s", BSTD_FUNCTION, playback_ip->startStatus.u.rtsp.responseHeaders));
     startStatus->u.rtsp = playback_ip->startStatus.u.rtsp;
     if (startStatus->u.rtsp.responseHeaders == NULL) {
         errorCode = B_ERROR_PROTO;

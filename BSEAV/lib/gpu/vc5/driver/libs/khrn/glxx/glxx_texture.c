@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "libs/platform/gmem.h"
+#include "libs/core/v3d/v3d_tmu.h"
 
 static bool requires_mipmaps(enum glxx_min_filter min_filter);
 
@@ -49,10 +50,6 @@ static khrn_blob* create_blob(enum glxx_tex_target target, unsigned width,
       unsigned height, unsigned depth, unsigned num_array_elems, unsigned
       num_mip_levels, const GFX_LFMT_T *fmts, unsigned num_planes,
       bool secure_texture);
-
-/* Number of levels past base_level that should be used */
-static bool try_get_num_levels(const GLXX_TEXTURE_T *texture, bool only_base_level,
-      unsigned *base_level, unsigned *num_levels);
 
 static bool texture_check_or_create_image(GLXX_TEXTURE_T *texture, unsigned
       face, unsigned level, unsigned width, unsigned height, unsigned depth,
@@ -1022,7 +1019,7 @@ bool glxx_texture_storage(GLXX_TEXTURE_T *texture,unsigned levels,
 }
 
 /* es3.0 spec, 3.8.10 Texture Minification, Mipmapping */
-static bool try_get_num_levels(const GLXX_TEXTURE_T *texture,
+bool glxx_texture_try_get_num_levels(const GLXX_TEXTURE_T *texture,
       bool only_base_level, unsigned *base_level, unsigned *num_levels)
 {
    unsigned q;
@@ -1105,7 +1102,7 @@ bool glxx_texture_check_completeness(const GLXX_TEXTURE_T *texture,
 {
    bool ok;
 
-   ok = try_get_num_levels(texture, base_complete, base_level, num_levels);
+   ok = glxx_texture_try_get_num_levels(texture, base_complete, base_level, num_levels);
    if (!ok)
       return false;
    assert((base_complete && (*num_levels == 1))||
@@ -1413,7 +1410,7 @@ fail:
  * base_level + num_levels,
  * Return true if we succeed.
  */
-bool make_contiguous_blob_and_copy_levels(GLXX_TEXTURE_T *texture,
+static bool make_contiguous_blob_and_copy_levels(GLXX_TEXTURE_T *texture,
       unsigned base_level, unsigned num_levels,
       unsigned copy_start_level, unsigned copy_num_levels,
       glxx_context_fences *fences)
@@ -1887,7 +1884,16 @@ static glsl_gadgettype_t get_glsl_gadgettype_and_adjust_hw_swizzles(
 
    if (tmu_trans->shader_swizzle)
    {
-      glsl_gadgettype_t gadgettype = glsl_make_shader_swizzled_gadgettype(tmu_trans->ret, tmu_trans->swizzles);
+      glsl_gadgettype_t g;
+      switch (tmu_trans->ret) {
+      case GFX_LFMT_TMU_RET_8:         g = GLSL_GADGETTYPE_INT8; break;
+      case GFX_LFMT_TMU_RET_16:        g = GLSL_GADGETTYPE_INT16; break;
+      case GFX_LFMT_TMU_RET_32:        g = GLSL_GADGETTYPE_INT32; break;
+      case GFX_LFMT_TMU_RET_1010102:   g = GLSL_GADGETTYPE_INT10_10_10_2; break;
+      default:                         unreachable();
+      }
+
+      glsl_gadgettype_t gadgettype = glsl_make_shader_swizzled_gadgettype(g, tmu_trans->swizzles);
       tmu_trans->swizzles[0] = V3D_TMU_SWIZZLE_R;
       tmu_trans->swizzles[1] = V3D_TMU_SWIZZLE_G;
       tmu_trans->swizzles[2] = V3D_TMU_SWIZZLE_B;
@@ -1896,8 +1902,7 @@ static glsl_gadgettype_t get_glsl_gadgettype_and_adjust_hw_swizzles(
    }
    else
    {
-      bool tmu_output_32bit = v3d_tmu_auto_output_32(
-         tmu_trans->type, /*shadow=*/false, /*coefficient=*/false);
+      bool tmu_output_32bit = v3d_tmu_auto_output_32(tmu_trans->type, /*shadow=*/false);
       return glsl_make_tmu_swizzled_gadgettype(tmu_output_32bit, is_32bit);
    }
 }
@@ -2077,18 +2082,40 @@ static bool record_tex_usage_and_get_hw_params(
    v3d_addr_t base_addr = gmem_get_addr(blob_base->res->handle) +
       (img_base->start_elem * blob_base->array_pitch);
 
-   tp->w = desc_base->width;
-   tp->h = desc_base->height;
+#if V3D_HAS_LARGE_1D_TEXTURE
+   if (glxx_tex_target_is_1d(texture->target))
+      v3d_tmu_get_wh_for_1d_tex_state(&tp->w, &tp->h, desc_base->width);
+#else
+   if (texture->target == GL_TEXTURE_BUFFER)
+   {
+      GFX_LFMT_BASE_DETAIL_T bd;
+      gfx_lfmt_base_detail(&bd, desc_base->planes[0].lfmt);
+
+      /* this assert is not true for RGB32(F/I/UI), but we are going to treat
+       * those as R32 textures*/
+      assert(GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES % bd.bytes_per_block == 0);
+      tp->w = GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES / bd.bytes_per_block;
+      tp->h = 1;
+   }
+#endif
+   else
+   {
+      tp->w = desc_base->width;
+      tp->h = desc_base->height;
+   }
 
    gfx_buffer_get_tmu_uif_cfg(&tp->uif_cfg, desc_base, plane);
 
    tp->tex_lfmt = tex_lfmt;
 
-   gfx_lfmt_translate_tmu(&tp->tmu_trans, gfx_lfmt_ds_to_red(tex_lfmt),
+   gfx_lfmt_translate_tmu(&tp->tmu_trans, gfx_lfmt_ds_to_red(tex_lfmt)
+#if !V3D_HAS_TMU_R32F_R16_SHAD
       /* We must use a depth type if we're reading a depth channel -- if we
        * don't and the lookup is a shadow-compare lookup it won't work. The
        * other way around doesn't matter. */
-      gfx_lfmt_has_depth(tex_lfmt) ? GFX_LFMT_TMU_DEPTH_ALWAYS : GFX_LFMT_TMU_DEPTH_DONT_CARE);
+      , gfx_lfmt_has_depth(tex_lfmt)
+#endif
+      );
    tp->yflip = !!(tex_lfmt & GFX_LFMT_YFLIP_YFLIP);
 
    tp->base_level = img_base->level;
@@ -2127,42 +2154,39 @@ static bool record_tex_usage_and_get_hw_params(
 
       tp->l0_addr = base_addr + desc_base->planes[plane].offset;
 
-      tp->d = desc_base->depth * khrn_image_get_num_elems(img_base);
-
-      /* For image units which are using a single face, img_base will already
-       * contain only a single 2d slice, so num_elems should be 1 and is
-       * correct. For cubemaps img_base *always* contains only a single face,
-       * so num_elems will always return 1. For cubemap arrays img_base
-       * contains the whole image and so will have num_elems == array_layers * 6.
-       * Image units expect a depth of 6*array_layers, but textures expect just
-       * array_layers. Correct the two cases as appropriate. */
-      if (image_unit && image_unit->use_face_layer)
-         assert(tp->d == 1);
-      else if (image_unit && texture->target == GL_TEXTURE_CUBE_MAP)
-         tp->d *= 6;
-      else if (!image_unit && texture->target == GL_TEXTURE_CUBE_MAP_ARRAY)
+#if !V3D_HAS_LARGE_1D_TEXTURE
+      if (texture->target == GL_TEXTURE_BUFFER)
       {
-         assert((tp->d % 6) == 0);
-         tp->d /= 6;
+         tp->d = gfx_udiv_round_up(desc_base->width, tp->w);
+         tp->arr_str = GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES;
       }
+      else
+#endif
+      {
+         tp->d = desc_base->depth * khrn_image_get_num_elems(img_base);
 
-      tp->arr_str = get_hw_stride(blob_base, plane);
+         /* For image units which are using a single face, img_base will already
+          * contain only a single 2d slice, so num_elems should be 1 and is
+          * correct. For cubemaps img_base *always* contains only a single face,
+          * so num_elems will always return 1. For cubemap arrays img_base
+          * contains the whole image and so will have num_elems == array_layers * 6.
+          * Image units expect a depth of 6*array_layers, but textures expect just
+          * array_layers. Correct the two cases as appropriate. */
+         if (image_unit && image_unit->use_face_layer)
+            assert(tp->d == 1);
+         else if (image_unit && texture->target == GL_TEXTURE_CUBE_MAP)
+            tp->d *= 6;
+         else if (!image_unit && texture->target == GL_TEXTURE_CUBE_MAP_ARRAY)
+         {
+            assert((tp->d % 6) == 0);
+            tp->d /= 6;
+         }
+
+         tp->arr_str = get_hw_stride(blob_base, plane);
+      }
    }
 
    assert(v3d_addr_aligned(tp->l0_addr, V3D_TMU_ML_ALIGN));
-
-   if (texture->target == GL_TEXTURE_BUFFER)
-   {
-      GFX_LFMT_BASE_DETAIL_T bd;
-      gfx_lfmt_base_detail(&bd, desc_base->planes[0].lfmt);
-
-      /* this assert is not true for RGB32(F/I/UI), but we are going to treat
-       * those as R32 textures*/
-      assert(GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES % bd.bytes_per_block == 0);
-      tp->w = GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES / bd.bytes_per_block;
-      tp->d = gfx_udiv_round_up(desc_base->width, tp->w);
-      tp->arr_str = GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES;
-   }
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    if (image_unit)
@@ -2365,7 +2389,6 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
       V3D_TMU_PARAM0_CFG1_T p0;
       memset(&p0, 0, sizeof(p0));
       /* ltype, fetch, gather, bias, bslod, shadow in extra_bits from shader compiler */
-      p0.coefficient = false;
       p0.wrap_s = get_hw_wrap(sampler->wrap.s);
       p0.wrap_t = glxx_tex_target_is_1d(tex_target) ? V3D_TMU_WRAP_CLAMP : get_hw_wrap(sampler->wrap.t);
       p0.wrap_r = get_hw_wrap(sampler->wrap.r);
@@ -2438,7 +2461,6 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
    memcpy(ind.swizzles, tp->tmu_trans.swizzles, sizeof(ind.swizzles));
    ind.flipx     = false;
    ind.flipy     = tp->yflip;
-   ind.etcflip   = true;
    ind.bcolour   = 0;
    if (uses_border_color(sampler))
    {
@@ -2550,18 +2572,22 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
    texture_unif->lx_slice_pitch = tp.lx_slice_pitch;
    texture_unif->lx_swizzling = tp.lx_swizzling;
 #endif
+
+#if !V3D_HAS_LARGE_1D_TEXTURE
    if (texture->target == GL_TEXTURE_BUFFER)
    {
       texture_unif->texbuffer_log2_arr_elem_w = gfx_log2(tp.w);
       texture_unif->texbuffer_arr_elem_w_minus_1 = tp.w - 1;
    }
+#endif
+
    KHRN_MEM_ASSIGN(img_base, NULL);
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
    GFX_LFMT_T hw_border_fmt = get_hw_border_fmt(&tp.tmu_trans, is_32bit);
 #else
    GFX_LFMT_T hw_border_fmt = get_hw_border_fmt(&tp.tmu_trans,
-      v3d_tmu_auto_output_32(tp.tmu_trans.type, /*shadow=*/false, /*coefficient=*/false));
+      v3d_tmu_auto_output_32(tp.tmu_trans.type, /*shadow=*/false));
 #endif
 
    compose_swizzles(tp.tmu_trans.swizzles, texture->swizzle);
@@ -2953,7 +2979,7 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
 
    unsigned base_level;
    unsigned num_levels = 0;
-   if (!try_get_num_levels(texture, false, &base_level, &num_levels))
+   if (!glxx_texture_try_get_num_levels(texture, false, &base_level, &num_levels))
    {
       *error = GL_INVALID_OPERATION;
       return false;
@@ -3190,18 +3216,19 @@ void glxx_texture_set_crop_rect(GLXX_TEXTURE_T *texture, const GLint * params)
 bool glxx_texture_acquire_one_elem_slice(GLXX_TEXTURE_T *texture,
       unsigned face, unsigned level, unsigned layer, khrn_image **p_img)
 {
-   khrn_image *img = NULL;
-   unsigned xoffset, yoffset, zoffset, start_elem, faces;
-   bool res = true;
+   *p_img = NULL;
 
-   faces = num_faces(texture->target);
-   if (face > faces || !glxx_texture_is_legal_level(texture->target, level))
-      goto end;
-   img = texture->img[face][level];
+   unsigned faces = num_faces(texture->target);
+   if (face > faces)
+      return true;
+   if (!glxx_texture_is_legal_level(texture->target, level))
+      return true;
 
-   if (!img)
-      goto end;
+   khrn_image *img =texture->img[face][level];
+   if(!img)
+      return true;
 
+   unsigned xoffset, yoffset, zoffset, start_elem;
    xoffset = yoffset  = 0;
    zoffset = layer;
    glxx_tex_transform_offsets_for_target(texture->target, &xoffset, &yoffset,
@@ -3210,29 +3237,87 @@ bool glxx_texture_acquire_one_elem_slice(GLXX_TEXTURE_T *texture,
    if (khrn_image_is_one_elem_slice(img))
    {
       if (layer != 0 || start_elem != 0)
-      {
-         img = NULL;
-         goto end;
-      }
+         return true;
 
+      *p_img = img;
       khrn_mem_acquire(img);
+      return true;
    }
    else
    {
       if (zoffset >= khrn_image_get_depth(img) ||
-          start_elem >=  khrn_image_get_num_elems(img))
-      {
-         img = NULL;
-         goto end;
-      }
-      img = khrn_image_create_one_elem_slice(img->blob, start_elem, zoffset, level, img->api_fmt);
-      if (img == NULL)
-         res = false;
+            start_elem >=  khrn_image_get_num_elems(img))
+         return true;
+
+      *p_img = khrn_image_create_one_elem_slice(img->blob, start_elem, zoffset, level, img->api_fmt);
+      return (*p_img != NULL);
+   }
+}
+
+/* check that there is an image for that level and if level != levelbase check
+ * texture is mipmap complete (cube complete for cube textures) and level is in
+ * the range [levelbase , q] (see gles spec);
+ * for cube map, we need cube complete when level != levelbase
+ */
+static bool check_level_and_complete(const GLXX_TEXTURE_T *texture, unsigned level,
+      unsigned *base_level, unsigned *num_levels)
+{
+   if (texture->immutable_format != GFX_LFMT_NONE)
+   {
+      assert(glxx_texture_try_get_num_levels(texture, false, base_level, num_levels));
+      assert(level >= *base_level && level < (*base_level + *num_levels));
+      return true;
    }
 
-end:
-   *p_img = img;
-   return res;
+   if (!glxx_texture_is_legal_level(texture->target, level))
+         return false;
+
+   if (!texture->img[0][level])
+      return false;
+
+   /* check mipmap complete */
+   bool base_complete = false;
+   if (!glxx_texture_check_completeness(texture, base_complete, base_level, num_levels))
+   {
+      base_complete = true;
+      /* try base_complete */
+      if (!glxx_texture_check_completeness(texture, base_complete, base_level, num_levels))
+         return false;
+   }
+
+   return (level >= *base_level && level < (*base_level + *num_levels));
+}
+
+bool glxx_texture_acquire_level(GLXX_TEXTURE_T *texture,
+      unsigned level, glxx_context_fences *fences, khrn_image **p_img)
+{
+   *p_img = NULL;
+
+   unsigned base_level, num_levels;
+   if (!check_level_and_complete(texture, level, &base_level, &num_levels))
+      return true;
+
+   if (texture->target != GL_TEXTURE_CUBE_MAP)
+   {
+      *p_img = texture->img[0][level];
+      khrn_mem_acquire(*p_img);
+      return true;
+   }
+   else
+   {
+      // get contiguous blob
+      if (!are_images_in_same_blob(texture->img, 6, base_level, num_levels))
+      {
+         if (!make_contiguous_blob_and_copy_levels(texture, base_level,
+              num_levels, base_level, num_levels, fences))
+            return false;
+      }
+
+      khrn_image *img0 = texture->img[0][level];
+      //create an image that refers to the whole level
+      *p_img = khrn_image_create(img0->blob, 0, 6, level - base_level, img0->api_fmt);
+      return (*p_img != NULL);
+   }
 }
 
 bool glxx_texture_acquire_from_eglimage(GLXX_TEXTURE_T *texture, unsigned face,

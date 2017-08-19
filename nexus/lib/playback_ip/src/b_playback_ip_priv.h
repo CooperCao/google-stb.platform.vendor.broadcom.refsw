@@ -168,6 +168,7 @@
         if (!(expression)) {                                                               \
                 BDBG_ERR(errorMessage);                                                    \
                 errorVariable = BERR_TRACE(errorValue);                                    \
+                BSTD_UNUSED(errorVariable);                                                \
           goto errorLabel;                                                                 \
         }                                                                                  \
     } while(0)
@@ -1527,7 +1528,12 @@ typedef struct B_PlaybackIp
     int tempBytesRead;
     char *discard_buf;
     void *buffer;
+    void *pBufferWrap;
+    unsigned curBufferDepthInMsec;
+    uint32_t minBufferDepthInMsec;
+    uint32_t maxBufferDepthInMsec;
     size_t buffer_size;
+    B_Time lastBufferDepthSampleTime;
     struct B_PlaybackIpItem     *item;
     uint8_t *item_mem;
     struct B_PlaybackIpItemQueue active_item; /* items pending in filter */

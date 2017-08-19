@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2004-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,10 +47,24 @@ into some part of a nexus driver. it should have no dependency other than BDBG a
 
 BDBG_MODULE(b_objdb);
 BDBG_FILE_MODULE(b_objdb_id);
+BDBG_FILE_MODULE(b_objdb_class);
 BDBG_OBJECT_ID(b_objdb);
 BDBG_OBJECT_ID(b_objdb_module);
 
 #define BDBG_MSG_TRACE(X) 
+
+struct NEXUS_P_BaseClassDesciptorInfo {
+    BDBG_OBJECT(NEXUS_P_BaseClassDesciptorInfo)
+    BLST_AA_TREE_ENTRY(NEXUS_P_BaseClassDesciptorInfoTree) node;
+    const NEXUS_BaseClassDescriptor *class;
+    unsigned count;
+    unsigned live;
+    unsigned max_live;
+    unsigned max_live_threshold;
+    unsigned max_live_threshold_prev; /* used to form fibonacci sequence */
+};
+
+BLST_AA_TREE_HEAD(NEXUS_P_BaseClassDesciptorInfoTree, NEXUS_P_BaseClassDesciptorInfo);
 
 static struct b_objdb_client *b_objdb_default_client = NULL;
 /*
@@ -62,8 +76,30 @@ struct b_objdb {
     BLST_S_HEAD(NEXUS_P_ObjDbModuleHead, b_objdb_module) module_list;
     struct NEXUS_P_BaseObjectTree object_tree;
     struct NEXUS_P_BaseObjectIdTree id_tree;
+#if BDBG_DEBUG_BUILD
+    struct NEXUS_P_BaseClassDesciptorInfoTree class_tree;
+#endif
     NEXUS_BaseObjectId last_id;  /* last used ID, simplifies allocation */
 };
+
+#if BDBG_DEBUG_BUILD
+BDBG_OBJECT_ID(NEXUS_P_BaseClassDesciptorInfo);
+static int NEXUS_P_NEXUS_BaseClassDescriptor_Compare(const struct NEXUS_P_BaseClassDesciptorInfo* node, const NEXUS_BaseClassDescriptor *key)
+{
+    if(key > node->class) {
+        return 1;
+    } else if(key==node->class) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseClassDesciptorInfoTree, const NEXUS_BaseClassDescriptor *, NEXUS_P_BaseClassDesciptorInfo, node, NEXUS_P_NEXUS_BaseClassDescriptor_Compare)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseClassDesciptorInfoTree, const NEXUS_BaseClassDescriptor *, NEXUS_P_BaseClassDesciptorInfo, node, NEXUS_P_NEXUS_BaseClassDescriptor_Compare)
+BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseClassDesciptorInfoTree, NEXUS_P_BaseClassDesciptorInfo, node)
+BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_BaseClassDesciptorInfoTree, NEXUS_P_BaseClassDesciptorInfo, node)
+#endif
 
 static int NEXUS_P_BaseObject_Compare(const struct NEXUS_BaseObject* node, const struct NEXUS_BaseObject *key)
 {
@@ -106,13 +142,26 @@ static NEXUS_Error _b_objdb_init(struct b_objdb *db)
     BLST_AA_TREE_INIT(NEXUS_P_BaseObjectTree, &db->object_tree);
     BLST_AA_TREE_INIT(NEXUS_P_BaseObjectIdTree, &db->id_tree);
     db->last_id = NEXUS_BASEOBJECT_MIN_ID;
+#if BDBG_DEBUG_BUILD
+    BLST_AA_TREE_INIT(NEXUS_P_BaseObjectIdTree, &db->class_tree);
+#endif
     BDBG_OBJECT_SET(db, b_objdb);
     return NEXUS_SUCCESS;
 }
 
 static void _b_objdb_uninit(struct b_objdb *db)
 {
+    struct NEXUS_P_BaseClassDesciptorInfo *info;
     BDBG_OBJECT_ASSERT(db, b_objdb);
+#if BDBG_DEBUG_BUILD
+    while(NULL!=(info=BLST_AA_TREE_FIRST(NEXUS_P_BaseClassDesciptorInfoTree, &db->class_tree))) {
+        BDBG_OBJECT_ASSERT(info, NEXUS_P_BaseClassDesciptorInfo);
+        BDBG_MODULE_MSG(b_objdb_class, ("Class:'%s' count:%u live:%u", info->class->type_name, info->count, info->max_live));
+        BLST_AA_TREE_REMOVE(NEXUS_P_BaseClassDesciptorInfoTree, &db->class_tree, info);
+        BDBG_OBJECT_DESTROY(info, NEXUS_P_BaseClassDesciptorInfo);
+        BKNI_Free(info);
+    }
+#endif
     BDBG_OBJECT_DESTROY(db, b_objdb);
     return;
 }
@@ -235,7 +284,43 @@ static int b_objdb_insert(struct b_objdb_module *db, const NEXUS_BaseClassDescri
                         NEXUS_BaseObject *object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
                         BDBG_ASSERT(base_object == object);
                     }
-#endif
+                    {
+                        struct NEXUS_P_BaseClassDesciptorInfo *info;
+                        info = BLST_AA_TREE_FIND(NEXUS_P_BaseClassDesciptorInfoTree, &db->db->class_tree, p_class);
+                        if(info==NULL) {
+                            info = BKNI_Malloc(sizeof(*info));
+                            if(info) {
+                                BDBG_OBJECT_INIT(info, NEXUS_P_BaseClassDesciptorInfo);
+                                info->class = p_class;
+                                info->count = 0;
+                                info->live = 0;
+                                info->max_live = 0;
+                                info->max_live_threshold = 8;
+                                info->max_live_threshold_prev = 5;
+                                BLST_AA_TREE_INSERT(NEXUS_P_BaseClassDesciptorInfoTree, &db->db->class_tree, p_class, info);
+                            } else {
+                                (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                            }
+                        }
+                        if(info) {
+                            BDBG_OBJECT_ASSERT(info, NEXUS_P_BaseClassDesciptorInfo);
+                            info->count++;
+                            info->live++;
+                            if(info->live > info->max_live) {
+                                info->max_live = info->live;
+                                if(info->max_live > info->max_live_threshold) {
+                                    unsigned max_live_threshold;
+                                    BDBG_MODULE_WRN(b_objdb_class, ("Class:'%s' count:%u live:%u", info->class->type_name, info->count, info->max_live));
+                                    max_live_threshold = info->max_live_threshold + info->max_live_threshold_prev;
+                                    info->max_live_threshold_prev = info->max_live_threshold;
+                                    info->max_live_threshold = max_live_threshold;
+                                } else {
+                                    BDBG_MODULE_MSG(b_objdb_class, ("Class:'%s' count:%u live:%u", info->class->type_name, info->count, info->max_live));
+                                }
+                            }
+                        }
+                    }
+#endif /* #if BDBG_DEBUG_BUILD */
                     BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
                     break;
                 } else if(objdb_class->base_class==NULL) {
@@ -335,6 +420,14 @@ And because we remove unconditionally, these BDBG_WRN's are only for internal de
             BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
             BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
             BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object);
+#if BDBG_DEBUG_BUILD
+            {
+                struct NEXUS_P_BaseClassDesciptorInfo *info = BLST_AA_TREE_FIND(NEXUS_P_BaseClassDesciptorInfoTree, &db->db->class_tree, p_class);
+                BDBG_OBJECT_ASSERT(info, NEXUS_P_BaseClassDesciptorInfo);
+                BDBG_ASSERT(info->live>0);
+                info->live--;
+            }
+#endif
             BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
             base_object->state.objdb_class = NULL;
         }

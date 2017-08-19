@@ -144,7 +144,7 @@ static void skip(void *context, void *s)
 }
 
 static DisplayInterfaceResult display(void *context, void *surface,
-      int render_fence, int *display_fence)
+      int render_fence, bool create_display_fence, int *display_fence)
 {
    DisplayInterfaceWlClient *self =
          (DisplayInterfaceWlClient *)context;
@@ -162,7 +162,10 @@ static DisplayInterfaceResult display(void *context, void *surface,
 
       pthread_mutex_lock(&self->window->mutex);
 
-      FenceInterface_Create(self->fence_interface, display_fence);
+      if (create_display_fence)
+         FenceInterface_Create(self->fence_interface, display_fence);
+      else
+         *display_fence = self->fence_interface->invalid_fence;
 
       ring_buffer_write(&self->fences, display_fence, /*block=*/true);
 

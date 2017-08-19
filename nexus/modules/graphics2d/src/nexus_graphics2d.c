@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -106,7 +106,7 @@ NEXUS_ModuleHandle NEXUS_Graphics2DModule_Init(const NEXUS_Graphics2DModuleInter
 
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
-    moduleSettings.priority = NEXUS_ModulePriority_eDefault;
+    moduleSettings.priority = NEXUS_ModulePriority_eHigh;
     moduleSettings.dbgPrint = NEXUS_Graphics2DModule_P_Print;
     moduleSettings.dbgModules = "nexus_graphics2d";
     g_NEXUS_graphics2DModule = NEXUS_Module_Create("graphics2d", &moduleSettings);
@@ -1111,8 +1111,11 @@ NEXUS_Error NEXUS_Graphics2D_FastBlit( NEXUS_Graphics2DHandle gfx,
     case NEXUS_BlitAlphaOp_eCopySource:
         alphaOp = BGRCLib_BlitAlphaOp_eCopySource;
         {
-            /* loop up pixel format info, but only when needed */
+            /* look up pixel format info, but only when needed */
             const NEXUS_PixelFormatConvertInfo *pSourcePixelFormatInfo = NEXUS_P_PixelFormat_GetConvertInfo_isrsafe(src.format);
+            if(pSourcePixelFormatInfo==NULL) {
+                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
             if (!pSourcePixelFormatInfo->info.alphaPerPixel) {
                 alphaOp = BGRCLib_BlitAlphaOp_eUseConstAlpha;
                 constantColor = 0xFF000000;

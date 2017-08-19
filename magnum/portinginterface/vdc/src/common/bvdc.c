@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -854,11 +854,13 @@ BERR_Code BVDC_Open
 #endif
 
     /* (8) Initialize all DACs to unused */
+#if BVDC_P_MAX_DACS
     for (i = 0; i < BVDC_P_MAX_DACS; i++ )
     {
         pVdc->aDacOutput[i] = BVDC_DacOutput_eUnused;
         pVdc->aulDacSyncSource[i] = i;
     }
+#endif
     pVdc->aulDacGrouping = s_aulDacGrouping;
     /* Default Auto = Off */
     pVdc->bDacDetectionEnable = (pVdc->stSettings.eDacDetection == BVDC_Mode_eOn) ? true : false;

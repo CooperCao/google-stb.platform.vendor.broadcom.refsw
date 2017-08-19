@@ -149,8 +149,13 @@ static void source_changed(void *context, int param)
     NEXUS_Display_GetSettings(display, &displaySettings);
     if ( displaySettings.format != hdmiInputStatus.originalFormat )
     {
-        BDBG_WRN(("Video Format Change - Updating to %u", hdmiInputStatus.originalFormat));
+        if (hdmiInputStatus.originalFormat == NEXUS_VideoFormat_eUnknown)
+        {
+            BDBG_MSG(("Incoming format not determined yet; don't switch output format yet")) ;
+            return ;
+        }
 
+        BDBG_LOG(("Video Format Change - Updating to %u", hdmiInputStatus.originalFormat));
         displaySettings.format = hdmiInputStatus.originalFormat;
         errCode = NEXUS_Display_SetSettings(display, &displaySettings);
         if (errCode) {
@@ -184,12 +189,12 @@ void avmute_changed(void *context, int param)
 
     if (!hdmiInputStatus.validHdmiStatus)
     {
-        printf("avmute_changed callback: Unable to get hdmiInput status\n") ;
+        BDBG_WRN(("avmute_changed callback: Unable to get hdmiInput status\n")) ;
     }
     else
     {
-        printf("avmute_changed callback: %s\n",
-            hdmiInputStatus.avMute ? "Set_AvMute" : "Clear_AvMute") ;
+        BDBG_LOG(("avmute_changed callback: %s\n",
+            hdmiInputStatus.avMute ? "Set_AvMute" : "Clear_AvMute")) ;
     }
 }
 
@@ -331,13 +336,13 @@ static void enable_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 
     if ( decodeAudio || dualAudio )
     {
-        BDBG_ERR(("Starting Audio Decode\n"));
+        BDBG_LOG(("Starting Audio Decode\n"));
         NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
     }
 
     if ( !decodeAudio || dualAudio )
     {
-        BDBG_ERR(("Starting HDMI bypass passthrough Audio\n"));
+        BDBG_LOG(("Starting HDMI bypass passthrough Audio\n"));
         NEXUS_AudioInputCapture_Start(inputCapture, &inputCaptureStartSettings);
     }
 }
@@ -796,6 +801,11 @@ int main(int argc, char **argv)
         { 0, NEXUS_VideoFormat_e1080p60hz, "1080p 60Hz" },
         { 0, NEXUS_VideoFormat_ePal, "576i (PAL)" },
         { 0, NEXUS_VideoFormat_e576p, "576p" },
+        { 0, NEXUS_VideoFormat_e3840x2160p24hz, "3840x2160 24Hz" },
+        { 0, NEXUS_VideoFormat_e3840x2160p25hz, "3840x2160 25Hz" },
+        { 0, NEXUS_VideoFormat_e3840x2160p30hz, "3840x2160 30Hz" },
+        { 0, NEXUS_VideoFormat_e3840x2160p50hz, "3840x2160 50Hz" },
+        { 0, NEXUS_VideoFormat_e3840x2160p60hz, "3840x2160 60Hz" },
 
         /* END of ARRAY */
         { 0, 0, "" }

@@ -56,20 +56,11 @@ Customer code should NOT call these APIs. */
 
 typedef struct NEXUS_Rave *NEXUS_RaveHandle;
 
-typedef struct NEXUS_RaveOpenSetting
-{
-    unsigned placeHolder;
-} NEXUS_RaveOpenSetting;
-
-void NEXUS_Rave_GetDefaultOpenSetting(
-    NEXUS_RaveOpenSetting *pSetting /* [out] */
+NEXUS_RaveHandle NEXUS_Rave_P_Open(  /* attr{destructor=NEXUS_Rave_P_Close} */
+    void
     );
 
-NEXUS_RaveHandle NEXUS_Rave_Open(  /* attr{destructor=NEXUS_Rave_Close} */
-    const NEXUS_RaveOpenSetting *pOpenSetting
-    );
-
-void NEXUS_Rave_Close(
+void NEXUS_Rave_P_Close(
     NEXUS_RaveHandle handle
     );
 

@@ -83,15 +83,14 @@ void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *
 
     BDBG_LOG(("            formatId: %s (%db)",
         status->formatId ? "PROFESSIONAL":"CONSUMER", status->formatId));
-    BDBG_LOG(("     audio/non-audio: %sAUDIO (%db)",
-        status->audio ? "NON-":"DIGITAL ", status->audio));
-    BDBG_LOG(("           copyright: COPYRIGHT %sASSERTED (%db)",
-        status->copyright ? "":"NOT ", status->copyright));
+    if (status->formatId == 0) { /* Consumer*/
+        BDBG_LOG(("     audio/non-audio: %sAUDIO (%db)",
+            status->channelStatus.consumer.audio ? "NON-":"DIGITAL ", status->channelStatus.consumer.audio));
+        BDBG_LOG(("           copyright: COPYRIGHT %sASSERTED (%db)",
+            status->channelStatus.consumer.copyright ? "":"NOT ", status->channelStatus.consumer.copyright));
 
-    if (status->audio == 0) /* Digital Audio */
-    {
-        switch(status->emphasis)
-        {
+        if (status->channelStatus.consumer.audio == 0) { /* Digital Audio */
+            switch(status->channelStatus.consumer.emphasis) {
             case 0:
                 ptrTemp = "NONE";
                 break;
@@ -101,26 +100,22 @@ void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *
             default:
                 ptrTemp = "Reserved (Audio Data)";
                 break;
+            }
         }
-
-    }
-    else  /* NON AUDIO */
-    {
-        switch(status->emphasis)
-        {
+        else { /* NON AUDIO */
+            switch(status->channelStatus.consumer.emphasis) {
             case 0:
                 ptrTemp = "DIGITAL DATA";
                 break;
             default:
                 ptrTemp = "Reserved (Digital Data)";
                 break;
+            }
         }
-    }
-    BDBG_LOG(("            emphasis: Pre-emphasis: %s (%sb)",ptrTemp, BAPE_Debug_IntToBinaryString(status->emphasis,3,binaryArray)));
-    BDBG_LOG(("                mode: MODE %s (%db)", status->mode ? "RESERVED":"0", status->mode));
+        BDBG_LOG(("            emphasis: Pre-emphasis: %s (%sb)",ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.consumer.emphasis,3,binaryArray)));
+        BDBG_LOG(("                mode: MODE %s (%db)", status->channelStatus.consumer.mode ? "RESERVED":"0", status->channelStatus.consumer.mode));
 
-    switch(status->categoryCode)
-    {
+        switch(status->channelStatus.consumer.categoryCode) {
         case 0:
             ptrTemp = "GENERAL";
             break;
@@ -132,11 +127,10 @@ void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *
         default:
             ptrTemp = "Other";
             break;
-    }
-    BDBG_LOG(("        categoryCode: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->categoryCode,8,binaryArray)));
+        }
+        BDBG_LOG(("        categoryCode: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.consumer.categoryCode,8,binaryArray)));
 
-    switch(status->samplingFrequency)
-    {
+        switch(status->channelStatus.consumer.samplingFrequency) {
         case 0:
             ptrTemp = "44.1kHz";
             break;
@@ -173,41 +167,38 @@ void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *
         default:
             ptrTemp = "RESERVED";
             break;
-    }
-    BDBG_LOG(("        samplingFreq: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->samplingFrequency,4,binaryArray)));
+        }
+        BDBG_LOG(("        samplingFreq: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.consumer.samplingFrequency,4,binaryArray)));
 
-    if (status->audio == 0)
-    {
-        BDBG_LOG(("       pcmWordLength: MAX WORD LENGTH %s bits (%db)", status->pcmWordLength ? "24":"20", status->pcmWordLength));;
+        if (status->channelStatus.consumer.audio == 0) {
+            BDBG_LOG(("       pcmWordLength: MAX WORD LENGTH %s bits (%db)", status->channelStatus.consumer.pcmWordLength ? "24":"20", status->channelStatus.consumer.pcmWordLength));
 
-        switch(status->pcmSampleWordLength)
-        {
+            switch(status->channelStatus.consumer.pcmSampleWordLength) {
             case 0:
                 ptrTemp = "SAMPLE WORD LENGTH NOT INDICATED";
                 break;
             case 1:
-                ptrTemp = status->pcmWordLength ? "20 bits":"16 bits";
+                ptrTemp = status->channelStatus.consumer.pcmWordLength ? "20 bits":"16 bits";
                 break;
             case 2:
-                ptrTemp = status->pcmWordLength ? "22 bits":"18 bits";
+                ptrTemp = status->channelStatus.consumer.pcmWordLength ? "22 bits":"18 bits";
                 break;
             case 4:
-                ptrTemp = status->pcmWordLength ? "23 bits":"19 bits";
+                ptrTemp = status->channelStatus.consumer.pcmWordLength ? "23 bits":"19 bits";
                 break;
             case 5:
-                ptrTemp = status->pcmWordLength ? "24 bits":"20 bits";
+                ptrTemp = status->channelStatus.consumer.pcmWordLength ? "24 bits":"20 bits";
                 break;
             case 6:
-                ptrTemp = status->pcmWordLength ? "21 bits":"17 bits";
+                ptrTemp = status->channelStatus.consumer.pcmWordLength ? "21 bits":"17 bits";
                 break;
             default:
                 ptrTemp = "RESERVED";
                 break;
-        }
-        BDBG_LOG((" pcmSampleWordLength: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->pcmSampleWordLength,3,binaryArray)));
+            }
+            BDBG_LOG((" pcmSampleWordLength: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.consumer.pcmSampleWordLength,3,binaryArray)));
 
-        switch(status->pcmOrigSamplingFrequency)
-        {
+            switch(status->channelStatus.consumer.pcmOrigSamplingFrequency) {
             case 0:
                 ptrTemp = "NOT INDICATED";
                 break;
@@ -253,12 +244,11 @@ void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *
             default:
                 ptrTemp = "RESERVED";
                 break;
-        }
-        BDBG_LOG((" pcmOrigSamplingFreq: %s (%sb)", ptrTemp,
-            BAPE_Debug_IntToBinaryString(status->pcmOrigSamplingFrequency,4,binaryArray)));
+            }
+            BDBG_LOG((" pcmOrigSamplingFreq: %s (%sb)", ptrTemp,
+                BAPE_Debug_IntToBinaryString(status->channelStatus.consumer.pcmOrigSamplingFrequency,4,binaryArray)));
 
-        switch(status->pcmCgmsA)
-        {
+            switch(status->channelStatus.consumer.pcmCgmsA) {
             case 0:
                 ptrTemp = "COPY PREMITTED NO RESTRICTIONS";
                 break;
@@ -271,10 +261,274 @@ void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *
             case 3:
                 ptrTemp = "NO COPY PREMITTED";
                 break;
+            }
+            BDBG_LOG(("            pcmCgmsA: %s (%sb)", ptrTemp,
+                BAPE_Debug_IntToBinaryString(status->channelStatus.consumer.pcmCgmsA,2,binaryArray)));
         }
-        BDBG_LOG(("            pcmCgmsA: %s (%sb)", ptrTemp,
-            BAPE_Debug_IntToBinaryString(status->pcmCgmsA,2,binaryArray)));
     }
+    else { /* Professional */
+        BDBG_LOG(("    normal/non audio: %sAUDIO (%db)",
+            status->channelStatus.professional.audio ? "NON-":"NORMAL ", status->channelStatus.professional.audio));
+
+        switch(status->channelStatus.professional.emphasis) {
+        case 0:
+            ptrTemp = "Not Indicated";
+            break;
+        case 1:
+            ptrTemp = "None";
+            break;
+        case 3:
+            ptrTemp = "50/15 microseconds";
+            break;
+        case 7:
+            ptrTemp = "CCITT J.17";
+            break;
+        default:
+            ptrTemp = "Reserved";
+            break;
+        }
+
+        BDBG_LOG(("            emphasis: Pre-emphasis: %s (%sb)",ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.professional.emphasis,3,binaryArray)));
+
+        BDBG_LOG(("  Sample Freq Locked: %s (%db)",status->channelStatus.professional.sampleRateLocked ? "UNLOCKED":"LOCKED", status->channelStatus.professional.sampleRateLocked));
+
+        switch(status->channelStatus.professional.legacySampleRate) {
+        case 0:
+            ptrTemp = "NOT INDICATED";
+            break;
+        case 1:
+            ptrTemp = "44.1kHz";
+            break;
+        case 2:
+            ptrTemp = "48kHz";
+            break;
+        case 3:
+            ptrTemp = "32kHz";
+            break;
+        default:
+            ptrTemp = "INVALID";
+            break;
+        }
+        BDBG_LOG(("    Sample Frequency: %s (%sb)", ptrTemp,
+                BAPE_Debug_IntToBinaryString(status->channelStatus.professional.legacySampleRate,2,binaryArray)));
+
+        switch(status->channelStatus.professional.mode) {
+        case 0:
+            ptrTemp = "NOT INDICATED";
+            break;
+        case 2:
+            ptrTemp = "Stereophonic";
+            break;
+        case 4:
+            ptrTemp = "Single Channel";
+            break;
+        case 8:
+            ptrTemp = "Two-Channel";
+            break;
+        case 12:
+            ptrTemp = "Primary/Secondary";
+            break;
+        case 1:
+        case 9:
+        case 14:
+            ptrTemp = "Single Channel Double Frequency";
+            break;
+        case 15:
+            ptrTemp = "Multichannel";
+            break;
+        default:
+            ptrTemp = "Reserved";
+            break;
+        }
+        BDBG_LOG(("Encoded Channel Mode: %s (%sb)", ptrTemp,
+                BAPE_Debug_IntToBinaryString(status->channelStatus.professional.mode,4,binaryArray)));
+
+        switch(status->channelStatus.professional.user) {
+        case 0:
+            ptrTemp = "NOT INDICATED";
+            break;
+        case 2:
+            ptrTemp = "Conforms to IEC-60958-3";
+            break;
+        case 4:
+            ptrTemp = "HDLC protocol";
+            break;
+        case 8:
+            ptrTemp = "192 bit Block Structure";
+            break;
+        case 10:
+            ptrTemp = "Reserved for Metadata";
+            break;
+        case 12:
+            ptrTemp = "User Defined";
+            break;
+        default:
+            ptrTemp = "Reserved";
+            break;
+        }
+        BDBG_LOG(("   Encoded User Bits: %s (%sb)", ptrTemp,
+                BAPE_Debug_IntToBinaryString(status->channelStatus.professional.user,4,binaryArray)));
+
+        switch(status->channelStatus.professional.auxSampleBits) {
+        case 0:
+            ptrTemp = "Not Defined, 20 bits";
+            break;
+        case 2:
+            ptrTemp = "20 bits";
+            break;
+        case 4:
+            ptrTemp = "24 bits";
+            break;
+        case 12:
+            ptrTemp = "User Defined";
+            break;
+        default:
+            ptrTemp = "Reserved";
+            break;
+        }
+        BDBG_LOG(("     AUX Sample Bits: MAX WORD LENGTH %s bits (%sb)", ptrTemp,
+                BAPE_Debug_IntToBinaryString(status->channelStatus.professional.auxSampleBits,3,binaryArray)));
+
+        if (status->channelStatus.professional.auxSampleBits == 0 || status->channelStatus.professional.auxSampleBits == 2) {
+            switch (status->channelStatus.professional.wordLength) {
+            case 0:
+                ptrTemp = "SAMPLE WORD LENGTH NOT INDICATED";
+                break;
+            case 2:
+                ptrTemp = "18 bits";
+                break;
+            case 4:
+                ptrTemp = "19 bits";
+                break;
+            case 5:
+                ptrTemp = "20 bits";
+                break;
+            case 6:
+                ptrTemp = "16 bits";
+                break;
+            default:
+                ptrTemp = "RESERVED";
+                break;
+            }
+        }
+        else if (status->channelStatus.professional.auxSampleBits == 4) {
+            switch (status->channelStatus.professional.wordLength) {
+            case 0:
+                ptrTemp = "SAMPLE WORD LENGTH NOT INDICATED";
+                break;
+            case 2:
+                ptrTemp = "22 bits";
+                break;
+            case 4:
+                ptrTemp = "23 bits";
+                break;
+            case 5:
+                ptrTemp = "24 bits";
+                break;
+            case 6:
+                ptrTemp = "20 bits";
+                break;
+            default:
+                ptrTemp = "RESERVED";
+                break;
+            }
+        }
+        else
+        {
+            ptrTemp = "Reserved";
+        }
+        BDBG_LOG(("  Source Word Length: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.professional.wordLength,3,binaryArray)));
+
+        switch (status->channelStatus.professional.alignment) {
+        case 0:
+            ptrTemp = "NOT INDICATED";
+            break;
+        case 1:
+            ptrTemp = "SMPTE RP155";
+            break;
+        case 2:
+            ptrTemp = "EBU R68";
+            break;
+        default:
+            ptrTemp = "RESERVED";
+            break;
+        }
+        BDBG_LOG(("     Alignment Level: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.professional.alignment,2,binaryArray)));
+
+        if (status->channelStatus.professional.multichannelMode == 0) {
+            BDBG_LOG(("      Channel Number: %d (%sb)", status->channelStatus.professional.channelNumber, BAPE_Debug_IntToBinaryString(status->channelStatus.professional.channelNumber,7,binaryArray)));
+        }
+        else {
+            BDBG_LOG(("      Channel Number: %d (%sb)", status->channelStatus.professional.channelNumber, BAPE_Debug_IntToBinaryString(status->channelStatus.professional.channelNumber,4,binaryArray)));
+            switch (status->channelStatus.professional.alignment) {
+            case 0:
+                ptrTemp = "Mode 0";
+                break;
+            case 1:
+                ptrTemp = "Mode 1";
+                break;
+            case 2:
+                ptrTemp = "Mode 2";
+                break;
+            case 3:
+                ptrTemp = "Mode 3";
+                break;
+            default:
+                ptrTemp = "RESERVED";
+                break;
+            }
+            BDBG_LOG(("  Multichan Mode Num: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.professional.multichannelModeNum,3,binaryArray)));
+        }
+        BDBG_LOG(("   Multichannel Mode: %s (%db)", status->channelStatus.professional.multichannelModeNum ? "DEFINED":"UNDEFINED", status->channelStatus.professional.multichannelModeNum));
+
+        switch (status->channelStatus.professional.audioReference) {
+        case 0:
+            ptrTemp = "NOT A REFERENCE SIGNAL";
+            break;
+        case 1:
+            ptrTemp = "GRADE 1";
+            break;
+        case 2:
+            ptrTemp = "GRADE 2";
+            break;
+        default:
+            ptrTemp = "RESERVED";
+            break;
+        }
+        BDBG_LOG(("Dig. Audio Reference: %s (%sb)", ptrTemp, BAPE_Debug_IntToBinaryString(status->channelStatus.professional.audioReference,2,binaryArray)));
+
+        switch(status->channelStatus.professional.samplingFrequencyExt) {
+        case 0:
+            ptrTemp = "NOT INDICATED";
+            break;
+        case 1:
+            ptrTemp = "24kHz";
+            break;
+        case 2:
+            ptrTemp = "96kHz";
+            break;
+        case 3:
+            ptrTemp = "192kHz";
+            break;
+        case 9:
+            ptrTemp = "22.05kHz";
+            break;
+        case 10:
+            ptrTemp = "88.8kHz";
+            break;
+        case 11:
+            ptrTemp = "176.4kHz";
+            break;
+        default:
+            ptrTemp = "RESERVED";
+            break;
+        }
+        BDBG_LOG(("    Sample Frequency: %s (%sb)", ptrTemp,
+                  BAPE_Debug_IntToBinaryString(status->channelStatus.professional.legacySampleRate,2,binaryArray)));
+
+        BDBG_LOG(("    Freqency Scaling: %s (%db)", status->channelStatus.professional.sampleFreqScaling ? "ENABLED":"DISABLED", status->channelStatus.professional.sampleFreqScaling));
+    }
+
     BDBG_LOG(("---------------------------------------------"));
     BDBG_LOG(("         Interface Configuration"));
     switch (status->type)
@@ -796,7 +1050,6 @@ static void NEXUS_AudioDebug_PrintVolume(void)
                         char volumePrint[70];
                         char * pVolumePrint = volumePrint;
                         switch (j) {
-                        default:
                         case NEXUS_AudioChannel_eLeft:
                             pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "L   ");
                             break;
@@ -877,7 +1130,6 @@ static void NEXUS_AudioDebug_PrintVolume(void)
                     char volumePrint[70];
                     char * pVolumePrint = volumePrint;
                     switch (j) {
-                    default:
                     case NEXUS_AudioChannel_eLeft:
                         pVolumePrint += BKNI_Snprintf(pVolumePrint, sizeof(volumePrint)-(pVolumePrint-volumePrint), "L   ");
                         break;

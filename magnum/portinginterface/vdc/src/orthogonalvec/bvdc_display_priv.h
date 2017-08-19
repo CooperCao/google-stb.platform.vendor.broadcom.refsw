@@ -52,10 +52,18 @@ extern "C" {
 #include "bchp_common.h"
 #include "bchp_it_0.h"
 #include "bchp_rm_0.h"
+#ifdef BCHP_VF_0_REG_START
 #include "bchp_vf_0.h"
+#endif
+#ifdef BCHP_CSC_0_REG_START
 #include "bchp_csc_0.h"
+#endif
+#ifdef BCHP_SM_0_REG_START
 #include "bchp_sm_0.h"
+#endif
+#ifdef BCHP_SDSRC_0_REG_START
 #include "bchp_sdsrc_0.h"
+#endif
 #ifdef BCHP_HDSRC_0_REG_START
 #include "bchp_hdsrc_0.h"
 #endif
@@ -113,6 +121,11 @@ extern "C" {
 #define BVDC_P_VEC_STANDALONE_BUG_FIXED        0
 #endif
 
+/* If this macro is defined, it'll support format change with IT reset but */
+/* blocked by MV polling and format change reprogrammed.  Otherwise, will */
+/* perform format change without reset at all time */
+#define BVDC_P_MV_BLOCKING_SUPPORT             0
+
 /****************************************************************
  *  Defines
  ****************************************************************/
@@ -169,12 +182,18 @@ extern "C" {
  */
 #define BVDC_P_HDMI_RM_VER_7                 (7)
 
-#define BVDC_P_SUPPORT_DVI_40NM                   \
+/* 7278Bx,
+ *  HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1.RESET_ON_OFFSET_WR
+ */
+#define BVDC_P_HDMI_RM_VER_8                 (8)
+
+#define BVDC_P_SUPPORT_DVI_40NM \
     (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
 
-#define BVDC_P_SUPPORT_DVI_28NM                              \
+#define BVDC_P_SUPPORT_DVI_28NM \
     ((BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_6) || \
-     (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7))
+     (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7) || \
+     (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_8))
 
 #define BVDC_P_MAX_VEC_RUL_ENTRIES        665
 #define BVDC_P_RAM_TABLE_SIZE             256
@@ -185,13 +204,21 @@ extern "C" {
 #define BVDC_P_DTRAM_TABLE_CHECKSUM_IDX   (BVDC_P_DTRAM_TABLE_SIZE - 1)
 #define BVDC_P_CCB_TABLE_SIZE             (1)
 
-#define BVDC_P_CSC_TABLE_SIZE             (uint32_t)((BCHP_CSC_0_CSC_COEFF_C23_C22 - BCHP_CSC_0_CSC_MODE)/4+1)
-#define BVDC_P_DITHER_TABLE_SIZE          (uint32_t)((BCHP_CSC_0_DITHER_LFSR_INIT - BCHP_CSC_0_DITHER_CONTROL)/4+1)
-
+#if BVDC_P_NUM_SHARED_VF
 /* Programming note: tables will actually be one larger than the following. */
 #define BVDC_P_VF_TABLE_SIZE              (uint32_t)((BCHP_VF_0_SYNC_TRANS_1 - BCHP_VF_0_FORMAT_ADDER)/4+1)
-
+#define BVDC_P_CSC_TABLE_SIZE             (uint32_t)((BCHP_CSC_0_CSC_COEFF_C23_C22 - BCHP_CSC_0_CSC_MODE)/4+1)
+#define BVDC_P_DITHER_TABLE_SIZE          (uint32_t)((BCHP_CSC_0_DITHER_LFSR_INIT - BCHP_CSC_0_DITHER_CONTROL)/4+1)
 #define BVDC_P_CHROMA_TABLE_SIZE          (uint32_t)((BCHP_VF_0_CH0_TAP10 - BCHP_VF_0_CH0_TAP1)/4+1)
+#define BVDC_P_SM_TABLE_SIZE              (uint32_t)((BCHP_SM_0_COMP_CNTRL - BCHP_SM_0_PG_CNTRL)/4+1)
+#else
+#define BVDC_P_VF_TABLE_SIZE              1  /* hush warnings */
+#define BVDC_P_CSC_TABLE_SIZE             1  /* hush warnings */
+#define BVDC_P_DITHER_TABLE_SIZE          1  /* hush warnings */
+#define BVDC_P_CHROMA_TABLE_SIZE          1  /* hush warnings */
+#define BVDC_P_SM_TABLE_SIZE              1  /* hush warnings */
+#endif
+
 #if (BVDC_P_SUPPORT_HDMI_RM_VER <= BVDC_P_HDMI_RM_VER_6)
 #define BVDC_P_RM_TABLE_SIZE              (uint32_t)((BCHP_RM_0_INTEGRATOR - BCHP_RM_0_RATE_RATIO)/4+1)
 #else
@@ -202,7 +229,6 @@ extern "C" {
 #else
 #define BVDC_P_IT_TABLE_SIZE              (uint32_t)((BCHP_IT_0_PCL_5 - BCHP_IT_0_ADDR_0_3)/4+1)
 #endif
-#define BVDC_P_SM_TABLE_SIZE              (uint32_t)((BCHP_SM_0_COMP_CNTRL - BCHP_SM_0_PG_CNTRL)/4+1)
 
 /* Vec phase adjustment values */
 #define BVDC_P_PHASE_OFFSET                0x1d8
@@ -641,9 +667,9 @@ typedef struct
     BVDC_P_CscCoeffs            stCscCoeffs;
 } BVDC_P_DisplayCscMatrix;
 
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
+#if (BVDC_P_SUPPORT_DVI_40NM)
 #include "bvdc_hdmirm_tmds_enum_40nm.h"
-#elif ((BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_6) || (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7))
+#elif (BVDC_P_SUPPORT_DVI_28NM)
 #include "bvdc_hdmirm_tmds_enum_28nm.h"
 #else /* if (BVDC_P_SUPPORT_HDMI_RM_VER == ...) */
 #error Unknown/undefined HDMI Rate Manager hardware version
@@ -811,7 +837,9 @@ typedef struct
     uint32_t                    ulAnlgChan0Mask;
     uint32_t                    ulAnlgChan1Mask;
 
+#if BVDC_P_MAX_DACS
     BVDC_DacOutput              aDacOutput[BVDC_P_MAX_DACS];
+#endif
     const BFMT_VideoInfo       *pFmtInfo;
     BFMT_VideoInfo              stCustomFmt;
     uint32_t                    ulVertFreq;
@@ -1178,6 +1206,10 @@ typedef struct BVDC_P_DisplayContext
 
     /* For debug logs */
     uint32_t                    ulVsyncCnt;        /* Vysnc heartbeat */
+#if BVDC_P_MV_BLOCKING_SUPPORT
+    uint32_t                    ulMVQueryAddr;     /* RDC var addr use for MV polling */
+    uint32_t                    ulMVQueryTmpAddr;  /* Temp RDC var addr use for MV polling */
+#endif
 } BVDC_P_DisplayContext;
 
 /***************************************************************************
@@ -1215,10 +1247,6 @@ void BVDC_P_Display_ApplyChanges_isr
 void BVDC_P_Display_AbortChanges
     ( BVDC_Display_Handle              hDisplay);
 
-bool BVDC_P_Display_FindDac_isr
-    ( BVDC_Display_Handle              hDisplay,
-      BVDC_DacOutput                   eDacOutput);
-
 /* Helper functions. */
 #if (BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG)
 #define BVDC_P_DISPLAY_DIRTY_MASK_SHIFT(idx) (1 << (BVDC_P_DIRTY_INT_ARRAY_ELEMENT_SIZE - 1 - (idx % BVDC_P_DIRTY_INT_ARRAY_ELEMENT_SIZE)))
@@ -1235,6 +1263,7 @@ void BVDC_P_ResetAnalogChanInfo
 
 BERR_Code BVDC_P_AllocITResources
     ( BVDC_P_Resource_Handle           hResource,
+      BVDC_Display_Handle              hDisplay,
       BVDC_DisplayId                   eDisplayId,
       BVDC_P_DisplayAnlgChan          *pstChan,
       uint32_t                         ulIt );
@@ -1304,9 +1333,11 @@ void  BVDC_P_Display_SetSourceInfo_isr
     ( BVDC_Display_Handle  hDisplay,
       const BVDC_P_Display_SrcInfo *pSrcInfo );
 
+#if BVDC_P_NUM_SHARED_VF
 uint32_t BVDC_P_GetPosSyncValue_isr
     ( BVDC_P_DisplayContext     *pDisplay,
       uint32_t                 **ppulRul );
+#endif
 
 #if (BVDC_P_SUPPORT_STG)
 BERR_Code BVDC_P_AllocStgChanResources_isr
@@ -1368,12 +1399,14 @@ void BVDC_P_STG_DelayRUL_isr
       bool                             bMadr);
 #endif
 
+#if BVDC_P_NUM_SHARED_VF
 void BVDC_P_Macrovision_GetNegSyncValue_isr
     ( BVDC_P_DisplayInfo              *pDispInfo,
       BVDC_P_Output                    eOutputColorSpace,
       bool                             bDacOutput_Green_NoSync,
       uint32_t*                        ulRegVal,
       uint32_t*                        ulRegValEx);
+#endif
 
 uint32_t BVDC_P_GetFmtAdderValue_isr
     ( BVDC_P_DisplayInfo              *pDispInfo );

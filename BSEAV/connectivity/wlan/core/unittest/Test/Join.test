@@ -1,0 +1,378 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for Connecting two or more devices in a BSS or
+# IBSS with no security.  In a BSS the first argument will be the AP.
+#
+# Usage:  Join AP 'STA1 STA2 ...' [-imode <bss|ibss>] \
+#    [-chanspec <chanspec>] [-spect <0|1>]
+#
+# $Id: fde3a012690f844e91a5c6c5b4f444ca1babb4ba $
+#
+
+package require UTF
+
+package provide UTF::Test::Join 2.0
+
+UTF::Test Join {AP STAS args} {
+    UTF::Getopts {
+	{imode.arg "bss" "imode (bss or ibss)"}
+	{chanspec.arg "" "Chanspec"}
+	{channel.arg "" "Legacy Channel"}
+	{band.arg "" "Band lock"}
+	{spect.arg "" "Enable/Disable Spectrum Management (radar avoidance)"}
+	{a.arg ""  "Aggregation type"}
+	{wme.arg ""  "Enable/Disable wme"}
+	{ampdu_rx_factor.arg "" "ampdu_rx_factor"}
+	{ampdu_density.arg "" "ampdu_density"}
+	{security.arg "open" "security"}
+	{soft "Use software encryption"}
+	{ampdu.arg "" "Change AMPDU mode"}
+    }
+
+    set SSID [UTF::NewSSID]
+
+    # Defaults
+    set amode open
+    set awsec 0
+    set wsec 0
+    set auth 0
+
+    if {[regexp {^soft(.*)} $(security) - (security)]} {
+	set (soft) 1
+    }
+    regsub {(wep|shared)(?:64|128)} $(security) {\1} (security)
+
+    switch $(security) {
+	open {
+	}
+	wep {
+	    set awsec 1
+	    set wsec 1
+	}
+	shared {
+	    set awsec 1
+	    set wsec 1
+	    set amode shared
+	}
+	tkippsk {
+	    set awsec 2
+	    set wsec 3
+	    set amode wpapsk
+	}
+	tkippsk2 {
+	    set awsec 2
+	    set wsec 3
+	    set amode wpa2psk
+	}
+	aespsk {
+	    set awsec 4
+	    set wsec 7
+	    set amode wpapsk
+	}
+	aespsk2 {
+	    set awsec 4
+	    set wsec 7
+	    set amode wpa2psk
+	}
+	default {
+	    error "Illegal -security $(security)"
+	}
+    }
+    if {$(soft)} {
+	incr wsec 8
+    }
+    if {[regsub {(wep|shared)64} $(security) {\1} (security)]} {
+	set WEPLEN 10
+    } else {
+	regsub {(wep|shared)128} $(security) {\1} (security)
+	set WEPLEN 26
+    }
+    set WEPIDX 0
+    set WEPKEY [UTF::NewWepKey $WEPLEN]
+    set WPAKEY [UTF::NewWPAPassphrase]
+
+    $AP configure -wepidx $WEPIDX
+    $AP configure -wepkey $WEPKEY
+    $AP configure -wpakey $WPAKEY
+    $AP configure -security $(security)
+
+    UTF::Message INFO $AP "Prepare"
+    $AP services stop
+    $AP wl down
+    $AP wl radio on
+    if {[catch {$AP wl bw_cap 2 -1}]} {
+	$AP wl -u mimo_bw_cap 1
+    }
+    catch {$AP wl obss_coex 0}
+
+    if {$(imode) eq "bss"} {
+	$AP wl ap 1
+
+	# wpa_auth and AP-mode join both expect bss to be down
+	$AP wl bss down
+    } else {
+	# Explicitly disassoc, to avoid "ibsshack" chanspec retention
+	catch {$AP wl disassoc}
+	# wl ap is a global and is not safe to change in apsta
+	# mode.  If there are virtual interfaces then we'll just
+	# have to assume virtual interfaces are already in the
+	# right mode.
+	if {[catch {$AP wl apsta} ret] || $ret eq "0"} {
+	    $AP wl ap 0
+	}
+    }
+    if {$(band) ne ""} {
+	$AP wl band $(band)
+    }
+    if {$(channel) ne ""} {
+	$AP wl channel $(channel)
+    }
+    switch $(a) {
+	mpdu {
+	    $AP wl amsdu 0
+	    $AP wl ampdu 1
+	}
+	msdu {
+	    $AP wl ampdu 0
+	    $AP wl amsdu 1
+	}
+	none {
+	    $AP wl ampdu 0
+	    $AP wl amsdu 0
+	}
+	"" {
+	}
+	default {
+	    error "$(a): bad -a argument: should be msdu, mpdu or none"
+	}
+    }
+    if {$(wme) ne ""} {
+	$AP wl wme $(wme)
+    }
+    if {$(spect) ne ""} {
+	$AP wl spect $(spect)
+    }
+    if {$(chanspec) ne ""} {
+	$AP wl chanspec $(chanspec)
+    }
+    if {$(ampdu_rx_factor) ne ""} {
+	$AP wl ampdu_rx_factor $(ampdu_rx_factor)
+    }
+    if {$(ampdu_density) ne ""} {
+	$AP wl ampdu_density $(ampdu_density)
+    }
+    if {$(ampdu) ne ""} {
+	if {[$AP wl ampdu] ne $(ampdu)} {
+	    $AP wl ampdu $(ampdu)
+	}
+    }
+
+
+    $AP wl wsec $awsec
+    # Need to explicitly disable WPA, otherwise power save may not work
+    # It will be re-enabled by join if needed.
+    catch {$AP wl wpa_auth 0}
+
+    $AP wl up
+
+    if {[regexp {psk} $amode]} {
+	# Silent error is probably Vista, since sup_wpa is
+	# redundant on Vista.  Real errors will have a message.
+	if {[catch {$AP wl sup_wpa 1} ret] && $ret ne ""} {
+	    error $ret
+	}
+	$AP wl set_pmk "\"$WPAKEY\""
+    } else {
+	# We're turning the supplicant off, so non-supported is ok
+	catch {$STA wl sup_wpa 0}
+    }
+
+    UTF::Message INFO $AP "Create $(imode) $SSID"
+    $AP wl join $SSID imode $(imode) amode $amode
+    if {($awsec & 0xf) == 1} {
+	$AP wl addwep $WEPIDX $WEPKEY
+    }
+
+    # Allow time for ibss to form
+    for {set c 0} {$c < 10} {incr c} {
+	set s [$AP wl ssid]
+	if {$s eq $SSID} {
+	    break
+	}
+	UTF::Sleep 1
+    }
+    UTF::Assert $s $SSID $AP "SSID"
+    set BSSID [$AP wl bssid]
+
+    if {$(chanspec) ne ""} {
+	UTF::Assert -r [$AP wl chanspec] "$(chanspec).*" $AP \
+	    "Verify chanspec"
+    }
+    # Make sure we haven't lost our IP address
+    if {[set IP [$AP cget -ipaddr]] ne "dhcp"} {
+	$AP ifconfig $IP
+	if {[$AP cget -hasdhcpd]} {
+	    $AP rexec service dhcpd restart
+	}
+    }
+
+    foreach STA $STAS {
+	UTF::Message INFO $STA "Prepare"
+	$STA services stop
+	$STA wl down
+	$STA wl radio on
+	# wl ap is a global and is not safe to change in apsta
+	# mode.  If there are virtual interfaces then we'll just
+	# have to assume virtual interfaces are already in the
+	# right mode.
+	if {[catch {$STA wl apsta} ret] || $ret eq "0"} {
+	    $STA wl ap 0
+	}
+	if {[catch {$STA wl bw_cap 2 -1}]} {
+	    $STA wl -u mimo_bw_cap 1
+	}
+	catch {$STA wl obss_coex 0}
+#	if {$(imode) eq "ibss"} {
+#	    # Explicitly disassoc, to avoid "ibsshack" chanspec retention
+#	    catch {$STA wl disassoc}
+#	}
+	if {$(band) ne ""} {
+	    $STA wl band $(band)
+	}
+	if {$(channel) ne ""} {
+	    $STA wl channel $(channel)
+	}
+	switch $(a) {
+	    mpdu {
+		$STA wl amsdu 0
+		$STA wl ampdu 1
+	    }
+	    msdu {
+		$STA wl ampdu 0
+		$STA wl amsdu 1
+	    }
+	    none {
+		$STA wl ampdu 0
+		$STA wl amsdu 0
+	    }
+	}
+	if {$(wme) ne ""} {
+	    $STA wl wme $(wme)
+	}
+	if {$(spect) ne ""} {
+	    $STA wl spect $(spect)
+	}
+	if {$(chanspec) ne ""} {
+	    $STA wl chanspec $(chanspec)
+	}
+	if {$(ampdu_rx_factor) ne ""} {
+	    $STA wl ampdu_rx_factor $(ampdu_rx_factor)
+	}
+	if {$(ampdu_density) ne ""} {
+	    $STA wl ampdu_density $(ampdu_density)
+	}
+	if {$(ampdu) ne ""} {
+	    if {[$STA wl ampdu] ne $(ampdu)} {
+		$STA wl ampdu $(ampdu)
+	    }
+	}
+
+	$STA wl up
+
+	if {[$STA cget -extsup]} {
+	    $STA wl -u sup_wpa 0
+	    if {[catch {$STA wpa_cli remove_network all} ret]} {
+		UTF::Message LOG $STA $ret
+		$STA supplicant start
+	    }
+	    $STA wpa_cli add_network
+	    $STA wpa_cli set_network 0 ssid '"$SSID"'
+	    if {$(imode) eq "ibss"} {
+		$STA wpa_cli set_network 0 frequency \
+		    [$STA frequency $(chanspec)]
+		$STA wpa_cli set_network 0 mode 1; # IBSS
+	    } else {
+		$STA wpa_cli set_network 0 mode 0; # STA
+	    }
+	    if {[regexp {wpa} $amode]} {
+		$STA wpa_cli set_network 0 psk '"$WPAKEY"'
+	    } else {
+		$STA wpa_cli set_network 0 key_mgmt NONE
+		if {($wsec & 0xf) == 1 && $WEPKEY ne ""} {
+		    $STA wpa_cli set_network 0 wep_key$WEPIDX $WEPKEY
+		    $STA wpa_cli set_network 0 wep_tx_keyidx $WEPIDX
+		}
+		if {$amode eq "shared"} {
+		    $STA wpa_cli set_network 0 auth_alg SHARED
+		}
+	    }
+	    $STA wpa_cli select_network 0
+	    UTF::Sleep 5; # give wpa_supplicant time to scan
+	    for {set i 0} {$i < 15} {incr i 2} {
+		set status [$STA wpa_cli status]
+		if {[regexp COMPLETED $status]} {
+		    break
+		}
+		UTF::Sleep 2
+	    }
+	} else {
+	    $STA wl wsec $wsec
+	    # Need to explicitly disable WPA, otherwise power save may not work
+	    # It will be re-enabled by join if needed.
+	    catch {$STA wl wpa_auth 0}
+
+	    if {[regexp {psk} $amode]} {
+		# Silent error is probably Vista, since sup_wpa is
+		# redundant on Vista.  Real errors will have a message.
+		if {[catch {$STA wl sup_wpa 1} ret] && $ret ne ""} {
+		    error $ret
+		}
+		$STA wl set_pmk "\"$WPAKEY\""
+	    } else {
+		# We're turning the supplicant off, so non-supported is ok
+		catch {$STA wl sup_wpa 0}
+	    }
+
+	    UTF::Message INFO $STA "join $(imode) $SSID"
+	    $STA wl join $SSID imode $(imode) amode $amode
+	    if {($wsec & 0xf) == 1} {
+		$STA wl addwep $WEPIDX $WEPKEY
+	    }
+	}
+
+	if {![$STA cget -extsup]} {
+	    # Wait for association
+	    UTF::Sleep [$STA cget -slowassoc]
+	}
+
+	UTF::Assert [$STA wl bssid] $BSSID $STA "BSSID Verify"
+	UTF::Assert [$STA wl ssid] $SSID $STA "SSID"
+
+	if {[$STA cget -post_assoc_hook] ne ""} {
+	    eval [string map [list %S $STA] [$STA cget -post_assoc_hook]]
+	}
+
+	if {[$STA cget -hasdhcpd]} {
+	    $AP ifconfig [$AP cget -ipaddr]
+	    $AP add_networks $STA
+	    set APIP [$AP ipaddr]
+	} else {
+	    if {[catch {$AP ipaddr} APIP]} {
+		# If AP has an ipaddr in the config, apply it.  Note
+		# Routers appear as "dhcp" even though their bridge
+		# has static IP.
+		if {[$AP cget -ipaddr] ne "dhcp"} {
+		    $AP ifconfig [set APIP [$AP cget -ipaddr]]
+		} else {
+		    error $APIP
+		}
+	    }
+	    $STA ifconfig [$STA cget -ipaddr]
+	    # Set up STA's routing table to get at all AP's networks
+	    $STA add_networks $AP
+	}
+	$STA ping $APIP
+    }
+}

@@ -50,5 +50,9 @@ extern BIMG_Interface SAGE_IMAGE_Interface;
 void NEXUS_SageImage_SetImageExists_priv(
     NEXUS_SageModuleSettings *pSettings);
 
+/* nexus_sage_bp3_bin_path.c */
+extern char bp3_bin_file_name[];
+extern char bp3_bin_file_path[];
+
 #endif /* NEXUS_SAGE_IMAGE_H__ */
 /* End of file. */

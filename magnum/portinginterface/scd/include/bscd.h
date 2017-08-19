@@ -971,14 +971,10 @@ Summary:
 This function set voltage level for smart card interface.
 
 Description:
-We have to modify the board to use VPP pin of smartcard and connect it to pin 3 (3V/5V) of TDA chip
-and run this function.  Make sure to disconnect your QAM or QPSK connection before calling this function 
-or your smartcard will be damaged.
+We have to modify the board to use correct voltage control pins of the TDA chip
+and run this function.  Make sure to disconnect your QAM or QPSK connection before
+calling this function or your smartcard will be damaged.
 
-We also have to use proper voltage card for test when we change smart card interface voltage.
-( 3v card for 3v Smart Card  interface, 5v card for 5v Smart Card interface ). 
-By default the Smart Card iterface is set 5V.
-        
 Calling Context:
 The function shall be called from application level (for example in 
 VxWorks or no-os) or from driver level 
@@ -988,7 +984,7 @@ This is a synchronous function that will return when it is done.
 
 Input:
 in_channelHandle  - BSCD_ChannelHandle,  smart card channel handle.
-in_vccLevel - Smart Card interface voltage level ( 5V and 3V )
+in_vccLevel - Smart Card interface voltage level ( 5V, 3V and 1.8V)
 
 Returns:
 BERR_SUCCESS - success

@@ -221,9 +221,18 @@ endif
 ifeq ($(BDSP_ARM_AUDIO_SUPPORT),y)
 include $(MAGNUM)/basemodules/dsp/build/bdsp_arm.inc
 endif
+ifneq ($(BCHP_CHIP),7278)
 # Include Raaga files
 include $(MAGNUM)/basemodules/dsp/build/bdsp_raaga.inc
 # Include Common files
 include $(MAGNUM)/basemodules/dsp/build/bdsp_common.inc
-
+else
+ifeq ($(BDSP_OCTAVE_USE_M2),y)
+include $(MAGNUM)/basemodules/dsp/build/bdsp_raaga.inc
+include $(MAGNUM)/basemodules/dsp/build/bdsp_common.inc
+else
+include $(MAGNUM)/basemodules/dsp/build/bdsp_octave.inc
+include $(MAGNUM)/basemodules/dsp/build/bdsp_common_v2.inc
+endif
+endif
 endif #ifneq ($(BCHP_CHIP),7543)

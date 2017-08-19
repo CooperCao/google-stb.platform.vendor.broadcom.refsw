@@ -160,9 +160,10 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
       return false;
 
    /* Record security status */
-   rs->fmem.br_info.secure = egl_context_gl_secure(rs->server_state->context);
+   rs->fmem.br_info.details.secure = egl_context_gl_secure(rs->server_state->context);
 
    init_clear_colors(rs->clear_colors);
+   rs->num_used_layers = 1;
 
    glxx_assign_hw_framebuffer(&rs->installed_fb, fb);
 
@@ -285,12 +286,13 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    }
 #else
    r_size += V3D_CL_TILE_COORDS_SIZE;
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   // Workaround GFXH-1320 if occlusion queries were used in this control list.
-   bool workaround_gfxh_1320 = rs->fmem.persist->occlusion_query_list != NULL;
-   r_size += workaround_gfxh_1320 ? glxx_workaround_gfxh_1320_size() : 0;
-#endif
    r_size += V3D_CL_STORE_GENERAL_SIZE;
+#endif
+#if !V3D_HAS_GFXH1636_FIX
+   // Workaround GFXH-1320 & GFXH-1636 if occlusion queries were used in this control list.
+   bool fill_ocq_cache = rs->fmem.persist->occlusion_query_list != NULL;
+   if (fill_ocq_cache)
+      r_size += glxx_fill_ocq_cache_size();
 #endif
 
    r_size += V3D_CL_CLEAR_VCD_CACHE_SIZE;
@@ -451,6 +453,10 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    {
       v3d_cl_tile_coords(&instr, 0, 0);
       v3d_cl_end_loads(&instr);
+#if !V3D_HAS_GFXH1636_FIX
+      if ((i == 0) && fill_ocq_cache && !glxx_fill_ocq_cache(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
+         return false;
+#endif
       v3d_cl_store(&instr, /* Dummy store... */
          V3D_LDST_BUF_NONE,
          V3D_MEMORY_FORMAT_RASTER,
@@ -473,10 +479,8 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    // Note: If you plan to 'optimize' disable depth and stencil clears
    //       when not needed, be careful with packed depth/stencil
    v3d_cl_tile_coords(&instr, 0, 0);
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   if (workaround_gfxh_1320 && !glxx_workaround_gfxh_1320(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
+   if (fill_ocq_cache && !glxx_fill_ocq_cache(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
       return false;
-#endif
    v3d_cl_store_general(&instr,
       V3D_LDST_BUF_NONE,                  // buffer
       false,                              // raw_mode
@@ -505,7 +509,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
       tile_cfg->num_tiles_y,
       multicore,
       V3D_SUPERTILE_ORDER_RASTER, // TODO enable morton
-      rs->fmem.br_info.num_bins);
+      rs->fmem.br_info.bin_subjobs.num_subjobs);
 
    v3d_cl_return(&instr);
 
@@ -514,27 +518,32 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    return true;
 }
 
-static v3d_size_t calc_tile_state_size(const struct glxx_hw_tile_cfg *tile_cfg)
+static v3d_size_t calc_tile_state_size(const struct glxx_hw_tile_cfg *tile_cfg, uint32_t num_used_layers)
 {
-   return tile_cfg->num_tiles_x * tile_cfg->num_tiles_y * V3D_TILE_STATE_SIZE;
+   return num_used_layers * tile_cfg->num_tiles_x * tile_cfg->num_tiles_y * V3D_TILE_STATE_SIZE;
 }
 
-static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg, uint8_t *draw_clist_ptr, GLXX_CL_RECORD_T* start_record)
+static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg, uint32_t num_used_layers,
+      uint8_t *draw_clist_ptr, GLXX_CL_RECORD_T* start_record)
 {
-   log_trace("[create_bin_cl] rs %u, num_tiles %u x %u, rt count = %u",
+   log_trace("[create_bin_cl] rs %u, layers %u num_tiles %u x %u, rt count = %u",
       khrn_hw_render_state_allocated_order(rs),
+      rs->installed_fb.layers,
       tile_cfg->num_tiles_x, tile_cfg->num_tiles_y,
       rs->installed_fb.rt_count);
 
    {
     #if !V3D_HAS_QTS
       // allocate tile state memory
-      v3d_addr_t tile_state_addr = khrn_fmem_tile_state_alloc(&rs->fmem, calc_tile_state_size(tile_cfg));
+      v3d_addr_t tile_state_addr = khrn_fmem_tile_state_alloc(&rs->fmem, calc_tile_state_size(tile_cfg, num_used_layers));
       if (!tile_state_addr)
          return false;
     #endif
 
       unsigned size = 0
+#if V3D_VER_AT_LEAST(4,0,2,0)
+         + V3D_CL_NUM_LAYERS_SIZE
+#endif
          + V3D_CL_TILE_BINNING_MODE_CFG_SIZE
          + V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE_SIZE
          + V3D_CL_CLEAR_VCD_CACHE_SIZE
@@ -543,6 +552,13 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, size);
       if (!instr)
          return false;
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      // this must come before bin mode cfg part
+      v3d_cl_num_layers(&instr, num_used_layers);
+#else
+      assert(num_used_layers == 1);
+#endif
 
 #if V3D_HAS_UNCONSTR_VP_CLIP
       v3d_cl_tile_binning_mode_cfg(&instr,
@@ -705,68 +721,100 @@ static void calc_supertile_cfg(struct glxx_hw_supertile_cfg *supertile_cfg,
       gfx_udiv_round_up(tile_cfg->num_tiles_y, supertile_cfg->supertile_h_in_tiles);
 }
 
+
 static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
    const struct glxx_hw_tile_cfg *tile_cfg,
-   const struct glxx_hw_tile_list_rcfg *rcfg,
-   v3d_addr_range const *generic_tile_list)
+   const struct glxx_hw_tile_list_fb_ops *tile_list_fb_ops)
 {
-   unsigned num_cores = khrn_get_num_render_subjobs();
-   // Buffer writes are not suitably coherent on multiple cores and frame isolation
-   // also disables multicore.
-   if (rs->has_tcs_barriers || rs->base.has_buffer_writes || khrn_options.isolate_frame == khrn_fmem_frame_i)
-      num_cores = 1;
+   unsigned num_cores = glxx_hw_render_state_num_render_subjobs_per_layer(rs);
+   assert(num_cores <= V3D_MAX_CORES);
 
    struct glxx_hw_supertile_cfg supertile_cfg;
    calc_supertile_cfg(&supertile_cfg, tile_cfg);
 
-   v3d_addr_range render_common;
-   render_common.begin = khrn_fmem_begin_clist(&rs->fmem);
-   if (!render_common.begin || !create_render_cl_common(rs, tile_cfg, &supertile_cfg, rcfg, num_cores > 1))
-      return false;
-   render_common.end = khrn_fmem_end_clist(&rs->fmem);
-
-   v3d_addr_range subjobs[V3D_MAX_RENDER_SUBJOBS];
+   v3d_addr_range subjobs[V3D_MAX_CORES];
    for (unsigned core = 0; core != num_cores; ++core)
    {
       subjobs[core].begin =  khrn_fmem_begin_clist(&rs->fmem);
       if (!subjobs[core].begin || !create_render_subjob_cl(rs, &supertile_cfg, core, num_cores))
          return false;
-
       subjobs[core].end =  khrn_fmem_end_clist(&rs->fmem);
    }
 
-   //per each core
-   size_t r_size = V3D_CL_BRANCH_SIZE; //branch to common
-   r_size += V3D_CL_GENERIC_TILE_LIST_SIZE;
-   r_size += V3D_CL_BRANCH_SIZE; // branch to cl for each core
+   unsigned subindex = 0;
+   v3d_addr_range render_common = {0,}; //initialise to stop compiler complaining
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   struct glxx_hw_tile_list_rcfg prev_rcfg;
+#endif
+   v3d_subjob *render_subjobs = rs->fmem.br_info.render_subjobs.subjobs;
 
-   for (unsigned core = 0; core != num_cores; ++core)
+   for (unsigned layer = 0; layer < rs->num_used_layers; ++layer)
    {
-      assert(core < V3D_MAX_RENDER_SUBJOBS);
-
-      rs->fmem.br_info.render_begins[core] = khrn_fmem_begin_clist(&rs->fmem);
-      if (!rs->fmem.br_info.render_begins[core])
+      v3d_addr_range generic_tile_list;
+      struct glxx_hw_tile_list_rcfg rcfg;
+      if (!glxx_hw_create_generic_tile_list(&generic_tile_list,
+               &rcfg, rs, tile_cfg->ms, tile_cfg->double_buffer,
+               tile_list_fb_ops, layer))
          return false;
 
-      uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, r_size);
-      if (!instr)
-         return false;
-      v3d_cl_branch_sub(&instr, render_common.begin);
-      v3d_cl_generic_tile_list(&instr, generic_tile_list->begin, generic_tile_list->end);
-      v3d_cl_branch(&instr, subjobs[core].begin);
-      khrn_fmem_end_cle(&rs->fmem, instr);
-      khrn_fmem_end_clist(&rs->fmem);
-      rs->fmem.br_info.render_ends[core] = subjobs[core].end;
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+      assert(layer == 0);
+#endif
+      /* if we have blits, rcfg for layer 0 can end up being different than
+       * the ones for the other layers, since we blit only from level 0 in a layerd fb;
+       * (see how rcfg->early_ds_clear gets set in write_stores_clears_end_and_rcfg);
+       * if we do not have blits, we can create a common cl once,
+       * otherwise, one common cl for layer 0 and one common cl for the other
+       * layers */
+      if (layer == 0
+#if V3D_VER_AT_LEAST(4,0,2,0)
+            || !glxx_hw_tile_list_rcfgs_equal(&rcfg, &prev_rcfg)
+#endif
+         )
+      {
+         render_common.begin = khrn_fmem_begin_clist(&rs->fmem);
+         if (!create_render_cl_common(rs, tile_cfg, &supertile_cfg, &rcfg, num_cores > 1))
+            return false;
+         render_common.end = khrn_fmem_end_clist(&rs->fmem);
+      }
 
+      //per each core
+      size_t r_size = V3D_CL_BRANCH_SIZE; //branch to common
+      r_size += V3D_CL_GENERIC_TILE_LIST_SIZE;
+      r_size += V3D_CL_BRANCH_SIZE; // branch to cl for each core
+
+      for (unsigned core = 0; core != num_cores; ++core)
+      {
+         assert(core < V3D_MAX_RENDER_SUBJOBS);
+
+         render_subjobs[subindex].start = khrn_fmem_begin_clist(&rs->fmem);
+         if (!render_subjobs[subindex].start)
+            return false;
+
+         uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, r_size);
+         if (!instr)
+            return false;
+         v3d_cl_branch_sub(&instr, render_common.begin);
+         v3d_cl_generic_tile_list(&instr, generic_tile_list.begin, generic_tile_list.end);
+         v3d_cl_branch(&instr, subjobs[core].begin);
+         khrn_fmem_end_cle(&rs->fmem, instr);
+         khrn_fmem_end_clist(&rs->fmem);
+         render_subjobs[subindex].end = subjobs[core].end;
+         ++subindex;
+      }
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      prev_rcfg = rcfg;
+#endif
    }
-   rs->fmem.br_info.num_renders = num_cores;
 
    return true;
 }
 
-static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg, uint8_t* draw_clist_ptr)
+static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg,
+      uint8_t* draw_clist_ptr)
 {
    unsigned max_cores = glxx_hw_render_state_max_bin_subjobs(rs);
+   assert(max_cores <=  rs->fmem.br_info.bin_subjobs.num_subjobs);
 
    // estimated total number of shaded vertices in control list
    uint64_t bin_cost_total = rs->cl_records[rs->num_cl_records].bin_cost_cumulative;
@@ -848,26 +896,29 @@ static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile
       }
 
       assert(core < V3D_MAX_BIN_SUBJOBS);
-      rs->fmem.br_info.bin_begins[core] = khrn_fmem_begin_clist(&rs->fmem);
-      if (!rs->fmem.br_info.bin_begins[core] ||
-         !create_bin_cl(rs, tile_cfg, draw_clist_ptr, record))
+      v3d_subjob *bin_subjobs = rs->fmem.br_info.bin_subjobs.subjobs;
+      bin_subjobs[core].start = khrn_fmem_begin_clist(&rs->fmem);
+      if (!bin_subjobs[core].start ||
+         !create_bin_cl(rs, tile_cfg, rs->num_used_layers, draw_clist_ptr, record))
       {
          return false;
       }
-      rs->fmem.br_info.bin_ends[core] = khrn_fmem_end_clist(&rs->fmem);
+      bin_subjobs[core].end = khrn_fmem_end_clist(&rs->fmem);
    }
-   rs->fmem.br_info.num_bins = core;
 
-   rs->fmem.br_info.min_initial_bin_block_size = gfx_uround_up_p2(
-      tile_cfg->num_tiles_x * tile_cfg->num_tiles_y * c_initial_tile_alloc_block_size,
-      V3D_TILE_ALLOC_ALIGN) +
-      /* If HW runs out of memory immediately it may not raise an out of
-       * memory interrupt (it only raises one on the transition from having
-       * memory to not having memory). Avoid this by ensuring it starts with
-       * at least one block. */
-      V3D_TILE_ALLOC_GRANULARITY;
+   rs->fmem.br_info.bin_subjobs.num_subjobs = core;
+   rs->fmem.br_info.details.tile_alloc_layer_stride = tile_cfg->num_tiles_x * tile_cfg->num_tiles_y *
+            c_initial_tile_alloc_block_size;
+   rs->fmem.br_info.details.min_initial_bin_block_size = gfx_uround_up_p2(
+         rs->num_used_layers * rs->fmem.br_info.details.tile_alloc_layer_stride, V3D_TILE_ALLOC_ALIGN) +
+         /* If HW runs out of memory immediately it may not raise an out of
+          * memory interrupt (it only raises one on the transition from having
+          * memory to not having memory). Avoid this by ensuring it starts with
+          * at least one block. */
+         V3D_TILE_ALLOC_GRANULARITY;
+
 #if V3D_HAS_QTS
-   rs->fmem.br_info.bin_tile_state_size = calc_tile_state_size(tile_cfg);
+   rs->fmem.br_info.details.bin_tile_state_size = calc_tile_state_size(tile_cfg, rs->num_used_layers);
 #endif
 
    // all bin jobs have z-prepass rendering enabled
@@ -937,6 +988,42 @@ static bool calc_tile_cfg_and_prep_tile_list_fb_ops(
    return true;
 }
 
+static bool create_cls_and_flush(GLXX_HW_RENDER_STATE_T *rs)
+{
+   struct glxx_hw_tile_cfg tile_cfg;
+   struct glxx_hw_tile_list_fb_ops tile_list_fb_ops;
+   if (!calc_tile_cfg_and_prep_tile_list_fb_ops(&tile_cfg, &tile_list_fb_ops, rs))
+      return false;
+
+   rs->fmem.br_info.bin_subjobs.num_subjobs = glxx_hw_render_state_max_bin_subjobs(rs);
+   rs->fmem.br_info.bin_subjobs.subjobs = alloca(rs->fmem.br_info.bin_subjobs.num_subjobs * sizeof(v3d_subjob));
+
+   rs->fmem.br_info.num_layers = rs->num_used_layers;
+   rs->fmem.br_info.render_subjobs.num_subjobs = rs->num_used_layers *
+      glxx_hw_render_state_num_render_subjobs_per_layer(rs);
+   rs->fmem.br_info.render_subjobs.subjobs = alloca(rs->fmem.br_info.render_subjobs.num_subjobs * sizeof(v3d_subjob));
+
+   // create the binning control lists for each core
+   if (!create_bin_cls(rs, &tile_cfg, rs->fmem.cle_first))
+      return false;
+
+   // create the render control lists
+   // generic tile list must be done after binning control lists
+   // have been created - because we are using num_bin_subjobs in
+   // write_tile_list_branches)
+   if (!create_render_cls(rs, &tile_cfg, &tile_list_fb_ops))
+      return false;
+
+#ifdef KHRN_GEOMD
+   if (khrn_options.geomd)
+      geomd_open();
+#endif
+
+   // submits bin and render
+   khrn_fmem_flush(&rs->fmem);
+   return true;
+}
+
 void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
 {
    khrn_render_state_begin_flush((khrn_render_state*)rs);
@@ -976,40 +1063,10 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
    // end the current control list
    khrn_fmem_end_clist(&rs->fmem);
 
-   struct glxx_hw_tile_cfg tile_cfg;
-   struct glxx_hw_tile_list_fb_ops tile_list_fb_ops;
-   if (!calc_tile_cfg_and_prep_tile_list_fb_ops(&tile_cfg, &tile_list_fb_ops, rs))
+   if (!create_cls_and_flush(rs))
       goto quit;
-
-   // create the binning control lists for each core
-   if (!create_bin_cls(rs, &tile_cfg, draw_clist_ptr))
-      goto quit;
-
-   // create the generic tile list (must be done after binning control lists
-   // have been created - because we are using num_bin_subjobs to
-   // write_tile_list_branches)
-   v3d_addr_range generic_tile_list;
-   struct glxx_hw_tile_list_rcfg rcfg;
-   if (!glxx_hw_create_generic_tile_list(&generic_tile_list, &rcfg,
-         rs, tile_cfg.ms, tile_cfg.double_buffer, &tile_list_fb_ops))
-      goto quit;
-
-   // create the render control lists for each core
-   if (!create_render_cls(rs, &tile_cfg, &rcfg, &generic_tile_list))
-      goto quit;
-
-#ifdef KHRN_GEOMD
-   if (khrn_options.geomd)
-      geomd_open();
-#endif
-
-   // submits bin and render
-   khrn_fmem_flush(&rs->fmem);
 
    invalidate_resources_based_on_bufstates(rs);
-
-   if (rs->has_tcs_barriers && khrn_get_num_cores() > 1)
-      v3d_scheduler_wait_all();
 
    glxx_hw_render_state_delete(rs);
    return;

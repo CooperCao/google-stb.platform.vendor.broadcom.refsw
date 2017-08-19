@@ -552,7 +552,7 @@ sub make_ipc
                 print FILE "#else /* B_IPC_COMPAT_SUPPORT */ \n";
             }
             print FILE "static int b_ipc_${name}_process(unsigned abi, void **$ipc_field, unsigned entry, void * $ipc_data, size_t recv_size, bipc_send_data *send_data)\n";
-            print FILE "{return b_ipc_${name}_process_native( $ipc_field, entry, $ipc_data, recv_size, send_data);}\n";
+            print FILE "{BSTD_UNUSED(abi); return b_ipc_${name}_process_native( $ipc_field, entry, $ipc_data, recv_size, send_data);}\n";
             if($ipc_mode eq 'verify') {
                 print FILE "#endif /* B_IPC_COMPAT_SUPPORT */ \n";
             }

@@ -289,7 +289,16 @@ BERR_Code BAPE_Decoder_Open(
     handle->state = BAPE_DecoderState_eStopped;
     handle->settings.dualMonoMode = BAPE_DualMonoMode_eStereo;
     handle->settings.multichannelFormat = pSettings->multichannelFormat;
-    if ( handle->settings.multichannelFormat == BAPE_MultichannelFormat_e7_1 )
+
+    /* MS12 Config A check */
+    if ( handle->settings.multichannelFormat == BAPE_MultichannelFormat_e7_1 &&
+         BAPE_P_DolbyCapabilities_MultichannelPcmFormat() != BAPE_MultichannelFormat_e7_1 )
+    {
+        BDBG_WRN(("export BDSP_MS12_SUPPORT=A is required for 7.1ch Decoder support"));
+        (void)BERR_TRACE(errCode); goto err_settings;
+    }
+
+    if (handle->settings.multichannelFormat == BAPE_MultichannelFormat_e7_1)
     {
         handle->settings.outputMode = BAPE_ChannelMode_e3_4;
     }
@@ -548,6 +557,7 @@ err_task_create:
 err_ancillary_buffer:
 err_connector_format:
 err_caps:
+err_settings:
     BAPE_Decoder_Close(handle);
     return errCode;
 }
@@ -811,6 +821,15 @@ static BERR_Code BAPE_Decoder_P_SetupPassthrough(
     }
 
     userConfig.ui32PassthruType = type;
+
+    if (handle->disablePauseBursts == false) {
+        userConfig.eSpdifPauseWidth = BDSP_AF_P_SpdifPauseWidth_eHundredEightyEightWord;
+        userConfig.eFMMPauseBurstType = BDSP_AF_P_BurstFill_ePauseBurst;
+    }
+    else {
+        userConfig.eFMMPauseBurstType = BDSP_AF_P_BurstFill_eZeroes;
+    }
+
     switch ( handle->startSettings.codec )
     {
     case BAVC_AudioCompressionStd_eAacAdts:
@@ -833,6 +852,47 @@ static BERR_Code BAPE_Decoder_P_SetupPassthrough(
 
     return BERR_SUCCESS;
 }
+
+static void BAPE_Decoder_P_ValidatePauseBursts(BAPE_DecoderHandle handle)
+{
+    BAPE_OutputPort outputs[BAPE_CHIP_MAX_OUTPUTS];
+    unsigned numOutputs = 0;
+    unsigned i;
+
+
+    BAPE_PathNode_P_GetConnectedOutputs(&handle->node, BAPE_CHIP_MAX_OUTPUTS, &numOutputs, outputs);
+
+    if (numOutputs > 0) {
+        for (i = 0; i < numOutputs; i++) {
+            bool compressed = false;
+            bool bursts = true;
+
+            switch (outputs[i]->type) {
+            case BAPE_OutputPortType_eSpdifOutput:
+                BAPE_SpdifOutput_P_DeterminePauseBurstEnabled((BAPE_SpdifOutputHandle)outputs[i]->pHandle, &compressed, &bursts);
+                if (compressed && !bursts) {
+                    handle->disablePauseBursts = true;
+                    return;
+                }
+                break;
+            case BAPE_OutputPortType_eMaiOutput:
+                BAPE_MaiOutput_P_DeterminePauseBurstEnabled((BAPE_MaiOutputHandle)outputs[i]->pHandle, &compressed, &bursts);
+                if (compressed && !bursts) {
+                    handle->disablePauseBursts = true;
+                    return;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    handle->disablePauseBursts = false;
+
+    return;
+}
+
 
 static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
     BAPE_DecoderHandle handle,
@@ -998,7 +1058,7 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
         unsigned numFound;
         bool mixedWithDsp;
 
-        BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
+        BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
         mixedWithDsp = (numFound > 0) ? true : false;
 
         if ( handle->outputStatus.numOutputs[BAPE_DataType_ePcm5_1] > 0 ||
@@ -1308,6 +1368,17 @@ static BERR_Code BAPE_Decoder_P_Start(
     {
         taskStartSettings.realtimeMode = pSettings->nonRealTime ? BDSP_TaskRealtimeMode_eNonRealTime : BDSP_TaskRealtimeMode_eRealTime;
     }
+
+    BAPE_Decoder_P_ValidatePauseBursts(handle);
+
+    if (handle->disablePauseBursts == false) {
+        taskStartSettings.eSpdifPauseWidth = BDSP_AF_P_SpdifPauseWidth_eHundredEightyEightWord;
+        taskStartSettings.eFMMPauseBurstType = BDSP_AF_P_BurstFill_ePauseBurst;
+    }
+    else {
+        taskStartSettings.eFMMPauseBurstType = BDSP_AF_P_BurstFill_eZeroes;
+    }
+
     errCode = BAPE_DSP_P_DeriveTaskStartSettings(&handle->node, &taskStartSettings);
     if ( errCode )
     {
@@ -2137,7 +2208,7 @@ BERR_Code BAPE_Decoder_Start(
     BAPE_PathNode_P_GetOutputStatus(&handle->node, &handle->outputStatus);
 
     /* Validate we either have real-time outputs or don't depending on system requirements */
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eStandard, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eStandard, 1, &numFound, &pNode);
     if ( pSettings->nonRealTime || handle->type == BAPE_DecoderType_eDecodeToMemory )
     {
         if ( numFound != 0 )
@@ -2487,7 +2558,7 @@ BERR_Code BAPE_Decoder_Freeze(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
-    BDBG_MSG(("%s(%p) [index %u]", __FUNCTION__, (void *)handle, handle->index));
+    BDBG_MSG(("%s(%p) [index %u]", BSTD_FUNCTION, (void *)handle, handle->index));
     /* Make sure we're performing a valid state transition */
     switch ( handle->state )
     {
@@ -2511,13 +2582,13 @@ BERR_Code BAPE_Decoder_Freeze(
 
     if ( numOutputs != 1 )
     {
-        BDBG_ERR(("%s - INVALID number of outputs (%d) connected to this decoder %p", __FUNCTION__, numOutputs, (void *)handle));
+        BDBG_ERR(("%s - INVALID number of outputs (%d) connected to this decoder %p", BSTD_FUNCTION, numOutputs, (void *)handle));
         return BERR_TRACE(BERR_UNKNOWN);
     }
 
     if ( outputs[0]->getEnableParams == NULL )
     {
-        BDBG_ERR(("%s - Cannot freeze output type (%d) connected to this decoder %p", __FUNCTION__, outputs[0]->type, (void *)handle));
+        BDBG_ERR(("%s - Cannot freeze output type (%d) connected to this decoder %p", BSTD_FUNCTION, outputs[0]->type, (void *)handle));
         return BERR_TRACE(BERR_UNKNOWN);
     }
 
@@ -2552,7 +2623,7 @@ BERR_Code BAPE_Decoder_UnFreeze(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
-    BDBG_MSG(("%s(%p) [index %u]", __FUNCTION__, (void *)handle, handle->index));
+    BDBG_MSG(("%s(%p) [index %u]", BSTD_FUNCTION, (void *)handle, handle->index));
     /* Make sure we're performing a valid state transition */
     switch ( handle->state )
     {
@@ -2576,13 +2647,13 @@ BERR_Code BAPE_Decoder_UnFreeze(
 
     if ( numOutputs != 1 )
     {
-        BDBG_ERR(("%s - INVALID number of outputs (%d) connected to this decoder %p", __FUNCTION__, numOutputs, (void *)handle));
+        BDBG_ERR(("%s - INVALID number of outputs (%d) connected to this decoder %p", BSTD_FUNCTION, numOutputs, (void *)handle));
         return BERR_TRACE(BERR_UNKNOWN);
     }
 
     if ( outputs[0]->getEnableParams == NULL )
     {
-        BDBG_ERR(("%s - Cannot freeze output type (%d) connected to this decoder %p", __FUNCTION__, outputs[0]->type, (void *)handle));
+        BDBG_ERR(("%s - Cannot freeze output type (%d) connected to this decoder %p", BSTD_FUNCTION, outputs[0]->type, (void *)handle));
         return BERR_TRACE(BERR_UNKNOWN);
     }
 
@@ -2856,14 +2927,13 @@ BERR_Code BAPE_Decoder_GetTsmStatus_isr(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
     BDBG_ASSERT(NULL != pStatus);
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
     if ( BAPE_Decoder_P_TaskValid_isr(handle) )
     {
         errCode = BDSP_AudioStage_GetTsmStatus_isr(handle->hPrimaryStage, &tsmStatus);
         if ( errCode )
         {
-            BKNI_Memset(pStatus, 0, sizeof(*pStatus));
-
             if (handle->state == BAPE_DecoderState_eStarted || handle->state == BAPE_DecoderState_ePaused)
             {
                 if (handle->lastValidPts != 0)
@@ -3028,7 +3098,7 @@ void BAPE_Decoder_GetPresentationInfo(
             BAPE_Decoder_P_GetAc4PresentationInfo(handle, presentationIndex, pInfo);
             break;
         default:
-            BDBG_WRN(("%s: Presentation info not supported for BAVC codec %lu", __FUNCTION__, (unsigned long)handle->startSettings.codec));
+            BDBG_WRN(("%s: Presentation info not supported for BAVC codec %lu", BSTD_FUNCTION, (unsigned long)handle->startSettings.codec));
             return;
             break;
         }
@@ -3485,7 +3555,7 @@ static void BAPE_Decoder_P_SampleRateChange_isr(void *pParam1, int param2, unsig
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
     BSTD_UNUSED(param2);
 
-    BDBG_MSG(("%s: streamSampleRate %d, baseSampleRate %d", __FUNCTION__, streamSampleRate, baseSampleRate));
+    BDBG_MSG(("%s: streamSampleRate %d, baseSampleRate %d", BSTD_FUNCTION, streamSampleRate, baseSampleRate));
 
     /* Store stream sample rate for user status */
     handle->streamSampleRate = streamSampleRate;
@@ -3887,7 +3957,7 @@ static BERR_Code BAPE_Decoder_P_DeriveMultistreamLinkage(BAPE_DecoderHandle hand
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
     /* Find DDRE and FW Mixer.  Need to determine usage modes based on these. */
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 2, &numFound, pNodes);
+    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->node, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 2, &numFound, pNodes);
     switch ( numFound )
     {
     case 0:
@@ -4010,7 +4080,7 @@ void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
     {
         if (handle->interrupts.cdbItbUnderflow.pCallback_isr)
         {
-            BDBG_MSG(("%s Underflow Detected calling Nexus interrupt", __FUNCTION__));
+            BDBG_MSG(("%s Underflow Detected calling Nexus interrupt", BSTD_FUNCTION));
             handle->interrupts.cdbItbUnderflow.pCallback_isr(handle->interrupts.cdbItbUnderflow.pParam1, handle->interrupts.cdbItbUnderflow.param2);
         }
         handle->underFlowCount = count;
@@ -4041,6 +4111,7 @@ static BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(
 
     ctbInput.audioTaskDelayMode = handle->pathDelayMode;
     ctbInput.realtimeMode = handle->startSettings.nonRealTime;
+
     errCode = BDSP_AudioStage_GetDatasyncSettings_isr(handle->hPrimaryStage, &datasyncSettings);
     if ( errCode != BERR_SUCCESS )
     {

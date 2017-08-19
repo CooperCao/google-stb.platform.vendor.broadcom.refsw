@@ -15,35 +15,53 @@ static GFX_LFMT_T fmt_qualifier_to_fmt(FormatQualifier fmt)
 {
    switch (fmt)
    {
-   case FMT_RGBA32F:
-      return GFX_LFMT_R32_G32_B32_A32_FLOAT;
-   case FMT_RGBA16F:
-      return GFX_LFMT_R16_G16_B16_A16_FLOAT;
-   case FMT_R32F:
-      return GFX_LFMT_R32_FLOAT;
+   case FMT_RGBA32F:      return GFX_LFMT_R32_G32_B32_A32_FLOAT;
+   case FMT_RGBA16F:      return GFX_LFMT_R16_G16_B16_A16_FLOAT;
+   case FMT_R32F:         return GFX_LFMT_R32_FLOAT;
 
-   case FMT_RGBA32I:
-      return GFX_LFMT_R32_G32_B32_A32_INT;
-   case FMT_RGBA16I:
-      return GFX_LFMT_R16_G16_B16_A16_INT;
-   case FMT_RGBA8I:
-      return GFX_LFMT_R8_G8_B8_A8_INT;
-   case FMT_R32I:
-      return GFX_LFMT_R32_INT;
+   case FMT_RGBA8:        return GFX_LFMT_R8_G8_B8_A8_UNORM;
+   case FMT_RGBA8_SNORM:  return GFX_LFMT_R8_G8_B8_A8_SNORM;
+   /* Extended formats */
+   case FMT_RG32F:        return GFX_LFMT_R32_G32_FLOAT;
+   case FMT_RG16F:        return GFX_LFMT_R16_G16_FLOAT;
+   case FMT_R11G11B10F:   return GFX_LFMT_R11G11B10_UFLOAT;
+   case FMT_R16F:         return GFX_LFMT_R16_FLOAT;
+   case FMT_RGBA16:       return GFX_LFMT_R16_G16_B16_A16_UNORM;
+   case FMT_RGB10A2:      return GFX_LFMT_R10G10B10A2_UNORM;
+   case FMT_RG16:         return GFX_LFMT_R16_G16_UNORM;
+   case FMT_RG8:          return GFX_LFMT_R8_G8_UNORM;
+   case FMT_R16:          return GFX_LFMT_R16_UNORM;
+   case FMT_R8:           return GFX_LFMT_R8_UNORM;
+   case FMT_RGBA16_SNORM: return GFX_LFMT_R16_G16_B16_A16_SNORM;
+   case FMT_RG16_SNORM:   return GFX_LFMT_R16_G16_SNORM;
+   case FMT_RG8_SNORM:    return GFX_LFMT_R8_G8_SNORM;
+   case FMT_R16_SNORM:    return GFX_LFMT_R16_SNORM;
+   case FMT_R8_SNORM:     return GFX_LFMT_R8_SNORM;
+   /* End of extended formats */
 
-   case FMT_RGBA32UI:
-      return GFX_LFMT_R32_G32_B32_A32_UINT;
-   case FMT_RGBA16UI:
-      return GFX_LFMT_R16_G16_B16_A16_UINT;
-   case FMT_RGBA8UI:
-      return GFX_LFMT_R8_G8_B8_A8_UINT;
-   case FMT_R32UI:
-      return GFX_LFMT_R32_UINT;
-
-   case FMT_RGBA8:
-      return GFX_LFMT_R8_G8_B8_A8_UNORM;
-   case FMT_RGBA8_SNORM:
-      return GFX_LFMT_R8_G8_B8_A8_SNORM;
+   case FMT_RGBA32I:      return GFX_LFMT_R32_G32_B32_A32_INT;
+   case FMT_RGBA16I:      return GFX_LFMT_R16_G16_B16_A16_INT;
+   case FMT_RGBA8I:       return GFX_LFMT_R8_G8_B8_A8_INT;
+   case FMT_R32I:         return GFX_LFMT_R32_INT;
+   /* Extended formats */
+   case FMT_RG32I:        return GFX_LFMT_R32_G32_INT;
+   case FMT_RG16I:        return GFX_LFMT_R16_G16_INT;
+   case FMT_RG8I:         return GFX_LFMT_R8_G8_INT;
+   case FMT_R16I:         return GFX_LFMT_R16_INT;
+   case FMT_R8I:          return GFX_LFMT_R8_INT;
+   /* End of extended formats */
+   case FMT_RGBA32UI:     return GFX_LFMT_R32_G32_B32_A32_UINT;
+   case FMT_RGBA16UI:     return GFX_LFMT_R16_G16_B16_A16_UINT;
+   case FMT_RGBA8UI:      return GFX_LFMT_R8_G8_B8_A8_UINT;
+   case FMT_R32UI:        return GFX_LFMT_R32_UINT;
+   /* Extended formats */
+   case FMT_RGB10A2UI:    return GFX_LFMT_R10G10B10A2_UINT;
+   case FMT_RG32UI:       return GFX_LFMT_R32_G32_UINT;
+   case FMT_RG16UI:       return GFX_LFMT_R16_G16_UINT;
+   case FMT_RG8UI:        return GFX_LFMT_R8_G8_UINT;
+   case FMT_R16UI:        return GFX_LFMT_R16_UINT;
+   case FMT_R8UI:         return GFX_LFMT_R8_UINT;
+   /* End of extended formats */
    default:
       unreachable();
       break;
@@ -255,10 +273,11 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
 }
 #endif
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
 static Dataflow *calculate_store_cond(const PrimSamplerInfo *image_info,
       Dataflow *sampler, Dataflow *x, Dataflow *y, Dataflow *z)
 {
-   Dataflow *width = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_WIDTH);
+   Dataflow *size = glsl_dataflow_construct_texture_size(sampler);
 
    assert(x != NULL);
 
@@ -268,10 +287,11 @@ static Dataflow *calculate_store_cond(const PrimSamplerInfo *image_info,
     *  if (z)
     *     expr = expr && (z < depth);
     */
+   Dataflow *width = glsl_dataflow_construct_reinterp(glsl_dataflow_construct_get_vec4_component(0, size, DF_INT), DF_UINT);
    Dataflow *expr = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, x, width);
    if (y)
    {
-      Dataflow *height = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_HEIGHT);
+      Dataflow *height = glsl_dataflow_construct_reinterp(glsl_dataflow_construct_get_vec4_component(1, size, DF_INT), DF_UINT);
       Dataflow *y_le = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, y, height);
       expr = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, expr, y_le);
    }
@@ -285,34 +305,30 @@ static Dataflow *calculate_store_cond(const PrimSamplerInfo *image_info,
          depth = glsl_dataflow_construct_const_uint(6);
       }
       else
-         depth = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_DEPTH);
+         depth = glsl_dataflow_construct_reinterp(glsl_dataflow_construct_get_vec4_component(2, size, DF_INT), DF_UINT);
       Dataflow *z_le = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, z, depth);
       expr = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, expr, z_le);
    }
 
    return expr;
 }
+#endif
 
-Dataflow *just_pack_uint_4x8(Dataflow *data[4])
+static Dataflow *pack_uint(Dataflow *data[4], unsigned n, unsigned m)
 {
+   /* Pack into 32 bits. The last channel may be smaller, but must be 1 bit left */
+   assert((n-1) * m < 32);
+
+   /* Since we know the channels are disjoint we can use 'add' instead of 'or' */
    Dataflow *res = data[0];
-   for (unsigned i = 1; i < 4; ++i)
-   {
-      //data[i] = data [i] * i << 8;
+   for (unsigned i = 1; i < n; ++i) {
+      //data[i] = data [i] << (m*i);
       data[i] = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, data[i],
-            glsl_dataflow_construct_const_uint(i * 8));
+            glsl_dataflow_construct_const_uint(i * m));
       //res = res | data[i]
-      res = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_OR, res, data[i]);
+      res = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, res, data[i]);
    }
    return res;
-}
-
-Dataflow *just_pack_uint_2x16(Dataflow *data[2])
-{
-   // data[0] | data[1] << 16
-   data[1] = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, data[1],
-               glsl_dataflow_construct_const_uint(16));
-   return glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_OR, data[1], data[0]);
 }
 
 static Dataflow *clamp(Dataflow *x, Dataflow *min_val, Dataflow *max_val)
@@ -323,57 +339,73 @@ static Dataflow *clamp(Dataflow *x, Dataflow *min_val, Dataflow *max_val)
              max_val);
 }
 
-static Dataflow *pack_unorm_4x8(Dataflow *data[4])
-{
-   for (unsigned i = 0; i < 4; ++i)
-   {
-      //data[i] = uint(uint(round(clamp(float_val, 0, +1) * 255)))
-      data[i] = clamp(data[i], glsl_dataflow_construct_const_float(0),
-            glsl_dataflow_construct_const_float(1));
-      data[i] = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, data[i],
-            glsl_dataflow_construct_const_float(255));
-      data[i] = glsl_dataflow_construct_unary_op(DATAFLOW_NEAREST, data[i]);
-      data[i] = glsl_dataflow_convert_type(data[i], DF_INT);
-      data[i] = glsl_dataflow_convert_type(data[i], DF_UINT);
-
-   }
-   return just_pack_uint_4x8(data);
+static Dataflow *clamp_unorm(Dataflow *d, unsigned m) {
+   //d = uint(int(round(clamp(float_val, 0, +1) * (1 << m - 1))))
+   d = clamp(d, glsl_dataflow_construct_const_float(0),
+         glsl_dataflow_construct_const_float(1));
+   d = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, d,
+         glsl_dataflow_construct_const_float((float)gfx_mask(m)));
+   d = glsl_dataflow_construct_unary_op(DATAFLOW_NEAREST, d);
+   d = glsl_dataflow_convert_type(d, DF_INT);
+   return glsl_dataflow_convert_type(d, DF_UINT);
 }
 
-static Dataflow *pack_snorm_4x8(Dataflow *data[4])
-{
-   for (unsigned i = 0; i < 4; ++i)
-   {
-      //data[i] = uint(uint(round(clamp(float_val, -1, +1) * 127))) & 0xFFu
-      data[i] = clamp(data[i], glsl_dataflow_construct_const_float(-1),
-            glsl_dataflow_construct_const_float(1));
-      data[i] = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, data[i],
-            glsl_dataflow_construct_const_float(127));
-      data[i] = glsl_dataflow_construct_unary_op(DATAFLOW_NEAREST, data[i]);
-      data[i] = glsl_dataflow_convert_type(data[i], DF_INT);
-      data[i] = glsl_dataflow_convert_type(data[i], DF_UINT);
+static Dataflow *clamp_snorm(Dataflow *d, unsigned m) {
+   //d = uint(uint(round(clamp(float_val, -1, +1) * 127))) & 0xFFu
+   d = clamp(d, glsl_dataflow_construct_const_float(-1),
+         glsl_dataflow_construct_const_float(1));
+   d = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, d,
+         glsl_dataflow_construct_const_float((float)gfx_mask(m-1)));
+   d = glsl_dataflow_construct_unary_op(DATAFLOW_NEAREST, d);
+   d = glsl_dataflow_convert_type(d, DF_INT);
+   d = glsl_dataflow_convert_type(d, DF_UINT);
 
-      data[i] = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, data[i],
-            glsl_dataflow_construct_const_uint(0xff));
-
-   }
-
-   return just_pack_uint_4x8(data);
+   return glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, d,
+               glsl_dataflow_construct_const_uint(gfx_mask(m)));
 }
 
+static Dataflow *clamp_int(Dataflow *d, unsigned m) {
+   // -1 * 2^(m-1) to 2^(m-1) - 1;
+   unsigned val = 1u << (m - 1);
+   d = clamp(d, glsl_dataflow_construct_const_int(-1 * val),
+                glsl_dataflow_construct_const_int(val - 1));
+   d = glsl_dataflow_construct_reinterp(d, DF_UINT);
+   return glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, d,
+               glsl_dataflow_construct_const_uint(gfx_mask(m)));
+}
 
-static Dataflow *construct_dataflow_pack_data(GFX_LFMT_T fmt, Dataflow *data[4]) {
-   Dataflow *v[4] = { NULL, };
+static Dataflow *clamp_uint(Dataflow *d, unsigned m) {
+   // 0 to 2^(m)-1;
+   return glsl_dataflow_construct_binary_op(DATAFLOW_MIN, d,
+            glsl_dataflow_construct_const_uint(gfx_mask(m)));
+}
 
-   /* we always have a channel red */
-   unsigned channel_size = gfx_lfmt_red_bits(fmt);
+static Dataflow *pack(Dataflow *data[4], GFX_LFMT_TYPE_T f, unsigned n, unsigned m)
+{
+   for (unsigned i = 0; i < n; ++i) {
+      switch (f) {
+         case GFX_LFMT_TYPE_INT:   data[i] = clamp_int  (data[i], m); break;
+         case GFX_LFMT_TYPE_UINT:  data[i] = clamp_uint (data[i], m); break;
+         case GFX_LFMT_TYPE_UNORM: data[i] = clamp_unorm(data[i], m); break;
+         case GFX_LFMT_TYPE_SNORM: data[i] = clamp_snorm(data[i], m); break;
+         default: unreachable();
+      }
+   }
+
+   return pack_uint(data, n, m);
+}
+
+static Dataflow *pack_generic(FormatQualifier f, Dataflow *data[4]) {
+   GFX_LFMT_T fmt = fmt_qualifier_to_fmt(f);
+
+   /* we always have a red channel */
+   unsigned        channel_size = gfx_lfmt_red_bits(fmt);
+   unsigned        n_channels   = gfx_lfmt_num_slots_from_channels(fmt);
+   GFX_LFMT_TYPE_T fmt_type     = gfx_lfmt_get_type(&fmt);
    assert(channel_size != 0);
-
-   unsigned n_channels = gfx_lfmt_num_slots_from_channels(fmt);
-   assert(n_channels == 1 || n_channels == 4);
-
    assert(gfx_lfmt_num_slots_from_type(fmt) == 1);
-   GFX_LFMT_TYPE_T fmt_type = fmt & GFX_LFMT_TYPE_MASK;
+
+   Dataflow *v[4] = { NULL, };
 
    if (channel_size == 32)
    {
@@ -382,71 +414,51 @@ static Dataflow *construct_dataflow_pack_data(GFX_LFMT_T fmt, Dataflow *data[4])
    }
    else
    {
-      switch(fmt_type)
-      {
-      case GFX_LFMT_TYPE_INT:
-      case GFX_LFMT_TYPE_UINT:
-         {
-            assert(n_channels == 4);
-            if (fmt_type == GFX_LFMT_TYPE_INT)
-            {
-               // -1 * 2^(channel_size-1) to 2^(channel_size-1) - 1;
-               unsigned val = 1u << (channel_size - 1);
-               for (unsigned i = 0; i < 4; ++i)
-               {
-                  data[i] = clamp(data[i],
-                        glsl_dataflow_construct_const_int(-1 * val),
-                        glsl_dataflow_construct_const_int(val - 1));
-                  unsigned mask = (1u << channel_size) - 1;
-                  data[i] = glsl_dataflow_construct_reinterp(data[i], DF_UINT);
-                  data[i] = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, data[i],
-                                glsl_dataflow_construct_const_uint(mask));
-               }
-            }
-            else
-            {
-               // 0 to 2^(channel_size)-1;
-               unsigned max_val = (1 << channel_size) - 1 ;
-               for (unsigned i = 0; i < 4; ++i)
-                  data[i] = glsl_dataflow_construct_binary_op(DATAFLOW_MIN, data[i],
-                       glsl_dataflow_construct_const_uint(max_val));
-            }
-
-            switch (channel_size)
-            {
-            case 16:
-               v[0] = just_pack_uint_2x16(data);
-               v[1] = just_pack_uint_2x16(&data[2]);
-               break;
-            case 8:
-               v[0] = just_pack_uint_4x8(data);
-               break;
-            default: unreachable();
-            }
+      if (fmt_type == GFX_LFMT_TYPE_FLOAT) {
+         assert(channel_size == 16);
+         if (n_channels == 1)
+            v[0] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[0], glsl_dataflow_construct_const_value(DF_FLOAT, 0));
+         else {
+            v[0] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[0], data[1]);
+            if (n_channels == 4)
+               v[1] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[2], data[3]);
          }
-         break;
-      case GFX_LFMT_TYPE_FLOAT:
-         assert (channel_size == 16);
-         assert(n_channels == 4);
-         v[0] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[0], data[1]);
-         v[1] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[2], data[3]);
-         break;
-      case GFX_LFMT_TYPE_UNORM:
-         assert(channel_size == 8);
-         assert(n_channels == 4);
-         v[0] = pack_unorm_4x8(data);
-         break;
-      case GFX_LFMT_TYPE_SNORM:
-         assert(channel_size == 8);
-         assert(n_channels == 4);
-         v[0] = pack_snorm_4x8(data);
-         break;
-      default:
-         unreachable();
+      } else {
+         if (channel_size * n_channels <= 32)
+            v[0] = pack(data, fmt_type, n_channels, channel_size);
+         else {
+            assert(n_channels == 4 && channel_size == 16);
+            v[0] = pack( data,    fmt_type, 2, 16);
+            v[1] = pack(&data[2], fmt_type, 2, 16);
+         }
       }
    }
 
    return glsl_dataflow_construct_vec4(v[0], v[1], v[2], v[3]);
+}
+
+static Dataflow *clamp_ufloat(Dataflow *d, unsigned m) {
+   Dataflow *zero = glsl_dataflow_construct_const_float(0);
+   d = glsl_dataflow_construct_binary_op(DATAFLOW_MAX,   d, zero);
+   d = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, d, glsl_dataflow_construct_const_float(0));
+   d = glsl_dataflow_construct_binary_op(DATAFLOW_SHR,   d, glsl_dataflow_construct_const_uint(15 - m));
+   return d;
+}
+
+Dataflow *glsl_dataflow_image_pack_data(FormatQualifier f, Dataflow *data[4]) {
+   if (f == FMT_R11G11B10F) {
+      for (int i=0; i<3; i++)
+         data[i] = clamp_ufloat(data[i], (i == 2 ? 10 : 11));
+
+      return glsl_dataflow_construct_vec4(pack_uint(data, 3, 11), NULL, NULL, NULL);
+   } else if (f == FMT_RGB10A2 || f == FMT_RGB10A2UI) {
+      for (int i=0; i<4; i++) {
+         if (f == FMT_RGB10A2) data[i] = clamp_unorm(data[i], i == 3 ? 2 : 10);
+         else                  data[i] = clamp_uint (data[i], i == 3 ? 2 : 10);
+      }
+      return glsl_dataflow_construct_vec4(pack_uint(data, 4, 10), NULL, NULL, NULL);
+   } else
+      return pack_generic(f, data);
 }
 
 static void get_x_y_z_elem_no(const PrimSamplerInfo *image_info, Dataflow *coord[3],
@@ -484,6 +496,7 @@ static DataflowFlavour df_atomic_from_intrinsic(glsl_intrinsic_index_t f) {
    }
 }
 
+#if !V3D_HAS_LARGE_1D_TEXTURE
 static bool is_imagebuffer(const PrimSamplerInfo *sampler)
 {
    return (sampler->type == PRIM_IMAGEBUFFER || sampler->type == PRIM_UIMAGEBUFFER ||
@@ -507,6 +520,7 @@ void glsl_imgbuffer_translate_coord(Dataflow *sampler, Dataflow *coord,
    *elem_no = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, coord, log2_arr_elem_w);
    *x = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, coord, arr_elem_w_minus_1);
 }
+#endif
 
 void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)
 {
@@ -532,11 +546,10 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
    get_x_y_z_elem_no(image_info, coord, &x, &y, &z, & elem_no);
 
    assert(sampler->u.load.fmt_valid);
-   GFX_LFMT_T fmt = fmt_qualifier_to_fmt(sampler->u.load.fmt);
 
    Dataflow *values;
    if (expr->u.intrinsic.flavour == INTRINSIC_IMAGE_STORE)
-      values = construct_dataflow_pack_data(fmt, data);
+      values = glsl_dataflow_image_pack_data(sampler->u.load.fmt, data);
    else
       values = glsl_dataflow_construct_vec4(data[0], cmp, NULL, NULL);
 
@@ -544,6 +557,7 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
    Dataflow *addr;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
+# if !V3D_HAS_LARGE_1D_TEXTURE
    if (is_imagebuffer(image_info))
    {
       assert(y == NULL && z == NULL && elem_no == NULL);
@@ -553,6 +567,7 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
       glsl_imgbuffer_translate_coord(sampler, coord, &x, &elem_no);
    }
    else
+# endif
    {
       /* We use border wrap mode, which will cause the TMU to skip writes which
       * are outside of the image. So no need for an explicit condition. */
@@ -562,6 +577,7 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
 #else
    //if coordinates are outside image size --> don't do any stores;
    cond = calculate_store_cond(image_info, sampler, x, y, z ? z : elem_no);
+   GFX_LFMT_T fmt = fmt_qualifier_to_fmt(sampler->u.load.fmt);
    if (is_imagebuffer(image_info))
       addr = construct_dataflow_img_buffer_addr(sampler, fmt, x);
    else
@@ -575,19 +591,4 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
    ctx->memory_head = s;
 
    if (expr->u.intrinsic.flavour != INTRINSIC_IMAGE_STORE) scalar_values[0] = s;
-}
-
-void glsl_calculate_dataflow_image_size(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)
-{
-   Expr *expr_sampler = expr->u.intrinsic.args->first->expr;
-
-   Dataflow *sampler;
-   glsl_expr_calculate_dataflow(ctx, &sampler, expr_sampler);
-
-   const static ImageInfoParam p[] = { IMAGE_INFO_LX_WIDTH, IMAGE_INFO_LX_HEIGHT, IMAGE_INFO_LX_DEPTH };
-   assert(expr->type->scalar_count >= 1);
-   for (unsigned i=0; i<expr->type->scalar_count; i++) {
-      scalar_values[i] = glsl_dataflow_construct_image_info_param(sampler, p[i]);
-      scalar_values[i] = glsl_dataflow_construct_reinterp(scalar_values[i], DF_INT);
-   }
 }

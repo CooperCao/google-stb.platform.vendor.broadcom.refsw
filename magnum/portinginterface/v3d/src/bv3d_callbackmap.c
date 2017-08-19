@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2012 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "bv3d.h"
 #include "bv3d_callbackmap_priv.h"
 #include "bv3d_worker_priv.h"
@@ -107,7 +106,7 @@ BERR_Code BV3D_P_CallbackMapInsert(
    BV3D_CallbackMapHandle hCallbackMap,
    uint32_t               uiClientId,
    uint32_t               uiClientPID,
-   void                   *pContext,  
+   void                   *pContext,
    void                   (*pCallback)(uint32_t, void *)
 )
 {
@@ -136,7 +135,7 @@ BERR_Code BV3D_P_CallbackMapInsert(
 
    return BERR_SUCCESS;
 duplicate:
-   BKNI_Printf("%s : FATAL : Duplicate client id inserted to map\n", __FUNCTION__);
+   BKNI_Printf("%s : FATAL : Duplicate client id inserted to map\n", BSTD_FUNCTION);
    BKNI_Free(psCallbackMap);
    return BERR_INVALID_PARAMETER;
 }

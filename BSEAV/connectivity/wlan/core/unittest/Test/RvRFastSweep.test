@@ -1,0 +1,1046 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script for a fast sweep RvR using byte count
+# as a reult indicator.  Also supports multicast RvR.
+#
+# Written by: Robert J. McMahon February 2011
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APConfigureSecurity
+package require UTF::ControlChart
+package require UTF::MemChart
+package require UTF::Test::EMFLearn
+package require UTF::Test::BridgeCheck
+package require UTF::Test::ConfigBridge
+package require UTF::Test::ConfigEMF
+
+#
+#  Test the RvR with a sweep keeping the stream alive
+#
+UTF::Test RvRFastSweep {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP under test"}
+	{sta.arg "" "STA(s) under test"}
+	{email.arg "" "Email Address"}
+	{bin.arg "" "STA image"}
+	{rtrbin.arg "" "Router image"}
+	{title.arg "" "Title"}
+	{branch.arg "" "Branch override"}
+	{rtrbranch.arg "" "Router branch override"}
+	{brand.arg "" "Brand override"}
+	{apbrand.arg "" "Router brand override"}
+	{wetbrand.arg "" "Brand override"}
+ 	{date.arg "" "Image date"}
+	{rtrdate.arg "" "Desired Router build date, format: yyyy.mm.dd"}
+	{stadate.arg "" "Desired STA build date, format: yyyy.mm.dd"}
+	{rtrtag.arg "" "Router release tag"}
+	{statag.arg "" "STA release tag"}
+	{trx.arg "" "Router trx"}
+	{security.arg "open" "Default security"}
+	{chanspec.arg "157l 36" "Chanspec list to test"}
+	{attngrp.arg "" "Attenuator group to use for test"}
+	{stats.arg "bytes lost" "Stream stats to write to log"}
+	{tos.arg "0x0 0x80" "tos"}
+	{loglevel.arg "DISPLAY" "logging level"}
+	{history.arg 30 "History size for control charts"}
+	{baseattn.arg "" "base attenuation"}
+	{key.arg "" "cc key"}
+	{roamtrigger.arg "-100" "Roam trigger (default set to -100 for no roaming)"}
+	{w.arg "2M" "tcp window size"}
+	{scalefactor.arg "1" "scale factor for the hold times per step"}
+	{sweeps.arg "5" "number of sweeps per each run"}
+	{stepprofile.arg "30" "stepping profile to use"}
+	{udprate.arg "400M" "UDP offered rate"}
+	{pktsize.arg "1460" "UDP packet size"}
+	{w.arg "4M" "TCP window size"}
+	{streams.arg "" "Use these passed in streams for test"}
+	{graphtype.arg "png" "GNU Plot graph type"}
+	{emf "Enable EMF (aka reliable multicast)"}
+	{latency "Enable latency sampling"}
+	{nounicast "Don't don any unicast testing"}
+	{noload "Don't load images"}
+	{noapload "Don't load STA images"}
+	{nounload "Don't unload STA driver after test"}
+	{nostaload "Don't load STA images"}
+	{norestore "Don't reset to defaults"}
+	{noframeburst "" "Disable frameburst"}
+	{nophycal "" "Disable phycal watchdog"}
+	{scansuppress "Scan suppress setting during test run"}
+	{noudp       "Don't run udp sweep"}
+	{notcp       "Don't run tcp sweep"}
+	{nolinkcheck "No linkcheck poll between sweeps"}
+	{downonly   "AP->STA traffic only"}
+	{uponly   "STA->AP traffic only"}
+	{nocache "Don't update performance cache"}
+	{nomemleak "Don't do rmmod/memleak"}
+	{noproxysta "Don't use proxysta mode"}
+	{debugging "Working in a debugging mode"}
+	{txbeamforming.arg "" "Enable/Disable tx beam forming"}
+	{txpwr.arg "default" "output power"}
+	{spatial.arg "default" "spatial policy"}
+	{nss.arg "1" "num spatial streams"}
+	{pspretend "Enable pspretend"}
+	{ratesafe "Enable ratesel_safe"}
+    }
+
+    proc doonesweep {attndev steps base scalefactor} {
+	set attn_func ""
+	set absvalue $base
+	set abstime 0
+	UTF::Message INFO "" "doonesweep: $steps"
+	foreach step $steps {
+	    set absvalue [expr {[lindex $step 0] + $absvalue}]
+	    lappend attn_func [list $abstime $absvalue]
+	    set stepsize [lindex $step 0]
+	    set now [clock clicks -milliseconds]
+	    if {[info exists ::AP]} {
+		# set ssh_save [$::AP cget -ssh]
+		# $::AP configure -ssh $UTF::unittest/apshell
+		$::AP wl pktq_stats a:$::hwaddr
+		# $::AP configure -ssh $ssh_save
+	    }
+	    $attndev incr $stepsize
+	    set sleeptime [expr {[lindex $step 1] * $scalefactor}]
+	    UTF::Sleep $sleeptime "attn step $stepsize"
+	    set holdtime [expr {([clock clicks -milliseconds] - $now) / 1000.0}]
+	    set abstime [expr {$abstime + $holdtime}]
+	    lappend attn_func [list $abstime  $absvalue]
+	}
+	return $attn_func
+    }
+    
+    proc getstepping {stepselect} {
+	if {[info exists ::UTF::StepProfile($stepselect)]} {
+	    set profile $::UTF::StepProfile($stepselect)
+	} elseif {[string is integer $stepselect]} {
+	    set down [list {0 1}]
+	    set up {}
+	    for {set ix 1} {$ix < $stepselect} {incr ix} {
+		lappend down {1 1}
+		lappend up {-1 1}
+	    }
+	    set profile [concat $down $up]
+	}
+	if {![info exists profile]} {
+	    set errmsg "No stepping profile per $stepselect"
+	    UTF::Message ERROR "" $errmsg
+	    error $errmsg
+	}
+	if {![llength $profile]} {
+	    set errmsg "Null stepping profile"
+	    UTF::Message ERROR "" $errmsg
+	    error $errmsg
+	}
+	foreach step $profile {
+	    if {[llength $step] != 2} {
+		set errmsg "Invalid step of $step in $profile"
+		UTF::Message ERROR "" $errmsg
+		error $errmsg
+	    }
+	}
+	return $profile
+    }
+    
+    proc dosweeps {stream graphtitle stepprofile scalefactor} {
+	upvar {} {}
+	set timeresults ""
+	set byteresults ""
+	set minsamples ""
+	set titlestring $graphtitle
+	set attnbase [expr {int([lindex [$(attngrp) attn?] 0])}]
+	set steps [getstepping $stepprofile]
+	set DUTS [concat [$stream cget -tx] [lrange [$stream cget -rx] 0 end]]
+	for {set sweepcnt 0} {$sweepcnt < $(sweeps)} {incr sweepcnt} {
+	    if {[$stream cget -multicast]} {
+		[$stream cget -tx] igmp_querier send
+		set linktext "MCAST"
+	    } else {
+		set linktext "[$stream cget -protocol]"
+	    }
+	    foreach STA $DUTS {
+		if {[regexp {internal} [$STA cget -brand]]} {
+		    if {[catch {$STA wl ampdu_clear_dump} err]} {
+			UTF::Message ERROR "" $err
+		    }
+		}
+	    }
+	    UTF::Message INFO "" "Sweep profile $stepprofile = $steps"
+	    #	    $stream samplers -enable
+	    $stream start
+	    $stream stats -clear
+	    set starttime [clock clicks -milliseconds]
+	    if {[catch {doonesweep $(attngrp) $steps $(baseattn) $(scalefactor)} attn_func]} {
+		UTF::Message ERROR "" "$stream doonesweep error: $attn_func"
+	    }
+	    set runtime [expr {[clock clicks -milliseconds] - $starttime}]
+	    $stream samplers -disable
+	    $stream sniff off
+	    set bytes($sweepcnt) [$stream stats -bytes]
+	    foreach STA $DUTS {
+		if {[regexp {internal} [$STA cget -brand]]} {
+		    if {[catch {$STA wl dump ampdu} err]} {
+			UTF::Message ERROR "" $err
+		    }
+		}
+	    }
+	    if {$(txbeamforming) ne ""} {
+		$(ap) wl -u dump txbf
+		$STA wl -u dump rssi
+		$(ap) wl -u curpower
+		$(ap) wl -u spatial_policy
+		$(ap) wl -u country
+	    }
+	    if {[$stream cget -protocol] eq "UDP"} {
+		foreach stat $(stats) {
+		    UTF::Message INFO "[namespace tail $stream]-[$stream cget -receivesta]]" "$stat: [$stream stats -$stat]"
+		}
+	    } else {
+		foreach stat "bytes txbytes" {
+		    UTF::Message INFO "[namespace tail $stream]-[$stream cget -receivesta]]" "$stat: [$stream stats -$stat]"
+		}
+	    }
+	    set numsamples [llength $bytes($sweepcnt)]
+	    if {$minsamples eq "" || $numsamples < $minsamples} {
+		set minsamples $numsamples
+	    }
+	    UTF::Message STATS "" "NoSamples:$numsamples  Bytes: $bytes($sweepcnt)"
+	    # Create the graphs
+	    set tput [UTF::streamgraph %AUTO% -streams $stream -outputtype $(graphtype) -stat rate -title $graphtitle -reporttext "$linktext" -showmax 1 -yticsynch 1 -graphsize "1024,768"]
+	    set xferbytes [UTF::streamgraph %AUTO% -streams $stream -outputtype "png" -stat bytes -title $graphtitle -yticsynch 1 -graphsize "1024,768"]
+	    set rategraph [$tput plot $attn_func]
+	    set bytegraph [$xferbytes plot $attn_func]
+	    set tputresults "$rategraph [string range $bytegraph 5 end]"
+	    if {[$stream cget -protocol] eq "UDP"} {
+		set lost [UTF::streamgraph %AUTO% -streams $stream -outputtype "png" -stat lost -title $graphtitle -yticsynch 1 -graphsize "1024,768" -with "impulses"]
+		set lostgraph [$lost plot $attn_func]
+		append tputresults " [string range $lostgraph 5 end]"
+	    }
+	    $tput destroy; $xferbytes destroy;
+	    lappend timeresults $runtime
+	    UTF::Try "Thruput Graph" {
+		return $tputresults
+	    }
+	    if {[info exists ::UTF::__promotions]} {
+		lappend ::UTF::__promotions $rategraph
+	    }
+	    $(attngrp) attn $attnbase
+	    UTF::Message INFO $(attngrp) $attnbase
+	    if {!$(nolinkcheck)} {
+		set kx 30
+		while {1} {
+		    if {$kx < 0} {
+			error "Aborting: linkcheck fail after 30s poll"
+		    }
+		    if {![catch {$stream linkcheck -now}]} {
+			break
+		    }
+		    UTF::Sleep 1.0
+		    incr kx -1
+		}
+	    }
+	    UTF::Sleep 10.0 "PostRunWait"
+	}
+	if {[$stream cget -multicast]} {
+	    for {set ix 0} {$ix < $(sweeps)} {incr ix} {
+		foreach rxsamples $bytes($ix) {
+		    set rxsta [lindex $rxsamples 0]
+		    set rxdata [lindex $rxsamples 1]
+		    set sum 0.0
+		    foreach data $rxdata {
+			set sum [expr {$sum + $data}]
+		    }
+		    UTF::Message STATS "" "$rxsta bytes Xfered: $sum"
+		    lappend staresults($rxsta) $sum
+		}
+	    }
+	    set tmp ""
+	    foreach rxsta [array names staresults] {
+		lappend tmp [list $rxsta $staresults($rxsta)]
+	    }
+	    return [list $tmp $timeresults]
+	} else {
+	    UTF::Message STATS "" "Samples for xfer: $minsamples"
+	    for {set ix 0} {$ix < $(sweeps)} {incr ix} {
+		set sum 0.0
+		set bytes($ix) [lrange $bytes($ix) 0 $minsamples]
+		foreach sample $bytes($ix) {
+		    set sum [expr {$sum + $sample}]
+		}
+		UTF::Message STATS "" "Bytes Xfered: $sum"
+		lappend byteresults $sum
+	    }
+	    return [list $byteresults $timeresults]
+	}
+    }
+    
+    proc noise {{state start} {stream ucast2}} {
+	set entertime [clock clicks -milliseconds]
+	$stream $state
+	if {$state eq "stop"} {
+	    UTF::Sleep 1.5 "Noise-None"
+	} else {
+	    UTF::Sleep 1.0 "Noise-Insert"
+	}
+	UTF::Message INFO+green "" "Noise window closed"
+	$stream stop
+	set exittime [clock clicks -milliseconds]
+	set noisetime [expr {($exittime - $entertime) / 1000.0}]
+	UTF::Sleep [expr {2.0 - $noisetime}]
+    }
+    if {$(debugging)} {
+	append UTF::SummaryDir "-debugging"
+    }
+    
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+	set ::UTF::MemChart::readonly 1
+    }
+    
+    # Override default tags, stat initializing the key for control charts
+    if {$(debugging)} {
+	set cckey_common "DEBUG"
+    } else {
+	set cckey_common {}
+    }
+    
+    lappend cckey_common $(ap)
+    
+    #
+    # Figure out what's being tested by parsing the sta list
+    #
+    # Note: $(sta) can contain a list inside the list, i.e.
+    # for multicast testing it would look like
+    # {43331Lx5 {iptv_br1 iptv_br2}}
+    set WETS ""
+    set STAS ""
+    set MCASTS ""
+    foreach x $(sta) {
+	if {[llength $x] > 1} {
+	    lappend MCASTS $x
+	}
+	foreach STA $x {
+	    if {[$STA hostis Router] && [lsearch $WETS $STA] == -1} {
+		lappend WETS $STA
+	    } elseif {![$STA hostis Router] && [lsearch $STAS $STA] == -1} {
+		lappend STAS $STA
+	    }
+	}
+	if {![$(ap) hostis Router]} {
+	    lappend STAS $(ap)
+	}
+    }
+    if {[$(ap) hostis Router]} {
+	set Routers [concat $(ap) $WETS]
+    } else {
+	set Routers $WETS
+    }
+    if {$(scalefactor) ne 1} {
+	lappend cckey_common $(scalefactor)
+    }
+    set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+    set stadate $date
+    set rtrdate $date
+    
+    if {$(trx) ne ""} {
+	foreach Router $Routers {
+	    $Router configure -image $(trx) -date {}
+	    lappend cckey_common "${Router}=$(trx)"
+	}
+    } elseif {$(rtrtag) ne ""} {
+	foreach Router $Routers {
+	    $Router configure -tag $(rtrtag) -date {}
+	    lappend cckey_common "${Router}=$(rtrtag)"
+	}
+    } else {
+	foreach Router $Routers {
+	    lappend cckey_common "${Router}=[$Router cget -tag]"
+	}
+    }
+    # In the case of no STAS, use brand
+    # to set both AP and bridges
+    if {![llength $STAS] && $(brand) ne ""} {
+	foreach Router $Routers {
+	    $Router configure -brand $(brand)
+	}
+    }
+    if {$(apbrand) eq ""} {
+	lappend cckey_common [$(ap) cget -brand]
+    } else {
+	$(ap) configure -brand $(apbrand)
+	lappend cckey_common $(apbrand)
+    }
+    foreach wet $WETS {
+	if {$(wetbrand) ne ""} {
+	    $wet configure -brand $(wetbrand)
+	} elseif {$(brand) ne ""} {
+	    $wet configure -brand $(brand)
+	}
+	lappend cckey_common "${wet}=[$wet cget -brand]"
+    }
+    if {$(rtrdate) eq {} && $(stadate) eq {} && $(date) ne {} } {
+	set rtrdate $(date)
+	set stadate $(date)
+	foreach dut [concat $(ap) $WETS] {
+	    $dut configure -date $(date)
+	}
+    } else {
+	if {$(rtrdate) ne ""} {
+	    set rtrdate $(rtrdate)
+	    foreach Router $Routers {
+		$Router configure -date $(rtrdate)
+	    }
+	}
+	if {$(stadate) ne ""} {
+	    set stadate $(stadate)
+	    foreach STA $STAS {
+		$STA configure -date $(stadate)
+	    }
+	}
+    }
+    foreach STA $STAS {
+	if {$(bin) ne ""} {
+	    $STA configure -image $(bin) -date {}
+	} elseif {$(statag) eq ""} {
+	    lappend cckey_common "${STA}=[$STA cget -tag]"
+	} else {
+	    $STA configure -tag $(statag)
+	    lappend cckey_common "${STA}=$(statag)"
+	}
+    }
+    #
+    # Attenuator Group selection priority list
+    # 1. Script passed in the value
+    # 2. If unicast and STA has attngrp set, use it
+    # 3. Use ap attngrp setting
+    #
+    if {$(attngrp) ne {}} {
+	set attndev $(attngrp)
+    } elseif {[llength $STAS] == 1 && [$STA cget -attngrp] ne ""} {
+	set attndev [$STA cget -attngrp]
+    } else {
+	set attndev [$(ap) cget -attngrp]
+    }
+    if {$attndev eq {}} {
+	set errmsg "Attenuator group cannot be null"
+	UTF::Message ERROR "" $errmsg
+	error $errmsg
+    }
+    if {[$attndev info type] ne "::UTF::AttnGroup"} {
+	set msg "$(ap) needs to have -attngrp type of ::UTF::AttnGroup"
+	UTF::Message ERROR "" $msg
+	error $msg
+    }
+    set (attngrp) $attndev
+    
+    UTF::stream logginglevel $(loglevel)
+    
+    set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+    
+    if {$(title) eq "" && $(sta) ne ""} {
+	set sta [lindex $(sta) 0]
+	if {[$sta hostis WinDHD Cygwin]} {
+	    set (title) [$sta host whatami]
+	} elseif {[$sta hostis LMAC DHD]} {
+	    set (title) "Linux Dongle"
+	} else {
+	    set (title) [$sta hostis]
+	}
+	if {[regexp {(\d+sd)} $(ap) - c]} {
+	    append (title) " with $c AP"
+	}
+    }
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $STAS $Routers]]
+    
+    set TITLE "UTF RvRFastSweep($(stepprofile)) $(title) ($build)"
+    if {$(txbeamforming) ne ""} {
+	set TITLE "UTF RvRFastSweep($(stepprofile)) $(title) ($build) TXBF=$(txbeamforming) TXPWR=$(txpwr) SP=$(spatial) nss=$(nss)"
+    } else {
+	set TITLE "UTF RvRFastSweep($(stepprofile)) $(title) ($build)"
+    }
+    UTF::Message INFO "" $TITLE
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+    if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+	    error "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+    }
+    unset build
+    
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	if {$(streams) eq ""} {
+	    #
+	    # Instantiate the streams to be used for testing
+	    #
+	    set STREAMS ""
+	    set ENDS $(sta)
+	    foreach STA $ENDS {
+		foreach TOS $(tos) {
+		    if {!$(uponly)} {
+			if {!$(notcp) && [llength $STA] == 1} {
+			    set s [UTF::stream %AUTO% -tx $(ap) -rx $STA -protocol tcp -advancedstats 0 -w $(w)]
+			    lappend STREAMS $s
+			}
+			if {!$(noudp)} {
+			    #		    set txrate [expr {int([UTF::kexpand $(udprate)] / [llength $STA])}]
+			    set txrate $(udprate)
+			    set s [UTF::stream %AUTO% -tx $(ap) -rx $STA -pktsize $(pktsize) -protocol udp -rate $txrate -advancedstats 0 -tos $TOS]
+			    lappend STREAMS $s
+			}
+			if {$(emf) && [llength $STA] == 1} {
+			    set s [UTF::stream %AUTO% -tx $(ap) -rx $STA -pktsize $(pktsize) -protocol udp -rate $(udprate) -advancedstats 0 -tos $TOS -multicast 1]
+			    lappend STREAMS $s
+			}
+		    }
+		    if {!$(downonly)} {
+			if {!$(notcp) && [llength $STA] == 1} {
+			    set s [UTF::stream %AUTO% -rx $(ap) -tx $STA -protocol tcp -advancedstats 0]
+			    lappend STREAMS $s
+			}
+			if {!$(noudp) && [llength $STA] == 1} {
+			    if {$(latency)} {
+				set lflag 1
+			    } else {
+				set lflag 0
+			    }
+			    set s [UTF::stream %AUTO% -rx $(ap) -tx $STA -pktsize $(pktsize) -protocol udp -rate $(udprate) -advancedstats 0 -latency $lflag -tos $TOS -multicast 0]
+			    lappend STREAMS $s
+			}
+		    }
+		}
+	    }
+	} else {
+	    set STREAMS $(streams)
+	}
+	UTF::Try "Test streams" {
+	    foreach STREAM $STREAMS {
+		$STREAM id
+	    }
+	}
+	if {[info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		catch {unset ::ramseyreboot}
+		eval $::UTF::SetupTestBed
+	    }
+	}
+	UTF::Try  "Setup attenuator" {
+	    if {$(baseattn) eq ""} {
+		set (baseattn) [expr {int([lindex [$(attngrp) attn?] 0])}]
+	    } else {
+		eval [concat $(attngrp) attn $(baseattn)]
+		catch {$(attngrp) attn?}
+	    }
+	    UTF::Message INFO $(attngrp) $(baseattn)
+	    lappend cckey_common [concat $(attngrp) $(baseattn)]
+	    return "$(attngrp) $(baseattn)"
+	}
+	if {!$(noload)} {
+	    if {$(noapload)} {
+		set devices $WETS
+	    } else {
+		set devices $Routers
+	    }
+	    foreach Router $devices {
+		UTF::Try "[$Router cget -name]: Find Router Image" {
+		    set date [$Router cget -date]
+		    if {$date eq ""} {
+			set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+		    }
+		    UTF::CheckImage $Router $date unknown
+		}
+		UTF::Try "[$Router cget -name]: Load Image" {
+		    $Router load
+		}
+		UTF::Try "[$Router cget -name]: Restore Defaults" {
+		    $Router restore_defaults
+		    set what [$Router whatami]
+		    $Router dbrecord DUT
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $Router $ret
+		    }
+		    set what
+		}
+	    }
+	} elseif {!$(norestore)} {
+	    foreach Router $Routers {
+		UTF::Try "[$Router cget -name]: Find Router Image" {
+		    UTF::CheckImage $Router $rtrdate unknown
+		}
+		UTF::Try "[$Router cget -name]: Restore Defaults" {
+		    $Router restore_defaults
+		    set what [$Router whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $Router $ret
+		    }
+		    set what
+		}
+	    }
+	}
+	# Load STA image(s)
+	if {!$(noload) && !$(nostaload)} {
+	    foreach STA $STAS {
+		if {$(branch) eq "auto"} {
+		    set branch [$STA branchname]
+		} else {
+		    set branch $(branch)
+		}
+		lappend cckey_common $(branch)
+		UTF::Try "[$STA cget -name]: Find STA Image" {
+		    set date [$STA cget -date]
+		    if {$date eq ""} {
+			set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+		    }
+		    UTF::CheckImage $STA $date unknown
+		}
+		UTF::Try "[$STA cget -name]: load" {
+		    $STA load
+		}
+		UTF::Try "[$STA cget -name]: defaults" {
+		    $STA services stop
+		    catch {$STA wl msglevel +error +assoc}
+		    if {![$STA cget -nomimo_bw_cap]} {
+			catch {$STA wl down}
+			# Enable 40 in 2.4, if available.
+			# Doesn't work for LMAC since LMAC is never "down"
+			$STA wl -u mimo_bw_cap 1
+			$STA wl up
+			UTF::Sleep 1
+		    }
+		    $STA wl ver
+		    set what [$STA whatami]
+		    $STA dbrecord DUT
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $STA $ret
+		    }
+		    set what
+		}
+	    }
+	}
+	# rjm fix - should use router object in some places vs sta
+	UTF::Try "Test defaults" {
+	    # Use SoftAP for case of STA/STA
+	    if {![$(ap) hostis Router]} {
+		$(ap) configure -ap 1
+		$(ap) configure -ipaddr 192.168.1.60
+		$(ap) configure -ssid "SoftAP"
+		if {![$(sta) hostis Router]} {
+		    $(sta) configure -ipaddr 192.168.1.61
+		    $(sta) configure -wlinitcmds "ifconfig [$(sta) cget -device] 192.168.1.61"
+		}
+		$(ap) configure -wlinitcmds "ifconfig [$(ap) cget -device] 192.168.1.60"
+		set APMSG "(soft)AP"
+	    } else {
+		if {[$(ap) nvram get wl_mode] ne "ap"} {
+		    append testnvram($dut) "wl_mode=ap "
+		}
+	    }
+	    foreach STA $STAS {
+		catch {$STA tcptune $(w)}
+	    }
+	    # Set SSID to SoftAP is using a SoftAP
+	    if {![$(ap) hostis Router]} {
+		foreach WET $WETS {
+		    append testnvram($WET) "[$WET wlname]_ssid=SoftAP "
+		}
+	    }
+	}
+	foreach CHAN $(chanspec) {
+	    UTF::Try "Chanspec=$CHAN" {
+		lappend cckey_common "$CHAN"
+		UTF::Test::APChanspec $(ap) $CHAN
+		foreach WET $WETS {
+		    UTF::Try "[$WET cget -name]: WET $CHAN" {
+			lappend cckey_common "$CHAN"
+			UTF::Test::APChanspec $WET $CHAN -loose
+		    }
+		}
+	    }
+	    UTF::Try "Security: $(security)" {
+		lappend cckey_common "$(security)"
+		UTF::Test::APConfigureSecurity $(ap) -security $(security)
+	    }
+	    if {[llength $WETS]} {
+		UTF::Test::ConfigBridge -ap $(ap) -br $WETS -security $(security) -chanspec $CHAN -linkcheck
+	    }
+	    if {$(emf)} {
+		UTF::Test::ConfigEMF $(ap) $WETS
+	    }
+	    if {$(noframeburst)} {
+		set fb 0
+	    } else {
+		set fb 1
+	    }
+	    if {$(scansuppress)} {
+		set ss 1
+	    } else {
+		set ss 0
+	    }
+	    if {$(roamtrigger) eq ""} {
+		set rt "default"
+	    } else {
+		set rt $(roamtrigger)
+	    }
+	    set cckey_common [concat $cckey_common fb=$fb ss=$ss rt=$rt]
+	    UTF::Try "Setup FB=$fb Roam=$rt SS=$ss" {
+		set failmsg ""
+		if {[catch {$(ap) wl frameburst $fb} err]} {
+		    UTF::Message ERROR $(ap) "wl frameburst: $err"
+		    lappend failmsg "FB$(ap)=$err"
+		}
+		foreach STA [concat $WETS $STAS] {
+		    if {[catch {$STA wl frameburst $fb} err]} {
+			UTF::Message ERROR $STA "wl frameburst: $err"
+			lappend failmsg "FB($STA)=$err"
+		    }
+		    # catch {$STA wl msglevel +psta}
+		    if {[catch {$STA wl scansuppress $ss} err]} {
+			UTF::Message ERROR $STA "wl scansuppress: $err"
+			lappend failmsg "SS($STA)=$err"
+		    }
+		    if {$rt ne "default"} {
+			if {[catch {$STA wl roam_trigger $rt all} err]} {
+			    UTF::Message ERROR $STA "wl roamtrigger: $err"
+			    lappend failmsg "RT($STA)=$err"
+			}
+		    }
+		}
+		if {$failmsg ne ""} {
+		    error $failmsg
+		} else {
+		    return
+		}
+	    }
+	    if {$(txbeamforming) ne ""} {
+		UTF::Try "TXBF=$(txbeamforming) TXPWR=$(txpwr) SP=$(spatial) NSS=$(nss)" {
+		    lappend cckey_common "TXBeam: $(txbeamforming) TXPWR=$(txpwr) SP=$(spatial) NSS=$(nss)"
+		    ::txbeamforming on
+		    if {[$(ap) hostis Router]} {
+			set duts [concat $(ap) $STAS]
+		    } else {
+			set duts $(sta)
+		    }
+		    if {$(txbeamforming)} {
+			set txbfcap 1
+		    } else {
+			set txbfcap 0
+		    }
+		    foreach dut $duts {
+			$dut wl down
+			$dut wl -u txbf_bfe_cap $txbfcap
+			$dut wl -u txbf_bfr_cap $txbfcap
+			$dut wl -u txbf $(txbeamforming)
+		    }
+		    $(ap) wl down
+		    $(ap) wl -u txbf_bfe_cap $txbfcap
+		    $(ap) wl -u txbf_bfr_cap $txbfcap
+		    $(ap) wl -u txbf $(txbeamforming)
+		    if {[string is integer $(txpwr)]} {
+			$(ap) wl -u txpwr1 -o $(txpwr)
+		    }
+		    if {[string is integer $(spatial)]} {
+			$(ap) wl spatial_policy $(spatial)
+		    } else {
+			$(ap) wl -u spatial_policy -1
+		    }
+		    if {[string is integer $(nss)]} {
+			$(ap) wl -u ratesel_nss $(nss)
+		    }
+		    UTF::Sleep 2.0
+		    foreach dut [concat $(ap) $STAS] {
+			catch {$dut wl up}
+		    }
+		}
+	    }
+	    # Pull AP out of STA list (softap)
+	    set stas [lsearch -all -not -inline $STAS $(ap)]
+	    if {$stas ne ""} {
+		UTF::Try "Associate: $(ap)" {
+		    UTF::Test::ConnectAPSTA $(ap) $stas
+		}
+		UTF::Try "wl status" {
+		    foreach STA $stas {
+			catch {$STA wl status}
+		    }
+		}
+	    }
+	    if {$(pspretend)} {
+		set pspretends "0 5"
+		set ::AP $(ap)
+		set ::hwaddr [[$(sta) lan] macaddr]
+	    } else {
+		set pspretends "0"
+	    }
+	    if {[llength $WETS]} {
+		UTF::Test::BridgeCheck -ap $(ap) -br $WETS
+	    }
+	    foreach stepprofile $(stepprofile) {
+		foreach STREAM $STREAMS {
+		    if {[$STREAM cget -multicast]} {
+			set trytitle "MCAST: [$STREAM cget -tx]->[$STREAM cget -rx] $CHAN [$STREAM cget -tos]"
+		    } else {
+			set trytitle "[$STREAM cget -protocol]: [$STREAM cget -tx]->[$STREAM cget -rx] $CHAN [$STREAM cget -tos]"
+		    }
+		    foreach pspretend $pspretends {
+			if {$(pspretend)} {
+			    lappend cckey_common "pspre=$pspretend"
+			    set PSTXT "PSP=$pspretend"
+			} else {
+			    set PSTXT ""
+			}
+			UTF::Try "Start $trytitle" {
+			    if {$(pspretend)} {
+				UTF::stream allstreams stop
+				#				$(ap) wl ampdu_ps_retry_limit $pspretend
+				$(ap) wl pspretend_retry_limit $pspretend
+			    }
+			    if {[$STREAM cget -multicast]} {
+				$STREAM configure -rate 1M
+				$STREAM start
+				UTF::Test::EMFLearn -stream $STREAM -ap $(ap)
+				$STREAM stop
+				$STREAM configure -rate $(udprate)
+				$STREAM sniff on -igmp
+				$(ap) igmp_querier enable
+			    }
+			    set ok 1
+			    if {[catch {$STREAM start} err]} {
+				set ok 0
+				error $err
+			    }
+			    if {[catch {$STREAM linkcheck -now}]} {
+				UTF::Try "Isolate linkcheck failure: $(ap)" {
+				    set rxs [$STREAM cget -rx]
+				    set stas ""
+				    set wets ""
+				    catch {$(ap) wl bssid}
+				    catch {$(ap) wl assoclist}
+				    if {$(emf) && [$STREAM cget -multicast]} {
+					::UTF::Multicast::test_emfdb_add $(ap) [$STREAM cget -dstgrpip]
+					::UTF::Multicast::show_igs $(ap)
+				    }
+				    foreach rx $rxs {
+					if {[lsearch $STAS $rx] != -1} {
+					    lappend stas $rx
+					} elseif {[lsearch $WETS $rx] != -1} {
+					    lappend wets $rx
+					}
+					catch {$sta wl status}
+					if {[llength $stas]} {
+					    if {[catch {$sta wl bssid} bssid] || $bssid ne [$(ap) macaddr]} {
+						UTF::Message ERROR "$sta" "Not associated or misassociated: [$(ap) macaddr] $bssid"
+						UTF::Try "Reattempt assoc: $stas" {
+						    UTF::Test::ConnectAPSTA $(ap) $stas
+						}
+					    }
+					}
+				    }
+				    foreach wet $wets {
+					catch {$wet wl status}
+					if {[catch {$wet wl bssid} bssid] || $bssid ne [$(ap) macaddr]} {
+					    UTF::Message ERROR "$wet" "Not associated or misassociated: [$(ap) macaddr] $bssid"
+					    UTF::Test::APChanspec $wet $CHAN -loose
+					}
+					if {![catch {$wet wl -u dump psta}]} {
+					    catch {[$wet lan] macaddr} m1
+					    catch {$wet macaddr} m2
+					    UTF::Message INFO "" "$wet: $m2 [$wet lan] $m1"
+					}
+					if {$(emf) && [$STREAM cget -multicast]} {
+					    ::UTF::Multicast::test_emfdb_add $wet [$STREAM cget -dstgrpip]
+					    ::UTF::Multicast::show_igs $wet
+					}
+				    }
+				}
+				if {[catch {$STREAM linkcheck -now}]} {
+				    set ok 0
+				    catch {$STREAM stop}
+				    error "linkcheck fail"
+				}
+			    } else {
+				UTF::Sleep 2.0 "Priming"
+			    }
+			}
+			if {!$ok} {
+			    $(ap) igmp_querier disable
+			    $STREAM sniff off
+			    continue
+			}
+			UTF::Try "Do Sweeps (Profile=${stepprofile} PS=${pspretend})" {
+			    set stepkey "$stepprofile:[getstepping $stepprofile]"
+			    set ::UTF::__promotions ""
+			    foreach dut [concat $(ap) $STAS] {
+				if {[catch {$dut wl status} err]} {
+				    UTF::Message ERROR "" $err
+				}
+			    }
+			    if {[$STREAM cget -protocol] eq "UDP"} {
+				set gtitle "$trytitle Profile=$stepprofile Scale=$(scalefactor)\\nTBF=$(txbeamforming) TX Offered [$STREAM cget -rate] [$STREAM cget -pktsize] FB=$fb Roam=$rt SS=$ss $PSTXT\\n[[$STREAM cget -tx] cget -tag] [[$STREAM cget -tx] cget -brand] [[lindex [$STREAM cget -rx] 0] cget -tag]"
+			    } else {
+				set gtitle "$trytitle Profile=$stepprofile Scale=$(scalefactor)\\nFB=$fb Roam=$rt SS=$ss $PSTXT\\n[[$STREAM cget -tx] cget -tag] [[$STREAM cget -tx] cget -brand] [[lindex [$STREAM cget -rx] 0] cget -tag]"
+			    }
+			    set ok 1
+			    if {[catch {dosweeps $STREAM $gtitle $stepprofile $(scalefactor)} results]} {
+				set ok 0
+			    }
+			    foreach dut [concat $(ap) $STAS] {
+				if {[catch {$dut wl status} err]} {
+				    UTF::Message ERROR "" $err
+				}
+			    }
+			    foreach WET $WETS {
+				if {[$WET nvram get wl_mode] eq "psta"} {
+				    catch {$WET wl -u dump psta} output
+				}
+			    }
+			    if {$ok} {
+				UTF::Message INFO Results "$trytitle : $results"
+				return $results
+			    } else {
+				error $results
+			    }
+			}
+			if {!$ok} {
+			    continue
+			}
+			if {[$STREAM cget -multicast]} {
+			    set g "MCAST ($CHAN)"
+			} else {
+			    set g "[$STREAM cget -protocol] ($CHAN)"
+			}
+			if {[$STREAM cget -tx] eq $(ap)} {
+			    append g " down"
+			} else {
+			    append g " up"
+			}
+			if {[$STREAM cget -protocol] eq "UDP"} {
+			    append g ": [$STREAM cget -rate]/[$STREAM cget -pktsize]B"
+			}
+			append g " ([$STREAM cget -tos])"
+			# Promote the rate graphs to the summary level
+			if {![$STREAM cget -multicast]} {
+			    set sweepsbytes [lindex $results 0]
+			    set sta [$STREAM cget -rx]
+			    # Convert to Kbytes
+			    foreach b $sweepsbytes {
+				lappend r [expr {$b / 1000}]
+			    }
+			    set sweepsbytes $r
+			    foreach graph $::UTF::__promotions bytes $sweepsbytes {
+				UTF::Try "$g" {
+				    set err 0
+				    set cckey [concat "RunningChart" "Kbytes" "$cckey_common" "[$STREAM id]" "$stepkey" "$(key)"]
+				    set cc [UTF::MemChart %AUTO% -key $cckey -history  [expr {int ($(history) * $(sweeps))}]  -perfcache "" -title "Xfer" -units "KBytes"]
+				    set boundsresults [$cc addsample $bytes]
+				    if {[regexp {(LOW|WIDE|ZERO)} $boundsresults]} {
+					set err 1
+				    }
+				    set chart [$cc plotcontrolchart $boundsresults]
+				    $cc destroy
+				    if {!$err} {
+					return "$graph [string range $chart 5 end]"
+				    } else {
+					error "$graph [string range $chart 5 end]"
+				    }
+				}
+			    }
+			} else {
+			    foreach graph $::UTF::__promotions  {
+				UTF::Try "$g" {
+				    return $graph
+				}
+			    }
+			}
+			UTF::Try "Total Bytes" {
+			    set cckey [concat "RunBytes" "$cckey_common" "[$STREAM id]" "$stepkey" "$(key)"]
+			    set cc [UTF::ControlChart %AUTO% -s 5 -key $cckey -history  $(history) -perfcache "" -norangecheck 1 -title "Total Bytes" -units ""]
+			    set r ""
+			    set boundsresults [$cc addsample [UTF::MeanMinMax $sweepsbytes]]
+			    set plot [$cc plotcontrolchart "$boundsresults"]
+			    $cc destroy
+			    return $plot
+			}
+			UTF::Try "Execution Times (ms)" {
+			    set cckey [concat "Runtime" "$cckey_common" "[$STREAM id]" "$stepkey" "$(key)" "mcast=[$STREAM cget -multicast]" "$sta"]
+			    set cc [UTF::ControlChart %AUTO% -s 5 -key $cckey -history  $(history) -perfcache "" -norangecheck 1 -title "RvR Runtime" -units ""]
+			    set boundsresults [$cc addsample [UTF::MeanMinMax [lindex $results 1]]]
+			    set plot [$cc plotcontrolchart "$boundsresults"]
+			    $cc destroy
+			    return $plot
+			}
+			UTF::Try "Stop $trytitle" {
+			    $STREAM stop
+			    $STREAM sniff off
+			    $(ap) igmp_querier disable
+			    return
+			}
+		    }
+		}
+	    }
+	}
+	if {!$(nomemleak)} {
+	    UTF::Try "Router Mem Leak" {
+		set tryerr 0
+		set msg ""
+		foreach dut $Routers {
+		    if {[catch {$dut rexec rmmod wl} tmp]} {
+			append msg "unload: $tmp"
+			UTF::Message ERROR "" $msg
+			set tryerr 1
+		    }
+		    catch {$dut rexec insmod wl}
+		}
+		if {$tryerr} {
+		    error $msg
+		}
+	    }
+	}
+	if {!$(nounload) && $STAS ne ""} {
+	    UTF::Try "unload STA(s) driver" {
+		set tryerr 0
+		set msg ""
+		foreach STA $STAS {
+		    if {[catch {$STA unload} tmp]} {
+			append msg "unload: $tmp"
+			UTF::Message ERROR "" $msg
+			set tryerr 1
+		    }
+		}
+		if {$tryerr} {
+		    error $msg
+		}
+	    }
+	}
+	UTF::Try "Exit" {
+	    UTF::stream exitstreams
+	}
+	PreservedReport
+    }
+}
+
+

@@ -39,6 +39,7 @@
 #include "bvc5.h"
 #include "bvc5_priv.h"
 #include "bvc5_event_monitor_priv.h"
+#include "bchp_pwr.h"
 
 BDBG_MODULE(BVC5);
 
@@ -184,6 +185,24 @@ static void BVC5_P_SetEventTFU(
 }
 
 /***************************************************************************/
+
+static void BVC5_P_GetClockSpeed(
+   BVC5_Handle hVC5
+   )
+{
+   BERR_Code err;
+   unsigned rate;
+
+   err = BCHP_PWR_GetClockRate(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D, &rate);
+   if (err == BERR_SUCCESS)
+   {
+      hVC5->sEventMonitor.uiCyclesPerUs = rate / (1000 * 1000);
+      BDBG_WRN(("GPU Clock speed: %u MHz\n", hVC5->sEventMonitor.uiCyclesPerUs));
+   }
+   else
+      hVC5->sEventMonitor.uiCyclesPerUs = 1; /* timestamps will be in clock cycles */
+}
+
 void BVC5_P_InitEventMonitor(
    BVC5_Handle  hVC5
    )
@@ -195,7 +214,7 @@ void BVC5_P_InitEventMonitor(
 
    BKNI_Memset(&hVC5->sEventMonitor, 0, sizeof(hVC5->sEventMonitor));
 
-   hVC5->sEventMonitor.uiCyclesPerUs = 1;
+   BVC5_P_GetClockSpeed(hVC5);
 
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_SCHED_TRACK, "Scheduler");
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_TFU_TRACK,   "TFU");
@@ -238,6 +257,15 @@ void BVC5_P_InitEventMonitor(
 
    BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_FLUSH_CPU, "Flush CPU Cache");
    BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_PART_FLUSH_CPU, "Partial Flush CPU Cache");
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   BVC5_P_InitializeQueue(&hVC5->sEventMonitor.sRenderJobQueueCLE);
+   BVC5_P_InitializeQueue(&hVC5->sEventMonitor.sRenderJobQueueTLB);
+   BVC5_P_InitializeQueue(&hVC5->sEventMonitor.sBinJobQueueCLE);
+   BVC5_P_InitializeQueue(&hVC5->sEventMonitor.sBinJobQueuePTB);
+   BVC5_P_InitializeQueue(&hVC5->sEventMonitor.sQueueTFU);
+   BVC5_P_InitializeQueue(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats);
+#endif
 
    BKNI_ReleaseMutex(hVC5->hEventMutex);
 }
@@ -382,25 +410,6 @@ static void BVC5_P_DeleteEventBuffer(
    }
 }
 
-static void BVC5_P_MeasureClockSpeed(
-   BVC5_Handle hVC5
-   )
-{
-   uint32_t uiCoreIndex = 0;
-   uint64_t uiStartUs, uiEndUs;
-   uint64_t uiStartCyc, uiEndCyc;
-
-   hVC5->sEventMonitor.uiCyclesPerUs = 1;
-
-   BVC5_P_GetTime_isrsafe(&uiStartUs);
-   uiStartCyc = BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex);
-   BKNI_Sleep(100);
-   BVC5_P_GetTime_isrsafe(&uiEndUs);
-   uiEndCyc = BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex);
-
-   hVC5->sEventMonitor.uiCyclesPerUs = (uiEndCyc - uiStartCyc) / (uiEndUs - uiStartUs);
-}
-
 static BERR_Code BVC5_P_SetEventCollection(
    BVC5_Handle       hVC5,
    uint32_t          uiClientId,
@@ -432,6 +441,11 @@ static BERR_Code BVC5_P_SetEventCollection(
          }
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
+         if (hVC5->sEventMonitor.uiCyclesPerUs == 1)  /* GPU clock speed unknown */
+         {
+            err = BERR_NOT_AVAILABLE;
+            goto error;
+         }
          /* We want to prevent the core from powering down whilst events are being gathered.
           * Any reset will cause the on-core cycle counters to zero, which we don't want.
           * Acquiring power here increments the internal power on counter and prevents power off. */
@@ -439,8 +453,6 @@ static BERR_Code BVC5_P_SetEventCollection(
 #endif
          hVC5->sEventMonitor.bAcquired = true;
          hVC5->sEventMonitor.uiClientId = uiClientId;
-
-         BVC5_P_MeasureClockSpeed(hVC5);
       }
 
       break;
@@ -499,9 +511,9 @@ BERR_Code BVC5_SetEventCollection(
 
    if (hVC5->sOpenParams.bUseClockGating || hVC5->sOpenParams.bUsePowerGating)
    {
-      BKNI_Printf("ERROR: %s, power gating and clock gating need to be disabled for perfomance counters to function\n"
+      BKNI_Printf("ERROR: %s, power gating and clock gating need to be disabled for performance counters to function\n"
                   "       disable via 'export V3D_USE_POWER_GATING=0' & 'export V3D_USE_CLOCK_GATING=0' prior to launch\n",
-                  __FUNCTION__);
+                  BSTD_FUNCTION);
       err = BERR_NOT_AVAILABLE;
    }
    else
@@ -590,7 +602,7 @@ uint32_t BVC5_GetEventData(
 
 error:
    if (puiTimeStamp)
-      *puiTimeStamp = BVC5_P_GetEventTimestamp(hVC5, 0);
+      *puiTimeStamp = BVC5_P_GetEventTimestamp();
 
    BKNI_ReleaseMutex(hVC5->hEventMutex);
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
@@ -805,7 +817,7 @@ bool BVC5_P_AddFlushEvent(
 bool BVC5_P_AddTFUJobEvent(
    BVC5_Handle          hVC5,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob,
+   BVC5_P_EventInfo    *psEventInfo,
    uint64_t             uiTimestamp
    )
 {
@@ -814,13 +826,9 @@ bool BVC5_P_AddTFUJobEvent(
    if (!hVC5->sEventMonitor.bActive)
       return true;
 
-   if (psJob == NULL)
-      return false;
-
    {
       BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
-      BVC5_JobTFU         *pTFUJob = (BVC5_JobTFU *)psJob->pBase;
-      uint64_t             uiJobId = psJob->uiJobId;
+      uint64_t             uiJobId = psEventInfo->uiJobId;
       uint32_t             before;
 
       BKNI_AcquireMutex(hVC5->hEventMutex);
@@ -831,14 +839,14 @@ bool BVC5_P_AddTFUJobEvent(
                                 /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
       if (ok)
       {
-         ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
+         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiClientId);
          ok = ok && BVC5_P_Add64(hVC5, uiJobId);
-         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiWidth);
-         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiHeight);
-         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sInput.uiRasterStride);
-         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sOutput.uiMipmapCount);
-         ok = ok && BVC5_P_Add32(hVC5, pTFUJob->sInput.uiTextureType);
-         ok = ok && BVC5_P_AddDeps(hVC5, hVC5->sOpenParams.bGPUMonDeps ? &psJob->pBase->sCompletedDependencies : NULL);
+         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiWidth);
+         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiHeight);
+         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiRasterStride);
+         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiMipmapCount);
+         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiTextureType);
+         ok = ok && BVC5_P_AddDeps(hVC5, psEventInfo->bHasDeps ? &psEventInfo->sCompletedDependencies : NULL);
 
          BDBG_ASSERT(ok); /* Should be ok as we check for space above */
          BDBG_ASSERT(psBuf->uiBytesUsed - before ==
@@ -887,13 +895,14 @@ bool BVC5_P_AddCoreEvent(
                                    /*bAlreadyHaveEventMutex=*/false, uiTimestamp);
 }
 
-static bool BVC5_P_AddCoreEventCJD(
+bool BVC5_P_AddCoreEventCJD(
    BVC5_Handle             hVC5,
    uint32_t                uiCore,
    uint32_t                uiTrack,
    uint32_t                uiEventIndex,
    BVC5_EventType          eEventType,
-   BVC5_P_InternalJob     *psJob,
+   uint32_t                uiClientId,
+   uint64_t                uiJobId,
    BVC5_SchedDependencies *psDeps,
    uint64_t                uiTimestamp
    )
@@ -903,12 +912,8 @@ static bool BVC5_P_AddCoreEventCJD(
    if (!hVC5->sEventMonitor.bActive)
       return true;
 
-   if (psJob == NULL)
-      return false;
-
    {
       BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
-      uint64_t             uiJobId = psJob->uiJobId;
       uint32_t             before;
 
       BKNI_AcquireMutex(hVC5->hEventMutex);
@@ -919,7 +924,7 @@ static bool BVC5_P_AddCoreEventCJD(
                                     /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
       if (ok)
       {
-         ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
+         ok = ok && BVC5_P_Add32(hVC5, uiClientId);
          ok = ok && BVC5_P_Add64(hVC5, uiJobId);
          ok = ok && BVC5_P_AddDeps(hVC5, psDeps);
 
@@ -937,33 +942,20 @@ static bool BVC5_P_AddCoreEventCJD(
    return ok;
 }
 
-bool BVC5_P_AddCoreEventCJ(
-   BVC5_Handle          hVC5,
-   uint32_t             uiCore,
-   uint32_t             uiTrack,
-   uint32_t             uiEventIndex,
-   BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob,
-   uint64_t             uiTimestamp
-   )
-{
-   return BVC5_P_AddCoreEventCJD(hVC5, uiCore, uiTrack, uiEventIndex, eEventType, psJob,
-                                 /*psDeps=*/NULL, uiTimestamp);
-}
-
 bool BVC5_P_AddCoreJobEvent(
    BVC5_Handle          hVC5,
    uint32_t             uiCore,
    uint32_t             uiTrack,
    uint32_t             uiEventIndex,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob,
+   BVC5_P_EventInfo    *psEventInfo,
    uint64_t             uiTimestamp
    )
 {
-   BVC5_SchedDependencies  *deps = hVC5->sOpenParams.bGPUMonDeps ? &psJob->pBase->sCompletedDependencies : NULL;
+   BVC5_SchedDependencies  *deps = psEventInfo->bHasDeps ? &psEventInfo->sCompletedDependencies : NULL;
 
-   return BVC5_P_AddCoreEventCJD(hVC5, uiCore, uiTrack, uiEventIndex, eEventType, psJob, deps, uiTimestamp);
+   return BVC5_P_AddCoreEventCJD(hVC5, uiCore, uiTrack, uiEventIndex,
+      eEventType, psEventInfo->uiClientId, psEventInfo->uiJobId, deps, uiTimestamp);
 }
 
 void BVC5_P_EventMemStats(
@@ -992,33 +984,99 @@ void BVC5_P_EventsRemoveClient(
    }
 }
 
-#if V3D_VER_AT_LEAST(3,3,0,0)
-
-void BVC5_P_PushJobFifo(BVC5_P_JobFifo *pFifo, BVC5_P_InternalJob *pJob)
+void BVC5_P_PopulateEventInfo(
+   BVC5_Handle hVC5,
+   bool bCopyDeps,
+   bool bCopyTFU,
+   BVC5_P_InternalJob *pJob,
+   BVC5_P_EventInfo *psEventInfo
+)
 {
-   BDBG_ASSERT(pFifo->uiCount <= BVC5_P_JOB_FIFO_LEN);
-   pFifo->uiJobs[pFifo->uiWriteIndx] = pJob;
+   BSTD_UNUSED(hVC5);
 
-   pFifo->uiCount++;
-   pFifo->uiWriteIndx++;
-   if (pFifo->uiWriteIndx == BVC5_P_JOB_FIFO_LEN)
-      pFifo->uiWriteIndx = 0;
+   if (psEventInfo)
+   {
+      psEventInfo->uiTimeStamp = BVC5_P_GetEventTimestamp();
+
+      psEventInfo->uiClientId = pJob->uiClientId;
+      psEventInfo->uiJobId = pJob->uiJobId;
+      psEventInfo->bHasDeps = bCopyDeps;
+      if (bCopyDeps)
+         psEventInfo->sCompletedDependencies = pJob->pBase->sCompletedDependencies;
+      if (bCopyTFU)
+      {
+         const BVC5_JobTFU *pTFUJob    = (BVC5_JobTFU *)pJob->pBase;
+         psEventInfo->uiWidth          = pTFUJob->sOutput.uiWidth;
+         psEventInfo->uiHeight         = pTFUJob->sOutput.uiHeight;
+         psEventInfo->uiRasterStride   = pTFUJob->sInput.uiRasterStride;
+         psEventInfo->uiMipmapCount    = pTFUJob->sOutput.uiMipmapCount;
+         psEventInfo->uiTextureType    = pTFUJob->sInput.uiTextureType;
+      }
+   }
 }
 
-BVC5_P_InternalJob *BVC5_P_PopJobFifo(BVC5_P_JobFifo *pFifo)
+#if V3D_VER_AT_LEAST(3,3,0,0)
+
+static BVC5_P_EventInfo* BVC5_P_PopFifo(BVC5_P_Fifo *psFifo)
 {
-   BVC5_P_InternalJob *pRet;
+   BVC5_P_EventInfo *psEventInfo;
+   if (psFifo->uiCount == 0)
+      return NULL;
+   psEventInfo = psFifo->psEventInfo[psFifo->uiReadIndx];
+   psFifo->uiCount--;
+   psFifo->uiReadIndx++;
+   if (psFifo->uiReadIndx == BVC5_P_JOB_FIFO_LEN)
+      psFifo->uiReadIndx = 0;
+   return psEventInfo;
+}
 
-   BDBG_ASSERT(pFifo->uiCount > 0);
+static void BVC5_P_PushFifo(BVC5_P_Fifo *psFifo, BVC5_P_EventInfo *psEventInfo)
+{
+   BDBG_ASSERT(psFifo->uiCount <= BVC5_P_JOB_FIFO_LEN);
+   psFifo->psEventInfo[psFifo->uiWriteIndx] = psEventInfo;
+   psFifo->uiCount++;
+   psFifo->uiWriteIndx++;
+   if (psFifo->uiWriteIndx == BVC5_P_JOB_FIFO_LEN)
+      psFifo->uiWriteIndx = 0;
+}
 
-   pRet = pFifo->uiJobs[pFifo->uiReadIndx];
+void BVC5_P_InitializeQueue(
+   BVC5_P_JobQueue    *psQueue
+   )
+{
+   psQueue->sFreeFifo.uiCount = BVC5_P_JOB_FIFO_LEN;
+   psQueue->sFreeFifo.psEventInfo[0] = &psQueue->sEventInfo[0];
+   psQueue->sFreeFifo.psEventInfo[1] = &psQueue->sEventInfo[1];
+}
 
-   pFifo->uiCount--;
-   pFifo->uiReadIndx++;
-   if (pFifo->uiReadIndx == BVC5_P_JOB_FIFO_LEN)
-      pFifo->uiReadIndx = 0;
+BVC5_P_EventInfo *BVC5_P_GetMessage(
+   BVC5_P_JobQueue    *psQueue
+   )
+{
+   return BVC5_P_PopFifo(&psQueue->sFreeFifo);
+}
 
-   return pRet;
+void BVC5_P_SendMessage(
+   BVC5_P_JobQueue    *psQueue,
+   BVC5_P_EventInfo   *psEventInfo
+   )
+{
+   BVC5_P_PushFifo(&psQueue->sSendFifo, psEventInfo);
+}
+
+BVC5_P_EventInfo *BVC5_P_ReceiveMessage(
+   BVC5_P_JobQueue    *psQueue
+   )
+{
+   return BVC5_P_PopFifo(&psQueue->sSendFifo);
+}
+
+void BVC5_P_ReleaseMessage(
+   BVC5_P_JobQueue    *psQueue,
+   BVC5_P_EventInfo   *psEventInfo
+   )
+{
+   BVC5_P_PushFifo(&psQueue->sFreeFifo, psEventInfo);
 }
 
 #endif

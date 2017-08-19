@@ -179,7 +179,7 @@ char  *_getEnvVariableValue(char *pName, char *defaultValue)
         value = defaultValue;
     }
 
-    BDBG_MSG(("%s: %s = %s", __FUNCTION__, pName, value));
+    BDBG_MSG(("%s: %s = %s", BSTD_FUNCTION, pName, value));
     return value;
 }
 
@@ -597,7 +597,7 @@ void playbackIpEventCallback(void *appCtx, B_PlaybackIpEventIds eventId)
     rc = B_PlaybackIp_SessionSetup(playbackIp, &ipSsessionSetupSettings, &ipSessionSetupStatus);
 #endif
     gEventId = eventId;
-    BDBG_MSG (("%s: Got EventId %d from IP library, appCtx %p", __FUNCTION__, eventId, appCtx));
+    BDBG_MSG (("%s: Got EventId %d from IP library, appCtx %p", BSTD_FUNCTION, eventId, appCtx));
     if (eventId == B_PlaybackIpEvent_eServerEndofStreamReached) {
         gEof = 1;
     }
@@ -605,10 +605,10 @@ void playbackIpEventCallback(void *appCtx, B_PlaybackIpEventIds eventId)
         B_PlaybackIpTrickModesSettings ipTrickModeSettings;
         B_PlaybackIp_GetTrickModeSettings(playbackIp, &ipTrickModeSettings);
         if (B_PlaybackIp_Seek(playbackIp, &ipTrickModeSettings) == B_ERROR_SUCCESS) {
-            BDBG_WRN(("%s: seek successful", __FUNCTION__));
+            BDBG_WRN(("%s: seek successful", BSTD_FUNCTION));
         }
         else {
-            BDBG_ERR(("%s: seek failed", __FUNCTION__));
+            BDBG_ERR(("%s: seek failed", BSTD_FUNCTION));
         }
         BKNI_SetEvent(waitEvent);
     }
@@ -643,11 +643,11 @@ runSeekTestAndVerify(B_PlaybackIpPsiInfo *psi, B_PlaybackIpHandle playbackIp, NE
         sleep(2);
         if (B_PlaybackIp_GetStatus(playbackIp, &playbackIpStatusNew)) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); goto out;}
         if (abs((unsigned long)(ipTrickModeSettings.seekPosition - playbackIpStatusNew.position)) > (4*1000) ) {BDBG_WRN(("Seek to %lu sec position failed: current position %lu", (unsigned long)seekPosition, (unsigned long)playbackIpStatusNew.position/1000)); goto out;}
-        BDBG_WRN(("*********** %s: seeked successfully to %lu sec *********** ", __FUNCTION__, (unsigned long)seekPosition));
+        BDBG_WRN(("*********** %s: seeked successfully to %lu sec *********** ", BSTD_FUNCTION, (unsigned long)seekPosition));
     }
     else
     {
-        BDBG_WRN(("*********** %s: Can't seek %lu sec , it is beyond end of stream *********** ", __FUNCTION__, (unsigned long)seekPosition));
+        BDBG_WRN(("*********** %s: Can't seek %lu sec , it is beyond end of stream *********** ", BSTD_FUNCTION, (unsigned long)seekPosition));
     }
 
     rc = 0;
@@ -760,7 +760,7 @@ runPlaybackIpUnitTests(B_PlaybackIpPsiInfo *psi, B_PlaybackIpHandle playbackIp)
     sleep(2);
     if (B_PlaybackIp_GetStatus(playbackIp, &playbackIpStatusNew)) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); goto out;}
     if (playbackIpStatus.position-31000 > playbackIpStatusNew.position) {BDBG_WRN(("Seek relative back by 30sec position failed: positions is %lu, %lu", (unsigned long)playbackIpStatus.position, (unsigned long)playbackIpStatusNew.position)); goto out;}
-    BDBG_WRN(("*********** %s: successfully seeked backward to 30sec *********** ", __FUNCTION__));
+    BDBG_WRN(("*********** %s: successfully seeked backward to 30sec *********** ", BSTD_FUNCTION));
     sleep(10);
 
     /* skip trickplay tests for audio files */
@@ -1022,7 +1022,7 @@ static int utilsGetPlaypumpBuffer(
         }
         else if (ppBufSize>= size) {
             /* constrain the amount of data we're going to read from the socket */
-            BDBG_MSG(("%s: got buffer of size %d from the playpump\n", __FUNCTION__, ppBufSize));
+            BDBG_MSG(("%s: got buffer of size %d from the playpump\n", BSTD_FUNCTION, ppBufSize));
             break;
         }
         BDBG_MSG(("skip buffer %d", ppBufSize));
@@ -1219,7 +1219,7 @@ int main(int argc, char *argv[])
             }
             if(dtcpCtx == NULL)
             {
-                BDBG_ERR(("%s: Failed to Initialize Dtcp/Ip Library: DTCP/IP encryption/decryption won't work\n", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to Initialize Dtcp/Ip Library: DTCP/IP encryption/decryption won't work\n", BSTD_FUNCTION));
                 exit(rc);
             }
 
@@ -1381,7 +1381,7 @@ int main(int argc, char *argv[])
                 unsigned char * p = &ipSessionOpenSettings.u.rtsp.additionalHeaders ;
                 unsigned int i;
                 for (i=0; i<8; i++) {
-                    BDBG_ERR(("%s: pos %x: value (0x%02x)", __FUNCTION__, &p[i], p[i] ));
+                    BDBG_ERR(("%s: pos %x: value (0x%02x)", BSTD_FUNCTION, &p[i], p[i] ));
                 }
             }
         #endif
@@ -1404,7 +1404,7 @@ int main(int argc, char *argv[])
                 unsigned char * p = &ipSessionOpenSettings.u.rtsp.additionalHeaders ;
                 unsigned int i;
                 for (i=0; i<8; i++) {
-                    BDBG_ERR(("%s: pos %x: value (0x%02x)", __FUNCTION__, &p[i], p[i] ));
+                    BDBG_ERR(("%s: pos %x: value (0x%02x)", BSTD_FUNCTION, &p[i], p[i] ));
                 }
             }
             BDBG_MSG(("Rtsp - B_PlaybackIp_SessionOpen 1"));
@@ -2001,7 +2001,7 @@ skipNexusOpens:
             pidChannelSettings.pidType = NEXUS_PidType_eVideo;
             videoPidChannel = NEXUS_Playpump_OpenPidChannel(playpump, psi.videoPid, &pidChannelSettings);
             if (!videoPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: Opened video pid channel %p for video pid %u ", __FUNCTION__, (void *)videoPidChannel, psi.videoPid));
+            BDBG_MSG (("%s: Opened video pid channel %p for video pid %u ", BSTD_FUNCTION, (void *)videoPidChannel, psi.videoPid));
         }
 
         /* Open the extra video pid channel if present in the stream */
@@ -2010,7 +2010,7 @@ skipNexusOpens:
             pidChannelSettings.pidType = NEXUS_PidType_eVideo;
             extraVideoPidChannel = NEXUS_Playpump_OpenPidChannel(playpump, psi.extraVideoPid, &pidChannelSettings);
             if (!extraVideoPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: extra video pid %d, codec %d is present, pid channel created", __FUNCTION__, psi.extraVideoPid, psi.extraVideoCodec));
+            BDBG_MSG (("%s: extra video pid %d, codec %d is present, pid channel created", BSTD_FUNCTION, psi.extraVideoPid, psi.extraVideoCodec));
         }
 
         if ((audioCodec != NEXUS_AudioCodec_eUnknown && audioPid)) {
@@ -2020,7 +2020,7 @@ skipNexusOpens:
             pidChannelSettings.pidTypeSettings.audio.codec = audioCodec;
             audioPidChannel = NEXUS_Playpump_OpenPidChannel(playpump2?playpump2:playpump, audioPid, &pidChannelSettings);
             if (!audioPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: Opened audio pid channel %p for audio pid %u ", __FUNCTION__, (void *)audioPidChannel, audioPid));
+            BDBG_MSG (("%s: Opened audio pid channel %p for audio pid %u ", BSTD_FUNCTION, (void *)audioPidChannel, audioPid));
         }
 
         if (psi.pcrPid && psi.pcrPid != audioPid && psi.pcrPid != psi.videoPid) {
@@ -2029,19 +2029,19 @@ skipNexusOpens:
             pidChannelSettings.pidType = NEXUS_PidType_eUnknown;
             pcrPidChannel = NEXUS_Playpump_OpenPidChannel(playpump, psi.pcrPid, &pidChannelSettings);
             if (!pcrPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: Opened pcr pid channel %p for pcr pid %u ", __FUNCTION__, (void *)pcrPidChannel, psi.pcrPid));
+            BDBG_MSG (("%s: Opened pcr pid channel %p for pcr pid %u ", BSTD_FUNCTION, (void *)pcrPidChannel, psi.pcrPid));
             }
         else
         {
             if (psi.pcrPid == audioPid)
             {
                 pcrPidChannel = audioPidChannel;
-                BDBG_MSG (("%s: Setting pcrPidChannel to audioPidChannel %p", __FUNCTION__, (void *)pcrPidChannel));
+                BDBG_MSG (("%s: Setting pcrPidChannel to audioPidChannel %p", BSTD_FUNCTION, (void *)pcrPidChannel));
             }
             else
             {
                 pcrPidChannel = videoPidChannel;
-                BDBG_MSG (("%s: Setting pcrPidChannel to videoPidChannel %p", __FUNCTION__, (void *)pcrPidChannel));
+                BDBG_MSG (("%s: Setting pcrPidChannel to videoPidChannel %p", BSTD_FUNCTION, (void *)pcrPidChannel));
             }
         }
     }
@@ -2099,7 +2099,7 @@ skipNexusOpens:
             playbackPidChannelSettings.pidTypeSettings.video.index = true;
             extraVideoPidChannel = NEXUS_Playback_OpenPidChannel(playback, psi.extraVideoPid, &playbackPidChannelSettings);
             if (!extraVideoPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: extra video pid %d, codec %d is present, pid channel created", __FUNCTION__, psi.extraVideoPid, psi.extraVideoCodec));
+            BDBG_MSG (("%s: extra video pid %d, codec %d is present, pid channel created", BSTD_FUNCTION, psi.extraVideoPid, psi.extraVideoCodec));
         }
 
         if (audioCodec != NEXUS_AudioCodec_eUnknown && audioPid) {
@@ -2123,7 +2123,7 @@ skipNexusOpens:
                 pcrPidChannel = audioPidChannel;
             else
                 pcrPidChannel = videoPidChannel;
-            BDBG_MSG (("%s: Using either video or audio pid channel for pcr pid channel ", __FUNCTION__));
+            BDBG_MSG (("%s: Using either video or audio pid channel for pcr pid channel ", BSTD_FUNCTION));
         }
     }
     /* ----------------------------------------------------------------------------------------------------------------*/
@@ -2288,7 +2288,7 @@ skipNexusOpens:
         if (extraVideoPidChannel) {
             videoProgram.enhancementPidChannel = extraVideoPidChannel;
             videoProgram.codec = psi.extraVideoCodec;
-            BDBG_MSG (("%s: extra video pid channel:%p programmed", __FUNCTION__, (void *)extraVideoPidChannel));
+            BDBG_MSG (("%s: extra video pid channel:%p programmed", BSTD_FUNCTION, (void *)extraVideoPidChannel));
         }
     }
 
@@ -2711,10 +2711,10 @@ skipNexusOpens:
 
             /* now feed appropriate data it to the playpump */
             if (NEXUS_Playpump_WriteComplete(playpump, 0, retSize)) {
-                BDBG_WRN(("%s: NEXUS_Playpump_WriteComplete failed, continuing...", __FUNCTION__));
+                BDBG_WRN(("%s: NEXUS_Playpump_WriteComplete failed, continuing...", BSTD_FUNCTION));
                 continue;
             }
-            BDBG_MSG(("%s: Fed %d bytes (total so far %lld) to Playpump", __FUNCTION__, retSize, totalConsumed));
+            BDBG_MSG(("%s: Fed %d bytes (total so far %lld) to Playpump", BSTD_FUNCTION, retSize, totalConsumed));
             /* Exit loop if character q is entered */
             memset(buf, 0, sizeof(buf));
             numbytes = read_with_timeout(0,buf,sizeof(buf),0);
@@ -3083,7 +3083,7 @@ skip_runtime_buffering_check:
                     BDBG_WRN(("Failed to set the trick play rate %s for server side trickmodes", &buf[2]));
                     break;
                 }
-                BDBG_WRN(("%s: playSpeed = %s", __FUNCTION__, &buf[2]));
+                BDBG_WRN(("%s: playSpeed = %s", BSTD_FUNCTION, &buf[2]));
                 state = 0;  /* goto to play when when p is entered */
             }
             else if (strncmp(buf, "ff", 2) == 0 || strncmp(buf, "fr", 2) == 0 ) {
@@ -3346,10 +3346,10 @@ skip_runtime_buffering_check:
 
         if (gResumePlay) {
             if (B_PlaybackIp_Play(playbackIp) == B_ERROR_SUCCESS) {
-                BDBG_WRN(("%s: rewind reached beginning of file, so back to play successful", __FUNCTION__));
+                BDBG_WRN(("%s: rewind reached beginning of file, so back to play successful", BSTD_FUNCTION));
             }
             else {
-                BDBG_WRN(("%s: rewind reached beginning of file, but back to play failed", __FUNCTION__));
+                BDBG_WRN(("%s: rewind reached beginning of file, but back to play failed", BSTD_FUNCTION));
                 errorFlag = 1;
                 break;
             }
@@ -3473,7 +3473,7 @@ errorClose:
     /* close the per session handle */
     if (ipCfg.security == B_PlaybackIpSecurityProtocol_DtcpIp) {
         if (DtcpAppLib_CloseAke(dtcpCtx, AkeHandle) != BERR_SUCCESS) {
-            BDBG_WRN(("%s: failed to close the DTCP AKE session", __FUNCTION__));
+            BDBG_WRN(("%s: failed to close the DTCP AKE session", BSTD_FUNCTION));
         }
         DtcpAppLib_Shutdown(dtcpCtx);
 #if 0

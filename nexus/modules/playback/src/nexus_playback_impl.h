@@ -326,7 +326,7 @@ void b_play_trick_init(NEXUS_PlaybackHandle p);
 void b_play_trick_shutdown(NEXUS_PlaybackHandle p);
 void b_play_update_media_player_config(NEXUS_PlaybackHandle p, bmedia_player_decoder_config *config);
 
-void bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, unsigned *pCdbDepth, unsigned *pWaitTime);
+void bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, bool *pQueued, unsigned *pWaitTime);
 
 NEXUS_Error bplay_p_play(NEXUS_PlaybackHandle p, bool *restart, bool flush);
 NEXUS_Error bplay_p_play_from(NEXUS_PlaybackHandle p, bmedia_player_pos position);

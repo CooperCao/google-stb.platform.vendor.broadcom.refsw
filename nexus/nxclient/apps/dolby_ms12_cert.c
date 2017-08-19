@@ -41,6 +41,7 @@
 #include "nxclient.h"
 #include "nexus_playback.h"
 #include "nexus_simple_audio_decoder.h"
+#include "nexus_audio_capture.h"
 #include "bstd.h"
 #include "bkni.h"
 #include "bkni_multi.h"
@@ -100,6 +101,12 @@ typedef struct intelligentEqProfile {
     unsigned frequency;         /* Center frequency of each eq band, specified in Hz. Valid values [20 - 20,000] */
     int gain;                   /* Gain in 0.0625 dB steps, achieving +/- 30dB of gain. Valid values [-480 - 480] */
 } intelligentEqProfile;
+
+typedef struct capture_handles
+{
+    NEXUS_AudioCaptureHandle capture;
+    FILE* capFile;
+} capture_handles;
 
 intelligentEqProfile openProfile[20] = {
     { 65, 117 },
@@ -170,13 +177,55 @@ intelligentEqProfile richProfile[20] = {
     { 17326, -235 }
 };
 
+enum eCaptureVerifyState
+{
+    eCaptureVerfiyStateUnlocked,         /* Totally lost... looking for the first sample that matches the reference. */
+    eCaptureVerfiyStateLocking,          /* Found at least one match with the reference, looking for more.  */
+    eCaptureVerfiyStateLocked,           /* Found enough consecutive matches to decide that we're in sync with the reference. */
+    eCaptureVerfiyStateUnlocking         /* Found at least one mismatch while in Locked state... too many will take us to Unlocked. */
+};
+
+char *captureVerifyStateName[] =         /* String descriptions for each of the eState values. */
+{
+    "Unlocked",
+    "Locking",
+    "Locked",
+    "Unlocking"
+};
+
+typedef struct CaptureVerifyContext
+{
+    enum eCaptureVerifyState    state;          /* Unlocked, Locking, Locked, Unlocking  */
+    unsigned                    refIndex;       /* Index into reference buffer of last sample. */
+
+    unsigned                    matches;        /* Counts consecutive matches during Locking state. */
+    unsigned                    mismatches;     /* Counts consecutive mismatches during Unlocking state. */
+
+    unsigned long               totalMatches;
+    unsigned long               totalMismatches;
+    unsigned long               totalSamples;   /* Total number of sampled processed */
+
+    unsigned long               sizeCapture;    /* size of capture minus the begining padding */
+    unsigned long               samplesSinceLastLock;
+    unsigned long               mismatchesSinceLastLock;
+
+    unsigned long               samplesInLongestLockPeriod;
+    unsigned long               mismatchesInLongestLockPeriod;
+
+    FILE* verifyFile;
+    FILE* captureFile;
+} CaptureVerifyContext;
+
 static void print_usage(void);
 static void default_dap_config(dapConfiguration *dapConfig);
-static void apply_dap_config(dapConfiguration *dapConfig);
+static NEXUS_Error apply_dap_config(dapConfiguration *dapConfig);
 static const char *dolby_ms12_cert_decoder_name(const decoderIdx idx);
+static void endOfStreamCallback(void *context, int param);
+static void capture_callback(void *pParam, int param);
+static void verifyCapture(CaptureVerifyContext *pCtx);
 
 
-int main(int argc, const char **argv)  {
+int main(int argc, const char **argv) {
     int curarg = 1;
     NxClient_JoinSettings joinSettings;
     NxClient_AllocSettings allocSettings;
@@ -191,9 +240,11 @@ int main(int argc, const char **argv)  {
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_AudioDecoderStereoDownmixMode downmixMode = NEXUS_AudioDecoderStereoDownmixMode_eAuto;
     NEXUS_AudioDecoderCodecSettings codecSettings;
-    NEXUS_Error rc;
+    NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i;
+    bool videoDisabled = false;
     bool done = false;
+    bool once = false;
     bool audioDescription = false;
     bool single_pid = false;
     bool requiresDyanmic = false;
@@ -206,6 +257,18 @@ int main(int argc, const char **argv)  {
     bool ac4mixing = false;
     dapConfiguration dapConfig;
     int ac4DE = 0;
+    BKNI_EventHandle endOfStreamEvent;
+    bool enableCapture = false;
+    char captureFileName[250];
+    unsigned captureId;
+    NEXUS_AudioCaptureOpenSettings openSettings;
+    NEXUS_AudioCaptureStartSettings startSettings;
+    NxClient_AudioCaptureType captureType = NxClient_AudioCaptureType_e16BitStereo;
+    NEXUS_AudioMultichannelFormat multichCaptureFormat = NEXUS_AudioMultichannelFormat_eStereo;
+    capture_handles capHandles = {NULL,NULL};
+    bool enableVerify = false;
+    const char * verifyFileName;
+    CaptureVerifyContext    vfyCtx;
 
     /* Prep config file */
     memset(configs, 0, sizeof(configs));
@@ -242,6 +305,9 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-video") && argc>curarg+1) {
             videoPid = strtoul(argv[++curarg], NULL, 0);
+        }
+        else if (!strcmp(argv[curarg], "-disable_video")) {
+            videoDisabled = true;
         }
         else if (!strcmp(argv[curarg], "-video_type") && argc>curarg+1) {
             videoCodec = lookup(g_videoCodecStrs, argv[++curarg]);
@@ -375,6 +441,37 @@ int main(int argc, const char **argv)  {
                 return -1;
             }
         }
+        else if (!strcmp(argv[curarg], "-once")) {
+            once = true;
+        }
+        else if (!strcmp(argv[curarg], "-capture") && curarg+1 < argc) {
+            ++curarg;
+            if (!strcmp("stereo", argv[curarg])) {
+                enableCapture = true;
+                captureType = NxClient_AudioCaptureType_e24BitStereo;
+            }
+            else if (!strcmp("multichannel", argv[curarg])) {
+                enableCapture = true;
+                captureType = NxClient_AudioCaptureType_e24Bit5_1;
+                multichCaptureFormat = NEXUS_AudioMultichannelFormat_e5_1;
+            }
+            else if (!strcmp("compressed", argv[curarg])) {
+                enableCapture = true;
+                captureType = NxClient_AudioCaptureType_eCompressed;
+            }
+            else if (!strcmp("compressed4x", argv[curarg])) {
+                enableCapture = true;
+                captureType = NxClient_AudioCaptureType_eCompressed4x;
+            }
+            else {
+                print_usage();
+                return -1;
+            }
+        }
+        else if (!strcmp(argv[curarg], "-verify") && argc>curarg+1) {
+            verifyFileName = argv[++curarg];
+            enableVerify = true;
+        }
         else
         {
             print_usage();
@@ -386,12 +483,14 @@ int main(int argc, const char **argv)  {
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
     rc = NxClient_Join(&joinSettings);
-    if (rc) return -1;
+    if (rc) {BERR_TRACE(rc); goto cleanup;}
 
-    apply_dap_config(&dapConfig);
+    rc = apply_dap_config(&dapConfig);
+    if (rc) {BERR_TRACE(rc); goto cleanup;}
 
     for (i = 0; i < decoderIdx_max; i++) {
-        if (configs[i].filename) {
+        if (configs[i].filename)
+        {
             struct probe_results probe_results;
             struct probe_request probe_request;
 
@@ -401,8 +500,39 @@ int main(int argc, const char **argv)  {
             rc = probe_media_request(&probe_request, &probe_results);
             if (rc) {
                 BDBG_ERR(("media probe can't parse '%s'", configs[i].filename));
-                return -1;
+                goto cleanup;
             }
+
+            if (i == decoderIdx_pri && enableCapture) {
+                char base[200];
+                char * fileName;
+                char * ext;
+                fileName = strrchr(configs[i].filename, '/');
+                fileName++;
+                ext = strchr(fileName, '.');
+                strncpy(base, fileName, ext-fileName);
+
+                switch (captureType) {
+                case NxClient_AudioCaptureType_e16BitStereo:
+                case NxClient_AudioCaptureType_e24BitStereo:
+                    snprintf(captureFileName, sizeof(captureFileName), "./%s_capture_stereo.bin", base);
+                    break;
+                case NxClient_AudioCaptureType_e24Bit5_1:
+                    snprintf(captureFileName, sizeof(captureFileName), "./%s_capture_multi.bin", base);
+                    break;
+                case NxClient_AudioCaptureType_eCompressed:
+                    snprintf(captureFileName, sizeof(captureFileName), "./%s_capture_compressed.bin", base);
+                    break;
+                case NxClient_AudioCaptureType_eCompressed4x:
+                    snprintf(captureFileName, sizeof(captureFileName), "./%s_capture_compressed_4x.bin", base);
+                    break;
+                default:
+                    BDBG_WRN(("Invalid capture type, disable capture"));
+                    enableCapture = false;
+                    break;
+                }
+            }
+
             /* override probe */
             if (i == decoderIdx_pri) {
                 if (videoCodec == NEXUS_VideoCodec_eMax) {
@@ -443,15 +573,27 @@ int main(int argc, const char **argv)  {
 
             NxClient_GetDefaultAllocSettings(&allocSettings);
             if (i == decoderIdx_pri) {
-                allocSettings.simpleVideoDecoder = 1;
-                allocSettings.surfaceClient = 1;
+                if (probe_results.num_video > 0 && !videoDisabled)
+                {
+                    allocSettings.simpleVideoDecoder = 1;
+                    allocSettings.surfaceClient = 1;
+                }
+                if (enableCapture) {
+                    allocSettings.audioCapture = 1;
+                    allocSettings.audioCaptureType.type = captureType;
+                }
             }
             allocSettings.simpleAudioDecoder = 1;
             rc = NxClient_Alloc(&allocSettings, &configs[i].allocResults);
-            if (rc) return BERR_TRACE(rc);
+            if (rc) {BERR_TRACE(rc); goto cleanup;}
 
             if (configs[i].allocResults.simpleAudioDecoder.id) {
                 configs[i].audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(configs[i].allocResults.simpleAudioDecoder.id);
+                if (!configs[i].audioDecoder) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto cleanup;}
+            }
+
+            if (i == decoderIdx_pri && enableCapture && configs[i].allocResults.audioCapture.id) {
+                captureId = configs[i].allocResults.audioCapture.id;
             }
 
             NxClient_GetDefaultConnectSettings(&connectSettings);
@@ -473,7 +615,7 @@ int main(int argc, const char **argv)  {
             }
             connectSettings.simpleAudioDecoder.id = configs[i].allocResults.simpleAudioDecoder.id;
             rc = NxClient_Connect(&connectSettings, &configs[i].connectId);
-            if (rc) return BERR_TRACE(rc);
+            if (rc) {BERR_TRACE(rc); goto cleanup;}
 
             if (i != decoderIdx_sec || (i == decoderIdx_sec && !audioDescription)) {
 
@@ -487,23 +629,32 @@ int main(int argc, const char **argv)  {
                 if ( !configs[i].file )
                 {
                     BDBG_ERR(("Unable to open file %s", configs[i].filename));
-                    return -1;
+                    BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto cleanup;
                 }
 
                 configs[i].stcChannel = NEXUS_SimpleStcChannel_Create(NULL);
-                BDBG_ASSERT(configs[i].stcChannel);
+                if (!configs[i].stcChannel) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto cleanup;}
 
                 NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
                 configs[i].playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
+                if (!configs[i].playpump) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto cleanup;}
                 configs[i].playback = NEXUS_Playback_Create();
-                BDBG_ASSERT(configs[i].playback);
+                if (!configs[i].playback) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto cleanup;}
 
                 NEXUS_Playback_GetSettings(configs[i].playback, &playbackSettings);
                 playbackSettings.playpumpSettings.transportType = configs[i].transportType;
                 playbackSettings.playpump = configs[i].playpump;
                 playbackSettings.simpleStcChannel = configs[i].stcChannel;
+                if (once) {
+                    playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_ePause;
+                    if (i == decoderIdx_pri) {
+                        BKNI_CreateEvent(&endOfStreamEvent);
+                        playbackSettings.endOfStreamCallback.callback = endOfStreamCallback;
+                        playbackSettings.endOfStreamCallback.context = endOfStreamEvent;
+                    }
+                }
                 rc = NEXUS_Playback_SetSettings(configs[i].playback, &playbackSettings);
-                BDBG_ASSERT(!rc);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
             }
 
             if (i == decoderIdx_pri && videoDecoder) {
@@ -513,7 +664,9 @@ int main(int argc, const char **argv)  {
                 playbackPidSettings.pidTypeSettings.video.index = true;
                 playbackPidSettings.pidTypeSettings.video.simpleDecoder = videoDecoder;
                 videoPidChannel = NEXUS_Playback_OpenPidChannel(configs[0].playback, videoPid, &playbackPidSettings);
-                NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, configs[0].stcChannel);
+                if (!videoPidChannel) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto cleanup;}
+                rc = NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, configs[0].stcChannel);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
                 NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
                 videoProgram.settings.codec = videoCodec;
                 videoProgram.settings.pidChannel = videoPidChannel;
@@ -533,13 +686,16 @@ int main(int argc, const char **argv)  {
             if (i != decoderIdx_sec || (i == decoderIdx_sec && !audioDescription)) {
                 configs[i].audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(configs[i].playback, configs[i].audioPid, &playbackPidSettings);
                 if (configs[i].audioProgram.primary.pidChannel) {
-                    NEXUS_SimpleAudioDecoder_SetStcChannel(configs[i].audioDecoder, configs[i].stcChannel);
+                    rc = NEXUS_SimpleAudioDecoder_SetStcChannel(configs[i].audioDecoder, configs[i].stcChannel);
+                    if (rc) {BERR_TRACE(rc); goto cleanup;}
                 }
+                else {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto cleanup;}
             }
             else {
                 configs[i].audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(configs[0].playback, configs[i].audioPid, &playbackPidSettings);
                 if (configs[i].audioProgram.primary.pidChannel) {
-                    NEXUS_SimpleAudioDecoder_SetStcChannel(configs[i].audioDecoder, configs[0].stcChannel);
+                    rc = NEXUS_SimpleAudioDecoder_SetStcChannel(configs[i].audioDecoder, configs[0].stcChannel);
+                    if (rc) {BERR_TRACE(rc); goto cleanup;}
                 }
             }
 
@@ -638,191 +794,353 @@ int main(int argc, const char **argv)  {
             default:
                 break;
             }
-            NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[i].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+            rc = NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[i].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+            if (rc) {BERR_TRACE(rc); goto cleanup;}
         }
     }
 
-
-    if (configs[0].file && configs[0].playback) {
-        if (videoDecoder) {
-            NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
-        }
-        if (configs[0].audioDecoder) {
-            NEXUS_SimpleAudioDecoder_Start(configs[0].audioDecoder, &configs[0].audioProgram);
+    if (enableCapture) {
+        capHandles.capFile = fopen(captureFileName, "w+");
+        if (!capHandles.capFile) {
+            fprintf(stderr, "### unable to open %s\n", captureFileName);
+            BERR_TRACE(rc); goto cleanup;
         }
 
-        if (audioDescription && configs[1].audioDecoder) {
-            NEXUS_SimpleAudioDecoder_Start(configs[1].audioDecoder, &configs[1].audioProgram);
+        NEXUS_AudioCapture_GetDefaultOpenSettings(&openSettings);
+        openSettings.multichannelFormat = multichCaptureFormat;
+        /*BDBG_ERR(("Open Capture"));*/
+        /* allocate our capture at the end of the array, so we don't try to use the same resources as NxServer */
+        capHandles.capture = NEXUS_AudioCapture_Open(captureId, &openSettings);
+        if (!capHandles.capture) {
+            BDBG_ERR(("  unable to open capture"));
+            BERR_TRACE(rc); goto cleanup;
         }
 
-        rc = NEXUS_Playback_Start(configs[0].playback, configs[0].file, NULL);
-        BDBG_ASSERT(!rc);
-        configs[0].started = true;
-        if (audioDescription && configs[1].audioDecoder) {
-            configs[1].started = true;
-        }
+        NEXUS_AudioCapture_GetDefaultStartSettings(&startSettings);
+        startSettings.dataCallback.callback = capture_callback;
+        startSettings.dataCallback.context = &capHandles;
+        /*BDBG_ERR(("Start Capture"));*/
+        rc = NEXUS_AudioCapture_Start(capHandles.capture, &startSettings);
+        if (rc) {BERR_TRACE(rc); goto cleanup;}
     }
 
-    do
-    {
-        int tmp;
 
-        printf("Main Menu\n");
-        printf(" 0) Exit\n");
-        printf(" 1) %s Primary %s \n", configs[0].started ? "STOP":"START", configs[0].filename);
-        printf(" 2) %s Secondary %s\n", configs[1].started ? "STOP":"START", configs[1].filename);
-        printf(" 3) %s Application Audio %s\n", configs[2].started ? "STOP":"START",configs[2].filename);
-        printf(" 4) %s Sound Effects %s\n", configs[3].started ? "STOP":"START",configs[3].filename);
-        printf(" 5) %s DAP Processing\n", dapConfig.dapEnabled ? "DISABLE" : "ENABLE");
-        printf(" 6) %s Volume Leveler\n", dapConfig.volumeLevelerEnabled ? "DISABLE" : "ENABLE");
-        printf(" 7) %s Dialog Enhancer\n", dapConfig.dialogEnhancerEnabled ? "DISABLE" : "ENABLE");
-        printf(" 8) Adjust multistream balance\n");
-        printf(" 9) Change Dual Mono Mode\n");
-        printf(" 10) Increase AC4 Dialogue Enhancement (%d)\n", ac4DE);
-        printf(" 11) Decrease AC4 Dialogue Enhancement (%d)\n", ac4DE);
-        printf(" 12) %s AutoPilot Profile\n", dapConfig.autoPilotEnabled ? "DISABLE" : "ENABLE");
-        printf("Enter Selection: \n");
-        scanf("%d", &tmp);
-        switch (tmp) {
-        case 0:
-            done = true;
-            break;
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-            if (configs[tmp-1].file) {
-                if (configs[tmp-1].started) {
-                    if (configs[tmp-1].playback) {
-                        NEXUS_Playback_Stop(configs[tmp-1].playback);
-                    }
-                    if (configs[tmp-1].audioDecoder) {
-                        NEXUS_SimpleAudioDecoder_Stop(configs[tmp-1].audioDecoder);
-                    }
-                    if (tmp == 1) {
-                        if (videoDecoder) {
-                            NEXUS_SimpleVideoDecoder_Stop(videoDecoder);
-                        }
-                        if (audioDescription && configs[decoderIdx_sec].started) {
-                            NEXUS_SimpleAudioDecoder_Stop(configs[decoderIdx_sec].audioDecoder);
-                            configs[decoderIdx_sec].started = false;
-                        }
-                    }
-                    configs[tmp-1].started = false;
-                }
-                else {
-                    if (tmp == 1) {
-                        if (videoDecoder) {
-                            NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
-                        }
-                        if (audioDescription && !configs[decoderIdx_sec].started) {
-                            NEXUS_SimpleAudioDecoder_Start(configs[decoderIdx_sec].audioDecoder, &configs[decoderIdx_sec].audioProgram);
-                            configs[decoderIdx_sec].started = true;
-                        }
-                    }
-                    if (configs[tmp-1].audioDecoder) {
-                        NEXUS_SimpleAudioDecoder_Start(configs[tmp-1].audioDecoder, &configs[tmp-1].audioProgram);
-                    }
-                    if (configs[tmp-1].playback) {
-                        rc = NEXUS_Playback_Start(configs[tmp-1].playback, configs[tmp-1].file, NULL);
-                        BDBG_ASSERT(!rc);
-                    }
-                    configs[tmp-1].started = true;
-                }
+    if (!once) {
+        if (configs[0].file && configs[0].playback)
+        {
+            if (videoDecoder) {
+                NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
             }
-            else {
-                printf("%s does not have a file associated with it to start\n", dolby_ms12_cert_decoder_name(tmp-1));
-            }
-            break;
-        case 5:
-            dapConfig.dapEnabled = !dapConfig.dapEnabled;
-            apply_dap_config(&dapConfig);
-        case 6:
-            dapConfig.volumeLevelerEnabled = !dapConfig.volumeLevelerEnabled;
-            apply_dap_config(&dapConfig);
-            break;
-        case 7:
-            dapConfig.dialogEnhancerEnabled = !dapConfig.dialogEnhancerEnabled;
-            apply_dap_config(&dapConfig);
-            break;
-        case 8:
-            switch (dapConfig.multiStreamBalance) {
-            case 0:
-                dapConfig.multiStreamBalance = -32;
-                break;
-            case -32:
-                dapConfig.multiStreamBalance = 32;
-                break;
-            default:
-            case 32:
-                dapConfig.multiStreamBalance = 0;
-                break;
-            }
-            apply_dap_config(&dapConfig);
-            break;
-        case 9:
             if (configs[0].audioDecoder) {
-                bool dualMono = false;
-                NEXUS_AudioDecoderStatus audioStatus;
-                NEXUS_SimpleAudioDecoder_GetStatus(configs[0].audioDecoder, &audioStatus);
-                switch (audioStatus.codec) {
-                case NEXUS_AudioCodec_eAc3Plus:
-                    dualMono = (audioStatus.codecStatus.ac3.acmod == NEXUS_AudioAc3Acmod_eTwoMono_1_ch1_ch2);
+                rc = NEXUS_SimpleAudioDecoder_Start(configs[0].audioDecoder, &configs[0].audioProgram);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+            }
+
+            if (audioDescription && configs[1].audioDecoder) {
+                rc = NEXUS_SimpleAudioDecoder_Start(configs[1].audioDecoder, &configs[1].audioProgram);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+            }
+
+            rc = NEXUS_Playback_Start(configs[0].playback, configs[0].file, NULL);
+            if (rc) {BERR_TRACE(rc); goto cleanup;}
+            configs[0].started = true;
+            if (audioDescription && configs[1].audioDecoder) {
+                configs[1].started = true;
+            }
+        }
+
+        do
+        {
+            int tmp;
+
+            printf("Main Menu\n");
+            printf(" 0) Exit\n");
+            printf(" 1) %s Primary %s \n", configs[0].started ? "STOP":"START", configs[0].filename);
+            printf(" 2) %s Secondary %s\n", configs[1].started ? "STOP":"START", configs[1].filename);
+            printf(" 3) %s Application Audio %s\n", configs[2].started ? "STOP":"START",configs[2].filename);
+            printf(" 4) %s Sound Effects %s\n", configs[3].started ? "STOP":"START",configs[3].filename);
+            printf(" 5) %s DAP Processing\n", dapConfig.dapEnabled ? "DISABLE" : "ENABLE");
+            printf(" 6) %s Volume Leveler\n", dapConfig.volumeLevelerEnabled ? "DISABLE" : "ENABLE");
+            printf(" 7) %s Dialog Enhancer\n", dapConfig.dialogEnhancerEnabled ? "DISABLE" : "ENABLE");
+            printf(" 8) Adjust multistream balance\n");
+            printf(" 9) Change Dual Mono Mode\n");
+            printf(" 10) Increase AC4 Dialogue Enhancement (%d)\n", ac4DE);
+            printf(" 11) Decrease AC4 Dialogue Enhancement (%d)\n", ac4DE);
+            printf(" 12) %s AutoPilot Profile\n", dapConfig.autoPilotEnabled ? "DISABLE" : "ENABLE");
+            printf("Enter Selection: \n");
+            scanf("%d", &tmp);
+            switch (tmp) {
+            case 0:
+                done = true;
+                break;
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                if (configs[tmp-1].file) {
+                    if (configs[tmp-1].started) {
+                        if (configs[tmp-1].playback) {
+                            NEXUS_Playback_Stop(configs[tmp-1].playback);
+                        }
+                        if (configs[tmp-1].audioDecoder) {
+                            NEXUS_SimpleAudioDecoder_Stop(configs[tmp-1].audioDecoder);
+                        }
+                        if (tmp == 1) {
+                            if (videoDecoder) {
+                                NEXUS_SimpleVideoDecoder_Stop(videoDecoder);
+                            }
+                            if (audioDescription && configs[decoderIdx_sec].started) {
+                                NEXUS_SimpleAudioDecoder_Stop(configs[decoderIdx_sec].audioDecoder);
+                                configs[decoderIdx_sec].started = false;
+                            }
+                        }
+                        configs[tmp-1].started = false;
+                    }
+                    else {
+                        if (tmp == 1) {
+                            if (videoDecoder) {
+                                NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
+                            }
+                            if (audioDescription && !configs[decoderIdx_sec].started) {
+                                rc = NEXUS_SimpleAudioDecoder_Start(configs[decoderIdx_sec].audioDecoder, &configs[decoderIdx_sec].audioProgram);
+                                if (rc) {BERR_TRACE(rc); goto cleanup;}
+                                configs[decoderIdx_sec].started = true;
+                            }
+                        }
+                        if (configs[tmp-1].audioDecoder) {
+                            rc = NEXUS_SimpleAudioDecoder_Start(configs[tmp-1].audioDecoder, &configs[tmp-1].audioProgram);
+                            if (rc) {BERR_TRACE(rc); goto cleanup;}
+                        }
+                        if (configs[tmp-1].playback) {
+                            rc = NEXUS_Playback_Start(configs[tmp-1].playback, configs[tmp-1].file, NULL);
+                            if (rc) {BERR_TRACE(rc); goto cleanup;}
+                        }
+                        configs[tmp-1].started = true;
+                    }
+                }
+                else if (tmp == 2) {
+                    if (configs[tmp-1].started) {
+                        if (configs[tmp-1].audioDecoder) {
+                            NEXUS_SimpleAudioDecoder_Stop(configs[tmp-1].audioDecoder);
+                        }
+                        configs[tmp-1].started = false;
+                    }
+                    else {
+                        if (configs[0].started) {
+                            rc = NEXUS_SimpleAudioDecoder_Start(configs[tmp-1].audioDecoder, &configs[tmp-1].audioProgram);
+                            if (rc) {BERR_TRACE(rc); goto cleanup;}
+                            configs[tmp-1].started = true;
+                        }
+                    }
+                }
+                else
+                {
+                    printf("%s does not have a file associated with it to start\n", dolby_ms12_cert_decoder_name(tmp-1));
+                }
+                break;
+            case 5:
+                dapConfig.dapEnabled = !dapConfig.dapEnabled;
+                rc = apply_dap_config(&dapConfig);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+            case 6:
+                dapConfig.volumeLevelerEnabled = !dapConfig.volumeLevelerEnabled;
+                rc = apply_dap_config(&dapConfig);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+                break;
+            case 7:
+                dapConfig.dialogEnhancerEnabled = !dapConfig.dialogEnhancerEnabled;
+                rc = apply_dap_config(&dapConfig);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+                break;
+            case 8:
+                switch (dapConfig.multiStreamBalance) {
+                case 0:
+                    dapConfig.multiStreamBalance = -32;
+                    break;
+                case -32:
+                    dapConfig.multiStreamBalance = 32;
                     break;
                 default:
+                case 32:
+                    dapConfig.multiStreamBalance = 0;
                     break;
                 }
-                if (dualMono) {
-                    NEXUS_SimpleAudioDecoderSettings simpleAudioSettings;
-                    NEXUS_SimpleAudioDecoder_GetSettings(configs[0].audioDecoder, &simpleAudioSettings);
-                    switch (simpleAudioSettings.primary.dualMonoMode) {
-                    case NEXUS_AudioDecoderDualMonoMode_eStereo: /*->Left*/
-                        simpleAudioSettings.primary.dualMonoMode = NEXUS_AudioDecoderDualMonoMode_eLeft;
-                        break;
-                    case NEXUS_AudioDecoderDualMonoMode_eLeft: /*->Right*/
-                        simpleAudioSettings.primary.dualMonoMode = NEXUS_AudioDecoderDualMonoMode_eRight;
+                rc = apply_dap_config(&dapConfig);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+                break;
+            case 9:
+                if (configs[0].audioDecoder) {
+                    bool dualMono = false;
+                    NEXUS_AudioDecoderStatus audioStatus;
+                    NEXUS_SimpleAudioDecoder_GetStatus(configs[0].audioDecoder, &audioStatus);
+                    switch (audioStatus.codec) {
+                    case NEXUS_AudioCodec_eAc3Plus:
+                        dualMono = (audioStatus.codecStatus.ac3.acmod == NEXUS_AudioAc3Acmod_eTwoMono_1_ch1_ch2);
                         break;
                     default:
-                    case NEXUS_AudioDecoderDualMonoMode_eRight: /*->Stereo*/
-                        simpleAudioSettings.primary.dualMonoMode = NEXUS_AudioDecoderDualMonoMode_eStereo;
                         break;
                     }
-                    NEXUS_SimpleAudioDecoder_SetSettings(configs[0].audioDecoder, &simpleAudioSettings);
+                    if (dualMono) {
+                        NEXUS_SimpleAudioDecoderSettings simpleAudioSettings;
+                        NEXUS_SimpleAudioDecoder_GetSettings(configs[0].audioDecoder, &simpleAudioSettings);
+                        switch (simpleAudioSettings.primary.dualMonoMode) {
+                        case NEXUS_AudioDecoderDualMonoMode_eStereo: /*->Left*/
+                            simpleAudioSettings.primary.dualMonoMode = NEXUS_AudioDecoderDualMonoMode_eLeft;
+                            break;
+                        case NEXUS_AudioDecoderDualMonoMode_eLeft: /*->Right*/
+                            simpleAudioSettings.primary.dualMonoMode = NEXUS_AudioDecoderDualMonoMode_eRight;
+                            break;
+                        default:
+                        case NEXUS_AudioDecoderDualMonoMode_eRight: /*->Stereo*/
+                            simpleAudioSettings.primary.dualMonoMode = NEXUS_AudioDecoderDualMonoMode_eStereo;
+                            break;
+                        }
+                        rc = NEXUS_SimpleAudioDecoder_SetSettings(configs[0].audioDecoder, &simpleAudioSettings);
+                        if (rc) {BERR_TRACE(rc); goto cleanup;}
+                    }
+                    else {
+                        BDBG_WRN(("Primary is not Dual Mono"));
+                    }
                 }
-                else {
-                    BDBG_WRN(("Primary is not Dual Mono"));
+                break;
+            case 10:
+                if (configs[0].audioCodec == NEXUS_AudioCodec_eAc4){
+                    ac4DE = (ac4DE == 12 ? 12 : ac4DE + 1);
+                    NEXUS_SimpleAudioDecoder_GetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, configs[0].audioProgram.primary.codec, &codecSettings);
+                    codecSettings.codecSettings.ac4.dialogEnhancerAmount = ac4DE;
+                    rc = NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+                    if (rc) {BERR_TRACE(rc); goto cleanup;}
+                }
+                break;
+            case 11:
+                if (configs[0].audioCodec == NEXUS_AudioCodec_eAc4){
+                    ac4DE = (ac4DE == -12 ? -12 : ac4DE - 1);
+                    NEXUS_SimpleAudioDecoder_GetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, configs[0].audioProgram.primary.codec, &codecSettings);
+                    codecSettings.codecSettings.ac4.dialogEnhancerAmount = ac4DE;
+                    rc = NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+                    if (rc) {BERR_TRACE(rc); goto cleanup;}
+                }
+                break;
+            case 12:
+                dapConfig.autoPilotEnabled = !dapConfig.autoPilotEnabled;
+                rc = apply_dap_config(&dapConfig);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+                break;
+            default:
+                break;
+
+            }
+        } while(!done);
+
+    }
+    else {
+        for (i = 0; i < decoderIdx_max; i++) {
+            if (configs[i].file && configs[i].playback) {
+                if (videoDecoder && i == decoderIdx_pri) {
+                    NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
+                }
+                if (configs[i].audioDecoder) {
+                    rc = NEXUS_SimpleAudioDecoder_Start(configs[i].audioDecoder, &configs[i].audioProgram);
+                    if (rc) {BERR_TRACE(rc); goto cleanup;}
+                }
+
+                if (audioDescription && configs[1].audioDecoder && i == decoderIdx_pri) {
+                    rc = NEXUS_SimpleAudioDecoder_Start(configs[1].audioDecoder, &configs[1].audioProgram);
+                    if (rc) {BERR_TRACE(rc); goto cleanup;}
+                }
+
+                rc = NEXUS_Playback_Start(configs[i].playback, configs[i].file, NULL);
+                if (rc) {BERR_TRACE(rc); goto cleanup;}
+                configs[i].started = true;
+                if (audioDescription && configs[1].audioDecoder && i == decoderIdx_pri) {
+                    configs[1].started = true;
                 }
             }
-            break;
-        case 10:
-            if (configs[0].audioCodec == NEXUS_AudioCodec_eAc4){
-                ac4DE = (ac4DE == 12 ? 12 : ac4DE + 1);
-                NEXUS_SimpleAudioDecoder_GetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, configs[0].audioProgram.primary.codec, &codecSettings);
-                codecSettings.codecSettings.ac4.dialogEnhancerAmount = ac4DE;
-                NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+        }
+        /* Wait for Primary to finish */
+        BKNI_WaitForEvent(endOfStreamEvent, BKNI_INFINITE);
+    }
+    rc = NEXUS_SUCCESS;
+
+cleanup:
+    if ( rc != NEXUS_SUCCESS ) {
+        enableVerify = false;
+    }
+
+    for ( i = 0; i < decoderIdx_max; i++ ) {
+        if (configs[i].file && configs[i].playback && configs[i].started) {
+            if (videoDecoder && i == decoderIdx_pri) {
+                NEXUS_SimpleVideoDecoder_Stop(videoDecoder);
             }
-            break;
-        case 11:
-            if (configs[0].audioCodec == NEXUS_AudioCodec_eAc4){
-                ac4DE = (ac4DE == -12 ? -12 : ac4DE - 1);
-                NEXUS_SimpleAudioDecoder_GetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, configs[0].audioProgram.primary.codec, &codecSettings);
-                codecSettings.codecSettings.ac4.dialogEnhancerAmount = ac4DE;
-                NEXUS_SimpleAudioDecoder_SetCodecSettings(configs[0].audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+            if (configs[i].audioDecoder) {
+                NEXUS_SimpleAudioDecoder_Stop(configs[i].audioDecoder);
             }
-            break;
-        case 12:
-            dapConfig.autoPilotEnabled = !dapConfig.autoPilotEnabled;
-            apply_dap_config(&dapConfig);
-            break;
-        default:
-            break;
+
+            if (audioDescription && configs[1].audioDecoder && i == decoderIdx_pri && configs[1].started) {
+                NEXUS_SimpleAudioDecoder_Stop(configs[1].audioDecoder);
+            }
+
+            NEXUS_Playback_Stop(configs[i].playback);
+            configs[i].started = false;
+            if (audioDescription && configs[1].audioDecoder && i == decoderIdx_pri) {
+                configs[1].started = false;
+            }
+        }
+    }
+
+    if (enableCapture) {
+        bool testFailed = false;
+        bool wePassed;
+        unsigned long longestLockMismatchesMax = 1;
+        NEXUS_AudioCapture_Stop(capHandles.capture);
+        NEXUS_AudioCapture_Close(capHandles.capture);
+        if ( capHandles.capFile ) {
+            fclose(capHandles.capFile);
+        }
+        if (enableVerify) {
+            BKNI_Memset(&vfyCtx, 0, sizeof(vfyCtx));     /* Reset the verify context buffer. */
+            vfyCtx.captureFile = fopen(captureFileName, "r+");
+            if (!vfyCtx.captureFile) {
+                fprintf(stderr, "### unable to open %s\n", captureFileName);
+                return -1;
+            }
+
+            vfyCtx.verifyFile = fopen(verifyFileName, "r+");
+            if (!vfyCtx.verifyFile) {
+                fprintf(stderr, "### unable to open %s\n", verifyFileName);
+                return -1;
+            }
+            verifyCapture(&vfyCtx);
+            printf("------------------------------------------------------------------------\n");
+            printf("Capture Verification Summary:\n");
+
+            wePassed = ((vfyCtx.samplesInLongestLockPeriod) >= (vfyCtx.sizeCapture / 10 * 9)) ? true : false;
+            if (!wePassed)  {
+                testFailed = true;
+                printf("    Samples In Longest Lock Period:    %8lu    (Min:%8lu)    %s\n",  vfyCtx.samplesInLongestLockPeriod, (vfyCtx.sizeCapture / 10 * 9), wePassed?"PASS":"***FAIL***");
+            }
+
+
+            wePassed = (vfyCtx.mismatchesInLongestLockPeriod <= longestLockMismatchesMax) ? true : false;
+            if (!wePassed) {
+                testFailed = true;
+                printf("    Mismatches In Longest Lock Period: %8lu    (Max:%8lu)    %s\n",  vfyCtx.mismatchesInLongestLockPeriod, longestLockMismatchesMax, wePassed?"PASS":"***FAIL***");
+            }
+
+
+            if (testFailed) {
+                printf(" Test FAILED!!!\n");
+                return 1;
+            }
+            else {
+                printf(" Test PASSED!!!\n");
+            }
+            printf("------------------------------------------------------------------------\n");
 
         }
-    } while(!done);
+    }
 
-    /* I need to clean up after myself */
-
-    return 0;
+    return rc;
 }
 
 void default_dap_config(dapConfiguration *dapConfig)
@@ -831,7 +1149,7 @@ void default_dap_config(dapConfiguration *dapConfig)
     dapConfig->ieqPreset = ieqProfile_max;
 }
 
-void apply_dap_config(dapConfiguration *dapConfig)
+NEXUS_Error apply_dap_config(dapConfiguration *dapConfig)
 {
     NEXUS_Error rc;
     NxClient_AudioProcessingSettings audioProcessingSettings;
@@ -880,6 +1198,8 @@ void apply_dap_config(dapConfiguration *dapConfig)
     if (rc) {
         BERR_TRACE(rc);
     }
+
+    return rc;
 }
 
 const char *dolby_ms12_cert_decoder_name(const decoderIdx idx)
@@ -891,6 +1211,322 @@ const char *dolby_ms12_cert_decoder_name(const decoderIdx idx)
     case decoderIdx_sfx: return "Sound Effects";
     default: return "Invalid";
     }
+}
+
+void endOfStreamCallback(void *context, int param)
+{
+    BSTD_UNUSED(param);
+    BKNI_SetEvent((BKNI_EventHandle)context);
+    return;
+}
+
+void capture_callback(void *pParam, int param)
+{
+    capture_handles * capHandles = (capture_handles*)pParam;
+    NEXUS_AudioCaptureHandle capture;
+    FILE *pFile;
+    NEXUS_Error errCode;
+
+    BSTD_UNUSED(param);
+
+    BDBG_ASSERT(capHandles);
+    capture = capHandles->capture;
+    BDBG_ASSERT(capture);
+    pFile = (FILE*) capHandles->capFile;
+
+    for ( ;; )
+    {
+        void *pBuffer;
+        size_t bufferSize;
+
+        /* Check available buffer space */
+        errCode = NEXUS_AudioCapture_GetBuffer(capture, (void **)&pBuffer, &bufferSize);
+        if ( errCode )
+        {
+            fprintf(stderr, "Error getting capture buffer\n");
+            NEXUS_AudioCapture_Stop(capture);
+            return;
+        }
+
+        if ( bufferSize > 0 )
+        {
+            /*printf("Capture received %lu bytes.", (unsigned long)bufferSize);*/
+            if ( pFile )
+            {
+                /* Write samples to disk */
+                /*printf("  writing %lu bytes to file.", (unsigned long)bufferSize);*/
+                if ( 1 != fwrite(pBuffer, bufferSize, 1, pFile) )
+                {
+                    fprintf(stderr, "Error writing to disk\n");
+                    NEXUS_AudioCapture_Stop(capture);
+                    return;
+                }
+            }
+            /*printf("\n");*/
+
+            /*fprintf(stderr, "Data callback - Wrote %d bytes\n", (int)bufferSize);*/
+            errCode = NEXUS_AudioCapture_ReadComplete(capture, bufferSize);
+            if ( errCode )
+            {
+                fprintf(stderr, "Error committing capture buffer\n");
+                NEXUS_AudioCapture_Stop(capture);
+                return;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
+#define MAX_BUFFER_SIZE     (uint32_t)(256*1024)
+void verifyCapture(CaptureVerifyContext *pCtx)
+{
+    uint32_t *captureBuffer;
+    uint32_t *verifyBuffer;
+    unsigned captureSampleIndex = 0;
+    unsigned verifySampleIndex = 0;
+    const unsigned  lockSampleCount   = 10;                      /* Need this many consecutive matches to lock */
+    const unsigned  unlockSampleCount = 10;                      /* Need this many consecutive mismatches to unlock */
+    const unsigned  totalMismatchLimit = 100;
+    unsigned captureBufferSize;
+    unsigned long captureFileSize = 0;
+    unsigned verifyBufferSize;
+    unsigned tempIndex=0;
+    bool done = false;
+    bool startCaptureFound = false;
+    bool startVerifyFound = false;
+
+    captureBuffer = BKNI_Malloc(MAX_BUFFER_SIZE*sizeof(uint32_t));
+    verifyBuffer = BKNI_Malloc(MAX_BUFFER_SIZE*sizeof(uint32_t));
+
+    /* find the first non-zero sample */
+    fseek(pCtx->captureFile, 0, SEEK_END);
+    captureFileSize = ftell(pCtx->captureFile);
+    fseek(pCtx->captureFile, 0, SEEK_SET);
+
+    while (!startCaptureFound) {
+        captureBufferSize = fread(captureBuffer,  sizeof(uint32_t), MAX_BUFFER_SIZE, pCtx->captureFile);
+        if (captureBufferSize == 0) {
+            BDBG_ERR(("Unable to find non-zero byte in capture file."));
+            goto done;
+        }
+        else {
+            tempIndex += captureBufferSize;
+        }
+        for (captureSampleIndex = 0; captureSampleIndex < captureBufferSize; captureSampleIndex++) {
+            uint32_t  mySample;
+            mySample = captureBuffer[captureSampleIndex];
+
+            if (mySample != 0x0) {
+                startCaptureFound = true;
+                /*printf("---capture begining found at %d %x\n", captureSampleIndex, mySample);*/
+                pCtx->sizeCapture = ((captureFileSize - (tempIndex - captureBufferSize + captureSampleIndex)) / 4);
+                break;
+            }
+
+        }
+    }
+
+    while (!startVerifyFound) {
+        verifyBufferSize = fread(verifyBuffer,  sizeof(uint32_t), MAX_BUFFER_SIZE, pCtx->verifyFile);
+        if (verifyBufferSize == 0) {
+            BDBG_ERR(("Unable to find non-zero byte in verify file."));
+            goto done;
+        }
+        for (verifySampleIndex = 0; verifySampleIndex < verifyBufferSize; verifySampleIndex++) {
+            uint32_t  mySample;
+            mySample = verifyBuffer[verifySampleIndex];
+            if (mySample != 0x0) {
+                startVerifyFound = true;
+                pCtx->refIndex += verifySampleIndex;
+                /*printf("---verify begining found at %d %x\n", verifySampleIndex, mySample);*/
+                break;
+            }
+
+        }
+        if (!startVerifyFound) {
+            pCtx->refIndex += verifyBufferSize;
+        }
+    }
+
+    while (!done) {
+        for (; captureSampleIndex < captureBufferSize && verifySampleIndex < verifyBufferSize; captureSampleIndex++)
+        {
+            uint32_t  myCaptureSample;
+
+            if (pCtx->totalMismatches == totalMismatchLimit) {
+                printf("Reached mismatch limit of %lu... Giving up!\n", pCtx->totalMismatches);
+                pCtx->totalMismatches++;         /* This is so we don't keep printing this message. */
+            }
+
+            if (pCtx->totalMismatches >= totalMismatchLimit) break;
+
+            myCaptureSample = captureBuffer[captureSampleIndex];
+            pCtx->totalSamples++;
+            pCtx->samplesSinceLastLock++;
+
+            /* Unlocked State: Look through the reference samples for a match with the current sample. */
+            if (pCtx->state == eCaptureVerfiyStateUnlocked) {
+                if (myCaptureSample != 0x0) {            /* Ignore null samples when we're unlocked */
+                    tempIndex = 0;
+                    while (pCtx->state == eCaptureVerfiyStateUnlocked) {
+                        if (verifySampleIndex == verifyBufferSize) {
+                            verifyBufferSize = fread(verifyBuffer,  sizeof(uint32_t), MAX_BUFFER_SIZE, pCtx->verifyFile);
+                            if (verifyBufferSize == 0) {
+                                /*printf("No more Data in Verify File\n");*/
+                                done = true;
+                                break;
+                            }
+                            verifySampleIndex = 0;
+                        }
+
+                        for (; verifySampleIndex < verifyBufferSize; verifySampleIndex++, tempIndex++) {
+                            if (verifyBuffer[verifySampleIndex] == myCaptureSample) {
+                                /*printf("At sample %lu %s -> %s: Found match at refIndex:%d\n", pCtx->totalSamples, captureVerifyStateName[pCtx->state], captureVerifyStateName[eCaptureVerfiyStateLocking], pCtx->refIndex + tempIndex);*/
+                                pCtx->refIndex += tempIndex;
+                                tempIndex = 0;
+                                pCtx->state = eCaptureVerfiyStateLocking;
+                                pCtx->matches = 0;
+                                verifySampleIndex++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            /* Partially Locked States (Locking, Locked, Unlocking) */
+            else {
+                bool match = true;
+
+                /* Check this sample's value against the reference array. */
+                if (myCaptureSample != verifyBuffer[verifySampleIndex]) {
+                    /*printf("Value mismatch: expected: %d  got %d\n", verifyBuffer[verifySampleIndex], myCaptureSample);*/
+                    match = false;
+                }
+
+                /* Handle Locking state... */
+                if (pCtx->state == eCaptureVerfiyStateLocking) {
+                    if (match) {
+                        pCtx->matches++;
+                        tempIndex++;
+                        verifySampleIndex++;
+
+                        if (pCtx->matches > lockSampleCount) {
+                            /*printf("At sample %lu %s -> %s: Found match at refIndex:%d\n", pCtx->totalSamples, captureVerifyStateName[pCtx->state], captureVerifyStateName[eCaptureVerfiyStateLocked], pCtx->refIndex + tempIndex);*/
+                            pCtx->state = eCaptureVerfiyStateLocked;
+                            pCtx->refIndex += tempIndex;
+                            tempIndex = 0;
+                            pCtx->mismatchesSinceLastLock = 0;
+                            pCtx->samplesSinceLastLock = 0;
+                        }
+                    }
+                    else {
+                        /*printf("At sample %lu %s -> %s: Found mismatch at refIndex:%d\n",
+                                pCtx->totalSamples, captureVerifyStateName[pCtx->state], captureVerifyStateName[eCaptureVerfiyStateUnlocked], pCtx->refIndex + tempIndex); */
+                        pCtx->state = eCaptureVerfiyStateUnlocked;
+                    }
+                }
+
+                /* Handle Locked state... */
+                else if (pCtx->state == eCaptureVerfiyStateLocked) {
+                    if (match) {
+                        pCtx->totalMatches++;
+                        tempIndex++;
+                        verifySampleIndex++;
+                    }
+                    else {
+                        /*printf("At sample %lu %s -> %s: Found mismatch at refIndex:%d\n", pCtx->totalSamples, captureVerifyStateName[pCtx->state], captureVerifyStateName[eCaptureVerfiyStateUnlocking], pCtx->refIndex + tempIndex);*/
+                        pCtx->state = eCaptureVerfiyStateUnlocking;
+                        pCtx->mismatches = 0;
+                    }
+                }
+
+                /* Handle Unlocking state... */
+                else if (pCtx->state == eCaptureVerfiyStateUnlocking) {
+                    if (match) {
+                        pCtx->totalMatches++;
+                        tempIndex++;
+                        verifySampleIndex++;
+                        /*printf("At sample %lu %s -> %s: Found match at refIndex:%d\n",
+                                pCtx->totalSamples, captureVerifyStateName[pCtx->state], captureVerifyStateName[eCaptureVerfiyStateLocked], pCtx->refIndex + tempIndex);*/
+
+                        pCtx->totalMismatches += pCtx->mismatches;  /* Only count mismatches if we're staying locked. */
+                        pCtx->mismatchesSinceLastLock += pCtx->mismatches;
+                        pCtx->refIndex += tempIndex;
+                        tempIndex = 0;
+
+                        pCtx->state = eCaptureVerfiyStateLocked;
+                    }
+                    else {
+                        pCtx->mismatches++;
+                        if (pCtx->mismatches > unlockSampleCount) {
+                            /*printf("At sample %lu %s -> %s: Found mismatch at refIndex:%d\n", pCtx->totalSamples, captureVerifyStateName[pCtx->state], captureVerifyStateName[eCaptureVerfiyStateUnlocked], pCtx->refIndex + tempIndex);*/
+                            pCtx->state = eCaptureVerfiyStateUnlocked;
+                        }
+                    }
+                }
+            }
+
+            if (pCtx->state == eCaptureVerfiyStateLocked || pCtx->state == eCaptureVerfiyStateUnlocking) {
+                if (pCtx->samplesSinceLastLock > pCtx->samplesInLongestLockPeriod) {
+                    pCtx->samplesInLongestLockPeriod    = pCtx->samplesSinceLastLock;
+                    pCtx->mismatchesInLongestLockPeriod = pCtx->mismatchesSinceLastLock;
+                }
+            }
+            if (pCtx->totalSamples % 100000 == 0) {
+                if (pCtx->state == eCaptureVerfiyStateLocked || pCtx->state == eCaptureVerfiyStateUnlocking) {
+                    if (pCtx->samplesSinceLastLock == 0) pCtx->samplesSinceLastLock++;  /* Prevent divide-by-zero */
+
+                    #if 0
+                    printf("Sample %luK  State: %s   Since last lock at %luK samples: total:%luK mismatches:%lu (%lu PPM)\n",
+                           pCtx->totalSamples/1000,                               /* Sample %luK */
+                           captureVerifyStateName[pCtx->state],                   /* State:%s */
+                           (pCtx->totalSamples - pCtx->samplesSinceLastLock)/1000,/* Since last lock at %luK samples: */
+                           pCtx->samplesSinceLastLock/1000,                       /* total:%luK */
+                           pCtx->mismatchesSinceLastLock,                         /* mismatches:%lu */
+                           ((pCtx->mismatchesSinceLastLock * 1000000) + (pCtx->samplesSinceLastLock/2)) / pCtx->samplesSinceLastLock );
+                    #endif
+                }
+                else {
+                    #if 0
+                    printf("Sample %luK  State: %s Since last lock at %luK samples\n",
+                           pCtx->totalSamples/1000,                               /* Sample %luK */
+                           captureVerifyStateName[pCtx->state] ,
+                           (pCtx->totalSamples - pCtx->samplesSinceLastLock)/1000);                 /* State:%s */
+                    #endif
+                }
+            }
+
+        }
+
+        if (captureSampleIndex == captureBufferSize) {
+            captureBufferSize = fread(captureBuffer,  sizeof(uint32_t), MAX_BUFFER_SIZE, pCtx->captureFile);
+            if (captureBufferSize == 0) {
+                /*printf("No more Data in Capture File\n");*/
+                done = true;
+                break;
+            }
+            captureSampleIndex = 0;
+        }
+
+        if (verifySampleIndex == verifyBufferSize) {
+            verifyBufferSize = fread(verifyBuffer,  sizeof(uint32_t), MAX_BUFFER_SIZE, pCtx->verifyFile);
+            if (verifyBufferSize == 0) {
+                /*printf("No more Data in Verify File\n");*/
+                done = true;
+                break;
+            }
+            verifySampleIndex = 0;
+        }
+    }
+
+done:
+    BKNI_Free(captureBuffer);
+    BKNI_Free(verifyBuffer);
+
+    return;
 }
 
 
@@ -921,5 +1557,6 @@ void print_usage(void) {
     printf("  -multiDRC [line|rf]   Sets multichannel DRC configuration\n");
     printf("  -ac4AssociateMixing [notSpecified|visual|hearing|commentary]   Enables AC4 Associate Mixing\n");
     printf("  -ac4Language <language> Sets prefrence for specified language\n");
+    printf("  -once     Exits application when primary completes playback\n");
     printf("\n");
 }

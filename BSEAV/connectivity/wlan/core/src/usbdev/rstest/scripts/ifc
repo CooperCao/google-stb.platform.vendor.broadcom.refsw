@@ -1,0 +1,3 @@
+. setdev
+chmod go+rw $DEV
+echo "ifconfig en0 up 192.168.1.2" > $DEV

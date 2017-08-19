@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -826,6 +826,9 @@ typedef struct {
                           /* to convert use: float V = voltage/1000.; */
     signed temperature;   /* this is the last converted temperature (in thousands) read from internal chip thermister */
                           /* to convert use: float centigrade = temperature/1000.; */
+    unsigned voltage1;    /* voltage on second clock domain */
+    signed temperature1;  /* temperature on second clock domain */
+                          /* to convert use: float centigrade = temperature/1000.; */
     bool enabled;         /* AVS is enabled in the bootloader/CFE */
     bool tracking;        /* AVS-tracking is enabled in Nexus system software */
 } BCHP_AvsData;
@@ -886,6 +889,14 @@ typedef struct BCHP_MemoryLayout
     } memc[3];
 } BCHP_MemoryLayout;
 
+typedef struct BCHP_PmapSettings
+{
+    unsigned value;
+    unsigned shift;
+    unsigned mask;
+    unsigned reg;
+} BCHP_PmapSettings;
+
 #if BCHP_UNIFIED_IMPL
 typedef struct BCHP_OpenSettings
 {
@@ -893,6 +904,7 @@ typedef struct BCHP_OpenSettings
     unsigned productId; /* hex value. if non-zero, this will override BCHP_Info.productId. default is zero. */
     BCHP_MemoryLayout memoryLayout;
     unsigned pMapId;
+    BCHP_PmapSettings *pMapSettings;
     bool skipInitialReset;
 } BCHP_OpenSettings;
 
@@ -1136,7 +1148,8 @@ BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature 
 /* BP3 Do NOT Modify End */
 
 /* Use the following API in order to reset SAGE. */
-bool BCHP_SAGE_IsStarted(BREG_Handle hReg);
+bool BCHP_SAGE_IsStarted(BREG_Handle hReg); /* returns true if SAGE is CURRENTLY running */
+bool BCHP_SAGE_HasEverStarted(BREG_Handle hReg); /* returns true if SAGE has EVER run. It may or may not be currently running */
 BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
 
 #ifdef __cplusplus

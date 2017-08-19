@@ -463,6 +463,7 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     decoderOpenSettings.dspIndex = pSettings->dspIndex;
     decoderOpenSettings.ancillaryDataFifoSize = pSettings->ancillaryDataFifoSize;
     decoderOpenSettings.karaokeSupported = pSettings->karaokeSupported;
+    decoderOpenSettings.multichannelFormat = pSettings->multichannelFormat==NEXUS_AudioMultichannelFormat_e7_1 ? BAPE_MultichannelFormat_e7_1 : BAPE_MultichannelFormat_e5_1;
     switch ( pSettings->type )
     {
     default:
@@ -555,6 +556,10 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
         BDBG_ASSERT(0 != raveSettings.config.Itb.Length);
         raveSettings.config.Cdb.Length = pSettings->fifoSize;
     }
+
+    raveSettings.config.Cdb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_CDB;
+    raveSettings.config.Itb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_ITB;
+
     raveSettings.heap = pSettings->cdbHeap;
 
     LOCK_TRANSPORT();
@@ -1875,7 +1880,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
             codecSettings.codecSettings.als.stereoMode = BAPE_AlsStereoMode_eLtRt;
             break;
         default:
-            BDBG_ERR(("%s Invalid Stereo Mode(%d) for ALS.  Only ARIB and LtRT supported", __FUNCTION__, pSettings->codecSettings.als.stereoMode));
+            BDBG_ERR(("%s Invalid Stereo Mode(%d) for ALS.  Only ARIB and LtRT supported", BSTD_FUNCTION, pSettings->codecSettings.als.stereoMode));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
         }
@@ -2338,7 +2343,6 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
 {
     BAPE_DecoderTsmSettings tsmSettings;
     BAPE_DecoderSettings decoderSettings, currentDecoderSettings;
-    BAPE_MixerInputVolume volume, currentVolume;
     unsigned i,j;
     BERR_Code errCode;
     bool forceMute=false;
@@ -2554,19 +2558,19 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
        Otherwise this forces a Shutdown() call in the application. */
     if ( handle->connectors[NEXUS_AudioConnectorType_eStereo].pMixerData )
     {
-        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo], &volume);
+        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo], &handle->volume.current);
     }
     else if ( handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo].pMixerData )
     {
-        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo], &volume);
+        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo], &handle->volume.current);
     }
     else if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].pMixerData )
     {
-        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], &volume);
+        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], &handle->volume.current);
     }
     else if ( handle->connectors[NEXUS_AudioConnectorType_eMono].pMixerData )
     {
-        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMono], &volume);
+        NEXUS_AudioInput_P_GetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMono], &handle->volume.current);
     }
     else
     {
@@ -2574,20 +2578,20 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
         goto skip_volume;
     }
 
-    BKNI_Memcpy(&currentVolume, &volume, sizeof(currentVolume));
+    BKNI_Memcpy(&handle->volume.next, &handle->volume.current, sizeof(handle->volume.current));
 
     /* NEXUS and APE use opposite volume matrix layouts. Swap the matrix here */
     for ( i = 0; i < NEXUS_AudioChannel_eMax; i++ )
     {
         for ( j = 0; j < NEXUS_AudioChannel_eMax; j++ )
         {
-            volume.coefficients[i][j] = handle->settings.volumeMatrix[j][i];
+            handle->volume.next.coefficients[i][j] = handle->settings.volumeMatrix[j][i];
         }
     }
 
-    volume.muted  = mute;
+    handle->volume.next.muted  = mute;
 
-    if (BKNI_Memcmp(&volume, &currentVolume, sizeof(volume)) == 0)
+    if (BKNI_Memcmp(&handle->volume.next, &handle->volume.current, sizeof(handle->volume.next)) == 0)
     {
         /* volume hasn't changed */
         goto skip_volume;
@@ -2595,7 +2599,7 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
 
     if ( handle->connectors[NEXUS_AudioConnectorType_eStereo].pMixerData )
     {
-        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo], &volume);
+        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eStereo], &handle->volume.next);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2603,7 +2607,7 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     }
     if ( handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo].pMixerData )
     {
-        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo], &volume);
+        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eAlternateStereo], &handle->volume.next);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2611,7 +2615,7 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     }
     if ( handle->connectors[NEXUS_AudioConnectorType_eMultichannel].pMixerData )
     {
-        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], &volume);
+        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], &handle->volume.next);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2619,7 +2623,7 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     }
     if ( handle->connectors[NEXUS_AudioConnectorType_eMono].pMixerData )
     {
-        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMono], &volume);
+        errCode = NEXUS_AudioInput_P_SetVolume(&handle->connectors[NEXUS_AudioConnectorType_eMono], &handle->volume.next);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2672,11 +2676,16 @@ NEXUS_Error NEXUS_AudioDecoder_GetAstmStatus_isr(
     BKNI_ASSERT_ISR_CONTEXT();
 
     rc = BAPE_Decoder_GetTsmStatus_isr(audioDecoder->channel, &tsmStatus);
-    audioDecoder->astm.status.ptsStcDiff = tsmStatus.ptsStcDifference;
+    if (rc != NEXUS_SUCCESS) {
+        audioDecoder->astm.status.ptsStcDiff = 0;
+        rc = NEXUS_SUCCESS;
+    }
+    else {
+        audioDecoder->astm.status.ptsStcDiff = tsmStatus.ptsStcDifference;
+    }
 
     *pAstmStatus = audioDecoder->astm.status;
-
-    return 0;
+    return rc;
 }
 #endif
 
@@ -3343,8 +3352,14 @@ err:
 static void NEXUS_AudioDecoder_P_ApplyDefaultInputVolume(NEXUS_AudioInputHandle input)
 {
     BAPE_MixerInputVolume volume;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
     NEXUS_AudioInput_P_GetVolume(input, &volume);
-    NEXUS_AudioInput_P_SetVolume(input, &volume);
+    rc = NEXUS_AudioInput_P_SetVolume(input, &volume);
+    if (rc)
+    {
+        BDBG_ERR(("Error applying default input volume"));
+    }
 }
 
 static void NEXUS_AudioDecoder_P_SetDefaultVolume(NEXUS_AudioDecoderHandle handle)
@@ -3797,7 +3812,7 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
     BAPE_DecoderStatus decoderStatus;
     bool stop=false, start=false;
 
-    BDBG_MSG(("%s", __FUNCTION__));
+    BDBG_MSG(("%s", BSTD_FUNCTION));
     if (!handle->started) {
         return;
     }

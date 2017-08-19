@@ -212,9 +212,6 @@ int thumbdecoder_open_file( thumbdecoder_t handle, const char *streamname, const
         handle->indexfile = bfile_stdio_read_attach(handle->stdio_indexfile);
     }
     else if (handle->results.transportType == NEXUS_TransportType_eTs) {
-        bfile_io_read_t read;
-        BNAV_AVC_Entry nav;
-        int n;
         unsigned packetSize = handle->results.timestampType == NEXUS_TransportTimestampType_eNone ? 188 : 192;
         /* for unindexed TS files, attempt an on-the-fly index to get the first I frame. */
         handle->indexfile = botf_bcmindexer_open(streamname, handle->results.video[0].pid, handle->results.video[0].codec, packetSize);

@@ -65,6 +65,13 @@ void Arch::Timer::init(void *deviceTree) {
 
 	intrNumNS = PPI_START + parseInt(virtTimerRange+sizeof(uint32_t), sizeof(uint32_t));
 	intrNumS = PPI_START + parseInt(secureTimerRange+sizeof(uint32_t), sizeof(uint32_t));
+
+	/* Enable user access to virtual timer */
+	register unsigned long cntkctl;;
+	asm volatile("mrs %[xt], CNTKCTL_EL1": [xt] "=r" (cntkctl)::);
+	cntkctl = cntkctl | 0x2; //Enable user accesses to the CNTFRQ_EL0 and CNTVCT_EL0.
+	asm volatile("msr CNTKCTL_EL1, %[xt]": : [xt] "r" (cntkctl):);
+
 }
 
 uint64_t Arch::Timer::frequency() {

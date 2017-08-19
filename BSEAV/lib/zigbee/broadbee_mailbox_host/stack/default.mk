@@ -1,53 +1,47 @@
 ##############################################################################
-# (c) 2014 Broadcom Corporation
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its
-# licensors, and may only be used, duplicated, modified or distributed pursuant
-# to the terms and conditions of a separate, written license agreement executed
-# between you and Broadcom (an "Authorized License").  Except as set forth in
-# an Authorized License, Broadcom grants no license (express or implied), right
-# to use, or waiver of any kind with respect to the Software, and Broadcom
-# expressly reserves all rights in and to the Software and all intellectual
-# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 # NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
 # Except as expressly set forth in the Authorized License,
 #
-# 1. This program, including its structure, sequence and organization,
-#    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#    reasonable efforts to protect the confidentiality thereof, and to use
-#    this information only in connection with your use of Broadcom integrated
-#    circuit products.
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
+##############################################################################
+
 ##############################################################################
 #
-# FILENAME: $Workfile: trunk/stack/default.mk $
-#
 # DESCRIPTION:
-#   Stack make default configuration.
+#       Stack make default configuration.
 #
-# $Revision: 3536 $
-# $Date: 2014-09-11 07:21:52Z $
-#
-##########################################################################################
+##############################################################################
 
 
 ### Suppress echoing of shell commands in recipes by default.
@@ -116,7 +110,7 @@ COMPINCL +=
 # listed in them does not belong to a component it will not be included into such
 # component build. Use '%' as the wildcard. Files may be specified without extension.
 
-SRCEXCL +=
+SRCEXCL += bbMailIntegrated bbExtIntegrated
 SRCINCL +=
 
 
@@ -124,7 +118,7 @@ SRCINCL +=
 # To override the default settings use the following instruction in the project config.mk.
 #   override CDEFS = ...
 CDEFS ?= \
-    __ML507__ \
+    __i386__ \
     _DEBUG_ \
     _DEBUG_COMPLEX_ \
     _DEBUG_LOG_ \
@@ -148,23 +142,27 @@ CDEFS ?= \
     _MAILBOX_WRAPPERS_ZCL_=2 \
     _MAILBOX_WRAPPERS_PROFILE_=2 \
     _MAILBOX_WRAPPERS_ZHA_=2 \
+    _MAKE_CC_PHY_ \
+    _MAKE_CC_MAC_ \
     _MAC_BAN_TABLE_SIZE_=4 \
     _ZBPRO_ \
     USE_ZBPRO_PROFILE_ZHA \
+    _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_ \
     _WORKAROUND_FOR_AT_BEHAVIOR_ \
     _RF4CE_ \
     RF4CE_TARGET \
-    USE_RF4CE_NWK \
     USE_RF4CE_PROFILE_ZRC \
     USE_RF4CE_PROFILE_MSO \
-    RF4CE_CUSTOM_COMPILE_RULES \
-    RF4CE_NWKC_NODE_CAPABILITIES=0x07 \
-    RF4CE_NWKC_VENDOR_IDENTIFIER=0x1234 \
-    RF4CE_NWKC_VENDOR_STRING="\"BRDBEE\"" \
+    SET_RF4CE_NWKC_NODE_CAPABILITIES=0x07 \
+    SET_RF4CE_NWKC_VENDOR_IDENTIFIER=0x1234 \
+    SET_RF4CE_NWKC_VENDOR_STRING="\"BRDBEE\"" \
     ENABLE_RF4CE_FREQUENCY_AGILITY \
     RF4CE_NWK_NVM_ENABLED \
     RF4CE_NWK_GU_DISCOVERY \
-    RF4CE_NWK_INCLUDE_FA_WARNINGS
+    RF4CE_NWK_INCLUDE_FA_WARNINGS \
+    _RELEASE_TO_HOST_ \
+    _PHY_SAP_IEEE_ \
+    _PHY_TEST_HOST_INTERFACE_
 
 
 ### Define the default configuration of the Stack.
@@ -208,6 +206,7 @@ USE_RF4CE_PROFILE_MSO ?= 1
 # --- Override with =0 if a component shall be compiled from separate source files
 _SYS_INTEGRATED_ ?= 1
 _MAIL_INTEGRATED_ ?= 1
+_EXT_INTEGRATED_ ?= 1
 _NVM_INTEGRATED_ ?= 1
 _RPC_INTEGRATED_ ?= 1
 _SEC_INTEGRATED_ ?= 1
@@ -215,6 +214,7 @@ _HAL_INTEGRATED_ ?= 1
 _SOC_INTEGRATED_ ?= 1
 _ML507_INTEGRATED_ ?= 1
 _IEEE_INTEGRATED_ ?= 1
+_PHY_SAP_IEEE_ ?= 0
 _ZBPRO_NWK_INTEGRATED_ ?= 1
 _ZBPRO_APS_INTEGRATED_ ?= 1
 _ZBPRO_ZDO_INTEGRATED_ ?= 1
@@ -226,5 +226,9 @@ _RF4CE_NWK_INTEGRATED_ ?= 1
 _RF4CE_PM_INTEGRATED_ ?= 1
 _RF4CE_ZRC_INTEGRATED_ ?= 1
 _RF4CE_MSO_INTEGRATED_ ?= 1
+
+_BUILD_LIB_ ?= 0
+
+_SIZE_DUMP_ ?= 0
 
 ### eof default.mk #######################################################################

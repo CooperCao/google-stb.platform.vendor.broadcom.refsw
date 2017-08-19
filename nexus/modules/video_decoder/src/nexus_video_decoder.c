@@ -634,17 +634,6 @@ void NEXUS_VideoDecoder_P_GetDefaultExtendedSettings_isrsafe(NEXUS_VideoDecoderE
     pSettings->lowLatencySettings.maxLatency = 200;
     NEXUS_CallbackDesc_Init(&pSettings->dataReadyCallback);
     NEXUS_CallbackDesc_Init(&pSettings->s3DTVStatusChanged);
-    pSettings->masteringDisplayColorVolume.redPrimary.x = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.redPrimary.y = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.greenPrimary.x = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.greenPrimary.y = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.bluePrimary.x = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.bluePrimary.y = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.whitePoint.x = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.whitePoint.y = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.luminance.max = 0xFFFFFFFF;
-    pSettings->masteringDisplayColorVolume.luminance.min = 0xFFFFFFFF;
-    pSettings->eotf = NEXUS_VideoEotf_eInvalid;
 }
 
 NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_RaveOpenSettings *raveSettings, const NEXUS_VideoDecoderOpenMosaicSettings *pOpenSettings)
@@ -1543,16 +1532,14 @@ static void NEXUS_VideoDecoderModule_P_PrintDecoders(NEXUS_VideoDecoderHandle vi
 {
     unsigned i;
     for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
-        NEXUS_VideoFormatInfo info;
         unsigned d, j;
         const NEXUS_VideoDecoderMemory *pmemory = &g_NEXUS_videoDecoderModuleSettings.memory[i];
 
         if (!pmemory->used) continue;
-        NEXUS_VideoFormat_GetInfo(pmemory->maxFormat, &info);
-        BDBG_LOG(("VideoDecoder[%d]: AVD%d, maxFormat %4dx%4d, %2d bit decode, %2d bit feeder, AVC51? %c, MVC? %c, %d mosaics at %dx%d",
+        BDBG_LOG(("VideoDecoder[%d]: AVD%d, maxFormat %s, %2d bit decode, %2d bit feeder, AVC51? %c, MVC? %c, %d mosaics at %dx%d",
             i,
             g_NEXUS_videoDecoderModuleSettings.avdMapping[i],
-            info.width, info.height,
+            NEXUS_P_VideoFormat_ToStr_isrsafe(pmemory->maxFormat),
             pmemory->colorDepth,
             g_NEXUS_videoDecoderCapabilities.videoDecoder[i].feeder.colorDepth,
             pmemory->avc51Supported?'y':'n',
@@ -1717,6 +1704,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
         }
         channelSettings.b10BitBuffersEnable = colorDepth >= 10;
     }
+    channelSettings.uiExtraPictureMemoryAtoms = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].extraPictureBuffers;
 
     {
         BXVD_FWMemConfig memConfig;
@@ -1808,8 +1796,8 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
     videoDecoder->decoder.xvd.pictureMemory =  channelSettings.hChannelPictureBlock;
     videoDecoder->decoder.xvd.secondaryPictureMemory =  channelSettings.hChannelPictureBlock1;
     videoDecoder->decoder.xvd.cabacMemory =  channelSettings.hChannelCabacBlock;
-
     channelSettings.bSVC3DModeEnable = videoDecoder->openSettings.openSettings.svc3dSupported;
+    channelSettings.uiExtraPictureMemoryAtoms = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].extraPictureBuffers;
 
     rc = NEXUS_VideoDecoder_P_SetMosaicIndex(videoDecoder);
     if (rc) return BERR_TRACE(rc);
@@ -2068,7 +2056,6 @@ void NEXUS_VideoDecoder_P_CloseChannel(NEXUS_VideoDecoderHandle videoDecoder)
         BMMA_Free(videoDecoder->decoder.xvd.cabacMemory);
         videoDecoder->decoder.xvd.cabacMemory=NULL;
     }
-    videoDecoder->crcMode = false;
 }
 
 void NEXUS_VideoDecoder_GetDefaultOpenSettings(NEXUS_VideoDecoderOpenSettings *pOpenSettings)
@@ -2106,10 +2093,9 @@ void NEXUS_VideoDecoder_GetDefaultOpenMosaicSettings(NEXUS_VideoDecoderOpenMosai
 NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_OpenMosaic_Avd(unsigned parentIndex, unsigned index, const NEXUS_VideoDecoderOpenMosaicSettings *pOpenSettings)
 {
     NEXUS_VideoDecoderHandle videoDecoder;
-    BERR_Code rc=0;
     if (!pOpenSettings) {
         /* no meaningful default. params required. */
-        rc=BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
     videoDecoder = NEXUS_VideoDecoder_P_Open(parentIndex, index, pOpenSettings);
@@ -2501,6 +2487,17 @@ void NEXUS_VideoDecoder_GetDefaultStartSettings(NEXUS_VideoDecoderStartSettings 
     pStartSettings->codec = NEXUS_VideoCodec_eMpeg2;
     pStartSettings->enhancementPidChannel = NULL;
     pStartSettings->nonRealTime = false;
+    pStartSettings->masteringDisplayColorVolume.redPrimary.x = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.redPrimary.y = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.greenPrimary.x = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.greenPrimary.y = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.bluePrimary.x = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.bluePrimary.y = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.whitePoint.x = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.whitePoint.y = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.luminance.max = 0xFFFFFFFF;
+    pStartSettings->masteringDisplayColorVolume.luminance.min = 0xFFFFFFFF;
+    pStartSettings->eotf = NEXUS_VideoEotf_eInvalid;
     return;
 }
 
@@ -3314,7 +3311,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
         cfg.uiPreRollRate = pStartSettings->prerollRate;
     }
     cfg.pContextMap = &raveStatus.xptContextMap;
-    cfg.bCrcMode = videoDecoder->crcMode;
+    cfg.bCrcMode = (pStartSettings->crcMode == NEXUS_VideoDecoderCrcMode_eMfd);
     cfg.bIgnoreDPBOutputDelaySyntax = videoDecoder->extendedSettings.ignoreDpbOutputDelaySyntax;
     cfg.bZeroDelayOutputMode = videoDecoder->extendedSettings.zeroDelayOutputMode;
     cfg.bEarlyPictureDeliveryMode = videoDecoder->extendedSettings.earlyPictureDeliveryMode;
@@ -3323,20 +3320,20 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
     cfg.bIgnoreNumReorderFramesEqZero = videoDecoder->extendedSettings.ignoreNumReorderFramesEqZero;
 
     /* Set Dynamic Range Settings */
-    cfg.stXDMSettings.stColorOverride.eOverrideMode = (videoDecoder->extendedSettings.eotf == NEXUS_VideoEotf_eInvalid)?BXDM_PictureProvider_ColorOverrideMode_eNone:BXDM_PictureProvider_ColorOverrideMode_eForce;
+    cfg.stXDMSettings.stColorOverride.eOverrideMode = (pStartSettings->eotf == NEXUS_VideoEotf_eInvalid)?BXDM_PictureProvider_ColorOverrideMode_eNone:BXDM_PictureProvider_ColorOverrideMode_eForce;
 
     {
         NEXUS_TransferCharacteristics tc, preferredTc;
-        NEXUS_P_EotfToTransferCharacteristics_isrsafe(videoDecoder->extendedSettings.eotf, &tc, &preferredTc);
+        NEXUS_P_EotfToTransferCharacteristics_isrsafe(pStartSettings->eotf, &tc, &preferredTc);
         cfg.stXDMSettings.stColorOverride.stSDR.eTransferCharacteristics = NEXUS_P_TransferCharacteristics_ToMagnum_isrsafe(tc);
         cfg.stXDMSettings.stColorOverride.stHDR.eTransferCharacteristics = NEXUS_P_TransferCharacteristics_ToMagnum_isrsafe(preferredTc);
     }
 
-    NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(&videoDecoder->extendedSettings.contentLightLevel,
+    NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(&pStartSettings->contentLightLevel,
             &cfg.stXDMSettings.stColorOverride.stHDR.ulMaxContentLight,
             &cfg.stXDMSettings.stColorOverride.stHDR.ulAvgContentLight);
 
-    NEXUS_P_MasteringDisplayColorVolume_ToMagnum_isrsafe(&videoDecoder->extendedSettings.masteringDisplayColorVolume,
+    NEXUS_P_MasteringDisplayColorVolume_ToMagnum_isrsafe(&pStartSettings->masteringDisplayColorVolume,
             cfg.stXDMSettings.stColorOverride.stHDR.stDisplayPrimaries,
             &cfg.stXDMSettings.stColorOverride.stHDR.stWhitePoint,
             &cfg.stXDMSettings.stColorOverride.stHDR.ulMaxDispMasteringLuma,
@@ -4529,7 +4526,6 @@ static BAVC_Polarity DML_P_GetInterruptPolarity_isr( const BXDM_DisplayInterrupt
 static bool DML_P_PeekNextPic_isr(NEXUS_VideoDecoderExternalTsmData * pVideoDecoderLite, DML_DispPicStruct *EvalPic)
 {
     BXDM_Picture * UnifiedPicture;
-    uint32_t SerialNumber;
 
     EvalPic->pDispPicture = NULL;
     EvalPic->valid = false;
@@ -4541,7 +4537,6 @@ static bool DML_P_PeekNextPic_isr(NEXUS_VideoDecoderExternalTsmData * pVideoDeco
         pContext = BFIFO_READ(&pVideoDecoderLite->displayPictureQueue.displayFifo);
         BDBG_ASSERT(NULL != pContext);
         UnifiedPicture = pContext->pUnifiedPicture;
-        SerialNumber = pContext->serialNumber;
 
         /* Release it if not ment for Display*/
         if (pContext->dropPicture || UnifiedPicture->stPictureType.bLastPicture)
@@ -4704,13 +4699,11 @@ static void DML_P_MakeNewPicCurrent_isr(NEXUS_VideoDecoderExternalTsmData * pVid
 {
     NEXUS_VideoDisplayPictureContext *pContext;
     BXDM_Picture * UnifiedPicture;
-    uint32_t SerialNumber;
 
     pContext = BFIFO_READ(&pVideoDecoderLite->displayPictureQueue.displayFifo);
     BDBG_ASSERT(NULL != pContext);
 
     UnifiedPicture = pContext->pUnifiedPicture;
-    SerialNumber = pContext->serialNumber;
 
     /* Pop the picure from the Queue */
     BFIFO_READ_COMMIT(&pVideoDecoderLite->displayPictureQueue.displayFifo, 1);
@@ -4814,7 +4807,6 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     void * pContext;
     BXDM_DisplayInterruptHandler_Handle displayInterrupt;
     BXDM_DisplayInterruptHandler_AddPictureProviderInterface_Settings addPictureProviderSettings;
-    static void *pPrivateContext;
 
     videoDecoder->externalTsm.stopped = false;
     videoDecoder->externalTsm.pMFDPicture = &videoDecoder->externalTsm.MFDPicture;
@@ -4829,7 +4821,6 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     videoDecoder->externalTsm.numIFramesDisplayed = 0;
 
     videoDecoder->externalTsm.pDecoderPrivateContext = videoDecoder->dec;
-    pPrivateContext = &videoDecoder->externalTsm;
     displayInterrupt = videoDecoder->device->hXdmDih[videoDecoder->xdmIndex + BXVD_DisplayInterrupt_eZero];
 
     if ( videoDecoder->dec ) {
@@ -5124,8 +5115,7 @@ NEXUS_Error NEXUS_VideoDecoder_GetDecodedFrames_Avd(
     unsigned *pNumEntriesReturned /* [out] */
     )
 {
-    unsigned i=0;
-    NEXUS_Error errCode = NEXUS_SUCCESS;
+    NEXUS_Error errCode;
 
     if ( NULL == pStatus || numEntries == 0 || NULL == pNumEntriesReturned )
     {
@@ -5152,42 +5142,42 @@ NEXUS_Error NEXUS_VideoDecoder_GetDecodedFrames_Avd(
         }
         else
         {
-            for ( i = 0; i < numEntries; i++ )
-            {
-                errCode = NEXUS_VideoDecoder_P_GetStripedSurfaceCreateSettings(handle, &handle->last_field, &pStatus[i].surfaceCreateSettings);
-                if ( errCode )
-                {
-                    break;
+            errCode = NEXUS_VideoDecoder_P_GetStripedSurfaceCreateSettings(handle, &handle->last_field, &pStatus->surfaceCreateSettings);
+            if ( errCode ) {
+                *pNumEntriesReturned = 0;
+            }
+            else {
+                if (pStatus->surfaceCreateSettings.lumaBuffer) {
+                    NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, pStatus->surfaceCreateSettings.lumaBuffer, Acquire);
                 }
-                if (pStatus[i].surfaceCreateSettings.lumaBuffer) {
-                    NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, pStatus[i].surfaceCreateSettings.lumaBuffer, Acquire);
+                if (pStatus->surfaceCreateSettings.chromaBuffer) {
+                    NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, pStatus->surfaceCreateSettings.chromaBuffer, Acquire);
                 }
-                if (pStatus[i].surfaceCreateSettings.chromaBuffer) {
-                    NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, pStatus[i].surfaceCreateSettings.chromaBuffer, Acquire);
-                }
-                pStatus[i].serialNumber = handle->last_field.ulDecodePictureId;
-                pStatus[i].pts = handle->last_field.ulOrigPTS;
-                pStatus[i].ptsValid = true;
+                pStatus->serialNumber = handle->last_field.ulDecodePictureId;
+                pStatus->pts = handle->last_field.ulOrigPTS;
+                pStatus->ptsValid = true;
                 switch ( handle->last_field.ePictureType )
                 {
                 default:
-                    pStatus[i].pictureCoding = NEXUS_PictureCoding_eUnknown;
+                    pStatus->pictureCoding = NEXUS_PictureCoding_eUnknown;
                     break;
                 case BAVC_PictureCoding_eI:
-                    pStatus[i].pictureCoding = NEXUS_PictureCoding_eI;
+                    pStatus->pictureCoding = NEXUS_PictureCoding_eI;
                     break;
                 case BAVC_PictureCoding_eP:
-                    pStatus[i].pictureCoding = NEXUS_PictureCoding_eP;
+                    pStatus->pictureCoding = NEXUS_PictureCoding_eP;
                     break;
                 case BAVC_PictureCoding_eB:
-                    pStatus[i].pictureCoding = NEXUS_PictureCoding_eB;
+                    pStatus->pictureCoding = NEXUS_PictureCoding_eB;
                     break;
                 }
+                *pNumEntriesReturned = 1;
             }
         }
     }
-
-    *pNumEntriesReturned = i;
+    else {
+        *pNumEntriesReturned = 0;
+    }
     return NEXUS_SUCCESS;
 }
 
@@ -5431,4 +5421,13 @@ NEXUS_Error NEXUS_VideoDecoder_ReadMultiPassDqtData( NEXUS_VideoDecoderHandle vi
     }
     BKNI_LeaveCriticalSection();
     return rc;
+}
+
+bool NEXUS_VideoDecoderModule_DecoderOpenInSecureHeaps_priv(void)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
+        if (g_videoDecoders[i] && g_videoDecoders[i]->dec && nexus_p_use_secure_picbuf(g_videoDecoders[i])) return true;
+    }
+    return false;
 }

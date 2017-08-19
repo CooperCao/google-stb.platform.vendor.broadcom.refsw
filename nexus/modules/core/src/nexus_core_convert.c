@@ -239,6 +239,25 @@ NEXUS_P_VideoFormat_FromMagnum_isrsafe(BFMT_VideoFmt format)
     return NEXUS_VideoFormat_eUnknown;
 }
 
+const char *NEXUS_P_VideoFormat_ToStr_isrsafe(NEXUS_VideoFormat format)
+{
+    static const char *g_videoFormatName[NEXUS_VideoFormat_eMax]; /* static data is initialized to NULL */
+    if (format < NEXUS_VideoFormat_eMax) {
+        if (!g_videoFormatName[format]) {
+            const BFMT_VideoInfo *info;
+            BFMT_VideoFmt fmt;
+            if (NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &fmt) ||
+                !(info = BFMT_GetVideoFormatInfoPtr_isrsafe(fmt))) {
+                goto done;
+            }
+            /* trim off "BFMT_VideoFmt_e" prefix */
+            g_videoFormatName[format] = &info->pchFormatStr[15];
+        }
+        return g_videoFormatName[format];
+    }
+done:
+    return "invalid";
+}
 
 NEXUS_AspectRatio
 NEXUS_P_AspectRatio_FromMagnum_isrsafe(BFMT_AspectRatio eAspectRatio)
@@ -893,7 +912,7 @@ NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(NEXUS_TransferChar
 
 void
 NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(
-    NEXUS_ContentLightLevel * pCll,
+    const NEXUS_ContentLightLevel * pCll,
     uint32_t *ulMaxContentLight,
     uint32_t *ulAvgContentLight)
 {

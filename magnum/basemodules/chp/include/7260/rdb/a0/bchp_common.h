@@ -44,16 +44,16 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 18 11:38:25 2017
- *                 Full Compile MD5 Checksum  c15538464e5ff0aea31086dcd1a5d6b2
+ * Date:           Generated on               Wed May 31 11:27:08 2017
+ *                 Full Compile MD5 Checksum  f5e63307e5dcf1369c866f7e71f68daa
  *                     (minus title and desc)
  *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1485
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
@@ -71,7 +71,10 @@
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
 #define BCHP_REGISTER_END                                  0x2130c000 /* V3D_QPUDBG_0 is last */
 #define BCHP_REGISTER_SIZE                                 0x004c3000 /* Number of registers */
-#define BCHP_REGISTER_HAS_READONLY                                  1 /* Has RO register list */
+#define BCHP_REGISTER_HAS_RBUS7                                     1 /* Has at least one register set with RBUS7 inteface */
+#define BCHP_REGISTER_HAS_READONLY                                  0 /* Has RO register list */
+#define BCHP_REGISTER_HAS_CORE_INFO                                 1 /* Has core info list */
+#define BCHP_REGISTER_HAS_REGISTER_INFO                             1 /* Has register info list */
 #define BCHP_REGISTER_HAS_16_BIT                                    0 /* Has 16-bit wide register */
 #define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
 #define BCHP_REGISTER_HAS_64_BIT                                    0 /* Has 64-bit wide register */

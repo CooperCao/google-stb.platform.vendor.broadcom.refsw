@@ -1,0 +1,32 @@
+NDIS wl_attach
+	   8	 NdisReadPciSlotInformation failed
+	   9	 wlc_chipmatch
+	   10	 wl_find_resources failed (no mem or irq)
+	   11	 NdisMAllocateMapRegisters
+	   12	 shared_lb_alloc for TX failed
+	   13	 shared_lb_alloc for RX failed
+	   24	 NdisOpenConfiguration failed
+	   15	 wl_up failed
+
+wlc_attach (+ 256)
+	   10	 wlc_info_t out of memory
+	   11	 sb_attach failed
+	   44	 Wrong PCMCIA/SDIO Vendor/device id
+	   43	 Wrong bus type
+	   14	 isgoodchip failed
+	   15	 Unsupported board revision
+	   16	 Unsupported Broadcom board type
+	   21	 validate_chip_access failed
+	   20	 dma_attach failed
+	   12	 wlc_phy_attach failed
+	   22	 unsupported phy type/rev
+	   23	 Unknown radio ID/rev
+	   24	 Invalid antennas available in srom
+	   26	 wlc_scblookup broadcast failed
+	   27	 wlc_scblookup local failed
+	   25	 sup_chan_create out of memory
+	   30	 macaddr not found/bad
+	   31	 wlc_led_attach failed
+	   32	 wlc_sup_attach failed
+	   33	 wlc_wet_attach failed
+	   34	 wl_init_timer failed

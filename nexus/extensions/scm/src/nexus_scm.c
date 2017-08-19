@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -242,13 +234,13 @@ NEXUS_ScmChannelHandle NEXUS_Scm_CreateChannel(
 
     rc = NEXUS_Scm_P_DtaModeSelect(channel->type);
     if(NEXUS_SUCCESS != rc){
-        BDBG_ERR(("%s %d - %08x", __FUNCTION__, __LINE__,rc));
+        BDBG_ERR(("%s %d - %08x", BSTD_FUNCTION, __LINE__,rc));
         goto end;
     }
     /* Load and start SCM  */
     rc = NEXUS_ScmModule_P_Start();
     if(rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_ScmModule_P_Start() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_ScmModule_P_Start() fails %d", BSTD_FUNCTION, rc));
         goto end;
     }
 

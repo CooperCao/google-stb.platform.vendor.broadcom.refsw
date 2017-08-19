@@ -519,6 +519,8 @@ void glsl_prim_init(void) {
                 sc = 0
             elif p in value_types:
                 sc = find_scalar_count(p)
+            elif p in sampler_types:
+                sc = 2
             else:
                 sc = 1
             print("   primitiveTypes[%s%s].name                   = \"%s\";" % (prim_index(p),pad,p), file=outf)

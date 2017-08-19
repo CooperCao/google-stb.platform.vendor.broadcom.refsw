@@ -540,6 +540,7 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
 {
     NEXUS_Error rc;
     bool dataNotCpuAccessible;
+    bool change_allPass;
 
     BDBG_OBJECT_ASSERT(p, NEXUS_Playpump);
     BDBG_ASSERT(pSettings);
@@ -664,8 +665,17 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
     }
 #endif
 
+    change_allPass = (p->settings.allPass != pSettings->allPass);
     p->settings = *pSettings;
     p->settings.dataNotCpuAccessible = dataNotCpuAccessible;
+
+    if (change_allPass) {
+        /* update all pidchannels, must be called after p->settings saved */
+        NEXUS_P_PlaypumpPidChannel *play_pid;
+        for(play_pid=BLST_S_FIRST(&p->pid_list); play_pid; play_pid=BLST_S_NEXT(play_pid, link)) {
+            (void)nexus_p_set_pid_cc(play_pid->pid_channel, &play_pid->pid_channel->settings);
+        }
+    }
 
     NEXUS_TaskCallback_Set(p->dataCallback, &p->settings.dataCallback);
     NEXUS_TaskCallback_Set(p->errorCallback, &p->settings.errorCallback);
@@ -1402,7 +1412,7 @@ NEXUS_Playpump_P_OpenHwPid(NEXUS_PlaypumpHandle p, NEXUS_P_PlaypumpPidChannel *p
     play_pid->packetizer.active = false;
     switch (type) {
     default:
-        hwPidChannel = NEXUS_P_HwPidChannel_Open(NULL, p, oldpid, &pSettings->pidSettings, p->settings.continuityCountEnabled);
+        hwPidChannel = NEXUS_P_HwPidChannel_Open(NULL, p, oldpid, &pSettings->pidSettings, false);
         if(!hwPidChannel) { rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto err_pid_channel_ts; }
         hwPidChannel->status.transportType = type;
         hwPidChannel->status.originalTransportType = originalType;
@@ -1425,7 +1435,7 @@ NEXUS_Playpump_P_OpenHwPid(NEXUS_PlaypumpHandle p, NEXUS_P_PlaypumpPidChannel *p
     play_pid->packetizer.cfg.preserveCC = pSettings_priv?pSettings_priv->preserveCC:false;
 
     /* packetizer always generates cc = 0, so we cannot use continuityCountEnabled */
-    hwPidChannel = NEXUS_P_HwPidChannel_Open(NULL, p, pSettings_priv?pSettings_priv->tsPid:newpid, &pSettings->pidSettings, false);
+    hwPidChannel = NEXUS_P_HwPidChannel_Open(NULL, p, pSettings_priv?pSettings_priv->tsPid:newpid, &pSettings->pidSettings, true);
     if(!hwPidChannel) { rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto err_pid_channel; }
 
     hwPidChannel->status.transportType = NEXUS_TransportType_eTs;
@@ -1560,7 +1570,8 @@ NEXUS_Playpump_P_OpenPidChannel_MuxImpl(NEXUS_PlaypumpHandle p, unsigned pid, co
     }
 
 done:
-    pidChannel->enabled = pSettings->pidSettings.enabled;
+    pidChannel->enabled = (pSettings->pidSettings.pidChannelIndex==NEXUS_PID_CHANNEL_OPEN_INJECTION)?false:pSettings->pidSettings.enabled;
+
     NEXUS_P_HwPidChannel_CalcEnabled(pidChannel->hwPidChannel);
     return pidChannel;
 

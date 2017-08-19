@@ -1,0 +1,1281 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for nightly Router testing
+# $Id: c0c779155d8b7bb275cdc0dc99830ff6aad18f30 $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::Mbss::Firewall
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::APRemoveInterface
+package require UTF::Test::Mbss::MultiShared
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::MixedSecurity
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::DataRatePlot
+package require UTF::Test::RTS
+package require UTF::Test::Fragmentation
+package require UTF::Test::Scan
+package require UTF::Test::controlchart
+package require UTF::Test::memchart
+package require UTF::Test::Mbss::Stress
+package require UTF::Test::ChannelSweep
+package require UTF::Test::WanMacFilter
+package require UTF::Test::AssocMacFilter
+package require UTF::Test::rxchain_pwrsave
+package require UTF::Test::radio_pwrsave
+package require UTF::Test::Bridges
+package require UTF::Test::DualBand
+package require UTF::Test::Media::Stress
+package require UTF::Test::BeaconRatio
+package require UTF::Test::rssinoise
+package require UTF::Test::BigHammer
+package require UTF::Test::CPU
+package require UTF::Test::samba
+package require UTF::Test::KPPSSweep
+
+package provide UTF::Test::RouterNightly 2.0
+
+namespace eval UTF::Test::RouterNightly {
+
+    proc quiet {} {
+	uplevel 1 {
+	    catch {$STA1 wl disassoc}
+	    catch {$STA2 wl disassoc}
+	}
+	return
+    }
+
+    proc pmperf {BUILD AP1 STA1 AP2 STA2 args} {
+	upvar {} testopts
+	UTF::Getopts {
+	    {PM.arg "0" "Power Management"}
+	    {fb "Frameburst"}
+	    {mbss "Using MBSS"}
+	    {ch.arg "" "Chanspec"}
+	    {security.arg "open" "security"}
+	    {wan "Wan tests"}
+	    {via "WLAN->WLAN test"}
+	    {b.arg "0" "UDP"}
+	    {kpps "" "Small packet PPS test"}
+	}
+
+	# test interval
+	set i 2
+
+	set MSG "$AP1"
+	if {$(ch) ne ""} {
+	    append MSG ": $(ch)"
+	}
+	if {$(fb)} {
+	    append MSG ": FB"
+	}
+	if {$(PM)} {
+	    append MSG ": PM=$(PM)"
+	}
+	if {$(security) ne "open"} {
+	    append MSG ": $(security)"
+	}
+	if {$(mbss)} {
+	    append MSG ": MBSS"
+	}
+	if {$(kpps)} {
+	    append MSG ": KPPS"
+	} elseif {$(b) ne "0"} {
+	    append MSG ": UDP"
+	}
+
+	set setup 0
+	UTF::Try "$MSG: WLAN<-LAN" {
+	    catch {$STA1 wl disassoc}
+	    $STA1 wl PM $(PM)
+	    $STA1 wl frameburst $(fb)
+
+	    catch {$STA2 wl disassoc}
+	    $STA2 wl PM $(PM)
+	    $STA2 wl frameburst $(fb)
+	    APConfigureSecurity $AP1 -security $(security)
+	    APConfigureSecurity $AP2 -security $(security)
+	    if {[regexp {/80} $(ch)]} {
+		APChanspec $AP1 $(ch)
+	    }
+	    ConnectAPSTA $AP1 $STA1 -security $(security)
+	    ConnectAPSTA $AP2 $STA2 -security $(security)
+	    # Set frameburst after any AP restarts
+	    $AP2 wl frameburst $(fb)
+
+	    # Double check STA chanspec
+	    if {$(ch) ne "" &&
+		![regexp {wep|shared|tkip} $(security)] &&
+		[set ch [lindex [$STA1 wl chanspec] 0]] ne $(ch)} {
+		catch {
+		    $STA1 wl down
+		    if {[catch {$STA1 wl bw_cap 2 -1}]} {
+			$STA1 wl -u mimo_bw_cap 1
+		    }
+		}
+		error "$STA1 unexpected chanspec: $ch"
+	    }
+
+	    # Set frameburst after any AP restarts
+	    $AP1 wl frameburst $(fb)
+
+	    set k [concat $BUILD $AP1]
+	    if {$(mbss)} {
+		lappend k "MBSS"
+	    }
+	    lappend k $(PM)
+	    if {$(ch) ne ""} {
+		lappend k "ch=$(ch)"
+	    }
+	    if {$(fb)} {
+		lappend k "fb=$(fb)"
+	    }
+	    if {$(kpps)} {
+		lappend k "kpps"
+	    }
+
+	    if {[regexp {wep|shared|tkip} $(security)]} {
+		# Deprecated security modes use legacy rates, even if
+		# the rateset offers more.
+		set w 0
+	    } else {
+		# Auto TCP window size setting based on phy rate
+		set w [$STA1 tcpautowindow]
+	    }
+
+	    if {$(security) ne "open"} {
+		lappend k "$(security)"
+	    }
+	    if {$(kpps)} {
+		lappend k 128
+	    } elseif {$(b) ne "0"} {
+		lappend k "udp"
+	    }
+
+	    set ccopts [list -key $k -i $i -b $(b) -window $w \
+			    -loop $testopts(perfloop) \
+			    -history $testopts(history)]
+	    if {$(PM) eq "1"} {
+		# In powersave, a HIGH throughput may indicate a real
+		# problem
+		lappend ccopts -failonhigh
+	    }
+	    if {$(kpps)} {
+		lappend ccopts -kpps -l 128
+	    }
+	    set setup 1
+	    controlchart [list $AP1 $STA1] {*}$ccopts
+	}
+	if {$setup} {
+	    UTF::Try "$MSG: WLAN->LAN" {
+		controlchart [list $STA1 $AP1] {*}$ccopts
+	    }
+	    if {!$testopts(nobx)} {
+		UTF::Try "$MSG: WLAN<>LAN" {
+		    controlchart [list $STA1 $AP1 $AP2 $STA2] {*}$ccopts
+		}
+	    }
+	    if {$(wan) && [set WAN [$AP1 wan]] ne ""} {
+		UTF::Try "$MSG: WLAN<-WAN" {
+		    controlchart [list $WAN $STA1] {*}$ccopts
+		}
+		UTF::Try "$MSG: WLAN->WAN" {
+		    controlchart [list $STA1 $WAN] {*}$ccopts
+		}
+		if {!$testopts(nobx)} {
+		    UTF::Try "$MSG: WLAN<>WAN" {
+			controlchart [list $STA1 $WAN $WAN $STA2] {*}$ccopts
+		    }
+		}
+	    }
+	    if {$(via) &&!$testopts(nobx)} {
+		UTF::Try "$MSG: WLAN->WLAN" {
+		    controlchart [list $STA1 $STA2] {*}$ccopts
+		}
+	    }
+	}
+    }
+
+    proc scan {APS STA1 MSG} {
+	UTF::Try "$MSG: Scan Tests" {
+	    quiet
+	    UTF::Try "$MSG: Broadcast Scan" {
+		Scan $APS $STA1 -cache C
+	    }
+	    UTF::Try "$MSG: Passive Scan" {
+		Scan $APS $STA1 -passive -cache C
+	    }
+	    array unset C
+	    return
+	}
+    }
+
+    proc singleifjoin {AP STA1 STA2 MSG} {
+	# access option array
+	upvar {} {}
+	UTF::Try "$MSG: Association Tests" {
+	    quiet
+	    if {!$(noshared) && ![$AP cget -nowep] &&
+		![$AP cget -nosharedwep]} {
+		UTF::Try "$MSG: SHARED association" {
+		    ConnectAPSTA $AP $STA1 -security shared
+		}
+		quiet
+	    }
+	    if {!$(notkip) && ![$AP cget -notkip] &&
+		!$(noaes) && ![$AP cget -noaes]} {
+		UTF::Try "$MSG: AESPSK2+TKIPPSK association" {
+		    MixedSecurity $AP aespsk2+tkippsk \
+			$STA1 aespsk2 $STA2 tkippsk
+		}
+		quiet
+	    }
+	    return
+	}
+    }
+
+    proc main {Router STA1 STA2 {STA3 ""}} {
+	# access option array
+	upvar {} upopts
+	upvar date date
+
+	# Copy option array and apply per-device overrides
+	array set {} [array get upopts]
+	if {[$Router cget -nochannels]} {
+	    set (nochan) 1
+	}
+	if {[$Router cget -nombss]} {
+	    set (nombss) 1
+	}
+	if {[$Router cget -noaes]} {
+	    set (noaes) 1
+	}
+	if {[$Router cget -notkip]} {
+	    set (notkip) 1
+	}
+	if {[$Router cget -nowep]} {
+	    set (nowep) 1
+	    set (nomultishared) 1
+	}
+	if {[$Router cget -nosharedwep]} {
+	    set (nomultishared) 1
+	}
+	if {[$Router cget -nopm1]} {
+	    set (nopm1) 1
+	    set (nobeaconratio) 1
+	}
+	if {[$Router cget -nopm2]} {
+	    set (nopm2) 1
+	}
+	if {[$Router cget -nobighammer]} {
+	    set (nobighammer) 1
+	}
+	if {![$Router cget -docpu]} {
+	    set (nocpu) 1
+	}
+	if {[$Router cget -nobeaconratio]} {
+	    set (nobeaconratio) 1
+	}
+	if {[$Router cget -nofragmentation]} {
+	    set (nofrag) 1
+	}
+	if {[$Router cget -nocustom]} {
+	    set (nocustom) 1
+	}
+	if {[$Router hostis BSDAP]} {
+	    set (nowanmacfilter) 1
+	    # BSDAP firewall isn't working: PR#72421
+	    set (nofirewall) 1
+	}
+	if {[$Router hostis Vx]} {
+	    set (nowanmacfilter) 1
+	    set (nofirewall) 1
+	}
+	if {![$Router hostis Router]} {
+	    set (normmod) 1
+	} elseif {[regexp {netbsd} [$Router cget -trx]]} {
+	    set (normmod) 1
+	}
+	if {[$Router cget -udp] eq "0"} {
+	    set (noudp) 1
+	    set (nokpps) 1
+	}
+	if {[$Router cget -nokpps]} {
+	    set (nokpps) 1
+	}
+	if {[$Router cget -perfonly]} {
+	    if {!$(rateonly)} {
+		set (norate) 1
+	    }
+	    if {!$(rvronly)} {
+		set (norvr) 1
+	    }
+	    if {!$(chanonly)} {
+		set (nochan) 1
+	    }
+	    set (nosamba) 1
+	    set (normmod) 1
+	    set (nochan) 1
+	    set (nombss) 1
+	    set (notkip) 1
+	    set (nowep) 1
+	    set (nowet) 1
+	    set (nopm1) 1
+	    set (nopm2) 1
+	    set (nobighammer) 1
+	    set (nowanmacfilter) 1
+	    set (noassocmacfilter) 1
+	    set (nopwrsave) 1
+	    set (nobeaconratio) 1
+	    set (norts) 1
+	    set (nofrag) 1
+	    if {!$(noframeburst)} {
+		set (nofb0) 1
+	    }
+	}
+	UTF::Message DBG "" [array get {}]
+	if {$(branch) eq "auto"} {
+	    set branch [$Router branchname]
+	} else {
+	    set branch $(branch)
+	}
+
+	set STAS [list $STA1 $STA2]
+
+	quiet
+
+	if {!$(noapload)} {
+	    UTF::Try "[$Router cget -name]: Find Router Image" {
+		# Locate image and add report header
+		UTF::CheckImage $Router $date unknown
+	    }
+
+	    UTF::Try "[$Router cget -name]: Load Image" {
+		if {$(norestore)} {
+		    $Router load
+		} else {
+		    $Router load -erase
+		}
+	    }
+
+	    # Bail out rather than continue with whatever happens to
+	    # be on the router.
+	    if {[$Router cget -_path] eq ""} {
+		error "None Found"
+	    }
+	}
+	if {!$(norestore)} {
+	    UTF::Try "$Router: Restore Defaults" {
+		if {$(noapload)} {
+		    $Router restore_defaults
+		} else {
+		    $Router restore_defaults -noerase
+		}
+		# Collect HW info and update report header + DB
+		UTF::ReportWhatami $Router -role DUT -noload $(noapload)
+	    }
+
+	    if {![$Router cget -nomaxmem] && [$Router rte_available]} {
+		UTF::Try "$Router: Load Free(K)" {
+		    memchart [$Router freekb] -failonlow \
+			-key [list $branch $Router loadfree] \
+			-history $(history) -units kb -title "Load Free"
+		}
+	    }
+	}
+
+	set modules ""
+	if {!$(normmod)} {
+	    UTF::Try "$Router: check modules" {
+		set lsmod [$Router cat /proc/modules]
+		if {[regexp -line {^(?:module:\s+)?wl\s} $lsmod]} {
+		    lappend modules "wl"
+		}
+		if {[regexp -line {^(?:module:\s+)?wl_high\s} $lsmod]} {
+		    lappend modules "wl_high"
+		}
+		if {[regexp -line {^(?:module:\s+)?dhd\s} $lsmod]} {
+		    lappend modules "dhd"
+		}
+		if {$modules eq ""} {
+		    error "No modules found"
+		} else {
+		    return $modules
+		}
+	    }
+	}
+
+	UTF::Record "$Router: Configure open security" {
+	    APConfigureSecurity $Router -security open
+	    # Attempt to remove router from arp cache, in case we
+	    # switched between routers with the same IP address.
+	    set APIP [$Router cget -lan_ip]
+	    $STA1 -x arp -d $APIP
+	    $STA2 -x arp -d $APIP
+	    return
+	}
+
+	# Scan all channels
+	if {!$(nochan)} {
+	    if {[catch {
+		ChannelSweep $Router $STA1 -dut $Router \
+		    -loop $(perfloop) -history $(history)
+	    } ret]} {
+		set e $::errorInfo
+		UTF::Try "$Router: Channel Sweep" {
+		    error $ret $e
+		}
+	    }
+	}
+
+	set 40chan ""
+	set 20chan [$Router cget -chanspec220]
+
+	if {[set perfchans $(chanspec)] eq "" &&
+	    [set perfchans [$Router cget -perfchans]] eq ""} {
+	    UTF::Try "$Router: Channel Selection" {
+		set perfchans [UTF::PerfChans $Router $STA1]
+	    }
+	}
+
+	# Find first and last channels, in case we have to wipe out
+	# perfchans later
+	set initchan [lindex $perfchans 0]
+	set mainchan [lindex $perfchans end]
+
+	# If performance tests are disabled, clean the channel list
+	if {$(noperf)} {
+	    set perfchans ""
+	} else {
+	    # Filter perfchans based on commandline options
+	    if {$(noperf160)} {
+		set perfchans \
+		    [lsearch -inline -all -not -regexp $perfchans {/160$}]
+	    }
+	    if {$(noperf80)} {
+		set perfchans \
+		    [lsearch -inline -all -not -regexp $perfchans {/80$}]
+	    }
+	    if {$(noperf40)} {
+		set perfchans \
+		    [lsearch -inline -all -not -regexp $perfchans {[ul]$}]
+	    }
+	    if {$(noperf20)} {
+		set perfchans \
+		    [lsearch -inline -all -regexp $perfchans {(?:[ul]|/80)$}]
+	    }
+	}
+
+	if {![$Router hostis Vx] && [$Router wan] ne ""} {
+	    UTF::Try "$Router: Disable firewall" {
+		if {[string is false [$Router nvram get fw_disable]]} {
+		    $Router restart fw_disable=1
+		}
+		$Router lanwanreset
+	    }
+	}
+
+	# If mbss is always on, there's no need to run perf tests over
+	# mbss.
+	set testmbssperf false
+
+	if {$(nombss)} {
+	    set hasmbss 0
+	    UTF::Message INFO $Router "MBSS disabled"
+	} else {
+	    UTF::Try "$Router: check for mbss" {
+		if {![regexp {\mmbss(\d+)\M} [$Router wl cap] - hasmbss]} {
+		    set hasmbss 0
+		    error "No mbss capability"
+		} else {
+		    for {set i 1} {$i < $hasmbss} {incr i} {
+			if {[info commands $Router.$i] ne ""} {
+			    lappend mbsses $Router.$i
+			}
+		    }
+		    unset i
+		    if {![info exists mbsses]} {
+			set hasmbss 0
+			error "No MBSS interfaces defined in config file"
+		    }
+		    if {![$Router wl mbss]} {
+			set testmbssperf true
+		    }
+		    return $hasmbss
+		}
+	    }
+	}
+
+	if {!$(mbssonly)} {
+	    if {$hasmbss} {
+		UTF::Try "$Router: Enable only one Physical interface" {
+		    Mbss::APAddInterface -lan $Router
+		    if {[info exists mbsses]} {
+			Mbss::APRemoveInterface {*}$mbsses
+		    }
+		    return
+		}
+	    }
+
+	    set donepps 0
+	    # Loop through channels to be tested.
+	    foreach c $perfchans {
+
+		UTF::Try "$Router: Channel $c" {
+		    # Disassoc and Reset PM to reduce cross-channel
+		    # side-effects.
+		    catch {$STA1 wl disassoc}
+		    catch {$STA2 wl disassoc}
+		    catch {$STA1 wl PM 0}
+		    catch {$STA2 wl PM 0}
+		    ConnectAPSTA $Router $STA1 -chanspec $c
+		    rssinoise $Router $STA1
+		}
+		if {!$(norate)} {
+		    DataRatePlot $Router $STA1 -dut $Router -chanspec $c \
+			-loop $(perfloop) -history $(history)
+		}
+		if {($(rvronly) || ![$Router cget -perfonly]) && !$(norvr)} {
+		    if {[catch {
+			package require UTF::Test::YART
+			YART $Router $STA1 -chanspec $c -dut $Router
+		    } ret]} {
+			UTF::Message WARN "" $ret
+		    }
+		}
+
+		# If the Router doesn't do frameburst then test UDP without
+		if {[$Router cget -noframeburst]} {
+		    set fb 0
+		} else {
+		    set fb 1
+		}
+		if {$fb ? !$(noframeburst) : !$(nofb)} {
+		    if {!$(noudp)} {
+			pmperf $branch $Router $STA1 $Router $STA2 \
+			    -fb -ch $c -b [$Router cget -udp]
+		    }
+		    if {!$(nokpps) && !$donepps} {
+			set donepps 1
+			pmperf $branch $Router $STA1 $Router $STA2 \
+			    -fb -ch $c -b [$Router cget -udp] -kpps
+			KPPSSweep $Router $STA1 -dut $Router \
+			    -chanspec $c
+		    }
+		    if {!$(noframeburst) && !$(noopen)} {
+			pmperf $branch $Router $STA1 $Router $STA2 -fb -ch $c \
+			    -wan -via
+		    }
+		    if {!$(noaes)} {
+			pmperf $branch $Router $STA1 $Router $STA2 \
+			    -fb -ch $c -security aespsk2
+		    }
+		    # HT is disabled in TKIP and WEP, so no point
+		    # testing them in 40MHz or 80MHz - unless this is
+		    # the only channel tested.
+		    if {[llength $perfchans] == 1 ||
+			(![regexp {[lu]} $c] && ![regexp {/80} $c])} {
+			if {!$(notkip)} {
+			    pmperf $branch $Router $STA1 $Router $STA2 \
+				-fb -ch $c -security tkippsk
+			}
+			if {!$(nowep)} {
+			    pmperf $branch $Router $STA1 $Router $STA2 \
+				-fb -ch $c -security wep
+			}
+		    }
+		}
+		if {!$(nofb0) && !$(noopen)} {
+		    pmperf $branch $Router $STA1 $Router $STA2 -PM 0 \
+			-ch $c
+		}
+		if {!$(nopm1)} {
+		    pmperf $branch $Router $STA1 $Router \
+			$STA2 -PM 1 -ch $c
+		}
+		if {!$(nopm2)} {
+		    pmperf $branch $Router $STA1 $Router $STA2 \
+			-PM 2 -ch $c
+		}
+		if {!$(nobighammer)} {
+		    catch {$STA2 wl disassoc}
+		    BigHammer $Router $STA1 -msg "BigHammer on $c" -ap
+		}
+	    }
+	    catch {$STA1 wl disassoc}
+	    catch {$STA2 wl disassoc}
+	    catch {$STA1 wl PM 0}
+	    catch {$STA2 wl PM 0}
+
+	    if {!$(nocpu)} {
+		CPU $Router $STA1
+	    }
+
+	    # Reset home channel, if needed.
+	    UTF::Try "$Router: Home Channel $mainchan" {
+		APChanspec $Router $mainchan
+		return
+	    }
+
+	    # Reset PM.
+	    catch {$STA1 wl PM 0}
+	    catch {$STA2 wl PM 0}
+
+	    # BSDAP firewall isn't working: PR#72421
+	    if {!$(nowanmacfilter) && [$Router wan] ne ""} {
+		UTF::Try "$Router: WAN MAC Filter" {
+		    WanMacFilter $Router $STA1 $STA2
+		}
+	    }
+	    if {!$(noassocmacfilter)} {
+		UTF::Try "$Router: Assoc MAC Filter" {
+		    AssocMacFilter $Router $STA1 $STA2
+		}
+	    }
+	    if {!$(nopwrsave)} {
+		rxchain_pwrsave $Router $STA1
+		radio_pwrsave $Router $STA1
+	    }
+	} else {
+	    UTF::Try "$Router: Channel $mainchan" {
+		APChanspec $Router $mainchan
+		return
+	    }
+	}
+
+	if {!$(nombss) && $hasmbss} {
+	    set Maxmbss [lindex $mbsses end]
+	    set APS [list $Router $Router.1 $Router.2 $Maxmbss]
+	    UTF::Try "$Router: Add interfaces .1 .2 [file extension $Maxmbss]" {
+		Mbss::APAddInterface -lan {*}$APS
+		if {![$Router wl mbss]} {
+		    error "MBSS is not enabled!"
+		}
+		return
+	    }
+	    if {!$(noperf) || !$(nofirewall)} {
+		UTF::Try "$Router: Configure open security" {
+		    APConfigureSecurity $Router -security open
+		}
+	    }
+	    if {!$(noperf)} {
+		UTF::Try "$Router.1: Configure open security" {
+		    APConfigureSecurity $Router.1 -security open
+		}
+	    }
+	    if {!$(nofirewall)} {
+		UTF::Try "$Router.2: Configure wep security" {
+		    APConfigureSecurity $Router.2 -security wep
+		}
+	    }
+	    if {$testmbssperf && !$(noperf)} {
+		if {!$(noframeburst) && !$(noopen)} {
+		    pmperf $branch $Router $STA1 $Router.1 $STA2 -fb \
+			-ch $mainchan -mbss
+		}
+		if {!$(nopm2)} {
+		    pmperf $branch $Router $STA1 $Router.1 $STA2 -PM 2 \
+			-ch $mainchan -mbss
+		}
+		quiet
+
+		# Keep PM mode consistent.
+		catch {$STA1 wl PM 0}
+		catch {$STA2 wl PM 0}
+	    }
+
+	    if {!$(nomultishared)} {
+		UTF::Try "$Router: MultiShared test" {
+		    Mbss::MultiShared [list $Router $STA1 $Maxmbss $STA2]
+		}
+		catch {$STA1 wl disassoc}
+		catch {$STA2 wl disassoc}
+	    }
+	    if {!$(nofirewall) && [$Router wan] ne ""} {
+		UTF::Try "$Router: MBSS Firewall test" {
+		    Mbss::Firewall $Router $STA1 $Router.2 $STA2
+		}
+		catch {$STA1 wl disassoc}
+		catch {$STA2 wl disassoc}
+	    }
+	    if {!$(nobeaconratio) || !$(norts) || !$(nofrag)} {
+		UTF::Try "$Router.1: MBSS Configure open security" {
+		    APConfigureSecurity $Router.1 -security open
+		}
+
+		if {!$(nobeaconratio)} {
+		    UTF::Try "$STA1: Beacon Ratio PM=1" {
+			BeaconRatio $Router.1 $STA1 -PM 1 \
+			    -branch $branch -history $(history)
+		    }
+		    UTF::Try "$STA2: Beacon Ratio PM=1" {
+			BeaconRatio $Router.1 $STA2 -PM 1 \
+			    -branch $branch -history $(history)
+		    }
+		}
+
+		if {!$(norts)} {
+		    UTF::Try "$Router.1: MBSS RTS" {
+			RTS $Router.1 $STA1
+		    }
+		}
+
+		# BSD routers don't support fragthreth
+		if {!$(nofrag)} {
+		    UTF::Try "$Router.1: MBSS Fragmentation" {
+			Fragmentation $Router.1 $STA1
+		    }
+		}
+
+	    }
+
+	    if {!$(noscan)} {
+		scan $APS $STA1 "$Router: MBSS"
+	    }
+
+	    if {!$(noifjoin)} {
+		foreach AP [list $Router.2 $Maxmbss] {
+		    singleifjoin $AP $STA1 $STA2 "$AP: MBSS"
+		}
+	    }
+
+	    if {$(mbstress)} {
+		UTF::Try "$Router: MBSS Stress Test" {
+		    Mbss::Stress $Router $Maxmbss $STA1 $STA2 \
+			-branch $branch -loops $(mbstress)
+		} finally {
+		    catch {$STA1 wl disassoc}
+		    catch {$STA2 wl disassoc}
+		}
+	    }
+
+	    UTF::Try "$Router: Enable only one Physical interface" {
+		Mbss::APAddInterface -lan $Router
+		if {[info exists mbsses]} {
+		    Mbss::APRemoveInterface {*}$mbsses
+		}
+		return
+	    }
+
+	} elseif {!$(nobeaconratio) || !$(norts) || !$(nofrag) ||
+		  !$(noscan) || !$(noifjoin)} {
+
+	    # Non-MBSS versions of tests we usually do in MBSS mode
+	    UTF::Try "$Router: Configure open security" {
+		APConfigureSecurity $Router -security open
+	    }
+
+	    if {!$(nobeaconratio)} {
+		UTF::Try "$STA1: Beacon Ratio PM=1" {
+		    BeaconRatio $Router $STA1 -PM 1 \
+			    -branch $branch -history $(history)
+		}
+		UTF::Try "$STA2: Beacon Ratio PM=1" {
+		    BeaconRatio $Router $STA2 -PM 1 \
+			    -branch $branch -history $(history)
+		}
+	    }
+
+	    if {!$(norts)} {
+		UTF::Try "$Router: RTS" {
+		    RTS $Router $STA1
+		}
+	    }
+
+	    if {!$(nofrag)} {
+		UTF::Try "$Router: Fragmentation" {
+		    Fragmentation $Router $STA1
+		}
+	    }
+
+	    if {!$(noscan)} {
+		scan $Router $STA1 "$Router $STA1"
+		scan $Router $STA2 "$Router $STA2"
+	    }
+
+	    if {!$(noifjoin)} {
+		singleifjoin $Router $STA1 $STA2 "$Router"
+	    }
+	}
+	if {!$(nodual) && [set DB [$Router cget -dualband]] ne ""} {
+	    # First word of DB is supporting AP
+	    # Remainder is any additional args
+	    DualBand $Router [lindex $DB 0] $STA1 $STA2 \
+		{*}[lreplace $DB 0 0] -loop $(perfloop) -history $(history)
+	}
+	if {!$(nobxstress) && [set stress [$Router cget -bxstress]] > 0} {
+	    UTF::Try "$Router: BX Stress" {
+		Media::Stress $Router $STA1 -loop $stress
+	    } finally {
+		catch {$STA1 wl disassoc}
+	    }
+	}
+	if {!$(nocustom)} {
+	    eval $::UTF::RouterNightlyCustom
+	}
+
+	UTF::Try "Disassoc" {
+	    foreach STA $STAS {
+		UTF::Try "Disassoc $STA" {
+		    if {[$STA wl isup] eq "1"} {
+			$STA wl disassoc
+		    }
+		}
+	    }
+	}
+
+	if {!$(nosamba)} {
+	    samba $Router -history $(history)
+	}
+
+	if {!$(normmod)} {
+	    foreach wl $modules {
+		UTF::Try "$Router: rmmod $wl" {
+		    $Router -x killall acsd
+		    $Router rmmod $wl
+		    # Allow time for memory leak details
+		    UTF::Sleep 5
+		}
+	    }
+	    # If we're skipping the restore defaults below then we'd
+	    # better at least reboot because we don't know what sort
+	    # of state the driver may be in after the rmmod attempts.
+	    if {$modules ne "" && $(norestore)} {
+		UTF::Try "$Router: reboot" {
+		    $Router reboot
+		}
+	    }
+	}
+
+	if {!$(norestore) && !$(paironly)} {
+	    UTF::Try "$Router: Restore Defaults" {
+		$Router restore_defaults
+	    }
+	}
+
+	# Paired router tests
+	set UP [$Router cget -upstream]
+	if {$(nopair) || $UP eq ""} {
+	    return
+	}
+
+	# find common capabilities
+	if {[catch {UTF::Common [$UP wl cap] [$Router wl cap]} commoncap]} {
+	    UTF::Message ERROR "" $::errorInfo
+	}
+
+	# Find the best common channel
+	set comchan [lindex [UTF::PerfChans $Router $UP] 0]
+	if {[set WAN [$UP wan]] eq ""} {
+	    set WAN [$UP lan]
+	}
+	set bargs [list -chanspec $comchan -loop $(perfloop) -history $(history)]
+	if {$(noapsta)} {
+	    lappend bargs -nore
+	} else {
+	    lappend bargs -sta $STA1
+	}
+	if {$(nowet)} {
+	    lappend bargs -nowet
+	}
+	if {$(nopsta) || [lsearch $commoncap psta] < 0} {
+	    lappend bargs -nopsta
+	}
+	if {$(nowds)} {
+	    lappend bargs -nowds
+	}
+	if {$(nodwds) || [lsearch $commoncap dwds] < 0} {
+	    lappend bargs -nodwds
+	}
+	Bridges $Router $UP {*}$bargs
+	catch {$UP deinit}
+    }
+
+}
+
+UTF::Test RouterNightly {args} {
+    UTF::Getopts {
+	{trx.arg "" "Router trx"}
+	{tag.arg "" "Router release tag"}
+	{stabin.arg "" "STA private build"}
+	{statag.arg "" "STA release tag"}
+	{stadate.arg "" "STA Image date"}
+	{email.arg "" "Email Address"}
+	{noapload "Don't load images"}
+	{nostaload "Don't reload STA drivers"}
+	{nostaunload "Don't unload STA drivers"}
+	{norestore "Don't reset to defaults"}
+ 	{onlymbss "DEPRECATED: use -mbssonly"}
+	{noscan "No per-interface scan"}
+	{noifjoin "No per-interface join"}
+	{nopm1 "No Slow Power Management tests"}
+	{nopm2 "No Fast Power Management tests"}
+	{noframeburst "No Framebursting"}
+        {nofb0 "No non-frameburst open tests"}
+	{noperf20 "Don't do 20MHz performance tests"}
+	{noperf40 "Don't do 40MHz performance tests"}
+	{noperf80 "Don't do 80MHz performance tests"}
+	{noperf160 "Don't do 160MHz performance tests"}
+	{nochannels "DEPRECATED: use -nochan"}
+	{nofirewall "No firewall tests"}
+	{nowep "No WEP security"}
+	{noshared "No shared security"}
+	{notkip "No TKIP security"}
+	{noaes "No AES security"}
+	{noopen "No Open security"}
+	{nosetup "No Setup"}
+	{mbstress.arg "12" "MBSS Stress Loops"}
+	{nobxstress "No BX Stress test"}
+	{nobtests "Disable Bangalore tests"}
+	{noassocmacfilter "Disable Association MAC address filter test"}
+	{nowanmacfilter "Disable WAN MAC address filter test"}
+	{nomultishared "Disable MultiShared test"}
+	{date.arg "" "Image date"}
+	{stas.arg "sta1 sta2" "STAs to test"}
+	{aps.arg "4705/4321 4705/4322 4705vx/4321 4705vx/4322" "APs to test"}
+	{nocache "Don't update performance cache"}
+	{branch.arg "auto" "Branch override"}
+	{title.arg "Router" "Title"}
+        {history.arg 30 "History size for control charts"}
+	{perfloop.arg 1 "Performance test loops"}
+	{nowet "Disable WET tests"}
+	{nopsta "Disable PSTA tests"}
+	{nowds "Disable WDS tests"}
+	{nodwds "Disable DWDS tests"}
+	{noapsta "No TR and RE tests"}
+	{chanspec.arg "" "Override perfchans"}
+	{nosetuptestbed "Don't run Setup Testbed hooks"}
+	{nobx "No Bidirectional Performance tests"}
+	{nobeaconratio "Disable BeaconRatio test"}
+	{norts "Disable RTS tests"}
+	{nocpu "No CPU tests"}
+	{nosamba "No samba tests"}
+	{chan.nonly "Channelsweep tests"}
+	{custom.nonly "custom tests"}
+	{dual.nonly "Symmetric Dualband tests"}
+	{mbss.nonly "MBSS enabled"}
+	{perf.nonly "Performance tests"}
+	{rate.nonly "Fixed Rate tests"}
+	{rvr.nonly "RvR tests"}
+	{pm.nonly "Power Management tests"}
+	{bighammer.nonly "BigHammer tests"}
+	{frag.nonly "fragmentation test"}
+	{pwrsave.nonly "powersave tests"}
+	{pair.nonly "upstream router tests"}
+	{rmmod.nonly "rmmod tests"}
+	{udp.nonly "UDP performance tests (UDP may still be used for rates/rvr if configured)"}
+	{kpps.nonly "KPPS tests"}
+    }
+
+    if {[set l [llength $(stas)]] < 2 || $l > 3} {
+	error "-stas needs 2 or 3 entries"
+    }
+
+    if {$(nochannels)} {
+	unset (nochannels)
+	set (nochan) 1
+    }
+    if {$(onlymbss)} {
+	unset (onlymbss)
+	set (mbssonly) 1
+    }
+    if {$(nopm)} {
+	set (nopm1) 1
+	set (nopm2) 1
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    if {![info exists ::UTF::RouterNightlyCustom]} {
+	set (nocustom) 1
+    }
+
+    if {$(chanonly) || $(customonly) || $(dualonly) || $(rvronly) ||
+	$(bighammeronly) || $(fragonly) || $(pwrsaveonly) || $(paironly) ||
+	$(pmonly) || $(rmmodonly) || $(kppsonly)} {
+	if {!$(rateonly)} {
+	    set (norate) 1
+	}
+	set (rateonly) 1
+	set (nocpu) 1
+    }
+
+    if {$(mbssonly)} {
+	set (noapsta) 1
+	set (nocal) 1
+	set (nochan) 1
+	set (nodual) 1
+	set (nodwds) 1
+	set (norate) 1
+	set (norvr) 1
+	set (nosamba) 1
+	set (nowds) 1
+	set (nowet) 1
+	if {!$(paironly)} {
+	    set (nopair) 1
+	}
+	if {!$(customonly)} {
+	    set (nocustom) 1
+	}
+    }
+
+    if {$(rateonly)} {
+	set (noaes) 1
+	set (noassocmacfilter) 1
+	if {!$(bighammeronly)} {
+	    set (nobighammer) 1
+	}
+	set (nocal) 1
+	set (nocpu) 1
+	if {!$(chanonly)} {
+	    set (nochan) 1
+	}
+	if {!$(customonly)} {
+	    set (nocustom) 1
+	}
+	if {!$(dualonly)} {
+	    set (nodual) 1
+	}
+	set (nofirewall) 1
+	if {!$(fragonly)} {
+	    set (nofrag) 1
+	}
+	set (noifjoin) 1
+	if {!$(pmonly)} {
+	    set (nopm1) 1
+	    set (nopm2) 1
+	}
+	if {!$(pwrsaveonly)} {
+	    set (nopwrsave) 1
+	}
+	if {!$(rmmodonly)} {
+	    set (normmod) 1
+	}
+	set (norts) 1
+	set (noscan) 1
+	set (notkip) 1
+	set (nowanmacfilter) 1
+	if {!$(paironly)} {
+	    set (noapsta) 1
+	    set (nowet) 1
+	    set (nowds) 1
+	    set (nodwds) 1
+	    set (nopsta) 1
+	}
+	set (nowep) 1
+	set (nomultishared) 1
+	set (mbstress) 0
+	set (nosamba) 1
+	if {!$(perfonly)} {
+	    if {!$(udponly)} {
+		set (noudp) 1
+	    }
+	    if {!$(kppsonly)} {
+		set (nokpps) 1
+	    }
+	    if {!$(mbssonly)} {
+		set (noopen) 1
+	    }
+	}
+	if {!$(rvronly)} {
+	    set (norvr) 1
+	}
+	if {!$(paironly)} {
+	    set (nopair) 1
+	}
+    }
+
+    if {$(nopm1)} {
+	set (nobeaconratio) 1
+    }
+
+    if {$(nobtests)} {
+	# Common disable for historical "Bangalore" tests, and others
+	set (nobeaconratio) 1
+	set (norate) 1
+	set (norts) 1
+	set (nofrag) 1
+    }
+
+    if {$(paironly)} {
+	set (noaes) 1
+	set (noassocmacfilter) 1
+	set (nobeaconratio) 1
+	set (nobighammer) 1
+	set (nocal) 1
+	set (nochan) 1
+	set (nocpu) 1
+	set (nodual) 1
+	set (nofb0) 1
+	set (nofirewall) 1
+	set (nofrag) 1
+	set (noframeburst) 1
+	set (noifjoin) 1
+	set (nombss) 1
+	set (nopm1) 1
+	set (nopm2) 1
+	set (nopwrsave) 1
+	set (norate) 1
+	set (normmod) 1
+	set (norts) 1
+	set (noscan) 1
+	set (notkip) 1
+	set (nowanmacfilter) 1
+	set (nowep) 1
+	set (norvr) 1
+	set (nosamba) 1
+    }
+
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+    # Override default tags
+    if {$(trx) ne ""} {
+	foreach Router $(aps) {
+	    $Router configure -image $(trx) -date {}
+	}
+    } elseif {$(tag) ne ""} {
+	foreach Router $(aps) {
+	    $Router configure -tag $(tag) -date {}
+	}
+    }
+    if {$(statag) ne ""} {
+	foreach STA $(stas) {
+	    $STA configure -tag $(statag)
+	}
+    }
+    if {$(stabin) ne ""} {
+	foreach STA $(stas) {
+	    $STA configure -image $(stabin)
+	}
+    }
+    if {$(stadate) ne ""} {
+	set stadate $(stadate)
+	foreach STA $(stas) {
+	    $STA configure -date $(stadate)
+	}
+    } else {
+	set stadate $today
+    }
+
+    if {$(date) ne ""} {
+	set date $(date)
+	foreach STA $(aps) {
+	    $STA configure -date $(date)
+	}
+    } else {
+	set date $today
+    }
+
+    if {$(perfonly)} {
+	# Enable perfonly on all Routers
+	foreach STA $(aps) {
+	    $STA configure -perfonly 1
+	}
+    }
+
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle $(aps)]
+
+
+    # Still need to pick one AP for the type checking for now
+    set AP [lindex $(aps) 0]
+
+    set TITLE "UTF $(title) ($build)"
+    UTF::Message INFO "" $TITLE
+
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+
+    if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+	    error "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+    }
+    unset build
+
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	if {!$(nosetuptestbed)} {
+	    UTF::Try "Setup testbed" {
+		UTF::SetupTestBed
+	    }
+	}
+
+	foreach STA $(stas) {
+	    # Find images
+	    if {!$(nostaload)} {
+		UTF::Try "$STA: Find STA Image" {
+		    # Check primary image and start report header
+		    UTF::CheckImage $STA $stadate unknown
+		}
+		UTF::Try "$STA: load" {
+		    $STA load
+		}
+		# Check secondary driver and update report header
+		UTF::ReportDriver $STA $stadate
+	    } elseif {[catch {$STA wl ver}]} {
+		# If there is no driver, at least try reloading
+		UTF::Try "$STA: reload" {
+		    $STA reload
+		}
+	    }
+
+	    if {!$(nosetup)} {
+		UTF::Try "$STA: setup" {
+		    $STA services stop
+		    # regulatory disabled as temporary WAR for EAGLE perf issues
+		    $STA wl msglevel +error +assoc -regulatory
+		    if {![$STA cget -nomimo_bw_cap]} {
+			catch {$STA wl down}
+			# Enable 40 in 2.4, if available.
+			if {[catch {$STA wl bw_cap 2 -1}]} {
+			    $STA wl -u mimo_bw_cap 1
+			}
+			$STA wl up
+			UTF::Sleep 1
+		    }
+		    # Collect HW info and update report header + DB
+		    UTF::ReportWhatami $STA -role REF -noload $(nostaload)
+		}
+	    }
+	}
+
+	foreach AP $(aps) {
+	    if {[catch {main $AP {*}$(stas)} ret]} {
+		set e $::errorInfo
+		UTF::Try "main loop" {
+		    error $ret $e
+		}
+	    }
+	    catch {$AP deinit}
+	}
+
+	if {!$(nostaunload)} {
+	    foreach STA $(stas) {
+		UTF::Try "$STA: unload" {
+		    $STA unload
+		}
+	    }
+	}
+
+	PreservedReport
+    }
+}

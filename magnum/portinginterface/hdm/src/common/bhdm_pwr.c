@@ -109,6 +109,12 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 		*RxSense = false ;
 	}
 
+	if (hHDMI->bCrcTestMode)
+	{
+		ReceiverSense = 0x0F;
+		*RxSense = true ;
+	}
+
 	if (*RxSense != hHDMI->rxSensePowerDetected)
 	{
 		/* notify of changes only if clock or clock/data are enabled

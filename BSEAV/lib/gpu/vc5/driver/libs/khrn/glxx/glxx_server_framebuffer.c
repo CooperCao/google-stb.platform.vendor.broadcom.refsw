@@ -34,7 +34,23 @@
 #include "libs/core/v3d/v3d_debug.h"
 #include "glxx_utils.h"
 
-unsigned glxx_get_stencil_size(GLXX_SERVER_STATE_T const* state)
+static bool is_supported_level(const GLXX_TEXTURE_T *texture, int level)
+{
+   if (texture->immutable_format != GFX_LFMT_NONE)
+   {
+      if (level < 0)
+         return false;
+
+      unsigned base_level, num_levels;
+      bool res = glxx_texture_try_get_num_levels(texture, false, &base_level, &num_levels);
+      assert(res);
+      return ((unsigned)level >= base_level && (unsigned)level < (base_level + num_levels));
+   }
+   else
+      return glxx_texture_is_legal_level(texture->target, level);
+}
+
+unsigned glxx_get_stencil_size(const GLXX_SERVER_STATE_T *state)
 {
    unsigned res = 0;
 
@@ -171,6 +187,9 @@ static void invalidate_framebuffer(GLXX_SERVER_STATE_T *state, GLenum target_e,
       }
    }
 
+   if (!glxx_fb_is_complete(fb, &state->fences))
+      return;
+
    if (num_attachments_signed > 0 && really)
       glxx_hw_invalidate_framebuffer(state, fb, color_rt, /*all_color_ms=*/false, depth, stencil);
 }
@@ -251,17 +270,24 @@ static_assrt(GL_FRAMEBUFFER_UNSUPPORTED == GL_FRAMEBUFFER_UNSUPPORTED_OES);
 static_assrt(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT == GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES);
 static_assrt(GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS == GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES);
 
-static bool is_valid_attachment(GLXX_SERVER_STATE_T *state, GLenum attachment)
+static bool is_valid_attachment(GLXX_SERVER_STATE_T *state, GLenum attachment, GLenum *error)
 {
-   if ((attachment >= GL_COLOR_ATTACHMENT0) &&
-        (attachment < GL_COLOR_ATTACHMENT0 + GLXX_MAX_RENDER_TARGETS))
-      return true;
+   if (attachment >= GL_COLOR_ATTACHMENT0 && attachment <= GL_COLOR_ATTACHMENT31)
+   {
+      if (attachment < (GL_COLOR_ATTACHMENT0 + GLXX_MAX_RENDER_TARGETS))
+         return true;
+
+      *error = GL_INVALID_OPERATION;
+      return false;
+   }
    if (attachment == GL_DEPTH_ATTACHMENT)
       return true;
    if (attachment == GL_STENCIL_ATTACHMENT)
       return true;
    if (!IS_GL_11(state) && (attachment == GL_DEPTH_STENCIL_ATTACHMENT))
       return true;
+
+   *error = GL_INVALID_ENUM;
    return false;
 }
 
@@ -808,7 +834,7 @@ GL_API GLenum GL_APIENTRY glCheckFramebufferStatus(GLenum target_e)
    }
 
    fb = glxx_server_get_bound_fb(state, target_e);
-   result = glxx_fb_completeness_status(fb);
+   result = glxx_fb_completeness_status(fb, &state->fences);
 
 end:
    glxx_unlock_server_state();
@@ -824,11 +850,8 @@ static GLXX_FRAMEBUFFER_T* fb_texture_render_internal_checks(GLXX_SERVER_STATE_T
       return NULL;
    }
 
-   if (!is_valid_attachment(state, att_e))
-   {
-      *err = GL_INVALID_ENUM;
+   if (!is_valid_attachment(state, att_e, err))
       return NULL;
-   }
 
    GLXX_FRAMEBUFFER_T *fb = glxx_server_get_bound_fb(state, fb_target_e);
    *err = GL_NO_ERROR;
@@ -980,7 +1003,7 @@ GL_API void GL_APIENTRY glFramebufferTexture2DMultisampleEXT(GLenum fb_target_e,
       goto end;
    }
 
-   if (!glxx_texture_is_legal_level(texture->target, level))
+   if (!is_supported_level(texture, level))
    {
       err = GL_INVALID_VALUE;
       goto end;
@@ -988,7 +1011,7 @@ GL_API void GL_APIENTRY glFramebufferTexture2DMultisampleEXT(GLenum fb_target_e,
 
    unsigned face = glxx_texture_get_face(textarget_e);
    glxx_ms_mode ms_mode = glxx_samples_to_ms_mode(samples);
-   glxx_fb_attach_texture(fb, att_point, texture, face, level, 0, ms_mode);
+   glxx_fb_attach_texture(fb, att_point, texture, level, true, face, 0, ms_mode);
 
 end:
    if (err != GL_NO_ERROR)
@@ -1031,14 +1054,14 @@ GL_API void GL_APIENTRY glFramebufferTexture2D(GLenum fb_target_e,
       goto end;
    }
 
-   if (!glxx_texture_is_legal_level(texture->target, level))
+   if (!is_supported_level(texture, level))
    {
       err = GL_INVALID_VALUE;
       goto end;
    }
 
    unsigned face = glxx_texture_get_face(textarget_e);
-   glxx_fb_attach_texture(fb, att_point, texture, face, level, 0, GLXX_NO_MS);
+   glxx_fb_attach_texture(fb, att_point, texture, level, true, face, 0, GLXX_NO_MS);
 
 end:
    if (err != GL_NO_ERROR)
@@ -1089,7 +1112,7 @@ GL_API void GL_APIENTRY glFramebufferTextureLayer(GLenum fb_target_e,
       goto end;
    }
 
-   if (!glxx_texture_is_legal_level(texture->target, level))
+   if (!is_supported_level(texture, level))
    {
       err = GL_INVALID_VALUE;
       goto end;
@@ -1101,7 +1124,7 @@ GL_API void GL_APIENTRY glFramebufferTextureLayer(GLenum fb_target_e,
       goto end;
    }
 
-   glxx_fb_attach_texture(fb, att_point, texture, 0, level, layer, GLXX_NO_MS);
+   glxx_fb_attach_texture(fb, att_point, texture, level, true, 0, layer, GLXX_NO_MS);
 end:
    if (err != GL_NO_ERROR)
       glxx_server_state_set_error(state, err);
@@ -1292,11 +1315,8 @@ GL_API void GL_APIENTRY glGetFramebufferAttachmentParameteriv(GLenum target_e,
    }
    else
    {
-      if (!is_valid_attachment(state, att_e))
-      {
-         error = GL_INVALID_ENUM;
+      if (!is_valid_attachment(state, att_e, &error))
          goto end;
-      }
       att_point = att_e;
    }
 
@@ -1357,17 +1377,25 @@ GL_API void GL_APIENTRY glGetFramebufferAttachmentParameteriv(GLenum target_e,
       switch(pname)
       {
          case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER:
-            params[0] = tex_info->layer;
+            if (tex_info->use_face_layer)
+               params[0] = tex_info->layer;
+            else
+               params[0] = 0;
             goto end;
          case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL:
             params[0] = tex_info->level;
             goto end;
          case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE:
-            if (tex_info->texture->target == GL_TEXTURE_CUBE_MAP)
+            if (tex_info->texture->target == GL_TEXTURE_CUBE_MAP && tex_info->use_face_layer)
               params[0] = GL_TEXTURE_CUBE_MAP_POSITIVE_X + tex_info->face;
             else
               params[0] = 0;
             goto end;
+#if GLXX_HAS_TNG
+         case GL_FRAMEBUFFER_ATTACHMENT_LAYERED:
+            params[0] = !tex_info->use_face_layer;
+            goto end;
+#endif
          default:
             break;
       }
@@ -1436,6 +1464,16 @@ GL_APICALL void GL_APIENTRY glFramebufferParameteri(GLenum target_e,
       }
       fb->default_height = param;
       break;
+#if GLXX_HAS_TNG
+   case GL_FRAMEBUFFER_DEFAULT_LAYERS:
+      if (param > GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS)
+      {
+         error = GL_INVALID_VALUE;
+         goto end;
+      }
+      fb->default_layers = param;
+      break;
+#endif
    case GL_FRAMEBUFFER_DEFAULT_SAMPLES:
       if (param > GLXX_CONFIG_MAX_SAMPLES)
       {
@@ -1485,19 +1523,20 @@ GL_APICALL void GL_APIENTRY glGetFramebufferParameteriv(GLenum target_e,
    case GL_FRAMEBUFFER_DEFAULT_WIDTH:
       params[0] = fb->default_width;
       break;
-
    case GL_FRAMEBUFFER_DEFAULT_HEIGHT:
       params[0] = fb->default_height;
       break;
-
+#if GLXX_HAS_TNG
+   case GL_FRAMEBUFFER_DEFAULT_LAYERS:
+      params[0] = fb->default_layers;
+      break;
+#endif
    case GL_FRAMEBUFFER_DEFAULT_SAMPLES:
       params[0] = fb->default_samples;
       break;
-
    case GL_FRAMEBUFFER_DEFAULT_FIXED_SAMPLE_LOCATIONS:
       params[0] = fb->default_fixed_sample_locations;
       break;
-
    default:
       error = GL_INVALID_ENUM;
       goto end;
@@ -1508,5 +1547,82 @@ end:
       glxx_server_state_set_error(state, error);
    glxx_unlock_server_state();
 }
+#endif
 
+#if GLXX_HAS_TNG
+static void fb_texture(GLenum fb_target_e, GLenum att_e, GLuint tex_id, GLint level)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   GLenum err = GL_NO_ERROR;
+   GLXX_FRAMEBUFFER_T *fb = fb_texture_render_internal_checks(state, fb_target_e, att_e, &err);
+   if (!fb)
+      goto end;
+
+   if (fb->name == 0)
+   {
+      err = GL_INVALID_OPERATION;
+      goto end;
+   }
+
+   glxx_attachment_point_t att_point = att_e;
+   if (tex_id == 0)
+   {
+      /* detach */
+      glxx_fb_detach_attachment(fb, att_e);
+      goto end;
+   }
+   GLXX_TEXTURE_T *texture = glxx_shared_get_texture(state->shared, tex_id);
+   if (texture == NULL)
+   {
+      err = GL_INVALID_VALUE;
+      goto end;
+   }
+
+   if (texture->target == GL_TEXTURE_BUFFER)
+   {
+      err = GL_INVALID_OPERATION;
+      goto end;
+   }
+   if (!is_supported_level(texture, level))
+   {
+      err = GL_INVALID_VALUE;
+      goto end;
+   }
+
+   bool use_face_layer = true;
+   if (glxx_tex_target_has_layers_or_faces(texture->target))
+      use_face_layer = false;
+   glxx_fb_attach_texture(fb, att_point, texture, level, use_face_layer, 0, 0,
+         GLXX_NO_MS);
+end:
+   if (err != GL_NO_ERROR)
+      glxx_server_state_set_error(state, err);
+
+   glxx_unlock_server_state();
+}
+#endif
+
+
+#if KHRN_GLES32_DRIVER
+GL_APICALL void GL_APIENTRY
+glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level)
+{
+   fb_texture(target, attachment, texture,level);
+}
+#endif
+
+#if GLXX_HAS_TNG
+GL_APICALL void GL_APIENTRY
+glFramebufferTextureOES(GLenum target, GLenum attachment, GLuint texture, GLint level)
+{
+   fb_texture(target, attachment, texture,level);
+}
+GL_APICALL void GL_APIENTRY
+glFramebufferTextureEXT(GLenum target, GLenum attachment, GLuint texture, GLint level)
+{
+   fb_texture(target, attachment, texture,level);
+}
 #endif

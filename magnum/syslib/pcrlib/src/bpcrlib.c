@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -738,13 +738,11 @@ BPCRlib_Channel_AudioRequestStc_isr(BPCRlib_Handle handle, void *audio, uint32_t
 {
     BPCRlib_Channel chn = find_by_audio_isr(handle, audio);
     BERR_Code rc = BERR_SUCCESS;
-    bool dss = false;
 
     if (!chn) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BDBG_MSG(("(%p) AudioRequestStc(%p) PTS %#x %s", (void *)chn, (void *)audio, (unsigned)audio_pts, chn->cfg.playback?"Playback":""));
-    dss = b_is_dss_isrsafe(&chn->cfg);
     if (chn->cfg.playback) {
         if (chn->cfg.mode == BPCRlib_Mode_eConstantDelay) {
             return b_load_delayed_stc_isr(chn, audio);
@@ -1395,7 +1393,7 @@ BPCRlib_P_InvalidatePCRCache_isr(BPCRlib_Channel chn)
     return;
 }
 
-bool BPCRlib_P_GetAudioPts_isr(BPCRlib_Channel chn, uint32_t * pts)
+static bool BPCRlib_P_GetAudioPts_isr(BPCRlib_Channel chn, uint32_t * pts)
 {
     bool valid = false;
     BAVC_PTSInfo audio_pts;
@@ -1421,7 +1419,7 @@ end:
     return valid;
 }
 
-bool BPCRlib_P_GetVideoPts_isr(BPCRlib_Channel chn, uint32_t * pts)
+static bool BPCRlib_P_GetVideoPts_isr(BPCRlib_Channel chn, uint32_t * pts)
 {
     bool valid = false;
     BAVC_PTSInfo video_pts;

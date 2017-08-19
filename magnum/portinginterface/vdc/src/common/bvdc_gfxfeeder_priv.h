@@ -89,6 +89,10 @@ BDBG_OBJECT_ID_DECLARE(BVDC_GFX);
 
 /* BSTC with  HW7278-594 to be fixed since 7278b0*/
 #define BVDC_P_SUPPORT_GFD_VER_10           (10) /* 7268 a0/b0 7271 a0/b0 7278 a0 7586 */
+
+/* register re-org to optimize block writes */
+#define BVDC_P_SUPPORT_GFD_VER_11           (11) /* 7278 b0, 7260 B0*/
+
 #if ((BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_4)|| \
      (BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_5))
 /* HW7231-187 transition failure between 2D->3D 3D->2D*/

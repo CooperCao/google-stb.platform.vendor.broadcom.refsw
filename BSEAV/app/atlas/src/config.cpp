@@ -320,8 +320,8 @@ eRet CConfig::initResources()
 
     /* query nexus for transport capabilities and add to resource lists */
     {
-        uint16_t                    numRecPumps  = 0;
-        uint16_t                    numPlayPumps = 0;
+        unsigned                    numRecPumps  = 0;
+        unsigned                    numPlayPumps = 0;
         NEXUS_TransportCapabilities capabilities;
 
         NEXUS_GetTransportCapabilities(&capabilities);
@@ -407,12 +407,16 @@ CConfig::CConfig() :
     _revision(0),
     _pResources(NULL)
 {
+    const char * s = NULL;
     _name = "BCM_BOARD_STR";
     _chipList.clear();
     _features.clear();
 
+    s = GET_STR(&_cfg, CONFIG_FILENAME);
     /* update configuration settings from file */
-    _cfg.read(GET_STR(&_cfg, CONFIG_FILENAME));
+    if(s != NULL)
+        _cfg.read(s);
+
 }
 
 CConfig::~CConfig()

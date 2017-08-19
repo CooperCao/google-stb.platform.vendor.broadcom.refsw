@@ -1,162 +1,55 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_hdmi_output_module.h"
 
 BDBG_MODULE(nexus_hdmi_output_extra);
 
 void NEXUS_HdmiOutput_DisplayRxEdid(NEXUS_HdmiOutputHandle handle)
 {
-	BHDM_EDID_DEBUG_PrintData(handle->hdmHandle) ;
+    BSTD_UNUSED(handle) ;
+    NEXUS_HdmiOutput_PrintRxEdid() ;
 }
 
 
 void NEXUS_HdmiOutput_DisplayRxInfo(NEXUS_HdmiOutputHandle handle)
 {
-#if BDBG_DEBUG_BUILD
-
-    uint8_t RxSense ;
-    uint8_t Attached  ;
-    uint8_t RxMonitorName[BHDM_EDID_DESC_ASCII_STRING_LEN] ;
-
-#if NEXUS_HAS_SECURITY
-    BDBG_Level level ;
-    BERR_Code rc ;
-    uint8_t i, IsRepeater;
-    uint16_t BStatus ;
-    uint16_t DeviceCount, uiRxKsvIndex ;
-    uint8_t AttachedKsv[BHDM_HDCP_KSV_LENGTH] ;
-    uint8_t *DownstreamKsvsBuffer ;
-    uint16_t DownstreamKsvsBufferSize ;
-    char HDCP_MODULE[] = "BHDM_HDCP" ;
-#endif
-
-    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    RESOLVE_ALIAS(handle);
-    BHDM_RxDeviceAttached(handle->hdmHandle, &Attached) ;
-    BDBG_WRN(("Device Attached: %d", Attached)) ;
-    if (!Attached)
-        return  ;
-
-    BHDM_GetReceiverSense(handle->hdmHandle, &RxSense) ;
-    BDBG_WRN(("Device RxSense: %d", RxSense)) ;
-
-    if (RxSense != 0xF)
-    {
-        BDBG_WRN(("Rx not powered (%d) ...", RxSense)) ;
-        return  ;
-    }
-
-    BKNI_Memset(RxMonitorName, 0, BHDM_EDID_DESC_ASCII_STRING_LEN) ;
-    BHDM_EDID_GetMonitorName(handle->hdmHandle, RxMonitorName) ;
-    BDBG_WRN(("Monitor '%*s':",
-        BHDM_EDID_DESC_ASCII_STRING_LEN, RxMonitorName)) ;
-
-
-#if NEXUS_HAS_SECURITY
-    /* save the current debug level */
-    BDBG_GetModuleLevel(HDCP_MODULE, &level) ;
-    BDBG_SetModuleLevel(HDCP_MODULE, BDBG_eMsg) ;
-
-    /*get/display information for BStatus */
-    BHDM_HDCP_GetRxStatus(handle->hdmHandle, &BStatus) ;
-
-    /* retrieve KSV Information */
-    rc = BHDM_HDCP_GetRxKsv(handle->hdmHandle, AttachedKsv) ;
-    if (rc != BERR_SUCCESS)
-    {
-        BDBG_WRN(("Error Retrieving Bksv")) ;
-        return  ;
-    }
-
-    /* display Attached Device KSV */
-    BDBG_WRN(("Attached Rx Bksv = %02x %02x %02x %02x %02x",
-            AttachedKsv[4], AttachedKsv[3], AttachedKsv[2],
-            AttachedKsv[1], AttachedKsv[0]));
-
-    /* switch back to Wrn to remove extra messages when checking for Repeater */
-    BDBG_SetModuleLevel(HDCP_MODULE, BDBG_eWrn) ;
-        BHDM_HDCP_CheckForRepeater(handle->hdmHandle, &IsRepeater) ;
-    BDBG_SetModuleLevel(HDCP_MODULE, BDBG_eMsg) ;
-    if (IsRepeater)
-    {
-        /* retrieve Repeater Ksvs if available */
-        DeviceCount = BStatus & 0x7F ;
-
-        /* allocate space for a copy of downstream devices */
-        DownstreamKsvsBufferSize  = DeviceCount * BHDM_HDCP_KSV_LENGTH ;
-        DownstreamKsvsBuffer = (uint8_t *) BKNI_Malloc(sizeof(uint8_t) * DownstreamKsvsBufferSize) ;
-
-        rc = BHDM_HDCP_GetRepeaterKsvFifo(handle->hdmHandle,
-            DownstreamKsvsBuffer, DownstreamKsvsBufferSize) ;
-        if (rc != BERR_SUCCESS)
-        {
-            BDBG_WRN(("Error w/ Repeater/Downstream Devices")) ;
-        }
-        else
-        {
-            BDBG_WRN(("Downstream Devices: %d", DeviceCount)) ;
-            for (i = 0 ; i < DeviceCount ; i++)                  /* for each RxKsv */
-            {
-                uiRxKsvIndex = i * BHDM_HDCP_KSV_LENGTH ;
-
-                /* display each KSV to check debugging */
-                BDBG_WRN(("Downstream Device %d: %02x %02x %02x %02x %02x",
-                    i, DownstreamKsvsBuffer[uiRxKsvIndex + 4],
-                    DownstreamKsvsBuffer[uiRxKsvIndex + 3], DownstreamKsvsBuffer[uiRxKsvIndex + 2],
-                    DownstreamKsvsBuffer[uiRxKsvIndex + 1], DownstreamKsvsBuffer[uiRxKsvIndex + 0]));
-            }
-        }
-
-        BKNI_Free(DownstreamKsvsBuffer) ;
-    }
-
-    /* restore the debug level */
-    BDBG_SetModuleLevel(HDCP_MODULE, level) ;
-#endif
-
-#else
-	BSTD_UNUSED(handle);
-#endif
-    return ;
+    BSTD_UNUSED(handle) ;
+    NEXUS_HdmiOutputModule_Print() ;
 }
 
 
@@ -164,25 +57,20 @@ void NEXUS_HdmiOutput_GetVideoFormatFromDetailTiming(NEXUS_HdmiOutputHandle hand
 {
 #if BDBG_DEBUG_BUILD
 
-	BDBG_Level level ;
-	BHDM_EDID_DetailTiming hdmiEDIDDetailTiming ;
-	BFMT_VideoFmt videoFormat ;
-	char EDID_MODULE[] = "BHDM_EDID" ;
+    BHDM_EDID_DetailTiming hdmiEDIDDetailTiming ;
+    BFMT_VideoFmt videoFormat ;
+    const BFMT_VideoInfo *info;
 
-	BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-	RESOLVE_ALIAS(handle);
-	/* save the current debug level */
-	BDBG_GetModuleLevel(EDID_MODULE, &level) ;
-	BDBG_SetModuleLevel(EDID_MODULE, BDBG_eMsg) ;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
 
-	BHDM_EDID_GetDetailTiming(handle->hdmHandle, detailTimingNumber, &hdmiEDIDDetailTiming, &videoFormat) ;
-
-	/* restore the debug level */
-	BDBG_SetModuleLevel(EDID_MODULE, level) ;
+    BHDM_EDID_GetDetailTiming(handle->hdmHandle, detailTimingNumber, &hdmiEDIDDetailTiming, &videoFormat) ;
+    info = BFMT_GetVideoFormatInfoPtr_isrsafe(videoFormat) ;
+    BDBG_LOG(("Detailed Timing Format # %d is %s", detailTimingNumber, info->pchFormatStr)) ;
 
 #else
-	BSTD_UNUSED(handle);
-	BSTD_UNUSED(detailTimingNumber);
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(detailTimingNumber);
 #endif
 
 	return;
@@ -193,15 +81,10 @@ void NEXUS_HdmiOutput_SetAviInfoFrameColorimetry(NEXUS_HdmiOutputHandle handle, 
 {
 #if BDBG_DEBUG_BUILD
 
-	BDBG_Level level ;
-	char HDM_MODULE[] = "BHDM" ;
 	BHDM_Settings settings;
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 	if (IS_ALIAS(handle)) {BERR_TRACE(NEXUS_NOT_SUPPORTED);return;}
-	/* save the current debug level */
-	BDBG_GetModuleLevel(HDM_MODULE, &level) ;
-	BDBG_SetModuleLevel(HDM_MODULE, BDBG_eMsg) ;
 
 	BHDM_GetHdmiSettings(handle->hdmHandle, &settings) ;
 	switch (colorimetry)
@@ -212,11 +95,8 @@ void NEXUS_HdmiOutput_SetAviInfoFrameColorimetry(NEXUS_HdmiOutputHandle handle, 
 		case 3 : settings.eColorimetry = BAVC_MatrixCoefficients_eSmpte_170M   ; break ;
 		case 0 : settings.eColorimetry = BAVC_MatrixCoefficients_eUnknown; break ;
 	}
-	BDBG_WRN(("Switch Colorimetry to %d", settings.eColorimetry)) ;
+	BDBG_LOG(("Switching Colorimetry to %d", settings.eColorimetry)) ;
 	BHDM_EnableDisplay(handle->hdmHandle, &settings);
-
-	/* restore the debug level */
-	BDBG_SetModuleLevel(HDM_MODULE, level) ;
 
 #else
 	BSTD_UNUSED(handle);
@@ -231,15 +111,10 @@ void NEXUS_HdmiOutput_SetAviInfoFrameAspectRatio(NEXUS_HdmiOutputHandle handle, 
 {
 #if BDBG_DEBUG_BUILD
 
-	BDBG_Level level ;
-	char HDM_MODULE[] = "BHDM" ;
 	BHDM_Settings settings;
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 	if (IS_ALIAS(handle)) {BERR_TRACE(NEXUS_NOT_SUPPORTED);return;}
-	/* save the current debug level */
-	BDBG_GetModuleLevel(HDM_MODULE, &level) ;
-	BDBG_SetModuleLevel(HDM_MODULE, BDBG_eMsg) ;
 
 	BHDM_GetHdmiSettings(handle->hdmHandle, &settings);
 	switch (aspectRatio)
@@ -248,11 +123,9 @@ void NEXUS_HdmiOutput_SetAviInfoFrameAspectRatio(NEXUS_HdmiOutputHandle handle, 
 		case 1 : settings.eAspectRatio = BFMT_AspectRatio_e4_3; break ;
 		case 0 : settings.eAspectRatio = BFMT_AspectRatio_e16_9; break ;
 	}
-	BDBG_WRN(("Switch AR to %d", settings.eAspectRatio)) ;
+	BDBG_LOG(("Switching AR to %d", settings.eAspectRatio)) ;
 	BHDM_EnableDisplay(handle->hdmHandle, &settings);
 
-	/* restore the debug level */
-	BDBG_SetModuleLevel(HDM_MODULE, level) ;
 
 #else
 	BSTD_UNUSED(handle);
@@ -267,23 +140,15 @@ void NEXUS_HdmiOutput_EnablePjChecking(NEXUS_HdmiOutputHandle handle, bool enabl
 {
 #if BDBG_DEBUG_BUILD && NEXUS_HAS_SECURITY
 
-	BDBG_Level level ;
-	char HDCP_MODULE[] = "BHDM_HDCP" ;
 	BHDM_HDCP_OPTIONS HdcpOptions ;
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 	if (IS_ALIAS(handle)) {BERR_TRACE(NEXUS_NOT_SUPPORTED);return;}
-	/* save the current debug level */
-	BDBG_GetModuleLevel(HDCP_MODULE, &level) ;
-	BDBG_SetModuleLevel(HDCP_MODULE, BDBG_eMsg) ;
 
 	BHDM_HDCP_GetOptions(handle->hdmHandle, &HdcpOptions) ;
 	HdcpOptions.PjChecking = enable ;
 	BHDM_HDCP_SetOptions(handle->hdmHandle, &HdcpOptions) ;
 	BDBG_WRN(("Pj Checking: %d", (int) HdcpOptions.PjChecking)) ;
-
-	/* restore the debug level */
-	BDBG_SetModuleLevel(HDCP_MODULE, level) ;
 
 #else
 	BSTD_UNUSED(handle);
@@ -297,14 +162,8 @@ void NEXUS_HdmiOutput_ForceVideoPixel(NEXUS_HdmiOutputHandle handle, uint8_t pix
 {
 #if BDBG_DEBUG_BUILD && NEXUS_HAS_SECURITY
 
-	BDBG_Level level ;
-	char HDCP_MODULE[] = "BHDM_HDCP" ;
-
 	BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 	if (IS_ALIAS(handle)) {BERR_TRACE(NEXUS_NOT_SUPPORTED);return;}
-	/* save the current debug level */
-	BDBG_GetModuleLevel(HDCP_MODULE, &level) ;
-	BDBG_SetModuleLevel(HDCP_MODULE, BDBG_eMsg) ;
 
 	switch (pixelValue)
 	{
@@ -317,9 +176,6 @@ void NEXUS_HdmiOutput_ForceVideoPixel(NEXUS_HdmiOutputHandle handle, uint8_t pix
 		BHDM_HDCP_P_DEBUG_PjCleanVideo(handle->hdmHandle, pixelValue) ;
 		break ;
 	}
-
-	/* restore the debug level */
-	BDBG_SetModuleLevel(HDCP_MODULE, level) ;
 
 #else
 	BSTD_UNUSED(handle);
@@ -334,16 +190,11 @@ void NEXUS_HdmiOutput_EnablePacketTransmission(NEXUS_HdmiOutputHandle handle, ui
 {
 #if BDBG_DEBUG_BUILD
 
-	BDBG_Level level ;
-	char HDM_MODULE[] = "BHDM" ;
 	uint8_t packetType;
 	BHDM_Packet packetId;
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 	if (IS_ALIAS(handle)) {BERR_TRACE(NEXUS_NOT_SUPPORTED);return;}
-	/* save the current debug level */
-	BDBG_GetModuleLevel(HDM_MODULE, &level) ;
-	BDBG_SetModuleLevel(HDM_MODULE, BDBG_eMsg) ;
 
 	switch (packetChoice)
 	{
@@ -372,9 +223,6 @@ void NEXUS_HdmiOutput_EnablePacketTransmission(NEXUS_HdmiOutputHandle handle, ui
 	BDBG_WRN(("Enable transmission of '%s' packets", BAVC_HDMI_PacketTypeToStr_isrsafe(packetType))) ;
 	BHDM_EnablePacketTransmission(handle->hdmHandle, packetId);
 
-	/* restore the debug level */
-	BDBG_SetModuleLevel(HDM_MODULE, level) ;
-
 #else
 	BSTD_UNUSED(handle);
 	BSTD_UNUSED(packetChoice);
@@ -388,16 +236,11 @@ void NEXUS_HdmiOutput_DisablePacketTransmission(NEXUS_HdmiOutputHandle handle, u
 {
 #if BDBG_DEBUG_BUILD
 
-	BDBG_Level level ;
-	char HDM_MODULE[] = "BHDM" ;
 	uint8_t packetType;
 	BHDM_Packet packetId;
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 	if (IS_ALIAS(handle)) {BERR_TRACE(NEXUS_NOT_SUPPORTED);return;}
-	/* save the current debug level */
-	BDBG_GetModuleLevel(HDM_MODULE, &level) ;
-	BDBG_SetModuleLevel(HDM_MODULE, BDBG_eMsg) ;
 
 	switch (packetChoice)
 	{
@@ -425,9 +268,6 @@ void NEXUS_HdmiOutput_DisablePacketTransmission(NEXUS_HdmiOutputHandle handle, u
 
 	BDBG_WRN(("Disable transmission of '%s' packets", BAVC_HDMI_PacketTypeToStr_isrsafe(packetType))) ;
 	BHDM_DisablePacketTransmission(handle->hdmHandle, packetId);
-
-	/* restore the debug level */
-	BDBG_SetModuleLevel(HDM_MODULE, level) ;
 
 #else
 	BSTD_UNUSED(handle);
@@ -526,6 +366,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
     }
     /* need to update all other info, like eotf if not dolby */
     NEXUS_TaskCallback_Fire(output->notifyDisplay);
+#else
+    BSTD_UNUSED(dbvChanged);
 #endif
 
 error:

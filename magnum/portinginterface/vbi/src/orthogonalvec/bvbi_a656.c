@@ -51,9 +51,6 @@
 #if (BVBI_NUM_ANCI656_656 > 0) /** { **/
 
 #include "bchp_anci656_ancil_0.h"   /* RDB info for ANCI_656_656 registers */
-#if (BVBI_NUM_ANCI656_656 >= 2)
-#include "bchp_anci656_ancil_1.h"
-#endif
 
 BDBG_MODULE(BVBI);
 
@@ -321,10 +318,18 @@ static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
     if (hwCoreIndex == 0)
         ulCoreOffset = 0x0;
 #if (BVBI_NUM_ANCI656_656 >= 2)
-    if (hwCoreIndex == 0)
+    if (hwCoreIndex == 1)
+    {
         ulCoreOffset =
-            BCHP_ANCI656_ANCIL_1_ANCI656_REV_ID -
-            BCHP_ANCI656_ANCIL_0_ANCI656_REV_ID;
+            BCHP_ANCI656_ANCIL_1_REG_START - BCHP_ANCI656_ANCIL_0_REG_START;
+    }
+#endif
+#if (BVBI_NUM_ANCI656_656 >= 3)
+    if (hwCoreIndex == 2)
+    {
+        ulCoreOffset =
+            BCHP_ANCI656_ANCIL_2_REG_START - BCHP_ANCI656_ANCIL_0_REG_START;
+    }
 #endif
 
     return ulCoreOffset;

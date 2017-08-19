@@ -4,7 +4,6 @@
 #include "gl11_shader.h"
 #include "../glsl/glsl_dataflow.h"
 #include "../glxx/glxx_shader_ops.h"
-#include "../glxx/glxx_server.h"   /* For STATE_OFFSET */
 
 typedef struct {
    GLXX_VEC4_T  vertex;

@@ -1197,51 +1197,51 @@ wl_wowl_pkt(void *wl, void *cmd, char **argv)
 				return BCME_USAGE_ERROR;
 		}
 		tot += ETHER_ADDR_LEN;
-	} else if (type == WL_WOWL_NET) {
-		wl_wowl_pattern_t *wl_pattern;
-		wl_pattern = (wl_wowl_pattern_t *)dst;
+    } else if (type == WL_WOWL_NET) {
+        wl_wowl_pattern_t *wl_pattern;
+        wl_pattern = (wl_wowl_pattern_t *)dst;
 
-		if (!*++argv) {
-			printf("Starting offset not provided\n");
-			return BCME_USAGE_ERROR;
-		}
+        if (!*++argv) {
+            printf("Starting offset not provided\n");
+            return BCME_USAGE_ERROR;
+        }
 
-		wl_pattern->offset = (uint)htod32(strtoul(*argv, NULL, 0));
+        wl_pattern->offset = (uint)htod32(strtoul(*argv, NULL, 0));
 
-		wl_pattern->masksize = 0;
+        wl_pattern->masksize = 0;
 
-		wl_pattern->patternoffset = (uint)htod32(sizeof(wl_wowl_pattern_t));
+        wl_pattern->patternoffset = (uint)htod32(sizeof(wl_wowl_pattern_t));
 
-		dst += sizeof(wl_wowl_pattern_t);
+        dst += sizeof(wl_wowl_pattern_t);
 
-		if (!*++argv) {
-			printf("pattern not provided\n");
-			return BCME_USAGE_ERROR;
-		}
+        if (!*++argv) {
+            printf("pattern not provided\n");
+            return BCME_USAGE_ERROR;
+        }
 
-		wl_pattern->patternsize =
-		        (uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
-		dst += wl_pattern->patternsize;
-		tot += sizeof(wl_wowl_pattern_t) + wl_pattern->patternsize;
+        wl_pattern->patternsize =
+                (uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
+        dst += wl_pattern->patternsize;
+        tot += sizeof(wl_wowl_pattern_t) + wl_pattern->patternsize;
 
-		wl_pattern->reasonsize = 0;
-		if (*++argv) {
-			wl_pattern->reasonsize =
-				(uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
-			tot += wl_pattern->reasonsize;
-		}
-	} else {	/* eapid */
-		if (!*++argv) {
-			printf("EAPOL identity string not provided\n");
-			return BCME_USAGE_ERROR;
-		}
+        wl_pattern->reasonsize = 0;
+        if (*++argv) {
+            wl_pattern->reasonsize =
+                (uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
+            tot += wl_pattern->reasonsize;
+        }
+    } else {    /* eapid */
+        if (!*++argv) {
+            printf("EAPOL identity string not provided\n");
+            return BCME_USAGE_ERROR;
+        }
 
-		*dst++ = strlen(*argv);
-		strncpy(dst, *argv, strlen(*argv));
-		tot += 1 + strlen(*argv);
-	}
+        *dst++ = strlen(*argv);
+        strncpy(dst, *argv, strlen(*argv));
+        tot += 1 + strlen(*argv);
+    }
     /*printf( "%s: arg (%s) ... tot (%u)\n", __FUNCTION__, arg, tot );*/
-	return (wlu_set(wl, WLC_SET_VAR, arg, tot));
+    return (wlu_set(wl, WLC_SET_VAR, arg, tot));
 }
 
 /* Create list of attached MAC addresses ... copied wl_maclist() from wlu.c 2017-05-26 */

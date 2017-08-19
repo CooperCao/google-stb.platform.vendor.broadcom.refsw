@@ -91,6 +91,7 @@ extern "C" {
 #define XML_ATT_WIDTH               "width"
 #define XML_ATT_HEIGHT              "height"
 #define XML_ATT_ZORDER              "zorder"
+#define XML_ATT_GLOBAL              "global"
 #define XML_ATT_DURATION            "duration"
 #define XML_ATT_MAX_BITRATE         "maxbitrate"
 #define XML_ATT_BITRATE             "bitrate"

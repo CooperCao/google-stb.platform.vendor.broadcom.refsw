@@ -37,6 +37,7 @@
  *****************************************************************************/
 #include "nexus_transport_module.h"
 #include "priv/nexus_stc_channel_priv.h"
+#include "b_objdb.h"
 
 BDBG_MODULE(nexus_stc_channel);
 BDBG_FILE_MODULE(nexus_flow_stc_channel);
@@ -175,6 +176,10 @@ NEXUS_StcChannelHandle NEXUS_StcChannel_Open(unsigned index, const NEXUS_StcChan
         BDBG_ERR(("invalid stcIndex %d", stcChannel->stcIndex));
         goto error;
     }
+    /* Only NEXUS_ClientMode_eVerified clients can use NEXUS_Timebase_eInvalid (default timebase) and update it.
+    For other clients, they can use the use the default timebase as freerun (eAuto or eHost);
+    they cannot use the default timebase for live (ePcr). */
+    stcChannel->modifyDefaultTimebase = (b_objdb_get_client()->mode < NEXUS_ClientMode_eProtected);
 
     BXPT_PcrOffset_GetChannelDefSettings(pTransport->xpt, index, &pcrOffsetDefaults);
     pcrOffsetDefaults.UsePcrTimeBase = true;
@@ -443,10 +448,23 @@ static NEXUS_Error setTimebase(
     bool autoConfigChange;
     bool modeChange;
 
+    if (!stcChannel->modifyDefaultTimebase && pSettings->timebase == NEXUS_Timebase_eInvalid && mode == NEXUS_StcChannelMode_ePcr && pSettings->autoConfigTimebase) {
+        BDBG_ERR(("clients must use timebase from NEXUS_Timebase_Open for NEXUS_StcChannelMode_ePcr"));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     oldTimebase = stcChannel->timebase;
     oldMode = computeMode(stcChannel, &stcChannel->settings);
     wasAutoConfig = stcChannel->settings.autoConfigTimebase;
+    if (wasAutoConfig && oldMode != NEXUS_StcChannelMode_ePcr && stcChannel->settings.timebase == NEXUS_Timebase_eInvalid) {
+        BDBG_MSG(("%p: don't modify default timebase for freerun", (void*)stcChannel));
+        wasAutoConfig = false;
+    }
     isAutoConfig = pSettings->autoConfigTimebase;
+    if (isAutoConfig && mode != NEXUS_StcChannelMode_ePcr && pSettings->timebase == NEXUS_Timebase_eInvalid) {
+        BDBG_MSG(("%p: don't modify default timebase for freerun", (void*)stcChannel));
+        isAutoConfig = false;
+    }
 
 #if NEXUS_HAS_ASTM
     if (stcChannel->astm.settings.enabled)
@@ -2768,6 +2786,7 @@ static NEXUS_Error stc_phase_mismatch_force_rollover_nrt(NEXUS_StcChannelHandle 
     if (rc) { BERR_TRACE(rc); goto error; }
     rc = BXPT_PcrOffset_SetStc(stc->pcrOffset, oldValue);
     if (rc) { BERR_TRACE(rc); goto error; }
+    BSTD_UNUSED(value);
 error:
     return rc;
 }

@@ -88,9 +88,7 @@ Summary:
     Dumps to the console details on MEMC ARCH violations that have occured since the function was
     last called.
 */
-void NEXUS_Security_PrintArchViolation_priv(
-    BMRC_Monitor_HwBlock excludeBlock /* Use BMRC_Monitor_HwBlock_eInvalid to not exclude */
-    );
+void NEXUS_Security_PrintArchViolation_priv(void);
 
 /* Transport must be brought up via the Security module because of how
 RAVE FW authentication is written. */

@@ -1002,14 +1002,12 @@ void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
     return;
 }
 
-void NEXUS_Platform_P_AddBoardStatus(NEXUS_PlatformStatus *pStatus)
+unsigned NEXUS_Platform_P_ReadBoardId(void)
 {
 #ifdef MIPS_SDE
-    BSTD_UNUSED(pStatus);
+    return 0;
 #else
-    unsigned id = xapi->xfd_board_id;
-    pStatus->boardId.major = (id >> 4) & 0xF;
-    pStatus->boardId.minor = id & 0xF;
+    return xapi->xfd_board_id;
 #endif
 }
 NEXUS_Error NEXUS_Platform_P_DropPrivilege(const NEXUS_PlatformSettings *pSettings)

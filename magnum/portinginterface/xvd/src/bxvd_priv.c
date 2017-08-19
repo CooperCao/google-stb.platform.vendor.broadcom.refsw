@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,10 +102,10 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg[BXVD_VideoProtocol_eMax][BXV
    /* BXVD_VideoProtocol_eMPEG2 */
 #if BXVD_P_CORE_REVISION_NUM >= 19
    {
-      {154944, (1024*1024), 0, 2097152, 131072, BXVD_P_VideoAtomIndex_eM, 6}, /* MPEG2 HD w/ BTP */
-      {154944,  (150*1024), 0, 1048576,  65536, BXVD_P_VideoAtomIndex_eB, 6}, /* MPEG2 SD w/ BTP */
-      {154944,   (52*1024), 0,  312448,  16384, BXVD_P_VideoAtomIndex_eC, 5}, /* MPEG2 CIF */
-      {154944,   (16*1024), 0,   54656,  16384, BXVD_P_VideoAtomIndex_eD, 2}  /* MPEG2 QCIF */
+      {154944, (1024*1024), 0, 2097152, 131072*2, BXVD_P_VideoAtomIndex_eM, 6}, /* MPEG2 HD w/ BTP */
+      {154944,  (150*1024), 0, 1048576,  65536*2, BXVD_P_VideoAtomIndex_eB, 6}, /* MPEG2 SD w/ BTP */
+      {154944,   (52*1024), 0,  312448,  16384*2, BXVD_P_VideoAtomIndex_eC, 5}, /* MPEG2 CIF */
+      {154944,   (16*1024), 0,   54656,  16384*2, BXVD_P_VideoAtomIndex_eD, 2}  /* MPEG2 QCIF */
    },
 #else
    {
@@ -197,7 +197,7 @@ static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg[BXVD_VideoProtocol_eMax
       { 154944,  32768, 1109768+248,  614400,  65536, BXVD_P_VideoAtomIndex_eB, 1}  /* VP8 SD Still */
    },
 };
-
+#if BXVD_P_HVD_PRESENT
 static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg_HEVC[3] =
 {  /* Context, InnerLoop WL, DirectMode, Cabac bin,  Cabac WL,  Vid Blk (index),  Blk Cnt */
    /* BXVD_VideoProtocol_eHEVC */
@@ -210,7 +210,7 @@ static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg_AVC4K =
 {  /* Context, InnerLoop WL, DirectMode, Cabac bin,  Cabac WL,    Vid Blk (index),     Blk Cnt */
    261440,      524288,         0,        1843200,    11264,    BXVD_P_VideoAtomIndex_eA, 1 /* AVC 4K Still */
 };
-
+#endif
 static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_BluRay[2] =
 { /* Context, InnerLoop WL, DirectMode, Cabac bin,  Cabac WL,  Vid Blk (index),  Blk Cnt */
 
@@ -1027,6 +1027,19 @@ BERR_Code BXVD_P_GetDecodeFWMemSize(BXVD_Handle hXvd,
       pstDecodeFWMemSize->uiFWPicLumaBlockSize = lumaVidBlkSizeReq + chromaVidBlkSizeReq;
       pstDecodeFWMemSize->uiFWPicChromaBlockSize = 0;
       chromaVidBlkSizeReq = 0;
+   }
+
+   if (pChSettings->uiExtraPictureMemoryAtoms != 0)
+   {
+      if ( pChSettings->uiExtraPictureMemoryAtoms > 2)
+      {
+         BXVD_DBG_WRN(hXvd, ("BXVD_ChannelSettings, uiExtraPictureMemoryAtoms > 2, set to max 2 extra atoms"));
+         vidBlkCountReq += 2;
+      }
+      else
+      {
+         vidBlkCountReq += pChSettings->uiExtraPictureMemoryAtoms;
+      }
    }
 
    pstDecodeFWMemSize->uiFWPicBlockCount = vidBlkCountReq;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -672,7 +672,6 @@ BIP_Status BIP_HttpResponse_SetHeaderValue(
 
 error:
     B_Mutex_Unlock( hResponse->hMutex );
-
     return( rc );
 }                                                          /* BIP_HttpResponse_SetHeaderValue */
 
@@ -706,6 +705,7 @@ BIP_HttpHeaderHandle BIP_HttpResponse_AddHeader(
 
 error:
     B_Mutex_Unlock( hResponse->hMutex );
+    if (rc) BDBG_ERR(( BIP_MSG_PRE_FMT "Response state error 0x%x" BIP_MSG_PRE_ARG,rc ));
 
     return( hHeader );
 }                                                          /* BIP_HttpResponse_AddHeader */
@@ -1600,7 +1600,7 @@ BIP_Status BIP_HttpResponse_SerializeToBuffer(
 
     B_Mutex_Unlock( hResponse->hMutex );
 
-    return( BIP_SUCCESS );
+    return( rc );
 }
 
 /*****************************************************************************
@@ -1680,7 +1680,7 @@ BIP_Status BIP_HttpResponse_SerializeToAtom(
 
     *pAtom = myAtom;
     B_Mutex_Unlock( hResponse->hMutex );
-    return( BIP_SUCCESS );
+    return( rc );
 
 error:
 

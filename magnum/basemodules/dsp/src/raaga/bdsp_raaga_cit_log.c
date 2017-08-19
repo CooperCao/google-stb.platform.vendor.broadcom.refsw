@@ -37,7 +37,6 @@
  ******************************************************************************/
 
 #include "bdsp_raaga_priv.h"
-#include "bdsp_raaga_fw_cit.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
 #include "bdsp_task.h"
@@ -202,7 +201,8 @@ static const char AlgoIdEnum2Char[BDSP_AF_P_AlgoId_eMax+1][MAX_CHAR_LENGTH] =
     {"Output Formatter"},
     {"Vocal PostProc"},
     {"Fade Control"},
-	{"TsmCorrectionPostProc"},
+    {"Ambisonics PostProc"},
+    {"TsmCorrectionPostProc"},
     {"EndOfPpAlgos"},
     {"MixerFrameSync"},
     {"MixerDapv2FrameSync"},

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -421,10 +421,10 @@ firstPtsCallback(void *context, int param)
     if (videoDecoder) {
         NEXUS_VideoDecoderStatus status;
         if (NEXUS_VideoDecoder_GetStatus(videoDecoder, &status) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to get current vidoe currentPts\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to get current vidoe currentPts\n", BSTD_FUNCTION));
             return;
         }
-        BDBG_WRN(("%s: first decoded pts 0x%x, ptsStcDifference 0x%x, type %d, tsm %d", __FUNCTION__, status.pts, status.ptsStcDifference, status.ptsType, status.tsm));
+        BDBG_WRN(("%s: first decoded pts 0x%x, ptsStcDifference 0x%x, type %d, tsm %d", BSTD_FUNCTION, status.pts, status.ptsStcDifference, status.ptsType, status.tsm));
     }
     else {
         BDBG_WRN(("NOTHING >>>>>>>>>>>>>>>>>>>>"));
@@ -439,10 +439,10 @@ firstPtsPassedCallback(void *context, int param)
     if (videoDecoder) {
         NEXUS_VideoDecoderStatus status;
         if (NEXUS_VideoDecoder_GetStatus(videoDecoder, &status) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to get current vidoe currentPts\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to get current vidoe currentPts\n", BSTD_FUNCTION));
             return;
         }
-        BDBG_WRN(("%s: first passed pts 0x%x, ptsStcDifference 0x%x, type %d, tsm %d\n", __FUNCTION__, status.pts, status.ptsStcDifference, status.ptsType, status.tsm));
+        BDBG_WRN(("%s: first passed pts 0x%x, ptsStcDifference 0x%x, type %d, tsm %d\n", BSTD_FUNCTION, status.pts, status.ptsStcDifference, status.ptsType, status.tsm));
     }
     else
         BDBG_WRN(("NOTHING >>>>>>>>>>>>>>>>>>>>"));

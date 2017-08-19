@@ -1290,6 +1290,14 @@ SPECIAL(glLinkProgram)
 }
 
 #if GL_ES_VERSION_3_0
+SPECIAL(glBlitFramebuffer)
+{
+   if (m_replay->SkipFrame(m_curFrame))
+      return;
+
+   glBlitFramebuffer(GetI32(GLint, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLint, 3), GetI32(GLint, 4), GetI32(GLint, 5), GetI32(GLint, 6), GetI32(GLint, 7), GetU32(GLbitfield, 8), GetU32(GLenum, 9));
+}
+
 SPECIAL(glDrawRangeElements)
 {
    if (m_replay->SkipFrame(m_curFrame))
@@ -1694,6 +1702,9 @@ SPECIAL(glGetProgramBinary)
 
 SPECIAL(glDrawArraysIndirect)
 {
+   if (m_replay->SkipFrame(m_curFrame))
+      return;
+
    if (m_replay->IncrSkipDrawCall())
       return;
 
@@ -1707,6 +1718,9 @@ SPECIAL(glDrawArraysIndirect)
 
 SPECIAL(glDrawElementsIndirect)
 {
+   if (m_replay->SkipFrame(m_curFrame))
+      return;
+
    if (m_replay->IncrSkipDrawCall())
       return;
 
@@ -1772,6 +1786,28 @@ SPECIAL(glGenProgramPipelines)
       else
          m_replay->AddProgramPipelineMapping(dummyGLint[si], dummyGLint[si]);
    }
+}
+
+SPECIAL(glDispatchCompute)
+{
+   if (m_replay->SkipFrame(m_curFrame))
+      return;
+
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glDispatchCompute)
+      m_replay->GetDispatch().real_glDispatchCompute(GetU32(GLuint, 0), GetU32(GLuint, 1), GetU32(GLuint, 2));
+   else
+      WarnNotAvailable("glDispatchCompute");
+}
+
+SPECIAL(glDispatchComputeIndirect)
+{
+   if (m_replay->SkipFrame(m_curFrame))
+      return;
+
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glDispatchComputeIndirect)
+      m_replay->GetDispatch().real_glDispatchComputeIndirect(GetPtr(GLintptr, 0));
+   else
+      WarnNotAvailable("glDispatchComputeIndirect");
 }
 
 #endif // GL_ES_VERSION_3_0

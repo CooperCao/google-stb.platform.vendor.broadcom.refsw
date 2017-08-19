@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -588,7 +588,7 @@ void processDtcpIpServerState(
             stopDtcpIpServer(hDtcpIpServer);
         destroyDtcpIpServer(hDtcpIpServer);
 
-        BDBG_MSG((BIP_MSG_PRE_FMT "%s: done .." BIP_MSG_PRE_ARG, __FUNCTION__));
+        BDBG_MSG((BIP_MSG_PRE_FMT "%s: done .." BIP_MSG_PRE_ARG, BSTD_FUNCTION));
     } /* while reRunProcessState */
 
     B_Mutex_Unlock( hDtcpIpServer->hStateMutex );

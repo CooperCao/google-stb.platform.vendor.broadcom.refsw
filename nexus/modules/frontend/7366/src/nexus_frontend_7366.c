@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -348,7 +348,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init7366(NEXUS_7366Device *pDevice)
         }
 #else
         pInitSettings->habSettings.pImgInterface = &BHAB_SATFE_IMG_Interface;
-        pInitSettings->habSettings.pImgContext = &BHAB_7366_IMG_Context;
+        pInitSettings->habSettings.pImgContext = (void*)&BHAB_7366_IMG_Context;
 #endif
     }
 
@@ -649,6 +649,8 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init7366(NEXUS_7366Device *pDevice)
         uint32_t val;
         uint32_t addr;
         BERR_Code e;
+
+        BSTD_UNUSED(e);
 
         addr = 0xf0404120; /* SUN_TOP_CTRL PIN_MUX_CTRL_08 */
         e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val);

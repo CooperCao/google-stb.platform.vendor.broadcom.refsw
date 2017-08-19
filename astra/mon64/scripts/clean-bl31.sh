@@ -7,10 +7,8 @@ fi
 
 set -ex
 
-# Remove arm-tf
-rm -rf arm-tf
-
 # Remove bl31_astra.bin
-rm -f bl31_astra.bin
+rm -rf bin
+rm -rf arm-tf/build
 
 set +ex

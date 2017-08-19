@@ -1,0 +1,68 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for testing ControlChart tools using random numbers
+# $Id: 5ab4b41b301828446eb78f1e900850e5b85ddc11 $
+#
+package require UTF
+package require UTF::MemChart
+
+UTF::Test randomchart2 {args} {
+
+    UTF::Getopts {
+	{s.arg "2" "sample size"}
+	{mean.arg "10000" "Mean"}
+	{amp.arg "200" "Amplitude"}
+	{loop.arg "1" "loops"}
+	{key.arg "random2" "Calibration key"}
+	{png.arg 0 "Use png file"}
+	{perfcache.arg "perfcache" "Performance Cache"}
+	{history.arg 30 "Performance History"}
+	{nsigma.arg "3" "Control limit scale"}
+	{format.arg "%.0f" "Sprintf report format"}
+	{failonlow "Fail on low memory (default is fail on high memory"}
+	{cachemin.arg "0" "Lower limit to keep bad values out of cache"}
+	{cachemax.arg "" "Upper limit to keep bad values out of cache"}
+    }
+
+    # Default if loop is too small
+    set ret "No data"
+
+    if {$(failonlow)} {
+	set bound "LOW"
+    } else {
+	set bound "HIGH"
+    }
+
+    UTF::MemChart CC -s $(s) -key $(key) -format $(format) \
+	-perfcache $(perfcache) -history $(history) -nsigma $(nsigma) \
+	-cachemin $(cachemin) -cachemax $(cachemax)
+
+    for {set i 0} {$i < $(loop)} {incr i} {
+	set ret [CC addsample [UTF::GaussRand $(mean) $(amp) 1]]
+	if {[regexp "$bound|WIDE|ZERO" $ret]} {
+	    set lastfail $ret
+	}
+    }
+
+    # Always use latest result, even if lastfail is not last.
+    if {![string is false $(png)]} {
+	set ret [CC plotcontrolchart $ret]
+    }
+
+    # Stats
+    CC stats A
+    parray A
+
+    UTF::Message LOG file [CC plotfile]
+    UTF::Message LOG file_sm [CC plotfile_sm]
+
+    if {![info exists lastfail]} {
+	UTF::Message PASS "" $ret
+	return $ret
+    } else {
+	UTF::Message FAIL "" $lastfail
+	error $lastfail
+    }
+}

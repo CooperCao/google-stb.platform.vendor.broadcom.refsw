@@ -41,6 +41,7 @@
 #include "bstd.h"
 #include "bchp_common.h"
 #include "bkni.h"
+#include "bchp_sun_top_ctrl.h"
 
 #if !defined(__KERNEL__)
 #include <sys/mman.h>
@@ -48,10 +49,14 @@
 #endif
 
 #include "breg_mem_priv.h"
+#if defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
+static uint32_t breg_Read32(BREG_Handle reg, uint32_t addr);
 
 static BERR_Code REG_open(struct BREG_Impl *reg)
 {
-    uint32_t data;
     uint64_t register_base = BCHP_PHYSICAL_OFFSET + ((BCHP_REGISTER_START / 4096) * 4096);
     size_t register_size = BCHP_REGISTER_END - ((BCHP_REGISTER_START / 4096) * 4096);
     int fd;
@@ -71,9 +76,13 @@ static BERR_Code REG_open(struct BREG_Impl *reg)
     }
 #endif
 #if defined(BCHP_SUN_TOP_CTRL_PRODUCT_ID)
-    BDBG_MSG(("Reading BCHP_SUN_TOP_CTRL_PRODUCT_ID"));
-    data = BREG_Read32(reg, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
-    BDBG_MSG(("BCHP_SUN_TOP_CTRL_PRODUCT_ID=%#x", (unsigned)data));
+    {
+        uint32_t data;
+
+        BDBG_MSG(("Reading BCHP_SUN_TOP_CTRL_PRODUCT_ID"));
+        data = breg_Read32(reg, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
+        BDBG_MSG(("BCHP_SUN_TOP_CTRL_PRODUCT_ID=%#x", (unsigned)data));
+    }
 #endif
     reg->MaxRegOffset = fd;
     return BERR_SUCCESS;
@@ -99,7 +108,7 @@ static void breg_Write32(BREG_Handle reg, uint32_t addr, uint32_t data)
     return;
 }
 
-static void breg_Write64(BREG_Handle reg, uint32_t addr, uint32_t data)
+static void breg_Write64(BREG_Handle reg, uint32_t addr, uint64_t data)
 {
     BREG_P_Write64(reg, addr, data);
     return;
@@ -112,7 +121,16 @@ static uint32_t breg_Read32(BREG_Handle reg, uint32_t addr)
     return data;
 }
 
+static uint64_t breg_Read64(BREG_Handle reg, uint32_t addr)
+{
+    uint64_t data;
+    data = BREG_P_Read64(reg, addr);
+    return data;
+}
+
 #undef BREG_Write64
+#undef BREG_Read64
 #define BREG_Write64 breg_Write64
 #define BREG_Write32 breg_Write32
+#define BREG_Read64 breg_Read64
 #define BREG_Read32 breg_Read32

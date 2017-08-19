@@ -2426,26 +2426,23 @@ static void BVDC_P_Source_ValidateMpegData_isr
     }
 #endif
 
-    /* if 10-bit source is scanned as interlaced, give a warning */
+    /* HDR source is scanned as progressive until deinterlacer tells 10-bit capability */
     if(!pNewPic->bMute &&
         BAVC_Polarity_eFrame != pNewPic->eSourcePolarity &&
-        BAVC_VideoBitDepth_e8Bit != pNewPic->eBitDepth)
+        BAVC_TransferCharacteristics_eSmpte_ST_2084 == pNewPic->eTransferCharacteristics
+        )
     {
-        if(!hSource->b10BitInterlacedScan) { /* print once */
-            BDBG_WRN(("MFD%d normally should not scan out interlaced for 10-bit content.", hSource->eId));
-            hSource->b10BitInterlacedScan = true;
-        }
-    } else {
-        hSource->b10BitInterlacedScan = false;
+        BDBG_MSG(("MFD%d normally should not scan out interlaced for HDR content.", hSource->eId));
+        pNewPic->eSourcePolarity = BAVC_Polarity_eFrame;/* override! assume interlaced source must be non-HDR */
     }
 
-    /* BP3 Do NOT Modify Start */
+     /* BP3 Do NOT Modify Start */
     if(BAVC_HdrMetadataType_eDrpu == pNewPic->stHdrMetadata.eType)
     {
         if(BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hSource->hVdc->hChip,
             BCHP_LicensedFeature_eDolbyVision))
         {
-            BDBG_MSG(("Invalid license[%d] content.", BCHP_LicensedFeature_eDolbyVision));
+            BDBG_MSG(("Invalid Dolby Vision license content."));
             pNewPic->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
         }
     }
@@ -2456,7 +2453,7 @@ static void BVDC_P_Source_ValidateMpegData_isr
         if(BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hSource->hVdc->hChip,
             BCHP_LicensedFeature_eTchPrime))
         {
-            BDBG_MSG(("Invalid license[%d] content.", BCHP_LicensedFeature_eTchPrime));
+            BDBG_MSG(("Invalid Technicolor Prime license content."));
             pNewPic->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
         }
     }
@@ -3111,7 +3108,7 @@ void BVDC_Source_MpegDataReady_isr
             /* src video format changed. try to match an enumerated video format */
             for(i = 0; i < BVDC_P_MPEG_FMT_COUNT; i++)
             {
-                pNewFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(s_aeMpegToFmt[i]);
+                pNewFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(s_aeMpegToFmt[i]);
                 if((BVDC_P_EQ_DELTA(ulSourceHorizontalSize, pNewFmtInfo->ulDigitalWidth, BVDC_P_MPEG_FMT_DELTA)) &&
                    (BVDC_P_EQ_DELTA(ulSourceVerticalSize, pNewFmtInfo->ulDigitalHeight, BVDC_P_MPEG_FMT_DELTA)) &&
                    (BVDC_P_EQ_DELTA(ulNewPicFrmRate, pNewFmtInfo->ulVertFreq >> pNewFmtInfo->bInterlaced, BVDC_P_MPEG_FMT_DELTA)) &&
@@ -3159,7 +3156,7 @@ void BVDC_Source_MpegDataReady_isr
                                  BFMT_VideoFmt_e1080p :
                                  BFMT_VideoFmt_e3840x2160p_24Hz);
                 }
-                pNewFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(eVFmtCode);
+                pNewFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(eVFmtCode);
 
                 BDBG_MSG(("MPEG[%d] changes to non-enumerated video fmt: w %d, h %d, Frmrate %d/100, bInterlaced %d ",
                     hSource->eId, ulSourceHorizontalSize, ulSourceVerticalSize,

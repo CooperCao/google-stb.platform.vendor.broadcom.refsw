@@ -565,6 +565,9 @@ static BERR_Code BHDM_P_ConfigurePixelRepeater(const BHDM_Handle hHDMI,
 
 static void BHDM_P_HandleMaiFormatUpdate_isr(const BHDM_Handle hHDMI) ;
 
+static void BHDM_StartDriftFIFORecenter_isrsafe(
+   const BHDM_Handle hHDMI) ;
+
 #if BHDM_CONFIG_BTMR_SUPPORT
 static void BHDM_P_TimerExpiration_isr (const BHDM_Handle hHDM, int parm2) ;
 #endif
@@ -684,7 +687,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 17.2" ;
+	static const char Version[] = "BHDM URSR 17.3" ;
 	return Version ;
 }
 
@@ -762,10 +765,7 @@ BERR_Code BHDM_GetDefaultSettings(
 	pDefault->eColorimetry = BAVC_MatrixCoefficients_eHdmi_RGB;
 	pDefault->eAspectRatio = BFMT_AspectRatio_e4_3;
 	pDefault->ePixelRepetition = BAVC_HDMI_PixelRepetition_eNone;
-
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 	pDefault->stColorDepth.eBitsPerPixel = BAVC_HDMI_BitsPerPixel_e24bit;
-#endif
 
 	/**** AVI Info Frame Structure ****/
 	{
@@ -881,12 +881,12 @@ void BHDM_P_EnableInterrupts(const BHDM_Handle hHDMI)
 	uint8_t i ;
 	const BHDM_P_InterruptCbTable *pInterrupts ;
 
-	if (hHDMI->eCoreId == BHDM_P_eHdmCoreId0)
+	if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e0)
 	{
 		pInterrupts = BHDM_Interrupts ;
 	}
 #if BHDM_HAS_MULTIPLE_PORTS
-	else if (hHDMI->eCoreId == BHDM_P_eHdmCoreId1)
+	else if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e1)
 	{
 		pInterrupts = BHDM_Interrupts_1 ;
 	}
@@ -916,11 +916,11 @@ void BHDM_P_EnableInterrupts(const BHDM_Handle hHDMI)
 	}
 
 #if BHDM_CONFIG_HAS_HDCP22
-	if (hHDMI->eCoreId == BHDM_P_eHdmCoreId0) {
+	if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e0) {
 		pInterrupts = BHDM_HAE_Interrupts;
 	}
 #if BHDM_HAS_MULTIPLE_PORTS
-	else if (hHDMI->eCoreId == BHDM_P_eHdmCoreId1)
+	else if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e1)
 	{
 		pInterrupts = BHDM_HAE_Interrupts_1 ;
 	}
@@ -953,12 +953,12 @@ void BHDM_P_DisableInterrupts(const BHDM_Handle hHDMI)
 	uint8_t i ;
 	const BHDM_P_InterruptCbTable *pInterrupts ;
 
-	if (hHDMI->eCoreId == BHDM_P_eHdmCoreId0)
+	if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e0)
 	{
 		pInterrupts = BHDM_Interrupts ;
 	}
 #if BHDM_HAS_MULTIPLE_PORTS
-	else if (hHDMI->eCoreId == BHDM_P_eHdmCoreId1)
+	else if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e1)
 	{
 		pInterrupts = BHDM_Interrupts_1 ;
 	}
@@ -988,11 +988,11 @@ void BHDM_P_DisableInterrupts(const BHDM_Handle hHDMI)
 
 
 #if BHDM_CONFIG_HAS_HDCP22
-	if (hHDMI->eCoreId == BHDM_P_eHdmCoreId0) {
+	if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e0) {
 		pInterrupts = BHDM_HAE_Interrupts ;
 	}
 #if BHDM_HAS_MULTIPLE_PORTS
-	else if (hHDMI->eCoreId == BHDM_P_eHdmCoreId1) {
+	else if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e1) {
 		pInterrupts = BHDM_HAE_Interrupts_1 ;
 	}
 #endif
@@ -1133,11 +1133,11 @@ BERR_Code BHDM_P_AcquireHDCP22_Resources(
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventHdcp22ReAuthRequest)));
 
 
-	if (hHDMI->eCoreId == BHDM_P_eHdmCoreId0) {
+	if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e0) {
 		pHAEInterrupts = BHDM_HAE_Interrupts ;
 	}
 #if BHDM_HAS_MULTIPLE_PORTS
-	else if (hHDMI->eCoreId == BHDM_P_eHdmCoreId1) {
+	else if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e1) {
 		pHAEInterrupts = BHDM_HAE_Interrupts_1 ;
 	}
 #endif
@@ -1262,9 +1262,13 @@ BERR_Code BHDM_Open(
 	BDBG_ASSERT(eCoreId < BHDM_P_eHdmCoreIdMax) ;
 	hHDMI->eCoreId = eCoreId ;
 
+	hHDMI->DeviceStatus.stPort.eCoreId = eCoreId ;
+	hHDMI->DeviceStatus.stPort.eDevice = BAVC_HDMI_Device_eTx ;
+	/* TODO replace references of eCoreId to hHDMI->DeviceStatus.stPort.eCoreId */
+
 #if BCHP_PWR_SUPPORT
 	switch(eCoreId) {
-	case BHDM_P_eHdmCoreId0:
+	case BAVC_HDMI_CoreId_e0:
 #ifdef BCHP_PWR_RESOURCE_HDMI_TX_CLK
 	    hHDMI->clkPwrResource[eCoreId] = BCHP_PWR_RESOURCE_HDMI_TX_CLK;
 #endif
@@ -1272,7 +1276,7 @@ BERR_Code BHDM_Open(
 	    hHDMI->phyPwrResource[eCoreId] = BCHP_PWR_RESOURCE_HDMI_TX_PHY;
 #endif
 	    break;
-	case BHDM_P_eHdmCoreId1:
+	case BAVC_HDMI_CoreId_e1:
 #ifdef BCHP_PWR_RESOURCE_HDMI_TX_1_CLK
 	    hHDMI->clkPwrResource[eCoreId] = BCHP_PWR_RESOURCE_HDMI_TX_1_CLK;
 #endif
@@ -1348,6 +1352,13 @@ BERR_Code BHDM_Open(
 
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
 
+	if (pSettings->bCrcTestMode)
+	{
+		hHDMI->bCrcTestMode = true ;
+		hHDMI->DeviceSettings.UseDebugEdid = true ;
+		BDBG_LOG(("Hot Plug and Rx Power detection are bypassed ; HDMI IS ALWAYS ON")) ;
+	}
+
 
 	/* Power on PHY */
 	BDBG_MSG(("Power ON HDMI Phy at %d", __LINE__)) ;
@@ -1382,12 +1393,12 @@ BERR_Code BHDM_Open(
 HDCP 2.2 Events
 ************/
 
-	if (hHDMI->eCoreId == BHDM_P_eHdmCoreId0)
+	if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e0)
 	{
 		pInterrupts = BHDM_Interrupts ;
 	}
 #if BHDM_HAS_MULTIPLE_PORTS
-	else if (hHDMI->eCoreId == BHDM_P_eHdmCoreId1)
+	else if (hHDMI->eCoreId == BAVC_HDMI_CoreId_e1)
 	{
 		pInterrupts = BHDM_Interrupts_1 ;
 	}
@@ -1442,7 +1453,7 @@ HDCP 2.2 Events
 		chipInfo.familyId, chipInfo.rev, hHDMI->TxSupport.MaxTmdsRateMHz)) ;
 
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT && BHDM_CONFIG_65NM_SUPPORT
+#if BHDM_CONFIG_65NM_SUPPORT
 	/* set the pre-emphasis mode to DeepColorMode. This settings only makes a difference when
 		running at pixel clock higher than 148.5Mhz and makes no harm for other clock rate */
 	BHDM_P_SetPreEmphasisMode(hHDMI, BHDM_PreEmphasis_eDeepColorMode, 0);
@@ -1714,10 +1725,8 @@ static bool BHDM_P_HdmiPhyChanges(const BHDM_Handle hHDMI, const BHDM_Settings *
 	&& (hHDMI->DeviceSettings.ePixelRepetition == NewHdmiSettings->ePixelRepetition)
 	&& (hHDMI->DeviceSettings.stVideoSettings.eColorSpace == NewHdmiSettings->stVideoSettings.eColorSpace)
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 	&& (hHDMI->DeviceSettings.stVideoSettings.eBitsPerPixel == NewHdmiSettings->stVideoSettings.eBitsPerPixel)
 	&& (hHDMI->DeviceSettings.stColorDepth.eBitsPerPixel == NewHdmiSettings->stColorDepth.eBitsPerPixel)
-#endif
 
 	&& (hHDMI->DeviceSettings.CalculateCts == NewHdmiSettings->CalculateCts)
 	&& (hHDMI->DeviceSettings.uiDriverAmpDefault == NewHdmiSettings->uiDriverAmpDefault)
@@ -1902,7 +1911,6 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 	BHDM_EnableTmdsClock(hHDMI, true) ;  /* make sure clock is enabled */
 	BHDM_EnableTmdsData(hHDMI, true) ;
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 	/* Additional PHY settings, pre-emphasis, etc */
 	BHDM_CHECK_RC(rc, BHDM_P_ConfigurePhy(hHDMI, NewHdmiSettings));
 
@@ -1910,7 +1918,6 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 	Register = BREG_Read32(hRegister, BCHP_HDMI_GCP_CONFIG + ulOffset);
 	Register &= ~BCHP_MASK(HDMI_GCP_CONFIG, GCP_ENABLE) ;
 	BREG_Write32(hRegister, BCHP_HDMI_GCP_CONFIG + ulOffset, Register);
-#endif
 
 	/* Initialize HDMI core */
 	/****  01 Determine Supported Output Mode (DVI, HDMI) from Rx */
@@ -2126,16 +2133,14 @@ ConfigureHdmiPackets:
 		BHDM_CHECK_RC(rc, BHDM_SetAVIInfoFramePacket(hHDMI,
 			&hHDMI->DeviceSettings.stAviInfoFrame)) ;
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 		/* set and enable Gamut Metadata packets if xvYCC; clear otherwise */
 		if ((hHDMI->DeviceSettings.eColorimetry == BAVC_MatrixCoefficients_eXvYCC_601)
-		|| 	(hHDMI->DeviceSettings.eColorimetry == BAVC_MatrixCoefficients_eXvYCC_709))
+		||  (hHDMI->DeviceSettings.eColorimetry == BAVC_MatrixCoefficients_eXvYCC_709))
 			BHDM_CHECK_RC(rc, BHDM_P_SetGamutMetadataPacket(hHDMI)) ;
 		else
 			BHDM_CHECK_RC(rc, BHDM_DisablePacketTransmission(hHDMI, BHDM_PACKET_eGamutMetadata_ID)) ;
 
 		/* color depth to be set directly by app/middle layer with direct call to BHDM_SetColorDepth */
-#endif
 
 		/* set and enable the Audio Info Frame */
 		BHDM_CHECK_RC(rc, BHDM_SetAudioInfoFramePacket(hHDMI,
@@ -2749,7 +2754,7 @@ done:
 }
 
 
-void BHDM_StartDriftFIFORecenter_isrsafe(
+static void BHDM_StartDriftFIFORecenter_isrsafe(
    const BHDM_Handle hHDMI		/* [in] HDMI handle */
 )
 {
@@ -3059,6 +3064,36 @@ done:
 
 }
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
+
+
+void BHDM_P_RxDeviceAttached_isr(
+    const BHDM_Handle hHDMI,         /* [in] HDMI handle */
+    uint8_t *bDeviceAttached /* [out] Device Attached Status  */
+)
+{
+    BREG_Handle hRegister ;
+    uint32_t Register, ulOffset ;
+
+    BDBG_ENTER(BHDM_P_RxDeviceAttached_isr) ;
+
+    hRegister = hHDMI->hRegister ;
+    ulOffset = hHDMI->ulOffset ;
+
+	if (hHDMI->bCrcTestMode)
+	{
+		*bDeviceAttached = true ;
+	}
+	else
+
+	{
+	    Register = BREG_Read32(hRegister, BCHP_HDMI_HOTPLUG_STATUS + ulOffset) ;
+	    *bDeviceAttached =
+	        BCHP_GET_FIELD_DATA(Register, HDMI_HOTPLUG_STATUS, HOTPLUG_STATUS) ;
+	}
+
+    BDBG_LEAVE(BHDM_P_RxDeviceAttached_isr) ;
+    return ;
+}
 
 
 /******************************************************************************
@@ -3557,7 +3592,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 
 	if (!RxDeviceAttached)
 	{
-		BDBG_WRN(("Tx%d: HotPlug (Dual Intr) : DEVICE REMOVED!!", hHDMI->eCoreId)) ;
+		BDBG_LOG(("Tx%d: HotPlug (Dual Intr) : DEVICE REMOVED!!", hHDMI->eCoreId)) ;
 
 #if BHDM_CONFIG_HAS_HDCP22
 		/* hard reset HDCP_I2C/HDCP SW_INIT first */
@@ -3592,7 +3627,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 	}
 	else /* HOTPLUG_CONNECTED */
 	{
-		BDBG_WRN(("Tx%d: HotPlug  (Dual Intr): DEVICE CONNECTED", hHDMI->eCoreId)) ;
+		BDBG_LOG(("Tx%d: HotPlug  (Dual Intr): DEVICE CONNECTED", hHDMI->eCoreId)) ;
 		hHDMI->RxDeviceAttached = 1;
 		hHDMI->hotplugInterruptFired = true;
 		hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;	/* Set Initialize EDID read flag */
@@ -3642,7 +3677,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 
 	if (!hHDMI->RxDeviceAttached)
 	{
-		BDBG_WRN(("Tx%d: HotPlug: DEVICE REMOVED!!", hHDMI->eCoreId)) ;
+		BDBG_LOG(("Tx%d: HotPlug: DEVICE REMOVED!!", hHDMI->eCoreId)) ;
 		BHDM_P_DisableDisplay_isr(hHDMI) ;
 
 		/* always disable AvMute after a hot plug */
@@ -3653,9 +3688,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 	}
 	else
 	{
-#if BDBG_DEBUG_BUILD
-		BDBG_WRN(("Tx%d: HotPlug: DEVICE CONNECTED", hHDMI->eCoreId)) ;
-#endif
+		BDBG_LOG(("Tx%d: HotPlug: DEVICE CONNECTED", hHDMI->eCoreId)) ;
 	}
 
 	hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;	/* Set Initialize EDID read flag */
@@ -4851,7 +4884,7 @@ static void BHDM_P_TimerExpiration_isr (const BHDM_Handle hHDMI, int parm2)
 		break ;
 
 	case BHDM_P_TIMER_eHotPlugChange:
-		BHDM_MONITOR_P_HotplugChanges_isr(hHDMI) ;
+		BHDM_MONITOR_P_ResetHpdChanges_isr(hHDMI) ;
 		break ;
 
 	case BHDM_P_TIMER_eFormatDetection :
@@ -5119,7 +5152,7 @@ Set the color mode setting and update the General Control Packet to reflect the 
 *******************************************************************************/
 BERR_Code BHDM_SetColorDepth(
    const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
-   BHDM_ColorDepth_Settings *stColorDepthSettings
+   BHDM_ColorDepth_Settings *pstColorDepthSettings
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
@@ -5128,6 +5161,11 @@ BERR_Code BHDM_SetColorDepth(
 	uint32_t Register, ulOffset;
 	uint8_t GcpSubPacketByte1 ;
 	BAVC_HDMI_GCP_ColorDepth eColorDepth ;
+	BAVC_Colorspace eColorSpace ;
+	BFMT_VideoFmt eVideoFmt ;
+	const BFMT_VideoInfo *pVideoFormatInfo ;
+	bool bHdmi4Kp50_60Format ;
+	bool bHdmi420ColorSpace ;
 
 	BDBG_ENTER(BHDM_SetColorDepth);
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
@@ -5135,8 +5173,21 @@ BERR_Code BHDM_SetColorDepth(
 	hRegister = hHDMI->hRegister ;
 	ulOffset = hHDMI->ulOffset ;
 
+	eVideoFmt = hHDMI->DeviceSettings.eInputVideoFmt ;
+	eColorSpace = pstColorDepthSettings->eColorSpace ;
+
+	bHdmi4Kp50_60Format = BFMT_IS_4kx2k_50_60HZ(eVideoFmt) ;
+	bHdmi420ColorSpace = (eColorSpace == BAVC_Colorspace_eYCbCr420) ? true : false ;
+
+	pVideoFormatInfo =
+		(BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+
+	BDBG_MSG(("Set ColorDepth %d for %s  with colorspace %d",
+		pstColorDepthSettings->eBitsPerPixel,
+		pVideoFormatInfo->pchFormatStr, eColorSpace)) ;
+
 	/* Check bits per pixel settings */
-	switch (stColorDepthSettings->eBitsPerPixel)
+	switch (pstColorDepthSettings->eBitsPerPixel)
 	{
 	case BAVC_HDMI_BitsPerPixel_e24bit:
 		/* regular 24bpp mode; no deep color */
@@ -5147,10 +5198,11 @@ BERR_Code BHDM_SetColorDepth(
 
 
 	case BAVC_HDMI_BitsPerPixel_e30bit:
-		if (!hHDMI->AttachedEDID.RxVSDB.DeepColor_30bit)
+		if ((bHdmi4Kp50_60Format && bHdmi420ColorSpace && !hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_30bit)
+		||  (!bHdmi4Kp50_60Format && !bHdmi420ColorSpace && !hHDMI->AttachedEDID.RxVSDB.DeepColor_30bit))
 		{
-			BDBG_WRN(("Tx%d: Attached sink does not support 10-bit deep color mode",
-				hHDMI->eCoreId));
+			BDBG_WRN(("Tx%d: Attached sink does not support 10-bit deep color mode for %s",
+				hHDMI->eCoreId, pVideoFormatInfo->pchFormatStr)) ;
 			rc = BERR_NOT_SUPPORTED ;
 			goto done;
 		}
@@ -5161,10 +5213,11 @@ BERR_Code BHDM_SetColorDepth(
 
 
 	case BAVC_HDMI_BitsPerPixel_e36bit:
-		if (!hHDMI->AttachedEDID.RxVSDB.DeepColor_36bit)
+		if ((bHdmi4Kp50_60Format && bHdmi420ColorSpace && !hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_36bit)
+		||  (!bHdmi4Kp50_60Format && !bHdmi420ColorSpace && !hHDMI->AttachedEDID.RxVSDB.DeepColor_36bit))
 		{
-			BDBG_WRN(("Tx%d: Attached receiver does not support 12-bit deep color",
-				hHDMI->eCoreId));
+			BDBG_WRN(("Tx%d: Attached sink does not support 12-bit deep color mode for %s",
+				hHDMI->eCoreId, pVideoFormatInfo->pchFormatStr)) ;
 			rc = BERR_NOT_SUPPORTED ;
 			goto done;
 		}
@@ -5182,7 +5235,7 @@ BERR_Code BHDM_SetColorDepth(
 
 	default:  /* use 24bpp if unknown color depth */
 		BDBG_WRN(("Tx%d: Invalid Color Depth %d specified; default to 24bpp",
-			hHDMI->eCoreId,	stColorDepthSettings->eBitsPerPixel));
+			hHDMI->eCoreId,	pstColorDepthSettings->eBitsPerPixel));
 
 		eColorDepth = BAVC_HDMI_GCP_ColorDepth_e24bpp ;
 		GcpSubPacketByte1 = 0 ;
@@ -5208,13 +5261,13 @@ BERR_Code BHDM_SetColorDepth(
 	Register |= BCHP_FIELD_DATA(HDMI_GCP_CONFIG, GCP_ENABLE, 1) ;
 	BREG_Write32(hRegister, BCHP_HDMI_GCP_CONFIG + ulOffset, Register);
 
-	BKNI_Memcpy(&hHDMI->DeviceSettings.stColorDepth, stColorDepthSettings, sizeof(BHDM_ColorDepth_Settings));
+	BKNI_Memcpy(&hHDMI->DeviceSettings.stColorDepth, pstColorDepthSettings, sizeof(BHDM_ColorDepth_Settings));
 done:
 	BDBG_LEAVE(BHDM_SetColorDepth);
 	return rc;
 #else
 	BSTD_UNUSED(hHDMI) ;
-	BSTD_UNUSED(stColorDepthSettings) ;
+	BSTD_UNUSED(pstColorDepthSettings) ;
 	return rc ;
 #endif
 }
@@ -5227,14 +5280,14 @@ Get the current color depth setting
 *******************************************************************************/
 BERR_Code BHDM_GetColorDepth(
    const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
-   BHDM_ColorDepth_Settings *stColorDepthSettings /* [out] color depth setting returns */
+   BHDM_ColorDepth_Settings *pstColorDepthSettings /* [out] color depth setting returns */
 )
 {
 	BDBG_ENTER(BHDM_GetColorDepth);
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (stColorDepthSettings)
-		BKNI_Memcpy(stColorDepthSettings, &hHDMI->DeviceSettings.stColorDepth, sizeof(BHDM_ColorDepth_Settings));
+	if (pstColorDepthSettings)
+		BKNI_Memcpy(pstColorDepthSettings, &hHDMI->DeviceSettings.stColorDepth, sizeof(BHDM_ColorDepth_Settings));
 
 	BDBG_LEAVE(BHDM_GetColorDepth);
 	return BERR_SUCCESS;
@@ -5270,6 +5323,7 @@ BERR_Code BHDM_SetVideoSettings(
 
 	/* set color depth */
 	stColorDepthSettings.eBitsPerPixel = pstVideoSettings->eBitsPerPixel ;
+	stColorDepthSettings.eColorSpace = pstVideoSettings->eColorSpace ;
 	rc = BHDM_SetColorDepth(hHDMI, &stColorDepthSettings) ;
 	if (rc) {rc = BERR_TRACE(rc) ;}
 

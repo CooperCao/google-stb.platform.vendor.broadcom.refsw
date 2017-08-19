@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1154,7 +1154,6 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open31xx(
     const NEXUS_Frontend31xxSettings *pSettings
     )
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_FrontendHandle frontendHandle = NULL;
     NEXUS_31xx *pDevice = NULL;
     unsigned int chn_num=0;
@@ -1170,7 +1169,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open31xx(
         || (pSettings->channelNumber >= NEXUS_MAX_31xx_FRONTENDS ))
     {
         BDBG_ERR((" channel number exceeds available one"));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+        BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
     switch(pSettings->type)
@@ -1186,7 +1185,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open31xx(
         break;
     default:
         BDBG_ERR((" channel type not supported"));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+        BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
     if(pSettings->device == NULL) {
@@ -1223,11 +1222,11 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open31xx(
     }
 
     pChannel = (NEXUS_31xxChannel*)BKNI_Malloc(sizeof(NEXUS_31xxChannel));
-    if ( NULL == pChannel ) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
+    if ( NULL == pChannel ) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
 
     /* Create a Nexus frontend handle */
     frontendHandle = NEXUS_Frontend_P_Create(pChannel);
-    if ( NULL == frontendHandle ) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
+    if ( NULL == frontendHandle ) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
 
     /* Establish device capabilities */
     if ( pSettings->type == NEXUS_31xxChannelType_eInBand)
@@ -1285,21 +1284,21 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open31xx(
 
     /* Create app callback */
     pDevice->lockAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-    if ( NULL == pDevice->lockAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
+    if ( NULL == pDevice->lockAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
     /* install callback to  notify of lock/unlock change */
     if ( pSettings->type == NEXUS_31xxChannelType_eInBand)
     {
         pDevice->updateGainAppCallback = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->updateGainAppCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
+        if ( NULL == pDevice->updateGainAppCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
 
         pDevice->asyncStatusAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
+        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
     }
 #ifdef BCHIP_HAS_AOB
     else if(pSettings->type == NEXUS_31xxChannelType_eOutOfBand)
     {
         pDevice->asyncStatusAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
+        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
     }
 #endif
     frontendHandle->pGenericDeviceHandle = pFrontendDevice;
@@ -1328,7 +1327,6 @@ static void NEXUS_Frontend_P_31xx_Close(
     NEXUS_FrontendHandle handle
     )
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_31xx *pDevice;
     NEXUS_31xxChannel *pChannel;
 
@@ -1341,7 +1339,7 @@ static void NEXUS_Frontend_P_31xx_Close(
     if (pChannel->chn_num >= NEXUS_MAX_31xx_FRONTENDS)
     {
         BDBG_ERR((" Unsupported Frontend Handle"));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+        BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
     if(pChannel->chn_num < NEXUS_MAX_31xx_ADSCHN) {
@@ -1488,7 +1486,6 @@ done:
 
 static void NEXUS_Frontend_P_31xx_UninstallCallbacks(void *handle)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_31xx *pDevice;
     NEXUS_31xxChannel *pChannel;
     BDBG_ASSERT(NULL != handle);
@@ -1499,7 +1496,7 @@ static void NEXUS_Frontend_P_31xx_UninstallCallbacks(void *handle)
     if (pChannel->chn_num >= NEXUS_MAX_31xx_FRONTENDS)
     {
         BDBG_ERR((" Unsupported channel."));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+        BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
     if(pDevice->lockAppCallback[pChannel->chn_num])NEXUS_IsrCallback_Set(pDevice->lockAppCallback[pChannel->chn_num], NULL);

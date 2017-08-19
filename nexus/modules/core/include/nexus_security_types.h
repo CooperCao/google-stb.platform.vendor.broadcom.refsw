@@ -182,6 +182,7 @@ typedef struct NEXUS_SecurityKeySlotInfo
     unsigned                    keySlotNumber;  /* keySlotNumber and keySlotType uniquely identify a physical keyslot. */
     NEXUS_SecurityKeySlotType   keySlotType;
     struct {
+        bool     valid;                         /* True if the following parameters are valid */
         unsigned pidChannelIndex;               /* A pid channel is reserved by Nexus Security if keyslot is for a DMA transfer.
                                                    Valid only if keySlotEngine == NEXUS_SecurityEngine_eM2m.  */
     }dma;

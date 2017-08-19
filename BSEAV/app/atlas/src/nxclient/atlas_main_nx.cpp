@@ -49,7 +49,7 @@
 BDBG_MODULE(atlas_main);
 
 CAtlasNx::CAtlasNx(
-        uint16_t      number,
+        unsigned      number,
         eAtlasMode    mode,
         CChannelMgr * pChannelMgr,
         CLua *        pLua

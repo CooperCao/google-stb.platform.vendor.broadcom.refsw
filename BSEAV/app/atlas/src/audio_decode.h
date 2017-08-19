@@ -124,7 +124,7 @@ class CAudioDecode : public CResource
 public:
     CAudioDecode(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CAudioDecode(void);
@@ -177,7 +177,7 @@ class CSimpleAudioDecode : public CAudioDecode
 public:
     CSimpleAudioDecode(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CSimpleAudioDecode(void);
@@ -256,8 +256,8 @@ protected:
     COutputAudioDac *                     _pDac;              /* DTT TODO: should be a list? */
     COutputRFM *                          _pRFM;              /* DTT TODO: should be a list? */
     COutputAudioDummy *                   _pDummy;            /* DTT TODO: should be a list? */
-    uint16_t                              _numSpdif;
-    uint16_t                              _numHdmi;
+    unsigned                              _numSpdif;
+    unsigned                              _numHdmi;
     void *                                _resourceId;
     eAudioDownmix                         _downmix;
     eAudioDownmix                         _downmixAc3;

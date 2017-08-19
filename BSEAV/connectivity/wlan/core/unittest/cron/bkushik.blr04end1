@@ -1,0 +1,16 @@
+#
+# $Id: 034cb5df06cfebbb0bd88f5727632783c4b871a9 $
+#
+MAILTO=bkushik@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	~/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+30	18	 * * *   ~/unittest/cron/launch blr04 Test/StaNightly.test -ap 4366a -sta '4361a' -title 'BLR04 4361 Android StaNightly' -email hnd-utf-list -ap2 4360b -noapload -utfconf blr04a
+30  	19   	 * * *   ~/unittest/cron/launch blr04 Test/StaNightly.test -ap 4366a -sta '4361d 4361T 4361R' -title 'BLR04 4361 StaNightly' -email hnd-utf-list -ap2 4360b -noapload -utfconf blr04 -nocustom
+30      20       * * *   ~/unittest/cron/launch blr04 Test/StaNightly.test -ap 4366a -sta '4361d' -title 'BLR04 4361 StaNightly' -email hnd-utf-list -ap2 4360b -noapload -utfconf blr04 -customonly

@@ -116,21 +116,25 @@ struct b_audio_resource {
     bool localSession;
 };
 
-bool b_audio_dolby_ms_enabled(enum nxserverlib_dolby_ms_type type)
-{
-    switch ( type )
-    {
-    case nxserverlib_dolby_ms_type_ms11:
-    case nxserverlib_dolby_ms_type_ms12:
-        return true;
-        break; /* unreachable */
-    default:
-    case nxserverlib_dolby_ms_type_none:
-    case nxserverlib_dolby_ms_type_max:
-        break;
-    }
+static enum nxserverlib_dolby_ms_type  b_dolby_ms(const struct b_session *session) {
+    return session->server->settings.session[session->index].dolbyMs;
+}
 
-    return false;
+static bool b_dolby_ms_enabled(const struct b_session *session) {
+    enum nxserverlib_dolby_ms_type ms = b_dolby_ms(session);
+    return ms == nxserverlib_dolby_ms_type_ms11 || ms == nxserverlib_dolby_ms_type_ms12;
+}
+
+static bool b_is_aac(NEXUS_AudioCodec codec) {
+    switch (codec) {
+    case NEXUS_AudioCodec_eAacAdts:
+    case NEXUS_AudioCodec_eAacLoas:
+    case NEXUS_AudioCodec_eAacPlusAdts:
+    case NEXUS_AudioCodec_eAacPlusLoas:
+        return true;
+    default:
+        return false;
+    }
 }
 
 /* get SimpleAudioDecoder for this connect, active or not */
@@ -474,6 +478,13 @@ int nxserverlib_p_session_has_sd_audio(struct b_session *session)
         return (session_settings[session->index].output.sd != 0);
 }
 
+int nxserverlib_p_audio_i2s0_shares_with_dac(struct b_session *session)
+{
+    nxserver_t server = session->server;
+    return (server->settings.session[session->index].i2sOutputEnabled[0] == false &&
+            server->settings.audioOutputs.dacEnabled[0] == false);
+}
+
 struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type)
 {
     unsigned i;
@@ -570,11 +581,11 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
                                     server->settings.session[r->session->index].truVolume ||
                                     server->settings.audioDecoder.audioDescription ||
                                     server->settings.session[r->session->index].persistentDecoderSupport ||
-                                    b_audio_dolby_ms_enabled(server->settings.session[r->session->index].dolbyMs);
+                                    b_dolby_ms_enabled(session);
         mixerSettings.outputSampleRate = (server->settings.audioMixer.sampleRate >= 32000 && server->settings.audioMixer.sampleRate <= 96000) ? server->settings.audioMixer.sampleRate : mixerSettings.outputSampleRate;
         if (mixerSettings.mixUsingDsp) {
             mixerSettings.dspIndex = audioOpenSettings.dspIndex; /* mixer dspIndex must match decoder */
-            if (b_audio_dolby_ms_enabled(server->settings.session[r->session->index].dolbyMs))
+            if (b_dolby_ms_enabled(session))
             {
                 mixerSettings.outputSampleRate = 48000;
             }
@@ -584,7 +595,7 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
            if a dsp mixer is required it should be used for stereo */
         r->dspMixer[nxserver_audio_mixer_multichannel] = false;
         r->dspMixer[nxserver_audio_mixer_stereo] = false;
-        if (mixerSettings.mixUsingDsp && b_audio_dolby_ms_enabled(server->settings.session[r->session->index].dolbyMs))
+        if (mixerSettings.mixUsingDsp && b_dolby_ms_enabled(session))
         {
             r->dspMixer[nxserver_audio_mixer_multichannel] = true;
         }
@@ -660,7 +671,7 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
             }
         }
 
-        if (b_audio_dolby_ms_enabled(server->settings.session[r->session->index].dolbyMs)) {
+        if (b_dolby_ms_enabled(session)) {
             /* only MS11 has DV258. In MS12, volume leveling and other DAPv2 features are built into
                the Dsp Mixer */
             if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11 )
@@ -776,16 +787,29 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
         }
 
         if (nxserverlib_p_session_has_sd_audio(r->session)) {
-            if (cap.numOutputs.dac > 0)
-            {
+            if (cap.numOutputs.dac > 0) {
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
                 BERR_TRACE(rc);
+                server->settings.audioOutputs.dacEnabled[0] = true;
             }
-            else if (cap.numOutputs.i2s > 0) {
+
+            if (cap.numOutputs.i2s > 0 &&
+                (server->settings.audioOutputs.dacEnabled[0] == false ||
+                 server->settings.session[r->session->index].i2sOutputEnabled[0])) {
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
                 BERR_TRACE(rc);
+                server->settings.audioOutputs.i2sEnabled[0] = true;
             }
-            else if (cap.numOutputs.dummy > 0) {
+
+            if (cap.numOutputs.i2s > 1 && server->settings.session[r->session->index].i2sOutputEnabled[1]) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
+                BERR_TRACE(rc);
+                server->settings.audioOutputs.i2sEnabled[1] = true;
+            }
+
+            /* If there is no DAC or I2S we need a dummy to make sure we can do simul mode / consume PCM from DDRE if configured for encode only */
+            /* Need to be careful if when we allow i2s to be configurable and not just pcm stereo to add dummy also */
+            if (cap.numOutputs.dac == 0 && cap.numOutputs.i2s == 0 && cap.numOutputs.dummy > 0) {
                 unsigned i;
                 for (i=0;i<cap.numOutputs.dummy;i++) {
                     if (!g_dummyOutputs[i]) {
@@ -800,9 +824,19 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
             if (server->platformConfig.outputs.rfm[0]) {
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
                 BERR_TRACE(rc);
+                server->settings.audioOutputs.rfmEnabled = true;
             }
             #endif
         }
+        if (cap.numOutputs.spdif > 0) {
+            server->settings.audioOutputs.spdifEnabled[0] = true;
+        }
+        #if NEXUS_NUM_HDMI_OUTPUTS
+        if (cap.numOutputs.hdmi > 0) {
+            server->settings.audioOutputs.hdmiEnabled[0] = true;
+        }
+        #endif
+
     }
     else if ( type == b_audio_decoder_type_persistent ) {
         r->mode = b_audio_mode_decode;
@@ -976,23 +1010,33 @@ void audio_decoder_destroy(struct b_audio_resource *r)
         if (r->localSession && r->session->index == 0) {
             if (audioCapabilities.numOutputs.dac > 0) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]));
+                server->settings.audioOutputs.dacEnabled[0] = false;
             }
-            else if (audioCapabilities.numOutputs.i2s > 0) {
+            if (audioCapabilities.numOutputs.i2s > 0) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]));
+                server->settings.audioOutputs.i2sEnabled[0] = false;
+                if (audioCapabilities.numOutputs.i2s > 1) {
+                    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]));
+                    server->settings.audioOutputs.i2sEnabled[1] = false;
+                }
             }
             #if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
             if (server->platformConfig.outputs.rfm[0]) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]));
+                server->settings.audioOutputs.rfmEnabled = false;
             }
             #endif
             #if NEXUS_NUM_HDMI_OUTPUTS
             if (audioCapabilities.numOutputs.hdmi > 0) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(server->platformConfig.outputs.hdmi[0]));
-            }
-            if (audioCapabilities.numOutputs.spdif > 0) {
-                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]));
+                server->settings.audioOutputs.hdmiEnabled[0] = false;
             }
             #endif
+            if (audioCapabilities.numOutputs.spdif > 0) {
+                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]));
+                server->settings.audioOutputs.spdifEnabled[0] = false;
+            }
+
         }
         NEXUS_AudioMixer_RemoveAllInputs(r->mixer[nxserver_audio_mixer_stereo]);
     }
@@ -1138,6 +1182,11 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
             if (!force_grab && connect->settings.simpleAudioDecoder.primer) {
                 return 0;
             }
+            /* nxserver_settings.grab == false only prevents inter-client grabbing. allow audio decoders within
+            a client to grab, which enables priming. */
+            if (connect->client == session->main_audio->connect->client) {
+                grab = true;
+            }
             if (!grab) {
                 return BERR_TRACE(NEXUS_NOT_AVAILABLE);
             }
@@ -1170,8 +1219,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoderHandle mainAudioDecoder;
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.type = NEXUS_SimpleAudioDecoderType_eDynamic;
-        settings.capabilities.ms12 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
 
         mainAudioDecoder = b_audio_get_decoder(session->main_audio->connect);
@@ -1217,8 +1266,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.primary = r->audioDecoder[nxserver_audio_decoder_primary];
         settings.type = NEXUS_SimpleAudioDecoderType_ePersistent;
-        settings.capabilities.ms12 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
         /* MS12 will not have a persistent mixer, use multichannel mixer */
         if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 ) {
             settings.mixers.persistent = NULL;
@@ -1261,8 +1310,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         settings.secondary = r->audioDecoder[nxserver_audio_decoder_passthrough];
         settings.type = NEXUS_SimpleAudioDecoderType_eStandalone;
         settings.mixers.stereo = settings.mixers.multichannel = settings.mixers.persistent = NULL;
-        settings.capabilities.ms12 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
         if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
         /* TBD - should this be any different for standalone decoders??? */
@@ -1277,8 +1326,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.primary = r->audioDecoder[nxserver_audio_decoder_primary];
         settings.type = NEXUS_SimpleAudioDecoderType_eDynamic;
-        settings.capabilities.ms12 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (session->server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
         if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
         rc = audio_acquire_stc_index(connect, audioDecoder);
@@ -1345,6 +1394,9 @@ void release_audio_decoders(struct b_connect *connect)
         r->mode = b_audio_mode_playback;
     }
     else if (r->mode != b_audio_mode_playback) {
+        if (settings.type == NEXUS_SimpleAudioDecoderType_ePersistent) {
+            NEXUS_SimpleAudioDecoder_Stop(audioDecoder);
+        }
         audio_release_stc_index(connect, audioDecoder);
         BDBG_MSG(("release transcode audio %p: connect %p", (void*)r, (void*)r->connect));
         settings.primary = settings.secondary = NULL;
@@ -1469,6 +1521,8 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     const struct b_audio_config *config;
     bool encode_display;
     NEXUS_AudioCapabilities cap;
+    bool ac3CompressedAllowed = false;
+    bool ddpCompressedAllowed = false;
 
     if (!r) {
         return 0;
@@ -1497,8 +1551,9 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     audioSettings.mixers.multichannel = r->mixer[nxserver_audio_mixer_multichannel];
     audioSettings.mixers.persistent = r->mixer[nxserver_audio_mixer_persistent];
 
-    audioSettings.capabilities.ms12 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) ? true : false;
-    audioSettings.capabilities.ms11 = (server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11) ? true : false;
+    audioSettings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+    audioSettings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+
     if (r->localSession) {
         BKNI_Memset(&audioSettings.spdif, 0, sizeof(audioSettings.spdif));
         BKNI_Memset(&audioSettings.hdmi, 0, sizeof(audioSettings.hdmi));
@@ -1507,118 +1562,164 @@ int bserver_set_audio_config(struct b_audio_resource *r)
         /* set up per codec outputs for HDMI and SPDIF */
         audioSettings.hdmi.outputs[0] = r->session->hdmiOutput;
         if (r->session->hdmiOutput) {
+            if ( session->audioSettings.hdmi.transcodeCodec == NEXUS_AudioCodec_eAc3Plus &&
+                 ( server->settings.session[r->session->index].dolbyMs != nxserverlib_dolby_ms_type_ms12 ||
+                   !cap.dsp.codecs[NEXUS_AudioCodec_eAc3Plus].encode ) ) {
+                session->audioSettings.hdmi.transcodeCodec = NEXUS_AudioCodec_eAc3;
+            }
+
+            if ( ( config->hdmi.audioCodecOutput[NEXUS_AudioCodec_eAc3Plus] == NxClient_AudioOutputMode_ePassthrough && session->audioSettings.hdmi.compressedOverride[NEXUS_AudioCodec_eAc3Plus] == NxClientAudioCodecSupport_eDefault && config->hdmiAc3Plus) ||
+                 session->audioSettings.hdmi.compressedOverride[NEXUS_AudioCodec_eAc3Plus] == NxClientAudioCodecSupport_eEnabled ) {
+                ddpCompressedAllowed = true;
+            }
+
+            if ( ( config->hdmi.audioCodecOutput[NEXUS_AudioCodec_eAc3] == NxClient_AudioOutputMode_ePassthrough && session->audioSettings.hdmi.compressedOverride[NEXUS_AudioCodec_eAc3] == NxClientAudioCodecSupport_eDefault ) ||
+                 session->audioSettings.hdmi.compressedOverride[NEXUS_AudioCodec_eAc3] == NxClientAudioCodecSupport_eEnabled ) {
+                ac3CompressedAllowed = true;
+            }
+
+
             for (i=0;i<NEXUS_AudioCodec_eMax;i++) {
                 NxClient_AudioOutputMode outputMode;
                 NEXUS_AudioCodec transcodeCodec;
+                bool tryPassthrough = false;
+                bool tryTranscode = false;
+                bool tryMultiPCM  = false;
+                bool tryStereoPCM = false;
+
                 if (encode_display && session->audioSettings.hdmi.outputMode != NxClient_AudioOutputMode_ePcm) {
                     BDBG_WRN(("forcing hdmi to pcm output because we are encoding the display"));
                     session->audioSettings.hdmi.outputMode = NxClient_AudioOutputMode_ePcm;
                 }
-                if (session->audioSettings.hdmi.outputMode == NxClient_AudioOutputMode_eAuto) {
+
+                audioSettings.hdmi.input[i] = NULL;
+                outputMode = session->audioSettings.hdmi.outputMode;
+                transcodeCodec = session->audioSettings.hdmi.transcodeCodec;
+
+                if ( outputMode == NxClient_AudioOutputMode_eAuto ||
+                     outputMode == NxClient_AudioOutputMode_ePassthrough ) {
                     outputMode = config->hdmi.audioCodecOutput[i];
-                    if (config->hdmiAc3Plus &&
-                        server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 &&
-                        cap.dsp.codecs[NEXUS_AudioCodec_eAc3Plus].encode) {
-                        /* Check for MS12 and DDP encode, as some MS12 configs are AC3 encode only */
-                        transcodeCodec = NEXUS_AudioCodec_eAc3Plus;
+
+                    switch (session->audioSettings.hdmi.compressedOverride[i]) {
+                    case NxClientAudioCodecSupport_eEnabled: /* Do compressed no matter if we can support it */
+                        outputMode = NxClient_AudioOutputMode_ePassthrough;
+                        break;
+                    case NxClientAudioCodecSupport_eDisabled: /* If we were compressed fall back, if transcode mabe we can still do that */
+                        if (outputMode == NxClient_AudioOutputMode_ePassthrough) {
+                            if (i != NEXUS_AudioCodec_eAc3Plus || !ac3CompressedAllowed) {
+                                outputMode = NxClient_AudioOutputMode_ePcm;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
                     }
-                    else {
-                        transcodeCodec = NEXUS_AudioCodec_eAc3;
+
+                    if (outputMode == NxClient_AudioOutputMode_ePcm) {
+                        outputMode = (session->audioSettings.hdmi.outputMode == NxClient_AudioOutputMode_eAuto) ?
+                            NxClient_AudioOutputMode_eTranscode : NxClient_AudioOutputMode_eMultichannelPcm;
                     }
                 }
-                else {
-                    outputMode = session->audioSettings.hdmi.outputMode;
-                    transcodeCodec = session->audioSettings.hdmi.transcodeCodec;
-                }
+
                 switch (outputMode) {
-                case NxClient_AudioOutputMode_ePassthrough:
-                    if (i==NEXUS_AudioCodec_eAc3Plus && !config->hdmiAc3Plus && session->audioSettings.hdmi.outputMode == NxClient_AudioOutputMode_eAuto) {
-                        if (r->audioDecoder[nxserver_audio_decoder_primary]) {
+                case NxClient_AudioOutputMode_ePassthrough: /* Passthrough -> Multi PCM -> Stereo PCM */
+                    tryPassthrough = tryMultiPCM = tryStereoPCM = true;
+                    break;
+                case NxClient_AudioOutputMode_eTranscode: /* Transcode -> Multi PCM -> Stereo PCM */
+                    tryTranscode = tryMultiPCM = tryStereoPCM = true;
+                    break;
+                case NxClient_AudioOutputMode_eMultichannelPcm: /* Multi PCM -> Stereo PCM */
+                    tryMultiPCM = tryStereoPCM = true;
+                    break;
+                default:
+                case NxClient_AudioOutputMode_ePcm: /* Stereo PCM */
+                    tryStereoPCM = true;
+                    break;
+                 case NxClient_AudioOutputMode_eNone: /* None don't connect anything*/
+                    break;
+                }
+
+                if (tryPassthrough) {
+                    if (i == NEXUS_AudioCodec_eAc3Plus && (!ddpCompressedAllowed)) {
+                        if (r->audioDecoder[nxserver_audio_decoder_primary] && ac3CompressedAllowed) {
                             /* AC3+ --> AC3 downconvert */
                             audioSettings.hdmi.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_primary], NEXUS_AudioConnectorType_eCompressed);
-                            break;
+                            session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_ePassthrough;
                         }
                     }
-                    if (r->audioDecoder[nxserver_audio_decoder_passthrough]) {
+                    else if (r->audioDecoder[nxserver_audio_decoder_passthrough]) {
                         /* TODO: some receivers may have an issue with all DTSHD formats being sent with
-                         * eCompressed16x (although the spec says it should be supported). */
+                           * eCompressed16x (although the spec says it should be supported). */
                         if (i==NEXUS_AudioCodec_eDtsHd || i==NEXUS_AudioCodec_eMlp) {
                             audioSettings.hdmi.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed16x);
                             if (audioSettings.hdmi.input[i] == NULL) {
                                 /* Some older chips do not support eCompressed16x HBR passthrough. Revert
-                                 * to standard compressed output and the audio block with automatically
-                                 * send what is possible. */
+                                   * to standard compressed output and the audio block with automatically
+                                   * send what is possible. */
                                 audioSettings.hdmi.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed);
                             }
                         }
                         else {
                             audioSettings.hdmi.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed);
                         }
+                        session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_ePassthrough;
                     }
-                    break;
-                case NxClient_AudioOutputMode_eTranscode:
-                    if (b_audio_dolby_ms_enabled(server->settings.session[r->session->index].dolbyMs)) {
-                        audioSettings.hdmi.input[i] = NULL;
-                        if ( (transcodeCodec != NEXUS_AudioCodec_eAc3 && transcodeCodec != NEXUS_AudioCodec_eAc3Plus) || !r->ddre )
-                        {
+                }
+
+                if (tryTranscode && audioSettings.hdmi.input[i] == NULL) {
+                    if (b_dolby_ms_enabled(session)) {
+                        if ( (transcodeCodec != NEXUS_AudioCodec_eAc3 && transcodeCodec != NEXUS_AudioCodec_eAc3Plus) || !r->ddre ) {
                             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
                         }
-                        if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 )
-                        {
+                        if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 ) {
                             /* Try AC3 Plus Encode */
-                            if ( transcodeCodec == NEXUS_AudioCodec_eAc3Plus && cap.dsp.codecs[NEXUS_AudioCodec_eAc3Plus].encode )
-                            {
-                                if (config->hdmi.audioCodecOutput[NEXUS_AudioCodec_eAc3Plus] == NxClient_AudioOutputMode_ePassthrough && config->hdmiAc3Plus)
-                                {
-                                    audioSettings.hdmi.input[i] = NEXUS_DolbyDigitalReencode_GetConnector(r->ddre, NEXUS_AudioConnectorType_eCompressed4x);
-                                }
+                            if ( transcodeCodec == NEXUS_AudioCodec_eAc3Plus && ddpCompressedAllowed ) {
+                                audioSettings.hdmi.input[i] = NEXUS_DolbyDigitalReencode_GetConnector(r->ddre, NEXUS_AudioConnectorType_eCompressed4x);
+                                session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_eTranscode;
                             }
                         }
                         /* Try AC3 Encode */
                         if ( audioSettings.hdmi.input[i] == NULL )
                         {
-                            if ( config->hdmi.audioCodecOutput[NEXUS_AudioCodec_eAc3] == NxClient_AudioOutputMode_ePassthrough )
-                            {
+                            if ( ac3CompressedAllowed ) {
                                 audioSettings.hdmi.input[i] = NEXUS_DolbyDigitalReencode_GetConnector(r->ddre, NEXUS_AudioConnectorType_eCompressed);
+                                session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_eTranscode;
                             }
                         }
-                        /* Fall back to PCM */
-                        if ( audioSettings.hdmi.input[i] == NULL )
-                        {
-                            audioSettings.hdmi.input[i] = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
-                        }
-                        break;
                     }
                     else if (r->audioEncoder && transcodeCodec < NEXUS_AudioCodec_eMax && cap.dsp.codecs[transcodeCodec].encode) {
-                        NEXUS_AudioEncoderSettings settings;
-                        NEXUS_AudioEncoder_GetSettings(r->audioEncoder, &settings);
-                        settings.codec = transcodeCodec;
-                        rc = NEXUS_AudioEncoder_SetSettings(r->audioEncoder, &settings);
-                        if (!rc) {
-                            audioSettings.hdmi.input[i] = NULL;
-                            if (config->hdmi.audioCodecOutput[transcodeCodec] == NxClient_AudioOutputMode_ePassthrough)
-                            {
-                                audioSettings.hdmi.input[i] = NEXUS_AudioEncoder_GetConnector(r->audioEncoder);
+                        if ( transcodeCodec != NEXUS_AudioCodec_eAc3 ||
+                             ( b_is_aac(i) && ac3CompressedAllowed ) ) {
+
+                            NEXUS_AudioEncoderSettings settings;
+                            NEXUS_AudioEncoder_GetSettings(r->audioEncoder, &settings);
+                            settings.codec = transcodeCodec;
+                            rc = NEXUS_AudioEncoder_SetSettings(r->audioEncoder, &settings);
+                            if (!rc) {
+                                audioSettings.hdmi.input[i] = NULL;
+                                if (config->hdmi.audioCodecOutput[transcodeCodec] == NxClient_AudioOutputMode_ePassthrough)
+                                {
+                                    audioSettings.hdmi.input[i] = NEXUS_AudioEncoder_GetConnector(r->audioEncoder);
+                                    session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_eTranscode;
+                                }
                             }
-                            /* Fall back to PCM */
-                            if ( audioSettings.hdmi.input[i] == NULL )
-                            {
-                                audioSettings.hdmi.input[i] = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
-                            }
-                            break;
                         }
                     }
-                    /* else, fall through */
-                default:
-                case NxClient_AudioOutputMode_ePcm:
-                    audioSettings.hdmi.input[i] = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
-                    break;
-                case NxClient_AudioOutputMode_eMultichannelPcm:
+                }
+
+                if (tryMultiPCM && audioSettings.hdmi.input[i] == NULL && config->maxPCMChannels >= 6) {
                     audioSettings.hdmi.input[i] = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
-                    break;
-                case NxClient_AudioOutputMode_eNone:
+                    session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_eMultichannelPcm;
+                }
+
+                if (tryStereoPCM && audioSettings.hdmi.input[i] == NULL) {
+                    audioSettings.hdmi.input[i] = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
+                    session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_ePcm;
+                }
+
+                if (audioSettings.hdmi.input[i] == NULL) {
                     audioSettings.hdmi.input[i] = NULL;
-                    break;
+                    session->audio.hdmi.outputMode[i] = NxClient_AudioOutputMode_eNone;
                 }
             }
         }
@@ -1629,69 +1730,145 @@ int bserver_set_audio_config(struct b_audio_resource *r)
                 audioSettings.spdif.outputs[0] = server->platformConfig.outputs.spdif[0];
             }
             if (audioSettings.spdif.outputs[0]) {
+                if ( session->audioSettings.spdif.transcodeCodec == NEXUS_AudioCodec_eAc3Plus &&
+                     ( server->settings.session[r->session->index].dolbyMs != nxserverlib_dolby_ms_type_ms12 ||
+                       !cap.dsp.codecs[NEXUS_AudioCodec_eAc3Plus].encode ||
+                       !server->settings.session[r->session->index].allowSpdif4xCompressed) ) {
+                    session->audioSettings.spdif.transcodeCodec = NEXUS_AudioCodec_eAc3;
+                }
+
+                ddpCompressedAllowed = ac3CompressedAllowed = false;
+
+                if ( ( ( config->spdif.audioCodecOutput[NEXUS_AudioCodec_eAc3Plus] == NxClient_AudioOutputMode_ePassthrough && session->audioSettings.spdif.compressedOverride[NEXUS_AudioCodec_eAc3Plus] == NxClientAudioCodecSupport_eDefault ) ||
+                       session->audioSettings.hdmi.compressedOverride[NEXUS_AudioCodec_eAc3Plus] == NxClientAudioCodecSupport_eEnabled ) &&
+                     server->settings.session[r->session->index].allowSpdif4xCompressed) {
+                    ddpCompressedAllowed = true;
+                }
+
+                if ( ( config->spdif.audioCodecOutput[NEXUS_AudioCodec_eAc3] == NxClient_AudioOutputMode_ePassthrough && session->audioSettings.spdif.compressedOverride[NEXUS_AudioCodec_eAc3] == NxClientAudioCodecSupport_eDefault ) ||
+                     session->audioSettings.spdif.compressedOverride[NEXUS_AudioCodec_eAc3] == NxClientAudioCodecSupport_eEnabled ) {
+                    ac3CompressedAllowed = true;
+                }
+
                 for (i=0;i<NEXUS_AudioCodec_eMax;i++) {
                     NxClient_AudioOutputMode outputMode;
                     NEXUS_AudioCodec transcodeCodec;
+                    bool tryPassthrough = false;
+                    bool tryTranscode = false;
+                    bool tryStereoPCM = false;
+
                     if (encode_display && session->audioSettings.spdif.outputMode != NxClient_AudioOutputMode_ePcm) {
                         BDBG_WRN(("forcing spdif to pcm output because we are encoding the display"));
                         session->audioSettings.spdif.outputMode = NxClient_AudioOutputMode_ePcm;
                     }
-                    if (session->audioSettings.spdif.outputMode == NxClient_AudioOutputMode_eAuto) {
-                        outputMode = config->spdif.audioCodecOutput[i];
-                        transcodeCodec = NEXUS_AudioCodec_eAc3; /* TODO */
-                    }
-                    else {
-                        outputMode = session->audioSettings.spdif.outputMode;
-                        transcodeCodec = session->audioSettings.spdif.transcodeCodec;
-                    }
 
-                    switch (outputMode) {
-                    case NxClient_AudioOutputMode_ePassthrough:
-                        if (i==NEXUS_AudioCodec_eAc3Plus) {
-                            if (r->audioDecoder[nxserver_audio_decoder_passthrough] && server->settings.session[r->session->index].allowSpdif4xCompressed) {
-                                audioSettings.spdif.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed);
-                                break;
+
+                    audioSettings.spdif.input[i] = NULL;
+                    outputMode = session->audioSettings.spdif.outputMode;
+                    transcodeCodec = session->audioSettings.spdif.transcodeCodec;
+
+                    if ( outputMode == NxClient_AudioOutputMode_eAuto ||
+                         outputMode == NxClient_AudioOutputMode_ePassthrough ) {
+                        outputMode = config->spdif.audioCodecOutput[i];
+
+                        switch (session->audioSettings.hdmi.compressedOverride[i]) {
+                        case NxClientAudioCodecSupport_eEnabled: /* Do compressed no matter if we can support it */
+                            outputMode = NxClient_AudioOutputMode_ePassthrough;
+                            break;
+                        case NxClientAudioCodecSupport_eDisabled: /* If we were compressed fall back, if transcode mabe we can still do that */
+                            if (outputMode == NxClient_AudioOutputMode_ePassthrough) {
+                                if (i != NEXUS_AudioCodec_eAc3Plus || !ac3CompressedAllowed) {
+                                    outputMode = NxClient_AudioOutputMode_ePcm;
+                                }
                             }
-                            else if (r->audioDecoder[nxserver_audio_decoder_primary])
-                            {
-                                /* AC3+ --> AC3 downconvert */
-                                audioSettings.spdif.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_primary], NEXUS_AudioConnectorType_eCompressed);
-                                break;
-                            }
-                        }
-                        if (r->audioDecoder[nxserver_audio_decoder_passthrough]) {
-                            audioSettings.spdif.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed);
-                        }
-                        break;
-                    case NxClient_AudioOutputMode_eTranscode:
-                        if (b_audio_dolby_ms_enabled(server->settings.session[r->session->index].dolbyMs)) {
-                            if (transcodeCodec != NEXUS_AudioCodec_eAc3 || !r->ddre) {
-                                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                            }
-                            audioSettings.spdif.input[i] = NEXUS_DolbyDigitalReencode_GetConnector(r->ddre, NEXUS_AudioConnectorType_eCompressed);
+                            break;
+                        default:
                             break;
                         }
-                        else if (r->audioEncoder && transcodeCodec < NEXUS_AudioCodec_eMax && cap.dsp.codecs[transcodeCodec].encode) {
-                            NEXUS_AudioEncoderSettings settings;
-                            NEXUS_AudioEncoder_GetSettings(r->audioEncoder, &settings);
-                            /* TODO: can't allow different hdmi/spdif transcode codecs with only one AudioEncoder. for now, last one wins. */
-                            settings.codec = transcodeCodec;
-                            rc = NEXUS_AudioEncoder_SetSettings(r->audioEncoder, &settings);
-                            if (!rc) {
-                                audioSettings.spdif.input[i] = NEXUS_AudioEncoder_GetConnector(r->audioEncoder);
-                                break;
-                            }
+
+                        if (session->audioSettings.spdif.outputMode == NxClient_AudioOutputMode_eAuto &&
+                            outputMode == NxClient_AudioOutputMode_ePcm) {
+                            outputMode = NxClient_AudioOutputMode_eTranscode;
                         }
-                        /* else, fall through */
-                    default:
-                    case NxClient_AudioOutputMode_ePcm:
-                        audioSettings.spdif.input[i] = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
+                    }
+                    switch (outputMode) {
+                    case NxClient_AudioOutputMode_ePassthrough: /* Passthrough -> Stereo PCM */
+                        tryPassthrough = tryStereoPCM = true;
                         break;
-                    case NxClient_AudioOutputMode_eNone:
-                        audioSettings.spdif.input[i] = NULL;
+                    case NxClient_AudioOutputMode_eTranscode: /* Transcode -> Stereo PCM */
+                        tryTranscode = tryStereoPCM = true;
                         break;
                     case NxClient_AudioOutputMode_eMultichannelPcm:
-                        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                        BDBG_WRN(("eMultichannelPcm not supported for spdif.  Fall back to ePCM"));
+                    default:
+                    case NxClient_AudioOutputMode_ePcm: /* Stereo PCM */
+                        tryStereoPCM = true;
+                        break;
+
+                    case NxClient_AudioOutputMode_eNone: /* None don't connect anything*/
+                        break;
+                    }
+
+
+                    if (tryPassthrough) {
+                        if (i==NEXUS_AudioCodec_eAc3Plus) {
+                            if ( r->audioDecoder[nxserver_audio_decoder_passthrough] && ddpCompressedAllowed ) {
+                                audioSettings.spdif.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed);
+                                session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_ePassthrough;
+                            }
+                            else if (r->audioDecoder[nxserver_audio_decoder_primary] && ac3CompressedAllowed) {
+                                /* AC3+ --> AC3 downconvert */
+                                audioSettings.spdif.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_primary], NEXUS_AudioConnectorType_eCompressed);
+                                session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_ePassthrough;
+                            }
+                        } else if (r->audioDecoder[nxserver_audio_decoder_passthrough]) {
+                            audioSettings.spdif.input[i] = NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed);
+                            session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_ePassthrough;
+                        }
+
+                    }
+
+                    if (tryTranscode && audioSettings.spdif.input[i] == NULL) {
+                        if (b_dolby_ms_enabled(session)) {
+                            if ( (transcodeCodec != NEXUS_AudioCodec_eAc3 && transcodeCodec != NEXUS_AudioCodec_eAc3Plus) || !r->ddre ) {
+                                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                            }
+                            if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 && ddpCompressedAllowed ) {
+                                /* Try AC3 Plus Encode */
+                                if ( transcodeCodec == NEXUS_AudioCodec_eAc3Plus ) {
+                                    audioSettings.spdif.input[i] = NEXUS_DolbyDigitalReencode_GetConnector(r->ddre, NEXUS_AudioConnectorType_eCompressed4x);
+                                    session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_eTranscode;
+                                }
+                            }
+                            /* Try AC3 Encode */
+                            if ( audioSettings.spdif.input[i] == NULL && ac3CompressedAllowed) {
+                                audioSettings.spdif.input[i] = NEXUS_DolbyDigitalReencode_GetConnector(r->ddre, NEXUS_AudioConnectorType_eCompressed);
+                                session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_eTranscode;
+                            }
+                        }
+                        else if (r->audioEncoder && transcodeCodec < NEXUS_AudioCodec_eMax && cap.dsp.codecs[transcodeCodec].encode) {
+                            if ( transcodeCodec != NEXUS_AudioCodec_eAc3 ||
+                                 ( b_is_aac(i) && ac3CompressedAllowed ) ) {
+                                NEXUS_AudioEncoderSettings settings;
+                                NEXUS_AudioEncoder_GetSettings(r->audioEncoder, &settings);
+                                /* TODO: can't allow different hdmi/spdif transcode codecs with only one AudioEncoder. for now, last one wins. */
+                                settings.codec = transcodeCodec;
+                                rc = NEXUS_AudioEncoder_SetSettings(r->audioEncoder, &settings);
+                                if (!rc) {
+                                    audioSettings.spdif.input[i] = NEXUS_AudioEncoder_GetConnector(r->audioEncoder);
+                                    session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_eTranscode;
+                                }
+                            }
+                        }
+                    }
+
+                    if (tryStereoPCM && audioSettings.spdif.input[i] == NULL) {
+                        audioSettings.spdif.input[i] = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
+                        session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_ePcm;
+                    }
+
+                    if (audioSettings.spdif.input[i] == NULL) {
+                        session->audio.spdif.outputMode[i] = NxClient_AudioOutputMode_eNone;
                     }
                 }
             }
@@ -1700,7 +1877,7 @@ int bserver_set_audio_config(struct b_audio_resource *r)
 
     /* If we are using Dolby MS, the only conection from Decoder->DspMixer is via Multichannel
        NOTE - if no DAC is present, this may need to fall back further -- to compressed? */
-    if (b_audio_dolby_ms_enabled(server->settings.session[r->session->index].dolbyMs)) {
+    if (b_dolby_ms_enabled(session)) {
         audioSettings.syncConnector = NEXUS_AudioConnectorType_eMultichannel;
     }
     else {
@@ -1744,45 +1921,65 @@ int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOu
 
     config->hdmiAc3Plus = pStatus->audioCodecSupported[NEXUS_AudioCodec_eAc3Plus];
     for (i=0;i<NEXUS_AudioCodec_eMax;i++) {
-        config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePcm;
-        if (pStatus->audioCodecSupported[i]) {
+        if (session->nxclient.displaySettings.hdmiPreferences.preventUnsupportedFormat) {
+            config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePcm;
+            if (pStatus->audioCodecSupported[i]) {
+                switch (i) {
+                case NEXUS_AudioCodec_ePcm:
+                    config->maxPCMChannels = pStatus->maxAudioPcmChannels;
+                    break;
+                default:
+                    config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePassthrough;
+                    break;
+                }
+            }
+            else {
+                /* Special cases when native codec is not supported */
+                switch(i) {
+                case NEXUS_AudioCodec_eAacAdts:
+                case NEXUS_AudioCodec_eAacLoas:
+                case NEXUS_AudioCodec_eAacPlusAdts:
+                case NEXUS_AudioCodec_eAacPlusLoas:
+                    if ( capabilities.dsp.codecs[NEXUS_AudioCodec_eAc3].encode && pStatus->audioCodecSupported[NEXUS_AudioCodec_eAc3] ) {
+                        config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_eTranscode;
+                    }
+                    break;
+                case NEXUS_AudioCodec_eAc3Plus:
+                    /* downconvert DDP to AC3 if receiver only supports the latter.
+                    both AC3+ --> AC3+ and AC3+ --> AC3 use ePassthrough, but we prefer AC3+ over AC3 if EDID confirms it is possible (see config->hdmiAc3Plus). */
+                    if (pStatus->audioCodecSupported[NEXUS_AudioCodec_eAc3]) {
+                        config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePassthrough;
+                    }
+                    break;
+                case NEXUS_AudioCodec_eDtsHd:
+                    /* DTS is layered so the RX should be able to handle just the baselayer out HDMI */
+                    if (pStatus->audioCodecSupported[NEXUS_AudioCodec_eDts]) {
+                        config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePassthrough;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        else {
             switch (i) {
             case NEXUS_AudioCodec_ePcm:
+                config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePcm;
+                config->maxPCMChannels = 8;
+                BDBG_WRN(("It is not recommended that preventUnsupportedFormat be disabled for production."));
+                break;
+            case NEXUS_AudioCodec_eAc3Plus:
+                config->hdmiAc3Plus = true;
+                config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePassthrough;
                 break;
             default:
                 config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePassthrough;
                 break;
             }
         }
-        else {
-            /* Special cases when native codec is not supported */
-            switch(i) {
-            case NEXUS_AudioCodec_eAacAdts:
-            case NEXUS_AudioCodec_eAacLoas:
-            case NEXUS_AudioCodec_eAacPlusAdts:
-            case NEXUS_AudioCodec_eAacPlusLoas:
-                if ( (capabilities.dsp.codecs[NEXUS_AudioCodec_eAc3].encode || (capabilities.dsp.dolbyDigitalReencode && b_audio_dolby_ms_enabled(server->settings.session[session->index].dolbyMs))) && pStatus->audioCodecSupported[NEXUS_AudioCodec_eAc3] ) {
-                    config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_eTranscode;
-                }
-                break;
-            case NEXUS_AudioCodec_eAc3Plus:
-                /* downconvert DDP to AC3 if receiver only supports the latter.
-                both AC3+ --> AC3+ and AC3+ --> AC3 use ePassthrough, but we prefer AC3+ over AC3 if EDID confirms it is possible (see config->hdmiAc3Plus). */
-                if (pStatus->audioCodecSupported[NEXUS_AudioCodec_eAc3]) {
-                    config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePassthrough;
-                }
-                break;
-            case NEXUS_AudioCodec_eDtsHd:
-                /* DTS is layered so the RX should be able to handle just the baselayer out HDMI */
-                if (pStatus->audioCodecSupported[NEXUS_AudioCodec_eDts]) {
-                    config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_ePassthrough;
-                }
-                break;
-            default:
-                break;
-            }
-        }
     }
+
     return 0;
 }
 #endif
@@ -1923,7 +2120,7 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
                 transcodeCodec = NEXUS_AudioCodec_eAc3Plus;
                 outputMode = NxClient_AudioOutputMode_eTranscode;
             }
-            else if (b_audio_dolby_ms_enabled(session->server->settings.session[session->index].dolbyMs)) {
+            else if (b_dolby_ms_enabled(session)) {
                 transcodeCodec = NEXUS_AudioCodec_eAc3;
                 outputMode = NxClient_AudioOutputMode_eTranscode;
             }
@@ -1933,14 +2130,11 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
             }
         }
         else if (captureType == NxClient_AudioCaptureType_eCompressed) {
-            if (b_audio_dolby_ms_enabled(session->server->settings.session[session->index].dolbyMs)) {
+            if (b_dolby_ms_enabled(session)) {
                 transcodeCodec = NEXUS_AudioCodec_eAc3;
                 outputMode = NxClient_AudioOutputMode_eTranscode;
             }
-            else if (i==NEXUS_AudioCodec_eAacAdts ||
-                     i==NEXUS_AudioCodec_eAacLoas ||
-                     i==NEXUS_AudioCodec_eAacPlusAdts ||
-                     i==NEXUS_AudioCodec_eAacPlusLoas) {
+            else if (b_is_aac(i)) {
                 transcodeCodec = NEXUS_AudioCodec_eAc3;
                 outputMode = NxClient_AudioOutputMode_eTranscode;
             }
@@ -1959,7 +2153,7 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
 
         switch (outputMode) {
         case NxClient_AudioOutputMode_eTranscode:
-            if (b_audio_dolby_ms_enabled(session->server->settings.session[session->index].dolbyMs)) {
+            if (b_dolby_ms_enabled(session)) {
                 if (transcodeCodec == NEXUS_AudioCodec_eAc3Plus) {
                     sessionSettings->capture.input[i] = b_audio_get_compressed_input(session->main_audio, NEXUS_AudioConnectorType_eCompressed4x);
                     break;
@@ -2272,7 +2466,6 @@ int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus
     NEXUS_AudioCodec currentCodec = NEXUS_AudioCodec_ePcm;
     NEXUS_AudioDecoderStatus decoderStatus;
     int rc;
-    struct b_audio_config *config = &session->server->audio_config;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     if (!session->main_audio) {
@@ -2291,12 +2484,7 @@ int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus
         currentCodec = decoderStatus.codec;
     }
 
-    if (session->audioSettings.hdmi.outputMode == NxClient_AudioOutputMode_eAuto) {
-        pStatus->hdmi.outputMode = config->hdmi.audioCodecOutput[currentCodec];
-    }
-    else {
-        pStatus->hdmi.outputMode = session->audioSettings.hdmi.outputMode;
-    }
+    pStatus->hdmi.outputMode = session->audio.hdmi.outputMode[currentCodec];
     pStatus->hdmi.channelMode = session->audioSettings.hdmi.channelMode;
     switch (pStatus->hdmi.outputMode) {
     case NxClient_AudioOutputMode_ePassthrough: pStatus->hdmi.outputCodec = (currentCodec==NEXUS_AudioCodec_ePcm)?NEXUS_AudioCodec_eUnknown:currentCodec; break;
@@ -2305,12 +2493,7 @@ int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus
     default: pStatus->hdmi.outputCodec = NEXUS_AudioCodec_ePcm; break;
     }
 
-    if (session->audioSettings.spdif.outputMode == NxClient_AudioOutputMode_eAuto) {
-        pStatus->spdif.outputMode = config->spdif.audioCodecOutput[currentCodec];
-    }
-    else {
-        pStatus->spdif.outputMode = session->audioSettings.spdif.outputMode;
-    }
+    pStatus->spdif.outputMode = session->audio.spdif.outputMode[currentCodec];
     pStatus->spdif.channelMode = session->audioSettings.spdif.channelMode;
     switch (pStatus->spdif.outputMode) {
     case NxClient_AudioOutputMode_ePassthrough: pStatus->spdif.outputCodec = (currentCodec==NEXUS_AudioCodec_ePcm)?NEXUS_AudioCodec_eUnknown:currentCodec; break;
@@ -2322,6 +2505,14 @@ int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus
     pStatus->dac.outputMode = NxClient_AudioOutputMode_ePcm;
     pStatus->dac.channelMode = session->audioSettings.dac.channelMode;
     pStatus->dac.outputCodec = NEXUS_AudioCodec_ePcm;
+
+    pStatus->i2s[0].outputMode = NxClient_AudioOutputMode_ePcm;
+    pStatus->i2s[0].channelMode = session->audioSettings.i2s[0].channelMode;
+    pStatus->i2s[0].outputCodec = NEXUS_AudioCodec_ePcm;
+
+    pStatus->i2s[1].outputMode = NxClient_AudioOutputMode_ePcm;
+    pStatus->i2s[1].channelMode = session->audioSettings.i2s[1].channelMode;
+    pStatus->i2s[1].outputCodec = NEXUS_AudioCodec_ePcm;
 
     pStatus->rfm.outputMode = NxClient_AudioOutputMode_ePcm;
     pStatus->rfm.channelMode = session->audioSettings.rfm.channelMode;
@@ -2418,7 +2609,6 @@ static int swap_persistent_audio_decoders(struct b_connect *destConnect, struct 
     NEXUS_SimpleAudioDecoderServerSettings settings;
     NEXUS_SimpleAudioDecoderHandle srcDecoder, destDecoder;
     struct b_session *session;
-    nxserver_t server;
     struct b_req *destReq = destConnect->req[b_resource_simple_audio_decoder];
     struct b_req *srcReq = srcConnect->req[b_resource_simple_audio_decoder];
     struct b_audio_resource *r;
@@ -2438,7 +2628,6 @@ static int swap_persistent_audio_decoders(struct b_connect *destConnect, struct 
         }
         r = srcReq->handles.simpleAudioDecoder.r;
         session = r->session;
-        server = r->session->server;
     }
     else
     {
@@ -2531,4 +2720,5 @@ int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOu
 #endif
 int bserver_set_audio_config(struct b_audio_resource *r) {BSTD_UNUSED(r);return 0;}
 int audio_get_stc_index(struct b_connect *connect) {BSTD_UNUSED(connect);return 0;}
+int nxserverlib_p_audio_i2s0_shares_with_dac(struct b_session *session) {BSTD_UNUSED(session);return 0;}
 #endif /* NEXUS_HAS_AUDIO */

@@ -561,7 +561,7 @@ eRet CPanelBuffers::updateBuffersData()
     NEXUS_PlaybackStatus     nPlaybackStatus;
     NEXUS_Error              nerror = NEXUS_SUCCESS;
     char                     buf[32];
-    uint16_t                 level = 0;
+    unsigned                 level = 0;
 
     ret = pVideoDecode->getStatus(&nVideoStatus);
     CHECK_ERROR_GOTO("unable to retrieve video decode status", ret, error);

@@ -133,6 +133,10 @@ BCHP_CHIP==7342 || BCHP_CHIP==7340 || BCHP_CHIP==7468 || BCHP_CHIP ==7125 || BCH
 #include "nexus_display_dbv_impl.h"
 #endif
 
+#if NEXUS_DISPLAY_EXTENSION_DYNRNG
+#include "nexus_display_dynrng.h"
+#endif
+
 #if !defined NEXUS_HAS_HDMI_INPUT
 #undef NEXUS_NUM_HDMI_INPUTS
 #endif
@@ -227,6 +231,7 @@ typedef struct NEXUS_DisplayModule_State {
 struct NEXUS_DisplayGraphics {
     BVDC_Source_Handle source;
     BVDC_Window_Handle windowVdc;/* it indicates  that graphics is active, e.g. it both enabled in settings and frambuffer was assigned */
+    BVDC_Window_Capabilities windowCaps;
     const BPXL_Plane *queuedPlane; /* surface queued for display in hardware, used only as reference  */
     NEXUS_GraphicsFramebuffer3D frameBuffer3D;
 #if NEXUS_AUTO_GRAPHICS_COMPRESSION
@@ -252,6 +257,13 @@ struct NEXUS_DisplayGraphics {
     unsigned validCount;
     NEXUS_GraphicsColorSettings colorSettings;
     bool secure;
+#if NEXUS_DISPLAY_EXTENSION_DYNRNG
+    struct
+    {
+        NEXUS_DynamicRangeProcessingSettings settings;
+        BVDC_Test_Window_ForceCfcConfig cfcConfig;
+    } dynrng;
+#endif
 };
 
 typedef struct NEXUS_Display_P_Image {
@@ -343,6 +355,7 @@ struct NEXUS_Display {
         BINT_CallbackHandle intCallback[3]; /* top, bot, frame */
         NEXUS_IsrCallbackHandle isrCallback;
         NEXUS_CallbackDesc desc; /* from NEXUS_Display_SetVsyncCallback, not SetSettings */
+        NEXUS_VideoBufferType lastVsyncType;
     } vsyncCallback;
     struct {
         NEXUS_DisplayCrcData *queue;

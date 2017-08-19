@@ -90,7 +90,7 @@ public:
     MString  getNextAtlasName(void);
     void     generateVideoName(MString path);
     CVideo * getVideo(MString name);
-    CVideo * find(const char * name, int16_t nProgram = -1);
+    CVideo * find(const char * name, int nProgram = -1);
     bool     hasIndex(void);
     void     destroyThreadGenerateIndexes(void);
     void     doGenerateIndexes(void);
@@ -137,14 +137,14 @@ public:
     eRet   readXML(MXmlElement * xmlElem);
     eRet   readInfo(MString infoName);
     CPid * getPid(
-            uint16_t index,
+            unsigned index,
             ePidType type
             ) { return(_pidMgr.getPid(index, type)); }
     CPidMgr *         getPidMgr(void) { return(&_pidMgr); }
     void              dupPidMgr(CPidMgr * pPidMgr);
     eRet              updateFileSysInfo(void);
-    uint16_t          getProgram(void)                     { return(_pidMgr.getProgram()); }
-    void              setProgram(uint16_t program)         { _pidMgr.setProgram(program); }
+    unsigned          getProgram(void)                     { return(_pidMgr.getProgram()); }
+    void              setProgram(unsigned program)         { _pidMgr.setProgram(program); }
     MString           getDescription(void)                 { return(_description); }
     void              setDescription(const char * strName) { _description = strName; }
     time_t            getDate(void)                        { return(_date); }
@@ -180,10 +180,10 @@ public:
     bool              isIndexRequired(void)          { return(_isIndexRequired); }
     void              setIndexRequired(bool bActive) { _isIndexRequired = bActive; }
     void              inUse(void)                    { _usageCounter++; }
-    uint16_t          getWidth(void);
-    void              setWidth(uint16_t width);
-    uint16_t          getHeight(void);
-    void              setHeight(uint16_t height);
+    unsigned          getWidth(void);
+    void              setWidth(unsigned width);
+    unsigned          getHeight(void);
+    void              setHeight(unsigned height);
     void              dump(bool bForce = false);
     bool              isEncrypted(void);
     eRet              generateIndex(void);

@@ -157,8 +157,8 @@ endif
 FLOATLIB=$(NEXUS_TOP)/../BSEAV/linux/driver/floatlib
 
 LINUX_OUT ?= $(LINUX)
-NEXUS_GISB_ARB := $(shell if grep 'CONFIG_BRCMSTB_GISB_ARB' -q ${LINUX_OUT}/include/generated/autoconf.h ; then echo "y" ; fi)
-NEXUS_WKTMR    := $(shell if grep 'CONFIG_BRCMSTB_WKTMR' -q ${LINUX_OUT}/include/generated/autoconf.h ; then echo "y" ; fi)
+NEXUS_GISB_ARB := $(shell grep 'CONFIG_BRCMSTB_GISB_ARB' -q ${LINUX_OUT}/include/generated/autoconf.h 2>/dev/null && echo "y")
+NEXUS_WKTMR    := $(shell grep 'CONFIG_BRCMSTB_WKTMR' -q ${LINUX_OUT}/include/generated/autoconf.h 2>/dev/null && echo "y")
 
 ifeq ($(NEXUS_GISB_ARB),y)
 NEXUS_PLATFORM_DEFINES += NEXUS_GISB_ARB
@@ -325,8 +325,12 @@ NEXUS_PLATFORM_PROXY_SOURCES += \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS).$(NEXUS_MODE)/nexus_platform_image.c
 ifeq ($(SAGE_SUPPORT),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \
-    $(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_image.c \
-    $(NEXUS_TOP)/modules/hdmi_output/src/linuxuser/nexus_hdmi_output_image.c
+    $(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_image.c
+ifeq ($(NEXUS_SAGE_BP3_BIN_PATH),)
+    NEXUS_SAGE_BP3_BIN_PATH=$(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_bp3_bin_path.c
+endif
+NEXUS_PLATFORM_PROXY_SOURCES += \
+    $(NEXUS_SAGE_BP3_BIN_PATH)
 endif
 ifeq ($(SCM_SUPPORT),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \

@@ -8,7 +8,7 @@ typedef enum backend_reg
 {
    REG_UNDECIDED,
 
-   _REG_R0, _REG_R1, _REG_R2, _REG_R3, _REG_R4, _REG_R5,
+   REG_R0, REG_R1, REG_R2, REG_R3, REG_R4, REG_R5,
 
    REG_RF0,  REG_RF1,  REG_RF2,  REG_RF3,  REG_RF4,  REG_RF5,  REG_RF6,  REG_RF7,  REG_RF8,  REG_RF9,
    REG_RF10, REG_RF11, REG_RF12, REG_RF13, REG_RF14, REG_RF15, REG_RF16, REG_RF17, REG_RF18, REG_RF19,
@@ -73,10 +73,10 @@ typedef enum backend_reg
 
 } backend_reg;
 
-static inline backend_reg REG_R(unsigned n)  { return (backend_reg)(_REG_R0 + n); }
-static inline backend_reg REG_RF(unsigned n) { return (backend_reg)(REG_RF0 + n); }
+static inline backend_reg REG_R(unsigned n)  { assert(n <= 5); return (backend_reg)(REG_R0 + n); }
+static inline backend_reg REG_RF(unsigned n) { assert(n <= 63); return (backend_reg)(REG_RF0 + n); }
 
-static inline bool IS_R(backend_reg r)       { return r >= _REG_R0 && r <= _REG_R5; }
+static inline bool IS_R(backend_reg r)       { return r >= REG_R0 && r <= REG_R5; }
 static inline bool IS_RF(backend_reg  r)     { return r >= REG_RF0 && r <= REG_RF63; }
 static inline bool IS_RRF(backend_reg r)     { return IS_R(r) || IS_RF(r); }
 static inline bool IS_FLAG(backend_reg r)    { return r == REG_FLAG_A || r == REG_FLAG_B; }

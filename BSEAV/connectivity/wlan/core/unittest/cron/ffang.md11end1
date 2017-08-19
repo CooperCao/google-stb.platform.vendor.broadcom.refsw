@@ -1,0 +1,20 @@
+#
+MAILTO=ffang@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/ffang/unittest1.7.10/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+45      1      * * *   unittest1.7.10/cron/launch 4360SOFTAP  Test/StaNightly.test -utfconf md11 -sta 'MacX87-BIS715GALA_BRANCH_7_21 MacX14-BIS715GALA_BRANCH_7_21 MacX238-BIS715GALA_BRANCH_7_21 MacX51-BIS715GALA_BRANCH_7_21' -ap '4360SOFTAP-TOT' -perfonly -rateonly -loop 1 -title '[MD11:StaNightly:t01]'
+
+15      19      * * *   unittest1.7.10/cron/launch MacX87BISONRVR  Test/RvRNightly1.test -utfconf md11 -ap '4360SOFTAP-TOT' -sta 'MacX87-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '0-75 75-0' -cycle5G40AttnRange '0-75 75-0' -cycle5G20AttnRange '0-75 75-0' -cycle2G40AttnRange '0-75 75-0' -cycle2G20AttnRange '0-75 75-0' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD11:RvR:4360SOFTAP-TOT<=>MacX87-BIS715GALA_BRANCH_7_21:t11]' -perftime 2.5 -window 3600K -fb1
+
+17      19      * * *   unittest1.7.10/cron/launch MacX87BISONREL  Test/RvRNightly1.test -utfconf md11 -ap '4360SOFTAP-TOT' -sta 'MacX14-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '0-75 75-0' -cycle5G40AttnRange '0-75 75-0' -cycle5G20AttnRange '0-75 75-0' -cycle2G40AttnRange '0-75 75-0' -cycle2G20AttnRange '0-75 75-0' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD11:RvR:4360SOFTAP-TOT<=>MacX14-BIS715GALA_BRANCH_7_21:t12]' -perftime 2.5 -window 3600K -fb1
+
+45      19      * * *   unittest1.7.10/cron/launch MacX14BISONRVR  Test/RvRNightly1.test -utfconf md11 -ap '4360SOFTAP-TOT' -sta 'MacX238-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '0-75 75-0' -cycle5G40AttnRange '0-75 75-0' -cycle5G20AttnRange '0-75 75-0' -cycle2G40AttnRange '0-75 75-0' -cycle2G20AttnRange '0-75 75-0' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD11:RvR:4360SOFTAP-TOT<=>MacX238-BIS715GALA_BRANCH_7_21:t13]' -perftime 2.5 -window 3600K -fb1
+
+47      19      * * *   unittest1.7.10/cron/launch MacX214BISONREL  Test/RvRNightly1.test -utfconf md11 -ap '4360SOFTAP-TOT' -sta 'MacX51-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '0-75 75-0' -cycle5G40AttnRange '0-75 75-0' -cycle5G20AttnRange '0-75 75-0' -cycle2G40AttnRange '0-75 75-0' -cycle2G20AttnRange '0-75 75-0' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD11:RvR:4360SOFTAP-TOT<=>MacX51-BIS715GALA_BRANCH_7_21:t14]' -perftime 2.5 -window 3600K -fb1
+

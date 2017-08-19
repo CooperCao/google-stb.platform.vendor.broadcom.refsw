@@ -127,6 +127,8 @@ typedef struct BVBIlib_P_DCCReorder_Handle*
     BVBIlib_DCCReorder_Handle; /* Opaque */
 
 
+#if !B_REFSW_MINIMAL /** { **/
+
 /*****************************************************************************
  * Public API
  *****************************************************************************/
@@ -269,5 +271,6 @@ BERR_Code BVBIlib_DCCReorder_Count (
                                                 defined above.              */
 );
 
+#endif /** } !B_REFSW_MINIMAL **/
 
 #endif /* BVBILIBDCCREORDER_H__ */

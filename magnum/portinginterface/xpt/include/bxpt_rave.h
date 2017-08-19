@@ -333,6 +333,12 @@ typedef struct BXPT_Rave_RecordSettings
 
     bool removeEmulationPrevention;    /* Remove startcode emulation prevention bits/bytes from the ES during ES record */
     bool useAvConfig;                  /* Configure context as a decode context. */
+
+#if BXPT_HAS_PACKET_PLACEHOLDER
+    bool packetPlaceholderEn;       /* RAVE will create a packet hole in the CDB when a record timeout occurs */
+    bool packetTimeoutItbGenEn;     /* If enabled, an ITB entry will be made when a record timeout occurs. */
+    unsigned timeoutVal;        /* Number of 108 MHz ticks to wait before declaring a timeout. */
+#endif
 }
 BXPT_Rave_RecordSettings;
 

@@ -355,6 +355,14 @@ void gfx_buffer_desc_gen(
       NULL);
 }
 
+#if !V3D_HAS_ASTC_PAD_FIX
+static uint32_t dodgy_astc_l1_dim(uint32_t l0_dim, uint32_t block_dim)
+{
+   uint32_t const l0_blocks = gfx_udiv_round_up(l0_dim, block_dim);
+   return ((l0_blocks + 1) / 2) * block_dim;
+}
+#endif
+
 void gfx_buffer_desc_gen_with_ml0_cfg(
    GFX_BUFFER_DESC_T *mls, /* one for each mip level. [0] is the top mip level */
    size_t *size, size_t *align, /* total size/align */
@@ -407,6 +415,8 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
    {
       GFX_LFMT_BASE_DETAIL_T bd;
 
+      uint32_t l1_width, l1_height;
+
       /* Power-of-2 padding depends on block dimensions, so it may be different
        * for each plane */
       uint32_t p2_width, p2_height, p2_depth;
@@ -431,15 +441,28 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
 
       gfx_lfmt_base_detail(&p->bd, plane_lfmts[i]);
 
+#if !V3D_HAS_ASTC_PAD_FIX
+      if(gfx_lfmt_is_astc_family(plane_lfmts[i]))
+      {
+         p->l1_width = dodgy_astc_l1_dim(width, p->bd.block_w);
+         p->l1_height = dodgy_astc_l1_dim(height, p->bd.block_h);
+      }
+      else
+#endif
+      {
+         p->l1_width = l1_width;
+         p->l1_height = l1_height;
+      }
+
       /* Padding to power-of-2 is always done with level 1 size, and we
        * actually pad the size in utiles/blocks, not the size in texels (this
        * only matters for odd block sizes, like 5x5). 2* is to get back up to
        * level 0 size. */
-      p->p2_width = 2 * gfx_next_power_of_2(gfx_udiv_round_up(l1_width, p->bd.block_w)) * p->bd.block_w;
+      p->p2_width = 2 * gfx_next_power_of_2(gfx_udiv_round_up(p->l1_width, p->bd.block_w)) * p->bd.block_w;
       if (dims < 2)
          p->p2_height = 1; /* Avoid rounding up to block size... */
       else
-         p->p2_height = 2 * gfx_next_power_of_2(gfx_udiv_round_up(l1_height, p->bd.block_h)) * p->bd.block_h;
+         p->p2_height = 2 * gfx_next_power_of_2(gfx_udiv_round_up(p->l1_height, p->bd.block_h)) * p->bd.block_h;
       if (dims < 3)
          p->p2_depth = 1; /* Avoid rounding up to block size... */
       else
@@ -483,6 +506,12 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
                /* Depth padded to power-of-2 for all levels except level 0 */
                (mip_level >= 1) ? p->p2_depth : depth,
                mip_level);
+
+            if(mip_level == 1)
+            {
+               ml_p2pad_width = p->l1_width;
+               ml_p2pad_height = p->l1_height;
+            }
          }
          else
          {

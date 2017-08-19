@@ -230,7 +230,6 @@ NEXUS_Playback_OpenPidChannel(NEXUS_PlaybackHandle playback, unsigned pidNo, con
 {
     NEXUS_PlaybackPidChannelSettings settings;
     NEXUS_Playback_P_PidChannel *play_pid;
-    NEXUS_Error rc;
     unsigned playpump_pidNo;
 
     BDBG_OBJECT_ASSERT(playback, NEXUS_Playback);
@@ -241,11 +240,11 @@ NEXUS_Playback_OpenPidChannel(NEXUS_PlaybackHandle playback, unsigned pidNo, con
 
     if(playback->params.playpump==NULL) {
         BDBG_WRN(("NEXUS_Playback_OpenPidChannel: %#lx pid could only be open if playpump is attached", (unsigned long)playback));
-        rc = BERR_TRACE(BERR_NOT_SUPPORTED);
+        BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err_playpump;
     }
     play_pid = BKNI_Malloc(sizeof(*play_pid));
-    if(play_pid==NULL) { rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
+    if(play_pid==NULL) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
     playpump_pidNo = pidNo;
 
     switch(playback->params.playpumpSettings.transportType) {
@@ -265,7 +264,7 @@ NEXUS_Playback_OpenPidChannel(NEXUS_PlaybackHandle playback, unsigned pidNo, con
 
     BDBG_MSG(("NEXUS_Playback_OpenPidChannel: %#lx pid %#lx mapped %u->%#x", (unsigned long)playback, (unsigned long)play_pid, (unsigned)pidNo, (unsigned)playpump_pidNo));
     play_pid->pidChn = NEXUS_Playpump_OpenPidChannel(playback->params.playpump, playpump_pidNo, &pSettings->pidSettings);
-    if(!play_pid->pidChn) { rc = BERR_TRACE(BERR_NOT_SUPPORTED);goto err_open_pid;}
+    if(!play_pid->pidChn) { BERR_TRACE(BERR_NOT_SUPPORTED);goto err_open_pid;}
     play_pid->pid = pidNo;
     play_pid->cfg = *pSettings;
     play_pid->playback = playback;
@@ -275,7 +274,7 @@ NEXUS_Playback_OpenPidChannel(NEXUS_PlaybackHandle playback, unsigned pidNo, con
     return play_pid->pidChn;
 
 err_duplicate:
-    rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+    BERR_TRACE(BERR_INVALID_PARAMETER);
     NEXUS_Playpump_ClosePidChannel(playback->params.playpump, play_pid->pidChn);
 err_open_pid:
     BKNI_Free(play_pid);
@@ -981,10 +980,10 @@ bplay_p_frameadvance(NEXUS_PlaybackHandle p, bool forward, bool *restart)
     If your system checks for static video PTS to detect EOF, this will give it time to move. */
     p->state.loopedDuringPause = false;
     if (p->state.fifoMarkerCounter == 0) {
-        unsigned cdbDepth;
+        bool queued;
         unsigned waitTime = 0;
 
-        bplay_get_decode_mark(p, &p->state.fifoMarker, &cdbDepth, &waitTime);
+        bplay_get_decode_mark(p, &p->state.fifoMarker, &queued, &waitTime);
         p->state.fifoMarkerCounter = 5;
     }
 

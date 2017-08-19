@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -235,6 +235,7 @@
 #define BAPE_CHIP_MAX_NCOS (1)
 #else
 /* No NCOs */
+#define BAPE_CHIP_MAX_NCOS (0)
 #endif
 
 #define BAPE_BASE_PLL_TO_FS_RATIO   128     /* PLL channel 0 runs at 128 * "base" Fs */
@@ -370,6 +371,10 @@
 /* The "stream" concept went away on newer chips like 7429 */
 #define BAPE_CHIP_MAX_IOP_STREAMS 0
 #endif
+
+#define BAPE_CHIP_MAX_OUTPUTS (BAPE_CHIP_MAX_DUMMYSINKS + BAPE_CHIP_MAX_OUTPUT_CAPTURES + BAPE_CHIP_MAX_I2S_OUTPUTS + \
+                                BAPE_CHIP_MAX_DACS + BAPE_CHIP_MAX_SPDIF_OUTPUTS + BAPE_CHIP_MAX_MAI_OUTPUTS) \
+
 
 #ifdef BCHP_AUD_MISC_FCI_SPLTR0_CTRLi_ARRAY_START
     #define BAPE_CHIP_MAX_FCI_SPLITTERS (BCHP_AUD_MISC_FCI_SPLTR0_CTRLi_ARRAY_END - BCHP_AUD_MISC_FCI_SPLTR0_CTRLi_ARRAY_START + 1)

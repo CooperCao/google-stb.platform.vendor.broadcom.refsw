@@ -584,7 +584,7 @@ static inline void *gfx_align_up(void *p, uint32_t align)
    return (void *)(((uintptr_t)p + (align - 1)) & ~(uintptr_t)(align - 1));
 }
 
-static inline bool gfx_aligned(void *p, uint32_t align)
+static inline bool gfx_aligned(const void *p, uint32_t align)
 {
    assert(gfx_is_power_of_2(align));
    return !((uintptr_t)p & (align - 1));
@@ -628,6 +628,15 @@ static inline uint32_t gfx_pack_uint_minus_1(
    assert(num_bits > 0);
    assert(num_bits < 32);
    return gfx_bits(x - 1, num_bits);
+}
+
+static inline uint64_t gfx_pack_uint64_minus_1(
+   uint64_t x, uint32_t num_bits)
+{
+   assert(x != 0);
+   assert(num_bits > 0);
+   assert(num_bits < 64);
+   return gfx_bits64(x - 1, num_bits);
 }
 
 static inline uint32_t gfx_pack_sint(

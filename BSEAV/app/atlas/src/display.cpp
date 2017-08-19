@@ -49,7 +49,7 @@ BDBG_MODULE(atlas_display);
 
 CDisplay::CDisplay(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_display, pCfg),
@@ -82,7 +82,7 @@ eRet CDisplay::open()
     NEXUS_DisplaySettings settings;
     eRet                  ret             = eRet_Ok;
     NEXUS_Error           nerror          = NEXUS_SUCCESS;
-    uint16_t              maxVideoWindows = 0;
+    unsigned              maxVideoWindows = 0;
     CPlatform *           pPlatformConfig = NULL;
 
     pPlatformConfig = _pCfg->getPlatformConfig();
@@ -91,7 +91,7 @@ eRet CDisplay::open()
     /* create list of video windows associated with this display */
     maxVideoWindows = pPlatformConfig->getNumWindowsPerDisplay();
 
-    for (uint16_t i = 0; maxVideoWindows > i; i++)
+    for (unsigned i = 0; maxVideoWindows > i; i++)
     {
         if (true == pPlatformConfig->isSupportedVideoWindow(getNumber(), i))
         {
@@ -473,7 +473,7 @@ errorDcs:
     goto done;
 done:
     BDBG_WRN(("%s bCC:%d bTeletext:%d bWss:%d bCgms:%d bVps:%d bGemstar:%d bAmol:%d",
-              __FUNCTION__, pSettings->bClosedCaptions, pSettings->bTeletext, pSettings->bWss, pSettings->bCgms,
+              BSTD_FUNCTION, pSettings->bClosedCaptions, pSettings->bTeletext, pSettings->bWss, pSettings->bCgms,
               pSettings->bVps, pSettings->bGemstar,
               (NEXUS_AmolType_eMax == pSettings->amolType) ? false : true));
     notifyObservers(eNotify_VbiSettingsChanged, this);
@@ -750,8 +750,8 @@ error:
 NEXUS_VideoFormat CDisplay::validateFormat(NEXUS_VideoFormat format)
 {
     NEXUS_VideoFormat formatValid      = format;
-    uint16_t          vertResFormatMax = videoFormatToVertRes(getMaxFormat()).toInt();
-    uint16_t          vertResFormat    = videoFormatToVertRes(format).toInt();
+    unsigned          vertResFormatMax = videoFormatToVertRes(getMaxFormat()).toInt();
+    unsigned          vertResFormat    = videoFormatToVertRes(format).toInt();
 
     if (720 >= vertResFormatMax)
     {
@@ -773,7 +773,7 @@ NEXUS_VideoFormat CDisplay::validateFormat(NEXUS_VideoFormat format)
     if (vertResFormatMax < vertResFormat)
     {
         NEXUS_VideoFormat formatPreferred        = stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_HD));
-        uint16_t          vertResFormatPreferred = videoFormatToVertRes(formatPreferred).toInt();
+        unsigned          vertResFormatPreferred = videoFormatToVertRes(formatPreferred).toInt();
 
         if (vertResFormatMax >= vertResFormatPreferred)
         {
@@ -945,7 +945,7 @@ NEXUS_VideoFormat CDisplay::getMaxFormat(void)
     return(pPlatform->getDisplayMaxVideoFormat(getNumber()));
 }
 
-uint16_t CDisplay::getNumVideoWindows()
+unsigned CDisplay::getNumVideoWindows()
 {
     NEXUS_DisplayCapabilities capabilities;
 

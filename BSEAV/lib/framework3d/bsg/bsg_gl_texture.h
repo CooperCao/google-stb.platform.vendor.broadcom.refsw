@@ -58,7 +58,7 @@ public:
 
    virtual void OnThread()
    {
-      m_image = std::auto_ptr<typename Worker::ImageType>(m_worker.Load());
+      m_image = std::unique_ptr<typename Worker::ImageType>(m_worker.Load());
    }
 
    virtual void OnCallback(bool finished)
@@ -68,7 +68,7 @@ public:
 
 private:
    GLTexture                                 *m_texture;
-   std::auto_ptr<typename Worker::ImageType> m_image;
+   std::unique_ptr<typename Worker::ImageType> m_image;
    Worker                                    m_worker;
 };
 

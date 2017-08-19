@@ -80,7 +80,7 @@ void CTunerUpstreamScanData::dump()
 
 CTunerUpstream::CTunerUpstream(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTuner(name, number, eBoardResource_frontendUpstream, pCfg)

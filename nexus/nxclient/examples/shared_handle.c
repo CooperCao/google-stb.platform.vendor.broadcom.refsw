@@ -46,6 +46,7 @@
 #include <string.h>
 
 BDBG_MODULE(shared_handle);
+#include "nxapp_prompt.inc"
 
 /**
 Run client twice:
@@ -72,8 +73,7 @@ int main(int argc, char **argv)
         playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
         NEXUS_Platform_SetSharedHandle(playpump, true);
         BDBG_WRN(("playpump %p", (void*)playpump));
-        getchar();
-        NEXUS_Playpump_Close(playpump);
+        while (1) BKNI_Sleep(1000);
     }
 
     NxClient_Uninit();

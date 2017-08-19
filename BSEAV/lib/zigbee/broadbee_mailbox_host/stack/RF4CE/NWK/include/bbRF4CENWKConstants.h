@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CENWKConstants.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE Network Layer component constants declarations.
+ *      This is the header file for the RF4CE Network Layer component constants declarations.
  *
- * $Revision: 12956 $
- * $Date: 2016-07-14 01:20:40Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_NWK_CONSTANTS_H
 #define _RF4CE_NWK_CONSTANTS_H
 
@@ -58,7 +52,11 @@
 /* The length, in octets, of the MAC beacon payload field, as used by the ZigBee RF4CE protocol. */
 #define RF4CE_NWKC_MAC_BEACON_PAYLOAD_LENGTH         2
 /* The maximum duty cycle in MAC symbols, permitted for a power saving device. */
+#ifdef SET_RF4CE_NWKC_MAX_DUTY_CYCLE
+#define RF4CE_NWKC_MAX_DUTY_CYCLE                    SET_RF4CE_NWKC_MAX_DUTY_CYCLE
+#else   /* SET_RF4CE_NWKC_MAX_DUTY_CYCLE */
 #define RF4CE_NWKC_MAX_DUTY_CYCLE                    62500
+#endif  /* SET_RF4CE_NWKC_MAX_DUTY_CYCLE */
 /* The maximum timeout for short retry period while sneaking among channels. */
 #define RF4CE_NWKC_REPEAT_SHORT_PERIOD               6250
 /* The maximum time, in MAC symbols, to wait for each security link key seed exchange. */
@@ -88,7 +86,11 @@
 #    endif /* SET_RF4CE_NWKC_MAX_PAIRING_TABLE_ENTRIES */
 #endif /* RF4CE_CONTROLLER */
 /* The maximum acceptable power, in dBm, at which key seed command frames should be sent. */
+#ifdef SET_RF4CE_NWKC_MAX_SEC_CMD_TX_POWER
+#define RF4CE_NWKC_MAX_SEC_CMD_TX_POWER              SET_RF4CE_NWKC_MAX_SEC_CMD_TX_POWER
+#else   /* SET_RF4CE_NWKC_MAX_SEC_CMD_TX_POWER */
 #define RF4CE_NWKC_MAX_SEC_CMD_TX_POWER              -15
+#endif  /* SET_RF4CE_NWKC_MAX_SEC_CMD_TX_POWER */
 /* The minimum receiver on time, in MAC symbols, permitted for a power saving device. */
 #define RF4CE_NWKC_MIN_ACTIVE_PERIOD                 1050
 /* The minimum number of pairing table entries that a controller device shall support. */
@@ -124,21 +126,31 @@
     RF4CE_NWK_NODE_SECURITY_ENABLED | RF4CE_NWK_NODE_CHANNEL_NORMALIZATION_INCAPABLE)
 #define RF4CE_NWKC_NODE_CAPABILITIES_CONTROLLER      (RF4CE_NWK_NODE_CONTROLLER | RF4CE_NWK_NODE_POWER_BATTERY | \
     RF4CE_NWK_NODE_SECURITY_ENABLED | RF4CE_NWK_NODE_CHANNEL_NORMALIZATION_INCAPABLE)
-/* The capabilities of this node. According to the external definition. */
 
-#ifndef RF4CE_CUSTOM_COMPILE_RULES
-
+/* The capabilities of this node. */
+#ifdef SET_RF4CE_NWKC_NODE_CAPABILITIES
+#define RF4CE_NWKC_NODE_CAPABILITIES    SET_RF4CE_NWKC_NODE_CAPABILITIES
+#else   /* SET_RF4CE_NWKC_NODE_CAPABILITIES */
 #ifdef RF4CE_TARGET
-#define RF4CE_NWKC_NODE_CAPABILITIES RF4CE_NWKC_NODE_CAPABILITIES_TARGET
+#define RF4CE_NWKC_NODE_CAPABILITIES    RF4CE_NWKC_NODE_CAPABILITIES_TARGET
 #else /* RF4CE_TARGET */
-#define RF4CE_NWKC_NODE_CAPABILITIES RF4CE_NWKC_NODE_CAPABILITIES_CONTROLLER
+#define RF4CE_NWKC_NODE_CAPABILITIES    RF4CE_NWKC_NODE_CAPABILITIES_CONTROLLER
 #endif /* RF4CE_TARGET */
-/* The manufacturer-specific vendor identifier for this node. */
-#define RF4CE_NWKC_VENDOR_IDENTIFIER                 0x1234
-/* The manufacturer-specific identification string for this node. */
-#define RF4CE_NWKC_VENDOR_STRING                     "BRDBEE"
+#endif  /* SET_RF4CE_NWKC_NODE_CAPABILITIES */
 
-#endif /* RF4CE_CUSTOM_COMPILE_RULES */
+/* The manufacturer-specific vendor identifier for this node. */
+#ifdef SET_RF4CE_NWKC_VENDOR_IDENTIFIER
+#define RF4CE_NWKC_VENDOR_IDENTIFIER    SET_RF4CE_NWKC_VENDOR_IDENTIFIER
+#else   /* SET_RF4CE_NWKC_VENDOR_IDENTIFIER */
+#define RF4CE_NWKC_VENDOR_IDENTIFIER                 0x1234
+#endif  /* SET_RF4CE_NWKC_VENDOR_IDENTIFIER */
+
+/* The manufacturer-specific identification string for this node. */
+#ifdef SET_RF4CE_NWKC_VENDOR_STRING
+#define RF4CE_NWKC_VENDOR_STRING        SET_RF4CE_NWKC_VENDOR_STRING
+#else   /* SET_RF4CE_NWKC_VENDOR_STRING */
+#define RF4CE_NWKC_VENDOR_STRING                     "BRDBEE"
+#endif  /* SET_RF4CE_NWKC_VENDOR_STRING */
 
 /* Vendor string length */
 #define RF4CE_NWK_VENDOR_STRING_LENGTH               7
@@ -201,10 +213,6 @@
 
 /* Maximum repetition interval value */
 #define RF4CE_NWK_MAX_REPETITION_INTERVAL            0xffffff
-/* TRUE value */
-#define RF4CE_NWK_TRUE                               1
-/* FALSE value */
-#define RF4CE_NWK_FALSE                              0
 /* Maximum first attempt CSMA Backoffs value */
 #define RF4CE_NWK_MAX__FIRST_ATTEMPT_CSMA_BACKOFFS   5
 /* Maximum first attempt frame retries value */
@@ -237,6 +245,9 @@ befoure RX disable. */
 /* Frequency Agility Counter */
 #define RF4CE_NWK_FREQUENCY_AGILITY_DECREMENT        -2
 
+/* Frequency Agility Counter */
+#define RF4CE_NWK_FREQUENCY_AGILITY_INCREMENT        +1
+
 /* Frequency Agility Timeout */
 #define RF4CE_NWK_FREQUENCY_AGILITY_TIMEOUT          100    /* 300 */
 
@@ -254,3 +265,5 @@ befoure RX disable. */
 #define RF4CE_NWKC_SEC_CMD_TX_POWER                  RF4CE_NWKC_MAX_SEC_CMD_TX_POWER
 
 #endif /* _RF4CE_NWK_CONSTANTS_H */
+
+/* eof bbRF4CENWKConstants.h */

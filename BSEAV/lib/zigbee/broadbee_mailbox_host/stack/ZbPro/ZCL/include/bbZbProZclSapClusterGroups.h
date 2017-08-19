@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZCL/include/bbZbProZclSapClusterGroups.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL Groups cluster SAP interface.
+*       ZCL Groups cluster SAP interface.
 *
-* $Revision: 7600 $
-* $Date: 2015-07-21 08:57:33Z $
-*
-*****************************************************************************************/
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_CLUSTER_GROUPS_H_
 #define _BB_ZBPRO_ZCL_SAP_CLUSTER_GROUPS_H_
@@ -64,6 +57,7 @@
  *  These attributes are provided by Server side of the cluster.
  * \details
  *  Groups ZCL cluster has no attributes provided by Client side.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  This implementation of Groups ZCL cluster doesn't provide Server side. *
  * \par     Documentation
@@ -79,12 +73,19 @@ typedef enum _ZBPRO_ZCL_SapGroupsServerAttributeId_t
 
 
 /**//**
- * \name    Data types shared by attributes and command parameters of Groups cluster.
+ * \brief   Data types shared by attributes and command parameters of Groups cluster.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 3.6.2.2, Table 3-33.
  */
 typedef   BitField8_t   ZBPRO_ZCL_SapGroupsParamNameSupport_t;      /*!< Shared data type for NameSupport parameter. */
 
+/**//**
+ * \brief   Data types shared by attributes and command parameters of Groups cluster.
+ * \ingroup ZBPRO_ZCL_Misc
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.6.2.2, Table 3-33.
+ */
 typedef   uint16_t      ZBPRO_ZCL_SapGroupsGroupID;                 /*!< Shared data type for GroupName parameter. */
 
 
@@ -92,6 +93,7 @@ typedef   uint16_t      ZBPRO_ZCL_SapGroupsGroupID;                 /*!< Shared 
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Add Group command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.3.2, figure 3-9.
  */
@@ -124,6 +126,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdAddGroupReqP
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Add Group command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupConf
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.4.1, figure 3-14.
  */
@@ -154,6 +157,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdAddGroupConf
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Add Group command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupReq
  */
 typedef struct     _ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t     ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t;
 
@@ -161,6 +165,7 @@ typedef struct     _ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t     ZBPRO_ZCL_GroupsCm
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Add Group command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -171,6 +176,7 @@ typedef void ZBPRO_ZCL_GroupsCmdAddGroupConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Add Group command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupReq
  */
 struct _ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t
 {
@@ -189,6 +195,7 @@ struct _ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue View Group command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsViewGroupReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.3.3, figure 3-10.
  */
@@ -215,6 +222,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdViewGroupReq
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue View Group
  * command specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsViewGroupConf
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.4.1, figure 3-14.
  */
@@ -249,6 +257,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdViewGroupCon
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue View Group command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsViewGroupReq
  */
 typedef struct     _ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t     ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t;
 
@@ -256,6 +265,7 @@ typedef struct     _ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t     ZBPRO_ZCL_GroupsC
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of View Group command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsViewGroupConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -267,6 +277,7 @@ typedef void ZBPRO_ZCL_GroupsCmdViewGroupConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue View Group command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsViewGroupReq
  */
 struct _ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t
 {
@@ -287,6 +298,7 @@ struct _ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Get Group Membership command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsGetGroupMembershipReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.3.4, figure 3-11.
  */
@@ -314,6 +326,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdGetGroupMemb
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Get Group Membership command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsGetGroupMembershipInd
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.4.3, figure 3-16.
  */
@@ -351,7 +364,8 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdGetGroupMemb
 /**//**
  * \brief  Data type for ZCL Local Confirmation parameters if Get Group Membership command
  *  specific to Groups ZCL cluster.
- *  \notr Confirmation parameters has no custom fields - only obligatory.
+ * \ingroup ZBPRO_ZCL_GroupsGetGroupMembershipConf
+ * \note Confirmation parameters has no custom fields - only obligatory.
  */
 typedef struct _ZBPRO_ZCL_GroupsCmdGetGroupMembershipConfParams_t
 {
@@ -359,8 +373,7 @@ typedef struct _ZBPRO_ZCL_GroupsCmdGetGroupMembershipConfParams_t
 
     ZbProZclLocalPrimitiveObligatoryPart_t    zclObligatoryPart;   /*!< Set of obligatory parameters of ZCL public
                                                                         interface to local application. */
-    /* There no custom fields.*/
-
+    /* No custom fields.*/
 } ZBPRO_ZCL_GroupsCmdGetGroupMembershipConfParams_t;
 
 /*
@@ -372,6 +385,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdGetGroupMemb
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Get Group Membership command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsGetGroupMembershipReq
  */
 typedef struct   _ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t   ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t;
 
@@ -379,18 +393,20 @@ typedef struct   _ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t   ZBPRO_ZCL_Gr
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Get Group Membership command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsGetGroupMembershipConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the empty confirmation parameters because responses will be
  oroceed in the Indication, not in the callback.
  */
 typedef void ZBPRO_ZCL_GroupsCmdGetGroupMembershipConfCallback_t(
-	ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t        *const  reqDescr,
+    ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t        *const  reqDescr,
     ZBPRO_ZCL_GroupsCmdGetGroupMembershipConfParams_t      *const  confParams);
 
 
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Get Group Membership command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsGetGroupMembershipReq
  */
 struct _ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t
 {
@@ -409,6 +425,7 @@ struct _ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Remove group command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsRemoveGroupReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.3.5, figure 3-12.
  */
@@ -434,6 +451,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdRemoveGroupR
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Remove Group
  * command specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsRemoveGroupConf
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.4.4, figure 3-17.
  */
@@ -464,6 +482,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdRemoveGroupC
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Remove Group command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsRemoveGroupReq
  */
 typedef struct   _ZBPRO_ZCL_GroupsCmdRemoveGroupReqDescr_t     ZBPRO_ZCL_GroupsCmdRemoveGroupReqDescr_t;
 
@@ -471,6 +490,7 @@ typedef struct   _ZBPRO_ZCL_GroupsCmdRemoveGroupReqDescr_t     ZBPRO_ZCL_GroupsC
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Remove Group command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsRemoveGroupConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -482,6 +502,7 @@ typedef void ZBPRO_ZCL_GroupsCmdRemoveGroupConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Remove Group command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsRemoveGroupReq
  */
 struct _ZBPRO_ZCL_GroupsCmdRemoveGroupReqDescr_t
 {
@@ -499,7 +520,9 @@ struct _ZBPRO_ZCL_GroupsCmdRemoveGroupReqDescr_t
 
 /*-------------------------------- Remove all groups Cmd ------------------------------------------------------*/
 /**//**
- * \brief  Remove All Groups request has no custom fields.
+ * \brief  Remove All Groups request
+ * \ingroup ZBPRO_ZCL_GroupsRemoveAllGroupsReq
+ * \note Request has no custom fields.
  */
 typedef struct _ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReqParams_t
 {
@@ -521,12 +544,14 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdRemoveAllGro
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Remove all groups command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsRemoveAllGroupsReq
  */
 typedef struct     _ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReqDescr_t     ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReqDescr_t;
 
 
 /**//**
  * \brief  Remove All Groups Confirmation has no custom fields.
+ * \ingroup ZBPRO_ZCL_GroupsRemoveAllGroupsConf
  */
 typedef struct _ZBPRO_ZCL_GroupsCmdRemoveAllGroupsConfParams_t
 {
@@ -548,6 +573,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdRemoveAllGro
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Remove All Groups command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsRemoveAllGroupsConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  * \note
@@ -561,6 +587,7 @@ typedef void ZBPRO_ZCL_GroupsCmdRemoveAllGroupsConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Remove All Groups command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsRemoveAllGroupsReq
  * \note
  * Remove All Groups Confirmation has no custom fields.
  */
@@ -582,6 +609,7 @@ struct _ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Add Group If Identifying command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupIfIdentifyReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.6.2.3.7, Figure 3-13.
  */
@@ -611,6 +639,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdAddGroupIfId
 
 /**//**
  * \brief  Add Group If Identifying Confirmation has no custom parameters.
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupIfIdentifyConf
  */
 typedef struct _ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyConfParams_t
 {
@@ -632,6 +661,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_GroupsCmdAddGroupIfId
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Add Group If Identifying command
  * specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupIfIdentifyReq
  */
 typedef struct   _ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReqDescr_t   ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReqDescr_t;
 
@@ -639,6 +669,7 @@ typedef struct   _ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReqDescr_t   ZBPRO_ZCL_Gr
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Add Group If Identifying command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupIfIdentifyConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  *\note
@@ -652,6 +683,7 @@ typedef void ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Add Group If Identifying command
  *  specific to Groups ZCL cluster
+ * \ingroup ZBPRO_ZCL_GroupsAddGroupIfIdentifyReq
  */
 struct _ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReqDescr_t
 {
@@ -669,10 +701,10 @@ struct _ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReqDescr_t
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name    Functions accept ZCL Local Requests to issue Add Group, View Group, Get Group
+ * \brief   Functions accept ZCL Local Requests to issue Add Group, View Group, Get Group
  *  Membership, Remove Group, Remove All Groups, Add Group If Identifying commands
  *  specific to Groups ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
  * \details
  *  The caller shall specify the following obligatory parameters of request:
  *  - callback                      assign with ZCL Local Confirm handler function,
@@ -718,7 +750,9 @@ struct _ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReqDescr_t
 /**//**
  * \brief   Accepts ZCL Local Request to issue Add Group
  *  command specific to Groups ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_GroupsCmdAddGroupReq(ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t *const  reqDescr);
 
@@ -726,7 +760,9 @@ void ZBPRO_ZCL_GroupsCmdAddGroupReq(ZBPRO_ZCL_GroupsCmdAddGroupReqDescr_t *const
 /**//**
  * \brief   Accepts ZCL Local Request to issue View Group
  *  command specific to Groups ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_GroupsCmdViewGroupReq(ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t *const  reqDescr);
 
@@ -734,7 +770,9 @@ void ZBPRO_ZCL_GroupsCmdViewGroupReq(ZBPRO_ZCL_GroupsCmdViewGroupReqDescr_t *con
 /**//**
  * \brief   Accepts ZCL Local Request to issue Get Group Membership command
  * specific to Groups ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_GroupsCmdGetGroupMembershipReq(ZBPRO_ZCL_GroupsCmdGetGroupMembershipReqDescr_t *const  reqDescr);
 
@@ -742,7 +780,9 @@ void ZBPRO_ZCL_GroupsCmdGetGroupMembershipReq(ZBPRO_ZCL_GroupsCmdGetGroupMembers
 /**//**
  * \brief   Accepts ZCL Local Request to issue Remove Group command
  * specific to Groups ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_GroupsCmdRemoveGroupReq(ZBPRO_ZCL_GroupsCmdRemoveGroupReqDescr_t *const  reqDescr);
 
@@ -750,7 +790,9 @@ void ZBPRO_ZCL_GroupsCmdRemoveGroupReq(ZBPRO_ZCL_GroupsCmdRemoveGroupReqDescr_t 
 /**//**
  * \brief   Accepts ZCL Local Request to issue Remove All Groups command
  * specific to Groups ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReq(ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReqDescr_t *const  reqDescr);
 
@@ -758,7 +800,9 @@ void ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReq(ZBPRO_ZCL_GroupsCmdRemoveAllGroupsReq
 /**//**
  * \brief   Accepts ZCL Local Request to issue Add Group If Identifying command
  * specific to Groups ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReq(ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReqDescr_t *const  reqDescr);
 
@@ -766,13 +810,17 @@ void ZBPRO_ZCL_GroupsCmdAddGroupIfIdentifyReq(ZBPRO_ZCL_GroupsCmdAddGroupIfIdent
 /**//**
  * \brief   Handles ZCL Local Indication on reception of Get Group Membership response command
  *  specific to Groups ZCL cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
  * \note
  *  The Get Group Membership response command is sent in response to Get Group Membership command but it
  *  is processed by the client unsolicitedly (because multiple response is allowed). Due
  *  to this reason client side service provides this function.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd(
     ZBPRO_ZCL_GroupsCmdGetGroupMembershipIndParams_t   *const   indParams);
 
 #endif
+
+/* eof bbZbProZclSapClusterGroups.h */
