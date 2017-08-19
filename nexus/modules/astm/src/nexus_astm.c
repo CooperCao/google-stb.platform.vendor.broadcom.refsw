@@ -206,6 +206,7 @@ struct NEXUS_Astm
     NEXUS_OBJECT(NEXUS_Astm);
     BLST_Q_ENTRY(NEXUS_Astm) link;
     NEXUS_AstmSettings settings;
+    NEXUS_AstmSettings defaultSettings;
     NEXUS_AstmStatus status;
     NEXUS_TransportType transportType;
     NEXUS_TimebaseHandle timebase;
@@ -216,6 +217,7 @@ struct NEXUS_Astm
     {
         BASTMlib_Handle handle;
         BASTMlib_Status status;
+        BASTMlib_Config config;
     } lib;
 
     bool ready;
@@ -2114,7 +2116,7 @@ static void NEXUS_Astm_P_DecoderLifecycleCallback_isr(void * context, int param)
 
 static void NEXUS_Astm_P_SetConfigFromStcChannelMode(NEXUS_AstmHandle astm)
 {
-    BASTMlib_Config astmlibConfig;
+    BASTMlib_Config * pAstmlibConfig = &astm->lib.config;
     NEXUS_StcChannelSettings stcChannelSettings;
 
     NEXUS_StcChannel_GetSettings(astm->settings.stcChannel, &stcChannelSettings);
@@ -2123,19 +2125,19 @@ static void NEXUS_Astm_P_SetConfigFromStcChannelMode(NEXUS_AstmHandle astm)
     {
         /* assumes pcr's should be available from xpt hw */
         BDBG_MSG(("%p: STC channel in PCR mode, assuming PCRs available", (void *)astm));
-        BASTMlib_GetConfig(astm->lib.handle, &astmlibConfig);
-        astmlibConfig.sPresentation.ePreferredStcSource = BASTMlib_StcSource_eClockReference;
-        astmlibConfig.sClockCoupling.ePreferredClockCoupling = BASTMlib_ClockCoupling_eInputClock;
-        BASTMlib_SetConfig(astm->lib.handle, &astmlibConfig);
+        BASTMlib_GetConfig(astm->lib.handle, pAstmlibConfig);
+        pAstmlibConfig->sPresentation.ePreferredStcSource = BASTMlib_StcSource_eClockReference;
+        pAstmlibConfig->sClockCoupling.ePreferredClockCoupling = BASTMlib_ClockCoupling_eInputClock;
+        BASTMlib_SetConfig(astm->lib.handle, pAstmlibConfig);
     }
     else
     {
         /* assumes pcr's should not be available from xpt hw */
         BDBG_MSG(("%p: STC channel in auto/host mode, assuming PCRs unavailable", (void *)astm));
-        BASTMlib_GetConfig(astm->lib.handle, &astmlibConfig);
-        astmlibConfig.sPresentation.ePreferredStcSource = BASTMlib_StcSource_ePresenter;
-        astmlibConfig.sClockCoupling.ePreferredClockCoupling = BASTMlib_ClockCoupling_eInternalClock;
-        BASTMlib_SetConfig(astm->lib.handle, &astmlibConfig);
+        BASTMlib_GetConfig(astm->lib.handle, pAstmlibConfig);
+        pAstmlibConfig->sPresentation.ePreferredStcSource = BASTMlib_StcSource_ePresenter;
+        pAstmlibConfig->sClockCoupling.ePreferredClockCoupling = BASTMlib_ClockCoupling_eInternalClock;
+        BASTMlib_SetConfig(astm->lib.handle, pAstmlibConfig);
     }
     /* TODO: need to reapply current ASTM settings to decoder on restart */
 
@@ -2442,6 +2444,7 @@ NEXUS_AstmHandle NEXUS_Astm_Create(const NEXUS_AstmSettings *pSettings)
         return NULL;
     }
     NEXUS_OBJECT_INIT(NEXUS_Astm, astm);
+    NEXUS_Astm_GetDefaultSettings(&astm->defaultSettings);
     NEXUS_Astm_GetDefaultSettings(&astm->settings);
     astm->timebase = NULL;
 
@@ -2988,7 +2991,7 @@ typedef struct NEXUS_AstmChanges
 static NEXUS_Error NEXUS_Astm_P_ApplyChanges(NEXUS_AstmHandle astm, const NEXUS_AstmChanges * pChanges)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    BASTMlib_Config astmlibConfig;
+    BASTMlib_Config * pAstmlibConfig = &astm->lib.config;
 
     /* apply settings */
     if (astm->settings.enabled)
@@ -2999,9 +3002,9 @@ static NEXUS_Error NEXUS_Astm_P_ApplyChanges(NEXUS_AstmHandle astm, const NEXUS_
             rc = NEXUS_Astm_P_ApplyClockCoupling(astm, astm->status.clockCoupling);
             if (rc) goto err;
             BDBG_MSG(("Setting astmlib config PCC"));
-            BASTMlib_GetConfig(astm->lib.handle, &astmlibConfig);
-            astmlibConfig.sClockCoupling.ePreferredClockCoupling = NEXUS_Astm_P_ClockCouplingToMagnum(astm->status.clockCoupling);
-            BASTMlib_SetConfig(astm->lib.handle, &astmlibConfig);
+            BASTMlib_GetConfig(astm->lib.handle, pAstmlibConfig);
+            pAstmlibConfig->sClockCoupling.ePreferredClockCoupling = NEXUS_Astm_P_ClockCouplingToMagnum(astm->status.clockCoupling);
+            BASTMlib_SetConfig(astm->lib.handle, pAstmlibConfig);
         }
 
         if (pChanges->enabled || pChanges->stcSource)
@@ -3009,9 +3012,9 @@ static NEXUS_Error NEXUS_Astm_P_ApplyChanges(NEXUS_AstmHandle astm, const NEXUS_
             rc = NEXUS_Astm_P_ApplyStcSource(astm, astm->status.stcSource, astm->settings.stcMaster, astm->settings.syncLimit);
             if (rc) goto err;
             BDBG_MSG(("Setting astmlib config PSS"));
-            BASTMlib_GetConfig(astm->lib.handle, &astmlibConfig);
-            astmlibConfig.sPresentation.ePreferredStcSource = NEXUS_Astm_P_StcSourceToMagnum(astm->status.stcSource);
-            BASTMlib_SetConfig(astm->lib.handle, &astmlibConfig);
+            BASTMlib_GetConfig(astm->lib.handle, pAstmlibConfig);
+            pAstmlibConfig->sPresentation.ePreferredStcSource = NEXUS_Astm_P_StcSourceToMagnum(astm->status.stcSource);
+            BASTMlib_SetConfig(astm->lib.handle, pAstmlibConfig);
         }
 
         if (pChanges->enabled || pChanges->presentationRateControl)
@@ -3019,9 +3022,9 @@ static NEXUS_Error NEXUS_Astm_P_ApplyChanges(NEXUS_AstmHandle astm, const NEXUS_
             rc = NEXUS_Astm_P_ApplyPresentationRateControl(astm, astm->status.presentationRateControl);
             if (rc) goto err;
             BDBG_MSG(("Setting astmlib config PPRC"));
-            BASTMlib_GetConfig(astm->lib.handle, &astmlibConfig);
-            astmlibConfig.sPresentation.ePreferredPresentationRateControl = NEXUS_Astm_P_PresentationRateControlToMagnum(astm->status.presentationRateControl);
-            BASTMlib_SetConfig(astm->lib.handle, &astmlibConfig);
+            BASTMlib_GetConfig(astm->lib.handle, pAstmlibConfig);
+            pAstmlibConfig->sPresentation.ePreferredPresentationRateControl = NEXUS_Astm_P_PresentationRateControlToMagnum(astm->status.presentationRateControl);
+            BASTMlib_SetConfig(astm->lib.handle, pAstmlibConfig);
         }
 
         if (pChanges->enabled || pChanges->tsmMode)
@@ -3157,19 +3160,19 @@ static NEXUS_Error NEXUS_Astm_P_ApplySettings(NEXUS_AstmHandle astm, const NEXUS
 
 NEXUS_Error NEXUS_Astm_SetSettings(NEXUS_AstmHandle astm, const NEXUS_AstmSettings *pSettings)
 {
-    BASTMlib_Config astmlibConfig;
+    BASTMlib_Config * pAstmlibConfig;
     BASTMlib_Presenter_Config astmPresenterConfig;
     unsigned int i;
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_AstmSettings defaultSettings;
     NEXUS_AstmChanges changes;
 
     NEXUS_OBJECT_ASSERT(NEXUS_Astm, astm);
 
+    pAstmlibConfig = &astm->lib.config;
+
     if (!pSettings)
     {
-        NEXUS_Astm_GetDefaultSettings(&defaultSettings);
-        pSettings = &defaultSettings;
+        pSettings = &astm->defaultSettings;
     }
 
     BKNI_EnterCriticalSection();
@@ -3237,42 +3240,42 @@ NEXUS_Error NEXUS_Astm_SetSettings(NEXUS_AstmHandle astm, const NEXUS_AstmSettin
 
     /* ASTMlib config */
     {
-        BASTMlib_GetConfig(astm->lib.handle, &astmlibConfig);
+        BASTMlib_GetConfig(astm->lib.handle, pAstmlibConfig);
 
         if (astm->transportType == NEXUS_TransportType_eDssEs
             || astm->transportType == NEXUS_TransportType_eDssPes)
         {
-            astmlibConfig.eStcRate = BASTMlib_ClockRate_e27Mhz;
-            astmlibConfig.sClockCoupling.eClockReferenceDomain = BASTMlib_ClockRate_e27Mhz;
+            pAstmlibConfig->eStcRate = BASTMlib_ClockRate_e27Mhz;
+            pAstmlibConfig->sClockCoupling.eClockReferenceDomain = BASTMlib_ClockRate_e27Mhz;
 
         }
         else
         {
-            astmlibConfig.eStcRate = BASTMlib_ClockRate_e45Khz;
-            astmlibConfig.sClockCoupling.eClockReferenceDomain = BASTMlib_ClockRate_e45Khz;
+            pAstmlibConfig->eStcRate = BASTMlib_ClockRate_e45Khz;
+            pAstmlibConfig->sClockCoupling.eClockReferenceDomain = BASTMlib_ClockRate_e45Khz;
         }
 
-        astmlibConfig.sPresentation.hPreferredPresenter = NEXUS_Astm_P_ResolveStcMasterToMagnum(astm, pSettings);
+        pAstmlibConfig->sPresentation.hPreferredPresenter = NEXUS_Astm_P_ResolveStcMasterToMagnum(astm, pSettings);
 
-        astmlibConfig.bEnabled = pSettings->enabled;
-        astmlibConfig.sPresentation.uiInitialAcquisitionTime = pSettings->presentationConfig.initialAcquisitionTime;
-        astmlibConfig.sPresentation.uiProcessingFrequency = pSettings->presentationConfig.processingFrequency;
-        astmlibConfig.sPresentation.uiTsmDisabledWatchdogTimeout = pSettings->presentationConfig.tsmDisabledWatchdogTimeout;
-        astmlibConfig.sPresentation.uiSettlingTime = pSettings->presentationConfig.settlingTime;
-        astmlibConfig.sPresentation.ePreferredPresentationRateControl =
+        pAstmlibConfig->bEnabled = pSettings->enabled;
+        pAstmlibConfig->sPresentation.uiInitialAcquisitionTime = pSettings->presentationConfig.initialAcquisitionTime;
+        pAstmlibConfig->sPresentation.uiProcessingFrequency = pSettings->presentationConfig.processingFrequency;
+        pAstmlibConfig->sPresentation.uiTsmDisabledWatchdogTimeout = pSettings->presentationConfig.tsmDisabledWatchdogTimeout;
+        pAstmlibConfig->sPresentation.uiSettlingTime = pSettings->presentationConfig.settlingTime;
+        pAstmlibConfig->sPresentation.ePreferredPresentationRateControl =
             NEXUS_Astm_P_PresentationRateControlToMagnum(pSettings->presentationConfig.preferredPresentationRateControl);
-        astmlibConfig.sClockCoupling.uiMinimumTimeBetweenEvents = pSettings->clockCouplingConfig.minimumTimeBetweenEvents;
-        astmlibConfig.sClockCoupling.uiDeviationThreshold = pSettings->clockCouplingConfig.deviationThreshold;
-        astmlibConfig.sClockCoupling.uiDeviantCountThreshold = pSettings->clockCouplingConfig.deviantCountThreshold;
-        astmlibConfig.sClockCoupling.uiIdealCountThreshold = pSettings->clockCouplingConfig.idealCountThreshold;
-        astmlibConfig.sClockCoupling.uiInitialAcquisitionTime = pSettings->clockCouplingConfig.initialAcquisitionTime;
-        astmlibConfig.sClockCoupling.uiProcessingFrequency = pSettings->clockCouplingConfig.processingFrequency;
-        astmlibConfig.sClockCoupling.uiIdealProcessingFrequency = pSettings->clockCouplingConfig.idealProcessingFrequency;
-        astmlibConfig.sClockCoupling.uiSettlingTime = pSettings->clockCouplingConfig.settlingTime;
-        astmlibConfig.sClockCoupling.pfDetectDataPresent = &NEXUS_Astm_P_PcrDataPresenceDetector;
-        astmlibConfig.sClockCoupling.pvDataPresentContext = astm;
+        pAstmlibConfig->sClockCoupling.uiMinimumTimeBetweenEvents = pSettings->clockCouplingConfig.minimumTimeBetweenEvents;
+        pAstmlibConfig->sClockCoupling.uiDeviationThreshold = pSettings->clockCouplingConfig.deviationThreshold;
+        pAstmlibConfig->sClockCoupling.uiDeviantCountThreshold = pSettings->clockCouplingConfig.deviantCountThreshold;
+        pAstmlibConfig->sClockCoupling.uiIdealCountThreshold = pSettings->clockCouplingConfig.idealCountThreshold;
+        pAstmlibConfig->sClockCoupling.uiInitialAcquisitionTime = pSettings->clockCouplingConfig.initialAcquisitionTime;
+        pAstmlibConfig->sClockCoupling.uiProcessingFrequency = pSettings->clockCouplingConfig.processingFrequency;
+        pAstmlibConfig->sClockCoupling.uiIdealProcessingFrequency = pSettings->clockCouplingConfig.idealProcessingFrequency;
+        pAstmlibConfig->sClockCoupling.uiSettlingTime = pSettings->clockCouplingConfig.settlingTime;
+        pAstmlibConfig->sClockCoupling.pfDetectDataPresent = &NEXUS_Astm_P_PcrDataPresenceDetector;
+        pAstmlibConfig->sClockCoupling.pvDataPresentContext = astm;
 
-        BASTMlib_SetConfig(astm->lib.handle, &astmlibConfig);
+        BASTMlib_SetConfig(astm->lib.handle, pAstmlibConfig);
     }
 
     if (astm->settings.videoDecoder)

@@ -78,6 +78,7 @@ static void print_usage(void)
         "  -vcodec       MPEG2=2, AVC=5 (default is MPEG2)\n"
         "  -acodec       MPEG=1, AAC=3, AACplus=5 (default is MPEG)\n"
         "  -lite         Enable DVB-T2 lite profile\n"
+        "  -plp    #     plp ID\n"
         );
 }
 
@@ -145,10 +146,10 @@ int main(int argc, char **argv)
     NEXUS_FrontendDvbt2Status dvbt2Status;
     BKNI_EventHandle statusEvent;
 
-    bool dvbT2Lite = false;
+    bool dvbT2Lite = false, plp = false;
     int curarg = 1;
     unsigned int freq = 0;
-    int videoPid = -1, audioPid = -1, pcrPid = -1;
+    int videoPid = -1, audioPid = -1, pcrPid = -1, plpId=0;
     unsigned int videoCodec = NEXUS_VideoCodec_eMpeg2;
     unsigned int audioCodec = NEXUS_AudioCodec_eMpeg;
 
@@ -205,6 +206,10 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[curarg], "-lite")) {
             dvbT2Lite = true;
         }
+        else if (!strcmp(argv[curarg], "-plp")) {
+            plp = true;
+            plpId = atoi(argv[++curarg]);
+        }
         else {
             print_usage();
             return 1;
@@ -233,59 +238,69 @@ int main(int argc, char **argv)
     NEXUS_Frontend_GetDefaultOfdmSettings(&ofdmSettings);
 
     if (mode == NEXUS_FrontendOfdmMode_eDvbt) {
-         /* If freq and video PID not set on command line use defaults */
-         if ((freq == 0) && (videoPid == -1)) {
-             printf("Using built in default tune parameters for DVB-T\n");
-             freq = 578000000;
-             videoPid = 0x579;
-             audioPid = 0x57a;
-             pcrPid = 0x579;
+        /* If freq and video PID not set on command line use defaults */
+        if (freq == 0) {
+            freq = 578000000;
+            printf("Using default frequency for DVB-T %d MHz\n", freq/1000000);
+        }
+        if (videoPid == -1) {
+            printf("Using built in default pids and codecs for DVB-T\n");
+            videoPid = 0x579;
+            audioPid = 0x57a;
+            pcrPid = 0x579;
 
-             videoCodec = NEXUS_VideoCodec_eMpeg2;
-             audioCodec = NEXUS_AudioCodec_eMpeg;
-         }
+            videoCodec = NEXUS_VideoCodec_eMpeg2;
+            audioCodec = NEXUS_AudioCodec_eMpeg;
+        }
 
-         ofdmSettings.bandwidth = 8000000;
-         ofdmSettings.manualTpsSettings = false;
-         ofdmSettings.pullInRange = NEXUS_FrontendOfdmPullInRange_eWide;
-         ofdmSettings.cciMode = NEXUS_FrontendOfdmCciMode_eNone;
+        ofdmSettings.bandwidth = 8000000;
+        ofdmSettings.manualTpsSettings = false;
+        ofdmSettings.pullInRange = NEXUS_FrontendOfdmPullInRange_eWide;
+        ofdmSettings.cciMode = NEXUS_FrontendOfdmCciMode_eNone;
 
-         statusMax = NEXUS_FrontendDvbtStatusType_eMax;
-         RequestAsyncStatus = NEXUS_Frontend_RequestDvbtAsyncStatus;
+        statusMax = NEXUS_FrontendDvbtStatusType_eMax;
+        RequestAsyncStatus = NEXUS_Frontend_RequestDvbtAsyncStatus;
 
      }
      else if (mode == NEXUS_FrontendOfdmMode_eDvbt2) {
-         /* If freq and video PID not set on command line use defaults */
-         if ((freq == 0) && (videoPid == -1)) {
-             printf("Using built in default tune parameters for DVB-T2\n");
-             freq = 602000000;
-             videoPid = 0x65;
-             audioPid = 0x66;
-             pcrPid = 0x65;
+        /* If freq and video PID not set on command line use defaults */
+        if (freq == 0) {
+            freq = 602000000;
+            printf("Using default frequency for DVB-T2 %d MHz\n", freq/1000000);
+        }
+        if (videoPid == -1) {
+            printf("Using built in default pids and codecs for DVB-T2\n");
+            videoPid = 0x65;
+            audioPid = 0x66;
+            pcrPid = 0x65;
 
-             videoCodec = NEXUS_VideoCodec_eH264;
-             audioCodec = NEXUS_AudioCodec_eAacPlus;
-         }
+            videoCodec = NEXUS_VideoCodec_eH264;
+            audioCodec = NEXUS_AudioCodec_eAacPlus;
+        }
 
-         ofdmSettings.bandwidth = 8000000;
-         ofdmSettings.dvbt2Settings.plpMode = true;
-         ofdmSettings.dvbt2Settings.plpId = 0;
+        ofdmSettings.bandwidth = 8000000;
+        ofdmSettings.dvbt2Settings.plpId = plpId;
+        if (plp)
+            ofdmSettings.dvbt2Settings.plpMode = false;
+        else
+            ofdmSettings.dvbt2Settings.plpMode = true;
 
-         if (dvbT2Lite) {
-             ofdmSettings.dvbt2Settings.profile = NEXUS_FrontendDvbt2Profile_eLite;
-         } else {
-             ofdmSettings.dvbt2Settings.profile = NEXUS_FrontendDvbt2Profile_eBase;
-         }
-
-         statusMax = NEXUS_FrontendDvbt2StatusType_eMax;
-         RequestAsyncStatus = NEXUS_Frontend_RequestDvbt2AsyncStatus;
-
+        if (dvbT2Lite) {
+            ofdmSettings.dvbt2Settings.profile = NEXUS_FrontendDvbt2Profile_eLite;
+        } else {
+            ofdmSettings.dvbt2Settings.profile = NEXUS_FrontendDvbt2Profile_eBase;
+        }
+        statusMax = NEXUS_FrontendDvbt2StatusType_eMax;
+        RequestAsyncStatus = NEXUS_Frontend_RequestDvbt2AsyncStatus;
     }
     else if(mode == NEXUS_FrontendOfdmMode_eIsdbt) {
         /* If freq and video PID not set on command line use defaults */
-        if ((freq == 0) && (videoPid == -1)) {
-            printf("Using built in default tune parameters for ISDB-T\n");
+        if (freq == 0) {
             freq = 473000000;
+            printf("Using default frequency for ISDB-T %d MHz\n", freq/1000000);
+        }
+        if (videoPid == -1) {
+            printf("Using built in default pids and codecs for ISDB-T\n");
             videoPid = 0x230;
             audioPid = 0x300;
             pcrPid = 0x150;
@@ -297,7 +312,7 @@ int main(int argc, char **argv)
 
         statusMax = NEXUS_FrontendIsdbtStatusType_eMax;
         RequestAsyncStatus = NEXUS_Frontend_RequestIsdbtAsyncStatus;
-   }
+    }
 
     printf("\nTuning Parameters: mode: %s frequency: %d videoPid: %d audioPid: %d videoCodec: %s audioCodec: %s \n\n",
            (mode == NEXUS_FrontendOfdmMode_eDvbt2) ? "DVB-T2" : (mode == NEXUS_FrontendOfdmMode_eDvbt) ? "DVB-T" : "ISDB-T",
@@ -365,7 +380,7 @@ int main(int argc, char **argv)
         pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
         compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
 
-        if (NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0])) {
+        if (platformConfig.outputs.audioDacs[0]) {
             NEXUS_AudioOutput_AddInput(
                 NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
                 NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
@@ -541,15 +556,12 @@ done:
     }
 
     if (audioPid != -1) {
-#if NEXUS_NUM_AUDIO_DACS
-        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
-#endif
+        if (platformConfig.outputs.audioDacs[0])
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+        if (platformConfig.outputs.spdif[0])
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
+        if (platformConfig.outputs.hdmi[0])
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
         NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
         NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
         NEXUS_AudioDecoder_Close(pcmDecoder);

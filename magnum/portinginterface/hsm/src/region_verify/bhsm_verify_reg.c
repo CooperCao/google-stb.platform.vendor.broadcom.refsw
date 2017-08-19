@@ -1,42 +1,39 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 
 #include "bstd.h"
@@ -199,25 +196,25 @@ BERR_Code BHSM_RegionVerification_Configure( BHSM_Handle hHsm, BHSM_RegionNumber
     {
         case 0:
         {
-            BDBG_MSG(("%s: Region [0x%02X] Configured.", __FUNCTION__, region ));
+            BDBG_MSG(("%s: Region [0x%02X] Configured.", BSTD_FUNCTION, region ));
             break; /* success */
         }
         case BHSM_RegionVerificationStatus_eAlreadyConfigured:
         {
-            BDBG_WRN(("%s: Region [0x%02X] Already Configured.", __FUNCTION__, region ));
+            BDBG_WRN(("%s: Region [0x%02X] Already Configured.", BSTD_FUNCTION, region ));
             rc = BHSM_STATUS_REGION_ALREADY_CONFIGURED;
             break;
         }
        case BHSM_RegionVerificationStatus_eNotOtpEnabled:
         {
             rc = BHSM_STATUS_REGION_VERIFICATION_NOT_ENABLED;
-            BDBG_WRN(("%s: Region [0x%02X] Verification not enalbed in OTP", __FUNCTION__, region ));
+            BDBG_WRN(("%s: Region [0x%02X] Verification not enalbed in OTP", BSTD_FUNCTION, region ));
             break;
         }
         default:
         {
             rc = BHSM_STATUS_BSP_ERROR;
-            BDBG_WRN(("%s: ERROR[0x%0X] region[0x%0X]", __FUNCTION__, status, region ));
+            BDBG_WRN(("%s: ERROR[0x%0X] region[0x%0X]", BSTD_FUNCTION, status, region ));
             break;
         }
     }
@@ -262,12 +259,12 @@ BERR_Code BHSM_RegionVerification_Enable( BHSM_Handle hHsm )
     {
         case 0:
         {
-            BDBG_MSG(("%s: Enable Verification.", __FUNCTION__ ));
+            BDBG_MSG(("%s: Enable Verification.", BSTD_FUNCTION ));
             break;
         }
         default:
         {
-            BDBG_WRN(("%s: ERROR[0x%0X]", __FUNCTION__, status ));
+            BDBG_WRN(("%s: ERROR[0x%0X]", BSTD_FUNCTION, status ));
             break;
         }
     }
@@ -316,19 +313,19 @@ BERR_Code BHSM_RegionVerification_Disable( BHSM_Handle hHsm, BHSM_RegionNumber r
         case BHSM_RegionVerificationStatus_eAlreadyDisabled:
         case BHSM_RegionVerificationStatus_eNotDefined:
         {
-            BDBG_MSG(("%s: Region[0x%02X]  Disabled[0x%02X]", __FUNCTION__, region, status ));
+            BDBG_MSG(("%s: Region[0x%02X]  Disabled[0x%02X]", BSTD_FUNCTION, region, status ));
             break; /* success */
         }
         case BHSM_RegionVerificationStatus_eNotOtpEnabled:
         {
             rc = BHSM_STATUS_REGION_VERIFICATION_NOT_ENABLED;
-            BDBG_WRN(("%s: Region [0x%02X] Verification not enalbed in OTP", __FUNCTION__, region ));
+            BDBG_WRN(("%s: Region [0x%02X] Verification not enalbed in OTP", BSTD_FUNCTION, region ));
             break;
         }
         default:
         {
             rc = BHSM_STATUS_BSP_ERROR;
-            BDBG_WRN(("%s: error[0x%0X] region[0x%02X]", __FUNCTION__, status, region ));
+            BDBG_WRN(("%s: error[0x%0X] region[0x%02X]", BSTD_FUNCTION, status, region ));
             break;
         }
     }
@@ -378,36 +375,36 @@ BERR_Code BHSM_RegionVerification_Status( BHSM_Handle hHsm, BHSM_RegionNumber re
     {
         case 0:
         {
-            BDBG_MSG(("%s: Region [0x%02X] Status.", __FUNCTION__, region ));
+            BDBG_MSG(("%s: Region [0x%02X] Status.", BSTD_FUNCTION, region ));
             break;
         }
         case BHSM_RegionVerificationStatus_eInProgress:
         {
-            BDBG_MSG(("%s: Region [0x%02X] Verification In Progress.", __FUNCTION__, region ));
+            BDBG_MSG(("%s: Region [0x%02X] Verification In Progress.", BSTD_FUNCTION, region ));
             break;
         }
         case BHSM_RegionVerificationStatus_eFailed:
         {
             rc = BHSM_STATUS_BSP_ERROR;
-            BDBG_WRN(("%s: Region [0x%02X] Check failed.", __FUNCTION__, region ));
+            BDBG_WRN(("%s: Region [0x%02X] Check failed.", BSTD_FUNCTION, region ));
             break;
         }
         case BHSM_RegionVerificationStatus_eNotOtpEnabled:
         {
             rc = BHSM_STATUS_REGION_VERIFICATION_NOT_ENABLED;
-            BDBG_WRN(("%s: Region [0x%02X] Verification not OTP enalbed.", __FUNCTION__, region ));
+            BDBG_WRN(("%s: Region [0x%02X] Verification not OTP enalbed.", BSTD_FUNCTION, region ));
             break;
         }
         case BHSM_RegionVerificationStatus_eNotDefined:
         {
             rc = BHSM_STATUS_REGION_VERIFICATION_NOT_DEFINED;
-            BDBG_MSG(("%s: Region [0x%02X] not defined.", __FUNCTION__, region ));
+            BDBG_MSG(("%s: Region [0x%02X] not defined.", BSTD_FUNCTION, region ));
             break;
         }
         default:
         {
             rc = BHSM_STATUS_BSP_ERROR;
-            BDBG_WRN(("%s: ERROR[0x%0X] region[0x%0X]", __FUNCTION__, status, region ));
+            BDBG_WRN(("%s: ERROR[0x%0X] region[0x%0X]", BSTD_FUNCTION, status, region ));
             break;
         }
     }
@@ -506,13 +503,13 @@ BERR_Code BHSM_RegionVerification_QueryStatus( BHSM_Handle hHsm, BHSM_Verifcatio
     {
         case 0:
         {
-            BDBG_MSG(("%s: Query Status.", __FUNCTION__ ));
+            BDBG_MSG(("%s: Query Status.", BSTD_FUNCTION ));
             break;
         }
         default:
         {
             rc = BHSM_STATUS_BSP_ERROR;
-            BDBG_WRN(("%s: ERROR[0x%0X] ", __FUNCTION__, status ));
+            BDBG_WRN(("%s: ERROR[0x%0X] ", BSTD_FUNCTION, status ));
             break;
         }
     }

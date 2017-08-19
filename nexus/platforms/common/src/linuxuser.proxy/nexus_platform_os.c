@@ -91,10 +91,6 @@
 #endif
 #if NEXUS_HAS_SAGE
 #include "../src/nexus_sage_image.h"
-#if NEXUS_HAS_HDMI_OUTPUT
-extern void *HDMI_OUTPUT_IMAGE_Context;
-extern BIMG_Interface HDMI_OUTPUT_IMAGE_Interface;
-#endif
 #endif
 #if NEXUS_HAS_SCM
 extern void *SCM_IMAGE_Context;
@@ -136,8 +132,11 @@ extern const void* BHAB_4538_IMG_Context;
 #if NEXUS_FRONTEND_45216
 extern const void* BHAB_45216_IMG_Context;
 #endif
-#if NEXUS_FRONTEND_45308
+#if NEXUS_FRONTEND_45308_FW
 extern const void* BHAB_45308_IMG_Context;
+#endif
+#if NEXUS_FRONTEND_45316_FW
+extern const void* BHAB_45316_IMG_Context;
 #endif
 #endif
 #endif
@@ -412,7 +411,6 @@ NEXUS_Platform_P_InitOS(void)
         NEXUS_HeapHandle heap = state->clientConfig.heap[i];
         if (heap) {
             NEXUS_MemoryStatus status;
-            unsigned memoryType;
             rc = NEXUS_Platform_GetHeapStatus_driver(heap, &status);
             if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_heap;}
             rc = nexus_p_add_heap(i, heap, status.offset, status.size, status.memoryType, false, NULL);
@@ -604,6 +602,20 @@ NEXUS_Platform_P_UninitDriver(void)
     return;
 }
 
+static NEXUS_Error NEXUS_Platform_P_SetEnv(const char *name)
+{
+    const char *value = NEXUS_GetEnv(name);
+    if (value) {
+        char buf[32];
+        FILE *f = fopen("/proc/brcm/config", "w");
+        if (!f) return BERR_TRACE(NEXUS_UNKNOWN);
+        BKNI_Snprintf(buf, sizeof(buf), "%s=%s", name, value);
+        fputs(buf, f);
+        fclose(f);
+    }
+    return NEXUS_SUCCESS;
+}
+
 /* bring up the proxy base and the driver.
 NEXUS_P_Init is only called by the server, not the client. */
 static NEXUS_Error NEXUS_P_Init(void)
@@ -682,34 +694,14 @@ static NEXUS_Error NEXUS_P_Init(void)
         }
     }
 
-    /* use proc setenv to deliver boxmode from device tree (or env override) to kernel mode */
-    {
-        FILE *file;
-        unsigned boardId = NEXUS_Platform_P_ReadBoardId();
-        unsigned pMapId = NEXUS_Platform_P_ReadPMapId();
-#if !NEXUS_PLATFORM_P_READ_BOX_MODE
-        unsigned boxMode = NEXUS_Platform_P_ReadBoxMode();
-        file = fopen("/proc/brcm/config", "w");
-        if (file) {
-            fprintf(file, "B_REFSW_BOXMODE=%u", boxMode);
-            fclose(file);
-        }
-#endif
-        file = fopen("/proc/brcm/config", "w");
-        if (file) {
-            fprintf(file, "B_REFSW_BOARD_ID=%u", boardId);
-            fclose(file);
-        }
-        file = fopen("/proc/brcm/config", "w");
-        if (file) {
-            fprintf(file, "B_REFSW_PMAP_ID=%u", pMapId);
-            fclose(file);
-        }
-    }
+    rc = NEXUS_Platform_P_SetEnv("B_REFSW_BOXMODE");
+    if (rc) {BERR_TRACE(rc); goto err_boxmode;}
 
     state->init = true;
     return 0;
 
+err_boxmode:
+    NEXUS_Platform_P_UninitDriver();
 err_driver:
     NEXUS_Module_Destroy(proxy);
     state->module = NULL;
@@ -737,6 +729,7 @@ static void NEXUS_P_Uninit(void)
         int urc;
         BDBG_MSG(("<DEBUG_LOG"));
         urc = ioctl(state->proxy_fd, IOCTL_PROXY_NEXUS_Log_Deactivate, NULL);
+        BSTD_UNUSED(urc);
         NEXUS_Platform_P_DebugLog_Uninit(&state->debugLog);
     }
 
@@ -794,13 +787,7 @@ NEXUS_Platform_GetDefaultSettings_tagged(NEXUS_PlatformSettings *pSettings, size
     NEXUS_SageImage_SetImageExists_priv(&pSettings->sageModuleSettings);
 #endif
 #if NEXUS_HAS_FILE
-    {
-        NEXUS_FileModuleSettings fileModuleSettings;
-        NEXUS_FileModule_GetDefaultSettings(&fileModuleSettings);
-        pSettings->fileModuleSettings.workerThreads = fileModuleSettings.workerThreads;
-        BDBG_CASSERT(sizeof(pSettings->fileModuleSettings.schedulerSettings) == sizeof(fileModuleSettings.schedulerSettings));
-        BKNI_Memcpy(pSettings->fileModuleSettings.schedulerSettings, fileModuleSettings.schedulerSettings, sizeof(pSettings->fileModuleSettings.schedulerSettings));
-    }
+    NEXUS_FileModule_GetDefaultSettings(&pSettings->fileModuleSettings);
 #endif
     #if NEXUS_HAS_AUDIO && NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
     if ( NEXUS_GetEnv("audio_logs_enabled") )
@@ -894,18 +881,7 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
     {
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
-
-#if NEXUS_HAS_HDMI_OUTPUT
-    rc = Nexus_Platform_P_Image_Interfaces_Register(&HDMI_OUTPUT_IMAGE_Interface, HDMI_OUTPUT_IMAGE_Context, NEXUS_CORE_IMG_ID_HDCP);
-    if(rc != NEXUS_SUCCESS)
-    {
-        return BERR_TRACE(NEXUS_UNKNOWN);
-    }
-
 #endif
-#endif
-
-
 
 #if NEXUS_HAS_PICTURE_DECODER
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BSID_ImageInterface, BSID_ImageContext, NEXUS_CORE_IMG_ID_SID);
@@ -951,8 +927,11 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 #if NEXUS_FRONTEND_45216
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_SATFE_IMG_Interface, &BHAB_45216_IMG_Context, NEXUS_CORE_IMG_ID_FRONTEND_45216); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
 #endif
-#if NEXUS_FRONTEND_45308
+#if NEXUS_FRONTEND_45308_FW
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_SATFE_IMG_Interface, &BHAB_45308_IMG_Context, NEXUS_CORE_IMG_ID_FRONTEND_45308); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_45316_FW
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_SATFE_IMG_Interface, &BHAB_45316_IMG_Context, NEXUS_CORE_IMG_ID_FRONTEND_45316); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
 #endif
 #endif
 
@@ -985,6 +964,7 @@ NEXUS_Error
 NEXUS_Platform_Init_tagged(const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned platformCheck, unsigned versionCheck, unsigned structSizeCheck)
 {
     NEXUS_Error errCode;
+    NEXUS_PlatformSettings *pLocalSettings = NULL;
 
     if (NEXUS_Platform_P_State.platform_init) {
         return BERR_TRACE(NEXUS_UNKNOWN);
@@ -1021,9 +1001,19 @@ NEXUS_Platform_Init_tagged(const NEXUS_PlatformSettings *pSettings, const NEXUS_
         goto err_platform_init;
     }
 
+    if (!pSettings) {
+        pLocalSettings = BKNI_Malloc(sizeof(*pLocalSettings));
+        if (!pLocalSettings) {
+            errCode = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            goto err_platform_init;
+        }
+        NEXUS_Platform_GetDefaultSettings(pLocalSettings);
+        pSettings = pLocalSettings;
+    }
+
 #if NEXUS_CONFIG_IMAGE
     BDBG_MSG(("Image"));
-    errCode = NEXUS_Platform_P_InitImage(pSettings?&pSettings->imgInterface:NULL);
+    errCode = NEXUS_Platform_P_InitImage(&pSettings->imgInterface);
     if ( errCode!=BERR_SUCCESS ) { errCode = BERR_TRACE(errCode); goto err_platform_init; }
 #endif
     NEXUS_P_PrintEnv(BDBG_STRING("proxy: "));
@@ -1049,14 +1039,15 @@ NEXUS_Platform_Init_tagged(const NEXUS_PlatformSettings *pSettings, const NEXUS_
     errCode = NEXUS_Platform_P_InitSageLog();
     if(errCode!=NEXUS_SUCCESS) {NEXUS_Platform_Uninit(); return BERR_TRACE(errCode);}
 
-    if (pSettings) {
-        errCode = NEXUS_Platform_P_DropPrivilege(pSettings);
-        BDBG_ASSERT(!errCode); /* failure will terminate */
-    }
+    errCode = NEXUS_Platform_P_DropPrivilege(pSettings);
+    BDBG_ASSERT(!errCode); /* failure will terminate */
 
     /* Success */
     NEXUS_Platform_P_State.platform_init = true;
     BDBG_MSG((">DONE"));
+    if (pLocalSettings) {
+        BKNI_Free(pLocalSettings);
+    }
     return NEXUS_SUCCESS;
 
 err:
@@ -1070,6 +1061,9 @@ err_image_init:
 #if NEXUS_CONFIG_IMAGE
     NEXUS_Platform_P_UninitImage();
 #endif
+    if (pLocalSettings) {
+        BKNI_Free(pLocalSettings);
+    }
 err_platform_init:
     NEXUS_P_Uninit();
     return errCode;

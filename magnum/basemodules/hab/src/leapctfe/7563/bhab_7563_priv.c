@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1135,7 +1135,7 @@ BERR_Code BHAB_7563_P_DecodeInterrupt(BHAB_Handle handle)
     BHAB_7563_P_Handle *p7563;
     BHAB_P_CallbackInfo *callback;
     uint32_t   buf, mbox_depth, mbox_data;
-    uint16_t coreType, coreId;
+    uint16_t coreType;
     uint8_t lockStatus;
     unsigned i;
     char *core = "DVB-T";
@@ -1183,7 +1183,6 @@ BERR_Code BHAB_7563_P_DecodeInterrupt(BHAB_Handle handle)
                     BKNI_SetEvent(p7563->hHabReady);
 
                 coreType = (mbox_data & BHAB_CORE_TYPE_MASK) >> 19;
-                coreId = (mbox_data & BHAB_CORE_ID_MASK) >> 11;
                 if((mbox_data >> 24) == BHAB_EventId_eLockChange) {
                     if(p7563->InterruptCallbackInfo[BHAB_DevId_eODS0].func){
                         callback = &p7563->InterruptCallbackInfo[BHAB_DevId_eODS0];

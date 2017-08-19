@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2002-2012 Broadcom Corporation
- *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,42 +9,34 @@
  *  Software, and Broadcom expressly reserves all rights in and to the Software and all
  *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *   
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
  *  Except as expressly set forth in the Authorized License,
- *   
+ *
  *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
  *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *   
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  *  USE OR PERFORMANCE OF THE SOFTWARE.
- *  
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ****************************************************************************/
 
 
@@ -2125,7 +2117,7 @@ static void CableCardCallback_New_Flow_Cnf_Cb(
     uint16_t pid
     )
 {
-    BDBG_MSG(("received %s flowId=%d serviceType=%d pid=%d\n", __FUNCTION__, flowId, (uint32_t) serviceType, pid));
+    BDBG_MSG(("received %s flowId=%d serviceType=%d pid=%d\n", BSTD_FUNCTION, flowId, (uint32_t) serviceType, pid));
 }
 
 B_MPOD_EXT_DEL_FLOW_CNF_STAT CableCardCallback_Delete_Flow_Req(
@@ -2704,7 +2696,7 @@ static void featureRcvCardListCb(
 {
     uint32_t i;
 
-    printf("%s list of Card supported features\n\n", __FUNCTION__);
+    printf("%s list of Card supported features\n\n", BSTD_FUNCTION);
     printf("%d\n", cardNumFeatures);
     for(i = 0; i < cardNumFeatures; i++) printf("Feature %d = %s\n", i, FeatureString[cardFeatures[i]]);
     printf("\n\n\n");
@@ -3025,14 +3017,14 @@ static void delayedDownloadReqCb(
     void
     )
 {
-    printf("received %s\n", __FUNCTION__);
+    printf("received %s\n", BSTD_FUNCTION);
 }
 
 static void homingCompleteCb(
     void
     )
 {
-    printf("received %s\n", __FUNCTION__);
+    printf("received %s\n", BSTD_FUNCTION);
 }
 
 /* the host should NOT interrupt the download */
@@ -3045,7 +3037,7 @@ static void downloadStartingCb(
     char *timeoutTypeStrings[] = {"both timeouts", "transport timeout",
                                             "download timeout", "no_timeout"};
 
-    printf("received %s\n", __FUNCTION__);
+    printf("received %s\n", BSTD_FUNCTION);
 
     if(downloadInfo->notifyTextLength)
     {
@@ -3069,7 +3061,7 @@ static void downloadCompleteCb(
 {
     char *resetTypeStrings[] = {"PCMCIA Reset", "Card Reset", "No Reset", "Reserved"};
 
-    printf("received %s\n", __FUNCTION__);
+    printf("received %s\n", BSTD_FUNCTION);
     printf("requested %s\n", resetTypeStrings[resetType & 0x3]);
 }
 
@@ -3077,7 +3069,7 @@ static void homingTimeoutCb(
     void
     )
 {
-    printf("received %s\n", __FUNCTION__);
+    printf("received %s\n", BSTD_FUNCTION);
     printf("Resetting CableCard\n");
 }
 
@@ -3262,7 +3254,7 @@ void caPmtUpdate(
     B_MPOD_CA_PMT_UPDATE_INFO *updateInfo
     )
 {
-    printf("%s\n", __FUNCTION__);
+    printf("%s\n", BSTD_FUNCTION);
     caPmtUpdateReply(updateInfo);
 }
 
@@ -3270,7 +3262,7 @@ void caPmtReply(
     B_MPOD_CA_PMT_REPLY_INFO *replyInfo
     )
 {
-    printf("%s\n", __FUNCTION__);
+    printf("%s\n", BSTD_FUNCTION);
     caPmtUpdateReply(replyInfo);
 }
 
@@ -3394,7 +3386,7 @@ void resProfileInfoCb(
     uint8_t numEs
     )
 {
-   printf("%s streams=%d  progs=%d  elem streams=%d\n", __FUNCTION__, numStreams, numProgs, numEs);
+   printf("%s streams=%d  progs=%d  elem streams=%d\n", BSTD_FUNCTION, numStreams, numProgs, numEs);
 }
 
 static void getRootOID( uint8_t *data, uint32_t len)
@@ -3534,7 +3526,7 @@ static void hostPropertiesReplyCb(
 {
     int i, j;
 
-    printf("%s\n\n", __FUNCTION__);
+    printf("%s\n\n", BSTD_FUNCTION);
     printf("%d properties sent from the card\n\n", hostProperties->numOfProperties);
 
     for(i = 0; i < hostProperties->numOfProperties; i++)
@@ -3558,7 +3550,7 @@ static void rcvHostResetVectorCb(
     B_MPOD_HEADEND_HOST_RESET_VECTOR *hostResetVector
     )
 {
-    printf("%s\n\n", __FUNCTION__);
+    printf("%s\n\n", BSTD_FUNCTION);
 
     printf("Delay = %d\n", hostResetVector->delay);
 

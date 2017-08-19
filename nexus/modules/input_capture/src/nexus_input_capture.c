@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,7 +136,7 @@ void NEXUS_InputCaptureModule_GetDefaultSettings(NEXUS_InputCaptureModuleSetting
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
 }
 
 NEXUS_ModuleHandle NEXUS_InputCaptureModule_Init(const NEXUS_InputCaptureModuleSettings *pSettings)
@@ -566,7 +566,6 @@ NEXUS_InputCaptureTimeoutHandle NEXUS_InputCaptureTimeout_Open(
     const NEXUS_InputCaptureTimeoutSettings *pSettings /* attr{null_allowed=y} */
     )
 {
-    BERR_Code rc;
     NEXUS_InputCaptureTimeoutHandle inputCaptureTimeout;
     NEXUS_InputCaptureTimeoutSettings defaultSettings;
 
@@ -578,7 +577,7 @@ NEXUS_InputCaptureTimeoutHandle NEXUS_InputCaptureTimeout_Open(
 
     inputCaptureTimeout = BKNI_Malloc(sizeof(*inputCaptureTimeout));
     if (!inputCaptureTimeout) {
-        rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         return NULL;
     }
 

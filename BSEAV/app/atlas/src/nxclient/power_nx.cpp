@@ -98,7 +98,7 @@ eRet CPowerNx::setMode(
     ePowerMode               modeOld   =  getMode();
     CGraphicsNx             * pGraphics = (CGraphicsNx *) pGraphicsX;
 
-    BDBG_MSG(("CPowerNx %s set power mode:%s", __FUNCTION__, (powerModeToString(mode)).s()));
+    BDBG_MSG(("CPowerNx %s set power mode:%s", BSTD_FUNCTION, (powerModeToString(mode)).s()));
 
     if (mode == modeOld)
     {
@@ -314,7 +314,7 @@ eRet CPowerNx::setMode(
         /* We need to turn on NxServer after we wake up. Just wake up NxServer. Control onIdle()
            will wake up Atlas */
         if(_eMode != ePowerMode_S0) {
-            BDBG_MSG(("We are waking up from S%d!\n Wake up NxServer!!",__FUNCTION__, _eMode));
+            BDBG_MSG(("We are waking up from S%d!\n Wake up NxServer!!", _eMode));
             standbySettings.settings.mode = NEXUS_PlatformStandbyMode_eOn;
             nerror = NxClient_SetStandbySettings(&standbySettings);
             /* if we cannot wake up then we need to ASSERT because there is a

@@ -214,6 +214,7 @@ public:
    DECL_SPECIAL(glRenderbufferStorage)
 
 #if GL_ES_VERSION_3_0
+   DECL_SPECIAL(glBlitFramebuffer)
    DECL_SPECIAL(glDrawRangeElements)
    DECL_SPECIAL(glTexImage3D)
    DECL_SPECIAL(glTexSubImage3D)
@@ -253,5 +254,7 @@ public:
    DECL_SPECIAL(glCreateShaderProgramv)
    DECL_SPECIAL(glDeleteProgramPipelines)
    DECL_SPECIAL(glGenProgramPipelines)
+   DECL_SPECIAL(glDispatchCompute)
+   DECL_SPECIAL(glDispatchComputeIndirect)
 #endif // GL_ES_VERSION_3_0
 };

@@ -322,6 +322,7 @@ void NEXUS_TransportModule_GetDefaultSettings(NEXUS_TransportModuleSettings *pSe
     BSTD_UNUSED(j); /* in case not used */
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
 
     pSettings->initVcxos = true;
 
@@ -472,6 +473,7 @@ static void NEXUS_TransportModule_P_Print(void)
 #if BDBG_DEBUG_BUILD
     unsigned i;
     NEXUS_P_HwPidChannel *pidChannel;
+    bool defaultTimebaseUsed = false;
     BDBG_LOG(("transport"));
     #if NEXUS_MAX_INPUT_BANDS
     {
@@ -601,22 +603,32 @@ static void NEXUS_TransportModule_P_Print(void)
         NEXUS_StcChannelHandle stcChannel = pTransport->stcChannel[i];
         if (stcChannel) {
             uint32_t stc;
+            char str[32];
             NEXUS_StcChannel_GetStc(stcChannel, &stc);
+            if (stcChannel->settings.mode != NEXUS_StcChannelMode_ePcr && stcChannel->settings.timebase == NEXUS_Timebase_eInvalid) {
+                BKNI_Snprintf(str, sizeof(str), "default timebase");
+            }
+            else {
+                BKNI_Snprintf(str, sizeof(str), "timebase %d", stcChannel->timebase->hwIndex);
+            }
+            if (stcChannel->settings.timebase == NEXUS_Timebase_eInvalid) {
+                defaultTimebaseUsed = true;
+            }
             switch (stcChannel->settings.mode) {
             case NEXUS_StcChannelMode_ePcr:
-                BDBG_LOG(("stcChannel %p: pcr mode, pcrPidChannel %p, stc %d, timebase %d, value %#x, offset %#x, %s",
-                    (void *)stcChannel, (void *)stcChannel->settings.modeSettings.pcr.pidChannel, stcChannel->stcIndex, stcChannel->timebase->hwIndex, stc, BXPT_PcrOffset_GetOffset(stcChannel->pcrOffset), BXPT_PcrOffset_IsOffsetValid(stcChannel->pcrOffset)?"valid":"invalid"));
+                BDBG_LOG(("stcChannel %p: pcr mode, pcrPidChannel %p, stc %d, %s, value %#x, offset %#x, %s",
+                    (void *)stcChannel, (void *)stcChannel->settings.modeSettings.pcr.pidChannel, stcChannel->stcIndex, str, stc, BXPT_PcrOffset_GetOffset(stcChannel->pcrOffset), BXPT_PcrOffset_IsOffsetValid(stcChannel->pcrOffset)?"valid":"invalid"));
                 break;
             case NEXUS_StcChannelMode_eAuto:
                 {
                 static const char *g_master[NEXUS_StcChannelAutoModeBehavior_eMax] = {"first avail","video","audio"};
-                BDBG_LOG(("stcChannel %p: auto mode, %s master, stc %d, timebase %d, value %#x, %s",
-                    (void *)stcChannel, g_master[stcChannel->settings.modeSettings.Auto.behavior], stcChannel->stcIndex, stcChannel->timebase->hwIndex, stc, stcChannel->stcValid?"valid":"invalid"));
+                BDBG_LOG(("stcChannel %p: auto mode, %s master, stc %d, %s, value %#x, %s",
+                    (void *)stcChannel, g_master[stcChannel->settings.modeSettings.Auto.behavior], stcChannel->stcIndex, str, stc, stcChannel->stcValid?"valid":"invalid"));
                 }
                 break;
             case NEXUS_StcChannelMode_eHost:
-                BDBG_LOG(("stcChannel %p: host mode, stc %d, timebase %d, value %#x, %s",
-                    (void *)stcChannel, stcChannel->stcIndex, stcChannel->timebase->hwIndex, stc, stcChannel->stcValid?"valid":"invalid"));
+                BDBG_LOG(("stcChannel %p: host mode, stc %d, %s, value %#x, %s",
+                    (void *)stcChannel, stcChannel->stcIndex, str, stc, stcChannel->stcValid?"valid":"invalid"));
                 break;
             default:
                 break;
@@ -625,7 +637,7 @@ static void NEXUS_TransportModule_P_Print(void)
     }
     for (i=0;i<BXPT_NUM_PCRS;i++) {
         NEXUS_TimebaseHandle timebase = pTransport->timebase[i];
-        if (timebase->acquired) {
+        if (timebase->acquired || (i == 0 && defaultTimebaseUsed)) {
             char str[64];
             unsigned n;
             static const char *g_source[NEXUS_TimebaseSourceType_eMax] = {"pcr","freerun","analog","hddvi","ccir656","i2s","spdif"};
@@ -634,6 +646,7 @@ static void NEXUS_TransportModule_P_Print(void)
                 BKNI_Snprintf(&str[n], sizeof(str)-n, ", pidChannel %p", (void *)timebase->settings.sourceSettings.pcr.pidChannel);
             }
             BDBG_LOG(("%s", str));
+            BDBG_LOG(("   onePcrErrCount %u, twoPcrErrCount %u, saturationEventCount %u", timebase->onePcrErrCount, timebase->twoPcrErrCount , timebase->phaseSaturationEventCount));
         }
     }
 #endif
@@ -652,6 +665,9 @@ NEXUS_ModuleHandle NEXUS_TransportModule_PreInit( const NEXUS_TransportModuleInt
     BKNI_Memset(&g_NEXUS_Transport_P_State, 0, sizeof(g_NEXUS_Transport_P_State));
 #if NEXUS_TRANSPORT_EXTENSION_TSMF
     BKNI_Memset(&g_NEXUS_Tsmf_P_State, 0, sizeof(g_NEXUS_Tsmf_P_State));
+#if NEXUS_HAS_ETBG
+    BKNI_Memset(&g_NEXUS_Etbg_P_State, 0, sizeof(g_NEXUS_Etbg_P_State));
+#endif
 #endif
 
     /* init global module handle */
@@ -1065,6 +1081,18 @@ bool NEXUS_TransportModule_P_IsMtsifEncrypted(void)
 #endif
 }
 
+void NEXUS_TransportModule_P_ForceMtsifEncrypted(unsigned index)
+{
+#if BXPT_NUM_MTSIF
+    if (index < BXPT_NUM_MTSIF) {
+        uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_SECRET_WORD + (index * (BCHP_XPT_FE_MTSIF_RX1_CTRL1 - BCHP_XPT_FE_MTSIF_RX0_CTRL1));
+        BREG_Write32(g_pCoreHandles->reg, addr, 0);
+    }
+#else
+    BSTD_UNUSED(index);
+#endif
+}
+
 NEXUS_Error NEXUS_TransportModule_Standby_priv(bool enabled, const NEXUS_StandbySettings *pSettings)
 {
 #if NEXUS_POWER_MANAGEMENT
@@ -1232,7 +1260,7 @@ NEXUS_Error NEXUS_TransportWakeup_SetSettings(const NEXUS_TransportWakeupSetting
                 Filter[j].MaskType = pSettings->filter[i].packet[j].maskType;
             }
             rc = BXPT_Wakeup_SetPacketFilterBytes(pTransport->xpt, i, Filter);
-            if (rc) {return BERR_TRACE(rc);}
+            if (rc) {BKNI_Free(Filter);return BERR_TRACE(rc);}
         }
 
         BXPT_Wakeup_GetDefaults(&wakeupSettings);
@@ -1240,10 +1268,10 @@ NEXUS_Error NEXUS_TransportWakeup_SetSettings(const NEXUS_TransportWakeupSetting
         wakeupSettings.PacketLength = pSettings->packetLength;
         wakeupSettings.ErrorInputIgnore = pSettings->errorIgnore;
         rc = BXPT_Wakeup_SetSettings(pTransport->xpt , &wakeupSettings);
-        if (rc) {return BERR_TRACE(rc);}
+        if (rc) {BKNI_Free(Filter);return BERR_TRACE(rc);}
 
         rc = BINT_EnableCallback(pTransport->wakeup.intPacketFoundCallback);
-        if (rc) {return BERR_TRACE(rc);}
+        if (rc) {BKNI_Free(Filter);return BERR_TRACE(rc);}
         BXPT_Wakeup_Armed(pTransport->xpt, true);
         BKNI_Free(Filter);
     } else {

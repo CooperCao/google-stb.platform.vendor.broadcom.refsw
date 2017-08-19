@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZCL/include/bbZbProZclSapClusterWindowCovering.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL Window Covering cluster SAP interface.
+*       ZCL Window Covering cluster SAP interface.
 *
-* $Revision: 7517 $
-* $Date: 2015-07-15 18:34:05Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_CLUSTER_WINDOW_COVERING_H
 #define _BB_ZBPRO_ZCL_SAP_CLUSTER_WINDOW_COVERING_H
@@ -60,12 +52,24 @@
 
 
 /************************* DEFINITIONS **************************************************/
+#define ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(attributeSet, attributeId) (((attributeSet) << 4) | (attributeId))
+/**//**
+ * \brief   Enumeration of attribute sets of Window Covering ZCL cluster Server side.
+ * \ingroup ZBPRO_ZCL_Misc
+ */
+typedef enum _ZBPRO_ZCL_SapWindowCoveringServerAttributeIdSet_t
+{
+    ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO                            = 0x0000, /*!< Window Covering Information attributes set */
+    ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS                        = 0x0001  /*!< Window Covering Settings attributes set */
+} ZBPRO_ZCL_SapWindowCoveringServerAttributeIdSet_t;
+
 /**//**
  * \brief   Enumeration of attributes of Window Covering ZCL cluster Server side.
  * \details
  *  These attributes are provided by Server side of the cluster.
  * \details
  *  Window Covering ZCL cluster has no attributes provided by Client side.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  This implementation of Window Covering ZCL cluster doesn't provide Server side; and its Client
  *  side isn't able to access any of the optional attributes of the Server side, it's able
@@ -76,58 +80,53 @@
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 7.4, tables 7-39, 7-40, 7-43.
  */
-#define ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(attributeSet, attributeId) (((attributeSet) << 4) | (attributeId))
-typedef enum _ZBPRO_ZCL_SapWindowCoveringServerAttributeIdSet_t
-{
-    ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO                            = 0x0000,       /* Window Covering Information attributes set */
-    ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS                        = 0x0001        /* Window Covering Settings attributes set */
-} ZBPRO_ZCL_SapWindowCoveringServerAttributeIdSet_t;
 typedef enum _ZBPRO_ZCL_SapWindowCoveringServerAttributeId_t
 {
-    /*!< Window Covering Type (MANDATORY). */
+    /*! Window Covering Type (MANDATORY). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_TYPE                             = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0000),
-    /*!< Window Covering Physical Closed Limit for Lift (OPTIONAL). */
+    /*! Window Covering Physical Closed Limit for Lift (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_PHYSICAL_CLOSED_LIMIT_LIFT       = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0001),
-    /*!< Window Covering Physical Closed Limit for Tilt (OPTIONAL). */
+    /*! Window Covering Physical Closed Limit for Tilt (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_PHYSICAL_CLOSED_LIMIT_TILT       = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0002),
-    /*!< Window Covering Current Position for Lift (OPTIONAL). */
+    /*! Window Covering Current Position for Lift (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_CURRENT_POSITION_LIFT            = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0003),
-    /*!< Window Covering Current Position for Tilt (OPTIONAL). */
+    /*! Window Covering Current Position for Tilt (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_CURRENT_POSITION_TILT            = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0004),
-    /*!< Window Covering Number of Actuations for Lift (OPTIONAL). */
+    /*! Window Covering Number of Actuations for Lift (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_NUMBER_ACTUATIONS_LIFT           = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0005),
-    /*!< Window Covering Number of Actuations for Tilt (OPTIONAL). */
+    /*! Window Covering Number of Actuations for Tilt (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_NUMBER_ACTUATIONS_TILT           = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0006),
-    /*!< Window Covering Config/Status (MANDATORY). */
+    /*! Window Covering Config/Status (MANDATORY). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_CONFIG_STATUS                    = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0007),
-    /*!< Window Covering Current Position for Lift Percentage (OPTIONAL). */
+    /*! Window Covering Current Position for Lift Percentage (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_CURRENT_POSITION_LIFT_PERCENTAGE = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0008),
-    /*!< Window Covering Current Position for Tilt Percentage (OPTIONAL). */
+    /*! Window Covering Current Position for Tilt Percentage (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_CURRENT_POSITION_TILT_PERCENTAGE = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_INFO, 0x0009),
-    /*!< Window Covering Installed Open Limit for Lift (MANDATORY). */
+    /*! Window Covering Installed Open Limit for Lift (MANDATORY). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_INSTALLED_OPEN_LIMIT_LIFT        = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0000),
-    /*!< Window Covering Installed Closed Limit for Lift (MANDATORY). */
+    /*! Window Covering Installed Closed Limit for Lift (MANDATORY). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_INSTALLED_CLOSED_LIMIT_LIFT      = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0001),
-    /*!< Window Covering Installed Open Limit for Tilt (MANDATORY). */
+    /*! Window Covering Installed Open Limit for Tilt (MANDATORY). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_INSTALLED_OPEN_LIMIT_TILT        = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0002),
-    /*!< Window Covering Installed Closed Limit for Tilt (MANDATORY). */
+    /*! Window Covering Installed Closed Limit for Tilt (MANDATORY). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_INSTALLED_CLOSED_LIMIT_TILT      = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0003),
-    /*!< Window Covering Velocity for Lift (OPTIONAL). */
+    /*! Window Covering Velocity for Lift (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_VELOCITY_LIFT                    = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0004),
-    /*!< Window Covering Acceleration Time for Lift (OPTIONAL). */
+    /*! Window Covering Acceleration Time for Lift (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_ACCELERATION_TIME_LIFT           = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0005),
-    /*!< Window Covering Deceleration Time for Lift (OPTIONAL). */
+    /*! Window Covering Deceleration Time for Lift (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_DECELERATION_TIME_TILT           = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0006),
-    /*!< Window Covering Mode (MANDATORY). */
+    /*! Window Covering Mode (MANDATORY). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_MODE                             = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0007),
-    /*!< Window Covering Intermediate Setponts for Lift (OPTIONAL). */
+    /*! Window Covering Intermediate Setponts for Lift (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_INTERMEDIATE_SETPOINTS_LIFT      = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0008),
-    /*!< Window Covering Intermediate Setponts for Tilt (OPTIONAL). */
+    /*! Window Covering Intermediate Setponts for Tilt (OPTIONAL). */
     ZBPRO_ZCL_SAP_WC_ATTR_ID_INTERMEDIATE_SETPOINTS_TILT      = ZCL_WINDOW_COVERING_MAKE_ATTRIBUTE(ZBPRO_ZCL_SAP_WC_ATTR_SET_SETTINGS, 0x0009)
 } ZBPRO_ZCL_SapWindowCoveringServerAttributeId_t;
 
 /**//**
- * \name    WindowCoveringType attribute enumeration for Window Covering ZCL cluster.
+ * \brief   Window Covering types.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 7.4.2.1.2, table 7-41.
  */
@@ -147,74 +146,145 @@ typedef enum _ZBPRO_ZCL_WindowCoveringType_t
 
 
 /**//**
- * \name    Data types of attributes of Window Covering ZCL cluster.
+ * \brief   Window Covering Attribute type.
+ * \ingroup ZBPRO_ZCL_WC_Attr
  * \details
  *  All the listed attributes are transferred by value.
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 3.8.2.2, table 3-42.
  */
-
-/**@{*/
-
 typedef ZBPRO_ZCL_WindowCoveringType_t ZBPRO_ZCL_SapWindowCoveringAttrType_t;
 
+/**//**
+ * \brief   Window Covering Attribute Physical Closed Limit Lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrPhysicalClosedLimitLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute Physical Closed Limit Tilt.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrPhysicalClosedLimitTilt_t;
 
+/**//**
+ * \brief   Window Covering Attribute Current Position Lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrCurrentPositionLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute Current Position Tilt.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrCurrentPositionTilt_t;
 
+/**//**
+ * \brief   Window Covering Attribute Number Actuations Lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrNumberActuationsLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute Number Actuations Tilt.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrNumberActuationsTilt_t;
 
+/**//**
+ * \brief   Window Covering Attribute Config status.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef struct _ZBPRO_ZCL_SapWindowCoveringAttrConfigStatus_t
 {
-    uint8_t isOperational           : 1;
-    uint8_t isOnline                : 1;
-    uint8_t areCommandsReversed     : 1;
-    uint8_t isLiftControlClosedLoop : 1;
-    uint8_t isTiltControlClosedLoop : 1;
-    uint8_t isEncoderControlledLift : 1;
-    uint8_t isEncoderControlledTilt : 1;
-    uint8_t reserved                : 1;
+    uint8_t isOperational           : 1;      /*!< Is operational? */
+    uint8_t isOnline                : 1;      /*!< Is online? */
+    uint8_t areCommandsReversed     : 1;      /*!< Commands reserved? */
+    uint8_t isLiftControlClosedLoop : 1;      /*!< Lift closed loop? */
+    uint8_t isTiltControlClosedLoop : 1;      /*!< Tilt closed loop? */
+    uint8_t isEncoderControlledLift : 1;      /*!< Encoder controlled lift */
+    uint8_t isEncoderControlledTilt : 1;      /*!< Encoder controlled tilt */
+    uint8_t reserved                : 1;      /*!< Reserved */
 } ZBPRO_ZCL_SapWindowCoveringAttrConfigStatus_t;
 
+/**//**
+ * \brief   Window Covering Attribute Current position lift percentage 0 - 100%.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint8_t ZBPRO_ZCL_SapWindowCoveringAttrCurrentPositionLiftPercentage_t; /* 0 - 100% */
 
+/**//**
+ * \brief   Window Covering Attribute Current position tilt percentage 0 - 100%.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint8_t ZBPRO_ZCL_SapWindowCoveringAttrCurrentPositionTiltPercentage_t; /* 0 - 100% */
 
+/**//**
+ * \brief   Window Covering Attribute installed open limit lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrInstalledOpenLimitLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute installed closed limit lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrInstalledClosedLimitLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute installed open limit tilt.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrInstalledOpenLimitTilt_t;
 
+/**//**
+ * \brief   Window Covering Attribute installed closed limit tilt.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrInstalledClosedLimitTilt_t;
 
+/**//**
+ * \brief   Window Covering Attribute velocity lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrVelocityLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute acceleration lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrAccelerationTimeLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute deceleration time lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef uint16_t ZBPRO_ZCL_SapWindowCoveringAttrDecelerationTimeLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute modes.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef struct _ZBPRO_ZCL_SapWindowCoveringAttrMode_t
 {
-    uint8_t isMotorDirectionReversed   : 1;
-    uint8_t isRunInCalibrationMode     : 1;
-    uint8_t isRunningInMaintenanceMode : 1;
-    uint8_t areLEDSDisplayFeedback     : 1;
-    uint8_t reserved                   : 4;
+    uint8_t isMotorDirectionReversed   : 1;   /*!< Motor direction reversed */
+    uint8_t isRunInCalibrationMode     : 1;   /*!< Run in calibration mode */
+    uint8_t isRunningInMaintenanceMode : 1;   /*!< Run in maintenance mode */
+    uint8_t areLEDSDisplayFeedback     : 1;   /*!< LEDS can display feedback */
+    uint8_t reserved                   : 4;   /*!< Reserved */
 } ZBPRO_ZCL_SapWindowCoveringAttrMode_t;
 
+/**//**
+ * \brief   Window Covering Attribute intermediate setpoints lift.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef SYS_DataPointer_t ZBPRO_ZCL_SapWindowCoveringAttrIntermediateSetpointsLift_t;
 
+/**//**
+ * \brief   Window Covering Attribute intermediate setpoints tilt.
+ * \ingroup ZBPRO_ZCL_WC_Attr
+ */
 typedef SYS_DataPointer_t ZBPRO_ZCL_SapWindowCoveringAttrIntermediateSetpointsTilt_t;
-
-/**@}*/
-
 
 /**//**                                                                                                                 // TODO: Move to private header.
  * \brief   Enumeration of client-to-server commands specific to Window Covering ZCL cluster.
@@ -224,6 +294,7 @@ typedef SYS_DataPointer_t ZBPRO_ZCL_SapWindowCoveringAttrIntermediateSetpointsTi
  * \details
  *  On/Off ZCL cluster has no commands generated by Server side and received by Client
  *  side.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  This implementation of Window Covering ZCL cluster doesn't provide Server side; and its Client
  *  side doesn't implement generation of any of the optional commands, it's able to
@@ -258,6 +329,7 @@ typedef enum _ZBPRO_ZCL_SapWindowCoveringClientToServerCommandId_t
  *  by the Command Id which is determined by using different primitives.
  * \details
  *  Commands Up/Open, Down/Close, Stop have no custom parameters.
+ * \ingroup ZBPRO_ZCL_WindowCoveringReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 7.4.2.2.1, 7.4.2.2.2, 7.4.2.2.3.
  */
@@ -282,6 +354,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_WindowCoveringCmdReqP
  * Down/Close or Stop command specific to Window Covering ZCL cluster.
  * \details
  *  This structure takes its origin from ZCL Default Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_WindowCoveringConf
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.12, figure 2-25.
  */
@@ -304,6 +377,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_WindowCoveringCmdConf
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Up/Open, Down/Close, or Stop
  *  command specific to Window Covering ZCL cluster.
+ * \ingroup ZBPRO_ZCL_WindowCoveringReq
  */
 typedef struct _ZBPRO_ZCL_WindowCoveringCmdReqDescr_t  ZBPRO_ZCL_WindowCoveringCmdReqDescr_t;
 
@@ -311,6 +385,7 @@ typedef struct _ZBPRO_ZCL_WindowCoveringCmdReqDescr_t  ZBPRO_ZCL_WindowCoveringC
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Up/Open, Down/Close, and Stop
  *  commands specific to Window Covering ZCL cluster.
+ * \ingroup ZBPRO_ZCL_WindowCoveringConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -322,6 +397,7 @@ typedef void ZBPRO_ZCL_WindowCoveringCmdConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Up/Open, Down/Close, or Stop
  *  command specific to Window Covering ZCL cluster.
+ * \ingroup ZBPRO_ZCL_WindowCoveringReq
  */
 struct _ZBPRO_ZCL_WindowCoveringCmdReqDescr_t
 {
@@ -349,6 +425,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_WindowCoveringCmdReqDe
  *  by the Command Id which is determined by using different primitives.
  * \details
  *  Commands GotoLiftPecentage, GotoTiltPecentage have one custom parameter: the pecent to go to.
+ * \ingroup ZBPRO_ZCL_WindowCoveringLiftTiltPercentReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 7.4.2.2.1, 7.4.2.2.2, 7.4.2.2.3.
  */
@@ -358,7 +435,7 @@ typedef struct _ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqParams_t
 
     ZbProZclLocalPrimitiveObligatoryPart_t  zclObligatoryPart;          /*!< Set of obligatory parameters of ZCL public
                                                                             interface to local application. */
-    uint8_t percent;                                                    /*!< The percent to ift or tilt to. */
+    uint8_t percent;                                                    /*!< The percent to lift or tilt to. */
 } ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqParams_t;
 
 /*
@@ -369,6 +446,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_WindowCoveringLiftTil
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue GotoLiftPecentage, GotoTiltPecentage
  *  command specific to Window Covering ZCL cluster.
+ * \ingroup ZBPRO_ZCL_WindowCoveringLiftTiltPercentReq
  */
 typedef struct _ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqDescr_t  ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqDescr_t;
 
@@ -376,6 +454,7 @@ typedef struct _ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqDescr_t  ZBPRO_ZCL_
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of GotoLiftPecentage, GotoTiltPecentage
  *  commands specific to Window Covering ZCL cluster.
+ * \ingroup ZBPRO_ZCL_WindowCoveringLiftTiltPercentConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -387,6 +466,7 @@ typedef void ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue GotoLiftPecentage, GotoTiltPecentage
  *  command specific to Window Covering ZCL cluster.
+ * \ingroup ZBPRO_ZCL_WindowCoveringLiftTiltPercentReq
  */
 struct _ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqDescr_t
 {
@@ -396,7 +476,7 @@ struct _ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqDescr_t
 
     /* Structured data, aligned at 32 bits. */
 
-    ZbProZclLocalPrimitiveDescrService_t         service;   /*!< ZCL Request Descriptor service field. */
+    ZbProZclLocalPrimitiveDescrService_t                        service;   /*!< ZCL Request Descriptor service field. */
 
     ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqParams_t         params;  /*!< ZCL Request parameters structure. */
 };
@@ -409,9 +489,9 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_WindowCoveringLiftTilt
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name    Functions accept ZCL Local Requests to issue Up/Open, Down/Close, Stop, GotoLiftPecentage, GotoTiltPecentage commands specific
- *  to Window Covering ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \brief     Functions accept ZCL Local Requests to issue Up/Open, Down/Close, Stop, GotoLiftPecentage,
+ *            GotoTiltPecentage commands specific to Window Covering ZCL cluster.
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
  * \details
  *  The caller shall specify the following obligatory parameters of request:
  *  - callback                      assign with ZCL Local Confirm handler function,
@@ -453,11 +533,11 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_WindowCoveringLiftTilt
  *  - nonUnicastRequest     just ignored.
  */
 
-/**@{*/
-
 /**//**
  * \brief   Accepts ZCL Local Request to issue Up/Open command specific to Window Covering ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_WindowCoveringCmdUpOpenReq(
                 ZBPRO_ZCL_WindowCoveringCmdReqDescr_t *const  reqDescr);
@@ -465,7 +545,9 @@ void ZBPRO_ZCL_WindowCoveringCmdUpOpenReq(
 
 /**//**
  * \brief   Accepts ZCL Local Request to issue Down/Close command specific to Window Covering ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_WindowCoveringCmdDownCloseReq(
                 ZBPRO_ZCL_WindowCoveringCmdReqDescr_t *const  reqDescr);
@@ -474,14 +556,18 @@ void ZBPRO_ZCL_WindowCoveringCmdDownCloseReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue Stop command specific to Window Covering ZCL
  *  cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_WindowCoveringCmdStopReq(
                 ZBPRO_ZCL_WindowCoveringCmdReqDescr_t *const  reqDescr);
 
 /**//**
  * \brief   Accepts ZCL Local Request to issue GotoLiftPecentage command specific to Window Covering ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_WindowCoveringCmdGotoLiftPecentageReq(
                 ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqDescr_t *const  reqDescr);
@@ -490,12 +576,14 @@ void ZBPRO_ZCL_WindowCoveringCmdGotoLiftPecentageReq(
 /**//**
  * \brief   Accepts ZCL Local Request to issue GotoTiltPecentage command specific to Window Covering ZCL
  *  cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_WindowCoveringCmdGotoTiltPecentageReq(
                 ZBPRO_ZCL_WindowCoveringLiftTiltPercentCmdReqDescr_t *const  reqDescr);
 
-/**@}*/
-
 
 #endif /* _BB_ZBPRO_ZCL_SAP_CLUSTER_WINDOW_COVERING_H */
+
+/* eof bbZbProZclSapClusterWindowCovering.h */

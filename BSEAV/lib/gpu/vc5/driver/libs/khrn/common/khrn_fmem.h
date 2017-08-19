@@ -20,7 +20,9 @@
 #include "khrn_memaccess.h"
 #endif
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
+
+void khrn_fmem_static_init(void);
 
 typedef uint64_t job_t;
 
@@ -33,6 +35,7 @@ typedef struct khrn_fmem_block
 
 typedef struct khrn_fmem_buffer_range khrn_fmem_buffer_range;
 typedef struct glxx_query_block glxx_query_block;
+typedef struct compute_job_mem compute_job_mem;
 
 /* Precious things of the FMEM that need to live longer than the render state
    reside in khrn_fmem_persist, which is cleaned up when the
@@ -45,8 +48,9 @@ typedef struct khrn_fmem_persist
    struct fmem_debug_info_vector debug_info;
 #endif
 #if KHRN_DEBUG
-   void* gmp_tables[2];
-   bool no_destroy_after_render;
+   uint8_t* gmp_tables;
+   khrn_memaccess* memaccess;
+   unsigned memaccess_refs;
 #endif
 
    khrn_uintptr_vector client_handles;  // client-allocated handles
@@ -64,6 +68,8 @@ typedef struct khrn_fmem_persist
 
    khrn_vector preprocess_buffers;     // of khrn_fmem_buffer_range
    khrn_vector preprocess_ubo_loads;   // of glxx_hw_ubo_load_batch
+   khrn_vector compute_dispatches;     // of glxx_compute_dispatch
+   compute_job_mem* compute_job_mem;
 
 } khrn_fmem_persist;
 
@@ -99,9 +105,6 @@ typedef struct khrn_fmem
    khrn_uintptr_vector fences_to_signal;
    khrn_uintptr_vector fences_to_depend_on;
 
-#if KHRN_DEBUG
-   khrn_memaccess* memaccess;
-#endif
 #ifndef NDEBUG
    bool in_begin_clist;
    bool cle_closed;
@@ -268,7 +271,7 @@ extern void khrn_fmem_flush(khrn_fmem *fmem);
 //extern bool khrn_fmem_special(khrn_fmem *fmem, uint32_t *location, uint32_t special_i, uint32_t offset);
 extern bool khrn_fmem_is_here(khrn_fmem *fmem, uint8_t *p);
 
-extern v3d_addr_t khrn_fmem_hw_address(khrn_fmem *fmem, void *p);
+extern v3d_addr_t khrn_fmem_hw_address(khrn_fmem *fmem, const void *p);
 
 /*
  * mark the fact that fmem is using this resource for read or write during
@@ -320,12 +323,13 @@ static inline bool khrn_fmem_has_queries(khrn_fmem *fmem)
  *   and later ops in the current control list. If the current control list is
  *   a bin control list, "later ops" does *not* include ops that happen during
  *   render.
- * - Due to HW limitations some src/dst combinations are not supported! */
-extern bool khrn_fmem_cle_barrier(khrn_fmem *fmem,
+ * - Only cache flushes are supported; if cache cleans are required this
+ *   function will assert! */
+extern bool khrn_fmem_cle_barrier_flush(khrn_fmem *fmem,
    v3d_barrier_flags src, v3d_barrier_flags dst,
    /* Cache ops already done for src accesses. May be NULL. */
    v3d_cache_ops *done_ops_from_src);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

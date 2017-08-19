@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- * 
- * Module Description:
- * 
- * Revision History:
- * 
- * $brcm_Log: $
- * 
  **************************************************************************/
 #if NEXUS_HAS_FRONTEND
 #include "nxclient.h"
@@ -59,6 +48,7 @@
 #include <string.h>
 
 BDBG_MODULE(tune_qam);
+#include "nxapp_prompt.inc"
 
 /* the following define the input file and its characteristics -- these will vary by input file */
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
@@ -143,7 +133,7 @@ int main(void)
         NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
     }
     
-    getchar();
+    nxapp_prompt("exit");
 
     NxClient_Disconnect(connectId);
     NxClient_Free(&allocResults);

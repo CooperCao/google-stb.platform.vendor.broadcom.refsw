@@ -67,6 +67,7 @@
 #define PERF_FILE_FULL_PATH_LEN      64
 #define SATA_USB_FILE_FULL_PATH_LEN  64
 #define LINUX_TOP_FILE_FULL_PATH_LEN 64
+#define GETPID                       (unsigned long)getpid()
 
 static void reusePort( int sock );
 
@@ -82,6 +83,8 @@ static bmemperf_boxmode_source g_boxmodeSource = {0, 0};
 int   g_MegaBytes           = 0; /* set to 1 when user wants data displayed in megabytes instead of megabits (default) */
 int   g_MegaBytesDivisor[2] = {1, 8};
 char *g_MegaBytesStr[2] = {"Mbps", "MBps"};
+bsysperf_netStatistics g_netStats[NET_STATS_MAX];
+int                    g_netStatsIdx = -1;                 /* index to entries added to g_netStats array */
 
 typedef struct
 {
@@ -126,16 +129,24 @@ static char              gPowerProbeIpAddr[INET6_ADDRSTRLEN];
 static unsigned char     gPowerProbeShunts[POWER_PROBE_MAX];
 static float             gPowerProbeVoltage[POWER_PROBE_MAX];
 static float             gPowerProbeCurrent[POWER_PROBE_MAX];
+static unsigned char     gPowerProbeConnected[POWER_PROBE_MAX];
 static unsigned char     gPowerProbeQuitCount = 0;
-static pthread_t         gClientStreamerThreadId = 0;
-static unsigned long int gClientStreamerTelnet_pid = 0;
-static char              gClientStreamerIpAddr[INET6_ADDRSTRLEN];
-static unsigned char     gClientStreamerQuitCount = 0;
-static int               gClientStreamerAction = 0; /* 0 => do nothing; 1 => add a stream; 2 stop LIFO stream */
-static unsigned long int gClientStreamerActiveThreadIndex = 0;
-static unsigned long int gClientStreamerActiveThreadPids[CLIENT_STREAMER_THREAD_MAX];
-static unsigned long int gClientStreamerActiveThreadReferers[CLIENT_STREAMER_THREAD_MAX];
 static char              gServerStreamerIpAddr[INET6_ADDRSTRLEN];
+
+typedef struct
+{
+    pthread_t         ThreadId;
+    unsigned long int Telnet_pid;
+    char              IpAddr[INET6_ADDRSTRLEN];
+    unsigned char     QuitCount;
+    long int          Action; /* 0 => do nothing; 1 => add a stream; 2 stop LIFO stream */
+    int               Reset;
+    unsigned long int ActiveThreadIndex;
+    unsigned long int ActiveThreadPids[CLIENT_STREAMER_THREAD_MAX];
+    unsigned long int ActiveThreadReferers[CLIENT_STREAMER_THREAD_MAX];
+    char              LogFile[64];
+} REMOTE_CLIENT_T;
+static REMOTE_CLIENT_T gRemoteClient[BASPMON_MAX_NUM_CLIENTS];
 
 /**
  *  Function: This function will initialize the specified mutex variable.
@@ -1147,7 +1158,8 @@ static int bmemperf_sata_usb_start(
 } /* bmemperf_sata_usb_start */
 
 /**
- *  Function: This function will read the /proc/diskstats file to gather statistics for SATA and USB drives.
+ *  Function: This function will telnet to the Power Probe board and poll for the current and
+ *            voltage for up to 3 probes.
  **/
 static void *bmemperf_power_probe_thread(
     void *data
@@ -1176,37 +1188,37 @@ static void *bmemperf_power_probe_thread(
 
     /* create a connection to the server */
     srv.sin_family = AF_INET; // use the internet addr family
-    srv.sin_port = htons(23); // dedicated telnet port = 23
+    srv.sin_port = htons( TELNET_PORT ); // dedicated telnet port = 23
     srv.sin_addr.s_addr = inet_addr( hostip );
 
     /* create the socket */
     if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("%s:%lu:%lu socket() failed\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+        printf("%s:%lu:%lu socket() failed\n", __FUNCTION__, GETPID, pthread_self() );
         /*perror("socket");*/
         goto exit;
     }
 
     /* connect to the power probe's telnet server */
-    printf("%s:%lu:%lu Connecting to (%s) port %d\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostip, 23 );
+    printf("%s:%lu:%lu Connecting to (%s) port %d\n", __FUNCTION__, GETPID, pthread_self(), hostip, TELNET_PORT );
     if (connect(socket_fd, (struct sockaddr*) &srv, sizeof(srv)) < 0) {
-        printf("%s:%lu:%lu connect() failed\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+        printf("%s:%lu:%lu connect() failed\n", __FUNCTION__, GETPID, pthread_self() );
         /*perror("connect");*/
         goto exit;
     } else {
-        printf("%s:%lu:%lu Connection to (%s) successful.\n\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostip );
+        printf("%s:%lu:%lu Connection to (%s) successful.\n\n", __FUNCTION__, GETPID, pthread_self(), hostip );
     }
 
 
     memset( response, 0, sizeof(response) );
-    bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, sizeof(response) );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, sizeof(response), NULL );
 
 
-    PRINTF("%s:%lu:%lu sending User Name\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
-    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5 );
+    PRINTF("%s:%lu:%lu sending User Name\n", __FUNCTION__, GETPID, pthread_self() );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5, NULL );
 
     memset( response, 0, sizeof(response) );
-    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response) );
-    usleep( 50 );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+    /*usleep( 50 );*/
 
 
     /* if we do not receive a request from the browser within 5 seconds, assume they stopped wanting power probe info and exit */
@@ -1229,10 +1241,10 @@ static void *bmemperf_power_probe_thread(
             float fVoltage = 0.0;
             float fCurrent = 0.0;
             sprintf( hostcmd, "voltcont read_vSense %d", probe );
-            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd));
-            usleep( 50 );
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+            /*usleep( 50 );*/
             memset( response, 0, sizeof(response) );
-            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response) );
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response), NULL );
             eol = strchr( &response[3], '\n'); /* first char might be carriage-return */
             if ( eol )
             {
@@ -1245,12 +1257,12 @@ static void *bmemperf_power_probe_thread(
             gPowerProbeVoltage[probe] = fVoltage;
 
             sprintf( hostcmd, "voltcont read_current %d %d", probe, gPowerProbeShunts[probe] );
-            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd));
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
 
-            usleep( 50 );
+            /*usleep( 50 );*/
 
             memset( response, 0, sizeof(response) );
-            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response) );
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response), NULL );
             eol = strchr(response, '\n');
             if ( eol )
             {
@@ -1276,15 +1288,18 @@ static void *bmemperf_power_probe_thread(
         /* if it took less than a full second (200000 usec) to get all of the probe data, wait the remaining part of a full second (800000 usec) */
         if ( microseconds_delta < 1000000 )
         {
-            PRINTF( "%s:%lu:%lu need to usleep(%lu)\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), (1000000 - microseconds_delta) );
+            PRINTF( "%s:%lu:%lu need to usleep(%lu)\n\n\n", __FUNCTION__, GETPID, pthread_self(), (1000000 - microseconds_delta) );
             usleep( (1000000 - microseconds_delta) );
         }
 
         /* each time the server gets a request for power probe data, the server will set this to 0 */
         gPowerProbeQuitCount++;
+
+        printf( "%s:%lu:%lu gPowerProbeQuitCount (%u)\n", __FUNCTION__, GETPID, pthread_self(), gPowerProbeQuitCount );
+
     }   /* while gPowerProbeQuitCount < 10 */
 
-    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4);
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4, NULL );
 
     close( socket_fd );
     socket_fd = 0;
@@ -1297,12 +1312,13 @@ exit:
         gPowerProbeShunts[probe] = 0;
         gPowerProbeVoltage[probe] = 0.0;
         gPowerProbeCurrent[probe] = 0.0;
+        gPowerProbeConnected[probe] = 0;
     }
 
-    PRINTF( "%s:%lu:%lu exiting. gPowerProbeThreadId is 0\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+    PRINTF( "%s:%lu:%lu exiting. gPowerProbeThreadId is 0\n", __FUNCTION__, GETPID, pthread_self() );
 
     /* if I call pthread_exit() in this thread, the parent thread will exit also */
-    PRINTF( "%s:%lu:%lu sleeping()\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+    PRINTF( "%s:%lu:%lu sleeping()\n", __FUNCTION__, GETPID, pthread_self() );
     sleep( 123456789 );
 
     return NULL;
@@ -1320,8 +1336,8 @@ static int bmemperf_power_probe_start(
     void                    *(*threadFunc)( void * );
     static unsigned long int threadOption = 0;
 
-    PRINTF("%s :%lu:%lu gPowerProbeThreadId %lu ... gPowerProbeTelnet_pid %lu\n", __FUNCTION__,
-            (unsigned long int) getpid(), pthread_self(), (unsigned long int) gPowerProbeThreadId, gPowerProbeTelnet_pid );
+    PRINTF("%s:%lu:%lu gPowerProbeThreadId %lu ... gPowerProbeTelnet_pid %lu\n", __FUNCTION__,
+            GETPID, pthread_self(), (unsigned long int) gPowerProbeThreadId, gPowerProbeTelnet_pid );
     /* if the thread has not already been started, start it now */
     if ( gPowerProbeThreadId == 0 )
     {
@@ -1333,12 +1349,458 @@ static int bmemperf_power_probe_start(
 
             if (pthread_create( &gPowerProbeThreadId, NULL, threadFunc, (void *)&threadOption ))
             {
-                printf( "%s :%lu:%lu could not create thread for bmemperf_power_probe_thread; %s\n", __FUNCTION__,
+                printf( "%s:%lu:%lu could not create thread for bmemperf_power_probe_thread; %s\n", __FUNCTION__,
+                        GETPID, pthread_self(), strerror( errno ));
+            }
+            else
+            {
+                printf( "%s:%lu:%lu Thread for bmemperf_power_probe_thread started successfully; id %lx\n", __FUNCTION__,
+                        GETPID, pthread_self(), (long int) gPowerProbeThreadId );
+            }
+        }
+    }
+    else
+    {
+        int status = 0;
+        PRINTF( "%s:%lu:%lu Thread for bmemperf_power_probe_thread already started; id %lx\n", __FUNCTION__,
+                GETPID, pthread_self(), (long int) gPowerProbeThreadId );
+        waitpid( gPowerProbeTelnet_pid, &status, WNOHANG );
+
+        /*printf( "%s:%lu:%lu after waitpid() ... status %d\n", __FUNCTION__, GETPID, pthread_self(), status );*/
+        /* if the child has exited for some reason */
+        if ( status == 13 )
+        {
+            printf( "%s:%lu:%lu PID %lu has exited with rc %d (%s)!!!!!\n", __FUNCTION__,
+                    GETPID, pthread_self(), gPowerProbeTelnet_pid, status, strerror(errno) );
+            gPowerProbeTelnet_pid = 0;
+            gPowerProbeThreadId = 0;
+        }
+    }
+
+    return( 0 );
+} /* bmemperf_power_probe_start */
+
+/**
+ *  Function: This function will save the list.csv response from the power probe board to a series of
+ *            csv files ... numbered from 0 to 9.
+ **/
+static unsigned long int   ResponseFileCount = 0;
+static int save_response( char * hostcmd, char *response, double fTimeDelta )
+{
+    if ( hostcmd && response )
+    {
+        int len = strlen(response);
+        if ( len > 80 )
+        {
+            char eol = response[80];
+            response[80] = '\0';
+            /*printf("L%u: %s for (%s) ... got response ... len %d (%s)\n", __LINE__, HhMmSsMsec(0), hostcmd, len, response );*/
+            response[80] = eol;
+        }
+        else
+        {
+            /*printf("L%u: %s for (%s) ... got response (%s)\n", __LINE__, HhMmSsMsec(0), hostcmd, response );*/
+        }
+
+        /* if the data is long enough, save the response to a file */
+        {
+            char   Filename[64];
+            char   probeDataFullFilename[PERF_FILE_FULL_PATH_LEN];
+            FILE  *fp = NULL;
+
+            if ( strlen(response) > 100 )
+            {
+                sprintf( Filename, "probedata%03lu.dat", ResponseFileCount );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), Filename );
+                fp = fopen( probeDataFullFilename, "w");
+                if ( fp )
+                {
+                    char timeDelta[64];
+                    sprintf( timeDelta, "Delta %6.03f\n", fTimeDelta );
+                    printf( "%s", timeDelta );
+                    fwrite( timeDelta, 1, strlen(timeDelta), fp);
+
+                    fwrite( response, 1, strlen(response), fp);
+                    fclose( fp );
+                    /*printf( "Wrote %lu bytes to to file (%s) \n", (unsigned long int) strlen(response), Filename );*/
+                }
+                else
+                {
+                    printf( "Could not open file (%s) for writing\n", Filename );
+                }
+                ResponseFileCount++;
+            }
+        }
+    }
+
+    return 0;
+}
+/**
+ *  Function: This function will telnet to the Power Probe board. The thread will issue a command
+ *            to extract voltage and current for 1000 points per second.
+ **/
+static void *bmemperf_power_probe_1000_thread(
+    void *data
+    )
+{
+    int                     idx        = 0;
+    int                     socket_fd  = 0;
+    int                     probe      = 0;
+    unsigned char           PingPong   = 0;
+    double                  fTimeStart = 0.0;
+    double                  fTimeNow   = 0.0;
+    int                     option     = 0;
+    FILE                   *fp         = NULL;
+    struct sockaddr_in      srv;
+    char                    hostip[INET6_ADDRSTRLEN];
+    char                    hostcmd[128];
+    char                    response[30*1024];
+    struct timeval          tv0, tv1, tv2;
+    unsigned long long int  microseconds1 = 0, microseconds2 = 0;
+    unsigned long int       microseconds_delta = 0;
+    char                    probeDataFullFilename[PERF_FILE_FULL_PATH_LEN];
+    char                    probeDataFilename[PERF_FILE_FULL_PATH_LEN];
+
+    if (data == NULL)
+    {
+        printf( "%s: arg1 cannot be NULL\n", __FUNCTION__ );
+        goto exit;
+    }
+
+    option = (int) * (int*)data;
+    printf("%s:%lu:%lu option %d\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), option );
+
+    memset( &tv0, 0, sizeof(tv0) );
+    memset( &tv1, 0, sizeof(tv1) );
+    memset( &tv2, 0, sizeof(tv2) );
+
+    strncpy ( hostip, gPowerProbeIpAddr, sizeof(hostip) );
+
+    for(idx=0; idx<2; idx++ )
+    {
+        sprintf( probeDataFilename, "list_%d.csv", idx );
+        PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+        remove( probeDataFullFilename );
+    }
+
+    /* create a connection to the server */
+    srv.sin_family = AF_INET; // use the internet addr family
+    srv.sin_port = htons(23); // dedicated telnet port = 23
+    srv.sin_addr.s_addr = inet_addr( hostip );
+
+    /* create the socket */
+    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("%s:%lu:%lu socket() failed\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+        /*perror("socket");*/
+        goto exit;
+    }
+
+    /* connect to the power probe's telnet server */
+    printf("%s:%lu:%lu Connecting to (%s) port %d\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostip, 23 );
+    if (connect(socket_fd, (struct sockaddr*) &srv, sizeof(srv)) < 0) {
+        printf("%s:%lu:%lu connect() failed\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+        /*perror("connect");*/
+        goto exit;
+    } else {
+        printf("%s:%lu:%lu Connection to (%s) successful.\n\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostip );
+    }
+
+
+    memset( response, 0, sizeof(response) );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, sizeof(response), NULL );
+
+    printf("%s:%lu:%lu sending User Name\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5, NULL );
+
+    memset( response, 0, sizeof(response) );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+    printf("for (%s) ... got response len (%d)\n", "root", (unsigned)strlen(response) );
+    usleep( 50 );
+
+#define LIST_FILE_FULL_PATH_LEN 64
+    /* if the power_probe_list.txt file exists, send its contents over to the power probe board */
+    {
+        FILE  *fp         = NULL;
+        char   probeDataFullFilename[LIST_FILE_FULL_PATH_LEN];
+        char   probeDataFilename[LIST_FILE_FULL_PATH_LEN];
+        char   probeDataFileLine[64];
+        char  *rc = NULL;
+
+        sprintf( hostcmd, "rm /tmp/list.txt" );
+        printf("%s:%lu:%lu sending (%s)\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostcmd );
+        bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+        memset( response, 0, sizeof(response) );
+        bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+        printf("for (%s) ... got response len (%d)\n", hostcmd, (unsigned)strlen(response) );
+        usleep( 50 );
+
+        strcpy( probeDataFilename, POWER_PROBE_LIST_DAT_FILENAME );
+        PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+        fp = fopen( probeDataFullFilename, "r" );
+        printf("fopen (%s) returned %p\n", probeDataFullFilename, fp );
+        fflush(stdout);fflush(stderr);
+
+        while ( fp && !feof(fp) )
+        {
+            rc = fgets( probeDataFileLine, sizeof(probeDataFileLine), fp );
+            if ( rc != NULL )
+            {
+                int len = strlen( probeDataFileLine );
+                if ( len && probeDataFileLine[ len - 1 ] == '\n' ) probeDataFileLine[ len - 1 ] = '\0'; /* remove newline character */
+
+                sprintf( hostcmd, "echo \"%s\" >> /tmp/list.txt", probeDataFileLine );
+                printf("%s:%lu:%lu sending list.txt line (%s)\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), probeDataFileLine );
+                fflush(stdout);fflush(stderr);
+                bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+                memset( response, 0, sizeof(response) );
+                bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+                usleep( 50 );
+            }
+        }
+    }
+
+    gettimeofday(&tv0, NULL); /* remember the time when things started; used later to determine how many seconds we have been collecting data */
+    fTimeStart = (tv0.tv_usec * 1.0) / 1000000.0 + (tv0.tv_sec * 1.0);
+    printf( "fTimeStart %8.06f sec %ld usec %ld\n", fTimeStart, tv0.tv_sec, tv0.tv_usec );
+
+    /* if we do not receive a request from the browser within 5 seconds, assume they stopped wanting power probe info and exit */
+    while ( gPowerProbeQuitCount < 5 )
+    {
+        float fCurrent = 0.0;
+
+        gettimeofday(&tv1, NULL);
+        microseconds1 = (tv1.tv_sec * 1000000LL);
+        /*printf("microseconds1 %llu (%lu) (%06lu)\n", microseconds1, tv1.tv_sec, tv1.tv_usec );*/
+        microseconds1 += tv1.tv_usec;
+        /*printf("microseconds1 %llu\n", microseconds1 );*/
+
+        if ( option == POWER_PROBE_ONE_HERTZ )
+        {
+            /*
+            Usage: voltcont write_list [numRails] [mode] [count_sec]
+            Writes /tmp/list.txt to /tmp/list.csv up to count_sec
+
+            arg mode (1=current only, 2=voltage only, else=all)
+            */
+
+            sprintf( hostcmd, "voltcont write_list 2 9 1" );
+            /*printf("for (%s) ... sending\n", hostcmd );*/
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+            sleep( 1 ); /* typically takes 1.5 seconds to collect 1000 points of data */
+
+            memset( response, 0, sizeof(response) );
+            /*printf("for (%s) ... getting response \n", hostcmd );*/
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+            fTimeNow = (tv1.tv_usec * 1.0) / 1000000.0 + (tv1.tv_sec * 1.0);
+            printf("L%d - tv0: %ld.%06ld ... tv1: %ld.%06ld ... %8.06f %8.06f ... delta %8.06f\n", __LINE__,
+                    (long int) tv0.tv_sec, (long int) tv0.tv_usec, (long int) tv1.tv_sec, (long int) tv1.tv_usec,
+                    fTimeStart, fTimeNow, fTimeNow - fTimeStart  );
+            save_response( hostcmd, response, fTimeNow - fTimeStart );
+
+            sprintf( hostcmd, "cat /tmp/list.csv && echo \"# \"" );
+            /*printf("for (%s) ... sending\n", hostcmd );*/
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+            usleep( 50 ); /* expect about 26,000 bytes back */
+
+            memset( response, 0, sizeof(response) );
+            /*printf("for (%s) ... getting response \n", hostcmd );*/
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+            /*printf("for (%s) ... got response len (%d)\n", hostcmd, strlen(response) );*/
+
+            /* read the previous CSV data from saved file */
+            if ( ResponseFileCount )
+            {
+                char  Filename[64];
+                FILE *fp = NULL;
+
+                sprintf( Filename, "probedata%03lu.dat", ResponseFileCount-1 );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), Filename );
+                fp = fopen( probeDataFullFilename, "r");
+                if ( fp )
+                {
+                    fread( response, 1, sizeof(response), fp );
+                    fclose( fp );
+                }
+                if ( ResponseFileCount >= 10 ) ResponseFileCount = 0;
+            }
+
+            if ( strlen(response) > 100 )
+            {
+                PingPong = 0;
+#if 0
+                int len = 0;
+
+                /* if list_0.csv exists */
+                sprintf( probeDataFilename, "list_%d.csv", PingPong );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+                len = GetFileLength( probeDataFullFilename );
+                printf( "L%u len (%s) is %d\n", __LINE__, probeDataFullFilename, len );
+                if ( GetFileLength( probeDataFullFilename ) > 0 )
+                {
+                    /* client has not had a chance to consume the data from list_0.csv; write data to list_1.csv */
+                    PingPong = 1;
+                    printf( "L%u - PingPong %d\n", __LINE__, PingPong );
+                }
+                else /* list_0.csv does not exist */
+                {
+                    /* if list_1.csv exists */
+                    sprintf( probeDataFilename, "list_%d.csv", 1 );
+                    PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+                    if ( GetFileLength( probeDataFullFilename ) > 0 )
+                    {
+                        char probeDataFullFilename0[PERF_FILE_FULL_PATH_LEN];
+                        char probeDataFilename0[PERF_FILE_FULL_PATH_LEN];
+
+                        sprintf( probeDataFilename0, "list_%d.csv", 0 );
+                        PrependTempDirectory( probeDataFullFilename0, sizeof( probeDataFullFilename0 ), probeDataFilename0 );
+
+                        /* rename list_1.csv to list_0.csv */
+                        rename( probeDataFullFilename, probeDataFullFilename0 );
+                        printf( "L%u - rename(%s,%s)\n", __LINE__, probeDataFullFilename, probeDataFullFilename0 );
+
+                        PingPong = 1;
+                        printf( "L%u - PingPong %d\n", __LINE__, PingPong );
+                    }
+                    else
+                    {
+                        PingPong = 0;
+                        printf( "L%u - PingPong %d\n", __LINE__, PingPong );
+                    }
+                }
+#endif
+
+                /* write the new file */
+                sprintf( probeDataFilename, "list_%d.csv", PingPong );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+#if 1
+                fp = fopen( probeDataFullFilename, "a");
+                if ( fp ) {
+                    fwrite( response, 1, strlen(response), fp );
+                    fclose( fp );
+                }
+#else
+                SetFileContents( probeDataFullFilename, response );
+#endif
+                printf("wrote %d bytes to (%s)\n", (unsigned)strlen(response), probeDataFullFilename );
+            }
+
+            gPowerProbeCurrent[probe] = fCurrent;
+        }
+        else if ( option == POWER_PROBE_RETURN_CONNECTED_PROBES )
+        {
+            char *eol = NULL;
+            for( probe=0; probe<POWER_PROBE_MAX; probe++ )
+            {
+                sprintf( hostcmd, "voltcont lead_connected %d", probe );
+                /*printf("for (%s) ... sending\n", hostcmd );*/
+                bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+                memset( response, 0, sizeof(response) );
+                /*printf("for (%s) ... getting response \n", hostcmd );*/
+                bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+                /*printf("for (%s) ... got response len (%d) (%s)\n", hostcmd, strlen(response), response );*/
+                if ( ( eol = strstr( response, hostcmd ) ) )
+                {
+                    eol = strstr( eol, "\n" );
+                    if ( eol )
+                    {
+                        printf( "for (%s) ... response is (%c)\n", hostcmd, eol[1] );
+                        if ( eol[1] == '1' ) /* if the probe lead is connected to something */
+                        {
+                            gPowerProbeConnected[probe] = 1;
+                        }
+                        else
+                        {
+                            gPowerProbeConnected[probe] = 0;
+                        }
+                    }
+                }
+            }
+
+            if( gPowerProbeQuitCount < 3 ) gPowerProbeQuitCount = 3; /* give the thread one more second to allow main server to read active probes */
+        }
+
+        gettimeofday(&tv2, NULL);
+        microseconds2 = (tv2.tv_sec * 1000000LL);
+        /*printf("microseconds2 %llu (%lu) (%06lu)\n", microseconds2, tv2.tv_sec, tv2.tv_usec );*/
+        microseconds2 += tv2.tv_usec;
+        /*printf("microseconds2 %llu\n", microseconds2 );
+        printf("tv1 %lu.%06lu ... tv2 %lu.%06lu\n", tv1.tv_sec, tv1.tv_usec, tv2.tv_sec, tv2.tv_usec);*/
+        microseconds_delta = (microseconds2 - microseconds1);
+        /*printf("delta microseconds (%llu - %llu) ... %lu\n", microseconds2, microseconds1, microseconds_delta );*/
+
+        /* if it took less than a full second (200000 usec) to get all of the probe data, wait the remaining part of a full second (800000 usec) */
+        if ( microseconds_delta < 1000000 )
+        {
+            PRINTF( "%s:%lu:%lu need to usleep(%lu)\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), (1000000 - microseconds_delta) );
+            usleep( (1000000 - microseconds_delta) );
+        }
+
+        /* each time the server gets a request for power probe data, the server will set this to 0 */
+        gPowerProbeQuitCount++;
+    }   /* while gPowerProbeQuitCount has not max'ed out */
+
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4, NULL );
+
+    close( socket_fd );
+    socket_fd = 0;
+
+exit:
+    gPowerProbeThreadId = 0;
+    gPowerProbeTelnet_pid = 0;
+    for(probe=0; probe<POWER_PROBE_MAX; probe++)
+    {
+        gPowerProbeShunts[probe] = 0;
+        gPowerProbeVoltage[probe] = 0.0;
+        gPowerProbeCurrent[probe] = 0.0;
+        gPowerProbeConnected[probe] = 0;
+    }
+
+    printf( "%s:%lu:%lu exiting. gPowerProbeThreadId is 0\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+
+    /* if I call pthread_exit() in this thread, the parent thread will exit also */
+    PRINTF( "%s:%lu:%lu sleeping()\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+    sleep( 123456789 );
+
+    return NULL;
+} /* bmemperf_power_probe_1000_thread */
+
+
+/**
+ *  Function: This function will start a new thread that will telnet to the specified IP address
+ *            and gather Voltage and Current for the specified power probes.
+ **/
+static unsigned long int bmemperf_power_probe_1000_option = 0;
+static int bmemperf_power_probe_1000_start(
+    unsigned long int option
+    )
+{
+    void                    *(*threadFunc)( void * );
+
+    bmemperf_power_probe_1000_option = option;
+
+    PRINTF("%s :%lu:%lu gPowerProbeThreadId %lu ... gPowerProbeTelnet_pid %lu\n", __FUNCTION__,
+            (unsigned long int) getpid(), pthread_self(), (unsigned long int) gPowerProbeThreadId, gPowerProbeTelnet_pid );
+    /* if the thread has not already been started, start it now */
+    if ( gPowerProbeThreadId == 0 )
+    {
+        if ( gPowerProbeTelnet_pid == 0 )
+        {
+            /* start a background thread that will perform telnet I/O */
+            threadFunc   = bmemperf_power_probe_1000_thread;
+
+            if (pthread_create( &gPowerProbeThreadId, NULL, threadFunc, (void *)&bmemperf_power_probe_1000_option ))
+            {
+                printf( "%s :%lu:%lu could not create thread for bmemperf_power_probe_1000_thread; %s\n", __FUNCTION__,
                         (unsigned long int) getpid(), pthread_self(), strerror( errno ));
             }
             else
             {
-                printf( "%s :%lu:%lu Thread for bmemperf_power_probe_thread started successfully; id %lx\n", __FUNCTION__,
+                printf( "%s :%lu:%lu Thread for bmemperf_power_probe_1000_thread started successfully; id %lx\n", __FUNCTION__,
                         (unsigned long int) getpid(), pthread_self(), (long int) gPowerProbeThreadId );
             }
         }
@@ -1346,7 +1808,7 @@ static int bmemperf_power_probe_start(
     else
     {
         int status = 0;
-        PRINTF( "%s :%lu:%lu Thread for bmemperf_power_probe_thread already started; id %lx\n", __FUNCTION__,
+        PRINTF( "%s :%lu:%lu Thread for bmemperf_power_probe_1000_thread already started; id %lx\n", __FUNCTION__,
                 (unsigned long int) getpid(), pthread_self(), (long int) gPowerProbeThreadId );
         waitpid( gPowerProbeTelnet_pid, &status, WNOHANG );
 
@@ -1362,7 +1824,7 @@ static int bmemperf_power_probe_start(
     }
 
     return( 0 );
-} /* bmemperf_power_probe_start */
+} /* bmemperf_power_probe_1000_start */
 
 #define CLIENT_STREAMER_MAX_THREADS 32
 /**
@@ -1372,7 +1834,7 @@ static int bmemperf_power_probe_start(
  *            launched streaming command. As the wget lines are found, the global
  *            array of wget PIDs will be updated.
  **/
-static int bmemperf_client_streamer_search_threads ( int socket_fd )
+static int bmemperf_client_streamer_search_threads( int socket_fd, int client )
 {
     char *bol = NULL; /* beginning of line */
     char *eol = NULL; /* end of line */
@@ -1383,13 +1845,13 @@ static int bmemperf_client_streamer_search_threads ( int socket_fd )
     memset( response, 0, sizeof(response) );
 
     sprintf( hostcmd, "ps -eaf | egrep \"wget|play\" | grep -v grep" );
-    noprintf("%s: sending (%s)\n", __FUNCTION__, hostcmd );
-    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd));
-    usleep( 50 );
+    printffile( gRemoteClient[client].LogFile, "%s: client %d ... sending (%s)\n", __FUNCTION__, client, hostcmd );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
+    /*usleep( 50 );*/
     memset( response, 0, sizeof(response) );
-    bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response) );
-    noprintf("for (%s) ... got response length (%d)\n", hostcmd, strlen(response) );
-    noprintf("(%s)\n", response );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response), gRemoteClient[client].LogFile );
+    printffile( gRemoteClient[client].LogFile, "%s: client %d ... for (%s) ... got response length (%d)\n", __FUNCTION__, client, hostcmd, strlen(response) );
+    printffile( gRemoteClient[client].LogFile, "%s: client %d ... (%s)\n", __FUNCTION__, client, response );
 
     /* scan the response to extract the pids of running wget threads */
     /*
@@ -1405,9 +1867,9 @@ static int bmemperf_client_streamer_search_threads ( int socket_fd )
        root      8561  8446  0 03:35 pts/0    00:00:00 wget -O /dev/null -q http://10.14.233.133:8089/DISCOVERY_HD_test.ts -U Referer:_9
     */
     bol = response;
-    gClientStreamerActiveThreadIndex = 0;
-    memset( gClientStreamerActiveThreadPids, 0, sizeof(gClientStreamerActiveThreadPids) ); /* array will be re-populated in the block below */
-    memset( gClientStreamerActiveThreadReferers, 0, sizeof(gClientStreamerActiveThreadReferers) ); /* array will be re-populated in the block below */
+    gRemoteClient[client].ActiveThreadIndex = 0;
+    memset( gRemoteClient[client].ActiveThreadPids, 0, sizeof(gRemoteClient[client].ActiveThreadPids) ); /* array will be re-populated in the block below */
+    memset( gRemoteClient[client].ActiveThreadReferers, 0, sizeof(gRemoteClient[client].ActiveThreadReferers) ); /* array will be re-populated in the block below */
     do
     {
         unsigned long int pid = 0;
@@ -1430,9 +1892,9 @@ static int bmemperf_client_streamer_search_threads ( int socket_fd )
                     char *referer = strstr( bol, REFERER_TAG );
                     unsigned long int stream_idx = 0;
 
-                    if ( gClientStreamerActiveThreadIndex < CLIENT_STREAMER_MAX_THREADS )
+                    if ( gRemoteClient[client].ActiveThreadIndex < CLIENT_STREAMER_MAX_THREADS )
                     {
-                        gClientStreamerActiveThreadPids[gClientStreamerActiveThreadIndex] = pid;
+                        gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex] = pid;
                     }
 
                     if ( referer )
@@ -1441,12 +1903,12 @@ static int bmemperf_client_streamer_search_threads ( int socket_fd )
                         sscanf( referer, "%ld", &stream_idx );
                     }
 
-                    if ( gClientStreamerActiveThreadIndex < CLIENT_STREAMER_MAX_THREADS )
+                    if ( gRemoteClient[client].ActiveThreadIndex < CLIENT_STREAMER_MAX_THREADS )
                     {
-                        gClientStreamerActiveThreadReferers[gClientStreamerActiveThreadIndex] = stream_idx;
+                        gRemoteClient[client].ActiveThreadReferers[gRemoteClient[client].ActiveThreadIndex] = stream_idx;
                     }
-                    gClientStreamerActiveThreadIndex++;
-                    noprintf("%s: found wget pid (%lu) ... count %lu\n", __FUNCTION__, pid, gClientStreamerActiveThreadIndex );
+                    gRemoteClient[client].ActiveThreadIndex++;
+                    noprintf("%s: found wget pid (%lu) ... count %lu\n", __FUNCTION__, pid, gRemoteClient[client].ActiveThreadIndex );
                 }
             }
         }
@@ -1455,17 +1917,19 @@ static int bmemperf_client_streamer_search_threads ( int socket_fd )
         /*printflog("%s: while bol %p\n", __FUNCTION__, pid, bol );*/
     } while ( bol != NULL );
     return 0;
-}
+}   /* bmemperf_client_streamer_search_threads */
 
 /**
  *  Function: This function will perform a telnet session to the specified client streamer IP address.
  **/
+#define RESPONSE_SIZE 10240
 static void *bmemperf_client_streamer_thread(
     void *data
     )
 {
     struct sockaddr_in     srv;
     int                    idx          = 0;
+    int                    client = 0; /* ranges from 0 .. BASPMON_MAX_NUM_CLIENTS */
     int                    socket_fd    = 0;
     int                    keepActive   = 0; /* Number of streams the browser wants us to keep active. If wget finishes, start another one. */
 #if 0
@@ -1473,78 +1937,108 @@ static void *bmemperf_client_streamer_thread(
     char                  *posBoaServer = NULL;
     char                   BoaServerPath[64];
 #endif
-    char                   ClientStreamerCommandLine[BASPMON_MAX_NUM_STREAMS][128];
+    char                   ClientStreamerCommandLine[BASPMON_MAX_NUM_CLIENTS][BASPMON_MAX_NUM_STREAMS][128];
     char                   ClientStreamerTagline[32];
     char                   hostip[INET6_ADDRSTRLEN];
     char                   hostcmd[64];
-    char                   response[4096];
+    char                  *response = NULL;
     struct timeval         tv1, tv2;
     unsigned long long int microseconds1 = 0;
     unsigned long long int microseconds2 = 0;
     unsigned long int      microseconds_delta = 0;
+    unsigned long int      retry_count        = 0;
+    long int               recv_error         = 0;
 
     if (data == NULL)
     {
-        printf( "%s: arg1 cannot be NULL\n", __FUNCTION__ );
+        printf( "%s:%lu arg1 cannot be NULL\n", __FUNCTION__, GETPID );
         goto exit;
     }
 
+    client = (int) * (int*)data;
     memset( &tv1, 0, sizeof(tv1) );
     memset( &tv2, 0, sizeof(tv2) );
+    gRemoteClient[client].QuitCount = 0;
 
-    strncpy ( hostip, gClientStreamerIpAddr, sizeof(hostip) );
+    if ( strlen( gRemoteClient[client].IpAddr ) == 0 )
+    {
+        printf("%s:%lu gRemoteClientIpAddr[%d] is empty\n", __FUNCTION__, GETPID, client );
+        goto exit;
+    }
+
+    response = malloc( RESPONSE_SIZE );
+    if ( response == NULL )
+    {
+        printf("%s:%lu Client %d ... could not malloc(%d) bytes\n", __FUNCTION__, GETPID, client, RESPONSE_SIZE );
+        goto exit;
+    }
+
+    strncpy ( hostip, gRemoteClient[client].IpAddr, sizeof(hostip) );
 
     /* create a connection to the server */
     srv.sin_family = AF_INET; // use the internet addr family
-    srv.sin_port = htons(23); // dedicated telnet port = 23
+    srv.sin_port = htons( TELNET_PORT ); // dedicated telnet port = 23
     srv.sin_addr.s_addr = inet_addr( hostip );
-
-    /* create the socket */
-    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("%s:%lu socket() failed\n", __FUNCTION__, (unsigned long int) getpid() );
-        /*perror("socket");*/
-        goto exit;
-    }
 
     /* check to see if there are 16 commands for the remote client */
     for( idx=0; idx<BASPMON_MAX_NUM_STREAMS; idx++ )
     {
-        sprintf( ClientStreamerTagline, "ClientStreamerCommandLine%d", idx );
+        sprintf( ClientStreamerTagline, "ClientStreamerCommandLine%d%d", client, idx );
         /* read the command line template from the configuration file */
-        Bmemperf_GetCfgFileEntry( BASPMON_CFG_FILENAME, ClientStreamerTagline, &ClientStreamerCommandLine[idx][0], sizeof(ClientStreamerCommandLine[idx]) );
-        printf("%s:%lu in (%s) %s is (%s)\n", __FUNCTION__, (unsigned long int) getpid(), BASPMON_CFG_FILENAME, ClientStreamerTagline, &ClientStreamerCommandLine[idx][0] );
+        Bmemperf_GetCfgFileEntry( BASPMON_CFG_FILENAME, ClientStreamerTagline, &ClientStreamerCommandLine[client][idx][0],
+                sizeof(ClientStreamerCommandLine[client][idx]) );
+        printffile( gRemoteClient[client].LogFile, "%s:%lu in (%s) %s is (%s)\n", __FUNCTION__, GETPID, BASPMON_CFG_FILENAME,
+                ClientStreamerTagline, &ClientStreamerCommandLine[client][idx][0] );
+    }
+
+RETRY:
+    retry_count++;
+    printffile( gRemoteClient[client].LogFile, "\n\n%s:%lu retry_count %lu\n", __FUNCTION__, GETPID, retry_count );
+
+    if ( retry_count > 5 ) goto exit;
+
+    /* create the socket */
+    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("%s:%lu socket() failed\n", __FUNCTION__, GETPID );
+        /*perror("socket");*/
+        goto exit;
     }
 
     /* connect to the client streamer's telnet server */
-    printf("%s:%lu Connecting to (%s) port %d\n", __FUNCTION__, (unsigned long int) getpid(), hostip, 23 );
+    printffile( gRemoteClient[client].LogFile, "%s:%lu Connecting to (%s) port %d\n", __FUNCTION__, GETPID, hostip, TELNET_PORT );
     if (connect(socket_fd, (struct sockaddr*) &srv, sizeof(srv)) < 0) {
-        printf("%s:%lu connect() failed\n", __FUNCTION__, (unsigned long int) getpid() );
+        printffile( gRemoteClient[client].LogFile, "%s:%lu connect() failed\n", __FUNCTION__, GETPID );
         /*perror("connect");*/
         goto exit;
     } else {
-        noprintf("%s:%lu Connection to (%s) successful.\n\n", __FUNCTION__, (unsigned long int) getpid(), hostip );
+        noprintf( "%s:%lu Connection to (%s) successful.\n\n", __FUNCTION__, GETPID, hostip );
     }
 
-    memset( response, 0, sizeof(response) );
-    bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, sizeof(response) );
+    memset( response, 0, RESPONSE_SIZE );
+    recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+    printffile( gRemoteClient[client].LogFile, "%s:%lu ... after response login: rc %d\n", __FUNCTION__, GETPID, recv_error );
+    if ( recv_error != 0 ) goto RETRY;
 
 
-    printf("%s:%lu sending User Name (root)\n", __FUNCTION__, (unsigned long int) getpid() );
-    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5 );
-    memset( response, 0, sizeof(response) );
-    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response) );
-    usleep( 50 );
+    printffile( gRemoteClient[client].LogFile, "%s:%lu sending User Name (root)\n", __FUNCTION__, GETPID );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5, gRemoteClient[client].LogFile );
+    /*usleep( 50 );*/
+    memset( response, 0, RESPONSE_SIZE );
+    recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+    printffile( gRemoteClient[client].LogFile, "%s:%lu ... after response root: rc %d\n", __FUNCTION__, GETPID, recv_error );
+    if ( recv_error != 0 ) goto RETRY;
 
 #if 0
     /* not needed if the only app we want to run is wget */
     /* we need to find out what directory contains the binaries */
     sprintf( hostcmd, "find / -name \"boa_server\"\n" );
-    noprintf("%s:%lu sending (%s)\n", __FUNCTION__, (unsigned long int) getpid(), hostcmd );
-    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd) );
-    usleep( 50 );
-    memset( response, 0, sizeof(response) );
-    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response) );
-    /*printf("%s: got response (%s)\n", __FUNCTION__, response );*/
+    noprintffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s)\n", __FUNCTION__, GETPID, hostcmd );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
+    /*usleep( 50 );*/
+    memset( response, 0, RESPONSE_SIZE );
+    recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+    /*printffile( gRemoteClient[client].LogFile, "%s: got response (%s)\n", __FUNCTION__, response );*/
+    if ( recv_error != 0 ) goto RETRY;
     posBoaServer = pos = strstr( response, "/boa_server" );
     if ( pos )
     {
@@ -1564,200 +2058,244 @@ static void *bmemperf_client_streamer_thread(
             pos++; /* Advance past the carriage return char. This should be the beginning of the path to boa_server. */
             *posBoaServer = '\0';
             strncpy( BoaServerPath, pos, sizeof(BoaServerPath) - 1 );
-            noprintf("%s: BoaServerPath is (%s)\n", __FUNCTION__, BoaServerPath );
+            noprintffile( gRemoteClient[client].LogFile, "%s: BoaServerPath is (%s)\n", __FUNCTION__, BoaServerPath );
         }
     }
 #endif
 
-    printf("%s: gClientStreamerAction %d ... gClientStreamerQuitCount %u ... %s\n", __FUNCTION__, gClientStreamerAction,
-            gClientStreamerQuitCount, DateYyyyMmDdHhMmSs() );
-
 
     /* if we do not receive a request from the browser within 5 seconds, assume they stopped wanting client streamer info and exit */
-    while ( gClientStreamerQuitCount < 5 )
+    printffile( gRemoteClient[client].LogFile, "%s:%lu client %d ... %d\n", __FUNCTION__, GETPID, client, __LINE__ ); fflush(stderr); fflush(stdout);
+    while ( ( gRemoteClient[client].QuitCount < 5 ) && ( gRemoteClient[client].Action != BMEMPERF_CMD_CLIENT_TERMINATE ) )
     {
         gettimeofday(&tv1, NULL);
         microseconds1 = (tv1.tv_sec * 1000000LL);
         microseconds1 += tv1.tv_usec;
-        {
-            keepActive += gClientStreamerAction; /* could be plus or minus number */
 
-            if ( gClientStreamerAction ) printf("%s: Action %d\n", __FUNCTION__, gClientStreamerAction );
-            if ( gClientStreamerAction > 0 ) /* if user requested we start a new stream */
+        printf( "%s:%lu client %d ... gRemoteClientAction %ld ... gRemoteClientQuitCount %u ... gRemoteClientReset %d ... %s\n",
+                __FUNCTION__, GETPID, client, gRemoteClient[client].Action, gRemoteClient[client].QuitCount, gRemoteClient[client].Reset, DateYyyyMmDdHhMmSs() );
+        printffile( gRemoteClient[client].LogFile, "%s:%lu gRemoteClientAction %ld ... gRemoteClientQuitCount %u ... gRemoteClientReset %d ... %s\n",
+                __FUNCTION__, GETPID, gRemoteClient[client].Action, gRemoteClient[client].QuitCount, gRemoteClient[client].Reset, DateYyyyMmDdHhMmSs() );
+
+        keepActive += gRemoteClient[client].Action; /* could be plus or minus number */
+        if ( gRemoteClient[client].Action ) printffile( gRemoteClient[client].LogFile, "%s:%lu Action %ld\n", __FUNCTION__, GETPID, gRemoteClient[client].Action );
+
+        if ( gRemoteClient[client].Action == BMEMPERF_CMD_CLIENT_RESET )
+        {
+            sprintf( hostcmd, "/sbin/reboot" );
+            printffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s)\n", __FUNCTION__, GETPID, hostcmd );
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
+            /*usleep( 50 );*/
+            memset( response, 0, RESPONSE_SIZE );
+            recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+            printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );
+            if ( recv_error != 0 ) goto RETRY;
+        }
+
+        else if ( gRemoteClient[client].Action > 0 ) /* if user requested we start a new stream */
+        {
+            unsigned long int gThreadIndex = gRemoteClient[client].ActiveThreadIndex;
+            printffile( gRemoteClient[client].LogFile, "%s:%lu need to launch %ld threads ... gRemoteClientActiveThreadIndex %lu\n", __FUNCTION__, GETPID,
+                    gRemoteClient[client].Action, gThreadIndex );
+            for( idx=0; idx< gRemoteClient[client].Action; idx++ )
             {
-                printf("%s: need to launch %d threads\n", __FUNCTION__, gClientStreamerAction );
-                for( idx=0; idx< gClientStreamerAction; idx++ )
+                char *string_format= NULL;
+                /* There could be 16 different launch commands in the CFG file; instead of always launching the 1st
+                   one in the list, launch the 5th one ... or the 10th one ... or the 15th one ... based on how many
+                   launch requests we have received from the browser. */
+                string_format = strstr( &ClientStreamerCommandLine[client][idx + gThreadIndex ][0],  "%s" );
+                if ( string_format )
                 {
                     char *string_format= NULL;
                     /* There could be 16 different launch commands in the CFG file; instead of always launching the 1st
                        one in the list, launch the 5th one ... or the 10th one ... or the 15th one ... based on how many
                        launch requests we have received from the browser. */
-                    string_format = strstr( &ClientStreamerCommandLine[idx + gClientStreamerActiveThreadIndex ][0],  "%s" );
+                    string_format = strstr( &ClientStreamerCommandLine[client][idx + gThreadIndex ][0],  "%s" );
                     if ( string_format )
                     {
                         /* if there is a format tag for a string ... assume the format is for the server's IP address */
-                        sprintf( hostcmd, &ClientStreamerCommandLine[idx + gClientStreamerActiveThreadIndex ][0], gServerStreamerIpAddr );
+                        sprintf( hostcmd, &ClientStreamerCommandLine[client][idx + gThreadIndex ][0], gServerStreamerIpAddr );
                     }
                     else
                     {
-                        sprintf( hostcmd, &ClientStreamerCommandLine[idx + gClientStreamerActiveThreadIndex ][0] );
+                        sprintf( hostcmd, "%s", (char*) &(ClientStreamerCommandLine[idx + gThreadIndex ][0]) );
                     }
                     if ( strlen(hostcmd) )
                     {
-                        printf("%s: sending (%s)\n", __FUNCTION__, hostcmd );
-                        bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd));
+                        printf("%s:%lu sending (%s)\n", __FUNCTION__, GETPID, hostcmd );
+                        bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
                         usleep( 50 );
-                        memset( response, 0, sizeof(response) );
-                        bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response) );
+                        memset( response, 0, RESPONSE_SIZE );
+                        bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, NULL );
+                        printf("%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, (unsigned)strlen(response) );
+                        /*printf("%s:%lu \n\n(%s) \n\n\n", __FUNCTION__, GETPID, response );*/
                     }
                     else
                     {
-                        printf("%s: ClientStreamerCommandLine[%lu] is empty (%s)\n", __FUNCTION__, idx + gClientStreamerActiveThreadIndex, hostcmd );
+                        printf("%s:%lu ClientStreamerCommandLine[%lu] is empty (%s)\n", __FUNCTION__, GETPID,
+                                idx + gRemoteClient[client].ActiveThreadIndex, hostcmd );
                     }
                 }
-                gClientStreamerAction = 0;
             }
-            else if ( gClientStreamerAction < 0 ) /* if user requested we stop a LIFO stream */
-            {
-                int idx=0;
-
-                noprintf("%s: need to kill %d threads ... gClientStreamerActiveThreadIndex %ld\n", __FUNCTION__, abs(gClientStreamerAction),
-                        gClientStreamerActiveThreadIndex );
-                noprintf("%s: pids: ", __FUNCTION__ );
-                for( idx=0; idx < gClientStreamerActiveThreadIndex; idx++ )
-                {
-                    noprintf( "%ld/%ld ", gClientStreamerActiveThreadPids[idx], gClientStreamerActiveThreadReferers[idx] );
-                }
-                noprintf("\n");
-
-                for( idx=0; idx< abs(gClientStreamerAction); idx++ )
-                {
-                    noprintf( "%s: gClientStreamerActiveThreadIndex %ld ... gClientStreamerActiveThreadIndex %ld\n", __FUNCTION__,
-                        gClientStreamerActiveThreadIndex, gClientStreamerActiveThreadIndex );
-                    if ( ( gClientStreamerActiveThreadIndex > 0 ) && ( gClientStreamerActiveThreadIndex <= CLIENT_STREAMER_THREAD_MAX ) )
-                    {
-                        noprintf( "%s: gClientStreamerActiveThreadPids[%ld] = %ld\n", __FUNCTION__, gClientStreamerActiveThreadIndex-1,
-                                gClientStreamerActiveThreadPids[gClientStreamerActiveThreadIndex-1] );
-                        if ( gClientStreamerActiveThreadPids[gClientStreamerActiveThreadIndex-1] > 0 )
-                        {
-                            /* kill the last entry in the table */
-                            sprintf( hostcmd, "kill -9 %lu", gClientStreamerActiveThreadPids[gClientStreamerActiveThreadIndex-1] );
-                            gClientStreamerActiveThreadPids[gClientStreamerActiveThreadIndex] = 0;
-                            gClientStreamerActiveThreadIndex--;
-                            printf("%s: sending (%s) ... gClientStreamerActiveThreadIndex %ld\n", __FUNCTION__, hostcmd, gClientStreamerActiveThreadIndex );
-                            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd));
-                            usleep( 50 );
-                            memset( response, 0, sizeof(response) );
-                            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response) );
-                        }
-                    }
-                }
-                gClientStreamerAction = 0;
-            }
-
-            /* search for wget threads that are still active */
-            bmemperf_client_streamer_search_threads( socket_fd );
-
-#if 0
-            {
-                int   relaunchMax = 0;
-
-                /* if the number of active threads is less than we are expecting, re-launch another wget */
-                relaunchMax = keepActive-gClientStreamerActiveThreadIndex;
-                if ( relaunchMax > 0 && relaunchMax < CLIENT_STREAMER_THREAD_MAX )
-                {
-                    int StreamsDetected[BASPMON_MAX_NUM_STREAMS];
-                    memset( StreamsDetected, -1, sizeof(StreamsDetected) );
-
-#if 1
-                    printf( "%s:%lu Found Referers ... ", __FUNCTION__, (unsigned long int) getpid() );
-                    for( idx=0; idx<gClientStreamerActiveThreadIndex+1; idx++ )
-                    {
-                        printf( "%ld ", gClientStreamerActiveThreadReferers[idx] );
-                    }
-                    printf( "\n" );
-#endif
-
-                    /* try to figure out if any previously running streams have died */
-                    for( idx=0; idx<gClientStreamerActiveThreadIndex; idx++ )
-                    {
-                        if ( gClientStreamerActiveThreadReferers[idx] )
-                        {
-                            StreamsDetected[gClientStreamerActiveThreadReferers[idx] - 1] = gClientStreamerActiveThreadReferers[idx] ;
-                        }
-                    }
-
-#if 1
-                    printf( "%s:%lu StreamsDetected ... ", __FUNCTION__, (unsigned long int) getpid() );
-                    for( idx=0; idx<gClientStreamerActiveThreadIndex+1; idx++ )
-                    {
-                        printf( "%d ", StreamsDetected[idx] );
-                    }
-                    printf( "\n" );
-#endif
-
-                    /* loop through again to find any missing Referers */
-                    for( idx=0; idx<gClientStreamerActiveThreadIndex+1; idx++ )
-                    {
-                        /* if we could not find a referer for this stream, re-launch it */
-                        if ( StreamsDetected[idx] == -1 )
-                        {
-                            sprintf( hostcmd, &ClientStreamerCommandLine[idx][0], gServerStreamerIpAddr );
-                            printf("%s: relaunching [%d] (%s)\n", __FUNCTION__, idx, hostcmd );
-                            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd));
-                            usleep( 50 );
-                            memset( response, 0, sizeof(response) );
-                            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response) );
-                        }
-                    }
-
-                    usleep( 100 );
-
-                    /* after we have re-launched one or more threads, scan for active wget pids */
-                    bmemperf_client_streamer_search_threads( socket_fd );
-                }
-            }
-#endif
-#if 0
-            printflog( "%s:%lu Active Pids (%ld) ... ", __FUNCTION__, (unsigned long int) getpid(), gClientStreamerActiveThreadIndex);
-            for( idx=0; idx<gClientStreamerActiveThreadIndex; idx++ )
-            {
-                printflog( "%ld/%ld ", gClientStreamerActiveThreadPids[idx], gClientStreamerActiveThreadReferers[idx] );
-            }
-            printflog( "\n" );
-#endif
+            gRemoteClient[client].Action = 0;
         }
+
+        else if ( gRemoteClient[client].Action < 0 ) /* if user requested we stop a LIFO stream */
+        {
+            int idx=0;
+
+            printffile( gRemoteClient[client].LogFile, "%s:%lu need to kill %ld threads ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID,
+                    (long int) abs(gRemoteClient[client].Action), gRemoteClient[client].ActiveThreadIndex );
+            printffile( gRemoteClient[client].LogFile, "%s:%lu pids: ", __FUNCTION__, GETPID );
+            for( idx=0; idx < gRemoteClient[client].ActiveThreadIndex; idx++ )
+            {
+                printffile( gRemoteClient[client].LogFile,  "%ld/%ld ", gRemoteClient[client].ActiveThreadPids[idx], gRemoteClient[client].ActiveThreadReferers[idx] );
+            }
+            printffile( gRemoteClient[client].LogFile, "\n");
+
+            for( idx=0; idx< abs(gRemoteClient[client].Action); idx++ )
+            {
+                printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientActiveThreadIndex %ld ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__,
+                    GETPID, gRemoteClient[client].ActiveThreadIndex, gRemoteClient[client].ActiveThreadIndex );
+                if ( ( gRemoteClient[client].ActiveThreadIndex > 0 ) && ( gRemoteClient[client].ActiveThreadIndex <= CLIENT_STREAMER_THREAD_MAX ) )
+                {
+                    printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientActiveThreadPids[%ld] = %ld\n", __FUNCTION__, GETPID,
+                            gRemoteClient[client].ActiveThreadIndex-1, gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex-1] );
+                    if ( gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex-1] > 0 )
+                    {
+                        /* kill the last entry in the table */
+                        sprintf( hostcmd, "kill -9 %lu", gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex-1] );
+                        gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex] = 0;
+                        gRemoteClient[client].ActiveThreadIndex--;
+                        printffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s) ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID,
+                                hostcmd, gRemoteClient[client].ActiveThreadIndex );
+                        bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
+                        /*usleep( 50 );*/
+                        memset( response, 0, RESPONSE_SIZE );
+                        recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+                        printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );
+                        /*printffile( gRemoteClient[client].LogFile, "%s:%lu \n\n(%s) \n\n\n", __FUNCTION__, GETPID, response );*/
+                        if ( recv_error != 0 ) goto RETRY;
+                    }
+                }
+            }
+            gRemoteClient[client].Action = 0;
+        }
+
+        /* search for wget threads that are still active */
+        bmemperf_client_streamer_search_threads( socket_fd, client );
+
+#if 0
+        {
+            int   relaunchMax = 0;
+
+            /* if the number of active threads is less than we are expecting, re-launch another wget */
+            relaunchMax = keepActive-gRemoteClient[client].ActiveThreadIndex;
+            if ( relaunchMax > 0 && relaunchMax < CLIENT_STREAMER_THREAD_MAX )
+            {
+                int StreamsDetected[BASPMON_MAX_NUM_STREAMS];
+                memset( StreamsDetected, -1, sizeof(StreamsDetected) );
+
+#if 1
+                printffile( gRemoteClient[client].LogFile,  "%s:%lu Found Referers ... ", __FUNCTION__, GETPID );
+                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex+1; idx++ )
+                {
+                    printffile( gRemoteClient[client].LogFile,  "%ld ", gRemoteClient[client].ActiveThreadReferers[idx] );
+                }
+                printffile( gRemoteClient[client].LogFile,  "\n" );
+#endif
+
+                /* try to figure out if any previously running streams have died */
+                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex; idx++ )
+                {
+                    if ( gRemoteClient[client].ActiveThreadReferers[idx] )
+                    {
+                        StreamsDetected[gRemoteClient[client].ActiveThreadReferers[idx] - 1] = gRemoteClient[client].ActiveThreadReferers[idx] ;
+                    }
+                }
+
+#if 1
+                printffile( gRemoteClient[client].LogFile,  "%s:%lu StreamsDetected ... ", __FUNCTION__, GETPID );
+                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex+1; idx++ )
+                {
+                    printffile( gRemoteClient[client].LogFile,  "%d ", StreamsDetected[idx] );
+                }
+                printffile( gRemoteClient[client].LogFile,  "\n" );
+#endif
+
+                /* loop through again to find any missing Referers */
+                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex+1; idx++ )
+                {
+                    /* if we could not find a referer for this stream, re-launch it */
+                    if ( StreamsDetected[idx] == -1 && idx > 0 /* do not relaunch playmosaic */ )
+                    {
+                        sprintf( hostcmd, &ClientStreamerCommandLine[client][idx][0], gServerStreamerIpAddr );
+                        printffile( gRemoteClient[client].LogFile, "%s:%lu relaunching [%d] (%s)\n", __FUNCTION__, GETPID, idx, hostcmd );
+                        bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
+                        /*usleep( 50 );*/
+                        memset( response, 0, RESPONSE_SIZE );
+                        recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+                        printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );
+                        /*printffile( gRemoteClient[client].LogFile, "%s:%lu \n\n(%s) \n\n\n", __FUNCTION__, GETPID, response );*/
+                        if ( recv_error != 0 ) goto RETRY;
+                    }
+                }
+
+                usleep( 100 );
+
+                /* after we have re-launched one or more threads, scan for active wget pids */
+                bmemperf_client_streamer_search_threads( socket_fd, client );
+            }
+        }
+#endif
+#if 1
+        printffile( gRemoteClient[client].LogFile,  "%s:%lu Active Pids (%ld) ... ", __FUNCTION__, GETPID, gRemoteClient[client].ActiveThreadIndex);
+        for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex; idx++ )
+        {
+            printffile( gRemoteClient[client].LogFile,  "%ld/%ld ", gRemoteClient[client].ActiveThreadPids[idx], gRemoteClient[client].ActiveThreadReferers[idx] );
+        }
+        printffile( gRemoteClient[client].LogFile,  "\n" );
+#endif
 
         gettimeofday(&tv2, NULL);
         microseconds2 = (tv2.tv_sec * 1000000LL);
         microseconds2 += tv2.tv_usec;
         microseconds_delta = (microseconds2 - microseconds1);
 
+        if ( microseconds_delta > 980000 ) microseconds_delta = 980000;
+
         /* if it took less than a full second (e.g. 200000 usec) to get all of the data, wait the remaining part of a full second (800000 usec) */
         if ( microseconds_delta < 1000000 )
         {
-            noprintf( "%s:%lu need to usleep(%lu)\n", __FUNCTION__, (unsigned long int) getpid(), (1000000 - microseconds_delta) );
+            printffile( gRemoteClient[client].LogFile,  "%s:%lu need to usleep(%lu)\n", __FUNCTION__, GETPID, (1000000 - microseconds_delta) );
             usleep( (1000000 - microseconds_delta) );
         }
 
         /* each time the server gets a request for client streamer data, the server will set this to 0 */
-        gClientStreamerQuitCount++;
-        noprintf( "%s:%lu gClientStreamerQuitCount (%u)\n", __FUNCTION__, (unsigned long int) getpid(), gClientStreamerQuitCount );
-    }   /* while gClientStreamerQuitCount < 10 */
+        gRemoteClient[client].QuitCount++;
+        if ( gRemoteClient[client].QuitCount > 1 ) printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientQuitCount (%u)\n", __FUNCTION__,
+                GETPID, gRemoteClient[client].QuitCount );
+    }   /* while gRemoteClientQuitCount < 5 */
 
-    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4);
+    printffile( gRemoteClient[client].LogFile,  "%s:%lu sending (%s) ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID, "quit",
+            gRemoteClient[client].ActiveThreadIndex );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4, gRemoteClient[client].LogFile );
 
     close( socket_fd );
     socket_fd = 0;
 
 exit:
-    gClientStreamerThreadId = 0;
-    gClientStreamerTelnet_pid = 0;
+    Bsysperf_Free( response );
+    response = NULL;
 
-    noprintf( "%s:%lu exiting. gClientStreamerThreadId is 0\n", __FUNCTION__, (unsigned long int) getpid() );
+    gRemoteClient[client].ThreadId = 0;
+    gRemoteClient[client].Telnet_pid = 0;
+    gRemoteClient[client].ActiveThreadIndex = 0;
+
+    printffile( gRemoteClient[client].LogFile,  "%s:%lu exiting. gRemoteClientThreadId is 0\n", __FUNCTION__, GETPID );
+    printf( "%s:%lu exiting. gRemoteClientThreadId is 0\n", __FUNCTION__, GETPID );
 
     /* if I call pthread_exit() in this thread, the parent thread will exit also */
-    noprintf( "%s:%lu exit()\n", __FUNCTION__, (unsigned long int) getpid() );
     sleep( 123456789 );
 
     return NULL;
@@ -1765,36 +2303,106 @@ exit:
 
 
 /**
+ *  Function: This function will perform a telnet session to the specified client streamer IP address and reboot it.
+ **/
+static void *bmemperf_client_streamer_reboot(
+    int client
+    )
+{
+    struct sockaddr_in     srv;
+    int                    socket_fd    = 0;
+    char                   hostip[INET6_ADDRSTRLEN];
+    char                   hostcmd[64];
+    char                  *response = NULL;
+
+    response = malloc( RESPONSE_SIZE );
+    if ( response == NULL )
+    {
+        printf("%s:%lu Client %d ... could not malloc(%d) bytes\n", __FUNCTION__, GETPID, client, RESPONSE_SIZE );
+        goto exit;
+    }
+
+    printf("%s:%lu Client %d ... IP (%s)\n", __FUNCTION__, GETPID, client, gRemoteClient[client].IpAddr );
+    strncpy ( hostip, gRemoteClient[client].IpAddr, sizeof(hostip) );
+
+    /* create a connection to the server */
+    srv.sin_family = AF_INET; // use the internet addr family
+    srv.sin_port = htons( TELNET_PORT ); // dedicated telnet port = 23
+    srv.sin_addr.s_addr = inet_addr( hostip );
+
+    /* create the socket */
+    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("%s:%lu socket() failed\n", __FUNCTION__, GETPID );
+        /*perror("socket");*/
+        goto exit;
+    }
+
+    /* connect to the client streamer's telnet server */
+    printffile( gRemoteClient[client].LogFile, "%s:%lu Connecting to (%s) port %d\n", __FUNCTION__, GETPID, hostip, TELNET_PORT );
+    if (connect(socket_fd, (struct sockaddr*) &srv, sizeof(srv)) < 0) {
+        printffile( gRemoteClient[client].LogFile, "%s:%lu connect() failed\n", __FUNCTION__, GETPID );
+        /*perror("connect");*/
+        goto exit;
+    } else {
+        noprintf( "%s:%lu Connection to (%s) successful.\n\n", __FUNCTION__, GETPID, hostip );
+    }
+
+    memset( response, 0, RESPONSE_SIZE );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+
+
+    printffile( gRemoteClient[client].LogFile, "%s:%lu sending User Name (root)\n", __FUNCTION__, GETPID );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5, gRemoteClient[client].LogFile );
+    memset( response, 0, RESPONSE_SIZE );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+    /*usleep( 50 );*/
+
+    sprintf( hostcmd, "/sbin/reboot" );
+    printffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s)\n", __FUNCTION__, GETPID, hostcmd );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
+    /*usleep( 50 );*/
+    memset( response, 0, RESPONSE_SIZE );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
+    printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );
+
+exit:
+    Bsysperf_Free( response );
+    response = NULL;
+    return 0;
+} /* bmemperf_client_streamer_reboot */
+
+/**
  *  Function: This function will start a new thread that will telnet to the specified IP address.
  **/
 static int bmemperf_client_streamer_start(
+    long int client,
     long int option
     )
 {
     void                    *(*threadFunc)( void * );
     static unsigned long int threadOption = 0;
 
-    noprintf("%s :%lu gClientStreamerThreadId %lx ... gClientStreamerTelnet_pid %lu ... Action %ld\n", __FUNCTION__,
-            (unsigned long int) getpid(), (unsigned long int) gClientStreamerThreadId, gClientStreamerTelnet_pid, option );
+    printf("%s:%lu gRemoteClientThreadId %lx ... gRemoteClientTelnet_pid %lu ... Action %ld ... client %ld\n", __FUNCTION__,
+            GETPID, (unsigned long int) gRemoteClient[client].ThreadId, gRemoteClient[client].Telnet_pid, option, client );
     /* if the thread has not already been started, start it now */
-    if ( gClientStreamerThreadId == 0 )
+    if ( gRemoteClient[client].ThreadId == 0 )
     {
-        if ( gClientStreamerTelnet_pid == 0 )
+        if ( gRemoteClient[client].Telnet_pid == 0 )
         {
             /* start a background thread that will perform telnet I/O */
             threadFunc   = bmemperf_client_streamer_thread;
-            threadOption = 0;
-            gClientStreamerAction = option;
+            threadOption = client;
+            gRemoteClient[client].Action = option;
 
-            if (pthread_create( &gClientStreamerThreadId, NULL, threadFunc, (void *)&threadOption ))
+            if (pthread_create( &gRemoteClient[client].ThreadId, NULL, threadFunc, (void *)&threadOption ))
             {
                 printf( "%s:%lu could not create thread for bmemperf_client_streamer_thread; %s\n", __FUNCTION__,
-                        (unsigned long int) getpid(), strerror( errno ));
+                        GETPID, strerror( errno ));
             }
             else
             {
                 noprintf( "%s:%lu Thread for bmemperf_client_streamer_thread started successfully; id %lx\n", __FUNCTION__,
-                        (unsigned long int) getpid(), (long int) gClientStreamerThreadId );
+                        GETPID, (long int) gRemoteClient[client].ThreadId );
             }
         }
     }
@@ -1803,20 +2411,19 @@ static int bmemperf_client_streamer_start(
         int status = 0;
 
         /* if the previous request is still attempting to complete, do not overwrite the global var */
-        if ( option != 0 ) gClientStreamerAction = option;
+        if ( option != 0 ) gRemoteClient[client].Action = option;
 
-        /*printf( "%s:%lu Thread for bmemperf_client_streamer_thread already started; id %lx\n", __FUNCTION__,
-                (unsigned long int) getpid(), (long int) gClientStreamerThreadId );*/
-        waitpid( gClientStreamerTelnet_pid, &status, WNOHANG );
+        printf( "%s:%lu Thread for bmemperf_client_streamer_thread already started; id %lx\n", __FUNCTION__,
+                GETPID, (long int) gRemoteClient[client].ThreadId );
+        waitpid( gRemoteClient[client].Telnet_pid, &status, WNOHANG );
 
-        /*printf( "%s:%lu after waitpid() ... status %d\n", __FUNCTION__, (unsigned long int) getpid(), status );*/
+        /*printf( "%s:%lu after waitpid() ... status %d\n", __FUNCTION__, GETPID, status );*/
         /* if the child has exited for some reason */
         if ( status == 13 )
         {
-            noprintf( "%s:%lu PID %lu has exited with rc %d (%s)!!!!!\n", __FUNCTION__,
-                    (unsigned long int) getpid(), gClientStreamerTelnet_pid, status, strerror(errno) );
-            gClientStreamerTelnet_pid = 0;
-            gClientStreamerThreadId = 0;
+            printf( "%s:%lu PID %lu has exited with rc %d (%s)!!!!!\n", __FUNCTION__, GETPID, gRemoteClient[client].Telnet_pid, status, strerror(errno) );
+            gRemoteClient[client].Telnet_pid = 0;
+            gRemoteClient[client].ThreadId = 0;
         }
     }
 
@@ -1881,10 +2488,11 @@ static int Bmemperf_ReadRequest(
     bmemperf_response *pResponse
     )
 {
-    int         rc;
-    static bool bFirstPass = true;
+    int             rc         = 0;
+    static bool     bFirstPass = true;
+    static long int passcount  = 0;
 
-    PRINTF( "%s - %u Started new thread serving %s\n", __FUNCTION__, ntohs( from.sin_port ), inet_ntoa( from.sin_addr ));
+    PRINTF( "%s - %u Started new thread serving %s ... passcount %ld\n", __FUNCTION__, ntohs( from.sin_port ), inet_ntoa( from.sin_addr), passcount );
 
     if (initializationDone == false)
     {
@@ -1892,11 +2500,71 @@ static int Bmemperf_ReadRequest(
         memset( g_client_list, 0xFF, sizeof( g_client_list ));
         initializationDone = true;
     }
-    /* get data from  clients and send it back */
 
+    if (( passcount == 0 ))
+    {
+        /* tell the server to reset its error counts back to zero */
+        pRequest->cmd = BMEMPERF_CMD_RESET_ARB_ERRORS;
+        rc = 1;
+    }
+    else if (( passcount == 1 ))
+    {
+        int memc, client;
+        bmemperf_clientInfo     clientInfo; /* ids of the 10 clients for which the user can request details */
+        bmemperf_columnTypes    sortColumn = BMEMPERF_COLUMN_MAX; /* needs to be MAX; bmemperf_server.c uses MAX value to determine if user has selected a different column on which to sort*/
+
+        memset( &clientInfo, BMEMPERF_CGI_INVALID, sizeof( clientInfo ));
+
+        /* tell the server to reset its error counts back to zero */
+        pRequest->cmd = BMEMPERF_CMD_RESET_ARB_ERRORS;
+        memset( pRequest, 0, sizeof( *pRequest ));
+        memset( pResponse, 0, sizeof( *pResponse ));
+
+        for (memc = 0; memc<NEXUS_NUM_MEMC; memc++)
+        {
+            for (client = 0; client<BMEMPERF_MAX_SUPPORTED_CLIENTS; client++)
+            {
+                pRequest->request.client_stats_data.client_list[memc][client] = clientInfo.clientIds[memc][client];
+            }
+            pRequest->request.client_stats_data.sortColumn[memc] = sortColumn;
+        }
+        rc = 1;
+    }
+
+#if 0
+    if (( bFirstPass == true ))
+    {
+        unsigned int memc, client;
+
+        /** initialize client list with client_id any say 10 for 0th index and INVALID for rest of the index ***/
+        printf( "%s calling bmemperf_InitClientList()\n", __FUNCTION__ );
+        bmemperf_InitClientList();
+
+        printf( "%s calling bmemperf_init()\n", __FUNCTION__ );
+        bmemperf_init();
+
+        printf( "%s calling reset_error_counts()\n", __FUNCTION__ );
+        reset_error_counts();
+
+        for (memc = 0; memc<BMEMPERF_NUM_MEMC; memc++)
+        {
+            for (client = 0; client<BMEMPERF_MAX_NUM_CLIENT; client++)
+            {
+                g_savedClientDataSorted[memc][client].err_cnt = 0;
+            }
+        }
+    }
+#endif
+
+    /* get data from  clients and send it back */
     PRINTF( "%u Server is reading request (%u bytes) from client ... \n", ntohs( from.sin_port ), sizeof( *pRequest ));
 
-    if (( rc = recv( psd, pRequest, sizeof( *pRequest ), 0 )) < 0)
+    if ( passcount >= 2 )
+    {
+        rc = recv( psd, pRequest, sizeof( *pRequest ), 0 );
+    }
+
+    if ( rc < 0)
     {
         PRINTF( "%u ", ntohs( from.sin_port ));
         CloseAndExit( psd, "receiving stream  message" );
@@ -1905,7 +2573,11 @@ static int Bmemperf_ReadRequest(
     if (rc > 0)
     {
         PRINTF( "%u %s: Received: from TCP/Client (%s); cmd (%u) \n", ntohs( from.sin_port ), DateYyyyMmDdHhMmSs(), inet_ntoa( from.sin_addr ), pRequest->cmd );
-        PRINTF( "%s: cmd %u; cmdSecondary %u; cmdOption %lu\n", __FUNCTION__, pRequest->cmd, pRequest->cmdSecondary, pRequest->cmdSecondaryOption );
+        if ( pRequest->cmdSecondary || pRequest->cmdSecondaryOption )
+        {
+            printf( "%s: cmd %u; cmdOption 0x%lx; cmdSecondary 0x%lx\n", __FUNCTION__, pRequest->cmd, (long int) pRequest->cmdSecondary,
+                    pRequest->cmdSecondaryOption );
+        }
         switch (pRequest->cmd) {
             case BMEMPERF_CMD_RESET_ARB_ERRORS:
             {
@@ -1929,7 +2601,7 @@ static int Bmemperf_ReadRequest(
                 sprintf( pResponse->padding, "====================this is response; boxmode %d ============================", g_boxmodeSource.boxmode );
                 pResponse->cmd = pRequest->cmd;
 
-                PRINTF( "BMEMPERF_CMD_GET_OVERALL_STATS: boxmode request %d; prev %d\n", pRequest->boxmode, g_boxmodeSource.boxmode );
+                /*printf( "BMEMPERF_CMD_GET_OVERALL_STATS: boxmode request %d; prev %d\n", pRequest->boxmode, g_boxmodeSource.boxmode );*/
                 /* check to see if the user has requested a boxmode change */
                 if (pRequest->boxmode != g_boxmodeSource.boxmode)
                 {
@@ -1978,7 +2650,7 @@ static int Bmemperf_ReadRequest(
                 }
 
                 /* this sets the client list */
-                bmemperf_getOverallStats( &pResponse->response.overallStats );
+                bmemperf_getOverallStats( &pResponse->response.overallStats ); /* sets .client_id */
 
                 /* set flag if one or more of the top 10 clients is also being detailed */
                 for (memc = 0; memc<BMEMPERF_NUM_MEMC; memc++)
@@ -2003,13 +2675,13 @@ static int Bmemperf_ReadRequest(
                     }
                 }
 
-                PRINTF( "%s: bFirstPass %u\n", __FUNCTION__, bFirstPass );
+                /*printf( "%s: bFirstPass %u\n", __FUNCTION__, bFirstPass );*/
                 if (( bFirstPass == true ))
                 {
                     unsigned int memc, client;
                     bFirstPass = false;
-                    PRINTF( "%s: saving client array sized [%u][%u] to g_savedClientDataSorted array; saved size %u; src size %u\n", __FUNCTION__, BMEMPERF_NUM_MEMC,
-                        BMEMPERF_MAX_NUM_CLIENT, sizeof( g_savedClientDataSorted[memc][client] ),
+                    PRINTF( "%s: saving client array sized [%u][%u] to g_savedClientDataSorted array; saved size %u; src size %u\n", __FUNCTION__,
+                        BMEMPERF_NUM_MEMC, BMEMPERF_MAX_NUM_CLIENT, sizeof( g_savedClientDataSorted[memc][client] ),
                         sizeof( pResponse->response.overallStats.clientOverallStats[memc].clientData[client] ));
                     for (memc = 0; memc<BMEMPERF_NUM_MEMC; memc++)
                     {
@@ -2053,11 +2725,14 @@ static int Bmemperf_ReadRequest(
 
                 bmemperf_getCpuUtilization( &pResponse->response.overallStats.cpuData );
 
-                if ( strlen( pRequest->request.overall_stats_data.PowerProbeIpAddr ) > 0 )
+                /*printf("PowerProbeIpAddr (%s) ... PowerProbeSelect %d ... cmdSecondaryOption %ld ... QuitCount %u\n",
+                        pRequest->request.overall_stats_data.PowerProbeIpAddr,
+                        pRequest->request.overall_stats_data.PowerProbeSelect, pRequest->cmdSecondaryOption, gPowerProbeQuitCount );*/
+                if ( pRequest->request.overall_stats_data.PowerProbeIpAddr[0] == '1' &&
+                     strlen( pRequest->request.overall_stats_data.PowerProbeIpAddr ) > 0 )
                 {
                     int idx=0;
 
-                    PRINTF("PowerProbeIpAddr (%s)\n", pRequest->request.overall_stats_data.PowerProbeIpAddr );
                     /* if we stop getting requests, the PowerProbeThread will count up to 5 seconds and then exit */
                     gPowerProbeQuitCount = 0;
 
@@ -2068,42 +2743,110 @@ static int Bmemperf_ReadRequest(
                         gPowerProbeShunts[idx] = pRequest->request.overall_stats_data.PowerProbeShunts[idx];
                     }
 
-                    bmemperf_power_probe_start( pRequest->cmdSecondaryOption );
+                    if ( pRequest->request.overall_stats_data.PowerProbeSelect == POWER_PROBE_BASPMON )
+                    {
+                        bmemperf_power_probe_start( pRequest->cmdSecondaryOption );
+                    }
+                    else if ( pRequest->request.overall_stats_data.PowerProbeSelect == POWER_PROBE_BPROBE )
+                    {
+                        bmemperf_power_probe_1000_start( pRequest->cmdSecondaryOption );
+                        usleep( 500000 ); /* give thread a tenth of a second to complete */
+                    }
 
                     /* copy PowerProbeThread's data into user's response buffer */
                     for(idx=0; idx<POWER_PROBE_MAX; idx++)
                     {
                         pResponse->response.overallStats.PowerProbeVoltage[idx] = gPowerProbeVoltage[idx];
                         pResponse->response.overallStats.PowerProbeCurrent[idx] = gPowerProbeCurrent[idx];
+                        pResponse->response.overallStats.PowerProbeConnected[idx] = gPowerProbeConnected[idx];
+                        /*printf( "%s: Probe %d is %d\n", __FUNCTION__, idx, pResponse->response.overallStats.PowerProbeConnected[idx] );*/
                     }
                 }
 
-                if ( strlen( pRequest->request.overall_stats_data.ClientStreamerIpAddr ) > 0 )
+                if ( pRequest->cmdSecondaryOption == BMEMPERF_CMD_CLIENT_RESET )
                 {
-                    if ( pRequest->cmdSecondaryOption )
+                    char  line[32];
+                    void *junk = bmemperf_client_streamer_reboot;
+                    int   telnetPortActive = 0;
+
+                    printf( "%d ... BMEMPERF_CMD_CLIENT_RESET detected (%p)\n", __LINE__, junk );
+#if 1
+                    for( client=0; client<BASPMON_MAX_NUM_CLIENTS; client++ )
                     {
-                        noprintf("REQUEST: ClientIp (%s) ... ServerIp (%s) ... option %ld \n", pRequest->request.overall_stats_data.ClientStreamerIpAddr,
-                            pRequest->request.overall_stats_data.ServerStreamerIpAddr, pRequest->cmdSecondaryOption );
+                        telnetPortActive = Bmemperf_Ping( pRequest->request.overall_stats_data.ClientStreamerIpAddr[client], TELNET_PORT );
+                        if ( telnetPortActive != -1 )
+                        {
+                            /* copy the user's request data into global variables for use by ClientStreamerThread */
+                            strncpy( gRemoteClient[client].IpAddr, pRequest->request.overall_stats_data.ClientStreamerIpAddr[client], INET6_ADDRSTRLEN - 1 );
+                            strncpy( gServerStreamerIpAddr, pRequest->request.overall_stats_data.ServerStreamerIpAddr, sizeof(gServerStreamerIpAddr) );
+                            bmemperf_client_streamer_reboot( client );
+                        }
                     }
-                    /* if we stop getting requests, the ClientStreamerThread will count up to 5 seconds and then exit */
-                    gClientStreamerQuitCount = 0;
+#endif
 
-                    /* copy the user's request data into global variables for use by ClientStreamerThread */
-                    strncpy( gClientStreamerIpAddr, pRequest->request.overall_stats_data.ClientStreamerIpAddr, sizeof(gClientStreamerIpAddr) );
-                    strncpy( gServerStreamerIpAddr, pRequest->request.overall_stats_data.ServerStreamerIpAddr, sizeof(gServerStreamerIpAddr) );
+                    sprintf( line, "/sbin/reboot" );
+                    system( line ); /* the system will reboot with this command ... control will never come back to here */
+                }
 
-                    bmemperf_client_streamer_start( pRequest->cmdSecondaryOption );
-
-                    /* copy ClientStreamerThread's data into user's response buffer */
+                if ( pRequest->cmdSecondaryOption == BMEMPERF_CMD_CLIENT_TERMINATE )
+                {
+                    printf( "%s:%d ... BMEMPERF_CMD_CLIENT_TERMINATE detected\n", __FUNCTION__, __LINE__ );
+                    for( client=0; client<BASPMON_MAX_NUM_CLIENTS; client++ )
                     {
-                        pResponse->response.overallStats.ClientStreamerThreadCount = gClientStreamerActiveThreadIndex;
+                        gRemoteClient[client].QuitCount = 5;
+                    }
+                }
+                else
+                {
+                    for( client=0; client<BASPMON_MAX_NUM_CLIENTS; client++ )
+                    {
+#if 0
+                        if ( pRequest->cmdSecondaryOption )
+                        {
+                             printf( "%d ... Client %d ... IP (%-13s) Action %ld (0x%lx) ... QuitCount %d \n", __LINE__, client,
+                                   pRequest->request.overall_stats_data.ClientStreamerIpAddr[client], pRequest->cmdSecondaryOption,
+                                   pRequest->cmdSecondaryOption, gRemoteClient[client].QuitCount );
+                        }
+#endif
+                        if ( ( pRequest->request.overall_stats_data.ClientStreamerIpAddr[client][0] == '1' &&
+                             strlen( pRequest->request.overall_stats_data.ClientStreamerIpAddr[client]) > 0 ) || pRequest->cmdSecondary )
+                        {
+                            noprintf( "%d ... Client %d ... cmdSecondary %u ... cmdSecondaryOption %ld\n", __LINE__, client,
+                            pRequest->cmdSecondary, (long int) pRequest->cmdSecondaryOption );
+                            if ( pRequest->cmdSecondaryOption || pRequest->cmdSecondary )
+                            {
+                                int idx = abs(pRequest->cmdSecondaryOption)%10;
+
+                                if ( idx == client )
+                                {
+                                    long int cmd2ndOption = (long int) pRequest->cmdSecondaryOption;
+                                    printf("REQUEST: ClientIp (%s) ... ServerIp (%s) ... cmd2nd 0x%x ... cmd2ndOption %ld\n",
+                                        pRequest->request.overall_stats_data.ClientStreamerIpAddr[client],
+                                        pRequest->request.overall_stats_data.ServerStreamerIpAddr, pRequest->cmdSecondary, cmd2ndOption );
+
+                                    /* copy the user's request data into global variables for use by ClientStreamerThread */
+                                    strncpy( gRemoteClient[client].IpAddr, pRequest->request.overall_stats_data.ClientStreamerIpAddr[client], INET6_ADDRSTRLEN - 1 );
+                                    strncpy( gServerStreamerIpAddr, pRequest->request.overall_stats_data.ServerStreamerIpAddr, sizeof(gServerStreamerIpAddr) );
+
+                                    bmemperf_client_streamer_start( client, (long int) pRequest->cmdSecondaryOption/10 );
+                                }
+                            }
+                            /* if we stop getting requests, the ClientStreamerThread will count up to 5 seconds and then exit */
+                            if ( gRemoteClient[client].QuitCount < 5 ) gRemoteClient[client].QuitCount = 0;
+
+                            /* copy ClientStreamerThread's data into user's response buffer */
+                            pResponse->response.overallStats.ClientStreamerThreadCount[client] = gRemoteClient[client].ActiveThreadIndex;
+                        }
                     }
                 }
 
-                PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
-                if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
+                if ( passcount >= 2)
                 {
-                    CloseAndExit( psd, "sending response cmd" );
+                    PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
+                    if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
+                    {
+                        CloseAndExit( psd, "sending response cmd" );
+                    }
                 }
                 break;
             }
@@ -2164,10 +2907,13 @@ static int Bmemperf_ReadRequest(
                 }
 #endif /* ifdef BMEMPERF_CGI_DEBUG */
 
-                PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
-                if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
+                if ( passcount >= 2 )
                 {
-                    CloseAndExit( psd, "sending response cmd" );
+                    PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
+                    if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
+                    {
+                        CloseAndExit( psd, "sending response cmd" );
+                    }
                 }
                 break;
             }
@@ -2226,10 +2972,13 @@ static int Bmemperf_ReadRequest(
 
                 pResponse->response.overallStats.contextSwitches = g_ContextSwitchesDelta;
 
-                PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
-                if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
+                if ( passcount >= 2 )
                 {
-                    CloseAndExit( psd, "sending response cmd" );
+                    PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
+                    if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
+                    {
+                        CloseAndExit( psd, "sending response cmd" );
+                    }
                 }
 
                 break;
@@ -2253,7 +3002,9 @@ static int Bmemperf_ReadRequest(
         PRINTF( "%u Disconnected..\n", ntohs( from.sin_port ));
     }
 
-    close( psd );
+    if ( psd ) close( psd );
+
+    passcount++;
 
     return( 0 );
 } /* Bmemperf_ReadRequest */
@@ -2282,6 +3033,7 @@ int main(
     char *argv[]
     )
 {
+    int       client                = 0;
     pthread_t dataGatheringThreadId = 0;
     void     *(*threadFunc)( void * );
 
@@ -2290,6 +3042,12 @@ int main(
     memset( &g_savedClientDataSorted, 0, sizeof( g_savedClientDataSorted ));
     memset( &g_savedIrqData, 0, sizeof( g_savedIrqData ));
     memset( &gSataUsbMbps, 0, sizeof( gSataUsbMbps ));
+    memset( &gRemoteClient, 0, sizeof( gRemoteClient ));
+
+    for( client=0; client<BASPMON_MAX_NUM_CLIENTS; client++ )
+    {
+        sprintf( gRemoteClient[client].LogFile, "/tmp/remote_client%d.log", client );
+    }
 
     Bmemperf_Server_InitMutex( &gSataUsbMutex );
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,6 +43,7 @@
 
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder_primer.h"
+#include "nexus_audio.h"
 #include "nexus_audio_input_capture.h"
 #include "nexus_audio_encoder.h"
 #endif
@@ -95,6 +96,7 @@ struct NEXUS_SimpleAudioDecoder
         NEXUS_AudioDecoderPrimerHandle primer;
         NEXUS_AudioProcessorHandle processor[NEXUS_AudioPostProcessing_eMax];
         NEXUS_AudioProcessorSettings processorSettings[NEXUS_AudioPostProcessing_eMax];
+        NEXUS_AudioConnectorType processorConnectorType[NEXUS_AudioPostProcessing_eMax];
     } decoders[NEXUS_SimpleAudioDecoderSelector_eMax], playback;
     bool clientStarted;
     bool suspended;
@@ -131,6 +133,7 @@ struct NEXUS_SimpleAudioDecoder
         bool suspended;
         bool connected;
     } mixers;
+    NEXUS_AudioCapabilities audioCapabilities;
 };
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_SimpleAudioPlayback);

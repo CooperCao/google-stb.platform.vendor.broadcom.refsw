@@ -135,7 +135,7 @@ void NEXUS_SimpleAudioDecoderModule_P_UnloadDefaultSettings(void)
 /* framework for the future to address ordering as needed */
 static unsigned nexus_simpleaudiodecoder_pp_first(void)
 {
-    return 0;
+    return NEXUS_AudioPostProcessing_eAmbisonic;
 }
 
 static unsigned nexus_simpleaudiodecoder_pp_last(void)
@@ -804,9 +804,8 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
     unsigned i;
     NEXUS_Error rc;
     NEXUS_AudioCodec primaryCodec, secondaryCodec;
-    NEXUS_AudioCapabilities audioCapabilities;
 
-    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    NEXUS_GetAudioCapabilities(&handle->audioCapabilities);
 
     if (handle->encoder.handle) {
         return 0;
@@ -884,7 +883,7 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
     NEXUS_SimpleAudioDecoder_P_RemoveOutputs(handle);
 
     if (spdifInput) {
-        for (i=0;i<audioCapabilities.numOutputs.spdif;i++) {
+        for (i=0;i<handle->audioCapabilities.numOutputs.spdif;i++) {
             if (handle->serverSettings.spdif.outputs[i]) {
                 BDBG_MSG(("%p: add input %p -> spdif%d", (void *)handle, (void *)spdifInput, i));
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(handle->serverSettings.spdif.outputs[i]), spdifInput);
@@ -894,7 +893,7 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
     }
 #if NEXUS_HAS_HDMI_OUTPUT
     if (hdmiInput) {
-        for (i=0;i<audioCapabilities.numOutputs.hdmi;i++) {
+        for (i=0;i<handle->audioCapabilities.numOutputs.hdmi;i++) {
             if (handle->serverSettings.hdmi.outputs[i]) {
                 BDBG_MSG(("%p: add input %p -> hdmi%d", (void *)handle, (void *)hdmiInput, i));
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(handle->serverSettings.hdmi.outputs[i]), hdmiInput);
@@ -936,9 +935,8 @@ static void nexus_p_check_decoder(NEXUS_AudioDecoderHandle audioDecoder)
 static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHandle handle )
 {
     unsigned i;
-    NEXUS_AudioCapabilities audioCapabilities;
 
-    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    NEXUS_GetAudioCapabilities(&handle->audioCapabilities);
 
     if (handle->encoder.handle) {
         return;
@@ -955,7 +953,7 @@ static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHa
     }
 
     if (handle->currentSpdifInput) {
-        for (i=0;i<audioCapabilities.numOutputs.spdif;i++) {
+        for (i=0;i<handle->audioCapabilities.numOutputs.spdif;i++) {
             if (handle->serverSettings.spdif.outputs[i]) {
                 BDBG_MSG(("%p: remove input %p -> spdif%d", (void *)handle, (void *)handle->currentSpdifInput, i));
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(handle->serverSettings.spdif.outputs[i]));
@@ -965,7 +963,7 @@ static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHa
     }
 #if NEXUS_HAS_HDMI_OUTPUT
     if (handle->currentHdmiInput) {
-        for (i=0;i<audioCapabilities.numOutputs.hdmi;i++) {
+        for (i=0;i<handle->audioCapabilities.numOutputs.hdmi;i++) {
             if (handle->serverSettings.hdmi.outputs[i]) {
                 BDBG_MSG(("%p: remove input %p -> hdmi%d", (void *)handle, (void *)handle->currentHdmiInput, i));
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(handle->serverSettings.hdmi.outputs[i]));
@@ -1137,7 +1135,7 @@ static void copy_start_settings(NEXUS_AudioDecoderStartSettings *pStartSettings,
 
 static NEXUS_AudioInputHandle nexus_simpleaudiodecoder_get_current_decoder_connection(NEXUS_SimpleAudioDecoderHandle handle,
     NEXUS_SimpleAudioDecoderSelector selector,
-    NEXUS_AudioConnectorType connectorType)
+    NEXUS_AudioConnectorType connectorType, bool traverse)
 {
     NEXUS_AudioInputHandle connector = NULL;
     NEXUS_AudioDecoderHandle decoder = NULL;
@@ -1159,33 +1157,70 @@ static NEXUS_AudioInputHandle nexus_simpleaudiodecoder_get_current_decoder_conne
 
     switch ( connectorType ) {
     case NEXUS_AudioConnectorType_eMultichannel:
-        /* multichannel does not currently support post processing, return the connector here */
-        if ( connector != NULL ) {
-            return connector;
-        }
+        BDBG_MSG(("%s: selector %u, multich decoder connector %p", BSTD_FUNCTION, selector, (void*)connector));
         break;
     case NEXUS_AudioConnectorType_eStereo:
-        BDBG_MSG(("%s: selector %u, stereo decoder connector %p", __FUNCTION__, selector, (void*)connector));
-        /* look for terminal connector from this decoder output */
-        if ( connector ) {
-            unsigned j;
-            NEXUS_AudioInputHandle tail = connector;
-            for(j=nexus_simpleaudiodecoder_pp_first();j<NEXUS_AudioPostProcessing_eMax;j=nexus_simpleaudiodecoder_pp_next(j)) {
+        BDBG_MSG(("%s: selector %u, stereo decoder connector %p", BSTD_FUNCTION, selector, (void*)connector));
+        break;
+    default:
+        connector = NULL;
+        break;
+    }
+
+    /* look for terminal connector from this decoder output */
+    if ( connector ) {
+        unsigned j;
+        NEXUS_AudioInputHandle tail;
+        /* upmixing / downmixing connectors need to grab the right connector from the decoder */
+        if ( handle->decoders[selector].processor[NEXUS_AudioPostProcessing_eAmbisonic] ) {
+            tail = NEXUS_AudioDecoder_GetConnector(decoder, handle->decoders[selector].processorConnectorType[NEXUS_AudioPostProcessing_eAmbisonic]);
+            if ( connectorType != handle->decoders[selector].processorConnectorType[NEXUS_AudioPostProcessing_eAmbisonic] ) {
+                BDBG_MSG(("%s: forcing decoder %s connector to %s for Ambisonic", BSTD_FUNCTION,
+                          connectorType==NEXUS_AudioConnectorType_eMultichannel?"multichannel":"stereo",
+                          handle->decoders[selector].processorConnectorType[NEXUS_AudioPostProcessing_eAmbisonic]==NEXUS_AudioConnectorType_eMultichannel?"multichannel":"stereo"));
+            }
+        }
+        else {
+            tail = connector;
+        }
+
+        /* traverse through post processing */
+        if ( traverse ) {
+            for ( j = nexus_simpleaudiodecoder_pp_first(); j < NEXUS_AudioPostProcessing_eMax; j = nexus_simpleaudiodecoder_pp_next(j) )
+            {
                 if ( handle->decoders[selector].processor[j] != NULL ) {
                     bool connected = false;
-                    NEXUS_AudioInput_IsConnectedToInput(tail, NEXUS_AudioProcessor_GetConnector(handle->decoders[selector].processor[j]), &connected);
+                    NEXUS_AudioInputHandle next = NULL;
+
+                    switch ( j ) {
+                    /* upmixing/downmixing post processors */
+                    case NEXUS_AudioPostProcessing_eAmbisonic:
+                        next = NEXUS_AudioProcessor_GetConnectorByType(handle->decoders[selector].processor[j], connectorType);
+                        break;
+                    /* non-upmixing/downmixing post processors */
+                    default:
+                        if ( handle->decoders[selector].processorConnectorType[j] == connectorType ) {
+                            next = NEXUS_AudioProcessor_GetConnectorByType(handle->decoders[selector].processor[j], connectorType);
+                        }
+                        break;
+                    }
+
+                    if ( next != NULL ) {
+                        NEXUS_AudioInput_IsConnectedToInput(tail, next, &connected);
+                        BDBG_MSG(("%s: next valid. connected to %s tail %d", BSTD_FUNCTION,
+                                  connectorType==NEXUS_AudioConnectorType_eMultichannel?"multichannel":"stereo",
+                                  connected));
+                    }
 
                     if ( connected ) {
-                        tail = NEXUS_AudioProcessor_GetConnector(handle->decoders[selector].processor[j]);
+                        tail = NEXUS_AudioProcessor_GetConnectorByType(handle->decoders[selector].processor[j], connectorType);
                     }
                 }
             }
-            return tail;
         }
-        break;
-    default:
-        break;
+        return tail;
     }
+
     return NULL;
 }
 
@@ -1193,20 +1228,42 @@ static NEXUS_Error nexus_simpleaudiodecoder_connect_processing(NEXUS_SimpleAudio
     NEXUS_SimpleAudioDecoderSelector selector,
     NEXUS_AudioConnectorType connectorType)
 {
-    NEXUS_AudioInputHandle tail = nexus_simpleaudiodecoder_get_current_decoder_connection(handle, selector, connectorType);
+    NEXUS_AudioInputHandle tail;
 
-    BDBG_MSG(("Connect decoder connection (%s) %p", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)tail));
+    /* get_current_decoder_connection may override the connector type from the decoder if needed */
+    tail = nexus_simpleaudiodecoder_get_current_decoder_connection(handle, selector, connectorType, false);
+    BDBG_MSG(("Connect decoder[sel=%u] connection (%s) %p", selector, (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)tail));
 
-    /* we only support PP on stereo path for now */
-    if ( connectorType == NEXUS_AudioConnectorType_eStereo && tail )
+    if ( tail )
     {
         unsigned j;
         /* connect post processing graph */
         for(j=nexus_simpleaudiodecoder_pp_first();j<NEXUS_AudioPostProcessing_eMax;j=nexus_simpleaudiodecoder_pp_next(j)) {
             if ( handle->decoders[selector].processor[j] != NULL ) {
-                NEXUS_AudioProcessor_AddInput(handle->decoders[selector].processor[j], tail);
-                tail = NEXUS_AudioProcessor_GetConnector(handle->decoders[selector].processor[j]);
-                BDBG_MSG(("--> pp (%u) connection (stereo) %p", j, (void*)tail));
+                bool supported = false;
+
+                switch ( j ) {
+                /* upmixing/downmixing post processors */
+                case NEXUS_AudioPostProcessing_eAmbisonic:
+                    supported = true;
+                    break;
+                /* non-upmixing/downmixing post processors */
+                default:
+                    supported = ( handle->decoders[selector].processorConnectorType[j] == connectorType );
+                    break;
+                }
+                if ( supported ) {
+                    bool alreadyConnected = false;
+                    NEXUS_AudioInput_IsConnectedToInput(tail, NEXUS_AudioProcessor_GetConnectorByType(handle->decoders[selector].processor[j], connectorType), &alreadyConnected);
+                    /* in the case of downmixing or upmixing processors, it may have already been added. */
+                    if ( !alreadyConnected ) {
+                        NEXUS_AudioProcessor_AddInput(handle->decoders[selector].processor[j], tail);
+                    } else {
+                        BDBG_MSG(("  (already connected)"));
+                    }
+                    tail = NEXUS_AudioProcessor_GetConnectorByType(handle->decoders[selector].processor[j], connectorType);
+                    BDBG_MSG(("  --> pp (%u) connection (%s) %p", j, (connectorType==NEXUS_AudioConnectorType_eMultichannel)?"multichannel":"stereo",(void*)tail));
+                }
             }
         }
     }
@@ -1233,7 +1290,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_connect_mixer(NEXUS_SimpleAudioDecod
         break;
     }
 
-    tail = nexus_simpleaudiodecoder_get_current_decoder_connection(handle, selector, connectorType);
+    tail = nexus_simpleaudiodecoder_get_current_decoder_connection(handle, selector, connectorType, true);
 
     BDBG_MSG(("current decoder tail (%s) %p selector %d", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)tail, selector));
     if ( mixer && tail ) {
@@ -1306,7 +1363,7 @@ static void nexus_simpleaudiodecoder_disconnect_processing(NEXUS_SimpleAudioDeco
             unsigned j;
             for(j=nexus_simpleaudiodecoder_pp_last();j<NEXUS_AudioPostProcessing_eMax;j=nexus_simpleaudiodecoder_pp_prev(j)) {
                 if ( handle->decoders[selector].processor[j] != NULL ) {
-                    BDBG_MSG(("remove input to processor %p", (void*)NEXUS_AudioProcessor_GetConnector(handle->decoders[selector].processor[j])));
+                    BDBG_MSG(("remove input to processor %p", (void*)NEXUS_AudioProcessor_GetConnectorByType(handle->decoders[selector].processor[j], NEXUS_AudioConnectorType_eStereo)));
                     NEXUS_AudioProcessor_RemoveAllInputs(handle->decoders[selector].processor[j]);
                 }
             }
@@ -1334,7 +1391,7 @@ static void nexus_simpleaudiodecoder_disconnect_mixer(NEXUS_SimpleAudioDecoderHa
         break;
     }
 
-    tail = nexus_simpleaudiodecoder_get_current_decoder_connection(handle, selector, connectorType);
+    tail = nexus_simpleaudiodecoder_get_current_decoder_connection(handle, selector, connectorType, true);
 
     if ( mixer && tail ) {
         BDBG_MSG(("remove input to mixer (%s) %p", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)mixer));
@@ -1379,19 +1436,19 @@ static NEXUS_Error nexus_simpleaudiodecoder_connect_downstream(NEXUS_SimpleAudio
         switch ( i ) {
         case NEXUS_SimpleAudioDecoderSelector_ePrimary:
         case NEXUS_SimpleAudioDecoderSelector_eDescription:
-            rc = nexus_simpleaudiodecoder_connect_processing(handle, i, NEXUS_AudioConnectorType_eStereo);
-            if ( rc != NEXUS_SUCCESS ) {
-                return BERR_TRACE(rc);
-            }
-            rc = nexus_simpleaudiodecoder_connect_mixer(handle, i, NEXUS_AudioConnectorType_eStereo);
-            if ( rc != NEXUS_SUCCESS ) {
-                return BERR_TRACE(rc);
-            }
             rc = nexus_simpleaudiodecoder_connect_processing(handle, i, NEXUS_AudioConnectorType_eMultichannel);
             if ( rc != NEXUS_SUCCESS ) {
                 return BERR_TRACE(rc);
             }
+            rc = nexus_simpleaudiodecoder_connect_processing(handle, i, NEXUS_AudioConnectorType_eStereo);
+            if ( rc != NEXUS_SUCCESS ) {
+                return BERR_TRACE(rc);
+            }
             rc = nexus_simpleaudiodecoder_connect_mixer(handle, i, NEXUS_AudioConnectorType_eMultichannel);
+            if ( rc != NEXUS_SUCCESS ) {
+                return BERR_TRACE(rc);
+            }
+            rc = nexus_simpleaudiodecoder_connect_mixer(handle, i, NEXUS_AudioConnectorType_eStereo);
             if ( rc != NEXUS_SUCCESS ) {
                 return BERR_TRACE(rc);
             }
@@ -1417,10 +1474,10 @@ static void nexus_simpleaudiodecoder_disconnect_downstream(NEXUS_SimpleAudioDeco
         switch ( i ) {
         case NEXUS_SimpleAudioDecoderSelector_ePrimary:
         case NEXUS_SimpleAudioDecoderSelector_eDescription:
-            nexus_simpleaudiodecoder_disconnect_mixer(handle, i, NEXUS_AudioConnectorType_eStereo);
-            nexus_simpleaudiodecoder_disconnect_processing(handle, i, NEXUS_AudioConnectorType_eStereo);
             nexus_simpleaudiodecoder_disconnect_mixer(handle, i, NEXUS_AudioConnectorType_eMultichannel);
+            nexus_simpleaudiodecoder_disconnect_mixer(handle, i, NEXUS_AudioConnectorType_eStereo);
             nexus_simpleaudiodecoder_disconnect_processing(handle, i, NEXUS_AudioConnectorType_eMultichannel);
+            nexus_simpleaudiodecoder_disconnect_processing(handle, i, NEXUS_AudioConnectorType_eStereo);
             break;
         default:
             break;
@@ -1955,27 +2012,29 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Resume(NEXUS_SimpleAudioDecoderHandle handl
 #if NEXUS_HAS_AUDIO
     int rc;
 
-    if (handle->mixers.suspended && nexus_simpleaudiodecoder_p_running_mixer_input_changes_allowed(handle)) {
-        handle->mixers.suspended = false;
-        if (handle->serverSettings.mixers.stereo) {
-            BDBG_MSG(("Start stereo mixer."));
-            rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.stereo);
-            if (rc != NEXUS_SUCCESS) {
-                BERR_TRACE(rc);
+    if ( !NEXUS_GetEnv("audio_mixer_start_disabled") ) {
+        if (handle->mixers.suspended && nexus_simpleaudiodecoder_p_running_mixer_input_changes_allowed(handle)) {
+            handle->mixers.suspended = false;
+            if (handle->serverSettings.mixers.stereo) {
+                BDBG_MSG(("Start stereo mixer."));
+                rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.stereo);
+                if (rc != NEXUS_SUCCESS) {
+                    BERR_TRACE(rc);
+                }
             }
-        }
-        if (handle->serverSettings.mixers.multichannel) {
-            BDBG_MSG(("Start multichannel mixer."));
-            rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.multichannel);
-            if (rc != NEXUS_SUCCESS) {
-                BERR_TRACE(rc);
+            if (handle->serverSettings.mixers.multichannel) {
+                BDBG_MSG(("Start multichannel mixer."));
+                rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.multichannel);
+                if (rc != NEXUS_SUCCESS) {
+                    BERR_TRACE(rc);
+                }
             }
-        }
-        if (handle->serverSettings.mixers.persistent) {
-            BDBG_MSG(("Start persistent mixer."));
-            rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.persistent);
-            if (rc != NEXUS_SUCCESS) {
-                BERR_TRACE(rc);
+            if (handle->serverSettings.mixers.persistent) {
+                BDBG_MSG(("Start persistent mixer."));
+                rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.persistent);
+                if (rc != NEXUS_SUCCESS) {
+                    BERR_TRACE(rc);
+                }
             }
         }
     }
@@ -2073,7 +2132,7 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddEncoderOutputs(NEXUS_SimpleAudi
     NEXUS_AudioInputHandle decoderInput;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioDecoder);
-    BDBG_ASSERT(!handle->decoders[NEXUS_SimpleAudioDecoderSelector_ePrimary].state == state_started && !handle->decoders[NEXUS_SimpleAudioDecoderSelector_eSecondary].state == state_started && !handle->playback.state == state_started);
+    BDBG_ASSERT(handle->decoders[NEXUS_SimpleAudioDecoderSelector_ePrimary].state != state_started && handle->decoders[NEXUS_SimpleAudioDecoderSelector_eSecondary].state != state_started && handle->playback.state != state_started);
 
     if (!handle->serverSettings.primary) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -2474,8 +2533,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_apply_processor_settings( NEXUS_Simp
     }
     else {
         /* no MS support or eStandalone, allow stereo post processors with direct connections */
-        for ( i = 0; i < NEXUS_SimpleAudioDecoderSelector_eMax; i++ )
-        {
+        for ( i = 0; i < NEXUS_SimpleAudioDecoderSelector_eMax; i++ ) {
             if ( i != NEXUS_SimpleAudioDecoderSelector_eSecondary ) {
                 unsigned j;
                 bool wasConnected, connected;
@@ -2483,6 +2541,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_apply_processor_settings( NEXUS_Simp
                     NEXUS_AudioProcessorSettings processorSettings;
                     bool connect = false;
                     bool disconnect = false;
+                    NEXUS_AudioConnectorType connectorType = NEXUS_AudioConnectorType_eStereo;
 
                     /* populate type specific data */
                     BKNI_Memset(&processorSettings, 0, sizeof(processorSettings));
@@ -2496,6 +2555,15 @@ static NEXUS_Error nexus_simpleaudiodecoder_apply_processor_settings( NEXUS_Simp
                         wasConnected = handle->settings.processorSettings[i].karaokeVocal.connected;
                         connected = pSettings->processorSettings[i].karaokeVocal.connected;
                         BKNI_Memcpy(&processorSettings.settings.karaokeVocal, &pSettings->processorSettings[i].karaokeVocal.settings, sizeof(processorSettings.settings.karaokeVocal));
+                        break;
+                    case NEXUS_AudioPostProcessing_eAmbisonic:
+                        wasConnected = handle->settings.processorSettings[i].ambisonic.connected;
+                        connected = pSettings->processorSettings[i].ambisonic.connected;
+                        if ( pSettings->processorSettings[i].ambisonic.connectorType == NEXUS_AudioConnectorType_eMultichannel ||
+                             pSettings->processorSettings[i].ambisonic.connectorType == NEXUS_AudioConnectorType_eStereo ) {
+                            connectorType = pSettings->processorSettings[i].ambisonic.connectorType;
+                        }
+                        BKNI_Memcpy(&processorSettings.settings.ambisonic, &pSettings->processorSettings[i].ambisonic.settings, sizeof(processorSettings.settings.ambisonic));
                         break;
                     default:
                         continue;
@@ -2530,6 +2598,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_apply_processor_settings( NEXUS_Simp
                         if ( handle->decoders[i].processor[j] == NULL ) {
                             BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
                         }
+                        handle->decoders[i].processorConnectorType[j] = connectorType;
                     }
                     else if ( disconnect )
                     {
@@ -2538,6 +2607,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_apply_processor_settings( NEXUS_Simp
                             NEXUS_AudioProcessor_RemoveAllInputs(handle->decoders[i].processor[j]);
                             NEXUS_AudioProcessor_Close(handle->decoders[i].processor[j]);
                             handle->decoders[i].processor[j] = NULL;
+                            handle->decoders[i].processorConnectorType[j] = NEXUS_AudioConnectorType_eStereo;
                         }
                     }
 

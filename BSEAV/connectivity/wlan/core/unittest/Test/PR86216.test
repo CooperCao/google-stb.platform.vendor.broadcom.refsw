@@ -1,0 +1,122 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Script for duplicating PR86216
+# By connecting, traffic, then RvR to disconnect-roaming 
+# and measuring the next traffic pattern by looping
+# 
+# Assumes that STA and AP are loaded
+#
+# $Id: 515c9e880102dfbaf19c5d62c52ae4d96b67484f $
+# $Copyright Broadcom Corporation$
+
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Aeroflex
+
+
+UTF::Test PR86216 {AP STA args} {
+    UTF::Getopts {
+	{count.arg 10 "Number of Loops to Try"}
+	{attenuator.arg "" "Attenuator to Use"}
+	{attenstart.arg 0 "Starting Attenuator Value to Use"}
+	{attenincr.arg 5 "Attenuator Increment Value to Use"}
+	{email.arg "" "Email to Use"}
+    {errrate.arg 45 "Rate at Which You Error"}
+	}
+
+    UTF::WrapSummary $UTF::SummaryDir "PR86216" "" "$(email)" {
+
+        # Ensure Attenuation is set to attenstart
+        UTF::Message LOG "" "Setting attenuator to $(attenstart)"
+        if {[catch {ALL attn $(attenstart)} temp]} {
+            UTF::Message WARN "" "Setting attenuator failed: $temp"
+        }
+
+        #set window size
+        set w [$STA cget -tcpwindow]; # Default window size
+
+        # Put the STA information on web page
+        UTF::Try "Whatami STA $STA" {
+            $STA whatami
+        }
+    
+        # Put STA message level for scan and assoc
+        $STA wl msglevel +scan +assoc
+        $STA wl down
+        $STA wl up
+
+        # Change Channel on the AP
+        catch {APChanspec $AP 36l}
+
+        # Open Security
+        catch {APConfigureSecurity  $AP -security open}
+
+        # Loop here
+        for {set i 1} {$i <= $(count)} {incr i} {
+            UTF::Try "Try $i/$(count)" {
+
+                # Connect AP and STA
+                catch {ConnectAPSTA $AP $STA} connect
+
+                # dump rssi and status
+                catch {$STA wl rssi} rssi
+                catch {$STA wl status} status
+
+                # clear ampdu on router, also place for developer needed stats
+                $STA wl ampdu_clear_dump
+
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}
+                
+                
+                # Do traffic and see what happens from STA to Lan
+                catch {UTF::Multiperf [list $STA [$AP lan]] -t 2 -w 512k} ret
+
+                # Dump ampdu after tests on router, also place for developer needed stats
+                $STA wl dump ampdu
+                
+                
+                                
+                # break out of test if you see low TP, without disconnecting for developer to debug
+                if {$ret < $(errrate)} {
+                    set i $(count)
+                    UTF::Message Info "" "Rate is: $ret, RSSI is $rssi"
+                    error $ret
+                }
+                
+                # return the value of the performance test and rssi
+                set ret "html: TP: $ret, RSSI: $rssi"
+
+                # now run through attenuation settings until max of 100, causing STA to roam
+                for {set x $(attenstart)} {$x <= 100} {incr x $(attenincr)} {
+                    catch {ALL attn $x} temp1
+                    UTF::Sleep 1
+                    UTF::Message LOG "" "Current Attenuator Setting: $temp1"    
+                }
+                                                
+                # now bring back attenuation to attenstart
+                for {set x 100} {$x >= $(attenstart)} {incr x -$(attenincr)} {
+                    catch {ALL attn $x} temp1
+                    UTF::Sleep 1
+                    UTF::Message LOG "" "Current Attenuator Setting: $temp1"    
+                }
+                                              
+                # now get status
+                UTF::Try "WL Status $STA" {
+                    $STA wl status
+                }
+                
+                # Disassoc
+                catch {$STA wl disassoc}
+
+                # wl down
+                catch {$STA wl down}
+                                
+                return $ret
+            }
+        }
+    }
+}

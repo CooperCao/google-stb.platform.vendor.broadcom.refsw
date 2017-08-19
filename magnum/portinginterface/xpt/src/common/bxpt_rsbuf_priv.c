@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,7 +58,7 @@
    #define SLOT_SIZE (224)
    #define RS_BUFFER_WRAP_THRESHOLD 4
    #define RS_OVERFLOW_THRESHOLD (3 + RS_BUFFER_WRAP_THRESHOLD)
-   #define RS_CARD_BUFFER_WRAP_THRESHOLD 1
+   #define RS_CARD_BUFFER_WRAP_THRESHOLD 4
 #else
    #define SLOT_SIZE (256)
    #if BXPT_NUM_TSIO
@@ -107,6 +107,7 @@
 
 #if( BDBG_DEBUG_BUILD == 1 )
 BDBG_MODULE( xpt_rsbuf_priv );
+BDBG_FILE_MODULE( xpt_rsbuf_regs );
 #endif
 
 #define REG_STEP (BCHP_XPT_RSBUFF_END_POINTER_IBP0 - BCHP_XPT_RSBUFF_BASE_POINTER_IBP0)
@@ -121,25 +122,44 @@ static void SetupBufferRegs(
 {
     uint64_t addrValue;
 
-    /* Change the WRITE, VALID, and READ init values per SW7445-102 */
-    uint32_t InitVal = Offset ? -1 : 0xFF;
-
     BDBG_MSG(("%s: BaseRegAddr %u, WhichInstance %u, Size %lu, Offset " BDBG_UINT64_FMT " ",
-              __FUNCTION__, BaseRegAddr, WhichInstance, (unsigned long) Size, BDBG_UINT64_ARG(Offset) ));
+              BSTD_FUNCTION, BaseRegAddr, WhichInstance, (unsigned long) Size, BDBG_UINT64_ARG(Offset) ));
     BaseRegAddr = BaseRegAddr + WhichInstance * BUFFER_PTR_REG_STEPSIZE;
 
+#ifdef BCHP_XPT_RSBUFF_WRAP_POINTER_IBP0
+    addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_BASE_POINTER_IBP0, BASE, Offset);
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr, addrValue );                   /* Set BASE */
+	BDBG_MODULE_MSG(xpt_rsbuf_regs, ("%s(%x:%u) BASE " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
+
+    /* Change the WRITE, VALID, and READ init values per SW7445-102 */
+    if(Offset)
+        addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_WRITE_POINTER_IBP0, WRITE, Offset - 1);
+    else
+        addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_WRITE_POINTER_IBP0, WRITE, 0xFF);
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 2 * REG_STEP, addrValue );           /* Set WRITE */
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 3 * REG_STEP, addrValue );           /* Set VALID */
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 5 * REG_STEP, addrValue );           /* Set READ */
+	BDBG_MODULE_MSG( xpt_rsbuf_regs, ("%s(%x:%u) WRITE/VALID/READ " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
+
+    addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_END_POINTER_IBP0, END, Offset + Size - 1);
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 1 * REG_STEP, addrValue );              /* Set END */
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 4 * REG_STEP, addrValue );           /* Set WRAP */
+	BDBG_MODULE_MSG(xpt_rsbuf_regs, ("%s(%x:%u) END/WRAP " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
+
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 6 * REG_STEP, 0 );           /* Set WATERMARK */
+#else
     addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_BASE_POINTER_IBP0, BASE, Offset);
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr, addrValue );                   /* Set BASE */
     addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_END_POINTER_IBP0, END, Offset + Size - 1);
-    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + REG_STEP, addrValue );              /* Set END */
-    addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_WRITE_POINTER_IBP0, WRITE, Offset + InitVal);
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 1 * REG_STEP, addrValue );              /* Set END */
+
+    /* Change the WRITE, VALID, and READ init values per SW7445-102 */
+    if(Offset)
+        addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_WRITE_POINTER_IBP0, WRITE, Offset - 1);
+    else
+        addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_WRITE_POINTER_IBP0, WRITE, 0xFF);
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 2 * REG_STEP, addrValue );           /* Set WRITE */
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 3 * REG_STEP, addrValue );           /* Set VALID */
-#ifdef BCHP_XPT_RSBUFF_WRAP_POINTER_IBP0
-    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 4 * REG_STEP, addrValue );           /* Set WRAP */
-    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 5 * REG_STEP, addrValue );           /* Set READ */
-    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 6 * REG_STEP, 0 );            /* Set WATERMARK */
-#else
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 4 * REG_STEP, addrValue );           /* Set READ */
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 5 * REG_STEP, 0 );           /* Set WATERMARK */
 #endif
@@ -180,7 +200,7 @@ static BERR_Code AllocateBuffer(
     /* If there is a secure heap defined, use it. */
     BMMA_Heap_Handle mmaHeap = hXpt->mmaRHeap ? hXpt->mmaRHeap : hXpt->mmaHeap;
 
-    BDBG_MSG(("%s: BaseRegAddr %u, WhichInstance %u, Size %lu, SIZE_MULTIPLE %u", __FUNCTION__, BaseRegAddr, WhichInstance, Size, SIZE_MULTIPLE));
+    BDBG_MSG(("%s: BaseRegAddr %u, WhichInstance %u, Size %lu, SIZE_MULTIPLE %u", BSTD_FUNCTION, BaseRegAddr, WhichInstance, Size, SIZE_MULTIPLE));
 
     /* Size must be a multiple of the slot size. */
     Size = Size - ( Size % SIZE_MULTIPLE );
@@ -327,6 +347,27 @@ BERR_Code BXPT_P_RsBuf_Init(
 
     BDBG_ASSERT( hXpt );
     BDBG_ASSERT( BandwidthConfig );
+
+#ifdef BXPT_P_HAS_224B_SLOT_SIZE
+        /* SWSTB-5934 */
+    {
+        Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_MISC_CTRL );
+        BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_MISC_CTRL, CARD_NO_DEST_CHK_DIS, 1 );
+        BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_MISC_CTRL, Reg );
+    }
+#endif
+
+#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_A0)
+    {
+        Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_IBP_SPARE_BW_EN );
+        BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_IBP_SPARE_BW_EN, SPARE_BW_EN, 1 << 0 );
+        BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_IBP_SPARE_BW_EN, Reg );
+
+        Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_PBP_SPARE_BW_EN );
+        BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_PBP_SPARE_BW_EN, SPARE_BW_EN, 1 << 1 );
+        BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_PBP_SPARE_BW_EN, Reg );
+    }
+#endif
 
 #ifdef BCHP_XPT_RSBUFF_MISC_CTRL_MAX_READ_SIZE_DEFAULT
     {

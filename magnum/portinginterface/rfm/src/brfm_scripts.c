@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -501,6 +501,7 @@ Sub RFM_Group_Delay_PAL_L__TDF()
 '     5.25  -100      +/-42.5
 '     5.5  <-100
 *******************************************************************************/
+#if 0
 static const uint32_t BRFM_P_GroupDelayScrPalL[] =
 {
     BRSP_ScriptType_eWrite32, BCHP_RFM_CLK27_GRP00, 0x0030ffd0, /*  0.00146484375 /-0.00146484375 (   3/   -3) */
@@ -525,6 +526,7 @@ static const uint32_t BRFM_P_GroupDelayScrPalL[] =
     BRSP_ScriptType_eWrite32, BCHP_RFM_CLK27_GRP19, 0x0010ffe0, /*  0.00048828125 /-0.00097656250 (   1/   -2) */
     BRSP_ScriptType_eEndOfScript, 0x00,                 0x00000000
 };
+#endif
 
 /*******************************************************************************
 *******************************************************************************/
@@ -545,6 +547,7 @@ static const uint32_t BRFM_P_BTSCSetup15kHzLeft[] =
     BRSP_ScriptType_eEndOfScript, 0x00,              0x00000000
 };
 
+#if 0
 /* 15 kHz right-input/output lowpass filters (currently not in use) */
 static const uint32_t BRFM_P_BTSCSetup15kHzRight[] =
 {
@@ -561,6 +564,7 @@ static const uint32_t BRFM_P_BTSCSetup15kHzRight[] =
     BRSP_ScriptType_eWrite32, BCHP_RFM_CLK27_RCF2C2, 0x0003fa34,
     BRSP_ScriptType_eEndOfScript, 0x00,              0x00000000
 };
+#endif
 
 /*******************************************************************************
 Sub RFM_7038_Audio_Setup_Stereo()

@@ -47,15 +47,15 @@
 
 
 #if (BCHP_CHIP != 45308)
-#error "This file is for BCM45308 firmware only"
+#error "This file is for BCM45316 firmware only"
 #endif
 
-BDBG_MODULE(bsat_45308_priv);
+BDBG_MODULE(bsat_45316_priv);
 
 #define BSAT_DEBUG_POWERDOWN(x) /* x */
 
 
-static const uint32_t BSAT_tfec_clock_enable_reg[8] =
+static const uint32_t BSAT_afec_clock_enable_reg[8] =
 {
    BCHP_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE,
    BCHP_CLKGEN_SDS_AFEC_TOP_1_INST_CLOCK_ENABLE,
@@ -245,6 +245,182 @@ const uint32_t BSAT_g1_ChannelIntrID[BSAT_G1_MAX_CHANNELS][BSAT_g1_MaxIntID] =
       BCHP_INT_ID_TFEC_LOCK_7,
       BCHP_INT_ID_TFEC_NOT_LOCK_7,
       BCHP_INT_ID_TFEC_SYNC_7
+   },
+   /* channel 8 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_8,
+      BCHP_INT_ID_SDS_NOT_LOCK_8,
+      BCHP_INT_ID_SDS_BTM_8,
+      BCHP_INT_ID_SDS_BRTM_8,
+      BCHP_INT_ID_SDS_GENTM1_8,
+      BCHP_INT_ID_SDS_GENTM2_8,
+      BCHP_INT_ID_SDS_GENTM3_8,
+      BCHP_INT_ID_MI2C_8,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_8,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_8,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_8,
+      BCHP_INT_ID_SDS_DFT_DONE_8,
+      BCHP_INT_ID_AFEC_LOCK_8,
+      BCHP_INT_ID_AFEC_NOT_LOCK_8,
+      BCHP_INT_ID_AFEC_MP_LOCK_8,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_8,
+      BCHP_INT_ID_TFEC_LOCK_8,
+      BCHP_INT_ID_TFEC_NOT_LOCK_8,
+      BCHP_INT_ID_TFEC_SYNC_8
+   },
+   /* channel 9 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_9,
+      BCHP_INT_ID_SDS_NOT_LOCK_9,
+      BCHP_INT_ID_SDS_BTM_9,
+      BCHP_INT_ID_SDS_BRTM_9,
+      BCHP_INT_ID_SDS_GENTM1_9,
+      BCHP_INT_ID_SDS_GENTM2_9,
+      BCHP_INT_ID_SDS_GENTM3_9,
+      BCHP_INT_ID_MI2C_9,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_9,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_9,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_9,
+      BCHP_INT_ID_SDS_DFT_DONE_9,
+      BCHP_INT_ID_AFEC_LOCK_9,
+      BCHP_INT_ID_AFEC_NOT_LOCK_9,
+      BCHP_INT_ID_AFEC_MP_LOCK_9,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_9,
+      BCHP_INT_ID_TFEC_LOCK_9,
+      BCHP_INT_ID_TFEC_NOT_LOCK_9,
+      BCHP_INT_ID_TFEC_SYNC_9
+   },
+   /* channel 10 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_10,
+      BCHP_INT_ID_SDS_NOT_LOCK_10,
+      BCHP_INT_ID_SDS_BTM_10,
+      BCHP_INT_ID_SDS_BRTM_10,
+      BCHP_INT_ID_SDS_GENTM1_10,
+      BCHP_INT_ID_SDS_GENTM2_10,
+      BCHP_INT_ID_SDS_GENTM3_10,
+      BCHP_INT_ID_MI2C_10,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_10,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_10,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_10,
+      BCHP_INT_ID_SDS_DFT_DONE_10,
+      BCHP_INT_ID_AFEC_LOCK_10,
+      BCHP_INT_ID_AFEC_NOT_LOCK_10,
+      BCHP_INT_ID_AFEC_MP_LOCK_10,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_10,
+      BCHP_INT_ID_TFEC_LOCK_10,
+      BCHP_INT_ID_TFEC_NOT_LOCK_10,
+      BCHP_INT_ID_TFEC_SYNC_10
+   },
+   /* channel 11 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_11,
+      BCHP_INT_ID_SDS_NOT_LOCK_11,
+      BCHP_INT_ID_SDS_BTM_11,
+      BCHP_INT_ID_SDS_BRTM_11,
+      BCHP_INT_ID_SDS_GENTM1_11,
+      BCHP_INT_ID_SDS_GENTM2_11,
+      BCHP_INT_ID_SDS_GENTM3_11,
+      BCHP_INT_ID_MI2C_11,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_11,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_11,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_11,
+      BCHP_INT_ID_SDS_DFT_DONE_11,
+      BCHP_INT_ID_AFEC_LOCK_11,
+      BCHP_INT_ID_AFEC_NOT_LOCK_11,
+      BCHP_INT_ID_AFEC_MP_LOCK_11,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_11,
+      BCHP_INT_ID_TFEC_LOCK_11,
+      BCHP_INT_ID_TFEC_NOT_LOCK_11,
+      BCHP_INT_ID_TFEC_SYNC_11
+   },
+   /* channel 12 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_12,
+      BCHP_INT_ID_SDS_NOT_LOCK_12,
+      BCHP_INT_ID_SDS_BTM_12,
+      BCHP_INT_ID_SDS_BRTM_12,
+      BCHP_INT_ID_SDS_GENTM1_12,
+      BCHP_INT_ID_SDS_GENTM2_12,
+      BCHP_INT_ID_SDS_GENTM3_12,
+      BCHP_INT_ID_MI2C_12,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_12,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_12,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_12,
+      BCHP_INT_ID_SDS_DFT_DONE_12,
+      BCHP_INT_ID_AFEC_LOCK_12,
+      BCHP_INT_ID_AFEC_NOT_LOCK_12,
+      BCHP_INT_ID_AFEC_MP_LOCK_12,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_12,
+      BCHP_INT_ID_TFEC_LOCK_12,
+      BCHP_INT_ID_TFEC_NOT_LOCK_12,
+      BCHP_INT_ID_TFEC_SYNC_12
+   },
+   /* channel 13 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_13,
+      BCHP_INT_ID_SDS_NOT_LOCK_13,
+      BCHP_INT_ID_SDS_BTM_13,
+      BCHP_INT_ID_SDS_BRTM_13,
+      BCHP_INT_ID_SDS_GENTM1_13,
+      BCHP_INT_ID_SDS_GENTM2_13,
+      BCHP_INT_ID_SDS_GENTM3_13,
+      BCHP_INT_ID_MI2C_13,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_13,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_13,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_13,
+      BCHP_INT_ID_SDS_DFT_DONE_13,
+      BCHP_INT_ID_AFEC_LOCK_13,
+      BCHP_INT_ID_AFEC_NOT_LOCK_13,
+      BCHP_INT_ID_AFEC_MP_LOCK_13,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_13,
+      BCHP_INT_ID_TFEC_LOCK_13,
+      BCHP_INT_ID_TFEC_NOT_LOCK_13,
+      BCHP_INT_ID_TFEC_SYNC_13
+   },
+   /* channel 14 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_14,
+      BCHP_INT_ID_SDS_NOT_LOCK_14,
+      BCHP_INT_ID_SDS_BTM_14,
+      BCHP_INT_ID_SDS_BRTM_14,
+      BCHP_INT_ID_SDS_GENTM1_14,
+      BCHP_INT_ID_SDS_GENTM2_14,
+      BCHP_INT_ID_SDS_GENTM3_14,
+      BCHP_INT_ID_MI2C_14,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_14,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_14,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_14,
+      BCHP_INT_ID_SDS_DFT_DONE_14,
+      BCHP_INT_ID_AFEC_LOCK_14,
+      BCHP_INT_ID_AFEC_NOT_LOCK_14,
+      BCHP_INT_ID_AFEC_MP_LOCK_14,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_14,
+      BCHP_INT_ID_TFEC_LOCK_14,
+      BCHP_INT_ID_TFEC_NOT_LOCK_14,
+      BCHP_INT_ID_TFEC_SYNC_14
+   },
+   /* channel 15 interrupts */
+   {
+      BCHP_INT_ID_SDS_LOCK_15,
+      BCHP_INT_ID_SDS_NOT_LOCK_15,
+      BCHP_INT_ID_SDS_BTM_15,
+      BCHP_INT_ID_SDS_BRTM_15,
+      BCHP_INT_ID_SDS_GENTM1_15,
+      BCHP_INT_ID_SDS_GENTM2_15,
+      BCHP_INT_ID_SDS_GENTM3_15,
+      BCHP_INT_ID_MI2C_15,
+      BCHP_INT_ID_HP_FRAME_BOUNDARY_15,
+      BCHP_INT_ID_SDS_HP_STATE_MATCH_15,
+      BCHP_INT_ID_SDS_HP_STATE_CHANGE_15,
+      BCHP_INT_ID_SDS_DFT_DONE_15,
+      BCHP_INT_ID_AFEC_LOCK_15,
+      BCHP_INT_ID_AFEC_NOT_LOCK_15,
+      BCHP_INT_ID_AFEC_MP_LOCK_15,
+      BCHP_INT_ID_AFEC_MP_NOT_LOCK_15,
+      BCHP_INT_ID_TFEC_LOCK_15,
+      BCHP_INT_ID_TFEC_NOT_LOCK_15,
+      BCHP_INT_ID_TFEC_SYNC_15
    }
 };
 
@@ -254,24 +430,50 @@ const uint32_t BSAT_g1_ChannelIntrID[BSAT_G1_MAX_CHANNELS][BSAT_g1_MaxIntID] =
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 {
-   uint32_t product_id, family_id, chip, n;
-   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
-
-   product_id = BREG_Read32(pDev->hRegister, BCHP_TM_PRODUCT_ID);
-   family_id = BREG_Read32(pDev->hRegister, BCHP_TM_FAMILY_ID) >> 8;
-   chip = (product_id >> 8) & 0xFFFFF;
-   n = chip & 0xFF;
-   if (family_id == 0x45302)
-      *totalChannels = 2;
-   else if (family_id == 0x45304)
-      *totalChannels = 4;
-   else if ((n == 0x16) || ((family_id & 0xFF) == 0x16))
-      *totalChannels = 16;
-   else if (n == 0)
-      *totalChannels = 8;
-   else
-      *totalChannels = n;
+   *totalChannels = 16;
    return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_ValidateAcqParams()
+******************************************************************************/
+BERR_Code BSAT_g1_P_ValidateAcqParams(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams)
+{
+   BSAT_ChannelHandle hOtherChannel;
+   BSAT_g1_P_ChannelHandle *hOtherChannelImpl;
+   BERR_Code retCode = BERR_SUCCESS;
+   BSAT_AcqType otherChannelAcqType;
+   bool bIsTurbo;
+
+   /* for channel pairs (i,i+1) where i=0,2,4,...,14, do not allow DVB-S2
+      acquisition on channel i and Turbo acquisition on channel i+1 */
+   if (BSAT_MODE_IS_TURBO(pParams->mode))
+      bIsTurbo = true;
+   else
+      bIsTurbo = false;
+   if ((BSAT_MODE_IS_DVBS2(pParams->mode) && ((h->channel & 1) == 0)) ||
+        (bIsTurbo && (h->channel & 1)))
+   {
+      if (h->channel & 1)
+         hOtherChannel = h->pDevice->pChannels[h->channel-1];
+      else
+         hOtherChannel = h->pDevice->pChannels[h->channel+1];
+
+      hOtherChannelImpl = (BSAT_g1_P_ChannelHandle *)(hOtherChannel->pImpl);
+      if (hOtherChannelImpl->bAbortAcq == false)
+      {
+         otherChannelAcqType = hOtherChannelImpl->acqType;
+         if (((otherChannelAcqType == BSAT_AcqType_eDvbs2) && bIsTurbo && (h->channel & 1)) ||
+             ((otherChannelAcqType == BSAT_AcqType_eTurbo) && !bIsTurbo && ((h->channel & 1) == 0)))
+         {
+            BDBG_ERR(("illegal AFEC/TFEC acquisition combination"));
+            retCode = BERR_NOT_SUPPORTED;
+         }
+      }
+   }
+
+   return retCode;
 }
 
 
@@ -424,7 +626,7 @@ BERR_Code BSAT_g1_P_TunerPowerDown(BSAT_ChannelHandle h)
    mask = (1 << shift);
 
    BKNI_EnterCriticalSection();
-   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_PWRDN, (1 << h->channel));
+   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_PWRDN, mask);
    BKNI_LeaveCriticalSection();
 
    return BERR_SUCCESS;
@@ -461,8 +663,6 @@ BERR_Code BSAT_g1_P_SdsPowerUp(BSAT_ChannelHandle h)
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t val;
 
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SDS%d Power Up", h->channel)));
-
    BKNI_EnterCriticalSection();
 
    /* enable DUALSDS PLL clock */
@@ -489,8 +689,6 @@ BERR_Code BSAT_g1_P_SdsPowerDown(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t val;
-
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SDS%d Power Down", h->channel)));
 
    BKNI_EnterCriticalSection();
 
@@ -522,83 +720,25 @@ BERR_Code BSAT_g1_P_GetAgcStatus(BSAT_ChannelHandle h, BSAT_AgcStatus *pStatus)
 
 #ifndef BSAT_EXCLUDE_AFEC
 /******************************************************************************
- BSAT_g1_P_GypsumEnable270MhzClock() - The 270MHz clock is used by TFEC and AFEC
-******************************************************************************/
-void BSAT_g1_P_GypsumEnable270MhzClock(BSAT_ChannelHandle h, bool bEnable)
-{
-   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val;
-
-   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
-   if (bEnable)
-      val |= (1 << h->channel);
-   else
-      val &= ~(1 << h->channel);
-   BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
-}
-
-
-/******************************************************************************
- BSAT_g1_P_GypsumEnable486MhzClock() - The 486MHz clock is used by TFEC
-******************************************************************************/
-void BSAT_g1_P_GypsumEnable486MhzClock(BSAT_ChannelHandle h, bool bEnable)
-{
-   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val, reg;
-
-   reg = BSAT_tfec_clock_enable_reg[h->channel >> 1];
-   val = BREG_Read32(pDev->hRegister, reg);
-   if (bEnable)
-      val |=  BCHP_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK;
-   else
-      val &=  ~BCHP_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK;
-   BREG_Write32(pDev->hRegister, reg, val);
-}
-
-
-/******************************************************************************
- BSAT_g1_P_GypsumIs270MHzClockEnabled()
-******************************************************************************/
-bool BSAT_g1_P_GypsumIs270MHzClockEnabled(BSAT_ChannelHandle h)
-{
-   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val;
-
-   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
-   return (val & (1 << h->channel)) ? true : false;
-}
-
-
-/******************************************************************************
- BSAT_g1_P_GypsumIs486MHzClockEnabled()
-******************************************************************************/
-bool BSAT_g1_P_GypsumIs486MHzClockEnabled(BSAT_ChannelHandle h)
-{
-   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val, reg;
-
-   reg = BSAT_tfec_clock_enable_reg[h->channel >> 1];
-   val = BREG_Read32(pDev->hRegister, reg);
-   return ((val & BCHP_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK) ? true : false);
-}
-
-
-/******************************************************************************
  BSAT_g1_P_IsAfecOn_isrsafe() - true if afec global is on
 ******************************************************************************/
 bool BSAT_g1_P_IsAfecOn_isrsafe(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val;
-   bool bIsOn = true;
+   uint32_t val, reg;
+   bool bIsOn = false;
 
-   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
-   if ((val & (1 << h->channel)) == 0)
-      bIsOn = false;
-   else
+   reg = BSAT_afec_clock_enable_reg[h->channel >> 1] + 4;
+   val = BREG_Read32(pDev->hRegister, reg) & 0x7F;
+   if (val == 0x7F)
    {
-      /* gypsum */
-      bIsOn = BSAT_g1_P_GypsumIs270MHzClockEnabled(h);
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+      if (val & (1 << h->channel))
+      {
+         val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_GLOBAL_CLK_CNTRL);
+         if ((val & BCHP_AFEC_GLOBAL_0_CLK_CNTRL_LDPC_CLK_ENABLEB_MASK) == 0)
+            bIsOn = true;
+      }
    }
 
    return bIsOn;
@@ -611,20 +751,25 @@ bool BSAT_g1_P_IsAfecOn_isrsafe(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_AfecPowerUp_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val;
+   uint32_t val, reg;
 
    if (BSAT_g1_P_IsAfecOn_isrsafe(h) == false)
    {
-      BSAT_DEBUG_POWERDOWN(BDBG_ERR(("AFEC%d Power Up", h->channel)));
+      reg = BSAT_afec_clock_enable_reg[h->channel >> 1];
+      val = BREG_Read32(pDev->hRegister, reg);
+      if ((val & 0x7F) != 0x7F)
+      {
+         val |= 0x7F;
+         BREG_Write32(pDev->hRegister, reg, val);
+      }
 
+      /* enable 270MHz clock (shared with TFEC) */
       val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
       val |= (1 << h->channel);
       BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
 
-      /* gypsum - enable 270MHz clock (shared with TFEC) */
-      BSAT_g1_P_GypsumEnable270MhzClock(h, true);
-
       BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_GLOBAL_CLK_CNTRL, ~BCHP_AFEC_GLOBAL_0_CLK_CNTRL_LDPC_CLK_ENABLEB_MASK);
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, ~BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK);
    }
 
    return BERR_SUCCESS;
@@ -641,14 +786,10 @@ BERR_Code BSAT_g1_P_AfecPowerDown_isrsafe(BSAT_ChannelHandle h)
 
    if (BSAT_g1_P_IsAfecOn_isrsafe(h))
    {
-      BSAT_DEBUG_POWERDOWN(BDBG_ERR(("AFEC%d Power Down", h->channel)));
-
       /* global power down */
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_GLOBAL_CLK_CNTRL, BCHP_AFEC_GLOBAL_0_CLK_CNTRL_LDPC_CLK_ENABLEB_MASK);
 
-      /* gypsum - disable 270MHz clock (shared with AFEC) */
-      BSAT_g1_P_GypsumEnable270MhzClock(h, false);
-
+      /* disable 270MHz clock (shared with TFEC) */
       val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
       val &= ~(1 << h->channel);
       BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
@@ -682,6 +823,7 @@ BERR_Code BSAT_g1_P_GetAfecClock_isrsafe(BSAT_ChannelHandle h, uint32_t *pFreq)
 BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val, reg;
 
    BKNI_EnterCriticalSection();
 
@@ -689,8 +831,18 @@ BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h)
    {
       BSAT_DEBUG_POWERDOWN(BDBG_ERR(("TFEC%d Power Up", h->channel)));
 
-      BSAT_g1_P_GypsumEnable486MhzClock(h, true);
-      BSAT_g1_P_GypsumEnable270MhzClock(h, true);
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+      val |= (1 << h->channel);
+      BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
+
+      reg = BSAT_afec_clock_enable_reg[h->channel >> 1];
+      val = BREG_Read32(pDev->hRegister, reg);
+      val |= BCHP_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK;
+      BREG_Write32(pDev->hRegister, reg, val);
+
+      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x80);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x0);
    }
    BKNI_LeaveCriticalSection();
 
@@ -704,6 +856,7 @@ BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_TfecPowerDown_isrsafe(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val, reg;
 
    BKNI_EnterCriticalSection();
 
@@ -711,11 +864,19 @@ BERR_Code BSAT_g1_P_TfecPowerDown_isrsafe(BSAT_ChannelHandle h)
    {
       BSAT_DEBUG_POWERDOWN(BDBG_ERR(("TFEC%d Power Down", h->channel)));
 
-      /* turn off 486MHz clock */
-      BSAT_g1_P_GypsumEnable486MhzClock(h, false);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x80);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x0);
 
       /* TFEC also uses 270MHz (shared with AFEC) */
-      BSAT_g1_P_GypsumEnable270MhzClock(h, false);
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+      val &= ~(1 << h->channel);
+      BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
+
+      /* turn off 486MHz clock */
+      reg = BSAT_afec_clock_enable_reg[h->channel >> 1];
+      val = BREG_Read32(pDev->hRegister, reg);
+      val &= ~BCHP_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK;
+      BREG_Write32(pDev->hRegister, reg, val);
    }
 
    BKNI_LeaveCriticalSection();
@@ -730,10 +891,23 @@ BERR_Code BSAT_g1_P_TfecPowerDown_isrsafe(BSAT_ChannelHandle h)
 bool BSAT_g1_P_IsTfecOn_isrsafe(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   bool bIsOn;
+   bool bIsOn = false;
+   uint32_t val, reg;
 
-   bIsOn = (BSAT_g1_P_GypsumIs270MHzClockEnabled(h) && BSAT_g1_P_GypsumIs486MHzClockEnabled(h));
+   reg = BSAT_afec_clock_enable_reg[h->channel >> 1] + 4; /* status register */
+   val = BREG_Read32(pDev->hRegister, reg);
+   if ((val & 0xFF) == 0xFF)
+   {
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+      if (val & (1 << h->channel))
+      {
+         val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00);
+         if (val & BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK)
+            bIsOn = true;
+      }
+   }
 
+   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("TFEC%d is %s", h->channel, bIsOn ? "on" : "off")));
    return bIsOn;
 }
 

@@ -427,7 +427,7 @@ void CBoardResources::clear()
  * only a specific tuning object knows how to tune itself - so even if a tuner can be either qam or vsb, the
  * object that represents it can only be one or the other. */
 eRet CBoardResources::addFrontend(
-        const uint16_t               numTuner,
+        const unsigned               numTuner,
         CConfiguration *             pCfg,
         NEXUS_FrontendCapabilities * pCapabilities
         )
@@ -550,10 +550,10 @@ error:
 /* add a number of resources to associated list */
 eRet CBoardResources::add(
         eBoardResource   resource,
-        const uint16_t   numResources,
+        const unsigned   numResources,
         const char *     name,
         CConfiguration * pCfg,
-        const uint16_t   startIndex,
+        const unsigned   startIndex,
         const unsigned   id
         )
 {
@@ -563,7 +563,7 @@ eRet CBoardResources::add(
     BDBG_ASSERT(NULL != pCfg);
     pPlatformConfig = pCfg->getPlatformConfig();
 
-    for (uint16_t i = startIndex; i < (startIndex + numResources); i++)
+    for (unsigned i = startIndex; i < (startIndex + numResources); i++)
     {
         switch (resource)
         {
@@ -982,7 +982,7 @@ eRet CBoardResources::add(
 bool CBoardResources::findResource(
         void *         id,
         eBoardResource resource,
-        uint16_t       index
+        unsigned       index
         )
 {
     CResource * pResource = NULL;
@@ -1036,7 +1036,7 @@ bool CBoardResources::findResource(
 CResource * CBoardResources::reserveResource(
         void *         id,
         eBoardResource resource,
-        uint16_t       index
+        unsigned       index
         )
 {
     CResource * pResource         = NULL;
@@ -1122,7 +1122,7 @@ CResource * CBoardResources::reserveResource(
 CResource * CBoardResources::findCheckedoutResource(
         void *         id,
         eBoardResource resource,
-        uint16_t       index
+        unsigned       index
         )
 {
     CResource * pResource           = NULL;
@@ -1185,7 +1185,7 @@ eRet CBoardResources::registerObserver(
         void *         id,
         eBoardResource resource,
         CObserver *    pObserver,
-        uint16_t       resourceIndex,
+        unsigned       resourceIndex,
         eNotification  notification
         )
 {
@@ -1235,7 +1235,7 @@ eRet CBoardResources::unregisterObserver(
         void *         id,
         eBoardResource resource,
         CObserver *    pObserver,
-        uint16_t       resourceIndex,
+        unsigned       resourceIndex,
         eNotification  notification
         )
 {
@@ -1283,7 +1283,7 @@ eRet CBoardResources::unregisterObserver(
 CResource * CBoardResources::checkoutResource(
         void *         id,
         eBoardResource resource,
-        uint16_t       index,
+        unsigned       index,
         uint32_t       number
         )
 {
@@ -1404,35 +1404,32 @@ eRet CBoardResources::checkinResource(CResource * pResource)
     pCheckedInResource = pResource;
 
 #if NEXUS_HAS_FRONTEND
-    if (NULL != pCheckedInResource)
+    /* special handling for frontends */
+    if (pCheckedInResource->isFrontend())
     {
-        /* special handling for frontends */
-        if (pCheckedInResource->isFrontend())
+        CResource *         pResourceFound = NULL;
+        MList <CResource> * pResourceList  = NULL;
+
+        pResourceList = _mapResourceList[pCheckedInResource->getType()];
+
+        MListItr <CResource> itr(pResourceList);
+
+        /* we've checked in a frontend - now we must check in any other frontends with the same resource
+         * number since they correspond to the same physical frontend. */
+        for (pResourceFound = itr.first(); pResourceFound; pResourceFound = itr.next())
         {
-            CResource *         pResourceFound = NULL;
-            MList <CResource> * pResourceList  = NULL;
-
-            pResourceList = _mapResourceList[pCheckedInResource->getType()];
-
-            MListItr <CResource> itr(pResourceList);
-
-            /* we've checked in a frontend - now we must check in any other frontends with the same resource
-             * number since they correspond to the same physical frontend. */
-            for (pResourceFound = itr.first(); pResourceFound; pResourceFound = itr.next())
+            if (pResourceFound->isFrontend())
             {
-                if (pResourceFound->isFrontend())
+                /* found frontend. */
+                if (true == pResourceFound->isCheckedOut())
                 {
-                    /* found frontend. */
-                    if (true == pResourceFound->isCheckedOut())
+                    /* the found resource is checked out */
+                    if (pCheckedInResource->getNumber() == pResourceFound->getNumber())
                     {
-                        /* the found resource is checked out */
-                        if (pCheckedInResource->getNumber() == pResourceFound->getNumber())
-                        {
-                            /* frontend number matches found frontend number so this frontend also corresponds to the
-                             * same physical frontend - check it in, too */
-                            ret = pResourceFound->setCheckedOut(false);
-                            CHECK_ERROR_GOTO("unable to checkin resource", ret, error);
-                        }
+                        /* frontend number matches found frontend number so this frontend also corresponds to the
+                         * same physical frontend - check it in, too */
+                        ret = pResourceFound->setCheckedOut(false);
+                        CHECK_ERROR_GOTO("unable to checkin resource", ret, error);
                     }
                 }
             }

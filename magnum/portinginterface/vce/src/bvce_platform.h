@@ -368,6 +368,9 @@ BVCE_Platform_P_OverrideChannelDimensionBounds(
 #define BVCE_Platform_P_OverrideChannelDimensionBounds( _hBox, _eScanType, _puiWidth, _puiHeight ) { BSTD_UNUSED(_hBox); BSTD_UNUSED(_eScanType); BSTD_UNUSED(_puiWidth); BSTD_UNUSED(_puiHeight); }
 #endif
 
+extern const BVCE_Platform_P_Register s_astViceHardwareRegisters[];
+extern const unsigned s_uiViceHardwareRegistersCount;
+
 #ifdef __cplusplus
 }
 #endif

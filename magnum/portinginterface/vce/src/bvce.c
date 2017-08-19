@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2263,33 +2263,6 @@ static const uint32_t BVCE_P_InputTypeReverseLUT[BAVC_ScanType_eProgressive + 1]
 {
    BAVC_ScanType_eProgressive, /* ENCODER_INPUT_TYPE_PROGRESSIVE */
    BAVC_ScanType_eInterlaced, /* ENCODER_INPUT_TYPE_INTERLACED */
-};
-
-static const uint32_t BVCE_P_FrameTimeLUT[BAVC_FrameRateCode_eMax] =
-{
- 134,  /* Unknown */
- 42,  /* 23.976 */
- 42,  /* 24 */
- 40,  /* 25 */
- 34,  /* 29.97 */
- 34,  /* 30 */
- 20,  /* 50 */
- 17,  /* 59.94 */
- 17,  /* 60 */
- 67,  /* 14.985 */
- 134,  /* 7.493 */
- 100,  /* 10 */
- 67,  /* 15 */
- 50,   /* 20 */
- 80,  /* 12.5 */
- 10, /* 100 */
- 9, /* 119.88 */
- 9, /* 119.88 */
- 50, /* 19.98 */
- 134, /* 7.5 */
- 84, /* 12 */
- 84, /* 11.988 */
- 100, /* 9.99 */
 };
 
 static const uint32_t BVCE_P_EventMaskLUT[32] =

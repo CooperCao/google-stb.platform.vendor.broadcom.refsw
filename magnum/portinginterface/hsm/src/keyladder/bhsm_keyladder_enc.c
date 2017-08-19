@@ -1,42 +1,39 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 
 #include "bhsm.h"
@@ -83,6 +80,7 @@ BERR_Code  BHSM_InitialiseKeyLadders ( BHSM_Handle hHsm )
             BKNI_Memset( &invalidateVkl, 0, sizeof(invalidateVkl) );
             invalidateVkl.virtualKeyLadderID = (i | BHSM_VKL_ID_ALLOCATION_FLAG);
             invalidateVkl.bInvalidateVkl = true;
+            invalidateVkl.keyLayer = BCMD_KeyRamBuf_eKey3;
             rc = BHSM_InvalidateVKL( hHsm, &invalidateVkl );
             if( rc != BERR_SUCCESS )
             {
@@ -269,22 +267,10 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    /* Supported only with BFW 4.0.0 or later security FWs. */
-    if ( hHsm->firmwareVersion.bseck.major < 4 )
-    {
-        return BERR_TRACE (BERR_NOT_SUPPORTED);
-    }
-
     vklId = BHSM_RemapVklId(pConfig->virtualKeyLadderID);
     if( vklId >= BCMD_VKL_KeyRam_eMax )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if( hHsm->vkl[vklId].client == BHSM_ClientType_eSAGE &&
-        hHsm->currentSettings.clientType == BHSM_ClientType_eHost )
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER); /* can't invalidate a SAGE keyladder from HOST */
     }
 
     if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
@@ -302,23 +288,24 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyFlag, BCMD_InvalidateKey_Flag_eSrcKeyOnly );
 
   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-    if( pConfig->bInvalidateVkl )
+    if( hHsm->firmwareVersion.bseck.major >= 4 )
     {
-         /* clear all key layers and ownership */
-        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eFreeVKLOwnerShip, 1 );
-        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1 );
+        if( pConfig->bInvalidateVkl )
+        {
+             /* clear all key layers and ownership */
+            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eFreeVKLOwnerShip, 1 );
+            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1 );
+        }
+        else if( pConfig->bInvalidateAllKeyLayers )
+        {
+            /* clear all key layers */
+            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1 );
+        }
     }
-    else if( pConfig->bInvalidateAllKeyLayers )
-    {
-        /* clear all key layers */
-        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1 );
-    }
-    else
   #endif
-    {
-        /* clear single key layer */
-        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyLayer, pConfig->keyLayer );
-    }
+
+    /* clear single key layer. Ignored if bInvalidateAllKeyLayers and bInvalidateVkl is set. */
+    BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyLayer, pConfig->keyLayer );
 
     rc = BHSM_BspMsg_SubmitCommand( hMsg );
     if( rc != BERR_SUCCESS )
@@ -330,12 +317,12 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
     if( status != 0 )
     {
-        BDBG_ERR(("%s BSP error status[0x%02X]. VKL[%d] )", __FUNCTION__, status, vklId ));
+        BDBG_ERR(("%s BSP error status[0x%02X]. VKL[%d] )", BSTD_FUNCTION, status, vklId ));
         rc = BHSM_STATUS_BSP_ERROR;
         goto BHSM_P_DONE_LABEL;
     }
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-    if( pConfig->bInvalidateVkl )
+    if( hHsm->firmwareVersion.bseck.major >= 4 && pConfig->bInvalidateVkl )
     {
         hHsm->vkl[vklId].client = BHSM_ClientType_eNone;
         hHsm->vkl[vklId].neverUsed = true;
@@ -751,7 +738,7 @@ BERR_Code BHSM_GenerateRouteKey(
     if( pGrk->unStatus != 0 )
     {
         errCode = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -845,7 +832,7 @@ BERR_Code  BHSM_GenerateGlobalKey( BHSM_Handle hHsm, BHSM_GenerateGlobalKey_t *p
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -906,7 +893,7 @@ BERR_Code  BHSM_LoadVklOwnershipFromBsp ( BHSM_Handle hHsm )
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -967,7 +954,6 @@ BHSM_P_DONE_LABEL:
     return rc;
 }
 
-
 BERR_Code BHSM_ProcOutCmd (
         BHSM_Handle            hHsm,
         BHSM_ProcOutCmdIO_t    *pProcOutCmd
@@ -1018,7 +1004,7 @@ BERR_Code BHSM_ProcOutCmd (
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -1233,7 +1219,7 @@ BERR_Code BHSM_KladChallenge (
     if (pChallenge->unStatus != 0)
     {
         errCode = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -1318,7 +1304,7 @@ BERR_Code BHSM_KladResponse (
     if (pResponse->unStatus != 0)
     {
         errCode = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status[0x%02X] error", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 

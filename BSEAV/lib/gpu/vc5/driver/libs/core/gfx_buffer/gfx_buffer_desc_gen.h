@@ -5,7 +5,7 @@
 
 #include "gfx_buffer.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef enum
 {
@@ -110,4 +110,4 @@ extern void gfx_buffer_get_tmu_uif_cfg(
    struct gfx_buffer_uif_cfg *uif_cfg,
    const GFX_BUFFER_DESC_T *ml0, uint32_t plane_i);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

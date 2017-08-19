@@ -1,0 +1,309 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E3459C2D0C44383600E44DB7 /* hndpmu.c in Sources */ = {isa = PBXBuildFile; fileRef = E3459C2C0C44383600E44DB7 /* hndpmu.c */; };
+		E36ECCE30B8E3E51007E19DE /* dhd_macos.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E36ECCE00B8E3E51007E19DE /* dhd_macos.cpp */; };
+		E36ECCE40B8E3E51007E19DE /* dhd_sdio_macos.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E36ECCE10B8E3E51007E19DE /* dhd_sdio_macos.cpp */; };
+		E36ECCE50B8E3E51007E19DE /* dhdioctl_kernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E36ECCE20B8E3E51007E19DE /* dhdioctl_kernel.cpp */; };
+		E3BF37DB0B8BCB6900FBE5B1 /* bcmsrom.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF37D70B8BCB6900FBE5B1 /* bcmsrom.c */; };
+		E3BF37DC0B8BCB6900FBE5B1 /* bcmutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF37D80B8BCB6900FBE5B1 /* bcmutils.c */; };
+		E3BF37DD0B8BCB6900FBE5B1 /* nvramstubs.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF37D90B8BCB6900FBE5B1 /* nvramstubs.c */; };
+		E3BF37DE0B8BCB6900FBE5B1 /* siutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF37DA0B8BCB6900FBE5B1 /* siutils.c */; };
+		E3BF37DE0B8BCB6900FBE5B1 /* sbutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF37DA0B8BCB6900FBE5B1 /* sbutils.c */; };
+		E3BF37DE0B8BCB6900FBE5B1 /* aiutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF37DA0B8BCB6900FBE5B1 /* aiutils.c */; };
+		E3BF38070B8BCEF000FBE5B1 /* dhd_common.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF38050B8BCEF000FBE5B1 /* dhd_common.c */; };
+		E3BF380A0B8BCFA700FBE5B1 /* bcmsdh_stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF38090B8BCFA700FBE5B1 /* bcmsdh_stubs.c */; };
+		E3BF380C0B8BD00800FBE5B1 /* macosx_osl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E3BF380B0B8BD00800FBE5B1 /* macosx_osl.cpp */; };
+		E3BF380E0B8BD20500FBE5B1 /* dhd_cdc.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF380D0B8BD20500FBE5B1 /* dhd_cdc.c */; };
+		E3BF39010B8BCEF000FBE5B1 /* dhd_ip.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF39000B8BCEF000FBE5B1 /* dhd_ip.c */; };
+		E3BF39030B8BCEF000FBE5B1 /* dhd_wlfc.c in Sources */ = {isa = PBXBuildFile; fileRef = E3BF39020B8BCEF000FBE5B1 /* dhd_wlfc.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		32D94FCF0562CBF700B6AF17 /* dhd_sdio.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = dhd_sdio.plist; sourceTree = "<group>"; };
+		32D94FD00562CBF700B6AF17 /* dhd_sdio.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dhd_sdio.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		8DA8362C06AD9B9200E5AC22 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = /System/Library/Frameworks/Kernel.framework; sourceTree = "<absolute>"; };
+		E3459C2C0C44383600E44DB7 /* hndpmu.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = hndpmu.c; path = ../../shared/hndpmu.c; sourceTree = SOURCE_ROOT; };
+		E36ECCE00B8E3E51007E19DE /* dhd_macos.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = dhd_macos.cpp; path = ../sys/dhd_macos.cpp; sourceTree = SOURCE_ROOT; };
+		E36ECCE10B8E3E51007E19DE /* dhd_sdio_macos.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = dhd_sdio_macos.cpp; path = ../sys/dhd_sdio_macos.cpp; sourceTree = SOURCE_ROOT; };
+		E36ECCE20B8E3E51007E19DE /* dhdioctl_kernel.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = dhdioctl_kernel.cpp; path = ../sys/dhdioctl_kernel.cpp; sourceTree = SOURCE_ROOT; };
+		E3BF37D70B8BCB6900FBE5B1 /* bcmsrom.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmsrom.c; path = ../../shared/bcmsrom.c; sourceTree = SOURCE_ROOT; };
+		E3BF37D80B8BCB6900FBE5B1 /* bcmutils.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmutils.c; path = ../../shared/bcmutils.c; sourceTree = SOURCE_ROOT; };
+		E3BF37D90B8BCB6900FBE5B1 /* nvramstubs.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = nvramstubs.c; path = ../../shared/nvramstubs.c; sourceTree = SOURCE_ROOT; };
+		E3BF37DA0B8BCB6900FBE5B1 /* siutils.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = siutils.c; path = ../../shared/siutils.c; sourceTree = SOURCE_ROOT; };
+		E3BF37DA0B8BCB6900FBE5B1 /* sbutils.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = sbutils.c; path = ../../shared/sbutils.c; sourceTree = SOURCE_ROOT; };
+		E3BF37DA0B8BCB6900FBE5B1 /* aiutils.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = aiutils.c; path = ../../shared/aiutils.c; sourceTree = SOURCE_ROOT; };
+		E3BF38050B8BCEF000FBE5B1 /* dhd_common.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = dhd_common.c; path = ../sys/dhd_common.c; sourceTree = SOURCE_ROOT; };
+		E3BF38090B8BCFA700FBE5B1 /* bcmsdh_stubs.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmsdh_stubs.c; path = ../../bcmsdio/sys/bcmsdh_stubs.c; sourceTree = SOURCE_ROOT; };
+		E3BF380B0B8BD00800FBE5B1 /* macosx_osl.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = macosx_osl.cpp; path = ../../shared/macosx_osl.cpp; sourceTree = SOURCE_ROOT; };
+		E3BF380D0B8BD20500FBE5B1 /* dhd_cdc.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = dhd_cdc.c; path = ../sys/dhd_cdc.c; sourceTree = SOURCE_ROOT; };
+		E3BF39000B8BCEF000FBE5B1 /* dhd_ip.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = dhd_ip.c; path = ../sys/dhd_ip.c; sourceTree = SOURCE_ROOT; };
+		E3BF39020B8BCEF000FBE5B1 /* dhd_wlfc.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = dhd_wlfc.c; path = ../sys/dhd_wlfc.c; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		32D94FCB0562CBF700B6AF17 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		089C166AFE841209C02AAC07 /* dhd_sdio */ = {
+			isa = PBXGroup;
+			children = (
+				247142CAFF3F8F9811CA285C /* Source */,
+				8DA8362C06AD9B9200E5AC22 /* Kernel.framework */,
+				089C167CFE841241C02AAC07 /* Resources */,
+				19C28FB6FE9D52B211CA2CBB /* Products */,
+			);
+			name = dhd_sdio;
+			sourceTree = "<group>";
+		};
+		089C167CFE841241C02AAC07 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				32D94FCF0562CBF700B6AF17 /* dhd_sdio.plist */,
+				E3BF380B0B8BD00800FBE5B1 /* macosx_osl.cpp */,
+				E3BF38090B8BCFA700FBE5B1 /* bcmsdh_stubs.c */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		19C28FB6FE9D52B211CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				32D94FD00562CBF700B6AF17 /* dhd_sdio.kext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		247142CAFF3F8F9811CA285C /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				E3459C2C0C44383600E44DB7 /* hndpmu.c */,
+				E36ECCE00B8E3E51007E19DE /* dhd_macos.cpp */,
+				E36ECCE10B8E3E51007E19DE /* dhd_sdio_macos.cpp */,
+				E36ECCE20B8E3E51007E19DE /* dhdioctl_kernel.cpp */,
+				E3BF380D0B8BD20500FBE5B1 /* dhd_cdc.c */,
+				E3BF38050B8BCEF000FBE5B1 /* dhd_common.c */,
+				E3BF39000B8BCEF000FBE5B1 /* dhd_ip.c */,
+				E3BF39020B8BCEF000FBE5B1 /* dhd_wlfc.c */,
+				E3BF37D70B8BCB6900FBE5B1 /* bcmsrom.c */,
+				E3BF37D80B8BCB6900FBE5B1 /* bcmutils.c */,
+				E3BF37D90B8BCB6900FBE5B1 /* nvramstubs.c */,
+				E3BF37DA0B8BCB6900FBE5B1 /* siutils.c */,
+				E3BF37DA0B8BCB6900FBE5B1 /* sbutils.c */,
+				E3BF37DA0B8BCB6900FBE5B1 /* aiutils.c */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		32D94FC50562CBF700B6AF17 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		32D94FC30562CBF700B6AF17 /* dhd_sdio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEB91D908733DB10010E9CD /* Build configuration list for PBXNativeTarget "dhd_sdio" */;
+			buildPhases = (
+				32D94FC50562CBF700B6AF17 /* Headers */,
+				32D94FC70562CBF700B6AF17 /* Resources */,
+				32D94FC90562CBF700B6AF17 /* Sources */,
+				32D94FCB0562CBF700B6AF17 /* Frameworks */,
+				32D94FCC0562CBF700B6AF17 /* Rez */,
+			);
+			buildRules = (
+			);
+			comments = "<<Broadcom-WL-IPTag/Private1743:>>";
+			dependencies = (
+			);
+			name = dhd_sdio;
+			productInstallPath = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+			productName = dhd_sdio;
+			productReference = 32D94FD00562CBF700B6AF17 /* dhd_sdio.kext */;
+			productType = "com.apple.product-type.kernel-extension.iokit";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		089C1669FE841209C02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 1DEB91DD08733DB10010E9CD /* Build configuration list for PBXProject "dhd_sdio" */;
+			hasScannedForEncodings = 1;
+			mainGroup = 089C166AFE841209C02AAC07 /* dhd_sdio */;
+			projectDirPath = "";
+			targets = (
+				32D94FC30562CBF700B6AF17 /* dhd_sdio */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		32D94FC70562CBF700B6AF17 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		32D94FCC0562CBF700B6AF17 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		32D94FC90562CBF700B6AF17 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E3BF37DB0B8BCB6900FBE5B1 /* bcmsrom.c in Sources */,
+				E3BF37DC0B8BCB6900FBE5B1 /* bcmutils.c in Sources */,
+				E3BF37DD0B8BCB6900FBE5B1 /* nvramstubs.c in Sources */,
+				E3BF37DE0B8BCB6900FBE5B1 /* siutils.c in Sources */,
+				E3BF37DE0B8BCB6900FBE5B1 /* sbutils.c in Sources */,
+				E3BF37DE0B8BCB6900FBE5B1 /* aiutils.c in Sources */,
+				E3BF38070B8BCEF000FBE5B1 /* dhd_common.c in Sources */,
+				E3BF380A0B8BCFA700FBE5B1 /* bcmsdh_stubs.c in Sources */,
+				E3BF380C0B8BD00800FBE5B1 /* macosx_osl.cpp in Sources */,
+				E3BF380E0B8BD20500FBE5B1 /* dhd_cdc.c in Sources */,
+				E36ECCE30B8E3E51007E19DE /* dhd_macos.cpp in Sources */,
+				E36ECCE40B8E3E51007E19DE /* dhd_sdio_macos.cpp in Sources */,
+				E36ECCE50B8E3E51007E19DE /* dhdioctl_kernel.cpp in Sources */,
+				E3459C2D0C44383600E44DB7 /* hndpmu.c in Sources */,
+				E3BF39010B8BCEF000FBE5B1 /* dhd_ip.c in Sources */,
+				E3BF39030B8BCEF000FBE5B1 /* dhd_wlfc.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB91DA08733DB10010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INFOPLIST_FILE = dhd_sdio.plist;
+				INFOPLIST_PREPROCESS = YES;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				MODULE_NAME = com.yourcompany.driver.dhd_sdio;
+				MODULE_VERSION = 1.0.0d1;
+				OTHER_CFLAGS = (
+					"-DMACOSX",
+					"-DDMA",
+					"-DBDC",
+					"-DBCMDRIVER",
+					"-DDHD_BCMEVENTS",
+					"-DSHOW_EVENTS",
+				);
+				PRODUCT_NAME = dhd_sdio;
+				USER_HEADER_SEARCH_PATHS = "../../include ../sys ../../shared/bcmwifi/include ../../dongle";
+				WRAPPER_EXTENSION = kext;
+				ZERO_LINK = YES;
+			};
+			name = Debug;
+		};
+		1DEB91DB08733DB10010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					ppc,
+					i386,
+				);
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_MODEL_TUNING = G5;
+				INFOPLIST_FILE = dhd_sdio.plist;
+				INFOPLIST_PREPROCESS = YES;
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				MODULE_NAME = com.yourcompany.driver.dhd_sdio;
+				MODULE_VERSION = 1.0.0d1;
+				OTHER_CFLAGS = (
+					"-DMACOSX",
+					"-DDMA",
+					"-DBDC",
+					"-DBCMDRIVER",
+					"-DDHD_BCMEVENTS",
+					"-DSHOW_EVENTS",
+				);
+				PRODUCT_NAME = dhd_sdio;
+				USER_HEADER_SEARCH_PATHS = "../../include ../sys ../../shared/bcmwifi/include ../../dongle";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
+		1DEB91DE08733DB10010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				PREBINDING = NO;
+				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
+			};
+			name = Debug;
+		};
+		1DEB91DF08733DB10010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				PREBINDING = NO;
+				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB91D908733DB10010E9CD /* Build configuration list for PBXNativeTarget "dhd_sdio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB91DA08733DB10010E9CD /* Debug */,
+				1DEB91DB08733DB10010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DEB91DD08733DB10010E9CD /* Build configuration list for PBXProject "dhd_sdio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB91DE08733DB10010E9CD /* Debug */,
+				1DEB91DF08733DB10010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 089C1669FE841209C02AAC07 /* Project object */;
+}

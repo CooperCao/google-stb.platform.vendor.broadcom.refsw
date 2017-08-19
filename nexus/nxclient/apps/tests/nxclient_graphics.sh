@@ -7,8 +7,8 @@ nx_start_server -frontend off
 while [ $(nx_elapsed_time) -lt 60 ]; do
     INDEX=$(($RANDOM % 32));
     if [ -z ${NX_PID[$INDEX]} ]; then
-        X=$(($RANDOM % 1920));
-        Y=$(($RANDOM % 1080));
+        X=$(($RANDOM % 1620));
+        Y=$(($RANDOM % 880));
         if [ $((RANDOM % 2)) == "0" ]; then
             APP=blit_client
         else

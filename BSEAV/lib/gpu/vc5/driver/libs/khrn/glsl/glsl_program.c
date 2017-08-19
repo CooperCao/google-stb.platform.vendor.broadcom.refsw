@@ -54,8 +54,6 @@ GLSL_PROGRAM_T *glsl_program_create() {
    ret->uniform_offsets      = malloc(sizeof(unsigned) * GLXX_CONFIG_MAX_UNIFORM_LOCATIONS);
    ret->ir                   = glsl_ir_program_create();
 
-   ret->cs_shared_block_size = ~0u;
-
    if(ret->ir == NULL                       ||
       ret->uniform_blocks == NULL           ||
       ret->default_uniforms.members == NULL ||

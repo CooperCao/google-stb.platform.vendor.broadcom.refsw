@@ -142,7 +142,7 @@ void NEXUS_GpioModule_GetDefaultSettings(NEXUS_GpioModuleSettings *pSettings)
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-    pSettings->common.enabledDuringActiveStandby = true;
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
 }
 
 BDBG_FILE_MODULE(gpio_proc);

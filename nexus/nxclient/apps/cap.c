@@ -168,8 +168,8 @@ int main(int argc, char **argv)
             NEXUS_GetDisplayCapabilities(&displayCap);
             display_cnt = displayCap.numDisplays;
 #endif
-            if (displayCap.numDisplays > encoder_cnt)
-                result = displayCap.numDisplays - encoder_cnt;
+            if (display_cnt > encoder_cnt)
+                result = display_cnt - encoder_cnt;
             else
                 result = 0;
             break;

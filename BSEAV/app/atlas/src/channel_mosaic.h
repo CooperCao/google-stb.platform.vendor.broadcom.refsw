@@ -55,7 +55,7 @@ public:
     ~CChannelMosaic(void);
     CChannel * createCopy(CChannel * pChannel);
 
-    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, uint16_t index = ANY_INDEX);
+    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
     virtual eRet unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
     virtual eRet registerObserver(CObserver * observer, eNotification notification = eNotify_All);
     virtual eRet readXML(MXmlElement * xmlElemChannel);

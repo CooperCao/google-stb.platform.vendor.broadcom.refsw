@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,7 @@ use bapi_classes;
 
 sub filter_file {
     my $file = shift;
-    return 1 if($file =~ /nexus_base_types_client.h$/ || $file =~ /nexus_base_os.h$/ || $file =~ /nexus_platform_init.h$/);
+    return 1 if($file =~ /nexus_base_types_client.h$/ || $file =~ /nexus_base_os.h$/ || $file =~ /nexus_platform_init.h$/ || $file =~ /nexus_core_file_init.h$/);
 
     if (($file =~ /_init.h$/ ) ||
         $file =~ /\*/ || # skip not expaneded wildcards

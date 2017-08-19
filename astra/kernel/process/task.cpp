@@ -496,6 +496,9 @@ TzTask::TzTask(TzTask& parentTask) :
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
     savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
 
+    // copy parent task user stack
+    copyParentStack();
+
     spinLockInit(&lock);
 
     state = State::Ready;

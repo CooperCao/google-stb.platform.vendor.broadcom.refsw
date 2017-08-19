@@ -145,7 +145,7 @@ initNexusHdmiSrcList(
         memset(&ipStreamerGlobalCtx->hdmiSrcList[i], 0, sizeof(HdmiSrc));
         hdmiSrc = &ipStreamerGlobalCtx->hdmiSrcList[i];
         if ((hdmiSrc->timebase = NEXUS_Timebase_Open(NEXUS_ANY_ID)) == NEXUS_Timebase_eInvalid) {
-            BDBG_ERR(("%s: ERROR: NEXUS_Timebase_Open Failed to open a free Timebase", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: NEXUS_Timebase_Open Failed to open a free Timebase", BSTD_FUNCTION));
             return -1;
         }
         hdmiSrc->hdmiInputId = i;
@@ -156,7 +156,7 @@ initNexusHdmiSrcList(
         timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
         rc = NEXUS_Timebase_SetSettings(hdmiSrc->timebase, &timebaseSettings);
         if (rc) {
-            BDBG_ERR(("%s: NEXUS_Timebase_SetSettings() Failed, rc %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s: NEXUS_Timebase_SetSettings() Failed, rc %d", BSTD_FUNCTION, rc));
             goto error;
         }
 
@@ -164,13 +164,13 @@ initNexusHdmiSrcList(
         hdmiInputSettings.timebase = hdmiSrc->timebase;
         hdmiSrc->hdmiInput = NEXUS_HdmiInput_OpenWithEdid(hdmiSrc->hdmiInputId, &hdmiInputSettings, &SampleEDID[0], (uint16_t) sizeof(SampleEDID));
         if (!hdmiSrc->hdmiInput) {
-            BDBG_ERR(("%s: ERROR: Failed to open %d HDMI Input Handle", __FUNCTION__, hdmiSrc->hdmiInputId));
+            BDBG_ERR(("%s: ERROR: Failed to open %d HDMI Input Handle", BSTD_FUNCTION, hdmiSrc->hdmiInputId));
             goto error;
         }
-        BDBG_MSG(("%s: NEXUS_HdmiInput_OpenWithEdid() is successful, timebase %d ...", __FUNCTION__, (int)hdmiSrc->timebase));
+        BDBG_MSG(("%s: NEXUS_HdmiInput_OpenWithEdid() is successful, timebase %d ...", BSTD_FUNCTION, (int)hdmiSrc->timebase));
     }
 
-    BDBG_MSG(("%s: %d HDMI Src Initialized", __FUNCTION__, NEXUS_NUM_HDMI_INPUTS));
+    BDBG_MSG(("%s: %d HDMI Src Initialized", BSTD_FUNCTION, NEXUS_NUM_HDMI_INPUTS));
     return 0;
 
 error:
@@ -196,7 +196,7 @@ unInitNexusHdmiSrcList(
     }
     if (ipStreamerGlobalCtx->hdmiSrcMutex)
         BKNI_DestroyMutex(ipStreamerGlobalCtx->hdmiSrcMutex);
-    BDBG_MSG(("%s: HDMI Src Un-Initialized", __FUNCTION__));
+    BDBG_MSG(("%s: HDMI Src Un-Initialized", BSTD_FUNCTION));
 }
 #endif /* defined(NEXUS_HAS_VIDEO_ENCODER) && defined(NEXUS_HAS_HDMI_INPUT) */
 
@@ -239,17 +239,17 @@ openNexusHdmiSrc(
     for (i = 0; i < NEXUS_NUM_HDMI_INPUTS; i++) {
         if (ipStreamerCtx->globalCtx->hdmiSrcList[i].hdmiInputId == ipStreamerCfg->hdmiInputId) {
             hdmiSrc = &ipStreamerCtx->globalCtx->hdmiSrcList[i];
-            BDBG_MSG(("%s: Found Matching HDMI Src entry: idx %d, addr %p, total HDMI Src entries %d", __FUNCTION__, i, (void *)hdmiSrc, NEXUS_NUM_HDMI_INPUTS));
+            BDBG_MSG(("%s: Found Matching HDMI Src entry: idx %d, addr %p, total HDMI Src entries %d", BSTD_FUNCTION, i, (void *)hdmiSrc, NEXUS_NUM_HDMI_INPUTS));
             break;
         }
     }
     if (!hdmiSrc) {
-        BDBG_ERR(("%s: ERROR: No Free or matching HDMI Src Entry remaining, current used %d", __FUNCTION__, i));
+        BDBG_ERR(("%s: ERROR: No Free or matching HDMI Src Entry remaining, current used %d", BSTD_FUNCTION, i));
         goto error;
     }
 
     if (hdmiSrc->refCount > 0) {
-        BDBG_MSG(("%s: HDMI Src id %d is already setup for encoding, cur ref count %d", __FUNCTION__, hdmiSrc->hdmiInputId, hdmiSrc->refCount));
+        BDBG_MSG(("%s: HDMI Src id %d is already setup for encoding, cur ref count %d", BSTD_FUNCTION, hdmiSrc->hdmiInputId, hdmiSrc->refCount));
         ipStreamerCtx->hdmiSrc = hdmiSrc;
         ipStreamerCtx->transcoderDst = hdmiSrc->transcoderDst;
         ipStreamerCtx->transcoderDst->refCount++;
@@ -262,7 +262,7 @@ openNexusHdmiSrc(
         hdmiSrc->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx);
         BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
         if (hdmiSrc->transcoderDst == NULL) {
-            BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to open the transcoder pipe", BSTD_FUNCTION));
             goto error;
         }
 

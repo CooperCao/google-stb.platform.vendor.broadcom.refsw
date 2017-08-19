@@ -1,0 +1,101 @@
+In case you're writing host-mode SB or PCI drivers, here's the lowdown
+on how the cores will look to Linux.
+
+-----
+PCI devices found:
+  Bus  0, device   0, function  0:
+    RAM memory: PCI device 4243:0803 (rev 0).
+      Non-prefetchable 32 bit memory at 0x18000000 [0x18000fff].
+  Bus  0, device   1, function  0:
+    Ethernet controller: PCI device 4243:0801 (rev 0).
+      IRQ 3.
+      Non-prefetchable 32 bit memory at 0x18001000 [0x18001fff].
+  Bus  0, device   2, function  0:
+    Ethernet controller: PCI device 4243:0806 (rev 0).
+      IRQ 2.
+      Non-prefetchable 32 bit memory at 0x18002000 [0x18002fff].
+  Bus  0, device   3, function  0:
+    Modem: PCI device 4243:0807 (rev 0).
+      Non-prefetchable 32 bit memory at 0x18003000 [0x18003fff].
+  Bus  0, device   4, function  0:
+    USB Controller: PCI device 4243:0808 (rev 0).
+      IRQ 1.
+      Non-prefetchable 32 bit memory at 0x18004000 [0x18004fff].
+  Bus  0, device   5, function  0:
+    PCI bridge: PCI device 4243:0804 (rev 0).
+      IRQ 4.
+      Non-prefetchable 32 bit memory at 0x18005000 [0x18005fff].
+      Non-prefetchable 32 bit memory at 0x8000000 [0xfffffff].
+  Bus  0, device   6, function  0:
+    MIPS: PCI device 4243:0805 (rev 0).
+      Non-prefetchable 32 bit memory at 0x18006000 [0x18006fff].
+      Non-prefetchable 32 bit memory at 0xff200000 [0xff3fffff].
+  Bus  0, device   7, function  0:
+    FLASH memory: PCI device 4243:0811 (rev 0).
+      Non-prefetchable 32 bit memory at 0x18007000 [0x18007fff].
+  Bus  0, device   8, function  0:
+    Ethernet controller: PCI device 4243:0806 (rev 0).
+      Non-prefetchable 32 bit memory at 0x18008000 [0x18008fff].
+  Bus  0, device  31, function  0:
+    Host bridge: PCI device 14e4:4710 (BROADCOM Corporation) (rev 0).
+  Bus  1, device   0, function  0:
+    Ethernet controller: PCI device 14e4:4410 (BROADCOM Corporation)
+(rev 0).
+      IRQ 7.
+      Non-prefetchable 32 bit memory at 0x8000000 [0x8000fff].
+
+-----
+
+First, you'll notice that there are two virtual PCI bridges---one is a
+host bridge in slot 31 to make the SB bus look like a PCI bus, and the
+second is a PCI-to-PCI bridge in slot 5 that makes the PCI core look
+like a PCI-to-PCI bridge.
+
+All SB cores are located on bus 0. All external PCI devices show up on
+bus 1. In the example, a 4410 is in the external PCI slot.
+
+In driver code, access SB devices as you would PCI devices. The goal is
+to have the same driver code run on the MIPS in host mode and on PCs in
+client mode.
+
+1. Use pci_read_config_[byte/word/dword] to access your core's
+sbconfig. The following translations are implemented:
+
+    PCI_VENDOR_ID      <-> SBVC (for now; will be 0x14e4 soon)
+    PCI_DEVICE_ID      <-> SBCC (for now; will be 0x47xx soon)
+    PCI_CLASS_REVISION <-> SBRC, core class
+    PCI_CLASS_DEVICE   <-> core class
+    PCI_BASE_ADDRESS_0 <-> SBADMATCH0
+    PCI_BASE_ADDRESS_1 <-> SBADMATCH1
+    PCI_BASE_ADDRESS_2 <-> SBADMATCH2
+    PCI_BASE_ADDRESS_3 <-> SBADMATCH3
+
+If you need to access your core's sbconfig directly, it's mapped right
+above the normal PCI config space, e.g. to access sbipsflag, you'd call
+
+pci_read_config_[byte/word/dword](dev, 256 + SBIPSFLAG, &val);
+
+For now, pci_write_config_[byte/word/dword] is unsupported.
+
+2. BAR0-3 are mapped to ADMATCH0-3. Use pci_resource_start() and
+pci_resource_end() as you normally would to find the boundaries of your
+core's memory area(s).
+
+3. IRQs are assigned at startup by reading each core's SBTPSFLAG and the
+MIPS' SBIPSFLAG. The IRQ you read is a MIPS interrupt 1-4 and is the
+number you should pass to request_irq(). In the example, the 4410 is
+using IRQ 7 for simulator reasons. In real life, it would use IRQ 4, the
+PCI core's IRQ.
+
+4. PCI config space (which you shouldn't be mapping anyway) is
+statically mapped at SB 0x0c000000. If we need more than 64 MB of config
+space, we can always slide the window. What the window should put out on
+the PCI bus is platform-dependent.
+
+5. PCI memory space (which you should map only through ioremap() and
+access only through [read/write][b/w/l]()) is statically mapped at SB
+0x08000000. If we need more than 64 MB of config space, we can always
+slide the window. What the window should put out on the PCI bus is
+platform-dependent.
+
+6. There is no PCI I/O space at the moment.

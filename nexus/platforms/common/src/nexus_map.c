@@ -51,6 +51,15 @@ BDBG_MODULE(nexus_map);
 #undef BDBG_MSG
 #define BDBG_MSG(X) do {printf X; printf("\n");} while (0)
 #endif
+#if NEXUS_CPU_ARM && NEXUS_BASE_OS_linuxuser
+
+#define USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE 1
+#endif
+#if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
+#include <fcntl.h>
+#include <sys/mman.h>
+#endif
+
 
 /**
 n_map_memory() is a wrapper around fake + real memory mapping.
@@ -70,6 +79,9 @@ static struct {
     struct nexus_map_settings settings;
     BLST_D_HEAD(nexus_p_free_list, nexus_p_alloc) free_list;
     BLST_D_HEAD(nexus_p_alloc_list, nexus_p_alloc) alloc_list;
+#if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
+    int fd_zero;
+#endif
 } g_fake;
 
 void nexus_p_get_default_map_settings(struct nexus_map_settings *p_settings)
@@ -90,6 +102,9 @@ int nexus_p_init_map(const struct nexus_map_settings *p_settings)
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
     g_fake.settings = *p_settings;
+#if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
+    g_fake.fd_zero = -1;
+#endif
 
     node = (struct nexus_p_alloc *)BKNI_Malloc(sizeof(*node));
     if (!node) {
@@ -102,14 +117,6 @@ int nexus_p_init_map(const struct nexus_map_settings *p_settings)
     return 0;
 }
 
-#if NEXUS_CPU_ARM && NEXUS_BASE_OS_linuxuser
-#define USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE 1
-#endif
-#if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
-#include <fcntl.h>
-#include <sys/mman.h>
-#endif
-
 void nexus_p_uninit_map(void)
 {
     struct nexus_p_alloc *node;
@@ -121,11 +128,17 @@ void nexus_p_uninit_map(void)
         BLST_D_REMOVE(&g_fake.alloc_list, node, link);
 #if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
         if(node->dynamic) {
+            BDBG_MSG(("close /dev/zero unmap %p:%u", (void *)node->offset, (unsigned)node->size));
             munmap(node->offset, node->size);
         }
 #endif
         BKNI_Free(node);
     }
+#if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
+    if(g_fake.fd_zero!=-1) {
+        close(g_fake.fd_zero);
+    }
+#endif
     BKNI_Memset(&g_fake, 0, sizeof(g_fake));
 }
 
@@ -170,11 +183,12 @@ static void *nexus_p_alloc_fake(unsigned size)
 /* temporarily mmap from /dev/zero to create more fake address space than 1 GB
 while we debug removal of uncached mmap. */
     {
-        static int fd = -1;
+        int fd = g_fake.fd_zero;
         void *addr;
         if (fd == -1) {
             fd = open("/dev/zero", O_RDONLY);
             if (fd == -1) goto error;
+            g_fake.fd_zero = fd;
         }
         addr = mmap64(0, size, PROT_NONE, MAP_PRIVATE, fd, 0);
         BDBG_MSG(("mmap /dev/zero %u -> %p", (unsigned)size, addr));

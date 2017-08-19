@@ -251,7 +251,7 @@ eRet CPidMgr::removePid(CPid * pPid)
 } /* removePid */
 
 CPid * CPidMgr::findPid(
-        uint16_t pidNum,
+        unsigned pidNum,
         ePidType type
         )
 {
@@ -325,7 +325,7 @@ CPid * CPidMgr::findPid(
 } /* findPid */
 
 CPid * CPidMgr::getPid(
-        uint16_t index,
+        unsigned index,
         ePidType type
         )
 {
@@ -340,7 +340,7 @@ CPid * CPidMgr::getPid(
     case ePidType_Video:
         if (true == GET_BOOL(_pCfg, VIDEODECODE_ENABLED))
         {
-            if (index < _videoPidList.total())
+            if ((int)index < _videoPidList.total())
             {
                 pPid = _videoPidList.get(index);
             }
@@ -350,7 +350,7 @@ CPid * CPidMgr::getPid(
     case ePidType_Audio:
         if (true == GET_BOOL(_pCfg, AUDIODECODE_ENABLED))
         {
-            if (index < _audioPidList.total())
+            if ((int)index < _audioPidList.total())
             {
                 pPid = _audioPidList.get(index);
             }
@@ -358,7 +358,7 @@ CPid * CPidMgr::getPid(
         break;
 
     case ePidType_Ancillary:
-        if (index < _ancillaryPidList.total())
+        if ((int)index < _ancillaryPidList.total())
         {
             pPid = _ancillaryPidList.get(index);
         }

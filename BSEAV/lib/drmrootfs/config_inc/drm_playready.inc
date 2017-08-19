@@ -141,7 +141,7 @@ _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 **
 ******************************************************************************/
 #ifdef ANDROID
-_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"/hwcfg/drm3x.bin";
+_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"/hwcfg/drm.bin";
 #else
 _DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"./playready3x.bin";
 #endif

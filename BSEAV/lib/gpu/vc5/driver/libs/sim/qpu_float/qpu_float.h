@@ -6,7 +6,7 @@
 
 #include "libs/core/v3d/v3d_common.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 uint32_t qpu_float_unpack16(uint32_t f16);
 uint32_t qpu_float_pack16(uint32_t f32);
@@ -34,6 +34,6 @@ uint32_t qpu_vfmin(uint32_t a, uint32_t b, bool prop_nan);
 uint32_t qpu_vfmax(uint32_t a, uint32_t b, bool prop_nan);
 uint32_t qpu_vfmul(uint32_t a, uint32_t b, bool prop_nan);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

@@ -1,0 +1,49 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to demonstrate a simple UTF stream test
+#
+# Written by: Robert J. McMahon February 2015
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+
+package provide UTF::Test::SingleStream 2.0
+
+UTF::Test SingleStream {args} {
+    UTF::Getopts {
+	{ap.arg "4360" "APs under test"}
+	{sta.arg "" "STA under test"}
+	{protocol.arg "tcp" "Multicast stream to use for test"}
+	{time.arg "10" "Time to hold traffic"}
+	{rate.arg "1.5G" "Traffic offered rate"}
+	{up "Traffic direction from Sta to AP"}
+	{down "Traffic direction from AP to STA"}
+    }
+    UTF::Try "[string toupper $(protocol)]" {
+	if {$(up) && $(down)} {
+	    error "test only supports traffic in one direction"
+	}
+	# If no direction is passed in, default to STA->AP
+	if {!$(up) && !$(down)} {
+	    set (up) 1
+	}
+	if {$(up)} {
+	    UTF::stream mytraffic -tx $(ap) -rx $(sta) -protocol $(protocol) -rate $(rate) -name "$(ap)->$(sta)" -txdisplay off -rxdisplay on -t $(time)
+	} else {
+	    UTF::stream mytraffic -rx $(ap) -tx $(sta) -protocol $(protocol) -rate $(rate) -name "$(ap)->$(sta)" -txdisplay off -rxdisplay on -t $(time)
+	}
+	# Guarantee at least 10 samples
+	if {[expr {($(time) / [mytraffic cget -reportinterval]) < 10}]} {
+	    mytraffic configure -reportinterval [expr {$(time) / 10}]
+	}
+	# Run the test which will either return or call tcl error
+	# The return will a link to both the traffic plot and control chart
+	mytraffic test
+    }
+    catch {mytraffic destroy}
+}

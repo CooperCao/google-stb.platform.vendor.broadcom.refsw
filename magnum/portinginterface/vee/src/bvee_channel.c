@@ -74,10 +74,6 @@ BVEE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_SEI */
 BVEE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_SEI2 */
 BVEE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_LAST */
 };
-static const  BAVC_VideoCompressionStd  g_codeclist [] =
-{
-BAVC_VideoCompressionStd_eH264
-};
 static const uint32_t BVEE_P_FrameRateLUT[BDSP_VF_P_EncodeFrameRate_eMax] =
 {
 BDSP_VF_P_EncodeFrameRate_eUnknown,  /* Unknown */
@@ -131,16 +127,6 @@ uint32_t depth, uint8_t *pDest, size_t length)
 {
 uint8_t *pSource;
 void *pSource_Cached;
-BMMA_Heap_Handle mmaHandle = NULL;
-
-if (handle->opensettings.bufferHeap!= NULL)
-{
-mmaHandle = handle->opensettings.bufferHeap;
-}
-else
-{
-mmaHandle = handle->devicehandle->mmahandle;
-}
 
 if ( length <= depth )
 {
@@ -184,7 +170,6 @@ uint32_t uiITBDepth;
 uint32_t uiITBBaseOffset;
 uint32_t uiITBEndOffset;
 uint32_t uiITBValidOffset;
-uint32_t uiITBReadOffset;
 uint32_t uiShadowReadOffset;
 uint32_t uiNextEntryOffset;
 BVEE_ChannelOutputDescriptorInfo *psOutputDescDetails = &handle->veeoutput;
@@ -197,7 +182,6 @@ uint8_t entryType;
 
 /* ITB Pointers */
 uiITBBaseOffset = BREG_Read32(handle->devicehandle->regHandle, handle->outputbuffer.sItbBuffer.ui32BaseAddr);
-uiITBReadOffset = BREG_Read32(handle->devicehandle->regHandle, handle->outputbuffer.sItbBuffer.ui32ReadAddr);
 uiITBEndOffset = BREG_Read32(handle->devicehandle->regHandle, handle->outputbuffer.sItbBuffer.ui32EndAddr);
 
 uiITBValidOffset = BREG_Read32(handle->devicehandle->regHandle, handle->outputbuffer.sItbBuffer.ui32WriteAddr);
@@ -327,12 +311,12 @@ uint32_t uiTempSize=0;
 
 if (handle->opensettings.bufferHeap!= NULL)
 {
-BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
+BDBG_MSG(("%s Frame buffer from %p (Opensettings)",BSTD_FUNCTION, (void*)handle->opensettings.bufferHeap));
 mmaHandle = handle->opensettings.bufferHeap;
 }
 else
 {
-BDBG_MSG(("%s Frame buffer from default", __FUNCTION__));
+BDBG_MSG(("%s Frame buffer from default", BSTD_FUNCTION));
 mmaHandle = handle->devicehandle->mmahandle;
 }
 handle->capturepicture = BKNI_Malloc(sizeof(BVEE_CapBufferMemory)* handle->opensettings.maxQueuedPictures);
@@ -367,7 +351,7 @@ BDBG_MSG(("Allocating SD buffer size %d",uiTempSize));
 handle->hRefFrameBaseAddrMmaBlock = BMMA_Alloc(mmaHandle,uiTempSize, 1024, 0);
 if( NULL == handle->hRefFrameBaseAddrMmaBlock)
 {
-BDBG_ERR(("%s: Unable to Allocate memory for Video encoder reference buffer!",__FUNCTION__));
+BDBG_ERR(("%s: Unable to Allocate memory for Video encoder reference buffer!",BSTD_FUNCTION));
 return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 }
 handle->uiRefFrameBaseAddrOffset = (uint32_t)BMMA_LockOffset(handle->hRefFrameBaseAddrMmaBlock);
@@ -429,18 +413,6 @@ BERR_Code BVEE_Channel_P_DeAllocatePictParamBuffer(BVEE_ChannelHandle handle)
 {
 BERR_Code errcode = BERR_SUCCESS;
 unsigned int i=0;
-BMMA_Heap_Handle mmaHandle = NULL;
-
-if (handle->opensettings.bufferHeap!= NULL)
-{
-BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
-mmaHandle = handle->opensettings.bufferHeap;
-}
-else
-{
-BDBG_MSG(("%s Frame buffer from default",__FUNCTION__));
-mmaHandle = handle->devicehandle->mmahandle;
-}
 
 BMMA_Unlock(handle->veeoutput.hMetadataMmaBlock,(void*)handle->veeoutput.pstMetadataCached);
 BMMA_Free(handle->veeoutput.hMetadataMmaBlock);
@@ -472,12 +444,12 @@ BMMA_Heap_Handle mmaHandle = NULL;
 
 if (handle->opensettings.bufferHeap!= NULL)
 {
-BDBG_MSG(("%s CDB ITB buffers from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
+BDBG_MSG(("%s CDB ITB buffers from %p (Opensettings)",BSTD_FUNCTION, (void*)handle->opensettings.bufferHeap));
 mmaHandle = handle->opensettings.bufferHeap;
 }
 else
 {
-BDBG_MSG(("%s CDB ITB buffers from default", __FUNCTION__));
+BDBG_MSG(("%s CDB ITB buffers from default", BSTD_FUNCTION));
 mmaHandle = handle->devicehandle->mmahandle;
 }
 
@@ -514,18 +486,6 @@ return BERR_SUCCESS;
 
 BERR_Code BVEE_Channel_P_DeAllocateOutputBuffers(BVEE_ChannelHandle handle)
 {
-BMMA_Heap_Handle mmaHandle = NULL;
-
-if (handle->opensettings.bufferHeap!= NULL)
-{
-BDBG_MSG(("%s CDB ITB buffers from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
-mmaHandle = handle->opensettings.bufferHeap;
-}
-else
-{
-BDBG_MSG(("%s CDB ITB buffers from default",__FUNCTION__));
-mmaHandle = handle->devicehandle->mmahandle;
-}
 
 BMMA_UnlockOffset(handle->outputbuffer.hCDBBufferMmaBlock,handle->outputbuffer.uiCDBBufferOffset);
 BMMA_Unlock(handle->outputbuffer.hCDBBufferMmaBlock,(void*)handle->outputbuffer.pCDBBufferCached);
@@ -948,23 +908,12 @@ BDSP_Raaga_VideoBX264UserConfig userConfig;
 #else
 BDSP_Raaga_VideoBH264UserConfig userConfig;
 #endif
-BMMA_Heap_Handle mmaHandle = NULL;
 BDSP_TaskStartSettings taskStartSettings;
 uint8_t *pTemp;
 
 BDBG_MSG(("BVEE_Channel_P_Start(%p) [index %u]", (void*)handle, handle->index));
 
 pSettings = &handle->startsettings;
-if (handle->opensettings.bufferHeap!= NULL)
-{
-BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
-mmaHandle = handle->opensettings.bufferHeap;
-}
-else
-{
-BDBG_MSG(("Frame buffer from default"));
-mmaHandle = handle->devicehandle->mmahandle;
-}
 
 BDSP_Queue_Flush(handle->cdbqueue);
 BDSP_Queue_Flush(handle->itbqueue);
@@ -1049,7 +998,7 @@ ui32ChromaBufferSize = BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE_HD;
 if((handle->startsettings.bDblkEnable)||
 (handle->startsettings.bSubPelMvEnable))
 {
-BDBG_ERR((" %s Band width not enough to support HD encoding", __FUNCTION__));
+BDBG_ERR((" %s Band width not enough to support HD encoding", BSTD_FUNCTION));
 }
 }
 else
@@ -1335,22 +1284,11 @@ uint32_t BuffCAddr;
 #endif
 BVENC_VF_sPicParamBuff *pPpb_Cached = NULL;
 BVEE_CapBufferMemory *temp_cappict = NULL;
-BMMA_Heap_Handle mmaHandle = NULL;
 
 BDBG_ENTER(BVEE_Channel_EnqueuePicture_isr);
 BDBG_OBJECT_ASSERT(handle, BVEE_Channel);
 BDBG_ASSERT(NULL != pPicture);
 
-if (handle->opensettings.bufferHeap!= NULL)
-{
-BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
-mmaHandle = handle->opensettings.bufferHeap;
-}
-else
-{
-BDBG_MSG(("%s Frame buffer from default",__FUNCTION__));
-mmaHandle = handle->devicehandle->mmahandle;
-}
 for(i=0;i<handle->opensettings.maxQueuedPictures;i++)
 {
 if(handle->capturepicture[i].bValid == false)
@@ -1479,22 +1417,12 @@ BERR_Code errcode= BERR_SUCCESS;
 unsigned i=0;
 uint32_t pPpb_Offset;   /* from Raaga */
 uint32_t pPpbCap_Offset;/* VEE internal */
-BMMA_Heap_Handle mmaHandle = NULL;
 
 BDBG_ENTER(BVEE_Channel_DequeuePicture_isr);
 BDBG_OBJECT_ASSERT(handle, BVEE_Channel);
 BDBG_ASSERT(NULL != pPicture);
 
 BKNI_Memset(pPicture, 0, sizeof(BVEE_PictureDescriptor));
-
-if (handle->opensettings.bufferHeap!= NULL)
-{
-mmaHandle = handle->opensettings.bufferHeap;
-}
-else
-{
-mmaHandle = handle->devicehandle->mmahandle;
-}
 
 errcode = BDSP_VideoEncode_getPictureBuffer_isr( (void *)handle->task, &pPpb_Offset);
 
@@ -1542,7 +1470,6 @@ BVEE_ChannelOutputDescriptorInfo *psOutputDescDetails;
 uint32_t uiCDBBaseOffset;
 uint32_t uiCDBEndOffset;
 uint32_t uiCDBValidOffset;
-uint32_t uiCDBReadOffset;
 uint32_t uiCDBEndOfFrameOffset;
 uint32_t uiTemp;
 
@@ -1583,7 +1510,6 @@ if ( uiCDBValidOffset >= uiCDBEndOffset )
 uiCDBValidOffset = uiCDBBaseOffset + ( uiCDBValidOffset - uiCDBEndOffset );
 }
 
-uiCDBReadOffset = BREG_Read32(handle->devicehandle->regHandle,handle->outputbuffer.sCdbBuffer.ui32ReadAddr);
 }
 
 while ( handle->state != BVEE_ChannelState_eStopped )
@@ -1887,11 +1813,9 @@ BERR_Code   ret = BERR_SUCCESS;
 uint32_t uiCDBReadOffset;
 uint32_t uiCDBEndOffset;
 uint32_t uiCDBBaseOffset;
-uint32_t uiCDBValidOffset;
 uint32_t uiITBReadOffset;
 uint32_t uiITBEndOffset;
 uint32_t uiITBBaseOffset;
-uint32_t uiITBValidOffset;
 BVEE_ChannelOutputDescriptorInfo  *psOutputDescDetails;
 
 BDBG_OBJECT_ASSERT(handle, BVEE_Channel);
@@ -1907,7 +1831,6 @@ psOutputDescDetails = &handle->veeoutput;
 /* Read CDB Addresses */
 uiCDBBaseOffset = BREG_Read32(regHandle, handle->outputbuffer.sCdbBuffer.ui32BaseAddr);
 uiCDBEndOffset = BREG_Read32(regHandle, handle->outputbuffer.sCdbBuffer.ui32EndAddr);
-uiCDBValidOffset = BREG_Read32(regHandle, handle->outputbuffer.sCdbBuffer.ui32WriteAddr);
 uiCDBReadOffset = BREG_Read32(regHandle, handle->outputbuffer.sCdbBuffer.ui32ReadAddr);
 uiCDBEndOffset++;
 
@@ -1915,7 +1838,6 @@ uiCDBEndOffset++;
 /* Read ITB Addresses */
 uiITBBaseOffset = BREG_Read32(regHandle, handle->outputbuffer.sItbBuffer.ui32BaseAddr);
 uiITBEndOffset = BREG_Read32(regHandle, handle->outputbuffer.sItbBuffer.ui32EndAddr);
-uiITBValidOffset= BREG_Read32(regHandle, handle->outputbuffer.sItbBuffer.ui32WriteAddr);
 uiITBReadOffset= BREG_Read32(regHandle, handle->outputbuffer.sItbBuffer.ui32ReadAddr);
 uiITBEndOffset++;
 

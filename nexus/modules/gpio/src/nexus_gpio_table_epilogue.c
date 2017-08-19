@@ -49,7 +49,7 @@ NEXUS_Error NEXUS_Gpio_P_GetPinMux(NEXUS_GpioType type, unsigned pin, uint32_t *
             total = sizeof(g_gpioTable)/sizeof(g_gpioTable[0]);
             pEntry = g_gpioTable;
             break;
-#ifdef NEXUS_SGPIO_PINS
+#if !((BCHP_CHIP == 7250) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7268))
         case NEXUS_GpioType_eSpecial:
             total = sizeof(g_sgpioTable)/sizeof(g_sgpioTable[0]);
             pEntry = g_sgpioTable;

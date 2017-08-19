@@ -1,5 +1,5 @@
-############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+###############################################################################################################
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-############################################################
-
+###############################################################################################################
 #
 # Conditional Options for this Makefile
 #
@@ -66,12 +64,16 @@ else
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_module.c
 endif
 
-##################
-#  IMG Interface #
-##################
+###############################################
+#  IMG Interface - also built in platform.inc #
+###############################################
 ifeq ($(B_REFSW_OS),linuxuser)
 ifeq ($(NEXUS_MODE),)
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_image.c
+ifeq ($(NEXUS_SAGE_BP3_BIN_PATH),)
+NEXUS_SAGE_BP3_BIN_PATH=$(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_bp3_bin_path.c
+endif
+NEXUS_SAGE_SOURCES += $(NEXUS_SAGE_BP3_BIN_PATH)
 endif
 endif #B_REFSW_OS
 
@@ -87,6 +89,7 @@ NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include
 ifeq ($(NEXUS_SAGE_SVP_TEST),y)
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_svp_test.c
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_svp_bvn.c
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_svp_mv.c
 NEXUS_CFLAGS += -DNEXUS_SAGE_SVP_TEST
 endif
 
@@ -97,6 +100,17 @@ ifneq ($(SAGE_VERSION), 2x)
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_ar.c
 endif
 NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include
+
+######################
+# BP3 Interface      #
+######################
+ifneq ($(SAGE_VERSION), 2x)
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_bp3.c
+endif
+NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include
+ifeq ($(BP3_PROVISIONING),y)
+NEXUS_CFLAGS += -DBP3_PROVISIONING
+endif
 
 ###############
 # thunk layer #

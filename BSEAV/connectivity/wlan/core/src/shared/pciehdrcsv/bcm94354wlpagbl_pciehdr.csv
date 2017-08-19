@@ -1,0 +1,139 @@
+Header Fields,,,,,BCM4350-based PCIe Header Template,
+Byte Offset,,Word Offset,,Description,Value,Explanation
+Dec,Hex,Dec,Hex,,Hex,
+0,0,0,0,"15:12 Translate 3rd/7th 4k entry in Bar0 space
+11 PWR_SYSTEM_ALLOC This bit controls the system alloc bit in the PWR_BDGT_CAP (0x15c) in the configuration space
+10:4 - Internal register configuration
+3 ASPM_L1_1_SUPP Advertize L1_1 capability support for ASPM
+2 ASPM_L1_2_SUPP Advertize L1_2 capability support for ASPM
+1 PM_L1_1_SUPP Advertize L1_1 capability support for PM
+0 PM_L1_2_SUPP Advertize L1_2 capability support for PM",0x380F,"0x3800 - No L1 sub states
+0x380F - Enable L1 sub states
+Bit 15:12 : The index of the bus core in our device..If you program this with a wrong value, system will not work properly, please leave this value as “3” for 4350/4345..so when BAR0 is mapped with 32K, with this value, you could talk to the PCIE enumeration space registers, by accessing BAR0+8KBit
+11 : To set the SYSTEM ALLOC bit in PWR_BDGT_CAP register. This does not impact the device, but it indicates whether the device power has already been budgeted within the system power budget (as per the pcie specification). We will set this to 1 once we finalize the OTP values"
+2,2,1,1,"15 - Internal reserved
+14 - Xtal frequecy selector bit_1. ""00"" - 40Mhz, ""01"" - 37.4 Mhz, ""10"" - 38.4 Mhz, ""11"" - reserved
+13 - ASPM_OPTIONALITY: This bit when set, sets the ASPM optionality bit in the link cap register. This bit is recommended to be set for newer PCIe devices and required for 3.0 compliant devices
+12 - Hot reset enable: 0 will gate off phyHotReset from resetting PCIE logic and the backplane. Set this internal bit to 1.
+11 - Xtal frequency selector bit_0
+10:8 - Internal reserved
+7:0 - PM_DATA_8_PRG This is the value read from the pm_data register when the DATA_SEL value in PM_CSR is 8. This is the power dissipated by common logic in case of multi function devices. The value is sticjy and only reset by HARD Reset",0x3800,"0x3800: Xtal freq = 37.4Mhz
+Bit 14 and Bit 11 form the 2 bit xtal frequency selector bit. For 37.4Mhz crystal, set bit 14 to 0 and bit 11 to 1 to form “01”.
+Bit 13 : This is the recommended bit setting for PCIe 3.0 compliant devices. We set it to 1 for PCIe compliance and in case some Root complex expects this bit to be set to 1
+Bit 12 : Controls whether the PERST and pcie in-band host reset propagates and resets the backplane and pcie backplane facing logic. We set this to 1 so that the pcie reset does indeed propagate and resets accordingly. This is an Internal register configuration.
+Bit 7:0 : It does not affect the device. But it can be used by system power management software for power budgeting applications. Traditionally set this to 0, since we are not a multi-function device"
+4,4,2,2,PCI subsystem ID,${boardtype},This value is taken from the <boardtype> variable in the NVRAM.
+6,6,3,3,PCI subsystem vendor ID,${vendid},This value is taken from the <vendid> variable in the NVRAM.
+8,8,4,4,"15:5 - Internal reserved; must be set to binary ""000_0001_0000""
+4:3 - ASPM_SUPPORT: controls the value of the ASPM_SUPT field in linlk capability register
+Bits 4:3 is for ASPM. 00 - no ASPM supported; 01 - L0s supported; 10 - L1 supported; 11 - L0s and L1 supported
+2:0 - Internal reserved; must be set to binary ""100""",0x021C,"0x021C - ASPM L0s and L1 supported
+0x0204 - no ASPM supportedBit
+4:3 We should set this to b11 so that L0s and L1 are enabled. We are ok with enabling traditional L0s/L1 ASPM support out of the gate. Only the L1 substates are being validated right now"
+10,A,5,5,L0/L1 Latency - Device link Latency and other internal settings; must be set to 0x1B7E,0x1B7E,
+12,C,6,6,"7:0 - Sets PCIe Port Number in link capability configuration register
+15:8 - Internal reserved; must be set to 0x0A (includes CRWLPCIEGEN2-161 WAR)",0x0A00,
+14,E,7,7,Internal power budget setting,0x0000,Unused for closed pcie host subsystem
+16,10,8,8,Internal power budget setting,0x0000,Unused for closed pcie host subsystem
+18,12,9,9,Internal power budget setting,0x0000,Unused for closed pcie host subsystem
+20,14,10,A,Internal power budget setting,0x0000,Unused for closed pcie host subsystem
+22,16,11,B,Internal power budget setting,0x0000,Unused for closed pcie host subsystem
+24,18,12,C,"7:0 Internal reserved; must be set to 0xd4 (includes CRWLPCIEGEN2-161 WAR)
+15:8 Pointer to pcie Device Serial Number (mac ID location)",0x00D4,"Bits[15:8] define a pointer (word offset) to 6-byte pcie dev serial number seed (can be MacID location in SROM or OTP). If the host does not care about serial number, recommend to set these bits to 0x00.
+Device serial number is advertised as part of the advanced PCIE capabilities. Although this is 8 bytes, 6 bytes of the MAC address is generally used to generate the 8 bytes with 0xFFFF in the middle
+8 MSB to 0x48 to indicate the start of the MAC address;"
+26,1A,13,D,"15:14 - Internal reserved
+13 - Enable the PM L1 substates extended capability structure; set to 1
+12:10 - Internal reserved10 - Non posted header credits; 0 - 1 NPH advertized; 1 - 2 NPH advertized
+9:0 - Controls LTR Active latency value; Set as 0x13C for 60us latency",0x253C,"Bit 15:13 :Recommend 0x1 for 256 Bytes max payload size (MPS). Our current validation has been with 256 Bytes MPS. Note that we do make 2KB read requests (MRRS – max read request size).
+Bit 9-0: Firmware overrides this setting to appropriate value"
+28,1C,14,E,"15:13 Max Payload Size (MPS) capability advertized in Device capability cfg:0xB0(2:0); Set as 0x2 for 512Bytes MPS; Set as 0x1 for 256 Bytes; Set as 0x0 for 128Bytees
+12:10 Internal reserved
+9:0 Controls LTR Active Idle Latency value; Set as 0x164 for 100us latency",0x2164,"Bit 15:13 :Recommend 0x1 for 256 Bytes max payload size (MPS). Our current validation has been with 256 Bytes MPS. Note that we do make 2KB read requests (MRRS – max read request size).
+Bit 9-0: Firmware overrides this setting to appropriate value"
+30,1E,15,F,"15:14 - Internal reserved
+13:12 - Internal; set to 11
+11:10 - Internal reserved",0x3203,Bit 9-0: Firmware overrides this setting to appropriate value
+32,20,16,10,Internal reserved; Set as 0x3e52 (includes CRWLPCIEGEN2-161 WAR),0x3E5F,rda#15725444 Set default value of CLKREQ pulse to 1.24uS
+34,22,17,11,Internal reserved; Set as 0x9605,0x9605,
+36,24,18,12,"Bits [0] - Num of vld access[2:0]
+Bits [3] - HW Sequencer Enable
+Bits [7:4] - mdio Freq Div
+Bits [13:8] - mdio addr[0][5:0]
+Bits [15:14] - mdio addr[1][1:0]",0x9F2F,
+38,26,19,13,"Bits [3:0] - mdio addr[1][5:2]
+Bits [9:4] - mdio addr[2][5:0]
+Bits [15:10] - mdio addr[3][5:0]",0x79B6,
+40,28,20,14,Bits [15:0] - mdio data[0][15:0],0x8080,
+42,2A,21,15,Bits [15:0] - mdio data[1][15:0],0x0C03,
+44,2C,22,16,Bits [15:0] - mdio data[2][15:0],0x4000,
+46,2E,23,17,Bits [15:0] - mdio data[3][15:0],0x3240,
+48,30,24,18,"Bits [13:8] - mdio addr[4][5:0]
+Bits [15:14] - mdio addr[5][1:0]",0x5F00,
+50,32,25,19,"Bits [3:0] - mdio addr[5][5:2]
+Bits [9:4] - mdio addr[6][5:0]
+Bits [15:10] - mdio addr[7][5:0]",0x4DF4,
+52,34,26,1A,Bits [15:0] - mdio data[4][15:0],0x8090,
+54,36,27,1B,Bits [15:0] - mdio data[5][15:0],0xEE00,
+56,38,28,1C,Bits [15:0] - mdio data[6][15:0],0x8630,
+58,3A,29,1D,Bits [15:0] - mdio data[7][15:0],0x0180,
+60,3C,30,1E,"Bits [0] - Num of Vld mdio access[3]
+Bits [2:1] - represents l1_sub_pwr_on_scale value for L1_sub_capability registerBits 
+[7:3] - represents l1_sub_pwr_on_value value for L1_sub_capability registerBits 
+[15:8] - Internal reserved",0x002B,"These bits affect the Tpoweron value that is advertized by the device. The Tpoweron value must be greater than the platform clkreq to refclk stable time or 6us (minimum Analog power up time) whichever is larger. Sample settings for this OTP are:
+0x002a - 50us
+0x000a - 10us
+0x0018 - 6us (minimum Tpoweron value)
+Broadcom Internal: For Internal testing, we should use 0x002a i.e. 50us so that this works on Haswell platforms. This is due to CRWLPCIEGEN2-161 WAR
+For Olympic, set to 0x0019.
+For non-Olympic, set to 0x002B.
+"
+62,3E,31,1F,Internal reserved,0x0000,
+64,40,32,20,Internal reserved,0x0000,
+66,42,33,21,Internal reserved,0x0000,
+68,44,34,22,Internal reserved,0x0000,
+70,46,35,23,Internal reserved,0x0000,
+72,48,36,24,Internal reserved,0x0000,
+74,4A,37,25,Internal reserved,0x0000,
+76,4C,38,26,Internal reserved,0x0000,
+78,4E,39,27,Internal reserved,0x0000,
+80,50,40,28,Internal reserved,0x0000,
+82,52,41,29,Internal reserved,0x0000,
+84,54,42,2A,Internal reserved,0x8800,
+86,56,43,2B,Internal reserved,0x030A,
+88,58,44,2C,Internal reserved,0x0160,
+90,5A,45,2D,Internal reserved,0x0000,
+92,5C,46,2E,Internal reserved,0x0000,
+94,5E,47,2F,Internal reserved,0x0000,
+96,60,48,30,PCI device ID,${devid},This value is taken from the <devid> variable in the NVRAM.
+98,62,49,31,PCI Class Code bits 15:0; set as 0x8000,0x8000,Class code = other network controller
+100,64,50,32,"23:16: set as 0x02
+15:8: Internal reserved
+7:0 PCI Class code",0x0002,
+102,66,51,33,Internal reserved,0x0000,
+104,68,52,34,"0 BAR1 Enabled
+3:1 BAR1 Size
+4 Power Management Enable
+10:5 Report PME bits in Dstates11 Clock PME enabled
+15:12 BAR0 backplane adddress translation",0x3FF5,"BIT 3:1 : this maps 4M of Bar1 space to system address map.(0 is 1M, 1 is 2M and 2 is 4M and ….7 is 128M…for this we need to map 4M of TCM space into the system space)
+BIT4, 10:5, 11 : These bits must be set to enable PME/wake functionality in the device. Clearing these bits in primarily for internal debug
+BIT 15:12 : Back plane addresses used in the system are 0x1800xxxxthis 3 bits + next 16 bits fill up the default values to load in the config space 0x70/0x80 registers..(window to different core enumeration registers.)"
+106,6A,53,35,BAR0 backplane adddres translation,0x1800,
+108,6C,54,36,BAR2 enable and size,0x0000,"BAR2 Is not supported in this system, so please don’t set them"
+110,6E,55,37,Internal reserved,0x0000,
+112,70,56,38,Internal reserved,0x0000,
+114,72,57,39,Internal reserved,0x0000,
+116,74,58,3A,Internal reserved,0x0000,
+118,76,59,3B,Internal reserved,0x0000,
+120,78,60,3C,Internal reserved,0x0000,
+122,7A,61,3D,Internal reserved,0x0000,
+124,7C,62,3E,Internal reserved,0x0000,
+126,7E,63,3F,Internal reserved,0x0000,
+-1,-1,-1,-1,Header Revision,bcm94354wlpagbl_01,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,

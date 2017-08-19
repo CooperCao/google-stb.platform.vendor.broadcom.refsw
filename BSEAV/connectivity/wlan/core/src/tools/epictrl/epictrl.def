@@ -1,0 +1,6 @@
+; EPICTRL.DEF: Declares exports for the Epigram WMI driver
+; control interface
+
+DESCRIPTION  'IRelay Control Interface'
+
+EXPORTS

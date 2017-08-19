@@ -103,9 +103,14 @@ SERVER_OBJS = ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_server.c
 EXTRA_OBJS += ${NEXUS_TOP}/../BSEAV/tools/bmemperf/common/bmemperf_lib.c
 CLKGEN_PATH = ${NEXUS_TOP}/../magnum/basemodules/chp/src/common
 
+ifeq ($(findstring $(BCHP_CHIP),7271 ),$(BCHP_CHIP))
+WLAN_DRIVER = "y"
+export WLAN_DRIVER_PATH="BSEAV/connectivity/wlan/core"
 BWL_OBJ_DIR = $(NEXUS_TOP)/../$(B_REFSW_OBJ_DIR)/BSEAV/lib/bwl
 BWL_SRC_DIR = $(NEXUS_TOP)/../BSEAV/lib/bwl
 BWL_SRC_FILES = $(shell find $(BWL_SRC_DIR) -name "*.c" -o -name "*.h" -o -name "Makefile" )
+else
+endif
 
 BOA_SRC_DIR = $(NEXUS_TOP)/../BSEAV/opensource/boa
 BOA_SRC_FILES = $(shell find $(BOA_SRC_DIR) -name "Makefile" -o -name "boa*.gz" -o -name "boa.conf" -o -name "index*" )
@@ -129,9 +134,6 @@ clean_iperf:
 
 clean_boa:
 	$(MAKE) -C $(BOA_SRC_DIR) clean
-
-clean_bwl:
-	$(MAKE) -C $(BWL_SRC_DIR) clean
 
 clean_apps:
 	@-$(RM) $(APPS) *.d *.o *.out
@@ -199,11 +201,22 @@ ifeq ($(ANDROID_BUILD),y)
 CFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DB_ANDROID_BUILD
 endif
 
+ifdef WLAN_DRIVER
 EXTRA_OBJS += ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_wifi.c
-
 LDFLAGS += -L$(BWL_OBJ_DIR) -lbwl
 CFLAGS += -DBWL_SUPPORT
 CFLAGS += -I$(BWL_SRC_DIR)/include
+BWL_LIB_A = $(BWL_OBJ_DIR)/libbwl.a
+
+clean_bwl:
+	$(MAKE) -C $(BWL_SRC_DIR) clean
+
+$(BWL_OBJ_DIR)/libbwl.a: $(BWL_SRC_FILES)
+	$(MAKE) -C $(BWL_SRC_DIR)
+
+else
+clean_bwl:
+endif
 
 CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
 CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
@@ -212,16 +225,13 @@ CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm
 CFLAGS += -g
 CFLAGS += -D_LINUX_TYPES_H
 
-$(BWL_OBJ_DIR)/libbwl.a: $(BWL_SRC_FILES)
-	$(MAKE) -C $(BWL_SRC_DIR)
-
 # Implicit rule for building local apps
-${NEXUS_BIN_DIR}/bsysperf.cgi: $(BINDIR)/../bin/boa_server $(BWL_OBJ_DIR)/libbwl.a $(MAIN_OBJS) $(EXTRA_OBJS)
+${NEXUS_BIN_DIR}/bsysperf.cgi: $(BINDIR)/../bin/boa_server $(BWL_LIB_A) $(MAIN_OBJS) $(EXTRA_OBJS)
 	@echo [Building ... $@]
 	$(Q_)$(CC) -o $@ $(MAIN_OBJS) $(EXTRA_OBJS) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
 	$(Q_)rm -f ${NEXUS_BIN_DIR}/bsysperf.d
 
-${NEXUS_BIN_DIR}/bsysperf_server: $(SERVER_OBJS) $(EXTRA_OBJS) $(BWL_OBJ_DIR)/libbwl.a
+${NEXUS_BIN_DIR}/bsysperf_server: $(SERVER_OBJS) $(EXTRA_OBJS) $(BWL_LIB_A)
 	@echo [Building ... $@]
 	$(Q_)$(CC) -c $(SERVER_OBJS) $(CFLAGS)
 	$(Q_)$(CC) -o $@ $(SERVER_OBJS) $(EXTRA_OBJS) $(CFLAGS) $(LDFLAGS)

@@ -467,16 +467,13 @@ static void NEXUS_DisplayModule_Print(void)
         unsigned j;
         NEXUS_VideoOutput_P_Link *output;
         NEXUS_DisplayHandle display = g_NEXUS_DisplayModule_State.displays[i];
-        NEXUS_VideoFormatInfo formatInfo;
         static const char *g_contentModeStr[NEXUS_VideoWindowContentMode_eMax] = {"zoom","box","panscan","full","nonlinear","panscan_no_corr"};
         char str[32];
 
         if (!display) continue;
 
-        NEXUS_VideoFormat_GetInfo(display->cfg.format, &formatInfo);
-
-        BDBG_MODULE_LOG(display_proc, ("display %d: format=%dx%d%c(%d) %d.%02dhz", i,
-            display->displayRect.width,display->displayRect.height,formatInfo.interlaced?'i':'p', display->cfg.format,
+        BDBG_MODULE_LOG(display_proc, ("display %d: format=%s %d.%02dhz", i,
+            NEXUS_P_VideoFormat_ToStr_isrsafe(display->cfg.format),
             display->status.refreshRate/1000, display->status.refreshRate%1000));
         if (display->graphics.frameBuffer3D.right) {
             BKNI_Snprintf(str, sizeof(str), "%p(%p)", (void *)display->graphics.frameBuffer3D.main, (void *)display->graphics.frameBuffer3D.right);
@@ -1053,14 +1050,15 @@ static void NEXUS_P_SetDisplayCapabilities(void)
             displayCap = &g_pCoreHandles->boxConfig->stVdc.astDisplay[j];
             if (displayCap->bAvailable) {
                 if (displayCap->eMaxVideoFmt != BBOX_VDC_DISREGARD) {
-                    NEXUS_VideoFormatInfo maxFormat;
-                    NEXUS_VideoFormat_GetInfo(NEXUS_P_VideoFormat_FromMagnum_isrsafe(displayCap->eMaxVideoFmt), &maxFormat);
-                    if(NEXUS_P_GET_MAX_PIXEL(maxFormat) > maxPixel)
+                    NEXUS_VideoFormatInfo maxFormatInfo;
+                    NEXUS_VideoFormat maxFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(displayCap->eMaxVideoFmt);
+                    NEXUS_VideoFormat_GetInfo(maxFormat, &maxFormatInfo);
+                    if(NEXUS_P_GET_MAX_PIXEL(maxFormatInfo) > maxPixel)
                     {
-                        maxPixel = NEXUS_P_GET_MAX_PIXEL(maxFormat);
-                        maxPixelVerticalFreq = maxFormat.verticalFreq;
-                        BDBG_MSG(("display[%d] max output format (%dx%d%c%d) for boxmode[%d].", j,
-                            maxFormat.width, maxFormat.height, maxFormat.interlaced ? 'i' : 'p', maxFormat.verticalFreq, g_pCoreHandles->boxConfig->stBox.ulBoxId));
+                        maxPixel = NEXUS_P_GET_MAX_PIXEL(maxFormatInfo);
+                        maxPixelVerticalFreq = maxFormatInfo.verticalFreq;
+                        BDBG_MSG(("display[%d] max output format %s for boxmode[%d].", j,
+                            NEXUS_P_VideoFormat_ToStr_isrsafe(maxFormat), g_pCoreHandles->boxConfig->stBox.ulBoxId));
                     }
                 }
             }
@@ -1091,8 +1089,8 @@ static void NEXUS_P_SetDisplayCapabilities(void)
                 NEXUS_VideoFormat_GetInfo(format, &info);
                 if(NEXUS_P_GET_MAX_PIXEL(info) > maxPixel || (info.height >= 720 && info.verticalFreq > maxPixelVerticalFreq)) {
                     pCapabilities->displayFormatSupported[format] = false;
-                    BDBG_MSG(("Output format (%dx%d%c%d) exceeds boxmode[%d] capability.",
-                        info.width, info.height, info.interlaced ? 'i' : 'p', info.verticalFreq, g_pCoreHandles->boxConfig->stBox.ulBoxId));
+                    BDBG_MSG(("Output format %s exceeds boxmode[%d] capability.",
+                        NEXUS_P_VideoFormat_ToStr_isrsafe(format), g_pCoreHandles->boxConfig->stBox.ulBoxId));
                 }
             }
         }

@@ -67,6 +67,7 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "bchp_sun_top_ctrl.h"
+#include "bchp_xpt_full_pid_parser.h"
 #ifdef    ASP_SUPPORT
 #include "bchp_xpt_rave.h"
 #include "bchp_xpt_mcpb.h"
@@ -84,6 +85,12 @@
 #if BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_REG_START
 #include "bchp_memc_ddr23_shim_addr_cntl_0.h"
 #endif
+
+#ifdef BMEMCONFIG_BOXMODE_SUPPORTED
+#include "bmemperf_lib.h"
+#include "boxmodes_defines.h"
+extern bmemconfig_box_info g_bmemconfig_box_info[BMEMCONFIG_MAX_BOXMODES];
+#endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/
 
 #define PRINTFLOG noprintf
 #define FILENAME_TAG "filename=\""
@@ -252,6 +259,36 @@ char *HhMmSs(
 
     return( fmt );
 }                                                          /* HhMmSs */
+
+char *HhMmSsMsec(
+    unsigned long int timestamp
+    )
+{
+    static char    fmt[64];
+    struct timeval tv;
+    struct tm     *tm;
+
+    memset( fmt, 0, sizeof( fmt ));
+
+    if (timestamp == 0)
+    {
+        gettimeofday( &tv, NULL );
+    }
+    else
+    {
+        tv.tv_sec = timestamp;
+    }
+
+    if (( tm = localtime( &tv.tv_sec )) != NULL)
+    {
+        char msec[8];
+        sprintf( msec, ".%06d", (int) (tv.tv_usec) );
+        strftime( fmt, sizeof fmt, "%H:%M:%S", tm );
+        strcat( fmt, msec );
+    }
+
+    return( fmt );
+}                                                          /* HhMmSsMsec */
 
 char *DayMonDateYear(
     unsigned long int timestamp
@@ -1268,7 +1305,7 @@ unsigned int bmemperf_readReg32( unsigned int offset )
         offset -= BCHP_REGISTER_START;
     }
     pMemTemp += offset >>2;
-    /*printf("\n~DEBUG~%s:%u g_pMem %p; offset 0x%x; BCHP_REGISTER_START 0x%x;   pMemTemp 0x%x ~", __FILENAME__, __LINE__,
+    /*printf("%s:%u g_pMem %p; offset 0x%x; BCHP_REGISTER_START 0x%x;   pMemTemp 0x%x \n", __FILENAME__, __LINE__,
             (void*) g_pMem, offset, BCHP_REGISTER_START, (unsigned int) pMemTemp );
     fflush(stdout);fflush(stderr);*/
 
@@ -1278,6 +1315,45 @@ unsigned int bmemperf_readReg32( unsigned int offset )
 
     return ( returnValue );
 } /* bmemperf_readReg32 */
+
+/**
+ *  Function: This function will write the specified register offset. If it hasn't been done prior to this call,
+ *  the function will also open the driver and mmap to the register space.
+ **/
+unsigned int bmemperf_writeReg32( unsigned int offset, unsigned int new_value )
+{
+    volatile unsigned int *pMemTemp = NULL;
+
+    if (g_pMem == NULL)
+    {
+        g_pMem = (volatile unsigned int*) bmemperf_openDriver_and_mmap();
+    }
+
+    pMemTemp  = (unsigned int *) g_pMem;
+    /*printf("\n~DEBUG~%s:%u g_pMem %p; offset 0x%x; ~", __FILENAME__, __LINE__, (void*) g_pMem, offset );
+    fflush(stdout);fflush(stderr);*/
+    if (BCHP_REGISTER_START & offset)
+    {
+        offset -= BCHP_REGISTER_START;
+        /*PRINTFLOG( "%s:%u - (offset 0x%x); g_pMem %p \n", __FILENAME__, __LINE__, offset, g_pMem );*/
+    }
+    /* some chips (74371, 7271, 7344, 7364, 7250, 7260, 7586, 7268, 7366) have a non-zero base address; if one of these, subtract the base offset */
+    else if (BCHP_REGISTER_START && offset)
+    {
+        /*PRINTFLOG( "%s:%u - (offset 0x%x); g_pMem %p \n", __FILENAME__, __LINE__, offset, g_pMem );*/
+        offset -= BCHP_REGISTER_START;
+    }
+    pMemTemp += offset >>2;
+    /*printf("\n~DEBUG~%s:%u g_pMem %p; offset 0x%x; BCHP_REGISTER_START 0x%x;   pMemTemp 0x%x ~", __FILENAME__, __LINE__,
+            (void*) g_pMem, offset, BCHP_REGISTER_START, (unsigned int) pMemTemp );
+    fflush(stdout);fflush(stderr);*/
+
+    *pMemTemp = new_value;
+    /*printf("\n~DEBUG~%s:%u returnValue 0x%x ~", __FILENAME__, __LINE__, (unsigned int ) returnValue );
+    fflush(stdout);fflush(stderr);*/
+
+    return ( new_value );
+} /* bmemperf_writeReg32 */
 
 #ifdef BMEMCONFIG_READ32_SUPPORTED
 /* bchp_asp_mcpb_ch0.h ... #define BCHP_ASP_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER */
@@ -1417,7 +1493,7 @@ char *getProductIdStr(
             familyId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID );
             productId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_PRODUCT_ID );
 
-            /*printf("%s:%u familyId 0x%x; productId 0x%x \n", __FILE__, __LINE__, familyId, productId );*/
+            PRINTF("%s:%u familyId 0x%x; productId 0x%x \n", __FILE__, __LINE__, familyId, productId );
 
             if (productId&0xF0000000)                          /* if upper nibble is non-zero, this value contains a 4-digit product id in bits 31:16 */
             {
@@ -1452,6 +1528,72 @@ char *getProductIdStr(
     return( lProductIdStr );
 } /* getProductIdStr */
 
+unsigned long int Bmemperf_PidChannelGetPccEnable( int hwPidChannelIndex )
+{
+    unsigned long int pcc_error_en_reg = 0;
+
+    if ( hwPidChannelIndex < BMEMPERF_PID_CHANNEL_MAX )
+    {
+        /*printf( "%s: XPT_FULL_PID 0x%x ... hwPid %d ... times 4 %d ... result 0x%x\n", __FUNCTION__,
+                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE, hwPidChannelIndex, hwPidChannelIndex*4,
+                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE + (hwPidChannelIndex*4) );*/
+        pcc_error_en_reg = bmemperf_readReg32( BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE + (hwPidChannelIndex*4) );
+    }
+
+    return ( pcc_error_en_reg );
+}
+int Bmemperf_PidChannelSetPccEnable( int hwPidChannelIndex )
+{
+    unsigned long int pcc_error_en_reg = 0;
+
+    if ( hwPidChannelIndex < BMEMPERF_PID_CHANNEL_MAX )
+    {
+        /*printf( "%s: XPT_FULL_PID 0x%x ... hwPid %d ... times 4 %d ... result 0x%x\n", __FUNCTION__,
+                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE, hwPidChannelIndex, hwPidChannelIndex*4,
+                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE + (hwPidChannelIndex*4) );*/
+        pcc_error_en_reg = bmemperf_readReg32( BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE + (hwPidChannelIndex*4) );
+
+        /* set the various bits that are needed */
+        pcc_error_en_reg |= BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_PCC_ERROR_EN_MASK;
+        /*pcc_error_en_reg |= BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_PROC_CC_MASK;*/
+
+        bmemperf_writeReg32( BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE + (hwPidChannelIndex*4), pcc_error_en_reg );
+    }
+
+    return 0;
+}
+
+unsigned long int Bmemperf_PidChannelGetAutoSyncDetect( int hwPidChannelIndex )
+{
+    unsigned long int auto_sync_reg = 0;
+#ifdef ASP_SUPPORT
+
+    if ( hwPidChannelIndex < BMEMPERF_PID_CHANNEL_MAX )
+    {
+        auto_sync_reg = bmemperf_readReg32( BCHP_XPT_MCPB_CH0_SP_TS_CONFIG + (hwPidChannelIndex*4) );
+    }
+
+#endif /* ASP_SUPPORT */
+    return ( auto_sync_reg );
+}
+int Bmemperf_PidChannelSetAutoSyncDetect( int hwPidChannelIndex )
+{
+#ifdef ASP_SUPPORT
+    unsigned long int auto_sync_reg = 0;
+
+    if ( hwPidChannelIndex < BMEMPERF_PID_CHANNEL_MAX )
+    {
+        auto_sync_reg = bmemperf_readReg32( BCHP_XPT_MCPB_CH0_SP_TS_CONFIG + (hwPidChannelIndex*4) );
+
+        /* set the various bits that are needed */
+        auto_sync_reg |= BCHP_XPT_MCPB_CH0_SP_TS_CONFIG_MPEG_TS_AUTO_SYNC_DETECT_MASK;
+
+        bmemperf_writeReg32( BCHP_XPT_MCPB_CH0_SP_TS_CONFIG + (hwPidChannelIndex*4), auto_sync_reg );
+    }
+#endif /* ASP_SUPPORT */
+
+    return 0;
+}
 #endif /* BMEMCONFIG_READ32_SUPPORTED */
 
 #ifdef NEXUS_MODE_proxy
@@ -1836,18 +1978,25 @@ char *get_my_ip4_local( void )
     return( line );
 }
 
-unsigned long int getPidOf ( const char * processName )
+unsigned long int getPidOf( const char * processName )
 {
     char                line[MAX_LENGTH_GETPIDOF_CMD];
     unsigned long int   pid = 0;
+    unsigned long int   temp = 0;
     FILE               *cmd = NULL;
 
     sprintf(line, "ps -eaf | grep \"%s\" | grep -v grep | awk '{print $2;}'", processName );
     cmd = popen( line, "r" );
 
-    memset(line, 0, sizeof(line) );
-    fgets( line, MAX_LENGTH_GETPIDOF_CMD, cmd );
-    pid = strtoul( line, NULL, 10 );
+    /* We could find two or three matching PIDS. Loop until we find the last one */
+    do
+    {
+        memset(line, 0, sizeof(line) );
+        fgets( line, MAX_LENGTH_GETPIDOF_CMD, cmd );
+        temp = 0;
+        temp = strtoul( line, NULL, 10 );
+        if ( temp ) pid = temp;
+    } while ( temp );
 
     pclose( cmd );
     return( pid );
@@ -1873,7 +2022,7 @@ const char * get_executing_command( const char * exe_name )
     static char   line[MAX_LENGTH_GETPIDOF_CMD];
     FILE         *cmd = NULL;
 
-    sprintf(line, "ps -eaf | grep \"%s\" | grep -v grep", exe_name );
+    sprintf(line, "ps -eaf | /bin/awk '{print $8;}' | grep \"%s\"", exe_name );
     cmd = popen( line, "r" );
 
     memset(line, 0, sizeof(line) );
@@ -1948,8 +2097,8 @@ char *Bsysperf_GetProcessCmdline( const char * process_name )
     dir = opendir("/proc");
     while ((entry = readdir(dir)) != NULL)
     {
-        /* only interested in names that start with a number and are at least 4 characters long */
-        if ( strlen(entry->d_name) > 3 && '1' <= entry->d_name[0] && entry->d_name[0] <= '9' )
+        /* only interested in names that start with a number and are at least 3 characters long */
+        if ( strlen(entry->d_name) > 2 && '1' <= entry->d_name[0] && entry->d_name[0] <= '9' )
         {
             memset(cmdline_contents, 0, sizeof(cmdline_contents) );
 
@@ -2002,6 +2151,57 @@ char *Bsysperf_GetProcessCmdline( const char * process_name )
     }
     closedir(dir);
     return ( return_buffer );
+}
+
+/**
+ *  Function: This function will scan through the current list of active processes looking for the one that
+ *            matches the specified search string. If more than one match occurs, the first one will be returned.
+ *            This API is much faster than getPidOf(). The getPidOf() API typically takes 15 milliseconds per call.
+ *            This API takes about 2 milliseconds per call.
+ **/
+int Bsysperf_GetProcessPidOf( const char * process_name )
+{
+    int            pid           = 0;
+    long int       num_bytes     = 0;
+    DIR           *dir           = NULL;
+    struct dirent *entry         = NULL;
+    FILE          *fp            = NULL;
+    char           cmdline_contents[512];
+    char           cmdline_filename[128];
+
+    dir = opendir("/proc");
+    while ((entry = readdir(dir)) != NULL)
+    {
+        /* only interested in names that start with a number and are at least 3 characters long */
+        if ( strlen(entry->d_name) > 2 && '1' <= entry->d_name[0] && entry->d_name[0] <= '9' )
+        {
+            memset(cmdline_contents, 0, sizeof(cmdline_contents) );
+
+            /* create a full-path name to the cmdline file */
+            strncpy(cmdline_filename, "/proc/", sizeof(cmdline_filename) -1 );
+            strncat(cmdline_filename, entry->d_name, sizeof(cmdline_filename) - strlen(cmdline_filename) -1 );
+            strncat(cmdline_filename, "/cmdline", sizeof(cmdline_filename) - strlen(cmdline_filename) -1 );
+
+            fp = fopen( cmdline_filename, "r");
+            if ( fp )
+            {
+                num_bytes = fread(cmdline_contents, 1, sizeof(cmdline_contents), fp );
+                if ( num_bytes )
+                {
+                    if ( strstr(cmdline_contents, process_name ) )
+                    {
+                        sscanf( entry->d_name, "%d", &pid );
+                    }
+                    /*printf("~DEBUG~cmdline_filename (%s) ... bytes (%ld) ... pid (%d) ... name (%s) ... (%s)~",
+                            cmdline_filename, num_bytes, pid, entry->d_name, cmdline_contents );*/
+                }
+                fclose(fp);
+                if ( pid ) break;
+            }
+        }
+    }
+    closedir(dir);
+    return ( pid );
 }
 
 char * Bsysperf_ReplaceNewlineWithNull ( char *buffer )
@@ -2698,15 +2898,65 @@ void printflog(const char * szFormat, ... )
 }
 
 /**
+ *  Function: This function will work like the printf statement but will send the
+ *            output to the specified file instead of STDOUT.
+ **/
+void printffile(const char *sLogFile, const char * szFormat, ... )
+{
+    char str[256];
+    unsigned long int nLen = sizeof(str);
+    int fd=0;
+
+    memset(str, 0, sizeof str);
+
+    va_list arg_ptr;
+    va_start(arg_ptr, szFormat );
+    #ifdef _WINDOWS_
+    _vsnprintf(str, nLen-1, szFormat, arg_ptr );
+    #else
+    vsnprintf(str, nLen-1, szFormat, arg_ptr );
+    #endif
+    va_end(arg_ptr);
+
+    if ( strlen( sLogFile ) ) {
+        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND) );
+        if ( fd ) {
+            write ( fd, str, strlen(str) );
+            close ( fd );
+            chmod ( sLogFile, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH );
+
+            /* output the string to terminal */
+            /*fprintf ( stderr, "%s", str );*/
+        } else {
+            fprintf ( stderr, "%s: Could not open (%s)\n", __FUNCTION__, sLogFile );
+        }
+    } else {
+        fprintf ( stderr, "%s: log file (%s) is invalid\n", __FUNCTION__, sLogFile );
+        fprintf ( stderr, "%s", str );
+    }
+
+    return;
+}
+
+typedef struct
+{
+    char name[16];
+} NAME16;
+/**
  *  Function: This function will create the DVFS Control HTML table using the tag DvfsControl.
  **/
-int Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies )
+int Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies, bool bMinimalFields )
 {
     int       cpu           = 0;
     int       numCpusConf   = 0;
     long int  cpu_freq_int  = 0;
     char     *contents      = NULL;
     char      cpu_frequencies_supported[128];
+    int       cell_width    = 50;
+    int       font_size     = 14;
+    NAME16    LongNames[4] = {{"Conservative"},{"Performance"},{"Power Save"},{"On Demand"}};
+    NAME16    ShortNames[4] = {{"Consrv"},{"Perfrm"},{"PwrSav"},{"OnDem"}};
+    NAME16   *WhichNamesToUse = &LongNames[0];
 
     numCpusConf = sysconf( _SC_NPROCESSORS_CONF );
     if (numCpusConf > BMEMPERF_MAX_NUM_CPUS)
@@ -2717,33 +2967,42 @@ int Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies )
     contents = GetFileContents( "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors" );
 
     printf( "~DvfsControl~" );
-    printf( "<table cols=9 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
-    printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "DVFS Controls" );
+    printf( "<table cols=9 border=0 style=\"border-collapse:collapse;\" cellpadding=3 >" );
+    if ( bMinimalFields == false )
+    {
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "DVFS Controls" );
 
-    printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Power Saving Techniques" );
-    printf( "<tr style=\"outline: thin solid\" ><td colspan=9><table border=0 style=\"border-collapse:collapse;\" ><tr>");
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Power Saving Techniques" );
+    }
+    else
+    {
+        WhichNamesToUse = &ShortNames[0];
+        cell_width = 20;
+        font_size  = 12;
+    }
+    printf( "<tr %s ><td colspan=9><table border=0 style=\"border-collapse:collapse;\" ><tr>", (bMinimalFields)?" ": "style=\"outline: thin solid\"" );
     if ( contents && strstr(contents, "conservative") )
     {
-        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >Conservative</td>",
-                DVFS_GOVERNOR_CONSERVATIVE, DVFS_GOVERNOR_CONSERVATIVE );
-        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+        printf( "<td style=\"font-size:%d\" ><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >%s</td>",
+                font_size, DVFS_GOVERNOR_CONSERVATIVE, DVFS_GOVERNOR_CONSERVATIVE, (char*) &(WhichNamesToUse[0]) );
+        printf( "<td width=%d>&nbsp;</td>", cell_width ); /* spacer */
     }
     if ( contents && strstr(contents, "performance") )
     {
-        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >Performance</td>",
-                DVFS_GOVERNOR_PERFORMANCE, DVFS_GOVERNOR_PERFORMANCE );
-        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+        printf( "<td style=\"font-size:%d\"><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >%s</td>",
+                font_size, DVFS_GOVERNOR_PERFORMANCE, DVFS_GOVERNOR_PERFORMANCE, (char*) &(WhichNamesToUse[1]) );
+        printf( "<td width=%d>&nbsp;</td>", cell_width ); /* spacer */
     }
     if ( contents && strstr(contents, "powersave") )
     {
-        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >Power Save</td>",
-                DVFS_GOVERNOR_POWERSAVE, DVFS_GOVERNOR_POWERSAVE );
-        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+        printf( "<td style=\"font-size:%d\"><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >%s</td>",
+                font_size, DVFS_GOVERNOR_POWERSAVE, DVFS_GOVERNOR_POWERSAVE, (char*) &(WhichNamesToUse[2]) );
+        printf( "<td width=%d>&nbsp;</td>", cell_width ); /* spacer */
     }
     if ( contents && strstr(contents, "ondemand") )
     {
-        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >On Demand</td>",
-                DVFS_GOVERNOR_ONDEMAND, DVFS_GOVERNOR_ONDEMAND);
+        printf( "<td style=\"font-size:%d\"><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >%s</td>",
+                font_size, DVFS_GOVERNOR_ONDEMAND, DVFS_GOVERNOR_ONDEMAND, (char*) &(WhichNamesToUse[3]) );
         printf( "</tr></table></td></tr>" );
     }
 
@@ -2887,7 +3146,7 @@ int Bmemperf_GetCfgFileEntry(
     )
 {
     FILE *fp = NULL;
-    char  oneline[256];
+    char  oneline[512];
 
     if ( cfg_filename == NULL || cfg_tagline == NULL || output_buffer == NULL || output_buffer_len <=0 )
     {
@@ -2977,7 +3236,7 @@ int Bmemperf_SetCfgFileEntry(
         return ( -1 );
     }
 
-    contents = getFileContents( BASPMON_CFG_FILENAME );
+    contents = getFileContents( cfg_filename );
 
     if ( contents )
     {
@@ -3029,3 +3288,401 @@ int Bmemperf_SetCfgFileEntry(
 
     return ( 0 );
 }
+
+/**
+ *  Function: This function will look in the provided string for the specified tag string. If the tag string is
+ *  found on the line, the converted integer value will be returned.
+ **/
+static int scan_for_tag(
+    const char             *line,
+    const char             *tag,
+    unsigned long long int *value
+    )
+{
+    int                     rc     = -1;
+    char                   *pos    = NULL;
+    unsigned long long int  lvalue = 0;
+    char                    valueStr[64];
+
+    pos = strstr( line, tag );
+    if (pos)
+    {
+        pos   += strlen( tag );
+        lvalue = strtoull( pos, NULL, BSYSPERF_VALUE_BASE );
+        if (strstr( tag, "RX packets:" ) && ( lvalue > 0 ))
+        {
+            valueStr[0] = 0;
+            convert_to_string_with_commas( lvalue, valueStr, sizeof( valueStr ));
+            PRINTF( "%s %lu (%s) (%s) (addr -> %p)<br>\n", tag, lvalue, valueStr, pos, (void *)value );
+        }
+
+        if (value)
+        {
+            *value = lvalue;
+        }
+
+        rc = 0;
+    }
+    /* -1 is used to indicate the tag was not found; rc=0 indicates the tag was found and some values were scanned */
+    return( rc );
+}                                                          /* scan_for_tag */
+
+/**
+ *  Function: This function will use the 'ethtool' utility to read RX and TX data for the specified network interface.
+ *            Since the data from the ifconfig utility has been deemed to be unreliable, the kernel team has suggested
+ *            we use the 'ethtool' utility to get statistics for the "asp" interface.
+ **/
+extern bsysperf_netStatistics g_netStats[NET_STATS_MAX];
+extern int                    g_netStatsIdx;                 /* index to entries added to g_netStats array */
+static int get_ethtool_data(
+    int netStatsIdx
+    )
+{
+    char *rc  = NULL;
+    char *pos = NULL;
+    FILE *cmd = NULL;
+    char  line[MAX_LINE_LENGTH];
+    unsigned int line_count = 0;
+    unsigned long long llu_bytes = 0;
+
+    if ( netStatsIdx < 0 || netStatsIdx > NET_STATS_MAX ) return 0;
+
+/* These counters are from the embedded network switch's perspective and thus are reversed.
+ * In other words, when ASP is streaming out, you will see the Rx Count on ASP device go up
+ * as it is receiving packets from ASP. Likewise, when ASP is receiving packets, the switch
+ * is transmitting those packets to ASP (which in turn came from a network client on another
+ * switch's port), and thus TxCount would go up!
+*/
+#define ASP_RX_SEARCH_TAG "TxOctets"
+#define ASP_TX_SEARCH_TAG "RxOctets"
+
+    /* create a line similar to this ... /bin/ethtool -S asp | grep "RxOctets|TxOctets"
+     * We should get two lines back similar to this:
+     *      RxOctets: 14259285
+     *      RxOctets: 432809372
+     */
+    sprintf( line, "%s -S %s | grep -E \"%s|%s\"", ETHTOOL_UTILITY, g_netStats[netStatsIdx].name, ASP_RX_SEARCH_TAG, ASP_TX_SEARCH_TAG );
+    cmd = popen( line, "r" );
+
+    /* we are only expecting to read 2 lines ... one for RX and one for TX */
+    while ( cmd && line_count < 2 )
+    {
+        char search_string[32];
+
+        memset( line, 0, sizeof( line ));
+        memset( search_string, 0, sizeof( search_string ));
+
+        rc = fgets( line, MAX_LINE_LENGTH, cmd );
+
+        /* if something was read in */
+        if ( rc )
+        {
+            /* remove end-of-line character if present */
+            pos = strchr( line, '\n' );
+            if (pos != NULL)
+            {
+                *pos = '\0';
+            }
+
+            PRINTF( "~%s: got len %u: line (%s)~", __FUNCTION__, (int) strlen( line ), line );
+
+            sprintf( search_string, "%s: ", ASP_TX_SEARCH_TAG );
+            pos = strstr( line, search_string );
+            if (pos != NULL)
+            {
+                pos += strlen( search_string ); /* advance pointer to where the byte could should be located */
+                sscanf( pos, "%llu", &llu_bytes );
+
+                g_netStats[netStatsIdx].txBytes = llu_bytes;
+                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_TX_SEARCH_TAG, g_netStats[netStatsIdx].name, llu_bytes );
+            }
+
+            sprintf( search_string, "%s: ", ASP_RX_SEARCH_TAG );
+            pos = strstr( line, search_string );
+            if (pos != NULL)
+            {
+                pos += strlen( search_string ); /* advance pointer to where the byte could should be located */
+                sscanf( pos, "%llu", &llu_bytes );
+
+                g_netStats[netStatsIdx].rxBytes = llu_bytes;
+                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_RX_SEARCH_TAG, g_netStats[netStatsIdx].name, llu_bytes );
+            }
+        }
+        else
+        {
+            break; /* once we get a read error, stop reading */
+        }
+
+        line_count++;
+    }
+
+    pclose( cmd );
+
+    return( 0 );
+} /* get_ethtool_data */
+
+/**
+ *  Function: This function will gather various network statistics
+ **/
+int get_netstat_data(
+    bsysperf_netStatistics *pNetStats
+    )
+{
+    char *pos = NULL;
+    FILE *cmd = NULL;
+    char  line[MAX_LINE_LENGTH];
+#if DEBUG_WLANZERO
+    struct timeval tv;
+    bool   bFoundWlan0 = false;
+#endif /* DEBUG_WLANZERO */
+
+    if (pNetStats == NULL)
+    {
+        return( -1 );
+    }
+
+#if DEBUG_WLANZERO
+    gettimeofday( &tv, NULL );
+    printflog( "time now ... %d.%06d =====================\n", tv.tv_sec, tv.tv_usec );
+#endif /* DEBUG_WLANZERO */
+
+    /* clear out the array */
+    memset( pNetStats, 0, sizeof( *pNetStats ));
+    g_netStatsIdx = -1;
+
+    sprintf( line, "%s", IFCONFIG_UTILITY );
+    cmd = popen( line, "r" );
+
+    do {
+        memset( line, 0, sizeof( line ));
+        fgets( line, MAX_LINE_LENGTH, cmd );
+        if (strlen( line ))
+        {
+#if DEBUG_WLANZERO
+            if ( bFoundWlan0 ) printflog( "%s", line );
+#endif /* DEBUG_WLANZERO */
+            /* if something is in column 1, it must be a name of another interface */
+            if (( 'a' <= line[0] ) && ( line[0] <= 'z' ))
+            {
+                /* if there is room for another interface */
+                if (g_netStatsIdx < (NET_STATS_MAX-1) )
+                {
+                    g_netStatsIdx++;
+
+                    /* look for a space; that marks the end of the i/f name */
+                    pos = strchr( line, ' ' );
+                    if (pos)
+                    {
+                        *pos = '\0';                       /* null-terminate the i/f name */
+                        strncpy( pNetStats[g_netStatsIdx].name, line, sizeof( pNetStats[g_netStatsIdx].name ) - 1 );
+#if DEBUG_WLANZERO
+                        if ( strcmp( pNetStats[g_netStatsIdx].name, "wlan0") == 0 ) {
+                            *pos = ' ';
+                            printflog( "%s", line );
+                            *pos = '\0';
+                            bFoundWlan0 = true;
+                        }
+#endif /* DEBUG_WLANZERO */
+                    }
+                }
+                else
+                {
+                    printf( "%s: not enough room for new interface (%s) in array; max'ed out at %u\n", __FUNCTION__, line, g_netStatsIdx );
+                }
+            }
+
+            /* if we are working on an interface that was successfully saved in the global structure (i.e. we haven't run out of space) */
+            if ( (g_netStatsIdx >= 0) && (g_netStatsIdx < NET_STATS_MAX) )
+            {
+                int rc = 0;
+
+                /* if line has IP address on it */
+                if (( pos = strstr( line, "inet addr:" )))
+                {
+                    char *ipAddrStart = NULL;
+
+                    pos += strlen( "inet addr:" );
+
+                    ipAddrStart = pos;
+
+                    /* look for a space; that marks the end of the i/f name */
+                    pos = strchr( ipAddrStart, ' ' );
+                    if (pos)
+                    {
+                        *pos = '\0';                       /* null-terminate the IP address */
+                        strncpy( pNetStats[g_netStatsIdx].ipAddress, ipAddrStart, sizeof( pNetStats[g_netStatsIdx].ipAddress ) - 1 );
+                        PRINTF( "IF (%s) has IP addr (%s)<br>\n", pNetStats[g_netStatsIdx].name, pNetStats[g_netStatsIdx].ipAddress );
+                    }
+                }
+                /*
+                eth0      Link encap:Ethernet  HWaddr 00:10:18:D2:C3:C9
+                          inet addr:10.14.244.188  Bcast:10.14.245.255  Mask:255.255.254.0
+                          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+                          RX packets:11832 errors:0 dropped:0 overruns:0 frame:0
+                          TX packets:2150 errors:0 dropped:0 overruns:0 carrier:0
+                          collisions:0 txqueuelen:1000
+                          RX bytes:2429458 (2.3 MiB)  TX bytes:632148 (617.3 KiB)
+                */
+
+                rc = scan_for_tag( line, "RX packets:", &pNetStats[g_netStatsIdx].rxErrors );
+                /* if the RX packets tag was found, now scan for errors tag on the same line */
+                if (rc == 0)
+                {
+                    rc = scan_for_tag( line, " errors:", &pNetStats[g_netStatsIdx].rxErrors );
+                }
+
+                rc = scan_for_tag( line, "TX packets:", &pNetStats[g_netStatsIdx].txErrors );
+                /* if the TX packets tag was found, now scan for errors tag on the same line */
+                if (rc == 0)
+                {
+                    rc = scan_for_tag( line, " errors:", &pNetStats[g_netStatsIdx].txErrors );
+                }
+                rc = scan_for_tag( line, "RX bytes:", &pNetStats[g_netStatsIdx].rxBytes );
+                /* if the RX bytes tag was found, now scan for the Tx bytes tag on the same line */
+                if (rc == 0)
+                {
+                    scan_for_tag( line, "TX bytes:", &pNetStats[g_netStatsIdx].txBytes );
+
+                    /* before moving on to the next interface device, check to see if we are processing the "asp" interface */
+                    if ( strcmp( pNetStats[g_netStatsIdx].name, "asp" ) == 0 )
+                    {
+                        get_ethtool_data( g_netStatsIdx );
+                    }
+                }
+                /*printf("~DEBUG~ip_addr (%s) ... TX bytes (%lld)~", pNetStats[g_netStatsIdx].ipAddress, pNetStats[g_netStatsIdx].txBytes );*/
+            }
+        }
+    } while (strlen( line ));
+    PRINTF( "\n" );
+
+    pclose( cmd );
+
+    return( 0 );
+}                                                          /* get_netstat_data */
+
+/**
+ *  Function: This function will perform a quick check to see if the specified IP address
+ *            has the necessary daemon running to accept connections to the server using
+ *            the specified port. It is used to determine if a telnet will succeed. Checking
+ *            beforehand like this allows the code to bypass the 5-second timeout that the
+ *            normal telnet connect would take.
+ **/
+int Bmemperf_Ping( const char * addr, int port )
+{
+    struct sockaddr_in address;
+    short int          socked_fd = -1;
+    fd_set             fdset;
+    struct timeval     tv = {0, 20000};
+
+    memset( &address, 0, sizeof(address) );
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr(addr); /* assign the address */
+    address.sin_port = htons(port);            /* translate int2port num */
+
+    socked_fd = socket(AF_INET, SOCK_STREAM, 0);
+    fcntl(socked_fd, F_SETFL, O_NONBLOCK);
+
+    connect(socked_fd, (struct sockaddr *)&address, sizeof(address));
+
+    FD_ZERO(&fdset);
+    FD_SET(socked_fd, &fdset);
+
+    if (select(socked_fd + 1, NULL, &fdset, NULL, &tv) == 1)
+    {
+        int so_error;
+        socklen_t len = sizeof so_error;
+
+        getsockopt(socked_fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
+
+        if (so_error == 0)
+        {
+            PRINTF("%s: telnet port to (%s) succeeded\n", __FUNCTION__, addr );
+            return 0;
+        }
+    }
+
+    close(socked_fd);
+    PRINTF("%s: telnet port to (%s) failed\n", __FUNCTION__, addr );
+    return -1;
+}
+
+/**
+ *  Function: This function will enable or disable the specified CPU. Negative values indicate we need to
+ *  DISABLE the specified CPU; positive values mean we need to ENABLE the CPU. For example, a -3 means DISABLE
+ *  CPU 3; a +3 means ENABLE CPU 3
+ **/
+void Bmemperf_ChangeCpuState(
+    int new_state
+    )
+{
+    char         line[MAX_LINE_LENGTH];
+    unsigned int disableEnable = ( new_state<1 ) ? 0 : 1;
+
+    /* you cannot disable/enable CPU 0 */
+    if (new_state == 0)
+    {
+        return;
+    }
+    sprintf( line, "echo %u > /sys/devices/system/cpu/cpu%d/online", disableEnable, abs( new_state ));
+    printf( "~issuing system(%s)~", line );
+    system( line );
+}
+
+#ifdef BMEMCONFIG_BOXMODE_SUPPORTED
+int Bmemperf_GetProductIdMemc(
+    void
+    )
+{
+    unsigned int idx     = 0;
+    int          numMemc = 1;
+    char         *lProductIdStr = getProductIdStr();
+
+    /* loop through global array to find the specified boxmode */
+    for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
+    {
+        PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].strProductId is %s ... comparing with %s~\n", __FUNCTION__, idx,
+                g_bmemconfig_box_info[idx].strProductId, lProductIdStr );
+        /* some 7439 IDs have 7252s (boxmode 24) and some have 7252S (boxmode 2, 3, 4, 9, 27) */
+        if ( lProductIdStr && strcasecmp ( g_bmemconfig_box_info[idx].strProductId, lProductIdStr ) == 0 )
+        {
+            numMemc = g_bmemconfig_box_info[idx].numMemc;
+            PRINTF( "~DEBUG~%s: match at boxmode %u; numMemc %u ~\n", __FUNCTION__, idx, numMemc );
+            break;
+        }
+    }
+
+    /* we did not find the specified product id */
+    return( numMemc );
+}  /* getBoxModeMemc */
+#endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/
+
+/**
+ *  Function: This function will format an integer to output an indicator for kilo, mega, or giga.
+ **/
+static char outString[32];
+char *formatul(
+    unsigned long long int value
+    )
+{
+    float fValue = value;
+
+    if (value < 1024)
+    {
+        sprintf( outString, "%llu", value );
+    }
+    else if (value < 1024 * 1024)
+    {
+        sprintf( outString, "%5.1f K", fValue / 1024 );
+    }
+    else if (value < 1024 * 1024 * 1024)
+    {
+        sprintf( outString, "%6.2f M", fValue / 1024 / 1024 );
+    }
+    else
+    {
+        sprintf( outString, "%7.3f G", fValue / 1024 / 1024 / 1024 );
+    }
+
+    return( outString );
+}                                                          /* formatul */

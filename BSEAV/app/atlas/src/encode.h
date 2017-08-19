@@ -98,7 +98,7 @@ public:
 
     CEncode(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CEncode(void);
@@ -117,7 +117,7 @@ public:
     void                             setVideo(CVideo * video)                                                { _currentVideo = video; }
     CVideo *                         getVideo(void)                                                          { return(_currentVideo); }
     void                             dupPidMgr(CPidMgr * pPidMgr);
-    CPid *                           getPid(uint16_t index, ePidType type);
+    CPid *                           getPid(unsigned index, ePidType type);
     eRet                             createVideo(MString fileName, MString path);
     void                             setBand(CParserBand * pParserBand) { _pDecodeParserBand = pParserBand; }
     CParserBand *                    getBand(void)                      { return(_pEncodeParserBand); }

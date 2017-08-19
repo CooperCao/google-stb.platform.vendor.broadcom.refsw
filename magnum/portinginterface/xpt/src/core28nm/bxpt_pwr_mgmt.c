@@ -1053,9 +1053,6 @@ void BXPT_P_AcquireSubmodule(BXPT_Handle hXpt, BXPT_P_Submodule sub)
     BDBG_CASSERT(sizeof(BXPT_P_SUBMODULE_STRING)/sizeof(*BXPT_P_SUBMODULE_STRING)==BXPT_P_Submodule_eMax);
 
     /* dependency handling: assume XMEMIF and PSUB depend on everything else */
-    if (hXpt->power.refcnt[BXPT_P_Submodule_eMsg]++ == 0) {
-        BXPT_P_SetPmuField(hReg, BXPT_P_Submodule_eMsg, 0);
-    }
     if (hXpt->power.refcnt[BXPT_P_Submodule_eXmemif]++ == 0) {
         BXPT_P_SetPmuField(hReg, BXPT_P_Submodule_eXmemif, 0);
     }
@@ -1100,9 +1097,6 @@ void BXPT_P_ReleaseSubmodule(BXPT_Handle hXpt, BXPT_P_Submodule sub)
     }
 
     /* dependency handling: assume XMEMIF and PSUB depend on everything else */
-    if (--hXpt->power.refcnt[BXPT_P_Submodule_eMsg] == 0) {
-        BXPT_P_SetPmuField(hReg, BXPT_P_Submodule_eMsg, 1);
-    }
     if (--hXpt->power.refcnt[BXPT_P_Submodule_eXmemif] == 0) {
         BXPT_P_SetPmuField(hReg, BXPT_P_Submodule_eXmemif, 1);
     }

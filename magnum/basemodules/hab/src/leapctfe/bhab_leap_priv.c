@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "bhab_leap_priv.h"
 #include "bchp_pwr.h"
@@ -644,7 +641,6 @@ BERR_Code BHAB_Leap_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
     uint16_t bytes_left = 0, orig_bytes_left = 0;
     uint32_t sb1, curr_addr;
     uint8_t readbuf[8], writebuf[32];
-    const uint8_t *pImage;
     BREG_SPI_Data spiData[2];
 
     BDBG_ASSERT(handle);
@@ -672,7 +668,6 @@ BERR_Code BHAB_Leap_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
         BHAB_CHK_RETCODE(BREG_SPI_Write(pLeap->hSpiRegister,  writebuf, 6));
 
         writebuf[1] = BCHP_CSR_RBUS_DATA0;
-        pImage = buf;
 
         spiData[0].data = (void *)writebuf;
         spiData[0].length = 2;
@@ -2004,7 +1999,7 @@ BERR_Code BHAB_Leap_P_DecodeInterrupt(BHAB_Handle handle)
 #if BHAB_SOC_FRONTEND
     BHAB_P_CallbackInfo *callback;
     uint32_t   buf, mbox_depth, mbox_data;
-    uint16_t coreType, coreId;
+    uint16_t coreType;
     uint8_t lockStatus;
     unsigned i;
     char *core = "DVB-T";
@@ -2057,7 +2052,6 @@ BERR_Code BHAB_Leap_P_DecodeInterrupt(BHAB_Handle handle)
                     devId = BHAB_DevId_eVSB0;
                 else
                     devId = BHAB_DevId_eODS0;
-                coreId = (mbox_data & BHAB_CORE_ID_MASK) >> 11;
                 if ((mbox_data >> 24) == BHAB_EventId_eLockChange) {
                     if (pLeap->InterruptCallbackInfo[devId].func) {
                         callback = &pLeap->InterruptCallbackInfo[devId];
@@ -2691,7 +2685,8 @@ BERR_Code BHAB_Leap_GetLnaStatus(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    uint8_t buf[121] = HAB_MSG_HDR(BHAB_GET_TUNER_STATUS, 0xc, BTNR_CORE_TYPE, BHAB_CORE_ID);
+    uint8_t buf[57] = HAB_MSG_HDR(BHAB_GET_LNA_STATUS, 0xC, BHAB_GLOBAL_CORE_TYPE, BHAB_CORE_ID);
+    BHAB_TunerPowerState tunerPowerState;
     BHAB_Leap_P_Handle *pLeap;
     BDBG_ASSERT(handle);
 
@@ -2699,7 +2694,14 @@ BERR_Code BHAB_Leap_GetLnaStatus(
     BDBG_ASSERT(pLeap);
 
     BHAB_CHK_RETCODE(BHAB_SendHabCommand(handle, buf, 17, buf, sizeof(buf), false, true, sizeof(buf)));
-    pStatus->externalFixedGainLnaState = buf[0xc] >> 7;
+    tunerPowerState = (BHAB_TunerPowerState)(buf[0xF] & 0x3);
+
+    if((tunerPowerState==BHAB_TunerPowerState_eOn))
+        pStatus->externalFixedGainLnaState = buf[0xC] >> 7;
+    else {
+        BDBG_WRN(("Tuner is Powered Off, the status returned is not Valid"));
+        return BERR_TRACE(BERR_UNKNOWN);
+    }
 
 done:
     return retCode;

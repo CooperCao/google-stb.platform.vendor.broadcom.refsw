@@ -210,6 +210,27 @@ BIP_Status BIP_HttpStreamer_SetRecpumpInputSettings(
     BIP_StreamerRecpumpInputSettings    *pRecpumpInputSettings
     );
 
+#if NEXUS_HAS_HDMI_INPUT
+/**
+Summary:
+API to Set Hdmi Input specific settings to the Streamer.
+
+Description:
+BIP Streamer will encode the HDMI input.
+
+Usage:
+
+See Also:
+BIP_StreamerHdmiInputSettings in bip_streamer.h
+BIP_Streamer_GetDefaultHdmiInputSettings
+*/
+BIP_Status BIP_HttpStreamer_SetHdmiInputSettings(
+    BIP_HttpStreamerHandle              hHttpStreamer,
+    NEXUS_HdmiInputHandle               hHdmiInput,
+    BIP_StreamerHdmiInputSettings       *pHdmiInputSettings
+    );
+#endif
+
 /**
 Summary:
 API to Add one Track to the Streamer.

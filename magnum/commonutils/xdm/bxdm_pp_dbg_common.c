@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -358,7 +358,8 @@ const char * const BXDM_P_VideoCompressionStdToStrLUT[BXDM_P_MAX_VIDEO_PROTOCOL]
    BDBG_STRING_INLINE("RV9"),            /* Real Video 9 */
    BDBG_STRING_INLINE("SPARK"),          /* Sorenson Spark */
    BDBG_STRING_INLINE("MJPEG"),          /* Motion Jpeg */
-   BDBG_STRING_INLINE("HEVC")            /* H.265 */
+   BDBG_STRING_INLINE("HEVC"),           /* H.265 */
+   BDBG_STRING_INLINE("VP9")             /* VP9 */
 };
 
 const char * const BXDM_P_TrickModeToStrLUT[BXDM_PictureProvider_TrickMode_eMax]=

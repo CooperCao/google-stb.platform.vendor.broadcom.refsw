@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"
@@ -196,7 +195,7 @@ void CommonCrypto_GetDefaultKeyConfigSettings(
             BDBG_ERR(("could not convert vendorID : %s", vendorID));
         }
         pSettings->settings.caVendorID = num;
-        BDBG_MSG(("after getenv---%s vendorID is 0x%x", __FUNCTION__, pSettings->settings.caVendorID));
+        BDBG_MSG(("after getenv---%s vendorID is 0x%x", BSTD_FUNCTION, pSettings->settings.caVendorID));
     }
     if (NULL != (stbOwnerID = NEXUS_GetEnv("COMMON_DRM_STB_OWNER_ID"))) {
         uint32_t num = (NEXUS_SecurityOtpId)strToHex(stbOwnerID);
@@ -204,7 +203,7 @@ void CommonCrypto_GetDefaultKeyConfigSettings(
             BDBG_ERR(("could not convert stbOwnerID : %s", stbOwnerID));
         }
         pSettings->settings.stbOwnerID = num;
-        BDBG_MSG(("after getenv---%s otpID is %d", __FUNCTION__, pSettings->settings.stbOwnerID));
+        BDBG_MSG(("after getenv---%s otpID is %d", BSTD_FUNCTION, pSettings->settings.stbOwnerID));
     }
     if (NULL != (maskKey2Select = NEXUS_GetEnv("COMMON_DRM_MASKKEY2_ID"))) {
         uint32_t num = (NEXUS_SecurityKey2Select)strToHex(maskKey2Select);
@@ -212,7 +211,7 @@ void CommonCrypto_GetDefaultKeyConfigSettings(
             BDBG_ERR(("could not convert maskKey2Select : %s", maskKey2Select));
         }
         pSettings->settings.maskKey2Select = num;
-        BDBG_MSG(("after getenv---%s maskKey2Select is %d", __FUNCTION__, pSettings->settings.maskKey2Select));
+        BDBG_MSG(("after getenv---%s maskKey2Select is %d", BSTD_FUNCTION, pSettings->settings.maskKey2Select));
     }
 #endif /*(NEXUS_SECURITY_HAS_ASKM == 1)*/
 }
@@ -323,7 +322,7 @@ with default settings used during the key3 and key4 generation.
 void CommonCrypto_GetDefaultKeyLadderSettings(
         CommonCryptoKeyLadderSettings *pSettings)
 {
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     pSettings->overwriteKeyLadderOperation = false;
     pSettings->overwriteVKLSettings = false;
     pSettings->KeyLadderOpStruct.SessionKeyOperation = NEXUS_SecurityOperation_eDecrypt;
@@ -341,7 +340,7 @@ void CommonCrypto_GetDefaultKeyLadderSettings(
     pSettings->key4Size = COMMON_CRYPTO_PROC_SIZE;
     pSettings->key3Size = COMMON_CRYPTO_PROC_SIZE;
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return;
 }
 
@@ -456,11 +455,11 @@ NEXUS_Error CommonCrypto_DmaXfer(
     BDBG_ASSERT(pJobSettings != NULL);
 
     BDBG_MSG(("CommonCrypto_DmaXfer: Enter"));
-    BDBG_MSG(("%s - Entered function using keySlot '%p'  nBlocks = '%u'", __FUNCTION__, (void*)pJobSettings->keySlot, nBlocks));
+    BDBG_MSG(("%s - Entered function using keySlot '%p'  nBlocks = '%u'", BSTD_FUNCTION, (void*)pJobSettings->keySlot, nBlocks));
 
     if (!CommonCrypto_EnsureDmaJobResources_priv(handle, pJobSettings, nBlocks))
     {
-        BDBG_ERR(("%s - NEXUS_DmaJob_Create failed", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_DmaJob_Create failed", BSTD_FUNCTION));
         rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         goto errorExit;
     }
@@ -472,7 +471,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
         if(handle->localBlkSettings[ii].pSrcAddr == NULL ||
            handle->localBlkSettings[ii].pDestAddr == NULL)
         {
-            BDBG_ERR(("%s - pSrcAddr %p or pDestAddr %p is invalid", __FUNCTION__, handle->localBlkSettings[ii].pSrcAddr, handle->localBlkSettings[ii].pDestAddr));
+            BDBG_ERR(("%s - pSrcAddr %p or pDestAddr %p is invalid", BSTD_FUNCTION, handle->localBlkSettings[ii].pSrcAddr, handle->localBlkSettings[ii].pDestAddr));
             rc = NEXUS_INVALID_PARAMETER;
             goto errorExit;
         }
@@ -485,7 +484,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
             rc = CommonCrypto_P_FlushCache(handle, handle->localBlkSettings[ii].pSrcAddr, handle->localBlkSettings[ii].blockSize);
             if(rc != NEXUS_SUCCESS)
             {
-                BDBG_ERR(("%s - Failure to flush cache for source buffer.", __FUNCTION__));
+                BDBG_ERR(("%s - Failure to flush cache for source buffer.", BSTD_FUNCTION));
                 goto errorExit;
             }
 
@@ -495,7 +494,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
                 rc = CommonCrypto_P_FlushCache(handle, handle->localBlkSettings[ii].pDestAddr, handle->localBlkSettings[ii].blockSize);
                 if(rc != NEXUS_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Failure to flush cache for destination buffer.", __FUNCTION__));
+                    BDBG_ERR(("%s - Failure to flush cache for destination buffer.", BSTD_FUNCTION));
                     goto errorExit;
                 }
             }
@@ -512,18 +511,18 @@ NEXUS_Error CommonCrypto_DmaXfer(
         BERR_Code rc2;
         rc2 = BKNI_WaitForEvent(handle->dmaEvent, BKNI_INFINITE);
         if ( rc2 != BERR_SUCCESS ) {
-            BDBG_ERR(("%s - BKNI_WaitForEvent failed, rc2 = %d", __FUNCTION__, rc2));
+            BDBG_ERR(("%s - BKNI_WaitForEvent failed, rc2 = %d", BSTD_FUNCTION, rc2));
             rc = NEXUS_UNKNOWN;
             goto errorExit;
         }
         rc = NEXUS_DmaJob_GetStatus(handle->dmaJob, &jobStatus);
         if (rc || (jobStatus.currentState != NEXUS_DmaJobState_eComplete)) {
-            BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d", BSTD_FUNCTION, rc));
             goto errorExit;
         }
     }
     else if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d", BSTD_FUNCTION, rc));
         goto errorExit;
     }
 
@@ -537,14 +536,14 @@ NEXUS_Error CommonCrypto_DmaXfer(
             rc = CommonCrypto_P_FlushCache(handle, pBlkSettings[ii].pDestAddr, pBlkSettings[ii].blockSize);
             if(rc != NEXUS_SUCCESS)
             {
-                BDBG_ERR(("%s - Failure to flush cache for destination buffer after DMA operation.", __FUNCTION__));
+                BDBG_ERR(("%s - Failure to flush cache for destination buffer after DMA operation.", BSTD_FUNCTION));
                 goto errorExit;
             }
         }
     }
 
 errorExit:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -557,7 +556,7 @@ NEXUS_Error CommonCrypto_P_LoadKeyConfig(
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_SecurityAlgorithmSettings     nexusConfig;
 
-    BDBG_MSG(("%s - Entered function ^^^^^^^^^****************", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function ^^^^^^^^^****************", BSTD_FUNCTION));
 
     if(handle->settings.dmaSettings.coreType != NEXUS_DmaCoreType_eSharf){
 
@@ -734,7 +733,7 @@ NEXUS_Error CommonCrypto_SetupKey(
     BDBG_ASSERT(pSettings != NULL);
     BDBG_ASSERT(pSettings->keySlot != NULL);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     rc = CommonCrypto_P_LoadKeyConfig(handle,
                             pSettings->keySlot,
@@ -764,7 +763,7 @@ NEXUS_Error CommonCrypto_SetupKey(
             break;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -782,7 +781,7 @@ static NEXUS_Error CommonCrypto_LoadClearKey_priv(
     BDBG_ASSERT(pKey != NULL);
     BDBG_ASSERT(keySlot != NULL);
 
-    BDBG_MSG(("%s - Loading sw key or iv... (keyIvType = %u) keySlotType = %u", __FUNCTION__, keyIvType, keySlotType));
+    BDBG_MSG(("%s - Loading sw key or iv... (keyIvType = %u) keySlotType = %u", BSTD_FUNCTION, keyIvType, keySlotType));
 
     if(keySize > sizeof(swKey.keyData)){
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -839,7 +838,7 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     vkl = NEXUS_Security_AllocateVKL(&vklSettings);
     if(vkl == NULL)
     {
-        BDBG_ERR(("%s - Failure to allocate a VKL.", __FUNCTION__));
+        BDBG_ERR(("%s - Failure to allocate a VKL.", BSTD_FUNCTION));
         rc = NEXUS_NOT_AVAILABLE;
         goto handle_error;
     }
@@ -863,7 +862,7 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
 
     if(keySrc == NEXUS_SecurityRootKeySrc_eCuskey)
     {
-        BDBG_MSG(("%s - Setting CustKey values", __FUNCTION__));
+        BDBG_MSG(("%s - Setting CustKey values", BSTD_FUNCTION));
         encryptedSessionkey.cusKeyL         = pKeyLadderInfo->custKeySelect;
         encryptedSessionkey.cusKeyH         = pKeyLadderInfo->custKeySelect;
         encryptedSessionkey.cusKeyVarL      = pKeyLadderInfo->keyVarLow;
@@ -872,7 +871,7 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     BKNI_Memcpy(encryptedSessionkey.keyData, pKeyLadderInfo->procInForKey3, pKeyLadderInfo->key3Size);
 
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
-    BDBG_MSG(("%s - Session key (40nm and after) *****************", __FUNCTION__));
+    BDBG_MSG(("%s - Session key (40nm and after) *****************", BSTD_FUNCTION));
     encryptedSessionkey.keyGenCmdID = NEXUS_SecurityKeyGenCmdID_eKeyGen;
     encryptedSessionkey.sessionKeyOp =  NEXUS_SecuritySessionKeyOp_eNoProcess;
     encryptedSessionkey.bASKMMode = pKeyLadderInfo->askmSupport;
@@ -880,13 +879,13 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     encryptedSessionkey.keyDestIVType = NEXUS_SecurityKeyIVType_eNoIV;
     /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
     /* Use dynamically allocated VKL. */
-    BDBG_MSG(("%s - Session key (Zeus 3.0 and after) *****************", __FUNCTION__));
+    BDBG_MSG(("%s - Session key (Zeus 3.0 and after) *****************", BSTD_FUNCTION));
     encryptedSessionkey.custSubMode        = vklInfo.custSubMode;
     encryptedSessionkey.virtualKeyLadderID = vklInfo.vkl;
 #endif /*NEXUS_SECURITY_HAS_ASKM*/
     encryptedSessionkey.keyMode = NEXUS_SecurityKeyMode_eRegular;
 
-    BDBG_MSG(("%s - Calling 'NEXUS_Security_GenerateSessionKey'", __FUNCTION__));
+    BDBG_MSG(("%s - Calling 'NEXUS_Security_GenerateSessionKey'", BSTD_FUNCTION));
     rc = NEXUS_Security_GenerateSessionKey(keySlot, &encryptedSessionkey);
     if(rc == NEXUS_SUCCESS){
         /* Load CW */
@@ -902,13 +901,13 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
         BKNI_Memcpy(encrytedCW.keyData, pKeyLadderInfo->procInForKey4, sizeof(pKeyLadderInfo->procInForKey4));
 
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
-        BDBG_MSG(("%s - Control Word (40nm and after) *****************", __FUNCTION__));
+        BDBG_MSG(("%s - Control Word (40nm and after) *****************", BSTD_FUNCTION));
         encrytedCW.keyDestIVType = NEXUS_SecurityKeyIVType_eNoIV;
         encrytedCW.keyGenCmdID = NEXUS_SecurityKeyGenCmdID_eKeyGen;
         encrytedCW.bSwapAESKey = pKeyLadderInfo->aesKeySwap;
         /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
         /* Use dynamically allocated VKL. */
-        BDBG_MSG(("%s - Control Word (Zeus 3.0 and after) *****************", __FUNCTION__));
+        BDBG_MSG(("%s - Control Word (Zeus 3.0 and after) *****************", BSTD_FUNCTION));
         encrytedCW.custSubMode        = vklInfo.custSubMode;
         encrytedCW.virtualKeyLadderID = vklInfo.vkl;
 
@@ -918,12 +917,12 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
         rc = NEXUS_Security_GenerateControlWord(keySlot, &encrytedCW);
         if(rc != NEXUS_SUCCESS)
         {
-            BDBG_ERR(("%s - Error generating Control Word (key4)", __FUNCTION__));
+            BDBG_ERR(("%s - Error generating Control Word (key4)", BSTD_FUNCTION));
         }
     }
     else
     {
-        BDBG_ERR(("%s - Error generating Session key (key3)", __FUNCTION__));
+        BDBG_ERR(("%s - Error generating Session key (key3)", BSTD_FUNCTION));
     }
     /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version, hence free vkl*/
 
@@ -935,7 +934,7 @@ handle_error:
     }
 
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -987,20 +986,20 @@ static void CommonCrypto_P_InitializeVideoSecureHeapInfo(CommonCryptoHandle hand
 
     if (handle->videoSecureHeapInfo[0].size)
     {
-        BDBG_MSG(("%s: CRR heap information: offset: 0x%08x, size: %u.", __FUNCTION__, (unsigned)handle->videoSecureHeapInfo[0].offset, handle->videoSecureHeapInfo[0].size));
+        BDBG_MSG(("%s: CRR heap information: offset: 0x%08x, size: %u.", BSTD_FUNCTION, (unsigned)handle->videoSecureHeapInfo[0].offset, handle->videoSecureHeapInfo[0].size));
     }
     else
     {
-        BDBG_MSG(("%s: Cannot find a CRR heap in client heaps.", __FUNCTION__));
+        BDBG_MSG(("%s: Cannot find a CRR heap in client heaps.", BSTD_FUNCTION));
     }
 
     if (handle->videoSecureHeapInfo[1].size)
     {
-        BDBG_MSG(("%s: XRR heap information: offset: 0x%08x, size: %u.", __FUNCTION__, (unsigned)handle->videoSecureHeapInfo[1].offset, handle->videoSecureHeapInfo[1].size));
+        BDBG_MSG(("%s: XRR heap information: offset: 0x%08x, size: %u.", BSTD_FUNCTION, (unsigned)handle->videoSecureHeapInfo[1].offset, handle->videoSecureHeapInfo[1].size));
     }
     else
     {
-        BDBG_MSG(("%s: Cannot find an XRR heap in client heaps.", __FUNCTION__));
+        BDBG_MSG(("%s: Cannot find an XRR heap in client heaps.", BSTD_FUNCTION));
     }
     return;
 }
@@ -1029,7 +1028,7 @@ static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const ui
     /* Verify parameters */
     if((handle == NULL) || (address == NULL) || (size == 0))
     {
-        BDBG_ERR(("%s - Invalid parameter.", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid parameter.", BSTD_FUNCTION));
         rc = NEXUS_INVALID_PARAMETER;
         goto errorExit;
     }
@@ -1038,7 +1037,7 @@ static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const ui
     offset = NEXUS_AddrToOffset(address);
     if(offset == 0)
     {
-        BDBG_ERR(("%s - Cannot retrieve offset from address %p.", __FUNCTION__, address));
+        BDBG_ERR(("%s - Cannot retrieve offset from address %p.", BSTD_FUNCTION, address));
         rc = NEXUS_INVALID_PARAMETER;
         goto errorExit;
     }

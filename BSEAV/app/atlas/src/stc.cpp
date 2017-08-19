@@ -42,7 +42,7 @@ BDBG_MODULE(atlas_stc);
 
 CStc::CStc(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_stcChannel, pCfg),
@@ -228,7 +228,7 @@ eRet CStc::configure(CPid * pPcrPid)
     nerror = NEXUS_SimpleStcChannel_SetSettings(_simpleStcChannel, &settings);
     CHECK_NEXUS_ERROR_GOTO("error setting stc channel settings", ret, nerror, error);
 
-    BDBG_MSG(("Successful Call to %s", __FUNCTION__));
+    BDBG_MSG(("Successful Call to %s", BSTD_FUNCTION));
     return(ret);
 
 error:
@@ -250,7 +250,7 @@ eRet CStc::setSettings(NEXUS_SimpleStcChannelSettings * settings)
     nerror = NEXUS_SimpleStcChannel_SetSettings(_simpleStcChannel, settings);
     CHECK_NEXUS_ERROR_GOTO("error setting stc channel settings", ret, nerror, error);
 
-    BDBG_MSG(("Successful Call to %s", __FUNCTION__));
+    BDBG_MSG(("Successful Call to %s", BSTD_FUNCTION));
     return(ret);
 
 error:

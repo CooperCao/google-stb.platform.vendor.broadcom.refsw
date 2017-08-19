@@ -52,6 +52,13 @@
 #include "bdsp_types.h"
 #include "bdsp.h"
 /* #define RAAGA_UART_ENABLE */
+
+#define BDSP_RAAGA_ADDRESS_ALIGN_CDB  8 /* CDB is aligned to 2^8 Bytes*/
+#define BDSP_RAAGA_ADDRESS_ALIGN_ITB  7 /* ITB is aligned to 2^7 Bytes*/
+
+#define BDSP_RAAGA_ADDRESS_ALIGN      32
+#define BDSP_RAAGA_SIZE_ALIGN(x)
+
 /***************************************************************************
 Summary:
     This enumeration defines various debug features that can be enabled in the firmware.
@@ -116,6 +123,7 @@ typedef struct BDSP_RaagaSettings
         BSTD_DeviceOffset baseAddress; /* Physical base address of the lowest physical address region for each MEMC.
             [0] is always 0 and it is assumed to always exist. For [1] and [2], an address of 0 means the MEMC is not populated.
             RAAGA is unable to access a discontiguous upper memory region, so its base address and size is not needed. */
+        uint64_t size;
         unsigned stripeWidth;
     } memc[3]; /* for each MEMC */
 } BDSP_RaagaSettings;

@@ -69,8 +69,8 @@ static void print_playpump(NEXUS_PlaypumpHandle playpump)
         "descfifo %u/%u (%u%%)\n"
         "KB played %u\n",
         status.index,status.started?"started":"stopped",
-        status.fifoDepth,status.fifoSize,status.fifoSize?status.fifoDepth*100/status.fifoSize:0,
-        status.descFifoDepth,status.descFifoSize,status.descFifoSize?status.descFifoDepth*100/status.descFifoSize:0,
+        (unsigned)status.fifoDepth, (unsigned)status.fifoSize, status.fifoSize?(unsigned)(status.fifoDepth*100/status.fifoSize):0,
+        (unsigned)status.descFifoDepth, (unsigned)status.descFifoSize, status.descFifoSize?(unsigned)(status.descFifoDepth*100/status.descFifoSize):0,
         (unsigned)(status.bytesPlayed/1024));
     printf("\n");
 }

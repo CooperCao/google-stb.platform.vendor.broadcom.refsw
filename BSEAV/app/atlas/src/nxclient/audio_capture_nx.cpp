@@ -436,7 +436,7 @@ static void NexusAudioCaptureDataCallback(
 
     CWidgetEngine * pWidgetEngine = pAudioCaptureNx->getWidgetEngine();
 
-    BDBG_MSG(("%s ", __FUNCTION__));
+    BDBG_MSG(("%s ", BSTD_FUNCTION));
     /* sync with bwin loop */
     if (NULL != pWidgetEngine)
     {
@@ -456,7 +456,7 @@ static void NexusAudioCaptureDataCallbackSampleRateCallback(
 
     CWidgetEngine * pWidgetEngine = pAudioCaptureNx->getWidgetEngine();
 
-    BDBG_MSG(("%s ", __FUNCTION__));
+    BDBG_MSG(("%s ", BSTD_FUNCTION));
     /* sync with bwin loop */
     if (NULL != pWidgetEngine)
     {
@@ -558,7 +558,7 @@ eRet CAudioCaptureNx::start(void)
         startSettings.sampleRateCallback.callback = NexusAudioCaptureDataCallbackSampleRateCallback;
         startSettings.sampleRateCallback.context  = this;
 
-        BDBG_WRN(("%s: Audio Capture Start ", __FUNCTION__));
+        BDBG_WRN(("%s: Audio Capture Start ", BSTD_FUNCTION));
         errCode = NEXUS_AudioCapture_Start(hCapture, &startSettings);
         CHECK_NEXUS_ERROR_GOTO("Error starting Audio Capture", ret, errCode, error);
         _state = eAudioCaptureState_On;
@@ -573,7 +573,7 @@ eRet CAudioCaptureNx::stop(void)
 
     if (this == NULL)
     {
-        printf("%s::%s():Not initialized first!", __FILE__, __FUNCTION__);
+        printf("%s::%s():Not initialized first!", __FILE__, BSTD_FUNCTION);
         ret = eRet_NotAvailable;
     }
     if (_state == eAudioCaptureState_On)
@@ -590,7 +590,7 @@ eRet CAudioCaptureNx::stop(void)
             TaskId    = NULL;
         }
 
-        BDBG_WRN(("%s: Audio Capture Stop ", __FUNCTION__));
+        BDBG_WRN(("%s: Audio Capture Stop ", BSTD_FUNCTION));
         NEXUS_AudioCapture_Stop(hCapture);
         _state = eAudioCaptureState_Off;
     }

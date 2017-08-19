@@ -1,5 +1,5 @@
  /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 #include "nexus_platform_module.h"
 #include "nexus_platform_priv.h"
@@ -80,9 +79,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceOpenSettings);
 
     deviceOpenSettings.satellite.enabled = enableSatellite;
-#if NEXUS_PLATFORM_7364_ENABLE_TERRESTRIAL
-    deviceOpenSettings.terrestrial.enabled = true;
-    deviceOpenSettings.loadAP = true;
+    deviceOpenSettings.cable.enabled = false;
+#if !NEXUS_PLATFORM_7364_ENABLE_TERRESTRIAL
+    deviceOpenSettings.terrestrial.enabled = false;
 #endif
     deviceOpenSettings.isrNumber = 104;
 
@@ -213,7 +212,7 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BTRC_TRACE(ChnChange_TuneStreamer, START);
-	/* 97364 Uses input band 0 for steramer */
+    /* 97364 Uses input band 0 for steramer */
     /* but the HW team recommands using input band 4 */
     *pInputBand = NEXUS_InputBand_e0;
 
@@ -233,7 +232,3 @@ NEXUS_FrontendHandle NEXUS_Platform_OpenFrontend(
     BSTD_UNUSED(id);
     return NULL;
 }
-
-
-
-

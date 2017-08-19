@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
@@ -100,8 +97,8 @@ BDCM_AdsChannelHandle BDCM_Ads_OpenChannel(
     if(channelNum >=hDevice->maxChannels || hDevice->hAds[channelNum])
     {
          retCode = BERR_TRACE(BERR_INVALID_PARAMETER);
-         BDBG_ERR(("%s either exceeded max channels or channel is already opened",__FUNCTION__));
-         BDBG_ERR(("%s channelNum:maxChannels - %d:%d hDevice->hAds[%d]:%p ",__FUNCTION__,
+         BDBG_ERR(("%s either exceeded max channels or channel is already opened",BSTD_FUNCTION));
+         BDBG_ERR(("%s channelNum:maxChannels - %d:%d hDevice->hAds[%d]:%p ",BSTD_FUNCTION,
                    channelNum,hDevice->maxChannels,channelNum,(void*)hDevice->hAds[channelNum]));
          goto done;
     }
@@ -143,7 +140,7 @@ done:
     }
     else
     {
-        BDBG_MSG(("%s: AdsChannel %u devID %u",__FUNCTION__,hChannel->channelNum,hChannel->devId));
+        BDBG_MSG(("%s: AdsChannel %u devID %u",BSTD_FUNCTION,hChannel->channelNum,hChannel->devId));
     }
     BDBG_LEAVE(BDCM_Ads_OpenChannel);
     return hChannel;
@@ -166,7 +163,7 @@ BERR_Code BDCM_Ads_CloseChannel(BDCM_AdsChannelHandle hChannel)
                                        sizeInLong(Param),
                                        NULL, 0, &retVal));
     CHK_RETCODE(retCode, retVal);
-    BDBG_MSG(("%s: Channel %u devID %u",__FUNCTION__,channelNum,hChannel->devId));
+    BDBG_MSG(("%s: Channel %u devID %u",BSTD_FUNCTION,channelNum,hChannel->devId));
     BKNI_DestroyMutex(hChannel->mutex);
     hDevice->hAds[channelNum] = NULL;
     BKNI_Free(hChannel) ;
@@ -193,8 +190,8 @@ BERR_Code BDCM_Ads_AcquireChannel(
     BKNI_ReleaseMutex(hChannel->mutex);
     hChannel->accCorrectedCount = 0;
     hChannel->accUncorrectedCount = 0;
-    BDBG_MSG(("%s: Channel %u devID %u",__FUNCTION__,hChannel->channelNum,hChannel->devId));
-    BDBG_MSG(("%s: modType=%d, symbolRate=%d", __FUNCTION__, ibParam->modType, ibParam->symbolRate));
+    BDBG_MSG(("%s: Channel %u devID %u",BSTD_FUNCTION,hChannel->channelNum,hChannel->devId));
+    BDBG_MSG(("%s: modType=%d, symbolRate=%d", BSTD_FUNCTION, ibParam->modType, ibParam->symbolRate));
     Param.devId = hChannel->devId;
     Param.modType = ibParam->modType;
     Param.symbolRate = ibParam->symbolRate;
@@ -378,7 +375,7 @@ BERR_Code BDCM_Ads_GetChannelSoftDecision(
                                            sizeInLong(outParam),
                                            &retVal));
         CHK_RETCODE(retCode, retVal);
-        BDBG_MSG(("%s nbrGotten%d",__FUNCTION__,outParam.nbrGotten));
+        BDBG_MSG(("%s nbrGotten%d",BSTD_FUNCTION,outParam.nbrGotten));
         if(outParam.nbrGotten > (unsigned)cnt)
         {
             outParam.nbrGotten = cnt;
@@ -434,7 +431,7 @@ BERR_Code BDCM_Ads_ProcessChannelNotification(
     {
 	    case BRPC_Notification_Event_LockStatusChanged:
 	        lockStatus = (event & BRPC_Qam_Lock) && (event & BRPC_Fec_Lock);
-            BDBG_MSG(("%s:BDCM_AdsCallback_eLockChange: lockStatus %d",__FUNCTION__,lockStatus));
+            BDBG_MSG(("%s:BDCM_AdsCallback_eLockChange: lockStatus %d",BSTD_FUNCTION,lockStatus));
             BKNI_AcquireMutex(hChannel->mutex);
             hChannel->lockStatus = lockStatus;
             BKNI_ReleaseMutex(hChannel->mutex);
@@ -500,7 +497,7 @@ BERR_Code BDCM_Ads_SetScanParam(
     BKNI_ReleaseMutex(hChannel->mutex);
     hChannel->accCorrectedCount = 0;
     hChannel->accUncorrectedCount = 0;
-    BDBG_MSG(("%s: Channel %u devID %u",__FUNCTION__,hChannel->channelNum,hChannel->devId));
+    BDBG_MSG(("%s: Channel %u devID %u",BSTD_FUNCTION,hChannel->channelNum,hChannel->devId));
     Param.devId = hChannel->devId;
 
 
@@ -544,7 +541,7 @@ BERR_Code BDCM_Ads_GetScanStatus(
     BDBG_ASSERT(hChannel);
     BDBG_ASSERT( pScanStatus );
 
-    BDBG_MSG(("%s: Channel %u devID %u",__FUNCTION__,hChannel->channelNum,hChannel->devId));
+    BDBG_MSG(("%s: Channel %u devID %u",BSTD_FUNCTION,hChannel->channelNum,hChannel->devId));
     Param.devId = hChannel->devId;
 
     BKNI_Memset( pScanStatus, 0x00, sizeof( BDCM_Ads_ScanStatus));

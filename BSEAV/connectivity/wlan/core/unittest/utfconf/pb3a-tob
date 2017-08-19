@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# UTF test script launcher.  Reserves hardware by submitting test as
+# an interactive job via SGE.
+#
+# Load SGE
+if [ -f /usr/sge/default/common/settings.sh ]; then
+    . /usr/sge/default/common/settings.sh
+else 
+    echo "SGE not found, please run this on an SGE server" >&2
+fi
+
+# fix up path if utf isn't found
+type utf 2>/dev/null|| PATH=$PATH:/projects/hnd/tools/linux/bin
+
+UTFCONFIG="$0.tcl"
+export UTFCONFIG
+exec qrsh -now n -q "pb3a" -verbose -V -cwd "$@"

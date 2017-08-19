@@ -591,6 +591,7 @@
 	r12= SAVED_REG_R12, \
 	sp = SAVED_REG_SP, \
 	lr = SAVED_REG_LR, \
+	sp_usr = SAVED_REG_SP_USR, \
 	pc_unused = SAVED_REG_LR, \
 	spsr = SAVED_REG_SPSR }
 
@@ -598,6 +599,29 @@
 
 #define ARCH_SPECIFIC_GET_TPIDRRO(tpidrro) asm volatile("mrs %[xt],tpidrro_el0": [xt] "=r" (tpidrro)::)
 #define ARCH_SPECIFIC_GET_TPIDR(tpidr) asm volatile("mrs %[xt],tpidr_el0": [xt] "=r" (tpidr)::)
+
+/*
+ * HWCAP flags - AT_HWCAP auxialary
+ */
+#define HWCAP_FP        (1 << 0)
+#define HWCAP_ASIMD     (1 << 1)
+#define HWCAP_EVTSTRM   (1 << 2)
+#define HWCAP_AES       (1 << 3)
+#define HWCAP_PMULL     (1 << 4)
+#define HWCAP_SHA1      (1 << 5)
+#define HWCAP_SHA2      (1 << 6)
+#define HWCAP_CRC32     (1 << 7)
+#define HWCAP_ATOMICS   (1 << 8)
+#define HWCAP_FPHP      (1 << 9)
+#define HWCAP_ASIMDHP   (1 << 10)
+#define HWCAP_CPUID     (1 << 11)
+#define HWCAP_ASIMDRDM  (1 << 12)
+#define HWCAP_JSCVT     (1 << 13)
+#define HWCAP_FCMA      (1 << 14)
+#define HWCAP_LRCPC     (1 << 15)
+
+#define HWCAPS_AUXVAL   (HWCAP_FP | HWCAP_ASIMD | \
+    HWCAP_AES | HWCAP_PMULL | HWCAP_SHA1 | HWCAP_SHA2 | HWCAP_CRC32)
 
 #endif /* __ASSEMBLY__ */
 #endif /*_B_TZ_ARM64_H*/

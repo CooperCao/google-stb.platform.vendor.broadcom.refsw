@@ -1,0 +1,1067 @@
+##
+## Preserve these built objects from deletion by build_*.sh for an
+## extended period.
+##
+## NOTE: PLEASE be careful not to put non-critical files in the list below
+##
+## Use the following format exactly as shown below. Paths are relative
+## to the root of the build tree.
+## platform : BRAND : file_to_preserve
+##
+## $Id$
+##
+
+##---------------------------------------------------------------
+## build_linux preserve bits
+##---------------------------------------------------------------
+
+# Combined apps
+build_linux : linux-combined-apps : internal/bcm/x86_64/dhd
+build_linux : linux-combined-apps : internal/bcm/x86_64/wl
+build_linux : linux-combined-apps : olympic/bcm/x86_64/dhd
+build_linux : linux-combined-apps : olympic/bcm/x86_64/wl
+
+
+# unified media
+build_linux : linux-internal-media : release/bcm/apps/bcmdl
+build_linux : linux-internal-media : release/bcm/apps/armv7l/bcmdl
+build_linux : linux-internal-media : release/bcm/apps/mips/bcmdl
+build_linux : linux-internal-media : release/bcm/apps/x86_64/bcmdl
+
+build_linux : linux-external-media : release/bcm/apps/mips/bcmdl
+build_linux : linux-external-media : release/bcm/apps/armv7l/bcmdl
+
+build_linux : linux-internal-media : release/bcm/apps/armv7l/dhd
+build_linux : linux-external-media : release/bcm/apps/armv7l/dhd
+
+build_linux : linux-internal-media : release/bcm/apps/wl
+build_linux : linux-internal-media : release/bcm/apps/armv7l/wl
+build_linux : linux-internal-media : release/bcm/apps/mips/wl
+build_linux : linux-internal-media : release/bcm/apps/x86_64/wl
+build_linux : linux-internal-media : release/bcm/apps/x86_64/dhd
+
+build_linux : linux-external-media : release/bcm/apps/armv7l/wl
+build_linux : linux-external-media : release/bcm/apps/mips/wl
+build_linux : linux-external-media : release/bcm/apps/x86_64/wl
+build_linux : linux-external-media : release/bcm/apps/x86_64/dhd
+
+
+build_linux : linux-external-dongle-usb : release/bcm/firmware/43242a1-roml/usb-ag-p2p-mchan-idauth-idsup-aoe-pno-keepalive-pktfilter-wowlpf-tdls-srvsdb-pclose-proptxstatus-vusb.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43143b0-bmac/g-assert-p2p-mchan-media.bin.trx
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43143b0-bmac/g-assert-p2p-mchan-media/logstrs.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43143b0-bmac/g-assert-p2p-mchan-media/rtecdc.map
+
+build_linux : linux-external-media : release/bcm/firmware/43236b-bmac/ag-p2p-mchan-media.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43236b-bmac/ag-assert-p2p-mchan-media.bin.trx
+
+build_linux : linux-external-media : release/bcm/firmware/43242a1-bmac/ag-p2p-mchan-media-srvsdb-vusb.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43242a1-bmac/ag-assert-p2p-mchan-media-srvsdb-vusb.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43242a1-bmac/ag-assert-p2p-mchan-srvsdb-media-vusb.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43242a1-bmac/ag-assert-p2p-mchan-media-srvsdb-vusb-tdls.bin.trx
+
+build_linux : linux-external-media : release/bcm/firmware/43526b-bmac/ag-p2p-mchan-media.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43526b-bmac/ag-assert-p2p-mchan-media.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43526b-bmac/ag-assert-p2p-mchan-media-txbf.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43526b-bmac/ag-assert-p2p-mchan-media-txbf-err.bin.trx
+
+build_linux : linux-external-media : release/bcm/firmware/43569a2-roml/usb-ag-pool-pktctx-dmatxrc-idsup-idauth-keepalive-txbf-p2p-mchan-mfp-pktfilter-wowlpf-tdls-proptxstatus-vusb-wfds-sr.bin.trx
+build_linux : linux-external-media : release/bcm/firmware/43569a2-roml/usb-ag-pool-pktctx-dmatxrc-idsup-idauth-keepalive-txbf-sr-p2p-mchan-mfp-pktfilter-wowlpf-tdls-proptxstatus-wfds-vusb.bin.trx
+build_linux : linux-internal-media : release/bcm/firmware/43569a2-roml/usb-ag-pool-pktctx-dmatxrc-idsup-idauth-keepalive-txbf-sr-p2p-mchan-mfp-pktfilter-wowlpf-tdls-proptxstatus-wfds-vusb-err-assert.bin.trx
+
+build_linux : linux-external-media : release/bcm/firmware/43602a1-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive.bin
+build_linux : linux-internal-media : release/bcm/firmware/43602a1-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive-err-assert-dbgam.bin
+
+build_linux : linux-internal-media : release/bcm/host/dhd_driver/dhd-cdc-usb-gpl-3.11.1-200.fc19.x86_64/dhd.ko
+build_linux : linux-internal-media : release/bcm/host/dhd_driver/dhd-cdc-usb-comp-gpl-armv7l-debug-3.14.13-1.2pre/dhd.ko
+build_linux : linux-internal-media : release/bcm/host/dhd_driver/dhd-cdc-usb-comp-gpl-armv7l-debug-3.14.28-1.11pre/dhd.ko
+build_linux : linux-internal-media : release/bcm/host/dhd_driver/dhd-cdc-usb-comp-gpl-mips-debug-3.3.8-3.3/dhd.ko
+build_linux : linux-internal-media : release/bcm/host/dhd_driver/dhd-msgbuf-pciefd-mfp-armv7l-debug-3.14.13-1.2pre/dhd.ko
+build_linux : linux-internal-media : release/bcm/host/dhd_driver/dhd-msgbuf-pciefd-mfp-armv7l-debug-3.14.28-1.11pre/dhd.ko
+build_linux : linux-internal-media : release/bcm/host/dhd_driver/dhd-msgbuf-pciefd-debug-3.11.1-200.fc19.x86_64/dhd.ko
+
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-high-p2p-mchan-tdls-wowl-media-3.11.1-200.fc19.x86_64/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-high-armv7l-3.14.13-1.2pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-mfp-high-stb-armv7l-3.14.13-1.2pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-mfp-high-media-stb-armv7l-3.14.13-1.2pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-mfp-high-media-stb-armv7l-3.14.28-1.11pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-mfp-3.11.1-200.fc19.x86_64/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-mfp-4.0.4-301.fc22.x86_64/wl.ko
+
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-armv7l-3.14.13-1.2/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-armv7l-3.14.13-1.2pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-armv7l-3.14.28-1.11pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-stb-armv7l-3.14.13-1.2pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-stb-armv7l-3.14.28-1.11pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-extnvm-stb-armv7l-3.14.13-1.2pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-extnvm-stb-armv7l-3.14.28-1.11pre/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-stb-mips-3.3.8-3.3/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-stb-high-mips-3.3.8-3.3/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-mfp-high-stb-mips-3.3.8-3.3/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-mfp-high-media-stb-mips-3.3.8-3.3/wl.ko
+build_linux : linux-internal-media : release/bcm/host/wl_driver/obj-debug-apdef-stadef-p2p-mchan-tdls-wowl-high-media-stb-mips-3.3.8-3.3/wl.ko
+
+build_linux : linux-external-media : release/bcm/host/wl_driver/obj-nodebug-apdef-stadef-armv7l-3.14.13-1.2pre/wl.ko
+build_linux : linux-external-media : release/bcm/host/dhd_driver/dhd-msgbuf-pciefd-mfp-armv7l-debug-3.14.13-1.2pre/dhd.ko
+build_linux : linux-external-media : release/bcm/host/dhd_driver/dhd-msgbuf-pciefd-media-3.11.1-200.fc19.x86_64/dhd.ko
+
+build_linux : linux-internal-dongle-pcie : release/bcm/host/dhd-msgbuf-pciefd-debug-4.0.4-301.fc22.x86_64/dhd.ko
+
+
+## Linux-wl built objects to be preserved (tima)
+
+build_linux : linux-internal-wl : release/bcm/apps/wl
+build_linux : linux-internal-wl : release/exe/bcmdl
+build_linux : linux-internal-wl : release/exe/wl
+build_linux : linux-internal-wl : release/exe/x86_64/wl
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43143b0-bmac/g-assert/rtecdc.bin.trx
+
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-3.11.1-200.fc19.x86_64/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-extnvm-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-2.6.29.4-167.fc11.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-p2p-mchan-tdls-2.6.29.4-167.fc11.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-p2p-mchan-tdls-3.11.1-200.fc19.x86_64/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-p2p-mchan-2.6.29.4-167.fc11.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-p2p-mchan-tdls-3.11.1-200.fc19.x86_64/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-p2p-mchan-tdls-4.0.4-301.fc22.x86_64/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-extnvm-3.11.1-200.fc19.x86_64/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-norsdb-3.11.1-200.fc19.x86_64/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-norsdb-extnvm-3.11.1-200.fc19.x86_64/wl.ko
+
+build_linux : linux-internal-wl : src/shared/nvram/bcm943143usbirdsw_p400.txt
+build_linux : linux-internal-wl : src/shared/nvram/bcm943143usbirdsw_p450.txt
+
+# No -media on BISON
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43526a-bmac/ag-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43526b-bmac/ag-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43143b0-bmac/g-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43242a1-bmac/ag-assert-p2p-mchan-srvsdb-vusb/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43242a1-bmac/ag-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43242a1-bmac/ag-assert-p2p-mchan-srvsdb/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-p2p-mchan-tdls-2.6.29.4-167.fc11.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-p2p-mchan-tdls-3.6.10-4.fc18.i686.PAE/wl.ko
+
+# Hybrid (tima)
+build_linux : linux-external-wl-portsrc-hybrid : hybrid-v35-debug-pcoem/release/hybrid-*.tar.gz
+build_linux : linux-external-wl-portsrc-hybrid : hybrid-v35_64-debug-pcoem/release/hybrid-*.tar.gz
+
+# Embedded (brearley)
+# 43236USB BMAC
+build_linux : linux-internal-wl : release/obj-debug-native-apdef-stadef-high-2.6.29.4-167.fc11.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-nodebug-native-apdef-stadef-high-2.6.29.4-167.fc11.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-native-apdef-stadef-high-2.6.25-14.fc11.i686/wl.ko
+build_linux : linux-internal-dongle : release/bcm/apps/wl
+build_linux : linux-internal-wl : src/shared/nvram/fake43236usb_p523.txt
+build_linux : linux-internal-wl : release/firmware/43236b1-bmac/ag/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag/rtecdc.bin.trx
+build_linux : linux-internal-dongle : release/bcm/apps/wl
+build_linux : linux-internal-wl-media : release/firmware/43236b-bmac/ag-assert-p2p-mchan-media/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag-assert/rtecdc.bin.trx
+build_window : win_mfgtest_wl : release/Win7/Bcm/Bcm_DriverOnly_BMac/bcmwlhigh6.inf
+build_window : win_mfgtest_wl : release/Win7/Bcm/Bcm_DriverOnly_BMac/bcmwlhigh6.sys
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-native-apdef-stadef-high-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-p2p-mchan-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag-assert-p2p-mchan-tdls/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag-assert-p2p-mchan-tdls-pool/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-p2p-mchan-tdls-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_window : win_internal_wl : release/Win7/checked/DriverOnly_BMac/bcmwlhigh6.inf
+# 43236 FULL dongle
+build_linux : linux-internal-wl : src/shared/nvram/fake43236usb_p523.txt
+build_linux : linux-internal-wl : src/shared/nvram/fake43236usb_p529.txt
+build_linux : linux-internal-wl : release/firmware/43236b-bmac/ag-assert-p2p/rtecdc.bin.trx
+# 43242USB dongle
+build_linux : linux-internal-wl : release/firmware/43242a0-bmac/ag-assert/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/firmware/43242a0-bmac/ag-assert-p2p-mchan/rtecdc.bin.trx
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-high-p2p-mchan-tdls-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+build_linux : linux-internal-wl : src/shared/nvram/bcm943242usbref_p104.txt
+build_linux : linux-internal-wl : release/exe/bcmdl
+build_linux : linux-internal-dongle : release/bcm/host/dhd-cdc-sdstd-debug-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+# 43342SDIO dongle
+build_linux : linux-internal-dongle : release/bcm/firmware/43342a0min-roml/sdio-ag-idsup.bin
+build_linux : linux-internal-dongle : release/bcm/host/dhd-cdc-sdstd-2.6.38.6-26.rc1.fc15.i686.PAE/dhd.ko
+build_linux : linux-internal-dongle : src/shared/nvram/bcm943342fcagb.txt
+# 4330SDIO
+build_linux : linux-internal-dongle : release/bcm/host/dhd-cdc-sdstd-debug-2.6.38.6-26.rc1.fc15.i686.PAE/dhd.ko
+# 43224NIC
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-p2p-mchan-tdls-2.6.38.6-26.rc1.fc15.i686.PAE/wl.ko
+
+# Linux SDIO BMAC (tima)
+build_linux : linux-internal-wl : release/obj-debug-stadef-highsdio-dnglimage-2.6.29.4-167.fc11.i686.PAE/wl.ko
+build_linux : linux-internal-wl : release/obj-debug-apdef-stadef-highsdio-dnglimage-2.6.29.4-167.fc11.i686.PAE/wl.ko
+
+# Router built objects to be preserved (scottw)
+build_linux : linux-external-router : build/image/linux*.trx
+build_linux : linux-external-router : build/image/cfe*.bin
+
+build_linux : linux-external-router-partial-src : build/image/linux*.trx
+
+build_linux : linux-internal-router : build/image/linux*.trx
+build_linux : linux-internal-router : build/image/cfe*.bin
+
+build_linux : linux26-internal-router : build/image/linux*.trx
+build_linux : linux26-internal-router : build/image/cfe*.bin
+
+build_linux : linux-external-vista-router-full-src : build/image/linux*.trx
+build_linux : linux-external-vista-router-full-src : build/image/cfe*.bin
+
+build_linux : linux26-external-router : build/image/linux*.trx
+build_linux : linux26-external-router : build/image/cfe*.bin
+
+build_linux : linux-external-router-mini : build/image/linux*.trx
+build_linux : linux-external-router-mini : build/image/cfe*.bin
+
+build_linux : linux-external-router-combo : build/image/linux*.trx
+build_linux : linux26-external-vista-router-full-src : build/image/linux*.trx
+build_linux : linux26-external-vista-router-combo : build/image/linux*.trx
+
+build_linux : linux-internal-router-media : build/image/linux.trx
+build_linux : linux-external-router-media-partial-src : build/image/linux.trx
+
+build_linux : linux-internal-usbap : build/image/linux*.trx
+build_linux : linux-external-usbap-full-src : build/image/linux*.trx
+
+build_linux : linux26-internal-usbap : build/image/linux*.trx
+build_linux : linux26-external-usbap-full-src : build/image/linux*.trx
+
+build_linux : linux-internal-router-sdio-std : build/image/linux*.trx
+
+build_linux : linux-2.6.36-arm-internal-router : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-internal-router-dhdap : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-external-vista-router-full-src : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-full-src : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-up-internal-router : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-up-internal-router-rsdb : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-up-internal-router-dhdap : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-up-external-vista-router-full-src : build/image/linux*.trx
+build_linux : linux-2.6.36-arm-up-external-vista-router-dhdap-full-src : build/image/linux*.trx
+
+# dongle FW in router builds
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : 43602/src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-ringer-dmaindex16/rtecdc.bin
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : 43602/src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-txpwr-11nprop-obss-err-assert-dbgam-dbgams-ringer-dmaindex16/rtecdc.bin
+
+
+build_linux : netbsd-internal-router : release/images/netbsd_74k.trx
+build_linux : netbsd-internal-router : release/images/netbsd_74k_nodebug.trx
+
+build_linux : netbsd5-external-router : release/images/netbsd_74k.trx
+build_linux : netbsd5-external-router : release/images/netbsd_74k_nodebug.trx
+
+# DVT (jyee)
+build_linux : linux-mfgtest-router : release/vmlinuz
+
+# Smoketest (chongmok)
+build_linux : linux-external-dongle-sdio : release/bcm/apps/x86_64/wl
+build_linux : linux-external-dongle-sdio : release/bcm/apps/x86_64/dhd
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b4-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-proptxstatus-vsdb-srvsdb-opt1.bin
+build_linux : linux-external-dongle-pcie : release/bcm/host/dhd-msgbuf-pciefd-debug-2.6.38.6-26.rc1.fc15.i686.PAE/dhd.ko
+build_linux : linux-external-dongle-sdio : release/bcm/host/dhd-cdc-sdstd-debug-3.11.1-200.fc19.x86_64/dhd.ko
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354a1-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-pktctx-dmatxrc-okc-tdls-ccx-ve-mfp-ltecxgpio-idsup-idauth-assert-err.bin
+
+
+## Embedded (tima)
+# sdio firmwares
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-autoabn.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-opt1-autoabn.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-opt1.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-opt2-autoabn.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-opt2.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b4-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b4-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-opt1.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4330a0-romlsim-4330b2/sdio-g-pool.romlsim.trx
+build_linux : linux-internal-dongle : release/bcm/firmware/4330a0-romlsim-43239a0/sdio-ag-pool.romlsim.trx
+build_linux : linux-internal-dongle : release/bcm/firmware/4330a0-romlsim-43239a0/sdio-g-pool.romlsim.trx
+build_linux : linux-internal-dongle : release/bcm/firmware/4330b2-roml/sdio-g-pool-ccx-p2p-idsup-idauth-pno-aoe-toe-pktfilter-keepalive-wapi.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4330b2-roml/sdio-ag-pool-ccx-p2p-idsup-idauth-pno-aoe-toe-pktfilter-keepalive-wapi.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4330b2-roml/sdio-ag-ccx-p2p-idsup-idauth-pno.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4330b2-roml/sdio-ag-ccx-p2p-idsup-idauth-pno-dsta-mchan.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4330b2-roml/sdio-g-lmac.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334a0-remap/sdio-ag-pool-p2p-idsup-internal-assoc-dump-clm_4334_mfg-consuartcc.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334a0-ram/sdio-ag-pool-apsta-idsup.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1-roml/sdio-ag-idsup-p2p.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1-roml/sdio-ag-idsup-p2p-sr.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1-roml/sdio-ag-idsup-p2p-err-assert-sr-dmatxrc-autoabn.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1-roml/sdio-ag-idsup-p2p-err-assert-sr-dmatxrc.bin
+
+build_linux : hndrte-dongle-wl : build/dongle/4334a0-remap/sdio-ag-pool-p2p-idsup-internal-assoc-dump-clm_4334_mfg-consuartcc/rtecdc.bin
+
+# autoabn still used on the 6.10.197 twig
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b4-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-autoabn.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b4-roml/sdio-ag-idsup-p2p-err-assert-dmatxrc-sr-opt1-autoabn.bin
+
+# Min-roml still used on the 6.10.58 twig.
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1min-roml/sdio-ag-idsup-p2p-err-sr-dmatxrc.bin
+
+build_linux : linux-internal-dongle : release/bcm/firmware/43342a0-roml/sdio-ag-idsup-p2p-err-assert-sr-dmatxrc-autoabn.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43342a0-roml/sdio-ag-idsup-p2p-err-assert-sr-dmatxrc.bin
+build_linux : linux-internal-dongle : src/shared/nvram/bcm94334fcagb.txt
+build_linux : linux-internal-dongle : src/shared/nvram/bcm94334fcbgabu.txt
+build_linux : linux-internal-dongle : src/shared/nvram/bcm943342fcagb.txt
+build_linux : linux-internal-dongle : src/shared/nvram/bcm94324ipaagb_p100.txt
+build_linux : linux-internal-dongle : src/shared/nvram/bcm943241ipaagb_p100.txt
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert-err.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-autoabn-assert-err-txbf-idsup-idauth.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-autoabn-assert-err-txbf-idsup-idauth-pktctx-dmatxrc.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-assert-err-txbf-idsup-idauth-pktctx-dmatxrc.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-autoabn-ampduhostreorder-ve-proxd-mfp-okc-txbf.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-proxd-mfp-okc-txbf.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-mfp-okc-txbf.bin
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4335b0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert-err/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4335b0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-assert-err-txbf-idsup-idauth-pktctx-dmatxrc/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-mfp-okc-txbf/rtecdc.bin
+
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm94335wlbgaFEM_AA.txt
+
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339a0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-mfp-okc-txbf-relmcast-pktctx-dmatxrc-aibss-ltecx-idsup-idauth-err-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339a0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-mfp-okc-txbf-pktctx-dmatxrc-ltecx-idsup-idauth-err-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339a0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-sr-vsdb-proptxstatus-lpc-ampduhostreorder-relmcast-pktctx-dmatxrc-aibss-idsup-idauth-err-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339a0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-mfp-okc-txbf-pktctx-dmatxrc-ltecx-idsup-idauth.bin
+
+# 4354a1 SDIO
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4354a1-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert-err/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4354a1-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4354a1-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth/rtecdc.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354a1-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert-err.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354a1-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-obss.bin
+
+# 4354 PCIe
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4354a1-roml/pcie-ag-msgbuf-pktctx-splitrx-sr-txbf-assert-err.bin
+build_linux : linux-mfgtest-dongle-pcie  : release/bcm/firmware/4354a1-roml/pcie-ag-msgbuf-splitrx-txbf-splitbuf-mfgtest-seqcmds-sr-assert-err.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4354a1-roml/pcie-ag-msgbuf-pktctx-splitrx-sr-txbf-p2p-mchan-proptxstatus-ampduhostreorder-assert-err/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4354a1-roml/pcie-ag-msgbuf-splitrx-pktctx-aoe-p2p-pno-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-okc-tdls-ccx-ve-amsdutx/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4354a1-roml/pcie-ag-msgbuf-splitrx-pktctx-aoe-p2p-pno-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-okc-tdls-ccx-ve-amsdutx-idsup-idauth-assert/rtecdc.bin
+
+# 4356 SDIO
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4356a2-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-pktctx-okc-tdls-ccx-ve-mfp-ltecx-pwropt-idsup-idauth.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4356a2-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4356a2-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4356a2-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-aibss-relmcast.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4356a2-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert.bin
+
+# 4356 PCIe
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-proxd-nan-shif-tbow/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-proxd-nan-hs20sta-assert/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4356a2-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds.bin
+build_linux : linux-external-dongle-pcie : src/dongle/rte/wl/builds/4356a2-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4356a2-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-proxd-nan-hs20sta-assert.bin
+
+# NTD
+build_linux : linux-external-media : release/bcm/firmware/4356a2-roml/pcie-ag-msgbuf-splitrx-pktctx-pno-keepalive-sr-proptxstatus-ampduhostreorder-txbf-dlystat-rxdesens-ntdds3.bin
+
+# 4358a1 PCIe
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/dhd64
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow-assert/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow-assert.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow-assert/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-proxd-nan-shif-tbow.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-proxd-nan-shif-tbow.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-amsdutx-wl11u-mfp-tdls-ltecx-wfds-mchandump/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-amsdutx-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-clm_ss_mimo-txpwr-abt-rcc-fmc-wepso-noccxaka-sarctrl-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-amsdutx-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pktctx-aibss-relmcast-proptxstatus-ampduhostreorder-sr-txbf-aoe-pktfilter-keepalive-clm_ss_mimo-sstput/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx5g-ltecx-wfds-okc-ccx-ve-idsup-idauth-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-aibss-relmcast/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-wnm-tdls-amsdutx5g-ltecx-okc-ccx-ve-clm_ss_mimo-txpwr-fmc-btcdyn-wepso-rcc-noccxaka-sarctrl-xorcsum-assert.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a1-roml/pcie-ag-p2p-pktctx-aibss-relmcast-proptxstatus-ampduhostreorder-sr-txbf-aoe-pktfilter-keepalive-clm_ss_mimo-xorcsum.bin
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4358a1-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-wnm-tdls-amsdutx5g-ltecx-okc-ccx-ve-clm_ss_mimo-txpwr-fmc-btcdyn-wepso-rcc-noccxaka-sarctrl-xorcsum-idsup-idauth-assert/rtecdc.bin
+
+# 4358a3 PCIe
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a3-roml/pcie-ag-p2p-pktctx-aibss-relmcast-proptxstatus-ampduhostreorder-sr-txbf-aoe-pktfilter-keepalive-clm_ss_mimo-xorcsum.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a3-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-wnm-tdls-amsdutx5g-ltecx-okc-ccx-ve-clm_ss_mimo-txpwr-fmc-btcdyn-wepso-rcc-noccxaka-sarctrl-xorcsum-idsup-idauth-assert-err.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a3-roml/pcie-ag-p2p-pktctx-aibss-relmcast-proptxstatus-ampduhostreorder-sr-txbf-aoe-pktfilter-keepalive-clm_ss_mimo-xorcsum-proxd.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358a3-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-wnm-tdls-amsdutx5g-ltecx-okc-ccx-ve-clm_ss_mimo-txpwr-fmc-btcdyn-wepso-rcc-noccxaka-sarctrl-xorcsum-idsup-idauth-proxd-assert-err.bin
+
+# Trunk
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339a0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339a0-ram/sdio-ag-p2p-mchan-aoe-keepalive-pktfilter-proptxstatus-dmatxrc-pktctx-assert.bin
+build_linux : hndrte-dongle-wl : build/dongle/4339a0-ram/sdio-ag-p2p-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4339a0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4339a0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert-clm_4335c0_min/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4339a0-ram/sdio-ag-assert-clm_4335c0_min/rtecdc.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339a0-ram/sdio-ag-p2p-proptxstatus-dmatxrc-pktctx-assert-obss.bin
+
+build_linux : linux-mfgtest-dongle-pcie : release/bcm/apps/wl
+
+# Olympic
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4350c2-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrace-err-assert-txpwrcap-swdiv-ecounters-bssinfo/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4350c2-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrace-err-assert-txpwrcap-swdiv-ecounters-bssinfo/4350_riesling_b.clm_blob
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/Okemo/4350c2/stella.bin
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/Okemo/4350c2/stella.clm_blob
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C2/rieslingb.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C2/rieslingb.clmb
+build_linux : linux-external-dongle-pcie : release/bcm/apps/wl64
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/wl64
+build_linux : linux-external-dongle-pcie : release/bcm/apps/dhd64
+
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94350WhitezinBUSIKK.txt
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4350c5-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrace-err-assert-txpwrcap-swdiv/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4350c5-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrace-err-assert-txpwrcap-swdiv/4350_whitezin_b.txcap_blob
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4350c5-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrace-err-assert-txpwrcap-swdiv/4350_whitezin_b.clm_blob
+
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/whitezinb.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/whitezinb.clmb
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/whitezinb.txcb
+
+# 43602 full dongle on f19x64
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-srom12-err-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-srom12-err-assert-noclminc-clm_min/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-err-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-srom12/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-srom12-noclminc-clm_min/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-splitrx-pktctx-proptxstatus-ampduhostreorder-assert-err-logtrace-redux-clm_min/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-p2p-mchan-splitrx-pktctx-proptxstatus-ampduhostreorder-nan-assert-err-logtrace-redux/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-p2p-mchan-splitrx-pktctx-proptxstatus-ampduhostreorder-assert-err-logtrace-redux/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-p2p-mchan-splitrx-pno-aoe-pktfilter-ndoe-pktctx-norsdb-proptxstatus-ampduhostreorder-xorcsum-nan-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-p2p-mchan-splitrx-norsdb-tdls-assert/rtecdc.bin
+
+
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-err-splitrx-clm_min/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-err-assert-splitrx-clm_min/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-err-splitrx/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-err-assert-splitrx/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-err-assert-splitrx-txqmux/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-splitrx/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-srom12-err-assert-noclminc-clm_min/43602_sig.clm_blob
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43602a1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-srom12-noclminc-clm_min/43602_sig.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-err-splitrx-clm_min/43602_sig.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-err-assert-splitrx-clm_min/43602_sig.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/pcie-ag-splitrx-pktctx-proptxstatus-ampduhostreorder-assert-err-logtrace-redux-clm_min/43602a1.clm_blob
+
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/config_pcie_debug/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43602a1-ram/config_pcie_tdls_debug/rtecdc.bin
+
+
+build_linux : linux-internal-dongle-pcie : release/bcm/host/dhd-msgbuf-pciefd-debug-3.11.1-200.fc19.x86_64/dhd.ko
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/x86_64/wl
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/wl_64
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/x86_64/dhd
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/dhd_64
+build_linux : linux-external-dongle-pcie : release/bcm/apps/x86_64/wl
+build_linux : linux-external-dongle-pcie : release/bcm/apps/x86_64/dhd
+
+build_linux : linux-external-dongle-pcie : release/bcm/host/dhd-msgbuf-pciefd-debug-3.11.1-200.fc19.x86_64/dhd.ko
+
+# 43570
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-pfbd/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-sr-txbf-p2p-mchan-proptxstatus-vsdb-mfp-tdls-pktfilter-wowlpf-ampduhostreorder-idauth-idsup-keepalive/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-sr-txbf-p2p-mchan-proptxstatus-vsdb-mfp-tdls-pktfilter-wowlpf-ampduhostreorder-idauth-idsup-keepalive-assert-err/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-vsdb-pktfilter-wowlpf-ampduhostreorder-keepalive/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-vsdb-pktfilter-wowlpf-ampduhostreorder-keepalive-assert-err/rtecdc.bin
+
+build_linux : linux-external-media : release/bcm/firmware/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-proptxstatus-ampduhostreorder-assert-err.bin
+build_linux : linux-external-media : release/bcm/firmware/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive.bin
+build_linux : linux-external-media : release/bcm/firmware/43570a2-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive-wfds.bin
+build_linux : linux-internal-media : release/bcm/firmware/43570a2-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive-wfds-err-assert.bin
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a0-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-ampduhostreorder-keepalive/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a2-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive-wfds/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a2-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive-wfds-err-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a2-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43570a2-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-pktfilter-wowlpf-ampduhostreorder-keepalive-assert-err/rtecdc.bin
+
+
+
+# dongle PHY testing (tima)
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/firmware/4335a0-ram/sdio-ag-mfgtest-seqcmds-assert-err.bin
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/firmware/4335b0-ram/sdio-ag-mfgtest-seqcmds-assert-err.bin
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-mfgtest-dump-autoabn-assert-err.bin
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-mfgtest-dump-assert-err.bin
+
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/host/dhd-cdc-sdstd-debug-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/host/dhd-cdc-sdstd-sr-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/apps/wl
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/apps/dhd
+
+# PandaBoard (tima)
+build_linux : android-external-dongle : release/android/apps/wlarm_android_ndk_r6b
+build_linux : linux-external-dongle-sdio : release/android/apps/wlarm_android_ndk_r6b
+build_linux : linux-internal-dongle : src/shared/nvram/bcm94334fcagb_android.txt
+build_linux : linux-internal-dongle : src/shared/nvram/bcm943241ipaagb_p100_panda.txt
+
+build_linux : android-external-dongle : release/android/apps/dhdarm_android_ndk_r6b
+build_linux : android-external-dongle : release/android/host/dhd-cdc-sdmmc-android-panda-cfg80211-oob-debug-3.0.8-panda/bcmdhd.ko
+build_linux : android-external-dongle : release/android/host/dhd-cdc-sdmmc-android-panda-cfg80211-oob-debug-3.0.8-panda/zImage
+build_linux : android-external-dongle : release/android/host/dhd-cdc-sdmmc-android-panda-cfg80211-oob-debug-3.2.0-panda/bcmdhd.ko
+build_linux : android-external-dongle : release/android/host/dhd-cdc-sdmmc-android-panda-cfg80211-oob-debug-3.2.0-panda/zImage
+
+build_linux : android-brix-kk-wpa-supp : release/all/bin/wpa_supplicant
+
+
+# HSIC (tima)
+
+build_linux : linux26-internal-hsic-phoenix2 : src/router/mipsel-uclibc/linux.trx
+build_linux : linux26-internal-hsic-olympic : src/router/mipsel-uclibc/linux.trx
+
+build_linux : linux-internal-dongle-usb : release/bcm/host/dhd-cdc-usb-hsic-gpl-2.6.22/dhd.ko
+build_linux : linux-internal-dongle-usb : release/bcm/apps/wlmips26
+build_linux : linux-internal-dongle-usb : release/bcm/apps/bcmdlmips26
+build_linux : linux-internal-dongle-usb : src/shared/nvram/bcm94334fcagb.txt
+
+build_linux : linux-mfgtest-dongle-usb : release/bcm/firmware/4334b1-roml/usb-ag-mfgtest-nodis-seqcmds.bin.trx
+build_linux : linux-mfgtest-dongle-usb : release/bcm/firmware/4334b0-ram/usb-ag-mfgtest-nodis-seqcmds.bin.trx
+build_linux : linux-mfgtest-dongle-usb : release/bcm/firmware/4334b0-ram/usb-ag-mfgtest-nodis-seqcmds-err.bin.trx
+
+build_linux : linux-mfgtest-dongle-usb : release/bcm/firmware/4335b0-ram/usb-ag-mfgtest-seqcmds-dump.bin.trx
+build_linux : linux-mfgtest-dongle-usb : release/bcm/firmware/4335b0-roml/usb-ag-mfgtest-seqcmds-dump-assert-err-msgtrace.bin.trx
+
+bbuild_linux : linux-mfgtest-dongle-usb : src/shared/nvram/bcm94334wlagb.txt
+build_linux : linux-mfgtest-dongle-usb : src/shared/nvram/bcm94334fcagb.txt
+build_linux : linux-mfgtest-dongle-usb : src/shared/nvram/bcm94334OlympicCent_murata_mm.txt
+build_linux : linux-mfgtest-dongle-usb : src/shared/nvram/bcm94334OlympicCent_usi_st.txt
+
+
+build_linux : linux-external-dongle-usb : release/olympic/firmware/4334b0-ram/usb-ag-msgtrace-nocis-keepalive-aoe-pool-oob-apsta-idsup.bin.trx
+
+build_linux : linux-external-dongle-usb : release/olympic/firmware/4324b1-roml/bcm94324SyrahUsiTT.txt
+
+# Olympic production (6.25)
+build_linux : linux-external-dongle-usb : release/olympic/firmware/4334b1-roml/usb-ag-p2p-pno-nocis-keepalive-aoe-oob-idsup-wapi-srsusp-ve-awdl-ndoe-pf2-proptxstatus-wlfcts-cca-pwrstats-wnm-wl11u-anqpo-noclminc-logtrace-srscan-clm_4334_centennial.bin.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/4324b5-roml/usb-ag-p2p-pno-nocis-keepalive-aoe-oob-idsup-wapi-srsusp-ve-awdl-ndoe-pf2-proptxstatus-cca-pwrstats-wnm-wl11u-anqpo-noclminc-logtrace-srscan-clm_4324_olympic-mpf-dfs.bin.trx
+
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Innsbruck/4324b3/doppelbock.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Innsbruck/4324b5/doppelbock.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Okemo/43342a0/chardonnay.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Okemo/4334b1/centennial.trx
+
+
+# Olympic debug (6.25)
+build_linux : linux-external-dongle-usb : release/olympic/firmware/4334b1-roml/usb-ag-p2p-pno-nocis-keepalive-aoe-oob-idsup-idauth-err-assert-wapi-srsusp-ve-awdl-ndoe-pf2-proptxstatus-wlfcts-cca-pwrstats-wnm-noclminc-clm_4334_centennial.bin.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/43342a0-roml/usb-ag-p2p-pno-nocis-keepalive-aoe-oob-idsup-err-assert-srsusp-ve-awdl-ndoe-pf2-proptxstatus-cca-pwrstats-wnm-noclminc-clm_43342_olympic-mpf.bin.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/4324b5-roml/usb-ag-p2p-pno-nocis-keepalive-aoe-oob-idsup-idauth-err-assert-wapi-srsusp-ve-awdl-ndoe-pf2-proptxstatus-cca-pwrstats-wnm-noclminc-clm_4324_olympic-mpf.bin.trx
+
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/4334b1-roml/usb-ag-p2p-pno-nocis-keepalive-aoe-oob-idsup-idauth-err-assert-wapi-srsusp-ve-awdl-proptxstatus-cca-noclminc/rtecdc.bin.trx
+
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm94334OlympicCent.txt
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm94334OlympicCent_mt.txt
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm94334OlympicCent_murata_mm.txt
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm94334OlympicCent_usi_st.txt
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm94334wlagb.txt
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm94334fcagb.txt
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm943342fcagb.txt
+build_linux : linux-external-dongle-usb : src/shared/nvram/bcm943342ChardonnayMurataKK.txt
+
+# 43457c0 SDIO (cchai)
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43455c0-roml/43455_sdio-pno-aoe-pktfilter-pktctx-lpc-pwropt-wapi-43455_ftrs-wfds-mfp.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43455c0-roml/43455_sdio-pno-aoe-pktfilter-pktctx-lpc-pwropt-wapi-43455_ftrs-wfds-mfp-sr-amsdutx-err-assert.bin
+
+# PCIe dongle (tima)
+build_linux : linux-internal-dongle-pcie : release/bcm/host/dhd-msgbuf-pciefd-debug-2.6.38.6-26.rc1.fc15.i686.PAE/dhd.ko
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/wl
+build_linux : linux-internal-dongle-pcie : release/bcm/apps/dhd
+
+build_linux : linux-external-dongle-pcie : release/bcm/apps/wl
+build_linux : linux-external-dongle-pcie : release/bcm/apps/dhd
+build_linux : linux-external-dongle-pcie : release/bcm/apps/x86_64/dhd
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43451b1-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrace-err-assert-txpwrcap-bssinfo/rtecdc.bin
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/43451b1-roml/pcie-ag-msgbuf-splitrx-splitbuf-proptxstatus-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-pktctx-maxpool.bin
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/43451b1-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrace-err-assert-txpwrcap.bin
+
+
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/Okemo/4345b1/corona.bin
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/Okemo/4345b1/corona.clm_blob
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4345__s-B1/tempranillo.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4345__s-B1/tempranillo.clmb
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94345Corona2TDKKK.txt
+
+# 4359
+build_linux : hndrte-dongle-wl : build/dongle/4359b0-roml/threadx-pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-sstput-proptxstatus-idsup-assert-err-die3-rsdbsw/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b0-roml/threadx-pcie-ag-p2p-mchan-wl11u-pktctx-splitrx-sr-idsup-idauth-proptxstatus-ampduhostreorder-sstput-die3-btcdyn-rsdbsw/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-wl11u-ccx-ve-mfp-okc-idsup-sr-ltecx-die3-tdls-pwrofs-gscan-wepso-sarctrl-linkstat-wnm-pfn-hs20sta-pwrstats-lpc-olpc-mobfd-txbf-mimopscan-rcc-noccxaka-btcdyn-sstput/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-wl11u-ve-mfp-okc-idsup-sr-die3-tdls-pwrofs-gscan-wepso-sarctrl-linkstat-wnm-pfn-hs20sta-pwrstats-lpc-olpc-mobfd-txbf-mimopscan-apcs-pspretend-rcc-btcdyn/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-wl11u-ve-mfp-okc-idsup-sr-die3-tdls-pwrofs-gscan-wepso-sarctrl-linkstat-wnm-pfn-hs20sta-pwrstats-lpc-olpc-mobfd-txbf-mimopscan-apcs-pspretend-rcc-slna-ccx-noccxaka-clm_ss_mimo/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-wl11u-ve-mfp-okc-idsup-sr-die3-shif-pwrofs-gscan-wepso-sarctrl-linkstat-wnm-pfn-hs20sta-pwrstats-lpc-olpc-mobfd-txbf-mimopscan-apcs-pspretend-rcc-slna-ccx-noccxaka-clm_ss_mimo-proxd-txpwr/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-wl11u-ve-mfp-okc-idsup-sr-die3-betdls-pwrofs-gscan-wepso-sarctrl-linkstat-wnm-pfn-hs20sta-pwrstats-lpc-olpc-mobfd-txbf-mimopscan-apcs-pspretend-rcc-slna-ccx-noccxaka-clm_ss_mimo-proxd-txpwr-fmc-shif/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-proptxstatus-sr-idsup-assert-err-txbf-die3-slna-pktctx-sstput/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-proptxstatus-sr-idsup-assert-err-die3-pktctx-slna/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-proptxstatus-sr-idsup-assert-err-die3-pktctx/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-ag-pktctx-txbf-lpc-txpwr-apcs-proptxstatus-ampduhostreorder-pspretend-sarctrl-die3-sstput-mfp/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-proptxstatus-sr-idsup-assert-err-die3-pktctx-slna-fcpagb/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-wl11u-ve-mfp-okc-idsup-sr-wepso-wnm-pfn-hs20sta-mobfd-apcs-pspretend-slna-clm_ss_mimo-fmc-fcpagb-rapsta-rscanf-phyflags-olpc-murx/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b1-roml/pcie-wl11u-ve-mfp-okc-sr-die3-wepso-wnm-pfn-mobfd-apcs-pspretend-slna-rcc-fmc-phyflags-olpc-rapsta-rscanf-murx/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : build/dongle/43596a0-roml/config_pcie_release/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43596a0-roml/config_pcie_release/ss_mimo.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/43596a0-roml/config_pcie_utf/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43596a0-roml/config_pcie_utf/ss_mimo.clm_blob
+
+#(PeterK)
+build_linux : linux-internal-dongle : release/bcm/firmware/4324a0-roml/sdio-ag-p2p-idauth-idsup-pno.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0min-roml/sdio-ag-p2p-idauth-idsup-pno.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43239a0-roml/sdio-ag-p2p-idauth-pno.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/43239a0-roml/sdio-ag.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1-roml/sdio-g-idsup-p2p.bin
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1-roml/sdio-ag-idsup-p2p.bin
+build_linux : linux-external-dongle-sdio : release/bcm/host/dhd-cdc-sdstd-debug-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-external-dongle-sdio : release/olympic/apps/wl
+build_linux : linux-external-dongle-sdio : release/olympic/apps/dhd
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-vsdb-proptxstatus-autoabn.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4335b0-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-autoabn.bin
+build_linux : linux-internal-dongle-pcie : release/bcm/host/dhd-msgbuf-pciefd-debug-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+# 4324b3/4324b5 Olympic Dopplebock/Syrah/Okemo
+build_linux : linux-external-dongle-usb : release/olympic/firmware/*/*/dopplebock-b3.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/*/*/doppelbock.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/*/syrah-u-tt.txt
+build_linux : linux-external-dongle-usb : release/olympic/firmware/*/*/syrah-m-mt.txt
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Innsbruck/4324b3/doppelbock.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Innsbruck/4324b5/doppelbock.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Okemo/4324b5/doppelbock.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/Okemo/4324b5/syrah-m-mt.txt
+
+# 43342A1 Olympic Chardonnay/Imperial
+build_linux : linux-external-dongle-usb : release/olympic/firmware/*/43342*/chardonnay.trx
+build_linux : linux-external-dongle-usb : release/olympic/firmware/*/43342*/chardonnay-u-kk.txt
+build_linux : linux-external-dongle-usb : release/olympic/firmware/*/43342*/chardonnay-t-kk.txt
+# 43342A0 Olympic Southpaw SDIO
+build_linux : linux-external-dongle-sdio : release/olympic/firmware/*/43342*/southpaw.bin
+build_linux : linux-external-dongle-sdio : release/olympic/firmware/*/43342*/southpaw-u-kk.txt
+build_linux : linux-external-dongle-sdio : release/bcm/host/dhd-cdc-sdstd-debug-2.6.38.6-26.rc1.fc15.i686.PAE/dhd.ko
+build_linux : linux-external-dongle-sdio : release/olympic/firmware/*/bcm943342SouthpawUSIK.txt
+build_linux : linux-external-dongle-sdio : release/olympic/firmware/43342_southpaw.clm_blob
+build_linux : linux-mfgtest-dongle-sdio : release/*/firmware/43342_southpaw.clm_blob
+# 4339
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/firmware/4339*-roml/sdio-ag-mfgtest-seqcmds-sr-autoabn.bin
+build_linux : linux-mfgtest-dongle-sdio : src/shared/nvram/bcm94339wlipa.txt
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339*-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-autoabn-ampduhostreorder-ve-proxd-p2po-okc-txbf-relmcast.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339*-roml/*-ipa-*.bin
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm94339wlipa.txt
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339*-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-mfp-okc-txbf-relmcast*-idsup-idauth-err-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4339*-roml/sdio-ag-pool-p2p-pno-pktfilter-keepalive-aoe-ccx-sr-mchan-proptxstatus-lpc-wl11u-tdls-ampduhostreorder-ve-mfp-okc-txbf-relmcast-*-idsup-idauth.bin
+# 4324b4/43241b4 - RoW
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4324b4-roml/sdio-ag-pno-p2p-proptxstatus-dmatxrc-rxov-pktfilter-keepalive-aoe-vsdb-wapi-wl11d-sr-srvsdb-autoabn-pclose.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43241b4-roml/sdio-ag-pno-p2p-proptxstatus-dmatxrc-rxov-pktfilter-keepalive-aoe-vsdb-wapi-wl11d-sr-srvsdb-autoabn-pclose.bin
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm943241ipaagb_p304.txt
+build_linux : linux-external-dongle-sdio : release/bcm/apps/wl
+# 43451 (including corona/tempranillo)
+build_linux : linux-internal-dongle-pcie : release/bcm/firmware/43451a0-roml/pcie-ag-msgbuf.bin
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/43451*-roml/pcie-ag-msgbuf-splitrx-splitbuf-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-cca-pwrstats-noclminc-logtrce-err-assert-txpwrcap.bin
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94345TempranilloTDKKK.txt
+# 4350c0/c1/c4/c5
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4350c0-ram/sdio-ag-proptxstatus-pktctx-dmatxrc-txbf-dbgtput.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4350c*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-pktctx-dmatxrc-idsup-idauth.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4350c*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-pktctx-dmatxrc-tdls-ccx-ve-mfp-idsup-idauth.bin
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C2/rieslinga.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C2/rieslinga.clmb
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C4/rieslinga.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C4/rieslinga.clmb
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C4/rieslingb.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C4/rieslingb.clmb
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm94350wlagbe_KA.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C4/P-rieslinga_M-CIDR_V-m__m-2.13.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C4/P-rieslinga_M-CIDR_V-u__m-2.9.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C4/P-rieslingb_M-STEL_V-m__m-4.13.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/albarossa.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/albarossa.clmb
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/P-albarossa_M-BLMA_V-m__m-2.1.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/brunello.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/brunello.clmb
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/P-brunello_M-CIDR_V-m__m-2.15.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-4350__s-C5/P-albarossa_M-BLMA_V-m__m-5.5.txt.gz
+# 4334b1
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4334b1-roml/sdio-ag-pno-p2p-ccx-extsup-proptxstatus-dmatxrc-rxov-pktfilter-keepalive-aoe-vsdb-sr-wapi-wl11d-autoabn.bin
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm94334fcagb.txt
+build_linux : linux-external-dongle-usb : release/olympic/firmware/4334b1-roml/usb-ag-p2p-pno-nocis-keepalive-aoe-oob-idsup-idauth-err-assert-wapi-srsusp-ve-awdl-ndoe-pf2-proptxstatus-cca-pwrstats-wnm-noclminc-clm_4334_centennial.bin.trx
+
+# 4354
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-pktctx-dmatxrc*-idsup-idauth.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-pktctx-okc-tdls-ccx-ve-mfp-ltecxgpio-idsup-idauth*.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-txbf-pktctx-okc-tdls-ccx-ve-mfp-ltecxgpio-pwropt-idsup-idauth*.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/4354*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-okc-ccx-ve-idsup-idauth-mchandump.bin
+
+# 4334w
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/firmware/43342a0-roml/sdio-ag-mfgtest-nodis-swdiv-oob-seqcmds-sr-idsup.bin
+build_linux : linux-mfgtest-dongle-sdio : release/bcm/host/dhd-cdc-sdstd-debug-*fc15.i686.PAE/dhd.ko
+
+# 43430a0
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm943430wlselgs_26MHz.txt
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43430a0-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srfast.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43430a0-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srfast-err.bin
+# 43430a1
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43430a1-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srfast-11nprop.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43430a1-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srfast-11nprop-tdls-hs20sta-mchandump.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43430a1-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srfast-11nprop-err-assert.bin
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43430a1-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srfast-err-assert.bin
+# 43438 (same chip as 43430)
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm943438wlpth_26MHz.txt
+# 4349
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4349*-roml/pcie-ag-p2p-pno-*pktfilter-keepalive-mchan-wl11u-pktctx-okc-tdls-ccx-mfp-splitrx-wnm-ve-idsup.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4349*-roml/pcie-ag-p2p-pno-*pktfilter-keepalive-mchan-wl11u-pktctx-okc-tdls-ccx-mfp-splitrx-wnm-ve-idsup*.bin
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94349fcpagb.txt
+# 4358
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358*-roml/pcie-ag-msgbuf-splitrx-pktctx-ampduhostreorder-amsdutx-txbf-p2p-txpwr-dbgam-phydbg.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358*-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-clm_ss_mimo-txpwr-abt-rcc-fmc-wepso-noccxaka-sarctrl-proxd-nan-shif-tbow-btcdyn.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358*-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-wnm-tdls-amsdutx-ltecx-okc-ccx-ve-clm_ss_mimo-txpwr-fmc-proxd-nan-shif-btcdyn-wepso-rcc-noccxaka-sarctrl-abt.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4358*-roml/pcie-ag-pktctx-txbf-lpc-clm_ss_mimo-txpwr-apcs-proptxstatus-ampduhostreorder-pspretend-sarctrl-amsdutx-sstput-btcdyn-mfp.bin
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94358pciemdlSS_SS.txt
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94358pciemdlB85SS_SS.txt
+# 4359
+build_linux : hndrte-dongle-wl : build/dongle/4359*-roml/threadx-pcie-ag-p2p-mchan-wl11u-pktctx-splitrx-sr-proptxstatus-ampduhostreorder-sstput-die2-rsdbsw/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b*-roml/threadx-pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-sstput-proptxstatus-idsup-assert-err-die5-rsdbsw/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b*-roml/pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-proptxstatus-sr-idsup-die3-pktctx/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4359b*-roml/pcie-ag-msgbuf-p2p-mchan-splitrx-ampduhostreorder-proptxstatus-sr-idsup-die3-pktctx-slna/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/shared/nvram/bcm94359fcpagbss_2.txt
+# 4356
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4356*-roml/pcie-ag-msgbuf-splitrx-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds-okc-ccx-ve-idsup-idauth.bin
+build_linux : linux-external-dongle-pcie : release/bcm/firmware/4356*-roml/pcie-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-amsdutx-ltecx-wfds.bin
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94356wlpagbl.txt
+# 43455
+build_linux : linux-external-dongle-sdio : release/bcm/firmware/43455*-roml/sdio-ag-p2p-pno-aoe-pktfilter-keepalive-sr-mchan-pktctx-proptxstatus-ampduhostreorder-lpc-pwropt-txbf-wl11u-mfp-tdls-ltecx-wfds-sr-srfast-mchandump.bin
+build_linux : linux-external-dongle-sdio : src/shared/nvram/bcm943457wlsagb.txt
+# 43435b0/43434b0
+build_linux : hndrte-dongle-wl : build/dongle/43435*-roml/sdio-g-p2p-pno-nocis-keepalive-aoe-idsup-ve-awdl-ndoe-pf2-proptxstatus-cca-pwrstats-wnm-wl11u-anqpo-noclminc-logtrace-srscan-mpf-pmmt-clm_min-srmem-srfast-err-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43435*-roml/sdio-g-p2p-pno-nocis-keepalive-aoe-idsup-ve-awdl-ndoe-pf2-proptxstatus-cca-pwrstats-wnm-wl11u-anqpo-noclminc-logtrace-srscan-mpf-pmmt-clm_min-srmem-srfast-err-assert/43435b0.clm_blob
+build_linux : hndrte-dongle-wl : src/shared/nvram/bcm943430fsdnge_elna_Bx.txt
+build_linux : hndrte-dongle-wl : build/dongle/43430*-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srmem-srfast-11nprop-tdls-hs20sta/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/43430*-roml/sdio-g-pool-p2p-pno-pktfilter-keepalive-aoe-mchan-proptxstatus-ampduhostreorder-lpc-wl11u-rcc-fmc-wepso-ccx-okc-anqpo-ltecx-srmem-srfast-11nprop-tdls/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/shared/nvram/bcm943430fsdng_Bx.txt
+# 43452a2/a3 olympic modules
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-43452__s-A3/hans.trx
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-43452__s-A3/hans.clmb
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-43452__s-A3/P-hans_M-COR2_V-u__m-1.3.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-43452__s-A3/P-hans_M-COR2_V-t__m-1.3.txt
+
+build_linux : linux-external-dongle-pcie : src/shared/nvram/bcm94345Corona2TDKKK.txt
+build_linux : linux-external-dongle-pcie : release/olympic/firmware/../C-43452__s-A3/hans.txcb
+
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43452a3-roml/pcie-ag-splitrx-splitbuf-pktctx-proptxstatus-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-ve-awdl-ndoe-pf2-cca-pwrstats-wnm-wl11u-anqpo-mpf-mfp-txbf-logtrace_pcie-srscan-clm_min-ecounters-bssinfo-ltecx-txpwrcap-err-txcal-p5txgtbl-assert/rtecdc.bin
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43452a3-roml/pcie-ag-splitrx-splitbuf-pktctx-proptxstatus-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-ve-awdl-ndoe-pf2-cca-pwrstats-wnm-wl11u-anqpo-mpf-mfp-txbf-logtrace_pcie-srscan-clm_min-ecounters-bssinfo-ltecx-txpwrcap-err-txcal-p5txgtbl-assert/43452_hans.txcap_blob
+build_linux : hndrte-dongle-wl : src/dongle/rte/wl/builds/43452a3-roml/pcie-ag-splitrx-splitbuf-pktctx-proptxstatus-p2p-pno-nocis-keepalive-aoe-idsup-wapi-sr-ve-awdl-ndoe-pf2-cca-pwrstats-wnm-wl11u-anqpo-mpf-mfp-txbf-logtrace_pcie-srscan-clm_min-ecounters-bssinfo-ltecx-txpwrcap-err-txcal-p5txgtbl-assert/43452_hans.clm_blob
+
+# MacOS (rodneyb)
+build_macos : macos-internal-wl-lion : build/src/wl/macos/build/Debug_*
+build_macos : macos-internal-wl-lion : build/src/wl/exe/macos/wl
+build_macos : macos-internal-wl-lion : build/src/wl/exe/macos/*/wl
+
+build_macos : macos-internal-wl-zin : build/src/wl/macos/build/Debug_*
+build_macos : macos-internal-wl-zin : build/src/wl/exe/macos/*/wl
+
+build_macos : macos-internal-wl-ml : build/src/wl/macos/build/Debug_*
+build_macos : macos-internal-wl-ml : build/src/wl/exe/macos/*/wl
+
+build_macos : macos-internal-wl-cab : build/src/wl/macos/build/Debug_*
+build_macos : macos-internal-wl-cab : build/src/wl/exe/macos/*/wl
+
+build_macos : macos-internal-wl-syr : build/src/wl/macos/build/Debug_*
+build_macos : macos-internal-wl-syr : build/src/wl/exe/macos/*/wl
+
+build_macos : macos-internal-wl-gala : build/src/wl/macos/build/Debug_*
+build_macos : macos-internal-wl-gala : build/src/wl/exe/macos/*/wl
+
+# Router (rodneyb)
+build_linux : linux-internal-dslcpe : bcm96362GW_cfe_fs_kernel
+
+
+# sdio host drivers
+build_linux : linux-internal-dongle : release/bcm/host/dhd-cdc-sdstd-debug-nothread-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-internal-dongle : release/bcm/host/dhd-cdc-gspi-pci-debug-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-internal-dongle : release/bcm/host/dhd-cdc-sdstd-sr-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-internal-dongle : release/bcm/host/dhd-cdc-sdstd-debug-3.11.1-200.fc19.x86_64/dhd.ko
+build_linux : linux-internal-dongle : release/bcm/apps/x86_64/wl
+build_linux : linux-internal-dongle : release/bcm/apps/x86_64/dhd
+
+
+build_linux : linux-external-dongle-sdio : release/bcm/host/dhd-cdc-gspi-pci-umac-bcm432x-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-external-dongle-sdio : release/bcm/host/dhd-cdc-gspi-pci-umac-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+build_linux : linux-external-dongle-sdio : release/bcm/host/dhd-cdc-sdstd-umac-2.6.29.4-167.fc11.i686.PAE/dhd.ko
+
+
+
+# sdio nvram files (JohnB PeterK)
+build_linux : linux-internal-dongle : release/bcm/firmware/4334b1-roml/bcm4334fcagb.txt
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0-roml/bcm43241ipaagb_p100.txt
+build_linux : linux-internal-dongle : release/bcm/firmware/43241b0min-roml/bcm43241ipaagb_p100.txt
+# TO-DO, Following need to be taken away. Build should provide this and not cvs
+# checkout.
+build_linux : linux-internal-dongle : src/shared/nvram/bcm943239elhsdb_p200.txt
+build_linux : linux-internal-dongle : src/shared/nvram/bcm943241ipaagb_p100.txt
+build_linux : linux-internal-dongle : src/shared/nvram/bcm94334fcagb.txt
+
+# apps
+build_linux : linux-internal-dongle : release/bcm/apps/dhd
+build_linux : linux-internal-dongle : release/bcm/apps/dhdarm_le
+build_linux : linux-internal-dongle : release/bcm/apps/wl
+build_linux : linux-internal-dongle : release/bcm/apps/wlarm_le
+build_linux : linux-internal-dongle : release/bcm/apps/wl_server_socket
+
+
+## Embedded (bsilva)
+# apps
+build_linux : linux-external-dongle-sdio : release/bcm/apps/dhd
+build_linux : linux-external-dongle-sdio : release/bcm/apps/wl
+
+##---------------------------------------------------------------
+## build_netbsd preserve bits
+##---------------------------------------------------------------
+## NetBSD built objects to be preserved
+
+
+##---------------------------------------------------------------
+## build_window preserve bits
+##---------------------------------------------------------------
+## Windows built objects to be preserved (jkoenig)
+
+build_window : win10_internal_wl : release/Win10/checked/DriverOnly/
+
+build_window : win8x_internal_wl : release/Win8X/checked/DriverOnly/
+build_window : win8x_internal_wl : release/Win8X/checked/DriverOnly_BMac/
+
+build_window : win_internal_wl : release/WinXP/checked/DriverOnly*/
+build_window : win_internal_wl : release/checked/DriverOnly*/
+build_window : win_internal_wl : src/wl/sys/wdm/buildxp*/*.c
+build_window : win_internal_wl : src/wl/sys/wdm/buildxp*/src/
+build_window : win_internal_wl : src/wl/sys/wdm/buildxp*/*.rc
+build_window : win_internal_wl : src/wl/sys/wdm/buildxp*/sources
+build_window : win_internal_wl : release/WinVista/checked/DriverOnly*/
+build_window : win_internal_wl : src/wl/sys/wdm/buildwin7*/*.c
+build_window : win_internal_wl : src/wl/sys/wdm/buildwin7*/src/
+build_window : win_internal_wl : src/wl/sys/wdm/buildwin7*/*.rc
+build_window : win_internal_wl : src/wl/sys/wdm/buildwin7*/sources
+build_window : win_internal_wl : release/Win7/checked/DriverOnly*/
+build_window : win_internal_wl : src/wl/sys/wdm/build7*/*.c
+build_window : win_internal_wl : src/wl/sys/wdm/build7*/src/
+build_window : win_internal_wl : src/wl/sys/wdm/build7*/*.rc
+build_window : win_internal_wl : src/wl/sys/wdm/build7*/sources
+
+build_window : win_external_wl : release/WinXP/Bcm/Bcm_DriverOnly*/
+build_window : win_external_wl : release/Bcm/Bcm_DriverOnly*/
+build_window : win_external_wl : src/wl/sys/wdm/buildxp*/*.c
+build_window : win_external_wl : src/wl/sys/wdm/buildxp*/src/
+build_window : win_external_wl : src/wl/sys/wdm/buildxp*/*.rc
+build_window : win_external_wl : src/wl/sys/wdm/buildxp*/sources
+build_window : win_external_wl : src/wl/sys/wdm/buildxp*/obj*/*/bcmwl*.pdb
+build_window : win_external_wl : src/wl/sys/wdm/buildxp*/obj*/*/bcmwl*.map
+build_window : win_external_wl : release/WinVista/Bcm/Bcm_DriverOnly*/
+build_window : win_external_wl : src/wl/sys/wdm/buildwin7*/*.c
+build_window : win_external_wl : src/wl/sys/wdm/buildwin7*/src/
+build_window : win_external_wl : src/wl/sys/wdm/buildwin7*/*.rc
+build_window : win_external_wl : src/wl/sys/wdm/buildwin7*/sources
+build_window : win_external_wl : src/wl/sys/wdm/buildwin7*/obj*/*/bcmwl*.pdb
+build_window : win_external_wl : src/wl/sys/wdm/buildwin7*/obj*/*/bcmwl*.map
+build_window : win_external_wl : release/Win7/Bcm/Bcm_DriverOnly*/
+build_window : win_external_wl : src/wl/sys/wdm/build7*/*.c
+build_window : win_external_wl : src/wl/sys/wdm/build7*/src/
+build_window : win_external_wl : src/wl/sys/wdm/build7*/*.rc
+build_window : win_external_wl : src/wl/sys/wdm/build7*/sources
+build_window : win_external_wl : src/wl/sys/wdm/build7*/obj*/*/bcmwl*.pdb
+build_window : win_external_wl : src/wl/sys/wdm/build7*/obj*/*/bcmwl*.map
+
+# Windows USB DHD built objects to be preserved (jkoenig)
+build_window : win_internal_dongle_usb : release/WinXP/BcmDHD/Bcm_USB_DriverOnly*/
+build_window : win_internal_dongle_usb : src/dhd/wdm/buildusbxp*/*.c
+build_window : win_internal_dongle_usb : src/dhd/wdm/buildusbxp*/src/
+build_window : win_internal_dongle_usb : src/dhd/wdm/buildusbxp*/sources
+build_window : win_internal_dongle_usb : release/WinVista/BcmDHD/Bcm_USB_DriverOnly*/
+build_window : win_internal_dongle_usb : src/dhd/wdm/buildusbvista*/*.c
+build_window : win_internal_dongle_usb : src/dhd/wdm/buildusbvista*/src
+build_window : win_internal_dongle_usb : src/dhd/wdm/buildusbvista*/sources
+
+build_window : win_external_dongle_usb : release/WinXP/BcmDHD/Bcm_USB_DriverOnly*/
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbxp*/*.c
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbxp*/src/
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbxp*/sources
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbxp*/obj*/*/bcmusbdhd*.pdb
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbxp*/obj*/*/bcmusbdhd*.map
+build_window : win_external_dongle_usb : release/WinVista/BcmDHD/Bcm_USB_DriverOnly*/
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbvista*/*.c
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbvista*/src/
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbvista*/sources
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbvista*/obj*/*/bcmusbdhd*.pdb
+build_window : win_external_dongle_usb : src/dhd/wdm/buildusbvista*/obj*/*/bcmusbdhd*.map
+
+# Windows txq_mux (C.M. Kim)
+build_window : win_internal_wl_txq_mux : release/Win7/checked/DriverOnly/
+
+# Windows MFGTEST (tima)
+# DVT (jyee)
+
+build_window : win_mfgtest_wl : release/WinXP/Internal
+build_window : win_mfgtest_wl : release/WinXP/Bcm/Bcm_Apps/*
+build_window : win_mfgtest_wl : release/WinXP/Bcm/Bcm_DriverOnly/*
+build_window : win_mfgtest_wl : release/WinXP/Bcm/Bcm_DriverOnly_BMac/*
+build_window : win_mfgtest_wl : release/Win7/Bcm/Bcm_Apps/*
+build_window : win_mfgtest_wl : release/Win7/Bcm/Bcm_DriverOnly_BMac/*
+
+# DVT (jyee)
+build_window : win_mfgtest_dongle_usb : release/WinXP/BcmDHD/Bcm_Apps/*
+
+# Windows SDIO (tima) (old paths)
+build_window : win_external_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/
+build_window : win_external_dongle_sdio : release/BcmDHD/Bcm_Apps/wl.exe
+
+build_window : win_mfgtest_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/
+build_window : win_mfgtest_dongle_sdio : release/BcmDHD/Bcm_Apps/wl.exe
+
+# DVT (jyee)
+build_window : win_mfgtest_dongle_sdio : release/BcmDHD/Bcm_Apps/brcm_wlu.dll
+build_window : win_mfgtest_dongle_sdio : release/BcmDHD/Bcm_Firmware/*.bin
+build_window : win_mfgtest_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/*
+build_window : win_mfgtest_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/bcmsddhd.inf
+build_window : win_mfgtest_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/bcmsddhd.sys
+
+
+# Windows SDIO (tima) (new paths)
+build_window : win_external_dongle_sdio : release/WinXP/BcmDHD/Bcm_Sdio_DriverOnly/
+build_window : win_external_dongle_sdio : release/WinXP/BcmDHD/Bcm_DbusSdio_DriverOnly
+build_window : win_external_dongle_sdio : release/WinXP/BcmDHD/Bcm_Apps/wl.exe
+
+build_window : win_mfgtest_dongle_sdio : release/WinXP/BcmDHD/Bcm_Sdio_DriverOnly/
+build_window : win_mfgtest_dongle_sdio : release/WinXP/BcmDHD/Bcm_DbusSdio_DriverOnly/
+build_window : win_mfgtest_dongle_sdio : release/WinXP/BcmDHD/Bcm_Apps/wl.exe
+
+# Windows XP wl.exe and dhd.exe (brearley)
+build_window : win_internal_dongle_sdio : release/BcmDHD/Bcm_Apps/wl.exe
+build_window : win_internal_dongle_sdio : release/BcmDHD/Bcm_Apps/dhd.exe
+build_window : win_internal_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/bcmsddhd.sys
+build_window : win_internal_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/bcmsddhd.pdb
+build_window : win_internal_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/bcmsddhd.inf
+build_window : win_internal_dongle_sdio : release/BcmDHD/Bcm_Sdio_DriverOnly/bcmsddhd64.sys
+build_window : win_internal_dongle_sdio : release/WinXP/BcmDHD/Bcm_DbusSdio_DriverOnly
+
+
+# Windows CE SDIO
+build_window : ce_external_dongle_sdio : release/bcm/installer/
+build_window : ce_mfgtest_dongle_sdio : release/bcm/installer/
+
+# Nucleus SDIO
+build_window : nucleus-external-dongle-sdio : built/bcm/bsp
+
+# Windows DHDPCIe
+build_window : win8x_dhdpcie_internal_wl : release/Win8X/checked/DriverOnly/x64/
+build_window : win8x_dhdpcie_internal_wl : src/dhd/exe/Debug/dhd.exe
+
+build_window : win10_dhdpcie_internal_wl : release/Win10/checked/DriverOnly/x64/
+build_window : win10_dhdpcie_internal_wl : src/dhd/exe/Debug/dhd.exe
+
+
+
+# 4365/4366 B0 full dongle (cchai, 5/1/2015)
+build_linux : linux-internal-dongle-pcie : release/bcm/firmware/4365b0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-txpwr-11nprop-err-assert-ringer-dmaindex16.bin
+build_linux : linux-external-media : release/bcm/firmware/4365b0-roml/pcie-ag-msgbuf-pktctx-splitrx.bin
+
+# 4365/4366 B1 (tima, 5/15/2015)
+build_linux : linux-external-media : release/bcm/firmware/4365b1-roml/pcie-ag-pktctx-splitrx-amsdutx-txbf-p2p-mchan-idauth-idsup-tdls-mfp-sr-proptxstatus-wowlpf-pktfilter-ampduhostreorder-chkd2hdma-ringer-dmaindex16-keepalive.bin
+build_linux : linux-external-media : release/bcm/firmware/4366b1-roml/pcie-ag-pktctx-splitrx-amsdutx-idauth-idsup-tdls-txbf-mfp-proptxstatus-wowlpf-pktfilter-ampduhostreorder-chkd2hdma-ringer-dmaindex16-keepalive.bin
+build_linux : linux-internal-media : release/bcm/firmware/4366b1-roml/pcie-ag-err-pktctx-splitrx-amsdutx-idauth-idsup-tdls-txbf-mfp-proptxstatus-wowlpf-pktfilter-ampduhostreorder-keepalive-chkd2hdma-ringer-dmaindex16-assert-dbgam.bin
+build_linux : linux-internal-media : release/bcm/firmware/4365b1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs.bin
+
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-full-src : 4365/build/dongle/4365b1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs/rtecdc.bin
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : build/4365/build/dongle/4366b1-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs-hostpmac/rtecdc.bin
+
+# 4365c0
+build_linux : linux-internal-media : release/bcm/firmware/4366c0-roml/pcie-ag-pktctx-splitrx-amsdutx-idauth-idsup-tdls-txbf-p2p-mchan-mfp-sr-proptxstatus-wowlpf-pktfilter-keepalive-xorcsum-ringer-dmaindex16-assert-dbgam-err-wl11k-slvradar.bin
+
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : 4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-txpwr-11nprop-obss-dbwsw-err-assert-dbgam-dbgams-ringer-dmaindex16-bgdfs-mfgtest-dump-splitassoc-acksupr-stamon-authrmf/rtecdc.bin
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : 4365/build/dongle/4366c0-roml/config_pcie_internal/rtecdc.bin
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : build/4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-txpwr-11nprop-obss-dbwsw-err-assert-dbgam-dbgams-ringer-dmaindex16-bgdfs-mfgtest-dump-splitassoc-acksupr-stamon-authrmf-hostpmac/rtecdc.bin
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-txpwr-11nprop-obss-dbwsw-err-assert-dbgam-dbgams-ringer-dmaindex16-bgdfs-mfgtest-dump-splitassoc-acksupr-stamon-authrmf-hostpmac/rtecdc.bin
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : build/4365/build/dongle/4366c0-roml/config_pcie_internal/rtecdc.bin
+build_linux : linux-2.6.36-arm-internal-router-dhdap-atlas : build/4365/src/wl/clm/src/4366_access.clm_blob
+
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : 4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs/rtecdc.bin
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : 4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs-stamon-hostpmac-murx-splitassoc-dyn160-dhdhdr/rtecdc.bin
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : build/4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs-hostpmac/rtecdc.bin
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : build/4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs-stamon-hostpmac-murx-splitassoc-dyn160/rtecdc.bin
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : build/4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs-stamon-hostpmac-murx-splitassoc-dyn160-noclminc-clm_min/rtecdc.bin
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : build/4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs-stamon-hostpmac-murx-splitassoc-dyn160-dhdhdr/rtecdc.bin
+
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : build/4365/src/wl/clm/src/4366_access.clm_blob
+
+build_linux : linux-internal-dongle-pcie : release/bcm/firmware/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-txpwr-11nprop-obss-dbwsw-err-assert-dbgam-dbgams-ringer-dmaindex16-bgdfs-dbgmu-mfgtest-dump.bin
+build_linux : linux-internal-dongle-pcie : release/bcm/firmware/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-txpwr-11nprop-obss-dbwsw-err-assert-dbgam-dbgams-ringer-dmaindex16-bgdfs-dbgmu-mfgtest-dump-murx.bin
+
+# 63138 overlay
+build_linux : linux-2.6.36-arm-external-vista-router-dhdap-atlas-full-src : 4365/build/dongle/4366c0-roml/pcie-ag-splitrx-fdap-mbss-mfp-wnm-osen-wl11k-wl11u-txbf-pktctx-amsdutx-ampduretry-chkd2hdma-proptxstatus-11nprop-obss-dbwsw-ringer-dmaindex16-bgdfs-stamon-hostpmac-murx-splitassoc-dyn160/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_release/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_release/4347.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_mfgtest/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_debug/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_debug/4347.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_tput/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_tput/4347.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_tput_mu/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a0-ram/config_pcie_tput_mu/4347.clm_blob
+
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_release/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_release/4357.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_mfgtest/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_debug/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_debug/4357a1.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_debug/4357.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_tput/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357a1-ram/config_pcie_tput/4357.clm_blob
+
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-roml/config_pcie_olympic/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-roml/config_pcie_olympic/4357.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-roml/config_pcie_release/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-roml/config_pcie_release/4357.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-roml/config_pcie_debug/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-roml/config_pcie_debug/4357.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-roml/config_pcie_mfgtest/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-ram/config_pcie_debug/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-ram/config_pcie_debug/4357a0.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-ram/config_pcie_debug/4357.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-ram/config_pcie_tput/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-ram/config_pcie_tput/4357a0.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-ram/config_pcie_tput/4357.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4357b0-ram/config_pcie_mfgtest/rtecdc.bin
+
+build_linux : hndrte-dongle-wl : src/shared/nvram/bcm94357GuinnessUsiKK.txt
+build_linux : hndrte-dongle-wl : src/shared/nvram/bcm94357fcpagbe_p402.txt
+build_linux : linux-internal-dongle-pcie : src/shared/nvram/bcm94357fcpagbe_p203.txt
+build_linux : linux-internal-dongle-pcie : src/shared/nvram/bcm94357fcpagbe_p402.txt
+build_linux : linux-internal-dongle-pcie : src/shared/nvram/bcm94357GuinnessUsiKK.txt
+
+
+
+# 4364
+build_linux : linux-olympic-dongle-src : src/shared/nvram/bcm94364fcpagb_2.txt
+build_linux : hndrte-dongle-wl : build/dongle/4364b1-roml/config_pcie_perf_sdb_udm/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4364b1-roml/config_pcie_perf_sdb_udm/4364b0.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4364b1-roml/config_pcie_release_sdb_udm/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4364b1-roml/config_pcie_release_sdb_udm/4364b0.clm_blob
+
+
+# 4361
+build_linux : hndrte-dongle-wl : build/dongle/4361b0-roml/config_pcie_release_ipa/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4361b0-roml/config_pcie_release_ipa/ss_mimo.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4361b0-roml/config_pcie_tput_ipa/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4361b0-roml/config_pcie_tput_ipa/ss_mimo.clm_blob
+build_linux : hndrte-dongle-wl : build/dongle/4361b0-roml/config_pcie_utf_ipa/rtecdc.bin
+build_linux : hndrte-dongle-wl : build/dongle/4361b0-roml/config_pcie_utf_ipa/ss_mimo.clm_blob
+build_linux : hndrte-dongle-wl : src/shared/nvram/bcm94361fcpagbi_B0_p301.txt

@@ -70,7 +70,9 @@ struct NEXUS_SimpleEncoderServer
 };
 
 static BLST_S_HEAD(NEXUS_SimpleEncoderServer_P_List, NEXUS_SimpleEncoderServer) g_NEXUS_SimpleEncoderServers;
+#if NEXUS_HAS_STREAM_MUX
 static NEXUS_Error NEXUS_SimpleEncoder_P_AddAuxPid(NEXUS_SimpleEncoderHandle handle, unsigned pid);
+#endif
 
 struct NEXUS_SimpleEncoder
 {
@@ -549,17 +551,44 @@ NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, c
 #else
     /* client doesn't change display format when encoding the display */
     if (handle->transcodeDisplay && !handle->startSettings.input.display) {
-        NEXUS_DisplayCustomFormatSettings customFormatSettings;
+        NEXUS_VideoFrameRate frameRate;
+        NEXUS_VideoFormat format;
+        NEXUS_VideoFormatInfo info;
+        NEXUS_P_FrameRate_FromRefreshRate_isrsafe(pSettings->video.refreshRate, &frameRate);
+        format = NEXUS_P_VideoFormat_FromInfo_isrsafe(pSettings->video.height, frameRate, pSettings->video.interlaced);
+        /* NEXUS_P_VideoFormat_FromInfo_isrsafe is not an exact match, so we must do so */
+        NEXUS_VideoFormat_GetInfo(format, &info);
+        if (format != NEXUS_VideoFormat_eUnknown &&
+            info.width == pSettings->video.width &&
+            info.height == pSettings->video.height &&
+            info.verticalFreq == pSettings->video.refreshRate/10 &&
+            info.interlaced == pSettings->video.interlaced) {
+            NEXUS_DisplaySettings settings;
 
-        NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
-        customFormatSettings.width = pSettings->video.width;
-        customFormatSettings.height = pSettings->video.height;
-        customFormatSettings.refreshRate = pSettings->video.refreshRate;
-        customFormatSettings.interlaced = pSettings->video.interlaced;
-        customFormatSettings.aspectRatio = NEXUS_DisplayAspectRatio_e16x9; /* don't care */
-        customFormatSettings.dropFrameAllowed = true;
-        rc = NEXUS_Display_SetCustomFormatSettings(handle->transcodeDisplay, NEXUS_VideoFormat_eCustom2, &customFormatSettings);
-        if (rc) return BERR_TRACE(rc);
+            NEXUS_Display_GetSettings(handle->transcodeDisplay, &settings);
+            settings.format = format;
+            settings.aspectRatio = NEXUS_DisplayAspectRatio_e16x9; /* don't care */
+            settings.display3DSettings.overrideOrientation = pSettings->video.display3DSettings.overrideOrientation;
+            settings.display3DSettings.orientation = pSettings->video.display3DSettings.orientation;
+            rc = NEXUS_Display_SetSettings(handle->transcodeDisplay, &settings);
+            if (rc) return BERR_TRACE(rc);
+        }
+        else {
+            NEXUS_DisplayCustomFormatSettings customFormatSettings;
+
+            if (pSettings->video.display3DSettings.overrideOrientation) {
+                /* we currently only support 3D with standard video formats */
+                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            }
+            NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
+            customFormatSettings.width = pSettings->video.width;
+            customFormatSettings.height = pSettings->video.height;
+            customFormatSettings.refreshRate = pSettings->video.refreshRate;
+            customFormatSettings.interlaced = pSettings->video.interlaced;
+            customFormatSettings.aspectRatio = NEXUS_DisplayAspectRatio_e16x9; /* don't care */
+            rc = NEXUS_Display_SetCustomFormatSettings(handle->transcodeDisplay, NEXUS_VideoFormat_eCustom2, &customFormatSettings);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
     if (handle->transcodeWindow) {
         NEXUS_VideoWindowSettings windowSettings;
@@ -572,6 +601,18 @@ NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, c
             windowSettings.position.y = 0;
             windowSettings.position.width = pSettings->video.width;
             windowSettings.position.height = pSettings->video.height;
+        }
+        if (pSettings->video.display3DSettings.overrideOrientation) {
+            switch (pSettings->video.display3DSettings.orientation) {
+            case NEXUS_VideoOrientation_e3D_LeftRight:
+                windowSettings.position.width /= 2;
+                break;
+            case NEXUS_VideoOrientation_e3D_OverUnder:
+                windowSettings.position.height /= 2;
+                break;
+            default:
+                break;
+            }
         }
         windowSettings.sourceClip.left   = pSettings->video.clip.left;
         windowSettings.sourceClip.right  = pSettings->video.clip.right;
@@ -715,6 +756,10 @@ static NEXUS_Error nexus_simpleencoder_p_pre_start( NEXUS_SimpleEncoderHandle ha
         }
         windowSettings.position.width = handle->settings.video.width;
         windowSettings.position.height = handle->settings.video.height;
+        if (handle->settings.video.display3DSettings.overrideOrientation) {
+            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            goto err_encodersettings;
+        }
         windowSettings.pixelFormat = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;
         windowSettings.visible = false;
         rc = NEXUS_VideoWindow_SetSettings(handle->transcodeWindow, &windowSettings);
@@ -1282,7 +1327,9 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
         handle->started = false; /* fully stopped */
     }
 
-    nexus_simpleencoder_p_stop_videoencoder(handle, (handle->startSettings.output.transport.type != NEXUS_TransportType_eMp4) || handle->abort);
+    nexus_simpleencoder_p_stop_videoencoder(handle,
+        (handle->startSettings.output.transport.type != NEXUS_TransportType_eMp4 &&
+         handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) || handle->abort);
     if (handle->transcodeWindow) {
         if (handle->startSettings.input.video) {
             nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
@@ -1709,6 +1756,7 @@ NEXUS_Error NEXUS_SimpleEncoder_InsertRandomAccessPoint( NEXUS_SimpleEncoderHand
     return BERR_TRACE(BERR_NOT_AVAILABLE);
 }
 
+#if NEXUS_HAS_STREAM_MUX
 /* return zero if added, non-zero if already added */
 static NEXUS_Error NEXUS_SimpleEncoder_P_AddAuxPid(NEXUS_SimpleEncoderHandle handle, unsigned pid)
 {
@@ -1750,7 +1798,6 @@ static NEXUS_Error NEXUS_SimpleEncoder_P_AddAuxPid(NEXUS_SimpleEncoderHandle han
     return NEXUS_SUCCESS;
 }
 
-#if NEXUS_HAS_STREAM_MUX
 static NEXUS_Error NEXUS_SimpleEncoder_P_ScanAuxPid(NEXUS_SimpleEncoderHandle handle, const NEXUS_StreamMuxSystemData *pSystemDataBuffer)
 {
     unsigned i, lastpid = 0x1fff;

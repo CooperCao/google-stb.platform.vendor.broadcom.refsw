@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -492,6 +492,7 @@ BERR_Code BHDR_P_ParseAviInfoFrameData_isr(
 #if BHDR_CONFIG_DEBUG_PACKET_AVI
 	BHDR_P_DEBUG_AviInfoFrame(&hHDR->AviInfoFrame, &stNewAviInfoFrame) ;
 #endif
+
 
 	/* copy the new packet */
 	BKNI_Memcpy_isr(&hHDR->AviInfoFrame, &stNewAviInfoFrame, sizeof(BAVC_HDMI_AviInfoFrame)) ;

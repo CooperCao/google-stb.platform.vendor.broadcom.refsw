@@ -11,21 +11,25 @@
 v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
    v3d_tmu_type_t type, bool srgb, bool shadow, bool output_32)
 {
+   assert(!srgb || v3d_tmu_type_supports_srgb(type));
+   assert(!shadow || v3d_tmu_type_supports_shadow(type));
+
+   if (srgb || shadow)
+      return V3D_TMU_BLEND_TYPE_FLOAT16;
+
    switch (type)
    {
    case V3D_TMU_TYPE_R8:
    case V3D_TMU_TYPE_RG8:
    case V3D_TMU_TYPE_RGBA8:
-      assert(!shadow);
 #if V3D_VER_AT_LEAST(3,3,0,0)
-      return (output_32 && !srgb) ? V3D_TMU_BLEND_TYPE_UNORM16 : V3D_TMU_BLEND_TYPE_FLOAT16;
+      return output_32 ? V3D_TMU_BLEND_TYPE_UNORM16 : V3D_TMU_BLEND_TYPE_FLOAT16;
 #else
       return V3D_TMU_BLEND_TYPE_FLOAT16;
 #endif
    case V3D_TMU_TYPE_R8_SNORM:
    case V3D_TMU_TYPE_RG8_SNORM:
    case V3D_TMU_TYPE_RGBA8_SNORM:
-      assert(!srgb && !shadow);
 #if V3D_VER_AT_LEAST(3,3,0,0)
       return output_32 ? V3D_TMU_BLEND_TYPE_SNORM15 : V3D_TMU_BLEND_TYPE_FLOAT16;
 #else
@@ -49,8 +53,6 @@ v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
    case V3D_TMU_TYPE_C_SIGNED_R11_EAC:
    case V3D_TMU_TYPE_C_RG11_EAC:
    case V3D_TMU_TYPE_C_SIGNED_RG11_EAC:
-      assert(!srgb);
-      /* Fall through... */
    case V3D_TMU_TYPE_C_RGB8_ETC2:
    case V3D_TMU_TYPE_C_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
    case V3D_TMU_TYPE_C_RGBA8_ETC2_EAC:
@@ -71,23 +73,18 @@ v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
    case V3D_TMU_TYPE_C_ASTC_10X10:
    case V3D_TMU_TYPE_C_ASTC_12X10:
    case V3D_TMU_TYPE_C_ASTC_12X12:
-      assert(!shadow);
       return V3D_TMU_BLEND_TYPE_FLOAT16;
    case V3D_TMU_TYPE_R16:
    case V3D_TMU_TYPE_RG16:
    case V3D_TMU_TYPE_RGBA16:
-      assert(!srgb && !shadow);
       return output_32 ? V3D_TMU_BLEND_TYPE_UNORM16 : V3D_TMU_BLEND_TYPE_FLOAT16;
    case V3D_TMU_TYPE_R16_SNORM:
    case V3D_TMU_TYPE_RG16_SNORM:
    case V3D_TMU_TYPE_RGBA16_SNORM:
-      assert(!srgb && !shadow);
       return output_32 ? V3D_TMU_BLEND_TYPE_SNORM16 : V3D_TMU_BLEND_TYPE_FLOAT16;
    case V3D_TMU_TYPE_R32F:
    case V3D_TMU_TYPE_RG32F:
    case V3D_TMU_TYPE_RGBA32F:
-      assert(!srgb && !shadow);
-      return V3D_TMU_BLEND_TYPE_INVALID;
    case V3D_TMU_TYPE_R8I:
    case V3D_TMU_TYPE_R8UI:
    case V3D_TMU_TYPE_RG8I:
@@ -111,14 +108,13 @@ v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
    case V3D_TMU_TYPE_S16:
    case V3D_TMU_TYPE_YCBCR_LUMA:
    case V3D_TMU_TYPE_YCBCR_420_CHROMA:
-      assert(!srgb && !shadow);
-      return V3D_TMU_BLEND_TYPE_INVALID;
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP16:
-   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH_COMP32F:
+#endif
+   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH24_X8:
-      assert(!srgb);
-      return shadow ? V3D_TMU_BLEND_TYPE_FLOAT16 : V3D_TMU_BLEND_TYPE_INVALID;
+      return V3D_TMU_BLEND_TYPE_INVALID;
    default:
       unreachable();
       return V3D_TMU_BLEND_TYPE_INVALID;
@@ -183,9 +179,11 @@ GFX_LFMT_T v3d_get_tmu_blend_fmt(
    case V3D_TMU_TYPE_RG32F:
    case V3D_TMU_TYPE_RGBA32F:
    // Depth types when shadow compare is disabled
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP16:
-   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH_COMP32F:
+#endif
+   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH24_X8:
       /* Note that HW does not supporting blending of these types, even though
        * when !output_32 we convert to float16 before the blend pipeline stage */
@@ -206,11 +204,11 @@ GFX_LFMT_T v3d_get_tmu_blend_fmt(
 /* Get the number of words required to return num_channels channels of data
  * from the TMU with the specified configuration */
 static uint32_t get_num_words(uint32_t num_channels,
-   v3d_tmu_type_t type, bool coefficient, bool output_32)
+   v3d_tmu_type_t type, bool output_32)
 {
    uint32_t half_words_per_channel;
-   if (!coefficient && ((type == V3D_TMU_TYPE_S8) || (type == V3D_TMU_TYPE_S16)))
-      /* Output type ignored for S8/S16 (unless in coefficient-fetch mode)... */
+   if ((type == V3D_TMU_TYPE_S8) || (type == V3D_TMU_TYPE_S16))
+      /* Output type ignored for S8/S16... */
       half_words_per_channel = 2;
    else
       half_words_per_channel = output_32 ? 2 : 1;
@@ -232,9 +230,11 @@ uint32_t v3d_tmu_get_num_channels(v3d_tmu_type_t type)
    case V3D_TMU_TYPE_R16F:
    case V3D_TMU_TYPE_R16I:
    case V3D_TMU_TYPE_R16UI:
+#if !V3D_HAS_TMU_R32F_R16_SHAD
    case V3D_TMU_TYPE_DEPTH_COMP16:
-   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH_COMP32F:
+#endif
+   case V3D_TMU_TYPE_DEPTH_COMP24:
    case V3D_TMU_TYPE_DEPTH24_X8:
    case V3D_TMU_TYPE_R4:
    case V3D_TMU_TYPE_R1:
@@ -313,13 +313,13 @@ uint32_t v3d_tmu_get_num_channels(v3d_tmu_type_t type)
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
 
-bool v3d_tmu_auto_output_32(
-   v3d_tmu_type_t type, bool shadow, bool coefficient)
+bool v3d_tmu_auto_output_32(v3d_tmu_type_t type, bool shadow)
 {
-   /* type/shadow ignored when in coefficient-fetch mode -- the default output
-    * type is always F16 */
-   if (coefficient)
+   if (shadow)
+   {
+      assert(v3d_tmu_type_supports_shadow(type));
       return false;
+   }
 
    switch (type)
    {
@@ -366,28 +366,6 @@ bool v3d_tmu_auto_output_32(
    case V3D_TMU_TYPE_C_ASTC_10X10:
    case V3D_TMU_TYPE_C_ASTC_12X10:
    case V3D_TMU_TYPE_C_ASTC_12X12:
-      assert(!shadow);
-      return false;
-   case V3D_TMU_TYPE_R16:
-   case V3D_TMU_TYPE_R16_SNORM:
-   case V3D_TMU_TYPE_RG16:
-   case V3D_TMU_TYPE_RG16_SNORM:
-   case V3D_TMU_TYPE_RGBA16:
-   case V3D_TMU_TYPE_RGBA16_SNORM:
-   case V3D_TMU_TYPE_R32F:
-   case V3D_TMU_TYPE_RG32F:
-   case V3D_TMU_TYPE_RGBA32F:
-      assert(!shadow);
-      return true;
-   case V3D_TMU_TYPE_DEPTH_COMP16:
-   case V3D_TMU_TYPE_DEPTH_COMP24:
-   case V3D_TMU_TYPE_DEPTH_COMP32F:
-   case V3D_TMU_TYPE_DEPTH24_X8:
-      return !shadow;
-   case V3D_TMU_TYPE_S8:
-   case V3D_TMU_TYPE_S16:
-      /* Output type should have no effect on S8/S16 */
-      return false;
    case V3D_TMU_TYPE_R8I:
    case V3D_TMU_TYPE_RG8I:
    case V3D_TMU_TYPE_RGBA8I:
@@ -401,16 +379,31 @@ bool v3d_tmu_auto_output_32(
    case V3D_TMU_TYPE_RG16UI:
    case V3D_TMU_TYPE_RGBA16UI:
    case V3D_TMU_TYPE_RGB10_A2UI:
-      assert(!shadow);
       return false;
+   case V3D_TMU_TYPE_R16:
+   case V3D_TMU_TYPE_R16_SNORM:
+   case V3D_TMU_TYPE_RG16:
+   case V3D_TMU_TYPE_RG16_SNORM:
+   case V3D_TMU_TYPE_RGBA16:
+   case V3D_TMU_TYPE_RGBA16_SNORM:
+   case V3D_TMU_TYPE_R32F:
+   case V3D_TMU_TYPE_RG32F:
+   case V3D_TMU_TYPE_RGBA32F:
+   case V3D_TMU_TYPE_DEPTH_COMP16:
+   case V3D_TMU_TYPE_DEPTH_COMP24:
+   case V3D_TMU_TYPE_DEPTH_COMP32F:
+   case V3D_TMU_TYPE_DEPTH24_X8:
    case V3D_TMU_TYPE_R32I:
    case V3D_TMU_TYPE_RG32I:
    case V3D_TMU_TYPE_RGBA32I:
    case V3D_TMU_TYPE_R32UI:
    case V3D_TMU_TYPE_RG32UI:
    case V3D_TMU_TYPE_RGBA32UI:
-      assert(!shadow);
       return true;
+   case V3D_TMU_TYPE_S8:
+   case V3D_TMU_TYPE_S16:
+      /* Output type should have no effect on S8/S16 */
+      return false;
    default:
       unreachable();
       return false;
@@ -423,29 +416,22 @@ uint32_t v3d_tmu_get_word_read_default(
    /* In cfg=0 mode, TMU returns as many words as are needed to cover all
     * channels present in texture data... */
    return get_num_words(v3d_tmu_get_num_channels(type),
-      type, /*coefficient=*/false,
-      !misccfg_ovrtmuout &&
-         v3d_tmu_auto_output_32(type, /*shadow=*/false, /*coefficient=*/false));
+      type, !misccfg_ovrtmuout && v3d_tmu_auto_output_32(type, /*shadow=*/false));
 }
 
 #endif
 
-uint32_t v3d_tmu_get_word_read_max(
-   v3d_tmu_type_t type, bool coefficient, bool gather,
-   bool output_32)
+uint32_t v3d_tmu_get_word_read_max(v3d_tmu_type_t type, bool gather, bool output_32)
 {
-   /* Enabling both gather and coefficient-fetch doesn't make sense... */
-   assert(!coefficient || !gather);
-
    /* Full 4 channels available in all cases except for regular S8/S16 lookup... */
    uint32_t num_channels;
-   if (!coefficient && !gather &&
+   if (!gather &&
       ((type == V3D_TMU_TYPE_S8) || (type == V3D_TMU_TYPE_S16)))
       num_channels = 1;
    else
       num_channels = 4;
 
-   return get_num_words(num_channels, type, coefficient, output_32);
+   return get_num_words(num_channels, type, output_32);
 }
 
 bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type)
@@ -594,13 +580,34 @@ static void set_wraps(struct v3d_tmu_cfg *cfg,
    cfg->wrap_r = wrap_r;
 }
 
-/* cfg->dims, cfg->array, and cfg->cube must be set! */
+/* cfg->dims, cfg->array, cfg->fetch and cfg->cube must be set! */
 static void set_whd_elems(struct v3d_tmu_cfg *cfg,
    uint32_t raw_width, uint32_t raw_height, uint32_t raw_depth)
 {
-   cfg->width = raw_width;
-   assert((cfg->dims > 1) || (raw_height == 1)); /* HW requires height to be set to 1 for 1D images */
-   cfg->height = raw_height;
+   if (cfg->dims == 1)
+   {
+#if V3D_HAS_LARGE_1D_TEXTURE
+      uint32_t low = gfx_pack_uint_0_is_max(raw_width, V3D_MAX_TEXTURE_DIM_BITS);
+      uint32_t high = gfx_pack_uint_0_is_max(raw_height, V3D_MAX_TEXTURE_DIM_BITS);
+
+      if (low == 0 && high == 0)
+         cfg->width = 1 << (2 * V3D_MAX_TEXTURE_DIM_BITS);
+      else
+         cfg->width =  low | (high << V3D_MAX_TEXTURE_DIM_BITS);
+
+      assert((!cfg->fetch && cfg->width <= (1 << V3D_MAX_TEXTURE_DIM_BITS)) ||
+             (cfg->fetch && cfg->width <= (1 << (2 * V3D_MAX_TEXTURE_DIM_BITS))));
+#else
+      assert(raw_height == 1); /* HW requires height to be set to 1 for 1D images */
+      cfg->width = raw_width;
+#endif
+      cfg->height = 1;
+   }
+   else
+   {
+      cfg->width = raw_width;
+      cfg->height = raw_height;
+   }
    cfg->depth = (cfg->dims > 2) ? raw_depth : 1;
 
    cfg->num_array_elems = cfg->array ? raw_depth : 1;
@@ -656,6 +663,7 @@ static void raw_bcolour(struct v3d_tmu_cfg *cfg,
          cfg->bcolour.u.ui16[2] = (uint16_t)bcolour[1];
          cfg->bcolour.u.ui16[3] = (uint16_t)(bcolour[1] >> 16);
 #endif
+#if !V3D_HAS_SE15_BORDER
          if ((cfg->bcolour.fmt & ~GFX_LFMT_TYPE_MASK) == GFX_LFMT_R15X1_G15X1_B15X1_A15X1)
          {
             /* Top 2 bits of each channel *must* match as unlike penrose,
@@ -667,6 +675,7 @@ static void raw_bcolour(struct v3d_tmu_cfg *cfg,
             for (unsigned i = 0; i != 4; ++i)
                assert((((cfg->bcolour.u.ui16[i] >> 14) ^ (cfg->bcolour.u.ui16[i] >> 15)) & 1) == 0);
          }
+#endif
          break;
       case GFX_LFMT_R32_G32_B32_A32:
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -698,9 +707,7 @@ static void raw_bcolour(struct v3d_tmu_cfg *cfg,
 static void calc_miplvls_and_minlvl(struct v3d_tmu_cfg *cfg)
 {
    /* minlvl and miplvls indicate the range of mip levels that the hardware
-    * might access. Note that in coefficient mode, the hardware will never
-    * actually access any memory, but we still set minlvl/miplvls as if it
-    * would. */
+    * might access. */
 
    assert(cfg->min_lod <= cfg->max_lod);
 
@@ -857,7 +864,7 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    {
    case V3D_TMU_OP_CLASS_REGULAR:
       out_words = cfg->is_write ? 0 : v3d_tmu_get_word_read_max(
-         cfg->type, cfg->coefficient, cfg->gather, cfg->output_32);
+         cfg->type, cfg->gather, cfg->output_32);
       break;
    case V3D_TMU_OP_CLASS_ATOMIC:
       out_words = 1;
@@ -907,9 +914,6 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
 #else
       assert((cfg->mipfilt == V3D_TMU_MIPFILT_BASE) || (cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST));
 #endif
-
-      /* Doesn't make sense to enable both gather and coefficient mode */
-      assert(!cfg->coefficient);
    }
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -943,7 +947,9 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
       assert(!cfg->bslod); /* fetch essentially implies bslod. Don't set them together. */
       assert(!cfg->shadow); /* Shadow compare not supported with fetch */
       assert(!cfg->gather);
-      assert(!cfg->coefficient);
+#if V3D_HAS_TMU_LOD_QUERY
+      assert(!cfg->lod_query);
+#endif
    }
 
    if (cfg->aniso_level != 0)
@@ -977,6 +983,11 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    if ((cfg->op != V3D_TMU_OP_REGULAR) || cfg->is_write)
       /* Only support atomic/cache/write ops with fetch config */
       assert(cfg->fetch);
+
+#if !V3D_HAS_GFXH1638_FIX
+   if (cfg->op == V3D_TMU_OP_REGULAR && cfg->is_write)
+      assert(cfg->bytes_per_data_word == 4);
+#endif
 
    if (cfg->op_class == V3D_TMU_OP_CLASS_ATOMIC)
       assert(gfx_lfmt_bytes_per_block(cfg->mip_levels[0].planes[0].lfmt) == 4);
@@ -1107,13 +1118,15 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    {
       cfg->tmuoff_4x = written->off && p2->tmuoff_4x;
       cfg->bslod = p2->bslod;
-      cfg->coefficient = p2->coefficient;
-      cfg->coeff_sample = p2->coeff_sample;
+      cfg->sample_num = p2->sample_num;
       cfg->gather = p2->gather;
       cfg->tex_off_s = p2->offsets[0];
       cfg->tex_off_t = p2->offsets[1];
       cfg->tex_off_r = p2->offsets[2];
       cfg->op = p2->op;
+#if V3D_HAS_TMU_LOD_QUERY
+      cfg->lod_query = p2->lod_query;
+#endif
    }
    else
       cfg->op = V3D_TMU_OP_REGULAR;
@@ -1369,7 +1382,6 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->gather = p0->u.cfg1.gather;
       cfg->bias = p0->u.cfg1.bias;
       cfg->bslod = p0->u.cfg1.bslod;
-      cfg->coefficient = p0->u.cfg1.coefficient;
       cfg->shadow = p0->u.cfg1.shadow;
       set_wraps(cfg, p0->u.cfg1.wrap_s, p0->u.cfg1.wrap_t, p0->u.cfg1.wrap_r); /* Must be after cfg->dims & cfg->fetch set */
       cfg->tex_off_s = p0->u.cfg1.tex_off_s;
@@ -1395,7 +1407,6 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       memcpy(cfg->swizzles, ind->swizzles, sizeof(cfg->swizzles));
       cfg->flipx = ind->flipx;
       cfg->flipy = ind->flipy;
-      assert(ind->etcflip); /* We do not support etcflip=0 */
       bcolour[0] = (uint32_t)ind->bcolour;
       bcolour[1] = (uint32_t)(ind->bcolour >> 32);
       if (cfg->child_image)
@@ -1423,7 +1434,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
          cfg->max_lod = ind->u.not_child_image.max_lod;
          cfg->fixed_bias = ind->u.not_child_image.fixed_bias;
          cfg->base_level = ind->u.not_child_image.base_level;
-         cfg->coeff_sample = ind->u.not_child_image.samp_num;
+         cfg->sample_num = ind->u.not_child_image.samp_num;
          cfg->cwidth = cfg->width;
          cfg->cheight = cfg->height;
          output_type = misccfg->ovrtmuout ? ind->u.not_child_image.output_type : V3D_TMU_OUTPUT_TYPE_AUTO;
@@ -1438,8 +1449,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       unreachable();
    }
 
-   cfg->output_32 = v3d_tmu_output_type_32(output_type,
-      cfg->type, cfg->shadow, cfg->coefficient);
+   cfg->output_32 = v3d_tmu_output_type_32(output_type, cfg->type, cfg->shadow);
 
    calc_derived_texture(cfg);
 
@@ -1488,3 +1498,20 @@ void v3d_tmu_cfg_collect_general(struct v3d_tmu_cfg *cfg,
       unreachable();
    }
 }
+
+#if V3D_HAS_LARGE_1D_TEXTURE
+void v3d_tmu_get_wh_for_1d_tex_state(uint32_t *w, uint32_t *h,
+      uint32_t width_in)
+{
+   //split width_in in two 14 bit fields
+   uint32_t max_width = (1u << ( 2 * V3D_MAX_TEXTURE_DIM_BITS));
+   uint32_t mask = (1u << V3D_MAX_TEXTURE_DIM_BITS) - 1;
+
+   assert(width_in <= max_width);
+
+   *w = width_in & mask;
+   *h = (width_in >> V3D_MAX_TEXTURE_DIM_BITS) & mask;
+   *w = gfx_unpack_uint_0_is_max(*w, V3D_MAX_TEXTURE_DIM_BITS);
+   *h = gfx_unpack_uint_0_is_max(*h, V3D_MAX_TEXTURE_DIM_BITS);
+}
+#endif

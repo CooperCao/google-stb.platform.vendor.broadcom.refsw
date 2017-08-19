@@ -225,6 +225,7 @@ Voltage level for the smartcard interface
 typedef enum NEXUS_SmartcardVcc {
     NEXUS_SmartcardVcc_e5V = 0,   /* 5v is default value */
     NEXUS_SmartcardVcc_e3V = 1,   /* 3v */
+    NEXUS_SmartcardVcc_e1_8V = 2, /* 1.8v for TDA8034 only. */
     NEXUS_SmartcardVcc_eMax
 } NEXUS_SmartcardVcc;
 
@@ -236,8 +237,8 @@ typedef enum NEXUS_SmartcardConnection {
     NEXUS_SmartcardConnection_eTda8024,  /* Smartcard connected to the coupling chip TDA8024, which inturn in connected to the backend chip. */
     NEXUS_SmartcardConnection_eTda8034,  /* Smartcard connected to the coupling chip TDA8034, which inturn in connected to the backend chip. */
     NEXUS_SmartcardConnection_eDirect,   /* Smartcard is directly connected to the backend chip.
-                                                                            Custom circuit needs to be present on the board to protect the smartcard from power surges, etc. */
-    NEXUS_SmartcardConnection_eInternal, /* Coupling chip functionality integrated into the backedn chip. */
+                                            Custom circuit needs to be present on the board to protect the smartcard from power surges, etc. */
+    NEXUS_SmartcardConnection_eInternal, /* Deprecated. */
     NEXUS_SmartcardConnection_eMax
 } NEXUS_SmartcardConnection;
 

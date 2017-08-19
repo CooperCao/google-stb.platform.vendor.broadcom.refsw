@@ -41,6 +41,7 @@
 #include "bvc5.h"
 #include "bvc5_bin_mem_priv.h"
 #include "blst_queue.h"
+#include "bvc5_registers_priv.h"
 
 struct BVC5_P_JobDependentFence;
 
@@ -50,11 +51,10 @@ struct BVC5_P_JobDependentFence;
 typedef struct BVC5_P_SharedFenceInfo
 {
    bool           bSignalled;
-   uint32_t       uCountRef;        /* Reference count to know when to delete this struct */
+   uint32_t       uNumberRequiredSignaled;        /* Number of times the fence need to be signalled before deleting the struct */
    void           *pFenceSignalData;
    int            iFence;
 } BVC5_P_SharedFenceInfo;
-
 
 typedef struct BVC5_P_JobDependentFence
 {
@@ -89,6 +89,10 @@ typedef struct BVC5_P_InternalJob
 
    BVC5_JobStatus           eStatus;                  /* Returned in completion handler               */
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   uint64_t                 uiRenderStart;            /* handled via queue registers, so no state needed >= 3.3 */
+#endif
+
    union BVC5_P_InternalJobData
    {
       struct BVC5_P_InternalRender
@@ -109,6 +113,11 @@ typedef struct BVC5_P_InternalJob
          bool signaled;
          void *waitData;
       } sWait;
+
+      struct BVC5_P_InternalEvent
+      {
+         uint64_t eventId;
+      } sEvent;
    } jobData;
 
    /* Job list link data
@@ -174,6 +183,12 @@ BVC5_P_InternalJob *BVC5_P_JobCreateUsermode(
    BVC5_Handle              hVC5,
    uint32_t                 uiClientId,
    const BVC5_JobUsermode  *psJob
+);
+
+BVC5_P_InternalJob *BVC5_P_JobCreateSchedEvent(
+   BVC5_Handle              hVC5,
+   uint32_t                 uiClientId,
+   const BVC5_JobSchedJob  *psJob
 );
 
 void BVC5_P_JobDestroy(

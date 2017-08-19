@@ -971,6 +971,10 @@ static BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
+#ifdef BSAT_HAS_CONTEXT_SWITCH
+   int32_t pli, fli;
+   uint32_t P_hi, P_lo;
+#endif
 
    /* set agc tracking bw */
    BSAT_g1_P_SetAgcTrackingBw_isr(h);
@@ -989,7 +993,31 @@ static BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x0CFFFF00, 0x08481000);
    BSAT_g1_P_QpskSetOqpsk_isr(h);
 
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLI, 0x00000000),
+#ifdef BSAT_HAS_CONTEXT_SWITCH
+   /* enable the front carrier loop */
+   BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x00801000, BCHP_SDS_CL_0_CLCTL1_clen_MASK); /* fenfd =0, flfsel=0, clen=1 */
+
+   /* move back carrier loop's integrator to front carrier loop's integrator */
+   pli = (int32_t)(BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_CL_PLI));
+   if (pli < 0)
+      val = -pli;
+   else
+      val = pli;
+
+   BMTH_HILO_32TO64_Mul(val, hChn->acqSettings.symbolRate, &P_hi, &P_lo);
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->sampleFreq, &P_hi, &P_lo);
+
+   if (pli >= 0)
+      fli = (int32_t)P_lo;
+   else
+      fli = (int32_t)-P_lo;
+
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLI, fli);
+
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLI, 0x00000000);
+#endif /* BSAT_HAS_CONTEXT_SWITCH */
+
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLI, 0x00000000); /* clear back carrier loop's integrator */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x0000FF00, 0x00007100);  /*CLMISC2=0x71 */
 
    if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)

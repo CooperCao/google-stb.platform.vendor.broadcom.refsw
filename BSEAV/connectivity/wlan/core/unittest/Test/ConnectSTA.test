@@ -1,0 +1,265 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Join STA to AP, ping AP.  Assume that STA and AP are loaded, AP is up.
+#
+# Usage: ConnectSTA.test AP STA ap_ssid ap_bssid
+#
+set __doc__ "STA to AP connectivity test."
+set __author__ "Val Shkolnikov val.shkolnikov@broadcom.com"
+set __version__  {$Id: fecf81df75b21a9a53fb57cb9299a160d09cef65 $}
+
+package require UTF
+package provide UTF::Test::ConnectSTA 2.0
+
+UTF::Test ConnectSTA {AP STA ap_ssid ap_bssid args} {
+
+    # Unpack options.
+    UTF::Getopts {
+        {pingonly "Check connection to AP only."}
+        {join_atts.arg 3 "Number of join attempts"}
+    }
+
+    if {!$(pingonly)} {
+        # Join to AP.
+
+        # Make several attempts to join.
+	UTF::Message LOG $STA "-- Join with $AP --"
+	set stat "FAIL"
+
+	set SSID $ap_ssid
+        # Defaults
+	set amode open
+	set swsec 0
+	set auth 0
+	set (soft) 0
+	set (ampdu_density) ""
+	set (stasecurity) open
+	set (apmode) 0
+
+	set ap_security [$AP cget -security]
+	if {$ap_security ne ""} {
+	    set (stasecurity) $ap_security
+	    set WPAKEY [$AP cget -wpakey]
+	}
+
+	set (stasecurity) [join [lsort [split $(stasecurity) "+"]] "+"]
+
+	if {[regexp {^soft(.*)} $(stasecurity) - (stasecurity)]} {
+	    set (soft) 1
+	}
+	regsub {(wep|shared)(?:64|128)} $(stasecurity) {\1} (stasecurity)
+
+	switch $(stasecurity) {
+	    open {
+	    }
+	    wep {
+		set swsec 1
+	    }
+	    shared {
+		set swsec 1
+		set amode shared
+	    }
+	    tkippsk {
+		set swsec 2
+		set amode wpapsk
+	    }
+	    tkippsk2 {
+		set swsec 2
+		set amode wpa2psk
+	    }
+	    aespsk {
+		set swsec 4
+		set amode wpapsk
+	    }
+	    aespsk2 {
+		set swsec 4
+		set amode wpa2psk
+	    }
+	    aespsk+tkippsk {
+		set swsec 6
+		set amode wpapsk
+	    }
+	    aespsk2+tkippsk2 {
+		set swsec 6
+		set amode wpa2psk
+	    }
+	    aespsk+tkippsk+wep {
+		set swsec 7
+		set amode wpapsk
+	    }
+	    aespsk2+tkippsk2+wep {
+		set swsec 7
+		set amode wpa2psk
+	    }
+	    default {
+		error "Illegal -stasecurity $(stasecurity)"
+	    }
+	}
+	if {$(soft)} {
+	    incr swsec 8
+	}
+	#if {$(apsoft)} {
+	#    set awsec [$AP wl wsec]
+	#    incr awsec 8
+	#    $AP wl wsec $awsec
+	#    unset awsec
+	#}
+
+	set wsec $swsec
+	if {[$STA hostis Cygwin WinDHD]} {
+	    # MSFT requires all *weaker* securities to be set, so fill
+	    # in bits to the right...
+	    for {set a [expr {$wsec >> 1}]} {$a} {set a [expr {$a >> 1}]} {
+		set wsec [expr {$wsec | $a}]
+	    }
+	}
+
+#	if {$(ipaddr) ne ""} {
+#	    set ipaddr $(ipaddr)
+#	} else {
+#	    set ipaddr [$STA lan cget -ipaddr]
+#	}
+
+	UTF::Message INFO $STA "join SSID $SSID with $(stasecurity)"
+
+	$STA wl -u radio on
+	# radio on being unsupported is ok, since we have to
+	# assume the radio is then already on.
+
+	# wl ap is a global and is not safe to change in apsta
+	# mode.  If there are virtual interfaces then we'll just
+	# have to assume virtual interfaces are already in the
+	# right mode.
+	if {[catch {$STA wl apsta} ret] || $ret eq "0"} {
+	    if {$(apmode)} {
+		$STA wl ap 1
+	    } else {
+		$STA wl -u ap 0
+		# ap being unsupported is ok, since we have to
+		# assume this is a STA only device.
+	    }
+	}
+
+	if {$(ampdu_density) ne ""} {
+	    $STA wl down
+	    $STA wl ampdu_density $(ampdu_density)
+	}
+	$STA wl up
+	if {$(apmode)} {
+	    # wpa_auth and AP-mode join both expect bss to be down
+	    $STA wl bss down
+	}
+
+	$STA wl wsec $wsec
+	# Need to explicitly disable WPA, otherwise power save may not work
+	# It will be re-enabled by join if needed.
+	$STA wl -u wpa_auth 0
+	$STA wl msglevel +assoc
+
+	if {!$(apmode) &&
+	    (![$STA hostis Cygwin WinDHD] || [regexp {^5} [$STA cget -osver]])} {
+	    # sup_wpa is deprecated in WinVista and later
+	    if {[regexp {psk} $amode]} {
+		# enable internal supplicant before we set any keys
+		$STA wl sup_wpa 1
+	    } else {
+		# We're turning the supplicant off, so non-supported is ok
+		if {[catch {$STA wl -u sup_wpa 0} ret] &&
+		    ![regexp {Not STA} $ret]} {
+		    error $ret $::errorInfo
+		}
+	    }
+	}
+	if {[regexp {psk} $amode]} {
+	    # Either internal or os-provided supplicant should be
+	    # available at this point.
+	    $STA wl set_pmk "\"$WPAKEY\""
+	}
+
+	# Retry join if not associated in case of collision
+	for {set joins 1} {1} {incr joins} {
+	    if {$joins > 1} {
+		UTF::Message WARN [$STA cget -name] "Not Associated: attempt $joins"
+	    }
+	    # Don't set wep keys unless wep is the only security setting
+	    if {($wsec & 0xf) == 1 && $WEPKEY ne ""} {
+		if {$WEPIDX == 0} {
+		    # Add wep keys inside join, if possible, for Vista compat
+		    $STA wl join $SSID key $WEPKEY imode bss amode $amode
+		} elseif {([$STA hostis Cygwin WinDHD]) &&
+			  [regexp {^6} [$STA cget -osver]]} {
+		    # Vista
+		    $STA wl join $SSID key $WEPIDX:$WEPKEY imode bss amode $amode
+		} else {
+		    $STA wl join $SSID imode bss amode $amode
+		    # Add wep keys after join: WAR for PR 44826
+		    $STA wl addwep $WEPIDX $WEPKEY
+		}
+	    } else {
+		$STA wl join $SSID imode bss amode $amode
+	    }
+
+	    UTF::Sleep 10
+	    UTF::Message LOG $STA "-- Check join result --"
+	    if {[catch {$STA wl bssid} sta_bssid]} {
+	        if {![string match "* Not Associated" $sta_bssid ] ||
+	          $joins >= $(join_atts)} {
+	            error $sta_bssid $::errorInfo
+	        }
+	    } else {
+	        break
+	    }
+	}
+
+	if {$sta_bssid eq "00:00:00:00:00:00"} {
+	    UTF::Message WARN [$STA cget -name] "Null BSSID: retry"
+	    UTF::Sleep 10
+	    set sta_bssid [$STA wl bssid]
+	}
+	if {$sta_bssid eq "00:00:00:00:00:00"} {
+	    throw FAIL "Roaming"
+	}
+
+	set sta_ssid [$STA wl ssid]
+	set sta_rssi [$STA wl rssi]
+
+	if {$ap_ssid != $sta_ssid} {
+	    throw FAIL \
+		"$AP SSID mismatch at $STA, expect $ap_ssid, got $sta_ssid."
+	}
+	if {$ap_bssid != $sta_bssid} {
+	    throw FAIL \
+		"$AP BSSID mismatch at $STA, expect $ap_bssid, got $sta_bssid."
+	}
+	UTF::Message LOG $STA \
+	    "Joined $AP, SSID=$sta_ssid, BSSID=$sta_bssid, RSSI=$sta_rssi."
+
+        # End join to AP.
+    }
+
+    UTF::Message LOG $STA "-- Check connection to $AP --"
+
+    # Find configured AP wireless address.
+    if {[$AP hostis Router]} {
+	# Can't check bridge config without touching the Roputer
+	# hardware.  Assume only one bridge.
+	if {![regexp {lan_ipaddr=(.*)} \
+		  [lsearch -inline [UTF::decomment [$AP cget -nvram]] lan_ipaddr=*] \
+		  - ap_ipaddr]} {
+	    set ap_ipaddr "192.168.1.1"
+	}
+    } else {
+	set ap_ipaddr [$AP cget -ipaddr]
+    }
+
+    # Set STA wireless address.
+    set sta_ipaddr [$STA cget -ipaddr]
+    $STA ifconfig $sta_ipaddr
+    # Check connection from STA to AP.
+    if { [catch {$STA ping $ap_ipaddr}] } {
+        throw FAIL "$STA cannot ping $AP ($ap_ipaddr)."
+    } else {
+        UTF::Message LOG $STA "Connected to $AP."
+    }
+}

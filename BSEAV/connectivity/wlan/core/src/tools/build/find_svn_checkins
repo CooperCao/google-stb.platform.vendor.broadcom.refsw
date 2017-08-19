@@ -1,0 +1,401 @@
+#!/usr/local/bin/perl
+#
+# Script to show SVN checkin given a file or user name or branch
+# Meant to be used by build scripts for blame list generation
+#
+# Author: Prakash Dhavali
+# Contact: hnd-software-scm-list
+#
+# $Id: find_svn_checkins,v 12.4 2011/02/28 21:31:28 prakashd Exp $
+#
+# SVN: $HeadURL$
+#
+use strict;
+use POSIX qw(strftime);
+
+my $NULL="/dev/null";
+
+my $SVNROOT="http://svn.sj.broadcom.com/svn/wlansvn/proj";
+my $srctree="/projects/hnd_software/gallery/src_tree.txt";
+my $dbg=0;
+my $arg;
+my $noheader;     # Do not display list/table header in output
+my $tag;          # Limit search to this tag or branch
+my $parent_branch;# Derived parent branch/twig name from tag
+my $reportnum= 10;# Search for only last 15 days for checkins
+my $limitnum=3;   # Fetch only last $limitnum svn log records
+my $showall=0;    # Override showfilecnt limitation
+my $svnuser;      # User who updated the svn file.version
+my $svnfile;      # Who modified this svn file
+my %svnfiles;     # Hash linking files checked in -> users
+my $start=0;
+my $help=0;       # Show help text
+my @findfiles;    # Find who checked in this file last
+my @findusers;    # TODO: Find what files were checked in by these users
+my $verbose=0;    # Increase verbosity
+my $bldmodules=0; # Show only modules that are sw build related
+#disabled# my $search_string;# String/keyword to search
+my $uname=`uname -s 2> $NULL`;
+my $pathpfx="Z:" if ($uname =~ /cygwin/gi);
+my $svncmd="svn --non-interactive";
+
+my $lastseconds;
+my $tz;
+my $nowtime;
+my $prevtime;
+my $cutoff_time;
+
+my @swBuildModules = (
+	'src/8021x',
+	'src/apps',
+	'src/bcmcrypto',
+	'src/bcmsdio',
+	'src/bwl',
+	'components/cfe',
+	'src/components',
+	'src/customer',
+	'src/dhd',
+	'src/dongle',
+	'src/eCos',
+	'src/ecos',
+	'components/emf',
+	'src/epiprot',
+	'components/et',
+	'src/hndcvs',
+	'src/hndrte',
+	'src/include',
+	'src/linux',
+	'src/linuxdev',
+	'src/makefiles',
+	'src/netbsd',
+	'src/router',
+	'src/rts',
+	'src/sdpcmdev',
+	'src/ses',
+	'src/shared',
+	'src/swapps',
+	'src/symbian',
+	'src/symbian',
+	'src/toe',
+	'src/tools/build',
+	'src/tools/install',
+	'src/tools/release',
+	'src/tools/misc',
+	'src/tools/mfgc',
+	'src/tools/Wifi_ASD_test',
+	'src/usbdev',
+	'src/wapi',
+	'src/wl',
+	'src/wps',
+);
+my $swBuildModules = join('|', @swBuildModules);
+
+# Debug ()
+sub Dbg {
+        my ($msg) = @_;
+
+        return if (!$dbg);
+
+        print "DBG: $msg\n";
+} # Dbg()
+
+# Process cmd line args (instead of using getopt)
+sub processArgs {
+	while ($ARGV[0]) {
+		#print "Processing arg : $arg\n";
+
+		$arg = shift @ARGV;
+		if ($arg =~ /^-(f|file)/) {
+			# Search who checked in these files
+			my $findfile = shift @ARGV;
+			# $findfile =~ s/\./\\./; # Don't treat "." as wildcard
+			push(@findfiles, "$findfile");
+			next;
+		} elsif ($arg =~ /^-(u|user)/) {
+			# Search what was checked in by these users
+			#disabled# push(@findusers, shift @ARGV);
+			next;
+		} elsif ($arg =~ /^-(r|rev)/) {
+			# Limit the search to this revision or tag or branch
+			$tag = shift @ARGV;
+			next;
+		} elsif ($arg =~ /^-(c|cutoff)/) {
+			# Cutoff time
+			$cutoff_time = shift @ARGV;
+			next;
+		} elsif ($arg =~ /^-noheader/) {
+			# Suppress header row display
+			$noheader = 1;
+			next;
+		} elsif ($arg =~ /^-n/) {
+			# Limit the search only to last 'n' days
+			$reportnum = shift @ARGV;
+			next;
+		} elsif ($arg =~ /^-l/) {
+			# Set limit to number of log records
+			$limitnum = shift @ARGV;
+			next;
+		} elsif ($arg =~ /^-(d|dbg|debug)/) {
+			# Enable debug mode
+			print "DBG: Enabling debug mode\n";
+			$dbg = 1;
+			next;
+		} elsif ($arg =~ /^-(a|all)/) {
+			# For each file, show <default> number of checkins
+			# default is last 5 checkins by any user
+			$showall = 1;
+			next;
+		} elsif ($arg =~ /^-(b|bldmodules|buildmodules)/) {
+			# Restrict output to only build modules
+			$bldmodules = 1;
+			next;
+		} elsif ($arg =~ /^-(v|verbose)/) {
+			# Enable verbose mode (e.g. to see svn revs)
+			$verbose = 1;
+			next;
+		} elsif ($arg =~ /^-(s|search)/) {
+			#disabled# # Search string in cvs reports
+			#disabled# $search_string = shift @ARGV;
+			#disabled# next;
+		} elsif ($arg =~ /^--?(h|help)/) {
+			# Show help
+			$help = 1;
+			next;
+		}
+		# All other options are unknown and ignored
+		if ($arg =~ /^-/) {
+			print "WARN:\n";
+			print "WARN: Option $arg not recognized. Skipping\n";
+			print "WARN:\n";
+			next;
+		}
+	} # while
+
+} # processArgs()
+
+# 1. Given a file, list who all changed it
+sub searchSvnLog {
+	my $svnurl;
+	my @srctree_wlansw;
+	my @filepaths;    # Fully quaified paths for the files to search
+
+	#@srctree_wlansw = qx(egrep "$swBuildModules" $srctree));
+
+	foreach my $file (@findfiles) {
+		if ($file =~ m%/%) {
+			push(@filepaths, $file);
+		} else {
+			push(@filepaths, qx(grep '/$file\$' $srctree 2> $NULL));
+		}
+	}
+
+	foreach my $filepath (@filepaths) {
+		next unless ($filepath =~ /$swBuildModules/);
+		chomp($filepath);
+		#print "file: $filepath\n";
+		#print "tag: $tag\n";
+		if (!$tag || ($tag =~ /trunk/i)) {
+			$svnurl="$SVNROOT/trunk";
+		} elsif ($tag =~ /_REL_/) {
+			my $tagprefix=(split(/_/,$tag))[0];
+			$svnurl="$SVNROOT/tags/$tagprefix/$tag";
+		} elsif ($tag =~ /_BRANCH_|_TWIG_/) {
+			$svnurl="$SVNROOT/branches/$tag";
+		}
+
+		#print "svn log -q --limit $limitnum $svnurl/$filepath\n";
+		#system("svn log -q --limit $limitnum --xml $svnurl/$filepath | grep '<author>'");
+		# r227868 | alwin | 2011-01-07 07:43:19 -0800 (...)
+		# prakashd  02/16 12:11  src/tools/build/build_dslcpe.sh
+		# This works!
+		# svn log -q -r{"2011-02-01 00:00:00"}:{"2011-02-15 00:00:00"} $url  branches/KIRIN_BRANCH_5_100/src/wl/sys/wlc.c
+
+		my $svnlogcmd = "$svncmd log -q --limit $limitnum -r{'$nowtime'}:{'$prevtime'} $svnurl/$filepath";
+
+		&Dbg("Svn Log Cmd = $svnlogcmd");
+
+		open(SVNLOG,"$svnlogcmd 2> $NULL|") || die "Can't run svn log on $filepath";
+		while (<SVNLOG>) {
+			next if /^([-])+$/;
+			chomp;
+			my ($rev, $author, $date, $time, $tz) = ($_ =~ /(r\d+)\s*\|\s*([^ ]*)\s*\|\s*([^ ]*)\s*([^ ]*)\s*([^ ]*)\s*/);
+			$date =~ /(\d{4})-(\d{2})-(\d{2})/;
+			$date = "$2/$3";
+			$time =~ /(\d{2}):(\d{2})/;
+			$time = "$1:$2";
+			#print "$author $rev $date $time $filepath\n";
+			if ($author) {
+				my $svnfile = sprintf("%10s  %-19s  %s",$author, "$rev  $date $time",$filepath);
+				#print "svnfile = $svnfile\n";
+				$svnfiles{$rev}=$svnfile;
+			}
+		}
+	}	
+} # searchSvnLog()
+
+# Show header or tail row for final output
+sub printBorders {
+	my($end) = shift;
+	my ($svntag);
+
+	$svntag = ($tag eq "HEAD") ? "TRUNK" : "$tag";
+
+	if (!$noheader) {
+		if ($end =~ /head/) {
+			printf "  %10.10s %-20.20s  %s\n","USER ","REVISION DATE  TIME","FILE (on $svntag)"
+		}
+		print "  ","=" x 9,"  ","=" x 20,"  ","=" x 40,"\n";
+	}
+} # printBorders()
+
+# Now print all svnfiles changed for $reportnum limit
+sub showFiles {
+
+	printBorders("header");
+
+ 	foreach my $rev (sort {$b cmp $a} keys %svnfiles) {
+ 		$svnfile = $svnfiles{$rev};
+ 		$svnfile =~ s%\\\.%.%g;
+ 		printf " %s\n", $svnfile;
+ 	}
+
+	printBorders("tail");
+
+} # showFiles()
+
+# Usage text
+sub Usage {
+	if ($help) {
+		print "Usage: $0 <options> logfile ...\n";
+		print "Available Options:\n";
+		print " [-r <tag>]\n";
+		print "   Search svn checkins in tag (default: HEAD)\n";
+		print " [-f <file-or-string-to-search>]\n";
+		print "   Search this file or string in svnreports (default:none)\n";
+		#todo# print " [-u <find_this_user's checkins>]\n";
+		#todo# print "   Search this user's checkins (default:all)\n";
+		print " [-noheader]\n";
+		print "   Suppress header row in output (default: header on)\n";
+		print " [-n <search-in-last-svn-days>]\n";
+		print "   Search svn checkins in last n svn days (default: 10)\n";
+		print " [-l <limit-last-svn-log-entries>]\n";
+		print "   Show last 'l' svn svn log entries (default: 5)\n";
+		print " [-b|buildmodules]\n";
+		print "   Show only modules that impact s/w builds (default: all)\n";
+		print " [-a|all]\n";
+		print "   By default only today's or last five svn checkins\n";
+		print "   per file are shown. Use this flag to override\n";
+		print "   (default: show last 5 svn hits per file)\n";
+		print " [-help]\n\n";
+		print "NOTE: multiple -f or -u options can be specified\n";
+		print "Examples:\n";
+		print "1. Find recent checkins on TOT for wlc.c\n";
+		print "   \"find_svn_checkins -f src/wl/sys/wlc.c\"\n";
+		print "2. Find prakashd's recent checkins on TOT in src/wl/sys\n";
+		print "   \"find_svn_checkins -u prakashd -f src/wl/sys\"\n";
+		print "3. Find prakashd's and abhorkar's checkin matching src/wl/sys/wlc.c for last five days\n";
+		print "   \"find_svn_checkins -u prakashd -u abhorkar -f src/wl/sys -n 5\"\n";
+		print "4. Find today's all checkins on TOT\n";
+		print "   \"find_svn_checkins -a\"\n";
+		print "5. Find all checkins on TOT from last two days\n";
+		print "   \"find_svn_checkins -a -n 7\"\n";
+		print "6. Find prakashd's checkins on PBR_BRANCH_5_10\n";
+		print "   \"find_svn_checkins -u prakashd -r PBR_BRANCH_5_10\"\n";
+		exit(0);
+	}
+
+} # Usage()
+
+# Try to derive branchname from tag
+sub getBranchFromTag {
+	my $tag = shift;
+
+	my $parent_branch = $tag; # Set parent to be same as tag to start
+
+	if ($tag =~ /_REL_/) {
+		my $program = "";
+		my $keyword = "";
+		my $major   = "";
+		my $minor   = "";
+		my $bld     = "";
+		my $iter    = "";
+		($program,$keyword,$major,$minor,$bld,$iter) = split(/_/,$tag);
+		Dbg("Tag Compoents: $program,$major,$minor,$bld,$iter");
+		$bld  =~ s/RC//gi;
+		$iter =~ s/RC//gi;
+		if ($iter =~ /\d+/) {
+			if (($major =~ /\d+/) &&
+				($minor =~ /\d+/) &&
+				($bld =~ /\d+/)) {
+				$parent_branch  = "$program"."_";
+				$parent_branch .= "TWIG"."_";
+				$parent_branch .= "$major"."_";
+				$parent_branch .= "$minor"."_";
+				$parent_branch .= "$bld";
+			}
+		} elsif ($bld =~ /\d+/) {
+			if (($major =~ /\d+/) &&
+				($minor =~ /\d+/)) {
+				$parent_branch  = "$program"."_";
+				$parent_branch .= "BRANCH"."_";
+				$parent_branch .= "$major"."_";
+				$parent_branch .= "$minor";
+			}
+		}
+	}
+	return("$parent_branch");
+
+} # getBranchFromTag()
+
+# Main routine. Starting point
+sub Main {
+
+	# Process cmd line args
+	processArgs;
+
+	# Time lapse in seconds for requested number of days
+	$lastseconds = $reportnum * 24 * 60 * 60;
+	# Local timezone
+	$tz          = qx(date '+%z'); chomp($tz);
+
+	# nowtime ans prevtime are used as two revs to pass to svn log
+	if ($cutoff_time) {
+		$nowtime = $cutoff_time;
+	} else {
+		$nowtime = strftime("%Y-%m-%d %H:%M:%S",localtime(time));
+		$nowtime = "$nowtime $tz";
+	}
+	$prevtime    = strftime("%Y-%m-%d %H:%M:%S",localtime(time()-$lastseconds));
+	$prevtime    = "$prevtime $tz";
+
+	# If no tag is specified, use trunk
+	$tag = "TRUNK" if (!$tag || ($tag =~ /^(NIGHTLY|TOT|TRUNK|HEAD)$/));
+
+	# TODO: this is not used
+	$parent_branch = getBranchFromTag($tag);
+	Dbg("Derived parent_branch=$parent_branch from $tag");
+
+	# If user doesn't specify how many number of svn logs to pull
+	# Set some defaults
+	if (!$limitnum) {
+		if (@findfiles || @findusers) {
+			$limitnum = 3;
+		} else {
+			$limitnum = 5;
+		}
+	}
+
+	# Do not treat .<suffix> as wildcard, escape "."
+	@findfiles = map {$_ =~ s/\./\\\./; $_} @findfiles;
+
+	Usage() if ($help);
+
+	# Extra file,user,version,date info from svn log
+	searchSvnLog;
+
+	# Show svn checkins for @findfiles (default)
+	showFiles;
+
+} # Main()
+
+Main();

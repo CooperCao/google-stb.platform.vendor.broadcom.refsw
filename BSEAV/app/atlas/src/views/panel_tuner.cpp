@@ -211,7 +211,7 @@ void CPanelTuner::layout()
     MRect    rectGridTitle = _pGridTitle->getGeometry();
     MRect    rectGrid      = _pGrid->getGeometry();
     MRect    rectPanel     = getGeometry();
-    uint16_t gridMargin    = 7;
+    unsigned gridMargin    = 7;
     MRect    rectPropsListView;
 
     /* layout properties menu */

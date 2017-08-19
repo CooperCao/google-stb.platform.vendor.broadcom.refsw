@@ -55,7 +55,7 @@ class CStillDecode : public CResource
 public:
     CStillDecode(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CStillDecode(void);

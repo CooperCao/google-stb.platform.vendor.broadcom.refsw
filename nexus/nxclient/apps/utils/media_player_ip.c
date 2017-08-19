@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -159,7 +159,7 @@ static void b_print_media_string(const bmedia_probe_stream *stream)
 void playbackIpEventCallback(void *appCtx, B_PlaybackIpEventIds eventId)
 {
     media_player_ip_t player = appCtx;
-    BDBG_MSG (("%s: Got EventId %d from IP library, appCtx %p, eof CB %p, ctx %p", __FUNCTION__, eventId, appCtx, (void *)(unsigned long)player->parent->start_settings.eof, player->parent->start_settings.context));
+    BDBG_MSG (("%s: Got EventId %d from IP library, appCtx %p, eof CB %p, ctx %p", BSTD_FUNCTION, eventId, appCtx, (void *)(unsigned long)player->parent->start_settings.eof, player->parent->start_settings.context));
     if (eventId == B_PlaybackIpEvent_eServerEndofStreamReached) {
         if (player->parent->start_settings.eof) {
             (player->parent->start_settings.eof)(player->parent->start_settings.context);
@@ -190,7 +190,7 @@ static int getPlaySpeed(media_player_ip_t player, int rate, char *speedString, i
     if (abs(rate) >= NEXUS_NORMAL_DECODE_RATE)
         speedIndex = rate / NEXUS_NORMAL_DECODE_RATE;
     else {
-        BDBG_ERR(("%s: rate (%d) is not normalized in NEXUS_NORMAL_DECODE_RATE units", __FUNCTION__, rate));
+        BDBG_ERR(("%s: rate (%d) is not normalized in NEXUS_NORMAL_DECODE_RATE units", BSTD_FUNCTION, rate));
         return -1;
     }
 
@@ -198,7 +198,7 @@ static int getPlaySpeed(media_player_ip_t player, int rate, char *speedString, i
         /* +ve speeds */
         index = speedIndex - 2; /* minimum value of +ve speedIndex is 2 */
         if (index > player->maxFwdSpeedIndex ) {
-            BDBG_ERR(("%s: no +ve speed at this index: %u, max %u", __FUNCTION__, index, player->maxFwdSpeedIndex));
+            BDBG_ERR(("%s: no +ve speed at this index: %u, max %u", BSTD_FUNCTION, index, player->maxFwdSpeedIndex));
             return -1;
         }
         snprintf(speedString, speedStringSize-1, "%d/%d", player->playSpeedFwdList[index].speedNumerator, player->playSpeedFwdList[index].speedDenominator);
@@ -208,14 +208,14 @@ static int getPlaySpeed(media_player_ip_t player, int rate, char *speedString, i
         /* -ve speeds */
         index = abs(speedIndex) - 1; /* minimum value of -ve speedIndex is 1 */
         if (index > player->maxRwdSpeedIndex) {
-            BDBG_ERR(("%s: no -ve speed at this index: %u, max %u", __FUNCTION__, index, player->maxRwdSpeedIndex));
+            BDBG_ERR(("%s: no -ve speed at this index: %u, max %u", BSTD_FUNCTION, index, player->maxRwdSpeedIndex));
             return -1;
         }
         index = player->maxRwdSpeedIndex - index; /* -ve speed index starts from the end of the list */
         snprintf(speedString, speedStringSize-1, "%d/%d", player->playSpeedRwdList[index].speedNumerator, player->playSpeedRwdList[index].speedDenominator);
     }
 
-    BDBG_MSG(("%s: rate %d, speedIndex %d, speed string %s index %d", __FUNCTION__, rate, speedIndex, speedString, index));
+    BDBG_MSG(("%s: rate %d, speedIndex %d, speed string %s index %d", BSTD_FUNCTION, rate, speedIndex, speedString, index));
     return 0;
 }
 
@@ -240,7 +240,7 @@ static int parsePlaySpeedString(media_player_ip_t player)
     playSpeedStringLength = strlen(player->playbackIpPsi.playSpeedString) + 1;
     if ( (playSpeedString = BKNI_Malloc(playSpeedStringLength)) == NULL)
     {
-        BDBG_ERR(("%s: BKNI_Malloc failed to allocate %d bytes string for playSpeed", __FUNCTION__, playSpeedStringLength));
+        BDBG_ERR(("%s: BKNI_Malloc failed to allocate %d bytes string for playSpeed", BSTD_FUNCTION, playSpeedStringLength));
         return -1;
     }
     strncpy(playSpeedString, player->playbackIpPsi.playSpeedString, playSpeedStringLength-1);
@@ -253,7 +253,7 @@ static int parsePlaySpeedString(media_player_ip_t player)
     {
         int speedNumerator, speedDenominator;
         if (B_PlaybackIp_UtilsParsePlaySpeedString(nextSpeed, &speedNumerator, &speedDenominator, NULL) < 0) {
-            BDBG_ERR(("%s: Failed to parse the playSpeedString %s", __FUNCTION__, nextSpeed));
+            BDBG_ERR(("%s: Failed to parse the playSpeedString %s", BSTD_FUNCTION, nextSpeed));
             return -1;
         }
         if (speedNumerator < 0)
@@ -274,10 +274,10 @@ static int parsePlaySpeedString(media_player_ip_t player)
     player->maxFwdSpeedIndex = i-1;
     player->maxRwdSpeedIndex = j-1;
     for (k=0; k<i;k++)
-        BDBG_MSG(("%s: +ve speed idx %d, num %d, denom %d", __FUNCTION__,
+        BDBG_MSG(("%s: +ve speed idx %d, num %d, denom %d", BSTD_FUNCTION,
                 k, player->playSpeedFwdList[k].speedNumerator, player->playSpeedFwdList[k].speedDenominator));
     for (k=0; k<j;k++)
-        BDBG_MSG(("%s: -ve speed idx %d, num %d, denom %d", __FUNCTION__,
+        BDBG_MSG(("%s: -ve speed idx %d, num %d, denom %d", BSTD_FUNCTION,
                 k, player->playSpeedRwdList[k].speedNumerator, player->playSpeedRwdList[k].speedDenominator));
     BKNI_Free(playSpeedString);
     return 0;
@@ -448,16 +448,16 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
         playpumpOpenSettings.numDescriptors = 200;
         player->playpump1 = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
         if (!player->playpump1) {
-            BDBG_WRN(("%s: Couldn't open 2nd playpump for IP Player", __FUNCTION__));
+            BDBG_WRN(("%s: Couldn't open 2nd playpump for IP Player", BSTD_FUNCTION));
             goto error;
         }
-        BDBG_MSG(("%s: Opened Playpump with %d fifoSize", __FUNCTION__, (unsigned)playpumpOpenSettings.fifoSize));
+        BDBG_MSG(("%s: Opened Playpump with %d fifoSize", BSTD_FUNCTION, (unsigned)playpumpOpenSettings.fifoSize));
 
         /* configure nexus playpump */
         NEXUS_Playpump_GetSettings(player->playpump1, &playpumpSettings);
         playpumpSettings.transportType = player->playbackIpPsi.mpegType;
         if (player->playbackIpPsi.usePlaypump2ForAudio && player->playbackIpPsi.audioCodec != NEXUS_AudioCodec_eUnknown) {
-            BDBG_WRN(("%s: using 2nd playpump for audio", __FUNCTION__));
+            BDBG_WRN(("%s: using 2nd playpump for audio", BSTD_FUNCTION));
             player->playpump2 = player->parent->playpump;
             NEXUS_Playpump_GetSettings(player->playpump2, &playpumpSettings);
             playpumpSettings.transportType = player->playbackIpPsi.mpegType;
@@ -525,7 +525,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
                 videoProgram.maxWidth = player->parent->create_settings.maxWidth;
                 videoProgram.maxHeight = player->parent->create_settings.maxHeight;
             }
-            BDBG_MSG(("%s: video pid %d, pid channel created", __FUNCTION__, player->playbackIpPsi.videoPid));
+            BDBG_MSG(("%s: video pid %d, pid channel created", BSTD_FUNCTION, player->playbackIpPsi.videoPid));
         }
 
         /* Open the extra video pid channel if present in the stream */
@@ -534,7 +534,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
             pidChannelSettings.pidType = NEXUS_PidType_eVideo;
             videoProgram.settings.enhancementPidChannel = NEXUS_Playpump_OpenPidChannel(player->playpump1, player->playbackIpPsi.extraVideoPid, &pidChannelSettings);
             if (!videoProgram.settings.enhancementPidChannel) { rc = BERR_TRACE(rc); goto error; }
-            BDBG_MSG(("%s: extra video pid %d, codec %d is present, pid channel created", __FUNCTION__, player->playbackIpPsi.extraVideoPid, player->playbackIpPsi.extraVideoCodec));
+            BDBG_MSG(("%s: extra video pid %d, codec %d is present, pid channel created", BSTD_FUNCTION, player->playbackIpPsi.extraVideoPid, player->playbackIpPsi.extraVideoCodec));
         }
 
         if (player->playbackIpPsi.audioCodec != NEXUS_AudioCodec_eUnknown && player->playbackIpPsi.audioPid && player->parent->audioDecoder) {
@@ -561,7 +561,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
             pidChannelSettings.pidType = NEXUS_PidType_eUnknown;
             pcrPidChannel = NEXUS_Playpump_OpenPidChannel(player->playpump1, player->playbackIpPsi.pcrPid, &pidChannelSettings);
             if (!pcrPidChannel) { rc = BERR_TRACE(rc); goto error; }
-            BDBG_MSG(("%s: Opened pcr pid channel %p for pcr pid %u", __FUNCTION__, (void *)pcrPidChannel, player->playbackIpPsi.pcrPid));
+            BDBG_MSG(("%s: Opened pcr pid channel %p for pcr pid %u", BSTD_FUNCTION, (void *)pcrPidChannel, player->playbackIpPsi.pcrPid));
         }
         else
         {
@@ -605,7 +605,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
         stcSettings.sync = psettings->sync;
         rc = NEXUS_SimpleStcChannel_SetSettings(player->parent->stcChannel, &stcSettings);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
-        BDBG_MSG(("%s: live IP mode configuration complete...", __FUNCTION__));
+        BDBG_MSG(("%s: live IP mode configuration complete...", BSTD_FUNCTION));
     }
     else
     {
@@ -834,7 +834,7 @@ int media_ip_player_trick(media_player_ip_t player, int rate)
     B_PlaybackIpTrickModesSettings ipTrickModeSettings;
     B_PlaybackIp_GetTrickModeSettings(player->playbackIp, &ipTrickModeSettings);
 
-    BDBG_MSG(("%s: rate %d, Playspeed num %d, values %s", __FUNCTION__, rate, player->playbackIpPsi.numPlaySpeedEntries, player->playbackIpPsi.playSpeedString));
+    BDBG_MSG(("%s: rate %d, Playspeed num %d, values %s", BSTD_FUNCTION, rate, player->playbackIpPsi.numPlaySpeedEntries, player->playbackIpPsi.playSpeedString));
 
     if (rate == NEXUS_NORMAL_DECODE_RATE) {
         return B_PlaybackIp_Play(player->playbackIp);

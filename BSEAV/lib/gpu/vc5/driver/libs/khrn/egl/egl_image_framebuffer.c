@@ -14,7 +14,7 @@
 #include "../common/khrn_blob.h"
 
 /* this should be changed to say which image type prefers */
-static bool framebuffer_acquire_image( const GLXX_SERVER_STATE_T *state,
+static bool framebuffer_acquire_image(GLXX_SERVER_STATE_T *state,
      glxx_fb_target_t target, glxx_attachment_point_t att_point, khrn_image **img)
 {
    const GLXX_ATTACHMENT_T *att = NULL;
@@ -36,7 +36,7 @@ static bool framebuffer_acquire_image( const GLXX_SERVER_STATE_T *state,
 
    if (!att) return true;
 
-   return glxx_attachment_acquire_image(att, img_type, img, &img_ms);
+   return glxx_attachment_acquire_image(att, img_type, true, &state->fences, img, &img_ms);
 }
 
 static bool parse_attribs(const void *attrib_list,

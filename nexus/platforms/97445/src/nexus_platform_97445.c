@@ -92,14 +92,12 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     default:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size =  208*1024*1024; /*decoder FW+general,xpt playback,audio other general purpose */
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 168*1024 *1024; /* CABACs(28)for 3 decoders + RAVE CDB(6+15) */
-        pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memcIndex = 1;
         pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = (0x00400000*2);
         pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].size = 5*1024*1024;  /* RDC heap plus margin for possible VCE fw/debug/output descriptors heap */
         break;
 	case 7:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size =  256*1024*1024; /*decoder FW+general,xpt playback,audio other general purpose */
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 168*1024 *1024; /* CABACs(28)for 3 decoders + RAVE CDB(6+15) */
-        pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memcIndex = 1;
         pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = (0x00400000*2);
         pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].size = 5*1024*1024;  /* RDC heap plus margin for possible VCE fw/debug/output descriptors heap */
         break;
@@ -114,7 +112,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     case 1001:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size =  192*1024*1024; /*decoder FW+general,xpt playback,audio other general purpose */
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 124*1024 *1024; /* CABACs(28)for 3 decoders + RAVE CDB(6+15) */
-        pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memcIndex = 1;
         pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = 4*1024*1024;  /* RDC heap plus margin */
         break;
     }

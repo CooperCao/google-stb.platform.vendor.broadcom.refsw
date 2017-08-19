@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -275,7 +275,7 @@ NEXUS_Error NEXUS_ScmModule_P_EpochRead(void);
 #define _ScmModule_SetBootParam(REGID, VAL) {      \
         uint32_t addr = NEXUS_ScmGlobalSram_GetRegister(NEXUS_ScmGlobalSram_e##REGID); \
         BREG_Write32(g_pCoreHandles->reg, addr, VAL);                   \
-        BootParamDbgPrintf(("%s - Read %s - Addr: %p, Value: %08x", __FUNCTION__, #REGID, addr, BREG_Read32(g_pCoreHandles->reg, addr))); }
+        BootParamDbgPrintf(("%s - Read %s - Addr: %p, Value: %08x", BSTD_FUNCTION, #REGID, addr, BREG_Read32(g_pCoreHandles->reg, addr))); }
 
 
 /****************************************
@@ -298,7 +298,7 @@ static NEXUS_Error NEXUS_ScmModule_P_InitializeTimer(void)
 
     BTMR_TimerSettings timerSettings = { BTMR_Type_eSharedFreeRun, NULL, NULL, 0, false };
     if(BTMR_CreateTimer(g_pCoreHandles->tmr, &g_NEXUS_scmModule.hTimer, &timerSettings) != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BTMR_CreateTimer failure", __FUNCTION__));
+        BDBG_ERR(("%s - BTMR_CreateTimer failure", BSTD_FUNCTION));
         rc = NEXUS_NOT_INITIALIZED;
     }
     else {
@@ -328,7 +328,7 @@ static NEXUS_Error NEXUS_ScmModule_P_GetOtpMspParams(void)
 
     rc = NEXUS_Security_ReadMSP(&msp_params, &msp_io);
     if(rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", BSTD_FUNCTION, rc));
         g_scm_module.otp_scm_decrypt_enable = 0;
         goto err;
     }
@@ -342,7 +342,7 @@ static NEXUS_Error NEXUS_ScmModule_P_GetOtpMspParams(void)
 
     rc = NEXUS_Security_ReadMSP(&msp_params, &msp_io);
     if(rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", BSTD_FUNCTION, rc));
         g_scm_module.otp_scm_verify_enable = 0;
         goto err;
     }
@@ -356,14 +356,14 @@ static NEXUS_Error NEXUS_ScmModule_P_GetOtpMspParams(void)
 
     rc = NEXUS_Security_ReadMSP(&msp_params, &msp_io);
     if(rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", BSTD_FUNCTION, rc));
         goto err;
     }
 
     g_scm_module.otp_scm_secure_enable = _ScmModule_EndianSwap(msp_io.mspDataBuf);
 
     BDBG_MSG(("%s - OTP SCM [SECURE ENABLE: %d, DECRYPT_ENABLE: %d, VERIFY_ENABLE: %d]",
-              __FUNCTION__, g_scm_module.otp_scm_secure_enable,
+              BSTD_FUNCTION, g_scm_module.otp_scm_secure_enable,
               g_scm_module.otp_scm_decrypt_enable,
               g_scm_module.otp_scm_verify_enable));
 
@@ -378,7 +378,7 @@ static NEXUS_Error NEXUS_ScmModule_P_GetOtpMspParams(void)
 
         rc = NEXUS_Security_ReadMSP(&msp_params, &msp_io);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", BSTD_FUNCTION, rc));
             goto err;
         }
 
@@ -390,29 +390,29 @@ static NEXUS_Error NEXUS_ScmModule_P_GetOtpMspParams(void)
 
         rc = NEXUS_Security_ReadMSP(&msp_params, &msp_io);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_ReadMSP() fails %d", BSTD_FUNCTION, rc));
             goto err;
         }
 
         otp_swizzle0a_msp1 = _ScmModule_EndianSwap(msp_io.mspDataBuf);
 
         BDBG_MSG(("%s - OTP SCM [MSP0: %d, MSP1: %d]",
-                  __FUNCTION__, otp_swizzle0a_msp0,
+                  BSTD_FUNCTION, otp_swizzle0a_msp0,
                   otp_swizzle0a_msp1));
 
         if((otp_swizzle0a_msp0 == OTP_SWIZZLE0A_MSP0_VALUE_ZS) && (otp_swizzle0a_msp1 == OTP_SWIZZLE0A_MSP1_VALUE_ZS))
         {
-            BDBG_MSG(("%s - Chip Type: ZS", __FUNCTION__));
+            BDBG_MSG(("%s - Chip Type: ZS", BSTD_FUNCTION));
             g_scm_module.otp_chip_type = ScmChipType_eZS;
         }
         else if((otp_swizzle0a_msp0 == OTP_SWIZLLE0A_MSP0_VALUE_ZB) && (otp_swizzle0a_msp1 == OTP_SWIZLLE0A_MSP1_VALUE_ZB))
         {
-            BDBG_MSG(("%s - Chip Type: ZB", __FUNCTION__));
+            BDBG_MSG(("%s - Chip Type: ZB", BSTD_FUNCTION));
             g_scm_module.otp_chip_type = ScmChipType_eZB;
         }
         else
         {
-            BDBG_MSG(("%s - Chip Type: Customer specific chip", __FUNCTION__));
+            BDBG_MSG(("%s - Chip Type: Customer specific chip", BSTD_FUNCTION));
             g_scm_module.otp_chip_type = ScmChipType_eCustomer;
         }
     }
@@ -565,7 +565,7 @@ NEXUS_Error NEXUS_ScmModule_P_Start(void)
     /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
     rc = Nexus_ScmModule_P_Img_Create(NEXUS_CORE_IMG_ID_SAGE, &img_context, &img_interface);
     if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - Cannot use IMG interface", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot use IMG interface", BSTD_FUNCTION));
         goto err;
     }
 
@@ -581,7 +581,7 @@ NEXUS_Error NEXUS_ScmModule_P_Start(void)
         pMem = NEXUS_Scm_P_Malloc(sizeof(BCMD_SecondTierKey_t));
         if (pMem == NULL) {
             BDBG_ERR(("%s    - Error, allocating buffer (%u bytes)",
-                      __FUNCTION__, sizeof(BCMD_SecondTierKey_t)));
+                      BSTD_FUNCTION, sizeof(BCMD_SecondTierKey_t)));
             rc = NEXUS_NOT_AVAILABLE;
             goto err;
         }
@@ -605,12 +605,12 @@ NEXUS_Error NEXUS_ScmModule_P_Start(void)
     NEXUS_ScmModule_P_SetBootParams();
     /* Get start timer */
     BTMR_ReadTimer(g_NEXUS_scmModule.hTimer, &g_NEXUS_scmModule.initTimeUs);
-    BDBG_MSG(("%s - Initial timer value: %u", __FUNCTION__, g_NEXUS_scmModule.initTimeUs));
+    BDBG_MSG(("%s - Initial timer value: %u", BSTD_FUNCTION, g_NEXUS_scmModule.initTimeUs));
 
     /* Take SCM out of reset */
     rc = NEXUS_ScmModule_P_Reset(&blImg);
     if(rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_ScmModule_P_Reset() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_ScmModule_P_Reset() fails %d", BSTD_FUNCTION, rc));
         goto err;
     }
 
@@ -656,7 +656,7 @@ err:
 static void NEXUS_Scm_P_CleanBootVars(void *dummy)
 {
     BSTD_UNUSED(dummy);
-    BDBG_MSG(("%s - cleaning", __FUNCTION__));
+    BDBG_MSG(("%s - cleaning", BSTD_FUNCTION));
 
     /* g_scm_module.scm_bl_second_tier_key is cleared and freed inside NEXUS_ScmModule_P_Reset() */
 
@@ -741,7 +741,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Load(
         rc = img_interface->open(img_context, &image, holder->id);
         if(rc != NEXUS_SUCCESS) {
             BDBG_ERR(("%s - Error opening SCM '%s' file",
-                      __FUNCTION__, holder->name));
+                      BSTD_FUNCTION, holder->name));
             goto err;
         }
 
@@ -749,7 +749,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Load(
         rc = img_interface->next(image, 0, (const void **)&size, sizeof(uint32_t));
         if(rc != NEXUS_SUCCESS) {
             BDBG_ERR(("%s - Error while reading '%s' file to get size",
-                      __FUNCTION__, holder->name));
+                      BSTD_FUNCTION, holder->name));
             goto err;
         }
 
@@ -758,12 +758,12 @@ static NEXUS_Error NEXUS_ScmModule_P_Load(
             uint32_t alloc_size = *size;
             if (alloc_size < SCM_BL_LENGTH) {
                 alloc_size = SCM_BL_LENGTH;
-                BDBG_MSG(("%s - adjusting BL size to %d bytes\n", __FUNCTION__, SCM_BL_LENGTH));
+                BDBG_MSG(("%s - adjusting BL size to %d bytes\n", BSTD_FUNCTION, SCM_BL_LENGTH));
             }
             holder->raw->buf = NEXUS_Scm_P_Malloc(alloc_size);
             if(NULL == holder->raw->buf) {
                 BDBG_ERR(("%s - Error allocating %u bytes memory for '%s' buffer",
-                          __FUNCTION__, *size, holder->name));
+                          BSTD_FUNCTION, *size, holder->name));
                 goto err;
             }
 
@@ -787,11 +787,11 @@ static NEXUS_Error NEXUS_ScmModule_P_Load(
 
             rc = img_interface->next(image, chunk, (const void **)&data, to_read);
             if(rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s - Error while reading '%s' file", __FUNCTION__, holder->name));
+                BDBG_ERR(("%s - Error while reading '%s' file", BSTD_FUNCTION, holder->name));
                 goto err;
             }
 
-            /* BDBG_MSG(("%s - Read %u bytes from file (chunk: %u)", __FUNCTION__, to_read, chunk)); */
+            /* BDBG_MSG(("%s - Read %u bytes from file (chunk: %u)", BSTD_FUNCTION, to_read, chunk)); */
             BKNI_Memcpy(buffer_ex, data, to_read);
             loop_size -= to_read;
             buffer_ex += to_read;
@@ -833,7 +833,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Load(
 
     /* Sync physical memory for all areas */
     NEXUS_Memory_FlushCache(holder->raw->buf, holder->raw->len);
-    BDBG_MSG(("%s - '%s' Raw@0x%08x,  size=%d", __FUNCTION__,
+    BDBG_MSG(("%s - '%s' Raw@0x%08x,  size=%d", BSTD_FUNCTION,
               holder->name, holder->raw->buf, holder->raw->len));
 
 err:
@@ -885,7 +885,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
         second_tier_key_settings.keyAddress = NEXUS_AddrToOffset(g_scm_module.scm_bl_second_tier_key);
         rc = NEXUS_Security_VerifySecondTierKey(&second_tier_key_settings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - NEXUS_Security_VerifySecondTierKey() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_VerifySecondTierKey() fails %d", BSTD_FUNCTION, rc));
             goto err;
         }
     }
@@ -906,13 +906,13 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
         vkl_settings.client = NEXUS_SecurityClientType_eHost;
         vkl = NEXUS_Security_AllocateVKL(&vkl_settings);
         if(vkl == NULL) {
-            BDBG_ERR(("%s - NEXUS_Security_AllocateVKL() fails", __FUNCTION__));
+            BDBG_ERR(("%s - NEXUS_Security_AllocateVKL() fails", BSTD_FUNCTION));
             rc = NEXUS_INVALID_PARAMETER;
             goto err;
         }
         NEXUS_Security_GetVKLInfo(vkl, &vkl_info);
         vkl_id = vkl_info.vkl;
-        BDBG_MSG(("%s - SCM BL VKL ID: %d", __FUNCTION__, vkl_id));
+        BDBG_MSG(("%s - SCM BL VKL ID: %d", BSTD_FUNCTION, vkl_id));
     }
 
     /* If OTP_SCM_DECRYPT_ENABLE_BIT: decrypt the SCM BL  */
@@ -932,7 +932,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
 
         keyslot = NEXUS_Security_AllocateKeySlot(&keyslot_settings);
         if(keyslot == NULL) {
-            BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot() fails %d", BSTD_FUNCTION, rc));
             rc = NEXUS_NOT_AVAILABLE;
             goto err;
         }
@@ -953,7 +953,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
 
         rc = NEXUS_Security_ConfigAlgorithm(keyslot, &algo_settings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - NEXUS_Security_ConfigAlgorithm() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_ConfigAlgorithm() fails %d", BSTD_FUNCTION, rc));
             goto err;
         }
 
@@ -1006,7 +1006,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
         session_key_settings.bRouteKey = false;
         rc = NEXUS_Security_GenerateSessionKey(keyslot, &session_key_settings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - NEXUS_Security_GenerateSessionKey() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_GenerateSessionKey() fails %d", BSTD_FUNCTION, rc));
             goto err;
         }
 
@@ -1025,7 +1025,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
 #endif
         rc = NEXUS_Security_GenerateControlWord(keyslot, &cw_settings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - NEXUS_Security_GenerateControlWord() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_GenerateControlWord() fails %d", BSTD_FUNCTION, rc));
             goto err;
         }
 
@@ -1044,7 +1044,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
 #endif
         rc = NEXUS_Security_GenerateKey5(keyslot, &cw_settings);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - NEXUS_Security_GenerateKey5() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_Security_GenerateKey5() fails %d", BSTD_FUNCTION, rc));
             goto err;
         }
     }
@@ -1089,7 +1089,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
                 /* region_settings.keyID = NEXUS_SecurityRegverSigningKeyID_e3;*/
                 /* region_settings.sigVersion = 0x01; */
                 /* region_settings.sigType = 0x04; */
-                BDBG_MSG(("%s - SCM BL length: %d, EPOCH:0x%x, EPOCH mask: 0x%x, MarketID: 0x%08x, MarketIDMask: 0x%08x\n", __FUNCTION__,
+                BDBG_MSG(("%s - SCM BL length: %d, EPOCH:0x%x, EPOCH mask: 0x%x, MarketID: 0x%08x, MarketIDMask: 0x%08x\n", BSTD_FUNCTION,
                           SCM_BL_LENGTH, region_settings.epoch, region_settings.epochMask, region_settings.marketID, region_settings.marketIDMask));
                 region_settings.SCMVersion = ((unsigned int)header->ucReserved1[1] << 8) | (unsigned int)header->ucReserved1[2];
                 BDBG_MSG(("SCM VERSION %08x", region_settings.SCMVersion));
@@ -1124,14 +1124,14 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
             /* mimic NEXUS_Security_VerifyRegion: define -> enable -> isVerified */
             rc = NEXUS_Security_DefineRegion(&region_settings, &region_id);
             if (rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s - Define region 0x%x failed (%d)", __FUNCTION__, region_id, rc));
+                BDBG_ERR(("%s - Define region 0x%x failed (%d)", BSTD_FUNCTION, region_id, rc));
                 rc = NEXUS_SUCCESS;
                 goto err;
             }
 
             rc = NEXUS_Security_EnableRegionVerification();
             if (rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s - Enable region 0x%x failed (%d)", __FUNCTION__, region_id, rc));
+                BDBG_ERR(("%s - Enable region 0x%x failed (%d)", BSTD_FUNCTION, region_id, rc));
                 goto err;
             }
 
@@ -1142,7 +1142,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
                     rc = NEXUS_Security_IsRegionVerified (region_id, &verified);
                     if (rc != NEXUS_SUCCESS) {
                         BDBG_ERR(("%s - Verification of region 0x%x failed (%d)",
-                                  __FUNCTION__, region_id, rc));
+                                  BSTD_FUNCTION, region_id, rc));
                         goto err;
                     }
                     BKNI_Sleep (5);
@@ -1170,7 +1170,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
 
             rc = NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID_eScpuFsbl, &regionConfig );
             if(rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s - NEXUS_Security_RegionConfig_priv() fails (0x%X)", __FUNCTION__, rc));
+                BDBG_ERR(("%s - NEXUS_Security_RegionConfig_priv() fails (0x%X)", BSTD_FUNCTION, rc));
                 goto err;
             }
 
@@ -1178,12 +1178,12 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
                                                          NEXUS_AddrToOffset( bl_img->data ),
                                                          SCM_BL_LENGTH );
             if(rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s - NEXUS_Security_RegionVerifyEnable_priv() fails (0x%X)", __FUNCTION__, rc));
+                BDBG_ERR(("%s - NEXUS_Security_RegionVerifyEnable_priv() fails (0x%X)", BSTD_FUNCTION, rc));
                 goto err;
             }
         }
 
-        BDBG_MSG(("%s: SCM reset completed successfully", __FUNCTION__));
+        BDBG_MSG(("%s: SCM reset completed successfully", BSTD_FUNCTION));
     }
 err:
     if (g_scm_module.scm_bl_second_tier_key) {
@@ -1215,7 +1215,7 @@ static NEXUS_Error NEXUS_ScmModule_P_InitializeScmVkl(void)
     settings.client = NEXUS_SecurityClientType_eSage;
     g_scm_module.vklHandle1 = NEXUS_Security_AllocateVKL(&settings);
     if(g_scm_module.vklHandle1 == NULL) {
-        BDBG_ERR(("%s - NEXUS_Security_AllocateVKL() fails for VKL 1", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_Security_AllocateVKL() fails for VKL 1", BSTD_FUNCTION));
         rc = NEXUS_INVALID_PARAMETER;
         goto err;
     }
@@ -1223,14 +1223,14 @@ static NEXUS_Error NEXUS_ScmModule_P_InitializeScmVkl(void)
 
     g_scm_module.vklHandle2 = NEXUS_Security_AllocateVKL(&settings);
     if(g_scm_module.vklHandle2 == NULL) {
-        BDBG_ERR(("%s - NEXUS_Security_AllocateVKL() fails for VKL 2", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_Security_AllocateVKL() fails for VKL 2", BSTD_FUNCTION));
         rc = NEXUS_INVALID_PARAMETER;
         goto err;
     }
     NEXUS_Security_GetVKLInfo(g_scm_module.vklHandle2, &vklInfo2);
 
     g_scm_module.scmReservedVklMask = ((1 << vklInfo1.vkl) | (1 << vklInfo2.vkl));
-    BDBG_MSG(("%s - SCM VKLs %d, %d --> Mask: %x", __FUNCTION__,
+    BDBG_MSG(("%s - SCM VKLs %d, %d --> Mask: %x", BSTD_FUNCTION,
               vklInfo1.vkl, vklInfo2.vkl, g_scm_module.scmReservedVklMask));
 err:
     return rc;

@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/ZRC/include/bbRF4CEZRCClientNotification.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   RF4CE GDP 2.0 Client Notification command processor interface.
+*       RF4CE GDP 2.0 Client Notification command processor interface.
 *
-* $Revision: 5282 $
-* $Date: 2015-01-20 02:33:11Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_RF4CE_ZRC_CLIENT_NOTIFICATION_H
 #define _BB_RF4CE_ZRC_CLIENT_NOTIFICATION_H
@@ -64,6 +56,7 @@
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief   Enumeration of Client Notification Sub-Types.
+ * \ingroup RF4CE_GDP2_ClientNotificationReq
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 5.11, table 6.<br>
  *  See ZigBee RF4CE ZRC 2.0 / ZigBee Document 13-0442-23, subclause 6.6, table 12.
@@ -95,6 +88,7 @@ typedef enum _RF4CE_ZRC2_ClientNotificationSubTypeId_t
 /**//**
  * \brief   Structure for parameters of the request to issue the Client Notification GDP
  *  command.
+ * \ingroup RF4CE_GDP2_ClientNotificationReq
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 5.11, table 6.<br>
  *  See ZigBee RF4CE ZRC 2.0 / ZigBee Document 13-0442-23, subclause 6.6, table 12.
@@ -118,6 +112,7 @@ typedef struct _RF4CE_GDP2_ClientNotificationReqParams_t
 /**//**
  * \brief   Structure for parameters of the confirmation on request to issue the Client
  *  Notification GDP command.
+ * \ingroup RF4CE_GDP2_ClientNotificationConf
  */
 typedef struct _RF4CE_GDP2_ClientNotificationConfParams_t
 {
@@ -130,6 +125,7 @@ typedef struct _RF4CE_GDP2_ClientNotificationConfParams_t
 /**//**
  * \brief   Structure for descriptor of the request to issue the Client Notification GDP
  *  command.
+ * \ingroup RF4CE_GDP2_ClientNotificationReq
  */
 typedef struct _RF4CE_GDP2_ClientNotificationReqDescr_t  RF4CE_GDP2_ClientNotificationReqDescr_t;
 
@@ -137,6 +133,7 @@ typedef struct _RF4CE_GDP2_ClientNotificationReqDescr_t  RF4CE_GDP2_ClientNotifi
 /**//**
  * \brief   Template for callback handler-function of the confirmation on request to
  *  issue the Client Notification GDP command.
+ * \ingroup RF4CE_GDP2_ClientNotificationConf
  * \param[in]   reqDescr        Pointer to the confirmed request descriptor.
  * \param[in]   confParams      Pointer to the confirmation parameters object.
  * \details
@@ -157,12 +154,13 @@ typedef void (*RF4CE_GDP2_ClientNotificationConfCallback_t)(RF4CE_GDP2_ClientNot
 /**//**
  * \brief   Structure for descriptor of the request to issue the Client Notification GDP
  *  command.
+ * \ingroup RF4CE_GDP2_ClientNotificationReq
  */
 struct _RF4CE_GDP2_ClientNotificationReqDescr_t
 {
     /* 32-bit data. */
-    RF4CE_GDP2_ClientNotificationConfCallback_t  callback;          /*!< Entry point of the confirmation callback
-                                                                        function. */
+    RF4CE_GDP2_ClientNotificationConfCallback_t  callback;                      /*!< Entry point of the confirmation
+                                                                                    callback function. */
 #ifndef _HOST_
     /* Structured data. */
     union
@@ -176,7 +174,7 @@ struct _RF4CE_GDP2_ClientNotificationReqDescr_t
 
     SYS_TimeoutTask_t                            onExpiredTimerDescr;           /*!< Expiration timer descriptor. */
 #else
-	void *context;
+    void *context;
 #endif
 
     /* Structured data. */
@@ -188,6 +186,7 @@ struct _RF4CE_GDP2_ClientNotificationReqDescr_t
 /**//**
  * \brief   Structure for parameters of the indication of a received Client Notification
  *  GDP command.
+ * \ingroup RF4CE_GDP2_ClientNotificationInd
  * \par     Documentation
  *  See ZigBee RF4CE GDP 2.0 / ZigBee Document 13-0396r29ZB, subclause 5.11, table 6.<br>
  *  See ZigBee RF4CE ZRC 2.0 / ZigBee Document 13-0442-23, subclause 6.6, table 12.
@@ -209,10 +208,11 @@ typedef struct _RF4CE_GDP2_ClientNotificationIndParams_t
 /*************************************************************************************//**
  * \brief   Accepts request from the application to issue the Client Notification GDP
  *  command.
+ * \ingroup RF4CE_ZRC_Functions
  * \param[in]   reqDescr    Pointer to the request descriptor object.
  * \details
- *  This function shall be called by the Poll Server application when need to send data to
- *  the dedicated Poll Client indirectly.
+ *  This function shall be called by the Poll Server application when it needs to send
+ *  data to the dedicated Poll Client.
 *****************************************************************************************/
 void RF4CE_GDP2_ClientNotificationReq(RF4CE_GDP2_ClientNotificationReqDescr_t *const reqDescr);
 
@@ -220,14 +220,17 @@ void RF4CE_GDP2_ClientNotificationReq(RF4CE_GDP2_ClientNotificationReqDescr_t *c
 /*************************************************************************************//**
  * \brief   Notifies the application layer of the Poll Client about reception of a
  *  Client Notification GDP command from a linked Poll Server.
- * \param[in]   indParam        Pointer to the indication parameters object.
+ * \ingroup RF4CE_ZRC_Functions
+ * \param[in]   indParams       Pointer to the indication parameters object.
  * \details
  *  This callback function shall be provided by the application of a device that is
- *  capable to act as a Poll Client. It will be called by the GDP layer during Heartbeat
- *  polling being performed by this node (a Poll Client) on each reception of the Client
- *  Notification GDP from the polled Poll Server.
+ *  capable to act as a Poll Client. It will be called by the GDP layer during the
+ *  Heartbeat polling being performed by this node (a Poll Client) on each reception of
+ *  the Client Notification GDP command from the polled Poll Server.
 *****************************************************************************************/
 void RF4CE_GDP2_ClientNotificationInd(RF4CE_GDP2_ClientNotificationIndParams_t *const indParams);
 
 
 #endif /* _BB_RF4CE_ZRC_CLIENT_NOTIFICATION_H */
+
+/* eof bbRF4CEZRCClientNotification.h */

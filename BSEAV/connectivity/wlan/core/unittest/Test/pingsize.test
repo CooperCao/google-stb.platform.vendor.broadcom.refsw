@@ -1,0 +1,64 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# UTF test script for testing all ping sizes
+# $Id: e057594cfa7188a8956965f473d3ea77749e43f5 $
+#
+
+package require UTF
+#package provide UTF::Test::pingsize 2.0
+
+UTF::Test pingsize {SRC DST args} {
+
+    if {[$SRC hostis Linux DHD]} {
+	set p 32
+    } else {
+	set p 0
+    }
+    UTF::Getopts [subst {
+	{s.arg "56-1470" "Ping sizes"}
+	{p.arg "$p" "Parallel threads"}
+	{c.arg "1" "Count"}
+    }]
+
+    set (s) [UTF::Numexpand $(s)]
+
+    set failcount 0
+
+    set DSTIP [$DST ipaddr]
+
+    if {$p && $(p) > 0} {
+	set pipe {}
+	foreach s $(s) {
+	    lappend pipe [$SRC rexec -t 32 -async \
+			      ping -q -n -c $(c) -i 0.1 -w 30 -s $s $DSTIP]
+	    if {[llength $pipe] > $(p)} {
+		if {[catch {[lindex $pipe 0] close}]} {
+		    incr failcount
+		}
+		set pipe [lreplace $pipe 0 0]
+	    }
+	}
+
+	while {[llength $pipe] > 0} {
+	    if {[catch {[lindex $pipe 0] close}]} {
+		incr failcount
+	    }
+	    set pipe [lreplace $pipe 0 0]
+	}
+    } else {
+	foreach s $(s) {
+	    if {[catch {$SRC ping $DSTIP -s $s -c $(c)} ret]} {
+		UTF::Message WARN "" $ret
+		incr failcount
+	    }
+	}
+    }
+
+    if {$failcount > 0} {
+	throw fail $failcount
+    } else {
+	return
+    }
+}
+

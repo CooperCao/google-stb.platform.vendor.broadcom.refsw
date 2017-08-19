@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #ifndef BHDM_PRIV_H__
@@ -88,14 +89,12 @@
 #include "bchp_hdmi_tx_phy.h"
 #endif
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 #include "bchp_dvp_ht.h"
 
 #if BHDM_HAS_MULTIPLE_PORTS
 #include "bchp_dvp_ht_1.h"
 #include "bchp_int_id_hdmi_tx_intr2_1.h"
 
-#endif
 #endif
 
 #if BHDM_CONFIG_HAS_HDCP22
@@ -128,7 +127,7 @@ do                                                \
 
 /* Get the offset of two groups of register. */
 #define BHDM_P_GET_REG_OFFSET(eCoreId, ulPriReg, ulSecReg) \
-	((BHDM_P_eHdmCoreId0 == (eCoreId)) ? 0 : ((ulSecReg) - (ulPriReg)))
+	((BAVC_HDMI_CoreId_e0 == (eCoreId)) ? 0 : ((ulSecReg) - (ulPriReg)))
 
 typedef enum BHDM_P_HdmCoreId
 {
@@ -393,7 +392,7 @@ typedef struct BHDM_P_Handle
 {
 	BDBG_OBJECT(HDMI)
 
-	BHDM_P_HdmCoreId eCoreId ;
+	BAVC_HDMI_CoreId eCoreId ;
 	uint32_t             ulOffset ;
 
 	BCHP_Handle   hChip ;
@@ -427,6 +426,7 @@ typedef struct BHDM_P_Handle
 	BHDM_OutputPort eOutputPort ;
 
 	uint8_t RxDeviceAttached ;
+	bool bCrcTestMode ; /* ignore HPD signal and power detection when testing crc */
 	bool phyPowered ;
 
 	bool AvMuteState ;
@@ -484,6 +484,8 @@ typedef struct BHDM_P_Handle
 	bool bAutoRiPjCheckingEnabled  ;
 	uint8_t AbortHdcpAuthRequest ;
 
+	unsigned hdcpRxBcapsReadError ;
+
 
 	/******************/
 	/* EDID variables */
@@ -516,7 +518,6 @@ typedef struct BHDM_P_Handle
 
 	BTMR_TimerHandle TimerStatusMonitor ;
 	BHDM_MONITOR_Status MonitorStatus ;
-	BHDM_MONITOR_Status MonitorStatusTotal ;
 
 	bool HpdTimerEnabled ;
 #endif
@@ -688,16 +689,14 @@ void BHDM_P_VideoFmt2CEA861Code(
 ) ;
 
 
-#if BHDM_CONFIG_HDMI_1_3_SUPPORT
 BERR_Code BHDM_P_SetGamutMetadataPacket(
 	BHDM_Handle hHDMI		/* [in] HDMI Handle */
 ) ;
 
 BERR_Code BHDM_P_ConfigurePhy(
-	BHDM_Handle hHDMI, 				/* [in] HDMI handle */
+	BHDM_Handle hHDMI,  /* [in] HDMI handle */
 	const BHDM_Settings *NewHdmiSettings	/* [in] New HDMI settings */
 );
-#endif
 
 void BHDM_P_PowerOnPhy (BHDM_Handle hHDMI);
 void BHDM_P_PowerOffPhy (BHDM_Handle hHDMI);

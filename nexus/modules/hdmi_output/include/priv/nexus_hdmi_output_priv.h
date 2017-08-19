@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
 #ifndef NEXUS_HDMI_OUTPUT_PRIV_H__
 #define NEXUS_HDMI_OUTPUT_PRIV_H__
@@ -57,7 +58,6 @@ typedef struct NEXUS_HdmiOutputVideoSettings
     NEXUS_ColorSpace colorSpace;
     unsigned colorDepth;
 } NEXUS_HdmiOutputVideoSettings;
-
 
 NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
@@ -131,6 +131,17 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     const NEXUS_CallbackDesc *notifyDisplay
     );
 
+typedef struct NEXUS_HdmiOutputAudioStatus
+{
+    unsigned index;
+    bool ac3Supported;
+} NEXUS_HdmiOutputAudioStatus;
+
+void NEXUS_HdmiOutput_GetAudioStatus_priv(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiOutputAudioStatus * pStatus
+    );
+
 NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
     NEXUS_HdmiOutputHandle handle
     );
@@ -201,6 +212,23 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock(
 NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(
     NEXUS_HdmiOutputHandle output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame);
 
+/* API review says keep this private to HDMI, as public version is going in an extension */
+typedef enum NEXUS_HdmiOutputDisplayDynamicRangeProcessingType
+{
+    NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_ePlm,
+    NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eDolbyVision,
+    NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eTechnicolorPrime,
+    NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax
+} NEXUS_HdmiOutputDisplayDynamicRangeProcessingType;
+
+typedef struct NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities
+{
+    bool typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax];
+} NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities;
+
+NEXUS_Error NEXUS_HdmiOutput_SetDisplayDynamicRangeProcessingCapabilities_priv(
+    NEXUS_HdmiOutputHandle output,
+    const NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities * pCaps);
 
 #if NEXUS_HAS_SECURITY
 BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(

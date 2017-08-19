@@ -46,6 +46,7 @@
 #include "bimg.h"
 #include "bavc.h"
 #include "bavc_xpt.h"
+#include "bdsp_algorithm.h"
 
 /***************************************************************************
 Summary:
@@ -134,119 +135,6 @@ typedef enum BDSP_AudioDolbyCodecVersion
 
 /***************************************************************************
 Summary:
-    DSP Processing Algorithms.
-***************************************************************************/
-typedef enum BDSP_Algorithm
-{
-    /* Audio Decode/Encode/Passthrough Algorithms */
-    BDSP_Algorithm_eMpegAudioDecode,
-    BDSP_Algorithm_eMpegAudioPassthrough,
-    BDSP_Algorithm_eMpegAudioEncode,
-    BDSP_Algorithm_eAacAdtsDecode,
-    BDSP_Algorithm_eAacAdtsPassthrough,
-    BDSP_Algorithm_eAacLoasDecode,
-    BDSP_Algorithm_eAacLoasPassthrough,
-    BDSP_Algorithm_eAacEncode,
-    BDSP_Algorithm_eDolbyPulseAdtsDecode,
-    BDSP_Algorithm_eDolbyPulseLoasDecode,
-    BDSP_Algorithm_eAc3Decode,
-    BDSP_Algorithm_eAc3Passthrough,
-    BDSP_Algorithm_eAc3Encode,
-    BDSP_Algorithm_eAc3PlusDecode,
-    BDSP_Algorithm_eAc3PlusPassthrough,
-    BDSP_Algorithm_eDtsCoreEncode,
-    BDSP_Algorithm_eDtsHdDecode,
-    BDSP_Algorithm_eDtsHdPassthrough,
-    BDSP_Algorithm_eDts14BitDecode,
-    BDSP_Algorithm_eDts14BitPassthrough,
-    BDSP_Algorithm_eDtsLbrDecode,
-    BDSP_Algorithm_eWmaStdDecode,
-    BDSP_Algorithm_eWmaProDecode,
-    BDSP_Algorithm_eMlpDecode,
-    BDSP_Algorithm_eMlpPassthrough,
-    BDSP_Algorithm_eAmrNbDecode,
-    BDSP_Algorithm_eAmrNbEncode,
-    BDSP_Algorithm_eAmrWbDecode,
-    BDSP_Algorithm_eAmrWbEncode,
-    BDSP_Algorithm_eDraDecode,
-    BDSP_Algorithm_eCookDecode,
-    BDSP_Algorithm_eVorbisDecode,
-    BDSP_Algorithm_eFlacDecode,
-    BDSP_Algorithm_eMacDecode,
-    BDSP_Algorithm_eG711Decode,
-    BDSP_Algorithm_eG711Encode,
-    BDSP_Algorithm_eG726Decode,
-    BDSP_Algorithm_eG726Encode,
-    BDSP_Algorithm_eG729Decode,
-    BDSP_Algorithm_eG729Encode,
-    BDSP_Algorithm_eG723_1Decode,
-    BDSP_Algorithm_eG723_1Encode,
-    BDSP_Algorithm_eLpcmDvdDecode,
-    BDSP_Algorithm_eLpcm1394Decode,
-    BDSP_Algorithm_eLpcmBdDecode,
-    BDSP_Algorithm_ePcmWavDecode,
-    BDSP_Algorithm_ePcmDecode,
-    BDSP_Algorithm_eAdpcmDecode,
-    BDSP_Algorithm_eiLBCDecode,
-    BDSP_Algorithm_eiSACDecode,
-    BDSP_Algorithm_eiLBCEncode,
-    BDSP_Algorithm_eiSACEncode,
-    BDSP_Algorithm_eLpcmEncode,
-    BDSP_Algorithm_eUdcDecode,
-    BDSP_Algorithm_eUdcPassthrough,
-    BDSP_Algorithm_eDolbyAacheAdtsDecode,
-    BDSP_Algorithm_eDolbyAacheLoasDecode,
-    BDSP_Algorithm_eOpusDecode,
-    BDSP_Algorithm_eALSDecode,
-    BDSP_Algorithm_eALSLoasDecode,
-    BDSP_Algorithm_eAC4Decode,
-    BDSP_Algorithm_eOpusEncode,
-    BDSP_Algorithm_eDDPEncode,
-    BDSP_Algorithm_eGenericPassthrough,
-    BDSP_Algorithm_eMixer,              /* FW Mixer */
-    BDSP_Algorithm_eMixerDapv2,
-
-    /* Audio Processing Algorithms */
-    BDSP_Algorithm_eAudioProcessing_StrtIdx,
-    BDSP_Algorithm_eSrc = BDSP_Algorithm_eAudioProcessing_StrtIdx,/* Sample Rate Conversion */
-    BDSP_Algorithm_eDsola,              /* DSOLA */
-    BDSP_Algorithm_eGenCdbItb,            /* Generate CdbItb algorithm */
-    BDSP_Algorithm_eBrcmAvl,            /* Brcm Automated Volume Level control. */
-    BDSP_Algorithm_eBrcm3DSurround,     /* Brcm 3D Surround  */
-    BDSP_Algorithm_eSrsTruSurroundHd,   /* TruSurroundHD. */
-    BDSP_Algorithm_eSrsTruVolume,       /* SRS Tru Volume */
-    BDSP_Algorithm_eDdre,               /* DDRE post processing  */
-    BDSP_Algorithm_eDv258,              /* Dolby Volume */
-    BDSP_Algorithm_eDpcmr,              /* Dolby PCM Renderer */
-    BDSP_Algorithm_eCustomVoice,        /* Custom Voice Algorithm */
-    BDSP_Algorithm_eBtscEncoder,        /* BTSC Encoder */
-    BDSP_Algorithm_eKaraoke,            /* Karaoke */
-    BDSP_Algorithm_eOutputFormatter,    /* OutputFormatter */
-    BDSP_Algorithm_eVocalPP,            /* Vocal PP */
-    BDSP_Algorithm_eFadeCtrl,           /* Fade-Control */
-	BDSP_Algorithm_eTsmCorrection,      /* Tsm-Correction */
-    BDSP_Algorithm_eAudioProcessing_EndIdx = BDSP_Algorithm_eTsmCorrection,
-
-    /*Echo Canceller Algorithms*/
-    BDSP_Algorithm_eSpeexAec,           /* Speex acoustic echo canceller */
-
-    /* Video Algorithms */
-    BDSP_Algorithm_eVp6Decode,
-    BDSP_Algorithm_eH264Encode,
-    BDSP_Algorithm_eX264Encode,
-    BDSP_Algorithm_eXVP8Encode,
-
-    /* Security Algorithms */
-    BDSP_Algorithm_eSecurityA,
-    BDSP_Algorithm_eSecurityB,
-    BDSP_Algorithm_eSecurityC,
-
-    /* Last Entry */
-    BDSP_Algorithm_eMax
-} BDSP_Algorithm;
-
-/***************************************************************************
-Summary:
     DSP Processing Algorithm Types.
 ***************************************************************************/
 typedef enum BDSP_AlgorithmType
@@ -315,6 +203,9 @@ typedef enum BDSP_MMA_Alignment{
     BDSP_MMA_Alignment_1024bit = 128, /* 128 -byte alignment */
     BDSP_MMA_Alignment_2048bit = 256, /* 256 -byte alignment */
     BDSP_MMA_Alignment_4096bit = 512, /* 512 -byte alignment */
+	BDSP_MMA_Alignment_1KByte  = 1024, /* 1K -byte alignment */
+    BDSP_MMA_Alignment_2KByte  = 2048, /* 2K -byte alignment */
+	BDSP_MMA_Alignment_4KByte  = 4096, /* 4K -byte alignment */
     BDSP_MMA_Alignment_Max,
     BDSP_MMA_Alignment_Invalid = 0x7FFFFFFF
 }BDSP_MMA_Alignment;

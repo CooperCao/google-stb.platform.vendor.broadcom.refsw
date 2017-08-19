@@ -83,7 +83,7 @@ NEXUS_PlatformSettings * CPlatform::getPlatformSettings()
     return(&_platformSettings);
 }
 
-bool CPlatform::isSupportedDisplay(uint16_t number)
+bool CPlatform::isSupportedDisplay(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -99,8 +99,8 @@ bool CPlatform::isSupportedDisplay(uint16_t number)
 }
 
 bool CPlatform::isSupportedVideoWindow(
-        uint16_t numDisplay,
-        uint16_t number
+        unsigned numDisplay,
+        unsigned number
         )
 {
     bool isSupported = false;
@@ -123,7 +123,7 @@ bool CPlatform::isSupportedVideoWindow(
     return(isSupported);
 } /* isSupportedVideoWindow */
 
-bool CPlatform::isSupportedDecoder(uint16_t number)
+bool CPlatform::isSupportedDecoder(unsigned number)
 {
     NEXUS_Error          nerror      = NEXUS_SUCCESS;
     eRet                 ret         = eRet_Ok;
@@ -165,7 +165,7 @@ done:
     return(isSupported);
 } /* isSupportedDecoder */
 
-bool CPlatform::isSupportedStillDecoder(uint16_t number)
+bool CPlatform::isSupportedStillDecoder(unsigned number)
 {
     bool isSupported = false;
 
@@ -186,7 +186,7 @@ bool CPlatform::isSupportedStillDecoder(uint16_t number)
     return(isSupported);
 } /* isSupportedStillDecoder */
 
-bool CPlatform::isSupportedEncoder(uint16_t number)
+bool CPlatform::isSupportedEncoder(unsigned number)
 {
     bool isSupported = false;
 
@@ -268,7 +268,7 @@ uint32_t CPlatform::getNumWindowsPerDisplay()
     return(_platformConfig.numWindowsPerDisplay);
 }
 
-NEXUS_HdmiOutputHandle CPlatform::getOutputHdmi(uint16_t number)
+NEXUS_HdmiOutputHandle CPlatform::getOutputHdmi(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -283,7 +283,7 @@ NEXUS_HdmiOutputHandle CPlatform::getOutputHdmi(uint16_t number)
     return(NULL);
 }
 
-NEXUS_ComponentOutputHandle CPlatform::getOutputComponent(uint16_t number)
+NEXUS_ComponentOutputHandle CPlatform::getOutputComponent(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -298,7 +298,7 @@ NEXUS_ComponentOutputHandle CPlatform::getOutputComponent(uint16_t number)
     return(NULL);
 }
 
-NEXUS_SvideoOutputHandle CPlatform::getOutputSvideo(uint16_t number)
+NEXUS_SvideoOutputHandle CPlatform::getOutputSvideo(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -313,7 +313,7 @@ NEXUS_SvideoOutputHandle CPlatform::getOutputSvideo(uint16_t number)
     return(NULL);
 }
 
-NEXUS_CompositeOutputHandle CPlatform::getOutputComposite(uint16_t number)
+NEXUS_CompositeOutputHandle CPlatform::getOutputComposite(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -329,7 +329,7 @@ NEXUS_CompositeOutputHandle CPlatform::getOutputComposite(uint16_t number)
 }
 
 #if NEXUS_HAS_RFM
-NEXUS_RfmHandle CPlatform::getOutputRFM(uint16_t number)
+NEXUS_RfmHandle CPlatform::getOutputRFM(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -346,7 +346,7 @@ NEXUS_RfmHandle CPlatform::getOutputRFM(uint16_t number)
 
 #endif /* if NEXUS_HAS_RFM */
 
-NEXUS_AudioDacHandle CPlatform::getOutputAudioDac(uint16_t number)
+NEXUS_AudioDacHandle CPlatform::getOutputAudioDac(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -361,7 +361,7 @@ NEXUS_AudioDacHandle CPlatform::getOutputAudioDac(uint16_t number)
     return(NULL);
 }
 
-NEXUS_I2sOutputHandle CPlatform::getOutputI2sDac(uint16_t number)
+NEXUS_I2sOutputHandle CPlatform::getOutputI2sDac(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -375,7 +375,7 @@ NEXUS_I2sOutputHandle CPlatform::getOutputI2sDac(uint16_t number)
     return(NULL);
 }
 
-NEXUS_SpdifOutputHandle CPlatform::getOutputSpdif(uint16_t number)
+NEXUS_SpdifOutputHandle CPlatform::getOutputSpdif(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -390,7 +390,7 @@ NEXUS_SpdifOutputHandle CPlatform::getOutputSpdif(uint16_t number)
     return(NULL);
 }
 
-NEXUS_AudioDummyOutputHandle CPlatform::getOutputAudioDummy(uint16_t number)
+NEXUS_AudioDummyOutputHandle CPlatform::getOutputAudioDummy(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());
@@ -405,7 +405,7 @@ NEXUS_AudioDummyOutputHandle CPlatform::getOutputAudioDummy(uint16_t number)
     return(NULL);
 }
 
-NEXUS_FrontendHandle CPlatform::getFrontend(uint16_t number)
+NEXUS_FrontendHandle CPlatform::getFrontend(unsigned number)
 {
     BSTD_UNUSED(number);
     BDBG_ASSERT(isInitialized());

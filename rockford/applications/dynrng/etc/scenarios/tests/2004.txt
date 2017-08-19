@@ -23,7 +23,6 @@ stream[0] = test_pattern_1920x1080_30hz_10b_HLG_BT2020.ts
 stream[1] =
 stream[2] =
 stream[3] =
-pig = off
 bg =
 image =
 commit

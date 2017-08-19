@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,8 @@
 * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
-******************************************************************************/
+*
+ ******************************************************************************/
 #include "bhdm_priv.h"
 #include "bhdm_edid_3d.h"
 
@@ -57,6 +58,8 @@ static const BHDM_EDID_HDMI_3D_FORMAT BHDM_EDID_3DFormats[]=
 	{	BFMT_VideoFmt_e1080p_30Hz_3DOU_AS	}		   /* HD 1080p 30Hz, 2200 sample per line, SMPTE 274M-1998 */
 };
 
+static void BHDM_EDID_P_ParseVSDB_2DVIC3DStructureBytes(const BHDM_Handle hHDMI,
+	uint8_t DataBlockIndex, uint8_t *offset, uint8_t DataBlockLength, uint8_t *remaining3dFmtBytes) ;
 
 /******************************************************************************
 Summary:
@@ -387,7 +390,7 @@ static void BHDM_EDID_P_ParseVSDB_HdmiVICs(const BHDM_Handle hHDMI, uint8_t Data
 Summary:
 Parse the 2D VIC Order _ 3D Structure Bytes
 *******************************************************************************/
-void BHDM_EDID_P_ParseVSDB_2DVIC3DStructureBytes(const BHDM_Handle hHDMI,
+static void BHDM_EDID_P_ParseVSDB_2DVIC3DStructureBytes(const BHDM_Handle hHDMI,
 	uint8_t DataBlockIndex, uint8_t *offset, uint8_t DataBlockLength, uint8_t *remaining3dFmtBytes)
 {
 	uint8_t i ;

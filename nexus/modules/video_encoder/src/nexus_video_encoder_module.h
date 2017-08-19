@@ -93,6 +93,7 @@ typedef struct NEXUS_VideoEncoder_P_Device {
         BDBG_FifoReader_Handle reader;
         NEXUS_TimerHandle timer;
     } debugLog;
+    bool watchdogOccured;
 } NEXUS_VideoEncoder_P_Device;
 
 typedef struct NEXUS_VideoEncoder_P_State {

@@ -577,6 +577,12 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
     }
     else {
         BXPT_PidChannelRecordSettings ChanSettings;
+
+        /* SWSTB-5704: Clear any old SAM filter settings before starting a new PID channel record */
+        NEXUS_MessageSamSettings samSettings;
+        NEXUS_Message_GetDefaultSamSettings(&samSettings);
+        NEXUS_Message_SetSamSettings(msg, &samSettings);
+
         BXPT_GetDefaultPidChannelRecordSettings(&ChanSettings);
         ChanSettings.Pid = pid;
         ChanSettings.Band = nexus_p_xpt_parser_band(hwPidChannel);

@@ -64,17 +64,10 @@ internally see http://www.sj.broadcom.com/projects/MIPS3300/. */
 
 #define NEXUS_NUM_L1_REGISTERS BINT_INTC_SIZE
 
-typedef enum NEXUS_PlatformStandbyLockMode {
-    NEXUS_PlatformStandbyLockMode_eNone,         /* Module does not need to be locked in any standby state */
-    NEXUS_PlatformStandbyLockMode_ePassiveOnly,  /* Module is locked only in passive state. Unlocked otherwise */
-    NEXUS_PlatformStandbyLockMode_eAlways,       /* Module is always locked in any standby state */
-    NEXUS_PlatformStandbyLockMode_eMax
-} NEXUS_PlatformStandbyLockMode;
-
 typedef struct NEXUS_Platform_P_ModuleInfo {
     BLST_Q_ENTRY(NEXUS_Platform_P_ModuleInfo) link;
     NEXUS_ModuleHandle module;
-    NEXUS_PlatformStandbyLockMode lock_mode;
+    NEXUS_ModuleStandbyLevel standby_level;
     bool powerdown, locked;
     NEXUS_Error (*standby)(bool, const NEXUS_StandbySettings *);
     void (*uninit)(void);
@@ -205,6 +198,13 @@ typedef struct NEXUS_PlatformOsRegion {
     bool cma;
 } NEXUS_PlatformOsRegion;
 
+typedef struct NEXUS_PlatformOsReservedRegion {
+    NEXUS_Addr base; /* physical address */
+    uint64_t length; /* no region if 0 */
+    unsigned memcIndex;
+    char     tag[8];
+} NEXUS_PlatformOsReservedRegion;
+
 /**
 Summary:
 Memory layout of the board for each MEMC and each physical addressing region
@@ -218,6 +218,8 @@ typedef struct NEXUS_PlatformMemory
 
     /* OS's report of usable memory by physical address */
     NEXUS_PlatformOsRegion osRegion[NEXUS_MAX_HEAPS];
+
+    NEXUS_PlatformOsReservedRegion osReservedRegions[NEXUS_MAX_HEAPS];
 
     unsigned max_dcache_line_size; /* reported by OS. BMEM alignment must be >= this to avoid cache coherency bugs. */
 } NEXUS_PlatformMemory;
@@ -498,8 +500,36 @@ const NEXUS_Core_PreInitState *NEXUS_Platform_P_PreInit(void);
 void NEXUS_Platform_P_PreUninit(void);
 extern const NEXUS_Core_PreInitState *g_pPreInitState;
 
-void NEXUS_Platform_P_AddBoardStatus(NEXUS_PlatformStatus *pStatus);
+#include "blst_queue.h"
+
+typedef struct NEXUS_Platform_P_DtProperty {
+    BLST_Q_ENTRY(NEXUS_Platform_P_DtProperty) link;
+    char name[16];
+    unsigned value;
+} NEXUS_Platform_P_DtProperty;
+
+typedef struct NEXUS_Platform_P_DtNode {
+    BLST_Q_ENTRY(NEXUS_Platform_P_DtNode) link;
+    BLST_Q_HEAD(propqueue, NEXUS_Platform_P_DtProperty) properties;
+    char name[16];
+} NEXUS_Platform_P_DtNode;
+
+typedef struct NEXUS_Platform_P_DtNodeList {
+BLST_Q_HEAD(nodequeue, NEXUS_Platform_P_DtNode) nodes;
+} NEXUS_Platform_P_DtNodeList;
+
+/* read box mode from device tree or env variable */
+unsigned NEXUS_Platform_P_ReadBoxMode(void);
+/* read board id from device tree */
+unsigned NEXUS_Platform_P_ReadBoardId(void);
+/* read pmap id from device tree or env variable */
+unsigned NEXUS_Platform_P_ReadPMapId(void);
+/* read pmap settings from device tree */
+BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void);
+void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState);
+
 NEXUS_Error NEXUS_Platform_P_SetStandbyExclusionRegion(unsigned heapIndex);
+bool NEXUS_Platform_P_ModuleInStandby(NEXUS_ModuleHandle module);
 void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *preInitState, uint32_t reg, uint32_t mask, uint32_t value, bool systemRegister);
 NEXUS_Error NEXUS_Platform_P_UpdateIntSettings(BINT_Settings *pIntSettings);
 

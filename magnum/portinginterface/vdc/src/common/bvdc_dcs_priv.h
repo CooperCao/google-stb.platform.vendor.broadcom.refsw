@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -154,6 +154,7 @@ typedef struct
 }
 BVDC_P_DCS_VFvalues;
 
+#if BVDC_P_NUM_SHARED_VF
 const BVDC_P_DCS_VFvalues* BVDC_P_DCS_GetVFvalues_isr
 (
     BFMT_VideoFmt eVideoFmt,
@@ -164,6 +165,7 @@ void BVDC_P_DCS_VF_Update_isr(
     const BVDC_P_DCS_VFvalues* pVfValues,
     uint32_t                   ulVfOffset,
     uint32_t**                 ppulRul);
+#endif
 
 typedef enum
 {
@@ -187,11 +189,13 @@ void BVDC_P_DCS_StateInit_isr (BVDC_Display_Handle pDisplay);
 void BVDC_P_DCS_StateFault_isr (
     BVDC_Display_Handle pDisplay);
 
+#if BVDC_P_NUM_SHARED_VF
 void BVDC_P_DCS_StateUpdate_isr (
     BVDC_Display_Handle pDisplay,
     BAVC_Polarity       eFieldPolarity,
     BVDC_P_ListInfo*    pList
 );
+#endif
 
 void BVDC_P_DCS_Check_isr (
     BVDC_Display_Handle pDisplay,

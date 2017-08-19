@@ -108,7 +108,7 @@ void TEST_DbgLogStr(const char * const message)
 uint32_t TEST_DbgAssert(
         uint32_t     errorUid,
         const char * fileName,
-        uint16_t     line
+        unsigned     line
         )
 {
     char message[200];
@@ -126,7 +126,7 @@ uint32_t TEST_DbgAssert(
 uint32_t HAL_DbgLogId(
         uint32_t     errorUid,
         const char * fileName,
-        uint16_t     line
+        unsigned     line
         )
 {
     TEST_DbgAssert(errorUid, fileName, line);
@@ -136,7 +136,7 @@ uint32_t HAL_DbgLogId(
 uint32_t HAL_DbgHalt(
         uint32_t     errorUid,
         const char * fileName,
-        uint16_t     line
+        unsigned     line
         )
 {
     HAL_DbgLogId(errorUid, fileName, line);
@@ -331,7 +331,7 @@ static void nexusIrCallback(
         {
             CWidgetEngine * pWidgetEngine = irRemote->getWidgetEngine();
 
-            if (NULL != pWidgetEngine)
+            if ((NULL != pWidgetEngine) && (true == irRemote->isEnabled()))
             {
                 /* save event for later processing */
                 irRemote->addEvent(&event);
@@ -345,7 +345,7 @@ static void nexusIrCallback(
 
 CIrRemote::CIrRemote(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CRemote(name, number, eBoardResource_irRemote, pCfg),
@@ -520,21 +520,21 @@ eKey CIrRemote::convertRemoteCode(
         switch (mode)
         {
         case NEXUS_IrInputMode_eRemoteA:
-            /*BDBG_MSG(("%s: RemoteA: comparing %d with %d", __FUNCTION__, code, g_IrRemoteCodes[i].codeRemoteA ));*/
+            /*BDBG_MSG(("%s: RemoteA: comparing %d with %d", BSTD_FUNCTION, code, g_IrRemoteCodes[i].codeRemoteA ));*/
             if (code == g_IrRemoteCodes[i].codeRemoteA)
             {
                 key = g_IrRemoteCodes[i].key;
             }
             break;
         case NEXUS_IrInputMode_eCirNec:
-            /*BDBG_MSG(("%s: RemoteA: comparing %d with %d", __FUNCTION__, code, g_IrRemoteCodes[i].codeBroadcom ));*/
+            /*BDBG_MSG(("%s: RemoteA: comparing %d with %d", BSTD_FUNCTION, code, g_IrRemoteCodes[i].codeBroadcom ));*/
             if (code == g_IrRemoteCodes[i].codeBroadcom)
             {
                 key = g_IrRemoteCodes[i].key;
             }
             break;
         case NEXUS_IrInputMode_eCirEchoStar:
-            /*BDBG_MSG(("%s: RemoteA: comparing %d with %d", __FUNCTION__, code, g_IrRemoteCodes[i].codeEchoStar ));*/
+            /*BDBG_MSG(("%s: RemoteA: comparing %d with %d", BSTD_FUNCTION, code, g_IrRemoteCodes[i].codeEchoStar ));*/
             if (code == g_IrRemoteCodes[i].codeEchoStar)
             {
                 key = g_IrRemoteCodes[i].key;
@@ -595,7 +595,7 @@ eRet CIrRemote::getEvent(CRemoteEvent * pEvent)
 #ifdef RF4CE_SUPPORT
 CRf4ceRemote::CRf4ceRemote(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CRemote(name, number, eBoardResource_rf4ceRemote, pCfg),
@@ -1359,7 +1359,7 @@ static void LinuxInputSource_P_Task(void * pParam)
     {
         pBluetoothRemote->thread(pBluetoothRemote);
     }
-    BDBG_MSG(("%s(): Leaving LinuxInputSource_P_Task thread now\n", __FUNCTION__));
+    BDBG_MSG(("%s(): Leaving LinuxInputSource_P_Task thread now\n", BSTD_FUNCTION));
     NetAppOSTaskExit();
 }
 
@@ -1426,7 +1426,7 @@ void CBluetoothRemote::thread(CBluetoothRemote * pBluetoothRemote)
 
             if (rc < 0)
             {
-                BDBG_ERR(("%s(): Error polling the file descriptors, error=%s!\n", __FUNCTION__, strerror(errno)));
+                BDBG_ERR(("%s(): Error polling the file descriptors, error=%s!\n", BSTD_FUNCTION, strerror(errno)));
                 return;
             }
             else
@@ -1444,7 +1444,7 @@ void CBluetoothRemote::thread(CBluetoothRemote * pBluetoothRemote)
 
 CBluetoothRemote::CBluetoothRemote(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CRemote(name, number, eBoardResource_bluetoothRemote, pCfg),
@@ -1462,7 +1462,7 @@ CBluetoothRemote::CBluetoothRemote(
 
     if (bt_semaphore == NULL)
     {
-        BDBG_ERR(("%s(): -- Cannot create sem!", __FUNCTION__));
+        BDBG_ERR(("%s(): -- Cannot create sem!", BSTD_FUNCTION));
         BDBG_ASSERT(bt_semaphore);
     }
     memset(&prev_event, 0, sizeof(prev_event));
@@ -1487,7 +1487,7 @@ eRet CBluetoothRemote::open(CWidgetEngine * pWidgetEngine)
 
     if (_taskId == NULL)
     {
-        BDBG_ERR(("%s(): Failure Spawning LinuxInputSourceTask!!", __FUNCTION__));
+        BDBG_ERR(("%s(): Failure Spawning LinuxInputSourceTask!!", BSTD_FUNCTION));
         return(eRet_ExternalError);
     }
 
@@ -1565,7 +1565,7 @@ eRet CBluetoothRemote::addInputSource(char * devName)
 
     if ((pHidInputSource->fd = ::open(ss.str().c_str(), O_RDWR)) < 0)
     {
-        BDBG_ERR(("%s(): Failure Opening input device %s!!", __FUNCTION__, ss.str().c_str()));
+        BDBG_ERR(("%s(): Failure Opening input device %s!!", BSTD_FUNCTION, ss.str().c_str()));
         return(eRet_ExternalError);
     }
 
@@ -1769,7 +1769,7 @@ eRet CBluetoothRemote::getEvent(
 
     if (readlen <= 0)
     {
-        BDBG_WRN(("%s(): Read Error from %d, error=%s! Device may have just went to sleep \n", __FUNCTION__, pHidInputSource->fd, strerror(errno)));
+        BDBG_WRN(("%s(): Read Error from %d, error=%s! Device may have just went to sleep \n", BSTD_FUNCTION, pHidInputSource->fd, strerror(errno)));
         NetAppOSSemGive(bt_semaphore);
         return(eRet_ExternalError);
     }
@@ -1871,7 +1871,7 @@ eRet CBluetoothRemote::getEvent(CRemoteEvent * pEvent)
     BDBG_ASSERT(NULL != pEvent);
     if (readlen <= 0)
     {
-        BDBG_ERR(("%s(): Read Error from %d, error=%s!\n", __FUNCTION__, _fd, strerror(errno)));
+        BDBG_ERR(("%s(): Read Error from %d, error=%s!\n", BSTD_FUNCTION, _fd, strerror(errno)));
         return(eRet_ExternalError);
     }
     else
@@ -1969,7 +1969,7 @@ static void nexusUhfCallback(
 
 CUhfRemote::CUhfRemote(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CRemote(name, number, eBoardResource_uhfRemote, pCfg),

@@ -542,9 +542,8 @@ CPanelNetworkWifi::CPanelNetworkWifi(
     _timerUpdate(pWidgetEngine, this, 500),
     _timerScan(pWidgetEngine, this, 10000),
     _MsgBoxStatus(NULL),
-#ifdef NETAPP_SUPPORT
+    _MsgBoxError(NULL),
     _pNetwork(NULL),
-#endif
     _pBack(NULL)
 {
 }
@@ -1416,7 +1415,7 @@ void CPanelNetworkWifi::updateConnectStatus(CWifi * pNetwork)
     pNetwork->getConnectedStatus(&connectStatusHash);
 
     strBSSID = connectStatusHash.get("bssid");
-    BDBG_MSG(("%s connected network:%s", __FUNCTION__, strBSSID.s()));
+    BDBG_MSG(("%s connected network:%s", BSTD_FUNCTION, strBSSID.s()));
 
     if (0 < strBSSID.length())
     {
@@ -1485,6 +1484,8 @@ eRet CPanelNetworkWifi::updateSignalStrength(CNetworkWifi * pNetwork)
      * CHECK_ERROR_GOTO("unable to get connected wifi network info", ret, error);
      */
 
+    /* Need to correctly updated signal strength */
+#if 0
     /* search property list for a match */
     for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
@@ -1498,6 +1499,10 @@ eRet CPanelNetworkWifi::updateSignalStrength(CNetworkWifi * pNetwork)
 
 error:
     return(ret);
+#else
+BSTD_UNUSED(pProp);
+BSTD_UNUSED(info);
+#endif
 } /* updateSignalStrength */
 
 #elif defined (NETAPP_SUPPORT)

@@ -85,7 +85,6 @@ void platform_plm_set_vid_lra(unsigned inputIndex, unsigned rectIndex, bool enab
     unsigned lRangeAdj, curLRangeAdj;
     unsigned rectDelta;
 
-    fprintf(stderr, "TTTTTTTTTTTTTTTTTTT platform_plm_set_vid_lra() inputIndex:%d rectIndex:%d enabled:%d\n", inputIndex, rectIndex, enabled);
 #if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK
     rectDelta = rectIndex;
 #else

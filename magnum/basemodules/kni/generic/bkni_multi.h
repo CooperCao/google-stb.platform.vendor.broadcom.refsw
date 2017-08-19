@@ -220,27 +220,6 @@ See Also:
 ****************************************************************************/
 void BKNI_ReleaseMutex(BKNI_MutexHandle mutex);
 
-/***************************************************************************
-Summary:
-    Mutex connfiguration
-****************************************************************************/
-typedef struct BKNI_MutexSettings {
-    bool  suspended; /* this informs that mutex might be acquired for long period of time */
-} BKNI_MutexSettings;
-
-/***************************************************************************
-Summary:
-    Retrieves a current mutex configuration
-****************************************************************************/
-void BKNI_GetMutexSettings(BKNI_MutexHandle mutex, BKNI_MutexSettings *pSettings);
-
-/***************************************************************************
-Summary:
-    Sets a mutex configuration
-****************************************************************************/
-BERR_Code BKNI_SetMutexSettings(BKNI_MutexHandle mutex, const BKNI_MutexSettings *pSettings);
-
-
 #ifdef __cplusplus
 }
 #endif

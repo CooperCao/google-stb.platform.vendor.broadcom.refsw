@@ -1,53 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/common/HAL/include/bbHalRadio.h $
-*
-* DESCRIPTION:
-*   IEEE Std 802.15.4-2006 compatible Radio Driver interface.
-*
-* $Revision: 10327 $
-* $Date: 2016-03-08 02:34:51Z $
-*
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
+ *
+ * DESCRIPTION:
+ *      IEEE Std 802.15.4-2006 compatible Radio Driver interface.
+ *
+*******************************************************************************/
 
 #ifndef _BB_HAL_RADIO_H
 #define _BB_HAL_RADIO_H
@@ -57,7 +51,9 @@
 
 #if defined(__SoC__)
 # include "bbSocRadio.h"
-#else// defined(__ML507__)
+#elif defined(__ML507__)
+# include "bbMl507Radio.h"
+#elif defined(__i386__)
 # include "bbMl507Radio.h"
 #endif
 
@@ -81,18 +77,22 @@
  *  following changes that influence the use of PHY enumerations:
  *  - Radio Driver primitives must not be called in inappropriate Driver or Radio hardware state, or with invalid
  *      parameters. Due to this restriction, primitives never return (confirm with) failure statuses. That's why there
+ *      is no data type for Status returned by the Driver. The Radio Driver either succeeds of halts execution with a
+ *      system error.
  *  - The RF-SET-TRX-STATE.request accepts reduced set of state switching commands.
  *  - The RF-SET-TRX-STATE.confirm returns (implies) the SUCCESS status instead of RX_ON, TX_ON, TRX_OFF if requested to
  *      switch to the same state as the currently set.
+ *  - The RF-GET-TRX-STATE.request may be used for retrieving the current state of the Driver. It is implemented as a
+ *      Getter synchronous function. Notice that the Drive may be currently in the UNDEFINED state also.
  *  - The RF-CCA.confirm returns IDLE/BUSY status as a value of Boolean type instead of Enumeration.
  *  - The RF-GET/SET primitives are implemented as the set of Getter and Setter synchronous functions (except the
  *      current channel and channel page switching), published variables and public constants, and due to this reason
  *      may not return failure statuses specific to PHY PAN Information Base (PIB) attributes accessing rules violation.
+ *      There are no Setter functions for read-only attributes. Valid ranges for writable attributes are only asserted,
+ *      the Radio Driver halts execution with a system error if such ranges are violated.
  */
 /**@{*/
 /**//**
- *  hardware state. Hence, the state of the Radio hardware may differ during short periods from the Driver state until
- *  the Driver state is synchronized with the hardware state after corresponding Radio hardware interrupt servicing.
  * \brief   Enumeration of Radio Driver codes of asynchronous task on processing.
  * \details When the Driver is free of task processing it's in the IDLE state. When a new request is received by the
  *  Driver, it starts processing it within the corresponding XXXX_REQ task. As soon as request processing is finished,
@@ -159,6 +159,8 @@ SYS_DbgAssertStatic(sizeof(enum HAL_Radio__CMD_Code_t) == 1);
  * \details This Radio Driver implements custom RF-GET-TRX-STATE primitive that returns the current state of the Radio.
  *  The Radio state code returned may be one of conventional PHY codes or the UNDEFINED (0x00) state.
  * \note    This enumeration indicates the state of the Radio Driver which in general correspond to the actual Radio
+ *  hardware state. Hence, the state of the Radio hardware may differ during short periods from the Driver state until
+ *  the Driver state is synchronized with the hardware state after corresponding Radio hardware interrupt servicing.
  * \note    Implementations on particular platforms may extend this enumeration with private codes - for example, for
  *  different phases of BUSY states (preparation and continuing), or different types of UNDEFINED state (initially
  *  undefined and in the middle of state switching).
@@ -214,12 +216,11 @@ SYS_DbgAssertStatic(sizeof(HAL_Radio__Channel_t) == 1);
 /**//**
  * \name    Macro-functions used for Radio channel page and current channel compact representation.
  * \details A total of 32 channel pages are available with channel pages 3 to 31 being reserved for future use. A total
- * \brief   Data type for Radio channel mask (set, bitmap).
- * \details This data type represents the bitmap of channels available on particular channel page in the following
+ *  of 27 channels numbered 0 to 26 are available per channel page.
+ * \details The packed page-channel data type represents particular channel on particular channel page in the following
  *  format:
- *  - bits 26..0 - ChannelMask[26..0] - indicate the status: 1 - channel is available, 0 - channel is unavailable - for
- *      each of up to 27 valid channels (bit #k indicates the status of channel k) supported by a channel page
- *  - bits 31..27 - Page[4..0] - indicate the channel page in the range from 0 to 2
+ *  - bits 4..0 - Channel[4..0] - indicate the channel in the range from 0 to 26
+ *  - bits 7..5 - Page[2..0] - indicate the channel page in the range from 0 to 7
  *
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.1.2.1, 6.1.2.2, table 2.
@@ -467,9 +468,9 @@ SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_BDC_PHR) == 1);
  *  See Broadcom ZIGBEE MAC & HIF HARDWARE ON SOC 8/30/2013 (UPDATED ON 7/24/2014 FOR ACTUAL SOC IMPLEMENTATION),
  *  subclause TX-BUFFER (1).
  */
-extern HAL_Radio__PSDU_t  HAL_Radio_FrmBuf__TX_BDC_PSDU;                                                                   // IDEA: [MAC Security] Use dynamic memory and stack to transfer the frame. The caller is responsible for freeing memory allocated for the PSDU.
-SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_BDC_PSDU) == 127);                                                         //  ... It's allowed to dismiss the PSDU as soon as this function [HAL_Radio__DATA_req] returned - i.e., prior to the TX_END event occurred.
-SYS_DbgAssertStatic(__alignof__(HAL_Radio_FrmBuf__TX_BDC_PSDU) % 4 == 0);                                                  //  ... The PSDU content is pushed into the TX frame buffer by this function completely prior to return.
+extern HAL_Radio__PSDU_t  HAL_Radio_FrmBuf__TX_BDC_PSDU;
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_BDC_PSDU) == 127);
+SYS_DbgAssertStatic(__alignof__(HAL_Radio_FrmBuf__TX_BDC_PSDU) % 4 == 0);
 
 /**//**
  * \brief   TX frame buffer for ACK frame PSDU.
@@ -483,7 +484,7 @@ SYS_DbgAssertStatic(__alignof__(HAL_Radio_FrmBuf__TX_BDC_PSDU) % 4 == 0);       
  *  subclause TX-BUFFER (1).
  */
 extern HAL_Radio__Octet_t
-        HAL_Radio_FrmBuf__TX_ACK_PSDU[HAL_aAckMPDUOverhead - HAL_aFCSSize]  __attribute__((aligned(4)));                   // IDEA: Compose ACK frame dynamically. It's enough to keep only DSN and FP fields. FCS may be saved into the LUT.
+        HAL_Radio_FrmBuf__TX_ACK_PSDU[HAL_aAckMPDUOverhead - HAL_aFCSSize]  __attribute__((aligned(4)));
 SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_ACK_PSDU) == 3);
 SYS_DbgAssertStatic(__alignof__(HAL_Radio_FrmBuf__TX_ACK_PSDU) % 4 == 0);
 
@@ -608,10 +609,10 @@ void HAL_Radio__Init(void);
  * \details This function has implicit parameters which must be assigned by the caller prior to call it:
  *  - HAL_Radio_FrmBuf__TX_BDC_PHR      - value of the PHR of the transmitted packet. Allowed values for the
  *      FrameLength[6..0] field (bits 6..0 of the PHR) are from 0 to 127 in the pure PHY mode of operation, and either
- *      in the MAC mode. The Reserved[0] field (bit 7 of the PHR) must be set to zero.
- *  - PHY_FrmBuf__TX_BDC_PSDU   - array of bytes with PSDU of the transmitted packet. Must contain FrameLength bytes in
- *      the pure PHY mode of operation, or at least (FrameLength - 2) bytes in the MAC mode (the trailing two bytes
- *      holding the MFR.FCS field may be omitted in this mode).
+ *      5 or from 9 to 127 in the MAC mode. The Reserved[0] field (bit 7 of the PHR) must be set to zero.
+ *  - HAL_Radio_FrmBuf__TX_BDC_PSDU     - array of bytes with PSDU of the transmitted packet. Must contain FrameLength
+ *      bytes in the pure PHY mode of operation, or at least (FrameLength - 2) bytes in the MAC mode (the trailing two
+ *      bytes holding the MFR.FCS field may be omitted in this mode).
  *
  * \details The Driver must persist in the TX_ON state at the moment when this function is called. This function
  *  switches the Driver into the BUSY_TX state (or one of the BUSY_TX substates), pushes the given PHR and PSDU into the
@@ -620,14 +621,14 @@ void HAL_Radio__Init(void);
  *  the packet transmission over the air is actually finished), the Driver is switched back to the TX_ON state and the
  *  confirmation callback is called by the Driver.
  * \details The PSDU to be transmitted must be assembled by the caller prior to call this function. The packet payload
- *  length (the FrameLength field of the PHR) is specified with the \p PHY_FrmBuf__TX_BDC_PHR bits 6..0. The content of
- *  the \p PHY_FrmBuf__TX_BDC_PSDU containing the PSDU is left unchanged after the packet is transmitted and may be used
- *  again to retry the packet if necessary.
+ *  length (the FrameLength field of the PHR) is specified with the \p HAL_Radio_FrmBuf__TX_BDC_PHR bits 6..0. The
+ *  content of the \p HAL_Radio_FrmBuf__TX_BDC_PSDU containing the PSDU is left unchanged after the packet is
+ *  transmitted and may be used again to retry the packet if necessary.
  * \details In the MAC mode of operation the FCS field of the MFR is calculated automatically over the specified PSDU.
  *  The last two bytes of the PSDU are ignored, even if they are assigned by the caller, and substituted with the
  *  automatically calculated FCS value for transmission. Otherwise the whole PSDU is transmitted as-is. In any case, the
  *  FrameLength field of the PHR must specify the PSDU total length including the FCS field. The (re-)calculated FCS
- *  value is not saved in the \p PHY_FrmBuf__TX_BDC_PSDU.
+ *  value is not saved in the \p HAL_Radio_FrmBuf__TX_BDC_PSDU.
  * \details It is not allowed to issue new request to the Radio Driver, either of the same or different type, until the
  *  previous request is confirmed.
  * \details This function disables interrupts of Level 1 and 2 for the period of its execution and restores the status
@@ -720,10 +721,10 @@ void HAL_Radio__DATA_conf(void);
  * \details This function has implicit parameters which are assigned by the Radio Driver prior to call it:
  *  - HAL_Radio_FrmBuf__RX_PPDU     - array of bytes with PPDU of the received packet. Contains PHR at PPDU[0] and from
  *      0 to 127 octets of PSDU starting from PPDU[1]. Value of the FrameLength field of PHR is from 0 to 127.
- *  - PHY_FrmBuf__RX_Stuff      - structure containing LQI/CGT and RSSI/ED values of the received packet (given in the
- *      hardware-specific format), current channel page and channel, FCS validation status.
- *  - PHY_FrmBuf__RX_Tstamps    - start and end timestamps synchronized respectively on the onset of the PHR and on the
- *      cutoff of the PPDU (PSDU) of the received packet, in symbol fractions.
+ *  - HAL_Radio_FrmBuf__RX_Stuff    - structure containing LQI/CGT and RSSI/ED values of the received packet (given in
+ *      the hardware-specific format), current channel page and channel, FCS validation status.
+ *  - HAL_Radio_FrmBuf__RX_Tstamps  - start and end timestamps synchronized respectively on the onset of the PHR and on
+ *      the cutoff of the PPDU (PSDU) of the received packet, in symbol fractions.
  *
  * \details This function must be provided by the higher-level layer. It will be called by the Driver when it reports
  *  the RX_DONE event after receiving a packet over the air. This function is called by the Driver in the context of a
@@ -756,14 +757,14 @@ void HAL_Radio__DATA_ind(void);
  *  implemented, meaning that it does not reset the PHY (particularly, when it's in the TX_ON or BUSY_TX state). All
  *  changes to standards are described below.
  * \details Table of implemented state switchings. Input states are listed on the left, commands are listed on the top,
- *  output states are given in cells:<\br>
+ *  output states are given in cells:
  *  |           | TRX_OFF               | RX_ON                 | TX_ON             |
+ *  |-----------|-----------------------|-----------------------|-------------------|
  *  | TRX_OFF   | TRX_OFF               | RX_ON                 | not allowed       |
  *  | RX_ON     | TRX_OFF               | RX_ON                 | TX_ON             |
  *  | BUSY_RX   | TRX_OFF, abort RX     | BUSY_RX, continue RX  | TX_ON, abort RX   |
  *  | TX_ON     | not allowed           | RX_ON                 | not allowed       |
  *  | BUSY_TX   | not allowed           | not allowed           | not allowed       |
- *
  * \details Switching between TRX_OFF and RX_ON states, and switching between RX_ON and TX_ON states may be performed
  *  directly. Switching between TRX_OFF and TX_ON states must be performed through the RX_ON state only. The BUSY_RX
  *  state is treated as the RX_ON state when a state switching is requested, and the packet reception is canceled
@@ -995,3 +996,5 @@ INLINE bool HAL_Radio__IS_BUSY_get(void)
 #endif
 
 #endif /* _BB_HAL_RADIO_H */
+
+/* eof bbHalRadio.h */

@@ -142,7 +142,7 @@ initNexusOfdmSrcList(
         }
 
         if (!frontendHandle) {
-            BDBG_MSG(("%s: NULL Frontend (# %d)", __FUNCTION__, i));
+            BDBG_MSG(("%s: NULL Frontend (# %d)", BSTD_FUNCTION, i));
             continue;
         }
         NEXUS_Frontend_GetCapabilities(frontendHandle, &capabilities);
@@ -164,7 +164,7 @@ initNexusOfdmSrcList(
                 BDBG_ERR(("BKNI_CreateMutex failed at %d", __LINE__));
                 return -1;
             }
-            BDBG_MSG(("%s: ofdmSrc %p, lock %p", __FUNCTION__, (void *)ofdmSrc, (void *)ofdmSrc->lock));
+            BDBG_MSG(("%s: ofdmSrc %p, lock %p", BSTD_FUNCTION, (void *)ofdmSrc, (void *)ofdmSrc->lock));
             /* successfully setup a OFDM frontend src */
             j++;
         }
@@ -228,7 +228,7 @@ ofdmLockCallback(void *context, int param)
             /* coverity[stack_use_local_overflow] */
             NEXUS_FrontendOfdmStatus ofdmStatus;
             if (NEXUS_Frontend_GetOfdmStatus(frontendHandle, &ofdmStatus) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: Failed to get OFDM status, frontend %p", __FUNCTION__, (void *)frontendHandle));
+                BDBG_ERR(("%s: Failed to get OFDM status, frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
                 return;
             }
             else {
@@ -237,22 +237,22 @@ ofdmLockCallback(void *context, int param)
         }
         else
         {
-            BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, (void *)frontendHandle));
+            BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
             return;
         }
     }
     if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eLocked) {
-        BDBG_MSG(("%s: OFDM frontent locked: frontend %p",  __FUNCTION__, (void *)frontendHandle));
+        BDBG_MSG(("%s: OFDM frontent locked: frontend %p",  BSTD_FUNCTION, (void *)frontendHandle));
         BKNI_SetEvent(ofdmSrc->signalLockedEvent);
     }
     else if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eUnlocked) {
-        BDBG_MSG(("%s: frontend %p is unlocked", __FUNCTION__, (void *)frontendHandle));
+        BDBG_MSG(("%s: frontend %p is unlocked", BSTD_FUNCTION, (void *)frontendHandle));
     }
     else if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eNoSignal) {
-        BDBG_ERR(("%s: no signal at this freq for frontend %p", __FUNCTION__, (void *)frontendHandle));
+        BDBG_ERR(("%s: no signal at this freq for frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
     }
     else {
-        BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, (void *)frontendHandle));
+        BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", BSTD_FUNCTION, (void *)frontendHandle));
     }
 }
 
@@ -298,12 +298,12 @@ openNexusOfdmSrc(
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
                 if (BKNI_WaitForEvent(ofdmSrcList[i].psiAcquiredEvent, 30000)) {
-                    BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
+                    BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", BSTD_FUNCTION));
                     return -1;
                 }
                 if (ipStreamerCfg->transcodeEnabled && ofdmSrcList[i].transcodeEnabled) {
                     /* in xcode case, sleep to allow other thread finish setting up */
-                    BDBG_MSG(("%s: delay runnig this thread ", __FUNCTION__));
+                    BDBG_MSG(("%s: delay runnig this thread ", BSTD_FUNCTION));
                     BKNI_Sleep(200);
                 }
                 BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -313,7 +313,7 @@ openNexusOfdmSrc(
                 /* PSI info is available, set flag to skip it for this session and copy it from this */
                 cachedPsi = ofdmSrcList[i].psi;
                 numProgramsFound = ofdmSrcList[i].numProgramsFound;
-                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", __FUNCTION__));
+                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", BSTD_FUNCTION));
             }
 
             if (ipStreamerCfg->transcodeEnabled && ofdmSrcList[i].transcodeEnabled) {
@@ -329,7 +329,7 @@ openNexusOfdmSrc(
                     /* new session is also a transcoding session on the same frequency */
                     ofdmSrc = &ofdmSrcList[i];
                     frontendIndex = i; /* we use the same index for frontend, input band & parser band as IB & PB needs to have 1:1 mapping */
-                    BDBG_MSG(("%s: reusing frontend index %d for xcode session", __FUNCTION__, i));
+                    BDBG_MSG(("%s: reusing frontend index %d for xcode session", BSTD_FUNCTION, i));
                     break;
                 }
             }
@@ -354,7 +354,7 @@ openNexusOfdmSrc(
             else {
                 memcpy(ofdmSrc->psi, cachedPsi, sizeof(B_PlaybackIpPsiInfo)*MAX_PROGRAMS_PER_FREQUENCY);
                 ofdmSrc->numProgramsFound = numProgramsFound;
-                BDBG_MSG(("%s: PSI data reused from cached copy", __FUNCTION__));
+                BDBG_MSG(("%s: PSI data reused from cached copy", BSTD_FUNCTION));
             }
         }
         BKNI_ReleaseMutex(ofdmSrc->lock);
@@ -362,7 +362,7 @@ openNexusOfdmSrc(
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->ofdmSrcMutex);
     if (!ofdmSrc) {
-        BDBG_WRN(("%s: No Free OFDM tuner available for this %u frequency all turners (# %u) busy", __FUNCTION__, ipStreamerCfg->frequency, i));
+        BDBG_WRN(("%s: No Free OFDM tuner available for this %u frequency all turners (# %u) busy", BSTD_FUNCTION, ipStreamerCfg->frequency, i));
         goto error;
     }
     ipStreamerCtx->ofdmSrc = ofdmSrc;
@@ -399,7 +399,7 @@ openNexusOfdmSrc(
     ipStreamerCtx->ofdmSettings.lockCallback.context = ofdmSrc;
     ipStreamerCtx->ofdmSettings.lockCallback.param = ipStreamerCfg->srcType;
 
-    BDBG_MSG(("%s: OFDM Freq %u, bandwidth %d, mode %d", __FUNCTION__, ipStreamerCtx->ofdmSettings.frequency, ipStreamerCtx->ofdmSettings.bandwidth, ipStreamerCtx->ofdmSettings.mode));
+    BDBG_MSG(("%s: OFDM Freq %u, bandwidth %d, mode %d", BSTD_FUNCTION, ipStreamerCtx->ofdmSettings.frequency, ipStreamerCtx->ofdmSettings.bandwidth, ipStreamerCtx->ofdmSettings.mode));
 
     /* associate parser band to the input band associated with this tuner */
     ipStreamerCtx->parserBandPtr = NULL;
@@ -448,11 +448,11 @@ openNexusOfdmSrc(
             if (parserBandPtr->subChannel != ipStreamerCfg->subChannel ||
                 parserBandPtr->transcode.outVideoCodec != ipStreamerCfg->transcode.outVideoCodec ||
                 parserBandPtr->transcode.outHeight != ipStreamerCfg->transcode.outHeight) {
-                BDBG_ERR(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+                BDBG_ERR(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 goto error;
             }
-            BDBG_MSG(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+            BDBG_MSG(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
             parserBandPtr->transcoderDst->refCount++;
             ipStreamerCtx->transcoderDst = parserBandPtr->transcoderDst;
 
@@ -461,7 +461,7 @@ openNexusOfdmSrc(
             /* coverity[stack_use_local_overflow] */
             /* coverity[stack_use_overflow] */
             if ((parserBandPtr->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
-                BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to open the transcoder pipe", BSTD_FUNCTION));
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 goto error;
             }
@@ -534,7 +534,7 @@ openNexusOfdmSrc(
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->ofdmSrcMutex);
                 BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", ipStreamerCtx));
                 if (BKNI_WaitForEvent(ofdmSrcList[i].psiAcquiredEvent, 30000)) {
-                    BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
+                    BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", BSTD_FUNCTION));
                     return -1;
                 }
                 BKNI_AcquireMutex(ipStreamerCtx->globalCtx->ofdmSrcMutex);
@@ -543,7 +543,7 @@ openNexusOfdmSrc(
                 /* PSI info is available, set flag to skip it for this session and copy it from this */
                 cachedPsi = ofdmSrcList[i].psi;
                 numProgramsFound = ofdmSrcList[i].numProgramsFound;
-                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", __FUNCTION__));
+                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", BSTD_FUNCTION));
             }
         }
         if (!ofdmSrcList[i].refCount && !ofdmSrc) {
@@ -566,7 +566,7 @@ openNexusOfdmSrc(
         else {
             memcpy(ofdmSrc->psi, cachedPsi, sizeof(B_PlaybackIpPsiInfo)*MAX_PROGRAMS_PER_FREQUENCY);
             ofdmSrc->numProgramsFound = numProgramsFound;
-            BDBG_MSG(("%s: PSI data reused from cached copy", __FUNCTION__));
+            BDBG_MSG(("%s: PSI data reused from cached copy", BSTD_FUNCTION));
             }
         }
         BKNI_ReleaseMutex(ofdmSrc->lock);
@@ -574,7 +574,7 @@ openNexusOfdmSrc(
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->ofdmSrcMutex);
     if (!ofdmSrc) {
-        BDBG_ERR(("%s: No Free tuner available for this %lu frequency all turners (# %d) busy", __FUNCTION__, ipStreamerCfg->frequency, i));
+        BDBG_ERR(("%s: No Free tuner available for this %lu frequency all turners (# %d) busy", BSTD_FUNCTION, ipStreamerCfg->frequency, i));
         goto error;
     }
     ipStreamerCtx->ofdmSrc = ofdmSrc;
@@ -609,7 +609,7 @@ openNexusOfdmSrc(
     ipStreamerCtx->ofdmSettings.lockCallback.context = ofdmSrc;
     ipStreamerCtx->ofdmSettings.lockCallback.param = ipStreamerCfg->srcType;
 
-    BDBG_MSG(("%s: OFDM Freq %lu, bandwidth %d, mode %d", __FUNCTION__, ipStreamerCtx->ofdmSettings.frequency, ipStreamerCtx->ofdmSettings.bandwidth, ipStreamerCtx->ofdmSettings.mode));
+    BDBG_MSG(("%s: OFDM Freq %lu, bandwidth %d, mode %d", BSTD_FUNCTION, ipStreamerCtx->ofdmSettings.frequency, ipStreamerCtx->ofdmSettings.bandwidth, ipStreamerCtx->ofdmSettings.mode));
 
     /* associate parser band to the input band associated with this tuner */
     ipStreamerCtx->parserBandPtr = NULL;
@@ -625,7 +625,7 @@ openNexusOfdmSrc(
             break;
         }
     }
-    BDBG_MSG(("%s: using parserBand # %d", __FUNCTION__, i));
+    BDBG_MSG(("%s: using parserBand # %d", BSTD_FUNCTION, i));
 #else
     /* pick an unused parser band */
     parserBandPtr = &ipStreamerCtx->globalCtx->parserBandList[frontendIndex % NEXUS_NUM_PARSER_BANDS];
@@ -716,7 +716,7 @@ closeNexusOfdmSrc(
 
     if (!ofdmSrc || !ofdmSrc->refCount)
         return;
-    BDBG_WRN(("%s: refCount %d", __FUNCTION__, ofdmSrc->refCount));
+    BDBG_WRN(("%s: refCount %d", BSTD_FUNCTION, ofdmSrc->refCount));
 
     ipStreamerCtx->ofdmSrc = NULL;
     BKNI_AcquireMutex(ofdmSrc->lock);
@@ -756,13 +756,13 @@ setupAndAcquirePsiInfoOfdmSrc(
         acquirePsiInfo(&collectionData, &ofdmSrc->psi[0], &ofdmSrc->numProgramsFound);
 
         /* tell any other waiting thread that we are done acquiring PSI */
-        BDBG_MSG(("%s: ofdmSrc %p, lock %p", __FUNCTION__, (void *)ofdmSrc, (void *)ofdmSrc->lock));
+        BDBG_MSG(("%s: ofdmSrc %p, lock %p", BSTD_FUNCTION, (void *)ofdmSrc, (void *)ofdmSrc->lock));
         BKNI_AcquireMutex(ofdmSrc->lock);
         ofdmSrc->psiAcquiring = false;
         BKNI_SetEvent(ofdmSrc->psiAcquiredEvent);
         BKNI_ReleaseMutex(ofdmSrc->lock);
         if (ofdmSrc->numProgramsFound == 0) {
-            BDBG_ERR(("%s: ERROR: Unable to Acquire PSI!!", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Unable to Acquire PSI!!", BSTD_FUNCTION));
             return -1;
         }
     }
@@ -849,7 +849,7 @@ int initNexusOfdmSrcList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     /* note: we let the init call succeed, but we will fail the open call */
     /* this way app wont fail during startup, but will fail a client request to open/start a recording */
     return 0;
@@ -858,21 +858,21 @@ void unInitNexusOfdmSrcList(IpStreamerGlobalCtx *ipStreamerGlobalCtx)
 {
     BSTD_UNUSED(ipStreamerGlobalCtx);
 
-    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
 }
 int openNexusOfdmSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 void closeNexusOfdmSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
 }
 int setupAndAcquirePsiInfoOfdmSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx *ipStreamerCtx, B_PlaybackIpPsiInfo *psiOut)
 {
@@ -880,21 +880,21 @@ int setupAndAcquirePsiInfoOfdmSrc(IpStreamerConfig *ipStreamerCfg, IpStreamerCtx
     BSTD_UNUSED(ipStreamerCfg);
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 int startNexusOfdmSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 int stopNexusOfdmSrc(IpStreamerCtx *ipStreamerCtx)
 {
     BSTD_UNUSED(ipStreamerCtx);
 
-    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", __FUNCTION__));
+    BDBG_ERR(("%s: Streaming from OFDM Src can't be enabled on platforms w/o NEXUS_HAS_FRONTEND support", BSTD_FUNCTION));
     return -1;
 }
 #endif /* NEXUS_HAS_FRONTEND */

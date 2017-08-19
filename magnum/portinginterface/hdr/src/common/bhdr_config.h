@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #ifndef BHDR_CONFIG_H__
@@ -275,7 +276,10 @@ therefore this option has not been adequately tested
 #define BHDR_CONFIG_FE_MULTI_CLOCK_SUPPORT 1
 #endif
 
+/* BCM Chips no longer support multiple Rx */
+#define BHDR_MAX_CORES 1
 #define BHDR_FE_MAX_CHANNELS 1
+
 #define BHDR_HAS_MULTIPLE_PORTS 0
 #define BHDR_CONFIG_RESET_HDCP_ON_SYMBOL_LOCK	1
 #define BHDR_CONFIG_UPDATE_MAI_ON_VSYNC 1

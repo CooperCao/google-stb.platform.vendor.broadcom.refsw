@@ -103,11 +103,12 @@ BERR_Code BVC5_P_ClientMapDestroy(
 
 /***************************************************************************/
 
-BERR_Code BVC5_P_ClientCreate(
+static BERR_Code BVC5_P_ClientCreate(
    BVC5_Handle        hVC5,
    BVC5_ClientHandle *phClient,
    uint32_t           uiClientId,
-   uint64_t           uiPlatformToken
+   uint64_t           uiPlatformToken,
+   uint32_t           uiClientPID
 )
 {
    BERR_Code   err = BERR_OUT_OF_SYSTEM_MEMORY;
@@ -125,6 +126,7 @@ BERR_Code BVC5_P_ClientCreate(
    hClient->uiPlatformToken = uiPlatformToken;
    hClient->uiMaxJobId = 0;
    hClient->hVC5 = hVC5;
+   hClient->uiClientPID = uiClientPID;
 
    BVC5_P_JobQCreate(&hClient->hWaitQ);
    if (hClient->hWaitQ == NULL)
@@ -168,6 +170,10 @@ BERR_Code BVC5_P_ClientCreate(
 
    BVC5_P_ActiveQCreate(&hClient->hActiveJobs);
    if (hClient->hActiveJobs == NULL)
+      goto exit;
+
+   err = BVC5_P_EventArrayCreate(&hClient->hEvents);
+   if (err != BERR_SUCCESS)
       goto exit;
 
    err = BERR_SUCCESS;
@@ -233,6 +239,11 @@ BERR_Code BVC5_P_ClientDestroy(
    if (hClient->uiPlatformToken != 0)
       BVC5_P_DRMTerminateClient(hClient->uiPlatformToken);
 
+   /* Remove all the events */
+   BVC5_P_DeleteAllSchedEvent(hClient->hEvents);
+   /* Delete the event array */
+   BVC5_P_EventArrayDestroy(hClient->hEvents);
+
    BKNI_Free(hClient);
 
 exit:
@@ -270,7 +281,8 @@ BERR_Code BVC5_P_ClientMapCreateAndInsert(
    BVC5_ClientMapHandle    hClientMap,
    void                   *pContext,
    uint32_t                uiClientId,
-   uint64_t                uiPlatformToken
+   uint64_t                uiPlatformToken,
+   uint32_t                uiClientPID
 )
 {
    BVC5_ClientHandle hClient = NULL;
@@ -279,7 +291,7 @@ BERR_Code BVC5_P_ClientMapCreateAndInsert(
    if (hClientMap == NULL)
       return BERR_INVALID_PARAMETER;
 
-   err = BVC5_P_ClientCreate(hVC5, &hClient, uiClientId, uiPlatformToken);
+   err = BVC5_P_ClientCreate(hVC5, &hClient, uiClientId, uiPlatformToken, uiClientPID);
    if (err != BERR_SUCCESS)
       goto exit;
 
@@ -299,7 +311,7 @@ exit:
    return err;
 
 duplicate:
-   BKNI_Printf("%s : FATAL : Duplicate client id inserted to map\n", __FUNCTION__);
+   BKNI_Printf("%s : FATAL : Duplicate client id inserted to map\n", BSTD_FUNCTION);
    BVC5_P_ClientDestroy(hVC5, hClient);
    return BERR_INVALID_PARAMETER;
 }
@@ -385,6 +397,77 @@ uint32_t BVC5_P_ClientMapSize(
 )
 {
    return hClientMap->uiSize;
+}
+
+/***************************************************************************/
+BERR_Code BVC5_P_ClientMapGetStats(
+   BVC5_ClientMapHandle    hClientMap,
+   BVC5_ClientLoadData    *pLoadData,
+   uint32_t                uiNumClients,
+   uint32_t               *pValidClients,
+   bool                    bReset
+)
+{
+   BVC5_P_Client *psClient;
+   uint64_t       uiTimeNow;
+   uint32_t       i = 0;
+
+   if (pLoadData == NULL || pValidClients == NULL)
+      return BERR_INVALID_PARAMETER;
+
+   BVC5_P_GetTime_isrsafe(&uiTimeNow);
+
+   for (psClient = BLST_S_FIRST(&hClientMap->sList); psClient != NULL; psClient = BLST_S_NEXT(psClient, sChain))
+   {
+      uint64_t uiElapsedUs;
+
+      if (i >= uiNumClients)
+         break;
+
+      uiElapsedUs = uiTimeNow - psClient->sLoadStats.uiLastCollectedTime;
+
+      pLoadData[i].uiClientId = psClient->uiClientId;
+      pLoadData[i].uiClientPID = psClient->uiClientPID;
+      pLoadData[i].uiNumRenders = psClient->sLoadStats.uiRenderCount;
+      pLoadData[i].sRenderPercent = (uint8_t)((psClient->sLoadStats.iRenderTimeUs) * 100 / uiElapsedUs);
+
+      if (bReset)
+      {
+         psClient->sLoadStats.uiLastCollectedTime = uiTimeNow;
+         psClient->sLoadStats.iRenderTimeUs = 0;
+         psClient->sLoadStats.uiRenderCount = 0;
+      }
+
+      i++;
+   }
+
+   *pValidClients = i;
+
+   return BERR_SUCCESS;
+}
+
+/***************************************************************************/
+BERR_Code BVC5_P_ClientMapUpdateStats(
+   BVC5_ClientMapHandle   hClientMap,
+   uint32_t               uiClientId,
+   uint64_t               uiTimeInRendererUs
+   )
+{
+   BVC5_P_Client *psClient;
+
+   if (hClientMap == NULL)
+      return BERR_INVALID_PARAMETER;
+
+   BDBG_ASSERT(!BLST_S_EMPTY(&hClientMap->sList));
+
+   BLST_S_DICT_FIND(&hClientMap->sList, psClient, uiClientId, uiClientId, sChain);
+   if (psClient == NULL)
+      return BERR_INVALID_PARAMETER;
+
+   psClient->sLoadStats.uiRenderCount += 1;
+   psClient->sLoadStats.iRenderTimeUs += uiTimeInRendererUs;
+
+   return BERR_SUCCESS;
 }
 
 /* JOB STATE TRANSITIONS */
@@ -738,7 +821,7 @@ static BVC5_P_JobDependentFence *BVC5_P_AllocJobDependentFence(
       psFence->psSharedFenceInfo->iFence = psSharedFenceInfo->iFence;
    }
 
-   psFence->psSharedFenceInfo->uCountRef++;
+   psFence->psSharedFenceInfo->uNumberRequiredSignaled++;
    psFence->sNotCompleted = *psNotCompleted;
    psFence->sNotFinalized = *psNotFinalized;
 
@@ -776,8 +859,8 @@ static void BVC5_P_SignalAndFreeOrAddToJob(
       psFence->psSharedFenceInfo->pFenceSignalData = NULL;
       psFence->psSharedFenceInfo->bSignalled = true;
    }
-   psFence->psSharedFenceInfo->uCountRef--;
-   if (psFence->psSharedFenceInfo->uCountRef == 0)
+   psFence->psSharedFenceInfo->uNumberRequiredSignaled--;
+   if (psFence->psSharedFenceInfo->uNumberRequiredSignaled == 0)
    {
       BKNI_Free(psFence->psSharedFenceInfo);
       psFence->psSharedFenceInfo = NULL;
@@ -861,7 +944,7 @@ BERR_Code BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(
       return BERR_SUCCESS;
    }
 
-   sNoDeps.uiNumDeps = 0;
+   BKNI_Memset(&sNoDeps, 0, sizeof(BVC5_SchedDependencies));
    psFence = BVC5_P_AllocJobDependentFence(
       hVC5, hClient, &sNoDeps, &sNoDeps, NULL);
    if (psFence == NULL)
@@ -870,6 +953,26 @@ BERR_Code BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(
    psFence->psNext = hClient->psOldestNotFinalized->psOnFinalizedFenceList;
    hClient->psOldestNotFinalized->psOnFinalizedFenceList = psFence;
    return BERR_SUCCESS;
+}
+
+static bool BVC5_P_AnyDepReachedState(BVC5_ClientHandle hClient, const BVC5_SchedDependencies  *pDeps, bool bCheckFinalisedState)
+{
+   uint32_t index;
+   for (index = 0; index < pDeps->uiNumDeps; index++)
+   {
+      if (!bCheckFinalisedState)
+      {
+         if (BVC5_P_ClientIsJobComplete(hClient, pDeps->uiDep[index]))
+            return true;
+      }
+      else
+      {
+         if (BVC5_P_ClientIsJobFinalized(hClient, pDeps->uiDep[index]))
+            return true;
+      }
+   }
+
+   return false;
 }
 
 BERR_Code BVC5_P_ClientMakeFenceForAnyJob(
@@ -881,23 +984,30 @@ BERR_Code BVC5_P_ClientMakeFenceForAnyJob(
 )
 {
    uint32_t index;
+   bool                       bCheckFinalisedState = true;
    BVC5_SchedDependencies     sNoDeps;
    BVC5_P_JobDependentFence   *psFence;
    BVC5_P_SharedFenceInfo     *psSharedFenceInfo = NULL;
 
+   *piFence = -1;
+
    if (hClient->psOldestNotFinalized == NULL)
-   {
       /* All jobs have been finalized. Just return "null" fence which behaves
        * like a fence that has been signaled already. */
-      *piFence = -1;
       return BERR_SUCCESS;
-   }
 
-   sNoDeps.uiNumDeps = 0;
-   *piFence = -1;
+   if (BVC5_P_AnyDepReachedState(hClient, pCompletedDeps, !bCheckFinalisedState) ||
+       BVC5_P_AnyDepReachedState(hClient, pFinalizedDeps, bCheckFinalisedState))
+      /* At least one of the deps has reach its state.
+       * Just return "null" fence which behaves like a fence that has been signaled already. */
+      return BERR_SUCCESS;
+
+   BKNI_Memset(&sNoDeps, 0, sizeof(BVC5_SchedDependencies));
 
    for (index = 0; index < pCompletedDeps->uiNumDeps; index++)
    {
+      /* Get not completed job
+       * (they all are not completed as it has been check above with BVC5_P_AnyDepReachedState) */
       BVC5_P_InternalJob *psJob = BVC5_P_ClientGetJobIfNotComplete(hClient, pCompletedDeps->uiDep[index]);
       if (psJob)
       {
@@ -919,6 +1029,8 @@ BERR_Code BVC5_P_ClientMakeFenceForAnyJob(
 
    for (index = 0; index < pFinalizedDeps->uiNumDeps; index++)
    {
+      /* Get not finalised job
+       * (they all are not finalised as it has been check above with BVC5_P_AnyDepReachedState) */
       BVC5_P_InternalJob *psJob = BVC5_P_ClientGetJobIfNotFinalized(hClient, pFinalizedDeps->uiDep[index]);
       if (psJob)
       {
@@ -1021,4 +1133,37 @@ bool BVC5_P_ClientHasHardJobs(
           BVC5_P_JobQSize(hClient->hRunnableBinnerQ)  > 0 ||
           BVC5_P_JobQSize(hClient->hRunnableRenderQ)  > 0 ||
           BVC5_P_JobQSize(hClient->hRunnableTFUQ)     > 0;
+}
+
+/***************************************************************************/
+/* Scheduler Event Sync Object                                             */
+
+BERR_Code BVC5_P_ClientNewSchedEvent(BVC5_ClientHandle hClient, uint64_t *pSchedEventId)
+{
+   return BVC5_P_NewSchedEvent(hClient->hEvents, pSchedEventId);
+}
+
+void BVC5_P_ClientDeleteSchedEvent(BVC5_ClientHandle hClient, uint64_t uiSchedEventId)
+{
+   BVC5_P_DeleteSchedEvent(hClient->hEvents, uiSchedEventId);
+}
+
+void BVC5_P_ClientSetSchedEvent(BVC5_ClientHandle hClient, uint64_t uiSchedEventId)
+{
+   BVC5_P_SetSchedEvent(hClient->hEvents, uiSchedEventId);
+}
+
+void BVC5_P_ClientResetSchedEvent(BVC5_ClientHandle hClient, uint64_t uiSchedEventId)
+{
+   BVC5_P_ResetSchedEvent(hClient->hEvents, uiSchedEventId);
+}
+
+bool BVC5_P_ClientQuerySchedEvent(BVC5_ClientHandle hClient, uint64_t uiSchedEventId)
+{
+   return BVC5_P_QuerySchedEvent(hClient->hEvents, uiSchedEventId);
+}
+
+bool BVC5_P_ClientWaitOnSchedEventDone(BVC5_ClientHandle hClient, uint64_t uiSchedEventId)
+{
+   return BVC5_P_WaitOnSchedEventDone(hClient->hEvents, uiSchedEventId);
 }

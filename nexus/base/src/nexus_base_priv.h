@@ -68,6 +68,7 @@ struct b_objdb_module;
 struct NEXUS_Module {
     BDBG_OBJECT(NEXUS_Module)
     BKNI_MutexHandle lock;
+    BKNI_EventHandle event;
     NEXUS_P_Scheduler *scheduler;
     NEXUS_ModuleSettings settings;
     const char *pModuleName;

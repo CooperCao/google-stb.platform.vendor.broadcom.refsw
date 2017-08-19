@@ -1,11 +1,11 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
- *  .  Except as set forth in an Authorized License, Broadcom grants
- *  no license , right to use, or waiver of any kind with respect to the
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
  *  Software, and Broadcom expressly reserves all rights in and to the Software and all
  *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
@@ -27,14 +27,13 @@
  *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
  *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR  CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
  *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR  ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_video_decoder_module.h"
 #include "nexus_still_decoder_impl.h"
@@ -190,6 +189,27 @@ static NEXUS_Error NEXUS_VideoDecoder_P_GetStatus_Sid( NEXUS_VideoDecoderHandle 
     BDBG_OBJECT_ASSERT(&decoder->decoder.sid, NEXUS_VideoDecoder_Sid);
     NEXUS_VideoDecoder_P_GetStatus_Generic(decoder, pStatus);
     return NEXUS_VideoDecoder_P_GetStatus_Generic_Xdm(decoder, pStatus);
+}
+
+static NEXUS_Error NEXUS_VideoDecoder_P_GetStreamInformation_Sid(NEXUS_VideoDecoderHandle decoder, NEXUS_VideoDecoderStreamInformation *pStreamInformation)
+{
+    NEXUS_VideoDecoderStatus status;
+    BDBG_OBJECT_ASSERT(decoder, NEXUS_VideoDecoder);
+    /* the difference between StreamInformation and Status does not apply to SID, so return what Status we have,
+    in StreamInformation form, and 0's for the rest */
+    BKNI_Memset(pStreamInformation, 0, sizeof(*pStreamInformation));
+    NEXUS_VideoDecoder_P_GetStatus_Generic(decoder, &status);
+    pStreamInformation->valid = true;
+    pStreamInformation->sourceHorizontalSize = status.source.width;
+    pStreamInformation->sourceVerticalSize = status.source.height;
+    pStreamInformation->codedSourceHorizontalSize = status.coded.width;
+    pStreamInformation->codedSourceVerticalSize = status.coded.height;
+    pStreamInformation->displayHorizontalSize = status.display.width;
+    pStreamInformation->displayVerticalSize = status.display.height;
+    pStreamInformation->frameProgressive = true;
+    pStreamInformation->streamProgressive = true;
+    pStreamInformation->colorDepth = 8;
+    return NEXUS_SUCCESS;
 }
 
 NEXUS_VideoDecoderHandle
@@ -373,7 +393,7 @@ const NEXUS_VideoDecoder_P_Interface NEXUS_VideoDecoder_P_Interface_Sid = {
     NEXUS_VideoDecoder_P_Flush_Sid,
     NEXUS_VideoDecoder_P_GetStatus_Sid,
     NEXUS_VideoDecoder_P_GetConnector_Common,
-    NOT_SUPPORTED(NEXUS_VideoDecoder_P_GetStreamInformation_Sid),
+    NEXUS_VideoDecoder_P_GetStreamInformation_Sid,
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_SetStartPts_Sid),
     NEXUS_VideoDecoder_P_IsCodecSupported_Sid,
     NEXUS_VideoDecoder_P_SetPowerState_Sid,

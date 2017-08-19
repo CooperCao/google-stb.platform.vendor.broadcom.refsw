@@ -42,6 +42,7 @@
 #include "bchp_pwr_resources_priv.h"
 #endif
 #include "bchp_reset_common.h"
+#include "bchp_common.h"
 
 /* This file contains generic implementation of public APIs */
 
@@ -54,6 +55,7 @@ BDBG_MODULE(BCHP_PWR);
 
 static BERR_Code BCHP_PWR_P_AcquireResource(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool from_init);
 static void BCHP_PWR_P_Init(BCHP_Handle handle);
+static unsigned BCHP_PWR_P_GetInternalIndex(BCHP_PWR_ResourceId resourceId);
 #if BCHP_PWR_SUPPORT
 static BERR_Code BCHP_PWR_P_ReleaseResource(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool from_init);
 static const BCHP_PWR_P_Resource* BCHP_PWR_P_GetResourceHandle(BCHP_PWR_ResourceId resourceId);
@@ -80,14 +82,6 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
 #endif
     BDBG_ASSERT(chp);
     BDBG_ASSERT(chp->regHandle);
-
-#if BCHP_PWR_NUM_P_MAPS
-    if(chp->openSettings.pMapId >= BCHP_PWR_NUM_P_MAPS) {
-        BDBG_ERR(("Invalid PMap %u. Max PMapId : %u", chp->openSettings.pMapId, BCHP_PWR_NUM_P_MAPS-1));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-        goto error;
-    }
-#endif
 
     size = sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES;
     pDev = BKNI_Malloc(sizeof(BCHP_PWR_P_Context));
@@ -149,11 +143,18 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
     }
     BKNI_Memset(pDev->secureCtrl, 0, size);
 
+#ifdef BCHP_PWR_NUM_P_PMAPSETTINGS
+    size = BCHP_PWR_NUM_P_PMAPSETTINGS*sizeof(BCHP_PmapSettings);
+    pDev->pMapSettings = BKNI_Malloc(size);
+    if (!pDev->pMapSettings) {
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto error;
+    }
+    BKNI_Memset(pDev->pMapSettings, 0, size);
+#endif
+
 #if BCHP_PWR_SUPPORT
     BDBG_WRN(("BCHP_PWR POWER MANAGEMENT ENABLED"));
-#if BCHP_UNIFIED_IMPL
-    BDBG_WRN(("Using PMap %u", chp->openSettings.pMapId));
-#endif
     BDBG_MSG(("BCHP_PWR_Open: Non-HW %u, HW %u, Non-Leaf-HW %u", BCHP_PWR_P_NUM_NONLEAFS, BCHP_PWR_P_NUM_LEAFS, BCHP_PWR_P_NUM_NONLEAFSHW));
 #else
     BDBG_WRN((" "));
@@ -194,9 +195,77 @@ error:
         if (pDev->secureCtrl) {
             BKNI_Free(pDev->secureCtrl);
         }
+        if (pDev->pMapSettings) {
+            BKNI_Free(pDev->pMapSettings);
+        }
         BKNI_Free(pDev);
     }
     return rc;
+}
+
+#define PHY_TO_OFF(x) x-BCHP_PHYSICAL_OFFSET
+
+#define APPLY_PMAP_SETTING(handle, reg, mask, shift, value) \
+    data = BREG_Read32(handle->regHandle, reg); \
+    data &= ~mask; \
+    data |= (value<<shift) & mask; \
+    BREG_Write32(handle->regHandle, reg, data);
+
+static void BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
+{
+#ifdef BCHP_PWR_NUM_P_PMAPSETTINGS
+    unsigned j;
+    uint32_t data;
+
+    BKNI_Memcpy(handle->pwrManager->pMapSettings, BCHP_PWR_P_DefaultPMapSettings, BCHP_PWR_NUM_P_PMAPSETTINGS*sizeof(BCHP_PmapSettings));
+
+    /* First apply default settings */
+    for (j=0; j<BCHP_PWR_NUM_P_PMAPSETTINGS; j++) {
+        APPLY_PMAP_SETTING(handle, handle->pwrManager->pMapSettings[j].reg, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].value)
+#if BCHP_UNIFIED_IMPL
+        if (handle->openSettings.pMapSettings) {
+            unsigned i;
+            for (i=0; handle->openSettings.pMapSettings[i].reg!=0; i++) {
+                uint32_t reg = PHY_TO_OFF(handle->openSettings.pMapSettings[i].reg);
+                if (handle->pwrManager->pMapSettings[j].reg == reg &&
+                    handle->pwrManager->pMapSettings[j].mask == handle->openSettings.pMapSettings[i].mask &&
+                    handle->pwrManager->pMapSettings[j].shift == handle->openSettings.pMapSettings[i].shift) {
+                    handle->pwrManager->pMapSettings[j].value = handle->openSettings.pMapSettings[i].value;
+                    BDBG_MSG(("Copied Value %d\tShift %x\t\tMask %x\tReg %x",
+                        handle->pwrManager->pMapSettings[j].value, handle->pwrManager->pMapSettings[j].shift,
+                        handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg));
+                    break;
+                }
+            }
+            if (handle->openSettings.pMapSettings[i].reg == 0) {
+                BDBG_WRN(("Pmap Setting Not Found : Shift %x\t\tMask %x\tReg %x", handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg));
+            }
+        }
+#endif
+    }
+
+#if BCHP_UNIFIED_IMPL
+    if (handle->openSettings.pMapSettings) {
+        unsigned i;
+        for (i=0; handle->openSettings.pMapSettings[i].reg!=0; i++) {
+            uint32_t reg = PHY_TO_OFF(handle->openSettings.pMapSettings[i].reg);
+            APPLY_PMAP_SETTING(handle, reg, handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].shift, handle->openSettings.pMapSettings[i].value)
+
+            BDBG_MSG(("Value %d\tShift %x\t\tMask %x\tReg %x",
+                        handle->openSettings.pMapSettings[i].value, handle->openSettings.pMapSettings[i].shift,
+                        handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].reg));
+            /* TODO : Verify settings from BOLT with that generated by script */
+        }
+    }
+#if BCHP_CHIP != 7250 && BCHP_CHIP != 7364 && BCHP_CHIP != 7366 && BCHP_CHIP != 7439 && BCHP_CHIP != 7445
+    else {
+        BDBG_WRN(("PMAP Settings Not Found. Upgrade BOLT"));
+    }
+#endif
+#endif
+#else
+    BSTD_UNUSED(handle);
+#endif
 }
 
 static void BCHP_PWR_P_Init(BCHP_Handle handle)
@@ -263,12 +332,16 @@ static void BCHP_PWR_P_Init(BCHP_Handle handle)
 #endif
 #endif
 
+    BCHP_PWR_P_InitPMapSettings(handle);
+
     handle->pwrManager->initComplete = true;
     BDBG_MSG(("BCHP_PWR_P_Init: <"));
 
 #if 0 /* debug dump */
     BCHP_PWR_Dump(handle);
 #endif
+    BSTD_UNUSED(idx);
+    return;
 }
 
 void BCHP_PWR_Close(BCHP_PWR_Handle handle)
@@ -300,41 +373,35 @@ void BCHP_PWR_Close(BCHP_PWR_Handle handle)
     }
 
 #endif /* BCHP_PWR_SUPPORT */
-    BKNI_DestroyMutex(handle->lock);
-    BKNI_Free(handle->pubRefcnt);
-    BKNI_Free(handle->privRefcnt);
-    BKNI_Free(handle->init);
-    BKNI_Free(handle->magnumCtrl);
-    BKNI_Free(handle->sharedCtrl);
-    BKNI_Free(handle->secureCtrl);
-    BKNI_Free(handle);
+    if (handle->lock) {
+        BKNI_DestroyMutex(handle->lock);
+    }
+    if (handle->pubRefcnt) {
+        BKNI_Free(handle->pubRefcnt);
+    }
+    if (handle->privRefcnt) {
+        BKNI_Free(handle->privRefcnt);
+    }
+    if (handle->init) {
+        BKNI_Free(handle->init);
+    }
+    if (handle->magnumCtrl) {
+        BKNI_Free(handle->magnumCtrl);
+    }
+    if (handle->sharedCtrl) {
+        BKNI_Free(handle->sharedCtrl);
+    }
+    if (handle->secureCtrl) {
+        BKNI_Free(handle->secureCtrl);
+    }
+    if (handle->pMapSettings) {
+        BKNI_Free(handle->pMapSettings);
+    }
+    if (handle) {
+        BKNI_Free(handle);
+    }
     BDBG_MSG(("BCHP_PWR_Close: <"));
 }
-
-#if 0 /* unused */
-/* returns true if "resource" is a dependency of another HW node */
-static bool BCHP_PWR_P_IsParentHwNode(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource)
-{
-    bool rc = false;
-    BSTD_UNUSED(handle);
-
-    if (resource->type==BCHP_PWR_P_ResourceType_eLeaf || resource->type==BCHP_PWR_P_ResourceType_eNonLeafHw) {
-        unsigned i;
-        /* go through all HW nodes and see if "resource" is a dependant of any */
-        for (i=BCHP_PWR_P_NUM_NONLEAFS; i<BCHP_PWR_P_NUM_ALLNODES; i++) {
-            const BCHP_PWR_P_Resource **res = (const BCHP_PWR_P_Resource **) BCHP_PWR_P_DependList[i];
-            if (res) {
-                for (;*res!=NULL;res++) {
-                    if (*res == resource) {
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    return rc;
-}
-#endif
 
 void BCHP_PWR_InitAllHwResources(BCHP_Handle handle)
 {
@@ -426,52 +493,6 @@ static void BCHP_PWR_P_Release(BCHP_Handle handle, BCHP_PWR_ResourceId resourceI
 }
 #endif
 
-#if BCHP_PWR_P_NUM_MUXES
-static void BCHP_PWR_P_InitMux(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource)
-{
-    unsigned i, pMapId = 0;
-    const BCHP_PWR_P_MuxTable *muxTable = NULL;
-
-#if BCHP_UNIFIED_IMPL
-    pMapId = handle->openSettings.pMapId;
-#endif
-
-    for (i=0; i<BCHP_PWR_P_NUM_MUXES; i++) {
-        if (resource->id == BCHP_PWR_P_MuxMapList[i].id) {
-            muxTable = BCHP_PWR_P_MuxMapList[i].pMuxTable;
-            if(muxTable) {
-                BDBG_MSG(("Init %s : %d", resource->name, muxTable[pMapId].mux));
-                BCHP_PWR_P_MUX_Control(handle, resource, (unsigned *)&muxTable[pMapId].mux, true);
-            }
-            break;
-        }
-    }
-}
-#endif
-
-#if BCHP_PWR_P_NUM_DIVS
-static void BCHP_PWR_P_InitDiv(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource)
-{
-    unsigned i, pMapId = 0;
-    const BCHP_PWR_P_DivTable *divTable = NULL;
-
-#if BCHP_UNIFIED_IMPL
-    pMapId = handle->openSettings.pMapId;
-#endif
-
-    for (i=0; i<BCHP_PWR_P_NUM_DIVS; i++) {
-        if (resource->id == BCHP_PWR_P_FreqMapList[i].id) {
-            divTable = BCHP_PWR_P_FreqMapList[i].pDivTable;
-            if(divTable[pMapId].postdiv) {
-                BDBG_MSG(("Init %s : Mult %d, Prediv %d, Postdiv %d", resource->name, divTable[pMapId].mult, divTable[pMapId].prediv, divTable[pMapId].postdiv));
-                BCHP_PWR_P_DIV_Control(handle, resource, (unsigned *)&divTable[pMapId].mult, (unsigned *)&divTable[pMapId].prediv, (unsigned *)&divTable[pMapId].postdiv, true);
-            }
-            break;
-        }
-    }
-}
-#endif
-
 static BERR_Code BCHP_PWR_P_AcquireResource(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool from_init)
 {
     BERR_Code rc = BERR_SUCCESS;
@@ -486,13 +507,6 @@ static BERR_Code BCHP_PWR_P_AcquireResource(BCHP_Handle handle, const BCHP_PWR_P
 #if BCHP_PWR_P_NUM_MUXES
             const BCHP_PWR_P_Resource **resources = (const BCHP_PWR_P_Resource **) BCHP_PWR_P_DependList[idx];
             unsigned mux, cnt=0;
-            /*BDBG_ASSERT(resources);*/
-
-            if (ref_cnt==0) {
-                if (from_init) {
-                    BCHP_PWR_P_InitMux(handle, resource);
-                }
-            }
             if(resources) {
                 BCHP_PWR_P_MUX_Control(handle, resource, &mux, false);
                 for (;*resources!=NULL;resources++,cnt++) {
@@ -509,14 +523,6 @@ static BERR_Code BCHP_PWR_P_AcquireResource(BCHP_Handle handle, const BCHP_PWR_P
         {
             const BCHP_PWR_P_Resource **resources = (const BCHP_PWR_P_Resource **) BCHP_PWR_P_DependList[idx];
             if(resource->type == BCHP_PWR_P_ResourceType_eDiv) {
-                /* Initialize clock frequency */
-#if BCHP_PWR_P_NUM_DIVS
-                if (ref_cnt==0) {
-                    if (from_init) {
-                        BCHP_PWR_P_InitDiv(handle, resource);
-                    }
-                }
-#endif
                 /* Leaf Divisor */
                 if(resources == NULL) {
                     break;
@@ -883,19 +889,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
     BKNI_Memcpy(refcnt, handle->pwrManager->privRefcnt, sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
 
     /* Initialize Mux and Divs */
-    for (i=BCHP_PWR_P_NUM_NONLEAFS; i<BCHP_PWR_P_NUM_ALLNODES; i++) {
-        resource = BCHP_PWR_P_ResourceList[i];
-        BDBG_ASSERT(resource->type != BCHP_PWR_P_ResourceType_eNonLeaf);
-        if(resource->type == BCHP_PWR_P_ResourceType_eMux) {
-#if BCHP_PWR_P_NUM_MUXES
-            BCHP_PWR_P_InitMux(handle, resource);
-#endif
-        } else if (resource->type == BCHP_PWR_P_ResourceType_eDiv) {
-#if BCHP_PWR_P_NUM_DIVS
-            BCHP_PWR_P_InitDiv(handle, resource);
-#endif
-        }
-    }
+    BCHP_PWR_P_InitPMapSettings(handle);
 
     /* Secure nodes may need to be restored */
 #ifdef BCHP_PWR_RESOURCE_SECURE_ACCESS
@@ -1023,13 +1017,23 @@ static const BCHP_PWR_P_DivTable *BCHP_PWR_P_ClockRateControl(BCHP_Handle handle
     return divTable;
 }
 
+static unsigned BCHP_PWR_P_GetDiv(BCHP_Handle handle, unsigned index)
+{
+    unsigned val = 0;
+    if (handle->pwrManager->pMapSettings) {
+        if ((int)index != -1) {
+            val = handle->pwrManager->pMapSettings[index].value;
+        }
+    }
+    return val;
+}
+
 static BERR_Code BCHP_PWR_P_GetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, unsigned *minRate, unsigned *maxRate, unsigned *curRate)
 {
     BERR_Code rc = BERR_NOT_SUPPORTED;
     const BCHP_PWR_P_DivTable *divTable = NULL;
     const BCHP_PWR_P_Resource *resource;
     unsigned postdiv, prediv, mult;
-    unsigned pMapId = 0;
 
     BDBG_ASSERT(handle);
 
@@ -1042,28 +1046,36 @@ static BERR_Code BCHP_PWR_P_GetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId
 
     BKNI_AcquireMutex(handle->pwrManager->lock);
 
-#if BCHP_UNIFIED_IMPL
-    pMapId = handle->openSettings.pMapId;
-#endif
-
     resource = BCHP_PWR_P_GetResourceHandle(resourceId);
     divTable = BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, false);
-    if(divTable) {
-        unsigned clkRate = (((uint64_t)BASE_FREQ * divTable[pMapId].mult)/divTable[pMapId].prediv)/divTable[pMapId].postdiv;
-        if (minRate) {
-            *minRate = clkRate/16;
-            BDBG_MSG(("%s Min Clock Rate %u", resource->name, *minRate));
-        }
-        if (maxRate) {
-            *maxRate = clkRate;
-            BDBG_MSG(("%s Max Clock Rate %u", resource->name, *maxRate));
-        }
-        if (curRate) {
-            *curRate = (((uint64_t)BASE_FREQ * mult)/prediv)/postdiv;
-            BDBG_MSG(("%s Current Clock Rate %u", resource->name, *curRate));
-        }
 
-        rc = BERR_SUCCESS;
+    if(divTable) {
+        unsigned ndiv  = BCHP_PWR_P_GetDiv(handle, divTable->mult);
+        unsigned pdiv  = BCHP_PWR_P_GetDiv(handle, divTable->prediv);
+        unsigned mdiv  = BCHP_PWR_P_GetDiv(handle, divTable->postdiv);
+        if(pdiv && (pdiv != prediv)) {
+            BDBG_WRN(("Expected Pdiv value %u, Actual Pdiv value %u", pdiv, prediv));
+        }
+        if(ndiv && (ndiv != mult)) {
+            BDBG_WRN(("Expected Ndiv value %u, Actual Ndiv value %u", ndiv, mult));
+        }
+        if (mdiv) {
+            unsigned clkRate = (((uint64_t)BASE_FREQ * mult)/prediv)/mdiv;
+            if (minRate) {
+                *minRate = clkRate/16;
+                BDBG_MSG(("%s Min Clock Rate %u", resource->name, *minRate));
+            }
+            if (maxRate) {
+                *maxRate = clkRate;
+                BDBG_MSG(("%s Max Clock Rate %u", resource->name, *maxRate));
+            }
+            if (curRate) {
+                *curRate = (((uint64_t)BASE_FREQ * mult)/prediv)/postdiv;
+                BDBG_MSG(("%s Current Clock Rate %u", resource->name, *curRate));
+            }
+
+            rc = BERR_SUCCESS;
+        }
     }
 
     BKNI_ReleaseMutex(handle->pwrManager->lock);
@@ -1132,9 +1144,6 @@ BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
     const BCHP_PWR_P_DivTable *divTable = NULL;
     const BCHP_PWR_P_Resource *resource;
     unsigned postdiv, prediv, mult;
-    unsigned maxRate, minRate;
-    unsigned pMapId = 0;
-
 
     BDBG_ASSERT(handle);
 
@@ -1153,29 +1162,36 @@ BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
 
     BKNI_AcquireMutex(handle->pwrManager->lock);
 
-#if BCHP_UNIFIED_IMPL
-    pMapId = handle->openSettings.pMapId;
-#endif
-
     resource = BCHP_PWR_P_GetResourceHandle(resourceId);
     divTable = BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, false);
 
     if(divTable) {
-        maxRate = (((uint64_t)BASE_FREQ * divTable[pMapId].mult)/divTable[pMapId].prediv)/divTable[pMapId].postdiv;
-        minRate = maxRate/16;
-
-        BDBG_MSG(("min %u, max %u", minRate, maxRate));
-
-        if(clkRate < minRate || clkRate > maxRate) {
-            BDBG_WRN(("Frequency %u is out of range [%u, %u]", clkRate, minRate, maxRate));
-            goto error;
+        unsigned ndiv  = BCHP_PWR_P_GetDiv(handle, divTable->mult);
+        unsigned pdiv  = BCHP_PWR_P_GetDiv(handle, divTable->prediv);
+        unsigned mdiv  = BCHP_PWR_P_GetDiv(handle, divTable->postdiv);
+        if(pdiv && (pdiv != prediv)) {
+            BDBG_WRN(("Expected Pdiv value %u, Actual Pdiv value %u", pdiv, prediv));
         }
+        if(ndiv && (ndiv != mult)) {
+            BDBG_WRN(("Expected Ndiv value %u, Actual Ndiv value %u", ndiv, mult));
+        }
+        if (mdiv) {
+            unsigned maxRate = (((uint64_t)BASE_FREQ * mult)/prediv)/mdiv;
+            unsigned minRate = maxRate/16;
 
-        postdiv = (((uint64_t)BASE_FREQ * mult)/prediv)/clkRate;
-        BDBG_MSG(("clkrate %u, mult %u, prediv %u, postdiv %u", clkRate, mult, prediv, postdiv));
+            BDBG_MSG(("min %u, max %u", minRate, maxRate));
 
-        if(BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, true))
-            rc = BERR_SUCCESS;
+            if(clkRate < minRate || clkRate > maxRate) {
+                BDBG_WRN(("Frequency %u is out of range [%u, %u]", clkRate, minRate, maxRate));
+                goto error;
+            }
+
+            postdiv = (((uint64_t)BASE_FREQ * mult)/prediv)/clkRate;
+            BDBG_MSG(("clkrate %u, mult %u, prediv %u, postdiv %u", clkRate, mult, prediv, postdiv));
+
+            if(BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, true))
+                rc = BERR_SUCCESS;
+        }
     }
 
 error:

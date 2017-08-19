@@ -50,3 +50,11 @@ APPS = \
 
 # TODO: if APPS is overriden via command-line, it's passed down to playback_ip/app's submake, which then tries to do a copy of a non-existent file
 include ../common/Makefile.inc
+
+# typical build flags for integrating playback_ip support:
+# export PLAYBACK_IP_SUPPORT=y
+# export LIVEMEDIA_SUPPORT=n
+# export SSL_SUPPORT=n
+# export HTTP_AES_SUPPORT=n
+# export HLS_PROTOCOL_SUPPORT=n
+# export PLAYBACK_IP_GCB_SUPPORT=y

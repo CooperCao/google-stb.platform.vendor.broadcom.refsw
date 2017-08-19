@@ -15,7 +15,7 @@ struct BEGL_DisplayInterface;
 struct BEGL_SchedInterface;
 
 struct BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
-                                                   BEGL_MemoryInterface *memIface);
+                                                            BEGL_SchedInterface *schedIface);
 void DestroyDirectFBDisplayInterface(struct BEGL_DisplayInterface *disp);
 
 #ifdef __cplusplus

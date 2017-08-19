@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 
 #if 0
@@ -55,8 +54,8 @@
 #define B_IPC_FIELD_DIR(api, dir) B_IPC_DATA()->data.dir.api
 #define B_IPC_FIELD(api, dir, field) B_IPC_DATA()->data.dir.api.field
 #define B_IPC_CLIENT_PROLOGUE(module, function, api) NEXUS_Error __rc; NEXUS_P_ClientCall_State __state;NEXUS_CLIENT_ENTER(function);\
-    __state.varargs_begin = B_IPC_DATA_ALIGN( ((uint8_t *)&B_IPC_FIELD_DIR(api,in) -  (uint8_t *)__state.data) +  sizeof(B_IPC_FIELD_DIR(api,in)));\
-    __rc = NEXUS_P_ClientCall_Begin(nexus_client_##module##_state, &__state, ((uint8_t *)&B_IPC_FIELD_DIR(api,in) -  (uint8_t *)__state.data));if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto err_begin;}
+    __state.varargs_begin = B_IPC_DATA_ALIGN( offsetof(b_ipc_this_module_data, data.in.api) +  sizeof(B_IPC_FIELD_DIR(api,in)));\
+    __rc = NEXUS_P_ClientCall_Begin(nexus_client_##module##_state, &__state, offsetof(b_ipc_this_module_data, data.in.api));if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto err_begin;}
 
 #define B_IPC_CLIENT_MODULE_BEGIN(module, MODULE) \
     BDBG_MODULE(nexus_##module##_client_ipc); \

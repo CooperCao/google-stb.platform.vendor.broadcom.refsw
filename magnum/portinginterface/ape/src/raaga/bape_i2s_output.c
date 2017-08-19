@@ -193,7 +193,7 @@ BERR_Code BAPE_I2sOutput_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
 
-    BDBG_MSG(("%s: Opening I2S Output: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening I2S Output: %u", BSTD_FUNCTION, index));
 
     *pHandle = NULL;    /* Set up to return null handle in case of error. */
 

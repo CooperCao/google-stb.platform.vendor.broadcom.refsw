@@ -153,8 +153,6 @@ BERR_Code BBOX_P_Vdc_SetCapabilities
 {
     BERR_Code eStatus = BERR_SUCCESS;
 
-    eStatus = BBOX_P_ValidateId(ulBoxId);
-
     BBOX_P_Vdc_SetSourceCapabilities(ulBoxId, &pBoxVdc->astSource[0]);
 
     BBOX_P_Vdc_SetDisplayCapabilities(ulBoxId, &pBoxVdc->astDisplay[0]);
@@ -178,6 +176,12 @@ BERR_Code BBOX_P_Vdc_SetBoxMode
 
     /* Set defaults. */
     BBOX_P_Vdc_SetDefaultCapabilities(pBoxVdc);
+
+    eStatus = BBOX_P_ValidateId(ulBoxId);
+    if (eStatus == BBOX_ID_NOT_SUPPORTED)
+    {
+        BDBG_ERR(("Box Mode ID %d is not supported on this chip.", ulBoxId));
+    }
 
     /* Set box specific limits */
     eStatus = BBOX_P_Vdc_SetCapabilities(ulBoxId, pBoxVdc);
@@ -282,6 +286,7 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
       BBOX_Vdc_DisplayId             eDisplayId,
       BBOX_Vdc_WindowId              eWinId,
       uint32_t                       ulMad,
+      bool                           bSrcSideDeinterlace,
       BBOX_Vdc_Resource_Capture      eCap,
       BBOX_Vdc_Resource_Feeder       eVfd,
       BBOX_Vdc_Resource_Scaler       eScl,
@@ -294,6 +299,7 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
     pDisplayCap += eDisplayId;
     pDisplayCap->astWindow[eWinId].bAvailable = (eWinId <= BBOX_Vdc_Window_eGfx0) ? true : false;
     pDisplayCap->astWindow[eWinId].stResource.ulMad = ulMad;
+    pDisplayCap->astWindow[eWinId].stResource.bSrcSideDeinterlacer = bSrcSideDeinterlace;
     pDisplayCap->astWindow[eWinId].stResource.eCap = eCap;
     pDisplayCap->astWindow[eWinId].stResource.eVfd = eVfd;
     pDisplayCap->astWindow[eWinId].stResource.eScl = eScl;
@@ -458,20 +464,29 @@ BERR_Code BBOX_P_Vdc_SelfCheck
         {
             BBOX_Vdc_MosaicModeClass eMosaic = pVdcCap->astDisplay[i].eMosaicModeClass;
             BFMT_VideoFmt eMaxFmt = pVdcCap->astDisplay[i].eMaxVideoFmt;
+            bool bDontTestCapVfd;
 
             BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Display %d: Win%d: %x, Mad%d: %x", i, j,
                 pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j], j,
                 pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j]));
 
-            if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j].bAvailable == false)) ||
-                ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j].bAvailable == true)))
+            /* For transcode paths without CAP/VFD. */
+            bDontTestCapVfd = (pVdcCap->stXcode.ulNumXcodeCapVfd == 0 &&
+                               pVdcCap->astDisplay[i].astWindow[j].bAvailable &&
+                               pVdcCap->astDisplay[i].stStgEnc.bAvailable) ? true : false;
+
+            if (!bDontTestCapVfd)
             {
-                BDBG_ERR(("Memconfig Table display %d window %d entry [%x] doesn't correspond to VDC BOX config entry [%s].",
-                    i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j],
-                    pVdcCap->astDisplay[i].astWindow[j].bAvailable ? "true" : "false"));
-                eStatus = BERR_INVALID_PARAMETER;
+                if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
+                    (pVdcCap->astDisplay[i].astWindow[j].bAvailable == false)) ||
+                    ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
+                    (pVdcCap->astDisplay[i].astWindow[j].bAvailable == true)))
+                {
+                    BDBG_ERR(("Memconfig Table display %d window %d entry [%x] doesn't correspond to VDC BOX config entry [%s].",
+                        i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j],
+                        pVdcCap->astDisplay[i].astWindow[j].bAvailable ? "true" : "false"));
+                    eStatus = BERR_INVALID_PARAMETER;
+                }
             }
 
             if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
@@ -485,28 +500,31 @@ BERR_Code BBOX_P_Vdc_SelfCheck
                 eStatus = BERR_INVALID_PARAMETER;
             }
 
-            if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j].stResource.eCap == BBOX_Vdc_Resource_Capture_eUnknown)) ||
-                ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_Vdc_Resource_Capture_eUnknown &&
-                 pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_VDC_DISREGARD)))
+            if (!bDontTestCapVfd)
             {
-                BDBG_ERR(("Memconfig Table display %d capture %d entry [%x] doesn't correspond to VDC BOX config entry [%x].",
-                    i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j],
-                    pVdcCap->astDisplay[i].astWindow[j].stResource.eCap));
-                eStatus = BERR_INVALID_PARAMETER;
-            }
+                if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
+                    (pVdcCap->astDisplay[i].astWindow[j].stResource.eCap == BBOX_Vdc_Resource_Capture_eUnknown)) ||
+                    ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
+                    (pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_Vdc_Resource_Capture_eUnknown &&
+                     pVdcCap->astDisplay[i].astWindow[j].stResource.eCap != BBOX_VDC_DISREGARD)))
+                {
+                    BDBG_ERR(("Memconfig Table display %d capture %d entry [%x] doesn't correspond to VDC BOX config entry [%x].",
+                        i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j],
+                        pVdcCap->astDisplay[i].astWindow[j].stResource.eCap));
+                    eStatus = BERR_INVALID_PARAMETER;
+                }
 
-            if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd == BBOX_Vdc_Resource_Feeder_eUnknown)) ||
-                ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_Vdc_Resource_Feeder_eUnknown &&
-                 pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_VDC_DISREGARD)))
-            {
-                BDBG_ERR(("Memconfig Table display %d feeder %d entry [%x] doesn't correspond to VDC BOX config entry [%x].",
-                    i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j],
-                    pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd));
-                eStatus = BERR_INVALID_PARAMETER;
+                if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
+                    (pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd == BBOX_Vdc_Resource_Feeder_eUnknown)) ||
+                    ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
+                    (pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_Vdc_Resource_Feeder_eUnknown &&
+                     pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd != BBOX_VDC_DISREGARD)))
+                {
+                    BDBG_ERR(("Memconfig Table display %d feeder %d entry [%x] doesn't correspond to VDC BOX config entry [%x].",
+                        i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j],
+                        pVdcCap->astDisplay[i].astWindow[j].stResource.eVfd));
+                    eStatus = BERR_INVALID_PARAMETER;
+                }
             }
 
             /* check if CAP/VFD/SCL used are correctly paired */
@@ -589,6 +607,67 @@ BERR_Code BBOX_P_Vdc_SelfCheck
         }
     }
 
+    return eStatus;
+}
+
+BERR_Code BBOX_P_Vdc_ValidateBoxModes
+    ( BBOX_Handle                 hBox )
+{
+    BERR_Code eStatus = BERR_SUCCESS;
+
+    if (hBox)
+    {
+        uint32_t ulBoxId;
+        BBOX_Vdc_Capabilities *pstVdcCap;
+        BBOX_MemConfig *pstMemConfig;
+
+        pstVdcCap = (BBOX_Vdc_Capabilities *)BKNI_Malloc(sizeof(BBOX_Vdc_Capabilities));
+        pstMemConfig = (BBOX_MemConfig *)BKNI_Malloc(sizeof(BBOX_MemConfig));
+
+        for (ulBoxId=1; ulBoxId<=BBOX_MODES_SUPPORTED; ulBoxId++)
+        {
+            BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Validating box mode %d", ulBoxId));
+             /* VDC */
+            /* Set defaults. */
+            BBOX_P_Vdc_SetDefaultCapabilities(pstVdcCap);
+
+            eStatus = BBOX_P_ValidateId(ulBoxId);
+            if (eStatus == BBOX_ID_NOT_SUPPORTED)
+            {
+                continue;
+            }
+
+            /* Set box specific limits */
+            eStatus = BBOX_P_Vdc_SetCapabilities(ulBoxId, pstVdcCap);
+            if (eStatus != BERR_SUCCESS)
+            {
+                goto BBOX_Validate_Done;
+            }
+
+            eStatus = BBOX_P_GetMemConfig(ulBoxId, pstMemConfig);
+            if (eStatus != BERR_SUCCESS)
+            {
+                goto BBOX_Validate_Done;
+            }
+
+            /* Check memc assignment against BOX config */
+            eStatus = BBOX_P_Vdc_SelfCheck(pstMemConfig, pstVdcCap);
+            if (eStatus != BERR_SUCCESS)
+            {
+                eStatus = BERR_INVALID_PARAMETER;
+                goto BBOX_Validate_Done;
+            }
+        }
+
+        BKNI_Free(pstVdcCap);
+        BKNI_Free(pstMemConfig);
+    }
+    else
+    {
+        BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Box mode 0 doesn't require validation."));
+    }
+
+BBOX_Validate_Done:
     return eStatus;
 }
 

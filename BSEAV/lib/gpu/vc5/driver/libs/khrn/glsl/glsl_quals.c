@@ -317,27 +317,53 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, DeclDefaultStat
       *d  = glsl_layout_combine_block_bits(*d, q.lq->unif_bits);
    }
 
-   if (sq == STORAGE_IN) {
-      bool seen_local_size   = false;
-      unsigned local_size[3] = { 1, 1, 1};
+   if (sq == STORAGE_OUT) {
+      if (dflt->output_size > 0) return;
 
       for (QualListNode *n = l->head; n; n=n->next) {
          if (n->q->flavour == QUAL_LAYOUT) {
             for (LayoutIDList *idn = n->q->u.layout; idn; idn=idn->next) {
-               if (idn->l->id == LQ_SIZE_X) { seen_local_size = true; local_size[0] = idn->l->argument; }
-               if (idn->l->id == LQ_SIZE_Y) { seen_local_size = true; local_size[1] = idn->l->argument; }
-               if (idn->l->id == LQ_SIZE_Z) { seen_local_size = true; local_size[2] = idn->l->argument; }
+               if (idn->l->id == LQ_VERTICES) dflt->output_size = idn->l->argument;
+            }
+         }
+      }
+   }
+
+   if (sq == STORAGE_IN) {
+      bool seen_gs_size   = false;
+      bool seen_wg_size   = false;
+      unsigned gs_size    = 0;   /* Initialised to pacify compiler */
+      unsigned wg_size[3] = { 1, 1, 1};
+
+      for (QualListNode *n = l->head; n; n=n->next) {
+         if (n->q->flavour == QUAL_LAYOUT) {
+            for (LayoutIDList *idn = n->q->u.layout; idn; idn=idn->next) {
+               switch (idn->l->id) {
+                  case LQ_POINTS:              seen_gs_size = true; gs_size = 1;                   break;
+                  case LQ_LINES:               seen_gs_size = true; gs_size = 2;                   break;
+                  case LQ_LINES_ADJACENCY:     seen_gs_size = true; gs_size = 4;                   break;
+                  case LQ_TRIANGLES:           seen_gs_size = true; gs_size = 3;                   break;
+                  case LQ_TRIANGLES_ADJACENCY: seen_gs_size = true; gs_size = 6;                   break;
+                  case LQ_SIZE_X:              seen_wg_size = true; wg_size[0] = idn->l->argument; break;
+                  case LQ_SIZE_Y:              seen_wg_size = true; wg_size[1] = idn->l->argument; break;
+                  case LQ_SIZE_Z:              seen_wg_size = true; wg_size[2] = idn->l->argument; break;
+                  default:                                                                         break;
+               }
             }
          }
       }
 
-      if (seen_local_size) {
+      if (seen_gs_size && g_ShaderFlavour == SHADER_GEOMETRY) {
+         dflt->input_size = gs_size;
+      }
+
+      if (seen_wg_size) {
          const char *name = glsl_intern("gl_WorkGroupSize", false);
          Symbol *existing = glsl_symbol_table_lookup(table, name);
          if (existing != NULL) {
             /* New declaration must match the old */
             for (int i=0; i<3; i++) {
-               if (existing->u.var_instance.compile_time_value[i] != local_size[i])
+               if (existing->u.var_instance.compile_time_value[i] != wg_size[i])
                   glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Inconsistent workgroup size declarations");
             }
          } else {
@@ -350,7 +376,7 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, DeclDefaultStat
                              .pq = PREC_HIGHP,
                              .mq = MEMORY_NONE };
             const_value *v = malloc_fast(3 * sizeof(const_value));
-            for (int i=0; i<3; i++) v[i] = local_size[i];
+            for (int i=0; i<3; i++) v[i] = wg_size[i];
             Symbol *s = malloc_fast(sizeof(Symbol));
             glsl_symbol_construct_var_instance(s, name, &primitiveTypes[PRIM_UVEC3], &q, v, NULL);
             glsl_symbol_table_insert(table, s);

@@ -1,0 +1,28 @@
+#ifdef RC_INVOKED
+#include <winver.h>
+#endif
+
+#include "epivers.h"
+#include "vendor.h"
+
+#define VER_FILETYPE			0
+#define VER_FILESUBTYPE 		0
+
+/////////////////////////////////////////////////////////////////////////////
+#undef VER_FILEDESCRIPTION_STR
+#undef VER_ORIGINALFILENAME_STR
+#undef VER_INTERNALNAME_STR
+#undef VER_PRODUCTNAME_STR
+
+#define VER_FILEDESCRIPTION_STR 	"WPS Enrollee SDK GUI Test Program"
+#define VER_ORIGINALFILENAME_STR	"wps_test_gui.exe"
+#define VER_INTERNALNAME_STR		VER_ORIGINALFILENAME_STR
+#define VER_PRODUCTNAME_STR			"WPS Enrollee SDK"
+
+#define VER_FILEFLAGSMASK           VS_FFI_FILEFLAGSMASK
+#define VER_FILEFLAGS               0
+#define VER_FILEOS                  VOS__WINDOWS32
+
+#ifdef RC_INVOKED
+#include "common.ver"
+#endif

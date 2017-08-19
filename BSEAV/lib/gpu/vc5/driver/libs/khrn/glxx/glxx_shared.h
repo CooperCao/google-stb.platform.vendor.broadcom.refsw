@@ -37,8 +37,6 @@ typedef struct {
    khrn_map renderbuffers;
    khrn_map fencesyncs;
 
-   glxx_compute_shared compute;
-
 } GLXX_SHARED_T;
 
 // TODO: Just include the headers?

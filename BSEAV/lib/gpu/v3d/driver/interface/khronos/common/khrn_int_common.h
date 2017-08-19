@@ -1,11 +1,10 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef KHRN_INT_COMMON_H
-#define KHRN_INT_COMMON_H
+#pragma once
 #ifdef __cplusplus
 extern "C" {
-#endif\
+#endif
 
 //#define KHRN_NOT_REALLY_DUALCORE   // Use dual core codebase but switch master thread to vpu1
 //#define KHRN_SIMPLE_MULTISAMPLE
@@ -99,6 +98,7 @@ typedef struct {
    bool SBWAIT;   /* core has to issue a SBWAIT instruction to access the scoreboard */
    bool GFXH724;  /* Make top bits of INTCTL read masked interrupt status */
    bool LNLOOP;   /* A line loop of two points doesn't draw anything */
+   bool GFXH1670; /* Unable to write to TLB in last three instructions */
 } KHRN_WORKAROUNDS_T;
 
 extern KHRN_WORKAROUNDS_T khrn_workarounds;
@@ -107,7 +107,5 @@ extern void khrn_init_workarounds(void);
 KHAPI void khrn_fake_workarounds(uint32_t techRev, uint32_t rev, uint32_t tusPerSlice);
 
 #ifdef __cplusplus
- }
-#endif
-
+}
 #endif

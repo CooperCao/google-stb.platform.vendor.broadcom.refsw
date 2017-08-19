@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2008 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #include "nexus_transport_module.h"
 #include "bioatom.h" /* needed for batom_vec */
@@ -67,7 +59,7 @@ static NEXUS_Error decrypt( void *handle, void *addr, unsigned len )
     /* if NEXUS_PlaypumpExternalCrypto_Decrypt is right, then this data is always whole packets */
     BDBG_ASSERT(len % 188 == 0);
 
-    BDBG_MSG(("%s(): (addr=0x%x(%d), len=%d)", __FUNCTION__, (unsigned)addr, (unsigned)addr, len));
+    BDBG_MSG(("%s(): (addr=0x%x(%d), len=%d)", BSTD_FUNCTION, (unsigned)addr, (unsigned)addr, len));
     if (len == 0)
         return 0;
 

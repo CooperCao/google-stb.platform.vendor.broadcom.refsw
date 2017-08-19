@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -202,7 +201,6 @@ int main(int argc, char **argv)
     graphicsSettings.clip.height = createSettings.height;
     graphicsSettings.enabled = true;
     NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
-    NEXUS_Display_SetGraphicsFramebuffer(display, framebufferSurface);
 
     if (alloc.enabled) {
         unsigned avdHeapIndex = platformSettings.videoDecoderModuleSettings.avdHeapIndex[0];
@@ -367,6 +365,7 @@ int main(int argc, char **argv)
             rc = BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
             assert(!rc);
         }
+        NEXUS_Display_SetGraphicsFramebuffer(display, framebufferSurface);
         NEXUS_StillDecoder_ReleaseStripedSurface(stillDecoder, stripedSurface);
         
 done:

@@ -885,7 +885,7 @@ void BAPE_MixerGroup_P_StopInput(
         /* wait for ramping to complete on this mixer group */
         if ( BAPE_MixerGroup_P_WaitForRamping(handle) == BERR_TIMEOUT )
         {
-            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...", __FUNCTION__));
+            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...", BSTD_FUNCTION));
         }
 
         fci = BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_DP_CTRL0_PB_FCI_IDi_ARRAY_BASE + 4*pbId);
@@ -1563,7 +1563,7 @@ static void BAPE_MixerGroup_P_ApplyOutputCoefficients(
     {
         if ( BAPE_MixerGroup_P_WaitForRamping(handle) == BERR_TIMEOUT )
         {
-            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...(DISABLE)", __FUNCTION__));
+            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...(DISABLE)", BSTD_FUNCTION));
         }
 
         /* Set max ramp step value */
@@ -1646,7 +1646,7 @@ static void BAPE_MixerGroup_P_ApplyOutputCoefficients(
     {
         if ( BAPE_MixerGroup_P_WaitForRamping(handle) == BERR_TIMEOUT )
         {
-            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...(RESTORE)", __FUNCTION__));
+            BDBG_ERR(("WARNING - %s - Vol Ramp timed out...(RESTORE)", BSTD_FUNCTION));
         }
 
         /* Restore original value */

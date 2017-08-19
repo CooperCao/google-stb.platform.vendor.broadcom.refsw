@@ -1,0 +1,285 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to measure IGMP join/leave latencies
+#
+# Written by: Robert J. McMahon March 2011
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::ControlChart
+package require UTF::Multicast
+package require UTF::IGMPQuerier
+
+package provide UTF::Test::McastJoinLeave 2.0
+
+namespace eval UTF::Test {
+    variable tcpdump
+    array set tcpdump {
+	state INIT
+    }
+    variable TCPDUMPTIMEOUT 10000
+}
+
+proc UTF::Test::tcpdump_handler {fid} {
+    if {[eof $fid]} {
+	if {[catch {close $fid} err]} {
+	    UTF::Message WARN $fid "tcpdump eof close error: $err"
+	}
+	set ::UTF::Test::tcpdump(state) "CLOSED"
+    } else {
+	set line [gets $fid]
+	UTF::Message HNDLR "TCPDUMP" "$line"
+	if {[regexp {^listening on } $line]} {
+	    set ::UTF::Test::tcpdump(state) "LISTENING"
+	} elseif {[regexp {^[0-9]+\.[0-9]{6,6}} $line]} {
+	    #
+	    # Only store lines with timestamps
+	    #
+	    lappend ::UTF::Test::tcpdump(output) "$line"
+	}  elseif {$::UTF::Test::tcpdump(state) != "LISTENING"} {
+	    set ::UTF::Test::tcpdump(state) "READY"
+	}
+    }
+}
+
+#
+#  Measure multicast join/leave latencies
+#
+UTF::Test McastJoinLeave {args} {
+    UTF::Getopts {
+	{ap.arg ""}
+	{sta.arg ""}
+	{samples.arg "5"}
+	{leaveretry.arg "2"}
+	{traffictype.arg "HDVIDEO"}
+	{key.arg "" }
+	{dstgrpip.arg "239.15.15.15"}
+	{maxbounds.arg "250.0"}
+	{history.arg "30"}
+    }
+    proc parselines {firstline secondline srcip grpip} {
+	if {[regexp "\^\(\[0-9\]+)\.\(\[0-9\]{6,6}\).+igmp v2 report $grpip" $firstline - seca fracseca] && [regexp "\^\(\[0-9\]+)\.\(\[0-9\]{6,6}\) IP $srcip\(\.\[0-9\]+\)? > $grpip\(\.\[0-9\]+)?: (udp|UDP)" $secondline - secb fracsecb]} {
+
+	    set joinlatency_ms [expr {round(("${secb}.${fracsecb}" - "${seca}.${fracseca}") * 1000)}]
+	    UTF::Message INFO "" "Join latency = $joinlatency_ms (ms)"
+	    return $joinlatency_ms
+	} else {
+	    UTF::Message WARN "" "Did not find expected igmp/udp packets in tcpdump output"
+	    return
+	}
+    }
+    if {[$(sta) hostis Router]} {
+	set STA [$(sta) cget -lanpeer]
+    } else {
+	set STA $(sta)
+    }
+    UTF::Try "IGMP Join Latency (ms) for $STA" {
+	if {![$STA hostis Linux]} {
+	    set msg "$STA must by a Linux host"
+	    UTF::Message ERROR "" $msg
+	    error $msg
+	}
+	# make sure no other queriers can interfere
+	# with this test
+	foreach existing_querier [UTF::IGMPQuerier info instances] {
+	    if {[$existing_querier status] != 0} {
+		set msg "Stopping"
+		UTF::Message WARN "$existing_querier" $msg
+		$existing_querier stop
+		lappend restart_queriers $existing_querier
+	    }
+	}
+	# start the igmp querier in mode ot only sending upon UTF command
+	set igmpq [UTF::IGMPQuerier %AUTO% -ap $(ap) -reportinterval 0]
+	$igmpq start
+	$igmpq send; UTF::Sleep 0.2 ; $igmpq send
+	if {[::UTF::Multicast::test_rtport_empty $(ap)]} {
+	    set msg "Join latency test fail: No rtport on $(ap)"
+	    UTF::Message ERROR "" $msg
+	    $igmpq destroy
+	    error $msg
+	}
+	set joinlatencies ""
+	set trycount [expr {int($(samples) * 2)}]
+	while {$trycount} {
+	    $igmpq send; UTF::Sleep 0.2 ; $igmpq send
+	    # Use random dst grp ip to minimize any possible caching
+	    # as well as any stale forwarding table entries
+	    set lastbyte [expr {int(rand() * 245) + 10}]
+	    set dstgrpip [join [lreplace [split $(dstgrpip) .] end end $lastbyte] .]
+	    # Create the multicast stream
+	    UTF::stream mcast -tx $(ap) -rx $(sta) -traffictype $(traffictype) -multicast on -dstgrpip $dstgrpip
+	    # Make sure the entry doesn't already exist
+	    set errmsg ""
+	    if {[catch {UTF::Multicast::test_emfdb_delete $(ap) $dstgrpip}]} {
+		set errmsg "$(ap) stale/stuck emf mfdb entries for $dstgrpip ([UTF::Multicast::ip2x $dstgrpip])"
+		UTF::Message ERROR "" $errmsg
+	    }
+	    if {[$(sta) hostis Router] && \
+		    [catch {UTF::Multicast::test_emfdb_delete $(sta) $dstgrpip}]} {
+		set msg "$(sta) stale/stuck emf mfdb entries for $dstgrpip ([UTF::Multicast::ip2x $dstgrpip])"
+		UTF::Message ERROR "" $errmsg
+	    }
+	    if {$errmsg ne ""} {
+		$igmpq destroy
+		error $msg
+	    }
+	    incr trycount -1
+	    #
+	    # Start the mcast transmitter
+	    #
+	    mcast txstart
+	    mcast sniff on
+	    UTF::Sleep 2.0
+	    mcast configure -txdisplay off
+	    mcast sniff off
+	    UTF::Message INFO "" "Disabling iperf tx messages"
+	    #
+	    # Start tcpdump, filtering on IGMP and the mcast group of interest
+	    #
+	    set cmd "/usr/sbin/tcpdump -i [$STA cget -device] -p -s 96 -tt -c 5 -n -l ip proto 2 or dst $dstgrpip"
+	    # puts $cmd
+	    if {[catch {eval [concat $STA rpopen $cmd]} fid]} {
+		UTF::Message ERROR "" $fid
+		$igmpq destroy
+		mcast destroy
+		error $fid
+	    }
+	    #
+	    # Setup read handler for the tcpdump
+	    #
+	    set ::UTF::Test::tcpdump(output) {}
+	    fconfigure $fid -blocking 1 -buffering line
+	    fileevent $fid readable "::UTF::Test::tcpdump_handler $fid"
+	    #
+	    # Wait for the tcpdump handler to start
+	    #
+	    set ::UTF::Test::tcpdump(state) "INIT"
+	    set watchdog [after $::UTF::Test::TCPDUMPTIMEOUT {set ::UTF::Test::tcpdump(state) "TIMEOUT"}]
+	    while {$::UTF::Test::tcpdump(state) != "LISTENING" && $::UTF::Test::tcpdump(state) != "TIMEOUT"} {
+		UTF::Message VWAIT "" "Waiting on tcpdump LISTENING : $::UTF::Test::tcpdump(state)"
+		vwait ::UTF::Test::tcpdump
+	    }
+	    if {$::UTF::Test::tcpdump(state) == "TIMEOUT"} {
+		set msg "timeout on tcpdump init"
+		UTF::Message ERROR "" $msg
+		$igmpq destroy
+		mcast destroy
+		error $msg
+	    } else {
+		after cancel $watchdog
+	    }
+	    #`
+	    # Start the mcast receiver in event
+	    # handler context so tcpdump vwait
+	    # will be waiting before it starts
+	    #
+	    after 500 {UTF::Test::mcast start}
+	    #
+	    # Wait on tcpdump to close
+	    #
+	    set ::UTF::Test::tcpdump(state) "CAPTURING"
+	    set watchdog [after $::UTF::Test::TCPDUMPTIMEOUT {set ::UTF::Test::tcpdump(state) "TIMEOUT"}]
+	    while {$::UTF::Test::tcpdump(state) != "CLOSED" && $::UTF::Test::tcpdump(state) != "TIMEOUT"} {
+		UTF::Message VWAIT "" "Waiting on tcpdump CAPTURE"
+		vwait ::UTF::Test::tcpdump(state)
+	    }
+	    if {[catch {UTF::Multicast::test_emfdb_add $(ap) $dstgrpip}]} {
+		UTF::Message ERROR $(ap) "AP emfdb not set for $dstgrpip"
+	    }
+	    if {$::UTF::Test::tcpdump(state) == "TIMEOUT"} {
+		set msg "tcpdump capture timeout on $STA"
+		UTF::Message ERROR "" $msg
+		catch {exec kill [pid $fid]}
+		catch {close $fid}
+		set ::UTF::Test::tcpdump(state) "CLOSED"
+	    } else {
+		after cancel $watchdog
+	    }
+	    #
+	    # Parse the tcpdump output and calculate
+	    # the join latency
+	    #
+	    set numlines [llength $::UTF::Test::tcpdump(output)]
+	    if {$numlines > 1} {
+		set firstline [lindex $::UTF::Test::tcpdump(output) 0]
+		set secondline [lindex $::UTF::Test::tcpdump(output) 1]
+		#
+		# Parse the first two lines for IGMP then UDP, respectively
+		#
+		set srcip [[$(ap) cget -lanpeer] ipaddr]
+		set latency [parselines $firstline $secondline $srcip $dstgrpip]
+		if {$latency != ""} {
+		    lappend joinlatencies $latency
+		}
+	    }
+	    #
+	    # Close the iperf receiver which will trigger
+	    # the IGMP leaves
+	    #
+	    mcast stop
+	    # Restart the transmiter to make sure
+	    # a tx only stream won't be forwarded
+	    mcast txstart
+	    # Can't really measure the leave latency
+	    # so just verify the leave occurred
+	    set leaveretry $(leaveretry)
+	    while {$leaveretry} {
+		incr leaveretry -1
+		set ok 1
+		if {[catch {UTF::Multicast::test_emfdb_delete $(ap) $dstgrpip}]} {
+		    UTF::Message ERROR $(ap) "AP $(ap) emfdb not cleared for $dstgrpip"
+		    set ok 0
+		}
+		if {[$(sta) hostis Router] && \
+			[catch {UTF::Multicast::test_emfdb_delete $(sta) $dstgrpip}]} {
+		    UTF::Message ERROR $(sta) "emfdb not cleared for $dstgrpip"
+		    set ok 0
+		}
+		if {!$ok} {
+		    break
+		}
+		UTF::Sleep 1.0
+	    }
+	    mcast destroy
+	    if {[llength $joinlatencies] == $(samples)} {
+		break
+	    }
+	}
+	if {[llength $joinlatencies] != $(samples)} {
+	    UTF::Message WARN $(sta) "Sampling short"
+	}
+	UTF::Message INFO "" "$(sta) join latencies = $joinlatencies (usec)"
+	$igmpq destroy
+	if {[llength $joinlatencies] > 3} {
+	    set cckey [list $(ap) $(sta) $STA $(key) join_latency]
+	    UTF::ControlChart ccname -s 5 -key $cckey -history  $(history) -perfcache "" -norangecheck 1
+	    ccname configure -title "Join latency for $(ap)->$(sta)"
+	    ccname configure -units "ms"
+	    set mmm [UTF::MeanMinMax $joinlatencies]
+	    set boundsresults [ccname addsample $mmm]
+	    UTF::Message STATS "" "MeanMinMax = $mmm (ms)"
+	    set plot [ccname plotcontrolchart "$boundsresults"]
+	    if {[lindex $mmm end] <= $(maxbounds)} {
+		return $plot
+	    } else {
+		error $plot
+	    }
+	} else {
+	    set msg "insufficient number of samples [llength $joinlatencies]"
+	    UTF::Message ERROR "" $msg
+	    error $msg
+	}
+    }
+    catch {mcast destroy}
+    if {[info exists restart_queriers]} {
+	foreach querier $restart_queriers {
+	    $querier start
+	}
+    }
+}

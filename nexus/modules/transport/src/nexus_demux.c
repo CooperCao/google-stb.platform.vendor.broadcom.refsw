@@ -57,10 +57,9 @@ static bool NEXUS_P_InputBandIsSupported(NEXUS_InputBand inputBand)
 void NEXUS_InputBand_GetSettings(NEXUS_InputBand inputBand, NEXUS_InputBandSettings *pSettings)
 {
 #if NEXUS_MAX_INPUT_BANDS
-    BERR_Code rc=0;
     /* this code assumes Nexus holds the default state, not the PI or HW */
     if ( !NEXUS_P_InputBandIsSupported( inputBand ) ) {
-        rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
     *pSettings = pTransport->inputBand[inputBand].settings;
@@ -269,9 +268,7 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_Open(NEXUS_ParserBand parserBand, uint16
     if (band)
     {
         NEXUS_P_HwPidChannel *hwPidChannel = NULL;
-        hwPidChannel = NEXUS_P_HwPidChannel_Open(band, NULL, pid, pSettings,
-                       band->settings.continuityCountEnabled
-                       );
+        hwPidChannel = NEXUS_P_HwPidChannel_Open(band, NULL, pid, pSettings, false);
         if(hwPidChannel) {
             hwPidChannel->status.parserBand = band->hwIndex;
             handle = NEXUS_PidChannel_P_Create(hwPidChannel);
@@ -322,8 +319,39 @@ static NEXUS_Error nexus_p_find_avail_pidch(unsigned first, unsigned bound, unsi
     return NEXUS_SUCCESS;
 }
 
+NEXUS_Error nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChannelSettings *pSettings)
+{
+    BXPT_PidChannel_CC_Config cfg;
+    bool bandContinuityCountEnabled = true;
+    NEXUS_Error rc;
+
+    if (hwPidChannel->parserBand)
+    {
+        bandContinuityCountEnabled = hwPidChannel->parserBand->settings.continuityCountEnabled && !hwPidChannel->parserBand->settings.allPass;
+    }
+    else if (hwPidChannel->playpump)
+    {
+        bandContinuityCountEnabled = hwPidChannel->playpump->settings.continuityCountEnabled && !hwPidChannel->playpump->settings.allPass;
+    }
+    if (NEXUS_GetEnv("cont_count_ignore")) {
+        bandContinuityCountEnabled = false;
+    }
+    if (hwPidChannel->neverEnableContinuityCount) {
+        bandContinuityCountEnabled = false;
+    }
+
+    BXPT_GetPidChannel_CC_Config(pTransport->xpt, hwPidChannel->status.pidChannelIndex, &cfg);
+    cfg.Primary_CC_CheckEnable = pSettings->continuityCountEnabled && bandContinuityCountEnabled;
+    cfg.Secondary_CC_CheckEnable = pSettings->remap.continuityCountEnabled && bandContinuityCountEnabled;
+    cfg.Generate_CC_Enable = pSettings->generateContinuityCount;
+    rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, hwPidChannel->status.pidChannelIndex, &cfg);
+    if (rc) return BERR_TRACE(rc);
+
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBand, NEXUS_PlaypumpHandle playpump, unsigned combinedPid,
-    const NEXUS_PidChannelSettings *pSettings, bool bandContinuityCountEnabled)
+    const NEXUS_PidChannelSettings *pSettings, bool neverEnableContinuityCount)
 {
     NEXUS_P_HwPidChannel *duplicatePidChannel = NULL;
     NEXUS_P_HwPidChannel *pidChannel;
@@ -545,6 +573,10 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
             BDBG_ERR(("Cannot open duplicate pid channel with different settings"));
             return NULL;
         }
+        if (playpump) {
+            /* may have disconnected from closed playpump, even though HW pidchannel held open. must reconnect. */
+            duplicatePidChannel->playpump = playpump;
+        }
         return duplicatePidChannel;
     }
 
@@ -560,6 +592,7 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
     pidChannel->status.pidChannelIndex = index;
     pidChannel->combinedPid = combinedPid;
     pidChannel->settingsPrivValid = false;
+    pidChannel->neverEnableContinuityCount = neverEnableContinuityCount;
 
     /* insert in sorted order by pidChannelIndex */
     {
@@ -642,19 +675,8 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
             if (rc) {rc=BERR_TRACE(rc); goto fail1;}
         }
 
-        if (NEXUS_GetEnv("cont_count_ignore")) {
-            bandContinuityCountEnabled = false;
-        }
-
-        {
-        BXPT_PidChannel_CC_Config cfg;
-        BXPT_GetPidChannel_CC_Config(pTransport->xpt, pidChannel->status.pidChannelIndex, &cfg);
-        cfg.Primary_CC_CheckEnable = pSettings->continuityCountEnabled && bandContinuityCountEnabled;
-        cfg.Secondary_CC_CheckEnable = pSettings->remap.continuityCountEnabled && bandContinuityCountEnabled;
-        cfg.Generate_CC_Enable = pSettings->generateContinuityCount;
-        rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, pidChannel->status.pidChannelIndex, &cfg);
+        rc = nexus_p_set_pid_cc(pidChannel, pSettings);
         if (rc) {rc=BERR_TRACE(rc); goto fail1;}
-        }
     }
 
     if (!playpump) {
@@ -775,6 +797,7 @@ static void NEXUS_PidChannel_P_Finalizer(NEXUS_PidChannelHandle pidChannel)
     NEXUS_P_HwPidChannel *hwPidChannel;
     bool wasEnabled;
     NEXUS_OBJECT_ASSERT(NEXUS_PidChannel, pidChannel);
+    BDBG_MODULE_MSG(nexus_flow_pid_channel, ("destroy %p", (void *)pidChannel));
     wasEnabled = pidChannel->enabled;
     hwPidChannel = pidChannel->hwPidChannel;
     NEXUS_OBJECT_ASSERT(NEXUS_P_HwPidChannel, hwPidChannel);
@@ -1051,7 +1074,6 @@ static NEXUS_Error NEXUS_P_HwPidChannel_SetRemapSettings( NEXUS_P_HwPidChannel *
 {
     /* SW7344-192, Coverity: 35340 */
     BERR_Code rc = NEXUS_SUCCESS;
-    bool bandContinuityCountEnabled = pidChannel->settings.continuityCountEnabled;
     bool wasEnabled = false;
 
     NEXUS_ASSERT_MODULE();
@@ -1075,17 +1097,15 @@ static NEXUS_Error NEXUS_P_HwPidChannel_SetRemapSettings( NEXUS_P_HwPidChannel *
 
         pidChannel->status.remappedPid = pSettings->pid; /* this should be the new pid */
 
-        if (NEXUS_GetEnv("cont_count_ignore")) {
-            bandContinuityCountEnabled = false;
-        }
         {
-            BXPT_PidChannel_CC_Config cfg;
-            BXPT_GetPidChannel_CC_Config(pTransport->xpt,pidChannel->status.pidChannelIndex, &cfg);
-            cfg.Secondary_CC_CheckEnable = pSettings->continuityCountEnabled && bandContinuityCountEnabled;
-            rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, pidChannel->status.pidChannelIndex, &cfg);
+            NEXUS_PidChannelSettings settings = pidChannel->settings;
+            settings.remap = *pSettings;
+            rc = nexus_p_set_pid_cc(pidChannel, &settings);
             if (rc) {rc=BERR_TRACE(rc); goto fail;}
         }
+
         pidChannel->settings.remap = *pSettings;
+
     }
     else {
         if (pidChannel->settings.remap.pid) {
@@ -1267,26 +1287,7 @@ NEXUS_Error NEXUS_PidChannel_SetSettings(
     || pSettings->generateContinuityCount != pidChannel->hwPidChannel->settings.generateContinuityCount
     )
     {
-        BXPT_PidChannel_CC_Config cfg;
-        bool bandContinuityCountEnabled = true;
-
-        if (pidChannel->hwPidChannel->parserBand)
-        {
-            bandContinuityCountEnabled = pidChannel->hwPidChannel->parserBand->settings.continuityCountEnabled;
-        }
-        else if (pidChannel->hwPidChannel->playpump)
-        {
-            bandContinuityCountEnabled = pidChannel->hwPidChannel->playpump->settings.continuityCountEnabled;
-        }
-        if (NEXUS_GetEnv("cont_count_ignore")) {
-            bandContinuityCountEnabled = false;
-        }
-
-        BXPT_GetPidChannel_CC_Config(pTransport->xpt, pidChannel->hwPidChannel->status.pidChannelIndex, &cfg);
-        cfg.Primary_CC_CheckEnable = pSettings->continuityCountEnabled && bandContinuityCountEnabled;
-        cfg.Secondary_CC_CheckEnable = pSettings->remap.continuityCountEnabled && bandContinuityCountEnabled;
-        cfg.Generate_CC_Enable = pSettings->generateContinuityCount;
-        rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, pidChannel->hwPidChannel->status.pidChannelIndex, &cfg);
+        rc = nexus_p_set_pid_cc(pidChannel->hwPidChannel, pSettings);
         if (rc) {rc=BERR_TRACE(rc); goto done;}
 
         pidChannel->hwPidChannel->settings.continuityCountEnabled = pSettings->continuityCountEnabled;

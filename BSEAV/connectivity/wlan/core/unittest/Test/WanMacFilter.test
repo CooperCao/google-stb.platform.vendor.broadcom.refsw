@@ -1,0 +1,78 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing AP WAN mac address filtering.  Two STAs are
+# associated to the AP, then MAC filters are set to reject the first,
+# then to allow only the second.
+#
+# $Id: 25924cf579d9215b62b27ec241eb25a9d916153d $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Mbss::APAddInterface
+
+package provide UTF::Test::WanMacFilter 2.0
+
+UTF::Test WanMacFilter {AP STA1 STA2 args} {
+    UTF::Getopts {
+	{count.arg "30" "Retry count"}
+    }
+
+    UTF::Try "$AP: Connect $STA1 $STA2" {
+
+	# Make sure we're on lan not lan2, otherwise filtering won't
+	# work.
+	Mbss::APAddInterface -lan $AP
+
+	ConnectAPSTA $AP [list $STA1 $STA2]
+    }
+    set apip [$AP ipaddr]
+    set wanip [$AP wan ipaddr]
+    set mac [$STA1 macaddr]
+
+    UTF::Try "$AP: Block only $STA1" {
+	$AP restart filter_macmode=deny "filter_maclist=$mac"
+	UTF::Message INFO $AP "Verifying Both STAS reconnected"
+	if {[catch {$STA1 ping $apip -c $(count)}]} {
+	    error "Block only $STA1: $STA1 failed to reconnect to AP"
+	}
+	if {[catch {$STA2 ping $apip -c $(count)}]} {
+	    error "Block only $STA1: $STA2 failed to reconnect to AP"
+	}
+	UTF::Message INFO $AP "Verifying STA1 is blocked from WAN"
+	if {![catch {$STA1 ping $wanip}]} {
+	    error "Block only $STA1: $STA1 not blocked"
+	}
+	UTF::Message INFO $AP "Verifying STA2 has WAN Access"
+	if {[catch {$STA2 ping $wanip -c 10}]} {
+	    error "Block only $STA1: $STA2 blocked"
+	}
+    }
+
+    UTF::Try "$AP: Allow only $STA1" {
+	$AP restart filter_macmode=allow "filter_maclist=$mac"
+	UTF::Message INFO $AP "Verifying Both STAS reconnected"
+	if {[catch {$STA1 ping $apip -c $(count)}]} {
+	    error "Block only $STA1: $STA1 failed to reconnect to AP"
+	}
+	if {[catch {$STA2 ping $apip -c $(count)}]} {
+	    error "Block only $STA1: $STA2 failed to reconnect to AP"
+	}
+	UTF::Message INFO $AP "Verifying STA1 has WAN Access"
+	if {[catch {$STA1 ping $wanip -c 10}]} {
+	    error "Allow only $STA1: $STA1 blocked"
+	}
+	UTF::Message INFO $AP "Verifying STA2 is blocked from WAN"
+	if {![catch {$STA2 ping $wanip}]} {
+	    error "Allow only $STA1: $STA2 not blocked"
+	}
+    }
+
+    $AP restart filter_macmode=deny filter_maclist=
+
+    $STA1 wl disassoc
+    $STA2 wl disassoc
+    return
+}

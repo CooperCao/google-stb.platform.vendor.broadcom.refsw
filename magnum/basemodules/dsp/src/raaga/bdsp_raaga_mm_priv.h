@@ -291,7 +291,7 @@ typedef struct BDSP_Raaga_P_ContextMemoryGrant
 typedef struct BDSP_Raaga_P_CitBuffers
 {
     void            *psCitDataStructure;
-    void            *psCitFwBranchInfo[BDSP_P_MAX_FW_BRANCH_PER_FW_TASK];
+    void            *psCitFwBranchInfo[BDSP_RAAGA_MAX_BRANCH];
     void            *psCitPortCfg;
     void            *psCitTaskIsBuffCfg;
 }BDSP_Raaga_P_CitBuffers;

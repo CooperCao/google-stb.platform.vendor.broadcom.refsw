@@ -159,6 +159,8 @@ BERR_Code BVDC_P_Scaler_Create
     BVDC_P_SubRul_Init(&(pScaler->SubRul), BVDC_P_Scaler_MuxAddr(pScaler),
         BVDC_P_Scaler_PostMuxValue(pScaler), BVDC_P_DrainMode_eBack, 0, hResource);
 
+    BVDC_P_Scaler_Init(pScaler);
+
     /* All done. now return the new fresh context to user. */
     *phScaler = (BVDC_P_Scaler_Handle)pScaler;
 
@@ -190,15 +192,14 @@ void BVDC_P_Scaler_Destroy
  * {private}
  *
  */
-void BVDC_P_Scaler_Init_isr
-    ( BVDC_P_Scaler_Handle             hScaler,
-      BVDC_Window_Handle               hWindow )
+void BVDC_P_Scaler_Init
+    ( BVDC_P_Scaler_Handle             hScaler )
 {
     uint32_t  ulReg;
     uint32_t  ulTaps;
     uint32_t  ulVertLineDepth;
 
-    BDBG_ENTER(BVDC_P_Scaler_Init_isr);
+    BDBG_ENTER(BVDC_P_Scaler_Init);
     BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
 
     hScaler->ulUpdateAll   = BVDC_P_RUL_UPDATE_THRESHOLD;
@@ -207,13 +208,10 @@ void BVDC_P_Scaler_Init_isr
     /* Clear out shadow registers. */
     BKNI_Memset((void*)hScaler->aulRegs, 0x0, sizeof(hScaler->aulRegs));
 
-    hScaler->hWindow = hWindow;
-
     /* Initialize state. */
     hScaler->bInitial          = true;
     hScaler->pPrevVertFirCoeff = NULL;
 
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_4)
     ulReg = BREG_Read32(hScaler->hReg, BCHP_SCL_0_HW_CONFIGURATION + hScaler->ulRegOffset);
 
     hScaler->bDeJagging = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, DEJAGGING) ? true : false;
@@ -258,20 +256,8 @@ void BVDC_P_Scaler_Init_isr
             break;
     }
 
-#else
-    hScaler->bDeJagging = false;
-    hScaler->bDeRinging = false;
-    hScaler->ulHorzTaps = BVDC_P_CT_8_TAP;
-    hScaler->ulVertTaps = BVDC_P_CT_4_TAP;
-    hScaler->ulVertBlkAvgThreshold = BVDC_P_SCL_4TAP_BLK_AVG_VERT_THRESHOLD;
-
-    BSTD_UNUSED(ulReg);
-    BSTD_UNUSED(ulTaps);
-#endif
-
     /* Scaler intial states */
     /* Scaler with SD line buffer */
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_4)
     ulVertLineDepth = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, LINE_STORE_DEPTH);
 #if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_10)
     switch(ulVertLineDepth)
@@ -287,19 +273,13 @@ void BVDC_P_Scaler_Init_isr
 #else
     hScaler->ulVertLineDepth = ulVertLineDepth;
 #endif
-#else
-    /* scaler 0/1 HD scaler*/
-    hScaler->ulVertLineDepth = (hScaler->eId <= 1)?
-        BVDC_P_SCL_HD_SCL_LINE_BUFFER : BVDC_P_SCL_SD_SCL_LINE_BUFFER;
-    BSTD_UNUSED(ulVertLineDepth);
-#endif
 
     /* Scaler with 10 bit core */
 #if (BCHP_SCL_0_HW_CONFIGURATION_MODE_10BIT_MASK)
-    hWindow->bIs10BitCore = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, MODE_10BIT);
+    hScaler->bIs10BitCore = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, MODE_10BIT);
 #endif
 #if (BCHP_SCL_0_HW_CONFIGURATION_BVB2X_CLK_MASK)
-    hWindow->bIs2xClk = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, BVB2X_CLK);
+    hScaler->bIs2xClk = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, BVB2X_CLK);
 #endif
     /* default settings for up sampler and down sampler */
     hScaler->stUpSampler.bUnbiasedRound = false;
@@ -310,6 +290,27 @@ void BVDC_P_Scaler_Init_isr
     hScaler->stDnSampler.eRingRemoval   = BVDC_RingSuppressionMode_eNormal;
 
     hScaler->ulSrcHrzAlign  = 2;
+
+    BDBG_LEAVE(BVDC_P_Scaler_Init);
+    return;
+}
+
+
+/***************************************************************************
+ * {private}
+ *
+ */
+void BVDC_P_Scaler_Init_isr
+    ( BVDC_P_Scaler_Handle             hScaler,
+      BVDC_Window_Handle               hWindow )
+{
+    BDBG_ENTER(BVDC_P_Scaler_Init_isr);
+    BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
+
+    hScaler->hWindow = hWindow;
+
+    hWindow->bIs10BitCore = hScaler->bIs10BitCore;
+    hWindow->bIs2xClk = hScaler->bIs2xClk;
 
     BDBG_LEAVE(BVDC_P_Scaler_Init_isr);
     return;
@@ -373,9 +374,7 @@ void BVDC_P_Scaler_BuildRul_isr
     {
         BVDC_P_SubRul_DropOffVnet_isr(&(hScaler->SubRul), pList);
         BVDC_P_Scaler_SetEnable_isr(hScaler, false);
-#if (BVDC_P_SUPPORT_SCL_VER > BVDC_P_SUPPORT_SCL_VER_1)
         BVDC_P_SCL_WRITE_TO_RUL(SCL_0_ENABLE, pList->pulCurrent);
-#endif
     }
 
     /* If rul failed to execute last time we'd re reprogrammed possible
@@ -406,50 +405,31 @@ void BVDC_P_Scaler_BuildRul_isr
         {
             hScaler->ulUpdateAll--;
             hScaler->ulUpdateCoeff = 0; /* no need to update coeff alone */
+
             /* optimize scaler mute RUL */
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_6)
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_BVB_IN_SIZE, SCL_0_HORIZ_DEST_PIC_REGION_2_END, pList->pulCurrent);
-#else
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_BVB_IN_SIZE, SCL_0_HORIZ_DEST_PIC_REGION_3_END, pList->pulCurrent);
-#endif
+            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01,  SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_00_01, pList->pulCurrent);
+            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01, SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05, pList->pulCurrent);
 
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_3)
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_COEFF_PHASE0_00_01, SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_06_07, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_4)
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01,  SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_00_01, pList->pulCurrent);
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01, SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_5)
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01,  SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_02, pList->pulCurrent);
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01, SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_6)
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01,  SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_00_01, pList->pulCurrent);
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01, SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_02_03, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_7)
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01,  SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_00_01, pList->pulCurrent);
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01, SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05, pList->pulCurrent);
-            BVDC_P_SCL_WRITE_TO_RUL(SCL_0_VIDEO_3D_MODE, pList->pulCurrent);
-#endif
-
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_3)
             if(hScaler->bDeRinging)
             {
                 BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_DERINGING, SCL_0_DERING_DEMO_SETTING,
                     pList->pulCurrent);
             }
-#endif
 
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_4)
             if(hScaler->bDeJagging)
             {
                 BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_DEJAGGING, SCL_0_DEJAGGING_DEMO_SETTING,
                     pList->pulCurrent);
             }
-#endif
-#if (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_5)
-            BVDC_P_SCL_WRITE_TO_RUL(SCL_0_DS_CONFIGURATION, pList->pulCurrent);
-            BVDC_P_SCL_WRITE_TO_RUL(SCL_0_US_422_TO_444_CONV, pList->pulCurrent);
-#endif
+
+#if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_12)
+            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_BVB_IN_SIZE, SCL_0_HORIZ_DEST_PIC_REGION_3_END, pList->pulCurrent);
+            BVDC_P_SCL_WRITE_TO_RUL(SCL_0_VIDEO_3D_MODE, pList->pulCurrent);
             BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_TOP_CONTROL, SCL_0_HORIZ_CONTROL, pList->pulCurrent);
+#else
+            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VIDEO_3D_MODE, SCL_0_HORIZ_DEST_PIC_REGION_3_END, pList->pulCurrent);
+            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_TOP_CONTROL, SCL_0_VERT_FIR_INIT_PIC_STEP, pList->pulCurrent);
+#endif
         }
         else
         {
@@ -457,27 +437,15 @@ void BVDC_P_Scaler_BuildRul_isr
             if (hScaler->ulUpdateCoeff)
             {
                 hScaler->ulUpdateCoeff--;
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_3)
-                BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_COEFF_PHASE0_00_01, SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_02_03, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_4 || BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_7)
                 BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01, SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_00_01, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_5)
-                BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01, SCL_0_VERT_FIR_CHROMA_COEFF_PHASE7_02, pList->pulCurrent);
-#endif
             }
 
             /* Update these register on every vsync. */
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_6)
-            BVDC_P_SCL_WRITE_TO_RUL(SCL_0_VERT_FIR_SRC_PIC_OFFSET, pList->pulCurrent);
-#else
             BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VERT_FIR_SRC_PIC_OFFSET_INT, SCL_0_VERT_FIR_INIT_PIC_STEP, pList->pulCurrent);
-#endif
             BVDC_P_SCL_WRITE_TO_RUL(SCL_0_TOP_CONTROL, pList->pulCurrent);
         }
 
-#if (BVDC_P_SUPPORT_SCL_VER > BVDC_P_SUPPORT_SCL_VER_1)
         BVDC_P_SCL_WRITE_TO_RUL(SCL_0_ENABLE, pList->pulCurrent);
-#endif
 
         /* join in vnet after enable. note: its src mux is initialed as disabled */
         if (ulRulOpsFlags & BVDC_P_RulOp_eVnetInit)
@@ -505,33 +473,22 @@ static void BVDC_P_Scaler_SetHorizFirCoeff_isr
       const uint32_t                  *pulHorzFirCoeff )
 {
     int i;
-#if ((BVDC_P_SUPPORT_SCL_VER_4==BVDC_P_SUPPORT_SCL_VER) || \
-     (BVDC_P_SUPPORT_SCL_VER_7<=BVDC_P_SUPPORT_SCL_VER))
     int j = 0;
-#endif
 
     BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
     /* write 32 hor entries into registers */
     for(i = 0; (pulHorzFirCoeff) && (*pulHorzFirCoeff != BVDC_P_SCL_LAST); i++)
     {
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_3)
-        hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_HORIZ_FIR_COEFF_PHASE0_00_01) + i] =
-            *pulHorzFirCoeff;
-#else
         hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01) + i] =
             *pulHorzFirCoeff;
-#endif
         pulHorzFirCoeff++;
 
-#if ((BVDC_P_SUPPORT_SCL_VER_4==BVDC_P_SUPPORT_SCL_VER) || \
-     (BVDC_P_SUPPORT_SCL_VER_7<=BVDC_P_SUPPORT_SCL_VER))
         j++;
         if (j == 2 && hScaler->ulHorzTaps == BVDC_P_CT_8_TAP)
         {
             i++;   /* padding 0x00000000 to table */
             j = 0;
         }
-#endif
     }
 }
 
@@ -545,33 +502,22 @@ static void BVDC_P_Scaler_SetChromaHorizFirCoeff_isr
       const uint32_t                  *pulHorzFirCoeff )
 {
     int i;
-#if ((BVDC_P_SUPPORT_SCL_VER_4==BVDC_P_SUPPORT_SCL_VER) || \
-     (BVDC_P_SUPPORT_SCL_VER_7<=BVDC_P_SUPPORT_SCL_VER))
     int j = 0;
-#endif
 
     BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
     /* write 32 hor entries into registers */
     for(i = 0; (pulHorzFirCoeff) && (*pulHorzFirCoeff != BVDC_P_SCL_LAST); i++)
     {
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_3)
         hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_00_01) + i] =
             *pulHorzFirCoeff;
-#else
-        hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_00_01) + i] =
-            *pulHorzFirCoeff;
-#endif
         pulHorzFirCoeff++;
 
-#if ((BVDC_P_SUPPORT_SCL_VER_4==BVDC_P_SUPPORT_SCL_VER) || \
-     (BVDC_P_SUPPORT_SCL_VER_7<=BVDC_P_SUPPORT_SCL_VER))
         j++;
         if (j == 2 && hScaler->ulHorzTaps == BVDC_P_CT_8_TAP)
         {
             i++;   /* padding 0x00000000 to table */
             j = 0;
         }
-#endif
     }
 }
 
@@ -589,13 +535,8 @@ static void BVDC_P_Scaler_SetVertFirCoeff_isr
     /* write ver entries into registers */
     for(i = 0; (pulVertFirCoeff) && (*pulVertFirCoeff != BVDC_P_SCL_LAST); i++)
     {
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_3)
-        hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_VERT_FIR_COEFF_PHASE0_00_01) + i] =
-            *pulVertFirCoeff;
-#else
         hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_VERT_FIR_LUMA_COEFF_PHASE0_00_01) + i] =
             *pulVertFirCoeff;
-#endif
         pulVertFirCoeff++;
     }
 }
@@ -615,13 +556,8 @@ static void BVDC_P_Scaler_SetChromaVertFirCoeff_isr
     /* write ver entries into registers */
     for(i = 0; (pulVertFirCoeff) && (*pulVertFirCoeff != BVDC_P_SCL_LAST); i++)
     {
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_3)
         hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_VERT_FIR_CHROMA_COEFF_PHASE0_00_01) + i] =
             *pulVertFirCoeff;
-#else
-        hScaler->aulRegs[BVDC_P_SCL_GET_REG_IDX(SCL_0_VERT_FIR_CHROMA_COEFF_PHASE0_00_01) + i] =
-            *pulVertFirCoeff;
-#endif
         pulVertFirCoeff++;
     }
 }
@@ -962,11 +898,7 @@ void BVDC_P_Scaler_SetInfo_isr
         (hScaler->ePrevSrcPolarity == BAVC_Polarity_eFrame)) ||
        ((pPicture->eDstPolarity == BAVC_Polarity_eFrame) !=
         (hScaler->ePrevDstPolarity == BAVC_Polarity_eFrame)) ||
-#if (BVDC_P_SUPPORT_SCL_VER > BVDC_P_SUPPORT_SCL_VER_1)
        !BVDC_P_SCL_COMPARE_FIELD_DATA(SCL_0_ENABLE, SCALER_ENABLE, 1) ||
-#else
-       !BVDC_P_SCL_COMPARE_FIELD_DATA(SCL_0_TOP_CONTROL, SCALER_ENABLE, 1) ||
-#endif
        (pPicture->stFlags.bHandleFldInv != hScaler->bHandleFldInv)||
        (pPicture->bMosaicIntra))
     {
@@ -1005,28 +937,14 @@ void BVDC_P_Scaler_SetInfo_isr
         /* Horizontal scaler settings (and top control)!  Choose scaling order,
          * and how much to decimate data. */
         BVDC_P_SCL_GET_REG_DATA(SCL_0_TOP_CONTROL) &= ~(
-#if (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_1)
-            BCHP_MASK(SCL_0_TOP_CONTROL, SCALER_ENABLE) |
-#endif
-#if (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_3)
-            BCHP_MASK(SCL_0_TOP_CONTROL, DERING_DEMO_MODE) |
-#endif
             BCHP_MASK(SCL_0_TOP_CONTROL, FILTER_ORDER ));
 
         BVDC_P_SCL_GET_REG_DATA(SCL_0_TOP_CONTROL) |=  (
 #if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_10)
             BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, UPDATE_SEL, UPDATE_BY_PICTURE) |
 #endif
-#if (BVDC_P_SUPPORT_SCL_VER != BVDC_P_SUPPORT_SCL_VER_3)
-        /* disable it for now due to robustness issue for 3548 Ax */
-        BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, ENABLE_CTRL,  ENABLE_BY_PICTURE) |
-#endif
-#if (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_1)
-            BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, SCALER_ENABLE, ON       ) |
-#endif
-#if (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_3)
-            BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, DERING_DEMO_MODE, DISABLE) |
-#endif
+            /* disable it for now due to robustness issue for 3548 Ax */
+            BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, ENABLE_CTRL,  ENABLE_BY_PICTURE) |
             BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, FILTER_ORDER, VERT_FIRST));
 
 #if (BVDC_P_SUPPORT_SCL_VER > BVDC_P_SUPPORT_SCL_VER_1)
@@ -1151,7 +1069,6 @@ void BVDC_P_Scaler_SetInfo_isr
                         ulAlgnSrcHSize = BVDC_P_ALIGN_DN(ulAlgnSrcHSize, 4 * hScaler->ulSrcHrzAlign);
                 }
             }
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_4)
             else if (((1<<BVDC_P_NRM_SRC_STEP_F_BITS) == ulNrmHrzStep) &&
                      (0 == ulPanScanLeft) &&
                      (ulSrcHSize == ulDstHSize) &&
@@ -1164,7 +1081,6 @@ void BVDC_P_Scaler_SetInfo_isr
                 BVDC_P_SCL_GET_REG_DATA(SCL_0_HORIZ_CONTROL) |=  (
                     BCHP_FIELD_ENUM(SCL_0_HORIZ_CONTROL, FIR_ENABLE,  OFF));
             }
-#endif
 
             ulFirHrzStepInit = ulFirHrzStep;
 
@@ -1272,64 +1188,13 @@ void BVDC_P_Scaler_SetInfo_isr
         ulFirVrtStep = ulVrtStep = (ulNrmVrtSrcStep + ulVertStepRoundoff) >>
             (BVDC_P_NRM_SRC_STEP_F_BITS - BVDC_P_SCL_V_RATIO_F_BITS);    /* U12.14 */
 
-#if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_4)
-        /* Might need to tablelized this for different chips. */
-        BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) &= ~(
-            BCHP_MASK(SCL_0_VERT_CONTROL, MODE));
-        if(ulVertSclSrcWidth <= hScaler->ulVertLineDepth)
-        {
-            if(ulVrtStep > BVDC_P_SCL_4TAP_BLK_AVG_VERT_THRESHOLD)
-            {
-                /* Extreme scale down */
-                BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
-                    BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, MODE, AV4));
-            }
-            else
-            {
-                BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
-                    BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, MODE, FIR4));
-            }
-            hScaler->ulVertTaps = BVDC_P_CT_4_TAP;
-        }
-        else
-        {
-            if(ulVrtStep > BVDC_P_SCL_2TAP_BLK_AVG_VERT_THRESHOLD)
-            {
-                /* Extreme scale down */
-                BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
-                    BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, MODE, AV2));
-            }
-            else
-            {
-                BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
-                    BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, MODE, FIR2));
-            }
-            hScaler->ulVertTaps = BVDC_P_CT_2_TAP;
-        }
-#else
         BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) &= ~(
             BCHP_MASK(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8 ) |
             BCHP_MASK(SCL_0_VERT_CONTROL, FIR_ENABLE       ));
         BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
             BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8, DISABLE) |
             BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, FIR_ENABLE,       ON    ));
-#endif
-
-        /* Use block-averging to assist FIR extreme scale down.
-         * Increase ulFirVrtStep until tolerable range or until
-         * we exhausted block average scaling. */
-#if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_4)
-        if(BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, AV2) ||
-           BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, AV4))
-#endif
         {
-
-#if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_4)
-            if(ulVertSclSrcWidth < hScaler->ulVertLineDepth)
-                hScaler->ulVertBlkAvgThreshold = BVDC_P_SCL_4TAP_BLK_AVG_VERT_THRESHOLD;
-            else
-                hScaler->ulVertBlkAvgThreshold = BVDC_P_SCL_2TAP_BLK_AVG_VERT_THRESHOLD;
-#endif
 
             if(pPicture->eSrcPolarity != BAVC_Polarity_eFrame)
             {
@@ -1516,7 +1381,6 @@ void BVDC_P_Scaler_SetInfo_isr
         /* SW7420-560, SW7420-721: use smoothen vertical coefficient to improve weaving */
 
         /* DEJAGGING/DERINGING settigns */
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_4)
         if(hScaler->bDeJagging)
         {
             bool bDeJagging = (
@@ -1542,16 +1406,12 @@ void BVDC_P_Scaler_SetInfo_isr
                 : BCHP_FIELD_ENUM(SCL_0_DEJAGGING_DEMO_SETTING, DEMO_L_R, RIGHT)         )|
                 BCHP_FIELD_DATA(SCL_0_DEJAGGING_DEMO_SETTING, DEMO_BOUNDARY, ulDstHSize/2));
         }
-#endif
 
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_3)
         if(hScaler->bDeRinging)
         {
             BVDC_P_SCL_GET_REG_DATA(SCL_0_DERINGING) = (
-#if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_4)
                 BCHP_FIELD_DATA(SCL_0_DERINGING, DEMO_MODE,
                     (BVDC_SplitScreenMode_eDisable != hScaler->hWindow->stCurInfo.stSplitScreenSetting.eDeRinging)) |
-#endif
 #if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_8)
                 ((hScaler->stSclSettings.bSclVertChromaDeringing)
                 ? BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_PASS_FIRST_RING, ENABLE)
@@ -1585,7 +1445,6 @@ void BVDC_P_Scaler_SetInfo_isr
                 : BCHP_FIELD_ENUM(SCL_0_DERING_DEMO_SETTING, DEMO_L_R, RIGHT)  )|
                 BCHP_FIELD_DATA(SCL_0_DERING_DEMO_SETTING, DEMO_BOUNDARY, ulDstHSize/2));
         }
-#endif
 
         /* -----------------------------------------------------------------------
          * 6). set init phase for both horizontal and vertical
@@ -1672,12 +1531,6 @@ void BVDC_P_Scaler_SetInfo_isr
     /* Vertical intial phase */
     ulVertInitPhase = hScaler->hWindow->stCurInfo.stSclSettings.bSclVertPhaseIgnore? 0 :
         hScaler->aaulInitPhase[pPicture->eSrcPolarity][pPicture->eDstPolarity];
-#if (BVDC_P_SUPPORT_SCL_VER <= BVDC_P_SUPPORT_SCL_VER_6)
-    BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_FIR_SRC_PIC_OFFSET) &= ~(
-        BCHP_MASK(SCL_0_VERT_FIR_SRC_PIC_OFFSET, VALUE));
-    BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_FIR_SRC_PIC_OFFSET) |=  (
-        BCHP_FIELD_DATA(SCL_0_VERT_FIR_SRC_PIC_OFFSET, VALUE, ulVertInitPhase));
-#else
     /* integer part of the offset */
     BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_FIR_SRC_PIC_OFFSET_INT) &= ~(
         BCHP_MASK(SCL_0_VERT_FIR_SRC_PIC_OFFSET_INT, VALUE));
@@ -1692,7 +1545,6 @@ void BVDC_P_Scaler_SetInfo_isr
     BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_FIR_SRC_PIC_OFFSET_FRAC) |=  (
         BCHP_FIELD_DATA(SCL_0_VERT_FIR_SRC_PIC_OFFSET_FRAC, VALUE,
         (ulVertInitPhase << BVDC_P_SCL_V_RATIO_F_BITS_EXT)));
-#endif
 
     /* set vertical coeff change */
     if ((0 == (ulVertInitPhase & (BVDC_P_V_INIT_PHASE_1_POINT_0 - 1))) &&
@@ -1732,59 +1584,6 @@ void BVDC_P_Scaler_SetInfo_isr
 
     BDBG_ASSERT(hScaler->pPrevVertFirCoeff);
 
-#if (BVDC_P_SUPPORT_SCL_VER == BVDC_P_SUPPORT_SCL_VER_5)
-    if(hScaler->hWindow->stCurInfo.hSource->bSrcIs444)
-    {
-        if(BVDC_P_VNET_USED_SCALER_AT_READER(hScaler->hWindow->stVnetMode))
-        {
-            /* SRC -> CAP -> VFD -> SCL */
-            hScaler->stDnSampler.eFilterType = BVDC_444To422Filter_eDecimate;
-        }
-        else
-        {
-            /* SRC -> ANR (?) -> MAD (?) -> SCL -> CAP */
-            if(BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode))
-            {
-                hScaler->stDnSampler.eFilterType = BVDC_444To422Filter_eDecimate;
-            }
-            else
-            {
-                hScaler->stDnSampler.eFilterType = BVDC_444To422Filter_eStandard;
-            }
-        }
-    }
-    else
-    {
-        hScaler->stDnSampler.eFilterType = BVDC_444To422Filter_eDecimate;
-    }
-
-    if((hScaler->stUpSampler.eFilterType == BVDC_422To444Filter_eTenTaps) ||
-       (hScaler->stUpSampler.eFilterType == BVDC_422To444Filter_eSixTaps))
-    {
-        BVDC_P_SCL_GET_REG_DATA(SCL_0_US_422_TO_444_CONV) = (
-            BCHP_FIELD_ENUM(SCL_0_US_422_TO_444_CONV, RING_SUPPION_MODE, DOUBLE) |
-            BCHP_FIELD_ENUM(SCL_0_US_422_TO_444_CONV, RING_SUPPION,      ENABLE) |
-            BCHP_FIELD_DATA(SCL_0_US_422_TO_444_CONV, UNBIASED_ROUND_ENABLE,
-                hScaler->stUpSampler.bUnbiasedRound) |
-            BCHP_FIELD_DATA(SCL_0_US_422_TO_444_CONV, FILT_CTRL, hScaler->stUpSampler.eFilterType));
-    }
-    else
-    {
-        BVDC_P_SCL_GET_REG_DATA(SCL_0_US_422_TO_444_CONV) = (
-            BCHP_FIELD_ENUM(SCL_0_US_422_TO_444_CONV, RING_SUPPION_MODE, NORMAL)  |
-            BCHP_FIELD_ENUM(SCL_0_US_422_TO_444_CONV, RING_SUPPION,      DISABLE) |
-            BCHP_FIELD_DATA(SCL_0_US_422_TO_444_CONV, UNBIASED_ROUND_ENABLE,
-                hScaler->stUpSampler.bUnbiasedRound) |
-            BCHP_FIELD_DATA(SCL_0_US_422_TO_444_CONV, FILT_CTRL, hScaler->stUpSampler.eFilterType));
-    }
-
-    BVDC_P_SCL_GET_REG_DATA(SCL_0_DS_CONFIGURATION) =  (
-        BCHP_FIELD_DATA(SCL_0_DS_CONFIGURATION, FILTER_TYPE,
-            hScaler->stDnSampler.eFilterType) |
-        BCHP_FIELD_DATA(SCL_0_DS_CONFIGURATION, RING_SUPPRESSION,
-            hScaler->stDnSampler.eRingRemoval));
-#endif
-
     /* 3D support */
 #if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_7)
     BVDC_P_SCL_GET_REG_DATA(SCL_0_VIDEO_3D_MODE) &= ~(
@@ -1810,14 +1609,6 @@ void BVDC_P_Scaler_SetInfo_isr
         BDBG_MSG(("ulVrtStep         : %-8x", ulVrtStep<<BVDC_P_SCL_V_RATIO_F_BITS_EXT));
         BDBG_MSG(("ulFirHrzStep      : %-8x", ulFirHrzStep));
         BDBG_MSG(("ulFirVrtStep      : %-8x", ulFirVrtStep<<BVDC_P_SCL_V_RATIO_F_BITS_EXT));
-#if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_4)
-        BDBG_MSG(("Vertical Mode     : %s",
-            (BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, BYPASS)) ? "Bypass" :
-            (BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, FIR2  )) ? "FIR2" :
-            (BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, FIR4  )) ? "FIR4" :
-            (BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, AV2   )) ? "AV2" :
-            (BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, AV4   )) ? "AV4" : "Unknown"));
-#endif
         BDBG_MSG(("ulBlkAvgSize      : %d", ulBlkAvgSize));
         BDBG_MSG(("ulVertSclSrcWidth : %d", ulVertSclSrcWidth));
         BDBG_MSG(("HWF_0             : %s",
@@ -1847,31 +1638,18 @@ void BVDC_P_Scaler_SetEnable_isr
 {
     BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
 
-#if (BVDC_P_SUPPORT_SCL_VER > BVDC_P_SUPPORT_SCL_VER_1)
     if(!BVDC_P_SCL_COMPARE_FIELD_DATA(SCL_0_ENABLE, SCALER_ENABLE, bEnable))
-#else
-    if(!BVDC_P_SCL_COMPARE_FIELD_DATA(SCL_0_TOP_CONTROL, SCALER_ENABLE, bEnable))
-#endif
     {
         hScaler->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
     }
 
     /* Turn on/off the scaler. */
-#if (BVDC_P_SUPPORT_SCL_VER > BVDC_P_SUPPORT_SCL_VER_1)
     BVDC_P_SCL_GET_REG_DATA(SCL_0_ENABLE) &= ~(
         BCHP_MASK(SCL_0_ENABLE, SCALER_ENABLE));
 
     BVDC_P_SCL_GET_REG_DATA(SCL_0_ENABLE) |=  (bEnable
         ? BCHP_FIELD_ENUM(SCL_0_ENABLE, SCALER_ENABLE, ON)
         : BCHP_FIELD_ENUM(SCL_0_ENABLE, SCALER_ENABLE, OFF));
-#else
-    BVDC_P_SCL_GET_REG_DATA(SCL_0_TOP_CONTROL) &= ~(
-        BCHP_MASK(SCL_0_TOP_CONTROL, SCALER_ENABLE));
-
-    BVDC_P_SCL_GET_REG_DATA(SCL_0_TOP_CONTROL) |=  (bEnable
-        ? BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, SCALER_ENABLE, ON)
-        : BCHP_FIELD_ENUM(SCL_0_TOP_CONTROL, SCALER_ENABLE, OFF));
-#endif
 
     return;
 }
@@ -1916,16 +1694,12 @@ void BVDC_P_Scaler_5ZoneNonLinear_isr
     ulDstWidthRgn02 = pPicture->ulNonlinearSclOutWidth;
     ulSrcWidthRgn1  = ulSrcWidth - (ulSrcWidthRgn02 << 1);
     ulDstWidthRgn1  = pPicture->ulCentralRegionSclOutWidth;
-#if (BVDC_P_SUPPORT_SCL_VER<BVDC_P_SUPPORT_SCL_VER_7)
-    ulDstWidthRgn3  = 0;
-    ulSrcWidthRgn3  = 0;
-#else
+
 #define PIXELMASK                        (0xFFFFFFFE)
     ulDstWidthRgn3  = (ulDstWidthRgn02>>2) & PIXELMASK ;
     ulSrcWidthRgn3  = (ulSrcWidthRgn02>>2) & PIXELMASK;
     ulDstWidthRgn02 = ulDstWidthRgn02 - ulDstWidthRgn3;
     ulSrcWidthRgn02 = ulSrcWidthRgn02 - ulSrcWidthRgn3;
-#endif
     BDBG_MSG(("Src Width %4d 0: %4d 1: %4d 3 %4d", ulSrcWidth, ulSrcWidthRgn02, ulSrcWidthRgn1, ulSrcWidthRgn3));
     BDBG_MSG(("Des Width %4d 0: %4d 1: %4d 3 %4d", ulDstWidth, ulDstWidthRgn02, ulDstWidthRgn1, ulDstWidthRgn3));
 
@@ -2022,10 +1796,8 @@ void BVDC_P_Scaler_5ZoneNonLinear_isr
     /*set register*/
     BVDC_P_SCL_SET_HORZ_STEP_MISC(ulDstWidthRgn02 + ulDstWidthRgn1 + ulDstWidthRgn3, ulStep);
 
-#if (BVDC_P_SUPPORT_SCL_VER>=BVDC_P_SUPPORT_SCL_VER_7)
     BVDC_P_SCL_SET_HORZ_REGION3N1(N1,  ulDstWidthRgn3);
     BVDC_P_SCL_SET_HORZ_REGION3N1(3,   ulDstWidth);
-#endif
 
     if(!bDltNeg)
     {

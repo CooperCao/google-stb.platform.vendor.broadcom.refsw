@@ -1,0 +1,16 @@
+
+********* DHCP tag history ******
+
+Date        Tag Name            Fixes
+------------------------------------------------------------------------------
+04/01/10    DHCPD_REL_1_8_0     #83104, #83105
+
+01/14/10    DHCPD_REL_1_5_0	HSL release for SVT test pass
+
+12/22/09    DHCPD_REL_1_3_0	Snapshot before fixing alignment-issue on Android
+
+11/30/09    DHCPD_REL_1_2_0     1.PR79374, support fixed/var-length options
+                                2.minor cleanup in mac.c
+                                3.more debug info in main.c
+
+11/25/09    DHCPD_REL_1_1_0     1. PR79286, PR79314, PR79361

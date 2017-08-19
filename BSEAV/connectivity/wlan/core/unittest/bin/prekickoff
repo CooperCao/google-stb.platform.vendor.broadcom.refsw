@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# Preparation script for Kickoff upgrades.
+# 	$Id: 1f891103c0c394caab1bf64a06509ff5aab62f2c $	
+#
+# Records essential system configuration in two places -
+# /boot/preserve.tar on the target system (in case kickstart can't
+# read the filesystem at install time, eg LVM), and
+# /tmp/preserve_<host>.tar on the local system (in case install fails
+# and you need the data later to recover).  Requires ssh access to
+# host.
+#
+# Usage:
+# prekickoff <host>
+
+host=$1
+if [ -z "$host" ]; then
+    echo "Usage: $0 host"
+    exit 1
+fi
+
+ssh -l root $host "cd /; cp -p etc/inittab etc/inittab.preupgrade; \
+tar -cf /boot/preserve.tar \
+        var/spool/cron/* \
+        etc/sysconfig/network-scripts/ifcfg-e* \
+        etc/sysconfig/network \
+        etc/event.d/consolelogger* \
+	lib/systemd/system/consolelogger*
+        etc/dhcpd.conf \
+        etc/dhcp/dhcpd.conf \
+        etc/yp.conf \
+        etc/inittab.preupgrade"
+scp root@$host:/boot/preserve.tar /tmp/preserve_$host.tar
+
+tar -tvf /tmp/preserve_$host.tar

@@ -582,7 +582,7 @@ BERR_Code BAPE_Mixer_P_DetermineOutputDataType(BAPE_MixerHandle handle, BAPE_Dat
 
     if ( handle->explicitFormat != BAPE_MixerFormat_eMax )
     {
-        BDBG_MSG(("%s - explicitFormat %d", __FUNCTION__, handle->explicitFormat));
+        BDBG_MSG(("%s - explicitFormat %d", BSTD_FUNCTION, handle->explicitFormat));
     }
     /* set the initial PCM mode, if requested */
     switch ( handle->explicitFormat )
@@ -709,7 +709,7 @@ BERR_Code BAPE_Mixer_P_DetermineOutputDataType(BAPE_MixerHandle handle, BAPE_Dat
     *pDataType = dataType;
     if ( handle->explicitFormat != BAPE_MixerFormat_eMax )
     {
-        BDBG_MSG(("%s - explicitFormat %d, returning dataType %d", __FUNCTION__, handle->explicitFormat, *pDataType));
+        BDBG_MSG(("%s - explicitFormat %d, returning dataType %d", BSTD_FUNCTION, handle->explicitFormat, *pDataType));
     }
     return BERR_SUCCESS;
 }
@@ -813,7 +813,7 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
     BERR_Code errCode=BERR_SUCCESS;
     BSTD_UNUSED(index);
 
-    /*  BDBG_ERR(("%s : %d : pPathNode:%p  level:%d  index:%u", __FUNCTION__, __LINE__ , (void *)pPathNode, level, index )); */
+    /*  BDBG_ERR(("%s : %d : pPathNode:%p  level:%d  index:%u", BSTD_FUNCTION, __LINE__ , (void *)pPathNode, level, index )); */
 #if BAPE_DSP_SUPPORT
     if ( BAPE_PathNodeType_eDecoder == pPathNode->type  )
     {

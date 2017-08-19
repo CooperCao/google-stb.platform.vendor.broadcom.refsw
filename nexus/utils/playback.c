@@ -114,7 +114,7 @@ static struct util_opts_t opts;
 
 #include "hotplug.c"
 
-/* set a counter and max number to retry reseting the Scramble configuration */
+/* set a counter and max number to retry resetting the Scramble configuration */
 #define HDMI_MAX_SCRAMBLE_RETRY 5
 
 /* this should be enabled with conjunction of enabling  READ_TIMED_DATA in BSEAV/lib/utils/bsink_playback.c */
@@ -1111,7 +1111,7 @@ int main(int argc, const char *argv[])
         NEXUS_MemoryStatus heapStatus;
 
         if( (unsigned)opts.playbackHeap >= sizeof(platformConfig.heap)/sizeof(*platformConfig.heap) || platformConfig.heap[opts.playbackHeap]==NULL) {
-            BDBG_ERR(("Invalud playbackHeap:%d", opts.playbackHeap));
+            BDBG_ERR(("Invalid playbackHeap:%d", opts.playbackHeap));
             return -1;
         }
         playpumpSettings.heap = platformConfig.heap[opts.playbackHeap];
@@ -1809,6 +1809,9 @@ int main(int argc, const char *argv[])
     if(videoExtPidChannel) {
         videoProgram.enhancementPidChannel = videoExtPidChannel;
         videoProgram.codec = opts.common.extVideoCodec;
+    }
+    if (opts.mfd_crc) {
+        videoProgram.crcMode = NEXUS_VideoDecoderCrcMode_eMfd;
     }
 #if NEXUS_HAS_AUDIO
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);

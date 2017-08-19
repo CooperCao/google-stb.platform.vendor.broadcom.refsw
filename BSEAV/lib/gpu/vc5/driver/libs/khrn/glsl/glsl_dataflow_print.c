@@ -16,13 +16,13 @@ static const char *df_type_string(DataflowType type) {
       case DF_INT:        return "int";
       case DF_UINT:       return "uint";
       case DF_FLOAT:      return "float";
-      case DF_FSAMPLER:   return "sampler";
-      case DF_ISAMPLER:   return "isampler";
-      case DF_USAMPLER:   return "usampler";
+      case DF_F_SAMP_IMG: return "f_sampled_img";
+      case DF_I_SAMP_IMG: return "i_sampled_img";
+      case DF_U_SAMP_IMG: return "u_sampled_img";
       case DF_ATOMIC:     return "atomic";
-      case DF_FIMAGE:     return "image";
-      case DF_IIMAGE:     return "iimage";
-      case DF_UIMAGE:     return "uimage";
+      case DF_F_STOR_IMG: return "f_storage_img";
+      case DF_I_STOR_IMG: return "i_storage_img";
+      case DF_U_STOR_IMG: return "u_storage_img";
       case DF_VOID:       return "void";
       default: assert(0); return NULL;
    }

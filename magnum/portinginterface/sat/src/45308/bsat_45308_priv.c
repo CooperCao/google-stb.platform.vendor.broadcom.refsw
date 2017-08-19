@@ -170,7 +170,7 @@ BERR_Code BSAT_45308_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
       chip_id = product_id >> 8;
       family_id = family_id >> 8;
       n = chip_id & 0xFF;
-      if (n == 0x16)
+      if ((n == 0x16) || ((family_id & 0xFF) == 0x16))
          *totalChannels = 16;
       else if ((n == 0x04) || (family_id == 0x45304))
          *totalChannels = 4;
@@ -1708,16 +1708,17 @@ BERR_Code BSAT_45308_P_GetTurboAcqSettings(BSAT_ChannelHandle h, BSAT_TurboAcqSe
 {
    BSAT_45308_P_Handle *pDevImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
    BERR_Code retCode;
-   uint32_t hab[5];
+   uint32_t hab[6];
 
    BDBG_ENTER(BSAT_45308_P_GetTurboAcqSettings);
 
    hab[0] = BHAB_45308_InitHeader(0x21, h->channel, BHAB_45308_READ, 0);
-   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pDevImpl->hHab, hab, 5));
+   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pDevImpl->hHab, hab, 6));
 
    pSettings->scanModes = hab[1];
    pSettings->ctl = hab[2];
    pSettings->tzsyOverride = hab[3];
+   pSettings->flbwOverride = hab[4];
 
    done:
    BDBG_LEAVE(BSAT_45308_P_GetTurboAcqSettings);
@@ -1732,7 +1733,7 @@ BERR_Code BSAT_45308_P_SetTurboAcqSettings(BSAT_ChannelHandle h, BSAT_TurboAcqSe
 {
    BSAT_45308_P_Handle *pDevImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
    BERR_Code retCode;
-   uint32_t hab[5];
+   uint32_t hab[6];
 
    BDBG_ENTER(BSAT_45308_P_SetTurboAcqSettings);
 
@@ -1740,7 +1741,8 @@ BERR_Code BSAT_45308_P_SetTurboAcqSettings(BSAT_ChannelHandle h, BSAT_TurboAcqSe
    hab[1] = pSettings->scanModes;
    hab[2] = pSettings->ctl;
    hab[3] = pSettings->tzsyOverride;
-   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pDevImpl->hHab, hab, 5));
+   hab[4] = pSettings->flbwOverride;
+   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pDevImpl->hHab, hab, 6));
 
    done:
    BDBG_LEAVE(BSAT_45308_P_SetTurboAcqSettings);

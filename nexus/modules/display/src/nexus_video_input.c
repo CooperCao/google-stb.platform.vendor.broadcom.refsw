@@ -64,7 +64,6 @@ static void NEXUS_VideoInput_P_SourceCallback_isr(void *pParam1, int pParam2, vo
     const BVDC_Source_CallbackData *pSrcData = (const BVDC_Source_CallbackData*)vdcData;
     const BVDC_Source_CallbackMask *pMask = &pSrcData->stMask;
     NEXUS_VideoInputStatus *pStatus;
-    bool formatChanged = false;
 
     BSTD_UNUSED(pParam2);
     BDBG_OBJECT_ASSERT(link, NEXUS_VideoInput_P_Link);
@@ -112,10 +111,6 @@ static void NEXUS_VideoInput_P_SourceCallback_isr(void *pParam1, int pParam2, vo
                     /* For nexus_vdb and analog inputs, the videoFormat enum is required. The Nexus and FMT enum lists must be
                     kept in sync.
                     Another option is to learn if the stream is progressive/interlaced, then use NEXUS_P_VideoFormat_FromInfo_isrsafe. */
-                }
-                if (pStatus->format != videoFormat) {
-                    pStatus->format = videoFormat;
-                    formatChanged = true;
                 }
                 pStatus->aspectRatio = NEXUS_P_AspectRatio_FromMagnum_isrsafe(pSrcData->pFmtInfo->eAspectRatio);
                 pStatus->frameRate = NEXUS_P_FrameRate_FromMagnum_isrsafe(pSrcData->eFrameRateCode);
@@ -225,7 +220,6 @@ static NEXUS_VideoInput_P_Link *
 NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInput_P_LinkData *data, const NEXUS_VideoInput_P_Iface *iface)
 {
     NEXUS_VideoInput_P_Link *link = NULL;
-    NEXUS_Error rc = NEXUS_SUCCESS;
 
     BDBG_ASSERT(source && source->source);
     BDBG_ASSERT(data);
@@ -235,7 +229,7 @@ NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInp
 
     link = BKNI_Malloc(sizeof(*link));
     if(!link) {
-        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto err_alloc;
     }
     BKNI_Memset(link, 0, sizeof(*link));
@@ -344,14 +338,6 @@ static BERR_Code nexus_p_install_videoinput_cb(NEXUS_VideoInput_P_Link *link)
 
     rc = BVDC_Source_InstallCallback(link->sourceVdc, NEXUS_VideoInput_P_SourceCallback_isr, link, 0);
     if (rc) return BERR_TRACE(rc);
-
-#if NEXUS_HAS_VIDEO_DECODER
-    if (link->cfg.crcQueueSize && link->input->type == NEXUS_VideoInputType_eDecoder) {
-        NEXUS_Module_Lock(pVideo->modules.videoDecoder);
-        NEXUS_VideoDecoder_EnableCrcMode_priv((NEXUS_VideoDecoderHandle)link->input->source);
-        NEXUS_Module_Unlock(pVideo->modules.videoDecoder);
-    }
-#endif
 
     return 0;
 }
@@ -1059,7 +1045,6 @@ NEXUS_VideoInput_P_Get(NEXUS_VideoInput input)
 NEXUS_VideoInput_P_Link *
 NEXUS_VideoInput_P_GetForWindow(NEXUS_VideoInput input, NEXUS_VideoWindowHandle window)
 {
-    NEXUS_Error rc;
     NEXUS_VideoInput_P_Link *inputLink;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_VideoInput);
@@ -1100,7 +1085,7 @@ NEXUS_VideoInput_P_GetForWindow(NEXUS_VideoInput input, NEXUS_VideoWindowHandle 
 #endif
         default:
             BDBG_WRN(("unknown VideoInput type: %d", input->type));
-            rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            BERR_TRACE(NEXUS_NOT_SUPPORTED);
             inputLink = NULL;
             break;
         }

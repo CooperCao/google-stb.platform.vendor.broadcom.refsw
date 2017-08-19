@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/ZRC/include/bbRF4CEZRCAttributes.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE ZRC profile attributes handler.
+ *      This is the header file for the RF4CE ZRC profile attributes handler.
  *
- * $Revision: 8795 $
- * $Date: 2015-11-07 00:57:03Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_ZRC_ATTRIBUTES_H
 #define _RF4CE_ZRC_ATTRIBUTES_H
 
@@ -275,7 +269,7 @@ typedef enum _RF4CE_ZRC2GDP2_AttributesID_t
 
 /**//**
  * \brief True if the specified Attribute Id belongs to ZRC2
- * Note: Shall be used with RF4CE_ZRC2_IS_ATTR_SUPPORTED(attrId)
+ * \note: Shall be used with RF4CE_ZRC2_IS_ATTR_SUPPORTED(attrId)
  */
 #define RF4CE_ZRC2_IS_ATTR_ZRC2(attrId) (RF4CE_ZRC2_PROFILE_VERSION <= (attrId))
 
@@ -305,21 +299,6 @@ typedef enum _RF4CE_ZRC2GDP2_AttributesID_t
      (attrId) != RF4CE_ZRC2_POLL_CONFIGURATION &&                                                                   \
      (attrId) != RF4CE_ZRC2_POLL_CONSTRAINTS &&                                                                     \
      (attrId) != RF4CE_ZRC2_IRDB_VENDOR_SUPPORT)
-
-/**//**
- * \brief   Report the type of attribute: either arrayed or scalar.
- * \param[in]   attrId      Identifier of the attribute.
- * \return  TRUE if an attribute is of the arrayed type; FALSE if it's of the scalar type.
- * \details Arrayed attributes have identifiers in ranges 0x90-0x9F and 0xC0-0xDF. All
- *  other identifiers correspond to scalar attributes.
- */
-INLINE bool RF4CE_ZRC2_IsArrayedAttribute(const uint8_t attrId)
-{
-    uint8_t  attrIdH =          /* High byte of the attribute identifier. */
-            attrId & 0xF0;
-
-    return (0x90 == attrIdH) || (0xC0 == attrIdH) || (0xD0 == attrIdH);
-}
 
 /**//**
  * \brief RF4CE ZRC 2.0 status values.
@@ -402,13 +381,14 @@ typedef uint8_t RF4CE_ZRC2_PollConfigurationValue_t[9];
  */
 typedef struct _RF4CE_ZRC2_MappableAction_t
 {
-    uint8_t deviceType;     /* set to RF4CE_ZRC2_ACTION_MAPPING_DEVICETYPE_INVALID to not use mapping */
-    uint8_t bank;
-    uint8_t code;
+    uint8_t deviceType;     /*!< set to RF4CE_ZRC2_ACTION_MAPPING_DEVICETYPE_INVALID to not use mapping */
+    uint8_t bank;           /*!< action bank */
+    uint8_t code;           /*!< action code */
 } RF4CE_ZRC2_MappableAction_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Id type.
+ * \ingroup RF4CE_ZRC2_GetAttributeReq
  */
 typedef struct _RF4CE_ZRC2_AttributeId_t
 {
@@ -417,15 +397,16 @@ typedef struct _RF4CE_ZRC2_AttributeId_t
     {
         struct
         {
-            uint8_t lo;
-            uint8_t hi;
-        } indexByte;
-        uint16_t index;
+            uint8_t lo;  /*!< Lowest part of index */
+            uint8_t hi;  /*!< Highest part of index */
+        } indexByte;     /*!< 16-bits index */
+        uint16_t index;  /*!< The attribute index for arrayed attributes */
     } index;             /*!< The attribute index for arrayed attributes */
 } RF4CE_ZRC2_AttributeId_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Get requests parameters.
+ * \ingroup RF4CE_ZRC2_GetAttributeReq
  */
 typedef struct _RF4CE_ZRC2_GetAttributesReqParams_t
 {
@@ -435,6 +416,7 @@ typedef struct _RF4CE_ZRC2_GetAttributesReqParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Get requests confirmation identifier.
+ * \ingroup RF4CE_ZRC2_GetAttributeConf
  */
 typedef struct _RF4CE_ZRC2_GetAttributesConfId_t
 {
@@ -446,6 +428,7 @@ typedef struct _RF4CE_ZRC2_GetAttributesConfId_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Get requests confirmation parameters.
+ * \ingroup RF4CE_ZRC2_GetAttributeConf
  */
 typedef struct _RF4CE_ZRC2_GetAttributesConfParams_t
 {
@@ -455,16 +438,19 @@ typedef struct _RF4CE_ZRC2_GetAttributesConfParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Get request descriptor definition.
+ * \ingroup RF4CE_ZRC2_GetAttributeReq
  */
 typedef struct _RF4CE_ZRC2_GetAttributesReqDescr_t RF4CE_ZRC2_GetAttributesReqDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Get request callback.
+ * \ingroup RF4CE_ZRC2_GetAttributeConf
  */
 typedef void (*RF4CE_ZRC2_GetAttributesReqCallback_t)(RF4CE_ZRC2_GetAttributesReqDescr_t *req, RF4CE_ZRC2_GetAttributesConfParams_t *conf);
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Get request descriptor.
+ * \ingroup RF4CE_ZRC2_GetAttributeReq
  */
 struct _RF4CE_ZRC2_GetAttributesReqDescr_t
 {
@@ -472,7 +458,7 @@ struct _RF4CE_ZRC2_GetAttributesReqDescr_t
     RF4CE_NWK_RequestService_t service;             /*!< Service field */
     uint8_t pairingRef;                             /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_GetAttributesReqParams_t params;     /*!< Request parameters */
     RF4CE_ZRC2_GetAttributesReqCallback_t callback; /*!< Request callback */
@@ -480,6 +466,7 @@ struct _RF4CE_ZRC2_GetAttributesReqDescr_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Set request attribute identifier.
+ * \ingroup RF4CE_ZRC2_SetAttributeReq
  */
 typedef struct PACKED _RF4CE_ZRC2_SetAttributeId_t
 {
@@ -490,6 +477,7 @@ typedef struct PACKED _RF4CE_ZRC2_SetAttributeId_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Set request parameters.
+ * \ingroup RF4CE_ZRC2_SetAttributeReq
  */
 typedef struct _RF4CE_ZRC2_SetAttributesReqParams_t
 {
@@ -499,6 +487,7 @@ typedef struct _RF4CE_ZRC2_SetAttributesReqParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Set request confirmation parameters.
+ * \ingroup RF4CE_ZRC2_SetAttributeConf
  */
 typedef struct _RF4CE_ZRC2_SetAttributesConfParams_t
 {
@@ -507,16 +496,19 @@ typedef struct _RF4CE_ZRC2_SetAttributesConfParams_t
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Set request descriptor definition.
+ * \ingroup RF4CE_ZRC2_SetAttributeReq
  */
 typedef struct _RF4CE_ZRC2_SetAttributesReqDescr_t RF4CE_ZRC2_SetAttributesReqDescr_t;
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Set request callback.
+ * \ingroup RF4CE_ZRC2_SetAttributeConf
  */
 typedef void (*RF4CE_ZRC2_SetAttributesReqCallback_t)(RF4CE_ZRC2_SetAttributesReqDescr_t *req, RF4CE_ZRC2_SetAttributesConfParams_t *conf);
 
 /**//**
  * \brief RF4CE ZRC 2.0 Attributes Set request descriptor.
+ * \ingroup RF4CE_ZRC2_SetAttributeReq
  */
 struct _RF4CE_ZRC2_SetAttributesReqDescr_t
 {
@@ -524,7 +516,7 @@ struct _RF4CE_ZRC2_SetAttributesReqDescr_t
     RF4CE_NWK_RequestService_t service;             /*!< Service field */
     uint8_t pairingRef;                             /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_SetAttributesReqParams_t params;     /*!< Request parameters */
     RF4CE_ZRC2_SetAttributesReqCallback_t callback; /*!< Request callback */
@@ -533,6 +525,7 @@ struct _RF4CE_ZRC2_SetAttributesReqDescr_t
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Starts asynchronous ZRC 2.0 Get Attributes Request.
+ \ingroup RF4CE_ZRC_Functions
 
  \param[in] request - pointer to the request descriptor.
  \return Nothing.
@@ -541,6 +534,7 @@ void RF4CE_ZRC2_GetAttributesReq(RF4CE_ZRC2_GetAttributesReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Starts asynchronous ZRC 2.0 Set Attributes Request.
+ \ingroup RF4CE_ZRC_Functions
 
  \param[in] request - pointer to the request descriptor.
  \return Nothing.
@@ -549,14 +543,44 @@ void RF4CE_ZRC2_SetAttributesReq(RF4CE_ZRC2_SetAttributesReqDescr_t *request);
 
 /**//**
  * \brief   Indicates to the Host the received Get Attributes Response.
+ * \ingroup RF4CE_ZRC_Functions
  * \param[in]   indParams   Pointer to the indication parameters.
  */
 void RF4CE_ZRC2_GetAttrRespInd(RF4CE_ZRC2_SetAttributesReqParams_t *const indParams);
 
 /**//**
  * \brief   Indicates to the Host the received Push Attributes Request.
+ * \ingroup RF4CE_ZRC_Functions
  * \param[in]   indParams   Pointer to the indication parameters.
  */
 void RF4CE_ZRC2_PushAttrReqInd(RF4CE_ZRC2_SetAttributesReqParams_t *const indParams);
 
+/************************* INLINES *****************************************************/
+/**//**
+ * \brief   Report the type of attribute: either arrayed or scalar.
+ * \ingroup RF4CE_ZRC_Functions
+ * \param[in]   attrId      Identifier of the attribute.
+ * \return  TRUE if an attribute is of the arrayed type; FALSE if it's of the scalar type.
+ * \details Arrayed attributes have identifiers in ranges 0x90-0x9F and 0xC0-0xDF. All
+ *  other identifiers correspond to scalar attributes.
+ */
+INLINE bool RF4CE_ZRC2_IsArrayedAttribute(const uint8_t attrId)
+{
+    uint8_t  attrIdH =          /* High byte of the attribute identifier. */
+            attrId & 0xF0;
+
+    return (0x90 == attrIdH) || (0xC0 == attrIdH) || (0xD0 == attrIdH);
+}
+
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #endif /* _RF4CE_ZRC_ATTRIBUTES_H */
+
+/* eof bbRF4CEZRCAttributes.h */

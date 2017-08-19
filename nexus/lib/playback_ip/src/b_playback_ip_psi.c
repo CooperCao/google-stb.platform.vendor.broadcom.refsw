@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -133,7 +133,7 @@ static int B_PlaybackIp_PatPmtBufBounds(
     struct bfile_io_read_patPmtBuf *patPmtBfileIo = (struct bfile_io_read_patPmtBuf *) self;
     *first = 0;
     *last = BMPEG2TS_PKT_SIZE*2;
-    BDBG_MSG(("%s: patPmtBfileIo=%p bounds returned first=%"PRId64 " last=%"PRId64 , __FUNCTION__, (void *)patPmtBfileIo, *first, *last));
+    BDBG_MSG(("%s: patPmtBfileIo=%p bounds returned first=%"PRId64 " last=%"PRId64 , BSTD_FUNCTION, (void *)patPmtBfileIo, *first, *last));
     return 0;
 }
 
@@ -150,7 +150,7 @@ static off_t B_PlaybackIp_PatPmtBufSeek(
     first = 0;
     last = 2*BMPEG2TS_PKT_SIZE;
 
-    BDBG_MSG(("%s: patPmtBfileIo=%p offsets: first=%"PRId64 " last=%"PRId64 " cur=%"PRId64 " asked=%"PRId64 " whence=%s", __FUNCTION__,
+    BDBG_MSG(("%s: patPmtBfileIo=%p offsets: first=%"PRId64 " last=%"PRId64 " cur=%"PRId64 " asked=%"PRId64 " whence=%s", BSTD_FUNCTION,
                 (void *)patPmtBfileIo, first, last, patPmtBfileIo->offset, offset, whence==SEEK_SET?"SEEK_SET":whence==SEEK_CUR?"SEEK_CUR":"SEEK_END" ));
     if (whence == SEEK_CUR) {
         offset = patPmtBfileIo->offset + offset;
@@ -167,7 +167,7 @@ static off_t B_PlaybackIp_PatPmtBufSeek(
     }
     patPmtBfileIo->offset = offset;
 
-    BDBG_MSG(("%s: patPmtBfileIo=%p updated offset=%"PRId64 , __FUNCTION__, (void *)patPmtBfileIo, offset));
+    BDBG_MSG(("%s: patPmtBfileIo=%p updated offset=%"PRId64 , BSTD_FUNCTION, (void *)patPmtBfileIo, offset));
     return offset;
 }
 
@@ -180,17 +180,17 @@ static ssize_t B_PlaybackIp_PatPmtBufRead(
     struct bfile_io_read_patPmtBuf *patPmtBfileIo = (struct bfile_io_read_patPmtBuf *) self;
     ssize_t bytesToRead = 0;
 
-    BDBG_MSG(("%s: patPmtBfileIo=%p buf=%p length=%zu", __FUNCTION__, (void *)patPmtBfileIo, (void *)buf, length));
+    BDBG_MSG(("%s: patPmtBfileIo=%p buf=%p length=%zu", BSTD_FUNCTION, (void *)patPmtBfileIo, (void *)buf, length));
 
     if (patPmtBfileIo->offset >= 2 * BMPEG2TS_PKT_SIZE)
     {
-        BDBG_MSG(("%s: forcing EOF to complate probe faster %zu, offset %"PRId64 , __FUNCTION__, length, patPmtBfileIo->offset));
+        BDBG_MSG(("%s: forcing EOF to complate probe faster %zu, offset %"PRId64 , BSTD_FUNCTION, length, patPmtBfileIo->offset));
         return 0;
     }
     if (length > 2 * BMPEG2TS_PKT_SIZE)
     {
         length = 2 * BMPEG2TS_PKT_SIZE; /* forcing the read length to only 1st two MPEG2 TS packets */
-        BDBG_MSG(("%s: trimming index read request to complate probe faster, length=%zu offset %"PRId64 , __FUNCTION__, length, patPmtBfileIo->offset));
+        BDBG_MSG(("%s: trimming index read request to complate probe faster, length=%zu offset %"PRId64 , BSTD_FUNCTION, length, patPmtBfileIo->offset));
     }
 
     if (patPmtBfileIo->offset+length >= BMPEG2TS_PKT_SIZE*2)
@@ -199,7 +199,7 @@ static ssize_t B_PlaybackIp_PatPmtBufRead(
         bytesToRead = length;
 
     BKNI_Memcpy(buf, patPmtBfileIo->pBuffer+patPmtBfileIo->offset, bytesToRead);
-    BDBG_MSG(("%s: returning %zd bytes at offst %"PRId64 , __FUNCTION__, bytesToRead, patPmtBfileIo->offset));
+    BDBG_MSG(("%s: returning %zd bytes at offst %"PRId64 , BSTD_FUNCTION, bytesToRead, patPmtBfileIo->offset));
     return bytesToRead;
 }
 
@@ -227,7 +227,7 @@ B_PlaybackIp_PatPmtProbe(
         pPsi->probe = bmedia_probe_create();
         if (!pPsi->probe)
         {
-            BDBG_ERR(("%s: failed to create the probe object", __FUNCTION__));
+            BDBG_ERR(("%s: failed to create the probe object", BSTD_FUNCTION));
             return (NULL);
         }
     }
@@ -251,7 +251,7 @@ B_PlaybackIp_PatPmtProbe(
     if (!stream)
     {
         /* probe didn't find the PSI info either, return error */
-        BDBG_ERR(("%s: media probe didn't find the PSI info, return error", __FUNCTION__));
+        BDBG_ERR(("%s: media probe didn't find the PSI info, return error", BSTD_FUNCTION));
     }
 
     return (stream);
@@ -263,7 +263,7 @@ void B_PlaybackIp_ResumePsiParsing(
 {
     if (!pPsi) return;
     pPsi->psiState = PBIP_PsiState_eResumePsiParsing;
-    BDBG_MSG(("%s: Resumed Psi parsing for pPsi=%p", __FUNCTION__, (void *)pPsi));
+    BDBG_MSG(("%s: Resumed Psi parsing for pPsi=%p", BSTD_FUNCTION, (void *)pPsi));
 }
 
 void B_PlaybackIp_ResetPsiState(
@@ -274,7 +274,7 @@ void B_PlaybackIp_ResetPsiState(
     pPsi->tsPktState = PBIP_TsPktState_eIdle;
     pPsi->psiState = PBIP_PsiState_eIdle;
     pPsi->abort = true;
-    BDBG_MSG(("%s: Re-setting PSI state for Psi=%p", __FUNCTION__, (void *)pPsi));
+    BDBG_MSG(("%s: Re-setting PSI state for Psi=%p", BSTD_FUNCTION, (void *)pPsi));
 }
 
 void B_PlaybackIp_GetPsiStreamState(
@@ -284,7 +284,7 @@ void B_PlaybackIp_GetPsiStreamState(
 {
     if (!pPsi) return;
     *ppStream = pPsi->stream;
-    BDBG_MSG(("%s: Returned bmedia stream=%p for pPsi=%p", __FUNCTION__, (void *)*ppStream, (void *)pPsi));
+    BDBG_MSG(("%s: Returned bmedia stream=%p for pPsi=%p", BSTD_FUNCTION, (void *)*ppStream, (void *)pPsi));
 }
 
 void B_PlaybackIp_DestroyPsiState(
@@ -294,7 +294,7 @@ void B_PlaybackIp_DestroyPsiState(
     BDBG_ASSERT(pPsi);
     if (!pPsi) return;
     BDBG_WRN(("%s:%p: tsPktCnt=%"PRId64 " totalPat=%"PRId64 ", newPmt=%"PRId64 " totalStreamChanges=%u tsPktWithNoPayload=%"PRId64 " tsPktWithError=%"PRId64 " totalBytesConsumed=%"PRId64 " totalInitialTsPktsSkipped=%"PRId64 " totalProbeErrs=%"PRId64 " totalPmtValidationErrs=%"PRId64 " totalProgramParsingErrs=%"PRId64 ,
-                __FUNCTION__, (void *)pPsi,
+                BSTD_FUNCTION, (void *)pPsi,
                 pPsi->tsPktCnt,
                 pPsi->tsPatPktCnt,
                 pPsi->tsNewPmtPktCnt,
@@ -331,13 +331,13 @@ B_PlaybackIpPsiStateHandle B_PlaybackIp_CreatePsiState(B_PlaybackIpHandle playba
     hPsi = B_Os_Calloc( 1, sizeof(B_PlaybackIpPsiState));
     if (hPsi == NULL)
     {
-        BDBG_ERR(("%s: B_Os_Calloc failed for %zu bytes of B_PlaybackIpPsiState structure!", __FUNCTION__, sizeof(B_PlaybackIpPsiState) ));
+        BDBG_ERR(("%s: B_Os_Calloc failed for %zu bytes of B_PlaybackIpPsiState structure!", BSTD_FUNCTION, sizeof(B_PlaybackIpPsiState) ));
         return NULL;
     }
 
     if ((hPsi->pStreamInfo = B_Os_Calloc(1, STREAM_INFO_SIZE+1)) == NULL)
     {
-        BDBG_ERR(("%s: B_Os_Calloc failed for %d bytes of streamInfo string!", __FUNCTION__, STREAM_INFO_SIZE+1));
+        BDBG_ERR(("%s: B_Os_Calloc failed for %d bytes of streamInfo string!", BSTD_FUNCTION, STREAM_INFO_SIZE+1));
         B_Os_Free(hPsi);
         return NULL;
     }
@@ -348,7 +348,7 @@ B_PlaybackIpPsiStateHandle B_PlaybackIp_CreatePsiState(B_PlaybackIpHandle playba
     hPsi->audioPid1 = playback_ip->psi.audioPid;
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s:%p: Created: initial AV PID info: pPsi=%p pcr=%u video=%u audio=%u", __FUNCTION__, (void *)playback_ip, (void *)hPsi, hPsi->pcrPid, hPsi->videoPid, hPsi->audioPid1));
+            BDBG_WRN(("%s:%p: Created: initial AV PID info: pPsi=%p pcr=%u video=%u audio=%u", BSTD_FUNCTION, (void *)playback_ip, (void *)hPsi, hPsi->pcrPid, hPsi->videoPid, hPsi->audioPid1));
 #endif
 #if defined(LOG_IP_LATENCY)
     B_PlaybackIp_UtilsTrkLatencyInit(playback_ip);
@@ -396,17 +396,17 @@ static bool hasStreamInfoChanged(
     /* Check for changes in stream level attributes first. */
     if (!pNewStream->ntracks)
     {
-        BDBG_MSG(("%s: streamHasChanged=false: New stream doesn't have any valid # of tracks!", __FUNCTION__));
+        BDBG_MSG(("%s: streamHasChanged=false: New stream doesn't have any valid # of tracks!", BSTD_FUNCTION));
         return (false);
     }
     if (pCurStream->ntracks != pNewStream->ntracks)
     {
-        BDBG_WRN(("%s: streamHasChanged=true ntracks cur=%u new=%u", __FUNCTION__, pCurStream->ntracks, pNewStream->ntracks));
+        BDBG_WRN(("%s: streamHasChanged=true ntracks cur=%u new=%u", BSTD_FUNCTION, pCurStream->ntracks, pNewStream->ntracks));
         return (true);
     }
     if (pCurStream->type != pNewStream->type)
     {
-        BDBG_WRN(("%s: streamHasChanged=true type cur=%u new=%u", __FUNCTION__, pCurStream->type, pNewStream->type));
+        BDBG_WRN(("%s: streamHasChanged=true type cur=%u new=%u", BSTD_FUNCTION, pCurStream->type, pNewStream->type));
         return (true);
     }
 
@@ -420,28 +420,28 @@ static bool hasStreamInfoChanged(
         /* Both streams have video tracks, compare their PIDs & Codecs. */
         if (pCurTrack->number != pNewTrack->number)
         {
-            BDBG_WRN(("%s: streamHasChanged=true: VIDEO PID cur=0x%x new=0x%x", __FUNCTION__, pCurTrack->number, pNewTrack->number));
+            BDBG_WRN(("%s: streamHasChanged=true: VIDEO PID cur=0x%x new=0x%x", BSTD_FUNCTION, pCurTrack->number, pNewTrack->number));
             return (true);
         }
         else if (pCurTrack->info.video.codec != pNewTrack->info.video.codec)
         {
-            BDBG_WRN(("%s: streamHasChanged=true: VIDEO Codec cur=%u new=%u", __FUNCTION__, pCurTrack->info.video.codec, pNewTrack->info.video.codec));
+            BDBG_WRN(("%s: streamHasChanged=true: VIDEO Codec cur=%u new=%u", BSTD_FUNCTION, pCurTrack->info.video.codec, pNewTrack->info.video.codec));
             return (true);
         }
         else
         {
-            BDBG_MSG(("%s: streamHasChanged=false: Video Tracks are same, continue analyzing other stream attributes!", __FUNCTION__));
+            BDBG_MSG(("%s: streamHasChanged=false: Video Tracks are same, continue analyzing other stream attributes!", BSTD_FUNCTION));
         }
     }
     else if (pCurTrack || pNewTrack)
     {
         /* Only one stream has video track, so we consider this as a change & return. */
-        BDBG_WRN(("%s: streamHasChanged=true: %s", __FUNCTION__, pCurTrack? "current stream has Video Track & new one doesn't":"current stream doesn't have Video Track & new one does!"));
+        BDBG_WRN(("%s: streamHasChanged=true: %s", BSTD_FUNCTION, pCurTrack? "current stream has Video Track & new one doesn't":"current stream doesn't have Video Track & new one does!"));
         return (true);
     }
     else
     {
-        BDBG_MSG(("%s: streamHasChanged=false: Neither current or new stream has Video Track!", __FUNCTION__));
+        BDBG_MSG(("%s: streamHasChanged=false: Neither current or new stream has Video Track!", BSTD_FUNCTION));
     }
 
     /* See if PCR track is different in two streams. */
@@ -452,12 +452,12 @@ static bool hasStreamInfoChanged(
         /* Both streams have PCR tracks, compare their PIDs. */
         if (pCurTrack->number != pNewTrack->number)
         {
-            BDBG_WRN(("%s: streamHasChanged=true: PCR PID cur=0x%x new=0x%x", __FUNCTION__, pCurTrack->number, pNewTrack->number));
+            BDBG_WRN(("%s: streamHasChanged=true: PCR PID cur=0x%x new=0x%x", BSTD_FUNCTION, pCurTrack->number, pNewTrack->number));
             return (true);
         }
         else
         {
-            BDBG_MSG(("%s: streamHasChanged=false: PCR Tracks are same, continue analyzing other stream attributes!", __FUNCTION__));
+            BDBG_MSG(("%s: streamHasChanged=false: PCR Tracks are same, continue analyzing other stream attributes!", BSTD_FUNCTION));
         }
     }
     else
@@ -473,28 +473,28 @@ static bool hasStreamInfoChanged(
         /* Both streams have audio tracks, compare their PIDs & Codecs. */
         if (pCurTrack->number != pNewTrack->number)
         {
-            BDBG_WRN(("%s: streamHasChanged=true: AUDIO PID cur=0x%x new=0x%x", __FUNCTION__, pCurTrack->number, pNewTrack->number));
+            BDBG_WRN(("%s: streamHasChanged=true: AUDIO PID cur=0x%x new=0x%x", BSTD_FUNCTION, pCurTrack->number, pNewTrack->number));
             return (true);
         }
         else if (pCurTrack->info.audio.codec != pNewTrack->info.audio.codec)
         {
-            BDBG_WRN(("%s: streamHasChanged=true: AUDIO Codec cur=%u new=%u", __FUNCTION__, pCurTrack->info.audio.codec, pNewTrack->info.audio.codec));
+            BDBG_WRN(("%s: streamHasChanged=true: AUDIO Codec cur=%u new=%u", BSTD_FUNCTION, pCurTrack->info.audio.codec, pNewTrack->info.audio.codec));
             return (true);
         }
         else
         {
-            BDBG_MSG(("%s: streamHasChanged=false: 1st Audio Tracks are same, continue analyzing other stream attributes!", __FUNCTION__));
+            BDBG_MSG(("%s: streamHasChanged=false: 1st Audio Tracks are same, continue analyzing other stream attributes!", BSTD_FUNCTION));
         }
     }
     else if (pCurTrack || pNewTrack)
     {
         /* Only one stream has audio track, so we consider this as a change & return. */
-        BDBG_WRN(("%s: streamHasChanged=true: %s", __FUNCTION__, pCurTrack? "current stream has Audio Track & new one doesn't":"current stream doesn't have Audio Track & new one does!"));
+        BDBG_WRN(("%s: streamHasChanged=true: %s", BSTD_FUNCTION, pCurTrack? "current stream has Audio Track & new one doesn't":"current stream doesn't have Audio Track & new one does!"));
         return (true);
     }
     else
     {
-        BDBG_MSG(("%s: streamHasChanged=false: Neither current or new stream has Audio Track!", __FUNCTION__));
+        BDBG_MSG(("%s: streamHasChanged=false: Neither current or new stream has Audio Track!", BSTD_FUNCTION));
         /* We are done. */
         return (false);
     }
@@ -529,12 +529,12 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
 
     if (playback_ip->psi.mpegType != NEXUS_TransportType_eTs)
     {
-        BDBG_MSG(("%s: Runtime PSI Parsing is not supported for non-TS container formats=%d", __FUNCTION__, playback_ip->psi.mpegType));
+        BDBG_MSG(("%s: Runtime PSI Parsing is not supported for non-TS container formats=%d", BSTD_FUNCTION, playback_ip->psi.mpegType));
         return (B_ERROR_SUCCESS);
     }
     if (!playback_ip->stream)
     {
-        BDBG_MSG(("%s: Runtime PSI Parsing is not supported for if initial stream is not known!", __FUNCTION__));
+        BDBG_MSG(("%s: Runtime PSI Parsing is not supported for if initial stream is not known!", BSTD_FUNCTION));
         return (B_ERROR_SUCCESS);
     }
 
@@ -935,7 +935,7 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
 
             if (playback_ip->playback_state == B_PlaybackIpState_eTrickMode) {
                 if ((rc = updateNexusPlaypumpDecodersState(playback_ip, &playback_ip->ipTrickModeSettings)) != B_ERROR_SUCCESS) {
-                    BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state after new program PSI setup!", __FUNCTION__));
+                    BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state after new program PSI setup!", BSTD_FUNCTION));
                     continue;
                 }
                 BDBG_WRN(("%p: Updated Decoder trickmode state!", (void *)playback_ip));

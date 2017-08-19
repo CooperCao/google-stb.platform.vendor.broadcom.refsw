@@ -657,7 +657,7 @@ static void NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(NEXUS_HdmiOutputHandle
     BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
 
 #if NEXUS_HAS_HDMI_INPUT
-    BDBG_MSG(("%s: Upload ReceiverId List to upstream transmitter", __FUNCTION__));
+    BDBG_MSG(("%s: Upload ReceiverId List to upstream transmitter", BSTD_FUNCTION));
 
     /* First, get downstream info from hdcplib */
     rc = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
@@ -723,7 +723,7 @@ static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext)
     NEXUS_HdmiOutputHandle output = pContext;
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
 
-    BDBG_MSG(("%s: Ready to enable HDCP2.x encryption", __FUNCTION__));
+    BDBG_MSG(("%s: Ready to enable HDCP2.x encryption", BSTD_FUNCTION));
 
     /* additional delay to give the HW time to update the AUTHENTICATED_OK status after
     HDCP2_AUTHENTICATED was updated by SW at the time receive OK_TO_ENC_EN interrupt */
@@ -743,6 +743,8 @@ static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext)
     /* fire stateChange call back */
     NEXUS_TaskCallback_Fire(output->hdcpStateChangedCallback);
 
+    output->hdcpMonitor.hdcp22.auth.passCounter++ ;
+
     return;
 }
 
@@ -757,10 +759,11 @@ static void NEXUS_HdmiOutput_P_Hdcp2xReAuthRequestCallback(void *pContext)
     BERR_Code rc = BERR_SUCCESS;
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
 
-    BDBG_MSG(("%s: Received ReAuth Request from downstream HDCP2.x receiver", __FUNCTION__));
+    BDBG_MSG(("%s: Received ReAuth Request from downstream HDCP2.x receiver", BSTD_FUNCTION));
 
     if (output->hdcpStarted == true)
     {
+        output->hdcpMonitor.hdcp22.validReauthReqCounter++ ;
         /* Restart HDCP 2.x authentication */
         rc = NEXUS_HdmiOutput_StartHdcpAuthentication(output);
         if (rc != BERR_SUCCESS)
@@ -771,7 +774,8 @@ static void NEXUS_HdmiOutput_P_Hdcp2xReAuthRequestCallback(void *pContext)
     }
     else
     {
-        BDBG_WRN(("Received unexpected rx ReAuth Request...ignored"));
+        output->hdcpMonitor.hdcp22.invalidReauthReqCounter++ ;
+        BDBG_WRN(("Received unexpected Rx ReAuth Request...ignored"));
     }
 
     return;
@@ -784,7 +788,6 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
     BERR_Code rc = BERR_SUCCESS;
     BHDCPlib_Hdcp2x_AuthenticationStatus stAuthenticationStatus;
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
-
 
     rc = BHDCPlib_Hdcp2x_GetAuthenticationStatus(output->hdcpHandle, &stAuthenticationStatus);
     if (rc != BERR_SUCCESS)
@@ -817,6 +820,12 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
 
         /* fire stateChange call back */
         NEXUS_TaskCallback_Fire(output->hdcpStateChangedCallback);
+
+        /* update HDCP Auth faiure counter if callback is due to an HDCP Auth error */
+        if (stAuthenticationStatus.eAuthenticationError != BHDCPlib_HdcpError_eSuccess)
+        {
+            output->hdcpMonitor.hdcp22.auth.failCounter++ ;
+        }
     }
 }
 
@@ -824,7 +833,7 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
 /* The ISR callback is registered in HSI and will be fire uppon TA terminated interrupt */
 static void NEXUS_HdmiOutput_P_SageTATerminatedCallback_isr(void)
 {
-    BDBG_WRN(("%s: SAGE TATerminate interrupt", __FUNCTION__));
+    BDBG_WRN(("%s: SAGE TATerminate interrupt", BSTD_FUNCTION));
 
     BKNI_SetEvent_isr(g_NEXUS_hdmiOutputSageData.eventTATerminated);
 }
@@ -838,16 +847,18 @@ static void NEXUS_HdmiOutput_P_SageWatchdogEventhandler(void *pContext)
     NEXUS_Error errCode = NEXUS_SUCCESS;
     BERR_Code rc = BERR_SUCCESS;
 
-    BDBG_ERR(("%s: SAGE Hdcp2.x Recovery Process - Reopen/initialize HDCPlib and sage rpc handles", __FUNCTION__));
+    BDBG_ERR(("%s: SAGE Hdcp2.x Recovery Process - Reopen/initialize HDCPlib and sage rpc handles", BSTD_FUNCTION));
 
     /* Disable encryption and reset system state */
     (void)NEXUS_HdmiOutput_DisableHdcpEncryption(output);
+
+    output->hdcpMonitor.hdcp22.watchdogCounter++ ;
 
     /* Reinitialized SAGE RPC handles (now invalid) */
     rc = BHDCPlib_Hdcp2x_ProcessWatchDog(output->hdcpHandle);
     if (rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: Error process recovery attempt in HDCPlib", __FUNCTION__));
+        BDBG_ERR(("%s: Error process recovery attempt in HDCPlib", BSTD_FUNCTION));
         rc = BERR_TRACE(rc);
         goto done;
 
@@ -857,7 +868,7 @@ static void NEXUS_HdmiOutput_P_SageWatchdogEventhandler(void *pContext)
         errCode = NEXUS_HdmiOutput_StartHdcpAuthentication(output);
         if (errCode != NEXUS_SUCCESS)
         {
-            BDBG_ERR(("%s: Error restarting HDCP authentication after SAGE Hdcp2.x recovery process", __FUNCTION__));
+            BDBG_ERR(("%s: Error restarting HDCP authentication after SAGE Hdcp2.x recovery process", BSTD_FUNCTION));
             errCode = BERR_TRACE(errCode);
             goto done;
         }
@@ -892,6 +903,7 @@ static void NEXUS_HdmiOutput_P_SageIndicationEventHandler(void *pContext)
         /* Now pass the callback information to HDCPlib */
         rc = BHDCPlib_Hdcp2x_ReceiveSageIndication(
                         receivedIndication.hHDCPlib, &receivedIndication.sageIndication);
+        if (rc) BERR_TRACE(rc);
     }
 
     return;
@@ -1465,6 +1477,9 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         /******************/
         /**** HDCP 2.x ****/
         /******************/
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+        handle->hdcpMonitor.hdcp22.auth.attemptCounter++ ;
+#endif
         if (linkAuthenticated)
         {
             errCode = NEXUS_HdmiOutput_DisableHdcpEncryption(handle);
@@ -1480,10 +1495,9 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         }
 
     }
-    /******************/
-    /**** HDCP 1.x ****/
-    /******************/
-    else {
+    else
+	{
+        handle->hdcpMonitor.hdcp1x.auth.attemptCounter++ ;
         /******************/
         /**** HDCP 1.x ****/
         /******************/
@@ -1497,7 +1511,6 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         /* delay start of HDCP Authentication */
         BDBG_MSG(("Delay HDCP Auth Start (allow DisableHdcpAuthentication to complete)")) ;
         BKNI_Sleep(50);
-
     }
 
     BDBG_MSG(("Starting HDCP %s Authentication",
@@ -1696,6 +1709,10 @@ static void NEXUS_HdmiOutput_P_HdcpKeepAliveTimerCallback(void *pContext)
         return;
     }
 
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    handle->hdcpMonitor.hdcp22.timeoutCounter++ ;
+#endif
+
     /* otherwise, restart authentication */
     NEXUS_TaskCallback_Fire(handle->hdcpFailureCallback);
 
@@ -1724,6 +1741,14 @@ static void NEXUS_HdmiOutput_P_HdcpTimerCallback(void *pContext)
     {
         /* All failures will eventually wind up here */
         errCode = BERR_TRACE(errCode);
+        output->hdcpMonitor.hdcp1x.auth.failCounter++ ;
+
+        switch(hdcpStatus.eHdcpError)
+        {
+        default :
+            BDBG_WRN(("HDCP Auth Error: %d", hdcpStatus.eHdcpError)) ;
+        }
+
         BDBG_ERR(("HDCP error occurred, aborting authentication"));
         NEXUS_HdmiOutput_P_UpdateHdcpState(output);
         NEXUS_TaskCallback_Fire(output->hdcpFailureCallback);
@@ -1796,6 +1821,7 @@ static void NEXUS_HdmiOutput_P_UpdateHdcpState(NEXUS_HdmiOutputHandle handle)
                 }
             }
 
+            handle->hdcpMonitor.hdcp1x.auth.passCounter++ ;
             NEXUS_TaskCallback_Fire(handle->hdcpSuccessCallback);
         }
     }
@@ -1817,7 +1843,7 @@ NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamInfo(
     BKNI_Memset(pDownstream, 0, sizeof(NEXUS_HdmiHdcpDownStreamInfo));
 
     if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
-        BDBG_ERR(("This API %s is not applicable for HDCP2.x", __FUNCTION__));
+        BDBG_ERR(("This API %s is not applicable for HDCP2.x", BSTD_FUNCTION));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto done;
     }
@@ -1879,7 +1905,7 @@ NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(
     }
 
     if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
-        BDBG_ERR(("This API %s is not applicable for HDCP2.x", __FUNCTION__));
+        BDBG_ERR(("This API %s is not applicable for HDCP2.x", BSTD_FUNCTION));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto done;
     }

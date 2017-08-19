@@ -1,12 +1,42 @@
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 /***************************************************************************
- *     Copyright (c) 2003-2010, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
- *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- *
  * $brcm_Workfile: $
  * $brcm_Revision: $
  * $brcm_Date: $
@@ -93,7 +123,7 @@ static BERR_Code BAUS_SetTransmitMode(
 		CHK_RETCODE( retCode, BRPC_CallProc(hDev->hRpc, BRPC_ProcId_AUS_SetTransmitMode, (const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal));
 		CHK_RETCODE( retCode, retVal );
 		hDev->settings.isTransmitterEnabled = false;
-		BDBG_MSG(("%s: Upstream Transmitter Disabled", __FUNCTION__));
+		BDBG_MSG(("%s: Upstream Transmitter Disabled", BSTD_FUNCTION));
 	}
 	else if( transmitMode == BAUS_TransmitMode_eEnable )
 	{
@@ -102,7 +132,7 @@ static BERR_Code BAUS_SetTransmitMode(
 		CHK_RETCODE( retCode, BRPC_CallProc(hDev->hRpc, BRPC_ProcId_AUS_SetTransmitMode, (const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal));
 		CHK_RETCODE( retCode, retVal );
 		hDev->settings.isTransmitterEnabled = true;
-		BDBG_MSG(("%s: Upstream Transmitter Enabled", __FUNCTION__));
+		BDBG_MSG(("%s: Upstream Transmitter Enabled", BSTD_FUNCTION));
 	}
 	else
 	{
@@ -303,7 +333,7 @@ BERR_Code BAUS_SetSymbolRate(
 	BERR_Code retVal;
 
 	BDBG_ENTER(BAUS_SetSymbolRate);
-	BDBG_MSG(("%s: symbolRate=%d", __FUNCTION__, symbolRate));
+	BDBG_MSG(("%s: symbolRate=%lu", BSTD_FUNCTION, symbolRate));
 	BDBG_ASSERT( hDev );
 	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 	BDBG_ASSERT( hDev->hRpc );
@@ -348,7 +378,7 @@ BERR_Code BAUS_SetRfFreq(
 
 
 	BDBG_ENTER(BAUS_SetRfFreq);
-	BDBG_MSG(("%s: rfFreq=%d", __FUNCTION__, rfFreq));
+	BDBG_MSG(("%s: rfFreq=%lu", BSTD_FUNCTION, rfFreq));
 	BDBG_ASSERT( hDev );
 	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 	BDBG_ASSERT( hDev->hRpc );
@@ -393,7 +423,7 @@ BERR_Code BAUS_SetPowerLevel(
 
 
 	BDBG_ENTER(BAUS_SetPowerLevel);
-	BDBG_MSG(("%s: powerLevel=%d", __FUNCTION__, powerLevel));
+	BDBG_MSG(("%s: powerLevel=%d", BSTD_FUNCTION, powerLevel));
 	BDBG_ASSERT( hDev );
 	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 	BDBG_ASSERT( hDev->hRpc );

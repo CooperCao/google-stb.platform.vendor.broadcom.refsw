@@ -375,7 +375,7 @@ b_play_frame_data(void *playback_, ssize_t size)
 
     b_play_capture_write(p, (uint8_t *)p->state.buf + p->state.io.file_behind, read_size);
 #if NEXUS_PLAYBACK_BLOCKAUTH
-    rc = NEXUS_Playback_P_BlockAuthFrameData(p, size, read_size, &last);
+    rc = NEXUS_Playback_P_BlockAuthFrameData(p, size, &read_size, &last);
     switch (rc) {
     case 0:
         break;
@@ -385,6 +385,8 @@ b_play_frame_data(void *playback_, ssize_t size)
     case NEXUS_PLAYBACK_BLOCKAUTH_EOF:
         BDBG_ERR(("seek wasn't able to find mpeg data"));
         NEXUS_Playback_P_EndOfDataFile(p, 0, false);
+        return;
+    case NEXUS_PLAYBACK_BLOCKAUTH_DRAIN:
         return;
     }
 #endif
@@ -543,9 +545,6 @@ keep_waiting:
 /* Retrieve some mark from the decoder to show current location.
 This uses a combination to CDB depth, PTS change and DM picture queue depth.
 */
-/* B_MIN_CDB_DEPTH should be greater than max picture. If there's no video_picture_queue info, and if PTS's aren't changing,
-we will wait for playback+CDB to go below this. */
-#define B_MIN_CDB_DEPTH (1024*1024) /* With 1080p source, we need to set this at 1 MB */
 
 /**
 playback must decide if the stream has come to the end. This is determined based on a series of tests
@@ -554,8 +553,7 @@ The following conditions are evaluated in order. If any are not true, playback w
 
 1) playback fifoDepth must go to zero.
 2) video decoder queueDepth (which is the post-decoder picture queue) must go to zero.
-3) cdbDepth (which is the sum of video and audio fifos) must be less than B_MIN_CDB_DEPTH (which is 1 MB)
-4) fifoMarker (which is a combination of current PTS and post-decoder queue depths) must be unchanged for 6 frame times
+3) fifoMarker (which is a combination of current PTS and post-decoder queue depths) must be unchanged for 6 frame times
 
 NOTE: audio decoder queuedFrames (which is the post-decoder frame queue) only contributes to the fifoMarker because bad
 streams may give a bogus frame count that never drops below a certain level; whereas video is guaranteed to drop to zero.
@@ -564,24 +562,24 @@ If all of these are true, the stream has come to an end. Playback will evaluate 
 fire the beginning/endOfStreamCallback.
 **/
 void
-bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, unsigned *pCdbDepth, unsigned *pWaitTime)
+bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, bool *pQueued, unsigned *pWaitTime)
 {
     const NEXUS_Playback_P_PidChannel *pid;
     NEXUS_Error rc;
     NEXUS_PlaypumpStatus playpumpStatus;
-    unsigned cdbDepth=0;
     uint32_t fifoMarker=0;
     bool videoTested=false; /* at the time we support only single decoded video program, but possible two video pids (for SVC/MVC) */
     
-
+    *pQueued = false;
     BDBG_OBJECT_ASSERT(playback, NEXUS_Playback);
     BDBG_ASSERT(playback->params.playpump);
     rc = NEXUS_Playpump_GetStatus(playback->params.playpump, &playpumpStatus);
     if(rc==BERR_SUCCESS) {
         BDBG_MSG_FLOW(("%s:%lx playpump %u",  "bplay_get_decode_mark", (unsigned long)playback, (unsigned)playpumpStatus.fifoDepth));
+        fifoMarker += playpumpStatus.fifoDepth;
         if(playpumpStatus.fifoDepth>0) {
             /* if there's even 1 byte in the playback fifo, we must still wait */
-            cdbDepth += B_MIN_CDB_DEPTH;
+            *pQueued = true;
         }
     } else { rc=BERR_TRACE(rc);}
 
@@ -604,9 +602,9 @@ bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, unsi
                             fifoDepth = videoStatus.enhancementFifoDepth;
                         }
                     }
-                    cdbDepth += fifoDepth;
+                    fifoMarker += videoStatus.fifoDepth;
                     if(videoStatus.queueDepth>0) {
-                        cdbDepth += B_MIN_CDB_DEPTH;
+                        *pQueued = true;
                     }
                     fifoMarker += videoStatus.pts;
                     fifoMarker += videoStatus.queueDepth;
@@ -620,7 +618,7 @@ bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, unsi
                 if (!rc) {
                     if(audioStatus.started) {
                         BDBG_MSG_FLOW(("%s:%lx audio[PRI] %u:%u:%u",  "bplay_get_decode_mark", (unsigned long)playback, (unsigned)audioStatus.fifoDepth, (unsigned)audioStatus.queuedFrames, (unsigned)audioStatus.pts));
-                        cdbDepth += audioStatus.fifoDepth;
+                        fifoMarker += audioStatus.fifoDepth;
                         fifoMarker += audioStatus.pts;
                         fifoMarker += audioStatus.queuedFrames;
                         if(audioStatus.queuedFrames>8) {
@@ -642,10 +640,9 @@ bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, unsi
             break;
         }
     }
-    *pCdbDepth = cdbDepth;
-    *pFifoMarker = fifoMarker+cdbDepth;
-    BDBG_MSG_FLOW(("%s:%lx total %u:%u",  "bplay_get_decode_mark", (unsigned long)playback, (unsigned)cdbDepth, (unsigned)fifoMarker));
-    if(cdbDepth==0 && fifoMarker==0) {
+    *pFifoMarker = fifoMarker;
+    BDBG_MSG_FLOW(("%s:%p queued %u, fifoMarker %u",  "bplay_get_decode_mark", (void*)playback, (unsigned)*pQueued, (unsigned)fifoMarker));
+    if(fifoMarker==0) {
         BDBG_WRN(("unable to get decode mark"));
     }
     return;
@@ -659,7 +656,7 @@ static bool
 b_play_wait_for_end(NEXUS_PlaybackHandle p)
 {
     uint32_t fifoMarker;
-    unsigned cdbDepth;
+    bool queued;
     NEXUS_Time now;
     long diff;
     unsigned waitTime = B_FRAME_DISPLAY_TIME * 6;
@@ -677,7 +674,7 @@ b_play_wait_for_end(NEXUS_PlaybackHandle p)
         /* when p->state.fifoMarkerCounter hits 0, then it will fall through and perform the test once */
     }
 
-    bplay_get_decode_mark(p, &fifoMarker, &cdbDepth, &waitTime);
+    bplay_get_decode_mark(p, &fifoMarker, &queued, &waitTime);
     if (fifoMarker != p->state.fifoMarker) {
         p->state.fifoMarker = fifoMarker;
         NEXUS_Time_Get(&p->state.fifoLast);
@@ -686,9 +683,9 @@ b_play_wait_for_end(NEXUS_PlaybackHandle p)
     NEXUS_Time_Get(&now);
     diff = NEXUS_Time_Diff(&now, &p->state.fifoLast);
 
-    BDBG_MSG_FLOW(("b_play_wait_for_end:%#lx %d %u", (unsigned long)p, diff, cdbDepth));
+    BDBG_MSG_FLOW(("b_play_wait_for_end:%#lx %d %u", (unsigned long)p, diff, queued));
 
-    if (cdbDepth >= B_MIN_CDB_DEPTH || diff < (int)waitTime) {
+    if (queued || diff < (int)waitTime) {
         /* need to wait longer */
         return false;
     }

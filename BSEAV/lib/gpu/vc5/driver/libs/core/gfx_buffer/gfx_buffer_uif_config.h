@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include "vcos_types.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern uint32_t gfx_buffer_get_uif_page_size(void);
 extern void gfx_buffer_set_uif_page_size(uint32_t page_size);
@@ -17,7 +17,7 @@ extern void gfx_buffer_set_uif_num_banks(uint32_t num_banks);
 extern uint32_t gfx_buffer_get_uif_xor_addr(void);
 extern void gfx_buffer_set_uif_xor_addr(uint32_t xor_addr);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #define GFX_UIF_PAGE_SIZE gfx_buffer_get_uif_page_size()
 #define GFX_UIF_NUM_BANKS gfx_buffer_get_uif_num_banks()

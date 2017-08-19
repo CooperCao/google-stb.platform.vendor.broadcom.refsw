@@ -1,0 +1,30 @@
+# This file lists all flags used for filtering the master filelist
+# if a feature/OS files are desired by default (i.e. are present if the flag doesn't appear
+# in any list), the files must be under #ifndef NO_<flag>_SRC
+# To include or exclude files under flags in DEFS, use #ifdef <flag>_SRC or #ifndef <flag>_SRC
+# To include or exclude files under flags in UNDEFS, use #ifdef NO_<flag>_SRC or #ifndef NO_<flag>_SRC
+
+# OS flags
+
+LINUX
+WINCE
+MACOS
+VX
+
+
+
+# features
+
+ROUTER
+BCMDHD
+P2P
+BCMWPS
+WPS_API (only for api includes)
+WLSRC
+WL
+WLPHY
+WLPHY_INC (only for phy api includes)
+
+# some often used combos
+
+LINUX_ROUTER

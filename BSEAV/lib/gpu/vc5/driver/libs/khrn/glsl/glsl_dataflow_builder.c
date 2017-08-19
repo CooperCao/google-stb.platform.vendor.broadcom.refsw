@@ -69,18 +69,39 @@ static void do_store(BasicBlock *b, Dataflow *address, Dataflow *offset, uint8_t
    assert(count <= 4);
    for (unsigned i=0; i<count; i++) v[swizzle[i]] = values[i];
 
-   int start = 0;
-   while (true) {
-      while (start < 4 && v[start] == NULL) start++;
-      if (start == 4) break;
+   uint32_t mask = 0;
+   for (int i = 0; i < 4; i++) if (v[i] != NULL) mask |= (1 << i);
+
+   while (mask != 0) {
+#if !V3D_HAS_TMU_MISALIGNED
+      int start = gfx_lsb(mask);
 
       /* Store as vectors where possible (continuous and sufficiently aligned) */
       int count = 1;
-      if (stride == 4 && (V3D_HAS_TMU_MISALIGNED || (start & 1) == 0))
+      if (stride == 4 && (start & 1) == 0)
          while (start + count < 4 && v[start+count] != NULL) count++;
 
+      uint32_t store_mask = gfx_mask(count) << start;
+#else
+      int start;
+      if (mask == 0xF) start = 0;
+      else if ((mask & 0x9) == 9) {
+         start = 3;
+         while (v[start-1] != NULL) start--;
+         assert(start > 0);
+      } else start = gfx_lsb(mask);
+
+      /* Store as vectors where continuous */
+      int count = 1;
+      if (stride == 4)
+         while (count < 4 && v[(start + count) & 3] != NULL) count++;
+
+      unsigned wrap_amount = (start + count >= 4) ? start + count - 4 : 0;
+      uint32_t store_mask = gfx_mask(count - wrap_amount) << start | gfx_mask(wrap_amount);
+#endif
+
       Dataflow *vec[4] = { NULL, };
-      for (int i=0; i<count; i++) vec[i] = v[start + i];
+      for (int i = 0; i<count; i++) vec[i] = v[(start + i) & 3];
 
       Dataflow *o = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset, glsl_dataflow_construct_const_uint(stride * start));
       Dataflow *addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, address, o);
@@ -88,7 +109,7 @@ static void do_store(BasicBlock *b, Dataflow *address, Dataflow *offset, uint8_t
       Dataflow *s = glsl_dataflow_construct_atomic(DATAFLOW_ADDRESS_STORE, DF_VOID, addr, vs, NULL, b->memory_head);
       b->memory_head = s;
 
-      start += count;
+      mask &= ~store_mask;
    }
 }
 
@@ -449,18 +470,21 @@ static void calculate_buffer_address(BasicBlock *b, struct buf_ref *buf, Expr *e
                   }
 
                   /* If the size is known, do the bounds check here ... */
-                  if (member_count > 0)
+                  DataflowFlavour mul = DATAFLOW_MUL;
+                  if (member_count > 0) {
                      subscript = glsl_dataflow_construct_binary_op(DATAFLOW_MIN, subscript, glsl_dataflow_construct_const_uint(member_count-1));
+                     if (member_count <= (1 << 24) && stride < (1 << 24))
+                        mul = DATAFLOW_MUL24;
+                  }
 
                   /* Compute buffer offset. */
                   Dataflow *df_stride = glsl_dataflow_construct_const_uint(stride);
-                  Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, subscript, df_stride);
+                  Dataflow *offset = glsl_dataflow_construct_binary_op(mul, subscript, df_stride);
                   offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset, buf->offset);
 
                   if (member_count <= 0) {
                      assert(buf->address->flavour == DATAFLOW_ADDRESS);
-                     Dataflow *buf_size = glsl_dataflow_construct_buf_size(buf->address->d.unary_op.operand);
-                     Dataflow *buf_last = glsl_dataflow_construct_binary_op(DATAFLOW_SUB, buf_size, df_stride);
+                     Dataflow *buf_last = glsl_dataflow_construct_buf_size(buf->address->d.unary_op.operand, stride);
                      /* ... otherwise do it here */
                      offset = glsl_dataflow_construct_binary_op(DATAFLOW_MIN, offset, buf_last);
                   }
@@ -566,7 +590,7 @@ static inline void expr_calculate_dataflow_subscript(BasicBlock *ctx, Dataflow *
    bool const_subscriptable = expr->u.subscript.subscript->compile_time_value &&
                               expr->u.subscript.aggregate->type->scalar_count > 0;
 
-   if (!const_subscriptable && !glsl_prim_is_prim_atomic_type(expr->type) && in_addressable_memory(expr)) {
+   if (!const_subscriptable && !glsl_type_contains_opaque(expr->type) && in_addressable_memory(expr)) {
       buffer_load_expr_calculate_dataflow(ctx, scalar_values, expr);
    } else {
       Dataflow **aggregate_scalar_values = alloc_dataflow(expr->u.subscript.aggregate->type->scalar_count);
@@ -628,7 +652,7 @@ static inline void expr_calculate_dataflow_array_length(BasicBlock *ctx, Dataflo
    assert(b.address->flavour == DATAFLOW_ADDRESS);
    b.address = b.address->d.unary_op.operand;
 
-   Dataflow *buf_size     = glsl_dataflow_construct_buf_size(b.address);
+   Dataflow *buf_size     = glsl_dataflow_construct_buf_size(b.address, 0);
    Dataflow *array_size   = glsl_dataflow_construct_binary_op(DATAFLOW_SUB, buf_size, b.offset);
    Dataflow *array_stride = glsl_dataflow_construct_const_uint(b.layout->u.array_layout.stride);
    Dataflow *array_length = glsl_dataflow_construct_binary_op( DATAFLOW_DIV, array_size, array_stride);

@@ -95,11 +95,25 @@
 #endif
 #define GPC_REG_STEPSIZE                                (BCHP_XPT_MCPB_GPC1_CTRL - BCHP_XPT_MCPB_GPC0_CTRL)
 
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+/* 4 on 7278A0, 0x400 on 7278B0 */
+#define PB_PARSER_BAND_ID_CTRL_STEPSIZE (BCHP_XPT_MCPB_CH1_PARSER_BAND_ID_CTRL - BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL)
+#endif
+
 #if ((BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0))
 #define BXPT_P_PLAYBACK_DISABLE_SLOT_WISE_READ 1 /* SW7445-341 */
 #endif
 
 #define MCPB_TOP_WRITE( handle, regname, bitfield, val ) \
+    { \
+        uint32_t LocalReg; \
+        LocalReg = BXPT_Playback_P_ReadReg( handle, BCHP_##regname ); \
+        LocalReg &= ~( BCHP_MASK( regname, bitfield ) ); \
+        LocalReg |= ( BCHP_FIELD_DATA( regname, bitfield, val ) ); \
+        BXPT_Playback_P_WriteReg( handle, BCHP_##regname, LocalReg ); \
+    };
+
+#define MCPB_TOP_CHNL_WRITE( handle, regname, bitfield, val ) \
         BREG_Write32( handle->hRegister, BCHP_##regname, BCHP_FIELD_DATA( regname, bitfield, val ) \
         | BCHP_FIELD_DATA( regname, MCPB_CHANNEL_NUM, handle->ChannelNo ) );
 
@@ -394,7 +408,6 @@ BERR_Code BXPT_Playback_OpenChannel(
 
     BERR_Code ExitCode = BERR_SUCCESS;
     BXPT_Playback_Handle hPb = NULL;
-    BXPT_PidChannel_CC_Config DefaultCcConfig = { false, false, false, 0 };
 
     BDBG_ASSERT( hXpt );
 
@@ -434,8 +447,6 @@ BERR_Code BXPT_Playback_OpenChannel(
     hPb->vhXpt = hXpt;
     hPb->SyncMode = BXPT_PB_SYNC_MPEG_BLIND;
     hPb->BitRate = 27000000;
-    hPb->IsParserInAllPass = false;
-    hPb->CcConfigBeforeAllPass = DefaultCcConfig;
     hPb->ForceResync = 0;
 
     hPb->PacingLoadMap = 0;
@@ -443,9 +454,15 @@ BERR_Code BXPT_Playback_OpenChannel(
     hPb->PacingLoadNeeded = false;
 
     /* Restore all the stuff they could have changed through the API. */
-    MCPB_TOP_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 0 );
-    MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_SET, SET, 0 );
-    MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_MODE_SET_CLEAR, SET_CLEAR, 0 );
+#ifdef BCHP_XPT_MCPB_CH0_RUN
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_RUN, SET_CLEAR, 0 );
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_WAKE_SET, SET, 0 );
+    MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_MODE_CTRL_0_31, WAKE_MODE, 0 ); /* Set all channels to resume at end of chain. */
+#else
+    MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 0 );
+    MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_WAKE_SET, SET, 0 );
+    MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_WAKE_MODE_SET_CLEAR, SET_CLEAR, 0 );
+#endif
 
     /* Configure for 12-word descriptor */
 #ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
@@ -495,9 +512,15 @@ void BXPT_Playback_CloseChannel(
     }
 
     /* Stop the channel. */
-    MCPB_TOP_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 0 );
-    MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_SET, SET, 0 );
-    MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_MODE_SET_CLEAR, SET_CLEAR, 0 );
+#ifdef BCHP_XPT_MCPB_CH0_RUN
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_RUN, SET_CLEAR, 0 );
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_WAKE_SET, SET, 0 );
+    MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_MODE_CTRL_0_31, WAKE_MODE, 0 ); /* Set all channels to resume at end of chain. */
+#else
+    MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 0 );
+    MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_WAKE_SET, SET, 0 );
+    MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_WAKE_MODE_SET_CLEAR, SET_CLEAR, 0 );
+#endif
 
     /* Clean up all previous Packetization state, if any. */
     BXPT_Playback_DisablePacketizers( hPb );
@@ -888,7 +911,11 @@ BERR_Code BXPT_Playback_AddDescriptors(
         DescWords[NEXT_DESC_WORD_LO] = DescPhysAddr;
 #endif
         BMMA_FlushCache(hPb->mma.descBlock, LastDescriptor, sizeof(*LastDescriptor));
-        MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_SET, SET, 1 );
+#ifdef BCHP_XPT_MCPB_CH0_RUN
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_WAKE_SET, SET, 1 );
+#else
+        MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_WAKE_SET, SET, 1 );
+#endif
     }
     else
     {
@@ -921,7 +948,13 @@ BERR_Code BXPT_Playback_AddDescriptors(
 #endif
 
         if( true == hPb->Running )
-            MCPB_TOP_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 1 );
+    {
+#ifdef BCHP_XPT_MCPB_CH0_RUN
+       MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_RUN, SET_CLEAR, 1 );
+#else
+            MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 1 );
+#endif
+    }
     }
 
     hPb->LastDescriptor = LastDesc;
@@ -1001,7 +1034,11 @@ BERR_Code BXPT_Playback_StopChannel(
 #endif
 
     /* Stop the hw */
-    MCPB_TOP_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 0 );
+#ifdef BCHP_XPT_MCPB_CH0_RUN
+       MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_RUN, SET_CLEAR, 0 );
+#else
+            MCPB_TOP_CHNL_WRITE( hPb, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 0 );
+#endif
 
     /* Clear the host pause. */
     BXPT_Playback_Resume(hPb);
@@ -1030,6 +1067,16 @@ static void SetPause(
 {
     uint32_t Reg;
 
+#ifdef BCHP_XPT_MCPB_MICRO_PAUSE_CTRL_0_31
+    Reg = BREG_Read32( hPb->hRegister, BCHP_XPT_MCPB_MICRO_PAUSE_CTRL_0_31 );
+    if (PauseEn) {
+       Reg |= (1 << hPb->ChannelNo);
+    }
+    else {
+       Reg &= ~(1 << hPb->ChannelNo);
+    }
+    BREG_Write32( hPb->hRegister, BCHP_XPT_MCPB_MICRO_PAUSE_CTRL_0_31, Reg );
+#else
     Reg = BREG_Read32( hPb->hRegister, BCHP_XPT_MCPB_MICRO_PAUSE_SET_CLEAR );
     Reg &= ~(
         BCHP_MASK( XPT_MCPB_MICRO_PAUSE_SET_CLEAR, SET_CLEAR ) |
@@ -1040,6 +1087,7 @@ static void SetPause(
         BCHP_FIELD_DATA( XPT_MCPB_MICRO_PAUSE_SET_CLEAR, MCPB_CHANNEL_NUM, hPb->ChannelNo )
     );
     BREG_Write32( hPb->hRegister, BCHP_XPT_MCPB_MICRO_PAUSE_SET_CLEAR, Reg );
+#endif
 }
 
 BERR_Code BXPT_Playback_Pause(
@@ -1730,10 +1778,10 @@ void BXPT_Playback_P_Init(
     {
 #ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
         {
-            Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * ii);
+            Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * ii);
             BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_SEL, 1);
             BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID, ii);
-            BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * ii, Reg);
+            BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * ii, Reg);
         }
 #else
         RegAddr = BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL + ii * PB_PARSER_REG_STEPSIZE;
@@ -1905,7 +1953,7 @@ unsigned BXPT_Playback_P_GetBandId(
 #ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
     uint32_t Reg;
 
-    Reg = BREG_Read32(hPb->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * hPb->ChannelNo);
+    Reg = BREG_Read32(hPb->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * hPb->ChannelNo);
     return (unsigned) BCHP_GET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID);
 #else
     /* RESUME SW7425-5193 here, then port to 65 and 40 nm code.*/
@@ -1922,7 +1970,7 @@ unsigned int BXPT_PB_P_GetPbBandId(
 #ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
     uint32_t Reg;
 
-    Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * Band);
+    Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * Band);
     return (unsigned) BCHP_GET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID);
 #else
     uint32_t RegAddr = BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL + ( Band * PB_PARSER_REG_STEPSIZE );
@@ -1942,10 +1990,10 @@ void BXPT_Playback_P_SetBandId(
 
 #ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
     {
-        Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * hPb->ChannelNo);
+        Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * hPb->ChannelNo);
         BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_SEL, 1);
         BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID, NewBandId);
-        BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * hPb->ChannelNo, Reg);
+        BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * hPb->ChannelNo, Reg);
     }
 #else
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL );

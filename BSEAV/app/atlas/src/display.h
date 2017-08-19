@@ -90,7 +90,7 @@ class CDisplay : public CResource
 public:
     CDisplay(
             const char *     name,
-            const uint16_t   number,
+            const unsigned   number,
             CConfiguration * pCfg
             );
     ~CDisplay(void);
@@ -136,7 +136,7 @@ public:
     NEXUS_VideoFormat      getMaxFormat(void);
     MRect                  getMaxGraphicsGeometry(void)       { return(_rectMaxGraphicsGeometry); }
     void                   setMaxGraphicsGeometry(MRect rect) { _rectMaxGraphicsGeometry = rect; }
-    uint16_t               getNumVideoWindows(void);
+    unsigned               getNumVideoWindows(void);
     bool                   hasGraphics(void);
     bool                   isSupported(void);
     bool                   isReservedForEncoder(void);

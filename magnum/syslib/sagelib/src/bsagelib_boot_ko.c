@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -106,12 +106,12 @@ BSAGElib_Boot_Launch(
         (pBootSettings->bootloaderSize == 0) ||
         (pBootSettings->pFramework == NULL)      ||
         (pBootSettings->frameworkSize == 0)) {
-        BDBG_ERR(("%s - Invalid SAGE image buffer.", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid SAGE image buffer.", BSTD_FUNCTION));
         goto end;
     }
 
     if (hSAGElib->core_handles.hHsm == NULL) {
-        BDBG_ERR(("%s - Invalid HSM handle.", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid HSM handle.", BSTD_FUNCTION));
         goto end;
     }
 
@@ -142,7 +142,7 @@ BSAGElib_Boot_Launch(
         hsi_buffers = BSAGElib_iMalloc(SAGE_HOST_BUF_SIZE*4);
         if (hsi_buffers == NULL) {
             rc = BERR_OUT_OF_DEVICE_MEMORY;
-            BDBG_ERR(("%s: Cannot allocating hsi buffers", __FUNCTION__));
+            BDBG_ERR(("%s: Cannot allocating hsi buffers", BSTD_FUNCTION));
             goto end;
         }
         HsiOffset = BSAGElib_iAddrToOffset(hsi_buffers);
@@ -155,7 +155,7 @@ BSAGElib_Boot_Launch(
     rc = hSAGElib->bsage.Boot_Launch(hSAGElib->core_handles.hHsm,&sageBootSettings);
 /*    rc = BSAGE_Boot_Launch(hSAGElib->core_handles.hHsm,pBootSettings);*/
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BSAGE_Boot_Launch() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - BSAGE_Boot_Launch() fails %d", BSTD_FUNCTION, rc));
         goto end;
     }
 

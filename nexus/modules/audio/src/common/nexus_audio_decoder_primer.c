@@ -38,6 +38,10 @@
 #include "nexus_audio_module.h"
 #include "priv/nexus_pid_channel_priv.h"
 
+#if BAPE_DSP_SUPPORT
+#include "bdsp_raaga.h"
+#endif
+
 BDBG_MODULE(nexus_audio_decoder_primer);
 
 #ifdef DEBUG_PRIMER
@@ -327,7 +331,6 @@ static void NEXUS_AudioDecoder_P_PrimerSetRave(NEXUS_AudioDecoderPrimerHandle pr
 
 static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle primer, BSTD_DeviceOffset itb_valid)
 {
-    NEXUS_Error rc;
     struct itb_entry_t * pitb;
     struct itb_entry_t * pitb_end;
     uint8_t type;    
@@ -336,12 +339,12 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 
     pitb = NEXUS_OffsetToCachedAddr(primer->sitb_read);
     if (!pitb) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
     pitb_end = NEXUS_OffsetToCachedAddr(itb_valid);
     if (!pitb_end) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
     NEXUS_FlushCache (pitb, (pitb_end-pitb)*sizeof(struct itb_entry_t));
@@ -421,7 +424,7 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
             }
             primer->itb_base_entry = NEXUS_AddrToOffset(pitb);
             if (!primer->itb_base_entry) {
-                 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                 BERR_TRACE(NEXUS_INVALID_PARAMETER);
                  return;
             }
 
@@ -445,7 +448,7 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 
     primer->sitb_read = NEXUS_AddrToOffset(pitb);
     if (!primer->sitb_read) {
-         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+         BERR_TRACE(NEXUS_INVALID_PARAMETER);
          return;
     }
 }
@@ -555,6 +558,11 @@ NEXUS_AudioDecoderPrimerHandle NEXUS_AudioDecoderPrimer_Create( const NEXUS_Audi
     
     rc = NEXUS_AudioDecoder_P_GetRaveSettings(&raveOpenSettings, pSettings);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
+
+    #if BAPE_DSP_SUPPORT
+    raveOpenSettings.config.Cdb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_CDB;
+    raveOpenSettings.config.Itb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_ITB;
+    #endif
 
     LOCK_TRANSPORT();
     primer->rave = NEXUS_Rave_Open_priv(&raveOpenSettings);

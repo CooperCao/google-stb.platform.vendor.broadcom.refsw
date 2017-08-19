@@ -49,6 +49,7 @@ static size_t get_ir_event(unsigned index, NEXUS_IrInputHandle irInput, unsigned
         NEXUS_IrInputEvent irEvent;
         bool overflow;
         rc = NEXUS_IrInput_GetEvents(irInput, &irEvent, 1, &n, &overflow);
+        BDBG_ASSERT(!rc);
         if (n == 1) {
             BDBG_MSG(("irinput code=%#x", irEvent.code));
             NEXUS_InputRouter_GetDefaultCode(pCode);

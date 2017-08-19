@@ -1,0 +1,258 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# TXBeam forming test
+#
+# Written by: Robert J. McMahon Feb 2013
+#
+# $Id: 5f063b00ca55fe0838669a79dfef44c587ef2161 $
+#
+
+package require UTF
+package require UTF::FTTR
+package require UTF::Test::ConfigTXBF
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::TXBF_ONOFF 2.0
+
+UTF::Test TXBF_ONOFF {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP"}
+        {sta.arg "" "STA"}
+	{title.arg "" "Title"}
+	{email.arg "" "Email Address"}
+	{loop.arg "5" "Number of runs"}
+	{nss.arg "1" "number of spatial streams"}
+	{ramp.arg "down/up" "ramp type"}
+	{chanspec.arg "36/80" "Chanspec to test"}
+	{security.arg "open" "Security to configure"}
+	{protocol.arg "tcp" "IP protocol to use"}
+	{roamtrigger.arg "-100" "Roam trigger (default set to -100 for no roaming)"}
+	{key.arg "" "User provided portion of key for control charts"}
+	{noframeburst "" "Disable frameburst"}
+	{scansuppress "Scan suppress setting during test run"}
+	{nophycal "" "Disable phycal watchdog"}
+	{phycaltype.arg "-1" "Override for phy_percal"}
+	{nosetup "Don't call SetupTestBed"}
+	{noload "Don't load images"}
+	{startattn.arg "" "Initial value for attenuator"}
+ 	{date.arg "" "Image date"}
+    }
+    proc load_wheader_update {args} {
+	UTF::Getopts {
+	    {dut.arg "" "Device under test to load"}
+	    {norestoredefaults ""}
+	}
+	if {[$(dut) hostis Router]} {
+	    set Router $(dut)
+	    UTF::Try "[$Router cget -name]: Find Router Image" {
+		set date [$Router cget -date]
+		if {$date eq ""} {
+		    set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+		}
+		UTF::CheckImage $Router $date unknown
+	    }
+	    UTF::Try "[$Router cget -name]: Load Image" {
+		$Router load
+	    }
+	    if {!$(norestoredefaults)} {
+		UTF::Try "[$Router cget -name]: Restore Defaults" {
+		    $Router restore_defaults
+	       }
+	    }
+	    UTF::Try "Router version" {
+		set what [$Router whatami]
+		# Pull out chip info and replace whitespace to
+		# make it easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $Router $ret
+		}
+		set what
+	    }
+	} else {
+	    set STA $(dut)
+	    UTF::Try "[$STA cget -name]: Find STA Image" {
+		set date [$STA cget -date]
+		if {$date eq ""} {
+		    set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+		}
+		UTF::CheckImage $STA $date unknown
+	    }
+	    UTF::Try "[$STA cget -name]: load" {
+		$STA load
+	    }
+	    UTF::Try "[$STA cget -name]: defaults" {
+		$STA wl ver
+		set what [$STA whatami]
+		# Pull out chip info and replace whitespace to
+		# make it easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $STA $ret
+		}
+		set what
+	    }
+	}
+    }
+    proc configure_test_parms {} {
+	upvar {} {}
+	if {$(noframeburst)} {
+	    set fb 0
+	} else {
+	    set fb 1
+	}
+	if {$(scansuppress)} {
+	    set ss 1
+	} else {
+	    set ss 0
+	}
+	if {$(roamtrigger) eq ""} {
+	    set rt "default"
+	} else {
+	    set rt $(roamtrigger)
+	}
+	UTF::Try "Config (wl) FB=$fb Roam=$rt SS=$ss" {
+	    set failmsg {}
+	    foreach dut [concat $(ap) $(sta)] {
+		if {[catch {$dut wl frameburst $fb} err]} {
+		    UTF::Message ERROR $dut "wl frameburst: $err"
+		    lappend failmsg "FB${dut}=$err"
+		}
+		if {$(nophycal)} {
+		    catch {$dut wl phy_watchdog 0}
+		}
+	    }
+	    if {[catch {$(sta) wl scansuppress $ss} err]} {
+		UTF::Message ERROR $(sta) "wl scansuppress: $err"
+		lappend failmsg "SS($(sta))=$err"
+	    }
+	    if {[catch {$(sta) wl roam_trigger $rt all} err]} {
+		UTF::Message ERROR $(sta) "wl roamtrigger: $err"
+		lappend failmsg "RT($(sta))=$err"
+	    }
+	    if {$failmsg ne ""} {
+		error $failmsg
+	    } else {
+		return
+	    }
+	}
+    }
+    set (protocol) [string toupper $(protocol)]
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(ap) $(sta)]]
+    set TITLE "UTF TXBF $(title) ($build)"
+    UTF::Message INFO "" $TITLE
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	if {[info exists ::UTF::SetupTestBed]  && !$(nosetup)} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+	    }
+	}
+	if {$(date) ne ""} {
+	    foreach dut [concat $(ap) $(sta)] {
+		$dut configure -date $(date)
+	    }
+	}
+	if {!$(noload)} {
+	    foreach DUT [concat $(ap) $(sta)] {
+		load_wheader_update -dut $DUT
+	    }
+	}
+	if {![$(sta) hostis Router]} {
+	    UTF::Test::ConnectAPSTA $(ap) $(sta) -chanspec $(chanspec) -security $(security)
+	} else {
+	    package require UTF::Test::ConfigBridge
+	    UTF::Test::ConfigBridge -ap $(ap) -br $(sta) -chanspec $(chanspec) -security $(security)
+
+	}
+	configure_test_parms
+	UTF::Try "Discover Attn" {
+	    if {[catch {[$(sta) cget -attngrp] attn?} res]} {
+		if {[catch {[$(ap) cget -attngrp] attn?} res]} {
+		    error "must configure attngrp for either $(sta) or $(ap)"
+		} else {
+		    set attngrp [$(ap) cget -attngrp]
+		}
+	    } else {
+		set attngrp [$(sta) cget -attngrp]
+	    }
+	    if {$(startattn) ne ""} {
+		set startattn $(startattn)
+	    } else {
+		set startattn [expr {int([lindex $res 0])}]
+	    }
+	}
+	#
+	# Enable tx beamforming and capabilities and verify sounding
+	#
+	UTF::Test::ConfigTXBF -ap $(ap) -sta $(sta) -soundcheck -nss $(nss)
+	#
+	# Instantiate the TXBF_ON fttr object
+	#
+	UTF::FTTR txbf_on -ap $(ap) -sta $(sta) -protocol $(protocol) -ramp $(ramp) -startattn $startattn -chanspec $(chanspec) -security $(security) -attngrp  $attngrp -phycaltype $(phycaltype)
+	# Set the common title used in graphs
+	#
+	# Instantiate the TXBF_OFF fttr object using the range from above
+	#
+	UTF::FTTR txbf_off -ap $(ap) -sta $(sta) -protocol $(protocol) -ramp $(ramp) -startattn $startattn -chanspec $(chanspec) -security $(security) -phycaltype $(phycaltype)
+	#
+	# Auto discover the attenuator range
+	# o  Start is the current attenuator value
+	# o  End is the attenuation that causes no beacons
+	#
+	UTF::Try "Discover beacon range" {
+	    # Note: Beacon range is unaffected by txbf so it doesn't
+	    # matter the txbf setting when searching the range.
+	    #
+	    # UTF::Test::ConfigTXBF -ap $(ap) -sta $(sta) -off -nss $(nss)
+	    if {![catch {txbf_on discover_norxbeacon} attnsteps]} {
+		set exitscriptnow 0
+		txbf_off configure -steps $attnsteps
+		txbf_on configure -steps $attnsteps
+		set GTITLE "Protocol=$(protocol) Ch=$(chanspec) NSS=$(nss) Attn:${startattn}-[expr {$startattn+$attnsteps}] dwell=[txbf_on cget -holdtime]s"
+		txbf_on configure -title $GTITLE
+		txbf_off configure -title $GTITLE
+		return "Attn:${startattn}-[expr {$startattn+$attnsteps}]"
+	    } else {
+		set exitscriptnow 1
+		error $attnsteps
+	    }
+	}
+	if {$exitscriptnow} {
+	    txbf_off destroy
+	    txbf_on destroy
+	    exit
+	}
+	#
+	# Run the two fttrs and compare them.  Do this multiple times
+	# for better control charts
+	#
+	for {set ix 0} {$ix < $(loop)} {incr ix} {
+	    UTF::Try "$(protocol) Run=[expr {$ix + 1}]" {
+		set htmlresults {}
+		UTF::Test::ConfigTXBF -ap $(ap) -sta $(sta) -off -nss $(nss)
+		UTF::Try "TXBF_OFF $(protocol) ($attnsteps)" {
+		    set htmlresults [txbf_off run]
+		}
+		UTF::Test::ConfigTXBF -ap $(ap) -sta $(sta) -on -nss $(nss)
+		UTF::Try "TXBF_ON $(protocol) ($attnsteps)" {
+		    set tryresults [txbf_on run]
+		    append htmlresults " [string range $tryresults 5 end]"
+		    return $tryresults
+		}
+		UTF::Try "Diff" {
+		    set tryresults [UTF::FTTR diff -fttrs "txbf_on txbf_off" -title $GTITLE]
+		    append htmlresults " [string range $tryresults 5 end]"
+		    return $tryresults
+		}
+		return $htmlresults
+	    }
+	}
+	txbf_off destroy
+	txbf_on destroy
+    }
+}
+

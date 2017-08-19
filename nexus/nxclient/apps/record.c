@@ -98,6 +98,7 @@ struct recordContext {
         bool indexonly;
         struct btune_settings tune_settings;
         unsigned chunkSize;
+        bool allpass;
     } settings;
 
     struct {
@@ -149,6 +150,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -psi {on|off}            inject PSI into recording. defaults on with crypto.\n"
         "  -append                  append recording to OUTPUTFILE\n"
         "  -chunk SIZE              chunked record, SIZE in mb\n"
+        "  -allpass\n"
         );
 }
 
@@ -300,18 +302,34 @@ static int start_record(struct recordContext *recContext)
         recContext->handles.file = NEXUS_FileRecord_OpenPosix(recContext->settings.indexonly?NULL:recContext->settings.filename, recContext->settings.indexname);
     }
 
-    if (recContext->handles.playback.playback && recContext->settings.indexonly) {
-        /* index-only requires allpass because stream is unfiltered */
-        NEXUS_PlaybackPidChannelSettings pidCfg0;
-        NEXUS_Playback_GetDefaultPidChannelSettings(&pidCfg0);
-        NEXUS_Playpump_GetAllPassPidChannelIndex(recContext->handles.playback.playpump, &pidCfg0.pidSettings.pidSettings.pidChannelIndex);
-        pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(recContext->handles.playback.playback, 0x0, &pidCfg0);
+    if (recContext->settings.allpass) {
+        if (recContext->handles.playback.playback) {
+            NEXUS_PlaybackPidChannelSettings pidCfg0;
+            NEXUS_Playback_GetDefaultPidChannelSettings(&pidCfg0);
+            NEXUS_Playpump_GetAllPassPidChannelIndex(recContext->handles.playback.playpump, &pidCfg0.pidSettings.pidSettings.pidChannelIndex);
+            pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(recContext->handles.playback.playback, 0x0, &pidCfg0);
+        }
+        else {
+            NEXUS_PidChannelSettings pidCfg0;
+            NEXUS_ParserBandSettings parserBandSettings;
+
+            NEXUS_PidChannel_GetDefaultSettings(&pidCfg0);
+            NEXUS_ParserBand_GetAllPassPidChannelIndex(recContext->handles.parserBand, &pidCfg0.pidChannelIndex);
+            pidChannel[total_pids] = NEXUS_PidChannel_Open(recContext->handles.parserBand, 0x0, &pidCfg0);
+
+            NEXUS_ParserBand_GetSettings(recContext->handles.parserBand, &parserBandSettings);
+            parserBandSettings.allPass = true;
+            parserBandSettings.acceptNullPackets = true;
+            NEXUS_ParserBand_SetSettings(recContext->handles.parserBand, &parserBandSettings);
+        }
         if (pidChannel[total_pids]) {
             NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
-            pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
-            pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
-            pidSettings.recpumpSettings.pidTypeSettings.video.codec = recContext->scan_results.program_info[program].video_pids[0].codec;
-            pidSettings.recpumpSettings.pidTypeSettings.video.pid = recContext->scan_results.program_info[program].video_pids[0].pid;
+            if (recContext->settings.indexonly) {
+                pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
+                pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
+                pidSettings.recpumpSettings.pidTypeSettings.video.codec = recContext->scan_results.program_info[program].video_pids[0].codec;
+                pidSettings.recpumpSettings.pidTypeSettings.video.pid = recContext->scan_results.program_info[program].video_pids[0].pid;
+            }
             NEXUS_Record_AddPidChannel(recContext->handles.record, pidChannel[total_pids], &pidSettings);
             total_pids++;
         }
@@ -444,11 +462,11 @@ static void *standby_monitor(void *context)
     NxClient_StandbyStatus standbyStatus, prevStatus;
 
     rc = NxClient_GetStandbyStatus(&prevStatus);
-    BDBG_ASSERT(!rc);
+    if (rc) exit(0); /* server is down, exit gracefully */
 
     while(!recContext->state.quit) {
         rc = NxClient_GetStandbyStatus(&standbyStatus);
-        BDBG_ASSERT(!rc);
+        if (rc) exit(0); /* server is down, exit gracefully */
 
         if(standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_ePassive || standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
                 stop_record(recContext);
@@ -504,6 +522,7 @@ int main(int argc, const char **argv)
     pthread_t standby_thread_id;
     struct recordContext recContext;
     NxClient_StandbyStatus standbyStatus;
+    bool do_scan;
 
     nxapps_cmdline_init(&cmdline);
     nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_frontend);
@@ -555,6 +574,9 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-chunk") && argc>curarg+1) {
             recContext.settings.chunkSize = atoi(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-allpass")) {
+            recContext.settings.allpass = true;
+        }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
                 print_usage(&cmdline);
@@ -583,6 +605,13 @@ int main(int argc, const char **argv)
     BKNI_CreateEvent(&event);
 
     recContext.settings.indexonly = recContext.settings.filename && !strcmp(recContext.settings.filename, "none");
+    if (recContext.settings.indexonly) {
+        /* index-only requires allpass because stream is unfiltered */
+        recContext.settings.allpass = true;
+    }
+
+    do_scan = !recContext.settings.allpass || recContext.settings.indexonly;
+
     if (recContext.settings.playback.filename) {
         struct probe_request probe_request;
         struct probe_results probe_results;
@@ -603,23 +632,25 @@ int main(int argc, const char **argv)
         playbackSettings.playpump = recContext.handles.playback.playpump;
         playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_ePause; /* once */
         playbackSettings.playpumpSettings.timestamp.type = probe_results.timestampType;
-        if (recContext.settings.indexonly) {
+        if (recContext.settings.allpass) {
             playbackSettings.playpumpSettings.allPass = true;
             playbackSettings.playpumpSettings.acceptNullPackets = true;
         }
         rc = NEXUS_Playback_SetSettings(recContext.handles.playback.playback, &playbackSettings);
         BDBG_ASSERT(!rc);
 
-        /* convert to scan_results */
-        strncpy(source_str, recContext.settings.playback.filename, sizeof(source_str)-1);
-        convert_to_scan_results(&recContext.scan_results, &probe_results);
-        printf("playing video %#x:%s, audio %#x:%s\n",
-            recContext.scan_results.program_info[0].video_pids[0].pid,
-            lookup_name(g_videoCodecStrs, recContext.scan_results.program_info[0].video_pids[0].codec),
-            recContext.scan_results.program_info[0].audio_pids[0].pid,
-            lookup_name(g_audioCodecStrs, recContext.scan_results.program_info[0].audio_pids[0].codec));
-        /* media probe picks the program and convert_to_scan_results just puts it in program 0 */
-        recContext.settings.program = 0;
+        if (do_scan) {
+            /* convert to scan_results */
+            strncpy(source_str, recContext.settings.playback.filename, sizeof(source_str)-1);
+            convert_to_scan_results(&recContext.scan_results, &probe_results);
+            printf("playing video %#x:%s, audio %#x:%s\n",
+                recContext.scan_results.program_info[0].video_pids[0].pid,
+                lookup_name(g_videoCodecStrs, recContext.scan_results.program_info[0].video_pids[0].codec),
+                recContext.scan_results.program_info[0].audio_pids[0].pid,
+                lookup_name(g_audioCodecStrs, recContext.scan_results.program_info[0].audio_pids[0].codec));
+            /* media probe picks the program and convert_to_scan_results just puts it in program 0 */
+            recContext.settings.program = 0;
+        }
     }
     else {
         get_default_channels(&cmdline.frontend.tune, &cmdline.frontend.freq_list);
@@ -634,35 +665,42 @@ int main(int argc, const char **argv)
                 cmdline.frontend.tune.freq = f;
             }
         }
-
-        bchannel_source_print(source_str, sizeof(source_str), &cmdline.frontend.tune);
-        printf("Scanning %s... ", source_str);
-        fflush(stdout);
-
-        bchannel_scan_get_default_start_settings(&scan_settings);
-        scan_settings.tune = cmdline.frontend.tune;
-        scan_settings.scan_done = complete;
-        scan_settings.context = event;
-        scan = bchannel_scan_start(&scan_settings);
-        if (!scan) {
-            BDBG_ERR(("unable to tune/scan"));
-            goto err_start_scan;
-        }
-        BKNI_WaitForEvent(event, 2000);
-        bchannel_scan_get_results(scan, &recContext.scan_results);
-        printf("%d programs found\n", recContext.scan_results.num_programs);
-        if (recContext.settings.program >= recContext.scan_results.num_programs) {
-            BDBG_ERR(("program %d unavailable", recContext.settings.program));
-            goto err_scan_results;
-        }
-
         recContext.settings.tune_settings = cmdline.frontend.tune;
-        bchannel_scan_stop(scan);
-        scan = NULL;
+
+        if (do_scan) {
+            bchannel_source_print(source_str, sizeof(source_str), &cmdline.frontend.tune);
+            printf("Scanning %s... ", source_str);
+            fflush(stdout);
+
+            bchannel_scan_get_default_start_settings(&scan_settings);
+            scan_settings.tune = cmdline.frontend.tune;
+            scan_settings.scan_done = complete;
+            scan_settings.context = event;
+            scan = bchannel_scan_start(&scan_settings);
+            if (!scan) {
+                BDBG_ERR(("unable to tune/scan"));
+                goto err_start_scan;
+            }
+            BKNI_WaitForEvent(event, 2000);
+            bchannel_scan_get_results(scan, &recContext.scan_results);
+            printf("%d programs found\n", recContext.scan_results.num_programs);
+            if (recContext.settings.program >= recContext.scan_results.num_programs) {
+                BDBG_ERR(("program %d unavailable", recContext.settings.program));
+                goto err_scan_results;
+            }
+
+            bchannel_scan_stop(scan);
+            scan = NULL;
+        }
     }
-    snprintf(sourceName, sizeof(sourceName), "%s, %#x/%#x", source_str,
-        recContext.scan_results.program_info[recContext.settings.program].video_pids[0].pid,
-        recContext.scan_results.program_info[recContext.settings.program].audio_pids[0].pid);
+    if (do_scan) {
+        snprintf(sourceName, sizeof(sourceName), "%s, %#x/%#x", source_str,
+            recContext.scan_results.program_info[recContext.settings.program].video_pids[0].pid,
+            recContext.scan_results.program_info[recContext.settings.program].audio_pids[0].pid);
+    }
+    else {
+        snprintf(sourceName, sizeof(sourceName), "%s, allpass", source_str);
+    }
 
     recContext.handles.parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #include "media_probe.h"
 #include "bstd.h"
@@ -59,6 +54,8 @@
 #include "bavi_probe.h"
 #endif
 #include "bhevc_video_probe.h"
+#include "bmkv_probe.h"
+#include "bmkv_util.h"
 #include "nexus_core_utils.h"
 #include "bfile_crypto.h"
 
@@ -91,6 +88,86 @@ void probe_media_get_default_request(struct probe_request *request)
 {
     memset(request, 0, sizeof(*request));
     request->decrypt.algo = NEXUS_SecurityAlgorithm_eMax;
+}
+
+static void probe_p_parse_mkv_block(void *data, unsigned len, struct probe_results *results)
+{
+    bmkv_TrackEntryVideoColour colour;
+    batom_vec vec;
+    batom_cursor cursor;
+    bmkv_TrackEntryVideoColourMasteringMetadata *pmeta;
+
+    BATOM_VEC_INIT(&vec, data, len);
+    batom_cursor_from_vec(&cursor, &vec, 1);
+    bmkv_TrackEntryVideoColour_desc.init(&colour);
+
+    if(bmkv_element_parse(&cursor, len, bmkv_TrackEntryVideoColour_desc.entries, bmkv_TrackEntryVideoColour_desc.bmkv_parser_desc_name, &colour)) {
+        bmkv_element_print(bmkv_TrackEntryVideoColour_desc.entries, BDBG_eLog, 0, bmkv_TrackEntryVideoColour_desc.bmkv_parser_desc_name, &colour);
+
+        if(colour.validate.MaxCLL) {
+            results->videoColourMasteringMetadata.contentLightLevel.max = (unsigned)colour.MaxCLL;
+        }
+        if(colour.validate.MaxFALL) {
+            results->videoColourMasteringMetadata.contentLightLevel.maxFrameAverage = (unsigned)colour.MaxFALL;
+        }
+
+        if(colour.validate.TransferCharacteristics) {
+            results->videoColourMasteringMetadata.eotf =
+                (colour.TransferCharacteristics == 16) ? NEXUS_VideoEotf_eHdr10 : ((colour.TransferCharacteristics == 18) ? NEXUS_VideoEotf_eHlg : NEXUS_VideoEotf_eInvalid);
+        }
+
+        if(colour.validate.MasteringMetadata) {
+            results->videoColourMasteringMetadata.valid = true;
+
+            pmeta = &BMKV_TABLE_ELEM(colour.MasteringMetadata, bmkv_TrackEntryVideoColourMasteringMetadata, 0);
+
+            if(pmeta->validate.PrimaryRChromaticityX) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.redPrimary.x = (int)
+                    ((pmeta->PrimaryRChromaticityX/2.0)*10000.0);
+            }
+            if(pmeta->validate.PrimaryRChromaticityY) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.redPrimary.y = (int)
+                    ((pmeta->PrimaryRChromaticityY/2.0)*10000.0);
+            }
+
+            if(pmeta->validate.PrimaryGChromaticityX) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.greenPrimary.x = (int)
+                    ((pmeta->PrimaryGChromaticityX/2.0)*10000.0);
+            }
+            if(pmeta->validate.PrimaryGChromaticityY) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.greenPrimary.y = (int)
+                    ((pmeta->PrimaryGChromaticityY/2.0)*10000.0);
+            }
+
+            if(pmeta->validate.PrimaryBChromaticityX) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.bluePrimary.x = (int)
+                    ((pmeta->PrimaryBChromaticityX/2.0)*10000.0);
+            }
+            if(pmeta->validate.PrimaryBChromaticityY) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.bluePrimary.y = (int)
+                    ((pmeta->PrimaryBChromaticityY/2.0)*10000.0);
+            }
+
+            if(pmeta->validate.WhitePointChromaticityX) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.x = (int)
+                    ((pmeta->WhitePointChromaticityX/2.0)*10000.0);
+            }
+            if(pmeta->validate.WhitePointChromaticityY) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.y = (int)
+                    ((pmeta->WhitePointChromaticityY/2.0)*10000.0);
+            }
+
+            if(pmeta->validate.LuminanceMax) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.max = (unsigned)
+                    pmeta->LuminanceMax;
+            }
+            if(pmeta->validate.LuminanceMin) {
+                results->videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.min = (unsigned)
+                    (pmeta->LuminanceMin*10000.0);
+            }
+        }
+        bmkv_element_shutdown(bmkv_TrackEntryVideoColour_desc.entries, &colour);
+    }
 }
 
 int probe_media_request(const struct probe_request *request, struct probe_results *results)
@@ -236,6 +313,10 @@ int probe_media_request(const struct probe_request *request, struct probe_result
 #endif
                     }
 #endif
+                    if (stream->type == bstream_mpeg_type_mkv) {
+                        bmkv_probe_track *mkv_track = (bmkv_probe_track *)track;
+                        probe_p_parse_mkv_block(mkv_track->data.video.Colour.data, mkv_track->data.video.Colour.len, results);
+                    }
                     results->num_video++;
                 }
                 break;

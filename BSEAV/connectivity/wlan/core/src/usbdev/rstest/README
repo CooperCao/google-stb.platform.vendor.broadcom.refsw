@@ -1,0 +1,31 @@
+Remote Socket Test
+------------------
+
+This directory contains a kernel module for Linux 2.4 or Linux 2.6 that
+can be used for testing Remote Sockets (RSock) inside the Linux kernel.
+The module contains "ifconfig" and "ttcp" applications, suitably
+modified for compilation within the kernel, and uses the native kernel
+USB facilities to implement the bus interface over which RSock protocol
+messages are sent.  The purpose was originally to measure RSock ttcp
+performance.
+
+A device device is created (/dev/rst0 or /dev/usb/rstest).  "ifconfig"
+and "ttcp" commands may be echoed into this device to control the kernel
+module.
+
+See also src/toe/rsock/user/usb for a simpler user-level implementation
+that uses libusb to talk to the USB device but is (in theory) much
+slower.
+
+Linux 2.4 requires:
+
+mknod -m 660 /dev/usb/rstest c 180 144
+
+Some useful scripts are in the "scripts" subdirectory.
+
+NOTE: this hasn't been built in a while and the Makefiles are in a state
+of flux where I was trying to support both versions in a single
+Makefile.  Good luck!
+
+Building on Linux 2.4: make -f Makefile.24
+Building on Linux 2.6: make

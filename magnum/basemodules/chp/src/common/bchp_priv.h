@@ -167,6 +167,7 @@ typedef struct BCHP_PWR_P_Context {
     bool *sharedCtrl;      /* true if HW_ node has at least one HW_ node parent that is
                               MAGNUM_CONTROLLED and one that is not */
     bool *secureCtrl;      /* true if SECURE_ACCESS HW_ node */
+    BCHP_PmapSettings *pMapSettings;
 } BCHP_PWR_P_Context;
 
 typedef struct BCHP_PWR_P_Context *BCHP_PWR_Handle;
@@ -247,6 +248,11 @@ extern const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[];
 extern const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[];
 extern const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[];
 extern const BCHP_PWR_P_MuxMap BCHP_PWR_P_MuxMapList[];
+extern const BCHP_PmapSettings BCHP_PWR_P_DefaultPMapSettings[];
+
+#define PMAP(reg, field, val) {val, BCHP_##reg##_##field##_SHIFT, BCHP_##reg##_##field##_MASK, BCHP_##reg}
+#define DIVTABLE(resource, n, p, m) const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_##resource[] = {{n, p, m}}
+#define FREQMAP(resource) {BCHP_PWR_##resource, BCHP_PWR_P_DivTable_##resource}
 
 BERR_Code BCHP_PWR_Open(
     BCHP_PWR_Handle *pHandle, /* [out] */

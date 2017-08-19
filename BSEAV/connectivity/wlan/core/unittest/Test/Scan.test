@@ -1,0 +1,202 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for scans
+# $Id: 5211d71ddb5301aaca44d035f3d1a751bb1685b4 $
+#
+
+# Scan AP STA [-passive]
+# Scan AP STA [-ssid] [-bssid]
+#
+# -passive: use passive scan (default is active)
+# -ssid: direct active scan to APs SSID (default is broadcast)
+# -bssid: direct active scan to APs BSSID (default is broadcast)
+# -cache C: name a temporary cache for status results between scans
+
+package require UTF
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::APChanspec
+
+package provide UTF::Test::Scan 2.0
+
+namespace eval UTF::Test::Scan {
+
+    proc results {STA SSIDS passive skip_bcns scan_args} {
+	set TRIES 3
+	array set A $SSIDS
+
+
+	set retryable {: Undefined error|: Not Ready|: Busy|sync_id: }
+
+	if {([catch {$STA wl_escanresults {*}$scan_args} ret] &&
+	     ![regexp $retryable $ret]) ||
+	    [regexp {bss_info_version} $ret]} {
+	    error $ret
+	}
+
+	# If scan was blocked, wait and repeat
+	for {set c 0} {[regexp $retryable $ret] &&
+		       $c < $TRIES} {incr c} {
+	    UTF::Sleep 2
+	    catch {$STA wl_escanresults {*}$scan_args} ret
+	}
+	if {$c >= $TRIES} {
+	    error $ret
+	}
+
+	foreach {- ssid flags channel bssid} \
+	    [regexp -all -inline -expanded -line {
+		SSID:\s"(.*?)"\n
+		.*?(?:Flags:\s(.*?)\s+)?Channel:\s(\d+(?:[lu]|/80|/160)?)\n
+		BSSID:\s([\dA-F:]+)\s
+	    } $ret] {
+		if {[info exists A($bssid)] && $A($bssid) eq $ssid} {
+		    if {$skip_bcns && [lsearch $flags FromBcn] >= 0} {
+			UTF::Message LOG $STA \
+			    "Skipping Beacon: $ssid as $bssid on $channel"
+		    } else {
+			UTF::Message LOG $STA \
+			    "Found $ssid as $bssid on $channel (flags: $flags)"
+			array unset A $bssid
+			if {![array size A]} {
+			    return
+			}
+		    }
+		}
+	    }
+	if {$passive} {
+	    error "No Beacons"
+	} elseif {$skip_bcns} {
+	    error "No probe response"
+	} else {
+	    error "No probe response or beacons"
+	}
+    }
+
+
+
+}
+
+UTF::Test Scan {APS STA args} {
+    UTF::Getopts {
+	{passive "Passive Scan"}
+	{flood "Flood probe"}
+	{ssid "Active probe, specific SSID"}
+	{bssid "Active probe, specific BSSID"}
+	{cache.arg "" "Cache status results"}
+	{chanspec.arg "" "One or more chanspecs to use."}
+    }
+
+    # If caller provided storage, use it
+    if {$(cache) ne ""} {
+	upvar $(cache) CACHE
+    }
+
+    if {$(bssid) && [llength $APS] > 1} {
+	UTF::Message INFO "" "Select first AP for bssid directed test"
+	set APS [lindex $APS 1]
+    }
+
+    # disassoc STA to avoid issues with roaming, etc depending on
+    # previous tests.
+    if {[$STA cget -extsup]} {
+	catch {$STA wpa_cli disconnect}
+    }
+    catch {$STA wl disassoc}
+
+    if {[set bands [$STA wl band]] eq "auto"} {
+	set bands [$STA wl bands]
+    }
+    set lastch ""
+    foreach AP $APS ch $(chanspec) {
+	if {$ch eq ""} {
+	    set ch $lastch
+	} else {
+	    set lastch $ch
+	}
+	if {$AP eq "" || [info exists seen($AP)]} {
+	    # Empty or Cached
+	    continue
+	}
+	if {[info exists CACHE($AP)]} {
+	    lassign $CACHE($AP) SSID BSSID c
+	} else {
+	    if {[catch {$AP wl up}] ||
+		[set SSID [$AP wl ssid]] eq "" || $SSID ne [$AP cget -ssid]} {
+		APConfigureSecurity $AP -security renew
+		set SSID [$AP wl ssid]
+	    }
+	    if {$SSID eq ""} {
+		$AP worry "Empty SSID"
+		continue
+	    }
+	    set BSSID [$AP wl bssid]
+	    if {$BSSID eq "00:00:00:00:00:00"} {
+		$AP worry "Null BSSID"
+		continue
+	    }
+	    if {$ch ne ""} {
+		APChanspec $AP $ch
+	    }
+	    if {[$AP hostis BSDAP Airport]} {
+		regexp {\d+} [$AP wl chanspec] c
+	    } elseif {![regexp {Channel: (\d+)} [$AP wl status] - c]} {
+		$AP worry "Bad status"
+		if {![regexp {\d+} [$AP wl chanspec] c]} {
+		    $AP worry "Null chanspec"
+		    continue
+		}
+	    }
+	    if {[lsearch -exact $bands [$AP band $c]] < 0} {
+		UTF::Message INFO $AP "Skipping unsupported band"
+		continue
+	    }
+	    set CACHE($AP) [list $SSID $BSSID $c]
+	}
+	set seen($AP) 1
+	lappend CHANNELS $c
+	lappend SSIDS $BSSID $SSID
+    }
+    if {![info exists CHANNELS]} {
+	throw FAIL "No channels to scan"
+    }
+    $STA wl up
+
+    lappend scan_args -c "'$CHANNELS'"
+    if {$(flood)} {
+	lappend scan_args -n 100 -a 2000
+    }
+    set skip_bcns 1
+    if {$(passive)} {
+	lappend scan_args -t passive
+	set skip_bcns 0
+    } else {
+	if {$(ssid)} {
+	    foreach {BSSID SSID} $SSIDS {
+		lappend scan_args -s $SSID
+	    }
+	}
+	if {$(bssid)} {
+	    foreach {BSSID SSID} $SSIDS {
+		lappend scan_args -b $BSSID
+	    }
+	    # Don't skip beacons for BSSID probes because the driver is
+	    # likely to exit the scan early and not wait for a response.
+	    set skip_bcns 0
+	}
+    }
+
+    if {[catch {
+	results $STA $SSIDS $(passive) $skip_bcns $scan_args
+    } ret]} {
+	if {[regexp {bss_info_version} $ret]} {
+	    error $ret
+	} else {
+	    results $STA $SSIDS $(passive) $skip_bcns $scan_args
+	    error "$ret: Recovered"
+	}
+    } else {
+	return $ret
+    }
+}

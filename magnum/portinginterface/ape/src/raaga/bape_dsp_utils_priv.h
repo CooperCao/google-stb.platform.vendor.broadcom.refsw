@@ -139,7 +139,7 @@ Define inter-task buffer size
 Summary:
 Helper to print a variable name and value when assigning DSP settings structures
 ***************************************************************************/
-#define BAPE_DSP_P_SET_VARIABLE(st,var,val) do { st.var = (val); BDBG_MSG(("%s: %s = %#x", __FUNCTION__, #var, (st.var))); } while (0)
+#define BAPE_DSP_P_SET_VARIABLE(st,var,val) do { st.var = (val); BDBG_MSG(("%s: %s = %#x", BSTD_FUNCTION, #var, (st.var))); } while (0)
 
 /***************************************************************************
 Summary:

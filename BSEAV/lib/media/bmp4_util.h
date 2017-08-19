@@ -1,25 +1,46 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * MP4 container parser library
- * 
- * Revision History:
  *
- * $brcm_Log: $
- * 
- *******************************************************************************/
+ ***************************************************************************/
 #ifndef _BMP4_UTIL_H__
 #define _BMP4_UTIL_H__
 
@@ -166,6 +187,7 @@ typedef enum bmp4_sample_type {
     bmp4_sample_type_s263, /* H.263 video */
     bmp4_sample_type_ac3,  /* AC3 audio */
     bmp4_sample_type_eac3, /* E-AC3 audio */
+    bmp4_sample_type_ac4,  /* AC4 audio */
     bmp4_sample_type_samr, /* AMR narrow-band speech audio */
     bmp4_sample_type_sawb, /* AMR wide-band speech audio */
     bmp4_sample_type_sawp, /* Extended AMR wide-band speech audio */
@@ -227,6 +249,11 @@ typedef struct bmp4_sample_s263 {
 typedef struct bmp4_sample_ac3 {
 	bmp4_audiosampleentry audio;
 } bmp4_sample_ac3;
+
+#define BMP4_SAMPLE_AC4 BMP4_TYPE('a','c','-','4')
+typedef struct bmp4_sample_ac4 {
+    bmp4_audiosampleentry audio;
+} bmp4_sample_ac4;
 
 #define BMP4_SAMPLE_SAMR	BMP4_TYPE('s','a','m','r')
 #define BMP4_SAMPLE_SAWB	BMP4_TYPE('s','a','w','b')
@@ -308,6 +335,7 @@ typedef struct bmp4_sampleentry {
         bmp4_sample_mp4v mp4v;
         bmp4_sample_s263 s263;
         bmp4_sample_ac3 ac3;
+        bmp4_sample_ac4 ac4;
         bmp4_sample_amr amr;
         bmp4_sample_ms ms;
         bmp4_sample_mjpeg mjpeg;

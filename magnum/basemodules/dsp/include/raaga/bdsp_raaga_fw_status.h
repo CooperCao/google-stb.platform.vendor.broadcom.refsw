@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BRAAGA_FWSTATUS_PRIV_H__
@@ -146,6 +143,7 @@
 #define BDSP_Raaga_OutputFormatterStatus        BDSP_Raaga_Audio_OutputFormatterStatusInfo
 #define BDSP_Raaga_VocalPPStatus                BDSP_Raaga_Audio_VocalPPStatusInfo
 #define BDSP_Raaga_FadeCtrlPPStatus             BDSP_Raaga_Audio_FadeCtrlPPStatusInfo
+#define BDSP_Raaga_AmbisonicsPPStatus           BDSP_Raaga_Audio_AmbisonicsPPStatusInfo
 #define BDSP_Raaga_MixerDapv2PPStatus           BDSP_Raaga_Audio_MixerDapv2StatusInfo
 #define BDSP_Raaga_TsmCorrectionPPStatus        BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo
 
@@ -2323,7 +2321,7 @@ typedef struct BDSP_Raaga_Audio_AC4PresentationInfo
     uint32_t    ui32PresentationName[AC4_DEC_PRESENTATION_NAME_LENGTH];
 
     /* Indicates the program identifier for the presentation.
-	The Personalized-program universal unique ID is populated in the array in big endian fashion */
+    The Personalized-program universal unique ID is populated in the array in big endian fashion */
     int32_t     i32ProgramIdentifier[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH];
 
     /*  Extended presentation metadata is availability */
@@ -4310,6 +4308,20 @@ typedef struct BDSP_Raaga_Audio_FadeCtrlPPStatusInfo
     uint32_t                        ui32StatusValid;
 }BDSP_Raaga_Audio_FadeCtrlPPStatusInfo;
 
+
+typedef struct BDSP_Raaga_Audio_AmbisonicsPPStatusInfo
+{
+    /* ui32BinauralRendered - boolean flag indicating if the audio has been binaurally rendered
+    0 - False and 1 - True. */
+    uint32_t                        ui32BinauralRendered;
+
+   /* ui32StatusValid=0 indicates status as "valid"
+    ui32StatusValid=0x7fffffff indicates status as "in-valid" */
+    uint32_t                        ui32StatusValid;
+}BDSP_Raaga_Audio_AmbisonicsPPStatusInfo;
+
+
+
 #define MAX_NUM_FADE_NODES                         5
 
 typedef struct BDSP_Raaga_Audio_Mixing_FadeCtrl_Info
@@ -4450,10 +4462,11 @@ typedef union BDSP_Raaga_Audio_StreamInfo
     BDSP_Raaga_Audio_OpusDecStreamInfo    sOpusDecStreamInfo;
     BDSP_Raaga_Audio_ALSDecStreamInfo    sALSDecStreamInfo;
     BDSP_Raaga_Audio_FadeCtrlPPStatusInfo sFadeCtrlProcessInfo;
-	BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo sTsmCorrectionProcessInfo;
+    BDSP_Raaga_Audio_AmbisonicsPPStatusInfo sAmbisonicsStreamInfo;
+    BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo sTsmCorrectionProcessInfo;
     BDSP_Raaga_Audio_MixerDapv2StatusInfo sMixerDapv2ProcessInfo;
     BDSP_Raaga_VideoH264EncoderInfo      sH264EncoderInfo;
-	BDSP_Raaga_VideoX264EncoderInfo      sX264EncoderInfo;
+    BDSP_Raaga_VideoX264EncoderInfo      sX264EncoderInfo;
     BDSP_Raaga_Audio_PassthruStreamInfo         sPassthruStreamInfo;
     /* Other decoders info */
 } BDSP_Raaga_Audio_StreamInfo;

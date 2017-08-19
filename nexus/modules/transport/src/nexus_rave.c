@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,6 +62,8 @@ void NEXUS_Rave_GetDefaultOpenSettings_priv(NEXUS_RaveOpenSettings *pSettings)
 {
     NEXUS_ASSERT_MODULE();
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->config.Cdb.Alignment = 8;
+    pSettings->config.Itb.Alignment = 7;
     return;
 }
 
@@ -344,13 +346,6 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
     BXPT_Rave_GetDefaultAllocCxSettings(&allocSettings);
     allocSettings.RequestedType = pSettings->record?BXPT_RaveCx_eRecord:(useSecureHeap?BXPT_RaveCx_eAvR:BXPT_RaveCx_eAv);
     allocSettings.BufferCfg = pSettings->config;
-    allocSettings.BufferCfg.Cdb.Alignment = 8; /* non-configurable 256 byte alignment */
-    allocSettings.BufferCfg.Itb.Alignment = 7; /* non-configurable 128 byte alignment */
-    if (pSettings->config.Itb.Length % 128) {
-        BDBG_ERR(("Itb.Length %#x is not a multiple of 128 bytes", (unsigned)pSettings->config.Itb.Length));
-        BERR_TRACE(BERR_INVALID_PARAMETER);
-        return NULL;
-    }
     rave->cdb.block = allocSettings.CdbBlock = BMMA_Alloc(rave->cdb.heap, pSettings->config.Cdb.Length, 1 << allocSettings.BufferCfg.Cdb.Alignment, NULL);
     if (!rave->cdb.block) {rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto error;}
     rave->cdb.ptr = BMMA_Lock(rave->cdb.block);
@@ -619,6 +614,23 @@ NEXUS_Error NEXUS_Rave_ConfigureVideo_priv(NEXUS_RaveHandle rave,
 
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_ASSERT_MODULE();
+
+    /* Video has some alignment and size requirements. Set them NEXUS_Rave_GetDefaultOpenSettings_priv and enforce them here.
+    ** Audio doesn't have these requirements, but must support 4kB alignment on some chips, so let ConfigureAudio_priv do
+    ** whatever it wants.
+    */
+    if (rave->openSettings.config.Cdb.Alignment != 8) {
+        BDBG_ERR(("Video Cdb.Alignment %u must be 8", (unsigned)rave->openSettings.config.Cdb.Alignment));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if (rave->openSettings.config.Itb.Alignment != 7) {
+        BDBG_ERR(("Video Itb.Alignment %u must be 7", (unsigned)rave->openSettings.config.Itb.Alignment));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if (rave->openSettings.config.Itb.Length % 128) {
+        BDBG_ERR(("Video Itb.Length %#x is not a multiple of 128 bytes", (unsigned)rave->openSettings.config.Itb.Length));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
 #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
     NEXUS_Rave_P_CreateTransportClientCapture(rave, pSettings);
@@ -1949,7 +1961,6 @@ static void nexus_rave_remove_pid(NEXUS_RaveHandle rave)
 {
     NEXUS_P_HwPidChannel *slave;
     struct NEXUS_Rave_P_ErrorCounter_Link* raveLink;
-    NEXUS_Error rc;
 
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     if (!rave->pidChannel) {
@@ -1962,7 +1973,7 @@ static void nexus_rave_remove_pid(NEXUS_RaveHandle rave)
         BKNI_Free(raveLink);
     }
     else {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); /* keep going */
+        BERR_TRACE(NEXUS_INVALID_PARAMETER); /* keep going */
     }
 
     nexus_rave_remove_one_pid(rave, rave->pidChannel);
@@ -1974,34 +1985,17 @@ static void nexus_rave_remove_pid(NEXUS_RaveHandle rave)
     rave->pidChannel = NULL;
 }
 
-/* Stub calls for the reference counting. */
+/* These NEXUS_Rave_P_Open/Close calls only exist so that NEXUS_RaveHandle can be a proper NEXUS_OBJECT. */
 
-void NEXUS_Rave_GetDefaultOpenSetting(
-    NEXUS_RaveOpenSetting *pSetting /* [out] */
-    )
+NEXUS_RaveHandle NEXUS_Rave_P_Open(void)
 {
-    BSTD_UNUSED(pSetting);
     BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    BDBG_ERR(("%s: Unsupported, do not use.", __FUNCTION__));
-}
-
-NEXUS_RaveHandle NEXUS_Rave_Open(  /* attr{destructor=NEXUS_Rave_Close} */
-    const NEXUS_RaveOpenSetting *pSetting
-    )
-{
-    BSTD_UNUSED(pSetting);
-    BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    BDBG_ERR(("%s: Unsupported, do not use.", __FUNCTION__));
     return NULL;
 }
 
-void NEXUS_Rave_Close(
-    NEXUS_RaveHandle handle
-    )
+void NEXUS_Rave_P_Close( NEXUS_RaveHandle handle )
 {
     BSTD_UNUSED(handle);
-    BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    BDBG_ERR(("%s: Unsupported, do not use.", __FUNCTION__));
 }
 
 /* pTotal and ppNext are in/out */

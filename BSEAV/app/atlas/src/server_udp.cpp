@@ -29,7 +29,7 @@
  * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HASJ BEEN ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
@@ -122,8 +122,8 @@ eRet CServerUdp::readXML(
         xmlElemTop->print();
 #endif
 
-        uint16_t major = 1;
-        uint16_t minor = 0;
+        int major = 1;
+        int minor = 0;
 
         xmlElemUdpStreamer = xmlElemTop->findChild(XML_TAG_UDP_STREAMER);
         if (xmlElemUdpStreamer)
@@ -131,10 +131,10 @@ eRet CServerUdp::readXML(
             strVersion = xmlElemUdpStreamer->attrValue(XML_ATT_VERSION);
             if (false == strVersion.isEmpty())
             {
-                uint16_t dotIndex = strVersion.find('.');
+                unsigned dotIndex = strVersion.find('.');
 
-                major = (uint16_t)strVersion.left(dotIndex).toInt();
-                minor = (uint16_t)MString(strVersion.mid(dotIndex + 1)).toInt();
+                major = (unsigned)strVersion.left(dotIndex).toInt();
+                minor = (unsigned)MString(strVersion.mid(dotIndex + 1)).toInt();
             }
         }
 
@@ -362,10 +362,6 @@ eRet CServerUdp::stop()
     eRet           ret       = eRet_Ok;
     CStreamerUdp * pStreamer = NULL;
 
-    if (!this)
-    {
-        return(ret);
-    }
     BDBG_MSG((BIP_MSG_PRE_FMT " CServerUdp %p" BIP_MSG_PRE_ARG, (void *)this));
 
     /* Set the Server to done */

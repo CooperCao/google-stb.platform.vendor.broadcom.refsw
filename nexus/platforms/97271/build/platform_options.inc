@@ -47,10 +47,13 @@ NEXUS_HDMI_INPUT_SUPPORT ?=y
 endif
 
 export NEXUS_FRONTEND_3158  ?= y
+export NEXUS_FRONTEND_315x_OOB ?=y
 export NEXUS_FRONTEND_3461  ?= y
+export NEXUS_FRONTEND_3466  ?= y
+export NEXUS_FRONTEND_3158  ?= y
 export NEXUS_FRONTEND_45216 ?= y
 export NEXUS_FRONTEND_45308 ?= y
-export NEXUS_FRONTEND_3466 ?= y
+export NEXUS_FRONTEND_45316 ?= y
 
 NEXUS_SECURITY_SUPPORT ?=y
 
@@ -60,3 +63,8 @@ NEXUS_SECURITY_SUPPORT ?=y
 # by default, we include the following
 #
 include $(NEXUS_TOP)/platforms/common/build/platform_generic_options.inc
+
+ifeq ($(NEXUS_UART_SUPPORT),y)
+NEXUS_UART_SUPPORT:=n
+$(error NEXUS_UART_SUPPORT not supported on $(BCHP_CHIP), export NEXUS_UART_SUPPORT=n and use kernel uart instead )
+endif

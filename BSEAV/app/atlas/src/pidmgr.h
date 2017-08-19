@@ -68,8 +68,8 @@ public:
     eRet                mapInputBand(CInputBand * pInputBand); /* move */
     eRet                addPid(CPid * pPid);
     eRet                removePid(CPid * pPid);
-    CPid *              getPid(uint16_t index, ePidType type);
-    CPid *              findPid(uint16_t pidNum, ePidType type);
+    CPid *              getPid(unsigned index, ePidType type);
+    CPid *              findPid(unsigned pidNum, ePidType type);
     eRet                createPids(PROGRAM_INFO_T * pProgramInfo);
     void                clearPids(void);
     void                clearPcrPid(void);
@@ -80,10 +80,10 @@ public:
     CParserBand *       getParserBand(void)                        { return(_pParserBand); }       /* move */
     void                readXML(MXmlElement * xmlElem);
     MXmlElement *       writeXML(MXmlElement * xmlElem);
-    uint16_t            getCaPid(void)             { return(_caPid); }
-    void                setCaPid(uint16_t caPid)   { _caPid = caPid; }
-    uint16_t            getPmtPid(void)            { return(_pmtPid); }
-    void                setPmtPid(uint16_t pmtPid) { _pmtPid = pmtPid; }
+    unsigned            getCaPid(void)             { return(_caPid); }
+    void                setCaPid(unsigned caPid)   { _caPid = caPid; }
+    unsigned            getPmtPid(void)            { return(_pmtPid); }
+    void                setPmtPid(unsigned pmtPid) { _pmtPid = pmtPid; }
     void                closePidChannels(CPlaypump * pPlaypump);
     void                closePidChannels(void);
     void                closePlaybackPids(CPlayback * pPlayback);
@@ -92,8 +92,8 @@ public:
     void                closeRecordPidChannels(CRecord * pRecord);
     bool                isEncrypted(void);
     bool                isEmpty(void);
-    uint16_t            getProgram(void)             { return(_program); }
-    void                setProgram(uint16_t program) { _program = program; }
+    unsigned            getProgram(void)             { return(_program); }
+    void                setProgram(unsigned program) { _program = program; }
     bool                isImmutable(void) { return(_bImmutable); }
     void                print(bool bForce = false);
     void                dump(bool bForce = false) { print(bForce); }
@@ -105,9 +105,9 @@ protected:
     MAutoList <CPid>    _ancillaryPidList;
     CPid *              _pPcrPid;
     NEXUS_TransportType _transportType;
-    uint16_t            _caPid;
-    uint16_t            _pmtPid;
-    uint16_t            _program;
+    unsigned            _caPid;
+    unsigned            _pmtPid;
+    unsigned            _program;
     CConfiguration *    _pCfg;
     bool                _bImmutable;
 };

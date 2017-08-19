@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,7 +59,7 @@ typedef struct {
     uint32_t MdivCh2;
 } BAPE_PllDescriptor;
 
-static BERR_Code BAPE_P_ProgramPll_isr(BAPE_Handle handle, BAPE_Pll pll, BAPE_PllDescriptor *pDescriptor);
+static BERR_Code BAPE_P_ProgramPll_isr(BAPE_Handle handle, BAPE_Pll pll, const BAPE_PllDescriptor *pDescriptor);
 static void BAPE_Pll_UpdateDividers_isr(BAPE_Handle handle, BAPE_Pll pll, uint32_t ndivInt, uint32_t MdivCh0, uint32_t MdivCh1, uint32_t MdivCh2);
 
 #define BAPE_P_USE_PLL_MACROS       1
@@ -108,7 +108,7 @@ static void BAPE_Pll_UpdateMacro_isr(BAPE_Handle handle, BAPE_Pll pll, uint32_t 
             regVal |= BCHP_FIELD_ENUM(AUD_FMM_PLL0_MACRO, MACRO_SELECT, Mult_of_192000);
             break;
         default:
-            BDBG_ERR(("%s : Invalid baseRate %u", __FUNCTION__, baseRate));
+            BDBG_ERR(("%s : Invalid baseRate %u", BSTD_FUNCTION, baseRate));
             return;
             break;
     }
@@ -248,7 +248,7 @@ static void BAPE_Pll_UpdateMacro_isr(BAPE_Handle handle, BAPE_Pll pll, uint32_t 
             regVal |= BCHP_FIELD_ENUM(AUD_FMM_IOP_PLL_0_MACRO, MACRO_SELECT, Mult_of_192000);
             break;
         default:
-            BDBG_ERR(("%s : Invalid baseRate %u", __FUNCTION__, baseRate));
+            BDBG_ERR(("%s : Invalid baseRate %u", BSTD_FUNCTION, baseRate));
             return;
             break;
     }
@@ -356,7 +356,7 @@ static void BAPE_Pll_UpdateDividers_isr(BAPE_Handle handle, BAPE_Pll pll, uint32
 
 #endif
 
-static BERR_Code BAPE_P_ProgramPll_isr(BAPE_Handle handle, BAPE_Pll pll, BAPE_PllDescriptor *pDescriptor)
+static BERR_Code BAPE_P_ProgramPll_isr(BAPE_Handle handle, BAPE_Pll pll, const BAPE_PllDescriptor *pDescriptor)
 {
 
 #if BAPE_P_USE_PLL_MACROS
@@ -481,13 +481,13 @@ BERR_Code BAPE_Pll_SetSettings(
     {
         if ( handle->audioPlls[pll].settings.nDivInt > BAPE_PLL_MAX_NDIV )
         {
-            BDBG_WRN(("%s: Warning : nDivInt %u is greater than BAPE_PLL_MAX_NDIV %u", __FUNCTION__, handle->audioPlls[pll].settings.nDivInt, BAPE_PLL_MAX_NDIV));
+            BDBG_WRN(("%s: Warning : nDivInt %u is greater than BAPE_PLL_MAX_NDIV %u", BSTD_FUNCTION, handle->audioPlls[pll].settings.nDivInt, BAPE_PLL_MAX_NDIV));
             handle->audioPlls[pll].settings.nDivInt = BAPE_PLL_MAX_NDIV;
         }
 
         if ( handle->audioPlls[pll].settings.mDivCh0 > BAPE_PLL_MAX_MDIV )
         {
-            BDBG_WRN(("%s: Warning : nDivInt %u is greater than BAPE_PLL_MAX_MDIV %u", __FUNCTION__, handle->audioPlls[pll].settings.mDivCh0, BAPE_PLL_MAX_MDIV));
+            BDBG_WRN(("%s: Warning : nDivInt %u is greater than BAPE_PLL_MAX_MDIV %u", BSTD_FUNCTION, handle->audioPlls[pll].settings.mDivCh0, BAPE_PLL_MAX_MDIV));
             handle->audioPlls[pll].settings.mDivCh0 = BAPE_PLL_MAX_MDIV;
         }
 
@@ -506,6 +506,13 @@ BERR_Code BAPE_Pll_SetSettings(
 
 void BAPE_P_AttachMixerToPll(BAPE_MixerHandle mixer, BAPE_Pll pll)
 {
+    BKNI_EnterCriticalSection();
+    BAPE_P_AttachMixerToPll_isr(mixer, pll);
+    BKNI_LeaveCriticalSection();
+}
+
+void BAPE_P_AttachMixerToPll_isr(BAPE_MixerHandle mixer, BAPE_Pll pll)
+{
     BDBG_OBJECT_ASSERT(mixer, BAPE_Mixer);
     if ( pll >= BAPE_CHIP_MAX_PLLS )
     {
@@ -515,12 +522,10 @@ void BAPE_P_AttachMixerToPll(BAPE_MixerHandle mixer, BAPE_Pll pll)
     }
     BLST_S_INSERT_HEAD(&mixer->deviceHandle->audioPlls[pll].mixerList, mixer, pllNode);
     /* Update MCLK source for attached outputs */
-    BKNI_EnterCriticalSection();
     BAPE_P_UpdatePll_isr(mixer->deviceHandle, pll);
-    BKNI_LeaveCriticalSection();
 }
 
-void BAPE_P_DetachMixerFromPll(BAPE_MixerHandle mixer, BAPE_Pll pll)
+void BAPE_P_DetachMixerFromPll_isrsafe(BAPE_MixerHandle mixer, BAPE_Pll pll)
 {
     BDBG_OBJECT_ASSERT(mixer, BAPE_Mixer);
     if ( pll >= BAPE_CHIP_MAX_PLLS )
@@ -535,11 +540,11 @@ void BAPE_P_DetachMixerFromPll(BAPE_MixerHandle mixer, BAPE_Pll pll)
 void BAPE_P_AttachInputPortToPll(BAPE_InputPort input, BAPE_Pll pll)
 {
     BKNI_EnterCriticalSection();
-    BAPE_P_AttachInputPortToPll_isrsafe(input, pll);
+    BAPE_P_AttachInputPortToPll_isr(input, pll);
     BKNI_LeaveCriticalSection();
 }
 
-void BAPE_P_AttachInputPortToPll_isrsafe(BAPE_InputPort input, BAPE_Pll pll)
+void BAPE_P_AttachInputPortToPll_isr(BAPE_InputPort input, BAPE_Pll pll)
 {
     unsigned pllIndex = pll - BAPE_Pll_e0;
     BAPE_Handle deviceHandle;
@@ -653,7 +658,7 @@ static BERR_Code BAPE_P_SetPllFreq_isr( BAPE_Handle handle, BAPE_Pll pll, unsign
     /* 40 nm values clock values - note that these are only used when programming
        the clocks manually using "BAPE_Pll_UpdateDividers_isr".  When using 
        "BAPE_Pll_UpdateMacro_isr", the hardware calculates and programs internally */
-    BAPE_PllDescriptor pllInfo[] = 
+    static const BAPE_PllDescriptor pllInfo[] =
     {
         #if BAPE_BASE_PLL_TO_FS_RATIO == 128    /* Run PLL Ch0 at 128 BaseFS */
             {  32000,               4096000,         64,          180,          180,       90 },
@@ -705,64 +710,106 @@ void BAPE_P_VerifyPllCallback_isr(void *pParam1, int param2)
 {
     BAPE_Handle handle = pParam1;
     BAPE_Pll pll = param2;
-    BAPE_Mixer *pMixer;
+    BAPE_Mixer *pMixer, *pAvailableMixer, *pPreviousMixer = NULL;
     BAPE_InputPortObject *pInputPort;
     BERR_Code errCode;
-    unsigned baseRate = 0;
+    unsigned currentBaseRate;
+    int i;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
 
+    if ((int)pll >= BAPE_CHIP_MAX_PLLS) {
+        BDBG_ERR(("Invalid PLL %d", (int)pll));
+        return;
+    }
+
+    currentBaseRate = handle->audioPlls[pll].baseSampleRate;
+
     /* Walk through each mixer and make sure we have no conflicts */
-    for ( pMixer = BLST_S_FIRST(&handle->audioPlls[pll].mixerList);
-          pMixer != NULL;
-          pMixer = BLST_S_NEXT(pMixer, pllNode) )
-    {        
+    pMixer = BLST_S_FIRST(&handle->audioPlls[pll].mixerList);
+    while (pMixer != NULL) {
         unsigned mixerRate;
 
-        if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 )
-        {
+        if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 ) {
+            pPreviousMixer = pMixer;
             continue;
         }
 
         errCode = BAPE_P_GetPllBaseSampleRate_isr(BAPE_Mixer_P_GetOutputSampleRate(pMixer), &mixerRate);
-        if ( errCode )
-        {
+        if ( errCode ) {
             break;
         }
-        if ( pMixer->running )
-        {
-            if ( baseRate == 0 )
-            {
-                baseRate = mixerRate;
+        if ( pMixer->running ) {
+            if ( mixerRate != currentBaseRate ) {
+                BAPE_OutputPort outputPort;
+                BDBG_WRN(("Sample rate conflict on Pll %d with mixer %p", pll, (void *)pMixer));
+                for ( outputPort = BLST_S_FIRST(&pMixer->outputList);
+                    outputPort != NULL;
+                    outputPort = BLST_S_NEXT(outputPort, node) ) {
+                    BDBG_WRN(("  %s requests %u Hz while the Pll is running at %d Hz", outputPort->pName, mixerRate, currentBaseRate));
+                }
+
+                for (i = 0; i < BAPE_CHIP_MAX_PLLS; i++) {
+                    if (i != (int)pll) {
+                        pAvailableMixer = BLST_S_FIRST(&handle->audioPlls[i].mixerList);
+                        if (pAvailableMixer == NULL) {
+                            BDBG_WRN(("Moving to Pll %d", i));
+                            BAPE_P_DetachMixerFromPll_isrsafe(pMixer, pll);
+                            pMixer->mclkSource =  BAPE_MclkSource_ePll0 + i;
+                            BAPE_P_AttachMixerToPll_isr(pMixer, (BAPE_Pll)i);
+                            pMixer = pPreviousMixer;
+                            break;
+                        }
+                        else {
+                            unsigned testMixerRate = 0;
+                            errCode = BAPE_P_GetPllBaseSampleRate_isr(BAPE_Mixer_P_GetOutputSampleRate(pAvailableMixer), &testMixerRate);
+                            if ( errCode ) {
+                                continue;
+                            }
+                            if (testMixerRate == mixerRate) {
+                                BDBG_WRN(("Moving to Pll %d", i));
+                                BAPE_P_DetachMixerFromPll_isrsafe(pMixer, pll);
+                                pMixer->mclkSource =  BAPE_MclkSource_ePll0 + i;
+                                BAPE_P_AttachMixerToPll_isr(pMixer, (BAPE_Pll)i);
+                                pMixer = pPreviousMixer;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
-            else if ( baseRate != mixerRate )
-            {
-                BDBG_WRN(("Sample rate conflict on PLL %d.  One mixer requests %u another requests %u", pll, baseRate, mixerRate));
+            else {
+                pPreviousMixer = pMixer;
             }
+        }
+        else {
+            pPreviousMixer = pMixer;
+        }
+        if (pMixer) {
+            pMixer = BLST_S_NEXT(pMixer, pllNode);
+        }
+        else {
+            pMixer = BLST_S_FIRST(&handle->audioPlls[pll].mixerList);
         }
     }
 
     /* Walk through each InputPort and make sure we have no conflicts */
+    /* I don't believe this should occur. We check before we added the input capture and
+       it should never conflict */
     for ( pInputPort = BLST_S_FIRST(&handle->audioPlls[pll].inputList);
           pInputPort != NULL;
-          pInputPort = BLST_S_NEXT(pInputPort, pllNode) )
-    {
+          pInputPort = BLST_S_NEXT(pInputPort, pllNode) ) {
         unsigned mixerRate;
 
-        if (pInputPort->format.sampleRate == 0)
-        {
+        if (pInputPort->format.sampleRate == 0) {
             continue;
         }
 
         mixerRate = pInputPort->format.sampleRate;
 
-        if ( baseRate == 0 )
-        {
-            baseRate = mixerRate;
-        }
-        else if ( baseRate != mixerRate )
-        {
-            BDBG_WRN(("Sample rate conflict on PLL %d.  One mixer requests %u, and InputPort(%s) %u", pll, baseRate, pInputPort->pName, mixerRate));
+        if ( mixerRate != currentBaseRate ) {
+            BDBG_WRN(("Sample rate conflict on Pll %d with InputPort %p", pll, (void *)pInputPort));
+            BDBG_WRN(("  InputPort(%s)(%p) Requests %u Hz while Pll is running at %d Hz", pInputPort->pName, (void *)pInputPort, mixerRate, currentBaseRate));
         }
     }
 }
@@ -770,93 +817,91 @@ void BAPE_P_VerifyPllCallback_isr(void *pParam1, int param2)
 BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
 {
     unsigned baseRate = 0;
+    unsigned currentBaseRate = 0;
     unsigned idleRate = 0;
     BAPE_Mixer *pMixer;
     BAPE_InputPortObject *pInputPort;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
-    if ( pll >= BAPE_CHIP_MAX_PLLS )
-    {
+    if ( pll >= BAPE_CHIP_MAX_PLLS ) {
         BDBG_ASSERT(pll < BAPE_CHIP_MAX_PLLS);
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    currentBaseRate = handle->audioPlls[pll].baseSampleRate;
+
     /* Walk through each mixer and make sure we have no conflicts */
     for ( pMixer = BLST_S_FIRST(&handle->audioPlls[pll].mixerList);
           pMixer != NULL;
-          pMixer = BLST_S_NEXT(pMixer, pllNode) )
-    {
+          pMixer = BLST_S_NEXT(pMixer, pllNode) ) {
         unsigned mixerRate;
 
-        if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 )
-        {
+        if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 ) {
             continue;
         }
 
         errCode = BAPE_P_GetPllBaseSampleRate_isr(BAPE_Mixer_P_GetOutputSampleRate(pMixer), &mixerRate);
-        if ( errCode )
-        {
+        if ( errCode ) {
             return BERR_TRACE(errCode);
         }
 
-        if (pMixer->pathNode.subtype == BAPE_MixerType_eDsp)
-        {
+        if (pMixer->pathNode.subtype == BAPE_MixerType_eDsp) {
             mixerRate = 48000;
         }
 
-        if ( pMixer->running )
-        {
-            if ( baseRate == 0 )
-            {
+        if ( pMixer->running ) {
+            if ( baseRate == 0 ) {
                 baseRate = mixerRate;
             }
-            else if ( baseRate != mixerRate )
-            {
+            else if ( baseRate != mixerRate ) {
                 errCode = BTMR_StartTimer_isr(handle->pllTimer[pll], 100*100);
+                /* keep the base rate the same, where ever we move the new requets to will get the new sample rate */
+                if (mixerRate == currentBaseRate) {
+                    baseRate = currentBaseRate;
+                }
             }
         }
-        else if ( idleRate == 0 )
-        {
+        else if ( idleRate == 0 ) {
             idleRate = mixerRate;
+        }
+        else if ( idleRate != mixerRate ) {
+            errCode = BTMR_StartTimer_isr(handle->pllTimer[pll], 100*100);
+            /* keep the base rate the same, where ever we move the new requets to will get the new sample rate */
+            if (mixerRate == currentBaseRate) {
+                baseRate = currentBaseRate;
+            }
         }
     }
 
-    if ( baseRate == 0 )
-    {
+    if ( baseRate == 0 ) {
         baseRate = idleRate;
     }
 
     /* Walk through each InputPort and make sure we have no conflicts */
     for ( pInputPort = BLST_S_FIRST(&handle->audioPlls[pll].inputList);
           pInputPort != NULL;
-          pInputPort = BLST_S_NEXT(pInputPort, pllNode) )
-    {
+          pInputPort = BLST_S_NEXT(pInputPort, pllNode) ) {
         unsigned mixerRate;
 
-        if (pInputPort->format.sampleRate == 0)
-        {
+        if (pInputPort->format.sampleRate == 0) {
             continue;
         }
 
         errCode = BAPE_P_GetPllBaseSampleRate_isr(pInputPort->format.sampleRate, &mixerRate);
-        if ( errCode )
-        {
+        if ( errCode ) {
             return BERR_TRACE(errCode);
         }
 
-        if ( baseRate == 0 )
-        {
+        if ( baseRate == 0 ) {
             baseRate = mixerRate;
         }
-        else if ( baseRate != mixerRate )
-        {
+        else if ( baseRate != mixerRate ) {
             errCode = BTMR_StartTimer_isr(handle->pllTimer[pll], 100*100);
         }
     }
 
-    if ( baseRate != 0 )
-    {
+    if ( baseRate != 0 ) {
         BDBG_MSG(("Updating PLL %u for base sample rate of %u Hz", pll, baseRate));
 
         errCode = BAPE_P_SetPllFreq_isr( handle, pll, baseRate );
@@ -865,8 +910,7 @@ BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
         /* For each output, set it's mclk appropriately */
         for ( pMixer = BLST_S_FIRST(&handle->audioPlls[pll].mixerList);
               pMixer != NULL;
-              pMixer = BLST_S_NEXT(pMixer, pllNode) )
-        {
+              pMixer = BLST_S_NEXT(pMixer, pllNode) ) {
             BAPE_OutputPort output;
             unsigned rateNum = BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer);
             unsigned pllChan;
@@ -874,14 +918,12 @@ BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
 
             BDBG_ASSERT( BAPE_MCLKSOURCE_IS_PLL(pMixer->mclkSource));
 
-            if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 )
-            {
+            if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 ) {
                 /* Skip this mixer if it doesn't have a sample rate yet */
                 continue;
             }
 
-            switch ( pll )
-            {
+            switch ( pll ) {
             default:
             case BAPE_Pll_e0:
                 mclkSource = BAPE_MclkSource_ePll0;
@@ -901,26 +943,22 @@ BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
                                                              
             for ( output = BLST_S_FIRST(&pMixer->outputList);
                   output != NULL;
-                  output = BLST_S_NEXT(output, node) )
-            {
-                if ( output->setMclk_isr )
-                {
+                  output = BLST_S_NEXT(output, node) ) {
+                if ( output->setMclk_isr ) {
                     BDBG_MSG(("Setting output mclk for '%s' to source:%s channel:%u ratio:%u",
                                output->pName, BAPE_Mixer_P_MclkSourceToText_isrsafe(mclkSource), pllChan, BAPE_BASE_PLL_TO_FS_RATIO));
                     output->setMclk_isr(output, mclkSource, pllChan, BAPE_BASE_PLL_TO_FS_RATIO);
                 }
             }
 
-            if ( pMixer->fs != BAPE_FS_INVALID )
-            {
+            if ( pMixer->fs != BAPE_FS_INVALID ) {
                 BDBG_MSG(("Setting FS mclk for FS %u to source:%s ratio:%u",
                            pMixer->fs, BAPE_Mixer_P_MclkSourceToText_isrsafe(mclkSource), BAPE_BASE_PLL_TO_FS_RATIO));
                 BAPE_P_SetFsTiming_isr(handle, pMixer->fs, mclkSource, pllChan, BAPE_BASE_PLL_TO_FS_RATIO);
             }
         }
     }
-    else
-    {
+    else {
         BDBG_MSG(("Not updating PLL %u rate (unknown)", pll));
     }
 

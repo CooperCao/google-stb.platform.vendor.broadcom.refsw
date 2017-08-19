@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,6 +61,11 @@
 #include "nexus_i2c.h"
 #include "priv/nexus_i2c_priv.h"
 #include "btnr.h"
+
+/* Cable includes */
+#include "bads.h"
+
+/* Terrestrial includes */
 #include "btnr_3466ib.h"
 #include "bods_3466.h"
 #include "bods.h"
@@ -74,11 +79,22 @@
 
 
 /* REMOVE THIS HARDCODING LATER. */
+#define NEXUS_MAX_3466_C_FRONTENDS 2
 #define NEXUS_MAX_3466_T_FRONTENDS 2
 #define NEXUS_3466_DVBT_CHN      (0)
 #define NEXUS_3466_DVBT2_CHN     (NEXUS_3466_DVBT_CHN  + 1)
 
 #define TOTAL_SOFTDECISIONS 30
+
+typedef struct NEXUS_3466PreviousStatus
+{
+    unsigned fecCorrected;
+    unsigned fecUncorrected;
+    unsigned fecClean;
+    unsigned viterbiUncorrectedBits;
+    unsigned viterbiTotalBits;
+    NEXUS_Time time;
+} NEXUS_3466PreviousStatus;
 
 typedef struct NEXUS_3466Device
 {
@@ -102,36 +118,83 @@ typedef struct NEXUS_3466Device
     unsigned agcValue;                            /* Gain Value*/
     NEXUS_CallbackDesc updateGainCallbackDesc;    /* Callback will be called when the gain from the lna needs to be updated. */
     BINT_CallbackHandle cbHandle;
+    BKNI_EventHandle isrEvent;
+    NEXUS_EventCallbackHandle isrEventCallback;
+    NEXUS_FrontendHandle       frontendHandle[NEXUS_MAX_3466_T_FRONTENDS];
+    BTNR_Handle tnr[NEXUS_MAX_3466_C_FRONTENDS];
+    bool isTunerPoweredOn[NEXUS_MAX_3466_C_FRONTENDS];
+    bool lastTuneQam;
     /* Cable-specific variables */
     struct {
-        unsigned dummy;
+        unsigned numChannels;
+        BADS_Handle ads;
+        BADS_ChannelHandle ads_chn[NEXUS_MAX_3466_C_FRONTENDS];
+        NEXUS_FrontendQamSettings qam[NEXUS_MAX_3466_C_FRONTENDS];
+        bool isPoweredOn[NEXUS_MAX_3466_C_FRONTENDS];
+        bool acquireInProgress[NEXUS_MAX_3466_C_FRONTENDS];
+        unsigned count[NEXUS_MAX_3466_C_FRONTENDS];
+        NEXUS_FrontendQamSettings last_ads[NEXUS_MAX_3466_C_FRONTENDS];
+        NEXUS_FrontendDevice *pGenericDeviceHandle;
+
+        NEXUS_IsrCallbackHandle lockAppCallback[NEXUS_MAX_3466_C_FRONTENDS];
+        NEXUS_IsrCallbackHandle updateGainAppCallback;
+        NEXUS_IsrCallbackHandle asyncStatusAppCallback[NEXUS_MAX_3466_C_FRONTENDS];
+        NEXUS_TaskCallbackHandle spectrumDataAppCallback[NEXUS_MAX_3466_C_FRONTENDS];
+        bool isInternalAsyncStatusCall[NEXUS_MAX_3466_C_FRONTENDS];
+
+        uint32_t *spectrumDataPointer;
+        unsigned spectrumDataLength;
+        BKNI_EventHandle spectrumEvent;
+        NEXUS_EventCallbackHandle spectrumEventCallback;
+
+        NEXUS_3466PreviousStatus previousStatus[NEXUS_MAX_3466_C_FRONTENDS];
+
+        struct {
+            NEXUS_Error (*getFastStatus)(void *handle, NEXUS_FrontendFastStatus *pStatus);
+            NEXUS_Error (*readSoftDecisions)(void *handle, NEXUS_FrontendSoftDecision *pDecisions, size_t length, size_t *pNumRead);
+            NEXUS_Error (*standby)(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings);
+            void        (*untune)(void *handle);
+            void        (*uninstallCallbacks)(void *handle);
+            void        (*close)(NEXUS_FrontendHandle handle);
+        } api;
     } cable;
+
     /* Terrestrial-specific variables */
     struct {
-        NEXUS_FrontendHandle       frontendHandle[NEXUS_MAX_3466_T_FRONTENDS];
         NEXUS_IsrCallbackHandle    lockAppCallback[NEXUS_MAX_3466_T_FRONTENDS];
         NEXUS_IsrCallbackHandle    asyncStatusAppCallback[NEXUS_MAX_3466_T_FRONTENDS];
         bool                       isAsyncStatusReady[NEXUS_MAX_3466_T_FRONTENDS];
-        bool                       isTunerPoweredOn[NEXUS_MAX_3466_T_FRONTENDS];
         NEXUS_FrontendOfdmAcquisitionMode lastAcquisitionMode[NEXUS_MAX_3466_T_FRONTENDS];
         BODS_ChannelHandle         ods_chn[NEXUS_MAX_3466_T_FRONTENDS];
         NEXUS_FrontendOfdmSettings last_ofdm[NEXUS_MAX_3466_T_FRONTENDS];
         bool                       isPoweredOn[NEXUS_MAX_3466_T_FRONTENDS];
-        BTNR_Handle                tnr[NEXUS_MAX_3466_T_FRONTENDS];
         NEXUS_IsrCallbackHandle    ewsAppCallback[NEXUS_MAX_3466_T_FRONTENDS];
         NEXUS_IsrCallbackHandle    updateGainAppCallback[NEXUS_MAX_3466_T_FRONTENDS];
         signed count[NEXUS_MAX_3466_T_FRONTENDS];
         bool acquireInProgress[NEXUS_MAX_3466_T_FRONTENDS];
         bool isStatusReady[NEXUS_MAX_3466_T_FRONTENDS];
-        BKNI_EventHandle isrEvent;
-        NEXUS_EventCallbackHandle isrEventCallback;
         NEXUS_TunerRfInput rfInput;
         NEXUS_RfDaisyChain rfDaisyChain;
         bool enableRfLoopThrough;
         BODS_Handle ods;
         BODS_SelectiveStatus odsStatus;
         unsigned maxDvbtChannels;
+        unsigned numDiversityChannels;
+        unsigned currentDiversityChannel;
+        BKNI_EventHandle diversityEvent;
+        NEXUS_EventCallbackHandle diversityEventCallback;
+
+        struct {
+            NEXUS_Error (*getFastStatus)(void *handle, NEXUS_FrontendFastStatus *pStatus);
+            NEXUS_Error (*readSoftDecisions)(void *handle, NEXUS_FrontendSoftDecision *pDecisions, size_t length, size_t *pNumRead);
+            NEXUS_Error (*standby)(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings);
+            void        (*untune)(void *handle);
+            void        (*uninstallCallbacks)(void *handle);
+            void        (*close)(NEXUS_FrontendHandle handle);
+        } api;
     } terrestrial;
+    NEXUS_ThreadHandle pollingThread;
+    NEXUS_FrontendDeviceHandle pLinkedMtsifDevice;
 } NEXUS_3466Device;
 
 typedef struct NEXUS_3466Channel
@@ -143,19 +206,31 @@ typedef struct NEXUS_3466Channel
 NEXUS_Error NEXUS_FrontendDevice_P_Get3466Settings(void *handle, NEXUS_FrontendDeviceSettings *pSettings);
 NEXUS_Error NEXUS_FrontendDevice_P_Set3466Settings(void *handle, const NEXUS_FrontendDeviceSettings *pSettings);
 
+NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab(NEXUS_3466Device *pDevice, const NEXUS_FrontendDeviceOpenSettings *pSettings);
+void NEXUS_FrontendDevice_P_Uninit_3466_Hab(NEXUS_3466Device *pDevice);
+NEXUS_Error NEXUS_Frontend_P_3466_ReapplyTransportSettings(void *handle);
+
+NEXUS_Error NEXUS_Frontend_P_3466_SetMtsifConfig(NEXUS_FrontendHandle frontend);
+void NEXUS_Frontend_P_3466_UnsetMtsifConfig(NEXUS_FrontendHandle frontend);
+
+
 /* Cable-specific functions */
 NEXUS_Error NEXUS_FrontendDevice_Open3466_Cable(NEXUS_3466Device *pFrontendDevice);
-NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Cable(const NEXUS_FrontendChannelSettings *pSettings);
+NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Cable(const NEXUS_FrontendChannelSettings *pSettings, NEXUS_FrontendHandle frontend);
 void NEXUS_FrontendDevice_Close3466_Cable(NEXUS_3466Device *pFrontendDevice);
 NEXUS_Error NEXUS_FrontendDevice_P_Init3466_Cable(NEXUS_3466Device *pDevice);
+NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab_Cable(NEXUS_3466Device *pDevice, const NEXUS_FrontendDeviceOpenSettings *pSettings);
+void NEXUS_FrontendDevice_P_Uninit_3466_Hab_Cable(NEXUS_3466Device *pDevice);
 void NEXUS_FrontendDevice_P_Uninit3466_Cable(NEXUS_3466Device *pDevice);
 /* End of cable-specific function declarations */
 
 /* Terrestrial-specific functions */
 NEXUS_Error NEXUS_FrontendDevice_Open3466_Terrestrial(NEXUS_3466Device *pFrontendDevice);
-NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Terrestrial(const NEXUS_FrontendChannelSettings *pSettings);
+NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Terrestrial(const NEXUS_FrontendChannelSettings *pSettings, NEXUS_FrontendHandle frontend);
 void NEXUS_FrontendDevice_Close3466_Terrestrial(NEXUS_3466Device *pFrontendDevice);
 NEXUS_Error NEXUS_FrontendDevice_P_Init3466_Terrestrial(NEXUS_3466Device *pDevice);
+NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab_Terrestrial(NEXUS_3466Device *pDevice, const NEXUS_FrontendDeviceOpenSettings *pSettings);
+void NEXUS_FrontendDevice_P_Uninit_3466_Hab_Terrestrial(NEXUS_3466Device *pDevice);
 void NEXUS_FrontendDevice_P_Uninit3466_Terrestrial(NEXUS_3466Device *pDevice);
 /* End of terrestrial-specific function declarations */
 #endif

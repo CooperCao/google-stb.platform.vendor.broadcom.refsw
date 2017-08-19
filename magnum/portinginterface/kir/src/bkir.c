@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -80,6 +80,125 @@
         #define INT_ID_2 BCHP_INT_ID_kbd3_irqen
         #define INT_ID_3 BCHP_INT_ID_kbd4_irqen
     #endif
+#endif
+
+#include "bchp_pm_aon.h"
+
+#ifdef BCHP_PM_AON_CONFIG_irr1_in_UHF_RX1
+#define HAS_UHF 1
+#endif
+#ifdef BCHP_PM_AON_CONFIG_irr3_in_UHF_RX1
+#define HAS_UHF_3 1
+#endif
+
+#ifdef BCHP_PM_AON_CONFIG_irr0_in_MASK
+#define BKIR_HAS_ZERO_BASE 1
+#endif
+
+#if BCHP_CHIP == 7439 /* TODO - remove when rdb updated */
+
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0      1
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1      0
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_12 3
+#define BCHP_PM_AON_CONFIG_irr1_in_UHF_RX1     2
+
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN0      3
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN1      0
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_12 2
+#define BCHP_PM_AON_CONFIG_irr2_in_UHF_RX1     1
+
+#define BCHP_PM_AON_CONFIG_irr3_in_IR_IN0      2
+#define BCHP_PM_AON_CONFIG_irr3_in_IR_IN1      3
+#define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO_12 1
+#define BCHP_PM_AON_CONFIG_irr3_in_UHF_RX1     0
+
+#elif BCHP_CHIP == 7260
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN0      0
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN1      1
+#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_17 3
+
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0      3
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1      0
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_17 2
+
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN0      2
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN1      3
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_17 1
+
+#elif BCHP_CHIP == 7268 || (BCHP_CHIP == 7271 && (BCHP_VER == A0) )
+
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN0      0
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN1      1
+#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_17 3
+
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0      3
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1      0
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_17 2
+
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN0      2
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN1      3
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_17 1
+
+#elif (BCHP_CHIP == 7278) && (BCHP_VER == A0 )
+
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN0      0
+#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN1      1
+#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_12 3
+
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0      3
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1      0
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_12 2
+
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN0      2
+#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN1      3
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_12 1
+
+#endif
+
+
+#ifdef BKIR_HAS_ZERO_BASE
+#if (BCHP_CHIP == 7364) || (BCHP_CHIP == 7586) || (BCHP_CHIP == 7278)
+#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_12
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_12
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_12
+#elif (BCHP_CHIP == 7250)
+#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_14
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_14
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_14
+#else
+#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_17
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_17
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_17
+#endif
+
+#else
+
+#if (BCHP_CHIP == 7445) || (BCHP_CHIP == 7439)
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_12
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_12
+#define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO_12
+#elif (BCHP_CHIP == 7228) || (BCHP_CHIP == 7360) || (BCHP_CHIP == 7362) || (BCHP_CHIP == 73625)\
+   || (BCHP_CHIP == 7543) || (BCHP_CHIP == 7563)|| (BCHP_CHIP == 75635)
+#define NO_IR_IN1 1
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_04
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_04
+#define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO_04
+#elif (BCHP_CHIP == 7231) || (BCHP_CHIP == 7344) || (BCHP_CHIP == 7346) || (BCHP_CHIP == 73465)\
+   || (BCHP_CHIP == 7358) || (BCHP_CHIP == 7429) || (BCHP_CHIP == 74295)
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_GPIO_00
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_GPIO_00
+#define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO BCHP_PM_AON_CONFIG_irr3_in_GPIO_00
+#elif (BCHP_CHIP == 7552 ) || (BCHP_CHIP == 7584) || (BCHP_CHIP == 75845)
+#define NO_IR_IN1 1
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_03
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_03
+#define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO_03
+#else
+#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_17
+#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_17
+#define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO_17
+#endif
+
 #endif
 
 
@@ -2059,6 +2178,122 @@ BERR_Code BKIR_GetDevice(
 }
 #endif
 
+BERR_Code BKIR_Set_PM_AON_CONFIG(
+    BKIR_ChannelHandle  hChn,       /* Device channel handle */
+    BKIR_PM_APN_Config_InputChannel  channel_device,
+    BKIR_InputDevice  input_device
+
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    uint32_t lval;
+    uint32_t field_value;
+    BKIR_Handle hDev;
+
+    BDBG_ASSERT( hChn );
+
+    hDev = hChn->hKir;
+    lval = BREG_Read32( hDev->hRegister, BCHP_PM_AON_CONFIG );
+
+    if (input_device >= BKIR_INPUT_MAX) {
+        BDBG_ERR(("BKIR_Set_PM_AON_CONFIG: Invalid input_device\n"));
+        return BERR_INVALID_PARAMETER;
+    }
+
+    switch (channel_device)
+    {
+#ifdef BKIR_HAS_ZERO_BASE
+    case BKIR_INPUT_PM_APN_CONFIG_IRR0:
+        switch (input_device)
+        {
+        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO ; break;
+#ifdef HAS_UHF
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr0_in_UHF_RX1 ; break;
+#endif
+        case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr0_in_IR_IN1 ; break;
+        case BKIR_INPUT_IR_IN0:
+        default:                    field_value = BCHP_PM_AON_CONFIG_irr0_in_IR_IN0 ; break;
+        }
+#ifdef HAS_UHF
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
+#else
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr0_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr0_in, field_value);
+#endif
+        break;
+#else  /* not BKIR_HAS_ZERO_BASE */
+    case BKIR_INPUT_PM_APN_CONFIG_IRR3:
+        switch (input_device)
+        {
+        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO ; break;
+#ifdef HAS_UHF_3
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr3_in_UHF_RX1 ; break;
+#endif
+#ifndef NO_IR_IN1
+        case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr3_in_IR_IN1  ; break;
+#endif
+        case BKIR_INPUT_IR_IN0:
+        default:                    field_value = BCHP_PM_AON_CONFIG_irr3_in_IR_IN0 ; break;
+        }
+#ifdef HAS_UHF_3
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr3_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr3_in, field_value);
+#else
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr2_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr2_in, field_value);
+#endif
+
+#endif  /* end of BKIR_HAS_ZERO_BASE */
+
+    case BKIR_INPUT_PM_APN_CONFIG_IRR1:
+        switch (input_device)
+        {
+        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO ; break;
+#ifdef HAS_UHF
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr1_in_UHF_RX1 ; break;
+#endif
+#ifndef NO_IR_IN1
+        case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr1_in_IR_IN1 ; break;
+#endif
+        case BKIR_INPUT_IR_IN0:
+        default:                    field_value = BCHP_PM_AON_CONFIG_irr1_in_IR_IN0 ; break;
+        }
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
+        break;
+    case BKIR_INPUT_PM_APN_CONFIG_IRR2:
+        switch (input_device)
+        {
+        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO; break;
+#ifdef HAS_UHF
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr2_in_UHF_RX1 ; break;
+#endif
+#ifndef NO_IR_IN1
+        case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr2_in_IR_IN1 ; break;
+#endif
+        case BKIR_INPUT_IR_IN0:
+        default:                    field_value = BCHP_PM_AON_CONFIG_irr2_in_IR_IN0 ; break;
+        }
+#ifdef HAS_UHF
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr2_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr2_in, field_value);
+#else
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
+#endif
+        break;
+    default:
+        retCode = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+    BDBG_MSG(("ch_device=%u input_device=%u lval=0x%8x ", channel_device, input_device, lval ));
+    BREG_Write32( hDev->hRegister, BCHP_PM_AON_CONFIG, lval );
+
+done:
+        return( retCode );
+}
+
 BERR_Code BKIR_EnableIrDevice (
     BKIR_ChannelHandle  hChn,       /* Device channel handle */
     BKIR_KirDevice      device          /* device type to enable */
@@ -2121,23 +2356,25 @@ BERR_Code BKIR_EnableIrDevice (
         case BKIR_KirDevice_eCirToshibaTC9012:
         case BKIR_KirDevice_eCirXip:
             isCirDevice = true;
-            if ((device == BKIR_KirDevice_eCirUei) || (device == BKIR_KirDevice_eCirDirectvUhfr) || (device == BKIR_KirDevice_eCirRfUei))
+            if ((device == BKIR_KirDevice_eCirUei) || (device == BKIR_KirDevice_eCirDirectvUhfr) || (device == BKIR_KirDevice_eCirRfUei)
+                || (device == BKIR_KirDevice_eCirNec) )
             {
                 /* This flag is used to read repeat flag in ISR.
                  * This flag should apply to all CIR devices.
                  * Until, we test more CIR devices, use it for
-                 * UEI device only.
+                 * UEI and NEC device only.
                  */
                 hChn->isCirMode = true;
             }
             if (device == BKIR_KirDevice_eCirCustom)
             {
-                if ((hChn->customDevice == BKIR_KirDevice_eCirUei) || (hChn->customDevice == BKIR_KirDevice_eCirDirectvUhfr) || (hChn->customDevice == BKIR_KirDevice_eCirRfUei))
+                if ((hChn->customDevice == BKIR_KirDevice_eCirUei) || (hChn->customDevice == BKIR_KirDevice_eCirDirectvUhfr)
+                    || (hChn->customDevice == BKIR_KirDevice_eCirRfUei) || (device == BKIR_KirDevice_eCirNec)  )
                 {
                     /* This flag is used to read repeat flag in ISR.
                      * This flag should apply to all CIR devices.
                      * Until, we test more CIR devices, use it for
-                     * UEI device only.
+                     * UEI and NEC device only.
                      */
                     hChn->isCirMode = true;
                 }
@@ -2164,7 +2401,7 @@ BERR_Code BKIR_EnableIrDevice (
             goto done;
     }
 
-    BDBG_MSG(("%s Write32(%x, %x)", __FUNCTION__, hChn->coreOffset + BCHP_KBD1_CMD, lval));
+    BDBG_MSG(("%s Write32(%x, %x)", BSTD_FUNCTION, hChn->coreOffset + BCHP_KBD1_CMD, lval));
     BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_CMD, lval);
 
     /* Set KBD3.FILTER1 to 0x0000007F for UHF */
@@ -2181,16 +2418,16 @@ BERR_Code BKIR_EnableIrDevice (
             BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1, 0x0000003F | BCHP_KBD1_FILTER1_filter_en_MASK);
             break;
         case BKIR_KirDevice_eCirUei:
-            BDBG_MSG(("%s Write32(%x, %x -> %x)", __FUNCTION__, hChn->coreOffset + BCHP_KBD1_FILTER1, BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1), 0x00000034 | BCHP_KBD1_FILTER1_filter_en_MASK));
+            BDBG_MSG(("%s Write32(%x, %x -> %x)", BSTD_FUNCTION, hChn->coreOffset + BCHP_KBD1_FILTER1, BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1), 0x00000034 | BCHP_KBD1_FILTER1_filter_en_MASK));
             BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1, 0x00000034 | BCHP_KBD1_FILTER1_filter_en_MASK);
             break;
         case BKIR_KirDevice_eCirXmp2:
         case BKIR_KirDevice_eCirXmp2Ack:
-            BDBG_MSG(("%s Write32(%x, %x -> %x)", __FUNCTION__, hChn->coreOffset + BCHP_KBD1_FILTER1, BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1), 0x00000011 | BCHP_KBD1_FILTER1_filter_en_MASK));
+            BDBG_MSG(("%s Write32(%x, %x -> %x)", BSTD_FUNCTION, hChn->coreOffset + BCHP_KBD1_FILTER1, BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1), 0x00000011 | BCHP_KBD1_FILTER1_filter_en_MASK));
             BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1, 0x00000011 | BCHP_KBD1_FILTER1_filter_en_MASK);
             break;
         default:
-            BDBG_MSG(("%s Write32(%x, %x)", __FUNCTION__, hChn->coreOffset + BCHP_KBD1_FILTER1, 0x00000000 & ~BCHP_KBD1_FILTER1_filter_en_MASK));
+            BDBG_MSG(("%s Write32(%x, %x)", BSTD_FUNCTION, hChn->coreOffset + BCHP_KBD1_FILTER1, 0x00000000 & ~BCHP_KBD1_FILTER1_filter_en_MASK));
             BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_FILTER1, 0x00000000 & ~BCHP_KBD1_FILTER1_filter_en_MASK);
             break;
    }
@@ -2418,7 +2655,7 @@ BERR_Code BKIR_DisableAllIrDevices (
             KBD_CMD_REMOTE_B_ENABLE |
             KBD_CMD_CIR_ENABLE);
 
-    BDBG_WRN(("%s Write32(%x, %x)", __FUNCTION__, hChn->coreOffset + BCHP_KBD1_CMD, lval));
+    BDBG_WRN(("%s Write32(%x, %x)", BSTD_FUNCTION, hChn->coreOffset + BCHP_KBD1_CMD, lval));
     BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_CMD, lval);
 
     return( retCode );
@@ -2725,9 +2962,7 @@ void BKIR_P_ConfigCir (
     uint32_t ulData;
     uint32_t uli, ulj;
     const CIR_Param *pCirParam;
-    BKIR_Handle hDev;
 
-    hDev = hChn->hKir;
     switch (device)
     {
         case BKIR_KirDevice_eCirGI:
@@ -2875,4 +3110,3 @@ void BKIR_P_ConfigCir (
          | (pCirParam->custCode);
     BKIR_P_WriteCirParam(hChn, 27, ulData);
 }
-

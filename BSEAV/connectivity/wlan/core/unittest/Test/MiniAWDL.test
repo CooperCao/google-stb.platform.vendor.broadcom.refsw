@@ -1,0 +1,225 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# Mini AWDL test
+#
+
+# $Id: 9f93b0d50b7b44f17cebbb3a10f4421c41aa844f $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::AWDL
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::controlchart
+
+package provide UTF::Test::MiniAWDL 2.0
+
+#################################################################################
+#################################################################################
+
+namespace eval UTF::Test::MiniAWDL {
+
+    proc cleanup {} {
+	UTF::Message INFO "MiniAWDL" "Cleanup"
+	uplevel {
+	    catch {$P1I wl awdl 0}
+	    catch {$P2I wl awdl 0}
+	    if {$(P1I) eq ""} {
+		catch {$P1I wl down}
+		catch {$P1I wl_interface_remove}
+	    } else {
+		UTF::AWDL::idle $P1I $bssid -A 149/80
+	    }
+	    if {$(P2I) eq ""} {
+		catch {$P2I wl down}
+		catch {$P2I wl_interface_remove}
+	    } else {
+		UTF::AWDL::idle $P2I $bssid -A 149/80
+	    }
+	}
+    }
+}
+
+UTF::Test MiniAWDL {P1 P2 args} {
+    # If FBDefault is set, and devices support it, enable fb
+    if {[info exists ::UTF::FBDefault] &&
+	![$P1 cget -noframeburst] && ![$P2 cget -noframeburst]} {
+	set fbdefault 1
+    } else {
+	set fbdefault 0
+    }
+
+    UTF::Getopts [subst {
+	{chanspec.arg "36/80" "P2P Chanspec"}
+	{security.arg "open" "security"}
+	{nocache "Don't update performance cache"}
+	{perfcache.parg "" "Performance Cache"}
+	{perfloop.parg 1 "Perf loops"}
+	{frameburst.arg "$fbdefault" "Use frameburst"}
+	{history.parg 30 "History"}
+	{key.arg "" "Key"}
+	{i.arg 1 "Interval"}
+	{s.arg 5 "Samples"}
+	{b.arg "[$P1 cget -udp]"
+	    "UDP data rate (0 for TCP) defaults to -udp option of P1"}
+	{ap.arg "" "AP for AP STA association"}
+	{apchanspec.arg "" "AP Chanspec"}
+	{apsecurity.arg "open" "security"}
+	{sync.arg "6" "Sync channel"}
+	{P1I.arg "" "P1 pre-existing AWDL interface"}
+	{P2I.arg "" "P2 pre-existing AWDL interface"}
+    }]
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    if {$(apchanspec) eq ""} {
+	set (apchanspec) $(chanspec)
+    }
+
+    set branch [$P1 branchname]
+    set key [concat $branch AWDL $(key)]
+
+    set bssid "c0:ff:ee:c0:ff:ee"
+    set setup 0
+
+    UTF::Try "$P1 AWDL S1<-$P2" {
+
+	if {$(P1I) ne ""} {
+	    set P1I $(P1I)
+	} else {
+	    set P1I [UTF::AWDL::create $P1 $bssid]
+	    UTF::AWDL::idle $P1I $bssid -A $(chanspec)
+	}
+	catch {$P1 freekb}
+
+	if {$(P2I) ne ""} {
+	    set P2I $(P2I)
+	} else {
+	    set P2I [UTF::AWDL::create $P2 $bssid]
+	    UTF::AWDL::idle $P2I $bssid -A $(chanspec)
+	}
+	catch {$P2 freekb}
+
+	UTF::AWDL::perfconfig $P1I $bssid -A $(chanspec) -S $(sync)
+	UTF::AWDL::perfconfig $P2I $bssid -A $(chanspec) -S $(sync)
+
+	UTF::AWDL::connect $P1I [$P2I macaddr]
+	UTF::AWDL::connect $P2I [$P1I macaddr]
+	$P1I wl awdl_advertisers
+	$P2I wl awdl_advertisers
+
+	set setup 1
+
+	if {$(frameburst)} {
+	    $P1I wl frameburst 1
+	    $P2I wl frameburst 1
+	} else {
+	    $P1I wl -u frameburst 0
+	    $P2I wl -u frameburst 0
+	}
+
+	# Auto TCP window size setting based on phy rate
+	set w [$P2I tcpautowindow]
+	$P1I wl awdl_aftxmode 3
+	$P2I wl awdl_aftxmode 3
+	controlchart \
+	    [list $P2I $P1I] \
+	    -key $key -i $(i) -s $(s) -window $w -b $(b) \
+	    -loop $(perfloop) -history $(history) -perfcache $(perfcache)
+    } finally {
+    	if {$setup} {
+	    $P1I wl awdl_aftxmode 0
+	    $P2I wl awdl_aftxmode 0
+	} else {
+	    cleanup
+	}
+    }
+    if {$setup} {
+	UTF::Try "$P1 AWDL S1->$P2" {
+	    # Auto TCP window size setting based on phy rate
+	    set w [$P2I tcpautowindow]
+
+	    $P1I wl awdl_aftxmode 3
+	    $P2I wl awdl_aftxmode 3
+	    controlchart \
+		[list $P1I $P2I] \
+		-key $key -i $(i) -s $(s) -window $w -b $(b) \
+		-loop $(perfloop) -history $(history) -perfcache $(perfcache)
+	} finally {
+	    $P1I wl awdl_aftxmode 0
+	    $P2I wl awdl_aftxmode 0
+	    if {$(ap) eq ""} {
+		cleanup
+	    }
+	}
+    }
+    if {$setup && $(ap) ne ""} {
+	set key [concat $branch AWDL S2 $(key)]
+
+	set setup 0
+	UTF::Try "+$P1 AWDL S2<-$P2" {
+	    #cleanup
+	    UTF::AWDL::idle $P1I $bssid -A $(chanspec)
+	    UTF::AWDL::idle $P2I $bssid -A $(chanspec)
+	    ConnectAPSTA $(ap) $P1 -security $(apsecurity) -chanspec $(apchanspec)
+	    UTF::AWDL::perfconfig $P1I $bssid \
+		-A $(chanspec) -B $(apchanspec) -S $(sync)
+	    UTF::AWDL::perfconfig $P2I $bssid \
+		-A $(chanspec) -B $(apchanspec) -S $(sync)
+	    UTF::AWDL::connect $P1I [$P2I macaddr]
+	    UTF::AWDL::connect $P2I [$P1I macaddr]
+	    $P1I wl awdl_advertisers
+	    $P2I wl awdl_advertisers
+
+	    set w [$P1I tcpautowindow]
+	    set setup 1
+
+	    $P1I wl awdl_aftxmode 3
+	    $P2I wl awdl_aftxmode 3
+		controlchart \
+		    [list $P2I $P1I] \
+		    -key $key -i $(i) -s $(s) -window $w -b $(b) \
+		    -loop $(perfloop) -history $(history) -perfcache $(perfcache)
+	} finally {
+	    if {$setup} {
+		$P1I wl awdl_aftxmode 0
+		$P2I wl awdl_aftxmode 0
+	    } else {
+		cleanup
+	    }
+	}
+	if {$setup} {
+	    UTF::Try "$P1 AWDL S2->$P2" {
+		# Auto TCP window size setting based on phy rate
+		set w [$P2I tcpautowindow]
+
+		$P1I wl awdl_aftxmode 3
+		$P2I wl awdl_aftxmode 3
+		controlchart \
+		    [list $P1I $P2I] \
+		    -key $key -i $(i) -s $(s) -window $w -b $(b) \
+		    -loop $(perfloop) -history $(history) -perfcache $(perfcache)
+	    } finally {
+		$P1I wl awdl_aftxmode 0
+		$P2I wl awdl_aftxmode 0
+	    }
+	    UTF::Try "$P1 AWDL S2 inf->$(ap)" {
+		$P1I wl awdl_aftxmode 3
+		$P2I wl awdl_aftxmode 3
+		controlchart \
+		    [list $P1 $(ap)] \
+		    -key $key -i $(i) -s $(s) -window $w -b $(b) \
+		    -loop $(perfloop) -history $(history) -perfcache $(perfcache)
+	    } finally {
+		$P1I wl awdl_aftxmode 0
+		$P2I wl awdl_aftxmode 0
+		cleanup
+	    }
+	}
+    }
+}
+

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -120,7 +120,7 @@ BIP_RtspSessionHandle BIP_RtspSession_CreateFromRequest(
     rc = BKNI_CreateEvent( &hRtspSession->dataReadyEvent );
     BIP_CHECK_ERR_NZ_GOTO( rc, "BKNI_CreateEvent() Failed", error );
 
-    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, (void *)hRtspSession ));
+    BDBG_MSG(( "%s: hRtspSession %p", BSTD_FUNCTION, (void *)hRtspSession ));
     return( hRtspSession );
 
 error:
@@ -140,7 +140,7 @@ void BIP_RtspSession_Destroy(
     )
 {
     BDBG_OBJECT_ASSERT( hRtspSession, BIP_RtspSession );
-    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, (void *)hRtspSession ));
+    BDBG_MSG(( "%s: hRtspSession %p", BSTD_FUNCTION, (void *)hRtspSession ));
     rtspSessionDestroy( hRtspSession );
 }
 
@@ -165,7 +165,7 @@ static void rtspMessageReceivedCallback(
 
     BDBG_OBJECT_ASSERT( hRtspSession, BIP_RtspSession );
     BDBG_ASSERT( messageLength );
-    BDBG_MSG(( "%s: hRtspSession %p, messageLength %d", __FUNCTION__, (void *)hRtspSession, messageLength ));
+    BDBG_MSG(( "%s: hRtspSession %p, messageLength %d", BSTD_FUNCTION, (void *)hRtspSession, messageLength ));
 
     /* Create new messageInfo entry to hold this message */
     messageInfo = (BIP_RtspSessionMessageInfo *)BKNI_Malloc( sizeof( BIP_RtspSessionMessageInfo ));
@@ -179,11 +179,11 @@ static void rtspMessageReceivedCallback(
 
     /* Copy the actual message */
     messageInfo->bufferLength = messageLength;
-    BDBG_MSG(( "%s: calling BIP_RtspLiveMediaSession_CopyMessage() -> (%p)", __FUNCTION__, (void *)messageInfo->pBuffer ));
+    BDBG_MSG(( "%s: calling BIP_RtspLiveMediaSession_CopyMessage() -> (%p)", BSTD_FUNCTION, (void *)messageInfo->pBuffer ));
     BIP_CHECK_PTR_GOTO( hRtspSession->hRtspLmSession, "hRtspSession->hRtspLmSession NULL", error, BIP_ERR_INVALID_PARAMETER );
     BIP_RtspLiveMediaSession_CopyMessage( hRtspSession->hRtspLmSession, messageInfo->pBuffer );
     messageInfo->pBuffer[messageLength] = '\0';
-    BDBG_MSG(( "%s: messageLength %d; message (%s)(%p); len %zu", __FUNCTION__, messageInfo->bufferLength, messageInfo->pBuffer, (void *)messageInfo->pBuffer,
+    BDBG_MSG(( "%s: messageLength %d; message (%s)(%p); len %zu", BSTD_FUNCTION, messageInfo->bufferLength, messageInfo->pBuffer, (void *)messageInfo->pBuffer,
                strlen( messageInfo->pBuffer )));
     BIP_CHECK_ERR_LEZ_GOTO( strlen( messageInfo->pBuffer ), "Message buffer was empty", "", error, BIP_ERR_INVALID_PARAMETER );
 
@@ -197,13 +197,13 @@ static void rtspMessageReceivedCallback(
     /* TODO: for now, we are directly invoking the callback */
     if (hRtspSession->settings.messageReceivedCallback.callback)
     {
-        BDBG_MSG(( "%s: calling messageReceivedCallback", __FUNCTION__ ));
+        BDBG_MSG(( "%s: calling messageReceivedCallback", BSTD_FUNCTION ));
         hRtspSession->settings.messageReceivedCallback.callback( hRtspSession->settings.messageReceivedCallback.context, hRtspSession->settings.messageReceivedCallback.param );
     }
     return;
 
 error:
-    BDBG_MSG(( "%s: message (%p); pBuffer %p", __FUNCTION__, (void *)messageInfo, (void *)messageInfo->pBuffer ));
+    BDBG_MSG(( "%s: message (%p); pBuffer %p", BSTD_FUNCTION, (void *)messageInfo, (void *)messageInfo->pBuffer ));
     fflush( stdout ); fflush( stderr );
     if (messageInfo && messageInfo->pBuffer)
     {
@@ -213,7 +213,7 @@ error:
     {
         BKNI_Free( messageInfo );
     }
-    BDBG_MSG(( "%s: done", __FUNCTION__ ));
+    BDBG_MSG(( "%s: done", BSTD_FUNCTION ));
     return;
 } /* rtspMessageReceivedCallback */
 
@@ -226,7 +226,7 @@ static void rtspIgmpMembershipReportCallback(
     BIP_RtspSessionHandle hRtspSession = (BIP_RtspSessionHandle)context;
 
     BDBG_OBJECT_ASSERT( hRtspSession, BIP_RtspSession );
-    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, (void *)hRtspSession ));
+    BDBG_MSG(( "%s: hRtspSession %p", BSTD_FUNCTION, (void *)hRtspSession ));
 
     BKNI_AcquireMutex( hRtspSession->lock );
     hRtspSession->lastIgmpStatus = (BIP_RtspIgmpMemRepStatus)igmpStatus;
@@ -236,7 +236,7 @@ static void rtspIgmpMembershipReportCallback(
     /* TODO: for now, we are directly invoking the callback */
     if (hRtspSession->settings.igmpMembershipReportEventCallback.callback)
     {
-        BDBG_MSG(( "%s: calling callback", __FUNCTION__ ));
+        BDBG_MSG(( "%s: calling callback", BSTD_FUNCTION ));
         hRtspSession->settings.igmpMembershipReportEventCallback.callback( hRtspSession->settings.igmpMembershipReportEventCallback.context, hRtspSession->settings.igmpMembershipReportEventCallback.param );
     }
 } /* rtspIgmpMembershipReportCallback */
@@ -317,7 +317,7 @@ BIP_Status BIP_RtspSession_RecvRequest(
     }
     BIP_RtspRequest_SetBuffer( hRtspRequest, messageInfo->pBuffer, messageInfo->bufferLength );
 
-    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p", __FUNCTION__, (void *)hRtspSession, (void *)hRtspRequest ));
+    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p", BSTD_FUNCTION, (void *)hRtspSession, (void *)hRtspRequest ));
 
     /* TODO: free up the message info or should we keep these objects into a free-list ? */
     BKNI_Free( messageInfo );
@@ -343,14 +343,14 @@ BIP_Status BIP_RtspSession_SendResponse(
     if (BIP_RtspResponse_StatusValid( hRtspResponse ) == false)
     {
         BIP_RtspResponse_GetStatus( hRtspResponse, &responseStatus );
-        BDBG_MSG(( "%s: Response Status (%d) is not set", __FUNCTION__, responseStatus ));
+        BDBG_MSG(( "%s: Response Status (%d) is not set", BSTD_FUNCTION, responseStatus ));
         return( BIP_ERR_INVALID_PARAMETER );
     }
     BIP_RtspResponse_GetStatus( hRtspResponse, &responseStatus );
-    BDBG_MSG(( "%s: responseStatus %x", __FUNCTION__, responseStatus ));
+    BDBG_MSG(( "%s: responseStatus %x", BSTD_FUNCTION, responseStatus ));
     BIP_RtspLiveMediaSession_SendResponse( hRtspSession->hRtspLmSession, responseStatus );
 
-    BDBG_MSG(( "%s: hRtspSession %p, hRtspResponse %p", __FUNCTION__, (void *)hRtspSession, (void *)hRtspResponse ));
+    BDBG_MSG(( "%s: hRtspSession %p, hRtspResponse %p", BSTD_FUNCTION, (void *)hRtspSession, (void *)hRtspResponse ));
 
     return( errCode );
 } /* BIP_RtspSession_SendResponse */
@@ -370,7 +370,7 @@ BIP_Status BIP_RtspSession_ReportLockStatus(
 
     BIP_RtspLiveMediaSession_ReportLockStatus( hRtspSession->hRtspLmSession, bLockStatus);
 
-    BDBG_MSG(( "%s: hRtspSession %p, bLockStatus %d", __FUNCTION__, (void *)hRtspSession, bLockStatus ));
+    BDBG_MSG(( "%s: hRtspSession %p, bLockStatus %d", BSTD_FUNCTION, (void *)hRtspSession, bLockStatus ));
 
     return( errCode );
 } /* BIP_RtspSession_SendResponse */
@@ -389,12 +389,12 @@ BIP_Status BIP_RtspSession_SendResponseUsingRequest(
     /* validate parameters */
     if (BIP_RtspResponse_StatusValid( hRtspResponse ) == false)
     {
-        BDBG_MSG(( "%s: Response Status (%d) is not set", __FUNCTION__, responseStatus ));
+        BDBG_MSG(( "%s: Response Status (%d) is not set", BSTD_FUNCTION, responseStatus ));
         return( BIP_ERR_INVALID_PARAMETER );
     }
     BIP_RtspLiveMediaSession_SendResponseUsingRequest( hRtspSession->hRtspLmSession, responseStatus, BIP_RtspRequest_GetBuffer( hRtspRequest ));
 
-    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p, hRtspResponse %p", __FUNCTION__, (void *)hRtspSession, (void *)hRtspRequest, (void *)hRtspResponse ));
+    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p, hRtspResponse %p", BSTD_FUNCTION, (void *)hRtspSession, (void *)hRtspRequest, (void *)hRtspResponse ));
 
     return( errCode );
 } /* BIP_RtspSession_SendResponseUsingRequest */
@@ -525,7 +525,7 @@ BIP_Status BIP_RtspSession_StartStreamer(
     rc = BIP_RtspSession_GetTransportStatus( hRtspSession, &transportStatus );
     BIP_CHECK_GOTO(( !rc ), ( "BIP_RtspSession_GetTransportStatus Failed!" ), error, BIP_ERR_INVALID_PARAMETER, rc );
 
-    BDBG_MSG(( "%s: Streaming To %s:%d, isMuticast %d, serverIpStr %s, i/f %s", __FUNCTION__,  transportStatus.clientAddressStr, transportStatus.clientRTPPortNum, transportStatus.isMulticast, transportStatus.serverAddressStr, hRtspSession->pInterfaceName ));
+    BDBG_MSG(( "%s: Streaming To %s:%d, isMuticast %d, serverIpStr %s, i/f %s", BSTD_FUNCTION,  transportStatus.clientAddressStr, transportStatus.clientRTPPortNum, transportStatus.isMulticast, transportStatus.serverAddressStr, hRtspSession->pInterfaceName ));
 
     /* call IP Applib to setup the streaming from Rave buffers */
 

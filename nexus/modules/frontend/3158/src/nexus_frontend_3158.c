@@ -159,6 +159,32 @@ typedef struct NEXUS_3158Channel
 /***************************************************************************
  * Module callback functions
  ***************************************************************************/
+static void NEXUS_Frontend_P_3158_cppm_callback_isr(void *pParam)
+{
+    NEXUS_3158Device *pDevice;
+    BDBG_ASSERT(NULL != pParam);
+    pDevice = (NEXUS_3158Device *)pParam;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    if ( pDevice->cppmAppCallback)
+    {
+        NEXUS_IsrCallback_Fire_isr(pDevice->cppmAppCallback);
+    }
+}
+
+static void NEXUS_Frontend_P_3158_cppm_complete_callback_isr(void *pParam)
+{
+    NEXUS_3158Device *pDevice;
+    BDBG_ASSERT(NULL != pParam);
+    pDevice = (NEXUS_3158Device *)pParam;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    if ( pDevice->cppmDoneCallback)
+    {
+        NEXUS_IsrCallback_Fire_isr(pDevice->cppmDoneCallback);
+    }
+}
+
 static void NEXUS_Frontend_P_3158_spectrumDataReadyCallback(void *pParam)
 {
     BDBG_ASSERT(NULL != pParam);
@@ -471,6 +497,33 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3158_GetStatus(void *handle, NEXUS_Fro
         else
             pStatus->avs.enabled = false;
     }
+done:
+    return rc;
+}
+
+static NEXUS_Error NEXUS_FrontendDevice_P_3158_Recalibrate(void *handle, const NEXUS_FrontendDeviceRecalibrateSettings *pSettings)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BHAB_RecalibrateSettings recalibrateSettings;
+    NEXUS_3158Device *pDevice;
+
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    NEXUS_IsrCallback_Set(pDevice->cppmAppCallback, &(pSettings->cppm.powerLevelChange));
+    NEXUS_IsrCallback_Set(pDevice->cppmDoneCallback, &(pSettings->cppm.calibrationComplete));
+
+    rc = BHAB_3158_GetDefaultRecalibrateSettings(&recalibrateSettings);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    recalibrateSettings.cppm.enabled = pSettings->cppm.enabled;
+    recalibrateSettings.cppm.threshold = pSettings->cppm.threshold;
+    recalibrateSettings.cppm.thresholdHysteresis = pSettings->cppm.thresholdHysteresis;
+
+    rc = BHAB_SetRecalibrateSettings(pDevice->hab, &recalibrateSettings);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
 done:
     return rc;
 }
@@ -884,6 +937,7 @@ done:
 static void NEXUS_Frontend_P_3158_UnTuneIfdac(void *handle)
 {
     /* Empty to avoid spurious message from nexus_frontend.c */
+    BSTD_UNUSED(handle);
     return;
 }
 
@@ -911,6 +965,7 @@ done:
 
 static void NEXUS_Tuner_P_3158_Close(void *handle)
 {
+    BSTD_UNUSED(handle);
     return;
 }
 
@@ -942,7 +997,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneOob(void *handle, const NEXUS_Front
         uint32_t agcVal=0;
         uint32_t buf=0;
         NEXUS_FrontendDevice_P_GetDocsisLnaDeviceAgcValue(hFrontendDevice->parent,&agcVal);
-        BDBG_MSG(("%s DOCSIS agcVal:%#lx <<<",__FUNCTION__agcVal));
+        BDBG_MSG(("%s DOCSIS agcVal:%#lx <<<",BSTD_FUNCTIONagcVal));
         rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_SFT0, &buf);
         if(rc){rc = BERR_TRACE(rc); goto done;}
         if(buf & 0x80000000)
@@ -993,6 +1048,20 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneOob(void *handle, const NEXUS_Front
     obParams.spectrum = pSettings->spectrum;
     obParams.bertPolynomial = pSettings->bert.polynomial;
 
+	/*if support MPOD, we need the output mode to be set to satisfy the card*/
+#if defined(NEXUS_HAS_MPOD)
+	{
+		BAOB_ConfigSettings ConfigSettings;
+		rc = BAOB_GetConfigSettings(pDevice->aob, &ConfigSettings);
+		if(rc){rc = BERR_TRACE(rc); goto done;}
+		ConfigSettings.outputMode = NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder;
+		printf("\n ===set aob handle output mode to NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder===\n");
+		rc = BAOB_SetConfigSettings(pDevice->aob, &ConfigSettings);
+		if(rc){rc = BERR_TRACE(rc); goto done;}
+		pDevice->deviceSettings.cable.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder;
+	}
+#endif
+
     rc = BAOB_SetAcquireParams(pDevice->aob, &obParams);
     if(rc){rc = BERR_TRACE(rc); goto done;}
 
@@ -1018,7 +1087,9 @@ static void NEXUS_Frontend_P_3158_UnTuneOob(void *handle)
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
     BDBG_ASSERT(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL);
 
-    NEXUS_Frontend_P_UnsetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
+    if (pDevice->frontendHandle[pChannel->chn_num]) {
+        NEXUS_Frontend_P_UnsetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
+    }
 
     if (pDevice->isPoweredOn[pChannel->chn_num]) {
         rc = BAOB_EnablePowerSaver(pDevice->aob);
@@ -1529,7 +1600,6 @@ done:
 
 static void NEXUS_Frontend_P_3158_UnTuneQam(void *handle)
 {
-#if 0
     NEXUS_Error rc = NEXUS_SUCCESS;
     BADS_InbandParam ibParam;
     NEXUS_3158Device *pDevice;
@@ -1545,7 +1615,9 @@ static void NEXUS_Frontend_P_3158_UnTuneQam(void *handle)
         rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
-    NEXUS_Frontend_P_UnsetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
+    if (pDevice->frontendHandle[pChannel->chn_num]) {
+        NEXUS_Frontend_P_UnsetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
+    }
 
     if(pDevice->isPoweredOn[pChannel->chn_num]){
         BKNI_Memset(&ibParam, 0x0, sizeof(ibParam));
@@ -1562,9 +1634,6 @@ static void NEXUS_Frontend_P_3158_UnTuneQam(void *handle)
 
 done:
     return;
-#else
-    BSTD_UNUSED(handle);
-#endif
 }
 
 static NEXUS_Error NEXUS_Frontend_P_3158_GetQamScanStatus(void *handle, NEXUS_FrontendQamScanStatus *pScanStatus)
@@ -1934,6 +2003,10 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PreInitAp(NEXUS_FrontendDeviceHandle pFr
         if (errCode) { BERR_TRACE(errCode); goto err; }
     }
     else if(pSettings->gpioInterrupt){
+        NEXUS_GpioSettings gpioSettings;
+        NEXUS_Gpio_GetSettings(pSettings->gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+        NEXUS_Gpio_SetSettings(pSettings->gpioInterrupt, &gpioSettings);
         BDBG_MSG(("Connecting GPIO interrupt"));
         NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt,
                                              NEXUS_Frontend_P_3158_L1_isr,
@@ -2006,6 +2079,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PreInitAp(NEXUS_FrontendDeviceHandle pFr
     BDBG_MSG(("Filling out API tree"));
     pFrontendDevice->getCapabilities = NEXUS_FrontendDevice_P_3158_GetCapabilities;
     pFrontendDevice->getTunerCapabilities = NEXUS_FrontendDevice_P_3158_GetTunerCapabilities;
+    pFrontendDevice->recalibrate = NEXUS_FrontendDevice_P_3158_Recalibrate;
     pFrontendDevice->getStatus = NEXUS_FrontendDevice_P_3158_GetStatus;
 #if 0
     pFrontendDevice->getInternalGain = NEXUS_FrontendDevice_P_3158_GetInternalGain;
@@ -2230,6 +2304,22 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PostInitAp(NEXUS_FrontendDeviceHandle de
     }
 #endif
 
+    pDevice->cppmAppCallback = NEXUS_IsrCallback_Create(pDevice, NULL);
+    if ( NULL == pDevice->cppmAppCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
+
+    pDevice->cppmDoneCallback = NEXUS_IsrCallback_Create(pDevice, NULL);
+    if ( NULL == pDevice->cppmDoneCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
+
+    BHAB_InstallInterruptCallback(pDevice->hab, BHAB_DevId_eGlobal,
+                                (BHAB_IntCallbackFunc)NEXUS_Frontend_P_3158_cppm_callback_isr,
+                                (void *)pDevice,
+                                BHAB_Interrupt_eCppmPowerLevelChange);
+
+    BHAB_InstallInterruptCallback(pDevice->hab, BHAB_DevId_eGlobal,
+                                (BHAB_IntCallbackFunc)NEXUS_Frontend_P_3158_cppm_complete_callback_isr,
+                                (void *)pDevice,
+                                BHAB_Interrupt_eCalibrationComplete);
+
 #if NEXUS_HAS_MXT
     /* open MXT */
     BMXT_GetDefaultSettings(&mxtSettings);
@@ -2249,6 +2339,18 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PostInitAp(NEXUS_FrontendDeviceHandle de
     rc = NEXUS_Frontend_P_InitMtsifConfig(&pDevice->pGenericDeviceHandle->mtsifConfig, &mxtSettings);
     if (rc!=BERR_SUCCESS) goto done;
 #endif
+
+    if (!pDevice->openSettings.crystalSettings.enableDaisyChain) {
+        unsigned addr = 0x4120724;
+        uint32_t val;
+        BERR_Code e;
+        e = BHAB_ReadRegister(pDevice->hab, addr, &val);
+        if (e) BERR_TRACE(e);
+        val &= 0xFFFFFFF7;
+        val |= 0x00000008;
+        e = BHAB_WriteRegister(pDevice->hab, addr, &val);
+        if (e) BERR_TRACE(e);
+    }
 
 done:
     return rc;
@@ -2315,6 +2417,14 @@ static void NEXUS_Frontend_P_Uninit3158(NEXUS_3158Device *pDevice, bool uninitHa
             }
         }
     }
+    if(pDevice->cppmDoneCallback) {
+        NEXUS_IsrCallback_Destroy(pDevice->cppmDoneCallback);
+        pDevice->cppmDoneCallback = NULL;
+    }
+    if(pDevice->cppmAppCallback) {
+        NEXUS_IsrCallback_Destroy(pDevice->cppmAppCallback);
+        pDevice->cppmAppCallback = NULL;
+    }
     if (pDevice->spectrumEvent) {
         BKNI_DestroyEvent(pDevice->spectrumEvent);
         pDevice->spectrumEvent = NULL;
@@ -2353,6 +2463,17 @@ static void NEXUS_Frontend_P_Uninit3158(NEXUS_3158Device *pDevice, bool uninitHa
         BKNI_Memset((void *)&pDevice->pGenericDeviceHandle->mtsifConfig, 0, sizeof(pDevice->pGenericDeviceHandle->mtsifConfig));
     }
 #endif
+
+    if (pDevice->openSettings.isrNumber) {
+        NEXUS_Core_DisconnectInterrupt(pDevice->openSettings.isrNumber);
+    } else if (pDevice->openSettings.gpioInterrupt) {
+        NEXUS_GpioSettings gpioSettings;
+        NEXUS_Gpio_SetInterruptCallback_priv(pDevice->openSettings.gpioInterrupt, NULL, NULL, 0);
+        NEXUS_Gpio_GetSettings(pDevice->openSettings.gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+        NEXUS_Gpio_SetSettings(pDevice->openSettings.gpioInterrupt, &gpioSettings);
+    }
+
     if (uninitHab && pDevice->hab) {
         BHAB_Close(pDevice->hab);
         pDevice->hab = NULL;
@@ -2514,7 +2635,7 @@ static void NEXUS_Frontend_P_3158_Close(NEXUS_FrontendHandle handle)
 
     NEXUS_Frontend_P_Destroy(handle);
 #if NEXUS_FRONTEND_315x_OOB
-    if(pDevice->frontendHandle[pChannel->chn_num]->capabilities.outOfBand == true){
+    if(pDevice->frontendHandle[pChannel->chn_num] && pDevice->frontendHandle[pChannel->chn_num]->capabilities.outOfBand == true){
         if(pDevice->aob) BAOB_InstallCallback(pDevice->aob, BAOB_Callback_eLockChange, NULL, NULL);
         if(pDevice->aob) BAOB_InstallCallback(pDevice->aob, BAOB_Callback_eAsyncStatusReady, NULL, NULL);
     }
@@ -2573,7 +2694,6 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
     NEXUS_FrontendDeviceHandle pFrontendDevice;
     NEXUS_3158Device *p3158Device;
     NEXUS_3158Channel *pChannel;
-    BERR_Code rc;
     unsigned channelNumber;
     NEXUS_FrontendChannelType type = NEXUS_FrontendChannelType_eCable;
     bool ifdac = false;
@@ -2617,12 +2737,12 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
     }
 
     pChannel = (NEXUS_3158Channel*)BKNI_Malloc(sizeof(*pChannel));
-    if ( NULL == pChannel ) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err;}
+    if ( NULL == pChannel ) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err;}
     BKNI_Memset(pChannel, 0, sizeof(*pChannel));
 
     /* Create a Nexus frontend handle */
     frontendHandle = NEXUS_Frontend_P_Create(pChannel);
-    if ( NULL == frontendHandle ) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err;}
+    if ( NULL == frontendHandle ) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err;}
 
     /* Set capabilities and channel type parameters */
     if (type == NEXUS_FrontendChannelType_eCable) {
@@ -2680,7 +2800,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
         NEXUS_IsrCallbackHandle lockCallback;
         /* lock callback */
         lockCallback = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == lockCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
+        if ( NULL == lockCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
         p3158Device->lockAppCallback[channelNumber] = lockCallback;
     }
 
@@ -2689,10 +2809,10 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
         NEXUS_IsrCallbackHandle qamAsyncStatusReadyCallback = NULL;
         NEXUS_TaskCallbackHandle spectrumDataCallback  = NULL;
         qamAsyncStatusReadyCallback = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == qamAsyncStatusReadyCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
+        if ( NULL == qamAsyncStatusReadyCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
 
         spectrumDataCallback = NEXUS_TaskCallback_Create(frontendHandle, NULL);
-        if ( NULL == spectrumDataCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
+        if ( NULL == spectrumDataCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
 
         p3158Device->spectrumDataAppCallback[channelNumber] = spectrumDataCallback;
         p3158Device->asyncStatusAppCallback[channelNumber] = qamAsyncStatusReadyCallback;
@@ -2701,7 +2821,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
     {
         NEXUS_IsrCallbackHandle oobAsyncStatusReadyCallback = NULL;
         oobAsyncStatusReadyCallback = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == oobAsyncStatusReadyCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
+        if ( NULL == oobAsyncStatusReadyCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
 
         p3158Device->asyncStatusAppCallback[channelNumber] = oobAsyncStatusReadyCallback;
         channelNumber = NEXUS_3158_OOB_CHANNEL;

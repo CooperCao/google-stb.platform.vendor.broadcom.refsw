@@ -15,6 +15,8 @@
 extern "C" {
 #endif
 
+#define V3D_SCHEDULER_COMPUTE_MIN_SHARED_MEM_PER_CORE (32u*1024u)
+
 typedef struct bcm_sched_dependencies v3d_scheduler_deps;
 typedef bcm_completion_fn v3d_sched_completion_fn;
 typedef bcm_user_fn v3d_sched_user_fn;
@@ -49,19 +51,14 @@ uint64_t v3d_scheduler_submit_tfu_job(
    bool secure,
    v3d_sched_completion_fn completion, void *data);
 
-/* bin_render  cle layout info */
 typedef struct
 {
-   unsigned num_bins;
-   v3d_addr_t bin_begins[V3D_MAX_BIN_SUBJOBS];
-   v3d_addr_t bin_ends[V3D_MAX_BIN_SUBJOBS];
+   v3d_size_t tile_alloc_layer_stride;
    void* bin_gmp_table;
    v3d_cache_ops bin_cache_ops;     // Flushes executed after bin-deps are met, before job execution.
                                     // Cleans executed after job execution, before reported completed.
 
-   unsigned num_renders;
-   v3d_addr_t render_begins[V3D_MAX_RENDER_SUBJOBS];
-   v3d_addr_t render_ends[V3D_MAX_RENDER_SUBJOBS];
+
    void* render_gmp_table;
    v3d_cache_ops render_cache_ops;  // Flushes executed after render-deps are met, before job execution.
                                     // Cleans executed after job execution, before reported completed.
@@ -69,6 +66,7 @@ typedef struct
 
    bool bin_workaround_gfxh_1181;
    bool bin_no_render_overlap;
+
    bool render_workaround_gfxh_1181;
    bool render_no_bin_overlap;
    bool secure;
@@ -80,14 +78,25 @@ typedef struct
 #if V3D_HAS_QTS
    unsigned bin_tile_state_size;
 #endif
+}v3d_bin_render_details;
+
+/* bin_render  cle layout info */
+typedef struct
+{
+   v3d_subjobs_list  bin_subjobs;
+
+   unsigned num_layers;
+   v3d_subjobs_list render_subjobs;
+
+   v3d_bin_render_details details;
+
 } V3D_BIN_RENDER_INFO_T;
 
 /* render  cle layout info */
 typedef struct
 {
-   unsigned int num_renders;
-   v3d_addr_t render_begins[V3D_MAX_CORES];
-   v3d_addr_t render_ends[V3D_MAX_CORES];
+   v3d_subjobs_list subjobs_list;
+
    void* render_gmp_table;
    v3d_cache_ops render_cache_ops;
    v3d_empty_tile_mode empty_tile_mode;
@@ -232,6 +241,32 @@ static inline void v3d_scheduler_copy_deps(v3d_scheduler_deps *dst, const v3d_sc
 
 const V3D_HUB_IDENT_T* v3d_scheduler_get_hub_identity(void);
 const V3D_IDENT_T* v3d_scheduler_get_identity(void);
+
+/* Create a new scheduler event that can be set/reset/query from the host */
+/* and can be wait on/set/reset from the device (using jobs) */
+bcm_sched_event_id v3d_scheduler_new_event(void);
+/* An event should only be deleted once all jobs using this event have been completed */
+/* as event jobs do not maintain a reference to their event */
+void v3d_scheduler_delete_event(bcm_sched_event_id event_id);
+void v3d_scheduler_set_event(bcm_sched_event_id event_id);
+void v3d_scheduler_reset_event(bcm_sched_event_id event_id);
+bool v3d_scheduler_query_event(bcm_sched_event_id event_id);
+/* Create a job that will wait before to be executed for all dependencies to be completed
+ * and then for the event to be signalled */
+uint64_t v3d_scheduler_submit_wait_on_event_job(const v3d_scheduler_deps* deps, bcm_sched_event_id event_id);
+/* Create a job that will wait before to be executed for all dependencies to be completed
+ * and then will signal the event */
+uint64_t v3d_scheduler_submit_set_event_job(const v3d_scheduler_deps* deps, bcm_sched_event_id event_id);
+/* Create a job that will wait before to be executed for all dependencies to be completed
+ * and then will unsignal the event */
+uint64_t v3d_scheduler_submit_reset_event_job(const v3d_scheduler_deps* deps, bcm_sched_event_id event_id);
+
+//! Return amount of shared memory per-core for this process.
+uint32_t v3d_scheduler_get_compute_shared_mem_size_per_core(void);
+
+//! Return compute shared memory for this process. If !alloc, will return
+//! GMEM_INVALID_HANDLE unless shared memory already allocated.
+gmem_handle_t v3d_scheduler_get_compute_shared_mem(bool secure, bool alloc);
 
 #ifdef __cplusplus
 }

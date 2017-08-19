@@ -1,0 +1,95 @@
+#!/usr/bin/env python2.7
+"""Program to compare two tarballs file-by-file."""
+
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import argparse
+import getpass
+import os
+import subprocess
+import shutil
+import sys
+import tempfile
+
+TAR = 'release/linux-2.6.36-router-6.30.0.0.tar.gz'
+
+
+def main(argv):
+    """
+    Program to compare two tarballs file-by-file.
+
+    """
+
+    prog = os.path.basename(__file__)
+
+    left = 'left'
+    right = 'right'
+
+    parser = argparse.ArgumentParser(
+        epilog=main.__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '-D', '--save-output', action='store_true',
+        help="automatically write diffs into <diffdir>/diff")
+    parser.add_argument(
+        '-d', '--diffdir',
+        help="use this extraction dir and don't remove")
+    parser.add_argument(
+        '-I', '--re', action='append',
+        help="pass -I <RE> to diff")
+    parser.add_argument(left)
+    parser.add_argument(right)
+    opts = parser.parse_args(argv[1:])
+
+    if not opts.right or (opts.save_output and not opts.diffdir):
+        main([argv[0], '-h'])
+
+    keep = True
+    if opts.diffdir and os.path.exists(opts.diffdir):
+        diffdir = opts.diffdir
+    else:
+        if opts.diffdir:
+            diffdir = opts.diffdir
+            os.makedirs(diffdir)
+        else:
+            prefix = '.'.join([getpass.getuser(), prog])
+            diffdir = tempfile.mkdtemp(prefix=prefix)
+            keep = False
+
+    if opts.save_output:
+        output = os.path.join(diffdir, 'DIFF')
+        stdout = open(output, 'w')
+    else:
+        stdout = None
+
+    ldir = os.path.join(diffdir, left)
+    rdir = os.path.join(diffdir, right)
+
+    if not os.path.exists(ldir):
+        os.mkdir(ldir)
+        cmd = ['tar', '-C', ldir, '-xzf', opts.left]
+        subprocess.check_call(cmd)
+
+    if not os.path.exists(rdir):
+        os.mkdir(rdir)
+        cmd = ['tar', '-C', rdir, '-xzf', opts.right]
+        subprocess.check_call(cmd)
+
+    cmd = ['diff', '-r']
+    for x in ['*.a', '*.la', '*.pc', 'passwd']:
+        cmd.extend(['-x', x])
+    if opts.re:
+        for i in opts.re:
+            cmd.extend(['-I', i])
+    cmd.extend([left, right])
+    subprocess.call(cmd, cwd=diffdir, stdout=stdout)
+
+    if not keep:
+        shutil.rmtree(diffdir)
+
+
+if __name__ == '__main__':
+    main(sys.argv)
+
+# vim: ts=8:sw=4:tw=80:et:

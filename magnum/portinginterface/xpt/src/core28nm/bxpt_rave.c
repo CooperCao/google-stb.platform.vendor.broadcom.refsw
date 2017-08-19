@@ -443,7 +443,7 @@ static BXPT_P_ContextHandle * allocContextHandle(
 
     if(!ThisCtx)
     {
-        BDBG_ERR(("%s malloc failed for context handle", __FUNCTION__));
+        BDBG_ERR(("%s malloc failed for context handle", BSTD_FUNCTION));
         goto Done;
     }
     BKNI_Memset(ThisCtx, 0, sizeof(*ThisCtx));
@@ -2647,6 +2647,13 @@ BERR_Code BXPT_Rave_GetRecordConfig(
    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + REC_MISC_CFG_OFFSET );
    Cfg->useAvConfig = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_REC_MISC_CONFIG, REC_AVN ) ? false : true;
 
+#if BXPT_HAS_PACKET_PLACEHOLDER
+    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + REC_TIME_CONFIG_OFFSET );
+    Cfg->packetPlaceholderEn = BCHP_GET_FIELD_DATA(Reg, XPT_RAVE_CX0_REC_TIME_CONFIG, PKT_PLACEHOLDER_EN ) ? true : false;
+    Cfg->packetTimeoutItbGenEn = BCHP_GET_FIELD_DATA(Reg, XPT_RAVE_CX0_REC_TIME_CONFIG, REC_TIMEOUT_ITB_EN ) ? true : false;
+    Cfg->timeoutVal = BCHP_GET_FIELD_DATA(Reg, XPT_RAVE_CX0_REC_TIME_CONFIG, REC_TIMEOUT_VAL );
+#endif
+
     return( ExitCode );
 }
 
@@ -2949,6 +2956,21 @@ BERR_Code BXPT_Rave_SetRecordConfig(
     Reg |= ( BCHP_FIELD_DATA( XPT_RAVE_CX0_REC_MISC_CONFIG, REC_AVN, Cfg->useAvConfig ? 0 : 1 ));
     BREG_Write32( Ctx->hReg, Ctx->BaseAddr + REC_MISC_CFG_OFFSET, Reg );
 
+#if BXPT_HAS_PACKET_PLACEHOLDER
+    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + REC_TIME_CONFIG_OFFSET );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_CX0_REC_TIME_CONFIG, PKT_PLACEHOLDER_EN ) |
+        BCHP_MASK( XPT_RAVE_CX0_REC_TIME_CONFIG, REC_TIMEOUT_ITB_EN ) |
+        BCHP_MASK( XPT_RAVE_CX0_REC_TIME_CONFIG, REC_TIMEOUT_VAL )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_REC_TIME_CONFIG, PKT_PLACEHOLDER_EN, Cfg->packetPlaceholderEn ? 1 : 0 ) |
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_REC_TIME_CONFIG, REC_TIMEOUT_ITB_EN, Cfg->packetTimeoutItbGenEn ? 1 : 0 ) |
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_REC_TIME_CONFIG, REC_TIMEOUT_VAL, Cfg->timeoutVal )
+    );
+    BREG_Write32( Ctx->hReg, Ctx->BaseAddr + REC_TIME_CONFIG_OFFSET, Reg );
+#endif
+
     done:
     return( ExitCode );
 }
@@ -3030,10 +3052,10 @@ static void SetWrapPointerForHEVD(
     reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
     wrapThreshold = BCHP_GET_FIELD_DATA( reg, XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD );
     adjustedWrapAddr = (endAddr - wrapThreshold);
-    BDBG_MSG(( "%s: endAddr " BDBG_UINT64_FMT ", wrapThreshold " BDBG_UINT64_FMT ", adjustedWrapAddr " BDBG_UINT64_FMT "", __FUNCTION__,
+    BDBG_MSG(( "%s: endAddr " BDBG_UINT64_FMT ", wrapThreshold " BDBG_UINT64_FMT ", adjustedWrapAddr " BDBG_UINT64_FMT "", BSTD_FUNCTION,
             BDBG_UINT64_ARG(endAddr), BDBG_UINT64_ARG(wrapThreshold), BDBG_UINT64_ARG(adjustedWrapAddr) ));
     BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, adjustedWrapAddr );
-    BDBG_MSG(( "%s: readback adjustedWrapAddr " BDBG_UINT64_FMT " ", __FUNCTION__, BDBG_UINT64_ARG(BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET )) ));
+    BDBG_MSG(( "%s: readback adjustedWrapAddr " BDBG_UINT64_FMT " ", BSTD_FUNCTION, BDBG_UINT64_ARG(BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET )) ));
 
     /*
     Set the enable bit to tell RAVE fw that the workaround should be done. This bit is cleared when the
@@ -3355,7 +3377,7 @@ BERR_Code BXPT_Rave_SetAvConfig(
         ** the VCE-based transcoding tests. See SW7425-5829.
         EmulationPrevRemove = false;
     */
-        BDBG_WRN(( "%s: Config->Transcoding is no longer supported", __FUNCTION__ ));
+        BDBG_WRN(( "%s: Config->Transcoding is no longer supported", BSTD_FUNCTION ));
     }
 
     switch( Config->OutputFormat )
@@ -4869,22 +4891,12 @@ BERR_Code InitContext(
         ThisCtx->mma.cdbPtr = (uint8_t*)BMMA_Lock(ThisCtx->mma.cdbBlock) + ThisCtx->mma.cdbBlockOffset;
         ThisCtx->mma.cdbOffset = BufferOffset = BMMA_LockOffset(ThisCtx->mma.cdbBlock) + ThisCtx->mma.cdbBlockOffset;
 
-        /* check alignment of buffer pointer */
-        if( ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR )
-        {
-            if (ThisCtx->mma.cdbOffset % 256)
-            {
-                BDBG_ERR(("CDB buffer pointer is not 256-Byte aligned"));
-                ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-                goto error;
-            }
-        }
-
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_BASE_PTR_OFFSET, BufferOffset );
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, BufferOffset );
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_VALID_PTR_OFFSET, BufferOffset );
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_READ_PTR_OFFSET, BufferOffset );
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_END_PTR_OFFSET, BufferOffset + BufferCfg->Cdb.Length - 1 );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 
 #if BXPT_HAS_HEVD_WORKAROUND
         /* Don't do anything to the CDB */
@@ -4898,17 +4910,7 @@ BERR_Code InitContext(
             if (!ThisCtx->externalItbAlloc) /* XPT does the alloc */
             {
 
-                /* SW7420-1459: Insure that the ITB size is a multiple of 16 for AV contexts. */
-                if( (ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR) && BufferCfg->Itb.Length % BXPT_ITB_SIZE )
-                {
-                    ItbSize = BufferCfg->Itb.Length - (BufferCfg->Itb.Length % BXPT_ITB_SIZE);
-                    BDBG_WRN(( "Invalid ITB size, must be a multiple of %u. Truncating to %u", BXPT_ITB_SIZE, ItbSize ));
-                }
-                else
-                {
-                    ItbSize = BufferCfg->Itb.Length;
-                }
-
+                ItbSize = BufferCfg->Itb.Length;
                 ThisCtx->mma.itbBlock = BMMA_Alloc(ThisCtx->mmaHeap, ItbSize, 1 << ItbAlignment, NULL);
                 if (!ThisCtx->mma.itbBlock) {
                     BDBG_ERR(("ITB alloc failed!"));
@@ -4917,29 +4919,11 @@ BERR_Code InitContext(
             }
             else /* the app has already done the alloc */
             {
-                if( (ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR) && BufferCfg->Itb.Length % BXPT_ITB_SIZE )
-                {
-                    BDBG_ERR(( "Invalid ITB size, must be a multiple of %u", BXPT_ITB_SIZE ));
-                    ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-                    goto error;
-                }
-
                 ItbSize = BufferCfg->Itb.Length;
             }
 
             ThisCtx->mma.itbPtr = (uint8_t*)BMMA_Lock(ThisCtx->mma.itbBlock) + ThisCtx->mma.itbBlockOffset;
             ThisCtx->mma.itbOffset = BufferOffset = BMMA_LockOffset(ThisCtx->mma.itbBlock) + ThisCtx->mma.itbBlockOffset;
-
-            /* check alignment of buffer pointer */
-            if( ThisCtx->Type == BXPT_RaveCx_eAv || ThisCtx->Type == BXPT_RaveCx_eAvR )
-            {
-                if (ThisCtx->mma.itbOffset % 128)
-                {
-                    BDBG_ERR(("ITB buffer pointer is not 128-Byte aligned"));
-                    ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-                    goto error;
-                }
-            }
 
             BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_WRITE_PTR_OFFSET, BufferOffset );
             BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + ITB_READ_PTR_OFFSET, BufferOffset );
@@ -6171,7 +6155,7 @@ BERR_Code GetScdPid(
     *PidValid = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_REC_SCD_PIDS_A, Mapped_SCD_via_PID_channels_PID_CHA_VALID );
     #if 0
     BDBG_MSG(("%s : %d : hCtx: %p WhichScd: %u WhichScdBlock: %u Pid: %u PidValid: %u  ",
-                 __FUNCTION__, __LINE__, (void*) hCtx, WhichScd, *WhichScdBlock, *Pid, *PidValid   ));
+                 BSTD_FUNCTION, __LINE__, (void*) hCtx, WhichScd, *WhichScdBlock, *Pid, *PidValid   ));
     #endif
 #endif
 
@@ -6193,7 +6177,7 @@ BERR_Code ChangeScdPid(
 
     #if 0
     BDBG_MSG(("%s : %d : Entry: hCtx: %p, WhichScd: %u, WhichScdBlock: %u, Pid: %u, PidValid: %u ",
-                           __FUNCTION__, __LINE__ , (void *) hCtx, WhichScd, WhichScdBlock, Pid, PidValid  ));
+                           BSTD_FUNCTION, __LINE__ , (void *) hCtx, WhichScd, WhichScdBlock, Pid, PidValid  ));
     #endif
 
 #ifdef BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_AB

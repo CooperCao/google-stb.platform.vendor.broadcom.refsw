@@ -1128,8 +1128,8 @@ BERR_Code BAST_g3_P_GetTfecClock_isrsafe(BAST_ChannelHandle h, uint32_t *pFreq)
    else
    {
       *pFreq = 0;
-      BDBG_ERR(("BAST_g3_P_GetTfecClock_isrsafe(): TFEC not powered"));
-      BERR_TRACE(retCode = BAST_ERR_POWERED_DOWN);
+      BDBG_MSG(("BAST_g3_P_GetTfecClock_isrsafe(): TFEC not powered"));
+      retCode = BAST_ERR_POWERED_DOWN;
    }
    return retCode;
 }

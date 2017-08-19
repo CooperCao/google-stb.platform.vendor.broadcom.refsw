@@ -1,0 +1,4 @@
+#if defined(WLSRC) || defined(WLSRC_SRC)
+src/wl/ppr/src/wlc_ppr.c
+src/wl/ppr/include/wlc_ppr.h
+#endif

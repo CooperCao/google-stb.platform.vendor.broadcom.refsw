@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Platform independent wrapper to call new svn sparse tool
+#
+# $Id$
+#
+
+# Point to a debug or test version of sparse checkout
+export SPARSE_GALLERY=/projects/hnd_software/gallery-sparse-debug/intermittent_fault
+
+`dirname $0`/sparse "$@"

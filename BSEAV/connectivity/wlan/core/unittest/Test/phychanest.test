@@ -1,0 +1,163 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# Minimal UTF test script to take and plot the phychanest
+#
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::ControlChart
+package require UTF::Test::rssinoise
+
+UTF::Test phychanest {AP STA args} {
+    UTF::Getopts {
+	{chanspec.arg "161/80" "Chanspecs to use in the tests"}
+	{security.arg "open" "Default security"}
+	{dir.arg "up" "Traffic direction"}
+	{b.arg "" "UTF traffic offer rate"}
+	{samples.arg "1" "Number of phychanest samples to take. Trunk may require up to 16"}
+	{oldapi "Test old API to make sure we don't break scripts"}
+	{loop.arg 1 "Loop"}
+	{rate.arg "auto" "txrate"}
+	{nocache "Don't update performance cache"}
+    }
+    if {$(b) ne ""} {
+	set b "-b $(b)"
+    } else {
+	set b ""
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    if {$(chanspec) eq "all"} {
+	# find all chanspecs AP and STA have in common
+	set (chanspec) [UTF::Common \
+			    [$AP allchanspecs -band [$AP wl band]] \
+			    [$STA allchanspecs -band [$STA wl band]]]
+    }
+    UTF::Message INFO [$AP cget -name] "Available channels: $(chanspec)"
+
+    # Trigger early failure if required tools are missing
+
+    # octave
+    exec /tools/bin/octave -h
+
+    if {$(dir) eq "up"} {
+	set mode ap
+	set dut $AP
+	set SRC $STA
+	set SNK $AP
+    } elseif {$(dir) eq "down"} {
+	set mode sta
+	set dut $STA
+	set SRC $AP
+	set SNK $STA
+    } else {
+	error "dir should be up or down"
+    }
+
+    if {$(oldapi)} {
+	# legacy
+	package require UTF::PhyChanEst
+	set (ap) $AP
+	set (sta) $STA
+
+	UTF::Try "Connect $(ap) $(sta) $(security) $(chanspec)" {
+	    UTF::Test::ConnectAPSTA $(ap) $(sta) \
+		-security $(security) -chanspec $(chanspec)
+	}
+	UTF::Try "Phy Verification" {
+	    foreach STA $(sta) {
+		UTF::Try "PhyChan $STA" {
+		    package require UTF::PhyChanEst
+		    set phyestimator [UTF::PhyChanEst %AUTO% \
+					  -ap $(ap) -sta $STA -mode $mode]
+		    for {set ix 0} {$ix < 2} {incr ix} {
+			UTF::Try "Phy estimate $ix" {
+			    $phyestimator sample
+			    $phyestimator mylink
+			}
+		    }
+		    set text "[$phyestimator bestrate]"
+		    return [$phyestimator condition $text]
+		}
+		foreach p [UTF::PhyChanEst info instances] {
+		    $p destroy
+		}
+	    }
+	}
+	catch {UTF::stream exitstreams}
+    } else {
+
+	proc cb {} {
+	    uplevel {
+		UTF::Sleep 2
+		set dpce [$SNK wl_dump_phychanest]
+	    }
+	}
+	$SRC wl mpc 0
+	$SNK wl mpc 0
+	set src_mac [$SRC macaddr]
+	set snk_mac [$SNK macaddr]
+	set key [list [$SNK branchname] phychanest $SNK $SRC]
+	foreach c $(chanspec) {
+	    set band [$SRC band $c]
+	    UTF::Try "$dut: Channel $c" {
+		$SRC wl -u dump_clear ampdu
+		$STA wl band $band
+		rssinoise $AP $STA -chanspec $c -security $(security)
+	    } finally {
+		$SRC wl -u dump ampdu
+	    }
+	    set connected 1
+	    for {set i 0} {$i < $(loop)} {incr i} {
+		UTF::Try "$dut: PhyChan $c" {
+
+		    UTF::ControlChart CC -s 5 \
+			-key [concat $key $c] \
+			-title "Condition Number" -format %.2f \
+			-ylabel "10*log_{10}(cond(H_k))" -units "" \
+			-norangecheck 1
+
+		    if {!$connected} {
+			ConnectAPSTA $AP $STA -security $(security) -chanspec $c
+			set connected 1
+		    }
+		    $STA wl down
+		    $STA wl bw_cap $band -1
+		    $STA wl band $band
+		    $STA wl chanspec $c
+		    $STA wl up
+		    $AP wl down
+		    $AP wl bss down
+		    $AP wl bw_cap $band -1
+		    $AP wl band $band
+		    $AP wl chanspec $c
+		    $AP wl up
+		    $SRC txrate $band $(rate)
+#		    UTF::Multiperf [list $SRC $SNK] -t 5 -i 1 -b 1m -noping \
+#			-callback cb
+		    $SRC wl pkteng_start $snk_mac tx 500 1440 5000 $src_mac
+		    try {
+			set dpce [$SNK wl_dump_phychanest]
+		    } finally {
+			$SRC wl pkteng_stop tx
+		    }
+		    $SRC txrate $band auto
+		    set mplot [$dpce plot]
+		    regsub {^html:} $mplot { } mplot
+
+		    set cplot [CC addsample [$dpce meanminmax]]
+		    set cplot [CC plotcontrolchart "$mplot $cplot"]
+		}
+		catch {$dpce destroy}
+	    }
+	}
+    }
+}

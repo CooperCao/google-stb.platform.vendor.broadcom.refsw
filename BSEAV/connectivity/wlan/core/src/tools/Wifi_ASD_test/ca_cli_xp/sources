@@ -1,0 +1,15 @@
+# sources: windows build file for wl.exe
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources,v 1.2 2009-05-25 06:17:30 $
+#
+
+
+TARGETPATH=obj
+LIBPATH=../asd_xp/obj/free
+
+SOURCES = ca_cli.c 
+include sources.common
+

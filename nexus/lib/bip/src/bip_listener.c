@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -344,7 +344,7 @@ static BIP_Status CheckNowAndAccept(
     rc = BIP_IoChecker_CheckNow( hListener->hIoElement, BIP_IoCheckerEvent_ePollIn | BIP_IoCheckerEvent_ePollPri );
     if (rc)
     {
-        BDBG_MSG(( "%s: accept() socket fd %d", __FUNCTION__, hListener->socketFd ));
+        BDBG_MSG(( "%s: accept() socket fd %d", BSTD_FUNCTION, hListener->socketFd ));
         /* accept connection; don't care about information form remoteAddr*/
         acceptedSocketFd = accept( hListener->socketFd, NULL, NULL );
         BIP_CHECK_GOTO(( acceptedSocketFd >= 0 ), ( "listener accept failed: errno %d", errno ), error, BIP_ERR_INTERNAL, rc );
@@ -400,7 +400,7 @@ static void IoChecker_ReadyCallBack(
     BIP_ListenerHandle hListener    = context;
     unsigned           read_bitmask = BIP_IoCheckerEvent_ePollIn | BIP_IoCheckerEvent_ePollPri;
     BSTD_UNUSED(param);
-    BDBG_MSG(( "%s: In Listener Callback: Listener state %d param %d ", __FUNCTION__, hListener->state, param ));
+    BDBG_MSG(( "%s: In Listener Callback: Listener state %d param %d ", BSTD_FUNCTION, hListener->state, param ));
     if (( eventMask & BIP_IoCheckerEvent_ePollRdHup ) == BIP_IoCheckerEvent_ePollRdHup)
     {
         BDBG_ERR(( "Stream socket peer closed connection, or shut down writing ,half of connection.  " ));
@@ -478,13 +478,13 @@ static BIP_Status ProcessState(
                 case BIP_ListenerProcessStateEvent_eAccept:
                 case BIP_ListenerProcessStateEvent_eAcceptTimeout:
                 {
-                    BDBG_ERR(( "%s:Listener State = Idle, Event=DataReady,Accept all not allowed  ", __FUNCTION__ ));
+                    BDBG_ERR(( "%s:Listener State = Idle, Event=DataReady,Accept all not allowed  ", BSTD_FUNCTION ));
                     rc = BIP_ERR_INTERNAL;
                     break;
                 }
                 case BIP_ListenerProcessStateEvent_eStop:
                 {
-                    BDBG_MSG(("%s: Listener State = Idle, Event = Stop. Already Idle, do nothing for Stop Event",__FUNCTION__));
+                    BDBG_MSG(("%s: Listener State = Idle, Event = Stop. Already Idle, do nothing for Stop Event",BSTD_FUNCTION));
                     break;
                 }
                 case BIP_ListenerProcessStateEvent_eStart:
@@ -528,7 +528,7 @@ static BIP_Status ProcessState(
                     lrc = listen(  hListener->socketFd, hListener->startSettings.queueDepth );
                     BIP_CHECK_GOTO(( lrc >= 0 ), ( "socket listen failed: errno %d", errno ), error, BIP_ERR_INTERNAL, rc );
 
-                    BDBG_MSG(( "%s: done, ip:port:socketFd %s:%s:%d", __FUNCTION__, pIpAddress,  hListener->startSettings.pPort,  hListener->socketFd ));
+                    BDBG_MSG(( "%s: done, ip:port:socketFd %s:%s:%d", BSTD_FUNCTION, pIpAddress,  hListener->startSettings.pPort,  hListener->socketFd ));
 
                     /* Add to internal static list of Listeners */
                     BLST_Q_INSERT_TAIL( &g_ListenerListHead, hListener, listenerListNext );
@@ -563,7 +563,7 @@ error:
             {
                 case BIP_ListenerProcessStateEvent_eStart:
                 {
-                    BDBG_ERR(( "%s: State Listening: You are already Started.  ",__FUNCTION__ ));
+                    BDBG_ERR(( "%s: State Listening: You are already Started.  ",BSTD_FUNCTION ));
                     rc = BIP_ERR_INTERNAL;
                     break;
                 }
@@ -575,7 +575,7 @@ error:
                     /*Send conncected callback to upper level,  Need to handle when connectedCallback is Null or App directly calls Bip_Listener_Accept */
                     if (hListener->settings.connectedCallback.callback && ( hListener->callbackState == BIP_ListenerCallbackState_eEnable ))
                     {
-                        BDBG_MSG(( "%s:Listener Data Ready CB calling connected callback  %p", __FUNCTION__, (void *)hListener->hIoElement ));
+                        BDBG_MSG(( "%s:Listener Data Ready CB calling connected callback  %p", BSTD_FUNCTION, (void *)hListener->hIoElement ));
 
                         hListener->callbackState = BIP_ListenerCallbackState_eDisable;
 
@@ -601,7 +601,7 @@ error:
                     }
                     else
                     {
-                        BDBG_MSG(("%s: No New Connection available at this time.If no timeout, go to listening, else wait till timeout", __FUNCTION__));
+                        BDBG_MSG(("%s: No New Connection available at this time.If no timeout, go to listening, else wait till timeout", BSTD_FUNCTION));
                     }
 
                     break;
@@ -633,7 +633,7 @@ error:
             {
                 case BIP_ListenerProcessStateEvent_eStart:
                 {
-                    BDBG_MSG(( "%s: State: Accepting and Event: Start, do nothing " ,__FUNCTION__));
+                    BDBG_MSG(( "%s: State: Accepting and Event: Start, do nothing " ,BSTD_FUNCTION));
                     break;
                 }
                 /* Accept is waiting, data ready callback has come to set event */
@@ -726,7 +726,7 @@ error:
 
                 {
                     printListenerStates( " Check States that causes this error", hListener, event );
-                    BDBG_ERR(( "%s:Need to handle this !!!   ", __FUNCTION__ ));
+                    BDBG_ERR(( "%s:Need to handle this !!!   ", BSTD_FUNCTION ));
 
                     break;
                 }
@@ -754,7 +754,7 @@ error:
                 case BIP_ListenerProcessStateEvent_eDataReady:
                 case BIP_ListenerProcessStateEvent_eStart:
                 {
-                    BDBG_ERR(( "%s:Listener State = Stopping, Event=DataReady,Start  not allowed  ", __FUNCTION__ ));
+                    BDBG_ERR(( "%s:Listener State = Stopping, Event=DataReady,Start  not allowed  ", BSTD_FUNCTION ));
                     rc = BIP_ERR_INTERNAL;
                     break;
                 }
@@ -1059,7 +1059,7 @@ BIP_Status BIP_Listener_Stop(
     ProcessState( hListener, BIP_ListenerProcessStateEvent_eStop );  /*Current State = Listening/Accepting  to  Next State = Stopping*/
 
     /* First check if the Accept is waiting. break out*/
-    BDBG_MSG(( "%s: Stopping is there a waiting on DataReadyEvent %d ", __FUNCTION__, hListener->waitingOnDataReadyEvent ));
+    BDBG_MSG(( "%s: Stopping is there a waiting on DataReadyEvent %d ", BSTD_FUNCTION, hListener->waitingOnDataReadyEvent ));
     if (hListener->waitingOnDataReadyEvent)
     {
         /* If accept actually waiting Should not take longer than 1 second to close out Accept */
@@ -1072,7 +1072,7 @@ BIP_Status BIP_Listener_Stop(
         hListener->waitingOnStopEvent = false;
         if (( rc == BERR_TIMEOUT ) || ( rc != 0 ))
         {
-            BDBG_ERR(( "%s: Has Timeout of %d reached, rc %d: %s", __FUNCTION__, 1000, rc, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
+            BDBG_ERR(( "%s: Has Timeout of %d reached, rc %d: %s", BSTD_FUNCTION, 1000, rc, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
         }
     }
 
@@ -1094,7 +1094,7 @@ BIP_SocketHandle BIP_Listener_Accept(
 {
     BIP_Status rc = BIP_SUCCESS;
     BDBG_OBJECT_ASSERT( hListener, BIP_Listener );
-    BDBG_MSG(( "%s: Start of ", __FUNCTION__ ));
+    BDBG_MSG(( "%s: Start of ", BSTD_FUNCTION ));
     B_Mutex_Lock( hListener->acceptLock );
     B_Mutex_Lock( hListener->listenerLock );
 
@@ -1128,7 +1128,7 @@ BIP_SocketHandle BIP_Listener_Accept(
     /*blocking  *//* blocking with timeout */
     else if ((( timeout == -1 ) || ( timeout >0 )) && (( hListener->state == BIP_ListenerState_eListening ) || ( hListener->state == BIP_ListenerState_eAccepting )))
     {
-        BDBG_MSG(( "%s: wait for Event: set by  dataReady or stop\n", __FUNCTION__ ));
+        BDBG_MSG(( "%s: wait for Event: set by  dataReady or stop\n", BSTD_FUNCTION ));
 
 
         hListener->waitingOnDataReadyEvent = true;
@@ -1150,7 +1150,7 @@ BIP_SocketHandle BIP_Listener_Accept(
 
         if (( rc == BERR_TIMEOUT ) || ( rc != 0 ))
         {
-            BDBG_WRN(( "%s: Has Timeout of %d reached, rc %d: %s", __FUNCTION__, timeout, rc, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
+            BDBG_WRN(( "%s: Has Timeout of %d reached, rc %d: %s", BSTD_FUNCTION, timeout, rc, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
             if (rc == BERR_TIMEOUT)
             {
                 /* Change State */
@@ -1219,7 +1219,7 @@ BIP_Status BIP_Listener_GetStatus(
 {
 #if 1
 
-    BDBG_MSG(( "%s: printing Listeners internal list ", __FUNCTION__ ));
+    BDBG_MSG(( "%s: printing Listeners internal list ", BSTD_FUNCTION ));
     printBIPListenerList();
 
 #endif /* if 1 */

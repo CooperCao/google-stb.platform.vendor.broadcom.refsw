@@ -162,7 +162,10 @@ eRet CPlaylistGenerator::open(
     pPlayListServer = getPlayListServer();
     if (pPlayListServer != NULL)
     {
-        /* Generating the streaming playback list as per the client device request*/
+
+#if NEXUS_HAS_VIDEO_ENCODER
+        /* Generating the streaming playback list as per the client device request.
+           Can only be true when Video encoder support is available */
         if (iOSRequest == true)
         {
             _playList = generateiOSPlaylist(pPlayListServer);
@@ -171,6 +174,10 @@ eRet CPlaylistGenerator::open(
         {
             _playList = generateAtlasPlaylist(pPlayListServer);
         }
+#else
+        _playList = generateAtlasPlaylist(pPlayListServer);
+#endif
+
     }
     else
     {
@@ -243,7 +250,7 @@ MString CPlaylistGenerator::generateAtlasPlaylist(CServerPlaylist * pPlayListSer
     CModel *        pModel        = NULL;
     CPlaybackList * pPlaybackList = NULL;
 
-    uint16_t program;
+    unsigned program;
     MString  playList;
 
     pCh = new CChannelBip(_pCfg);
@@ -319,7 +326,7 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
     const char * boardName = GET_STR(_pCfg, BOARD_NAME);
 
     uint32_t nIndex = 0;
-    uint16_t program;
+    unsigned program;
     bool     isHevc;
     bool     is4k;
     bool     playListItem;
@@ -570,6 +577,13 @@ void CServerPlaylist::processRecvdRequest()
 
         if (hSocket == NULL)
         {
+            /* coverity: why would bipStatus ever be BIP_SUCCESS if hSocket is NULL? */
+            if (bipStatus == BIP_SUCCESS)
+            {
+               bipStatus = BIP_ERR_INTERNAL;
+               BDBG_ERR(("Should not be in this state. Error in BIP, please debug"));
+            }
+
             CHECK_BIP_ERROR_GOTO("HttpSocket is NULL ==============================================> ", ret, bipStatus, error);
         }
 
@@ -729,7 +743,7 @@ eRet CServerPlaylist::start()
         BIP_HttpServerStartSettings httpServerStartSettings;
 
         BIP_HttpServer_GetDefaultStartSettings(&httpServerStartSettings);
-        BDBG_MSG(("%s: Starting HttpServer...", __FUNCTION__));
+        BDBG_MSG(("%s: Starting HttpServer...", BSTD_FUNCTION));
 
         httpServerStartSettings.maxConcurrentRequestsToQueue = 16;
         httpServerStartSettings.pPort                        = _port.s();
@@ -751,10 +765,6 @@ eRet CServerPlaylist::stop()
 {
     eRet ret = eRet_Ok;
 
-    if (!this)
-    {
-        return(ret);
-    }
     BDBG_MSG((BIP_MSG_PRE_FMT " CServerHttp %p" BIP_MSG_PRE_ARG, (void *)this));
 
     /* Stop the Server first, so that it doesn't accept any new connections. */

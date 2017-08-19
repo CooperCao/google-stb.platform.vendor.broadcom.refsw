@@ -1,0 +1,236 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to run multiple streams
+#
+# Written by: Robert J. McMahon November 2011
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::MemChart
+
+package provide UTF::Test::MultiStream 2.0
+
+#
+#  Graph Multiple Streams
+#
+UTF::Test MultiStream {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP under test"}
+	{sta.arg "" "STA under test"}
+	{streams.arg "3" "number of simultaneous bidir traffic streams"}
+	{protocol.arg "tcp" "IP protocol"}
+	{pktsize.arg "1460" "UDP payload size"}
+	{rate.arg "auto" "Per stream tx rate. auto = streams will measure RF capacity to compute rate"}
+	{holdtime.arg "30" "Traffic time in seconds"}
+	{graphsize.arg "1024,768" "Graph size"}
+	{stats.arg "rate" "List of stream stat types to be gathered"}
+	{history.arg "30" "MemChart history size"}
+	{key.arg "" "MemChart key"}
+	{smoothing.arg "3" ""}
+	{norx "No receive streams (from STA perspective)"}
+	{notx "No transmit streams (from STA pespective)"}
+	{nophycal "Disable phycal and lengthen glacial timer"}
+	{frameburst "Enable frameburst"}
+	{noverbose "Limit messages"}
+	{noampdupoll "Don't poll AMPDU stats"}
+    }
+
+    if {$(protocol) ne "tcp"} {
+	# For UDP measure the total link capacity
+	if {$(rate) eq "auto"} {
+	    set calstream [UTF::stream %AUTO% -tx $(sta) -rx $(ap) -pktsize $(pktsize)]
+	    UTF::Try "Find Max capacity" {
+		catch {$calstream calibrate_actualoffered} rate
+		$calstream destroy
+		# Calculate the per stream rate
+		if {$(notx) || $(norx)} {
+		    set rate "[expr {int(1.25 * $rate / $(streams))}]M"
+		} else {
+		    set rate "[expr {int(1.25 * $rate / ($(streams) * 2))}]M"
+		}
+		return $rate
+	    }
+	} else {
+	    set rate $(rate)
+	}
+    }
+
+    # Create the streams and memcharts
+    UTF::stream logginglevel ANALYZE
+    for {set ix 0} {$ix < $(streams)} {incr ix} {
+	if {!$(notx)} {
+	    if {$(protocol) eq "tcp"} {
+		set streams([expr {2 * $ix}]) [UTF::stream %AUTO% -tx $(sta) -rx $(ap) -protocol tcp]
+		if {$(key) ne ""} {
+		    set cckey "$(key) $(streams) tx $(ap) $(sta) tcp $(holdtime) $(pktsize)"
+		    foreach STAT $(stats) {
+			set cc($streams([expr {2 * $ix}]),$STAT) [UTF::MemChart %AUTO% -key "$cckey $STAT" -perfcache "" -history $(history) -title "$STAT" -units ""]
+		    }
+		}
+	    } else {
+		set streams([expr {2 * $ix}]) [UTF::stream %AUTO% -tx $(sta) -rx $(ap) -protocol udp -pktsize $(pktsize) -rate $rate]
+		if {$(key) ne ""} {
+		    set cckey "$(key) $(streams) tx $(ap) $(sta) udp $(holdtime) $(pktsize)"
+		    foreach STAT $(stats) {
+			set cc($streams([expr {2 * $ix}]),$STAT) [UTF::MemChart %AUTO% -key "$cckey $STAT" -perfcache "" -history $(history) -title "$STAT" -units ""]
+		    }
+		}
+	    }
+	}
+	if {!$(norx)} {
+	    if {$(protocol) eq "tcp"} {
+		set streams([expr {(2 * $ix) + 1}]) [UTF::stream %AUTO% -rx $(sta) -tx $(ap) -protocol tcp]
+		if {$(key) ne ""} {
+		    set cckey "$(key) $(streams) rx $(ap) $(sta) tcp $(holdtime) $(pktsize)"
+		    foreach STAT $(stats) {
+			set cc($streams([expr {(2 * $ix) + 1}]),$STAT) [UTF::MemChart %AUTO% -key "$cckey $STAT" -perfcache "" -history $(history) -title "$STAT" -units ""]
+		    }
+		}
+	    } else {
+		set streams([expr {(2 * $ix) + 1}]) [UTF::stream %AUTO% -rx $(sta) -tx $(ap) -protocol udp -pktsize $(pktsize) -rate $rate]
+		if {$(key) ne ""} {
+		    set cckey "$(key) $(streams) rx $(ap) $(sta) udp $(holdtime) $(pktsize)"
+		    foreach STAT $(stats) {
+			set cc($streams([expr {(2 * $ix) + 1}]),$STAT) [UTF::MemChart %AUTO% -key "$cckey $STAT" -perfcache "" -history $(history) -title "$STAT" -units ""]
+		    }
+		}
+	    }
+	}
+    }
+    if {$(nophycal)} {
+	UTF::Try "phycal disable" {
+	    foreach STA [concat $(ap) $(sta)] {
+		catch {$STA wl phy_cal_disable 0}
+		catch {$STA wl glacial_timer 1}
+	    }
+	    UTF::Sleep 3.0
+	    foreach STA [concat $(ap) $(sta)] {
+		set glacialtime [expr {int($(holdtime) + 10)}]
+		catch {$STA wl glacial_timer $glacialtime}
+		catch {$STA wl phy_cal_disable 1}
+	    }
+	}
+    }
+
+    if {$(frameburst)} {
+	set frameburst 1
+    } else {
+	set frameburst 0
+    }
+    UTF::Try "FB=$frameburst" {
+	set failtry 0
+	foreach STA [concat $(ap) $(sta)] {
+	    if {[catch {$STA wl frameburst $frameburst} err]} {
+		UTF::Message ERROR $STA "wl frameburst: $err"
+		set failtry 1
+	    }
+	}
+	if {$failtry} {
+	    error "$err"
+	} else {
+	    return
+	}
+    }
+    UTF::Try "WME parameters" {
+	catch {$(ap) wl dump wme}
+	catch {$(sta) wl dump wme}
+	return
+    }
+    # Start the streams and graph the results
+    UTF::Try "MultiStream Run" {
+	set graphtitle "AP=$(ap) STA=$(sta) Protocol=$(protocol)"
+	if {$(protocol) eq "udp"} {
+	    append graphtitle " (per stream tx=${rate})"
+	}
+	set STA $(sta)
+	catch {$(sta) wl ampdu_clear_dump}
+	UTF::stream allstreams start
+	UTF::StreamStatAggregate bytes -range $(smoothing)
+	UTF::StreamStatAggregate rate -range $(smoothing)
+	if {$(noverbose)} {
+	    UTF::stream allstreams configure -api_msgs 0 -txdisplay 0 -rxdisplay 0
+	}
+	UTF::stream allstreams stats -clear
+	if {!$(noampdupoll) && $(holdtime) > 20} {
+	    set everyid [UTF::Every 10 "$(sta) wl dump ampdu;$(sta) wl ampdu_clear_dump"]
+	}
+	UTF::Sleep $(holdtime)
+	UTF::stream allstreams samplers -disable
+        bytes stop
+        rate stop
+	if {[info exists everyid]} {
+	    UTF::Every cancel $everyid
+	}
+	catch {$(sta) wl dump ampdu}
+	foreach STAT $(stats) {
+	    set sg($STAT) [UTF::streamgraph %AUTO% -title $graphtitle -stat $STAT -graphsize $(graphsize)]
+	}
+	if {$(notx)} {
+	    set msg "$(streams) RX Protocol=$(protocol)"
+	} elseif {$(norx)} {
+	    set msg "$(streams) TX Protocol=$(protocol)"
+	} else {
+	    set msg "$(streams) BiDir Protocol=$(protocol)"
+	}
+	if {$(protocol) eq "udp"} {
+	    append msg " pktsize=$(pktsize)"
+	}
+	set aggregategraph [rate plot -title "Aggregate $msg" -graphsize $(graphsize)]
+	foreach STAT $(stats) {
+	    set graph($STAT) [$sg($STAT) plot]
+	}
+	set testresults "$aggregategraph"
+	foreach STAT $(stats) {
+	    append testresults " [string range $graph($STAT) 5 end]"
+	}
+	return $testresults
+    }
+    if {$(key) ne ""} {
+	UTF::Try "Individual MemCharts" {
+	    set err 0
+	    set total 0
+	    foreach indice [array names streams] {
+		set STREAM $streams($indice)
+		foreach STAT $(stats) {
+		    incr total
+		    UTF::Try "[$STREAM cget -rx] $STAT Sum" {
+			set sum [$STREAM stats -$STAT -sum]
+			set boundsresults [$cc($STREAM,$STAT) addsample $sum]
+			set chart [$cc($STREAM,$STAT) plotcontrolchart $boundsresults]
+			if {[regexp {(HIGH|LOW|WIDE)} $boundsresults]} {
+			    incr err
+			    error $chart
+			} else {
+			    return $chart
+			}
+		    }
+		}
+	    }
+	    if {!$err} {
+		return "${total}/${total}"
+	    } else {
+		error "[expr {$total - $err}]/${total}"
+	    }
+	}
+    }
+    # Cleanup
+    UTF::Try "Tear down" {
+	if {$(nophycal)} {
+	    UTF::Try "phycal reenable" {
+		foreach STA [concat $(ap) $(sta)] {
+		    catch {$STA wl phy_cal_disable 0}
+		    catch {$STA wl glacial_timer 120}
+		}
+	    }
+	}
+	catch {UTF::stream allstreams destroy}
+	catch {UTF::stream exitstreams}
+	return
+    }
+    return $testresults
+}

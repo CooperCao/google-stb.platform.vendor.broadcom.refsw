@@ -1762,7 +1762,7 @@ BERR_Code BSCD_Channel_SetParameters(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
                     ulValue);
-			}
+        }
         BDBG_MSG(("New SC_CLK_CMD = 0x%x", ulValue));
     }
 #endif
@@ -1827,7 +1827,10 @@ BERR_Code BSCD_Channel_SetParameters(
         ulValue);
 
     /* Update the BSCD_P_FLOW_CMD */
-    ulValue = 0;
+    ulValue =  BREG_Read32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD));
+
         /* flow control in enabled in TX/RV function, do not enable here */
         /*
     if (in_channelHandle->currentChannelSettings.scStandard == BSCD_Standard_eNDS) {
@@ -1838,6 +1841,7 @@ BERR_Code BSCD_Channel_SetParameters(
     }
 
 */
+    ulValue  &=0x80;
     BREG_Write32(
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD),

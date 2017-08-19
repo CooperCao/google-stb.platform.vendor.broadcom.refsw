@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -140,7 +140,7 @@ BIP_RtspLiveMediaSocket_CopyMessage(
     char                         *pBuffer
     )
 {
-    BDBG_MSG(("%s: calling rtspLmSocket->lmRtspClientConnection->copyReceivedMessage(%s)", __FUNCTION__, pBuffer ));
+    BDBG_MSG(("%s: calling rtspLmSocket->lmRtspClientConnection->copyReceivedMessage(%s)", BSTD_FUNCTION, pBuffer ));
     rtspLmSocket->lmRtspClientConnection->copyReceivedMessageConnection( pBuffer );
 }
 
@@ -185,7 +185,7 @@ BIP_RtspLiveMediaRequest_Parse(
     pBuffer[bufferLength-2] = '\r'; // restore its value
 
     BDBG_MSG(("%s: len %d, parseStatus %d, cmd %s, url: pre %s, suf %s, cseq %s, id %s",
-              __FUNCTION__, bufferLength, parseSucceeded, cmdName,
+              BSTD_FUNCTION, bufferLength, parseSucceeded, cmdName,
               urlPreSuffix, urlSuffix, cseq, sessionIdStr));
 } // BIP_RtspLiveMediaRequest_Parse
 

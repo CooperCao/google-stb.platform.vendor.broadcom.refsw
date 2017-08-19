@@ -120,7 +120,7 @@ public:
     void              showListViewSelection(bool show);
     eRet              addButton(CWidgetButton * pWidgetItem, const char * strName, bool bVisible = true);
     void              removeButton(CWidgetButton * pWidgetItem);
-    void              removeButton(uint16_t index);
+    void              removeButton(unsigned index);
     eRet              sortListView(CWidgetButton * pButtonFocus = NULL) { return(_pListView->sort(pButtonFocus)); }
     void              setListButtonActive(CWidgetButton * pWidgetItem, bool bShow = true);
     bool              isListButtonActive(CWidgetButton * pWidgetItem);

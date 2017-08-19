@@ -75,7 +75,6 @@ BERR_Code BBOX_P_ValidateId
     BERR_Code eStatus = BERR_SUCCESS;
     if ((ulId != 1000 && ulId != 1001) && (ulId == 0 || ulId > BBOX_MODES_SUPPORTED))
     {
-        BDBG_ERR(("Box Mode ID %d is not supported on this chip.", ulId));
         eStatus = BBOX_ID_NOT_SUPPORTED;
     }
 

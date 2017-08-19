@@ -47,6 +47,9 @@
 #define BCHP_MEMC_GEN_0_MSA_RD_DATA0 0
 #define BCHP_MEMC_GEN_0_MSA_WR_DATA0 0
 #endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 
 
 struct msa_jw {
@@ -307,7 +310,6 @@ static BERR_Code msa_ExecuteWrite(BREG_Handle reg, unsigned memc, const struct m
     unsigned i;
     unsigned offset;
     BERR_Code rc;
-    unsigned block;
     BSTD_DeviceOffset msa_addr;
 
     rc = msa_GetOffset(memc, &offset);

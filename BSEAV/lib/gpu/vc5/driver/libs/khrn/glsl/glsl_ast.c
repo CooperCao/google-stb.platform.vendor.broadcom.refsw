@@ -263,19 +263,15 @@ void glsl_ast_validate_function_call(const Expr *e, ShaderFlavour flavour) {
 static void spostv_check_returns(Statement *s, void *data) {
    const SymbolType *function_type = data;
 
-   if (s->flavour == STATEMENT_RETURN ||
-       s->flavour == STATEMENT_RETURN_EXPR)
-   {
+   if (s->flavour == STATEMENT_RETURN || s->flavour == STATEMENT_RETURN_EXPR) {
       const SymbolType *returned_type = &primitiveTypes[PRIM_VOID];
 
       if (s->flavour == STATEMENT_RETURN_EXPR)
          returned_type = s->u.return_expr.expr->type;
 
       if (!glsl_shallow_match_nonfunction_types(returned_type, function_type))
-      {
          glsl_compile_error(ERROR_SEMANTIC, 1, s->line_num, "return type %s does not match function definition %s",
                             returned_type->name, function_type->name);
-      }
    }
 }
 
@@ -289,11 +285,18 @@ struct validate_data {
 
    int loop_depth;
    int switch_depth;
+   int selection_depth;
+
+   bool in_main;
+   bool seen_return;
 };
 
 static Statement *sprev_mark_entries(Statement *s, void *data) {
    struct validate_data *info = data;
    switch (s->flavour) {
+      case STATEMENT_SELECTION:
+         info->selection_depth++;
+         break;
       case STATEMENT_ITERATOR_FOR:
       case STATEMENT_ITERATOR_WHILE:
       case STATEMENT_ITERATOR_DO_WHILE:
@@ -301,6 +304,14 @@ static Statement *sprev_mark_entries(Statement *s, void *data) {
          break;
       case STATEMENT_SWITCH:
          info->switch_depth++;
+         break;
+      case STATEMENT_FUNCTION_DEF:
+         info->in_main = (!strcmp(s->u.function_def.header->name, "main"));
+         info->seen_return = false;
+         break;
+      case STATEMENT_RETURN:
+      case STATEMENT_RETURN_EXPR:
+         info->seen_return = true;
          break;
       default:
          break;
@@ -495,7 +506,7 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
       glsl_compile_error(ERROR_SEMANTIC, 5, s->line_num, NULL);
 
    if (s->flavour == STATEMENT_DISCARD && info->flavour != SHADER_FRAGMENT)
-      glsl_compile_error(ERROR_CUSTOM, 12, s->line_num, NULL);
+      glsl_compile_error(ERROR_CUSTOM, 7, s->line_num, "Discard statement can only be used in fragment shader");
    if (s->flavour == STATEMENT_VAR_DECL && info->flavour == SHADER_COMPUTE)
       reject_ins_outs(s);
    if (s->flavour == STATEMENT_QUALIFIER_DEFAULT)
@@ -507,6 +518,9 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
 
    /* Now check nesting */
    switch (s->flavour) {
+      case STATEMENT_SELECTION:
+         info->selection_depth--;
+         break;
       case STATEMENT_ITERATOR_FOR:
       case STATEMENT_ITERATOR_WHILE:
       case STATEMENT_ITERATOR_DO_WHILE:
@@ -518,11 +532,15 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
 
       case STATEMENT_BREAK:
          if (info->loop_depth == 0 && info->switch_depth == 0)
-            glsl_compile_error(ERROR_CUSTOM, 23, s->line_num, NULL);
+            glsl_compile_error(ERROR_CUSTOM, 7, s->line_num, "Use of break outside loop or switch");
          break;
       case STATEMENT_CONTINUE:
          if (info->loop_depth == 0)
-            glsl_compile_error(ERROR_CUSTOM, 23, s->line_num, NULL);
+            glsl_compile_error(ERROR_CUSTOM, 7, s->line_num, "Use of continue outside loop");
+         break;
+
+      case STATEMENT_FUNCTION_DEF:
+         info->in_main = false;
          break;
       default:
          break;
@@ -652,6 +670,12 @@ static void epostv_validate(Expr *e, void *data) {
          glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", called->name);
 
       if (glsl_stdlib_is_stdlib_symbol(called)) {
+         if (glsl_stdlib_function_index(called) == GLSL_STDLIB_FN__BARRIER__VOID) {
+            bool in_control_flow = (d->loop_depth > 0 || d->selection_depth > 0 || d->switch_depth > 0);
+            if (d->flavour == SHADER_TESS_CONTROL && (in_control_flow || !d->in_main || d->seen_return))
+               glsl_compile_error(ERROR_CUSTOM, 7, e->line_num, "barrier() may not appear in control flow");
+         }
+
          uint64_t fn_props = glsl_stdlib_function_properties[glsl_stdlib_function_index(called)];
          if (fn_props & GLSL_STDLIB_PROPERTY_ATOMIC_MEM) {
             if (!valid_for_atomic(e->u.function_call.args->first->expr))
@@ -707,7 +731,7 @@ static void epostv_validate(Expr *e, void *data) {
       while (aggregate_type->flavour == SYMBOL_ARRAY_TYPE)
          aggregate_type = aggregate_type->u.array_type.member_type;
 
-      PRIMITIVE_TYPE_FLAGS_T const_req_opaque = PRIM_IMAGE_TYPE | PRIM_SAMPLER_TYPE;
+      PRIMITIVE_TYPE_FLAGS_T const_req_opaque = shader5 ? PRIM_IMAGE_TYPE : PRIM_IMAGE_TYPE | PRIM_SAMPLER_TYPE;
       bool requires_constant = glsl_type_contains(e->type, const_req_opaque);
 
       if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE) {
@@ -726,7 +750,9 @@ static void epostv_validate(Expr *e, void *data) {
 }
 
 static void ast_validate_recursive(Statement *ast, ShaderFlavour flavour, int version) {
-   struct validate_data d = { .flavour = flavour, .version = version, .loop_depth = 0, .switch_depth = 0 };
+   struct validate_data d = { .flavour = flavour, .version = version,
+                              .loop_depth = 0, .switch_depth = 0, .selection_depth = 0,
+                              .in_main = false, .seen_return = false };
    glsl_statement_accept(ast, &d, sprev_mark_entries, NULL, spostv_check_and_mark_exits, epostv_validate);
 }
 
@@ -1013,27 +1039,9 @@ Expr *glsl_expr_construct_function_call(int line_num, Symbol *function, ExprChai
    return expr;
 }
 
-Expr *glsl_expr_construct_method_call(int line_num, Expr *aggregate, CallContext *function_ctx)
+Expr *glsl_expr_construct_method_call(int line_num, Expr *aggregate, const Symbol *func)
 {
-   const char *method_name;
-
-   switch(function_ctx->flavour) {
-   case CALL_CONTEXT_FUNCTION:
-      method_name = function_ctx->u.function.symbol->name;
-      break;
-   case CALL_CONTEXT_CONSTRUCTOR:
-      method_name = function_ctx->u.constructor.type->name;
-      break;
-   case CALL_CONTEXT_INTRINSIC:
-      /* If we ever want to have our own intrinsic methods, handling
-         is needed here; a lookup array to convert them back into
-         names would probably be sufficient */
-      glsl_compile_error(ERROR_LEXER_PARSER, 2, line_num, NULL);
-      return NULL;
-   default:
-      unreachable();
-      return NULL;
-   }
+   const char *method_name = func->name;
 
    if (aggregate->type->flavour != SYMBOL_ARRAY_TYPE || strcmp(method_name, "length") != 0)
       glsl_compile_error(ERROR_LEXER_PARSER, 2, line_num, NULL);
@@ -1575,6 +1583,16 @@ static inline void apply_component_wise(
    }
 }
 
+static unsigned type_index(PRIMITIVE_TYPE_FLAGS_T t) {
+   switch (t & (PRIM_INT_TYPE | PRIM_FLOAT_TYPE | PRIM_UINT_TYPE))
+   {
+      case PRIM_INT_TYPE:   return 0;
+      case PRIM_UINT_TYPE:  return 1;
+      case PRIM_FLOAT_TYPE: return 2;
+      default:              unreachable(); return ~0u;
+   }
+}
+
 Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, int line_num, Expr *left, Expr *right)
 {
    Expr *expr     = malloc_fast(sizeof(Expr));
@@ -1693,47 +1711,28 @@ Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, int line_num
       else
       {
          // Find the correct component-wise operation to apply.
-         const_value (*component_op)(const_value, const_value);
+         unsigned t_idx = type_index(left_flags);
 
-         switch (left_flags & (PRIM_INT_TYPE | PRIM_FLOAT_TYPE | PRIM_UINT_TYPE))
+         unsigned f_idx;
+         switch (flavour)
          {
-            case PRIM_INT_TYPE:
-               switch (flavour)
-               {
-                  case EXPR_MUL: component_op = op_i_mul; break;
-                  case EXPR_DIV: component_op = op_i_div; break;
-                  case EXPR_REM: component_op = op_i_rem; break;
-                  case EXPR_ADD: component_op = op_i_add; break;
-                  case EXPR_SUB: component_op = op_i_sub; break;
-                  default: unreachable(); return NULL;
-               }
-               break;
-            case PRIM_UINT_TYPE:
-               switch (flavour)
-               {
-                  case EXPR_MUL: component_op = op_u_mul; break;
-                  case EXPR_DIV: component_op = op_u_div; break;
-                  case EXPR_REM: component_op = op_u_rem; break;
-                  case EXPR_ADD: component_op = op_i_add; break;
-                  case EXPR_SUB: component_op = op_i_sub; break;
-                  default: unreachable(); return NULL;
-               }
-               break;
-            case PRIM_FLOAT_TYPE:
-               switch (flavour)
-               {
-                  case EXPR_MUL: component_op = op_f_mul; break;
-                  case EXPR_DIV: component_op = op_f_div; break;
-                  case EXPR_REM: unreachable(); break;
-                  case EXPR_ADD: component_op = op_f_add; break;
-                  case EXPR_SUB: component_op = op_f_sub; break;
-                  default: unreachable(); return NULL;
-               }
-               break;
-            default:
-               unreachable();
-               return NULL;
+            case EXPR_MUL: f_idx = 0;     break;
+            case EXPR_DIV: f_idx = 1;     break;
+            case EXPR_REM: f_idx = 2;     break;
+            case EXPR_ADD: f_idx = 3;     break;
+            case EXPR_SUB: f_idx = 4;     break;
+            default:       unreachable(); break;
          }
+
+         static const_value (* const ops[5][3])(const_value, const_value) = {
+            { op_i_mul, op_u_mul, op_f_mul, },
+            { op_i_div, op_u_div, op_f_div, },
+            { op_i_rem, op_u_rem, NULL,     },
+            { op_i_add, op_i_add, op_f_add, },
+            { op_i_sub, op_i_sub, op_f_sub, },
+         };
+
+         const_value (*component_op)(const_value, const_value) = ops[f_idx][t_idx];
 
          /* ... everything else is component wise */
          apply_component_wise(component_op,
@@ -1945,7 +1944,7 @@ Expr *glsl_expr_construct_binary_op_relational(ExprFlavour flavour, int line_num
    if (left->type != right->type) goto fail;
 
    // Only need look at left type as they are identical anyway.
-   if (SYMBOL_PRIMITIVE_TYPE != left->type->flavour)
+   if (left->type->flavour != SYMBOL_PRIMITIVE_TYPE)
       goto fail;
 
    int left_index = left->type->u.primitive_type.index;
@@ -1957,78 +1956,29 @@ Expr *glsl_expr_construct_binary_op_relational(ExprFlavour flavour, int line_num
 
    if (left->compile_time_value && right->compile_time_value)
    {
-      const_value (*component_op)(const_value, const_value);
       expr->compile_time_value = malloc_fast(expr->type->scalar_count * sizeof(const_value));
 
       // This code assumes we do not act on vectors.
       assert(left_flags & PRIM_SCALAR_TYPE);
 
-      switch (left_flags & (PRIM_INT_TYPE | PRIM_UINT_TYPE | PRIM_FLOAT_TYPE))
-      {
-         case PRIM_INT_TYPE:
-            switch (flavour)
-            {
-               case EXPR_LESS_THAN:
-                  component_op = op_i_less_than;
-                  break;
-               case EXPR_LESS_THAN_EQUAL:
-                  component_op = op_i_less_than_equal;
-                  break;
-               case EXPR_GREATER_THAN:
-                  component_op = op_i_greater_than;
-                  break;
-               case EXPR_GREATER_THAN_EQUAL:
-                  component_op = op_i_greater_than_equal;
-                  break;
-               default:
-                  unreachable();
-                  return NULL;
-            }
-            break;
-         case PRIM_UINT_TYPE:
-            switch (flavour)
-            {
-               case EXPR_LESS_THAN:
-                  component_op = op_u_less_than;
-                  break;
-               case EXPR_LESS_THAN_EQUAL:
-                  component_op = op_u_less_than_equal;
-                  break;
-               case EXPR_GREATER_THAN:
-                  component_op = op_u_greater_than;
-                  break;
-               case EXPR_GREATER_THAN_EQUAL:
-                  component_op = op_u_greater_than_equal;
-                  break;
-               default:
-                  unreachable();
-                  return NULL;
-            }
-            break;
-         case PRIM_FLOAT_TYPE:
-            switch (flavour)
-            {
-               case EXPR_LESS_THAN:
-                  component_op = op_f_less_than;
-                  break;
-               case EXPR_LESS_THAN_EQUAL:
-                  component_op = op_f_less_than_equal;
-                  break;
-               case EXPR_GREATER_THAN:
-                  component_op = op_f_greater_than;
-                  break;
-               case EXPR_GREATER_THAN_EQUAL:
-                  component_op = op_f_greater_than_equal;
-                  break;
-               default:
-                  unreachable();
-                  return NULL;
-            }
-            break;
-         default:
-            unreachable();
-            return NULL;
+      unsigned t_idx = type_index(left_flags);
+      unsigned f_idx;
+      switch(flavour) {
+         case EXPR_LESS_THAN:          f_idx = 0;     break;
+         case EXPR_LESS_THAN_EQUAL:    f_idx = 1;     break;
+         case EXPR_GREATER_THAN:       f_idx = 2;     break;
+         case EXPR_GREATER_THAN_EQUAL: f_idx = 3;     break;
+         default:                      unreachable(); break;
       }
+
+      static const_value (* const ops[5][3])(const_value, const_value) = {
+            { op_i_less_than,          op_u_less_than,          op_f_less_than          },
+            { op_i_less_than_equal,    op_u_less_than_equal,    op_f_less_than_equal    },
+            { op_i_greater_than,       op_u_greater_than,       op_f_greater_than       },
+            { op_i_greater_than_equal, op_u_greater_than_equal, op_f_greater_than_equal },
+      };
+
+      const_value (*component_op)(const_value, const_value) = ops[f_idx][t_idx];
 
       *expr->compile_time_value = component_op(*left->compile_time_value,
                                                *right->compile_time_value);
@@ -2228,7 +2178,6 @@ Expr *glsl_expr_construct_array_length(int line_num, Expr *array) {
    return expr;
 }
 
-
 Statement *glsl_statement_construct(StatementFlavour flavour, int line_num)
 {
    Statement *statement = malloc_fast(sizeof(Statement));
@@ -2373,7 +2322,7 @@ Statement *glsl_statement_construct_switch(int line_num, Expr *cond, StatementCh
          if(!node->statement->u.case_stmt.expr->compile_time_value ||
              node->statement->u.case_stmt.expr->type != cond->type   )
          {
-            glsl_compile_error(ERROR_CUSTOM, 26, line_num, "Case labels must be constant and match the condition type");
+            glsl_compile_error(ERROR_CUSTOM, 7, line_num, "Case labels must be constant and match the switch condition type");
          }
 
          const_value case_label = *node->statement->u.case_stmt.expr->compile_time_value;
@@ -2382,13 +2331,13 @@ Statement *glsl_statement_construct_switch(int line_num, Expr *cond, StatementCh
          {
             if(node2->statement->flavour==STATEMENT_CASE && case_label==*node2->statement->u.case_stmt.expr->compile_time_value)
                /* Case labels cannot repeat values */
-               glsl_compile_error(ERROR_CUSTOM, 26, line_num, "Duplicate case value %d", case_label);
+               glsl_compile_error(ERROR_CUSTOM, 7, line_num, "Duplicate case value %d in switch", case_label);
          }
       }
 
       if(node->statement->flavour==STATEMENT_DEFAULT) {
          if(dflt_label)
-            glsl_compile_error(ERROR_CUSTOM, 26, line_num, "Duplicate default labels");
+            glsl_compile_error(ERROR_CUSTOM, 7, line_num, "Duplicate default labels in switch");
 
          dflt_label = true;
       }

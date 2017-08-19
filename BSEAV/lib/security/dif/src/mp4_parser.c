@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -275,8 +275,11 @@ bool mp4_parser_scan_movie_fragment(mp4_parser_handle_t handle, mp4_parse_frag_i
     bmp4_parse_box(&frag_info->cursor, &mdat);
 
     if (mediaType == media_type_eCenc && cntxt->mp4_mp4_frag.encrypted) {
-            frag_info->aux_info_size = cntxt->mp4_mp4_frag.aux_info_size;
+        frag_info->aux_info_size = cntxt->mp4_mp4_frag.aux_info_size;
+        if (!cntxt->mp4_mp4_frag.enc_info_parsed) {
+            LOGD(("%s: Parse MDAT head", __FUNCTION__));
             cenc_parse_mdat_head(frag_info, &cntxt->mp4_mp4_frag);
+        }
     }
     if (!cntxt->mp4_mp4_frag.encrypted) {
         /* clear: copy to samples_info */

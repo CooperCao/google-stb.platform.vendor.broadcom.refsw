@@ -1445,9 +1445,8 @@ BXDM_PictureProvider_GetDebugFifo(
 /*
  * SWSTB-3450: support for passing parameters directly to the XDM start/stop API's.
  */
-BERR_Code
+void
 BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
-   BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_StartSettings * pstStartSettings
 );
 

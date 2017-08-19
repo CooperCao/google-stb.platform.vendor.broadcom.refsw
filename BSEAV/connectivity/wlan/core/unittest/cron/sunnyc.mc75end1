@@ -1,0 +1,26 @@
+#
+MAILTO=sunnyc@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/sunnyc/src/tools/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+45      1      * * *   src/tools/unittest/cron/launch 4331FC15 Test/StaNightly.test -utfconf mc75 -sta '4331FC15 Mac4360BUnonly 4360STAnonly Mac4360BUnonly-BISON 4360STAnonly-BISON Mac4360BUnonly-BISON-REL-TAG 4360STAnonly-BISON-REL-TAG MacX29d-BISON-REL-TAG' -ap '43311' -loop 1 -title 'MC75 - 4331FC15 Mac4360BU 4360STA MacX29d'
+
+55      1      * * *   src/tools/unittest/cron/launch 4360 Test/StaNightly.test -utfconf mc75 -sta 'Mac4360BU-TOT Mac4360BU-SOFTAP-TOT 4360STA Mac4360BU-BISON Mac4360BU-SOFTAP-BISON 4360STA-BISON Mac4360BU-BISON-REL-TAG Mac4360BU-SOFTAP-BISON-REL-TAG 4360STA-BISON-REL-TAG' -ap '4360SOFTAP-BISON' -loop 1 -title 'MC75 - 4360 MAC Linux'
+
+## 01      21      * * *   src/tools/unittest/cron/launch 4331FC15BISONRVR Test/RvRNightly1.test -utfconf mc75 -ap '43311' -sta '4331FC15-BISON' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC75 - RvR Test - 4331FC15' -perftime 2.5
+
+## 31      21      * * *   src/tools/unittest/cron/launch Mac4360BISONRVR Test/RvRNightly1.test -utfconf mc75 -ap '43311' -sta 'Mac4360BUnonly-BISON' -va af -cycle5G40AttnRange '10-65 65-10' -cycle5G20AttnRange '10-65 65-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-70 70-10' -nocontrvr -no5G20 -no2G40 -title 'MC75 - RvR Test - 4331FC15' -perftime 2.5
+
+31      19      * * *   src/tools/unittest/cron/launch Mac4360BISONRVR Test/RvRNightly1.test -utfconf mc75 -ap '4360SOFTAP-BISON' -sta 'Mac4360BU-BISON' -va af -cycle5G80AttnRange '0-55 55-0' -cycle5G40AttnRange '0-65 65-0' -cycle5G20AttnRange '0-65 65-0' -cycle2G40AttnRange '0-70 70-0' -cycle2G20AttnRange '10-80 80-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title 'MC75 - RvR Test - Mac4360BU' -perftime 5 -window 3200k -fb1
+
+33      19      * * *   src/tools/unittest/cron/launch Mac4360BISONREL Test/RvRNightly1.test -utfconf mc75 -ap '4360SOFTAP-BISON' -sta 'Mac4360BU-BISON-REL-TAG' -va af -cycle5G80AttnRange '0-55 55-0' -cycle5G40AttnRange '0-65 65-0' -cycle5G20AttnRange '0-65 65-0' -cycle2G40AttnRange '0-70 70-0' -cycle2G20AttnRange '10-80 80-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title 'MC75 - RvR Test - Mac4360BU' -perftime 5 -window 3200k -fb1
+
+01      20      * * *   src/tools/unittest/cron/launch 4360BISONRVR Test/RvRNightly1.test -utfconf mc75 -ap '4360SOFTAP-BISON' -sta '4360STA-BISON' -va af -cycle5G80AttnRange '0-55 55-0' -cycle5G40AttnRange '0-65 65-0' -cycle5G20AttnRange '0-65 65-0' -cycle2G40AttnRange '0-70 70-0' -cycle2G20AttnRange '10-80 80-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title 'MC75 - RvR Test - 4360Linux' -perftime 5 -window 4000K -fb1
+
+31      20      * * *   src/tools/unittest/cron/launch MacX29dRVR Test/RvRNightly1.test -utfconf mc75 -ap '43311' -sta 'MacX29d-BISON' -va af -cycle5G40AttnRange '0-65 65-0' -cycle5G20AttnRange '0-65 65-0' -cycle2G40AttnRange '0-70 70-0' -cycle2G20AttnRange '0-70 70-0' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title 'MC75 - RvR Test - MacX29d' -perftime 5
+

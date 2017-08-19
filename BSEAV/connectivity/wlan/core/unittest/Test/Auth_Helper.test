@@ -1,0 +1,33 @@
+#!/bin/env utf
+
+# Written by John Brearley, 2010
+
+# This helper script is used by Authorize.test.
+# For more info, type: Test/Authorize.test -h
+
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+    set ::argv0 ""
+}
+
+# Give online help if needed.
+set self [file tail $::argv0] ;# get our own name
+set x [lindex $argv 0]
+set x [string tolower $x]
+set x [string range $x 0 1]
+# puts "x=$x"
+if {$x == "-h"} {
+   puts "Basic usage: $self -utfconf path"
+   puts "\nThis helper script is used by Authorize.test."
+   puts "For more info, type: Test/Authorize.test -h"
+   exit 1
+}
+
+# Load packages
+package require UTF
+package require UTF::utils
+
+# Authorize for all ssh capable devices
+UTF::auth_devices

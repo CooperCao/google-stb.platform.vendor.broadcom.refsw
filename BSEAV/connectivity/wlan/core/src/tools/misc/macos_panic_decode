@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# Script to decode the panic log created by MacOS which just gives addresses
+# into our driver functions and line numbers.
+# Tested with MacOs 10_7
+# 
+# $Id$
+
+driver=$1
+panic_log_dir=/Library/Logs/DiagnosticReports
+usage()
+{
+	echo
+	echo "Usage: `basename $0` kext [panic_log]"
+	echo -e "\tdriver_tree is path to driver AirPortBroadcom43XX.kext"
+	echo -e "\tpanic_log is optional. Default panic log is the log from the last crash"
+	echo -e "\tExample: `basename $0` "
+	exit 1
+}
+#Sanity check input params
+if [ $# -lt 1 ]; then
+	usage
+fi
+if [ $# -lt 2 ]; then
+	panic_log=`ls -t1 ${panic_log_dir}/*.panic | head -1`
+else
+	panic_log=$2
+fi
+
+if [ ! -f "$panic_log" ]; then
+	echo "Cannot find $panic_log"
+	usage
+else
+	echo "Using paniclog $panic_log"
+fi
+
+driver=$1/Contents/MacOS/AirPortBroadcom43XX
+if [ ! -f "$driver" ]; then
+	echo "Cannot find $driver"
+	usage
+fi
+
+echo
+cat $panic_log | head -2
+
+#Get base address
+base=`cat $panic_log | grep AirPortBroadcom43XX |  head -1 | cut -d'@' -f2 | cut -c 11-18 | sed 's/^/0x/'`
+#echo Base Adress is $base
+
+echo 
+
+cat $panic_log | sed -e '1, /Return Address/d' -e '/Kernel Extensions/, $ d' | cut -d':' -f 2 | cut -c 12-20 | sed 's/^/0x/' |
+while read offset; do
+	final=`printf "0x%x\n" $((offset-base))`
+#	echo final is $final
+	atos -o $driver -arch x86_64 $final
+done
+

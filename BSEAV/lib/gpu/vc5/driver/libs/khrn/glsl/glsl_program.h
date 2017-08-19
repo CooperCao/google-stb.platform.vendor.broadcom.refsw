@@ -136,9 +136,6 @@ typedef struct GLSL_PROGRAM_T_ {
 
    unsigned int           num_uniform_offsets;
    unsigned int          *uniform_offsets;
-
-   unsigned               cs_shared_block_size;
-   bool                   cs_has_barrier;
 } GLSL_PROGRAM_T;
 
 GLSL_PROGRAM_T *glsl_program_create();
@@ -151,7 +148,7 @@ void            glsl_program_shrink(GLSL_PROGRAM_T *program);
 static inline bool glsl_program_has_stage(GLSL_PROGRAM_T const* program, ShaderFlavour flavour)
 {
    if (flavour == SHADER_COMPUTE)
-      return program->cs_shared_block_size != ~0u;
+      return program->ir->cs_shared_block_size != ~0u;
    else
       return program->ir->stage[flavour].ir != NULL;
 }

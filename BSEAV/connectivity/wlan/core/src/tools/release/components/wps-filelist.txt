@@ -1,0 +1,154 @@
+#ifdef BCMWPS_SRC
+
+#ifndef ROUTER_SRC
+
+#ifdef LINUX_SRC
+components/apps/wps/linux/enr/wl_wps.c
+components/apps/wps/linux/enr/wps_api.c
+components/apps/wps/linux/enr/wps_api_tester.c
+components/apps/wps/linux/enr/wps_enr_app.mk
+components/apps/wps/linux/enr/wps_enr.c
+components/apps/wps/linux/enr/wps_linux_hooks.c
+components/apps/wps/linux/enr/wps_reg.c
+components/apps/wps/linux/inc/wps_sdk.h
+components/apps/wps/wpscli/linux/Makefile
+components/apps/wps/wpscli/linux/wpscli_osl_helper.c
+components/apps/wps/wpscli/linux/wpscli_osl_timer.c
+components/apps/wps/wpscli/linux/wpscli_pktdisp.c
+components/apps/wps/wpscli/linux/wpscli_wlan.c
+components/apps/wps/wpscli/linux/wpscli_wl_handler.c
+components/apps/wps/wpscli/linux/wps_linux.sln
+components/apps/wps/linux/inc/wps_sdk.h
+#endif /* LINUX_SRC */
+#endif /* !ROUTER_SRC */
+
+#ifdef ROUTER_SRC
+components/apps/wps/brcm_apps/arch/
+components/apps/wps/brcm_apps/include/
+components/apps/wps/brcm_apps/upnp/WFADevice/xml_WFADevice.c
+components/apps/wps/common/config/
+components/apps/wps/common/include/
+#ifdef FULL_SRC
+components/apps/wps/brcm_apps/
+components/apps/wps/common/ap/
+components/apps/wps/common/enrollee/
+components/apps/wps/common/include/
+components/apps/wps/common/registrar/
+components/apps/wps/common/shared/
+components/apps/wps/common/sta/
+#endif /* FULL_SRC */
+#ifdef LINUX_ROUTER_SRC
+components/apps/router/wps/
+components/apps/wps/brcm_apps/linux/
+#endif /* LINUX_ROUTER_SRC */
+#endif /* ROUTER_SRC */
+
+#ifndef ROUTER_SRC
+components/apps/wps/common/makefile
+components/apps/wps/common/sources
+components/apps/wps/common/wps_ap_lib.mk
+components/apps/wps/common/wps_common_lib.mk
+components/apps/wps/common/wps_enr_lib.mk
+components/apps/wps/common/ap/ap_api.c
+components/apps/wps/common/ap/ap_eap_sm.c
+components/apps/wps/common/ap/ap_ssr.c
+components/apps/wps/common/ap/ap_upnp_sm.c
+components/apps/wps/common/config/wps.mk
+components/apps/wps/common/config/wpsconfig_wpsapi_linux
+components/apps/wps/common/enrollee/enr_api.c
+components/apps/wps/common/enrollee/enr_reg_sm.c
+components/apps/wps/common/include/ap_eap_sm.h
+components/apps/wps/common/include/ap_ssr.h
+components/apps/wps/common/include/ap_upnp_sm.h
+components/apps/wps/common/include/eap_defs.h
+components/apps/wps/common/include/info.h
+
+components/apps/wps/common/include/reg_proto.h
+components/apps/wps/common/include/reg_protomsg.h
+components/apps/wps/common/include/reg_prototlv.h
+components/apps/wps/common/include/wps_sslist.h
+components/apps/wps/common/include/sminfo.h
+components/apps/wps/common/include/statemachine.h
+components/apps/wps/common/include/tutrace.h
+components/apps/wps/common/include/version.h.in
+components/apps/wps/common/include/wps_apapi.h
+components/apps/wps/common/include/wps_ap.h
+components/apps/wps/common/include/wpsapi.h
+
+components/apps/wps/common/include/wps_enrapi.h
+components/apps/wps/common/include/wps_enr.h
+components/apps/wps/common/include/wps_enr_osl.h
+components/apps/wps/common/include/wpserror.h
+components/apps/wps/common/include/wps_gpio.h
+components/apps/wps/common/include/wpsheaders.h
+components/apps/wps/common/include/wps_led.h
+components/apps/wps/common/include/wps_staeapsm.h
+components/apps/wps/common/include/wps_sta.h
+components/apps/wps/common/include/wpstlvbase.h
+components/apps/wps/common/include/wpstypes.h
+components/apps/wps/common/include/wps_version.h
+components/apps/wps/common/include/wps_wl.h
+components/apps/wps/common/include/wps_dh.h
+components/apps/wps/common/include/wps_sha256.h
+components/apps/wps/common/include/ie_utils.h
+components/apps/wps/common/include/wps_utils.h
+components/apps/wps/common/include/wps_openssl.h
+
+components/apps/wps/common/registrar/reg_sm.c
+
+components/apps/wps/common/shared/buffobj.c
+components/apps/wps/common/shared/dev_config.c
+components/apps/wps/common/shared/reg_proto_msg.c
+components/apps/wps/common/shared/reg_proto_utils.c
+components/apps/wps/common/shared/wps_openssl.c
+components/apps/wps/common/shared/wps_sslist.c
+components/apps/wps/common/shared/state_machine.c
+components/apps/wps/common/shared/tlv.c
+components/apps/wps/common/shared/tutrace.c
+components/apps/wps/common/shared/ie_utils.c
+components/apps/wps/common/shared/wps_utils.c
+components/apps/wps/common/sta/sta_eap_sm.c
+#endif /* !ROUTER_SRC */
+
+
+#ifndef ROUTER_SRC
+# wpscli
+components/apps/wps/wpscli/common/wpscli_api.c
+components/apps/wps/wpscli/common/wpscli_softap.c
+components/apps/wps/wpscli/common/wpscli_sta.c
+components/apps/wps/wpscli/common/wpscli_test_cmd.c
+components/apps/wps/wpscli/common/wpscli_wl.c
+components/apps/wps/wpscli/common/wpscli_wpscore_hooks.c
+components/apps/wps/wpscli/common/include/wpscli_osl.h
+
+# wpsapi
+components/apps/wps/wpsapi/common/include/wireless.h
+components/apps/wps/wpsapi/common/include/wps_api_osl.h
+components/apps/wps/wpsapi/common/include/wps_sdk.h
+components/apps/wps/wpsapi/common/wps_api.c
+components/apps/wps/wpsapi/common/wps_api_priv.h
+components/apps/wps/wpsapi/common/wps_hooks.c
+components/apps/wps/wpsapi/common/wps_wl.c
+
+components/apps/wps/wpsapi/linux/Makefile
+components/apps/wps/wpsapi/linux/wps_api_tester.c
+components/apps/wps/wpsapi/linux/wps_api_tester.h
+components/apps/wps/wpsapi/linux/wps_api_ui.c
+components/apps/wps/wpsapi/linux/wps_linux_osl.c
+
+#endif /* !ROUTER_SRC */
+#endif /* BCMWPS_SRC */
+
+#ifndef ROUTER_SRC
+# we isolate those because some apps want to export only them (WINCE)
+#if defined(BCMWPS_SRC) || defined(WPS_API_SRC)
+components/apps/wps/wpscli/common/include/wpscli_common.h
+components/apps/wps/wpscli/include/wpscli_api.h
+components/apps/wps/common/include/portability.h
+components/apps/wps/common/include/wpscommon.h
+components/apps/wps/common/include/wps_devinfo.h
+#ifdef WINCE_SRC
+components/apps/wps/ce/wps_enr/include/wps_sdk.h
+#endif /* WINCE_SRC */
+#endif /* BCMWPS_SRC || WPS_API_SRC */
+#endif /* !ROUTER_SRC */

@@ -71,7 +71,6 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
     unsigned xi, yi, surfaceOffset;
     BSTD_DeviceOffset offsetY=0, offsetC=0;
     unsigned stripeNum;
-    unsigned shuffleBit;
     unsigned lumaBufSize, chromaBufSize, totalByteWidth;
     unsigned luma32bit, chroma32bit;
     void *ptr;
@@ -140,7 +139,6 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
     BDBG_MODULE_MSG(pxlval, ("%p(4, 0): pxl = %#x", (void*)((unsigned*)surfaceMem.buffer + 1), *((unsigned *)surfaceMem.buffer + 1)));
 
     /* get the stripe surface info */
-    shuffleBit = (picCfg.stripedWidth==256)? 9:8;
     totalByteWidth = picCfg.stripedWidth * (picCfg.imageWidth + (picCfg.stripedWidth - 1)) / picCfg.stripedWidth;
     lumaBufSize   = totalByteWidth * picCfg.lumaStripedHeight;
     chromaBufSize = totalByteWidth * picCfg.chromaStripedHeight;

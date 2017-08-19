@@ -641,7 +641,7 @@ NEXUS_Error NEXUS_Timebase_P_SetSettings(NEXUS_TimebaseHandle timebase, const NE
         }
 
         BDBG_MSG(("%s: PCR Mode Timebase (%u) Settings: track range %d, max pcr error %d",
-                    __FUNCTION__, timebase->hwIndex, pSettings->sourceSettings.pcr.trackRange, pSettings->sourceSettings.pcr.maxPcrError));
+                    BSTD_FUNCTION, timebase->hwIndex, pSettings->sourceSettings.pcr.trackRange, pSettings->sourceSettings.pcr.maxPcrError));
         }
         break;
 
@@ -974,27 +974,42 @@ static void NEXUS_Timebase_P_Monitor_isr(void *context, int param)
     uint32_t hi, lo;
     int32_t error;
 
-    BSTD_UNUSED(param);
-
     BDBG_OBJECT_ASSERT(timebase, NEXUS_Timebase);
 
-    rc = NEXUS_Timebase_P_GetPcr_isr(timebase, &hi, &lo, &error);
-    if (rc) return;
+    switch (param) {
+    case BXPT_PCR_IntName_ePhaseCompare:
+    default:
+       rc = NEXUS_Timebase_P_GetPcr_isr(timebase, &hi, &lo, &error);
+       if (rc) return;
 
-    BDBG_MSG(("Timebase %u: received PCR %#x", timebase->hwIndex, hi));
-    pStatus->pcrValid = true;
-    pStatus->pcrCount++;
-    NEXUS_IsrCallback_Fire_isr(timebase->monitorCallback);
+       BDBG_MSG(("Timebase %u: received PCR %#x", timebase->hwIndex, hi));
+       pStatus->pcrValid = true;
+       pStatus->pcrCount++;
+       NEXUS_IsrCallback_Fire_isr(timebase->monitorCallback);
 
 #if NEXUS_HAS_ASTM
-    if (timebase->astm.settings.enabled)
-    {
-        if (timebase->astm.settings.pcrReceived_isr)
-        {
-            timebase->astm.settings.pcrReceived_isr(timebase->astm.settings.callbackContext, timebase->hwIndex);
-        }
-    }
+       if (timebase->astm.settings.enabled)
+       {
+       if (timebase->astm.settings.pcrReceived_isr)
+       {
+           timebase->astm.settings.pcrReceived_isr(timebase->astm.settings.callbackContext, timebase->hwIndex);
+       }
+       }
 #endif
+       break;
+
+    case BXPT_PCR_IntName_eOnePcrError:
+       timebase->onePcrErrCount++;
+       break;
+
+    case BXPT_PCR_IntName_eTwoPcrErrors:
+       timebase->twoPcrErrCount++;
+       break;
+
+    case BXPT_PCR_IntName_ePhaseSaturation:
+       timebase->phaseSaturationEventCount++;
+       break;
+    }
 }
 
 NEXUS_Error NEXUS_Timebase_P_StartMonitor(NEXUS_TimebaseHandle timebase)
@@ -1008,10 +1023,30 @@ NEXUS_Error NEXUS_Timebase_P_StartMonitor(NEXUS_TimebaseHandle timebase)
 
     rc = BXPT_PCR_GetIntId( timebase->hwIndex, BXPT_PCR_IntName_ePhaseCompare, &pcr_int );
     if (rc) return BERR_TRACE(rc);
-
-    rc = BINT_CreateCallback(&timebase->intMonitorCallback, g_pCoreHandles->bint, pcr_int, NEXUS_Timebase_P_Monitor_isr, timebase, 0);
+    rc = BINT_CreateCallback(&timebase->intMonitorCallback, g_pCoreHandles->bint, pcr_int, NEXUS_Timebase_P_Monitor_isr, timebase, BXPT_PCR_IntName_ePhaseCompare);
     if (rc) return BERR_TRACE(rc);
     rc = BINT_EnableCallback(timebase->intMonitorCallback);
+    if (rc) return BERR_TRACE(rc);
+
+    rc = BXPT_PCR_GetIntId( timebase->hwIndex, BXPT_PCR_IntName_eOnePcrError, &pcr_int );
+    if (rc) return BERR_TRACE(rc);
+    rc = BINT_CreateCallback(&timebase->intOnePcrErr, g_pCoreHandles->bint, pcr_int, NEXUS_Timebase_P_Monitor_isr, timebase, BXPT_PCR_IntName_eOnePcrError);
+    if (rc) return BERR_TRACE(rc);
+    rc = BINT_EnableCallback(timebase->intOnePcrErr);
+    if (rc) return BERR_TRACE(rc);
+
+    rc = BXPT_PCR_GetIntId( timebase->hwIndex, BXPT_PCR_IntName_eTwoPcrErrors, &pcr_int );
+    if (rc) return BERR_TRACE(rc);
+    rc = BINT_CreateCallback(&timebase->intTwoPcrErr, g_pCoreHandles->bint, pcr_int, NEXUS_Timebase_P_Monitor_isr, timebase, BXPT_PCR_IntName_eTwoPcrErrors);
+    if (rc) return BERR_TRACE(rc);
+    rc = BINT_EnableCallback(timebase->intTwoPcrErr);
+    if (rc) return BERR_TRACE(rc);
+
+    rc = BXPT_PCR_GetIntId( timebase->hwIndex, BXPT_PCR_IntName_ePhaseSaturation, &pcr_int );
+    if (rc) return BERR_TRACE(rc);
+    rc = BINT_CreateCallback(&timebase->intPhaseSaturation, g_pCoreHandles->bint, pcr_int, NEXUS_Timebase_P_Monitor_isr, timebase, BXPT_PCR_IntName_ePhaseSaturation);
+    if (rc) return BERR_TRACE(rc);
+    rc = BINT_EnableCallback(timebase->intPhaseSaturation);
     if (rc) return BERR_TRACE(rc);
     return 0;
 }
@@ -1024,6 +1059,24 @@ void NEXUS_Timebase_P_StopMonitor(NEXUS_TimebaseHandle timebase)
         BINT_DisableCallback(timebase->intMonitorCallback);
         BINT_DestroyCallback(timebase->intMonitorCallback);
         timebase->intMonitorCallback = NULL;
+    }
+
+    if (timebase->intOnePcrErr) {
+       BINT_DisableCallback(timebase->intOnePcrErr);
+       BINT_DestroyCallback(timebase->intOnePcrErr);
+       timebase->intOnePcrErr = NULL;
+    }
+
+    if (timebase->intTwoPcrErr) {
+       BINT_DisableCallback(timebase->intTwoPcrErr);
+       BINT_DestroyCallback(timebase->intTwoPcrErr);
+       timebase->intTwoPcrErr = NULL;
+    }
+
+    if (timebase->intPhaseSaturation) {
+       BINT_DisableCallback(timebase->intPhaseSaturation);
+       BINT_DestroyCallback(timebase->intPhaseSaturation);
+       timebase->intPhaseSaturation = NULL;
     }
 
     /* clean up in case it was left on */

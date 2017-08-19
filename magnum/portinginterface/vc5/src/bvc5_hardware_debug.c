@@ -335,7 +335,7 @@ void BVC5_P_DebugDump(
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT0), BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT1),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT2), BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT3),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_ERRSTAT),
-#if !V3D_VER_AT_LEAST(4,0,0,0)
+#if !V3D_VER_AT_LEAST(4,0,2,0)
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_DBGE),
 #else
        0,

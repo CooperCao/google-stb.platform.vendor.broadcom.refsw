@@ -166,6 +166,4 @@ void BVC5_P_SimpenroseWriteRegister(
 #endif
 
 /* Avoid compiler warning about empty translation unit */
-static void BVC5_P_SimpenroseDummy(void)
-{
-}
+typedef int make_iso_compilers_happy;

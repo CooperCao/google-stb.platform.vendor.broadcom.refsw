@@ -1542,22 +1542,20 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
         seqHdrOffset64 = BNAV_get_frameOffset(pStartEntry) - BNAV_get_SPS_Offset(avcEntry);
         /* For AVC host trick modes w/o BTP's, we have to assume the SPS and PPS are adjacent and in
         SPS,PPS order. If this isn't true, we'll require BTP's. */
-        if (!handle->settings.useBtpsForHostTrickModes && handle->packetSize) {
+        if (handle->packetSize) {
             seqHdrOffset64 -= seqHdrOffset64 % handle->packetSize;
         }
     }
     else {
         /* Calc the seqhdr offset */
         seqHdrOffset64 = BNAV_get_frameOffset(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
-        if (!handle->settings.useBtpsForHostTrickModes && handle->packetSize) {
+        if (handle->packetSize) {
             seqHdrOffset64 -= seqHdrOffset64 % handle->packetSize;
         }
     }
     /* if there's a sequence header in the previous packet (or, for PES streams, close by), also send it */
-    if (seqHdrOffset64 != handle->lastSeqHdrOffset64 &&
-        curFifoEntry->startByte - seqHdrOffset64 <= handle->packetSize)
+    if (curFifoEntry->startByte - seqHdrOffset64 <= handle->packetSize)
     {
-        handle->lastSeqHdrOffset64 = seqHdrOffset64;
         curFifoEntry->startByte = seqHdrOffset64;
     }
 

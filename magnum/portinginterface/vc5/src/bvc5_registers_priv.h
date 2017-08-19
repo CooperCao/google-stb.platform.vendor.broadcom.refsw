@@ -74,7 +74,7 @@
 #include "bchp_v3d_pctr_0.h"
 #include "bchp_v3d_err_0.h"
 
-#if V3D_VER_AT_LEAST(4,0,0,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
 #include "bchp_v3d_mmu.h"
 #include "bchp_v3d_mmuc.h"
 #else
@@ -96,7 +96,7 @@
 #endif
 
 /* These are not core specific */
-#if !V3D_VER_AT_LEAST(4,0,0,0)
+#if !V3D_VER_AT_LEAST(4,0,2,0)
 #include "bchp_v3d_gca.h"
 #endif
 #include "bchp_v3d_tfu.h"
@@ -292,7 +292,7 @@
 #define V3D_GMP_CFG              V3D_GMP_0_CFG
 #define V3D_GMP_VIO_TYPE         V3D_GMP_0_VIO_TYPE
 
-#if V3D_VER_AT_LEAST(4,0,0,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
 /* MMU registers unified on 4.0 onwards */
 #define BCHP_V3D_MMU_0_CTRL         BCHP_V3D_MMU_CTRL
 #define BCHP_V3D_MMU_0_PT_PA_BASE   BCHP_V3D_MMU_PT_PA_BASE
@@ -356,7 +356,7 @@
 
 #endif /* BVC5_HARDWARE_SIMPENROSE */
 
-#if V3D_VER_AT_LEAST(3,4,0,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
 
 #define V3D_AXI_ID_L2T 0
 #define V3D_AXI_ID_PTB 1

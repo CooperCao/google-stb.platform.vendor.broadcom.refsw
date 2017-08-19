@@ -1,54 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile$
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL IAS Zone cluster SAP interface.
+*       ZCL IAS Zone cluster SAP interface.
 *
-* $Revision$
-* $Date$
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_CLUSTER_IAS_ZONE_H
 #define _BB_ZBPRO_ZCL_SAP_CLUSTER_IAS_ZONE_H
@@ -65,6 +58,7 @@
  *  These attributes are provided by Server side of the cluster.
  * \details
  *  IAS Zone ZCL cluster has no attributes provided by Client side.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \note
  *  This implementation of IAS WD ZCL cluster doesn't provide Server side. *
  * \par     Documentation
@@ -89,6 +83,7 @@ typedef enum _ZBPRO_ZCL_SapIASZoneServerAttributeId_t
 
 /**//**
  * \brief   Enumerator for ZoneState Attribute.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 8.2.2.2.1.1, Table 8-4.
 */
@@ -104,6 +99,7 @@ typedef enum
 
 /**//**
  * \brief   Enumerator for ZoneType Attribute.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 8.2.2.2.1.2, Table 8-5.
 */
@@ -127,7 +123,8 @@ typedef enum
 
 
 /**//**
- * \name    Data types shared by ZoneStatus attribute of IAS Zone cluster.
+ * \brief   Data types shared by ZoneStatus attribute of IAS Zone cluster.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 8.2.2.2.1.3, Table 8-6.
  */
@@ -135,26 +132,29 @@ typedef  BitField16_t  ZBPRO_ZCL_SapIASZoneAttributeZoneStatus_t;       /*!< Sha
 
 
 /**//**
- * \name    Data types shared by IAS_CIE_Address attribute of IAS Zone cluster.
+ * \brief   Data types shared by IAS_CIE_Address attribute of IAS Zone cluster.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 8.2.2.2.2, Table 8-7.
-*/
+ */
 typedef  uint64_t    ZBPRO_ZCL_SapIASZoneAttributeIASCIEAddress;        /*!< IAS_CIE_Address attribute. */
 
 
 /**//**
- * \name    Data types shared by ZoneID attribute of IAS Zone cluster.
+ * \brief   Data types shared by ZoneID attribute of IAS Zone cluster.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 8.2.2.2.2, Table 8-7.
-*/
+ */
 typedef  uint8_t   ZBPRO_ZCL_SapIASZoneAttributeZoneID_t;                /*!< ZoneID attribute. */
 
 
 /**//**
  * \brief   Enumeration of client-to-server commands specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.2.2.3, table 8-8.
-*/
+ */
 typedef enum _ZBPRO_ZCL_SapIASZoneClientToServerCommandId_t
 {
     ZBPRO_ZCL_SAP_IAS_ZONE_CMD_ID_ZONE_ENROLL_RESPONSE                   =  0x00,     /*!< Zone Enroll Response. */
@@ -164,6 +164,7 @@ typedef enum _ZBPRO_ZCL_SapIASZoneClientToServerCommandId_t
 
 /**//**
  * \brief   Enumeration of server-to-client commands specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_IASZoneAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.2.2.4, table 8-10.
  */
@@ -180,6 +181,7 @@ typedef enum _ZBPRO_ZCL_SapIASZoneServerToClientCommandId_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Zone Enroll request command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.2.2.4.2, figure 8-4.
  */
@@ -208,8 +210,9 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_IASZoneCmdZoneEnrollR
 
 /**//**
  * \brief  Structure for parameters of the local indication to the  Zone Enroll request command.
- * \note Parameters are the same as the parameters of the Zone Enroll request command.*/
-
+ * \note Parameters are the same as the parameters of the Zone Enroll request command.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollInd
+ */
 typedef   ZBPRO_ZCL_IASZoneCmdZoneEnrollRequestReqParams_t   ZBPRO_ZCL_IASZoneCmdZoneEnrollRequestIndParams_t;
 
 
@@ -217,6 +220,10 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_IASZoneCmdZoneEnrollR
 
 
 /*-------------------------------- Zone Enroll response Cmd ------------------------------------------------------*/
+/**//**
+ * \brief   Enumeration for Zone Enroll Response result codes.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollRespReq
+ */
 typedef enum _ZBPRO_ZCL_SapIASZoneEnrollResponseCodeType_t
 {
     ZBPRO_ZCL_SAP_IAS_ZONE_ENROLL_RESPONSE_CODE_SUCCESS           =  0x00,      /*!< Success. */
@@ -235,6 +242,7 @@ SYS_DbgAssertStatic(1 == sizeof(ZBPRO_ZCL_SapIASZoneEnrollResponseCodeType_t));
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Zone Enroll response command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollRespReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.2.2.3.1, figure 8-2.
  */
@@ -264,8 +272,9 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_IASZoneCmdZoneEnrollR
 /**//**
  * \brief   Structure for parameters of ZCL Local Confirmation on request to issue Zone Enroll response command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollRespConf
  * \note
- * Confirmation have no custom parameters.
+ * Confirmation has no custom parameters.
  */
 typedef struct _ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseConfParams_t
 {
@@ -288,6 +297,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_IASZoneCmdZoneEnrollR
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Zone Enroll response command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollRespReq
  */
 typedef struct   _ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReqDescr_t   ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReqDescr_t;
 
@@ -295,6 +305,7 @@ typedef struct   _ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReqDescr_t   ZBPRO_ZCL_I
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Zone Enroll response command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollRespConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -306,6 +317,7 @@ typedef void ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Zone Enroll response command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ZoneEnrollRespReq
  */
 struct _ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReqDescr_t
 {
@@ -325,6 +337,7 @@ struct _ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZCL Local Request to issue Zone Status Change Notification command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_ZoneStatusChangeNotificationReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 8.2.2.4.1, figure 8-3.
  */
@@ -366,7 +379,8 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_IASZoneCmdZoneStatusC
 /**//**
  * \brief Command Zone Status Change Notification send from server to client. The request parameters on the server
  * side are the indication parameters on the client side.
-*/
+ * \ingroup ZBPRO_ZCL_ZoneStatusChangeNotificationInd
+ */
 
 typedef   ZBPRO_ZCL_IASZoneCmdZoneStatusChangeNotificationReqParams_t
     ZBPRO_ZCL_IASZoneCmdZoneStatusChangeNotificationIndParams_t;
@@ -377,8 +391,8 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_IASZoneCmdZoneStatusC
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name    Function accept ZCL Local Requests to issue Zone Enroll response command.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \brief   Function accept ZCL Local Requests to issue Zone Enroll response command.
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
  * \details
  *  The caller shall specify the following obligatory parameters of request:
  *  - callback                              assign with ZCL Local Confirm handler function,
@@ -425,7 +439,9 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_IASZoneCmdZoneStatusC
 /**//**
  * \brief   Accepts ZCL Local Request to issue Zone Enroll response command
  * specific to IAS Zone ZCL cluster.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReq(ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReqDescr_t *const  reqDescr);
 
@@ -433,10 +449,12 @@ void ZBPRO_ZCL_IASZoneCmdZoneEnrollResponseReq(ZBPRO_ZCL_IASZoneCmdZoneEnrollRes
 /**//**
  * \brief   Handles ZCL Local Indication on reception of Zone Status Change Notification command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
  * \note
  *  The Zone Status Change Notification command is sent by server. Due
  *  to this reason client side service provides this function.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_IASZoneCmdZoneStatusChangeNotificationInd(
     ZBPRO_ZCL_IASZoneCmdZoneStatusChangeNotificationIndParams_t   *const   indParams);
@@ -445,13 +463,17 @@ void ZBPRO_ZCL_IASZoneCmdZoneStatusChangeNotificationInd(
 /**//**
  * \brief   Handles ZCL Local Indication on reception of Zone Enroll request command
  * specific to IAS Zone ZCL cluster.
+ * \ingroup ZBPRO_ZCL_Functions
  * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
  * \note
  *  The Zone Enroll request command is sent by server. Due
  *  to this reason client side service provides this function.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_IASZoneCmdZoneEnrollRequestInd(
     ZBPRO_ZCL_IASZoneCmdZoneEnrollRequestIndParams_t   *const   indParams);
 
 
 #endif
+
+/* eof bbZbProZclSapClusterIasZone.h */

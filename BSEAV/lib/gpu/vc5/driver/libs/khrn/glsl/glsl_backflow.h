@@ -75,7 +75,7 @@ typedef enum {
 #if V3D_VER_AT_LEAST(4,0,2,0)
    BACKFLOW_IID,
    BACKFLOW_SAMPID,
-   BACKFLOW_PATCHID,
+   BACKFLOW_BARRIERID,
 #endif
    BACKFLOW_TMUWT,
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -205,7 +205,7 @@ struct tmu_lookup_s {
    uint32_t read_count;
 
    Backflow *first_write;
-   Backflow *last_write;
+   Backflow *last_write; // This must point at the retiring write node directly
 
    Backflow *first_read;
    Backflow *last_read;
@@ -221,9 +221,9 @@ struct tmu_lookup_s {
 /* TODO: This structure is kind of poorly thought out. It really needs to be
  * made less stage-specific and better defined.                               */
 typedef struct {
-   Backflow *w;
-   Backflow *w_c;
-   Backflow *z;
+   Backflow *rf0; // w;
+   Backflow *rf1; // w_c;
+   Backflow *rf2; // z;
 
    Backflow *vertexid;
    Backflow *instanceid;
@@ -265,7 +265,9 @@ typedef struct {
    Backflow **outputs;
    int num_outputs;
 
-   int branch_cond;        /* Output idx of branch condition */
+   Backflow *branch_cond;
+   bool branch_invert;
+   bool branch_per_quad;
 
    BackflowChain iodeps;   /* I/O that must be completed during the block */
 
@@ -276,8 +278,6 @@ typedef struct {
 
    /* These are filled in during translation and used for scheduling */
    struct tmu_lookup_s *tmu_lookups;
-
-   bool accesses_shared;
 
    /* These are also needed by the scheduler for iodeps */
    Backflow *first_tlb_read;
@@ -298,10 +298,10 @@ Backflow *tr_external(int block, int output, ExternalList **list);
 
 void glsl_iodep(Backflow *consumer, Backflow *supplier);
 
-bool glsl_sched_node_requires_regfile(BackflowFlavour op);
+bool glsl_sched_node_requires_regfile(const Backflow *node);
 bool glsl_sched_node_admits_unpack(BackflowFlavour op);
 
-void tr_read_tlb(bool ms, uint32_t rt_num, uint32_t rt_type, uint32_t required_components,
+void tr_read_tlb(bool ms, uint32_t rt_num, bool is_16, bool is_int, uint32_t required_components,
                  Backflow **result, Backflow **first_read, Backflow **last_read);
 
 void fragment_shader_inputs(SchedShaderInputs *ins,
@@ -313,7 +313,7 @@ unsigned vertex_shader_inputs(SchedShaderInputs *ins,
 
 SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
                             const bool *output_active, SchedShaderInputs *ins,
-                            const struct glsl_backend_cfg *key);
+                            const struct glsl_backend_cfg *key, const bool *per_quad);
 
 typedef struct {
    int size;
@@ -322,8 +322,9 @@ typedef struct {
    Backflow **nodes;
 } BackflowPriorityQueue;
 
-extern void glsl_backflow_priority_queue_init(BackflowPriorityQueue* queue, int size);
-extern void glsl_backflow_priority_queue_heapify(BackflowPriorityQueue* queue);
+extern void glsl_backflow_priority_queue_init(BackflowPriorityQueue *queue, int size);
+extern void glsl_backflow_priority_queue_term(BackflowPriorityQueue *queue);
+extern void glsl_backflow_priority_queue_heapify(BackflowPriorityQueue *queue);
 
-extern void glsl_backflow_priority_queue_push(BackflowPriorityQueue* queue, Backflow *node);
-extern Backflow *glsl_backflow_priority_queue_pop(BackflowPriorityQueue* queue);
+extern void glsl_backflow_priority_queue_push(BackflowPriorityQueue *queue, Backflow *node);
+extern Backflow *glsl_backflow_priority_queue_pop(BackflowPriorityQueue *queue);

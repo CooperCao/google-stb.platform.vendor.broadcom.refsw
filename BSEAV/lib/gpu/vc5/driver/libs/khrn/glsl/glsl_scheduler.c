@@ -12,7 +12,8 @@
 
 #include "glsl_sched_node_helpers.h"
 
-#include "libs/core/v3d/v3d_tmu.h"
+#include "libs/core/v3d/v3d_limits.h"
+
 #include <stdlib.h>
 
 #if defined(OUTPUT_GRAPHVIZ_ON_SUCCESS) || defined(OUTPUT_GRAPHVIZ_ON_FAILURE)
@@ -440,19 +441,17 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
    for (BackflowChainNode *n=block->iodeps.head; n; n=n->next)
       glsl_backflow_visit(n->val, sched_visit);
 
+   if (block->branch_cond)
+      glsl_backflow_visit(block->branch_cond, sched_visit);
+
    glsl_backflow_visitor_end(sched_visit);
 
    for (RegList *o = outputs; o; o=o->next) o->node->remaining_dependents++;
+   if (block->branch_cond)
+      block->branch_cond->remaining_dependents++;
 
-   /* XXX The output list is backwards. Damn. */
-   int branch_cond;
-   if (block->branch_cond == -1) branch_cond = -1;
-   else {
-      branch_cond = 0;
-      for (int i=block->num_outputs-1; i>block->branch_cond; i--) if (block->outputs[i] != NULL) branch_cond++;
-   }
    result = glsl_backend(&block->iodeps, type, bin_mode, thrsw_count, threads, &age_queue,
-                         presched, outputs, branch_cond, blackout, last, lthrsw);
+                         presched, outputs, block->branch_cond, blackout, last, lthrsw);
 
 #ifdef GRAPHVIZ
    graphviz_file_num++;
@@ -461,6 +460,8 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
 
    /* Clean up the texture iodependencies so we can try again with different threadability */
    clean_up_scheduler_iodeps(&sched_deps.consumers, &sched_deps.suppliers);
+
+   glsl_backflow_priority_queue_term(&age_queue);
 
    return result;
 }

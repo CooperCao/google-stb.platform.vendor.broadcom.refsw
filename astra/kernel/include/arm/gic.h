@@ -42,6 +42,7 @@
 #include "arm/arm.h"
 #include "arm/spinlock.h"
 
+#define TZ_SECURE_SGI_IRQ         14
 #define TZ_SGI_IRQ                15
 #define TZ_INVALID_IRQ            1024
 
@@ -52,7 +53,7 @@ public:
 
     static void intrDisable(int irq);
     static void intrEnable(int irq);
-    static void sgiGenerate(int irq);
+    static void sgiGenerate(uint8_t cpuTargetList, int irq);
 
     static int currIntr(int *srcCpu);
     static void endIntr(int irq);

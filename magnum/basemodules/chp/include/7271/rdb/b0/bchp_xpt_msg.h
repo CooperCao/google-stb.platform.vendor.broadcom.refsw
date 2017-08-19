@@ -44,14 +44,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu May  4 21:47:30 2017
- *                 Full Compile MD5 Checksum  d6a98d2f414aa1992fcffe3361fd994d
+ * Date:           Generated on               Fri May 26 16:11:45 2017
+ *                 Full Compile MD5 Checksum  8c230d97c39689d89acc0c1449db095c
  *                     (minus title and desc)
- *                 MD5 Checksum               95a2057b12fa148e14c412cdaf535722
+ *                 MD5 Checksum               eff2f87cd93911aa218f4261afc2e49b
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1481
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -779,15 +779,9 @@
 #define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_SHIFT      0
 #define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_NO_OUTPUT  0
 #define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_MPEG_TS    1
-#define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_DIRECTV_TS 2
 #define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_MPEG_PES   3
-#define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_DIRECTV_PES 4
 #define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_MPEG_PAYLOAD 5
-#define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_DIRECTV_PAYLOAD 6
 #define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_MPEG_PSI   7
-#define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_DIRECTV_AUX 8
-#define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_DIRECTV_SPT 9
-#define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_DIRECTV_MPT 10
 #define BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_RAW        11
 
 

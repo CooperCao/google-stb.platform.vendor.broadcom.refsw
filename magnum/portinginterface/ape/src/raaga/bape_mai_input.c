@@ -145,7 +145,7 @@ BERR_Code BAPE_MaiInput_Open(
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
     BDBG_ASSERT(NULL != phandle);
 
-    BDBG_MSG(("%s: Opening MAI Input: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening MAI Input: %u", BSTD_FUNCTION, index));
 
     *phandle = NULL;
 
@@ -771,7 +771,7 @@ static void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     {
         BAPE_NcoConfiguration ncoConfig;
         unsigned mclkFreqToFsRatio = 1;
-        BAPE_P_AttachInputPortToNco_isrsafe(&handle->inputPort, mclkSource - BAPE_MclkSource_eNco0);
+        BAPE_P_AttachInputPortToNco_isr(&handle->inputPort, mclkSource - BAPE_MclkSource_eNco0);
         BAPE_P_GetNcoConfiguration_isrsafe(handle->deviceHandle, mclkSource - BAPE_MclkSource_eNco0, &ncoConfig);
         mclkFreqToFsRatio = ncoConfig.frequency / (handle->inputPort.format.sampleRate == 0 ? 48000: handle->inputPort.format.sampleRate);
         BDBG_MSG(("Success. Setting mai input to use clock source %lu, ch %lu, mclkFreqToFsRatio %lu", (unsigned long)mclkSource, (unsigned long)0, (unsigned long)mclkFreqToFsRatio));
@@ -1571,14 +1571,14 @@ static void BAPE_MaiInput_P_DetectInputChange_isr (BAPE_MaiInputHandle    handle
             {
                 if ( handle->clientFormatDetectionSettings.formatChangeIntInput.pCallback_isr )
                 {
-                    BDBG_MSG(("%s - Calling format change callback (InputCapture) ", __FUNCTION__));
+                    BDBG_MSG(("%s - Calling format change callback (InputCapture) ", BSTD_FUNCTION));
                     handle->clientFormatDetectionSettings.formatChangeIntInput.pCallback_isr(
                                               handle->clientFormatDetectionSettings.formatChangeIntInput.pParam1,
                                               handle->clientFormatDetectionSettings.formatChangeIntInput.param2);
                 }
                 if ( handle->clientFormatDetectionSettings.formatChangeIntDecode.pCallback_isr )
                 {
-                    BDBG_MSG(("%s - Calling format change callback (Decode)", __FUNCTION__));
+                    BDBG_MSG(("%s - Calling format change callback (Decode)", BSTD_FUNCTION));
                     handle->clientFormatDetectionSettings.formatChangeIntDecode.pCallback_isr(
                                               handle->clientFormatDetectionSettings.formatChangeIntDecode.pParam1,
                                               handle->clientFormatDetectionSettings.formatChangeIntDecode.param2);

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,11 +51,13 @@
 #include "automation/bvdc_automation_ittable_v2_priv.c"
 
 /* Need two versions of VEC VF core register settings */
+#if BVDC_P_NUM_SHARED_VF
 #if (BVDC_P_SUPPORT_VEC_VF_VER >=2)
     #include "automation/bvdc_automation_vftable_v2_priv.c"
     #include "bvdc_vffilter_ntsc_v2_priv.c"
 #else
     #error Unsupported VF_VER
+#endif
 #endif
 
 /****************************************************************
@@ -7490,6 +7492,7 @@ static const uint32_t s_aulItTable_VESA[BVDC_P_IT_TABLE_SIZE] =
 #endif
 };
 
+#if BVDC_P_NUM_SHARED_VF
 /* VF_FORMAT_ADDER -> VF_SYNC_TRANS1 */
 static const uint32_t s_aulVfTable_VESA_RGB[BVDC_P_VF_TABLE_SIZE+1] =
 {
@@ -7542,3 +7545,4 @@ static const uint32_t s_aulFilterTable_NTSC_2[BVDC_P_CHROMA_TABLE_SIZE] =
     register_NTSC_704_VF_BLOCK_CH2_TAP9_value,
     register_NTSC_704_VF_BLOCK_CH2_TAP10_value
 };
+#endif

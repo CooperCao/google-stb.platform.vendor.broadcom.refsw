@@ -1,55 +1,49 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/MSO/include/bbRF4CEMSORIB.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the MSO RF4CE Profile
- *   Remote Information Base component.
+ *      This is the header file for the MSO RF4CE Profile
+ *      Remote Information Base component.
  *
- * $Revision: 1814 $
- * $Date: 2014-03-14 13:05:14Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_MSO_RIB_H
 #define _RF4CE_MSO_RIB_H
 
@@ -218,6 +212,15 @@ typedef enum _RF4CE_MSO_RIB_Versioning_t
          (uint32_t)((index) << 16)) & 0xFFFFFF)
 
 /************************* TYPES *******************************************************/
+typedef struct RF4CE_MSO_RIBRequestService_t
+{
+    SYS_QueueElement_t serviceData; /*!< Helper field to allow that structure object to be queued. */
+    uint8_t requestID;              /*!< Request ID. */
+    Bool8_t gotConfirm;
+    Bool8_t gotResponse;
+} RF4CE_MSO_RIBRequestService_t;
+
+
 /**//**
  * \brief RF4CE MSO RIB attribute Peripheral ID type.
  */
@@ -320,6 +323,7 @@ typedef struct _RF4CE_MSO_RIB_GeneralPurposeEntry_t
 
 /**//**
  * \brief RF4CE MSO RIB attributes Set Request Parameters type.
+ * \ingroup RF4CE_MSO_SetRIBAttributeReq
  */
 typedef struct _RF4CE_MSO_SetRIBAttributeReqParams_t
 {
@@ -331,6 +335,7 @@ typedef struct _RF4CE_MSO_SetRIBAttributeReqParams_t
 
 /**//**
  * \brief RF4CE MSO RIB attributes Set Response (Confirmation) Parameters type.
+ * \ingroup RF4CE_MSO_SetRIBAttributeConf
  */
 typedef struct _RF4CE_MSO_SetRIBAttributeConfParams_t
 {
@@ -341,23 +346,26 @@ typedef struct _RF4CE_MSO_SetRIBAttributeConfParams_t
 
 /**//**
  * \brief RF4CE MSO RIB attributes Set Request Descriptor type declaration.
+ * \ingroup RF4CE_MSO_SetRIBAttributeReq
  */
 typedef struct _RF4CE_MSO_SetRIBAttributeReqDescr_t RF4CE_MSO_SetRIBAttributeReqDescr_t;
 
 /**//**
  * \brief RF4CE MSO RIB attributes Set Request callback.
+ * \ingroup RF4CE_MSO_SetRIBAttributeConf
  */
 typedef void (*RF4CE_MSO_SetRIBAttributeCallback_t)(RF4CE_MSO_SetRIBAttributeReqDescr_t *req, RF4CE_MSO_SetRIBAttributeConfParams_t *conf);
 
 /**//**
  * \brief RF4CE MSO RIB attributes Set Request Descriptor type.
+ * \ingroup RF4CE_MSO_SetRIBAttributeReq
  */
 struct _RF4CE_MSO_SetRIBAttributeReqDescr_t
 {
 #ifndef _HOST_
-    RF4CE_NWK_RequestService_t service;           /*!< Service field. */
+    RF4CE_MSO_RIBRequestService_t service;           /*!< Service field. */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_SetRIBAttributeReqParams_t params;  /*!< Request parameters. */
     RF4CE_MSO_SetRIBAttributeCallback_t callback; /*!< Request callback. */
@@ -365,6 +373,7 @@ struct _RF4CE_MSO_SetRIBAttributeReqDescr_t
 
 /**//**
  * \brief RF4CE MSO RIB attributes Get Request Parameters type.
+ * \ingroup RF4CE_MSO_GetRIBAttributeReq
  */
 typedef struct _RF4CE_MSO_GetRIBAttributeReqParams_t
 {
@@ -376,6 +385,7 @@ typedef struct _RF4CE_MSO_GetRIBAttributeReqParams_t
 
 /**//**
  * \brief RF4CE MSO RIB attributes Get Response (Confirmation) Parameters type.
+ * \ingroup RF4CE_MSO_GetRIBAttributeConf
  */
 typedef struct _RF4CE_MSO_GetRIBAttributeConfParams_t
 {
@@ -387,23 +397,26 @@ typedef struct _RF4CE_MSO_GetRIBAttributeConfParams_t
 
 /**//**
  * \brief RF4CE MSO RIB attributes Get Request Descriptor type declaration.
+ * \ingroup RF4CE_MSO_GetRIBAttributeReq
  */
 typedef struct _RF4CE_MSO_GetRIBAttributeReqDescr_t RF4CE_MSO_GetRIBAttributeReqDescr_t;
 
 /**//**
  * \brief RF4CE MSO RIB attributes Get Request callback.
+ * \ingroup RF4CE_MSO_GetRIBAttributeConf
  */
 typedef void (*RF4CE_MSO_GetRIBAttributeCallback_t)(RF4CE_MSO_GetRIBAttributeReqDescr_t *req, RF4CE_MSO_GetRIBAttributeConfParams_t *conf);
 
 /**//**
  * \brief RF4CE MSO RIB attributes Get Request Descriptor type.
+ * \ingroup RF4CE_MSO_GetRIBAttributeReq
  */
 struct _RF4CE_MSO_GetRIBAttributeReqDescr_t
 {
 #ifndef _HOST_
-    RF4CE_NWK_RequestService_t service;           /*!< Service field. */
+    RF4CE_MSO_RIBRequestService_t service;           /*!< Service field. */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_GetRIBAttributeReqParams_t params;  /*!< Request parameters. */
     RF4CE_MSO_GetRIBAttributeCallback_t callback; /*!< Request callback. */
@@ -412,6 +425,7 @@ struct _RF4CE_MSO_GetRIBAttributeReqDescr_t
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Initializes MSO RIB Attribute Set request.
+ \ingroup RF4CE_MSO_Functions
 
  \param[in] request - pointer to the request descriptor structure.
  \return Nothing.
@@ -420,6 +434,7 @@ void RF4CE_MSO_SetRIBAttributeReq(RF4CE_MSO_SetRIBAttributeReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Initializes MSO RIB Attribute Get request.
+ \ingroup RF4CE_MSO_Functions
 
  \param[in] request - pointer to the request descriptor structure.
  \return Nothing.
@@ -427,3 +442,5 @@ void RF4CE_MSO_SetRIBAttributeReq(RF4CE_MSO_SetRIBAttributeReqDescr_t *request);
 void RF4CE_MSO_GetRIBAttributeReq(RF4CE_MSO_GetRIBAttributeReqDescr_t *request);
 
 #endif /* _RF4CE_MSO_RIB_H */
+
+/* eof bbRF4CEMSORIB.h */

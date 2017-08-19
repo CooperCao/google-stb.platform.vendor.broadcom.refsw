@@ -359,6 +359,7 @@ typedef struct NEXUS_FrontendDevice {
     NEXUS_Error (*getDeviceAmplifierStatus)(void *handle, NEXUS_FrontendDeviceAmplifierStatus *pStatus);
     void        (*getWakeupSettings)(NEXUS_FrontendDeviceHandle handle, NEXUS_TransportWakeupSettings *pSettings);
     NEXUS_Error (*setWakeupSettings)(NEXUS_FrontendDeviceHandle handle, const NEXUS_TransportWakeupSettings *pSettings);
+    NEXUS_Error (*deviceLink)(NEXUS_FrontendDeviceHandle parentHandle, NEXUS_FrontendDeviceHandle childHandle, const NEXUS_FrontendDeviceLinkSettings *pSettings);
 
     /* Calls which may or may not block on async initialization. if set to true, does not block
      * while initialization is still pending. Not all calls need to block on all frontends.
@@ -523,6 +524,7 @@ typedef struct NEXUS_Frontend
     NEXUS_Error (*getBertStatus)(void *handle, NEXUS_FrontendBertStatus *pStatus);
     NEXUS_Error (*getSatelliteRuntimeSettings)(void *handle, NEXUS_FrontendSatelliteRuntimeSettings *pSettings);
     NEXUS_Error (*setSatelliteRuntimeSettings)(void *handle, const NEXUS_FrontendSatelliteRuntimeSettings *pSettings);
+    void        (*postSetUserParameters)(NEXUS_FrontendHandle handle, const NEXUS_FrontendUserParameters *pParams);
     NEXUS_Time resetStatusTime;
     NEXUS_FrontendChipType chip;
 } NEXUS_Frontend;

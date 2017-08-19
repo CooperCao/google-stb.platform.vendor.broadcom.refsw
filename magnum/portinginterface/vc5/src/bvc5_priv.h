@@ -169,6 +169,8 @@ typedef struct BVC5_P_Handle
    int64_t                    iSecureBinTranslation;
    BMMA_Block_Handle          hMmuSafePage;
    BMMA_DeviceOffset          uiMmuSafePageOffset;
+
+   bool                       bCollectLoadStats;         /* Do we want to gather load statistics for each client?                */
 } BVC5_P_Handle;
 
 BVC5_BinPoolHandle BVC5_P_GetBinPool(

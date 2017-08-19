@@ -91,7 +91,7 @@ extern void khrn_fmem_pool_submit(
    v3d_barrier_flags* render_rw_flags);
 
 /* Convert a client-side CPU address into a V3D address */
-extern v3d_addr_t khrn_fmem_pool_hw_address(khrn_fmem_pool *pool, void *address);
+extern v3d_addr_t khrn_fmem_pool_hw_address(khrn_fmem_pool *pool, const void *address);
 
 /* Return true if this render state is using too many fmem buffers.
  * Caller should flush. */

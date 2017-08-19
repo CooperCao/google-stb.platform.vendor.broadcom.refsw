@@ -332,6 +332,43 @@ typedef enum BDSP_AF_P_InterFrameBuffType
 
 }BDSP_AF_P_InterFrameBuffType;
 
+/*********************************************************************
+Summary:
+    This enum defines the FMM buffer Pause Burst Content:
+    1) Zeroes
+    2) Spdif formatted packet of Zeroes
+Description:
+    This enum is defined to inform FW about type of Pause bursts
+    to use during ZERO- Filling in Decode task
+
+See Also:
+**********************************************************************/
+
+typedef enum BDSP_AF_P_BurstFillType
+{
+    BDSP_AF_P_BurstFill_eZeroes,
+    BDSP_AF_P_BurstFill_ePauseBurst,
+    BDSP_AF_P_BurstFill_eNullBurst,
+    BDSP_AF_P_BurstFill_eInvalid =0x7FFFFFFF
+}BDSP_AF_P_BurstFillType;
+
+/*********************************************************************
+Summary:
+    This enum defines the SPDIF Pause Burst Width:
+    1) Six Words (16-bit Word)
+    2) Eight Words (16-bit Word)
+Description:
+    This enum is defined to inform FW about the width of SPDIF Pause
+    burst to use during ZERO- Filling in Decode task
+**********************************************************************/
+
+typedef enum BDSP_AF_P_SpdifPauseWidth
+{
+    BDSP_AF_P_SpdifPauseWidth_eSixWord,
+    BDSP_AF_P_SpdifPauseWidth_eEightWord,
+    BDSP_AF_P_SpdifPauseWidth_eHundredEightyEightWord,
+    BDSP_AF_P_SpdifPauseWidth_eInvalid = 0x7FFFFFFF
+}BDSP_AF_P_SpdifPauseWidth;
 
 /***************************************************************************
 Summary:
@@ -682,6 +719,8 @@ typedef struct BDSP_AF_P_sFMM_GATE_OPEN_CONFIG
 
     /*FMM buffer content : Compressed / PCM */
     BDSP_AF_P_FmmContentType    eFMMContentType;
+	BDSP_AF_P_BurstFillType        eFMMPauseBurstType;
+    BDSP_AF_P_SpdifPauseWidth       eSpdifPauseWidth;
 
     /*FMM buffer Sinking rate */
     BDSP_AF_P_FmmDstFsRate      eFmmDstFsRate;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,44 +64,45 @@ struct keymap {
     unsigned ir_input_a;
     unsigned ir_cir_nec;
     unsigned ir_input_gisat;
+    unsigned ir_input_rstep;
     unsigned keyboard;
     const char *script;
 } g_input_keymap[binput_script_max] = {
-                       /* ir_a, cir_nec,    gisat, 	keyboard */
-    /* unknown */      {0,      0,          0,		0,                      ""},
-    /* play */         {0x5038, 0xe21dff00, 0xb2e,	25  /* P */,            "play"},
-    /* pause */        {0x001f, 0xe31cff00, 0xd2c,	119 /* PAUSE/BREAK */,  "pause"},
-    /* fast_forward */ {0x201d, 0xa659ff00, 0x128,	33  /* F */,            "ff"},
-    /* rewind */       {0x101e, 0xe619ff00, 0x229,	19  /* R */,            "rew"},
-    /* stop */         {0x4039, 0xa35cff00, 0xe2d,	57  /* SPACE */,        "stop"},
-    /* clear */        {0xd012, 0xb24dff00, 0xf30,	111 /* DELETE */,       "clear"},
-    /* back */         {0x303a, 0xf906ff00, 0xf16,	14  /* BACKSPACE */,    "back"},
-    /* up */           {0x9034, 0xb14eff00, 0xf23,	103,                    "u"},
-    /* down */         {0x8035, 0xf30cff00, 0xa20,	108,                    "d"},
-    /* right */        {0x6037, 0xb649ff00, 0x301,	106,                    "r"},
-    /* left */         {0x7036, 0xf40bff00, 0x11d,	105,                    "l"},
-    /* select */       {0xe011, 0xf708ff00, 0x21c,	28  /* RETURN */,       "select"},
-    /* power */        {0x600A, 0xf50aff00, 0xa06,	142 /* SLEEP */,        "power"},
-    /* chan_up */      {0,      0xf609ff00, 0xe0b,	0,                      "chan_up"},
-    /* chan_down */    {0,      0xf20dff00, 0x510,  0,                      "chan_down"},
-    /* one */          {0,      0xe01fff00, 0,      2,                      "1"},
-    /* two */          {0,      0xa15eff00, 0,      3,                      "2"},
-    /* three */        {0,      0xa05fff00, 0,      4,                      "3"},
-    /* four */         {0,      0xe41bff00, 0,      5,                      "4"},
-    /* five */         {0,      0xa55aff00, 0,      6,                      "5"},
-    /* six */          {0,      0xa45bff00, 0,      7,                      "6"},
-    /* seven */        {0,      0xe817ff00, 0,      8,                      "7"},
-    /* eight */        {0,      0xa956ff00, 0,      9,                      "8"},
-    /* nine */         {0,      0xa857ff00, 0,      10,                     "9"},
-    /* zero */         {0,      0xad52ff00, 0,      11,                     "0"},
-    /* dot */          {0,      0xac53ff00, 0,      52, /* DOT */           "."},
-    /* info */         {0,      0xf00fff00, 0,      23, /* I */             "info"},
-    /* guide */        {0,      0xf10eff00, 0,      34, /* G */             "guide"},
-    /* menu */         {0,      0xb04fff00, 0,      50, /* M */             "menu"},
+                       /* ir_a, cir_nec,    gisat, rstep,   keyboard */
+    /* unknown */      {0,      0,          0,     0,       0,                      ""},
+    /* play */         {0x5038, 0xe21dff00, 0xb2e, 0x11ac9, 25  /* P */,            "play"},
+    /* pause */        {0x001f, 0xe31cff00, 0xd2c, 0,       119 /* PAUSE/BREAK */,  "pause"},
+    /* fast_forward */ {0x201d, 0xa659ff00, 0x128, 0x11ab9, 33  /* F */,            "ff"},
+    /* rewind */       {0x101e, 0xe619ff00, 0x229, 0x11aba, 19  /* R */,            "rew"},
+    /* stop */         {0x4039, 0xa35cff00, 0xe2d, 0x11aca, 57  /* SPACE */,        "stop"},
+    /* clear */        {0xd012, 0xb24dff00, 0xf30, 0,       111 /* DELETE */,       "clear"},
+    /* back */         {0x303a, 0xf906ff00, 0xf16, 0x11a82, 14  /* BACKSPACE */,    "back"},
+    /* up */           {0x9034, 0xb14eff00, 0xf23, 0x11ae6, 103,                    "u"},
+    /* down */         {0x8035, 0xf30cff00, 0xa20, 0x11ae5, 108,                    "d"},
+    /* right */        {0x6037, 0xb649ff00, 0x301, 0x11ade, 106,                    "r"},
+    /* left */         {0x7036, 0xf40bff00, 0x11d, 0x11ae2, 105,                    "l"},
+    /* select */       {0xe011, 0xf708ff00, 0x21c, 0x11a84, 28  /* RETURN */,       "select"},
+    /* power */        {0x600A, 0xf50aff00, 0xa06, 0x11ae9, 142 /* SLEEP */,        "power"},
+    /* chan_up */      {0,      0xf609ff00, 0xe0b, 0x11ad6, 0,                      "chan_up"},
+    /* chan_down */    {0,      0xf20dff00, 0x510, 0x11ad2, 0,                      "chan_down"},
+    /* one */          {0,      0xe01fff00, 0,     0,       2,                      "1"},
+    /* two */          {0,      0xa15eff00, 0,     0,       3,                      "2"},
+    /* three */        {0,      0xa05fff00, 0,     0,       4,                      "3"},
+    /* four */         {0,      0xe41bff00, 0,     0,       5,                      "4"},
+    /* five */         {0,      0xa55aff00, 0,     0,       6,                      "5"},
+    /* six */          {0,      0xa45bff00, 0,     0,       7,                      "6"},
+    /* seven */        {0,      0xe817ff00, 0,     0,       8,                      "7"},
+    /* eight */        {0,      0xa956ff00, 0,     0,       9,                      "8"},
+    /* nine */         {0,      0xa857ff00, 0,     0,       10,                     "9"},
+    /* zero */         {0,      0xad52ff00, 0,     0,       11,                     "0"},
+    /* dot */          {0,      0xac53ff00, 0,     0,       52, /* DOT */           "."},
+    /* info */         {0,      0xf00fff00, 0,     0,       23, /* I */             "info"},
+    /* guide */        {0,      0xf10eff00, 0,     0,       34, /* G */             "guide"},
+    /* menu */         {0,      0xb04fff00, 0,     0,       50, /* M */             "menu"},
 
     /* script commands */
-                       {0, 0, 0, 0,                                    "repeat"},
-                       {0, 0, 0, 0,                                    "sleep"} /* TODO: hardcoded 1 second */
+                       {0, 0, 0, 0, 0,                                              "repeat"},
+                       {0, 0, 0, 0, 0,                                              "sleep"} /* TODO: hardcoded 1 second */
 };
 
 #if NEXUS_HAS_IR_INPUT
@@ -119,6 +120,9 @@ b_remote_key b_get_remote_key(NEXUS_IrInputMode irInput, unsigned code)
             break;
         case NEXUS_IrInputMode_eCirGISat:
             if (g_input_keymap[key].ir_input_gisat == code) return key;
+            break;
+        case NEXUS_IrInputMode_eCirRstep:
+            if (g_input_keymap[key].ir_input_rstep == code) return key;
             break;
         default:
             BERR_TRACE(NEXUS_INVALID_PARAMETER);

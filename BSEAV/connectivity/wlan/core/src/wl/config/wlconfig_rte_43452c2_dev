@@ -1,0 +1,176 @@
+# Broadcom 802.11abg Networking Device Driver Configuration file
+#
+# Broadcom Proprietary and Confidential. Copyright (C) 2017,
+# All Rights Reserved.
+# 
+# This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
+# the contents of this file may not be disclosed to third parties, copied
+# or duplicated in any form, in whole or in part, without the prior
+# written permission of Broadcom.
+#
+# $Id: wlconfig_rte_4345a0_dev,v  Exp $:
+#
+# NOTE:
+# This file is for the 4345a0 full ROM and may not be changed after tapeout.
+#
+
+# basic common code
+WL=1
+
+# Basic modes
+STA=1
+#AP=1
+#APSTA=1
+
+# Extensible STA
+#EXT_STA_DONGLE=1
+#EXTSTA
+#NDISFW
+#WL_ASSOC_RECREATE=1
+DHDOID=0
+
+# WAPI features
+BCMWAPI_WPI=0
+BCMWAPI_WAI=0
+
+# promisc mode
+#PROMISC=1
+#WL_MONITOR=1
+
+# ndis for XP and Winmob 6.0 support, OIDs are handled in Host
+WL_OIDS=0
+ADV_PS_POLL=1
+
+# coex stuff
+#BCMECICOEX=1
+WLCOEX=0
+
+# bus
+SOCI_AI=1
+BCMIPXOTP=1
+
+#BCMAUTH_PSK=1
+#BCMSUP_PSK=1
+
+WL11D=1
+BCM_CNTRY_DEFAULT=0
+WL11N=1
+WLCNT=1
+WME=1
+#BCMCCX=1
+#WLCAC=1
+WLAMPDU=0
+WLAMPDU_UCODE=0
+WLAMPDU_AQM=0
+WLAMPDU_HW=0
+WLAMSDU=0
+#WLP2P=1
+#WLP2P_UCODE_ONLY=1
+## This is by default enabled for APSTA/BTAMP, need not explicitly enable.
+APCS=0
+WLRM=1
+WIFI_ACT_FRAME=0
+PACKET_FILTER=1
+PACKET_FILTER2=1
+RECEIVE_THROTTLE=0
+DELTASTATS=0
+WLCNTSCB=0
+BCMOTP=0
+NO_BCMINTERNAL=1
+##ap power save feature
+RADIO_PWRSAVE=0
+
+#PNO=1
+#WLPFN=1
+#MBSS=1
+
+#TOE=1
+
+#WLNDOE=1
+#WLTDLS=1
+
+ARPOE=0
+WLCQ=0
+WDS=0
+WLFBT=0
+#WLDPT=1
+
+#WL11AC=1
+
+# For Voice Enterprise(VE)
+WL11K=0
+WLFBT=0
+WLWNM=0
+WLSCANCACHE=1
+#BCMNVRAMW=0
+#BCMNVRAMR=1
+
+WL11H=1
+
+BCMPHYCORENUM=1
+
+ACPHY_1X1_ONLY=1
+
+#WLMCHAN=1
+TXPWR_CACHE_DISABLED=1
+
+TINY_PKTJOIN=1
+WL_RXEARLYRC=1
+
+PROP_TXSTATUS=1
+#AMPDU_HOSTREORDER=1
+BRCMAPIVTW=0
+WLC_DISABLE_DFS_RADAR_SUPPORT=1
+
+#WL_PROXDETECT=1
+#WL11U=1
+#P2PO=1
+#ANQPO=1
+L2_FILTER=1
+
+SAVERESTORE=0
+WL_LPC=0
+WLTXBF=0
+
+
+#WL_OKC=1
+#WLRCC=1
+#WLFMC=1
+#WLRXOV=1
+
+#PKTC_DONGLE=1
+#PKTC_TX_DONGLE=1
+#EVDATA_BSSINFO=1
+#CCA_STATS=1
+#ISID_STATS=1
+WLAMSDU_TX=0
+
+# 11w
+#BCMCCMP=1
+MFP=0
+MFP_TEST=0
+
+#SRSCAN=1
+#BCM_LOGTRACE=1
+#BCM_EVENT_LOG=1
+#WL_PWRSTATS=1
+
+#WLAWDL=1
+#BCMLTECOEX=1
+
+#WLOVERTHRUSTER=1
+
+SIUTILS=1
+#WLBSSLOAD_REPORT=1
+
+WLC_TXPWRCAP=1
+#WL_MPF=1
+#WLROAMPROF=1
+
+# PCIE options
+BCMFRAGPOOL=1
+BCMLFRAG=1
+BCMSPLITRX=1
+
+#Changes to ROM settings post tapeout below
+WL_MODESW=0

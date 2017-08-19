@@ -223,6 +223,7 @@ NEXUS_Error NEXUS_Platform_SetClientResources( NEXUS_ClientHandle client, const 
 
 NEXUS_Error NEXUS_Platform_SetClientMode( NEXUS_ClientHandle client, NEXUS_ClientMode mode )
 {
+#if NEXUS_SERVER_SUPPORT
     if (mode > client->driver_client->client.mode) {
         /* we can't raise the mode without re-validating every resource */
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -232,4 +233,9 @@ NEXUS_Error NEXUS_Platform_SetClientMode( NEXUS_ClientHandle client, NEXUS_Clien
         if (rc) return BERR_TRACE(rc);
     }
     return NEXUS_SUCCESS;
+#else
+    BSTD_UNUSED(client);
+    BSTD_UNUSED(mode);
+    return NEXUS_SUCCESS;
+#endif
 }

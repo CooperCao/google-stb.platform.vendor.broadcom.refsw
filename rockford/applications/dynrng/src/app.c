@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "platform.h"
 #include "app.h"
@@ -179,7 +176,7 @@ void app_p_update_gfx_model(AppHandle app)
     const PlatformPictureInfo * pInfo;
     assert(app);
     pModel = &app->model.gfx;
-    pInfo = image_viewer_get_picture_info(app->pig ? app->background : app->thumbnail);
+    pInfo = image_viewer_get_picture_info(app->usageMode == PlatformUsageMode_ePictureInGraphics ? app->background : app->thumbnail);
     if (pInfo)
     {
         memcpy(&pModel->info, pInfo, sizeof(pModel->info));
@@ -348,19 +345,6 @@ void app_p_toggle_details(void * context, int param)
     osd_toggle_details_mode(app->osd);
 }
 
-void app_p_toggle_pig(void * context, int param)
-{
-    AppHandle app = context;
-    assert(app);
-    if(app->streamCount > 1) {
-        printf("Cannot toggle pig in mosaic mode\n");
-        return;
-    }
-    app_p_set_pig_mode(app, !app->pig);
-    osd_toggle_pig_mode(app->osd);
-    app_p_update_gfx_model(app);
-}
-
 void app_p_toggle_mosaic_layout(void * context, int param)
 {
     AppHandle app = context;
@@ -465,11 +449,6 @@ void app_p_stream_info_changed(void * context, int param)
     osd_flip(app->osd);
 }
 
-void app_p_set_pig_mode(AppHandle app, bool pig)
-{
-    app->pig = pig;
-}
-
 void app_p_reset_osd(AppHandle app)
 {
     unsigned i;
@@ -482,25 +461,55 @@ void app_p_reset_osd(AppHandle app)
     osd_update_sel_model(app->osd, &app->model.sel);
 }
 
+static const char * const usageModeStrings[] =
+{
+    "full-screen video",
+    "pig",
+    "mosaic",
+    "pip",
+    NULL
+};
+
+#define min(x,y) (((x) > (y)) ? (y) : (x))
 void app_p_scenario_changed(void * context, const Scenario * pScenario)
 {
     unsigned i;
+    bool forceRestart = false;
 
     AppHandle app = context;
     assert(app);
 
     /* Switching from mosaic to non-non mosaic requires all videos to be stopped so that windows can be reconfigured. */
-    if(app->streamCount != pScenario->streamCount) {
-        for(i=0; i<app->streamCount; i++) {
-            stream_player_stop(app->streamPlayer[i]);
+    if (app->usageMode != pScenario->usageMode) {
+        if (app->usageMode == PlatformUsageMode_eMosaic || pScenario->usageMode == PlatformUsageMode_eMosaic) {
+            for(i=0; i<app->streamCount; i++) {
+                stream_player_stop(app->streamPlayer[i]);
+            }
+        }
+        else if (app->usageMode == PlatformUsageMode_eMainPip) {
+            stream_player_stop(app->streamPlayer[1]);
         }
     }
     app_p_reset_osd(app);
-    app->streamCount = pScenario->streamCount;
+    app->usageMode = pScenario->usageMode;
+    printf("usage mode = %s\n", usageModeStrings[app->usageMode]);
+    switch (app->usageMode)
+    {
+        case PlatformUsageMode_eMosaic:
+            app->streamCount = min(pScenario->streamCount, app->mosaicCount);
+            break;
+        case PlatformUsageMode_eMainPip:
+            app->streamCount = min(pScenario->streamCount, 2);
+            break;
+        default:
+            app->streamCount = min(pScenario->streamCount, 1);
+            break;
+    }
+    printf("app->streamCount = %u\n", app->streamCount);
     app->layout = pScenario->layout;
-    osd_set_mosaic_mode(app->osd, app->streamCount>1, app->layout);
+    osd_set_usage_mode(app->osd, app->usageMode, app->layout);
     for(i=0; i<app->streamCount; i++) {
-        stream_player_play_stream_by_url(app->streamPlayer[i], pScenario->streamPaths[i], app->streamCount>1, pScenario->forceRestart);
+        stream_player_play_stream_by_url(app->streamPlayer[i], pScenario->streamPaths[i], app->usageMode, pScenario->forceRestart);
     }
     app->model.out.info.gamut = pScenario->gamut;
     if (!app->output.dynrngLock)
@@ -513,8 +522,6 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
     printf("image: %s\n", pScenario->imagePath);
     image_viewer_view_image_by_path(app->thumbnail, pScenario->imagePath);
     image_viewer_view_image_by_path(app->background, pScenario->bgPath);
-    if (app->streamCount == 1) app_p_set_pig_mode(app, pScenario->pig);
-    if (app->streamCount == 1) osd_set_pig_mode(app->osd, app->pig);
     for(i=0; i<app->streamCount; i++)
     {
         if ((pScenario->streamPaths[i] && app->prevStreamPaths[i] && strcmp(pScenario->streamPaths[i], app->prevStreamPaths[i]))
@@ -620,6 +627,7 @@ AppHandle app_create(ArgsHandle args)
     app->model.out.info.gamut = PlatformColorimetry_eAuto;
     app->gfx = platform_graphics_open(app->platform, fontPath, app->args->osd.dims.width, app->args->osd.dims.height);
     if (!app->gfx) goto error;
+    app->mosaicCount = platform_graphics_get_mosaic_count(app->gfx);
     app->display = platform_display_open(app->platform);
     if (!app->display) goto error;
     app->input = platform_input_open(app->platform, app->args->method);
@@ -634,13 +642,13 @@ AppHandle app_create(ArgsHandle args)
     theme.infoPanelBackgroundColor = app->args->osd.colors.infoPanelBg;
     app->osd = osd_create(app->platform, app->gfx, &theme);
     if (!app->osd) goto error;
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<app->mosaicCount; i++) {
         app->streamPlayer[i] = stream_player_create(app->platform, &app_p_stream_info_changed, app);
         if (!app->streamPlayer[i]) goto error;
     }
     app->scenarioPlayer = scenario_player_create(app->args->scenarioPath, &app_p_scenario_changed, app);
     if (!app->scenarioPlayer) goto error;
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<app->mosaicCount; i++) {
         char buffer [16];
         snprintf(buffer, 16, "%s %d", "VID", i);
         app->plm.vid[i] = plm_create(buffer,
@@ -686,7 +694,7 @@ AppHandle app_create(ArgsHandle args)
     app->rx = platform_receiver_open(app->platform, &app_p_hotplug_occurred, app);
     if (!app->rx) goto error;
 
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<app->mosaicCount; i++) {
         stream_player_add_stream_source(app->streamPlayer[i], "SDR", args->sdrStreamPath);
         stream_player_add_stream_source(app->streamPlayer[i], "HDR", args->hdrStreamPath);
         stream_player_add_stream_source(app->streamPlayer[i], "HLG", args->hlgStreamPath);
@@ -705,7 +713,6 @@ AppHandle app_create(ArgsHandle args)
         platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleGuide, &app_p_toggle_guide, app);
         platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePause, &app_p_toggle_pause, app);
         platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleDetails, &app_p_toggle_details, app);
-        platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePig, &app_p_toggle_pig, app);
         platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleMosaicLayout, &app_p_toggle_mosaic_layout, app);
         platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleColorimetry, &app_p_cycle_colorimetry, app);
         platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleBackground, &app_p_cycle_background, app);
@@ -743,13 +750,13 @@ void app_destroy(AppHandle app)
     app->thumbnail = NULL;
     plm_destroy(app->plm.gfx);
     app->plm.gfx = NULL;
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<app->mosaicCount; i++) {
         plm_destroy(app->plm.vid[i]);
         app->plm.vid[i] = NULL;
     }
     scenario_player_destroy(app->scenarioPlayer);
     app->scenarioPlayer = NULL;
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<app->mosaicCount; i++) {
         stream_player_destroy(app->streamPlayer[i]);
         app->streamPlayer[i] = NULL;
         if (app->prevStreamPaths[i]) free(app->prevStreamPaths[i]);

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ******************************************************************************/
 /*****************************************************************************/
 /*                                                                           */
@@ -271,6 +270,7 @@ done :
 	return rc ;
 }
 
+#if BHDM_CONFIG_28NM_SUPPORT
 
 static const BHDM_TmdsRatePreEmphasisSettings BHDM_TMDS_P_RatePreEmphasisDefaultSettings[BHDM_TMDS_RANGES] =
 {
@@ -299,8 +299,6 @@ static const BHDM_TmdsRatePreEmphasisSettings BHDM_TMDS_P_RatePreEmphasisDefault
 			{{{0x0, 0x1C}, 0x12, 0xF}, {{0x0, 0x1C}, 0x12, 0xF}, {{0x0, 0x1C}, 0x12,  0xF}}, {{0x0, 0x0B}, 0x13, 0xF}}
 } ;
 
-
-#if BHDM_CONFIG_28NM_SUPPORT
 
 void BHDM_TMDS_P_GetDefaultPreEmphasisRegisters(
 	BHDM_TmdsPreEmphasisRegisters *TmdsPreEmphasisRegisters

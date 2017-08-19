@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -373,22 +373,19 @@ static void BRFM_P_SysclkReset(BRFM_Handle hDev)
 
 BERR_Code BRFM_P_CRC_BIST(BREG_Handle hRegister, BRFM_EncoderType enc);
 
+#ifdef BCHP_PWR_RESOURCE_RFM
+/* nothing */
+#elif (BRFM_REVID<40)
+/* nothing */
+#else
 static void BRFM_P_SetTopLevelClock(BREG_Handle hReg, bool enable)
 {
-#if (BRFM_REVID<40) /* No PM registers */
-    BSTD_UNUSED(hReg);
-#else
     BREG_AtomicUpdate32(hReg, BRFM_P_CLK_PM_CTRL_BCHP, BRFM_P_CLK_PM_CTRL_MASK,
         enable ? BRFM_P_CLK_PM_CTRL_ENABLED : !BRFM_P_CLK_PM_CTRL_ENABLED);
-#endif
 }
 
 static bool BRFM_P_GetTopLevelClock(BREG_Handle hReg)
 {
-#if (BRFM_REVID<40)
-    BSTD_UNUSED(hReg);
-    return 1; /* always on */
-#else
     uint32_t val;
     val = BREG_Read32(hReg, BRFM_P_CLK_PM_CTRL_BCHP);
     if (BCHP_GET_FIELD_DATA(val, BRFM_P_CLK_PM_CTRL_REG, BRFM_P_CLK_PM_CTRL_FIELD)==BRFM_P_CLK_PM_CTRL_ENABLED) {
@@ -397,8 +394,8 @@ static bool BRFM_P_GetTopLevelClock(BREG_Handle hReg)
     else {
         return false;
     }
-#endif
 }
+#endif
 
 static void BRFM_P_PowerDown(BRFM_Handle hDev)
 {

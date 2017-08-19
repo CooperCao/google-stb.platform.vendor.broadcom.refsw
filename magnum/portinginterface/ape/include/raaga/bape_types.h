@@ -283,7 +283,7 @@ Multichannel I2S Mode
 ***************************************************************************/
 typedef enum BAPE_I2sMultiMode
 {
-    BAPE_I2sMultiMode_eMultichannel,    /* Default.  I2S multi will be used 
+    BAPE_I2sMultiMode_eMultichannel,    /* Default.  I2S multi will be used
                                            as a single output capable of stereo
                                            or multichannel. */
     BAPE_I2sMultiMode_eStereo,          /* I2S multi will be used as a set of
@@ -323,7 +323,7 @@ typedef struct BAPE_BufferDescriptor
     } buffers[BAPE_Channel_eMax];
 
     unsigned bufferSize;            /* Buffer size before wraparound in bytes */
-    unsigned wrapBufferSize;        /* Buffer size after wraparound in bytes */        
+    unsigned wrapBufferSize;        /* Buffer size after wraparound in bytes */
 } BAPE_BufferDescriptor;
 
 /***************************************************************************
@@ -340,11 +340,11 @@ typedef enum BAPE_MultichannelFormat
 
 /***************************************************************************
 Summary:
-Data Path Types 
- 
-Description: 
-Some object types expose multiple data path connectors.  This will specify 
-the data type of the connector. 
+Data Path Types
+
+Description:
+Some object types expose multiple data path connectors.  This will specify
+the data type of the connector.
 ***************************************************************************/
 typedef enum BAPE_ConnectorFormat
 {
@@ -352,7 +352,7 @@ typedef enum BAPE_ConnectorFormat
     BAPE_ConnectorFormat_eMultichannel,     /* Multichannel PCM */
     BAPE_ConnectorFormat_eCompressed,       /* Compressed IEC-61937 audio up to 48 kHz for SPDIF/HDMI applications.  */
     BAPE_ConnectorFormat_eCompressed4x,     /* Compressed IEC-61937 audio for HDMI up to 192kHz.  Typically used for AC3+ and DTS-HD HRA audio formats. */
-    BAPE_ConnectorFormat_eCompressed16x,    /* Compressed IEC-61937 audio for HDMI HBR packets up to 768kHz.  Typically used for MAT/MLP (Dolby TrueHD) 
+    BAPE_ConnectorFormat_eCompressed16x,    /* Compressed IEC-61937 audio for HDMI HBR packets up to 768kHz.  Typically used for MAT/MLP (Dolby TrueHD)
                                                and DTS-HD MA audio formats.  Available in HDMI 1.3 and later. */
     BAPE_ConnectorFormat_eMono,             /* Mono PCM, typically only used for voice conferencing applications. */
     BAPE_ConnectorFormat_eAlternateStereo,  /* Alternate Stereo PCM output. This is intended for decoders that can generate multiple decoded outputs from a single PID (AC4, etc) */
@@ -362,8 +362,8 @@ typedef enum BAPE_ConnectorFormat
 /***************************************************************************
 Summary:
 DSP Delay Mode
- 
-Description: 
+
+Description:
 Determines the DSP's delay mode for an operation.  Default uses a
 fixed path delay, but low delay mode provides lower delay depending on the
 codec in use.  There are also usage restrictions for low delay mode in
@@ -395,24 +395,24 @@ Loudness Equivalence Modes
 typedef enum BAPE_LoudnessEquivalenceMode
 {
     BAPE_LoudnessEquivalenceMode_eNone,         /* Default, no loudness equivalence */
-    BAPE_LoudnessEquivalenceMode_eAtscA85,      /* ATSC A/85.  This standardizes all decoders to output 
-                                                   Stereo and Multichannel PCM at -20dB.  Compressed data is output at -31dB. 
+    BAPE_LoudnessEquivalenceMode_eAtscA85,      /* ATSC A/85.  This standardizes all decoders to output
+                                                   Stereo and Multichannel PCM at -20dB.  Compressed data is output at -31dB.
                                                    The application must set the volume for outputs accordingly so
-                                                   that PCM stereo is output to "active" outputs such as DAC at -23 dB 
+                                                   that PCM stereo is output to "active" outputs such as DAC at -23 dB
                                                    and PCM is sent to "passive" outputs such as SPDIF at -31dB.  This
                                                    can be done by calling BAPE_SetOutputVolume() for active outputs
                                                    with the value 0x5A9DF7 (-3dB) and passive outputs with the
                                                    value 0x241346 (-11dB). */
-    BAPE_LoudnessEquivalenceMode_eEbuR128,      /* EBU-R128.  This standardizes Dolby decoders to output 
+    BAPE_LoudnessEquivalenceMode_eEbuR128,      /* EBU-R128.  This standardizes Dolby decoders to output
                                                    Stereo and Multichannel PCM at -20dB.  Non-Dolby decoders will
-                                                   output Stereo and Multichannel PCM at -23dB.  All encoders and 
-                                                   passthrough configurations will output compressed at -31dB. 
+                                                   output Stereo and Multichannel PCM at -23dB.  All encoders and
+                                                   passthrough configurations will output compressed at -31dB.
                                                    The application must set the volume for outputs accordingly so
-                                                   that PCM stereo is output to "active" outputs such as DAC at -23 dB 
+                                                   that PCM stereo is output to "active" outputs such as DAC at -23 dB
                                                    and PCM is sent to "passive" outputs such as SPDIF at -31dB.  This
                                                    can be done by calling BAPE_SetOutputVolume() for active outputs
                                                    with the value 0x5A9DF7 (-3dB) and passive outputs with the
-                                                   value 0x241346 (-11dB) for Dolby codecs.  For non-Dolby codecs, use 
+                                                   value 0x241346 (-11dB) for Dolby codecs.  For non-Dolby codecs, use
                                                    the value 0x800000 (-0dB) for active outputs and 0x32F52C (-8dB) for
                                                    passive outputs.  */
     BAPE_LoudnessEquivalenceMode_eMax
@@ -460,6 +460,7 @@ typedef enum BAPE_PostProcessorType
     BAPE_PostProcessorType_eFade,
     BAPE_PostProcessorType_eKaraokeVocal,
     BAPE_PostProcessorType_eAdvancedTsm,
+    BAPE_PostProcessorType_eAmbisonic,
     BAPE_PostProcessorType_eMax
 } BAPE_PostProcessorType;
 
@@ -472,7 +473,7 @@ typedef struct BAPE_FadeSettings
     unsigned level;             /* Percentage representing the volume level.
                                    0 is muted, 100 is full volume. Default is 100. */
     unsigned duration;          /* duration in milliseconds it will take to change
-                                   to a new level. Valid values are 3 - 1000 */
+                                   to a new level. Valid values are 3 - 60000 */
     unsigned type;              /* specifies the type of fade -
                                    0- Linear (Default), 1-Cubic-In, 2-Cubic-Out. */
 } BAPE_FadeSettings;

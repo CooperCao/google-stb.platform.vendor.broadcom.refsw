@@ -102,7 +102,7 @@ void BVC5_P_InitPerfCounters(
 
    d->uiMaxActiveCounters = BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE;
 
-#if V3D_VER_AT_LEAST(4,0,0,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
    #include "bvc5_perf_counters_hw_4_0.inc"
 #else
    #include "bvc5_perf_counters_hw_3_x.inc"
@@ -275,7 +275,7 @@ static BERR_Code BVC5_P_SetPerfCounting(
          BDBG_ASSERT(c == psPerf->uiActiveHwCounters);
          psPerf->uiPCTREShadow = BCHP_FIELD_DATA(V3D_PCTR_PCTRE, CTEN, 1) | ((1 << psPerf->uiActiveHwCounters) - 1);
 
-#if !V3D_VER_AT_LEAST(4,0,0,0)
+#if !V3D_VER_AT_LEAST(4,0,2,0)
          c = 0;
          for (i = 0; i < psPerf->sGroupDescs[BVC5_P_PERF_COUNTER_MEM_BW_GROUP].uiTotalCounters; i++)
          {
@@ -301,7 +301,7 @@ static BERR_Code BVC5_P_SetPerfCounting(
       {
          psPerf->bCountersActive = false;
          psPerf->uiPCTREShadow = 0;
-#if !V3D_VER_AT_LEAST(4,0,0,0)
+#if !V3D_VER_AT_LEAST(4,0,2,0)
          psPerf->uiGCAPMSelShadow |= BCHP_FIELD_DATA(V3D_GCA_PM_CTRL, PM_CNT_FREEZE, 1);
 #endif
       }
@@ -373,7 +373,7 @@ void BVC5_ChoosePerfCounters(
       /* Clear the counters */
       BKNI_Memset(hVC5->sPerfCounters.uiPCTRShadows, 0, sizeof(hVC5->sPerfCounters.uiPCTRShadows));
    }
-#if !V3D_VER_AT_LEAST(4,0,0,0)
+#if !V3D_VER_AT_LEAST(4,0,2,0)
    if (psSelector->uiGroupIndex == BVC5_P_PERF_COUNTER_MEM_BW_GROUP)
    {
       for (i = 0; i < psSelector->uiNumCounters; i++)
@@ -612,7 +612,7 @@ uint32_t BVC5_GetPerfCounterData(
             break;
       }
 
-#if !V3D_VER_AT_LEAST(4,0,0,0)
+#if !V3D_VER_AT_LEAST(4,0,2,0)
       for (i = 0; i < BVC5_MAX_COUNTERS_PER_GROUP; i++)
       {
          if (psPerf->sBwCounters[i].bEnabled)

@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/ZbPro/ZDO/include/bbZbProZdoSapTypesBindingManager.h $
- *
- * DESCRIPTION:
- *   This header describes types and API for the ZDO Binding Manager component.
- *
- * $Revision: 2876 $
- * $Date: 2014-07-10 09:58:52Z $
- *
-*****************************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
+/******************************************************************************
+*
+* DESCRIPTION:
+*       ZDO / ZDP End_Device_Bind, Bind and Unbind Services interface.
+*
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZDO_SAP_TYPES_BINDING_MANAGER_H
 #define _BB_ZBPRO_ZDO_SAP_TYPES_BINDING_MANAGER_H
@@ -86,16 +78,27 @@
 /**//**
  * \brief   Structure for parameters of ZDO Local Confirmation on ZDP End_Device_Bind_req,
  *  Bind_req and Unbind_req commands.
+ * \ingroup ZBPRO_ZDO_BindUnbindConf
  * \note
- * \brief End_Device_Bind_rsp, Bind_resp and Unbind_resp command formats. See ZigBee Spec r20, Figure 2.83/2.84/2.85.
+ *  This structure takes its origin from ZDP End_Device_Bind_rsp, Bind_rsp and Unbind_rsp
+ *  commands.
+ * \par     Documentation
+ *  See ZigBee Document 053474r20, subclauses 2.4.4.2.1, 2.4.4.2.2, 2.4.4.2.3, figures
+ *  2.83, 2.84, 2.85, tables 2.112, 2.113, 2.114.
  */
 typedef struct _ZBPRO_ZDO_BindConfParams_t
 {
-    ZBPRO_ZDO_Status_t      status;
+    /* 8-bit data. */
+
+    ZBPRO_ZDO_Status_t  status;         /*!< The status of the End_Device_Bind_req, Bind_req, or Unbind_req command. */
+
 } ZBPRO_ZDO_BindConfParams_t;
 
+
 /**//**
- * \brief End_device_bind_req command formats. See ZigBee Spec r20, Figure 2.42.
+ * \brief   Structure for parameters of ZDO Local Request to issue ZDP End_Device_Bind_req
+ *  command.
+ * \ingroup ZBPRO_ZDO_EndDeviceBindReq
  * \note
  *  The following condition must be satisfied: numInClusters + numOutClusters <
  *  ZBPRO_ZDO_MAX_REQUESTED_CLUSTER_AMOUNT.
@@ -141,6 +144,7 @@ typedef struct _ZBPRO_ZDO_EndDeviceBindReqParams_t
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue ZDP End_Device_Bind_req
  *  command.
+ * \ingroup ZBPRO_ZDO_EndDeviceBindReq
  */
 typedef struct _ZBPRO_ZDO_EndDeviceBindReqDescr_t  ZBPRO_ZDO_EndDeviceBindReqDescr_t;
 
@@ -148,6 +152,7 @@ typedef struct _ZBPRO_ZDO_EndDeviceBindReqDescr_t  ZBPRO_ZDO_EndDeviceBindReqDes
 /**//**
  * \brief   Data type for ZDO Local Confirmation callback function of ZDP
  *  End_Device_Bind_req command.
+ * \ingroup ZBPRO_ZDO_EndDeviceBindConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -159,6 +164,7 @@ typedef void ZBPRO_ZDO_EndDeviceBindConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue ZDP End_Device_Bind_req
  *  command.
+ * \ingroup ZBPRO_ZDO_EndDeviceBindReq
  */
 struct _ZBPRO_ZDO_EndDeviceBindReqDescr_t
 {
@@ -177,6 +183,7 @@ struct _ZBPRO_ZDO_EndDeviceBindReqDescr_t
 /**//**
  * \brief   Structure for parameters of ZDO Local Request to issue ZDP Bind_req or
  *  Unbind_req command.
+ * \ingroup ZBPRO_ZDO_BindUnbindReq
  * \par     Documentation
  *  See ZigBee Document 053474r20, subclauses 2.4.3.2.2, 2.4.3.2.3, figures 2.43, 2.44,
  *  tables 2.69, 2.70.
@@ -214,6 +221,7 @@ typedef struct _ZBPRO_ZDO_BindUnbindReqParams_t
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue ZDP Bind_req or
  *  Unbind_req command.
+ * \ingroup ZBPRO_ZDO_BindUnbindReq
  */
 typedef struct _ZBPRO_ZDO_BindUnbindReqDescr_t  ZBPRO_ZDO_BindUnbindReqDescr_t;
 
@@ -221,6 +229,7 @@ typedef struct _ZBPRO_ZDO_BindUnbindReqDescr_t  ZBPRO_ZDO_BindUnbindReqDescr_t;
 /**//**
  * \brief   Data type for ZDO Local Confirmation callback function of ZDP Bind_req or
  *  Unbind_req command.
+ * \ingroup ZBPRO_ZDO_BindUnbindConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -232,6 +241,7 @@ typedef void ZBPRO_ZDO_BindUnbindConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZDO Local Request to issue ZDP Bind_req or
  *  Unbind_req command.
+ * \ingroup ZBPRO_ZDO_BindUnbindReq
  */
 struct _ZBPRO_ZDO_BindUnbindReqDescr_t
 {
@@ -250,7 +260,9 @@ struct _ZBPRO_ZDO_BindUnbindReqDescr_t
 /************************* PROTOTYPES ***************************************************/
 /**//**
  * \brief   Accepts ZDO Local Request to issue ZDP End_Device_Bind_req command.
+ * \ingroup ZBPRO_ZDO_Functions
  * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZDO_EndDeviceBindReq(
                 ZBPRO_ZDO_EndDeviceBindReqDescr_t *const  reqDescr);
@@ -258,7 +270,9 @@ void ZBPRO_ZDO_EndDeviceBindReq(
 
 /**//**
  * \brief   Accepts ZDO Local Request to issue ZDP Bind_req command.
+ * \ingroup ZBPRO_ZDO_Functions
  * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZDO_BindReq(
                 ZBPRO_ZDO_BindUnbindReqDescr_t *const  reqDescr);
@@ -266,10 +280,14 @@ void ZBPRO_ZDO_BindReq(
 
 /**//**
  * \brief   Accepts ZDO Local Request to issue ZDP Unbind_req command.
+ * \ingroup ZBPRO_ZDO_Functions
  * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZDO_UnbindReq(
                 ZBPRO_ZDO_BindUnbindReqDescr_t *const  reqDescr);
 
 
 #endif /* _BB_ZBPRO_ZDO_SAP_TYPES_BINDING_MANAGER_H */
+
+/* eof bbZbProZdoSapTypesBindingManager.h */

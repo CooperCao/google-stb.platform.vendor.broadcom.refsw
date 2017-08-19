@@ -8,6 +8,7 @@
 #include "glsl_shader_interfaces.h"
 #include "glsl_dataflow_visitor.h"
 #include "glsl_dominators.h"
+#include "glsl_fastmem.h"
 
 /* TODO: This is duplicated here. Refactor so this makes more sense */
 static Dataflow *dprev_apply_opt_map(Dataflow *d, void *data) {
@@ -172,9 +173,7 @@ static void normalise_ir_format(BasicBlock **blocks, int n_blocks, Map *block_id
                IROutput *o = glsl_map_get(output_map, s);
                assert(o != NULL && o[i].block != -1 && o[i].output != -1);
 
-               Dataflow *external = glsl_dataflow_construct_external(reaching_def_values[i]->type);
-               external->u.external.block = o[i].block;
-               external->u.external.output = o[i].output;
+               Dataflow *external = glsl_dataflow_construct_external(reaching_def_values[i]->type, o[i].block, o[i].output);
 
                int incoming_block_id = get_block_id(block_ids, i_b->v);
 

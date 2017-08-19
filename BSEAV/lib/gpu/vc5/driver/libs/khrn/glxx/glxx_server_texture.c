@@ -90,9 +90,7 @@ GLXX_TEXTURE_T* glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state,
 GLXX_TEXTURE_T* glxx_server_get_active_texture(const GLXX_SERVER_STATE_T *state,
       enum glxx_tex_target target)
 {
-
-   unsigned tex_unit = state->active_texture - GL_TEXTURE0;
-   return glxx_textures_get_texture(&state->bound_texture[tex_unit], target);
+   return glxx_textures_get_texture(&state->bound_texture[state->active_texture], target);
 }
 
 static enum glxx_tex_target convert_sampler_to_tex_target(GLenum sampler_type)
@@ -258,7 +256,7 @@ static bool copytex_fb_complete_check(GLXX_SERVER_STATE_T *state)
 {
    GLXX_FRAMEBUFFER_T *fb = state->bound_read_framebuffer;
 
-   if (!glxx_fb_is_complete(fb))
+   if (!glxx_fb_is_complete(fb, &state->fences))
    {
       glxx_server_state_set_error(state, GL_INVALID_FRAMEBUFFER_OPERATION);
       return false;
@@ -582,9 +580,9 @@ static bool glxx_teximage_unpack_buffer_checks(GLenum type, const GLvoid* pixels
    return true;
 }
 
-void texImageX(GLenum target, GLint level, GLint
-      internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint
-      border, GLenum format, GLenum type, const GLvoid* pixels, unsigned dim)
+static void texImageX(GLenum target, GLint level, GLint
+         internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint
+         border, GLenum format, GLenum type, const GLvoid* pixels, unsigned dim)
 {
    GLXX_SERVER_STATE_T *state   = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_TEXTURE_T      *texture = NULL;
@@ -637,18 +635,24 @@ end:
    glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glTexImage2D(GLenum target, GLint level, GLint
-      internalformat, GLsizei width, GLsizei height, GLint border, GLenum
-      format, GLenum type, const GLvoid *pixels)
+GL_APICALL void GL_APIENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat,
+            GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
+{
+   PROFILE_FUNCTION_MT("GL");
+   texImageX(target, level, internalformat, width, 1, 1, border,
+         format, type, pixels, 1);
+}
+
+GL_API void GL_APIENTRY glTexImage2D(GLenum target, GLint level, GLint internalformat,
+      GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
    PROFILE_FUNCTION_MT("GL");
    texImageX(target, level, internalformat, width, height, 1, border,
          format, type, pixels, 2);
 }
 
-GL_API void GL_APIENTRY glTexImage3D(GLenum target, GLint level, GLint
-      internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint
-      border, GLenum format, GLenum type, const GLvoid* pixels)
+GL_API void GL_APIENTRY glTexImage3D(GLenum target, GLint level, GLint internalformat,
+      GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
    PROFILE_FUNCTION_MT("GL");
    texImageX(target, level, internalformat, width, height, depth, border,
@@ -657,21 +661,14 @@ GL_API void GL_APIENTRY glTexImage3D(GLenum target, GLint level, GLint
 
 static bool is_supported_texstorage_target(GLenum target, unsigned dim)
 {
-   bool res  = false;
    switch(dim)
    {
-      case 2:
-         if (target == GL_TEXTURE_2D || target == GL_TEXTURE_CUBE_MAP)
-            res = true;
-         break;
-      case 3:
-         if (is_target_3d(target))
-            res = true;
-         break;
-      default:
-         break;
+      /* 2D targets don't follow the pattern because we must exclude cubemap faces */
+      case 1: return is_target_1d(target);
+      case 2: return (target == GL_TEXTURE_2D || target == GL_TEXTURE_CUBE_MAP || target == GL_TEXTURE_1D_ARRAY_BRCM);
+      case 3: return is_target_3d(target);
+      default: return false;
    }
-   return res;
 }
 
 /* supports compressed internalformat and sized internal format */
@@ -687,7 +684,7 @@ static bool texstorage_internal_checks(GLXX_SERVER_STATE_T *state,
    compressed = false;
    sized_intfmt = false;
 
-   assert(dim == 2 || dim == 3);
+   assert(dim == 1 || dim == 2 || dim == 3);
 
    if (!is_supported_texstorage_target(target, dim))
    {
@@ -776,6 +773,13 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
    glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glTexStorage1DBRCM(GLenum target, GLsizei levels,
+      GLenum internalformat, GLsizei width)
+{
+   PROFILE_FUNCTION_MT("GL");
+   texstorage(target, levels, internalformat, width, 1, 1, 1);
 }
 
 GL_API void GL_APIENTRY glTexStorage2D(GLenum target, GLsizei levels,
@@ -1517,12 +1521,8 @@ static uint32_t convert_swizzle(GLenum swizzle)
 
 bool glxx_is_float_texparam(GLenum pname)
 {
-   bool result = false;
-#if GL_EXT_texture_filter_anisotropic
-   result |= (pname == GL_TEXTURE_MAX_ANISOTROPY_EXT);
-#endif
-   result |= (pname == GL_TEXTURE_MIN_LOD || pname == GL_TEXTURE_MAX_LOD);
-   return result;
+   return (pname == GL_TEXTURE_MAX_ANISOTROPY_EXT ||
+           pname == GL_TEXTURE_MIN_LOD || pname == GL_TEXTURE_MAX_LOD);
 }
 
 bool glxx_is_vector_texparam(GLenum pname)
@@ -1542,11 +1542,12 @@ void glxx_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state,
 
    switch (pname)
    {
-#if GL_EXT_texture_filter_anisotropic
    case GL_TEXTURE_MAX_ANISOTROPY_EXT:
-      sampler->anisotropy = *f;
+      if (*f >= 1.0f)
+         sampler->anisotropy = *f;
+      else
+         glxx_server_state_set_error(state, GL_INVALID_VALUE);
       break;
-#endif
    case GL_TEXTURE_MIN_LOD:
       sampler->min_lod = *f;
       break;
@@ -1575,9 +1576,7 @@ static void glxx_texparameterf_internal(GLXX_SERVER_STATE_T *state, GLenum targe
    {
       switch (pname)
       {
-#if GL_EXT_texture_filter_anisotropic
       case GL_TEXTURE_MAX_ANISOTROPY_EXT:
-#endif
       case GL_TEXTURE_MIN_LOD:
       case GL_TEXTURE_MAX_LOD:
          if (glxx_tex_target_is_multisample(texture->target))
@@ -2000,6 +1999,14 @@ end:
    glxx_unlock_server_state();
 }
 
+GL_API void GL_APIENTRY glTexSubImage1DBRCM(GLenum target, GLint level, GLint xoffset,
+      GLsizei width, GLenum format, GLenum type, const GLvoid* orig_pixels)
+{
+   PROFILE_FUNCTION_MT("GL");
+   texSubImageX(target, level, xoffset, 0, 0, width, 1, 1,
+         format, type, orig_pixels, 1);
+}
+
 GL_API void GL_APIENTRY glTexSubImage2D(GLenum target, GLint level, GLint
       xoffset, GLint yoffset, GLsizei width, GLsizei height,
       GLenum format, GLenum type, const GLvoid* orig_pixels)
@@ -2030,7 +2037,7 @@ GL_API void GL_APIENTRY glActiveTexture(GLenum texture)
          (!IS_GL_11(state) && texture < GL_TEXTURE0 + GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS)
       ))
    {
-      state->active_texture = texture;
+      state->active_texture = texture - GL_TEXTURE0;
    }
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -2043,12 +2050,9 @@ GL_API void GL_APIENTRY glBindTexture(GLenum target, GLuint texture)
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLenum error = GL_NONE;
    GLXX_TEXTURE_T *texture_obj = NULL;
-   int tex_unit;
 
    if (!state)
       return;
-
-   tex_unit = state->active_texture - GL_TEXTURE0;
 
    if (!glxx_texture_is_tex_target(state, target))
    {
@@ -2068,7 +2072,7 @@ GL_API void GL_APIENTRY glBindTexture(GLenum target, GLuint texture)
    }
    assert(texture_obj != NULL);
 
-   glxx_textures_set_texture(&state->bound_texture[tex_unit], texture_obj);
+   glxx_textures_set_texture(&state->bound_texture[state->active_texture], texture_obj);
 
    //state->changed_texture
 end:

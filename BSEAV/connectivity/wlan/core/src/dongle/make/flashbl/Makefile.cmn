@@ -1,0 +1,247 @@
+#
+# Common make file for Flash bootloader based on hndrte
+#
+# Broadcom Proprietary and Confidential. Copyright (C) 2017,
+# All Rights Reserved.
+# 
+# This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
+# the contents of this file may not be disclosed to third parties, copied
+# or duplicated in any form, in whole or in part, without the prior
+# written permission of Broadcom.
+#
+# $Id: Makefile 250344 2011-03-31 01:35:20Z $
+#
+
+# mandatory startup options: boot-rom run
+# other options: debug qt
+
+
+PROGRAM	:= flashbl
+
+#
+# top level make
+#
+ifneq ($(INOBJDIR),true)
+# driver source base
+ifeq ($(SRCBASE),)
+SRCBASE = $(shell /bin/pwd)/../../..
+endif
+
+.PHONY: all
+all: $(TARGETS) $(EXT_TARGETS)
+
+$(TARGETS): FORCE
+	@echo; echo -------- Building $@ --------
+	@install -d $@$(if $(BCMQT),-qt)
+	@$(MAKE) --no-print-directory -C $@$(if $(BCMQT),-qt) \
+		-f ../Makefile SRCBASE=$(SRCBASE) INOBJDIR=true \
+		TARGET=$@
+
+.PHONY: clean
+clean: FORCE
+	rm -rf boot-* run-*
+
+FORCE:
+endif
+
+#
+# second level make
+#
+ifeq ($(INOBJDIR),true)
+# CPU
+TARGET_ARCH	?= arm
+ifeq ($(TARGET_ARCH),arm)
+TARGET_CPU	?= cm3
+endif
+
+BCMDMA32	?= 0
+SMALL		:= 1
+BOOTLOADER	:= 1
+CONSOLE		:= 1
+NOINLINE	?= 0
+FLASH		:= 0
+ZLIB		?= 1
+SDR		?= 0
+
+ifeq ($(SDR),1)
+TCBASE	?= $(SRCBASE)../libtomcrypt/broadcom/src/
+TCLIBSRC += $(TCBASE)/pk/rsa \
+		$(TCBASE)/pk/pkcs1 \
+		$(TCBASE)/pk/asn1/der/sequence \
+		$(TCBASE)/pk/asn1/der/object_identifier \
+		$(TCBASE)/pk/asn1/der/boolean \
+		$(TCBASE)/pk/asn1/der/bit \
+		$(TCBASE)/pk/asn1/der/choice \
+		$(TCBASE)/pk/asn1/der/ia5 \
+		$(TCBASE)/pk/asn1/der/integer \
+		$(TCBASE)/pk/asn1/der/octet \
+		$(TCBASE)/pk/asn1/der/printable_string \
+		$(TCBASE)/pk/asn1/der/sequence \
+		$(TCBASE)/pk/asn1/der/short_integer \
+		$(TCBASE)/pk/asn1/der/utctime \
+		$(TCBASE)/pk/asn1/der/utf8 \
+		$(TCBASE)/misc \
+		$(TCBASE)/misc/crypt \
+		$(TCBASE)/hashes/sha2/ \
+		$(TCBASE)/math/
+
+TMBASE	?= $(SRCBASE)../libtommath/broadcom/
+TMLIBSRC += $(TMBASE)
+endif
+
+WLAN_ComponentsInUse := bcmwifi dongle rte
+include $(SRCBASE)/makefiles/WLAN_Common.mk
+
+
+VPATH +=	$(SRCBASE)/dongle/hndrte/flashbl \
+		$(SRCBASE)/shared/nvram \
+		$(SRCBASE)/shared/zlib \
+		$(WLAN_ComponentSrcDirsR) \
+		$(WLAN_StdSrcDirsR) \
+		$(TCLIBSRC) \
+		$(TMLIBSRC)
+
+EXTRA_IFLAGS	+= $(WLAN_ComponentIncPathR) $(WLAN_IncPathR)
+
+ifeq ($(findstring boot,$(TARGET)),boot)
+     STARTUP = boot
+endif
+
+ifeq ($(findstring run,$(TARGET)),run)
+     STARTUP = run
+endif
+
+# execute in place (ROM)
+ifeq ($(findstring boot-rom,$(TARGET)),boot-rom)
+ifeq ($(findstring nonxip,$(TARGET)),)
+     CONFIG_XIP	:= 1
+endif
+endif
+
+
+ifeq ($(findstring debug,$(TARGET)),debug)
+EXTRA_DFLAGS += -DBCMINTERNAL -DBCMDBG -DBCMDBG_MEM -DBCMDBG_ASSERT -DBCMDBG_ERROR 
+endif
+
+ifeq ($(findstring qt,$(TARGET)),qt)
+EXTRA_DFLAGS	+= -DBCMQT
+EXTRA_DFLAGS	+= -DBCMDBG_ASSERT -DBCMDBG_ERR
+endif
+
+# Boot loader data start
+ifeq ($(STARTUP),boot)
+EXTRA_DFLAGS	+= -DDATA_START=$(DATA_START)
+EXTRA_DFLAGS	+= -DBCM_BOOTLOADER
+EXTRA_DFLAGS	+= -DRTE_POLL
+endif
+
+DATA_BASE	?= 0x60000000
+ifeq ($(STARTUP),run)
+TEXT_START	?= 0x00000000
+endif
+
+# A bootloader that runs from RAM also needs to guard itself against too big images.
+ifeq ($(findstring run,$(TARGET)),run)
+EXTRA_DFLAGS	+= -DDATA_START=$(DATA_START)
+endif
+
+EXTRA_DFLAGS 	+= -DBCM_ID_PRODUCT=$(BCM_ID_PRODUCT)
+ifeq ($(FLOPS_SUPPORT),1)
+EXTRA_DFLAGS	+= -DDL_BASE=$(shell awk 'BEGIN { \
+			printf "0x%x\n", $(DATA_BASE) + ($(PATCH_TBL_SIZE)) \
+			}')
+else
+EXTRA_DFLAGS	+= -DDL_BASE=$(DATA_BASE)
+endif
+ifeq ($(BCMDMA32),1)
+	EXTRA_DFLAGS += -DBCMDMA32
+endif
+
+EXTRA_CFLAGS	+= -fshort-wchar
+
+# Objects explicitly listed because we don't use wl.mk
+EXTERN_OBJECTS	+= siutils.o sbutils.o aiutils.o
+EXTERN_OBJECTS	+= hndpmu.o hnddma.o hnddma_rx.o hnddma_tx.o bcmutils.o
+EXTERN_OBJECTS	+= rte_osl.o hnd_pktq.o hnd_pktpool.o
+EXTERN_OBJECTS	+= bcmsrom.o nvram_ro.o bcmotp.o
+
+# Compressed image download support: not used any more to save room in the ROM
+ifeq ($(ZLIB),1)
+EXTRA_DFLAGS	+= -DZLIB
+EXTRA_DFLAGS	+= -I$(SRCBASE)/shared/zlib
+EXTERN_OBJECTS	+= adler32.o zutil.o
+EXTERN_OBJECTS	+= inffast.o inflate.o infcodes.o infblock.o inftrees.o infutil.o
+endif
+
+ifeq ($(SDR),1)
+EXTRA_DFLAGS	+= -I$(TCBASE)/headers -I$(TMBASE)/
+LIB_OBJECTS	+= sha256.o
+LIB_OBJECTS	+= rsa_verify_hash.o crypt_hash_is_valid.o rsa_exptmod.o
+LIB_OBJECTS	+= pkcs_1_pss_decode.o pkcs_1_v1_5_decode.o pkcs_1_mgf1.o
+LIB_OBJECTS	+= crypt_ltc_mp_descriptor.o crypt_hash_descriptor.o
+LIB_OBJECTS	+= der_decode_sequence_ex.o der_decode_object_identifier.o
+LIB_OBJECTS	+= der_decode_boolean.o der_length_boolean.o
+LIB_OBJECTS	+= der_decode_bit_string.o der_length_bit_string.o
+LIB_OBJECTS  	+= der_decode_ia5_string.o der_length_ia5_string.o
+LIB_OBJECTS	+= der_decode_integer.o der_length_integer.o
+LIB_OBJECTS	+= der_decode_octet_string.o der_length_octet_string.o
+LIB_OBJECTS	+= der_decode_printable_string.o der_length_printable_string.o
+LIB_OBJECTS	+= der_decode_short_integer.o der_length_short_integer.o
+LIB_OBJECTS	+= der_decode_utf8_string.o der_length_utf8_string.o
+LIB_OBJECTS	+= der_decode_utctime.o der_length_utctime.o
+LIB_OBJECTS	+= der_decode_choice.o der_decode_sequence_multi.o
+LIB_OBJECTS	+= der_length_sequence.o der_length_object_identifier.o
+LIB_OBJECTS	+= zeromem.o rsa_image_verify_hash.o bn_mp_qdivrem.o
+LIB_OBJECTS	+= ltm_desc.o multi.o crypt_register_hash.o crypt_find_hash.o
+LIB_OBJECTS	+= bn_mp_prime_is_prime.o bn_mp_exptmod.o rsa_import.o
+LIB_OBJECTS	+= bn_mp_invmod.o bn_mp_sqrmod.o bn_mp_mulmod.o bn_mp_lcm.o
+LIB_OBJECTS	+= bn_mp_gcd.o bn_mp_mod_d.o bn_mp_div_2.o bn_mp_div.o bn_mp_sqr.o
+LIB_OBJECTS	+= bn_mp_mul_d.o bn_mp_mul.o bn_mp_sub_d.o bn_mp_sub.o bn_mp_add_d.o
+LIB_OBJECTS	+= bn_mp_add.o bn_mp_read_unsigned_bin.o bn_mp_to_unsigned_bin.o
+LIB_OBJECTS	+= bn_mp_unsigned_bin_size.o bn_mp_toradix.o bn_mp_read_radix.o bn_mp_2expt.o
+LIB_OBJECTS  += bn_mp_cnt_lsb.o bn_mp_count_bits.o bn_mp_cmp_d.o bn_mp_cmp.o bn_mp_get_int.o
+LIB_OBJECTS  += bn_mp_set_int.o bn_mp_copy.o bn_mp_neg.o bn_mp_clear.o bn_mp_init.o 
+LIB_OBJECTS  += bn_mp_prime_is_divisible.o bn_mp_set.o bn_mp_prime_miller_rabin.o 
+LIB_OBJECTS  += bn_prime_tab.o bn_mp_abs.o bn_mp_clear_multi.o bn_mp_reduce_is_2k_l.o
+LIB_OBJECTS  += bn_mp_dr_is_modulus.o bn_mp_reduce_is_2k.o bn_mp_exptmod_fast.o
+LIB_OBJECTS  += bn_s_mp_exptmod.o bn_mp_grow.o bn_mp_clamp.o bn_mp_rshd.o bn_mp_cmp_mag.o
+LIB_OBJECTS  += bn_fast_mp_montgomery_reduce.o bn_s_mp_sub.o
+LIB_OBJECTS  += bn_mp_mul_2.o bn_fast_mp_invmod.o bn_mp_invmod_slow.o
+LIB_OBJECTS  += bn_mp_mod.o bn_mp_init_multi.o bn_mp_mod_2d.o
+LIB_OBJECTS  += bn_mp_init_copy.o bn_mp_div_2d.o bn_mp_exch.o
+LIB_OBJECTS  += bn_mp_div_d.o bn_mp_init_size.o bn_mp_lshd.o
+LIB_OBJECTS  += bn_mp_zero.o bn_mp_toom_sqr.o bn_mp_karatsuba_sqr.o
+LIB_OBJECTS  += bn_fast_s_mp_sqr.o bn_s_mp_sqr.o bn_mp_toom_mul.o
+LIB_OBJECTS  += bn_mp_karatsuba_mul.o bn_fast_s_mp_mul_digs.o bn_s_mp_mul_digs.o
+LIB_OBJECTS  += bn_s_mp_add.o bn_reverse.o bn_mp_radix_smap.o
+LIB_OBJECTS  += bn_mp_mul_2d.o bn_mp_dr_setup.o bncore.o bn_mp_div_3.o
+LIB_OBJECTS  += bn_mp_reduce_2k_setup.o bn_mp_dr_reduce.o bn_s_mp_mul_high_digs.o
+LIB_OBJECTS  += bn_mp_reduce_2k.o bn_mp_reduce_setup.o bn_mp_reduce_2k_setup_l.o
+LIB_OBJECTS  += bn_mp_reduce.o bn_mp_reduce_2k_l.o bn_fast_s_mp_mul_high_digs.o
+LIB_OBJECTS  += bn_mp_montgomery_reduce.o bn_mp_montgomery_calc_normalization.o bn_mp_montgomery_setup.o
+endif
+
+
+EXE		:= $(patsubst %, %.exe, $(PROGRAM))
+BIN		:= $(patsubst %, %.bin, $(PROGRAM))
+DIS		:= $(patsubst %, %.dis, $(PROGRAM))
+MAP		:= $(patsubst %, %.map, $(PROGRAM))
+QT		:= $(patsubst %, %.qt, $(PROGRAM))
+OPT		:= $(patsubst %, %.opt, $(PROGRAM))
+BIN_TRX         := $(patsubst %, %.bin.trx, $(PROGRAM))
+IMAGES		= $(OPT) $(EXE) $(BIN) $(DIS) $(MAP) $(QT) $(BIN_TRX)
+
+# include common rule after all configuration is setup
+include $(SRCBASE)/dongle/make/Makeconf
+include $(SRCBASE)/dongle/make/Makerules
+
+.PHONY: all
+all: $(IMAGES) \
+     $(if $(ROMSIZE),showsize checksize) \
+     $(EXTERN_TARGETS)
+	@if cat $(MAP) | grep -q ' U '; then \
+		echo >&2 "Undefined symbols in boot ROM:"; \
+		cat $(MAP) | grep ' U ' >&2; \
+		exit 1; \
+	fi
+endif	# INOBJDIR

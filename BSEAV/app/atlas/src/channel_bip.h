@@ -106,14 +106,14 @@ public:
     CChannel * createCopy(CChannel * pChannel);
     ~CChannelBip(void);
 
-    virtual eRet    tune(void * id, CConfig * pConfig, bool bWaitForLock, uint16_t index = ANY_INDEX);
+    virtual eRet    tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
     virtual eRet    unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
     virtual eRet    readXML(MXmlElement * xmlElemChannel);
     virtual void    writeXML(MXmlElement * xmlElemChannel);
     virtual eRet    sessionOpen(void)  { return((eRet)0); }
     virtual eRet    sessionSetup(void) { return((eRet)0); }
     virtual MString getTimeString(void);
-    virtual eRet    setAudioProgram(uint16_t pid);
+    virtual eRet    setAudioProgram(unsigned pid);
 
 #if 0
     eRet readCompleteUrl(const char * pCompleteUrl);
@@ -149,9 +149,9 @@ public:
     void                 setAction(BMediaPlayerAction playerAction) { _playerCallbackAction = playerAction; }
     eRet                 setState(BMediaPlayerState state);
     BMediaPlayerState    getState(void)   { return(_playerState); }
-    uint16_t             getProgram(void) { return(_programNumber); }
+    unsigned             getProgram(void) { return(_programNumber); }
     void                 setProgram(const char * str); /* program number can be set from url */
-    void                 setProgram(uint16_t program)
+    void                 setProgram(unsigned program)
     {
         /* program number can be set locally.*/
         _programNumberValid = true;
@@ -164,8 +164,8 @@ public:
     MString    getUrlProgram(void);
     void       setHost(const char * pString);
     MString    getHost(void);
-    void       setPort(uint16_t nPort);
-    uint16_t   getPort(void);
+    void       setPort(unsigned nPort);
+    unsigned   getPort(void);
     BIP_Status mediaStateMachine(BMediaPlayerAction playerAction);
     void       dump(void);
     void       getStats();
@@ -192,13 +192,9 @@ protected:
     bool _enableDynamicTrackSelection; /* this setting will be set to false when we get PIDS passed in
                                         * or when we have Multiple tracks. BIP Default is TRUE  */
     bool     _programNumberValid;
-    uint16_t _programNumber;
+    unsigned _programNumber;
 
     int _seekRate;
-
-    /* needed for prepare */
-    CSimpleVideoDecode * _pVideoDecode;
-    CSimpleAudioDecode * _pAudioDecode;
 };
 
 #ifdef __cplusplus

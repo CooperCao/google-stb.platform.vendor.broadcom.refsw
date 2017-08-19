@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_HDMI_INPUT_MODULE_H__
 #define NEXUS_HDMI_INPUT_MODULE_H__
@@ -105,7 +104,7 @@ struct NEXUS_HdmiInput {
     NEXUS_IsrCallbackHandle hotPlugCallback;
     NEXUS_HdmiInputHandle masterHdmiInput;
 
-    bool videoConnected;
+    bool videoConnected, audioConnected;
     NEXUS_HdmiInputSettings settings;
     NEXUS_HdmiInputHdcpSettings hdcpSettings ;
 
@@ -168,7 +167,17 @@ struct NEXUS_HdmiInput {
     BHDCPlib_HdcpError hdcpError;
 #endif
 
-};
+} ;
+
+/* HdmiInput global state */
+typedef struct NEXUS_gHdmiInput {
+    NEXUS_HdmiInputModuleSettings settings;
+    BHDR_FE_Handle fe;
+    bool initInProgress;
+    NEXUS_HdmiInputHandle handle[NEXUS_NUM_HDMI_INPUTS] ;
+    NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat ;
+} NEXUS_gHdmiInput ;
+
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_HdmiInputFrontend);
 
@@ -213,6 +222,7 @@ typedef struct NEXUS_HdmiInput_SageData
 
 extern NEXUS_HdmiInput_SageData g_NEXUS_hdmiInputSageData;
 extern NEXUS_HdmiInputMemoryBlock g_hdmiInputTABlock;
+extern NEXUS_HdmiInputMemoryBlock g_hdmiInputFCBlock;
 
 #endif
 
@@ -226,6 +236,15 @@ void NEXUS_HdmiInput_P_HotPlug_isr(void *context, int param, void *data);
 void NEXUS_HdmiInput_P_SetFrameRate(void *data);
 
 void Nexus_HdmiInput_P_SetHdmiVideoFormat_isr(NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat);
+
+void NEXUS_HdmiInput_PrintAviInfoFramePacket(void);
+void NEXUS_HdmiInput_PrintAudioInfoFramePacket(void);
+void NEXUS_HdmiInput_PrintVendorSpecificInfoFramePacket(void);
+void NEXUS_HdmiInput_PrintDrmInfoFramePacket(void);
+void NEXUS_HdmiInput_PrintACRPacket(void);
+
+void NEXUS_HdmiInputModule_Print(void);
+
 
 /* Proxy conversion */
 #define NEXUS_P_HDMI_INPUT_HDCP_KSV_SIZE(num) ((num)*sizeof(NEXUS_HdmiOutputHdcpKsv))

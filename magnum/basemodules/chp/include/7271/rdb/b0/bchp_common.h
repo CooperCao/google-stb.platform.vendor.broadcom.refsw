@@ -44,14 +44,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu May  4 21:47:22 2017
- *                 Full Compile MD5 Checksum  d6a98d2f414aa1992fcffe3361fd994d
+ * Date:           Generated on               Wed May 31 11:41:56 2017
+ *                 Full Compile MD5 Checksum  8c230d97c39689d89acc0c1449db095c
  *                     (minus title and desc)
- *                 MD5 Checksum               95a2057b12fa148e14c412cdaf535722
+ *                 MD5 Checksum               eff2f87cd93911aa218f4261afc2e49b
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1485
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -71,7 +71,10 @@
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
 #define BCHP_REGISTER_END                                  0x2190ae04 /* WLAN_DOT11_SLAVE is last */
 #define BCHP_REGISTER_SIZE                                 0x00642b81 /* Number of registers */
-#define BCHP_REGISTER_HAS_READONLY                                  1 /* Has RO register list */
+#define BCHP_REGISTER_HAS_RBUS7                                     1 /* Has at least one register set with RBUS7 inteface */
+#define BCHP_REGISTER_HAS_READONLY                                  0 /* Has RO register list */
+#define BCHP_REGISTER_HAS_CORE_INFO                                 1 /* Has core info list */
+#define BCHP_REGISTER_HAS_REGISTER_INFO                             1 /* Has register info list */
 #define BCHP_REGISTER_HAS_16_BIT                                    1 /* Has 16-bit wide register */
 #define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
 #define BCHP_REGISTER_HAS_64_BIT                                    1 /* Has 64-bit wide register */
@@ -3096,20 +3099,6 @@
 /* XPT_RAVE :: NOTEH_AC3_AUDIO_ES_SETUP :: AUDIO_AC3_ES_FORMAT [31:00] */
 #define BCHP_XPT_RAVE_NOTEH_AC3_AUDIO_ES_SETUP_AUDIO_AC3_ES_FORMAT_MASK 0xffffffff
 #define BCHP_XPT_RAVE_NOTEH_AC3_AUDIO_ES_SETUP_AUDIO_AC3_ES_FORMAT_SHIFT 0
-
-/***************************************************************************
- *NOTEH_DVD_AC3_AUDIO_ES_SETUP - ES Setup - DVD_AC3 Audio
- ***************************************************************************/
-/* XPT_RAVE :: NOTEH_DVD_AC3_AUDIO_ES_SETUP :: DVD_AUDIO_AC3_ES_FORMAT [31:00] */
-#define BCHP_XPT_RAVE_NOTEH_DVD_AC3_AUDIO_ES_SETUP_DVD_AUDIO_AC3_ES_FORMAT_MASK 0xffffffff
-#define BCHP_XPT_RAVE_NOTEH_DVD_AC3_AUDIO_ES_SETUP_DVD_AUDIO_AC3_ES_FORMAT_SHIFT 0
-
-/***************************************************************************
- *NOTEI_DVD_LPCM_AUDIO_ES_SETUP - ES Setup - DVD_LPCM Audio
- ***************************************************************************/
-/* XPT_RAVE :: NOTEI_DVD_LPCM_AUDIO_ES_SETUP :: DVD_AUDIO_LPCM_ES_FORMAT [31:00] */
-#define BCHP_XPT_RAVE_NOTEI_DVD_LPCM_AUDIO_ES_SETUP_DVD_AUDIO_LPCM_ES_FORMAT_MASK 0xffffffff
-#define BCHP_XPT_RAVE_NOTEI_DVD_LPCM_AUDIO_ES_SETUP_DVD_AUDIO_LPCM_ES_FORMAT_SHIFT 0
 
 /***************************************************************************
  *NOTEJ_ENHANCED_AC3_AUDIO_ES_SETUP - ES Setup - AC3 Audio

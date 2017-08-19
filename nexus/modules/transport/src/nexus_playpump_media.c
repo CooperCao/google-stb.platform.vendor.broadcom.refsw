@@ -168,13 +168,12 @@ b_pump_demux_create(NEXUS_PlaypumpHandle pump)
     b_pump_demux_t demux;
     bmedia_filter_cfg filter_cfg;
     bsink_playback_cfg sink_cfg;
-    BERR_Code rc;
 
     BDBG_MSG_TRACE(("b_pump_demux_create>:"));
     demux = BKNI_Malloc(sizeof(*demux));
     if(!demux) {
         BDBG_ERR(("b_pump_demux_init: can't allocate %u bytes", (unsigned)sizeof(*demux)));
-        rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         goto err_alloc;
     }
     BDBG_OBJECT_INIT(demux, b_pump_demux_t);

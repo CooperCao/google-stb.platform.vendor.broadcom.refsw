@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -239,7 +239,7 @@ BERR_Code BAPE_Dac_Open(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
 
-    BDBG_MSG(("%s: Opening DAC Output: %u", __FUNCTION__, index));
+    BDBG_MSG(("%s: Opening DAC Output: %u", BSTD_FUNCTION, index));
 
     *pHandle = NULL;    /* Set up to return null handle in case of error. */
 
@@ -576,7 +576,7 @@ static void BAPE_Dac_P_SetTimingParams_isr(BAPE_OutputPort output, unsigned samp
         break;
     default:
     case BAVC_Timebase_eMax:
-        BDBG_ERR(("%s: invalid timebase (%d)", __FUNCTION__, timebase));
+        BDBG_ERR(("%s: invalid timebase (%d)", BSTD_FUNCTION, timebase));
         BERR_TRACE(BERR_INVALID_PARAMETER);
         return;
     }
@@ -1948,6 +1948,7 @@ BDBG_OBJECT_ID(BAPE_Dac);
 typedef struct BAPE_Dac
 {
     BDBG_OBJECT(BAPE_Dac)
+    unsigned unused;
 } BAPE_Dac;
 
 void BAPE_Dac_GetDefaultSettings(

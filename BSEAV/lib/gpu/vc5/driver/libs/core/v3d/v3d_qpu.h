@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 static inline uint32_t v3d_qpu_rf_row(uint32_t thread, uint32_t i)
 {
@@ -18,4 +18,4 @@ static inline uint32_t v3d_qpu_rf_row(uint32_t thread, uint32_t i)
    return i ^ (thread * min_rows_per_thread);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

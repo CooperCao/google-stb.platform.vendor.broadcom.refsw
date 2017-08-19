@@ -1,0 +1,27 @@
+#$Id: milosz.mc53end1
+# MAILTO=milosz@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/milosz/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+
+
+00        04     * * *   unittest/cron/launch RvRNightly-mc53tst1 Test/RvRNightly1.test -utfconf mc53 -ap '47172-AA37' -sta '43228Win81x64' -va af -cycle5G40AttnRange '5-50 50-5' -cycle2G20AttnRange '25-70 70-25' -attngrp AP1 -title 'MC53 RvR 43228 Win8.1 x64 BISON_735' -nosniffer -perftime 2.5 -nosymmetry -nohistograms
+10        04     * * *   unittest/cron/launch RvRNightly-mc53tst4 Test/RvRNightly1.test -utfconf mc53 -ap '47172-AA37' -sta '43142Win81BISON_735' -va af -cycle5G40AttnRange '5-50 50-5' -cycle2G20AttnRange '25-70 70-25' -attngrp AP1 -title 'MC53 RvR 43142 Win8.1 BISON_735' -nosniffer -perftime 2.5 -nosymmetry -nohistograms
+#20        04     * * *   unittest/cron/launch RvRNightly-mc53tst5 Test/RvRNightly1.test -utfconf mc53 -ap '47172-AA37' -sta '43142Win10x64BISON_735' -va af -cycle5G40AttnRange '5-50 50-5' -cycle2G20AttnRange '25-70 70-25' -attngrp AP1 -title 'MC53 RvR 43142 Win10 x64 BISON_735'  -nosniffer -perftime 2.5 -nosymmetry -nohistograms
+
+
+10        03      * * *  unittest/cron/launch mc53tst1 Test/StaNightly.test -utfconf mc53 -sta '43228Win81x64 43228Win81x64BISON_735' -ap '47172-AA37' -title 'MC53: StaNightly 43228 trunk and Bison_735 Win 8.1 x64'
+15        03      * * *  unittest/cron/launch mc53tst2 Test/StaNightly.test -utfconf mc53 -sta '4352Win8   4352Win8BISON_735 '  -ap '47172-AA37' -title 'MC53: StaNightly 4352  trunk and Bison_735 Win 8'
+20        03      * * *  unittest/cron/launch mc53tst3 Test/StaNightly.test -utfconf mc53 -sta '4331fc15   4331fc15EAGLE      ' -ap '47172-AA37' -title 'MC53: StaNightly 4331  trunk and Eagle FC15'
+25        03      * * *  unittest/cron/launch mc53tst4 Test/StaNightly.test -utfconf mc53 -sta '43142Win81 43142Win81BISON_735' -ap '47172-AA37' -title 'MC53: StaNightly 43142 trunk and Bison_735 Win 8.1'
+#30        03      * * *  unittest/cron/launch mc53tst5 Test/StaNightly.test -utfconf mc53 -sta '43142Win10x64 43142Win10x64BISON_735' -ap '47172-AA37' -title 'MC53: StaNightly 43142 trunk and Bison_735 Win 10 x64'
+
+# this test takes about 17 hours normally
+# added -nocal option as that was taking about 5 1/2 hours all by itself
+#30        04      * * *  unittest/cron/launch mc53sta5-SN Test/StaNightly.test -utfconf mc53 -sta ' 43228w82BISON 43228w82 4331fc15 4331fc15BISON 43142Win8BISON' -ap '47172-AA37' -loop 1 -title 'MC53 StaNightly 4331fc15 trunk and Bison' -nocal
+
+

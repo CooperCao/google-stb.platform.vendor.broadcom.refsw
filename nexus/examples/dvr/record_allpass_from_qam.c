@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -88,7 +88,7 @@ static void fe_status(void *context)
     printf("FE %p:\n", (void *)frontend);
     printf("\t Receiver Lock: %s\n", qamStatus.receiverLock ? "yes" : "no");
     printf("\t FEC Lock: %s\n", qamStatus.fecLock ? "yes" : "no");
-    printf("\t Ouput PLL Lock: %s\n", qamStatus.opllLock ? "yes" : "no");
+    printf("\t Output PLL Lock: %s\n", qamStatus.opllLock ? "yes" : "no");
     printf("\t Symbol Rate: %u\n", qamStatus.symbolRate);
     printf("\t Symbol Rate Error: %d\n", qamStatus.symbolRateError);
     printf("\t SNR: %u\n", qamStatus.snrEstimate);

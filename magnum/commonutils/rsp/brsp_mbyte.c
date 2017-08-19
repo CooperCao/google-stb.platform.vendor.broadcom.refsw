@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -182,7 +182,7 @@ BERR_Code BRSP_MByte_ParseRegScript(
 			}
 		}
 	}
-	BDBG_MSG(("%s: ScriptType=BRSP_ScriptType_eEndOfScript", __FUNCTION__));
+	BDBG_MSG(("%s: ScriptType=BRSP_ScriptType_eEndOfScript", BSTD_FUNCTION));
 
 	BDBG_LEAVE(BRSP_MByte_ParseRegScript);
 	return( retCode );

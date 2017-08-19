@@ -1,0 +1,143 @@
+# Welcome to the mkid language mapper.
+#
+# The format of each line is:
+#
+#		<pattern> <language> [options]
+#
+# Filenames are matched top-to-bottom against the patterns, and the
+# first match is chosen.  The special language `IGNORE' means that
+# this file should be ignored by mkid.  The options are
+# language-specific command-line options to mkid.
+#
+# If a file name doesn't match any pattern, it is assigned the default
+# language.  The default language may be specified here with the
+# special pattern `**', or overridden from the mkid command-line with
+# the `--default-lang=LANG' option.
+#
+# The special pattern `***' means to include the named file that
+# immediately follows.  If no file is named, then the default system
+# language mapper file (i.e., this file) is included.
+
+# Default language
+**			IGNORE	# Although this is listed first,
+				# the default language pattern is
+				# logically matched last.
+
+# Backup & log files
+*~			IGNORE
+*.bak			IGNORE
+*.bk[0-9]		IGNORE
+,*			IGNORE
+
+
+# SCCS/CVS files
+[sp].*			IGNORE
+*/CVS/*			IGNORE
+*,v			IGNORE
+
+# C dependencies 
+*.d			IGNORE
+depend.*		IGNORE
+*/.deps/*		IGNORE
+
+*.h			C
+*.h.in			C
+*.H			C
+*.hh			C
+*.hpp			C
+*.hxx			C
+
+*.l			C
+*.lex			C
+*.y			C
+*.yacc			C
+
+*.c			C
+*.C			C
+*.cc			C
+*.cpp			C
+*.cxx			C
+
+# RPC: Source for rpcgen
+*.x			C
+
+# Verilog is close enuf to C
+*.v			C
+
+ChangeLog*		text
+
+*.[sS]			asm --comment=;
+*.asm			asm --comment=;
+*.inc			asm --comment=;
+
+# [nt]roff
+*.[0-9]			roff
+*.ms			roff
+*.me			roff
+*.mm			roff
+*.man			roff
+
+*.tex			TeX
+*.ltx			TeX
+*.texi			texinfo
+*.texinfo		texinfo
+
+# portable object (i18n)
+*.po			po
+
+*.el			elisp
+
+Makefile		asm --comment=#
+makefile		asm --comment=#
+GNUmakefile		asm --comment=#
+Makefile.*		asm --comment=#
+makefile.*		asm --comment=#
+GNUmakefile.*		asm --comment=#
+MakeSkel		asm --comment=#
+*.am			asm --comment=#
+*.cfg			asm --comment=#
+*.mk			asm --comment=#
+defs.*			asm --comment=#
+make.*			asm --comment=#
+Makerules*		asm --comment=#
+makeLibrary*		asm --comment=#
+rules-*			asm --comment=#
+rules.*			asm --comment=#
+sources			asm --comment=#
+SOURCES			asm --comment=#
+GNUsources		asm --comment=#
+
+*readme			text
+*README			text
+readme*			text
+README*			text
+*.rme			text
+*.RME			text
+*.doc			text
+*.DOC			text
+*.txt			text
+*.TXT			text
+[a-zA-Z0-9]*.tcl	text
+[a-zA-Z0-9]*.test	text
+
+*.inf			asm --comment=;
+
+*.vhd			asm --comment=--
+
+*.m			asm --comment=%
+
+*.m4			asm --comment=#
+*.mc			asm --comment=#
+*.cf			asm --comment=#
+
+*.pl			asm --comment=#
+*.py			asm --comment=#
+
+*.bat			asm --comment=#
+*.sh			asm --comment=#
+*.csh			asm --comment=#
+configure		asm --comment=#
+config.*		asm --comment=#
+
+*.gz			FILTER gzip -d <%s
+*.Z			FILTER gzip -d <%s

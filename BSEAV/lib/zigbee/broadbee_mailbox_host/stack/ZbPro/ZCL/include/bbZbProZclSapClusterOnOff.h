@@ -1,55 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZCL/include/bbZbProZclSapClusterOnOff.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL On/Off cluster SAP interface.
+*       ZCL On/Off cluster SAP interface.
 *
-* $Revision: 7831 $
-* $Date: 2015-07-31 13:31:38Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_SAP_CLUSTER_ONOFF_H
 #define _BB_ZBPRO_ZCL_SAP_CLUSTER_ONOFF_H
@@ -66,6 +58,7 @@
  *  These attributes are provided by Server side of the cluster.
  * \details
  *  On/Off ZCL cluster has no attributes provided by Client side.
+ * \ingroup ZBPRO_ZCL_OnOffAttr
  * \note
  *  This implementation of On/Off ZCL cluster doesn't provide Server side; and its Client
  *  side isn't able to access any of the optional attributes of the Server side, it's able
@@ -92,23 +85,38 @@ typedef enum _ZBPRO_ZCL_OnOffServerAttributeId_t
 
 
 /**//**
- * \name    Data types of attributes of On/Off ZCL cluster.
+ * \brief   Data types of attributes of On/Off ZCL cluster.
  * \details
  *  All the listed attributes are transferred by value.
+ * \ingroup ZBPRO_ZCL_OnOffAttr
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 3.8.2.2, table 3-42.
  */
-/**@{*/
-
 typedef Bool8_t   ZBPRO_ZCL_OnOffAttrOnOff_t;                   /*!< On/Off. */
 
+/**//**
+ * \brief   Data types of attributes of On/Off ZCL cluster.
+ * \ingroup ZBPRO_ZCL_OnOffAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.8.2.2, table 3-42.
+ */
 typedef Bool8_t   ZBPRO_ZCL_OnOffAttrGlobalSceneControl_t;      /*!< GlobalSceneControl. */
 
+/**//**
+ * \brief   Data types of attributes of On/Off ZCL cluster.
+ * \ingroup ZBPRO_ZCL_OnOffAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.8.2.2, table 3-42.
+ */
 typedef uint16_t  ZBPRO_ZCL_OnOffAttrOnTime_t;                  /*!< OnTime. */
 
+/**//**
+ * \brief   Data types of attributes of On/Off ZCL cluster.
+ * \ingroup ZBPRO_ZCL_OnOffAttr
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclause 3.8.2.2, table 3-42.
+ */
 typedef uint16_t  ZBPRO_ZCL_OnOffAttrOffWaitTime_t;             /*!< OffWaitTime. */
-
-/**@}*/
 
 
 /**//**
@@ -119,6 +127,7 @@ typedef uint16_t  ZBPRO_ZCL_OnOffAttrOffWaitTime_t;             /*!< OffWaitTime
  *  with the Command Id which is determined by using different primitives.
  * \details
  *  Commands Off, On, Toggle have no custom parameters.
+ * \ingroup ZBPRO_ZCL_OnOffReq
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 3.8.2.3.1, 3.8.2.3.2, 3.8.2.3.3.
  */
@@ -143,6 +152,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_OnOffCmdReqParams_t);
  *  On, or Toggle command.
  * \details
  *  This structure takes its origin from ZCL Default Response profile-wide command.
+ * \ingroup ZBPRO_ZCL_OnOffConf
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.4.12, figure 2-25.
  */
@@ -165,6 +175,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_PARAMS_STRUCT(ZBPRO_ZCL_OnOffCmdConfParams_t)
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Off, On, or Toggle
  *  command.
+ * \ingroup ZBPRO_ZCL_OnOffReq
  */
 typedef struct _ZBPRO_ZCL_OnOffCmdReqDescr_t  ZBPRO_ZCL_OnOffCmdReqDescr_t;
 
@@ -172,6 +183,7 @@ typedef struct _ZBPRO_ZCL_OnOffCmdReqDescr_t  ZBPRO_ZCL_OnOffCmdReqDescr_t;
 /**//**
  * \brief   Data type for ZCL Local Confirmation callback function of Off, On, and Toggle
  *  command.
+ * \ingroup ZBPRO_ZCL_OnOffConf
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  */
@@ -183,6 +195,7 @@ typedef void ZBPRO_ZCL_OnOffCmdConfCallback_t(
 /**//**
  * \brief   Structure for descriptor of ZCL Local Request to issue Off, On, or Toggle
  *  command.
+ * \ingroup ZBPRO_ZCL_OnOffReq
  */
 struct _ZBPRO_ZCL_OnOffCmdReqDescr_t
 {
@@ -205,7 +218,7 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_OnOffCmdReqDescr_t);
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
- * \name   Functions accept ZCL Local Requests to issue commands of this cluster.
+ * \brief  Functions accept ZCL Local Requests to issue commands of this cluster.
  * \details
  *  The caller shall specify the following obligatory parameters of request: callback,
  *  remoteApsAddress.addrMode, respWaitTimeout, localEndpoint, disableDefaultResp.
@@ -223,11 +236,12 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_OnOffCmdReqDescr_t);
  *  clusterId, manufCode, commandId, transSeqNum, overallStatus, direction,
  *  clusterSpecific, manufSpecific, useSpecifiedTsn, nonUnicastRequest, useDefaultResponse.
  */
-/**@{*/
 
 /**//**
  * \brief   Accepts ZCL Local Request to issue Off command.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_OnOffCmdOffReq(
                 ZBPRO_ZCL_OnOffCmdReqDescr_t *const  reqDescr);
@@ -235,7 +249,9 @@ void ZBPRO_ZCL_OnOffCmdOffReq(
 
 /**//**
  * \brief   Accepts ZCL Local Request to issue On command.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_OnOffCmdOnReq(
                 ZBPRO_ZCL_OnOffCmdReqDescr_t *const  reqDescr);
@@ -243,11 +259,14 @@ void ZBPRO_ZCL_OnOffCmdOnReq(
 
 /**//**
  * \brief   Accepts ZCL Local Request to issue Toggle command.
- * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
+ * \ingroup ZBPRO_ZCL_Functions
+ * \param[in]   reqDescr        Pointer to ZCL Local Request descriptor.
+ * \return Nothing.
  */
 void ZBPRO_ZCL_OnOffCmdToggleReq(
                 ZBPRO_ZCL_OnOffCmdReqDescr_t *const  reqDescr);
-/**@}*/
 
 
 #endif /* _BB_ZBPRO_ZCL_SAP_CLUSTER_ONOFF_H */
+
+/* eof bbZbProZclSapClusterOnOff.h */

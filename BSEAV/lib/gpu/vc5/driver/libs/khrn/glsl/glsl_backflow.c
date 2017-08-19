@@ -16,6 +16,7 @@
 #include "../glxx/glxx_int_config.h"
 
 #include "libs/core/v3d/v3d_gen.h"
+#include "libs/core/v3d/v3d_tlb.h"
 #include "libs/util/gfx_util/gfx_util.h"
 
 #include <assert.h>
@@ -27,7 +28,11 @@ void glsl_backflow_priority_queue_init(BackflowPriorityQueue *queue, int size)
 {
    queue->size = size;
    queue->used = 0;
-   queue->nodes = malloc_fast(size * sizeof(Backflow *));
+   queue->nodes = glsl_safemem_malloc(size * sizeof(Backflow *));
+}
+
+void glsl_backflow_priority_queue_term(BackflowPriorityQueue *q) {
+   glsl_safemem_free(q->nodes);
 }
 
 static inline bool compare(const Backflow *d0, const Backflow *d1)
@@ -162,7 +167,7 @@ void glsl_iodep(Backflow *consumer, Backflow *supplier)
    glsl_iodep_offset(consumer, supplier, 0);
 }
 
-bool glsl_sched_node_requires_regfile(BackflowFlavour f) {
+bool op_requires_regfile(BackflowFlavour f) {
 #if V3D_VER_AT_LEAST(4,0,2,0)
    return f == BACKFLOW_LDVPMV_IN  || f == BACKFLOW_LDVPMD_IN  ||
           f == BACKFLOW_LDVPMV_OUT || f == BACKFLOW_LDVPMD_OUT ||
@@ -171,6 +176,14 @@ bool glsl_sched_node_requires_regfile(BackflowFlavour f) {
 #else
    return false;
 #endif
+}
+
+bool glsl_sched_node_requires_regfile(const Backflow *n) {
+   if (n->type == ALU_A && op_requires_regfile(n->u.alu.op)) return true;
+#if !V3D_HAS_SIG_TO_MAGIC
+   if (n->type == SIG) return true;
+#endif
+   return false;
 }
 
 bool glsl_sched_node_admits_unpack(BackflowFlavour f) {
@@ -327,9 +340,9 @@ typedef struct {
    int sample_num;      /* Which sample we're currently translating */
 #endif
 
-   bool *per_quad;
+   const bool *per_quad;
 
-   struct tlb_read_s tlb_read[V3D_MAX_RENDER_TARGETS];
+   struct tlb_read_s tlb_read[V3D_MAX_RENDER_TARGETS + 2];
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    glsl_gadgettype_t gadgettype[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS];
@@ -692,9 +705,9 @@ static void unpack_tmu_return(Backflow *output[4], Backflow *words[4], DataflowT
    if (is_32bit) {
       for (int i=0; i<4; i++) output[i] = words[i];
    } else {
-      if (type == DF_FSAMPLER || type == DF_FIMAGE) {
+      if (type == DF_F_SAMP_IMG || type == DF_F_STOR_IMG) {
          for (int i=0; i<4; i++) if (components & (1<<i)) output[i] = unpack_float(words[i/2], i&1);
-      } else if (type == DF_USAMPLER || type == DF_UIMAGE) {
+      } else if (type == DF_U_SAMP_IMG || type == DF_U_STOR_IMG) {
          for (int i=0; i<4; i++) if (components & (1<<i)) output[i] = unpack_uint(words[i/2], i&1);
       } else {
          for (int i=0; i<4; i++) if (components & (1<<i)) output[i] = unpack_int (words[i/2], i&1);
@@ -734,32 +747,40 @@ static void tr_mid_tmu_access_data(struct tmu_lookup_s *lookup, GLSL_TRANSLATION
 }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-static Backflow *tr_texture_cfg(int i, uint32_t cfg, bool is_image, Backflow *dep) {
-   static const BackendUniformFlavour t[2][3] = { { BACKEND_UNIFORM_TEX_PARAM0, BACKEND_UNIFORM_TEX_PARAM1, BACKEND_UNIFORM_LITERAL },
-                                                  { BACKEND_UNIFORM_IMAGE_PARAM0, BACKEND_UNIFORM_IMAGE_PARAM1, BACKEND_UNIFORM_LITERAL } };
-   Backflow *ret = tr_sig_io(V3D_QPU_SIG_WRTMUC, dep);
-   ret->unif_type = t[is_image ? 1 : 0][i];
-   ret->unif = cfg;
+static Backflow *tr_texture_cfg(Backflow *c_node, uint32_t c_extra, Backflow *dep) {
+   Backflow *ret;
+   if (c_node == NULL) {
+      ret = tr_sig_io(V3D_QPU_SIG_WRTMUC, dep);
+      ret->unif_type = BACKEND_UNIFORM_LITERAL;
+      ret->unif = c_extra;
+   } else if (is_unif(c_node)) {
+      ret = tr_sig_io(V3D_QPU_SIG_WRTMUC, dep);
+      ret->unif_type = c_node->unif_type;
+      ret->unif = c_node->unif | c_extra;
+   } else if (c_extra != 0) {
+      ret = tr_binop_io(BACKFLOW_OR, c_node, tr_const(c_extra), dep);
+      ret->magic_write = REG_MAGIC_TMUC;
+   } else {
+      ret = tr_mov_to_reg_io(REG_MAGIC_TMUC, c_node, dep);
+   }
    return ret;
 }
 
 static void tr_mid_tmu_access_texture(struct tmu_lookup_s *lookup,
-   uint32_t texture_index, DataflowType type, bool is_32bit, bool per_quad,
+   Backflow *texture, Backflow *sampler, bool is_32bit, bool per_quad,
    int word_reads, DFTexbits extra, v3d_tmu_op_t op, GLSL_TRANSLATION_T *cond,
    Backflow *s, Backflow *t, Backflow *r, Backflow *idx, Backflow *dref, Backflow *b, Backflow *off)
 {
-   bool fetch   = (extra & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH));
-   bool cubemap = (extra & DF_TEXBITS_CUBE);
-   bool gather  = (extra & DF_TEXBITS_GATHER);
-   bool bslod   = (extra & DF_TEXBITS_BSLOD) || gather;
-   bool ind_off = (extra & DF_TEXBITS_I_OFF);
-
-   bool sampler_fetch = (extra & DF_TEXBITS_SAMPLER_FETCH);
-   uint32_t sampler_index = (!fetch || sampler_fetch) ? texture_index : GLSL_SAMPLER_NONE;
-
-   /* All images must be fetch mode and cubemaps appear as 2D arrays */
-   bool is_image = (type == DF_FIMAGE || type == DF_IIMAGE || type == DF_UIMAGE);
-   assert(!is_image || (fetch && !cubemap));
+   bool fetch     = (extra & DF_TEXBITS_FETCH);
+   bool cubemap   = (extra & DF_TEXBITS_CUBE);
+   bool gather    = (extra & DF_TEXBITS_GATHER);
+   bool bslod     = (extra & DF_TEXBITS_BSLOD) || gather;
+   bool ind_off   = (extra & DF_TEXBITS_I_OFF);
+#if V3D_HAS_TMU_LOD_QUERY
+   bool lod_query = (extra & DF_TEXBITS_LOD_QUERY);
+#else
+   bool lod_query = false;
+#endif
 
    uint32_t offset = 0;
    if (!ind_off && off && is_const(off)) {
@@ -769,23 +790,22 @@ static void tr_mid_tmu_access_texture(struct tmu_lookup_s *lookup,
 
    int n_cfg_words;
    uint32_t extra_cfg = 0;
-   if (gather || offset || ind_off || (bslod && cubemap) || (op != V3D_TMU_OP_REGULAR)) {
+   if (gather || offset || ind_off || lod_query || (bslod && cubemap) || (op != V3D_TMU_OP_REGULAR)) {
       int gather_comp = (extra & DF_TEXBITS_GATHER_COMP_MASK) >> DF_TEXBITS_GATHER_COMP_SHIFT;
-      extra_cfg  = (offset << 8) | (gather << 7) | (gather_comp << 5) | (bslod << 1) | (ind_off);
+      extra_cfg  = (lod_query << 24) | (offset << 8) | (gather << 7) | (gather_comp << 5) | (bslod << 1) | (ind_off);
       extra_cfg |= (uint32_t)op << 20;
       n_cfg_words = 3;
-   } else if (!fetch || sampler_fetch || is_32bit || per_quad)
+   } else if (sampler || is_32bit || per_quad)
       n_cfg_words = 2;
    else
       n_cfg_words = 1;
 
-   uint32_t cfg_word[3];
-   cfg_word[0] = (texture_index << 4) | word_reads;
-   cfg_word[1] = (sampler_index << 4) | ((!per_quad) << 2) | is_32bit;     /* Unnorm comes from the API */
-   cfg_word[2] = extra_cfg;
+   Backflow *c_nodes[3] = { texture, sampler, NULL };
+   uint32_t  c_extra[3] = { word_reads, ((!per_quad) << 2) | is_32bit, extra_cfg };
 
    Backflow *last_cfg = lookup->first_write;
-   for (int i=0; i<n_cfg_words; i++) last_cfg = tr_texture_cfg(i, cfg_word[i], is_image, last_cfg);
+   for (int i=0; i<n_cfg_words; i++)
+      last_cfg = tr_texture_cfg(c_nodes[i], c_extra[i], last_cfg);
 
    // Last write can happen in same cycle as WRTMUC.
    assert(n_cfg_words != 0);
@@ -811,6 +831,107 @@ static void tr_mid_tmu_access_texture(struct tmu_lookup_s *lookup,
    lookup->last_write = tr_mov_to_reg_cond_io(s_reg, s, cond, lookup->last_write);
    lookup->write_count++;
 }
+
+#else
+
+static uint32_t infer_ltype(Backflow *s, Backflow *t, Backflow *r, Backflow *idx, uint32_t cfg_bits) {
+   static const uint32_t ltype[2][3] = { { GLSL_TEXPARAM0_1D, GLSL_TEXPARAM0_2D, GLSL_TEXPARAM0_3D },
+                                         { GLSL_TEXPARAM0_1D_ARRAY, GLSL_TEXPARAM0_2D_ARRAY, -1} };
+   if (cfg_bits & DF_TEXBITS_CUBE) return GLSL_TEXPARAM0_CUBE;
+   else {
+      int dim = (s != NULL) + (t != NULL) + (r != NULL);
+      bool array = (idx != NULL);
+      return ltype[array ? 1 : 0][dim-1];
+   }
+}
+
+static void tr_mid_tmu_access_texture(struct tmu_lookup_s *lookup,
+         Backflow *texture, Backflow *sampler, bool is_32bit, bool per_quad,
+         int word_reads, DFTexbits extra, v3d_tmu_op_t op, GLSL_TRANSLATION_T *cond,
+         Backflow *s, Backflow *t, Backflow *r, Backflow *idx, Backflow *d, Backflow *b, Backflow *off)
+{
+   uint32_t image_index   = texture->unif >> 4;
+   uint32_t sampler_index = sampler ? (sampler->unif >> 4) : image_index;
+
+   uint32_t cfg[2] = { infer_ltype(s, t, r, idx, extra), word_reads };
+
+   if (extra & DF_TEXBITS_FETCH) {
+      cfg[0] |= GLSL_TEXPARAM0_FETCH;
+      cfg[1] |= GLSL_TEXPARAM1_FETCH;
+   }
+   if (extra & DF_TEXBITS_GATHER) {
+      cfg[0] |= GLSL_TEXPARAM0_GATHER;
+      cfg[1] |= GLSL_TEXPARAM1_GATHER;
+      cfg[1] |= ((extra & DF_TEXBITS_GATHER_COMP_MASK) >> DF_TEXBITS_GATHER_COMP_SHIFT) << GLSL_TEXPARAM1_GATHER_COMP_SHIFT;
+   }
+   if (extra & (DF_TEXBITS_BSLOD | DF_TEXBITS_GATHER)) cfg[0] |= GLSL_TEXPARAM0_BSLOD;
+   /* Copy the offsets to the parameter */
+   if (off) {
+      assert(is_const(off)); /* Non-const only supported with new TMU config */
+      cfg[0] |= (off->unif & 0xFFF) << 19;
+   }
+
+   if (!per_quad)
+      cfg[0] |= GLSL_TEXPARAM0_PIX_MASK;
+
+   if (d != NULL) cfg[0] |= GLSL_TEXPARAM0_SHADOW;
+   if (b != NULL && !glsl_dataflow_tex_cfg_implies_bslod(extra)) cfg[0] |= GLSL_TEXPARAM0_BIAS;
+
+   // GFXH-1363: explicit LoD should be relative to base level but HW does not add base level...
+   if (glsl_dataflow_tex_cfg_implies_bslod(extra)) {
+      bool bias_int = extra & DF_TEXBITS_FETCH; // Bias is an int for fetch, otherwise a float
+      Backflow *base_level = tr_typed_uniform(
+         bias_int ? BACKEND_UNIFORM_TEX_BASE_LEVEL : BACKEND_UNIFORM_TEX_BASE_LEVEL_FLOAT, image_index);
+      if (is_const_zero(b))
+         b = base_level;
+      else
+         b = tr_binop(bias_int ? BACKFLOW_IADD : BACKFLOW_ADD, base_level, b);
+   }
+
+   assert(s != NULL);
+   assert(r == NULL || t != NULL);       /* Can't have (s, NULL, r) */
+   assert(r == NULL || idx == NULL);     /* 3D or cubemap arrays not supported on this version */
+
+   Backflow *c[5] = { s, NULL, };
+   int n_coords = 1;
+   if (t   != NULL) c[n_coords++] = t;
+   if (r   != NULL) c[n_coords++] = r;
+   if (idx != NULL) c[n_coords++] = idx;
+   if (d   != NULL) c[n_coords++] = d;
+   if (b   != NULL) c[n_coords++] = b;
+
+   if (n_coords == 1) c[n_coords++] = s;     /* For plain 1D textures, write s again */
+
+   bool is_image = (texture->unif_type == BACKEND_UNIFORM_IMG_PARAM0);
+   assert(!is_image || ((extra & DF_TEXBITS_FETCH) && ((cfg[0] & 7) != GLSL_TEXPARAM0_CUBE)));
+
+   /* GFXH-1332: On v3.3 the bug is fixed and for images the LOD is always
+    * clamped to the correct value, so 'b' is irrelevant */
+   if (V3D_VER_AT_LEAST(3,3,0,0) || is_image || b == NULL) {
+      while (n_coords > 2 && is_const_zero(c[n_coords-1])) {
+         c[n_coords-1] = NULL;
+         n_coords--;
+      }
+   }
+
+   BackendUniformFlavour uf[2][2] = { { BACKEND_UNIFORM_TEX_PARAM0, BACKEND_UNIFORM_TEX_PARAM1 },
+                                      { BACKEND_UNIFORM_IMG_PARAM0, BACKEND_UNIFORM_IMG_PARAM1 } };
+
+   Backflow *node = lookup->first_write;
+   for (int i=0; i<n_coords; i++) {
+      node = tr_mov_to_reg_io( (i == n_coords-1) ? REG_MAGIC_TMUL : REG_MAGIC_TMU, c[i], node);
+      if (i == 0 || i == 1) {
+         node->unif_type = uf[is_image][i];
+         node->unif = BACKEND_UNIFORM_MAKE_PARAM(image_index, sampler_index, cfg[i]);
+      }
+   }
+   // Just discard the dummy last_write node. It serves no purpose in this case.
+   lookup->last_write = node;
+
+   assert(n_coords <= 5);
+   lookup->write_count = n_coords;
+}
+
 #endif
 
 /* Size 0 is valid for read-atomics, for which we set the size as 32-bit */
@@ -849,126 +970,16 @@ static void tr_end_tmu_access(Backflow **words, struct tmu_lookup_s *lookup,
    lookup->age = age;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
-
 static void tr_texture_lookup(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T *result,
-                              uint32_t texture_index, DataflowType type, bool is_32bit, bool per_quad,
+                              Backflow *texture, Backflow *sampler, DataflowType type, bool is_32bit, bool per_quad,
                               uint32_t age, uint32_t required_components, DFTexbits extra,
                               Backflow *s, Backflow *t, Backflow *r, Backflow *idx, Backflow *dref, Backflow *b, Backflow *off)
 {
    struct tmu_lookup_s *lookup = tr_begin_tmu_access(ctx->block);
    int word_reads = get_word_reads(required_components, is_32bit);
-   tr_mid_tmu_access_texture(lookup,
-      texture_index, type, is_32bit, per_quad,
-      word_reads, extra, V3D_TMU_OP_REGULAR, /*cond=*/NULL,
-      s, t, r, idx, dref, b, off);
-   Backflow *words[4] = {NULL};
-   tr_end_tmu_access(words, lookup, word_reads, age);
-
-   result->type = GLSL_TRANSLATION_VEC4;
-   unpack_tmu_return(result->node, words, type, required_components, is_32bit);
-}
-
-#else
-
-static uint32_t infer_ltype(Backflow *s, Backflow *t, Backflow *r, Backflow *idx, uint32_t cfg_bits) {
-   static const uint32_t ltype[2][3] = { { GLSL_TEXPARAM0_1D, GLSL_TEXPARAM0_2D, GLSL_TEXPARAM0_3D },
-                                         { GLSL_TEXPARAM0_1D_ARRAY, GLSL_TEXPARAM0_2D_ARRAY, -1} };
-   if (cfg_bits & DF_TEXBITS_CUBE) return GLSL_TEXPARAM0_CUBE;
-   else {
-      int dim = (s != NULL) + (t != NULL) + (r != NULL);
-      bool array = (idx != NULL);
-      return ltype[array ? 1 : 0][dim-1];
-   }
-}
-
-static void tr_texture_lookup(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T *result,
-                              uint32_t sampler_index, DataflowType type, bool is_32bit, bool per_quad,
-                              uint32_t age, uint32_t required_components, DFTexbits extra,
-                              Backflow *s, Backflow *t, Backflow *r, Backflow *idx, Backflow *d, Backflow *b, Backflow *off)
-{
-   struct tmu_lookup_s *lookup = new_tmu_lookup(ctx->block);
-   int word_reads = get_word_reads(required_components, is_32bit);
-
-   uint32_t cfg[2] = { infer_ltype(s, t, r, idx, extra), word_reads };
-
-   if (extra & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH)) {
-      cfg[0] |= GLSL_TEXPARAM0_FETCH;
-      cfg[1] |= GLSL_TEXPARAM1_FETCH;
-   }
-   if (extra & (DF_TEXBITS_GATHER)) {
-      cfg[0] |= GLSL_TEXPARAM0_GATHER;
-      cfg[1] |= GLSL_TEXPARAM1_GATHER;
-      cfg[1] |= ((extra & DF_TEXBITS_GATHER_COMP_MASK) >> DF_TEXBITS_GATHER_COMP_SHIFT) << GLSL_TEXPARAM1_GATHER_COMP_SHIFT;
-   }
-   if (extra & (DF_TEXBITS_BSLOD | DF_TEXBITS_GATHER)) cfg[0] |= GLSL_TEXPARAM0_BSLOD;
-   /* Copy the offsets to the parameter */
-   if (off) {
-      assert(is_const(off)); /* Non-const only supported with new TMU config */
-      cfg[0] |= (off->unif & 0xFFF) << 19;
-   }
-
-   if (!per_quad)
-      cfg[0] |= GLSL_TEXPARAM0_PIX_MASK;
-
-   if (d != NULL) cfg[0] |= GLSL_TEXPARAM0_SHADOW;
-   if (b != NULL && !glsl_dataflow_tex_cfg_implies_bslod(extra)) cfg[0] |= GLSL_TEXPARAM0_BIAS;
-
-   // GFXH-1363: explicit LoD should be relative to base level but HW does not add base level...
-   if (glsl_dataflow_tex_cfg_implies_bslod(extra)) {
-      bool bias_int = extra & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH); // Bias is an int for fetch, otherwise a float
-      Backflow *base_level = tr_typed_uniform(
-         bias_int ? BACKEND_UNIFORM_TEX_BASE_LEVEL : BACKEND_UNIFORM_TEX_BASE_LEVEL_FLOAT, sampler_index);
-      if (is_const_zero(b))
-         b = base_level;
-      else
-         b = tr_binop(bias_int ? BACKFLOW_IADD : BACKFLOW_ADD, base_level, b);
-   }
-
-   assert(s != NULL);
-   assert(r == NULL || t != NULL);       /* Can't have (s, NULL, r) */
-   assert(r == NULL || idx == NULL);     /* 3D or cubemap arrays not supported on this version */
-
-   Backflow *c[5] = { s, NULL, };
-   int n_coords = 1;
-   if (t   != NULL) c[n_coords++] = t;
-   if (r   != NULL) c[n_coords++] = r;
-   if (idx != NULL) c[n_coords++] = idx;
-   if (d   != NULL) c[n_coords++] = d;
-   if (b   != NULL) c[n_coords++] = b;
-
-   if (n_coords == 1) c[n_coords++] = s;     /* For plain 1D textures, write s again */
-
-   bool is_image = (type == DF_FIMAGE || type == DF_IIMAGE || type == DF_UIMAGE);
-   assert(!is_image || ((extra & DF_TEXBITS_FETCH) && ((cfg[0] & 7) != GLSL_TEXPARAM0_CUBE)));
-
-   /* GFXH-1332: On v3.3 the bug is fixed and for images the LOD is always
-    * clamped to the correct value, so 'b' is irrelevant */
-   if (V3D_VER_AT_LEAST(3,3,0,0) || is_image || b == NULL) {
-      while (n_coords > 2 && is_const_zero(c[n_coords-1])) {
-         c[n_coords-1] = NULL;
-         n_coords--;
-      }
-   }
-
-   BackendUniformFlavour uf[2][2] = { { BACKEND_UNIFORM_TEX_PARAM0,   BACKEND_UNIFORM_TEX_PARAM1   },
-                                      { BACKEND_UNIFORM_IMAGE_PARAM0, BACKEND_UNIFORM_IMAGE_PARAM1 } };
-
-   Backflow *node = NULL;
-   for (int i=0; i<n_coords; i++) {
-      node = tr_mov_to_reg_io( (i == n_coords-1) ? REG_MAGIC_TMUL : REG_MAGIC_TMU, c[i], node);
-      if (i == 0 || i == 1) {
-         if (i == 0) lookup->first_write = node;
-
-         node->unif_type = uf[is_image][i];
-         node->unif = BACKEND_UNIFORM_MAKE_PARAM(sampler_index, sampler_index, cfg[i]);
-      }
-   }
-
-   assert(n_coords <= 5);
-   assert(node != NULL);
-   lookup->last_write = node;
-   lookup->write_count = n_coords;
+   tr_mid_tmu_access_texture(lookup, texture, sampler, is_32bit, per_quad,
+                             word_reads, extra, V3D_TMU_OP_REGULAR, /*cond=*/NULL,
+                             s, t, r, idx, dref, b, off);
 
    Backflow *words[4] = { NULL, };
    tr_end_tmu_access(words, lookup, word_reads, age);
@@ -988,19 +999,21 @@ static void swizzle_words(Backflow *words[4], int swizzle[4], bool int_tex)
    for (int i=0; i<4; i++) words[i] = nodes[swizzle[i]];
 }
 
-static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T *result, uint32_t sampler_index, DataflowType type,
-                              bool is_32bit, bool per_quad, uint32_t age, uint32_t required_components, DFTexbits extra,
+static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T *result, Backflow *texture,
+                              Backflow *sampler, DataflowType type, bool is_32bit, bool per_quad, uint32_t age,
+                              uint32_t required_components, DFTexbits extra,
                               Backflow *s, Backflow *t, Backflow *r, Backflow *i, Backflow *d, Backflow *b, Backflow *off)
 {
    int swizzle[4] = { 2, 3, 4, 5};
    uint32_t gadgettype;
 
-   if (type == DF_FIMAGE || type == DF_IIMAGE || type == DF_UIMAGE) {
-      assert(sampler_index < countof(ctx->img_gadgettype));
-      gadgettype = ctx->img_gadgettype[sampler_index];
+   uint32_t image_index = texture->unif >> 4;
+   if (glsl_dataflow_type_is_storage_image(type)) {
+      assert(image_index < countof(ctx->img_gadgettype));
+      gadgettype = ctx->img_gadgettype[image_index];
    } else {
-      assert(sampler_index < countof(ctx->gadgettype));
-      gadgettype = ctx->gadgettype[sampler_index];
+      assert(image_index < countof(ctx->gadgettype));
+      gadgettype = ctx->gadgettype[image_index];
    }
 
    if (GLSL_GADGETTYPE_NEEDS_SWIZZLE(gadgettype)) {
@@ -1049,7 +1062,8 @@ static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
          d = tr_binop(BACKFLOW_MIN, tr_cfloat(1.0f), d);
       }
 
-      tr_texture_lookup(ctx, result, sampler_index, type, is_32bit, per_quad, age, lookup_required_components, extra, s, t, r, i, d, b, off);
+      tr_texture_lookup(ctx, result, texture, sampler, type, is_32bit, per_quad,
+                        age, lookup_required_components, extra, s, t, r, i, d, b, off);
 
       /* The dataflow type tells us how the texture was declared in the shader,
        * the gadgettype what type the actual texture is. If they don't match then
@@ -1059,7 +1073,7 @@ static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
       switch (gadgettype)
       {
       case GLSL_GADGETTYPE_INT8:
-         if (type == DF_USAMPLER || type == DF_UIMAGE) {
+         if (type == DF_U_SAMP_IMG || type == DF_U_STOR_IMG) {
             if (required_components & 1) result->node[0] = bitand(    word,      tr_const(0xff));
             if (required_components & 2) result->node[1] = bitand(shr(word, 8),  tr_const(0xff));
             if (required_components & 4) result->node[2] = bitand(shr(word, 16), tr_const(0xff));
@@ -1086,31 +1100,23 @@ static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
 
    /* Set type here in case all the results are coming from swizzles */
    result->type = GLSL_TRANSLATION_VEC4;
-   swizzle_words(result->node, swizzle, (type != DF_FSAMPLER && type != DF_FIMAGE));
+   swizzle_words(result->node, swizzle, (type != DF_F_SAMP_IMG && type != DF_F_STOR_IMG));
 }
 #endif
-#endif
 
-void tr_read_tlb(bool ms, uint32_t rt_num, uint32_t rt_type,
+void tr_read_tlb(bool ms, uint32_t rt_num, bool is_16, bool is_int,
                  uint32_t required_components,
                  Backflow **result,             /* Array of 4 or 16, depending on cfg */
                  Backflow **first_read, Backflow **last_read)
 {
-   uint8_t config_byte;
-   int len;
-   if (rt_type == GLSL_FB_F16) {
-      if (required_components & 0xC) len = 2;
-      else                           len = 1;
-      // .all_samples_same_data should not affect reads, but it does (GFXH-1575)
-      V3D_TLB_CONFIG_COLOR_F16_T cfg = { .num_words = len, .no_swap = true,
-                                         .all_samples_same_data = false, .rt = rt_num };
-      config_byte = v3d_pack_tlb_config_color_f16(&cfg);
-   } else {
-      len = gfx_msb(required_components) + 1;
-      V3D_TLB_CONFIG_COLOR_32_T cfg = { .num_words = len, .all_samples_same_data = false,
-                                        .rt = rt_num, .as_int = (rt_type == GLSL_FB_I32) };
-      config_byte = v3d_pack_tlb_config_color_32(&cfg);
-   }
+   /* This function could work on int16 as well, but pack/unpack is too expensive */
+   assert(!is_int || !is_16);
+
+   int len = gfx_msb(required_components) + 1;
+   if (is_16) len = (len + 1) / 2;
+
+   bool unsampled = !ms && V3D_HAS_TLB_SAMPLED_READ;   // GFXH-1575: This should have been ignored but was not.
+   uint8_t config_byte = v3d_tlb_config_color(rt_num, is_16, is_int, len, !unsampled);
 
    result[0] = create_sig(V3D_QPU_SIG_LDTLBU);
    result[0]->unif_type = BACKEND_UNIFORM_LITERAL;
@@ -1124,33 +1130,42 @@ void tr_read_tlb(bool ms, uint32_t rt_num, uint32_t rt_type,
    *last_read  = result[load_len-1];
 
    /* Unpack the data. Loop backwards so that we can expand in place */
-   if (rt_type == GLSL_FB_F16)
+   if (is_16)
       for (unsigned i=2*load_len-1; i<2*load_len; i--) result[i] = unpack_float(result[i/2], i&1);
 }
 
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_TLB_SAMPLED_READ
+static void sample_select(Backflow **out, Backflow **data, int n) {
+   for (int i=0; i<n; i++) out[i] = data[i];
+
+   Backflow *sampid = tr_nullary(BACKFLOW_SAMPID);
+   for (int s = 1; s<4; s++) {
+      Backflow *cond = tr_binop_push(BACKFLOW_ISUB, SETF_PUSHZ, sampid, tr_const(s));
+      for (int i=0; i<n; i++)
+         out[i] = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond, data[s*n + i], NULL, out[i]);
+   }
+}
+#endif
+
 static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
                               GLSL_TRANSLATION_T *result,
-                              uint32_t rt_type,
+                              bool rt_is_16, bool rt_is_int,
                               uint32_t required_components,
                               uint32_t render_target)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_HAS_TLB_SAMPLED_READ
+   tr_read_tlb(false, render_target, rt_is_16, rt_is_int, required_components, result->node,
+               &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
+#elif V3D_VER_AT_LEAST(4,0,2,0)
    Backflow *data[16];
-   tr_read_tlb(ctx->ms, render_target, rt_type, required_components, data, &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
+   tr_read_tlb(ctx->ms, render_target, rt_is_16, rt_is_int, required_components, data, &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
 
-   for (int i=0; i<4; i++) result->node[i] = data[i];
-
-   if (ctx->ms) {
-      Backflow *sampid = tr_nullary(BACKFLOW_SAMPID);
-      for (int s = 1; s<4; s++) {
-         Backflow *cond = tr_binop_push(BACKFLOW_ISUB, SETF_PUSHZ, sampid, tr_const(s));
-         for (int i=0; i<4; i++)
-            result->node[i] = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond, data[s*4 + i], NULL, result->node[i]);
-      }
-   }
+   if (ctx->ms) sample_select(result->node, data, 4);
+   else
+      for (int i=0; i<4; i++) result->node[i] = data[i];
 #else
    if (ctx->tlb_read[render_target].samples_read == 0)
-      tr_read_tlb(ctx->ms, render_target, rt_type, required_components, ctx->tlb_read[render_target].data, &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
+      tr_read_tlb(ctx->ms, render_target, rt_is_16, rt_is_int, required_components, ctx->tlb_read[render_target].data, &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
 
    ctx->tlb_read[render_target].samples_read |= (1 << ctx->sample_num);
    for (int i=0; i<4; i++) result->node[i] = ctx->tlb_read[render_target].data[4*ctx->sample_num + i];
@@ -1159,9 +1174,54 @@ static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
    result->type = GLSL_TRANSLATION_VEC4;
 }
 
+#if V3D_VER_AT_LEAST(4,0,2,0)
+static void tr_get_depth_stencil(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T *r, bool depth)
+{
+   int read_idx = V3D_MAX_RENDER_TARGETS + (depth ? 0: 1);
+   uint8_t config_byte;
+   if (depth)
+   {
+      V3D_TLB_CONFIG_Z_T cfg = {
+#if V3D_HAS_TLB_SAMPLED_READ
+         .all_samples_same_data = true,
+#endif
+         .use_written_z = false};
+      config_byte = v3d_pack_tlb_config_z(&cfg);
+   }
+   else
+   {
+#if V3D_HAS_TLB_SAMPLED_READ
+      V3D_TLB_CONFIG_ALPHA_MASK_T cfg = {
+         .all_samples_same_data = true};
+      config_byte = v3d_pack_tlb_config_alpha_mask(&cfg);
+#else
+      config_byte = v3d_pack_tlb_config_alpha_mask();
+#endif
+   }
+
+   r->type = GLSL_TRANSLATION_WORD;
+   r->node[0] = create_sig(V3D_QPU_SIG_LDTLBU);
+   r->node[0]->unif_type = BACKEND_UNIFORM_LITERAL;
+   r->node[0]->unif = config_byte | 0xffffff00; /* Unused config entries must be all 1s */
+# if V3D_HAS_TLB_SAMPLED_READ
+   ctx->tlb_read[read_idx].first = r->node[0];
+   ctx->tlb_read[read_idx].last  = r->node[0];
+# else
+   Backflow *data[4] = { r->node[0], NULL, };
+   if (ctx->ms) {
+      for (int i=1; i<4; i++) data[i] = tr_sig_io(V3D_QPU_SIG_LDTLB, data[i-1]);
+      sample_select(r->node, data, 1);
+   }
+
+   ctx->tlb_read[read_idx].first = data[0];
+   ctx->tlb_read[read_idx].last  = ctx->ms ? data[3] : data[0];
+# endif
+}
+#endif
+
 #define TMU_CFG_PIX_MASK (1<<7)
 
-static void tr_indexed_read_vector_gadget(SchedBlock *block, GLSL_TRANSLATION_T *result,
+static void tr_indexed_read_vector_gadget(SchedBlock *block, Backflow **result,
                                           int age, Backflow *addr, uint32_t components, bool per_quad)
 {
    int num_reads = 0;
@@ -1187,13 +1247,12 @@ static void tr_indexed_read_vector_gadget(SchedBlock *block, GLSL_TRANSLATION_T 
    lookup->first_write = lookup->last_write = node;
    lookup->write_count = 1;
 
-   result->type = GLSL_TRANSLATION_VEC4;
-   result->node[0] = tr_texture_get(NULL, lookup);
-   for (int i=1; i<num_reads; i++) result->node[i] = tr_texture_get(result->node[i-1], lookup);
+   result[0] = tr_texture_get(NULL, lookup);
+   for (int i=1; i<num_reads; i++) result[i] = tr_texture_get(result[i-1], lookup);
 
    lookup->read_count = num_reads;
-   lookup->first_read = result->node[0];
-   lookup->last_read = result->node[num_reads-1];
+   lookup->first_read = result[0];
+   lookup->last_read = result[num_reads-1];
 
    lookup->age = age;
 }
@@ -1211,8 +1270,8 @@ static Backflow *init_frag_vary( SchedShaderInputs *in,
    Backflow *dep = NULL;
 
    if (primitive_type == GLSL_PRIM_POINT) {
-      dep = in->point_x = varying_io(VARYING_DEFAULT, VARYING_ID_HW_0, in->w, dep);
-      dep = in->point_y = varying_io(VARYING_DEFAULT, VARYING_ID_HW_1, in->w, dep);
+      dep = in->point_x = varying_io(VARYING_DEFAULT, VARYING_ID_HW_0, in->rf0, dep);
+      dep = in->point_y = varying_io(VARYING_DEFAULT, VARYING_ID_HW_1, in->rf0, dep);
    } else {
       in->point_x = tr_cfloat(0.0f);
       in->point_y = tr_cfloat(0.0f);
@@ -1230,8 +1289,8 @@ static Backflow *init_frag_vary( SchedShaderInputs *in,
       Backflow *w;
       if      (varying[i].flat)          { w = NULL;    t = VARYING_FLAT;    }
       else if (varying[i].noperspective) { w = NULL;    t = VARYING_NOPERSP; }
-      else if (varying[i].centroid)      { w = in->w_c; t = VARYING_DEFAULT; }
-      else                               { w = in->w;   t = VARYING_DEFAULT; }
+      else if (varying[i].centroid)      { w = in->rf1; t = VARYING_DEFAULT; }
+      else                               { w = in->rf0; t = VARYING_DEFAULT; }
 
       in->inputs[i] = varying_io(t, i, w, dep);
    }
@@ -1252,18 +1311,18 @@ static void resolve_tlb_loads(SchedBlock *block, struct tlb_read_s *reads) {
    Backflow *first_read = NULL;
    Backflow *last_read = NULL;
 
-   for (int rt=0; rt<V3D_MAX_RENDER_TARGETS; rt++) {
+   for (int rt=0; rt<V3D_MAX_RENDER_TARGETS + 2; rt++) {
       struct tlb_read_s *r = &reads[rt];
       /* If this RT isn't read then skip it */
       if (r->first == NULL) continue;
 
       /* Record the first_read so we can force reads after the "sbwait" */
-      if (first_read == NULL) {
+      if (first_read == NULL)
          first_read = r->first;
-         last_read  = r->last;
-      } else {
+      else
          glsl_iodep(r->first, last_read);
-      }
+
+      last_read  = r->last;
    }
    block->first_tlb_read = first_read;
    block->last_tlb_read  = last_read;
@@ -1355,6 +1414,9 @@ static BackflowFlavour translate_flavour(DataflowFlavour flavour, DataflowType t
       case DATAFLOW_SAMPLE_ID:         *params = 0; return BACKFLOW_SAMPID;
       case DATAFLOW_GET_INVOCATION_ID: *params = 0; return BACKFLOW_IID;
 #endif
+#if V3D_HAS_MSF_1
+      case DATAFLOW_SAMPLE_MASK:       *params = 0; return BACKFLOW_MSF;
+#endif
       case DATAFLOW_FRAG_GET_X:        *params = 0; return BACKFLOW_FXCD;
       case DATAFLOW_FRAG_GET_Y:        *params = 0; return BACKFLOW_FYCD;
       case DATAFLOW_FRAG_GET_X_UINT:   *params = 0; return BACKFLOW_XCD;
@@ -1375,6 +1437,7 @@ static BackflowFlavour translate_flavour(DataflowFlavour flavour, DataflowType t
       case DATAFLOW_CEIL:              *params = 1; return BACKFLOW_CEIL;
       case DATAFLOW_FLOOR:             *params = 1; return BACKFLOW_FLOOR;
       case DATAFLOW_MUL:               *params = 2; return type == DF_FLOAT ? BACKFLOW_MUL : BACKFLOW_IMUL32;
+      case DATAFLOW_MUL24:             *params = 2; return type == DF_UINT ? BACKFLOW_UMUL : BACKFLOW_SMUL;
       case DATAFLOW_ADD:               *params = 2; return type == DF_FLOAT ? BACKFLOW_ADD : BACKFLOW_IADD;
       case DATAFLOW_SUB:               *params = 2; return type == DF_FLOAT ? BACKFLOW_SUB : BACKFLOW_ISUB;
       case DATAFLOW_MIN:               *params = 2; return type == DF_FLOAT ? BACKFLOW_MIN :
@@ -1432,37 +1495,6 @@ static inline const Dataflow *relocate_dataflow(GLSL_TRANSLATE_CONTEXT_T *ctx, i
    return &ctx->df_arr[dataflow];
 }
 
-static bool translate_per_quad(const Dataflow *d) {
-   if (d->flavour == DATAFLOW_FDX || d->flavour == DATAFLOW_FDY)
-      return true;
-   else if (d->flavour == DATAFLOW_TEXTURE)
-      return !glsl_dataflow_tex_cfg_implies_bslod(d->u.texture.bits);
-   else
-      return false;
-}
-
-static void mark_deps_as_per_quad(uint32_t d_id, GLSL_TRANSLATE_CONTEXT_T *ctx) {
-   if (d_id == -1) return;
-
-   const Dataflow *d = &ctx->df_arr[d_id];
-
-   if (ctx->per_quad[d->id]) return;
-   ctx->per_quad[d->id] = true;
-
-   for (int i=0; i<d->dependencies_count; i++) {
-      if (d->d.reloc_deps[i] != -1)
-         mark_deps_as_per_quad(d->d.reloc_deps[i], ctx);
-   }
-}
-
-static void resolve_per_quadness(Dataflow *d, void *data) {
-   if (translate_per_quad(d)) {
-      for (int i=0; i<d->dependencies_count; i++) {
-         mark_deps_as_per_quad(d->d.reloc_deps[i], data);
-      }
-   }
-}
-
 static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
    const Dataflow *dataflow, GLSL_TRANSLATION_T *const d[4])
 {
@@ -1514,11 +1546,11 @@ static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
          c[i] = t->node[0];
       }
 
-      const Dataflow *sampler = relocate_dataflow(ctx, addr->d.reloc_deps[4]);
-      uint32_t sampler_index = ctx->link_map->uniforms[sampler->u.const_image.location];
+      const Dataflow *image = relocate_dataflow(ctx, addr->d.reloc_deps[4]);
+      uint32_t image_index = ctx->link_map->uniforms[image->u.const_image.location];
 
       tr_mid_tmu_access_texture(lookup,
-         sampler_index, sampler->type, sampler->u.const_image.is_32bit, /*per_quad=*/false,
+         tr_typed_uniform(BACKEND_UNIFORM_IMG_PARAM0, image_index << 4), NULL, image->u.const_image.is_32bit, /*per_quad=*/false,
          word_reads, DF_TEXBITS_FETCH, op, d[2], c[0], c[1], c[2], c[3],
          /*dref=*/NULL, /*b=*/NULL, /*off=*/NULL);
    }
@@ -1531,11 +1563,6 @@ static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
 
    r->type = word_reads ? get_translation_type(dataflow->type) : GLSL_TRANSLATION_VOID;
    tr_end_tmu_access(&r->node[0], lookup, word_reads, dataflow->age);
-}
-
-static inline bool is_ubo_addr(const Backflow *b) {
-   return (b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF &&
-           b->unif_type == BACKEND_UNIFORM_UBO_ADDRESS         );
 }
 
 /* Main translation function */
@@ -1568,21 +1595,19 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       case DATAFLOW_TEXTURE:
          {
             const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[4]);
-            uint32_t image_index = ctx->link_map->uniforms[image->u.const_image.location];
             uint32_t required_components = dataflow->u.texture.required_components;
 
             assert(d[0]->type == GLSL_TRANSLATION_VEC4);
-            for (int i=1; i<4; i++) assert(d[i] == NULL || d[i]->type == GLSL_TRANSLATION_WORD);
-            /* d[4] has type void because it contained the sampler */
+            for (int i=1; i<6; i++) assert(d[i] == NULL || d[i]->type == GLSL_TRANSLATION_WORD);
 
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-            tr_texture_gadget(ctx, r, image_index, image->type, image->u.const_image.is_32bit,
+#if V3D_VER_AT_LEAST(3,3,0,0)
+            tr_texture_lookup(ctx, r, d[4]->node[0], d[5] ? d[5]->node[0] : NULL, image->type, image->u.const_image.is_32bit,
                               ctx->per_quad[dataflow->id],
                               dataflow->age, required_components, dataflow->u.texture.bits,
                               d[0]->node[0], d[0]->node[1], d[0]->node[2], d[0]->node[3],
                               d[1] ? d[1]->node[0] : NULL, d[2] ? d[2]->node[0] : NULL, d[3] ? d[3]->node[0] : NULL);
 #else
-            tr_texture_lookup(ctx, r, image_index, image->type, image->u.const_image.is_32bit,
+            tr_texture_gadget(ctx, r, d[4]->node[0], d[5] ? d[5]->node[0] : NULL, image->type, image->u.const_image.is_32bit,
                               ctx->per_quad[dataflow->id],
                               dataflow->age, required_components, dataflow->u.texture.bits,
                               d[0]->node[0], d[0]->node[1], d[0]->node[2], d[0]->node[3],
@@ -1590,16 +1615,42 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
 #endif
             break;
          }
+      case DATAFLOW_TEXTURE_LEVELS:
+         r->type = GLSL_TRANSLATION_WORD;
+
+         if (is_unif(d[0]->node[0])) {
+            uint32_t image_index = d[0]->node[0]->unif >> 4;
+            r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_LEVELS, image_index);
+         } else {
+#if V3D_VER_AT_LEAST(4,0,2,0)
+            /* The texture handle gives the address of the state record, so work the answer out from there.
+             * Base and max level make up the top byte, so load the highest 32-bits of the TSR */
+            Backflow *addr = tr_binop(BACKFLOW_IADD, d[0]->node[0], tr_const(12));
+            Backflow *rec[4];
+            tr_indexed_read_vector_gadget(ctx->block, rec, dataflow->age, addr, 1, ctx->per_quad[dataflow->id]);
+            /* Extract the max and base levels */
+            Backflow *max = bitand(shr(rec[0], 24), tr_const(0xF));
+            Backflow *base = shr(rec[0], 28);
+            /* Num level = max - base + 1 */
+            r->node[0] = tr_binop(BACKFLOW_IADD, tr_binop(BACKFLOW_ISUB, max, base), tr_const(1));
+#else
+            /* Dynamic indexing is not possible prior to v4.0 */
+            unreachable();
+#endif
+         }
+         break;
+
       case DATAFLOW_TEXTURE_SIZE:
          {
             const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
             uint32_t image_index = ctx->link_map->uniforms[image->u.const_image.location];
+            bool is_image = glsl_dataflow_type_is_storage_image(image->type);
+            BackendUniformFlavour f[2][3] = { { BACKEND_UNIFORM_TEX_SIZE_X, BACKEND_UNIFORM_TEX_SIZE_Y, BACKEND_UNIFORM_TEX_SIZE_Z },
+                                              { BACKEND_UNIFORM_IMG_SIZE_X, BACKEND_UNIFORM_IMG_SIZE_Y, BACKEND_UNIFORM_IMG_SIZE_Z } };
             /* Maybe this should change to GLSL_TRANSLATION_VEC. Maybe store size for bounds checking */
             r->type = GLSL_TRANSLATION_VEC4;
-            r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_X, image_index);
-            r->node[1] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_Y, image_index);
-            /* The z-size may not exist. If not then the node won't be referenced, but this isn't pretty */
-            r->node[2] = tr_typed_uniform(BACKEND_UNIFORM_TEX_SIZE_Z, image_index);
+            for (int i=0; i<3; i++)
+               r->node[i] = tr_typed_uniform(f[is_image][i], image_index);
             r->node[3] = NULL;
             break;
          }
@@ -1608,12 +1659,19 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          for (int i=0; i<4; i++) r->node[i] = d[i] ? d[i]->node[0] : NULL;
          break;
       case DATAFLOW_FRAG_GET_COL:
-         {
-            uint32_t type = dataflow->type == DF_FLOAT ? GLSL_FB_F16 : GLSL_FB_I32;
-            tr_get_col_gadget(ctx, r, type, dataflow->u.get_col.required_components,
-                                            dataflow->u.get_col.render_target);
-            break;
-         }
+      {
+         bool is_16 = (dataflow->type == DF_FLOAT);
+         bool is_int = (dataflow->type != DF_FLOAT);
+         tr_get_col_gadget(ctx, r, is_16, is_int, dataflow->u.get_col.required_components,
+                                                  dataflow->u.get_col.render_target);
+         break;
+      }
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      case DATAFLOW_FRAG_GET_DEPTH:
+      case DATAFLOW_FRAG_GET_STENCIL:
+         tr_get_depth_stencil(ctx, r, flavour == DATAFLOW_FRAG_GET_DEPTH);
+         break;
+#endif
       case DATAFLOW_ADDRESS_STORE:
       case DATAFLOW_ATOMIC_ADD:
       case DATAFLOW_ATOMIC_SUB:
@@ -1628,13 +1686,13 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       case DATAFLOW_VECTOR_LOAD:
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
+         r->type = GLSL_TRANSLATION_VEC4;
          if (!ctx->disable_ubo_fetch && is_ubo_addr(d[0]->node[0])) {
-            r->type = GLSL_TRANSLATION_VEC4;
             uint32_t index = d[0]->node[0]->unif & 0x1f;
             uint32_t offset = d[0]->node[0]->unif >> 5;
-            for (int i=0; i<4; i++) r->node[i] = tr_block_address(BACKEND_UNIFORM_UBO_LOAD, index, offset + 4*i);
+            for (int i=0; i<4; i++) r->node[i] = tr_buffer_unif(BACKEND_UNIFORM_UBO_LOAD, index, offset + 4*i);
          } else
-            tr_indexed_read_vector_gadget(ctx->block, r, dataflow->age, d[0]->node[0], dataflow->u.vector_load.required_components, ctx->per_quad[dataflow->id]);
+            tr_indexed_read_vector_gadget(ctx->block, r->node, dataflow->age, d[0]->node[0], dataflow->u.vector_load.required_components, ctx->per_quad[dataflow->id]);
          break;
       case DATAFLOW_GET_VEC4_COMPONENT:
          assert(d[0]->type == GLSL_TRANSLATION_VEC4);
@@ -1657,10 +1715,20 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       }
 
+      case DATAFLOW_CONST_IMAGE:
+         r->type = GLSL_TRANSLATION_WORD;
+         BackendUniformFlavour f = glsl_dataflow_type_is_storage_image(dataflow->type) ? BACKEND_UNIFORM_IMG_PARAM0 : BACKEND_UNIFORM_TEX_PARAM0;
+         r->node[0] = tr_typed_uniform(f, ctx->link_map->uniforms[dataflow->u.const_image.location] << 4);
+         break;
+
+      case DATAFLOW_CONST_SAMPLER:
+         r->type = GLSL_TRANSLATION_WORD;
+         r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_PARAM1, ctx->link_map->uniforms[dataflow->u.linkable_value.row] << 4);
+         break;
+
 #if V3D_VER_AT_LEAST(4,0,2,0)
       case DATAFLOW_TEXTURE_ADDR:
 #endif
-      case DATAFLOW_CONST_IMAGE:
       case DATAFLOW_UNIFORM_BUFFER:
       case DATAFLOW_STORAGE_BUFFER:
       case DATAFLOW_ATOMIC_COUNTER:
@@ -1678,10 +1746,10 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
                r->node[0] = tr_uniform_address(ctx->link_map->uniforms[id], offset);
             } else if(o->flavour==DATAFLOW_UNIFORM_BUFFER) {
                assert(id >= 0 && id < ctx->link_map->num_uniforms);
-               r->node[0] = tr_block_address(BACKEND_UNIFORM_UBO_ADDRESS, ctx->link_map->uniforms[id], offset);
+               r->node[0] = tr_buffer_unif(BACKEND_UNIFORM_UBO_ADDRESS, ctx->link_map->uniforms[id], offset);
             } else if (o->flavour == DATAFLOW_STORAGE_BUFFER) {
                assert(id >= 0 && id < ctx->link_map->num_buffers);
-               r->node[0] = tr_block_address(BACKEND_UNIFORM_SSBO_ADDRESS, ctx->link_map->buffers[id], offset);
+               r->node[0] = tr_buffer_unif(BACKEND_UNIFORM_SSBO_ADDRESS, ctx->link_map->buffers[id], offset);
             } else if (o->flavour == DATAFLOW_ATOMIC_COUNTER) {
                r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_ATOMIC_ADDRESS, (id << 16) | offset);
             } else
@@ -1692,11 +1760,18 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       case DATAFLOW_BUF_SIZE:
       {
          const Dataflow *o = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
-         int id = o->u.buffer.index;
-         assert(o->flavour == DATAFLOW_STORAGE_BUFFER);
-         assert(id < ctx->link_map->num_buffers);
          r->type = GLSL_TRANSLATION_WORD;
-         r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_SSBO_SIZE, ctx->link_map->buffers[id]);
+
+         int      id        = o->u.buffer.index;
+         uint32_t subOffset = dataflow->u.constant.value;
+         if(o->flavour == DATAFLOW_UNIFORM_BUFFER) {
+            assert(id >= 0 && id < ctx->link_map->num_uniforms);
+            r->node[0] = tr_buffer_unif(BACKEND_UNIFORM_UBO_SIZE, ctx->link_map->uniforms[id], subOffset);
+         } else if(o->flavour == DATAFLOW_STORAGE_BUFFER) {
+            assert(id >= 0 && id < ctx->link_map->num_buffers);
+            r->node[0] = tr_buffer_unif(BACKEND_UNIFORM_SSBO_SIZE, ctx->link_map->buffers[id], subOffset);
+         } else
+            unreachable();
          break;
       }
 
@@ -1710,14 +1785,13 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       }
       case DATAFLOW_SHARED_PTR:
-         ctx->block->accesses_shared = true;
-         /* Fall through */
       case DATAFLOW_GET_DEPTHRANGE_NEAR:
       case DATAFLOW_GET_DEPTHRANGE_FAR:
       case DATAFLOW_GET_DEPTHRANGE_DIFF:
       case DATAFLOW_GET_NUMWORKGROUPS_X:
       case DATAFLOW_GET_NUMWORKGROUPS_Y:
       case DATAFLOW_GET_NUMWORKGROUPS_Z:
+      case DATAFLOW_GET_FB_MAX_LAYER:
          {
             BackendSpecialUniformFlavour row;
             switch (flavour) {
@@ -1728,6 +1802,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
                case DATAFLOW_GET_NUMWORKGROUPS_X: row = BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_X; break;
                case DATAFLOW_GET_NUMWORKGROUPS_Y: row = BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_Y; break;
                case DATAFLOW_GET_NUMWORKGROUPS_Z: row = BACKEND_SPECIAL_UNIFORM_NUMWORKGROUPS_Z; break;
+               case DATAFLOW_GET_FB_MAX_LAYER:    row = BACKEND_SPECIAL_UNIFORM_FB_MAX_LAYER; break;
                default: unreachable(); row = 0; break;
             }
             r->type = GLSL_TRANSLATION_WORD;
@@ -1786,12 +1861,22 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
 
       case DATAFLOW_FRAG_GET_Z:
          r->type = GLSL_TRANSLATION_WORD;
-         r->node[0] = ctx->in->z;
+         r->node[0] = ctx->in->rf2;
          break;
       case DATAFLOW_FRAG_GET_W:
          r->type = GLSL_TRANSLATION_WORD;
-         r->node[0] = tr_mov_to_reg(REG_MAGIC_RECIP, ctx->in->w);
+         r->node[0] = tr_mov_to_reg(REG_MAGIC_RECIP, ctx->in->rf0);
          break;
+
+      case DATAFLOW_COMP_GET_ID0:
+         r->type = GLSL_TRANSLATION_WORD;
+         r->node[0] = ctx->in->rf0;
+         break;
+      case DATAFLOW_COMP_GET_ID1:
+         r->type = GLSL_TRANSLATION_WORD;
+         r->node[0] = ctx->in->rf2;
+         break;
+
       case DATAFLOW_CONDITIONAL:
          if (d[1]->type == GLSL_TRANSLATION_WORD) {
             assert(d[2]->type == GLSL_TRANSLATION_WORD);
@@ -1890,6 +1975,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->type = (type == DF_BOOL) ? GLSL_TRANSLATION_BOOL_FLAG : GLSL_TRANSLATION_WORD;
          r->node[0] = tr_external(dataflow->u.external.block, dataflow->u.external.output, &ctx->block->external_list);
          break;
+#if !V3D_VER_AT_LEAST(4,0,2,0)
       case DATAFLOW_IMAGE_INFO_PARAM:
          {
             const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
@@ -1898,7 +1984,6 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             ImageInfoParam param = dataflow->u.image_info_param.param;
             switch(param)
             {
-#if !V3D_VER_AT_LEAST(4,0,2,0)
             case IMAGE_INFO_ARR_STRIDE:
                r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_ARR_STRIDE, image_index);
                break;
@@ -1917,22 +2002,14 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             case IMAGE_INFO_LX_SLICE_PITCH:
                r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_SLICE_PITCH, image_index);
                break;
-#endif
-            case IMAGE_INFO_LX_WIDTH:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_WIDTH, image_index);
-               break;
-            case IMAGE_INFO_LX_HEIGHT:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_HEIGHT, image_index);
-               break;
-            case IMAGE_INFO_LX_DEPTH:
-               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_DEPTH, image_index);
-               break;
             default:
                unreachable();
                break;
             }
          }
          break;
+#endif
+#if !V3D_HAS_LARGE_1D_TEXTURE
       case DATAFLOW_TEXBUFFER_INFO_PARAM:
          {
             const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
@@ -1953,13 +2030,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             }
          }
          break;
-      case DATAFLOW_SAMPLE_MASK:
-         r->type = GLSL_TRANSLATION_WORD;
-         r->node[0] = tr_nullary(BACKFLOW_MSF);
-         if (!ctx->ms)
-            r->node[0] = bitand(r->node[0], tr_const(1));
-         break;
-
+#endif
       default:       /* Default case: Flavour should map directly to an instruction */
       {
          int params;
@@ -1980,12 +2051,19 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
                                   r->node[0]);
          }
 #endif
+#if !V3D_HAS_MSF_1
+         if (flavour == DATAFLOW_SAMPLE_MASK) {
+            if (!ctx->ms)
+               r->node[0] = bitand(r->node[0], tr_const(1));
+         }
+#endif
          break;
       }
    }
 
-   bool df_per_sample = (flavour == DATAFLOW_FRAG_GET_COL || flavour == DATAFLOW_SAMPLE_ID ||
-                         flavour == DATAFLOW_SAMPLE_POS_X || flavour == DATAFLOW_SAMPLE_POS_Y);
+   bool df_per_sample = (flavour == DATAFLOW_FRAG_GET_COL     || flavour == DATAFLOW_FRAG_GET_DEPTH ||
+                         flavour == DATAFLOW_FRAG_GET_STENCIL || flavour == DATAFLOW_SAMPLE_ID      ||
+                         flavour == DATAFLOW_SAMPLE_POS_X     || flavour == DATAFLOW_SAMPLE_POS_Y);
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    r->per_sample = df_per_sample;
    for (int i = 0; i < dataflow->dependencies_count; i++) {
@@ -2016,6 +2094,7 @@ static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
                                      int dataflow_count,
                                      const LinkMap *link_map,
                                      SchedShaderInputs *ins,
+                                     const bool *per_quad,
                                      SchedBlock *block,
                                      const GLSL_BACKEND_CFG_T *key)
 {
@@ -2025,15 +2104,12 @@ static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
    ctx->translations_count = dataflow_count;
    memset(ctx->translations, 0, sizeof(GLSL_TRANSLATION_T) * dataflow_count);
 
-   memset(ctx->tlb_read, 0, sizeof(struct tlb_read_s) * V3D_MAX_RENDER_TARGETS);
+   memset(ctx->tlb_read, 0, sizeof(struct tlb_read_s) * (V3D_MAX_RENDER_TARGETS + 2));
 
-   ctx->per_quad = malloc_fast(sizeof(bool) * dataflow_count);
-   for (int i=0; i<dataflow_count; i++) ctx->per_quad[i] = false;
-
+   ctx->per_quad = per_quad;
    ctx->link_map = link_map;
-
-   ctx->in = ins;
-   ctx->block = block;
+   ctx->in       = ins;
+   ctx->block    = block;
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    for (int i = 0; i < GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS; i++)
@@ -2058,18 +2134,19 @@ void fragment_shader_inputs(SchedShaderInputs *ins, uint32_t primitive_type, con
    dataflow_age = 0;
 
    /* The QPU gets these and can't fetch them again, so create one copy */
-   ins->w   = tr_nullary(BACKFLOW_DUMMY);
-   ins->w->remaining_dependents = 0;
-   ins->w_c = tr_nullary(BACKFLOW_DUMMY);
-   ins->w_c->remaining_dependents = 0;
-   ins->z   = tr_nullary(BACKFLOW_DUMMY);
-   ins->z->remaining_dependents = 0;
+   ins->rf0 = tr_nullary(BACKFLOW_DUMMY);
+   ins->rf0->remaining_dependents = 0;
+   ins->rf1 = tr_nullary(BACKFLOW_DUMMY);
+   ins->rf1->remaining_dependents = 0;
+   ins->rf2 = tr_nullary(BACKFLOW_DUMMY);
+   ins->rf2->remaining_dependents = 0;
 
    ins->read_dep = init_frag_vary(ins, primitive_type, varying);
 }
 
 static void translate_node_array(GLSL_TRANSLATE_CONTEXT_T *ctx, const CFGBlock *b_in,
-                                 const bool *output_active, Backflow **nodes_out)
+                                 const bool *output_active, Backflow **nodes_out,
+                                 Backflow **bcond_out, bool *bcond_invert)
 {
    DataflowRelocVisitor pass;
    bool *temp = glsl_safemem_malloc(sizeof(bool) * b_in->num_dataflow);
@@ -2082,6 +2159,12 @@ static void translate_node_array(GLSL_TRANSLATE_CONTEXT_T *ctx, const CFGBlock *
 
       const Dataflow *df = relocate_dataflow(ctx, b_in->outputs[i]);
       GLSL_TRANSLATION_T *tr = &ctx->translations[df->id];
+
+      if (b_in->successor_condition == i) {
+         *bcond_out    = tr->node[0];
+         *bcond_invert = (tr->type == GLSL_TRANSLATION_BOOL_FLAG_N);
+      }
+
       if (tr->type == GLSL_TRANSLATION_BOOL_FLAG_N) {
          /* Convert the rep to FLAG for output from the block */
          if (is_const(tr->node[0]))
@@ -2098,23 +2181,21 @@ static void translate_node_array(GLSL_TRANSLATE_CONTEXT_T *ctx, const CFGBlock *
 
 SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
                             const bool *output_active, SchedShaderInputs *ins,
-                            const GLSL_BACKEND_CFG_T *key)
+                            const GLSL_BACKEND_CFG_T *key, const bool *per_quad)
 {
    SchedBlock *ret = malloc_fast(sizeof(SchedBlock));
    init_sched_block(ret);
 
    GLSL_TRANSLATE_CONTEXT_T ctx;
-   init_translation_context(&ctx, b_in->dataflow, b_in->num_dataflow, link_map, ins, ret, key);
+   init_translation_context(&ctx, b_in->dataflow, b_in->num_dataflow, link_map, ins, per_quad, ret, key);
 
-   DataflowRelocVisitor pass;
-   bool *temp = glsl_safemem_malloc(sizeof(bool) * b_in->num_dataflow);
-   glsl_dataflow_reloc_visitor_begin(&pass, b_in->dataflow, b_in->num_dataflow, temp);
-   for (int i=0; i<b_in->num_outputs; i++) glsl_dataflow_reloc_post_visitor(&pass, b_in->outputs[i], &ctx, resolve_per_quadness);
-   glsl_dataflow_reloc_visitor_end(&pass);
-   glsl_safemem_free(temp);
+   ret->branch_per_quad = false;
+   ret->num_outputs     = b_in->num_outputs;
 
-   ret->branch_cond = b_in->successor_condition;
-   ret->num_outputs = b_in->num_outputs;
+   if (b_in->successor_condition != -1) {
+      const Dataflow *o = &b_in->dataflow[b_in->outputs[b_in->successor_condition]];
+      ret->branch_per_quad = per_quad[o->id];
+   }
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    int max_samples = (key->backend & GLSL_SAMPLE_MS) ? 4 : 1;
@@ -2131,7 +2212,7 @@ SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
       }
       ctx.per_sample_clear_list = NULL;
 
-      translate_node_array(&ctx, b_in, output_active, nodes_out[ctx.sample_num]);
+      translate_node_array(&ctx, b_in, output_active, nodes_out[ctx.sample_num], &ret->branch_cond, &ret->branch_invert);
 
       ctx.sample_num++;
    } while (ctx.per_sample_clear_list && ctx.sample_num < max_samples);
@@ -2152,7 +2233,7 @@ SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
 #else
    ret->outputs = malloc_fast(b_in->num_outputs * sizeof(Backflow *));
    memset(ret->outputs, 0, b_in->num_outputs * sizeof(Backflow *));
-   translate_node_array(&ctx, b_in, output_active, ret->outputs);
+   translate_node_array(&ctx, b_in, output_active, ret->outputs, &ret->branch_cond, &ret->branch_invert);
 #endif
 
    resolve_tlb_loads(ret, ctx.tlb_read);

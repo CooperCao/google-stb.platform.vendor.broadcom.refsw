@@ -81,6 +81,176 @@ BVCE_Debug_S_CommandIndexLUT(
 }
 
 void
+BVCE_Debug_PrintLogVideoDescriptor(
+      const BAVC_VideoBufferDescriptor *pstDescriptor,
+      char szDebug[],
+      signed *piBytesLeft
+      )
+{
+   unsigned uiSize = *piBytesLeft;
+
+   if ( (*piBytesLeft) < 32 ) { *piBytesLeft = -1; return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "offset=%08x length=%08lx ",
+      pstDescriptor->stCommon.uiOffset,
+      (unsigned long) pstDescriptor->stCommon.uiLength
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "[ "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )  ? "frm " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_SEGMENT_START ) )  ? "seg " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) )  ? "eos " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EMPTY_FRAME ) )  ? "nul " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_END ) )  ? "end " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOC ) )  ? "eoc " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA ) )  ? "mta " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EXTENDED ) )  ? "xtn " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP ) )  ? "rap " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )  ? "dut " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_EXTENDED ) )  ? "xtn " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "] "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ORIGINALPTS_VALID ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "opts=0x%08x ",
+         pstDescriptor->stCommon.uiOriginalPTS
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_PTS_VALID ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "pts=0x%08x%08x ",
+         (uint32_t) (pstDescriptor->stCommon.uiPTS >> 32),
+         (uint32_t) pstDescriptor->stCommon.uiPTS
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "dts=0x%08x%08x ",
+         (uint32_t) (pstDescriptor->uiDTS >> 32),
+         (uint32_t) pstDescriptor->uiDTS
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ESCR_VALID ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "escr=0x%08x ",
+         pstDescriptor->stCommon.uiESCR
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_TICKSPERBIT_VALID ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "tpb=0x%08x ",
+         pstDescriptor->stCommon.uiTicksPerBit
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_SHR_VALID ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "shr=%d ",
+         pstDescriptor->stCommon.iSHR
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_STCSNAPSHOT_VALID ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "stc=0x%08x%08x ",
+         (uint32_t) (pstDescriptor->stCommon.uiSTCSnapshot >> 32),
+         (uint32_t) pstDescriptor->stCommon.uiSTCSnapshot
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   if ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )
+   {
+      (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+         "dut=%u ",
+         pstDescriptor->uiDataUnitType
+      );
+   }
+   if ( (*piBytesLeft) < 0 ) { return; }
+}
+
+void
 BVCE_Debug_PrintLogMessageEntry(
       const void *pstFifoEntry /* Should point to an element of size BVCE_Debug_FifoInfo.uiElementSize */
       )
@@ -233,167 +403,22 @@ BVCE_Debug_PrintLogMessageEntry(
             char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
             signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
 
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "[ "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
+            BVCE_Debug_PrintLogVideoDescriptor(
+                  &pstEntry->data.stBufferDescriptor,
+                  szDebug,
+                  &iBytesLeft
+                  );
 
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )  ? "frm " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_SEGMENT_START ) )  ? "seg " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) )  ? "eos " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EMPTY_FRAME ) )  ? "nul " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_END ) )  ? "end " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOC ) )  ? "eoc " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA ) )  ? "mta " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EXTENDED ) )  ? "xtn " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP ) )  ? "rap " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )  ? "dut " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "%s",
-               ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_EXTENDED ) )  ? "xtn " : "    "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-               "] "
-            );
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ORIGINALPTS_VALID ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "opts=0x%08x ",
-                  pstEntry->data.stBufferDescriptor.stCommon.uiOriginalPTS
-               );
-            }
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_PTS_VALID ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "pts=0x%08x%08x ",
-                  (uint32_t) (pstEntry->data.stBufferDescriptor.stCommon.uiPTS >> 32),
-                  (uint32_t) pstEntry->data.stBufferDescriptor.stCommon.uiPTS
-               );
-            }
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "dts=0x%08x%08x ",
-                  (uint32_t) (pstEntry->data.stBufferDescriptor.uiDTS >> 32),
-                  (uint32_t) pstEntry->data.stBufferDescriptor.uiDTS
-               );
-            }
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ESCR_VALID ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "escr=0x%08x ",
-                  pstEntry->data.stBufferDescriptor.stCommon.uiESCR
-               );
-            }
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_TICKSPERBIT_VALID ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "tpb=0x%08x ",
-                  pstEntry->data.stBufferDescriptor.stCommon.uiTicksPerBit
-               );
-            }
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_SHR_VALID ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "shr=%d ",
-                  pstEntry->data.stBufferDescriptor.stCommon.iSHR
-               );
-            }
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_STCSNAPSHOT_VALID ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "stc=0x%08x%08x ",
-                  (uint32_t) (pstEntry->data.stBufferDescriptor.stCommon.uiSTCSnapshot >> 32),
-                  (uint32_t) pstEntry->data.stBufferDescriptor.stCommon.uiSTCSnapshot
-               );
-            }
-            if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
-
-            if ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )
-            {
-               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
-                  "dut=%u ",
-                  pstEntry->data.stBufferDescriptor.uiDataUnitType
-               );
-            }
             if ( iBytesLeft < 0 ) { goto dbg_buf_overflow; }
 
             goto dbg_buf_done;
 dbg_buf_overflow:
             BDBG_MODULE_MSG(BVCE_DBG_BUF, ("Debug String Overflow"));
 dbg_buf_done:
-            BDBG_MODULE_MSG(BVCE_DBG_BUF, ("(%10u)[%u][%u] offset=%08x length=%08lx %s",
+            BDBG_MODULE_MSG(BVCE_DBG_BUF, ("(%10u)[%u][%u] %s",
                pstEntry->stMetadata.uiTimestamp,
                pstEntry->stMetadata.uiInstance,
                pstEntry->stMetadata.uiChannel,
-               pstEntry->data.stBufferDescriptor.stCommon.uiOffset,
-               (unsigned long) pstEntry->data.stBufferDescriptor.stCommon.uiLength,
                szDebug
             ));
          }

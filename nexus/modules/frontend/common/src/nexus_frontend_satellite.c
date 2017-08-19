@@ -279,7 +279,6 @@ NEXUS_Error NEXUS_Frontend_SendDiseqcMessage(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
-    BDBG_ASSERT(NULL != pSendData);
 
     if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);

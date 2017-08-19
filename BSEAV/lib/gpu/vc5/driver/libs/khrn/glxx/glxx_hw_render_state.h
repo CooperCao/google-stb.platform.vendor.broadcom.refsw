@@ -250,7 +250,8 @@ typedef struct glxx_hw_render_state
    uint64_t cl_record_remaining;   // bin-cycle count remaining before creating new record
    unsigned num_cl_records;        // num entries written to cl_records
    GLXX_CL_RECORD_T cl_records[GLXX_MAX_CL_RECORDS];
-   bool has_tcs_barriers;
+
+   unsigned num_used_layers;
 } glxx_hw_render_state;
 
 #include "glxx_hw_render_state.inl"

@@ -27,6 +27,7 @@ typedef struct
 
    unsigned width; /* min width of all images */
    unsigned height; /* min height of all images */
+   unsigned layers; /* min layers of all images */
 
 } GLXX_HW_FRAMEBUFFER_T;
 

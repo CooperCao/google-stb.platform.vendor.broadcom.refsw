@@ -2162,7 +2162,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
          /* SWSTB-612: add range checking. */
          if ( pstXdmPicture->stProtocol.eProtocol > BAVC_VideoCompressionStd_eSPARK )
          {
-            BXVD_DBG_WRN(hXvdCh,("%s: eProtocol of %d is out of range.", __FUNCTION__, eProtocol ));
+            BXVD_DBG_WRN(hXvdCh,("%s: eProtocol of %d is out of range.", BSTD_FUNCTION, eProtocol ));
          }
 
          break;
@@ -2173,7 +2173,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    /* SWSTB-612: add range checking. */
    if ( pstXdmPicture->stProtocol.eLevel >= BXDM_Picture_Protocol_Level_eMaxLevel )
    {
-      BXVD_DBG_WRN(hXvdCh,("%s: eLevel of %d is out of range.", __FUNCTION__, pstXdmPicture->stProtocol.eLevel ));
+      BXVD_DBG_WRN(hXvdCh,("%s: eLevel of %d is out of range.", BSTD_FUNCTION, pstXdmPicture->stProtocol.eLevel ));
       pstXdmPicture->stProtocol.eLevel = BXDM_Picture_Protocol_Level_eUnknown;
    }
 
@@ -2182,7 +2182,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    /* SWSTB-612: add range checking. */
    if ( pstXdmPicture->stProtocol.eProfile >= BXDM_Picture_Profile_eMaxProfile )
    {
-      BXVD_DBG_WRN(hXvdCh,("%s: eProfile of %d is out of range.", __FUNCTION__, pstXdmPicture->stProtocol.eProfile ));
+      BXVD_DBG_WRN(hXvdCh,("%s: eProfile of %d is out of range.", BSTD_FUNCTION, pstXdmPicture->stProtocol.eProfile ));
       pstXdmPicture->stProtocol.eProfile = BXDM_Picture_Profile_eUnknown;
    }
 
@@ -2289,7 +2289,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
             case 8:  pstXdmPicture->stBufferInfo.eLumaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;    break;
             default:
                pstXdmPicture->stBufferInfo.eLumaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;
-               BXVD_DBG_WRN(hXvdCh, ("%s:: invalid luma bit depth of %d", __FUNCTION__, uiBitDepth ));
+               BXVD_DBG_WRN(hXvdCh, ("%s:: invalid luma bit depth of %d", BSTD_FUNCTION, uiBitDepth ));
                break;
          }
       }
@@ -2309,7 +2309,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
             case 8:  pstXdmPicture->stBufferInfo.eChromaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;    break;
             default:
                pstXdmPicture->stBufferInfo.eChromaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;
-               BXVD_DBG_WRN(hXvdCh, ("%s:: invalid chroma bit depth of %d", __FUNCTION__, uiBitDepth ));
+               BXVD_DBG_WRN(hXvdCh, ("%s:: invalid chroma bit depth of %d", BSTD_FUNCTION, uiBitDepth ));
                break;
          }
       }
@@ -2872,11 +2872,27 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    /**************************************/
    /* BXDM_Picture_DigitalNoiseReduction */
    /**************************************/
-   BXVD_Decoder_S_ComputeDigitalNoiseReduction_isr(
+
+#if BXVD_P_PPB_EXTENDED
+
+   /* SWSTB-5297: if the video decoder calculated the AQP value,
+    * simply copy the value from the PPB. */
+
+   if ( uiFlagsExt0 & BXVD_P_PPB_EXT0_FLAG_ADJ_QP_PRESENT )
+   {
+      pstXdmPicture->stDigitalNoiseReduction.bValid = true;
+      pstXdmPicture->stDigitalNoiseReduction.uiAdjustedQuantizationParameter = pPPB->dnr.pic_flags;
+   }
+   else
+
+#endif
+   {
+      BXVD_Decoder_S_ComputeDigitalNoiseReduction_isr(
             hXvdCh,
             pPPB,
             pstXdmPicture,
             eProtocol );
+   }
 
    /* BXDM_Picture_RangeRemapping */
    switch ( eProtocol )
@@ -2992,7 +3008,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    {
       BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: poorly formed picture around %3x: index:%d pBase:%lx pDep:%lx",
                                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                                __FUNCTION__,
+                                                BSTD_FUNCTION,
                                                 hXvdCh->uiPPBSerialNumber,
                                                 pstPictureCntxt->index,
                                                 (long unsigned int)pstPictureCntxt->pBasePicture,
@@ -3304,7 +3320,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
             if ( uiIndex >= BXDM_MAX_PICTURE_EXTENSION_INFO - 1 )
             {
-               BXVD_DBG_WRN(hXvdCh, ("%s:: uiIndex == %d, astExtensionData is full",  __FUNCTION__, uiIndex ));
+               BXVD_DBG_WRN(hXvdCh, ("%s:: uiIndex == %d, astExtensionData is full",  BSTD_FUNCTION, uiIndex ));
                break;
             }
 
@@ -3325,6 +3341,10 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
                case BXVD_P_PPB_METADATA_TYPE_eTCH_CRI:   /* SWSTB-4182 */
                   pstExtensionData->data.stMetaDataHdr.eType = BAVC_HdrMetadataType_eTch_Cri;
+                  break;
+
+               case BXVD_P_PPB_METADATA_TYPE_eTCH_SLHDR:   /* SWSTB-6121: */
+                  pstExtensionData->data.stMetaDataHdr.eType = BAVC_HdrMetadataType_eTch_Slhdr;
                   break;
 
                default:
@@ -3434,13 +3454,13 @@ static void BXVD_Decoder_S_UnifiedQ_GetNextPicture_isr(
             && 1 != (*ppstUnifiedContext)->uiSetCount
          )
       {
-         BXVD_DBG_ERR(hXvdCh, ("%s:: BXVD_Decoder_P_PictureSet_eSingle uiSetCount = %d", __FUNCTION__, (*ppstUnifiedContext)->uiSetCount ));
+         BXVD_DBG_ERR(hXvdCh, ("%s:: BXVD_Decoder_P_PictureSet_eSingle uiSetCount = %d", BSTD_FUNCTION, (*ppstUnifiedContext)->uiSetCount ));
       }
       else if ( BXVD_Decoder_P_PictureSet_eBase == (*ppstUnifiedContext)->eSetType
                   && 2 != (*ppstUnifiedContext)->uiSetCount
                )
       {
-         BXVD_DBG_ERR(hXvdCh, ("%s:: BXVD_Decoder_P_PictureSet_eBase uiSetCount = %d", __FUNCTION__, (*ppstUnifiedContext)->uiSetCount ));
+         BXVD_DBG_ERR(hXvdCh, ("%s:: BXVD_Decoder_P_PictureSet_eBase uiSetCount = %d", BSTD_FUNCTION, (*ppstUnifiedContext)->uiSetCount ));
       }
 
       /* Walk through all the linked dependent pictures. There really should only be one at most. */
@@ -3496,7 +3516,7 @@ static void BXVD_Decoder_S_UnifiedQ_GetNextFreeElement_isr(
     */
    if ( !BXVD_Decoder_S_UnifiedQ_GetFreeCount_isrsafe( hXvdCh ) )
    {
-      BXVD_DBG_ERR(hXvdCh, ("%s:: Uni Queue is full.", __FUNCTION__));
+      BXVD_DBG_ERR(hXvdCh, ("%s:: Uni Queue is full.", BSTD_FUNCTION));
       BDBG_ASSERT( 0 );
    }
 
@@ -3558,7 +3578,7 @@ static void BXVD_Decoder_S_UnifiedQ_GetNextFreeElement_isr(
    {
       /* We should never get here.  Keep the check just in case. */
 
-      BXVD_DBG_ERR(hXvdCh, ("%s:: did not find a free element.", __FUNCTION__ ));
+      BXVD_DBG_ERR(hXvdCh, ("%s:: did not find a free element.", BSTD_FUNCTION ));
       BDBG_ASSERT( 0 );
    }
 
@@ -3635,7 +3655,7 @@ static void BXVD_Decoder_S_UnifiedQ_ReleaseElement_isr(
    else
    {
       BXVD_DBG_ERR(hXvdCh,("%s:: idx:%d released multiple times.",
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               pstUnifiedContext->uiIndex
                               ));
 
@@ -3689,7 +3709,7 @@ static void BXVD_Decoder_S_UnifiedQ_AddPicture_isr(
 
    if ( NULL == pstUnifiedContext )
    {
-      BXVD_DBG_ERR(hXvdCh, ("%s:: failed to get an element.", __FUNCTION__ ));
+      BXVD_DBG_ERR(hXvdCh, ("%s:: failed to get an element.", BSTD_FUNCTION ));
       BDBG_ASSERT( 0 );
    }
 
@@ -3776,7 +3796,7 @@ static void BXVD_Decoder_S_EndOfGOP_isr(
 
       BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: trigger index for next pass: %d",
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                 __FUNCTION__,
+                                 BSTD_FUNCTION,
                                  stDQTStatus.uiIntraGOPIndex ));
 
       hXvdCh->stInterruptCallbackInfo[BXVD_Interrupt_eEndOfGOP].BXVD_P_pAppIntCallbackPtr (
@@ -3790,7 +3810,7 @@ static void BXVD_Decoder_S_EndOfGOP_isr(
    {
       BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: no callback registered, trigger index for next pass: %d",
                               hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               stDQTStatus.uiIntraGOPIndex ));
    }
 
@@ -4028,7 +4048,7 @@ static void BXVD_Decoder_S_MPDQT_EOG_isr(
          if ( 0 == pDQTCntxt->uiNumberOfAdditionalPasses )
          {
             BXVD_DBG_ERR( hXvdCh, ("%s: passes:%d index:%d buffs:%d gIndex:%d chunck:%d",
-                        __FUNCTION__,
+                        BSTD_FUNCTION,
                         pDQTCntxt->uiNumberOfAdditionalPasses,
                         iTargetIndex,
                         pDQTCntxt->uiAvailableBuffers,
@@ -4042,7 +4062,7 @@ static void BXVD_Decoder_S_MPDQT_EOG_isr(
 
          BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: uiNumberOfAdditionalPasses:%d uiRemainder:%d uiPicsPerPass:%d",
                               hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               pDQTCntxt->uiNumberOfAdditionalPasses,
                               pDQTCntxt->uiRemainder,
                               pDQTCntxt->uiPicsPerPass ));
@@ -4059,14 +4079,14 @@ static void BXVD_Decoder_S_MPDQT_EOG_isr(
 
    BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s target:%d = index:%d - chunk size:%d",
          hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-         __FUNCTION__,
+         BSTD_FUNCTION,
          iTargetIndex,
          pstContextQueue->uiIntraGOPIndex,
          pDQTCntxt->uiSizeOfChunk ));
 
    BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: mbuffs:%d oPics:%d GOP_len:%d  next_index:%d = current_index:%d - pics_this_pass:%d",
          hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-         __FUNCTION__,
+         BSTD_FUNCTION,
          pDQTCntxt->uiAvailableBuffers,
          pDQTCntxt->uiOpenGopPictures,
          pDQTCntxt->uiGopLength,
@@ -4258,7 +4278,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
       {
          BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: deadlock during multipass DQT",
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                 __FUNCTION__ ));
+                                 BSTD_FUNCTION ));
 
          /* Treat a deadlock the same as any other EOG trigger, i.e fire the EOG
           * callback and begin reverse playback. */
@@ -4329,7 +4349,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
           && BXVD_Decoder_P_PictureSet_eDependent != pstPicCntxt->eSetType
           )
       {
-         BXVD_DBG_ERR(hXvdCh,("%s:: unknown set type %d", __FUNCTION__, pstPicCntxt->eSetType));
+         BXVD_DBG_ERR(hXvdCh,("%s:: unknown set type %d", BSTD_FUNCTION, pstPicCntxt->eSetType));
 
          pstPicCntxt->eSetType = BXVD_Decoder_P_PictureSet_eSingle;
          pstPicCntxt->uiSetCount = 1;
@@ -4343,7 +4363,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
          {
             BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: break at head, %d pictures left, %d pictures in set.",
                                           hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                          __FUNCTION__,
+                                          BSTD_FUNCTION,
                                           uiNumPicturesOnDeliveryQue,
                                           pstPicCntxt->uiSetCount ));
             break;
@@ -4367,7 +4387,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                pstContextQueue->uiIntraGOPIndex = 1;
                BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: uiIntraGOPIndex reset to 1",
                         hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                        __FUNCTION__ ));
+                        BSTD_FUNCTION ));
             }
             else
             {
@@ -4415,6 +4435,14 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                )
             {
                pDQTCntxt->bFoundEndOfGop = true;
+
+               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: picture tag changed: current: %d new: %d",
+                     hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                     BSTD_FUNCTION,
+                     pDQTCntxt->uiCurrentPicTag,
+                     pstPicCntxt->stPPB.pPPB->picture_tag
+                     ));
+
                break;
             }
          }
@@ -4469,7 +4497,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: detected last picture flag. target index:%d current index:%d %c",
                      hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                     __FUNCTION__,
+                     BSTD_FUNCTION,
                      pDQTCntxt->uiCurrentPicTag,
                      pstContextQueue->uiIntraGOPIndex,
                      ( pstContextQueue->uiIntraGOPIndex < pDQTCntxt->uiCurrentPicTag ) ? '!' : ' '
@@ -4483,7 +4511,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                {
                   /* Effectively an EOS flag.  Currently defined to only be delivered with a "picture-less" PPB. */
 
-                  BXVD_DBG_ERR(hXvdCh, ("%s:: BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE set for a standard PPB", __FUNCTION__ ));
+                  BXVD_DBG_ERR(hXvdCh, ("%s:: BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE set for a standard PPB", BSTD_FUNCTION ));
                }
             }
             else if ( true == pDQTCntxt->b1stPass1stGop && BXVD_PTSType_eCoded == pDQTCntxt->eTargetPTSType )
@@ -4498,7 +4526,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                   BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: hit target PTS:%08x",
                         hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                        __FUNCTION__,
+                        BSTD_FUNCTION,
                         pDQTCntxt->uiTargetPTS ));
                }
             }
@@ -4537,7 +4565,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                   BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: hit target picture idx:%d queue idx:%d",
                         hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                        __FUNCTION__,
+                        BSTD_FUNCTION,
                         uiTargetIndex,
                         pstPicCntxt->index ));
                }
@@ -4773,7 +4801,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: H265 interlaced: bad picture sequence Base followed by %s",
                                           hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                          __FUNCTION__,
+                                          BSTD_FUNCTION,
                                           ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eBase ) ? "Base" : "Single"
                                           ));
             }
@@ -4785,7 +4813,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: DQT with 3D content: bad picture sequence Base followed by %s",
                                           hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                          __FUNCTION__,
+                                          BSTD_FUNCTION,
                                           ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eBase ) ? "Base" : "Single"
                                           ));
                break;
@@ -4798,7 +4826,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: 3D content: bad picture sequence Base followed by %s",
                                           hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                          __FUNCTION__,
+                                          BSTD_FUNCTION,
                                           ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eBase ) ? "Base" : "Single"
                                           ));
             }
@@ -4814,7 +4842,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
             {
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: break at tail, %d pictures left, %d pictures in set.",
                                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                                __FUNCTION__,
+                                                BSTD_FUNCTION,
                                                 uiNumPicturesToProcess,
                                                 BXVD_DECODER_S_PICTURES_PER_SET ));
                break;
@@ -4853,7 +4881,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: H265 interlaced: bad picture sequence %s followed by Dependent",
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                 __FUNCTION__,
+                                 BSTD_FUNCTION,
                                  ( pstPrevPicCntxt == NULL ) ? "NULL" :
                                     ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eDependent ) ? "Dependent" : "Single"
                                  ));
@@ -4866,7 +4894,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: DQT with 3D content: bad picture sequence %s followed by Dependent",
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                 __FUNCTION__,
+                                 BSTD_FUNCTION,
                                  ( pstPrevPicCntxt == NULL ) ? "NULL" :
                                     ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eDependent ) ? "Dependent" : "Single"
                                  ));
@@ -4880,7 +4908,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: 3D content: bad picture sequence %s followed by Dependent",
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                 __FUNCTION__,
+                                 BSTD_FUNCTION,
                                  ( pstPrevPicCntxt == NULL ) ? "NULL" :
                                     ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eDependent ) ? "Dependent" : "Single"
                                  ));
@@ -4903,7 +4931,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
             }
             else
             {
-                  BXVD_DBG_ERR(hXvdCh, ("%s:: failed to link dependent picture to base.", __FUNCTION__ ));
+                  BXVD_DBG_ERR(hXvdCh, ("%s:: failed to link dependent picture to base.", BSTD_FUNCTION ));
             }
          }
       }
@@ -5005,7 +5033,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
             pDQTCntxt->bTruncatingGop = true;
             BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: MVC error",
                                            hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                           __FUNCTION__ ));
+                                           BSTD_FUNCTION ));
          }
 
          /* If a deadlock and a multipicture protocol, we may have left off
@@ -5122,7 +5150,7 @@ static void BXVD_Decoder_S_UnifiedQ_PPBToUniPic_isr(
           */
          BKNI_Memset( &stUnifiedContext, 0, sizeof( BXVD_Decoder_P_UnifiedPictureContext ) );
 
-         BDBG_MODULE_MSG( BXVD_QCTL,("%s: drop picture %d", __FUNCTION__, pstPicCntxt->index ));
+         BDBG_MODULE_MSG( BXVD_QCTL,("%s: drop picture %d", BSTD_FUNCTION, pstPicCntxt->index ));
 
          BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr( hXvdCh, pstPicCntxt, &stUnifiedContext, true );
 
@@ -5248,7 +5276,7 @@ static void BXVD_Decoder_S_DeliveryQ_UpdateReadOffset_isr(
 
             BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: the entire GOP has not been delivered to the display queue, should not hit this code.",
                                           hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                          __FUNCTION__ ));
+                                          BSTD_FUNCTION ));
          }
       }
 
@@ -5547,14 +5575,14 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
             {
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: detected last picture: start of next GOP is at offset:%d + 1",
                               hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE
                               ));
 
                /* Release the picture and invalidate the entry in the picture context queue. */
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: release picture que idx:%2d pts:%08x",
                                        hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                       __FUNCTION__,
+                                       BSTD_FUNCTION,
                                        pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
                                        stDisplayElement.pPPB->pts
                                        ));
@@ -5563,7 +5591,7 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
                /* Release the picture and invalidate the entry in the picture context queue. */
                BDBG_MODULE_MSG( BXVD_UP,(" %03x: %s:: release picture que idx:%2d pts:%08x",
                                        hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                       __FUNCTION__,
+                                       BSTD_FUNCTION,
                                        pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
                                        stDisplayElement.pPPB->pts
                                        ));
@@ -5609,13 +5637,23 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
             bFoundNextGop = ( pDQTCntxt->uiCurrentPicTag != stDisplayElement.pPPB->picture_tag );
 
             if ( bFoundNextGop )
+            {
+#if 0
                BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: found start of next GOP at offset: %d, old tag:%d new tag:%d",
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                                 __FUNCTION__,
+                                 BSTD_FUNCTION,
                                  pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
                                  pDQTCntxt->uiCurrentPicTag,
                                  stDisplayElement.pPPB->picture_tag
                                  ));
+#endif
+               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: picture tag changed: current: %d new: %d",
+                     hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                     BSTD_FUNCTION,
+                     pDQTCntxt->uiCurrentPicTag,
+                     stDisplayElement.pPPB->picture_tag
+                     ));
+            }
          }
 
       }
@@ -5647,14 +5685,14 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
       /* Release the picture and invalidate the entry in the picture context queue. */
       BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: release picture que idx:%2d pts:%08x",
                               hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
                               stDisplayElement.pPPB->pts
                               ));
 
       BDBG_MODULE_MSG( BXVD_UP,(" %03x: %s:: release picture que idx:%2d pts:%08x",
                               hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
                               stDisplayElement.pPPB->pts
                               ));
@@ -5720,7 +5758,7 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
       {
          BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: jumping reading offsets ahead to match uiEndOfGopOffset: %2d",
                               hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE
                               ));
       }
@@ -5925,7 +5963,7 @@ BERR_Code BXVD_Decoder_ReleasePicture_isr(
    if ( hXvdChFromPicture && ( hXvdCh->uiSerialNumber != hXvdChFromPicture->uiSerialNumber ) )
    {
       BXVD_DBG_ERR(hXvdCh,("%s: trying to release pictures from channel %08x on channel %08x",
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               hXvdChFromPicture->uiSerialNumber,
                               hXvdCh->uiSerialNumber
                               ));
@@ -5935,7 +5973,7 @@ BERR_Code BXVD_Decoder_ReleasePicture_isr(
    if (  BXVD_P_DecoderState_eNotActive == hXvdCh->eDecoderState )
    {
       BXVD_DBG_WRN(hXvdCh,("%s: trying to release pictures on channel %08x when it is stopped",
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               hXvdCh->uiSerialNumber
                               ));
    }
@@ -6173,7 +6211,7 @@ BERR_Code BXVD_Decoder_OpenChannel(
 {
    BDBG_ENTER( BXVD_Decoder_OpenChannel );
 
-   BDBG_MODULE_MSG( BXVD_QMON,("%s: channel %08x, initializing queues", __FUNCTION__, hXvdCh->uiSerialNumber ));
+   BDBG_MODULE_MSG( BXVD_QMON,("%s: channel %08x, initializing queues", BSTD_FUNCTION, hXvdCh->uiSerialNumber ));
 
    hXvdCh->stDecoderContext.bHostSparseMode = false;
 
@@ -6198,7 +6236,7 @@ BERR_Code BXVD_Decoder_CloseChannel(
    BSTD_UNUSED(hXvdCh); /* needed for non-debug builds */
 
    BDBG_MODULE_MSG( BXVD_QMON,("%s: channel %08x there are %d outstanding pictures",
-                                    __FUNCTION__,
+                                    BSTD_FUNCTION,
                                     hXvdCh->uiSerialNumber,
                                     hXvdCh->stDecoderContext.stLogData.uiOutstandingPics ));
 
@@ -6412,7 +6450,7 @@ BERR_Code BXVD_Decoder_StartDecode_isr(
 
    /* SW7445-2757: to help track the use of picture buffers */
    BDBG_MODULE_MSG( BXVD_QMON,("%s: channel %08x there are %d outstanding pictures",
-                                    __FUNCTION__,
+                                    BSTD_FUNCTION,
                                     hXvdCh->uiSerialNumber,
                                     hXvdCh->stDecoderContext.stLogData.uiOutstandingPics ));
 
@@ -6475,7 +6513,7 @@ BERR_Code BXVD_Decoder_StopDecode_isr(
    {
       BXVD_Decoder_S_UnifiedQ_GetNextPicture_isr( hXvdCh, &pstUnifiedContext, true );
       BDBG_MODULE_MSG( BXVD_QREL,("%s: releasing Unified Picture %d: pPrev:%lx pNext:%lx pDep:%lx",
-                              __FUNCTION__,
+                              BSTD_FUNCTION,
                               pstUnifiedContext->uiIndex,
                               (long unsigned int)pstUnifiedContext->pstPrevious,
                               (long unsigned int)pstUnifiedContext->pstNext,
@@ -6512,7 +6550,7 @@ BERR_Code BXVD_Decoder_StopDecode_isr(
                                                             hXvdCh->stDecoderContext.stLogData.uiPicturesFromPP;
 
    BDBG_MODULE_MSG( BXVD_QMON,("%s: channel %08x there are %d outstanding pictures",
-                                    __FUNCTION__,
+                                    BSTD_FUNCTION,
                                     hXvdCh->uiSerialNumber,
                                     hXvdCh->stDecoderContext.stLogData.uiOutstandingPics ));
    {

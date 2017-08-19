@@ -128,11 +128,13 @@ BERR_Code BVBI_P_CC_Init( BVBI_P_Handle *pVbi )
     BDBG_ENTER(BVBI_P_CC_Init);
 
     /* Initialize CC encoders */
+#if (BVBI_NUM_CCE > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_CCE ; ++hwIndex)
-        BVBI_P_CC_Enc_Init (pVbi->hReg, false, hwIndex);
+        BVBI_P_CC_Enc_Init (pVbi->hReg, hwIndex);
+#endif
 #if (BVBI_NUM_CCE_656 > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_CCE_656 ; ++hwIndex)
-        BVBI_P_CC_Enc_Init (pVbi->hReg, true, hwIndex);
+        BVBI_P_CC_Enc_656_Init (pVbi->hReg, hwIndex);
 #endif
 
     BDBG_LEAVE(BVBI_P_CC_Init);

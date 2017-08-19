@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2013 Broadcom Corporation
+*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -53,7 +53,15 @@
 extern "C" {
 #endif
 
-#include "archMips.h"
+#define K1BASE		0xa0000000
+#define	R_VEC		(K1BASE+0x1fc00000)
+#define	SR_CU1		0x20000000
+#define	SR_CU0		0x10000000
+#define SR_FR		0x04000000
+#define	SR_IMASK0	0x0000ff00
+#define	SR_IBIT8	0x00008000
+#define	SR_IE		0x00000001
+
 /*
  * The LEADING_UNDERSCORE macro should be defined to TRUE for toolchains
  * that do NOT prefix a leading underscore character, i.e. "_", to
@@ -238,33 +246,33 @@ extern "C" {
 /*
 * define aliases for operations that are different in 64bit mode
 */
-#if (_WRS_INT_REGISTER_SIZE == 4)
+#if (CPU == MIPS32)
 #define SW	sw
 #define LW	lw
 #define MFC0	mfc0
 #define MTC0	mtc0
-#elif (_WRS_INT_REGISTER_SIZE == 8)
+#elif (CPU == MIPS64)
 #define SW	sd		/* storing machine registers */
 #define LW	ld		/* loading machine registers */
 #define MFC0	dmfc0		/* reading wide cop0 register */
 #define MTC0	dmtc0		/* writing wide cop0 register */
-#else	/* _WRS_INT_REGISTER_SIZE */
-#error "invalid _WRS_INT_REGISTER_SIZE value"
-#endif	/* _WRS_INT_REGISTER_SIZE */
+#else	/* CPU */
+#error "invalid CPU value"
+#endif	/* CPU */
 
-#if (_WRS_FP_REGISTER_SIZE == 4)
+#if (CPU == MIPS32)
 #define SWC1	swc1
 #define LWC1	lwc1
 #define MFC1	mfc1
 #define MTC1	mtc1
-#elif (_WRS_FP_REGISTER_SIZE == 8)
+#elif (CPU == MIPS64)
 #define SWC1	sdc1
 #define LWC1	ldc1
 #define MFC1	dmfc1		/* reading wide fp register */
 #define MTC1	dmtc1		/* writing wide fp register */
-#else /* _WRS_FP_REGISTER_SIZE */
-#error "invalid _WRS_FP_REGISTER_SIZE value"
-#endif /* _WRS_FP_REGISTER_SIZE */
+#else /* CPU */
+#error "invalid CPU value"
+#endif /* CPU */
 
 /* Hazard definitions */
 

@@ -121,7 +121,7 @@ NEXUS_Error NxClient_GetDisplayStatus( NxClient_DisplayStatus *pStatus )
 void NxClient_GetSurfaceClientComposition( unsigned surfaceClientId, NEXUS_SurfaceComposition *pSettings )
 {
     LOCK();
-    nxclient_p_get_composition(NXCLIENT_STATE_RESTRICTED, surfaceClientId, pSettings);
+    nxclient_p_get_surface_client_composition(NXCLIENT_STATE_RESTRICTED, surfaceClientId, pSettings);
     UNLOCK();
 }
 
@@ -129,7 +129,7 @@ NEXUS_Error NxClient_SetSurfaceClientComposition( unsigned surfaceClientId, cons
 {
     NEXUS_Error rc;
     LOCK();
-    rc = nxclient_p_set_composition(NXCLIENT_STATE_RESTRICTED, surfaceClientId, pSettings);
+    rc = nxclient_p_set_surface_client_composition(NXCLIENT_STATE_RESTRICTED, surfaceClientId, pSettings);
     UNLOCK();
     return rc;
 }

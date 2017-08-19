@@ -8,7 +8,8 @@ const mediump int gl_MaxTextureImageUnits         = GLXX_CONFIG_MAX_SHADER_TEXTU
 const mediump int gl_MaxFragmentUniformVectors    = GLXX_CONFIG_MAX_UNIFORM_VECTORS;
 const mediump int gl_MaxDrawBuffers               = GLXX_MAX_RENDER_TARGETS;
 
-in mediump float __brcm_LineCoord = DATAFLOW_GET_LINE_COORD;
+in  mediump float __brcm_LineCoord = DATAFLOW_GET_LINE_COORD;
+    lowp    uint  __brcm_stdlib_fb_max_layer = DATAFLOW_GET_FB_MAX_LAYER;
 
 struct gl_DepthRangeParameters {
    highp float near; //n
@@ -43,6 +44,9 @@ in  highp int   gl_InstanceID = DATAFLOW_GET_INSTANCE_ID;
 out highp float gl_PointSize;
 in  highp vec4  gl_FragCoord = vec4(DATAFLOW_FRAG_GET_X, DATAFLOW_FRAG_GET_Y, DATAFLOW_FRAG_GET_Z, DATAFLOW_FRAG_GET_W);
 out highp float gl_FragDepth;
+
+in highp float gl_LastFragDepthBRCM   = DATAFLOW_FRAG_GET_DEPTH;
+in lowp  int   gl_LastFragStencilBRCM = DATAFLOW_FRAG_GET_STENCIL;
 
 in highp int __brcm_base_instance = DATAFLOW_GET_BASE_INSTANCE;
 
@@ -112,11 +116,10 @@ patch in highp float gl_TessLevelInner[2];
 in highp int gl_PrimitiveIDIn;
 
 out highp int gl_PrimitiveID;
-out highp int gl_Layer;
-
+flat out highp int gl_Layer;
 
 // Fragment Shader
-in  highp   int  gl_Layer;
+flat in  highp   int  gl_Layer;
 in  lowp    int  gl_SampleID = DATAFLOW_SAMPLE_ID;
 in  mediump vec2 gl_SamplePosition = vec2(DATAFLOW_SAMPLE_POS_X, DATAFLOW_SAMPLE_POS_Y);
 // TODO: Worth updating the parser to put the real array size here?

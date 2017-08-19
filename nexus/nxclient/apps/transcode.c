@@ -108,6 +108,8 @@ typedef struct EncodeContext
         bool rampBitrate;
         NEXUS_SimpleEncoderStopMode stopMode;
         unsigned audioBitrate;/* bps */
+        bool overrideOrientation;
+        NEXUS_VideoOrientation orientation;
     } encoderSettings;
     struct {
         unsigned videoPid;
@@ -315,6 +317,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -interlaced\n"
         "  -video_framerate HZ    video encode frame rate (for example 29.97, 30, 59.94, 60)\n"
         "  -video_refreshrate HZ  video encode display refresh rate (for example 29.97, 30, 59.94, 60)\n"
+        "  -3d {lr|ou}    output stereoscopic (3D) video\n"
         "  -profile       output video codec profile\n"
         "  -level         output video codec level\n"
         );
@@ -492,6 +495,8 @@ static int start_encode(EncodeContext *pContext)
 #endif
 
     encoderSettings.video.interlaced = pContext->encoderSettings.interlaced;
+    encoderSettings.video.display3DSettings.overrideOrientation = pContext->encoderSettings.overrideOrientation;
+    encoderSettings.video.display3DSettings.orientation = pContext->encoderSettings.orientation;
     encoderSettings.stopMode = pContext->encoderSettings.stopMode;
 
 
@@ -806,11 +811,11 @@ static void *standby_monitor(void *context)
     NxClient_StandbyStatus standbyStatus, prevStatus;
 
     rc = NxClient_GetStandbyStatus(&prevStatus);
-    BDBG_ASSERT(!rc);
+    if (rc) exit(0); /* server is down, exit gracefully */
 
     while(!pContext->stopped) {
         rc = NxClient_GetStandbyStatus(&standbyStatus);
-        BDBG_ASSERT(!rc);
+        if (rc) exit(0); /* server is down, exit gracefully */
 
         if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
             printf("'transcode' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
@@ -945,6 +950,21 @@ int main(int argc, const char **argv)  {
             float rate;
             sscanf(argv[++curarg], "%f", &rate);
             context.encoderSettings.refreshRate = rate * 1000;
+        }
+        else if (!strcmp(argv[curarg], "-3d") && curarg+1 < argc) {
+            curarg++;
+            if (!strcmp(argv[curarg],"lr")) {
+                context.encoderSettings.overrideOrientation = true;
+                context.encoderSettings.orientation = NEXUS_VideoOrientation_e3D_LeftRight;
+            }
+            else if (!strcmp(argv[curarg],"ou")) {
+                context.encoderSettings.overrideOrientation = true;
+                context.encoderSettings.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
+            }
+            else {
+                print_usage(&cmdline);
+                return -1;
+            }
         }
         else if (!strcmp(argv[curarg], "-audio_type") && curarg+1 < argc) {
             context.encoderStartSettings.audioCodec = lookup(g_audioCodecStrs, argv[++curarg]);

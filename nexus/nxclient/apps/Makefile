@@ -41,6 +41,7 @@ BASIC_BUILD_APPS = \
 	alpha_hole \
 	analog_input \
 	animation_client \
+	audio_ambisonic \
 	audio_capture \
 	audio_crc \
 	audio_decode_playback \
@@ -110,8 +111,6 @@ endif
 NEXUS_TOP := $(shell cd ../../;pwd)
 
 install: all
-
-all: $(EXTRA_BUILD_RULES) $(APPS)
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 # do "make nexus" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
@@ -343,7 +342,7 @@ clean_apps:
 	-$(RM) -r $(BINDIR)
 
 # install everything on "all", even if not rebuilding, to facilitate B_REFSW_ARCH switches
-all:
+all: $(EXTRA_BUILD_RULES) $(APPS)
 	@echo [Install... nxclient apps to $(realpath ${NEXUS_BIN_DIR})]
 	${Q_}cd $(NEXUS_TOP)/nxclient/apps/tests;for FILE in `ls`; do $(CP) $$FILE ${NEXUS_BIN_DIR}; chmod a+x ${NEXUS_BIN_DIR}/$$FILE; done
 	${Q_}$(MKDIR) ${NEXUS_BIN_DIR}/nxclient

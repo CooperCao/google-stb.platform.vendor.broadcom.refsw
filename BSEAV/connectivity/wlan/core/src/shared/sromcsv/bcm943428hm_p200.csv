@@ -1,0 +1,223 @@
+SROM fields,,,,,BCM943428HM P200,
+Byte Offset,,Word Offset,,Description,Value,Explanation
+Dec,Hex,Dec,Hex,,Hex,
+0,0,0,0,functionEnabled,0x2801 ,"     pcie core offset=2, 8 =power budget included,01-F0 enabled"
+2,2,1,1,commonPower,0x0000,bit 8 =bootrom present=0;
+4,4,2,2,SubsystemID,0x0545,Pcie subsystem id-0x0545
+6,6,3,3,SubVendorID,0x14E4,Broadcom
+8,8,4,4,Ind/ASPM,0x0070,"bit 4 =enable ASPM L1, bit 3 = disable ASPM L0s"
+10,A,5,5,L0/L1 latency,0xEDBE,"E=1110 = cq28102_en,cq28001_en,cq27820_en,DBE = 110 110 111 110 = L0Acc=6, L1Acc=7L0Exit=6, L1Exit=6"
+12,C,6,6,reserved/portnum,0x0000,"7:0= 0x00 = port num, other bits = 0x00 - All ClkReqDisables= 0x0"
+14,E,7,7,PowerBudget0,0x2BC4,20:13 = 0010 1011; 7:0 = C4; data scale = 0.01x; @3.3 volt;idle mode D3 power = 1.96 W
+16,10,8,8,PowerBudget1,0x2A64,20:13 = 0010 1010; 7:0 = 64;idle mode D2 power = 1 W
+18,12,9,9,PowerBudget2,0x2964,20:13 = 0010 1001; 7:0 = 64;idle mode D1 power = 1 W
+20,14,10,A,PowerBudget3,0x2C64,20:13 = 0010 1100; 7:0 = 64;sustained mode D0 power = 1 W
+22,16,11,B,PowerBudget4,0x3CE7,20:13 = 0011 1100; 7:0 = 64;max D0 power = 2.31 W
+24,18,12,C,macptr/Advenable/RBER/RetryPos,0x46FF,"46 = DSN Pointer; FF - rolebased error , retry pos, Adv fatal/nonfatal errs enabled,"
+26,1A,13,D,TLP Dignostic reg,0x47FF,"bit15 = MS Err suspension mode = 0, "
+28,1C,14,E,Polarity inversion fixes,0x0C00,"0xc = 0x1100 - check_poling=1, mask_idle_rdata=1; 15:13=0x00= max_pay_load = 128 bytes"
+30,1E,15,F,refclk_gating_delay,0x0820,terminal_count = 0x820
+32,20,16,10,reserved,0x0030,0x30 = rgn_FTS
+34,22,17,11,minClkReqPulse/ASPM Duration,0x1002,0x100 - 0x20 = clkReqExtCnt = 20*50 ns=1.6us; 2=L1 pll down ext cnt = 2 * 1us = 2us.
+36,24,18,12,Auto Initialization Enable,0x9F28,1f= SeqAddr0; 2f = 00101 111 mii freq=5 & No of addr Valid = 7;
+38,26,19,13,Serdes Auto  Initialization,0x5d44,7d75 - SeqAddr1 = 0x50; SeqAddr2= 0x17; seqAddr3= 0x1f
+40,28,20,14,Serdes Auto  Initialization,0x8080,SeqData0 = 0x8080
+42,2A,21,15,Serdes Auto  Initialization,0x1d8f,SeqData1 = 0x0032
+44,2C,22,16,Serdes Auto  Initialization,0x0032,SeqData2 = 0x0100
+46,2E,23,17,Serdes Auto  Initialization,0x0100,SeqData3 = 0x8400
+48,30,24,18,Serdes Auto  Initialization,0xdf00,SeqAddr4 = 17
+50,32,25,19,Serdes Auto  Initialization,0x71f5,SeqAddr5= 1f; seqAddr6=1c; seqAddr7=0
+52,34,26,1A,Serdes Auto  Initialization,0x8400,SeqData4=0x0083
+54,36,27,1B,Serdes Auto  Initialization,0x0083,SeqData5=0x8500
+56,38,28,1C,Serdes Auto  Initialization,0x8500,SeqData6=0x2010
+58,3A,29,1D,Serdes Auto  Initialization,0x2010,SeqData7=0x0000
+60,3C,30,1E,Serdes Auto  Initialization,0x0001,"NumAddrValid(3)=0;SeqAddr8,9,A "
+62,3E,31,1F,reserved,0x0000,
+64,40,32,20,reserved,0x0000,
+66,42,33,21,reserved,0x0000,
+68,44,34,22,reserved,0x0000,
+70,46,35,23,reserved,0x0000,
+72,48,36,24,reserved,0x0000,
+74,4A,37,25,reserved,0x0000,
+76,4C,38,26,reserved,0x0000,
+78,4E,39,27,reserved,0x0000,
+80,50,40,28,reserved,0x0000,
+82,52,41,29,reserved,0x0000,
+84,54,42,2A,L1/elecIdle duration,0x1008,Reduce the electrical idle detection delay and mask off the EIOS errors at L0's transitions
+86,56,43,2B,SerdesClkReq falling edge stretch,0x0305,5 * 50 = 250 ns clk fall edge stretch
+88,58,44,2C,reserved,0x0000,
+90,5A,45,2D,reserved,0x0000,
+92,5C,46,2E,reserved,0x0000,
+94,5E,47,2F,reserved,0x0000,
+96,60,48,30,deviceID,0x4359,BCM43428 - Dual band 802.11abg
+98,62,49,31,classCode,0x8000,pci class code bits 31:16 = 0x8000
+100,64,50,32,classCode,0x0002,bit 7:0 = pci class code bits 15:8 = 0x02
+102,66,51,33,PME/Pow,0x0000,"bit 2:0 = PME source = 0x0, bit 3 - BAR0 io = 0; Other bits = D1, D2, D3 power = 0 "
+104,68,52,34,b0l/pme/b1En&Sz,0x1F30, Avertise PME and also CLKREQ
+106,6A,53,35,bar0Value,0x1800,Bar0 = 0x1800
+108,6C,54,36,CISPointer,0x0000,cardbus cis pointer
+110,6E,55,37,CISPointer,0x0000,cardbus cis pointer
+112,70,56,38,reserved,0x0000,
+114,72,57,39,reserved,0x0000,
+116,74,58,3A,reserved,0x0000,
+118,76,59,3B,reserved,0x0000,
+120,78,60,3C,reserved,0x0000,
+122,7A,61,3D,reserved,0x0000,
+124,7C,62,3E,reserved,0x0000,
+126,7E,63,3F,reserved,0x0000,
+128,80,64,40,Srom Signature,0x5372,Srom Rev >= 4
+130,82,65,41,Board Rev,0x1200,Board Rev P200
+132,84,66,42,boardflags (w0),0x0200,"FEM , After burner"
+134,86,67,43,boardflags (w1),0x0000,
+136,88,68,44,boardflags (w2),0x1800,Bit12 = 1: 11b transmission on Ant0.;Tristate LED
+138,8A,69,45,boardflags (w3),0x0000,
+140,8C,70,46,machi,0x0090,machi
+142,8E,71,47,macmid,0x4C04,macmid(0x0043)
+144,90,72,48,maclo,0x3XXX,maclo
+146,92,73,49,ccode,0x0000,"Country code, US only"
+148,94,74,4A,regrev,0x0003,Regulatory revision
+150,96,75,4B,ledbh1/ledbh0,0xFFFF,
+152,98,76,4C,ledbh3/ledbh2,0x83FF,"LED : Radio enabled, WLAN LED active low"
+154,9A,77,4D,leddc,0xFFFF,LED duty cycle (used to be gpiotimerval)
+156,9C,78,4E,aa5g/aa2g,0x0303,2 AntAvail per band
+158,9E,79,4F,ag1/ag0,0x0202,AntGain
+160,A0,80,50,ag3/ag2,0xFFFF,AntGain
+162,A2,81,51,antswitch/rxchain/txchain,0x0033,RXCHAIN_NPHY_DEF  || TXCHAIN_NPHY_DEF
+164,A4,82,52,bxa2g/rssixx2g,0x0000,"2.4G boardsiwtcharch, rssiav, rssimc & rssimf"
+166,A6,83,53,bxa5g/rssixx5g,0x0000,"5G boardsiwtcharch, rssiav, rssimc & rssimf"
+168,A8,84,54,tri5g/tri2g,0x0000,Trswitch Isolation(No eTR switch)
+170,AA,85,55,tri5gl/tri5gh,0x0000,
+172,AC,86,56,rxpo2g/rxpo5g,0x0000,rx power offset
+174,AE,87,57,FEM2G,0x0415,"antswctrlLUT2g (5-bits),tr_isolation2g (3-bits)(20db) ,pdet_range2g (5-bits) , extPA_gain2g (2-bits) ,TSSI_pos2g (1-bit) "
+176,B0,88,58,FEM5G,0x0215,"antswctrlLUT5g (5-bits),tr_isolation5g (3-bits)(20db) ,pdet_range5g (5-bits) , extPA_gain5g (2-bits) ,TSSI_pos5g (1-bit) "
+178,B2,89,59,Thermal,0x7800,Upper 2 nibbles contain temperature threshold(120C) for single chain mode and lower 2 nibbles contain temperature sensor offset(0C)
+180,B4,90,5A,"measpower, rawtempsense",0x0000,"Upper 7 bits in MSB used for measpower (measured power)(63), and Lower 9 bits in LSB are used for rawtempsense(10)"
+182,B6,91,5B,"tempsense_slope, tempcorrx and tempsense_option",0x0000,Lower 8 bits in LSB is used for tempsense_slope(0x98); upper 6 bits for tempcorrx(0x0) and bits 8&9 form tempsense_option(0b11)
+184,B8,92,5C,"tempsense_slope, tempcorrx and tempsense_option",0x0000,"Lowest nible (bits 0-3) for freqoffset_corr(0), bit 4 for iqcal_swp_dis(1), and bit 5 for hw_iqcal_en(0)"
+186,BA,93,5D,EXTLNA gain,0x0000,
+188,BC,94,5E,PHYCAL temperature delta,0x0000,
+190,BE,95,5F,Reserved,0x0000,
+192,C0,96,60,itt2g/maxp2g,0x204C,2G ant0 : Band: Idle Target TSSI(0) / Max Power(68)
+194,C2,97,61,pa2gw0a0 [a1],0xFF3E,2G ant0 : Band PA parms - word 0 (b0)
+196,C4,98,62,pa2gw1a0[b0],0x1636,2G ant0 : Band PA parms - word 1 (b1)
+198,C6,99,63,pa2gw2a0 [b1],0xFACA,2G ant0 : Band PA parms - word 2 (a1)
+200,C8,100,64,iit5g/maxp5g,0x3e40,5G Band ant0: midband Idle Target TSSI / Max Power
+202,CA,101,65,maxp5gl/maxp5gh,0x4040,5G Band ant0: low/high band Max Power
+204,CC,102,66,pa5gw0a0 [a1],0xFE98,5 Ghz ant0 : (mid)  PA parameters word 0
+206,CE,103,67,pa5gw0a0 [b0],0x13E1,5 Ghz ant0 : (mid)  PA parameters word 1
+208,D0,104,68,pa5gw2a0 [b1],0xFB14,5 Ghz ant0 : (mid)  PA parameters word 2
+210,D2,105,69,pa5glw0a0 [a1],0xFE98,5 Ghz ant0 : (low)  PA parameters word 0
+212,D4,106,6A,pa5glw1a0 [b0],0x13E1,5 Ghz ant0 : (low)  PA parameters word 1
+214,D6,107,6B,pa5glw2a0 [b1],0xFB14,5 Ghz ant0 : (low)  PA parameters word 2
+216,D8,108,6C,pa5ghw0a0 [a1],0xFE9D,5 Ghz ant0 : (high) PA parameters word 0
+218,DA,109,6D,pa5ghw1a0 [b0],0x133D,5 Ghz ant0 : (high) PA parameters word 1
+220,DC,110,6E,pa5ghw2a0 [b1],0xFB36,5 Ghz ant0 : (high) PA parameters word 2
+222,DE,111,6F,Reserved,0x0000,Reserved
+224,E0,112,70,iit2g / maxp2g,0x204C,2G ant1 : Band: Idle Target TSSI(0) / Max Power(68)
+226,E2,113,71,pa2gw0a1 [a1],0xFF22,2G ant1 : Band PA parms - word 0 (b0)
+228,E4,114,72,pa2gw1a1 [b0],0x15CE,2G ant1 : Band PA parms - word 1 (b1)
+230,E6,115,73,pa2gw2a1 [b1],0xFAC2,2G ant1 : Band PA parms - word 2 (a1)
+232,E8,116,74,iit5g/maxp5g,0x3e40,5G Band ant1: midband Idle Target TSSI / Max Power
+234,EA,117,75,maxp5gl/maxp5gh,0x4040,5G Band ant1: low/high band Max Power
+236,EC,118,76,pa5gw0a1 [a1],0xFEA6,5 Ghz ant1 : (mid)  PA parameters word 0
+238,EE,119,77,pa5gw0a1 [b0],0x1378,5 Ghz ant1 : (mid)  PA parameters word 1
+240,F0,120,78,pa5gw2a1 [b1],0xFB33,5 Ghz ant1 : (mid)  PA parameters word 2
+242,F2,121,79,pa5glw0a1 [a1],0xFEA6,5 Ghz ant1 : (low)  PA parameters word 0
+244,F4,122,7A,pa5glw1a1 [b0],0x1378,5 Ghz ant1 : (low)  PA parameters word 1
+246,F6,123,7B,pa5glw2a1 [b1],0xFB33,5 Ghz ant1 : (low)  PA parameters word 2
+248,F8,124,7C,pa5ghw0a1 [a1],0xFE9C,5 Ghz ant1 : (high) PA parameters word 0
+250,FA,125,7D,pa5ghw1a1 [b0],0x1245,5 Ghz ant1 : (high) PA parameters word 1
+252,FC,126,7E,pa5ghw2a1 [b1],0xFB5F,5 Ghz ant1 : (high) PA parameters word 2
+254,FE,127,7F,reserved,0x0000  ,
+256,100,128,80,itt2ga2/maxp2ga2,0xffff  ,2G Band ant2: Idle Target TSSI / Max Power
+258,102,129,81,pa2gw0a2,0xffff  ,2G Band ant2: PA parms
+260,104,130,82,pa2gw1a2,0xffff  ,2G Band ant2: PA parms
+262,106,131,83,pa2gw2a2,0xffff  ,2G Band ant2: PA parms
+264,108,132,84,iit5ga2/maxp5ga2,0xffff  ,5G Band ant2: Idle Target TSSI / midband Max Power
+266,10A,133,85,maxp5gla2/maxp5gha2,0xffff  ,5G Band ant2: lowband Max Power / highband Max Power
+268,10C,134,86,pa5gw0a2,0xffff  ,5G Band ant2: midband PA parms
+270,10E,135,87,pa5gw1a2,0xffff  ,5G Band ant2: midband PA parms
+272,110,136,88,pa5gw2a2,0xffff  ,5G Band ant2: midband PA parms
+274,112,137,89,pa5glw0a2,0xffff  ,5G Band ant2: lowband PA parms
+276,114,138,8A,pa5glw1a2,0xffff  ,5G Band ant2: lowband PA parms
+278,116,139,8B,pa5glw2a2,0xffff  ,5G Band ant2: lowband PA parms
+280,118,140,8C,pa5ghw0a2,0xffff  ,5G Band ant2: highband PA parms
+282,11A,141,8D,pa5ghw1a2,0xffff  ,5G Band ant2: highband PA parms
+284,11C,142,8E,pa5ghw2a2,0xffff  ,5G Band ant2: highband PA parms
+286,11E,143,8F,reserved,0xffff  ,
+288,120,144,90,itt2ga3/maxp2ga3,0xffff  ,2G Band ant3: Idle Target TSSI / Max Power
+290,122,145,91,pa2gw0a3,0xffff  ,2G Band ant3: PA parms
+292,124,146,92,pa2gw1a3,0xffff  ,2G Band ant3: PA parms
+294,126,147,93,pa2gw2a3,0xffff  ,2G Band ant3: PA parms
+296,128,148,94,iit5ga3/maxp5ga3,0xffff  ,5G Band ant3: Idle Target TSSI / midband Max Power
+298,12A,149,95,maxp5gla3/maxp5gha3,0xffff  ,5G Band ant3: lowband Max Power / highband Max Power
+300,12C,150,96,pa5gw0a3,0xffff  ,5G Band ant3: midband PA parms
+302,12E,151,97,pa5gw1a3,0xffff  ,5G Band ant3: midband PA parms
+304,130,152,98,pa5gw2a3,0xffff  ,5G Band ant3: midband PA parms
+306,132,153,99,pa5glw0a3,0xffff  ,5G Band ant3: lowband PA parms
+308,134,154,9A,pa5glw1a3,0xffff  ,5G Band ant3: lowband PA parms
+310,136,155,9B,pa5glw2a3,0xffff  ,5G Band ant3: lowband PA parms
+312,138,156,9C,pa5ghw0a3,0xffff  ,5G Band ant3: highband PA parms
+314,13A,157,9D,pa5ghw1a3,0xffff  ,5G Band ant3: highband PA parms
+316,13C,158,9E,pa5ghw2a3,0xffff  ,5G Band ant3: highband PA parms
+318,13E,159,9F,reserved,0xffff  ,
+320,140,160,A0,cck2gpo,0x0000,2G Band CCK power offsets
+322,142,161,A1,ofdm2gpo0,0x4444,"2G Band 20 MHz Legacy rates (18, 12, 9, 6) and mcs0-2 SISO OFDM power offsets"
+324,144,162,A2,ofdm2gpo1,0x4444,"2G Band 20 MHz Legacy rates (54, 48, 36, 24) and mcs3-7 SISO OFDM power offsets"
+326,146,163,A3,ofdm5gpo0,0x0000,"5G Band midband 20 MHz Legacy rates (18, 12, 9, 6) and mcs0-2 SISO OFDM power offsets"
+328,148,164,A4,ofdm5gpo1,0x2000,"5G Band midband 20 MHz Legacy rates (54, 48, 36, 24) and mcs3-7 SISO OFDM power offsets"
+330,14A,165,A5,ofdm5glpo0,0x0000,"5G Band lowband 20 MHz Legacy rates (18, 12, 9, 6) and mcs0-2 SISO OFDM power offsets"
+332,14C,166,A6,ofdm5glpo1,0x2000,"5G Band lowband 20 MHz Legacy rates (54, 48, 36, 24) and mcs3-7 SISO OFDM power offsets"
+334,14E,167,A7,ofdm5ghpo0,0x0000,"5G Band highband 20 MHz Legacy rates (18, 12, 9, 6) and mcs0-2 SISO OFDM power offsets"
+336,150,168,A8,ofdm5ghpo1,0x2000,"5G Band highband 20 MHz Legacy rates (54, 48, 36, 24) and mcs3-7 SISO OFDM power offsets"
+338,152,169,A9,mcs2gpo0,0x4444,2G Band 11n 20 MHz MCS 0-3 pre-CDD/pre-STBC power offsets
+340,154,170,AA,mcs2gpo1,0x4444,2G Band 11n 20 MHz MCS 4-7 pre-CDD/pre-STBC power offsets
+342,156,171,AB,mcs2gpo2,0x4444,2G Band 11n 20 MHz MCS 8-11 SDM power offsets
+344,158,172,AC,mcs2gpo3,0x4444,2G Band 11n 20 MHz MCS 12-15 SDM power offsets
+346,15A,173,AD,mcs2gpo4,0x6666,2G Band 11n 40 MHz MCS 0-3 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+348,15C,174,AE,mcs2gpo5,0x6666,2G Band 11n 40 MHz MCS 4-7 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+350,15E,175,AF,mcs2gpo6,0x6666,2G Band 11n 40 MHz MCS 8-11 pre-bw40po SDM power offsets
+352,160,176,B0,mcs2gpo7,0x6666,2G Band 11n 40 MHz MCS 12-15 pre-bw40po SDM power offsets
+354,162,177,B1,mcs5gpo0,0x0000,5G Band midband 11n 20 MHz MCS 0-3 pre-CDD/pre-STBC power offsets
+356,164,178,B2,mcs5gpo1,0x2000,5G Band midband 11n 20 MHz MCS 4-7 pre-CDD/pre-STBC power offsets
+358,166,179,B3,mcs5gpo2,0x0000 ,5G Band midband 11n 20 MHz MCS 8-11 SDM power offsets
+360,168,180,B4,mcs5gpo3,0x2000,5G Band midband 11n 20 MHz MCS 12-15 SDM power offsets
+362,16A,181,B5,mcs5gpo4,0x4444,5G Band midband 11n 40 MHz MCS 0-3 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+364,16C,182,B6,mcs5gpo5,0x4444,5G Band midband 11n 40 MHz MCS 4-7 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+366,16E,183,B7,mcs5gpo6,0x4444,5G Band midband 11n 40 MHz MCS 8-11 pre-bw40po SDM power offsets
+368,170,184,B8,mcs5gpo7,0x4444,5G Band midband 11n 40 MHz MCS 12-15 pre-bw40po SDM power offsets
+370,172,185,B9,mcs5glpo0,0x0000,5G Band lowband 11n 20 MHz MCS 0-3 pre-CDD/pre-STBC power offsets
+372,174,186,BA,mcs5glpo1,0x2000,5G Band lowband 11n 20 MHz MCS 4-7 pre-CDD/pre-STBC power offsets
+374,176,187,BB,mcs5glpo2,0x0000,5G Band lowband 11n 20 MHz MCS 8-11 SDM power offsets
+376,178,188,BC,mcs5glpo3,0x2000,5G Band lowband 11n 20 MHz MCS 12-15 SDM power offsets
+378,17A,189,BD,mcs5glpo4,0x2222,5G Band lowband 11n 40 MHz MCS 0-3 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+380,17C,190,BE,mcs5glpo5,0x2222,5G Band lowband 11n 40 MHz MCS 4-7 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+382,17E,191,BF,mcs5glpo6,0x2222,5G Band lowband 11n 40 MHz MCS 8-11 pre-bw40po SDM power offsets
+384,180,192,C0,mcs5glpo7,0x2222,5G Band lowband 11n 40 MHz MCS 12-15 pre-bw40po SDM power offsets
+386,182,193,C1,mcs5ghpo0,0x0000,5G Band highband 11n 20 MHz MCS 0-3 pre-CDD/pre-STBC power offsets
+388,184,194,C2,mcs5ghpo1,0x2000,5G Band highband 11n 20 MHz MCS 4-7 pre-CDD/pre-STBC power offsets
+390,186,195,C3,mcs5ghpo2,0x0000,5G Band highband 11n 20 MHz MCS 8-11 SDM power offsets
+392,188,196,C4,mcs5ghpo3,0x2000,5G Band highband 11n 20 MHz MCS 12-15 SDM power offsets
+394,18A,197,C5,mcs5ghpo4,0x4444,5G Band highband 11n 40 MHz MCS 0-3 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+396,18C,198,C6,mcs5ghpo5,0x4444,5G Band highband 11n 40 MHz MCS 4-7 SISO/pre-CDD/pre-STBC/pre-bw40po power offsets
+398,18E,199,C7,mcs5ghpo6,0x4444,5G Band highband 11n 40 MHz MCS 8-11 pre-bw40po SDM power offsets
+400,190,200,C8,mcs5ghpo7,0x4444,5G Band highband 11n 40 MHz MCS 12-15 pre-bw40po SDM power offsets
+402,192,201,C9,cdd5ghpo/cdd5glpo/cdd5gpo/cdd2gpo,0x0000  ,"CDD power offset (will be added with mcs[2g,5g,5gl,5gh]po[0,1,4,5] to obtain the net CDD power offset)"
+404,194,202,CA,stbc5ghpo/stbc5glpo/stbc5gpo/stbc2gpo,0x0000  ,"STBC power offset (will be added with mcs[2g,5g,5gl,5gh]po[0,1,4,5] to obtain the net STBC power offset)"
+406,196,203,CB,bw405ghpo/bw405glpo/bw405gpo/bw402gpo,0x0000  ,"Additional 40 MHz OFDM power-offset across mcs0-15 and Legacy OFDMrates ?(will be added with mcs[2g,5g,5gl,5gh]po[4-7] in addition to the CDD or STBC power-offsets if applicable)"
+408,198,204,CC,bwdup405ghpo/bwdup405glpo/bwdup405gpo/bwdup402gpo,0x0000  ,Dup in 40 MHz power offset w.r.t. 20 MHz BW
+410,19A,205,CD,reserved,0xffff  ,
+412,19C,206,CE,reserved,0xffff  ,
+414,19E,207,CF,reserved,0xffff  ,
+416,1A0,208,D0,reserved,0xffff  ,
+418,1A2,209,D1,reserved,0xffff  ,
+420,1A4,210,D2,reserved,0xffff  ,
+422,1A6,211,D3,reserved,0xffff  ,
+424,1A8,212,D4,reserved,0xffff  ,
+426,1AA,213,D5,reserved,0xffff  ,
+428,1AC,214,D6,reserved,0xffff  ,
+430,1AE,215,D7,reserved,0xffff  ,
+432,1B0,216,D8,reserved,0xffff  ,
+434,1B2,217,D9,reserved,0xffff  ,
+436,1B4,218,DA,reserved,0xffff  ,
+438,1B6,219,DB,CRC8/SromRev,0xXX08,Rev 8

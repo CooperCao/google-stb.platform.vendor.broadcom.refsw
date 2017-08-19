@@ -98,7 +98,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
 #elif NEXUS_CPU_ARM
-    const char *mode = "32 bit compatability";
+    const char *mode = "32 bit compatibility";
 #endif
 
     NEXUS_Platform_GetStatus(&platformStatus);

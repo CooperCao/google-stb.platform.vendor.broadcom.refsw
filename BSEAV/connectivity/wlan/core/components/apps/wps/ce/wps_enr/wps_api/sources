@@ -1,0 +1,9 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2006 Broadcom Corporation
+#
+# $Id: sources,v 1.1 2008-09-15 09:21:51 $
+#
+
+include sources.common

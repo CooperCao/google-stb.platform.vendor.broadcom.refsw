@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,37 +76,25 @@ static NEXUS_Error NEXUS_I2sOutput_P_ConvertSettingsToBape(
 {
     NEXUS_Error errCode;
 
-    switch ( pSettings->lsbAtLRClock )
+    if ( pSettings->lsbAtLRClock )
     {
-    case false:
-        pBapeSettings->justification = BAPE_I2sJustification_eMsbFirst;
-        break;
-    default:
-    case true:
         pBapeSettings->justification = BAPE_I2sJustification_eLsbFirst;
-        break;
+    } else {
+        pBapeSettings->justification = BAPE_I2sJustification_eMsbFirst;
     }
 
-    switch ( pSettings->alignedToLRClock )
+    if ( pSettings->alignedToLRClock )
     {
-    case false:
-        pBapeSettings->dataAlignment = BAPE_I2sDataAlignment_eDelayed;
-        break;
-    default:
-    case true:
         pBapeSettings->dataAlignment = BAPE_I2sDataAlignment_eAligned;
-        break;
+    } else {
+        pBapeSettings->dataAlignment = BAPE_I2sDataAlignment_eDelayed;
     }
 
-    switch ( pSettings->lrClkPolarity )
+    if ( pSettings->lrClkPolarity )
     {
-    case false:
-        pBapeSettings->lrPolarity = BAPE_I2sLRClockPolarity_eLeftLow;
-        break;
-    default:
-    case true:
         pBapeSettings->lrPolarity = BAPE_I2sLRClockPolarity_eLeftHigh;
-        break;
+    } else {
+        pBapeSettings->lrPolarity = BAPE_I2sLRClockPolarity_eLeftLow;
     }
 
     switch ( pSettings->sclkRate )
@@ -387,7 +375,7 @@ static NEXUS_Error NEXUS_I2sOutput_P_SetChannelMode(void *pHandle, NEXUS_AudioCh
 
     NEXUS_I2sOutputHandle handle = (NEXUS_I2sOutputHandle) pHandle;
     BDBG_OBJECT_ASSERT(handle, NEXUS_I2sOutput);
-    
+
     BAPE_I2sOutput_GetSettings(handle->handle, &i2sOutputSettings);
     switch ( channelMode )
     {

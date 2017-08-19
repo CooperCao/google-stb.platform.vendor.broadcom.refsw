@@ -1,5 +1,5 @@
 /***************************************************************************
-* Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,7 +37,7 @@
 *
 * API Description:
 *   API name: Platform (private)
-*   This file containes private API to implement the B_CONFIG_IMAGE user mode part
+*   This file contains private API to implement the B_CONFIG_IMAGE user mode part
 *
 ***************************************************************************/
 #include "nexus_types.h"
@@ -100,7 +100,7 @@ void Nexus_Platform_P_Image_Stop(int fd, int ioctl_no)
     int rc;
 
     BKNI_Memset(&ctl, 0, sizeof(ctl));
-    ctl.req.req_type =  BIMG_Ioctl_Req_Type_Exit;
+    ctl.ack.ack_type = BIMG_Ioctl_Ack_Type_Exit;
 
     b_interfaces.stopped = true;
     rc = ioctl(fd, ioctl_no, &ctl);
@@ -147,9 +147,10 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
     int rc;
     BERR_Code mrc = 0;
     BIMG_LinuxEntry *entry;
+    uint32_t prev_sequence_no=0;
 
     BKNI_Memset(&ctl, 0, sizeof(ctl));
-    ctl.req.req_type =  BIMG_Ioctl_Req_Type_Start;
+    ctl.ack.ack_type = BIMG_Ioctl_Ack_Type_Wait;
 
     for(;;) {
         void *tmp_pointer;
@@ -163,8 +164,20 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
             return BERR_TRACE(NEXUS_UNKNOWN);
         }
         if (ctl.req.req_type == BIMG_Ioctl_Req_Type_Again) {
+            BDBG_MSG(("Again"));
+            ctl.ack.result = 0;
+            ctl.ack.ack_type = BIMG_Ioctl_Ack_Type_Wait;
             continue;
         }
+        ctl.ack.ack_type = BIMG_Ioctl_Ack_Type_Reply;
+        ctl.ack.req_type = ctl.req.req_type;
+        ctl.ack.sequence_no = ctl.req.sequence_no;
+        if(prev_sequence_no) {
+            if(ctl.req.sequence_no != prev_sequence_no+1) {
+                BDBG_ERR(("out-of-order sequence_no: %#x %#x", ctl.req.sequence_no, prev_sequence_no));
+            }
+        }
+        prev_sequence_no = ctl.req.sequence_no;
         for(entry=BLST_S_FIRST(&b_interfaces.active);entry;entry=BLST_S_NEXT(entry, link)) {
             if (!strcmp(entry->name,ctl.req.id)) {
                 break;
@@ -205,6 +218,7 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
             }
             ctl.ack.data.next.data = (unsigned long)tmp_const_pointer;
             ctl.ack.result = mrc;
+            ctl.ack.data.next.length = (uint16_t)ctl.req.data.next.length;
             BDBG_MSG(("<<Next[%s]: %p %u %u %d %p", ctl.req.id, (void *)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length, ctl.ack.result, (void *)(unsigned long)ctl.ack.data.next.data ));
             break;
         case BIMG_Ioctl_Req_Type_Close:

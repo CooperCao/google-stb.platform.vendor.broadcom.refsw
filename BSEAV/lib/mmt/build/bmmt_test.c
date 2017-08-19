@@ -222,6 +222,11 @@ typedef struct mmt_state {
     bmmt_demux_t demux;
     FILE *fout;
     struct nexus_state nexus;
+    struct {
+        void *data;
+        unsigned offset;
+        unsigned length;
+    } messageBuffer;
 } mmt_state;
 
 
@@ -428,8 +433,8 @@ static void b_test_stream_data(void *stream_context, batom_accum_t data, const b
     }
     BDBG_MSG(("stream_data:%s %u bytes (PTS:%u)", state == &state->parent->video?"video":"audio", (unsigned)batom_accum_len(data), time_info->pes_info.pts_valid?time_info->pes_info.pts:0));
 #if WITH_NEXUS
-    if(state->parent->nexus.cfg->transport_bitrate || state->parent->nexus.cfg->feed.live) {
-        if(time_info->mpu_time_valid && time_info->pes_info.pts_valid && state->parent->nexus.cfg->live_buffer>0 ) {
+
+        if(time_info->mpu_time_valid && time_info->pes_info.pts_valid) {
             uint32_t stc;
             unsigned delay = state->parent->nexus.cfg->live_buffer * (45000/1000);
             if(0 && state->parent->nexus.stcSet && delay) {
@@ -443,13 +448,13 @@ static void b_test_stream_data(void *stream_context, batom_accum_t data, const b
             }
             if(!state->parent->nexus.stcSet) {
                 NEXUS_Error rc;
-                stc = time_info->mpu_time - delay;
+                stc = time_info->mpu_time;
                 BDBG_LOG(("MPU:%ums PTS:%ums delay %ums STC:%#x(%ums)", (unsigned)(time_info->mpu_time/45), (unsigned)(time_info->pes_info.pts/45), (unsigned)(delay/45), (unsigned)stc, (unsigned)(stc/45)));
                 rc = NEXUS_StcChannel_SetStc(state->parent->nexus.stcChannel, stc);
                 state->parent->nexus.stcSet = rc==NEXUS_SUCCESS;
             }
        }
-    }
+
 #endif
     pes_header_length = bmedia_pes_header_init(pes_header, length , &time_info->pes_info);
     b_test_write_stream_data_begin(state->parent);
@@ -581,6 +586,24 @@ static int b_mmt_test_process_single_packet(const mmt_cfg *cfg, mmt_state *state
                             if(btlv_parse_signalling_header(&payload, &signalling_header)==0) {
                                 if(signalling_header.f_i==0) {
                                     b_mmt_test_process_signalling_message(cfg, state, &payload, &signalling_header);
+                                }
+                                else
+                                {
+                                    if (signalling_header.f_i >= 1 && signalling_header.f_i <=3) {
+                                        size_t len = batom_cursor_size(&payload);
+                                        batom_cursor_copy(&payload,state->messageBuffer.data + state->messageBuffer.offset,len);
+                                        state->messageBuffer.offset += (unsigned)len;
+                                    }
+                                    if (signalling_header.f_i == 3 && state->messageBuffer.offset)
+                                    {
+                                        batom_vec signal_vec;
+                                        batom_cursor signal_payload;
+                                        BATOM_VEC_INIT(&signal_vec,state->messageBuffer.data,state->messageBuffer.offset);
+                                        batom_cursor_from_vec(&signal_payload,&signal_vec,1);
+                                        b_mmt_test_process_signalling_message(cfg, state, &signal_payload, &signalling_header);
+                                        state->messageBuffer.offset = 0;
+                                    }
+
                                 }
                             }
                         } else {
@@ -783,6 +806,7 @@ static int platform_setup(mmt_cfg *cfg, mmt_state *state)
     } else {
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;
     }
+    stcSettings.mode = NEXUS_StcChannelMode_eHost;
     state->nexus.stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
 
@@ -1536,6 +1560,11 @@ main(int argc, const char *argv[])
         state.audio.stream = bmmt_demux_stream_create(state.demux, &demux_stream_config);
         BDBG_ASSERT(state.audio.stream);
     }
+    if (cfg.signalling_id) {
+        state.messageBuffer.length = 16*1024*5;
+        state.messageBuffer.offset = 0;
+        state.messageBuffer.data = BKNI_Malloc(state.messageBuffer.length);
+    }
     if(file) {
         if(strcmp(file,"-")!=0) {
             fin = fopen(file,"rb");
@@ -1666,6 +1695,10 @@ main(int argc, const char *argv[])
     if(state.audio.stream) {
         bmmt_demux_stream_destroy(state.demux, state.audio.stream);
         BKNI_Free(state.audio.buffer.data);
+    }
+
+    if(state.messageBuffer.data) {
+        BKNI_Free(state.messageBuffer.data);
     }
 
     bmmt_demux_destroy(state.demux);

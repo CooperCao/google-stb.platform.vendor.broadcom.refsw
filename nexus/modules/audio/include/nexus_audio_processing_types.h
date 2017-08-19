@@ -284,8 +284,9 @@ typedef struct NEXUS_DolbyDigitalReencodeSettings
     NEXUS_Ac3EncodeSettings encodeSettings; /* Settings for the AC3/Dolby Digital encoder */
 
     NEXUS_AudioDecoderDualMonoMode          dualMonoMode;   /* Mode for streams coded as dual-mono */
-    NEXUS_AudioDecoderOutputMode            outputMode;     /* DDRE output mode.  In general, eAuto is correct, but this may be overridden
-                                                               for testing and/or certification purposes. */
+    NEXUS_AudioMode                         stereoOutputMode; /* Output mode for the stereo downmix path. Valid values are e2_0 (stereo), e1_0 (mono).
+                                                                 eAuto = e2_0. eAuto is the Default. */
+    NEXUS_AudioMode                         outputMode;     /* Output mode for multichannel path. Deprecated. */
     NEXUS_AudioDecoderOutputLfeMode         outputLfeMode;  /* LFE output flag.  In general, eAuto is correct, but this may be overridden
                                                                for testing and/or certification purposes. */
     NEXUS_AudioMultichannelFormat           multichannelFormat; /* Specify the maximum multichannel output format desired.
@@ -368,6 +369,29 @@ typedef struct NEXUS_KaraokeVocalSettings
                                        Valid values are 0-200. Default is 200 */
     } echo;
 } NEXUS_KaraokeVocalSettings;
+
+/***************************************************************************
+Summary:
+Ambisonic Content Type
+***************************************************************************/
+typedef enum NEXUS_AmbisonicContentType
+{
+    NEXUS_AmbisonicContentType_eUnknown,
+    NEXUS_AmbisonicContentType_eAmbisonic,
+    NEXUS_AmbisonicContentType_eMax
+} NEXUS_AmbisonicContentType;
+
+/***************************************************************************
+Summary:
+Ambisonic Settings
+***************************************************************************/
+typedef struct NEXUS_AmbisonicSettings
+{
+    NEXUS_AmbisonicContentType contentType; /* Specifies whether the source content has Ambisonic Metadata */
+    unsigned yaw;               /* 0 - 359 degrees (z axis) */
+    unsigned pitch;             /* 0 - 359 degrees (x axis) */
+    unsigned roll;              /* 0 - 359 degrees (y axis) */
+} NEXUS_AmbisonicSettings;
 
 #ifdef __cplusplus
 }

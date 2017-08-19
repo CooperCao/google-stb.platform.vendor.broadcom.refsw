@@ -96,7 +96,7 @@ public:
 
     struct FileTableEntry {
         FTEType type;
-        unsigned int iNo;
+        uintptr_t iNo;
         union {
             IFile *file;
             IDirectory *dir;
@@ -358,6 +358,13 @@ private:
     void printURegs();
     void doCoreDump();
     void allocateStack(uint32_t size);
+    void copyParentStack() {
+        ElfImage* parentImg = parent->image;
+        void * stackTopPage = PAGE_START_4K(parentImg->stackBase());
+        void * stackAddrPage = PAGE_START_4K(parent->userReg(TzTask::UserRegs::sp_usr));
+        int numOfPages = ((uintptr_t)stackTopPage - (uintptr_t)stackAddrPage) / PAGE_SIZE_4K_BYTES;
+        image->allocAndCopyFrom(&parentImg->userPageTable, stackAddrPage, stackTopPage, numOfPages);
+    }
 
 public:
 
@@ -366,7 +373,7 @@ public:
         static const int MAX_NUM_ARGS = 32;
         static const int MAX_NUM_ENVS = 128;
         static const int MAX_NUM_PROG_HEADERS = 8;
-        static const int hwCaps = 0x51;  //"arm v7 neon vfpv3 tls tzos"
+        static const int hwCaps = HWCAPS_AUXVAL;  //"arm v7 neon vfpv3 tls tzos"
 
     public:
         TaskStartInfo(ElfImage *image, const char *progName, int numArgs, char **argv, int numEnvs, char **envp);

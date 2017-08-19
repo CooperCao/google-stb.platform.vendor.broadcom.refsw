@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,7 +46,11 @@
 
 
 #define BSAT_G1_CHIP         0x45308
+#if BSAT_CHIP_FAMILY==45316
+#define BSAT_G1_MAX_CHANNELS 16
+#else
 #define BSAT_G1_MAX_CHANNELS 8
+#endif
 #define BSAT_G1_XTAL_FREQ    54000000
 #define BSAT_G1_CHANNELS_PER_LDPC_DECODER 1
 

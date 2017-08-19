@@ -120,18 +120,10 @@
     BDBG_MODULE( xpt );
 #endif
 
-void BXPT_Interrupt_P_Init(
-    BXPT_Handle hXpt                /* [in] Handle for this transport */
-    );
-void BXPT_Interrupt_P_Shutdown(
-    BXPT_Handle hXpt                /* [in] Handle for this transport */
-    );
-
 static void SetChannelEnable( BXPT_Handle hXpt, unsigned int PidChannelNum, bool EnableIt );
 static bool PidChannelHasDestination( BXPT_Handle hXpt, unsigned int PidChannelNum );
 static bool IsPidDuplicated( BXPT_Handle hXpt, unsigned int PidChannelNum );
 static void BXPT_P_ConfigArbiter(BREG_Handle hReg);
-void BXPT_Mesg_SetPid2Buff( BXPT_Handle hXpt, bool SetPid2Buff );
 static unsigned int GetParserIndex( BXPT_Handle hXpt, unsigned ParserNum );
 
 #ifndef BXPT_FOR_BOOTUPDATER
@@ -503,7 +495,6 @@ BERR_Code BXPT_Open(
         BREG_Write32( hRegister, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + ( 4 * i ), 0 );
         #endif
 
-        lhXpt->CcConfigBeforeAllPass[ i ] = DefaultCcConfig;
         BXPT_SetPidChannel_CC_Config( lhXpt, i, &DefaultCcConfig );
     }
 
@@ -574,7 +565,6 @@ BERR_Code BXPT_Open(
         ParserConfig ParserInit = { false, false, false, BXPT_PsiMesgModModes_eNoMod };
 
         lhXpt->IbParserTable[ i ] = ParserInit;
-        lhXpt->IsParserInAllPass[ i ] = false;
     }
 #endif
 
@@ -759,7 +749,7 @@ BERR_Code BXPT_Open(
 #if (!BXPT_DMA_HAS_MEMDMA_MCPB)
     BXPT_P_AcquireSubmodule(lhXpt, BXPT_P_Submodule_eMcpb);
 #endif
-
+    BXPT_P_AcquireSubmodule(lhXpt, BXPT_P_Submodule_eMsg);
     BXPT_P_PMUHwg_Control(hRegister, true);
 
     done:
@@ -861,6 +851,7 @@ void BXPT_Close(
     #endif
 #endif
 
+    BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eMsg);
 #if (!BXPT_DMA_HAS_MEMDMA_MCPB)
     BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eMcpb);
 #endif
@@ -1562,7 +1553,7 @@ static uint32_t BXPT_P_GetInputBandRegAddr(
         #endif
 
         default:
-        BDBG_ERR(( "%s: unsupported input band %u", __FUNCTION__, BandNum ));
+        BDBG_ERR(( "%s: unsupported input band %u", BSTD_FUNCTION, BandNum ));
         break;
     }
 
@@ -1758,34 +1749,12 @@ BERR_Code BXPT_ParserAllPassMode(
             BCHP_MASK( XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ALL_PASS_CTRL_PRE_MPOD )
         );
 
-        /* Also need to update the Primary and Secondary CC checking: in all-pass mode, the will see the multitude of
-        ** different IDs as so many CC errors, and drop 'duplicated' PIDs. In all-pass, the PIDs for accepted by parser
-        ** X are all mapped to PID channel X.
-        */
-
-        /* Now set the new values. */
-        if( AllPass && false == hXpt->IsParserInAllPass[ ParserNum ] )
+        if( AllPass )
         {
-            BXPT_PidChannel_CC_Config AllCcDisabled = { false, false, false, 0 };
-
             ParserReg |= BCHP_FIELD_DATA( XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ALL_PASS_CTRL_PRE_MPOD, 1 );
             /* RS and XC blockouts are set at BXPT_Open() */
-
-            /* Remember the config before entering all-pass. */
-            BXPT_GetPidChannel_CC_Config( hXpt, ParserNum, &hXpt->CcConfigBeforeAllPass[ ParserNum ] );
-
-            /* Now disable the CC checks */
-            BXPT_SetPidChannel_CC_Config( hXpt, ParserNum, &AllCcDisabled );
-            hXpt->IsParserInAllPass[ ParserNum ] = true;
-            BREG_Write32( hXpt->hRegister, ParserRegAddr, ParserReg );
         }
-        else if( false == AllPass && true == hXpt->IsParserInAllPass[ ParserNum ] )
-        {
-            /* Restore the config we had before entering all-pass. */
-            BXPT_SetPidChannel_CC_Config( hXpt, ParserNum, &hXpt->CcConfigBeforeAllPass[ ParserNum ] );
-            hXpt->IsParserInAllPass[ ParserNum ] = false;
-            BREG_Write32( hXpt->hRegister, ParserRegAddr, ParserReg );
-        }
+        BREG_Write32( hXpt->hRegister, ParserRegAddr, ParserReg );
     }
 
     return( ExitCode );
@@ -2938,30 +2907,6 @@ BERR_Code BXPT_GetPidChannel_CC_Config(
     }
     else
     {
-#if 0
-        /* All-pass mode overrides the user settings, so return the last ones they gave before all-pass was enabled */
-        unsigned Band = hXpt->PidChannelTable[ PidChannelNum ].Band;
-        bool IsAllPass = false;
-        struct BXPT_P_PbHandle *hPb = NULL;
-
-        if( BXPT_P_IS_PB(Band)==false ) {
-            IsAllPass = hXpt->IsParserInAllPass[ Band ];
-        }
-        else {
-            hPb = &hXpt->PlaybackHandles[ BXPT_P_GET_PB_BAND_NUM(Band) ];
-            IsAllPass = hPb->IsParserInAllPass;
-        }
-
-        if( IsAllPass ) {
-            if( BXPT_P_IS_PB(Band)==false ) {
-                *Cfg = hXpt->CcConfigBeforeAllPass[ PidChannelNum ];
-            }
-            else {
-                *Cfg = hPb->CcConfigBeforeAllPass;
-            }
-        }
-        else
-#endif
         {
             uint32_t Reg, RegAddr;
 
@@ -3000,33 +2945,6 @@ BERR_Code BXPT_SetPidChannel_CC_Config(
     }
     else
     {
-#if 0
-        /* All-pass must override the new settings, so store them until all-pass is disabled */
-        unsigned Band = hXpt->PidChannelTable[ PidChannelNum ].Band;
-        bool IsAllPass = false;
-        struct BXPT_P_PbHandle *hPb = NULL;
-
-        if( BXPT_P_IS_PB(Band)==false ) {
-            IsAllPass = hXpt->IsParserInAllPass[ Band ];
-        }
-        else {
-            hPb = &hXpt->PlaybackHandles[ BXPT_P_GET_PB_BAND_NUM(Band) ];
-            IsAllPass = hPb->IsParserInAllPass;
-        }
-
-        if( IsAllPass )
-        {
-            if( BXPT_P_IS_PB(Band)==false )
-            {
-                hXpt->CcConfigBeforeAllPass[ PidChannelNum ] = *Cfg;
-            }
-            else
-            {
-                hPb->CcConfigBeforeAllPass = *Cfg;
-            }
-        }
-        else
-#endif
         {
             uint32_t Reg, RegAddr;
 

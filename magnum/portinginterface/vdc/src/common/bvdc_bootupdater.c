@@ -1021,17 +1021,6 @@ void BVDC_P_Compositor_WindowsReader_isr
     BSTD_UNUSED (pList);
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
 
-    /* hack to disable xvYCC CMP output and always load non xvYCC Matrix C */
-    /* bOutputXvYcc = true   : always load special xvYCC matrices */
-    /* bOutputXvYcc = false  : don't load special xvYCC matrices */
-    if(!hCompositor->bIsBypass)
-    {
-        hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry =
-            BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
-                BAVC_GetDefaultMatrixCoefficients_isrsafe(hCompositor->stCurInfo.pFmtInfo->eVideoFmt, false),
-                BAVC_ColorPrimaries_eUnknown, false);
-    }
-
     /* set compositor size -- number of lines. */
     eMasterTg = hCompositor->hDisplay->eMasterTg;
     bDTg      =  BVDC_P_DISPLAY_USED_DIGTRIG(eMasterTg);

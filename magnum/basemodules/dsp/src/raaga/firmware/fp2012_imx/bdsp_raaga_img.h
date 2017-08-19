@@ -404,6 +404,12 @@ extern const void * BDSP_IMG_fadectrl_tables[];
 extern const void * BDSP_IMG_fadectrl_inter_frame[];
 #endif
 
+#ifdef BDSP_AMBISONICS_SUPPORT
+extern const void * BDSP_IMG_ambisonics_code[];
+extern const void * BDSP_IMG_ambisonics_tables[];
+extern const void * BDSP_IMG_ambisonics_inter_frame[];
+#endif
+
 #ifdef BDSP_TSMCORRECTION_SUPPORT
 extern const void * BDSP_IMG_tsmcorrection_code[];
 extern const void * BDSP_IMG_tsmcorrection_tables[];

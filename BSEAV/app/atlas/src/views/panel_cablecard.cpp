@@ -155,7 +155,7 @@ void CPanelCableCard::layout()
     MRect    rectMenu(0, 0, MENU_WIDTH, 0);
     MRect    rectProps  = _pPropertiesMenu->getGeometry();
     MRect    rectPanel  = getGeometry();
-    uint16_t gridMargin = 7;
+    unsigned gridMargin = 7;
     MRect    rectPropsListView;
 
     /* layout properties menu */

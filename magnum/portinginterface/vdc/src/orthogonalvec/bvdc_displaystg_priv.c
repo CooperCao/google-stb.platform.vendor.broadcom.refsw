@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -106,6 +106,7 @@ BDBG_FILE_MODULE(BVDC_IGNORE_RATIO);
     (stgid), (ulCorId), (ulchannelId)                             \
 }
 
+#if !BVDC_P_SUPPORT_VIP
 static const BVDC_P_StgViceWireInfo s_aStgViceInfo[] =
 {
     BVDC_P_MAKE_STG_INFO(0,  0,  0),
@@ -115,6 +116,7 @@ static const BVDC_P_StgViceWireInfo s_aStgViceInfo[] =
     BVDC_P_MAKE_STG_INFO(4,  0,  2),
     BVDC_P_MAKE_STG_INFO(5,  1,  2),
 };
+#endif
 
 #ifdef BCHP_PWR_RESOURCE_VDC_STG0
 void BVDC_P_AcquireStgPwr

@@ -1,23 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * Wrapper over host malloc and free routines
  *
- * Revision History:
- * $brcm_Log: $ *
- * 
  ***************************************************************************/
 
 /*
@@ -31,6 +52,8 @@
 
 #if BKNI_TRACK_MALLOCS
 #define  BKNI_GARBLE_MALLOC 1
+
+#include "bkni_track_mallocs.h"
 
 struct BKNI_TrackAllocEntry {
     const void *mem;
@@ -223,9 +246,9 @@ BKNI_P_GetTrackAllocEntry_resize(struct BKNI_TrackAllocTable **old_table, unsign
         struct BKNI_TrackAllocTable *table;
 
         table = B_TRACK_ALLOC_ALLOC(sizeof(*table));
+        new_table[i] = table; /* assign it first, so failed allocation entry will be set to NULL */
         if(table==NULL) { goto error; }
 
-        new_table[i] = table;
         for(j=0;j<BKNI_P_TRACK_TABLE_SIZE;j++) {
             table->entries[j].mem = NULL;
             table->entries[j].size = 0;
@@ -338,6 +361,24 @@ BKNI_P_GetTrackAllocEntry(const void *mem)
 }
 
 
+#if B_REFSW_BUILD_FOR_STATIC_ANALYSIS
+void *
+BKNI_Malloc_tagged(size_t size, const char *file, unsigned line)
+{
+    BSTD_UNUSED(file);
+    BSTD_UNUSED(line);
+    return B_TRACK_ALLOC_ALLOC(size);
+}
+
+void
+BKNI_Free_tagged(void *ptr, const char *file, unsigned line)
+{
+    BSTD_UNUSED(file);
+    BSTD_UNUSED(line);
+    B_TRACK_ALLOC_FREE(ptr);
+    return;
+}
+#else /* #if B_REFSW_BUILD_FOR_STATIC_ANALYSIS */
 void *
 BKNI_Malloc_tagged(size_t size, const char *file, unsigned line)
 {
@@ -457,18 +498,37 @@ BKNI_Free_tagged(void *ptr, const char *file, unsigned line)
     B_TRACK_ALLOC_FREE(ptr);
     return;
 }
+#endif /* #if B_REFSW_BUILD_FOR_STATIC_ANALYSIS */
 
 
 
 #define BKNI_DUMP_SIZE_THRESHOLD        (1024)
 
+static void BKNI_P_PrintCapture(BKNI_PrintCapture print_capture, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    print_capture(BDBG_ModulePrintKind_eString, fmt, ap);
+    va_end( ap );
+}
+
+static void BKNI_P_DefaultPrintCapture( BDBG_ModulePrintKind kind, const char *fmt, va_list ap )
+{
+    BDBG_P_Vprintf_Log_isrsafe(kind, fmt, ap);
+    BDBG_P_PrintString("\n");
+}
+
 static void
-BKNI_DumpMallocs_Size(size_t threshold)
+BKNI_DumpMallocs_Size(size_t threshold, BKNI_PrintCapture print_capture)
 {
     unsigned i;
     bool header = false;
     struct BKNI_TrackAllocTable * const *tables;
     unsigned table_count;
+
+    if (!print_capture) {
+        print_capture = BKNI_P_DefaultPrintCapture;
+    }
 
     B_TRACK_ALLOC_LOCK();
     tables = g_alloc_state.tables;
@@ -481,14 +541,15 @@ BKNI_DumpMallocs_Size(size_t threshold)
             if (entry->mem && entry->size > threshold) {
                 if(!header) {
                     header=true;
-                    BDBG_P_PrintString("BKNI_Malloc(%s) report:\n%10s, %7s, filename:line\n", B_TRACK_ALLOC_OS, "address", "size");
+                    BKNI_P_PrintCapture(print_capture, "BKNI_Malloc(%s) report:", B_TRACK_ALLOC_OS);
+                    BKNI_P_PrintCapture(print_capture, "%10s, %7s, filename:line", "address", "size");
                 }
-                BDBG_P_PrintString("%#10lx, %7u, %s:%u\n", (unsigned long)entry->mem, (unsigned)entry->size, b_shorten_filename(entry->file), entry->line);
+                BKNI_P_PrintCapture(print_capture, "%#10lx, %7u, %s:%u", (unsigned long)entry->mem, (unsigned)entry->size, b_shorten_filename(entry->file), entry->line);
             }
         }
     }
     if (header) {
-        BDBG_P_PrintString("BKNI_Malloc(%s): allocated:%u(%u) freed:%u(%u) peak:%u\n", B_TRACK_ALLOC_OS, (unsigned)g_alloc_state.allocated, g_alloc_state.allocated_cnt, (unsigned)g_alloc_state.freed, g_alloc_state.freed_cnt, (unsigned)g_alloc_state.peak);
+        BKNI_P_PrintCapture(print_capture, "BKNI_Malloc(%s): allocated:%u(%u) freed:%u(%u) peak:%u", B_TRACK_ALLOC_OS, (unsigned)g_alloc_state.allocated, g_alloc_state.allocated_cnt, (unsigned)g_alloc_state.freed, g_alloc_state.freed_cnt, (unsigned)g_alloc_state.peak);
     }
     B_TRACK_ALLOC_UNLOCK();
     return;
@@ -497,7 +558,12 @@ BKNI_DumpMallocs_Size(size_t threshold)
 void
 BKNI_DumpMallocs(void)
 {
-    BKNI_DumpMallocs_Size(BKNI_DUMP_SIZE_THRESHOLD);
+    BKNI_DumpMallocs_Size(BKNI_DUMP_SIZE_THRESHOLD, NULL);
+}
+
+void BKNI_DumpMallocs_WithCapture(BKNI_PrintCapture print_capture)
+{
+    BKNI_DumpMallocs_Size(BKNI_DUMP_SIZE_THRESHOLD, print_capture);
 }
 
 BERR_Code
@@ -575,15 +641,15 @@ BKNI_P_TrackAlloc_Uninit(void)
     unsigned table_count = g_alloc_state.table_size / BKNI_P_TRACK_TABLE_SIZE;
     unsigned i;
 
-    BKNI_DumpMallocs_Size(0);
-    for(i=0;i<table_count;i++) {
-        if(tables[i]==NULL) {
-            break;
-        }
-        B_TRACK_ALLOC_FREE(tables[i]);
-        tables[i] = NULL;
-    }
+    BKNI_DumpMallocs_Size(0, NULL);
     if(tables) {
+        for(i=0;i<table_count;i++) {
+            if(tables[i]==NULL) {
+                break;
+            }
+            B_TRACK_ALLOC_FREE(tables[i]);
+            tables[i] = NULL;
+        }
         B_TRACK_ALLOC_FREE(tables);
     }
     g_alloc_state.tables = NULL;

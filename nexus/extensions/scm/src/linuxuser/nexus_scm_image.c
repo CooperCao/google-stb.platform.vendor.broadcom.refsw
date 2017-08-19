@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013-2014 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 
 #if !defined(NEXUS_MODE_driver)
@@ -105,10 +104,10 @@ static NEXUS_Error scm_p_open(void *context,
     BDBG_ASSERT(image);
 
     /* Validate the firmware ID range */
-    BDBG_MSG(("%s - Validating image ID range", __FUNCTION__));
+    BDBG_MSG(("%s - Validating image ID range", BSTD_FUNCTION));
     if (image_id >= SCM_IMAGE_FirmwareID_Max)
     {
-        BDBG_ERR(("%s - Invalid image id %d", __FUNCTION__, image_id));
+        BDBG_ERR(("%s - Invalid image id %d", BSTD_FUNCTION, image_id));
         rc = NEXUS_INVALID_PARAMETER;
         goto err;
     }
@@ -117,7 +116,7 @@ static NEXUS_Error scm_p_open(void *context,
     pContextEntry = ((SCM_IMAGE_ContextEntry**)context)[image_id];
     if (pContextEntry == NULL)
     {
-        BDBG_ERR(("%s - Image id %d is NULL", __FUNCTION__, image_id));
+        BDBG_ERR(("%s - Image id %d is NULL", BSTD_FUNCTION, image_id));
         rc = NEXUS_INVALID_PARAMETER;
         goto err;
     }
@@ -150,24 +149,24 @@ static NEXUS_Error scm_p_open(void *context,
     filepath = BKNI_Malloc(filepath_len);
     if (!filepath)
     {
-        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", __FUNCTION__, filepath_len));
+        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", BSTD_FUNCTION, filepath_len));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
 
     if (BKNI_Snprintf(filepath, filepath_len, "%s/%s", env_scm_path, (char *)pContextEntry) != (int)(filepath_len-1))
     {
-        BDBG_ERR(("%s - Cannot build final binary path", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot build final binary path", BSTD_FUNCTION));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
 
     /* Open the file */
-    BDBG_MSG(("%s - Opening file %s", __FUNCTION__, filepath));
+    BDBG_MSG(("%s - Opening file %s", BSTD_FUNCTION, filepath));
     fd = fopen(filepath, "r");
     if(fd == NULL)
     {
-        BDBG_ERR(("%s - Cannot open file %s", __FUNCTION__, filepath));
+        BDBG_ERR(("%s - Cannot open file %s", BSTD_FUNCTION, filepath));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
@@ -175,30 +174,30 @@ static NEXUS_Error scm_p_open(void *context,
     /* Get size of file */
     if(fseek(fd, 0, SEEK_END) == -1)
     {
-        BDBG_ERR(("%s: Cannot get to end of file %s", __FUNCTION__, filepath));
+        BDBG_ERR(("%s: Cannot get to end of file %s", BSTD_FUNCTION, filepath));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
 
     size = ftell(fd);
     if(size < 0){
-        BDBG_ERR(("%s: Cannot get size of file %s", __FUNCTION__, filepath));
+        BDBG_ERR(("%s: Cannot get size of file %s", BSTD_FUNCTION, filepath));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
 
     if(fseek(fd, 0, SEEK_SET) == -1)
     {
-        BDBG_ERR(("%s: Cannot get to beginning of file %s", __FUNCTION__, filepath));
+        BDBG_ERR(("%s: Cannot get to beginning of file %s", BSTD_FUNCTION, filepath));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
 
     /* Allocate an image container struct */
-    BDBG_MSG(("%s - Allocating memory for image container", __FUNCTION__));
+    BDBG_MSG(("%s - Allocating memory for image container", BSTD_FUNCTION));
     pImageContainer = (SCM_IMAGE_Container*) BKNI_Malloc(sizeof(SCM_IMAGE_Container));
     if(pImageContainer == NULL) {
-        BDBG_ERR(("%s - Cannot allocate memory for image container", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory for image container", BSTD_FUNCTION));
         rc = NEXUS_OUT_OF_SYSTEM_MEMORY;
         goto err;
     }
@@ -214,14 +213,14 @@ static NEXUS_Error scm_p_open(void *context,
     /* Allocate buffer for read data */
     pImageContainer->buf = (uint8_t*) BKNI_Malloc(SCM_IMG_BUFFER_SIZE);
     if(pImageContainer->buf == NULL) {
-        BDBG_ERR(("%s - Cannot allocate buffer for read buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate buffer for read buffer", BSTD_FUNCTION));
         rc = NEXUS_OUT_OF_SYSTEM_MEMORY;
         goto err;
     }
 
     *image = pImageContainer;
 
-    BDBG_MSG(("%s: File %s opened, file id %p size %d\n", __FUNCTION__, pImageContainer->filename, pImageContainer->fd, pImageContainer->uiImageSize));
+    BDBG_MSG(("%s: File %s opened, file id %p size %d\n", BSTD_FUNCTION, pImageContainer->filename, pImageContainer->fd, pImageContainer->uiImageSize));
     return NEXUS_SUCCESS;
 err:
 
@@ -265,36 +264,36 @@ static NEXUS_Error scm_p_next(void *image, unsigned chunk, const void **data, ui
     if((pImageContainer->returnSize == false) && (ftell(pImageContainer->fd) == 0)) {
         *data = &pImageContainer->uiImageSize;
         pImageContainer->returnSize = true;
-        BDBG_MSG(("%s - Returning size (%u bytes) of file %s to calling user", __FUNCTION__, pImageContainer->uiImageSize, pImageContainer->filename));
+        BDBG_MSG(("%s - Returning size (%u bytes) of file %s to calling user", BSTD_FUNCTION, pImageContainer->uiImageSize, pImageContainer->filename));
 
         goto end;
     }
 
     if((pImageContainer->nb_next + length) > pImageContainer->uiImageSize)  {
-        BDBG_ERR(("%s: File %s size exceeded\n", __FUNCTION__, pImageContainer->filename));
+        BDBG_ERR(("%s: File %s size exceeded\n", BSTD_FUNCTION, pImageContainer->filename));
         rc = NEXUS_INVALID_PARAMETER;
         goto end;
     }
 
-    BDBG_MSG(("%s - Reading %u bytes from file %s", __FUNCTION__, length, pImageContainer->filename));
+    BDBG_MSG(("%s - Reading %u bytes from file %s", BSTD_FUNCTION, length, pImageContainer->filename));
     read = fread(pImageContainer->buf, 1, length, pImageContainer->fd);
     /* Error */
     if(read == 0)   {
-        BDBG_ERR(("%s: Error reading from file. No data read\n", __FUNCTION__));
+        BDBG_ERR(("%s: Error reading from file. No data read\n", BSTD_FUNCTION));
         rc = NEXUS_NOT_AVAILABLE;
         goto end;
     }
     else    {
         if(read != length)  {
             /* Error */
-            BDBG_ERR(("%s: Error reading from file %s, read: %d, length: %d\n", __FUNCTION__, pImageContainer->filename, read, length));
+            BDBG_ERR(("%s: Error reading from file %s, read: %d, length: %d\n", BSTD_FUNCTION, pImageContainer->filename, read, length));
             if(feof(pImageContainer->fd))   {
-                BDBG_ERR(("%s: EOF reached\n", __FUNCTION__));
+                BDBG_ERR(("%s: EOF reached\n", BSTD_FUNCTION));
             }
             else {
                 a = ferror(pImageContainer->fd);
                 if(a > 0) {
-                    BDBG_ERR(("%s: File error %d\n", __FUNCTION__, a));
+                    BDBG_ERR(("%s: File error %d\n", BSTD_FUNCTION, a));
                 }
 
             }
@@ -304,7 +303,7 @@ static NEXUS_Error scm_p_next(void *image, unsigned chunk, const void **data, ui
         else    {
             /* Good */
             pImageContainer->nb_next += read;
-            BDBG_MSG(("%s - Read so far: %u bytes", __FUNCTION__, pImageContainer->nb_next));
+            BDBG_MSG(("%s - Read so far: %u bytes", BSTD_FUNCTION, pImageContainer->nb_next));
         }
     }
 

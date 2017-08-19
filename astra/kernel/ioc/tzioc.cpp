@@ -280,7 +280,7 @@ void TzIoc::notify()
 
     if (peerUp) {
         // printf("TzIoc system notify\n");
-        GIC::sgiGenerate(sysIrq);
+        GIC::sgiGenerate(1, sysIrq);
     }
 
     // Update cpu time

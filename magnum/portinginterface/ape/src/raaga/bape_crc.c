@@ -206,21 +206,21 @@ BERR_Code BAPE_Crc_Open(
     }
 
 #if SOURCE_TYPE_OPEN
-    BDBG_MSG(("%s - sourceType %d, existing sourceType %d, requested numChannelPairs %d, freeCrcs %d", __FUNCTION__, 
+    BDBG_MSG(("%s - sourceType %d, existing sourceType %d, requested numChannelPairs %d, freeCrcs %d", BSTD_FUNCTION,
         pSettings->sourceType, sourceType, pSettings->numChannelPairs, freeCrcs));
     if ( sourceType == BAPE_CrcSourceType_eMax )
     {
         sourceType = pSettings->sourceType;
     }
 #else
-    BDBG_MSG(("%s - requested numChannelPairs %d, freeCrcs %d", __FUNCTION__, 
+    BDBG_MSG(("%s - requested numChannelPairs %d, freeCrcs %d", BSTD_FUNCTION,
         pSettings->numChannelPairs, freeCrcs));
 #endif
 
     /* verify we have enough free slots */
     if ( pSettings->numChannelPairs > freeCrcs )
     {
-        BDBG_ERR(("%s - not enough free CRC slots.  requested %d, but only %d free", __FUNCTION__, pSettings->numChannelPairs, freeCrcs));
+        BDBG_ERR(("%s - not enough free CRC slots.  requested %d, but only %d free", BSTD_FUNCTION, pSettings->numChannelPairs, freeCrcs));
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
@@ -229,7 +229,7 @@ BERR_Code BAPE_Crc_Open(
     if ( pSettings->sourceType == BAPE_CrcSourceType_eMax || 
          pSettings->sourceType != sourceType )
     {
-        BDBG_ERR(("%s - source type mismatch or invalid sourceType %d, existing sourceType %d", __FUNCTION__, pSettings->sourceType, sourceType));
+        BDBG_ERR(("%s - source type mismatch or invalid sourceType %d, existing sourceType %d", BSTD_FUNCTION, pSettings->sourceType, sourceType));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 #endif
@@ -238,7 +238,7 @@ BERR_Code BAPE_Crc_Open(
     handle = BKNI_Malloc(sizeof(BAPE_Crc));
     if ( NULL == handle )
     {
-        BDBG_ERR(("%s - not enough memory to allocate CRC handle", __FUNCTION__));
+        BDBG_ERR(("%s - not enough memory to allocate CRC handle", BSTD_FUNCTION));
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
@@ -278,7 +278,7 @@ BERR_Code BAPE_Crc_Open(
         errCode = BAPE_Buffer_Open(&bufferSettings, &bufferHandle);
         if ( errCode )
         {
-            BDBG_ERR(("%s - unable to allocate CRC Buffer", __FUNCTION__));
+            BDBG_ERR(("%s - unable to allocate CRC Buffer", BSTD_FUNCTION));
             BAPE_Crc_Close(handle);
             return BERR_TRACE(errCode);
         }
@@ -299,7 +299,7 @@ BERR_Code BAPE_Crc_Open(
         if ( handle->resources[i].hwIndex == 0xffffffff )
         {
             /* this should never happen... would indicate bad detection code above */
-            BDBG_ERR(("%s - unable to find free HW slot", __FUNCTION__));
+            BDBG_ERR(("%s - unable to find free HW slot", BSTD_FUNCTION));
             BAPE_Crc_Close(handle);
             return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         }
@@ -316,7 +316,7 @@ BERR_Code BAPE_Crc_Open(
                                     0);
         if ( errCode )
         {
-            BDBG_ERR(("%s - unable to register CRC interrupt with BINT", __FUNCTION__));
+            BDBG_ERR(("%s - unable to register CRC interrupt with BINT", BSTD_FUNCTION));
             BAPE_Crc_Close(handle);
             return BERR_TRACE(errCode);
         }
@@ -346,13 +346,13 @@ BERR_Code BAPE_Crc_Close(
 
     if ( handle->started )
     {
-        BDBG_ERR(("%s - CRC must be stopped before it can be closed", __FUNCTION__));
+        BDBG_ERR(("%s - CRC must be stopped before it can be closed", BSTD_FUNCTION));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if ( handle->inputConnected )
     {
-        BDBG_ERR(("%s - CRC input must be removed before it can be closed", __FUNCTION__));
+        BDBG_ERR(("%s - CRC input must be removed before it can be closed", BSTD_FUNCTION));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -415,19 +415,19 @@ BERR_Code BAPE_Crc_AddInput(
 
     if ( NULL == pInputSettings )
     {
-        BDBG_ERR(("%s - pSettings is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - pSettings is NULL", BSTD_FUNCTION));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     if ( handle->inputConnected )
     {
-        BDBG_ERR(("%s - CRC %d is already connected, remove previous connection before adding the input again", __FUNCTION__, handle->index));
+        BDBG_ERR(("%s - CRC %d is already connected, remove previous connection before adding the input again", BSTD_FUNCTION, handle->index));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if ( handle->started )
     {
-        BDBG_ERR(("%s - CRC %d is already started, stop before adding the input", __FUNCTION__, handle->index));
+        BDBG_ERR(("%s - CRC %d is already started, stop before adding the input", BSTD_FUNCTION, handle->index));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 #if !SOURCE_TYPE_OPEN
@@ -444,7 +444,7 @@ BERR_Code BAPE_Crc_AddInput(
         }
     }
 
-    BDBG_MSG(("%s - sourceType %d, existing sourceType %d", __FUNCTION__, 
+    BDBG_MSG(("%s - sourceType %d, existing sourceType %d", BSTD_FUNCTION,
         sourceType, curSourceType));
     if ( curSourceType == BAPE_CrcSourceType_eMax )
     {
@@ -455,7 +455,7 @@ BERR_Code BAPE_Crc_AddInput(
     if ( sourceType == BAPE_CrcSourceType_eMax || 
          sourceType != curSourceType )
     {
-        BDBG_ERR(("%s - source type mismatch or invalid sourceType %d, existing sourceType %d", __FUNCTION__, sourceType, curSourceType));
+        BDBG_ERR(("%s - source type mismatch or invalid sourceType %d, existing sourceType %d", BSTD_FUNCTION, sourceType, curSourceType));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 #endif
@@ -496,7 +496,7 @@ BERR_Code BAPE_Crc_AddInput(
             pInputSettings->source.outputPort.outputPort->crc = handle;
             break;
         default:
-            BDBG_ERR(("%s - invalid sourceType %d", __FUNCTION__, handle->sourceType));
+            BDBG_ERR(("%s - invalid sourceType %d", BSTD_FUNCTION, handle->sourceType));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
     }
@@ -527,7 +527,7 @@ BERR_Code BAPE_Crc_RemoveInput(
 
     if ( handle->started )
     {
-        BDBG_ERR(("%s - CRC %d is started, stop before removing the input", __FUNCTION__, handle->index));
+        BDBG_ERR(("%s - CRC %d is started, stop before removing the input", BSTD_FUNCTION, handle->index));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -573,7 +573,7 @@ BERR_Code BAPE_Crc_RemoveInput(
             handle->inputSettings.source.outputPort.outputPort->crc = NULL;
             break;
         default:
-            BDBG_ERR(("%s - invalid sourceType %d", __FUNCTION__, handle->sourceType));
+            BDBG_ERR(("%s - invalid sourceType %d", BSTD_FUNCTION, handle->sourceType));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
     }
@@ -598,13 +598,13 @@ BERR_Code BAPE_Crc_P_Start(
 
     if ( !handle->inputConnected )
     {
-        BDBG_ERR(("%s - CRC %d does not have a valid input, cannot start", __FUNCTION__, handle->index));
+        BDBG_ERR(("%s - CRC %d does not have a valid input, cannot start", BSTD_FUNCTION, handle->index));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if ( handle->started )
     {
-        BDBG_ERR(("%s - CRC %d is already started", __FUNCTION__, handle->index));
+        BDBG_ERR(("%s - CRC %d is already started", BSTD_FUNCTION, handle->index));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -640,7 +640,7 @@ BERR_Code BAPE_Crc_P_Start(
                 handle->resources[i].fciId = handle->inputSettings.source.outputPort.outputPort->sourceMixerFci.ids[i];
                 break;
             default:
-                BDBG_ERR(("%s - invalid sourceType %d", __FUNCTION__, handle->sourceType));
+                BDBG_ERR(("%s - invalid sourceType %d", BSTD_FUNCTION, handle->sourceType));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
                 break;
         }
@@ -651,7 +651,7 @@ BERR_Code BAPE_Crc_P_Start(
 
         regAddr = BAPE_Reg_P_GetArrayAddress(AUD_MISC_CRC_CFGi, handle->resources[i].hwIndex);
 
-        BDBG_MSG(("%s - START CRC devIndex %d, hwIndex %d, regAddr %x", __FUNCTION__, handle->index, handle->resources[i].hwIndex, regAddr));
+        BDBG_MSG(("%s - START CRC devIndex %d, hwIndex %d, regAddr %x", BSTD_FUNCTION, handle->index, handle->resources[i].hwIndex, regAddr));
         BDBG_MSG(("\t fci %x, mode %x, width %x, polarity %x", 
             handle->resources[i].fciId, handle->settings.mode, handle->settings.dataWidth, (handle->settings.initialValue == 0) ? 0 : 1));
         
@@ -665,7 +665,7 @@ BERR_Code BAPE_Crc_P_Start(
 
     if ( handle->intHandle )
     {
-        BDBG_MSG(("%s - enabling callback", __FUNCTION__));
+        BDBG_MSG(("%s - enabling callback", BSTD_FUNCTION));
         BINT_EnableCallback(handle->intHandle);
     }
 
@@ -872,7 +872,7 @@ static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
 {
     unsigned i, j;
 
-    BDBG_MSG(("%s - checking for new CRC data", __FUNCTION__));
+    BDBG_MSG(("%s - checking for new CRC data", BSTD_FUNCTION));
     for ( i = 0; i < BAPE_CHIP_MAX_CRCS; i++)
     {
         if ( deviceHandle->crcs[i] && deviceHandle->crcs[i]->started )
@@ -880,7 +880,7 @@ static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
             bool wroteData = false;
             BAPE_CrcHandle handle = deviceHandle->crcs[i];
 
-            BDBG_MSG(("%s - Processing APE CRC idx %d, numChannelPairs %d", __FUNCTION__, i, handle->settings.numChannelPairs));
+            BDBG_MSG(("%s - Processing APE CRC idx %d, numChannelPairs %d", BSTD_FUNCTION, i, handle->settings.numChannelPairs));
             for ( j = 0; j < handle->settings.numChannelPairs; j++ )
             {
                 uint32_t regAddr;
@@ -906,7 +906,7 @@ static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
 
                         if ( written < sizeof(BAPE_CrcEntry) )
                         {
-                            BDBG_WRN(("%s - WARNING - only wrote %u of %lu bytes to CRC software Rbuf", __FUNCTION__, written, (unsigned long)sizeof(BAPE_CrcEntry)));
+                            BDBG_WRN(("%s - WARNING - only wrote %u of %lu bytes to CRC software Rbuf", BSTD_FUNCTION, written, (unsigned long)sizeof(BAPE_CrcEntry)));
                         }
                     }
                     else
@@ -917,7 +917,7 @@ static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
                 }
                 else
                 {
-                    BDBG_WRN(("%s - WARNING - hw crc %d disabled, used by ape crc %d, index %d", __FUNCTION__, handle->resources[j].hwIndex, i, j));
+                    BDBG_WRN(("%s - WARNING - hw crc %d disabled, used by ape crc %d, index %d", BSTD_FUNCTION, handle->resources[j].hwIndex, i, j));
                 }
             }
 

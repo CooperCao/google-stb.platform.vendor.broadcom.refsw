@@ -134,7 +134,7 @@ void NEXUS_StopCallbacks_tagged( /* attr{local=true} */
     const char *pFileName, unsigned lineNumber, const char *pFunctionName
     );
 #if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
-#define NEXUS_StopCallbacks(interfaceHandle) NEXUS_StopCallbacks_tagged(interfaceHandle, BSTD_FILE, BSTD_LINE, __func__)
+#define NEXUS_StopCallbacks(interfaceHandle) NEXUS_StopCallbacks_tagged(interfaceHandle, BSTD_FILE, BSTD_LINE, BSTD_FUNCTION)
 #else
 #define NEXUS_StopCallbacks(interfaceHandle) NEXUS_StopCallbacks_tagged(interfaceHandle, NULL, 0, NULL)
 #endif
@@ -153,7 +153,7 @@ void NEXUS_StartCallbacks_tagged( /* attr{local=true} */
     const char *pFileName, unsigned lineNumber, const char *pFunctionName
     );
 #if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
-#define NEXUS_StartCallbacks(interfaceHandle) NEXUS_StartCallbacks_tagged(interfaceHandle, BSTD_FILE, BSTD_LINE, __func__)
+#define NEXUS_StartCallbacks(interfaceHandle) NEXUS_StartCallbacks_tagged(interfaceHandle, BSTD_FILE, BSTD_LINE, BSTD_FUNCTION)
 #else
 #define NEXUS_StartCallbacks(interfaceHandle) NEXUS_StartCallbacks_tagged(interfaceHandle, NULL, 0, NULL)
 #endif
@@ -208,6 +208,28 @@ void NEXUS_KeySlot_Destroy(
     );
     
 typedef void *NEXUS_KeySlotTag;
+
+typedef struct NEXUS_KeySlotFastInfo
+{
+    struct {
+        bool     valid;                /* True if the following parameters are valid. */
+        unsigned pidChannelIndex;      /* The PidChannel index associated with the keyslot. Pid channels
+                                          are only associated with KeySlots allocated to perform M2M
+                                          operations (engine type NEXUS_SecurityEngine_eM2m  */
+    }dma;
+    unsigned keySlotNumber;            /* The keyslot number */
+}NEXUS_KeySlotFastInfo;
+
+/*
+Description
+    Returns information associated with the KeySlot. This function will not block on the
+    Security Module's mutex, it therefore can be called from modules that have strict
+    response times.
+*/
+void NEXUS_KeySlot_GetFastInfo(
+    NEXUS_KeySlotHandle keyslot,
+    NEXUS_KeySlotFastInfo *pInfo        /* [out] KeySlot information */
+    );
 
 void NEXUS_KeySlot_GetInfo(
     NEXUS_KeySlotHandle keyslot,

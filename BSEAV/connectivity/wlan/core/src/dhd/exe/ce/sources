@@ -1,0 +1,13 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2001 Broadcom Corporation
+#
+# $Id: sources,v 1.7 2009-05-25 13:45:42 $
+#
+
+TARGETNAME=dhd
+
+include sources.common
+
+SOURCES=dhdu.c bcmutils.c bcmwifi_channels.c wlu_client_shared.c wlu_pipe.c wlu_pipe_win32.c dhdu_ndis.c ir_ce.c bcmstdlib.c miniopt.c

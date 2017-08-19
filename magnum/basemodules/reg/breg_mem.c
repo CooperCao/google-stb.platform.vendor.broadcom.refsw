@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,7 +73,47 @@ static void BREG_P_systemUpdate32_isrsafe(void *context, uint32_t reg, uint32_t 
 static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg );
 
 static bool BREG_P_isRegisterReadOnly_isrsafe(uint32_t reg) {
-#if defined(BCHP_REGISTER_HAS_READONLY)
+#if BCHP_REGISTER_HAS_REGISTER_INFO
+#if BCHP_REGISTER_HAS_RBUS7
+    /* only chips with RBUS7 require detection of read-only registers */
+#define BREG_P_REGISTER_RO(offset) case (offset/4): BDBG_CASSERT((offset%4)==0);return true;
+#define BREG_P_REGISTER_RO_32(offset) BREG_P_REGISTER_RO(offset)
+#define BREG_P_REGISTER_RO_48(offset) BREG_P_REGISTER_RO(offset)
+#define BREG_P_REGISTER_RO_64(offset) BREG_P_REGISTER_RO(offset)
+#define BREG_P_REGISTER_RO_16(offset) /* ignore these for now */
+#define BREG_P_REGISTER_CFG_32(offset)
+#define BREG_P_REGISTER_CFG_64(offset)
+#define BREG_P_REGISTER_RW_16(offset)
+#define BREG_P_REGISTER_RW_32(offset)
+#define BREG_P_REGISTER_RW_48(offset)
+#define BREG_P_REGISTER_RW_64(offset)
+#define BREG_P_REGISTER_XRW_32(offset)
+#define BREG_P_REGISTER_DBRW_32(offset)
+#define BREG_P_REGISTER_WO_32(offset)
+#define BCHP_REGISTER(offset, width,type, core, reg)  BREG_P_REGISTER_##type##_##width(offset)
+#define BCHP_REGISTER_ALIAS(n, offset, width,type, core, reg)
+    switch(reg/4) {
+#include "bchp_register_info.h"
+#undef BCHP_REGISTER
+#undef BCHP_REGISTER_ALIAS
+#undef BREG_P_REGISTER_RO
+#undef BREG_P_REGISTER_RO_32
+#undef BREG_P_REGISTER_RO_48
+#undef BREG_P_REGISTER_RO_64
+#undef BREG_P_REGISTER_RO_16
+#undef BREG_P_REGISTER_CFG_32
+#undef BREG_P_REGISTER_CFG_64
+#undef BREG_P_REGISTER_RW_16
+#undef BREG_P_REGISTER_RW_32
+#undef BREG_P_REGISTER_RW_48
+#undef BREG_P_REGISTER_RW_64
+#undef BREG_P_REGISTER_XRW_32
+#undef BREG_P_REGISTER_DBRW_32
+#undef BREG_P_REGISTER_WO_32
+    default: break;
+    }
+#endif /* #if BCHP_REGISTER_HAS_RBUS7 */
+#elif defined(BCHP_REGISTER_HAS_READONLY)
 #define BCHP_REGISTER_READONLY_32BIT(name, offset) case (offset/4): BDBG_CASSERT((offset%4)==0);return true;
     switch(reg/4) {
 #include "bchp_readonly.h"
@@ -110,11 +150,29 @@ static bool BREG_P_Test64RegReadOnly_isrsafe(uint32_t reg)
 #if BDBG_DEBUG_BUILD
 static bool BREG_P_Test64RegOffset_isrsafe(uint32_t regOffset)
 {
+#if BCHP_REGISTER_HAS_REGISTER_INFO
+#define BREG_P_REGISTER_16(offset)
+#define BREG_P_REGISTER_32(offset)
+#define BREG_P_REGISTER_64(offset) case (offset/8): BDBG_CASSERT((offset%8)==0);return true;
+#define BREG_P_REGISTER_48(offset) BREG_P_REGISTER_64(offset)
+#define BCHP_REGISTER(offset, width ,type, core, reg)  BREG_P_REGISTER_##width(offset)
+#define BCHP_REGISTER_ALIAS(n, offset, width,type, core, reg)
+    switch(regOffset) {
+#include "bchp_register_info.h"
+#undef BREG_P_REGISTER_32
+#undef BREG_P_REGISTER_64
+#undef BREG_P_REGISTER_48
+#undef BCHP_REGISTER_ALIAS
+#undef BCHP_REGISTER
+    default: break;
+    }
+#else
 #define BCHP_REGISTER_64BIT(name, offset) case (offset/8): BDBG_CASSERT((offset%8)==0);return true;
     switch(regOffset) {
 #include "bchp_64bit.h"
     default: break;
     }
+#endif
     return false;
 }
 
@@ -473,10 +531,6 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_UHFR_TOP_INST_CLOCK_ENABLE);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_AVD0_TOP_INST_CLOCK_ENABLE_SID);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD1_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD1_PLL_CHANNEL_CTRL_CH_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD1_PLL_CHANNEL_CTRL_CH_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD1_PLL_CHANNEL_CTRL_CH_3);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD1_PLL_PWRDN);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD1_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PM_PLL_LDO_POWERUP);
@@ -507,13 +561,8 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC1_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC1_PLL_PWRDN);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_1);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_PWRDN);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2);
 #elif (BCHP_CHIP==7552)
 #include "bchp_clkgen.h"
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_MIPS_PLL_PWRDN);
@@ -700,11 +749,6 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PM_PLL_ALIVE_SEL);
 #elif ((BCHP_CHIP==7584) || (BCHP_CHIP==75845))
 #include "bchp_clkgen.h"
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_4);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_PWRDN );
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_BVN_TOP_CLOCK_ENABLE);

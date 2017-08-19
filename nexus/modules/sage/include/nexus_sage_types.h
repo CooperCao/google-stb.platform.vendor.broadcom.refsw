@@ -40,7 +40,7 @@
 #ifndef NEXUS_SAGE_TYPES_H__
 #define NEXUS_SAGE_TYPES_H__
 
-#include "nexus_base_types.h"
+#include "nexus_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,15 +65,21 @@ extern "C" {
 For Sage 2_x, only the first 4 are used */
 typedef enum SAGE_IMAGE_FirmwareID
 {
-    SAGE_IMAGE_FirmwareID_eBootLoader_Development,   /* Development (ZS) chip-compatible SAGE boot loader image */
+    SAGE_IMAGE_FirmwareID_eBootLoader_Development,         /* Development (ZS) chip-compatible SAGE boot loader image */
     SAGE_IMAGE_FirmwareID_eFramework_Development,          /* Development (ZS) chip-compatible SAGE Framework image */
-    SAGE_IMAGE_FirmwareID_eBootLoader,                   /* Production (ZB or customer specific) chip-compatible SAGE boot loader image */
-    SAGE_IMAGE_FirmwareID_eFramework,                       /* Production (ZB or customer specific) chip-compatible SAGE Framework image */
-    SAGE_IMAGE_FirmwareID_eSage_TA_SVP_Development,      /* Development (ZS) chip-compatible Anti-Rollback TA*/
-    SAGE_IMAGE_FirmwareID_eSage_TA_SVP,                  /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
-    SAGE_IMAGE_FirmwareID_eSage_TA_AR_Development,      /* Development (ZS) chip-compatible Anti-Rollback TA*/
-    SAGE_IMAGE_FirmwareID_eSage_TA_AR,                  /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
-    SAGE_IMAGE_FirmwareID_eSage_AR_DB,                  /*Anti-Rollback Database (univeral across chip variants dev/non dev)*/
+    SAGE_IMAGE_FirmwareID_eBootLoader,                     /* Production (ZB or customer specific) chip-compatible SAGE boot loader image */
+    SAGE_IMAGE_FirmwareID_eFramework,                      /* Production (ZB or customer specific) chip-compatible SAGE Framework image */
+    SAGE_IMAGE_FirmwareID_eSage_TA_SVP_Development,        /* Development (ZS) chip-compatible Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_SVP,                    /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_AR_Development,         /* Development (ZS) chip-compatible Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_AR,                     /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_HDCP22_Development,     /* Development (ZS) chip-compatible HDCP22 TA*/
+    SAGE_IMAGE_FirmwareID_eSage_TA_HDCP22,                 /* Production (ZB or customer specific) chip-compatible  HDCP22 TA*/
+    SAGE_IMAGE_FirmwareID_eSage_AR_DB,                     /* Anti-Rollback Database (univeral across chip variants dev/non dev) */
+    SAGE_IMAGE_FirmwareID_eSage_HDMIRX_FC,                 /* HDMI Rx FC (univeral across chip variants dev/non dev) */
+    SAGE_IMAGE_FirmwareID_eSage_TA_BP3_Development,        /* Development (ZS) chip compatible BP3 TA */
+    SAGE_IMAGE_FirmwareID_eSage_TA_BP3,                    /* Production (ZB or customer specific) chip compatible BP3 TA */
+    SAGE_IMAGE_FirmwareID_eSage_BP3_BIN,                   /* BP3.bin */
     /* Add additional image IDs ABOVE this line */
     SAGE_IMAGE_FirmwareID_Max
 } SAGE_IMAGE_FirmwareID;
@@ -92,6 +98,7 @@ typedef struct NEXUS_SageModuleSettings
 {
     unsigned clientHeapIndex; /* heap that client requests will be using */
     bool imageExists[SAGE_IMAGE_FirmwareID_Max];
+    NEXUS_CommonModuleSettings common;
 } NEXUS_SageModuleSettings;
 
 #ifdef __cplusplus

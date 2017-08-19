@@ -282,6 +282,7 @@ static void playbackIpStreamerCallback(
 
 } /* playbackIpStreamerCallback */
 
+#ifdef NEXUS_HAS_ASP
 static void aspStreamerCallback(
     void *appCtx,
     int eventId
@@ -318,6 +319,7 @@ static void aspStreamerCallback(
     BDBG_ASSERT( brc == BIP_SUCCESS );
 
 } /* aspStreamerCallback */
+#endif
 
 static NEXUS_HeapHandle getStreamerHeapHandle(
    NEXUS_HeapHandle heapHandleFromSettings)
@@ -1196,8 +1198,14 @@ static BIP_Status addAVInfoHeaders(
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "addHeaderValueUnsigned Failed" ), error, bipStatus, bipStatus );
         }
 
-        bipStatus = addHeaderValueUnsigned( hHttpResponse, "TTS", hHttpStreamer->output.settings.streamerSettings.mpeg2Ts.enableTransportTimestamp );
-        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "addHeaderValueUnsigned Failed" ), error, bipStatus, bipStatus );
+        {
+            bool ttsMode =
+                (hHttpStreamer->output.settings.streamerSettings.mpeg2Ts.enableTransportTimestamp ||
+                 hHttpStreamer->pStreamer->streamerStreamInfo.transportTimeStampEnabled)
+                ? true : false;
+            bipStatus = addHeaderValueUnsigned( hHttpResponse, "TTS", ttsMode);
+            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "addHeaderValueUnsigned Failed" ), error, bipStatus, bipStatus );
+        }
 
         /* Add AV track info into the HTTP Response. */
         {
@@ -3268,8 +3276,6 @@ static void processHttpDirectStreamerState(
                     prepareSettings.recpumpOpenSettings.data.dataReadyThreshold =
                             prepareSettings.recpumpOpenSettings.data.atomSize * hHttpStreamer->startSettings.streamingSettings.raveInterruptBasedSettings.dataReadyScaleFactor;
 #endif
-                    prepareSettings.recpumpOpenSettings.data.bufferSize = prepareSettings.recpumpOpenSettings.data.bufferSize;
-
                     hHttpStreamer->completionStatus = BIP_Streamer_Prepare( hHttpStreamer->hStreamer, &prepareSettings );
                 }
 
@@ -3646,6 +3652,30 @@ void processHttpStreamerState(
             BIP_Arb_CompleteRequest( hArb, hHttpStreamer->completionStatus );
         }
     }
+#if NEXUS_HAS_HDMI_INPUT
+    else if (BIP_Arb_IsNew(hArb = hHttpStreamer->hdmiInputSettingsApi.hArb))
+    {
+        if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
+        {
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpStreamer_SetHdmiInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+            hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
+            BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
+        }
+        else
+        {
+            BIP_Arb_AcceptRequest(hArb);
+
+            /* Pass input settings directly to the Streamer object and let it validate it. */
+            hHttpStreamer->completionStatus = BIP_Streamer_SetHdmiInputSettings(
+                    hHttpStreamer->hStreamer,
+                    hHttpStreamer->hdmiInputSettingsApi.hHdmiInput,
+                    hHttpStreamer->hdmiInputSettingsApi.pHdmiInputSettings);
+
+            BIP_Arb_CompleteRequest( hArb, hHttpStreamer->completionStatus );
+        }
+    }
+#endif
     else if (BIP_Arb_IsNew(hArb = hHttpStreamer->outputSettingsApi.hArb))
     {
         /*
@@ -3887,6 +3917,14 @@ void processHttpStreamerState(
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
+#if NEXUS_HAS_HDMI_INPUT
+        else if ( hHttpStreamer->pStreamer->hdmiInput.inputState == BIP_StreamerInputState_eSet && hHttpStreamer->pStreamer->transcode.profileState == BIP_StreamerOutputState_eNotSet )
+        {
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() Failed HDMI input requires app tp setup transcode profile via BIP_HttpStreamer_AddTranscodeProfile()!." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
+            hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
+            BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
+        }
+#endif
         else
         {
             BIP_Arb_AcceptRequest(hArb);

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -79,6 +79,9 @@ static void httpStreamerDestroy(
     if (hHttpStreamer->fileInputSettingsApi.hArb) BIP_Arb_Destroy(hHttpStreamer->fileInputSettingsApi.hArb);
     if (hHttpStreamer->tunerInputSettingsApi.hArb) BIP_Arb_Destroy(hHttpStreamer->tunerInputSettingsApi.hArb);
     if (hHttpStreamer->ipInputSettingsApi.hArb) BIP_Arb_Destroy(hHttpStreamer->ipInputSettingsApi.hArb);
+#if NEXUS_HAS_HDMI_INPUT
+    if (hHttpStreamer->hdmiInputSettingsApi.hArb) BIP_Arb_Destroy(hHttpStreamer->hdmiInputSettingsApi.hArb);
+#endif
     if (hHttpStreamer->recpumpInputSettingsApi.hArb) BIP_Arb_Destroy(hHttpStreamer->recpumpInputSettingsApi.hArb);
     if (hHttpStreamer->outputSettingsApi.hArb) BIP_Arb_Destroy(hHttpStreamer->outputSettingsApi.hArb);
     if (hHttpStreamer->setProgramApi.hArb) BIP_Arb_Destroy(hHttpStreamer->setProgramApi.hArb);
@@ -184,6 +187,11 @@ BIP_HttpStreamerHandle BIP_HttpStreamer_Create(
 
     hHttpStreamer->ipInputSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
     BIP_CHECK_GOTO(( hHttpStreamer->ipInputSettingsApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+#if NEXUS_HAS_HDMI_INPUT
+    hHttpStreamer->hdmiInputSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
+    BIP_CHECK_GOTO(( hHttpStreamer->hdmiInputSettingsApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+#endif
 
     hHttpStreamer->recpumpInputSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
     BIP_CHECK_GOTO(( hHttpStreamer->recpumpInputSettingsApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
@@ -659,6 +667,66 @@ error:
 
     return( bipStatus );
 } /* BIP_HttpStreamer_SetRecpumpInputSettings */
+
+#if NEXUS_HAS_HDMI_INPUT
+BIP_Status BIP_HttpStreamer_SetHdmiInputSettings(
+    BIP_HttpStreamerHandle    hHttpStreamer,
+    NEXUS_HdmiInputHandle     hHdmiInput,
+    BIP_StreamerHdmiInputSettings *pHdmiInputSettings
+    )
+{
+    BIP_Status bipStatus = BIP_SUCCESS;
+    BIP_ArbHandle hArb;
+    BIP_ArbSubmitSettings arbSettings;
+    BIP_StreamerHdmiInputSettings defaultSettings;
+
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
+    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
+
+    BIP_CHECK_GOTO(( hHdmiInput ), ( "hHdmiInput can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
+
+    /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
+    hArb = hHttpStreamer->hdmiInputSettingsApi.hArb;
+    bipStatus = BIP_Arb_Acquire(hArb);
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
+
+    if ( pHdmiInputSettings == NULL )
+    {
+        BIP_Streamer_GetDefaultHdmiInputSettings( &defaultSettings );
+        pHdmiInputSettings = &defaultSettings;
+    }
+
+    /* Move the API arguments into it's argument list so the state machine can find them. */
+    hHttpStreamer->hdmiInputSettingsApi.pHdmiInputSettings = pHdmiInputSettings;
+    hHttpStreamer->hdmiInputSettingsApi.hHdmiInput = hHdmiInput;
+
+    /* Get ready to run the state machine. */
+    BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
+    arbSettings.hObject = hHttpStreamer;
+    arbSettings.arbProcessor = processHttpStreamerState;
+    arbSettings.waitIfBusy = true;;
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
+    /* Invoke state machine via the Arb Submit API */
+    bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetHdmiInputSettings" ), error, bipStatus, bipStatus );
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+error:
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+
+    return( bipStatus );
+} /* BIP_HttpStreamer_SetHdmiInputSettings */
+#endif
 
 BIP_Status BIP_HttpStreamer_AddTrack(
     BIP_HttpStreamerHandle hHttpStreamer,

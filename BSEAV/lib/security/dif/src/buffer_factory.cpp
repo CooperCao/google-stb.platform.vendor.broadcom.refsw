@@ -50,7 +50,7 @@ BDBG_MODULE(buffer_factory);
 
 using namespace dif_streamer;
 
-IBuffer* BufferFactory::CreateBuffer(size_t size, uint8_t* nexusBuf, bool secure)
+IBuffer* BufferFactory::CreateBuffer(uint32_t size, uint8_t* nexusBuf, bool secure)
 {
     IBuffer* buffer = NULL;
 #ifdef USE_SECURE_PLAYBACK

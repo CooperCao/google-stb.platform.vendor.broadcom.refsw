@@ -340,7 +340,7 @@ void CChannel::dump(bool bForce)
 } /* dump */
 
 /* rectGeometryPercent range: 0-1000 = 0-100.0% */
-eRet CChannel::addImageLabel(MString strImagePath, MRect rectGeometryPercent, unsigned zOrder, MString strText)
+eRet CChannel::addImageLabel(MString strImagePath, MRect rectGeometryPercent, unsigned zOrder, MString strText, MString strGlobal)
 {
     eRet ret = eRet_Ok;
 
@@ -354,9 +354,11 @@ eRet CChannel::addImageLabel(MString strImagePath, MRect rectGeometryPercent, un
     }
 
     /* geometry range is in percent */
+    BDBG_MSG(("addImageLabel() [%s] rectGeometryPercent x:%d y:%d w:%d h:%d", strImagePath.s(), rectGeometryPercent.x(), rectGeometryPercent.y(), rectGeometryPercent.width(), rectGeometryPercent.height()));
     pLabelData->_rectGeometryPercent = rectGeometryPercent;
     pLabelData->_zorder              = zOrder;
     pLabelData->_strText             = strText;
+    pLabelData->_bGlobal             = (strGlobal == "true") ? true : false;
 
     /* add to list of label tag data */
     _labelList.add(pLabelData);
@@ -375,6 +377,7 @@ eRet CChannel::readXML(MXmlElement * xmlElemChannel)
     MString strWidth;
     MString strHeight;
     MString strZOrder;
+    MString strGlobal;
 
     BDBG_ASSERT(NULL != xmlElemChannel);
 
@@ -435,12 +438,13 @@ eRet CChannel::readXML(MXmlElement * xmlElemChannel)
             strWidth     = xmlElemImage->attrValue(XML_ATT_WIDTH);
             strHeight    = xmlElemImage->attrValue(XML_ATT_HEIGHT);
             strZOrder    = xmlElemImage->attrValue(XML_ATT_ZORDER);
+            strGlobal    = xmlElemImage->attrValue(XML_ATT_GLOBAL);
 
             if ((false == strImagePath.isEmpty()) || (false == strText.isEmpty()))
             {
                 MRect rectPercent = MRect((unsigned)(10 * strX.toFloat()), (unsigned)(10 * strY.toFloat()), (unsigned)(10 * strWidth.toFloat()), (unsigned)(10 * strHeight.toFloat()));
 
-                addImageLabel(strImagePath, rectPercent, strZOrder.toInt(), strText);
+                addImageLabel(strImagePath, rectPercent, strZOrder.toInt(), strText, strGlobal);
             }
         }
     }
@@ -542,6 +546,7 @@ void CChannel::writeXML(MXmlElement * xmlElemChannel)
             pXmlLabel->addAttr(XML_ATT_HEIGHT, strFloat);
 
             pXmlLabel->addAttr(XML_ATT_ZORDER, MString(pLabelData->_zorder));
+            pXmlLabel->addAttr(XML_ATT_GLOBAL, (true == pLabelData->_bGlobal) ? "true" : "false");
         }
     }
 
@@ -711,10 +716,8 @@ int CChannel::addPsiPrograms(
 {
     eRet ret   = eRet_Ok;
     int  minor = 1;
-    /*
-     * coverity[stack_use_local_overflow]
-     * coverity[stack_use_overflow]
-     */
+
+    /* coverity[stack_use_local_overflow] */
     CHANNEL_INFO_T chanInfo;
 
     BDBG_ASSERT(NULL != addChannelCallback);

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include <stdio.h>
 #include "nexus_types.h"
@@ -55,6 +47,13 @@
 #include "bstd.h"
 #include "bkni.h"
 #include <string.h>
+
+BDBG_MODULE(diags_kpd);
+
+#if (BCHP_CHIP==7271)
+#include "bchp_aon_pin_ctrl.h"
+#include "bchp_ldk.h"
+#endif
 
 static void dataready(void *context, int param)
 {
@@ -70,6 +69,93 @@ void bcmKpdTest(void)
     BKNI_EventHandle event;
     unsigned i;
     
+#if (BCHP_CHIP==7271)
+    uint32_t aon_pin_mux_ctrl[5] = {0};
+    uint32_t reg;
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, &aon_pin_mux_ctrl[0]);
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, &aon_pin_mux_ctrl[1]);
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, &aon_pin_mux_ctrl[2]);
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_3, &aon_pin_mux_ctrl[3]);
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_4, &aon_pin_mux_ctrl[4]);
+
+    for (i=0; i < 5; i++) {
+        BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, aon_pin_mux_ctrl[i]));
+    }
+
+    reg = aon_pin_mux_ctrl[0];
+    reg &= ~(
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_03) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_04) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_05) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_06) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_07)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_03, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_04, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_05, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_06, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_07, 1)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, reg);
+
+    reg = aon_pin_mux_ctrl[1];
+    reg &= ~(
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_08) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_09) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_10) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_11) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_12) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_13) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_14) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_15)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_08, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_09, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_10, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_11, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_12, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_13, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_14, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_15, 1)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, reg);
+
+    reg = aon_pin_mux_ctrl[2];
+    reg &= ~(
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_16) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_17)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_16, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_17, 1)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, reg);
+
+    reg = aon_pin_mux_ctrl[3];
+    reg &= ~(
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_18) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_19) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_20)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_18, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_19, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_20, 3)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_3, reg);
+
+    for (i=0; i < 5; i++) {
+        NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0 + 4*i, &reg);
+        BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, reg));
+    }
+#endif
+
     BKNI_CreateEvent(&event);
 
     NEXUS_Keypad_GetDefaultSettings(&keypadSettings);
@@ -80,7 +166,7 @@ void bcmKpdTest(void)
     printf("waiting for keypad input...press POWER to exit\n");
 
     for (i=0;;i++) {
-        unsigned num;
+        size_t num;
         bool overflow;
         NEXUS_KeypadEvent keypadEvent;
 
@@ -99,6 +185,19 @@ void bcmKpdTest(void)
     }
 
     NEXUS_Keypad_Close(keypad);
+
+#if (BCHP_CHIP==7271)
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_pin_mux_ctrl[0]);
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_pin_mux_ctrl[1]);
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_pin_mux_ctrl[2]);
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_pin_mux_ctrl[3]);
+
+    for (i=0; i < 5; i++) {
+        NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0 + 4*i, &reg);
+        BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, reg));
+    }
+
+#endif
 
     return;
 }

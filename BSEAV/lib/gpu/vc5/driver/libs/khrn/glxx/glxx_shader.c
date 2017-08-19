@@ -214,11 +214,9 @@ static bool write_common_data(GLXX_SHADER_DATA_T    *data,
    *code_offset += bin->code_size;
 
    data->uniform_map = format_uniform_map(bin->unif, bin->unif_count);
-#if V3D_HAS_RELAXED_THRSW
-   data->four_thread = bin->four_thread;
-   data->single_seg  = bin->single_seg;
-#else
    data->threading   = v3d_translate_threading(bin->n_threads);
+#if V3D_HAS_RELAXED_THRSW
+   data->single_seg  = bin->single_seg;
 #endif
 
    return data->uniform_map != NULL;
@@ -323,6 +321,10 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
    if (prog->fshader->u.fragment.reads_prim_id && !prog_has_vstage(prog, SHADER_GEOMETRY))
       data->flags |= (GLXX_SHADER_FLAGS_PRIM_ID_USED | GLXX_SHADER_FLAGS_PRIM_ID_TO_FS);
 
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   if (!prog->fshader->u.fragment.reads_implicit_varys)
+      data->flags |= GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS;
+#endif
 
    /* Now fill in from any vertex pipeline stages that are present */
    bool point_size_included = false;
@@ -383,28 +385,10 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
 
       data->tcs_output_vertices_per_patch = ir->tess_vertices;
 
-      v3d_cl_tess_type_t tess_type;
-      switch (ir->tess_mode)
-      {
-      case TESS_ISOLINES:  tess_type = V3D_CL_TESS_TYPE_ISOLINES; break;
-      case TESS_TRIANGLES: tess_type = V3D_CL_TESS_TYPE_TRIANGLE; break;
-      case TESS_QUADS:     tess_type = V3D_CL_TESS_TYPE_QUAD;     break;
-      default: unreachable();
-      }
-
-      v3d_cl_tess_edge_spacing_t tess_spacing;
-      switch (ir->tess_spacing)
-      {
-      case TESS_SPACING_EQUAL:      tess_spacing = V3D_CL_TESS_EDGE_SPACING_EQUAL;           break;
-      case TESS_SPACING_FRACT_EVEN: tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_EVEN; break;
-      case TESS_SPACING_FRACT_ODD:  tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_ODD;  break;
-      default: unreachable();
-      }
-
-      data->tess_type = tess_type;
-      data->tess_edge_spacing = tess_spacing;
-      data->tess_point_mode = ir->tess_point_mode;
-      data->tess_clockwise = ir->tess_cw;
+      data->tess_type         = ir->tess_mode;
+      data->tess_edge_spacing = ir->tess_spacing;
+      data->tess_point_mode   = ir->tess_point_mode;
+      data->tess_clockwise    = ir->tess_cw;
 
       for (unsigned m = 0; m != MODE_COUNT; ++m) {
          data->tcs_output_words_per_patch[m] = prog->vstages[SHADER_TESS_CONTROL][m]->u.tess_c.output_words_patch;
@@ -420,13 +404,7 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       if (prog->vstages[SHADER_GEOMETRY][MODE_RENDER]->u.geometry.prim_id_used)
          data->flags |= GLXX_SHADER_FLAGS_PRIM_ID_USED;
 
-      switch (ir->gs_out) {
-         case GS_OUT_POINTS:     data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_POINTS;         break;
-         case GS_OUT_LINE_STRIP: data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP;     break;
-         case GS_OUT_TRI_STRIP:  data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP; break;
-         default: unreachable();
-      }
-
+      data->geom_prim_type   = ir->gs_out;
       data->geom_invocations = ir->gs_n_invocations;
 
       for (unsigned m = 0; m != MODE_COUNT; ++m)
@@ -437,6 +415,34 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
    if(point_size_included)
       data->flags |= GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
 
+
+ #if KHRN_GLES31_DRIVER
+   if (ir->cs_shared_block_size != ~0u)
+   {
+      const V3D_IDENT_T* ident = v3d_scheduler_get_identity();
+      const compute_params params = {
+         .num_qpus = ident->num_qpus_per_slice * ident->num_slices,
+         .shared_mem_per_core = v3d_scheduler_get_compute_shared_mem_size_per_core(),
+         .wg_size = ir->cs_wg_size[0] * ir->cs_wg_size[1] * ir->cs_wg_size[2],
+         .shared_block_size = ir->cs_shared_block_size,
+         .num_threads = prog->fshader->n_threads,
+         .has_barrier = prog->fshader->u.fragment.barrier,
+      };
+      assert(!prog->fshader->u.fragment.writes_z);
+      assert(!prog->fshader->u.fragment.ez_disable);
+      assert(!prog->fshader->u.fragment.per_sample);
+    #if V3D_VER_AT_LEAST(4,0,2,0)
+      assert(!prog->fshader->u.fragment.reads_implicit_varys);
+    #endif
+
+      compute_sg_config cfg = compute_choose_sg_config(&params);
+      data->cs.allow_concurrent_jobs = compute_allow_concurrent_jobs(&params, cfg.wgs_per_sg);
+
+      data->cs.wgs_per_sg = cfg.wgs_per_sg;
+      data->cs.max_wgs = cfg.max_wgs;
+      data->cs.has_barrier = params.has_barrier;
+   }
+ #endif
 
    return true;
 }

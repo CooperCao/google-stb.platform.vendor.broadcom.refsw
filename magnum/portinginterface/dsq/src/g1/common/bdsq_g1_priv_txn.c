@@ -501,9 +501,15 @@ void BDSQ_g1_Txn_P_DiseqcDone_isr(void *p, int param)
    }
 
    /* reset the FIFO, memory, noise integrator, etc. */
+#ifdef BDSQ_DISABLE_NOISE_ESTIMATION
+   BDSQ_P_OrRegister_isr(h, BCHP_SDS_DSEC_DSCTL00, 0x7E002201);
+   BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
+   BDSQ_P_AndRegister_isr(h, BCHP_SDS_DSEC_DSCTL00, ~0x7E002201);
+#else
    BDSQ_P_OrRegister_isr(h, BCHP_SDS_DSEC_DSCTL00, 0x7F002201);
    BKNI_Delay(10);   /* must wait at least 1us for 1MHz clock */
    BDSQ_P_AndRegister_isr(h, BCHP_SDS_DSEC_DSCTL00, ~0x7F002201);
+#endif
 
    /* power off diseqc rx */
    BDSQ_P_OrRegister_isr(h, BCHP_SDS_DSEC_DSCTL02, 0x00800000);

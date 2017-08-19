@@ -1609,7 +1609,7 @@ BERR_Code BVDC_P_BufferHeap_AllocateBuffers_isr
             ulBufferAvailable, BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eBufferHeapId)));
 
         BDBG_ERR(("Heap settings:"));
-        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(pHeap->eBufferFormat_4HD);
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(pHeap->eBufferFormat_4HD);
         if(pFmtInfo == NULL)
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         BDBG_ERR(("--------4HD---------"));
@@ -1618,7 +1618,7 @@ BERR_Code BVDC_P_BufferHeap_AllocateBuffers_isr
         BDBG_ERR(("eBufferFormat   = %s", pFmtInfo->pchFormatStr));
         BDBG_ERR(("ePixelFormat    = %s", BPXL_ConvertFmtToStr_isr(pHeap->ePixelFormat_4HD)));
 
-        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(pHeap->eBufferFormat_2HD);
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(pHeap->eBufferFormat_2HD);
         if(pFmtInfo == NULL)
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         BDBG_ERR(("--------2HD---------"));
@@ -1627,7 +1627,7 @@ BERR_Code BVDC_P_BufferHeap_AllocateBuffers_isr
         BDBG_ERR(("eBufferFormat   = %s", pFmtInfo->pchFormatStr));
         BDBG_ERR(("ePixelFormat    = %s", BPXL_ConvertFmtToStr_isr(pHeap->ePixelFormat_2HD)));
 
-        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(pHeap->eBufferFormat_HD);
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(pHeap->eBufferFormat_HD);
         if(pFmtInfo == NULL)
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         BDBG_ERR(("---------HD---------"));
@@ -1636,7 +1636,7 @@ BERR_Code BVDC_P_BufferHeap_AllocateBuffers_isr
         BDBG_ERR(("eBufferFormat   = %s", pFmtInfo->pchFormatStr));
         BDBG_ERR(("ePixelFormat    = %s", BPXL_ConvertFmtToStr_isr(pHeap->ePixelFormat_HD)));
 
-        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(pHeap->eBufferFormat_SD);
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe(pHeap->eBufferFormat_SD);
         if(pFmtInfo == NULL)
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         BDBG_ERR(("---------SD---------"));

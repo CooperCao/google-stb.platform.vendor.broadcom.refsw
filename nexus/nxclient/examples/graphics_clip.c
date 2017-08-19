@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #include "nxclient.h"
 #include "nexus_surface.h"
@@ -57,6 +46,7 @@
 #include <string.h>
 
 BDBG_MODULE(client);
+#include "nxapp_prompt.inc"
 
 int main(void)
 {
@@ -103,8 +93,7 @@ int main(void)
     rc = NEXUS_SurfaceClient_SetSurface(blit_client, surface);
     BDBG_ASSERT(!rc);
 
-    BDBG_WRN(("press ENTER to clip"));
-    getchar();
+    nxapp_prompt("continue");
 
     BDBG_WRN(("clip left"));
     NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
@@ -115,8 +104,7 @@ int main(void)
     comp.clipRect.width = comp.clipBase.width*3/4;
     comp.clipRect.height = comp.clipBase.height;
     NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
-    BDBG_WRN(("press ENTER for next clip test"));
-    getchar();
+    nxapp_prompt("continue");
 
     BDBG_WRN(("clip right"));
     NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
@@ -125,8 +113,7 @@ int main(void)
     comp.clipRect.width = comp.clipBase.width*3/4;
     comp.clipRect.height = comp.clipBase.height;
     NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
-    BDBG_WRN(("press ENTER for next clip test"));
-    getchar();
+    nxapp_prompt("continue");
 
     BDBG_WRN(("clip top"));
     NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
@@ -135,8 +122,7 @@ int main(void)
     comp.clipRect.width = comp.clipBase.width;
     comp.clipRect.height = comp.clipBase.height*3/4;
     NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
-    BDBG_WRN(("press ENTER for next clip test"));
-    getchar();
+    nxapp_prompt("continue");
 
     BDBG_WRN(("clip bottom"));
     NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
@@ -145,8 +131,7 @@ int main(void)
     comp.clipRect.width = comp.clipBase.width;
     comp.clipRect.height = comp.clipBase.height*3/4;
     NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
-    BDBG_WRN(("press ENTER to exit"));
-    getchar();
+    nxapp_prompt("continue");
 
     NEXUS_SurfaceClient_Release(blit_client);
     NxClient_Free(&allocResults);

@@ -96,7 +96,7 @@ void progress_bwidget_draw(
     /* draw progress if necessary*/
     if (true == pProgress->isProgressVisible())
     {
-        uint16_t  level;
+        unsigned  level;
         bwin_rect rectProgress = win_settings.rect;
         int       spacer       = label_settings->bevel + 1;
 
@@ -107,7 +107,7 @@ void progress_bwidget_draw(
 
         /* adjust progress rect width based on actual level */
         level              = pProgress->getLevel();
-        rectProgress.width = rectProgress.width * level / (uint16_t)-1;
+        rectProgress.width = rectProgress.width * level / (65535) - 1;
 
         if (NULL != pProgress->getProgressImage())
         {
@@ -115,13 +115,13 @@ void progress_bwidget_draw(
         }
         else
         {
-            uint16_t yMin     = rectProgress.y;
-            uint16_t yMax     = rectProgress.y + rectProgress.height;
-            uint16_t yMid     = yMin + ((yMax - yMin) / 2);
+            unsigned yMin     = rectProgress.y;
+            unsigned yMax     = rectProgress.y + rectProgress.height;
+            unsigned yMid     = yMin + ((yMax - yMin) / 2);
             uint32_t newColor = 0;
             uint8_t  percent  = 0;
 
-            for (int line = yMin; line < yMid; line++)
+            for (unsigned line = yMin; line < yMid; line++)
             {
                 percent  = (yMid - line) * 100 / (yMid - yMin);
                 newColor = pProgress->colorConvert(pProgress->getColorTop(), pProgress->getColorMiddle(), percent);
@@ -134,7 +134,7 @@ void progress_bwidget_draw(
                         cliprect);
             }
 
-            for (int line = yMid; line < yMax; line++)
+            for (unsigned line = yMid; line < yMax; line++)
             {
                 percent  = (yMax - line) * 100 / (yMax - yMid);
                 newColor = pProgress->colorConvert(pProgress->getColorMiddle(), pProgress->getColorBottom(), percent);
@@ -262,7 +262,7 @@ void CWidgetProgress::showText(bool show)
 }
 
 /* sets the progress value (range 0-65535) */
-void CWidgetProgress::setLevel(uint16_t level)
+void CWidgetProgress::setLevel(unsigned level)
 {
     _level = level;
 

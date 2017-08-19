@@ -195,7 +195,7 @@ BERR_Code BSAT_g1_P_HpEnable_isr(BSAT_ChannelHandle h, bool bEnable)
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FROF2_SW, 0);
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FROF3_SW, 0);
 
-      BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_HP_HPCONTROL, ~0x1808, 1); /* acm_mode_delayed = 0, caren=0 */
+      BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_HP_HPCONTROL, ~0x18F8, 0x51); /* acm_mode_delayed = 0, caren=0, one_of_n_period=5 */
       BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_HP_HPCONFIG, ~0xC000);
 
       /* assert micro override of HP controls to receiver */
@@ -741,6 +741,12 @@ BERR_Code BSAT_g1_P_OnHpTimeOut_isr(BSAT_ChannelHandle h)
 #ifndef BSAT_EXCLUDE_TFEC
    if (hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan)
    {
+      if (hChn->turboScanState & BSAT_TURBO_SCAN_STATE_SYNC_ACQUIRED)
+      {
+         hChn->turboScanLockedModeFailures++;
+         if (hChn->turboScanLockedModeFailures > 3)
+            hChn->turboScanState &= ~BSAT_TURBO_SCAN_STATE_HP_LOCKED;
+      }
       if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
          hChn->turboScanState |= BSAT_TURBO_SCAN_STATE_8PSK_FAILED;
    }
@@ -894,6 +900,7 @@ BERR_Code BSAT_g1_P_HpGetAcmStatus(BSAT_ChannelHandle h, BSAT_g1_P_AcmStatus *pS
    uint32_t val, plscode, modcod, i;
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_HP_ACM_CHECK);
+   pStatus->bPilot = (val & 1) ? true : false;
    pStatus->modcod = (val & BCHP_SDS_HP_0_ACM_CHECK_modcod_MASK) >> BCHP_SDS_HP_0_ACM_CHECK_modcod_SHIFT;
    if (val & BCHP_SDS_HP_0_ACM_CHECK_modcod_b0_MASK)
       pStatus->modcod |= 0x20;

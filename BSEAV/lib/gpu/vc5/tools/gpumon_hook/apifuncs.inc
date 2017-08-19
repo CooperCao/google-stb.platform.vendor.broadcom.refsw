@@ -872,8 +872,11 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglUnbindWaylandDisplayWL(EGLDisplay dpy, st
 DLLEXPORT EGLBoolean DLLEXPORTENTRY eglQueryWaylandBufferWL(EGLDisplay dpy, struct wl_resource *buffer, EGLint name, EGLint *value){ return sAPIClassTable.map_eglQueryWaylandBufferWL(dpy, buffer, name, value); }
 #endif /* EGL_WL_bind_wayland_display*/
 
-#if GL_BRCM_mirror_once_border
-#endif /* GL_BRCM_mirror_once_border*/
+#if GL_BRCM_image_formats
+#endif /* GL_BRCM_image_formats*/
+
+#if GL_BRCM_mirror_clamp_to_edge
+#endif /* GL_BRCM_mirror_clamp_to_edge*/
 
 #if GL_BRCM_polygon_mode
 DLLEXPORT void DLLEXPORTENTRY glPolygonModeBRCM(GLenum mode){ sAPIClassTable.map_glPolygonModeBRCM(mode); }
@@ -885,10 +888,15 @@ DLLEXPORT void DLLEXPORTENTRY glProvokingVertexBRCM(GLenum mode){ sAPIClassTable
 
 #if GL_BRCM_texture_1D
 DLLEXPORT void DLLEXPORTENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels){ sAPIClassTable.map_glTexImage1DBRCM(target, level, internalformat, width, border, format, type, pixels); }
+DLLEXPORT void DLLEXPORTENTRY glTexSubImage1DBRCM(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid *pixels){ sAPIClassTable.map_glTexSubImage1DBRCM(target, level, xoffset, width, format, type, pixels); }
+DLLEXPORT void DLLEXPORTENTRY glTexStorage1DBRCM(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width){ sAPIClassTable.map_glTexStorage1DBRCM(target, levels, internalformat, width); }
 #endif /* GL_BRCM_texture_1D*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
+
+#if GL_BRCM_texture_unnormalised_coords
+#endif /* GL_BRCM_texture_unnormalised_coords*/
 
 #if GL_EXT_base_instance
 DLLEXPORT void DLLEXPORTENTRY glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance){ sAPIClassTable.map_glDrawArraysInstancedBaseInstanceEXT(mode, first, count, instancecount, baseinstance); }

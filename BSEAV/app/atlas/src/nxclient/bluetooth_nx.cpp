@@ -46,7 +46,7 @@ BDBG_MODULE(atlas_bluetooth);
 #ifdef NETAPP_SUPPORT
 CBluetoothNx::CBluetoothNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CBluetooth(name, number, pCfg)
@@ -92,7 +92,7 @@ eRet CBluetoothNx::disconnectBluetooth(int index_to_disconnect)
         if ((_eBtAVState == eBtAVState_On) && (_pBtDevInfoSavedList[index_to_disconnect].ulServiceMask & NETAPP_BT_SERVICE_A2DP_SINK))
         {
             /* Stop A2DP before you can disconnect */
-            BDBG_MSG(("%s: Stop A2DP", __FUNCTION__));
+            BDBG_MSG(("%s: Stop A2DP", BSTD_FUNCTION));
             notifyObservers(eNotify_BluetoothA2DPStop);
             /* Let the call to BSA_Stop occur  before disconnecting*/
             BKNI_Sleep(2000);
@@ -170,7 +170,7 @@ eRet CBluetoothNx::updateBluetoothDeviceList()
         for (pBluetoothDevice = itr.first(); pBluetoothDevice; pBluetoothDevice = itr.next())
         {
             BDBG_MSG(("%s: Searching Device connlistname %s devicename %s(service mask: %d)",
-                      __FUNCTION__, _pBtDevInfoConnList[i].cName, pBluetoothDevice->getName(), _pBtDevInfoConnList[i].ulServiceMask));
+                      BSTD_FUNCTION, _pBtDevInfoConnList[i].cName, pBluetoothDevice->getName(), _pBtDevInfoConnList[i].ulServiceMask));
             if ((MString(pBluetoothDevice->getName()) == _pBtDevInfoConnList[i].cName) &&
                 (MString(pBluetoothDevice->getAddress()) == _pBtDevInfoConnList[i].cAddr))
             {
@@ -182,7 +182,7 @@ eRet CBluetoothNx::updateBluetoothDeviceList()
                 /* Start A2DP if its the right device */
                 if (_pBtDevInfoConnList[i].ulServiceMask & NETAPP_BT_SERVICE_A2DP_SINK)
                 {
-                    BDBG_MSG(("%s: Found A2DP device", __FUNCTION__));
+                    BDBG_MSG(("%s: Found A2DP device", BSTD_FUNCTION));
                     foundConnectedA2DPSink = true;
                     break;
                 }
@@ -190,10 +190,10 @@ eRet CBluetoothNx::updateBluetoothDeviceList()
         }
     }
 
-    BDBG_MSG(("%s: _eBtAVState %d , foundConnectedA2DPSink %d ", __FUNCTION__, _eBtAVState, foundConnectedA2DPSink));
+    BDBG_MSG(("%s: _eBtAVState %d , foundConnectedA2DPSink %d ", BSTD_FUNCTION, _eBtAVState, foundConnectedA2DPSink));
     if ((_eBtAVState == eBtAVState_Off) && foundConnectedA2DPSink)
     {
-        BDBG_MSG(("%s: nx_client version: A2DP connected device found, starting A2DP...", __FUNCTION__));
+        BDBG_MSG(("%s: nx_client version: A2DP connected device found, starting A2DP...", BSTD_FUNCTION));
         BDBG_WRN(("For best bluetooth audio quality, exit out of Bluetooth menu to avoid simultaneous discovery and a2dp streaming "));
         BDBG_WRN(("BSA has a mechanism to decreases bit rate for A2DP during a discovery"));
         notifyObservers(eNotify_BluetoothA2DPStart);
@@ -201,7 +201,7 @@ eRet CBluetoothNx::updateBluetoothDeviceList()
     else
     if ((_eBtAVState == eBtAVState_On) && !foundConnectedA2DPSink)
     {
-        BDBG_MSG(("%s:nx_client version:: NO A2DP connected device found, stoppping A2DP...", __FUNCTION__));
+        BDBG_MSG(("%s:nx_client version:: NO A2DP connected device found, stoppping A2DP...", BSTD_FUNCTION));
         notifyObservers(eNotify_BluetoothA2DPStop);
     }
 
@@ -247,7 +247,7 @@ eRet CBluetoothNx::processAudioData(
 
     NETAPP_RETCODE retNetApp = NETAPP_SUCCESS;
 
-    /*  BDBG_WRN(("%s: >>> process Audio Data buffer addr %p bufferSize %d ", __FUNCTION__, *buffer, bufferSize)); */
+    /*  BDBG_WRN(("%s: >>> process Audio Data buffer addr %p bufferSize %d ", BSTD_FUNCTION, *buffer, bufferSize)); */
     retNetApp = NetAppBluetoothSendAudioBuffer(_pNetApp, *buffer, bufferSize);
     CHECK_NETAPP_ERROR("unable to send Audio Buffer  to Bluetooth device", retNetApp);
 
@@ -261,7 +261,7 @@ eRet CBluetoothNx::processAudioSampleRate(unsigned sampleRate)
 
     BSTD_UNUSED(sampleRate);
 
-    BDBG_MSG(("%s: processAudioSampleRate %d ", __FUNCTION__, sampleRate));
+    BDBG_MSG(("%s: processAudioSampleRate %d ", BSTD_FUNCTION, sampleRate));
     NetAppBluetoothAvStop(_pNetApp);
     _tBtAudioFormat.ulSampleRate = sampleRate;
 
@@ -279,7 +279,7 @@ eRet CBluetoothNx::startAV(void)
 
     if (_eBtAVState == eBtAVState_Off)
     {
-        BDBG_MSG(("%s: bluetooth start AV ", __FUNCTION__));
+        BDBG_MSG(("%s: bluetooth start AV ", BSTD_FUNCTION));
         NetAppBluetoothAvStart(_pNetApp, false, &_tBtAudioFormat);
         _eBtAVState = eBtAVState_On;
     }
@@ -292,7 +292,7 @@ eRet CBluetoothNx::stopAV(void)
 
     if (_eBtAVState == eBtAVState_On)
     {
-        BDBG_MSG(("%s: bluetooth stop AV ", __FUNCTION__));
+        BDBG_MSG(("%s: bluetooth stop AV ", BSTD_FUNCTION));
         NetAppBluetoothAvStop(_pNetApp);
         _eBtAVState = eBtAVState_Off;
     }

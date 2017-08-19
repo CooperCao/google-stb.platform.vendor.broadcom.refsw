@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,21 +35,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* Module Description:
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform linuxuser
-*    linuxuser OS routines
-*
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_module.h"
 #include "nexus_platform_priv.h"
@@ -181,6 +166,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     }
 #endif
     BSTD_UNUSED(i2c_addr);
+    BSTD_UNUSED(i2c);
 #else
     deviceSettings.i2cDevice = pConfig->i2c[i2c];
     deviceSettings.i2cAddress = i2c_addr;

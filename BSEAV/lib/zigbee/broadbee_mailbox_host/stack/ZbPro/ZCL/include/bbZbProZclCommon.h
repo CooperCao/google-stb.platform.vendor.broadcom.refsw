@@ -1,57 +1,273 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-*
-* FILENAME: $Workfile: trunk/stack/ZbPro/ZCL/include/bbZbProZclCommon.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
 *
 * DESCRIPTION:
-*   ZCL common definitions.
+*       ZCL common definitions.
 *
-* $Revision: 9364 $
-* $Date: 2016-01-04 18:21:51Z $
-*
-*****************************************************************************************/
-
+*******************************************************************************/
 
 #ifndef _BB_ZBPRO_ZCL_COMMON_H
 #define _BB_ZBPRO_ZCL_COMMON_H
+
+
+/******************************** ZBPRO ZCL DOCUMENTATION STRUCTURE ***************************/
+/**//**
+ * \defgroup ZBPRO (ZigBee-PRO API)
+ @{
+ * \defgroup ZCL (Cluster Library API)
+ @{
+ * \defgroup ZBPRO_ZCL_Types (Cluster Library Types)
+ @{
+ * \defgroup ZBPRO_ZCL_Misc (Miscellaneous ZCL Types)
+ * \defgroup ZBPRO_ZCL_AttrAccessInd (Attribute Access Indication)
+ * \defgroup ZCL_IAS_ACE_Cluster (IAS ACE Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_IasAceArmReq (IAS ACE ARM Request)
+ * \defgroup ZBPRO_ZCL_IasAceArmConf (IAS ACE ARM Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceArmInd (IAS ACE ARM Indication)
+ * \defgroup ZBPRO_ZCL_IasAceBypassReq (IAS ACE Bypass Request)
+ * \defgroup ZBPRO_ZCL_IasAceBypassConf (IAS ACE Bypass Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceBypassInd (IAS ACE Bypass Indication)
+ * \defgroup ZBPRO_ZCL_IasAceAlarmInd (IAS ACE Alarm Indication)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneIdMapReq (Get Zone ID Map Request)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneIdMapConf (Get Zone ID Map Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneIdMapInd (Get Zone ID Map Indication)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneInfoReq (Get Zone Info Request)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneInfoConf (Get Zone Info Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneInfoInd (Get Zone Info Indication)
+ * \defgroup ZBPRO_ZCL_IasAceGetPanelStatusReq (Get Panel Status Request)
+ * \defgroup ZBPRO_ZCL_IasAceGetPanelStatusConf (Get Panel Status Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceGetPanelStatusInd (Get Panel Status Indication)
+ * \defgroup ZBPRO_ZCL_IasAceSetBypassedZoneListReq (Set Bypassed Zone List Request)
+ * \defgroup ZBPRO_ZCL_IasAceSetBypassedZoneListConf (Set Bypassed Zone List Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceGetBypassedZoneListInd (Get Bypassed Zone List Indication)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneStatusReq (Get Zone Status Request)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneStatusConf (Get Zone Status Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceGetZoneStatusInd (Get Zone Status Indication)
+ * \defgroup ZBPRO_ZCL_IasAceZoneStatusChangedReq (Zone Status Changed Request)
+ * \defgroup ZBPRO_ZCL_IasAceZoneStatusChangedConf (Zone Status Changed Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAcePanelStatusChangedReq (Panel Status Changed Request)
+ * \defgroup ZBPRO_ZCL_IasAcePanelStatusChangedConf (Panel Status Changed Confirmation)
+ * \defgroup ZBPRO_ZCL_IasAceCommonConf (IAS ACE Common Cofirmation)
+ @}
+ * \defgroup ZCL_Window_Covering (Window Covering Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_WC_Attr (Window Covering Attributes)
+ * \defgroup ZBPRO_ZCL_WindowCoveringReq (Window Covering Command Request)
+ * \defgroup ZBPRO_ZCL_WindowCoveringConf (Window Covering Command Confirmation)
+ * \defgroup ZBPRO_ZCL_WindowCoveringLiftTiltPercentReq (Window Covering Lift/Tilt Percent Request)
+ * \defgroup ZBPRO_ZCL_WindowCoveringLiftTiltPercentConf (Window Covering Lift/Tilt Percent Confirmation)
+ @}
+ * \defgroup ZCL_Groups (Groups Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_GroupsAddGroupReq (Add Group Request)
+ * \defgroup ZBPRO_ZCL_GroupsAddGroupConf (Add Group Confirmation)
+ * \defgroup ZBPRO_ZCL_GroupsViewGroupReq (View Group Request)
+ * \defgroup ZBPRO_ZCL_GroupsViewGroupConf (View Group Confirmation)
+ * \defgroup ZBPRO_ZCL_GroupsGetGroupMembershipReq (Get Group Membership Request)
+ * \defgroup ZBPRO_ZCL_GroupsGetGroupMembershipConf (Get Group Membership Confirmation)
+ * \defgroup ZBPRO_ZCL_GroupsGetGroupMembershipInd (Get Group Membership Indication)
+ * \defgroup ZBPRO_ZCL_GroupsRemoveGroupReq (Remove Group Request)
+ * \defgroup ZBPRO_ZCL_GroupsRemoveGroupConf (Remove Group Confirmation)
+ * \defgroup ZBPRO_ZCL_GroupsRemoveAllGroupsReq (Remove All Groups Request)
+ * \defgroup ZBPRO_ZCL_GroupsRemoveAllGroupsConf (Remove All Groups Confirmation)
+ * \defgroup ZBPRO_ZCL_GroupsAddGroupIfIdentifyReq (Add Group If Identify Request)
+ * \defgroup ZBPRO_ZCL_GroupsAddGroupIfIdentifyConf (Add Group If Identify Confirmation)
+ @}
+ * \defgroup ZCL_DoorLock (Door Lock Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_DoorLockAttr (Door Lock Attributes)
+ * \defgroup ZBPRO_ZCL_DoorLockCmds (Door Lock Commands)
+ * \defgroup ZBPRO_ZCL_DoorLockCmdLockUnlockReq (Door Lock/Unlock Request)
+ * \defgroup ZBPRO_ZCL_DoorLockCmdLockUnlockConf (Door Lock/Unlock Confirmation)
+ @}
+ * \defgroup ZCL_Identify (Identify Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_IdentifyAttr (Identify Attributes)
+ * \defgroup ZBPRO_ZCL_IdentifyReq (Identify Request)
+ * \defgroup ZBPRO_ZCL_IdentifyConf (Identify Confirmation)
+ * \defgroup ZBPRO_ZCL_IdentifyInd (Identify Indication)
+ * \defgroup ZBPRO_ZCL_IdentifyResponseReq (Identify Response Request)
+ * \defgroup ZBPRO_ZCL_IdentifyResponseConf (Identify Response Confirmation)
+ * \defgroup ZBPRO_ZCL_IdentifyQueryReq (Identify Query Request)
+ * \defgroup ZBPRO_ZCL_IdentifyQueryConf (Identify Query Confirmation)
+ * \defgroup ZBPRO_ZCL_IdentifyQueryInd (Identify Query Indication)
+ * \defgroup ZBPRO_ZCL_IdentifyQueryResponseReq (Identify Query Response Request)
+ * \defgroup ZBPRO_ZCL_IdentifyQueryResponseConf (Identify Query Response Confirmation)
+ * \defgroup ZBPRO_ZCL_IdentifyQueryResponseInd (Identify Query Response Indication)
+ @}
+ * \defgroup ZCL_Basic (Basic Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_SetPowerSourceReq (Set Power Source Request)
+ * \defgroup ZBPRO_ZCL_SetPowerSourceConf (Set Power Source Confirmation)
+ * \defgroup ZBPRO_ZCL_BasicAttr (Basic Cluster Attributes)
+ @}
+ * \defgroup ZCL_OTAU (OTAU Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_OTAUNextImageInd (OTAU Next Image Indication)
+ * \defgroup ZBPRO_ZCL_OTAUNextImageRespReq (OTAU Next Image Response Request)
+ * \defgroup ZBPRO_ZCL_OTAUNextImageRespConf (OTAU Next Image Response Confirmation)
+ * \defgroup ZBPRO_ZCL_OTAUImageBlockInd (OTAU Image Block Indication)
+ * \defgroup ZBPRO_ZCL_OTAUImageBlockRespReq (OTAU Image Block Response Request)
+ * \defgroup ZBPRO_ZCL_OTAUImageBlockRespConf (OTAU Image Block Response Confirmation)
+ * \defgroup ZBPRO_ZCL_OTAUUpgradeEndInd (OTAU Upgrade End Indication)
+ * \defgroup ZBPRO_ZCL_OTAUUpgradeEndRespReq (OTAU Upgrade End Response Request)
+ * \defgroup ZBPRO_ZCL_OTAUUpgradeEndRespConf (OTAU Upgrade End Response Confirmation)
+ @}
+ * \defgroup ZCL_ColorControl (Color Control Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_ColorControlAttr (Color Control Attributes)
+ * \defgroup ZBPRO_ZCL_ColorControlParam (Color Control Parameters)
+ * \defgroup ZBPRO_ZCL_MoveToColorReq (Move to Color Request)
+ * \defgroup ZBPRO_ZCL_MoveToColorConf (Move to Color Confirmation)
+ * \defgroup ZBPRO_ZCL_MoveColorReq (Move Color Request)
+ * \defgroup ZBPRO_ZCL_MoveColorConf (Move Color Confirmation)
+ * \defgroup ZBPRO_ZCL_StepColorReq (Step Color Request)
+ * \defgroup ZBPRO_ZCL_StepColorConf (Step Color Confirmation)
+ * \defgroup ZBPRO_ZCL_EnhancedMoveToHueReq (Enhanced Move to Hue Request)
+ * \defgroup ZBPRO_ZCL_EnhancedMoveToHueConf (Enhanced Move to Hue Confirmation)
+ * \defgroup ZBPRO_ZCL_EnhancedMoveHueReq (Enhanced Move Hue Request)
+ * \defgroup ZBPRO_ZCL_EnhancedMoveHueConf (Enhanced Move Hue Confirmation)
+ * \defgroup ZBPRO_ZCL_EnhancedStepHueReq (Enhanced Step Hue Request)
+ * \defgroup ZBPRO_ZCL_EnhancedStepHueConf (Enhanced Step Hue Confirmation)
+ * \defgroup ZBPRO_ZCL_EnhancedMoveToHASReq (Enhanced Move to Hue and Saturation Request)
+ * \defgroup ZBPRO_ZCL_EnhancedMoveToHASConf (Enhanced Move to Hue and Saturation Confirmation)
+ * \defgroup ZBPRO_ZCL_ColorLoopSetReq (Color Loop Set Request)
+ * \defgroup ZBPRO_ZCL_ColorLoopSetConf (Color Loop Set Confirmation)
+ * \defgroup ZBPRO_ZCL_StopMoveStepReq (Stop Move Step Request)
+ * \defgroup ZBPRO_ZCL_StopMoveStepConf (Stop Move Step Confirmation)
+ * \defgroup ZBPRO_ZCL_MoveColorTemperatureReq (Move Color Temperature Request)
+ * \defgroup ZBPRO_ZCL_MoveColorTemperatureConf (Move Color Temperature Confirmation)
+ * \defgroup ZBPRO_ZCL_StepColorTemperatureReq (Step Color Temperature Request)
+ * \defgroup ZBPRO_ZCL_StepColorTemperatureConf (Step Color Temperature Confirmation)
+ @}
+ * \defgroup ZCL_IAS_WD (IAS Warning Device Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_IASWDAttr (IAS WD Attributes)
+ * \defgroup ZBPRO_ZCL_StartWarningReq (Start Warning Request)
+ * \defgroup ZBPRO_ZCL_StartWarningConf (Start Warning Confirmation)
+ * \defgroup ZBPRO_ZCL_SquawkReq (Squawk Request)
+ * \defgroup ZBPRO_ZCL_SquawkConf (Squawk Confirmation)
+ @}
+ * \defgroup ZCL_Level_Control (Level Control Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_LevelControlAttr (Level Control Attributes)
+ * \defgroup ZBPRO_ZCL_MoveToLevelReq (Move to Level Request)
+ * \defgroup ZBPRO_ZCL_MoveToLevelConf (Move to Level Confirmation)
+ * \defgroup ZBPRO_ZCL_StepReq (Step Request)
+ * \defgroup ZBPRO_ZCL_StepConf (Step Confirmation)
+ * \defgroup ZBPRO_ZCL_StopReq (Stop Request)
+ * \defgroup ZBPRO_ZCL_StopConf (Stop Confirmation)
+ * \defgroup ZBPRO_ZCL_MoveReq (Move Request)
+ * \defgroup ZBPRO_ZCL_MoveConf (Move Confirmation)
+ @}
+ * \defgroup ZCL_Profile_Wide (Profile-Wide Types)
+ @{
+ * \defgroup ZBPRO_ZCL_ProfileWideAttr (Profile-Wide Attibutes)
+ * \defgroup ZBPRO_ZCL_ReadAttrReq (Read Attributes Request)
+ * \defgroup ZBPRO_ZCL_ReadAttrConf (Read Attributes Confirmation)
+ * \defgroup ZBPRO_ZCL_ReadAttrInd (Read Attributes Indication)
+ * \defgroup ZBPRO_ZCL_ReadAttrRespReq (Read Attributes Response Request)
+ * \defgroup ZBPRO_ZCL_ReadAttrRespConf (Read Attributes Response Confirmation)
+ * \defgroup ZBPRO_ZCL_WriteAttrReq (Write Attributes Request)
+ * \defgroup ZBPRO_ZCL_WriteAttrConf (Write Attributes Confirmation)
+ * \defgroup ZBPRO_ZCL_WriteAttrInd (Write Attributes Indication)
+ * \defgroup ZBPRO_ZCL_WriteAttrRespReq (Write Attributes Response Request)
+ * \defgroup ZBPRO_ZCL_WriteAttrRespConf (Write Attributes Response Confirmation)
+ * \defgroup ZBPRO_ZCL_DiscoverAttrReq (Discover Attributes Request)
+ * \defgroup ZBPRO_ZCL_DiscoverAttrConf (Discover Attributes Confirmation)
+ * \defgroup ZBPRO_ZCL_DiscoverAttrInd (Discover Attributes Indication)
+ * \defgroup ZBPRO_ZCL_ConfigureReportingReq (Configure Reporting Request)
+ * \defgroup ZBPRO_ZCL_ConfigureReportingConf (Configure Reporting Confirmation)
+ * \defgroup ZBPRO_ZCL_ReadReportingConfigurationReq (Read Reporting Configuration Request)
+ * \defgroup ZBPRO_ZCL_ReadReportingConfigurationConf (Read Reporting Configuration Confirmation)
+ * \defgroup ZBPRO_ZCL_ReportAttributesInd (Report Atrributes Indication)
+ @}
+ * \defgroup ZCL_IAS_Zone (IAS Zone Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_IASZoneAttr (IAS Zone Attibutes)
+ * \defgroup ZBPRO_ZCL_ZoneEnrollReq (Zone Enroll Request)
+ * \defgroup ZBPRO_ZCL_ZoneEnrollInd (Zone Enroll Indication)
+ * \defgroup ZBPRO_ZCL_ZoneEnrollRespReq (Zone Enroll Response Request)
+ * \defgroup ZBPRO_ZCL_ZoneEnrollRespConf (Zone Enroll Response Confirmation)
+ * \defgroup ZBPRO_ZCL_ZoneStatusChangeNotificationReq (Zone Status Changed Notification Request)
+ * \defgroup ZBPRO_ZCL_ZoneStatusChangeNotificationInd (Zone Status Changed Notification Indication)
+ @}
+ * \defgroup ZCL_OnOff (On/Off Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_OnOffAttr (On/Off Cluster Attributes)
+ * \defgroup ZBPRO_ZCL_OnOffReq (On/Off Request)
+ * \defgroup ZBPRO_ZCL_OnOffConf (On/Off Confirmation)
+ @}
+ * \defgroup ZCL_Scenes (Scenes Cluster Types)
+ @{
+ * \defgroup ZBPRO_ZCL_ScenesAttr (Scenes Cluster Attributes)
+ * \defgroup ZBPRO_ZCL_AddSceneReq (Add Scene Request)
+ * \defgroup ZBPRO_ZCL_AddSceneInd (Add Scene Indication)
+ * \defgroup ZBPRO_ZCL_AddSceneConf (Add Scene Confirmation)
+ * \defgroup ZBPRO_ZCL_GroupIdSceneIdReq (View/Remove/Store/Recall Scene Request)
+ * \defgroup ZBPRO_ZCL_ViewSceneReq (View Scene Request)
+ * \defgroup ZBPRO_ZCL_ViewSceneInd (View Scene Indication)
+ * \defgroup ZBPRO_ZCL_ViewSceneConf (View Scene Confirmation)
+ * \defgroup ZBPRO_ZCL_RemoveSceneReq (Remove Scene Request)
+ * \defgroup ZBPRO_ZCL_RemoveSceneInd (Remove Scene Indication)
+ * \defgroup ZBPRO_ZCL_RemoveSceneConf (Remove Scene Confirmation)
+ * \defgroup ZBPRO_ZCL_StoreSceneReq (Store Scene Request)
+ * \defgroup ZBPRO_ZCL_StoreSceneInd (Store Scene Indication)
+ * \defgroup ZBPRO_ZCL_StoreSceneConf (Store Scene Confirmation)
+ * \defgroup ZBPRO_ZCL_RecallSceneReq (Recall Scene Request)
+ * \defgroup ZBPRO_ZCL_RecallSceneConf (Recall Scene Confirmation)
+ * \defgroup ZBPRO_ZCL_ScenesConf (Recall Scene/GetSceneMembership Confirmation)
+ * \defgroup ZBPRO_ZCL_GroupIdReq (RemoveAllScenes/GetSceneMembership Request)
+ * \defgroup ZBPRO_ZCL_RemoveAllScenesReq (Remove All Scenes Request)
+ * \defgroup ZBPRO_ZCL_RemoveAllScenesInd (Remove All Scenes Indication)
+ * \defgroup ZBPRO_ZCL_RemoveAllScenesConf (Remove All Scenes Confirmation)
+ * \defgroup ZBPRO_ZCL_GetSceneMembershipReq (Get Scene Membership Request)
+ * \defgroup ZBPRO_ZCL_GetSceneMembershipInd (Get Scene Membership Indication)
+ * \defgroup ZBPRO_ZCL_GetSceneMembershipConf (Get Scene Membership Confirmation)
+ @}
+ @}
+ * \defgroup ZBPRO_ZCL_Functions (Cluster Library Routines)
+ @}
+ @}
+ */
 
 
 /************************* INCLUDES *****************************************************/
@@ -63,6 +279,7 @@
 /************************* DEFINITIONS **************************************************/
 /**//**
  * \brief   Enumeration of ZCL Statuses.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 2.5.3, table 2-10.
  */
@@ -185,6 +402,7 @@ SYS_DbgAssertStatic(1 == sizeof(ZBPRO_ZCL_Status_t));
 
 /**//**
  * \brief   Enumeration of ZCL Clusters.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  Take into account that identifiers are listed in the original order according to the
  *  official specification; they are not sorted by their numeric values.
@@ -448,6 +666,7 @@ SYS_DbgAssertStatic(2 == sizeof(ZBPRO_ZCL_ClusterId_t));
 
 /**//**
  * \brief   Enumeration of ZCL Frame Types.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  First two items (i.e., profile-wide and cluster-specific) are used as binary (1-bit
  *  width) values.
@@ -473,6 +692,7 @@ typedef enum _ZBPRO_ZCL_FrameType_t
 
 /**//**
  * \brief   Enumeration of ZCL Frame Domains: ZCL Standard or Manufacturer Specific.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 2.3.1.1.2, figure 2-3.
  */
@@ -495,6 +715,7 @@ typedef enum _ZBPRO_ZCL_FrameDomain_t
 
 /**//**
  * \brief   Enumeration of ZCL Frame Directions.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 2.3.1.1.3, figure 2-3.
  */
@@ -512,6 +733,7 @@ typedef enum _ZBPRO_ZCL_FrameDirection_t
  * \brief   Enumeration of ZCL Cluster Sides.
  * \details
  *  This enumeration takes its origin from the frame Direction field of ZCL frame.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 2.3.1.1.3, figure 2-3.
  */
@@ -539,6 +761,7 @@ typedef enum _ZBPRO_ZCL_ClusterSide_t
  *  If disabled, the next condition is added to the previous list:
  *  - status returned on this command is not SUCCESS (i.e., one of error results).
  *
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclause 2.3.1.1.4, figure 2-3.
  */
@@ -554,6 +777,7 @@ typedef enum _ZBPRO_ZCL_DisableDefaultResp_t
 
 /**//**
  * \brief   Enumeration of ZCL Response Types: Specific and Default.
+ * \ingroup ZBPRO_ZCL_Misc
  */
 typedef enum _ZBPRO_ZCL_ResponseType_t
 {
@@ -566,6 +790,7 @@ typedef enum _ZBPRO_ZCL_ResponseType_t
 
 /**//**
  * \brief   Data type for ZCL Manufacturer Code.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.3.1, 2.3.1.2, figure 2-2.
  */
@@ -579,6 +804,7 @@ SYS_DbgAssertStatic(2 == sizeof(ZBPRO_ZCL_ManufCode_t));
 
 /**//**
  * \brief   Data type for ZCL Transaction Sequence Number.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.3.1, 2.3.1.3, figure 2-2.
  */
@@ -587,6 +813,7 @@ typedef uint8_t  ZBPRO_ZCL_TransSeqNum_t;
 
 /**//**
  * \brief   Data type for ZCL Command identifier.
+ * \ingroup ZBPRO_ZCL_Misc
  * \par     Documentation
  *  See ZigBee Document 075123r05, subclauses 2.3.1, 2.3.1.4, figure 2-2.
  */
@@ -607,6 +834,7 @@ typedef uint8_t  ZBPRO_ZCL_CommandId_t;
  *  value used only internally by ZCL Dispatcher. If timeout is assigned with 0x0000 from
  *  the outside of ZCL Dispatcher, it's replaced with 0xFFFF value - consequently, 0x0000
  *  when specified externally also stands for using the default timeout.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  For some specific commands there may be implemented different logic of waiting for
  *  response, especially for the case of multiple responses (when each response is
@@ -632,6 +860,7 @@ typedef uint16_t  ZBPRO_ZCL_Timeout_t;
  *  acting as the command originator within ZCL Local Request/Response parameters, and
  *  inversely by ZCL layer of recipient node within ZCL Local Indication/Confirm
  *  parameters when notifying local application.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  Take into account that the Profile Identifier (as well as the Instance Identifier) is
  *  not included into this structure. Profile (and Instance also) is determined by APS
@@ -775,6 +1004,23 @@ typedef struct _ZbProZclLocalPrimitiveObligatoryPart_t
                 outgoing Default Responses (i.e., when \c useDefaultResponse equals to TRUE) to instruct ZCL Dispatcher
                 to abort issuing of the Default Response with SUCCESS status. */
 
+    Bool8_t                         useApsLinkKey;
+            /*!< When assigned to TRUE in parameters of ZCL Request or ZCL Response, ZCL will instruct APS to use the
+               appropriate Link key (if it was assigned) when sending the APS Data frame with this ZCL command. When
+               assigned to FALSE, ZCL will instruct APS to avoid using APS Security; in this case the frame will be
+               secured only by NWK (if possible). In parameters of ZCL Indication this flag is set to TRUE by ZCL
+               Dispatcher if the received APS Data frame was secured by originator's APS; FALSE otherwise. When
+               constructing specific ZCL Response, application should use the same flag of the corresponding ZCL
+               Indication to assign the value to this flag of a ZCL Response. The Default Response, when it is sent by
+               ZCL Dispatcher automatically, is sent either secured by APS or not depending on whether the received
+               frame was secured by the originator's APS. */
+
+    Bool8_t                         updateExistingRoute;
+            /*!< When assigned to TRUE in parameters of ZCL Request or ZCL Response, ZCL will instruct APS/NWK to force
+               route discovery to the recipient device. When assigned to FALSE, APS/NWK will decide automatically
+               whether to discover route or not. The Default Response, when it is sent by ZCL Dispatcher automatically,
+               does not force route discovery. */
+
 } ZbProZclLocalPrimitiveObligatoryPart_t;
 
 
@@ -784,6 +1030,7 @@ typedef struct _ZbProZclLocalPrimitiveObligatoryPart_t
  * \details
  *  This structure defines the obligatory set of ZCL Local Primitive parameters and their
  *  relative order to each other and to other custom parameters of particular primitive.
+ * \ingroup ZBPRO_ZCL_Misc
  */
 typedef struct _ZbProZclLocalPrimitiveParamsPrototype_t
 {
@@ -817,6 +1064,7 @@ typedef struct _ZbProZclLocalPrimitiveParamsPrototype_t
  *  This structure defines standard offset (the relative position to the origin) of
  *  the obligatory \c params.zclObligatoryPart subfield within ZCL Local Primitive
  *  Descriptor structure for all primitives compatible with this ZCL Dispatcher.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  ZCL Responses issued by the local application to its ZCL layer via the mechanism of
  *  request-confirms (but not responses indeed). Consequently, all the so-called ZCL
@@ -827,6 +1075,7 @@ typedef struct _ZbProZclLocalPrimitiveDescrPrototype_t  ZbProZclLocalPrimitiveDe
 
 /**//**
  * \brief   Data type for Prototype of ZCL Local Confirmation callback function.
+ * \ingroup ZBPRO_ZCL_Misc
  * \param[in]   reqDescr        Pointer to the descriptor of request being confirmed.
  * \param[in]   confParams      Pointer to the confirmation parameters structure.
  * \note
@@ -848,6 +1097,7 @@ typedef void ZbProZclLocalPrimitiveCallbackPrototype_t(
  *  ZCL Responses issued by the local application to its ZCL layer via the mechanism of
  *  request-confirms (but not responses indeed). Consequently, all the so-called ZCL
  *  Responses also use this type as well as ZCL Requests.
+ * \ingroup ZBPRO_ZCL_Misc
  */
 typedef RpcLocalRequest_t  ZbProZclLocalPrimitiveDescrService_t;
 
@@ -858,6 +1108,7 @@ typedef RpcLocalRequest_t  ZbProZclLocalPrimitiveDescrService_t;
  *  This structure defines standard offset (the relative position to the origin) of
  *  the obligatory \c params.zclObligatoryPart subfield within ZCL Local Primitive
  *  Descriptor structure for all primitives compatible with this ZCL Dispatcher.
+ * \ingroup ZBPRO_ZCL_Misc
  * \note
  *  ZCL Responses issued by the local application to its ZCL layer via the mechanism of
  *  request-confirms (but not responses indeed). Consequently, all the so-called ZCL
@@ -876,6 +1127,15 @@ struct _ZbProZclLocalPrimitiveDescrPrototype_t
     ZbProZclLocalPrimitiveParamsPrototype_t    params;          /*!< ZCL Primitive Parameters structure prototype. */
 };
 
+/**//**
+ * \brief Common types for Attribute commands.
+ * \ingroup ZBPRO_ZCL_Misc
+ * \par     Documentation
+ *  See ZigBee Document 075123r05, subclauses 2.4.1.1, 2.4.2.1, 2.4.3.1, 2.4.5.1, figures
+ *  2-5, 2-7, 2-11, 2-13.
+ */
+typedef uint16_t  ZBPRO_ZCL_AttributeId_t;
+
 
 /**//**
  * \brief   Validates presence and offset of the obligatory parameters within custom ZCL
@@ -892,3 +1152,5 @@ struct _ZbProZclLocalPrimitiveDescrPrototype_t
 
 
 #endif /* _BB_ZBPRO_ZCL_COMMON_H */
+
+/* eof bbZbProZclCommon.h */

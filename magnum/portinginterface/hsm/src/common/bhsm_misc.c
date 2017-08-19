@@ -1,42 +1,39 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 
 #include "bhsm.h"
@@ -223,7 +220,7 @@ BERR_Code BHSM_SetPciMaxWindowSize (
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
     if( status != 0  ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_WRN(("%s: BSP error status [0x%0X] returned", __FUNCTION__, status ));
+        BDBG_WRN(("%s: BSP error status [0x%0X] returned", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -295,7 +292,7 @@ BERR_Code BHSM_SetArch( BHSM_Handle hHsm, BHSM_SetArchIO_t *pSetArch )
             }
             else
             {
-                BDBG_ERR(("%s Non-Exclusive mode for Zeus 4.2+ not implemented ", __FUNCTION__ ));
+                BDBG_ERR(("%s Non-Exclusive mode for Zeus 4.2+ not implemented ", BSTD_FUNCTION ));
                 goto BHSM_P_DONE_LABEL;
             }
         #endif
@@ -320,27 +317,27 @@ BERR_Code BHSM_SetArch( BHSM_Handle hHsm, BHSM_SetArchIO_t *pSetArch )
         {
             case 0x20:
             {
-                BDBG_ERR(("%s Arch config error. [0x%02X]", __FUNCTION__, status ));
+                BDBG_ERR(("%s Arch config error. [0x%02X]", BSTD_FUNCTION, status ));
                 goto BHSM_P_DONE_LABEL;
             }
             case 0x21:
             {
-                BDBG_ERR(("%s Arch size error. [0x%02X]", __FUNCTION__, status ));
+                BDBG_ERR(("%s Arch size error. [0x%02X]", BSTD_FUNCTION, status ));
                 goto BHSM_P_DONE_LABEL;
             }
             case 0x23:
             {
-                BDBG_ERR(("%s Arch already configured. [0x%02X]", __FUNCTION__, status ));
+                BDBG_ERR(("%s Arch already configured. [0x%02X]", BSTD_FUNCTION, status ));
                 goto BHSM_P_DONE_LABEL;
             }
             case 0x24:
             {
-                BDBG_ERR(("%s Arch address error. [0x%02X]", __FUNCTION__, status ));
+                BDBG_ERR(("%s Arch address error. [0x%02X]", BSTD_FUNCTION, status ));
                 goto BHSM_P_DONE_LABEL;
             }
             default:
             {
-                BDBG_ERR(("%s BSP status error. [0x%02X]", __FUNCTION__, status ));
+                BDBG_ERR(("%s BSP status error. [0x%02X]", BSTD_FUNCTION, status ));
                 goto BHSM_P_DONE_LABEL;
             }
         }
@@ -425,7 +422,7 @@ BERR_Code  BHSM_SetVichRegPar (
         }
         case 0x22:
         {
-            BDBG_WRN(("%s: VICH#%d Already Configured.", __FUNCTION__, pSetVich->VDECId));
+            BDBG_WRN(("%s: VICH#%d Already Configured.", BSTD_FUNCTION, pSetVich->VDECId));
 			/* Pass on success to the client. */
 			pSetVich->unStatus = 0;
             break; /* success */
@@ -433,7 +430,7 @@ BERR_Code  BHSM_SetVichRegPar (
         default:
         {
             rc = BHSM_STATUS_BSP_ERROR;
-            BDBG_ERR(("%s BSP status error. [0x%02X]", __FUNCTION__, status ));
+            BDBG_ERR(("%s BSP status error. [0x%02X]", BSTD_FUNCTION, status ));
             break;
         }
     }
@@ -508,7 +505,7 @@ BERR_Code  BHSM_StartAVD(
     if( status != 0 )
     {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP status error. [0x%02X]", __FUNCTION__, status ));
+        BDBG_ERR(("%s BSP status error. [0x%02X]", BSTD_FUNCTION, status ));
         goto BHSM_P_DONE_LABEL;
     }
 

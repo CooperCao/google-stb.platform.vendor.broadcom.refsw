@@ -1,0 +1,99 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Script for duplicating PR85977
+# By connecting, collecting RSSI, traffic, and measuring the next traffic pattern
+# 
+# Assumes that STA and AP are loaded
+#
+# $Id: 331b00df2a653bca1da7a77382441e2850d7d94b $
+# $Copyright Broadcom Corporation$
+
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Aeroflex
+
+
+UTF::Test PR85977 {AP STA args} {
+    UTF::Getopts {
+	{count.arg 20 "Number of Loops to Try"}
+	{attenuator.arg "" "Attenuator to Use"}
+	{attenstart.arg 0 "Starting Attenuator Value to Use"}
+	{email.arg "" "Email to Use"}
+    {errRSSI.arg 0 "Rate at Which You Error for RSSI"}
+	{errrate.arg 45 "Rate at Which You Error for Traffic"}
+	}
+
+    UTF::WrapSummary $UTF::SummaryDir "PR85977" "" "$(email)" {
+
+        # Ensure Attenuation is set to attenstart
+	UTF::Message LOG "" "Setting attenuator to $(attenstart)"
+	if {[catch {ALL attn $(attenstart)} temp]} {
+    	    UTF::Message WARN "" "Setting attenuator failed: $temp"
+	}
+
+
+        #set window size
+        set w [$STA cget -tcpwindow]; # Default window size
+
+        # Put the STA information on web page
+        UTF::Try "Whatami STA $STA" {
+            $STA whatami
+        }
+    
+        # Put STA message level for scan and assoc
+        $STA wl msglevel +scan +assoc
+        $STA wl down
+        $STA wl up
+
+        # Loop here
+        for {set i 1} {$i <= $(count)} {incr i} {
+            UTF::Try "Try $i/$(count)" {
+
+                # Connect AP and STA
+                catch {ConnectAPSTA $AP $STA -chanspec 3 -security open} connect
+
+                # dump rssi and status
+                catch {$STA wl rssi} rssi
+                catch {$STA wl status} status
+
+                # clear ampdu on router, also place for developer needed stats
+                $STA wl ampdu_clear_dump
+
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}
+                
+                
+                # Do traffic and see what happens from STA to Lan
+                catch {UTF::Multiperf [list $STA [$AP lan]] -t 2 -w 512k} ret
+
+                # Dump ampdu after tests on router, also place for developer needed stats
+                $STA wl dump ampdu
+                
+                # break of if the RSSI is greater than expected and TP is lower than Expected
+                if {$rssi > $(errRSSI) && $ret < $(errrate)} {
+                    set i $(count)
+                    UTF::Message Info "" "Rate is: $ret, RSSI is $rssi"
+                    error $rssi
+                    } else {
+                        if {$ret < $(errrate)} {
+                            UTF::Message Info "" "Low TP Possibly Due to PR86216: $ret"
+                        }
+                  }
+                
+                # return the value of the performance test and rssi
+                set ret "html: TP: $ret, RSSI: $rssi"
+
+                # Disassoc
+                catch {$STA wl disassoc}
+
+                # wl down
+                catch {$STA wl down}
+                                
+                return $ret
+            }
+        }
+    }
+}

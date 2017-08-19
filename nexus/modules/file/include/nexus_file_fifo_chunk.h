@@ -54,16 +54,10 @@ typedef struct NEXUS_ChunkedFifoRecord *NEXUS_ChunkedFifoRecordHandle;
 /*
 Summary:
 Configuration parameters for the timeshifting buffer
-
-Description:
-Those numbers are used to limit size of the timishifting buffer to be occupied on the disk.
-Usually software stack would try do not exceed soft limit of the timeshifting buffer, however
-in certain cases, for example, if bitrates of the recorded stream suddenly increases, it could
-go up to hardlimit. Once hardlimit is reached it would result in the overflow error.
 */
 typedef struct NEXUS_ChunkedFifoRecordLimit {
-    off_t soft; /* soft limit of the timeshifting buffer, in bytes */
-    off_t hard; /* hard limit of the timeshifting buffer, in bytes */
+    off_t soft; /* see NEXUS_FifoRecordLimit.soft */
+    off_t hard; /* unused */
     off_t chunkSize;    /* Maximum size of the single chunk, 0 - unlimited size */
 } NEXUS_ChunkedFifoRecordLimit;
 

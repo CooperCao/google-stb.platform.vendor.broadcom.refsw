@@ -243,13 +243,13 @@ void khrn_fmem_pool_submit(
    client_pool_add_submitted_buffers(pool->n_buffers);
 }
 
-static bool buffer_contains(const khrn_fmem_buffer *buffer, void *address)
+static bool buffer_contains(const khrn_fmem_buffer *buffer, const void *address)
 {
    uintptr_t offset = (uintptr_t)address - (uintptr_t)buffer->cpu_address;
    return offset < KHRN_FMEM_BUFFER_SIZE;
 }
 
-static khrn_fmem_buffer *get_buffer_containing(const khrn_fmem_pool *pool, void *address)
+static khrn_fmem_buffer *get_buffer_containing(const khrn_fmem_pool *pool, const void *address)
 {
    static unsigned lastMatchedBufIndx = 0;
 
@@ -279,7 +279,7 @@ static khrn_fmem_buffer *get_buffer_containing(const khrn_fmem_pool *pool, void 
    return NULL;
 }
 
-v3d_addr_t khrn_fmem_pool_hw_address(khrn_fmem_pool *pool, void *address)
+v3d_addr_t khrn_fmem_pool_hw_address(khrn_fmem_pool *pool, const void *address)
 {
    khrn_fmem_buffer *buffer = get_buffer_containing(pool, address);
    return buffer->hw_address + ((char *)address - (char *)buffer->cpu_address);

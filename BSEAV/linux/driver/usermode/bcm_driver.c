@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -94,6 +94,15 @@
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
 #include "asm/brcmstb/brcmstb.h"
 #endif
+
+#define BDBG_LOG(x)
+#define BDBG_FILE_MODULE(x) extern int __unused
+#define BDBG_MODULE_MSG(x,y) PDEBUG y
+#define BDBG_ASSERT(x)  ((x) ? (void)0 : (void)0)
+#define BDBG_CASSERT(expr) do switch(0){case 0: case (expr):;} while(0)
+#define BKNI_Memcmp     memcmp
+#define BKNI_Free(x) kfree(x)
+#define BKNI_Malloc(x) kmalloc(x, GFP_KERNEL)
 
 static struct {
     unsigned bchp_physical_offset;
@@ -1508,6 +1517,14 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             data->info.reserved.range[i].addr = data->memory.reserved.range[i].addr;
             data->info.reserved.range[i].size = data->memory.reserved.range[i].size;
         }
+        for(i=0;i<BCMDRIVER_MAX_RANGES;i++) {
+#if BRCMSTB_H_VERSION >= 10
+            BDBG_CASSERT(sizeof(data->info.reserved.range_name[i].name)==sizeof(data->memory.reserved.range_name[i].name));
+            memcpy(data->info.reserved.range_name[i].name, data->memory.reserved.range_name[i].name, sizeof(data->memory.reserved.range_name[i].name));
+#else
+            memset(data->info.reserved.range_name, 0, sizeof(data->info.reserved.range_name));
+#endif
+        }
         data->info.lowmem.count = data->memory.lowmem.count;
         for(i=0;i<BCMDRIVER_MAX_RANGES;i++) {
             data->info.lowmem.range[i].addr = data->memory.lowmem.range[i].addr;
@@ -1945,13 +1962,6 @@ static void __exit __cleanup_module(void)
 
 module_exit(__cleanup_module);
 
-#define BDBG_LOG(x)
-#define BDBG_FILE_MODULE(x) extern int __unused
-#define BDBG_MODULE_MSG(x,y) PDEBUG y
-#define BDBG_ASSERT(x)  ((x) ? (void)0 : (void)0)
-#define BKNI_Memcmp     memcmp
-#define BKNI_Free(x) kfree(x)
-#define BKNI_Malloc(x) kmalloc(x, GFP_KERNEL)
 
 #include "b_memory_regions.inc"
 #include "b_vmalloc.inc"

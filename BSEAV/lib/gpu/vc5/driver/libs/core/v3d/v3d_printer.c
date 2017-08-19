@@ -139,7 +139,7 @@ void v3d_basic_printer_begin(struct v3d_printer *root, v3d_printer_container_typ
    const struct v3d_basic_printer_container *parent_c =
       (p->num_containers == 0) ? NULL : &p->containers[p->num_containers - 1];
 
-   assert(p->num_containers < vcos_countof(p->containers));
+   assert(p->num_containers < countof(p->containers));
    struct v3d_basic_printer_container *c = &p->containers[p->num_containers++];
 
    c->type = type;

@@ -7,6 +7,7 @@
 #include "glsl_ast_visitor.h"
 #include "glsl_primitive_types.auto.h"
 #include "glsl_map.h"
+#include "glsl_fastmem.h"
 
 #include "glsl_stdlib.auto.h"
 

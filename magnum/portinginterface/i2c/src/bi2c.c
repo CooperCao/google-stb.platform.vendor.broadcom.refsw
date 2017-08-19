@@ -2134,7 +2134,7 @@ static BERR_Code BI2C_P_SetupHdmiHwAccess(
     BSTD_UNUSED(cnt1);
     BSTD_UNUSED(cnt2);
 
-    BDBG_ERR(("%s: Not Supported", __FUNCTION__));
+    BDBG_ERR(("%s: Not Supported", BSTD_FUNCTION));
     return BERR_NOT_SUPPORTED;
 }
 

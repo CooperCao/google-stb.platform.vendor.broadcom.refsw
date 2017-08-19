@@ -47,14 +47,10 @@
 #include "bvbi_priv.h"        /* VBI internal data structures */
 #include "bavc_hdmi.h"
 
+#if BVBI_NUM_CGMSAE > 0 /** { **/
+
 #if (BVBI_NUM_CGMSAE >= 1)
 #include "bchp_cgmsae_0.h" /* RDB info for primary CGMSE core */
-#endif
-#if (BVBI_NUM_CGMSAE >= 2)
-#include "bchp_cgmsae_1.h"  /* RDB info for secondary CGMSE core */
-#endif
-#if (BVBI_NUM_CGMSAE >= 3)
-#include "bchp_cgmsae_2.h"  /* RDB info for tertiary CGMSE core */
 #endif
 
 BDBG_MODULE(BVBI);
@@ -63,25 +59,24 @@ BDBG_MODULE(BVBI);
 * Forward declarations of static (private) functions
 ***************************************************************************/
 
-static uint32_t P_GetCoreOffset_isr (bool is656, uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex);
 
 
 /***************************************************************************
 * Implementation of supporting CGMS functions that are not in API
 ***************************************************************************/
 
-void BVBI_P_CGMS_Enc_Init (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex)
+void BVBI_P_CGMS_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 {
     BDBG_ENTER(BVBI_P_CGMS_Enc_Init);
 
-    BVBI_P_VIE_SoftReset_isr (hReg, is656, hwCoreIndex, BVBI_P_SELECT_CGMSA);
+    BVBI_P_VIE_SoftReset_isr (hReg, false, hwCoreIndex, BVBI_P_SELECT_CGMSA);
 
     BDBG_LEAVE(BVBI_P_CGMS_Enc_Init);
 }
 
 BERR_Code BVBI_P_CGMSA_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
@@ -115,7 +110,7 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
     BDBG_ENTER(BVBI_P_CGMSA_Enc_Program);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -332,7 +327,6 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
 
 uint32_t BVBI_P_CGMSA_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     uint32_t ulData)
@@ -348,7 +342,7 @@ uint32_t BVBI_P_CGMSA_Encode_Data_isr (
     BDBG_ENTER(BVBI_P_CGMSA_Encode_Data_isr);
 
     /* Get register offset */
-    ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* Should never happen */
@@ -391,7 +385,6 @@ uint32_t BVBI_P_CGMSA_Encode_Data_isr (
  */
 BERR_Code BVBI_P_CGMSA_Encode_Enable_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable)
@@ -404,7 +397,7 @@ BERR_Code BVBI_P_CGMSA_Encode_Enable_isr (
     BDBG_ENTER(BVBI_P_CGMSA_Encode_Enable_isr);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -513,7 +506,6 @@ BERR_Code BVBI_P_CGMSA_Encode_Enable_isr (
  */
 uint32_t BVBI_P_CGMSB_Encode_Data_isr (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     BVBI_CGMSB_Datum cgmsbDatum )
@@ -525,7 +517,7 @@ uint32_t BVBI_P_CGMSB_Encode_Data_isr (
     BDBG_ENTER(BVBI_P_CGMSB_Encode_Data_isr);
 
     /* Get register offset */
-    ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* Should never happen */
@@ -579,7 +571,6 @@ uint32_t BVBI_P_CGMSB_Encode_Data_isr (
  */
 BERR_Code BVBI_P_CGMSB_Enc_Program (
     BREG_Handle hReg,
-    bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
@@ -616,7 +607,7 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     BDBG_ENTER(BVBI_P_CGMSB_Enc_Program);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -862,39 +853,32 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
 /***************************************************************************
  *
  */
-static uint32_t P_GetCoreOffset_isr (bool is656, uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 
-    if (is656)
+    switch (hwCoreIndex)
     {
-#if (BVBI_NUM_CGMSAE_656 >= 1)
-        /* No CGMSA 656 encoder */
-#endif
-    }
-    else
-    {
-        switch (hwCoreIndex)
-        {
 #if (BVBI_NUM_CGMSAE >= 1)
-        case 0:
-            ulCoreOffset = 0;
-            break;
+    case 0:
+        ulCoreOffset = 0;
+        break;
 #endif
 #if (BVBI_NUM_CGMSAE >= 2)
-        case 1:
-            ulCoreOffset = (BCHP_CGMSAE_1_RevID - BCHP_CGMSAE_0_RevID);
-            break;
+    case 1:
+        ulCoreOffset = (BCHP_CGMSAE_1_REG_START - BCHP_CGMSAE_0_REG_START);
+        break;
 #endif
 #if (BVBI_NUM_CGMSAE >= 3)
-        case 2:
-            ulCoreOffset = (BCHP_CGMSAE_2_RevID - BCHP_CGMSAE_0_RevID);
-            break;
+    case 2:
+        ulCoreOffset = (BCHP_CGMSAE_2_REG_START - BCHP_CGMSAE_0_REG_START);
+        break;
 #endif
-        default:
-            break;
-        }
+    default:
+        break;
     }
 
     return ulCoreOffset;
 }
+
+#endif /** } BVBI_NUM_CGMSAE > 0 **/

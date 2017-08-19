@@ -43,7 +43,7 @@ BDBG_MODULE(atlas_band);
 
 CInputBand::CInputBand(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_inputBand, pCfg)
@@ -57,7 +57,7 @@ CInputBand::~CInputBand()
 
 CParserBand::CParserBand(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_parserBand, pCfg),

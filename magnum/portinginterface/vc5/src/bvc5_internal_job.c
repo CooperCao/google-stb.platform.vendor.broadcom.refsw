@@ -301,10 +301,35 @@ BVC5_P_InternalJob *BVC5_P_JobCreateUsermode(
    {
       pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, (BVC5_JobBase *)psUsermodeJob, (BVC5_JobBase *)psJob);
 
-      if (psUsermodeJob != NULL)
+      if (pJob != NULL)
          BKNI_Memcpy(psUsermodeJob, psJob, sizeof(BVC5_JobUsermode));
       else
          BKNI_Free(psUsermodeJob);
+   }
+
+   return pJob;
+}
+
+BVC5_P_InternalJob *BVC5_P_JobCreateSchedEvent(
+   BVC5_Handle              hVC5,
+   uint32_t                 uiClientId,
+   const BVC5_JobSchedJob  *psJob
+)
+{
+   BVC5_JobSchedJob     *psSchedEventJob = (BVC5_JobSchedJob *)BKNI_Malloc(sizeof(BVC5_JobSchedJob));
+   BVC5_P_InternalJob   *pJob = NULL;
+
+   if (psSchedEventJob != NULL)
+   {
+      pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, (BVC5_JobBase *)psSchedEventJob, (BVC5_JobBase *)psJob);
+
+      if (pJob != NULL)
+      {
+         BKNI_Memcpy(psSchedEventJob, psJob, sizeof(BVC5_JobSchedJob));
+         pJob->jobData.sEvent.eventId = psJob->uiEventId;
+      }
+      else
+         BKNI_Free(psSchedEventJob);
    }
 
    return pJob;

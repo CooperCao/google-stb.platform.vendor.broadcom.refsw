@@ -1,0 +1,160 @@
+#!/usr/bin/env python2.7
+
+"""
+Test the internal checkout library vs sparse/gclient.
+
+EXAMPLES:
+
+  %(prog)s http://svn.sj.broadcom.com/svn/wlansvn/proj/trunk
+
+"""
+
+from __future__ import print_function
+from __future__ import unicode_literals
+
+# Imported first to fix up sys.path etc.
+import preface
+
+import argparse
+import os
+import sys
+import tempfile
+import time
+
+import lib.opts
+import lib.scm
+import lib.times
+import lib.util
+
+DEFAULT_URLS = [
+    lib.times.SVNREPOS[0] + '/components/deps/',
+    lib.times.SVNREPOS[0] + '/proj/',
+]
+
+
+def compare(tmpdir, url, opts):
+    subdir = os.path.join(tmpdir, os.path.basename(url))
+    lib.util.mkdir(subdir, vl=3)
+    script = open(os.path.join(subdir, 'SCRIPT'), 'w')
+
+    new = os.path.join(subdir, 'NEW')
+    cmd = ['hnd', 'co', '-d', new, '-r', opts.reftime, url]
+    lib.util.xtrace(cmd, out=script, vl=0)
+    rc = lib.util.execute(cmd)
+
+    if rc == 0:
+        old = os.path.join(subdir, 'OLD')
+        if url.endswith('.sparse'):
+            cmd = ['sparse', 'co', '--quiet', '-r', opts.reftime, url, old]
+            lib.util.xtrace(cmd, out=script, vl=0)
+            rc = lib.util.execute(cmd)
+        else:
+            lib.util.mkdir(old, vl=3)
+            cmd = ['hnd', 'gclient', 'config', url]
+            lib.util.xtrace(cmd, out=script, vl=0)
+            rc = lib.util.execute(cmd, cwd=old, vl=2)
+            cmd = ['hnd', 'gclient', 'sync', '-r', opts.reftime, '--trans']
+            lib.util.xtrace(cmd, out=script, vl=0)
+            rc += lib.util.execute(cmd, cwd=old, stdout=open(os.devnull, 'w'))
+
+        if rc == 0:
+            cmd = ['diff', '-qr']
+            for exclude in opts.exclude + ['deps', '.gclient_*', 'alsa']:
+                cmd.extend(['-x', exclude])
+            cmd += [old, new]
+            lib.util.xtrace(cmd, out=script, vl=0)
+            rc += lib.util.execute(cmd, vl=0)
+
+    script.close()
+
+    if rc == 0:
+        lib.util.rm(old, new)
+    else:
+        lib.util.note('Preserving ' + subdir)
+
+    return rc
+
+
+def main():
+    """Conventional entry point for command line use."""
+
+    parser = argparse.ArgumentParser(
+        epilog=__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '-r', '--reftime',
+        default=lib.times.timeref(None),
+        help="compare state as of this time")
+    parser.add_argument(
+        '-t', '--tag', default=[], action='append',
+        help="basename of branch/tag/twig/trunk (may be repeated)")
+    parser.add_argument(
+        '-x', '--exclude', action='append', default=[],
+        metavar='PAT',
+        help="exclude files that match PAT")
+    parser.add_argument('urls', nargs=argparse.REMAINDER)
+    opts = parser.parse_args()
+
+    # Unbuffer stdout to avoid scrambling of log data.
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+
+    lib.opts.VERBOSITY = 1
+
+    rc = 0
+
+    for tag in lib.util.tolist(opts.tag, 'trunk'):
+        urls = set()
+
+        if opts.urls:
+            test_urls = opts.urls
+        else:
+            tagpath = lib.scm.svn_tag_path(tag)
+            test_urls = [du + tagpath for du in DEFAULT_URLS]
+
+        for url in test_urls:
+            if url.endswith('.sparse'):
+                urls.add(url)
+                continue
+            elif url.endswith('/DEPS'):
+                urls.add(url[:-5])
+                continue
+
+            for depth in ['files', 'infinity']:
+                cmd = lib.scm.svncmd('ls', '--depth=' + depth, url)
+                proc = lib.util.execute(cmd, stdout=lib.util.PIPE)
+                for line in proc.stdout:
+                    path = lib.util.mkpath(url, line.decode('utf-8').rstrip())
+
+                    # These sparse files are broken in svn.
+                    if 'svn-gallery-trunk' in path:
+                        continue
+                    elif 'linux26-wapirouter' in path:
+                        continue
+
+                    if path.endswith('.sparse'):
+                        urls.add(path)
+                    elif path.endswith('/DEPS'):
+                        urls.add(path[:-5])
+
+                rc += proc.wait()
+                if urls:
+                    break
+
+        tmpdir = tempfile.mkdtemp(prefix=preface.PROG + '.', suffix='.d')
+        os.chdir(tmpdir)
+        for i, url in enumerate(sorted(urls)):
+            lib.util.note('%d/%d COMPARING %s at %s' %
+                          (i + 1, len(urls), url, time.ctime()))
+            rc += compare(tmpdir, url, opts)
+
+    if rc == 0:
+        os.chdir('/tmp')
+        lib.util.rm(tmpdir)
+        sys.exit(0)
+    else:
+        sys.exit(2)
+
+if __name__ == '__main__':
+    main()
+
+# vim: ts=8:sw=4:tw=80:et:

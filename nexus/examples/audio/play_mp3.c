@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
     NEXUS_PlaybackStartSettings playbackStartSettings;
     const char *fname = "audio/test.mp3";
     NEXUS_AudioCapabilities audioCapabilities;
-    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_DisplayHandle display = NULL;
 
     if (argc > 1) {
         fname = argv[1];
@@ -95,11 +95,6 @@ int main(int argc, char **argv) {
     {
         printf("This application is not supported on this platform (needs decoders)!\n");
         return 0;
-    }
-
-    if (audioCapabilities.numOutputs.dac > 0)
-    {
-        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
     }
 
     BKNI_CreateEvent(&event);
@@ -123,11 +118,17 @@ int main(int argc, char **argv) {
     NEXUS_Playback_SetSettings(playback, &playbackSettings);
 
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-    if (audioDacHandle) {
-    NEXUS_AudioOutput_AddInput(
-        audioDacHandle,
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder,
-                                        NEXUS_AudioDecoderConnectorType_eStereo));
+    if (platformConfig.outputs.audioDacs[0]) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    if (platformConfig.outputs.hdmi[0]) {
+        display = NEXUS_Display_Open(0, NULL);
+        NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
     audioProgram.codec = NEXUS_AudioCodec_eMp3;
@@ -164,13 +165,11 @@ int main(int argc, char **argv) {
 
     NEXUS_AudioDecoder_Stop(pcmDecoder);
     NEXUS_Playback_Stop(playback);
-    if (audioDacHandle) {
-    NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
-    }
     NEXUS_Playback_ClosePidChannel(playback, audioProgram.pidChannel);
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    if (display) NEXUS_Display_Close(display);
     NEXUS_AudioDecoder_Close(pcmDecoder);
     NEXUS_FilePlay_Close(file);
     BKNI_DestroyEvent(event);

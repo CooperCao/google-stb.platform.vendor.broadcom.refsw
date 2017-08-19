@@ -78,9 +78,16 @@ static inline void glxx_hw_render_state_end_cle(GLXX_HW_RENDER_STATE_T *rs, glxx
 
 static inline unsigned glxx_hw_render_state_max_bin_subjobs(const GLXX_HW_RENDER_STATE_T *rs)
 {
-   if (!GLXX_MULTICORE_BIN_ENABLED ||
-      rs->has_tcs_barriers || // See GFXH-1434
-      (rs->tf.waited_count != 0)) // Can't enable multi-core binning if we have transform feedback waits in CL
+   if (!GLXX_MULTICORE_BIN_ENABLED || (rs->tf.waited_count != 0)) // Can't enable multi-core binning if we have transform feedback waits in CL
       return 1;
    return khrn_get_num_bin_subjobs();
+}
+
+static inline unsigned glxx_hw_render_state_num_render_subjobs_per_layer(const GLXX_HW_RENDER_STATE_T *rs)
+{
+   // Buffer writes are not suitably coherent on multiple cores and frame isolation
+   // also disables multicore.
+   if (rs->base.has_buffer_writes || khrn_options.isolate_frame == khrn_fmem_frame_i)
+      return 1;
+   return khrn_get_num_render_subjobs();
 }

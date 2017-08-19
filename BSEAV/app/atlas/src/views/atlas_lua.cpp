@@ -1490,10 +1490,6 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
     CDataAction <CPlaybackTrickData> * pAction            = NULL;
     CPlaybackTrickData *               pPlaybackTrickData = NULL;
 
-#if __COVERITY__
-    __coverity_stack_depth__(100*1024);
-#endif
-
     BDBG_ASSERT(pThis);
 
     /* check number of lua arguments on stack */
@@ -2006,7 +2002,8 @@ done:
  */
 static int atlasLua_EncodeStart(lua_State * pLua)
 {
-#if NEXUS_HAS_VIDEO_ENCODER
+/* disable not supported */
+#if 0 /* NEXUS_HAS_VIDEO_ENCODER */
     CLua *           pThis       = getCLua(pLua);
     eRet             err         = eRet_Ok;
     CTranscodeData * pEncData    = NULL;
@@ -2029,7 +2026,7 @@ static int atlasLua_EncodeStart(lua_State * pLua)
             pEncData->_strFileName = strFileName;
         }
     }
-    else
+
     if (2 <= numArgTotal)
     {
         const char * strPath = luaL_checkstring(pLua, argNum++);
@@ -2053,7 +2050,7 @@ error:
 done:
     LUA_RETURN(err);
 #else /* if NEXUS_HAS_VIDEO_ENCODER */
-    BDBG_ERR(("Platform does not support Encode"));
+    BDBG_ERR(("Not Supported Feature Currently"));
     BSTD_UNUSED(pLua);
     return(eRet_InvalidParameter);
 
@@ -2064,7 +2061,8 @@ done:
  */
 static int atlasLua_EncodeStop(lua_State * pLua)
 {
-#if NEXUS_HAS_VIDEO_ENCODER
+/* not supported now */
+#if 0 /* NEXUS_HAS_VIDEO_ENCODER */
     CLua *    pThis   = getCLua(pLua);
     CAction * pAction = NULL;
     eRet      err     = eRet_Ok;
@@ -2085,7 +2083,7 @@ error:
 done:
     LUA_RETURN(err);
 #else /* if NEXUS_HAS_VIDEO_ENCODER */
-    BDBG_ERR(("Platform does not support Encode"));
+    BDBG_ERR(("Not Supported Feature Currently"));
     BSTD_UNUSED(pLua);
     return(eRet_InvalidParameter);
 
@@ -2128,9 +2126,9 @@ static int atlasLua_SetAudioProgram(lua_State * pLua)
     uint8_t    argNum      = 1;
     uint8_t    numArgTotal = lua_gettop(pLua) - 1;
     uint32_t   pid         = 0;
-    uint16_t * pPid        = NULL;
+    unsigned * pPid        = NULL;
 
-    CDataAction <uint16_t> * pAction = NULL;
+    CDataAction <unsigned> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2150,14 +2148,14 @@ static int atlasLua_SetAudioProgram(lua_State * pLua)
         LUA_ERROR(pLua, "Invalid program pid number", error);
     }
 
-    pPid = new uint16_t;
+    pPid = new unsigned;
 
     /* add required arguments to video format data */
 
-    *pPid = (uint16_t)pid;
+    *pPid = (unsigned)pid;
 
     /* create lua action and give it data */
-    pAction = new CDataAction <uint16_t>(eNotify_SetAudioProgram, pPid, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    pAction = new CDataAction <unsigned>(eNotify_SetAudioProgram, pPid, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* save lua action to queue - this action will be serviced when we get the bwin io callback:
@@ -2904,6 +2902,61 @@ error:
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetAudioProcessing */
+
+/* atlas.enableRemoteIr(
+ *      --- required ---
+ *      enable,   set true|false
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_EnableRemoteIr(lua_State * pLua)
+{
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t argNum      = 1;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+    bool    enable        = false;
+    bool *  pEnable       = NULL;
+
+    CDataAction <bool> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [bool]", error);
+    }
+
+    /* get arguments */
+    enable  = lua_toboolean(pLua, argNum++);
+    pEnable = new bool;
+
+    /* add required arguments to enable/disable ir remote data */
+    *pEnable = enable;
+
+    /* create lua action and give it data */
+    {
+        pAction = new CDataAction <bool>(eNotify_EnableRemoteIr, pEnable);
+        CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    }
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pEnable);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_EnableRemoteIr */
 
 #ifdef CPUTEST_SUPPORT
 /* atlas.setCpuTestLevel(
@@ -4606,6 +4659,10 @@ static int atlasLua_PlaylistDiscovery(lua_State * pLua)
         /* wrong number of arguments */
         LUA_ERROR(pLua, "wrong number of arguments: <index> of playlist to retrieve. use 0 to print all", error);
     }
+    else
+    {
+        *pIndex = 0;
+    }
 
     /* create lua action and give it data */
     pAction = new CDataAction<int>(eNotify_ShowDiscoveredPlaylists, pIndex, eNotify_DiscoveredPlaylistsShown, DEFAULT_LUA_EVENT_TIMEOUT);
@@ -4939,6 +4996,19 @@ static int atlasLua_Sleep(lua_State * pLua)
     return(0);
 }
 
+static int atlasLua_Help(lua_State * pLua)
+{
+    CLua *    pThis     = getCLua(pLua);
+    int       argNum    = 1;
+    MString   strHelp;
+
+    BDBG_ASSERT(pThis);
+    strHelp = luaL_checkstring(pLua, argNum);
+
+
+    return(0);
+}
+
 static int atlasLua_Exit(lua_State * pLua)
 {
     CLua *    pThis   = getCLua(pLua);
@@ -5066,10 +5136,12 @@ static const struct luaL_Reg atlasLua[] = {
 #ifdef PLAYBACK_IP_SUPPORT
     { "channelStream",                 atlasLua_ChannelStream                         }, /* stream ip channel from playlist */
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
+    { "irRemoteEnable",                atlasLua_EnableRemoteIr                        }, /* enable/disable ir remote handling */
     { "setDebugLevel",                 atlasLua_SetDebugLevel                         }, /* set debug level for given module */
     { "runScript",                     atlasLua_RunScript                             }, /* Run given lua script */
     { "debug",                         atlasLua_Debug                                 }, /* Display given debug string on screen and in output log */
     { "sleep",                         atlasLua_Sleep                                 }, /* sleep */
+    { "help",                          atlasLua_Help                                  }, /* help - show command list */
     { "exit",                          atlasLua_Exit                                  }, /* exit application */
     { "quit",                          atlasLua_Exit                                  }, /* exit application */
     { NULL,                            NULL                                           }  /* sentinel */
@@ -5430,6 +5502,7 @@ void luaShell(void * pParam)
     char *           prompt      = NULL;
     CConfiguration * pCfg        = NULL;
     char *           pScriptName = NULL;
+    const char    *  pLuaHName   = NULL;
 
     BDBG_ASSERT(NULL != pLua);
 
@@ -5464,8 +5537,12 @@ void luaShell(void * pParam)
     /* callback is used for autocompletion feature */
     linenoiseSetCompletionCallback(luaShellCompletionCallback);
 
-    /* load past history from file */
-    linenoiseHistoryLoad((char *)GET_STR(pCfg, LUA_HISTORY_FILENAME));
+    /* load past history from file if it exists */
+    pLuaHName = GET_STR(pCfg, LUA_HISTORY_FILENAME);
+    if(pLuaHName != NULL)
+    {
+        linenoiseHistoryLoad((char *)pLuaHName);
+    }
 
     tty_cbreak(STDIN_FILENO);
     while (true == pLua->_threadRun)
@@ -5489,7 +5566,7 @@ void luaShell(void * pParam)
             {
                 if ('\0' != line[0])
                 {
-                    BDBG_MSG(("echo: '%s' len:%d\n", line, strnlen(line, 255)));
+                    /* BDBG_MSG(("echo: '%s' len:%d\n", line, strnlen(line, 255)));*/
 
                     /* chance to handle input command or pass it to lua */
                     if (false == pLua->handleInput(line))
@@ -5606,6 +5683,7 @@ eRet CLua::trigger(CAction * pAction)
 bool CLua::handleInput(char * pLine)
 {
     bool ret = false;
+    MString strLine(pLine);
 
     BDBG_ASSERT(NULL != getWidgetEngine());
 
@@ -5632,16 +5710,172 @@ bool CLua::handleInput(char * pLine)
     else
     if (0 == strncasecmp("help", pLine, strlen("help")))
     {
-        printf("Help:\n");
-        printf("\t<tab>\t\tAutocomplete\n");
-        printf("\tatlas.<tab>\tAutocomplete atlas specific Lua functions\n");
-        printf("\t<arrow Up/Down>\tHistory\n");
-        printf("\t<help>\t\tShow Help\n");
-        printf("\t<exit>\t\tQuit Application\n");
+        printf("General:\n");
+        printf("\t<tab>                              Autocomplete\n");
+        printf("\tatlas.<tab>                        Autocomplete atlas specific Lua functions\n");
+        printf("\t<arrow Up/Down>                    History\n");
+        printf("\thelp <section(s)>                  Show Help (omit <section(s)> for all)\n");
+        printf("\texit | quit                        Quit Application\n");
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("tuning")))
+        {
+            printf("Tuning:\n");
+            printf("\tatlas.channelUp()                  tune to next higher channel number\n");
+            printf("\tatlas.channelDown()                tune to next lower chanel number\n");
+            printf("\tatlas.channelTune()                tune to the given channel\n");
+            printf("\tatlas.channelUntune()              untune from the current channel\n");
+        #if NEXUS_HAS_FRONTEND
+            printf("\tatlas.getChannelStats()            get current Channel Status\n");
+            printf("\tatlas.scanQam()                    scan for qam channels\n");
+            printf("\tatlas.scanVsb()                    scan for vsb channels\n");
+            printf("\tatlas.scanSat()                    scan for sat channels\n");
+            printf("\tatlas.scanOfdm()                   scan for ofdm channels\n");
+        #endif /* if NEXUS_HAS_FRONTEND */
+            printf("\tatlas.channelListLoad()            load channel list\n");
+            printf("\tatlas.channelListSave()            save current channel list\n");
+            printf("\tatlas.channelListDump()            dump current channel list\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("display")))
+        {
+            printf("Display:\n");
+            printf("\tatlas.setVideoFormat()             set the video format\n");
+            printf("\tatlas.setContentMode()             set the video content mode\n");
+            printf("\tatlas.setColorSpace()              set the color space\n");
+            printf("\tatlas.setColorDepth()              set the color depth of the main decoder\n");
+            printf("\tatlas.setMpaaDecimation()          set mpaa decimation\n");
+            printf("\tatlas.setDeinterlacer()            set MAD deinterlacer\n");
+            printf("\tatlas.setBoxDetect()               set box detect\n");
+            printf("\tatlas.setAspectRatio()             set aspect ratio\n");
+            printf("\tatlas.setAutoVideoFormat()         set auto video format\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("playback")) || (-1 != strLine.find("streaming")))
+        {
+            printf("Playback:\n");
+            printf("\tatlas.playbackListDump()           dump playback list\n");
+            printf("\tatlas.playbackStart()              Start Playback of a file\n");
+            printf("\tatlas.playbackStop()               Stop Playback of a file\n");
+            printf("\tatlas.playbackTrickMode()          Do a Custom trick Mode\n");
+            printf("\tatlas.playbackListRefresh()        refresh list of available videos\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find(" ip")) || (-1 != strLine.find("streaming")))
+        {
+            printf("IP Streaming:\n");
+            printf("\tatlas.playlistDiscovery()          show playlists discovered from other servers\n");
+            printf("\tatlas.playlistShow()               show playlist contents\n");
+    #ifdef PLAYBACK_IP_SUPPORT
+            printf("\tatlas.channelStream()              stream ip channel from playlist\n");
+    #endif /* ifdef PLAYBACK_IP_SUPPORT */
+            printf("\tatlas.ipClientTranscodeEnable()    enable/disable BIP transcoding for a given client\n");
+            printf("\tatlas.ipClientTranscodeProfile()   set the BIP transcode profile for a given client\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("record")))
+        {
+            printf("Record:\n");
+            printf("\tatlas.recordStart()                Start Record of a channel\n");
+            printf("\tatlas.recordStop()                 Stop Record of a channel\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("audio")))
+        {
+            printf("Audio:\n");
+            printf("\tatlas.setAudioProgram()            set the audio program pid\n");
+            printf("\tatlas.setSpdifType()               set the spdif audio type\n");
+            printf("\tatlas.setHdmiAudioType()           set the hdmi audio type\n");
+            printf("\tatlas.setDownmix()                 set the audio downmix\n");
+            printf("\tatlas.setDualMono()                set the audio DualMono\n");
+            printf("\tatlas.setDolbyDRC()                set the Dolby DRC compression\n");
+            printf("\tatlas.setDolbyDialogNorm()         set the Dolby dialog normalization\n");
+            printf("\tatlas.setVolume()                  set the volume level\n");
+            printf("\tatlas.setMute()                    set the mute level\n");
+            printf("\tatlas.setSpdifInput()              set the spdif input (see eSpdifInput)\n");
+            printf("\tatlas.setHdmiInput()               set the hdmi input (see eHdmiAudioInput)\n");
+            printf("\tatlas.setAudioProcessing()         set the pcm audio proccessing (see eAudioProcessing)\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("pip")))
+        {
+            printf("PiP:\n");
+            printf("\tatlas.showPip()                    show/hide the pip window\n");
+            printf("\tatlas.swapPip()                    swap the main and pip window\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("cc")))
+        {
+            printf("Closed Captions:\n");
+            printf("\tatlas.setVbiClosedCaptions()       enable/disable VBI closedCaptions pass-through\n");
+            printf("\tatlas.setVbiTeletext()             enable/disable VBI teletext\n");
+    #ifdef DCC_SUPPORT
+            printf("\tatlas.closedCaptionEnable()        enable/disable closed caption\n");
+            printf("\tatlas.closedCaptionMode()          set 608/708 closed caption mode\n");
+    #endif /* ifdef DCC_SUPPORT */
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("vbi")))
+        {
+            printf("VBI:\n");
+            printf("\tatlas.setVbiClosedCaptions()       enable/disable VBI closedCaptions pass-through\n");
+            printf("\tatlas.setVbiTeletext()             enable/disable VBI teletext\n");
+            printf("\tatlas.setVbiVps()                  enable/disable VBI video program system (VPS)\n");
+            printf("\tatlas.setVbiWss()                  enable/disable VBI widescreen signaling (WSS)\n");
+            printf("\tatlas.setVbiCgms()                 enable/disable VBI CGMS\n");
+            printf("\tatlas.setVbiGemstar()              enable/disable VBI Gemstar\n");
+            printf("\tatlas.setVbiAmol()                 enable/disable VBI Nielsen AMOL\n");
+            printf("\tatlas.setVbiMacrovision()          enable/disable VBI Macrovision\n");
+            printf("\tatlas.setVbiDcs()                  enable/disable VBI DCS\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("remote")))
+        {
+    #if RF4CE_SUPPORT
+            printf("RF4CE Remote:\n");
+            printf("\tatlas.rf4ceRemoteAdd()             add RF4CE remote\n");
+            printf("\tatlas.rf4ceRemoteRemove()          remove RF4CE remote\n");
+            printf("\tatlas.rf4ceRemotesDisplay()        display RF4CE remotes\n");
+    #endif
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("wifi")))
+        {
+            printf("WiFi:\n");
+            printf("\tatlas.wifiScanStart()              wifi network scan start\n");
+            printf("\tatlas.wifiConnect()                wifi network connect\n");
+            printf("\tatlas.wifiConnectState()           wifi network connection state\n");
+            printf("\tatlas.wifiDisconnect()             wifi network disconnect\n");
+            printf("\tatlas.wifiWps()                    simulate Wifi Protected Setup button press\n");
+        }
+
+        if ((4 == strLine.length()) || (-1 != strLine.find("misc")))
+        {
+            printf("Misc:\n");
+     #ifdef CPUTEST_SUPPORT
+            printf("\tatlas.setCpuTestLevel()            set the cpu test level\n");
+    #endif
+    #if HAS_VID_NL_LUMA_RANGE_ADJ
+            printf("\tatlas.setPlmVideo()                enable/disable Programmable Luma Mapping for the given video window\n");
+    #endif
+    #if HAS_GFX_NL_LUMA_RANGE_ADJ
+            printf("\tatlas.setPlmGraphics()             enable/disable Programmable Luma Mapping for graphics\n");
+    #endif
+            printf("\tatlas.irRemoteEnable()             enable/disable ir remote handling\n");
+            printf("\tatlas.setPowerMode()               set power mode\n");
+            printf("\tatlas.setDebugLevel()              set debug level for given module\n");
+            printf("\tatlas.runScript()                  Run given lua script\n");
+            printf("\tatlas.debug()                      Display given debug string on screen and in output log\n");
+            printf("\tatlas.sleep()                      sleep\n");
+            printf("\tatlas.help()                       help - show command list\n");
+            printf("\tatlas.exit()                       exit application\n");
+            printf("\tatlas.quit()                       exit application\n");
+        }
 
         /* mark as handled so it will not be forwarded on to lua */
         ret = true;
     }
+
+
 
     return(ret);
 } /* handleInput */

@@ -8,7 +8,7 @@
 #include "libs/util/gfx_util/gfx_util.h"
 #include "vcos_string.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /** Some terminology */
 
@@ -1113,6 +1113,6 @@ static inline bool gfx_lfmt_yflip_consistent(GFX_LFMT_T lfmt)
       return !gfx_lfmt_base_is_yflipped(base);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

@@ -1,0 +1,31 @@
+#!/bin/sh
+# subnet: script to determine the subnet address corresponding to the 
+# last iline10 adapter.
+# Should work for winnt, win98 and win2000
+
+tmac=`il dump | grep ether | awk '{print $NF}'`
+#echo $tmac
+
+ipconfig -all | grep Address | 
+tr [:upper:] [:lower:] |
+sed -e 's///g' -e 's/-/:/g'|
+sed -e 's/:0/:/g' -e 's/ 00/ 0/g' |
+
+awk -v mac=$tmac '{
+
+#print "in awk: mac=", mac
+#print gotmac, "Input line:", $NF;
+
+if ($1 == "physical") {
+    if ( $NF == mac ) {
+	gotmac = 1;
+    }
+}
+if ( gotmac == 1 ) {
+    if ( $1 == "ip" ) {
+        print $NF;
+        gotmac = 0;
+    }
+}
+
+}' | cut -d. -f1-3

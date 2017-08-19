@@ -1,18 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default rootx11 platform API for EGL driver
-Module   :  rootx11 platform
-
-FILE DESCRIPTION
-
-WARNING! This only renders to the root window of the X11 project for Chromium
-OS.  Do not expect to run multiclient or any other X apps via this.
-
-DESC
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_rootx11.h"
 #include "display_rootx11.h"
 
@@ -32,6 +20,7 @@ DESC
 #include <memory.h>
 #include <assert.h>
 #include <semaphore.h>
+#include <errno.h>
 
 #define MAX_SWAP_BUFFERS 3
 
@@ -339,7 +328,8 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
       RXPL_WindowState *windowState = (RXPL_WindowState *)bufferAccess->windowState.platformState;
       RXPL_BufferData  *buffer = bufferAccess->buffer;
 
-      sem_wait(&windowState->lockSemaphore);
+      while (sem_wait(&windowState->lockSemaphore) == -1 && errno == EINTR)
+         continue;
 
       /* update BEGL_BufferSettings with new information */
       buffer->settings.physOffset = (unsigned int)buffer->base;

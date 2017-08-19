@@ -1,0 +1,216 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Simultaneous 3-radio max throughput test.
+
+# $Id: 737c8b3df059f15cf2803c0af0a84b16dc3b7316 $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::controlchart
+
+package provide UTF::Test::TripleBand 2.0
+
+namespace eval UTF::Test::TripleBand {
+
+    proc diagcc {APS path ccopts} {
+	upvar {} {}
+	set mp [[lindex $APS 0] rexec -async \
+		    mpstat -P ALL 1 [expr {$(i)*$(s)}] ]
+	try {
+	    controlchart $path {*}$ccopts
+	} finally {
+	    $mp close
+	}
+    }
+
+    proc diagcc1 {APS path ccopts} {
+	foreach S $APS {
+	    catch {$S wl ampdu_clear_dump}
+	    catch {$S wl counters}
+	}
+	try {
+	    controlchart $path {*}$ccopts
+	} finally {
+	    foreach S $APS {
+		catch {$S wl dump ampdu}
+		catch {$S wl counters}
+	    }
+	}
+    }
+
+}
+
+UTF::Test TripleBand {AP1 AP2 AP3 STA1 STA2 STA3 args} {
+
+    upvar {} testopts
+    if {[info exists testopts(history)]} {
+	set histdef $testopts(history)
+    } else {
+	set histdef 30
+    }
+    if {[info exists testopts(perfloop)]} {
+	set loopdef $testopts(perfloop)
+    } else {
+	set loopdef 1
+    }
+
+    UTF::Getopts [subst {
+	{i.arg "2" "Interval"}
+	{s.arg "5" "samples"}
+	{msg.arg "TripleBand" "Message"}
+	{branch.arg "[$AP1 branchname]" "Branch"}
+	{c1.arg "36l" "Primary chanspec"}
+	{c2.arg "3l" "Secondary chanspec"}
+	{c3.arg "161/80" "Tertiary chanspec"}
+	{lan1.arg "$AP1" "lan endpoint"}
+	{lan2.arg "$AP2" "lan2 endpoint"}
+	{lan3.arg "$AP3" "lan3 endpoint"}
+	{b1.arg "[$AP1 cget -udp]" "UDP data rate. (0 for TCP)"}
+	{b2.arg "[$AP2 cget -udp]" "UDP data rate. (0 for TCP)"}
+	{b3.arg "[$AP3 cget -udp]" "UDP data rate. (0 for TCP)"}
+	{ack_ratio.arg "" "Overthruster ack_ratio"}
+	{ampdu_mpdu.arg "" "ampdu_mpdu"}
+	{loop.arg $loopdef "Loop"}
+	{history.arg $histdef "History"}
+	{nocache "Don't update performance cache"}
+    }]
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    set msg "$AP1 $AP2 $AP3: $(msg)"
+
+    set k [concat $(branch) $AP1]
+    set oldk $k
+
+    set setup 0
+
+    UTF::Try "$msg: TX/TX/TX" {
+
+	catch {$STA1 wl disassoc}
+	catch {$STA2 wl disassoc}
+	catch {$STA3 wl disassoc}
+
+	if {!([$STA2 wl bw_cap 2] & 0x2)} {
+	    $STA2 wl down
+	    $STA2 wl bw_cap 2 -1
+	}
+
+	APChanspec $AP1 $(c1)
+	APChanspec $AP2 $(c2)
+	APChanspec $AP3 $(c3)
+	APConfigureSecurity $AP1 -security open
+	APConfigureSecurity $AP2 -security open
+	APConfigureSecurity $AP3 -security open
+	ConnectAPSTA $AP1 $STA1
+	ConnectAPSTA $AP2 $STA2
+	ConnectAPSTA $AP3 $STA3
+
+	$AP1 wl frameburst 1
+	$AP2 wl frameburst 1
+	$AP3 wl frameburst 1
+
+	$STA1 wl frameburst 1
+	$STA2 wl frameburst 1
+	$STA3 wl frameburst 1
+
+	if {$(ack_ratio) ne ""} {
+	    $AP1 wl -u ack_ratio $(ack_ratio)
+	    $AP2 wl -u ack_ratio $(ack_ratio)
+	    $AP3 wl -u ack_ratio $(ack_ratio)
+	    $STA1 wl ack_ratio $(ack_ratio)
+	    $STA2 wl ack_ratio $(ack_ratio)
+	    $STA3 wl ack_ratio $(ack_ratio)
+	}
+	if {$(ampdu_mpdu) ne ""} {
+	    $AP1 wl ampdu_mpdu $(ampdu_mpdu)
+	    $AP2 wl ampdu_mpdu $(ampdu_mpdu)
+	    $AP3 wl ampdu_mpdu $(ampdu_mpdu)
+	}
+
+	# Auto TCP window size setting based on phy rate
+	set w [$STA1 tcpautowindow]
+
+	set ccopts [list -key $k -i $(i) -s $(s) -window $w \
+			-loop $(loop) -history $(history)]
+	if {$k ne $oldk} {
+	    lappend ccopts -oldkey $oldk
+	}
+
+	# Warm up
+	UTF::Multiperf [list $(lan1) $STA1 $(lan2) $STA2 $(lan3) $STA3] \
+	    -t 1 -w $w
+
+	set setup 1
+
+
+	diagcc [list $AP1 $AP2 $AP3] \
+	    [list $(lan1) $STA1 $(lan2) $STA2 $(lan3) $STA3] $ccopts
+    } finally {
+	$AP1 wl nrate
+	$AP2 wl nrate
+	$AP3 wl nrate
+    }
+
+    # skip pretest after setup
+    #lappend ccopts -nopretest
+
+    if {$setup} {
+
+	UTF::Try "$msg: RX/RX/RX" {
+	    diagcc [list $AP1 $AP2 $AP3] \
+		[list $STA1 $(lan1) $STA2 $(lan2) $STA3 $(lan3)] $ccopts
+	} finally {
+	    $AP1 wl nrate
+	    $AP2 wl nrate
+	    $AP3 wl nrate
+	}
+    }
+
+    if {$(b1) ne "0" && $setup} {
+	append msg ": UDP"
+	lappend k udp
+
+	set ccopts [list -key $k -i $(i) -s $(s) -window $w \
+			-loop $(loop) -history $(history)]
+	if {$k ne $oldk} {
+	    lappend ccopts -oldkey $oldk
+	}
+	lappend ccopts -b [list $(b1) $(b2) $(b3)]
+
+	UTF::Try "$msg: TX/TX/TX" {
+	    diagcc [list $AP1 $AP2 $AP3] \
+		[list $(lan1) $STA1 $(lan2) $STA2 $(lan3) $STA3] $ccopts
+	} finally {
+	    $AP1 wl nrate
+	    $AP2 wl nrate
+	    $AP3 wl nrate
+	}
+
+	UTF::Try "$msg: RX/RX/RX" {
+	    diagcc [list $AP1 $AP2 $AP3] \
+		[list $STA1 $(lan1) $STA2 $(lan2) $STA3 $(lan3)] $ccopts
+	} finally {
+	    $AP1 wl nrate
+	    $AP2 wl nrate
+	    $AP3 wl nrate
+	}
+
+    }
+
+    catch {$STA1 wl disassoc}
+    catch {$STA2 wl disassoc}
+    catch {$STA3 wl disassoc}
+
+    # If AP1 and AP2 are clones, deinit the second one to avoid
+    # duplicate logging.  If they are the same host object, leave it
+    # alone.
+    $AP2 deinit
+    $AP3 deinit
+    $AP1 init
+}

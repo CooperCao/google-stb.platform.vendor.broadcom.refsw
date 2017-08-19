@@ -166,18 +166,22 @@ BERR_Code BVBI_Open
     {
         goto BVBI_Open_Done;
     }
+    #if (BVBI_NUM_CGMSAE > 0)
     if ((eErr = BERR_TRACE (BVBI_P_CGMS_Init (pVbi))) != BERR_SUCCESS)
     {
         goto BVBI_Open_Done;
     }
+    #endif
     if ((eErr = BERR_TRACE (BVBI_P_WSS_Init (pVbi))) != BERR_SUCCESS)
     {
         goto BVBI_Open_Done;
     }
+    #if (BVBI_NUM_WSE > 0)
     if ((eErr = BERR_TRACE (BVBI_P_VPS_Init (pVbi))) != BERR_SUCCESS)
     {
         goto BVBI_Open_Done;
     }
+    #endif
     if ((eErr = BERR_TRACE (BVBI_P_TT_Init (pVbi))) != BERR_SUCCESS)
     {
         goto BVBI_Open_Done;
@@ -270,14 +274,18 @@ void  BVBI_Close ( BVBI_Handle vbiHandle )
        BVBI_Open(). */
     eErr = BERR_TRACE (BVBI_P_CC_Init   (pVbi));
     BDBG_ASSERT (eErr == BERR_SUCCESS);
+#if (BVBI_NUM_CGMSAE > 0)
     eErr = BERR_TRACE (BVBI_P_CGMS_Init (pVbi));
     BDBG_ASSERT (eErr == BERR_SUCCESS);
+#endif
     eErr = BERR_TRACE (BVBI_P_WSS_Init  (pVbi));
     BDBG_ASSERT (eErr == BERR_SUCCESS);
     eErr = BERR_TRACE (BVBI_P_TT_Init   (pVbi));
     BDBG_ASSERT (eErr == BERR_SUCCESS);
+#if (BVBI_NUM_WSE > 0)
     eErr = BERR_TRACE (BVBI_P_VPS_Init  (pVbi));
     BDBG_ASSERT (eErr == BERR_SUCCESS);
+#endif
 #if (BVBI_NUM_GSE > 0)
     eErr = BERR_TRACE (BVBI_P_GS_Init  (pVbi));
     BDBG_ASSERT (eErr == BERR_SUCCESS);
@@ -385,6 +393,16 @@ BERR_Code BVBI_Standby
     BCHP_PWR_ReleaseResource(pVbi->hChip, BCHP_PWR_RESOURCE_VDC_VEC);
 #endif
     return BERR_SUCCESS;
+}
+
+/***************************************************************************
+ *
+ */
+void BVBI_GetDefaultStandbySettings(
+    BVBI_StandbySettings *pSettings
+    )
+{
+    pSettings->dummy = false;
 }
 
 /***************************************************************************

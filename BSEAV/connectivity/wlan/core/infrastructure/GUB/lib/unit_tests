@@ -1,0 +1,6 @@
+#!/bin/bash
+
+: unit_tests [nosetests_options]  run unit tests
+
+. ../../helpers/unit_tests_common.sh
+../../helpers/nosetests "$@"

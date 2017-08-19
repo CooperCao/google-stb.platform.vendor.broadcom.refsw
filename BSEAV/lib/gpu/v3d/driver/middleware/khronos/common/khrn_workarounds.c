@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-File     :  $RCSfile$
-Revision :  $Revision$
-
-FILE DESCRIPTION
-Workarounds interface.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/include/EGL/egl.h"
 #include "vcfw/drivers/chip/abstract_v3d.h"
@@ -44,6 +34,7 @@ static void set_workarounds(uint32_t techRev, uint32_t revision, uint32_t tusPer
 
       /* Fixed at B2 or above */
       khrn_workarounds.HW2116 = false;    /* let ptb state counters wrap around safely */
+      khrn_workarounds.HW2806 = false;    /* Flags get written back to wrong quad when z test result collides with new thread */
       khrn_workarounds.HW2885 = false;    /* lockup due to erroneous activity in varyings interpolation module when outputting to the coverage pipe */
       khrn_workarounds.HW2898 = false;    /* NPOT raster textures */
       khrn_workarounds.HW2903 = false;    /* Zero-size points break PTB */

@@ -140,7 +140,7 @@ static const int16_t BSAT_AciCoeff_10MHz_RBW[36] = {
    4588
 };
 
-
+#if 0
 /* ACI for Spectrum Analyzer RBW=30MHz, fs = 4968.000000  */
 static const int16_t BSAT_AciCoeff_30MHz_RBW[36] = {
    -29,
@@ -180,7 +180,7 @@ static const int16_t BSAT_AciCoeff_30MHz_RBW[36] = {
    9881,
    13029
 };
-
+#endif
 
 /******************************************************************************
  BSAT_g1_P_SaSetMixer_isr()

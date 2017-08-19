@@ -1357,11 +1357,10 @@ void BVDC_P_Window_Rts_Init
       bool                             bDispNrtStg,
 #endif
       bool                            *pbForceCapture,
-      bool                            *pbSclCapSymmetric,
       BVDC_SclCapBias                 *peSclCapBias,
       uint32_t                        *pulBandwidthDelta )
 {
-    bool             bForceCapture, bSclCapSymmetric;
+    bool             bForceCapture;
     uint32_t         ulBandwidthDelta;
     BVDC_SclCapBias  eSclCapBias;
 
@@ -1370,15 +1369,11 @@ void BVDC_P_Window_Rts_Init
 #else
     bForceCapture    = true;
 #endif
-    bSclCapSymmetric = false;
     eSclCapBias      = BVDC_SclCapBias_eAuto;
     ulBandwidthDelta = BVDC_P_BW_DEFAULT_DELTA;
 
     if(pbForceCapture)
         *pbForceCapture = bForceCapture;
-
-    if(pbSclCapSymmetric)
-        *pbSclCapSymmetric = bSclCapSymmetric;
 
     if(peSclCapBias)
         *peSclCapBias = eSclCapBias;
@@ -1443,6 +1438,9 @@ void BVDC_P_Window_Init
     uint32_t *pulCurLabCbTbl = NULL,   *pulNewLabCbTbl = NULL;
     uint32_t *pulCurLabCrTbl = NULL,   *pulNewLabCrTbl = NULL;
     uint32_t *pulCurLabLumaTbl = NULL, *pulNewLabLumaTbl = NULL;
+    const BBOX_Vdc_Capabilities *pBoxVdcCap;
+    const BBOX_Vdc_Display_Capabilities *pBoxVdcDispCap;
+    uint32_t ulBoxWinId;
 
     BDBG_ENTER(BVDC_P_Window_Init);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -1831,8 +1829,14 @@ void BVDC_P_Window_Init
         BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg),
         BVDC_P_DISPLAY_NRT_STG(hWindow->hCompositor->hDisplay),
 #endif
-        &pNewInfo->bForceCapture, &hWindow->bSclCapSymmetric,
-        &pNewInfo->eSclCapBias, &pNewInfo->ulBandwidthDelta);
+        &pNewInfo->bForceCapture, &pNewInfo->eSclCapBias, &pNewInfo->ulBandwidthDelta);
+
+    pBoxVdcCap     = &hWindow->hCompositor->hVdc->stBoxConfig.stVdc;
+    pBoxVdcDispCap = &pBoxVdcCap->astDisplay[hWindow->hCompositor->eId];
+
+    ulBoxWinId = BVDC_P_GetBoxWindowId_isrsafe(hWindow->eId);
+
+    hWindow->bSrcSideDeinterlace = pBoxVdcDispCap->astWindow[ulBoxWinId].stResource.bSrcSideDeinterlacer;
 
     if(hWindow->stResourceRequire.bRequireScaler)
     {
@@ -2277,6 +2281,8 @@ BERR_Code BVDC_P_Window_ValidateChanges
 
     if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
     {
+        bool bIs10BitCore = false, bIs2xClk = false;
+
         /* If MPG window's display is not aligned to or by another display, forced sync
            lock might cause tearing! */
         if(hWindow->stSettings.bForceSyncLock)
@@ -2647,14 +2653,34 @@ BERR_Code BVDC_P_Window_ValidateChanges
                     BDBG_ERR(("Window %d failed to allocate scaler ", hWindow->eId));
                     goto fail_res;
                 }
+                else
+                {
+                    /* Acquire tmp scaler resource, query capabilities that  */
+                    /* needed to allocate XSRC, VFC and ITM, then release */
+                    /* tmp scl resource */
+                    BVDC_P_Scaler_Handle hTmpScl;
+                    phScaler = &hTmpScl;
+                    BKNI_EnterCriticalSection();
+                    BVDC_P_Resource_AcquireHandle_isr(hResource,
+                        BVDC_P_ResourceType_eScl, hWindow->stResourceFeature.ulScl,
+                        (unsigned long) hWindow, (void **)phScaler, false);
+                    bIs10BitCore = hTmpScl->bIs10BitCore;
+                    bIs2xClk = hTmpScl->bIs2xClk;
+                    BVDC_P_Resource_ReleaseHandle_isr(hResource,
+                        BVDC_P_ResourceType_eScl, (void *)hTmpScl);
+                    BKNI_LeaveCriticalSection();
+                }
 
-                    pNewDirty->stBits.bSharedScl = BVDC_P_DIRTY;
+                pNewDirty->stBits.bSharedScl = BVDC_P_DIRTY;
                 hWindow->bAllocResource = true;
+
             }
             else
             {
                 hWindow->stNewResource.hScaler = hWindow->stCurResource.hScaler;
-                }
+                bIs10BitCore = hWindow->stNewResource.hScaler->bIs10BitCore;
+                bIs2xClk = hWindow->stNewResource.hScaler->bIs2xClk;
+            }
         }
 
         /* (9-11') Aquire MCVP */
@@ -2696,7 +2722,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
         /* (12) Aquire XSRC */
         if(hWindow->stNewInfo.hSource->bIs2xClk &&
            hWindow->stNewInfo.hSource->bIs10BitCore &&
-           (!hWindow->bIs2xClk || !hWindow->hCompositor->bIs2xClk) &&
+           (!bIs2xClk || !hWindow->hCompositor->bIs2xClk) &&
            BVDC_P_STATE_IS_CREATE(hWindow))
         {
             BVDC_P_Xsrc_Handle *phXsrc=&hWindow->stNewResource.hXsrc;
@@ -2722,12 +2748,15 @@ BERR_Code BVDC_P_Window_ValidateChanges
                 hWindow->stNewResource.hXsrc = hWindow->stCurResource.hXsrc;
             }
         }
+#else
+        BSTD_UNUSED(bIs2xClk);
 #endif
 
 #if (BVDC_P_SUPPORT_VFC)
+
         /* (13) Aquire VFC */
         if(hWindow->stNewInfo.hSource->bIs10BitCore &&
-           (!hWindow->bIs10BitCore || !hWindow->hCompositor->bIs10BitCore) &&
+           (!bIs10BitCore || !hWindow->hCompositor->bIs10BitCore) &&
            BVDC_P_STATE_IS_CREATE(hWindow))
         {
             BVDC_P_Vfc_Handle *phVfc=&hWindow->stNewResource.hVfc;
@@ -2753,6 +2782,8 @@ BERR_Code BVDC_P_Window_ValidateChanges
                 hWindow->stNewResource.hVfc = hWindow->stCurResource.hVfc;
             }
         }
+#else
+        BSTD_UNUSED(bIs10BitCore);
 #endif
 
 #if (BVDC_P_SUPPORT_TNTD)
@@ -3176,7 +3207,9 @@ BERR_Code BVDC_P_Window_ValidateChanges
     /* Game mode clock adjustment can not work together with slave mode RM */
     if(pNewInfo->stGameDelaySetting.bEnable)
     {
+#if BVDC_P_MAX_DACS
         uint32_t uiIndex;
+#endif
 
         /* No display alignment if game delay control is on; */
         if(hDisplay->stNewInfo.hTargetDisplay)
@@ -3200,6 +3233,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
             break;
         case BVDC_DisplayTg_e656Dtg:
         case BVDC_DisplayTg_eDviDtg:
+#if BVDC_P_MAX_DACS
             for(uiIndex=0; uiIndex < BVDC_P_MAX_DACS; uiIndex++)
             {
                 if(hDisplay->stNewInfo.aDacOutput[uiIndex] != BVDC_DacOutput_eUnused)
@@ -3209,6 +3243,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
                     return BERR_TRACE(BERR_INVALID_PARAMETER);
                 }
             }
+#endif
             break;
         /* @@@ How to validate the change on STG*/
         case BVDC_DisplayTg_eStg0:
@@ -3425,9 +3460,8 @@ static void BVDC_P_Window_SetBypassColor_isr
 
         /* if there is only one window in this compositor, it decides whether dviCsc bypass,
          * and if two windows are enabled, then window 0 decides it */
-        bBypassDviCsc = bBypassColorByTf || bFixedColor ||
-            ((BVDC_P_IS_BT2020(pAvcColorSpaceIn->eColorimetry) && BVDC_P_IS_BT2020(pAvcColorSpaceOut->eColorimetry)) &&
-             (!BVDC_P_IS_SDR(pAvcColorSpaceOut->eColorTF)) &&
+        bBypassDviCsc = bFixedColor ||
+            ((bBypassColorByTf || (pAvcColorSpaceIn->eColorimetry == pAvcColorSpaceOut->eColorimetry)) &&
              (pDspOutColorSpace->eColorFmt == BAVC_P_ColorFormat_eYCbCr) &&
              (pDspOutColorSpace->eColorRange == BAVC_P_ColorRange_eLimited));
         if (hCompositor->bBypassDviCsc != bBypassDviCsc)
@@ -3501,7 +3535,7 @@ static void BVDC_P_Window_SetMiscellaneous_isr
         !hWindow->stSettings.bBypassVideoProcessings));
 #endif
 
-    BDBG_MODULE_MSG(BVDC_CFC_5,("Cmp%d_V%d invokes setBypassColor_isr by %s", hWindow->hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__));
+    BDBG_MODULE_MSG(BVDC_CFC_5,("Cmp%d_V%d invokes setBypassColor_isr by %s", hWindow->hCompositor->eId, hWindow->eId-eV0Id, BSTD_FUNCTION));
     BVDC_P_Window_SetBypassColor_isr (hWindow,
         (BVDC_MuteMode_eConst == hWindow->stCurInfo.hSource->stCurInfo.eMuteMode) || hWindow->bMuteBypass);
 
@@ -5850,6 +5884,23 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         BVDC_P_Window_UpdateBarData_isr(hWindow, pPicture, pMvdFieldData);
     }
 
+#if (BVDC_P_CAP_DCXM_SCB_WORKAROUND)
+    if(pPicture->bEnableDcxm && pPicture->pCapIn)
+    {
+        uint32_t   ulCompBits, ulBurstSize;
+
+        ulBurstSize = 256 * 24;
+        /* Always use 10bit for compression */
+        ulCompBits = (pPicture->pCapIn->ulWidth * pPicture->pCapIn->ulHeight)*10;
+
+        if(ulCompBits < ulBurstSize)
+        {
+            pPicture->bEnableDcxm  = false;
+            pPicture->bEnable10Bit = false;
+        }
+    }
+#endif
+
     /* Update compression */
     pPicture->stCapCompression.bEnable = hWindow->stCapCompression.bEnable;
     pPicture->stCapCompression.ulBitsPerGroup = hWindow->stCapCompression.ulBitsPerGroup;
@@ -6065,13 +6116,16 @@ void BVDC_P_Window_DecideCapture_isr
      */
     bProgressivePullDown = VIDEO_FORMAT_IS_PROGRESSIVE(hSource->stNewInfo.pFmtInfo->eVideoFmt) &&
                            (eWriterVsReaderRateCode == BVDC_P_WrRate_NotFaster) &&
-                           (eReaderVsWriterRateCode == BVDC_P_WrRate_2TimesFaster);
+                           (eReaderVsWriterRateCode >= BVDC_P_WrRate_2TimesFaster);
 
     if((!hWindow->bSyncLockSrc) && (!hWindow->stSettings.bForceSyncLock) && !BVDC_P_SRC_IS_VFD(hWindow->stNewInfo.hSource->eId) &&
         ((VIDEO_FORMAT_IS_PROGRESSIVE(hCompositor->stNewInfo.pFmtInfo->eVideoFmt)
         && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) || bProgressivePullDown) && bCapture)
     {
+        /* From N buffers to N-1 buffers */
         hWindow->ulBufCntNeeded--;
+        hWindow->ulBufDelay--;
+
         if(eWriterVsReaderRateCode != eReaderVsWriterRateCode)
             /* Progressive pull down case */
             hWindow->bBufferCntDecrementedForPullDown = true;
@@ -9637,7 +9691,8 @@ void BVDC_P_Window_AdjustRectangles_isr
         BVDC_P_PRINT_RECT("New stSrcCnt", &hWindow->stSrcCnt, false, 0, 0);
         BDBG_MSG(("Window[%d] usr change = %d, src change = %d, srcPol=%d",
             hWindow->eId, hWindow->bAdjRectsDirty,
-            !BVDC_P_RECT_CMP_EQ(&hWindow->stPrevSrcCnt, &stSrcCnt), pMvdFieldData->eSourcePolarity));
+            !BVDC_P_RECT_CMP_EQ(&hWindow->stPrevSrcCnt, &stSrcCnt),
+            ((NULL == pMvdFieldData) ? 99 : pMvdFieldData->eSourcePolarity)));
 
         /* for optimization in future vsync */
         hWindow->stPrevSrcCnt = stSrcCnt;
@@ -9705,7 +9760,24 @@ void BVDC_P_Window_AdjustRectangles_isr
             ((BVDC_AspectRatioMode_eUseAllDestination == hWindow->stCurInfo.eAspectRatioMode) ||
              (BVDC_AspectRatioMode_eUseAllSource == hWindow->stCurInfo.eAspectRatioMode)));
 
+        /* According to mpeg spec the full aspect ratio is fully contributed by the
+               * ulSrcDispWidth x ulSrcDispHeight area */
+        if((0 == pAspRatioSettings->ulSrcPxlAspRatio) &&    /* non-0 iff already calculated */
+           ((pAspRatioSettings->bDoAspRatCorrect) ||
+           (0!=pUserInfo->ulNonlinearSrcWidth)||
+           (0!=pUserInfo->ulNonlinearSclOutWidth)))
+        {
+            BVDC_P_CalcuPixelAspectRatio_isr(
+                pAspRatioSettings->eSrcAspectRatio,
+                pAspRatioSettings->uiSampleAspectRatioX,
+                pAspRatioSettings->uiSampleAspectRatioY,
+                ulSrcDispWidth, ulSrcDispHeight,
+                pSrcAspRatRectClip, &pAspRatioSettings->ulSrcPxlAspRatio,
+                &pAspRatioSettings->ulSrcPxlAspRatio_x_y,
+                (NULL == pMvdFieldData)?BFMT_Orientation_e2D:pMvdFieldData->eOrientation);
+        }
         pAspRatioSettings->bNonlinearScl = (!pAspRatioSettings->bDoAspRatCorrect &&
+                 (pAspRatioSettings->ulSrcPxlAspRatio!=pAspRatioSettings->ulDspPxlAspRatio)&&
                          ((0 != pUserInfo->ulNonlinearSrcWidth) ||
                           (0 != pUserInfo->ulNonlinearSclOutWidth)));
 
@@ -9742,21 +9814,6 @@ void BVDC_P_Window_AdjustRectangles_isr
         {
             BVDC_P_Window_AdjDstCut_isr(hWindow, pDstFmtInfo,
                 &hWindow->stSrcCnt, &hWindow->stAdjSclOut, &hWindow->stAdjDstRect);
-        }
-
-        /* According to mpeg spec the full aspect ratio is fully contributed by the
-         * ulSrcDispWidth x ulSrcDispHeight area */
-        if((0 == pAspRatioSettings->ulSrcPxlAspRatio) &&    /* non-0 iff already calculated */
-           ((pAspRatioSettings->bDoAspRatCorrect) || (pAspRatioSettings->bNonlinearScl)))
-        {
-            BVDC_P_CalcuPixelAspectRatio_isr(
-                pAspRatioSettings->eSrcAspectRatio,
-                pAspRatioSettings->uiSampleAspectRatioX,
-                pAspRatioSettings->uiSampleAspectRatioY,
-                ulSrcDispWidth, ulSrcDispHeight,
-                pSrcAspRatRectClip, &pAspRatioSettings->ulSrcPxlAspRatio,
-                &pAspRatioSettings->ulSrcPxlAspRatio_x_y,
-                (NULL == pMvdFieldData)?BFMT_Orientation_e2D:pMvdFieldData->eOrientation);
         }
 
         /* ---------------------------------------------------------------
@@ -10043,90 +10100,13 @@ static bool BVDC_P_Window_NotReconfiguring_isr
 }
 
 
-/* Decision test for minimal memory bandwidth and usage:
- * ----------------------------------------------------
- * Because VDEC/656in/HD_DVI sources are fixed rate real-time pixels pump,
- * and VEC is a fixed rate real-time pixels drain, they constrain how fast
- * pixels need to be captured and fed out; the memory bandwidth is allocated
- * based on those constraints. To save memory bandwidth imposed by the
- * possible capture/playback path, we want to choose optimal placement of
- * SCL (before or after CAP/VFD) based on the potential memory rd/wr rate:
- *
- * in case of SRC -> SCL -> CAP,
- *   capture rate =
- *      (OutX * OutY) / ((SrcFmtRasterX * InY) / SrcFmtPixelClk);
- *
- * in case of VFD -> SCL -> VEC,
- *   feedout rate =
- *      (InX * InY) / (VecFmtRasterX * OutY) / VecFmtPixelClk;
- *
- * if capture rate < feedout rate, then scale first;
- */
-static uint32_t BVDC_P_Window_DecideSclCapSymmetric_isr
-    ( BVDC_Window_Handle               hWindow,
-      const BVDC_Source_Handle         hSource,
-      const BFMT_VideoInfo            *pSrcFmt,
-      const BFMT_VideoInfo            *pDstFmt,
-      bool                             bSrcInterlace )
-{
-    uint32_t ulInX, ulInY, ulInLine, ulInClk;
-    uint32_t ulOutX, ulOutY, ulOutLine, ulOutClk;
-    uint32_t ulCapRate, ulFeedRate, ulCapFdrRate;
-
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    ulInX     = hWindow->stSrcCnt.ulWidth;
-    ulOutX    = hWindow->stAdjSclOut.ulWidth;
-    ulInClk   = pSrcFmt->ulPxlFreq;
-    ulOutClk  = pDstFmt->ulPxlFreq;
-    ulInLine  = pSrcFmt->ulScanWidth; /* SrcFmtRasterX */
-    ulOutLine = pDstFmt->ulScanWidth; /* VecFmtRasterX */
-
-    ulInY  = (bSrcInterlace)
-        ? (hWindow->stSrcCnt.ulHeight / BVDC_P_FIELD_PER_FRAME)
-        : (hWindow->stSrcCnt.ulHeight);
-
-    ulOutY = (pDstFmt->bInterlaced)
-        ? (hWindow->stAdjSclOut.ulHeight / BVDC_P_FIELD_PER_FRAME)
-        : (hWindow->stAdjSclOut.ulHeight);
-
-    /* Adjust for oversample */
-    ulInClk  = BVDC_P_OVER_SAMPLE(hSource->ulSampleFactor, ulInClk);
-    ulInLine = BVDC_P_OVER_SAMPLE(hSource->ulSampleFactor, ulInLine);
-
-    /* Make it friendly for integer divsion.  For equal bandwidth let the
-     * capture before scaler as the capture is more tolerance to external
-     * input than MAD/SCL.
-     * TODO: maybe mad's row doubling effect should be considered here  */
-    if(BVDC_P_SRC_IS_MPEG(hSource->eId))
-    {
-        ulCapRate = (ulOutX * ulOutY) / (BVDC_P_MAX(1, 1000000 / pDstFmt->ulVertFreq));
-        ulCapRate += (ulOutX * ulOutY) / (BVDC_P_MAX(1, 1000000 / ((5*pDstFmt->ulVertFreq)/100)));
-    }
-    else
-    {
-        ulCapRate = (ulOutX * ulOutY) / (BVDC_P_MAX(1, ulInLine  * ulInY / ulInClk));
-    }
-    ulFeedRate   = (ulInX  * ulInY ) / (BVDC_P_MAX(1, ulOutLine * ulOutY / ulOutClk));
-
-    /* At lease 1 so not do divide by zero!  Use decision osciallation by
-     * some delta.  Here we allow to stay with the last decision if it's with
-     * some BVDC_P_BW_DELTA.  Currently it's set to 1% for rate oscillation.
-     * But cut also overschedule RTS for aspect ratio correct without
-     * toggle scl/cap, though need to find the delta and update accordingly. */
-    ulFeedRate   = BVDC_P_MAX(1, ulFeedRate);
-    ulCapFdrRate = (ulCapRate * BVDC_P_BW_RATE_FACTOR / ulFeedRate);
-
-    hWindow->ulCapRate = ulCapRate;
-    hWindow->ulFeedRate = ulFeedRate;
-
-    return ulCapFdrRate;
-}
-
-
 /* Bandwidth equation without deinterlacer
  *    ratio = ((ceil(ox / SCB_burst_size)) / (ceil(ix / SCB_burst_size))) * sy
  * Bandwidth equation with deinterlacer
- *    ratio = ((ceil(ox / SCB_burst_size)) / (ceil(ix / SCB_burst_size))) * sy * hx * 2
+ *    if MVP before CAP
+ *        ratio = ((ceil(ox / SCB_burst_size)) / (ceil((ix * hx) / SCB_burst_size))) * (oy / (iy * 2))
+ *    else
+ *        ratio = ((ceil(ox / SCB_burst_size)) / (ceil(ix / SCB_burst_size))) * sy * hx * 2
  * If ratio < 1 => SCL before CAP/VFD
  * where:
  *    ceil(x) is ceiling operation that rounds up x value to the immediate next
@@ -10176,29 +10156,42 @@ static uint32_t BVDC_P_Window_DecideSclCapAsymmetric_isr
         ulInX, ulInY, ulOutX, ulOutY, ulOutRate,
         ulInRate, ulCapFdrRate));
 
-    if(ulCapFdrRate > BVDC_P_BW_BASE && bDeinterlace)
+    if(bDeinterlace)
     {
-        /* Need to take into account the MAD -> SCL case */
-        /* when MAD is placed after CAP (ulCapFdrRate > BVDC_P_BW_BASE), the */
-        /* output rate of MAD must  NOT exceed oclk / (sx' * sy') */
-        /* where oclk is the display specific output pixel clk rate */
-        /* MAD output rate is chip specific, SD-MAD: 27MHz, HD-MAD: 148.5MHz */
-        /* (sx' * sy') is the SCL scaling ratio */
-        /* where sy = 2sy' when MAD is used and sx = hx*sx' when HSCL is used */
-#define BVDC_P_MAD_OUTPUT_RATE   (1485 * BFMT_FREQ_FACTOR / 10)
-        /* be careful with 32-bit math overflow! */
-        uint32_t ulSclRatio = (ulOutX * ulOutY * (BVDC_P_BW_RATE_FACTOR/10) / (ulInX * hWindow->stSrcCnt.ulHeight)) * 10;
-        uint32_t ulOclk = pDstFmt->ulPxlFreq ;
-        uint32_t ulMadOutClk = ulOclk * BVDC_P_BW_RATE_FACTOR / ulSclRatio;
-
-        BDBG_MSG(("BW+MAD: InX=%d InY'=%d OutX=%d OutY=%d SclRatio=%d oclk=%d MadOutClk=%d BVDC_P_MAD_OUTPUT_RATE=%d",
-            ulInX, hWindow->stSrcCnt.ulHeight, ulOutX, ulOutY, ulSclRatio,
-            ulOclk, ulMadOutClk, BVDC_P_MAD_OUTPUT_RATE));
-
-        if(ulMadOutClk > BVDC_P_MAD_OUTPUT_RATE)
+        if(hWindow->bSrcSideDeinterlace)
         {
-            BDBG_MSG(("Need to force SCL/CAP"));
-            ulCapFdrRate = BVDC_P_BW_RATE_FACTOR * BVDC_P_BW_RATE_FACTOR / ulCapFdrRate;
+            ulInY = hWindow->stSrcCnt.ulHeight;
+            ulOutRate = BVDC_P_DIV_ROUND_UP(ulOutX, BVDC_P_SCB_BURST_SIZE) * ulOutY;
+            ulInRate  = BVDC_P_DIV_ROUND_UP(ulInX,  BVDC_P_SCB_BURST_SIZE) * ulInY * 2;
+            ulCapFdrRate = (ulOutRate * BVDC_P_BW_RATE_FACTOR / ulInRate);
+            BDBG_MSG(("MvpBeforeCap: InX=%d InY=%d OutX=%d OutY=%d ulOutRate=%d ulInRate=%d ulCapFdrRate=%d",
+                ulInX, ulInY, ulOutX, ulOutY, ulOutRate,
+                ulInRate, ulCapFdrRate));
+        }
+        else if(ulCapFdrRate > BVDC_P_BW_BASE)
+        {
+            /* Need to take into account the MAD -> SCL case */
+            /* when MAD is placed after CAP (ulCapFdrRate > BVDC_P_BW_BASE), the */
+            /* output rate of MAD must  NOT exceed oclk / (sx' * sy') */
+            /* where oclk is the display specific output pixel clk rate */
+            /* MAD output rate is chip specific, SD-MAD: 27MHz, HD-MAD: 148.5MHz */
+            /* (sx' * sy') is the SCL scaling ratio */
+            /* where sy = 2sy' when MAD is used and sx = hx*sx' when HSCL is used */
+#define BVDC_P_MAD_OUTPUT_RATE   (1485 * BFMT_FREQ_FACTOR / 10)
+            /* be careful with 32-bit math overflow! */
+            uint32_t ulSclRatio = (ulOutX * ulOutY * (BVDC_P_BW_RATE_FACTOR/10) / (ulInX * hWindow->stSrcCnt.ulHeight)) * 10;
+            uint32_t ulOclk = pDstFmt->ulPxlFreq ;
+            uint32_t ulMadOutClk = ulOclk * BVDC_P_BW_RATE_FACTOR / ulSclRatio;
+
+            BDBG_MSG(("BW+MAD: InX=%d InY'=%d OutX=%d OutY=%d SclRatio=%d oclk=%d MadOutClk=%d BVDC_P_MAD_OUTPUT_RATE=%d",
+                ulInX, hWindow->stSrcCnt.ulHeight, ulOutX, ulOutY, ulSclRatio,
+                ulOclk, ulMadOutClk, BVDC_P_MAD_OUTPUT_RATE));
+
+            if(ulMadOutClk > BVDC_P_MAD_OUTPUT_RATE)
+            {
+                BDBG_MSG(("Need to force SCL/CAP"));
+                ulCapFdrRate = BVDC_P_BW_RATE_FACTOR * BVDC_P_BW_RATE_FACTOR / ulCapFdrRate;
+            }
         }
     }
 
@@ -10359,9 +10352,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
 
         bDeinterlace = (
             (bSrcInterlace) &&
-            (bMadSrcSizeOk) &&
-            /* MAD can be enabled in PIG mode with new BW equation. */
-            (!hWindow->bSclCapSymmetric || hWindow->bDstFullScreen)
+            (bMadSrcSizeOk)
 #if !BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
             && (!hWindow->stCurInfo.bMosaicMode)
 #endif
@@ -10379,10 +10370,10 @@ static bool BVDC_P_Window_DecideVnetMode_isr
 
         if(pMvdFieldData)
         {
-            BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC, ("win[%d] picture channel %d bDeinterlacer %d bSrcInterlace %d bMadSrcSizeOk %d %d %d, vfreq=%u",
+            BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC, ("win[%d] picture channel %d bDeinterlacer %d bSrcInterlace %d bMadSrcSizeOk %d %d, vfreq=%u",
                 hWindow->eId, ulPictureIdx,
                 bDeinterlace, bSrcInterlace, bMadSrcSizeOk,
-                hWindow->bSclCapSymmetric, hWindow->bDstFullScreen,
+                hWindow->bDstFullScreen,
                 hWindow->stCurInfo.hSource->ulVertFreq));
         }
 
@@ -10419,42 +10410,24 @@ static bool BVDC_P_Window_DecideVnetMode_isr
         }
     }
 
-    if(hWindow->bSclCapSymmetric)
-    {
-        ulCapFdrRate = BVDC_P_Window_DecideSclCapSymmetric_isr(
-                       hWindow, hWindow->stCurInfo.hSource, pSrcFmt, pDstFmt, bSrcInterlace);
-    }
-    else
-    {
-        ulCapFdrRate = BVDC_P_Window_DecideSclCapAsymmetric_isr(
-                       hWindow, pDstFmt, bSrcInterlace, bDeinterlace);
-    }
+    ulCapFdrRate = BVDC_P_Window_DecideSclCapAsymmetric_isr(
+                   hWindow, pDstFmt, bSrcInterlace, bDeinterlace);
 
     if(BVDC_P_EQ_DELTA(ulCapFdrRate, BVDC_P_BW_BASE, hWindow->stCurInfo.ulBandwidthDelta))
     {
         if(hWindow->stCurInfo.eSclCapBias == BVDC_SclCapBias_eAuto)
         {
-            if(hWindow->bSclCapSymmetric)
+            if(ulCapFdrRate > BVDC_P_BW_BASE)
             {
-                bSclCapBaseOnRate = BVDC_P_VNET_USED_SCALER_AT_WRITER(hWindow->stVnetMode);
-                BDBG_MSG(("Bias = %d, Rate [r=%d/%d] is optimized either way: %s!",
-                    hWindow->stCurInfo.eSclCapBias, BVDC_P_BW_BASE, ulCapFdrRate,
-                    bSclCapBaseOnRate ? "SCL -> CAP" : "CAP -> SCL"));
+                bSclCapBaseOnRate = false;
+                BDBG_MSG(("Bias = %d, Rate [r=%d/%d] is more optimized if: CAP -> SCL",
+                    hWindow->stCurInfo.eSclCapBias, BVDC_P_BW_BASE, ulCapFdrRate));
             }
             else
             {
-                if(ulCapFdrRate > BVDC_P_BW_BASE)
-                {
-                    bSclCapBaseOnRate = false;
-                    BDBG_MSG(("Bias = %d, Rate [r=%d/%d] is more optimized if: CAP -> SCL",
-                        hWindow->stCurInfo.eSclCapBias, BVDC_P_BW_BASE, ulCapFdrRate));
-                }
-                else
-                {
-                    bSclCapBaseOnRate = true;
-                    BDBG_MSG(("Bias = %d, Rate [r=%d/%d] is more optimized if: SCL -> CAP",
-                        hWindow->stCurInfo.eSclCapBias, BVDC_P_BW_BASE, ulCapFdrRate));
-                }
+                bSclCapBaseOnRate = true;
+                BDBG_MSG(("Bias = %d, Rate [r=%d/%d] is more optimized if: SCL -> CAP",
+                    hWindow->stCurInfo.eSclCapBias, BVDC_P_BW_BASE, ulCapFdrRate));
             }
         }
         else if(hWindow->stCurInfo.eSclCapBias == BVDC_SclCapBias_eSclBeforeCap)
@@ -10493,10 +10466,6 @@ static bool BVDC_P_Window_DecideVnetMode_isr
           /* force frame capture */
           (hWindow->stCurInfo.hSource->stCurInfo.bForceFrameCapture) ||
 
-#if BVDC_P_SUPPORT_MTG
-          (hWindow->stCurInfo.hSource->bMtgSrc) ||
-#endif
-
           /* MosaicMode: always scale first! */
           (hWindow->stCurInfo.bMosaicMode) );
 
@@ -10511,6 +10480,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     pVnetMode->stBits.bUseDnr = (hWindow->stCurInfo.hSource->stCurInfo.bDnr && hWindow->stCurResource.hDnr)
         ? BVDC_P_ON : BVDC_P_OFF;
     pVnetMode->stBits.bSclBeforeCap = (pVnetMode->stBits.bUseCap && bScalerFirst) ? BVDC_P_ON : BVDC_P_OFF;
+    pVnetMode->stBits.bSrcSideDeinterlace = (hWindow->bSrcSideDeinterlace) ? BVDC_P_ON : BVDC_P_OFF;
 #if BVDC_P_SUPPORT_XSRC
     pVnetMode->stBits.bUseXsrc = (hWindow->stCurResource.hXsrc)? BVDC_P_ON : BVDC_P_OFF;
 #endif
@@ -10759,7 +10729,7 @@ static void BVDC_P_Window_DetermineBufferCount_isr
          */
         bProgressivePullDown =  VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->eVideoFmt) &&
                                 (hWindow->hBuffer->eWriterVsReaderRateCode == BVDC_P_WrRate_NotFaster) &&
-                                (hWindow->hBuffer->eReaderVsWriterRateCode == BVDC_P_WrRate_2TimesFaster);
+                                (hWindow->hBuffer->eReaderVsWriterRateCode >= BVDC_P_WrRate_2TimesFaster);
 
         /* Check to see if buffer count was reduced due to progressive display format. If so and
          * the reader or writer rate gaps is 1, increment the buffer cnt. */
@@ -11875,8 +11845,9 @@ static void BVDC_P_Window_SetCadenceHandling_isr
          *     the frame to field with proper polarity.
          *
          *  3) MAD is at reader side.
-         *     MAD will convert the picture to frame, then scaler
-         *     will convert the frame to field with proper polarity.
+         *     MAD will convert the picture to frame, then the scaler,
+         *     which is at the reader side as well will convert the
+         *     frame to field with proper polarity.
          */
         if ((!hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced)    ||
             (hWindow->bFrameCapture) ||
@@ -13399,6 +13370,7 @@ void BVDC_P_Window_Writer_isr
                 1. the source is MTG driven,
                 2. the window is not in mosaic mode,
                 3. a deinterlacer is active.
+                4. when the source's frame rate code is known
 
             If all 3 items above are true, the deinterlacer's output phase will be used to determine
             which pictures will be dropped by the mutli-buffer algorithm.
@@ -13406,15 +13378,14 @@ void BVDC_P_Window_Writer_isr
             If only items 1 and 2 above are true and the deinterlacer is not active, the bPictureRepeat flag from
             the DM will be used to select which pictures will be dropped by the multi-buffer mechanism. */
 
-        if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
+        if (pCurInfo->hSource->bMtgSrc &&
+            !hWindow->stCurInfo.bMosaicMode &&
+            pCurInfo->hSource->eFrameRateCode != BAVC_FrameRateCode_eUnknown)
         {
             eMtgMode = BVDC_P_MVP_USED_MAD(hWindow->stMvpMode) ? BVDC_P_Buffer_MtgMode_eMadPhase : BVDC_P_Buffer_MtgMode_eXdmRepeat;
 
             if (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat)
             {
-                hWindow->hBuffer->bMtgXdmDisplay1to1RateRelationship = hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq ==
-                    BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hWindow->stCurInfo.hSource->eFrameRateCode);
-
                 /* Determine XDM cadence */
                 if ((hWindow->stCurInfo.hSource->eFrameRateCode == BAVC_FrameRateCode_e23_976) ||
                     (hWindow->stCurInfo.hSource->eFrameRateCode == BAVC_FrameRateCode_e24))
@@ -13954,12 +13925,17 @@ void BVDC_P_Window_Reader_isr
                 }
             }
             else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
+                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode) &&
+                     eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
             {
                 BDBG_MODULE_MSG(BVDC_MTGR,("read win%d (n%d p%d), no lock", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
                 hWindow->iPhaseCntr = 0;
                 hWindow->iPrevPhaseCntr = 0;
                 hWindow->iLockCntr = 0;
+            }
+            else
+            {
+                BDBG_MODULE_MSG(BVDC_MTGR,("read Win[%d]: (pic %x rp %d)", hWindow->eId, pPicture->ulDecodePictureId, pPicture->stFlags.bPictureRepeatFlag));
             }
 
             if (pPicture->stFlags.bRev32Locked && eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
@@ -14261,7 +14237,7 @@ void BVDC_P_Window_Reader_isr
         BVDC_P_WindowId eV0Id = BVDC_P_CMP_GET_V0ID(hCompositor);
 #endif
         BDBG_MODULE_MSG(BVDC_CFC_5,("Cmp%d_V%d invokes setBypassColor_isr by %s due to (%d || %d)",
-            hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__, hWindow->bCfcDirty, pCurDirty->stBits.bMosaicMode));
+            hCompositor->eId, hWindow->eId-eV0Id, BSTD_FUNCTION, hWindow->bCfcDirty, pCurDirty->stBits.bMosaicMode));
         BVDC_P_Window_SetBypassColor_isr(hWindow, bFixedColor);
     }
     if(!hCompositor->bIsBypass && hWindow->bCfcDirty)

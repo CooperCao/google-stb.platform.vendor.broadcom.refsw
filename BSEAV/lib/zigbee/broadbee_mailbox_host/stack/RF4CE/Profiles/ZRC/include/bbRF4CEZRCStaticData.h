@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/ZRC/include/bbRF4CEZRCStaticData.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE ZRC component static data declaration.
+ *      This is the header file for the RF4CE ZRC component static data declaration.
  *
- * $Revision: 3515 $
- * $Date: 2014-09-10 11:15:21Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_ZRC_STATIC_DATA_H
 #define _RF4CE_ZRC_STATIC_DATA_H
 
@@ -86,8 +80,8 @@
  */
 typedef struct _RF4CE_NWK_QueueDataIndParams_t
 {
-    SYS_QueueElement_t queueElement;
-    RF4CE_NWK_DataIndParams_t ind;
+    SYS_QueueElement_t queueElement;               /*!< Queue service. */
+    RF4CE_NWK_DataIndParams_t ind;                 /*!< Indication parameters. */
 } RF4CE_NWK_QueueDataIndParams_t;
 
 /**//**
@@ -95,7 +89,7 @@ typedef struct _RF4CE_NWK_QueueDataIndParams_t
  */
 typedef struct _RF4CE_ZRC_StaticConstData_t
 {
-    /* Currently is empty. */
+    /*!< Currently is empty. */
 } RF4CE_ZRC_StaticConstData_t;
 extern const RF4CE_ZRC_StaticConstData_t rf4ceZRCStaticConstData;
 
@@ -104,8 +98,8 @@ extern const RF4CE_ZRC_StaticConstData_t rf4ceZRCStaticConstData;
  */
 typedef struct _RF4CE_ZRC_StaticData_t
 {
-    RF4CE_ZRC1_Attributes_t attributes;
-    uint8_t flagsBusy;
+    RF4CE_ZRC1_Attributes_t attributes;            /*!< ZRC1 Attributes. */
+    uint8_t flagsBusy;                             /*!< Flags. */
 #ifdef USE_RF4CE_PROFILE_ZRC2
     struct {
         RF4CE_ZRC2_SimpleAttributes_t       simple;
@@ -120,32 +114,33 @@ typedef struct _RF4CE_ZRC_StaticData_t
 
     union
     {
-        /* to interface with NVM */
+        /*!< to interface with NVM */
         RF4CE_ZRC2_Bitmap256_t          tmpBitmap256;
         Rf4ceZrc2ActionMappingBuffer_t  tmpActionMapping;
     };
 
 #endif /* USE_RF4CE_PROFILE_ZRC2 */
-    SYS_SchedulerTaskDescriptor_t zrcTasks;
-    SYS_QueueDescriptor_t commonDescr;
-    SYS_QueueDescriptor_t getsetDescr;
-    SYS_QueueDescriptor_t ccDescr;
-    SYS_QueueDescriptor_t allDescr;
-    SYS_QueueDescriptor_t heartbeatDescr;
-    SYS_QueueDescriptor_t clientNotificationDescr;
+
+    SYS_SchedulerTaskDescriptor_t zrcTasks;        /*!< ZRC1 Tasks. */
+    SYS_QueueDescriptor_t commonDescr;             /*!< Common task. */
+    SYS_QueueDescriptor_t getsetDescr;             /*!< Get/Set task. */
+    SYS_QueueDescriptor_t ccDescr;                 /*!< Control Command task. */
+    SYS_QueueDescriptor_t allDescr;                /*!< All? task. */
+    SYS_QueueDescriptor_t heartbeatDescr;          /*!< Heartbeat task. */
+    SYS_QueueDescriptor_t clientNotificationDescr; /*!< Client notification task. */
     union
     {
-        RF4CE_NWK_DiscoveryReqDescr_t nwkDiscoveryRequest;
-        RF4CE_NWK_PairReqDescr_t nwkPairRequest;
-        RF4CE_UnpairReqDescr_t nwkUnpairRequest;
-        RF4CE_NWK_RXEnableReqDescr_t nwkRXEnableBind;
-        RF4CE_NWK_SetReqDescr_t nwkSetRequest;
+        RF4CE_NWK_DiscoveryReqDescr_t nwkDiscoveryRequest; /*!< Discovery Request. */
+        RF4CE_NWK_PairReqDescr_t nwkPairRequest;   /*!< Pair Request. */
+        RF4CE_UnpairReqDescr_t nwkUnpairRequest;   /*!< Unpair Request. */
+        RF4CE_NWK_RXEnableReqDescr_t nwkRXEnableBind; /*!< RxEnable/Bind Request. */
+        RF4CE_NWK_SetReqDescr_t nwkSetRequest;     /*!< Set Request. */
 #ifdef RF4CE_TARGET
         RF4CE_NWK_AutoDiscoveryReqDescr_t autoDiscoveryRequest;
 #endif /* RF4CE_TARGET */
-    } nwkRequests;
-    RF4CE_ZRC1_BindConfParams_t zrc1BindConfirm;
-    Bool8_t isZRCStartUp;
+    } nwkRequests;                                 /*!< NWK Requests container. */
+    RF4CE_ZRC1_BindConfParams_t zrc1BindConfirm;   /*!< Bind confirm parameters. */
+    Bool8_t isZRCStartUp;                          /*!< Is ZRC started up? */
 #ifdef RF4CE_TARGET
     SYS_TimeoutTask_t zrc1TargetBindTimeout;
     uint8_t inTBindRequest;
@@ -158,6 +153,7 @@ typedef struct _RF4CE_ZRC_StaticData_t
     {
         RF4CE_ZRC2_GetAttributesReqDescr_t getReq;
         RF4CE_ZRC2_SetAttributesReqDescr_t setReq;
+        RF4CE_ZRC2_ConfigurationCompleteReqDescr_t confCompleteReq;
     } internalReqs;
     RF4CE_ZRC2_GetAttributesConfParams_t getConfirm;
     RF4CE_ZRC2_PullAttributesReqDescr_t pullReq;
@@ -175,6 +171,15 @@ typedef struct _RF4CE_ZRC_StaticData_t
 
     Rf4cezrc2GenericResponseRxCallback_t genericResponseCallback;
 
+    /* Buffer for incomming indications. */
+    RF4CE_ZRC_DataIncommingInd_t incommingDataBuffer[RF4CE_ZRC_MAX_INCOMING_INDICATIONS];
+    /* Pool to take a free incomming indication entry. */
+    SYS_QueueDescriptor_t incommingDataPool;
+    /* Current indications queue to process. */
+    SYS_QueueDescriptor_t incommingDataQueue;
+
+    Bool8_t getSetPushPullWasConfirm;
+    Bool8_t getSetPushPullWasResponse;
 #endif /* defined(USE_RF4CE_PROFILE_ZRC2) */
 } RF4CE_ZRC_StaticData_t;
 
@@ -251,3 +256,5 @@ typedef struct _INT_RF4CE_ZRC_StaticData_t
 extern INT_RF4CE_ZRC_StaticData_t RF4CE_ZRC_STATIC_DATA_VAR_NAME;
 
 #endif /* _RF4CE_ZRC_STATIC_DATA_H */
+
+/* eof bbRF4CEZRCStaticData.h */

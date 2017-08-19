@@ -9,17 +9,17 @@
 #include "private_nexus.h"
 #include "platform_common.h"
 #include "fence_queue.h"
-#include "surface_interface.h"
 #include "surface_interface_wl_client.h"
 #include "display_surface.h"
 #include "wayland_nexus_client.h"
 #include "wayland_egl_priv.h"
+#include "sched_nexus.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <wayland-util.h>
+#include <string.h>
 
-#include "../../common/fence_interface_nexus.h"
 #include "../../common/surface_interface_nexus.h"
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
@@ -28,32 +28,49 @@
 
 #define SWAPCHAIN_COUNT 3
 
-typedef struct PlatformState
+typedef struct WaylandClientWindow
 {
    WaylandClientPlatform *platform;
 
-   int swap_interval;
    struct wl_egl_window *wl_egl_window;
 
-   SurfaceInterface surface_interface;
-   FenceInterface fence_interface;
    DisplayInterface display_interface;
 
    DisplayFramework display_framework;
-} PlatformState;
+} WaylandClientWindow;
+
+static bool WlcInit(void *context)
+{
+   WaylandClientPlatform *platform = (WaylandClientPlatform *)context;
+   if (InitWaylandClient(&platform->client, platform->client.display))
+   {
+      InitFenceInterface(&platform->fence_interface, platform->schedInterface);
+      return SurfaceInterface_InitWlClient(&platform->surface_interface,
+               &platform->client);
+   }
+   return false;
+}
+
+static void WlcTerminate(void *context)
+{
+   WaylandClientPlatform *platform = (WaylandClientPlatform *)context;
+   Interface_Destroy(&platform->surface_interface.base);
+   Interface_Destroy(&platform->fence_interface.base);
+   DestroyWaylandClient(&platform->client);
+}
 
 static BEGL_Error WlcWindowGetInfo(void *context, void *nativeWindow,
       BEGL_WindowInfoFlags flags, BEGL_WindowInfo *info)
 {
    UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
+   WaylandClientWindow *window = (WaylandClientWindow *) nativeWindow;
 
-   if (state)
+   if (window)
    {
       if (flags & BEGL_WindowInfoWidth)
-         info->width = state->wl_egl_window->width;
+         info->width = window->wl_egl_window->width;
       if (flags & BEGL_WindowInfoHeight)
-         info->height = state->wl_egl_window->height;
+         info->height = window->wl_egl_window->height;
       if (flags & BEGL_WindowInfoSwapChainCount)
          info->swapchain_count = SWAPCHAIN_COUNT;
       return BEGL_Success;
@@ -103,13 +120,13 @@ static BEGL_Error WlcGetNextSurface(void *context, void *nativeWindow,
    UNUSED(context);
    UNUSED(secure);
 
-   PlatformState *state = (PlatformState *) nativeWindow;
+   WaylandClientWindow *window = (WaylandClientWindow *) nativeWindow;
 
-   if (state == NULL || nativeSurface == NULL || actualFormat == NULL)
+   if (window == NULL || nativeSurface == NULL || actualFormat == NULL)
       return BEGL_Fail;
 
    *nativeSurface = DisplayFramework_GetNextSurface(
-         &state->display_framework, format, secure, fence);
+         &window->display_framework, format, secure, fence);
 
    if (!*nativeSurface)
    {
@@ -120,14 +137,14 @@ static BEGL_Error WlcGetNextSurface(void *context, void *nativeWindow,
 }
 
 static BEGL_Error WlcDisplaySurface(void *context, void *nativeWindow,
-      void *nativeSurface, int fence)
+      void *nativeSurface, int fence, int interval)
 {
    UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
-   if (state && nativeSurface)
+   WaylandClientWindow *window = (WaylandClientWindow *) nativeWindow;
+   if (window && nativeSurface)
    {
-      DisplayFramework_DisplaySurface(&state->display_framework,
-            nativeSurface, fence, state->swap_interval);
+      DisplayFramework_DisplaySurface(&window->display_framework,
+            nativeSurface, fence, interval);
       return BEGL_Success;
    }
    else
@@ -138,23 +155,15 @@ static BEGL_Error WlcCancelSurface(void *context, void *nativeWindow,
       void *nativeSurface, int fence)
 {
    UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
-   if (state && nativeSurface)
+   WaylandClientWindow *window = (WaylandClientWindow *) nativeWindow;
+   if (window && nativeSurface)
    {
-      DisplayFramework_CancelSurface(&state->display_framework, nativeSurface,
+      DisplayFramework_CancelSurface(&window->display_framework, nativeSurface,
             fence);
       return BEGL_Success;
    }
    else
       return BEGL_Fail;
-}
-
-static void WlcSetSwapInterval(void *context, void *nativeWindow, int interval)
-{
-   UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
-   if (interval >= 0)
-      state->swap_interval = interval;
 }
 
 static bool WlcPlatformSupported(void *context, uint32_t platform)
@@ -166,7 +175,13 @@ static bool WlcPlatformSupported(void *context, uint32_t platform)
 static bool WlcSetDefaultDisplay(void *context, void *display)
 {
    WaylandClientPlatform *platform = (WaylandClientPlatform *)context;
-   return platform->client.display == display; /* disallow change */
+   if (platform->client.display == EGL_NO_DISPLAY)
+   {
+      platform->client.display = display;
+      return true;
+   }
+   else
+      return platform->client.display == display; /* disallow change */
 }
 
 static void *WlcGetDefaultDisplay(void *context)
@@ -189,75 +204,69 @@ static const char *WlcGetDisplayExtensions(void *context)
 
 static void WlcResizeCallback(void *context, struct wl_egl_window * wl_egl_window)
 {
-   PlatformState *state = (PlatformState *) context;
+   WaylandClientWindow *window = (WaylandClientWindow *) context;
 
-   state->display_framework.window_info.width = wl_egl_window->width;
-   state->display_framework.window_info.height = wl_egl_window->height;
+   window->display_framework.window_info.width = wl_egl_window->width;
+   window->display_framework.window_info.height = wl_egl_window->height;
 }
 
 static void *WlcWindowPlatformStateCreate(void *context, void *native)
 {
    WaylandClientPlatform *platform = (WaylandClientPlatform *)context;
    struct wl_egl_window *wl_egl_window = (struct wl_egl_window *)native;
-   PlatformState *state = NULL;
+   WaylandClientWindow *window = NULL;
 
    if (platform && wl_egl_window && wl_egl_window->surface)
    {
-      state = calloc(1, sizeof(*state));
-      if (state)
+      window = calloc(1, sizeof(*window));
+      if (window)
       {
-         state->platform = platform;
-         state->swap_interval = 1;
-         state->wl_egl_window = wl_egl_window;
-         state->wl_egl_window->resize.context = state;
-         state->wl_egl_window->resize.callback = WlcResizeCallback;
+         window->platform = platform;
+         window->wl_egl_window = wl_egl_window;
+         window->wl_egl_window->resize.context = window;
+         window->wl_egl_window->resize.callback = WlcResizeCallback;
 
-         FenceInteraface_InitNexus(&state->fence_interface, platform->schedInterface);
-         SurfaceInterface_InitWlClient(&state->surface_interface, &platform->client);
-         DisplayInterface_InitWlClient(&state->display_interface, &platform->client,
-               &state->fence_interface, state->wl_egl_window, SWAPCHAIN_COUNT);
+         DisplayInterface_InitWlClient(&window->display_interface,
+               &platform->client, &platform->fence_interface,
+               window->wl_egl_window, SWAPCHAIN_COUNT);
 
-         if (!DisplayFramework_Start(&state->display_framework,
-               &state->display_interface,
-               &state->fence_interface,
-               &state->surface_interface,
-               state->wl_egl_window->width,
-               state->wl_egl_window->height,
+         if (!DisplayFramework_Start(&window->display_framework,
+               &window->display_interface,
+               &platform->fence_interface,
+               &platform->surface_interface,
+               window->wl_egl_window->width,
+               window->wl_egl_window->height,
                SWAPCHAIN_COUNT))
          {
-            Interface_Destroy(&state->display_interface.base);
-            Interface_Destroy(&state->surface_interface.base);
-            Interface_Destroy(&state->fence_interface.base);
-            free(state);
-            state = NULL;
+            Interface_Destroy(&window->display_interface.base);
+            free(window);
+            window = NULL;
          }
       }
    }
-   return state;
+   return window;
 }
 
 static BEGL_Error WlcWindowPlatformStateDestroy(void *context, void *windowState)
 {
    UNUSED(context);
-   PlatformState *state = (PlatformState *) windowState;
+   WaylandClientWindow *window = (WaylandClientWindow *) windowState;
 
-   if (state)
+   if (window)
    {
-      DisplayFramework_Stop(&state->display_framework);
+      DisplayFramework_Stop(&window->display_framework);
 
-      Interface_Destroy(&state->display_interface.base);
-      Interface_Destroy(&state->surface_interface.base);
-      Interface_Destroy(&state->fence_interface.base);
+      Interface_Destroy(&window->display_interface.base);
 
-      state->wl_egl_window->resize.callback = NULL;
-      state->wl_egl_window->resize.context = NULL;
-      state->wl_egl_window = NULL;
+      window->wl_egl_window->resize.callback = NULL;
+      window->wl_egl_window->resize.context = NULL;
+      window->wl_egl_window = NULL;
 
 #ifndef NDEBUG
       /* catch some cases of use after free */
-      memset(state, 0, sizeof(*state));
+      memset(window, 0, sizeof(*window));
 #endif
-      free(state);
+      free(window);
    }
    return BEGL_Success;
 }
@@ -269,6 +278,8 @@ struct BEGL_DisplayInterface *CreateDisplayInterfaceWaylandClient(
    if (disp)
    {
       disp->context = platform;
+      disp->Init = WlcInit;
+      disp->Terminate = WlcTerminate;
       disp->WindowGetInfo = WlcWindowGetInfo;
       disp->GetNativeSurface = WlcGetNativeSurface;
       disp->SurfaceGetInfo = WlcSurfaceGetInfo;
@@ -276,7 +287,6 @@ struct BEGL_DisplayInterface *CreateDisplayInterfaceWaylandClient(
       disp->GetNextSurface = WlcGetNextSurface;
       disp->DisplaySurface = WlcDisplaySurface;
       disp->CancelSurface = WlcCancelSurface;
-      disp->SetSwapInterval = WlcSetSwapInterval;
       disp->PlatformSupported = WlcPlatformSupported;
       disp->SetDefaultDisplay = WlcSetDefaultDisplay;
       disp->GetDefaultDisplay = WlcGetDefaultDisplay;

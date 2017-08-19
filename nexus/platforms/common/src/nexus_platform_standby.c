@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "nexus_base.h"
@@ -223,13 +222,21 @@ static NEXUS_Error NEXUS_Platform_P_Standby(const NEXUS_StandbySettings *pSettin
     NEXUS_Platform_P_ModuleInfo *module_info;
 
     for (module_info = BLST_Q_FIRST(&g_NEXUS_platformHandles.handles); module_info; module_info = BLST_Q_NEXT(module_info, link)) {
-        bool power_down=true, lock=true;
+        bool power_down=false, lock=false;
 
-        if (pSettings->mode == NEXUS_StandbyMode_eActive && module_info->lock_mode == NEXUS_PlatformStandbyLockMode_ePassiveOnly) {
-            power_down = lock = false;
-        }
-        if (module_info->lock_mode == NEXUS_PlatformStandbyLockMode_eNone) {
-            lock = false;
+        switch (module_info->standby_level) {
+            case NEXUS_ModuleStandbyLevel_eAll:
+                power_down = lock = true;
+                break;
+            case NEXUS_ModuleStandbyLevel_eActive:
+                if (pSettings->mode >= NEXUS_StandbyMode_ePassive)
+                    power_down = lock = true;
+                break;
+            case NEXUS_ModuleStandbyLevel_eAlwaysOn:
+                power_down = true; /* Standby function is called if it exists, but h/w is not really powered down. Standby onyl sets some config */
+                break;
+            default:
+                break;
         }
 
         /* We could transition from active to passive or vice versa */
@@ -302,11 +309,6 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_StandbySettings *pS
     errCode = NEXUS_Platform_P_DeactivateSchedulers(pSettings->mode, pSettings->timeout, &deactivated);
     if(errCode!=NEXUS_SUCCESS) { errCode = BERR_TRACE(errCode);  goto err_scheduler;}
 
-    /* start schedulers that should run at this standby level */
-    NEXUS_Platform_P_SchedulersSet_Init(&activate, pSettings->mode);
-    NEXUS_Platform_P_ActivateSchedulers(&activate);
-
-
     if (g_NEXUS_platformModule == NULL ) {
         return NEXUS_NOT_INITIALIZED;
     }
@@ -372,6 +374,10 @@ set_wakeup:
         NEXUS_Platform_P_SetWakeupDevices(pSettings);
     }
 #endif
+    /* start schedulers that should run at this standby level */
+    NEXUS_Platform_P_SchedulersSet_Init(&activate, pSettings->mode);
+    NEXUS_Platform_P_ActivateSchedulers(&activate);
+
     g_standbyState.settings = *pSettings;
 
 err:
@@ -466,3 +472,14 @@ NEXUS_Error NEXUS_Platform_PostStandby(void)
     return 0;
 }
 
+bool NEXUS_Platform_P_ModuleInStandby(NEXUS_ModuleHandle module)
+{
+    NEXUS_Platform_P_ModuleInfo *module_info;
+    for (module_info = BLST_Q_FIRST(&g_NEXUS_platformHandles.handles); module_info; module_info = BLST_Q_NEXT(module_info, link)) {
+        if (module_info->module == module) {
+            return module_info->powerdown;
+        }
+    }
+    (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    return false;
+}

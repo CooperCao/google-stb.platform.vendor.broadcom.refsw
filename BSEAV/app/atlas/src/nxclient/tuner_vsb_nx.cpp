@@ -50,7 +50,7 @@ BDBG_MODULE(atlas_tuner_vsb);
 
 CTunerVsbNx::CTunerVsbNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CTunerVsb(name, number, pCfg)

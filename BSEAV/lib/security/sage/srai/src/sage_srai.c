@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,7 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
-
 
 /*
  * Includes
@@ -73,6 +72,10 @@
 #include "sage_srai_extended.h"
 #include "priv/bsagelib_rpc_shared.h"
 #include "priv/bsagelib_shared_types.h"
+
+#define SAGE_ALIGN_SIZE (4096)
+#define RoundDownP2(VAL, PSIZE) ((VAL) & (~(PSIZE-1)))
+#define RoundUpP2(VAL, PSIZE)   RoundDownP2((VAL) + PSIZE-1, PSIZE)
 
 /*
  * Debug
@@ -249,7 +252,7 @@ static SRAI_Settings _srai_settings =
 
 /* use .secure_* parameters to determine if a given memory block belongs to secure heap */
 #define _SRAI_IsMemoryInSecureHeap(MEM) ( (((MEM) >= _srai.secure_offset[0]) && ((MEM) < (_srai.secure_offset[0] + _srai.secure_size[0]))) \
-									|| (((MEM) >= _srai.secure_offset[1]) && ((MEM) < (_srai.secure_offset[1] + _srai.secure_size[1]))) )
+                                    || (((MEM) >= _srai.secure_offset[1]) && ((MEM) < (_srai.secure_offset[1] + _srai.secure_size[1]))) )
 
 #ifdef SRAI_GLOBAL_LOCK_BKNI
 static BKNI_MutexHandle _srai_mutex = NULL;
@@ -799,8 +802,9 @@ static void *_srai_async_handler(void *dummy)
 
 static int _srai_async_init(void)
 {
-    BERR_Code magnumRc;
+    BERR_Code magnumRc = BERR_UNKNOWN;
     int rc = 0;
+    int rc2 = 0;
 
     magnumRc = BKNI_CreateEventGroup(&_srai.async.hEventGroup);
     if (magnumRc != BERR_SUCCESS) { rc = -1; goto end; }
@@ -829,14 +833,14 @@ static int _srai_async_init(void)
     magnumRc = BKNI_AddEventGroup(_srai.async.hEventGroup, _srai.async.callbackRequest.hEvent);
     if (magnumRc != BERR_SUCCESS) { rc = -7; goto end; }
 
-    rc = pthread_create(&_srai.async.thread, NULL, _srai_async_handler, NULL);
-    if (magnumRc != BERR_SUCCESS) { rc = -8; goto end; }
+    rc2 = pthread_create(&_srai.async.thread, NULL, _srai_async_handler, NULL);
+    if (rc2 != 0) { rc = -8; goto end; }
 
     _srai.async.started = 1;
 
 end:
     if (rc) {
-        BDBG_ERR(("cannot init async; failure at %d ; err = %u", rc, magnumRc));
+        BDBG_ERR(("cannot init async; failure at %d ; err = %u (%d)", rc, magnumRc, rc2));
         _srai_async_cleanup();
     }
     return rc;
@@ -1077,7 +1081,7 @@ static int _srai_get_heap(NEXUS_MemoryType memoryType, unsigned heapType, NEXUS_
     if (validHeap) {
         NEXUS_Memory_GetDefaultAllocationSettings(pSecureAllocSettings);
         pSecureAllocSettings->heap = validHeap;
-        pSecureAllocSettings->alignment = 4096; /* align 4096 for SAGE-side concerns. */
+        pSecureAllocSettings->alignment = SAGE_ALIGN_SIZE; /* align SAGE_ALIGN_SIZE for SAGE-side concerns. */
         BDBG_MSG(("%s: secure alloc settings: heap: %p of type %d",
                   __FUNCTION__, (void *)validHeap, memoryType));
         rc = 0;
@@ -1147,12 +1151,12 @@ static int _srai_init_settings(void)
         BDBG_ERR(("%s: --> check for secure_heap=y environment variable", __FUNCTION__));
         rc -= 0x2;
     }
-	else
-	{
+    else
+    {
         _srai.secure_offset[0] = heapStatus.offset;
         _srai.secure_size[0] = heapStatus.size;
         BDBG_MSG(("Found CRR: offset: " BDBG_UINT64_FMT " size: 0x%x", BDBG_UINT64_ARG(_srai.secure_offset[0]), _srai.secure_size[0]));
-	}
+    }
 
     if (_srai_get_heap(NEXUS_MemoryType_eSecure,
                        NEXUS_HEAP_TYPE_EXPORT_REGION,
@@ -1343,7 +1347,7 @@ static void *_srai_memory_allocate(size_t size,
     rc = NEXUS_Memory_Allocate(size, settings, &ret);
 
     if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s(%u) failure (%d)", __FUNCTION__, size, rc));
+        BDBG_ERR(("%s(%u) failure (%d)", __FUNCTION__, (uint32_t)size, rc));
         ret = NULL;
     }
 
@@ -1420,25 +1424,22 @@ BERR_Code SRAI_SetSettings(SRAI_Settings *pSettings)
 uint8_t *SRAI_Memory_Allocate(uint32_t size, SRAI_MemoryType memoryType)
 {
     uint8_t *ret;
+    size_t roundedSize = RoundUpP2(size, SAGE_ALIGN_SIZE);
+    /* size is rounded up to a multiple of SAGE_ALIGN_SIZE bytes for SAGE-side concerns. */
 
     BDBG_ENTER(SRAI_Memory_Allocate);
 
     _srai_init_vars();
 
-    /* size is rounded up to a multiple of 4096 bytes for SAGE-side concerns. */
-    if (size & 0xFFF) {
-        size = (size | 0xFFF) + 1;
-    }
-
     switch (memoryType) {
     case SRAI_MemoryType_Shared:
-        ret = (uint8_t *)_srai_memory_allocate_global(size);
+        ret = (uint8_t *)_srai_memory_allocate_global(roundedSize);
         break;
     case SRAI_MemoryType_SagePrivate:
-        ret = (uint8_t *)_srai_memory_allocate_restricted(size);
+        ret = (uint8_t *)_srai_memory_allocate_restricted(roundedSize);
         break;
     case SRAI_MemoryType_SageExport:
-        ret = (uint8_t *)_srai_memory_allocate_export(size);
+        ret = (uint8_t *)_srai_memory_allocate_export(roundedSize);
         break;
     default:
         ret = NULL;
@@ -1643,13 +1644,13 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
                              uint8_t *binBuff,
                              uint32_t binSize)
 {
-	BSTD_UNUSED(platformId);
-	BSTD_UNUSED(binBuff);
-	BSTD_UNUSED(binSize);
+    BSTD_UNUSED(platformId);
+    BSTD_UNUSED(binBuff);
+    BSTD_UNUSED(binSize);
 
-	BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
+    BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 
 }
 
@@ -1657,22 +1658,22 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
 * This API is used to Un-install the Platform/TA that has been installed by SRAI_Platform_Install API */
 BERR_Code SRAI_Platform_UnInstall(uint32_t platformId )
 {
-	BSTD_UNUSED(platformId);
+    BSTD_UNUSED(platformId);
 
-	BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
+    BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 
 BERR_Code SRAI_Platform_EnableCallbacks(SRAI_PlatformHandle platform,
                                         SRAI_RequestRecvCallback callback)
 {
-	BSTD_UNUSED(platform);
-	BSTD_UNUSED(callback);
+    BSTD_UNUSED(platform);
+    BSTD_UNUSED(callback);
 
-	BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
+    BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 #else
 /* Install a platform.
@@ -1767,6 +1768,7 @@ _srai_lookup_platform_name(uint32_t platformId)
     CASE_PLATFORM_NAME_TO_STRING(MIRACAST);
     CASE_PLATFORM_NAME_TO_STRING(MARLIN);
     CASE_PLATFORM_NAME_TO_STRING(EDRM);
+    CASE_PLATFORM_NAME_TO_STRING(BP3);
     default:
       break;
   }
@@ -2029,9 +2031,15 @@ BERR_Code SRAI_Platform_UnInstall(uint32_t platformId )
 leave:
     if (--_srai.platform_refcount == 0)
     {
-      // We are done, cleanup
-      SRAI_Module_Uninit(_srai.system_module);
-      SRAI_Platform_Close(_srai.system_platform);
+        // We are done, cleanup
+        if (_srai.system_module)
+        {
+            SRAI_Module_Uninit(_srai.system_module);
+        }
+        if (_srai.system_platform)
+        {
+            SRAI_Platform_Close(_srai.system_platform);
+        }
 
       if(_srai.antirollback_module != NULL)
       {
@@ -2399,8 +2407,11 @@ end:
     if (rc) {
         BDBG_ERR(("%s: nexus_sage_command failure %x '%s'",
                   __FUNCTION__, rc, BSAGElib_Tools_ReturnCodeToString(rc)));
-        _srai_module_cleanup(module);
-        module = NULL;
+        if (module)
+        {
+            _srai_module_cleanup(module);
+            module = NULL;
+        }
     }
     else {
         /* success, insert module in modules list

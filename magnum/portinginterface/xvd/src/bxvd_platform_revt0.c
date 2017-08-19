@@ -1203,6 +1203,8 @@ void BXVD_P_InitRegPtrs_RevT0(BXVD_Handle hXvd)
    uiMemPartSize = stMemoryInfo.memc[0].deviceTech;
    uiMemBusWidth = stMemoryInfo.memc[0].width;
 
+   hXvd->scbMapVer = stMemoryInfo.memc[0].mapVer;
+
 #if (BDBG_DEBUG_BUILD || BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT)
    uiMemDeviceWidth = stMemoryInfo.memc[0].deviceWidth;
 #endif

@@ -125,7 +125,7 @@ static void NexusSimpleAudioDecodeSourceChangedCallback(
 
 CAudioDecode::CAudioDecode(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_decodeAudio, pCfg),
@@ -343,7 +343,7 @@ bool CAudioDecode::isCodecSupported(NEXUS_AudioCodec codec)
 
 CSimpleAudioDecode::CSimpleAudioDecode(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CAudioDecode(name, number, pCfg),
@@ -388,6 +388,7 @@ CSimpleAudioDecode::CSimpleAudioDecode(
         _pDecoders[i] = NULL;
     }
 
+    memset(&_startSettings,0,sizeof(_startSettings));
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&_startSettings);
 
     BDBG_ASSERT(eRet_Ok == ret);
@@ -407,11 +408,6 @@ eRet CSimpleAudioDecode::open(
     NEXUS_Error nError = NEXUS_SUCCESS;
     int         i      = 0;
 
-#if __COVERITY__
-    __coverity_stack_depth__(100*1024);
-#endif
-
-    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleAudioDecoderServerSettings settings;
 
     BDBG_ASSERT(NULL != pStc);

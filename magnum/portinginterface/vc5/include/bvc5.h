@@ -138,6 +138,9 @@ typedef enum BVC5_JobType
    BVC5_JobType_eTest,
    BVC5_JobType_eUsermode,
    BVC5_JobType_eBarrier,
+   BVC5_JobType_eWaitOnEvent,
+   BVC5_JobType_eSetEvent,
+   BVC5_JobType_eResetEvent,
    BVC5_JobType_eNumJobTypes
 } BVC5_JobType;
 
@@ -297,6 +300,12 @@ typedef struct BVC5_JobUsermode
    uint64_t                uiData;
 } BVC5_JobUsermode;
 
+typedef struct BVC5_JobSchedJob
+{
+   BVC5_JobBase            sBase;
+   uint64_t                uiEventId;
+} BVC5_JobSchedJob;
+
 /**
 Summary:
 Usermode callback jobs record returned by query function NEXUS_Graphicsv3d_GetUsermode
@@ -431,7 +440,8 @@ BERR_Code BVC5_RegisterClient(
    uint32_t    *puiClientId,
    int64_t      iUnsecureBinTranslation,
    int64_t      iSecureBinTranslation,
-   uint64_t     uiPlatformToken
+   uint64_t     uiPlatformToken,
+   uint32_t     uiClientPID
 );
 
 /***************************************************************************
@@ -786,9 +796,25 @@ uint32_t BVC5_GetPerfCounterData(
    BVC5_Counter   *psCounters
    );
 
-BERR_Code BVC5_GetTime(
-   uint64_t *pMicroseconds    /* [in] Result                           */
-   );
+typedef struct BVC5_ClientLoadData
+{
+   uint32_t uiClientId;
+   uint32_t uiClientPID;
+   uint32_t uiNumRenders;
+   uint8_t  sRenderPercent;
+} BVC5_ClientLoadData;
+
+BERR_Code BVC5_SetGatherLoadData(
+   BVC5_Handle    hVC5,
+   bool           bCollect
+);
+
+BERR_Code BVC5_GetLoadData(
+   BVC5_Handle          hVC5,
+   BVC5_ClientLoadData *pLoadData,
+   uint32_t             uiNumClients,
+   uint32_t            *pValidClients
+);
 
 /************************************************************************/
 /* Event timeline                                                       */
@@ -876,6 +902,47 @@ uint32_t BVC5_GetEventData(
    uint32_t       *puiLostData,
    uint64_t       *puiTimeStamp
    );
+
+/************************************************************************/
+/* Scheduler Event Sync Object                                          */
+/************************************************************************/
+
+BERR_Code BVC5_SchedEventJob(
+      BVC5_Handle                 hVC5,
+      uint32_t                    uiClientId,
+      const BVC5_JobSchedJob     *pSchedEvent
+      );
+
+BERR_Code BVC5_NewSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             *pSchedEventId
+      );
+
+BERR_Code BVC5_DeleteSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId
+      );
+
+BERR_Code BVC5_SetSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId
+      );
+
+BERR_Code BVC5_ResetSchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId
+      );
+
+BERR_Code BVC5_QuerySchedEvent(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint64_t             uiSchedEventId,
+      bool                 *bEventSet
+      );
 
 #ifdef __cplusplus
 }

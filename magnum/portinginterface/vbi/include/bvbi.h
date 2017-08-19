@@ -1368,6 +1368,7 @@ BERR_Code BVBI_Decode_SetVideoFormat(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Get the video display format used for decoding VBI.
@@ -1387,6 +1388,7 @@ BERR_Code BVBI_Decode_GetVideoFormat(
     BFMT_VideoFmt    *peVideoFormat     /* [out] The display format in use
                                                  with the above object      */
 );
+#endif
 
 
 /*****************************************************************************
@@ -1601,6 +1603,7 @@ BERR_Code BVBI_Encode_SetVideoFormat(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     This function is not needed for any chip supported by this version of
@@ -1619,6 +1622,7 @@ BERR_Code BVBI_Encode_SetHdmiPixelRepetition(
     BAVC_HDMI_PixelRepetition ePixRep   /*  [in] The desired HDMI pixel
                                                  repetition value            */
 );
+#endif
 
 
 /*****************************************************************************
@@ -2153,6 +2157,7 @@ BERR_Code BVBI_Encode_SetCGMSBstyle(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Get CGMS-B style on the given encoder handle
@@ -2177,6 +2182,7 @@ BERR_Code BVBI_Encode_GetCGMSBstyle(
                                                  defined in CEA-805-D is in
                                                  use.                        */
 );
+#endif
 
 
 /*****************************************************************************
@@ -2304,6 +2310,7 @@ BERR_Code BVBI_Encode_SetAMOL (
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set multi-line closed caption data output on the given handle
@@ -2326,6 +2333,7 @@ BERR_Code BVBI_Encode_SetMCC (
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
 
 
 /*****************************************************************************
@@ -2351,6 +2359,7 @@ BERR_Code BVBI_Encode_SetSCTE (
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of CC output on the given handle
@@ -2373,8 +2382,10 @@ BERR_Code BVBI_Encode_GetCC(
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of CGMS-A output on the given handle
@@ -2399,8 +2410,10 @@ BERR_Code BVBI_Encode_GetCGMSA(
 );
 /* Backwards compatibility, DEPRECATED! */
 #define BVBI_Encode_GetCGMS BVBI_Encode_GetCGMSA
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of CGMS-B output on the given handle
@@ -2423,8 +2436,10 @@ BERR_Code BVBI_Encode_GetCGMSB(
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of WSS output on the given handle
@@ -2447,8 +2462,10 @@ BERR_Code BVBI_Encode_GetWSS(
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of Teletext output on the given handle
@@ -2471,8 +2488,10 @@ BERR_Code BVBI_Encode_GetTeletext(
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of VPS output on the given handle
@@ -2495,8 +2514,10 @@ BERR_Code BVBI_Encode_GetVPS (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of Gemstar output on the given handle
@@ -2519,8 +2540,10 @@ BERR_Code BVBI_Encode_GetGemstar (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of AMOL output on the given handle
@@ -2541,8 +2564,10 @@ BERR_Code BVBI_Encode_GetAMOL (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of multi-line closed caption data output on the
@@ -2565,8 +2590,11 @@ BERR_Code BVBI_Encode_GetMCC (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of SCTE output on the given handle
@@ -2587,8 +2615,11 @@ BERR_Code BVBI_Encode_GetSCTE (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
+#endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 closed caption output on the given handle
@@ -2613,8 +2644,10 @@ BERR_Code BVBI_Encode_656_SetCC(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 teletext output on the given handle
@@ -2639,8 +2672,10 @@ BERR_Code BVBI_Encode_656_SetTeletext(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 WSS output on the given handle
@@ -2665,8 +2700,10 @@ BERR_Code BVBI_Encode_656_SetWSS(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 Gemstar output on the given handle
@@ -2691,8 +2728,10 @@ BERR_Code BVBI_Encode_656_SetGemstar(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 AMOL output on the given handle
@@ -2715,8 +2754,10 @@ BERR_Code BVBI_Encode_656_SetAMOL (
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 multi-line closed caption output on the given handle
@@ -2739,8 +2780,11 @@ BERR_Code BVBI_Encode_656_SetMCC (
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
 
 
+#if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 SCTE output on the given handle
@@ -2763,8 +2807,11 @@ BERR_Code BVBI_Encode_656_SetSCTE (
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
+#endif
+#endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 closed caption output on the
@@ -2788,8 +2835,10 @@ BERR_Code BVBI_Encode_656_GetCC (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 teletext output on the given handle
@@ -2812,8 +2861,10 @@ BERR_Code BVBI_Encode_656_GetTeletext (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 WSS output on the given handle
@@ -2836,8 +2887,10 @@ BERR_Code BVBI_Encode_656_GetWSS (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 Gemstar output on the given handle
@@ -2860,8 +2913,10 @@ BERR_Code BVBI_Encode_656_GetGemstar (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 AMOL output on the given handle
@@ -2882,8 +2937,10 @@ BERR_Code BVBI_Encode_656_GetAMOL (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 multi-line closed caption output on
@@ -2906,8 +2963,10 @@ BERR_Code BVBI_Encode_656_GetMCC (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 SCTE output on the given handle
@@ -2928,7 +2987,11 @@ BERR_Code BVBI_Encode_656_GetSCTE (
     bool*                 pbEnabled     /* [out] Whether encode is enabled
                                                  or disabled                */
 );
+#endif
 
+#if (BVBI_NUM_PTVEC > 0) /** { **/
+
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 encapsulation method for VBI encoding
@@ -2958,8 +3021,10 @@ BERR_Code BVBI_Encode_656_SetFormat (
                                               significant 6 bits are used.
                                               Note that the default is 0.    */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Get the format used for encapsulating VBI data into ancillary
@@ -2986,7 +3051,13 @@ BERR_Code BVBI_Encode_656_GetFormat(
                                                  significant bits are are
                                                  parity bits.                */
 );
+#endif
 
+#endif /** } (BVBI_NUM_PTVEC > 0) **/
+
+#if (BVBI_P_HAS_XSER_TT > 0) /** { **/
+
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set teletext external serial output on the given handle
@@ -3010,8 +3081,10 @@ BERR_Code BVBI_Encode_XSER_SetTeletext(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 output                       */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Get state of teletext output to external serial port on the given handle
@@ -3034,7 +3107,13 @@ BERR_Code BVBI_Encode_XSER_GetTeletext(
     bool*                 pbEnabled     /* [in] Whether output is enabled
                                                 or disabled.                 */
 );
+#endif
 
+#endif /** } (BVBI_P_HAS_XSER_TT > 0) **/
+
+#if (BVBI_P_HAS_XSER_TT > 0) /** { **/
+
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Sets options for VBI output through external serial port.
@@ -3055,7 +3134,9 @@ BERR_Code BVBI_Encode_XSER_SetOptions(
     BVBI_XSER_Settings*   pSettings     /* [in] Settings for serial port
                                                 output.                      */
 );
+#endif
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets options related to VBI output through external serial port.
@@ -3077,6 +3158,9 @@ BERR_Code BVBI_Encode_XSER_GetOptions(
     BVBI_XSER_Settings*   pSettings     /* [out] Settings for serial port
                                                  output.                     */
 );
+#endif
+
+#endif /** } (BVBI_P_HAS_XSER_TT > 0) **/
 
 
 /*****************************************************************************
@@ -3165,6 +3249,7 @@ BERR_Code BVBI_Encode_SetSCTEOptions(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets options for AMOL encoding
@@ -3185,6 +3270,7 @@ BERR_Code BVBI_Encode_GetAMOLOptions(
     BVBI_AMOL_Type*       pAmolType    /* [out] Which type of AMOL encoding
                                                 is being output.             */
 );
+#endif
 
 
 /*****************************************************************************
@@ -3896,6 +3982,7 @@ BERR_Code BVBI_Field_SetCCData_isr(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears CC data in the supplied field data
@@ -3912,6 +3999,7 @@ BERR_Code BVBI_Field_SetCCData_isr(
 BERR_Code BVBI_Field_ClearCCData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
 /*****************************************************************************
@@ -3940,6 +4028,7 @@ BERR_Code BVBI_Field_GetCGMSAData_isr(
 #define BVBI_Field_GetCGMSData_isr BVBI_Field_GetCGMSAData_isr
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets CGMS-B data from the supplied field data
@@ -3962,6 +4051,7 @@ BERR_Code BVBI_Field_GetCGMSBData_isr(
     BAVC_VBI_CGMSB_Datum*  pDatum   /* [out] CGMS-B data contained in
                                              the above field handle.       */
 );
+#endif
 
 
 /*****************************************************************************
@@ -4010,6 +4100,7 @@ BERR_Code BVBI_Field_SetCGMSBData_isr(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears CGMS-A data in the supplied field data
@@ -4028,8 +4119,10 @@ BERR_Code BVBI_Field_ClearCGMSAData_isr(
 );
 /* Backward compatibility, DEPRECATED! */
 #define BVBI_Field_ClearCGMSData_isr BVBI_Field_ClearCGMSAData_isr
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears CGMS-B data in the supplied field data
@@ -4046,6 +4139,7 @@ BERR_Code BVBI_Field_ClearCGMSAData_isr(
 BERR_Code BVBI_Field_ClearCGMSBData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
 /*****************************************************************************
@@ -4092,6 +4186,7 @@ BERR_Code BVBI_Field_SetWSSData_isr(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears WSS data in the supplied field data
@@ -4108,6 +4203,7 @@ BERR_Code BVBI_Field_SetWSSData_isr(
 BERR_Code BVBI_Field_ClearWSSData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
 /*****************************************************************************
@@ -4242,6 +4338,7 @@ BERR_Code BVBI_Field_SetGSData_isr (
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears teletext data in the supplied field data
@@ -4258,8 +4355,10 @@ BERR_Code BVBI_Field_SetGSData_isr (
 BERR_Code BVBI_Field_ClearTTData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears Gemstar data in the supplied field data
@@ -4276,6 +4375,7 @@ BERR_Code BVBI_Field_ClearTTData_isr(
 BERR_Code BVBI_Field_ClearGSData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
 /*****************************************************************************
@@ -4331,6 +4431,7 @@ BERR_Code BVBI_Field_SetVPSData_isr(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears VPS data in the supplied field data
@@ -4347,8 +4448,10 @@ BERR_Code BVBI_Field_SetVPSData_isr(
 BERR_Code BVBI_Field_ClearVPSData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets AMOL data from the supplied field data
@@ -4389,8 +4492,10 @@ BERR_Code BVBI_Field_GetAMOLData_isr(
     unsigned int*         pLength   /* [out] size of data pointed to by
                                              pAMOLData in bytes              */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Gets multi-line closed caption data from the supplied field data
@@ -4413,6 +4518,7 @@ BERR_Code BVBI_Field_GetMCCData_isr(
     BAVC_VBI_MCCData*   pMCCData    /* [out] A pointer to multi-line closed
                                                caption data.                 */
 );
+#endif
 
 
 /*****************************************************************************
@@ -4556,6 +4662,7 @@ BERR_Code BVBI_Field_SetAMOLData_isr(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Sets multi-line closed caption data in the supplied field data
@@ -4577,6 +4684,7 @@ BERR_Code BVBI_Field_SetMCCData_isr(
     BAVC_VBI_MCCData*    pMCCData   /*  [in] A pointer to multi-line closed
                                              caption data.                   */
 );
+#endif
 
 
 /*****************************************************************************
@@ -4605,6 +4713,7 @@ BERR_Code BVBI_Field_SetSCTEData_isr(
 );
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears AMOL data in the supplied field data
@@ -4621,8 +4730,10 @@ BERR_Code BVBI_Field_SetSCTEData_isr(
 BERR_Code BVBI_Field_ClearAMOLData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears multi-line closed caption data in the supplied field data
@@ -4639,8 +4750,10 @@ BERR_Code BVBI_Field_ClearAMOLData_isr(
 BERR_Code BVBI_Field_ClearMCCData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
+#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Clears SCTE data in the supplied field data
@@ -4657,6 +4770,7 @@ BERR_Code BVBI_Field_ClearMCCData_isr(
 BERR_Code BVBI_Field_ClearSCTEData_isr(
     BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
+#endif
 
 
 /*****************************************************************************

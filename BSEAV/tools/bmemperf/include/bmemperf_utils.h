@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #ifndef __BMEMPERF_UTILS_H__
 #define __BMEMPERF_UTILS_H__
 
@@ -47,7 +45,7 @@
 #include "bmemperf_lib.h"
 
 #define MAJOR_VERSION                  0
-#define MINOR_VERSION                  22
+#define MINOR_VERSION                  23
 #define BMEMPERF_MAX_BOXMODES          30
 /*
     0.21  Started using new algorithm to compute Intr_penalty counts.
@@ -76,6 +74,7 @@
 #define TRUE_OR_FALSE(value)           ((value)?"True":"False")
 #define POWER_PROBE_MAX                8
 #define CLIENT_STREAMER_THREAD_MAX     16
+#define BASPMON_MAX_NUM_CLIENTS        32
 
 #ifdef B_ANDROID_BUILD
 #define BIN_DIR "/system/bin"
@@ -125,6 +124,8 @@ typedef enum
     BMEMPERF_CMD_WIFI_AMPDU_GET_RESULTS = 0x40000,
     BMEMPERF_CMD_IPERF_START = 0x80000,
     BMEMPERF_CMD_IPERF_STOP = 0x100000,
+    BMEMPERF_CMD_CLIENT_RESET = 0x200000, /* reboot the client */
+    BMEMPERF_CMD_CLIENT_TERMINATE = 0x400000, /* terminate any telnet session that is active */
     BMEMPERF_CMD_MAX
 } bmemperf_cmd;
 
@@ -144,9 +145,10 @@ typedef struct
 typedef struct  bmemperf_cmd_overall_stats_data
 {
     unsigned int  dummy;
+    unsigned char PowerProbeSelect; /* 0 means call power_probe_start() ... 100 means call power_probe_1000_start() */
     unsigned char PowerProbeShunts[POWER_PROBE_MAX]; /* each probe needs to be supplied with shunt value ... between 2 and 10 */
     char          PowerProbeIpAddr[INET6_ADDRSTRLEN];
-    char          ClientStreamerIpAddr[INET6_ADDRSTRLEN];
+    char          ClientStreamerIpAddr[BASPMON_MAX_NUM_CLIENTS][INET6_ADDRSTRLEN];
     char          ServerStreamerIpAddr[INET6_ADDRSTRLEN];
 } bmemperf_cmd_overall_stats_data;
 
@@ -239,7 +241,8 @@ typedef struct bmemperf_overall_stats
     unsigned char        bssInfo[wl_bss_info_t_size*wl_bss_info_t_max_num]; /* CAD replace with real wl_bss_info_t structure */
     float                PowerProbeVoltage[POWER_PROBE_MAX];
     float                PowerProbeCurrent[POWER_PROBE_MAX];
-    unsigned long int    ClientStreamerThreadCount;
+    unsigned char        PowerProbeConnected[POWER_PROBE_MAX];
+    unsigned long int    ClientStreamerThreadCount[BASPMON_MAX_NUM_CLIENTS];
 } bmemperf_overall_stats;
 
 typedef struct bmemperf_per_client_stats

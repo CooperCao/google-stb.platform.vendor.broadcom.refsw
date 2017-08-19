@@ -105,7 +105,7 @@ NEXUS_I2sInputHandle NEXUS_I2sInput_Open(
 
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
-    if ( index >= audioCapabilities.numOutputs.i2s )
+    if ( index >= audioCapabilities.numInputs.i2s )
     {
         BDBG_ERR(("I2sInput %u not supported on this chipset", index));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);

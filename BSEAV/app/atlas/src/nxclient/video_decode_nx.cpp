@@ -120,7 +120,7 @@ static void NexusVideoDecodeStreamChangedCallback(
 
 CSimpleVideoDecodeNx::CSimpleVideoDecodeNx(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CSimpleVideoDecode(name, number, pCfg),
@@ -180,9 +180,9 @@ eRet CSimpleVideoDecodeNx::open(
         if (NULL != pGraphics)
         {
             pSurfaceClient = (CSurfaceClientNx *)pGraphics->getSurfaceClientDesktop();
+            _surfaceClientVideoWin = NEXUS_SurfaceClient_AcquireVideoWindow(pSurfaceClient->getSurfaceClient(), getWindowType());
         }
 
-        _surfaceClientVideoWin = NEXUS_SurfaceClient_AcquireVideoWindow(pSurfaceClient->getSurfaceClient(), getWindowType());
         CHECK_PTR_ERROR_GOTO("unable to acquire video window", _surfaceClientVideoWin, ret, eRet_NotAvailable, error);
     }
 
@@ -248,7 +248,7 @@ CStc * CSimpleVideoDecodeNx::close()
 
 eRet CSimpleVideoDecodeNx::setPosition(
         MRect    rect,
-        uint16_t zorder
+        unsigned zorder
         )
 {
     NEXUS_SurfaceClientSettings settings;
@@ -258,14 +258,14 @@ eRet CSimpleVideoDecodeNx::setPosition(
     NEXUS_SurfaceClient_GetSettings(_surfaceClientVideoWin, &settings);
 
     /* only update settings if different from requested geometry */
-    if ((settings.composition.position.x != (int16_t)rect.x()) ||
-        (settings.composition.position.y != (int16_t)rect.y()) ||
+    if ((settings.composition.position.x != (int)rect.x()) ||
+        (settings.composition.position.y != (int)rect.y()) ||
         (settings.composition.position.width != rect.width()) ||
         (settings.composition.position.height != rect.height())
        )
     {
-        settings.composition.position.x      = (int16_t)rect.x();
-        settings.composition.position.y      = (int16_t)rect.y();
+        settings.composition.position.x      = (int)rect.x();
+        settings.composition.position.y      = (int)rect.y();
         settings.composition.position.width  = rect.width();
         settings.composition.position.height = rect.height();
         settings.composition.zorder          = zorder;
@@ -280,15 +280,15 @@ error:
 /* percent, border, and *pRectPercent are expressed in terms: 0-1000 = 0-100.0% */
 eRet CSimpleVideoDecodeNx::setGeometryVideoWindow(
         MRect    rect,
-        uint16_t  percent,
+        unsigned  percent,
         eWinArea area,
-        uint16_t  border,
-        uint16_t zorder,
+        unsigned  border,
+        unsigned zorder,
         MRect *  pRectPercent
         )
 {
     eRet     ret       = eRet_Ok;
-    uint16_t borderGap = 0;
+    unsigned borderGap = 0;
     MRect    rectScaled;
 
     BDBG_ASSERT(1000 >= percent);
@@ -378,6 +378,7 @@ eRet CSimpleVideoDecodeNx::setVideoWindowGeometryPercent(MRect * pRectGeomPercen
 
     BDBG_ASSERT(NULL != _surfaceClientVideoWin);
     BDBG_ASSERT(NULL != pGraphics);
+    BDBG_ASSERT(NULL != pRectGeomPercent);
 
     {
         NEXUS_SurfaceComposition settingsSurfaceClient;

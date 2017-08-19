@@ -490,9 +490,6 @@ BERR_Code BSAT_g1_P_IsChannelOn(BSAT_ChannelHandle h, bool *pOn)
 BERR_Code BSAT_g1_P_Acquire(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-#ifdef BSAT_HAS_DVBS2X
-   BSAT_g1_P_Handle *hDevImpl = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-#endif
    BERR_Code retCode;
 
    BDBG_ENTER(BSAT_g1_P_Acquire);
@@ -525,24 +522,8 @@ BERR_Code BSAT_g1_P_Acquire(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams)
    if ((!hChn->bHasTfec) && (BSAT_MODE_IS_TURBO(pParams->mode)))
       return (BERR_TRACE(BERR_INVALID_PARAMETER));
 
-#ifdef BSAT_HAS_DVBS2X
-   if ((pParams->mode == BSAT_Mode_eDvbs2_ACM) && (hDevImpl->sdsRevId < 0x74))
-      return (BERR_TRACE(BERR_NOT_SUPPORTED));
-#else
-   if (((pParams->mode >= BSAT_Mode_eDvbs2_16apsk_2_3) && (pParams->mode <= BSAT_Mode_eDvbs2_32apsk_9_10)) || (pParams->mode == BSAT_Mode_eDvbs2_ACM))
-   {
-      return (BERR_TRACE(BERR_NOT_SUPPORTED));
-   }
-   if (BSAT_MODE_IS_DVBS2X(pParams->mode))
-   {
-      BDBG_ERR(("DVB-S2X not supported"));
-      return (BERR_TRACE(BERR_NOT_SUPPORTED));
-   }
-
-   if ((pParams->options & BSAT_ACQ_NYQUIST_MASK) == BSAT_ACQ_NYQUIST_5)
-      return (BERR_TRACE(BERR_NOT_SUPPORTED));
-#endif
-
+   /* chip-specific acquisition parameter validation */
+   BSAT_CHK_RETCODE(BSAT_g1_P_ValidateAcqParams(h, pParams));
    BSAT_CHK_RETCODE(BSAT_g1_P_PrepareNewAcquisition(h));
 
    hChn->acqSettings = *pParams;
@@ -774,12 +755,11 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
    if (BSAT_g1_P_IsSdsOn(h) == false)
       return BSAT_ERR_POWERED_DOWN;
 
-   hChn->bAbortAcq = true;
-
    BSAT_CHK_RETCODE(BSAT_g1_P_DisableChannelInterrupts(h));
 
    hChn->configParam[BSAT_g1_CONFIG_ACQ_TIME] = 0;
    hChn->acqState = BSAT_AcqState_eIdle;
+   hChn->bAbortAcq = true;
 
    if (bDisableDemod)
    {
@@ -801,6 +781,11 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
       {
 #ifdef BSAT_HAS_DUAL_TFEC
          BKNI_EnterCriticalSection();
+         if (BSAT_g1_P_IsTfecOn_isrsafe(h))
+         {
+            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x80);
+            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x0);
+         }
          if (BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(h) == false)
             BSAT_g1_P_TfecPowerDown_isrsafe(h);
          BKNI_LeaveCriticalSection();
@@ -827,9 +812,11 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
       }
 #endif
 
-
-#if 0 /* keep SDS_CG_PMCG_CTL.xpt_bclk_en to its default value (=1) */
-      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CG_PMCG_CTL, ~BCHP_SDS_CG_0_PMCG_CTL_xpt_bclk_en_MASK);
+#if (BCHP_CHIP==45308) && (BSAT_CHIP_FAMILY==45316)
+   if ((h->channel & 1) == 0)
+      BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, ~BCHP_SDS_OI_0_OIFCTL00_fec_sel_MASK, BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK);
+   else
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, ~(BCHP_SDS_OI_0_OIFCTL00_fec_sel_MASK | BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK));
 #endif
 
       BSAT_g1_P_PowerDownOpll_isrsafe(h);

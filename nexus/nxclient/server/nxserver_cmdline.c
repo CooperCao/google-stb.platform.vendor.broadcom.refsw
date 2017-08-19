@@ -94,7 +94,7 @@ static void print_full_usage(void)
     );
     printf(
 #if NEXUS_HAS_IR_INPUT
-    "  -ir {silver|black|a|b|rcmm|gisat|none} \tIR remote mode, comma-separated list of two supported, default is \"silver,none\"\n"
+    "  -ir {silver|black|a|b|rcmm|gisat|rstep|none} \tIR remote mode, comma-separated list of two supported, default is \"silver,none\"\n"
 #endif
     "  -evdev off     \tdisable evdev input\n"
     "  -keypad on     \tenable keypad input\n"
@@ -105,6 +105,8 @@ static void print_full_usage(void)
     printf(
     "  -outputs off   \tstart with hdmi, component, and composite video outputs off\n"
     "  -component off \tneeded for composite on chips with limited analog resources\n"
+    "  -i2s0 \tconnect I2S 0 with seperate controls from DAC \n"
+    "  -i2s1 \tconnect I2S 1 audio output if supported by chip\n"
     );
     printf(
     "  -session{0|1} {sd,hd,encode,none} \tConfigure session for HD, SD or encode output. Use none for headless.\n"
@@ -185,6 +187,10 @@ static void print_full_usage(void)
     "  -dropPrivilege USERID,GROUPID\n"
     );
     print_list_option("pixelFormat",g_pixelFormatStrs);
+    printf(
+    "  -file_queued_elements X           \tSet max Nexus DVR file I/O descriptors\n"
+    "  -file_threads X                   \tSet total Nexus DVR file I/O threads\n"
+    );
 }
 
 static int parse_session_settings(struct nxserver_session_settings *session_settings, const char *str)
@@ -251,7 +257,7 @@ static NEXUS_SecureVideo nxserver_p_svpstr(const char *svpstr)
     }
 }
 
-static void set_dynamic_picture_buffers(NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings)
+static void set_dynamic_picture_buffers(NEXUS_MemoryConfigurationSettings *pMemConfigSettings)
 {
     unsigned i;
     for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
@@ -297,7 +303,7 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
             pMemConfigSettings->videoDecoder[index].mosaic.maxHeight = maxHeight;
         }
         else if (!strcmp(memconfig_str[i], "videoDecoder,dynamic")) {
-            set_dynamic_picture_buffers(pPlatformSettings, pMemConfigSettings);
+            set_dynamic_picture_buffers(pMemConfigSettings);
         }
 #endif
 #if NEXUS_HAS_DISPLAY && NEXUS_NUM_VIDEO_WINDOWS
@@ -572,6 +578,9 @@ static NEXUS_IrInputMode nxserver_ir_input_mode(const char *str)
     else if (!strcmp("gisat", str)) {
         return NEXUS_IrInputMode_eCirGISat;
     }
+    else if (!strcmp("rstep", str)) {
+        return NEXUS_IrInputMode_eCirRstep;
+    }
     else if (!strcmp("none", str)) {
         return NEXUS_IrInputMode_eMax;
     }
@@ -625,7 +634,7 @@ static int nx_load_cfg(const char *filename, struct nx_argv *nx_argv)
 static void nx_unload_cfg(struct nx_argv *nx_argv)
 {
     int i;
-    for (i=1;i<nx_argv->num_lines;i++) free(nx_argv->lines[i]);
+    for (i=0;i<nx_argv->num_lines;i++) free(nx_argv->lines[i]);
 }
 
 static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_settings *settings, struct nxserver_cmdline_settings *cmdline_settings)
@@ -652,7 +661,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             settings->display.hdmiPreferences.preventUnsupportedFormat = false;
         }
         else if (!strcmp(argv[curarg], "-ignore_video_edid")) {
-            /* keep followPreferredFormat true for audio. preventUnsupportedFormat will be ignored. */
+            /* ignore followPreferredFormat and preventUnsupportedFormat for video, but not audio */
             settings->hdmi.ignoreVideoEdid = true;
         }
         else if (!strcmp(argv[curarg], "-dolby_vision_blend_in_lms")) {
@@ -793,6 +802,12 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
                 settings->display.componentPreferences.enabled = false;
             }
         }
+        else if (!strcmp(argv[curarg], "-i2s0")) {
+            settings->session[0].i2sOutputEnabled[0] = true;
+        }
+        else if (!strcmp(argv[curarg], "-i2s1")) {
+            settings->session[0].i2sOutputEnabled[1] = true;
+        }
         else if (!strcmp(argv[curarg], "-sd") && curarg+1<argc) {
             curarg++;
             if (!strcmp(argv[curarg], "off")) {
@@ -890,7 +905,6 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
         else if (!strcmp(argv[curarg], "-display_format") && curarg+1 < argc) {
             settings->display.format = lookup(g_videoFormatStrs, argv[++curarg]);
-            settings->display_init.hd.initialFormat = true;
         }
         else if (!strcmp(argv[curarg], "-dropFrame") && curarg+1 < argc) {
             ++curarg;
@@ -976,10 +990,10 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
 #if NEXUS_HAS_HDMI_OUTPUT
         else if (!strcmp(argv[curarg], "-hdcp2x_keys") && argc>curarg+1) {
-            settings->hdcp.hdcp2xBinFile = (char *)argv[++curarg];
+            strncpy(settings->hdcp.hdcp2xBinFile, (char *)argv[++curarg], sizeof(settings->hdcp.hdcp2xBinFile));
         }
         else if (!strcmp(argv[curarg], "-hdcp1x_keys") && argc>curarg+1) {
-            settings->hdcp.hdcp1xBinFile = (char *)argv[++curarg];
+            strncpy(settings->hdcp.hdcp1xBinFile, (char *)argv[++curarg], sizeof(settings->hdcp.hdcp1xBinFile));
         }
         else if (!strcmp(argv[curarg], "-hdcp") && argc>curarg+1) {
             switch (argv[++curarg][0]) {
@@ -1046,6 +1060,12 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
         else if (!strcmp(argv[curarg],"-dtu")) {
             cmdline_settings->dtu = true;
+        }
+        else if(!strcmp(argv[curarg], "-file_queued_elements") && curarg+1<argc) {
+            cmdline_settings->file.queued_elements = atoi(argv[++curarg]);
+        }
+        else if(!strcmp(argv[curarg], "-file_threads") && curarg+1<argc) {
+            cmdline_settings->file.threads = atoi(argv[++curarg]);
         }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);
@@ -1210,6 +1230,12 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     }
     pPlatformSettings->permissions.userId = cmdline_settings->permissions.userId;
     pPlatformSettings->permissions.groupId = cmdline_settings->permissions.groupId;
+    if (cmdline_settings->file.queued_elements) {
+        pPlatformSettings->fileModuleSettings.maxQueuedElements = cmdline_settings->file.queued_elements;
+    }
+    if (cmdline_settings->file.threads) {
+        pPlatformSettings->fileModuleSettings.workerThreads = cmdline_settings->file.threads;
+    }
 
     if (cmdline_settings->dtu) {
         unsigned index;
@@ -1247,7 +1273,7 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
             }
         }
 
-        set_dynamic_picture_buffers(pPlatformSettings, pMemConfigSettings);
+        set_dynamic_picture_buffers(pMemConfigSettings);
     }
 
     return 0;

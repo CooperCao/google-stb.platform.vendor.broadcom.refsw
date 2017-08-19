@@ -85,6 +85,14 @@ ifdef B_REFSW_KERNEL_CROSS_COMPILE
 CROSS_COMPILE := $(B_REFSW_KERNEL_CROSS_COMPILE)
 endif
 
+ifeq ($(B_REFSW_ARCH),arm-linux)
+ARCH:=arm
+endif
+
+ifeq ($(B_REFSW_ARCH),aarch64-linux)
+ARCH:=arm64
+endif
+
 B_REFSW_OBJ_DIR ?= obj.${PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${B_REFSW_ROOT}/${B_REFSW_OBJ_DIR}
 BCM_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/zigbee
@@ -111,10 +119,10 @@ endif
 zigbee_drv-objs := zigbee_driver.o
 
 all: $(BCM_OBJ_PATH)
-	${Q_}${MAKE} -C $(LINUX) M=$(BCM_OBJ_PATH) modules
+	${Q_}${MAKE} -C $(LINUX) M=$(BCM_OBJ_PATH) ARCH=$(ARCH) modules
 
 clean: $(BCM_OBJ_PATH)
-	${Q_}${MAKE} -C $(LINUX) M=$(BCM_OBJ_PATH) clean
+	${Q_}${MAKE} -C $(LINUX) M=$(BCM_OBJ_PATH) ARCH=$(ARCH) clean
 	${Q_}rm $(BCM_OBJ_PATH)/*.c $(BCM_OBJ_PATH)/*.h $(BCM_OBJ_PATH)/Makefile
 
 .PHONY: $(BCM_OBJ_PATH)

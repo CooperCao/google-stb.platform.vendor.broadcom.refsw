@@ -1,5 +1,5 @@
 #############################################################################
-#  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+#  Copyright (C) 2008-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -194,7 +194,7 @@ foreach $moduleUpper (@ARGV) {
 ifdef B_REFSW_STATIC_ANALYZER
 	\@echo \"[Analyze... \$(notdir \$<) ($moduleLower)]\"
 	\${Q_}\$(CC) -E -DB_REFSW_STATIC_ANALYZER=1 \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) -c \$< -o \$@.i
-	\${Q_}\${B_REFSW_STATIC_ANALYZER} \${CC} \$< \$@.i
+	\${Q_}\${B_REFSW_STATIC_ANALYZER} \${B_REFSW_STATIC_ANALYZER_OPTS} \${CC} \$< \$@.i
 	\${Q_}\${RM} \$@.i
 endif
 EOF

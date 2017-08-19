@@ -59,6 +59,7 @@ extern "C" {
 #define HDCP22_ERR_OPEN_BINFILEMANGER_HANDLE			HDCP22_ERRORS_BASE+10
 #define HDCP22_ERR_UPSTREAM_UNAUTHENTICATED				HDCP22_ERRORS_BASE+11
 #define HDCP22_ERR_INVALID_HOST_REQUEST					HDCP22_ERRORS_BASE+12
+#define HDCP22_ERR_FEATURE_CERT_ERROR					HDCP22_ERRORS_BASE+13
 
 
 /*********************************
@@ -81,7 +82,8 @@ typedef enum Hdcp22_CommandId
 	Hdcp22_CommandId_Tx_eStopAuthentication,
 	Hdcp22_CommandId_Tx_eGetReceiverIdlist,
 	Hdcp22_CommandId_Rx_eSetBinFile,
-	Hdcp22_CommandId_Rx_eSendReceiverIdList
+	Hdcp22_CommandId_Rx_eSendReceiverIdList,
+	Hdcp22_CommandId_Rx_eSetSecureRxBinFile
 } Hdcp22_CommandId;
 
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2015 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 
 struct NEXUS_PlaybackBlockAuthorizationState
@@ -48,10 +47,11 @@ struct NEXUS_PlaybackBlockAuthorizationState
 /* internal return codes */
 #define NEXUS_PLAYBACK_BLOCKAUTH_READ_ERROR (-1)
 #define NEXUS_PLAYBACK_BLOCKAUTH_EOF (-2)
+#define NEXUS_PLAYBACK_BLOCKAUTH_DRAIN (-3)
 
 void NEXUS_Playback_P_BlockAuthRestart(NEXUS_PlaybackHandle p);
 void NEXUS_Playback_P_BlockAuthStop(NEXUS_PlaybackHandle p);
 bool NEXUS_Playback_P_BlockAuthEnabled(NEXUS_PlaybackHandle p);
-int  NEXUS_Playback_P_BlockAuthFrameData(NEXUS_PlaybackHandle p, unsigned size, unsigned read_size, int *plast);
+int  NEXUS_Playback_P_BlockAuthFrameData(NEXUS_PlaybackHandle p, unsigned size, unsigned *read_size, int *plast);
 int  NEXUS_Playback_P_BlockAuthDrainSkip(NEXUS_PlaybackHandle p, unsigned size);
 void NEXUS_Playback_P_BlockAuthPreFrameData(NEXUS_PlaybackHandle p, unsigned size);

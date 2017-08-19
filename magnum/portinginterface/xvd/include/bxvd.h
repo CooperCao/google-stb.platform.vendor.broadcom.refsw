@@ -1502,6 +1502,7 @@ typedef struct BXVD_ChannelSettings
   bool b1200HDEnable;                           /* 1920x1200 HD mode */
   bool bSplitPictureBuffersEnable;              /* Separate Luma and Chroma buffers mode */
   bool b10BitBuffersEnable;                     /* 10 Bit Luma and Chroma buffers mode */
+  uint32_t uiExtraPictureMemoryAtoms;           /* Additional memory atoms to be allocated, max is 2 */
   BMMA_Block_Handle  hChannelGeneralBlock;        /* General purpose device memory block handle for this channel */
   uint32_t           uiChannelGeneralBlockOffset; /* General purpose device memory offset for this channel */
   uint32_t           uiChannelGeneralBlockSize;   /* General purpose device memory sizefor this channel */
@@ -1521,23 +1522,24 @@ typedef struct BXVD_ChannelSettings
 /***************************************************************
  BXVD_ChannelStatus AVD Status Block bit flags.
 ****************************************************************/
-#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_INPUT              0x001
-#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_PIF                0x002
-#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_CABAC_WORKLIST     0x004
-#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_IL_WORKLIST        0x008
-#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_PPB                0x010
-#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_CABAC_BINBUFFER    0x020
-#define BXVD_CHANNELSTATUS_AVD_DECODE_STALLED                0x040
-#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_USERDATA_BUFFER    0x080
-#define BXVD_CHANNELSTATUS_AVD_RAP_NOT_DETECTED              0x100
-#define BXVD_CHANNELSTATUS_AVD_UNSUPPORTED_FEATURE_DETECTED  0x200
-#define BXVD_CHANNELSTATUS_AVD_IMAGE_SIZE_TOO_BIG            0x400
-#define BXVD_CHANNELSTATUS_AVD_BAD_STREAM                    0x800
-#define BXVD_CHANNELSTATUS_AVD_LESS_MEM_RESTRICT_BUFF        0x1000
-#define BXVD_CHANNELSTATUS_AVD_DECODE_WARNING                0x2000
-#define BXVD_CHANNELSTATUS_AVD_INPUT_OVERFLOW                0x4000
-#define BXVD_CHANNELSTATUS_AVD_DECODE_STEREO_SEQ_ERROR       0x8000
-#define BXVD_CHANNELSTATUS_AVD_STATE_DROP_UNSUPP_TEMP_DM     0x10000
+#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_INPUT              0x001    /* Informative: Decode stalling due to input */
+#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_PIF                0x002    /* Informative: Decode stalling due to PIF shortage.*/
+#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_CABAC_WORKLIST     0x004    /* Informative: Decode stalling due to Cabac Work list */
+#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_IL_WORKLIST        0x008    /* Informative: Decode stalling due to IL Work list */
+#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_PPB                0x010    /* Informative: Decode stalling due to PPB resource */
+#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_CABAC_BINBUFFER    0x020    /* Informative: Decode stalling due to BIN resource */
+#define BXVD_CHANNELSTATUS_AVD_DECODE_STALLED                0x040    /* Informative: Decode stalling due to any resource */
+#define BXVD_CHANNELSTATUS_AVD_STALLED_ON_USERDATA_BUFFER    0x080    /* Informative: Decode stalling due to UserData shortage */
+#define BXVD_CHANNELSTATUS_AVD_RAP_NOT_DETECTED              0x100    /* Error: Random Access Point not yet found. No pictures are decoding. */
+#define BXVD_CHANNELSTATUS_AVD_UNSUPPORTED_FEATURE_DETECTED  0x200    /* Error: Unsupported feature resulting in no decoding */
+#define BXVD_CHANNELSTATUS_AVD_IMAGE_SIZE_TOO_BIG            0x400    /* Error: Picture size too large for video buffers provided */
+#define BXVD_CHANNELSTATUS_AVD_BAD_STREAM                    0x800    /* Error: Stream contains illegal syntax */
+#define BXVD_CHANNELSTATUS_AVD_LESS_MEM_RESTRICT_BUFF        0x1000   /* Warning: Decoder using less video memory for decoding due to restricted memory resources */
+#define BXVD_CHANNELSTATUS_AVD_DECODE_WARNING                0x2000   /* Warning: Recoverable illegal stream */
+#define BXVD_CHANNELSTATUS_AVD_INPUT_OVERFLOW                0x4000   /* Error: Input buffer overflow occurs */
+#define BXVD_CHANNELSTATUS_AVD_DECODE_STEREO_SEQ_ERROR       0x8000   /* Deprecated, bit now unused */
+#define BXVD_CHANNELSTATUS_AVD_STATE_DROP_UNSUPP_TEMP_DM     0x10000  /* Error: Decoder is dropping picture for EchoStart Temporal Direct disable mode */
+#define BXVD_CHANNELSTATUS_AVD_10_BIT_UNSUPPORTED            0x20000  /* Error: 10-bit stream dropped for 8-bit capable cores */
 
 /* This mask filters error status from info - Note: RAP_NOT_DETECTED        *
  * is not included since it happens during normal operation at start decode */
@@ -1546,7 +1548,8 @@ BXVD_CHANNELSTATUS_AVD_STATE_DROP_UNSUPP_TEMP_DM | \
 BXVD_CHANNELSTATUS_AVD_INPUT_OVERFLOW | \
 BXVD_CHANNELSTATUS_AVD_BAD_STREAM | \
 BXVD_CHANNELSTATUS_AVD_IMAGE_SIZE_TOO_BIG | \
-BXVD_CHANNELSTATUS_AVD_UNSUPPORTED_FEATURE_DETECTED
+BXVD_CHANNELSTATUS_AVD_UNSUPPORTED_FEATURE_DETECTED | \
+BXVD_CHANNELSTATUS_AVD_10_BIT_UNSUPPORTED
 
 /***************************************************************************
 Summary:
@@ -2477,7 +2480,7 @@ BERR_Code BXVD_Close
    BXVD_Handle     hXvd    /* [in] XVD handle */
    );
 
-
+#if BXVD_P_POWER_MANAGEMENT
 /******************************************************************************
 Summary:
     Put decoder in Standby mode.
@@ -2518,8 +2521,7 @@ BERR_Code BXVD_Resume
    (
    BXVD_Handle     hXvd    /* [in] XVD handle */
    );
-
-
+#endif
 
 #if !B_REFSW_MINIMAL /* SWSTB-461 */
 /***************************************************************************

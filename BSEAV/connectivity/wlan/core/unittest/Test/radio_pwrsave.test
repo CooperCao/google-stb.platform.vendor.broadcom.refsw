@@ -1,0 +1,137 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing radio_pwrsave
+#
+# Initial implementation is a simple stress test - forcing in and out
+# of power save while traffic is flowing.  This is causing several
+# STA-side asserts.
+#
+# $Id: 2de445c1cb6fc731ee691dbce79d26817f35a9cc $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::radio_pwrsave 2.0
+
+UTF::Test radio_pwrsave {AP STA args} {
+    UTF::Getopts {
+	{level.arg "0 1 2" "Power save level"}
+    }
+
+    if {[$AP cget -noradio_pwrsave]} {
+	UTF::Message LOG $AP "radio_pwrsave test disabled"
+	return "radio_pwrsave test disabled"
+    }
+
+    if {[lsearch [$AP wl cap] radio_pwrsave] < 0} {
+	UTF::Message LOG $AP "radio_pwrsave not available"
+	return "radio_pwrsave not available"
+    }
+
+    if {[$AP cget -nombss]} {
+	UTF::Message LOG $AP "Non-mbss is currently not supported"
+	return "Non-mbss is currently not supported"
+    }
+
+
+    UTF::Try "$AP: radio_pwrsave" {
+	try {
+	    if {[$AP wl radio_pwrsave_pps] eq 0} {
+		error "Uninitialized"
+	    }
+
+	    # Check/Set security early, so we don't get a restart
+	    # after we've run wl commands.
+	    APConfigureSecurity $AP -security open
+
+	    # query chanspec
+	    set chanspec [lindex [$AP wl chanspec] 0]
+
+	    $AP wl msglevel +regulatory
+	    $AP wl down
+	    $AP wl spect 1
+
+	    # Non-mbss is currently not supported
+	    $AP wl mbss 1
+
+	    # reset chanspec.  In 5G this prevents DFS from picking a
+	    # random channel
+	    $AP wl chanspec $chanspec
+
+	    $AP wl up
+
+	    # Check connection after spect is enabled, since down/up
+	    # requires reassoc
+	    if {[catch {$STA wl bssid} ret] ||
+		$ret ne [$AP wl bssid] ||
+		[catch {$STA ping $AP -c 30}]} {
+		ConnectAPSTA $AP $STA
+	    }
+
+	    $AP wl radio_pwrsave_enable 1
+	    $AP wl radio_pwrsave_quiet_time 2; # short trigger
+
+	    foreach level $(level) {
+		set nolevels 0
+
+		UTF::Try "$AP: radio_pwrsave: level $level" {
+		    try {
+			if {[catch {$AP wl radio_pwrsave_level $level} ret]} {
+			    if {[regexp {nsupported} $ret]} {
+				# 5.22 supported radio_pwrsave, but no levels
+				set nolevels 1
+			    } else {
+				error $ret
+			    }
+			}
+
+			for {set i 0} {$i < 5} {incr i} {
+			    # Wait at least qt+1 sec
+			    UTF::Sleep 4
+			    for {set j 3} {$j < 10} {incr j} {
+				if {[set state [$AP wl radio_pwrsave]] eq "1"} {
+				    break
+				}
+				UTF::Sleep 1
+			    }
+			    if {$state ne "1"} {
+				error "AP failed to enter radio power save"
+			    }
+
+			    # send some data to wake up the AP
+			    UTF::Multiperf [list $STA $AP] -t 1
+			    # Must check within qt-1 sec
+			    set state [$AP wl radio_pwrsave]
+			    catch {
+				# Dump stats if available
+				$AP wl dump radio_pwrsave
+			    }
+			    if {$state ne 0} {
+				error "AP failed to leave radio power save"
+			    }
+			}
+		    } finally {
+			if {[info exists ::UTF::panic] &&
+			    [regexp {quiet: rcvd but ignoring} $::UTF::panic]} {
+			    UTF::Message FAIL [$STA cget -name] \
+				"Applying reload WAR for PR#84550"
+			    $STA reload
+			}
+		    }
+		    return
+		}
+		if {$nolevels} {
+		    break
+		}
+	    }
+	} finally {
+	    # revert radio_pwrsave feature back to defaults.
+	    #catch {$STA wl disassoc}
+	    $AP restart
+	}
+    }
+}
+

@@ -233,6 +233,8 @@ EXTRA_INSTALL += install_scripts
 
 # only build brcmv3d driver for VC5 MMU systems with Linux configured with DRM support
 # otherwise, VC5 will fall back on MMA
+ifneq  (${B_REFSW_SYSTEM_MODE},CLIENT)
+ifeq ($(V3D_SUPPORT),y)
 V3DVER330:=$(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_mmu_0.h && echo y)
 V3DVER400:=$(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_mmu.h && echo y)
 ifeq ($(filter y, $(V3DVER330) $(V3DVER400)),y)
@@ -242,6 +244,8 @@ EXTRA_INSTALL += brcmv3d_install
 ifeq ($(NEXUS_MODE),driver)
 NEXUS_DRIVER_EXTRADEPS += brcmv3d_install
 NEXUS_DRIVER_KBUILD_ARGS += KBUILD_EXTRA_SYMBOLS=$(realpath $(NEXUS_OBJ_DIR))/brcmv3d.symvers
+endif
+endif
 endif
 endif
 endif

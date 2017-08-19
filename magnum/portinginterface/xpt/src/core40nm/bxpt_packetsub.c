@@ -518,7 +518,7 @@ BERR_Code BXPT_PacketSub_CreateDesc(
 
     /* Verify that the descriptor we're creating sits on a 16-byte boundary. */
     ThisDescPhysicalAddr = hPSub->mma.offset + (unsigned)((uint8_t*)Desc - (uint8_t*)hPSub->mma.ptr); /* convert Desc -> offset */
-    BDBG_MSG(( "%s: Desc 0x%08lX -> Offset 0x%08lX", __FUNCTION__, (unsigned long) Desc, (unsigned long) ThisDescPhysicalAddr ));
+    BDBG_MSG(( "%s: Desc 0x%08lX -> Offset 0x%08lX", BSTD_FUNCTION, (unsigned long) Desc, (unsigned long) ThisDescPhysicalAddr ));
     if( ThisDescPhysicalAddr % 16 )
     {
         BDBG_ERR(( "Desc is not 32-bit aligned!" ));
@@ -627,7 +627,7 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
         LastDescriptor_Cached->NextDescAddrHi = DescPhysAddr >> 32;
 #endif
         BMMA_FlushCache(hPSub->mma.block, LastDescriptor_Cached, sizeof(BXPT_PacketSub_Descriptor));
-        BDBG_MSG(( "%s (LastDescriptor_Cached): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
+        BDBG_MSG(( "%s (LastDescriptor_Cached): Desc %p -> Offset " BDBG_UINT64_FMT "", BSTD_FUNCTION, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
         /* If the channel is running, we need to set the wake bit to let the hardware know we added a new buffer */
         if( RunBit )
@@ -655,7 +655,7 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
 
        /* This is our first descriptor, so we must load the first descriptor register */
        DescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPSub->mma.ptr); /* convert FirstDesc -> offset */
-       BDBG_MSG(( "%s (New chain): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
+       BDBG_MSG(( "%s (New chain): Desc %p -> Offset " BDBG_UINT64_FMT "", BSTD_FUNCTION, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
        /*
        ** The descriptor address field in the hardware register is wants the address

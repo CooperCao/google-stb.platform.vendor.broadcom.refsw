@@ -9,7 +9,7 @@
 
 #include "vcos.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 union gfx_lfmt_block_data
 {
@@ -183,6 +183,6 @@ static inline bool gfx_lfmt_block_arr_dims_in_elems_equals(
    return (arr_width == width) && (arr_height == height) && (arr_depth == depth);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

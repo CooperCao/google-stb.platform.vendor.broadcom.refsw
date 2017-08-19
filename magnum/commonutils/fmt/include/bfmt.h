@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -582,7 +582,7 @@ Summary:
     This macro are commonly used to described a format.
 
 See Also:
-    BFMT_GetVideoFormatInfoPtr_isr
+    BFMT_GetVideoFormatInfoPtr_isrsafe
 ***************************************************************************/
 #define BFMT_NTSC_WIDTH                (720)
 #define BFMT_NTSC_HEIGHT               (480)
@@ -732,7 +732,7 @@ Description:
 
 See Also:
     BVDC_Display_SetVideoFormat, BVDC_Display_GetVideoFormat,
-    BFMT_GetVideoFormatInfoPtr_isr
+    BFMT_GetVideoFormatInfoPtr_isrsafe
 ***************************************************************************/
 typedef enum
 {
@@ -1012,7 +1012,7 @@ Description:
         NULL for non-custom formats;  This is mainly for DVO output.
 
 See Also:
-    BFMT_GetVideoFormatInfoPtr_isr
+    BFMT_GetVideoFormatInfoPtr_isrsafe
 ***************************************************************************/
 typedef struct
 {
@@ -1070,12 +1070,12 @@ See Also:
     BVDC_Display_SetCustomVideoFormat
 
 **************************************************************************/
-const BFMT_VideoInfo* BFMT_GetVideoFormatInfoPtr_isr
+const BFMT_VideoInfo* BFMT_GetVideoFormatInfoPtr_isrsafe
     ( BFMT_VideoFmt                      eVideoFmt );
-#define BFMT_GetVideoFormatInfoPtr BFMT_GetVideoFormatInfoPtr_isr
+#define BFMT_GetVideoFormatInfoPtr BFMT_GetVideoFormatInfoPtr_isrsafe
 
 /***************************************************************************
- * Obsoleted!  Should be using BFMT_GetVideoFormatInfoPtr_isr()
+ * Obsoleted!  Should be using BFMT_GetVideoFormatInfoPtr_isrsafe()
  ***************************************************************************/
 BERR_Code BFMT_GetVideoFormatInfo
     ( BFMT_VideoFmt                    eVideoFmt,

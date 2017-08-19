@@ -1,0 +1,456 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF QOS test
+#
+# Written by: Sheida Otmishi May 26 2010
+#
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Streams
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::rssinoise
+
+package provide UTF::Test::QoSSetup 2.0
+
+# Library file
+proc qos_dumpstats args {
+    UTF::Getopts {
+	{duts.arg {} "to dump"}
+	{registers.arg {counters keys} "reads"}
+	{dumps.arg {wme ampdu amsdu scb hwkeys} "dumps"}
+	{clearonly ""}
+    }
+
+    UTF::Try "Dumps" {
+	if {$(clearonly)} {
+	    foreach dut $(duts) {
+		catch {$dut wl ampdu_clear_dump}
+		catch {$dut wl amsdu_clear_counters}
+	    }
+            return
+	}
+
+	foreach dut $(duts) {
+	    foreach dump $(dumps) {
+		catch {$dut wl dump $dump}
+	    }
+	    
+	    foreach register $(registers) {
+		foreach dut $(duts) {
+		    catch {$dut wl $register}
+		}
+	    }
+	    
+	    foreach dut $(duts) {
+		catch {$dut wl ampdu_clear_dump}
+		catch {$dut wl amsdu_clear_counters}
+	    }
+	}
+    }
+}
+
+UTF::Test QoSSetup {args} {
+    UTF::Getopts {
+	{stas.arg "" "STA"}
+	{ap.arg "" "AP"}
+	{email.arg "" "email"}
+	{chanspec.arg "36l" "Chanspec"}
+	{norestore ""}
+	{noapload ""}
+	{nostaload ""}
+	{nochanspec ""}
+	{security.arg "" "Security"}
+	{noassoc ""}
+	{nopathcheck ""}
+	{statag.arg "" "STA tag"}
+	{aptag.arg "" "AP tag"}
+	{stadate.arg "" "STA date"}
+	{apdate.arg "" "AP date"}
+	{stabrand.arg "" "STA brand"}
+	{apbrand.arg "" "AP brand"}
+	{stabin.arg "" "Direct path to STA image"}
+	{apbin.arg "" "Direct path to AP image"}
+	{notestbedsetup ""}
+	{nocountry ""}
+	{unload ""}
+	{disassoc ""}
+	{deinit ""}
+	{nodefaults ""}
+	{reconnect ""}
+	{domsgaction ""}
+	{tune.arg "" "systems to tune tcp at kernel"}
+	{frameburst.arg "1" "frameburst"}
+	{ampdu.arg "1" "ampdu"}
+	{amsdu.arg "1" "amsdu"}
+	{aifs.arg "" "aifs"}
+    }
+
+	UTF::Message INFO "" "FB $(frameburst) AMPDU $(ampdu) AMSDU $(amsdu)"
+
+    if {$(domsgaction)} {
+	set MSGACTIONS {
+		{wlc_wsec_inrange (AES) iv16} FAIL
+	    {dma_rx: bad frame length} FAIL
+	    {bcn inactivity detected} FAIL
+	    {wlc_bmac_antsel_type_set} FAIL
+	    {scb is null} FAIL
+	    {txop exceeded phylen} FAIL
+	    {descriptor protocol error} FAIL
+	    {dma_rxfill: out of rxbufs} FAIL
+	    {page allocation failure} FAIL
+	    {unexpected completion} FAIL
+	    {wlc_wsec_recvdata_decrypt ICV error using key} FAIL
+	    {wlc_edcf_acp_set_hw} FAIL
+	    {bad ini or ba_state} FAIL
+	    {wlc_apps_suppr_frame_enq} WARN
+	    {wlc_calc_frame_time: Need TXTIME} WARN
+	    {wrong A-MSDU deagg sequence} WARN
+	    {assertion .* ACPHY_RfseqStatus} {
+		$self power cycle
+	    }
+	}
+
+	set dutlist "$(stas) $(ap)"
+	foreach dut $dutlist {
+	    $dut configure -msgactions [concat [$dut cget -msgactions] $MSGACTIONS]
+	}
+	return
+    }
+
+
+    set ap $(ap)
+    #set apend [$ap cget -lanpeer]
+	set apend [$ap lan]
+    if {$apend eq ""} {
+	set apend $ap
+    }
+
+    if {$(reconnect)} {
+	UTF::Try "Check" {
+	    foreach sta $(stas) {
+		if {[catch {$sta wl bssid} ret] || $ret eq "00:00:00:00:00:00"} {
+		    catch {$apend rexec "ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10"}
+		    UTF::Test::ConnectAPSTA $ap $sta
+		    rssinoise $ap $sta
+		}
+	    }
+	}
+	return
+    }
+
+
+    #################################
+    # Basic UTF setup
+    # ###############################
+
+    # Testbed Setup
+    if {!$(notestbedsetup)} {
+	if {[info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+	    }
+	}
+	
+	UTF::Try "TCP Tune" {
+	    if {$(tune) eq {}} {
+		append (tune) " $(stas) $apend"
+	    }
+	    foreach tune $(tune) {
+		$tune tcptune 4M
+	    }
+	}
+    }
+
+    if {!$(noapload)} {
+
+	UTF::Try "Check Image" {
+	    if {$(apbrand) ne ""} {
+		$ap configure -brand $(apbrand)
+	    }
+
+	    if {$(aptag) ne ""} {
+		$ap configure -tag $(aptag)
+	    }
+
+	    if {$(apdate) ne ""} {
+		$ap configure -date $(apdate)
+	    }
+
+	    set image [$ap cget -image]
+	    if {$image ne "" && $(apbin) eq ""} {
+		  set (apbin) $image
+		}
+
+	    if {$(apbin) ne ""} {
+		$ap configure -image $(apbin)
+	    }
+
+	    UTF::CheckImage $ap {} unknown
+	}
+	UTF::Try "$ap Load " {
+	    if {[$ap hostis Router Vx BSDAP DSL Airport]} {
+		if {[catch {$ap lan ifconfig [$ap lan cget -ipaddr]}]} {
+		    $ap lan ifconfig 192.168.1.50
+		}
+		$ap load -erase
+	    } else {
+		$ap load
+	    }
+	}
+    }
+
+    if {!$(norestore)} {
+	UTF::Try "$ap: Restore Defaults" {
+	    if {[$ap hostis Router Vx BSDAP DSL Airport]} {
+		$ap restore_defaults
+	    } else {
+		$ap services stop
+		catch {$ap wl msglevel +error +assoc}
+		if {![$ap cget -nomimo_bw_cap]} {
+		    catch {$ap wl down}
+		    # Enable 40 in 2.4, if available.
+		    $ap wl -u mimo_bw_cap 1
+		    $ap wl up
+		    UTF::Sleep 1
+		}
+	    }
+	    set what [$ap whatami]
+	    regsub -all {\s+} [lreplace $what 0 0] {_} w
+	    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		UTF::Message WARN $ap $ret
+	    }
+	    $ap dbrecord DUT
+	    set what
+	}
+    }
+
+    if {$(aifs) ne {}} {
+	UTF::Try "$ap AIFS" {
+	 	set apnamerr [catch {$ap wlname} apname]
+	    if {!$apnamerr} {
+		$ap restart ${apname}_wme_sta_be=[lreplace [$ap nvram get ${apname}_wme_sta_be] 2 2 [lindex $(aifs) 0]]
+		if {[llength $(aifs)] > 1} {
+		    $ap restart \
+		    ${apname}_wme_sta_vo=[lreplace [$ap nvram get ${apname}_wme_sta_vo] 2 2 [lindex $(aifs) 1]] \
+		    ${apname}_wme_sta_bk=[lreplace [$ap nvram get ${apname}_wme_sta_bk] 2 2 [lindex $(aifs) 1]] \
+		    ${apname}_wme_sta_vi=[lreplace [$ap nvram get ${apname}_wme_sta_vi] 2 2 [lindex $(aifs) 1]]
+		}
+	    }
+    	}
+    }
+    
+    foreach sta $(stas) {
+
+	if {!$(nostaload)} {
+	    if {$(stabrand) ne ""} {
+		$sta configure -brand $(stabrand)
+	    }
+
+	    if {$(statag) ne ""} {
+	    	$sta configure -tag $(statag)
+	    }
+
+	    if {$(stadate) ne ""} {
+	    	$sta configure -date $(stadate)
+	    }
+   
+	    set image [$sta cget -image]
+	    if {$image ne "" && $(stabin) eq ""} {
+		set (stabin) $image
+	    }
+	
+	    if {$(stabin) ne ""} {
+		$sta configure -image $(stabin)
+	    }
+
+	    UTF::Try "$sta Find Image " {
+		UTF::CheckImage $sta {} unknown
+	    }
+	    UTF::Try "$sta Load " {
+	        $sta load
+	    }
+	}
+
+	if {!$(nodefaults)} {
+	    # Copied from EmbeddedNightly
+	    UTF::Try "$sta Defaults" {
+		$sta services stop
+		catch {$sta wl msglevel +error +assoc}
+		if {![$sta cget -nomimo_bw_cap]} {
+		    catch {$sta wl down}
+		    $sta wl -u mimo_bw_cap 1
+		    $sta wl up
+		    UTF::Sleep 1
+		}
+		set what [$sta whatami]
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+                    UTF::Message WARN $sta $ret
+		}
+                $sta dbrecord DUT
+		set what
+	    }
+	}
+    }
+
+    if {!$(nocountry)} {
+	UTF::Try "Country" {
+	    set dutlist $(stas)
+	    lappend dutlist $(ap)
+	    set errorcode 0
+	    set errormsg ""
+	    foreach dut $dutlist {
+		set countrycatch [catch {$dut wl country} country]
+		if {!$countrycatch} {
+		    UTF::Message INFO "" "country: $country"
+		    if {![regexp {US|JP|[(X0-9)]*} $country]} {
+			append errormsg " $dut $country "
+			if {$errorcode ne 1} {
+			    set errorcode 1
+			}
+		    }
+		} else {
+		    set errorcode 1
+		    append errormsg " $dut $country "
+		}
+	    }
+	    if {$errorcode eq 1} {
+		error $errormsg
+	    }
+	}
+    }
+
+    if {!$(nochanspec)} {
+	UTF::Try "$ap Chanspec $(chanspec) " {
+	    UTF::Test::APChanspec $ap $(chanspec)
+		return [$ap wl chanspec]
+	}
+    }
+
+    if {$(security) != ""} {
+	UTF::Try "$ap security $(security) " {
+	    UTF::Test::APConfigureSecurity $ap -security $(security)
+		$ap cget -security
+	}
+    }
+ 
+    UTF::Try "MPDU" {
+	if {$(ampdu) eq "0"} {
+	    foreach S $(stas) {
+		UTF::Try "$S AMPDU $(ampdu)" {
+		$S wl down
+                            $S wl ampdu $(ampdu)
+							$S wl up
+		}
+	    }
+	}
+    }
+
+    if {!$(noassoc)} {
+	UTF::Try "Connect $ap $(stas)" {
+	    set apnamerr [catch {$ap wlname} apname]
+	    if {!$apnamerr} {
+		set apradioerr [catch {$ap nvram get ${apname}_radio} apradio]
+		if {!$apradioerr} {
+		    if {$apradio eq 0} {
+			$ap restart ${apname}_radio=1
+		    } else {
+			UTF::Message INFO "" "${apname}_radio = $apradio"
+		    }
+		} else {
+		    UTF::Message ERROR "" "Can not get ${apname}_radio"
+		}
+	    } else {
+		UTF::Message ERROR "" "Can not turn $ap radio on"
+	    }
+
+	    foreach sta $(stas) {
+		UTF::Try "$sta" {
+		    UTF::Test::ConnectAPSTA $ap $sta
+		}
+		UTF::Try "$sta RSSI" {
+		    rssinoise $ap $sta
+		}
+	    }
+
+	    UTF::Try "FB=$(frameburst) AMP/SDU=$(ampdu)/$(amsdu)" {
+		set setlist "$ap $(stas)"
+		set S {}
+		if {$(frameburst) eq "1"} {
+		    foreach S $setlist {
+			if {![$S cget -noframeburst]} {
+			    UTF::Try "$S Frameburst $(frameburst)" {
+				$S wl frameburst $(frameburst)
+			    }
+			}
+		    }
+		}
+
+		foreach S $setlist {
+		    $S wl amsdu
+		    $S wl ampdu
+		    $S wl frameburst
+		}
+		unset S
+	    }
+	}
+
+	if {$(aifs) ne {}} {
+	    set apnamerr [catch {$ap wlname} apname]
+	    if {!$apnamerr} {
+		UTF::Try "WME Dumps" {
+		    catch {$ap nvram get ${apname}_wme_sta_vi}
+		    catch {$ap nvram get ${apname}_wme_sta_vo}
+		    catch {$ap nvram get ${apname}_wme_sta_bk}
+		    catch {$ap nvram get ${apname}_wme_sta_be}
+		    catch {$ap wl dump wme}
+		    foreach sta $(stas) {
+			catch {$sta wl dump wme}
+		    }
+		}
+	    }
+	}
+    }
+
+    if {!$(nopathcheck)} {
+	UTF::Try "Check Connection" {
+	    catch {$apend ipaddr} APENDIP
+	    foreach sta $(stas) {
+		catch {$sta ipaddr} STAIP
+		$sta ping $APENDIP
+		$apend ping $STAIP
+	    }
+	}
+    }
+
+    if {$(disassoc)} {
+	UTF::Sleep 1
+	UTF::Try "Disassoc" {
+	    foreach sta $(stas) {
+		$sta wl disassoc
+	    }
+	}
+    }
+
+    if {$(unload)} {
+	UTF::Try "Unload" {
+	    foreach sta $(stas) {
+		$sta unload
+	    }
+	}
+    }
+
+    if {$(deinit)} {
+	foreach sta $(stas) {
+	    $sta deinit
+	}
+	$ap deinit
+    }
+}

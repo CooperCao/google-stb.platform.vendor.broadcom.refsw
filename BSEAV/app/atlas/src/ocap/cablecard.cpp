@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2002-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ****************************************************************************/
 #ifdef MPOD_SUPPORT
@@ -206,7 +226,7 @@ static void MpegFlowReqThread(
 			}
 			else
 			{
-				BDBG_MSG(("Attempt to open MPEG Flow failed: Card may not be ready\n"));
+				//BDBG_WRN(("Attempt to open MPEG Flow failed: Card may not be ready\n"));
 			}
 		}
 	}
@@ -681,7 +701,7 @@ int CCablecard::cablecard_enable_program(CChannel *pChannel)
 
     pCableCardChannels[programIndex] = pChannel;
     sourceId = pChannel->getSourceId();
-    programNumber = pChannel->getprogramNum();
+    programNumber = pChannel->getProgramNum();
     memset(channelPmtInfo[programIndex].pmt,0,sizeof(channelPmtInfo[programIndex].pmt));
     channelPmtInfo[programIndex].pmtSize = 0;
 	tsPsi_setTimeout(800,800);
@@ -691,12 +711,12 @@ int CCablecard::cablecard_enable_program(CChannel *pChannel)
                          &channelPmtInfo[programIndex].pmtSize );
     if(!channelPmtInfo[programIndex].pmtSize)
     {
-        BDBG_ERR(("%s: not PMT found",__FUNCTION__));
+        BDBG_ERR(("%s: not PMT found",BSTD_FUNCTION));
         goto error;
     }
     ltsid = pBand->getBand();
     BDBG_WRN(("%s programIndex %u ltsid %u sourceId %u programNumber %u caPid %u pmtSize %u",
-              __FUNCTION__,programIndex,ltsid, sourceId, programNumber, programInfo.ca_pid,
+              BSTD_FUNCTION,programIndex,ltsid, sourceId, programNumber, programInfo.ca_pid,
               channelPmtInfo[programIndex].pmtSize));
     ret = B_Mpod_CaSendPmt((unsigned char *)channelPmtInfo[programIndex].pmt,
                            B_MPOD_CA_OK_DESCRAMBLE, programIndex, ltsid, sourceId);
@@ -738,11 +758,11 @@ int CCablecard::cablecard_disable_program(class CChannel *pChannel)
     }
 
     sourceId = pChannel->getSourceId();
-    programNumber = pChannel->getprogramNum();
+    programNumber = pChannel->getProgramNum();
     ltsid = pBand->getBand();
 
     BDBG_WRN(("%s programIndex %u ltsid %u sourceId %u programNumber %u pmtSize %u",
-              __FUNCTION__,programIndex,ltsid, sourceId, programNumber,channelPmtInfo[programIndex].pmtSize));
+              BSTD_FUNCTION,programIndex,ltsid, sourceId, programNumber,channelPmtInfo[programIndex].pmtSize));
 	ret = B_Mpod_CaSendPmt((unsigned char *)channelPmtInfo[programIndex].pmt,
                             B_MPOD_CA_NOT_SELECTED, programIndex, ltsid, sourceId);
 	if (ret == MPOD_SUCCESS)
@@ -1333,7 +1353,7 @@ static void CableCardCallback_New_Flow_Cnf_Cb(uint32_t flowId, B_MPOD_EXT_SERV_T
 		MpegFlowReq = false;
 	}
 
-	BDBG_MSG(("received %s flowId=%d serviceType=%d pid=%d\n", __FUNCTION__, flowId, (uint32_t) serviceType, pid));
+	BDBG_MSG(("received %s flowId=%d serviceType=%d pid=%d\n", BSTD_FUNCTION, flowId, (uint32_t) serviceType, pid));
 }
 
 B_MPOD_EXT_DEL_FLOW_CNF_STAT CableCardCallback_Delete_Flow_Req(uint32_t flowId, B_MPOD_EXT_SERV_TYPE serviceType)
@@ -1452,14 +1472,14 @@ unsigned int CCablecard::get_num_lines_filled(void){
 }
 
 /* To recieve the various App info thro a callback for the URLs sent  */
-void cablecard_receive_app_info_query(uint8_t *html, uint16_t len, uint8_t dialogNb, uint8_t fileStatus)
+void cablecard_receive_app_info_query(uint8_t *html, unsigned len, uint8_t dialogNb, uint8_t fileStatus)
 {
 	int i=0, cnt=0, j=0;
     BSTD_UNUSED(dialogNb);
     BSTD_UNUSED(fileStatus);
 	for (i=0;i<NUM_CABLECARD_LINES;i++)
 	{
-		while (j < NUM_CABLECARD_CHARS-1 && cnt <len)
+		while (j < NUM_CABLECARD_CHARS-1 && cnt <(int)len)
 		{
 			if ((html[cnt] != '<') && (html[cnt] != '&') && (html[cnt] != '\n') && (html[cnt] != '\0'))
 			{
@@ -1483,7 +1503,7 @@ void cablecard_receive_app_info_query(uint8_t *html, uint16_t len, uint8_t dialo
 			} else
 				cnt++;
 		}
-		if (cnt >=len) break;
+		if (cnt >=(int)len) break;
 next_line:
 
 		j = 0;
@@ -1493,7 +1513,7 @@ next_line:
 	cablecard_page.diag_message_filled = i;
 }
 
-void CCablecard::parse_app_info_query(uint8_t *html, uint16_t len)
+void CCablecard::parse_app_info_query(uint8_t *html, unsigned len)
 {
 	cablecard_receive_app_info_query(html, len,  0, 0);
 }
@@ -1966,7 +1986,7 @@ static void featureRcvCardListCb(
 {
     uint32_t i;
 
-    BDBG_MSG(("%s list of Card supported features", __FUNCTION__));
+    BDBG_MSG(("%s list of Card supported features", BSTD_FUNCTION));
     for(i = 0; i < cardNumFeatures; i++)
     {
     	if (cardFeatures[i] < (sizeof(FeatureString)/sizeof(const char*)))
@@ -2010,7 +2030,7 @@ static void featureRcvParamsCb(
                 featureParams[i].param.parentalSettings.chanCount));
                 for(j = 0; j < featureParams[i].param.parentalSettings.chanCount; j++)
                 {
-                    uint16_t major, minor;
+                    unsigned major, minor;
 
                     major = ((featureParams[i].param.parentalSettings.virtualChannels[j].channelMajorMinor[0] & 0xf) << 6) |
                             ((featureParams[i].param.parentalSettings.virtualChannels[j].channelMajorMinor[1] & 0xfc) >> 2);
@@ -2150,7 +2170,7 @@ static void featureRcvParamsCb(
                 BDBG_MSG(("Zip Code is %s\n", featureParams[i].param.zipCode.chr));
             break;
         default:
-            BDBG_MSG(("%s invalid feature \n", __FUNCTION__));
+            BDBG_MSG(("%s invalid feature \n", BSTD_FUNCTION));
         }
 
         featureParams[i].featureStatus = 0; /* feature param accepted */
@@ -2344,7 +2364,7 @@ static void delayedDownloadReqCb(
     void
     )
 {
-    BDBG_MSG(("received %s\n", __FUNCTION__));
+    BDBG_MSG(("received %s\n", BSTD_FUNCTION));
 }
 
 
@@ -2352,7 +2372,7 @@ static void homingCompleteCb(
     void
     )
 {
-    BDBG_MSG(("received %s\n", __FUNCTION__));
+    BDBG_MSG(("received %s\n", BSTD_FUNCTION));
 }
 
 
@@ -2366,7 +2386,7 @@ static void downloadStartingCb(
     char timeoutTypeStrings[][256] = {"both timeouts", "transport timeout",
                                             "download timeout", "no_timeout"};
 
-    BDBG_MSG(("received %s\n", __FUNCTION__));
+    BDBG_MSG(("received %s\n", BSTD_FUNCTION));
 
     if(downloadInfo->notifyTextLength)
     {
@@ -2391,7 +2411,7 @@ static void downloadCompleteCb(
 {
     char resetTypeStrings[][256] = {"PCMCIA Reset", "Card Reset", "No Reset", "Reserved"};
 
-    BDBG_MSG(("received %s\n", __FUNCTION__));
+    BDBG_MSG(("received %s\n", BSTD_FUNCTION));
     BDBG_MSG(("requested %s\n", resetTypeStrings[resetType & 0x3]));
 }
 
@@ -2399,7 +2419,7 @@ static void homingTimeoutCb(
     void
     )
 {
-    BDBG_MSG(("received %s\n", __FUNCTION__));
+    BDBG_MSG(("received %s\n", BSTD_FUNCTION));
     BDBG_MSG(("Resetting CableCard\n"));
 }
 
@@ -2572,10 +2592,10 @@ void caPmtUpdateReply(
     )
 {
     uint32_t i;
-    uint16_t pid;
+    unsigned pid;
     bool caEnableFlag;
     int caEnable;
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     BDBG_MSG(("\nProg Idx: %d  Prog Num: %d, Src Id: %d\n",
             replyInfo->progIndex, replyInfo->progNum, replyInfo->srcId));
     BDBG_MSG(("Trans Id: %d  LTSID: %d\n", replyInfo->transId, replyInfo->ltsid));
@@ -2600,7 +2620,7 @@ void caPmtUpdate(
     B_MPOD_CA_PMT_UPDATE_INFO *updateInfo
     )
 {
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     caPmtUpdateReply(updateInfo);
 }
 
@@ -2609,7 +2629,7 @@ void caPmtReply(
     B_MPOD_CA_PMT_REPLY_INFO *replyInfo
     )
 {
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     caPmtUpdateReply(replyInfo);
 }
 
@@ -2620,7 +2640,7 @@ void getAuthKeyCb(
     )
 {
 	unsigned char hostId[5];
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     B_Mpod_TestCpGetAuthKey(authKey, authKeyExists);
 	info.authKeyStatus = true;
 
@@ -2644,7 +2664,7 @@ void cardAuthMsgCb(
     )
 {
 	int ret;
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     BDBG_MSG(("Getting Host CP Authentication Parameters\n"));
     B_Mpod_TestCpGetHostAuthParams(hostDevCert, hostManCert, dhPubKeyH, signH);
     BDBG_MSG(("Checking Card CP Authorization, generating AuthKey\n"));
@@ -2669,7 +2689,7 @@ void getNonceCb(
     uint8_t *nonce
     )
 {
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     B_Mpod_TestCpGenerateNonce(nonce);
 }
 
@@ -2677,7 +2697,7 @@ void getIDCb(
 	uint8_t * hostId,
 	uint8_t * cardId)
 {
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
 	B_Mpod_TestCpGetID(hostId, cardId);
 	memcpy(info.cardId, cardId, 8);
 }
@@ -2724,28 +2744,28 @@ NEXUS_Error configureCAKeySlot(uint8_t *keyData, CChannel *pChannel)
 	keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
 	if(keySlot== NULL)
     {
-        BDBG_ERR(("%s key slot allocation failed",__FUNCTION__));
+        BDBG_ERR(("%s key slot allocation failed",BSTD_FUNCTION));
         goto error;
     }
     pChannel->setKeySlot(keySlot);
 	rc = NEXUS_Security_ConfigAlgorithm(keySlot, &algorithmSettings);
 	if (rc != 0)
     {
-        BDBG_ERR(("%s security alogorithm apply settings failed",__FUNCTION__));
+        BDBG_ERR(("%s security alogorithm apply settings failed",BSTD_FUNCTION));
         goto error;
     }
     clearKey.keyEntryType = NEXUS_SecurityKeyType_eOdd;
 	rc = NEXUS_Security_LoadClearKey(keySlot, &clearKey);
 	if (rc != 0)
     {
-        BDBG_ERR(("%s load odd clear key failed",__FUNCTION__));
+        BDBG_ERR(("%s load odd clear key failed",BSTD_FUNCTION));
         goto error;
     }
 	clearKey.keyEntryType = NEXUS_SecurityKeyType_eEven;
 	rc = NEXUS_Security_LoadClearKey(keySlot, &clearKey);
 	if (rc != 0)
     {
-        BDBG_ERR(("%s load even clear key failed",__FUNCTION__));
+        BDBG_ERR(("%s load even clear key failed",BSTD_FUNCTION));
         goto error;
     }
 
@@ -2754,14 +2774,14 @@ NEXUS_Error configureCAKeySlot(uint8_t *keyData, CChannel *pChannel)
     rc = NEXUS_KeySlot_AddPidChannel(keySlot, pVideoPid->getPidChannel());
 	if (rc != 0)
     {
-        BDBG_ERR(("%s add video pidChannel to keySlot failed ",__FUNCTION__));
+        BDBG_ERR(("%s add video pidChannel to keySlot failed ",BSTD_FUNCTION));
         goto error;
     }
 
     rc = NEXUS_KeySlot_AddPidChannel(keySlot, pAudioPid->getPidChannel());
 	if (rc != 0)
     {
-        BDBG_ERR(("%s add video pidChannel to keySlot failed ",__FUNCTION__));
+        BDBG_ERR(("%s add video pidChannel to keySlot failed ",BSTD_FUNCTION));
         goto error;
     }
 error:
@@ -2775,14 +2795,14 @@ void removeKeyCb(
     )
 {
 
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
 #ifdef NEXUS_HAS_SECURITY
     unsigned programIndex=0;
     CChannel *pChannel=NULL;
     CPid * pVideoPid = NULL;
     CPid * pAudioPid = NULL;
 
-    BDBG_MSG(("%s programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
+    BDBG_MSG(("%s programNumber %u ltsid %u", BSTD_FUNCTION, programNumber, ltsid));
 
     for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++)
     {
@@ -2794,9 +2814,9 @@ void removeKeyCb(
 		{
           CParserBand * pBand = pCableCardChannels[programIndex]->getParserBand();
           if( (ltsid == pBand->getBand()) &&
-              (pCableCardChannels[programIndex]->getprogramNum() == programNumber))
+              (pCableCardChannels[programIndex]->getProgramNum() == programNumber))
           {
-              BDBG_WRN(("%s found programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
+              BDBG_WRN(("%s found programNumber %u ltsid %u", BSTD_FUNCTION, programNumber, ltsid));
               pChannel = pCableCardChannels[programIndex];
               break;
           }
@@ -2805,7 +2825,7 @@ void removeKeyCb(
     }
     if(!pChannel || !pChannel->getKeySlot())
     {
-       BDBG_ERR(("%s no channel found with programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
+       BDBG_ERR(("%s no channel found with programNumber %u ltsid %u", BSTD_FUNCTION, programNumber, ltsid));
        return;
     }
 
@@ -2832,14 +2852,14 @@ void progKeyCb(
 #ifdef NEXUS_HAS_SECURITY
     unsigned programIndex=0;
     CChannel *pChannel=NULL;
-    BDBG_MSG(("%s programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
+    BDBG_MSG(("%s programNumber %u ltsid %u", BSTD_FUNCTION, programNumber, ltsid));
     for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++)
     {
         CParserBand * pBand = pCableCardChannels[programIndex]->getParserBand();
         if( (ltsid == pBand->getBand()) &&
-            (pCableCardChannels[programIndex]->getprogramNum() == programNumber))
+            (pCableCardChannels[programIndex]->getProgramNum() == programNumber))
         {
-            BDBG_WRN(("%s found programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
+            BDBG_WRN(("%s found programNumber %u ltsid %u", BSTD_FUNCTION, programNumber, ltsid));
             pChannel = pCableCardChannels[programIndex];
             break;
         }
@@ -2847,12 +2867,12 @@ void progKeyCb(
     }
     if(!pChannel)
 {
-       BDBG_ERR(("%s no channel found with programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
+       BDBG_ERR(("%s no channel found with programNumber %u ltsid %u", BSTD_FUNCTION, programNumber, ltsid));
        return;
     }
     configureCAKeySlot(desABAKey,pChannel);
 #else
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     BSTD_UNUSED(desABAKey);
     BSTD_UNUSED(programNumber);
     BSTD_UNUSED(ltsid);
@@ -2875,7 +2895,7 @@ void calcCciAckCb(
     uint8_t *cciAck
     )
 {
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     BDBG_MSG(("Calculating new CP cci ack value\n"));
     B_Mpod_TestCpGenCciAck(cpVersion, cci, cpKeyA, cpKeyB, cciNCard,
                 cciNHost, programNumber, ltsid, ecmpid, cciAuth, cciAck);
@@ -2887,7 +2907,7 @@ void enforceCciCb(
     uint8_t cci_data, uint16_t prog_num, uint8_t cci_ltsid
     )
 {
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     BSTD_UNUSED(cci_ltsid);
     BSTD_UNUSED(prog_num);
     BDBG_MSG(("Received new CP cci status from the card, cci is 0x%x\n", cci_data));
@@ -2905,7 +2925,7 @@ void enforceCciCb(
         {
             if ((pBand = pChannel->getParserBand()) != NULL)
             {
-                if ((pBand->getBand() == cci_ltsid) && (pChannel->getprogramNum() == prog_num))
+                if ((pBand->getBand() == cci_ltsid) && (pChannel->getProgramNum() == prog_num))
                 {
                     pChannel->setCci(cci_data);
                     break;
@@ -2927,7 +2947,7 @@ void cpkeyGenCb(
     uint8_t *cpKeyB
     )
 {
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     BDBG_MSG(("Generating New CPKey"));
 
     B_Mpod_TestCpGenCPKey(nHost, nCard, cpKeyA, cpKeyB);
@@ -2939,7 +2959,7 @@ void newValidationStatusCb(
     )
 {
 
-    BDBG_MSG(("%s\n", __FUNCTION__));
+    BDBG_MSG(("%s\n", BSTD_FUNCTION));
     BDBG_MSG(("Received new CP validation status from the card, status is %d\n", validationStatus));
     info.status = validationStatus;
 }
@@ -2950,7 +2970,7 @@ void resProfileInfoCb(
     uint8_t numEs
     )
 {
-   BDBG_MSG(("%s streams=%d  progs=%d  elem streams=%d\n", __FUNCTION__, numStreams, numProgs, numEs));
+   BDBG_MSG(("%s streams=%d  progs=%d  elem streams=%d\n", BSTD_FUNCTION, numStreams, numProgs, numEs));
 }
 
 static void getRootOID( uint8_t *data, uint32_t len)
@@ -3036,7 +3056,7 @@ static void hostPropertiesReplyCb(
 {
     int i, j;
 
-    BDBG_MSG(("%s\n\n", __FUNCTION__));
+    BDBG_MSG(("%s\n\n", BSTD_FUNCTION));
     BDBG_MSG(("%d properties sent from the card\n\n", hostProperties->numOfProperties));
 
     for(i = 0; i < hostProperties->numOfProperties; i++)
@@ -3060,7 +3080,7 @@ static void rcvHostResetVectorCb(
     B_MPOD_HEADEND_HOST_RESET_VECTOR *hostResetVector
     )
 {
-    BDBG_MSG(("%s\n\n", __FUNCTION__));
+    BDBG_MSG(("%s\n\n", BSTD_FUNCTION));
 
     BDBG_MSG(("Delay = %d\n", hostResetVector->delay));
 

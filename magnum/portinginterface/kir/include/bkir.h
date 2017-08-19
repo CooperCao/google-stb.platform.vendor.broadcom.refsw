@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -247,6 +247,45 @@ typedef enum
     BKIR_KirPort2,
     BKIR_KirPortAuto
 } BKIR_KirPort;
+
+/***************************************************************************
+ Summary:
+    Enumeration for IR input device
+
+Description:
+    This enumeration defines the Input Device  for each IR channel.
+
+See Also:
+    None.
+
+***************************************************************************/
+typedef enum
+{
+    BKIR_INPUT_IR_IN0,
+    BKIR_INPUT_IR_IN1,
+    BKIR_INPUT_UHF_RX,
+    BKIR_INPUT_AON_GPIO,
+    BKIR_INPUT_MAX
+}BKIR_InputDevice;
+
+/***************************************************************************
+Summary:
+    Enumeration for IR input device
+
+Description:
+    This enumeration defines the Input Device  for each IR channel.
+
+See Also:
+    None.
+
+***************************************************************************/
+typedef enum
+{
+    BKIR_INPUT_PM_APN_CONFIG_IRR0,
+    BKIR_INPUT_PM_APN_CONFIG_IRR1,
+    BKIR_INPUT_PM_APN_CONFIG_IRR2,
+    BKIR_INPUT_PM_APN_CONFIG_IRR3
+}BKIR_PM_APN_Config_InputChannel;
 
 /***************************************************************************
 Summary:
@@ -743,6 +782,27 @@ BERR_Code BKIR_IsPreambleB_isrsafe(
     );
 
 /***************************************************************************
+ Summary:
+    This function set PM_AON CONFIG value
+
+Description:
+    This function is used to set PM_AON CONFIG value
+
+Returns:
+    Error Code
+
+See Also:
+****************************************************************************/
+BERR_Code BKIR_Set_PM_AON_CONFIG(
+    BKIR_ChannelHandle  hChn,       /* Device channel handle */
+    BKIR_PM_APN_Config_InputChannel  chanel_device,
+    BKIR_InputDevice    input_device
+    );
+
+/***************************************************************************/
+
+
+/***************************************************************************
 Summary:
     This function returns the last key pressed.
 
@@ -845,7 +905,7 @@ Summary:
 
 Description:
     This function enables a filter1 using the filter width.
-	Any pulse smaller than (28*filter_width+2)/27) microseconds	will be rejected
+    Any pulse smaller than (28*filter_width+2)/27) microseconds will be rejected
 Returns:
     TODO:
 
@@ -853,8 +913,8 @@ See Also:
 
 ****************************************************************************/
 BERR_Code BKIR_EnableFilter1 (
-    BKIR_ChannelHandle  hChn,       	/* [in] Device channel handle */
-    unsigned int        filter_width 	/* filter width if smaller than this to be rejected */
+    BKIR_ChannelHandle  hChn,          /* [in] Device channel handle */
+    unsigned int        filter_width   /* filter width if smaller than this to be rejected */
     );
 
 /***************************************************************************
@@ -996,6 +1056,3 @@ void BKIR_UnregisterCallback (
 #endif
 
 #endif
-
-
-

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -72,7 +72,7 @@ BSAGElib_Management_Register(
         BSAGElib_Management_CallbackItem *item;
         item = BKNI_Malloc(sizeof(*item));
         if (!item) {
-            BDBG_ERR(("%s: cannot allocate callback context", __FUNCTION__));
+            BDBG_ERR(("%s: cannot allocate callback context", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto end;
         }
@@ -80,7 +80,7 @@ BSAGElib_Management_Register(
         item->watchdog_isr = i_management->watchdog_isr;
         /* Insert in management list. Avoid concurrency with isr */
         BDBG_MSG(("%s: Add Watchdog callback %p",
-                  __FUNCTION__, (void *)(unsigned long)i_management->watchdog_isr));
+                  BSTD_FUNCTION, (void *)(unsigned long)i_management->watchdog_isr));
         BKNI_EnterCriticalSection();
         BLST_SQ_INSERT_TAIL(&hSAGElib->watchdog_callbacks, item, link);
         BKNI_LeaveCriticalSection();
@@ -107,7 +107,7 @@ BSAGElib_Management_Unregister(
         for (item = BLST_SQ_FIRST(&hSAGElib->watchdog_callbacks); item; item = BLST_SQ_NEXT(item, link)) {
             if (item->watchdog_isr == i_management->watchdog_isr) {
                 BDBG_MSG(("%s: Remove Watchdog callback %p",
-                          __FUNCTION__, (void *)(unsigned long)i_management->watchdog_isr));
+                          BSTD_FUNCTION, (void *)(unsigned long)i_management->watchdog_isr));
                 BKNI_EnterCriticalSection();
                 BLST_SQ_REMOVE(&hSAGElib->watchdog_callbacks, item, BSAGElib_Management_CallbackItem, link);
                 BKNI_LeaveCriticalSection();
@@ -146,7 +146,7 @@ BSAGElib_Management_Reset(
     BDBG_ENTER(BSAGElib_Management_Reset);;
 
     if (!hSAGElib->resetPending) {
-        BDBG_ERR(("%s: cannot reset SAGE, reset condition is not met.", __FUNCTION__));
+        BDBG_ERR(("%s: cannot reset SAGE, reset condition is not met.", BSTD_FUNCTION));
         goto end;
     }
 
@@ -181,7 +181,7 @@ BSAGElib_P_Management_WatchdogIntHandler_isr(
     hSAGElib = (BSAGElib_Handle)parm1;
     BDBG_ASSERT(hSAGElib);
 
-    BDBG_MSG(("%s: watchdog interrupt, instance=%p", __FUNCTION__, (void *)hSAGElib));
+    BDBG_MSG(("%s: watchdog interrupt, instance=%p", BSTD_FUNCTION, (void *)hSAGElib));
 
     hSAGElib->resetPending = 1;
 
@@ -194,7 +194,7 @@ BSAGElib_P_Management_WatchdogIntHandler_isr(
         BSAGElib_Management_CallbackItem *item;
         for (item = BLST_SQ_FIRST(&hSAGElib->watchdog_callbacks); item; item = BLST_SQ_NEXT(item, link)) {
             BDBG_MSG(("%s: Fire Watchdog callback %p",
-                      __FUNCTION__, (void *)(unsigned long)item->watchdog_isr));
+                      BSTD_FUNCTION, (void *)(unsigned long)item->watchdog_isr));
             item->watchdog_isr();
         }
     }
@@ -216,13 +216,13 @@ BSAGElib_P_Management_Initialize(
                              (void *) hSAGElib,
                              0x00);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BINT_CreateCallback(watchdog) failed!", __FUNCTION__));
+        BDBG_ERR(("%s: BINT_CreateCallback(watchdog) failed!", BSTD_FUNCTION));
         goto end;
     }
 
     rc = BINT_EnableCallback(hSAGElib->watchdogIntCallback);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(( "%s: BINT_EnableCallback(Watchdog) failed!", __FUNCTION__));
+        BDBG_ERR(( "%s: BINT_EnableCallback(Watchdog) failed!", BSTD_FUNCTION));
         goto end;
     }
 
@@ -240,7 +240,7 @@ BSAGElib_P_Management_Uninitialize(
         err = BINT_DestroyCallback(hSAGElib->watchdogIntCallback);
         if (err != BERR_SUCCESS) {
             BDBG_ERR(("%s: BINT_DestroyCallback(watchdog) returns error %u",
-                      __FUNCTION__, err));
+                      BSTD_FUNCTION, err));
             (void)BERR_TRACE(BERR_INVALID_PARAMETER) ;
         }
         hSAGElib->watchdogIntCallback = NULL;

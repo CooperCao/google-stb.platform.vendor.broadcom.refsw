@@ -309,11 +309,11 @@ BERR_Code BVBI_P_TT_Init( BVBI_P_Handle *pVbi )
     /* Initialize TT encoders */
 #if (BVBI_NUM_TTE > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_TTE ; ++hwIndex)
-        BVBI_P_TT_Enc_Init (pVbi->hReg, false, hwIndex);
+        BVBI_P_TT_Enc_Init (pVbi->hReg, hwIndex);
 #endif
 #if (BVBI_NUM_TTE_656 > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_TTE_656 ; ++hwIndex)
-        BVBI_P_TT_Enc_Init (pVbi->hReg, true, hwIndex);
+        BVBI_P_TT_Enc_656_Init (pVbi->hReg, hwIndex);
 #endif
 
     BDBG_LEAVE(BVBI_P_TT_Init);

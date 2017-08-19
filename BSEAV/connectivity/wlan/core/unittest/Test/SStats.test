@@ -1,0 +1,19 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF SStats Test
+#
+# $Id: 5dbf0b17bdcbd173d829436ba00edaa5cde37628 $ sotmishi Exp $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::StreamStats
+package require UTF::Streams
+
+UTF::Test SStats {args} {
+    UTF::StreamStats stmstat
+	stmstat compstats
+}

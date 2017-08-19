@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,15 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -60,6 +52,7 @@
 # NEXUS_FRONTEND_4538_VER - Define 4538 chip revision (default=B0)
 # NEXUS_FRONTEND_45216 - Enable support for the BCM45216 Satellite tuner/demodulator
 # NEXUS_FRONTEND_45308 - Enable support for the BCM45308 Satellite tuner/demodulator
+# NEXUS_FRONTEND_45316 - Enable support for the BCM45316 Satellite tuner/demodulator (shared software stack with 45308)
 # NEXUS_FRONTEND_3255 - Enable support for the BCM3255 Cable frontend
 # NEXUS_FRONTEND_3383 - Enable support for the BCM3383 Cable frontend
 # NEXUS_FRONTEND_DOCSIS - Enable support for the DOCSIS cable modem frontend
@@ -340,24 +333,47 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/fsk/bfsk.inc
 endif
 endif
 
+
 ifeq ($(NEXUS_FRONTEND_45308),y)
+NEXUS_FRONTEND_45308_STACK:=y
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_45308_FW
+endif
+ifeq ($(NEXUS_FRONTEND_45316),y)
+NEXUS_FRONTEND_45316_STACK:=y
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_45316_FW
+endif
+
+ifeq ($(NEXUS_FRONTEND_45308_STACK),y)
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_SATFE_IMG
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/45308/src/nexus_frontend_45308.c
 NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/45308/include/
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_45308
 # The line below is not necessary for bsat.inc but is needed below in this file
-BSAT_CHIP += 45308
 BHAB_45308_SUPPORT:=y
+ifeq ($(NEXUS_FRONTEND_45308),y)
+BSAT_CHIP += 45308
 BHAB_CHIP += 45308
 BWFE_CHIP += 45308
 BDSQ_CHIP += 45308
+endif
+ifeq ($(NEXUS_FRONTEND_45316),y)
+BSAT_CHIP += 45316
+BHAB_CHIP += 45316
+BWFE_CHIP += 45316
+BDSQ_CHIP += 45316
+endif
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_MXT=1
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/mxt/bmxt.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/wfe/bwfe.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/dsq/bdsq.inc
 ifeq ($(NEXUS_FRONTEND_FSK_SUPPORT),y)
+ifeq ($(NEXUS_FRONTEND_45308),y)
 BFSK_CHIP += 45308
+endif
+ifeq ($(NEXUS_FRONTEND_45316),y)
+BFSK_CHIP += 45316
+endif
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FSK=1
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/fsk/bfsk.inc
 endif
@@ -367,6 +383,13 @@ BCHP_45308_VER := $(shell awk 'BEGIN{print tolower("$(NEXUS_FRONTEND_45308_VER)"
 else
 BSAT_45308_VER := B0
 BCHP_45308_VER := B0
+endif
+ifdef NEXUS_FRONTEND_45316_VER
+BSAT_45316_VER := $(NEXUS_FRONTEND_45316_VER)
+BCHP_45316_VER := $(shell awk 'BEGIN{print tolower("$(NEXUS_FRONTEND_45316_VER)")}')
+else
+BSAT_45316_VER := A0
+BCHP_45316_VER := A0
 endif
 endif
 
@@ -696,11 +719,13 @@ NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_CTFE_IMG
 BTNR_3466_SUPPORT := y
 BODS_3466_SUPPORT := y
 BHAB_3466_SUPPORT := y
+BADS_3466_SUPPORT := y
 ifeq ($(NEXUS_FRONTEND_LEAP_UART_ENABLE), y)
 BHAB_LEAP_UART_ENABLE :=y
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_LEAP_UART_ENABLE
 endif
 NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/3466/include/
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ods/bods.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc

@@ -12,8 +12,8 @@ extern "C" {
 
 #define V3D_PARALLEL_MAX_THREADS 8
 
-/* Perform the work of a sub-job */
-typedef void (*v3d_parallel_exec_fn)(void *sub_job);
+/* Perform the work of a subjob */
+typedef void (*v3d_parallel_exec_fn)(void *subjob);
 
 /* Initialise this module */
 extern bool v3d_parallel_init(uint32_t max_threads);

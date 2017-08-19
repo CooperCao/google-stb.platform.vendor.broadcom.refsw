@@ -49,6 +49,7 @@ BDBG_MODULE(bsat_g1_priv_tfec);
 #define BSAT_DEBUG_TFEC(x) /* x */
 /* #define BSAT_DEBUG_ACQ_TIME */
 
+
 /* local functions */
 static bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h);
 static BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h);
@@ -165,6 +166,13 @@ BERR_Code BSAT_g1_P_TfecAcquire_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_TfecEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEnable)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+#if BSAT_CHIP_FAMILY==45316
+   uint32_t oifctl00;
+
+   oifctl00 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00);
+   if ((oifctl00 & BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK) == 0)
+      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK);
+#endif
 
    if (bEnable)
    {
@@ -177,6 +185,10 @@ BERR_Code BSAT_g1_P_TfecEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEna
       BINT_DisableCallback_isr(hChn->hTfecNotLockCb);
    }
 
+#if BSAT_CHIP_FAMILY==45316
+   if ((oifctl00 & BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK) == 0)
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, oifctl00);
+#endif
    return BERR_SUCCESS;
 }
 
@@ -187,11 +199,25 @@ BERR_Code BSAT_g1_P_TfecEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEna
 BERR_Code BSAT_g1_P_TfecEnableSyncInterrupt_isr(BSAT_ChannelHandle h, bool bEnable)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode;
+#if BSAT_CHIP_FAMILY==45316
+   uint32_t oifctl00;
+
+   oifctl00 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00);
+   if ((oifctl00 & BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK) == 0)
+      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK);
+#endif
 
    if (bEnable)
-      return BINT_EnableCallback_isr(hChn->hTfecSyncCb);
+      retCode = BINT_EnableCallback_isr(hChn->hTfecSyncCb);
    else
-      return BINT_DisableCallback_isr(hChn->hTfecSyncCb);
+      retCode = BINT_DisableCallback_isr(hChn->hTfecSyncCb);
+
+#if BSAT_CHIP_FAMILY==45316
+   if ((oifctl00 & BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK) == 0)
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, oifctl00);
+#endif
+   return retCode;
 }
 
 
@@ -655,34 +681,34 @@ static bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h)
       switch (hChn->actualMode)
       {
          case BSAT_Mode_eTurbo_Qpsk_1_2:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_1_2"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_1_2")));
             break;
          case BSAT_Mode_eTurbo_Qpsk_2_3:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_2_3"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_2_3")));
             break;
          case BSAT_Mode_eTurbo_Qpsk_3_4:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_3_4"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_3_4")));
             break;
          case BSAT_Mode_eTurbo_Qpsk_5_6:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_5_6"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_5_6")));
             break;
          case BSAT_Mode_eTurbo_Qpsk_7_8:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_7_8"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_Qpsk_7_8")));
             break;
          case BSAT_Mode_eTurbo_8psk_2_3:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_2_3"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_2_3")));
             break;
          case BSAT_Mode_eTurbo_8psk_3_4:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_3_4"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_3_4")));
             break;
          case BSAT_Mode_eTurbo_8psk_4_5:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_4_5"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_4_5")));
             break;
          case BSAT_Mode_eTurbo_8psk_5_6:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_5_6"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_5_6")));
             break;
          case BSAT_Mode_eTurbo_8psk_8_9:
-            BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_8_9"));
+            BSAT_DEBUG_TFEC(BDBG_MSG(("trying BSAT_Mode_eTurbo_8psk_8_9")));
             break;
          default:
             BDBG_ERR(("BSAT_g1_P_TurboScanTryNextMode(): should not get here!"));
@@ -1177,15 +1203,18 @@ BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t1);
 BDBG_ERR(("TfecOnSyncTimeout: t=%d, actualMode=0x%X, status=0x%X", t1-t0, hChn->actualMode, status));
 #endif
 
+   if (hChn->acqSettings.options & BSAT_ACQ_DISABLE_REACQ)
+      goto reacquire;
+
    if (BSAT_g1_P_IsHpLocked_isr(h))
    {
       hChn->count2++;
-      if ((hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan) && (hChn->count2 > 1))
+      if ((hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan) && (hChn->count2 > 5))
       {
          hChn->reacqCause = BSAT_ReacqCause_eTurboSyncTimeout;
          goto reacquire;
       }
-      BSAT_DEBUG_TFEC(BDBG_WRN(("reacquiring HP since TFEC can't lock")));
+      BSAT_DEBUG_TFEC(BDBG_WRN(("reacquiring HP since TFEC can't lock...")));
       BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable_isr(h, false));
       retCode = BSAT_g1_P_TfecAcquire_isr(h); /* reacquire HP */
    }
@@ -1227,6 +1256,9 @@ BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t0);
 
    mode_idx = hChn->actualMode - BSAT_Mode_eTurbo_Qpsk_1_2;
    timeout = ((uint32_t)rs_timeout[mode_idx]) * 1000;
+#ifdef BSAT_DEBUG_ACQ_TIME
+   BDBG_MSG(("TFEC sync timeout = %u bclks", timeout));
+#endif
    return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, timeout, BSAT_g1_P_TfecOnSyncTimeout_isr);
 }
 
@@ -1263,7 +1295,9 @@ bool BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(BSAT_ChannelHandle h)
    hOtherChanImpl = (BSAT_g1_P_ChannelHandle *)(hOtherChan->pImpl);
    if (hOtherChanImpl->bAbortAcq == false)
    {
+#if BSAT_CHIP_FAMILY!=45316
       if (hOtherChanImpl->acqType == BSAT_AcqType_eTurbo)
+#endif
          bOtherTfecBusy = true;
    }
 
@@ -1279,7 +1313,7 @@ BERR_Code BSAT_g1_P_TfecReacquire_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_g1_P_Handle *hDevImpl = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
 
-   BDBG_ERR(("BSAT_g1_P_TfecReacquire_isr(%d)", h->channel));
+   BSAT_DEBUG_TFEC(BDBG_ERR(("BSAT_g1_P_TfecReacquire_isr(%d)", h->channel)));
 
    if ((hChn->acqSettings.options & BSAT_ACQ_DISABLE_REACQ) && hChn->miscSettings.bPreserveState)
       goto reacquire;
@@ -1287,8 +1321,7 @@ BERR_Code BSAT_g1_P_TfecReacquire_isr(BSAT_ChannelHandle h)
    if (BSAT_g1_P_IsTfecOn_isrsafe(h) == false)
       goto reacquire;
 
-   if (BSAT_g1_P_IsTfecOn_isrsafe(h))
-      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x80); /* tfec_rst=1 */
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x80); /* tfec_rst=1 */
    if (BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(h) == false)
       BSAT_g1_P_TfecPowerDown_isrsafe(h);
 

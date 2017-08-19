@@ -137,7 +137,7 @@ initNexusStreamerSrcList(
             BDBG_ERR(("BKNI_CreateMutex failed at %d", __LINE__));
             return -1;
         }
-        BDBG_MSG(("%s: streamerSrc %p, lock %p", __FUNCTION__, (void *)streamerSrc, (void *)streamerSrc->lock));
+        BDBG_MSG(("%s: streamerSrc %p, lock %p", BSTD_FUNCTION, (void *)streamerSrc, (void *)streamerSrc->lock));
             /* successfully setup a streamer src */
     }
 
@@ -207,13 +207,13 @@ openNexusStreamerSrc(
 #endif
                 BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
                 if (BKNI_WaitForEvent(streamerSrcList[i].psiAcquiredEvent, 30000)) {
-                    BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
+                    BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", BSTD_FUNCTION));
                     return -1;
                 }
 #ifdef NEXUS_HAS_VIDEO_ENCODER
                 if (ipStreamerCfg->transcodeEnabled && streamerSrcList[i].transcodeEnabled) {
                     /* in xcode case, sleep to allow other thread finish setting up */
-                    BDBG_MSG(("%s: delay runnig this thread ", __FUNCTION__));
+                    BDBG_MSG(("%s: delay runnig this thread ", BSTD_FUNCTION));
                     BKNI_Sleep(200);
                 }
                 BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -224,7 +224,7 @@ openNexusStreamerSrc(
                 /* PSI info is available, set flag to skip it for this session and copy it from this */
                 cachedPsi = streamerSrcList[i].psi;
                 numProgramsFound = streamerSrcList[i].numProgramsFound;
-                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", __FUNCTION__));
+                BDBG_MSG(("%s: freq matched to previously tuned channels, skip PSI acquisition and reuse it from cached copy", BSTD_FUNCTION));
             }
 
 #ifdef NEXUS_HAS_VIDEO_ENCODER
@@ -240,7 +240,7 @@ openNexusStreamerSrc(
                     /* new session is also a transcoding session on the same frequency */
                     streamerSrc = &streamerSrcList[i];
                     parserBandIndex = i; /* 1:1 mapping for streamer input index and parser band index */
-                    BDBG_MSG(("%s: reusing frontend index %d for xcode session", __FUNCTION__, i));
+                    BDBG_MSG(("%s: reusing frontend index %d for xcode session", BSTD_FUNCTION, i));
                     break;
                 }
             }
@@ -267,7 +267,7 @@ openNexusStreamerSrc(
                 memcpy(streamerSrc->psi, cachedPsi, sizeof(B_PlaybackIpPsiInfo)*MAX_PROGRAMS_PER_FREQUENCY);
                 /* coverity[use] */
                 streamerSrc->numProgramsFound = numProgramsFound;
-                BDBG_MSG(("%s: PSI data reused from cached copy", __FUNCTION__));
+                BDBG_MSG(("%s: PSI data reused from cached copy", BSTD_FUNCTION));
             }
         }
         BKNI_ReleaseMutex(streamerSrc->lock);
@@ -275,7 +275,7 @@ openNexusStreamerSrc(
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->streamerSrcMutex);
     if (!streamerSrc) {
-        BDBG_ERR(("%s: No Free streamer available all streamers (# %d) busy", __FUNCTION__, i));
+        BDBG_ERR(("%s: No Free streamer available all streamers (# %d) busy", BSTD_FUNCTION, i));
         goto error;
     }
     ipStreamerCtx->streamerSrc = streamerSrc;
@@ -284,7 +284,7 @@ openNexusStreamerSrc(
     ipStreamerCtx->parserBandPtr = NULL;
     BKNI_AcquireMutex(ipStreamerCtx->globalCtx->parserBandMutex);
     parserBandPtr = &ipStreamerCtx->globalCtx->parserBandList[parserBandIndex];
-    BDBG_MSG(("%s: using parserBand # %d", __FUNCTION__, i));
+    BDBG_MSG(("%s: using parserBand # %d", BSTD_FUNCTION, i));
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->parserBandMutex);
     if (parserBandPtr == NULL) {
         BDBG_ERR(("Failed to find a free parser band at %d", __LINE__));
@@ -318,10 +318,10 @@ openNexusStreamerSrc(
             if (parserBandPtr->subChannel != ipStreamerCfg->subChannel ||
                 parserBandPtr->transcode.outVideoCodec != ipStreamerCfg->transcode.outVideoCodec ||
                 parserBandPtr->transcode.outHeight != ipStreamerCfg->transcode.outHeight) {
-                BDBG_ERR(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+                BDBG_ERR(("%s: ERROR: Limiting to one transcoding sesion: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
                 goto error;
             }
-            BDBG_MSG(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", __FUNCTION__, parserBandPtr->transcoderDst->refCount));
+            BDBG_MSG(("%s: Transcoder pipe (# of users %d) is already opened/enabled for this Live Channel", BSTD_FUNCTION, parserBandPtr->transcoderDst->refCount));
             parserBandPtr->transcoderDst->refCount++;
             ipStreamerCtx->transcoderDst = parserBandPtr->transcoderDst;
 
@@ -330,7 +330,7 @@ openNexusStreamerSrc(
             /* coverity[stack_use_local_overflow] */
             /* coverity[stack_use_overflow] */
             if ((parserBandPtr->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
-                BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
+                BDBG_ERR(("%s: Failed to open the transcoder pipe", BSTD_FUNCTION));
                 goto error;
             }
             parserBandPtr->transcodeEnabled = true;
@@ -431,13 +431,13 @@ setupAndAcquirePsiInfoStreamerSrc(
         acquirePsiInfo(&collectionData, &streamerSrc->psi[0], &streamerSrc->numProgramsFound);
 
         /* tell any other waiting thread that we are done acquiring PSI */
-        BDBG_MSG(("%s: streamerSrc %p, lock %p", __FUNCTION__, (void *)streamerSrc, (void *)streamerSrc->lock));
+        BDBG_MSG(("%s: streamerSrc %p, lock %p", BSTD_FUNCTION, (void *)streamerSrc, (void *)streamerSrc->lock));
         BKNI_AcquireMutex(streamerSrc->lock);
         streamerSrc->psiAcquiring = false;
         BKNI_SetEvent(streamerSrc->psiAcquiredEvent);
         BKNI_ReleaseMutex(streamerSrc->lock);
         if (streamerSrc->numProgramsFound == 0) {
-            BDBG_ERR(("%s: ERROR: Unable to Acquire PSI!!", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: Unable to Acquire PSI!!", BSTD_FUNCTION));
             return -1;
         }
     }

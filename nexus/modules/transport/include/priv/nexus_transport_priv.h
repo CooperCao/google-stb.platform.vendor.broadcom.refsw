@@ -106,6 +106,7 @@ void NEXUS_ParserBand_GetMtsifConnections_priv(
 
 void NEXUS_ParserBand_P_MtsifErrorStatus_priv(unsigned lengthError, unsigned transportError);
 bool NEXUS_TransportModule_P_IsMtsifEncrypted(void);
+void NEXUS_TransportModule_P_ForceMtsifEncrypted(unsigned index);
 
 NEXUS_Error NEXUS_TransportModule_PostInit_priv(
     RaveChannelOpenCB rave_regver /* synchronous rave region verification. must call into code which is already locked. */

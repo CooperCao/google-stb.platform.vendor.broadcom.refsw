@@ -252,7 +252,7 @@ uint32_t BMTH_P_FIX_SIGNED_MININTBITS_isrsafe(uint32_t x, uint32_t intbits, uint
  * BMTH_P_FIX_SIGNED_MININTBITS_64_isrsafe
  *
  *************************************************************************/
-uint32_t BMTH_P_FIX_SIGNED_MININTBITS_64_isrsafe(int64_t x, uint32_t intbits, uint32_t fractbits)
+static uint32_t BMTH_P_FIX_SIGNED_MININTBITS_64_isrsafe(int64_t x, uint32_t intbits, uint32_t fractbits)
 {
 	uint32_t ulMinIntBits;
 	int64_t lFixInput = BMTH_FIX_SIGNED_CONVERT_64_isrsafe(x, fractbits, 0);
@@ -348,7 +348,7 @@ int64_t BMTH_FIX_SIGNED_MOD_64_isrsafe(int64_t x, int64_t y, uint32_t xint, uint
  * {private}
  *
  */
-uint32_t BMTH_P_FIX_SIGNED_SIN_CALC_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
+static uint32_t BMTH_P_FIX_SIGNED_SIN_CALC_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
 {
 	uint32_t ulRadIntBits      = xint;
 	uint32_t ulRadFractBits    = xfract;
@@ -446,7 +446,7 @@ uint32_t BMTH_P_FIX_SIGNED_SIN_CALC_isrsafe(uint32_t x, uint32_t xint, uint32_t 
  * {private}
  *
  */
-int64_t BMTH_P_FIX_SIGNED_SIN_CALC_64_isrsafe(int64_t x, uint32_t xint, uint32_t xfract, uint32_t sinfract)
+static int64_t BMTH_P_FIX_SIGNED_SIN_CALC_64_isrsafe(int64_t x, uint32_t xint, uint32_t xfract, uint32_t sinfract)
 {
 	uint32_t ulRadIntBits      = xint;
 	uint32_t ulRadFractBits    = xfract;

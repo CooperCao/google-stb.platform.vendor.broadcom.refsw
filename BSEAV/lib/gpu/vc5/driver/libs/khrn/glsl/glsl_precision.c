@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_globals.h"
+#include "glsl_fastmem.h"
 #include "glsl_primitive_types.auto.h"
 #include "glsl_precision.h"
 

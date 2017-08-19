@@ -63,6 +63,8 @@ LOCAL_CFLAGS := \
 	-Wno-unused-variable \
 	-Wno-unused-but-set-variable
 
+LOCAL_CPPFLAGS := -std=gnu++0x -fno-rtti -fno-exceptions
+
 ifeq ($(TARGET_2ND_ARCH),arm)
 LOCAL_CFLAGS_arm64 += ${V3D_ANDROID_DEFINES_1ST_ARCH}
 LOCAL_LDFLAGS_arm64 := ${V3D_ANDROID_LD_1ST_ARCH}
@@ -96,7 +98,7 @@ $(info ***** performance of the V3D driver.)
 $(info ****************************************************)
 
 ifneq ($(PROFILING),0)
-LOCAL_CFLAGS += -Os -DNDEBUG
+LOCAL_CFLAGS += -O3 -DNDEBUG
 else
 LOCAL_CFLAGS += -O0
 endif
@@ -112,14 +114,14 @@ ifeq ($(V3D_DEBUG),y)
 # We interpret this to mean add debug information, but still optimise.
 # Set V3D_FULL_DEBUG=y if you want full, unoptimised debug data.
 
-LOCAL_CFLAGS += -Os -DNDEBUG -g -funwind-tables
+LOCAL_CFLAGS += -O3 -DNDEBUG -g -funwind-tables
 LOCAL_LDFLAGS += -g -export-dynamic
 
 else
 
 # Full release build - no debug info
 
-LOCAL_CFLAGS += -Os -DNDEBUG
+LOCAL_CFLAGS += -O3 -DNDEBUG
 
 ifeq ($(PROFILING),0)
 LOCAL_CFLAGS += -fvisibility=hidden
@@ -159,11 +161,8 @@ LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 intermediates := $(call local-generated-sources-dir)
 GENERATED_SRC_FILES := $(addprefix $(intermediates)/driver/libs/khrn/glsl/, $(COMMON_GENERATED_SRC_FILES))
 LOCAL_GENERATED_SOURCES := $(GENERATED_SRC_FILES)
-ifeq (,$(strip $(OUT_DIR_COMMON_BASE)))
-GENERATED_SRC_DIR := $(ANDROID_TOP)/$(intermediates)
-else
-GENERATED_SRC_DIR := $(intermediates)
-endif
+GENERATED_SRC_DIR := $(abspath ${intermediates})
+
 LOCAL_C_INCLUDES += \
 	$(intermediates)/driver/libs/util/dglenum \
 	$(intermediates)/driver/libs/khrn/glsl
@@ -335,11 +334,11 @@ LOCAL_SHARED_LIBRARIES += libnexus
 LOCAL_SHARED_LIBRARIES += libnxwrap
 LOCAL_SHARED_LIBRARIES += libnxclient
 LOCAL_SHARED_LIBRARIES += libsync
+LOCAL_SHARED_LIBRARIES += libstdc++
 
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_RELATIVE_PATH := egl
-LOCAL_C_INCLUDES := $(subst ${ANDROID}/,,$(LOCAL_C_INCLUDES))
 
 LOCAL_C_INCLUDES := $(subst ${ANDROID}/,,$(LOCAL_C_INCLUDES))
 

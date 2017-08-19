@@ -1,0 +1,75 @@
+#!/bin/bash
+# cvswho -  print the last modification author for each specified linenumber of file
+#
+# $ Copyright Broadcom Corporation $
+# $Id: cvswho,v 12.14 2010-10-12 22:22:37 prakashd Exp $
+
+usage ()
+{
+	echo "usage: $0 [-s] [-a <annotate-cmd>] [-r <file-version>] filename linenumber [ linenumber .. ]"
+	exit 1
+}
+
+summary=0
+
+while [ "$1" ]; do
+	if [ "$1" == "-a" ]; then
+		shift
+		annotate="$1"
+		shift
+	elif [ "$1" == "-p" ]; then
+		# Caller may optionally pass path
+		shift
+		export PATH="${1}:${PATH}"
+		shift
+	elif [ "$1" == "-r" ]; then
+		shift
+		filerev="${1}"
+		shift
+	elif [ "$1" == "-s" ]; then
+		shift
+		summary=1
+	elif [ "$file" == "" ]; then
+		file=$1
+		shift
+	else
+		lines="$lines $1"
+		shift
+	fi
+done
+
+tmpfile=$(mktemp /tmp/cvswho.XXXXXX)
+
+if [ "$summary" == "1" ]
+then
+	outcmd="sort | uniq | paste -s -d' '"
+else
+	outcmd=cat
+fi
+
+# explicit check for file since we redirect cvs command stderr..
+# (if not using rannotate to query)
+if echo "$annotate" | grep -vq "rannotate" 
+then
+   if [ ! -r "$file" ]
+   then
+	echo "$0: $file not found"
+	exit 1
+   fi
+fi
+
+if [ "$filerev" == "" ]
+then
+   filerev=$(ident $file 2> /dev/null | sed -e 's/.*,v \([0-9.][0-9.]*\) .*/\1/p' -e d)
+fi
+
+# annotate can be overiden on command line with rannotate, when filenames
+# are absolute paths
+cvs ${annotate:-annotate} ${filerev:+-r $filerev} $file 2> /dev/null | nl -nln > $tmpfile
+
+for lineno in $lines
+do
+	grep "^$lineno " $tmpfile | sed 's/[^(]\+(\([^ ]\+\).*/\1/'
+done | eval $outcmd
+
+rm -f $tmpfile

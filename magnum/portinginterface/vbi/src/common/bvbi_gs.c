@@ -144,14 +144,14 @@ BERR_Code BVBI_P_GS_Init( BVBI_P_Handle *pVbi )
     BSTD_UNUSED (pVbi);
 #endif
 
-    /* Initialize CC encoders */
+    /* Initialize Gemstar encoders */
 #if (BVBI_NUM_GSE > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_GSE ; ++hwIndex)
-        BVBI_P_GS_Enc_Init (pVbi->hReg, false, hwIndex);
+        BVBI_P_GS_Enc_Init (pVbi->hReg, hwIndex);
 #endif
 #if (BVBI_NUM_GSE_656 > 0)
     for (hwIndex = 0 ; hwIndex < BVBI_NUM_GSE_656 ; ++hwIndex)
-        BVBI_P_GS_Enc_Init (pVbi->hReg, true, hwIndex);
+        BVBI_P_GS_Enc_656_Init (pVbi->hReg, hwIndex);
 #endif
 
     BDBG_LEAVE(BVBI_P_GS_Init);

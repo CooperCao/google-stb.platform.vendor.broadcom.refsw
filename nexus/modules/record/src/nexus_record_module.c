@@ -40,6 +40,7 @@
  *
  **************************************************************************/
 #include "nexus_record_module.h"
+#include "priv/nexus_core.h"
 
 NEXUS_ModuleHandle NEXUS_RecordModule;
 NEXUS_Record_P_ModuleState g_NEXUS_Record_P_ModuleState;
@@ -50,26 +51,28 @@ NEXUS_RecordModule_GetDefaultSettings(NEXUS_RecordModuleSettings *pSettings)
 {
     BDBG_ASSERT(pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
     return;
 }
 
 NEXUS_ModuleHandle
 NEXUS_RecordModule_Init(const NEXUS_RecordModuleSettings *pSettings)
 {
-    NEXUS_Error rc;
-
+    NEXUS_ModuleSettings moduleSettings;
     if(!pSettings) {
-        rc = BERR_TRACE(BERR_NOT_SUPPORTED);
+        BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err_settings;
     }
     /* The playback module is not required. */
     if(pSettings->modules.file == NULL || pSettings->modules.recpump == NULL) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto err_settings;
     }
-    NEXUS_RecordModule = NEXUS_Module_Create("record", NULL);
+    NEXUS_Module_GetDefaultSettings(&moduleSettings);
+    moduleSettings.priority = NEXUS_ModulePriority_eDefaultActiveStandby; /* AdjustModulePriority is not available in client mode */
+    NEXUS_RecordModule = NEXUS_Module_Create("record", &moduleSettings);
     if(!NEXUS_RecordModule) {
-        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_module;
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_module;
     }
     NEXUS_UseModule(pSettings->modules.file);
     NEXUS_UseModule(pSettings->modules.recpump);

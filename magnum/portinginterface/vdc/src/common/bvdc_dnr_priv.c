@@ -50,6 +50,7 @@
 #include "bvdc_window_priv.h"
 #include "bvdc_vnet_priv.h"
 #include "bvdc_subrul_priv.h"
+#include "bvdc_compositor_priv.h"
 
 #if BVDC_P_SUPPORT_DNR
 #include "bchp_mmisc.h"
@@ -355,6 +356,7 @@ void BVDC_P_Dnr_BuildRul_isr
         {
             BDBG_MSG(("DNR update RUL"));
 
+#if (BVDC_P_SUPPORT_DNR_VER <  BVDC_P_SUPPORT_DNR_VER_1)
             BDBG_CASSERT(4 == (((BCHP_DNR_0_VBNR_CONFIG - BCHP_DNR_0_SRC_PIC_SIZE) / sizeof(uint32_t)) + 1));
             *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_DNR_0_VBNR_CONFIG - BCHP_DNR_0_SRC_PIC_SIZE) / sizeof(uint32_t)) + 1);
             *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DNR_0_SRC_PIC_SIZE + hDnr->ulRegOffset);
@@ -388,6 +390,31 @@ void BVDC_P_Dnr_BuildRul_isr
             *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_PATTERN);
             *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_VALUE);
             *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_OUT_CTRL);
+#else
+            BDBG_CASSERT(17 == (((BCHP_DNR_0_SRC_SCAN_SETTING - BCHP_DNR_0_BNR_CTRL) / sizeof(uint32_t)) + 1));
+            *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_DNR_0_SRC_SCAN_SETTING - BCHP_DNR_0_BNR_CTRL) / sizeof(uint32_t)) + 1);
+            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DNR_0_BNR_CTRL + hDnr->ulRegOffset);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_BNR_CTRL);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_VBNR_CONFIG);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CTRL);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_CTRL);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_LIMIT);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_CONFIG);
+
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_VIDEO_MODE);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_DEMO_SETTING);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_DEMO_CTRL);
+
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_PATTERN);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_VALUE);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_PATTERN);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_VALUE);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_OUT_CTRL);
+
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_PIC_SIZE);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_SCAN_SETTING);
+#endif
 
             hDnr->ulUpdateAll--;
         }
@@ -510,6 +537,25 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         BCHP_FIELD_DATA(DNR_0_SRC_SCAN_SETTING, V_OFFSET, ulVOffset) |
         BCHP_FIELD_DATA(DNR_0_SRC_SCAN_SETTING, H_OFFSET, ulHOffset));
 
+#if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
+    /* DBV conformance to disable DNR */
+    {
+        bool bDbvMode = BVDC_P_CMP_OUTPUT_IPT(pPicture->hBuffer->hWindow->hCompositor);
+        /* detect DBV mode toggles */
+        if(bDbvMode != hDnr->bDbvMode)
+        {
+            pSrcInfo->stDirty.stBits.bDnrAdjust = 1;/* to recompute DNR registers */
+            hDnr->bDbvMode = bDbvMode;
+            BDBG_MSG(("Dnr[%d] DBV mode: %d", hDnr->eId - BVDC_P_DnrId_eDnr0, bDbvMode));
+        }
+        if(bDbvMode)
+        {
+            ulBnrQp = 0;/* disable BNR */
+            ulMnrQp = 0;/* disable MNR */
+            /* DCR disabled later */
+        }
+    }
+#endif
     /* Source size and destination size.   Detecting dynamics format (size)
      * change.  Base on these information we can further bypass
      * unnecessary computations. */
@@ -692,12 +738,12 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         hDnr->stDcrCfg = *pDcrCfg;
         pDcrCfg = &hDnr->stDcrCfg;
 
-        ulDitherEn = (hDnr->b10BitMode) ? 0: (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable);
+        ulDitherEn = (hDnr->b10BitMode || hDnr->bDbvMode) ? 0: (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable);
         if(hDnr->eDcrMode != pDnrSettings->eDcrMode)
         {
             BDBG_MODULE_MSG(BVDC_DITHER,("DNR%d DITHER: %s", hDnr->eId, ulDitherEn ? "ENABLE" : "DISABLE"));
         }
-        ulDcrFiltEn = (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable);
+        ulDcrFiltEn = (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable) && !hDnr->bDbvMode;
         ulBright0 = 0;
         ulBright1 = 1;
         ulBright2 = 0;

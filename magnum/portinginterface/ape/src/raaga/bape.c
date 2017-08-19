@@ -85,10 +85,12 @@ void BAPE_GetDefaultSettings(
     pSettings->maxIndependentDelay = 0;
     pSettings->maxPcmSampleRate = 48000;
     pSettings->numPcmBuffers = BAPE_CHIP_DEFAULT_NUM_PCM_BUFFERS;
+    #if BAPE_DSP_SUPPORT
     if ( BAPE_P_DolbyCapabilities_MultichannelPcmFormat() == BAPE_MultichannelFormat_e7_1 )
     {
         pSettings->numPcmBuffers += 1;
     }
+    #endif
     pSettings->numCompressedBuffers = BAPE_CHIP_DEFAULT_NUM_COMPRESSED_BUFFERS;
     pSettings->numCompressed4xBuffers = BAPE_CHIP_DEFAULT_NUM_COMPRESSED_4X_BUFFERS;
     pSettings->numCompressed16xBuffers = BAPE_CHIP_DEFAULT_NUM_COMPRESSED_16X_BUFFERS;
@@ -183,6 +185,8 @@ static unsigned BAPE_P_CalculateBufferSize(
         BERR_TRACE(BERR_INVALID_PARAMETER);
         break;
     }
+
+    BDSP_RAAGA_SIZE_ALIGN(bufferSize);
 
     return bufferSize;
 }
@@ -365,7 +369,7 @@ BERR_Code BAPE_Open(
                 errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
                 goto err_buffer;
             }
-            pNode->block = BMMA_Alloc(memHandle, bufferSize, 32, NULL);
+            pNode->block = BMMA_Alloc(memHandle, bufferSize, BDSP_RAAGA_ADDRESS_ALIGN, NULL);
             if ( NULL == pNode->block )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -521,7 +525,7 @@ BERR_Code BAPE_Open(
 #endif
 
 
-#if BAPE_CHIP_MAX_PLLS > 0
+#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
     errCode = BAPE_P_InitTimers(handle);
     if ( errCode )
     {
@@ -537,7 +541,7 @@ BERR_Code BAPE_Open(
 
     return BERR_SUCCESS;
 
-#if BAPE_CHIP_MAX_PLLS
+#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
 err_timer:
     BAPE_P_DestroyTimers(handle);
 #endif
@@ -861,7 +865,7 @@ void BAPE_Close(
     BDBG_MODULE_MSG(bape_mem, ("*** ---------------------------------------- ***"));
 #endif
 
-#if BAPE_CHIP_MAX_PLLS > 0
+#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
     BAPE_P_DestroyTimers(handle);
 #endif
 
@@ -905,7 +909,7 @@ void BAPE_Close(
 }
 
 /* Get Channel Status code for a given sample rate */
-unsigned BAPE_P_GetSampleRateCstatCode_isr(unsigned sampleRate)
+unsigned BAPE_P_GetConsumerSampleRateCstatCode_isr(unsigned sampleRate)
 {
     switch ( sampleRate )
     {
@@ -931,6 +935,34 @@ unsigned BAPE_P_GetSampleRateCstatCode_isr(unsigned sampleRate)
         return 0x9;
     default:
         return 0x1; /* not indicated */
+    }
+}
+
+/* Get Channel Status code for a given sample rate */
+unsigned BAPE_P_GetProfessionalSampleRateCstatCode_isr(unsigned sampleRate)
+{
+    switch ( sampleRate )
+    {
+    case 32000:      /* 32K Sample rate */
+        return 0x3;
+    case 44100:    /* 44.1K Sample rate */
+        return 0x1;
+    case 48000:      /* 48K Sample rate */
+        return 0x2;
+    case 96000:      /* 96K Sample rate */
+        return 0x2;
+    case 22050:   /* 22.05K Sample rate */
+        return 0x9;
+    case 24000:      /* 24K Sample rate */
+        return 0x1;
+    case 88200:    /* 88.2K Sample rate */
+        return 0xa;
+    case 176400:   /* 176.4K Sample rate */
+        return 0xb;
+    case 192000:     /* 192K Sample rate */
+        return 0x3;
+    default:
+        return 0x0; /* not indicated */
     }
 }
 
@@ -1135,29 +1167,50 @@ static BERR_Code BAPE_P_InitTimers(BAPE_Handle handle)
     BTMR_TimerSettings timerSettings;
     int i;
     BERR_Code errCode;
-    for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++)
-    {
-       BTMR_GetDefaultTimerSettings(&timerSettings);
-       timerSettings.type = BTMR_Type_eCountDown;
-       timerSettings.cb_isr = BAPE_P_VerifyPllCallback_isr;
-       timerSettings.pParm1 = (void *)handle;
-       timerSettings.parm2 = i;
-       errCode = BTMR_CreateTimer(handle->tmrHandle, &handle->pllTimer[i], &timerSettings);
-       if ( errCode ) return BERR_TRACE(errCode);
-   }
+
+    #if BAPE_CHIP_MAX_PLLS > 0
+    for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++) {
+        BTMR_GetDefaultTimerSettings(&timerSettings);
+        timerSettings.type = BTMR_Type_eCountDown;
+        timerSettings.cb_isr = BAPE_P_VerifyPllCallback_isr;
+        timerSettings.pParm1 = (void *)handle;
+        timerSettings.parm2 = i;
+        errCode = BTMR_CreateTimer(handle->tmrHandle, &handle->pllTimer[i], &timerSettings);
+        if ( errCode ) return BERR_TRACE(errCode);
+    }
+    #endif
+    #if BAPE_CHIP_MAX_NCOS > 0
+    for(i = 0; i < BAPE_CHIP_MAX_NCOS; i++) {
+        BTMR_GetDefaultTimerSettings(&timerSettings);
+        timerSettings.type = BTMR_Type_eCountDown;
+        timerSettings.cb_isr = BAPE_P_VerifyNcoCallback_isr;
+        timerSettings.pParm1 = (void *)handle;
+        timerSettings.parm2 = i;
+        errCode = BTMR_CreateTimer(handle->tmrHandle, &handle->ncoTimer[i], &timerSettings);
+        if ( errCode ) return BERR_TRACE(errCode);
+    }
+    #endif
    return BERR_SUCCESS;
 }
 static void BAPE_P_DestroyTimers(BAPE_Handle handle)
 {
     int i;
-    for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++)
-    {
-        if (handle->pllTimer[i] != NULL)
-        {
+    #if BAPE_CHIP_MAX_PLLS > 0
+    for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++) {
+        if (handle->pllTimer[i] != NULL) {
             BTMR_DestroyTimer (handle->pllTimer[i]);
             handle->pllTimer[i] = NULL;
         }
     }
+    #endif
+    #if BAPE_CHIP_MAX_NCOS > 0
+    for(i = 0; i < BAPE_CHIP_MAX_NCOS; i++) {
+        if (handle->ncoTimer[i] != NULL) {
+            BTMR_DestroyTimer (handle->ncoTimer[i]);
+            handle->ncoTimer[i] = NULL;
+        }
+    }
+    #endif
 }
 
 
@@ -1238,7 +1291,7 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
         {
             if ( handle->playbacks[i] && handle->playbacks[i]->running )
             {
-                BAPE_PathNode_P_FindConsumersBySubtype(&handle->playbacks[i]->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
+                BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->playbacks[i]->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
                 if ( numFound > 0 )
                 {
                     handle->playbackWatchdogInfo[i].restartRequired = true;
@@ -1251,7 +1304,7 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
         {
             if ( handle->inputCaptures[i] && handle->inputCaptures[i]->running )
             {
-                BAPE_PathNode_P_FindConsumersBySubtype(&handle->inputCaptures[i]->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
+                BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->inputCaptures[i]->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
                 if ( numFound > 0 )
                 {
                     handle->inputCaptureWatchdogInfo[i].restartRequired = true;
@@ -1426,7 +1479,7 @@ static BERR_Code BAPE_P_StandbyAIO(BAPE_Handle handle)
 
     if ( timeout == 0 )
     {
-        BDBG_ERR(("ERROR - %s - timed out waiting for SCB_CLIENT0_INIT_ACK", __FUNCTION__));
+        BDBG_ERR(("ERROR - %s - timed out waiting for SCB_CLIENT0_INIT_ACK", BSTD_FUNCTION));
         return BERR_TRACE(BERR_TIMEOUT);
     }
 
@@ -1587,7 +1640,7 @@ BERR_Code BAPE_Standby(
         }
     }
 #endif
-#if BAPE_CHIP_MAX_PLLS > 0
+#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
     BAPE_P_DestroyTimers(handle);
 #endif
 
@@ -1660,7 +1713,7 @@ BERR_Code BAPE_Resume(
             /* Now bring inputs and outputs into their "open" (but "unstarted") state. */
             errCode = BAPE_P_ResumeFmmHw(handle);
             if ( errCode ) return BERR_TRACE(errCode);
-#if BAPE_CHIP_MAX_PLLS > 0
+#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
             errCode = BAPE_P_InitTimers(handle);
             if ( errCode ) return BERR_TRACE(errCode);
 #endif
@@ -1865,6 +1918,9 @@ void BAPE_GetCapabilities(
                 case BDSP_Algorithm_eTsmCorrection:
                     pCaps->dsp.processing[BAPE_PostProcessorType_eAdvancedTsm] = true;
                     break;
+                case BDSP_Algorithm_eAmbisonics:
+                    pCaps->dsp.processing[BAPE_PostProcessorType_eAmbisonic] = true;
+                    break;
                 default:
                     break;
                 }
@@ -1949,7 +2005,7 @@ void BAPE_P_PopulateSupportedBDSPAlgos(
             /* Now that we see APE supports it, look for a valid entry in the BDSP table */
             if ( inAlgorithmSupported[algo] )
             {
-                BDBG_MSG(("%s - %s BAVC codec %d is supported, BDSP algo %d", __FUNCTION__,
+                BDBG_MSG(("%s - %s BAVC codec %d is supported, BDSP algo %d", BSTD_FUNCTION,
                     (type==BDSP_AlgorithmType_eAudioDecode) ? "Decode" :
                     (type==BDSP_AlgorithmType_eAudioPassthrough) ? "Passthrough" :
                     (type==BDSP_AlgorithmType_eAudioEncode) ? "Encode" :
@@ -1960,7 +2016,7 @@ void BAPE_P_PopulateSupportedBDSPAlgos(
         }
         else
         {
-            BDBG_MSG(("%s - requested BAVC codec %d is not enabled by APE/BDSP", __FUNCTION__, i));
+            BDBG_MSG(("%s - requested BAVC codec %d is not enabled by APE/BDSP", BSTD_FUNCTION, i));
         }
     }
 
@@ -2006,7 +2062,7 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
             /* Now that we see APE supports it, look for a valid entry in the BDSP table */
             if ( stageCreateSettings.algorithmSupported[algo] )
             {
-                BDBG_MSG(("%s - %s BAVC codec %d is supported", __FUNCTION__,
+                BDBG_MSG(("%s - %s BAVC codec %d is supported", BSTD_FUNCTION,
                     (algoType==BDSP_AlgorithmType_eAudioDecode) ? "Decode" :
                     (algoType==BDSP_AlgorithmType_eAudioPassthrough) ? "Passthrough" :
                     (algoType==BDSP_AlgorithmType_eAudioEncode) ? "Encode" :
@@ -2017,7 +2073,7 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
         }
         else
         {
-            BDBG_MSG(("%s - requested BAVC codec %d is not enabled by APE/BDSP", __FUNCTION__, i));
+            BDBG_MSG(("%s - requested BAVC codec %d is not enabled by APE/BDSP", BSTD_FUNCTION, i));
         }
     }
 }

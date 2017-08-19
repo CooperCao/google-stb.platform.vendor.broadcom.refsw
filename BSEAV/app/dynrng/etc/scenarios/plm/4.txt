@@ -1,0 +1,4 @@
+stream=Fire_HDR_UHD_HEVC.mp4
+image=Avatar.bmp
+bg=epg1080p.png
+usage=pig

@@ -10,6 +10,7 @@
 #include "glsl_intern.h"
 #include "glsl_shader_interfaces.h"
 #include "glsl_dominators.h"
+#include "glsl_fastmem.h"
 
 #include "libs/util/snprintf.h"
 
@@ -121,12 +122,9 @@ static void set_dst_scalar_values(BasicBlock *dst_block, const BasicBlock *src_b
    } else {
       Dataflow **v = glsl_basic_block_get_scalar_values(dst_block, symbol);
       for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
-         if (new_scalar_values[i]->type == DF_FSAMPLER ||
-             new_scalar_values[i]->type == DF_ISAMPLER ||
-             new_scalar_values[i]->type == DF_USAMPLER ||
-             new_scalar_values[i]->type == DF_FIMAGE   ||
-             new_scalar_values[i]->type == DF_IIMAGE   ||
-             new_scalar_values[i]->type == DF_UIMAGE)
+         if (glsl_dataflow_type_is_sampled_image(new_scalar_values[i]->type) ||
+             glsl_dataflow_type_is_storage_image(new_scalar_values[i]->type) ||
+             new_scalar_values[i]->type == DF_SAMPLER )
          {
             /* In addition to uniforms (caught above) we can hit this case for param instances */
             v[i] = new_scalar_values[i];

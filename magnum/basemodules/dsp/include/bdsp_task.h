@@ -48,9 +48,7 @@
 #include "btmr.h"
 #include "bimg.h"
 #include "bdsp_context.h"
-#include "bdsp_raaga_fw_cit.h"
 #include "bdsp_raaga_fw.h"
-#include "bdsp_raaga_fw_status.h"
 #include "bdsp_raaga_fw_status.h"
 
 /* Kept as 2 keeping in mind the ping-pong type of arrangement for video encoder */
@@ -68,6 +66,47 @@
 
 #define BDSP_MAX_DEPENDENT_TASK         4
 #define BDSP_MAX_AVL_CHANNLES           6
+
+/*Maximum frame size for an algorithm. PI uses this for allocating FMM ring buffer */
+#ifdef BDSP_FLAC_SUPPORT
+#define BDSP_AF_P_MAX_THRESHOLD               	((uint32_t)(4*4608))  /*This is based on FLAC case where maximum samples of 4608 and if we attach SRC it get multiplied by 4*/
+#else
+#define BDSP_AF_P_MAX_THRESHOLD               	((uint32_t)(8192))  /*This is based on DTSHD HBR case */
+#endif
+#define BDSP_AF_P_MAX_SAMPLING_RATE             ((uint32_t)48)      /* 48Khz (Max Sampling Frequency /1000) (to make in line of ms) */
+#define BDSP_AF_P_MAX_INDEPENDENT_DELAY         ((uint32_t)500)     /* Max independent delay in ms */
+#define BDSP_AF_P_MAX_AUD_OFFSET 			    ((uint32_t)128)     /* in ms */
+#define BDSP_AF_P_MAX_BLOCKING_TIME              BDSP_AF_P_MAX_AUD_OFFSET   /* AUD_OFFSET has to be >= to the worst case blocking time */
+#define BDSP_AF_P_SAMPLE_PADDING                ((uint32_t)(1024))  /* Padding */
+#define BDSP_AF_P_BLOCKING_TIME                 ((uint32_t)(84))    /* In msec */
+
+#define BDSP_AF_P_MAT_BUF_SIZE                  ((uint32_t)(1536 * 1024 )) /*  In Bytes: Based on experiments done on MLP worst case streams */
+#define BDSP_AF_P_MAT_SAMPRATE_kHz              ((uint32_t)768)
+#define BDSP_AF_P_INDEPENDENT_MAT_THRESHOLD     ((BDSP_AF_P_MAT_BUF_SIZE >> 2 ) - (BDSP_AF_P_BLOCKING_TIME*BDSP_AF_P_MAT_SAMPRATE_kHz)) /*((uint32_t)(328704))  ((base ptr -end ptr)/4 - (84*768))*/
+
+#define BDSP_AF_P_STANDARD_BUFFER_THRESHOLD            BDSP_AF_P_MAX_THRESHOLD
+#define BDSP_AF_P_COMPRESSED4X_BUFFER_THRESHOLD        ((uint32_t)(1536*6*4))  /*Based on MS12 DDP Encoder where 6 blocks of 1536 samples are accumulated and since its 4X buffer we multiply by 4*/
+#define BDSP_AF_P_COMPRESSED16X_BUFFER_THRESHOLD       BDSP_AF_P_MAX_THRESHOLD
+#define BDSP_AF_P_COMPRESSED16X_MLP_BUFFER_THRESHOLD   BDSP_AF_P_INDEPENDENT_MAT_THRESHOLD
+#define BDSP_AF_P_MAX_16X_BUF_SIZE                     BDSP_AF_P_MAT_BUF_SIZE /* MAT and DTSMA are the 16X compressed contents. MLP is the worst case now */
+
+#define BDSP_AF_COMPUTE_RBUF_SIZE(delay, maxRate) \
+    (BDSP_AF_P_MAX_BLOCKING_TIME * (maxRate) \
+    + BDSP_AF_P_MAX_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING \
+    + (delay) * (maxRate)) \
+    * 4                     /* 4 to make in bytes */
+
+#define BDSP_AF_P_NON_DELAY_RBUF_SIZE   \
+    (BDSP_AF_P_MAX_BLOCKING_TIME * BDSP_AF_P_MAX_SAMPLING_RATE \
+    + BDSP_AF_P_MAX_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING) \
+    * 4                     /* 4 to make in bytes */
+
+#define BDSP_AF_P_DELAY_RBUF_SIZE   \
+    (BDSP_AF_P_MAX_BLOCKING_TIME * BDSP_AF_P_MAX_SAMPLING_RATE \
+    + BDSP_AF_P_MAX_THRESHOLD + BDSP_AF_P_SAMPLE_PADDING  \
+    + BDSP_AF_P_MAX_INDEPENDENT_DELAY * BDSP_AF_P_MAX_SAMPLING_RATE) \
+    * 4                     /* 4 to make in bytes */
+
 
 /***************************************************************************
 Summary:
@@ -277,6 +316,8 @@ typedef struct BDSP_TaskStartSettings
     BDSP_AF_P_sOpSamplingFreq *pSampleRateMap; /* Pointer to the input -> output sample rate mapping table */
     unsigned maxIndependentDelay; /* Maximum independent delay value in ms (default=500).  Used only for audio tasks. */
     bool    eZeroPhaseCorrEnable; /*Flag to enable/disable zero phase output-default is true!*/
+	BDSP_AF_P_BurstFillType        eFMMPauseBurstType;
+    BDSP_AF_P_SpdifPauseWidth       eSpdifPauseWidth;
 } BDSP_TaskStartSettings;
 
 /***************************************************************************

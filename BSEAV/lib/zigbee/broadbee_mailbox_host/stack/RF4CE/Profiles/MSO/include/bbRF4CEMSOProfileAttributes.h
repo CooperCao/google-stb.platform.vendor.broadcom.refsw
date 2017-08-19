@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/MSO/include/bbRF4CEMSOProfileAttributes.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE MSO Profile Attributes component.
+ *      This is the header file for the RF4CE MSO Profile Attributes component.
  *
- * $Revision: 2579 $
- * $Date: 2014-06-02 07:16:01Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_MSO_PROFILE_ATTRIBUTES_H
 #define _RF4CE_MSO_PROFILE_ATTRIBUTES_H
 
@@ -62,6 +56,7 @@
 /************************* DEFINITIONS *************************************************/
 /**//**
  * \brief RF4CE MSO profile Attributes enumeration.
+ * \ingroup RF4CE_MSO_ProfileAttributeMisc
  */
 typedef enum _RF4CE_MSO_ProfileAttributeID_t
 {
@@ -104,6 +99,7 @@ typedef enum _RF4CE_MSO_ProfileAttributeID_t
 
 /**//**
  * \brief RF4CE MSO profile Attributes GET/SET status enumeration.
+ * \ingroup RF4CE_MSO_ProfileAttributeMisc
  */
 typedef enum _RF4CE_MSO_ProfileAttributeStatus_t
 {
@@ -141,6 +137,7 @@ typedef enum _RF4CE_MSO_ProfileAttributeStatus_t
 /************************* TYPES *******************************************************/
 /**//**
  * \brief MSO Profile Attributes.
+ * \ingroup RF4CE_MSO_ProfileAttributeMisc
  */
 typedef struct _RF4CE_MSO_ProfileAttributes_t
 {
@@ -178,24 +175,26 @@ typedef struct _RF4CE_MSO_ProfileAttributes_t
 
 /**//**
  * \brief MSO Profile Attributes union for all of the attributes.
+ * \ingroup RF4CE_MSO_ProfileAttributeMisc
  */
 typedef union _RF4CE_MSO_ProfileAttributesUnion_t
 {
-    uint16_t aplKeyRepeatWaitTime;
-    uint16_t aplValidationWaitTime;
-    uint16_t aplValidationInitialWatchdogTime;
-    uint16_t aplKeyRepeatInterval;
-    uint32_t aplResponseWaitTime;
-    uint8_t aplMaxPairingCandidates;
-    uint16_t aplLinkLostWaitTime;
-    uint16_t aplAutoCheckValidationPeriod;
-    uint8_t aplKeyExchangeTransferCount;
-    uint8_t aplUserString[RF4CE_NWK_USER_STRING_LENGTH];
-    uint32_t aplShortRFPeriod;
+    uint16_t aplKeyRepeatWaitTime;              /*!< Value is KeyRepeatWaitTime */
+    uint16_t aplValidationWaitTime;             /*!< Value is ValidationWaitTime */
+    uint16_t aplValidationInitialWatchdogTime;  /*!< Value is ValidationInitialWatchdogTime */
+    uint16_t aplKeyRepeatInterval;              /*!< Value is KeyRepeatInterval */
+    uint32_t aplResponseWaitTime;               /*!< Value is ResponseWaitTime */
+    uint8_t aplMaxPairingCandidates;            /*!< Value is MaxPairingCandidates */
+    uint16_t aplLinkLostWaitTime;               /*!< Value is LinkLostWaitTime */
+    uint16_t aplAutoCheckValidationPeriod;      /*!< Value is AutoCheckValidationPeriod */
+    uint8_t aplKeyExchangeTransferCount;        /*!< Value is KeyExchangeTransferCount */
+    uint8_t aplUserString[RF4CE_NWK_USER_STRING_LENGTH]; /*!< Value is UserString */
+    uint32_t aplShortRFPeriod;                  /*!< Value is ShortRFPeriod */
 } RF4CE_MSO_ProfileAttributesUnion_t;
 
 /**//**
  * \brief MSO Profile Attribute GET request parameters.
+ * \ingroup RF4CE_MSO_GetProfileAttributeReq
  */
 typedef struct _RF4CE_MSO_GetProfileAttributeReqParams_t
 {
@@ -204,6 +203,7 @@ typedef struct _RF4CE_MSO_GetProfileAttributeReqParams_t
 
 /**//**
  * \brief MSO Profile Attribute GET request confirmation parameters.
+ * \ingroup RF4CE_MSO_GetProfileAttributeConf
  */
 typedef struct _RF4CE_MSO_GetProfileAttributeConfParams_t
 {
@@ -214,23 +214,26 @@ typedef struct _RF4CE_MSO_GetProfileAttributeConfParams_t
 
 /**//**
  * \brief MSO Profile Attribute GET request descriptor declaration.
+ * \ingroup RF4CE_MSO_GetProfileAttributeReq
  */
 typedef struct _RF4CE_MSO_GetProfileAttributeReqDescr_t RF4CE_MSO_GetProfileAttributeReqDescr_t;
 
 /**//**
  * \brief MSO Profile Attribute GET request callback declaration.
+ * \ingroup RF4CE_MSO_GetProfileAttributeConf
  */
 typedef void (*RF4CE_MSO_GetProfileAttributeCallback_t)(RF4CE_MSO_GetProfileAttributeReqDescr_t *req, RF4CE_MSO_GetProfileAttributeConfParams_t *conf);
 
 /**//**
  * \brief MSO Profile Attribute GET request descriptor.
+ * \ingroup RF4CE_MSO_GetProfileAttributeReq
  */
 struct _RF4CE_MSO_GetProfileAttributeReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;               /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_GetProfileAttributeReqParams_t params;  /*!< Request parameters */
     RF4CE_MSO_GetProfileAttributeCallback_t callback; /*!< Request callback */
@@ -238,6 +241,7 @@ struct _RF4CE_MSO_GetProfileAttributeReqDescr_t
 
 /**//**
  * \brief MSO Profile Attribute SET request parameters.
+ * \ingroup RF4CE_MSO_SetProfileAttributeReq
  */
 typedef struct _RF4CE_MSO_SetProfileAttributeReqParams_t
 {
@@ -247,6 +251,7 @@ typedef struct _RF4CE_MSO_SetProfileAttributeReqParams_t
 
 /**//**
  * \brief MSO Profile Attribute SET request confirmation parameters.
+ * \ingroup RF4CE_MSO_SetProfileAttributeConf
  */
 typedef struct _RF4CE_MSO_SetProfileAttributeConfParams_t
 {
@@ -256,23 +261,26 @@ typedef struct _RF4CE_MSO_SetProfileAttributeConfParams_t
 
 /**//**
  * \brief MSO Profile Attribute SET request descriptor declaration.
+ * \ingroup RF4CE_MSO_SetProfileAttributeReq
  */
 typedef struct _RF4CE_MSO_SetProfileAttributeReqDescr_t RF4CE_MSO_SetProfileAttributeReqDescr_t;
 
 /**//**
  * \brief MSO Profile Attribute SET request callback declaration.
+ * \ingroup RF4CE_MSO_SetProfileAttributeConf
  */
 typedef void (*RF4CE_MSO_SetProfileAttributeCallback_t)(RF4CE_MSO_SetProfileAttributeReqDescr_t *req, RF4CE_MSO_SetProfileAttributeConfParams_t *conf);
 
 /**//**
  * \brief MSO Profile Attribute SET request descriptor.
+ * \ingroup RF4CE_MSO_SetProfileAttributeReq
  */
 struct _RF4CE_MSO_SetProfileAttributeReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;               /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_SetProfileAttributeReqParams_t params;  /*!< Request parameters */
     RF4CE_MSO_SetProfileAttributeCallback_t callback; /*!< Request callback */
@@ -281,6 +289,7 @@ struct _RF4CE_MSO_SetProfileAttributeReqDescr_t
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Initiates asynchronous procedure to GET the specified Profile Attribute.
+ \ingroup RF4CE_MSO_Functions
 
  \param[in] request - pointer to the structure that contains the request structure.
  \return Nothing
@@ -289,6 +298,7 @@ void RF4CE_MSO_GetProfileAttributeReq(RF4CE_MSO_GetProfileAttributeReqDescr_t *r
 
 /************************************************************************************//**
  \brief Initiates asynchronous procedure to SET the specified Profile Attribute.
+ \ingroup RF4CE_MSO_Functions
 
  \param[in] request - pointer to the structure that contains the request structure.
  \return Nothing
@@ -296,3 +306,5 @@ void RF4CE_MSO_GetProfileAttributeReq(RF4CE_MSO_GetProfileAttributeReqDescr_t *r
 void RF4CE_MSO_SetProfileAttributeReq(RF4CE_MSO_SetProfileAttributeReqDescr_t *request);
 
 #endif /* _RF4CE_MSO_PROFILE_ATTRIBUTES_H */
+
+/* eof bbRF4CEMSOProfileAttributes.h */

@@ -94,6 +94,7 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
+    BSTD_UNUSED(boxMode);
 #if BCHP_VER == BCHP_VER_B0
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.base = 0;
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.length = 512*1024*1024;

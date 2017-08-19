@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES texture structure declaration.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_TEXTURE_H
 #define GLXX_TEXTURE_H
 
@@ -234,6 +226,7 @@ extern bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffe
 extern bool glxx_texture_is_cube_complete(GLXX_TEXTURE_T *texture);
 
 extern GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete(GLXX_TEXTURE_T *texture);
+extern GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete_levels(GLXX_TEXTURE_T *texture, bool base_complete);
 
 extern void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HANDLE_T *images, uint32_t binding_type, MEM_HANDLE_T bound_data, int mipmap_level);
 extern void glxx_texture_release_teximage(GLXX_TEXTURE_T *texture);
@@ -247,6 +240,7 @@ extern KHRN_IMAGE_FORMAT_T glxx_texture_incomplete_get_mipmap_format(GLXX_TEXTUR
 extern KHRN_IMAGE_FORMAT_T glxx_texture_get_tformat(GLXX_TEXTURE_T *texture);
 extern uint32_t glxx_texture_get_mipmap_count(GLXX_TEXTURE_T *texture);
 extern uint32_t glxx_texture_get_cube_stride(GLXX_TEXTURE_T *texture);
+extern bool glxx_texture_has_images_outside_range(const GLXX_TEXTURE_T *texture, unsigned num_levels);
 
 /* Helper functions */
 extern bool glxx_texture_is_valid_image(KHRN_IMAGE_T *image);

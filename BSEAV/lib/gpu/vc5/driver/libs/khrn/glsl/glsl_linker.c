@@ -82,7 +82,7 @@ static int pack_sampler_array(pack_uniform_t *ctx, const int **ids, int **maps, 
       bool s_used[SHADER_FLAVOUR_COUNT] = { false, };
       bool any_used = false;
       for (int j=0; j<n_stages; j++) {
-         s_used[j] = (ids[j][i] != -1);
+         s_used[j] = (ids[j][2*i] != -1);
          any_used = any_used || s_used[j];
       }
 
@@ -90,8 +90,12 @@ static int pack_sampler_array(pack_uniform_t *ctx, const int **ids, int **maps, 
 
       const unsigned location = ctx->program->num_samplers++;
 
-      for (int j=0; j<n_stages; j++)
-         if (s_used[j]) maps[j][ids[j][i]] = location;
+      for (int j=0; j<n_stages; j++) {
+         if (s_used[j]) {
+            maps[j][ids[j][2*i]] = location;
+            if (ids[j][2*i+1] != -1) maps[j][ids[j][2*i+1]] = location;
+         }
+      }
 
       if (location >= GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
          /* Too many combined samplers */
@@ -132,17 +136,14 @@ static int pack_image_array(pack_uniform_t *ctx, const int **ids, int **maps, in
       for (int j=0; j<n_stages; j++)
          if (s_used[j]) maps[j][ids[j][i]] = location;
 
-      if (in_vertex_pipeline)
-         link_error(5, "Image uniforms are not allowed in the vertex pipeline");
-
       if (location >= GLXX_CONFIG_MAX_IMAGE_UNITS)
          link_error(10, "Too many images, max %d", GLXX_CONFIG_MAX_IMAGE_UNITS);
 
-      ctx->program->images[location].location    = unif_loc + i;
-      ctx->program->images[location].type        = get_gl_type(type);
-      ctx->program->images[location].is_32bit    = false; /* XXX: Overridden later */
-      ctx->program->images[location].in_binning  = false; /* Remove this? */
-      ctx->program->images[location].internalformat   = GL_NONE; /* Overridden later */
+      ctx->program->images[location].location       = unif_loc + i;
+      ctx->program->images[location].type           = get_gl_type(type);
+      ctx->program->images[location].is_32bit       = false;              /* XXX: Overridden later */
+      ctx->program->images[location].in_binning     = in_vertex_pipeline; /* Remove this? */
+      ctx->program->images[location].internalformat = GL_NONE;            /* Potentially overridden later */
 
       if (ctx->binding >= 0) {
          GLSL_LAYOUT_BINDING_T *b = &ctx->program->image_binding[ctx->program->num_image_bindings++];
@@ -271,13 +272,11 @@ static void pack_var_default(pack_uniform_t *context, int offset, const int **id
       context->max_offset = pack_sampler_array(context, ids, maps, n_stages,
                                                array_length, t,
                                                offset, used_in_vertex_pipeline(used));
-   }
-   else if (glsl_prim_is_prim_image_type(t)) {
+   } else if (glsl_prim_is_prim_image_type(t)) {
       context->max_offset = pack_image_array(context, ids, maps, n_stages,
                                              array_length, t,
                                              offset, used_in_vertex_pipeline(used));
-   }
-   else {
+   } else {
       context->max_offset = update_uniform_link_map(ids, maps, n_stages, array_length, t, offset);
    }
 
@@ -321,7 +320,7 @@ static int enumerate_members(struct if_var_t *vars, const char *name, const Symb
       case SYMBOL_ARRAY_TYPE:
       {
          SymbolType  *member_type  = type->u.array_type.member_type;
-         if(member_type->flavour==SYMBOL_PRIMITIVE_TYPE) {
+         if (member_type->flavour==SYMBOL_PRIMITIVE_TYPE) {
             /* Since we pack the whole array, pass layout, not member_layout */
             enumerate(vars, name, type, layout, offset);
             return 1;
@@ -351,7 +350,7 @@ static int enumerate_block_members(struct if_var_t *vars, const char *name, cons
       MemLayout *member_layout = &layout->u.struct_layout.member_layouts[i];
       const SymbolType *member_type = type->u.block_type.member[i].type;
       const char *member_name = type->u.block_type.member[i].name;
-      if(type->u.block_type.has_named_instance)
+      if (type->u.block_type.has_named_instance)
          member_name = asprintf_fast("%s.%s", name, member_name);
 
       if (ssbo && member_type->flavour == SYMBOL_ARRAY_TYPE &&
@@ -420,7 +419,7 @@ static int enumerate_ins_outs(struct if_var_t *vars, const char *name, const Sym
       case SYMBOL_ARRAY_TYPE:
       {
          SymbolType *member_type  = type->u.array_type.member_type;
-         if(member_type->flavour==SYMBOL_PRIMITIVE_TYPE) {
+         if (member_type->flavour==SYMBOL_PRIMITIVE_TYPE) {
             enumerate_in_out_var(vars, name, type, prec, iq, aq);
             return 1;
          } else {
@@ -578,7 +577,6 @@ static void validate_uniforms_match(ShaderInterface **uniforms, int n_stages, in
                match = glsl_deep_match_nonfunction_types(u1->u.interface_block.block_data_type,
                                                          u2->u.interface_block.block_data_type, false);
 
-
             // Global variables must have the same type.
             if (!match)
                link_error(1, "%s", u1->name);
@@ -720,6 +718,10 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
                   link_error(5, "Invalid location for %s", uniform->symbol->name);
                }
             } else {
+               if (locations_required > GLXX_CONFIG_MAX_UNIFORM_LOCATIONS)
+                  link_error(5, "Too many uniform locations: %d required, %d available", locations_required,
+                                                                                         GLXX_CONFIG_MAX_UNIFORM_LOCATIONS);
+
                for (base_loc=0; base_loc<=GLXX_CONFIG_MAX_UNIFORM_LOCATIONS - locations_required; base_loc++) {
                   if (location_valid(loc_used, base_loc, locations_required)) break;
                }
@@ -866,64 +868,47 @@ static inline int get_binding(const GLSL_PROGRAM_SOURCE_T *source, const Symbol 
    return -1;
 }
 
-/* An attribute takes up 1 block per "vector", this means that matrices
- * take up one block per column. mat3x2 is 3 columns of vec2s
- */
-static inline int get_attribute_blocks(const SymbolType *type)
-{
-   assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
-
-   if (!(primitiveTypeFlags[type->u.primitive_type.index] & PRIM_MATRIX_TYPE))
-      return 1;
-   else
-      return glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 0);
-}
-
-static inline int get_attribute_row_offset(const SymbolType *type, int index)
-{
-   assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
-
-   /* Non-matrices have only 1 column */
-   if (!(primitiveTypeFlags[type->u.primitive_type.index] & PRIM_MATRIX_TYPE))
-      return index;
-   else {
-      /* Column major ordering with each column padded to take a whole vec4 slot */
-      /* col_length = n_rows */
-      int col_length = glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 1);
-      int col_no = index / col_length;
-      int col_idx = index % col_length;
-      return col_no * 4 + col_idx;
-   }
-}
-
 /* The used masks are only 32 bits, so we need this */
 static_assrt(GLXX_CONFIG_MAX_VERTEX_ATTRIBS <= 32);
 
-static inline int get_attrib_mask(const SymbolType *type) {
-   /* If an attribute takes n blocks, set the low n-bits of mask */
-   return (1 << get_attribute_blocks(type)) - 1;
+/* A vector takes up 1 location. Matrices, one location per column, and *
+ * arrays and structs places each member consecutively.                 */
+static inline unsigned get_locs_used(const SymbolType *type)
+{
+   switch(type->flavour) {
+      case SYMBOL_PRIMITIVE_TYPE:
+         if (!(primitiveTypeFlags[type->u.primitive_type.index] & PRIM_MATRIX_TYPE))
+            return 1;
+         else
+            return glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 0);
+
+      case SYMBOL_STRUCT_TYPE:
+      {
+         unsigned ret = 0;
+         for (unsigned i=0; i<type->u.struct_type.member_count; i++) ret += get_locs_used(type->u.struct_type.member[i].type);
+         return ret;
+      }
+      case SYMBOL_ARRAY_TYPE:
+         return type->u.array_type.member_count * get_locs_used(type->u.array_type.member_type);
+
+      default:
+         unreachable();
+         return 0;
+   }
 }
 
-static void validate_attribute_loc(const Symbol *attribute, int binding, uint32_t *used_mask, int link_version)
+static void validate_in_out_loc(const char *name, const SymbolType *t, int loc, uint32_t *used_mask, unsigned max_loc, bool aliasing_ok)
 {
-   uint32_t attrib_mask;
+   unsigned locs_used  = get_locs_used(t);
+   uint32_t usage_mask = gfx_mask(locs_used) << loc;
 
-   assert(binding >= 0 && binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   if (loc + locs_used > max_loc)
+      link_error(4, "%s consumes locations [%d, %d], max %d", name, loc, loc+locs_used-1, max_loc);
 
-   if (binding + get_attribute_blocks(attribute->type) > GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
-   {
-      // Too many attribs or explicit binding too high for matrix
-      link_error(3, "%s", attribute->name);
-   }
+   if ((*used_mask & usage_mask) != 0 && !aliasing_ok)
+      link_error(4, "Conflicting locations: %s", name);
 
-   // Fill in scalar value mask
-   attrib_mask = get_attrib_mask(attribute->type) << binding;
-   if (link_version == GLSL_SHADER_VERSION(3, 0, 1)) {
-      /* For #version 300 es attribute aliasing is an error */
-      if ((*used_mask & attrib_mask) != 0)
-         link_error(3, "Aliasing: %s", attribute->name);
-   }
-   (*used_mask) |= attrib_mask;
+   (*used_mask) |= usage_mask;
 }
 
 static void record_inout(unsigned *count, GLSL_INOUT_T *info, const struct if_var_t *v, int index, const bool *used) {
@@ -966,6 +951,23 @@ static void record_output(GLSL_PROGRAM_T *program, const InterfaceVar *out, int 
    record_inout(&program->num_outputs, program->outputs, &v, index, used);
 }
 
+static inline int row_offset(const SymbolType *type, int index)
+{
+   assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
+
+   /* Non-matrices have only 1 column */
+   if (!(primitiveTypeFlags[type->u.primitive_type.index] & PRIM_MATRIX_TYPE))
+      return index;
+   else {
+      /* Column major ordering with each column padded to take a whole vec4 slot */
+      /* col_length = n_rows */
+      int col_length = glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 1);
+      int col_no = index / col_length;
+      int col_idx = index % col_length;
+      return col_no * 4 + col_idx;
+   }
+}
+
 static void bind_attribute(InterfaceVar *attribute, int binding, int *id_ptr)
 {
    assert(binding >= -1 && binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
@@ -973,7 +975,7 @@ static void bind_attribute(InterfaceVar *attribute, int binding, int *id_ptr)
    // For every scalar...
    for (unsigned i = 0; i < attribute->symbol->type->scalar_count; i++)
    {
-      unsigned int scalar_row = binding * 4 + get_attribute_row_offset(attribute->symbol->type, i);
+      unsigned int scalar_row = binding * 4 + row_offset(attribute->symbol->type, i);
 
       // Write index to dataflow nodes.
       if (attribute->ids[i] != -1)
@@ -996,7 +998,7 @@ static bool is_builtin(const Symbol *s) {
    return false;
 }
 
-static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T *source, ShaderInterface *attributes, int *id_ptr, int link_version)
+static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T *source, ShaderInterface *attributes, int *id_ptr, bool aliasing_ok)
 {
    uint32_t attribs_used_mask = 0;
 
@@ -1016,19 +1018,21 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
    /* Allocate the attributes which possess explicit bindings */
    for (int i=0; i<attributes->n_vars; i++)
    {
-      int binding;
       InterfaceVar *attribute = &attributes->var[i];
 
       if (!attribute->active || is_builtin(attribute->symbol)) continue;
 
-      binding = get_binding(source, attribute->symbol);
+      int binding = get_binding(source, attribute->symbol);
 
       if (binding >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
-         link_error(3, "Invalid explicit binding %s: %d",
+         link_error(4, "Invalid attribute binding %s: %d",
                        attribute->symbol->name, binding);
 
       if (binding >= 0) {
-         validate_attribute_loc(attribute->symbol, binding, &attribs_used_mask, link_version);
+         /* Althrough these have already been validated by the generic code, API-side
+          * bindings mean that we have to do it again here.                            */
+         validate_in_out_loc(attribute->symbol->name, attribute->symbol->type, binding,
+                             &attribs_used_mask, GLXX_CONFIG_MAX_VERTEX_ATTRIBS, aliasing_ok);
          attr_locs[i].handled = true;
          attr_locs[i].loc = binding;
       }
@@ -1037,20 +1041,21 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
    /* Then allocate the remaining active attributes. */
    for (int i=0; i<attributes->n_vars; i++)
    {
-      int binding;
       InterfaceVar *attribute = &attributes->var[i];
 
       if (!attribute->active || is_builtin(attribute->symbol) || attr_locs[i].handled) continue;
 
+      int binding;
       for (binding = 0; binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; binding++) {
-         if ( !(attribs_used_mask & get_attrib_mask(attribute->symbol->type) << binding) )
+         if ( !(attribs_used_mask & gfx_mask(get_locs_used(attribute->symbol->type)) << binding) )
             break;
       }
 
       if (binding == GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
-         link_error(3, "%s", attribute->symbol->name);
+         link_error(4, "No possible location assignment for %s", attribute->symbol->name);
 
-      validate_attribute_loc(attribute->symbol, binding, &attribs_used_mask, link_version);
+      validate_in_out_loc(attribute->symbol->name, attribute->symbol->type, binding,
+                          &attribs_used_mask, GLXX_CONFIG_MAX_VERTEX_ATTRIBS, aliasing_ok);
       attr_locs[i].handled = true;
       attr_locs[i].loc = binding;
    }
@@ -1163,41 +1168,103 @@ static void copy_in(pack_varying_t *context, const InterfaceVar *f_in)
    context->num_scalar_varyings += f_in->symbol->type->scalar_count;
 }
 
-static void validate_arrayness(ShaderInterface *iface) {
+static void validate_arrayness(ShaderInterface *iface, unsigned array_size) {
    for (int i=0; i<iface->n_vars; i++) {
       const Symbol *s = iface->var[i].symbol;
       bool patch = (s->flavour == SYMBOL_VAR_INSTANCE    && s->u.var_instance.aux_qual == AUXILIARY_PATCH) ||
                    (s->flavour == SYMBOL_INTERFACE_BLOCK && s->u.interface_block.aq    == AUXILIARY_PATCH);
-      if (s->type->flavour != SYMBOL_ARRAY_TYPE && !patch && !is_builtin(s))
+
+      if (patch || is_builtin(s)) continue;
+
+      if (s->type->flavour != SYMBOL_ARRAY_TYPE)
          link_error(1, "arrayed interface requires array type for %s", s->name);
+      if (s->type->u.array_type.member_count != array_size)
+         link_error(1, "arrayed interface size requires %d, found %d for %s", array_size, s->type->u.array_type.member_count, s->name);
    }
 }
 
 /* Outputs must have matching smooth/flat, but need not have matching centroid */
-static bool interp_quals_compatible(InterpolationQualifier a, InterpolationQualifier b) {
+static inline bool interp_quals_compatible(InterpolationQualifier a, InterpolationQualifier b) {
    return a == b;
 }
 
-static bool aux_quals_compatible(AuxiliaryQualifier a, AuxiliaryQualifier b) {
+static inline bool aux_quals_compatible(AuxiliaryQualifier a, AuxiliaryQualifier b) {
    return ( (a == AUXILIARY_PATCH) == (b == AUXILIARY_PATCH) );
+}
+
+static inline InterpolationQualifier symbol_get_iq(const Symbol *s) {
+   assert(s->flavour == SYMBOL_VAR_INSTANCE || s->flavour == SYMBOL_INTERFACE_BLOCK);
+   return s->flavour == SYMBOL_VAR_INSTANCE ? s->u.var_instance.interp_qual : s->u.interface_block.iq;
+}
+
+static inline AuxiliaryQualifier symbol_get_aq(const Symbol *s) {
+   assert(s->flavour == SYMBOL_VAR_INSTANCE || s->flavour == SYMBOL_INTERFACE_BLOCK);
+   return s->flavour == SYMBOL_VAR_INSTANCE ? s->u.var_instance.aux_qual : s->u.interface_block.aq;
+}
+
+static inline bool symbol_get_is_loc_qualed(const Symbol *s) {
+   assert(s->flavour == SYMBOL_VAR_INSTANCE || s->flavour == SYMBOL_INTERFACE_BLOCK);
+   return s->flavour == SYMBOL_VAR_INSTANCE ? s->u.var_instance.layout_loc_specified : s->u.interface_block.layout_loc_specified;
+}
+
+static inline unsigned symbol_get_loc(const Symbol *s) {
+   assert(s->flavour == SYMBOL_VAR_INSTANCE || s->flavour == SYMBOL_INTERFACE_BLOCK);
+   return s->flavour == SYMBOL_VAR_INSTANCE ? s->u.var_instance.layout_location : s->u.interface_block.layout_location;
 }
 
 static const InterfaceVar *interface_var_find_by_location(const ShaderInterface *iface, unsigned location) {
    for (int i=0; i<iface->n_vars; i++) {
       const InterfaceVar *v = &iface->var[i];
-      if (v->symbol->u.var_instance.layout_loc_specified &&
-          v->symbol->u.var_instance.layout_location == location)
-      {
+      if (symbol_get_is_loc_qualed(v->symbol) && symbol_get_loc(v->symbol) == location)
          return v;
-      }
    }
    return NULL;
 }
 
-static void validate_outs_ins_match(ShaderInterface *outs, ShaderInterface *ins, bool arrayed_input) {
+typedef unsigned (*if_array_size_fn)(const CompiledShader *sh);
+
+static unsigned get_tcs_input_size (const CompiledShader *sh) { return V3D_MAX_PATCH_VERTICES; }
+static unsigned get_tcs_output_size(const CompiledShader *sh) { return sh->tess_vertices; }
+static unsigned get_tes_input_size (const CompiledShader *sh) { return V3D_MAX_PATCH_VERTICES; }
+static unsigned get_gs_input_size  (const CompiledShader *sh) {
+   switch (sh->gs_in) {
+      case GS_IN_POINTS:      return 1;
+      case GS_IN_LINES:       return 2;
+      case GS_IN_TRIANGLES:   return 3;
+      case GS_IN_LINES_ADJ:   return 4;
+      case GS_IN_TRIS_ADJ:    return 6;
+      default: unreachable(); return ~0;
+   }
+}
+
+struct {
+   if_array_size_fn in;
+   if_array_size_fn out;
+} if_array_sizes[SHADER_FLAVOUR_COUNT] = {
+   { NULL,               NULL                },
+   { get_tcs_input_size, get_tcs_output_size },
+   { get_tes_input_size, NULL                },
+   { get_gs_input_size,  NULL                },
+   { NULL,               NULL                },
+   { NULL,               NULL                }
+};
+
+static bool inputs_arrayed(ShaderFlavour in) {
+   return if_array_sizes[in].in != NULL;
+}
+
+static bool outputs_arrayed(ShaderFlavour out) {
+   return if_array_sizes[out].out != NULL;
+}
+
+static const SymbolType *base_type(const SymbolType *t, bool arrayed, bool patch) {
+   assert(!arrayed || patch || t->flavour == SYMBOL_ARRAY_TYPE);
+   return (arrayed && !patch) ? t->u.array_type.member_type : t;
+}
+
+static void validate_outs_ins_match(ShaderInterface *outs, ShaderInterface *ins, ShaderFlavour out_f, ShaderFlavour in_f) {
    /* Variables that are not referenced in the consuming shader are always fine
     * so validation need only loop over consuming shader declarations */
-
    for (int i=0; i<ins->n_vars; i++) {
       const InterfaceVar *in = &ins->var[i];
       const InterfaceVar *out;
@@ -1205,8 +1272,8 @@ static void validate_outs_ins_match(ShaderInterface *outs, ShaderInterface *ins,
       /* The intended behaviour for some-with-locations linking is in Bugzilla 13613.
        * If one has location and the other does not then linking will fail, so it doesn't
        * matter whether it is linked by location or name. We use location.  */
-      if (in->symbol->u.var_instance.layout_loc_specified)
-         out = interface_var_find_by_location(outs, in->symbol->u.var_instance.layout_location);
+      if (symbol_get_is_loc_qualed(in->symbol))
+         out = interface_var_find_by_location(outs, symbol_get_loc(in->symbol));
       else
          out = interface_var_find(outs, in->symbol->name);
 
@@ -1219,22 +1286,46 @@ static void validate_outs_ins_match(ShaderInterface *outs, ShaderInterface *ins,
          continue;
       }
 
-      SymbolType *input_type = in->symbol->type;
-      if (arrayed_input) {
-         /* Don't have to check for patch here because TCS->TES doesn't change arrayness */
-         assert(input_type->flavour == SYMBOL_ARRAY_TYPE);
-         input_type = input_type->u.array_type.member_type;
-      }
-
-      /* ... If it is declared then type and qualifiers must match. */
-      if (!glsl_deep_match_nonfunction_types(input_type, out->symbol->type, false))
-         link_error(1, "%s", in->symbol->name);
-
       /* Global variables must have the correct type qualifiers */
-      if (!interp_quals_compatible(out->symbol->u.var_instance.interp_qual, in->symbol->u.var_instance.interp_qual) ||
-          !aux_quals_compatible   (out->symbol->u.var_instance.aux_qual,    in->symbol->u.var_instance.aux_qual))
+      if (!interp_quals_compatible(symbol_get_iq(out->symbol), symbol_get_iq(in->symbol)) ||
+          !aux_quals_compatible   (symbol_get_aq(out->symbol), symbol_get_aq(in->symbol))  )
       {
          link_error(1, "%s", in->symbol->name);
+      }
+
+      bool patch = (symbol_get_aq(in->symbol) == AUXILIARY_PATCH);
+      const SymbolType *input_type  = base_type(in->symbol->type,  inputs_arrayed(in_f),   patch);
+      const SymbolType *output_type = base_type(out->symbol->type, outputs_arrayed(out_f), patch);;
+
+      /* ... If it is declared then type and qualifiers must match. */
+      if (!glsl_deep_match_nonfunction_types(input_type, output_type, false))
+         link_error(1, "%s", in->symbol->name);
+
+      if (out->symbol->flavour == SYMBOL_INTERFACE_BLOCK) {
+         const SymbolType *in_type  = base_type( in->symbol->u.interface_block.block_data_type, inputs_arrayed(in_f),   patch);
+         const SymbolType *out_type = base_type(out->symbol->u.interface_block.block_data_type, outputs_arrayed(out_f), patch);
+
+         if (!glsl_deep_match_nonfunction_types(out_type, in_type, false))
+            link_error(1, "%s", out->symbol->u.interface_block.block_data_type->name);
+      }
+   }
+}
+
+static void validate_in_out_locations(const ShaderInterface *iface, bool arrayed, unsigned max_loc) {
+   uint32_t loc_used = 0;
+
+   assert(max_loc <= 32);     /* Otherwise the masks aren't big enough... */
+
+   for (int i=0; i<iface->n_vars; i++) {
+      const Symbol *s = iface->var[i].symbol;
+      if (is_builtin(s)) continue;
+
+      if (symbol_get_is_loc_qualed(s)) {
+         /* XXX Cheat a bit here and always disallow alisaing. ES2 allowed it for attributes,
+          * but it didn't allow the location qualifier, so we never get here. Attributes are
+          * validated later as well because of the API-side information */
+         const SymbolType *t = base_type(s->type, arrayed, (symbol_get_aq(s) == AUXILIARY_PATCH));
+         validate_in_out_loc(s->name, t, symbol_get_loc(s), &loc_used, max_loc, false);
       }
    }
 }
@@ -1331,8 +1422,9 @@ static void pack_ins_outs(pack_varying_t *context, const GLSL_PROGRAM_SOURCE_T *
          f_in = interface_var_find(f_ins, v_out->symbol->name);
 
       if (is_builtin(v_out->symbol)) {
-         /* Skip builtins unless this is point size and TF requires point size */
-         if (strcmp(v_out->symbol->name, "gl_PointSize") != 0 || !tf_requires_point_size(source))
+         /* Skip builtins unless this is point size and TF requires point size or this is gl_Layer */
+         if ( (strcmp(v_out->symbol->name, "gl_PointSize") != 0 || !tf_requires_point_size(source)) &&
+               strcmp(v_out->symbol->name, "gl_Layer") != 0)
             continue;
       }
 
@@ -1352,8 +1444,9 @@ static void copy_outs(pack_varying_t *context,const GLSL_PROGRAM_SOURCE_T *sourc
       InterfaceVar *out = &outs->var[i];
 
       if (is_builtin(out->symbol))
-         /* Skip builtins unless this is point size and TF requires point size */
-         if (strcmp(out->symbol->name, "gl_PointSize") != 0 || !tf_requires_point_size(source))
+         /* Skip builtins unless this is point size and TF requires point size  or this is gl_Layer  */
+         if ((strcmp(out->symbol->name, "gl_PointSize") != 0 || !tf_requires_point_size(source)) &&
+               strcmp(out->symbol->name, "gl_Layer") != 0)
             continue;
 
       copy_out(context, out);
@@ -1367,7 +1460,10 @@ static void copy_ins(pack_varying_t *context, const GLSL_PROGRAM_SOURCE_T *sourc
       InterfaceVar *in = &ins->var[i];
 
       if (is_builtin(in->symbol))
-         continue;
+      {
+         if(strcmp(in->symbol->name, "gl_Layer") != 0)
+            continue;
+      }
 
       copy_in(context, in);
    }
@@ -1459,26 +1555,6 @@ static void pack_tf(pack_tf_t *tf_ctx, const pack_varying_t *vary_ctx, const GLS
    glsl_safemem_free(var_starts);
 }
 
-static void validate_fragment_location(const Symbol *s, int loc, uint32_t *used)
-{
-   int array_size;
-   if (s->type->flavour == SYMBOL_ARRAY_TYPE) {
-      array_size = s->type->u.array_type.member_count;
-   } else {
-      array_size = 1;
-   }
-
-   int usage_mask = ((1 << array_size) - 1) << loc;
-
-   if (loc + array_size > GLXX_MAX_RENDER_TARGETS)
-      link_error(4, "Fragment output layout qualifier too large");
-
-   if ((*used & usage_mask) != 0)
-      link_error(4, "Conflicting fragment output locations");
-
-   *used |= usage_mask;
-}
-
 static void pack_fragment_output_nodes(const InterfaceVar *out_src, int loc,
                                        int *out_nodes)
 {
@@ -1515,25 +1591,19 @@ static void fill_last_vtx_out_nodes(const pack_varying_t *context, ShaderInterfa
 }
 
 static void validate_f_out(const ShaderInterface *f_outs) {
-   int n = 0;
-   int n_non_loc_qualed = 0;
-   uint32_t loc_used = 0;
+   bool non_loc = false;
+   bool loc     = false;
+
    for (int i=0; i<f_outs->n_vars; i++) {
       const Symbol *s = f_outs->var[i].symbol;
       if (is_builtin(s)) continue;
 
       bool loc_qual = s->u.var_instance.layout_loc_specified;
-      int loc = 0;   /* Defaults to 0 if none specified */
-
-      if (loc_qual) loc = s->u.var_instance.layout_location;
-
-      n++;
-      if (!loc_qual) n_non_loc_qualed++;
-
-      validate_fragment_location(s, loc, &loc_used);
+      if (loc_qual) loc     = true;
+      else          non_loc = true;
    }
 
-   if (n > 1 && n_non_loc_qualed != 0)
+   if (loc && non_loc)
       link_error(4, "Mix of location qualified and unqualified fragment outputs");
 }
 
@@ -1546,18 +1616,51 @@ static void extract_sampler_info(GLSL_PROGRAM_T *program, IRShader *sh, int *uni
          if (d->flavour == DATAFLOW_CONST_IMAGE) {
             int sampler_loc = unif_map[d->u.linkable_value.row];
 
-            bool is_image = (d->type == DF_FIMAGE || d->type == DF_IIMAGE || d->type == DF_UIMAGE);
+            bool is_image = glsl_dataflow_type_is_storage_image(d->type);
             if (is_image)
             {
                program->images[sampler_loc].is_32bit = d->u.const_image.is_32bit;
-               assert(d->u.const_image.format_valid);
-               program->images[sampler_loc].internalformat = glsl_fmt_qualifier_to_gl_enum(d->u.const_image.format);
+               if (d->u.const_image.format_valid)
+                  program->images[sampler_loc].internalformat = glsl_fmt_qualifier_to_gl_enum(d->u.const_image.format);
             }
             else
                program->samplers[sampler_loc].is_32bit = d->u.const_image.is_32bit;
          }
       }
    }
+}
+
+static void enumerate_in_out_block_members(unsigned *count, GLSL_INOUT_T *info, const bool *used, const char *name, const SymbolType *type, InterpolationQualifier iq, AuxiliaryQualifier aq, int loc)
+{
+   bool is_array = (type->flavour == SYMBOL_ARRAY_TYPE);
+   type = is_array ? type->u.array_type.member_type  : type;
+
+   assert(type->flavour == SYMBOL_BLOCK_TYPE);
+
+   int n_memb = deep_member_count(type);
+   struct if_var_t *v = glsl_safemem_malloc(n_memb * sizeof(struct if_var_t));
+
+   for (unsigned i = 0; i < type->u.block_type.member_count; i++)
+   {
+      const StructMember *m = &type->u.block_type.member[i];
+      const char *member_name = m->name;
+      if (type->u.block_type.has_named_instance)
+         member_name = asprintf_fast("%s.%s", name, member_name);
+      if (m->layout && (m->layout->qualified & LOC_QUALED))
+         loc = m->layout->location;
+
+      int n = enumerate_ins_outs(v, member_name, m->type, PREC_NONE, iq, aq);
+
+      for (int j=0; j<n; j++) {
+         record_inout(count, info, &v[j], loc, used);
+         if (loc != -1) {
+            int c = type->flavour == SYMBOL_ARRAY_TYPE ? type->u.array_type.member_count : 1;
+            loc += c;
+         }
+      }
+   }
+
+   glsl_safemem_free(v);
 }
 
 static void record_inout_interface(unsigned *count, GLSL_INOUT_T *info, const ShaderInterface *iface, const bool *used) {
@@ -1568,22 +1671,25 @@ static void record_inout_interface(unsigned *count, GLSL_INOUT_T *info, const Sh
          if (is_hidden_builtin(s))
             continue;
 
-         int n = deep_member_count(s->type);
-         struct if_var_t *v = glsl_safemem_malloc(n * sizeof(struct if_var_t));
-         int loc = -1;
-         if (s->u.var_instance.layout_loc_specified)
-            loc = s->u.var_instance.layout_location;
+         if (s->flavour == SYMBOL_INTERFACE_BLOCK) {
+            int loc = s->u.interface_block.layout_loc_specified ? s->u.interface_block.layout_location : -1;
+            enumerate_in_out_block_members(count, info, used, s->name, s->u.interface_block.block_data_type, s->u.interface_block.iq, s->u.interface_block.aq, loc);
+         } else {
+            int n = deep_member_count(s->type);
+            struct if_var_t *v = glsl_safemem_malloc(n * sizeof(struct if_var_t));
+            int loc = s->u.var_instance.layout_loc_specified ? s->u.var_instance.layout_location : -1;
 
-         enumerate_ins_outs(v, s->name, s->type, s->u.var_instance.prec_qual, s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
+            enumerate_ins_outs(v, s->name, s->type, s->u.var_instance.prec_qual, s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
 
-         for (int i=0; i<n; i++) {
-            record_inout(count, info, &v[i], loc, used);
-            if (loc != -1) {
-               int c = s->type->flavour == SYMBOL_ARRAY_TYPE ? s->type->u.array_type.member_count : 1;
-               loc += c;
+            for (int i=0; i<n; i++) {
+               record_inout(count, info, &v[i], loc, used);
+               if (loc != -1) {
+                  int c = s->type->flavour == SYMBOL_ARRAY_TYPE ? s->type->u.array_type.member_count : 1;
+                  loc += c;
+               }
             }
+            glsl_safemem_free(v);
          }
-         glsl_safemem_free(v);
       }
    }
 }
@@ -1614,23 +1720,19 @@ GLSL_PROGRAM_T *glsl_link_compute_program(CompiledShader *csh) {
       goto exit_with_error;
    }
 
-   static const unsigned max_size[3] = { GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_X,
-                                         GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Y,
-                                         GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
+   if (csh->cs_wg_size[0] == 0)
+      link_error(10, "Compute program must declare workgroup size");
 
    for (int i=0; i<3; i++) {
-      if (csh->cs_wg_size[i] == 0 || csh->cs_wg_size[i] > max_size[i])
-         link_error(10, "local size %d should be in the range (0, %d]", csh->cs_wg_size[i], max_size[i]);
-
+      assert(csh->cs_wg_size[i] != 0);
       ir->cs_wg_size[i] = csh->cs_wg_size[i];
    }
-   if (csh->cs_wg_size[0] * csh->cs_wg_size[1] * csh->cs_wg_size[2] > GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS)
-      link_error(10, "Compute invocations %d exceeds maximum %d",
-                                               csh->cs_wg_size[0] * csh->cs_wg_size[1] * csh->cs_wg_size[2],
-                                               GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS);
 
-   program->cs_shared_block_size = csh->cs_shared_block_size;
-   program->cs_has_barrier = csh->cs_has_barrier;
+   if (csh->cs_shared_block_size > GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE)
+      link_error(10, "Compute program requires %u bytes of shared memory, %d available",
+                     csh->cs_shared_block_size, GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE);
+
+   ir->cs_shared_block_size = csh->cs_shared_block_size;
 
    /* Pack uniforms and samplers. */
    ShaderFlavour f = SHADER_COMPUTE;
@@ -1673,19 +1775,6 @@ GLSL_PROGRAM_T *glsl_link_compute_program(CompiledShader *csh) {
    return NULL;
 }
 
-static bool inputs_arrayed(ShaderFlavour in) {
-   switch (in) {
-      case SHADER_TESS_CONTROL:    return true;
-      case SHADER_TESS_EVALUATION: return true;
-      case SHADER_GEOMETRY:        return true;
-      default:                     return false;
-   }
-}
-
-static bool outputs_arrayed(ShaderFlavour out) {
-   return out == SHADER_TESS_CONTROL;
-}
-
 static bool stages_valid(CompiledShader **sh, bool separable) {
    bool tess_valid = ( sh[SHADER_TESS_CONTROL] &&  sh[SHADER_TESS_EVALUATION]) ||
                      (!sh[SHADER_TESS_CONTROL] && !sh[SHADER_TESS_EVALUATION]   );
@@ -1696,12 +1785,12 @@ static bool stages_valid(CompiledShader **sh, bool separable) {
    return any_stage_valid && ((tess_valid && vf_valid) || separable);
 }
 
-static void validate_tess_geom_match(enum tess_mode tes_mode, bool tes_points, enum gs_in_type gs_mode) {
+static void validate_tess_geom_match(v3d_cl_tess_type_t tes_mode, bool tes_points, enum gs_in_type gs_mode) {
    if (tes_points) {
       if (gs_mode != GS_IN_POINTS)
          link_error(6, "Tessellation mode requires 'points' mode in geometry shader");
    } else {
-      if (tes_mode == TESS_ISOLINES) {
+      if (tes_mode == V3D_CL_TESS_TYPE_ISOLINES) {
          if (gs_mode != GS_IN_LINES)
             link_error(6, "Tessellation mode requires 'lines' mode in geometry shader");
       } else if (gs_mode != GS_IN_TRIANGLES)
@@ -1740,8 +1829,16 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
       if (sh[i] == NULL) continue;
 
-      if (inputs_arrayed(i))  validate_arrayness(&sh[i]->in);
-      if (outputs_arrayed(i)) validate_arrayness(&sh[i]->out);
+      static const unsigned  in_maxima[SHADER_FLAVOUR_COUNT] = { GLXX_CONFIG_MAX_VERTEX_ATTRIBS, GLXX_CONFIG_MAX_TESS_CONTROL_INPUT_COMPONENTS / 4,
+            GLXX_CONFIG_MAX_TESS_EVALUATION_INPUT_COMPONENTS / 4, GLXX_CONFIG_MAX_GEOMETRY_INPUT_COMPONENTS / 4, GLXX_CONFIG_MAX_VARYING_VECTORS };
+      static const unsigned out_maxima[SHADER_FLAVOUR_COUNT] = { GLXX_CONFIG_MAX_VARYING_VECTORS, GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS / 4,
+            GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS / 4, GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_COMPONENTS / 4, GLXX_MAX_RENDER_TARGETS };
+
+      validate_in_out_locations(&sh[i]->in,   inputs_arrayed(i),  in_maxima[i]);
+      validate_in_out_locations(&sh[i]->out, outputs_arrayed(i), out_maxima[i]);
+
+      if (inputs_arrayed(i))  validate_arrayness(&sh[i]->in,  if_array_sizes[i].in (sh[i]));
+      if (outputs_arrayed(i)) validate_arrayness(&sh[i]->out, if_array_sizes[i].out(sh[i]));
    }
 
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
@@ -1755,8 +1852,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
       }
 
       if (next != -1) {
-         bool arrayed = inputs_arrayed(next) && !outputs_arrayed(i);
-         validate_outs_ins_match(&sh[i]->out, &sh[next]->in, arrayed);
+         validate_outs_ins_match(&sh[i]->out, &sh[next]->in, i, next);
       }
    }
 
@@ -1791,7 +1887,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    }
 
    if (sh[SHADER_TESS_EVALUATION]) {
-      if (sh[SHADER_TESS_EVALUATION]->tess_mode == TESS_INVALID)
+      if (sh[SHADER_TESS_EVALUATION]->tess_mode == V3D_CL_TESS_TYPE_INVALID)
          link_error(6, "Tessellation evaluation shader must specify a valid mode");
 
       if (sh[SHADER_GEOMETRY]) {
@@ -1816,12 +1912,14 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
       ir->tess_point_mode = te->tess_point_mode;
    }
 
+   ir->max_known_layers = 1;
    if (sh[SHADER_GEOMETRY] != NULL) {
       CompiledShader *gs = sh[SHADER_GEOMETRY];
       ir->gs_in  = gs->gs_in;
       ir->gs_out = gs->gs_out;
       ir->gs_n_invocations = gs->gs_n_invocations;
       ir->gs_max_vertices  = gs->gs_max_vertices;
+      ir->max_known_layers = gs->gs_max_known_layers;
    }
 
    static const int num_outs[SHADER_FLAVOUR_COUNT] = { DF_BLOB_VERTEX_COUNT, DF_BLOB_VERTEX_COUNT,
@@ -1883,9 +1981,6 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
                                       .num_scalar_varyings = 0,
                                       .f_id_ptr = fsh ? ir->stage[SHADER_FRAGMENT].link_map->ins : NULL };
 
-   if (fsh && varying_context.any_varying_per_sample)
-      ir->varyings_per_sample = true;
-
    /* TODO: The SSO handling here is broken for tessellation. Also, there is
     * minimal code reuse which makes this look particularly terrible */
    if (last_vtx_stage && fsh) {
@@ -1895,6 +1990,9 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    } else if (fsh) {
       copy_ins(&varying_context, source, &fsh->in);
    }
+
+   if (fsh && varying_context.any_varying_per_sample)
+      ir->varyings_per_sample = true;
 
    CompiledShader *first = NULL; /* Initialised only to silence warning */
    for (int i=0; i <= SHADER_FRAGMENT; i++) {
@@ -1924,7 +2022,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    }
 
    if (sh[SHADER_VERTEX]) {
-      bind_attributes(program, source, &sh[SHADER_VERTEX]->in, ir->stage[SHADER_VERTEX].link_map->ins, link_version);
+      bind_attributes(program, source, &sh[SHADER_VERTEX]->in, ir->stage[SHADER_VERTEX].link_map->ins, (link_version == GLSL_SHADER_VERSION(1,0,1)));
    }
 
    /* Fill in output nodes from vertex shader */

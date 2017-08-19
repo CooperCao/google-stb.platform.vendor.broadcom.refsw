@@ -202,7 +202,7 @@ int BVC5_P_FenceCreate(
    BVC5_P_Fence *pFence = NULL;
 
    BKNI_AcquireMutex(hFenceArr->hMutex);
-   BDBG_MSG(("BVC5_P_FenceCreate uiClientId=%d \n", uiClientId));
+   BDBG_MSG(("BVC5_P_FenceCreate uiClientId=%d", uiClientId));
 
    pFence = BKNI_Malloc(sizeof(BVC5_P_Fence));
    BKNI_Memset(pFence, 0, sizeof(BVC5_P_Fence));
@@ -238,7 +238,7 @@ int BVC5_P_FenceCreate(
    /* start with 2 references - one for the signalling and one for the waiting end */
    pFence->uiRefCount = 2;
 
-   BDBG_MSG(("Fence %d = %p\n", index, (void*)hFenceArr->pFences[index]));
+   BDBG_MSG(("Fence %d = %p", index, (void*)hFenceArr->pFences[index]));
 
    /* Find the next available fence */
    for (i = hFenceArr->iFirstAvailable + 1; i < hFenceArr->uiCapacity && !found; ++i)
@@ -511,7 +511,7 @@ int BVC5_P_FenceWaitAsync(
    pFence = BVC5_P_FenceGet(hFenceArr, iFenceId);
    if (pFence == NULL)
    {
-      BDBG_MSG(("Waiting on wrong fenceId=%d\n", iFenceId));
+      BDBG_MSG(("Waiting on wrong fenceId=%d", iFenceId));
       goto end;
     };
 

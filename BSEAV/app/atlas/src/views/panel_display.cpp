@@ -525,7 +525,7 @@ eRet CPanelDisplay::generateVideoFormatButtons(COutputHdmi * pOutputHdmi)
             else
             {
                 MString  strVideoFormat      = videoFormatToString((NEXUS_VideoFormat)i);
-                uint16_t nVideoFormatVertRes = videoFormatToVertRes((NEXUS_VideoFormat)i).toInt();
+                unsigned nVideoFormatVertRes = videoFormatToVertRes((NEXUS_VideoFormat)i).toInt();
 
                 /* no hdmi */
 

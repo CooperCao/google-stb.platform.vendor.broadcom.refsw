@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_globals.h"
+#include "glsl_fastmem.h"
 #include "prepro/glsl_prepro_token.h"
 #include "glsl_extensions.h"
 #include "glsl_numbers.h"

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -309,6 +309,39 @@ void NEXUS_Frontend_StopBondingGroup(NEXUS_FrontendHandle master)
     master->chbond = NULL;
 }
 
+void NEXUS_Frontend_P_ResetBondingGroup(NEXUS_FrontendHandle frontend)
+{
+    NEXUS_FrontendHandle master;
+    unsigned i;
+    bool allLocked = true;
+
+    if (frontend->chbond) {
+        master = frontend;
+    }
+    else if (frontend->bondingMaster) {
+        master = frontend->bondingMaster;
+    }
+    else {
+        return;
+    }
+
+    for (i=0; i<NEXUS_MAX_FRONTENDS; i++) {
+        if (master->chbond->bands[i].frontend) {
+            NEXUS_FrontendFastStatus fstatus;
+            NEXUS_Frontend_GetFastStatus(master->chbond->bands[i].frontend, &fstatus);
+            if (fstatus.lockStatus!=NEXUS_FrontendLockStatus_eLocked) {
+                allLocked = false;
+                break;
+            }
+        }
+    }
+
+    if (allLocked) {
+        BDBG_WRN(("%u: Resetting bond on new frontend group lock", master->chbond->index));
+        BMXT_Dcbg_Reacquire(master->chbond->hDcbg);
+    }
+
+}
 
 NEXUS_Error NEXUS_Frontend_GetBondingGroupStatus(NEXUS_FrontendHandle master, NEXUS_FrontendBondingGroupStatus *pStatus)
 {

@@ -1,0 +1,22 @@
+
+#ifdef RC_INVOKED
+#include <winver.h>
+#include "epivers.h"
+#include "vendor.h"
+
+#define VER_INTERNALNAME_STR        EPI_CTRL_DLL
+#define VER_FILEDESCRIPTION_STR	    VER_PRODUCTNAME_STR " OID interface DLL"
+#define VER_FILEFLAGSMASK 0x3fL
+
+#ifdef _DEBUG
+#define VER_FILEFLAGS VS_FF_DEBUG
+#else
+#define VER_FILEFLAGS 0x0L
+#endif
+
+#define VER_FILEOS	VOS__WINDOWS32
+#define VER_FILETYPE	VFT_DLL
+#define VER_FILESUBTYPE	VFT2_UNKNOWN
+
+#include "common.ver"
+#endif

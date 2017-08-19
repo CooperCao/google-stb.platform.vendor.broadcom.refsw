@@ -1,0 +1,1614 @@
+#!/bin/bash
+
+WEBBROWSER=firefox
+webdiff="src/tools/build/hndcvs_diff.awk"
+
+#default to "make"
+if [ "$MAKE" = "" ]; then
+    MAKE="make"
+fi
+
+MAKE_CMD="$MAKE"
+# Global module list. Will be checked out when extracting the BOM 
+mod_list="src/tools/release/module_list.mk"
+
+#Generic bom rules
+bomrules="src/tools/release/bomrules.mk"
+
+#Generic makerules for components
+makerules="src/tools/release/components/makerules.mk"
+
+# Command line Parsing.
+# check out only bom and component files, no code
+nocheck=0
+
+# don't overwrite an existing module. Useful for creating compounds of 
+# several BOMs using the same module versions
+no_overwrite=0
+
+# if -n : check out only the admin files
+# if -k : check out the source code only if not already done
+
+no_co=""
+
+# cvs options to be passed down 
+cvs_opt=""
+
+#do not perform tagging operations
+noop=0
+
+#sub targets of module
+sub_target=""
+
+# indicates that this is the first call to hndcvs and check for 
+# an existing src directory, when appropriate
+first_call=1
+
+# indicates that we are interested in finding the head 
+# of the specified tag.
+
+head_requested=0
+
+# indicates that we want the full release on the branch 
+rel_requested=0
+
+newmake=0
+
+#use local .mk files
+local=0
+
+# passed to bomrules for recursion of the local option 
+LOCAL_OPT=""
+
+#don't use the global modules-list-bom.mk by default
+global=0
+
+#no date spec by default
+date=""
+date_req=0
+
+#redirection of certain output to files for diffing.
+redir=1
+
+#brand_filetype : product (bom) or component
+brand_filetype=none
+
+# definitions to be passed to boms and makefile
+bomdefs=""
+
+# file target for find functions
+find_target=""
+find_op=""
+
+# CVS report input file 
+report_file=""
+
+# CVS report output file
+hndcvs_cvs_report=""
+
+# generic output file
+
+output_file=""
+
+# by default, checkout rules files
+no_rules=0
+
+#tag variables
+tag_size=""
+mod_name=""
+tagtype=""
+maj=""
+toc_rev=""
+br_rev=""
+tw_rev=""
+twig_ext=""
+
+tag_prefix=""
+tag_postfix=""
+latest_tag_on_branch=""
+out_prefix=""
+tag_array=""
+tag_list_size=0
+
+# NOTE : we need to be consistent with variable naming since they are used globally 
+# in this file. 
+# It is useful to define tag variables including the -r in front when not empty. 
+# But sometimes it is also useful to use the original name instead.
+# as a convention from here on , we define :
+# tag : name of tag without the -r
+# rtag : -r $tag
+# branch : branch name without -r
+# rbranch : -r $branch
+
+co_file()
+{
+    #if local, bail if file exists
+    if test -f $2; then
+	if [ "$no_overwrite" = "1" ]; then
+	    myecho Local file exists and overwrite is prevented. No checkout. 
+	    no_co="-k"
+	    return
+	fi
+	if [ "$local" = "1" ]; then
+	    myecho Local module file $2 exists. Use it.  
+	    return
+	fi
+    fi
+    if [ $date_req -eq 1 ]; then	
+	myecho cvs co -AP -D "$date" -kkv $1 $2 
+	cvs -Q co -AP -D "$date" -kkv $1 $2 
+    else
+	myecho cvs co -AP -kkv $1 $2 
+	cvs -Q co -AP -kkv $1 $2 
+    fi
+
+}
+
+# computes brand_filetype from brand name 
+# if brand end by -bom, set to product, otherwise component
+
+check_brandtype()
+{
+    IFS="-"  tmpbrand=(${brand})
+    unset IFS
+    brand_size=${#tmpbrand[@]}
+    brand_suffix=${tmpbrand[$brand_size-1]}
+    if [ "$brand_suffix" = "bom" ]; then
+	brand_filetype="product"
+	file="src/tools/release/$brand.mk"
+    else
+	brand_filetype="component"
+	file="src/tools/release/components/$brand.mk"
+    fi
+    
+}
+
+
+
+check_file()
+{
+    file_tag=""
+    if [ "$1" != "" -a "$1" != "HEAD" ]; then
+	file_tag="-r $1"
+    fi
+
+    if [ "$brand_filetype" = "component" ]; then
+	file="src/tools/release/components/$brand.mk"
+	co_file "$file_tag" $file
+    elif [ "$brand_filetype" = "product" ]; then
+	file="src/tools/release/$brand.mk"
+	co_file "$file_tag" $file
+        if [ ! -f $mod_list -o "$local" = "0" ]; then
+	    co_file "$file_tag" $mod_list
+	fi
+    else
+	echo brand type $brand_filetype is invalid. Please run check_brandtype first !
+	exit -1
+    fi
+
+    if test -f $file; then
+	    myecho 1>&2 $brand_filetype file $file
+    else
+	echo "Could not find $brand_filetype file $file"
+	exit -1
+    fi
+
+}
+
+parse_tag()
+{
+     # Some testing for ensuring tag/branch-tag names follow conventions in an effort to
+    # keep the developer from doing something bad
+    ltag=$1
+    if [ "$1" = "HEAD" -o "$1" = "" ]; then
+	return
+    fi
+
+    # split tag into array
+    IFS="_	     " temptag=(${ltag})
+    unset IFS
+
+    IFS="_	     " tag_array=(${ltag})
+    unset IFS
+
+    tag_size=${#tag_array[@]}
+
+    #myecho tag size : $tag_size
+
+    mod_name=${tag_array[0]:-0}
+    #echo $mod_name
+    # Grab the type of tag: REL, BRANCH, TWIG etc.
+    tagtype=${tag_array[1]:-0}
+    #myecho tagtype : $tagtype
+    #store revision numbers
+    maj=${tag_array[2]:-0}
+    #revision or branch points along ToC
+    toc_rev=${tag_array[3]:-0}
+    #revision or twig point along branch (0 means "on ToC")
+    br_rev=${tag_array[4]:-0}
+    #if twigged, revision  along the twig (0 means "on main branch")
+    tw_rev=${tag_array[5]:-x}
+
+    #if already a twig or a branch, assign and return
+    if [ "$tagtype" = "BRANCH" -o "$tagtype" = "TWIG" ]; then
+	branch=$ltag
+	return
+    fi
+    
+    if [ "$tagtype" = "REL" ]; then
+	if [ "$head_requested" = "0" ]; then
+	    rel_requested=Y
+	fi
+    fi
+
+}
+
+find_branch_from_tag()
+{
+    ltag=$1
+
+    if [ "$brand_filetype" = "component" ]; then
+	file="src/tools/release/components/$brand.mk"
+    elif [ "$brand_filetype" = "product" ]; then
+	file="src/tools/release/$brand.mk"
+    else
+	echo brand type $brand_filetype is invalid. Please run check_brandtype first !
+	exit -1
+    fi
+
+    if [ "$1" = "HEAD" -o "$1" = "" ]; then
+	myecho Using  $file on ToC
+	return
+    fi
+
+    parse_tag $ltag	
+  
+    IFS="_	     " temptag=(${branch})
+    unset IFS
+
+    #if branch was specified, verify
+    if [ "$tagtype" = "BRANCH" -o "$tagtype" = "TWIG" ]; then
+	if [ "$ltag" != "$branch" ]; then
+	    echo Wrong branch name $branch !
+	    exit -127
+	fi
+	return
+    fi
+
+    # is it on TOT ?
+    if [ $tag_size -eq 5 ]; then
+	if [ $br_rev = 0 ]; then
+	    myecho Using  $file on ToC
+	    return
+	fi
+    fi
+    
+    #If the tag is supposed to be on a branch or twig, infer the branch name, verify and 
+     #set it if not present
+    if [ $tag_size -lt 6 ]; then
+	toto=${ltag/_REL_/_BRANCH_}
+	test_br=${toto%_${tag_array[$tag_size-1]}}
+    else
+	myecho $ltag
+	toto=${ltag/_REL_/_TWIG_}
+	test_br=${toto/%_${tag_array[$tag_size-1]}}
+    fi
+
+    test_br0="$test_br"_0
+
+    if [ "$local" = "1" -a "$find_op" != "" ]; then
+		branch="$test_br"
+		rbranch="-r $test_br"
+		return
+    fi
+
+    if [ "$test_br" != "" ]; then
+
+	    # check without the "0" at the end
+	    ok=0
+	    cvs -Q -n co -r $test_br $file >& /dev/null
+	    if [ $? = 0 ]; then
+		branch="$test_br"
+		rbranch="-r $test_br"
+		ok=1
+	    else 
+		# add the final 0
+		cvs -Q -n co -r $test_br0 $file >& /dev/null
+		if [ $? = 0 ]; then
+		    branch="$test_br0"
+		    rbranch="-r $test_br0"
+		    ok=1
+		fi
+	    fi
+	    if [ $ok = 1 ]; then
+		myecho Setting branch name to $branch
+		myecho Branch exist
+		return
+	    else
+		echo Branch $branch does not exist !
+		exit -127
+            fi
+	fi
+}
+
+get_latest_tag()
+{
+    		#compute the latest tag on the branch
+    myecho get_latest_tag on branch $branch
+		#if on TOT, we use the tag to find the prefix
+                # then we add the final 0 for matching
+		if [ "$branch" = "HEAD" ]; then
+		    tag_prefix="$mod_name"_REL_"$maj"_
+		    tag_postfix="_0"
+		    
+		else
+		    
+		#if we are on a branch, just replace the BRANCH or TWIG with REL
+		    IFS="_	     " temptag=(${branch})
+		    unset IFS
+		    
+		    toto=${branch/_${temptag[1]}_/_REL_}
+		    
+		    # special case if the last number is 0, remove it
+		    size=${#temptag[@]}
+		    if [ $size -eq 5 ]; then 
+			if [ ${temptag[4]} -eq 0 ]; then
+			    tag_prefix=${toto/%0}
+			else
+			    tag_prefix="$toto"_
+			fi
+		    else
+			tag_prefix="$toto"_
+		    fi
+		fi		    
+
+	
+		myecho tag prefix : $tag_prefix
+		
+		tag_list=`cvs status -v $file | grep -v "Sticky" |  grep -o -e "$tag_prefix"[[:digit:]]*"$tag_postfix"[[:space:]]`
+		tag_list2=(${tag_list})
+		myecho tag list $tag_list2
+		latest_tag_on_branch="${tag_list2[0]}"
+		tag_list_size=${#tag_list2[@]}
+		myecho tag list size ${tag_list_size}
+		if [ $tag_list_size != 0 ]; then
+		    myecho "latest tag on branch $latest_tag_on_branch"
+		else
+		    myecho "there is no tag on branch $branch"
+		fi
+}
+
+
+check_tag()
+{
+    # Some testing for ensuring tag/branch-tag names follow conventions in an effort to
+    # keep the developer from doing something bad
+
+    parse_tag $tag
+
+    IFS="_	     " temptag=(${branch})
+    unset IFS
+
+    # Grab the type of branchtag: REL, BRANCH, TWIG etc.
+    branchtype=${temptag[1]:-0}
+
+    # Catchall for TAG type.  Some checks further down may be redundant.
+    if [ "$tagtype" != "BASE" -a "$tagtype" != "REL" -a "$tagtype" != "BRANCH" -a "$tagtype" != "TWIG" ]; then
+	echo Invalid TAG name, please follow tagging rules and conventions.
+	exit 127
+    fi
+
+    if [ "$operation" = "ExtractRelease" ]; then
+	if [ "$tagtype" != "REL" ]; then
+	    echo Incorrect RELEASE TAG name, please follow tagging rules and conventions.
+	    exit 127
+	fi
+    elif [ "$operation" = "Tag" -o "$operation" = "TagBranch" -o "$operation" = "TestBranch" -o "$operation" = "TestTag" ]; then
+	if [ "$tagtype" = "BRANCH" -o "$tagtype" = "TWIG" ]; then
+	    echo Static tags of type BRANCH -or- TWIG are not allowed.
+	    exit 127
+	# if we're tagging on a branch
+	elif [ "$operation" = "TagBranch" -o "$operation" = "TestBranch"  ]; then
+	# We would prefer to see branch/base tags with BASE, REL, BRANCH, or TWIG as type.
+	    if [ "$branchtype" != "BASE" -a "$branchtype" != "REL" -a "$branchtype" != "BRANCH" -a "$branchtype" != "TWIG" ]; then
+		echo Incorrect BASE_TAG name, please follow tagging rules and conventions.
+		exit 127
+	    fi
+	fi
+
+    elif [ "$operation" = "Branch" ]; then
+	if [ "$tagtype" = "BASE" -o "$tagtype" = "REL" ]; then
+	    if [ "$branchtype" != "BRANCH" -a "$branchtype" != "TWIG" ]; then
+		echo Incorrect BRANCH name, please follow tagging rules and conventions.
+		exit 127
+	    fi
+	else
+	    echo Incorrect BASE_TAG name, please follow tagging rules and conventions.
+	    echo Branches and Twigs MUST be formed from a BASE tag
+	    exit 127
+	fi
+    elif [ "$operation" = "ExtractTag" ]; then
+	myecho Extracting Tag
+    else
+	echo Unsupported
+	exit 127
+    fi
+    #if the tagtype is REL, discard the date spec 
+    if [ "$tagtype" = "BASE" -o "$tagtype" = "REL" ]; then
+	if [ $head_requested != 1 ]; then
+	    date=""
+	    date_req=0
+	fi
+    fi
+}
+
+match_module_in_boms ()
+{
+    cvs co -p src/hndcvs/bomed_list.txt > bomed_list.txt
+    source  bomed_list.txt
+
+    if [ "$tag1" != "" ]; then
+	find_branch_from_tag $tag1
+    fi
+
+    if [ "$rel_requested" = "Y" ]; then
+	myecho Checking Release Lists for $tag1
+	show_list=show_rel_list
+	match_tag=$tag1
+    else
+	myecho Checking Dev Lists for $branch
+	show_list=show_dev_list
+	match_tag=$branch
+    fi
+
+    for var in $BOM_LIST; do
+	matched_bom_list=""
+	list=""
+	mkfilelist=""
+	for l in ${!var}; do
+	    list="$list $l"
+	    mkfile=src/tools/release/"$l".mk
+	    mkfilelist="$mkfilelist $mkfile"
+	done
+	rvtag=""
+	if [ "$var" != "" -a "$var" != "TOT" ]; then
+	    rvtag="-r $var"
+	fi
+
+	myecho MODULE $brand
+
+	myecho cvs -Q co -AP $rvtag src/tools/release/module_list.mk $mkfilelist
+	cvs -Q co -AP $rvtag src/tools/release/module_list.mk $mkfilelist
+
+	for bom in $mkfilelist; do
+
+	    mdev_list=`make -f $bom $show_list`
+	    myecho branch : $var bom : $bom $show_list:
+	    myecho $mdev_list
+	    match_mod=`echo $mdev_list | grep -o -e "$brand"...[A-Z_0-9]*` 
+	    if [ "$match_mod" != "" ]; then		
+		matched_tag=${match_mod/*...}
+		myecho raw match $match_mod $matched_tag
+		
+		if [ "$show_list" = "show_rel_list" ]; then
+		    # direct match
+		    if [ "$match_tag" = "$matched_tag" ]; then
+			myecho MATCH module : $brand tag : $matched_tag
+			bom_name=${bom/.mk}
+			bom_name=${bom_name/src\/tools\/release\/}
+			matched_bom_list="$matched_bom_list $bom_name"
+		    fi
+		else
+		    # find branch first
+		    find_branch_from_tag $matched_tag
+		    myecho match tag $match_tag branch $branch
+		    if [ "$match_tag" = "$branch" ]; then
+			myecho MATCH module : $brand tag : $matched_tag
+			bom_name=${bom/.mk}
+			bom_name=${bom_name/src\/tools\/release\/}
+			matched_bom_list="$matched_bom_list $bom_name"
+		    fi
+		fi
+		
+	    fi
+	done
+	if [ "$matched_bom_list" != "" ]; then
+	    echo Inventory : $var
+	    echo "  " $matched_bom_list
+	fi
+	rm -rf src/tools/release
+    done
+}
+
+
+extract()
+{
+    #by default, we turn verbosity on for extracting
+    if [ "$HNDCVS_DBG" != "FALSE" ]; then
+	verbose=TRUE
+    fi
+
+    if [ "$verbose" = "FALSE" ]; then
+	MAKE_CMD="$MAKE -s"
+    fi
+
+    #don't print Entering/Leaving directory lines
+    MAKE_CMD="$MAKE_CMD --no-print-directory"
+
+    mktype=SRC
+    if [ "$brand_filetype" = "product" ]; then
+	if [ "$tagtype" = "REL" -o "$operation" = "ExtractRelease" ]; then
+	    mktype=REL_SRC
+	fi
+
+	if [ "$nocheck" = "1" ]; then
+	    no_co="-n"
+	fi
+
+	#always process the product file
+	nocheck=0
+    elif [ "$no_co" = "-k" ]; then
+	# if component and -k is specified, exit
+	return
+    fi
+    if [ "$date_req" = "0" ]; then
+	date_spec=""
+    else
+	date_spec="$date" 
+    fi
+    if [ "$nocheck" = "0" ]; then
+	if test -f $file; then
+	    
+	    myecho $MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" LOCAL=$local DATE="$date_spec" HEAD_REQ="$HEAD_REQ"  NO_CO="$no_co" TAG_NAME="$tag" REL_REQ="$rel_requested" MK_TYPE=$mktype -f $file $sub_target
+	    $MAKE_CMD  DEFS="$bomdefs" CVS_OPT="$cvs_opt" LOCAL=$local DATE="$date_spec" HEAD_REQ="$HEAD_REQ" NO_CO="$no_co" TAG_NAME="$tag" REL_REQ="$rel_requested" MK_TYPE=$mktype -f $file $sub_target
+	fi
+    fi
+    
+}
+
+output_file=""
+
+find_dir_file()
+{
+    if [ "$verbose" = "FALSE" ]; then
+	MAKE_CMD="$MAKE -s"
+    fi
+
+    mktype=FIND
+    
+ 
+
+    if [ "$local" = "1" ]; then 
+	LOCAL_OPT="-l"
+    fi
+
+    if test -f $file; then
+	myecho $MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" LOCAL=$LOCAL_OPT MOD="$brand" HEAD_REQ="$HEAD_REQ" FILE="$find_target" \
+	    TAG_NAME="$tag" MK_TYPE=$mktype FIND_OP=$find_op REL_REQ="$rel_requested" -f $file $sub_target
+	if [ "$output_file" != "" ]; then
+	    	$MAKE_CMD  DEFS="$bomdefs" CVS_OPT="$cvs_opt" LOCAL=$LOCAL_OPT MOD="$brand" HEAD_REQ="$HEAD_REQ" FILE="$find_target" \
+		    TAG_NAME="$tag" MK_TYPE=$mktype FIND_OP=$find_op REL_REQ="$rel_requested"  -f $file $sub_target >> $output_file
+	else
+	    $MAKE_CMD  DEFS="$bomdefs" CVS_OPT="$cvs_opt" LOCAL=$LOCAL_OPT MOD="$brand" HEAD_REQ="$HEAD_REQ" FILE="$find_target" \
+		TAG_NAME="$tag" MK_TYPE=$mktype FIND_OP=$find_op REL_REQ="$rel_requested" -f $file $sub_target
+	fi
+    fi
+
+}
+
+build_filelist ()
+{
+
+
+    if [ "$head_requested" = 1 ]; then
+	find_branch_from_tag $2
+    fi
+
+    if [ "$brand_filetype" = "component" ]; then
+	file=src/tools/release/components/"$1"-filelist.txt
+	# for backward compatibility
+	file2=src/tools/release/components/"$1".filelist	
+    fi
+    if [ "$local" != "1" ]; then 
+	if [ "$head_requested" = "1" ]; then
+	    if [ "$branch" != "" ]; then	
+		co_file "-r $branch" $file
+	    else
+		co_file $file
+	    fi    
+	else
+	    if [ "$2" != "" ]; then	
+		co_file "-r $2" $file 
+	    else
+		co_file $file
+	    fi
+	fi
+    fi
+
+    if [ ! -f $file  ]; then 
+	myecho Could not find $file 
+	if [ ! -f $file2  ];  then 
+	    myecho Could not find $file2
+	    return
+	fi
+	file=$file2
+    fi
+
+    if [ "$brand_filetype" = "product" ]; then
+	if [ "$output_file" = "" ]; then
+	    output_file="$file"-filelist.txt
+	fi
+	echo "" > $output_file
+	myecho $MAKE_CMD DEFS="$bomdefs" LOCAL=$LOCAL_OPT CVS_OPT="$cvs_opt"  DATE="$date" HEAD_REQ="$HEAD_REQ" REL_REQ="$rel_requested" MK_TYPE=FILELIST  OUT_FILE=$output_file -f $file $sub_target
+	$MAKE_CMD -s DEFS="$bomdefs" LOCAL=$LOCAL_OPT CVS_OPT="$cvs_opt"  DATE="$date" HEAD_REQ="$HEAD_REQ" REL_REQ="$rel_requested" MK_TYPE=FILELIST  OUT_FILE=$output_file -f $file $sub_target
+    else
+	# concatenate the filelists
+       cat $file >> $output_file 
+	
+    fi
+}
+
+module_list_change_report ()
+{
+    if [ "$tag" != "" ]; then
+	echo revisions=`cvs log -N -r$tag src/tools/release/module_list.mk | grep -v "total revisions:" | grep -m 3 revision`	
+	revisions=`cvs log -N -r$tag src/tools/release/module_list.mk | grep -v "total revisions:" | grep -m 3 revision`	
+    else
+	revisions=`cvs log -N src/tools/release/module_list.mk | grep -v "total revisions:" | grep -m 2 revision`	
+    fi
+
+    revs=(${revisions})
+    echo rev 1 : ${revs[1]} rev2 : ${revs[3]}
+    # get the two revisions
+    mod_tag="$mod_list"_"${revs[1]}"
+    mod_branch="$mod_list"_"${revs[3]}"
+
+    echo "cvs co -p -r ${revs[1]} $mod_list > $mod_tag"
+    
+    cvs co -p -r ${revs[1]} $mod_list > $mod_tag
+    
+    echo "cvs co -p -r ${revs[3]} $mod_list > $mod_branch"
+
+    cvs co -p -r ${revs[3]} $mod_list > $mod_branch
+
+    diff_type=DIFF_BRANCH_BRANCH
+
+    echo $MAKE_CMD DEFS="$bomdefs" diff_opt=-rlog CVS_OPT="$cvs_opt" MK_TYPE=$diff_type MOD_FILE=$mod_tag DIFF_MOD_FILE=$mod_branch DIFF_MAKE=$file -f "$file"
+
+    out_prefix=diff_"$brand"_"${revs[1]}"_"${revs[3]}"
+
+    $MAKE_CMD DEFS="$bomdefs" diff_opt=-rlog CVS_OPT="$cvs_opt" MK_TYPE=$diff_type MOD_FILE=$mod_tag DIFF_MOD_FILE=$mod_branch DIFF_MAKE=$file -f "$file" >> "$out_prefix".txt
+}
+
+parse_report ()
+{
+
+report=$1
+fdate=""
+# check the date tag
+
+IFS="/" file_name=(${report})
+unset IFS
+
+size=${#file_name[@]}
+
+IFS="_" filedate=(${file_name[$size-1]})
+unset IFS
+
+if [ "$output_file" = "" ]; then  
+    if [ "${filedate[3]}" = "ALL.html" ]; then
+	fdate=."${filedate[0]}""_""${filedate[1]}"_"${filedate[2]}" 
+    fi
+    hndcvs_cvs_report=hndcvs_cvsreport."$brand"."$tag""$fdate".html
+else
+    hndcvs_cvs_report=$output_file
+fi
+
+# use awk script to produce a list of modified files with their tag appended 
+
+find_target=`src/hndcvs/hndcvs_parse_report.awk $report`
+
+myecho FILELIST : $find_target
+
+# check if module_list.mk was modified
+mod_list_modified=${find_target/*module_list*/LIST_MODIFIED}
+if [ "$mod_list_modified" = "LIST_MODIFIED" ]; then
+    echo $mod_list_modified
+#   module_list_change_report
+fi
+
+# call BOM call individual modules with the appropriate module tag
+
+#initialize output file
+output_file=$hndcvs_cvs_report
+echo "" > $hndcvs_cvs_report
+
+find_dir_file
+
+# check that the output is not empty 
+output=`grep -o "found in" $hndcvs_cvs_report`
+if [ "$output" = "" ]; then
+    echo No relevant changes on this bom.
+    `rm $hndcvs_cvs_report`
+    exit 0
+fi
+
+`cat $hndcvs_cvs_report $report >  tmp_report.html`
+
+# call awk script again to produce final html file
+`src/hndcvs/hndcvs_report.awk  tmp_report.html > $hndcvs_cvs_report` 
+
+`rm tmp_report.html`
+}
+
+display_info ()
+{
+
+
+    find_branch_from_tag $tag
+    if [ "$head_requested" = 1 ]; then
+	check_file $branch
+    else
+	check_file $tag
+    fi
+
+    if [ "$branch" = "" ]; then
+	branch=HEAD
+    fi
+
+    if [ "$head_requested" = 1 ]; then
+	tag=$branch
+    fi
+
+    get_latest_tag
+
+    
+    if [ "$verbose" = "FALSE" ]; then
+	MAKE_CMD="$MAKE_CMD -s"
+    fi
+
+    if [ "$brand_filetype" = "component" ]; then
+	echo ""
+	echo "MODULE :        $brand"
+	echo "   FILE :       $file"
+	echo "   TAG :        $tag"
+	echo "   BRANCH:      $branch"
+	echo "   LATEST TAG : $latest_tag_on_branch"
+    else
+	myecho $MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" MK_TYPE=DISPLAY HEAD_REQ="$HEAD_REQ"  REL_REQ=$rel_requested -f $file $sub_target
+	$MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" MK_TYPE=DISPLAY HEAD_REQ="$HEAD_REQ" REL_REQ=$rel_requested -f $file $sub_target
+    fi
+}
+
+
+#  diff "brand" between "tag" and "branch" 
+
+diff_tag_branch()
+{
+    identical=0
+    rtag=""
+    if [ "$tag" != "" ]; then 
+	rtag="-r $tag"
+    fi 
+    if [ "$tag" = "" ]; then
+	tag=HEAD
+    fi
+
+    if [ "$branch" = "" ]; then
+	branch=HEAD
+    else 
+	rbranch="-r $branch"
+    fi
+    
+    # if tags are identical, and this is a component, bail
+    # if this is a product, we can still diff the different sets of 
+    # components release VS head, dev VS head etc.
+    if [ "$tag" = "$branch" ]; then
+	identical=1
+	if [ "$brand_filetype" = "component" ]; then
+	    echo not diffing identical tags  !! 
+	return
+	fi
+    fi
+
+     if [ "$brand_filetype" = "component" ]; then
+	file="src/tools/release/components/$brand.mk"
+    else
+	file="src/tools/release/$brand.mk"
+    fi
+
+    tag_file="$file"_"$tag" 
+
+    if test ! -f $file -o $local -eq 0 ; then 
+	    cvs -Q co -AP $rtag $file
+    fi
+
+    if test ! -f $file ; then 
+    	echo "Product file not found. "
+	return
+    fi
+    
+    cp $file $tag_file
+
+    #if this is the first diff for this brand (this won't be true in case we need to check with a newer tag)\
+    #and we want to redirect the output, initialize the output file.
+
+    if [ "$first_call" = "1" -a "$redir" = "1" ]; then   
+	out_prefix=diff_"$brand"_"$tag"_"$branch"
+	out_prefix=${out_prefix/\//-}
+	echo  "" > "$out_prefix".txt
+    fi
+
+    if [ "$redir" = "1" ]; then
+	echo Diffing MODULE $brand >> "$out_prefix".txt  
+	echo Using TAG $tag >> "$out_prefix".txt  
+	echo Using BRANCH $branch >> "$out_prefix".txt  
+	cvs -Q co -AP -kkv $webdiff
+    else
+	echo Diffing MODULE $brand  
+	echo Using TAG $tag  
+	echo Using BRANCH $branch
+    fi 
+
+    if [ "$brand_filetype" = "component" ]; then
+	get_latest_tag
+	branch_file="$file"_"$branch"
+	myecho cvs co -p -r $branch $file > $branch_file 
+	cvs -Q co -p -r $branch $file > $branch_file 
+	tag_error=0
+	if test ! -f $tag_file ;  then 
+	    echo TAG $tag for $file does not exist
+	    tag_error=1
+	fi
+	
+	if test ! -f $branch_file ;  then 
+	    echo BRANCH $branch for $file does not exist
+	    tag_error=1
+	fi
+	
+	if [  $tag_error = 1  ]; then 
+	    return
+	fi
+	if [ "$verbose" = "FALSE" ]; then
+	    MAKE_CMD="$MAKE -s"
+	fi
+	myecho $MAKE_CMD DEFS="$bomdefs" diff_opt=$diff_opt CVS_OPT="$cvs_opt" MK_TYPE=DIFF DIFF_MAKE=$branch_file TAG_NAME=$tag BRANCH_NAME=$branch -f "$tag_file"  
+	if [ "$redir" = "1" ]; then 
+	    $MAKE_CMD DEFS="$bomdefs" diff_opt=$diff_opt  CVS_OPT="$cvs_opt" MK_TYPE=DIFF DIFF_MAKE=$branch_file TAG_NAME=$tag BRANCH_NAME=$branch -f "$tag_file" >> "$out_prefix".txt 2>&1
+	else
+	    $MAKE_CMD DEFS="$bomdefs" diff_opt=$diff_opt CVS_OPT="$cvs_opt" MK_TYPE=DIFF DIFF_MAKE=$branch_file TAG_NAME=$tag BRANCH_NAME=$branch -f "$tag_file"
+	fi
+
+	# if we are diffing against head and if there is a different latest tag on branch, diff it now
+	if [ "$diff_type" = "-dh" ]; then
+	    if [ "$latest_tag_on_branch" != "" -a "$tag" != "$latest_tag_on_branch" ]; then
+		first_call=0
+		myecho New TAG for module "$brand" : "$latest_tag_on_branch"
+		myecho Diffing against new tag 
+		tag="$latest_tag_on_branch"
+		diff_tag_branch
+	    fi
+    fi
+
+    else
+	# this is a BOM
+
+	# figure out what kind of diff we want
+	# default -d : interpret the tags
+	# split tag into array
+	IFS="_	     " temptag=(${tag})
+	unset IFS
+	
+        # Grab the type of tag: REL, BRANCH, TWIG etc.
+	tagtype=${temptag[1]:-0}
+	
+	if [ "$tagtype" = "REL" ]; then
+	    diff1="TAG"
+	else
+	    diff1="BRANCH"
+	fi
+	
+	IFS="_	     " temptag=(${branch})
+	unset IFS
+	
+        # Grab the type of tag: REL, BRANCH, TWIG etc.
+	tagtype=${temptag[1]:-0}
+	
+	if [ "$tagtype" = "REL" ]; then
+	    diff2="TAG"
+	else
+	    diff2="BRANCH"
+	fi
+	if [ "$diff_type" = "-dh" ]; then
+	# special case : we want to use heads against release of all modules
+	    diff2="HEAD"
+	    diff1="TAG"
+	elif [ "$diff_type" = "-dr" ]; then
+	    # we want both release
+	    diff1=TAG
+	    diff2=TAG
+	elif [ "$diff_type" = "-dd" ]; then
+	    # we want both top of branches
+	    diff1=BRANCH
+	    diff2=BRANCH
+	elif [ "$diff_type" = "-drd" ]; then 	    
+	    diff1=TAG
+	    diff2=BRANCH
+	elif [ "$diff_type" = "-ddr" ]; then 	  
+	    diff1=BRANCH
+	    diff2=TAG
+	elif [ "$diff_type" = "-ddh" ]; then 	  
+	    diff1=BRANCH
+	    diff2=HEAD
+	elif [ "$diff_type" = "-drh" ]; then 	  
+	    diff1=TAG
+	    diff2=HEAD
+	fi
+
+	diff_type=DIFF_"$diff1"_"$diff2"
+	
+	branch_file="$file"_"$branch"
+	
+	#if local, do not override the existing file
+	if [ "$local" = "1" ]; then
+	    myecho "cvs co -p $rbranch $file > $branch_file"
+	    cvs -Q  co -p $rbranch $file > $branch_file
+	else
+	    # if not local, do a normal checkout to allow edit and commit locally
+	    if [ "$identical" = "0" ]; then
+		myecho "cvs co -p $rbranch $file > $branch_file" 
+		cvs -Q  co -AP $rbranch $file
+		cp $file $branch_file
+	    fi
+	fi
+
+	if [ "$local" = "1" ]; then
+	    mod_tag="$mod_list"_"$tag"_"LOCAL"
+	else
+	    mod_tag="$mod_list"_"$tag"
+	fi
+
+	mod_branch="$mod_list"_"$branch"
+
+	# we also need the module_list.mk
+	
+	if test ! -f $$mod_list -o $local -eq 0 ; then 
+	    myecho "cvs -Q co -AP $rtag $mod_list > $mod_tag"
+	    cvs -Q co -AP $rtag $mod_list
+	fi
+	cp $mod_list $mod_tag
+	
+	#if local, do not override the existing file
+	if [ "$local" = "1" ]; then
+	    myecho "cvs -Q co -p $rbranch $mod_list" > $mod_branch 
+	    cvs -Q co -p $rbranch $mod_list > $mod_branch 
+	else
+	    # if not local, do a normal checkout to allow edit and commit locally
+	    if [ "$identical" = "0" ]; then
+		myecho "cvs -Q co -p $rbranch $mod_list" > $mod_branch 
+		cvs -Q co -AP $rbranch $mod_list
+		cp $mod_list $mod_branch
+	    fi
+	fi
+
+	myecho 	$MAKE_CMD DEFS="$bomdefs" diff_opt=$diff_opt CVS_OPT="$cvs_opt" MK_TYPE=$diff_type MOD_FILE=$mod_tag DIFF_MOD_FILE=$mod_branch DIFF_MAKE=$branch_file -f "$tag_file"
+
+	out_prefix=diff_"$brand"_"$tag"_"$branch"
+
+	$MAKE_CMD DEFS="$bomdefs" diff_opt=$diff_opt CVS_OPT="$cvs_opt" MK_TYPE=$diff_type MOD_FILE=$mod_tag DIFF_MOD_FILE=$mod_branch DIFF_MAKE=$branch_file -f "$tag_file" >> "$out_prefix".txt 2>&1
+	
+    fi
+    if [ "$redir" = "1" -a "$diff_opt" = "" ]; then 
+	awk -v DIFF_BRAND=$brand -v DIFF_TAG1=$tag -v DIFF_TAG2=$branch -f $webdiff "$out_prefix".txt > "$out_prefix".html
+	if [ $WEBBROWSER != "" ]; then
+	    myecho $WEBBROWSER "$out_prefix".html
+	    $WEBBROWSER "$out_prefix".html
+	fi
+    fi
+    
+}
+
+
+# TAG : tag everything (BOM + cvs sources). Apply naming convention
+# check and figure out branches automacally 
+
+# FORCE_TAG : flag indicating that we don't apply naming convention
+# check or try figure out branches automatically. This is used to do "blanket global tagging" 
+# accross components.
+
+
+tag()
+{
+    dotag=1;
+    mk_type=TAG
+    force_tag=0
+    echo TAG mode = $tag_mode
+   # if the tag is already set on the component file, bail tagging unless forced
+    if [ "$tag_mode" = "force" ]; then
+	 force_tag=1
+	 dotag=1
+     else
+	 cvs status -v $file | grep $tag
+	 if [ $? = 0 ]; then
+	     myecho tag $tag already exist on file $file
+	     dotag=0
+	 fi
+     fi
+
+     if test -f $file; then
+	if test "$brand_filetype" = "component"; then
+	    myecho Tagging component script file $file
+	    myecho $operation : $MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" TAG_NAME="$tag" BRANCH_NAME="$branch" MK_TYPE="$mk_type" FORCE_TAG=$force_tag -f $file;
+	    if [ $dotag = 1 -a $noop = 0 ]; then
+		$MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" TAG_NAME="$tag" BRANCH_NAME="$branch" MK_TYPE="$mk_type" FORCE_TAG=$force_tag -f $file;
+	       # tag the component file AFTER the module has been tagged 
+	       # The existence of the tag on the mk file 
+	       # indicates the completion of the tag module operation.
+		if [ $? = 0 ]; then
+            	    myecho $operation : cvs rtag $rbranch $tag $file
+		    cvs rtag $rbranch $tag $file
+		else
+		    echo Tagging module $brand with tag $tag failed. Tagging will be attempted next time again.
+		fi
+            fi
+	else
+	    myecho Tagging product file $file
+	    # two cases : 
+	    #    - If we are tagging all modules in a product branch, but do not release the release_scripts
+	    #      There is no need to check for consistency. 
+	    #    - if we are releasing an inventory with a static tag, check that it is the one in the module_list.mk
+	    if [ "$rel_requested" != "Y" ]; then 
+		mk_type=TAG_BRANCH
+	    else
+	    # first, we absolutely need a non-locally modified  module list (if releveant) or bom file
+		if test -f $mod_list; then
+		    cvs status  $mod_list | grep "Locally Modified"
+		    if [ $? = 0 ]; then
+			echo module list is locally modified !!! Please commit your changes first !!!
+			exit -127
+		    fi
+		fi
+	    #check the bom as well
+		cvs status  $file | grep "Locally Modified"
+		if [ $? = 0 ]; then
+		    echo BOM file is locally modified !!! Please commit your changes first !!!
+		    exit -127
+		fi
+	    # NEVER force a tag on a product. This is used for blanket tagging of components only.
+		if [ "$force_tag" != "1" ]; then
+		    if [ $dotag = 1 -a $noop = 0 ]; then
+			myecho cvs rtag $rbranch $tag $file
+			cvs rtag $rbranch $tag $file
+		    fi
+		fi
+	    fi
+	    # always call make on components list
+	    myecho $operation : $MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" TAG_NAME="$tag" BRANCH_NAME="$branch" MK_TYPE="$mk_type" FORCE_TAG=$force_tag -f $file $sub_target;
+	    $MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" TAG_NAME="$tag" BRANCH_NAME="$branch" MK_TYPE="$mk_type" FORCE_TAG=$force_tag -f $file $sub_target;
+	fi
+    fi
+}
+
+branch()
+{
+    if test -f $file; then
+	if test "$brand_filetype" = "component"; then
+	    myecho Branching component script file $file
+	    if [ $noop = 0 ]; then 
+		$MAKE_CMD DEFS="$bomdefs" CVS_OPT="$cvs_opt" TAG_NAME="$tag" BRANCH_NAME="$branch" MK_TYPE=BRANCH -f $file;
+		cvs rtag -r $tag -b $branch $file
+	    fi
+	else
+	    echo Cannot Branch product file $file
+	    echo Please branch release_scripts component instead.
+	    exit -1
+	fi
+    fi
+
+}
+
+myecho() 
+{
+    if [ "$verbose" != "TRUE" ]; then
+	return
+    fi
+    while test "$1" != ""; do
+	echo -n "$1 "
+	shift
+    done
+    echo ""
+}
+
+#check that there is no CVS directory around 
+
+if test -d CVS ; then 
+    echo hndcvs cannot be run from inside a CVS controlled directory !!
+    exit -1
+fi
+
+
+diff_type=""
+read_options=1
+verbose=FALSE
+while test "$read_options" = "1"; do
+if test "$1" = "-n"; then
+    nocheck=1
+    shift
+elif [ "$1" = "-k" ]; then
+    no_overwrite=1
+    shift 1
+elif [ "$1" = "-of" ]; then
+    output_file=$2
+    shift 2
+elif [ "$1" = "-rlog" ]; then
+    diff_opt=-rlog
+    shift 1
+elif [ "$1" = "-opt" ]; then
+    cvs_opt="$2"
+    shift 2
+# allow sub targets to be defined
+elif test "$1" = "-m"; then
+#TODO : check that we don't have a "-*" here .. 
+    sub_target=$2
+    shift
+    shift    
+elif test "$1" = "-fd"; then
+   find_op="-fd"
+   find_target=$2
+   shift 2
+elif test "$1" = "-ff"; then
+    find_op="-ff"
+    find_target=$2
+    shift 2
+elif test "$1" = "-md"; then
+   find_op="-md"
+   find_target=$2
+   shift 2
+elif test "$1" = "-mf"; then
+    find_op="-mf"
+    find_target=$2
+    shift 2
+elif test "$1" = "-log"; then
+    find_op="-log"
+    shift
+elif test "$1" = "-logf"; then
+    find_op="-logf"
+    find_target=$2
+    shift 2
+elif test "$1" = "-logd"; then
+    find_op="-logd"
+    find_target=$2
+    shift 2
+elif test "$1" = "-rpt"; then
+    find_op="-mf"
+    report_file=$2
+    shift 2
+elif test "$1" = "-noop"; then
+    noop=1
+    shift
+elif test "$1" = "-h"; then
+    head_requested=1
+    HEAD_REQ=Y
+    shift
+elif test "$1" = "-l"; then
+    local=1
+    LOCAL_OPT=-l
+    shift
+elif test "$1" = "-g"; then
+    global=1
+    shift
+elif test "$1" = "-q"; then
+    redir=0
+    shift
+elif test "$1" = "-date"; then
+    date="$2"
+    if [ "$date" != "" ]; then
+	date_req=1
+    fi
+    shift
+    shift
+elif test "$1" = "-defs"; then
+    bomdefs="$2"
+    shift
+    shift
+elif test "$1" = "-new_make"; then
+# redefine "make" to use Philippe's up-to-date version
+# which supports the "eval" function (since 2005...)
+    MAKE=$2
+    newmake=1
+    shift
+    shift
+else
+    read_options=0
+fi;
+done
+
+if [ "$HNDCVS_DBG" = "TRUE" ]; then
+    verbose=TRUE
+fi
+
+myecho operation = $1 no checkout = $nocheck,  no op = $noop, sub target = $sub_target, new make = $MAKE
+
+MAKE_CMD="$MAKE"
+
+#test if we have an explicit command or use the implicit default "checkout"
+#TODO : it should more simple to detect the "-" sign here instead of checking every 
+#single options !
+
+op=$1
+
+if [ "${op:0:1}" = "-" ]; then
+    shift
+else
+    op=co
+fi
+
+
+if test "$1" = "-r"; then
+    if [ $local = 1 ]; then
+	echo cannot use a pre-checkout for tagging! please remove -l option.
+	exit -1
+    fi 
+elif test "$1" = "-b"; then
+    if [ $local = 1 ]; then
+	echo cannot use a pre-checkout for branching!  please remove -l option.
+	exit -1
+    fi 
+fi
+
+nargs=$#
+
+#from here, the first arg must be the brand (if not global) then the tags
+  
+if [  $global = 0 ]; then
+    brand=$1
+    tag1=$2
+    tag2=$3
+else
+    brand="modules-list-bom"
+    tag1=$1
+    tag2=$2
+    nargs=$(($# + 1))
+fi 
+
+# always figure the brand type first
+
+check_brandtype
+
+# DIFF : -dxx
+diff_type=$op
+
+# generic diff.
+# Takes 2 of TAGS/BRANCH
+# Takes tags as-is
+
+if [ "$op" = "-d" ]; then
+    
+    if [ $nargs -eq 3 ]; then	
+	# diff against the local tree
+	# checkout src/tool/release directory for the specified tag
+	tag=$tag1
+	branch=$tag2
+	myecho 1>&2 diff $brand between $tag and  $branch
+	diff_tag_branch
+    else
+	echo Wrong number of argument for Diffing -d
+	exit -127
+    fi
+# 
+# if this is a BOM, 
+# with one TAG : diff heads of all modules of the ToP with the
+# release versions of the TAG
+# for a component, diff the TAG with its head.
+
+elif test "$op" = "-dh" ; then
+    if [ $nargs -eq 1 ]; then
+	if [ $local = 1 ]; then 
+	    myecho diff local brand $brand
+        else
+	    myecho diff TOT brand $brand
+	    branch=HEAD
+	fi
+	diff_tag_branch
+    elif [ $nargs -eq 2 ]; then	
+	tag=$tag1
+	find_branch_from_tag $tag
+	if [ "$branch" = "" ]; then
+	    branch=HEAD
+	fi
+	myecho 1>&2 diff $brand between $tag and top of all modules of $branch
+	diff_tag_branch
+    else
+	echo Wrong number of argument for Diffing
+	exit -127
+    fi
+
+# diff of top of branches., both tags are resolved into the top of their branch
+# if this is a BOM, diff head versions of all modules
+elif [ "$op" = "-ddh" -o "$op" = "-dhh" ]; then
+    if [ $nargs -eq 2 ]; then
+	tag2=$tag1
+    fi
+    if [ $nargs -eq 3 -o $nargs -eq 2 ]; then
+	tag=$tag1
+	find_branch_from_tag $tag1
+	tag=$branch
+	branch=""
+	find_branch_from_tag $tag2
+	if [ "$branch" = "" ]; then
+	    branch=HEAD
+	fi 
+	myecho 1>&2 diff $brand between top of $tag top of  $branch
+	diff_tag_branch
+    else
+	echo Wrong number of argument for Diffing -dr
+	exit -127
+    fi
+
+# diff of top of branches., both tags are resolved into the top of their branch
+# if this is a BOM, diff dev versions of all modules
+elif [ "$op" = "-dd" ]; then
+    if [ $nargs -eq 2 ]; then
+	tag2=$tag1
+    fi
+    if [ $nargs -eq 3 -o $nargs -eq 2 ]; then
+	tag=$tag1
+	find_branch_from_tag $tag1
+	if [ "$branch" = "" ]; then
+	    branch=HEAD
+	fi
+	tag=$branch
+	branch=""
+	myecho find_branch_from_tag $tag2
+	find_branch_from_tag $tag2
+	myecho "branch = $branch"
+	if [ "$branch" = "" ]; then
+	    branch=HEAD
+	fi 
+	myecho diff $brand between top of $tag and top of $branch
+	diff_tag_branch
+    else
+	echo Wrong number of argument for Diffing -dr
+	exit -127
+    fi
+# diff of top of branch with tag
+# if this is a BOM, diffs the dev version of module of the ToP corresponding to TAG1
+# with the released version of modules of TAG2.  
+elif [ "$op" = "-ddr" ]; then
+    if [ $nargs -eq 2 ]; then
+	tag2=$tag1
+    fi
+    if [ $nargs -eq 3 -o $nargs -eq 2 ]; then
+	myecho find_branch_from_tag $tag1
+	find_branch_from_tag $tag1
+	if [ "$branch" = "" ]; then
+	    branch=HEAD
+	fi
+	tag=$branch
+	branch=$tag2
+	myecho diff $2 between top of $tag and release $branch
+	diff_tag_branch
+    else
+	echo Wrong number of argument for Diffing -ddr
+	exit -127
+    fi
+
+# diff of released tag with top of branch
+# if this is a BOM, diffs the released version of TAG1
+# with the dev version of TAG2.
+elif [ "$op" = "-drh" -o "$op" = "-drd" ]; then
+    if [ $nargs -eq 2 ]; then
+	tag2=$tag1
+    fi
+    if [ $nargs -eq 3 -o $nargs -eq 2 ]; then
+	# checkout src/tool/release directory for the specified tag
+	tag=$tag1
+	find_branch_from_tag $tag2
+	if [ "$branch" = "" ]; then
+	    branch=HEAD
+	fi
+	myecho  diff $brand between release $tag and top of $branch
+	diff_tag_branch
+    else
+	echo Wrong number of argument for Diffing -drd
+	exit -127
+    fi
+
+# diff released modules. If the brand is a BOM, diffs between released 
+# versions of modules. 
+
+elif [ "$op" = "-dr" ]; then
+    if [ $nargs -eq 2 ]; then
+	tag2=$tag1
+    fi
+    if [ $nargs -eq 3 -o $nargs -eq 2 ]; then
+	# diff against the local tree
+	# checkout src/tool/release directory for the specified tag
+	tag=$tag1
+	branch=$tag2
+	myecho 1>&2 diff $2 between release $tag and release $branch
+	diff_tag_branch
+    else
+	echo Wrong number of argument for Diffing -dd
+	exit -127
+    fi
+# TAGGING : -r 
+elif [ "$op" = "-r" -o "$op" = "-t" ]; then
+    parse_tag $tag1
+    #by default, we turn verbosity on for tagging
+    if [ "$HNDCVS_DBG" != "FALSE" ]; then
+	verbose=TRUE
+    fi
+    #put a "force" option in case a previous tagging was interrupted
+    if [ "$op" = "-t" ]; then 
+        tag_mode=force
+    fi
+    if [ $nargs -lt 2 ]; then
+	echo Not enough arguments for Tagging.
+	exit -127
+    fi
+#    if [ $nargs = 2 -a "$op" = "-t"  ]; then
+#	echo Not enough arguments for Force Tagging.
+#	exit -127
+#    fi
+    
+    # Tag a component
+    # hndcvs -r <component_name> <tag>
+    if [ $nargs -eq 2 ]; then
+	    myecho  Tagging $brand with TAG $tag1
+	    tag=$tag1
+	    branch=""
+	    find_branch_from_tag $tag
+	    operation="Tag"
+	    if [ "$branch" != "" ]; then
+		myecho Tagging branch $branch
+		rbranch="-r $branch"
+		operation="TagBranch"
+	    fi
+	    check_file "$branch"
+	    if [ "$rel_requested" = "Y" ]; then
+		check_tag
+	    fi 
+	    tag
+    #Tag a component on a Branch/Twig/Tag/Base
+    # hndcvs -r <component_name> <branch/base> <tag>
+    elif [ $nargs -eq 3 ]; then
+	    myecho 1>&2 tagging $brand with tag $tag2 at tag $tag1
+	    tag=$tag2
+	    # Branch/Base tag
+	    branch="$tag1"
+	    rbranch="-r $branch"
+	    operation="TagBranch"
+	    if [ $tag_mode = 0 ]; then
+		find_branch_from_tag $tag
+		check_tag
+	    fi
+	    check_file "$branch"
+	    tag
+    else 
+	echo Too many arguments for Tagging.
+	exit -127
+    fi
+# EXTRACT RELEASE : -rel 
+elif test "$op" = "-rel"; then
+    #rel_requested=Y
+    parse_tag $tag1
+    operation="ExtractRelease"
+
+    if [ $nargs -eq 2 ]; then
+	    myecho  extract release $tag1 of module $brand
+	    tag=$tag1
+	    if [ "$rel_requested" = "Y" ]; then
+		check_tag
+	    fi
+    # use local bom file or top of tree	    
+    elif [ $nargs -eq 1 ]; then
+	tag=""
+	# this is supported only for bom 
+	if [ "$brand_filetype" != "product" ]; then
+	    echo Component releases need a TAG for extraction.
+	    exit -1
+	fi
+	if [ "$local" = "1" ]; then
+	    myecho extract release from local copy of $brand
+	else
+	    myecho extract release from $brand on TOT
+	fi
+    else
+	echo Wrong number of argument for Release
+	exit -1
+    fi
+    check_file $tag
+    extract
+
+# BRANCHING : -b
+elif test "$op" = "-b"; then
+    #by default, we turn verbosity on for branching
+    if [ "$HNDCVS_DBG" != "FALSE" ]; then
+	verbose=TRUE
+    fi
+    # Branch/Twig a component based on a BASE tag
+    # hndcvs -b <component_name> <base tag> <branch>
+    if [ $nargs -eq 3 ]; then
+        myecho 1>&2 Branching $brand with branch name $tag2 at tag $tag1
+	tag=$tag1
+	branch="$tag2"
+	rbranch="-r $branch"
+	operation="Branch"
+	check_tag
+	check_file "$tag1"
+	branch
+    else
+	echo Wrong number of argument for Branching
+	exit -127
+    fi
+elif test "$op" = "-v"; then
+    if [ $nargs -eq 1 ]; then
+	myecho Displaying module $brand on HEAD
+	tag=""
+	display_info
+    elif [ $nargs -eq 2 ]; then
+	myecho Displaying module $brand for TAG $tag1
+	tag=$tag1
+	branch=""
+	display_info
+    else
+	echo Wrong number of argument for Branching
+	exit -127
+    fi
+elif test "$op" = "-flst"; then
+    build_filelist $brand $tag1
+
+elif test "$op" = "-find-boms"; then
+    match_module_in_boms
+# CHECKOUT or FIND  
+else
+
+# Checkout of a component
+# hndcvs <component_name>
+# allow date option to apply
+# date="$date_op"
+# date_req=$date_req_op
+
+    if [ "$op" != "co" -a "$find_op" = "" ]; then
+	echo unknown operation : $op
+	exit -1
+    fi
+    if [ $nargs -eq 1 ]; then
+	tag=""
+	check_file
+	if [ "$find_op" = "" ]; then
+	    myecho Checkout TOC for $brand
+	    extract
+	elif [ "$report_file" != "" ]; then
+	    parse_report $report_file
+	else
+	    myecho find files in TOC for $brand
+	    find_dir_file
+	fi
+# Normal checkout of a component from TAG
+# hndcvs <component_name> [tag]
+    elif [ $nargs -eq 2 ]; then
+        tag=$tag1
+	operation="ExtractTag"
+	check_tag
+	if [ $head_requested = 1 ]; then
+	    find_branch_from_tag $tag
+	    myecho tag $tag branch $branch
+	    tag=$branch
+	    tagtype=""
+	else
+	    operation="ExtractTag"
+	fi
+	check_file "$tag"    
+	if [ "$find_op" = "" ]; then
+	    myecho Checkout TAG $tag  for  $brand
+	    extract
+	elif [ "$report_file" != "" ]; then
+	    parse_report $report_file
+	else
+	    myecho find files in $tag for $brand
+	    find_dir_file
+	fi
+    fi
+fi

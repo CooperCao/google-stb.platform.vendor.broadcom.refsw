@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -304,7 +304,7 @@ static int addFdToMonitorList( void )
         if (pIoCheckerFactory->pfd) {B_Os_Free( pIoCheckerFactory->pfd ); }
         /*everytime we increase the allocation by BIP_NUM_POLL_FD_ALLOCATE*/
         pIoCheckerFactory->pfd = tempPfd;
-        BDBG_MSG(( "%s Pfd ReAllocated   oldSize = %d and newSize = %d ", __FUNCTION__, pIoCheckerFactory->numPfdAllocated, newSize ));
+        BDBG_MSG(( "%s Pfd ReAllocated   oldSize = %d and newSize = %d ", BSTD_FUNCTION, pIoCheckerFactory->numPfdAllocated, newSize ));
         pIoCheckerFactory->numPfdAllocated = newSize;
 
     }
@@ -377,7 +377,7 @@ static void pipeReadCallback(
 
     readCount = read(pIoCheckerFactory->pipeFd[0], &msg, sizeof(BIP_IoCheckerPipeMsg));
     if (readCount < (ssize_t)sizeof(BIP_IoCheckerPipeMsg)) {
-        BDBG_WRN(("%s: Partial read from pipeFd, count = %zd", __FUNCTION__, readCount));
+        BDBG_WRN(("%s: Partial read from pipeFd, count = %zd", BSTD_FUNCTION, readCount));
     }
     else {
         switch(msg)
@@ -393,7 +393,7 @@ static void pipeReadCallback(
             /*void*/
             break;
         }
-        BDBG_MSG(("%s: Call back executed for a message = %d", __FUNCTION__, msg));
+        BDBG_MSG(("%s: Call back executed for a message = %d", BSTD_FUNCTION, msg));
     }
     BDBG_LEAVE( pipeReadCallback );
 }
@@ -426,9 +426,9 @@ static void ioWorkerThread ( void *context )
 
         if(numFdsPolled)
         {
-            /*BDBG_ERR(("%s: ---------------------- Start Polling -----------------------",__FUNCTION__));*/
+            /*BDBG_ERR(("%s: ---------------------- Start Polling -----------------------",BSTD_FUNCTION));*/
             numReadyFds = poll( pfds, numFdsPolled, timeout );
-            /*BDBG_ERR(("%s: ---------------------- End Polling -----------------------",__FUNCTION__));*/
+            /*BDBG_ERR(("%s: ---------------------- End Polling -----------------------",BSTD_FUNCTION));*/
         }
 
         if(numReadyFds)
@@ -502,9 +502,9 @@ static void ioWorkerThread ( void *context )
             {
                 /*TODO:Call the call back*/
                 /*hIoCheckerReady->settings.dataReadyCallback */
-                BDBG_MSG(("%s: Entering Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", __FUNCTION__, (void *)hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
+                BDBG_MSG(("%s: Entering Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", BSTD_FUNCTION, (void *)hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
                 hIoCheckerReady->settings.callBackFunction( hIoCheckerReady->settings.callBackContext,hIoCheckerReady->settings.callBackParam, eventMask);
-                BDBG_MSG(("%s: Exiting Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", __FUNCTION__, (void *)hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
+                BDBG_MSG(("%s: Exiting Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", BSTD_FUNCTION, (void *)hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
             }
 
             B_Mutex_Lock( pIoCheckerFactory->ioCheckerLock );
@@ -539,7 +539,7 @@ static void ioWorkerThread ( void *context )
         }
     }
 
-    BDBG_MSG(("%s: Exiting thread for threadIndex = %d ", __FUNCTION__, pIoWorker->threadIndex));
+    BDBG_MSG(("%s: Exiting thread for threadIndex = %d ", BSTD_FUNCTION, pIoWorker->threadIndex));
 }
 
 static void stopWorkerThreads(void)
@@ -627,7 +627,7 @@ static void destroyIoChecker(
 
     if(hIoChecker)
     {
-        BDBG_MSG(("%s: Deleting hIoChecker = %p for fd = %d", __FUNCTION__, (void *)hIoChecker, hIoChecker->fd));
+        BDBG_MSG(("%s: Deleting hIoChecker = %p for fd = %d", BSTD_FUNCTION, (void *)hIoChecker, hIoChecker->fd));
 
         /* IoChecker element is already removed from the Factory list and */
 
@@ -752,7 +752,7 @@ static void ioCheckerUninit(void)
 
     BDBG_ASSERT( pIoCheckerFactory );
 
-    BDBG_MSG(("%s:",__FUNCTION__));
+    BDBG_MSG(("%s:",BSTD_FUNCTION));
     /* ioCheckerLock is the first element , if it is NULL, that means it is
      *  failed to create ioCheckerLock mutex in Init,same with ApiLock.
      *  If IoCheckerLock and API lock creation fails then we can't do anything just return,
@@ -895,7 +895,7 @@ BIP_Status BIP_IoChecker_Disable(
     if(rc == BIP_SUCCESS)
     {
         B_Mutex_Lock( pIoCheckerFactory->ioCheckerLock );
-        BDBG_MSG(("%s: disabling fd = %d", __FUNCTION__,hIoChecker->fd ));
+        BDBG_MSG(("%s: disabling fd = %d", BSTD_FUNCTION,hIoChecker->fd ));
 
         /*this will make sure we only remove the set events that uper laywer wants to remove.*/
         BIP_IOCHECKER_DISABLE_EVENTS(hIoChecker->eventMask,eventMask);
@@ -907,7 +907,7 @@ BIP_Status BIP_IoChecker_Disable(
     }
     else
     {
-        BDBG_WRN(("%s: Can't disable the ioChecker object %p , it is not present in the ioCheckerFactoryList", __FUNCTION__, (void *)hIoChecker));
+        BDBG_WRN(("%s: Can't disable the ioChecker object %p , it is not present in the ioCheckerFactoryList", BSTD_FUNCTION, (void *)hIoChecker));
     }
 
     rc = BIP_SUCCESS;
@@ -945,19 +945,19 @@ BIP_Status BIP_IoChecker_Enable(
         B_Mutex_Lock( pIoCheckerFactory->ioCheckerLock );
         hIoChecker->eventMask |= eventMask;
         B_Mutex_Unlock( pIoCheckerFactory->ioCheckerLock );
-        BDBG_MSG(("%s: hIoChecker = %p, fd = %d, Enabled for Events = %d and refCount = %d \n",__FUNCTION__, (void *)hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
+        BDBG_MSG(("%s: hIoChecker = %p, fd = %d, Enabled for Events = %d and refCount = %d \n",BSTD_FUNCTION, (void *)hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
 
         /* B_Mutex_Unlock of ioCheckerLock should always be done before calling updateApiEvent else it will deadlock.*/
         enable = BIP_IoCheckerPipeMsg_eEnableIoChecker;
         updateApiEvent(enable);
-        BDBG_MSG(("%s: enabled hIoChecker for fd = %d", __FUNCTION__, hIoChecker->fd));
+        BDBG_MSG(("%s: enabled hIoChecker for fd = %d", BSTD_FUNCTION, hIoChecker->fd));
         rc = BIP_SUCCESS;
     }
     else
     {
         /*TODO check whether this need to be returned as rc = BIP_ERR_INVALID_PARAMETER;*/
         rc = BIP_SUCCESS;
-        BDBG_WRN(("%s: ioChecker:%p can't be enabled since it is not in the ioChecker list",__FUNCTION__, (void *)hIoChecker));
+        BDBG_WRN(("%s: ioChecker:%p can't be enabled since it is not in the ioChecker list",BSTD_FUNCTION, (void *)hIoChecker));
     }
 
     B_Mutex_Unlock( pIoCheckerFactory->apiLock );
@@ -1042,7 +1042,7 @@ void BIP_IoChecker_Destroy(
         {
             BIP_IoCheckerPipeMsg disable ;
 
-            BDBG_MSG(("%s: disabling hIoChecker for fd = %d", __FUNCTION__,hIoChecker->fd ));
+            BDBG_MSG(("%s: disabling hIoChecker for fd = %d", BSTD_FUNCTION,hIoChecker->fd ));
 
             /*  this will make sure we remove all the events.*/
             hIoChecker->eventMask = 0;
@@ -1066,7 +1066,7 @@ void BIP_IoChecker_Destroy(
             /* Now remove the ioChecker Element from the Factory list and reduce num fd polled.*/
             removeIoCheckerFromIoCheckerFactory(pIoCheckerFactory, hIoChecker);
 
-            BDBG_MSG(("%s: hIoChecker for fd = %d is busy, marked it to delete later", __FUNCTION__, hIoChecker->fd));
+            BDBG_MSG(("%s: hIoChecker for fd = %d is busy, marked it to delete later", BSTD_FUNCTION, hIoChecker->fd));
             /* This unlock will allow the workerThread to acquire the lock
                and set the Callback done event based on deleteMe flag.*/
             B_Mutex_Unlock( pIoCheckerFactory->ioCheckerLock );
@@ -1083,12 +1083,12 @@ void BIP_IoChecker_Destroy(
             B_Mutex_Unlock( pIoCheckerFactory->ioCheckerLock );
         }
 
-        BDBG_MSG(("%s: IoCheckerDestroyed",__FUNCTION__));
+        BDBG_MSG(("%s: IoCheckerDestroyed",BSTD_FUNCTION));
 
     }
     else
     {
-        BDBG_WRN(("%s: Can't destroy the ioChecker object for fd =%d, it is not present in the ioCheckerFactoryList", __FUNCTION__, hIoChecker->fd));
+        BDBG_WRN(("%s: Can't destroy the ioChecker object for fd =%d, it is not present in the ioCheckerFactoryList", BSTD_FUNCTION, hIoChecker->fd));
     }
 
     B_Mutex_Unlock( pIoCheckerFactory->apiLock );
@@ -1151,7 +1151,7 @@ BIP_IoCheckerHandle BIP_IoChecker_Create(
         if (pIoCheckerFactory->pfd) {B_Os_Free( pIoCheckerFactory->pfd ); }
         /*everytime we increase the allocation by BIP_NUM_POLL_FD_ALLOCATE*/
         pIoCheckerFactory->pfd = tempPfd;
-        BDBG_MSG(( "%s Pfd ReAllocated   oldSize = %d and newSize = %d ", __FUNCTION__, pIoCheckerFactory->numPfdAllocated, newSize ));
+        BDBG_MSG(( "%s Pfd ReAllocated   oldSize = %d and newSize = %d ", BSTD_FUNCTION, pIoCheckerFactory->numPfdAllocated, newSize ));
         pIoCheckerFactory->numPfdAllocated = newSize;
         /*B_Mutex_Unlock( pIoCheckerFactory->ioCheckerLock );*/
         B_Mutex_Unlock( pIoCheckerFactory->pollLock);
@@ -1165,7 +1165,7 @@ BIP_IoCheckerHandle BIP_IoChecker_Create(
       * Also reduce the count once a fd is deleted.*/
     B_Mutex_Lock( pIoCheckerFactory->ioCheckerLock );
     BLST_Q_INSERT_TAIL( &pIoCheckerFactory->ioCheckerListHead , hIoChecker, ioCheckerNext );
-    BDBG_MSG(("%s: hIoChecker = %p,fd = %d, Enable for Events = %d and refCount = %d \n",__FUNCTION__, (void *)hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
+    BDBG_MSG(("%s: hIoChecker = %p,fd = %d, Enable for Events = %d and refCount = %d \n",BSTD_FUNCTION, (void *)hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
     pIoCheckerFactory->numFdPolled++;
 
     pIoCheckerFactory->totalNumFdsAdded++;
@@ -1173,7 +1173,7 @@ BIP_IoCheckerHandle BIP_IoChecker_Create(
 
     B_Mutex_Unlock( pIoCheckerFactory->apiLock );
 
-    BDBG_MSG(("%s: Created hIoChecker=%p for fd = %d", __FUNCTION__, (void *)hIoChecker, hIoChecker->fd));
+    BDBG_MSG(("%s: Created hIoChecker=%p for fd = %d", BSTD_FUNCTION, (void *)hIoChecker, hIoChecker->fd));
 
     BDBG_LEAVE( BIP_IoChecker_Create );
     return(hIoChecker);
@@ -1212,14 +1212,14 @@ void BIP_IoCheckerFactory_Uninit( void )
     rc = pthread_mutex_lock(&g_initIoCheckerFactoryMutex);
     if ( rc )
     {
-        BDBG_ERR(("%s:Can't Acquire GlobalInitLock", __FUNCTION__));
+        BDBG_ERR(("%s:Can't Acquire GlobalInitLock", BSTD_FUNCTION));
         BDBG_LEAVE( BIP_IoCheckerFactory_Uninit );
         return;
     }
 
     if (g_refIoCheckerFactoryCount == 0) {
         pthread_mutex_unlock(&g_initIoCheckerFactoryMutex);
-        BDBG_ERR(("%s:IoCheckerFactory Not Initialized", __FUNCTION__));
+        BDBG_ERR(("%s:IoCheckerFactory Not Initialized", BSTD_FUNCTION));
         BDBG_LEAVE( BIP_IoCheckerFactory_Uninit );
         return;
     }
@@ -1232,7 +1232,7 @@ void BIP_IoCheckerFactory_Uninit( void )
 
         BDBG_OBJECT_ASSERT( pIoCheckerFactory, BIP_IoCheckerFactory );
 
-        BDBG_MSG(( "%s: pIoCheckerFactory %p", __FUNCTION__, (void *)pIoCheckerFactory ));
+        BDBG_MSG(( "%s: pIoCheckerFactory %p", BSTD_FUNCTION, (void *)pIoCheckerFactory ));
 
         ioCheckerUninit();
 
@@ -1297,7 +1297,7 @@ BIP_Status BIP_IoCheckerFactory_Init(
         if(pSettings->workerThreads > BIP_MAX_IOWORKER)
         {
              pIoCheckerFactory->initSettings.workerThreads = BIP_MAX_IOWORKER;
-            BDBG_WRN(("%s: Max number of worker threads can be %d, restricting to that value",__FUNCTION__, BIP_MAX_IOWORKER));
+            BDBG_WRN(("%s: Max number of worker threads can be %d, restricting to that value",BSTD_FUNCTION, BIP_MAX_IOWORKER));
         }
     }
 

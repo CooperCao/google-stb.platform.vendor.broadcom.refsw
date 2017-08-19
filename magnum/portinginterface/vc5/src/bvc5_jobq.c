@@ -131,18 +131,6 @@ BVC5_P_InternalJob *BVC5_P_JobQTop(
 
 /***************************************************************************/
 
-static void BVC5_P_JobQInsertTail(
-   BVC5_JobQHandle      hJobQ,
-   BVC5_P_InternalJob  *psJob
-)
-{
-   BLST_Q_INSERT_TAIL(&hJobQ->sQueue, psJob, sJobqChain);
-
-   hJobQ->uiSize++;
-}
-
-/***************************************************************************/
-
 static void BVC5_P_JobQInsertHead(
    BVC5_JobQHandle      hJobQ,
    BVC5_P_InternalJob  *psJob

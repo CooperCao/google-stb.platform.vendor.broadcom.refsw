@@ -184,7 +184,7 @@ Expr *glsl_expr_construct_const_value     (int line_num, PrimitiveTypeIndex type
 Expr *glsl_expr_construct_instance        (int line_num, Symbol *symbol);
 Expr *glsl_expr_construct_subscript       (int line_num, Expr *aggregate, Expr *subscript);
 Expr *glsl_expr_construct_function_call   (int line_num, Symbol *overload_chain, ExprChain *args);
-Expr *glsl_expr_construct_method_call     (int line_num, Expr *aggregate, CallContext *function_ctx);
+Expr *glsl_expr_construct_method_call     (int line_num, Expr *aggregate, const Symbol *func);
 Expr *glsl_expr_construct_constructor_call(int line_num, SymbolType *type, ExprChain *args);
 Expr *glsl_expr_construct_field_selector  (int line_num, Expr *aggregate, const char *field);
 Expr *glsl_expr_construct_unary_op            (ExprFlavour flavour, int line_num, Expr *operand);

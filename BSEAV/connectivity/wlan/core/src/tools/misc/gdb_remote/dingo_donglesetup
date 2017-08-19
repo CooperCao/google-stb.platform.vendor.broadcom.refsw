@@ -1,0 +1,741 @@
+# Free mem list
+define free_list
+  set $free_mem = free_mem
+  print free_mem
+  set $entry = free_mem.next
+  while $entry != 0
+    printf "entry 0x%04x, len %d\n", ($entry), ($entry->size)
+    set $entry = $entry.next
+  end
+end
+
+#Initial setup
+define setup_dngl
+  set print pretty on
+  set print array off
+  echo yes
+end
+
+define setup_usbbus
+  set $usbrte = (drv_t*)usbdev_dev.softc
+  set $ch = (struct usbdev_sb*)$usbrte->ch
+end
+
+define setup_sdbus
+  set $sdrte = (drv_t*)sdpcmd_dev.softc
+  set $sdpcmd = (struct dngl_bus*)$sdrte->sdpcmd
+end
+
+define setup_pciebus
+  set $pcierte = (drv_t*)pciedev_dev.softc
+  set $pciedev = (struct dngl_bus *)$pcierte->pciedev
+end
+
+define setup_pciedngl
+  setup_dngl
+  setup_pciebus
+  setup_wl
+end
+
+define setup_sddngl
+  setup_dngl
+  setup_sdbus
+  setup_wl
+end
+
+define setup_usbdngl
+  setup_dngl
+  setup_wl
+  setup_usbbus
+end
+
+define setup_wl
+  set $wl = (wl_info_t*)bcmwl.softc
+  set $wlc = (wlc_info_t*)$wl->wlc
+  set $ampdu_tx=(struct ampdu_tx_info *)$wlc->ampdu_tx
+  set $ampdu_rx=(struct ampdu_rx_info *)$wlc->ampdu_rx
+  set $amsdu=(amsdu_info_t *)$wlc->ami
+  set $scan_pub=(wlc_scan_info_t *)$wlc->scan
+  set $scan=(struct scan_info*)$scan_pub
+  set $core=(wlccore_t *)$wlc->core
+  set $band=(wlcband_t *)$wlc->band
+  set $bsscfg=(wlc_bsscfg_t *)$wlc->bsscfg[0]
+  set $scbstate=(scb_module_t *)$wlc->scbstate
+  set $roam=(wlc_roam_t *)$bsscfg->roam
+  set $wlc_hw=(wlc_hw_info_t *)($wlc->hw)
+end
+
+define print_wl_txq
+  set $txq = $wlc->tx_queues
+  p/x *$txq
+end
+
+define print_sdpcmd_txq
+  set $txq = &($sdpcmd->txq)
+  print *$txq
+end
+define print_scb_ampdu_tx_entry
+ set $scb_p = (struct scb *)($arg0)
+ set $scb_cubby = (struct ampdu_tx_cubby *)((unsigned char *)$scb_p + $ampdu_tx->scb_handle)
+ set $scb_ampdu = $scb_cubby->scb_tx_cubby
+ print/x *$scb_ampdu
+end
+define print_scb_ampdu_rx_entry
+ set $scb_p = (struct scb *)($arg0)
+ set $scb_cubby = (struct ampdu_rx_cubby *)((unsigned char *)$scb_p + $ampdu_rx->scb_handle)
+ set $scb_ampdu = $scb_cubby->scb_rx_cubby
+ print/x *$scb_ampdu
+end
+
+define print_scb_amsdu_entry
+ set $scb_p = (struct scb *)($arg0)
+ set $scb_amsdu = (scb_amsdu_t *)((unsigned char *)$scb_p + $amsdu->scb_handle)
+ print/x *$scb_amsdu
+end
+
+define print_scb_entry
+ set $scb_p = (struct scb *)($arg0)
+ print/x *$scb_p
+end
+
+define print_wl_scblist
+  set $ptr = ((uint8 *)$arg0 + ((scb_module_t *)($wlc->scbstate))->cfgh)
+  set $scb_bsscfg_cubby = (scb_bsscfg_cubby_t *)$ptr
+
+  set $scb = (struct scb *)$scb_bsscfg_cubby->scb
+  while ($scb != 0)
+    print/x $scb
+    set $scbi = ((struct scb_info*)$scb->scb_priv)->next
+    set $scb = $scbi ? $scbi->scbpub : (struct scb*)0
+  end
+end
+
+
+define print_lb_entry
+	set $entry = (struct lbuf *)($arg0)
+	printf " data: 0x%04x, len %d poolid %d ",  ($entry->data), ($entry->len), ($entry->mem.poolid)
+	dumppkttag $entry
+end
+
+define print_txq_chain
+  set $prec = ($arg0)
+
+  set $list = (struct pktq_prec *)(&($wlc->tx_queues->q.q[$prec]))
+  set $head = $list->head
+  set $tail = $list->tail
+  while ($head != $tail)
+    print_lb_entry $head
+    set $head = ((struct lbuf *)$head)->link
+  end
+    print_lb_entry $tail
+end
+
+define dump_dma_rxring
+  set $i = 0
+  set $dma = (dma_info_t *)($arg0)
+  printf "nrxd are %d\n", $dma->nrxd
+  while ($i < $dma->nrxd)
+     set $buf = $dma->rxp[$i]
+     set $i = $i + 1
+     if ($buf != 0)
+        printf  "%d. 0x%04x\n" , $i, $buf
+        printf  "\n"
+	if ($buf < 0x80000000)
+     		print_lb_entry $buf
+	end
+     end
+  end
+end
+
+define dump_dma_txring
+ set $wlchw=(wlc_hw_info_t *)($wlc->hw)
+ set $di=($wlchw->di[$arg0])
+  set $i = 0
+  set $j = 0
+  set $dma = (dma_info_t *)($di)
+  while ($i < $dma->ntxd)
+     set $buf = $dma->txp[$i]
+     set $i = $i + 1
+     if ($buf != 0)
+	set $j = $j + 1
+        printf  "%d. 0x%04x idx %d \n" , $j, $buf, $i
+        printf  "\t"
+	if ($buf < 0x80000000)
+     		print_lb_entry $buf
+	end
+     end
+  end
+end
+
+define dump_wl_dma_rings
+   set $x = 0
+   printf "RX DMA ring 0\n"
+   dump_dma_rxring $wlc->hw.di[0]
+   printf "RX DMA ring 1\n"
+   dump_dma_rxring $wlc->hw.di[1]
+   printf "TX DMA ring\n"
+   while ($x < 5)
+     if ($wlc->hw.di[$x] != 0)
+        printf "fifo is %d\n", $x
+   	dump_dma_txring $wlc->hw.di[$x]
+     end
+     set $x = $x + 1
+   end
+end
+
+define dump_pciedev_h2d_dma_rings
+   set $di = (char *)$pciedev->h2d_di
+   printf "H2D: pciedev is %x, di is %x\n", $pciedev, $di
+   printf "RX DMA ring\n"
+   dump_dma_rxring $di
+   printf "TX DMA ring\n"
+   dump_dma_txring $di
+end
+
+define dump_pciedev_d2h_dma_rings
+   set $di = (char *)$pciedev->d2h_di
+   printf "D2H: pciedev is %x, di is %x\n", $pciedev, $di
+   printf "RX DMA ring\n"
+   dump_dma_rxring $di
+   printf "TX DMA ring\n"
+   dump_dma_txring $di
+end
+
+define dump_pciedev_dma_rings
+	dump_pciedev_d2h_dma_rings
+	dump_pciedev_h2d_dma_rings
+end
+
+define dump_sdpcmd_dma_rings
+#  set $di = (char *)$sdpcmd + 0x24
+   set $di = (char *)$sdpcmd->di
+   printf "sdpcmd is %x, di is %x\n", $sdpcmd, $di
+   printf "RX DMA ring\n"
+   dump_dma_rxring $di
+   printf "TX DMA ring\n"
+   dump_dma_txring $di
+end
+
+define dump_usbdev_dma_rings
+   set $x = 0
+   while ($x < 6)
+   	if ($ch->di[$x] != 0)
+   		printf "%d: RX DMA ring\n", $x
+   		dump_dma_rxring $ch->di[$x]
+   		printf "%d: TX DMA ring\n", $x
+   		dump_dma_txring $ch->di[$x]
+	end
+     	set $x = $x + 1
+   end
+end
+
+define mem_list
+  set $memcnt = 0
+  set $nalloc = (struct _mem *)($arg0)
+  while $nalloc < ($arg1)
+	printf "block 0x%06x (0x%06x), len %d, from %p\n",	\
+		($nalloc), ($nalloc + 1), ($nalloc->size) , ($nalloc->next)
+	set $nalloc = (struct _mem *)((uchar *)$nalloc + sizeof(mem_t) + $nalloc.size)
+	set $memcnt = $memcnt + 1
+  end
+  printf "Total %d allocated blocks\n", ($memcnt)
+end
+
+
+define dump_pktpool_dbg_q
+  set $count = pktpool_shared->dbg_qlen
+  set $x = 0
+  while $x < $count
+  	printf "%d: 0x%04x\n", $x, pktpool_shared->dbg_q[$x]->p
+	set $x = $x + 1
+  end
+end
+
+define dump_pktpool_dbg_q_pktflags
+  set $count = pktpool_shared->dbg_qlen
+  set $x = 0
+  while $x < $count
+  	set $p = pktpool_shared->dbg_q[$x]->p
+  	printf "%d: 0x%04x, flags %x\n", $x, $p, ((struct lbuf *)$p)->flags & 0xF000
+	set $x = $x + 1
+  end
+end
+
+define dump_timerlist
+  set $list = &timers->next
+  while ($list != 0)
+      printf "0x%04x: \t%d(ms), \ttimeout_rtn is 0x%04x, \texpired %d, \targ is 0x%04x\n", $list, $list->ms, $list->fun, $list->expired, $list->arg
+      set $list = $list->next
+  end
+end
+
+define dump_ring_info
+   set $ring_info=(ring_info_t *)pciedev_shared->rings_info_ptr
+   p/x *$ring_info
+end
+
+define dump_ring_mem
+   set $ring_mem=(ring_mem_t *)((ring_info_t *)pciedev_shared->rings_info_ptr)->ringmem_ptr
+   p/x $ring_mem
+   printf "H2D CTRL Submit\n"
+   p/x *$ring_mem
+   printf "H2D RXPOST Submit\n"
+   set $ring_mem = $ring_mem + 1
+   p/x *$ring_mem
+   printf "D2H CTRL CPLT\n"
+   set $ring_mem = $ring_mem + 1
+   p/x *$ring_mem
+   printf "D2H TX CPLT\n"
+   set $ring_mem = $ring_mem + 1
+   p/x *$ring_mem
+   printf "D2H RX CPLT\n"
+   set $ring_mem = $ring_mem + 1
+   p/x *$ring_mem
+end
+define dump_u8
+	set $addr=$arg0
+	set $max=$arg1
+  	set $x = 0
+  	while $x < $max
+  		printf "%02x ", (uint8)*$addr 
+		set $x = $x + 1
+		if (($x % 30) == 0)
+			printf "\n"
+		end
+		set $addr = $addr + 1
+	end
+
+end
+
+define dump_u32
+	set $addr=$arg0
+	set $max=$arg1
+  	set $x = 0
+  	while $x < $max
+  		printf "%d: 0x%08x\n", $x, (uint32)*$addr 
+		set $x = $x + 1
+		set $addr = $addr + 4
+	end
+
+end
+
+define dump_h2d_wptr_array
+   set $ring_info=(ring_info_t *)pciedev_shared->rings_info_ptr
+   set $h2d_wptr=$ring_info->h2d_w_idx_ptr
+   dump_u32 $h2d_wptr 42
+end
+
+define dump_h2d_rptr_array
+   set $ring_info=(ring_info_t *)pciedev_shared->rings_info_ptr
+   set $h2d_rptr=$ring_info->h2d_r_idx_ptr
+   dump_u32 $h2d_rptr 42
+end
+
+define dump_d2h_wptr_array
+   set $ring_info=(ring_info_t *)pciedev_shared->rings_info_ptr
+   set $d2h_wptr=$ring_info->d2h_w_idx_ptr
+   dump_u32 $d2h_wptr 3
+end
+
+define dump_d2h_rptr_array
+   set $ring_info=(ring_info_t *)pciedev_shared->rings_info_ptr
+   set $d2h_rptr=$ring_info->d2h_r_idx_ptr
+   dump_u32 $d2h_rptr 3
+end
+
+define dump_h2d_array
+   set $ring_info=(ring_info_t *)pciedev_shared->rings_info_ptr
+   set $w_addr=$ring_info->h2d_w_idx_ptr
+   set $r_addr=$ring_info->h2d_r_idx_ptr
+	set $x=0 
+	while $x < 42
+  		printf "%d: 0x%08x, 0x%08x\n", $x, (uint32)*$w_addr, (uint32)*$r_addr
+		set $x = $x + 1
+		set $w_addr = $w_addr + 4
+		set $r_addr = $r_addr + 4
+	end
+end
+
+define dump_d2h_array
+   set $ring_info=(ring_info_t *)pciedev_shared->rings_info_ptr
+   set $w_addr=$ring_info->d2h_w_idx_ptr
+   set $r_addr=$ring_info->d2h_r_idx_ptr
+	set $x=0 
+	while $x < 3
+  		printf "%d: 0x%08x, 0x%08x\n", $x, (uint32)*$w_addr, (uint32)*$r_addr
+		set $x = $x + 1
+		set $w_addr = $w_addr + 4
+		set $r_addr = $r_addr + 4
+	end
+end
+
+define dump_rxcplid_freelist
+	set $x = 0
+	set $ptr = (bcm_rxcplid_list_t *)g_rxcplid_list
+
+	if ($x > $ptr->max) 
+		printf "Bad index %d, max %d\n", $x, $ptr->max
+		return
+	end
+
+	set $ptr1 = (rxcpl_info_t *)&($ptr->free_list[$x])
+
+	while $ptr1 != 0
+  		printf "cur idx %02x, ptr 0x%04x\n", $ptr1->rxcpl_id.idx, $ptr1
+		set $ptr1 = $ptr1->free_next
+	end
+
+end
+
+define dump_rxcplid_chain
+	set $x = $arg0
+	set $cnt = 0 
+	set $ptr = (bcm_rxcplid_list_t *)g_rxcplid_list
+	while $x != 0 
+		if ($x > $ptr->max) 
+			printf "Bad index %d, max %d\n", $x, $ptr->max
+			return
+		end
+		set $ptr1 = (rxcpl_info_t *)&($ptr->rxcpl_ptr[$x])
+		printf "\tptr1 is %x\n", $ptr1
+  		printf "%d. cur idx %02x\n", $cnt, $ptr1->rxcpl_id.idx
+		set $cnt = $cnt + 1 
+		set $x = $ptr1->rxcpl_id.next_idx
+	end
+end
+
+define dump_g_rxcplid_list
+	set $ptr = (bcm_rxcplid_list_t *)g_rxcplid_list
+	printf "max is %d, avail is %d\n", $ptr->max, $ptr->avail
+	set $total = $ptr->avail
+	set $x = 0
+	while $total != $x
+		set $ptr1 = $ptr->rxcpl_ptr[$x]
+  		printf "%d: cur idx %d, next %d\n", $x, $ptr1.rxcpl_id.idx, $ptr1.free_next
+		set $x = $x + 1
+	end
+end
+
+define dump_g_rxcplid_ptr_list
+	set $ptr = (bcm_rxcplid_list_t *)g_rxcplid_list
+	printf "max is %d, avail is %d\n", $ptr->max, $ptr->avail
+	set $total = $ptr->max
+	set $x = 0
+	while $total != $x
+		set $ptr1 = &($ptr->rxcpl_ptr[$x])
+  		printf "%d: cur idx %d, ptr %p, flags 0x%x(1:in transit, 2: first in flush, 4: valid)\n", $x, $ptr1->rxcpl_id.idx, $ptr1, $ptr1->rxcpl_id.flags
+		set $x = $x + 1
+	end
+end
+
+define validate_g_rxcplid_ptr_list
+	set $ptr = (bcm_rxcplid_list_t *)g_rxcplid_list
+	set $total = $ptr->max
+	set $x = 0
+	set $free = 0
+	while $total != $x
+		set $ptr1 = &($ptr->rxcpl_ptr[$x])
+		if ($ptr1->rxcpl_id.flags == 0)
+			set $free = $free + 1
+		end
+		set $x = $x + 1
+	end
+	printf "max %d, (free based on state) %d, availcount %d\n", $free,  $ptr->avail
+end
+
+
+define dump_d2h_dma_array
+	set $x = 0
+	set $total = (sizeof($pciedev->dtoh_dma_q))/(sizeof(dma_queue_t))
+  	printf "rdidx %d: wridx %d, max %d\n", $pciedev->dtoh_dma_rd_idx, $pciedev->dtoh_dma_wr_idx, $total 
+	while $total != $x
+		set $ptr = &$pciedev->dtoh_dma_q[$x]
+  		printf "%d: msgtype 0x%02x: len %d\n", $x, $ptr->msg_type, $ptr->len 
+		set $x = $x + 1
+	end
+end
+define check_my_hndrte_pktid 
+   set $max=hnd_pktid_max
+   set $myid=$arg0
+   set $i=0
+   while ($i < $max)
+     	if (hnd_pktptr_map[$i] != $myid)
+		set $i = $i + 1
+	else
+		printf "%d: lb: %x\n", $i, hnd_pktptr_map[$i]
+		return
+	end
+   end
+end
+define my_trial
+	p/x $pciedev
+end
+define dump_h2d_dma_array
+	set $x = 0
+	set $total = (sizeof($pciedev->htod_dma_q))/(sizeof(dma_queue_t))
+  	printf "rdidx %d: wridx %d, max %d\n", $pciedev->htod_dma_rd_idx, $pciedev->htod_dma_wr_idx, $total 
+	while $total != $x
+		set $ptr = &$pciedev->htod_dma_q[$x]
+  		printf "%d: msgtype 0x%02x: len %d\n", $x, $ptr->msg_type, $ptr->len 
+		set $x = $x + 1
+	end
+end
+
+
+
+define dump_hndrte_pktid
+   set $max=hnd_pktid_max
+   set $i=0
+   set $j=0
+   while ($i < $max)
+     	if (hnd_pktptr_map[$i] != 0)
+		set $lb=hnd_pktptr_map[$i]
+		set $lfrag=(struct lbuf_frag *)$lb
+	#	printf "pktid %d poolid %d \n", $i, $lb->mem.poolid
+		if ($lb->mem.poolid == $arg0) 
+			#printf "%d: lb: %x hostpktid %d rxcplid %d flags %x poolid %d \n ", $j, $lb, $lfrag->flist.finfo[0].ctx.pktid ,$lb->rxcpl_id, $lb->flags, $lb->mem.poolid
+			printf "%d: lb: %x  flags %x poolid %d len %d pktid %d \n ", $j, $lb, $lb->flags, $lb->mem.poolid, $lb->len, $lb->mem.pktid
+			set $pkttag = (wlc_pkttag_t *)(&$lb->pkttag)
+			#printf " scb %x ", $pkttag->_scb
+			#print_lb_entry $lb
+			set $j = $j + 1
+		end
+	end
+	set $i = $i + 1
+   end
+end
+
+define pktfetchq
+   p/x *pktfetchq
+end
+define pktfetchpool
+   p/x *pktfetchpool
+end
+define scb_psq
+  set $scb_p=(struct scb *)($arg0)
+  set $wlc_psinfo=$wlc->psinfo
+  set $scb_handle=((apps_wlc_psinfo_t *)$wlc_psinfo)->scb_handle
+  set $scb_psinfo=((unsigned char *)$scb_p + $scb_handle)
+  p/x *(struct apps_scb_psinfo *)$scb_psinfo
+end
+define scb_txq
+   set $scb_bsscfg=((struct scb *)$arg0)->bsscfg
+   set $wlcif=((struct wlc_bsscfg *)$bsscfg)->wlcif
+   set $qi=((struct wlc_if *)$wlcif)->qi
+   p *(struct wlc_txq_info *)$qi
+end
+define print_dma_info
+  set $wlchw=(wlc_hw_info_t *)($wlc->hw)
+  set $di=($wlchw->di[$arg0])
+  p *(dma_info_t *)$di
+end
+define pool_dump
+  set $lbuf_pool=(pktpool_t *)$pciedev->pktpool
+  set $lfragtx_pool=(pktpool_t *)$pciedev->pktpool_lfrag
+  set $lfrag_rx_pool=(pktpool_t *)$pciedev->pktpool_rxlfrag
+end
+define dump_ioctl_buf_pool
+        set $ioctl_pool = $pciedev->ioctl_resp_pool
+        set $cur = $ioctl_pool->ready
+        while ($cur)
+                printf "pktid %d len %d buf %x \n", $cur->pktid, $cur->len, $cur->buf_addr.low_addr
+                set $cur = $cur->next
+        end
+end
+define dump_event_buf_pool
+        set $pool = $pciedev->event_pool
+        set $cur = $pool->ready
+        while ($cur)
+                printf "pktid %d len %d buf %x \n", $cur->pktid, $cur->len, $cur->buf_addr.low_addr
+                set $cur = $cur->next
+        end
+end
+define dump_rx_lcl_pool
+        set $rxpool=$pciedev->htod_rx->buf_pool->inuse_pool
+        set $len_item=$pciedev->htod_rx->ringmem->len_items
+        p/x *$rxpool
+        set $r = $rxpool->r_ptr
+        set $w = $rxpool->w_ptr
+        set $j=0
+        while ($j < $rxpool->depth)
+        set $r=$j
+        printf "local pool buf [%d] \n", $j
+        p/x $rxpool->buf[$r]
+        set $buf = $rxpool->buf[$r].p
+        set $max = $rxpool->buf[$r].max_items
+        set $max = 0x20
+        set $used = $rxpool->buf[$r].used_items
+        set $i=0
+	if (0)
+        while ($i < $max)
+                set $lcl_buf=$buf + ($i *$len_item)
+                set $rxbuf_post = (host_rxbuf_post_t *)$lcl_buf
+                printf "%d : msgtype %x epoch %x pktid %d haddr %x \n", $i, $rxbuf_post->cmn_hdr.msg_type, $rxbuf_post->cmn_hdr.epoch, $rxbuf_post->cmn_hdr.request_id, $rxbuf_post->data_buf_addr.low_addr
+                set $i=$i+1
+        end
+	end
+                set $j=$j+1
+
+        end
+
+end
+define dump_d2hreq_q
+        set $d2hq = $pciedev->d2h_req_q
+        set $q = $d2hq->q[0]
+        printf "Max %d avail %d head %p \n", $d2hq->max, $d2hq->len, $q->head
+        set $i = 0
+        set $j = 0
+        set $p = (struct lbuf_frag *)$q->head
+        while $j < $d2hq->len
+                set $linkid = $p->lbuf.linkid
+#               printf "no %d pkt %p  linkid %d \n ", $j, $p, $linkid
+
+                printf "%d: lb: %x, rxcplid %d flags %x poolid %d linkid %d  pktid %d \n", $j, $p,  $p->lbuf.rxcpl_id, $p->lbuf.flags, $p->lbuf.mem.poolid, $p->lbuf.     linkid, $p->flist.finfo[0].ctx.pktid
+
+                set $nextp = hndrte_pktptr_map[$linkid]
+                set $p = (struct lbuf_frag *)$nextp
+                set $j = $j +1
+        end
+
+end
+define dump_d2h_dmaq
+	set $dmaq = $pciedev->dtoh_dma_q
+	set $start =  $dmaq->r_index
+	set $end = $dmaq->w_index
+	set $i = $start
+	set $j = 0
+	printf "D2H DMA q : avail entries %d \n", $end -$start
+	while ($i < $end)
+		set $item = $dmaq->dma_info[$i]
+			printf "No : %d item msgtype %x len %d \n", $j, $item->msg_type, $item->len
+			set $j = $j + 1
+		set $i = $i + 1
+	end
+		
+end
+define dump_h2d_dmaq
+	set $dmaq = $pciedev->htod_dma_q
+	set $start =  $dmaq->r_index
+	set $end = $dmaq->w_index
+	set $i = $start
+	set $j = 0
+	printf "H2D DMA q : avail entries %d \n", $end -$start
+	while ($i < $end)
+		set $item = $dmaq->dma_info[$i]
+			printf "No : %d item msgtype %x len %d \n", $j, $item->msg_type, $item->len
+			set $j = $j + 1
+		set $i = $i + 1
+	end
+		
+end
+define fetch_pool
+        set $lbuf = (struct lbuf*)pktfetch_lbuf_q->q[0].head
+        set $lfrag = (struct lbuf_frag *)(uint32)$lbuf->pkttag[0]
+        p/x *$lfrag
+end
+define sizeof
+        set $a = ($arg0*)0x0
+        set $size = (uint32)&$a[1]
+        printf "size of struct : %d \n", $size
+end
+define rsdb_wlc
+	set $wlc_cmn = $wlc->cmn	
+	set $wlc0 = $wlc_cmn->wlc[0]
+	set $wlc1 = $wlc_cmn->wlc[1]
+end
+define showcons
+        set $consbuf = (char *)(active_cons.state.log.buf + active_cons.state.log.out_idx)
+        set $size = (char *)(active_cons.state.log.buf + active_cons.state.log.buf_size)
+        set $startbuf = $consbuf
+        while ($consbuf < $size)
+                printf "%c", *$consbuf
+                set $consbuf = $consbuf + 1
+        end
+
+        set $consbuf = (char *)(active_cons.state.log.buf)
+
+        while ($consbuf < $startbuf)
+                printf "%c", *$consbuf
+                set $consbuf = $consbuf + 1
+        end
+end
+define print_lb_entry_fc
+  set $entry = (struct lbuf *)($arg0)
+  printf "lbuf: 0x%04x, data: 0x%04x, len %d\n", $entry, ($entry->data), ($entry->len)
+  set $txd=(d11actxh_t*)($entry->data+4)
+  set $ml=$txd->PktInfo.MacTxControlLow
+  if ($ml&0x1)
+  	set $d11hdr=(struct dot11_header *)($entry->data+4+sizeof(d11actxh_pkt_t))
+  else
+    set $d11hdr=(struct dot11_header *)($entry->data+4+sizeof(d11actxh_t))
+  end
+  printf "FC=0x%04x type=0x%x SubType=0x%x DS f:t=0x%x \n", $d11hdr->fc, ($d11hdr->fc&0xc)>>2 , (($d11hdr->fc)&0xf0) >> 4, (($d11hdr->fc)&0x300) >> 8  
+	if ($arg1 == 1)
+		p/x *$txd
+	end
+end
+
+define print_lb_entry_fc_full
+  set $entry = (struct lbuf *)($arg0)
+  printf "lbuf: 0x%04x, data: 0x%04x, len %d\n", $entry, ($entry->data), ($entry->len)
+  set $txd=(d11actxh_t*)($entry->data+4)
+  set $ml=$txd->PktInfo.MacTxControlLow
+  if ($ml&0x1)
+  	set $d11hdr=(struct dot11_header *)($entry->data+4+sizeof(d11actxh_pkt_t))
+  else
+    set $d11hdr=(struct dot11_header *)($entry->data+4+sizeof(d11actxh_t))
+  end
+  printf "FC=0x%04x type=0x%x SubType=0x%x DS f:t=0x%x \n", $d11hdr->fc, ($d11hdr->fc&0xc)>>2 , (($d11hdr->fc)&0xf0) >> 4, (($d11hdr->fc)&0x300) >> 8  
+	p/x *$txd
+end
+
+
+
+define dump_dma_txring_fc
+  set $i = 0
+  set $dma = (dma_info_t *)($arg0)
+  while ($i < $dma->ntxd)
+     set $buf = $dma->txp[$i]
+     set $i = $i + 1
+     if ($buf != 0)
+        printf  "\n"
+        printf  "%d. 0x%04x\n" , $i, $buf
+        printf  "\t"
+            if ($buf < 0x80000000)
+            print_lb_entry_fc $buf $arg1
+        end
+     end
+  end
+end
+define rx_desc_dump
+	set $wlchw=(wlc_hw_info_t *)($wlc->hw)
+	set $di=(dma_info_t*)($wlchw->di[$arg0])	
+	set $txd = $di->dregs->d64_u->txd_64
+	set $i = 0
+	while $i < $arg1
+		printf " %d :: \t %08x:%08x :%08x:%08x \n", $i, $txd[$i]->ctrl1, $txd[$i]->ctrl2, $txd[$i]->addrlow, $txd[$i]->addrhigh
+		set $i = $i + 1
+	end
+	printf "RXIN %d RXOUT %d \n", $di->rxin, $di->rxout
+end
+define tx_desc_dump
+	set $wlchw=(wlc_hw_info_t *)($wlc->hw)
+	set $di=(dma_info_t*)($wlchw->di[$arg0])	
+	set $txd = $di->dregs->d64_u->txd_64
+	set $i = 0
+	while $i < $arg1
+		printf " %04d :: \t %08x:%08x :%08x:%08x \n", $i, $txd[$i]->ctrl1, $txd[$i]->ctrl2, $txd[$i]->addrlow, $txd[$i]->addrhigh
+		set $i = $i + 1
+	end
+	printf "TXIN %d TXOUT %d \n", $di->txin, $di->txout
+end
+define dumppkttag
+	set $lb = (struct lbuf*)$arg0
+	set $pkttag = (wlc_pkttag_t *)(&$lb->pkttag)
+	set $scb= (struct scb*)$pkttag->_scb
+	set $cfg = (wlc_bsscfg_t *)$scb->bsscfg 
+	printf "scb = %x  cfg %x \n", $scb, $cfg
+end
+define counters
+	p/x *$wlc->pub->_cnt
+end

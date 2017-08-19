@@ -46,7 +46,7 @@
 #define KERNEL_HEAP_START   0xffffc80000000000
 #define KERNEL_STACKS_START 0xffffca0000000000
 #define ARCH_SHMEM_BASE		0xffffd00000000000
-#define KERNEL_LOW_MEMORY	0x000000007c800000
+#define KERNEL_LOW_MEMORY       KERNEL_HEAP_START
 
 #define IS_ARCH_PAGE_ALIGNED(addr)  (((unsigned long)addr & 0xfff) == 0x0UL)
 #define ARCH_PAGE_START(addr)	((unsigned long)addr & ~0xfffUL)

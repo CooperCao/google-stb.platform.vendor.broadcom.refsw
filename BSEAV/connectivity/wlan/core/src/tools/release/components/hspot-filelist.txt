@@ -1,0 +1,27 @@
+/*
+ * File list for Hotspot AP.
+ */
+
+components/apps/hspot/router/shared/
+components/apps/hspot/router/www/passpoint.asp
+components/apps/hspot/router/www/passpoint.gif
+components/apps/hspot/router/hspot_ap/WiFi-alliancelogo_3D.png
+components/apps/hspot/router/hspot_ap/wifi-abgn-logo_270x73.png
+components/apps/hspot/router/hspot_ap/icon_red_eng.png
+components/apps/hspot/router/hspot_ap/icon_blue_eng.png
+components/apps/hspot/router/hspot_ap/icon_green_eng.png
+components/apps/hspot/router/hspot_ap/icon_orange_eng.png
+components/apps/hspot/router/hspot_ap/icon_red_zxx.png
+components/apps/hspot/router/hspot_ap/icon_blue_zxx.png
+components/apps/hspot/router/hspot_ap/icon_green_zxx.png
+components/apps/hspot/router/hspot_ap/icon_orange_zxx.png
+
+#ifdef BCMHSPOTAP_SRC
+components/apps/hspot/include/
+components/apps/hspot/util/
+components/apps/hspot/pkt/
+components/apps/hspot/dsp/
+components/apps/hspot/wlan/
+components/apps/hspot/pro/
+components/apps/hspot/tcp_srv/
+#endif

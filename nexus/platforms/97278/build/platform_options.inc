@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,16 +43,25 @@
 
 NEXUS_POWER_MANAGEMENT ?= n
 NEXUS_SECURITY_SUPPORT ?= n
+SAGE_SUPPORT ?= n
+
 
 export NEXUS_FRONTEND_SUPPORT ?= y
 
 export NEXUS_FRONTEND_3158  ?= y
+export NEXUS_FRONTEND_315x_OOB ?=y
 export NEXUS_FRONTEND_3461  ?= y
+export NEXUS_FRONTEND_3466  ?= y
 export NEXUS_FRONTEND_45216 ?= y
 export NEXUS_FRONTEND_45308 ?= y
+export NEXUS_FRONTEND_45316 ?= y
 
 ifeq ($(NEXUS_FRONTEND_USE_SECOND_FEMTSIF),y)
 NEXUS_PLATFORM_DEFINES += NEXUS_FRONTEND_USE_SECOND_FEMTSIF=1
+endif
+
+ifeq ($(NEXUS_USE_3390_VMS),y)
+NEXUS_PLATFORM_DEFINES += NEXUS_USE_3390_VMS=1
 endif
 
 #

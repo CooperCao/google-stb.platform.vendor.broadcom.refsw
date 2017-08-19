@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /** ALU instructions */
 
@@ -47,6 +47,8 @@ struct v3d_qpu_input
    v3d_qpu_in_source_t source;
    v3d_qpu_unpack_t unpack;
 };
+
+extern bool v3d_qpu_op_requires_read_a(v3d_qpu_opcode_t op);
 
 extern uint32_t v3d_qpu_op_num_inputs(v3d_qpu_opcode_t opcode);
 
@@ -328,4 +330,4 @@ extern void v3d_qpu_res_types_from_instr(
    v3d_qpu_res_type_t *add_type, v3d_qpu_res_type_t *mul_type,
    const struct v3d_qpu_instr *in);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

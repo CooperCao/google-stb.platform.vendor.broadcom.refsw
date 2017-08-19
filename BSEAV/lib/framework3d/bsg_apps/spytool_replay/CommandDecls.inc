@@ -601,6 +601,8 @@ virtual void run_eglQueryWaylandBufferWL();
 virtual void run_glPolygonModeBRCM();
 virtual void run_glProvokingVertexBRCM();
 virtual void run_glTexImage1DBRCM();
+virtual void run_glTexSubImage1DBRCM();
+virtual void run_glTexStorage1DBRCM();
 virtual void run_glDrawArraysInstancedBaseInstanceEXT();
 virtual void run_glDrawElementsInstancedBaseInstanceEXT();
 virtual void run_glDrawElementsInstancedBaseVertexBaseInstanceEXT();

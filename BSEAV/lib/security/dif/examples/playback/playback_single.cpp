@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- ******************************************************************************/
 
+ ******************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
@@ -52,8 +52,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
-BDBG_MODULE(playback_dif);
-#define LOG_TAG "playback_dif"
+BDBG_MODULE(playback_dif_single);
+#define LOG_TAG "playback_dif_single"
 #undef LOGE
 #undef LOGW
 #undef LOGD
@@ -109,7 +109,7 @@ public:
 
     MediaParser* parser;
     IDecryptor* decryptor;
-    bool use_default_url;
+    bool useGooglePlayLicServer;
     IStreamer* videoStreamer;
     IStreamer* audioStreamer;
     int video_decode_hdr;
@@ -121,7 +121,8 @@ public:
 
     FILE *fp_mp4;
     char* file;
-    DrmType drmType;
+    DrmType parserDrmType;
+    DrmType decryptorDrmType;
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle videoDecoder;
@@ -132,6 +133,9 @@ public:
     NEXUS_PidChannelHandle audioPidChannel;
     NEXUS_StcChannelHandle stcChannel;
     BKNI_EventHandle event;
+
+    // Session Type - only for Wv3x
+    SessionType sessionType;
 
     uint64_t last_video_fragment_time;
     uint64_t last_audio_fragment_time;
@@ -145,10 +149,11 @@ AppContext::AppContext()
     pVideoHeaderBuf = NULL;
 
     file = NULL;
-    drmType = drm_type_eUnknown;
+    parserDrmType = drm_type_eUnknown;
+    decryptorDrmType = drm_type_eUnknown;
     parser = NULL;
     decryptor = NULL;
-    use_default_url = false;
+    useGooglePlayLicServer = false;
     fp_mp4 = NULL;
     videoStreamer = NULL;
     audioStreamer = NULL;
@@ -161,6 +166,7 @@ AppContext::AppContext()
     display = NULL;
     window = NULL;
     event = NULL;
+    sessionType = session_type_eTemporary;
 
     last_video_fragment_time = 0;
     last_audio_fragment_time = 0;
@@ -662,8 +668,8 @@ static void setup_streamer()
     NEXUS_PlaypumpSettings playpumpSettings;
 
     // New API stuffs
-    s_app.videoStreamer = StreamerFactory::CreateStreamer();
-    s_app.audioStreamer = StreamerFactory::CreateStreamer();
+    s_app.videoStreamer = StreamerFactory::CreateStreamer(!secure_video);
+    s_app.audioStreamer = StreamerFactory::CreateStreamer(!secure_video);
 
     if (s_app.videoStreamer == NULL || s_app.audioStreamer == NULL ) {
         exit(EXIT_FAILURE);
@@ -785,7 +791,6 @@ static void setup_parser()
 
     if (s_app.parser->Initialize()) {
         LOGW(("PiffParser was initialized for %s", s_app.file));
-        s_app.use_default_url = true;
     } else {
         LOGW(("failed to initialize the PiffParser for %s, try CencParser...", s_app.file));
         delete s_app.parser;
@@ -801,23 +806,24 @@ static void setup_parser()
             exit(EXIT_FAILURE);
         }
 
-        if (s_app.drmType != drm_type_eUnknown){
+        if (s_app.parserDrmType != drm_type_eUnknown) {
             bool drmMatch = false;
             DrmType drmTypes[BMP4_MAX_DRM_SCHEMES];
             uint8_t numOfDrmSchemes = s_app.parser->GetNumOfDrmSchemes(drmTypes, BMP4_MAX_DRM_SCHEMES);
-            for (int i = 0; i<numOfDrmSchemes; i++){
-                if (drmTypes[i] == s_app.drmType){
+            for (int i = 0; i<numOfDrmSchemes; i++) {
+                if (drmTypes[i] == s_app.parserDrmType) {
                     drmMatch = true;
                     s_app.parser->SetDrmSchemes(i);
                 }
             }
             if (!drmMatch){
-                LOGE(("DRM Type: %d was not found in the stream.", s_app.drmType ));
+                LOGE(("DRM Type: %d was not found in the stream.", s_app.parserDrmType));
                 LOGE(("Do you want to play it with its default DRM type: %d? [y/n]", drmTypes[0]));
                 char resp;
                 scanf("%c", &resp);
                 if (resp != 'y')
                     exit(EXIT_FAILURE);
+                s_app.parserDrmType = s_app.decryptorDrmType = drmTypes[0];
             }
         }
     }
@@ -827,26 +833,43 @@ static void setup_decryptor()
 {
     std::string cpsSpecificData;    /*content protection system specific data*/
     std::string psshDataStr;
-    DrmType drmType;
+    DrmType decryptorDrmType, parserDrmType;
 
     std::string license_server;
     std::string key_response;
 
     // New API - creating Decryptor
-    drmType = s_app.parser->GetDrmType();
-    if (s_app.drmType == drm_type_ePlayready30){
-        drmType = drm_type_ePlayready30;
-        LOGW(("Playready 3.0 for %s", s_app.file));
-    } else if (drmType == drm_type_eWidevine) {
+    decryptorDrmType = s_app.decryptorDrmType;
+    parserDrmType = s_app.parser->GetDrmType();
+    if (decryptorDrmType == drm_type_eUnknown) {
+        decryptorDrmType = parserDrmType;
+        if (decryptorDrmType == drm_type_eWidevine ||
+            decryptorDrmType == drm_type_eWidevine3x) {
+            BDBG_WRN(("%s: defaulting to WV with GooglePlay License server", __FUNCTION__));
+            s_app.useGooglePlayLicServer = true;
+        }
+    }
+    if (decryptorDrmType != parserDrmType &&
+        parserDrmType == drm_type_eUnknown)
+        decryptorDrmType = drm_type_eUnknown;
+    if (decryptorDrmType == drm_type_ePlayready30) {
+        LOGW(("Playready 3.x for %s", s_app.file));
+    } else if (decryptorDrmType == drm_type_eWidevine3x) {
+        LOGW(("Widevine 3.x for %s", s_app.file));
+    } else if (decryptorDrmType == drm_type_eWidevine) {
         LOGW(("Widevine for %s", s_app.file));
-    } else if (drmType == drm_type_ePlayready) {
+    } else if (decryptorDrmType == drm_type_ePlayready) {
         LOGW(("Playready 2.5 for %s", s_app.file));
     } else {
         LOGW(("Unknown DRM type for %s", s_app.file));
         return;
     }
 
-    s_app.decryptor = DecryptorFactory::CreateDecryptor(drmType);
+    // If decryptor type is not WV3x, set session type to temporary
+    if (decryptorDrmType != drm_type_eWidevine3x)
+        s_app.sessionType = session_type_eTemporary;
+
+    s_app.decryptor = DecryptorFactory::CreateDecryptor(decryptorDrmType);
     if (s_app.decryptor == NULL) {
         LOGE(("Failed to create Decryptor"));
         exit(EXIT_FAILURE);
@@ -863,23 +886,25 @@ static void setup_decryptor()
     // New API - GenerateKeyRequest
     cpsSpecificData = s_app.parser->GetCpsSpecificData();
     dump_hex("cpsSpecificData", cpsSpecificData.data(), cpsSpecificData.size(), true);
-    if (!s_app.decryptor->GenerateKeyRequest(cpsSpecificData)) {
+    if (!s_app.decryptor->GenerateKeyRequest(cpsSpecificData, s_app.sessionType)) {
         LOGE(("Failed to generate key request"));
         exit(EXIT_FAILURE);
     }
 
     dump_hex("message", s_app.decryptor->GetKeyMessage().data(), s_app.decryptor->GetKeyMessage().size());
 
-    if (s_app.use_default_url) {
-        license_server.clear();
-    } else {
+    if (s_app.useGooglePlayLicServer) {
         // Use Google Play server
-        if (drmType == drm_type_eWidevine) {
+        if (decryptorDrmType == drm_type_eWidevine ||
+            decryptorDrmType == drm_type_eWidevine3x) {
             license_server.assign(kGpLicenseServer + kGpWidevineAuth);
-        } else if (drmType == drm_type_ePlayready) {
+        } else if (decryptorDrmType == drm_type_ePlayready ||
+            decryptorDrmType == drm_type_ePlayready30) {
             license_server.assign(kGpLicenseServer + kGpPlayreadyAuth);
         }
         license_server.append(kGpClientOfflineQueryParameters);
+    } else {
+        license_server.clear();
     }
 
     LOGW(("License Server for %s: %s", s_app.file, license_server.c_str()));
@@ -933,7 +958,12 @@ static void print_usage(char* command)
 {
     LOGE(("Usage : %s <files> [OPTIONS]", command));
     LOGE(("        -pr <file> Set DRM type as playready"));
-    LOGE(("        -pr30 <file> Set DRM type as playready 3.0"));
+    LOGE(("        -pr:g <file> Set DRM type as playready and use GooglePlay license server"));
+    LOGE(("        -pr3x <file> Set DRM type as playready 3.x"));
+    LOGE(("        -pr3x:g <file> Set DRM type as playready 3.x and use GooglePlay license server"));
+    LOGE(("        -wv3x <file> Set DRM type as widevine 3x"));
+    LOGE(("        -wv3x:1 <file> Set DRM type as widevine 3x and session type as persistent"));
+    LOGE(("        -wv3x:2 <file> Set DRM type as widevine 3x and session type as persistent usage record"));
     LOGE(("        -wv <file> Set DRM type as widevine"));
     LOGE(("        -loop N    Set # of playback loops"));
     LOGE(("        -secure    Use secure video picture buffers (URR)"));
@@ -956,24 +986,40 @@ int main(int argc, char* argv[])
     }
 
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-pr30") == 0) {
+        if (strncmp(argv[i], "-pr3x", 5) == 0) {
             if (i >= argc - 1) {
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-            s_app.drmType = drm_type_ePlayready30;
+            if (strcmp(argv[i], "-pr3x:g") == 0) {
+                LOGW(("Use GooglePlay license server"));
+                s_app.useGooglePlayLicServer = true;
+            } else {
+                LOGW(("Use Microsoft license server"));
+                s_app.useGooglePlayLicServer = false;
+            }
+            s_app.parserDrmType = drm_type_ePlayready;
+            s_app.decryptorDrmType = drm_type_ePlayready30;
             s_app.file = argv[++i];
-            LOGW(("File PR3.0: %s", s_app.file));
+            LOGW(("File PR3.x: %s", s_app.file));
             num_files++;
         }
-        else if (strcmp(argv[i], "-pr") == 0) {
+        else if (strncmp(argv[i], "-pr", 3) == 0) {
             if (i >= argc - 1) {
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-            s_app.drmType = drm_type_ePlayready;
+            if (strcmp(argv[i], "-pr:g") == 0) {
+                LOGW(("Use GooglePlay license server"));
+                s_app.useGooglePlayLicServer = true;
+            } else {
+                LOGW(("Use Microsoft license server"));
+                s_app.useGooglePlayLicServer = false;
+            }
+            s_app.parserDrmType = drm_type_ePlayready;
+            s_app.decryptorDrmType = drm_type_ePlayready;
             s_app.file = argv[++i];
-            LOGW(("File PR: %s", s_app.file));
+            LOGW(("File PR2.5: %s", s_app.file));
             num_files++;
         }
         else if (strcmp(argv[i], "-wv") == 0) {
@@ -981,9 +1027,28 @@ int main(int argc, char* argv[])
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-            s_app.drmType = drm_type_eWidevine;
+            s_app.useGooglePlayLicServer = true;
+            s_app.parserDrmType = drm_type_eWidevine;
+            s_app.decryptorDrmType = drm_type_eWidevine;
             s_app.file = argv[++i];
             LOGW(("File WV: %s", s_app.file));
+            num_files++;
+        }
+        else if (strncmp(argv[i], "-wv3x", 5) == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            if (strcmp(argv[i], "-wv3x:1") == 0) {
+                s_app.sessionType = session_type_ePersistent;
+            } else if (strcmp(argv[i], "-wv3x:2") == 0) {
+                s_app.sessionType = session_type_ePersistentUsageRecord;
+            }
+            s_app.useGooglePlayLicServer = true;
+            s_app.parserDrmType = drm_type_eWidevine;
+            s_app.decryptorDrmType = drm_type_eWidevine3x;
+            s_app.file = argv[++i];
+            LOGW(("File WV3x: %s", s_app.file));
             num_files++;
         }
         else if (strcmp(argv[i], "-loop") == 0) {

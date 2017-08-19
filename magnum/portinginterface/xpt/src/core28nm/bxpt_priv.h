@@ -205,9 +205,6 @@ typedef struct BXPT_P_PbHandle
 
     uint32_t BitRate;
 
-    BXPT_PidChannel_CC_Config CcConfigBeforeAllPass;
-    bool IsParserInAllPass;
-
 #if BXPT_HAS_TSMUX
     unsigned PacingLoadMap;
     unsigned PacingCount;
@@ -648,7 +645,6 @@ typedef struct BXPT_P_TransportData
 
 #if BXPT_HAS_IB_PID_PARSERS
     ParserConfig IbParserTable[ BXPT_NUM_PID_PARSERS ];
-    bool IsParserInAllPass[ BXPT_NUM_PID_PARSERS ];
 #endif
 
     ParserConfig PbParserTable[ BXPT_NUM_PLAYBACKS ];
@@ -703,8 +699,6 @@ typedef struct BXPT_P_TransportData
     bool Pid2BuffMappingOn;
     bool MesgDataOnRPipe;
 
-    BXPT_PidChannel_CC_Config CcConfigBeforeAllPass[ BXPT_NUM_PID_CHANNELS ];
-
 #if BXPT_HAS_PARSER_REMAPPING
     BXPT_ParserBandMapping BandMap;
 #endif
@@ -758,6 +752,14 @@ typedef struct BXPT_P_TransportData
 #endif
 }
 BXPT_P_TransportData;
+
+void BXPT_Interrupt_P_Init(
+    BXPT_Handle hXpt                /* [in] Handle for this transport */
+    );
+void BXPT_Interrupt_P_Shutdown(
+    BXPT_Handle hXpt                /* [in] Handle for this transport */
+    );
+void ConfigPid2BufferMap( BXPT_Handle hXpt, unsigned int PidChannelNum, unsigned int BufferNumber, bool enableIt);
 
 BERR_Code BXPT_Dma_P_Init(BXPT_Handle hXpt);
 

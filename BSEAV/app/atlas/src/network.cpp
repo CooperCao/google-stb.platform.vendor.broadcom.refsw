@@ -251,7 +251,7 @@ static void netappCallback(
 
 CNetwork::CNetwork(
         const char *     name,
-        const uint16_t   number,
+        const unsigned   number,
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_network, pCfg),

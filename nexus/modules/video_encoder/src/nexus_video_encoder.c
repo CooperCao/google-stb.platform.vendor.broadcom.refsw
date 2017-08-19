@@ -162,6 +162,8 @@ static void NEXUS_VideoEncoder_P_WatchdogHandler_isr(void *context, int32_t unus
     NEXUS_VideoEncoder_P_Device *device = context;
     BSTD_UNUSED(unused1);
     BSTD_UNUSED(unused2);
+    if(device->watchdogOccured) return;
+    device->watchdogOccured = true;
     BKNI_SetEvent_isr(device->watchdogEvent);
     return;
 }
@@ -172,10 +174,32 @@ static void NEXUS_VideoEncoder_P_WatchdogHandler(void *context)
     NEXUS_VideoEncoder_P_Device *device = context;
     unsigned i;
     BDBG_WRN(("Video Encoder Watchdog"));
+    #if NEXUS_P_CRBVN_496_WORKAROUND /* workaround CRBVN-496 */
+    {
+        bool rt = false;
+        /* disable transcoders deinterlacers first */
+        for(i=0;i<NEXUS_NUM_VCE_CHANNELS;i++ ) {
+            if(device->channels[i].enc && device->channels[i].startSettings.input &&
+               !device->channels[i].startSettings.nonRealTime) {
+                rt = true;
+                NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.display);
+                NEXUS_DisplayModule_ClearDisplay_Prepare_priv(device->channels[i].startSettings.input);
+                NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.display);
+            }
+        }
+        /* sw_init deinterlacers MVP1&2 for transcoders */
+        if(rt) {
+            BREG_Write32(g_pCoreHandles->reg, 0x640000, 6);
+            BREG_Write32(g_pCoreHandles->reg, 0x640000, 0);
+        }
+    }
+    #endif
     /* release nexus memory block before processing watchdog */
     for(i=0;i<NEXUS_NUM_VCE_CHANNELS;i++ ) {
         if(device->channels[i].enc && device->channels[i].startSettings.input) {
-            NEXUS_VideoEncoder_P_Release(&device->channels[i]);
+            NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.display);
+            NEXUS_DisplayModule_SetUserDataEncodeMode_priv(device->channels[i].startSettings.input, false, NULL, NULL);
+            NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.display);
         }
     }
     rc = BVCE_ProcessWatchdog(device->vce);
@@ -192,7 +216,7 @@ static void NEXUS_VideoEncoder_P_WatchdogHandler(void *context)
             NEXUS_TaskCallback_Fire(device->channels[i].watchdogCallbackHandler);
         }
     }
-
+    device->watchdogOccured = false;
     return;
 }
 
@@ -1142,18 +1166,79 @@ error:
     return rc;
 }
 
+NEXUS_Error NEXUS_VideoEncoder_ReadIndex(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderDescriptor *pBuffer, unsigned size, unsigned *pRead)
+{
+   NEXUS_Error rc;
+
+   BDBG_OBJECT_ASSERT(encoder, NEXUS_VideoEncoder);
+   BDBG_ASSERT(pBuffer);
+   BDBG_ASSERT(pRead);
+
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, flags, BAVC_VideoBufferDescriptor, stCommon.uiFlags);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, originalPts, BAVC_VideoBufferDescriptor, stCommon.uiOriginalPTS);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, pts, BAVC_VideoBufferDescriptor, stCommon.uiPTS);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, stcSnapshot, BAVC_VideoBufferDescriptor, stCommon.uiSTCSnapshot);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, escr, BAVC_VideoBufferDescriptor, stCommon.uiESCR);
+
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, ticksPerBit, BAVC_VideoBufferDescriptor, stCommon.uiTicksPerBit);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, shr, BAVC_VideoBufferDescriptor, stCommon.iSHR);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, offset, BAVC_VideoBufferDescriptor, stCommon.uiOffset);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, length, BAVC_VideoBufferDescriptor, stCommon.uiLength);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, videoFlags, BAVC_VideoBufferDescriptor, uiVideoFlags);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, dts, BAVC_VideoBufferDescriptor, uiDTS);
+   NEXUS_ASSERT_FIELD(NEXUS_VideoEncoderDescriptor, dataUnitType, BAVC_VideoBufferDescriptor, uiDataUnitType);
+   NEXUS_ASSERT_STRUCTURE(NEXUS_VideoEncoderDescriptor, BAVC_VideoBufferDescriptor);
+
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_ORIGINALPTS_VALID ==  BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ORIGINALPTS_VALID);
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_PTS_VALID == BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_PTS_VALID);
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_FRAME_START ==  BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START);
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_EOS ==  BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS );
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA == BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA );
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_VIDEOFLAG_DTS_VALID == BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID);
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_VIDEOFLAG_RAP == BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP);
+   BDBG_CASSERT(NEXUS_VIDEOENCODERDESCRIPTOR_VIDEOFLAG_DATA_UNIT_START == BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START);
+
+
+   rc = BVCE_Channel_Output_ReadIndex(encoder->enc, (void *)pBuffer, size, pRead);
+   if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
+
+   return NEXUS_SUCCESS;
+error:
+   return rc;
+}
+
+NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+{
+    NEXUS_Error rc;
+    BAVC_VideoBufferStatus bufferStatus;
+
+    NEXUS_ASSERT_MODULE();
+    rc = BVCE_Channel_Output_GetBufferStatus(encoder->enc, &bufferStatus);
+    if(rc!=BERR_SUCCESS) return BERR_TRACE(rc);
+
+    *phFrameBufferBlock = bufferStatus.stCommon.hFrameBufferBlock;
+    *phMetadataBufferBlock = bufferStatus.stCommon.hMetadataBufferBlock;
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_Error
 NEXUS_VideoEncoder_GetBufferStatus_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderStatus *pStatus)
 {
    NEXUS_Error rc;
    BAVC_VideoBufferStatus bufferStatus;
 
+   NEXUS_ASSERT_MODULE();
    BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
    rc = BVCE_Channel_Output_GetBufferStatus(encoder->enc, &bufferStatus);
    if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
    BDBG_MODULE_MSG(nexus_video_encoder_status, ("base addr@%p : metadata base addr@%p", bufferStatus.stCommon.pFrameBufferBaseAddress, bufferStatus.stCommon.pMetadataBufferBaseAddress));
    /* create persistent NEXUS_MemoryBlock <-> BMMA_Block mapping */
    if ( NULL != bufferStatus.stCommon.hFrameBufferBlock ) {
+       if(encoder->frame.mma && encoder->frame.mma != bufferStatus.stCommon.hFrameBufferBlock) {
+            NEXUS_OBJECT_UNREGISTER(NEXUS_MemoryBlock, encoder->frame.nexus, Release);
+            NEXUS_MemoryBlock_Free(encoder->frame.nexus);
+            encoder->frame.nexus=NULL;
+       }
        if(encoder->frame.nexus==NULL) {
            NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.core);
            encoder->frame.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hFrameBufferBlock );
@@ -1170,6 +1255,11 @@ NEXUS_VideoEncoder_GetBufferStatus_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_
        pStatus->bufferBlock = encoder->frame.nexus;
    }
    if ( NULL != bufferStatus.stCommon.hMetadataBufferBlock ) {
+       if(encoder->meta.mma && encoder->meta.mma != bufferStatus.stCommon.hMetadataBufferBlock) {
+            NEXUS_OBJECT_UNREGISTER(NEXUS_MemoryBlock, encoder->meta.nexus, Release);
+            NEXUS_MemoryBlock_Free(encoder->meta.nexus);
+            encoder->meta.nexus=NULL;
+       }
        if(encoder->meta.nexus==NULL) {
            NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.core);
            encoder->meta.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hMetadataBufferBlock);

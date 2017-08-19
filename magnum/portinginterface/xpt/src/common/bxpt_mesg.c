@@ -76,7 +76,6 @@ static void CopyDmaDataToUser_isr( BXPT_Handle hXpt, unsigned int PidChannelNum,
 #endif
 
 static void ResetPid2BuffMap(BXPT_Handle hXpt);
-void ConfigPid2BufferMap( BXPT_Handle hXpt, unsigned int PidChannelNum, unsigned int BufferNumber, bool enableIt);
 
 void BXPT_Mesg_SetPid2Buff(
         BXPT_Handle hXpt,
@@ -189,7 +188,7 @@ void ConfigPid2BufferMap(
     else
         Reg &= (~tempReg);
     BREG_Write32( hXpt->hRegister, RegAddr, Reg );
-    BDBG_MSG(("%s: PidChannelNum %u, BufferNumber %u, enable %s, reg %x, data %x", __FUNCTION__, PidChannelNum,
+    BDBG_MSG(("%s: PidChannelNum %u, BufferNumber %u, enable %s, reg %x, data %x", BSTD_FUNCTION, PidChannelNum,
                 BufferNumber, enableIt ? "1" : "0", RegAddr, Reg));
 }
 
@@ -1084,7 +1083,7 @@ BERR_Code BXPT_CheckBufferWithWrap(
         DataReady &= 1ul << BitShift;
 #endif
 
-        BDBG_MSG(( "%s: Buffer %u, DataReady %s", __func__, MesgBufferNum, DataReady ? "True" : "False" ));
+        BDBG_MSG(( "%s: Buffer %u, DataReady %s", BSTD_FUNCTION, MesgBufferNum, DataReady ? "True" : "False" ));
         /* Is there any new data in the buffer? */
         if ( DataReady )
         {

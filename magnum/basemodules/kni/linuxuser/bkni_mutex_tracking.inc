@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2003-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,8 +39,8 @@
 
 /* 
  * Goal of this code is to provide least intrusive dead-lock detection, where deadlock detection based on mutex acquired for prolonged time
- * It based on adding minimal meta-data into each mutes and running the periodic 'heart-beat' routine that checks how long mutex was held.
- * It rellies of underlying OS code to provide the following OS specific primitives
+ * It based on adding minimal meta-data into each mutex and running the periodic 'heart-beat' routine that checks how long mutex was held.
+ * It relies of underlying OS code to provide the following OS specific primitives
     BKNI_P_MUTEXTRACKING_HEARTBEAT_TYPE         type heard beat data type
     BKNI_P_MUTEXTRACKING_HEARTBEAT_INIT(x)      intialization of heart beet
     BKNI_P_MUTEXTRACKING_HEARTBEAT_UNINIT(x)    un-intialization of heart beet
@@ -76,7 +76,6 @@ typedef struct BKNI_P_MutexTracking  {
     unsigned acquiredCount;
     unsigned acquiredCountTick; /* value of the acquiredCount when timerTick was captured */
     BKNI_P_MUTEXTRACKING_TICK_TYPE  timerTick; /* initialized by the heart-beat function */
-    BKNI_MutexSettings settings;
     const char *file;
     unsigned line;
     BLST_D_ENTRY(BKNI_P_MutexTracking) link;
@@ -102,9 +101,6 @@ static void BKNI_P_MutexTracking_HeartBeat_locked(void)
         if(mutex->acquired) {
             unsigned acquiredCount = mutex->acquiredCount;
             unsigned acquiredCountTick = mutex->acquiredCountTick;
-            if(mutex->settings.suspended) {
-                return;
-            }
             if(acquiredCountTick != acquiredCount) {
                 mutex->timerTick = now;
                 mutex->acquiredCountTick = acquiredCount;
@@ -148,7 +144,6 @@ static void BKNI_P_MutexTracking_Init(BKNI_P_MutexTracking  *mutex, const char *
     mutex->timerTick = 0;
     mutex->file = file;
     mutex->line = line;
-    mutex->settings.suspended = false;
     if(!tracking->timerStarted) {
         tracking->timerStarted = true;
         BKNI_P_MUTEXTRACKING_HEARTBEAT_INIT(&tracking->heartBeat);

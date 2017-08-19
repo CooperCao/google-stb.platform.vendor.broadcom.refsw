@@ -40,18 +40,16 @@ NEXUS_TOP ?= $(shell cd ../../../../nexus; pwd)
 MAGNUM ?= ${NEXUS_TOP}/../magnum
 BSEAV ?= ${NEXUS_TOP}/../BSEAV
 
-APPS = \
-    encode \
-    get_encode_latency \
-    sid_transcode \
-    transcode_hls \
-    video_conf \
-    encode_audio_es \
-    encode_video_es \
-    transcode_mp4 \
-    transcode_vpx \
-    transcode_ts
+# Some of the tests have been moved to BSEAV.
+BSEAV_TRANSCODE_APP ?=$(BSEAV)/app/transcode
 
+BSEAV_APPS = \
+    transcode_ts \
+    transcode_mp4 \
+    transcode_vpx
+
+APPS = ${addprefix ${BSEAV_TRANSCODE_APP}/,$(BSEAV_APPS)} \
+     encode
 
 # transcode_ts required oslib
 OS_LIB_UNITTESTS=y
@@ -93,6 +91,9 @@ include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
 MODULES += BMEDIA_PROBE
 
+# add transcode_ts from BSEAV/app/transcode
+CFLAGS += -I$(BSEAV)/apps/transcode
+
 # add namevalue
 CFLAGS += -I$(NEXUS_TOP)/utils
 
@@ -112,3 +113,5 @@ EXTRA_SRC += $(notdir $(sort $(foreach module, $(MODULES), $($(module)_SOURCES))
 vpath %c $(dir $(sort $(foreach module, $(MODULES), $($(module)_SOURCES))))
 
 include ../common/Makefile.inc
+
+$(BSEAV_APPS): ${addprefix ${BSEAV_TRANSCODE_APP}/,$(BSEAV_APPS)}

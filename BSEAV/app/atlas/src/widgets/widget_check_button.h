@@ -67,8 +67,8 @@ public:
     virtual bool     isChecked(void) { return(_bChecked); }
     virtual void     setBoxColor(uint32_t color);
     virtual uint32_t getBoxColor(void)         { return(_boxColor); }
-    virtual void     setBoxSize(uint16_t size) { _boxSize = size; }
-    virtual uint16_t getBoxSize(void)          { return(_boxSize); }
+    virtual void     setBoxSize(unsigned size) { _boxSize = size; }
+    virtual unsigned getBoxSize(void)          { return(_boxSize); }
     virtual void     setCheckColor(uint32_t color);
     virtual uint32_t getCheckColor(void) { return(_checkColor); }
     virtual void     drawFocus(bwidget_t widget, blabel_settings * pLabelSettings, const bwin_rect rect, const bwin_rect * pRectClip);
@@ -79,7 +79,7 @@ public:
 protected:
     bool        _bChecked;
     uint32_t    _boxColor;
-    uint16_t    _boxSize;
+    unsigned    _boxSize;
     uint32_t    _checkColor;
     eCheckStyle _checkStyle;
 public:

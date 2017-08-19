@@ -72,6 +72,8 @@ BERR_Code BSAT_g1_P_AfecConfigPdLut1_isr(BSAT_ChannelHandle h, uint8_t lutMode);
 BERR_Code BSAT_g1_P_AfecSetVlcGain_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_AfecSetDecoderParams_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_AfecAcquire2_isr(BSAT_ChannelHandle h);
+BERR_Code BSAT_g1_P_AfecAcquire3_isr(BSAT_ChannelHandle h);
+BERR_Code BSAT_g1_P_AfecAcquire4_isr(BSAT_ChannelHandle h);
 
 
 /******************************************************************************
@@ -203,14 +205,14 @@ static BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h)
 #endif
 
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecPowerUp_isr(h));
-   BSAT_g1_P_AfecResetChannel_isr(h);
+   BSAT_CHK_RETCODE(BSAT_g1_P_AfecResetChannel_isr(h));
    BSAT_CHK_RETCODE(BSAT_g1_P_GetAfecClock_isrsafe(h, &(hChn->fecFreq)));
 
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_DELTA_UP, 0x80000003);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_DELTA_DOWN, 0x80000003);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_STEP_UP, 0x00000100);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_STEP_DOWN, 0x00000010);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_N, 0x0000000a);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_DELTA_UP, 0x80000001);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_DELTA_DOWN, 0x80000001);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_N, 0x80);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_STEP_UP, 0x20 + h->channel);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_RAMP_STEP_DOWN, 0x100 + h->channel);
 
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecConfigPdLut_isr(h)); /* this eventually calls BSAT_g1_P_AfecAcquire1_isr */
 
@@ -327,7 +329,46 @@ BERR_Code BSAT_g1_P_AfecAcquire2_isr(BSAT_ChannelHandle h)
    if (hChn->xportSettings.bOpllBypass == false)
       BSAT_g1_P_PowerUpOpll_isr(h);
 
-   BSAT_CHK_RETCODE(BSAT_g1_P_AfecSetOpll_isr(h));
+   retCode = BSAT_g1_P_AfecAcquire3_isr(h);
+
+   done:
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_AfecAcquire3_isr()
+******************************************************************************/
+BERR_Code BSAT_g1_P_AfecAcquire3_isr(BSAT_ChannelHandle h)
+{
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode;
+
+   retCode = BSAT_g1_P_AfecSetOpll_isr(h);
+   if (retCode != BERR_SUCCESS)
+   {
+      if ((retCode == BSAT_ERR_BUSY) && (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM) && (hChn->acqSettings.options & BSAT_ACQ_CHAN_BOND))
+         retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, 1000, BSAT_g1_P_AfecAcquire3_isr);
+      else
+         goto done;
+   }
+   else
+      retCode = BSAT_g1_P_AfecAcquire4_isr(h);
+
+   done:
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_AfecAcquire4_isr()
+******************************************************************************/
+BERR_Code BSAT_g1_P_AfecAcquire4_isr(BSAT_ChannelHandle h)
+{
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode;
+   uint32_t val;
+
    BSAT_CHK_RETCODE(BSAT_g1_P_ConfigOif_isr(h));
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL01);
@@ -1843,16 +1884,44 @@ static BERR_Code BSAT_g1_P_AfecSetOpll_isr(BSAT_ChannelHandle h)
    uint32_t i, symbols, pilot_blocks, number_of_bits, number_of_symbols;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
    BSAT_Mode mode;
+   bool bPilot;
 
    if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
    {
-      hChn->outputBitrate = 0; /* TBD */
-      hChn->opll_N = 0; /* TBD */
-      hChn->opll_D = 0; /* TBD */
-      return BERR_SUCCESS;
+      if ((hChn->acqSettings.options & BSAT_ACQ_CHAN_BOND) == 0)
+      {
+         hChn->outputBitrate = 0; /* TBD */
+         hChn->opll_N = 0; /* TBD */
+         hChn->opll_D = 0; /* TBD */
+         return BERR_SUCCESS;
+      }
+      else
+      {
+         /* channel bonding VCM mode - determine (mode,pilot) */
+         int n;
+         uint8_t sid[8];
+         BSAT_StreamStatus streamStatus;
+         BSAT_g1_P_GetStreamList(h, 8, &n, sid);
+         if (n > 1)
+         {
+            BDBG_ERR(("ERROR: %d streams found in channel bonding VCM transponder (exactly 1 expected)", n));
+            return BSAT_ERR_INVALID_STATE;
+         }
+         else if (n == 0)
+         {
+            return BSAT_ERR_BUSY;
+         }
+         BSAT_g1_P_GetStreamStatus(h, sid[0], &streamStatus);
+         mode = streamStatus.mode;
+         bPilot = (streamStatus.pls & 0x1) ? true : false;
+         BDBG_ERR(("BSAT_g1_P_AfecSetOpll_isr: mode=0x%X, pilot=%d, pls=0x%X, matype=0x%X", mode, bPilot, streamStatus.pls, streamStatus.matype));
+      }
    }
    else
+   {
       mode = hChn->actualMode;
+      bPilot = BSAT_g1_P_AfecIsPilot_isr(h);
+   }
 
    if (BSAT_MODE_IS_DVBS2_8PSK(mode) || BSAT_MODE_IS_DVBS2X_8PSK(mode) || BSAT_MODE_IS_DVBS2X_8APSK(mode))
    {
@@ -1895,7 +1964,7 @@ static BERR_Code BSAT_g1_P_AfecSetOpll_isr(BSAT_ChannelHandle h)
       number_of_bits = (uint32_t)BSAT_NUMBER_OF_BITS_DVBS2X[i];
    }
 
-   if (BSAT_g1_P_AfecIsPilot_isr(h) || (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM))
+   if (bPilot)
       symbols += pilot_blocks;
    number_of_symbols = symbols + 90;
 
@@ -1973,10 +2042,14 @@ BERR_Code BSAT_g1_P_AfecResetChannel_isr(BSAT_ChannelHandle h)
    BSAT_Mode mode = hChn->actualMode;
    uint32_t metgen_sel, metgen_s2xdp_rst, metgen_dp_rst, ldpc_config_0, rst;
 
+   if (BSAT_g1_P_IsAfecOn_isrsafe(h) == false)
+      return BSAT_ERR_POWERED_DOWN;
+
 #if BCHP_CHIP==45308
    ldpc_config_0 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0);
    rst = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_RST);
 
+#if BSAT_CHIP_FAMILY!=45316
    if ((mode >= BSAT_Mode_eDvbs2_Qpsk_1_4) && (mode <= BSAT_Mode_eDvbs2_32apsk_9_10))
    {
       /* S2 metgen */
@@ -1985,8 +2058,9 @@ BERR_Code BSAT_g1_P_AfecResetChannel_isr(BSAT_ChannelHandle h)
       metgen_dp_rst = 0;
    }
    else
+#endif
    {
-      /* S2X metgen */
+      /* S2X metgen - do this for 45316 always */
       metgen_sel = 0;
       metgen_s2xdp_rst = 0;
       metgen_dp_rst = 1;
@@ -2000,7 +2074,12 @@ BERR_Code BSAT_g1_P_AfecResetChannel_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, rst);
 #endif
 
-   BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_RST, 0x3);
+   /* toggle reset */
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, rst | 0x3);
+#if BSAT_CHIP_FAMILY==45316
+   BKNI_Delay(8);
+#endif
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, rst & ~0x3);
 
    return BERR_SUCCESS;
 }

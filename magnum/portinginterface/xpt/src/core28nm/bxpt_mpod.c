@@ -332,8 +332,6 @@ static BERR_Code RouteMultichannelPlaybackToMpod(
     );
     BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
-    hXpt->PlaybackHandles[ ParserNum ].IsParserInAllPass = Enable;
-
     return ExitCode;
 }
 
@@ -373,8 +371,6 @@ BERR_Code BXPT_Mpod_RouteToMpod(
     );
     BREG_Write32( hXpt->hRegister, Ctrl1Addr, Reg );
 
-    hXpt->IsParserInAllPass[ ParserNum ] = Enable;
-
     Reg = BREG_Read32( hXpt->hRegister, Ctrl2Addr );
     Reg &= ~(
         BCHP_MASK( XPT_FE_MINI_PID_PARSER0_CTRL2, MPOD_EN )
@@ -412,8 +408,6 @@ static BERR_Code RouteMultichannelPlaybackToMpodPidFiltered(
         BCHP_FIELD_DATA( XPT_MCPB_CH0_SP_PARSER_CTRL, PARSER_ALL_PASS_CTRL_PRE_MPOD, ((false == MpodPidFilter) && Enable) ? 1 : 0 )
     );
     BREG_Write32( hXpt->hRegister, RegAddr, Reg );
-
-    hXpt->PlaybackHandles[ ParserNum ].IsParserInAllPass = ((false == MpodPidFilter) && Enable);
 
     return ExitCode;
 }
@@ -459,8 +453,6 @@ BERR_Code BXPT_Mpod_RouteToMpodPidFiltered(
         BCHP_FIELD_DATA( XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ALL_PASS_CTRL_PRE_MPOD, ((MpodPidFilter==false) && Enable) ? 1 : 0 )
     );
     BREG_Write32( hXpt->hRegister, Ctrl1Addr, Reg );
-
-    hXpt->IsParserInAllPass[ ParserNum ] = ((MpodPidFilter==false) && Enable);
 
     Reg = BREG_Read32( hXpt->hRegister, Ctrl2Addr );
     Reg &= ~(

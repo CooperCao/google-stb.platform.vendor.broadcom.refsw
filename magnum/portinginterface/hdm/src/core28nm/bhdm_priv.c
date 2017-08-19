@@ -473,62 +473,6 @@ void BHDM_P_EnableTmdsClock_isr(
 
 /* For boot loader usage */
 #ifndef BHDM_FOR_BOOTUPDATER
-#if !B_REFSW_MINIMAL
-/******************************************************************************
-BERR_Code BHDM_SetAudioMute
-Summary: Implements HDMI Audio (only) mute enable/disable.
-*******************************************************************************/
-BERR_Code BHDM_SetAudioMute(
-    const BHDM_Handle hHDMI,               /* [in] HDMI handle */
-    bool bEnableAudioMute          /* [in] boolean to enable/disable */
-)
-{
-    BERR_Code rc = BERR_SUCCESS;
-    BREG_Handle hRegister ;
-
-    BDBG_ENTER(BHDM_SetAudioMute) ;
-
-#if BHDM_CONFIG_AUDIO_MAI_BUS_DISABLE_SUPPORT
-{
-    uint32_t Register, ulOffset;
-    BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-    hRegister = hHDMI->hRegister ;
-    ulOffset = hHDMI->ulOffset ;
-
-    /* AudioMute valid for HDMI only */
-    if  (hHDMI->DeviceSettings.eOutputFormat != BHDM_OutputFormat_eHDMIMode)
-    {
-        BDBG_ERR(("Tx%d: Audio Mute only applies in HDMI mode.", hHDMI->eCoreId));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
-        goto done ;
-    }
-    Register = BREG_Read32(hRegister, BCHP_HDMI_MAI_CONFIG + ulOffset) ;
-    if (bEnableAudioMute) {
-        Register |= BCHP_FIELD_DATA(HDMI_MAI_CONFIG, DISABLE_MAI_AUDIO, 1) ;
-    }
-    else
-    {
-        Register &= ~BCHP_MASK(HDMI_MAI_CONFIG, DISABLE_MAI_AUDIO);
-    }
-    BREG_Write32(hRegister, BCHP_HDMI_MAI_CONFIG + ulOffset, Register) ;
-
-    hHDMI->AudioMuteState = bEnableAudioMute ;
-    BDBG_MSG(("Tx%d: AudioMute %d", hHDMI->eCoreId, bEnableAudioMute)) ;
-}
-
-done:
-#else
-
-    BSTD_UNUSED(hHDMI) ;
-    BSTD_UNUSED(bEnableAudioMute) ;
-
-#endif
-
-    BDBG_LEAVE(BHDM_SetAudioMute) ;
-    return rc ;
-}  /* END BHDM_SetAudioMute */
-#endif
 
 
 
@@ -663,6 +607,61 @@ void BHDM_P_ConfigureInputAudioFmt(
 
 
 #if !B_REFSW_MINIMAL
+/******************************************************************************
+BERR_Code BHDM_SetAudioMute
+Summary: Implements HDMI Audio (only) mute enable/disable.
+*******************************************************************************/
+BERR_Code BHDM_SetAudioMute(
+    const BHDM_Handle hHDMI,               /* [in] HDMI handle */
+    bool bEnableAudioMute          /* [in] boolean to enable/disable */
+)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BREG_Handle hRegister ;
+
+    BDBG_ENTER(BHDM_SetAudioMute) ;
+
+#if BHDM_CONFIG_AUDIO_MAI_BUS_DISABLE_SUPPORT
+{
+    uint32_t Register, ulOffset;
+    BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+    hRegister = hHDMI->hRegister ;
+    ulOffset = hHDMI->ulOffset ;
+
+    /* AudioMute valid for HDMI only */
+    if  (hHDMI->DeviceSettings.eOutputFormat != BHDM_OutputFormat_eHDMIMode)
+    {
+        BDBG_ERR(("Tx%d: Audio Mute only applies in HDMI mode.", hHDMI->eCoreId));
+        rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+        goto done ;
+    }
+    Register = BREG_Read32(hRegister, BCHP_HDMI_MAI_CONFIG + ulOffset) ;
+    if (bEnableAudioMute) {
+        Register |= BCHP_FIELD_DATA(HDMI_MAI_CONFIG, DISABLE_MAI_AUDIO, 1) ;
+    }
+    else
+    {
+        Register &= ~BCHP_MASK(HDMI_MAI_CONFIG, DISABLE_MAI_AUDIO);
+    }
+    BREG_Write32(hRegister, BCHP_HDMI_MAI_CONFIG + ulOffset, Register) ;
+
+    hHDMI->AudioMuteState = bEnableAudioMute ;
+    BDBG_MSG(("Tx%d: AudioMute %d", hHDMI->eCoreId, bEnableAudioMute)) ;
+}
+
+done:
+#else
+
+    BSTD_UNUSED(hHDMI) ;
+    BSTD_UNUSED(bEnableAudioMute) ;
+
+#endif
+
+    BDBG_LEAVE(BHDM_SetAudioMute) ;
+    return rc ;
+}  /* END BHDM_SetAudioMute */
+
 /******************************************************************************
 Summary:
     Set pixel data override
@@ -1313,25 +1312,3 @@ void BHDM_P_CheckHotPlugInterrupt(
 }
 
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
-
-
-void BHDM_P_RxDeviceAttached_isr(
-    const BHDM_Handle hHDMI,         /* [in] HDMI handle */
-    uint8_t *DeviceAttached /* [out] Device Attached Status  */
-)
-{
-    BREG_Handle hRegister ;
-    uint32_t Register, ulOffset ;
-
-    BDBG_ENTER(BHDM_P_RxDeviceAttached_isr) ;
-
-    hRegister = hHDMI->hRegister ;
-    ulOffset = hHDMI->ulOffset ;
-
-    Register = BREG_Read32(hRegister, BCHP_HDMI_HOTPLUG_STATUS + ulOffset) ;
-    *DeviceAttached =
-        BCHP_GET_FIELD_DATA(Register, HDMI_HOTPLUG_STATUS, HOTPLUG_STATUS) ;
-
-    BDBG_LEAVE(BHDM_P_RxDeviceAttached_isr) ;
-    return ;
-}

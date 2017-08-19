@@ -60,8 +60,8 @@ public:
 
     bool                   isMeterVisible(void) { return(_showMeter); }
     void                   showMeter(bool show);
-    int16_t                getLevel(void) { return(_level); }
-    void                   setLevel(int16_t level);
+    int                    getLevel(void) { return(_level); }
+    void                   setLevel(int level);
     uint32_t               getColor(void) { return(_color); }
     void                   setColor(uint32_t color);
     uint32_t               getColorTop(void) { return(_colorTop); }
@@ -75,8 +75,8 @@ public:
     bwin_image_render_mode getMeterRenderMode(void)          { return(_imageRenderMode); }
     void                   setRangeIndicator(bool showRange) { _showRange = showRange; }
     bool                   isRangeIndicatorVisible(void)     { return(_showRange); }
-    void                   setRangeIndicatorSize(uint16_t size);
-    uint16_t               getRangeIndicatorSize(void) { return(_rangeSize); }
+    void                   setRangeIndicatorSize(unsigned size);
+    unsigned               getRangeIndicatorSize(void) { return(_rangeSize); }
 
 protected:
     bool                   _showMeter;
@@ -86,9 +86,9 @@ protected:
     uint32_t               _colorTop;
     uint32_t               _colorMiddle;
     uint32_t               _colorBottom;
-    int16_t                _level;
+    int                    _level;
     bool                   _showRange;
-    uint16_t               _rangeSize;
+    unsigned               _rangeSize;
 };
 
 #ifdef __cplusplus

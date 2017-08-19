@@ -1,54 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************
-/*****************************************************************************
- *
- * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CENWKNIBAttributes.h $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************************
  *
  * DESCRIPTION:
- *   This is the header file for the RF4CE Network Layer component NIB Attributes handlers.
+ *      This is the header file for the RF4CE Network Layer component NIB Attributes handlers.
  *
- * $Revision: 12956 $
- * $Date: 2016-07-14 01:20:40Z $
- *
- ****************************************************************************************/
+*******************************************************************************/
+
 #ifndef _RF4CE_NWK_NIB_ATTRIBUTES_H
 #define _RF4CE_NWK_NIB_ATTRIBUTES_H
 
@@ -95,18 +89,19 @@ typedef enum _RF4CE_NWK_NIB_Ids_t
     RF4CE_NWK_SCAN_DURATION,                   /*!< A measure of the duration of a scanning operation. */
     RF4CE_NWK_USER_STRING,                     /*!< The user defined character string used to identify this node. */
     /* Custom member(s) */
-    RF4CE_NWK_MAX_PAIRING_TABLE_ENTRIES,       /*!< Maximum amount of pairing table entries available. */
-    RF4CE_NWK_PAN_ID,                          /*!< Pan ID. */
-    RF4CE_NWK_CHANNEL_NORMALIZATION_CAPABLE,   /*!< Node capabilities: If the node is channel normalization capable. */
-    RF4CE_NWK_SECURITY_CAPABLE,                /*!< Node capabilities: If the node is security capable. */
-    RF4CE_NWK_POWER_SOURCE,                    /*!< Node capabilities: If the node is powered from mains. */
-    RF4CE_NWK_FA_SCAN_THRESHOLD,
-    RF4CE_NWK_NUM_SUPPORTED_PROFILES,
-    RF4CE_NWK_ANTENNA_AVAILABLE,
-    RF4CE_NWK_SUPPORTED_PROFILES,
-    RF4CE_NWK_TX_POWER_KEY_EXCHANGE,           /*!< Tx Power for the key seed tranmission */
-    RF4CE_NWK_FA_COUNT_THRESHOLD,              /*!<  Frequency Agility Count Threshold */
-    RF4CE_NWK_FA_DECREMENT,                    /*!<  Frequency Agility Decrement */
+    RF4CE_NWK_MAX_PAIRING_TABLE_ENTRIES     = 0x70,    /*!< Maximum amount of pairing table entries available. */
+    RF4CE_NWK_PAN_ID                        = 0x71,    /*!< Pan ID. */
+    RF4CE_NWK_CHANNEL_NORMALIZATION_CAPABLE = 0x72,    /*!< Node capabilities: If the node is channel normalization capable. */
+    RF4CE_NWK_SECURITY_CAPABLE              = 0x73,    /*!< Node capabilities: If the node is security capable. */
+    RF4CE_NWK_POWER_SOURCE                  = 0x74,    /*!< Node capabilities: If the node is powered from mains. */
+    RF4CE_NWK_FA_SCAN_THRESHOLD             = 0x75,
+    RF4CE_NWK_NUM_SUPPORTED_PROFILES        = 0x76,
+    RF4CE_NWK_ANTENNA_AVAILABLE             = 0x77,
+    RF4CE_NWK_TX_POWER_KEY_EXCHANGE         = 0x78,   /*!< Tx Power for the key seed tranmission */
+    RF4CE_NWK_FA_COUNT_THRESHOLD            = 0x79,   /*!<  Frequency Agility Count Threshold */
+    RF4CE_NWK_FA_DECREMENT                  = 0x7A,   /*!<  Frequency Agility Decrement */
+    RF4CE_NWK_FA_INCREMENT                  = 0x7B,   /*!<  Frequency Agility Increment */
+    RF4CE_NWK_SUPPORTED_PROFILES            = 0x7C,
     RF4CE_NWK_ATTRIBUTE_MAXIMUM
 } RF4CE_NWK_NIB_Ids_t;
 
@@ -156,7 +151,7 @@ typedef struct _RF4CE_NIB_Attributes_t
     struct
     {
         uint32_t nwkFrameCounter;                        /*!< The frame counter added to the transmitted NPDU. */
-    } frameCounter;
+    } frameCounter;                                      /*!< The frame counter container. */
 
     struct
     {
@@ -164,7 +159,7 @@ typedef struct _RF4CE_NIB_Attributes_t
                                                               initialization. */
         uint8_t nwkInPowerSave;                          /*!< The power save mode of the node. TRUE indicates that the
                                                               device is operating in power save mode. */
-    } autoNIB;
+    } autoNIB;                                           /*!< The autoNIB container. */
 
     struct
     {
@@ -180,8 +175,8 @@ typedef struct _RF4CE_NIB_Attributes_t
         int8_t  nwkFaScanThreshold;
         uint8_t  nwkFaCountThreshold;
         int8_t  nwkFaDecrement;
-    } nonStorable;
-
+        int8_t  nwkFaIncrement;
+    } nonStorable;                                       /*!< The nonStorable container. */
     struct
     {
         RF4CE_PairingTableEntry_t nwkPairingTable[RF4CE_NWKC_MAX_PAIRING_TABLE_ENTRIES + 1]; /*!< The pairing table managed by
@@ -207,7 +202,7 @@ typedef struct _RF4CE_NIB_Attributes_t
         uint8_t nwkDiscoveryLQIThreshold;                /*!< The LQI threshold below which discovery requests will be
                                                               rejected. */
         int8_t  nwkTxPowerKeyExchange;                   /*!< Tx Power during Key Exchange. */
-    } storable;
+    } storable;                                          /*!< The storable container. */
 } RF4CE_NIB_Attributes_t;
 
 /**//**
@@ -254,14 +249,15 @@ typedef union _RF4CE_NIB_AttributesAll_t
     uint8_t nwkChannelNormalization;                 /*!< Node capabilities: If the node is channel normalization capable. */
     uint8_t nwkSecurityCapable;                      /*!< Node capabilities: If the node is security capable. */
     uint8_t nwkPowerSource;                          /*!< Node capabilities: If the node is powered from mains. */
-    int8_t nwkFaScanThreshold;                      /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
-    uint8_t nwkNumSupportedProfiles;
-    uint8_t antennaAvailable;
-    uint8_t nwkSupportedProfiles[RF4CE_NWK_MAX_PROFILE_ID_LIST_LENGTH];
+    int8_t  nwkFaScanThreshold;                      /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
+    uint8_t nwkNumSupportedProfiles;                 /*!< Number of supported RF4CE profiles. */
+    uint8_t antennaAvailable;                        /*!< Radio antenna custom attribute. */
+    uint8_t nwkSupportedProfiles[RF4CE_NWK_MAX_PROFILE_ID_LIST_LENGTH]; /*!< Array of RF4CE Profiles. */
     int8_t  nwkTxPowerKeyExchange;                   /*!< Tx Power during Key Exchange. */
     uint8_t nwkFaCountThreshold;                     /*!< Self-defined attribute for RF4CE_NWKC_FA_COUNT */
     int8_t nwkFaDecrement;                           /*!< Self-defined attribute for RF4CE_NWKC_FA_DECREMENT */
- } RF4CE_NIB_AttributesAll_t;
+    int8_t nwkFaIncrement;                           /*!< Self-defined attribute for RF4CE_NWKC_FA_INCREMENT */
+} RF4CE_NIB_AttributesAll_t;
 
 /**//**
  * \brief NLME-SET identification structure declaration.
@@ -276,6 +272,7 @@ typedef struct _RF4CE_NWK_AttributeID_t
 
 /**//**
  * \brief NLME-SET confirm primitive's parameters structure declaration.
+ * \ingroup RF4CE_NWK_SetConf
  */
 typedef struct _RF4CE_NWK_SetConfParams_t
 {
@@ -285,6 +282,7 @@ typedef struct _RF4CE_NWK_SetConfParams_t
 
 /**//**
  * \brief NLME-SET request primitive's parameters structure declaration.
+ * \ingroup RF4CE_NWK_SetReq
  */
 typedef struct _RF4CE_NWK_SetReqParams_t
 {
@@ -294,16 +292,19 @@ typedef struct _RF4CE_NWK_SetReqParams_t
 
 /**//**
  * \brief NLME-SET request structure data type declaration.
+ * \ingroup RF4CE_NWK_SetReq
  */
 typedef struct _RF4CE_NWK_SetReqDescr_t RF4CE_NWK_SetReqDescr_t;
 
 /**//**
  * \brief NLME-SET request callback declaration.
+ * \ingroup RF4CE_NWK_SetConf
  */
 typedef void (*RF4CE_NWK_SetConfCallback_t)(RF4CE_NWK_SetReqDescr_t *req, RF4CE_NWK_SetConfParams_t *conf);
 
 /**//**
  * \brief NLME-SET request structure declaration.
+ * \ingroup RF4CE_NWK_SetReq
  */
 typedef struct _RF4CE_NWK_SetReqDescr_t
 {
@@ -318,6 +319,7 @@ typedef struct _RF4CE_NWK_SetReqDescr_t
 
 /**//**
  * \brief NLME-GET confirm primitive's parameters structure declaration.
+ * \ingroup RF4CE_NWK_GetConf
  */
 typedef struct _RF4CE_NWK_GetConfParams_t
 {
@@ -328,6 +330,7 @@ typedef struct _RF4CE_NWK_GetConfParams_t
 
 /**//**
  * \brief NLME-GET request primitive's parameters structure declaration.
+ * \ingroup RF4CE_NWK_GetReq
  */
 typedef struct _RF4CE_NWK_GetReqParams_t
 {
@@ -336,16 +339,19 @@ typedef struct _RF4CE_NWK_GetReqParams_t
 
 /**//**
  * \brief NLME-GET request structure data type declaration.
+ * \ingroup RF4CE_NWK_GetReq
  */
 typedef struct _RF4CE_NWK_GetReqDescr_t RF4CE_NWK_GetReqDescr_t;
 
 /**//**
  * \brief NLME-GET request callback declaration.
+ * \ingroup RF4CE_NWK_GetConf
  */
 typedef void (*RF4CE_NWK_GetConfCallback_t)(RF4CE_NWK_GetReqDescr_t *req, RF4CE_NWK_GetConfParams_t *conf);
 
 /**//**
  * \brief NLME-GET request primitive's parameters structure declaration.
+ * \ingroup RF4CE_NWK_GetReq
  */
 typedef struct _RF4CE_NWK_GetReqDescr_t
 {
@@ -376,7 +382,8 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
     .nwkMaxReportedNodeDescriptors = 3,\
     .nwkFaScanThreshold = RF4CE_NWKC_FA_SCAN_THRESHOLD, \
     .nwkFaCountThreshold = RF4CE_NWK_FREQUENCY_AGILITY_COUTER, \
-    .nwkFaDecrement = RF4CE_NWK_FREQUENCY_AGILITY_DECREMENT,
+    .nwkFaDecrement = RF4CE_NWK_FREQUENCY_AGILITY_DECREMENT, \
+    .nwkFaIncrement = RF4CE_NWK_FREQUENCY_AGILITY_INCREMENT,
 
 #define RF4CE_DEFAULT_STORABLE_NIB_VALUES() \
     .nwkActivePeriod = RF4CE_NWKC_MIN_ACTIVE_PERIOD, \
@@ -415,6 +422,7 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief Initiates asynchronous procedure to set appropriate NIB attribute.
+ \ingroup RF4CE_NWK_Functions
 
  \param[in] request - pointer to the structure that contains a pointer to the request structure.
  \return Nothing.
@@ -423,6 +431,7 @@ void RF4CE_NWK_SetReq(RF4CE_NWK_SetReqDescr_t *request);
 
 /************************************************************************************//**
  \brief Initiates asynchronous procedure to get appropriate NIB attribute.
+ \ingroup RF4CE_NWK_Functions
 
  \param[in] request - pointer to the structure that contains a pointer to the request structure.
  \return Nothing.
@@ -430,3 +439,5 @@ void RF4CE_NWK_SetReq(RF4CE_NWK_SetReqDescr_t *request);
 void RF4CE_NWK_GetReq(RF4CE_NWK_GetReqDescr_t *request);
 
 #endif /* _RF4CE_NWK_NIB_ATTRIBUTES_H */
+
+/* eof bbRF4CENWKNIBAttributes.h */

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,6 +63,9 @@
 #elif ( ( BVCE_P_CORE_MAJOR == 3 ) && ( BVCE_P_CORE_MINOR == 0 ) && ( BVCE_P_CORE_SUBMINOR == 0 ) && ( BVCE_P_CORE_REVISION == 2 ) )
 #include "bvce_core_regs_hw_rev_3_0_0_2.c"
 #include "bvce_core_rev_3_0_0_2.c"
+#elif ( ( BVCE_P_CORE_MAJOR == 3 ) && ( BVCE_P_CORE_MINOR == 0 ) && ( BVCE_P_CORE_SUBMINOR == 1 ) && ( BVCE_P_CORE_REVISION == 2 ) )
+#include "bvce_core_regs_hw_rev_3_0_1_2.c"
+#include "bvce_core_rev_3_0_1_2.c"
 #else
 #error Unrecognized core version
 #endif

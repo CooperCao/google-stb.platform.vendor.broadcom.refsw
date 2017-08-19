@@ -826,6 +826,9 @@ static void BVDC_P_Mcvp_BuildRul_SetEnable_isr
     if((hMcvp->bAnr) && (bAnr))
     {
         BDBG_OBJECT_ASSERT(hMcvp->hAnr,  BVDC_ANR);
+#if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
+        if(!BVDC_P_CMP_OUTPUT_IPT(hMcvp->hWindow->hCompositor))
+#endif
         eMode = hMcvp->hAnr->pAnrSetting->eMode;
     }
 #else

@@ -1,0 +1,43 @@
+
+This distribution includes Broadcom Wireless Connection API (cx) with 
+a sample client
+
+
+Source code for rebuilding the wl connection api for target/host/architecture 
+is provided
+
+1. linux-cxapi.tar.gz
+   This zip archive contains following
+        src/    -- Connection API Sources
+        bin/    -- Sample binary
+        apps/   -- ????
+
+Inside extracted package, you may find following subdirectories
+
+src/cx/cnClient           --
+src/cx/include            --
+src/cx/source/cx          --
+src/cx/source/include     --
+src/cx/source/linux       --
+src/cx/source/openssl     --
+src/cx/source/shared      --
+src/cx/source/xsupplicant --
+
+% make -C src/cx/source/linux     # builds a single library: libcx.a
+% make -C src/cx/cnClient/linux   # builds the client: cnClient
+% cd src/cx/bin/linux-native
+
+1. To rebuild the Connection API library (libcx.a)
+  % extract linux-cxapi.tar.gz package on your target/linux system
+  % cd src/cx/source/linux
+  % make
+
+   The resulting library libcx.a ??????
+
+2. To rebuild the client (cnClient)
+  % cd src/cx/cnClient/linux
+  % make
+
+   The resulting client is placed at src/cx/bin/linux-native/cnClient
+
+----------------------------------------------------------------------------

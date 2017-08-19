@@ -232,7 +232,17 @@ __bootstrap static inline void  enableMMU()
 
 __bootstrap void bootstrap(void *deviceTreePhysAddr, unsigned long loadLinkOffset)
 {
+	// If this is not the boot CPU, enable the MMU using the page table
+	// prepared by the boot CPU.
+	register int mpidr;
+	int cpu_num;
 
+	asm volatile("mrs %[result], mpidr_el1" : [result] "=r" (mpidr) : :);
+	cpu_num = (mpidr & MPIDR_CPUID_MASK);
+	if (cpu_num != 0) {
+		enableMMU();
+		return;
+	}
 
 	makeBootstrapPageTables(deviceTreePhysAddr);
 	phys_to_virt_offset = ULONG_MAX - loadLinkOffset + 1;

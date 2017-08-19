@@ -692,6 +692,13 @@ typedef enum NEXUS_Vcxo
     NEXUS_Vcxo_eMax
 } NEXUS_Vcxo;
 
+typedef enum NEXUS_ModuleStandbyLevel {
+    NEXUS_ModuleStandbyLevel_eAll,         /* Module is disabled in all standby modes */
+    NEXUS_ModuleStandbyLevel_eActive,      /* Module is not disabled in Active Standby mode */
+    NEXUS_ModuleStandbyLevel_eAlwaysOn,    /* Module is Always On in all modes */
+    NEXUS_ModuleStandbyLevel_eMax
+} NEXUS_ModuleStandbyLevel;
+
 /***************************************************************************
 Summary:
 Settings common to all nexus modules
@@ -701,7 +708,7 @@ Should be added with name 'common'.
 ****************************************************************************/
 typedef struct NEXUS_CommonModuleSettings
 {
-    bool enabledDuringActiveStandby; /* if true, this module will remain enabled while the rest of the system goes into active standby */
+    NEXUS_ModuleStandbyLevel standbyLevel; /* Minimum level of standby for a given module */
 } NEXUS_CommonModuleSettings;
 
 /***************************************************************************

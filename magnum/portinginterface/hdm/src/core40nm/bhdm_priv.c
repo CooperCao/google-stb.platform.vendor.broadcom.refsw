@@ -1118,21 +1118,3 @@ void BHDM_P_CheckHotPlugInterrupt(
 }
 
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
-
-
-void BHDM_P_RxDeviceAttached_isr(
-	const BHDM_Handle hHDMI,		 /* [in] HDMI handle */
-	uint8_t *bDeviceAttached	/* [out] Device Attached Status  */
-)
-{
-	uint32_t Register ;
-
-	BDBG_ENTER(BHDM_P_RxDeviceAttached_isr) ;
-
-	Register = BREG_Read32(hHDMI->hRegister, BCHP_HDMI_HOTPLUG_STATUS) ;
-	*bDeviceAttached =
-		BCHP_GET_FIELD_DATA(Register, HDMI_HOTPLUG_STATUS, HOTPLUG_STATUS) ;
-
-	BDBG_LEAVE(BHDM_P_RxDeviceAttached_isr) ;
-	return ;
-}

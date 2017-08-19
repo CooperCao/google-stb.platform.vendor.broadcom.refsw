@@ -1,0 +1,196 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for basic connectivity
+# $Id: c8f580ce1a009d4bdedd991eaff8b64c1d7d34c2 $
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+
+package require UTF::Test::Join
+package require UTF::Test::controlchart
+
+UTF::Test Calibration {SRC SNK args} {
+
+    UTF::Getopts {
+	{chanspec.arg "36al" "Chanspec"}
+	{window.arg "524288" "Tcp Window"}
+	{noload "Don't reload images/drivers"}
+	{load.arg "" "Load driver from path"}
+	{imode.arg "ibss" "imode"}
+	{rate.arg "15x5" "rate"}
+	{loop.arg "1000" "Loop Count"}
+	{txpwrctrl.arg "" "nphy_txpwrctrl"}
+	{txpwrindex.arg "" "nphy_txpwrindex"}
+	{per_cal.arg "0" "per_cal timer"}
+	{fast "Fast, no kernel logging"}
+	{every.arg 0 "Cycles between calibrations"}
+	{ignorenulls "Ignore null values in tx coeffs"}
+	{obsess "Repeat dump until tx coeffs are non-zero"}
+	{interrupt_every.arg "0" "Interrupt every <n>th cal"}
+	{interrupt_after.arg "0" "Interrupt cal with scan after <n> seconds"}
+	{method.arg "multi" "Calibration method: (single, full, partial, multi)"}
+	{snk.arg "" "Sink"}
+	{src.arg "" "Source"}
+	{nojoin "Don't Join"}
+    }
+
+    regsub {/} "cal_$SRC.log" {.} UTF::Logfile
+
+    switch $(method) {
+	single {
+	    set forcemode 0
+	    set permode 1
+	}
+	full {
+	    set forcemode 1
+	    set permode 1
+	}
+	partial {
+	    set forcemode 2
+	    set permode 1
+	}
+	multi {
+	    set forcemode 3
+	    set permode 2
+	}
+	default {
+	    error "bad method: $(method).  (single, full, parial or multi)"
+	}
+    }
+
+    if {$(obsess)} {
+	set dumpcmd {while a=`wl dump nphycal`; do if expr "$a" : '.*A0=[-1-9]' > /dev/null; then echo "$a"; break; fi; done}
+    } else {
+	set dumpcmd {wl dump nphycal}
+    }
+
+    set SRCis [$SRC hostis]
+    set SNKis [$SNK hostis]
+
+    if {$SRCis ne "Router" && (!$(noload) || [catch {$SRC wl ver}])} {
+	eval $SRC load $(load)
+    }
+    if {$SNKis ne "Router" && (!$(noload) || [catch {$SNK wl ver}])} {
+	eval $SNK load $(load)
+    }
+
+    if {$(txpwrctrl) ne {}} {
+	# Make sure devices are really up before changing power
+	# settings, otherwise systems will crash
+	$SRC wl mpc 0
+	$SRC wl up
+	$SRC wl nphy_txpwrctrl $(txpwrctrl)
+	$SNK wl mpc 0
+	$SNK wl up
+	$SNK wl nphy_txpwrctrl $(txpwrctrl)
+    }
+    if {$(txpwrindex) ne {}} {
+	$SRC wl nphy_txpwrindex $(txpwrindex)
+	$SNK wl nphy_txpwrindex $(txpwrindex)
+    }
+
+    if {$(snk) eq ""} {
+	set (snk) $SNK
+    }
+    if {$(src) eq ""} {
+	set (src) $SRC
+    }
+
+    if {$(fast)} {
+	catch {$SRC wl msglevel error}
+	$SRC close_messages
+	catch {$SNK wl msglevel error}
+	$SNK close_messages
+    } else {
+	# Report more calibration details
+	catch {$SRC wl msglevel +info}
+	catch {$SNK wl msglevel +info}
+    }
+
+    $SRC wl frameburst 1
+    $SNK wl frameburst 1
+
+    if {!$(nojoin)} {
+	Join $SNK $SRC -imode $(imode) -spect 0 -chanspec $(chanspec)
+    }
+
+    if {$(per_cal) || $(every)} {
+	set permode 3
+    }
+    catch {$SRC wl nphy_percal $permode}
+    catch {$SNK wl nphy_percal $permode}
+
+    if {$(per_cal)} {
+	UTF::Every $(per_cal) catch [list $SRC wl nphy_forcecal $forcemode]
+	UTF::Every $(per_cal) catch [list $SNK wl nphy_forcecal $forcemode]
+    }
+
+    if {$(ignorenulls)} {
+	array set oldparm {
+	    tx_A0 0 tx_B0 0 tx_A1 0 tx_B1 0
+	    rx_A0 0 rx_B0 0 rx_A1 0 rx_B1 0
+	}
+    }
+
+    set interrupter 0
+
+    for {set i $(loop)} {$i > 0 } {incr i -1} {
+
+	if {$interrupter > $(interrupt_every)} {
+	    set interrupter 0
+	}
+
+	if {$(every)} {
+	    $SRC wl nphy_forcecal $forcemode
+	    if {$interrupter > 1 && $interrupter == $(interrupt_every)} {
+		UTF::Sleep $(interrupt_after)
+		$SRC wl scan
+	    }
+	}
+
+	set ret [$SRC rexec $dumpcmd]
+
+	regexp {M PHY:\nA0=([-\d]+), B0=([-\d]+), A1=([-\d]+), B1=([-\d]+)} \
+	    $ret - parm(tx_A0) parm(tx_B0) parm(tx_A1) parm(tx_B1)
+	regexp {a0=([-\d]+), b0=([-\d]+), a1=([-\d]+), b1=([-\d]+)} \
+	    $ret - parm(tx_a0) parm(tx_b0) parm(tx_a1) parm(tx_b1)
+
+	if {$(every)} {
+	    $SNK wl nphy_forcecal $forcemode
+	    if {$interrupter > 1 && $interrupter == $(interrupt_every)} {
+		UTF::Sleep $(interrupt_after)
+		$SNK wl scan
+		UTF::Sleep 10
+	    }
+	}
+
+	set ret [$SNK rexec $dumpcmd]
+	regexp {M PHY:\nA0=([-\d]+), B0=([-\d]+), A1=([-\d]+), B1=([-\d]+)} \
+	    $ret - parm(rx_A0) parm(rx_B0) parm(rx_A1) parm(rx_B1)
+	regexp {a0=([-\d]+), b0=([-\d]+), a1=([-\d]+), b1=([-\d]+)} \
+	    $ret - parm(rx_a0) parm(rx_b0) parm(rx_a1) parm(rx_b1)
+
+	if {$(ignorenulls)} {
+	    foreach k {tx_A0 tx_B0 tx_A1 tx_B1} {
+		if {$parm($k) == 0} {
+		    set parm($k) $oldparm($k)
+		}
+	    }
+	    array set oldparm [array get parm]
+	}
+
+	UTF::XPASS $SRC 0 [array get parm]
+
+	for {set j 0} {$j < 1 || $j < $(every)} {incr j} {
+	    catch {
+		controlchart [list $(src) $(snk)] -key Calibration \
+		    -history $(loop) -window $(window)
+	    }
+	}
+
+	incr interrupter
+    }
+}

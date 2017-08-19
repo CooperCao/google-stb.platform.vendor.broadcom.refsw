@@ -411,7 +411,7 @@ typedef struct {
 #define _BSAGElib_P_Boot_SetBootParam(REGID, VAL) {      \
         uint32_t addr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_e##REGID); \
         BREG_Write32(hSAGElib->core_handles.hReg, addr, VAL);                   \
-        BootParamDbgPrintf(("%s - Read %s - Addr: 0x%08x Value: 0x%08x", __FUNCTION__, #REGID, addr, BREG_Read32(hSAGElib->core_handles.hReg, (uint32_t)addr))); }
+        BootParamDbgPrintf(("%s - Read %s - Addr: 0x%08x Value: 0x%08x", BSTD_FUNCTION, #REGID, addr, BREG_Read32(hSAGElib->core_handles.hReg, (uint32_t)addr))); }
 #define _BSAGElib_P_Boot_GetBootParam(REGID, VAR) {      \
         uint32_t addr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_e##REGID); \
         VAR=BREG_Read32(hSAGElib->core_handles.hReg, addr); }
@@ -426,7 +426,9 @@ typedef struct {
  ***************************************/
 static BERR_Code BSAGElib_P_Boot_GetSageOtpMspParams(BSAGElib_P_BootContext *ctx);
 static BERR_Code BSAGElib_P_Boot_CheckCompatibility(BSAGElib_Handle hSAGElib, BSAGElib_SageImageHolder *img);
+/*
 static BERR_Code BSAGElib_P_Boot_CheckSigningMode(BSAGElib_P_BootContext *ctx);
+*/
 static BERR_Code BSAGElib_P_Boot_ParseSageImage(BSAGElib_Handle hSAGElib, BSAGElib_P_BootContext *ctx, uint8_t *pBinary, uint32_t binarySize, BSAGElib_SageImageHolder* holder);
 static BERR_Code BSAGElib_P_Boot_SetBootParams(BSAGElib_P_BootContext *ctx, BSAGElib_BootSettings *pBootSettings, BSAGElib_SageImageHolder* frameworkHolder);
 static BERR_Code BSAGElib_P_Boot_ResetSage(BSAGElib_P_BootContext *ctx, BSAGElib_SageImageHolder *bl_img);
@@ -450,7 +452,7 @@ static BERR_Code BSAGElib_P_Boot_CheckMarketId(
     {
         otp_market_id = ctx->otp_market_id1;
     }else{
-        BDBG_WRN(("%s - Key's ucMarketIDSelect %d is wrong.", __FUNCTION__,pKey->ucMarketIDSelect));
+        BDBG_WRN(("%s - Key's ucMarketIDSelect %d is wrong.", BSTD_FUNCTION,pKey->ucMarketIDSelect));
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
@@ -458,11 +460,11 @@ static BERR_Code BSAGElib_P_Boot_CheckMarketId(
     key_market_id = _ToDWORD(pKey->ucMarketID);
     key_market_id_mask = _ToDWORD(pKey->ucMarketIDMask);
 
-    BDBG_MSG(("%s - marketID key-%x otp-%x (key marketID select %d, mask %x, otp_marketID 0-%x, 1-%x", __FUNCTION__,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
+    BDBG_MSG(("%s - marketID key-%x otp-%x (key marketID select %d, mask %x, otp_marketID 0-%x, 1-%x", BSTD_FUNCTION,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
 
     if(otp_market_id != key_market_id)
     {
-        BDBG_WRN(("%s - Key's market id %x do not match with otp market id %x (key market id select %d, mask %x, otp_market id %x, otp market id1 %x", __FUNCTION__,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
+        BDBG_WRN(("%s - Key's market id %x do not match with otp market id %x (key market id select %d, mask %x, otp_market id %x, otp market id1 %x", BSTD_FUNCTION,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
@@ -481,7 +483,7 @@ BSAGElib_P_Boot_GetKey(
         BSAGElib_SageSecureHeaderTripleSign *triple_sign_header =
             (BSAGElib_SageSecureHeaderTripleSign *)image->header;
 
-        BDBG_MSG(("%s %d keys offset 0x%x 0x%x 0x%x",__FUNCTION__,__LINE__,
+        BDBG_MSG(("%s %d keys offset 0x%x 0x%x 0x%x",BSTD_FUNCTION,__LINE__,
             (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key) - (uint8_t *)triple_sign_header),
             (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key2) - (uint8_t *)triple_sign_header),
             (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key3) - (uint8_t *)triple_sign_header)));
@@ -498,7 +500,7 @@ BSAGElib_P_Boot_GetKey(
             ret = &triple_sign_header->second_tier_key3;
         }
         else {
-            BDBG_ERR(("%s - This chip type does not have valid second tier key.", __FUNCTION__));
+            BDBG_ERR(("%s - This chip type does not have valid second tier key.", BSTD_FUNCTION));
         }
     }
     else if(image->header->ucHeaderVersion == 0x0a && image->header->ucHeaderIndex[0] == 0x53 && image->header->ucHeaderIndex[1] == 0x57)
@@ -533,18 +535,15 @@ BSAGElib_P_Boot_GetHeaderSize(
     BSAGElib_SageImageHolder *image)
 {
     uint32_t index = _Swap16(image->header->ucHeaderIndex);
-    uint32_t sig_size;
     bool triple = false;
     uint32_t header_size = 0;
 
     if (index == SAGE_HEADER_TYPE_BL) {
-        sig_size = _SIG_SZ;
         if (ctx->sageBlTripleSigning) {
             triple = true;
         }
     }
     else {
-        sig_size = _SIG_SZ_SAGE_FRAMEWORK;
         if (ctx->sageFrameworkTripleSigning) {
             triple = true;
         }
@@ -598,12 +597,12 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
     if (rc != BERR_SUCCESS) { goto end; }
 
     BDBG_MSG(("%s - OTP [SAGE SECURE ENABLE: %d, SAGE DECRYPT_ENABLE: %d, SAGE VERIFY_ENABLE: %d]",
-              __FUNCTION__, ctx->otp_sage_secure_enable,
+              BSTD_FUNCTION, ctx->otp_sage_secure_enable,
               ctx->otp_sage_decrypt_enable,
               ctx->otp_sage_verify_enable));
 
     BDBG_MSG(("%s - OTP [MARKET ID: 0x%08x, SYSTEM EPOCH 0: %d, SYSTEM EPOCH 3: %d]",
-                  __FUNCTION__, ctx->otp_market_id,
+                  BSTD_FUNCTION, ctx->otp_market_id,
                   ctx->otp_system_epoch0, ctx->otp_system_epoch3));
 
     if((ctx->otp_sage_secure_enable == 0) ||
@@ -621,6 +620,7 @@ end:
     return rc;
 }
 
+/*
 static BERR_Code
 BSAGElib_P_Boot_CheckSigningMode(BSAGElib_P_BootContext *ctx)
 {
@@ -628,13 +628,14 @@ BSAGElib_P_Boot_CheckSigningMode(BSAGElib_P_BootContext *ctx)
 
     if(ctx->sageBlTripleSigning != ctx->sageFrameworkTripleSigning) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s - Both SAGE images must be in triple signing mode", __FUNCTION__));
+        BDBG_ERR(("%s - Both SAGE images must be in triple signing mode", BSTD_FUNCTION));
         goto end;
     }
 
 end:
     return rc;
 }
+*/
 
 #define SAGE_FRAMEWORK_VERSION_CHECK 3
 #define BFW_VERSION_CHECK_MAJOR 4
@@ -783,7 +784,7 @@ BSAGElib_P_Boot_SetImageInfo(
         typeStr = "Bootloader";
         subTypeStr = "GENERIC";
         BDBG_MSG(("%s - '%s' Detected [type=%s, header_version=%u, triple_sign=%u]",
-                  __FUNCTION__, holder->name, typeStr, header_version, triple_sign));
+                  BSTD_FUNCTION, holder->name, typeStr, header_version, triple_sign));
         pImageInfo->THLShortSig = 0;
     }
     else {
@@ -826,7 +827,7 @@ BSAGElib_P_Boot_SetImageInfo(
             }
         }
         BDBG_MSG(("%s - '%s' Detected [type=%s, header_version=%u, triple_sign=%u, THL Short Sig=0x%08x]",
-                  __FUNCTION__, holder->name, typeStr, header_version, triple_sign, pImageInfo->THLShortSig));
+                  BSTD_FUNCTION, holder->name, typeStr, header_version, triple_sign, pImageInfo->THLShortSig));
         {
             char sage_ver_info_str[] = "\nSAGE_VER_INFO";
             if (BKNI_Memcmp(sage_ver_info_str, header->ucSageVersionString, sizeof(sage_ver_info_str)-1) == 0) {
@@ -881,7 +882,7 @@ static int getDeviceSectionSize(
 
     if(pBlob == NULL)
     {
-        BDBG_ERR(("%s %d wrong parameter pHeader NULL",__FUNCTION__,__LINE__));
+        BDBG_ERR(("%s %d wrong parameter pHeader NULL",BSTD_FUNCTION,__LINE__));
         goto err;
     }
 
@@ -905,10 +906,10 @@ static int getDeviceSectionSize(
 
     sectionNum = pBlob->ucSectionNumber[0]<<24 | pBlob->ucSectionNumber[1]<<16 | pBlob->ucSectionNumber[2]<<8 |pBlob->ucSectionNumber[3];
 
-    BDBG_MSG(("%s %d Device Blob sectionNum %d chipId %x (productId %x familyId %x) chipType %d",__FUNCTION__,__LINE__,sectionNum,chipId,productId,familyId,hSAGElib->chipInfo.chipType));
+    BDBG_MSG(("%s %d Device Blob sectionNum %d chipId %x (productId %x familyId %x) chipType %d",BSTD_FUNCTION,__LINE__,sectionNum,chipId,productId,familyId,hSAGElib->chipInfo.chipType));
     if(sectionNum < 0 || sectionNum > 100)
     {
-        BDBG_ERR(("%s %d wrong parameter Device Blob sectionNum %d",__FUNCTION__,__LINE__,sectionNum));
+        BDBG_ERR(("%s %d wrong parameter Device Blob sectionNum %d",BSTD_FUNCTION,__LINE__,sectionNum));
         goto err;
     }
 
@@ -924,7 +925,7 @@ static int getDeviceSectionSize(
         else
             chipType = BSAGElib_ChipType_eZB;
 
-        BDBG_MSG(("%s %d i %d count %d, ulDeviceTreeSize %x ChipID %x type %d",__FUNCTION__,__LINE__,i,count,ulDeviceTreeSize,ulChipId,chipType));
+        BDBG_MSG(("%s %d i %d count %d, ulDeviceTreeSize %x ChipID %x type %d",BSTD_FUNCTION,__LINE__,i,count,ulDeviceTreeSize,ulChipId,chipType));
         if(/*ulChipId == chipId && chipType == hSAGElib->chipInfo.chipType &&*/ *ppFrameworkHeader == NULL)
         {
             *ppFrameworkHeader = pFramework;
@@ -986,7 +987,7 @@ BSAGElib_P_Boot_ParseSageImage(
 
            if(pFramework == NULL)
            {
-               BDBG_ERR(("%s - Did not find framework header", __FUNCTION__));
+               BDBG_ERR(("%s - Did not find framework header", BSTD_FUNCTION));
                rc = BERR_NOT_SUPPORTED;
                goto end;
            }
@@ -1085,7 +1086,7 @@ BSAGElib_P_Boot_ParseSageImage(
                raw_remain -= all_sig_size;
                break;
            default:
-               BDBG_ERR(("%s - '%s' Image: Invalid header (0x%x)", __FUNCTION__, holder->name, index));
+               BDBG_ERR(("%s - '%s' Image: Invalid header (0x%x)", BSTD_FUNCTION, holder->name, index));
                rc = BERR_NOT_SUPPORTED;
                goto end;
            }
@@ -1095,12 +1096,12 @@ BSAGElib_P_Boot_ParseSageImage(
            holder->data_len = raw_remain;
        }
    }
-   BDBG_MSG(("%s - '%s' Header@%p, Signature@%p, Data@%p, Data length=%d", __FUNCTION__,
+   BDBG_MSG(("%s - '%s' Header@%p, Signature@%p, Data@%p, Data length=%d", BSTD_FUNCTION,
              holder->name, (void *)holder->header, (void *)holder->signature, (void *)holder->data, holder->data_len));
 
 end:
    if (rc != BERR_SUCCESS) {
-       BDBG_ERR(("%s failure for '%s'", __FUNCTION__, holder->name));
+       BDBG_ERR(("%s failure for '%s'", BSTD_FUNCTION, holder->name));
    }
     return rc;
 }
@@ -1120,7 +1121,7 @@ BSAGElib_P_Boot_SetBootParams(
     /* SAGE < -- > Host communication buffers */
     offset = hSAGElib->i_memory_map.addr_to_offset(hSAGElib->hsi_buffers);
     if(offset == 0) {
-        BDBG_ERR(("%s - Cannot convert HSI buffer address to offset", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot convert HSI buffer address to offset", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
@@ -1166,7 +1167,7 @@ BSAGElib_P_Boot_SetBootParams(
     /* SAGE Secure Boot */
     offset = hSAGElib->i_memory_map.addr_to_offset(frameworkHolder->data);
     if(offset == 0) {
-        BDBG_ERR(("%s - Cannot convert framework address to offset", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot convert framework address to offset", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
@@ -1183,7 +1184,7 @@ BSAGElib_P_Boot_SetBootParams(
             signature = BSAGElib_P_Boot_GetSignature(ctx, frameworkHolder);
             offset = hSAGElib->i_memory_map.addr_to_offset(signature);
             if(offset == 0) {
-                BDBG_ERR(("%s - Cannot convert SAGE Framework signature address to offset", __FUNCTION__));
+                BDBG_ERR(("%s - Cannot convert SAGE Framework signature address to offset", BSTD_FUNCTION));
                 rc = BERR_INVALID_PARAMETER;
                 goto end;
             }
@@ -1217,7 +1218,7 @@ BSAGElib_P_Boot_SetBootParams(
 
         offset = hSAGElib->i_memory_map.addr_to_offset(frameworkHolder->header);
         if(offset == 0) {
-            BDBG_ERR(("%s - Cannot convert SAGE framework header address to offset", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot convert SAGE framework header address to offset", BSTD_FUNCTION));
             rc = BERR_INVALID_PARAMETER;
             goto end;
         }
@@ -1258,7 +1259,7 @@ BSAGElib_P_Boot_ResetSage(
         pSecondTierKey = BSAGElib_P_Boot_GetKey(ctx, blImg);
         secondTierKey.keyAddr = hSAGElib->i_memory_map.addr_to_offset(pSecondTierKey);
         if(secondTierKey.keyAddr == 0) {
-            BDBG_ERR(("%s - Cannot convert 2nd-tier key address to offset", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot convert 2nd-tier key address to offset", BSTD_FUNCTION));
             goto end;
         }
         hSAGElib->i_memory_sync.flush(pSecondTierKey, sizeof(*pSecondTierKey));
@@ -1267,7 +1268,7 @@ BSAGElib_P_Boot_ResetSage(
         BSAGElib_iUnlockHsm();
         if (rc != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - BHSM_VerifySecondTierKey() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - BHSM_VerifySecondTierKey() failed on key from SAGE Bootloader image [0x%x]", BSTD_FUNCTION, rc));
             goto end;
         }
     }
@@ -1285,12 +1286,12 @@ BSAGElib_P_Boot_ResetSage(
         BSAGElib_iUnlockHsm();
         if( rc != BERR_SUCCESS )
         {
-            BDBG_ERR(("%s - BHSM_AllocateVKL() fails %d", __FUNCTION__, rc));
+            BDBG_ERR(("%s - BHSM_AllocateVKL() fails %d", BSTD_FUNCTION, rc));
             goto end;
         }
 
         vkl_id = allocateVKLIO.allocVKL;
-        BDBG_MSG(("%s - SAGE BL VKL ID: %d", __FUNCTION__, vkl_id));
+        BDBG_MSG(("%s - SAGE BL VKL ID: %d", BSTD_FUNCTION, vkl_id));
     }
 
     /* If OTP_SAGE_DECRYPT_ENABLE_BIT: decrypt the SAGE BL  */
@@ -1389,7 +1390,7 @@ BSAGElib_P_Boot_ResetSage(
             rc = BHSM_GenerateRouteKey (hSAGElib->core_handles.hHsm, &generateRouteKeyIO);
             BSAGElib_iUnlockHsm();
             if (rc != BERR_SUCCESS) {
-                BDBG_ERR(("%s - BHSM_GenerateRouteKey() for key3 fails %d", __FUNCTION__, rc));
+                BDBG_ERR(("%s - BHSM_GenerateRouteKey() for key3 fails %d", BSTD_FUNCTION, rc));
                 goto end;
             }
 
@@ -1420,7 +1421,7 @@ BSAGElib_P_Boot_ResetSage(
             rc = BHSM_GenerateRouteKey (hSAGElib->core_handles.hHsm, &generateRouteKeyIO);
             BSAGElib_iUnlockHsm();
             if (rc != BERR_SUCCESS) {
-                BDBG_ERR(("%s - BHSM_GenerateRouteKey() for key4 fails %d", __FUNCTION__, rc));
+                BDBG_ERR(("%s - BHSM_GenerateRouteKey() for key4 fails %d", BSTD_FUNCTION, rc));
                 goto end;
             }
 
@@ -1451,7 +1452,7 @@ BSAGElib_P_Boot_ResetSage(
             rc = BHSM_GenerateRouteKey (hSAGElib->core_handles.hHsm, &generateRouteKeyIO);
             BSAGElib_iUnlockHsm();
             if (rc != BERR_SUCCESS) {
-                BDBG_ERR(("%s - BHSM_GenerateRouteKey() for key5 fails %d", __FUNCTION__, rc));
+                BDBG_ERR(("%s - BHSM_GenerateRouteKey() for key5 fails %d", BSTD_FUNCTION, rc));
                 goto end;
             }
         }
@@ -1469,7 +1470,7 @@ BSAGElib_P_Boot_ResetSage(
 
         verifyIO.region.startAddress = hSAGElib->i_memory_map.addr_to_offset(blImg->data);
         if(verifyIO.region.startAddress == 0) {
-            BDBG_ERR(("%s - Cannot convert bootloader address to offset", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot convert bootloader address to offset", BSTD_FUNCTION));
             goto end;
         }
         verifyIO.region.endAddress = verifyIO.region.startAddress + (blImg->data_len) - 1;
@@ -1479,7 +1480,7 @@ BSAGElib_P_Boot_ResetSage(
             signature = BSAGElib_P_Boot_GetSignature(ctx, blImg);
             verifyIO.signature.startAddress = hSAGElib->i_memory_map.addr_to_offset(signature);
             if(verifyIO.signature.startAddress == 0) {
-                BDBG_ERR(("%s - Cannot convert bootloader signature address to offset", __FUNCTION__));
+                BDBG_ERR(("%s - Cannot convert bootloader signature address to offset", BSTD_FUNCTION));
                 goto end;
             }
             hSAGElib->i_memory_sync.flush(signature, 256);
@@ -1561,17 +1562,17 @@ BSAGElib_P_Boot_ResetSage(
                 if(status.state != BSP_STATUS_eRegionVerifyInProgress)
                 {
                     rc = BERR_INVALID_PARAMETER;
-                    BDBG_ERR(("%s - BHSM_RegionVerification_Status fails - region = 0x%x, status = 0x%x", __FUNCTION__, 0x18, rc));
+                    BDBG_ERR(("%s - BHSM_RegionVerification_Status fails - region = 0x%x, status = 0x%x", BSTD_FUNCTION, 0x18, rc));
                     goto end;
                 }
                 else
                 {
-                    BDBG_MSG(("%s - BHSM_RegionVerification_Status in progress", __FUNCTION__));
+                    BDBG_MSG(("%s - BHSM_RegionVerification_Status in progress", BSTD_FUNCTION));
                 }
             }
         }while (status.state != BHSM_RegionVerificationStatus_eVerified);
 
-        BDBG_LOG(("%s: SAGE reset completed successfully", __FUNCTION__));
+        BDBG_LOG(("%s: SAGE reset completed successfully", BSTD_FUNCTION));
     }
 end:
     if(vkl_id != BCMD_VKL_eMax)
@@ -1611,18 +1612,18 @@ BSAGElib_Boot_HostReset(
     /* Validate boot settings */
     if ((pBootSettings->pFramework == NULL)      ||
         (pBootSettings->frameworkSize == 0)) {
-        BDBG_ERR(("%s - Invalid SAGE image buffer.", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid SAGE image buffer.", BSTD_FUNCTION));
         goto end;
     }
 
     if (hSAGElib->core_handles.hHsm == NULL) {
-        BDBG_ERR(("%s - Invalid HSM handle.", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid HSM handle.", BSTD_FUNCTION));
         goto end;
     }
 
     ctx = BKNI_Malloc(sizeof(*ctx));
     if (ctx == NULL) {
-        BDBG_ERR(("%s - Cannot allocate temporary context for SAGE Boot.", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate temporary context for SAGE Boot.", BSTD_FUNCTION));
         goto end;
     }
     BKNI_Memset(ctx, 0, sizeof(*ctx));
@@ -1631,7 +1632,7 @@ BSAGElib_Boot_HostReset(
     /* Get SAGE Secureboot OTP MSPs value */
     rc = BSAGElib_P_Boot_GetSageOtpMspParams(ctx);
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BSAGElib_P_Boot_GetSageOtpMspParams() fails", __FUNCTION__));
+        BDBG_ERR(("%s - BSAGElib_P_Boot_GetSageOtpMspParams() fails", BSTD_FUNCTION));
         goto end;
     }
 
@@ -1639,7 +1640,7 @@ BSAGElib_Boot_HostReset(
 
     offset = hSAGElib->i_memory_map.addr_to_offset(hSAGElib->hsi_buffers);
     if(offset == 0) {
-        BDBG_ERR(("%s - Cannot convert HSI buffer address to offset", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot convert HSI buffer address to offset", BSTD_FUNCTION));
         goto end;
     }
 
@@ -1647,14 +1648,14 @@ BSAGElib_Boot_HostReset(
     _BSAGElib_P_Boot_GetBootParam(HostSageBuffers, val);
     if(val!=offset)
     {
-        BDBG_ERR(("%s - Host/Sage buffer address cannot change", __FUNCTION__));
+        BDBG_ERR(("%s - Host/Sage buffer address cannot change", BSTD_FUNCTION));
         goto end;
     }
 
     _BSAGElib_P_Boot_GetBootParam(HostSageBuffersSize, val);
     if(val!=(SAGE_HOST_BUF_SIZE*4))
     {
-        BDBG_ERR(("%s - Host/Sage buffer size cannot change", __FUNCTION__));
+        BDBG_ERR(("%s - Host/Sage buffer size cannot change", BSTD_FUNCTION));
         goto end;
     }
 
@@ -1667,27 +1668,27 @@ BSAGElib_Boot_HostReset(
     _BSAGElib_P_Boot_GetBootParam(SageLogBufferOffset, val);
     if(val!=pBootSettings->logBufferOffset)
     {
-        BDBG_ERR(("%s - log buffer offset cannot change", __FUNCTION__));
+        BDBG_ERR(("%s - log buffer offset cannot change", BSTD_FUNCTION));
         goto end;
     }
     _BSAGElib_P_Boot_GetBootParam(SageLogBufferSize, val);
     if(val!=pBootSettings->logBufferSize)
     {
-        BDBG_ERR(("%s - log buffer size cannot change", __FUNCTION__));
+        BDBG_ERR(("%s - log buffer size cannot change", BSTD_FUNCTION));
         goto end;
     }
 
     _BSAGElib_P_Boot_GetBootParam(SageVklMask, val);
     if(val!=(uint32_t)((1 << BHSM_RemapVklId(hSAGElib->vkl1)) | (1 << BHSM_RemapVklId(hSAGElib->vkl2))))
     {
-        BDBG_ERR(("%s - VKL info cannot change", __FUNCTION__));
+        BDBG_ERR(("%s - VKL info cannot change", BSTD_FUNCTION));
         goto end;
     }
 
     _BSAGElib_P_Boot_GetBootParam(SageDmaChannel, val);
     if(val!=0)
     {
-        BDBG_ERR(("%s - dma channel cannot change", __FUNCTION__));
+        BDBG_ERR(("%s - dma channel cannot change", BSTD_FUNCTION));
         goto end;
     }
 
@@ -1709,21 +1710,21 @@ BSAGElib_Boot_HostReset(
             case BSAGElib_RegionId_Glr:
                 if(BKNI_Memcmp(&pBootSettings->pRegionMap[i], &local_region[0], sizeof(local_region[0]))!=0)
                 {
-                    BDBG_ERR(("%s - GLR region cannot change", __FUNCTION__));
+                    BDBG_ERR(("%s - GLR region cannot change", BSTD_FUNCTION));
                     goto end;
                 }
                 break;
             case BSAGElib_RegionId_Crr:
                 if(BKNI_Memcmp(&pBootSettings->pRegionMap[i], &local_region[1], sizeof(local_region[1]))!=0)
                 {
-                    BDBG_ERR(("%s - CRR region cannot change", __FUNCTION__));
+                    BDBG_ERR(("%s - CRR region cannot change", BSTD_FUNCTION));
                     goto end;
                 }
                 break;
             case BSAGElib_RegionId_Srr:
                if(BKNI_Memcmp(&pBootSettings->pRegionMap[i], &local_region[2], sizeof(local_region[2]))!=0)
                 {
-                    BDBG_ERR(("%s - SRR region cannot change", __FUNCTION__));
+                    BDBG_ERR(("%s - SRR region cannot change", BSTD_FUNCTION));
                     goto end;
                 }
                 break;
@@ -1784,18 +1785,18 @@ BSAGElib_Boot_Launch(
         (pBootSettings->pFramework == NULL)      ||
         (pBootSettings->frameworkSize == 0)   ||
         ((pBootSettings-> pRegionMap == NULL)  &&  (pBootSettings-> regionMapNum != 0)) ) {
-        BDBG_ERR(("%s - Invalid SAGE image buffer.", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid SAGE image buffer.", BSTD_FUNCTION));
         goto end;
     }
 
     if (hSAGElib->core_handles.hHsm == NULL) {
-        BDBG_ERR(("%s - Invalid HSM handle.", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid HSM handle.", BSTD_FUNCTION));
         goto end;
     }
 
     ctx = BKNI_Malloc(sizeof(*ctx));
     if (ctx == NULL) {
-        BDBG_ERR(("%s - Cannot allocate temporary context for SAGE Boot.", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate temporary context for SAGE Boot.", BSTD_FUNCTION));
         goto end;
     }
     BKNI_Memset(ctx, 0, sizeof(*ctx));
@@ -1804,7 +1805,7 @@ BSAGElib_Boot_Launch(
     /* Get SAGE Secureboot OTP MSPs value */
     rc = BSAGElib_P_Boot_GetSageOtpMspParams(ctx);
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BSAGElib_P_Boot_GetSageOtpMspParams() fails", __FUNCTION__));
+        BDBG_ERR(("%s - BSAGElib_P_Boot_GetSageOtpMspParams() fails", BSTD_FUNCTION));
         goto end;
     }
 
@@ -1851,14 +1852,14 @@ BSAGElib_Boot_Launch(
     /* Set SAGE boot parameters information into Global SRAM GP registers */
     rc = BSAGElib_P_Boot_SetBootParams(ctx, pBootSettings, &frameworkHolder);
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BSAGElib_P_Boot_SetBootParams() fails", __FUNCTION__));
+        BDBG_ERR(("%s - BSAGElib_P_Boot_SetBootParams() fails", BSTD_FUNCTION));
         goto end;
     }
 
     /* Take SAGE out of reset */
     rc = BSAGElib_P_Boot_ResetSage(ctx, &blHolder);
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BSAGElib_P_Boot_ResetSage() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - BSAGElib_P_Boot_ResetSage() failed to launch SAGE Bootloader [0x%x]", BSTD_FUNCTION, rc));
         goto end;
     }
 
@@ -1951,7 +1952,7 @@ BSAGElib_Boot_Post(
     BSAGElib_iUnlockHsm();
 
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BHSM_InitialiseBypassKeyslots() fails %d", __FUNCTION__, rc));
+        BDBG_ERR(("%s - BHSM_InitialiseBypassKeyslots() fails %d", BSTD_FUNCTION, rc));
         goto end;
     }
 

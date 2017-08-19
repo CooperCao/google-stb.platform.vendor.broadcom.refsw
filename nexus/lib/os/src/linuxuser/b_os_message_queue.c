@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *   API name: OS
 *    Library routines for OS abstraction
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "b_os_lib.h"
@@ -93,7 +85,6 @@ B_MessageQueueHandle B_MessageQueue_Create(
 {
     int rc;
     size_t messageSize;
-    B_Error errCode;
     B_MessageQueueHandle handle;
     pthread_condattr_t attr;
 
@@ -102,21 +93,21 @@ B_MessageQueueHandle B_MessageQueue_Create(
     if ( pSettings->maxMessageSize <= 0 )
     {
         BDBG_ERR(("Invalid message size %u", (unsigned)pSettings->maxMessageSize));
-        errCode = BERR_TRACE(B_ERROR_INVALID_PARAMETER);
+        (void)BERR_TRACE(B_ERROR_INVALID_PARAMETER);
         return NULL;
     }
 
     if ( pSettings->maxMessages <= 0 )
     {
         BDBG_ERR(("Invalid max message value %u", (unsigned)pSettings->maxMessages));
-        errCode = BERR_TRACE(B_ERROR_INVALID_PARAMETER);
+        (void)BERR_TRACE(B_ERROR_INVALID_PARAMETER);
         return NULL;
     }
 
     handle = B_Os_Calloc(1, sizeof(B_MessageQueue));
     if ( NULL == handle )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         return NULL;
     }
 
@@ -125,20 +116,20 @@ B_MessageQueueHandle B_MessageQueue_Create(
     rc = pthread_mutex_init(&handle->mutex, NULL);
     if ( rc )
     {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_mutex;
     }
 
     rc = pthread_condattr_init(&attr);
     if (rc!=0) {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_cond;
     }
     
 #ifndef B_REFSW_ANDROID
     rc = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
     if (rc!=0) {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_cond;
     }
 #endif
@@ -146,7 +137,7 @@ B_MessageQueueHandle B_MessageQueue_Create(
     rc = pthread_cond_init(&handle->condition, &attr);
     if ( rc )
     {
-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+        (void)BERR_TRACE(B_ERROR_OS_ERROR);
         goto err_cond;
     }
 
@@ -161,7 +152,7 @@ B_MessageQueueHandle B_MessageQueue_Create(
     handle->pMemory = B_Os_Calloc(messageSize, handle->settings.maxMessages);
     if ( NULL == handle->pMemory )
     {
-        errCode = BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
+        (void)BERR_TRACE(B_ERROR_OUT_OF_MEMORY);
         goto err_memory;
     }
 
@@ -401,4 +392,3 @@ B_Error B_MessageQueue_Wait(
     pthread_mutex_unlock(&handle->mutex);
     return errCode;
 }
-

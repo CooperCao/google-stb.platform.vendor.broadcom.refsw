@@ -7,7 +7,6 @@
 #ifndef WIN32
 
 // Unix
-#include <sys/time.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -27,8 +26,6 @@ typedef pthread_mutex_t MutexHandle;
 
 #define DLLEXPORT __attribute__((visibility("default")))
 
-typedef struct timespec TIMESTAMP;
-
 #else
 
 // Windows
@@ -41,7 +38,6 @@ typedef HANDLE MutexHandle;
 #define getpid _getpid
 
 #define DLLEXPORT __declspec(dllexport)
-typedef unsigned int TIMESTAMP;
 
 #endif
 
@@ -60,11 +56,6 @@ extern void plCreateMutex(MutexHandle *handle);
 extern void plDestroyMutex(MutexHandle *handle);
 extern void plLockMutex(MutexHandle *handle);
 extern void plUnlockMutex(MutexHandle *handle);
-
-extern unsigned int plGetTimeNowMs();
-extern uint64_t plGetTimeNowUs();
-extern void plGetTime(TIMESTAMP *now);
-extern unsigned int plTimeDiffNano(TIMESTAMP *start, TIMESTAMP *end);
 
 extern bool plGlobalLock(const char *funcName, bool *threadChanged);
 extern void plGlobalUnlock();

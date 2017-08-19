@@ -36,11 +36,9 @@ BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour flavour) {
    ret->code_size  = 0;
    ret->unif       = NULL;
    ret->unif_count = 0;
-#if V3D_HAS_RELAXED_THRSW
-   ret->four_thread = true;
-   ret->single_seg  = true;
-#else
    ret->n_threads  = 0;
+#if V3D_HAS_RELAXED_THRSW
+   ret->single_seg  = true;
 #endif
 
    switch(flavour) {
@@ -50,6 +48,10 @@ BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour flavour) {
       ret->u.fragment.tlb_wait_first_thrsw = false;
       ret->u.fragment.per_sample           = false;
       ret->u.fragment.reads_prim_id        = false;
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      ret->u.fragment.reads_implicit_varys = false;
+#endif
+      ret->u.fragment.barrier = false;
       break;
    case SHADER_GEOMETRY:
       ret->u.geometry.prim_id_used   = false;
@@ -114,14 +116,24 @@ static void dpostv_find_live_attribs(Dataflow *dataflow, void *data)
 #endif
 }
 
-static bool get_attrib_info(const CFGBlock *b, ATTRIBS_USED_T *attr, const LinkMap *link, const bool *output_active)
-{
-   /* Calculate which attributes/vertex_id/instance_id are live */
+static void reloc_visit_block(const CFGBlock *b, const bool *output_active, void *data, DataflowPostVisitor fn) {
    DataflowRelocVisitor pass;
 
    bool *temp = glsl_safemem_malloc(sizeof(*temp) * b->num_dataflow);
-   if(!temp) return false;
+   glsl_dataflow_reloc_visitor_begin(&pass, b->dataflow, b->num_dataflow, temp);
 
+   for (int i=0; i < b->num_outputs; i++) {
+      if (output_active[i])
+         glsl_dataflow_reloc_post_visitor(&pass, b->outputs[i], data, fn);
+   }
+
+   glsl_dataflow_reloc_visitor_end(&pass);
+   glsl_safemem_free(temp);
+}
+
+static void get_attrib_info(const CFGBlock *b, ATTRIBS_USED_T *attr, const LinkMap *link, const bool *output_active)
+{
+   /* Calculate which attributes/vertex_id/instance_id are live */
    struct find_attribs data = { .attr = attr,
                                 .link = link };
 
@@ -131,20 +143,27 @@ static bool get_attrib_info(const CFGBlock *b, ATTRIBS_USED_T *attr, const LinkM
    for (int i = 0; i < V3D_MAX_ATTR_ARRAYS; i++)
       attr->scalars_used[i] = 0;
 
-   glsl_dataflow_reloc_visitor_begin(&pass, b->dataflow, b->num_dataflow, temp);
-
-   for (int i=0; i < b->num_outputs; i++) {
-      if (output_active[i])
-         glsl_dataflow_reloc_post_visitor(&pass, b->outputs[i],
-                                          &data, dpostv_find_live_attribs);
-   }
-
-   glsl_dataflow_reloc_visitor_end(&pass);
-
-   glsl_safemem_free(temp);
-
-   return true;
+   reloc_visit_block(b, output_active, &data, dpostv_find_live_attribs);
 }
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+static void dpostv_find_implicit_vary(Dataflow *dataflow, void *data)
+{
+   bool *found = data;
+   if (dataflow->flavour == DATAFLOW_GET_POINT_COORD_X ||
+       dataflow->flavour == DATAFLOW_GET_POINT_COORD_Y ||
+       dataflow->flavour == DATAFLOW_GET_LINE_COORD       )
+   {
+      *found = true;
+   }
+}
+
+static bool reads_implicit_varys(const CFGBlock *b, const bool *output_active) {
+   bool ret = false;
+   reloc_visit_block(b, output_active, &ret, dpostv_find_implicit_vary);
+   return ret;
+}
+#endif
 
 static void fragment_backend_init(FragmentBackendState *s,
                                   uint32_t backend, bool early_fragment_tests
@@ -165,11 +184,14 @@ static void fragment_backend_init(FragmentBackendState *s,
 #endif
 
    for (int i=0; i<V3D_MAX_RENDER_TARGETS; i++) {
-      int shift = GLSL_FB_GADGET_S + 3*i;
-      uint32_t mask = GLSL_FB_GADGET_M << shift;
-      int fb_gadget = (backend & mask) >> shift;
-      s->rt[i].type = fb_gadget & 0x3;
+      uint32_t fb_gadget = glsl_unpack_fb_gadget(backend, i);
+      /* For now, just say that int targets are never 16. TODO: Improve this in the backend */
+      s->rt[i].is_16      = (fb_gadget & GLSL_FB_16) && !(fb_gadget & GLSL_FB_INT);
+      s->rt[i].is_int     = (fb_gadget & GLSL_FB_INT);
+      s->rt[i].is_present = (fb_gadget & GLSL_FB_PRESENT);
+#if !V3D_VER_AT_LEAST(4,0,2,0)
       s->rt[i].alpha_16_workaround = (fb_gadget & GLSL_FB_ALPHA_16_WORKAROUND);
+#endif
    }
 
    s->adv_blend = (backend & GLSL_ADV_BLEND_M) >> GLSL_ADV_BLEND_S;
@@ -199,21 +221,19 @@ static void dfpv_outputs_active(Dataflow *d, void *data) {
    if (d->flavour != DATAFLOW_EXTERNAL) return;
 
    struct active_finding *c = data;
-   if (!c->output_translate[d->u.external.block][d->u.external.output]) {
-      c->output_translate[d->u.external.block][d->u.external.output] = true;
-      c->output_reg[d->u.external.block][d->u.external.output] = true;
+   if (!c->output_translate[d->u.external.block][d->u.external.output])
       c->next_blocks[d->u.external.block] = true;
-   }
+
+   c->output_translate[d->u.external.block][d->u.external.output] = true;
+   c->output_reg[d->u.external.block][d->u.external.output] = true;
 }
 
 static void block_transfer_output_active(CFGBlock *b, bool **output_translate, bool **output_reg, const IRShader *sh) {
    bool *next_blocks = glsl_safemem_calloc(sh->num_cfg_blocks, sizeof(bool));
 
    int block_id = b - sh->blocks;
-   if (b->successor_condition != -1) {
+   if (b->successor_condition != -1)
       output_translate[block_id][b->successor_condition] = true;
-      output_reg[block_id][b->successor_condition] = true;
-   }
 
    bool *temp = glsl_safemem_malloc(b->num_dataflow * sizeof(bool));
    DataflowRelocVisitor dfv;
@@ -393,55 +413,179 @@ typedef struct iu_sizes {
    size_t unif;
 } iu_sizes;
 
-static iu_sizes copy_preamble(uint64_t *code, umap_entry *unif, ShaderFlavour flavour, unsigned threads,
-                              bool has_barriers, bool barrier_first, bool has_compute_padding)
+static iu_sizes copy_preamble(uint64_t *code, umap_entry *unif, ShaderFlavour flavour, bool bin_mode, unsigned threads,
+                              bool tsy_barrier, bool barrier_first, bool has_compute_padding)
 {
-   const struct inline_qasm *barrier_preamble[2] = { &tcs_barrier_preamble, &cs_barrier_preamble };
-   const struct inline_umap *barrier_preamble_unif[2] = { &tcs_barrier_preamble_unif, &cs_barrier_preamble_unif };
    iu_sizes s = { 0, 0 };
 
-   if (has_barriers) {
+   if (tsy_barrier) {
       assert(flavour == SHADER_TESS_CONTROL || flavour == SHADER_FRAGMENT);
-      s.code = copy_inline_qasm_if(code, s.code, barrier_preamble[flavour == SHADER_FRAGMENT]);
-      s.unif = copy_inline_umap_if(unif, s.unif, barrier_preamble_unif[flavour == SHADER_FRAGMENT]);
+      assert(flavour == SHADER_TESS_CONTROL || !bin_mode);
+
+      const inline_qasm* qasm;
+      const inline_umap* umap;
+      switch (flavour == SHADER_FRAGMENT ? 2 : (bin_mode ? 0 : 1))
+      {
+      case 0: qasm = &tcs_barrier_preamble_bin; umap = &tcs_barrier_preamble_bin_unif; break;
+      case 1: qasm = &tcs_barrier_preamble_rdr; umap = &tcs_barrier_preamble_rdr_unif; break;
+      case 2: qasm = &cs_barrier_preamble;      umap = &cs_barrier_preamble_unif; break;
+      default: unreachable();
+      }
+      s.code = copy_inline_qasm_if(code, 0, qasm);
+      s.unif = copy_inline_umap_if(unif, 0, umap);
    }
 
+ #if V3D_USE_CSD
+   assert(!barrier_first && !has_compute_padding);
+ #else
    if (has_compute_padding) {
       assert(flavour == SHADER_FRAGMENT);
-      if (has_barriers) {
+      if (tsy_barrier) {
          s.code -= cs_pad_setmsf_with_barriers_code_truncate;
          s.unif -= cs_pad_setmsf_with_barriers_unif_truncate;
-         s.code = copy_inline_qasm_if(code, s.code, &cs_pad_setmsf_with_barriers);
-         s.unif = copy_inline_umap_if(unif, s.unif, &cs_pad_setmsf_with_barriers_unif);
+         s.code = copy_inline_qasm_if(code, s.code, &cs_pad_setmsf_after_barrier_preamble);
+         s.unif = copy_inline_umap_if(unif, s.unif, &cs_pad_setmsf_after_barrier_preamble_unif);
       } else {
-         if (threads > 1)
-            s.code = copy_inline_qasm_if(code, s.code, &cs_scoreboard_wait);
-         else
-            s.code = copy_inline_qasm_if(code, s.code, &cs_one_thread_wait);
-         s.code = copy_inline_qasm_if(code, s.code, &cs_pad_setmsf);
+         bool one_thread = !V3D_HAS_RELAXED_THRSW && threads == 1;
+         s.code = copy_inline_qasm_if(code, s.code, one_thread ? &cs_pad_setmsf_unthreaded : &cs_pad_setmsf_threaded);
          s.unif = copy_inline_umap_if(unif, s.unif, &cs_pad_setmsf_unif);
       }
    }
 
    if (barrier_first) {
+      assert(tsy_barrier);
       s.code = copy_inline_qasm_if(code, s.code, &cs_barrier);
-      s.unif = copy_inline_umap_if(unif, s.unif, &barrier_unif);
+      s.unif = copy_inline_umap_if(unif, s.unif, &cs_barrier_unif);
    }
+#endif
 
    return s;
 }
 
-static iu_sizes copy_barrier(uint64_t *code, umap_entry *unif, ShaderFlavour flavour, bool is_lthrsw_block)
+static iu_sizes copy_barrier(uint64_t *code, umap_entry *unif, ShaderFlavour flavour, bool bin_mode, bool barrier_mem_only, bool is_lthrsw_block)
 {
    assert(flavour == SHADER_FRAGMENT || flavour == SHADER_TESS_CONTROL);
+   assert(flavour == SHADER_TESS_CONTROL || !bin_mode);
 
-   const struct inline_qasm *barrier_code[2][2] = { { &tcs_barrier, &tcs_barrier_lthrsw },
-                                                    { &cs_barrier,  &cs_barrier_lthrsw  } };
-   // Uniform is common for all barriers.
-   iu_sizes s;
-   s.code = copy_inline_qasm_if(code, 0, barrier_code[flavour == SHADER_FRAGMENT][is_lthrsw_block]);
-   s.unif = copy_inline_umap_if(unif, 0, &barrier_unif);
+   const inline_qasm* qasm = NULL;
+   const inline_umap* umap = NULL;
+   if (barrier_mem_only) {
+      if (flavour == SHADER_TESS_CONTROL)
+         qasm = &tcs_barrier_mem_only;
+   } else {
+      if (flavour == SHADER_FRAGMENT) {
+         qasm = is_lthrsw_block ? &cs_barrier_lthrsw : &cs_barrier;
+         umap = &cs_barrier_unif;
+      }
+      else {
+         switch ((is_lthrsw_block ? 2 : 0) | (bin_mode ? 0 : 1))
+         {
+         case 0: qasm = &tcs_barrier_bin; umap = &tcs_barrier_bin_unif; break;
+         case 1: qasm = &tcs_barrier_rdr; umap = &tcs_barrier_rdr_unif; break;
+         case 2: qasm = &tcs_barrier_lthrsw_bin; umap = &tcs_barrier_lthrsw_bin_unif; break;
+         case 3: qasm = &tcs_barrier_lthrsw_rdr; umap = &tcs_barrier_lthrsw_rdr_unif; break;
+         default: unreachable();
+         }
+      }
+   }
+
+   iu_sizes s = {
+      .code = copy_inline_qasm_if(code, 0, qasm),
+      .unif = copy_inline_umap_if(unif, 0, umap),
+   };
    return s;
+}
+
+static bool translate_per_quad(const Dataflow *d) {
+   if (d->flavour == DATAFLOW_FDX || d->flavour == DATAFLOW_FDY)
+      return true;
+   else if (d->flavour == DATAFLOW_TEXTURE)
+      return !glsl_dataflow_tex_cfg_implies_bslod(d->u.texture.bits);
+   else
+      return false;
+}
+
+struct pq {
+   const Dataflow *arr;
+   bool *per_quad;
+   Dataflow **externals;
+   unsigned external_count;
+};
+
+static void mark_deps_as_per_quad(uint32_t d_id, const Dataflow *arr, bool *per_quad) {
+   if (d_id == -1) return;
+
+   const Dataflow *d = &arr[d_id];
+
+   if (per_quad[d->id]) return;
+   per_quad[d->id] = true;
+
+   for (int i=0; i<d->dependencies_count; i++) {
+      if (d->d.reloc_deps[i] != -1)
+         mark_deps_as_per_quad(d->d.reloc_deps[i], arr, per_quad);
+   }
+}
+
+static void resolve_per_quadness(Dataflow *d, void *dat) {
+   struct pq *data = dat;
+   if (translate_per_quad(d) || data->per_quad[d->id]) {
+      for (int i=0; i<d->dependencies_count; i++) {
+         mark_deps_as_per_quad(d->d.reloc_deps[i], data->arr, data->per_quad);
+      }
+   }
+
+   if (d->flavour == DATAFLOW_EXTERNAL) data->externals[data->external_count++] = d;
+}
+
+static void set_shader_per_quadness(const IRShader *sh, bool **per_quad, /* const */ bool **output_active) {
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      for (int j=0; j<sh->blocks[i].num_dataflow; j++) per_quad[i][j] = false;
+   }
+
+   bool *visit = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool));
+   for (int i=0; i<sh->num_cfg_blocks; i++) visit[i] = true;
+   bool again = true;
+
+   while (again) {
+      again = false;
+      for (int i=0; i<sh->num_cfg_blocks; i++) {
+         if (!visit[i]) continue;
+         visit[i] = false;
+
+         Dataflow **externals = glsl_safemem_malloc(sh->blocks[i].num_dataflow * sizeof(Dataflow *));
+         struct pq df = { .arr = sh->blocks[i].dataflow, .per_quad = per_quad[i], .externals = externals, .external_count = 0 };
+
+         reloc_visit_block(&sh->blocks[i], output_active[i], &df, resolve_per_quadness);
+
+         for (unsigned j=0; j<df.external_count; j++) {
+            if (per_quad[i][externals[j]->id]) {
+               int block_id = externals[j]->u.external.block;
+               const CFGBlock *b = &sh->blocks[block_id];
+               const Dataflow *o = &b->dataflow[b->outputs[externals[j]->u.external.output]];
+               if (!per_quad[block_id][o->id]) {
+                  visit[block_id] = true;
+                  again = true;
+                  per_quad[block_id][o->id] = true;
+               }
+
+               /* If we need any output from a block per_quad then we need the branch condition
+                * to be per_quad as well. */
+               if (b->successor_condition != -1) {
+                  const Dataflow *bc = &b->dataflow[b->outputs[b->successor_condition]];
+                  if (!per_quad[block_id][bc->id]) {
+                     per_quad[block_id][bc->id] = true;
+                     visit[block_id] = true;
+                     again = true;
+                  }
+               }
+            }
+         }
+
+         glsl_safemem_free(externals);
+      }
+   }
+
+   glsl_safemem_free(visit);
 }
 
 BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavour,
@@ -486,18 +630,60 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
    get_outputs_active(sh, output_translate, output_reg, shader_outputs_used);
 
+   const bool is_compute_shader = flavour == SHADER_FRAGMENT && ir->cs_shared_block_size != ~0u;
+   const bool has_compute_padding = key->backend & GLSL_COMPUTE_PADDING;
+
+   bool tsy_barrier = false;
+   bool barrier_mem_only = (flavour == SHADER_TESS_CONTROL && ir->tess_vertices <= V3D_VPAR)
+                        || (is_compute_shader && !glsl_wg_size_requires_barriers(ir->cs_wg_size));
+
+   if (!barrier_mem_only) {
+      for (int i=0; i<sh->num_cfg_blocks; i++) {
+         if (sh->blocks[i].barrier) {
+            tsy_barrier = true;
+            break;
+         }
+      }
+   }
+
+   bool barrier_first = false;
+#if !V3D_USE_CSD
+   if (is_compute_shader) {
+      if (ir->cs_shared_block_size != 0 && glsl_wg_size_requires_barriers(ir->cs_wg_size)) {
+         tsy_barrier = true;
+         barrier_first = true;
+      }
+      if (tsy_barrier || has_compute_padding)
+         binary->u.fragment.tlb_wait_first_thrsw = true;
+   }
+#endif
+
+   if (tsy_barrier) switch (flavour) {
+      case SHADER_FRAGMENT:      binary->u.fragment.barrier = true; break;
+      case SHADER_TESS_CONTROL:  binary->u.tess_c.barrier = true; break;
+      default: unreachable();
+   }
+
    SchedShaderInputs ins;
    switch (flavour) {
       case SHADER_FRAGMENT:
-         fragment_shader_inputs(&ins, key->backend & GLSL_PRIM_M, ir->varying);
+      {
+         uint32_t prim_varys = key->backend & GLSL_PRIM_M;
+#if V3D_VER_AT_LEAST(4,0,2,0)
+         binary->u.fragment.reads_implicit_varys = prim_varys != 0 && reads_implicit_varys(&sh->blocks[0], output_translate[0]);
+         if (!binary->u.fragment.reads_implicit_varys) prim_varys = 0;
+#else
+         if (tsy_barrier || has_compute_padding) prim_varys = 0; // varying consumed by barrier preamble
+#endif
+         fragment_shader_inputs(&ins, prim_varys, ir->varying);
          break;
+      }
       case SHADER_VERTEX:
       {
          /* TODO: We assume that all attributes are loaded in the first block.
           * This should be true, for now. */
          ATTRIBS_USED_T *attr = &binary->u.vertex.attribs;
-         if (!get_attrib_info(&sh->blocks[0], attr, l, output_translate[0]))
-            goto failed;
+         get_attrib_info(&sh->blocks[0], attr, l, output_translate[0]);
 
          binary->u.vertex.input_words = vertex_shader_inputs(&ins, attr);
          binary->u.vertex.has_point_size = (((key->backend & GLSL_PRIM_M) == GLSL_PRIM_POINT) && l->outs[DF_VNODE_POINT_SIZE] != -1);
@@ -524,21 +710,27 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    glsl_ir_shader_to_file(sh, ir_fname);
 #endif
 
+   bool **per_quad = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool *));
+   for (int i=0; i<sh->num_cfg_blocks; i++) per_quad[i] = glsl_safemem_malloc(sh->blocks[i].num_dataflow * sizeof(bool));
+
+   set_shader_per_quadness(sh, per_quad, output_translate);
+
    SchedBlock **tblocks = malloc_fast(sh->num_cfg_blocks * sizeof(SchedBlock *));
    for (int i=0; i<sh->num_cfg_blocks; i++) {
-      tblocks[i] = translate_block(&sh->blocks[i], l, output_translate[i], (i==0) ? &ins : NULL, key);
+      tblocks[i] = translate_block(&sh->blocks[i], l, output_translate[i], (i==0) ? &ins : NULL, key, per_quad[i]);
 
       for (int j=0; j<sh->blocks[i].num_outputs; j++)
          if (!output_reg[i][j]) tblocks[i]->outputs[j] = NULL;
    }
 
-   glsl_safemem_free(shader_outputs_used);
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       glsl_safemem_free(output_translate[i]);
       glsl_safemem_free(output_reg[i]);
+      glsl_safemem_free(per_quad[i]);
    }
    glsl_safemem_free(output_translate);
    glsl_safemem_free(output_reg);
+   glsl_safemem_free(per_quad);
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    if (flavour == SHADER_VERTEX) tblocks[0]->last_vpm_read = ins.read_dep;
@@ -551,31 +743,16 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
    bool *does_thrsw = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool));
    int max_threading = 4;
-   bool has_thrsw = false;
-   bool uses_barrier = false;
-   bool barrier_first = false;
-   bool drop_barriers = flavour == SHADER_FRAGMENT && !glsl_wg_size_requires_barriers(ir->cs_wg_size);
-   bool has_compute_padding = key->backend & GLSL_COMPUTE_PADDING;
+   bool has_thrsw = tsy_barrier;
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       int block_max_threads;
       does_thrsw[i] = get_max_threadability(tblocks[i]->tmu_lookups, &block_max_threads);
 
-      if (sh->blocks[i].barrier) {
-         uses_barrier = true;
+      if (sh->blocks[i].barrier && !barrier_mem_only)
          does_thrsw[i] = true;
-      }
-      if (tblocks[i]->accesses_shared && !drop_barriers) {
-         uses_barrier = true;
-         barrier_first = true;
-      }
 
       max_threading = gfx_smin(max_threading, block_max_threads);
       has_thrsw = has_thrsw || does_thrsw[i];
-   }
-   if (uses_barrier) has_thrsw = true;
-   if (uses_barrier || has_compute_padding) {
-      if (flavour == SHADER_FRAGMENT)     binary->u.fragment.tlb_wait_first_thrsw = true;
-      if (flavour == SHADER_TESS_CONTROL) binary->u.tess_c.barrier = true;
    }
 
    int lthrsw_block = -1;
@@ -583,7 +760,8 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    glsl_safemem_free(does_thrsw);
 
 #if V3D_HAS_RELAXED_THRSW
-   if (!has_thrsw && flavour == SHADER_FRAGMENT) {
+   bool no_single_seg = is_compute_shader ? !V3D_USE_CSD : flavour == SHADER_FRAGMENT;
+   if (!has_thrsw && no_single_seg) {
       lthrsw_block = 0;
       has_thrsw = true;
    }
@@ -627,19 +805,19 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 #if V3D_HAS_RELAXED_THRSW
       fragment_backend_init(&s, key->backend, ir->early_fragment_tests);
 #else
-      bool sbwaited = uses_barrier || has_compute_padding || (final_block_id != 0 && tblocks[0]->first_tlb_read);
+      bool sbwaited = tsy_barrier || has_compute_padding || (final_block_id != 0 && tblocks[0]->first_tlb_read);
       fragment_backend_init(&s, key->backend, ir->early_fragment_tests, !sbwaited);
 #endif
       for (int i=0; i<sh->num_cfg_blocks; i++) binary->u.fragment.per_sample = binary->u.fragment.per_sample ||
                                                                                (s.ms && tblocks[i]->per_sample);
-      glsl_fragment_backend(final_block, final_block_id, sh, l, &s,
+      glsl_fragment_backend(final_block, final_block_id, sh, l, &s, shader_outputs_used,
                             &binary->u.fragment.writes_z,
                             &binary->u.fragment.ez_disable);
    } else if (flavour == SHADER_VERTEX || flavour == SHADER_TESS_EVALUATION) {
       VertexBackendState s;
       vertex_backend_init(&s, key->backend, bin_mode, l->outs[DF_VNODE_POINT_SIZE] != -1);
       SchedShaderInputs *inputs = final_block_id == 0 ? &ins : NULL;
-      glsl_vertex_backend(final_block, final_block_id, sh, l, inputs, &s, vary_map);
+      glsl_vertex_backend(final_block, final_block_id, sh, l, inputs, &s, shader_outputs_used, vary_map);
 
       unsigned output_words = (s.bin_mode ? 6 : 4) + (s.emit_point_size ? 1 : 0) +
                               (s.z_only_active ? (s.emit_point_size ? 1 : 2) : 0) + vary_map->n;
@@ -649,14 +827,16 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    final_block->num_outputs = 0;
    final_block->outputs = NULL;
 
+   glsl_safemem_free(shader_outputs_used);
+
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       glsl_combine_sched_nodes(tblocks[i]);
    }
 
    /* Sort out global register assignment */
-   int **register_class = malloc_fast(sh->num_cfg_blocks * sizeof(int *));
+   int **register_class = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(int *));
    for (int i=0; i<sh->num_cfg_blocks; i++) {
-      register_class[i] = malloc_fast(sh->blocks[i].num_outputs * sizeof(int));
+      register_class[i] = glsl_safemem_malloc(sh->blocks[i].num_outputs * sizeof(int));
       for (int j=0; j<sh->blocks[i].num_outputs; j++) {
          register_class[i][j] = -1;
       }
@@ -719,7 +899,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    }
 
    /* Compact the register set by removing the holes created above */
-   int *register_mapping = malloc_fast(next_class * sizeof(int));
+   int *register_mapping = glsl_safemem_malloc(next_class * sizeof(int));
    unsigned reg = 0;
    for (unsigned i=0; i<next_class; i++) {
       register_mapping[i] = -1;
@@ -741,13 +921,14 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
       }
    }
    next_class = reg;
+   glsl_safemem_free(register_mapping);
 
    GENERATED_SHADER_T **backend_result = glsl_safemem_malloc(sh->num_cfg_blocks*sizeof(GENERATED_SHADER_T));
    int threads;
 #if V3D_HAS_RELAXED_THRSW
    int min_threads = 2;
 #else
-   int min_threads = uses_barrier ? 2 : 1;
+   int min_threads = tsy_barrier ? 2 : 1;
 #endif
    for (threads = max_threading; threads >= min_threads; threads /= 2) {
       bool good = true;
@@ -763,9 +944,9 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
          /* The prescheduled values are only valid in the first block */
          if (i == 0 && flavour == SHADER_FRAGMENT) {
-            if (ins.w)   in = reg_list_prepend(in, ins.w,   REG_RF(0));
-            if (ins.w_c) in = reg_list_prepend(in, ins.w_c, REG_RF(1));
-            if (ins.z)   in = reg_list_prepend(in, ins.z,   REG_RF(2));
+            if (ins.rf0) in = reg_list_prepend(in, ins.rf0, REG_RF(0));
+            if (ins.rf1) in = reg_list_prepend(in, ins.rf1, REG_RF(1));
+            if (ins.rf2) in = reg_list_prepend(in, ins.rf2, REG_RF(2));
          }
 
          for (int j=0; j<tblocks[i]->num_outputs; j++) {
@@ -775,7 +956,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
          }
 
          /* This is conservative but checking CFG paths is expensive and this catches common cases */
-         bool sbwaited = uses_barrier || has_compute_padding || (i != 0 && tblocks[0]->first_tlb_read);
+         bool sbwaited = tsy_barrier || has_compute_padding || (i != 0 && tblocks[0]->first_tlb_read);
          backend_result[i] = glsl_backend_schedule(tblocks[i], in, out, i != 0 ? next_class : 0,
                                                    flavour, bin_mode, threads, (i == final_block_id),
                                                    (i == lthrsw_block && !sh->blocks[i].barrier), sbwaited);
@@ -784,9 +965,19 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
       if (good) break;
 
-      for (int i=0; i<sh->num_cfg_blocks; i++) glsl_safemem_free(backend_result[i]);
+      for (int i=0; i<sh->num_cfg_blocks; i++) {
+         if (backend_result[i]) {
+            glsl_safemem_free(backend_result[i]->instructions);
+            glsl_safemem_free(backend_result[i]->unifs);
+            glsl_safemem_free(backend_result[i]);
+         }
+      }
    }
    if (threads < min_threads) goto failed;
+
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      glsl_safemem_free(register_class[i]);
+   glsl_safemem_free(register_class);
 
    if(flavour == SHADER_FRAGMENT) {
       vary_map->n = backend_result[0]->varying_count;
@@ -797,26 +988,31 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    struct block_info {
       int unif_start;
       int code_start;
+      bool invert_bcond;
       enum postamble_type postamble_type;
    } *bi = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(struct block_info));
 
-   iu_sizes preamble_sizes = copy_preamble(NULL, NULL, flavour, threads, uses_barrier, barrier_first, has_compute_padding);
+   iu_sizes preamble_sizes = copy_preamble(NULL, NULL, flavour, bin_mode, threads, tsy_barrier, barrier_first, has_compute_padding);
    size_t instr_count = preamble_sizes.code;
    size_t unif_count  = preamble_sizes.unif;
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       bi[i].unif_start = unif_count;
       bi[i].code_start = instr_count;
 
-      assert(sh->blocks[i].next_if_false == i+1 ||
-             sh->blocks[i].next_if_false == -1    );
+      bi[i].invert_bcond = tblocks[i]->branch_invert ^ (sh->blocks[i].next_if_false != i+1);
+
+      /* TODO GNL:
+       * It is also possible that next_if_true and next_if_false are both != i+1. This
+       * will only happen following CFG transformations. For now that is banned. */
+      assert(sh->blocks[i].next_if_false == i+1 || sh->blocks[i].next_if_true == i+1 || sh->blocks[i].successor_condition == -1);
 
       if (sh->blocks[i].barrier) {
-         iu_sizes barrier_sizes = copy_barrier(NULL, NULL, flavour, i == lthrsw_block);
+         iu_sizes barrier_sizes = copy_barrier(NULL, NULL, flavour, bin_mode, barrier_mem_only, i == lthrsw_block);
          instr_count += barrier_sizes.code;
          unif_count  += barrier_sizes.unif;
       }
 
-      if (sh->blocks[i].successor_condition == -1)
+      if (sh->blocks[i].successor_condition == -1 && (sh->blocks[i].next_if_false == i+1 || sh->blocks[i].next_if_false == -1))
          bi[i].postamble_type = POSTAMBLE_NONE;
       else {
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -844,12 +1040,10 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    if(binary->unif == NULL || binary->code == NULL)
       goto failed;
 
-#if V3D_HAS_RELAXED_THRSW
-   binary->four_thread = (threads == 4);
-   binary->single_seg  = !has_thrsw;
-   assert(!binary->single_seg || flavour != SHADER_FRAGMENT);
-#else
    binary->n_threads = threads;
+#if V3D_HAS_RELAXED_THRSW
+   binary->single_seg  = !has_thrsw;
+   assert(!binary->single_seg || !no_single_seg);
 #endif
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -857,7 +1051,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 #endif
 
    if (preamble_sizes.code != 0)
-      copy_preamble(binary->code, binary->unif, flavour, threads, uses_barrier, barrier_first, has_compute_padding);
+      copy_preamble(binary->code, binary->unif, flavour, bin_mode, threads, tsy_barrier, barrier_first, has_compute_padding);
 
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       memcpy(binary->code + bi[i].code_start, backend_result[i]->instructions,
@@ -871,7 +1065,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
       if (sh->blocks[i].barrier) {
          iu_sizes barrier_sizes = copy_barrier(binary->code + code_end,
                                                binary->unif + unif_end,
-                                               flavour, i == lthrsw_block);
+                                               flavour, bin_mode, barrier_mem_only, i == lthrsw_block);
          code_end += barrier_sizes.code;
          unif_end += barrier_sizes.unif;
       }
@@ -883,7 +1077,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
          int bu_loc = unif_end + p->unif_branch_from;
          int bi_loc = code_end + p->code_patch_loc + 4;
          /* Relative branch distance */
-         int b_target = sh->blocks[i].next_if_true;
+         int b_target = (sh->blocks[i].next_if_false != i+1) ? sh->blocks[i].next_if_false : sh->blocks[i].next_if_true;
          int bu_rel = -(bu_loc - bi[b_target].unif_start)*sizeof(uint32_t);
          int bi_rel = -(bi_loc - bi[b_target].code_start)*sizeof(uint64_t);
 
@@ -899,9 +1093,13 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
             unif_ptr[p->unif_patch_loc+1].value = bu_rel;
 
          memcpy(code_ptr, p->code, p->instr_count * sizeof(uint64_t));
-         uint64_t patch_hi = (bi_rel & 0xFF000000);
-         uint64_t patch_lo = (bi_rel & (0x1FFFFF << 3));
-         code_ptr[p->code_patch_loc] |= (patch_lo << 32) | patch_hi;
+         struct v3d_qpu_instr in;
+         v3d_qpu_instr_unpack(&in, code_ptr[p->code_patch_loc]);
+         in.u.branch.cond   = sh->blocks[i].successor_condition == -1 ? V3D_QPU_BCOND_ALWAYS :
+                                             (bi[i].invert_bcond ? V3D_QPU_BCOND_ALLNA : V3D_QPU_BCOND_ANYA);
+         in.u.branch.i_addr = bi_rel;
+         in.u.branch.msfign = tblocks[i]->branch_per_quad ? V3D_QPU_MSFIGN_QUAD : V3D_QPU_MSFIGN_PIXEL;
+         v3d_qpu_instr_try_pack(&in, &code_ptr[p->code_patch_loc]);
       }
    }
 
@@ -917,8 +1115,11 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 #endif
 
    glsl_fastmem_term();
-   for (int i=0; i<sh->num_cfg_blocks; i++)
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      glsl_safemem_free(backend_result[i]->instructions);
+      glsl_safemem_free(backend_result[i]->unifs);
       glsl_safemem_free(backend_result[i]);
+   }
    glsl_safemem_free(backend_result);
 #ifndef NDEBUG
    glsl_safemem_verify();

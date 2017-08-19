@@ -1,0 +1,21 @@
+#
+MAILTO=ffang@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/ffang/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+15      2      * * *   unittest/cron/launch MacX4360B1R4360 Test/StaNightly.test -utfconf mc91 -sta 'MacX51-APPLREL MacX51a-APPLREL MacX29c-APPLREL MacX52c-APPLREL' -ap '4360SOFTAP-TOT' -rateonly -perfonly -loop 1 -title '[MC91:StaNightly:t01] 4360SOFTAP-TOT <=> AllMac-APPLREL'
+
+30      2      * * *   unittest/cron/launch MacX4360B1RSOFTAP Test/StaNightly.test -utfconf mc91 -sta 'MacX51-APPLREL MacX51a-APPLREL MacX29c-APPLREL MacX52c-APPLREL' -ap '4360SOFTAP-IGUANA_BRANCH_13_10' -rateonly -perfonly -loop 1 -title '[MC91:StaNightly:t02] 4360SOFTAP-BIS715GALA_REL <=> AllSta-BIS715GALA_REL'
+
+30      15      * * *   unittest/cron/launch MacX4360B1RSOFTAP Test/RvRNightly1.test -utfconf mc91 -ap '4360SOFTAP-TOT' -sta 'MacX51a-APPLREL' -va af -cycle5G80AttnRange '10-73 73-10' -cycle5G40AttnRange '10-73 73-10' -cycle5G20AttnRange '10-73 73-10' -cycle2G40AttnRange '20-80 80-20' -cycle2G20AttnRange '20-80 80-20' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC91:RvRNightly1:t11] 4360SOFTAP-TOT <=> MacX51a-APPLREL' -perftime 2.5 -window 3640K -fb1
+
+40      15      * * *   unittest/cron/launch MacX29cP414RSOFTAP Test/RvRNightly1.test -utfconf mc91 -ap '4360SOFTAP-TOT' -sta 'MacX29c-APPLREL' -va af -cycle5G80AttnRange '10-73 73-10' -cycle5G40AttnRange '15-85 85-15' -cycle5G20AttnRange '15-85 85-15' -cycle2G40AttnRange '15-85 85-15' -cycle2G20AttnRange '15-85 85-15' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC91:RvRNightly1:t12] 4360SOFTAP-TOT <=> MacX29c-APPLREL' -perftime 2.5 -window 3640K -fb1
+
+50      15      * * *   unittest/cron/launch MacX52ccRSOFTAP Test/RvRNightly1.test -utfconf mc91 -ap '4360SOFTAP-TOT' -sta 'MacX52c-APPLREL' -va af -cycle5G80AttnRange '10-70 70-10' -cycle5G40AttnRange '15-75 75-15' -cycle5G20AttnRange '15-75 75-15' -cycle2G40AttnRange '15-75 75-15' -cycle2G20AttnRange '10-78 78-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC91:RvRNightly1:t13] 4360SOFTAP-TOT <=> MacX52c-APPLREL' -perftime 2.5 -window 3640K -fb1
+
+00      16      * * *   unittest/cron/launch MacX51cRSOFTAP Test/RvRNightly1.test -utfconf mc91 -ap '4360SOFTAP-EAGLE' -sta 'MacX51-APPLREL' -va af -cycle5G80AttnRange '0-65 65-0' -cycle5G40AttnRange '0-73 73-0' -cycle5G20AttnRange '0-73 73-0' -cycle2G40AttnRange '0-73 73-0' -cycle2G20AttnRange '10-78 78-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC91:RvRNightly1:t15] 4360SOFTAP-EAGLE <=> MacX51-BIS715GALA_REL' -perftime 2.5 -window 3640K -fb1

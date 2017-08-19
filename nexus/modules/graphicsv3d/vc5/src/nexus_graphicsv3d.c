@@ -103,6 +103,9 @@ CHECK_ENUM(NEXUS_Graphicsv3dJobType_eFenceWait,    BVC5_JobType_eFenceWait);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eTest,         BVC5_JobType_eTest);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eUsermode,     BVC5_JobType_eUsermode);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eBarrier,      BVC5_JobType_eBarrier);
+CHECK_ENUM(NEXUS_Graphicsv3dJobType_eWaitOnEvent,  BVC5_JobType_eWaitOnEvent);
+CHECK_ENUM(NEXUS_Graphicsv3dJobType_eSetEvent,     BVC5_JobType_eSetEvent);
+CHECK_ENUM(NEXUS_Graphicsv3dJobType_eResetEvent,   BVC5_JobType_eResetEvent);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eNumJobTypes,  BVC5_JobType_eNumJobTypes);
 
 CHECK_ENUM(NEXUS_Graphicsv3dCtrAcquire,            BVC5_CtrAcquire);
@@ -564,7 +567,9 @@ NEXUS_Graphicsv3dHandle NEXUS_Graphicsv3d_Create(
 
 
    /* Register this client with Magnum */
-   berr = BVC5_RegisterClient(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, gfx, &gfx->uiClientId, pSettings->iUnsecureBinTranslation, pSettings->iSecureBinTranslation, pSettings->uiPlatformToken);
+   berr = BVC5_RegisterClient(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, gfx, &gfx->uiClientId,
+            pSettings->iUnsecureBinTranslation, pSettings->iSecureBinTranslation,
+            pSettings->uiPlatformToken, pSettings->uiClientPID);
 
    if (berr != BERR_SUCCESS)
       goto exit;
@@ -800,6 +805,23 @@ NEXUS_Error NEXUS_Graphicsv3d_QueueUsermode(
    return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
 
+NEXUS_Error NEXUS_Graphicsv3d_QueueSchedEvent(
+      NEXUS_Graphicsv3dHandle             hGfx,
+      const NEXUS_Graphicsv3dJobSchedEvent  *schedEvent
+      )
+{
+   BERR_Code            berr = 0;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_QueueSchedEvent);
+
+   berr = BVC5_SchedEventJob(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId,
+                           (const BVC5_JobSchedJob *)schedEvent);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_QueueSchedEvent);
+
+   return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
 NEXUS_Error NEXUS_Graphicsv3d_Query(
    NEXUS_Graphicsv3dHandle                   hGfx,
    const NEXUS_Graphicsv3dSchedDependencies *pCompletedDeps,
@@ -895,7 +917,7 @@ static void NEXUS_Graphicsv3d_P_FenceHandler(
    NEXUS_Graphicsv3dHandle  hGfx    = (NEXUS_Graphicsv3dHandle)pVc5;
    NEXUS_TaskCallbackHandle handler = hGfx->hFenceDoneCallback;
 
-   BDBG_MSG(("%s: V3d handle %p, Event " BDBG_UINT64_FMT, __FUNCTION__, (void*)hGfx, BDBG_UINT64_ARG(uiEvent)));
+   BDBG_MSG(("%s: V3d handle %p, Event " BDBG_UINT64_FMT, BSTD_FUNCTION, (void*)hGfx, BDBG_UINT64_ARG(uiEvent)));
 
    NEXUS_Graphicsv3d_P_TSEventQueuePush(&hGfx->sFenceEventQueue, uiEvent);
 
@@ -922,8 +944,6 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceMake(
    int                     *fence)
 {
    BERR_Code   berr;
-
-   BSTD_UNUSED(hGfx);
 
    BDBG_ENTER(NEXUS_Graphicsv3d_FenceMake);
 
@@ -960,8 +980,6 @@ NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
    uint64_t                            uiEvent)
 {
    BERR_Code   err;
-
-   BSTD_UNUSED(hGfx);
 
    BDBG_ENTER(NEXUS_Graphicsv3d_RegisterFenceWait);
    BDBG_MSG(("Register wait for %d", fence));
@@ -1329,11 +1347,141 @@ void NEXUS_Graphicsv3d_GetEventData(
    BDBG_LEAVE(NEXUS_Graphicsv3d_GetEventData);
 }
 
-void NEXUS_Graphicsv3d_GetTime(uint64_t *pMicroseconds)
+/*************************************************************************************************/
+/* Scheduler Event sync object                                                                   */
+
+NEXUS_Error NEXUS_Graphicsv3d_NewSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,
+      uint64_t                      *puiSchedEvent
+      )
 {
-   BDBG_ENTER(NEXUS_Graphicsv3d_GetTime);
+   BERR_Code   berr;
 
-   BVC5_GetTime(pMicroseconds);
+   BDBG_ENTER(NEXUS_Graphicsv3d_NewSchedEvent);
 
-   BDBG_LEAVE(NEXUS_Graphicsv3d_GetTime);
+   berr = BVC5_NewSchedEvent(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId, puiSchedEvent);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_NewSchedEvent);
+
+   switch (berr)
+   {
+   case BERR_OUT_OF_SYSTEM_MEMORY:  return NEXUS_OUT_OF_SYSTEM_MEMORY;
+   case BERR_INVALID_PARAMETER:     return NEXUS_INVALID_PARAMETER;
+   case BERR_SUCCESS:               return NEXUS_SUCCESS;
+   default:                         return NEXUS_UNKNOWN;
+   }
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_DeleteSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,
+      uint64_t                      uiSchedEvent
+      )
+{
+   BERR_Code   berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_DeleteSchedEvent);
+
+   berr = BVC5_DeleteSchedEvent(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId, uiSchedEvent);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_DeleteSchedEvent);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_SetSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,
+      uint64_t                      uiSchedEvent
+      )
+{
+   BERR_Code   berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_SetSchedEvent);
+
+   berr = BVC5_SetSchedEvent(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId, uiSchedEvent);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_SetSchedEvent);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_ResetSchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,
+      uint64_t                      uiSchedEvent
+      )
+{
+   BERR_Code   berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_ResetSchedEvent);
+
+   berr = BVC5_ResetSchedEvent(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId, uiSchedEvent);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_ResetSchedEvent);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_QuerySchedEvent(
+      NEXUS_Graphicsv3dHandle       hGfx,
+      uint64_t                      uiSchedEvent,
+      bool                          *bEventSet
+      )
+{
+   BERR_Code   berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_QuerySchedEvent);
+
+   berr = BVC5_QuerySchedEvent(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId, uiSchedEvent, bEventSet);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_QuerySchedEvent);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+void NEXUS_Graphicsv3d_SetGatherLoadData(
+   bool bCollect
+   )
+{
+   BVC5_SetGatherLoadData(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, bCollect);
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
+   NEXUS_Graphicsv3dClientLoadData *pLoadData,     /* [out] attr{nelem=uiNumClients;nelem_out=pValidClients} */
+   uint32_t                         uiNumClients,
+   uint32_t                         *pValidClients
+   )
+{
+   BERR_Code            err = BERR_SUCCESS;
+   BVC5_ClientLoadData  *data = NULL;
+
+   BDBG_ASSERT(pValidClients != NULL);
+
+   if (pLoadData == NULL)
+   {
+      /* How many clients are there? */
+      err = BVC5_GetLoadData(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, NULL, 0, pValidClients);
+   }
+   else if (uiNumClients > 0)
+   {
+      data = BKNI_Malloc(uiNumClients * sizeof(BVC5_ClientLoadData));
+      if (data == NULL)
+         return NEXUS_OUT_OF_SYSTEM_MEMORY;
+
+      err = BVC5_GetLoadData(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, data, uiNumClients, pValidClients);
+
+      if (err == BERR_SUCCESS)
+      {
+         uint32_t i;
+         for (i = 0; i < *pValidClients; i++)
+         {
+            pLoadData[i].uiClientId = data[i].uiClientId;
+            pLoadData[i].uiClientPID = data[i].uiClientPID;
+            pLoadData[i].uiNumRenders = data[i].uiNumRenders;
+            pLoadData[i].sRenderPercent = data[i].sRenderPercent;
+         }
+      }
+
+      BKNI_Free(data);
+   }
+
+   return err == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }

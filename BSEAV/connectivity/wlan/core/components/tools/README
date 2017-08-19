@@ -1,0 +1,7 @@
+This location is for general-purpose scripts used in builds
+and which may need to be released outside the organization,
+e.g. to source customers for their own builds.
+
+Scripts which are specific to a particular product or function
+should go in a dedicated location; see components/chips/scripts
+for example. This location is for the rest.

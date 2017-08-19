@@ -57,6 +57,7 @@
 BDBG_MODULE(bmxt_fe);
 
 #define BMXT_IS_3128_FAMILY() ((handle->settings.chip==BMXT_Chip_e3128) || (handle->settings.chip==BMXT_Chip_e3383) || (handle->settings.chip==BMXT_Chip_e4528) || (handle->settings.chip==BMXT_Chip_e4517) || (handle->settings.chip==BMXT_Chip_e3472))
+#define BMXT_IS_4538_FAMILY() ((handle->settings.chip==BMXT_Chip_e4538) || (handle->settings.chip==BMXT_Chip_e3384) || (handle->settings.chip==BMXT_Chip_e4548) || (handle->settings.chip==BMXT_Chip_e7364) || (handle->settings.chip==BMXT_Chip_e7366) || (handle->settings.chip==BMXT_Chip_e7145) || (handle->settings.chip==BMXT_Chip_e45216))
 #define BMXT_IS_45308_FAMILY() (EXIST(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS))
 
 #define PARSER_OUTPUT_PIPE_SEL_TO_INDEX(pops)    (BMXT_IS_3128_FAMILY() ? pops-1 : pops)
@@ -68,7 +69,7 @@ BDBG_MODULE(bmxt_fe);
 #define STEP(res) (handle->platform.stepsize[res])
 #define EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
 
-const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "7145", "7366", "7364"};
+const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "45316", "7145", "7366", "7364"};
 const char* const BMXT_PLATFORM_TYPE_STR[] = {"HAB", "RPC", "REG"};
 
 #define VIRTUAL_HANDLE_REG_OFFSET 0x80000000 /* hard-coded for now */
@@ -452,6 +453,7 @@ BERR_Code BMXT_GetMtsifStatus(BMXT_Handle handle, BMXT_MtsifStatus *pStatus)
 {
     unsigned i;
     uint32_t addr, val;
+    static const unsigned SECRET_WORD = 0x829eecde;
     BDBG_ASSERT(handle);
     BDBG_ASSERT(pStatus);
 
@@ -463,6 +465,17 @@ BERR_Code BMXT_GetMtsifStatus(BMXT_Handle handle, BMXT_MtsifStatus *pStatus)
         pStatus->tx[i].interfaceWidth = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, MTSIF_TX_IF_WIDTH);
         pStatus->tx[i].clockPolarity = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, MTSIF_TX_CLOCK_POL_SEL);
         pStatus->tx[i].enabled = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, TX_ENABLE);
+        if (!(BMXT_IS_3128_FAMILY() || BMXT_IS_4538_FAMILY())) {
+            addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_STATUS) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+            val = BMXT_RegRead32(handle, addr);
+            pStatus->tx[i].encrypted = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_STATUS, MTSIF_TX_ENCRYPTION_ENABLE_STATUS);
+        }
+        else {
+            /* the bit field doesn't exist, so take a best guess */
+            addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_SECRET_WORD) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+            val = BMXT_RegRead32(handle, addr);
+            pStatus->tx[i].encrypted = (val!=SECRET_WORD);
+        }
     }
     for (i=0; i<handle->platform.num[BMXT_RESOURCE_MTSIF_RX0_CTRL1]; i++) {
         addr = R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_CTRL1) + (i*STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
@@ -470,6 +483,15 @@ BERR_Code BMXT_GetMtsifStatus(BMXT_Handle handle, BMXT_MtsifStatus *pStatus)
         pStatus->rx[i].interfaceWidth = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_IF_WIDTH);
         pStatus->rx[i].clockPolarity = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_CLOCK_POL_SEL);
         pStatus->rx[i].enabled = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, PARSER_ENABLE);
+        if (!(BMXT_IS_3128_FAMILY() || BMXT_IS_4538_FAMILY())) {
+            pStatus->rx[i].encrypted = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_DECRYPTION_ENABLE_STATUS);
+        }
+        else {
+            /* the bit field doesn't exist, so take a best guess */
+            addr = R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_SECRET_WORD) + (i*STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
+            val = BMXT_RegRead32(handle, addr);
+            pStatus->rx[i].encrypted = (val!=SECRET_WORD);
+        }
     }
 
     return BERR_SUCCESS;
@@ -1205,7 +1227,7 @@ BERR_Code BMXT_Tbg_GetGlobalConfig(BMXT_Handle handle, BMXT_Tbg_GlobalConfig *pC
     BMXT_Chip chip = handle->settings.chip;
     BHAB_Handle hab = handle->hHab;
     uint32_t temp_val, val;
-    uint32_t JTAG_OTP_GENERAL_STATUS_0, statusOffset;
+    uint32_t JTAG_OTP_GENERAL_STATUS_0 = 0, statusOffset = 0;
     BERR_Code rc;
 
     BDBG_ASSERT(handle);
@@ -1237,11 +1259,12 @@ BERR_Code BMXT_Tbg_GetGlobalConfig(BMXT_Handle handle, BMXT_Tbg_GlobalConfig *pC
             statusOffset = 10;
             break;
         case BMXT_Chip_e45308:
+        case BMXT_Chip_e45316:
             JTAG_OTP_GENERAL_STATUS_0 = 0x7021014;
             statusOffset = 10;
             break;
         default:
-            BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+            break;
     }
 
     switch (chip) {
@@ -1254,7 +1277,8 @@ BERR_Code BMXT_Tbg_GetGlobalConfig(BMXT_Handle handle, BMXT_Tbg_GlobalConfig *pC
             }
             break;
         case BMXT_Chip_e45216:
-        case BMXT_Chip_e45308: /* STATUS_10 and STATUS_11 */
+        case BMXT_Chip_e45308:
+        case BMXT_Chip_e45316: /* STATUS_10 and STATUS_11 */
             reg = JTAG_OTP_GENERAL_STATUS_0 + 4*statusOffset;
             rc = BHAB_ReadRegister(hab, reg, &temp_val);
             if (rc!=BERR_SUCCESS) {

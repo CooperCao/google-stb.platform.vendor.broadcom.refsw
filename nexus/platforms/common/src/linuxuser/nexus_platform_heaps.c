@@ -303,6 +303,36 @@ static NEXUS_Error NEXUS_Platform_P_SetHostMemoryFromInfo(const nexus_p_memory_i
     return NEXUS_SUCCESS;
 }
 
+static NEXUS_Error NEXUS_Platform_P_SetHostReservedMemoryFromInfo(const nexus_p_memory_info *info, NEXUS_PlatformOsReservedRegion *osReservedRegions, bool allocation)
+{
+    const unsigned ranges = sizeof(info->reserved.range)/sizeof(info->reserved.range[0]);
+    unsigned osReservedRegion = 0;
+    unsigned i;
+    for(i=0;i<ranges;i++) {
+        int memc;
+        if(info->reserved.range[i].size==0) {
+            break;
+        }
+        memc = NEXUS_Platform_P_GetMemcForRange(info, info->reserved.range[i].addr, info->reserved.range[i].size);
+        if(memc<0) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        BDBG_MSG(("reserved region:%u MEMC%d " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "", i, memc, BDBG_UINT64_ARG(info->reserved.range[i].addr), BDBG_UINT64_ARG(info->reserved.range[i].addr+info->reserved.range[i].size)));
+        if(osReservedRegion>=NEXUS_MAX_HEAPS) {
+            BDBG_WRN(("no space for reserved region:%u MEMC%d " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "", i, memc, BDBG_UINT64_ARG(info->reserved.range[i].addr), BDBG_UINT64_ARG(info->reserved.range[i].addr+info->reserved.range[i].size)));
+            continue;
+        }
+        osReservedRegions[osReservedRegion].base = info->reserved.range[i].addr;
+        osReservedRegions[osReservedRegion].length = info->reserved.range[i].size;
+        osReservedRegions[osReservedRegion].memcIndex = memc;
+        NEXUS_Platform_P_CopyReservedName(&osReservedRegions[osReservedRegion], info, i);
+        if(allocation && osReservedRegions[osReservedRegion].tag[0]!='\0') {
+            BDBG_LOG(("reserved region:%u MEMC%d '%s' " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "", i, memc, osReservedRegions[osReservedRegion].tag, BDBG_UINT64_ARG(info->reserved.range[i].addr), BDBG_UINT64_ARG(info->reserved.range[i].addr+info->reserved.range[i].size)));
+        }
+    }
+    return NEXUS_SUCCESS;
+}
+
 static NEXUS_Error NEXUS_Platform_P_SetHostBmemMemoryFromInfo(const nexus_p_memory_info *info, NEXUS_PlatformOsRegion *osRegion)
 {
     unsigned i;
@@ -407,13 +437,58 @@ struct NEXUS_Platform_P_AllocatorState {
         struct NEXUS_P_MemcPermutation permutation;
         int metric;
     } best;
+    bool preallocated[NEXUS_MAX_HEAPS];
     struct {
         nexus_p_memory_info info;
         NEXUS_PlatformOsRegion osMemory[NEXUS_MAX_HEAPS];
+        NEXUS_PlatformOsReservedRegion osReservedMemory[NEXUS_MAX_HEAPS];
         char buf[128];
         char vmalloc_buf[32];
     } bmem_hint;
 };
+
+static NEXUS_Error NEXUS_Platform_P_PlaceHeapsToReservedMemory(struct NEXUS_Platform_P_AllocatorState *state, const NEXUS_PlatformOsReservedRegion *osReservedRegions, const NEXUS_PlatformHeapSettings *heap, NEXUS_Core_Settings *pCoreSettings, unsigned max_dcache_line_size)
+{
+    unsigned heapIndex;
+    for(heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
+
+        if(heap[heapIndex].size==0) {
+            continue;
+        }
+        if(heap[heapIndex].placement.tag[0]!='\0') {
+            unsigned regionIndex;
+
+            for(regionIndex=0;regionIndex<NEXUS_MAX_HEAPS;regionIndex++) {
+                if(osReservedRegions[regionIndex].length == 0) {
+                    break;
+                }
+                if(osReservedRegions[regionIndex].memcIndex != heap[heapIndex].memcIndex) {
+                    continue;
+                }
+                if(NEXUS_StrCmp(osReservedRegions[regionIndex].tag, heap[heapIndex].placement.tag)!=0) {
+                    continue;
+                }
+                if((unsigned long)heap[heapIndex].size > (unsigned long)osReservedRegions[regionIndex].length) {
+                    BDBG_ERR(("MEMC:%u heap %u (%u MBytes) can't be placed to reserved region '%s' %u Mbytes at " BDBG_UINT64_FMT "", heap[heapIndex].memcIndex, heapIndex, (unsigned)(heap[heapIndex].size/(1024*1024)), osReservedRegions[regionIndex].tag, (unsigned)(osReservedRegions[regionIndex].length/(1024*1024)), BDBG_UINT64_ARG(osReservedRegions[regionIndex].base)));
+                    continue;
+                }
+                BDBG_MSG(("heap %u (%u MBytes) placed to reserved region '%s' %u Mbytes at " BDBG_UINT64_FMT "", heapIndex, (unsigned)(heap[heapIndex].size/(1024*1024)), osReservedRegions[regionIndex].tag, (unsigned)(osReservedRegions[regionIndex].length/(1024*1024)), BDBG_UINT64_ARG(osReservedRegions[regionIndex].base)));
+                state->preallocated[heapIndex] = true;
+                if(pCoreSettings) {
+                    pCoreSettings->heapRegion[heapIndex].alignment = max_dcache_line_size;
+                    pCoreSettings->heapRegion[heapIndex].offset = osReservedRegions[regionIndex].base;
+                    pCoreSettings->heapRegion[heapIndex].length = heap[heapIndex].size;
+                    pCoreSettings->heapRegion[heapIndex].memcIndex = heap[heapIndex].memcIndex;
+                    pCoreSettings->heapRegion[heapIndex].memoryType = heap[heapIndex].memoryType;
+                    pCoreSettings->heapRegion[heapIndex].heapType = heap[heapIndex].heapType;
+                }
+            }
+        }
+    }
+    return NEXUS_SUCCESS;
+}
+
+
 
 static bool NEXUS_Platform_P_AllocateInRegionOne(const BMMA_RangeAllocator_Region *region, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_RangeAllocator_Region *allocation, bool inFront)
 {
@@ -806,6 +881,9 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
                 heapIndex = (NEXUS_MAX_HEAPS-1)-i; /* allocate starting from largest number, and allocate from highest addresses */
             }
 
+            if(state->preallocated[heapIndex]) {
+                continue;
+            }
             if(heap[heapIndex].size==0) {
                 continue;
             }
@@ -875,6 +953,9 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
             if(heap[i].size==0) {
                 continue;
             }
+            if(state->preallocated[i]) {
+                continue;
+            }
             for(j=0;;j++) {
                 if(j>=state->allocator.placement.regions) {
                     return BERR_TRACE(NEXUS_NOT_SUPPORTED); /* for whatever reason heap was not allocated */
@@ -909,6 +990,9 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_allocateBmem(struct NEXUS
         }
     }
 
+    rc = NEXUS_Platform_P_PlaceHeapsToReservedMemory(state, pMemory->osReservedRegions, heap, pCoreSettings, pMemory->max_dcache_line_size);
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+
     for(memcIndex=0;memcIndex<NEXUS_MAX_MEMC;memcIndex++) {
         int i;
         unsigned allocations=0;
@@ -927,10 +1011,8 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_allocateBmem(struct NEXUS
             for(heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
                 if(heapIndex==cur->heapIndex) {
                     BDBG_ASSERT(memcIndex == heap[heapIndex].memcIndex);
-                    if (max_dcache_line_size > pCoreSettings->heapRegion[heapIndex].alignment) {
-                        pCoreSettings->heapRegion[heapIndex].alignment = max_dcache_line_size;
-                    }
                     totalUsed += cur->region.length;
+                    pCoreSettings->heapRegion[heapIndex].alignment = max_dcache_line_size;
                     pCoreSettings->heapRegion[heapIndex].offset = cur->region.base;
                     pCoreSettings->heapRegion[heapIndex].length = cur->region.length;
                     pCoreSettings->heapRegion[heapIndex].memcIndex = heap[heapIndex].memcIndex;
@@ -1155,6 +1237,12 @@ static NEXUS_Error NEXUS_Platform_P_CalculateBootParams(struct NEXUS_Platform_P_
     state->bmem_hint.info.bmem.count=0;
 
     NEXUS_Platform_P_Allocator_InitializeState(state, state->bmem_hint.osMemory, false);
+    rc = NEXUS_Platform_P_SetHostReservedMemoryFromInfo(&state->bmem_hint.info, state->bmem_hint.osReservedMemory, false);
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+
+    rc = NEXUS_Platform_P_PlaceHeapsToReservedMemory(state, state->bmem_hint.osReservedMemory, heap, NULL, max_dcache_line_size );
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+
     for(memcIndex=0;memcIndex<NEXUS_MAX_MEMC;memcIndex++) {
         unsigned i;
         rc = NEXUS_Platform_P_AllocateBmemHeaps(state, state->bmem_hint.osMemory, heap, max_dcache_line_size, memcIndex, false);
@@ -1288,6 +1376,17 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
                     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
                 }
                 break;
+            }
+        }
+        if(j==NEXUS_MAX_HEAPS && heapSettings[i].placement.tag[0]!='\0') { /* heap also could be placed into the reserved region */
+            for (j=0;j<NEXUS_MAX_HEAPS;j++) {
+                const NEXUS_PlatformOsReservedRegion *osReservedRegion = &pMemory->osReservedRegions[j];
+                if(osReservedRegion->length==0) {
+                    continue;
+                }
+                if(NEXUS_Platform_P_TestContain(osReservedRegion->base, osReservedRegion->length, region->offset, region->length)) {
+                    break;
+                }
             }
         }
         if(j==NEXUS_MAX_HEAPS) {

@@ -69,7 +69,11 @@ endif
 
 SECURITY_TOP := $(BSEAV_TOP)/lib/security
 COMMON_DRM_TOP := $(SECURITY_TOP)/common_drm
+ifeq ($(WIDEVINE3x_SUPPORT),y)
+WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC3x
+else
 WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21
+endif
 
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
@@ -128,6 +132,7 @@ examples: all
 prep_wvcdm: prep_security
 ifeq ($(WIDEVINE_SUPPORT),y)
 	$(Q_)echo [DIF..... building Widevine];
+	$(Q_)echo [WIDEVINE_CENC_DIR.....] $(WIDEVINE_CENC_DIR);
 	$(Q_)$(MAKE) -C $(WIDEVINE_CENC_DIR) install > $(LOG_REDIRECT_FILE)
 endif
 
@@ -149,6 +154,8 @@ prep_security: prep_nexus
 	$(Q_)echo [DIF..... prep_security target ];
 	$(Q_)echo [DIF..... building openssl];
 	$(Q_)$(MAKE) -j$(NJOBS) -C $(BSEAV_TOP)/opensource/openssl install > $(LOG_REDIRECT_FILE);
+	$(Q_)echo [DIF..... building zlib];
+	$(Q_)$(MAKE) -C $(BSEAV_TOP)/opensource/zlib install_to_nexus_bin > $(LOG_REDIRECT_FILE);
 	$(Q_)echo [DIF..... building bcrypt];
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install > $(LOG_REDIRECT_FILE);
 	$(Q_)echo [DIF..... building drmrootfs];

@@ -1,0 +1,246 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to measure the time required to roam
+# Uses port mirrors
+#
+# Written by: Robert J. McMahon September 2015
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::ControlChart
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::KPI::KeyValue
+package require UTF::KPI::portmirror
+package require UTF::Streams
+package require UTF::ControlChart
+package require UTF::math
+package require UTF::KPI::OSEvents
+
+package provide UTF::Test::RoamLatency 2.0
+
+UTF::Test RoamLatency {args} {
+    UTF::Getopts {
+	{ap.arg "NetG7K 4360R" "APs for roam"}
+	{sta.arg "MacX-GalaGM" "STA under test"}
+	{s.arg "5" "Number of times to loop"}
+	{history.arg "30" "Control Chart history"}
+	{kpidb.arg "" "Parent KPI db"}
+	{msglevel.arg "-scan" "wl msglevel to apply"}
+	{security.arg "open" "Default security"}
+	{chanspec.arg "161/80" "Default chanspec"}
+	{connect.arg "join" "type of connect to use"}
+	{holdtime.arg "1" "Seconds to hold"}
+	{stable.arg "5" "time to hold after roam"}
+	{debuglevel.arg "none" "Debug level"}
+	{reportinterval.arg "0.01" "Iperf reporting interval"}
+	{graphsize.arg "640,480" "Graph size"}
+	{draintimer.arg "45" "The amount of time in seconds to allow the first port mirror to drain its packets"}
+	{v "enable verbose logging"}
+    }
+
+    set procmsgtag [namespace tail [lindex [info level 0] 0]]
+
+    if {$(v)} {
+	set VERBOSE 1
+    } else {
+	set VERBOSE 0
+    }
+    set ::UTF::__tryid "auto"
+    if {$(kpidb) ne ""} {
+	set test_db [UTF::KPI::KeyValue %AUTO% -name RoamLatency -units "milliseconds" -parent $(kpidb)]
+    } else {
+	set test_db [UTF::KPI::KeyValue %AUTO% -name RoamLatency -units "milliseconds"]
+    }
+    if {[llength $(ap)] ne 2} {
+	error "Roam latency test requires two APs but got $(ap)"
+    }
+    foreach {AP1 AP2} $(ap) {}
+    set restoreattn1 [expr {int([lindex [$AP1 attngrp attn?] 0])}]
+    set restoreattn2 [expr {int([lindex [$AP2 attngrp attn?] 0])}]
+    set roamlatency {}
+    for {set ix 1} {$ix <= $(s)} {incr ix} {
+	set TRYMSG "Roam Latency $AP1->$AP2 ($ix)"
+	UTF::Try $TRYMSG {
+	    set SAMPLEID $::UTF::__tryid
+	    $test_db set  -exclude "trytext" "$TRYMSG"
+	    $test_db set "tryID" $SAMPLEID
+	    $test_db set  -exclude "logfile" "$UTF::Logfile"
+	    $test_db clear samples
+	    catch {$udp destroy}; catch {$m1 destroy}; catch {$m2 destroy}; catch {unset overlay}
+	    $AP2 attngrp attn 95
+	    $AP1 attngrp attn 0
+	    UTF::Test::ConnectAPSTA $AP1 $(sta) -chanspec $(chanspec) -security $(security)
+	    $AP1 attngrp attn 15
+	    $AP2 attngrp attn 0
+	    UTF::Test::APChanspec $AP2 $(chanspec)
+	    UTF::Test::APConfigureSecurity $AP2 -security $(security)
+	    $AP2 wl ssid [$AP1 wl ssid]
+	    $(sta) wl band [$AP1 wl band]
+	    $(sta) wl_escanresults
+	    UTF::Message INFO $AP1 "BSSID=[$AP1 wl bssid] ATTN=[$AP1 attngrp attn?]"
+	    UTF::Message INFO $AP2 "BSSID=[$AP2 wl bssid] ATTN=[$AP2 attngrp attn?]"
+	    set roaminfo [string map {" " _} "[$(sta) wl roam_trigger] [$(sta) wl roam_delta]"]
+	    UTF::Message INFO $(sta) "RoamTrigger=[$(sta) wl roam_trigger] RoamDelta=[$(sta) wl roam_delta]"
+	    set udp [UTF::stream %AUTO% -tx $(sta) -rx $AP1 -pps 1000 -reportinterval $(reportinterval) -txdisplay $VERBOSE -rxdisplay $VERBOSE]
+	    set currattn [expr {int([lindex [$AP1 attngrp attn?] 0])}]
+	    # Make sure the first L1 path is not active
+	    set m1 [UTF::KPI::portmirror %AUTO% -ap $AP1 -stream $udp]
+	    $m1 start
+	    set watchdog [after [expr {$(draintimer) * 1000}] "::UTF::Message ERROR m1 {drain timeout}"]
+	    while {![set timeout [catch {after info $watchdog}]]} {
+		if {![$m1 isActive?]} {
+		    break
+		}
+		UTF::Sleep 0 quiet
+	    }
+	    if {$timeout} {
+		UTF::Message ERROR STAT "Path isn't silent within $(draintimer) sec timeout"
+		$m1 stop; $m2 stop
+		$AP1 attngrp attn default
+		$test_db set  -exclude "TryIteration" "$ix" "TryResult" "Roam EXCEPTION"
+		$test_db write
+		error "Test exception per start drain timer"
+	    } else {
+		after cancel $watchdog
+	    }
+	    # Start the traffic
+	    $udp start
+	    $udp linkcheck -now
+	    set startrssi "N/A"
+	    if {![catch {$(sta) wl rssi} rssi]} {
+		set startrssi $rssi
+	    }
+	    set starttime [$udp stats -starttime]
+	    lappend overlay [list 0 $currattn]
+	    set m2 [UTF::KPI::portmirror %AUTO% -ap $AP2 -stream $udp -triggercallback "$m1 configure -displayseqno 1"]
+	    foreach e [UTF::KPI::OSEvents info instances] {
+		$e destroy
+	    }
+	    if {[$(sta) hostis MacOS]} {
+		set netevents [UTF::KPI::OSEvents %AUTO% -sta $(sta) -name $(sta) -type apple80211_events]
+		::UTF::KPI::enable_autojoin_osevents $(sta)
+	    }
+	    $m1 start; $m2 start
+	    $udp linkcheck -now
+	    if {![$m1 isActive?]} {
+		UTF::Message ERROR "[$m1 cget -name]" "Port mirror not seeing any packets"
+	    }
+	    if {[$m2 isActive?]} {
+		UTF::Message ERROR "[$m2 cget -name]" "Port mirror seeing packets unexpectedly"
+	    } else {
+		UTF::Message INFO "[$m2 cget -name]" "Port mirror silent as expected"
+	    }
+	    set switchoverrssi "N/A"
+	    while {![$m2 count]} {
+		if {[$m1 isActive?] && ![catch {$(sta) wl rssi} rssi]} {
+		    set switchoverrssi $rssi
+		}
+		lappend overlay [list [expr {[UTF::stream clock] - $starttime}] $currattn]
+		if {[catch {$AP1 attngrp incr 1}]} {
+		    $AP1 attngrp attn default
+		    $test_db set  -exclude "TryIteration" "$ix" "TryResult" "Roam FAIL"
+		    $test_db write
+		    $udp stop; $m1 stop; $m2 stop
+		    error "Roam Switchover failed"
+		}
+		incr currattn +1
+		lappend overlay [list [expr {[UTF::stream clock] - $starttime}] $currattn]
+		UTF::Sleep $(holdtime)
+	    }
+	    UTF::Message INFO "ROAM" "Roam occured from $AP1 [$AP1 wl bssid] to $AP2 [$AP2 wl bssid]"
+	    set watchdog [after [expr {$(draintimer) * 1000}] "::UTF::Message ERROR m1 {drain timeout}"]
+	    while {![set timeout [catch {after info $watchdog}]]} {
+		if {![$m1 isActive?]} {
+		    break
+		}
+		UTF::Sleep 0 quiet
+	    }
+	    set finalrssi "N/A"
+	    catch {after cancel $watchdog}
+	    if {![catch {$(sta) wl rssi} rssi]} {
+		set finalrssi $rssi
+	    }
+	    lappend overlay [list [expr {[UTF::stream clock] - $starttime}] $currattn]
+	    $udp stop; $m1 stop; $m2 stop
+	    if {$timeout} {
+		UTF::Message ERROR STAT "Path 1 didn't stop within $(draintimer) sec timeout"
+		$AP1 attngrp attn default
+		$test_db set  -exclude "TryIteration" "$ix" "TryResult" "Roam EXCEPTION"
+		$test_db write
+		error "Test exception per drain timer"
+	    }
+	    set rl [expr {[$m2 first] - [$m1 last]}]
+	    if {$rl < 0} {
+		UTF::Message ERROR STAT "Roam latency negative: $rl"
+	    }
+	    lappend roamlatency $rl
+	    set events [list [list "r" [expr {[$m2 first -timestamp] - $starttime}]]]
+	    foreach e [UTF::KPI::OSEvents info instances] {
+		$e destroy
+	    }
+	    if {[$(sta) hostis MacOS]} {
+		::UTF::KPI::disable_autojoin_osevents $(sta)
+	    }
+	    UTF::Message INFO STAT "Roam Latency($ix)=$rl ms Last=[$m1 last] First=[$m2 first], LastSeqNo=[$m1 seqno -last] FirstSeqNo=[$m2 seqno -first]"
+	    $test_db set  -exclude "startrssi" "${startrssi}"
+	    $test_db set  -exclude "lastrssi" "${switchoverrssi}"
+	    $test_db set  -exclude "finalrssi" "${finalrssi}"
+	    $test_db set sample "$rl"
+	    $test_db set  -exclude "TryIteration" "$ix" "TryResult" "PASS"
+	    catch {graph destroy}; UTF::streamgraph graph -stat pktcount -reporttext "$rl ms" -xtics $events -graphsize $(graphsize) -outputtype "canvas" -title "Packets Start/Switch/Final dBm ${startrssi}/${switchoverrssi}/${finalrssi}\\n$roaminfo";
+	    catch {lost destroy}; UTF::streamgraph lost -stat lost -reporttext "[$udp stats -lost -sum]" -xtics $events -graphsize $(graphsize) -outputtype "canvas" -title "Lost Start/Switch/Final dBm ${startrssi}/${switchoverrssi}/${finalrssi}\\n$roaminfo"
+	    catch {latency destroy}; UTF::streamgraph latency -stat pktlatency -reporttext "latency" -xtics $events -graphsize $(graphsize) -outputtype "canvas" -title "Latency Start/Switch/Final dBm ${startrssi}/${switchoverrssi}/${finalrssi}\\n$roaminfo"
+	    foreach mirror [UTF::KPI::portmirror info instances] {
+		$mirror destroy
+	    }
+	    unset mirror
+	    $test_db write
+	    return "[graph plot $overlay] [lost plot -append $overlay] [latency plot -append $overlay]"
+	}
+	if {[$(sta) hostis MacOS]} {
+	    ::UTF::KPI::disable_autojoin_osevents $(sta)
+	}
+    }
+    # Do the control chart processing
+    if {[llength $roamlatency] > 4} {
+	set failtry 0
+	set outliers [::UTF::math::outliers $roamlatency]
+	UTF::ControlChart CC -s $(s) -key "APSwitch [$test_db id]" -history $(history) -title "AP Switching Latency" -units "ms" -norangecheck 1 -format "%.0f"
+	set boundsresults [CC addsample [UTF::MeanMinMax $roamlatency]]
+	if {[regexp {(HIGH|LOW|WIDE|ZERO)} $boundsresults - ccresult]} {
+	    incr failtry
+	}
+	set ccplot [CC plotcontrolchart $boundsresults]
+	if {[llength $outliers]} {
+	    incr failtry
+	    set boundsresults [regsub {OK} $boundsresults "3IQR"]
+	}
+	set ccplot [CC plotcontrolchart $boundsresults]
+    } else {
+	set failtry 1
+	set ccplot "Insufficient samples"
+    }
+    catch {CC destroy}
+    foreach p [UTF::KPI::portmirror info instances] {
+	$p destroy
+    }
+    foreach gp [UTF::streamgraph info instances] {
+	$gp destroy
+    }
+    $AP1 attngrp attn $restoreattn1; $AP2 attngrp attn $restoreattn2
+    UTF::stream exitstreams
+    foreach e [UTF::KPI::OSEvents info instances] {
+	$e destroy
+    }
+    if {!$failtry} {
+	return $ccplot
+    } else {
+	error $ccplot
+    }
+}

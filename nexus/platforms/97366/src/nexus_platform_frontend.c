@@ -1,5 +1,5 @@
  /***************************************************************************
-*  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 #include "nexus_platform_module.h"
 #include "nexus_platform_priv.h"
@@ -233,6 +232,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
     NEXUS_FrontendDeviceHandle device;
     NEXUS_FrontendDeviceOpenSettings deviceSettings;
+    NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i=0;
     unsigned dsqI2cChannel = 0;
     unsigned extI2cChannel = 0;
@@ -322,7 +322,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_FrontendDeviceOpenSettings deviceSettings;
         NEXUS_FrontendDeviceCapabilities capabilities;
         NEXUS_FrontendChannelSettings channelSettings;
-        NEXUS_Error rc;
 
         NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
 
@@ -389,7 +388,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_FrontendDeviceOpenSettings deviceSettings;
         NEXUS_FrontendDeviceCapabilities capabilities;
         NEXUS_FrontendChannelSettings channelSettings;
-        NEXUS_Error rc;
 
         NEXUS_Platform_Frontend_P_Daughtercard_Pinmux(sv, sff); /* change SPI/I2C pinmux for MTSIF header */
 
@@ -442,7 +440,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     }
 
 #endif
-    return BERR_SUCCESS;
+    return rc;
 }
 
 void NEXUS_Platform_UninitFrontend(void)

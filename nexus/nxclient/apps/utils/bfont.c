@@ -406,6 +406,9 @@ static unsigned short antialias_argb1555_pixels(unsigned short bg_pixel, unsigne
     DECOMPOSE_ARGB1555(bg_pixel,a1,r1,g1,b1);
     DECOMPOSE_ARGB1555(fg_pixel,a2,r2,g2,b2);
 
+    /* Don't use fg alpha value */
+    BSTD_UNUSED(a2);
+
     /* TODO: rounding like rgb565 */
 
     /* blend them */

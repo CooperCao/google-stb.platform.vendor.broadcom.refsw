@@ -1,0 +1,2 @@
+This is the place to put custom (non-generic) step classes. They may
+go in subdirectories; see the custom router steps for an example.
