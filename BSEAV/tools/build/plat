@@ -1329,7 +1329,7 @@ if [ ! -z $LINUX_ROOT ]; then
     fi
     # use the kernel tree's misc/toolchain file to determine the toolchain
     # GCC 6.3 toolchain is referenced in a separate file, choose this one as a preference
-    if [ -f ${LINUX_ROOT}/misc/toolchain_63 ]; then
+    if [ -f ${LINUX_ROOT}/misc/toolchain_63 ] && echo $LINUX | grep -q "linux-4.9" ; then
         TOOLCHAIN_SUFFIX=_63
     else
         TOOLCHAIN_SUFFIX=

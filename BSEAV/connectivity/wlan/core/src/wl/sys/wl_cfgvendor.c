@@ -1535,7 +1535,7 @@ wl_cfgvendor_priv_bcm_handler(struct wiphy *wiphy,
 			bytes_written = wl_handle_private_cmd(net, reply_buf, reply_len);
 			WL_DBG(("bytes_written: %d \n", bytes_written));
 			if (bytes_written == 0) {
-				sprintf(reply_buf, "%s", "OK");
+				snprintf(reply_buf, reply_len, "%s", "OK");
 				data_len = strlen("OK");
 			} else if (bytes_written > 0) {
 				data_len = bytes_written > reply_len ?

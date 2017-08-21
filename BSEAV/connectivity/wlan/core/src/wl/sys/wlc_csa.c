@@ -1843,9 +1843,6 @@ wlc_parse_csa_ie(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg, uint8 *params, int len
 				csa->csa.chspec = wlc_get_vht_chanspec(wlc, primary20_channel, bw);
 			}
 		}
-	} else {
-		WL_REGULATORY(("wl%d: %s: DOT11_MNG_CHANNEL_SWITCH_WRAPPER_ID = NULL\n",
-		               wlc->pub->unit, __FUNCTION__));
 	}
 #endif /* WL11AC */
 

@@ -243,6 +243,10 @@ typedef struct wlc_amsdu_cnt {
 	uint32	agg_amsdu_bytes_h;
 	uint32	deagg_amsdu_bytes_l; /* AMSDU bytes deagg successfully */
 	uint32	deagg_amsdu_bytes_h;
+	uint32	deagg_wrongseq_last;
+	uint32	deagg_wrong_start;
+	uint32	deagg_wrong_cnts;
+	uint32	rxframe;
 } wlc_amsdu_cnt_t;
 #endif	/* WLCNT */
 
@@ -3189,6 +3193,55 @@ wlc_amsdu_flush(amsdu_info_t *ami)
 	}
 }
 
+#define AMSDU_DEAGG_FAIL_CNT 200
+#define AMSDU_DEAGG_FAIL_MSEC 60000 /* millisecond */
+static void
+wlc_amsdu_err_monitor(amsdu_info_t *ami)
+{
+	wlc_pub_t *pub = ami->pub;
+	wlc_amsdu_cnt_t *amsdu_cnt = ami->cnt;
+
+	if ((amsdu_cnt->deagg_wrongseq - amsdu_cnt->deagg_wrongseq_last > 0) &&
+		(pub->_cnt->rxframe == amsdu_cnt->rxframe)) {
+		if (amsdu_cnt->deagg_wrong_cnts == 0) {
+			WL_ERROR(("wl%d: deagg_wrong_cnts - start\n", pub->unit));
+			amsdu_cnt->deagg_wrong_start = OSL_SYSUPTIME();
+		}
+
+		/* Record the delta cnts of wrong AMSDU */
+		amsdu_cnt->deagg_wrong_cnts +=
+			(amsdu_cnt->deagg_wrongseq - amsdu_cnt->deagg_wrongseq_last);
+
+		if (amsdu_cnt->deagg_wrong_cnts > AMSDU_DEAGG_FAIL_CNT) {
+			if (OSL_SYSUPTIME() - amsdu_cnt->deagg_wrong_start < AMSDU_DEAGG_FAIL_MSEC) {
+				WL_ERROR(("wl%d: deagg_wrong_cnts %d in %d ms - reinit!!\n",
+					pub->unit,
+					amsdu_cnt->deagg_wrong_cnts,
+					AMSDU_DEAGG_FAIL_MSEC));
+				amsdu_cnt->deagg_wrongseq_last = 0;
+				amsdu_cnt->deagg_wrong_start = 0;
+				amsdu_cnt->deagg_wrong_cnts = 0;
+				amsdu_cnt->rxframe = 0;
+				wlc_fatal_error(ami->wlc);
+				return;
+			} else {
+				/* cnts bigger than threshold but over AMSDU_DEAGG_FAIL_MSEC.
+				 * Consider as a normal case and reset cnts.
+				 */
+				WL_ERROR(("wl%d: deagg_wrong_cnts - reset\n", pub->unit));
+				amsdu_cnt->deagg_wrong_cnts = 0;
+				amsdu_cnt->deagg_wrong_start = 0;
+			}
+		}
+	} else {
+		amsdu_cnt->deagg_wrong_cnts = 0;
+		amsdu_cnt->deagg_wrong_start = 0;
+	}
+
+	amsdu_cnt->deagg_wrongseq_last = amsdu_cnt->deagg_wrongseq;
+	amsdu_cnt->rxframe = pub->_cnt->rxframe;
+}
+
 /**
  * return FALSE if filter failed
  *   caller needs to toss all buffered A-MSDUs and p
@@ -3274,7 +3327,7 @@ wlc_recvamsdu(amsdu_info_t *ami, wlc_d11rxhdr_t *wrxh, void *p, uint16 *padp, bo
 	case RXS_AMSDU_FIRST:
 		/* PKTDATA starts with PLCP */
 		if (deagg->amsdu_deagg_state != WLC_AMSDU_DEAGG_IDLE) {
-			WL_AMSDU(("wlc_recvamsdu: wrong A-MSDU deagg sequence, cur_state=%d\n",
+			WL_AMSDU(("wlc_recvamsdu: FIRST wrong A-MSDU deagg sequence, cur_state=%d\n",
 				deagg->amsdu_deagg_state));
 			WLCNTINCR(ami->cnt->deagg_wrongseq);
 			wlc_amsdu_deagg_flush(ami, fifo);
@@ -3296,9 +3349,10 @@ wlc_recvamsdu(amsdu_info_t *ami, wlc_d11rxhdr_t *wrxh, void *p, uint16 *padp, bo
 	case RXS_AMSDU_INTERMEDIATE:
 		/* PKTDATA starts with subframe header */
 		if (deagg->amsdu_deagg_state != WLC_AMSDU_DEAGG_FIRST) {
-			WL_AMSDU_ERROR(("%s: wrong A-MSDU deagg sequence, cur_state=%d\n",
+			WL_AMSDU_ERROR(("%s: INTERMEDIATE wrong A-MSDU deagg sequence, cur_state=%d\n",
 				__FUNCTION__, deagg->amsdu_deagg_state));
 			WLCNTINCR(ami->cnt->deagg_wrongseq);
+			wlc_amsdu_err_monitor(ami);
 			goto abort;
 		}
 
@@ -3313,8 +3367,8 @@ wlc_recvamsdu(amsdu_info_t *ami, wlc_d11rxhdr_t *wrxh, void *p, uint16 *padp, bo
 #endif /* ASSERT */
 
 		if ((pktlen) <= ETHER_HDR_LEN) {
-			WL_AMSDU_ERROR(("%s: rxrunt\n", __FUNCTION__));
-			WLCNTINCR(ami->pub->_cnt->rxrunt);
+			WL_AMSDU_ERROR(("%s: INTERMEDIATE rxrunt(%d) <= ETHER_HDR_LEN(%d) aggtype=%d deagg_state=%d\n",
+				__FUNCTION__, pktlen, ETHER_HDR_LEN, aggtype, deagg->amsdu_deagg_state));
 			goto abort;
 		}
 
@@ -3326,9 +3380,10 @@ wlc_recvamsdu(amsdu_info_t *ami, wlc_d11rxhdr_t *wrxh, void *p, uint16 *padp, bo
 	case RXS_AMSDU_LAST:
 		/* PKTDATA starts with last subframe header */
 		if (deagg->amsdu_deagg_state != WLC_AMSDU_DEAGG_FIRST) {
-			WL_AMSDU_ERROR(("%s: wrong A-MSDU deagg sequence, cur_state=%d\n",
+			WL_AMSDU_ERROR(("%s: LAST wrong A-MSDU deagg sequence, cur_state=%d\n",
 				__FUNCTION__, deagg->amsdu_deagg_state));
 			WLCNTINCR(ami->cnt->deagg_wrongseq);
+			wlc_amsdu_err_monitor(ami);
 			goto abort;
 		}
 
@@ -3345,8 +3400,8 @@ wlc_recvamsdu(amsdu_info_t *ami, wlc_d11rxhdr_t *wrxh, void *p, uint16 *padp, bo
 #endif /* ASSERT */
 
 		if ((pktlen) < (ETHER_HDR_LEN + DOT11_FCS_LEN)) {
-			WL_AMSDU_ERROR(("%s: rxrunt\n", __FUNCTION__));
-			WLCNTINCR(ami->pub->_cnt->rxrunt);
+			WL_AMSDU_ERROR(("%s: LAST rxrunt(%d) <= ETHER_HDR_LEN(%d)+DOT11_FCS_LEN(%d) aggtype=%d deagg_state=%d\n",
+				__FUNCTION__, pktlen, ETHER_HDR_LEN, DOT11_FCS_LEN, aggtype, deagg->amsdu_deagg_state));
 			goto abort;
 		}
 

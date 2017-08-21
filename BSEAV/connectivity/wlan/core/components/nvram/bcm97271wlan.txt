@@ -333,4 +333,6 @@ paprdis=1
 low_adc_rate_en=1
 btc_params83=0x4000
 btc_params84=0x2000
+btc_flags2=1
+btc_flags4=1
 #end

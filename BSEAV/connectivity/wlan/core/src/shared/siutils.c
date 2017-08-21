@@ -3551,7 +3551,8 @@ si_corerev(si_t *sih)
 uint
 si_corerev_minor(si_t *sih)
 {
-	if (CHIPTYPE(sih->socitype) == SOCI_AI) {
+	if (CHIPTYPE(sih->socitype) == SOCI_AI
+		|| CHIPTYPE(sih->socitype) == SOCI_DVTBUS) {
 		return ai_corerev_minor(sih);
 	} else {
 		return 0;

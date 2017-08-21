@@ -549,12 +549,7 @@
 
 
 /* debug/trace */
-uint wl_msg_level =
-#if defined(BCMDBG)
-	WL_ERROR_VAL;
-#else
-	0;
-#endif /* BCMDBG */
+uint wl_msg_level = WL_ERROR_VAL;
 
 uint wl_msg_level2 =
 #if defined(BCMDBG)

@@ -2769,9 +2769,13 @@ wlc_dump_mac_ext(wlc_info_t *wlc, uint reason)
 			WL_INFORM(("%s: PSMr macreg dump to %s\n", __FUNCTION__, dumpfilename));
 
 			WL_ERROR(("\n--- mac register dump start -- len(%d)\n", dumpbuf_len));
-			for (off = 0; off < dumpbuf_len; off += DUMPMAC_PRINT_SZ) {
-				strncpy(prntbuf, dumpbuf + off, DUMPMAC_PRINT_SZ);
-				WL_ERROR(("%s", prntbuf));
+			if(prntbuf){
+				for (off = 0; off < dumpbuf_len; off += DUMPMAC_PRINT_SZ) {
+					strncpy(prntbuf, dumpbuf + off, DUMPMAC_PRINT_SZ);
+					WL_ERROR(("%s", prntbuf));
+				}
+			} else {
+				WL_ERROR(("%s:prntbuf NULL: unable to allocate\n", __FUNCTION__));
 			}
 			WL_ERROR(("\n--- mac register dump end\n"));
 			/* Write to a file */

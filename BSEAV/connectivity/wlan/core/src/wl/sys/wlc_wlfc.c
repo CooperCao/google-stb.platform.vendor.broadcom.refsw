@@ -2469,6 +2469,7 @@ wlc_wlfc_scb_ps_off(wlc_info_t *wlc, struct scb *scb)
 			WLFC_CTL_TYPE_MAC_OPEN);
 	/* reset the traffic availability map */
 	SCB_PROPTXTSTATUS_SETTIM(scbi, 0);
+	SCB_PROPTXTSTATUS_SETPKTWAITING(scb, 0);
 #ifdef WLAMPDU
 	/* We might have suppressed pkts during Power-Save ON */
 	/* Reset AMPDU Seqcnt with a BAR */

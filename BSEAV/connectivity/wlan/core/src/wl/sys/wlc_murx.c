@@ -960,6 +960,13 @@ murx_grp_memb_hw_update(wlc_info_t *wlc, murx_bsscfg_t *mu_bsscfg, struct scb *s
 	}
 #endif
 
+	if (gid_info == NULL) {
+#ifdef BCMDBG
+		WL_MUMIMO(("wl%d: %s: GID info is NULL \n",wlc->pub->unit, __FUNCTION__));
+#endif /* BCMDBG */
+		return BCME_BADARG;
+	}
+
 	for (g = MU_GROUP_ID_MIN; g < MU_GROUP_ID_MAX; g++) {
 		err = BCME_OK;
 		was_member = isset(gid_info->membership, g);

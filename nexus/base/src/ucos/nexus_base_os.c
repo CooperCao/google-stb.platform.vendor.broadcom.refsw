@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2013 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,41 +9,31 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #if UCOS_VERSION==1
@@ -304,12 +294,12 @@ NEXUS_P_Thread_Create(const char *pThreadName, void (*pThreadFunc)(void *), void
         priority = 1;  /* Can't use priority equal to zero in uC/OS */
 #if UCOS_VERSION==1
     } else if (priority >= OS_MAX_TASKS - 1) {
-        BDBG_WRN(("Changing priority from priority to %d\n", priority, OS_MAX_TASKS - 2));
+        BDBG_WRN(("Changing priority from priority %d to %d\n", priority, OS_MAX_TASKS - 2));
         priority = OS_MAX_TASKS - 2;  /* Can't use the lowest priority allowed, which is reserved for the uC/OS Idle Task (OS_CFG_PRIO_MAX - 1) */
     }
 #elif UCOS_VERSION==3
     } else if (priority >= OS_CFG_PRIO_MAX - 1) {
-        BDBG_WRN(("Changing priority from priority to %d\n", priority, OS_CFG_PRIO_MAX - 2));
+        BDBG_WRN(("Changing priority from priority %d to %d\n", priority, OS_CFG_PRIO_MAX - 2));
         priority = OS_CFG_PRIO_MAX - 2;  /* Can't use the lowest priority allowed, which is reserved for the uC/OS Idle Task (OS_CFG_PRIO_MAX - 1) */
     }
 #else
@@ -320,18 +310,18 @@ NEXUS_P_Thread_Create(const char *pThreadName, void (*pThreadFunc)(void *), void
     BDBG_MSG(("Thread Pri: %d Stack: %d", priority, stackSize));
 
     if (NumberOftasks >= UCOS_MAX_TASKS) {
-        BDBG_ERR(("BKNI_AddTask: Number of tasks  0x%.8lx exceed UCOS_MAX_TASKS\n", NumberOftasks+1));
+        BDBG_ERR(("BKNI_AddTask: Number of tasks  0x%.8x exceed UCOS_MAX_TASKS\n", NumberOftasks+1));
         return NULL;
     }
 
 #if UCOS_VERSION==1
     if (priority >= OS_MAX_TASKS) {
-        BDBG_ERR(("BKNI_AddTask: Thread priority 0x%.8lx exceed OS_MAX_TASKS\n", priority));
+        BDBG_ERR(("BKNI_AddTask: Thread priority 0x%.8x exceed OS_MAX_TASKS\n", priority));
         return NULL;
     }
 #elif UCOS_VERSION==3
     if (priority >= OS_CFG_PRIO_MAX) {
-        BDBG_ERR(("BKNI_AddTask: Thread priority 0x%.8lx exceed OS_CFG_PRIO_MAX\n", priority));
+        BDBG_ERR(("BKNI_AddTask: Thread priority 0x%.8x exceed OS_CFG_PRIO_MAX\n", priority));
         return NULL;
     }
 #else

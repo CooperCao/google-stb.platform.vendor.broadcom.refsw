@@ -166,7 +166,6 @@ struct BKNI_MutexObj
     BKNI_P_MutexTracking tracking; /* must be first */
     BDBG_OBJECT(BKNI_Mutex)
     OS_MUTEX mutex;
-    BKNI_MutexSettings settings;
 };
 
 #if BKNI_DEBUG_MUTEX_TRACKING
@@ -594,7 +593,6 @@ BERR_Code BKNI_CreateMutex_tagged(BKNI_MutexHandle *handle, const char *file, in
         return BERR_TRACE(BERR_OS_ERROR);
     }
     BDBG_OBJECT_SET(mutex, BKNI_Mutex);
-    mutex->settings.suspended = false;
 
     /* WARNING: Do not make BKNI_MutexHandle a recursive mutex. The usual motivation for doing this is to allow recursive calls back into
     Nexus or Magnum from custom callouts. That would be a violation of Nexus and Magnum architecture and will cause catastrophic failure.
@@ -715,23 +713,6 @@ BKNI_ReleaseMutex(BKNI_MutexHandle handle)
         BDBG_ASSERT(false);
     }
     return ;
-}
-
-void BKNI_GetMutexSettings(BKNI_MutexHandle mutex, BKNI_MutexSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(mutex, BKNI_Mutex);
-    *pSettings = mutex->settings;
-    return;
-}
-
-BERR_Code BKNI_SetMutexSettings(BKNI_MutexHandle mutex, const BKNI_MutexSettings *pSettings)
-{
-    BDBG_OBJECT_ASSERT(mutex, BKNI_Mutex);
-    mutex->settings = *pSettings;
-#if BKNI_DEBUG_MUTEX_TRACKING
-    mutex->tracking.settings = *pSettings;
-#endif
-    return BERR_SUCCESS;
 }
 
 void

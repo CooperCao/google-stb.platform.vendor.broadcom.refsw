@@ -912,6 +912,9 @@ See Also:
 #  define BDBG_P_UNWRAP(...) __VA_ARGS__
 # endif
 #endif
+#if !defined(BDBG_P_UNWRAP) && defined(__SDE_MIPS__)
+# define BDBG_P_UNWRAP(args...) args
+#endif
 #if !defined(BDBG_P_UNWRAP) && defined(BDBG_USE_VA_ARGS)
 # define BDBG_P_UNWRAP(args...) args
 #endif

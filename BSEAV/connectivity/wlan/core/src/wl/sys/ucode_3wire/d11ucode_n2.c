@@ -3,12 +3,12 @@
  * Networking Adapter Device Drivers.
  *
  * THIS IS A GENERATED FILE - DO NOT EDIT
- * Generated on Wed Jul 12 13:18:29 PDT 2017
+ * Generated on Tue Aug 08 14:00:05 PDT 2017
  *
  * FILE-CSTYLED
  *
- * Ucode directory: /local/public/users/ptimariu/stbucode/refsw/ptrepo/build/n2
- * Derived from major_rev = 1202, minor_rev = 100.
+ * Ucode directory: /local/public/users/ptimariu/stbucurr/refsw/ptrepo/build/n2
+ * Derived from major_rev = 1202, minor_rev = 220.
  *
  * $ Copyright Broadcom Corporation $
  *
@@ -24,7 +24,7 @@
 #include "d11ucode.h"
 
 CONST uint32 d11ucode_n2_bommajor = 1202;
-CONST uint32 d11ucode_n2_bomminor = 100;
+CONST uint32 d11ucode_n2_bomminor = 220;
 
 #if (HTCONF && D11CONF_HAS(29)) || (NCONF && D11CONF_HAS(31))
 CONST uint32 BCMPREATTACHDATA(d11ucode29_mimo)[] = {
@@ -1008,7 +1008,7 @@ CONST uint32 BCMPREATTACHDATA(d11ucode29_mimo)[] = {
  0x030017a7, 0x0001bc60, 0x030017a8, 0x0001bc60, 0x030017a9, 0x0001bc60,
  0x030017ac, 0x0001bc60, 0x030017ad, 0x0001bc60, 0x060f1078, 0x000182e0,
  0xe3000b79, 0x000206c1, 0xa7000b7c, 0x00006880, 0x02f00b7d, 0x0003bfde,
- 0xa7008b7d, 0x00006880, 0x13164000, 0x0001bc60, 0x030c8001, 0x0001bc60,
+ 0xa7008b7d, 0x00006880, 0x13164000, 0x0001bc60, 0x031b8001, 0x0001bc60,
  0x03000002, 0x0001bc60, 0x03000003, 0x0001bc60, 0x03000004, 0x0001bc60,
  0xd3040005, 0x0001bc61, 0x171fb061, 0x0001bc60, 0x131dd060, 0x0001bc60,
  0x030007f8, 0x0001bc60, 0x0f001785, 0x0000b05e, 0xb6f07145, 0x0000a044,

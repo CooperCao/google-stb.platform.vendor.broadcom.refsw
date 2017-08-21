@@ -386,7 +386,12 @@ wlc_11h_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		if (spect == SPECT_MNGMT_OFF &&
 		    WL11D_ENAB(wlc))
 			spect = SPECT_MNGMT_STRICT_11D;
-		*pval = (int)spect;
+		if (pval != NULL)
+			*pval = (int)spect;
+		else {
+			err = BCME_BADARG;
+			return err;
+		}
 		break;
 	}
 
@@ -934,6 +939,7 @@ static void _wlc_11h_build_basic_report_radar(wlc_info_t *wlc, wlc_bsscfg_t *cfg
 	if (p == NULL) {
 		WL_INFORM(("wl%d: %s: no memory for Measure Report\n",
 		wlc->pub->unit, __FUNCTION__));
+		MFREE(wlc->osh, report, report_len);
 		return;
 	}
 

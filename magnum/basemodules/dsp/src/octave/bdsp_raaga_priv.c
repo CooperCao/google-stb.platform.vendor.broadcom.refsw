@@ -92,7 +92,12 @@ BERR_Code BDSP_Raaga_P_GetNumberOfDspandCores(
 	BBOX_Config *pConfig;
 	BERR_Code ret = BERR_SUCCESS;
 
-	pConfig = BKNI_Malloc(sizeof(BBOX_Config));
+	pConfig = (BBOX_Config *)BKNI_Malloc(sizeof(BBOX_Config));
+    if(pConfig == NULL)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_GetNumberOfDspandCores: Unable to allocate memory for BOX Config"));
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
 	BKNI_Memset(pConfig, 0 , sizeof(BBOX_Config));
 
 	ret = BBOX_GetConfig(boxHandle, pConfig);
@@ -680,6 +685,7 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 	pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
 	BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage)
 	BSTD_UNUSED(macroBrId);
+	BSTD_UNUSED(macroStId);
 	{
 		pRaagaConnectStage->pRaagaTask = pRaagaTask;
 		pRaagaConnectStage->stageID    = stageIndex;
@@ -1919,7 +1925,7 @@ BERR_Code BDSP_Raaga_P_SetAlgorithm(
 	if(!pRaagaStage->settings.algorithmSupported[algorithm])
 	{
 		BDBG_ERR((" algorithm %s (%d) being passed in %s which was not enabled during CreateStage call ",
-					pAlgoInfo->pName,algorithm, __FUNCTION__));
+					pAlgoInfo->pName,algorithm, BSTD_FUNCTION));
 		return BERR_TRACE(BERR_NOT_SUPPORTED);
 	}
 

@@ -237,7 +237,7 @@
 #define __align(n)                      __attribute__((aligned(n)))
 
 
-#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L
+#if (!defined (_Static_assert)) && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L)
 /* A fake _Static_assert implementation that we can use in pre-C11 mode.
  *
  * The error messages are nowhere near as good, but it will still explode at the

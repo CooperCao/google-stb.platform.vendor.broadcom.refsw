@@ -5975,6 +5975,9 @@ wlc_wnm_parse_tfs_req_ie(wlc_info_t *wlc, struct scb *scb, uint8 *body,
 	else {
 		/* delete wnm_tfs_req and attached subelement/tclas element */
 		wlc_wnm_tfs_req_free(wlc->wnm_info, &tfs_list, -1);
+
+		if (wnm_tfs_req)
+			MFREE(wlc->osh, wnm_tfs_req, sizeof(wnm_tfs_fset_t));
 	}
 
 	return err;
