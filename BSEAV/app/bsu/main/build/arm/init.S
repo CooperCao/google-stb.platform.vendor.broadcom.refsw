@@ -38,6 +38,24 @@
  * Module Description:
  *
  ***************************************************************************/
+
+/* MIDR_EL1, Main ID Register [RO] 32 bit */
+#define MIDR_EL1_REV		(0xf << 0)
+#define MIDR_EL1_PARTNUM	(0xfff << 4)
+#define MIDR_EL1_ARCH		(0xf << 16)
+#define MIDR_EL1_VARIANT	(0xf << 20)
+#define MIDR_EL1_IMPLEMENTER	(0xff << 24)
+
+/* OEM */
+#define MIDR_MAJOR_PART_MASK	(MIDR_EL1_IMPLEMENTER | MIDR_EL1_ARCH | MIDR_EL1_PARTNUM)
+#define MIDR_IMPLEMENTER_BRCM	(0x42 << 24)
+#define MIDR_PartOrionB53	0x420f1000
+
+
+/* PSCI */
+#define OEM_FUNC_LEGACY_GIC_BYPASS	0x83000009
+
+/* CPSR/SPSR modes */
 #define MODE_SVC	0x13
 #define MODE_IRQ	0x12
 #define MODE_ABT	0x17
@@ -74,12 +92,13 @@ startup:
 
 	bl	setup_stacks
 	push	{r0-r2, r3}
+	bl	setup_orion
 	bl	setup_vectors
 	bl	setup_cpu
 	bl	c_init
-    isb
-    dsb
-	pop		{r0-r2, r3}
+	isb
+	dsb
+	pop	{r0-r2, r3}
 	b	bcm_main
 
     .global mini_exit
@@ -118,3 +137,29 @@ raise:
 __getstack:
 	mov r0, sp
 	bx  lr
+
+	.arch_extension sec
+setup_orion:
+	.global setup_orion
+	mrc p15, 0, r0, c0, c0, 0	/* Read MIDR into r0 */
+	isb
+
+	/* Mask off variable fields */
+	ldr	r1, =MIDR_MAJOR_PART_MASK
+	and	r0, r0, r1
+
+	/* Test chip type */
+	ldr	r1, =MIDR_PartOrionB53
+	cmp	r0, r1
+	bne	not_orion
+
+	/* We are a B53 (aka "Orion") and that means
+	 * BOLT should have loaded PSCI so we call
+	 * it to bypass any GIC setup.
+	 */
+	ldr	r0, =OEM_FUNC_LEGACY_GIC_BYPASS
+	smc	#0
+	isb
+
+not_orion:
+	bx	lr

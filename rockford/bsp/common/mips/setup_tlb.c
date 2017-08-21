@@ -396,9 +396,9 @@ void setup_tlb(void)
         memory.memc[1].length=0;
     #endif
 
-    printf("MEMC0=%dMB, MEMC1=%dMB\n", (int)(memoryInfo.memc[0].size>>20), (int)(memoryInfo.memc[1].size>>20));
-    mem0_size_mb = memoryInfo.memc[0].size >> 20;
-    mem1_size_mb = memoryInfo.memc[1].size >> 20;
+    mem0_size_mb = memoryInfo.memc[0].deviceTech / 8 * (memoryInfo.memc[0].width/memoryInfo.memc[0].deviceWidth);
+    mem1_size_mb = memoryInfo.memc[1].deviceTech / 8 * (memoryInfo.memc[1].width/memoryInfo.memc[1].deviceWidth);
+    printf("MEMC0=%dMB, MEMC1=%dMB\n", mem0_size_mb, mem1_size_mb);
 
     /* Clear TLB entries first */
     clear_tlb(); 

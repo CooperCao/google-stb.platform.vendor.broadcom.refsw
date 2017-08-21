@@ -1,5 +1,5 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/***************************************************************************
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,67 +34,48 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
-******************************************************************************/
+ ***************************************************************************/
 
-#include "nexus_platform.h"
-#include "nexus_surface.h"
+#ifndef __COMMON_H__
+#define __COMMON_H__
 
-#ifndef DYNRNG_OSD_H__
-#define DYNRNG_OSD_H__
+#include <compiler.h>
 
-typedef struct OSD_Osd * OSD_OsdHandle;
+#include "arch.h"
+#include "bchp_common.h"
+#include "lib_physio.h"
 
-typedef enum OSD_OsdMode
-{
-    OSD_OsdMode_eOff,
-    OSD_OsdMode_eOn,
-    OSD_OsdMode_eTimer,
-    OSD_OsdMode_eMax
-} OSD_OsdMode;
+#define min(a, b) \
+	({ __typeof__(a) _a = (a); \
+	   __typeof__(b) _b = (b); \
+	   _a < _b ? _a : _b; })
 
-typedef struct OSD_OsdSettings
-{
-    OSD_OsdMode mode;
-    unsigned timeout;
-} OSD_OsdSettings;
+#define max(a, b) \
+	({ __typeof__(a) _a = (a); \
+	   __typeof__(b) _b = (b); \
+	   _a > _b ? _a : _b; })
 
-typedef enum OSD_Eotf
-{
-    OSD_Eotf_eUnknown,
-    OSD_Eotf_eSdr,
-    OSD_Eotf_eHdr10,
-    OSD_Eotf_eHlg,
-    OSD_Eotf_eMax
-} OSD_Eotf;
+/*
+#define abs(a) \
+	({ __typeof__(a) _a = (a); \
+	_a < 0 ? -_a : _a; })
+*/
 
-typedef enum OSD_EotfSupport
-{
-    OSD_EotfSupport_eUnknown,
-    OSD_EotfSupport_eNo,
-    OSD_EotfSupport_eYes,
-    OSD_EotfSupport_eMax
-} OSD_EotfSupport;
+#define IS_ALIGNED(a, b) (((a) & ((__typeof__(a))(b) - 1)) == 0)
 
-typedef struct OSD_OsdModel
-{
-    OSD_Eotf input;
-    OSD_Eotf output;
-    OSD_EotfSupport tv;
-} OSD_OsdModel;
+#define BIT(x)			(1 << (x))
+#define ARRAY_SIZE(x)		(sizeof(x) / sizeof((x)[0]))
 
-void OSD_Destroy(OSD_OsdHandle osd);
-OSD_OsdHandle OSD_Create(unsigned width, unsigned height);
-NEXUS_SurfaceHandle OSD_GetFrameBuffer(OSD_OsdHandle osd);
-const NEXUS_Rect * OSD_GetFrameBufferDimensions(OSD_OsdHandle osd);
-void OSD_GetSettings(OSD_OsdHandle osd, OSD_OsdSettings * pSettings);
-int OSD_SetSettings(OSD_OsdHandle osd, const OSD_OsdSettings * pSettings);
-void OSD_GetModel(OSD_OsdHandle osd, OSD_OsdModel * model);
-int OSD_SetModel(OSD_OsdHandle osd, const OSD_OsdModel * model);
-void OSD_Print(OSD_OsdHandle osd);
-OSD_OsdMode OSD_ParseOsdMode(const char * osdStr);
-const char * OSD_GetModeName(OSD_OsdMode mode);
+#define _KB(k) ((k)*1024)
+#define _MB(m) (_KB((m))*1024)
+#define _GB(g) (_MB((g))*1024)
 
-#endif /* DYNRNG_OSD_H__ */
+#define ALIGN_TO(x, align)	((x) & ~((__typeof__(x))(align) - 1))
+#define ALIGN_UP_TO(x, align)	(((x) + (__typeof__(x))(align) - 1)\
+				& ~((__typeof__(x))(align) - 1))
+#define PTR_ALIGN(p, align)	((typeof(p))ALIGN_TO((unsigned long)(p), (align)))
+
+#define __stringify(s) stringify(s)
+#define stringify(s) #s
+
+#endif /* __COMMON_H__ */

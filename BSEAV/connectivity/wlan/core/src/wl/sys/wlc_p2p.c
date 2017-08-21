@@ -7012,6 +7012,8 @@ wlc_p2p_process_presence_req(wlc_p2p_info_t *pm, wlc_bsscfg_t *cfg,
 		WL_P2P(("Setting noa-sched from GC-PrsAF\n"));
 	}
 
+	wlc_free_p2p_attr_buf(wlc, &se_combined);
+
 	return BCME_OK;
 }
 

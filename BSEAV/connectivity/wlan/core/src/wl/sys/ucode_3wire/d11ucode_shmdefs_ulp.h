@@ -5,14 +5,14 @@
  * FILE-CSTYLED 
  *
  * Ucode directory: ../
- * Derived from major_rev = 1202, minor_rev = 100
+ * Derived from major_rev = 1202, minor_rev = 220
  *
  * $ Copyright Broadcom Corporation $ 
  *
  *
  * <<Broadcom-WL-IPTag/Proprietary:>> 
  *
- * $Id: /local/public/users/ptimariu/stbucode/refsw/ptrepo/ucode_3wire/d11ucode_shmdefs_ulp.h Jul. 12, 2017 01:21:47 PM <ptimariu> $
+ * $Id: /local/public/users/ptimariu/stbucurr/refsw/ptrepo/ucode_3wire/d11ucode_shmdefs_ulp.h Aug. 08, 2017 02:00:06 PM <ptimariu> $
  */
 // COMMON SHMS
 //REVID Specific SHMs

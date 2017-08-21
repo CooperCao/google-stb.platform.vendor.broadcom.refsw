@@ -1,4 +1,4 @@
-/*******************************************************************************
+/******************************************************************************
  * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,7 +34,8 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- ******************************************************************************/
+ *****************************************************************************/
+
 
 #include "bchp.h"
 const uint32_t BDSP_ARM_IMG_hbc_monitor_code_array1[] = {
@@ -1202,10 +1203,10 @@ const uint32_t BDSP_ARM_IMG_hbc_monitor_code_array1[] = {
 	0x00612400,
 	0x6d006424,
 	0x352e6773,
-	0x00323437,
+	0x00383437,
 	0x734d6457,
 	0x37352e67,
-	0x5f003635,
+	0x5f003236,
 	0x5f48455f,
 	0x4d415246,
 	0x45425f45,

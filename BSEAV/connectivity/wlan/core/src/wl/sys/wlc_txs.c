@@ -310,7 +310,9 @@ wlc_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, uint32 frm_tx2)
 #ifdef RTS_PER_ITF
 	struct wlc_if *wlcif = NULL;
 #endif
-
+#ifdef SCB_BS_DATA
+	wlc_bs_data_counters_t *bs_data_counters = NULL;
+#endif /* SCB_BS_DATA */
 #ifdef WL_TX_STALL
 	wlc_tx_status_t tx_status = WLC_TX_STS_SUCCESS;
 #endif
@@ -486,6 +488,8 @@ wlc_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, uint32 frm_tx2)
 
 	wlc_pkttag_scb_restore_ex(wlc, p, &txh_info, &bsscfg, &scb);
 
+	SCB_BS_DATA_CONDFIND(bs_data_counters, wlc, scb);
+
 	if (ETHER_ISMULTI(txh_info.TxFrameRA)) {
 #ifdef MBSS
 		if (bsscfg != NULL) {
@@ -496,11 +500,6 @@ wlc_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, uint32 frm_tx2)
 	} else {
 #ifdef PKTQ_LOG
 		if (D11REV_GE(wlc->pub->corerev, 40)) {
-#if defined(SCB_BS_DATA)
-			wlc_bs_data_counters_t *bs_data_counters = NULL;
-#endif /* SCB_BS_DATA */
-			SCB_BS_DATA_CONDFIND(bs_data_counters, wlc, scb);
-
 			WLCNTCONDADD(actq_cnt, actq_cnt->airtime, TX_STATUS40_TX_MEDIUM_DELAY(txs));
 			SCB_BS_DATA_CONDADD(bs_data_counters, airtime,
 				TX_STATUS40_TX_MEDIUM_DELAY(txs));
@@ -696,6 +695,9 @@ wlc_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, uint32 frm_tx2)
 		prec_pktlen = pkttotlen(wlc->osh, p) - sizeof(d11txh_t) - DOT11_LLC_SNAP_HDR_LEN -
 		              DOT11_MAC_HDR_LEN - DOT11_QOS_LEN;
 		WLCNTCONDADD(actq_cnt, actq_cnt->throughput, prec_pktlen);
+		SCB_BS_DATA_CONDINCR(bs_data_counters, acked);
+		SCB_BS_DATA_CONDADD(bs_data_counters, retry, (tx_frame_count - 1));
+		SCB_BS_DATA_CONDADD(bs_data_counters, throughput, prec_pktlen);
 #endif
 		if (tx_frame_count > 1) {
 			/* counting number of retries for all data frames. */
@@ -1003,6 +1005,7 @@ wlc_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, uint32 frm_tx2)
 		WL_TX_STS_UPDATE(tx_status, WLC_TX_STS_RETRY_TIMEOUT);
 #ifdef PKTQ_LOG
 		WLCNTCONDADD(actq_cnt, actq_cnt->retry, tx_frame_count);
+		SCB_BS_DATA_CONDADD(bs_data_counters, retry, tx_frame_count);
 #endif
 
 		/* ucast failure */
@@ -1025,6 +1028,7 @@ wlc_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, uint32 frm_tx2)
 			WLCIFCNTINCR(scb, txfail);
 #ifdef PKTQ_LOG
 			WLCNTCONDINCR(actq_cnt, actq_cnt->retry_drop);
+			SCB_BS_DATA_CONDINCR(bs_data_counters, retry_drop);
 #endif
 			if (from_host) {
 				WL_INFORM(("wl%d: TX retries exhausted"

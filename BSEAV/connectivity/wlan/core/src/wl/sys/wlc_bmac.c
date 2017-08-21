@@ -16478,7 +16478,8 @@ wlc_bmac_btc_mode_set(wlc_hw_info_t *wlc_hw, int btc_mode)
 			if (wlc_hw->btc->btcx_aa > 2) {
 				if (CHIPID(wlc_hw->sih->chip) == BCM43242_CHIP_ID ||
 					(CHIPID(wlc_hw->sih->chip) == BCM4354_CHIP_ID) ||
-					(CHIPID(wlc_hw->sih->chip) == BCM4356_CHIP_ID))
+					(CHIPID(wlc_hw->sih->chip) == BCM4356_CHIP_ID) ||
+					(CHIPID(wlc_hw->sih->chip) == BCM7271_CHIP_ID))
 					btc_mode = WL_BTC_FULLTDM;
 				else
 					btc_mode = WL_BTC_HYBRID;

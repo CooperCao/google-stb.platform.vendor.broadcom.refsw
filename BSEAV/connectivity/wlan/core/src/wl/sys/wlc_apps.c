@@ -2387,7 +2387,12 @@ wlc_apps_move_to_psq(wlc_info_t *wlc, struct pktq *txq, struct scb* scb)
 		/* PS enq all the pkts we can */
 		while (pktqprec_peek(txq, prec) != head_pkt) {
 			pkt = pktq_pdeq(txq, prec);
-			ASSERT(pkt != NULL);
+			if (pkt == NULL) {
+				/* txq could be emptied in _wlc_apps_ps_enq() */
+				WL_ERROR(("WARNING: wl%d: %s: NULL pkt\n", wlc->pub->unit,
+					__FUNCTION__));
+				break;
+			}
 			if (scb != WLPKTTAGSCBGET(pkt)) {
 				if (!head_pkt)
 					head_pkt = pkt;

@@ -305,7 +305,9 @@ static void wl_cfg80211_bt_timerfunc(ulong data)
 	struct btcoex_info *bt_local = (struct btcoex_info *)data;
 	WL_TRACE(("Enter\n"));
 	bt_local->timer_on = 0;
-	schedule_work(&bt_local->work);
+	if (!schedule_work(&bt_local->work)) {
+		WL_ERR(("%s: schedule_work() failed\n", __FUNCTION__));
+	}
 }
 
 static void wl_cfg80211_bt_handler(struct work_struct *work)

@@ -1191,8 +1191,15 @@ wlc_bsscfg_t *from_cfg, wlc_bsscfg_t *to_cfg)
 	}
 	key = wlc_keymgmt_get_bss_tx_key_id(from_km,
 		from_cfg, FALSE);
-	wlc_keymgmt_set_bss_tx_key_id(to_km, to_cfg,
+	err = wlc_keymgmt_set_bss_tx_key_id(to_km, to_cfg,
 		key, FALSE);
+
+	if (err !=  BCME_OK) {
+		KM_ERR(("wl%d.%d: %s: wlc_keymgmt_set_bss_tx_key_id status %d\n",
+			KM_UNIT(to_km), WLC_BSSCFG_IDX(to_cfg), __FUNCTION__, err));
+		KM_DBG_ASSERT(0);
+		return err;
+	}
 
 	return BCME_OK;
 }

@@ -1169,8 +1169,10 @@ int wpa_auth_ft_build_auth_resp(wpa_t *wpa, nas_sta_t *sta,
 	memcpy(ft_authresp->ies, resp_ies, resp_ie_len);
 
 	memcpy(&(ft_authresp->ptk), &(wpa->PTK), sizeof(struct wpa_ptk));
-	wpa_gen_gtk(wpa, sta);
-	ft_authresp->gtk.idx = GTK_NEXT_INDEX(wpa);
+	if (!(wpa->nas->flags & NAS_FLAG_GTK_PLUMBED))
+		wpa_init_gtk(wpa, sta);
+	/* Send current gtk index */
+	ft_authresp->gtk.idx = wpa->gtk_index;
 	ft_authresp->gtk.key_len = wpa->gtk_len;
 	memcpy(ft_authresp->gtk.key, wpa->gtk, wpa->gtk_len);
 	dbg(wpa->nas, "FT: GTK");
@@ -1207,9 +1209,6 @@ static void wpa_ft_process_ota_auth(wpa_t *wpa, nas_sta_t *sta, uint8 *resp_ies,
 		cleanup_sta(wpa->nas, sta, DOT11_RC_BUSY, 0);
 		return;
 	}
-
-	/* plumb gtk */
-	wpa_plumb_gtk(wpa, 0);
 
 	return;
 }
@@ -1294,9 +1293,6 @@ static int wpa_ft_process_otd_auth(wpa_t *wpa, nas_sta_t *sta, const uint8 *curr
 			free(sta);
 			return err;
 		}
-
-		/* plumb gtk */
-		wpa_plumb_gtk(wpa, 0);
 	} else {
 		wpa_ft_rrb_send(wpa, (uint8 *)current_ap, (uint8 *) frame,
 			sizeof(*frame) + rlen);

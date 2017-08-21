@@ -88,6 +88,7 @@ enum {
 	IOV_AMPDU,		/* enable/disable ampdu */
 	IOV_AMPDU_BA_WSIZE,	/* ampdu ba window size :kept for backward compatibility */
 	IOV_AMPDU_DENSITY,	/* ampdu density */
+	IOV_AMPDU_CLEAR_DUMP,   /* clear ampdu counters */
 	IOV_ACTIVATE_TEST,
 	IOV_AMPDU_DBG,
 	IOV_AMPDU_LAST
@@ -99,6 +100,7 @@ static const bcm_iovar_t ampdu_iovars[] = {
 	{"ampdu_density", IOV_AMPDU_DENSITY, (0), 0, IOVT_UINT8, 0},
 #ifdef BCMDBG
 	{"ampdu_dbg", IOV_AMPDU_DBG, (0), 0, IOVT_UINT32, 0},
+	{"ampdu_clear_dump", IOV_AMPDU_CLEAR_DUMP, (0), 0, IOVT_VOID, 0},
 #endif
 #ifdef BCMINTDBG
 	{"ampdu_activate_test", IOV_ACTIVATE_TEST, (0), 0, IOVT_BUFFER, 0},
@@ -297,6 +299,13 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 	case IOV_SVAL(IOV_AMPDU_DBG):
 	        wl_ampdu_dbg = (uint32)int_val;
 		break;
+
+	case IOV_SVAL(IOV_AMPDU_CLEAR_DUMP):
+		{
+			wlc_ampdu_clear_tx_dump(wlc->ampdu_tx);
+			wlc_ampdu_clear_rx_dump(wlc->ampdu_rx);
+			break;
+		}
 #endif /* BCMDBG */
 #ifdef BCMINTDBG
 	case IOV_SVAL(IOV_ACTIVATE_TEST):

@@ -241,6 +241,7 @@ fail:
 void
 BCMATTACHFN(wlc_mux_module_detach)(wlc_mux_info_t *muxi)
 {
+	struct wlc_mux *mux_list_next;
 
 	if (muxi == NULL) {
 		return;
@@ -252,7 +253,9 @@ BCMATTACHFN(wlc_mux_module_detach)(wlc_mux_info_t *muxi)
 	 */
 
 	while (muxi->mux_list) {
+		mux_list_next = muxi->mux_list->next;
 		wlc_mux_free(muxi->mux_list);
+		muxi->mux_list = mux_list_next;
 	}
 
 	wlc_module_unregister(muxi->pub, "mux", muxi);

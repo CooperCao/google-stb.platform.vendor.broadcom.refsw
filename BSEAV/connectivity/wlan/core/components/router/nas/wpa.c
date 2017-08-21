@@ -391,7 +391,7 @@ wpa_calc_ptk(wpa_t *wpa, nas_sta_t *sta)
 	dbg(wpa->nas, "done");
 }
 
-void
+static void
 wpa_gen_gtk(wpa_t *wpa, nas_sta_t *sta)
 {
 	unsigned char data[256], prf_buff[PRF_RESULT_LEN];
@@ -583,7 +583,7 @@ wpa_new_gtk(wpa_t *wpa)
 	dbg(wpa->nas, "done");
 }
 
-static void
+void
 wpa_init_gtk(wpa_t *wpa, nas_sta_t *sta)
 {
 	/* Cobble the key and plumb it. */
