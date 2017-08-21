@@ -1211,8 +1211,8 @@ done:
 
 bool nexus_p_has_secure_decoder_on_memc(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryRtsSettings *pRtsSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned memcIndex)
 {
-#if NEXUS_HAS_VIDEO_DECODER
     unsigned i;
+#if NEXUS_HAS_VIDEO_DECODER
     for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
         if (pMemConfig->videoDecoder[i].used && pMemConfig->videoDecoder[i].secure > NEXUS_SecureVideo_eUnsecure) {
             if (pRtsSettings->avd[pRtsSettings->videoDecoder[i].avdIndex].memcIndex == memcIndex) {
@@ -1221,6 +1221,7 @@ bool nexus_p_has_secure_decoder_on_memc(const NEXUS_Core_PreInitState *preInitSt
         }
     }
 #else
+    BSTD_UNUSED(i);
     BSTD_UNUSED(pRtsSettings);
 #endif
 #if NEXUS_HAS_DISPLAY
@@ -1235,6 +1236,7 @@ bool nexus_p_has_secure_decoder_on_memc(const NEXUS_Core_PreInitState *preInitSt
         }
     }
 #else
+    BSTD_UNUSED(i);
     BSTD_UNUSED(pMemConfig);
     BSTD_UNUSED(memcIndex);
     BSTD_UNUSED(preInitState);

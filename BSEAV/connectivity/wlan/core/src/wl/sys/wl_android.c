@@ -1015,7 +1015,7 @@ int wl_android_set_roam_trigger(
 {
 	int roam_trigger[2];
 
-	sscanf(command, "%*s %10d", &roam_trigger[0]);
+	sscanf(command, "%*s %5d", &roam_trigger[0]);
 	roam_trigger[1] = WLC_BAND_ALL;
 
 	return wldev_ioctl(dev, WLC_SET_ROAM_TRIGGER, roam_trigger,

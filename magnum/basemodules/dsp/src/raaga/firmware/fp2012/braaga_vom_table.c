@@ -65,7 +65,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAacHeLpSbrDecode */
 		{
 			0x00000184,
-			0x000001d0,
+			0x000001d6,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdpDecode */
@@ -82,8 +82,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eLpcmCustomDecode */
 		{
-			0x00000531,
-			0x00000539,
+			0x0000051a,
+			0x00000522,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eBdLpcmDecode */
@@ -94,8 +94,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eDvdLpcmDecode */
 		{
-			0x00000531,
-			0x00000539,
+			0x0000051a,
+			0x00000522,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eHdDvdLpcmDecode */
@@ -112,20 +112,20 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eWmaStdDecode */
 		{
-			0x00000267,
-			0x0000027e,
+			0x00000217,
+			0x0000022e,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eWmaProStdDecode */
 		{
-			0x0000033a,
-			0x000003c7,
+			0x000002ea,
+			0x00000377,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMlpDecode */
 		{
-			0x00000916,
-			0x00000930,
+			0x000008b4,
+			0x000008ce,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdp71Decode */
@@ -136,146 +136,146 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eDtsDecode */
 		{
-			0x000002d8,
-			0x000002fe,
+			0x00000288,
+			0x000002ae,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsLbrDecode */
 		{
-			0x0000028c,
-			0x000002c0,
+			0x0000023c,
+			0x00000270,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsHdDecode */
 		{
-			0x000002d8,
-			0x000002fe,
+			0x00000288,
+			0x000002ae,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_ePcmWavDecode */
 		{
-			0x0000032f,
-			0x00000334,
+			0x000002df,
+			0x000002e4,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAmrDecode */
 		{
-			0x00000663,
-			0x00000676,
+			0x0000064c,
+			0x0000065f,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDraDecode */
 		{
-			0x000003f0,
-			0x000003fd,
+			0x000003a0,
+			0x000003ac,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eRealAudioLbrDecode */
 		{
-			0x0000053d,
-			0x0000054a,
+			0x00000526,
+			0x00000533,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDolbyPulseDecode */
 		{
-			0x00000404,
-			0x00000475,
+			0x000003b4,
+			0x00000477,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMs10DdpDecode */
 		{
 			0x0000013d,
-			0x00000173,
+			0x00000172,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAdpcmDecode */
 		{
-			0x00000575,
-			0x00000579,
+			0x0000055e,
+			0x00000562,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eG711G726Decode */
 		{
-			0x0000075f,
-			0x00000765,
+			0x000006fd,
+			0x00000703,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eG729Decode */
 		{
-			0x00000769,
-			0x0000077b,
+			0x00000707,
+			0x00000719,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eVorbisDecode */
 		{
-			0x000007d8,
-			0x000007f0,
+			0x00000776,
+			0x0000078e,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eG723_1Decode */
 		{
-			0x000007f8,
-			0x00000807,
+			0x00000796,
+			0x000007a5,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eFlacDecode */
 		{
-			0x000008ef,
-			0x000008fb,
+			0x0000088d,
+			0x00000899,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMacDecode */
 		{
-			0x00000909,
-			0x00000910,
+			0x000008a7,
+			0x000008ae,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAmrWbDecode */
 		{
-			0x0000094a,
-			0x00000961,
+			0x000008e8,
+			0x000008ff,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eiLBCDecode */
 		{
-			0x00000a15,
-			0x00000a23,
+			0x000009b3,
+			0x000009c1,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eiSACDecode */
 		{
-			0x00000a4b,
-			0x00000a5a,
+			0x000009e9,
+			0x000009f8,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eUdcDecode */
 		{
-			0x00000ab5,
-			0x00000b0d,
+			0x00000a53,
+			0x00000aab,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDolbyAacheDecode */
 		{
-			0x00000c4d,
-			0x00000cb4,
+			0x00000beb,
+			0x00000ca4,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eOpusDecode */
 		{
-			0x00000db4,
-			0x00000de1,
+			0x00000d57,
+			0x00000d84,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eALSDecode */
 		{
-			0x00000e1e,
-			0x00000e2b,
+			0x00000dc1,
+			0x00000dce,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
 		{
-			0x00000e2d,
-			0x00000f04,
+			0x00000dd0,
+			0x00000ea7,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
@@ -292,8 +292,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_VF_P_AlgoId_eVP6Decode */
 		{
-			0x00000599,
-			0x000005b5,
+			0x00000582,
+			0x0000059e,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfDecodeAlgos */
@@ -316,26 +316,26 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eAdtsFrameSync */
 		{
-			0x00000247,
-			0x00000248,
+			0x000001f7,
+			0x000001f8,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eLoasFrameSync */
 		{
-			0x0000024a,
-			0x0000024c,
+			0x000001fa,
+			0x000001fc,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eWmaStdFrameSync */
 		{
-			0x00000263,
-			0x00000265,
+			0x00000213,
+			0x00000215,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eWmaProFrameSync */
 		{
-			0x000003da,
-			0x000003dc,
+			0x0000038a,
+			0x0000038c,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAc3FrameSync */
@@ -358,20 +358,20 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eDtsFrameSync */
 		{
-			0x000004b1,
-			0x000004b3,
+			0x0000049a,
+			0x0000049c,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsLbrFrameSync */
 		{
-			0x00000323,
-			0x00000326,
+			0x000002d3,
+			0x000002d6,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsHdFrameSync */
 		{
-			0x000004b5,
-			0x000004ba,
+			0x0000049e,
+			0x000004a3,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsHdFrameSync_1 */
@@ -394,8 +394,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eMlpFrameSync */
 		{
-			0x00000912,
-			0x00000914,
+			0x000008b0,
+			0x000008b2,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMlpHdDvdFrameSync */
@@ -406,8 +406,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_ePesFrameSync */
 		{
-			0x00000260,
-			0x00000261,
+			0x00000210,
+			0x00000211,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eBdLpcmFrameSync */
@@ -424,8 +424,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eDvdLpcmFrameSync */
 		{
-			0x00000524,
-			0x00000526,
+			0x0000050d,
+			0x0000050f,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDvdLpcmFrameSync_1 */
@@ -436,20 +436,20 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_ePcmWavFrameSync */
 		{
-			0x0000075c,
-			0x0000075d,
+			0x000006fa,
+			0x000006fb,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDraFrameSync */
 		{
-			0x000003ed,
-			0x000003ee,
+			0x0000039d,
+			0x0000039e,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eRealAudioLbrFrameSync */
 		{
-			0x00000528,
-			0x00000529,
+			0x00000511,
+			0x00000512,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMs10DdpFrameSync */
@@ -460,20 +460,20 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eVorbisFrameSync */
 		{
-			0x000007d4,
-			0x000007d6,
+			0x00000772,
+			0x00000774,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eFlacFrameSync */
 		{
-			0x000008eb,
-			0x000008ec,
+			0x00000889,
+			0x0000088a,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMacFrameSync */
 		{
-			0x00000905,
-			0x00000906,
+			0x000008a3,
+			0x000008a4,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eUdcFrameSync */
@@ -484,14 +484,14 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eAC4FrameSync */
 		{
-			0x00000f27,
-			0x00000f29,
+			0x00000eca,
+			0x00000ecc,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eALSFrameSync */
 		{
-			0x00000f2a,
-			0x00000f2e,
+			0x00000ecd,
+			0x00000ed1,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecFsAlgos */
@@ -508,8 +508,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eVP6FrameSync */
 		{
-			0x00000596,
-			0x00000597,
+			0x0000057f,
+			0x00000580,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfDecFsAlgos */
@@ -532,8 +532,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eMpegL3Encode */
 		{
-			0x00000742,
-			0x00000754,
+			0x000006e0,
+			0x000006f2,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAacLcEncode */
@@ -544,14 +544,14 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eAacHeEncode */
 		{
-			0x000005c0,
-			0x0000063c,
+			0x000005a9,
+			0x00000625,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsEncode */
 		{
-			0x0000050c,
-			0x0000051b,
+			0x000004f5,
+			0x00000504,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsBroadcastEncode */
@@ -568,74 +568,74 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eMs10DDTranscode */
 		{
-			0x000004d0,
-			0x000004e2,
+			0x000004b9,
+			0x000004cb,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eG711G726Encode */
 		{
-			0x00000780,
-			0x00000785,
+			0x0000071e,
+			0x00000723,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eG729Encode */
 		{
-			0x0000078b,
-			0x000007b5,
+			0x00000729,
+			0x00000753,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eG723_1Encode */
 		{
-			0x0000080f,
-			0x00000822,
+			0x000007ad,
+			0x000007c0,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eG722Encode */
 		{
-			0x00000941,
-			0x00000943,
+			0x000008df,
+			0x000008e1,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAmrEncode */
 		{
-			0x0000096e,
-			0x00000991,
+			0x0000090c,
+			0x0000092f,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAmrwbEncode */
 		{
-			0x000009b1,
-			0x000009d7,
+			0x0000094f,
+			0x00000975,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eiLBCEncode */
 		{
-			0x000009eb,
-			0x000009f9,
+			0x00000989,
+			0x00000997,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eiSACEncode */
 		{
-			0x00000a2d,
-			0x00000a46,
+			0x000009cb,
+			0x000009e4,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eLpcmEncode */
 		{
-			0x00000aad,
-			0x00000aae,
+			0x00000a4b,
+			0x00000a4c,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eOpusEncode */
 		{
-			0x00000b35,
-			0x00000b8b,
+			0x00000ad3,
+			0x00000b29,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDDPEncode */
 		{
-			0x00000bb2,
-			0x00000c38,
+			0x00000b50,
+			0x00000bd6,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioEncodeAlgos */
@@ -646,20 +646,20 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_VF_P_AlgoId_eH264Encode */
 		{
-			0x00000858,
-			0x00000896,
+			0x000007f6,
+			0x00000834,
 			0x00000000,
 		},
 		/* BDSP_VF_P_AlgoId_eX264Encode */
 		{
-			0x000008aa,
-			0x000008c1,
+			0x00000848,
+			0x0000085f,
 			0x00000000,
 		},
 		/* BDSP_VF_P_AlgoId_eXVP8Encode */
 		{
-			0x000008c8,
-			0x000008e6,
+			0x00000866,
+			0x00000884,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfEncodeAlgos */
@@ -712,14 +712,14 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_ePassThru */
 		{
-			0x0000024e,
-			0x0000025c,
+			0x000001fe,
+			0x0000020c,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMlpPassThru */
 		{
-			0x00000946,
-			0x00000949,
+			0x000008e4,
+			0x000008e7,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAuxAlgos */
@@ -736,8 +736,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eSrcPostProc */
 		{
-			0x000004c2,
-			0x000004c9,
+			0x000004ab,
+			0x000004b2,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdbmPostProc */
@@ -772,8 +772,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eCustomVoicePostProc */
 		{
-			0x000003de,
-			0x000003e7,
+			0x0000038e,
+			0x00000397,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_ePeqPostProc */
@@ -784,8 +784,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eAvlPostProc */
 		{
-			0x0000057d,
-			0x00000581,
+			0x00000566,
+			0x0000056a,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_ePl2PostProc */
@@ -808,8 +808,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eDsolaPostProc */
 		{
-			0x0000052c,
-			0x0000052e,
+			0x00000515,
+			0x00000517,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDtsNeoPostProc */
@@ -850,14 +850,14 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eSrsTruSurroundHDPostProc */
 		{
-			0x00000563,
-			0x0000056e,
+			0x0000054c,
+			0x00000557,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eSrsTruVolumePostProc */
 		{
-			0x00000550,
-			0x0000055a,
+			0x00000539,
+			0x00000543,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDolbyVolumePostProc */
@@ -868,14 +868,14 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eBrcm3DSurroundPostProc */
 		{
-			0x00000587,
-			0x0000058a,
+			0x00000570,
+			0x00000573,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eFWMixerPostProc */
 		{
-			0x000004f0,
-			0x000004ff,
+			0x000004d9,
+			0x000004e8,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMonoDownMixPostProc */
@@ -892,80 +892,80 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eDdrePostProc */
 		{
-			0x00000682,
-			0x00000692,
+			0x0000066b,
+			0x0000067b,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDv258PostProc */
 		{
+			0x00000687,
 			0x0000069e,
-			0x000006b5,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDpcmrPostProc */
 		{
+			0x000006ab,
 			0x000006c2,
-			0x000006d9,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */
 		{
-			0x0000058e,
-			0x00000592,
+			0x00000577,
+			0x0000057b,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eBtscEncoderPostProc */
 		{
-			0x000007c9,
-			0x000007d0,
+			0x00000767,
+			0x0000076e,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eSpeexAECPostProc */
 		{
-			0x0000082d,
-			0x00000847,
+			0x000007cb,
+			0x000007e5,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eKaraokePostProc */
 		{
-			0x00000ab0,
-			0x00000ab3,
+			0x00000a4e,
+			0x00000a51,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMixerDapv2PostProc */
 		{
-			0x00000cd3,
-			0x00000d33,
+			0x00000cda,
+			0x00000d3a,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eOutputFormatterPostProc */
 		{
-			0x00000de7,
-			0x00000de7,
+			0x00000d8a,
+			0x00000d8a,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eVocalPostProc */
 		{
-			0x00000deb,
-			0x00000ded,
+			0x00000d8e,
+			0x00000d90,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eFadeCtrlPostProc */
 		{
-			0x00000dee,
-			0x00000def,
+			0x00000d91,
+			0x00000d92,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAmbisonicsPostProc */
 		{
-			0x00000df6,
-			0x00000dfd,
+			0x00000d99,
+			0x00000d9f,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
 		{
-			0x00000f33,
-			0x00000f36,
+			0x00000ed6,
+			0x00000ed9,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfPpAlgos */
@@ -976,14 +976,14 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eMixerFrameSync */
 		{
-			0x0000073f,
-			0x00000740,
+			0x000006dd,
+			0x000006de,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMixerDapv2FrameSync */
 		{
-			0x00000cc5,
-			0x00000cc8,
+			0x00000ccc,
+			0x00000ccf,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfPpFsAlgos */
@@ -1012,8 +1012,8 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eVidIdsCommon */
 		{
-			0x00000854,
-			0x00000857,
+			0x000007f2,
+			0x000007f5,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfLibAlgos */
@@ -1024,20 +1024,20 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eScm1 */
 		{
-			0x00000a5f,
-			0x00000a5f,
+			0x000009fd,
+			0x000009fd,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eScm2 */
 		{
-			0x00000a60,
-			0x00000a60,
+			0x000009fe,
+			0x000009fe,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eScm3 */
 		{
-			0x00000a61,
-			0x00000a98,
+			0x000009ff,
+			0x00000a36,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfScmAlgos */
@@ -1048,20 +1048,20 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eScmTask */
 		{
-			0x00000aa1,
-			0x00000aa2,
+			0x00000a3f,
+			0x00000a40,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eVideoDecodeTask */
 		{
-			0x00000aa5,
-			0x00000aa6,
+			0x00000a43,
+			0x00000a45,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eVideoEncodeTask */
 		{
-			0x00000aa9,
-			0x00000aab,
+			0x00000a47,
+			0x00000a49,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfTaskAlgos */

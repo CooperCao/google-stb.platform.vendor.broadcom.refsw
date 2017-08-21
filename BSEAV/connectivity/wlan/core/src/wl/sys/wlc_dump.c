@@ -512,7 +512,7 @@ wlc_dump_local(wlc_dump_info_t *dumpi, char * name, int dump_len)
 	/* Irrespective of return code print the data populated by dump API */
 	len = strlen(dump_buf);
 
-	if (len >= dump_len) {
+	if (len >= dump_len - 1) {
 		WL_ERROR(("%s: dump len(%d) greater than input buffer size(%d)\n",
 			__FUNCTION__, len, dump_len));
 		err = BCME_ERROR;

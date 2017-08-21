@@ -170,6 +170,9 @@ static bool nexus_p_synclock_capable(NEXUS_VideoInput input, NEXUS_VideoWindowHa
         /* this input and window path is capable of being synclocked */
         return true;
     }
+#else
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(window);
 #endif
     return false;
 }

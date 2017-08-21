@@ -257,9 +257,11 @@ phy_ac_temp_throttle(phy_type_temp_ctx_t *ctx)
 			temp->duty_cycle = 100;
 			temp->duty_cycle_throttle_state = 0;
 			temp->duty_cycle_throttle_depth = 10;
-#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
+#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33) || defined(PHY_ACMAJORREV_37)))
+			/* use same 4366 throttle sequence for 7271 per customer request */
 			if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-				ACMAJORREV_33(pi->pubpi->phy_rev)) {
+				ACMAJORREV_33(pi->pubpi->phy_rev) ||
+				ACMAJORREV_37(pi->pubpi->phy_rev)) {
 				uint8 txcore_shutdown_lut_4366[] = {1, 1, 2, 1, 4, 1, 2, 1,
 						8, 8, 2, 9, 4, 9, 4, 13};
 				new_phytxchain = txcore_shutdown_lut_4366[stf_shdata->phytxchain];

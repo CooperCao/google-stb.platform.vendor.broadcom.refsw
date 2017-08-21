@@ -224,6 +224,7 @@ BCMATTACHFN(phy_ac_tpc_register_impl)(phy_info_t *pi, phy_ac_info_t *aci, phy_tp
 #ifdef PREASSOC_PWRCTRL
 	if ((info->pwr_ctrl_save = phy_malloc(pi, sizeof(phy_pwr_ctrl_s))) == NULL) {
 		PHY_ERROR(("%s: pwr_ctrl_save malloc failed\n", __FUNCTION__));
+		phy_mfree(pi, info, sizeof(phy_ac_tpc_info_t));
 		return FALSE;
 	}
 #endif

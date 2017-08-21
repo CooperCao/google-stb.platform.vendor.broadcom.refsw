@@ -260,7 +260,7 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type
     }
 #endif
 
-    BDBG_MSG(("mmap offset=%x=>%x size=%d MB 0x%08x fd=%d", offset, addr, length/(1024*1024), length, -1));
+    BDBG_MSG(("mmap offset=%x=>%x size=%d MB 0x%08x fd=%d", (unsigned)offset, (unsigned)addr, length/(1024*1024), length, -1));
 
     return (void *)addr;
 }
@@ -1123,7 +1123,7 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
 
     BDBG_CASSERT(NEXUS_MAX_MEMC <= sizeof(pMemory->memc)/sizeof(pMemory->memc[0]));
     for (i=0;i<NEXUS_MAX_MEMC;i++) {
-        if (!memoryInfo.memc[i].size) continue;
+        if (!memoryInfo.memc[i].valid) continue;
         switch (i) {
         case 0: pMemory->memc[i].region[0].addr = BCHP_P_MEMC_0_OFFSET; break;
 #ifdef BCHP_P_MEMC_1_OFFSET
@@ -1132,13 +1132,16 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
 #ifdef BCHP_P_MEMC_2_OFFSET
         case 2: pMemory->memc[i].region[0].addr = BCHP_P_MEMC_2_OFFSET; break;
 #endif
-        default: return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        default:
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
-        pMemory->memc[i].region[0].size = memoryInfo.memc[i].size;
+
+        /* this size calculation is not valid for LPDDR4. only use for older silicon. */
+        pMemory->memc[i].size = (uint64_t)memoryInfo.memc[i].deviceTech / 8 * (memoryInfo.memc[i].width/memoryInfo.memc[i].deviceWidth) * 1024 * 1024;
+        pMemory->memc[i].region[0].size = pMemory->memc[i].size;
         if (pMemory->memc[i].region[0].size > 1024*1024*1024) {
             pMemory->memc[i].region[0].size = 1024*1024*1024;
         }
-        pMemory->memc[i].size += pMemory->memc[i].region[0].size;
     }
     return NEXUS_SUCCESS;
 }
@@ -1162,3 +1165,35 @@ void NEXUS_Platform_P_FreeCma(const NEXUS_PlatformMemory *pMemory, unsigned memc
     BSTD_UNUSED(size);
 }
 #endif
+
+NEXUS_Error nexus_platform_p_add_proc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void))
+{
+    BSTD_UNUSED(module);
+    BSTD_UNUSED(filename);
+    BSTD_UNUSED(module_name);
+    BSTD_UNUSED(dbgPrint);
+    return NEXUS_SUCCESS;
+}
+
+void nexus_platform_p_remove_proc(NEXUS_ModuleHandle module, const char *filename)
+{
+    BSTD_UNUSED(module);
+    BSTD_UNUSED(filename);
+    return;
+}
+
+bool NEXUS_Platform_P_IsOs64(void)
+{
+    return false;
+}
+
+BCHP_PmapSettings *NEXUS_Platform_P_ReadPMapSettings(void)
+{
+    return NULL;
+}
+
+void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState)
+{
+    BSTD_UNUSED(preInitState);
+    return;
+}

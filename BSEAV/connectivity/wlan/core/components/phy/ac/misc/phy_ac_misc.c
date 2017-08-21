@@ -457,6 +457,9 @@ static uint32 phy_ac_rx_iq_est(phy_type_misc_ctx_t *ctx, uint8 samples, uint8 an
 		PHY_RXIQ(("In %s: For gain type = %d | Total gain being applied = %d \n",
 			__FUNCTION__, force_gain_type, tot_gain[0]));
 	} else {
+		FOREACH_CORE(pi, i) {
+			tot_gain[i] = ACPHY_NOISE_INITGAIN;
+		}
 		PHY_RXIQ(("In %s: For gain type = %d | Total gain being applied = %d \n",
 			__FUNCTION__, force_gain_type, ACPHY_NOISE_INITGAIN));
 	}
