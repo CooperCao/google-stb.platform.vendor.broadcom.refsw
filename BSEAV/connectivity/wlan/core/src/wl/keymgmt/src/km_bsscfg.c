@@ -721,7 +721,7 @@ wlc_keymgmt_get_bss_tx_key_id(keymgmt_t *km,
 	KM_DBG_ASSERT(KM_VALID(km) && bsscfg != NULL);
 
 	key_id = WLC_KEY_ID_INVALID;
-	if (!bsscfg->wsec)		/* security not configured */
+	if (!bsscfg || !bsscfg->wsec)		/* security not configured */
 		goto done;
 
 	bss_km = KM_CONST_BSSCFG(km, bsscfg);

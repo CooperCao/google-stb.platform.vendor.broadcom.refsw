@@ -395,7 +395,12 @@ wlc_11d_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		break;
 
 	case WLC_GET_REGULATORY:
-		*pval = (int)wlc->pub->cmn->_11d;
+		if (pval != NULL)
+			*pval = (int)wlc->pub->cmn->_11d;
+		else {
+			err = BCME_BADARG;
+			return err;
+		}
 		break;
 
 	default:

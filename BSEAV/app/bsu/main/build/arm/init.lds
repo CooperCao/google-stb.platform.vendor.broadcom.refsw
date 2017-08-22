@@ -57,7 +57,7 @@ SECTIONS {
 
 	.stack STACK_TOP (NOLOAD) :
 	{
-		_stack_svc_top = STACK_TOP;
+		_stack_svc_top = .;
 		. = . + 0xD000;
 		_stack_svc_base = .;
 
@@ -71,7 +71,7 @@ SECTIONS {
 
 		_stack_irq_top = .;
 		. = . + 0x1000;
-		_stack_irq_base = STACK_BASE;
+		_stack_irq_base = STACK_LEN;
 	}
 
     . = ALIGN(4);

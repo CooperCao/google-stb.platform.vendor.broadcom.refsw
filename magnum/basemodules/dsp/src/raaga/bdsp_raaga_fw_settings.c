@@ -871,8 +871,9 @@ const BDSP_Raaga_Audio_OpusDecConfigParams BDSP_sOpusDecDefaultUserConfig =
       1,
       {0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF}
     },
-  }
+  },
 
+    BDSP_AF_P_DecoderType_ePrimary
 };
 
 const BDSP_Raaga_Audio_ALSDecConfigParams BDSP_sALSDecDefaultUserConfig =

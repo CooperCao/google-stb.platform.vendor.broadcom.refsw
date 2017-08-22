@@ -308,7 +308,7 @@ extern uint8 wpa_auth2akm(wpa_t *wpa, uint32 auth);
 extern void wpa_send_rekey_frame(wpa_t *wpa, nas_sta_t *sta);
 extern void wpa_new_gtk(wpa_t *wpa);
 extern void wpa_incr_gkc(wpa_t *wpa);
-extern void wpa_gen_gtk(wpa_t *wpa, nas_sta_t *sta);
+extern void wpa_init_gtk(wpa_t *wpa, nas_sta_t *sta);
 extern void wpa_plumb_gtk(wpa_t *wpa, int primary);
 
 extern void wpa_stop_ptk_rekey_timer(nas_sta_t *sta);

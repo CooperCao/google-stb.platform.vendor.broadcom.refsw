@@ -160,7 +160,7 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 	pRaaga = BKNI_Malloc(sizeof(BDSP_Raaga));
 	if ( NULL == pRaaga )
 	{
-	 return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+	    return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
 	}
 	BKNI_Memset(pRaaga, 0, sizeof(BDSP_Raaga));
 
@@ -258,15 +258,15 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 			errCode= BERR_TRACE(errCode);
 			goto err_open;
 		}
-	}
 
-	errCode = BDSP_Raaga_P_CheckDspAlive(pRaaga);
-    if (errCode!=BERR_SUCCESS)
-    {
-        BDBG_ERR(("BDSP_Raaga_Open: DSP not alive"));
-        errCode = BERR_TRACE(errCode);
-        goto err_open;
-    }
+        errCode = BDSP_Raaga_P_CheckDspAlive(pRaaga);
+        if (errCode!=BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_Open: DSP not alive"));
+            errCode = BERR_TRACE(errCode);
+            goto err_open;
+        }
+	}
 
 	*pDsp = &pRaaga->device;
 	goto open_success;
@@ -408,21 +408,31 @@ BERR_Code BDSP_Raaga_Initialize(
     /* Assert the function arguments*/
     BDBG_OBJECT_SET(pDevice, BDSP_Raaga);
 
-    /*If Firmware Firmware authentication is Disabled*/
+    /*If Firmware authentication is Disabled*/
     if(pDevice->deviceSettings.authenticationEnabled==false)
     {
         BDBG_ERR(("BDSP_Raaga_Initialize should be called only if bFwAuthEnable is true"));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto end;
     }
 
     errCode = BDSP_Raaga_P_Boot(pDevice);
     if (errCode!=BERR_SUCCESS)
     {
+        BDBG_ERR(("BDSP_Raaga_Initialize: Error in Booting Raaga"));
         errCode = BERR_TRACE(errCode);
-        goto err_boot;
+        goto end;
     }
 
-err_boot:
+    errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
+    if (errCode!=BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_Initialize: DSP not alive"));
+        errCode = BERR_TRACE(errCode);
+        goto end;
+    }
+
+end:
     BDBG_LEAVE(BDSP_Raaga_Initialize);
     return errCode;
 }

@@ -4281,8 +4281,10 @@ wlc_ap_ioctl(void *hdl, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 
 	case WLC_GET_SHORTSLOT_RESTRICT:
 		if (AP_ENAB(wlc->pub)) {
-			ASSERT(pval != NULL);
-			*pval = ap->shortslot_restrict;
+			if (pval == NULL)
+				ASSERT(0);
+			else
+				*pval = ap->shortslot_restrict;
 		} else {
 			bcmerror = BCME_NOTAP;
 		}
@@ -4298,8 +4300,10 @@ wlc_ap_ioctl(void *hdl, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 #ifdef BCMDBG
 	case WLC_GET_IGNORE_BCNS:
 		if (AP_ENAB(wlc->pub)) {
-			ASSERT(pval != NULL);
-			*pval = wlc->ignore_bcns;
+			if (pval == NULL)
+				ASSERT(0);
+			else
+				*pval = wlc->ignore_bcns;
 		} else {
 			bcmerror = BCME_NOTAP;
 		}
@@ -4315,8 +4319,10 @@ wlc_ap_ioctl(void *hdl, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 
 	case WLC_GET_SCB_TIMEOUT:
 		if (AP_ENAB(wlc->pub)) {
-			ASSERT(pval != NULL);
-			*pval = appvt->scb_timeout;
+			if (pval == NULL)
+				ASSERT(0);
+			else
+				*pval = appvt->scb_timeout;
 		} else {
 			bcmerror = BCME_NOTAP;
 		}
@@ -4372,7 +4378,8 @@ wlc_ap_ioctl(void *hdl, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		break;
 
 	case WLC_GET_RADAR:
-		ASSERT(pval != NULL);
+		if (pval == NULL)
+			ASSERT(0);
 		if (RADAR_ENAB(wlc->pub)) {
 			*pval = (int32)wlc_dfs_get_radar(wlc->dfs);
 		} else {

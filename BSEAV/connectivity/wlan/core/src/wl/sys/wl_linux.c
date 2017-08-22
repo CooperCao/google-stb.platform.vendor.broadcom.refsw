@@ -480,7 +480,7 @@ module_param(txworkq, int, 0);
 #ifdef STB_SOC_WIFI
 
 #ifdef WL_BIDIRECTIONAL_TPUT
-#define WL_TXQ_THRESH	512
+#define WL_TXQ_THRESH	2048
 #else /* WL_BIDIRECTIONAL_TPUT */
 #define WL_TXQ_THRESH	512
 #endif /* WL_BIDIRECTIONAL_TPUT */
@@ -4504,12 +4504,11 @@ wl_timer_task(wl_task_t *task)
 	wl_timer_t *t = (wl_timer_t *)task->context;
 
 	_wl_timer(t);
-	MFREE(t->wl->osh, task, sizeof(wl_task_t));
-
 	/* This dec is for the task_schedule. The timer related
 	 * callback is decremented in _wl_timer
 	 */
 	atomic_dec(&t->wl->callbacks);
+	MFREE(t->wl->osh, task, sizeof(wl_task_t));
 }
 #endif /* WL_ALL_PASSIVE */
 

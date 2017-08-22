@@ -1061,19 +1061,17 @@ wlc_ht_coex_filter_scanresult(wlc_bsscfg_t *cfg)
 	/* inspect all BSS descriptor */
 	for (indx = 0; indx < wlc->scan_results->count; indx++) {
 		bi = wlc->scan_results->ptrs[indx];
-		ASSERT(bi);
-		if (CHSPEC_IS40(bi->chanspec))
-			chan = wf_chspec_ctlchan(bi->chanspec);
-		else
-			chan = CHSPEC_CHANNEL(bi->chanspec);
-		if (chan <= 0 || chan > CH_MAX_2G_CHANNEL) {
-			WL_INFORM(("wl%d: %s: channel %d out side of 2.4G band\n", wlc->pub->unit,
-				__FUNCTION__, chan));
-			continue;
-		}
-
-		ASSERT(chan <= CH_MAX_2G_CHANNEL);
 		if (bi) {
+			if (CHSPEC_IS40(bi->chanspec))
+				chan = wf_chspec_ctlchan(bi->chanspec);
+			else
+				chan = CHSPEC_CHANNEL(bi->chanspec);
+			if (chan <= 0 || chan > CH_MAX_2G_CHANNEL) {
+				WL_INFORM(("wl%d: %s: channel %d out side of 2.4G band\n", wlc->pub->unit,
+					__FUNCTION__, chan));
+				continue;
+			}
+			ASSERT(chan <= CH_MAX_2G_CHANNEL);
 			if (!(bi->flags & WLC_BSS_HT) || !(bi->flags & WLC_BSS_40MHZ))
 				/* legacy beacon || chan width 20 only */
 				wlc->obss->coex_map[chan] |= WL_COEX_WIDTH20;
@@ -1081,6 +1079,11 @@ wlc_ht_coex_filter_scanresult(wlc_bsscfg_t *cfg)
 				wlc->obss->coex_map[chan] |= WL_COEX_40MHZ_INTOLERANT;
 			WL_COEX(("wl%d: %s: chan %d flag 0x%x\n", wlc->pub->unit, __FUNCTION__,
 				chan, wlc->obss->coex_map[chan]));
+		}
+		else{
+			WL_ERROR(("wl%d: %s: BSS descriptor is NULL\n", wlc->pub->unit, __FUNCTION__));
+			ASSERT(bi);
+			return;
 		}
 	}
 	wlc_ht_coex_trigger_chk(cfg);

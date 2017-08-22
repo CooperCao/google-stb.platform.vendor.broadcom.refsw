@@ -503,6 +503,7 @@ typedef struct BDSP_Raaga_Audio_OpusDecConfigParams
        uint32_t    ui32NumOutPorts;      /*  Default = 1; 1 -> Multichannel out, 2 -> Multichannel + Stereo out */
 
        BDSP_Raaga_Audio_OpusDecUsrCfg sUsrOutputCfg[2];
+       BDSP_AF_P_DecoderType   eDecoderType; /* Default : BDSP_AF_P_DecoderType_ePrimary */
 
 }BDSP_Raaga_Audio_OpusDecConfigParams;
 

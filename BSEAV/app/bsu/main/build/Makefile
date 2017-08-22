@@ -68,8 +68,8 @@ endif
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt_v1.26
-CFE_DIR_NAME = CFE_17_1
+BOLT_DIR_NAME = bolt_v1.31
+CFE_DIR_NAME = CFE_17_3
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})
@@ -677,7 +677,8 @@ export NEXUS_EXTRA_CFLAGS += \
 ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     export NEXUS_EXTRA_CFLAGS += \
         -I$(BOLT_DIR)/include \
-        -I$(BOLT_DIR)/include/arm
+        -I$(BOLT_DIR)/include/arm \
+        -I$(BOLT_DIR)/avs/common
 else
     export NEXUS_EXTRA_CFLAGS += \
         -I$(CFE_DIR)/bsp \

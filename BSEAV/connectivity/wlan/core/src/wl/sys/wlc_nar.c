@@ -50,9 +50,6 @@
 #include <wlc_prot_n.h>
 #endif /*  WLATF */
 #include <wlc_txmod.h>
-#if defined(SCB_BS_DATA)
-#include <wlc_bs_data.h>
-#endif /* SCB_BS_DATA */
 #include <wlc_perf_utils.h>
 #include <wlc_dump.h>
 #include <wlc_tx.h>
@@ -1299,9 +1296,6 @@ wlc_nar_dotxstatus(wlc_nar_info_t *nit, struct scb *scb, void *pkt, tx_status_t 
 #if defined(PKTQ_LOG)
 	pktq_counters_t *pq_counters = NULL;
 #endif /* PKTQ_LOG */
-#if defined(SCB_BS_DATA)
-	wlc_bs_data_counters_t *bs_data_counters = NULL;
-#endif
 
 	ASSERT(nit != NULL);
 	ASSERT(txs != NULL);
@@ -1315,8 +1309,6 @@ wlc_nar_dotxstatus(wlc_nar_info_t *nit, struct scb *scb, void *pkt, tx_status_t 
 
 		return;
 	}
-
-	SCB_BS_DATA_CONDFIND(bs_data_counters, nit->wlc, scb);
 
 	cubby = SCB_NAR_CUBBY(nit, scb);
 	if (!cubby) {
@@ -1394,20 +1386,15 @@ wlc_nar_dotxstatus(wlc_nar_info_t *nit, struct scb *scb, void *pkt, tx_status_t 
 
 		if (acked) {
 			WLCNTCONDINCR(pq_counters, pq_counters->acked);
-			SCB_BS_DATA_CONDINCR(bs_data_counters, acked);
 			WLCNTCONDADD(pq_counters, pq_counters->throughput, pktlen);
-			SCB_BS_DATA_CONDADD(bs_data_counters, throughput, pktlen);
 			if (tx_frame_count) {
 				WLCNTCONDADD(pq_counters, pq_counters->retry, (tx_frame_count - 1));
-				SCB_BS_DATA_CONDADD(bs_data_counters, retry, (tx_frame_count - 1));
 			}
 			NAR_STATS_INC(cubby, ACKED);
 
 		} else {
 			WLCNTCONDINCR(pq_counters, pq_counters->retry_drop);
-			SCB_BS_DATA_CONDINCR(bs_data_counters, retry_drop);
 			WLCNTCONDADD(pq_counters, pq_counters->retry, tx_frame_count);
-			SCB_BS_DATA_CONDADD(bs_data_counters, retry, tx_frame_count);
 
 			NAR_STATS_INC(cubby, NOT_ACKED);
 

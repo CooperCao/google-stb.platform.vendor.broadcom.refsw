@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ************************************************************/
 #include "nexus_types.h"
@@ -321,10 +313,10 @@ nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callb
             entry->stopped = false;
             continue;
         }
-        desc[count].desc.callback = entry->now.callback;
-        desc[count].desc.context = entry->now.context;
+        desc[count].desc.callback = (unsigned long)entry->now.callback;
+        desc[count].desc.context = (unsigned long)entry->now.context;
         desc[count].desc.param = entry->callback_param;
-        desc[count].interfaceHandle = entry->key.object;
+        desc[count].interfaceHandle = (unsigned long)entry->key.object;
         count++;
         BDBG_MSG_TRACE(("nexus_driver_scheduler_dequeue:%#lx(%u) callback:%#lx context:%#lx param:%d", (unsigned long)scheduler, (unsigned)priority, (unsigned long)entry->now.callback, (unsigned long)entry->now.context, entry->callback_param));
     }
@@ -459,7 +451,7 @@ nexus_driver_p_callback_recycle_entry_locked(struct nexus_driver_callback_map *m
         BLST_S_REMOVE(&scheduler->fired_callbacks, entry, nexus_driver_callback_entry, list_fired);
     }
 
-	/* the callback may not be removed from the interface. if it fires, we need it to bounce off. */
+    /* the callback may not be removed from the interface. if it fires, we need it to bounce off. */
     entry->slave = NULL;
     entry->client = NULL;
     entry->key.object = NULL;
@@ -659,7 +651,7 @@ done:
     return;
 
 err_calback:
-    BDBG_WRN(("nexus_driver_callback_update: %s unknown handler %#lx for %#x:%#lx", (unsigned long)header->name, (unsigned long)callback->callback, (unsigned)id, (unsigned long)new_handle));
+    BDBG_WRN(("nexus_driver_callback_update: %s unknown handler %#lx for %#x:%#lx", header->name, (unsigned long)callback->callback, (unsigned)id, (unsigned long)new_handle));
     goto done;
 }
 
@@ -688,7 +680,7 @@ done:
     return;
 
 err_calback:
-    BDBG_WRN(("nexus_driver_callback_to_driver_cancel: %s unknown handler %#lx for %#x:%#lx", (unsigned long)header->name, (unsigned long)callback->callback, (unsigned)id, (unsigned long)handle));
+    BDBG_WRN(("nexus_driver_callback_to_driver_cancel: %s unknown handler %#lx for %#x:%#lx", header->name, (unsigned long)callback->callback, (unsigned)id, (unsigned long)handle));
 err_map:
     goto done;
 }
