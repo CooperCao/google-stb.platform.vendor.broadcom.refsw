@@ -608,6 +608,14 @@ void (KHRONOS_APIENTRY *real_glGetObjectPtrLabelKHR)(const void *ptr, GLsizei bu
 void (KHRONOS_APIENTRY *real_glGetPointervKHR)(GLenum pname, void **params);
 #endif /* GL_KHR_debug*/
 
+#if GL_KHR_robustness
+GLenum (KHRONOS_APIENTRY *real_glGetGraphicsResetStatusKHR)(void);
+void (KHRONOS_APIENTRY *real_glReadnPixelsKHR)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLsizei bufSize, void *data);
+void (KHRONOS_APIENTRY *real_glGetnUniformfvKHR)(GLuint program, GLint location, GLsizei bufSize, GLfloat *params);
+void (KHRONOS_APIENTRY *real_glGetnUniformivKHR)(GLuint program, GLint location, GLsizei bufSize, GLint *params);
+void (KHRONOS_APIENTRY *real_glGetnUniformuivKHR)(GLuint program, GLint location, GLsizei bufSize, GLuint *params);
+#endif /* GL_KHR_robustness*/
+
 #if GL_KHR_texture_compression_astc_ldr
 #endif /* GL_KHR_texture_compression_astc_ldr*/
 
