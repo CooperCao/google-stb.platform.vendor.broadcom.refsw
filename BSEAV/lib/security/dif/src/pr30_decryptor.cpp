@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #undef LOGE
 #undef LOGW
@@ -459,7 +458,7 @@ bool Playready30Decryptor::Initialize(std::string& pssh)
     DRM_CONST_STRING sDstrHDSPath = DRM_EMPTY_DRM_STRING;
     DRM_WCHAR sRgwchHDSPath[DRM_MAX_PATH];
 
-    DRM_DWORD dwEncryptionMode  = OEM_TEE_DECRYPTION_MODE_NOT_SECURE;
+    DRM_DWORD dwEncryptionMode  = OEM_TEE_AES128CTR_DECRYPTION_MODE_NOT_SECURE;
 
     dump_hex("Initialize: pssh", pssh.data(), pssh.size());
 
@@ -599,7 +598,7 @@ bool Playready30Decryptor::Initialize(std::string& pssh)
     }
 
     /* set encryption/decryption mode */
-    dwEncryptionMode = OEM_TEE_DECRYPTION_MODE_HANDLE;
+    dwEncryptionMode = OEM_TEE_AES128CTR_DECRYPTION_MODE_HANDLE;
     dr = Drm_Content_SetProperty(
         s_pDrmAppCtx, DRM_CSP_DECRYPTION_OUTPUT_MODE,
         (const DRM_BYTE*)&dwEncryptionMode, sizeof(DRM_DWORD)) ;
@@ -682,8 +681,7 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData, dif_streamer
         NULL,
         NULL,
         NULL,
-        &chLen,
-        NULL);
+        &chLen);
 
     if (dr != DRM_E_BUFFERTOOSMALL) {
         LOGE(("%s: Drm_LicenseAcq_GenerateChallenge(): 0x%x", __FUNCTION__, (unsigned)dr));
@@ -717,8 +715,7 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData, dif_streamer
         NULL,
         NULL,
         pCh_data,
-        &chLen,
-        NULL);
+        &chLen);
 
     pCh_data[chLen] = 0;
 
@@ -746,7 +743,7 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData, dif_streamer
     LOGD(("GenerateKeyRequest: keyMessage(%d): %s", (uint32_t)m_keyMessage.size(), m_keyMessage.c_str()));
 
     uint32_t numDeleted;
-    dr = Drm_StoreMgmt_DeleteLicenses(s_pDrmAppCtx, NULL, NULL, (DRM_DWORD*)&numDeleted);
+    dr = Drm_StoreMgmt_DeleteLicenses(s_pDrmAppCtx, NULL, (DRM_DWORD*)&numDeleted);
 
     if (dr != DRM_SUCCESS) {
         LOGE(("%s: Drm_StoreMgmt_DeleteLicenses: 0x%x", __FUNCTION__, (unsigned)dr));
