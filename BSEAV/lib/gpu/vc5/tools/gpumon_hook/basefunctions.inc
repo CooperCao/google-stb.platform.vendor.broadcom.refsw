@@ -1115,6 +1115,19 @@ static void base_glGetPointervKHR(GLenum pname, void **params)
    Func(GL, glGetPointervKHR, (pname, params))
 #endif /* GL_KHR_debug*/
 
+#if GL_KHR_robustness
+static GLenum base_glGetGraphicsResetStatusKHR(void)
+   FuncRet(GL, GLenum , glGetGraphicsResetStatusKHR, ())
+static void base_glReadnPixelsKHR(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLsizei bufSize, void *data)
+   Func(GL, glReadnPixelsKHR, (x, y, width, height, format, type, bufSize, data))
+static void base_glGetnUniformfvKHR(GLuint program, GLint location, GLsizei bufSize, GLfloat *params)
+   Func(GL, glGetnUniformfvKHR, (program, location, bufSize, params))
+static void base_glGetnUniformivKHR(GLuint program, GLint location, GLsizei bufSize, GLint *params)
+   Func(GL, glGetnUniformivKHR, (program, location, bufSize, params))
+static void base_glGetnUniformuivKHR(GLuint program, GLint location, GLsizei bufSize, GLuint *params)
+   Func(GL, glGetnUniformuivKHR, (program, location, bufSize, params))
+#endif /* GL_KHR_robustness*/
+
 #if GL_KHR_texture_compression_astc_ldr
 #endif /* GL_KHR_texture_compression_astc_ldr*/
 
