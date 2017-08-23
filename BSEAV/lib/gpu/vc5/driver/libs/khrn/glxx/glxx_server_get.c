@@ -45,7 +45,7 @@ static int32_t norm_float_to_int(float f)
 
 GL_API GLenum GL_APIENTRY glGetError(void)
 {
-   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged_even_if_reset(OPENGL_ES_ANY);
    GLenum result;
    if (!state) return 0;
 

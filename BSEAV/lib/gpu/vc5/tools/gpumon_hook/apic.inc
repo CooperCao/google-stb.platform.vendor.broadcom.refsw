@@ -608,6 +608,14 @@ HOOK(glGetObjectPtrLabelKHR);
 HOOK(glGetPointervKHR);
 #endif /* GL_KHR_debug*/
 
+#if GL_KHR_robustness
+HOOK(glGetGraphicsResetStatusKHR);
+HOOK(glReadnPixelsKHR);
+HOOK(glGetnUniformfvKHR);
+HOOK(glGetnUniformivKHR);
+HOOK(glGetnUniformuivKHR);
+#endif /* GL_KHR_robustness*/
+
 #if GL_KHR_texture_compression_astc_ldr
 #endif /* GL_KHR_texture_compression_astc_ldr*/
 

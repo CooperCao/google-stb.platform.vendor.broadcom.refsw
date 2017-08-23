@@ -84,6 +84,8 @@ static khrn_fmem_persist* persist_create(khrn_render_state *rs)
    fmem_debug_info_init(&persist->debug_info);
 #endif
 
+   persist->gpu_aborted = NULL;
+
    return persist;
 }
 
@@ -107,6 +109,8 @@ static void persist_destroy(khrn_fmem_persist* persist)
    khrn_memaccess_destroy(persist->memaccess);
    free(persist->gmp_tables);
 #endif
+
+   KHRN_MEM_ASSIGN(persist->gpu_aborted, NULL);
 
    if (persist->occlusion_query_list)
       glxx_queries_release(persist->occlusion_query_list);
@@ -147,9 +151,15 @@ static void render_completion(void *data, uint64_t job_id, v3d_sched_job_error e
 {
    khrn_fmem_persist* persist = (khrn_fmem_persist*)data;
 
+   if (error == V3D_SCHED_JOB_ERROR)
+   {
+      assert(persist->gpu_aborted != NULL);
+      vcos_atomic_store_bool(persist->gpu_aborted, true, VCOS_MEMORY_ORDER_RELAXED);
+   }
+
    /* go through the list of queries and update occlusion queries results */
    if (persist->occlusion_query_list)
-      glxx_occlusion_queries_update(persist->occlusion_query_list, true);
+      glxx_occlusion_queries_update(persist->occlusion_query_list, error == V3D_SCHED_JOB_SUCCESS);
 
  #if KHRN_GLES31_DRIVER
    compute_job_mem_delete(persist->compute_job_mem);
@@ -164,18 +174,25 @@ static void render_completion(void *data, uint64_t job_id, v3d_sched_job_error e
    }
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
 static void bin_completion(void *data, uint64_t job_id, v3d_sched_job_error error)
 {
    // If adding anything else to this function, then ensure it is actually
    // registered against the bin job.
 
-   /* go through the list of queries and update prim counts queries results */
    khrn_fmem_persist* persist = (khrn_fmem_persist*)data;
-   assert(persist->prim_counts_query_list != NULL);
-   glxx_prim_counts_queries_update(persist->prim_counts_query_list, true);
-}
+
+   if (error == V3D_SCHED_JOB_ERROR)
+   {
+      assert(persist->gpu_aborted);
+      vcos_atomic_store_bool(persist->gpu_aborted, true, VCOS_MEMORY_ORDER_RELAXED);
+   }
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   /* go through the list of queries and update prim counts queries results */
+   if (persist->prim_counts_query_list != NULL)
+      glxx_prim_counts_queries_update(persist->prim_counts_query_list, error == V3D_SCHED_JOB_SUCCESS);
 #endif
+}
 
 bool khrn_fmem_init(khrn_fmem *fmem, khrn_render_state *render_state)
 {
@@ -638,16 +655,6 @@ static void submit_bin_render(
       fmem->br_info.details.render_cache_ops |= v3d_barrier_cache_cleans(rdr_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
    }
 
-   v3d_sched_completion_fn bin_completion_fn = NULL;
-   void* bin_completion_data = NULL;
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   if (fmem->persist->prim_counts_query_list != NULL)
-   {
-      bin_completion_fn = bin_completion;
-      bin_completion_data = fmem->persist;
-   }
-#endif
-
    unsigned bin_index = gfx_log2(KHRN_STAGE_BIN);
    unsigned render_index = gfx_log2(KHRN_STAGE_RENDER);
    v3d_scheduler_submit_bin_render_job(
@@ -656,7 +663,7 @@ static void submit_bin_render(
       &stage_jobs[bin_index],
       &stage_jobs[render_index],
       &fmem->br_info,
-      bin_completion_fn, bin_completion_data,
+      bin_completion, fmem->persist,
       render_completion, fmem->persist);
 }
 
