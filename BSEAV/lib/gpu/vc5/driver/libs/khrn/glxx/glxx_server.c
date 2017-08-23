@@ -2069,8 +2069,8 @@ GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei he
    glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glReadnPixelsEXT(GLint x, GLint y, GLsizei width, GLsizei height,
-   GLenum format, GLenum type, GLsizei buf_size, void *pixels)
+static void GL_APIENTRY read_n_pixels(GLint x, GLint y, GLsizei width, GLsizei height,
+      GLenum format, GLenum type, GLsizei buf_size, void *pixels)
 {
    PROFILE_FUNCTION_MT("GL");
 
@@ -2082,18 +2082,23 @@ GL_API void GL_APIENTRY glReadnPixelsEXT(GLint x, GLint y, GLsizei width, GLsize
    glxx_unlock_server_state();
 }
 
+GL_API void GL_APIENTRY glReadnPixelsEXT(GLint x, GLint y, GLsizei width, GLsizei height,
+   GLenum format, GLenum type, GLsizei buf_size, void *pixels)
+{
+   read_n_pixels(x, y, width, height, format, type, buf_size, pixels);
+}
+
+GL_API void GL_APIENTRY glReadnPixelsKHR(GLint x, GLint y, GLsizei width, GLsizei height,
+   GLenum format, GLenum type, GLsizei buf_size, void *pixels)
+{
+   read_n_pixels(x, y, width, height, format, type, buf_size, pixels);
+}
+
 #if KHRN_GLES32_DRIVER
 GL_APICALL void GL_APIENTRY glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                                           GLenum format, GLenum type, GLsizei bufSize, void *data)
 {
-   PROFILE_FUNCTION_MT("GL");
-
-   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
-   if (!state) return;
-
-   read_pixels(state, x, y, width, height, format, type, bufSize, data);
-
-   glxx_unlock_server_state();
+   read_n_pixels(x, y, width, height, format, type, buf_size, pixels);
 }
 #endif
 
@@ -3094,15 +3099,45 @@ GL_API void GL_APIENTRY glGetPointerv(GLenum pname, GLvoid **params)
    glxx_unlock_server_state();
 }
 
+static GLenum glxx_get_graphics_reset_status(void)
+{
+   uint32_t validApis = OPENGL_ES_ANY;
+
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged_even_if_reset(validApis);
+
+   if (!state)
+      return GL_NO_ERROR;
+
+   if (egl_context_gl_notification(NULL))
+   {
+      bool gpu_aborted =  vcos_atomic_load_bool(state->shared->gpu_aborted, VCOS_MEMORY_ORDER_RELAXED);
+      if (gpu_aborted && !egl_context_gl_reset_notified())
+      {
+         /* only returns the error once then the application knows
+          * that the reset is finished and the contexts can be deleted
+          */
+         egl_context_gl_set_reset_notified();
+         state->error = GL_CONTEXT_LOST;
+         return GL_UNKNOWN_CONTEXT_RESET_EXT;
+      }
+   }
+
+   return GL_NO_ERROR;
+}
+
 GL_APICALL GLenum GL_APIENTRY glGetGraphicsResetStatusEXT(void)
 {
-   // VC5 doesn't lose context on GPU reset. Return GL_NO_ERROR always
-   return GL_NO_ERROR;
+   return glxx_get_graphics_reset_status();
+}
+
+GL_APICALL GLenum GL_APIENTRY glGetGraphicsResetStatusKHR(void)
+{
+   return glxx_get_graphics_reset_status();
 }
 
 #if KHRN_GLES32_DRIVER
 GL_API GLenum GL_APIENTRY glGetGraphicsResetStatus(void)
 {
-   return GL_NO_ERROR;
+   return glxx_get_graphics_reset_status();
 }
 #endif

@@ -88,6 +88,7 @@ bool m_has_GL_EXT_texture_sRGB_decode;
 bool m_has_GL_KHR_blend_equation_advanced;
 bool m_has_GL_KHR_blend_equation_advanced_coherent;
 bool m_has_GL_KHR_debug;
+bool m_has_GL_KHR_robustness;
 bool m_has_GL_KHR_texture_compression_astc_ldr;
 bool m_has_GL_OES_EGL_image;
 bool m_has_GL_OES_EGL_image_external;
