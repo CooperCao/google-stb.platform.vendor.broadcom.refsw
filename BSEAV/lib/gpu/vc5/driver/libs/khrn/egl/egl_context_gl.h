@@ -61,15 +61,4 @@ extern bool egl_context_gl_debug(const EGL_GL_CONTEXT_T *context);
  */
 extern bool egl_context_gl_notification(const EGL_GL_CONTEXT_T *context);
 
-/*
- * Set the reset notified to true (on the current context)
- */
-extern void egl_context_gl_set_reset_notified();
-
-/*
- * Returns true if the reset notification has already been returned
- * (on the current context)
- */
-extern bool egl_context_gl_reset_notified();
-
 #endif /* EGL_CONTEXT_GL_H */

@@ -1007,11 +1007,6 @@ GL_APICALL void GL_APIENTRY glGetnUniformfvEXT(GLuint p, GLint location, GLsizei
    get_uniform_internal(p, location, bufSize, params, GL_FLOAT);
 }
 
-GL_APICALL void GL_APIENTRY glGetnUniformfvKHR(GLuint p, GLint location, GLsizei bufSize, GLfloat *params)
-{
-   get_uniform_internal(p, location, bufSize, params, GL_FLOAT);
-}
-
 GL_APICALL void GL_APIENTRY glGetUniformiv(GLuint p, GLint location, GLint *params)
 {
    get_uniform_internal(p, location, INT_MAX, params, GL_INT);
@@ -1022,22 +1017,12 @@ GL_APICALL void GL_APIENTRY glGetnUniformivEXT(GLuint p, GLint location, GLsizei
    get_uniform_internal(p, location, bufSize, params, GL_INT);
 }
 
-GL_APICALL void GL_APIENTRY glGetnUniformivKHR(GLuint p, GLint location, GLsizei bufSize, GLint *params)
-{
-   get_uniform_internal(p, location, bufSize, params, GL_INT);
-}
-
 GL_APICALL void GL_APIENTRY glGetUniformuiv(GLuint p, GLint location, GLuint *params)
 {
    get_uniform_internal(p, location, INT_MAX, params, GL_UNSIGNED_INT);
 }
 
 GL_APICALL void GL_APIENTRY glGetnUniformuivEXT(GLuint p, GLint location, GLsizei bufSize, GLuint *params)
-{
-   get_uniform_internal(p, location, bufSize, params, GL_UNSIGNED_INT);
-}
-
-GL_APICALL void GL_APIENTRY glGetnUniformuivKHR(GLuint p, GLint location, GLsizei bufSize, GLuint *params)
 {
    get_uniform_internal(p, location, bufSize, params, GL_UNSIGNED_INT);
 }

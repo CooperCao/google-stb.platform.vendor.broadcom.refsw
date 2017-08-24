@@ -608,14 +608,6 @@ DLLEXPORT void DLLEXPORTENTRY glGetObjectPtrLabelKHR(const void *ptr, GLsizei bu
 DLLEXPORT void DLLEXPORTENTRY glGetPointervKHR(GLenum pname, void **params){ sAPIClassTable.map_glGetPointervKHR(pname, params); }
 #endif /* GL_KHR_debug*/
 
-#if GL_KHR_robustness
-DLLEXPORT GLenum DLLEXPORTENTRY glGetGraphicsResetStatusKHR(void){ return sAPIClassTable.map_glGetGraphicsResetStatusKHR(); }
-DLLEXPORT void DLLEXPORTENTRY glReadnPixelsKHR(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLsizei bufSize, void *data){ sAPIClassTable.map_glReadnPixelsKHR(x, y, width, height, format, type, bufSize, data); }
-DLLEXPORT void DLLEXPORTENTRY glGetnUniformfvKHR(GLuint program, GLint location, GLsizei bufSize, GLfloat *params){ sAPIClassTable.map_glGetnUniformfvKHR(program, location, bufSize, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetnUniformivKHR(GLuint program, GLint location, GLsizei bufSize, GLint *params){ sAPIClassTable.map_glGetnUniformivKHR(program, location, bufSize, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetnUniformuivKHR(GLuint program, GLint location, GLsizei bufSize, GLuint *params){ sAPIClassTable.map_glGetnUniformuivKHR(program, location, bufSize, params); }
-#endif /* GL_KHR_robustness*/
-
 #if GL_KHR_texture_compression_astc_ldr
 #endif /* GL_KHR_texture_compression_astc_ldr*/
 
