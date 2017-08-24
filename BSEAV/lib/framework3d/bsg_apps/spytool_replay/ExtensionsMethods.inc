@@ -88,7 +88,6 @@ m_has_GL_EXT_texture_sRGB_decode = getExtensionSupported("GL_EXT_texture_sRGB_de
 m_has_GL_KHR_blend_equation_advanced = getExtensionSupported("GL_KHR_blend_equation_advanced");
 m_has_GL_KHR_blend_equation_advanced_coherent = getExtensionSupported("GL_KHR_blend_equation_advanced_coherent");
 m_has_GL_KHR_debug = getExtensionSupported("GL_KHR_debug");
-m_has_GL_KHR_robustness = getExtensionSupported("GL_KHR_robustness");
 m_has_GL_KHR_texture_compression_astc_ldr = getExtensionSupported("GL_KHR_texture_compression_astc_ldr");
 m_has_GL_OES_EGL_image = getExtensionSupported("GL_OES_EGL_image");
 m_has_GL_OES_EGL_image_external = getExtensionSupported("GL_OES_EGL_image_external");

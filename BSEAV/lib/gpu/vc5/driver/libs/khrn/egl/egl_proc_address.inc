@@ -574,13 +574,6 @@ CASE(glObjectPtrLabelKHR, 0xecc20529);
 CASE(glGetObjectPtrLabelKHR, 0xafd9b946);
 CASE(glGetPointervKHR, 0xb23ed055);
 
-// GL_KHR_robustness
-CASE(glGetGraphicsResetStatusKHR, 0x77c68c96);
-CASE(glReadnPixelsKHR, 0x5ffe0b4b);
-CASE(glGetnUniformfvKHR, 0xa604450a);
-CASE(glGetnUniformivKHR, 0x71ca71db);
-CASE(glGetnUniformuivKHR, 0x69ef9565);
-
 // GL_KHR_texture_compression_astc_ldr
 
 // GL_OES_EGL_image

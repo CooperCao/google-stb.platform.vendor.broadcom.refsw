@@ -37,15 +37,6 @@ typedef struct {
    khrn_map renderbuffers;
    khrn_map fencesyncs;
 
-   /*
-      Indicates if a job has been aborted by the GPU.
-      This is used to implement GL_KHR_robustness
-      (error GL_CONTEXT_LOST, GetGraphicsResetStatus, ...)
-      This will only be set to false at the initialisation,
-      once it is set to true contexts need to be deleted.
-    */
-   bool *gpu_aborted;
-
 } GLXX_SHARED_T;
 
 // TODO: Just include the headers?

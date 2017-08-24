@@ -71,9 +71,6 @@ typedef struct khrn_fmem_persist
    khrn_vector compute_dispatches;     // of glxx_compute_dispatch
    compute_job_mem* compute_job_mem;
 
-   bool *gpu_aborted;                  // This is shared with GLXX_SHARED_T to be able to update
-                                       // its value from the bin/render completion callback function.
-
 } khrn_fmem_persist;
 
 struct khrn_fmem_tmu_cfg_alloc
