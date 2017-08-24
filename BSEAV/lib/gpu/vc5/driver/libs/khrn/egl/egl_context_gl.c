@@ -70,16 +70,24 @@ static EGL_GL_CONTEXT_T *get_context(EGLContext ctx)
 /*
  * Find or create share_ctx. Either way return a counted reference to it.
  */
-static EGLint get_share_context(GLXX_SHARED_T **ret, EGLContext share_ctx)
+static EGLint get_share_context(GLXX_SHARED_T **ret, EGLContext share_ctx, bool reset_notification)
 {
    if (share_ctx != EGL_NO_CONTEXT)
    {
       EGL_GL_CONTEXT_T *share_context = get_context(share_ctx);
       if (share_context)
       {
-         *ret = share_context->server.shared;
-         khrn_mem_acquire(*ret);
-         return EGL_SUCCESS;
+         if (egl_context_gl_notification(share_context) == reset_notification)
+         {
+            *ret = share_context->server.shared;
+            khrn_mem_acquire(*ret);
+            return EGL_SUCCESS;
+         }
+         else
+         {
+            *ret = NULL;
+            return EGL_BAD_MATCH;
+         }
       }
 
       *ret = NULL;
@@ -256,7 +264,7 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
    ret->api = client_api->api;
    ret->server.context = ret;
 
-   error = get_share_context(&shared, share_ctx);
+   error = get_share_context(&shared, share_ctx, reset_notification);
    if (error != EGL_SUCCESS) goto end;
 
    if (!client_api->server_state_init(&ret->server, shared))
@@ -369,6 +377,24 @@ bool egl_context_gl_notification(const EGL_GL_CONTEXT_T *context)
       return false;
 
    return context->base.reset_notification;
+}
+
+bool egl_context_gl_reset_notified()
+{
+   EGL_GL_CONTEXT_T *context = current_context();
+   if (!context)
+      return false;
+
+   return context->base.gpu_aborted_notified;
+}
+
+void egl_context_gl_set_reset_notified()
+{
+   EGL_GL_CONTEXT_T *context = current_context();
+   if (!context)
+      return;
+
+   context->base.gpu_aborted_notified = true;
 }
 
 static void attach(EGL_CONTEXT_T *context, EGL_SURFACE_T *draw,
