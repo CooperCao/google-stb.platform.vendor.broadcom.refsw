@@ -646,7 +646,7 @@ extern uint32_t glxx_server_lock_time;
 #define IS_GL_11(state) (!!egl_context_gl_api(state->context, OPENGL_ES_11))
 
 static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_with_changed(
-   uint32_t api, bool changed, bool null_state_if_reset)
+   uint32_t api, bool changed)
 {
    GLXX_SERVER_STATE_T *state = NULL;
    bool locked = false;
@@ -667,20 +667,6 @@ static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_with_changed(
       goto end;
    }
 
-   if (egl_context_gl_notification(state->context))
-   {
-      bool gpu_aborted =  vcos_atomic_load_bool(state->shared->gpu_aborted, VCOS_MEMORY_ORDER_RELAXED);
-      if (gpu_aborted)
-      {
-         if (null_state_if_reset)
-         {
-            state->error = GL_CONTEXT_LOST;
-            state = NULL;
-            goto end;
-         }
-      }
-   }
-
    if (changed)
       state->dirty.stuff = KHRN_RENDER_STATE_SET_ALL;
 
@@ -698,22 +684,12 @@ end:
 
 static inline GLXX_SERVER_STATE_T *glxx_lock_server_state(uint32_t api)
 {
-   return glxx_lock_server_state_with_changed(api, /*changed=*/true, /*NULL state if GFX reset*/true);
+   return glxx_lock_server_state_with_changed(api, /*changed=*/true);
 }
 
 static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_unchanged(uint32_t api)
 {
-   return glxx_lock_server_state_with_changed(api, /*changed=*/false, /*NULL state if GFX reset*/true);
-}
-
-static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_changed_even_if_reset(uint32_t api)
-{
-   return glxx_lock_server_state_with_changed(api, /*changed=*/true, /*NULL state if GFX reset*/false);
-}
-
-static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_unchanged_even_if_reset(uint32_t api)
-{
-   return glxx_lock_server_state_with_changed(api, /*changed=*/false, /*NULL state if GFX reset*/false);
+   return glxx_lock_server_state_with_changed(api, /*changed=*/false);
 }
 
 static inline void glxx_unlock_server_state(void)
