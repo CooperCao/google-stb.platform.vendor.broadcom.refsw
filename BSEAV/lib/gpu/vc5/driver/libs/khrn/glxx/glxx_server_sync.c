@@ -101,20 +101,8 @@ void GL_APIENTRY glGetSynciv (GLsync fsync_id, GLenum pname, GLsizei bufSize,
    GLenum error = GL_NO_ERROR;
 
    state = glxx_lock_server_state(OPENGL_ES_3X);
-
    if (!state)
-   {
-      state = glxx_lock_server_state_changed_even_if_reset(OPENGL_ES_3X);
-      if (!state)
-         return;
-
-      /* Error should have been set by the first glxx_lock_server_state */
-      assert(state->error == GL_CONTEXT_LOST);
-      if (pname == GL_SYNC_STATUS && bufSize > 0)
-         values[0] = GL_SIGNALED;
-
-      goto end;
-   }
+      return;
 
    fsync = glxx_shared_get_fencesync(state->shared, fsync_id);
    if (!fsync)

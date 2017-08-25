@@ -101,9 +101,6 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
    rs->server_state = server_state;
    server_state->compute_render_state = rs;
 
-   khrn_mem_acquire(server_state->shared->gpu_aborted);
-   rs->fmem.persist->gpu_aborted = server_state->shared->gpu_aborted;
-
    return rs;
 
 error:

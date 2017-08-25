@@ -105,11 +105,6 @@ bool glxx_shared_init(GLXX_SHARED_T *shared)
    if (!khrn_map_init(&shared->fencesyncs, 256))
       return false;
 
-   bool *gpu_aborted = khrn_mem_alloc(sizeof(bool), "gpu aborted flag");
-   *gpu_aborted = false;
-   KHRN_MEM_ASSIGN(shared->gpu_aborted, gpu_aborted);
-   khrn_mem_release(gpu_aborted);
-
    return true;
 }
 
@@ -148,8 +143,6 @@ void glxx_shared_term(void *v, size_t size)
    khrn_map_term(&shared->buffers);
    khrn_map_term(&shared->renderbuffers);
    khrn_map_term(&shared->fencesyncs);
-
-   KHRN_MEM_ASSIGN(shared->gpu_aborted, NULL);
 }
 
 uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared)

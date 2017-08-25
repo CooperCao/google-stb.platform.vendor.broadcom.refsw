@@ -380,9 +380,6 @@ static GLXX_HW_RENDER_STATE_T *create_and_start_render_state(const GLXX_HW_FRAME
       rs = NULL;
    }
 
-   khrn_mem_acquire(state->shared->gpu_aborted);
-   rs->fmem.persist->gpu_aborted = state->shared->gpu_aborted;
-
    return rs;
 }
 
