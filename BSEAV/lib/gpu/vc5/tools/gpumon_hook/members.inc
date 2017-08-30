@@ -608,6 +608,14 @@ void (*map_glGetObjectPtrLabelKHR)(const void *ptr, GLsizei bufSize, GLsizei *le
 void (*map_glGetPointervKHR)(GLenum pname, void **params);
 #endif /* GL_KHR_debug*/
 
+#if GL_KHR_robustness
+GLenum (*map_glGetGraphicsResetStatusKHR)(void);
+void (*map_glReadnPixelsKHR)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLsizei bufSize, void *data);
+void (*map_glGetnUniformfvKHR)(GLuint program, GLint location, GLsizei bufSize, GLfloat *params);
+void (*map_glGetnUniformivKHR)(GLuint program, GLint location, GLsizei bufSize, GLint *params);
+void (*map_glGetnUniformuivKHR)(GLuint program, GLint location, GLsizei bufSize, GLuint *params);
+#endif /* GL_KHR_robustness*/
+
 #if GL_KHR_texture_compression_astc_ldr
 #endif /* GL_KHR_texture_compression_astc_ldr*/
 

@@ -9,7 +9,7 @@
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_int_config.h"
 #include "../common/khrn_process.h"
-#define GL20_EXTS_STR_MAX_SIZE 1913
+#define GL20_EXTS_STR_MAX_SIZE 1931
 static inline char *gl20_exts_str(char *s_in)
 {
    char *s = s_in;
@@ -168,6 +168,9 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_KHR_debug", 12);
    s += 12;
    *(s++) = ' ';
+   memcpy(s, "GL_KHR_robustness", 17);
+   s += 17;
+   *(s++) = ' ';
    if (khrn_get_has_astc())
    {
       memcpy(s, "GL_KHR_texture_compression_astc_ldr", 35);
@@ -308,7 +311,7 @@ static inline char *gl20_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define GL20_MAX_EXTS 73
+#define GL20_MAX_EXTS 74
 static inline unsigned gl20_exts(const char **e_in)
 {
    const char **e = e_in;
@@ -389,6 +392,7 @@ static inline unsigned gl20_exts(const char **e_in)
    *(e++) = "GL_KHR_blend_equation_advanced";
    *(e++) = "GL_KHR_blend_equation_advanced_coherent";
    *(e++) = "GL_KHR_debug";
+   *(e++) = "GL_KHR_robustness";
    if (khrn_get_has_astc())
       *(e++) = "GL_KHR_texture_compression_astc_ldr";
    *(e++) = "GL_OES_EGL_image";

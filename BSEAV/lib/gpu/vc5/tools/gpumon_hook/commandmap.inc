@@ -664,3 +664,8 @@
    "glPolygonOffsetClampEXT",                          "v",  "fff",             "",
    "glTexSubImage1DBRCM",                              "v",  "eWWWeep",         "const GLvoid *",
    "glTexStorage1DBRCM",                               "v",  "eWeW",            "",
+   "glGetGraphicsResetStatusKHR",                      "e",  "",                "",
+   "glReadnPixelsKHR",                                 "v",  "WWWWeeWP",        "void *",
+   "glGetnUniformfvKHR",                               "v",  "riWP",            "GLfloat *",
+   "glGetnUniformivKHR",                               "v",  "riWP",            "GLint *",
+   "glGetnUniformuivKHR",                              "v",  "riWP",            "GLuint *",
