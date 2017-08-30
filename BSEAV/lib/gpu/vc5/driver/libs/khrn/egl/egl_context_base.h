@@ -63,6 +63,11 @@ struct egl_context_base
    bool                    robustness;
    bool                    secure;
    bool                    reset_notification;
+   /*
+    * Used to only notify the reset once with glGetGraphicsResetStatusEXT
+    * and then return no error so the application can delete the contexts
+   */
+   bool gpu_aborted_notified;
 
    /*
     * Thread this context is bound to. Only used for binding/unbinding and

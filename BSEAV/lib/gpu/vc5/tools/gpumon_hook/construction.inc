@@ -608,6 +608,14 @@ map_glGetObjectPtrLabelKHR = base_glGetObjectPtrLabelKHR;
 map_glGetPointervKHR = base_glGetPointervKHR;
 #endif /* GL_KHR_debug*/
 
+#if GL_KHR_robustness
+map_glGetGraphicsResetStatusKHR = base_glGetGraphicsResetStatusKHR;
+map_glReadnPixelsKHR = base_glReadnPixelsKHR;
+map_glGetnUniformfvKHR = base_glGetnUniformfvKHR;
+map_glGetnUniformivKHR = base_glGetnUniformivKHR;
+map_glGetnUniformuivKHR = base_glGetnUniformuivKHR;
+#endif /* GL_KHR_robustness*/
+
 #if GL_KHR_texture_compression_astc_ldr
 #endif /* GL_KHR_texture_compression_astc_ldr*/
 

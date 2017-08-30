@@ -317,7 +317,19 @@ GL_API void GL_APIENTRY glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* par
    struct glxx_queries_of_type *qot;
 
    if (!state)
-      return;
+   {
+      state = glxx_lock_server_state_changed_even_if_reset(OPENGL_ES_3X);
+
+      if (!state)
+         return;
+
+      /* Error should have been set by the first glxx_lock_server_state */
+      assert(state->error == GL_CONTEXT_LOST);
+      if (pname == GL_QUERY_RESULT_AVAILABLE)
+         *params = GL_TRUE;
+
+      goto end;
+   }
 
    if (pname != GL_QUERY_RESULT_AVAILABLE &&
        pname != GL_QUERY_RESULT)
