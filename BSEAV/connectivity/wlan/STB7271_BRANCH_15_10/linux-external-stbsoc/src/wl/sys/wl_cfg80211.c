@@ -6403,6 +6403,7 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 	s32 err = BCME_OK;
+	u32 val;
 #ifdef BCMDONGLEHOST
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS)) && \
 	!defined(OEM_ANDROID)
@@ -6440,6 +6441,12 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS))
 		wl_resume_normalmode();
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
+
+	/* Set interface up */
+	val = 1;
+	err = wldev_ioctl(ndev, WLC_UP, (void *)&val, sizeof(val), true);
+	if (err < 0)
+		WL_ERR(("set interface up failed, error = %d\n", err));
 #endif  /*WOWL_DRV_NORELOAD*/
 	return err;
 }
