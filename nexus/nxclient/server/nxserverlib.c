@@ -2125,7 +2125,13 @@ static void nxserver_check_hdcp(struct b_session *session)
 
     case nxserver_hdcp_pending_status_start:
         if (!is_hdcp_start_complete(&hdcpStatus))
+        {
+            initializeHdmiOutputHdcpSettings(session, NxClient_HdcpVersion_eAuto);
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+            session->hdcp.version_state = nxserver_hdcp_pending_status_start;
             break;
+        }
 
         session->hdcp.downstream_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
         if (is_hdcp_downstream_1x(&hdcpStatus)) {
