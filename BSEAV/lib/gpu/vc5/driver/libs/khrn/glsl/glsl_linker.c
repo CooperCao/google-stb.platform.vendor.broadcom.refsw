@@ -188,6 +188,7 @@ static int update_uniform_link_map(const int **ids, int **maps, int n_stages, un
 
 struct if_var_t {
    const char            *name;
+   const char            *struct_path;
    const SymbolType      *type;
    const MemLayout       *layout;
    unsigned               offset;
@@ -381,12 +382,13 @@ static unsigned max_combined_block_types(StorageQualifier sq) {
    else                       return GLXX_CONFIG_MAX_COMBINED_STORAGE_BLOCKS;
 }
 
-static void enumerate_in_out_var(struct if_var_t *var, const char *name,
+static void enumerate_in_out_var(struct if_var_t *var, const char *name, const char *struct_path,
                                  const SymbolType *type, PrecisionQualifier prec,
                                  InterpolationQualifier iq, AuxiliaryQualifier aq)
 {
    var->name = name;
    var->type = type;
+   var->struct_path = struct_path;
    var->prec_qual   = prec;
    var->interp_qual = iq;
    var->aux_qual    = aq;
@@ -396,13 +398,13 @@ static void enumerate_in_out_var(struct if_var_t *var, const char *name,
    var->top_level_stride = 0;
 }
 
-static int enumerate_ins_outs(struct if_var_t *vars, const char *name, const SymbolType *type,
+static int enumerate_ins_outs(struct if_var_t *vars, const char *name, const char *struct_path, const SymbolType *type,
                               PrecisionQualifier prec, InterpolationQualifier iq, AuxiliaryQualifier aq)
 {
    switch (type->flavour)
    {
       case SYMBOL_PRIMITIVE_TYPE:
-         enumerate_in_out_var(vars, name, type, prec, iq, aq);
+         enumerate_in_out_var(vars, name, struct_path, type, prec, iq, aq);
          return 1;
 
       case SYMBOL_STRUCT_TYPE:
@@ -411,7 +413,13 @@ static int enumerate_ins_outs(struct if_var_t *vars, const char *name, const Sym
          for (unsigned i = 0; i < type->u.struct_type.member_count; i++)
          {
             const char *member_name = asprintf_fast("%s.%s", name, type->u.struct_type.member[i].name);
-            n += enumerate_ins_outs(&vars[n], member_name, type->u.struct_type.member[i].type, type->u.struct_type.member[i].prec, iq, aq);
+            const char *struct_name;
+            if (struct_path != NULL)
+               struct_name = asprintf_fast("%s.%s", struct_path, type->name);
+            else
+               struct_name = asprintf_fast("%s", type->name);
+
+            n += enumerate_ins_outs(&vars[n], member_name, struct_name, type->u.struct_type.member[i].type, type->u.struct_type.member[i].prec, iq, aq);
          }
          return n;
       }
@@ -420,13 +428,13 @@ static int enumerate_ins_outs(struct if_var_t *vars, const char *name, const Sym
       {
          SymbolType *member_type  = type->u.array_type.member_type;
          if (member_type->flavour==SYMBOL_PRIMITIVE_TYPE) {
-            enumerate_in_out_var(vars, name, type, prec, iq, aq);
+            enumerate_in_out_var(vars, name, struct_path, type, prec, iq, aq);
             return 1;
          } else {
             unsigned int array_length = type->u.array_type.member_count;
             int n = 0;
             for (unsigned i = 0; i < array_length; i++)
-               n += enumerate_ins_outs(&vars[n], asprintf_fast("%s[%d]", name, i), member_type, prec, iq, aq);
+               n += enumerate_ins_outs(&vars[n], asprintf_fast("%s[%d]", name, i), struct_path, member_type, prec, iq, aq);
             return n;
          }
       }
@@ -915,9 +923,10 @@ static void record_inout(unsigned *count, GLSL_INOUT_T *info, const struct if_va
    const unsigned i = (*count)++;
    info[i].index         = index;
    info[i].name          = strdup(v->name);
+   info[i].struct_path   = v->struct_path != NULL ? strdup(v->struct_path) : NULL;
    info[i].type          = get_gl_type(v->type);
    info[i].is_array      = (v->type->flavour == SYMBOL_ARRAY_TYPE);
-   info[i].array_size    = if_var_array_length(v);;
+   info[i].array_size    = if_var_array_length(v);
    info[i].used_in_vs    = used[SHADER_VERTEX];
    info[i].used_in_tcs   = used[SHADER_TESS_CONTROL];
    info[i].used_in_tes   = used[SHADER_TESS_EVALUATION];
@@ -936,7 +945,7 @@ static void record_inout(unsigned *count, GLSL_INOUT_T *info, const struct if_va
 static void record_input(GLSL_PROGRAM_T *program, const InterfaceVar *attribute, int index) {
    bool used[SHADER_FLAVOUR_COUNT] = { true, false, false, false, false, false };
    struct if_var_t v;
-   enumerate_in_out_var(&v, attribute->symbol->name, attribute->symbol->type,
+   enumerate_in_out_var(&v, attribute->symbol->name, NULL, attribute->symbol->type,
                             attribute->symbol->u.var_instance.prec_qual,
                             attribute->symbol->u.var_instance.interp_qual, attribute->symbol->u.var_instance.aux_qual);
    record_inout(&program->num_inputs, program->inputs, &v, index, used);
@@ -945,7 +954,7 @@ static void record_input(GLSL_PROGRAM_T *program, const InterfaceVar *attribute,
 static void record_output(GLSL_PROGRAM_T *program, const InterfaceVar *out, int index) {
    bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, true, false };
    struct if_var_t v;
-   enumerate_in_out_var(&v, out->symbol->name, out->symbol->type,
+   enumerate_in_out_var(&v, out->symbol->name, NULL, out->symbol->type,
                             out->symbol->u.var_instance.prec_qual,
                             out->symbol->u.var_instance.interp_qual, out->symbol->u.var_instance.aux_qual);
    record_inout(&program->num_outputs, program->outputs, &v, index, used);
@@ -1348,7 +1357,7 @@ static void validate_tf_varyings(const GLSL_PROGRAM_SOURCE_T *source, ShaderInte
    int used = 0;
    for (int i=0; i<outs->n_vars; i++) {
       const Symbol *s = outs->var[i].symbol;
-      used += enumerate_ins_outs(&resources[used], s->name, s->type, s->u.var_instance.prec_qual,
+      used += enumerate_ins_outs(&resources[used], s->name, NULL, s->type, s->u.var_instance.prec_qual,
                                  s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
    }
 
@@ -1482,7 +1491,7 @@ static void pack_tf(pack_tf_t *tf_ctx, const pack_varying_t *vary_ctx, const GLS
    for (int i=0; i<outs->n_vars; i++) {
       var_starts[i] = used;
       const Symbol *s = outs->var[i].symbol;
-      used += enumerate_ins_outs(&resources[used], s->name, s->type, s->u.var_instance.prec_qual,
+      used += enumerate_ins_outs(&resources[used], s->name, NULL, s->type, s->u.var_instance.prec_qual,
                                  s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
    }
 
@@ -1649,7 +1658,7 @@ static void enumerate_in_out_block_members(unsigned *count, GLSL_INOUT_T *info, 
       if (m->layout && (m->layout->qualified & LOC_QUALED))
          loc = m->layout->location;
 
-      int n = enumerate_ins_outs(v, member_name, m->type, PREC_NONE, iq, aq);
+      int n = enumerate_ins_outs(v, member_name, NULL, m->type, PREC_NONE, iq, aq);
 
       for (int j=0; j<n; j++) {
          record_inout(count, info, &v[j], loc, used);
@@ -1679,7 +1688,7 @@ static void record_inout_interface(unsigned *count, GLSL_INOUT_T *info, const Sh
             struct if_var_t *v = glsl_safemem_malloc(n * sizeof(struct if_var_t));
             int loc = s->u.var_instance.layout_loc_specified ? s->u.var_instance.layout_location : -1;
 
-            enumerate_ins_outs(v, s->name, s->type, s->u.var_instance.prec_qual, s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
+            enumerate_ins_outs(v, s->name, NULL, s->type, s->u.var_instance.prec_qual, s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
 
             for (int i=0; i<n; i++) {
                record_inout(count, info, &v[i], loc, used);

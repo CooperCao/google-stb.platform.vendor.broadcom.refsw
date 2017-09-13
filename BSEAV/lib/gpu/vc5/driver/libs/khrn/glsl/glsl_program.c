@@ -166,11 +166,13 @@ void glsl_program_free(GLSL_PROGRAM_T *program) {
 
    for(unsigned i=0;i<program->num_inputs;++i) {
       free(program->inputs[i].name);
+      free(program->inputs[i].struct_path);
    }
    free(program->inputs);
 
    for(unsigned i=0;i<program->num_outputs;++i) {
       free(program->outputs[i].name);
+      free(program->outputs[i].struct_path);
    }
    free(program->outputs);
 
