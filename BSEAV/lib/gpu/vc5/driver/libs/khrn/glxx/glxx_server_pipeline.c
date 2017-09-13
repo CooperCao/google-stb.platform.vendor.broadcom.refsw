@@ -814,6 +814,9 @@ static bool validate_in_out_interface(GLSL_INOUT_T *outs, unsigned num_outs, GLS
          if (in_ordinal[i] != out_ordinal[out_ix])
             return false;
       }
+      if (in->struct_path != NULL && out->struct_path != NULL)
+         if (strcmp(in->struct_path, out->struct_path) != 0)
+            return false;
 
       in_count++;
    }

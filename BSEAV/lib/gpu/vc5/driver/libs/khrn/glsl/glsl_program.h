@@ -67,6 +67,7 @@ typedef struct {
 typedef struct {
    int       index;
    char     *name;
+   char     *struct_path;
    GLenum    type;
    bool      is_array;
    unsigned  array_size;
