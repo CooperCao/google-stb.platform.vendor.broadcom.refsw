@@ -2489,10 +2489,6 @@ BI2C_ChannelHandle BI2C_P_GetChannelHandle(
     return NULL;
 }
 
-#ifdef BCHP_PWR_RESOURCE_HDMI_TX0_CLK
-#define BCHP_PWR_RESOURCE_HDMI_TX_CLK BCHP_PWR_RESOURCE_HDMI_TX0_CLK
-#endif
-
 BERR_Code BI2C_OpenChannel(
     BI2C_Handle hDev,                   /* Device handle */
     BI2C_ChannelHandle *phChn,          /* [output] Returns channel handle */

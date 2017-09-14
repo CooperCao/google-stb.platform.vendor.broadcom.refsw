@@ -3074,10 +3074,12 @@ void decoder_close(unsigned id)
     g_StandbyNexusHandles.videoDecoder[id] = NULL;
 
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.audioDacs[0]));
+    if(g_StandbyNexusHandles.platformConfig.outputs.audioDacs[0])
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.audioDacs[0]));
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.spdif[0]));
+    if(g_StandbyNexusHandles.platformConfig.outputs.spdif[0])
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(g_StandbyNexusHandles.platformConfig.outputs.spdif[0]));
 #endif
     if(g_StandbyNexusHandles.audioDecoder[id]) {
         NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(g_StandbyNexusHandles.audioDecoder[id], NEXUS_AudioDecoderConnectorType_eStereo));
