@@ -225,6 +225,7 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
 
    if (timeout_ms == 0)
    {
+      khrn_fence_flush(fsync->fence);
       result = GL_TIMEOUT_EXPIRED;
       goto end;
    }
