@@ -2108,6 +2108,7 @@ static void BVDC_P_Source_PrintPicture_isr
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eAspectRatio) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eFrameRateCode) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eMatrixCoefficients) ||
+            BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eColorPrimaries) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eChrominanceInterpolationMode);
     }
 
@@ -2135,6 +2136,7 @@ static void BVDC_P_Source_PrintPicture_isr
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eFrameRateCode                       : %d", pPic->eFrameRateCode));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ePxlFmt                              : %s", BPXL_ConvertFmtToStr(pPic->ePxlFmt)));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eMatrixCoefficients                  : %d", pPic->eMatrixCoefficients));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eColorPrimaries                      : %d", pPic->eColorPrimaries));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ePreferredTransferCharacteristics    : %d", pPic->ePreferredTransferCharacteristics));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eTransferCharacteristics             : %d", pPic->eTransferCharacteristics));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bStreamProgressive                   : %d", pPic->bStreamProgressive));
