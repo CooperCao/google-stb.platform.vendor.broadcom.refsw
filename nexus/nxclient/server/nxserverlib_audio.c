@@ -1124,6 +1124,10 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
             BDBG_ERR(("already connected to %p", (void*)req->handles.simpleAudioDecoder.r->connect));
             return BERR_TRACE(NEXUS_NOT_AVAILABLE);
         }
+        else if (req->handles.simpleAudioDecoder.r->connect->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_ePersistent) {
+            BDBG_MSG(("Persistent Decoder is already acquired"));
+            return 0;
+        }
     }
     if (session->main_audio && session->main_audio->connect == connect) {
         BDBG_WRN(("already connected"));

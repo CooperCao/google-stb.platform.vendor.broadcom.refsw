@@ -623,6 +623,10 @@ b_mp4_probe_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box
                             track->media.info.audio.codec = sample->sample_type==bmp4_sample_type_ac3? baudio_format_ac3 : baudio_format_ac3_plus;
                             audio = &sample->codec.ac3.audio;
                             break;
+                        case bmp4_sample_type_ac4:
+                            track->media.info.audio.codec = baudio_format_ac4;
+                            audio = &sample->codec.ac4.audio;
+                            break;
                         case bmp4_sample_type_samr:
                         case bmp4_sample_type_sawb:
                         case bmp4_sample_type_sawp:

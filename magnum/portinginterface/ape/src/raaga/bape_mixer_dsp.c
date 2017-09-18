@@ -2374,6 +2374,8 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
                 BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32type, (int32_t)handle->settings.fade.mainDecodeFade.type);
                 BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32duration, (int32_t)handle->settings.fade.mainDecodeFade.duration);
             }
+
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiProcessDisable, 1);
         }
 
         /* --------------------------------------------------------- */

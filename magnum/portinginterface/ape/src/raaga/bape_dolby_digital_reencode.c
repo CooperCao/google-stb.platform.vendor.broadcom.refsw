@@ -1318,7 +1318,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
             {
                 BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(handle, &localRendererSettings, &decoderSettings.codecSettings.ac4);
             }
-            if ( codec == BAVC_AudioCompressionStd_eAc3 )
+            else if ( codec == BAVC_AudioCompressionStd_eAc3 )
             {
                 BAPE_DolbyDigitalReencode_P_ApplyAc3DecoderSettings(handle, &localRendererSettings, &decoderSettings.codecSettings.ac3);
             }
