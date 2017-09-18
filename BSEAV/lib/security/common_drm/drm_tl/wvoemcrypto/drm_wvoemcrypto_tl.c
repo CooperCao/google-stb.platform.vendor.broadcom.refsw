@@ -330,6 +330,8 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     DrmRC rc = Drm_Success;
     BSAGElib_InOutContainer *container = NULL;
     time_t current_time = 0;
+    bool drm_common_tl_initialized = false;
+    bool drm_common_tl_module_initialized= false;
 
     BDBG_ENTER(DRM_WVOemCrypto_Initialize);
 
@@ -351,6 +353,10 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
+    }
+    else
+    {
+        drm_common_tl_initialized = true;
     }
 
     container = SRAI_Container_Allocate();
@@ -423,6 +429,10 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
+    }
+    else
+    {
+        drm_common_tl_module_initialized = true;
     }
 
     if (gPadding == NULL)
@@ -517,6 +527,20 @@ ErrorExit:
         {
             SRAI_Memory_Free(gWVUsageTable);
             gWVUsageTable = NULL;
+        }
+
+        if (drm_common_tl_module_initialized)
+        {
+#ifdef USE_UNIFIED_COMMON_DRM
+           (void)DRM_Common_TL_ModuleFinalize(gmoduleHandle);
+#else
+           (void)DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gmoduleHandle);
+#endif
+        }
+
+        if (drm_common_tl_initialized)
+        {
+            DRM_Common_TL_Finalize();
         }
     }
 
