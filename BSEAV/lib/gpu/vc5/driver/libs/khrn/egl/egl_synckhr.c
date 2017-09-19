@@ -264,6 +264,9 @@ static EGLint egl_client_waitsync_impl(EGLDisplay dpy,
       timeout_ms = nanosec_to_trunc_ms(timeout);
       if (timeout_ms == 0)
       {
+         egl_context_gl_lock();
+         khrn_fence_flush(egl_sync->fence);
+         egl_context_gl_unlock();
          ret = EGL_TIMEOUT_EXPIRED_KHR;
          goto end;
        }
