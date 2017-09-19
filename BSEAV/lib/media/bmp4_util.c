@@ -560,6 +560,7 @@ bmp4_scan_box(batom_cursor *cursor, uint32_t type, bmp4_box *box)
 
         BATOM_CLONE(&box_cursor, cursor);
         size = batom_cursor_uint32_be(&box_cursor);
+        BSTD_UNUSED(size);
         box->type = batom_cursor_uint32_be(&box_cursor);
         BDBG_MSG_TRACE(("bmp4_scan_box: %u %#x:%#x", (unsigned)batom_cursor_pos(&box_cursor), type, box->type));
         if(BATOM_IS_EOF(&box_cursor)) {
@@ -654,9 +655,13 @@ b_mp4_parse_sample_ms(batom_cursor *cursor, bmp4_sample_ms *ms)
         uint32_t bytesPerSample;
 
         samplesPerPacket = batom_cursor_uint32_be(cursor);
+        BSTD_UNUSED(samplesPerPacket);
         bytesPerPacket = batom_cursor_uint32_be(cursor);
+        BSTD_UNUSED(bytesPerPacket);
         bytesPerFrame = batom_cursor_uint32_be(cursor);
+        BSTD_UNUSED(bytesPerFrame);
         bytesPerSample = batom_cursor_uint32_be(cursor);
+        BSTD_UNUSED(bytesPerSample);
         if(b_mp4_find_box(cursor, BMP4_TYPE('w','a','v','e'), NULL)) {
             if(b_mp4_find_box(cursor, BMP4_TYPE('f','r','m','a'), NULL)) {
                 uint32_t type = batom_cursor_uint32_be(cursor);
@@ -916,8 +921,12 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
                 type = bmp4_sample_type_ac3;
                 break;
             case BMP4_SAMPLE_EAC3:
-                BDBG_MSG(("bmp4_parse_sample: AC-3 audio"));
+                BDBG_MSG(("bmp4_parse_sample: EAC-3 audio"));
                 type = bmp4_sample_type_eac3;
+                break;
+            case BMP4_SAMPLE_AC4:
+                BDBG_MSG(("bmp4_parse_sample: AC-4 audio"));
+                type = bmp4_sample_type_ac4;
                 break;
             case BMP4_SAMPLE_SAMR:
                 BDBG_MSG(("bmp4_parse_sample: SAMR audio"));
@@ -1020,6 +1029,11 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
         case bmp4_sample_type_ac3:
         case bmp4_sample_type_eac3:
             if(!bmp4_parse_audiosampleentry(&cursor, &entry->codec.ac3.audio)) {
+                entry->sample_type = bmp4_sample_type_unknown;
+            }
+            break;
+        case bmp4_sample_type_ac4:
+            if(!bmp4_parse_audiosampleentry(&cursor, &entry->codec.ac4.audio)) {
                 entry->sample_type = bmp4_sample_type_unknown;
             }
             break;

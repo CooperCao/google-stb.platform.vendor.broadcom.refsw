@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2003-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_base.h"
@@ -1276,6 +1268,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "audio_equalizer_disabled",
     "audio_logs_enabled",
     "audio_max_delay",
+    "audio_mixer_start_disabled",
     "audio_processing_disabled",
     "audio_ramp_disabled",
     "audio_target_print_file",

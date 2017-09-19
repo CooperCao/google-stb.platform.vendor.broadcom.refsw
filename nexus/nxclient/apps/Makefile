@@ -1,5 +1,5 @@
 ############################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,6 +55,7 @@ BASIC_BUILD_APPS = \
 	crc \
 	cursor \
 	desktop \
+	dolby_ms12_cert\
 	dual_transcode \
 	encode_display \
 	encode_graphics_as_video \
@@ -94,6 +95,7 @@ CUSTOM_BUILD_APPS = \
 
 # not built by default
 MANUAL_APPS = switched_decode
+
 
 APPS = $(BASIC_BUILD_APPS) $(CUSTOM_BUILD_APPS)
 
