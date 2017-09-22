@@ -540,7 +540,11 @@ ErrorExit:
 
         if (drm_common_tl_initialized)
         {
-            DRM_Common_TL_Finalize();
+#ifdef USE_UNIFIED_COMMON_DRM
+           DRM_Common_TL_Finalize();
+#else
+           DRM_Common_TL_Finalize_TA(Common_Platform_Widevine);
+#endif
         }
     }
 
