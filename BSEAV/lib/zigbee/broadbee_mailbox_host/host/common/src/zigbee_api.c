@@ -41,6 +41,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <syslog.h>
 //#include "zigbee_types.h"
 #include "bbMailService.h"
 #include "bbMailAPI.h"
@@ -83,6 +84,8 @@
     zigbee_api_rf4ce_cb_t zigbee_api_rf4ce_cb[MAX_SOCKETS];
     zigbee_api_cb_Req_t   zigbee_api_req_cb[MAX_SOCKETS];
 #endif
+
+#define printf(fmt, ...)  syslog(LOG_INFO, fmt, ##__VA_ARGS__)
 
 bool is_rpc_mode;
 
@@ -788,6 +791,7 @@ CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_CTRL_GET_DIAGNOSTIC_FID, RF4CE_Get_Diag
 
 CREATE_SERVER_INDICATION_API_FUNCTION(SYS_EVENT_NOTIFY_FID, SYS_EventNtfy, SYS_EventNotifyParams_t, NoAppropriateType_t, RPC_S2C_SYS_EVENTNTFY)
 
+#ifdef _ZBPRO_
 /* NWK staff */
 CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_NWK_REQ_PERMIT_JOINING_FID, ZBPRO_NWK_PermitJoiningReq, ZBPRO_NWK_PermitJoiningReqDescr_t, ZBPRO_NWK_PermitJoiningConfParams_t, RPC_C2S_ZBPRO_NWK_PermitJoiningReq)
 CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_NWK_REQ_LEAVE_FID, ZBPRO_NWK_LeaveReq, ZBPRO_NWK_LeaveReqDescr_t, ZBPRO_NWK_LeaveConfParams_t, RPC_C2S_ZBPRO_NWK_LeaveReq)
@@ -922,6 +926,11 @@ CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZHA_CIE_SET_PANEL_STATUS_REQ_FID, ZBPRO
 CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZHA_CIE_ZONE_SET_BYPASS_STATE_REQ_FID, ZBPRO_ZHA_CieZoneSetBypassStateReq, ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t, ZBPRO_ZHA_CieZoneSetBypassStateConfParams_t, RPC_C2S_ZBPRO_ZHA_CieZoneSetBypassStateReq)
 CREATE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZHA_CIE_SET_PANEL_STATUS_IND_FID, ZBPRO_ZHA_CieDeviceSetPanelStatusInd, ZBPRO_ZHA_CieSetPanelStatusIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZHA_CieDeviceSetPanelStatusInd)
 /* end of ZCL staff */
+#endif
+
+/* PHY test command line interface */
+CREATE_SERVER_REQUEST_API_FUNCTION(UART_SEND_FID,    Mail_UartSendReq,   Mail_UartSendReqDescr_t,           Mail_UartSendConfParams_t, RPC_C2S_Mail_UartSendReq)
+CREATE_SERVER_INDICATION_API_FUNCTION(UART_RECV_FID, Mail_UartRecvInd,   Mail_UartRecvIndDescr_t,           Mail_UartRecvRespParams_t, RPC_C2S_Mail_UartRecvInd)
 
 #else
 #include "zigbee.h"
@@ -1288,6 +1297,11 @@ CREATE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZHA_CIE_SET_PANEL_STATUS_IND_FID, ZB
 /* End of ZCL staff */
 
 #endif  // _ZBPRO_
+
+/* PHY test command line interface */
+CREATE_CLIENT_REQUEST_API_FUNCTION(UART_SEND_FID, Mail_UartSendReq,      Mail_UartSendReqDescr_t,          Mail_UartSendConfParams_t, RPC_C2S_Mail_UartSendReq)
+
+CREATE_CLIENT_INDICATION_API_FUNCTION(UART_RECV_FID, Mail_UartRecvInd,   Mail_UartRecvIndDescr_t,          Mail_UartRecvRespParams_t, RPC_C2S_Mail_UartRecvInd)
 
 #endif  // SERVER
 
@@ -1695,8 +1709,14 @@ void server_RF4CE_ZRC2_CheckValidationResp(unsigned int *buf, int socket)
 {
     RF4CE_ZRC2_CheckValidationRespDescr_t request = {0};
     memcpy((char*)&request, &buf[1], sizeof(RF4CE_ZRC2_CheckValidationRespDescr_t));
-    RF4CE_ZRC2_CheckValidationResp_Call(&request);
+    RF4CE_ZRC2_CheckValidationResp_Call((RF4CE_ZRC2_CheckValidationRespParams_t*)&request);
 }
+
+void RF4CE_ZRC2_CheckValidationResp(RF4CE_ZRC2_CheckValidationRespDescr_t *request)
+{
+    RF4CE_ZRC2_CheckValidationResp_Call((RF4CE_ZRC2_CheckValidationRespParams_t*)&request);
+}
+
 #endif  // USE_RF4CE_PROFILE_ZRC2
 
 
@@ -1750,6 +1770,7 @@ void ZBPRO_MAC_GetReq(MAC_GetReqDescr_t *request)
     request->callback(&clientRequestData, &retConf);
 }
 
+#ifdef _ZBPRO_
 void server_ZBPRO_MAC_GetReq(unsigned int *buf, int socket)
 {
     MAC_GetReqDescr_t request;
@@ -1837,6 +1858,7 @@ void server_ZBPRO_APS_EndpointUnregisterReq(unsigned int *buf, int socket)
     }else
         list_add(&info->list, &serverPendingRequestListHeader);
 }
+#endif
 
 //CREATE_SERVER_REQUEST_API_FUNCTION(TE_RESET_FID, Mail_TestEngineReset, TE_ResetCommandReqDescr_t, NoAppropriateType_t, RPC_S2C_Mail_TestEngineReset)
 /* This macro can be moved to zigbee_api_server.c */

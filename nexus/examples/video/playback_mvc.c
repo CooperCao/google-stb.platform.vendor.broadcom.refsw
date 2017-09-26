@@ -279,11 +279,7 @@ int main(int argc, const char *argv[])  {
     NEXUS_FilePlay_Close(file);
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);
-    NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(videoDecoder));
     NEXUS_VideoDecoder_Close(videoDecoder);
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     NEXUS_AudioDecoder_Close(audioDecoder);
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);

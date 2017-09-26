@@ -99,6 +99,7 @@ typedef struct zigbeeCallback {
     void (*RF4CE_ZRC1_VendorSpecificInd)(RF4CE_ZRC1_VendorSpecificIndParams_t *indication);
 #endif  // _RF4CE_
     void (*SYS_EventNtfy)(SYS_EventNotifyParams_t *event);
+    void (*Mail_UartRecvInd)(Mail_UartRecvIndDescr_t *indication);
 #ifdef _ZBPRO_
     void (*ZBPRO_ZDO_MgmtNwkUpdateUnsolInd)(ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t *indication);
     void (*ZBPRO_ZDO_DeviceAnnceInd)(ZBPRO_ZDO_DeviceAnnceIndParams_t *indication);
@@ -154,6 +155,10 @@ typedef struct zigbeeCallback {
 #ifdef SERVER
 
 void rf4ce_ZRC2_Set_Default_Check_Validation_Period(uint8_t pairingRef);
+
+DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_TestEngineReset, TE_ResetCommandReqDescr_t, NoAppropriateType_t)
+
+DECLARE_SERVER_INDICATION_API_FUNCTION(SYS_EventNtfy, SYS_EventNotifyParams_t, NoAppropriateType_t)
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(Get_FW_Rev_Req, Get_FW_Rev_ReqDescr_t, Get_FW_Rev_ConfParams_t)
 
@@ -260,9 +265,8 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_Get_Diag_Req, RF4CE_Diag_ReqDescr_t, R
 
 #endif  // _PHY_TEST_HOST_INTERFACE_
 
-DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_TestEngineReset, TE_ResetCommandReqDescr_t, NoAppropriateType_t)
 
-DECLARE_SERVER_INDICATION_API_FUNCTION(SYS_EventNtfy, SYS_EventNotifyParams_t, NoAppropriateType_t)
+#ifdef _ZBPRO_
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_NWK_PermitJoiningReq, ZBPRO_NWK_PermitJoiningReqDescr_t, ZBPRO_NWK_PermitJoiningConfParams_t)
 
@@ -505,6 +509,12 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZHA_CieDeviceSetPanelStatusReq, ZBPRO_
 DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZHA_CieZoneSetBypassStateReq, ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t, ZBPRO_ZHA_CieZoneSetBypassStateConfParams_t)
 
 DECLARE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZHA_CieDeviceSetPanelStatusInd, ZBPRO_ZHA_CieSetPanelStatusIndParams_t, NoAppropriateType_t)
+
+#endif
+
+DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_UartSendReq,   Mail_UartSendReqDescr_t,           Mail_UartSendConfParams_t)
+
+DECLARE_SERVER_INDICATION_API_FUNCTION(Mail_UartRecvInd,   Mail_UartRecvIndDescr_t,          Mail_UartRecvRespParams_t)
 
 #else   // SERVER
 
@@ -853,6 +863,10 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZHA_CieZoneSetBypassStateReq, ZBPRO_ZH
 DECLARE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZHA_CieDeviceSetPanelStatusInd, ZBPRO_ZHA_CieSetPanelStatusIndParams_t, NoAppropriateType_t)
 
 #endif  // _ZBPRO_
+
+DECLARE_CLIENT_REQUEST_API_FUNCTION(Mail_UartSendReq,   Mail_UartSendReqDescr_t,           Mail_UartSendConfParams_t)
+
+DECLARE_CLIENT_INDICATION_API_FUNCTION(Mail_UartRecvInd,   Mail_UartRecvIndDescr_t,          Mail_UartRecvRespParams_t)
 
 #endif // SERVER
 

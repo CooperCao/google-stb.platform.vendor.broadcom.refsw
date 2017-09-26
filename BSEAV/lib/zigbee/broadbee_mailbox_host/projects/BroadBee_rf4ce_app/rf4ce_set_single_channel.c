@@ -68,9 +68,6 @@ int main(int argc, char *argv[])
     sscanf(argv[1], "%d", &channel);
     BroadBee_RF4CE_Set_Base_Channel((uint8_t)channel);
 
-    printf("\nPress any key to exist\n");
-    getchar();
-
     printf("Completed 'rf4ce_set_single_channel' application successfully.\n");
     Zigbee_Close();
 

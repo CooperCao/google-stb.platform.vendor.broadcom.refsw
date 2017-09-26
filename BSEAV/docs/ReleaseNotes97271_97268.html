@@ -20,15 +20,15 @@ Release (URSR) Release Notes</title>
   <o:LastAuthor>Manan Patel</o:LastAuthor>
   <o:Revision>3</o:Revision>
   <o:TotalTime>0</o:TotalTime>
-  <o:Created>2017-08-18T21:48:00Z</o:Created>
-  <o:LastSaved>2017-08-18T21:48:00Z</o:LastSaved>
+  <o:Created>2017-09-21T18:50:00Z</o:Created>
+  <o:LastSaved>2017-09-21T18:50:00Z</o:LastSaved>
   <o:Pages>5</o:Pages>
-  <o:Words>1960</o:Words>
-  <o:Characters>11283</o:Characters>
+  <o:Words>1916</o:Words>
+  <o:Characters>11033</o:Characters>
   <o:Company>LSI Corporation</o:Company>
-  <o:Lines>94</o:Lines>
-  <o:Paragraphs>26</o:Paragraphs>
-  <o:CharactersWithSpaces>13217</o:CharactersWithSpaces>
+  <o:Lines>91</o:Lines>
+  <o:Paragraphs>25</o:Paragraphs>
+  <o:CharactersWithSpaces>12924</o:CharactersWithSpaces>
   <o:Version>14.00</o:Version>
  </o:DocumentProperties>
 </xml><![endif]-->
@@ -2939,7 +2939,7 @@ Unified Reference Software Release Notes</strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>August 19, 2017</p>
+<p>September 12, 2017</p>
 
 <p>Phase 17.3 Release </p>
 
@@ -3018,8 +3018,8 @@ boards</span></b><span style='mso-fareast-font-family:"Times New Roman"'> <o:p><
 
 <p class=MsoNormal><a name="software_deliverables"><span style='color:red'>The
 B0 versions of the 7268/71 include a new revision of the video decoder hardware
-which has dropped support for &#8221;legacy&#8221; video codecs. The supported
-video codecs can be found in the feature list at the end of this document. <o:p></o:p></span></a></p>
+which has dropped support for &#8221;legacy&#8221; video codecs. The supported video
+codecs can be found in the feature list at the end of this document. <o:p></o:p></span></a></p>
 
 <p><span style='mso-bookmark:software_deliverables'><span style='mso-fareast-font-family:
 "Times New Roman";color:red'>The 7268 and 7271 contain a 64 bit ARM CPU. The
@@ -3249,8 +3249,8 @@ style='color:#0070C0'>new HTML table</span></a>.<o:p></o:p></span></strong></b><
 
 <p class=MsoNormal><b><span style='mso-fareast-font-family:"Times New Roman";
 color:#0070C0'><br>
-</span></b><strong><span style='mso-fareast-font-family:"Times New Roman"'>The table
-below contains information about the temporary box modes. </span></strong><span
+</span></b><strong><span style='mso-fareast-font-family:"Times New Roman"'>The
+table below contains information about the temporary box modes. </span></strong><span
 style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
 
 <table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="96%"
@@ -3327,99 +3327,154 @@ driver.</p>
 style='font-family:Symbol;mso-fareast-font-family:Symbol;mso-bidi-font-family:
 Symbol'><span style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span></span><![endif]>This release includes WIFI driver version <b
-style='mso-bidi-font-weight:normal'>STB7271_REL_15_10_120</b>. Since last
-release (URSR 17.1) following is the high level summary&nbsp;of the changes in
-the driver. </p>
+style='mso-bidi-font-weight:normal'>STB7271_REL_15_20_19</b>.<span
+style='mso-spacerun:yes'>&nbsp; </span>Here are the high level changes from <b
+style='mso-bidi-font-weight:normal'>15.10.120</b>( Last released driver in
+URSR17.2) to <b style='mso-bidi-font-weight:normal'>15.20.19</b>:</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-interference mode 25 (aka, ACI preemption)</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Single
+release for both external and <span class=SpellE>mfgtest</span></p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added
-dedicated country codes and <span class=SpellE>clm</span> for 7271.</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Reduced
+loadable driver size</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added <span
-class=SpellE>stbap</span> applications</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+<span class=SpellE>coverity</span> issues</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-for BT-<span class=SpellE>Coex</span> 3 wires</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Improved
+DFS detection</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-for DFS slave and master</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Added
+<span class=SpellE>Tempsense</span> <span class=SpellE>Tx</span> throttle
+modified to 4-3-2-1 sequence</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-for WOWL that does not require driver <span class=GramE>reload</span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+64-bits issues</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-for WOWL to wake up base on <span class=SpellE>mDNS</span> packet</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+LESI <span class=SpellE>desense</span> issue.</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-for WOWL key rotation</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+kernel panics</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-for WDS (aka repeater mode)</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+TLDS issues</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Added support
-for 802.11r, 802.11v, 802.11k.</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Enabled
+FBT for AP</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Improved ACI
-performance</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+incorrect PHY classification of 20in80 as 40in80</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Improved <span
-class=SpellE>vsdb</span> channel switch time</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span
+class=SpellE><span class=GramE>phy_tempsense</span></span> accuracy was
+corrected.</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Reduced
-driver's memory footprint</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Improved
+PHY classification of 20in80 as 40in80</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved
-multiple P2P cert and feature issues</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Enabled
+<span class=SpellE>Tx</span> flow control at <span class=SpellE>wl</span> layer</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved
-multiple TDLS cert and feature issues</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Added
+new NVRAM file for new VC4L board</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved
-WMM-PS cert issues</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Updated
+existing NVRAM files</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved 11n
-&amp; 11AC cert issues</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+64-bit build issues</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved <span
-class=SpellE>Inband</span> blocker that degrades sensitivity</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+vulnerability report from <span class=SpellE>GPZero</span> in Fast BSS
+Transition</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved many <span
-class=SpellE>coverity</span> issues</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Added
+boundary check for <span class=SpellE>escan</span> buffer and <span
+class=SpellE>wl_notify_rx_mgmt_frame</span></p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved Google
-security issues</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+issue to prevent from STA disconnect</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved stack
-overflows</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+<span class=SpellE>coverity</span> issues</p>
 
-<p class=MsoNormal style='margin-left:.5in;text-indent:3.35pt'>- Resolved
-driver crashes</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Improved
+ACI performance</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved many
-mesh related fixes</p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l10 level2 lfo5'><![if !supportLists]><span style='font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]>Resolved
+<span class=SpellE>gtk</span> processing for buffer overrun issue</p>
 
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'>- Resolved
-interop issues with other vendor Aps</p>
-
-<p class=MsoPlainText style='text-indent:.5in'><span
-style='mso-spacerun:yes'>&nbsp;</span><span style='font-size:12.0pt;font-family:
-"Times New Roman","serif"'>- Added new country codes for 7271-based designs<o:p></o:p></span></p>
-
-<p class=MsoPlainText style='margin-left:.5in'><span style='font-size:12.0pt;
-font-family:"Times New Roman","serif"'><span
-style='mso-spacerun:yes'>&nbsp;</span>- Improved interference mode 25
-performance<o:p></o:p></span></p>
-
-<p class=MsoPlainText style='text-indent:.5in'><span style='font-size:12.0pt;
-font-family:"Times New Roman","serif"'><span
-style='mso-spacerun:yes'>&nbsp;</span>- Added support for bi-directional use
-case. (Disabled by default)<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:3.35pt;text-indent:.5in'><o:p>&nbsp;</o:p></p>
-
-<p class=MsoListParagraph style='margin-left:39.35pt'><o:p>&nbsp;</o:p></p>
+<p class=MsoListParagraph style='margin-left:1.0in'><o:p>&nbsp;</o:p></p>
 
 <p class=MsoNormal><strong>Instructions to build nexus playback utility and use
 it to decode and display a UHD stream </strong></p>
@@ -3427,7 +3482,7 @@ it to decode and display a UHD stream </strong></p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l6 level1 lfo6;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar <span
-     class=SpellE>xvfz</span> refsw_release_97271_20170819.src.tgz <o:p></o:p></span></li>
+     class=SpellE>xvfz</span> refsw_release_97271_20170912.src.tgz <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l6 level1 lfo6;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>#cd nexus/<span
      class=SpellE>utils</span> <o:p></o:p></span></li>
@@ -3456,7 +3511,7 @@ stream </b></p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l23 level1 lfo8;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar <span
-     class=SpellE>xvfz</span> refsw_release_97271_20170819.src.tgz<o:p></o:p></span></li>
+     class=SpellE>xvfz</span> refsw_release_97271_20170912.src.tgz<o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l23 level1 lfo8;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>#cd
      BSEAV/app/atlas/build <o:p></o:p></span></li>
@@ -3483,8 +3538,8 @@ stream </b></p>
  <li class=MsoNormal style='mso-list:l16 level1 lfo10;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>#start atlas <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l16 level1 lfo10;tab-stops:list .5in'><span
-     style='mso-fareast-font-family:"Times New Roman"'>From the menu, select Playback
-     -&gt; 4kp60 stream. <o:p></o:p></span></li>
+     style='mso-fareast-font-family:"Times New Roman"'>From the menu, select
+     Playback -&gt; 4kp60 stream. <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l16 level1 lfo10;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>Using the remote control
      for the board, select Menu -&gt; Display -&gt; Format -&gt; 2160p 60Hz.
@@ -3520,16 +3575,15 @@ style='mso-bookmark:known_bugs'></span><br>
  <tr style='mso-yfti-irow:1'>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <h1><span style='font-size:12.0pt;font-weight:normal;mso-bidi-font-weight:
-  bold'>&nbsp;Occasional <span class=SpellE>security_master</span> resets seen
-  with 7271B0<o:p></o:p></span></h1>
+  bold'>HDCP 2.2 repeater tests not passed in <span class=SpellE>multiprocess</span><o:p></o:p></span></h1>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>&nbsp;SWSTB-5620</p>
+  auto;text-align:center'>SWSTB-5570</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>SECURITY</p>
+  auto;text-align:center'>HDCP</p>
   </td>
  </tr>
  <tr style='mso-yfti-irow:2'>
@@ -4139,9 +4193,9 @@ this release.</p>
      "Times New Roman"'>Copy Protection - (CGMS-A, DCS)<o:p></o:p></span></li>
  <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
      mso-list:l0 level1 lfo30;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Data Re-encoding and Rendering - (AMOL I/II, ANSI/SCTE
-     20/21, CEA-608 (Analog Closed Captioning for RF, composite, S-video and
-     480i component signals), CEA-708 (Digital Closed Captioning), CEA-805 (for
+     "Times New Roman"'>Data Re-encoding and Rendering - (AMOL I/II, ANSI/SCTE 20/21,
+     CEA-608 (Analog Closed Captioning for RF, composite, S-video and 480i
+     component signals), CEA-708 (Digital Closed Captioning), CEA-805 (for
      480p, 720p and 1080i component signals), ETSI EN 300 743, Gemstar, NABTS
      (Teletext), Nielsen, TVGuide, WSS/VPS (ETS 300 294))<o:p></o:p></span></li>
 </ul>

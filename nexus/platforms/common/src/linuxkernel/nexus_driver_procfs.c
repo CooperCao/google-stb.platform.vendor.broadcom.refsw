@@ -183,6 +183,7 @@ static ssize_t brcm_proc_debug_read(struct file *fp,char *buf,size_t bufsize, lo
 #define BRCM_PROC_DEBUG_CACHESIZE (3*4096)
         char *buffer;
         int len;
+        struct file *fp;
     } cache = {NULL,0};
 
     if (*offp == 0) {
@@ -190,7 +191,12 @@ static ssize_t brcm_proc_debug_read(struct file *fp,char *buf,size_t bufsize, lo
             cache.buffer = BKNI_Malloc(BRCM_PROC_DEBUG_CACHESIZE);
             if (!cache.buffer) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return -1;}
         }
+        cache.fp = fp;
         brcm_bdbg_fetch_state(cache.buffer, &cache.len, BRCM_PROC_DEBUG_CACHESIZE);
+    }
+    if (cache.fp != fp) {
+        /* multiple reads from /proc/brcm/debug are not supported */
+        return -EIO;
     }
 
     if (!cache.buffer) return -1;

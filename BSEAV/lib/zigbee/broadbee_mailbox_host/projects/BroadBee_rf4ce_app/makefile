@@ -67,7 +67,7 @@ CFLAGS += -g -I.
 #ifeq ($(BYPASS_RPC),y)
 #EXES = rf4ce_reset_and_pair_app
 #else
-#EXES = rf4ce_reset_app rf4ce_pair_app rf4ce_reset_and_pair_app rf4ce_unpair_app rf4ce_set_fa_threshold_app rf4ce_get_fa_threshold_app rf4ce_set_discovery_lqi_threshold_app zr2_pair_app
+#EXES = rf4ce_reset_app rf4ce_pair_app rf4ce_reset_and_pair_app rf4ce_unpair_app rf4ce_set_fa_threshold_app rf4ce_get_fa_threshold_app rf4ce_set_discovery_lqi_threshold_app zrc2_pair_app
 #endif
 
 OBJDIR = obj.$(NEXUS_PLATFORM)
@@ -88,6 +88,9 @@ endif
 
 COMMON_OBJS += \
 	$(OBJDIR)/zigbee_dbg.o
+
+COMMON_OBJS += \
+	$(OBJDIR)/rf4ce_common.o
 
 RF4CE_GET_FW_REV_OBJS = \
 	$(OBJDIR)/rf4ce_get_fw_rev.o \
@@ -126,12 +129,16 @@ RF4CE_PHY_TEST_OBJS = \
 	$(OBJDIR)/bbRF4CEPMProfiles.o \
 	$(COMMON_OBJS)
 
-ZRC2_PAIR_OBJS = \
-	$(OBJDIR)/zrc2_pair.o \
-	$(COMMON_OBJS)
-
 RF4CE_SET_CHANNEL_OBJS = \
 	$(OBJDIR)/rf4ce_set_single_channel.o \
+	$(COMMON_OBJS)
+
+PHY_TEST_OBJS = \
+	$(OBJDIR)/phy_test.o \
+	$(COMMON_OBJS)
+
+ZRC2_PAIR_OBJS = \
+	$(OBJDIR)/zrc2_pair.o \
 	$(COMMON_OBJS)
 
 ##########################################################################################
@@ -159,48 +166,43 @@ C99_FLAGS += -fshort-enums
 
 PRJ_FLAGS += _HOST_           # Build for Broadcom STB host.
 PRJ_FLAGS += __i386__
-
-	_DEBUG_HARNESSLOG_=2 \
-	_DEBUG_FILELINE_ \
-	_MAILBOX_WRAPPERS_TEST_ENGINE_=1 \
-	_MAILBOX_WRAPPERS_MAC_=1 \
-	_MAILBOX_WRAPPERS_NWK_=1 \
-	_MAILBOX_WRAPPERS_PROFILE_=2 \
-	_MAILBOX_INTERFACE_=1 \
-	_RF4CE_ \
-	RF4CE_TARGET \
-	USE_RF4CE_PROFILE_ZRC1 \
-	_ZBPRO_ \
-	_MAC_BAN_TABLE_SIZE_=1
-
-PRJ_FLAGS += CLIENT
 PRJ_FLAGS += MAILBOX_UNIT_TEST
+PRJ_FLAGS += _MAILBOX_WRAPPERS_TEST_ENGINE_=1
 PRJ_FLAGS += _DEBUG_
 PRJ_FLAGS += _DEBUG_COMPLEX_
 PRJ_FLAGS += _DEBUG_LOG_
-PRJ_FLAGS += _RF4CE_
-PRJ_FLAGS += RF4CE_TARGET
-PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC=1
-PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC1
-PRJ_FLAGS += _DEBUG_CONSOLELOG_=2
 PRJ_FLAGS += _DEBUG_FILELINE_
-PRJ_FLAGS += _MAILBOX_WRAPPERS_TEST_ENGINE_=1
 PRJ_FLAGS += _MAILBOX_WRAPPERS_MAC_=1
 PRJ_FLAGS += _MAILBOX_WRAPPERS_NWK_=1
 PRJ_FLAGS += _MAILBOX_WRAPPERS_PROFILE_=2
 PRJ_FLAGS += _MAILBOX_INTERFACE_=1
-PRJ_FLAGS += _MAC_BAN_TABLE_SIZE_=1
+PRJ_FLAGS += _RF4CE_
+PRJ_FLAGS += RF4CE_TARGET
+PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC=1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC1
 PRJ_FLAGS += USE_RF4CE_PROFILE_GDP=1
+PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC2
+PRJ_FLAGS += _MAC_BAN_TABLE_SIZE_=1
 PRJ_FLAGS += _PHY_TEST_HOST_INTERFACE_
+PRJ_FLAGS += _USE_ASYNC_UART_
 
 ifeq ($(BYPASS_RPC),y)
 PRJ_FLAGS += BYPASS_RPC
 endif
 
-__PRJ_FLAGS = $(addprefix -D, $(PRJ_FLAGS))
+CLIENT_PRJ_FLAGS = $(PRJ_FLAGS)
+CLIENT_PRJ_FLAGS += CLIENT
+CLIENT_PRJ_FLAGS += _DEBUG_CONSOLELOG_=2
+
+SERVER_PRJ_FLAGS = $(PRJ_FLAGS)
+SERVER_PRJ_FLAGS += SERVER
+SERVER_PRJ_FLAGS += _DEBUG_HARNESSLOG_=2
+
+__PRJ_FLAGS = $(addprefix -D, $(CLIENT_PRJ_FLAGS))
 __PRJ_INCS  = $(addprefix -I, $(INC_PATHS))
+
+__SERVER_PRJ_FLAGS = $(addprefix -D, $(SERVER_PRJ_FLAGS))
 
 CFLAGS += $(__PRJ_INCS) $(C99_FLAGS) $(__PRJ_FLAGS)
 
@@ -208,22 +210,27 @@ CFLAGS += $(__PRJ_INCS) $(C99_FLAGS) $(__PRJ_FLAGS)
 LDFLAGS += -std=gnu99
 LDFLAGS += -g -Xlinker --no-enum-size-warning
 ifeq ($(BYPASS_RPC),y)
-LDFLAGS += -L../obj.$(NEXUS_PLATFORM) -L../rf4ce_registration -lzigbee -lsqlite3
+LDFLAGS += -L../BroadBee_mailboxHost/obj.$(NEXUS_PLATFORM) -L../../host/rf4ce_registration -lzigbee -lsqlite3
 endif
 
-all:   prebuild $(OBJDIR)
+all:   prebuild $(OBJDIR) zigbee_lib
 ifeq ($(BYPASS_RPC),y)
-	@$(MAKE) $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/rf4ce_reset_and_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_phy_test_app $(OBJDIR)/rf4ce_get_fw_rev_app $(OBJDIR)/rf4ce_set_channel_app
+	@$(MAKE) $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/rf4ce_reset_and_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_phy_test_app $(OBJDIR)/rf4ce_get_fw_rev_app $(OBJDIR)/rf4ce_set_channel_app $(OBJDIR)/phy_test_app
 else
-	@$(MAKE) $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/rf4ce_reset_and_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_phy_test_app $(OBJDIR)/rf4ce_get_fw_rev_app $(OBJDIR)/zrc2_pair_app $(OBJDIR)/rf4ce_set_channel_app
+	@$(MAKE) $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/rf4ce_reset_and_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_phy_test_app $(OBJDIR)/rf4ce_get_fw_rev_app $(OBJDIR)/rf4ce_set_channel_app $(OBJDIR)/phy_test_app $(OBJDIR)/zrc2_pair_app
 endif
 
 #	$(LD) $(OBJS) -lpthread
+
+
+zigbee_lib:
+	$(SILENT)make "CDEFSFLAGS=$(__SERVER_PRJ_FLAGS)" -C ../BroadBee_mailboxHost
 
 clean:
 	$(SILENT)rm -rf $(OBJDIR)
 	$(SILENT)rm -rf ./bbMailService.c
 	$(SILENT)rm -rf ./obj.$(NEXUS_PLATFORM)
+	make -C ../BroadBee_mailboxHost clean
 
 $(OBJDIR)/rf4ce_get_fw_rev_app: $(RF4CE_GET_FW_REV_OBJS)
 	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
@@ -252,10 +259,13 @@ $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app: $(RF4CE_SET_DISCOVERY_LQI_THRES
 $(OBJDIR)/rf4ce_phy_test_app: $(RF4CE_PHY_TEST_OBJS)
 	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
-$(OBJDIR)/zrc2_pair_app: $(ZRC2_PAIR_OBJS)
+$(OBJDIR)/rf4ce_set_channel_app: $(RF4CE_SET_CHANNEL_OBJS)
 	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
-$(OBJDIR)/rf4ce_set_channel_app: $(RF4CE_SET_CHANNEL_OBJS)
+$(OBJDIR)/phy_test_app: $(PHY_TEST_OBJS)
+	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
+$(OBJDIR)/zrc2_pair_app: $(ZRC2_PAIR_OBJS)
 	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
 prebuild:
@@ -267,6 +277,7 @@ prebuild:
 	@echo "void mailClientInit() {}" >> $(PRJ_PATH)/bbMailService.c
 	@echo "void mailServerInit() {}" >> $(PRJ_PATH)/bbMailService.c
 	@echo "void mailAdapterInit() {}" >> $(PRJ_PATH)/bbMailService.c
+	@echo "void mailAdapterDeinit() {}" >> $(PRJ_PATH)/bbMailService.c
 	@echo "void Mail_TestEngineSendHello() {}" >> $(PRJ_PATH)/bbMailService.c
 	@echo "void mailClientSerialize(const uint16_t fId, uint8_t *const req) {}" >> $(PRJ_PATH)/bbMailService.c
 	@echo "MailPendingAPICall_t *mailClientFindEmptyPendingTableEntry(void) { return NULL; }" >> $(PRJ_PATH)/bbMailService.c

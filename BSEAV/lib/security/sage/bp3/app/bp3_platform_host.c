@@ -44,6 +44,12 @@
 #include "bp3_platform_host.h"
 #include "bp3_module_host.h"
 #include "bp3_platform_ids.h"
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#include "bsagelib_types.h"
+#include "sage_srai.h"
+#include "bdbg.h"
+#endif
 
 BDBG_MODULE(bp3_platform_host);
 
@@ -82,6 +88,20 @@ int SAGE_BP3Platform_Init(void)
     BERR_Code sage_rc;
     BSAGElib_State state;
     int rc = 0;
+
+#ifdef NXCLIENT_SUPPORT
+    SRAI_Settings appSettings;
+
+    /* Get Current Settings */
+    SRAI_GetSettings(&appSettings);
+
+    /* Customize appSettings, for example if designed to use NxClient API */
+    appSettings.generalHeapIndex     = NXCLIENT_FULL_HEAP;
+    appSettings.videoSecureHeapIndex = NXCLIENT_VIDEO_SECURE_HEAP;
+
+    /* Save/Apply new settings */
+    SRAI_SetSettings(&appSettings);
+#endif
 
     /* Open the platform first */
     sage_rc = SRAI_Platform_Open(SAGE_PLATFORM_ID_BP3,

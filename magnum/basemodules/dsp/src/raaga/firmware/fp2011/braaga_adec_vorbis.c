@@ -3052,7 +3052,7 @@ const uint32_t BDSP_IMG_vorbis_decode_array1[] = {
 	0x1b5f8047,
 	0x1b5fc589,
 	0xd9c81b50,
-	0xd9601b30,
+	0xd9681b30,
 	0xd8d01b70,
 	0xd8601b90,
 	0x943b4b07,

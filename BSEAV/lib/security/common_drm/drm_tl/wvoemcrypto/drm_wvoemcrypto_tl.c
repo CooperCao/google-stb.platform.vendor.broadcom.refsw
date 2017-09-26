@@ -355,6 +355,8 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     DrmRC rc = Drm_Success;
     BSAGElib_InOutContainer *container = NULL;
     time_t current_time = 0;
+    bool drm_common_tl_initialized = false;
+    bool drm_common_tl_module_initialized= false;
 
     BDBG_ENTER(DRM_WVOemCrypto_Initialize);
 
@@ -376,6 +378,10 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
+    }
+    else
+    {
+        drm_common_tl_initialized = true;
     }
 
     container = SRAI_Container_Allocate();
@@ -450,6 +456,10 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
+    }
+    else
+    {
+        drm_common_tl_module_initialized = true;
     }
 
     /* Obtain supported key slot cache mode */
@@ -550,6 +560,24 @@ ErrorExit:
         {
             SRAI_Memory_Free(gWVUsageTable);
             gWVUsageTable = NULL;
+        }
+
+        if (drm_common_tl_module_initialized)
+        {
+#ifdef USE_UNIFIED_COMMON_DRM
+           (void)DRM_Common_TL_ModuleFinalize(gmoduleHandle);
+#else
+           (void)DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gmoduleHandle);
+#endif
+        }
+
+        if (drm_common_tl_initialized)
+        {
+#ifdef USE_UNIFIED_COMMON_DRM
+           DRM_Common_TL_Finalize();
+#else
+           DRM_Common_TL_Finalize_TA(Common_Platform_Widevine);
+#endif
         }
     }
 
@@ -736,6 +764,15 @@ ErrorExit:
 
     if (gWvEncDmaBlockInfoList[session].non_sec_src != NULL)
     {
+        for(i = 0; i < MAX_SG_DMA_BLOCKS; i++)
+        {
+            if(gWvEncDmaBlockInfoList[session].non_sec_src[i] != NULL)
+            {
+                SRAI_Memory_Free(gWvEncDmaBlockInfoList[session].non_sec_src[i]);
+                gWvEncDmaBlockInfoList[session].non_sec_src[i] = NULL;
+            }
+        }
+
         BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_src));
         gWvEncDmaBlockInfoList[session].non_sec_src = NULL;
     }
@@ -2880,6 +2917,11 @@ static DrmRC drm_WVOemCrypto_P_DecryptDMA_SG(uint8_t *data_addr,
 
         if (!secure)
         {
+            if(ppNonSecSrc[dmaBlockIdx] != NULL)
+            {
+                /* Free previous memory if somehow it was not freed prior */
+                SRAI_Memory_Free(ppNonSecSrc[dmaBlockIdx]);
+            }
             ppNonSecSrc[dmaBlockIdx] = pDecryptBuf;
             ppNonSecDst[dmaBlockIdx] = out_addr;
             pNonSecLen[dmaBlockIdx] = data_length;

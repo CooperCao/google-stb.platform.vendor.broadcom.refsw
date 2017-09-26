@@ -143,16 +143,10 @@ ul
 
 <h1 style='margin-left:15.0pt'><span style='font-size:12.0pt'>Index</span></h1>
 
-<p style='margin-left:15.0pt'><a href="#features">Features</a></p>
-
-<p style='margin-left:15.0pt'><a href="#features_future">Features in Next
-Release</a></p>
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#features"><span
+style='color:#0070C0'>Features</span></a></span></p>
 
 <p style='margin-left:15.0pt'><a href="#where_to_start">Where to Start</a></p>
-
-<p style='margin-left:15.0pt'><a href="#known_bugs">Known Issues</a> </p>
-
-<p style='margin-left:15.0pt'><a href="#bugs_fixed">Bugs Fixed</a></p>
 
 <div>
 
@@ -165,7 +159,7 @@ Reference Software Release</strong></a></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>August 19, 2017</p>
+<p>September 22, 2017</p>
 
 <p>Phase 17.3 Engineering Release </p>
 
@@ -187,31 +181,6 @@ Read Atlas_User_Guide.pdf for information on configuring the Linux environment
 on your Build Server and Set-Top, and information on building and installing
 Atlas as part of the Reference Software. </p>
 
-<p><strong>Important Note</strong></p>
-
-<p><span style='color:black'>Since URSR 14.1, the default remote for Atlas has
-changed from the big &#17;OneForAll&#18; remote, to the smaller
-&#17;Broadcom&#18; remote. To continue using the &#17;OneForAll&#18; remote,
-please uncomment the REMOTE_TYPE_PRIMARY entry in atlas.cfg, and set it
-appropriately.</span></p>
-
-<p><span style='color:black'>This release incorporates a new mechanism in the
-build system to download Open Source Software from the Internet during the
-build process, rather than using a copy distributed in the Reference Software
-source tarball. In this release, it is used for OpenSSL. In coming releases, it
-may be extended to other OSS packages. In order to share downloads among local
-developers, and to prevent excessive downloads, downloaded items are cached in
-a directory named by the build system variable B_REFSW_CACHE_DIR. The default
-for that directory is set to /projects/stbdev/open-source. To share downloads,
-either create that directory, or set B_REFSW_CACHE_DIR to another path
-accessible to all.</span></p>
-
-<p><strong>Linux Note</strong></p>
-
-<p><strong><span style='font-weight:normal'>HDD partition information given by
-&quot;fdisk -l&quot; may be inaccurate. &quot;gdisk -l&quot; will provide
-accurate information.</span></strong></p>
-
 <p><b>Boxmodes</b></p>
 
 <p class=MsoNormal>
@@ -225,9 +194,9 @@ accurate information.</span></strong></p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:314-1.14/vmlinuz-initrd-arm </li>
+     &lt;network_location&gt;:41-1.12/vmlinuz-initrd-arm </li>
  <li class=MsoNormal>Please note the following Ethernet port assignment for
-     different boards using BOLT 0.93. 97364SFF board has no built-in ports,
+     different boards using BOLT. 97364SFF board has no built-in ports,
      therefore you must use eth2 and a USB dongle.</li>
 </ul>
 
@@ -309,7 +278,7 @@ accurate information.</span></strong></p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal>BOLT&gt; flash -noheader
-     &lt;network_location&gt;::314-1.14/vmlinuz-initrd-arm flash1.rootfs0 </li>
+     &lt;network_location&gt;::41-1.12/vmlinuz-initrd-arm flash1.rootfs0 </li>
  <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot&nbsp;
      flash1.rootfs0&quot; </li>
  <li class=MsoNormal>BOLT&gt; reboot </li>
@@ -383,30 +352,18 @@ software. </p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p><a name="known_bugs"><strong>Known </strong></a><strong>Issues </strong><br>
-<a href="#top">(Top)</a> </p>
-
 <p><b><i>We have now disabled RFM by default in this release.</i></b></p>
 
-<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0>
- <tr>
-  <td width=360 style='width:215.7pt;background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='text-align:center'><strong>Description</strong></p>
-  </td>
-  <td width=360 style='width:3.0in;background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='text-align:center'><strong>Status</strong></p>
-  </td>
-  <td width=683 style='width:409.5pt;background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='text-align:center'><strong>Area of
-  concern</strong></p>
-  </td>
- </tr>
-</table>
-
-<p><strong><a name="features">Features in this Release</a></strong><br/><a href="#top">(Top)</a></p><p>All features listed in <span style="color:green">green</span> are new to this release.</p><p>Platforms Supported</p><ul><li>Board Support: BCM7364SV</li><li>Chip Rev Support: C0</li><li>Kernel Version: 4.1-1.12</li><li>Toolchain: stbgcc-4.8-1.6</li></ul><h4></h4><p>High Dynamic Range (HDR)</p><ul><li>HDR10/HLG/SDR (Pass-through only)</li></ul><p>Real-Time Transcode using Raaga DSP</p><ul><li>416x224@ 30 / 29.97 Hz, 800kbps</li><li>Concurrent A/V path on main display</li><li>H.264 Baseline 3.0 encoding</li></ul><p>Video Decoder</p><ul><li>Dual HD</li><li>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP, HP} @L4.2)</li><li>MPEG-1</li><li>MPEG-2 - (MP@{LL, ML, HL})</li><li>HD + SD</li><li>HEVC - ({MP} @L5.1 1080/60p)</li><li>DSS - DIRECTV TS</li><li>HW Still Image Decode - (JPEG, MJPEG)</li><li>Mosaic</li><li>Single MPEG2 I-frame Decode</li><li>Still Picture decoding (Live HD video, MPEG2 and AVC, with SD still)</li></ul><p>Audio Decoder</p><ul><li>AAC - (+, HE 5.1, HE 5.1 Low Power, HE Stereo, LC 5.1, LC Stereo, V1)</li><li>AC3 - (5.1, Stereo)</li><li>MPEG - (MPEG-2, MPEG-4, MPEG-I LI/LII/LIII)</li><li>Dolby - (DD, DDP to DD convert)</li><li>Dolby MS11</li><li>MP3 - (Stereo)</li><li>Dolby MS11 + 2nd Audio Decode Mixing - (AAC-HE 2.0 Channel, AAC-LC 2.0 Channel)</li><li>Dolby MS12 - (Config C, AC4 (A specific Box mode is required), Config A (A specific Box mode is required))</li></ul><p>Audio Post Process</p><ul><li>Dolby - (DDRE, DV-258)</li><li>PCM Mixing</li><li>Karaoke support - (Karaoke Decode processing, Karaoke Vocal processing)</li><li>Audio Decoder Fade effect</li><li>ATSC A/85 volume leveling</li><li>Equalizer - (5-band Graphic EQ, 7-band PEQ, Sub sonic filtering, Sub woofer channel extraction, Tone Balancing)</li><li>Independent SPDIF delay</li><li>Ramping Mute</li><li>SRS - (SRS-HD4, SRS-TruVolume)</li></ul><p>System</p><ul><li>Fast Channel Change</li><li>LE</li><li>User Mode</li><li>Graphics - (2D GFX)</li><li>Kernel Mode</li><li>On-chip Temp Sensor</li></ul><p>A/V Display</p><ul><li>Audio  - HDMI output - (Compressed on HDMI, PCM on HDMI)</li><li>Audio - DAC output</li><li>Audio Output - (DAC, SPDIF (Compressed), SPDIF (Stereo PCM))</li><li>PIP: Simulataneous HD+HD display</li><li>PIP: Simultaneous HD+SD display</li><li>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)</li><li>Video - CVBS and S Video Output</li><li>Video - HDMI output</li><li>All NTSC/ATSC/PAL resolutions</li><li>Audio - SPDIF output - (Compressed on SPDIF, PCM on SPDIF)</li><li>HDCP support - (HDMI TX, HDCP 2.2 for HDMI Repeater)</li><li>HDMI CEC</li><li>Video - Component output</li></ul><p>IPTV</p><ul><li>BIP API - (Dynamic clock recovery reconfiguration)</li></ul><p>Networking</p><ul><li>Ethernet MAC - (10/100 Eth MAC)</li></ul><p>Miscellaneous</p><ul><li>EJTAG</li><li>RCU - (IR)</li><li>NxClient Multiprocess library - (Audio Primer for fast main/PIP audio swap, Main/PIP video swap)</li><li>Virtual L2 interrupt</li></ul><p>Transport</p><ul><li>Message Filtering</li><li>MTSIF</li><li>PID Filtering</li></ul><p>Power Management</p><ul><li>Adaptive Voltage Scaling</li><li>AVS (Adaptive Voltage Scaling) - (Closed Loop, Open Loop)</li><li>Power Management in Nexus Multi-Process Environment - (S0, S1)</li><li>S1: Active Standby</li></ul><p>Picture Quality</p><ul><li>MAD-R (Motion Adaptive Deinterlacer Re-architected)</li></ul><p>3D Video Display</p><ul><li>3D packing format - (1920x1080i@50Hz, 1920x1080i@59.94/60Hz, 1920x1080p@24Hz)</li></ul><p>Satellite FE</p><ul><li>8PSK Turbo</li><li>DiSEqC (Digital Satellite Equipment Control)</li><li>Tuning &amp; Acquisition</li></ul><p>Linux</p><ul><li>Ethernet link and Ethernet GPhy</li><li>File system - (UBIFS)</li><li>Flash - (SPI, NOR)</li><li>SATA</li><li>UART port</li><li>USB</li><li>CMA</li><li>Generic driver for SPI interface</li><li>Generic I2C driver</li><li>MoCA - (
-V2.0)</li><li>RF4CE</li></ul><p>Transcoder</p><ul><li>Audio Codec Pass-through - (Audio AAC, AC3, MPEG1/2, MP3/HE-AAC/AAC-LC stereo)</li><li>AAC to AC3 transcode</li></ul><p>Transcode - Audio</p><ul><li>Pass-through Codecs - (AC3)</li></ul><p>Transcode - System</p><ul><li>TS Stream Mux - Features - (Single MCPB Channel Mode)</li></ul><p>Transcode - Video</p><ul><li>Memory Bandwidth Reduction Modes</li><li>Segment Mode RC</li></ul><br><h4><p><strong><a name="features_future">Features Planned for the Next Release</a></strong><br/><a href="#top">(Top)</a></p></h4>
-
-</div>
+<h2>
+<a name="features">
+Features
+</a></h2>
+<p class=MsoNormal><a href="#_top">(Top)</a></p>
+<p>
+  <strong>
+    Information on Features has been consolidated in the <span style='color:#0070C0'><a href="ReleaseNotes.html"><span style='color:#0070C0'>generic ReleaseNotes.html</a></span>.</p>
+  </strong>
+</p>
 
 </div>
 

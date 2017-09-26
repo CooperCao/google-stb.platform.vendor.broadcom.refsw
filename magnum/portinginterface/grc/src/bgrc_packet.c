@@ -63,6 +63,13 @@
 #include "bchp_m2mc1_gr.h"
 #include "bchp_int_id_m2mc1_l2.h"
 #endif
+#ifdef BCHP_MM_M2MC0_REG_START
+#include "bchp_mm_m2mc0.h"
+#include "bchp_mm_m2mc0_l2.h"
+#include "bchp_int_id_mm_m2mc0_l2.h"
+#include "bchp_memc_ddr_0.h"
+#endif
+
 #ifdef BCHP_MEMC16_GFX_L2_REG_START
 #include "bchp_memc16_gfx_l2.h"
 #endif
@@ -111,11 +118,18 @@
 #include "bgrc_private.h"
 #include "bgrc_packet_priv.h"
 
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+#include "bgrc_mmpacket_priv.h"
+#endif
+
+
 #if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
 #include "bchp_m2mc_cxt_sch.h"
+#include "bchp_mm_m2mc_cxt_sch.h"
 #endif
 BDBG_MODULE(BGRC);
 BDBG_FILE_MODULE(BGRC_LISTSTATUS);
+BDBG_FILE_MODULE(BGRC_MIPMAP);
 BDBG_OBJECT_ID(BGRC);
 BDBG_OBJECT_ID(BGRC_PacketContext);
 
@@ -146,12 +160,24 @@ BDBG_OBJECT_ID(BGRC_PacketContext);
 #error need port this chip for intID
 #endif
 
-#if defined(BCHP_WRAP_M2MC_L2_CPU_STATUS_M2MC_1_INTR_SHIFT)
-#define BGRC_PACKET_P_M2MC1_INT_ID   BCHP_INT_ID_CREATE(BCHP_WRAP_M2MC_L2_CPU_STATUS, BCHP_WRAP_M2MC_L2_CPU_STATUS_M2MC_1_INTR_SHIFT)
-#elif defined(BCHP_M2MC1_L2_CPU_STATUS_M2MC_INTR_SHIFT)
-#define BGRC_PACKET_P_M2MC1_INT_ID   BCHP_INT_ID_CREATE(BCHP_M2MC1_L2_CPU_STATUS, BCHP_M2MC1_L2_CPU_STATUS_M2MC_INTR_SHIFT)
-#elif defined(BCHP_M2MC1_REG_START)
-#define BGRC_PACKET_P_M2MC1_INT_ID   BCHP_INT_ID_CREATE(BCHP_M2MC1_L2_CPU_STATUS, BCHP_M2MC_L2_CPU_STATUS_M2MC_INTR_SHIFT)
+#if defined(BCHP_M2MC1_REG_START)
+#define BGRC_PACKET_P_M2MC1_INT_ID   BCHP_INT_ID_M2MC1_L2_M2MC_INTR
+#else
+#define BGRC_PACKET_P_M2MC1_INT_ID
+#endif
+
+#if defined(BCHP_MM_M2MC0_REG_START)
+#define BGRC_PACKET_P_MM_M2MC0_INT_ID BCHP_INT_ID_MM_M2MC0_L2_M2MC_INTR
+#else
+#define BGRC_PACKET_P_MM_M2MC0_INT_ID
+#endif
+
+#if BCHP_PWR_SUPPORT
+#if defined(BCHP_PWR_RESOURCE_M2MC1)
+#define BGRC_PWR_RESOURCE_M2MC1      BCHP_PWR_RESOURCE_M2MC1
+#else
+#define BGRC_PWR_RESOURCE_M2MC1      BCHP_PWR_RESOURCE_M2MC
+#endif
 #endif
 
 /***************************************************************************/
@@ -176,199 +202,159 @@ BERR_Code BGRC_GetDefaultSettings(
     BDBG_LEAVE(BGRC_GetDefaultSettings);
     return BERR_SUCCESS;
 }
+/***************************************************************************/
+void BGRC_P_SetMemoryInfo(
+    BGRC_Handle hGrc )
+{
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    uint32_t  ulPage, ulBankValue /* bank value to set register field*/, ulBank /* true bank info*/;
+
+    /* PAGE_SIZE
+        00 = 2k SDRAM Page
+        01 = 4k SDRAM Page
+        10 = 8k SDRAM Page
+    */
+
+    switch(hGrc->stMemInfo.memc[0].ulPageSize/1024)
+    {
+        case 2:
+        default:
+            ulPage = 0;
+            break;
+        case 4:
+            ulPage = 1;
+            break;
+        case 8:
+            ulPage = 2;
+            break;
+    }
+    /* NUM_BANKS
+        Number of SDRAM Banks
+        00 = 4
+        01 = 8
+        10 = 16
+        11 = 32
+          */
+    switch(BCHP_MEMC_DDR_0_CNTRLR_CONFIG_2_BANK_BITS_DEFAULT)
+    {
+        case 3:
+            ulBankValue = 1;
+            ulBank = 8;
+            break;
+        case 4:
+            ulBankValue = 2;
+            ulBank = 16;
+            break;
+        case 5:
+            ulBankValue = 3;
+            ulBank = 32;
+            break;
+        case 2:
+        default:
+            ulBankValue = 0;
+            ulBank = 4;
+            break;
+    }
+
+    hGrc->stPxlMemoryInfo.ulPageSize = hGrc->stMemInfo.memc[0].ulPageSize;
+    hGrc->stPxlMemoryInfo.ulPageinUBRows = hGrc->stMemInfo.memc[0].ulPageSize/(BPXL_UIF_BLOCKSIZE * BPXL_UIF_COL_WIDTH_IN_BLOCK);
+    hGrc->stPxlMemoryInfo.ul15PageinUBRows = hGrc->stPxlMemoryInfo.ulPageinUBRows*3/2;    /*1.5  UIFBlockRows */
+    /* How many UIF-block rows the "page cache" covers */
+    hGrc->stPxlMemoryInfo.ulPcInUBRows = ulBank*hGrc->stPxlMemoryInfo.ulPageinUBRows;
+    hGrc->stPxlMemoryInfo.ulPc15InUBRows = hGrc->stPxlMemoryInfo.ulPcInUBRows - hGrc->stPxlMemoryInfo.ul15PageinUBRows;
+
+    BDBG_MODULE_MSG(BGRC_MIPMAP, ("M2MC[%d] Memory configuration: ", hGrc->eDeviceNum));
+    BDBG_MODULE_MSG(BGRC_MIPMAP, ("page size        %8d ", hGrc->stPxlMemoryInfo.ulPageSize));
+    BDBG_MODULE_MSG(BGRC_MIPMAP, ("bank             %8d ", ulBank));
+    BDBG_MODULE_MSG(BGRC_MIPMAP, ("ulPageinUBRows   %8d ", hGrc->stPxlMemoryInfo.ulPageinUBRows));
+    BDBG_MODULE_MSG(BGRC_MIPMAP, ("ul15PageinUBRows %8d ", hGrc->stPxlMemoryInfo.ul15PageinUBRows));
+    BDBG_MODULE_MSG(BGRC_MIPMAP, ("ulPcInUBRows     %8d ", hGrc->stPxlMemoryInfo.ulPcInUBRows));
+    BDBG_MODULE_MSG(BGRC_MIPMAP, ("ulPc15InUBRows   %8d ", hGrc->stPxlMemoryInfo.ulPc15InUBRows));
+
+
+    /* current 7278 setting
+    -DGFX_DEFAULT_UIF_PAGE_SIZE=4096 \
+    -DGFX_DEFAULT_UIF_NUM_BANKS=8 \
+    -DGFX_DEFAULT_UIF_XOR_ADDR=16 \
+    */
+    if(hGrc->eDeviceNum == BGRC_eMM_M2mc0){
+        BREG_Write32( hGrc->hRegister, BCHP_MM_M2MC0_MM_M2MC_SYSTEM_CONFIG,
+            BCHP_FIELD_DATA(MM_M2MC0_MM_M2MC_SYSTEM_CONFIG,NUM_BANKS, ulBankValue)|
+            BCHP_FIELD_DATA(MM_M2MC0_MM_M2MC_SYSTEM_CONFIG,PAGE_SIZE, ulPage)|
+            /* @@@ to do: get the right formula from HW and v3d*/
+            BCHP_FIELD_DATA(MM_M2MC0_MM_M2MC_SYSTEM_CONFIG,XOR_ADDR , 16));
+        BDBG_MODULE_MSG(BGRC_MIPMAP, ("ulBank %d ulPage %d", ulBank, ulPage));
+    }
+#else
+    BSTD_UNUSED(hGrc);
+#endif
+}
 
 /***************************************************************************/
 void BGRC_P_ResetDevice(
     BGRC_Handle hGrc )
 {
-#if defined(BCHP_GFX_GR_SW_RESET_0)
-    BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GR_SW_RESET_0, M2MC_SW_RESET, ASSERT) );
-    BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GR_SW_RESET_0, M2MC_SW_RESET, DEASSERT) );
-#elif defined(BCHP_M2MC_WRAP_GR_BRIDGE_SW_RESET_0)
-    BREG_Write32( hGrc->hRegister, BCHP_M2MC_WRAP_GR_BRIDGE_SW_RESET_0, BCHP_FIELD_ENUM(M2MC_WRAP_GR_BRIDGE_SW_RESET_0, M2MC_SW_RESET, ASSERT) );
-    BREG_Write32( hGrc->hRegister, BCHP_M2MC_WRAP_GR_BRIDGE_SW_RESET_0, BCHP_FIELD_ENUM(M2MC_WRAP_GR_BRIDGE_SW_RESET_0, M2MC_SW_RESET, DEASSERT) );
-#elif defined(BCHP_M2MC_TOP_GR_BRIDGE_SW_INIT_0)
+
+    uint32_t ulRegOffset = hGrc->ulRegOffset;
+
+#if defined(BCHP_M2MC_TOP_GR_BRIDGE_SW_INIT_0)
     BREG_Write32( hGrc->hRegister, BCHP_M2MC_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_TOP_GR_BRIDGE_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
     BREG_Write32( hGrc->hRegister, BCHP_M2MC_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_TOP_GR_BRIDGE_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
-#elif defined(BCHP_GFX_GR_SW_INIT_0)
-    BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
-    BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
-    BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_START_SW_INIT_MASK );
-    while( BREG_Read32(hGrc->hRegister, BCHP_M2MC_BLIT_STATUS) == 0 );
-    BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
-    BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
-    BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
-
-#elif defined(BCHP_SUN_TOP_CTRL_SW_INIT_1_SET) && defined(BCHP_M2MC1_CLK_GATE_AND_SW_INIT_CONTROL) /* new way for 28 nm chips, ... */
-    if( hGrc->ulDeviceNum )
-    {
-        /* we are using m2mc 1 */
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_START_SW_INIT_MASK );
-        while( BREG_Read32(hGrc->hRegister, BCHP_M2MC1_BLIT_STATUS) == 0 );
-        BREG_Write32( hGrc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET, BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_1_SET, m2mc1_sw_init, 1));
-        BREG_Write32( hGrc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR, BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_1_CLEAR, m2mc1_sw_init, 1));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
-
-#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
-        BREG_Write32(hGrc->hRegister, BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT1, BCHP_FIELD_DATA(M2MC_CXT_SCH_WEIGHT_CONTEXT0, WEIGHT, hGrc->ulWeight));
-#endif
-        /* always enable dither: HW will disable automatically if input is not 10 bits */
-        #ifdef BCHP_M2MC1_DITHER_CONTROL_0
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_CONTROL_0,
-            BCHP_FIELD_ENUM(M2MC_DITHER_CONTROL_0, MODE, DITHER) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH2, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH1, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH0, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH2, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH1, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH0, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_CONTROL_1,
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, OFFSET_CH3, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, SCALE_CH3, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_LFSR_INIT,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR_INIT, SEQ, ONCE_PER_SOP) |
-            BCHP_FIELD_DATA(M2MC_DITHER_LFSR_INIT, VALUE, 0));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_LFSR,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T0, B3) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T1, B8) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T2, B12));
-        #endif
-    }
-    else
-    {
-        /* we are using m2mc 0 */
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_START_SW_INIT_MASK );
-        while( BREG_Read32(hGrc->hRegister, BCHP_M2MC_BLIT_STATUS) == 0 );
-        BREG_Write32( hGrc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_SET, gfx_sw_init, 1));
-        BREG_Write32( hGrc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_CLEAR, gfx_sw_init, 1));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
-
-        /* always enable dither: HW will disable automatically if input is not 10 bits */
-        #ifdef BCHP_M2MC_DITHER_CONTROL_0
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_CONTROL_0,
-            BCHP_FIELD_ENUM(M2MC_DITHER_CONTROL_0, MODE, DITHER) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH2, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH1, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH0, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH2, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH1, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH0, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_CONTROL_1,
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, OFFSET_CH3, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, SCALE_CH3, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_LFSR_INIT,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR_INIT, SEQ, ONCE_PER_SOP) |
-            BCHP_FIELD_DATA(M2MC_DITHER_LFSR_INIT, VALUE, 0));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_LFSR,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T0, B3) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T1, B8) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T2, B12));
-        #endif
-
-#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
-        BREG_Write32(hGrc->hRegister, BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT0, BCHP_FIELD_DATA(M2MC_CXT_SCH_WEIGHT_CONTEXT0, WEIGHT, hGrc->ulWeight));
-#endif
-    }
-#elif defined(BCHP_M2MC1_REG_START) /* old process for 40 nm chips, 28 nm chips, ... */
-    if( hGrc->ulDeviceNum )
-    {
-        /* we are using m2mc 1 */
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_START_SW_INIT_MASK );
-        while( BREG_Read32(hGrc->hRegister, BCHP_M2MC1_BLIT_STATUS) == 0 );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
-
-        /* always enable dither: HW will disable automatically if input is not 10 bits */
-        #ifdef BCHP_M2MC1_DITHER_CONTROL_0
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_CONTROL_0,
-            BCHP_FIELD_ENUM(M2MC_DITHER_CONTROL_0, MODE, DITHER) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH2, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH1, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH0, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH2, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH1, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH0, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_CONTROL_1,
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, OFFSET_CH3, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, SCALE_CH3, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_LFSR_INIT,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR_INIT, SEQ, ONCE_PER_SOP) |
-            BCHP_FIELD_DATA(M2MC_DITHER_LFSR_INIT, VALUE, 0));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC1_DITHER_LFSR,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T0, B3) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T1, B8) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T2, B12));
-        #endif
-    }
-    else
-    {
-        /* we are using m2mc 0 */
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_START_SW_INIT_MASK );
-        while( BREG_Read32(hGrc->hRegister, BCHP_M2MC_BLIT_STATUS) == 0 );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
-
-        /* always enable dither: HW will disable automatically if input is not 10 bits */
-        #ifdef BCHP_M2MC_DITHER_CONTROL_0
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_CONTROL_0,
-            BCHP_FIELD_ENUM(M2MC_DITHER_CONTROL_0, MODE, DITHER) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH2, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH1, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH0, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH2, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH1, 4) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH0, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_CONTROL_1,
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, OFFSET_CH3, 1) |
-            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, SCALE_CH3, 4));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_LFSR_INIT,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR_INIT, SEQ, ONCE_PER_SOP) |
-            BCHP_FIELD_DATA(M2MC_DITHER_LFSR_INIT, VALUE, 0));
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_LFSR,
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T0, B3) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T1, B8) |
-            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T2, B12));
-        #endif
-    }
-#elif defined(BCHP_GFX_GRB_SW_RESET_0)
-    if( hGrc->ulDeviceNum )
-    {
-        /* we are using m2mc 1 */
-        #if defined(BCHP_M2MC_1_GRB_SW_RESET_0)
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_1_GRB_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GRB_SW_RESET_0, M2MC_SW_RESET, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_M2MC_1_GRB_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GRB_SW_RESET_0, M2MC_SW_RESET, DEASSERT) );
-        #else
-        BREG_Write32( hGrc->hRegister, BCHP_GFX_GRB_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GRB_SW_RESET_0, M2MC_1_SW_RESET, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_GFX_GRB_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GRB_SW_RESET_0, M2MC_1_SW_RESET, DEASSERT) );
-        #endif
-    }
-    else
-    {
-        BREG_Write32( hGrc->hRegister, BCHP_GFX_GRB_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GRB_SW_RESET_0, M2MC_SW_RESET, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_GFX_GRB_SW_RESET_0, BCHP_FIELD_ENUM(GFX_GRB_SW_RESET_0, M2MC_SW_RESET, DEASSERT) );
-    }
-#elif defined(BCHP_WRAP_M2MC_GRB_SW_RESET_0)
-    if( hGrc->ulDeviceNum )
-    {
-        BREG_Write32( hGrc->hRegister, BCHP_WRAP_M2MC_GRB_SW_RESET_0, BCHP_FIELD_ENUM(WRAP_M2MC_GRB_SW_RESET_0, M2MC1_SW_RESET, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_WRAP_M2MC_GRB_SW_RESET_0, BCHP_FIELD_ENUM(WRAP_M2MC_GRB_SW_RESET_0, M2MC1_SW_RESET, DEASSERT) );
-    }
-    else
-    {
-        BREG_Write32( hGrc->hRegister, BCHP_WRAP_M2MC_GRB_SW_RESET_0, BCHP_FIELD_ENUM(WRAP_M2MC_GRB_SW_RESET_0, M2MC0_SW_RESET, ASSERT) );
-        BREG_Write32( hGrc->hRegister, BCHP_WRAP_M2MC_GRB_SW_RESET_0, BCHP_FIELD_ENUM(WRAP_M2MC_GRB_SW_RESET_0, M2MC0_SW_RESET, DEASSERT) );
-    }
-#elif defined(BCHP_SUN_TOP_CTRL_SW_INIT_0_SET)
-    BREG_Write32( hGrc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_SET, gfx_sw_init, 1) );
-    BREG_Write32( hGrc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_CLEAR, gfx_sw_init, 1) );
+    BSTD_UNUSED(ulRegOffset);
 #else
-    #error need port for m2mc reset
+    {
+        /* we are using m2mc 1 */
+#if defined(BCHP_GFX_GR_SW_INIT_0_M2MC_CLK_108_SW_INIT_ASSERT)
+        BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
+        BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
+        hGrc->ulRegCoreReset = 0;
+#elif BCHP_M2MC_GR_SW_INIT_0_M2MC_CLK_108_SW_INIT_ASSERT
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0 + ulRegOffset, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT));
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0 + ulRegOffset, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT));
+        hGrc->ulRegCoreReset = 0;
+#endif
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL + ulRegOffset, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_START_SW_INIT_MASK );
+        while( BREG_Read32(hGrc->hRegister, BCHP_M2MC_BLIT_STATUS+ulRegOffset) == 0 );
+        if(hGrc->ulRegCoreReset)
+        {
+            BREG_Write32( hGrc->hRegister, hGrc->ulRegCoreReset,   hGrc->ulCoreResetMask);
+            BREG_Write32( hGrc->hRegister, hGrc->ulRegClearCore,   hGrc->ulCoreResetMask);
+        }
+#if defined(BCHP_GFX_GR_SW_INIT_0_M2MC_CLK_108_SW_INIT_ASSERT)
+        BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT) );
+        BREG_Write32( hGrc->hRegister, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_ENUM(GFX_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT) );
+#elif BCHP_M2MC_GR_SW_INIT_0_M2MC_CLK_108_SW_INIT_ASSERT
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0 + ulRegOffset, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, ASSERT));
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_GR_SW_INIT_0 + ulRegOffset, BCHP_FIELD_ENUM(M2MC_GR_SW_INIT_0, M2MC_CLK_108_SW_INIT, DEASSERT));
+#endif
+
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL + ulRegOffset, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
+
+#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+        BREG_Write32(hGrc->hRegister, hGrc->ulWeightReg, BCHP_FIELD_DATA(M2MC_CXT_SCH_WEIGHT_CONTEXT0, WEIGHT, hGrc->ulWeight));
+#endif
+
+#ifdef BCHP_M2MC_DITHER_CONTROL_0
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_CONTROL_0 + ulRegOffset,
+            BCHP_FIELD_ENUM(M2MC_DITHER_CONTROL_0, MODE, DITHER) |
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH2, 1) |
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH1, 1) |
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, OFFSET_CH0, 1) |
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH2, 4) |
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH1, 4) |
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_0, SCALE_CH0, 4));
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_CONTROL_1 + ulRegOffset,
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, OFFSET_CH3, 1) |
+            BCHP_FIELD_DATA(M2MC_DITHER_CONTROL_1, SCALE_CH3, 4));
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_LFSR_INIT + ulRegOffset,
+            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR_INIT, SEQ, ONCE_PER_SOP) |
+            BCHP_FIELD_DATA(M2MC_DITHER_LFSR_INIT, VALUE, 0));
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DITHER_LFSR + ulRegOffset,
+            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T0, B3) |
+            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T1, B8) |
+            BCHP_FIELD_ENUM(M2MC_DITHER_LFSR, T2, B12));
+#endif
+    }
 #endif
 
 #if defined(BCHP_M2MC_DRAM_MAP_MAP_MASK)
@@ -397,7 +383,7 @@ void BGRC_P_ResetDevice(
             break;
         }
         BDBG_MSG(("MEMC_TYPE = %d - selected MAP_TYPE %d", hGrc->stMemInfo.memc[0].type, ulScbType));
-        BGRC_P_WriteReg32( hGrc->hRegister, DRAM_MAP,
+        BREG_Write32( hGrc->hRegister, BCHP_M2MC_DRAM_MAP+ulRegOffset,
                            BCHP_FIELD_DATA( M2MC_DRAM_MAP, MAP, ulScbType ) );
     }
 #endif
@@ -410,55 +396,36 @@ void BGRC_P_ResetDevice(
 /***************************************************************************/
 void BGRC_P_SetupPower(
     BGRC_Handle  hGrc,
-    bool         bOn,
-    bool         bS3Standby)
+    bool         bOn)
 {
-#ifdef BCHP_PWR_RESOURCE_M2MC
-    uint32_t ulM2mcPwrId, ulSramPwrId;
 
-#if defined(BCHP_PWR_RESOURCE_M2MC1)
-    ulM2mcPwrId = (0 == hGrc->ulDeviceNum)? BCHP_PWR_RESOURCE_M2MC0 : BCHP_PWR_RESOURCE_M2MC1;
-#elif defined(BCHP_PWR_RESOURCE_M2MC0)
-    ulM2mcPwrId = BCHP_PWR_RESOURCE_M2MC0;
-#else
-    ulM2mcPwrId = BCHP_PWR_RESOURCE_M2MC;
-#endif
-
-#if defined(BCHP_PWR_RESOURCE_M2MC1_SRAM)
-    ulSramPwrId = (0 == hGrc->ulDeviceNum)? BCHP_PWR_RESOURCE_M2MC0_SRAM : BCHP_PWR_RESOURCE_M2MC1_SRAM;
-#elif defined(BCHP_PWR_RESOURCE_M2MC0_SRAM)
-    ulSramPwrId = BCHP_PWR_RESOURCE_M2MC0_SRAM;
-#else
-    ulSramPwrId = BCHP_PWR_RESOURCE_M2MC_SRAM;
-#endif
-
+#if BCHP_PWR_SUPPORT
     if (bOn)
     {
         /* turn on power for M2MC engine */
-        BCHP_PWR_AcquireResource(hGrc->hChip, ulM2mcPwrId);
+        BCHP_PWR_AcquireResource(hGrc->hChip, hGrc->ulM2mcPwrId);
 
-        /* turn on power for M2MC SRAM */
-        if (0 != ulSramPwrId)
+
+
+        if (0 != hGrc->ulSramPwrId)
         {
-            BCHP_PWR_AcquireResource(hGrc->hChip, ulSramPwrId);
+            BCHP_PWR_AcquireResource(hGrc->hChip, hGrc->ulSramPwrId);
         }
     }
     else
     {
-        if (0 != ulSramPwrId)
+        if (0 != hGrc->ulSramPwrId)
         {
             /* turn off power for M2MC SRAM */
-            BCHP_PWR_ReleaseResource(hGrc->hChip, ulSramPwrId);
+            BCHP_PWR_ReleaseResource(hGrc->hChip, hGrc->ulSramPwrId);
         }
 
         /* turn off power for M2MC engine */
-        BCHP_PWR_ReleaseResource(hGrc->hChip, ulM2mcPwrId);
+        BCHP_PWR_ReleaseResource(hGrc->hChip, hGrc->ulM2mcPwrId);
     }
-    BSTD_UNUSED(bS3Standby);
 #else
     BSTD_UNUSED(hGrc);
     BSTD_UNUSED(bOn);
-    BSTD_UNUSED(bS3Standby);
 #endif
 }
 
@@ -491,18 +458,94 @@ BERR_Code BGRC_Open(
     hGrc->hInterrupt = hInterrupt;
     hGrc->ulPacketMemoryMax = pDefSettings ? pDefSettings->ulPacketMemoryMax : BGRC_P_DEFAULT_SETTINGS.ulPacketMemoryMax;
     hGrc->ulOperationMax = pDefSettings ? pDefSettings->ulOperationMax : BGRC_P_DEFAULT_SETTINGS.ulOperationMax;
-    hGrc->ulDeviceNum = pDefSettings ? pDefSettings->ulDeviceNum : BGRC_P_DEFAULT_SETTINGS.ulDeviceNum;
+    hGrc->eDeviceNum = (BGRC_eM2mcId)(pDefSettings ? pDefSettings->ulDeviceNum : BGRC_P_DEFAULT_SETTINGS.ulDeviceNum);
     hGrc->ulWaitTimeout = pDefSettings ? pDefSettings->ulWaitTimeout : BGRC_P_DEFAULT_SETTINGS.ulWaitTimeout;
 #if (BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT)
     /* different number can schedule traffic to m2mc0 and m2mc1 traffice */
     hGrc->ulWeight = BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT0_WEIGHT_DEFAULT;
 #endif
 
+    switch(hGrc->eDeviceNum)
+    {
+        case BGRC_eM2mc0:
+            hGrc->ulRegOffset = 0;
+#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+            hGrc->ulWeightReg = BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT0;
+#endif
+#if BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_gfx_sw_init_MASK
+            hGrc->ulRegCoreReset = BCHP_SUN_TOP_CTRL_SW_INIT_0_SET;
+            hGrc->ulRegClearCore = BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR;
+            hGrc->ulCoreResetMask = BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_gfx_sw_init_MASK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_M2MC
+            hGrc->ulM2mcPwrId =
+#if BCHP_PWR_RESOURCE_M2MC0
+                BCHP_PWR_RESOURCE_M2MC0;
+#else
+                BCHP_PWR_RESOURCE_M2MC;
+#endif
+#endif
+            hGrc->ulSramPwrId =
+#if BCHP_PWR_RESOURCE_M2MC0_SRAM
+                BCHP_PWR_RESOURCE_M2MC0_SRAM;
+#else
+                BCHP_PWR_RESOURCE_M2MC_SRAM;
+#endif
+            hGrc->ulIntid = BGRC_PACKET_P_M2MC0_INT_ID;
+
+            break;
+        case BGRC_eM2mc1:
+#if BCHP_M2MC1_REG_START
+            hGrc->ulRegOffset = BCHP_M2MC1_REG_START - BCHP_M2MC_REG_START;
+            hGrc->ulRegCoreReset = BCHP_SUN_TOP_CTRL_SW_INIT_1_SET;
+            hGrc->ulRegClearCore = BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR;
+            hGrc->ulCoreResetMask = BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_m2mc1_sw_init_MASK;
+            hGrc->ulIntid = BGRC_PACKET_P_M2MC1_INT_ID;
+#endif
+#if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+            hGrc->ulWeightReg = BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT1;
+#endif
+
+#if BCHP_PWR_SUPPORT
+#if BGRC_PWR_RESOURCE_M2MC1
+            hGrc->ulM2mcPwrId = BGRC_PWR_RESOURCE_M2MC1;
+#endif
+            hGrc->ulSramPwrId =
+#if BCHP_PWR_RESOURCE_M2MC1_SRAM
+                BCHP_PWR_RESOURCE_M2MC1_SRAM;
+#else
+                BCHP_PWR_RESOURCE_M2MC_SRAM;
+#endif
+#endif
+
+            break;
+        case BGRC_eMM_M2mc0:
+#if BCHP_MM_M2MC0_REG_START
+            hGrc->ulRegOffset = BCHP_MM_M2MC0_REG_START - BCHP_M2MC_REG_START;
+            hGrc->ulWeightReg = BCHP_MM_M2MC_CXT_SCH_WEIGHT_CONTEXT0;
+            hGrc->ulRegCoreReset = BCHP_SUN_TOP_CTRL_SW_INIT_1_SET;
+            hGrc->ulRegClearCore = BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR;
+            hGrc->ulCoreResetMask = BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_mm_m2mc_sw_init_MASK;
+#if BCHP_PWR_SUPPORT
+            hGrc->ulM2mcPwrId = BCHP_PWR_RESOURCE_MM_M2MC0;
+            hGrc->ulSramPwrId = BCHP_PWR_RESOURCE_MMM2MC0_SRAM;
+#endif
+            hGrc->ulIntid     = BGRC_PACKET_P_MM_M2MC0_INT_ID;
+#endif
+            break;
+        case BGRC_eM2mcMax:
+        default:   /* BGRC_eM2mc0 or Max*/
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+
+
+    }
+
     /* turn on power for this m2mc engine */
-    BGRC_P_SetupPower(hGrc, true, true);
+    BGRC_P_SetupPower(hGrc, true);
 
     /* read memory controller type to use for scb map setting*/
     BCHP_GetMemoryInfo(hChip, &hGrc->stMemInfo);
+    BGRC_P_SetMemoryInfo(hGrc);
 
     /* allocate device hw pakets buf, with some extra size for flushing blit */
     hGrc->pHwPktFifoBaseAlloc = BMMA_Alloc( hGrc->hMemory, BGRC_PACKET_P_ALIGN_HW_PKT_SIZE(hGrc->ulPacketMemoryMax) + BGRC_PACKET_P_BLIT_GROUP_SIZE_MAX, 1<<BGRC_PACKET_P_MEMORY_ALIGN_BITS, NULL );
@@ -608,10 +651,10 @@ void BGRC_Close(
     BDBG_ASSERT(BLST_D_EMPTY(&hGrc->context_list));
 
     /* in case power off/on might have problem? */
-    BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+    BGRC_P_WriteReg32( hGrc, LIST_CTRL,
         BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, Ack ) |
         BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Stop ) |
-        BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ) );
+        BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast));
 
     /* destroy callbacks */
     if( hGrc->hCallback )
@@ -648,7 +691,7 @@ void BGRC_Close(
     }
 
     /* turn off power for this m2mc engine */
-    BGRC_P_SetupPower(hGrc, false, true);
+    BGRC_P_SetupPower(hGrc, false);
 
     BDBG_OBJECT_DESTROY(hGrc, BGRC);
     BKNI_Free( (void *) hGrc );
@@ -690,7 +733,7 @@ BERR_Code BGRC_Standby(
     }
 
     /* turn off power for this m2mc engine */
-    BGRC_P_SetupPower(hGrc, false, pStandbySettings->bS3Standby);
+    BGRC_P_SetupPower(hGrc, false);
 
     hGrc->stStandbySettings = *pStandbySettings;
 
@@ -706,7 +749,7 @@ BERR_Code BGRC_Resume(
     BDBG_OBJECT_ASSERT(hGrc, BGRC);
 
     /* turn on power for this m2mc engine */
-    BGRC_P_SetupPower(hGrc, true, hGrc->stStandbySettings.bS3Standby);
+    BGRC_P_SetupPower(hGrc, true);
 
     /* make use FromFirst mode after reset */
     hGrc->pHwPktSubmitLinkPtr = NULL;
@@ -728,15 +771,10 @@ static BERR_Code BGRC_PACKET_P_SetCallback_BINT(
 {
     if( create )
     {
+
         if( *phCallback == 0 )
         {
-#if defined(BCHP_M2MC1_REVISION) || defined(BCHP_M2MC_1_REVISION)
-            uint32_t int_id = hGrc->ulDeviceNum ? BGRC_PACKET_P_M2MC1_INT_ID : BGRC_PACKET_P_M2MC0_INT_ID;
-#else
-            uint32_t int_id = BGRC_PACKET_P_M2MC0_INT_ID;
-#endif
-
-            BERR_Code err = BINT_CreateCallback( phCallback, hGrc->hInterrupt, int_id, BGRC_PACKET_P_Isr, hGrc, 0);
+            BERR_Code err = BINT_CreateCallback( phCallback, hGrc->hInterrupt, hGrc->ulIntid, BGRC_PACKET_P_Isr, hGrc, 0);
             if( err != BERR_SUCCESS )
                 return BERR_TRACE(err);
 
@@ -805,7 +843,7 @@ BERR_Code BGRC_Packet_CreateContext(
 
     /* add context to list */
     BLST_D_INSERT_HEAD(&hGrc->context_list, hContext, context_link);
-    hContext->ulId = (hGrc->ulDeviceNum << 30) | (++hGrc->ulNumCreates & 0x3fffffff);
+    hContext->ulId = (hGrc->eDeviceNum << 30) | (++hGrc->ulNumCreates & 0x3fffffff);
 
     /* allocate software packet buffer */
     hContext->ulSwPktFifoSize = pSettings->packet_buffer_size;
@@ -943,7 +981,7 @@ static int BGRC_PACKET_P_SwPktBufAvailable(
                     hContext->pSwPktReadPtr = hContext->pSwPktFifoBase;
                     hContext->pSwPktWrapPtr = hContext->pSwPktFifoBase + hContext->ulSwPktFifoSize;
                     buffer_available = hContext->ulSwPktFifoSize;
-                    BGRC_P_SWPKT_MSG(("ctx[%d] sw pkt alloc: reset [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
+                    BGRC_P_SWPKT_MSG(("ctx[%x] sw pkt alloc: reset [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
                 }
             }
             else if (((buffer_available < (int)(size_in)) && (buffer_available_wrapped >= (int)size_in)) ||
@@ -953,7 +991,7 @@ static int BGRC_PACKET_P_SwPktBufAvailable(
                 hContext->pSwPktWrapPtr = hContext->pSwPktWritePtr;
                 hContext->pSwPktWritePtr = hContext->pSwPktFifoBase;
                 buffer_available = buffer_available_wrapped;
-                BGRC_P_SWPKT_MSG(("ctx[%d] sw pkt alloc: wraping %p > rptr %p for %d", hContext->ulId, hContext->pSwPktWrapPtr, hContext->pSwPktReadPtr, size_in));
+                BGRC_P_SWPKT_MSG(("ctx[%x] sw pkt alloc: wraping %p > rptr %p for %d", hContext->ulId, hContext->pSwPktWrapPtr, hContext->pSwPktReadPtr, size_in));
             }
         }
     }
@@ -1038,7 +1076,7 @@ BERR_Code BGRC_Packet_SubmitPackets(
         if (hContext->pSwPktWritePtr == hContext->pSwPktWrapPtr)
         {
             hContext->pSwPktWritePtr = hContext->pSwPktFifoBase;
-            BGRC_P_SWPKT_MSG(("ctx[%d] sw pkt submit: wrap [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
+            BGRC_P_SWPKT_MSG(("ctx[%x] sw pkt submit: wrap [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
         }
 
     /*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
@@ -1076,7 +1114,7 @@ BERR_Code BGRC_Packet_AdvancePackets(
     if(hGrc->eListStatus ==BGRC_P_List_eReadytoSubmit)
     {
         /*BKNI_ResetEvent(hGrc->hListDoneEvent);*/
-        BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+        BGRC_P_WriteReg32( hGrc, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
                 BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
                 BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
@@ -1102,6 +1140,7 @@ BERR_Code BGRC_Packet_AdvancePackets(
             while ( hCurrContext->ulSwPktSizeToProc ) {
                 BGRC_PACKET_P_ProcessSwPktFifo( hGrc, hCurrContext );
             }
+            BDBG_MSG(( ".. BGRC_PACKET_P_SyncState_eRequested -> " ));
             BGRC_PACKET_P_InsertFlushBlit( hGrc, hCurrContext );
         }
         else
@@ -1144,7 +1183,7 @@ BERR_Code BGRC_Packet_SyncPackets(
     /* can not call in again before previous request has been cleared */
     if (BGRC_PACKET_P_SyncState_eCleared != hContext->eSyncState)
     {
-        BDBG_ERR(("SyncPackets called for ctx[%d] when syncState is %d", hContext->ulId, hContext->eSyncState));
+        BDBG_ERR(("SyncPackets called for ctx[%x] when syncState is %d", hContext->ulId, hContext->eSyncState));
         BGRC_P_LEAVE(hGrc);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
@@ -1171,7 +1210,7 @@ BERR_Code BGRC_Packet_SyncPackets(
 void BGRC_Packet_PrintStatus(BGRC_PacketContext_Handle hContext)
 {
     int iSwPktBufAvailable = BGRC_PACKET_P_SwPktBufAvailable( hContext->hGrc, hContext, 0 );
-    BDBG_WRN(("Ctx[%d] sync %d[off " BDBG_UINT64_FMT "], SwPkt: Size 0x%x[%d], range[%p, %p], w %p, r %p, wrap %p, bufAvail %d, %s",
+    BDBG_WRN(("Ctx[%x] sync %d[off " BDBG_UINT64_FMT "], SwPkt: Size 0x%x[%d], range[%p, %p], w %p, r %p, wrap %p, bufAvail %d, %s",
               hContext->ulId, hContext->eSyncState, BDBG_UINT64_ARG(hContext->ulSyncHwPktOffset), hContext->ulSwPktSizeToProc, (int)hContext->bPktsInPipe,
               hContext->pSwPktFifoBase, hContext->pSwPktFifoBase + hContext->ulSwPktFifoSize,
               hContext->pSwPktWritePtr, hContext->pSwPktReadPtr, hContext->pSwPktWrapPtr, iSwPktBufAvailable,
@@ -1199,9 +1238,9 @@ static void BGRC_PrintStatus(
     uint32_t list_status;
     BSTD_DeviceOffset cur_desc;
 
-    blit_status = BGRC_P_ReadReg32( hGrc->hRegister, BLIT_STATUS );
-    list_status = BGRC_P_ReadReg32( hGrc->hRegister, LIST_STATUS );
-    cur_desc = BGRC_P_ReadAddr( hGrc->hRegister, LIST_CURR_PKT_ADDR );
+    blit_status = BGRC_P_ReadReg32( hGrc, BLIT_STATUS);
+    list_status = BGRC_P_ReadReg32( hGrc, LIST_STATUS);
+    cur_desc = BGRC_P_ReadAddr( hGrc, LIST_CURR_PKT_ADDR);
     BDBG_WRN(("Total HwPkt range[" BDBG_UINT64_FMT "," BDBG_UINT64_FMT "], w " BDBG_UINT64_FMT ", r " BDBG_UINT64_FMT ", last " BDBG_UINT64_FMT ", blitStatus 0x%x, listStatus 0x%x, curDesc 0x"BDBG_UINT64_FMT ", %s",
               BDBG_UINT64_ARG(hGrc->ulHwPktFifoBaseOffset), BDBG_UINT64_ARG(hGrc->ulHwPktFifoBaseOffset + hGrc->ulHwPktFifoSize),
               BDBG_UINT64_ARG(bgrc_p_hw_fifo_ptr_to_offset(hGrc, hGrc->pHwPktWritePtr)),
@@ -1236,14 +1275,14 @@ static void BGRC_P_WatchdogReset(
 
     BGRC_PrintStatus(hGrc);
 
-    ulCurDesc = BGRC_P_ReadAddr( hGrc->hRegister, LIST_CURR_PKT_ADDR );
+    ulCurDesc = BGRC_P_ReadAddr( hGrc, LIST_CURR_PKT_ADDR);
     BGRC_P_ResetDevice(hGrc);
-    BGRC_P_WriteAddr( hGrc->hRegister, LIST_FIRST_PKT_ADDR, ulCurDesc );
-    BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+    BGRC_P_WriteAddr( hGrc, LIST_FIRST_PKT_ADDR, ulCurDesc);
+    BGRC_P_WriteReg32( hGrc, LIST_CTRL,
                        BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, Ack ) |
                        BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
-                       BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromFirst ) );
-    BDBG_WRN(("Reset m2mc%d for ctx[%d] and restart at 0x%x", hGrc->ulDeviceNum, hContext->ulId, ulCurDesc));
+                       BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromFirst ));
+    BDBG_WRN(("Reset m2mc%d for ctx[%x] and restart at 0x%x", hGrc->ulDeviceNum, hContext->ulId, ulCurDesc));
 }
 #endif
 
@@ -1253,18 +1292,18 @@ BERR_Code BGRC_Packet_CheckpointWatchdog(BGRC_Handle hGrc, BGRC_PacketContext_Ha
     if (BGRC_PACKET_P_SyncState_eCleared != hContext->eSyncState)
     {
         BGRC_P_CheckHwStatus( hGrc );
-        BGRC_P_WATCHDOG_MSG(("Ctx[%d] watchdog[0]: syncState %d, secure %u", hContext->ulId, hContext->eSyncState, hContext->create_settings.secure));
+        BGRC_P_WATCHDOG_MSG(("Ctx[%x] watchdog[0]: syncState %d, secure %u", hContext->ulId, hContext->eSyncState, hContext->create_settings.secure));
         if (!force) return BERR_SUCCESS;
 
         if (BGRC_PACKET_P_SyncState_eSynced != hContext->eSyncState) {
             BGRC_PrintStatus(hGrc);
-            BGRC_P_WATCHDOG_MSG(("Ctx[%d] watchdog[1]", hContext->ulId));
+            BGRC_P_WATCHDOG_MSG(("Ctx[%x] watchdog[1]", hContext->ulId));
             BGRC_Packet_PrintStatus(hContext);
             if (hContext->create_settings.secure == hGrc->secure) {
                 BGRC_Packet_AdvancePackets( hGrc, NULL );
                 BGRC_P_CheckHwStatus( hGrc );
                 if (BGRC_PACKET_P_SyncState_eSynced != hContext->eSyncState) {
-                    BGRC_P_WATCHDOG_MSG(("Ctx[%d] watchdog[2]", hContext->ulId));
+                    BGRC_P_WATCHDOG_MSG(("Ctx[%x] watchdog[2]", hContext->ulId));
 #if BGRC_USE_WATCHDOG_RESET
                     /* we cannot reset for secure without system failure. */
                     if (!hContext->create_settings.secure) {
@@ -1530,6 +1569,8 @@ BERR_Code BGRC_Packet_SetSourceControl( BGRC_Handle hGrc, void **ppPacket,
 BERR_Code BGRC_Packet_SetDestinationPlanePacket( BGRC_Handle hGrc, void **ppPacket,
     const BM2MC_PACKET_Plane *pPlane, uint32_t color )
 {
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     if( pPlane )
     {
         BM2MC_PACKET_PacketDestinationFeeder *pPacket = (BM2MC_PACKET_PacketDestinationFeeder *) (*ppPacket);
@@ -1547,7 +1588,7 @@ BERR_Code BGRC_Packet_SetDestinationPlanePacket( BGRC_Handle hGrc, void **ppPack
         BM2MC_PACKET_TERM( pPacket );
         *ppPacket = (void *) pPacket;
     }
-    BSTD_UNUSED(hGrc);
+
     return BERR_SUCCESS;
 }
 
@@ -1556,35 +1597,46 @@ BERR_Code BGRC_Packet_SetDestinationControl( BGRC_Handle hGrc, void **ppPacket,
     bool zero_pad, bool chroma_filter )
 {
     BM2MC_PACKET_PacketDestinationControl *pPacket = (BM2MC_PACKET_PacketDestinationControl *) (*ppPacket);
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     BM2MC_PACKET_INIT( pPacket, DestinationControl, false );
     pPacket->zero_pad = zero_pad;
     pPacket->chroma_filter = chroma_filter;
     BM2MC_PACKET_TERM( pPacket );
 
     *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
 /*****************************************************************************/
 BERR_Code BGRC_Packet_SetOutputPlanePacket( BGRC_Handle hGrc, void **ppPacket,
-    const BM2MC_PACKET_Plane *pPlane )
+    const BM2MC_PACKET_Plane *pPlane)
 {
     BM2MC_PACKET_PacketOutputFeeder *pPacket = (BM2MC_PACKET_PacketOutputFeeder *) (*ppPacket);
+
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+    {
+        if (BM2MC_PACKET_PixelFormat_eUIF_R8_G8_B8_A8 != pPlane->format)
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+
+        /* The start address of the level0 image must be 64byte aligned */
+        if (((pPlane->address ) & ~(uint64_t)63u) != 0)
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
     BM2MC_PACKET_INIT( pPacket, OutputFeeder, false );
     pPacket->plane = *pPlane;
     BM2MC_PACKET_TERM( pPacket );
 
     *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
 /*****************************************************************************/
 BERR_Code BGRC_Packet_SetOutputControl( BGRC_Handle hGrc, void **ppPacket,
-    bool dither, bool chroma_filter )
+    bool dither, bool chroma_filter)
 {
     BM2MC_PACKET_PacketOutputControl *pPacket = (BM2MC_PACKET_PacketOutputControl *) (*ppPacket);
+
     BM2MC_PACKET_INIT( pPacket, OutputControl, false );
     pPacket->dither = dither;
     pPacket->chroma_filter = chroma_filter;
@@ -1596,10 +1648,46 @@ BERR_Code BGRC_Packet_SetOutputControl( BGRC_Handle hGrc, void **ppPacket,
 }
 
 /*****************************************************************************/
+BERR_Code BGRC_Packet_SetMipmapControl( BGRC_Handle hGrc, void **ppPacket,
+    uint8_t miplevel)
+{
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BM2MC_PACKET_PacketMipmapControl *pPacket = (BM2MC_PACKET_PacketMipmapControl *) (*ppPacket);
+
+    BM2MC_PACKET_INIT( pPacket, MipmapControl, false );
+    if (BGRC_eMM_M2mc0 != hGrc->eDeviceNum)
+    {
+        return BERR_NOT_SUPPORTED;
+    }
+
+    if(miplevel > BPXL_UIF_MAX_MIP_LEVELS)
+    {
+        BDBG_WRN(("miplevel should be less than %d", BPXL_UIF_MAX_MIP_LEVELS));
+        miplevel = BPXL_UIF_MAX_MIP_LEVELS;
+        return BERR_NOT_SUPPORTED;
+    }
+
+    pPacket->mipLevel = miplevel;
+    BM2MC_PACKET_TERM( pPacket );
+
+    *ppPacket = (void *) pPacket;
+    BSTD_UNUSED(hGrc);
+    return BERR_SUCCESS;
+#else
+    BSTD_UNUSED(hGrc);
+    BSTD_UNUSED(ppPacket);
+    BSTD_UNUSED(miplevel);
+    return BERR_NOT_SUPPORTED;
+#endif
+}
+
+/*****************************************************************************/
 BERR_Code BGRC_Packet_SetBlendPacket( BGRC_Handle hGrc, void **ppPacket,
     const BM2MC_PACKET_Blend *pColor, const BM2MC_PACKET_Blend *pAlpha, uint32_t color )
 {
     BM2MC_PACKET_PacketBlend *pPacket = (BM2MC_PACKET_PacketBlend *) (*ppPacket);
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     BM2MC_PACKET_INIT( pPacket, Blend, false );
     pPacket->color_blend = *pColor;
     pPacket->alpha_blend = *pAlpha;
@@ -1607,7 +1695,6 @@ BERR_Code BGRC_Packet_SetBlendPacket( BGRC_Handle hGrc, void **ppPacket,
     BM2MC_PACKET_TERM( pPacket );
 
     *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
@@ -1616,6 +1703,8 @@ BERR_Code BGRC_Packet_SetRopPacket( BGRC_Handle hGrc, void **ppPacket,
     uint8_t rop, uint32_t* pattern, uint32_t color0, uint32_t color1 )
 {
     BM2MC_PACKET_PacketRop *pPacket = (BM2MC_PACKET_PacketRop *) (*ppPacket);
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     BM2MC_PACKET_INIT( pPacket, Rop, false );
     pPacket->rop = rop;
     pPacket->pattern0 = pattern ? pattern[0] : 0;
@@ -1625,7 +1714,6 @@ BERR_Code BGRC_Packet_SetRopPacket( BGRC_Handle hGrc, void **ppPacket,
     BM2MC_PACKET_TERM( pPacket );
 
     *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
@@ -1634,6 +1722,8 @@ BERR_Code BGRC_Packet_SetSourceColorkeyPacket( BGRC_Handle hGrc, void **ppPacket
     bool enable, uint32_t high, uint32_t low, uint32_t mask, uint32_t replacement, uint32_t replacement_mask )
 {
     BM2MC_PACKET_PacketSourceColorkeyEnable *pPacket = (BM2MC_PACKET_PacketSourceColorkeyEnable *) (*ppPacket);
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     BM2MC_PACKET_INIT( pPacket, SourceColorkeyEnable, false );
     pPacket->enable = enable ? 1 : 0;
     BM2MC_PACKET_TERM( pPacket );
@@ -1651,7 +1741,6 @@ BERR_Code BGRC_Packet_SetSourceColorkeyPacket( BGRC_Handle hGrc, void **ppPacket
         BM2MC_PACKET_TERM( pPacket );
         *ppPacket = (void *) pPacket;
     }
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
@@ -1660,6 +1749,8 @@ BERR_Code BGRC_Packet_SetDestinationColorkeyPacket( BGRC_Handle hGrc, void **ppP
     bool enable, uint32_t high, uint32_t low, uint32_t mask, uint32_t replacement, uint32_t replacement_mask )
 {
     BM2MC_PACKET_PacketDestinationColorkeyEnable *pPacket = (BM2MC_PACKET_PacketDestinationColorkeyEnable *) (*ppPacket);
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     BM2MC_PACKET_INIT( pPacket, DestinationColorkeyEnable, false );
     pPacket->enable = enable ? 1 : 0;
     BM2MC_PACKET_TERM( pPacket );
@@ -1677,7 +1768,6 @@ BERR_Code BGRC_Packet_SetDestinationColorkeyPacket( BGRC_Handle hGrc, void **ppP
         BM2MC_PACKET_TERM( pPacket );
         *ppPacket = (void *) pPacket;
     }
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
@@ -1745,12 +1835,13 @@ BERR_Code BGRC_Packet_SetSourcePalette( BGRC_Handle hGrc, void **ppPacket,
 BERR_Code BGRC_Packet_SetAlphaPremultiply( BGRC_Handle hGrc, void **ppPacket, bool enable )
 {
     BM2MC_PACKET_PacketAlphaPremultiply *pPacket = (BM2MC_PACKET_PacketAlphaPremultiply *) (*ppPacket);
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     BM2MC_PACKET_INIT( pPacket, AlphaPremultiply, false );
     pPacket->enable = enable ? 1 : 0;
     BM2MC_PACKET_TERM( pPacket );
 
     *ppPacket = (void *) pPacket;
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
@@ -1797,6 +1888,8 @@ BERR_Code BGRC_Packet_SetBlitPacket( BGRC_Handle hGrc, void **ppPacket,
     if( pDstPoint )
     {
         BM2MC_PACKET_PacketBlendBlit *pPacket = (BM2MC_PACKET_PacketBlendBlit *) (*ppPacket);
+    if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
         BM2MC_PACKET_INIT( pPacket, BlendBlit, true );
         pPacket->src_rect = *pSrcRect;
         pPacket->out_point = *pOutPoint;
@@ -1821,7 +1914,6 @@ BERR_Code BGRC_Packet_SetBlitPacket( BGRC_Handle hGrc, void **ppPacket,
         BM2MC_PACKET_TERM( pPacket );
         *ppPacket = (void *) pPacket;
     }
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 
@@ -1832,6 +1924,8 @@ BERR_Code BGRC_Packet_SetScaleBlitPacket( BGRC_Handle hGrc, void **ppPacket,
     if( pDstPoint )
     {
         BM2MC_PACKET_PacketScaleBlendBlit *pPacket = (BM2MC_PACKET_PacketScaleBlendBlit *) (*ppPacket);
+        if (BGRC_eMM_M2mc0 == hGrc->eDeviceNum)
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
         BM2MC_PACKET_INIT( pPacket, ScaleBlendBlit, true );
         pPacket->src_rect = *pSrcRect;
         pPacket->out_rect = *pOutRect;
@@ -1848,7 +1942,6 @@ BERR_Code BGRC_Packet_SetScaleBlitPacket( BGRC_Handle hGrc, void **ppPacket,
         BM2MC_PACKET_TERM( pPacket );
         *ppPacket = (void *) pPacket;
     }
-    BSTD_UNUSED(hGrc);
     return BERR_SUCCESS;
 }
 

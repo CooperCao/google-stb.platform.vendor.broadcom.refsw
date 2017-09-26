@@ -30,7 +30,7 @@ struct egl_window_surface
 
 static EGL_SURFACE_METHODS_T fns;
 
-static bool dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
+static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
 {
    int                           fence = -1;
    BEGL_DisplayInterface         *platform = &g_bcgPlatformData.displayInterface;
@@ -47,7 +47,7 @@ static bool dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
    assert(platform->GetNextSurface);
    if (platform->GetNextSurface(platform->context, surf->native_window_state, format,
                                 &actualFormat, &surf->native_back_buffer, surf->base.secure, &fence) != BEGL_Success)
-      return false;
+      return EGL_RES_BAD_NATIVE_WINDOW;
 
    surf->active_image = image_from_surface_abstract(surf->native_back_buffer, true);
 
@@ -56,7 +56,7 @@ static bool dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
       assert(platform->CancelSurface);
       platform->CancelSurface(platform->context, surf->native_window_state,
             surf->native_back_buffer, fence);
-      return false;
+      return EGL_RES_NO_MEM;
    }
 
    /* window surfaces need to be renderable */
@@ -66,16 +66,16 @@ static bool dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
       platform->CancelSurface(platform->context, surf->native_window_state,
             surf->native_back_buffer, fence);
       KHRN_MEM_ASSIGN(surf->active_image, NULL);
-      return false;
+      return EGL_RES_BAD_NATIVE_WINDOW;
    }
 
    if (fence == -1)
-      return true;
+      return EGL_RES_SUCCESS;
 
    uint64_t job_id = v3d_scheduler_submit_wait_fence(fence);
    khrn_resource_job_replace(khrn_image_get_resource(surf->active_image), job_id);
 
-   return true;
+   return EGL_RES_SUCCESS;
 }
 
 static void dump_gmem_status(void)
@@ -103,7 +103,7 @@ static void dump_gmem_status(void)
 
 /* See eglSwapbuffers. If preserve, then the new back buffer should be
  * initialized with the contents of the previous back buffer. */
-static egl_swap_result_t swap_buffers(EGL_SURFACE_T *surface, bool preserve)
+static egl_result_t swap_buffers(EGL_SURFACE_T *surface, bool preserve)
 {
    EGL_WINDOW_SURFACE_T          *surf = (EGL_WINDOW_SURFACE_T *) surface;
    BEGL_DisplayInterface         *platform = &g_bcgPlatformData.displayInterface;
@@ -116,14 +116,14 @@ static egl_swap_result_t swap_buffers(EGL_SURFACE_T *surface, bool preserve)
       assert(platform->DisplaySurface);
 
       if (platform->DisplaySurface(platform->context, surf->native_window_state, surf->native_back_buffer, fence, surf->interval) != BEGL_Success)
-         return EGL_SWAP_SWAPPED;
+         return EGL_RES_BAD_NATIVE_WINDOW;
 
       KHRN_MEM_ASSIGN(surf->active_image, NULL);
 
       dump_gmem_status();
    }
 
-   return dequeue_buffer(surf) ? EGL_SWAP_SWAPPED : EGL_SWAP_NO_MEMORY;
+   return dequeue_buffer(surf);
 
 }
 

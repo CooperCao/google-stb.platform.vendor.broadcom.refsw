@@ -180,8 +180,15 @@ void Mail_ServiceInit()
     mailAdapterInit();
 
 #ifdef MAILBOX_STACK_SIDE
+#ifndef _USE_ASYNC_UART_
     Mail_TestEngineSendHello();
 #endif
+#endif
+}
+
+void Mail_ServiceDeinit()
+{
+    mailAdapterDeinit();
 }
 
 /************************************************************************************//**

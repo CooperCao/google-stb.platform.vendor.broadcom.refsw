@@ -69,3 +69,6 @@ SLAVE_RADAR=1
 
 #Set this to use macaddr from nvram file.
 NVRAM_MACADDR=0
+
+#Don't compile AMSDU SWDEAGG
+WLAMSDU_SWDEAGG=0

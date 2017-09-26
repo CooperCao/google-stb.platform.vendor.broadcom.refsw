@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "bchp_common.h"
 
 BDBG_MODULE(nxserver_cmdline);
 
@@ -1241,26 +1242,9 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
         unsigned index;
 
         pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
-        pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].offset = (uint64_t)2*1024*1024*1024; /* BA space above DRAM */
-        pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].size = 500*1024*1024;
-        pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
         pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
-        pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
-        pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
-        pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
-        pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
-        pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
-
         pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
-        pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].offset = pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].offset + (500*1024*1024); /* BA space above DRAM */
-        pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].size = 500*1024*1024;
-        pPlatformSettings->heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
         pPlatformSettings->heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
-        pPlatformSettings->heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
-        pPlatformSettings->heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
-        pPlatformSettings->heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
-        pPlatformSettings->heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
-        pPlatformSettings->heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
 
         /* if using the DTU, we can configure all heaps as NEXUS_SecureVideo_eBoth because actual allocation will be on demand */
         for (index=0;index<NEXUS_MAX_VIDEO_DECODERS;index++) {

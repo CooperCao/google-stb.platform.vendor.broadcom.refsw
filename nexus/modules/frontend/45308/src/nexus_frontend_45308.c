@@ -145,6 +145,7 @@ typedef struct NEXUS_45308Device
     NEXUS_ThreadHandle deviceOpenThread;
     BIMG_Interface imgInterface;
     const uint8_t *fw;
+    unsigned chipId;
 } NEXUS_45308Device;
 
 #if 0
@@ -298,6 +299,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PreInitAP(NEXUS_45308Device 
 
     NEXUS_Frontend_Probe45308(pSettings, &results);
     BDBG_MSG(("chipid: %x",results.chip.familyId));
+    pDevice->chipId = results.chip.familyId;
 
     BHAB_45308_GetDefaultSettings(&pInitSettings->habSettings);
     {
@@ -495,7 +497,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_InitAP(NEXUS_45308Device *pD
 
     BDBG_MSG(("NEXUS_FrontendDevice_P_Init45308_InitAP"));
 
-    BDBG_WRN(("Initializing 45308 Frontend core..."));
+    BDBG_WRN(("Initializing %x Frontend core...", pDevice->chipId));
     /* Initialize the acquisition processor */
     fw = pDevice->fw;
     errCode = BHAB_InitAp(pDevice->satDevice->habHandle, fw);

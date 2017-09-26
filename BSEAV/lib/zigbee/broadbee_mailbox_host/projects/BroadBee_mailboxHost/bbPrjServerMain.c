@@ -53,9 +53,12 @@ extern int server_main(int argc, char *argv[]);
 /**//**
  * \brief Mailbox descriptor.
  */
+#include "bbMailAPI.h"
+#include "zigbee_rpc.h"
 
 int main(int argc, char *argv[])
 {
+    printf("RPC_C2S_Mail_UartSendReq: %d\n", RPC_C2S_Mail_UartSendReq);
     server_main(argc, argv);
 }
 

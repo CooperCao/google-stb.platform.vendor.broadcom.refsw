@@ -4378,12 +4378,12 @@ wlc_ap_ioctl(void *hdl, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		break;
 
 	case WLC_GET_RADAR:
-		if (pval == NULL)
+		if (pval == NULL) {
 			ASSERT(0);
-		if (RADAR_ENAB(wlc->pub)) {
+		} else if (RADAR_ENAB(wlc->pub)) {
 			*pval = (int32)wlc_dfs_get_radar(wlc->dfs);
 		} else {
-				bcmerror = BCME_UNSUPPORTED;
+			bcmerror = BCME_UNSUPPORTED;
 		}
 		break;
 #endif /* RADAR */

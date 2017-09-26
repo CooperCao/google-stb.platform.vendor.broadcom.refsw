@@ -2110,6 +2110,7 @@ static void BVDC_P_Source_PrintPicture_isr
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eBitDepth) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, stHdrMetadata.eType) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eMatrixCoefficients) ||
+            BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eColorPrimaries) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eChrominanceInterpolationMode);
     }
 
@@ -2137,6 +2138,7 @@ static void BVDC_P_Source_PrintPicture_isr
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eFrameRateCode                       : %d", pPic->eFrameRateCode));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ePxlFmt                              : %s", BPXL_ConvertFmtToStr(pPic->ePxlFmt)));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eMatrixCoefficients                  : %d", pPic->eMatrixCoefficients));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eColorPrimaries                      : %d", pPic->eColorPrimaries));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ePreferredTransferCharacteristics    : %d", pPic->ePreferredTransferCharacteristics));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eTransferCharacteristics             : %d", pPic->eTransferCharacteristics));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bStreamProgressive                   : %d", pPic->bStreamProgressive));
@@ -2426,11 +2428,12 @@ static void BVDC_P_Source_ValidateMpegData_isr
     }
 #endif
 
-    /* HDR source is scanned as progressive until deinterlacer tells 10-bit capability */
-    if(!pNewPic->bMute &&
-        BAVC_Polarity_eFrame != pNewPic->eSourcePolarity &&
-        BAVC_TransferCharacteristics_eSmpte_ST_2084 == pNewPic->eTransferCharacteristics
-        )
+    /* non-mosaic mode HDR source is forced to scan as progressive until deinterlacer tells 10-bit capability
+     * note: forcing progressive scan in mosaic mode causes timeout after killing playmosaic, see SWSTB-6714
+     * TODO: fine tune with boxMode src class later */
+    if(!pNewPic->bMute && !hSource->stCurInfo.bMosaicMode &&
+       BAVC_Polarity_eFrame != pNewPic->eSourcePolarity &&
+       BAVC_TransferCharacteristics_eSmpte_ST_2084 == pNewPic->eTransferCharacteristics)
     {
         BDBG_MSG(("MFD%d normally should not scan out interlaced for HDR content.", hSource->eId));
         pNewPic->eSourcePolarity = BAVC_Polarity_eFrame;/* override! assume interlaced source must be non-HDR */

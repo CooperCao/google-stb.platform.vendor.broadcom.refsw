@@ -67,51 +67,55 @@ typedef enum _SysAtomicSectionUid_t
     UART_ENABLE                                                                                            = 0x00010000,
     UART_DISABLE                                                                                           = 0x00010001,
 
+    /* bbSocPhyControl.c */
+    HAL_calibrationOnIdle                                                                                  = 0x00010002,
+
     /* bbSocUart.c */
-    SoC_UART_ENABLE                                                                                        = 0x00010002,
-    SoC_UART_DISABLE                                                                                       = 0x00010003,
+    SoC_UART_ENABLE                                                                                        = 0x00010003,
+    SoC_UART_DISABLE                                                                                       = 0x00010004,
+
+    /* bbHalMailboxUsart.c */
+    UARTMAILBOX_WRITE2                                                                                     = 0x00010005,
+    UARTMAILBOX_WRITE                                                                                      = 0x00010006,
 
     /* bbHalUsart.c */
-    UART_WRITE2                                                                                            = 0x00010004,
-    UART_WRITE                                                                                             = 0x00010005,
+    UART_WRITE2                                                                                            = 0x00010007,
+    UART_WRITE                                                                                             = 0x00010008,
 
     /* bbSecurity.c */
-    SYS_SECURITY_INIT_ATOMIC                                                                               = 0x00010006,
+    SYS_SECURITY_INIT_ATOMIC                                                                               = 0x00010009,
 
     /* bbSysPriorityQueue.h */
-    PRIORITYQUEUE_PUT                                                                                      = 0x00010007,
-    PRIORITYQUEUE_REMOVE                                                                                   = 0x00010008,
-    PRIORITYQUEUE_EXTRACT                                                                                  = 0x00010009,
+    PRIORITYQUEUE_PUT                                                                                      = 0x0001000a,
+    PRIORITYQUEUE_REMOVE                                                                                   = 0x0001000b,
+    PRIORITYQUEUE_EXTRACT                                                                                  = 0x0001000c,
 
     /* bbSysFsm.c */
-    SYS_FSM_START_EVENT_HANDLING                                                                           = 0x0001000a,
-    SYS_FSM_FINISH_EVENT_HANDLING                                                                          = 0x0001000b,
+    SYS_FSM_START_EVENT_HANDLING                                                                           = 0x0001000d,
+    SYS_FSM_FINISH_EVENT_HANDLING                                                                          = 0x0001000e,
 
     /* bbSysTaskScheduler.c */
-    SYS_SCHEDULER_INIT_0                                                                                   = 0x0001000c,
-    SYS_SCHEDULER_RUN_TASK_0                                                                               = 0x0001000d,
-    SYS_SCHEDULER_RUN_TASK_1                                                                               = 0x0001000e,
-    SYS_SCHEDULER_RUN_TASK_2                                                                               = 0x0001000f,
-    SYS_SCHEDULER_POST_TASK_0                                                                              = 0x00010010,
-    SYS_SCHEDULER_RECALL_TASK_0                                                                            = 0x00010011,
+    SYS_SCHEDULER_INIT_0                                                                                   = 0x0001000f,
+    SYS_SCHEDULER_RUN_TASK_0                                                                               = 0x00010010,
+    SYS_SCHEDULER_RUN_TASK_1                                                                               = 0x00010011,
+    SYS_SCHEDULER_RUN_TASK_2                                                                               = 0x00010012,
+    SYS_SCHEDULER_POST_TASK_0                                                                              = 0x00010013,
+    SYS_SCHEDULER_RECALL_TASK_0                                                                            = 0x00010014,
 
     /* bbMacPibApi.h */
-    ATM_macPibApiSetPromiscuousMode                                                                        = 0x00010012,
-    ATM_macPibApiSetRxOnWhenIdle                                                                           = 0x00010013,
+    ATM_macPibApiSetPromiscuousMode                                                                        = 0x00010015,
+    ATM_macPibApiSetRxOnWhenIdle                                                                           = 0x00010016,
 
     /* bbMacFeReqProcRxEnable.c */
-    ATM_macFeReqProcRxEnableIssueConf                                                                      = 0x00010014,
+    ATM_macFeReqProcRxEnableIssueConf                                                                      = 0x00010017,
 
     /* bbMacMemory.c */
-    ATM_macMemoryPibReset                                                                                  = 0x00010015,
+    ATM_macMemoryPibReset                                                                                  = 0x00010018,
 
     /* bbPhyPibApi.h */
-    ATM_phyPibApiSetTransmitPower                                                                          = 0x00010016,
-    ATM_phyPibApiSetCcaMode                                                                                = 0x00010017,
-    ATM_phyPibApiSetCurrentChannelOnPage                                                                   = 0x00010018,
-
-    /* bbPhy.c */
-    HAL_calibrationOnIdle                                                                                  = 0x00010019,
+    ATM_phyPibApiSetTransmitPower                                                                          = 0x00010019,
+    ATM_phyPibApiSetCcaMode                                                                                = 0x0001001a,
+    ATM_phyPibApiSetCurrentChannelOnPage                                                                   = 0x0001001b,
 
 } SysAtomicSectionUid_t;
 

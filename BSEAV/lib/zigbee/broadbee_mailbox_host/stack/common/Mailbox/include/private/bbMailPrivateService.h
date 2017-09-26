@@ -63,8 +63,11 @@
 /**//**
  * \brief number of pending client requests
  */
+#if defined(_USE_ASYNC_UART_) && (_MAILBOX_INTERFACE_==1)
+#define MAIL_CLIENT_MAX_AMOUNT_PENDING_CALLS 200
+#else
 #define MAIL_CLIENT_MAX_AMOUNT_PENDING_CALLS 15
-
+#endif
 /**//**
  * \brief server buffers amount.
  */

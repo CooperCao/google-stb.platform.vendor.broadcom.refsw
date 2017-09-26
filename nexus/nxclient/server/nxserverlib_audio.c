@@ -531,7 +531,6 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
             }
         }
         audioOpenSettings.karaokeSupported = server->settings.session[session->index].karaoke;
-        audioOpenSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e5_1;
         r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
         if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
             rc = BERR_TRACE(NEXUS_UNKNOWN);
@@ -582,6 +581,10 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
                                     server->settings.audioDecoder.audioDescription ||
                                     server->settings.session[r->session->index].persistentDecoderSupport ||
                                     b_dolby_ms_enabled(session);
+
+        if (!cap.dsp.mixer) {
+            mixerSettings.mixUsingDsp = false;
+        }
         mixerSettings.outputSampleRate = (server->settings.audioMixer.sampleRate >= 32000 && server->settings.audioMixer.sampleRate <= 96000) ? server->settings.audioMixer.sampleRate : mixerSettings.outputSampleRate;
         if (mixerSettings.mixUsingDsp) {
             mixerSettings.dspIndex = audioOpenSettings.dspIndex; /* mixer dspIndex must match decoder */

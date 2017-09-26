@@ -52,21 +52,7 @@ int SAGE_app_join_nexus(void)
     int rc = 0;
 
 #ifdef NXCLIENT_SUPPORT
-    SRAI_Settings appSettings;
-
     rc = NxClient_Join(NULL);
-    if (rc) goto end;
-
-    /* Get Current Settings */
-    SRAI_GetSettings(&appSettings);
-
-    /* Customize appSettings, for example if designed to use NxClient API */
-    appSettings.generalHeapIndex     = NXCLIENT_FULL_HEAP;
-    appSettings.videoSecureHeapIndex = NXCLIENT_VIDEO_SECURE_HEAP;
-
-    /* Save/Apply new settings */
-    SRAI_SetSettings(&appSettings);
-end:
 #else
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;

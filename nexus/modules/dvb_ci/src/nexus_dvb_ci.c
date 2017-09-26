@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -100,8 +100,7 @@ NEXUS_DvbCiHandle NEXUS_DvbCi_Open(
         return NULL;
     }
 
-    BKNI_Memset(handle, 0, sizeof(NEXUS_DvbCi));
-    BDBG_OBJECT_SET(handle, NEXUS_DvbCi);
+    NEXUS_OBJECT_INIT(NEXUS_DvbCi, handle);
     handle->errorCallback = NEXUS_TaskCallback_Create(handle, NULL);
     handle->cardDetectCallback = NEXUS_TaskCallback_Create(handle, NULL);
     handle->ireqCallback = NEXUS_TaskCallback_Create(handle, NULL);
@@ -207,7 +206,7 @@ err_address:
 Summary:
     Close a DVB-CI device
 ***************************************************************************/
-void NEXUS_DvbCi_Close(
+static void NEXUS_DvbCi_P_Finalizer(
     NEXUS_DvbCiHandle handle
     )
 {
@@ -241,9 +240,11 @@ void NEXUS_DvbCi_Close(
     NEXUS_TaskCallback_Destroy(handle->errorCallback);
     NEXUS_TaskCallback_Destroy(handle->cardDetectCallback);
     NEXUS_TaskCallback_Destroy(handle->ireqCallback);
-    BKNI_Memset(handle, 0, sizeof(NEXUS_DvbCi));
+    NEXUS_OBJECT_DESTROY(NEXUS_DvbCi, handle);
     BKNI_Free(handle);
 }
+
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_DvbCi, NEXUS_DvbCi_Close);
 
 /***************************************************************************
 Summary:

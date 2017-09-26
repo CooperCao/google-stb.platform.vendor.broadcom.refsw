@@ -206,7 +206,7 @@ static MailPendingAPICall_t *mailClientFindOldestOneWayEmpty(void)
     MailPendingAPICall_t *const sendingInProgress =
         GET_PARENT_BY_FIELD(MailPendingAPICall_t, elem, SYS_QueueGetQueueHead(&clientMemory.parcelQueue));
 
-    for (int8_t i = MAIL_CLIENT_MAX_AMOUNT_PENDING_CALLS - 1; i >= 0; --i)
+    for (int16_t i = MAIL_CLIENT_MAX_AMOUNT_PENDING_CALLS - 1; i >= 0; --i)
     {
         MailPendingAPICall_t *const seek = &clientMemory.pendingTable[i];
         if ((MAIL_PARCEL_AWAIT_FOR_SEND == seek->state || MAIL_WAITING_FOR_ACK == seek->state)

@@ -270,6 +270,9 @@ typedef struct
 
     bool                    chromaFilter;    /* Applied to both source, destination and output surfaces. See BM2MC_PACKET_PacketSourceControl, BM2MC_PACKET_PacketDestinationControl, and BM2MC_PACKET_PacketOutputControl in bm2mc_packet.h */
 
+    /* mipmap settings*/
+    uint32_t                miplevel;
+
     /* Blit Reversal Flags */
     bool                    mirrorSrcVertically;
     bool                    mirrorSrcHorizontally;
@@ -325,6 +328,9 @@ typedef struct
     BGRC_FilterCoeffs       vertFilter;      /* See BGRC_FilterCoeffs and BGRC_Source_SetFilterCoeffs in bgrc.h */
 
     bool                    chromaFilter;    /* Applied to both source and output surfaces. See BM2MC_PACKET_PacketSourceControl and BM2MC_PACKET_PacketOutputControl in bm2mc_packet.h */
+
+    /* mipmap settings*/
+    uint32_t                miplevel; /* max mip level to calculate the memory allocation */
 
     BGRClib_BlitMatrixParams matrixParams;
 } BGRClib_DestripeBlitParams;

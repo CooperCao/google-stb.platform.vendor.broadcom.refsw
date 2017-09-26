@@ -108,17 +108,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication; /* cached only */
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
 
-#if NEXUS_PLATFORM_7241_T2SFF || NEXUS_PLATFORM_7241_DCSFBTSFF
-    {
-    uint8_t i=0;
-    for (i=0;i<NEXUS_MAX_I2C_CHANNELS;i++) {
-        if ( i != NEXUS_I2C_CHANNEL_HDMI_TX ){
-            pSettings->i2c[i].settings.interruptMode = false;
-        }
-    }
-    }
-#endif
-
 }
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)

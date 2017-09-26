@@ -11148,7 +11148,8 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
     {
         if(hWindow->stSettings.bDeinterlacerAllocFull)
         {
-            bBufIsContinuous = false;
+            /* SWSTB-6375: ANR for progressive needs to use 2 continuous frame buffer rather than 4 non-continuous buffer */
+            bBufIsContinuous = !hWindow->stCurResource.hMcvp->hMcdi->bMadr;
             usStdPixBufCnt = BVDC_P_Mcdi_GetPixBufCnt_isr(hWindow->stCurResource.hMcvp->hMcdi->bMadr, BVDC_MadGameMode_eOff);
             usStdQmBufCnt = hWindow->stCurResource.hMcvp->hMcdi->bMadr ?
                     BVDC_P_MAD_QM_BUFFER_COUNT : BVDC_P_MCDI_QM_BUFFER_COUNT;

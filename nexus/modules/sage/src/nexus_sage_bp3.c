@@ -173,6 +173,18 @@ void NEXUS_Sage_P_BP3Uninit(void)
     }
 
     /* Close BP3 Platform */
+    if(lHandle->hSagelibRpcModuleHandle)
+    {
+        BSAGElib_Rai_Module_Uninit(lHandle->hSagelibRpcModuleHandle, &lHandle->uiLastAsyncId);
+        rc = NEXUS_Sage_BP3_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        if(rc!=BERR_SUCCESS)
+        {
+            BDBG_ERR(("timed out waiting for sage %s",BSTD_FUNCTION));
+        }
+        BSAGElib_Rpc_RemoveRemote(lHandle->hSagelibRpcModuleHandle);
+        lHandle->hSagelibRpcModuleHandle = NULL;
+    }
+
     if(lHandle->hSagelibRpcPlatformHandle)
     {
         BSAGElib_Rai_Platform_Close(lHandle->hSagelibRpcPlatformHandle, &lHandle->uiLastAsyncId);

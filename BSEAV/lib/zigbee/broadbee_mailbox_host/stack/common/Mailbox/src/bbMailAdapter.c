@@ -83,6 +83,22 @@ void mailAdapterInit(void)
 }
 
 /************************************************************************************//**
+    \brief Deinitialize internal data structures.
+    \param[in] adapter - adapter descriptor.
+ ****************************************************************************************/
+void mailAdapterDeinit(void)
+{
+    HAL_MailboxClose(&adapterMemory.mbFifoDescr);
+
+    mailAdapterReset();
+
+    adapterMemory.mbFifoDescr.offlineCallback    = NULL;
+    adapterMemory.mbFifoDescr.rtsCallback        = NULL;
+    adapterMemory.mbFifoDescr.rxCallback         = NULL;
+
+}
+
+/************************************************************************************//**
     \brief Helper function. Reset tx options struct.
     \param[in] rxOptions - pointer.
  ****************************************************************************************/

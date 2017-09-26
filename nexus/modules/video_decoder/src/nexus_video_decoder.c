@@ -597,6 +597,7 @@ static void NEXUS_VideoDecoder_P_GetDefaultSupportedCodecs_isrsafe(bool *support
 
 void NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(NEXUS_VideoDecoderSettings *pSettings)
 {
+    unsigned i;
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->dropFieldMode = false;
     NEXUS_CallbackDesc_Init(&pSettings->appUserDataReady);
@@ -615,7 +616,13 @@ void NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(NEXUS_VideoDecoderSettings 
     pSettings->maxFrameRate = NEXUS_VideoFrameRate_e60;
     pSettings->colorDepth = 8; /* require app to select 10 bit */
     pSettings->userDataFilterThreshold = 60; /* 2 seconds */
-    NEXUS_VideoDecoder_P_GetDefaultSupportedCodecs_isrsafe(pSettings->supportedCodecs, 0);
+    /* use supportedCodecs from first enabled decoder */
+    for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
+        if (g_NEXUS_videoDecoderModuleSettings.memory[i].used) {
+            NEXUS_VideoDecoder_P_GetDefaultSupportedCodecs_isrsafe(pSettings->supportedCodecs, i);
+            break;
+        }
+    }
 }
 
 void NEXUS_VideoDecoder_P_GetDefaultPlaybackSettings_isrsafe(NEXUS_VideoDecoderPlaybackSettings *pSettings)

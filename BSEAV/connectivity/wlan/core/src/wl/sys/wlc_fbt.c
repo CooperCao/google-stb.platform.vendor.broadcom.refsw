@@ -2312,21 +2312,31 @@ wlc_fbt_process_reassoc_resp(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg)
 	wpa = fbt_bss_priv->wpa;
 
 	tlvs = (uint8 *)&as->resp[1];
+	if (as->resp_len <= DOT11_ASSOC_RESP_FIXED_LEN) {
+		return FALSE; /* not meet fixed lenth, hence return */
+	}
 	tlv_len = as->resp_len - DOT11_ASSOC_RESP_FIXED_LEN;
-	if ((ftie = (dot11_ft_ie_t *)bcm_parse_tlvs(tlvs, tlv_len, DOT11_MNG_FTIE_ID)) != NULL) {
+
+	ftie = (dot11_ft_ie_t *)bcm_parse_tlvs(tlvs, tlv_len, DOT11_MNG_FTIE_ID);
+	if (BCM_TLV_SIZE(ftie) >= sizeof(dot11_ft_ie_t)) {
 		tlvs = (uint8 *)((uintptr)ftie + sizeof(dot11_ft_ie_t));
 		tlv_len = ftie->len - sizeof(dot11_ft_ie_t) + TLV_HDR_LEN;
 		/* plumb the keys here and set the scb authorized */
-		if ((gtk = (dot11_gtk_ie_t *)bcm_parse_tlvs(tlvs, tlv_len, 2)) != NULL) {
-			wpa->gtk_len = gtk->key_len;
-			wpa->gtk_index = ltoh16_ua(&gtk->key_info) & 0x3;
+		gtk = (dot11_gtk_ie_t *)bcm_parse_tlvs(tlvs, tlv_len, DOT11_FBT_SUBELEM_ID_GTK);
+		if (gtk && (gtk->len >= DOT11_FBT_SUBELEM_GTK_MIN_LEN) &&
+		   (gtk->len <= MIN(DOT11_FBT_SUBELEM_GTK_MAX_LEN,
+		   (sizeof(wpa->gtk) + AKW_BLOCK_LEN + DOT11_FBT_SUBELEM_GTK_FIXED_LEN)))) {
 			/* extract and plumb GTK */
-			ASSERT(gtk->len == 35);
-			if (aes_unwrap(WPA_ENCR_KEY_LEN, wpa->eapol_encr_key, gtk->len - 11,
+			if ((gtk->key_len > sizeof(wpa->gtk)) ||
+				aes_unwrap(WPA_ENCR_KEY_LEN, wpa->eapol_encr_key,
+				gtk->len - DOT11_FBT_SUBELEM_GTK_FIXED_LEN,
 				&gtk->data[0], wpa->gtk)) {
 				WL_WSEC(("FBT reassoc: GTK decrypt failed\n"));
 				return FALSE;
 			}
+
+			wpa->gtk_len = gtk->key_len;
+			wpa->gtk_index = ltoh16_ua(&gtk->key_info) & 0x3;
 			wlc_wpa_plumb_gtk(fbt_bss_priv->wlc, fbt_bss_priv->cfg, wpa->gtk,
 				wpa->gtk_len, wpa->gtk_index, wpa->mcipher, gtk->rsc, TRUE);
 

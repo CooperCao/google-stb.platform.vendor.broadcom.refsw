@@ -452,6 +452,8 @@ typedef enum
 
     /* Addition API section end */
     GET_FW_REV_FID,
+    UART_SEND_FID,
+    UART_RECV_FID,
     FINAL_PUBLIC_FID,
 
 } MailFID_t;
@@ -2179,8 +2181,17 @@ HOST_TO_STACK(Get_FW_Rev_Req, GET_FW_REV_FID,
               HAS_CB, Get_FW_Rev_ReqDescr_t,
               NO_PARAMS, NO_APPROPRIATE_TYPE, payload,
               NO_DATA, Get_FW_Rev_ConfParams_t, payload)
+#ifdef _USE_ASYNC_UART_
+HOST_TO_STACK(Mail_UartSendReq, UART_SEND_FID,
+              HAS_CB, Mail_UartSendReqDescr_t,
+              HAS_DATA, Mail_UartSendReqParams_t, payload,
+              NO_DATA, Mail_UartSendConfParams_t, payload)
 
-
+STACK_TO_HOST(Mail_UartRecvInd, UART_RECV_FID,
+              HAS_CB, Mail_UartRecvIndDescr_t,
+              HAS_DATA, Mail_UartRecvIndParams_t, payload,
+              NO_DATA,  Mail_UartRecvRespParams_t, payload)
+ #endif
 // NOTE: TE_ASSERT_ERRID_FID must be on the last position.
 ANY_DIRECTION(Mail_TestEngineHaltInd, TE_ASSERT_ERRID_FID,
               NO_CB, NO_APPROPRIATE_TYPE,

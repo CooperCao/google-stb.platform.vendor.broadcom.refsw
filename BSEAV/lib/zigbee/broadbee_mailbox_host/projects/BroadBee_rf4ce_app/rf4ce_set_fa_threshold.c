@@ -69,8 +69,6 @@ int main(int argc, char *argv[])
     sscanf(argv[1], "%d", &threshold);
     BroadBee_RF4CE_Set_FA_Threshold((int8_t)threshold);
 
-    printf("\nPress any key to exist\n");
-    getchar();
     printf("Completed 'rf4ce_set_fa_threshold' application successfully.\n");
 
     Zigbee_Close();

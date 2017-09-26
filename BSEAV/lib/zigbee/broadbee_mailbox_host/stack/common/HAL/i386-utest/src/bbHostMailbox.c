@@ -49,6 +49,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <syslog.h>
+#include <signal.h>
 #include "bbHostMailbox.h"
 #include "zigbee_ioctl.h"
 #include "bbSysBasics.h"
@@ -56,7 +58,7 @@
 
 /************************* static variables ***************************************/
 static HOST_HwMailboxDescriptor_t *hostMailboxDesc = NULL;
-
+static volatile uint8_t rxThreadExit               = false;
 /************************* static function **********************************************/
 
 INLINE HOST_HwMailboxDescriptor_t **hostHwMailboxDesc() { return &hostMailboxDesc; }
@@ -71,7 +73,7 @@ static void hostRxInterruptHandler(HOST_HwMailboxDescriptor_t *const descr)
     uint32_t ret;
     uint8_t data[HAL_MAILBOX_TXRX_FIFO_CAPACITY];
 
-    while(1){
+    while(!rxThreadExit){
         memset(data, 0, sizeof(data));
         ret = Zigbee_Ioctl_ReadFromMbox(descr->zigbeeDeviceFd, data);
         if((int)ret < 0)
@@ -83,6 +85,7 @@ static void hostRxInterruptHandler(HOST_HwMailboxDescriptor_t *const descr)
         SYS_FifoWrite(&descr->rxFifo, data, sizeof(data));
         descr->rxCallback(descr);
     }
+    syslog(LOG_INFO, "hostRxInterruptHandler exits elegantly!!!");
 }
 
 static void hostCreateRxThread(HOST_HwMailboxDescriptor_t *const descr)
@@ -102,6 +105,10 @@ static void hostCreateRxThread(HOST_HwMailboxDescriptor_t *const descr)
                         (void *)descr);
 }
 
+static void mailbox_userSignalHandler(int signum)
+{
+    syslog(LOG_INFO, "Received user signal");
+}
 /************************* IMPLEMENTATION **********************************************/
 
 /************************************************************************************//**
@@ -119,6 +126,16 @@ void HOST_HwMailboxInit(HOST_HwMailboxDescriptor_t *const descr)
     SYS_DbgAssert(descr->zigbeeDeviceFd >= 0, HOST_HW_MAILBOX_INIT_1);
     pthread_mutex_init(&descr->rxFifoMutex, NULL);
     hostCreateRxThread(descr);
+    struct sigaction new_action, old_action;
+
+    /* Set up the structure to specify the new action. */
+    new_action.sa_handler = mailbox_userSignalHandler;
+    sigemptyset (&new_action.sa_mask);
+    new_action.sa_flags = 0;
+
+    sigaction (SIGUSR1, NULL, &old_action);
+    sigaction (SIGUSR1, &new_action, NULL);
+
     descr->rtsCallback(descr);
 }
 
@@ -128,6 +145,9 @@ void HOST_HwMailboxInit(HOST_HwMailboxDescriptor_t *const descr)
 ****************************************************************************************/
 void HOST_HwMailboxClose(const HOST_HwMailboxDescriptor_t *const descr)
 {
+    rxThreadExit = 1;
+    pthread_kill(descr->interruptThread, SIGUSR1);
+    pthread_join(descr->interruptThread, NULL);
     close(descr->zigbeeDeviceFd);
 }
 
