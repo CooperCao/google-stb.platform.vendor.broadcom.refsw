@@ -290,7 +290,8 @@ $(BINDIR)/ccgfx: LDFLAGS += -lm -lb_dcc
 ifeq ($(FREETYPE_SUPPORT),y)
 $(BINDIR)/ccgfx: LDFLAGS += -lfreetype
 endif
-$(BINDIR)/ccgfx: dcclib $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_dccparse.c $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_bitread.c parse_userdata.c $(NXCLIENT_APPS_UTILS_LIB)
+include $(MAGNUM)/commonutils/udp/budp.inc
+$(BINDIR)/ccgfx: dcclib parse_userdata.c $(NXCLIENT_APPS_UTILS_LIB) $(BUDP_SOURCES)
 endif
 EXTRA_BUILD_RULES += ccgfx_install
 ccgfx_install:

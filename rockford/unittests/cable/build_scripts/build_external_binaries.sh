@@ -253,6 +253,15 @@ make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_MODE=proxy MEDIA_RMFF
 cp ../../../../obj.$NEXUS_PLATFORM.external/BSEAV/bin/refsw-$today.97250-$B_REFSW_ARCH-atlas.bin.tgz $destination/binaries/external/97250/refsw-$reldate.97250cd2_vms_sff-linux-atlas-cable.bin.tgz
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external NEXUS_MODE=proxy MEDIA_RMFF_SUPPORT=n MEDIA_ASF_SUPPORT=n BDSP_3RDPARTY_ALGO_SUPPORT=n VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 
+# 97278 A0 VMS_SFF
+
+source ../../../tools/build/plat 97278 A0 VMS_SFF
+
+make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external clean
+make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external install
+cp ../../../../obj.$NEXUS_PLATFORM.external/BSEAV/bin/refsw-$today.97278-$B_REFSW_ARCH-linux-atlas.bin.tgz $destination/binaries/external/97278/refsw-$reldate.97278a0_vms_sff-linux-atlas.bin.tgz
+make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.external clean
+
 #97420_3255
 
 #source ../../tools/build/plat 97420 c1 le

@@ -1,17 +1,10 @@
-/*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
-All rights reserved.
-
-Project  :  khronos
-Module   :  VG shaders
-
-FILE DESCRIPTION
-Mask draw shaders.
-
-vg_shader_md_4.c is generated from vg_shader_md_4.c.qasm by:
-qasm -minline_c -tb0 vg_shader_md_4.c.qasm >vg_shader_md_4.c
-So don't edit vg_shader_md_4.c directly.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  vg_shader_md_4.c is generated from vg_shader_md_4.c.qasm by:
+ *  qasm -minline_c -tb0 vg_shader_md_4.c.qasm >vg_shader_md_4.c
+ *  So don't edit vg_shader_md_4.c directly.
+ ******************************************************************************/
 
 %[ .eval pragma_allow_xor_0(True) %]
 
@@ -59,9 +52,11 @@ const uint32_t VG_SHADER_MD_IMAGE_SET[] = { %[
    extra_thrsws  4
    image_fetch
    nop                ; nop ; sbwait
-   nop                ; nop ; thrend
    nop                ; nop ; ldtmu0
-   mov  tlbam, r4.8dr ; nop ; sbdone %] };
+   mov  tlbam, r4.8dr ; nop ; sbdone
+   nop                ; nop ; thrend
+   nop                ; nop
+   nop                ; nop          %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_SET_SIZE = sizeof(VG_SHADER_MD_IMAGE_SET);
 
@@ -70,8 +65,10 @@ const uint32_t VG_SHADER_MD_IMAGE_UNION[] = { %[
    image_fetch
    nop                   ; nop                    ; loadam
    not  r0, r4           ; mov  r1, r4            ; ldtmu0
-   nop                   ; v8muld  r0, r0, r4.8dr ; thrend
+   nop                   ; v8muld  r0, r0, r4.8dr
    v8adds  tlbam, r0, r1 ; nop                    ; sbdone
+   nop                   ; nop                    ; thrend
+   nop                   ; nop
    nop                   ; nop                             %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_UNION_SIZE = sizeof(VG_SHADER_MD_IMAGE_UNION);
@@ -80,9 +77,11 @@ const uint32_t VG_SHADER_MD_IMAGE_INTERSECT[] = { %[
    extra_thrsws  4
    image_fetch
    nop ; nop                       ; loadam
-   nop ; mov  r0, r4               ; thrend
-   nop ; nop                       ; ldtmu0
-   nop ; v8muld  tlbam, r0, r4.8dr ; sbdone %] };
+   nop ; mov  r0, r4               ; ldtmu0
+   nop ; v8muld  tlbam, r0, r4.8dr ; sbdone
+   nop ; nop                       ; thrend
+   nop ; nop
+   nop ; nop                                %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_INTERSECT_SIZE = sizeof(VG_SHADER_MD_IMAGE_INTERSECT);
 
@@ -91,8 +90,9 @@ const uint32_t VG_SHADER_MD_IMAGE_SUBTRACT[] = { %[
    image_fetch
    nop             ; nop                   ; ldtmu0
    not  r0, r4.8dr ; nop                   ; loadam
-   nop             ; v8muld  tlbam, r0, r4 ; thrend
-   nop             ; nop                   ; sbdone
+   nop             ; v8muld  tlbam, r0, r4 ; sbdone
+   nop             ; nop                   ; thrend
+   nop             ; nop
    nop             ; nop                            %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_SUBTRACT_SIZE = sizeof(VG_SHADER_MD_IMAGE_SUBTRACT);
@@ -101,9 +101,11 @@ const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_SET[] = { %[
    extra_thrsws  4
    image_fetch
    nop            ; nop ; sbwait
-   nop            ; nop ; thrend
    nop            ; nop ; ldtmu0
-   mov  tlbam, r4 ; nop ; sbdone %] };
+   mov  tlbam, r4 ; nop ; sbdone
+   nop            ; nop ; thrend
+   nop            ; nop
+   nop            ; nop          %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_SET_SIZE = sizeof(VG_SHADER_MD_IMAGE_NO_ALPHA_SET);
 
@@ -112,8 +114,10 @@ const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_UNION[] = { %[
    image_fetch
    nop                   ; nop                ; loadam
    not  r0, r4           ; mov  r1, r4        ; ldtmu0
-   nop                   ; v8muld  r0, r0, r4 ; thrend
+   nop                   ; v8muld  r0, r0, r4
    v8adds  tlbam, r0, r1 ; nop                ; sbdone
+   nop                   ; nop                ; thrend
+   nop                   ; nop
    nop                   ; nop                         %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_UNION_SIZE = sizeof(VG_SHADER_MD_IMAGE_NO_ALPHA_UNION);
@@ -122,9 +126,11 @@ const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_INTERSECT[] = { %[
    extra_thrsws  4
    image_fetch
    nop ; nop                   ; loadam
-   nop ; mov  r0, r4           ; thrend
-   nop ; nop                   ; ldtmu0
-   nop ; v8muld  tlbam, r0, r4 ; sbdone %] };
+   nop ; mov  r0, r4           ; ldtmu0
+   nop ; v8muld  tlbam, r0, r4 ; sbdone
+   nop ; nop                   ; thrend
+   nop ; nop
+   nop ; nop                            %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_INTERSECT_SIZE = sizeof(VG_SHADER_MD_IMAGE_NO_ALPHA_INTERSECT);
 
@@ -133,8 +139,9 @@ const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_SUBTRACT[] = { %[
    image_fetch
    nop         ; nop                   ; ldtmu0
    not  r0, r4 ; nop                   ; loadam
-   nop         ; v8muld  tlbam, r0, r4 ; thrend
-   nop         ; nop                   ; sbdone
+   nop         ; v8muld  tlbam, r0, r4 ; sbdone
+   nop         ; nop                   ; thrend
+   nop         ; nop
    nop         ; nop                            %] };
 
 const uint32_t VG_SHADER_MD_IMAGE_NO_ALPHA_SUBTRACT_SIZE = sizeof(VG_SHADER_MD_IMAGE_NO_ALPHA_SUBTRACT);
@@ -145,8 +152,9 @@ const uint32_t VG_SHADER_MD_CVG_SET[] = { %[
    extra_thrsws  5
    nop            ; nop          # sbwait can't be first instr
    nop            ; nop ; loadcv
-   mov  tlbam, r4 ; nop ; thrend
-   nop            ; nop ; sbdone
+   mov  tlbam, r4 ; nop ; sbdone
+   nop            ; nop ; thrend
+   nop            ; nop
    nop            ; nop          %] };
 
 const uint32_t VG_SHADER_MD_CVG_SET_SIZE = sizeof(VG_SHADER_MD_CVG_SET);
@@ -156,8 +164,10 @@ const uint32_t VG_SHADER_MD_CVG_UNION[] = { %[
    nop                   ; nop                         # sbwait can't be first instr
    nop                   ; nop                ; loadcv
    not  r0, r4           ; mov  r1, r4        ; loadam
-   nop                   ; v8muld  r0, r0, r4 ; thrend
+   nop                   ; v8muld  r0, r0, r4
    v8adds  tlbam, r0, r1 ; nop                ; sbdone
+   nop                   ; nop                ; thrend
+   nop                   ; nop
    nop                   ; nop                         %] };
 
 const uint32_t VG_SHADER_MD_CVG_UNION_SIZE = sizeof(VG_SHADER_MD_CVG_UNION);
@@ -166,9 +176,11 @@ const uint32_t VG_SHADER_MD_CVG_INTERSECT[] = { %[
    extra_thrsws  5
    nop ; nop                            # sbwait can't be first instr
    nop ; nop                   ; loadcv
-   nop ; mov  r0, r4           ; thrend
-   nop ; nop                   ; loadam
-   nop ; v8muld  tlbam, r0, r4 ; sbdone %] };
+   nop ; mov  r0, r4           ; loadam
+   nop ; v8muld  tlbam, r0, r4 ; sbdone
+   nop ; nop                   ; thrend
+   nop ; nop
+   nop ; nop                            %] };
 
 const uint32_t VG_SHADER_MD_CVG_INTERSECT_SIZE = sizeof(VG_SHADER_MD_CVG_INTERSECT);
 
@@ -176,9 +188,11 @@ const uint32_t VG_SHADER_MD_CVG_SUBTRACT[] = { %[
    extra_thrsws  5
    nop         ; nop                            # sbwait can't be first instr
    nop         ; nop                   ; loadcv
-   not  r0, r4 ; nop                   ; thrend
-   nop         ; nop                   ; loadam
-   nop         ; v8muld  tlbam, r0, r4 ; sbdone %] };
+   not  r0, r4 ; nop                   ; loadam
+   nop         ; v8muld  tlbam, r0, r4 ; sbdone
+   nop         ; nop                   ; thrend
+   nop         ; nop
+   nop         ; nop                            %] };
 
 const uint32_t VG_SHADER_MD_CVG_SUBTRACT_SIZE = sizeof(VG_SHADER_MD_CVG_SUBTRACT);
 
@@ -198,9 +212,11 @@ const uint32_t VG_SHADER_MD_CVG_SCISSOR_SET[] = { %[
    extra_thrsws  4
    scissor_fetch
    nop                ; nop ; loadcv
-   mov  r0, r4        ; nop ; thrend
-   nop                ; nop ; ldtmu0
-   and  tlbam, r0, r4 ; nop ; sbdone %] };
+   mov  r0, r4        ; nop ; ldtmu0
+   and  tlbam, r0, r4 ; nop ; sbdone
+   nop                ; nop ; thrend
+   nop                ; nop
+   nop                ; nop          %] };
 
 const uint32_t VG_SHADER_MD_CVG_SCISSOR_SET_SIZE = sizeof(VG_SHADER_MD_CVG_SCISSOR_SET);
 
@@ -210,9 +226,12 @@ const uint32_t VG_SHADER_MD_CVG_SCISSOR_UNION[] = { %[
    nop                   ; nop                ; loadcv
    mov  r0, r4           ; nop                ; ldtmu0
    and  r0, r0, r4       ; nop                ; loadam
-   not  r1, r0           ; nop                ; thrend
+   not  r1, r0           ; nop
    nop                   ; v8muld  r1, r1, r4
-   v8adds  tlbam, r0, r1 ; nop                ; sbdone %] };
+   v8adds  tlbam, r0, r1 ; nop                ; sbdone
+   nop                   ; nop                ; thrend
+   nop                   ; nop
+   nop                   ; nop                         %] };
 
 const uint32_t VG_SHADER_MD_CVG_SCISSOR_UNION_SIZE = sizeof(VG_SHADER_MD_CVG_SCISSOR_UNION);
 
@@ -221,9 +240,11 @@ const uint32_t VG_SHADER_MD_CVG_SCISSOR_INTERSECT[] = { %[
    scissor_fetch
    nop             ; nop                   ; loadcv
    mov  r0, r4     ; nop                   ; ldtmu0
-   and  r0, r0, r4 ; nop                   ; thrend
-   nop             ; nop                   ; loadam
-   nop             ; v8muld  tlbam, r0, r4 ; sbdone %] };
+   and  r0, r0, r4 ; nop                   ; loadam
+   nop             ; v8muld  tlbam, r0, r4 ; sbdone
+   nop             ; nop                   ; thrend
+   nop             ; nop
+   nop             ; nop                            %] };
 
 const uint32_t VG_SHADER_MD_CVG_SCISSOR_INTERSECT_SIZE = sizeof(VG_SHADER_MD_CVG_SCISSOR_INTERSECT);
 
@@ -232,8 +253,11 @@ const uint32_t VG_SHADER_MD_CVG_SCISSOR_SUBTRACT[] = { %[
    scissor_fetch
    nop             ; nop                   ; loadcv
    mov  r0, r4     ; nop                   ; ldtmu0
-   and  r0, r0, r4 ; nop                   ; thrend
+   and  r0, r0, r4 ; nop
    not  r0, r0     ; nop                   ; loadam
-   nop             ; v8muld  tlbam, r0, r4 ; sbdone %] };
+   nop             ; v8muld  tlbam, r0, r4 ; sbdone
+   nop             ; nop                   ; thrend
+   nop             ; nop
+   nop             ; nop                            %] };
 
 const uint32_t VG_SHADER_MD_CVG_SCISSOR_SUBTRACT_SIZE = sizeof(VG_SHADER_MD_CVG_SCISSOR_SUBTRACT);

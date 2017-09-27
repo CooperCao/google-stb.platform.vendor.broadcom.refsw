@@ -49,7 +49,13 @@ extern "C" {
 /***************************************************************************/
 BDBG_OBJECT_ID_DECLARE(BGRC);
 
-BDBG_OBJECT_ID_DECLARE(BGRC);
+typedef enum
+{
+    BGRC_eM2mc0 = 0,
+    BGRC_eM2mc1 = 1,
+    BGRC_eMM_M2mc0 = 2,
+    BGRC_eM2mcMax
+}BGRC_eM2mcId;
 typedef struct BGRC_P_Handle
 {
     BDBG_OBJECT(BGRC)
@@ -58,10 +64,22 @@ typedef struct BGRC_P_Handle
     BMMA_Heap_Handle hMemory;                   /* handle to memory module */
     BINT_Handle hInterrupt;                     /* handle to interrupt module */
 
-    uint32_t ulDeviceNum;                       /* number of M2MC device being used */
+    BGRC_eM2mcId eDeviceNum;                    /* number of M2MC device being used */
+
+    /* Core & Vnet Channel Reset */
+    uint32_t                                    ulRegCoreReset;
+    uint32_t                                    ulRegClearCore;
+    uint32_t                                    ulCoreResetMask;
+    uint32_t                                    ulWeightReg;
+    uint32_t                                    ulM2mcPwrId;
+    uint32_t                                    ulSramPwrId;
+    uint32_t                                    ulIntid;
+
+
     uint32_t ulPacketMemoryMax;                 /* max packet memory */
     uint32_t ulOperationMax;                    /* max operations */
     uint32_t ulWaitTimeout;                     /* seconds to wait before assuming device is hung */
+    uint32_t ulRegOffset;                       /* offset from m2mc0*/
 #if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
     uint32_t ulWeight;                          /* scheduling */
 #endif
@@ -105,6 +123,12 @@ typedef struct BGRC_P_Handle
 
 #if BGRC_P_CHECK_RE_ENTRY
     int       iGrcLock;  /* to check module re-entry */
+#endif
+
+#ifdef BCHP_MM_M2MC0_REG_START
+    /* memory related info but not in stMemInfo for mipmap only*/
+    BPXL_Uif_Memory_Info  stPxlMemoryInfo;
+    /* How many UIF-block rows the "page cache" covers */
 #endif
     BCHP_MemoryInfo stMemInfo;
 }

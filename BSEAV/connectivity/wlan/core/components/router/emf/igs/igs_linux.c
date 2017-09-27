@@ -628,7 +628,7 @@ igs_netlink_sock_cb(
 		if (skb == NULL ||skb->len < sizeof(igs_cfg_request_t))
 		{
 			IGS_ERROR("Configuration request size not > %d or skb_clone failed\n",
-			          sizeof(igs_cfg_request_t));
+			          (int)sizeof(igs_cfg_request_t));
 			if (skb)
 				dev_kfree_skb(skb);
 			return;

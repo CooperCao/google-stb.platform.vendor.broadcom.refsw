@@ -346,6 +346,7 @@ bmedia_player_nav_create(bfile_io_read_t fd, const bmedia_player_config *config,
         long index = BNAV_Player_FindIndexFromOffset(player->bcm_player, config->data_file_size>>32, config->data_file_size&0xFFFFFFFF);
         if (index > 0) {
             player->index_file_size = index * player->index_entrysize;
+            player->bounds.set = false;
         }
     }
 

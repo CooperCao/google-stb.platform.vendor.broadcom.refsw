@@ -237,12 +237,14 @@ eRet initializeNexus()
 #endif
 
 #ifdef MPOD_SUPPORT
+#if ((NEXUS_PLATFORM == 97278) || (NEXUS_PLATFORM == 97271))
        for (int i = 0; i < MAX_CABLECARD_ROUTE; i++)
        {
 	/* enable mpodRs only for parsers that need to send data to the cablecard, which will cause an additional 175k or 200k per parserBand to be allocated from the device heap. */
 		platformSettings.transportModuleSettings.clientEnabled.parserBand[i].mpodRs = true;
 		platformSettings.transportModuleSettings.maxDataRate.parserBand[i] = 108000000;		/* 54000000;*/
 	}
+#endif
 #endif
 
         /* coverity[stack_use_overflow] */

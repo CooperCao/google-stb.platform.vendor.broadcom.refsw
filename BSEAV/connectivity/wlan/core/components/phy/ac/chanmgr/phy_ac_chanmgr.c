@@ -6518,11 +6518,16 @@ wlc_phy_set_regtbl_on_bw_change_acphy(phy_info_t *pi)
 	}
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33))) */
 
-	/* [4365]resovle DVGA stuck high - htagc and gainreset during wait_energy_drop collides */
 	if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
 	    ACMAJORREV_33(pi->pubpi->phy_rev) ||
-	    ACMAJORREV_37(pi->pubpi->phy_rev))
+	    ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		/* [4365]resovle DVGA stuck high - htagc and gainreset during wait_energy_drop collides */
 		wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_RFSEQ, 8, 0xb0, 16, rf_updl_dly_dvga);
+
+		/* Make leakage detect more aggressive, otherwise 20in80 can be
+		* incorrectly classified as 40in80. This reg changes with bw change */
+		MOD_PHYREG(pi, ClassifierLogAC1, logACDelta0, 10);
+	}
 
 	if (ACMAJORREV_1(pi->pubpi->phy_rev) || TINY_RADIO(pi) ||
 			ACMAJORREV_36(pi->pubpi->phy_rev)) {

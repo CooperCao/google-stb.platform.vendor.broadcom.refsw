@@ -507,6 +507,7 @@ void BAPE_P_VerifyNcoCallback_isr(void *pParam1, int param2)
                             BAPE_P_DetachMixerFromNco_isrsafe(pMixer, nco);
                             pMixer->mclkSource =  BAPE_MclkSource_eNco0 + i;
                             BAPE_P_AttachMixerToNco_isr(pMixer, (BAPE_Nco)i);
+                            pMixer->settings.outputNco = (BAPE_Nco)i;
                             pMixer = pPreviousMixer;
                             break;
                         }

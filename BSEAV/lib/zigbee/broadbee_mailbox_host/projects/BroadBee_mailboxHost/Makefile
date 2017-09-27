@@ -107,8 +107,8 @@ $(COMPONENTS): objdir
 	$(SILENT)$(MAKE) component
 
 ### Rule to build the application.
-AR = arm-linux-ar
-RANLIB = arm-linux-ranlib
+AR = $(CROSS_COMIPLE)ar
+RANLIB = $(CROSS_COMIPLE)ranlib
 
 $(OBJDIR)/bbPrjServerMain.o: $(PRJ_PATH)/bbPrjServerMain.c
 	@echo "--- C99: $*"

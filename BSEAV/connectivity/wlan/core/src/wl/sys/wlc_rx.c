@@ -1981,7 +1981,8 @@ wlc_recvdata_ordered(wlc_info_t *wlc, struct scb *scb, struct wlc_frminfo *f)
 			h->fc |= htol16(FC_FROMDS);
 			/* TDLS src address goes to a3; AP bssid into a2 */
 			bcopy(&h->a2, &h->a3, ETHER_ADDR_LEN);
-			bcopy(&parent->BSSID, &h->a2, ETHER_ADDR_LEN);
+			if (parent != NULL)
+				bcopy(&parent->BSSID, &h->a2, ETHER_ADDR_LEN);
 		}
 #endif /* WLTDLS */
 	}
@@ -4666,28 +4667,31 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 	}
 	if (scb != NULL) {
 		ASSERT(bsscfg == SCB_BSSCFG(scb));
-		ASSERT(bsscfg != NULL);
 		/* Allow specified Class 3 control and management frames in
 		 * IBSS mode to pass through.
 		 * Current HT or .11 spec do not address how to handle
 		 * this types of frame in IBSS network
 		 */
-		if (BSSCFG_STA(bsscfg) && !bsscfg->BSS && bsscfg->associated &&
-		    ((fk == FC_BLOCKACK) ||
-		     (fk == FC_BLOCKACK_REQ) ||
-		     ((fk == FC_ACTION) && (eacmp(&bsscfg->BSSID, &h->a3) == 0))))
-			ibss_accept = TRUE;
+		if (bsscfg != NULL) {
+			if (BSSCFG_STA(bsscfg) && !bsscfg->BSS && bsscfg->associated &&
+			    ((fk == FC_BLOCKACK) ||
+			     (fk == FC_BLOCKACK_REQ) ||
+			     ((fk == FC_ACTION) && (eacmp(&bsscfg->BSSID, &h->a3) == 0))))
+				ibss_accept = TRUE;
 #if defined(WLTDLS)
-		/* allow specified class 3 control and mgmt frames from a dpt
-		 * connection to go through
-		 */
-		if ((BSSCFG_IS_TDLS(bsscfg) ||
-			FALSE) &&
-		    ((fk == FC_BLOCKACK) ||
-		     (fk == FC_BLOCKACK_REQ) ||
-		     ((fk == FC_ACTION) && bcmp(&bsscfg->BSSID, &h->a3, ETHER_ADDR_LEN) == 0)))
-			dpt_accept = TRUE;
+			/* allow specified class 3 control and mgmt frames from a dpt
+			 * connection to go through
+			 */
+			if ((BSSCFG_IS_TDLS(bsscfg) ||
+				FALSE) &&
+			    ((fk == FC_BLOCKACK) ||
+			     (fk == FC_BLOCKACK_REQ) ||
+			     ((fk == FC_ACTION) && bcmp(&bsscfg->BSSID, &h->a3, ETHER_ADDR_LEN) == 0)))
+				dpt_accept = TRUE;
 #endif 
+		} else {
+			ASSERT(0);
+		}
 	}
 
 	if (class == 4) {

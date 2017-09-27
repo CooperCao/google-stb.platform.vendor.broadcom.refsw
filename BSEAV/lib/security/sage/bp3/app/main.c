@@ -231,15 +231,12 @@ end:
     return rc;
 }
 
-int bp3_session_start(uint8_t **token, uint32_t *size) {
+int bp3_session_start(uint8_t **token, uint32_t *size)
+{
   int rc = 0;
 
-  if (!pBp3SessionToken) {
-    /* Join Nexus: Initialize platform ... */
-    rc = SAGE_app_join_nexus();
-    if (rc)
-      goto err_nexus;
-
+  if (!pBp3SessionToken)
+  {
     /* This is also initializing all attached modules. */
     if (SAGE_BP3Platform_Init())
     {
@@ -434,8 +431,6 @@ leave:
     if (pBp3SessionToken) {
       SRAI_Memory_Free(pBp3SessionToken);
       SAGE_BP3Platform_Uninit();
-      /* Leave Nexus: Finalize platform ... */
-      SAGE_app_leave_nexus();
       pBp3SessionToken = NULL;
     }
     if (rc)
@@ -450,7 +445,10 @@ int bp3(int argc, char *argv[])
     int       rc = 0;
     uint8_t* logBuff = NULL;
     uint32_t logSize = 0;
-
+    /* Join Nexus: Initialize platform ... */
+    rc = SAGE_app_join_nexus();
+    if (rc)
+      goto leave_nexus;
     rc = bp3_session_start(NULL, NULL);
     if (rc)
       goto leave;
@@ -468,7 +466,9 @@ int bp3(int argc, char *argv[])
     SAGE_Write_Log_File(&logBuff, &logSize);
 
 leave:
-
+    /* Leave Nexus: Finalize platform ... */
+    SAGE_app_leave_nexus();
+leave_nexus:
     if (logBuff)
       free(logBuff);
     if (rc)

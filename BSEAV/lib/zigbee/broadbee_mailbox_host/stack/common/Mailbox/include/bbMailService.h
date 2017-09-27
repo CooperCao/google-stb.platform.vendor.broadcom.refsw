@@ -97,6 +97,11 @@ const MailServiceFunctionInfo_t *Mail_ServiceGetFunctionInfo(MailFID_t fId);
 ****************************************************************************************/
 void Mail_ServiceInit(void);
 
+
+/************************************************************************************//**
+    \brief Deinitialize mail service.
+****************************************************************************************/
+void Mail_ServiceDeinit(void);
 /************************************************************************************//**
     \brief Returns true if mailbox ready to serialize a one more transaction and false otherwise.
  ****************************************************************************************/

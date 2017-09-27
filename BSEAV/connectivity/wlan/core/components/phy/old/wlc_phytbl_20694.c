@@ -4412,8 +4412,8 @@ const chan_info_radio20694_rffe_t chan_tune_20694_rev9_AUX[] = {
 
 /* 2G LNA1 and LNA2 Gain dB table for maj40 */
 int8 BCMATTACHDATA(lna12_gain_tbl_2g_maj40)[2][N_LNA12_GAINS] = {
-	{-13, -7, -1, 6, 11, 17}, /* LNA1 Table */
-	{ 0, 0, 0,  0,  0,  0}, /* LNA2 Table */
+	{-6, -1,  5, 11, 18, 24}, /* LNA1 Table: Modified to match the LNARout table values */
+	{ 0,  0,  0,  0,  0,  0}, /* LNA2 Table */
 };
 
 /* 2G LNA1 and LN2 Gain bits table for maj40 */
@@ -4424,8 +4424,8 @@ int8 BCMATTACHDATA(lna12_gainbits_tbl_2g_maj40)[2][N_LNA12_GAINS] = {
 
 /* 5G LNA1 and LNA2 Gain dB table for maj40 */
 int8 BCMATTACHDATA(lna12_gain_tbl_5g_maj40)[2][N_LNA12_GAINS] = {
-	{-6, 0, 6, 13, 18, 24}, /* LNA1 Table */
-	{ 0, 0, 0,  0,  0,  0}, /* LNA2 Table */
+	{-8, -4,  2,  8, 16, 22}, /* LNA1 Table: Modified to match the LNARout table values */
+	{ 0,  0,  0,  0,  0,  0}, /* LNA2 Table */
 };
 
 /* 5G LNA1 and LN2 Gain bits table for maj40 */

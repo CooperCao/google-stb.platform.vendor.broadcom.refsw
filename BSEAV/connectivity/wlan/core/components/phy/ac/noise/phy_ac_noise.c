@@ -2601,59 +2601,59 @@ static void
 wlc_phy_enable_hwaci_rev37(phy_info_t *pi)
 {
 	// Detector nor #1 - ACI
-	//  nb2 >> 0            >= 100
-	//           + nb1 >> 0 >= 0
-	//  nb2 >> 3 - nb1 >> 0 >= -3000
+	//  nb1 >> 0            >= 100
+	//           + adc >> 0 >= 1
+	//           + adc >> 0 >= 0
 	//
-	// Detector nor #2 - AACI
-	//  nb2 >> 0            >= 100
-	//           + nb1 >> 0 >= 0
-	//  nb2 >> 3 - nb1 >> 0 >= -3000
+	// Detector nor #2 - AACI (disabled)
+	//  w0  >> 0            >= 100
+	//           + adc >> 0 >= 0
+	//  w0  >> 3 - adc >> 0 >= -3000
 	//
 	// Detector aci #1 - ACI
-	//  nb2 >> 0            >= 10
-	//           + nb1 >> 0 >= 0
-	//  nb2 >> 3 - nb1 >> 0 >= -3100
+	//  nb1 >> 0            >= 1
+	//           + adc >> 0 >= 0
+	//           + adc >> 0 >= 0
 	//
-	// Detector aci #2 - AACI
-	//  nb2 >> 0            >= 10
-	//           + nb1 >> 0 >= 0
-	//  nb2 >> 3 - nb1 >> 0 >= -3100
+	// Detector aci #2 - AACI (disabled)
+	//  w0  >> 0            >= 10
+	//           + adc >> 0 >= 0
+	//  w0  >> 3 - adc >> 0 >= -3100
 
 	// Code generated using TCL proc get_aci_settings_drv
 	ACPHY_REG_LIST_START
-		WRITE_PHYREG_ENTRY(pi, ACI_Detect_CTRL, 0xf88d);
-		WRITE_PHYREG_ENTRY(pi, ACI_Detect_CTRL1, 0x3fe0);
+		WRITE_PHYREG_ENTRY(pi, ACI_Detect_CTRL, 0xfffd);
+		WRITE_PHYREG_ENTRY(pi, ACI_Detect_CTRL1, 0x3fe1);
 		WRITE_PHYREG_ENTRY(pi, ACI_Detect_MAX_COUNT_HI, 0x0001);
 		WRITE_PHYREG_ENTRY(pi, ACI_Detect_MAX_COUNT_LO, 0xe848);
-		WRITE_PHYREG_ENTRY(pi, ACI_Detect_collect_interval, 0x8022);
+		WRITE_PHYREG_ENTRY(pi, ACI_Detect_collect_interval, 0x80ff);
 		WRITE_PHYREG_ENTRY(pi, ACI_Detect_wait_period_1, 0x0001);
 		WRITE_PHYREG_ENTRY(pi, ACI_Detect_wait_period_2, 0x0001);
 		WRITE_PHYREG_ENTRY(pi, ACI_MITIGATION_EXTRA_CTRL, 0x0000);
-		WRITE_PHYREG_ENTRY(pi, ACI_Mitigation_CTRL, 0x40c4);
-		WRITE_PHYREG_ENTRY(pi, ACI_Mitigation_InputSelect, 0x18a1);
+		WRITE_PHYREG_ENTRY(pi, ACI_Mitigation_CTRL, 0x401c);
+		WRITE_PHYREG_ENTRY(pi, ACI_Mitigation_InputSelect, 0x03a1);
 		MOD_PHYREG_ENTRY(pi, ACI_Mitigation_status, aci_pwr_block_shift, 0x3);
 		MOD_PHYREG_ENTRY(pi, ACI_Mitigation_status, aci_pwr_input_shift, 0x6);
 		MOD_PHYREG_ENTRY(pi, ACI_Mitigation_status, aci_detect_direct_output, 0x0);
 		MOD_PHYREG_ENTRY(pi, ACI_Mitigation_status, aci_T_RSSI_select, 0x1);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config10, 0x0064);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config20, 0x0000);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config30, 0xf448);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config40, 0x000a);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config20, 0x0001);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config30, 0x0000);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config40, 0x0001);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config50, 0x0000);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config60, 0xf3e4);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config60, 0x0000);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config70, 0x0064);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config80, 0x0000);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config90, 0xf448);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config100, 0x000a);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config110, 0x0000);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config120, 0xf3e4);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config130, 0x0300);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config140, 0x0300);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config130, 0x0000);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config140, 0x0000);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config150, 0x0000);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config160, 0x0000);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config170, 0x0451);
-		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config180, 0x0d34);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config170, 0x0041);
+		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config180, 0x0514);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config190, 0x0300);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config200, 0x0300);
 		ACPHYREG_BCAST_ENTRY(pi, Tiny_ACI_config210, 0x0000);

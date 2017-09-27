@@ -192,11 +192,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = 0;  /* Saving 4M by making RDC heap plus margin to 0 as RDC takes memory from MEMC0_MAIN_HEAP and no VCE descriptors needed for box mode #10 */
     }
 
-#if NEXUS_USE_7445_SV
-    pSettings->i2c[3].settings.interruptMode = false;
-#else
-    pSettings->i2c[4].settings.interruptMode = false;
-#endif
     return;
 }
 

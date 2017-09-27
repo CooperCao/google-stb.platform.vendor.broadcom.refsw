@@ -264,6 +264,7 @@ BERR_Code BDSP_Raaga_P_ProcessStartTaskCommand(
         errCode = BERR_TRACE(sRsp.sResponseHeader.eStatus);
         goto end;
     }
+	pRaagaTask->taskParams.isRunning = true;
 end:
     BDBG_LEAVE(BDSP_Raaga_P_ProcessStartTaskCommand);
     return errCode;
@@ -293,6 +294,7 @@ BERR_Code BDSP_Raaga_P_ProcessStopTaskCommand(
     sCommand.sCommandHeader.ui32CommandTimeStamp    = BDSP_ReadReg32(pDevice->regHandle,BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
     BKNI_ResetEvent(pRaagaTask->hEvent);
+	pRaagaTask->taskParams.isRunning = false;
 
     errCode = BDSP_Raaga_P_SendCommand(pDevice->hCmdQueue[pRaagaTask->createSettings.dspIndex], &sCommand);
     if(errCode != BERR_SUCCESS)

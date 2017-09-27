@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- ***************************************************************************/
+ *****************************************************************************/
 
 #ifndef BVDC_SUBRUL_PRIV_H__
 #define BVDC_SUBRUL_PRIV_H__
@@ -46,6 +43,7 @@
 #include "bvdc.h"
 #include "bvdc_common_priv.h"
 #include "bvdc_resource_priv.h"
+#include "bvdc_vnet_priv.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -138,23 +136,15 @@ extern "C" {
 #define BVDC_P_MuxValue_SrcOutputDisabled      BCHP_VNET_F_SCL_0_SRC_SOURCE_Output_Disabled
 
 /* from HwId to get the post mux value as this sub is its src: for lpback and FreeCh */
-#if (BVDC_P_SUPPORT_LOOP_BACK > 4)
 #define BVDC_P_LpBack_eId_To_PostMuxValue(eId) \
    ((0 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_0 : \
     (1 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_1 : \
     (2 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_2 : \
     (3 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_3 : \
-                  BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_4 + (eId) - BVDC_P_LpBckId_eLp4)
-#elif (BVDC_P_SUPPORT_LOOP_BACK > 2)
-#define BVDC_P_LpBack_eId_To_PostMuxValue(eId) \
-   ((0 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_0 : \
-    (1 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_1 : \
-                  BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_2 + (eId) - BVDC_P_LpBckId_eLp2)
-#else
-#define BVDC_P_LpBack_eId_To_PostMuxValue(eId) \
-   ((0 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_0 : \
-                  BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_1)
-#endif
+    (4 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_4 : \
+    (5 == (eId))? BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_5 : \
+                  BCHP_VNET_F_SCL_0_SRC_SOURCE_Loopback_6 + (eId) - BVDC_P_LpBckId_eLp6)
+
 /* There is a hole between BCHP_VNET_B_CAP_0_SRC_SOURCE_Free_Ch_3 and BCHP_VNET_B_CAP_0_SRC_SOURCE_Free_Ch_4 */
 #if (BVDC_P_SUPPORT_FREE_CHANNEL > 4)
 #define BVDC_P_FreeCh_eId_To_PostMuxValue(eId)   \

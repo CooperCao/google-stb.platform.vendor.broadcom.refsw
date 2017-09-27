@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -131,7 +131,7 @@ ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 				echo "applying patch openssl-${B_OPENSSL_VER}-bcm_build_fixes-1.patch";\
 				patch -t -d ${B_OPENSSL_SOURCE_PATH} -p1 < openssl-${B_OPENSSL_VER}-bcm_build_fixes-1.patch ${B_OPENSSL_EXTRACT_REDIR}; \
 			fi; \
-			if [ "${CABLE_SUPPORT}" = "y" ]; then \
+			if [ "${CABLECARD_SUPPORT}" = "y" ]; then \
 				if [ -e "openssl-${B_OPENSSL_VER}-mpod.patch" ]; then \
 					echo "applying patch openssl-${B_OPENSSL_VER}-mpod.patch to OPENSSL source"; \
 					patch -t -d ${B_OPENSSL_SOURCE_PATH} -p1 < openssl-${B_OPENSSL_VER}-mpod.patch ${B_OPENSSL_EXTRACT_REDIR}; \
@@ -232,7 +232,7 @@ endif
 	@cp -af ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/bin/* ${B_OPENSSL_BIN_INSTALL_DIR}   ${B_OPENSSL_INSTALL_REDIR}
 	@cp -af ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/ssl ${B_OPENSSL_BIN_INSTALL_DIR}/../   ${B_OPENSSL_INSTALL_REDIR}
 	@echo "================ OpenSSL Installed"
-ifeq ($(CABLE_SUPPORT),y)
+ifeq ($(CABLECARD_SUPPORT),y)
 	@mkdir -p $(B_REFSW_OBJ_ROOT)/BSEAV/cable/lib/mpod/crypto/include
 ifeq ($(B_REFSW_ARCH),arm-linux)
 ifeq ($(B_REFSW_TOOLCHAIN_VER_GE_4_8),y)
@@ -253,7 +253,7 @@ else
 	@cp -afLR ${B_OPENSSL_SOURCE_PATH}/apps/apps.h ${POD_DIR}/crypto/include
 endif
 	@echo "================ MPOD OpenSSL Installed"
-endif # ifeq ($(CABLE_SUPPORT),y)
+endif # ifeq ($(CABLECARD_SUPPORT),y)
 endif   #  ifeq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 
 target-clean:
@@ -274,7 +274,7 @@ ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 	@rm -rf ${B_OPENSSL_SOURCE_PATH}
 	@rm -rf ${NEXUS_PLATFORM}
 	@echo "================ Done"
-ifeq ($(CABLE_SUPPORT),y)
+ifeq ($(CABLECARD_SUPPORT),y)
 ifeq ($(B_REFSW_ARCH),arm-linux)
 ifeq ($(B_REFSW_TOOLCHAIN_VER_GE_4_8),y)
 	@rm -rf ${POD_DIR}/libcrypto.a
@@ -290,5 +290,5 @@ else
 	@rm -rf ${POD_DIR}/apps_uclibc.o
 	@rm -rf ${POD_DIR}/crypto/include
 endif # ifeq ($(B_REFSW_ARCH),arm-linux)
-endif # ifeq ($(CABLE_SUPPORT),y)
+endif # ifeq ($(CABLECARD_SUPPORT),y)
 endif   #  ifeq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)

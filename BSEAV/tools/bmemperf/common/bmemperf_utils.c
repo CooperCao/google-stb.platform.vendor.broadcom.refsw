@@ -933,7 +933,7 @@ static int trim_line ( char * line )
 {
     unsigned int len = 0;
 
-    if ( line )
+    if ( line && strlen(line) )
     {
         len = strlen(line);
         if (line[len-1] == '\n')

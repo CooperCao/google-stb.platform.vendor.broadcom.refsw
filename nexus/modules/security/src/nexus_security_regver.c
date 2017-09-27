@@ -129,6 +129,7 @@ static regionData_t* NEXUS_Security_GetRegionData_priv( NEXUS_SecurityRegverRegi
 
 static NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region );
 
+
 /* load an individual predefined region signature. */
 static NEXUS_Error loadSignature( unsigned regionId,  const uint8_t *pSigData )
 {
@@ -618,8 +619,8 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     BERR_Code rc = NEXUS_SUCCESS;
     BHSM_Handle hHsm;
     unsigned loopCount = 0;
-    BHSM_RegionStatus_t regionStatus;
     regionData_t *pRegionData;
+    BHSM_VerifcationStatus_t verificationStatus;
 
     BDBG_ENTER( NEXUS_Security_RegionVerifyEnable_priv );
     NEXUS_ASSERT_MODULE();
@@ -677,32 +678,23 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     loopCount = 500;
     do
     {
-        BKNI_Memset( &regionStatus, 0, sizeof(regionStatus) );
+        BKNI_Memset( &verificationStatus, 0, sizeof(verificationStatus) );
 
-        rc = BHSM_RegionVerification_Status( hHsm, regionId, &regionStatus );
-        if ( rc != NEXUS_SUCCESS ) /* fail */
+        rc = BHSM_RegionVerification_QueryStatus( hHsm, &verificationStatus );
+        if ( rc != NEXUS_SUCCESS )
         {
-            /* either communication the BSP has failed, or the region did not authenticate correctly. */
-            return  BERR_TRACE( NEXUS_UNKNOWN );
+            return BERR_TRACE( NEXUS_UNKNOWN );
         }
 
-        if( regionStatus.state == BHSM_RegionVerificationStatus_eVerified )  /* pass */
-        {
+        if (verificationStatus.region[regionId] & REGION_STATUS_FASTCHKFINISH) {
+            BDBG_MSG(("RegionVer fast check finished."));
+            BKNI_Sleep (3);
             break;
         }
 
-        if( regionStatus.state == BHSM_RegionVerificationStatus_eInProgress ) /* in proress */
-        {
-            BKNI_Sleep(10);
-            continue; /* go end of while loop */
-        }
+        BKNI_Sleep (5);
 
-        /* fail */
-        rc = BERR_TRACE( NEXUS_UNKNOWN );  /* region verification requried and not enabled. */
-        BDBG_ERR(("[%s] region[%d][%s] status[0x%02X].", BSTD_FUNCTION, regionId, pRegionData->description, regionStatus.state ));
-        break;
-
-    } while(--loopCount);
+    } while( --loopCount );
 
 
     if( loopCount == 0 )

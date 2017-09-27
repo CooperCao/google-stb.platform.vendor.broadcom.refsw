@@ -429,6 +429,7 @@ typedef enum NEXUS_PixelFormat
     NEXUS_PixelFormat_eL15_L05_A6,            /* 5-bit luma1, 5-bit luma0, 6-bit alpha */
 
     NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8, /* compressed ARGB_8888 */
+    NEXUS_PixelFormat_eUIF_R8_G8_B8_A8,        /* UIF [V3D texture layout] RGBA_8888 */
 
     /* The following pixel formats are not supported by NEXUS_Graphics2D */
     NEXUS_PixelFormat_eR8_G8_B8,         /* 24-bit packet */

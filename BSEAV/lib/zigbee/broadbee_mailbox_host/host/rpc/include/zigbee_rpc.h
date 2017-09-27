@@ -254,14 +254,16 @@ typedef enum zigbeeRpcCode {
     RPC_C2S_ZBPRO_ZHA_CieDeviceSetPanelStatusReq,
     RPC_C2S_ZBPRO_ZHA_CieZoneSetBypassStateReq,
     RPC_C2S_ZBPRO_ZHA_CieDeviceSetPanelStatusInd,
-    RPC_C2S_ZBPRO_MAC_GetReq = RPC_C2S_RF4CE_MAC_GetReq,
 #ifdef TEST
     RPC_C2S_ClientRawBufferLoopback,    /* Send raw data (no parameters) to the server and back */
     RPC_C2S_ClientCoreLoopbackReq,    /* Send buffer to the core and back */
     RPC_C2S_ClientLoopbackReq,
     RPC_C2S_ServerLoopbackStart,
-    RPC_S2C_ServerLoopbackInd
+    RPC_S2C_ServerLoopbackInd,
 #endif
+    RPC_C2S_Mail_UartSendReq,
+    RPC_C2S_Mail_UartRecvInd,
+    RPC_C2S_ZBPRO_MAC_GetReq = RPC_C2S_RF4CE_MAC_GetReq
 } zigbeeRpcCode;
 
 #define RPC_RESPONSE 0x200

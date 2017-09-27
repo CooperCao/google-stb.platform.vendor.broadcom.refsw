@@ -898,6 +898,7 @@ wlc_wpa_sup_gtk_update(wlc_sup_info_t *sup_info, wlc_bsscfg_t *cfg,
 	supplicant_t *sup = SUP_BSSCFG_CUBBY(sup_info, cfg);
 	wpapsk_t *wpa = sup->wpa;
 
+	key_len = MIN(key_len, sizeof(wpa->gtk));
 	wpa->gtk_len = (ushort)key_len;
 	wpa->gtk_index = (uint8)index;
 	memcpy(wpa->gtk, key, key_len);
@@ -908,7 +909,6 @@ wlc_wpa_sup_gtk_update(wlc_sup_info_t *sup_info, wlc_bsscfg_t *cfg,
 		index, wpa->mcipher, rsc, FALSE);
 }
 #endif /* WLWNM */
-
 
 #if defined(BCMCCX) || defined(BCMSUP_PSK) || defined(BCMAUTH_PSK)
 /* Defined in 802.11 protocol */
@@ -937,17 +937,29 @@ wlc_wpa_sup_check_rsn(supplicant_t *sup, bcm_tlv_t *rsn)
 				/* WPA IE ends at RSN CAP */
 				ret = !memcmp(wpaie->data, rsn->data, wpaie->len);
 			} else if (wpaie->len + (uint8)WPA2_PMKID_LEN >= rsn->len) {
+				int off = RSN_PCCNT_OFFSET;
+				if (rsn->len < (off + sizeof(uint16))) {
+					goto done;
+				}
+
 				/* WPA IE has more optional fields */
-				pc_cnt = ltoh16_ua(&rsn->data[RSN_PCCNT_OFFSET]);
-				akm_cnt = ltoh16_ua(&rsn->data[RSN_AKMCNT_OFFSET(pc_cnt)]);
-				ret = !memcmp(wpaie->data, rsn->data,
-						RSN_PMKID_OFFSET(pc_cnt, akm_cnt));
+				pc_cnt = ltoh16_ua(&rsn->data[off]);
+				off = RSN_AKMCNT_OFFSET(pc_cnt);
+				if (rsn->len < (off + sizeof(uint16))) {
+					goto done;
+				}
+
+				akm_cnt = ltoh16_ua(&rsn->data[off]);
+				off = RSN_PMKID_OFFSET(pc_cnt, akm_cnt);
+				ret = (rsn->len >= off) && !memcmp(wpaie->data, rsn->data, off);
 			}
 		} else {
 			ret = (wpaie->len == rsn->len) &&
 					!memcmp(wpaie->data, rsn->data, wpaie->len);
 		}
 	}
+
+done:
 	return ret;
 }
 
@@ -1170,8 +1182,9 @@ wlc_wpa_sup_eapol(supplicant_t *sup, eapol_header_t *eapol, bool encrypted)
 				data_len = ntoh16_ua(&body->data_len);
 				data_encap = wpa_find_kde(body->data, data_len,
 				                          WPA2_KEY_DATA_SUBTYPE_PMKID);
-				if (data_encap) {
-
+				if (data_encap && (data_encap->length >=
+					(OFFSETOF(eapol_wpa2_encap_data_t, data)
+						- TLV_HDR_LEN + WPA2_PMKID_LEN))) {
 #if defined(BCMDBG) || defined(WLMSG_WSEC)
 					if (WL_WSEC_ON()) {
 						uint8 *d = data_encap->data;
@@ -1194,6 +1207,8 @@ wlc_wpa_sup_eapol(supplicant_t *sup, eapol_header_t *eapol, bool encrypted)
 					}
 					else
 						return TRUE;
+				} else {
+					return TRUE;
 				}
 			}
 #if defined(BCMSUP_PSK)
@@ -1428,9 +1443,9 @@ wlc_wpa_sup_eapol(supplicant_t *sup, eapol_header_t *eapol, bool encrypted)
 						WLC_E_SUP_MSG3_NO_GTK);
 					return FALSE;
 				}
-				wpa->gtk_len = data_encap->length -
-				    ((EAPOL_WPA2_ENCAP_DATA_HDR_LEN - TLV_HDR_LEN) +
-				     EAPOL_WPA2_KEY_GTK_ENCAP_HDR_LEN);
+
+				/* note: data encap length checked during lookup above */
+				wpa->gtk_len = data_encap->length - EAPOL_WPA2_GTK_ENCAP_MIN_LEN;
 				gtk_kde = (eapol_wpa2_key_gtk_encap_t *)data_encap->data;
 				wpa->gtk_index = (gtk_kde->flags & WPA2_GTK_INDEX_MASK) >>
 				    WPA2_GTK_INDEX_SHIFT;
@@ -1521,9 +1536,9 @@ wlc_wpa_sup_eapol(supplicant_t *sup, eapol_header_t *eapol, bool encrypted)
 					WLC_E_SUP_GRP_MSG1_NO_GTK);
 				return FALSE;
 			}
-			wpa->gtk_len = data_encap->length - ((EAPOL_WPA2_ENCAP_DATA_HDR_LEN -
-			                                          TLV_HDR_LEN) +
-			                                         EAPOL_WPA2_KEY_GTK_ENCAP_HDR_LEN);
+
+			/* note: data encap length checked during lookup above */
+			wpa->gtk_len = data_encap->length - EAPOL_WPA2_GTK_ENCAP_MIN_LEN;
 			gtk_kde = (eapol_wpa2_key_gtk_encap_t *)data_encap->data;
 			wpa->gtk_index = (gtk_kde->flags & WPA2_GTK_INDEX_MASK) >>
 			    WPA2_GTK_INDEX_SHIFT;

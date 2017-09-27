@@ -410,7 +410,7 @@ NEXUS_DmaJob_P_HwPidChannel_Disconnect(NEXUS_DmaJobHandle handle, NEXUS_P_HwPidC
 {
     BERR_Code rc;
     NEXUS_P_DmaPidChannel *dma_pid;
-    unsigned index = pidChannel->status.pidChannelIndex - BXPT_P_MEMDMA_PID_CHANNEL_START;
+    unsigned index;
 
     BLST_S_DICT_FIND(&handle->pid_list, dma_pid, pidChannel, pid_channel, link);
     if(dma_pid==NULL) {
@@ -423,7 +423,8 @@ NEXUS_DmaJob_P_HwPidChannel_Disconnect(NEXUS_DmaJobHandle handle, NEXUS_P_HwPidC
 
     BXPT_Dma_Context_ConfigurePidChannel(handle->ctx, pidChannel->status.pidChannelIndex, 0, false);
 
-    if (pidChannel->status.pidChannelIndex < BXPT_P_MEMDMA_PID_CHANNEL_START) {
+    index = pidChannel->status.pidChannelIndex - BXPT_P_MEMDMA_PID_CHANNEL_START;
+    if (index >= BXPT_DMA_NUM_PID_CHANNELS) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     if (pTransport->hwDmaPidChannelRefCnt[index]) {
@@ -1006,7 +1007,20 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_OpenDma_Priv(unsigned pid, const NEXUS_P
     unsigned highestReservedPidChannel = NEXUS_NUM_DMA_CHANNELS + 1; /* +1 for SAGE-reserved channel */
     BSTD_UNUSED(pSettings);
 
+    /* The search increments from highest to lowest in this way:
+    highestReservedPidChannel refers to the SAGE reservation for XPT DMA pid filtering.
+    lowestReservedPidChannel refers to the SAGE reservation for bypass keyslots.
+    So there are 4 regions of pid channels:
+    1. Parser band/playback pid channels (not XPT DMA)
+    2. SAGE-reserved for XPT DMA pid filtering
+    3. XPT DMA
+    4. SAGE-reserved for bypass keyslot
+    */
     for (index=highestReservedPidChannel; index<lowestReservedPidChannel; index++) {
+        if (index >= BXPT_DMA_NUM_PID_CHANNELS) {
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            return NULL;
+        }
         if (pTransport->hwDmaPidChannelRefCnt[index] == 0) {
             found = true;
             break;
@@ -1040,7 +1054,7 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_OpenDma_Priv(unsigned pid, const NEXUS_P
 void NEXUS_PidChannel_CloseDma_Priv(NEXUS_PidChannelHandle pidChannel)
 {
     unsigned index = pidChannel->hwPidChannel->status.pidChannelIndex-BXPT_P_MEMDMA_PID_CHANNEL_START;
-    if (pidChannel->hwPidChannel->status.pidChannelIndex < BXPT_P_MEMDMA_PID_CHANNEL_START) {
+    if (index >= BXPT_DMA_NUM_PID_CHANNELS) {
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }

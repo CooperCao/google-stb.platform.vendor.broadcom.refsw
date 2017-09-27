@@ -2142,8 +2142,6 @@ void NEXUS_Frontend_Close3255Device(NEXUS_3255DeviceHandle deviceHandle)
     NEXUS_LockModule();             /* The rpc_notification thread should be gone by now.  Get the module lock again. */
     NEXUS_TaskCallback_Destroy(deviceHandle->eCMStatusCallback);
     BRPC_Close_SocketImpl(deviceHandle->rpc_handle);
-    if (deviceHandle->pGenericDeviceHandle)
-        BKNI_Free(deviceHandle->pGenericDeviceHandle);
     BDBG_OBJECT_DESTROY(deviceHandle, NEXUS_3255Device);
     BKNI_Free(deviceHandle);
     return;

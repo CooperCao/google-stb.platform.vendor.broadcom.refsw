@@ -444,6 +444,28 @@ bool Widevine3xDecryptor::AddKey(std::string key)
     return true;
 }
 
+// The iso spec only uses the lower 8 bytes of the iv as
+// the counter.
+#define CENC_IV_SIZE 8
+
+void Ctr128Add(size_t block_count, uint8_t* counter)
+{
+    uint8_t carry = 0;
+    uint8_t n = BMP4_MAX_IV_ENTRIES - 1;
+    while (n >= CENC_IV_SIZE) {
+        uint32_t temp = block_count & 0xff;
+        temp += counter[n];
+        temp += carry;
+        counter[n] = temp & 0xff;
+        carry = (temp & 0x100) ? 1 : 0;
+        block_count = block_count >> 8;
+        n--;
+        if (!block_count && !carry) {
+            break;
+        }
+    }
+}
+
 uint32_t Widevine3xDecryptor::DecryptSample(
     SampleInfo *pSample,
     IBuffer *input,
@@ -458,7 +480,10 @@ uint32_t Widevine3xDecryptor::DecryptSample(
     Cdm::OutputBuffer outputBuffer;
     uint8_t *encrypted_buffer = NULL;
     uint32_t offset = 0;
+    uint32_t enc_offset = 0;
     uint32_t blockOffset = 0;
+    uint32_t blkCtr = 0;
+    uint32_t lastBlkCtr = 0;
 
     for (i = 0; i < pSample->nbOfEntries; i++) {
         clearSize += pSample->entries[i].bytesOfClearData;
@@ -525,6 +550,12 @@ uint32_t Widevine3xDecryptor::DecryptSample(
         outputBuffer.data_offset = offset;
         inputBuffer.block_offset = blockOffset;
 
+        // Update IV for each subsample
+        blkCtr = enc_offset / BMP4_MAX_IV_ENTRIES;
+        Ctr128Add(blkCtr - lastBlkCtr, (uint8_t*)inputBuffer.iv);
+        lastBlkCtr = blkCtr;
+        dump_hex("IV:", (const char*)inputBuffer.iv, inputBuffer.iv_length);
+
         Cdm::Status result = m_cdm->decrypt(inputBuffer, outputBuffer);
 
         if (result == Cdm::kNoKey) {
@@ -536,6 +567,7 @@ uint32_t Widevine3xDecryptor::DecryptSample(
         }
 
         offset += num_enc;
+        enc_offset += num_enc;
         blockOffset += num_enc;
         blockOffset %= 16;
     }

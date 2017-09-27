@@ -8329,10 +8329,6 @@ chanspec_setup_rxgcrs(phy_info_t *pi)
 	aci_tbl_list_entry *tbl_list_ptr;
 	uint8 p_phytbl7_8_buf[119];
 	uint32 p_phytbl24_28_buf[22];
-	const uint8 lna1_rout_map_2g_maj37_min12[N_LNA12_GAINS] = {  9,  9,  9,  9,  9,  9};
-	const uint8 lna1_gain_map_2g_maj37_min12[N_LNA12_GAINS] = {  0,  1,  2,  3,  4,  5};
-	const uint8 lna1_rout_map_5g_maj37_min12[N_LNA12_GAINS] = { 11, 11, 11, 11, 11, 11};
-	const uint8 lna1_gain_map_5g_maj37_min12[N_LNA12_GAINS] = {  2,  3,  4,  5,  6,  7};
 #endif
 	int8 desense_state;
 	int8 desense_state_init;
@@ -8503,14 +8499,32 @@ chanspec_setup_rxgcrs(phy_info_t *pi)
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
 				if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
 					uint8 i, core, offset;
+					// LNARout settings for ACI Mitigation
+					// 2G Backoff 12dB
+					const uint8 lna1_rout_map_2g_maj37_aci[N_LNA12_GAINS] = {  9,  9,  9,  9,  8, 10};
+					const uint8 lna1_gain_map_2g_maj37_aci[N_LNA12_GAINS] = {  0,  1,  2,  3,  4,  5};
+					// 5G Backoff 12dB
+					const uint8 lna1_rout_map_5g_maj37_aci[N_LNA12_GAINS] = { 11, 11, 11, 11, 11, 11};
+					const uint8 lna1_gain_map_5g_maj37_aci[N_LNA12_GAINS] = {  2,  3,  4,  5,  6,  7};
 
-					// Overwrite LNARoutAci table to one with 12 dB desense
-					// following the previous change for 5g, and applying to 2g
+					// Setup registers to reduce PER humps when ACI present
+					FOREACH_CORE(pi, core) {
+						// Values found from experimentation: see Notebook 7271B0_058, _061 etc.
+						if (CHSPEC_IS5G(pi->radio_chanspec)) {
+							WRITE_PHYREGC(pi, Clip1Threshold, core, 0x1E00);
+							WRITE_PHYREGC(pi, Clip2Threshold, core, 0x2018);
+						} else {
+							WRITE_PHYREGC(pi, Clip1Threshold, core, 0x1C00);
+							WRITE_PHYREGC(pi, Clip2Threshold, core, 0x2018);
+						}
+						WRITE_PHYREGC(pi, smallsigThreshold, core, 0x0010);
+					}
+
 					FOREACH_CORE(pi, core) {
 					    // 2G
 					    for (i = 0; i < N_LNA12_GAINS; i++) {
-					        p_phytbl7_8_buf[i] = (lna1_rout_map_2g_maj37_min12[i] << 3) |
-					                lna1_gain_map_2g_maj37_min12[i];
+					        p_phytbl7_8_buf[i] = (lna1_rout_map_2g_maj37_aci[i] << 3) |
+					                lna1_gain_map_2g_maj37_aci[i];
 					    }
 					    /* 2G index is 0->5 for core0 */
 					    offset = 0 + ACPHY_LNAROUT_CORE_WRT_OFST(pi, core);
@@ -8520,8 +8534,8 @@ chanspec_setup_rxgcrs(phy_info_t *pi)
 					FOREACH_CORE(pi, core) {
 					    // 5G
 					    for (i = 0; i < N_LNA12_GAINS; i++) {
-					        p_phytbl7_8_buf[i] = (lna1_rout_map_5g_maj37_min12[i] << 3) |
-					                lna1_gain_map_5g_maj37_min12[i];
+					        p_phytbl7_8_buf[i] = (lna1_rout_map_5g_maj37_aci[i] << 3) |
+					                lna1_gain_map_5g_maj37_aci[i];
 					    }
 					    /* 5G index is 8->13 for core0 */
 					    offset = 8 + ACPHY_LNAROUT_CORE_WRT_OFST(pi, core);

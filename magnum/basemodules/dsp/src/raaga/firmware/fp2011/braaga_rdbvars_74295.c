@@ -105,12 +105,12 @@ const uint32_t BDSP_IMG_system_rdbvars_array1[] = {
         0x80021564, /* NMBY for DRAM Video Base Address 0 */
         0x80021544, /* DRAM Video Base Address 0 */
         0x80021540, /* Configuration register SCB0/1 MS bits programming and stripe width selection */
-        0x10374138, /* RAAGA_DSP_DOLBY_LICENSE_OTP0_REGISTER */
-        0x00000002, /* RAAGA_DSP_DOLBY_LICENSE_OTP0_MASK */
-        0x00000001, /* RAAGA_DSP_DOLBY_LICENSE_OTP0_SHIFT */
-        0x10374130, /* RAAGA_DSP_DOLBY_LICENSE_OTP1_REGISTER */
-        0x00000001, /* RAAGA_DSP_DOLBY_LICENSE_OTP1_MASK */
-        0x00000000, /* RAAGA_DSP_DOLBY_LICENSE_OTP1_SHIFT */
+        0x10374138,
+        0x00000002,
+        0x00000001,
+        0x10374130,
+        0x00000001,
+        0x00000000,
         0x00000007, /* NUM_MEM_PROTECT_REGIONS */
         0x00000000, /* MEM_PROTECT_REGION0_START */
         0x1020bfff, /* MEM_PROTECT_REGION0_END */
@@ -132,7 +132,7 @@ const uint32_t BDSP_IMG_system_rdbvars_array1[] = {
         0x00000000, /* MEM_PROTECT_REGION8_END */
         0x00000000, /* MEM_PROTECT_REGION9_START */
         0x00000000, /* MEM_PROTECT_REGION9_END */
-        0x10404008, /* SUN_TOP_CTRL_BSP_FEATURE_TABLE_ADDR */
+        0x10404008,
         0x00000000, /* Not Used */
         0x00000000, /* Not Used */
         0x00000000, /* Not Used */

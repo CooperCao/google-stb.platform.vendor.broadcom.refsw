@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -613,14 +613,14 @@ void playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
     char *pCh_url = NULL;
     char *pCh_data = NULL;
     uint8_t *pResponse = resp_buffer;
-    size_t respLen;
-    size_t respOffset;
-    size_t urlLen;
-    size_t chLen;
+    uint32_t respLen;
+    uint32_t respOffset;
+    uint32_t urlLen;
+    uint32_t chLen;
     piff_parser_handle_t piff_handle;
     bfile_io_read_t fd;
     uint8_t *pssh_data;
-    uint32_t pssh_len;
+    size_t pssh_len;
     NEXUS_PlaypumpOpenPidChannelSettings video_pid_settings;
 
     BDBG_MSG(("%s - %d\n", __FUNCTION__, __LINE__));
@@ -831,7 +831,7 @@ void playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
 
     if( DRM_Prdy_Content_SetProperty(drm_context,
                 DRM_Prdy_contentSetProperty_eAutoDetectHeader,
-                pssh_data, pssh_len) != DRM_Prdy_ok) {
+                pssh_data, (uint32_t)pssh_len) != DRM_Prdy_ok) {
         BDBG_ERR(("Failed to SetProperty for the KID, exiting..."));
         goto clean_exit;
     }
@@ -1235,6 +1235,7 @@ int playback_svp(int argc, char* argv[])
     NEXUS_SurfaceClientHandle videoSurfaceClient = NULL;
     NEXUS_SimpleVideoDecoderHandle videoDecoder = NULL;
     NEXUS_SimpleAudioDecoderHandle audioDecoder = NULL;
+    NEXUS_SimpleVideoDecoderClientSettings videoDecoderClientsettings;
 
     /* DRM_Prdy specific */
     DRM_Prdy_Init_t     prdyParamSettings;
@@ -1359,6 +1360,11 @@ int playback_svp(int argc, char* argv[])
 
 EXIT:
     if (videoDecoder != NULL) {
+        /* When toggling is involved, do NOT cache decoder */
+        NEXUS_SimpleVideoDecoder_GetClientSettings(videoDecoder, &videoDecoderClientsettings);
+        videoDecoderClientsettings.cache.timeout = 0;
+        NEXUS_SimpleVideoDecoder_SetClientSettings(videoDecoder, &videoDecoderClientsettings);
+
         NEXUS_SimpleVideoDecoder_Release( videoDecoder );
     }
 
@@ -1412,6 +1418,7 @@ int playback_clear(void)
     NEXUS_MemoryAllocationSettings memSettings;
     NEXUS_ClientConfiguration clientConfig;
     NEXUS_Error rc;
+    NEXUS_SimpleVideoDecoderClientSettings videoDecoderClientsettings;
 
     const char *fname = FILE_NAME;
 #define TOTAL_BUFFERS 10
@@ -1514,7 +1521,7 @@ int playback_clear(void)
         }
         else {
             NEXUS_PlaypumpScatterGatherDescriptor desc;
-            unsigned numConsumed;
+            size_t numConsumed;
             desc.addr = buf[cur_buf];
             desc.length = n;
             if (playpumpSettings.dataNotCpuAccessible) {
@@ -1526,6 +1533,11 @@ int playback_clear(void)
             cur_buf = (cur_buf + 1)%TOTAL_BUFFERS; /* use the next buffer */
         }
     }
+
+    /* When toggling is involved, do NOT cache decoder */
+    NEXUS_SimpleVideoDecoder_GetClientSettings(videoDecoder, &videoDecoderClientsettings);
+    videoDecoderClientsettings.cache.timeout = 0;
+    NEXUS_SimpleVideoDecoder_SetClientSettings(videoDecoder, &videoDecoderClientsettings);
 
     NxClient_Disconnect(connectId);
     NxClient_Free(&allocResults);
@@ -1584,7 +1596,7 @@ static int gui_init( NEXUS_SurfaceClientHandle surfaceClient )
 
     if (!surfaceClient) return -1;
 
-    BDBG_MSG(("@@@ gui_init surfaceclient %d", (int)surfaceClient));
+    BDBG_MSG(("@@@ gui_init surfaceclient %p", surfaceClient));
     gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);
     NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
     rc = NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);

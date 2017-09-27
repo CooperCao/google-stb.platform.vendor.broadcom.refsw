@@ -56,7 +56,9 @@
 #include "zigbee_rf4ce_registration.h"
 #include "bbMailAPI.h"
 #include "bbSysNvmManager.h"
+#ifdef _ZBPRO_
 #include "ha_registration.h"
+#endif
 #include "zigbee_ioctl.h"
 #include "zigbee_rpc_server.h"
 
@@ -64,6 +66,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/mman.h>
 
 # pragma GCC optimize "short-enums"     /* Implement short enums. */
@@ -91,6 +94,7 @@ static void initPlatform(void)
 
 #include "private/bbMacPibApi.h"
 #define FIRMWARE_PATH "/etc/zigbee/stack_code.bin"
+#define INVALID_THREAD (pthread_t)0
 int g_zigbeeFd = -1;
 
 /*
@@ -114,7 +118,7 @@ int g_zigbeeFd = -1;
 
 static void *wdt_handler(void *pParam)
 {
-    while (1) {
+    while (!wdt_occured) {
         if (Zigbee_Ioctl_WaitForWDTInterrupt((int)pParam, NULL) == ZIGBEE_WDT_OK) {
             printf("zigbee watchdog timer event occured!!!\n");
             wdt_occured = true;
@@ -129,7 +133,6 @@ static void *zigbee_server(void *pParam)
     while(1) {
         SYS_SchedulerRunTask();
         if (wdt_occured) {
-            printf("wdt_occured is true\n");
             break;
         }
         usleep(20);
@@ -146,22 +149,27 @@ static void *zigbee_server(void *pParam)
 }
 
 extern bool is_rpc_mode;
+static pthread_t wdt_thread = INVALID_THREAD;
+static pthread_t zigbee_server_thread = INVALID_THREAD;
 
 int zigbee_init(int argc, char *argv[])
 {
     int fd;
     int fw_len;
     unsigned char *fw_img;
-    pthread_t wdt_thread;
-    pthread_t zigbee_server_thread;
     unsigned char rf4ce_mac_addr[8];
     unsigned char zbpro_mac_addr[8];
 
     is_rpc_mode = false;
     initPlatform();
 
+#ifdef _RF4CE_
     RF4CE_RegistrationInit("/etc/zigbee/db");
+#endif
+
+#ifdef _ZBPRO_
     HA_Registration_Init();
+#endif
 
     /* Initialize the NVM support */
     Zigbee_NVM_Init(open, close, write, read, lseek);
@@ -227,21 +235,38 @@ int zigbee_init(int argc, char *argv[])
     }
 }
 
+void zigbee_deinit()
+{
+    Zigbee_Ioctl_Stop(g_zigbeeFd);
+    wdt_occured = 1;
+    Mail_ServiceDeinit();
+    if(!pthread_equal(wdt_thread, INVALID_THREAD)){
+        pthread_kill(wdt_thread, SIGUSR1);
+        pthread_join(wdt_thread, NULL);
+    }
+    if(!pthread_equal(zigbee_server_thread, INVALID_THREAD))
+        pthread_join(zigbee_server_thread, NULL);
+}
+
 /* needed for server process only */
 int server_main(int argc, char *argv[])
 {
     int fd;
     int fw_len;
     unsigned char *fw_img;
-    pthread_t wdt_thread;
     unsigned char rf4ce_mac_addr[8];
     unsigned char zbpro_mac_addr[8];
 
     is_rpc_mode = true;
     initPlatform();
 
+#ifdef _RF4CE_
     RF4CE_RegistrationInit("/etc/zigbee/db");
+#endif
+
+#ifdef _ZBPRO_
     HA_Registration_Init();
+#endif
 
     /* add rpc server support */
     Zigbee_Rpc_ServerOpen();

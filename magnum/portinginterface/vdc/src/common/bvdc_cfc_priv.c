@@ -899,7 +899,6 @@ static const BAVC_P_Colorimetry s_aAvcMatrixCoeffs_to_Colorimetry[] =
  */
 BAVC_P_Colorimetry BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr
     ( BAVC_MatrixCoefficients          eMatrixCoeffs,
-      BAVC_ColorPrimaries              ePrimaries,
       bool                             bXvYcc)
 {
     BAVC_P_Colorimetry eColorimetry;
@@ -912,16 +911,6 @@ BAVC_P_Colorimetry BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr
     {
         BDBG_WRN(("unsupported MatrixCoeffs %d, assumed BT709", eMatrixCoeffs));
         eColorimetry = BAVC_P_Colorimetry_eBt709;
-    }
-
-    /* note: Japanese NTSC_J content might be encoded with MatrixCoefficients as eItu_R_BT_470_2_BG (5)
-     * or eFCC (4), and ColorPrimaries as 470_2_M (4).  When it is displayed on NTSC (NTSC_J) we should
-     * bypass CS (or identity matrix).  Therefore we map these cases to 170M
-     */
-    if ((BAVC_P_Colorimetry_eBt470_BG == eColorimetry) &&
-        (ePrimaries == BAVC_ColorPrimaries_eSmpte_170M || ePrimaries == BAVC_ColorPrimaries_eItu_R_BT_470_2_M))
-    {
-        eColorimetry = BAVC_P_Colorimetry_eSmpte170M;
     }
 
     if(bXvYcc)
@@ -1187,8 +1176,7 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
         pColorSpace->eColorFmt =
             (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pMvdFieldData->eMatrixCoefficients)?
             BAVC_P_ColorFormat_eYCbCr_CL : BAVC_P_ColorFormat_eYCbCr;
-        pColorSpace->eColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
-            pMvdFieldData->eMatrixCoefficients, pMvdFieldData->eColorPrimaries,
+        pColorSpace->eColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(pMvdFieldData->eMatrixCoefficients,
             pMvdFieldData->eTransferCharacteristics == BAVC_TransferCharacteristics_eIec_61966_2_4);
         pColorSpace->eColorTF = BVDC_P_AvcTransferCharacteristicsToTF_isrsafe(eTransferCharacteristics);
         pColorSpace->eColorRange = (pMvdFieldData->eColorRange == BAVC_ColorRange_eFull)?
@@ -1258,8 +1246,7 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
         pColorSpace->eColorFmt =
             (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pXvdFieldData->eMatrixCoefficients)?
             BAVC_P_ColorFormat_eYCbCr_CL : BAVC_P_ColorFormat_eYCbCr;
-        pColorSpace->eColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
-            pXvdFieldData->eMatrixCoefficients, pXvdFieldData->eColorPrimaries,
+        pColorSpace->eColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(pXvdFieldData->eMatrixCoefficients,
             pXvdFieldData->eTransferCharacteristics == BAVC_TransferCharacteristics_eIec_61966_2_4);
         pColorSpace->eColorTF = BVDC_P_AvcTransferCharacteristicsToTF_isrsafe(
             pXvdFieldData->eTransferCharacteristics);
@@ -1278,8 +1265,7 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
     {
         /* analogue ... */
         pColorSpace->eColorFmt = BAVC_P_ColorFormat_eYCbCr;
-        pColorSpace->eColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
-            eMatrixCoefficients, BAVC_ColorPrimaries_eUnknown, false);
+        pColorSpace->eColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(eMatrixCoefficients, false);
         pColorSpace->eColorTF = BAVC_P_ColorTF_eBt1886;
         pColorSpace->eColorDepth = BAVC_P_ColorDepth_e8Bit;
         pColorSpace->eColorRange = BAVC_P_ColorRange_eLimited;
@@ -1770,8 +1756,7 @@ void BVDC_P_Compositor_UpdateOutColorSpace_isr
             bHdmiOut = true;
         }
 
-        eOutColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
-            eOutAvcMatrixCoeffs, BAVC_ColorPrimaries_eUnknown, bOutputXvYcc);
+        eOutColorimetry = BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(eOutAvcMatrixCoeffs, bOutputXvYcc);
     }
     else
     {

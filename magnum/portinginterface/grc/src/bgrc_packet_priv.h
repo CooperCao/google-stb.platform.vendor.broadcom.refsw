@@ -53,10 +53,6 @@
 
 #include "bchp_common.h"
 #include "bchp_m2mc.h"
-#ifdef BCHP_M2MC1_REG_START
-#include "bchp_m2mc1.h"
-#endif
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,9 +64,13 @@ extern "C" {
 #define BGRC_P_VER_2                        (2)
 /*7278 multicontext */
 #define BGRC_P_VER_3                        (3)
+#define BGRC_P_VER_4                        (4)
 
 
-#if (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2) && (BCHP_M2MC_REVISION_MINOR_DEFAULT >=1)
+#if (BCHP_M2MC_REVISION_MAJOR_DEFAULT >=2) && (BCHP_M2MC_REVISION_MINOR_DEFAULT >=2)
+/*  HW7278-466 fixes */
+#define BGRC_P_VER                          (4)
+#elif (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2) && (BCHP_M2MC_REVISION_MINOR_DEFAULT ==1)
 /*  HW stripe improvement
 http://jira.broadcom.com/browse/CRM2MC-28
 http://jira.broadcom.com/browse/CRM2MC-29
@@ -147,7 +147,7 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #define BGRC_PACKET_P_WORK_AROUND_DCEG_HW_ISSUE   1
 
 /*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
-#if ((BCHP_M2MC_REVISION_MAJOR_DEFAULT==2)&&(BCHP_M2MC_REVISION_MINOR_DEFAULT == 1))
+#if (BGRC_P_VER == BGRC_P_VER_3)
 #define BGRC_PACKET_P_BLIT_WORKAROUND             1
 #else
 #define BGRC_PACKET_P_BLIT_WORKAROUND             0
@@ -174,11 +174,8 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
     (uint8_t *)(((uintptr_t)(addr) + BGRC_PACKET_P_MEMORY_ALIGN_MASK) & (~BGRC_PACKET_P_MEMORY_ALIGN_MASK))
 
 /***************************************************************************/
-#ifdef BCHP_M2MC0_REVISION
+
 #define BGRC_M2MC(val)   BCHP_M2MC_##val
-#else
-#define BGRC_M2MC(val)   BCHP_M2MC_##val
-#endif
 
 /***************************************************************************/
 #if (!defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB) && ((BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0 - BCHP_M2MC_OUTPUT_SURFACE_ADDR_0) == 0x8))
@@ -219,7 +216,7 @@ typedef enum
 
 /***************************************************************************/
 #ifdef BGRC_PACKET_P_DEBUG_SW_PKT
-#define BGRC_PACKET_P_DEBUG_PRINT_CTX( value ) BKNI_Printf( "ctx %d: %s", hContext->ulId, value )
+#define BGRC_PACKET_P_DEBUG_PRINT_CTX( value ) BKNI_Printf( "ctx %x: %s", hContext->ulId, value )
 #define BGRC_PACKET_P_DEBUG_PRINT( value ) BKNI_Printf( "%s", value )
 #define BGRC_PACKET_P_DEBUG_PRINT_VALUE( value ) BKNI_Printf( "%08x ", value )
 #else
@@ -235,6 +232,11 @@ typedef enum
 #define BGRC_PACKET_P_PRINT_DESC( value )
 #define BGRC_PACKET_P_PRINT_DESC_VALUE( value )
 #endif
+
+#define BGRC_P_GET_FIELD(regvar, reg, field) \
+    (((regvar) & BCHP_M2MC_##reg##_##field##_MASK) >> \
+    BCHP_M2MC_##reg##_##field##_SHIFT)
+
 
 /* assume data is already shifted to field */
 #define BGRC_P_COMPARE_FIELD_DATA(reg_value, reg, field, data) \
@@ -356,32 +358,26 @@ typedef enum
 
 
 /***************************************************************************/
-#ifdef BCHP_M2MC1_REVISION
-#define BGRC_P_WriteReg32( handle, reg, data ) BREG_Write32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION), data )
-#define BGRC_P_ReadReg32( handle, reg )        BREG_Read32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION) )
-#define BGRC_P_WriteAddr( handle, reg, data )  BREG_WriteAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION), data )
-#define BGRC_P_ReadAddr( handle, reg )         BREG_ReadAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION) )
-#else
-#ifdef BCHP_M2MC_1_REVISION
-#define BGRC_P_WriteReg32( handle, reg, data ) BREG_Write32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION), data )
-#define BGRC_P_ReadReg32( handle, reg )        BREG_Read32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION) )
-#define BGRC_P_WriteAddr( handle, reg, data )  BREG_WriteAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION), data )
-#define BGRC_P_ReadAddr( handle, reg )         BREG_ReadAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION) )
-#else
-#define BGRC_P_WriteReg32( handle, reg, data ) BREG_Write32( handle, BCHP_M2MC_##reg, data )
-#define BGRC_P_ReadReg32( handle, reg )        BREG_Read32( handle, BCHP_M2MC_##reg )
-#define BGRC_P_WriteAddr( handle, reg, data )  BREG_WriteAddr_isrsafe( handle, BCHP_M2MC_##reg, data )
-#define BGRC_P_ReadAddr( handle, reg )         BREG_ReadAddr_isrsafe( handle, BCHP_M2MC_##reg )
-#endif
-#endif
+
+#define BGRC_P_WriteReg32( handle, reg, data) BREG_Write32( handle->hRegister, BCHP_M2MC_##reg + handle->ulRegOffset, data )
+#define BGRC_P_ReadReg32( handle, reg)        BREG_Read32( handle->hRegister, BCHP_M2MC_##reg + handle->ulRegOffset )
+#define BGRC_P_WriteAddr( handle, reg, data)  BREG_WriteAddr_isrsafe( handle->hRegister, BCHP_M2MC_##reg + handle->ulRegOffset, data )
+#define BGRC_P_ReadAddr( handle, reg)         BREG_ReadAddr_isrsafe( handle->hRegister, BCHP_M2MC_##reg + handle->ulRegOffset)
 
 /***************************************************************************/
 #define BGRC_P_MIN_WIDTH_WITH_VERT_SCALE  4
 
 #define BGRC_PACKET_P_IS_420(type) \
-   (((type) >= M2MC_FT_YCbCr420) && ((type) != M2MC_FT_YCbCr444_10) && ((type) != M2MC_FT_CompressedARGB8888))
+    (((type) == M2MC_FT_YCbCr420)            || \
+    ((type) == M2MC_FT_YCbCr420_10)         || \
+    ((type) == M2MC_FT_YCbCr420_10_Striped) || \
+    ((type) == M2MC_FT_YCbCr420_Striped))
+
+#define BGRC_PACKET_P_IS_422(type) \
+       (((type) == M2MC_FT_YCbCr422) || ((type) == M2MC_FT_YCbCr422_10))
+
 #define BGRC_PACKET_P_IS_422_OR_420(type) \
-   (((type) >= M2MC_FT_YCbCr422) && ((type) != M2MC_FT_Alpha) && ((type) != M2MC_FT_YCbCr444_10) && ((type) != M2MC_FT_CompressedARGB8888))
+   ((BGRC_PACKET_P_IS_420(type))||(BGRC_PACKET_P_IS_422(type)))
 
 /* don't read or write outside */
 #define BGRC_PACKET_P_PXL_ALIGN(type, x, w, y, h) \
@@ -404,18 +400,21 @@ typedef enum
 #define BGRC_PACKET_P_SRC_PXL_ALIGN(x, w, y, h) \
 {\
     uint32_t formatType = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_0_FORMAT_DEF_1, FORMAT_TYPE);\
+    BDBG_MSG(("BGRC_PACKET_P_SRC_PXL_ALIGN %d %d %d %d", x, w, y, h)); \
     BGRC_PACKET_P_PXL_ALIGN(formatType, (x), (w), (y), (h)) \
 }
 
 #define BGRC_PACKET_P_DST_PXL_ALIGN(x, w, y, h) \
 {\
     uint32_t formatType = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);\
+    BDBG_MSG(("BGRC_PACKET_P_DST_PXL_ALIGN %d %d %d %d", x, w, y, h)); \
     BGRC_PACKET_P_PXL_ALIGN(formatType, (x), (w), (y), (h)) \
 }
 
 #define BGRC_PACKET_P_OUT_PXL_ALIGN(x, w, y, h) \
 {\
     uint32_t formatType = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);\
+    BDBG_MSG(("type %x BGRC_PACKET_P_OUT_PXL_ALIGN %d %d %d %d", formatType, x, w, y, h)); \
     BGRC_PACKET_P_PXL_ALIGN(formatType, (x), (w), (y), (h)) \
 }
 
@@ -505,6 +504,14 @@ typedef enum
     BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_COLOR_MATRIX_GRP_CNTRL_MASK)
     /*BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_CLUT_GRP_CNTRL_MASK)*/
 
+#define BGRC_PACKET_P_DEVICE_MMGROUP_MASK_FULL ( \
+    BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_FEEDER_GRP_CNTRL_MASK | \
+    BCHP_M2MC_LIST_PACKET_HEADER_1_OUTPUT_FEEDER_GRP_CNTRL_MASK | \
+    BCHP_M2MC_LIST_PACKET_HEADER_1_BLIT_GRP_CNTRL_MASK | \
+    BCHP_M2MC_LIST_PACKET_HEADER_1_SCALE_PARAM_GRP_CNTRL_MASK | \
+    BCHP_M2MC_LIST_PACKET_HEADER_1_SCALE_COEF_GRP_CNTRL_MASK | \
+    BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_COLOR_MATRIX_GRP_CNTRL_MASK)
+
 /***************************************************************************/
 #define BGRC_PACKET_P_FLUSH_PACKET_SIZE (\
     sizeof (BM2MC_PACKET_PacketSaveState) + \
@@ -521,6 +528,18 @@ typedef enum
     sizeof (BM2MC_PACKET_PacketAlphaPremultiply) + \
     sizeof (BM2MC_PACKET_PacketAlphaDemultiply) + \
     sizeof (BM2MC_PACKET_PacketDestAlphaPremultiply) + \
+    sizeof (BM2MC_PACKET_PacketMirror) + \
+    sizeof (BM2MC_PACKET_PacketFillBlit) + \
+    sizeof (BM2MC_PACKET_PacketRestoreState))
+
+/***************************************************************************/
+#define BGRC_PACKET_P_FLUSH_MMPACKET_SIZE (\
+    sizeof (BM2MC_PACKET_PacketSaveState) + \
+    sizeof (BM2MC_PACKET_PacketSourceNone) + \
+    sizeof (BM2MC_PACKET_PacketOutputFeeder) + \
+    sizeof (BM2MC_PACKET_PacketFilterEnable) + \
+    sizeof (BM2MC_PACKET_PacketFilterControl) + \
+    sizeof (BM2MC_PACKET_PacketSourceColorMatrixEnable) + \
     sizeof (BM2MC_PACKET_PacketMirror) + \
     sizeof (BM2MC_PACKET_PacketFillBlit) + \
     sizeof (BM2MC_PACKET_PacketRestoreState))
@@ -567,9 +586,12 @@ typedef enum
 }
 BGRC_PACKET_P_SyncState;
 
-#define SUR_TYPE_SRC  0
-#define SUR_TYPE_DST  1
-#define SUR_TYPE_OUT  2
+typedef enum
+{
+    BGRC_eSurface_Src = 0,
+    BGRC_eSurface_Dst = 1,
+    BGRC_eSurface_Out = 2
+}BGRC_eSurface;
 
 /****************************************************************************
  * Surface invalid bits
@@ -654,10 +676,10 @@ typedef struct BGRC_P_PacketContext
     bool      bResetState;
 
     bool      bSwStripeBlit;
-    uint8_t last_blit_type;
+    uint8_t   last_blit_type;
 
-    uint32_t stored_registers[BGRC_PACKET_P_REGISTER_COUNT];
-    uint32_t saved_registers[BGRC_PACKET_P_REGISTER_COUNT];
+    uint32_t  stored_registers[BGRC_PACKET_P_REGISTER_COUNT];
+    uint32_t  saved_registers[BGRC_PACKET_P_REGISTER_COUNT];
 
     BM2MC_PACKET_PacketFixedScale fixed_scale;
     BM2MC_PACKET_PacketFixedScale saved_fixed_scale;
@@ -670,18 +692,21 @@ typedef struct BGRC_P_PacketContext
     uint32_t saved_src_format0;
     bool b420Src;
     bool saved_b420Src;
+    BM2MC_PACKET_Rectangle out_rect;
+    uint32_t ulMipLevel;
 
-#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     uint32_t SRC_surface_width;
     uint32_t SRC_surface_height;
+    uint32_t OUTPUT_surface_width;
+    uint32_t OUTPUT_surface_height;
+
+#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     uint32_t SRC_surface_format;
     uint32_t SRC_surface_pitch;
     uint32_t DEST_surface_width;
     uint32_t DEST_surface_height;
     uint32_t DEST_surface_format;
     uint32_t DEST_surface_pitch;
-    uint32_t OUTPUT_surface_width;
-    uint32_t OUTPUT_surface_height;
     uint32_t OUTPUT_surface_format;
     uint32_t OUTPUT_surface_pitch;
 

@@ -127,6 +127,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     /* Check the selected box mode is compatible with the chip type. */
     switch (platformStatus.chipId) {
         case 0x72604:
+        case 0x72518:
             /* 72604 supports all box modes */
             break;
         case 0x72603:
