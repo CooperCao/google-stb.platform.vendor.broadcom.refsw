@@ -38,8 +38,6 @@
 #ifndef DTU_H__
 #define DTU_H__
 
-#include "bchp.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,21 +47,11 @@ It allows large contiguous blocks of device memory to be built by remapping bus 
 
 typedef struct BDTU *BDTU_Handle;
 
-#define BDTU_INVALID_ADDR (BSTD_DeviceOffset)(0)
-
-typedef struct BDTU_MappingInfo
-{
-    unsigned memcIndex;
-    struct {
-        BSTD_DeviceOffset addr; /* base physical address of contiguous addressing region */
-        uint64_t size; /* size of contiguous addressing */
-    } region[BCHP_MAX_MEMC_REGIONS]; /* supports multiple discontiguous addressing region */
-} BDTU_MappingInfo;
-
 typedef struct BDTU_CreateSettings
 {
     BREG_Handle reg;
-    BDTU_MappingInfo memoryLayout; /* This is HW based mapping, NOT populated memory */
+    unsigned memcIndex;
+    BSTD_DeviceOffset physAddrBase; /* physical base address of MEMC */
     unsigned ownerId; /* host's GISB ID, used to validate BDTU_Own calls */
 } BDTU_CreateSettings;
 
@@ -84,9 +72,9 @@ void BDTU_Destroy(
 typedef struct BDTU_RemapSettings
 {
     struct {
-        BSTD_DeviceOffset orgPhysAddr; /* original BA. should match either fromPhysAddr or toPhysAddr. */
-        BSTD_DeviceOffset fromPhysAddr; /* current BA (bus address). Must be within BDTU_CreateSettings.memoryLayout range and be 2MB aligned. */
-        BSTD_DeviceOffset toPhysAddr; /* new BA (bus address). Must be within BDTU_CreateSettings.memoryLayout range and be 2MB aligned. */
+        BSTD_DeviceOffset devAddr; /* DA (device address). Starts from 0 on every MEMC. Must be 2MB aligned and within actual populated DRAM. */
+        BSTD_DeviceOffset fromPhysAddr; /* current BA (bus address). Must be within BDTU_CreateSettings.physAddr range and be 2MB aligned. */
+        BSTD_DeviceOffset toPhysAddr; /* new BA (bus address). Must be within BDTU_CreateSettings.physAddr range and be 2MB aligned. */
     } list[BDTU_REMAP_LIST_TOTAL]; /* list terminates at first entry with devAddr == 0 */
 } BDTU_RemapSettings;
 
@@ -103,13 +91,12 @@ BERR_Code BDTU_Remap(
     const BDTU_RemapSettings *pSettings
     );
 
-/* returns the original BA for this remapped BA.
-If not remapped, orgPhysAddr will be equal to physAddr.
+/* returns the DA of BA.
 Function fails with non-zero if BA is not mapped */
-BERR_Code BDTU_ReadOriginalAddress(
+BERR_Code BDTU_ReadDeviceAddress(
     BDTU_Handle handle,
-    BSTD_DeviceOffset physAddr, /* current BA */
-    BSTD_DeviceOffset *orgPhysAddr /* orignal BA */
+    BSTD_DeviceOffset physAddr, /* BA */
+    BSTD_DeviceOffset *devAddr /* returns DA to which this BA is currently mapped */
     );
 
 void BDTU_PrintMap(
@@ -147,7 +134,6 @@ BERR_Code BDTU_ReadInfo(
 
 typedef enum BDTU_State
 {
-    BDTU_State_eUnknown,
     BDTU_State_eUnset,
     BDTU_State_eEnabled,
     BDTU_State_eDisabled,

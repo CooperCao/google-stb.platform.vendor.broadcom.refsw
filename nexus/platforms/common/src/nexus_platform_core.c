@@ -414,13 +414,11 @@ static NEXUS_Error NEXUS_Platform_P_BuildAdjacentHeaps(const NEXUS_PlatformSetti
             pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
             pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
         }
-
         if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_DTU) {
             pCoreSettings->heapRegion[i].offset = pSettings->heap[i].offset;
             pCoreSettings->heapRegion[i].length = pSettings->heap[i].size;
             pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
             pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
-            pCoreSettings->heapRegion[i].memcIndex = pSettings->heap[i].memcIndex;
         }
     }
     return NEXUS_SUCCESS;

@@ -81,7 +81,8 @@ int main(void)
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
     platformSettings.openFrontend = false;
     platformSettings.heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
-    platformSettings.heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
+    platformSettings.heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].offset = (uint64_t)2*1024*1024*1024; /* BA space above DRAM */
+    platformSettings.heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
     for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
         memConfigSettings.videoDecoder[i].dynamicPictureBuffers = true;
     }

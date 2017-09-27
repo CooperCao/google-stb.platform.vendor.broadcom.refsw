@@ -64,11 +64,11 @@ BERR_Code BDTU_Remap( BDTU_Handle handle, const BDTU_RemapSettings *pSettings )
     BSTD_UNUSED(pSettings);
     return BERR_NOT_SUPPORTED;
 }
-BERR_Code BDTU_ReadOriginalAddress( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BSTD_DeviceOffset *orgPhysAddr )
+BERR_Code BDTU_ReadDeviceAddress( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BSTD_DeviceOffset *devAddr )
 {
     BSTD_UNUSED(handle);
     BSTD_UNUSED(physAddr);
-    BSTD_UNUSED(orgPhysAddr);
+    BSTD_UNUSED(devAddr);
     return BERR_NOT_SUPPORTED;
 }
 void BDTU_PrintMap( BDTU_Handle handle, BSTD_DeviceOffset addr, unsigned size )
