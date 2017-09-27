@@ -339,11 +339,15 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetVideoSettings(
     NEXUS_HdmiOutputDisplaySettings *pstDisplaySettings
 );
 
+NEXUS_Error NEXUS_HdmiOutput_P_EnableDisplay(NEXUS_HdmiOutputHandle hdmiOutput, const BHDM_Settings * pSettings);
+NEXUS_Error NEXUS_HdmiOutput_P_ApplyAviInfoFrame(NEXUS_HdmiOutputHandle handle);
+
 #if NEXUS_DBV_SUPPORT
 void NEXUS_HdmiOutput_P_DbvConnectionChanged(NEXUS_HdmiOutputHandle output);
 NEXUS_Error NEXUS_HdmiOutput_P_SetDbvMode(NEXUS_HdmiOutputHandle output);
 NEXUS_Error NEXUS_HdmiOutput_P_SetDolbyVisionVendorSpecificInfoFrame(NEXUS_HdmiOutputHandle handle);
-NEXUS_Error NEXUS_HdmiOutput_P_SetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle);
+void NEXUS_HdmiOutput_P_SetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle, BAVC_HDMI_AviInfoFrame * pAVIIF);
+void NEXUS_HdmiOutput_P_GetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle, BAVC_HDMI_AviInfoFrame * pAVIIF);
 void NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(NEXUS_HdmiOutputHandle output, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInfoFrame);
 void NEXUS_HdmiOutput_P_DbvUpdateDisplaySettings(NEXUS_HdmiOutputHandle output, NEXUS_HdmiOutputDisplaySettings * pDisplaySettings);
 #endif

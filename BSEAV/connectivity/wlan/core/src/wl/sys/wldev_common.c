@@ -428,21 +428,21 @@ int wldev_get_mode(
 
 	if (band == WL_CHANSPEC_BAND_2G) {
 		if (bss->n_cap)
-			strcpy(cap, "n");
+			strncpy(cap, "n", 2);
 		else
-			strcpy(cap, "bg");
+			strncpy(cap, "bg", 3);
 	} else if (band == WL_CHANSPEC_BAND_5G) {
 		if (bandwidth == WL_CHANSPEC_BW_80)
-			strcpy(cap, "ac");
+			strncpy(cap, "ac", 3);
 		else if ((bandwidth == WL_CHANSPEC_BW_40) || (bandwidth == WL_CHANSPEC_BW_20)) {
 			if ((bss->nbss_cap & 0xf00) && (bss->n_cap))
-				strcpy(cap, "n|ac");
+				strncpy(cap, "n|ac", 5);
 			else if (bss->n_cap)
-				strcpy(cap, "n");
+				strncpy(cap, "n", 2);
 			else if (bss->vht_cap)
-				strcpy(cap, "ac");
+				strncpy(cap, "ac", 3);
 			else
-				strcpy(cap, "a");
+				strncpy(cap, "a", 2);
 		} else {
 			WLDEV_ERROR(("%s:Mode get failed\n", __FUNCTION__));
 			error = BCME_ERROR;

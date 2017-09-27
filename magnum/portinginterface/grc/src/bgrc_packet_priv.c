@@ -38,8 +38,8 @@
 
 #include "bchp_common.h"
 #include "bchp_m2mc.h"
-#ifdef BCHP_M2MC1_REG_START
-#include "bchp_m2mc1.h"
+#ifdef BCHP_MM_M2MC0_REG_START
+#include "bchp_mm_m2mc0.h"
 #endif
 
 #include "bgrc.h"
@@ -47,26 +47,37 @@
 #include "bgrc_packet_priv.h"
 #include "bgrc_private.h"
 
+#ifdef BCHP_MM_M2MC0_REG_START
+#include "bgrc_mmpacket_priv.h"
+#endif
+
 BDBG_MODULE(BGRC);
 BDBG_FILE_MODULE(BGRC_LISTSTATUS);
+BDBG_FILE_MODULE(MIPMAP);
+
+
 
 /***************************************************************************/
-#define M2MC_FT_Default       (0L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_WRGB1555      (1L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_WRGB1565      (2L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_Palette       (3L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_YCbCr422      (4L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_Alpha         (5L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_YCbCr422_10   (6L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_YCbCr420      (7L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_YCbCr444_10   (8L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_YCbCr420_10   (9L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_CompressedARGB8888    (10L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_YCbCr420_10_Striped   (14L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
-#define M2MC_FT_YCbCr420_Striped      (15L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_Default                         ( 0L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_WRGB1555                        ( 1L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_WRGB1565                        ( 2L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_Palette                         ( 3L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YCbCr422                        ( 4L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_Alpha                           ( 5L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YCbCr422_10                     ( 6L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YCbCr420                        ( 7L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YCbCr444_10                     ( 8L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YCbCr420_10                     ( 9L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_CompressedARGB8888              (10L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_UIFARGB8888                     (11L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_CompressedUIFARGB8888           (12L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YCbCr420_10_Striped             (14L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YCbCr420_Striped                (15L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
 
 #define M2MC_DISABLE_SHIFT    BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_3_CH0_DISABLE_SHIFT)
 #define M2MC_CHANNEL_MASK     ((1L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT)) - 1)
+#define BGRC_P_ALIGN_UP(value, alignment) \
+        (((value) + (alignment) - 1) & (~((alignment) - 1)))
 
 /***************************************************************************/
 static const uint32_t s_BGRC_PACKET_P_DevicePixelFormats[][3] =
@@ -143,8 +154,8 @@ static const uint32_t s_BGRC_PACKET_P_DevicePixelFormats[][3] =
     { 0x00004004 | M2MC_FT_Default,            0x00000004, 0x00000000 << M2MC_DISABLE_SHIFT }, /* L4_A4 */
     { 0x00008008 | M2MC_FT_Default,            0x00000008, 0x00000000 << M2MC_DISABLE_SHIFT }, /* L8_A8 */
     { 0x00006055 | M2MC_FT_Default,            0x00000B06, 0x00000000 << M2MC_DISABLE_SHIFT }, /* L15_L05_A6 */
-
     { 0x00008888 | M2MC_FT_CompressedARGB8888, 0x18100800, 0x00000000 << M2MC_DISABLE_SHIFT }, /* Compressed_A8_R8_G8_B8 */
+    { 0x00008888 | M2MC_FT_UIFARGB8888,        0x18000810, 0x00000000 << M2MC_DISABLE_SHIFT }, /* UIF_A8_R8_G8_B8 */
     { 0x00000000, 0x00000000, 0x00000000 }, /* Max */
 };
 
@@ -177,6 +188,7 @@ static const uint32_t s_BGRC_PACKET_P_DeviceGroupHeaderMasks[] =
     BCHP_M2MC_LIST_PACKET_HEADER_1_DST_FEEDER_GRP_CNTRL_MASK,       /* DestinationControl */
     BCHP_M2MC_LIST_PACKET_HEADER_1_OUTPUT_FEEDER_GRP_CNTRL_MASK,    /* OutputFeeder */
     BCHP_M2MC_LIST_PACKET_HEADER_1_OUTPUT_FEEDER_GRP_CNTRL_MASK,    /* OutputControl */
+    BCHP_M2MC_LIST_PACKET_HEADER_1_OUTPUT_FEEDER_GRP_CNTRL_MASK,    /* Mipmap */
     BCHP_M2MC_LIST_PACKET_HEADER_1_BLEND_PARAM_GRP_CNTRL_MASK,      /* Blend */
     BCHP_M2MC_LIST_PACKET_HEADER_1_BLEND_PARAM_GRP_CNTRL_MASK,      /* BlendColor */
     BCHP_M2MC_LIST_PACKET_HEADER_1_ROP_GRP_CNTRL_MASK,              /* Rop */
@@ -211,6 +223,7 @@ static const uint32_t s_BGRC_PACKET_P_DeviceGroupHeaderMasks[] =
     0,                                                              /* Save */
     0                                                               /* Restore */
 };
+
 
 /***************************************************************************/
 static const uint32_t s_BGRC_PACKET_P_DeviceGroupSizes[] =
@@ -255,7 +268,6 @@ static const uint32_t s_BGRC_PACKET_P_DeviceRegisterOffsets[] =
     BGRC_M2MC(DEST_FEEDER_ENABLE) - BGRC_M2MC(SRC_FEEDER_ENABLE),
     BGRC_M2MC(SRC_FEEDER_ENABLE) - BGRC_M2MC(SRC_FEEDER_ENABLE)
 };
-
 /***************************************************************************/
 #if BGRC_P_64BITS_ADDR
 static const uint8_t s_BGRC_PACKET_P_RegAddrType[] =
@@ -413,6 +425,7 @@ static const char *s_BGRC_PACKET_P_DESCR_GRP_NAME[] =
     "             SRC_FEEDER_ENABLE"
 };
 #endif
+
 
 /***************************************************************************/
 static const BM2MC_PACKET_FilterCoeffs s_BGRC_PACKET_P_DeviceFilter_PointSample =
@@ -755,6 +768,8 @@ static const BM2MC_PACKET_FilterCoeffs s_BGRC_PACKET_P_DeviceFilter_AntiFlutterS
 #endif
 };
 
+#define BGRC_IS_UIF_FORMAT(ulFormat)        \
+    (((ulFormat) == M2MC_FT_UIFARGB8888) || ((ulFormat) == M2MC_FT_CompressedUIFARGB8888))
 /***************************************************************************/
 void BGRC_P_CheckTableMismach( void )
 {
@@ -764,16 +779,17 @@ void BGRC_P_CheckTableMismach( void )
         BDBG_ERR(("s_BGRC_PACKET_P_DeviceGroupHeaderMasks does NOT matches BM2MC_PACKET_PacketType"));
         BDBG_ASSERT(false);
     }
+
 }
 
-static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hContext, uint32_t ulType, uint32_t ulAddr, uint32_t ulWidth, uint32_t ulPitch )
+static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hContext, BGRC_eSurface eSurface, uint32_t ulAddr, uint32_t ulWidth, uint32_t ulPitch )
 {
 #if defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
-    switch (ulType) {
-    case SUR_TYPE_SRC:
+    switch (eSurface) {
+    case BGRC_eSurface_Src:
         hContext->stSurCompressed.stBits.bSrc = 1;
         break;
-    case SUR_TYPE_DST:
+    case BGRC_eSurface_Dst:
         hContext->stSurCompressed.stBits.bDst = 1;
         break;
     default: /* OUT */
@@ -784,15 +800,15 @@ static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hCon
     if ((ulAddr & 0x1F) || /* 32 = 0x1F + 1 is the size of a BSTC compressed 4x4 area */
         (ulPitch & 0x7) || (ulPitch < ulWidth * 2))
     {
-        switch (ulType) {
-        case SUR_TYPE_OUT:
+        switch (eSurface) {
+        case BGRC_eSurface_Out:
             hContext->stSurInvalid.stBits.bOut = 1;
             if (ulAddr & 0x1F)
                 BDBG_ERR(("Compressed out surface with bad addr 0x%0x. Following blit is likely dropped", ulAddr));
             else
                 BDBG_ERR(("Compressed out surface with bad (pitch 0x%0x, width 0x%x). Following blit is likely dropped", ulPitch, ulWidth));
             break;
-        case SUR_TYPE_DST:
+        case BGRC_eSurface_Dst:
             hContext->stSurInvalid.stBits.bDst = 1;
             if (ulAddr & 0x1F)
                 BDBG_ERR(("Compressed dst surface with bad addr 0x%0x. Following blit is likely dropped", ulAddr));
@@ -809,12 +825,12 @@ static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hCon
         }
     }
 #elif defined(BCHP_M2MC_DCEG_CFG)
-    switch (ulType) {
-    case SUR_TYPE_DST:
+    switch (eSurface) {
+    case BGRC_eSurface_Dst:
         hContext->stSurInvalid.stBits.bDst = 1;
         BDBG_ERR(("No support for compressed dst surface. Following blit is likely dropped"));
         break;
-    case SUR_TYPE_SRC:
+    case BGRC_eSurface_Src:
         hContext->stSurInvalid.stBits.bSrc = 1;
         BDBG_ERR(("No support for compressed src surface. Following blit is likely dropped"));
         break;
@@ -829,12 +845,12 @@ static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hCon
     BSTD_UNUSED(ulAddr);
     BSTD_UNUSED(ulPitch);
 #else  /* no compression support */
-    switch (ulType) {
-    case SUR_TYPE_OUT:
+    switch (eSurface) {
+    case BGRC_eSurface_Out:
         hContext->stSurInvalid.stBits.bOut = 1;
         BDBG_ERR(("No support for compressed out surface. Following blit is likely dropped"));
         break;
-    case SUR_TYPE_DST:
+    case BGRC_eSurface_Dst:
         hContext->stSurInvalid.stBits.bDst = 1;
         BDBG_ERR(("No support for compressed dst surface. Following blit is likely dropped"));
         break;
@@ -860,7 +876,19 @@ static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hCon
 #define BGRC_PACKET_P_DEST_SURFACE_FORMAT_DEF_3_MASK ( \
     BGRC_M2MC(DEST_SURFACE_FORMAT_DEF_3_ZERO_PAD_MASK) | BGRC_M2MC(DEST_SURFACE_FORMAT_DEF_3_CHROMA_FILTER_MASK))
 #define BGRC_PACKET_P_OUTPUT_SURFACE_FORMAT_DEF_3_MASK ( \
-    BGRC_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_DITHER_ENABLE_MASK) | BGRC_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_CHROMA_FILTER_MASK))
+    BGRC_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_DITHER_ENABLE_MASK) | \
+    BGRC_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_CHROMA_FILTER_MASK))
+
+#if BCHP_MM_M2MC0_REG_START
+#define BGRC_PACKET_P_MM_OUTPUT_SURFACE_FORMAT_DEF_3_MASK ( \
+    BGRC_MM_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_SRGB_CURVE_CORRECTION_ENB_MASK) | \
+    BGRC_MM_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_DISABLE_LINEAR_FILTERING_MASK) | \
+    BGRC_MM_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_DISABLE_L0_WRITE_OUT_MASK) | \
+    BGRC_MM_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_MAX_MIPMAP_LEVEL_MASK) | \
+    BGRC_MM_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_L0_LAYOUT_MASK) | \
+    BGRC_MM_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_DITHER_ENABLE_MASK) | \
+    BGRC_MM_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3_CHROMA_FILTER_MASK))
+#endif
 
 #define BGRC_PACKET_P_DISABLE_SURFACE_CHANNELS( sur ) ( \
     BGRC_M2MC(sur##_FORMAT_DEF_3_CH0_DISABLE_MASK) | BGRC_M2MC(sur##_FORMAT_DEF_3_CH1_DISABLE_MASK) | \
@@ -903,7 +931,7 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeder( BGRC_PacketContext_Handle hCont
     hContext->stSurCompressed.stBits.bSrc = 0;
     if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)
     {
-        BGRC_PACKET_P_ValidateSurCompression( hContext, SUR_TYPE_SRC, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
+        BGRC_PACKET_P_ValidateSurCompression( hContext, BGRC_eSurface_Src, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
 #if defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
         ulPitch *= 4; /* 4 lines */
 #endif
@@ -942,10 +970,10 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeder( BGRC_PacketContext_Handle hCont
 #endif
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
-
-#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_width = packet->plane.width;
     hContext->SRC_surface_height = packet->plane.height;
+
+#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_format = packet->plane.format;
     hContext->SRC_surface_pitch = (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)? 0 : packet->plane.pitch;
 #endif
@@ -1007,10 +1035,10 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeders( BGRC_PacketContext_Handle hCon
 #endif
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
-
-#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_width = packet->plane0.width;
     hContext->SRC_surface_height = packet->plane0.height;
+
+#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_format = packet->plane0.format;
     hContext->SRC_surface_pitch = packet->plane0.pitch;
 #endif
@@ -1083,10 +1111,10 @@ static void BGRC_PACKET_P_ProcSwPktStripedSourceFeeders( BGRC_PacketContext_Hand
         (packet->plane.chroma_stripe_height << BGRC_M2MC(BLIT_SRC_STRIPE_HEIGHT_WIDTH_1_STRIPE_HEIGHT_SHIFT)) );
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
-
-#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_width = packet->plane.width;
     hContext->SRC_surface_height = packet->plane.height;
+
+#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_format = packet->plane.luma_format;
     hContext->SRC_surface_pitch = 0;
 #endif
@@ -1143,10 +1171,8 @@ static void BGRC_PACKET_P_ProcSwPktSourceColor( BGRC_PacketContext_Handle hConte
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, READ_420_AS_FIELDS, DISABLE );
 #endif
 
-#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_width = 0;
     hContext->SRC_surface_height = 0;
-#endif
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 }
@@ -1191,10 +1217,8 @@ static void BGRC_PACKET_P_ProcSwPktSourceNone( BGRC_PacketContext_Handle hContex
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, READ_420_AS_FIELDS, DISABLE );
 #endif
 
-#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_width = 0;
     hContext->SRC_surface_height = 0;
-#endif
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 }
@@ -1236,7 +1260,7 @@ static void BGRC_PACKET_P_ProcSwPktDestinationFeeder( BGRC_PacketContext_Handle 
     hContext->stSurCompressed.stBits.bDst = 0;
     if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)
     {
-        BGRC_PACKET_P_ValidateSurCompression( hContext, SUR_TYPE_DST, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
+        BGRC_PACKET_P_ValidateSurCompression( hContext, BGRC_eSurface_Dst, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
 #if defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
         ulPitch *= 4; /* 4 lines */
 #endif
@@ -1360,14 +1384,17 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
     uint32_t format_type = out_format0 & BGRC_M2MC(OUTPUT_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_MASK);
     uint32_t format0 = ((format_type == M2MC_FT_Palette) || (format_type == M2MC_FT_YCbCr420)) ? out_format0 & M2MC_CHANNEL_MASK : out_format0;
     uint32_t ulPitch = packet->plane.pitch;
+    bool  bMipMap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+    BMMA_DeviceOffset  ullPlaneAddr = packet->plane.address;
 
     if( (format0 & BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_MASK)) == M2MC_FT_WRGB1565 )
         format0 &= ~BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_MASK);
     hContext->stSurInvalid.stBits.bOut = 0;
     hContext->stSurCompressed.stBits.bOut = 0;
+
     if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)
     {
-        BGRC_PACKET_P_ValidateSurCompression( hContext, SUR_TYPE_OUT, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
+        BGRC_PACKET_P_ValidateSurCompression( hContext, BGRC_eSurface_Out, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
 #if defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
         ulPitch *= 4;  /* 4 lines */
 #endif
@@ -1377,17 +1404,22 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- OutFeeder          " );
     BGRC_PACKET_P_STORE_REG( OUTPUT_FEEDER_ENABLE, packet->plane.address ? 1 : 0 );
 #if BGRC_P_64BITS_ADDR
-    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0, BGRC_P_GET_UINT64_HIGH(packet->plane.address) );
-    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0, BGRC_P_GET_UINT64_HIGH(ullPlaneAddr) );
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(ullPlaneAddr) );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_1_LSB, 0 );
 #else
-    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0, BGRC_P_GET_UINT64_LOW(ullPlaneAddr) );
 #endif
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_1, 0 );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_STRIDE_0, ulPitch );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_STRIDE_1, 0 );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_FORMAT_DEF_1, format0 );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_FORMAT_DEF_2, s_BGRC_PACKET_P_DevicePixelFormats[packet->plane.format][1] );
+#if defined(BCHP_MM_M2MC0_REG_START)
+    if (BGRC_eMM_M2mc0 == hContext->hGrc->eDeviceNum)
+        BGRC_PACKET_P_STORE_REG_MASK( OUTPUT_SURFACE_FORMAT_DEF_3, out_format2, BGRC_PACKET_P_MM_OUTPUT_SURFACE_FORMAT_DEF_3_MASK );
+    else
+#endif
     BGRC_PACKET_P_STORE_REG_MASK( OUTPUT_SURFACE_FORMAT_DEF_3, out_format2, BGRC_PACKET_P_OUTPUT_SURFACE_FORMAT_DEF_3_MASK );
 
     /* check if source is palette */
@@ -1412,7 +1444,8 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
     }
 
     /* check if dest is palette */
-    if( BGRC_P_COMPARE_FIELD_DATA(hContext->dst_format0, DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE, M2MC_FT_Palette) )
+    if( (!bMipMap)&&
+        BGRC_P_COMPARE_FIELD_DATA(hContext->dst_format0, DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE, M2MC_FT_Palette) )
     {
         uint32_t def1 = BGRC_PACKET_P_GET_REG(DEST_SURFACE_FORMAT_DEF_1);
         uint32_t def3 = BGRC_PACKET_P_GET_REG(DEST_SURFACE_FORMAT_DEF_3);
@@ -1437,10 +1470,10 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
 #endif
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
-
-#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->OUTPUT_surface_width = packet->plane.width;
     hContext->OUTPUT_surface_height = packet->plane.height;
+
+#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->OUTPUT_surface_format = packet->plane.format;
     hContext->OUTPUT_surface_pitch = (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)? 0 : packet->plane.pitch;
 #endif
@@ -1450,10 +1483,35 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
 static void BGRC_PACKET_P_ProcSwPktOutputControl( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
     BM2MC_PACKET_PacketOutputControl *packet = (BM2MC_PACKET_PacketOutputControl *) header;
+    uint32_t    ulFormatDef3;
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- OutControl            " );
-    BGRC_PACKET_P_STORE_REG_FIELD_COMP( OUTPUT_SURFACE_FORMAT_DEF_3, DITHER_ENABLE, DISABLE, ENABLE, packet->dither );
-    BGRC_PACKET_P_STORE_REG_FIELD_COMP( OUTPUT_SURFACE_FORMAT_DEF_3, CHROMA_FILTER, FIRST, FILTER, packet->chroma_filter );
+
+    ulFormatDef3 =
+        BCHP_FIELD_DATA(M2MC_OUTPUT_SURFACE_FORMAT_DEF_3, DITHER_ENABLE, packet->dither)|
+        BCHP_FIELD_DATA(M2MC_OUTPUT_SURFACE_FORMAT_DEF_3, CHROMA_FILTER, packet->chroma_filter);
+
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    if (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0)
+    {
+        ulFormatDef3 |=
+            BCHP_FIELD_DATA(MM_M2MC0_OUTPUT_SURFACE_FORMAT_DEF_3, SRGB_CURVE_CORRECTION_ENB, 0)|
+            BCHP_FIELD_DATA(MM_M2MC0_OUTPUT_SURFACE_FORMAT_DEF_3, DISABLE_LINEAR_FILTERING,  0)|
+            BCHP_FIELD_DATA(MM_M2MC0_OUTPUT_SURFACE_FORMAT_DEF_3, DISABLE_L0_WRITE_OUT,      0)|
+            BCHP_FIELD_DATA(MM_M2MC0_OUTPUT_SURFACE_FORMAT_DEF_3, L0_LAYOUT,                 0);    /* set up later */
+    }
+#endif
+
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_FORMAT_DEF_3,ulFormatDef3);
+    BGRC_PACKET_P_DEBUG_PRINT( "\n" );
+}
+/***************************************************************************/
+static void BGRC_PACKET_P_ProcSwPktMipmap( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
+{
+    BM2MC_PACKET_PacketMipmapControl *packet = (BM2MC_PACKET_PacketMipmapControl *) header;
+
+    BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- MipmapControl            " );
+    hContext->ulMipLevel = packet->mipLevel;
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 }
 
@@ -2073,6 +2131,33 @@ static void BGRC_PACKET_P_SetDcegCompression( BGRC_PacketContext_Handle hContext
 }
 #endif
 
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+static void BGRC_PACKET_P_MipmapConfig(
+    BGRC_PacketContext_Handle hContext,
+    BPXL_Uif_Surface* pstMipmapSurface,
+    bool bMipmapOut,        /*mm_m2mc output surface*/
+    uint32_t *pulUifHeight)
+{
+    uint32_t ulFormat3;
+    BGRC_Swizzling eMipmapSwizzling;
+    BDBG_ASSERT(pstMipmapSurface);
+    BDBG_ASSERT(pstMipmapSurface->ulWidth);
+    BDBG_ASSERT(pstMipmapSurface->ulHeight);
+    BPXL_Uif_SurfaceCfg(&hContext->hGrc->stPxlMemoryInfo, pstMipmapSurface);
+
+    *pulUifHeight = pstMipmapSurface->ulPadH;
+
+    if(bMipmapOut)
+    {
+        eMipmapSwizzling = BGRC_P_PixelFormat_FromMagnum(pstMipmapSurface->eL0Swizzling);
+        ulFormat3 = BGRC_PACKET_P_GET_REG(OUTPUT_SURFACE_FORMAT_DEF_3);
+        ulFormat3 |=
+            BCHP_FIELD_DATA(MM_M2MC0_OUTPUT_SURFACE_FORMAT_DEF_3, L0_LAYOUT,        eMipmapSwizzling) |
+            BCHP_FIELD_DATA(MM_M2MC0_OUTPUT_SURFACE_FORMAT_DEF_3, MAX_MIPMAP_LEVEL, hContext->ulMipLevel);
+        BGRC_PACKET_P_STORE_REG(OUTPUT_SURFACE_FORMAT_DEF_3, ulFormat3);
+    }
+}
+#endif
 /***************************************************************************/
 static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
@@ -2080,9 +2165,40 @@ static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext,
     uint32_t pos = packet->rect.x | ((uint32_t) packet->rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t size = packet->rect.height | ((uint32_t) packet->rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
 
+
+
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    uint32_t ulUifHeight, ulFormat;
+    BPXL_Uif_Surface stMipmapSurface;
+    bool  bSrcUif= false, bOutUif=false, bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+
+    uint32_t ulHeight = BGRC_P_ALIGN_UP(packet->rect.height, 16); /* Multiple of 16 lines is valid for ARGB8888 */
+
+
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bSrcUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    BDBG_MODULE_MSG(MIPMAP, ("ulFormat %x src_format0 %x", ulFormat, hContext->src_format0));
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bOutUif = BGRC_IS_UIF_FORMAT(ulFormat);
+
+    /* one of source/output may not be set */
+    stMipmapSurface.ulWidth  = hContext->SRC_surface_width  ? hContext->SRC_surface_width : hContext->OUTPUT_surface_width;
+    stMipmapSurface.ulHeight = hContext->SRC_surface_height ? hContext->SRC_surface_height: hContext->OUTPUT_surface_height;
+    stMipmapSurface.ulMipLevel = 0;
+
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, bMipmap, &ulUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktFillBlit: mipmap surface %d x %d rectangle %d x %d ulUifHeight %d",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->rect.width , packet->rect.height, ulUifHeight));
+	BDBG_MODULE_MSG(MIPMAP, ("bSrcUif %d bOutUif %d ulUifHeight %d ulHeight %d", bSrcUif, bOutUif, ulUifHeight, ulHeight));
+#endif
+
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- FillBlit           " );
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_RECT_REGS( pos, size, 0, 0, pos, size, pos, size );
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?ulUifHeight:ulHeight);
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?ulUifHeight:ulHeight);
+#endif
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, HORIZ_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, VERT_SCALER_ENABLE, DISABLE );
@@ -2106,18 +2222,9 @@ static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext,
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 }
 
-#if 0/*def BGRC_M2MC(BLIT_CTRL_BLOCK_AUTO_SPLIT_FIFO_MASK)*/
-#define BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_1_SRC( x0, w0 ) \
-    BGRC_PACKET_P_STORE_REG_FIELD_COMP( BLIT_CTRL, BLOCK_AUTO_SPLIT_FIFO, DISABLE, ENABLE, \
-        (x0 & 7) && (w0 >= 57) && (w0 <= 64) )
-#define BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_2_SRC( x0, w0, x1, w1 ) \
-    BGRC_PACKET_P_STORE_REG_FIELD_COMP( BLIT_CTRL, BLOCK_AUTO_SPLIT_FIFO, DISABLE, ENABLE, ( \
-        (x0 & 7) && (w0 >= 57) && (w0 <= 64)) || ( \
-        (x1 & 7) && (w1 >= 57) && (w1 <= 64)) )
-#else
+
 #define BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_1_SRC( x0, w0 )
 #define BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_2_SRC( x0, w0, x1, w1 )
-#endif
 
 #if defined(BCHP_M2MC_HORIZ_SCALER_0_STEP_reserved0_SHIFT)
 #else
@@ -2341,12 +2448,42 @@ static void BGRC_PACKET_P_ProcSwPktCopyBlit( BGRC_PacketContext_Handle hContext,
     uint32_t src_pos = packet->src_rect.x | ((uint32_t) packet->src_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t out_pos = packet->out_point.x | ((uint32_t) packet->out_point.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t size = packet->src_rect.height | ((uint32_t) packet->src_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BPXL_Uif_Surface stMipmapSurface;
+    uint32_t ulFormat,  ulUifHeight;
+    bool  bSrcUif= false, bOutUif=false, bDstUif = false, bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+
+    uint32_t ulHeight = BGRC_P_ALIGN_UP(packet->src_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+
+
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1,FORMAT_TYPE);
+    bSrcUif =  BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bDstUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bOutUif = BGRC_IS_UIF_FORMAT(ulFormat);
+
+    /* SRC/OUTPUT surface may not get  updated*/
+    stMipmapSurface.ulWidth  = hContext->SRC_surface_width  ? hContext->SRC_surface_width : hContext->OUTPUT_surface_width;
+    stMipmapSurface.ulHeight = hContext->SRC_surface_height ? hContext->SRC_surface_height: hContext->OUTPUT_surface_height;
+    stMipmapSurface.ulMipLevel = 0;
+
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, bMipmap, &ulUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktCopyBlit: mipmap surface %d x %d rectangle %d x %d ulUifHeight %d",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->src_rect.width , packet->src_rect.height, ulUifHeight));
+#endif
 
     BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_1_SRC( packet->src_rect.x, packet->src_rect.width );
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- CopyBlit           " );
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, size, src_pos, size, out_pos, size, out_pos, size );
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?ulUifHeight:ulHeight);
+    if(!bMipmap)
+        BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulUifHeight:ulHeight);
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?ulUifHeight:ulHeight);
+#endif
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, DISABLE );
 
     /* this is to work-around for potential BSTC compression hang */
@@ -2382,12 +2519,42 @@ static void BGRC_PACKET_P_ProcSwPktBlendBlit( BGRC_PacketContext_Handle hContext
     uint32_t out_pos = packet->out_point.x | ((uint32_t) packet->out_point.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t dst_pos = packet->dst_point.x | ((uint32_t) packet->dst_point.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t size = packet->src_rect.height | ((uint32_t) packet->src_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BPXL_Uif_Surface stMipmapSurface;
+    uint32_t ulFormat, ulUifHeight;
+    bool  bSrcUif= false, bOutUif=false, bDstUif = false, bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+
+    uint32_t ulHeight = BGRC_P_ALIGN_UP(packet->src_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+
+
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bSrcUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bDstUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bOutUif = BGRC_IS_UIF_FORMAT(ulFormat);
+
+    stMipmapSurface.ulWidth  = hContext->SRC_surface_width  ? hContext->SRC_surface_width : hContext->OUTPUT_surface_width;
+    stMipmapSurface.ulHeight = hContext->SRC_surface_height ? hContext->SRC_surface_height: hContext->OUTPUT_surface_height;
+    stMipmapSurface.ulMipLevel = 0;
+
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, bMipmap, &ulUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktBlendBlit: mipmap surface %d x %d rectangle %d x %d ulUifHeight %d",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->src_rect.width , packet->src_rect.height, ulUifHeight));
+#endif
 
     BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_2_SRC( packet->src_rect.x, packet->src_rect.width, packet->dst_point.x, packet->src_rect.width );
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- BlendBlit          " );
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, size, src_pos, size, dst_pos, size, out_pos, size );
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?ulUifHeight :ulHeight);
+    if(!bMipmap)
+        BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulUifHeight :ulHeight);
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?ulUifHeight :ulHeight);
+
+#endif
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, DISABLE );
 
     /* this is to work-around for potential BSTC compression hang */
@@ -2512,12 +2679,43 @@ static void BGRC_PACKET_P_SetStriping( BGRC_PacketContext_Handle hContext,
 /***************************************************************************/
 static void BGRC_PACKET_P_ProcSwPktScaleBlit( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
+    uint32_t src_pos, src_size, src_pos1, src_size1;
     BM2MC_PACKET_PacketScaleBlit *packet = (BM2MC_PACKET_PacketScaleBlit *) header;
     uint32_t out_pos = packet->out_rect.x | ((uint32_t) packet->out_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t out_size = packet->out_rect.height | ((uint32_t) packet->out_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
-    uint32_t src_pos, src_size, src_pos1, src_size1;
+
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    uint32_t ulFormat, ulSrcUifHeight, ulOutUifHeight;
+    BPXL_Uif_Surface stMipmapSurface;
+    bool  bSrcUif= false, bOutUif=false, bDstUif = false,bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+
+    uint32_t ulSrcHeight = BGRC_P_ALIGN_UP(packet->src_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+    uint32_t ulOutHeight = BGRC_P_ALIGN_UP(packet->out_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+
+
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bSrcUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bDstUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bOutUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    stMipmapSurface.ulWidth  = hContext->SRC_surface_width  ? hContext->SRC_surface_width :  packet->src_rect.width;
+    stMipmapSurface.ulHeight = hContext->SRC_surface_height ? hContext->SRC_surface_height:  packet->src_rect.height;
+    stMipmapSurface.ulMipLevel = 0;
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, false, &ulSrcUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktScaleBlit: mipmap surface %d x %d rectangle %d x %d ulSrcUifHeight %d ",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->src_rect.width , packet->src_rect.height, ulSrcUifHeight));
+
+    stMipmapSurface.ulWidth  = hContext->OUTPUT_surface_width ?hContext->OUTPUT_surface_width :packet->out_rect.width;
+    stMipmapSurface.ulHeight = hContext->OUTPUT_surface_height?hContext->OUTPUT_surface_height:packet->out_rect.height;
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, bMipmap, &ulOutUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktScaleBlit: mipmap surface %d x %d rectangle %d x %d ulOutUifHeight %d ",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->out_rect.width , packet->out_rect.height, ulOutUifHeight));
+#endif
+
 
     hContext->scaler_header = header;
+    hContext->out_rect = packet->out_rect;
 
     BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_1_SRC( packet->src_rect.x, packet->src_rect.width );
 
@@ -2549,6 +2747,13 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlit( BGRC_PacketContext_Handle hContext
     }
 
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, src_size, src_pos1, src_size1, out_pos, out_size, out_pos, out_size );
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?ulSrcUifHeight:ulSrcHeight);
+    if(!bMipmap)
+        BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulOutUifHeight:ulOutHeight);
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?ulOutUifHeight:ulOutHeight);
+
+#endif
     BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH, hContext->scaler.input_stripe_width );
     BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH, hContext->scaler.output_stripe_width );
     BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP, hContext->scaler.stripe_overlap );
@@ -2592,6 +2797,35 @@ static void BGRC_PACKET_P_ProcHwPktStripeBlit( BGRC_PacketContext_Handle hContex
     uint32_t dst_pos = packet->dst_point.x | ((uint32_t) packet->dst_point.y << BGRC_M2MC(BLIT_DEST_TOP_LEFT_TOP_SHIFT));
     uint32_t src_pos, src_size, src_pos1, src_size1,  ulSrcHeightWidth;
 
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    uint32_t ulFormat, ulSrcUifHeight, ulOutUifHeight;
+    BPXL_Uif_Surface stMipmapSurface;
+    bool  bSrcUif= false, bOutUif=false, bDstUif = false,bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+
+    uint32_t ulSrcHeight = BGRC_P_ALIGN_UP(packet->src_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+    uint32_t ulOutHeight = BGRC_P_ALIGN_UP(packet->out_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+
+
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bSrcUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bDstUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bOutUif = BGRC_IS_UIF_FORMAT(ulFormat);
+
+    stMipmapSurface.ulWidth  = hContext->SRC_surface_width?hContext->SRC_surface_width: packet->src_rect.width;
+    stMipmapSurface.ulHeight = hContext->SRC_surface_height?hContext->SRC_surface_height: packet->src_rect.height;
+    stMipmapSurface.ulMipLevel = 0;
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, false, &ulSrcUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcHwPktStripeBlit: mipmap surface %d x %d rectangle %d x %d ulSrcUifHeight %d",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->src_rect.width , packet->src_rect.height, ulSrcUifHeight));
+
+    stMipmapSurface.ulWidth  = hContext->OUTPUT_surface_width?hContext->OUTPUT_surface_width :packet->out_rect.width;
+    stMipmapSurface.ulHeight = hContext->OUTPUT_surface_height?hContext->OUTPUT_surface_height:packet->out_rect.height;
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, bMipmap, &ulOutUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcHwPktStripeBlit: mipmap surface %d x %d rectangle %d x %d ulOutUifHeight %d",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->out_rect.width , packet->out_rect.height, ulOutUifHeight));
+#endif
     hContext->scaler_header = header;
 
 
@@ -2606,7 +2840,7 @@ static void BGRC_PACKET_P_ProcHwPktStripeBlit( BGRC_PacketContext_Handle hContex
     /* BLIT_SRC_STRIPE_HEIGHT_WIDTH_0 height 29:16 width 1:0*/
     ulSrcHeightWidth = packet->src_rect.height << BGRC_M2MC(BLIT_SRC_STRIPE_HEIGHT_WIDTH_0_STRIPE_HEIGHT_SHIFT);
     /* Unfortunately, there is no macro */
-    ulSrcHeightWidth |= (scaler->input_stripe_width ==BGRC_PACKET_P_HW_STRIPE_MAX)?2:1
+    ulSrcHeightWidth |= (scaler->input_stripe_width ==BGRC_PACKET_P_HW_STRIPE_MAX)?2:1;
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- HwScaleBlit          " );
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, ENABLE);
@@ -2637,6 +2871,12 @@ static void BGRC_PACKET_P_ProcHwPktStripeBlit( BGRC_PacketContext_Handle hContex
     }
 
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, src_size, src_pos1, src_size1, dst_pos, out_size, out_pos, out_size );
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?ulSrcUifHeight:ulSrcHeight);
+    if(!bMipmap)
+        BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulOutUifHeight:ulOutHeight);
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?ulOutUifHeight:ulOutHeight);
+#endif
     /*M2MC_BLIT_INPUT_STRIPE_WIDTH_0  27:16 integer, 15:0 fractional */
     BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, scaler->input_stripe_width);
     /* M2MC_BLIT_OUTPUT_STRIPE_WIDTH in pixel unit 11:0*/
@@ -2689,11 +2929,48 @@ static void BGRC_PACKET_P_ProcSwPktStripeBlit( BGRC_PacketContext_Handle hContex
         uint32_t src_size = src_rect->height | ((uint32_t) stripe.src_width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
         uint32_t out_size = out_rect->height | ((uint32_t) stripe.out_width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
 
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+        uint32_t ulFormat, ulSrcUifHeight, ulOutUifHeight;
+        BPXL_Uif_Surface stMipmapSurface;
+        bool  bSrcUif= false, bOutUif=false, bDstUif = false,bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+
+        uint32_t ulSrcHeight = BGRC_P_ALIGN_UP(src_rect->height, 16);/* Multiple of 16 lines is valid for ARGB8888 */
+        uint32_t ulOutHeight = BGRC_P_ALIGN_UP(out_rect->height, 16);/* Multiple of 16 lines is valid for ARGB8888 */
+
+
+        ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+        bSrcUif = BGRC_IS_UIF_FORMAT(ulFormat);
+        ulFormat = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+        bDstUif = BGRC_IS_UIF_FORMAT(ulFormat);
+        ulFormat = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+        bOutUif = BGRC_IS_UIF_FORMAT(ulFormat);
+
+        stMipmapSurface.ulWidth  = hContext->SRC_surface_width ?hContext->SRC_surface_width :src_rect->width;
+        stMipmapSurface.ulHeight = hContext->SRC_surface_height?hContext->SRC_surface_height:src_rect->height;
+        stMipmapSurface.ulMipLevel = 0;
+        BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, false, &ulSrcUifHeight);
+        BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktStripeBlit: mipmap surface %d x %d rectangle %d x %d ulSrcUifHeight %d",
+            stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, src_rect->width , src_rect->height, ulSrcUifHeight));
+
+
+        stMipmapSurface.ulWidth  = hContext->OUTPUT_surface_width ?hContext->OUTPUT_surface_width :out_rect->width;
+        stMipmapSurface.ulHeight = hContext->OUTPUT_surface_height?hContext->OUTPUT_surface_height:out_rect->height;
+        BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, bMipmap, &ulOutUifHeight);
+        BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktStripeBlit: mipmap surface %d x %d rectangle %d x %d ulOutUifHeight %d",
+            stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, out_rect->width , out_rect->height, ulOutUifHeight));
+#endif
+
         BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_2_SRC( stripe.src_x, stripe.src_width, stripe.dst_x, stripe.out_width );
 
         BGRC_PACKET_P_DEBUG_PRINT( "-- StripeBlit         " );
         BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, DISABLE );
         BGRC_PACKET_P_STORE_RECT_REGS( src_pos, src_size, src_pos, src_size, dst_pos, out_size, out_pos, out_size );
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+        BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?ulSrcUifHeight:ulSrcHeight);
+        if(!bMipmap)
+            BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulOutUifHeight:ulOutHeight);
+        BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?ulOutUifHeight:ulOutHeight);
+#endif
         BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, ENABLE );
         BGRC_PACKET_P_DEBUG_PRINT( "\n                      " );
         BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, HORIZ_SCALER_ENABLE, ENABLE );
@@ -2703,6 +2980,14 @@ static void BGRC_PACKET_P_ProcSwPktStripeBlit( BGRC_PacketContext_Handle hContex
         BGRC_PACKET_P_STORE_SCALE_REGS( HORIZ, 1, stripe.hor_phase, hContext->scaler.hor_step );
         BGRC_PACKET_P_STORE_SCALE_REGS( VERT, 0, hContext->scaler.ver_phase, hContext->scaler.ver_step );
         BGRC_PACKET_P_STORE_SCALE_REGS( VERT, 1, hContext->scaler.ver_phase, hContext->scaler.ver_step );
+
+        /* SWSTB-5682: HW read the value even when BLIT_CTRL.STRIPE_ENABLE is disabled*/
+        BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, 0);
+        BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_1, 0);
+        BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH,  0);
+        BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP,       0);
+        BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_1,     0);
+
 #ifdef BCHP_M2MC_DCEG_CFG
         BGRC_PACKET_P_SetDcegCompression(hContext);
 #endif
@@ -2715,15 +3000,10 @@ static void BGRC_PACKET_P_ProcSwPktStripeBlit( BGRC_PacketContext_Handle hContex
 static void BGRC_PACKET_P_ProcSwPktScaleBlendBlit( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
     BM2MC_PACKET_PacketScaleBlendBlit *packet = (BM2MC_PACKET_PacketScaleBlendBlit *) header;
-    bool bSoftStripeBlit = false;
+    bool bSoftStripeBlit = true;
 
+#if (BGRC_P_VER_2 <= BGRC_P_VER)
     bSoftStripeBlit =
-#if (BGRC_P_VER_1 == BGRC_P_VER)
-     ((!hContext->b420Src) &&
-        ((BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE) == M2MC_FT_YCbCr422) ||
-         (hContext->scaler.ver_step > (4 << BGRC_PACKET_P_SCALER_STEP_FRAC_BITS)) ||
-         (BGRC_PACKET_P_GET_REG(BLIT_CTRL) & BGRC_M2MC(BLIT_CTRL_OUTPUT_H_DIRECTION_MASK))));
-#else
         ((BGRC_PACKET_P_GET_REG(BLIT_CTRL) & BGRC_M2MC(BLIT_CTRL_OUTPUT_H_DIRECTION_MASK)) ||
        (BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE) == M2MC_FT_YCbCr422));
 #endif
@@ -2794,6 +3074,14 @@ static void BGRC_PACKET_P_ProcSwPktUpdateScaleBlit( BGRC_PacketContext_Handle hC
     uint32_t out_size = packet->update_rect.height | ((uint32_t) packet->update_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
 
     BM2MC_PACKET_Rectangle src_rect;
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    uint32_t ulFormat, ulSrcUifHeight, ulOutUifHeight;
+    BPXL_Uif_Surface stMipmapSurface;
+    bool  bSrcUif= false, bOutUif=false, bDstUif = false,bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
+
+    uint32_t ulSrcHeight = BGRC_P_ALIGN_UP(packet->src_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+    uint32_t ulOutHeight = BGRC_P_ALIGN_UP(packet->out_rect.height , 16);/* Multiple of 16 lines is valid for ARGB8888 */
+#endif
     src_rect.x = pad_x0;
     src_rect.y = pad_y0;
     src_rect.width = pad_x1 - pad_x0;
@@ -2806,6 +3094,33 @@ static void BGRC_PACKET_P_ProcSwPktUpdateScaleBlit( BGRC_PacketContext_Handle hC
     hContext->scaler.input_stripe_width &= ~0x7FFF;
 
     BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_2_SRC( pad_x, pad_w, packet->update_rect.x, packet->update_rect.width );
+#if (BGRC_P_VER >= BGRC_P_VER_3)
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bSrcUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bDstUif = BGRC_IS_UIF_FORMAT(ulFormat);
+    ulFormat = BGRC_PACKET_P_GET_REG_FIELD(OUTPUT_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
+    bOutUif = BGRC_IS_UIF_FORMAT(ulFormat);
+
+
+    stMipmapSurface.ulWidth  = hContext->SRC_surface_width?hContext->SRC_surface_width:packet->src_rect.width;
+    stMipmapSurface.ulHeight = hContext->SRC_surface_height?hContext->SRC_surface_height:packet->src_rect.height;
+    stMipmapSurface.ulMipLevel = 0;
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, false, &ulSrcUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktUpdateScaleBlit: mipmap surface %d x %d rectangle %d x %d ulSrcUifHeight %d",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->src_rect.width , packet->src_rect.height, ulSrcUifHeight));
+
+    stMipmapSurface.ulWidth  = hContext->OUTPUT_surface_width ? hContext->OUTPUT_surface_width: packet->out_rect.width;
+    stMipmapSurface.ulHeight = hContext->OUTPUT_surface_height? hContext->OUTPUT_surface_height: packet->out_rect.height;
+    BGRC_PACKET_P_MipmapConfig(hContext, &stMipmapSurface, bMipmap, &ulOutUifHeight);
+    BDBG_MODULE_MSG(MIPMAP, ("BGRC_PACKET_P_ProcSwPktUpdateScaleBlit: mipmap surface %d x %d rectangle %d x %d ulOutUifHeight %d",
+        stMipmapSurface.ulWidth, stMipmapSurface.ulHeight, packet->out_rect.width , packet->out_rect.height, ulOutUifHeight));
+
+    BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?ulSrcUifHeight:ulSrcHeight);
+    if(!bMipmap)
+        BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulOutUifHeight:ulOutHeight);
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?ulOutUifHeight:ulOutHeight);
+#endif
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- UpdateScaleBlit    " );
     BGRC_PACKET_P_STORE_REG_FIELD_COMP( BLIT_CTRL, STRIPE_ENABLE, DISABLE, ENABLE, hContext->scaler.stripe_count > 1 );
@@ -2905,6 +3220,7 @@ void BGRC_PACKET_P_ResetState( BGRC_PacketContext_Handle hContext )
     BM2MC_PACKET_PacketFillBlit fill_packet;
     BM2MC_PACKET_Blend color_blend = BGRC_PACKET_P_RESET_COLOR_BLEND;
     BM2MC_PACKET_Blend alpha_blend = BGRC_PACKET_P_RESET_ALPHA_BLEND;
+    bool bMipmap = (hContext->hGrc->eDeviceNum==BGRC_eMM_M2mc0);
 
     /* Using sw pkts to set the shadow registers to defaut values.
      * Note: no hw pkt is caused because we will not set execute bit
@@ -2923,37 +3239,43 @@ void BGRC_PACKET_P_ResetState( BGRC_PacketContext_Handle hContext )
     src_control_packet.linear_destripe = false;
     BGRC_PACKET_P_ProcSwPktSourceControl( hContext, (BM2MC_PACKET_Header *) &src_control_packet );
 
-    BM2MC_PACKET_INIT( &dst_packet, DestinationNone, false );
-    BGRC_PACKET_P_ProcSwPktDestinationNone( hContext, (BM2MC_PACKET_Header *) &dst_packet );
+    if(!bMipmap)
+    {
+        BM2MC_PACKET_INIT( &dst_packet, DestinationNone, false );
+        BGRC_PACKET_P_ProcSwPktDestinationNone( hContext, (BM2MC_PACKET_Header *) &dst_packet );
 
-    BM2MC_PACKET_INIT( &dst_control_packet, DestinationControl, false );
-    dst_control_packet.zero_pad = false;
-    dst_control_packet.chroma_filter = true;
-    BGRC_PACKET_P_ProcSwPktDestinationControl( hContext, (BM2MC_PACKET_Header *) &dst_control_packet );
+        BM2MC_PACKET_INIT( &dst_control_packet, DestinationControl, false );
+        dst_control_packet.zero_pad = false;
+        dst_control_packet.chroma_filter = true;
+        BGRC_PACKET_P_ProcSwPktDestinationControl( hContext, (BM2MC_PACKET_Header *) &dst_control_packet );
+    }
 
     BM2MC_PACKET_INIT( &out_packet, OutputFeeder, false );
     out_packet.plane.address = 0; /*ulDummySurOffset;*/
     out_packet.plane.pitch = 4;
-    out_packet.plane.format = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
+    out_packet.plane.format = bMipmap?BM2MC_PACKET_PixelFormat_eUIF_R8_G8_B8_A8 : BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
     out_packet.plane.width = 1;
     out_packet.plane.height = 1;
     BGRC_PACKET_P_ProcSwPktOutputFeeder( hContext, (BM2MC_PACKET_Header *) &out_packet );
 
     /* set default blend - source pixel */
-    BM2MC_PACKET_INIT( &blend_packet, Blend, false );
-    blend_packet.color_blend = color_blend;
-    blend_packet.alpha_blend = alpha_blend;
-    blend_packet.color = 0;
-    BGRC_PACKET_P_ProcSwPktBlend( hContext, (BM2MC_PACKET_Header *) &blend_packet );
+    if(!bMipmap)
+    {
+        BM2MC_PACKET_INIT( &blend_packet, Blend, false );
+        blend_packet.color_blend = color_blend;
+        blend_packet.alpha_blend = alpha_blend;
+        blend_packet.color = 0;
+        BGRC_PACKET_P_ProcSwPktBlend( hContext, (BM2MC_PACKET_Header *) &blend_packet );
 
-    /* set default ROP - source copy */
-    BM2MC_PACKET_INIT( &rop_packet, Rop, false );
-    rop_packet.rop = BGRC_PACKET_P_RESET_ROP_VECTOR;
-    rop_packet.pattern0 = 0;
-    rop_packet.pattern1 = 0;
-    rop_packet.color0 = 0;
-    rop_packet.color1 = 0;
-    BGRC_PACKET_P_ProcSwPktRop( hContext, (BM2MC_PACKET_Header *) &rop_packet );
+        /* set default ROP - source copy */
+        BM2MC_PACKET_INIT( &rop_packet, Rop, false );
+        rop_packet.rop = BGRC_PACKET_P_RESET_ROP_VECTOR;
+        rop_packet.pattern0 = 0;
+        rop_packet.pattern1 = 0;
+        rop_packet.color0 = 0;
+        rop_packet.color1 = 0;
+        BGRC_PACKET_P_ProcSwPktRop( hContext, (BM2MC_PACKET_Header *) &rop_packet );
+    }
 
     /* set default filter - bilinear */
     BM2MC_PACKET_INIT( &filter_packet, Filter, false );
@@ -2962,9 +3284,12 @@ void BGRC_PACKET_P_ResetState( BGRC_PacketContext_Handle hContext )
     BGRC_PACKET_P_ProcSwPktFilter( hContext, (BM2MC_PACKET_Header *) &filter_packet );
 
     /* set default palette */
-    BM2MC_PACKET_INIT( &palette_packet, SourcePalette, false );
-    palette_packet.address = 0;
-    BGRC_PACKET_P_ProcSwPktSourcePalette( hContext, (BM2MC_PACKET_Header *) &palette_packet );
+    if(!bMipmap)
+    {
+        BM2MC_PACKET_INIT( &palette_packet, SourcePalette, false );
+        palette_packet.address = 0;
+        BGRC_PACKET_P_ProcSwPktSourcePalette( hContext, (BM2MC_PACKET_Header *) &palette_packet );
+    }
 
     /* set default rectangle*/
     BM2MC_PACKET_INIT( &fill_packet, FillBlit, false );
@@ -3109,6 +3434,9 @@ static uint32_t *BGRC_PACKET_P_ProcessSwPaket(
         break;
     case BM2MC_PACKET_PacketType_eOutputControl:
         BGRC_PACKET_P_ProcSwPktOutputControl( hContext, pHeader );
+        break;
+    case BM2MC_PACKET_PacketType_eMipmapControl:
+        BGRC_PACKET_P_ProcSwPktMipmap( hContext, pHeader );
         break;
     case BM2MC_PACKET_PacketType_eBlend:
         BGRC_PACKET_P_ProcSwPktBlend( hContext, pHeader );
@@ -3463,12 +3791,12 @@ void BGRC_P_CheckHwStatus(
 
     if ( hGrc->pLastHwPktPtr )
     {
-        ulCurExeHwPkt = BGRC_P_ReadAddr( hGrc->hRegister, LIST_CURR_PKT_ADDR );
+        ulCurExeHwPkt = BGRC_P_ReadAddr( hGrc, LIST_CURR_PKT_ADDR);
         ulLastHwPktOffset = (hGrc->pLastHwPktPtr - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset;
         if (ulCurExeHwPkt == ulLastHwPktOffset)
         {
-            ulBlitStatus = BGRC_P_ReadReg32( hGrc->hRegister, BLIT_STATUS );
-            ulListStatus = BGRC_P_ReadReg32( hGrc->hRegister, LIST_STATUS );
+            ulBlitStatus = BGRC_P_ReadReg32( hGrc, BLIT_STATUS );
+            ulListStatus = BGRC_P_ReadReg32( hGrc, LIST_STATUS );
             if( (ulBlitStatus == BGRC_M2MC(BLIT_STATUS_STATUS_IDLE)) &&
                 (ulListStatus == BGRC_M2MC(LIST_STATUS_FINISHED_MASK)) )
             {
@@ -3608,7 +3936,7 @@ static bool BGRC_PACKET_P_HwPktBufAvailable(
 /***************************************************************************/
 static void BGRC_PACKET_P_FlushHwPktBuf( BGRC_Handle hGrc, uint8_t *pHwPktFlushPtr )
 {
-    int flush_size;
+    int flush_size=0;
     if( hGrc->pHwPktWritePtr > pHwPktFlushPtr )
     {
         /* flush unwrapped buf */
@@ -3744,6 +4072,7 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
     /* flush hw pkt buf */
     BGRC_PACKET_P_FlushHwPktBuf( hGrc, pStartHwPkt );
 
+
     /* submit this hw pkt series to HW */
     if( hGrc->pHwPktSubmitLinkPtr )
     {
@@ -3766,12 +4095,12 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
         BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, hGrc->pHwPktSubmitLinkPtr, sizeof (BSTD_DeviceOffset) );
 
 #if BGRC_PACKET_P_BLIT_WORKAROUND
-        ulListStatus = BGRC_P_ReadReg32(hGrc->hRegister, LIST_STATUS);
+        ulListStatus = BGRC_P_ReadReg32(hGrc, LIST_STATUS);
         bListFinished = BCHP_GET_FIELD_DATA(ulListStatus, M2MC_LIST_STATUS, FINISHED);
         BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulListStatus %d bListFinished %d", ulListStatus, bListFinished));
         if(bListFinished)
         {
-            BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+            BGRC_P_WriteReg32( hGrc, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
@@ -3785,7 +4114,7 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
             BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus: ReadytoSubmit"));
         }
 #else
-        BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+        BGRC_P_WriteReg32( hGrc, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ) );
@@ -3798,11 +4127,12 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
             BDBG_ERR(("invalid 40 bit LIST_FIRST_PKT_ADDR address: " BDBG_UINT64_FMT, BDBG_UINT64_ARG(ulStartHwPktOffset)));
         }
 #endif
-        BGRC_P_WriteAddr( hGrc->hRegister, LIST_FIRST_PKT_ADDR, ulStartHwPktOffset );
-        BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
+        BGRC_P_WriteAddr( hGrc, LIST_FIRST_PKT_ADDR, ulStartHwPktOffset );
+
+        BGRC_P_WriteReg32( hGrc, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, Ack ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
-            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromFirst ) );
+            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromFirst ));
     }
 
     hGrc->pHwPktSubmitLinkPtr = hGrc->pHwPktPrevWritePtr;
@@ -3822,6 +4152,7 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
     uint32_t ii;
     BM2MC_PACKET_Header *pHeader;
     bool bBlitSwPkt;
+    bool bMipmap = hGrc->eDeviceNum== BGRC_eMM_M2mc0;
 
     if (hGrc->secure != hContext->create_settings.secure) {
         return BERR_TRACE(BERR_NOT_AVAILABLE);
@@ -3844,7 +4175,7 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
 #endif
         hGrc->hContext = hContext;
         hContext->bResetState = false;
-        hContext->ulGroupMask = BGRC_PACKET_P_DEVICE_GROUP_MASK_FULL;
+        hContext->ulGroupMask = bMipmap?BGRC_PACKET_P_DEVICE_MMGROUP_MASK_FULL : BGRC_PACKET_P_DEVICE_GROUP_MASK_FULL;
         bSRCCLUTNULL =
 #if BGRC_P_64BITS_ADDR
             (BGRC_PACKET_P_GET_REG_FROM_INDEX(ulClutIndex+1)!=0) ||
@@ -3902,14 +4233,17 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
                     BGRC_M2MC(DEST_SURFACE_FORMAT_DEF_3_CH2_DISABLE_MASK) | BGRC_M2MC(DEST_SURFACE_FORMAT_DEF_3_CH3_DISABLE_MASK);
 
                 BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_BOUNDS( SRC, SURFACE, TOP_LEFT, SIZE, disable_mask );
-                BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_BOUNDS( DEST, SURFACE, TOP_LEFT, SIZE, disable_mask );
+                if(!bMipmap)
+                    BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_BOUNDS( DEST, SURFACE, TOP_LEFT, SIZE, disable_mask );
                 BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_BOUNDS( OUTPUT, SURFACE, TOP_LEFT, SIZE, 0 );
             }
 
             BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_SURFACE( SRC );
-            BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_SURFACE( DEST );
+            if(bMipmap)
+                BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_SURFACE( DEST );
             BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_SURFACE( OUTPUT );
 #endif
+
             if ((!hContext->bBlitInvalid) && (0==hContext->stSurInvalid.ulInts))
             {
                 /* store first hw pkt offset in order to issue this hw pkt list to HW later */
@@ -3960,7 +4294,7 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
             BDBG_ASSERT((uint8_t *)pNextSwPkt == hContext->pSwPktWrapPtr);
             pSwPacket = (uint32_t *)hContext->pSwPktFifoBase;
             hContext->pSwPktWrapPtr = hContext->pSwPktFifoBase + hContext->ulSwPktFifoSize;
-            BGRC_P_SWPKT_MSG(("ctx[%d] sw pkt proc:  wraping %p > wptr %p", hContext->ulId, pNextSwPkt, hContext->pSwPktWritePtr));
+            BGRC_P_SWPKT_MSG(("ctx[%x] sw pkt proc:  wraping %p > wptr %p", hContext->ulId, pNextSwPkt, hContext->pSwPktWritePtr));
         }
         else
         {
@@ -4017,6 +4351,8 @@ void BGRC_PACKET_P_InsertFlushBlit(
     size_t size_out;
     BERR_Code rc;
     BGRC_PacketContext_Handle hDummyCtx = hGrc->hDummyCtx;
+    bool  bMipmap = hGrc->eDeviceNum==BGRC_eMM_M2mc0;
+    uint32_t ulFlushBlitSize = bMipmap?BGRC_PACKET_P_FLUSH_MMPACKET_SIZE: BGRC_PACKET_P_FLUSH_PACKET_SIZE ;
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( ".. InsertFlushBlit\n" );
 
@@ -4031,7 +4367,7 @@ void BGRC_PACKET_P_InsertFlushBlit(
 
     /* assume hContext->ulSwPktSizeToProc is already 0!!! */
     BGRC_P_BACK_OUT(hGrc);
-    rc = BGRC_Packet_GetPacketMemory( hGrc, hContext, &buffer, &size_out, BGRC_PACKET_P_FLUSH_PACKET_SIZE );
+    rc = BGRC_Packet_GetPacketMemory( hGrc, hContext, &buffer, &size_out, ulFlushBlitSize);
     BGRC_P_RE_ENTER(hGrc);
     BDBG_ASSERT((!rc) && (NULL!=buffer) && (size_out>=BGRC_PACKET_P_FLUSH_PACKET_SIZE));
     {
@@ -4055,46 +4391,95 @@ void BGRC_PACKET_P_InsertFlushBlit(
         BM2MC_PACKET_Blend color_blend = BGRC_PACKET_P_FLUSH_COLOR_BLEND;
         BM2MC_PACKET_Blend alpha_blend = BGRC_PACKET_P_FLUSH_ALPHA_BLEND;
 
+        /* m2mc */
+        if(!bMipmap)
+        {
+            save_packet = (BM2MC_PACKET_PacketSaveState *) ((uint8_t *) buffer);
+            src_packet = (BM2MC_PACKET_PacketSourceNone *) (save_packet + 1);
+            dst_packet = (BM2MC_PACKET_PacketDestinationNone *) (src_packet + 1);
+            out_packet = (BM2MC_PACKET_PacketOutputFeeder *) (dst_packet + 1);
+            blend_packet = (BM2MC_PACKET_PacketBlend *) (out_packet + 1);
+            rop_packet = (BM2MC_PACKET_PacketRop *) (blend_packet + 1);
+            src_key_packet = (BM2MC_PACKET_PacketSourceColorkeyEnable *) (rop_packet + 1);
+            dst_key_packet = (BM2MC_PACKET_PacketDestinationColorkeyEnable *) (src_key_packet + 1);
+            filter_packet = (BM2MC_PACKET_PacketFilterEnable *) (dst_key_packet + 1);
+            control_packet = (BM2MC_PACKET_PacketFilterControl *) (filter_packet + 1);
+            matrix_packet = (BM2MC_PACKET_PacketSourceColorMatrixEnable *) (control_packet + 1);
+            premult_packet = (BM2MC_PACKET_PacketAlphaPremultiply *) (matrix_packet + 1);
+            demult_packet = (BM2MC_PACKET_PacketAlphaDemultiply *) (premult_packet + 1);
+            destpremult_packet = (BM2MC_PACKET_PacketDestAlphaPremultiply *) (demult_packet + 1);
+            mirror_packet = (BM2MC_PACKET_PacketMirror *) (destpremult_packet + 1);
+            fill_packet = (BM2MC_PACKET_PacketFillBlit *) (mirror_packet + 1);
+            restore_packet = (BM2MC_PACKET_PacketRestoreState *) (fill_packet + 1);
+        }
+        else  /* mipmap */
+        {
+            save_packet = (BM2MC_PACKET_PacketSaveState *) ((uint8_t *) buffer);
+            src_packet = (BM2MC_PACKET_PacketSourceNone *) (save_packet + 1);
+            dst_packet = NULL;
+            out_packet = (BM2MC_PACKET_PacketOutputFeeder *) (src_packet + 1);
+            blend_packet = NULL;
+            rop_packet = NULL;
+            src_key_packet = NULL;
+            dst_key_packet = NULL;
+            filter_packet = (BM2MC_PACKET_PacketFilterEnable *) (out_packet + 1);
+            control_packet = (BM2MC_PACKET_PacketFilterControl *) (filter_packet + 1);
+            matrix_packet = (BM2MC_PACKET_PacketSourceColorMatrixEnable *) (control_packet + 1);
+            premult_packet = NULL;
+            demult_packet = NULL;
+            destpremult_packet = NULL;
+            mirror_packet = (BM2MC_PACKET_PacketMirror *) (matrix_packet + 1);
+            fill_packet = (BM2MC_PACKET_PacketFillBlit *) (mirror_packet + 1);
+            restore_packet = (BM2MC_PACKET_PacketRestoreState *) (fill_packet + 1);
+        }
+
         /* write packets */
         BM2MC_PACKET_INIT( save_packet, SaveState, false );
 
         BM2MC_PACKET_INIT( src_packet, SourceNone, false );
-        BM2MC_PACKET_INIT( dst_packet, DestinationNone, false );
+        if(!bMipmap)
+        {
+            BM2MC_PACKET_INIT( dst_packet, DestinationNone, false );
+        }
         BM2MC_PACKET_INIT( out_packet, OutputFeeder, false );
         out_packet->plane.address = hGrc->ulDummySurOffset;
-        out_packet->plane.pitch = sizeof (uint32_t);
-        out_packet->plane.format = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
+        out_packet->plane.pitch = BGRC_PACKET_FLUSH_BLIT_WIDTH * sizeof (uint32_t);
+        out_packet->plane.format = bMipmap?BM2MC_PACKET_PixelFormat_eUIF_R8_G8_B8_A8: BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
         out_packet->plane.width = BGRC_PACKET_FLUSH_BLIT_WIDTH;
         out_packet->plane.height = 1;
 
-        BM2MC_PACKET_INIT( blend_packet, Blend, false );
-        blend_packet->color_blend = color_blend;
-        blend_packet->alpha_blend = alpha_blend;
-        if (hContext != hDummyCtx)
+        if(!bMipmap)
         {
-            /* not extra flush blit */
-            if (++hGrc->ulSyncCntr >= 0x7FFFFFFE)
+            BM2MC_PACKET_INIT( blend_packet, Blend, false );
+            blend_packet->color_blend = color_blend;
+            blend_packet->alpha_blend = alpha_blend;
+            if (hContext != hDummyCtx)
             {
-                hGrc->ulSyncCntr = 1;  /* wrap around */
+                /* not extra flush blit */
+                if (++hGrc->ulSyncCntr >= 0x7FFFFFFE)
+                {
+                    hGrc->ulSyncCntr = 1;  /* wrap around */
+                }
+                hContext->ulSyncCntr = hGrc->ulSyncCntr;
+                hGrc->hLastSyncCtx = hContext;
+                hGrc->ulExtraFlushCntr = 0;
             }
-            hContext->ulSyncCntr = hGrc->ulSyncCntr;
-            hGrc->hLastSyncCtx = hContext;
-            hGrc->ulExtraFlushCntr = 0;
+            /* else we are adding an extra dummy flush after the sync blit */
+            blend_packet->color = hGrc->ulSyncCntr;
+
+            BM2MC_PACKET_INIT( rop_packet, Rop, false );
+            rop_packet->rop = BGRC_PACKET_P_RESET_ROP_VECTOR;
+            rop_packet->pattern0 = 0;
+            rop_packet->pattern1 = 0;
+            rop_packet->color0 = 0;
+            rop_packet->color1 = 0;
+
+            BM2MC_PACKET_INIT( src_key_packet, SourceColorkeyEnable, false );
+            src_key_packet->enable = false;
+            BM2MC_PACKET_INIT( dst_key_packet, DestinationColorkeyEnable, false );
+            dst_key_packet->enable = false;
         }
-        /* else we are adding an extra dummy flush after the sync blit */
-        blend_packet->color = hGrc->ulSyncCntr;
 
-        BM2MC_PACKET_INIT( rop_packet, Rop, false );
-        rop_packet->rop = BGRC_PACKET_P_RESET_ROP_VECTOR;
-        rop_packet->pattern0 = 0;
-        rop_packet->pattern1 = 0;
-        rop_packet->color0 = 0;
-        rop_packet->color1 = 0;
-
-        BM2MC_PACKET_INIT( src_key_packet, SourceColorkeyEnable, false );
-        src_key_packet->enable = false;
-        BM2MC_PACKET_INIT( dst_key_packet, DestinationColorkeyEnable, false );
-        dst_key_packet->enable = false;
         BM2MC_PACKET_INIT( filter_packet, FilterEnable, false );
         filter_packet->enable = true;
 
@@ -4106,13 +4491,15 @@ void BGRC_PACKET_P_InsertFlushBlit(
 
         BM2MC_PACKET_INIT( matrix_packet, SourceColorMatrixEnable, false );
         matrix_packet->enable = false;
-        BM2MC_PACKET_INIT( premult_packet, AlphaPremultiply, false );
-        premult_packet->enable = false;
-        BM2MC_PACKET_INIT( demult_packet, AlphaDemultiply, false );
-        demult_packet->enable = false;
-        BM2MC_PACKET_INIT( destpremult_packet, DestAlphaPremultiply, false );
-        destpremult_packet->enable = false;
-
+        if(!bMipmap)
+        {
+            BM2MC_PACKET_INIT( premult_packet, AlphaPremultiply, false );
+            premult_packet->enable = false;
+            BM2MC_PACKET_INIT( demult_packet, AlphaDemultiply, false );
+            demult_packet->enable = false;
+            BM2MC_PACKET_INIT( destpremult_packet, DestAlphaPremultiply, false );
+            destpremult_packet->enable = false;
+        }
         BM2MC_PACKET_INIT( mirror_packet, Mirror, false );
         mirror_packet->src_hor = false;
         mirror_packet->src_ver = false;
@@ -4131,7 +4518,7 @@ void BGRC_PACKET_P_InsertFlushBlit(
         BM2MC_PACKET_INIT( restore_packet, RestoreState, false );
 
         BGRC_P_BACK_OUT(hGrc);
-        rc = BGRC_Packet_SubmitPackets( hGrc, hContext, BGRC_PACKET_P_FLUSH_PACKET_SIZE );
+        rc = BGRC_Packet_SubmitPackets( hGrc, hContext, ulFlushBlitSize );
         BGRC_P_RE_ENTER(hGrc);
         BDBG_ASSERT((BERR_SUCCESS == rc) || (BGRC_PACKET_MSG_PACKETS_INCOMPLETE == rc));
 
@@ -4187,7 +4574,7 @@ void BGRC_PACKET_P_CheckFlush(
             if (hGrc->ulExtraFlushCntr > BGRC_P_EXTRA_FLUSH_THRESH)
             {
                 /* waited too long, make it to be cleared */
-                BDBG_WRN(("Force cleared for ctx[%d]: lastOff " BDBG_UINT64_FMT ", syncOff " BDBG_UINT64_FMT ", syncCtr 0x%x, mem 0x%x",
+                BDBG_WRN(("Force cleared for ctx[%x]: lastOff " BDBG_UINT64_FMT ", syncOff " BDBG_UINT64_FMT ", syncCtr 0x%x, mem 0x%x",
                           hLastSyncCtx->ulId, BDBG_UINT64_ARG((hGrc->pLastHwPktPtr)? ulLastHwPktOffset : 0),
                           BDBG_UINT64_ARG(hLastSyncCtx->ulSyncHwPktOffset), hLastSyncCtx->ulSyncCntr, *(uint32_t *)hGrc->pDummySurBase));
                 *(uint32_t *)hGrc->pDummySurBase = hLastSyncCtx->ulSyncCntr;
@@ -4196,7 +4583,7 @@ void BGRC_PACKET_P_CheckFlush(
 
             /* insert a dummy flush blit only, it is not a sync blit */
 #if BGRC_PACKET_P_DEBUG_EXTRA_FLUSH
-            BDBG_WRN(("ExtraFlushBlit(%d) for ctx[%d]: lastOff 0x%x, syncOff 0x%x, syncSate %d, syncCtr 0x%x, mem 0x%x",
+            BDBG_WRN(("ExtraFlushBlit(%d) for ctx[%x]: lastOff 0x%x, syncOff 0x%x, syncSate %d, syncCtr 0x%x, mem 0x%x",
                       hGrc->ulExtraFlushCntr, hLastSyncCtx->ulId, (hGrc->pLastHwPktPtr)? ulLastHwPktOffset : 0,
                       hLastSyncCtx->ulSyncHwPktOffset, hLastSyncCtx->eSyncState, hLastSyncCtx->ulSyncCntr, *(uint32_t *)hGrc->pDummySurBase));
 #endif
@@ -4276,6 +4663,7 @@ BM2MC_PACKET_PixelFormat BGRC_PACKET_P_ConvertPixelFormat( BPXL_Format format )
     case BPXL_eCr10_Y010_Cb10_Y110:    return BM2MC_PACKET_PixelFormat_eCr10_Y010_Cb10_Y110;
     case BPXL_eL15_L05_A6:             return BM2MC_PACKET_PixelFormat_eL15_L05_A6;
     case BPXL_eCompressed_A8_R8_G8_B8: return BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8;
+    case BPXL_eUIF_R8_G8_B8_A8:        return BM2MC_PACKET_PixelFormat_eUIF_R8_G8_B8_A8;
 
     default: BDBG_ERR(("Unkown BPXL_Format 0x%x", format)); return BM2MC_PACKET_PixelFormat_eUnknown;
     }

@@ -757,6 +757,7 @@ void BAPE_P_VerifyPllCallback_isr(void *pParam1, int param2)
                             BAPE_P_DetachMixerFromPll_isrsafe(pMixer, pll);
                             pMixer->mclkSource =  BAPE_MclkSource_ePll0 + i;
                             BAPE_P_AttachMixerToPll_isr(pMixer, (BAPE_Pll)i);
+                            pMixer->settings.outputPll = (BAPE_Pll)i;
                             pMixer = pPreviousMixer;
                             break;
                         }

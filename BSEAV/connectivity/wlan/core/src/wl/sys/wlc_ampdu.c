@@ -11890,7 +11890,8 @@ wlc_ampdu_init_min_lens(scb_ampdu_tx_t *scb_ampdu)
 		mcsidx = MCS2IDX(mcs);
 
 		/* Make sure we don't overrun min_lens */
-		ASSERT(mcsidx < AMPDU_HT_MCS_ARRAY_SIZE);
+		if (mcsidx >= AMPDU_HT_MCS_ARRAY_SIZE)
+			break;
 
 		scb_ampdu->min_lens[mcsidx] =  0;
 		if (scb_ampdu->mpdu_density > AMPDU_DENSITY_4_US)

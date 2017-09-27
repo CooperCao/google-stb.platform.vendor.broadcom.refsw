@@ -135,20 +135,29 @@ int main(void)
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+    if (platformConfig.outputs.audioDacs[0]) {
+        NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
                                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+#endif
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
-    {
-        /* Only pass through AC3 */
-        NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                   NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-    }
-    else
-    {
-        NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                   NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    if (platformConfig.outputs.spdif[0]) {
+        if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
+        {
+            /* Only pass through AC3 */
+            NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                                       NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+        }
+        else
+        {
+            NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                                       NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        }
     }
 #endif
     /* bring up display */
@@ -195,7 +204,7 @@ int main(void)
         NEXUS_VideoDecoder_Start(vdecode1, &videoProgram1);
     }
     NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
-    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
+    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 && platformConfig.outputs.spdif[0] )
     {
         /* Only pass through AC3 */
         NEXUS_AudioDecoder_Start(compressedDecoder, &audioProgram);

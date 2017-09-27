@@ -96,6 +96,7 @@ typedef struct NEXUS_Record_P_Flow {
     NEXUS_CallbackHandler dataReady;
     NEXUS_CallbackHandler overflow;
     bool emptyBuffer;
+    NEXUS_Time callbackTime;
 } NEXUS_Record_P_Flow;
 
 
@@ -129,6 +130,7 @@ NEXUS_Record_P_InitFlow(NEXUS_RecordHandle record, NEXUS_Record_P_Flow *flow)
     flow->info.index.timer = NULL;
     flow->info.index.indexer = NULL;
     flow->record = record;
+    NEXUS_Time_Get(&flow->callbackTime);
     return;
 }
 
@@ -304,6 +306,7 @@ NEXUS_Record_P_DataReadyCallback(void *context)
 
     if(!flow->record->started) { goto done; }
 
+    NEXUS_Time_Get(&flow->callbackTime);
     rc = NEXUS_Recpump_GetDataBuffer(flow->record->cfg.recpump, &buffer, &size);
     if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
 
@@ -391,6 +394,8 @@ NEXUS_Record_P_IndexReadyCallback(void *context)
     BDBG_ASSERT(record->cfg.recpump);
 
     if(!record->started) { goto done; }
+    NEXUS_Time_Get(&flow->callbackTime);
+
     rc = NEXUS_Recpump_GetIndexBuffer(record->cfg.recpump, &buffer, &size);
     if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
 
@@ -757,11 +762,39 @@ static void NEXUS_Record_P_ProcessDataTimer(void *context)
     record->processDataTimer = NULL;
 
     if (record->started) {
-        NEXUS_Record_P_DataReadyCallback(&record->data);
-        NEXUS_Record_P_IndexReadyCallback(&record->index);
-        if (record->cfg.pollingTimer) {
-            record->processDataTimer = NEXUS_ScheduleTimer(record->cfg.pollingTimer, NEXUS_Record_P_ProcessDataTimer, record);
+        NEXUS_Time now;
+        unsigned dataTimeDiff, indexTimeDiff;
+        bool processedData, processedIndex;
+        unsigned delay;
+
+        processedData = processedIndex = false;
+        NEXUS_Time_Get(&now);
+        dataTimeDiff = NEXUS_Time_Diff(&now, &record->data.callbackTime);
+        indexTimeDiff = NEXUS_Time_Diff(&now, &record->index.callbackTime);
+
+        if (dataTimeDiff >= record->cfg.pollingTimer) {
+            NEXUS_Record_P_DataReadyCallback(&record->data);
+            processedData = true;
         }
+        if (indexTimeDiff >= record->cfg.pollingTimer) {
+            NEXUS_Record_P_IndexReadyCallback(&record->index);
+            processedIndex = true;
+        }
+
+        if (processedData && processedIndex) {
+            delay = record->cfg.pollingTimer;
+        }
+        else if (processedData) {
+            delay = record->cfg.pollingTimer - indexTimeDiff;
+        }
+        else if (processedIndex) {
+            delay = record->cfg.pollingTimer - dataTimeDiff;
+        }
+        else {
+            delay = (dataTimeDiff > indexTimeDiff) ? (record->cfg.pollingTimer - dataTimeDiff) : (record->cfg.pollingTimer - indexTimeDiff);
+        }
+
+        record->processDataTimer = NEXUS_ScheduleTimer(delay, NEXUS_Record_P_ProcessDataTimer, record);
     }
 }
 

@@ -48,7 +48,6 @@ int main(void)
     NEXUS_PlatformSettings platformSettings;
     NEXUS_AvsStatus pStatus;
     NEXUS_Error rc;
-    unsigned index;
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
@@ -68,19 +67,16 @@ int main(void)
             return -1;
         }
 
-        printf("Main voltage is:  %7.3fV\n", index, pStatus.voltage/1000.);
-        printf("Main temp is:     %+7.2fC\n", index, pStatus.temperature/1000.);
-        printf("AVS is currently: %s\n", pStatus.enabled?"Enabled":"Disabled");
-        printf("AVS is currently: %s\n", pStatus.tracking?"Tracking":"Idle");
+        printf("Main voltage is:  %7.3fV\n",  pStatus.voltage/1000.);
+        printf("Main temp is:     %+7.2fC\n", pStatus.temperature/1000.);
+        printf("AVS is currently: %s\n",      pStatus.enabled?"Enabled":"Disabled");
+        printf("AVS is currently: %s\n",      pStatus.tracking?"Tracking":"Idle");
 
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
-        index = 1;
         rc = NEXUS_GetAvsDomainStatus(NEXUS_AvsDomain_eCpu, &pStatus);
-        printf("CPU voltage is:   %7.3fV\n", pStatus.voltage/1000.);
-        printf("CPU temp is:      %+7.2fC\n", pStatus.temperature/1000.);
-        printf("AVS is currently: %s\n", pStatus.enabled?"Enabled":"Disabled");
-        printf("AVS is currently: %s\n", pStatus.tracking?"Tracking":"Idle");
-#endif
+        if (!rc) {
+            printf("CPU voltage is:   %7.3fV\n",  pStatus.voltage/1000.);
+            printf("CPU temp is:      %+7.2fC\n", pStatus.temperature/1000.);
+        }
         printf("\n");
         BKNI_Sleep(1000);
     }

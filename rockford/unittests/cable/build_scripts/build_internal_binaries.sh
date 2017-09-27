@@ -342,6 +342,14 @@ cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97250-$B_REFS
 cp ../../../cable/bin/$NEXUS_PLATFORM/*.bin $destination/binaries/docsis/$NEXUS_PLATFORM/
 make -j B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal VIDEO_ENCODER_SUPPORT=y BDSP_ENCODER_SUPPORT=y NEXUS_POWER_MANAGEMENT=y POWERSTANDBY_SUPPORT=y NEXUS_REVERSE_RMAGNUM_SUPPORT=y clean
 
+# 97278 A0 VMS_SFF
+
+source ../../../tools/build/plat 97278 A0 VMS_SFF
+make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y  NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal clean
+make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y  NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal install
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97278-$B_REFSW_ARCH-linux-atlas.bin.tgz $destination/binaries/build_script/refsw-$reldate.7278a0_vms_sff-linux-atlas.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM.internal/BSEAV/bin/refsw-$today.97278-$B_REFSW_ARCH-linux-atlas.bin.tgz $destination/binaries/internal/97278/refsw-$reldate.7278a0_vms_sff-linux-atlas.bin.tgz
+make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n  ESTB_SNMP_SUPPORT=n  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y  NEXUS_USE_3390_VMS=y B_REFSW_OBJ_DIR=obj.$NEXUS_PLATFORM.internal clean
 
 #3325
 

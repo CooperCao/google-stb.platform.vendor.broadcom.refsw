@@ -707,11 +707,10 @@ wf_chspec_malformed(chanspec_t chanspec)
 	} else if (chspec_bw == WL_CHANSPEC_BW_80) {
 		if (CHSPEC_CTL_SB(chanspec) > WL_CHANSPEC_CTL_SB_LUU)
 			return TRUE;
+	} else {
+		return FALSE;
 	}
-	else if (chspec_bw == WL_CHANSPEC_BW_160 ||
-		chspec_bw == WL_CHANSPEC_BW_8080) {
-		ASSERT(CHSPEC_CTL_SB(chanspec) <= WL_CHANSPEC_CTL_SB_UUU);
-	}
+
 	return FALSE;
 }
 

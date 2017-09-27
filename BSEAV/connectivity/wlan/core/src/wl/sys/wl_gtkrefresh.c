@@ -613,6 +613,8 @@ wlc_wpa_gtk_eapol(supplicant_t *sup_bss, eapol_header_t *eapol, bool encrypted)
 				WLC_E_SUP_GRP_MSG1_NO_GTK);
 			return FALSE;
 		}
+
+		/* note: data encap length checked during lookup above */
 		wpa->gtk_len = data_encap->length - ((EAPOL_WPA2_ENCAP_DATA_HDR_LEN -
 		                                          TLV_HDR_LEN) +
 		                                         EAPOL_WPA2_KEY_GTK_ENCAP_HDR_LEN);

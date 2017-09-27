@@ -707,6 +707,7 @@ void BVDC_P_HdDvi_Init
 #if (BVDC_P_HDDVI_SW_RESET)
     hHdDvi->bSwReset           = false;
 #endif
+    hHdDvi->lPicGenCnt         = BVDC_P_HDDVI_PICTURE_GENERATE_COUNT;
     hHdDvi->ulPixelDecimateCnt = 0;
     hHdDvi->bReverseTrigger    = false;
 
@@ -1408,17 +1409,22 @@ static void BVDC_P_HdDvi_BuildTopRul_isr
         BCHP_FIELD_DATA(HD_DVI_0_RDB_TRIGGER, RDB_TRIGGER, 1 );
 #endif
 
-    /* HD_DVI_0_PCTR_CLEAN_CFG_5 (RW) */
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_PCTR_CLEAN_CFG_5 + ulOffset);
-    *pList->pulCurrent++ =
+    /* HD_DVI_0_PCTR_CLEAN_CFG_5 (RW)
+     * Enable PICTURE_GENERATE: no trigger cause first picture request after
+     * reset will not time out */
+    hHdDvi->ulPicCleanUpCfg5 =
         BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, USE_DE_WATCHDOG,  0 ) |
         BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, PICTURE_FINISH,   0 ) |
-        BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, PICTURE_GENERATE, 0 ) |
+        BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, PICTURE_GENERATE,
+            hHdDvi->lPicGenCnt ? 1 : 0) |
         BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, SINK_DATA,        1 ) |
         (((hHdDvi->ulExtInputType == BVDC_P_HDDVI_EXT_INPUT_TYPE_LOOPBACK) && bExtInput)
         ? BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, FAST_PAD,       1 )
         : BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, FAST_PAD,       0 ));
+
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_PCTR_CLEAN_CFG_5 + ulOffset);
+    *pList->pulCurrent++ = hHdDvi->ulPicCleanUpCfg5;
 
     /* HD_DVI_0_PCTR_CLEAN_CFG_7 (RW) */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -2684,6 +2690,17 @@ static void BVDC_P_HdDvi_BuildVsyncRul_isr
             BCHP_FIELD_DATA(HD_DVI_0_HOST_CONTROL_BITS, CLEAR_ERRORS, 0 );
     }
 
+    if(hHdDvi->lPicGenCnt)
+        hHdDvi->lPicGenCnt--;
+    hHdDvi->ulPicCleanUpCfg5 &= ~(
+        BCHP_MASK(HD_DVI_0_PCTR_CLEAN_CFG_5, PICTURE_GENERATE));
+    hHdDvi->ulPicCleanUpCfg5 |=  (
+        BCHP_FIELD_DATA(HD_DVI_0_PCTR_CLEAN_CFG_5, PICTURE_GENERATE,
+            hHdDvi->lPicGenCnt ? 1 : 0));
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_PCTR_CLEAN_CFG_5 + ulOffset);
+    *pList->pulCurrent++ = hHdDvi->ulPicCleanUpCfg5;
+
     /* This register is a level trigger. (Toggle to START_FEED). */
     /* HD_DVI_0_HOST_ENABLE (RW) */
     if(hHdDvi->bVideoDetected)
@@ -3233,6 +3250,7 @@ static void BVDC_P_HdDvi_UpdateStatus_isr
         bool bSavedResume;
         BDBG_MSG(("HdDvi[%d] bSwReset", hHdDvi->eId));
         hHdDvi->bSwReset = true;
+        hHdDvi->lPicGenCnt = BVDC_P_HDDVI_PICTURE_GENERATE_COUNT;
         bSavedResume = pCurDirty->stBits.bResume;
         BVDC_P_SET_ALL_DIRTY(pCurDirty);
 

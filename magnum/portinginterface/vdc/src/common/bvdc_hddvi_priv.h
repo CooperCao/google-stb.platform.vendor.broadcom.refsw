@@ -89,6 +89,8 @@ extern "C" {
 
 #define BVDC_P_HDDVI_VIDEO_DETECT_COUNT             (25)
 
+#define BVDC_P_HDDVI_PICTURE_GENERATE_COUNT         (5)
+
 /* Threshold of lost video before going into auto format detection. */
 #define BVDC_P_HDDVI_NEW_VER_0                      (0) /* 7038x-ish */
 #define BVDC_P_HDDVI_NEW_VER_1                      (1) /* 3560Bx, 7400-ish */
@@ -215,6 +217,7 @@ typedef struct BVDC_P_HdDviContext
 #if (BVDC_P_HDDVI_SW_RESET)
     bool                           bSwReset;
 #endif
+    int32_t                        lPicGenCnt;
 
     /* Status detection */
     bool                           bBvbErr;
@@ -259,6 +262,7 @@ typedef struct BVDC_P_HdDviContext
 
     /* Picture clean cfg regs. */
     uint32_t                       ulPicCleanUpCfg1;
+    uint32_t                       ulPicCleanUpCfg5;
 
     uint32_t                       ulExtInputType;
 

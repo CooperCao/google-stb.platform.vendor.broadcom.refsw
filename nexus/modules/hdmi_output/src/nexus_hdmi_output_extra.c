@@ -96,7 +96,7 @@ void NEXUS_HdmiOutput_SetAviInfoFrameColorimetry(NEXUS_HdmiOutputHandle handle, 
 		case 0 : settings.eColorimetry = BAVC_MatrixCoefficients_eUnknown; break ;
 	}
 	BDBG_LOG(("Switching Colorimetry to %d", settings.eColorimetry)) ;
-	BHDM_EnableDisplay(handle->hdmHandle, &settings);
+	NEXUS_HdmiOutput_P_EnableDisplay(handle, &settings);
 
 #else
 	BSTD_UNUSED(handle);
@@ -124,8 +124,7 @@ void NEXUS_HdmiOutput_SetAviInfoFrameAspectRatio(NEXUS_HdmiOutputHandle handle, 
 		case 0 : settings.eAspectRatio = BFMT_AspectRatio_e16_9; break ;
 	}
 	BDBG_LOG(("Switching AR to %d", settings.eAspectRatio)) ;
-	BHDM_EnableDisplay(handle->hdmHandle, &settings);
-
+	NEXUS_HdmiOutput_P_EnableDisplay(handle, &settings);
 
 #else
 	BSTD_UNUSED(handle);

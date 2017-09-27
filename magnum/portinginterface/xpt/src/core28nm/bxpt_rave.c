@@ -747,6 +747,11 @@ BERR_Code BXPT_Rave_OpenChannel(
     BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_PUSH_TIMER_LOAD, 0xD304 );
 #endif
 
+#ifdef BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_0_31
+	BREG_Write32(lhRave->hReg, BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_0_31, 0xFFFFFFFF);
+	BREG_Write32(lhRave->hReg, BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_32_47, 0xFFFFFFFF);
+#endif
+
     BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eRave);
 
     return ExitCode;

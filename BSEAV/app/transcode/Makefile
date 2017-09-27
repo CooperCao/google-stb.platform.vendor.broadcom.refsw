@@ -87,17 +87,15 @@ MODULES += BMEDIA_PROBE
 # add namevalue
 CFLAGS += -I$(NEXUS_TOP)/utils
 
-include $(MAGNUM)/basemodules/mma/bmma.inc
 include $(MAGNUM)/commonutils/avc/bavc.inc
-include $(MAGNUM)/commonutils/fmt/bfmt.inc
-include $(MAGNUM)/commonutils/pxl/bpxl.inc
-include $(MAGNUM)/commonutils/sur/bsur.inc
 include $(MAGNUM)/commonutils/udp/budp.inc
 include $(MAGNUM)/commonutils/vlc/bvlc.inc
-MODULES += BMMA BAVC BFMT BPXL BSUR BUDP BVLC
+# do not add BAVC to MODULES list. we only need the include path.
+MODULES += BUDP BVLC
 MAGNUM_MODULES:=
 
 CFLAGS +=$(addprefix -I,$(sort $(foreach module, $(MODULES) ${API_MODULES}, $($(module)_INCLUDES))))
+CFLAGS +=$(addprefix -I,$(BAVC_INCLUDES))
 CFLAGS += $(addprefix -D,$(sort $(foreach module, $(MODULES) ${API_MODULES}, $($(module)_DEFINES))))
 EXTRA_SRC += $(notdir $(sort $(foreach module, $(MODULES), $($(module)_SOURCES))))
 vpath %c $(dir $(sort $(foreach module, $(MODULES), $($(module)_SOURCES))))

@@ -755,7 +755,6 @@ typedef struct
  */
 BAVC_P_Colorimetry BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr
     ( BAVC_MatrixCoefficients  eMatrixCoeffs,
-      BAVC_ColorPrimaries      ePrimaries,
       bool                     bXvYcc);
 
 /* generic avc color space init

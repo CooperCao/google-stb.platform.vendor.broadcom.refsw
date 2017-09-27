@@ -2199,7 +2199,7 @@ wl_cfgp2p_set_p2p_noa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* b
 
 		cfg->p2p->noa.desc[0].start = 0;
 
-		sscanf(buf, "%10d %10d %10d", &count, &start, &duration);
+		sscanf(buf, "%5d %5d %5d", &count, &start, &duration);
 		CFGP2P_DBG(("set_p2p_noa count %d start %d duration %d\n",
 			count, start, duration));
 		if (count != -1)
@@ -2313,14 +2313,23 @@ wl_cfgp2p_get_p2p_noa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* b
 s32
 wl_cfgp2p_set_p2p_ps(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* buf, int len)
 {
-	int ps, ctw;
+	int ps = 0, ctw = 0;
 	int ret = -1;
-	s32 legacy_ps;
+	s32 legacy_ps = 0;
+	char *endp = 0;
 	struct net_device *dev;
 
 	CFGP2P_DBG((" Enter\n"));
 	if (cfg->p2p && cfg->p2p->vif_created) {
-		sscanf(buf, "%10d %10d %10d", &legacy_ps, &ps, &ctw);
+		if (buf && *buf) {
+			legacy_ps = htod32(bcm_strtoul(buf, &endp, 0));
+			if (endp && *endp) {
+				ps = htod32(bcm_strtoul(endp, &endp, 0));
+				if (endp && *endp)
+					ctw = htod32(bcm_strtoul(endp, &endp, 0));
+			}
+		}
+
 		CFGP2P_DBG((" Enter legacy_ps %d ps %d ctw %d\n", legacy_ps, ps, ctw));
 		dev = wl_to_p2p_bss_ndev(cfg, P2PAPI_BSSCFG_CONNECTION);
 		if (ctw != -1) {
@@ -2366,7 +2375,7 @@ wl_cfgp2p_set_p2p_ecsa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* 
 
 	CFGP2P_DBG((" Enter\n"));
 	if (cfg->p2p && cfg->p2p->vif_created) {
-		sscanf(buf, "%10d %10d", &ch, &bw);
+		sscanf(buf, "%3d %3d", &ch, &bw);
 		CFGP2P_DBG(("Enter ch %d bw %d\n", ch, bw));
 
 		dev = wl_to_p2p_bss_ndev(cfg, P2PAPI_BSSCFG_CONNECTION);
@@ -2379,7 +2388,7 @@ wl_cfgp2p_set_p2p_ecsa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* 
 		csa_arg.count = P2P_ECSA_CNT;
 		csa_arg.reg = 0;
 
-		sprintf(buf, "%d/%d", ch, bw);
+		snprintf(buf, len, "%d/%d", ch, bw);
 		chnsp = wf_chspec_aton(buf);
 		if (chnsp == 0) {
 			CFGP2P_ERR(("%s:chsp is not correct\n", __FUNCTION__));
@@ -2408,8 +2417,7 @@ wl_cfgp2p_increase_p2p_bw(struct bcm_cfg80211 *cfg, struct net_device *ndev, cha
 	int bw;
 	int ret = BCME_OK;
 
-
-	sscanf(buf, "%3d", &bw);
+	bw = htod32(bcm_strtoul(buf, NULL, 0));
 	if (bw == 0) {
 		algo = 0;
 		ret = wldev_iovar_setbuf(ndev, "mchan_algo", &algo, sizeof(algo), cfg->ioctl_buf,

@@ -1156,7 +1156,7 @@ emf_netlink_sock_cb(
 		if (skb == NULL || skb->len < sizeof(emf_cfg_request_t))
 		{
 			EMF_ERROR("Configuration request size not > %d or skb_clone failed\n",
-			          sizeof(emf_cfg_request_t));
+			          (int)sizeof(emf_cfg_request_t));
 			if (skb)
 				dev_kfree_skb(skb);
 			return;

@@ -129,7 +129,7 @@ static void SetupBufferRegs(
 #ifdef BCHP_XPT_RSBUFF_WRAP_POINTER_IBP0
     addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_BASE_POINTER_IBP0, BASE, Offset);
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr, addrValue );                   /* Set BASE */
-	BDBG_MODULE_MSG(xpt_rsbuf_regs, ("%s(%x:%u) BASE " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
+    BDBG_MODULE_MSG(xpt_rsbuf_regs, ("%s(%x:%u) BASE " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
 
     /* Change the WRITE, VALID, and READ init values per SW7445-102 */
     if(Offset)
@@ -139,12 +139,12 @@ static void SetupBufferRegs(
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 2 * REG_STEP, addrValue );           /* Set WRITE */
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 3 * REG_STEP, addrValue );           /* Set VALID */
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 5 * REG_STEP, addrValue );           /* Set READ */
-	BDBG_MODULE_MSG( xpt_rsbuf_regs, ("%s(%x:%u) WRITE/VALID/READ " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
+    BDBG_MODULE_MSG( xpt_rsbuf_regs, ("%s(%x:%u) WRITE/VALID/READ " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
 
     addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_END_POINTER_IBP0, END, Offset + Size - 1);
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 1 * REG_STEP, addrValue );              /* Set END */
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 4 * REG_STEP, addrValue );           /* Set WRAP */
-	BDBG_MODULE_MSG(xpt_rsbuf_regs, ("%s(%x:%u) END/WRAP " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
+    BDBG_MODULE_MSG(xpt_rsbuf_regs, ("%s(%x:%u) END/WRAP " BDBG_UINT64_FMT, BSTD_FUNCTION, BaseRegAddr, WhichInstance, BDBG_UINT64_ARG(addrValue) ));
 
     BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 6 * REG_STEP, 0 );           /* Set WATERMARK */
 #else
@@ -348,8 +348,14 @@ BERR_Code BXPT_P_RsBuf_Init(
     BDBG_ASSERT( hXpt );
     BDBG_ASSERT( BandwidthConfig );
 
-#ifdef BXPT_P_HAS_224B_SLOT_SIZE
-        /* SWSTB-5934 */
+    /* SWSTB-5934. The bitfield name changed on some parts. */
+#ifdef BCHP_XPT_RSBUFF_MISC_CTRL_MPOD_NO_DEST_CHK_DIS_MASK
+    {
+        Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_MISC_CTRL );
+        BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_MISC_CTRL, MPOD_NO_DEST_CHK_DIS, 1 );
+        BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_MISC_CTRL, Reg );
+    }
+#elif BCHP_XPT_RSBUFF_MISC_CTRL_CARD_NO_DEST_CHK_DIS_MASK
     {
         Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_MISC_CTRL );
         BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_MISC_CTRL, CARD_NO_DEST_CHK_DIS, 1 );

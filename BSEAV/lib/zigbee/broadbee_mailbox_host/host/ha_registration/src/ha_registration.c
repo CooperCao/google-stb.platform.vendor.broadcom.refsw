@@ -37,6 +37,8 @@
  ******************************************************************************/
 
 #include "bbMailAPI.h"
+
+#ifdef _ZBPRO_
 #include "ha_registration.h"
 
 
@@ -107,4 +109,5 @@ void HA_Registration_Init()
     }
 }
 
+#endif
 /* eof ha_registration.c */

@@ -48,9 +48,9 @@
 #include "zigbee_common.h"
 #include "zigbee_socket_server.h"
 #include "zigbee_api.h"
-#include "ha_registration.h"
 
 #ifdef _ZBPRO_
+#include "ha_registration.h"
 #include "bbMacSapForZBPRO.h"
 #include "bbZbProNwkSapTypesJoin.h"
 #include "bbZbProNwkSapTypesLeave.h"
@@ -174,6 +174,8 @@ void MailUnitTest_f5(MailUnitTest_f5Descr_t *req) { STUB_DUMP_ERROR_MSG; }
 
 void MAC_BanTableSetDefaultAction(MAC_BanTableSetDefaultActionReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void MAC_BanTableAddLink(MAC_BanTableAddLinkReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+
+#ifdef _ZBPRO_
 void ZBPRO_MAC_DataReq(MAC_DataReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_MAC_PurgeReq(MAC_PurgeReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_MAC_AssociateReq(MAC_AssociateReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
@@ -381,6 +383,9 @@ void ZBPRO_ZHA_CieDeviceUnregisterReq(ZBPRO_ZHA_CieDeviceUnregisterReqDescr_t * 
 //void ZBPRO_ZHA_CieDeviceSetPanelStatusReq(ZBPRO_ZHA_CieSetPanelStatusReqDescr_t * const reqDescr) { STUB_DUMP_ERROR_MSG; }
 //void ZBPRO_ZHA_CieZoneSetBypassStateReq(ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t   *const descr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZHA_CieDeviceSetPanelStatusInd(ZBPRO_ZHA_CieSetPanelStatusIndParams_t   *const indParams) { STUB_DUMP_ERROR_MSG; }
+#endif
+
+#ifdef _RF4CE_
 void RF4CE_MAC_DataReq(MAC_DataReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_MAC_GetReq(MAC_GetReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_MAC_ResetReq(MAC_ResetReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
@@ -456,11 +461,6 @@ void RF4CE_GDP2_HeartbeatInd(RF4CE_GDP2_HeartbeatIndParams_t *const indParams) {
 void RF4CE_GDP2_ClientNotificationInd(RF4CE_GDP2_ClientNotificationIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_GDP2_IdentifyReq(RF4CE_GDP2_IdentifyReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_GDP2_IdentifyInd(RF4CE_GDP2_IdentifyIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
-void SYS_PrintInd(SYS_PrintIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
-//void Mail_TestEngineHaltInd(TE_AssertLogIdCommandIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
-
-#include <stdio.h>
-
 /************************* STUBS for MAC ************************************************/
 
 //void MailUartRxInterruptHandler(TE_Host2Uart1ReqDescr_t *const req) {}
@@ -482,6 +482,11 @@ void RF4CE_ZRC_StartValidationInd(RF4CE_PairingReferenceProfileIdIndParams_t *in
 //void RF4CE_ZRC_ClientNotificationInd(RF4CE_GDP_ClientNotificationIndParams_t *indication) {}
 //void RF4CE_ZRC_HeartbeatInd(RF4CE_GDP_HeartbeatIndParams_t *indication) {}
 //void RF4CE_NWK_GetReq(RF4CE_NWK_GetReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#endif
+
+void SYS_PrintInd(SYS_PrintIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
+//void Mail_TestEngineHaltInd(TE_AssertLogIdCommandIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+#include <stdio.h>
 
 static void dumpMessage(uint8_t *msgBuf)
 {
@@ -538,5 +543,21 @@ void RF4CE_ZRC2_GetSharedSecretInd(RF4CE_ZRC2_GetSharedSecretIndDescr_t *request
 //void Phy_Test_SelectAntenna_Req(Phy_Test_Select_Antenna_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_Get_Diag_Caps_Req(RF4CE_Diag_Caps_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_Get_Diag_Req(RF4CE_Diag_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Mail_UartRecvInd(Mail_UartRecvIndDescr_t *const ind)
+{
+#ifdef BYPASS_RPC
+#include "zigbee.h"
+    if(Zigbee_GetCallback()->Mail_UartRecvInd)
+        Zigbee_GetCallback()->Mail_UartRecvInd(ind);
+    //server_Mail_UartRecvInd(ind, 0);
+#else
+    for (int i = 0; i < MAX_SOCKETS; i++){
+        int socket = i;
+        if(Zigbee_Socket_Is_Idle(socket))
+            server_Mail_UartRecvInd(ind, socket);
+    }
+#endif
+}
+
 
 /* eof bbPrjStubs.c */

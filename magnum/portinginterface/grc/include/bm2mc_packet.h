@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,8 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description: M2MC Packet header
- *
- ***************************************************************************/
+ ******************************************************************************/
+
 
 #ifndef BM2MC_PACKET_H__
 #define BM2MC_PACKET_H__
@@ -63,6 +61,7 @@ typedef enum BM2MC_PACKET_PacketType
     BM2MC_PACKET_PacketType_eDestinationControl,         /* destination control of zero_pad and chroma_filter */
     BM2MC_PACKET_PacketType_eOutputFeeder,               /* output plane */
     BM2MC_PACKET_PacketType_eOutputControl,              /* output control of dither and chroma_filter */
+    BM2MC_PACKET_PacketType_eMipmapControl,              /* set mipmap level */
     BM2MC_PACKET_PacketType_eBlend,                      /* color and alpha blend, and blend color */
     BM2MC_PACKET_PacketType_eBlendColor,                 /* blend color */
     BM2MC_PACKET_PacketType_eRop,                        /* ternary raster operation */
@@ -230,6 +229,7 @@ typedef enum BM2MC_PACKET_PixelFormat
     BM2MC_PACKET_PixelFormat_eL15_L05_A6,            /* 5-bit luma1, 5-bit luma0, 6-bit alpha */
 
     BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8,/* compressed ARGB_8888 */
+    BM2MC_PACKET_PixelFormat_eUIF_R8_G8_B8_A8,       /* UIF [V3D texture layout] ARGB_8888 */
 
     /* The following pixel formats are not supported by NEXUS_Graphics2D */
     BM2MC_PACKET_PixelFormat_eR8_G8_B8,              /* 24-bit packet */
@@ -382,8 +382,13 @@ typedef struct BM2MC_PACKET_PacketOutputControl
     bool chroma_filter;              /* whether filter chroma's when converting internal YCbCr444 format */
                                      /* into output YCbCr422/420 format (defaults to true) */
     uint8_t reserved[2];             /* align to 4-bytes */
-}
-BM2MC_PACKET_PacketOutputControl;
+}BM2MC_PACKET_PacketOutputControl;
+/***************************************************************************/
+typedef struct BM2MC_PACKET_PacketMipmapControl
+{
+    BM2MC_PACKET_Header header;      /* packet header */
+    uint32_t mipLevel;                /* 0-15, (defaults to 0, base image only) */
+}BM2MC_PACKET_PacketMipmapControl;
 
 /***************************************************************************/
 typedef enum BM2MC_PACKET_BlendFactor
@@ -932,6 +937,18 @@ while(0)
     (BUFFER) = (void *) packet; \
 } \
 while(0)
+
+/***************************************************************************/
+#define BM2MC_PACKET_WRITE_MipmapControl( BUFFER, MIPLEVEL, EXECUTE ) do \
+{ \
+    BM2MC_PACKET_PacketMipmapControl *packet = (BM2MC_PACKET_PacketMipmapControl *) (BUFFER); \
+    BM2MC_PACKET_INIT( packet, MipmapControl, EXECUTE ); \
+    packet->mipLevel = (MIPLEVEL); \
+    BM2MC_PACKET_TERM( packet ); \
+    (BUFFER) = (void *) packet; \
+} \
+while(0)
+
 
 /***************************************************************************/
 #define BM2MC_PACKET_WRITE_Blend( BUFFER, COLOR_BLEND, ALPHA_BLEND, COLOR, EXECUTE ) do \

@@ -69,6 +69,8 @@ int main(int argc, char **argv)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
 
+    BKNI_Sleep(1000);
+
     if( argc == 1  ) {
         /* print info for all keys */
 

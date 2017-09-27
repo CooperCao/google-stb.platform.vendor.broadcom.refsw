@@ -208,6 +208,44 @@ struct _TE_RoutingChangeReqDescr_t
     TE_RoutingChangeCb_t          callback;
 };
 
+typedef struct _Mail_UartSendConfParams_t
+{
+    uint8_t             status;
+} Mail_UartSendConfParams_t;
+
+typedef struct _Mail_UartSendReqParams_t
+{
+    SYS_DataPointer_t   payload;
+    uint8_t             payloadSize;
+} Mail_UartSendReqParams_t;
+
+typedef struct _Mail_UartSendReqDescr_t Mail_UartSendReqDescr_t;
+typedef struct _Mail_UartSendReqDescr_t
+{
+    Mail_UartSendReqParams_t  params;
+    void (*callback)(Mail_UartSendReqDescr_t *, Mail_UartSendConfParams_t *);
+} Mail_UartSendReqDescr_t;
+
+typedef struct _Mail_UartRecvIndParams_t
+{
+    SYS_DataPointer_t   payload;
+    uint8_t             payloadSize;
+}Mail_UartRecvIndParams_t;
+
+typedef struct _Mail_UartRecvRespParams_t
+{
+    uint8_t    status;
+} Mail_UartRecvRespParams_t;
+
+typedef struct _Mail_UartRecvIndDescr_t  Mail_UartRecvIndDescr_t;
+typedef void (*Mail_UartRecvResp_t)(Mail_UartRecvIndDescr_t *orgInd, Mail_UartRecvRespParams_t *resp);
+
+typedef struct _Mail_UartRecvIndDescr_t
+{
+    Mail_UartRecvIndParams_t  params;
+    Mail_UartRecvResp_t       callback;
+}Mail_UartRecvIndDescr_t;
+
 /**//**
  * \brief Public primitive for changing direction of the indication routing.
 */
@@ -222,7 +260,10 @@ void Mail_TestEngineSendHello(void);
 void Mail_TestEngineHelloInd(TE_HelloCommandIndParams_t *const indParams);
 void Mail_TestEngineAssertLogIdInd(TE_AssertLogIdCommandIndParams_t *const indParams);
 void Mail_TestEngineHaltInd(TE_AssertLogIdCommandIndParams_t *const indParams);
-
+#ifdef _USE_ASYNC_UART_
+void Mail_UartSendReq(Mail_UartSendReqDescr_t *const req);
+void Mail_UartRecvInd(Mail_UartRecvIndDescr_t *const ind);
+#endif
 #endif /* _MAILBOX_WRAPPERS_TEST_ENGINE_ */
 #endif /* _MAIL_TESTENGINE_H */
 

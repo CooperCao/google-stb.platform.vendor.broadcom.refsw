@@ -156,7 +156,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x306ad3bc,
 
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x306e35c4,
+		0x306e35b4,
 
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
 		0x306eae48,

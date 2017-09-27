@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -429,9 +429,11 @@ int main(int argc, char **argv)
 #endif
 
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    if (platformConfig.outputs.audioDacs[0] && NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0])) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),

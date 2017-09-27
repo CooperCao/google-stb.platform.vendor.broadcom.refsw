@@ -64,6 +64,7 @@
 #include "bchp_dvp_hr.h"
 #include "bchp_m2mc_l2.h"
 #include "bchp_m2mc1_l2.h"
+#include "bchp_mm_m2mc0_l2.h"
 #include "bchp_hdmi_rx_intr2_0.h"
 #include "bchp_hdmi_tx_intr2.h"
 #include "bchp_hdmi_tx_scdc_intr2_0.h"
@@ -364,6 +365,10 @@ static const BINT_P_IntMap bint_map[] =
 #if defined(BCHP_M2MC1_L2_REG_START) && !NEXUS_WEBCPU
     /* in webcpu mode, core0 doesn't get M2MC1 L1 */
     BINT_MAP_STD(0, M2MC1, M2MC1_L2_CPU),
+#endif
+
+#ifdef BCHP_MM_M2MC0_REG_START
+    BINT_MAP_STD(0, MM_M2MC0, MM_M2MC0_L2_CPU),
 #endif
 
     BINT_MAP_STD(0, AIO, AUD_INTH_R5F),

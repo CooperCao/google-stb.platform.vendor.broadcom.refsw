@@ -1760,7 +1760,7 @@ const uint32_t BDSP_IMG_algolib_code_array1[] = {
 	0x9900c43f,
 	0x09034207,
 	0x39024257,
-	0x72d04240,
+	0x72c04240,
 	0x70040470,
 	0x734040c7,
 	0x2100463f,

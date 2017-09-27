@@ -156,8 +156,10 @@ int main(void)
     pcmDecoder0 = NEXUS_AudioDecoder_Open(0, NULL);
 
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+    if (platformConfig.outputs.audioDacs[0]) {
+        NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
                                NEXUS_AudioDecoder_GetConnector(pcmDecoder0, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
@@ -167,8 +169,10 @@ int main(void)
 #if NEXUS_NUM_AUDIO_DACS > 1
     pcmDecoder1 = NEXUS_AudioDecoder_Open(1, NULL);
 
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[1]),
+    if (platformConfig.outputs.audioDacs[1]) {
+        NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[1]),
                                NEXUS_AudioDecoder_GetConnector(pcmDecoder1, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 #endif
 
     /* Bring up video display and outputs */

@@ -119,14 +119,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->i2c[2].data.type = NEXUS_GpioType_eSpecial;
     pSettings->i2c[2].data.gpio = 5;
 #if (BCHP_CHIP==7344)
-#if NEXUS_PLATFORM_7418SFF_H
-    {
-    uint8_t i=0;
-    for (i=0;i<NEXUS_MAX_I2C_CHANNELS;i++) {
-        pSettings->i2c[i].interruptMode = false;
-    }
-    }
-#endif
     /* Because of 7344A0 has issues we need to disable the I2C channel being used for Moca as well as channel  3 */
     pSettings->i2c[3].open = false;
 #endif
