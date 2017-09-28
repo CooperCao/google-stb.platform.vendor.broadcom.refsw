@@ -40,6 +40,7 @@
 APPS = \
     alloc \
     audio_description \
+    avs_status \
     cec \
     client \
     dma \

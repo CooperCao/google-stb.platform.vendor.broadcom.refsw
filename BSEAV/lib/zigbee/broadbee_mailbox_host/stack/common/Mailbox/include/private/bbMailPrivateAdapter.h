@@ -128,6 +128,10 @@ typedef struct _MailAdapterDescriptor_t
 void mailAdapterInit(void);
 
 /************************************************************************************//**
+    \brief Deinitialize internal data structures.
+ ****************************************************************************************/
+void mailAdapterDeinit(void);
+/************************************************************************************//**
     \brief Stops transactions.
  ****************************************************************************************/
 void mailAdapterCancelTx(uint8_t *const parcel);

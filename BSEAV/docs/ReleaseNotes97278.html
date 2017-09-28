@@ -183,9 +183,6 @@ style='color:#0070C0'>Features</span></a></span></p>
 <p style='margin-left:15.0pt'><span style='color:#0070C0'><a
 href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></span></p>
 
-<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#known_bugs"><span
-style='color:#0070C0'>Known Issues</span></a> </span></p>
-
 <div>
 
 <p><a name=top><strong>Broadcom 97278/7278 A0 Phase 17.3 </strong></a><strong>Set-Top
@@ -195,7 +192,7 @@ Unified Reference Software Release Notes</strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>August 19, 2017</p>
+<p>September 22, 2017</p>
 
 <p>Phase 17.3 Release </p>
 
@@ -204,8 +201,9 @@ Unified Reference Software Release Notes</strong></p>
 <p><strong>Platforms Supported: </strong></p>
 
 <p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 A0 Revision</p>
-
 <p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 A0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278VMS BCM7278 A0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278IPA BCM7278 A0 Revision</p>
 
 <p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
 
@@ -225,7 +223,23 @@ Unified Reference Software Release Notes</strong></p>
   <p class=MsoNormal>HB</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>Hybrid</p>
+  <p class=MsoNormal>Hybrid with Frontend option</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>VMS</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Video Media Server</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>IPA</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>SFF for IPSTB no Frontend</p>
   </td>
  </tr>
 </table>
@@ -439,7 +453,7 @@ options required to build the software. </p>
  </tr>
  <tr>
   <td style='padding:0in 0in 0in 0in'>
-  <p class=MsoNormal>97278 SV/HB</p>
+  <p class=MsoNormal>97278 SV/HB/VMS</p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
   <p class=MsoNormal>97278</p>
@@ -523,7 +537,7 @@ options required to build the software. </p>
 it to decode and display a UHD stream </strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_97278_20170819.src.tgz </li>
+ <li class=MsoNormal># tar xvfz refsw_release_97278_20170922.src.tgz </li>
  <li class=MsoNormal>#cd nexus/utils </li>
  <li class=MsoNormal>#make install </li>
 </ul>
@@ -542,7 +556,7 @@ it to decode and display a UHD stream </strong></p>
 </b></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_97278_20170819.src.tgz</li>
+ <li class=MsoNormal># tar xvfz refsw_release_97278_20170922.src.tgz</li>
  <li class=MsoNormal>#cd BSEAV/app/atlas/build </li>
  <li class=MsoNormal>#make install </li>
 </ul>
@@ -592,6 +606,17 @@ style='font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&n
 </span>#make install</p>
 
 <p class=MsoNormal style='margin-left:.25in'>&nbsp;</p>
+
+<p class=MsoNormal style='margin-left:.25in'>On the SV, HB, and VMS boards (not the IPA board) it is necessary to disable the 2nd GB of memory on MEMC1 due to the video encoder limitations.  These commands in BOLT should be repeated each time the settop is rebooted. (boot ... is whatever variation of the "boot" command you would use to boot the box.)</p>
+<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
+font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BOLT> dt bolt</span></p>
+<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
+font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BOLT> dt add prop /memory reg i 0x0 0x40000000 0x0 0x80000000 0x0 0xc0000000 0x0 0x40000000</span></p>
+<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
+font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BOLT> boot ...</span></p>
 
 <p class=MsoNormal style='margin-left:.25in'>On the settop, run the following
 to demonstrate transcoding an AVC file to 480p HEVC. </p>
@@ -683,46 +708,16 @@ style='margin-left:.5in;background:white'><span style='color:black'>nrt=1</span>
 
 <p class=MsoNormal style='margin-left:.25in'><span style='color:black'>&nbsp;</span></p>
 
-<p><a name="known_bugs"><strong>Known issues</strong></a><br>
-<a href="#top"><span style='color:windowtext'>(Top)</span></a> </p>
-
-<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0>
- <tr>
-  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='text-align:center'><b>Description</b></p>
-  </td>
-  <u1:p></u1:p>
-  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='text-align:center'><b>Jira Ticket </b></p>
-  </td>
-  <u1:p></u1:p>
-  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='text-align:center'><b>Area of concern</b></p>
-  </td>
- </tr>
- <u1:p></u1:p>
- <tr>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>&nbsp;</p>
-  </td>
-  <u1:p></u1:p>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal><span style='background:whitesmoke'></span></p>
-  </td>
-  <u1:p></u1:p>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal></p>
-  </td>
- </tr>
- <u1:p></u1:p>
-</table>
-
-<p class=MsoNormal>&nbsp;</p>
-
-<p><strong><a name="features">Features in this Release</a></strong><br/><a href="#top">(Top)</a></p><p>All features listed in <span style="color:green">green</span> are new to this release.</p><p>Platforms Supported</p><ul><li>Board Support: SV and HB</li><li>Chip Rev Support: A0</li><li>Kernel Version: 4.1-1.12</li><li>Toolchain: stbgcc-4.8-1.6</li></ul><h4></h4><p>High Dynamic Range (HDR)</p><ul><li>HDR10/HLG/SDR (Pass-through and Conversion)</li><li>HDR10/HLG/SDR (Pass-through only)</li><li style="color:green">DolbyVision - (<span style="color:green">5</span>, <span style="color:green">8.1</span>, <span style="color:green">8.2</span>, <span style="color:green">8.3</span>, <span style="color:green">8.4</span>, <span style="color:green">8.5</span>, <span style="color:green">9</span>)</li><li style="color:green">Technicolor HDR Prime</li></ul><p>Video Decoder</p><ul><li>AVS-P16(AVS+)</li><li>AVS1-P2 - (Jizhun Profile @ L6.0)</li><li>DSS - DIRECTV TS</li><li>Dual HD</li><li>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP, HP} @L4.2, MVC {MP, HP}@L4.1, SVC {MP, HP, Constrained SHP} @L4.2)</li><li>HD + SD</li><li>HEVC - ({MP} @L5.1 1080/60p, {MP} @L5.1 4kx2k/24p, {MP} @L5.1 4kx2k/30p, {MP} @L5.1 4kx2k/60p, Dual HEVC decoding)</li><li>Media File Format Support - (MKV, WebM (VP9/VP8 video and Vorbis audio))</li><li>Mosaic</li><li>MPEG-2 - (MP@{LL, ML, HL})</li><li>SW Still image decode (BMP, TIFF, JPEG)</li><li>VP9</li></ul><p>Audio Decoder</p><ul><li>AC3 - (5.1, Stereo)</li><li>Dolby - (DD, DDPlus 5.1, DDPlus 7.1, DDPlus stereo)</li><li>MPEG - (MPEG-I LI/LII/LIII)</li></ul><p>System</p><ul><li>Fast Channel Change</li><li>Graphics - (2D GFX, 3D GFX (openGL, OpenVG))</li><li>Kernel Mode</li><li>LE</li><li>Nexus Multi Process Support</li><li>User Mode</li></ul><p>A/V Display</p><ul><li>All NTSC/ATSC/PAL resolutions</li><li>Audio  - HDMI output - (Compressed on HDMI, PCM on HDMI)</li><li>Audio - SPDIF output - (Compressed on SPDIF, PCM on SPDIF)</li><li>Audio Output - (SPDIF (Compressed), SPDIF (Stereo PCM))</li><li>HDMI CEC</li><li>HDMI Input - (2.0)</li><li>HDMI support - (HDMI 1.x HDMI Rx, HDMI 1.x HDMI Tx, HDMI 2.0 for HDMI Rx, HDMI 2.0 for HDMI Tx, HDMI 2.0a for HDMI Tx, HDMI CEC)</li><li>PIP: Simulataneous HD+HD display</li><li>PIP: Simultaneous HD+SD display</li><li>TSM - (+/-20mSec, ASTM)</li><li>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)</li><li>Video - 4kx2k display - (UHD 3840x2160 24Hz, UHD 3840x2160 25Hz, UHD 3840x2160 30Hz, UHD 4096x2160 24Hz)</li><li>Video - HDMI output - (2.0)</li></ul><p>PVR</p><ul><li>PVR TSM</li><li>Record - (AVC, MPEG2, MPEG4, MVC)</li><li>STC rate based trickmode</li><li>Timeshift - (AVC, MPEG2, MPEG4, MVC)</li><li>Trick mode - (AVC, Decoder trickmode, Display Queue Trickmode (DQT), DSOLA with audio, Fast Forward, HEVC, Host trickmode, Host trickmode w/o index on MPEG-2, MPEG2, MPEG4, MVC, playback, Rewind, Slow motion, Smooth 1x rewind using MDQT, VP9)</li></ul><p>IPTV</p><ul><li>BIP API - (Dynamic clock recovery reconfiguration, HSL Server side trickmode, IGMP Linstener, RTSP server, Streamer)</li><li>HTTP streaming of MPEG2/MPEG4 TS content</li><li>IP HTTP playback from local server</li><li>IP video on demand using RTSP and RTP protocols</li><li>Live UDP/RTP channel decode</li><li>Network Record Support</li><li>Record of UDP and RTP channels to HDD</li><li>RTCP protocol support</li><li>RTSP Playback &amp; Trickmode Support</li><li>SES SAT&gt;IP 1.2 spec</li><li>UDP streaming of MPEG2/MPEG4 TS content</li></ul><p>Networking</p><ul><li>Ethernet MAC - (10/100 Eth MAC, 1000 Eth MAC)</li></ul><p>Miscellaneous</p><ul><li>NxClient Multiprocess library - (32/64 mixed mode, API to control audio output configuration, API to control
-slave display settings and sample aspect ratio, Audio Primer for fast main/PIP audio swap, Auto Volume Level, Callback for display changes, Display VBI functions, Explicit PIP window support, HDMI input encoding supporting (included rework of nxclient hdmi input api), Main/PIP video swap, NRT (non-real-time) transcode, nxserver external app mode, Per-output audio volume control, Picture quality adjustments, PIP mosaic, SCMS for SPDIF, Video-as-graphics)</li><li>Virtual L2 interrupt</li></ul><p>Transport</p><ul><li>Message Filtering</li><li>MTSIF</li><li>PID Filtering</li><li>Remux</li><li>TSMF</li><li style="color:green">SW based generic Channel Bonding</li></ul><p>Power Management</p><ul><li>Adaptive Voltage Scaling</li></ul><p>3D Video Display</p><ul><li>3D packing format - (1920x1080i@50Hz, 1920x1080i@59.94/60Hz, 1920x1080p@24Hz)</li></ul><p>Linux</p><ul><li>CMA</li><li>Ethernet link and Ethernet GPhy</li><li>Ethernet Switch</li><li>File system - (JFFS2, Rootfs, squashfs, UBIFS)</li><li>Flash - (NAND, NOR, SDIO, SPI)</li><li>Generic driver for SPI interface</li><li>Generic I2C driver</li><li>PCIe</li><li>SATA - (Sata2, Sata3)</li><li>UART port</li><li>USB</li></ul><p>Cable FE</p><ul><li>BCM3128 tuner support - (Full band capture with TR69/135)</li><li>QAM Tuning</li></ul><p>Transcoder</p><ul><li>Transcoder input from tuner, IP or local playback for compressed video - (H.264 Source, MPEG-2 Source)</li><li>Video Encode codec support - (H.264 (AVC) HD and SD (1080i50, 720p50, 480p50, 576i50), H.264 (AVC) HD and SD (1080p24/30, 1080i60, 720p60, 480p60, 480i60))</li></ul><p>Transcode - System</p><ul><li>A/V Sync</li><li>Software Extensible Mux Support</li><li>TS Stream Mux - Features - (Initial PTS configurable in NRT mode, PCR generation, Per segment PTS insertion, PES stream of VBI User Data Pass Through (ETSI en 300 472 and SCTE 127), Single Video PID, System Data Insertion (e.g. PAT/PMT), TTS 4-byte timestamp (Binary), TTS 4-byte timestamp (MOD300))</li><li>TS Stream Mux - Video Codecs - (H264/AVC, MPEG2)</li></ul><p>Transcode - Video</p><ul><li>Aspect Ratio Conversion</li><li>Bit Rates - (CBR, VBR)</li><li>Codecs - (H264/AVC {MP, HP, cBP}@{L1..L4})</li><li>Dynamic Settings - (Bit Rate, Frame Rate, GOP Structure, Resolution)</li><li>Frame Rates - (15/14.98, 24/23.97, 25, 30/29.97, 50, 60/59.94)</li><li>GOP Structure - (I)</li><li>Memory Bandwidth Reduction Modes</li><li>Operation Modes - (Non Real Time, Real Time)</li><li>Resolution</li><li>Scan Type - (Interlaced, Progressive)</li></ul><br><h4><p><strong><a name="features_future">Features Planned for the Next Release</a></strong><br/><a href="#top">(Top)</a></p></h4>
-
-</div>
+<h2>
+<a name="features">
+Features
+</a></h2>
+<p class=MsoNormal><a href="#_top">(Top)</a></p>
+<p>
+  <strong>
+    Information on Features has been consolidated in the <span style='color:#0070C0'><a href="ReleaseNotes.html"><span style='color:#0070C0'>generic ReleaseNotes.html</a></span>.</p>
+  </strong>
+</p>
 
 </div>
 

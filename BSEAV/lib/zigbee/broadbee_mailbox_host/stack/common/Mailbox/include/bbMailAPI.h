@@ -373,14 +373,14 @@ extern void ZBPRO_TC_NwkKeyUpdateReq_Call(ZBPRO_TC_NwkKeyUpdateReqDescr_t *req);
 /* ZBPRO TC API unit test */
 
 /* ZBPRO ZDO ZHA unit test */
-    #ifdef _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
+#ifdef _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
 extern void ZBPRO_ZHA_EzModeReq_Call(ZBPRO_ZHA_EzModeReqDescr_t *reqDescr);
 extern void ZBPRO_ZHA_CieDeviceEnrollReq_Call(ZBPRO_ZHA_CieEnrollReqDescr_t *reqDescr);
 extern void ZBPRO_ZHA_CieDeviceSetPanelStatusReq_Call(ZBPRO_ZHA_CieSetPanelStatusReqDescr_t * const reqDescr);
 extern void ZBPRO_ZHA_CieDeviceSetPanelStatusReqInd_Call(ZBPRO_ZHA_CieSetPanelStatusIndParams_t   *const   indParams);
 extern void ZBPRO_ZHA_CieZoneSetBypassStateReq_Call(ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t   *const descr);
 extern void ZBPRO_ZHA_CieDeviceEnrollInd_Call(ZBPRO_ZHA_CieEnrollIndParams_t *const indParams);
-    #endif  // _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
+#endif  // _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
 
 #endif  // _ZBPRO_
 
@@ -415,7 +415,7 @@ extern void RF4CE_ZRC2_EnableBindingReq_Call(RF4CE_ZRC2_BindingReqDescr_t *reque
 extern void RF4CE_ZRC2_DisableBindingReq_Call(RF4CE_ZRC2_BindingReqDescr_t *request);
 extern void RF4CE_ZRC2_SetPushButtonStimulusReq_Call(RF4CE_ZRC2_ButtonBindingReqDescr_t *request);
 extern void RF4CE_ZRC2_ClearPushButtonStimulusReq_Call(RF4CE_ZRC2_ButtonBindingReqDescr_t *request);
-//extern void RF4CE_ZRC2_CheckValidationResp_Call(RF4CE_ZRC2_CheckValidationRespDescr_t *response);
+extern void RF4CE_ZRC2_CheckValidationResp_Call(RF4CE_ZRC2_CheckValidationRespParams_t *response);
 extern void RF4CE_ZRC2_StartValidationInd_Call(RF4CE_ZRC2_CheckValidationIndParams_t *indication);
 extern void RF4CE_ZRC2_CheckValidationInd_Call(RF4CE_ZRC2_CheckValidationIndParams_t *indication);
 extern void RF4CE_ZRC2_ControlCommandInd_Call(RF4CE_ZRC2_ControlCommandIndParams_t *indication);
@@ -475,6 +475,9 @@ extern void RF4CE_Get_Diag_Caps_Req_Call(RF4CE_Diag_Caps_ReqDescr_t *request);
 extern void RF4CE_Get_Diag_Req_Call(RF4CE_Diag_ReqDescr_t *request);
 # endif
 
+# if defined(_USE_ASYNC_UART_)
+extern void Mail_UartSendReq_Call(Mail_UartSendReqDescr_t *request);
+#endif
 #endif  // _HOST_   // MAILBOX_UNIT_TEST
 
 #endif /* _MAIL_API_H */

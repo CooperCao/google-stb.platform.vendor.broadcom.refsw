@@ -97,6 +97,9 @@ void sysDbgHalt(const uint32_t errorUid /* , const char *const fileName, const u
                                                                                                  )
 {
     HAL_IRQ_DISABLE();
+#if defined(_USE_ASYNC_UART_) && (_MAILBOX_INTERFACE_ == 1)
+    while(1);
+#endif
 
 # if defined(_DEBUG_FILELINE_)
 #  if (_DEBUG_CONSOLELOG_ >= 1)

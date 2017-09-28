@@ -50,7 +50,14 @@ DFLAGS := -DLINUX
 
 DFLAGS += -DSRCBASE=\"$(WLAN_SrcBaseA)\" -DBCMDRIVER
 
-DFLAGS += -D__LINUX_ARM_ARCH__=7 -march=armv7-a
+ifneq ($(findstring armv7l,$(TARGET)),)
+# Should add the arm arch version specific details
+    DFLAGS += -D__LINUX_ARM_ARCH__=7 -march=armv7-a
+endif
+
+ifneq ($(findstring armv8,$(TARGET)),)
+    DFLAGS += -D__LINUX_ARM_ARCH__=8 -march=armv8-a
+endif #armv8
 
 IFLAGS =
 IFLAGS += -I$(LINUXDIR)/include

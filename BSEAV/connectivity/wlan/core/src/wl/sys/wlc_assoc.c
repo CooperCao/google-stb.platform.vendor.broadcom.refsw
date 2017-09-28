@@ -2412,6 +2412,7 @@ wlc_assoc_scan_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
 		wlc_p2p_prep_bss(wlc->p2p, cfg);
 #endif
 
+#ifdef WLSCANCACHE
 	/* If association scancache use is enabled, check for a hit in the scancache.
 	 * Do not check the cache if we are re-running the assoc scan after a cached
 	 * assoc failure
@@ -2423,10 +2424,11 @@ wlc_assoc_scan_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
 		                     chanspec_list, channel_num,
 		                     wlc->scan_results, &target_list, &target_num);
 	}
-
+#endif
 	/* reset the assoc cache flags since this may be a retry of a cached attempt */
 	as->flags &= ~(AS_F_CACHED_CHANNELS | AS_F_CACHED_RESULTS);
 
+#ifdef WLSCANCACHE
 	/* narrow down the channel list if the cache eval came up with a short list */
 	if (ASSOC_CACHE_ASSIST_ENAB(wlc) && target_num > 0) {
 		WL_ASSOC(("wl%d: JOIN: using the cached scan results "
@@ -2457,15 +2459,16 @@ wlc_assoc_scan_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
 		}
 
 		err = BCME_OK;
-	} else {
+	} else
+#endif
+	{
 		bool scan_suppress_ssid = FALSE;
 		int passive_time = -1;
 		int home_time = -1;
 		int scan_type = 0;
 		int away_ch_limit = 0;
 		struct ether_addr *sa_override = NULL;
-		chanspec_t chanspec_pruned[MAXCHANNEL];
-		memset(chanspec_pruned, 0, sizeof(*chanspec_pruned) * MAXCHANNEL);
+
 #ifdef EXT_STA
 		if (WLEXTSTA_ENAB(wlc->pub)) {
 			scan_suppress_ssid = wlc->scan_suppress_ssid;
@@ -2571,13 +2574,21 @@ wlc_assoc_scan_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
 			if (WLRCC_ENAB(wlc->pub) && roam->roam_scan_started &&
 				channel_num != 0 && chanspec_list != NULL) {
 				int channel_num_pruned;
-				memcpy(chanspec_pruned, chanspec_list,
-					channel_num * sizeof(*chanspec_pruned));
-				channel_num_pruned = wlc_assoc_pruned_roamscan_prep(cfg,
-					chanspec_pruned, channel_num);
-				if (channel_num_pruned != channel_num) {
-					channel_num = channel_num_pruned;
-					chanspec_list = chanspec_pruned;
+				chanspec_t *chanspec_pruned = (chanspec_t *)MALLOCZ(wlc->pub->osh, sizeof(*chanspec_pruned) * channel_num);
+				if (chanspec_pruned == NULL) {
+					WL_ERROR((WLC_BSS_MALLOC_ERR, WLCWLUNIT(wlc), WLC_BSSCFG_IDX(cfg),
+						__FUNCTION__, channel_num, MALLOCED(wlc->pub->osh)));
+					err = BCME_NOMEM;
+				} else {
+					memcpy(chanspec_pruned, chanspec_list,
+						channel_num * sizeof(*chanspec_pruned));
+					channel_num_pruned = wlc_assoc_pruned_roamscan_prep(cfg,
+						chanspec_pruned, channel_num);
+					if (channel_num_pruned != channel_num) {
+						channel_num = channel_num_pruned;
+						chanspec_list = chanspec_pruned;
+					}
+					MFREE(wlc->osh, chanspec_pruned,sizeof(*chanspec_pruned) * channel_num);
 				}
 			}
 		}

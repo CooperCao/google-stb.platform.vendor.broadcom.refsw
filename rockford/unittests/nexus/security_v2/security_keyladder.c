@@ -88,44 +88,40 @@ static int test_keyladder_GenerateLevelKeyIv(
 {
     NEXUS_KeyLadderHandle handle;
     NEXUS_KeyLadderAllocateSettings ladderAllocSettings;
-    NEXUS_CryptographicOperation operation;
     NEXUS_KeyLadderSettings ladderSettings;
+    NEXUS_KeyLadderInfo keyLadderInfo;
     NEXUS_KeyLadderLevelKey levelKey;
-    uint8_t       procIn[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-    NEXUS_Error   rc;
+    uint8_t procIn[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+    NEXUS_Error rc;
 
-    if( !keyLadderhandle ) {
-        printf( "Error, NULL pointer of keyladder handle\n" );
-        return -1;
-    }
+    if( !keyLadderhandle ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
 
     /* allocate a new key ladder */
-    if( !( *keyLadderhandle ) ) {
-        NEXUS_KeyLadderInfo keyLadderInfo;
+    if( !(*keyLadderhandle) ) {
 
         NEXUS_KeyLadder_GetDefaultAllocateSettings( &ladderAllocSettings );
         ladderAllocSettings.owner = NEXUS_SecurityCpuContext_eHost;
 
         handle = NEXUS_KeyLadder_Allocate( NEXUS_ANY_ID, &ladderAllocSettings );
-        if( handle == NULL ) { printf( "ERROR, NEXUS_KeyLadder_Allocate\n" ); return -1; }
+        if( !handle ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
         rc = NEXUS_KeyLadder_GetInfo( handle, &keyLadderInfo );
-        if( rc != NEXUS_SUCCESS ) { printf( "ERROR, NEXUS_KeyLadder_GetInfo\n" ); return -1; }
-
-        verboseLog( "Keyladder allocated. Index[%d].\n", keyLadderInfo.index );
+        if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
+        verboseLog( "KEYLADDER: Allocate Index[%d].\n", keyLadderInfo.index );
 
         *keyLadderhandle = handle;
     }
     else {
         handle = *keyLadderhandle;
-    }
 
-    operation = NEXUS_CryptographicOperation_eDecrypt;
+        rc = NEXUS_KeyLadder_GetInfo( handle, &keyLadderInfo );
+        if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
+    }
 
     NEXUS_KeyLadder_GetSettings( handle, &ladderSettings );
     ladderSettings.algorithm = algorithm;
     ladderSettings.keySize = 128;
-    ladderSettings.operation = operation;
+    ladderSettings.operation = NEXUS_CryptographicOperation_eDecrypt;
     if( destination == NEXUS_KeyLadderDestination_eKeyslotIv || destination == NEXUS_KeyLadderDestination_eKeyslotIv2 ) {
         ladderSettings.mode = NEXUS_KeyLadderMode_eGeneralPurpose1;
     }
@@ -133,29 +129,27 @@ static int test_keyladder_GenerateLevelKeyIv(
         ladderSettings.mode = mode;
     }
 
-    ladderSettings.numLevels = 4;
+
+    verboseLog( "KEYLADDER: Configure Index[%d].\n", keyLadderInfo.index );
 
     ladderSettings.root.type = NEXUS_KeyLadderRootType_eOtpAskm;
-    ladderSettings.root.otpKeyIndex = 1;
+    ladderSettings.root.otpKeyIndex = 0;
     ladderSettings.root.askm.caVendorId = 0x1234;
-    ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eChipFamily;
+    ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eFixed;
     ladderSettings.root.askm.stbOwnerSelect = NEXUS_KeyLadderStbOwnerIdSelect_eOne;
-
     rc = NEXUS_KeyLadder_SetSettings( handle, &ladderSettings );
-    if( handle == NULL ) {
-        printf( "ERROR, NEXUS_KeyLadder_SetSettings" );
-        return -1;
-    };
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
+
+    verboseLog( "KEYLADDER: Set Key Level 3  Index[%d].\n", keyLadderInfo.index );
 
     /* Set the keyladder level keys */
     NEXUS_KeyLadder_GetLevelKeyDefault( &levelKey );
     levelKey.level = 3;
     BKNI_Memcpy( levelKey.ladderKey, procIn, sizeof( levelKey.ladderKey ) );
     rc = NEXUS_KeyLadder_GenerateLevelKey( handle, &levelKey );
-    if( rc != NEXUS_SUCCESS ) {
-        printf( "ERROR, NEXUS_KeyLadder_GenerateLevelKey level 3\n" );
-        return -1;
-    };
+    if( rc != NEXUS_SUCCESS ) { return  BERR_TRACE( NEXUS_UNKNOWN ); }
+
+    verboseLog( "KEYLADDER: Set Key Level 4  Index[%d]. destination[%d] entry[%d] \n", keyLadderInfo.index, destination, slotEntry );
 
     NEXUS_KeyLadder_GetLevelKeyDefault( &levelKey );
     levelKey.level = 4;
@@ -164,10 +158,7 @@ static int test_keyladder_GenerateLevelKeyIv(
     levelKey.route.keySlot.entry = slotEntry;
     BKNI_Memcpy( levelKey.ladderKey, procIn, sizeof( levelKey.ladderKey ) );
     rc = NEXUS_KeyLadder_GenerateLevelKey( handle, &levelKey );
-    if( rc != NEXUS_SUCCESS ) {
-        printf( "ERROR, NEXUS_KeyLadder_GenerateLevelKey level 4\n" );
-        return -1;
-    };
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
     return 0;
 }
@@ -190,18 +181,12 @@ static int test_keyladder_SetKeyslot(
     keyslotAllocSettings.slotType = NEXUS_KeySlotType_eIvPerBlock;
     keyslotAllocSettings.useWithDma = true;
     keyslotHandle = NEXUS_KeySlot_Allocate( &keyslotAllocSettings );
-    if( !keyslotHandle ) {
-        printf( "ERROR, NEXUS_KeySlot_Allocate failed" );
-        return NEXUS_NOT_AVAILABLE;
-    };
+    if( !keyslotHandle ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
     /*configure keyslot parameters */
     NEXUS_KeySlot_GetSettings( keyslotHandle, &keyslotSettings );
     rc = NEXUS_KeySlot_SetSettings( keyslotHandle, &keyslotSettings );
-    if( rc != NEXUS_SUCCESS ) {
-        printf( "ERROR, NEXUS_KeySlot_SetSettings failed" );
-        goto exit;
-    };
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
     /*configure keyslot entry parameters */
     NEXUS_KeySlot_GetEntrySettings( keyslotHandle, slotEntry, &keyslotEntrySettings );
@@ -211,12 +196,8 @@ static int test_keyladder_SetKeyslot(
     keyslotEntrySettings.rPipeEnable = true;
     keyslotEntrySettings.gPipeEnable = true;
     rc = NEXUS_KeySlot_SetEntrySettings( keyslotHandle, slotEntry, &keyslotEntrySettings );
-    if( rc != NEXUS_SUCCESS ) {
-        printf( "ERROR, NEXUS_KeySlot_SetEntrySettings failed" );
-        goto exit;
-    };
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
-  exit:
     *pKeyslotHandle = keyslotHandle;
 
     return rc;
@@ -230,25 +211,20 @@ static int test_keyladder_DMATransferUsingLevelKey(
     rc = test_keyladder_SetKeyslot( config->levelKey.route.keySlot.entry,
                                     config->settings.algorithm,
                                     config->algorithmMode, &config->levelKey.route.keySlot.handle );
-    if( rc != NEXUS_SUCCESS || !config->levelKey.route.keySlot.handle ) {
-        printf( "ERROR, can not allocate keyslot" );
-        return -1;
-    }
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
+    if( !config->levelKey.route.keySlot.handle ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
     rc = test_keyladder_GenerateLevelKeyIv( config->levelKey.route.keySlot.handle,
                                             config->levelKey.route.keySlot.entry,
                                             config->settings.algorithm,
                                             config->settings.mode,
                                             config->levelKey.route.destination, &config->handle );
-    if( rc != NEXUS_SUCCESS || !config->handle ) {
-        BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
+    if( !config->handle ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
     rc = securityUtil_DmaTransfer( config->levelKey.route.keySlot.handle, config->pSrc, config->pDest,
                                    NEXUS_DmaDataFormat_eBlock, config->data_size, false );
-    if( rc != NEXUS_SUCCESS ) {
-        BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( NEXUS_UNKNOWN ); }
 
     NEXUS_KeySlot_Free( config->levelKey.route.keySlot.handle );
     config->levelKey.route.keySlot.handle = 0;
@@ -314,11 +290,9 @@ int test_keyladder_global_conf(
 
     rc = test_keyladder_SetKeyslot( slotEntry,
                                     NEXUS_CryptographicAlgorithm_eAes128,
-                                    NEXUS_CryptographicAlgorithmMode_eEcb, &keyslotHandle );
-    if( rc != NEXUS_SUCCESS ) {
-        printf( "ERROR, allocate keyslot failed." );
-        return -1;
-    };
+                                    NEXUS_CryptographicAlgorithmMode_eEcb,
+                                    &keyslotHandle );
+    if( rc != NEXUS_SUCCESS ) { printf( "ERROR, allocate keyslot failed." ); return -1; };
 
     /* allocate the key ladder */
     NEXUS_KeyLadder_GetDefaultAllocateSettings( &ladderAllocSettings );
@@ -335,10 +309,9 @@ int test_keyladder_global_conf(
     ladderSettings.keySize = 128;
     ladderSettings.operation = NEXUS_CryptographicOperation_eEncrypt;
     ladderSettings.mode = NEXUS_KeyLadderMode_eCp_128_5;
-    ladderSettings.numLevels = 5;
     ladderSettings.root.type = NEXUS_KeyLadderRootType_eGlobalKey;
     ladderSettings.root.askm.caVendorId = 0x1234;
-    ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eChipFamily;
+    ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eFixed;
     ladderSettings.root.askm.stbOwnerSelect = NEXUS_KeyLadderStbOwnerIdSelect_eOne;
     ladderSettings.root.globalKey.owner = NEXUS_KeyLadderGlobalKeyOwnerIdSelect_eOne;
     ladderSettings.root.globalKey.index = 0x0;  /*?? */
@@ -416,16 +389,15 @@ int test_keyladder_otp_conf(
     verboseLog( "Keyladder allocated. Configuring\n" );
 
     NEXUS_KeyLadder_GetSettings( handle, &ladderSettings );
-    ladderSettings.algorithm = NEXUS_CryptographicAlgorithm_eAes128;
+    ladderSettings.algorithm = NEXUS_CryptographicAlgorithm_e3DesAba;
     ladderSettings.keySize = 128;
     ladderSettings.operation = NEXUS_CryptographicOperation_eEncrypt;
-    ladderSettings.mode = NEXUS_KeyLadderMode_eCp_128_4;
-    ladderSettings.numLevels = 3;
+    ladderSettings.mode = NEXUS_KeyLadderMode_eCp_128_5;
 
     ladderSettings.root.type = NEXUS_KeyLadderRootType_eOtpAskm;
-    ladderSettings.root.otpKeyIndex = 1;
+    ladderSettings.root.otpKeyIndex = 0;
     ladderSettings.root.askm.caVendorId = 0x1234;
-    ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eChipFamily;
+    ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eFixed;
     ladderSettings.root.askm.stbOwnerSelect = NEXUS_KeyLadderStbOwnerIdSelect_eOne;
 
     rc = NEXUS_KeyLadder_SetSettings( handle, &ladderSettings );
@@ -457,44 +429,39 @@ int test_keyladder_otp_operation(
 {
     NEXUS_KeyLadderHandle handle = NULL;
     NEXUS_KeySlotHandle keyslotHandle = NULL;
-    NEXUS_Error   rc;
+    NEXUS_Error rc;
 
     rc = test_keyladder_SetKeyslot( slotEntry,
                                     NEXUS_CryptographicAlgorithm_eAes128,
                                     NEXUS_CryptographicAlgorithmMode_eEcb, &keyslotHandle );
-    if( rc != NEXUS_SUCCESS || !keyslotHandle ) {
-        printf( "ERROR, can not allocate keyslot" );
-        return -1;
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE(NEXUS_UNKNOWN); goto _exit; }
+    if( !keyslotHandle ) { BERR_TRACE(NEXUS_UNKNOWN); goto _exit; } /* ERROR, can not allocate keyslot */
 
     rc = test_keyladder_GenerateLevelKeyIv( keyslotHandle,
                                             slotEntry,
                                             NEXUS_CryptographicAlgorithm_eAes128,
                                             NEXUS_KeyLadderMode_eCp_128_4,
                                             NEXUS_KeyLadderDestination_eKeyslotKey, &handle );
-    if( rc != NEXUS_SUCCESS || !handle ) {
-        BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto _exit; }
+    if( !handle ) { BERR_TRACE( rc ); goto _exit; }
 
     rc = securityUtil_DmaTransfer( keyslotHandle, pSrc, pDest, NEXUS_DmaDataFormat_eBlock, data_size, false );
-    if( rc != NEXUS_SUCCESS ) {
-        BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); }
 
-    NEXUS_KeySlot_Free( keyslotHandle );
-    NEXUS_KeyLadder_Free( handle );
+_exit:
+
+    if( keyslotHandle ) NEXUS_KeySlot_Free( keyslotHandle );
+    if( handle ) NEXUS_KeyLadder_Free( handle );
 
     return rc;
 }
 
-int test_keyladder_otp_enc_dec(
-    securityTestConfig * pArgs )
+int test_keyladder_otp_enc_dec( securityTestConfig *pArgs )
 {
-    uint8_t      *pSrc = NULL,
-        *pDest = NULL;
-    NEXUS_KeySlotBlockEntry entry;
-    NEXUS_Error   rc;
-    unsigned      data_size = sizeof( plainText );
+    uint8_t *pSrc = NULL;
+    uint8_t *pDest = NULL;
+    NEXUS_Error rc;
+    unsigned data_size = sizeof( plainText );
 
     if( pArgs->enquire ) {
         SECURITY_FRAMEWORK_SET_GROUP( securityTestGroup_keyladder );
@@ -508,47 +475,40 @@ int test_keyladder_otp_enc_dec(
     NEXUS_Memory_Allocate( data_size, NULL, ( void ** ) &pDest );
 
     /* Using Otp key as the root key to encrypt the plain text. */
-    entry = NEXUS_KeySlotBlockEntry_eCpsClear;
     BKNI_Memcpy( pSrc, plainText, data_size );
     BKNI_Memset( pDest, 0, data_size );
-    rc = test_keyladder_otp_operation( entry, data_size, pSrc, pDest );
-    if( rc != NEXUS_SUCCESS ) {
-        printf( "ERROR with encryption of data\n" );
-    }
+
+    rc = test_keyladder_otp_operation( NEXUS_KeySlotBlockEntry_eCpsClear, data_size, pSrc, pDest );
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE(NEXUS_UNKNOWN); goto _exit; } /* ERROR with encryption of data */
 
     if( !BKNI_Memcmp( pDest, plainText, data_size ) ) {
-        printf( "    Test FAILED! plainText has not been encrypted.\n" );
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto _exit; /* plainText has not been encrypted!!!! */
     }
 
     /* Using Otp key as the root key to decrypt the cipher text. */
-    entry = NEXUS_KeySlotBlockEntry_eCpdClear;
     BKNI_Memcpy( pSrc, pDest, data_size );
     BKNI_Memset( pDest, 0, data_size );
-    rc = test_keyladder_otp_operation( entry, data_size, pSrc, pDest );
-    if( rc != NEXUS_SUCCESS ) {
-        printf( "ERROR with decryption of data\n" );
-    }
+    rc = test_keyladder_otp_operation( NEXUS_KeySlotBlockEntry_eCpdClear, data_size, pSrc, pDest );
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE(NEXUS_UNKNOWN); goto _exit; } /* error decrypting data */
 
     if( !BKNI_Memcmp( pDest, pSrc, data_size ) ) {
-        printf( "    Test FAILED! Cipher Text has not been decrypted.\n" );
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto _exit; /* scrambled data not been decrytped!!!! */
     }
 
     /* Check the decryption of the cipher is the same as the plain text. */
     if( BKNI_Memcmp( pDest, plainText, data_size ) ) {
-        printf( "Test FAILED! The final result is not the expected values.\n" );
         DEBUG_PRINT_ARRAY( "PlainText:", data_size, plainText );
+        DEBUG_PRINT_ARRAY( "Scrambled:", data_size, pSrc );
         DEBUG_PRINT_ARRAY( "Destination", data_size, pDest );
-        rc = NEXUS_INVALID_PARAMETER;
-    }
-    else {
-        verboseLog( "    Test PASSED!\n" );
-        rc = NEXUS_SUCCESS;
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto _exit;
     }
 
-    if( pSrc )
-        NEXUS_Memory_Free( pSrc );
-    if( pDest )
-        NEXUS_Memory_Free( pDest );
+    verboseLog( "    Test PASSED!\n" );
+    rc = NEXUS_SUCCESS;
+
+_exit:
+    if( pSrc ) NEXUS_Memory_Free( pSrc );
+    if( pDest ) NEXUS_Memory_Free( pDest );
 
     return rc;
 }
@@ -652,12 +612,11 @@ int test_keyladder_AES_ECB(
     }
 
     rc = securityUtil_DmaTransfer( keyslotHandle_enc, pSrc, pDest, NEXUS_DmaDataFormat_eBlock, data_size, false );
-    if( rc != NEXUS_SUCCESS ) {
-        BERR_TRACE( rc );
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc );
     }
 
     if( !BKNI_Memcmp( pDest, plainText, data_size ) ) {
-        printf( "    Test FAILED! plainText has not been encrypted.\n" );
+        printf( "    Test FAILED! plainText has not been encrypted. line[%d] \n", __LINE__ );
     }
 
     /* Using Otp key as the root key to decrypt the cipher text. */
@@ -689,7 +648,7 @@ int test_keyladder_AES_ECB(
     }
 
     if( !BKNI_Memcmp( pDest, pSrc, data_size ) ) {
-        printf( "    Test FAILED! Cipher Text has not been decrypted.\n" );
+        printf( "    Test FAILED! Cipher Text has not been decrypted. line[%d] \n", __LINE__ );
     }
 
     /* Check the decryption of the cipher is the same as the plain text. */
@@ -793,7 +752,7 @@ int test_keyladder_AES_CBC(
     }
 
     if( !BKNI_Memcmp( pDest, plainText, data_size ) ) {
-        printf( "    Test FAILED! plainText has not been encrypted.\n" );
+        printf( "    Test FAILED! plainText has not been encrypted. line[%d] \n", __LINE__ );
     }
 
     /* Using Otp key as the root key to decrypt the cipher text. */
@@ -839,7 +798,7 @@ int test_keyladder_AES_CBC(
     }
 
     if( !BKNI_Memcmp( pDest, pSrc, data_size ) ) {
-        printf( "    Test FAILED! Cipher Text has not been decrypted.\n" );
+        printf( "    Test FAILED! Cipher Text has not been decrypted. line[%d] \n", __LINE__ );
     }
 
     /* Check the decryption of the cipher is the same as the plain text. */
@@ -935,7 +894,7 @@ int test_keyladder_otpAskm_rootKey(
             }
 
             if( !BKNI_Memcmp( config.pDest, plainText, config.data_size ) ) {
-                printf( "    Test FAILED! plainText has not been encrypted.\n" );
+                printf( "    Test FAILED! plainText has not been encrypted. line[%d] \n", __LINE__ );
                 return -1;
             }
 

@@ -2065,12 +2065,13 @@ void BI2C_P_HandleInterrupt_Isr
 
     hDev = hChn->hI2c;
     lval = BREG_Read32(hDev->hRegister, (hChn->coreOffset + BCHP_BSCA_IIC_ENABLE));
+    if (lval & BCHP_BSCA_IIC_ENABLE_INTRP_MASK) {
+        hChn->noAck = (lval & BCHP_BSCA_IIC_ENABLE_NO_ACK_MASK) ? true : false; /* save no ack status */
+        lval &= ~(BCHP_BSCA_IIC_ENABLE_ENABLE_MASK);
+        BREG_Write32(hDev->hRegister, (hChn->coreOffset + BCHP_BSCA_IIC_ENABLE), lval);
 
-    hChn->noAck = (lval & BCHP_BSCA_IIC_ENABLE_NO_ACK_MASK) ? true : false; /* save no ack status */
-    lval &= ~(BCHP_BSCA_IIC_ENABLE_ENABLE_MASK);
-    BREG_Write32(hDev->hRegister, (hChn->coreOffset + BCHP_BSCA_IIC_ENABLE), lval);
-
-    BKNI_SetEvent( hChn->hChnEvent );
+        BKNI_SetEvent( hChn->hChnEvent );
+    }
 
     return;
 }

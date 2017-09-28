@@ -81,6 +81,9 @@ BDBG_MODULE(BCHP_SAGE);
 #define SAGE_RESETVAL_DOWN  0x1FF1FEED
 #define SAGE_RESETVAL_ERROR 0x30DE018E
 
+#define SAGE_RESET_WAIT_COUNT 1000
+#define SAGE_RESET_WAIT_DELAY 10
+
 bool BCHP_SAGE_HasEverStarted(BREG_Handle hReg)
 {
     return (BREG_Read32(hReg, SAGE_CRR_START_REG) != 0x0);
@@ -159,7 +162,7 @@ BCHP_SAGE_Reset(
         do {
             uint32_t wdval;
             cpt++;
-            BKNI_Sleep(10);
+            BKNI_Sleep(SAGE_RESET_WAIT_DELAY);
             wdval = BREG_Read32(hReg, BCHP_SCPU_HOST_INTR2_CPU_STATUS);
             if (wdval & (1 << BCHP_SCPU_HOST_INTR2_CPU_STATUS_SCPU_TIMER_SHIFT)) {
                 BDBG_MSG(("SAGE has been reset successfully!"));
@@ -183,9 +186,9 @@ BCHP_SAGE_Reset(
                 rc=BERR_TRACE(BERR_LEAKED_RESOURCE);
                 break;
             }
-        } while (cpt < 500);
+        } while (cpt < SAGE_RESET_WAIT_COUNT);
 
-            if (cpt >= 500) {
+            if (cpt >= SAGE_RESET_WAIT_COUNT) {
                 BDBG_WRN(("Cannot reset SAGE."));
             }
     }

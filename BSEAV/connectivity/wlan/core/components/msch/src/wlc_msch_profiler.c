@@ -268,10 +268,10 @@ static char *wl_msch_display_time(uint32 time_h, uint32 time_l)
 	uint32 s, ss;
 
 	if (time_h == 0xffffffff && time_l == 0xffffffff) {
-		sprintf(display_time, "-1");
+		snprintf(display_time, 32, "-1");
 	} else {
 		wl_msch_us_to_sec(time_h, time_l, &s, &ss);
-		sprintf(display_time, "%d.%06d", s, ss);
+		snprintf(display_time, 32, "%d.%06d", s, ss);
 	}
 	return display_time;
 }

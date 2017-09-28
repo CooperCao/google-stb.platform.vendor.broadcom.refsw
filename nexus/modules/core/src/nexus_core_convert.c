@@ -484,6 +484,8 @@ static const NEXUS_PixelFormatConvertInfo g_pixelFormatInfo[NEXUS_PixelFormat_eM
     /* bpp for compressed ARGB8888 is 16 with BSTC (or 16.5 with old DCEG) + some less significant number due to alignment */
     {{true,  false, true,  32}, BPXL_eCompressed_A8_R8_G8_B8, NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8},
 
+    {{true,  false, true,  32}, BPXL_eUIF_R8_G8_B8_A8, NEXUS_PixelFormat_eUIF_R8_G8_B8_A8},
+
     {{true, false, false, 24}, BPXL_eR8_G8_B8, NEXUS_PixelFormat_eR8_G8_B8},
     {{false, false, false, 32}, BPXL_eX2_Y010_Cb10_Y110_X2_Cr10_Y010_Cb10_X2_Y110_Cr10_Y010_X2_Cb10_Y110_Cr10, NEXUS_PixelFormat_eYCbCr422_10bit}
 };

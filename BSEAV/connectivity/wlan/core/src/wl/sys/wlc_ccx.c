@@ -2981,6 +2981,9 @@ wlc_ccx_rm_next_ie(ccx_rm_req_ie_t* ie, int* len)
 		buflen -= CCX_RM_IE_HDR_LEN + ie_len;
 		ie = (ccx_rm_req_ie_t*)((int8*)ie + CCX_RM_IE_HDR_LEN + ie_len);
 
+		if (ie == NULL)
+			return NULL;
+
 		/* make sure there is room for a valid CCX RM IE */
 		if (buflen < CCX_RM_IE_HDR_LEN ||
 		    buflen < CCX_RM_IE_HDR_LEN + (ie_len = ltoh16(ie->len))) {

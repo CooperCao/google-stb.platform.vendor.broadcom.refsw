@@ -9,13 +9,12 @@
 #include "egl_attrib_list.h"
 #include "../common/khrn_image.h"
 
-typedef enum egl_swap_result
+typedef enum
 {
-   EGL_SWAP_SWAPPED,       /* There is a new back buffer */
-   EGL_SWAP_NOT_SWAPPED,   /* Back buffer is the same */
-   EGL_SWAP_NO_MEMORY,     /* Ran out of memory */
-}
-egl_swap_result_t;
+   EGL_RES_SUCCESS,
+   EGL_RES_NO_MEM,
+   EGL_RES_BAD_NATIVE_WINDOW,
+}egl_result_t;
 
 typedef struct
 {
@@ -25,9 +24,9 @@ typedef struct
    /*
     * See eglSwapbuffers. If preserve, then the new back buffer should be
     * initialized with the contents of the previous back buffer. May be NULL
-    * in which case "EGL_SWAP_NOT_SWAPPED" is presumed.
+    * in which case back buffer is the same.
     */
-   egl_swap_result_t (*swap_buffers)(EGL_SURFACE_T *surface, bool preserve);
+   egl_result_t (*swap_buffers)(EGL_SURFACE_T *surface, bool preserve);
 
    /*
     * Set the swap interval (see eglSwapInterval). Can be NULL. It's up to the

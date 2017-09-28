@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
  *
  **************************************************************************/
 #ifndef NEXUS_SURFACE_TYPES_H__
@@ -125,7 +127,7 @@ typedef struct NEXUS_SurfaceCreateSettings
     unsigned pixelMemoryOffset;    /* offset from the start of the pixelMemory to the pixel buffer */
     NEXUS_MemoryBlockHandle paletteMemory; /* memory block that would be used for the palette buffer, pPaletteMemory and paletteMemory are  mutually exclusive */
     unsigned paletteMemoryOffset;    /* offset from the start of the paletteMemory to the palette buffer */
-
+    unsigned mipLevel;         /*  mipmap level */
     NEXUS_HeapHandle heap;     /* Optional handle for memory heap. If NULL, the surface and palette will be allocated from the default main heap. */
 } NEXUS_SurfaceCreateSettings;
 

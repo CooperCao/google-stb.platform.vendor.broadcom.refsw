@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  **************************************************************************/
+
 #include "nexus_surface_module.h"
 #include "priv/nexus_core.h"
 #include "priv/nexus_core_video.h"
@@ -262,7 +260,10 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
     NEXUS_Surface_P_Init(surface);
     surface->createSettings = *pCreateSettings;
     surface->memoryPropertiesValid = false;
-    BPXL_Plane_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, pixel_format);
+    if(pixel_format == BPXL_eUIF_R8_G8_B8_A8)
+        BPXL_Plane_Uif_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, pixel_format, (BCHP_Handle)g_pCoreHandles->chp);
+    else
+        BPXL_Plane_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, pixel_format);
 
     if ( pCreateSettings->pMemory || pCreateSettings->pixelMemory) {
         surface->createSettings.heap = NULL;

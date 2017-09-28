@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "media_player.h"
@@ -119,6 +111,9 @@ int main(int argc, const char **argv)
     bgui_fill(gui, 0);
     bgui_checkpoint(gui);
     bgui_submit(gui);
+
+    /* need SurfaceClient for video so SurfaceCompositor can set VideoWindow to full screen and visible */
+    NEXUS_SurfaceClient_AcquireVideoWindow(bgui_surface_client(gui), 0);
 
     media_player_get_default_create_settings(&create_settings);
     create_settings.window.surfaceClientId = bgui_surface_client_id(gui);

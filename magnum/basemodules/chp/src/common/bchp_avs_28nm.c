@@ -176,64 +176,119 @@ BERR_Code BCHP_P_AvsClose ( BCHP_P_AvsHandle hHandle )
 
 /* This is where these values come from IF the AVS firmware is running */
 /* The firmware updates these values every second */
+#if (BCHP_CHIP==7260) || (BCHP_CHIP==7268) || (BCHP_CHIP==7271) || (BCHP_CHIP==7278)
+#define AVS_FW_INTERFACE_DVFS
+#endif
 
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
+#ifdef BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_0_MNTR_STATUS /* dual AVS_MONITORs, i.e. 7145 */
+#define AVS_DUAL_MONITOR
+#endif
+
 #define MAX_AVS_DOMAIN_CNT 2
-#else
-#define MAX_AVS_DOMAIN_CNT 1
-#endif
 
-static uint32_t vreg_addr[MAX_AVS_DOMAIN_CNT] = {
-    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (2*4))
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
-    , (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (2*12))
+typedef enum {
+	AVS_MSG_IDX_COMMAND,    /*  0 */
+	AVS_MSG_IDX_STATUS,     /*  1 */
+	AVS_MSG_IDX_VOLT0,      /*  2 */
+	AVS_MSG_IDX_TEMP0,      /*  3 */
+	AVS_MSG_IDX_PV0,        /*  4 */
+	AVS_MSG_IDX_MV0,        /*  5 */
+#ifdef AVS_FW_INTERFACE_DVFS
+	AVS_MSG_IDX_COMMAND_P0, /*  6 */
+	AVS_MSG_IDX_COMMAND_P1, /*  7 */
+	AVS_MSG_IDX_COMMAND_P2, /*  8 */
+	AVS_MSG_IDX_COMMAND_P3, /*  9 */
+#else
+	AVS_MSG_IDX_VOLT1,      /*  6 */
+	AVS_MSG_IDX_TEMP1,      /*  7 */
+	AVS_MSG_IDX_PV1,        /*  8 */
+	AVS_MSG_IDX_MV1,        /*  9 */
 #endif
+	AVS_MSG_IDX_REVISION,   /* 10 */
+	AVS_MSG_IDX_STATE,      /* 11 */
+	AVS_MSG_IDX_HEARTBEAT,  /* 12 */
+	AVS_MSG_IDX_AVS_MAGIC,  /* 13 */
+	AVS_MSG_IDX_SIGMA_HVT,  /* 14 */
+	AVS_MSG_IDX_SIGMA_SVT   /* 15 */
+#ifdef AVS_FW_INTERFACE_DVFS
+	,
+	AVS_MSG_IDX_VOLT1,      /* 16 */
+	AVS_MSG_IDX_TEMP1,      /* 17 */
+	AVS_MSG_IDX_PV1,        /* 18 */
+	AVS_MSG_IDX_MV1         /* 19 */
+#endif
+} AVS_MSG_IDX;
+
+static uint32_t vreg_addr[] = {
+    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT0),
+    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT1)
 };
-static uint32_t treg_addr[MAX_AVS_DOMAIN_CNT] = {
-    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (3*4))
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
-    , (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + (3*13))
-#endif
+static uint32_t treg_addr[] = {
+    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP0),
+    (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP1)
 };
 
 /* Because we may have started up without AVS firmware running, we need to provide data in both situations.
  * If the firmware is running then it is updating the current data in the above locations.
  * If it is not running (i.e. above locations are always zero) then get the data ourselves.
  */
-static void AvsGetData(BCHP_P_AvsHandle hHandle, unsigned *voltage, signed *temperature, bool *firmware_running, unsigned index)
+static void AvsGetData(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *voltage1, signed *temperature, bool *firmware_running, unsigned *heartbeat)
 {
-    uint32_t v_reg, t_reg;
+    uint32_t v_reg0;
+    uint32_t v_reg1;
+    uint32_t t_reg;
 
-    *voltage = 0;
-    *temperature = 0;
     *firmware_running = true; /* assume its running */
-    if (index >= MAX_AVS_DOMAIN_CNT) return;
 
-    *voltage = BREG_Read32(hHandle->hRegister, vreg_addr[index]);
-    *temperature = BREG_Read32(hHandle->hRegister, treg_addr[index]);
+    *voltage0 = BREG_Read32(hHandle->hRegister, vreg_addr[0]);
+    *voltage1 = BREG_Read32(hHandle->hRegister, vreg_addr[1]);
+    *temperature = BREG_Read32(hHandle->hRegister, treg_addr[0]);
+    *heartbeat = BREG_Read32(hHandle->hRegister, BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_HEARTBEAT);
 
-    if (!*voltage)
     {
-#ifdef BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_0_MNTR_STATUS /* dual AVS_MONITORs, i.e. 7145 */
-        v_reg = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_0_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_0_MNTR_STATUS_data_MASK;
-        t_reg = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_1_PVT_TEMPERATURE_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_1_PVT_TEMPERATURE_MNTR_STATUS_data_MASK;
+        uint32_t revision = BREG_Read32(hHandle->hRegister, BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_REVISION);
+
+        BDBG_MSG(("AVS: v0=%08x v1=%08x  t0=%08x t1=%08x  rev=%c.%c.%c.%c  beat=%08x",
+            *voltage0,
+            *voltage1,
+            *temperature,
+            BREG_Read32(hHandle->hRegister, treg_addr[1]),
+            (revision >> 24), (revision >> 16) & 0xff, (revision >> 8) & 0xff, revision & 0xff,
+            *heartbeat
+        ));
+    }
+
+    if (*voltage0 == 0)
+    {
+#ifdef AVS_DUAL_MONITOR
+        v_reg0 = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_0_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_0_MNTR_STATUS_data_MASK;
+        v_reg1 = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_1_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_1_PVT_1V_0_MNTR_STATUS_data_MASK;
+        t_reg  = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_1_PVT_TEMPERATURE_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_1_PVT_TEMPERATURE_MNTR_STATUS_data_MASK;
 #else
-        v_reg = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS_data_MASK;
-        t_reg = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS_data_MASK;
+        v_reg0 = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS_data_MASK;
+        v_reg1 = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_PVT_1V_1_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS_data_MASK;
+        t_reg  = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS) & BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS_data_MASK;
 #endif
+
 #ifdef USE_NEW_CONVERSION_FORMULAS
         /* formula is: voltage=((v/1024)*880/0.7) */
-        *voltage = (v_reg * 8800U) / 7168U;
         /* formula is: temperature=410.04-(t*0.48705) */
+        *voltage0 = (v_reg0 * 8800U) / 7168U;
+        *voltage1 = (v_reg1 * 8800U) / 7168U;
         *temperature = (4100400 - (signed)(t_reg * 4870)) / 10;
 #else
         /* formula is: voltage=((v/1024)*877.9/0.7) */
-        *voltage = (v_reg * 8779U) / 7168U;
         /* formula is: temperature=(854.8-t)/2.069 */
+        *voltage0 = (v_reg0 * 8779U) / 7168U;
+        *voltage1 = (v_reg1 * 8779U) / 7168U;
         *temperature = 1000 * (854800 - (signed)(t_reg*1000)) / 2069;
 #endif
+
         *firmware_running = false;
     }
+
+    if (*voltage1 == 0)
+        *voltage1 = 0xffffffff;
 
 #ifdef BCHP_AVS_TMON_REG_START
     /* In newer products we have a AVS_TMON block that returns a different temperature than AVS_MONITOR */
@@ -247,21 +302,21 @@ static void AvsGetData(BCHP_P_AvsHandle hHandle, unsigned *voltage, signed *temp
 /* This gets called once a second to monitor the voltage and temperatures */
 BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
 {
-    unsigned voltage;
-#if BDBG_DEBUG_BUILD
-    unsigned dac;
-#endif
+    unsigned voltage0;
+    unsigned voltage1;
     signed temperature;
     bool firmware_running;
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
-    unsigned voltage1;
-    signed temperature1;
+    unsigned heartbeat;
+#if BDBG_DEBUG_BUILD
+    unsigned dac;
 #endif
 
     BDBG_ENTER(BCHP_Monitor_Pvt);
     BDBG_OBJECT_ASSERT(hHandle, bchp_avs_t);
 
-    AvsGetData(hHandle, &voltage, &temperature, &firmware_running, 0);
+    /* If we have been placed in stand-by mode, we don't touch any registers */
+    /*if (hHandle->standby) return BERR_TRACE(BERR_UNKNOWN);*/
+    if (hHandle->standby) return BERR_UNKNOWN;
 
 #if BDBG_DEBUG_BUILD
 #ifdef BCHP_AVS_PVT_MNTR_CONFIG_1_DAC_CODE /* i.e. 7145 */
@@ -271,23 +326,16 @@ BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
 #endif
 #endif
 
-    /* If we have been placed in stand-by mode, we don't touch any registers */
-    /*if (hHandle->standby) return BERR_TRACE(BERR_UNKNOWN);*/
-    if (hHandle->standby) return BERR_UNKNOWN;
+    AvsGetData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
 
     /* We don't do any "processing", just report the current status */
     /* This is to help people to build reports containing periodic temperature and voltage status */
-    BDBG_MSG(("Voltage = %d.%03dV, DAC = %d (0x%x), Temp = [%c%d.%03dC] %s",
-        mantissa(voltage), fraction(voltage), dac, dac,
+    BDBG_MSG(("Voltage0 = %d.%03dV, Voltage1 = %d.%03dV, DAC = %d (0x%x), Temp = [%c%d.%03dC] %s",
+        mantissa(voltage0), fraction(voltage0),
+        mantissa(voltage1), fraction(voltage1),
+        dac, dac,
         sign(temperature), mantissa(temperature), fraction(temperature),
         firmware_running?"alive":"dead"));
-
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
-    AvsGetData(hHandle, &voltage1, &temperature1, &firmware_running, 1);
-    BDBG_MSG(("Voltage1 = %d.%03dV, DAC = %d (0x%x), Temp1 = [%c%d.%03dC]",
-        mantissa(voltage1), fraction(voltage1), dac, dac,
-        sign(temperature1), mantissa(temperature1), fraction(temperature1)));
-#endif
 
     BDBG_LEAVE(BCHP_Monitor_Pvt);
     return BERR_SUCCESS;
@@ -297,34 +345,26 @@ BERR_Code BCHP_P_AvsGetData (
     BCHP_P_AvsHandle hHandle, /* [in] handle supplied from open */
     BCHP_AvsData *pData )     /* [out] location to put data */
 {
-    unsigned voltage;
+    unsigned voltage0;
+    unsigned voltage1;
     signed temperature;
     bool firmware_running;
-    unsigned voltage1 = 0;
-    signed temperature1 = 0;
+    unsigned heartbeat;
 
     BDBG_ASSERT(pData);
 
     BDBG_ENTER(BCHP_AvsGetData);
 
-    AvsGetData(hHandle, &voltage, &temperature, &firmware_running, 0);
+    AvsGetData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
 
-    pData->voltage = voltage;
+    pData->voltage = voltage0;
     pData->temperature = temperature;
     pData->enabled  = firmware_running?true:false;
     pData->tracking = firmware_running?true:false;
-
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
-    AvsGetData(hHandle, &voltage1, &temperature1, &firmware_running, 1);
-#endif
-
     pData->voltage1 = voltage1;
-    pData->temperature1 = temperature1;
+    pData->temperature1 = temperature;
 
-    BDBG_MSG(("voltage=%d  temperature=%d", pData->voltage, pData->temperature));
-#ifdef AVS_DUAL_DOMAIN_CAPABLE
-    BDBG_MSG(("voltage1=%d  temperature1=%d", pData->voltage1, pData->temperature1));
-#endif
+    BDBG_MSG(("voltage0=%d  voltage1=%d  temperature=%d  heartbeat=%d", pData->voltage, pData->voltage1, pData->temperature, heartbeat));
 
     BDBG_LEAVE(BCHP_AvsGetData);
     return BERR_SUCCESS;

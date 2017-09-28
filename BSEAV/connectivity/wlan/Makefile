@@ -130,16 +130,8 @@ endif
 # If TARGETARCH is arm or arm_le
 #   TARGETMACH: arm (little endian) or armeb (big endian)
 
-#export BRAND:=${B_WLAN_BRAND}
+WLAN_DEFAULT_BUILDCFG?=debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-wowl-stbsoc
 
-ifeq (${B_WLAN_BRAND},linux-mfgtest-stbsoc)
-    WLAN_DEFAULT_BUILDCFG?=debug-apdef-stadef-mfgtest-extnvm-${STB_FEAT}
-else ifeq (${B_WLAN_VER},STB7271_BRANCH_15_10)
-    WLAN_DEFAULT_BUILDCFG?=nodebug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-wowl-${STB_FEAT}
-else
-#   WLAN_DEFAULT_BUILDCFG?=apdef-stadef-p2p-mchan-extnvm-${STB_FEAT}
-    WLAN_DEFAULT_BUILDCFG?=debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-slvradar-${STB_FEAT}
-endif
 
 # Handle 32-bit ARM (B_REFSW_ARCH==arm*)
 ifneq ($(filter arm%,${B_REFSW_ARCH}),)
@@ -154,12 +146,6 @@ ifneq ($(filter arm%,${B_REFSW_ARCH}),)
     else ifeq (${NEXUS_ENDIAN},BSTD_ENDIAN_BIG)
         #  ARM BE
         $(error ${B_REFSW_ARCH} not supported with big endian)
-        export ARCH=arm
-        export TARGETARCH?=arm
-               TARGETARCH_FOR_WL=armv7l
-        export TARGETMACH?=armeb
-        export TARGETENV?=linuxarm
-		export BUILDCFG=${WLAN_DEFAULT_BUILDCFG}-armeb
     else
         $(error Cannot determine endianness! NEXUS_ENDIAN: ${NEXUS_ENDIAN})
     endif
@@ -169,32 +155,13 @@ else ifeq (${B_REFSW_ARCH},aarch64-linux)
         # ARM LE
         export ARCH=arm64
         export TARGETARCH?=arm64
-               TARGETARCH_FOR_WL=armv7l
+               TARGETARCH_FOR_WL=arm64
         export TARGETMACH?=arm
         export TARGETENV?=linuxarm
 		export BUILDCFG=${WLAN_DEFAULT_BUILDCFG}-armv8
     else ifeq (${NEXUS_ENDIAN},BSTD_ENDIAN_BIG)
         #  ARM BE
         $(error ${B_REFSW_ARCH} not supported with big endian)
-    else
-        $(error Cannot determine endianness! NEXUS_ENDIAN: ${NEXUS_ENDIAN})
-    endif
-else ifneq ($(filter mips%,${B_REFSW_ARCH}),)
-    WLAN_DEFAULT_BUILDCFG?=apdef-stadef-extnvm-${STB_BASE_SOC_FEAT}
-    ifeq (${NEXUS_ENDIAN},BSTD_ENDIAN_LITTLE)
-        #  MIPS LE
-        export ARCH=mips
-        export TARGETARCH?=mips
-        export TARGETMACH?=mipsel
-        export TARGETENV?=linuxmips
-		export BUILDCFG=${WLAN_DEFAULT_BUILDCFG}-mipsel-mips
-    else ifeq (${NEXUS_ENDIAN},BSTD_ENDIAN_BIG)
-        #  MIPS BE
-        export ARCH=mips
-        export TARGETARCH?=mips
-        export TARGETMACH?=mipseb
-        export TARGETENV?=linuxmips_be
-		export BUILDCFG=${WLAN_DEFAULT_BUILDCFG}-mipseb-mips
     else
         $(error Cannot determine endianness! NEXUS_ENDIAN: ${NEXUS_ENDIAN})
     endif
@@ -309,6 +276,8 @@ endif
 B_WLAN_DRIVER_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_FILE_NAME})
 B_WLAN_DRIVER_INSTALL_PATH_LIST+=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${BUILDCFG}-wl.ko)
 B_WLAN_WLEXE_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_WLEXE_INSTALL_FILE_NAME})
+B_WLAN_IGS_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME})
+B_WLAN_EMF_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME})
 B_WLAN_NVRAM_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_NVRAM_RESULT_FILE_NAME_LIST},${dir}/${file}))
 B_WLAN_UTILS_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_UTILS_RESULT_FILE_NAME_LIST},${dir}/${file}))
 
@@ -436,10 +405,25 @@ ${B_WLAN_DRIVER_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_OOSRC_PATH}
 	@echo "[Install... ${B_WLAN_DRIVER_RESULT_FILE_NAME} to $(dir $@) (WLAN)]"
 	${Q_}$(MKDIR) -p $(dir $@)
 	${Q_}$(CP) -dfp  ${B_WLAN_DRIVER_RESULT_OOSRC_PATH} $@
-	if [ "$(findstring wmf,$(BUILDCFG))" == "wmf" ]; then \
-		echo "[Install wmf... emf/igs to $(B_WLAN_INSTALL_DIR_LIST) (WLAN)]";\
-		$(CP) -dfp  ${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH} ${B_WLAN_INSTALL_DIR_LIST};\
-		$(CP) -dfp  ${B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH} ${B_WLAN_INSTALL_DIR_LIST};\
+	$(B_TRACE_RECIPE_END)
+
+#  Each installed driver is copied from its post-build location in the out-of-source tree.
+${B_WLAN_IGS_INSTALL_PATH_LIST}:
+	$(B_TRACE_RECIPE_BEGIN)
+	if [ -f ${B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH} ]; then \
+		echo "[Install... ${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME} to $(dir $@) (WLAN)]";\
+		$(MKDIR) -p $(dir $@);\
+		$(CP) -dfp  ${B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH} $@;\
+	fi
+	$(B_TRACE_RECIPE_END)
+
+#  Each installed driver is copied from its post-build location in the out-of-source tree.
+${B_WLAN_EMF_INSTALL_PATH_LIST}:
+	$(B_TRACE_RECIPE_BEGIN)
+	if [ -f ${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH} ]; then \
+		echo "[Install... ${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME} to $(dir $@) (WLAN)]";\
+		$(MKDIR) -p $(dir $@);\
+		$(CP) -dfp  ${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH} $@;\
 	fi
 	$(B_TRACE_RECIPE_END)
 
@@ -448,11 +432,15 @@ ${B_WLAN_DRIVER_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_OOSRC_PATH}
 ###################################################################
 #  The "install" target just lists all of the installed files as its prerequisites.
 .PHONY: install
-install:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST}
+install:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)
 
+driver:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "Done."
+	$(B_TRACE_RECIPE_END)
 ###################################################################
 #  clean target
 ###################################################################
@@ -461,7 +449,7 @@ clean:
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Cleaning..."
 	$(Q_)$(RM) -rf ${B_WLAN_OOSRC_VER_DIR}
-	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_INSTALL_DIR_LIST}/emf.ko ${B_WLAN_INSTALL_DIR_LIST}/igs.ko
+	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST}  ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/connectivity/wlan/wakeonwlan clean
 	$(B_TRACE_RECIPE_END)
 

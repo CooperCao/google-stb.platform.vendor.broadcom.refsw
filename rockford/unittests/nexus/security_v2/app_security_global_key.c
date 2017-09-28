@@ -136,7 +136,6 @@ int main(int argc, char **argv)
     ladderSettings.keySize = 128;
     ladderSettings.operation = NEXUS_CryptographicOperation_eDecrypt;
     ladderSettings.mode = NEXUS_KeyLadderMode_eCp_128_4;
-    ladderSettings.numLevels = 4;
     ladderSettings.root.type = NEXUS_KeyLadderRootType_eGlobalKey;
     ladderSettings.root.askm.caVendorId = 0x1234;
     ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eFixed;

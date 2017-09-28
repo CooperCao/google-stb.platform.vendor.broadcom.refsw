@@ -2414,7 +2414,6 @@ BERR_Code BHSM_ConfigAlgorithm (
     BHSM_P_CAKeySlotInfo_t       *pKeyslot    = NULL;
     BHSM_P_XPTKeySlotAlgorithm_t *pKeyslotAlg = NULL;
     BHSM_InvalidateKeyIO_t  invalidateKeyIO;
-    int x = 0;
 
     BDBG_ENTER( BHSM_ConfigAlgorithm );
 
@@ -2596,16 +2595,26 @@ BERR_Code BHSM_ConfigAlgorithm (
 
     if( pConfig->cryptoAlg.bUseExtKey || pConfig->cryptoAlg.bUseExtIV )
     {
+        unsigned slotIndex = 0;
+        unsigned slotMaxIndex = 0;
+
+        #if BHSM_BUILD_HSM_FOR_SAGE
+        slotIndex = 0;
+        slotMaxIndex = BHSM_EXTERNAL_KEYSLOTS_SAGE_MAX;
+        #else
+        slotIndex = BHSM_EXTERNAL_KEYSLOTS_SAGE_MAX;
+        slotMaxIndex = BHSM_EXTERNAL_KEYSLOTS_MAX;
+        #endif
 
         if( pKeyslotAlg->externalKeySlot.valid == false )
         {
            /* allocate an external keyslot */
-           for( x = 0; x < BHSM_EXTERNAL_KEYSLOTS_MAX; x++ )
+           for( ; slotIndex < slotMaxIndex; slotIndex++ )
            {
-               if( hHsm->externalKeySlotTable[x].allocated == false )
+               if( hHsm->externalKeySlotTable[slotIndex].allocated == false )
                {
-                    hHsm->externalKeySlotTable[x].allocated = true;  /* reserve the ext. key slot.  */
-                    pKeyslotAlg->externalKeySlot.slotNum = x;    /* record the ext. key slot location */
+                    hHsm->externalKeySlotTable[slotIndex].allocated = true;  /* reserve the ext. key slot.  */
+                    pKeyslotAlg->externalKeySlot.slotNum = slotIndex;    /* record the ext. key slot location */
                     pKeyslotAlg->externalKeySlot.valid = true;
                    break;
                }
@@ -2625,9 +2634,9 @@ BERR_Code BHSM_ConfigAlgorithm (
         }
 
         BDBG_MSG(("ExternalKey SET ksNum[%d] ksType[%d] blkType[%d] polType[%d] x[%d]" , pConfig->unKeySlotNum
-                            , pConfig->caKeySlotType, pConfig->keyDestBlckType, pConfig->keyDestEntryType, x ));
+                            , pConfig->caKeySlotType, pConfig->keyDestBlckType, pConfig->keyDestEntryType, slotIndex ));
 
-        if( x == BHSM_EXTERNAL_KEYSLOTS_MAX )
+        if( slotIndex == slotMaxIndex )
         {
             /* what have failed to reserve an external keyslot. */
             errCode = BERR_TRACE( BHSM_STATUS_RESOURCE_ALLOCATION_ERROR );

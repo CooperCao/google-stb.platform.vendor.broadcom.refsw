@@ -45,6 +45,7 @@ BGRC_INCLUDES += $(MAGNUM)/portinginterface/grc/include
 # Module Sources
 BGRC_SOURCES += $(MAGNUM)/portinginterface/grc/src/bgrc_packet.c
 BGRC_SOURCES += $(MAGNUM)/portinginterface/grc/src/bgrc_packet_priv.c
+BGRC_SOURCES += $(MAGNUM)/portinginterface/grc/src/bgrc_mmpacket_priv.c
 
 ifneq ($(BGRC_PACKET_VERIFY_SURFACE_RECTANGLE),n)
 BGRC_DEFINES += BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE

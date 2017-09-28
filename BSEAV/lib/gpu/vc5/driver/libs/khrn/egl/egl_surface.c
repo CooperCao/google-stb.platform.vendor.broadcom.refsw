@@ -208,7 +208,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
       EGL_SURFACE_T *surface = NULL;
       EGL_CONTEXT_T *context;
       bool preserve;
-      egl_swap_result_t swap_result = EGL_SWAP_NOT_SWAPPED;
 
       if (!egl_initialized(dpy, true))
          return EGL_FALSE;
@@ -242,28 +241,30 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
        * 4. Switch to the next back buffer. */
       preserve = surface->swap_behavior == EGL_BUFFER_PRESERVED;
       if (surface->fns->swap_buffers)
-         swap_result = surface->fns->swap_buffers(surface, preserve);
-
-      switch (swap_result)
       {
-      case EGL_SWAP_NO_MEMORY:
-         error = EGL_BAD_ALLOC;
-         goto end;
+         egl_result_t swap_result = surface->fns->swap_buffers(surface, preserve);
 
-      case EGL_SWAP_SWAPPED:
-         if (!egl_surface_resize(surface))
+         switch (swap_result)
          {
+         case EGL_RES_NO_MEM:
             error = EGL_BAD_ALLOC;
             goto end;
+         case EGL_RES_BAD_NATIVE_WINDOW:
+            error = EGL_BAD_NATIVE_WINDOW;
+            goto end;
+
+         case EGL_RES_SUCCESS:
+            if (!egl_surface_resize(surface))
+            {
+               error = EGL_BAD_ALLOC;
+               goto end;
+            }
+
+            if (surface->context)
+               egl_context_reattach(surface->context);
+
+            break;
          }
-
-         if (surface->context)
-            egl_context_reattach(surface->context);
-
-         break;
-
-      case EGL_SWAP_NOT_SWAPPED:
-         break;
       }
 
       if (!preserve && egl_context_gl_lock())

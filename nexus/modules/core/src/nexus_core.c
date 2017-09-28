@@ -168,6 +168,8 @@ NEXUS_Error NEXUS_GetAvsDomainStatus(
         break;
 
     case NEXUS_AvsDomain_eCpu :
+        if (data.voltage1 == 0xffffffff)
+            return NEXUS_INVALID_PARAMETER;
         pStatus->voltage      = data.voltage1;
         pStatus->temperature  = data.temperature1;
         break;

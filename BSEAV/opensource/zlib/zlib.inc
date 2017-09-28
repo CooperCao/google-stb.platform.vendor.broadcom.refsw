@@ -1,5 +1,5 @@
-#############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+############################################################################
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,6 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #############################################################################
+
 B_REFSW_DEBUG ?= y
 ifeq ($(B_REFSW_DEBUG),y)
     DEBUG_SUFFIX=debug
@@ -42,7 +43,7 @@ else
     DEBUG_SUFFIX=release
 endif
 
-ZLIB_VER?=1.2.11
+ZLIB_VER?=1.1.3
 
 ZLIB_NAME:=zlib-$(ZLIB_VER)
 ZLIB_SOURCE_TARBALL:=$(ZLIB_NAME).tar.gz

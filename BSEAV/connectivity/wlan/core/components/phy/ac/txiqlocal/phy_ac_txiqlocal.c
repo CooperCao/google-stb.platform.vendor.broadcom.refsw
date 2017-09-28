@@ -5290,10 +5290,10 @@ phy_ac_txiqlocal_cmd(phy_ac_txiqlocal_info_t *ti, uint8 searchmode, uint8 mphase
 
 		/* Switch off test tone */
 		wlc_phy_stopplayback_acphy(pi);	/* mimophy_stop_playback */
-
-		/* disable IQ/LO cal */
-		WRITE_PHYREG(pi, iqloCalCmdGctl, 0x0000);
 	} /* if BCME_OK */
+
+	/* disable IQ/LO cal */
+	WRITE_PHYREG(pi, iqloCalCmdGctl, 0x0000);
 
 #ifdef WLC_TXFDIQ
 #if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))

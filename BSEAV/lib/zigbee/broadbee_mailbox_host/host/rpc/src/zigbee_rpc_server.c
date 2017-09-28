@@ -262,6 +262,7 @@ static void process_rx_message(unsigned int *message_rx, int socket)
     case (RPC_S2C_Mail_TestEngineReset):
         server_Mail_TestEngineReset(&socket_cb[socket].message_rx[0], socket);
         break;
+#ifdef _ZBPRO_
     case (RPC_C2S_ZBPRO_NWK_PermitJoiningReq):
         server_ZBPRO_NWK_PermitJoiningReq(&socket_cb[socket].message_rx[0], socket);
         break;
@@ -570,6 +571,10 @@ static void process_rx_message(unsigned int *message_rx, int socket)
         break;
     case (RPC_C2S_ZBPRO_ZHA_CieZoneSetBypassStateReq):
         server_ZBPRO_ZHA_CieZoneSetBypassStateReq(&socket_cb[socket].message_rx[0], socket);
+        break;
+#endif
+    case (RPC_C2S_Mail_UartSendReq):
+        server_Mail_UartSendReq(&socket_cb[socket].message_rx[0], socket);
         break;
     default:
         printf("ZIGBEE_RPC_SERVER:  process_rx_message unknown message id:  0x%x\n", message_id);

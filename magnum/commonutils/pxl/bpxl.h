@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,8 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- ***************************************************************************/
+ ******************************************************************************/
+
 #ifndef BPXL_H__
 #define BPXL_H__
 
@@ -72,6 +70,7 @@ o TODO: Complete list of specific features that are supported and unit
 #define BPXL_P_PALETTE         0x10000000
 #define BPXL_P_SPECIAL         0x20000000
 #define BPXL_P_WINDOW          0x40000000
+#define BPXL_P_UIF             (BPXL_P_SPECIAL | BPXL_P_WINDOW)
 #define BPXL_P_TYPE_MASK       0x7F000000
 
 /* Private pixel component information */
@@ -290,6 +289,7 @@ typedef enum BPXL_Format
 
     /* compressed */
     BPXL_eCompressed_A8_R8_G8_B8 = BPXL_P_SPECIAL | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x8888,
+    BPXL_eUIF_R8_G8_B8_A8        = BPXL_P_SPECIAL | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x8888,
 
     BPXL_INVALID           = 0
 }

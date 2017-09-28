@@ -595,6 +595,12 @@ static void process_rx_message(unsigned int *message_rx)
         client_ZBPRO_ZHA_CieDeviceSetPanelStatusInd(message_payload);
         break;
 #endif
+    case (RPC_C2S_Mail_UartSendReq | RPC_RESPONSE):
+        client_Mail_UartSendReq_callback(message_payload);
+        break;
+    case (RPC_C2S_Mail_UartRecvInd):
+        client_Mail_UartRecvInd(message_payload);
+        break;
     default:
         printf("ZIGBEE_RPC_CLIENT:  process_rx_message unknown message id:  0x%x\n", message_id);
         break;

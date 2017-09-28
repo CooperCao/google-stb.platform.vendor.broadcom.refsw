@@ -618,11 +618,22 @@ BERR_Code BAPE_MuxOutput_Start(
                             dspIndex,
                             &queueSettings,
                             &hMuxOutput->cdb.queue);
-            if ( errCode ) { return BERR_TRACE(errCode); }
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->cdb.queue,
+                            numBuffers,
+                            &hMuxOutput->cdb.buffer);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            errCode = BDSP_Stage_AddQueueOutput(
+                            hMuxOutput->hStage,
+                            hMuxOutput->cdb.queue,
+                            &tmp /*[out]*/
+                            );
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
         }
 
         if (!hMuxOutput->itb.queue) {
-
             BDSP_Queue_GetDefaultSettings(hMuxOutput->node.deviceHandle->dspContext, &queueSettings);
             queueSettings.dataType = BDSP_DataType_eRdbItb;
             queueSettings.numBuffers = numBuffers;
@@ -635,42 +646,20 @@ BERR_Code BAPE_MuxOutput_Start(
                             dspIndex,
                             &queueSettings,
                             &hMuxOutput->itb.queue);
-            if ( errCode ) {
-                BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
-                return BERR_TRACE(errCode);
-            }
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->itb.queue,
+                            numBuffers,
+                            &hMuxOutput->itb.buffer);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            errCode = BDSP_Stage_AddQueueOutput(
+                            hMuxOutput->hStage,
+                            hMuxOutput->itb.queue,
+                            &tmp /*[out]*/
+                            );
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
         }
-
-        errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->cdb.queue,
-                        numBuffers,
-                        &hMuxOutput->cdb.buffer);
-
-        errCode = BDSP_Stage_AddQueueOutput(
-                        hMuxOutput->hStage,
-                        hMuxOutput->cdb.queue,
-                        &tmp /*[out]*/
-                        );
-        if ( errCode ) {
-            BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
-            BDSP_Queue_Destroy(hMuxOutput->itb.queue);
-            return BERR_TRACE(errCode);
-        }
-
-        errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->itb.queue,
-                        numBuffers,
-                        &hMuxOutput->itb.buffer);
-
-        errCode = BDSP_Stage_AddQueueOutput(
-                        hMuxOutput->hStage,
-                        hMuxOutput->itb.queue,
-                        &tmp /*[out]*/
-                        );
-        if ( errCode ) {
-            BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
-            BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
-            BDSP_Queue_Destroy(hMuxOutput->itb.queue);
-            return BERR_TRACE(errCode);
-            }
 
         hMuxOutput->cdb.bufferInterface.base = hMuxOutput->cdb.buffer.ui32BaseAddr;
         hMuxOutput->cdb.bufferInterface.end = hMuxOutput->cdb.buffer.ui32EndAddr;
@@ -683,6 +672,7 @@ BERR_Code BAPE_MuxOutput_Start(
         hMuxOutput->itb.bufferInterface.valid = hMuxOutput->itb.buffer.ui32WriteAddr;
         hMuxOutput->itb.bufferInterface.inclusive = false;
 
+        /* Flush Queues  - They may have been created by a previous start sequence */
         BDSP_Queue_Flush(hMuxOutput->cdb.queue);
         BDSP_Queue_Flush(hMuxOutput->itb.queue);
     }
@@ -701,13 +691,22 @@ BERR_Code BAPE_MuxOutput_Start(
     hMuxOutput->sendEos = false;
     hMuxOutput->sendMetadata = true;
 
-        errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
-        if ( errCode )
-        {
-            return BERR_TRACE(errCode);
-    }
+    errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
 
     return BERR_SUCCESS;
+
+cleanup:
+    BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
+    if ( hMuxOutput->cdb.queue ) {
+        BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
+        hMuxOutput->cdb.queue = NULL;
+    }
+    if ( hMuxOutput->itb.queue ) {
+        BDSP_Queue_Destroy(hMuxOutput->itb.queue);
+        hMuxOutput->itb.queue = NULL;
+    }
+    return errCode;
 }
 
 /***************************************************************************
@@ -738,13 +737,13 @@ void BAPE_MuxOutput_Stop(
     hMuxOutput->state = BAPE_MuxOutputState_Stopped;
     hMuxOutput->sendEos = true;
 
-        errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
-        if ( errCode )
-        {
-            (void)BERR_TRACE(errCode);
-            return;
-        }
+    errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
+    if ( errCode )
+    {
+        (void)BERR_TRACE(errCode);
+        return;
     }
+}
 
 BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
     BAPE_MuxOutputHandle hMuxOutput,
@@ -1487,7 +1486,6 @@ static void BAPE_MuxOutput_P_StopPathFromInput(struct BAPE_PathNode *pNode, stru
     hMuxOutput = pNode->pHandle;
     BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
     BDSP_Stage_RemoveAllInputs(hMuxOutput->hStage);
-    BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
 }
 
 static void BAPE_MuxOutput_P_FreePathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)

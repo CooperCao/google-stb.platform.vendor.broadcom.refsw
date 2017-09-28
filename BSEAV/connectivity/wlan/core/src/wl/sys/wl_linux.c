@@ -2976,7 +2976,7 @@ wl_add_if(wl_info_t *wl, struct wlc_if *wlcif, uint unit, struct ether_addr *rem
 	if (wl_cfg80211_query_if_name(wlif->dev, wlif->name) == -1)
 	{
 		WL_TRACE(("wpa virtual interface name does not exist. Change to %s\n", wlif->name));
-		sprintf(wlif->name, "%s%d.%d", devname, wl->pub->unit, wlif->subunit);
+		snprintf(wlif->name, sizeof(wlif->name), "%s%d.%d", devname, wl->pub->unit, wlif->subunit);
 	}
 	else {
 		WL_TRACE(("wpa virtual interface name exist. (%s)\n", wlif->name));

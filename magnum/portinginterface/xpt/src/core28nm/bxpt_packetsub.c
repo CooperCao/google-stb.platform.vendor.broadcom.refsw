@@ -149,6 +149,7 @@ BERR_Code BXPT_PacketSub_GetChannelDefaultSettings(
     BDBG_ASSERT( hXpt );
     BDBG_ASSERT( ChannelSettings );
 
+    BKNI_Memset(ChannelSettings, 0, sizeof(*ChannelSettings));
     if( ChannelNo >= hXpt->MaxPacketSubs )
     {
         /* Bad PID channel number. Complain. */

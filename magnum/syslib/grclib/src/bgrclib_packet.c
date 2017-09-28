@@ -80,35 +80,6 @@ BGRClib_P_Data;
 
 #define DEFAULT_COLOR (0xFF000000)
 
-#if 0
-/* some helpful debug code */
-static const char *g_blendFactor[] =
-{
-    "Zero",
-    "Half",
-    "One",
-    "SourceColor",
-    "InverseSourceColor",
-    "SourceAlpha",
-    "InverseSourceAlpha",
-    "DestinationColor",
-    "InverseDestinationColor",
-    "DestinationAlpha",
-    "InverseDestinationAlpha",
-    "ConstantColor",
-    "InverseConstantColor",
-    "ConstantAlpha",
-    "InverseConstantAlpha"
-};
-
-static void print_eq(const char *name, const BM2MC_PACKET_Blend *eq)
-{
-    BDBG_WRN(("%s blend: %s * %s %c %s * %s %c %s", name,
-        g_blendFactor[eq->a], g_blendFactor[eq->b], eq->sub_cd?'-':'+',
-        g_blendFactor[eq->c], g_blendFactor[eq->d], eq->sub_e?'-':'+',
-        g_blendFactor[eq->e]));
-}
-#endif
 
 /* for maximum perfornace, even in debug mode:
 - do not use BDBG_ENTER/LEAVE. there are other ways to trace calls and we don't want to risk DBG overhead.
@@ -511,11 +482,18 @@ static size_t *BGRClib_P_SetSourceControlPacket( BGRClib_Handle grclib, void *pP
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetOutputControlPacket( BGRClib_Handle grclib, void *pPacket, bool dither, bool chromaFilter )
+static size_t *BGRClib_P_SetOutputControlPacket( BGRClib_Handle grclib, void *pPacket, bool dither, bool chromaFilter)
 {
-    BGRC_Packet_SetOutputControl( grclib->hGRC, &pPacket, dither, chromaFilter );
+    BGRC_Packet_SetOutputControl( grclib->hGRC, &pPacket, dither, chromaFilter);
     return pPacket;
 }
+
+static size_t *BGRClib_P_SetMipmapPacket( BGRClib_Handle grclib, void *pPacket, uint32_t mipLevel)
+{
+    BGRC_Packet_SetMipmapControl( grclib->hGRC, &pPacket, mipLevel);
+    return pPacket;
+}
+
 
 /*****************************************************************************/
 #define BGRClib_P_SetDefaultMirrorPacket(grclib, pPacket) \
@@ -761,6 +739,7 @@ BERR_Code BGRClib_Destripe_Blit( BGRClib_Handle grclib, const BGRClib_DestripeBl
     pPacket = BGRClib_P_SetDefaultMirrorPacket(grclib, pPacket);
     pPacket = BGRClib_P_SetDefaultFixedScalePacket(grclib, pPacket);
     pPacket = BGRClib_P_SetSourceControlPacket(grclib, pPacket, false, params->chromaFilter, false);
+    pPacket = BGRClib_P_SetMipmapPacket(grclib, pPacket, params->miplevel);
     pPacket = BGRClib_P_SetOutputControlPacket(grclib, pPacket, false, params->chromaFilter);
     pPacket = BGRClib_P_SetDestripeBlitPacket( grclib, pPacket, &srcRect, &outRect );
 
@@ -990,6 +969,7 @@ BERR_Code BGRClib_Blit( BGRClib_Handle grclib, const BGRClib_BlitParams *params,
         pPacket = BGRClib_P_SetDefaultDestinationFeederPacket(grclib, pPacket);
     }
     pPacket = BGRClib_P_SetOutputFeederPacket( grclib, pPacket, params->outSurface );
+    pPacket = BGRClib_P_SetMipmapPacket(grclib, pPacket, params->miplevel);
     pPacket = BGRClib_P_SetOutputControlPacket(grclib, pPacket, false, params->chromaFilter);
 
     if (params->colorOp != BGRCLib_BlitColorOp_eCopySource || params->alphaOp != BGRCLib_BlitAlphaOp_eCopySource) {

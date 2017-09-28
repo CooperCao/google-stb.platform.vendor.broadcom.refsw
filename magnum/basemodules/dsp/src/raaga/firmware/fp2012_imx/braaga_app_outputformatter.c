@@ -361,7 +361,7 @@ const uint32_t BDSP_IMG_outputformatter_code_array1[] = {
 	0x27b64207,
 	0x60180fda,
 	0x6071fff4,
-	0x726081c8,
+	0x727081c8,
 	0x53c471d7,
 	0x50ffe525,
 	0xc8007e07,

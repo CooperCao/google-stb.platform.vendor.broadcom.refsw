@@ -43,6 +43,7 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Dbglib */
 #include "bfmt.h"
+#include "bavc.h"
 
 #include "bxdm_pp.h"
 #include "bxdm_pp_priv.h"
@@ -946,7 +947,16 @@ static void BXDM_PPOUT_S_SetDisplayParameters_isr(
          /* Always extract these values from the stream. */
          pPicture->eMatrixCoefficients = pUnifiedPicture->stDisplayInfo.eMatrixCoefficients;
          pPicture->eColorPrimaries = pUnifiedPicture->stDisplayInfo.eColorPrimaries;
-
+         /* In many NTSC contents MatrixCoefficients are marked as eItu_R_BT_470_2_BG by mistake.
+          * If we don't correct it, NTSC hdmi output conformance test would fail.
+          * some NTSC_J content might be encoded with MatrixCoefficients as eItu_R_BT_470_2_BG (5)
+          * or eFCC (4), and ColorPrimaries as 470_2_M (4). */
+         if ((BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG == pPicture->eMatrixCoefficients) &&
+             (BAVC_ColorPrimaries_eSmpte_170M == pPicture->eColorPrimaries || BAVC_ColorPrimaries_eItu_R_BT_470_2_M == pPicture->eColorPrimaries ||
+              BFMT_NTSC_HEIGHT == pPicture->ulDisplayVerticalSize))
+         {
+             pPicture->eMatrixCoefficients = BAVC_MatrixCoefficients_eSmpte_170M;
+         }
 #if 0
          pPicture->eTransferCharacteristics = pUnifiedPicture->stDisplayInfo.eTransferCharacteristics;
          pPicture->ePreferredTransferCharacteristics = pUnifiedPicture->stHDR.uiTransferCharacteristics; /* SWSTB-1629 */

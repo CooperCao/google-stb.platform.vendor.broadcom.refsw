@@ -2238,12 +2238,15 @@ BERR_Code BDSP_Raaga_P_SetTsmSettings_isr(
 		BKNI_Memset(&sPayload,0,sizeof(BDSP_P_TsmReconfigCommand));
 		BKNI_Memcpy(&sPayload.sTsmSettings, pSettingsBuffer, sizeof(BDSP_AudioTaskTsmSettings));
 
-		errCode = BDSP_Raaga_P_ProcessTsmReconfigCommand_isr(pRaagaTask, &sPayload);
-		if (BERR_SUCCESS != errCode)
+		if(pRaagaTask->taskParams.isRunning == true)
 		{
-			BDBG_ERR(("BDSP_Raaga_P_SetTsmSettings_isr: Error in TSM Re-Config command processing for Task %d", pRaagaTask->taskParams.taskId));
-			errCode = BERR_TRACE(errCode);
-			goto end;
+			errCode = BDSP_Raaga_P_ProcessTsmReconfigCommand_isr(pRaagaTask, &sPayload);
+			if (BERR_SUCCESS != errCode)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_SetTsmSettings_isr: Error in TSM Re-Config command processing for Task %d", pRaagaTask->taskParams.taskId));
+				errCode = BERR_TRACE(errCode);
+				goto end;
+			}
 		}
 	}
 

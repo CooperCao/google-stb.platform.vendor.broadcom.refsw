@@ -81,8 +81,6 @@ int main(int argc, char *argv[])
 
     BroadBee_RF4CE_Get_FA_Threshold();
 
-    printf("\nPress any key to exit\n");
-    getchar();
     printf("Completed 'rf4ce_get_fa_threshold' application successfully.\n");
 
     /*restore the old settings*/

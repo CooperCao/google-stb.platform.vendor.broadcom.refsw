@@ -2035,7 +2035,7 @@ static void NEXUS_HdmiOutput_P_AvRateChangeCallback(void *pContext)
 
     BHDM_GetHdmiSettings(hdmiOutput->hdmHandle, &hdmiSettings) ;
     hdmiSettings.bForceEnableDisplay = true ;
-    BHDM_EnableDisplay(hdmiOutput->hdmHandle, &hdmiSettings) ;
+    NEXUS_HdmiOutput_P_EnableDisplay(hdmiOutput, &hdmiSettings);
 }
 
 static void NEXUS_HdmiOutput_P_StopRxSenseDetection(void *pContext)
@@ -2545,7 +2545,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     )
 {
     BERR_Code errCode;
-    BAVC_HDMI_AviInfoFrame hdmAviInfoFrameSettings;
     uint8_t deviceAttached ;
 
     NEXUS_ASSERT_MODULE();
@@ -2588,8 +2587,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
 
         /* When updating AVI InfoFrame packets, the aspect ratio from hdmi settings is used,
             not the setting in AviInfoFrameSettings is used. */
-        BHDM_GetAVIInfoFramePacket(handle->hdmHandle, &hdmAviInfoFrameSettings);
-        BHDM_SetAVIInfoFramePacket(handle->hdmHandle, &hdmAviInfoFrameSettings);
+        NEXUS_HdmiOutput_P_ApplyAviInfoFrame(handle);
 
         /* Reset aspectRatioChangeOnly flag after checking */
         handle->contentChangeOnly = false;
@@ -2601,7 +2599,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
             handle->hdmSettings.stVideoSettings.eBitsPerPixel,
             handle->hdmSettings.stVideoSettings.eColorSpace,
             handle->hdmSettings.eColorimetry)) ;
-        errCode = BHDM_EnableDisplay(handle->hdmHandle, &handle->hdmSettings);
+        errCode = NEXUS_HdmiOutput_P_EnableDisplay(handle, &handle->hdmSettings);
         /* get the updated TMDS Signals */
         NEXUS_HdmiOutput_P_GetTmdsSignals (handle) ;
 
@@ -2799,7 +2797,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetAudioParams_priv(
         ** changes in SR will affect the Clock Recovery Packet
         */
         BDBG_MSG(("EnableDisplay:  Sample Rate %d", handle->hdmSettings.eAudioSamplingRate));
-        errCode = BHDM_EnableDisplay(handle->hdmHandle, &handle->hdmSettings);
+        errCode = NEXUS_HdmiOutput_P_EnableDisplay(handle, &handle->hdmSettings);
 
         NEXUS_HdmiOutput_P_GetTmdsSignals (handle) ;
         if ( errCode )
@@ -2973,14 +2971,8 @@ NEXUS_Error NEXUS_HdmiOutput_GetDisplaySettings_priv(
     NEXUS_HdmiOutputDisplaySettings *stHdmiOutputDisplaySettings
 )
 {
-#if NEXUS_HAS_HDMI_1_3
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     *stHdmiOutputDisplaySettings = handle->displaySettings;
-#else
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(stHdmiOutputDisplaySettings) ;
-#endif
-
     return NEXUS_SUCCESS;
 }
 
@@ -3013,10 +3005,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
         stVideoSettings.eColorSpace =
         NEXUS_P_ColorSpace_ToMagnum_isrsafe(pstDisplaySettings->colorSpace) ;
 
-        #if NEXUS_HAS_HDMI_1_3
         stVideoSettings.eBitsPerPixel = NEXUS_P_HdmiColorDepth_ToMagnum_isrsafe(pstDisplaySettings->colorDepth) ;
         stVideoSettings.eColorRange = NEXUS_P_ColorRange_ToMagnum_isrsafe(pstDisplaySettings->colorRange) ;
-        #endif
 
     rc = BHDM_SetVideoSettings(handle->hdmHandle, &stVideoSettings) ;
     if (rc) return BERR_TRACE(rc);
@@ -3143,6 +3133,9 @@ static void NEXUS_HdmiOutput_P_GetCurrentAviInfoFrame(NEXUS_HdmiOutputHandle han
     BDBG_CASSERT(sizeof(NEXUS_HdmiAviInfoFrame_YccQuantizationRange) == sizeof(BAVC_HDMI_AviInfoFrame_YccQuantizationRange));
 
     (void)BHDM_GetAVIInfoFramePacket(handle->hdmHandle, &avcAviInfoFrame);
+#if NEXUS_DBV_SUPPORT
+    NEXUS_HdmiOutput_P_GetDolbyVisionAviInfoFrame(handle, &avcAviInfoFrame);
+#endif
 
     pAviInfoFrame->bOverrideDefaults = avcAviInfoFrame.bOverrideDefaults;
 
@@ -3167,7 +3160,6 @@ static void NEXUS_HdmiOutput_P_GetCurrentAviInfoFrame(NEXUS_HdmiOutputHandle han
     pAviInfoFrame->videoIdCode = avcAviInfoFrame.VideoIdCode;
     pAviInfoFrame->pixelRepeat = avcAviInfoFrame.PixelRepeat;
 
-#if NEXUS_HAS_HDMI_1_3
     pAviInfoFrame->eITContent=
         (NEXUS_HdmiAviInfoFrame_ITContent) avcAviInfoFrame.eITContent;
     pAviInfoFrame->eExtendedColorimetry=
@@ -3178,7 +3170,6 @@ static void NEXUS_HdmiOutput_P_GetCurrentAviInfoFrame(NEXUS_HdmiOutputHandle han
         (NEXUS_HdmiAviInfoFrame_ContentType) avcAviInfoFrame.eContentType;
     pAviInfoFrame->eYccQuantizationRange =
         (NEXUS_HdmiAviInfoFrame_YccQuantizationRange) avcAviInfoFrame.eYccQuantizationRange;
-#endif
 
     pAviInfoFrame->topBarEndLineNumber = avcAviInfoFrame.TopBarEndLineNumber;
     pAviInfoFrame->bottomBarStartLineNumber = avcAviInfoFrame.BottomBarStartLineNumber;
@@ -3205,78 +3196,16 @@ NEXUS_Error NEXUS_HdmiOutput_SetAviInfoFrame(
     )
 {
     BERR_Code rc = BERR_SUCCESS;
-    BAVC_HDMI_AviInfoFrame avcAviInfoFrame;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 
-#if NEXUS_DBV_SUPPORT
-    if (handle->dbv.enabled)
-    {
-        NEXUS_HdmiOutput_P_SetDolbyVisionAviInfoFrame(handle);
-        /* just copy user-requested settings for later application to HDM when not in Dolby mode */
-        BKNI_Memcpy(&handle->avif, pAviInfoFrame, sizeof(handle->avif));
-    }
-    else
-#endif
-    {
-        /* If set, all settings are to be used in generating AVI InfoFrame. Else, some of the fields will be
-            automatically generated instead (e.g. color space, colorimetry, etc.) */
-        rc = BHDM_GetAVIInfoFramePacket(handle->hdmHandle, &avcAviInfoFrame);
+    /* copy user requested settings to nexus handle */
+    BKNI_Memcpy(&handle->avif, pAviInfoFrame, sizeof(handle->avif));
 
-        avcAviInfoFrame.bOverrideDefaults = pAviInfoFrame->bOverrideDefaults;
+    rc = NEXUS_HdmiOutput_P_ApplyAviInfoFrame(handle);
 
-        avcAviInfoFrame.ePixelEncoding =
-            (BAVC_HDMI_AviInfoFrame_Colorspace) pAviInfoFrame->eColorSpace;
-        avcAviInfoFrame.eActiveInfo =
-            (BAVC_HDMI_AviInfoFrame_ActiveInfo) pAviInfoFrame->eActiveInfo;
-        avcAviInfoFrame.eBarInfo =
-            (BAVC_HDMI_AviInfoFrame_BarInfo) pAviInfoFrame->eBarInfo;
-        avcAviInfoFrame.eScanInfo =
-            (BAVC_HDMI_AviInfoFrame_ScanInfo) pAviInfoFrame->eScanInfo;
-        avcAviInfoFrame.eColorimetry =
-            (BAVC_HDMI_AviInfoFrame_Colorimetry) pAviInfoFrame->eColorimetry;
-
-        avcAviInfoFrame.ePictureAspectRatio =
-            (BAVC_HDMI_AviInfoFrame_PictureAspectRatio) pAviInfoFrame->ePictureAspectRatio;
-        avcAviInfoFrame.eActiveFormatAspectRatio =
-            (BAVC_HDMI_AviInfoFrame_ActiveFormatAspectRatio) pAviInfoFrame->eActiveFormatAspectRatio;
-        avcAviInfoFrame.eScaling =
-            (BAVC_HDMI_AviInfoFrame_Scaling) pAviInfoFrame->eScaling;
-
-        avcAviInfoFrame.VideoIdCode = pAviInfoFrame->videoIdCode;
-        avcAviInfoFrame.PixelRepeat = pAviInfoFrame->pixelRepeat;
-
-#if NEXUS_HAS_HDMI_1_3
-        avcAviInfoFrame.eITContent =
-            (BAVC_HDMI_AviInfoFrame_ITContent) pAviInfoFrame->eITContent;
-        avcAviInfoFrame.eExtendedColorimetry =
-            (BAVC_HDMI_AviInfoFrame_ExtendedColorimetry) pAviInfoFrame->eExtendedColorimetry;
-        avcAviInfoFrame.eRGBQuantizationRange =
-            (BAVC_HDMI_AviInfoFrame_RGBQuantizationRange) pAviInfoFrame->eRGBQuantizationRange;
-        avcAviInfoFrame.eContentType =
-            (BAVC_HDMI_AviInfoFrame_ContentType) pAviInfoFrame->eContentType;
-        avcAviInfoFrame.eYccQuantizationRange =
-            (BAVC_HDMI_AviInfoFrame_YccQuantizationRange) pAviInfoFrame->eYccQuantizationRange;
-#endif
-
-        avcAviInfoFrame.TopBarEndLineNumber = pAviInfoFrame->topBarEndLineNumber;
-        avcAviInfoFrame.BottomBarStartLineNumber = pAviInfoFrame->bottomBarStartLineNumber;
-        avcAviInfoFrame.LeftBarEndPixelNumber = pAviInfoFrame->leftBarEndPixelNumber;
-        avcAviInfoFrame.RightBarEndPixelNumber = pAviInfoFrame->rightBarEndPixelNumber;
-
-        rc = BHDM_SetAVIInfoFramePacket(handle->hdmHandle, &avcAviInfoFrame);
-        if (rc) return BERR_TRACE(rc);
-
-        /*
-         * set will compute some pieces of the packet, so we need to get again
-         * and copy the results into nexus version
-         */
-        NEXUS_HdmiOutput_P_GetCurrentAviInfoFrame(handle);
-
-    }
-
-    return NEXUS_SUCCESS;
+    return rc;
 }
 
 
@@ -3592,6 +3521,87 @@ void NEXUS_HdmiOutput_GetAudioStatus_priv(
         /* assumes EDID was already read and saved off */
         pStatus->ac3Supported = hdmiOutput->supportedAudioFormats[BAVC_AudioFormat_eAC3].Supported;
     }
+}
+
+NEXUS_Error NEXUS_HdmiOutput_P_EnableDisplay(
+    NEXUS_HdmiOutputHandle hdmiOutput,
+    const BHDM_Settings * pSettings
+    )
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
+
+    rc = BHDM_EnableDisplay(hdmiOutput->hdmHandle, pSettings);
+    if (rc) { rc = BERR_TRACE(rc); return rc; }
+    /* EnableDisplay can modify AVI IF within the PI, so we need to read it back up */
+    NEXUS_HdmiOutput_P_GetCurrentAviInfoFrame(hdmiOutput);
+    return rc;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_P_ApplyAviInfoFrame(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BAVC_HDMI_AviInfoFrame avcAviInfoFrame;
+    const NEXUS_HdmiAviInfoFrame * pAviInfoFrame;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+
+    pAviInfoFrame = &handle->avif;
+
+    /* If set, all settings are to be used in generating AVI InfoFrame. Else, some of the fields will be
+        automatically generated instead (e.g. color space, colorimetry, etc.) */
+    rc = BHDM_GetAVIInfoFramePacket(handle->hdmHandle, &avcAviInfoFrame);
+
+    avcAviInfoFrame.bOverrideDefaults = pAviInfoFrame->bOverrideDefaults;
+
+    avcAviInfoFrame.ePixelEncoding =
+        (BAVC_HDMI_AviInfoFrame_Colorspace) pAviInfoFrame->eColorSpace;
+    avcAviInfoFrame.eActiveInfo =
+        (BAVC_HDMI_AviInfoFrame_ActiveInfo) pAviInfoFrame->eActiveInfo;
+    avcAviInfoFrame.eBarInfo =
+        (BAVC_HDMI_AviInfoFrame_BarInfo) pAviInfoFrame->eBarInfo;
+    avcAviInfoFrame.eScanInfo =
+        (BAVC_HDMI_AviInfoFrame_ScanInfo) pAviInfoFrame->eScanInfo;
+    avcAviInfoFrame.eColorimetry =
+        (BAVC_HDMI_AviInfoFrame_Colorimetry) pAviInfoFrame->eColorimetry;
+
+    avcAviInfoFrame.ePictureAspectRatio =
+        (BAVC_HDMI_AviInfoFrame_PictureAspectRatio) pAviInfoFrame->ePictureAspectRatio;
+    avcAviInfoFrame.eActiveFormatAspectRatio =
+        (BAVC_HDMI_AviInfoFrame_ActiveFormatAspectRatio) pAviInfoFrame->eActiveFormatAspectRatio;
+    avcAviInfoFrame.eScaling =
+        (BAVC_HDMI_AviInfoFrame_Scaling) pAviInfoFrame->eScaling;
+
+    avcAviInfoFrame.VideoIdCode = pAviInfoFrame->videoIdCode;
+    avcAviInfoFrame.PixelRepeat = pAviInfoFrame->pixelRepeat;
+
+    avcAviInfoFrame.eITContent =
+        (BAVC_HDMI_AviInfoFrame_ITContent) pAviInfoFrame->eITContent;
+    avcAviInfoFrame.eExtendedColorimetry =
+        (BAVC_HDMI_AviInfoFrame_ExtendedColorimetry) pAviInfoFrame->eExtendedColorimetry;
+    avcAviInfoFrame.eRGBQuantizationRange =
+        (BAVC_HDMI_AviInfoFrame_RGBQuantizationRange) pAviInfoFrame->eRGBQuantizationRange;
+    avcAviInfoFrame.eContentType =
+        (BAVC_HDMI_AviInfoFrame_ContentType) pAviInfoFrame->eContentType;
+    avcAviInfoFrame.eYccQuantizationRange =
+        (BAVC_HDMI_AviInfoFrame_YccQuantizationRange) pAviInfoFrame->eYccQuantizationRange;
+
+    avcAviInfoFrame.TopBarEndLineNumber = pAviInfoFrame->topBarEndLineNumber;
+    avcAviInfoFrame.BottomBarStartLineNumber = pAviInfoFrame->bottomBarStartLineNumber;
+    avcAviInfoFrame.LeftBarEndPixelNumber = pAviInfoFrame->leftBarEndPixelNumber;
+    avcAviInfoFrame.RightBarEndPixelNumber = pAviInfoFrame->rightBarEndPixelNumber;
+
+#if NEXUS_DBV_SUPPORT
+    NEXUS_HdmiOutput_P_SetDolbyVisionAviInfoFrame(handle, &avcAviInfoFrame);
+#endif
+    rc = BHDM_SetAVIInfoFramePacket(handle->hdmHandle, &avcAviInfoFrame);
+    if (rc) return BERR_TRACE(rc);
+    /* no need to copy from pi to nexus here because we just set the PI from
+     * the nexus copy, and we didn't want to see the DBV overrides anyway */
+    return rc;
 }
 
 #endif /* #if NEXUS_NUM_HDMI_OUTPUTS */

@@ -72,6 +72,7 @@ void NEXUS_HdmiInput_PrintAudioInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_INPUTS; i++)
     {
         hdmiInput = g_NEXUS_hdmiInput.handle[i] ;
+        if (!hdmiInput) continue;
 
         errCode = BHDR_GetHdmiRxStatus(hdmiInput->hdr, pstHdmiRxStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
@@ -122,6 +123,7 @@ void NEXUS_HdmiInput_PrintAviInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_INPUTS; i++)
     {
         hdmiInput = g_NEXUS_hdmiInput.handle[i] ;
+        if (!hdmiInput) continue;
 
         errCode = BHDR_GetHdmiRxStatus(hdmiInput->hdr, pstHdmiRxStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
@@ -173,6 +175,7 @@ void NEXUS_HdmiInput_PrintVendorSpecificInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_INPUTS; i++)
     {
         hdmiInput = g_NEXUS_hdmiInput.handle[i] ;
+        if (!hdmiInput) continue;
 
         errCode = BHDR_GetHdmiRxStatus(hdmiInput->hdr, pstHdmiRxStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
@@ -224,6 +227,7 @@ void NEXUS_HdmiInput_PrintDrmInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_INPUTS; i++)
     {
         hdmiInput = g_NEXUS_hdmiInput.handle[i] ;
+        if (!hdmiInput) continue;
 
         errCode = BHDR_GetHdmiRxStatus(hdmiInput->hdr, pstHdmiRxStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
@@ -272,6 +276,7 @@ void NEXUS_HdmiInput_PrintACRPacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_INPUTS; i++)
     {
         hdmiInput = g_NEXUS_hdmiInput.handle[i] ;
+        if (!hdmiInput) continue;
 
         errCode = BHDR_GetHdmiRxStatus(hdmiInput->hdr, pstHdmiRxStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }

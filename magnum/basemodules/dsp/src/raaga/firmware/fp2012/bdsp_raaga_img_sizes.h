@@ -61,7 +61,7 @@
 #define BDSP_IMG_ADPCM_DECODE_TABLES_SIZE                            ((uint32_t)1280)
 #define BDSP_IMG_ALGOLIB_CODE_SIZE                                   ((uint32_t)12072)
 #define BDSP_IMG_ALS_DECODE_INTER_FRAME_SIZE                         ((uint32_t)536)
-#define BDSP_IMG_ALS_DECODE_SIZE                                     ((uint32_t)26688)
+#define BDSP_IMG_ALS_DECODE_SIZE                                     ((uint32_t)26680)
 #define BDSP_IMG_ALS_DECODE_TABLES_SIZE                              ((uint32_t)928)
 #define BDSP_IMG_ALS_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_ALS_IDS_SIZE                                        ((uint32_t)9012)

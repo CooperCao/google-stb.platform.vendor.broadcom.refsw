@@ -873,8 +873,9 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
                     }
                 }
             }
-            if (!connect->settings.simpleVideoDecoder[0].surfaceClientId) {
-                /* we need to make full screen and visible if app doesn't use SurfaceCompositor for video window */
+            if (!connect->settings.simpleVideoDecoder[0].surfaceClientId || IS_MOSAIC(connect)) {
+                /* we need to make full screen and visible if app doesn't use SurfaceCompositor for video window.
+                also, if we're going into mosaic mode, surface compositor assumes the parent window is full screen and visible. */
                 resize_full_screen(session, j, index, true);
             }
         }

@@ -46,6 +46,7 @@
 #include "berr_ids.h"
 #include "bpxl.h"
 #include "bpxl_plane.h"
+#include "bpxl_uif.h"
 
 #ifdef __cplusplus
 extern "C" {
