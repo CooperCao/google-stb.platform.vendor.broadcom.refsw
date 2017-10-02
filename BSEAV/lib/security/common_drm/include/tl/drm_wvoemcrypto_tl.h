@@ -63,7 +63,11 @@ static const size_t WVCDM_MAC_KEY_SIZE = 32;
 #define SHA256_DIGEST_SIZE         (32)
 #define DRM_WVOEMCRYPTO_SHA256_DIGEST_LENGTH    32
 
-#define DRM_WVOEMCRYPTO_NUM_KEY_SLOT 3
+#define DRM_WVOEMCRYPTO_NUM_SESSION_KEY_SLOT 2
+#define DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT 20
+
+#define DRM_WVOEMCRYPTO_SESSION_KEY_CACHE 0
+#define DRM_WVOEMCRYPTO_CENTRAL_KEY_CACHE 1
 
 typedef struct Drm_WVOemCryptoParamSettings_t
 {
@@ -90,6 +94,19 @@ typedef struct
     Drm_WVOemCryptoCipherMode cipher_mode;
 } Drm_WVOemCryptoKeyObject;
 
+/* Better to have the same define in Sage side */
+typedef struct
+{
+    uint32_t key_id;
+    uint32_t key_id_length;
+    uint32_t key_data_iv;
+    uint32_t key_data;
+    uint32_t key_data_length;
+    uint32_t key_control_iv;
+    uint32_t key_control;
+    Drm_WVOemCryptoCipherMode cipher_mode;
+} Drm_WVOemCryptoSageKeyObject;
+
 typedef struct
 {
     const uint8_t* key_id;
@@ -101,6 +118,18 @@ typedef struct
     const uint8_t* key_control;
 } Drm_WVOemCryptoKeyObject_V10;
 
+/* Better to have the same define in Sage side */
+typedef struct
+{
+    uint32_t key_id;
+    uint32_t key_id_length;
+    uint32_t key_data_iv;
+    uint32_t key_data;
+    uint32_t key_data_length;
+    uint32_t key_control_iv;
+    uint32_t key_control;
+} Drm_WVOemCryptoSageKeyObject_V10;
+
 typedef struct Drm_WVOemCryptoKeyRefreshObject
 {
     const uint8_t* key_id;
@@ -109,6 +138,15 @@ typedef struct Drm_WVOemCryptoKeyRefreshObject
     const uint8_t* key_control;
 
 } Drm_WVOemCryptoKeyRefreshObject;
+
+/* Better to have the same define in Sage side */
+typedef struct Drm_WVOemCryptoSageKeyRefreshObject
+{
+    uint32_t key_id;
+    uint32_t key_id_length;
+    uint32_t key_control_iv;
+    uint32_t key_control;
+} Drm_WVOemCryptoSageKeyRefreshObject;
 
 typedef enum Drm_WVOemCryptoBufferType_t
 {
@@ -145,8 +183,8 @@ typedef enum Drm_WVOemCryptoAlgorithm
 
 typedef struct Drm_WVoemCryptoKeySlot_t
 {
-    NEXUS_KeySlotHandle hSwKeySlot[DRM_WVOEMCRYPTO_NUM_KEY_SLOT];
-    uint32_t keySlotID[DRM_WVOEMCRYPTO_NUM_KEY_SLOT];
+    NEXUS_KeySlotHandle hSwKeySlot;
+    uint32_t keySlotID;
 } Drm_WVoemCryptoKeySlot_t;
 
 typedef struct Drm_WVOemCryptoHostSessionCtx_t
@@ -154,9 +192,10 @@ typedef struct Drm_WVOemCryptoHostSessionCtx_t
     uint32_t session_id;
     uint8_t key_id[16];
     size_t key_id_length;
-    Drm_WVoemCryptoKeySlot_t keySlot;
     DrmCommonOperationStruct_t drmCommonOpStruct;
     Drm_WVOemCryptoCipherMode cipher_mode;
+    Drm_WVoemCryptoKeySlot_t *key_slot_ptr[DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT];
+    uint32_t num_key_slots;
     struct {
         uint32_t btp_sage_size;
         uint8_t *btp_sage_buffer;
